@@ -44,7 +44,7 @@ Spårnumren här är de logiska numren i registret (1–7). `PROMPTS.sv.md` numr
 ## 2. Start för arbetare: kvalificering före körning
 1. **Reservation.** Scenario-ID:n är reserverade på teamnivå i registret. Det är bara samordning, inte ägarskap över filer. `masterplan-claim.py` tar inte scenario-ID med punkt. Exakta filer, källor och producentresurser reserverar du atomiskt enligt `.agent-memory/masterplan-reservations.md`. Kan något inte reserveras, är resultatet `BLOCKED` för det ID:t. Hitta aldrig på en egen claimform.
 2. **Bas och separat spårharness.** Varje spår kör på kampanjens applikationsbas, alltså registrets `applicationBaseline`, med en **egen, separat harness**. Den används i stället för den äldre världsharnessen.
-   - **Placering.** Harnessen ligger under `scripts/simulation/<spår>/`, till exempel `scripts/simulation/track1/`, och reserveras av spåret.
+   - **Placering.** Harnessen ligger under `scripts/simulation/<spår>/`, till exempel `scripts/simulation/track1/`. Ägarskapet bevisas med spårets egen gren och ett kvitto i PR #930 som anger exakta sökvägar, enligt ägarbeslutet om custody. Delade befintliga filer claimas per exakt fil, aldrig per katalog.
    - **Stack.** Den startar en egen lokal stack från basens migrationer, med repots `scripts/gridex-aud-003-clean-replay.sh` och lokal Supabase. Den bygger och startar appen från basen och lägger till lokala motparter: mail, nätägare och leverantörsfil.
    - **Körning.** Den driver scenarierna via normala UI-, API- och backendingångar.
    - **Gränssnitt.** Harnessen har tre skript: `up.sh`, `down.sh` och `run.sh`. Kontraktet beskrivs i sim-builder.

@@ -17,7 +17,7 @@ Du sköter spårets stack åt en orkestrerande session. Du rättar ingen kod. Kr
 - **Paketkatalogen (säker)** är `quality/simulation-campaign/<kampanj>/runs/<run-id>/<worker-id>/<scenario-id>/` i spårets checkout. Där ligger bara `status.json` och `FINDINGS.md`, med referenser och sha256 till evidensen.
 
 ## Ingen körning pågår?
-Före varje ändring och varje körning kontrollerar du att `SIM_HOME/run.lock` saknas. Kontrollera också att `pgrep -af 'scripts/simulation/[^ ]*/(up|run)[.]sh|-native[.]test[.]ts'` inte ger några träffar, utöver din egen kontroll. Finns det träffar svarar du `BLOCKED: stacken upptagen` med processlistan.
+Före varje ändring och varje körning kontrollerar du att `SIM_HOME/run.lock` saknas. Finns låset men dess PID lever inte, tar du bort det och noterar det i paketet. Kontrollera också att `pgrep -af 'scripts/simulation/[^ ]*/(up|run)[.]sh|-native[.]test[.]ts'` inte ger några träffar, utöver din egen kontroll. Finns det träffar svarar du `BLOCKED: stacken upptagen` med processlistan.
 
 ## Ny stack eller omstartad container
 - Är klonen grund, kör först `git fetch --unshallow origin`.
@@ -36,7 +36,7 @@ Före varje ändring och varje körning kontrollerar du att `SIM_HOME/run.lock` 
    setsid nohup bash -c 'cd <körkatalog> && SIM_HOME=<sim-home> [SKIP_REPLAY=1] [SKIP_BUILD=1] bash scripts/simulation/<spår>/up.sh > <evidens>/up.log 2>&1; echo "exit $?" >> <evidens>/up.log' &
    ```
    Skicka med `SIM_HOME` och spårets lägesflaggor varje gång, även till `run.sh`. Skriv flaggorna i paketet.
-3. Kontrollera efter lyckad start att `SIM_HOME/built-commit` och `SIM_HOME/replay-commit` stämmer med vad du startade.
+3. Kontrollera efter lyckad start att `SIM_HOME/built-commit` och `SIM_HOME/replay-commit` stämmer med vad du startade, och att `SIM_HOME/fingerprint` är lika med replayskriptets `EXPECTED_FINGERPRINT` (efter ny replay). Avviker något är resultatet `BLOCKED: miljö`.
 4. **`SKIP_BUILD=1` är tillåtet** bara när varje fil i `git diff --name-only <built-commit> <SHA>` ligger under någon av dessa sökvägar:
    - `scripts/simulation/`
    - `scripts/*-native.test.ts`
@@ -51,7 +51,7 @@ Före varje ändring och varje körning kontrollerar du att `SIM_HOME/run.lock` 
      - Om det enda felet är "Migration is missing from checksum manifest", och bara för filer som uppdraget anger som `väntar GEN-fångst`, får du applicera dem. Notera dem i paketet som `pendingGenCapture`.
      - Alla andra integritetsfel ger `BLOCKED: migrationsintegritet`. Då applicerar du ingenting.
      - En ny replay av en HEAD med oregistrerade migrationer stoppas av clean-replay ("not checksum-pinned"). Svara då `BLOCKED: väntar GEN-fångst`.
-   - **Applicera** mot stackens databas med `psql "<stackens DB-URL från SIM_HOME>" -v ON_ERROR_STOP=1 -f <fil>`, utan `-1`.
+   - **Applicera** mot stackens databas med `psql "$(cat SIM_HOME/db-url)" -v ON_ERROR_STOP=1 -f <fil>`, utan `-1`.
    - **Faller en migration halvvägs** är stacken smutsig. Svara `BLOCKED: miljö`. Stacken måste då startas om med ny replay.
    - **Ledgern ändras inte.** Skriv inte in versionen i `supabase_migrations.schema_migrations`. Lägg i stället till en rad med version, filnamn, sha256 och tid i `SIM_HOME/applied-migrations.tsv`, men först när filen har applicerats helt. Kopiera tsv-filen till evidenskatalogen.
    - Ändra aldrig själva migrationsfilen.
