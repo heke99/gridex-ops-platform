@@ -23,7 +23,7 @@ Du granskar oberoende. Du har inte skrivit ändringen och du ändrar ingenting.
    - att schemaidentiteten är redovisad (replayens bas, fingeravtryck och `applied-migrations.tsv`);
    - att `applied-migrations.tsv` exakt motsvarar de tillagda filerna i `git diff --no-renames --name-status <replay-commit> HEAD -- supabase/migrations`, åt båda hållen, och att inga migrationsfiler är ändrade eller borttagna;
    - att loggens och rapportens sha256 stämmer;
-   - att inget berört steg hoppades över: kontrollera `skipped` i varje scenarios egen logg och `[run-many] skip` i `run-many.log`. Ett scenario utan egen rapport och logg räknas som inte kört;
+   - att inget berört steg hoppades över: kontrollera `skipped` i varje scenarios egen rapport och logg. Ett scenario utan egen rapport och logg räknas som inte kört;
    - att executionScope är korrekt;
    - att alla fält som `REPORTING.sv.md` kräver finns.
 

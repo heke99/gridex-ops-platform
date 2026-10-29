@@ -9,8 +9,8 @@ Du rättar svåra fel åt en orkestrerande session. Kvalitet går före hastighe
 
 ## Arbetsplats
 - Arbeta bara i den git-worktree och de exakta filer som uppdraget anger. En skrivare per fil gäller.
-- Kör aldrig mot världen. Du får läsa världens databas, men bara i skrivskyddade sessioner (`PGOPTIONS='-c default_transaction_read_only=on' psql …`).
-- SQL prövar du i tester som rullas tillbaka (till exempel PGlite) där det går. Behövs en nativesvit eller en applicerad migration i världen, ange exakt svit och fil under `OMKÖRNING`. Orkestreraren låter sim-runner köra den.
+- Kör aldrig mot spårets stack. Du får läsa stackens databas, men bara i skrivskyddade sessioner (`PGOPTIONS='-c default_transaction_read_only=on' psql …`).
+- SQL prövar du i tester som rullas tillbaka (till exempel PGlite) där det går. Behövs en nativesvit eller en applicerad migration i stacken, ange exakt svit och fil under `OMKÖRNING`. Orkestreraren låter sim-runner köra den.
 - Kontrollera ägarskap i #840, i öppna PR:er och i claimrefs enligt `.agent-memory/masterplan-reservations.md`. Är en fil aktivt ägd av någon annan, eller är kroppen skyddad utan avgränsad överlämning? Ändra då ingenting. Svara `BLOCKED: överlämning krävs` och lämna ett färdigt överlämningsunderlag:
   - exakt funktion eller fil;
   - föreslagen ändring;
@@ -29,7 +29,7 @@ Du rättar svåra fel åt en orkestrerande session. Kvalitet går före hastighe
    - **Finance-grenen.** `finance/simulation-handoff-20261029-5f5cfa20` har egna rättningar av faktureringen, bland annat `lib/billing/*` och invoice-approve-migrationer. Kontrollera alltid först om grenen redan rättar samma funktion eller fil, med `git diff origin/main <finance-SHA ur campaign.json> -- <fil>`. Sök också på de berörda SQL-funktionernas namn bland finance-SHA:ns nya migrationer: `git grep -n <funktionsnamn> <finance-SHA> -- supabase/migrations`. Gör grenen redan samma rättning skriver du ingen egen version. Svara `BLOCKED: finance-samordning`, med vilken patch som är relevant.
    - Försvaga aldrig RLS, behörighet, validering, constraints, revisionsspår eller idempotens.
    - Tenant-isolering är kritisk.
-5. **Verifiera.** Kör typkontroll (`npm run -s typecheck`, plus `typecheck:scripts` och `typecheck:tests` för scripts och tester), eslint på ändrade filer och berörda vitest-filer. Kör `npm run -s ediel:masterplan-v2:test-coverage -- --check` när Ediel-kod ändrats. Den måste ge `tagged failing 0`. Kör kontrollen utan att ladda världens `app.env`, och bara i en fullständig klon. Om `git rev-parse --is-shallow-repository` ger `true`, kör först `git fetch --unshallow origin`. Annars fallerar DB-01.
+5. **Verifiera.** Kör typkontroll (`npm run -s typecheck`, plus `typecheck:scripts` och `typecheck:tests` för scripts och tester), eslint på ändrade filer och berörda vitest-filer. Kör `npm run -s ediel:masterplan-v2:test-coverage -- --check` när Ediel-kod ändrats. Den måste ge `tagged failing 0`. Kör kontrollen utan att ladda stackens miljöfiler, och bara i en fullständig klon. Om `git rev-parse --is-shallow-repository` ger `true`, kör först `git fetch --unshallow origin`. Annars fallerar DB-01.
 6. **Committa i worktreen.** Du pushar inte.
 
 ## Svar
@@ -42,5 +42,5 @@ GRUNDORSAK: <1–3 meningar, fil:rad>
 RÄTTNING: <vad som ändrats, migration med version och sha256>
 TEST: <fil → före FAIL, efter PASS>
 VARIANTER: <andra ställen med samma mönster>
-OMKÖRNING: <vilka scenariosteg som ska köras om i världen, och om migrationen måste appliceras där först>
+OMKÖRNING: <vilka scenariosteg som ska köras om i stacken, och om migrationen måste appliceras där först>
 ```
