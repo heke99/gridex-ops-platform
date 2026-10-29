@@ -1,7 +1,7 @@
 import React from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest'
-const io=vi.hoisted(()=>({row:{} as Record<string,unknown>,error:null as unknown,loadError:null as unknown,guardError:null as unknown,calls:0,tenantChecks:0,last:{} as Record<string,FormDataEntryValue>}))
+const io=vi.hoisted(()=>({row:{} as Record<string,unknown>,error:null as unknown,loadError:null as unknown,guardError:null as unknown,calls:0,tenantChecks:0,last:{} as Record<string,FormDataEntryValue>,rpcCalls:[] as Array<{name:string;args:Record<string,unknown>}>,rpcError:null as unknown}))
 vi.mock('server-only',()=>({}))
 vi.mock('next/link',()=>({default:'a'}))
 vi.mock('next/cache',()=>({revalidatePath:()=>undefined}))
@@ -9,7 +9,7 @@ vi.mock('next/navigation',()=>({redirect:(url:string)=>{throw Error('REDIRECT:'+
 vi.mock('@/lib/admin/guards',()=>({requireAdminActionAccess:async()=>{if(io.guardError)throw io.guardError;return {userId:'staff-a'}}}))
 vi.mock('@/lib/tenant/entityGuards',()=>({loadCustomerTenantContext:async()=>({companyId:'company-a'}),assertContractTenant:async()=>{io.tenantChecks++}}))
 vi.mock('@/lib/customer-contracts/db',()=>({getCustomerContractById:async(id:string,options:{companyId:string})=>{if(id!=='contract-a'||options.companyId!=='company-a')throw Error('unscoped lookup');if(io.loadError)throw io.loadError;return io.row}}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{const q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:io.row,error:io.loadError})};return q}}}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:async(name:string,args:Record<string,unknown>)=>{io.rpcCalls.push({name,args});return {data:io.rpcError?null:{ok:true,contract_id:'contract-a',pricing_revised:true,links_revoked:1},error:io.rpcError}},from:()=>{const q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:io.row,error:io.loadError})};return q}}}))
 vi.mock('@/components/admin/customers/contracts/actions',()=>({createContractAction:async()=>undefined,createContractFromOfferAction:async()=>undefined,logContractEventAction:async()=>undefined,updateContractAction:async(data:FormData)=>{io.calls++;io.last=Object.fromEntries(data.entries());if(io.error)throw io.error}}))
 vi.mock('@/lib/customer-contracts/onlineSigning',()=>({sendOnlineContractSignatureRequest:async()=>undefined}))
 import {saveContractWithFeedbackAction} from '@/app/admin/customers/[id]/contracts/[contractId]/signature/actions'
@@ -17,36 +17,55 @@ import {EditContractForm} from '@/components/admin/customers/contracts/ContractF
 import type {CustomerContractRow} from '@/lib/customer-contracts/types'
 const base=()=>({id:'contract-a',customer_id:'customer-a',company_id:'company-a',contract_offer_id:null,status:'draft',signed_at:null,locked_at:null,contract_price_snapshot_id:null,contract_name:'Synthetic agreement',contract_type:'variable_monthly',price_snapshot:{},metadata:{},green_fee_mode:'none',vat_rate:0.25})
 const form=()=>{const f=new FormData();f.set('customer_id','customer-a');f.set('customer_contract_id','contract-a');return f}
-beforeEach(()=>{vi.stubGlobal('React',React);io.row=base();io.calls=0;io.tenantChecks=0;io.error=null;io.loadError=null;io.guardError=null})
+beforeEach(()=>{vi.stubGlobal('React',React);io.row=base();io.calls=0;io.tenantChecks=0;io.error=null;io.loadError=null;io.guardError=null;io.rpcCalls=[];io.rpcError=null})
 afterEach(()=>vi.unstubAllGlobals())
 describe('recoverable contract fee save with existing authorized business command',()=>{
+ it('allows entering customer-specific fee revisions on an unsigned agreement before its next signature',()=>{
+  const row={...base(),status:'pending_signature',energy_direction:'consumption',contract_offer_id:'offer-a',contract_price_snapshot_id:'snapshot-a',updated_at:'2026-10-29T10:00:00.123456+00:00'} as unknown as CustomerContractRow
+  const html=renderToStaticMarkup(React.createElement(EditContractForm,{contract:row,customerId:'customer-a',siteOptions:[{id:'site-a',label:'Synthetic site'}],meteringPointOptions:[]}))
+  for(const name of ['variable_fee_ore_per_kwh','invoice_fee_sek','start_fee_sek','admin_fee_sek','break_fee_sek'])expect(html.match(new RegExp('<input[^>]*name="'+name+'"[^>]*>'))?.[0]).not.toContain('readOnly=""')
+  expect(html).toContain('name="expected_updated_at"')
+  expect(html).toContain('name="edit_request_id"')
+ })
+ it('routes an acknowledged unsigned price change through the atomic revision rather than the legacy full-row writer',async()=>{
+  io.row={...base(),status:'pending_signature',energy_direction:'consumption',contract_offer_id:'offer-a',contract_price_snapshot_id:'snapshot-a',updated_at:'2026-10-29T10:00:00.123456+00:00',invoice_fee_sek:19}
+  const f=form();f.set('edit_request_id','b91a82ea-a790-4623-b759-3aa9be558cac');f.set('expected_updated_at','2026-10-29T10:00:00.123456+00:00');f.set('invoice_fee_sek','25,50');f.set('override_reason','Customer-specific fee proposal');f.set('acknowledge_current_terms','on')
+  expect(await saveContractWithFeedbackAction(f)).toMatchObject({status:'saved',signingLinkNeedsRenewal:true})
+  expect(io.calls).toBe(0);expect(io.rpcCalls).toHaveLength(1)
+  expect(io.rpcCalls[0]).toMatchObject({name:'gridex_edit_unsigned_customer_contract_v1',args:{p_company_id:'company-a',p_customer_id:'customer-a',p_contract_id:'contract-a',p_actor_user_id:'staff-a',p_edit_id:'b91a82ea-a790-4623-b759-3aa9be558cac',p_expected_updated_at:'2026-10-29T10:00:00.123456+00:00'}})
+ })
+ it('requires a visible new-version acknowledgement before revising an unsigned bound fee',async()=>{
+  io.row={...base(),status:'pending_signature',energy_direction:'consumption',contract_offer_id:'offer-a',updated_at:'2026-10-29T10:00:00.123456+00:00'}
+  const f=form();f.set('edit_request_id','b91a82ea-a790-4623-b759-3aa9be558cac');f.set('expected_updated_at','2026-10-29T10:00:00.123456+00:00');f.set('invoice_fee_sek','25');f.set('override_reason','Documented fee proposal')
+  expect(await saveContractWithFeedbackAction(f)).toMatchObject({status:'invalid',field:'acknowledge_current_terms'});expect(io.rpcCalls).toHaveLength(0);expect(io.calls).toBe(0)
+ })
  it('returns the production-observed expected validation and never retries the write',async()=>{
   io.error=Error('Ange orsak när katalogpriser ändras.')
   expect(await saveContractWithFeedbackAction(form())).toEqual({status:'invalid',field:'override_reason',message:'Ange orsak när katalogpriser ändras.'});expect(io.calls).toBe(1)
  })
  it.each(['variable_fee_ore_per_kwh','invoice_fee_sek','monthly_fee_sek','start_fee_sek','admin_fee_sek','break_fee_sek','green_fee_value','discount_value'])('blocks changed %s for bound pricing before mutation',async(field)=>{
-  io.row.contract_price_snapshot_id='snapshot-a';const f=form();f.set(field,'12,50');f.set('override_reason','A reason cannot rewrite a sealed price')
+  io.row.status='signed';io.row.contract_price_snapshot_id='snapshot-a';const f=form();f.set(field,'12,50');f.set('override_reason','A reason cannot rewrite a sealed price')
   expect(await saveContractWithFeedbackAction(f)).toMatchObject({status:'invalid',field});expect(io.calls).toBe(0)
  })
- it('preserves omitted bound commercial fields in the effective delegate payload',async()=>{
+ it('refuses a partial unsigned bound form without falling through to the legacy full-row writer',async()=>{
   io.row.status='pending_signature';io.row.contract_price_snapshot_id='snapshot-a';io.row.invoice_fee_sek=19;io.row.green_fee_value=0;io.row.green_fee_mode='sek_month';io.row.vat_rate=0.12
-  expect(await saveContractWithFeedbackAction(form())).toEqual({status:'saved'})
-  expect(io.last).toMatchObject({invoice_fee_sek:'19',green_fee_value:'0',green_fee_mode:'sek_month',vat_rate:'12'})
+  expect(await saveContractWithFeedbackAction(form())).toMatchObject({status:'invalid',message:expect.stringContaining('Redigeringsunderlaget saknas')})
+  expect(io.calls).toBe(0);expect(io.rpcCalls).toHaveLength(0)
  })
  it('recognizes the actual sealed-field database error while retaining unknown errors',async()=>{
   io.error={code:'55000',message:'signed_customer_contract_immutable:price_snapshot'};expect(await saveContractWithFeedbackAction(form())).toMatchObject({status:'invalid'})
   io.error={code:'55000',message:'other_failure:price_snapshot'};await expect(saveContractWithFeedbackAction(form())).rejects.toBe(io.error)
  })
  it('treats absent green surcharge mode consistently with the normal command',async()=>{
-  io.row.contract_offer_id='offer-a';io.row.green_fee_mode=null;const f=form();f.set('green_fee_mode','none');expect(await saveContractWithFeedbackAction(f)).toEqual({status:'saved'})
+  io.row.status='signed';io.row.contract_offer_id='offer-a';io.row.green_fee_mode=null;const f=form();f.set('green_fee_mode','none');expect(await saveContractWithFeedbackAction(f)).toEqual({status:'saved'})
  })
  it.each([null,0.12])('holds unsupported historic VAT %s on snapshot-only draft before the old helper can replace it',async(vat)=>{
   io.row.contract_price_snapshot_id='snapshot-a';io.row.vat_rate=vat
-  expect(await saveContractWithFeedbackAction(form())).toMatchObject({status:'invalid',field:'vat_rate'});expect(io.calls).toBe(0)
+  expect(await saveContractWithFeedbackAction(form())).toMatchObject({status:'invalid'});expect(io.calls).toBe(0)
  })
- it.each([null,0.12])('preserves supported production snapshot draft VAT %s',async(vat)=>{
+ it.each([null,0.12])('holds markerless production snapshot drafts with VAT %s before the legacy writer',async(vat)=>{
   io.row.contract_price_snapshot_id='snapshot-a';io.row.energy_direction='production';io.row.vat_rate=vat
-  expect(await saveContractWithFeedbackAction(form())).toEqual({status:'saved'});expect(io.last.vat_rate).toBe(vat===null?'':'12')
+  expect(await saveContractWithFeedbackAction(form())).toMatchObject({status:'invalid'});expect(io.calls).toBe(0)
  })
  it('keeps the historic VAT display on a snapshot-only draft',()=>{
   const row={...base(),vat_rate:null,contract_price_snapshot_id:'snapshot-a'} as unknown as CustomerContractRow
@@ -54,16 +73,17 @@ describe('recoverable contract fee save with existing authorized business comman
   expect(html.match(/<input[^>]*name="vat_rate"[^>]*>/)?.[0]).toContain('value=""')
  })
  it('rejects clearing a bound fee and preserves zero as a real value',async()=>{
-  io.row.invoice_fee_sek=10;io.row.contract_offer_id='offer-a';const f=form();f.set('invoice_fee_sek','')
+  io.row.status='signed';io.row.invoice_fee_sek=10;io.row.contract_offer_id='offer-a';const f=form();f.set('invoice_fee_sek','')
   expect(await saveContractWithFeedbackAction(f)).toMatchObject({status:'invalid'});expect(io.calls).toBe(0)
   io.row.invoice_fee_sek=0;f.set('invoice_fee_sek','0');expect(await saveContractWithFeedbackAction(f)).toEqual({status:'saved'});expect(io.calls).toBe(1)
  })
  it.each(['locked_at','signed_at','contract_offer_id','public_contract_offer_id','contract_publication_version_id','price_plan_version_id'])('holds repricing for %s as well as a snapshot',async(field)=>{
   io.row[field]='bound';const f=form();f.set('invoice_fee_sek','9');expect(await saveContractWithFeedbackAction(f)).toMatchObject({status:'invalid'});expect(io.calls).toBe(0)
  })
- it('permits unchanged Swedish decimal fees and site-only edits on bound contracts',async()=>{
-  io.row.contract_price_snapshot_id='snapshot-a';io.row.invoice_fee_sek=12.5;const f=form();f.set('invoice_fee_sek','12,50');f.set('site_id','site-a')
-  expect(await saveContractWithFeedbackAction(f)).toEqual({status:'saved'});expect(io.calls).toBe(1);expect(io.tenantChecks).toBe(1)
+ it('routes unchanged Swedish fees and a site-only save to the atomic presence-aware command',async()=>{
+  io.row.contract_price_snapshot_id='snapshot-a';io.row.invoice_fee_sek=12.5;const f=form();f.set('invoice_fee_sek','12,50');f.set('site_id','site-a');f.set('edit_request_id','b91a82ea-a790-4623-b759-3aa9be558cac');f.set('expected_updated_at','2026-10-29T10:00:00.123456+00:00')
+  expect(await saveContractWithFeedbackAction(f)).toMatchObject({status:'saved'});expect(io.calls).toBe(0);expect(io.tenantChecks).toBe(1)
+  expect(io.rpcCalls[0].args.p_patch).toEqual({invoice_fee_sek:12.5,site_id:'site-a'})
  })
  it('rejects negative invoice fees before the database check',async()=>{
   const f=form();f.set('invoice_fee_sek','-1');expect(await saveContractWithFeedbackAction(f)).toMatchObject({status:'invalid',field:'invoice_fee_sek'});expect(io.calls).toBe(0)
@@ -78,7 +98,7 @@ describe('recoverable contract fee save with existing authorized business comman
   io.row.customer_id='foreign-customer';await expect(saveContractWithFeedbackAction(form())).rejects.toThrow('Kundavtalet kunde inte hittas');expect(io.calls).toBe(0)
  })
  it.each(['green_fee_mode','discount_unit'])('holds changed %s for a bound contract',async(field)=>{
-  io.row.contract_price_snapshot_id='snapshot-a';const f=form();f.set(field,field==='green_fee_mode'?'sek_month':'percent');expect(await saveContractWithFeedbackAction(f)).toMatchObject({status:'invalid',field});expect(io.calls).toBe(0)
+  io.row.status='signed';io.row.contract_price_snapshot_id='snapshot-a';const f=form();f.set(field,field==='green_fee_mode'?'sek_month':'percent');expect(await saveContractWithFeedbackAction(f)).toMatchObject({status:'invalid',field});expect(io.calls).toBe(0)
  })
  it('keeps authorization, query failures and unknown errors as failures',async()=>{
   const denied=Error('denied');io.guardError=denied;await expect(saveContractWithFeedbackAction(form())).rejects.toBe(denied);expect(io.calls).toBe(0)
@@ -89,8 +109,8 @@ describe('recoverable contract fee save with existing authorized business comman
   io.error=Error('REDIRECT:/existing');await expect(saveContractWithFeedbackAction(form())).rejects.toThrow('REDIRECT:/existing')
   io.error={code:'23514',message:'customer_contract_signature_evidence_incomplete'};await expect(saveContractWithFeedbackAction(form())).rejects.toThrow(/REDIRECT:.*signature\?error=/)
  })
- it('displays bound pricing as readonly while keeping all fee values in submissions',()=>{
-  const row={...base(),contract_offer_id:'offer-a',status:'pending_signature'} as unknown as CustomerContractRow
+ it('keeps signed bound pricing readonly while retaining all original fee values in submissions',()=>{
+  const row={...base(),contract_offer_id:'offer-a',status:'signed',signed_at:'2026-10-01T10:00:00Z'} as unknown as CustomerContractRow
   const html=renderToStaticMarkup(React.createElement(EditContractForm,{contract:row,customerId:'customer-a',siteOptions:[],meteringPointOptions:[]}))
   for(const name of ['variable_fee_ore_per_kwh','invoice_fee_sek','start_fee_sek','admin_fee_sek','break_fee_sek'])expect(html.match(new RegExp('<input[^>]*name="'+name+'"[^>]*>'))?.[0]).toContain('readOnly=""')
   expect(html).toContain('ny avtalsversion')
