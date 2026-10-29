@@ -372,6 +372,7 @@ export async function buildMain03Fixture(overrides: Partial<Main03Params> = {}):
   // month already locked (the importer then refuses with locked_market_price_immutable), so a
   // locked month is reused only if every stored hourly price equals this fixture's own value.
   const spotReuse = lockedSpotMonthMatches(params, salt)
+  let lockBody: Record<string, unknown> = { status: 'locked', reusedLockedMonth: true, check: spotReuse.detail }
   if (spotReuse.locked) {
     must(spotReuse.matches, `fixture_spot_locked_month_differs:${spotReuse.detail}`)
     substitute({ id: 'spot-locked-month-reuse', step: 'fixture: spot prices',
@@ -382,7 +383,7 @@ export async function buildMain03Fixture(overrides: Partial<Main03Params> = {}):
     must(imported.errors.length === 0, `fixture_spot_import_errors:${imported.errors.slice(0, 3).join(' | ')}`)
     const locked = await timed('fixture: spot lock-month (HTTP)', () => http(session, 'POST', '/api/internal/spot/lock-month', { json: { billing_month: params.billingMonth, price_area: params.priceArea, reason: 'track1 fixture settlement lock' } }))
     must(locked.status === 200, `fixture_spot_lock_status_${locked.status}:${JSON.stringify(locked.body)?.slice(0, 400)}`)
-    const lockBody = ((locked.body as { data?: Record<string, unknown> } | null)?.data ?? {}) as Record<string, unknown>
+    lockBody = ((locked.body as { data?: Record<string, unknown> } | null)?.data ?? {}) as Record<string, unknown>
     must(lockBody.status === 'locked', 'fixture_spot_lock_not_locked')
   }
 
