@@ -964,6 +964,26 @@ export async function createContractAction(formData: FormData) {
   redirect(`/admin/customers/${customerId}/contracts/${contract.id}/signature`)
 }
 
+const SEALED_CONTRACT_STATUSES = new Set<string>(['signed', 'active', 'terminated', 'cancelled', 'expired'])
+const SIGNED_CONTRACT_EDIT_REFUSED_MESSAGE = 'Signerat avtal kan inte ändras – använd avtalsåtgärder.'
+
+/** Map known database refusals from the customer-card writer to controlled
+ * Swedish validation errors; unknown errors are returned unchanged. */
+function controlledContractUpdateError(error: unknown): unknown {
+  const problem = error && typeof error === 'object' ? error as { code?: unknown; message?: unknown } : null
+  const message = typeof problem?.message === 'string' ? problem.message : ''
+  if (problem?.code === '55000' && message.startsWith('signed_customer_contract_immutable')) {
+    return new Error(SIGNED_CONTRACT_EDIT_REFUSED_MESSAGE)
+  }
+  if (message.includes('termination_notice_already_recorded')) {
+    return new Error('Uppsägningsdatum är redan registrerat och kan inte ändras här – använd avtalsåtgärder.')
+  }
+  if (message.includes('termination_notice_before_contract_start')) {
+    return new Error('Uppsägningsdatum kan inte vara före avtalets startdatum.')
+  }
+  return error
+}
+
 export async function updateContractAction(formData: FormData) {
   const guard = await requireAdminActionAccess(['contracts.write'])
 
@@ -989,6 +1009,13 @@ export async function updateContractAction(formData: FormData) {
   const before = await getCustomerContractById(contractId, { companyId })
   if (!before || before.customer_id !== customerId || before.company_id !== companyId) {
     throw new Error('Kundavtalet kunde inte hittas')
+  }
+
+  // Signed/locked agreements are sealed by the database; refuse before any
+  // write so the customer card gets a controlled answer instead of a 500.
+  // Contract events (logContractEventAction) remain the supported path.
+  if (before.signed_at || before.locked_at || SEALED_CONTRACT_STATUSES.has(before.status)) {
+    throw new Error(SIGNED_CONTRACT_EDIT_REFUSED_MESSAGE)
   }
 
   const nextStatus = (getString(formData, 'status') || before.status) as CustomerContractRow['status']
@@ -1037,72 +1064,77 @@ export async function updateContractAction(formData: FormData) {
   }))
   if (updatePricingError) throw new Error(updatePricingError)
 
-  const updated = await updateCustomerContract({
-    id: contractId,
-    customerId,
-    siteId,
-    meteringPointId,
-    companyId,
-    status: nextStatus,
-    energyDirection: before.energy_direction,
-    contractName: getString(formData, 'contract_name') || before.contract_name,
-    contractType: parseContractType(formData.get('contract_type')),
-    campaignName,
-    campaignCode,
-    campaignVersion,
-    priceVersion,
-    termsVersion,
-    discountValue,
-    discountUnit,
-    startFeeSek,
-    adminFeeSek,
-    breakFeeSek,
-    vatRate,
-    priceSnapshot: {
-      ...manualProductionConfiguration(before),
-      ...buildPriceSnapshot({
-        fixedPriceOrePerKwh,
-        spotMarkupOrePerKwh,
-        variableFeeOrePerKwh,
-        monthlyFeeSek,
-        invoiceFeeSek,
-        greenFeeMode,
-        greenFeeValue,
-        discountValue,
-        discountUnit,
-        startFeeSek,
-        adminFeeSek,
-        breakFeeSek,
-        vatRate,
-      }),
-    },
-    campaignSnapshot: buildCampaignSnapshot({
+  let updated: Awaited<ReturnType<typeof updateCustomerContract>>
+  try {
+    updated = await updateCustomerContract({
+      id: contractId,
+      customerId,
+      siteId,
+      meteringPointId,
+      companyId,
+      status: nextStatus,
+      energyDirection: before.energy_direction,
+      contractName: getString(formData, 'contract_name') || before.contract_name,
+      contractType: parseContractType(formData.get('contract_type')),
       campaignName,
       campaignCode,
       campaignVersion,
       priceVersion,
       termsVersion,
-      meteringPointId,
-    }),
-    fixedPriceOrePerKwh,
-    spotMarkupOrePerKwh,
-    variableFeeOrePerKwh,
-    monthlyFeeSek,
-    invoiceFeeSek,
-    greenFeeMode,
-    greenFeeValue,
-    bindingMonths: parseIntOrNull(formData.get('binding_months')),
-    noticeMonths: parseIntOrNull(formData.get('notice_months')),
-    startsAt,
-    endsAt,
-    signedAt,
-    terminationNoticeDate,
-    terminationReason,
-    autoRenewEnabled,
-    autoRenewTermMonths,
-    overrideReason: getString(formData, 'override_reason') || null,
-    actorUserId: user.id,
-  })
+      discountValue,
+      discountUnit,
+      startFeeSek,
+      adminFeeSek,
+      breakFeeSek,
+      vatRate,
+      priceSnapshot: {
+        ...manualProductionConfiguration(before),
+        ...buildPriceSnapshot({
+          fixedPriceOrePerKwh,
+          spotMarkupOrePerKwh,
+          variableFeeOrePerKwh,
+          monthlyFeeSek,
+          invoiceFeeSek,
+          greenFeeMode,
+          greenFeeValue,
+          discountValue,
+          discountUnit,
+          startFeeSek,
+          adminFeeSek,
+          breakFeeSek,
+          vatRate,
+        }),
+      },
+      campaignSnapshot: buildCampaignSnapshot({
+        campaignName,
+        campaignCode,
+        campaignVersion,
+        priceVersion,
+        termsVersion,
+        meteringPointId,
+      }),
+      fixedPriceOrePerKwh,
+      spotMarkupOrePerKwh,
+      variableFeeOrePerKwh,
+      monthlyFeeSek,
+      invoiceFeeSek,
+      greenFeeMode,
+      greenFeeValue,
+      bindingMonths: parseIntOrNull(formData.get('binding_months')),
+      noticeMonths: parseIntOrNull(formData.get('notice_months')),
+      startsAt,
+      endsAt,
+      signedAt,
+      terminationNoticeDate,
+      terminationReason,
+      autoRenewEnabled,
+      autoRenewTermMonths,
+      overrideReason: getString(formData, 'override_reason') || null,
+      actorUserId: user.id,
+    })
+  } catch (error) {
+    throw controlledContractUpdateError(error)
+  }
 
   await addCustomerContractEvent({
     companyId,
