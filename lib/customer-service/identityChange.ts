@@ -145,7 +145,7 @@ export type TakeoverSnapshot = {
   terms: Array<{ legal_bundle_version_id: string; title: string; content_sha256: string }>
 }
 
-const CONTRACT_COMMITMENT_COLUMNS = 'id,status,contract_type,binding_months,notice_months,ends_at,termination_notice_date,actual_start_at,confirmed_start_at,starts_at,expected_start_at,contract_number,legal_bundle_version_id'
+const CONTRACT_COMMITMENT_COLUMNS = 'id,status,contract_type,binding_months,notice_months,ends_at,termination_notice_date,actual_start_date,confirmed_start_date,actual_start_at,confirmed_start_at,starts_at,expected_start_at,contract_number,legal_bundle_version_id'
 
 function snapshotSha256(snapshot: TakeoverSnapshot): string {
   return createHash('sha256').update(JSON.stringify(snapshot), 'utf8').digest('hex')

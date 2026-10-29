@@ -7,7 +7,7 @@ import {PRODAT_APERAK_FIELD_NAMES,PRODAT_APERAK_APPLICATION_TEXTS,prodatAperakFi
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {utiltsErrSourceCopyViolations} from '@/lib/ediel/utilts/errSourceCopy'
 import {UTILTS_HEADER_IDENTITY_GUIDE_CONSTRAINTS,validUtiltsLegalIdentity} from '@/lib/ediel/utilts/headerIdentityGuide'
-import {UTILTS_25_A_3_POLICY,UTILTS_25_A_4_POLICY} from './utilts25A4'
+import {UTILTS_25_A_3_POLICY,UTILTS_25_A_4_POLICY,UTILTS_25_A_5_POLICY} from './utilts25A4'
 import {canonicalRegisteredEdielGuideScopes} from './canonicalEdielFacade'
 import {validateEdifactHeaderGuide} from './edifactHeaderGuide'
 
@@ -43,7 +43,7 @@ export const CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS=Object.freeze({
  * Native consumers project this same data against protected named originals. */
 export const CANONICAL_UTILTS_ERR_REASON_GUIDE_SCOPES=Object.freeze(canonicalRegisteredEdielGuideScopes()
  .filter(scope=>scope.family==='UTILTS').map(scope=>{
-  const processability=[UTILTS_25_A_3_POLICY,UTILTS_25_A_4_POLICY].find(policy=>policy.guideRevision===scope.canonicalGuideRevision)
+  const processability=[UTILTS_25_A_3_POLICY,UTILTS_25_A_4_POLICY,UTILTS_25_A_5_POLICY].find(policy=>policy.guideRevision===scope.canonicalGuideRevision)
   if(!processability)throw new Error('canonical_err_reason_guide_scope_unavailable')
   const base=[...CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS.allowedReasons,...UTILTS_25_A_4_POLICY.removedRejectionReasonCodes]
   return Object.freeze({...scope,allowedReasons:Object.freeze(base.filter(reason=>!processability.removedRejectionReasonCodes.includes(reason))),

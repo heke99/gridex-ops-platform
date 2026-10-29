@@ -226,6 +226,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
   const facilityIdentifier = String(siteRecord.normalized_facility_id ?? siteRecord.facility_id ?? '').trim() || null
 
   const intent = await createEdielMessageIntent({
+    normalSwitchInsertOnly: true,
     actorUserId,
     companyId,
     environment: routeContext.environment,
@@ -278,7 +279,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     )
   }
 
-  const message = await renderAndQueueNormalSwitch({intentId:intent.id,actorUserId,outboundRequestId:outbound.id,routeContext,source:{
+  const {message,queuedFromDraft} = await renderAndQueueNormalSwitch({intentId:intent.id,actorUserId,outboundRequestId:outbound.id,routeContext,source:{
     actorUserId,
     contractId,
     senderEdielId: routeContext.senderEdielId,
@@ -300,7 +301,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     externalReference,
   }})
 
-  if(message.status!=='draft')return message
+  if(!queuedFromDraft)return message
 
   await linkEdielMessage({
     actorUserId,
@@ -316,10 +317,12 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
 
   await createSupplierSwitchEvent(supabase, {
     switchRequestId: switchRequest.id,
+    companyId,
     eventType: 'ediel_prepared',
     eventStatus: 'queued',
     message: `Ediel PRODAT Z03${subtype} förberett via canonical 26.A rule pack.`,
     payload: {
+      actorUserId,
       edielMessageId: message.id,
       outboundRequestId: outbound.id,
       routeId: routeContext.route.id,

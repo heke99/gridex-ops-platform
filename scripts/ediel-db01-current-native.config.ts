@@ -10,7 +10,7 @@ import {defineConfig} from 'vitest/config'
 // source231b9ef8, and its facade to the reviewed adoptedca892 source. None
 // replaces the historical BASE aliases or their fixed canonical source bytes.
 // Its BASE public creator alone receives a prospective legacy
-// DTO hint. Two containment forwards and fourteen delivered current reader/guard
+// DTO hint. Two containment forwards and sixteen delivered current reader/guard
 // forwards remain separately receipted phases before fresh ROOT owners. The
 // OPS-04 forward is preceded only by the exact DB-05 TRUNCATE guard callback.
 const root = realpathSync(resolve(__dirname, '..'))
@@ -34,7 +34,8 @@ const receipt = JSON.parse(readFileSync(receiptPath, 'utf8')) as {
     canonical_facade_basis: {source_revision: string; path: string; historical_alias: string; current_alias: string; base: GitInput; root: GitInput};
     public_creator_input: Record<string, string>}
   current_database_basis: {kind: string; forwards: Array<GitInput & {path: string}>; schema_path: string}
-  current_guard_result?: {status: string; source_sha: string; source_schema_sha256: string; reader_function_names: number; helper_function_names: number; function_definitions: number; delivered_relation_objects: number; mismatches: unknown[]}
+  current_s01_source_install?: {status: string; exit_code: number; donor_path: string; donor_sha256: string; source_schema_sha256: string; predecessor_definition_sha256: string; sql_sha256: string}
+  current_guard_result?: {source_qualified_dependency_extensions?: Array<{name: string; identity: string[]; body_sha256: string}>; status: string; source_sha: string; source_schema_sha256: string; reader_function_names: number; helper_function_names: number; function_definitions: number; delivered_relation_objects: number; mismatches: unknown[]}
   current_api_schema_result?: {status: string; source_sha: string; rpc_paths: string[]}
   phases?: Record<string, {status: string; exit_code: number | null}>
   current_source_basis: string
@@ -59,7 +60,7 @@ const fileHash = (path: string) => createHash('sha256').update(readFileSync(path
 const sameInput = (a: GitInput | undefined, b: GitInput | undefined) => !!a && !!b && a.mode === b.mode &&
   a.git_blob_oid === b.git_blob_oid && a.sha256 === b.sha256
 const basis = receipt.historical_source_basis, overlay = basis?.module_overrides?.[0]
-if (receipt.required_input_paths?.length !== 56 || new Set(receipt.required_input_paths).size !== 56 ||
+if (receipt.required_input_paths?.length !== 59 || new Set(receipt.required_input_paths).size !== 59 ||
     receipt.required_base_input_paths?.length !== 35 || new Set(receipt.required_base_input_paths).size !== 35 ||
     basis?.kind !== 'reconstructed_public_births' || basis.default_alias !== 'BASE56' || basis.module_overrides?.length !== 1 ||
     overlay?.specifier !== '@/lib/ediel/testing/agtEngine' || overlay.path !== producerPath || overlay.source !== 'ROOT' ||
@@ -208,6 +209,18 @@ export const currentReaderForwards: Array<GitInput & {path: string}> = [
     "mode": "100644",
     "git_blob_oid": "6ddf94077699971f13dba1498b20583bde5164af",
     "sha256": "5691b79a523a4db6b3335f52661b0f76ac124cbf61bfcde36b618f2cac3b4954"
+  },
+  {
+    "path": "supabase/migrations/20261021052940_ediel_swedish_utilts25a5_registry_and_source_editions.sql",
+    "mode": "100644",
+    "git_blob_oid": "a7eefc681e30e07ed40be689e046a39e0d4c7bff",
+    "sha256": "cc514c291e2b8f91c2b5ec1a591a4731bd3c586210941ab8c28f5d7c5f3b2734"
+  },
+  {
+    "path": "supabase/migrations/20261021094313_ediel_swedish_utilts25a5_inbound_profile_supersession.sql",
+    "mode": "100644",
+    "git_blob_oid": "5ca331bd6970a50eae108234c8cab44bf18f43f0",
+    "sha256": "8b51a7dfea2eec7019775f6cfccb0ce4692af517f8e1919794ea65c796155fb1"
   }
 ]
 const currentDatabase = receipt.current_database_basis
@@ -222,11 +235,57 @@ if (!currentDatabase || Object.keys(currentDatabase).length !== 3 || currentData
     })) {
   throw new Error('db01_native_current_reader_guard_basis_required')
 }
+// Same exact source-qualified extension identities required by the workflow.
+const s01DependencyExtensions = [
+  {
+    "name": "gridex_utilts_binding.esco_local_time_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "esco_local_time_v1(text, text)"
+    ],
+    "body_sha256": "45b07776f975f4285e0691642071da7c722862577f9dd2872f13e8bc80350ed1"
+  },
+  {
+    "name": "gridex_utilts_binding.require_s01_l359_basis_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "require_s01_l359_basis_v1(uuid, uuid)"
+    ],
+    "body_sha256": "7e0f5b2674a1c6a9b23eac66f3e16873e76f00eb2057617458e5ecc954377269"
+  },
+  {
+    "name": "gridex_utilts_binding.s01_l359_area_identity_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "s01_l359_area_identity_v1(jsonb, text)"
+    ],
+    "body_sha256": "2a435fae6a521b93e327c2931af685a1527b6f2e360d75d1b92472665e702651"
+  },
+  {
+    "name": "gridex_utilts_binding.s01_l359_item_matches_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "s01_l359_item_matches_v1(jsonb, jsonb)"
+    ],
+    "body_sha256": "0c16b7b82ae38b73eed6c81f9249d1ec485bab4401885e2f00f1c632769f55c8"
+  }
+]
 if (phase === 'current' && (['current_guard_preparation', 'current_read_forwards', 'current_guard_qualification', 'current_api_schema'].some(name =>
     receipt.phases?.[name]?.status !== 'PASS' || receipt.phases[name].exit_code !== 0) ||
+    receipt.current_s01_source_install?.status !== 'PASS' || receipt.current_s01_source_install.exit_code !== 0 ||
+    receipt.current_s01_source_install.donor_path !== 'supabase/migrations/20261023201053_ediel_s01_area_aggregate_identity.sql' ||
+    receipt.current_s01_source_install.donor_sha256 !== 'ae647d1d240a2e3cfa202906766eed3b13f6d5d15a0afd14885fe36b63da4a5d' ||
+    receipt.current_s01_source_install.predecessor_definition_sha256 !== '11de04c3af4dd571693cfe8b249d3a30fc163848a78d1e7aee287ab3c093a7b6' ||
+    receipt.current_s01_source_install.sql_sha256 !== 'deafe7916db6e2c82f7c66cacc9560f1fd44d539e6a9129e115dce658864580b' ||
+    receipt.current_s01_source_install.source_schema_sha256 !== fileHash(resolve(root, currentDatabase.schema_path)) ||
     receipt.current_guard_result?.status !== 'PASS' || receipt.current_guard_result.source_sha !== head ||
-    receipt.current_guard_result.reader_function_names !== 233 || receipt.current_guard_result.helper_function_names !== 372 ||
-    receipt.current_guard_result.function_definitions !== 372 || receipt.current_guard_result.delivered_relation_objects !== 18 ||
+    receipt.current_guard_result.reader_function_names !== 233 || receipt.current_guard_result.helper_function_names !== 377 ||
+    receipt.current_guard_result.function_definitions !== 377 || receipt.current_guard_result.delivered_relation_objects !== 18 ||
+    JSON.stringify(receipt.current_guard_result.source_qualified_dependency_extensions) !== JSON.stringify(s01DependencyExtensions) ||
     !Array.isArray(receipt.current_guard_result.mismatches) || receipt.current_guard_result.mismatches.length !== 0 ||
     receipt.current_api_schema_result?.status !== 'PASS' || receipt.current_api_schema_result.source_sha !== head ||
     JSON.stringify(receipt.current_api_schema_result.rpc_paths) !== JSON.stringify([

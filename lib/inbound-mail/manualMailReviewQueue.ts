@@ -58,6 +58,10 @@ export function manualMailReviewReasons(row: { resolution_status?: string; proce
   if (row.resolution_status !== 'matched') reasons.push(row.resolution_status === 'ambiguous' ? 'Kund eller tenant är tvetydig' : 'Kund eller tenant saknar säker matchning')
   if (Number.isInteger(multi.reviewCount) && Number(multi.reviewCount) > 0) reasons.push(`${multi.reviewCount} anläggningar behöver granskas`)
   if (object(automation.continuation).status === 'failed') reasons.push('Fortsatt handläggning kunde inte slutföras')
+  if (object(automation.continuation).reviewRequired === true) reasons.push('Fortsatt handläggning kräver manuell granskning')
+  const applications = [object(automation.application), ...Object.values(object(automation.site_applications)).map(member => object(object(member).application))]
+  if (applications.some(application => application.applied === true && application.complete === false
+    && application.responseStatus === 'termination_fee')) reasons.push('Brytavgift behöver granskas')
   if (object(automation.documentReading).status === 'failed') reasons.push('Bilagan kunde inte läsas säkert')
   if (object(payload.ai_read_only).status === 'failed') reasons.push('AI-läsningen kunde inte slutföras')
   if (!reasons.length) reasons.push('Uppgifter eller fortsatt handläggning behöver granskas')
@@ -74,6 +78,8 @@ export async function getManualMailReviewQueue(db: ReviewDb, params: Params, now
     'extracted_payload->manual_automation->>state.in.(needs_review,failed)',
     'extracted_payload->manual_automation->multi_site->>reviewCount.gt.0',
     'extracted_payload->manual_automation->continuation->>status.eq.failed',
+    'extracted_payload->manual_automation->continuation->>reviewRequired.eq.true',
+    'gridex_manual_mail_has_pending_partial_v1.eq.true',
     'extracted_payload->manual_automation->documentReading->>status.eq.failed',
     'extracted_payload->ai_read_only->>status.eq.failed',
     `and(extracted_payload->ai_read_only->>status.eq.processing,extracted_payload->ai_read_only->>started_at.lt.${stale})`,

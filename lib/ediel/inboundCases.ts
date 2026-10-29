@@ -847,7 +847,10 @@ async function readExistingInboundGraph(command: CanonicalOnboardingCommand): Pr
  * row the RPC will update, every key the message does not carry takes the row's current value instead, so an active
  * customer, site or metering point keeps its status and no existing value is erased; metadata is merged, never
  * replaced. A value the message carries still updates. Rows the RPC inserts keep the create values. The command
- * keeps its keys, so its stored snapshot shows the values written. */
+ * keeps its keys, so its stored snapshot shows the values written. Exact pre-read
+ * rows are represented by opaque PostgreSQL JSON strings. SQL locks and compares
+ * them, then preserves non-wire fields and merges metadata from its exact row.
+ * Existing JSONB metadata is never copied through JavaScript numeric values. */
 async function preserveExistingInboundGraph(command: CanonicalOnboardingCommand, inboundCase: EdielInboundCaseRow): Promise<CanonicalOnboardingCommand> {
   const existing = await readExistingInboundGraph(command)
   const carried = wireCarriedGraphUpdate(command, inboundCase)
@@ -855,13 +858,32 @@ async function preserveExistingInboundGraph(command: CanonicalOnboardingCommand,
     const merged: JsonRecord = {}
     for (const [key, value] of Object.entries(section)) {
       if (Object.hasOwn(wire, key)) merged[key] = value
-      else if (key === 'metadata') merged[key] = { ...(isJsonRecord(row.metadata) ? row.metadata : {}), ...(isJsonRecord(value) ? value : {}) }
+      else if (key === 'metadata') merged[key] = value
       else if (Object.hasOwn(row, key)) merged[key] = row[key]
     }
     return merged
   }
+  const { data: basis, error: basisError } = await supabaseService.rpc('ediel_inbound_graph_snapshot_basis_v1', {
+    p_company_id: command.company_id,
+    p_customer_id: existing.customer?.id ?? null,
+    p_site_id: existing.site?.id ?? null,
+    p_metering_point_id: existing.meter?.id ?? null,
+  })
+  if (basisError) throw basisError
+  if (!isJsonRecord(basis) || Object.keys(basis).length !== 3 ||
+    !['customer', 'site', 'metering_point'].every(key => Object.hasOwn(basis, key) && (basis[key] === null || typeof basis[key] === 'string'))) {
+    throw new Error('ediel_inbound_graph_snapshot_basis_invalid')
+  }
+  const directive = (section: JsonRecord | null | undefined, wire: JsonRecord) => ({
+    wire_keys: Object.keys(wire), metadata_delta: isJsonRecord(section?.metadata) ? section.metadata : {},
+  })
   return {
     ...command,
+    ediel_existing_graph_snapshot: { customer: basis.customer as string | null, site: basis.site as string | null, metering_point: basis.metering_point as string | null },
+    ediel_existing_graph_preservation: {
+      customer: directive(command.customer, carried.customer), site: directive(command.site, carried.site),
+      metering_point: directive(command.metering_point, carried.meter),
+    },
     customer: existing.customer ? merge(command.customer, existing.customer, carried.customer) : command.customer,
     site: existing.site && command.site ? merge(command.site, existing.site, carried.site) : command.site,
     metering_point: existing.meter && command.metering_point ? merge(command.metering_point, existing.meter, carried.meter) : command.metering_point,
@@ -1331,7 +1353,7 @@ async function applyInboundObjects(params:{actorUserId:string;caseId:string;comp
       const scopedCase:EdielInboundCaseRow={...current,customer_id:null,site_id:null,metering_point_id:null,
         case_type:projection.caseType,transaction_type:projection.transactionType,parsed_customer:projection.customer,parsed_site:projection.site,
         parsed_metering_point:projection.meteringPoint,parsed_contract:projection.contract,parsed_production:projection.production,proposed_action:projection.proposedAction}
-      const gridOwnerId=await getGridOwnerIdByGridArea(params.companyId,trimOrNull(projection.site.gridAreaCode))
+      const gridOwnerId=await getGridOwnerIdByGridArea(params.companyId,trimOrNull(projection.site.gridAreaCode),{registryArea:false})
       // Object identity, not register index or array position, owns replay and
       // application identity. Changing a later decision cannot create a new key.
       const sourceId=`${current.id}:object:${digestObject([decision.meteringPointId,decision.identityAgency])}`

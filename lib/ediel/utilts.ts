@@ -420,7 +420,17 @@ function renderUtiltsSegments(input: {
   // UNB identifies transport endpoints. A separate source-owned legal party
   // is mandatory in SG2 and must never be inferred from that endpoint.
   if (!/^\d{5}$/.test(legalSender) || !/^\d{5}$/.test(legalReceiver)) throw new Error('utilts_legal_parties_source_required')
-  const unit = sanitize(getPayloadString(payload, 'unit') || 'KWH')
+  // Swedish U5 p80 requires LIN/506 in E66 and E73. This producer's
+  // existing QTY136 energy branch supports active energy only; the national
+  // list of other products does not create power/gas/amount producer support.
+  const productId = '8716867000030'
+  if (payload.productId != null && (typeof payload.productId !== 'string' || payload.productId.trim() !== productId)) {
+    throw new Error('utilts_outbound_active_energy_product_required')
+  }
+  // U5 p85: these are the listed active-energy units. In particular WH/WHR
+  // must not be invented, and power/reactive units cannot relabel QTY136.
+  const unit = payload.unit == null ? 'KWH' : typeof payload.unit === 'string' ? payload.unit.trim() : ''
+  if (!['KWH', 'MWH', 'GWH'].includes(unit)) throw new Error('utilts_outbound_active_energy_unit_required')
   const transactionReason = sanitize(
     getPayloadString(payload, 'transactionReason') ||
       (input.code === 'E73'
@@ -449,6 +459,8 @@ function renderUtiltsSegments(input: {
   if (gridAreaId) {
     segments.push(`LOC+239+${gridAreaId}:SVK:260`)
   }
+
+  segments.push(`LIN+++${productId}:::9`)
 
   const deliveryPeriod = formatPeriod719(periodStart, periodEnd)
   if (deliveryPeriod) {

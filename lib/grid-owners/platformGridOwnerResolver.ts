@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 
 type JsonRecord = Record<string, unknown>
 
@@ -69,9 +70,12 @@ export async function selectTenantUsableGridOwners<T>(input: {
   limit?: number
 }): Promise<T[]> {
   const limit = input.limit ?? 2
+  const db = tenantDb(input.companyId)
   const scoped = (shared: boolean) => {
-    let query = supabaseService.from('grid_owners').select(input.select)
-    query = shared ? query.is('company_id', null) : query.eq('company_id', input.companyId)
+    // The shared registry tier is deliberate; it must not inherit an own-company predicate.
+    let query = (shared
+      ? db.unscoped().from('grid_owners').select(input.select).is('company_id', null)
+      : db.from('grid_owners').select(input.select)) as ReturnType<ReturnType<typeof supabaseService.from>['select']>
     for (const [column, value] of Object.entries(input.match)) query = query.eq(column, value)
     return query.limit(limit)
   }
@@ -81,6 +85,12 @@ export async function selectTenantUsableGridOwners<T>(input: {
   const shared = await scoped(true)
   if (shared.error) throw shared.error
   return (shared.data ?? []) as unknown as T[]
+}
+
+/** Current admission date for Swedish registry lifecycle checks. This clock is
+ * not a claimed message receipt date or source/tenant authorization. */
+export function currentGridRegistryDate(): string {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
 }
 
 /**
@@ -101,14 +111,15 @@ export async function selectTenantGridOwnerIdForGridArea(input: {
 }): Promise<string | null> {
   const code = typeof input.gridAreaCode === 'string' ? input.gridAreaCode.trim() : ''
   if (!code) return null
+  const today = input.today ?? currentGridRegistryDate()
   const byCode = await selectTenantUsableGridOwners<{ id: string; company_id: string | null }>({
-    companyId: input.companyId, select: 'id,company_id', match: { owner_code: code },
+    companyId: input.companyId, select: 'id,company_id', match: { owner_code: code, is_active: true },
   })
   if (byCode.some(row => row.company_id === input.companyId)) return byCode.length === 1 ? byCode[0].id : null
   const candidates = new Set(byCode.map(row => row.id))
   if (candidates.size > 1) return null
   if (input.registryArea) {
-    const mapped = await selectRegistryAreaGridOwnerId(code.replace(/\s+/g, '').toUpperCase(), input.today ?? new Date().toISOString().slice(0, 10))
+    const mapped = await selectRegistryAreaGridOwnerId(input.companyId, code.replace(/\s+/g, '').toUpperCase(), today)
     if (mapped === 'ambiguous') return null
     if (mapped) {
       const usable = await selectTenantUsableGridOwners<{ id: string }>({
@@ -121,8 +132,9 @@ export async function selectTenantGridOwnerIdForGridArea(input: {
 }
 
 /** OPS grid owner id the platform registry maps an area code to, unscoped; tenant usability is checked by the caller. */
-async function selectRegistryAreaGridOwnerId(code: string, today: string): Promise<string | 'ambiguous' | null> {
-  const areas = await supabaseService
+async function selectRegistryAreaGridOwnerId(companyId: string, code: string, today: string): Promise<string | 'ambiguous' | null> {
+  // These platform catalogs have no company_id; the caller checks the mapped OPS row's tenant usability.
+  const areas = await tenantDb(companyId).unscoped()
     .from('platform_grid_areas')
     .select('grid_owner_id,valid_from,valid_to')
     .eq('grid_area_code', code)
@@ -134,7 +146,7 @@ async function selectRegistryAreaGridOwnerId(code: string, today: string): Promi
   if (current.length > 1) return 'ambiguous'
   const platformId = current[0]?.grid_owner_id
   if (!platformId) return null
-  const owner = await supabaseService
+  const owner = await tenantDb(companyId).unscoped()
     .from('platform_grid_owners')
     .select('ops_grid_owner_id')
     .eq('id', platformId)
@@ -169,8 +181,7 @@ export async function normalizeGridOwnerIdToOps(input: {
   if (!id) return { opsGridOwnerId: null, source: 'none', warnings: [] }
 
   let opsQuery = supabaseService.from('grid_owners').select('id').eq('id', id)
-  // A shared registry grid owner (company_id null) or the tenant's own; never another tenant's (FINDINGS F58).
-  if (input.companyId) opsQuery = opsQuery.or(`company_id.is.null,company_id.eq.${input.companyId}`)
+  if (input.companyId) opsQuery = opsQuery.eq('company_id', input.companyId)
   const ops = await opsQuery.maybeSingle()
   if (ops.error && !missingSchema(ops.error)) throw ops.error
   if (ops.data) return { opsGridOwnerId: id, source: 'ops', warnings: [] }

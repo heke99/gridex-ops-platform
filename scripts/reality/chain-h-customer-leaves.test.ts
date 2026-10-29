@@ -105,7 +105,7 @@ const DEFECTS = [
     what: "Every Z05 with an LK object (CAV Z23) is routed to the bilateral closure owner, which requires our own sent Z08 LK; an ordinary move-out notice from the grid owner raises bilateral_closure_exact_sent_original_required, is rolled back and held. The period never ends, the contract stays signed, no final-invoice task, no APERAK to the grid owner; billing continues after the move-out." },
   { id: 'H8', status: 'confirmed (code)', severity: 'low', where: 'gridex_supply_end_followup_v1 description, customer_operation_tasks final_invoice_pending',
     what: "The final-invoice task says 'fakturera perioden till och med <end_date>' where end_date of a Z05 is the first day of the new supplier." },
-  { id: 'H9', status: 'likely (code); expected to be resolved by the Ediel-month billing (owner decision 2026-10-23, F108; pending billing agent)', severity: 'low', where: 'supabase/migrations/20261022100000_customer_metering_access_windows.sql (market_start_at/market_end_at), lib/billing/underlayEngine.ts (local days)',
+  { id: 'H9', status: 'likely (code); expected to be resolved by the Ediel-month billing (owner decision 2026-10-23, F108; pending billing agent)', severity: 'low', where: 'supabase/migrations/20261022100500_customer_metering_access_windows.sql (market_start_at/market_end_at), lib/billing/underlayEngine.ts (local days)',
     what: 'In summer the Ediel instant 00:00 +01:00 is 01:00 CEST: Mina sidor opens/closes the window one hour after the civil midnight that billing used, so the new customer did not see the first billed hour and the old one still saw it. With billing on the Ediel instant both use the same boundary.' },
 ]
 report.defects = DEFECTS

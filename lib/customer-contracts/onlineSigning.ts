@@ -1,3 +1,5 @@
+import { tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery';
+import { tenantDb } from '@/lib/supabase/tenantDb';
 import "server-only";
 import { requireContractRecordsAvailable } from '@/lib/ediel/retention/customerRecordClasses';
 
@@ -7,15 +9,20 @@ import { getBaseAppUrl } from "@/lib/auth/urls";
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
 import { archiveSignedCustomerContractPdf, downloadAndVerifyCustomerContractDocument, CUSTOMER_CONTRACT_DOCUMENT_BUCKET, type CustomerContractDocumentRow } from "@/lib/customer-contracts/documents";
 import { sendCompanyEmail } from "@/lib/email/sendCompanyEmail";
+import { sendContractSignatureEmailNow } from "@/lib/email/emailOutbox";
 import { getSupabaseServiceEnv } from "@/lib/env/supabaseServer";
 import { supabaseService } from "@/lib/supabase/service";
 import { stockholmDateForInstant } from "@/lib/time/stockholm";
 import { frozenPriceLines, frozenPriceSummary, pricingFacts } from "./frozenPriceDisplay";
 import { companyEmailContext } from "@/lib/website/customerApplicationCommunication";
+import { ensurePoaPdfArchive } from '@/lib/customers/poaDocuments';
+import { poaMailEvidenceFingerprint, poaMailEvidenceIssues } from '@/lib/email/poaMailEvidence';
 
 const SIGNATURE_TEMPLATE_KEY = "contract.signature_requested";
 const SIGNATURE_EVENT_KEY = "contract.signature_requested";
 const SIGNATURE_TOKEN_PATTERN = /^[0-9a-f]{64}$/;
+export const ONLINE_POA_TERMS_VERSION = 'ops_online_poa_v1';
+export const ONLINE_POA_SCOPES = ['supplier_switch', 'facility_information_lookup'];
 
 export type OnlineSignatureChannel =
   | "internal"
@@ -144,7 +151,15 @@ export function evidenceIpHash(ipAddress: string | null | undefined): string | n
 }
 
 function signingUrl(token: string): string {
-  return `${getBaseAppUrl()}/sign/contract/${token}`;
+  return `${getBaseAppUrl('signing')}/sign/contract/${token}`;
+}
+
+/** Safe diagnostics: never log raw database details, tokens or client values. */
+export function onlineSignatureFailureCode(error: unknown): string {
+  const message = error instanceof Error ? error.message : asObject(error).message;
+  if (message === 'starts_at is required when status is signed, active, or terminated') return 'delivery_start_date_required';
+  const known = ['signature_link_expired', 'signature_link_revoked', 'signature_exact_locked_chain_invalid'];
+  return typeof message === 'string' && known.includes(message) ? message : 'signature_finalization_failed';
 }
 
 async function ensureSignatureRequestTemplate(companyId: string) {
@@ -283,6 +298,8 @@ export async function sendOnlineContractSignatureRequest(input: {
   await requireContractRecordsAvailable({ companyId: input.companyId, contractId: input.contractId });
   const token = randomBytes(32).toString("hex");
   const tokenHash = hashOnlineSignatureToken(token);
+  // Fail before replacing a live unused request if origin configuration is bad.
+  const url = signingUrl(token);
   const expiresInHours = Math.min(Math.max(input.expiresInHours ?? 72, 1), 336);
   const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabaseService.rpc(
@@ -320,7 +337,6 @@ export async function sendOnlineContractSignatureRequest(input: {
     customer.company_name ??
     [customer.first_name, customer.last_name].filter(Boolean).join(" ") ??
     request.recipient_email;
-  const url = signingUrl(token);
   const emailResult = await sendCompanyEmail({
     companyId: input.companyId,
     customerId: input.customerId,
@@ -359,19 +375,32 @@ export async function sendOnlineContractSignatureRequest(input: {
     );
   }
 
+  // This legacy RPC records request notification/queue acknowledgement, not a
+  // transport receipt. communication_logs is authoritative for sent/delivered.
   const markSent = await supabaseService.rpc(
     "gridex_mark_customer_contract_signature_request_sent_v1",
     { p_request_id: request.request_id, p_company_id: input.companyId },
   );
   if (markSent.error) throw markSent.error;
 
-  return { request, signingUrl: url, emailResult };
+  let deliveryStatus: string;
+  try {
+    const delivery = await sendContractSignatureEmailNow({
+      companyId: input.companyId, customerId: input.customerId, contractId: input.contractId,
+      signatureRequestId: request.request_id, communicationLogId: emailResult.log.id,
+    });
+    deliveryStatus = delivery.status;
+  } catch {
+    // The durable queue already exists. Do not create a second intent or claim
+    // that a potentially accepted provider request failed; retain it for review.
+    deliveryStatus = 'unknown';
+  }
+
+  return { request, signingUrl: url, emailResult, deliveryStatus };
 }
 
 async function signedContractState(receipt: OnlineSignatureReceipt) {
-  const { data, error } = await supabaseService
-    .from("customer_contracts")
-    .select("withdrawal_deadline_at,document_sha256,tenant_communication_snapshot_sha256,signature_snapshot")
+  const { data, error } = await tenantSelect(receipt.company_id, "customer_contracts", "withdrawal_deadline_at,document_sha256,tenant_communication_snapshot_sha256,signature_snapshot")
     .eq("id", receipt.contract_id)
     .eq("company_id", receipt.company_id)
     .single();
@@ -384,6 +413,121 @@ async function signedContractState(receipt: OnlineSignatureReceipt) {
   };
 }
 
+type OnlinePoaReceipt = Pick<OnlineSignatureReceipt, 'company_id' | 'customer_id' | 'contract_id' | 'request_id' | 'signed_at' | 'signature_snapshot_sha256'>;
+
+/** Recover only original, hash-bound signing evidence. A retry has no IP input
+ * and cannot create a POA or manufacture missing historical consent. */
+export async function archiveOnlineSignaturePoa(receipt: OnlinePoaReceipt, persistedSignature?: Record<string, unknown>) {
+  await requireContractRecordsAvailable({ companyId: receipt.company_id, contractId: receipt.contract_id });
+  // Receipt delivery has already loaded this exact contract's frozen signature.
+  // Legacy and optional contract-only receipts need no new POA lookup/backfill.
+  if (persistedSignature && !optionalString(asObject(persistedSignature.power_of_attorney_snapshot).power_of_attorney_id)) return null;
+  const contract = await tenantSelect(receipt.company_id, 'customer_contracts', 'signature_snapshot,signature_snapshot_sha256,signed_at')
+    .eq('company_id', receipt.company_id).eq('customer_id', receipt.customer_id).eq('id', receipt.contract_id).maybeSingle();
+  if (contract.error) throw contract.error;
+  const contractRow = contract.data as { signature_snapshot: unknown; signature_snapshot_sha256: string | null; signed_at: string | null } | null;
+  if (!contractRow) throw new Error('poa_contract_scope_invalid');
+  const signature = asObject(contractRow.signature_snapshot);
+  const poaId = optionalString(asObject(signature.power_of_attorney_snapshot).power_of_attorney_id);
+  if (!poaId) return null; // Optional contract-only or legacy signature; never backfill.
+  if (signature.signature_request_id !== receipt.request_id
+    || contractRow.signature_snapshot_sha256 !== receipt.signature_snapshot_sha256
+    || !receipt.signed_at || Date.parse(String(contractRow.signed_at)) !== Date.parse(receipt.signed_at)) {
+    throw new Error('poa_signature_original_binding_invalid');
+  }
+  const found = await tenantSelect(receipt.company_id, 'powers_of_attorney', '*')
+    .eq('company_id', receipt.company_id).eq('customer_id', receipt.customer_id)
+    .eq('customer_contract_id', receipt.contract_id).eq('id', poaId).eq('source', 'ops_online_signature').maybeSingle();
+  if (found.error) throw found.error;
+  const poa = found.data as Record<string, unknown> | null;
+  const evidence = asObject(poa?.evidence_payload);
+  if (!poa || poa.status !== 'signed' || poa.revoked_at
+    || evidence.signature_request_id !== receipt.request_id
+    || evidence.signature_snapshot_sha256 !== receipt.signature_snapshot_sha256
+    || evidence.capture_source !== 'actual_signing_request'
+    || !poa.signer_name || !poa.signer_identity_number
+    || Date.parse(String(poa.accepted_at)) !== Date.parse(receipt.signed_at)
+    || poaMailEvidenceIssues(poa).some(issue => issue.code !== 'poa_private_archive_pending')) {
+    throw new Error('poa_capture_original_binding_invalid');
+  }
+  const archived = await ensurePoaPdfArchive({ companyId: receipt.company_id, customerId: receipt.customer_id, powerOfAttorneyId: poaId });
+  const sha = createHash('sha256').update(archived.pdf).digest('hex');
+  const completed = await supabaseService.rpc('gridex_complete_online_signature_poa_archive_v1', {
+    p_company_id: receipt.company_id, p_customer_id: receipt.customer_id, p_contract_id: receipt.contract_id,
+    p_request_id: receipt.request_id, p_poa_id: poaId, p_path: archived.path, p_sha256: sha,
+    p_evidence_sha256: poaMailEvidenceFingerprint(poa), p_size_bytes: archived.pdf.byteLength,
+  });
+  if (completed.error) throw completed.error;
+  if (asObject(completed.data).power_of_attorney_id !== poaId) throw new Error('poa_archive_completion_receipt_invalid');
+  return { filename: `fullmakt-${optionalString(poa.reference) ?? poaId}.pdf`, content: archived.pdf.toString('base64'), contentType: 'application/pdf' };
+}
+
+export async function recoverPendingOnlineSignaturePoas(limit = 20) {
+  // Platform cron intentionally discovers pending originals across tenants; every
+  // subsequent read/write is bound to that original's company and customer.
+  const pending = await supabaseService.from('powers_of_attorney').select('*').eq('source', 'ops_online_signature')
+    .eq('metadata->>online_signature_archive_pending', 'true').order('updated_at', { ascending: true })
+    .limit(Math.min(50, Math.max(1, limit)));
+  if (pending.error) throw pending.error;
+  const results: Array<{ powerOfAttorneyId: string; state: 'archived' | 'pending' }> = [];
+  for (const value of pending.data ?? []) {
+    const poa = value as Record<string, unknown>;
+    const evidence = asObject(poa.evidence_payload);
+    try {
+      const attachment = await archiveOnlineSignaturePoa({ company_id: String(poa.company_id), customer_id: String(poa.customer_id),
+        contract_id: String(poa.customer_contract_id), request_id: requiredString(evidence.signature_request_id, 'poa_request_missing'),
+        signed_at: requiredString(poa.accepted_at, 'poa_original_time_missing'),
+        signature_snapshot_sha256: requiredString(evidence.signature_snapshot_sha256, 'poa_original_hash_missing') });
+      if (!attachment) throw new Error('poa_original_snapshot_missing');
+      results.push({ powerOfAttorneyId: String(poa.id), state: 'archived' });
+    } catch {
+      // Preserve the immutable consent and original IP. The exact operation
+      // remains visibly blocked. Rotate failed rows behind other pending rows.
+      await tenantUpdate(String(poa.company_id), 'powers_of_attorney', {
+        metadata: { ...asObject(poa.metadata), online_signature_archive_last_error: 'poa_archive_retry_pending' },
+        updated_at: new Date().toISOString(),
+      }).eq('company_id', String(poa.company_id)).eq('customer_id', String(poa.customer_id))
+        .eq('id', String(poa.id)).eq('updated_at', String(poa.updated_at));
+      await tenantUpdate(String(poa.company_id), 'customer_operation_jobs', {
+        last_error: 'Fullmaktens privata PDF kunde inte verifieras. Automatiken är spärrad; granska originalunderlaget. Arkiveringen återförsöks med samma godkännande.',
+        updated_at: new Date().toISOString(),
+      }).eq('company_id', String(poa.company_id)).eq('customer_id', String(poa.customer_id))
+        .eq('idempotency_key', `contract-signed:${poa.customer_contract_id}`).eq('job_type', 'start_supplier_switch')
+        .eq('status', 'blocked').eq('review_reason_code', 'poa_archive_pending')
+        .eq('payload->>online_poa_id', String(poa.id)).eq('payload->>signature_request_id', String(evidence.signature_request_id));
+      results.push({ powerOfAttorneyId: String(poa.id), state: 'pending' });
+    }
+  }
+  return { processed: results.length, results };
+}
+
+export async function loadOnlineSignaturePoaTerms(receipt: Pick<OnlineSignatureReceipt,
+  'company_id' | 'customer_id' | 'contract_id' | 'contract_publication_version_id' | 'legal_versions'>) {
+  const contract = await tenantSelect(receipt.company_id, 'customer_contracts', 'contract_product_version_id,customer_site_id,site_id')
+    .eq('company_id', receipt.company_id).eq('customer_id', receipt.customer_id).eq('id', receipt.contract_id)
+    .eq('contract_publication_version_id', receipt.contract_publication_version_id).maybeSingle();
+  if (contract.error) throw contract.error;
+  const contractRow = contract.data as { contract_product_version_id: string; customer_site_id: string | null; site_id: string | null } | null;
+  if (!contractRow) throw new Error('poa_product_scope_invalid');
+  // This global immutable version is reached only through the tenant-bound contract.
+  const product = await tenantDb(receipt.company_id).unscoped().from('contract_product_versions').select('power_of_attorney_required')
+    .eq('id', contractRow.contract_product_version_id).maybeSingle();
+  if (product.error) throw product.error;
+  if (!product.data) throw new Error('poa_product_version_missing');
+  if (contractRow.customer_site_id && contractRow.site_id && contractRow.customer_site_id !== contractRow.site_id) {
+    throw new Error('poa_site_scope_ambiguous');
+  }
+  const siteId = contractRow.customer_site_id ?? contractRow.site_id;
+  const site = siteId ? await tenantSelect(receipt.company_id, 'customer_sites', 'street,postal_code,city,facility_id')
+    .eq('company_id', receipt.company_id).eq('customer_id', receipt.customer_id).eq('id', siteId).maybeSingle() : null;
+  if (site?.error) throw site.error;
+  const siteRow = site?.data as { street: string | null; postal_code: string | null; city: string | null; facility_id: string | null } | null | undefined;
+  return { required: product.data.power_of_attorney_required !== false,
+    available: Boolean(siteRow) && receipt.legal_versions.some(row => row.module_key === 'power_of_attorney'),
+    siteAddress: siteRow ? [siteRow.street, siteRow.postal_code, siteRow.city].filter(Boolean).join(', ') : '',
+    facilityId: optionalString(siteRow?.facility_id) };
+}
+
 export async function deliverSignedContractReceipt(receipt: OnlineSignatureReceipt) {
   await requireContractRecordsAvailable({ companyId: receipt.company_id, contractId: receipt.contract_id });
   if (!receipt.signed_at || !receipt.signature_snapshot_sha256) {
@@ -393,6 +537,7 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
     companyEmailContext(receipt.company_id, receipt.contract_id),
     signedContractState(receipt),
   ]);
+  const poaAttachment = await archiveOnlineSignaturePoa(receipt, contractState.signature_snapshot);
   const price = pricingFacts(receipt.pricing_snapshot);
   const legalVersions = legalVersionsForPdf(receipt);
   const customerEmail = requiredString(
@@ -546,7 +691,7 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
     legalOrCritical: true,
     idempotencyKey: `online_signature:${receipt.request_id}:confirmation`,
     variables,
-    attachments: [attachment],
+    attachments: [attachment, ...(poaAttachment ? [poaAttachment] : [])],
     metadata: {
       contract_id: receipt.contract_id,
       customer_number: customerNumber,
@@ -594,13 +739,19 @@ export async function finalizeOnlineContractSignature(input: {
   token: string;
   ipAddress?: string | null;
   userAgent?: string | null;
+  powerOfAttorneyAccepted?: boolean;
+  powerOfAttorneyTermsVersion?: string | null;
 }) {
   const { data, error } = await supabaseService.rpc(
-    "gridex_finalize_customer_contract_signature_v1",
+    "gridex_finalize_customer_contract_signature_v2",
     {
       p_token_hash: hashOnlineSignatureToken(input.token),
       p_signed_ip_hash: evidenceIpHash(input.ipAddress),
       p_signed_user_agent: input.userAgent?.slice(0, 1000) ?? null,
+      p_signer_ip: input.ipAddress ?? null,
+      p_poa_accepted: input.powerOfAttorneyAccepted === true,
+      p_poa_scopes: input.powerOfAttorneyAccepted === true ? ONLINE_POA_SCOPES : [],
+      p_poa_terms_version: input.powerOfAttorneyTermsVersion ?? null,
     },
   );
   if (error) throw error;
@@ -628,6 +779,14 @@ export async function finalizeOnlineContractSignature(input: {
  * stops the remaining rows or the rest of the cron.
  */
 export async function processPendingContractConfirmations(limit = 20) {
+  // Separate durable POA scan also recovers rows whose confirmation has already
+  // exhausted its retries; no later request supplies replacement consent/IP.
+  const poaRecovery = await recoverPendingOnlineSignaturePoas(limit).catch(() => {
+    // An unavailable archive scan must not stop unrelated contract-only
+    // confirmations. New POA receipts still enforce their archive gate below.
+    console.error('[contract-signing] poa_archive_recovery_unavailable');
+    return { processed: 0, results: [], error: 'poa_archive_recovery_unavailable' };
+  });
   const due = await listDueContractConfirmations(limit);
   const results: Array<{ signatureRequestId: string; state: string; error: string | null }> = [];
   for (const item of due) {
@@ -658,5 +817,5 @@ export async function processPendingContractConfirmations(limit = 20) {
       results.push({ signatureRequestId: item.signatureRequestId, state: "error", error: message });
     }
   }
-  return { processed: results.length, results };
+  return { processed: results.length, results, poaRecovery };
 }

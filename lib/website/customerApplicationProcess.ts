@@ -113,7 +113,7 @@ export async function processWebsiteCustomerApplication(input: {
         code: "validation_error",
         stage: "validation",
         details: parsed.error.issues.map(
-          (issue: { path: Array<string | number>; message: string }) => ({
+          (issue) => ({
             path: issue.path.join("."),
             message: issue.message,
           }),

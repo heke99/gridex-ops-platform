@@ -10,11 +10,19 @@ type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({
   tables: {} as Record<string, Row[]>,
   reads: [] as string[],
+  queries: [] as Array<{ table: string; filters: Array<[string, string, unknown]> }>,
   commands: [] as Row[],
 }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => {
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: async (name: string,args: Row)=>{
+ if(name!=='ediel_inbound_graph_snapshot_basis_v1')throw Error('unexpected RPC '+name)
+ const c=(io.tables.customers??[]).find(row=>row.id===args.p_customer_id&&row.company_id===args.p_company_id)
+ const child=(table:string,key:string)=>c?(io.tables[table]??[]).find(row=>row.id===args[key]&&row.company_id===args.p_company_id&&row.customer_id===c.id):null
+ const site=child('customer_sites','p_site_id'),point=child('metering_points','p_metering_point_id')
+ return {data:{customer:c?JSON.stringify(c):null,site:site?JSON.stringify(site):null,metering_point:point?JSON.stringify(point):null},error:null}
+},from: (table: string) => {
   io.reads.push(table)
   const filters: Array<[string, string, unknown]> = []
+  io.queries.push({ table, filters })
   const rows = () => (io.tables[table] ?? []).filter(row => filters.every(([op, column, value]) =>
     op === 'is' ? row[column] === value : value !== null && row[column] === value))
   const query = {
@@ -48,6 +56,7 @@ const area = (extra: Row = {}): Row =>
 
 beforeEach(() => {
   io.reads = []
+  io.queries = []
   io.commands = []
   io.tables = {
     grid_owners: [gridOwner(ALINGSAS, null)],
@@ -141,5 +150,52 @@ describe('single-object approval never clears an existing grid owner', () => {
     io.tables.grid_owners.push(gridOwner('own-new', TENANT, { owner_code: 'NEW' }))
     const command = await approve('NEW', 'update_existing_customer')
     expect([command.site.grid_owner_id, command.metering_point.grid_owner_id]).toEqual(['own-new', 'own-new'])
+  })
+})
+
+
+describe('active legacy owner lookup and protected object-batch boundary', () => {
+  it.each([TENANT, null])('rejects an inactive legacy owner in usable tier %s', async companyId => {
+    io.tables.platform_grid_areas = []
+    io.tables.grid_owners = [gridOwner(ALINGSAS, companyId, { owner_code: 'ALS', is_active: false })]
+    expect(await getGridOwnerIdByGridArea(TENANT, 'ALS')).toBeNull()
+  })
+
+  it.each([TENANT, null])('accepts an active legacy owner in usable tier %s', async companyId => {
+    io.tables.platform_grid_areas = []
+    io.tables.grid_owners = [gridOwner(ALINGSAS, companyId, { owner_code: 'ALS', is_active: true })]
+    expect(await getGridOwnerIdByGridArea(TENANT, 'ALS')).toBe(ALINGSAS)
+  })
+
+  it('can fall back to the active shared tier when the tenant has no active matching row', async () => {
+    io.tables.platform_grid_areas = []
+    io.tables.grid_owners = [gridOwner('inactive-own', TENANT, { owner_code: 'ALS', is_active: false }),
+      gridOwner(ALINGSAS, null, { owner_code: 'ALS', is_active: true })]
+    expect(await getGridOwnerIdByGridArea(TENANT, 'ALS')).toBe(ALINGSAS)
+  })
+
+  it('never widens the protected object batch to the shared legacy or platform registry namespaces', async () => {
+    io.tables.grid_owners = [gridOwner(ALINGSAS, null, { owner_code: 'ALS', is_active: true })]
+    expect(await getGridOwnerIdByGridArea(TENANT, 'ALS', { registryArea: false })).toBeNull()
+    expect(io.reads).not.toContain('platform_grid_areas')
+    io.tables.grid_owners.push(gridOwner('own-legacy', TENANT, { owner_code: 'ALS', is_active: true }))
+    expect(await getGridOwnerIdByGridArea(TENANT, 'ALS', { registryArea: false })).toBe('own-legacy')
+  })
+})
+
+describe('tenant-bound and explicitly shared grid owner queries', () => {
+  it('uses exactly one company predicate per owned/shared tier and none on the global platform catalogs', async () => {
+    expect(await getGridOwnerIdByGridArea(TENANT, 'ALS')).toBe(ALINGSAS)
+    const local = io.queries.filter(query => query.table === 'grid_owners')
+    expect(local).toHaveLength(4)
+    expect(local.map(query => query.filters.filter(([, column]) => column === 'company_id')))
+      .toEqual([[['eq', 'company_id', TENANT]], [['is', 'company_id', null]], [['eq', 'company_id', TENANT]], [['is', 'company_id', null]]])
+    const catalogs = io.queries.filter(query => query.table.startsWith('platform_'))
+    expect(catalogs.map(query => query.table)).toEqual(['platform_grid_areas', 'platform_grid_owners'])
+    expect(catalogs.every(query => query.filters.every(([, column]) => column !== 'company_id'))).toBe(true)
+  })
+  it('refuses a missing caller company before any owned, shared or platform read', async () => {
+    await expect(getGridOwnerIdByGridArea('', 'ALS')).rejects.toThrow('Bolag krävs')
+    expect(io.reads).toHaveLength(0)
   })
 })

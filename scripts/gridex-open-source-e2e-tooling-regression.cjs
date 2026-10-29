@@ -50,7 +50,7 @@ if (issues.length === 0) {
 
   const requiredTokens = [
     [workflow, 'grafana/k6:2.1.0', 'k6 is not pinned to the reviewed version.'],
-    [workflow, 'zaproxy/action-baseline@v0.15.0', 'OWASP ZAP baseline action is missing or not pinned.'],
+    [workflow, 'zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25', 'OWASP ZAP baseline action is missing or not pinned.'],
     [workflow, 'fail_action: true', 'OWASP ZAP is not a blocking staging gate.'],
     [workflow, 'GRIDEX_E2E_BROWSER_BASE_URL', 'Staging browser target is not wired.'],
     [workflow, 'GRIDEX_E2E_BROWSER_EMAIL', 'Staging browser account email is not wired.'],

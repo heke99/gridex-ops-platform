@@ -35,9 +35,9 @@ function Section({ id, title, children }: { id: string; title: string; children:
   )
 }
 
-function EndpointTable({ rows }: { rows: readonly (readonly [string, string, string, string])[] }) {
+function EndpointTable({ rows, label }: { rows: readonly (readonly [string, string, string, string])[]; label: string }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+    <div role="region" aria-label={label} tabIndex={0} className="overflow-x-auto rounded-xl border border-slate-200 bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
       <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
         <thead className="bg-slate-50 text-slate-700">
           <tr>
@@ -316,7 +316,7 @@ export default function CustomerPortalApiDocumentationPage() {
           </nav>
         </aside>
 
-        <article className="min-w-0 space-y-10">
+        <article className="min-w-0 space-y-10 wrap-anywhere">
           <header id="overview" className="scroll-mt-24 space-y-5">
             <div className="text-sm font-medium text-slate-500">
               Gridex Developers · Documentation {documentationVersion} · Response schema {WEBSITE_INTEGRATION_CONTRACT_VERSION}
@@ -384,7 +384,7 @@ export default function CustomerPortalApiDocumentationPage() {
               Use the API key only from your backend. Gridex identifies the correct organization from the credential,
               so requests do not need internal database identifiers or organization-selection fields.
             </p>
-            <CopyCodeBlock code={`GRIDEX_API_KEY=gridex_live_xxxxxxxxx\n\nAuthorization: Bearer $GRIDEX_API_KEY`} language="text" />
+            <CopyCodeBlock code={`GRIDEX_API_KEY=gridex_live_xxxxxxxxx\n\nAuthorization: Bearer $GRIDEX_API_KEY`} language="text" label="Authentication example" />
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
               Never expose <code>GRIDEX_API_KEY</code> in browser JavaScript, a mobile application, logs, analytics events or client-visible environment variables.
             </div>
@@ -404,7 +404,7 @@ export default function CustomerPortalApiDocumentationPage() {
               <li>Submit the application with one stable <code>Idempotency-Key</code>.</li>
             </ol>
             <h3 className="text-lg font-semibold text-slate-950">Submit an application</h3>
-            <CopyCodeBlock code={checkoutRequest} language="json" />
+            <CopyCodeBlock code={checkoutRequest} language="json" label="Checkout request example" />
             <p className="leading-7 text-slate-700">
               For automated power-of-attorney email, record the customer’s IP at acceptance and send it as
               <code> powerOfAttorney.ipAddress</code> from your trusted backend, with the original
@@ -421,7 +421,7 @@ export default function CustomerPortalApiDocumentationPage() {
             <p className="leading-7 text-slate-700">
               The immediate customer-facing checkout result is returned in <code>data.checkout</code>. Use that object for the post-submit UI instead of deriving success from internal processing states.
             </p>
-            <CopyCodeBlock code={checkoutResponse} language="json" />
+            <CopyCodeBlock code={checkoutResponse} language="json" label="Checkout response example" />
             <p className="text-sm leading-6 text-slate-600">
               These illustrative timestamps show the deadline rule for newly signed qualifying private distance agreements: the end of the fourteenth calendar day after acceptance in Europe/Stockholm. Use the stored deadline returned by Gridex. Previously frozen agreements retain their recorded deadline; confirmation delivery does not change it.
             </p>
@@ -439,7 +439,7 @@ export default function CustomerPortalApiDocumentationPage() {
               Store <code>application_number</code> after a successful submission. Use the application status endpoint after redirects,
               page refreshes and later visits. It returns the authoritative customer-facing state of the agreement and downstream processing.
             </p>
-            <CopyCodeBlock code={statusResponse} language="json" />
+            <CopyCodeBlock code={statusResponse} language="json" label="Application status example" />
             <p className="leading-7 text-slate-700">
               Agreement state and message-delivery state are separate. A confirmation email can still be queued while the agreement is already validly signed.
               Treat the documented delivery status as authoritative instead of assuming that an email was delivered because the agreement succeeded.
@@ -487,7 +487,7 @@ export default function CustomerPortalApiDocumentationPage() {
               {' '}or <a className="underline" href="/api/v1/openapi/2026-10-19.1/poa-archive-v1.json">pinned release 2026-10-19.1</a>.
               Existing Website and Customer Portal contract releases are unchanged.
             </p>
-            <EndpointTable rows={customerPortalRows} />
+            <EndpointTable rows={customerPortalRows} label="Customer Portal endpoints" />
           </Section>
 
           <Section id="partner-api" title="6. Partner API">
@@ -497,10 +497,10 @@ export default function CustomerPortalApiDocumentationPage() {
               the partner sends business data and uses the public references returned in responses.
             </p>
             <h3 className="text-lg font-semibold text-slate-950">Create a contract</h3>
-            <CopyCodeBlock code={partnerContractExample} language="json" />
+            <CopyCodeBlock code={partnerContractExample} language="json" label="Partner contract example" />
             <h3 className="text-lg font-semibold text-slate-950">Create a webhook subscription</h3>
-            <CopyCodeBlock code={partnerWebhookSubscriptionExample} language="json" />
-            <EndpointTable rows={partnerEndpointRows} />
+            <CopyCodeBlock code={partnerWebhookSubscriptionExample} language="json" label="Partner webhook subscription example" />
+            <EndpointTable rows={partnerEndpointRows} label="Partner API endpoints" />
           </Section>
 
           <Section id="webhooks" title="7. Webhooks">
@@ -509,7 +509,7 @@ export default function CustomerPortalApiDocumentationPage() {
               reject stale timestamps, and deduplicate by event or delivery identifier before applying side effects.
               When you need the latest complete state, use the webhook as a signal and retrieve the corresponding resource from Gridex.
             </p>
-            <CopyCodeBlock code={webhookExample} language="json" />
+            <CopyCodeBlock code={webhookExample} language="json" label="Webhook event example" />
             <p className="text-sm leading-6 text-slate-600">
               A temporary failure in your receiver does not change the underlying Gridex business event. Webhook delivery is retried independently according to the configured delivery policy.
             </p>
@@ -531,14 +531,14 @@ export default function CustomerPortalApiDocumentationPage() {
               API errors use one structured envelope. Inspect <code>error.code</code>, <code>error.retryable</code>, <code>error.field</code> and <code>error.blockers</code> rather than parsing human-readable messages.
               Include <code>request_id</code> when contacting Gridex support about a failed request.
             </p>
-            <CopyCodeBlock code={errorExample} language="json" />
+            <CopyCodeBlock code={errorExample} language="json" label="Error response example" />
           </Section>
 
           <Section id="endpoints" title="10. Endpoint reference">
             <p className="leading-7 text-slate-700">
               This table shows the current integration endpoints. Historical immutable OpenAPI releases and internal diagnostics are intentionally omitted from the human-readable guide.
             </p>
-            <EndpointTable rows={websiteRows} />
+            <EndpointTable rows={websiteRows} label="Website API endpoints" />
           </Section>
         </article>
       </div>

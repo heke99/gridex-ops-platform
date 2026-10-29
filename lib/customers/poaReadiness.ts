@@ -75,6 +75,11 @@ function clean(value: unknown): string | null {
   return null
 }
 
+/** One source classification for readiness and external-mail proof gates. */
+export function poaCaptureSource(poa: PoaLike | null | undefined): string {
+  return (clean(poa?.source) ?? clean((poa?.evidence_payload as PoaLike | undefined)?.source) ?? '').toLowerCase()
+}
+
 function isNonEmptyObject(value: unknown): boolean {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value) && Object.keys(value as object).length > 0
 }
@@ -119,7 +124,7 @@ export function hasPoaSnapshot(poa: PoaLike | null | undefined): boolean {
 }
 
 function websiteApiPoaHasStructuredExternalCapture(poa: PoaLike | null | undefined): boolean {
-  if ((clean(poa?.source) ?? '').toLowerCase() !== 'website_api') return true
+  if (!['website_api', 'ops_online_signature'].includes(poaCaptureSource(poa))) return true
 
   const evidence = poa?.evidence_payload as PoaLike | undefined
   const metadata = poa?.metadata as PoaLike | undefined
@@ -134,6 +139,25 @@ function websiteApiPoaHasStructuredExternalCapture(poa: PoaLike | null | undefin
   )
 }
 
+/** Readiness metadata only; the archive completion RPC also checks the exact
+ * private storage object, original signature and tenant/customer/contract. */
+export function hasOnlineSignaturePoaArchive(poa: PoaLike | null | undefined): boolean {
+  if (!poa || poaCaptureSource(poa) !== 'ops_online_signature') return true
+  const metadata = poa.metadata as PoaLike | undefined
+  const archive = metadata?.document_archive as PoaLike | undefined
+  const evidence = poa.evidence_payload as PoaLike | undefined
+  const sha = clean(archive?.sha256)
+  const expected = `companies/${poa.company_id}/customers/${poa.customer_id}/powers-of-attorney/${poa.id}/fullmakt-${sha}.pdf`
+  return Boolean(clean(poa.document_id) && metadata?.online_signature_archive_pending === false
+    && archive?.storage_bucket === 'customer-documents' && /^[a-f0-9]{64}$/.test(sha ?? '')
+    && /^[a-f0-9]{64}$/.test(clean(archive?.evidence_sha256) ?? '')
+    && archive?.path === expected && poa.document_path === expected
+    && evidence?.capture_source === 'actual_signing_request'
+    && clean(evidence?.signature_request_id) && clean(evidence?.signature_snapshot_sha256)
+    && evidence?.ip_address_source === 'signer_reported' && clean(evidence?.ip_address)
+    && clean(evidence?.verification_reference))
+}
+
 export function poaCustomerIdentity(
   poa: PoaLike | null | undefined,
   context?: { customerIdentity?: string | null },
@@ -144,7 +168,7 @@ export function poaCustomerIdentity(
   // Customer identity fallback is intentionally limited to old/admin/migrated
   // complete POA rows. Website API rows must carry signerIdentityNumber on the
   // structured POA itself; legacy consent-only is never externally sendable.
-  if ((clean(poa?.source) ?? '').toLowerCase() === 'website_api') return null
+  if (['website_api', 'ops_online_signature'].includes(poaCaptureSource(poa))) return null
 
   return clean(context?.customerIdentity)
 }
@@ -166,6 +190,7 @@ export function hasExternallySendablePoa(
   if (!clean(poa.signer_name)) return false
   if (!clean(poa.method)) return false
   if (!hasPoaSnapshot(poa)) return false
+  if (!hasOnlineSignaturePoaArchive(poa)) return false
   return true
 }
 
@@ -251,5 +276,6 @@ export function poaMissingExternalFields(
   if (!clean(poa?.signer_name)) missing.push('Undertecknarens namn')
   if (!clean(poa?.method)) missing.push('Signeringsmetod')
   if (!hasPoaSnapshot(poa)) missing.push('Fullmaktsunderlag/dokument')
+  if (!hasOnlineSignaturePoaArchive(poa)) missing.push('Verifierat privat fullmaktsarkiv med originalbevis')
   return missing
 }

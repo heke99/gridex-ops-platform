@@ -2,7 +2,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { normalizeManualCommercialTerms } from '@/lib/inbound-mail/manualCommercialTerms'
 import { normalizeManualFacilityFacts } from '@/lib/inbound-mail/manualFacilityFacts'
-import { continueManualCommercialReply, markManualReplyContinuation, markManualReplyContinuationFailed, readAppliedManualReplyContext } from '@/lib/inbound-mail/manualReplyApplication'
+import { continueManualCommercialReply, markManualReplyContinuation, markManualReplyContinuationFailed, manualReplyReviewCodes, readAppliedManualReplyContext } from '@/lib/inbound-mail/manualReplyApplication'
 import type { ManualFacilityExtractedPayload } from '@/lib/customer-operations/manualFacilityResponseParser'
 
 type Row = Record<string, unknown>
@@ -28,7 +28,7 @@ export type ManualMultiSiteContinuation = { companyId: string; customerId: strin
 
 /** Pure per-site normalization followed by one source-locked database command. */
 export async function applyManualMultiSiteReply(input: {
-  companyId: string; customerId: string; parentRequest: Row; inboundId: string; sourceHash: string; receivedAt: string
+  companyId: string; customerId: string; parentRequest: Row; inboundId: string; sourceHash: string; receivedAt: string; receivedAtSource?: 'imap_internal_date'
   groups: ManualMultiSiteGroup[]
 }): Promise<ManualMultiSiteResult> {
   const parentRequestId = text(input.parentRequest.id)
@@ -46,7 +46,8 @@ export async function applyManualMultiSiteReply(input: {
       ...(group.meteringPointId ? { metering_point_id: group.meteringPointId } : {}) }
     let payload: Row
     if (commercial) {
-      const normalized = normalizeManualCommercialTerms({ extracted, authoredText: group.authoredText, receivedAt: input.receivedAt })
+      const normalized = normalizeManualCommercialTerms({ extracted, authoredText: group.authoredText,
+        receivedAt: input.receivedAt, receivedAtSource: input.receivedAtSource })
       reasons.push(...normalized.reasons)
       payload = { terms: normalized.terms, evidence: normalized.evidence, extracted, nextFollowUpAt }
     } else {
@@ -149,6 +150,7 @@ async function finishManualMultiSiteContinuation(input: ManualMultiSiteContinuat
     if (summary.version !== 1 || summary.parentRequestId !== input.parentRequestId || summary.sourceHash !== automation.sourceHash) return
     const members = Object.values(record(automation.site_applications)).map(record).filter(member => member.status === 'applied')
     if (!members.length) return
+    const reviews: Row[] = []
     for (const member of members) {
       const context = await readAppliedManualReplyContext({ companyId: input.companyId, customerId: input.customerId, inboundId: input.inboundId,
         requestId: String(member.requestId), siteId: String(member.siteId), memberOnly: true, allowPartial: true })
@@ -156,10 +158,14 @@ async function finishManualMultiSiteContinuation(input: ManualMultiSiteContinuat
       const requiresEffect = context.request.request_type !== 'current_supplier_contract_information_request'
         || context.application.complete === true || context.member?.internalCreated === true
       if (requiresEffect && record(context.member?.continuation).status !== 'completed') return
+      const outcome = record(context.member?.continuation)
+      if (outcome.status === 'completed' && outcome.reviewRequired === true) reviews.push(outcome)
     }
     if (record(automation.continuation).status === 'completed') return
     const continuation = { status: 'completed', sourceHash: automation.sourceHash, inboundId: input.inboundId,
-      parentRequestId: input.parentRequestId, completedAt: new Date().toISOString() }
+      parentRequestId: input.parentRequestId, completedAt: new Date().toISOString(),
+      ...(reviews.length ? { reviewRequired: true, reviewCount: reviews.length,
+        reviewReasons: manualReplyReviewCodes(reviews.flatMap(outcome => Array.isArray(outcome.reviewReasons) ? outcome.reviewReasons : [])) } : {}) }
     const updated = await tenantUpdate(input.companyId, 'manual_inbound_messages', { extracted_payload: {
       ...payload, manual_automation: { ...automation, continuation },
     } }).eq('id', input.inboundId).eq('customer_id', input.customerId).eq('request_id', input.parentRequestId)

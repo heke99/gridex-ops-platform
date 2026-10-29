@@ -1,4 +1,5 @@
 import {beforeEach,describe,expect,it,vi} from 'vitest'
+import {createHash} from 'node:crypto'
 import {renderAndQueueNormalSwitch} from '@/lib/ediel/intent/switchRenderGateway'
 import {resolveDecisionBackedOutboundContext} from '@/lib/ediel/flows/routeDecisionContext'
 import {getSupplierSwitchRequestById} from '@/lib/operations/db'
@@ -16,7 +17,7 @@ vi.mock('@/lib/ediel/flows/routeDecisionContext',()=>({resolveDecisionBackedOutb
 vi.mock('@/lib/operations/db',()=>({getSupplierSwitchRequestById:io.switch}))
 vi.mock('@/lib/masterdata/db',()=>({getCustomerSiteById:io.site,getMeteringPointById:io.point}))
 const intent:EdielMessageIntent={id:'intent',companyId:'tenant',environment:'test',market:'electricity',messageFamily:'PRODAT',messageCode:'Z03',businessProcess:'supplier_switch',direction:'outbound',senderEdielId:'111',receiverEdielId:'222',applicationReference:'23-DDQ-PRODAT',routeProfileId:'profile',communicationRouteId:'route',customerId:'customer',customerSiteId:'site',supplierSwitchRequestId:'switch',operationId:'switch',interchangeReference:'EXACT-UNB',messageReference:'EXACT-UNH',transactionReference:'EXACT-LI',payload:{documentReference:'EXACT-BGM',transactionSubtype:'LK',reasonForTransaction:'Z23',canonical_rule_pack_id:'pack',canonical_message_profile_id:'message-profile',canonical_profile_key:'profile-key'},idempotencyKey:'switch',validationStatus:'validated',renderStatus:'not_rendered',outboxStatus:'not_queued'}
-const message={...source('raw'),id:'message',company_id:'tenant',intent_id:'intent',outbound_request_id:'request',message_code:'Z03',direction:'outbound' as const,status:'draft' as const}
+const message={...source('raw'),id:'message',company_id:'tenant',intent_id:'intent',outbound_request_id:'request',message_code:'Z03',direction:'outbound' as const,status:'draft' as const,immutable_payload_hash:createHash('sha256').update('raw').digest('hex'),immutable_rendered_at:'2026-10-25T12:00:00Z'}
 // These mocked projections are mechanical gateway inputs, not authentic
 // contracts, market approval or native source proof. The native binding RPC is
 // the independently tested source boundary.
@@ -26,7 +27,7 @@ async function input(){
  const routeContext=await resolveDecisionBackedOutboundContext({companyId:'tenant',environment:'test',requestType:'supplier_switch',messageFamily:'PRODAT',messageCode:'Z03'})
  return {intentId:'intent',actorUserId:'actor',outboundRequestId:'request',routeContext,source:{senderEdielId:'111',receiverEdielId:'222',switchRequest,site,meteringPoint}}
 }
-beforeEach(()=>{vi.resetAllMocks();io.intent.mockResolvedValue(intent);io.validate.mockReturnValue({ok:true});io.switch.mockResolvedValue({id:'switch',company_id:'tenant',customer_id:'customer',site_id:'site'});io.site.mockResolvedValue({id:'site'});io.point.mockResolvedValue({id:'point'});io.route.mockResolvedValue({environment:'test',route:{id:'route'},routeDecision:{edielRouteProfileId:'profile'},senderEdielId:'111',receiverEdielId:'222'});io.render.mockResolvedValue({messageFamily:'PRODAT',messageCode:'Z03',messageVersion:'version',rawPayload:'raw'});io.finalize.mockResolvedValue(message);io.rpc.mockResolvedValue({data:{status:'bound',messageId:'message'},error:null})})
+beforeEach(()=>{vi.resetAllMocks();io.intent.mockResolvedValue(intent);io.validate.mockReturnValue({ok:true});io.switch.mockResolvedValue({id:'switch',company_id:'tenant',customer_id:'customer',site_id:'site'});io.site.mockResolvedValue({id:'site'});io.point.mockResolvedValue({id:'point'});io.route.mockResolvedValue({environment:'test',route:{id:'route'},routeDecision:{edielRouteProfileId:'profile'},senderEdielId:'111',receiverEdielId:'222'});io.render.mockResolvedValue({messageFamily:'PRODAT',messageCode:'Z03',messageVersion:'version',rawPayload:'raw'});io.finalize.mockResolvedValue(message);io.message.mockResolvedValue({...message,status:'queued'});io.rpc.mockImplementation(async(name:string)=>({data:name==='ediel_bind_switch_original_v1'?{status:'bound',messageId:'message'}:{status:'queued',messageId:'message',outboxId:'00000000-0000-4000-8000-000000000012',authorizesProviderEntry:false,deliveryProven:false},error:null}))})
 describe('normal switch intent-before-render and original binding',()=>{
  it('renders exact stored references then binds native before queue',async()=>{
   await renderAndQueueNormalSwitch(await input())
@@ -35,7 +36,7 @@ describe('normal switch intent-before-render and original binding',()=>{
   expect(io.finalize.mock.calls[0][0].draft).toMatchObject({intentId:'intent',sourceOperationId:'switch',parsedPayload:{prodatVariant:'LK',reasonForTransaction:'Z23',canonical_rule_pack_id:'pack'}})
   expect(io.lifecycle).toHaveBeenNthCalledWith(1,'intent',expect.objectContaining({edielMessageId:'message',outboundRequestId:'request',renderStatus:'rendered'}))
   expect(io.rpc).toHaveBeenCalledWith('ediel_bind_switch_original_v1',{p_company_id:'tenant',p_switch_id:'switch',p_message_id:'message',p_actor_user_id:'actor'})
-  expect(io.rpc.mock.invocationCallOrder[0]).toBeLessThan(io.queue.mock.invocationCallOrder[0])
+  expect(io.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_bind_switch_original_v1','gridex_enqueue_normal_supplier_switch_v1']);expect(io.queue).not.toHaveBeenCalled()
  })
  it('blocks before rendering on rejected intent or a different route scope',async()=>{
   io.validate.mockReturnValue({ok:false});await expect(renderAndQueueNormalSwitch(await input())).rejects.toThrow('validated_source_intent');expect(io.render).not.toHaveBeenCalled()
@@ -45,9 +46,9 @@ describe('normal switch intent-before-render and original binding',()=>{
   io.rpc.mockResolvedValue({data:null,error:{message:'source_changed'}})
   await expect(renderAndQueueNormalSwitch(await input())).rejects.toEqual({message:'source_changed'});expect(io.queue).not.toHaveBeenCalled();expect(io.lifecycle).not.toHaveBeenCalledWith('intent',expect.objectContaining({outboxStatus:'queued'}))
  })
- it('returns an already sent own original without render, native rebinding or requeue',async()=>{
+ it('holds an advanced own original without current native proof and never renders or rebinds it',async()=>{
   io.intent.mockResolvedValue({...intent,edielMessageId:'message'});io.message.mockResolvedValue({...message,status:'acknowledged'})
-  expect((await renderAndQueueNormalSwitch(await input())).status).toBe('acknowledged');expect(io.render).not.toHaveBeenCalled();expect(io.rpc).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
+  io.rpc.mockResolvedValue({data:{status:'held',authorizesProviderEntry:false,deliveryProven:false},error:null});await expect(renderAndQueueNormalSwitch(await input())).rejects.toThrow('switch_original_atomic_enqueue_unconfirmed');expect(io.render).not.toHaveBeenCalled();expect(io.rpc).toHaveBeenCalledExactlyOnceWith('gridex_enqueue_normal_supplier_switch_v1',expect.objectContaining({p_message_id:'message'}));expect(io.queue).not.toHaveBeenCalled()
  })
  it('never queues a generic dedupe row linked to another intent/request',async()=>{
   io.finalize.mockResolvedValue({...message,intent_id:'other'})

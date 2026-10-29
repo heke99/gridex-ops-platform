@@ -178,7 +178,8 @@ it('bootstraps unread replies and ingests new replies even after an operator mar
           const selected = messages.filter(message => inUidRange(message.uid, range))
           for (const message of selected) {
             const envelope = `("Sun, 18 Oct 2026 12:00:00 +0000" "Fixture ${message.uid}" (("Grid owner" NIL "reply" "owner.invalid")) NIL NIL ((NIL NIL "manual" "example.invalid")) NIL NIL NIL "<reply-${message.uid}@owner.invalid>")`
-            socket.write(`* ${message.sequence} FETCH (UID ${message.uid} ENVELOPE ${envelope} BODY[] {${message.source.length}}\r\n`)
+            const internalDate = /INTERNALDATE/i.test(command) ? ' INTERNALDATE "18-Oct-2026 21:55:00 +0000"' : ''
+            socket.write(`* ${message.sequence} FETCH (UID ${message.uid}${internalDate} ENVELOPE ${envelope} BODY[] {${message.source.length}}\r\n`)
             socket.write(message.source)
             socket.write(')\r\n')
           }
@@ -228,6 +229,11 @@ it('bootstraps unread replies and ingests new replies even after an operator mar
     { id: '<reply-102@owner.invalid>', text: 'Anläggningsuppgifter 102.' },
   ])
   expect(seen).toEqual([101, 102])
+  expect(fixture.ingested[0][Symbol.for('gridex.manual-mail.imap-receipt.v1') as keyof ManualInboundEmail]).toMatchObject({
+    source: 'imap_internal_date', receivedAt: '2026-10-18T21:55:00.000Z', uid: 101, uidValidity: '1',
+    mailbox: 'manual@example.invalid', mailboxId: 'protocol-mailbox',
+  })
+  expect(commands.some(command => /^UID FETCH /i.test(command) && /INTERNALDATE/i.test(command))).toBe(true)
   expect(fixture.mailbox).toMatchObject({ locked_at: null, locked_by: null, last_error: null })
 
   // Arrival after the bootstrap. Reading it in STRATO before the cron runs

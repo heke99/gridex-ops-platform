@@ -69,7 +69,7 @@ export function utiltsApplicationErrorText(input:{raw:string;issue:UtiltsValidat
         if(part.split('+')[0]!==segment.tag) return false
         const qualifier=part.includes('+++') ? part.split('+++')[1] : part.split('+')[1]
         const qualifierElement=part.includes('+++') ? 3 : 1
-        return !qualifier || segmentComposite(segment,qualifierElement,wire.una)[0]===qualifier || (occurrence.elementIndex===qualifierElement&&occurrence.componentIndex===0)
+        return !qualifier || qualifier.split('|').includes(segmentComposite(segment,qualifierElement,wire.una)[0]) || (occurrence.elementIndex===qualifierElement&&occurrence.componentIndex===0)
       })) || !Number.isInteger(occurrence.elementIndex)||occurrence.elementIndex<1||!Number.isInteger(occurrence.componentIndex)||occurrence.componentIndex<0) return null
       const value=read(segment,occurrence.elementIndex,occurrence.componentIndex)
       if(value!==undefined) values=[value]
@@ -78,7 +78,7 @@ export function utiltsApplicationErrorText(input:{raw:string;issue:UtiltsValidat
         const target=parts.find(part=>part.split('+')[0]===segment.tag)
         if(!target) return false
         const qualifier=target.includes('+++') ? target.split('+++')[1] : target.split('+')[1]
-        return !qualifier || segmentComposite(segment,target.includes('+++')?3:1,wire.una)[0]===qualifier
+        return !qualifier || qualifier.split('|').includes(segmentComposite(segment,target.includes('+++')?3:1,wire.una)[0])
       })
       for(const segment of candidates) {
         const composite=parts.find(part=>composites[`${segment.tag}/${part}`]),location=composite ? composites[`${segment.tag}/${composite}`] : null

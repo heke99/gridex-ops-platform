@@ -13,7 +13,7 @@ const m = vi.hoisted(() => ({
   windows: [] as AccessWindow[], rpcCalls: [] as Array<{ name: string; args: Record<string, unknown> }>, fromTables: [] as string[],
 }))
 // Test model of gridex_customer_normalized_metering_values_v1 in
-// supabase/migrations/20261022100000_customer_metering_access_windows.sql (FINDINGS F79): argument checks,
+// supabase/migrations/20261022100500_customer_metering_access_windows.sql (FINDINGS F79): argument checks,
 // company, customer, optional site/facility/range/keyset filters, then the access window of the same customer
 // and metering point (whole interval inside), ordered period_start DESC, id DESC and cut at p_limit.
 const access = vi.hoisted(() => {

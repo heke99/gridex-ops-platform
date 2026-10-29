@@ -3,6 +3,7 @@
 // PRODAT engines and envelope codec. Named DB/auth/source/route/persistence
 // ports below are finite synthetic facts, not native issuer or market approval.
 import {beforeEach,describe,expect,it,vi} from 'vitest'
+import {createHash} from 'node:crypto'
 import {prepareAndQueueEdielZ03} from '@/lib/ediel/flows/prodatSwitch'
 import {prepareAndQueueServicePermissionZ13} from '@/lib/ediel/flows/prodatServicePermission'
 import {evaluateIntentValidation} from '@/lib/ediel/intent/intentEngine'
@@ -30,7 +31,8 @@ const uid=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const A=uid(1),B=uid(2),K=uid(3),actor=uid(4),point='735999888000000017',foreignPoint='735999888000000024'
 const legalA='12345',legalB='21660',dso='54321',gridexTransport='99111',customerA=uid(11),customerB=uid(21)
 const intents=new Map<string,EdielMessageIntent>(),drafts:CreateEdielMessageInput[]=[]
-let persisted:EdielMessageRow|null=null,permission=uid(26),allowed=true,sourceContext:Record<string,unknown>,basis:ServicePermissionOriginBasis
+type FiniteStoredMessage=Partial<EdielMessageRow>&{id:string;raw_payload:string;immutable_payload_hash:string;immutable_rendered_at:string}
+let persisted:FiniteStoredMessage|null=null,permission=uid(26),allowed=true,sourceContext:Record<string,unknown>,basis:ServicePermissionOriginBasis
 const invoicee=selectedInvoiceeFact(point,A,'9','199001011234',['A Street'],'SE2','12345','A Town')
 const site={id:uid(12),company_id:A,customer_id:customerA,facility_id:point,grid_owner_id:uid(15),move_in_date:'2026-10-20',street:'Installation Street',postal_code:'12345',city:'A Town',country:'SE'}
 const meter={id:uid(13),company_id:A,site_id:site.id,customer_id:customerA,meter_point_id:point,grid_owner_id:uid(15),grid_area_code:'TES'}
@@ -48,7 +50,8 @@ beforeEach(()=>{
  io.outboundSwitch.mockResolvedValue({id:uid(37)});io.outboundService.mockResolvedValue({id:uid(38)})
  io.createIntent.mockImplementation(async(input:CreateEdielMessageIntentInput)=>{const validation=evaluateIntentValidation(input);const intent={...input,id:input.companyId===A?uid(41):uid(42),direction:'outbound',validationStatus:validation.status,blockingReasons:validation.blockingReasons,renderStatus:'not_rendered',outboxStatus:'not_queued'} as EdielMessageIntent;intents.set(intent.id,intent);return intent})
  io.getIntent.mockImplementation(async(id:string)=>intents.get(id)??null)
- io.finalize.mockImplementation(async({draft}:{draft:CreateEdielMessageInput})=>{drafts.push(draft);persisted={id:uid(43),company_id:draft.companyId,intent_id:draft.intentId,outbound_request_id:draft.outboundRequestId,source_operation_id:draft.sourceOperationId,direction:'outbound',message_family:draft.messageFamily,message_code:draft.messageCode,message_version:draft.messageVersion,status:'draft',raw_payload:draft.rawPayload,parsed_payload:draft.parsedPayload,external_reference:draft.externalReference,customer_id:draft.customerId} as EdielMessageRow;return persisted})
+ io.finalize.mockImplementation(async({draft,routeContext}:{draft:CreateEdielMessageInput;routeContext:{environment:'test'|'production'}})=>{if(!draft.rawPayload)throw Error('finite_original_raw_required');drafts.push(draft);persisted={id:uid(43),company_id:draft.companyId,intent_id:draft.intentId,outbound_request_id:draft.outboundRequestId,source_operation_id:draft.sourceOperationId,direction:'outbound',message_family:draft.messageFamily,message_code:draft.messageCode,message_version:draft.messageVersion,status:'draft',environment:routeContext.environment,immutable_payload_hash:createHash('sha256').update(draft.rawPayload).digest('hex'),immutable_rendered_at:'2026-10-01T00:00:00Z',raw_payload:draft.rawPayload,parsed_payload:draft.parsedPayload,external_reference:draft.externalReference,customer_id:draft.customerId};return persisted})
+ io.message.mockImplementation(async(id:string)=>persisted?.id===id?persisted:null)
  io.from.mockImplementation((table:string)=>{const filters:Record<string,unknown>={};const query={select:()=>query,eq:(key:string,value:unknown)=>{filters[key]=value;return query},not:()=>query,contains:()=>query,order:()=>query,limit:async()=>({data:[],error:null}),maybeSingle:async()=>({data:table==='company_memberships'?{company_id:filters.company_id,user_id:actor,status:'active',is_active:true,accepted_at:'2026-01-01'}:table==='user_profiles'?{id:actor,user_status:'active'}:null,error:null})};if(!['company_memberships','user_profiles','outbound_requests'].includes(table))throw Error(`undeclared_table:${table}`);return query})
  io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>{
   const result=(data:unknown)=>({data,error:null})
@@ -57,6 +60,16 @@ beforeEach(()=>{
   if(name==='ediel_contract_metering_request_source_v1')return result(contractBasis)
   if(name==='ediel_brp_field_source_v1')return result({...contractBasis,sourceKind:'signed_contract_brp_declaration',at:args.p_at,supplyPeriodId:null,brpEdielId:'11111'})
   if(name==='ediel_bind_switch_original_v1')return result({status:'bound',messageId:persisted?.id})
+  if(name==='gridex_enqueue_normal_supplier_switch_v1'){
+   // Explicit finite native boundary; these argument/state assertions do not
+   // qualify the real SQL transaction, permissions, journals or provider entry.
+   if(!persisted?.raw_payload)throw Error('finite_bound_original_required')
+   const savedIntent=intents.get(String(args.p_intent_id));if(!savedIntent)throw Error('finite_saved_intent_required')
+   expect(args).toEqual({p_company_id:A,p_switch_id:switchRow.id,p_intent_id:savedIntent.id,p_message_id:persisted.id,
+    p_outbound_request_id:uid(37),p_actor_user_id:actor,p_expected_payload_hash:createHash('sha256').update(persisted.raw_payload).digest('hex')})
+   persisted.status='queued';savedIntent.outboxStatus='queued'
+   return result({status:'queued',messageId:persisted.id,outboxId:uid(50),authorizesProviderEntry:false,deliveryProven:false})
+  }
   if(name==='ediel_coordinate_service_permission_v1')return result({status:'permission_required',permissionId:permission})
   if(name==='ediel_resolve_service_permission_command_v1')return result({status:'permission_required',permissionId:permission})
   if(name==='ediel_service_permission_origin_v1')return result(basis)
@@ -83,9 +96,35 @@ describe('SC001 own legal supplier public Z03L order',()=>{
   expect(io.context).toHaveBeenCalledWith(expect.objectContaining({companyId:A,customerId:customerA,siteId:site.id,meteringPointId:meter.id,actorUserId:actor}))
   expect(io.rpc).toHaveBeenCalledWith('ediel_bind_switch_original_v1',{p_company_id:A,p_switch_id:switchRow.id,p_message_id:message.id,p_actor_user_id:actor})
   const bound=io.rpc.mock.calls.findIndex(([name])=>name==='ediel_bind_switch_original_v1')
-  expect(io.rpc.mock.invocationCallOrder[bound]).toBeLessThan(io.queue.mock.invocationCallOrder[0])
-  expect(io.queue).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({messageId:message.id,intentId:intent.id,outboundRequestId:uid(37),actorUserId:actor}))
+  const queued=io.rpc.mock.calls.findIndex(([name])=>name==='gridex_enqueue_normal_supplier_switch_v1')
+  expect(queued).toBeGreaterThan(bound);expect(io.rpc.mock.invocationCallOrder[bound]).toBeLessThan(io.rpc.mock.invocationCallOrder[queued])
+  expect(io.queue).not.toHaveBeenCalled();expect(intent.outboxStatus).toBe('queued')
   expect(io.outboundService).not.toHaveBeenCalled();expect(io.routeService).not.toHaveBeenCalled()
+  expect(io.link).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({edielMessageId:message.id,switchRequestId:switchRow.id,outboundRequestId:uid(37),actorUserId:actor}))
+  expect(io.event).toHaveBeenCalledExactlyOnceWith(expect.anything(),expect.objectContaining({companyId:A,switchRequestId:switchRow.id,eventType:'ediel_prepared',eventStatus:'queued',payload:expect.objectContaining({actorUserId:actor,edielMessageId:message.id,outboundRequestId:uid(37)})}))
+ })
+ it('does not repeat linking or preparation audit for the same already queued original',async()=>{
+  const first=await orderA(),saved=[...intents.values()][0]
+  // Explicit finite existing-intent recovery port. The ordinary insert-only
+  // admission remains separately tested and is not bypassed in production.
+  const recovery={...saved,edielMessageId:first.id};intents.set(saved.id,recovery);io.createIntent.mockResolvedValue(recovery)
+  io.link.mockClear();io.event.mockClear();io.finalize.mockClear()
+  const replay=await orderA()
+  expect(replay.id).toBe(first.id);expect(replay.status).toBe('queued')
+  expect(io.link).not.toHaveBeenCalled();expect(io.event).not.toHaveBeenCalled();expect(io.finalize).not.toHaveBeenCalled()
+ })
+ it('propagates a failed preparation audit without retrying the known queue operation',async()=>{
+  io.event.mockRejectedValueOnce(new Error('finite_audit_unavailable'))
+  await expect(orderA()).rejects.toThrow('finite_audit_unavailable')
+  expect(persisted?.status).toBe('queued')
+  expect(io.rpc.mock.calls.filter(([name])=>name==='gridex_enqueue_normal_supplier_switch_v1')).toHaveLength(1)
+  expect(io.event).toHaveBeenCalledTimes(1);expect(io.finalize).toHaveBeenCalledTimes(1)
+ })
+ it('never records prepared audit when the atomic queue outcome is unconfirmed',async()=>{
+  const original=io.rpc.getMockImplementation()!
+  io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>name==='gridex_enqueue_normal_supplier_switch_v1'?{data:null,error:{message:'finite_atomic_outcome_unconfirmed'}}:original(name,args))
+  await expect(orderA()).rejects.toMatchObject({message:'finite_atomic_outcome_unconfirmed'})
+  expect(io.link).not.toHaveBeenCalled();expect(io.event).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
  })
  it('holds a selected B customer/point source before persistence or queue',async()=>{
   sourceContext={...sourceContext,companyId:B,customer:{id:customerB,company_id:B,full_name:'B FOREIGN SENTINEL'},meteringPoint:{...meter,meter_point_id:foreignPoint}}

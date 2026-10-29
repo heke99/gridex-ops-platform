@@ -278,6 +278,8 @@ export type CustomerContractRow = {
   expected_start_at?: string | null;
   confirmed_start_at?: string | null;
   actual_start_at?: string | null;
+  confirmed_start_date?: string | null;
+  actual_start_date?: string | null;
   start_date_source?: string | null;
   invoice_recipient?: string | null;
   invoice_email?: string | null;

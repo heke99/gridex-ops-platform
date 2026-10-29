@@ -1,6 +1,6 @@
 // Extracted from edielMailboxPoller.ts; keep public imports on the facade module.
 
-import { createHash } from "crypto"
+import { createHash, randomUUID } from "crypto"
 import { isDeliveryStatusNotification } from './dsnClassifier'
 import { binaryToBuffer, decodeTextBytes, decodeTransferEncoding, rawSourceToText, toBinaryString } from './mimeCharset'
 import { extractEdifactPayload, parseEdifactPayload, normalizeEdifactMessageCode } from "@/lib/inbound-mail/edielEmailParser"
@@ -956,11 +956,27 @@ export async function listDueEdielMailboxes(
   );
 }
 
+export type InboundLeaseReceipt = { id: string; locked_by: string; locked_at: string };
+
+export function makeWorkerId(label = "inbound-mail-engine"): string {
+  return `${label}:${randomUUID()}`;
+}
+
+export function readInboundLeaseReceipt(row: unknown): InboundLeaseReceipt | null {
+  if (!row || typeof row !== "object") return null;
+  const value = row as Record<string, unknown>;
+  if (typeof value.id !== "string" || !value.id.trim() ||
+      typeof value.locked_by !== "string" || !value.locked_by.trim() ||
+      typeof value.locked_at !== "string" || !value.locked_at.trim()) return null;
+  return { id: value.id, locked_by: value.locked_by, locked_at: value.locked_at };
+}
+
 export async function markMailboxPollStarted(
   mailboxId: string,
   workerId = "inbound-mail-engine",
   forceLock = false,
-): Promise<boolean> {
+): Promise<InboundLeaseReceipt | null> {
+  const owner = makeWorkerId(workerId);
   const staleCutoff = new Date(
     Date.now() -
       envInt("EDIEL_INBOUND_STALE_MAILBOX_LOCK_MINUTES", 30) * 60_000,
@@ -970,7 +986,7 @@ export async function markMailboxPollStarted(
     .update({
       last_polled_at: nowIso(),
       locked_at: nowIso(),
-      locked_by: workerId,
+      locked_by: owner,
       last_error: null,
       updated_at: nowIso(),
     })
@@ -980,17 +996,23 @@ export async function markMailboxPollStarted(
     query = query.or(`locked_at.is.null,locked_at.lt.${staleCutoff}`);
   }
 
-  const { data, error } = await query.select("id").maybeSingle();
+  const { data, error } = await query.select("id,locked_by,locked_at").maybeSingle();
 
   if (error) throw error;
-  return Boolean(data);
+  const receipt = readInboundLeaseReceipt(data);
+  if (data && (!receipt || receipt.id !== mailboxId || receipt.locked_by !== owner)) {
+    throw new Error("mailbox_poll_claim_invalid");
+  }
+  return receipt;
 }
 
 export async function markMailboxPollFinished(input: {
-  mailboxId: string;
+  claim: InboundLeaseReceipt;
   ok: boolean;
   errorMessage?: string | null;
-}): Promise<void> {
+}): Promise<boolean> {
+  const claim = readInboundLeaseReceipt(input.claim);
+  if (!claim) return false;
   const payload = input.ok
     ? {
         last_successful_poll_at: nowIso(),
@@ -1006,11 +1028,16 @@ export async function markMailboxPollFinished(input: {
         updated_at: nowIso(),
       };
 
-  const { error } = await supabaseService
+  const { data, error } = await supabaseService
     .from("ediel_mailboxes")
     .update(payload)
-    .eq("id", input.mailboxId);
+    .eq("id", claim.id)
+    .eq("locked_by", claim.locked_by)
+    .eq("locked_at", claim.locked_at)
+    .select("id")
+    .maybeSingle();
   if (error) throw error;
+  return Boolean(data?.id);
 }
 
 export async function findExistingInboundEmail(input: {

@@ -199,7 +199,7 @@ describe.sequential('scenario K: month buckets and supply-based counts', () => {
     expect((await cohorts())[0]).toMatchObject({ cohort: '2026-06-01', customers: 7, r3: 0.7143 })
     expect(await snapshotPoints()).toEqual([{ month: '2026-09-01', active_metering_points: 5 }, { month: '2026-10-01', active_metering_points: 4 }])
 
-    await db.exec(read('supabase/migrations/20261023150000_statistics_churn_last_supply_day.sql'))
+    await db.exec(read('supabase/migrations/20261023150500_statistics_churn_last_supply_day.sql'))
     // The canonical expression: received market end at the start of its date (CEST 22:00Z, CET 23:00Z) exclusive,
     // an end during the day or without market instant inclusive, actual_end_date before end_date.
     expect(await one(`select gridex_supply_period_last_day_v1('2026-10-01',null,'2026-09-30T22:00:00Z')::text summer,

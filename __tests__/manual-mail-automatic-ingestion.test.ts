@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { PDFDocument } from 'pdf-lib'
 import { createFakeDb } from './helpers/poaMailFakeDb'
@@ -7,7 +7,8 @@ import { getManualMailReviewQueue } from '@/lib/inbound-mail/manualMailReviewQue
 type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({ db: null as unknown as ReturnType<typeof createFakeDb>, correlationInput: null as Row | null,
   apply: vi.fn(), continuation: vi.fn(), facility: vi.fn(), pauseCorrelation: null as (() => Promise<void>) | null,
-  documentRouting: vi.fn(), documentEligible: vi.fn(), multiSite: vi.fn(), continueMultiSite: vi.fn() }))
+  documentRouting: vi.fn(), documentEligible: vi.fn(), multiSite: vi.fn(), continueMultiSite: vi.fn(),
+  correlationOverride: null as Row | null }))
 vi.mock('@/lib/inbound-mail/manualMultiSiteReply', () => ({
   applyManualMultiSiteReply: (...args: unknown[]) => io.multiSite(...args),
   continueManualMultiSiteReply: (...args: unknown[]) => io.continueMultiSite(...args),
@@ -37,7 +38,8 @@ vi.mock('@/lib/inbound-mail/manualInboundCorrelation', async (original) => ({
   if (pause) await pause()
   return { resolutionStatus: 'matched', companyId: request.company_id, requestId: request.id, customerId: request.customer_id,
     customerSiteId: request.customer_site_id, meteringPointId: null, gridOwnerId: null, tenantResolutionMethod: 'case_reference',
-    entityResolutionMethod: 'request', senderCredible: true, intent: 'contract_information_response', businessProcess: 'supplier_contract', intentConfidence: 1, evidence: {}, request }
+    entityResolutionMethod: 'request', senderCredible: true, intent: 'contract_information_response', businessProcess: 'supplier_contract', intentConfidence: 1, evidence: {}, request,
+    ...(io.correlationOverride ?? {}) }
 } }))
 
 import { ingestManualInboundEmail, type ManualInboundEmail } from '@/lib/inbound-mail/manualInboundIngestion'
@@ -49,6 +51,16 @@ const email = (bodyText: string, patch: Partial<ManualInboundEmail> = {}): Manua
   providerMessageId: '<synthetic@example.org>', senderVerification: { version: 1, status: 'verified', method: 'dkim', raw_sha256: 'a'.repeat(64),
     from_email: 'support@example.org', signing_domain: 'example.org', signed_headers: ['from', 'subject'], verified_at: new Date().toISOString() }, ...patch,
 })
+
+// A JSON webhook cannot construct a symbol-keyed server observation. The
+// actual poller constructs this only from the installed client's INTERNALDATE.
+function receivedEmail(body: string, receivedAt = '2026-10-24T22:30:00.000Z', patch: Row = {}) {
+  return Object.assign(email(body), { [Symbol.for('gridex.manual-mail.imap-receipt.v1')]: {
+    version: 1, source: 'imap_internal_date', receivedAt,
+    mailbox: 'leverantorsbyte@gridex.se', mailboxId: 'mailbox-a', mailboxFingerprint: 'b'.repeat(64),
+    uidValidity: '1234', uid: 25, rawSha256: 'a'.repeat(64), ...patch,
+  } })
+}
 
 beforeEach(() => {
   vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.clearAllMocks()
@@ -68,12 +80,80 @@ beforeEach(() => {
   io.continuation.mockResolvedValue({ ok: true, blockedBeforeDispatch: false, supplierSwitchRequestId: 'switch-a' })
   io.facility.mockResolvedValue({ outcome: 'applied', confidence: 0.9, extracted: {}, reasons: [] })
   io.pauseCorrelation = null
+  io.correlationOverride = null
+  io.correlationInput = null
   io.documentEligible.mockResolvedValue(true)
   io.multiSite.mockResolvedValue({ outcome: 'applied', results: [], appliedCount: 2, reviewCount: 0 })
   io.continueMultiSite.mockResolvedValue(undefined)
   io.documentRouting.mockImplementation(async (input: Row) => ({ resolutionStatus: 'matched', companyId: 'tenant-a', customerId: 'customer-a',
     requestId: 'request-a', request: { ...io.db.tables.grid_owner_information_requests[0] }, senderCredible: true,
     sites: [{ customerSiteId: 'site-a', facilityId: null, units: input.units }], reasons: [], evidence: { routing_version: 1 } }))
+})
+afterEach(() => vi.useRealTimers())
+
+it('anchors a delayed first read to the original Stockholm receipt day before applying customer terms', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-28T12:00:00Z'))
+  vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '0')
+  vi.stubGlobal('fetch', () => { throw new Error('Receipt normalization must not call a provider') })
+  const result = await ingestManualInboundEmail(receivedEmail('Kunden kan starta om 30 dagar\nBrytavgift: Ingen'))
+  expect(result).toMatchObject({ processingState: 'applied', companyId: 'tenant-a', customerId: 'customer-a', customerSiteId: 'site-a' })
+  expect(io.db.tables.manual_inbound_messages[0]).toMatchObject({ received_at: '2026-10-24T22:30:00.000Z',
+    extracted_payload: { manual_automation: { mailboxReceipt: { source: 'imap_internal_date', receivedAt: '2026-10-24T22:30:00.000Z' } } } })
+  expect(io.apply.mock.calls[0][1]).toMatchObject({ p_payload: { terms: { earliestStartDate: '2026-11-24', effectiveStartDate: '2026-11-24' } } })
+  expect(io.continuation).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ companyId: 'tenant-a', customerId: 'customer-a', siteId: 'site-a' }))
+})
+
+it('preserves the first receipt and exact date after an application failure and a changed later IMAP observation', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-28T12:00:00Z'))
+  vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '0')
+  const body = 'Kunden kan starta om 30 dagar\nBrytavgift: Ingen'
+  io.apply.mockRejectedValueOnce(new Error('synthetic transaction unavailable'))
+  try {
+    await expect(ingestManualInboundEmail(receivedEmail(body))).rejects.toThrow('synthetic transaction unavailable')
+    vi.setSystemTime(new Date('2026-11-02T12:00:00Z'))
+    expect(await ingestManualInboundEmail(receivedEmail(body, '2026-10-28T23:30:00.000Z', { uid: 99 }))).toMatchObject({ processingState: 'applied' })
+    expect(io.db.tables.manual_inbound_messages[0].received_at).toBe('2026-10-24T22:30:00.000Z')
+    expect(io.apply.mock.calls.map(([, args]) => args.p_payload.terms.effectiveStartDate)).toEqual(['2026-11-24', '2026-11-24'])
+  } finally { io.apply.mockReset() }
+})
+
+it('passes the same persisted receipt to the multi-site adapter without altering parent tenant or customer', async () => {
+  vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '0')
+  const first = 'Anläggnings-ID: 735999100000000001\nKunden kan starta om 30 dagar\nBrytavgift: Ingen'
+  const second = 'Anläggnings-ID: 735999100000000002\nKunden kan starta om 31 dagar\nBrytavgift: Ingen'
+  io.documentRouting.mockResolvedValue({ resolutionStatus: 'matched', companyId: 'tenant-a', customerId: 'customer-a',
+    requestId: null, request: null, senderCredible: true, reasons: [],
+    evidence: { site_requests: [{ customerSiteId: 'site-a', requestId: 'request-a' }, { customerSiteId: 'site-b', requestId: 'request-b' }] },
+    sites: [{ customerSiteId: 'site-a', facilityId: '735999100000000001', bodyText: first, units: [] },
+      { customerSiteId: 'site-b', facilityId: '735999100000000002', bodyText: second, units: [] }] })
+  await ingestManualInboundEmail(receivedEmail(`${first}\n\n${second}`))
+  expect(io.multiSite).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ companyId: 'tenant-a', customerId: 'customer-a',
+    receivedAt: '2026-10-24T22:30:00.000Z', receivedAtSource: 'imap_internal_date', parentRequest: expect.objectContaining({ id: 'request-a' }),
+    groups: [expect.objectContaining({ facilityId: '735999100000000001' }), expect.objectContaining({ facilityId: '735999100000000002' })] }))
+  expect(io.db.tables.manual_inbound_messages[0]).toMatchObject({ company_id: 'tenant-a', customer_id: 'customer-a', request_id: 'request-a', customer_site_id: 'site-a' })
+  expect(io.apply).not.toHaveBeenCalled()
+})
+
+it.each([
+  { source: 'date_header' }, { rawSha256: 'c'.repeat(64) }, { mailbox: 'foreign@example.org' },
+  { receivedAt: 'invalid' }, { uid: 0 }, { uidValidity: '' },
+])('does not qualify an invalid server receipt: %j', async patch => {
+  vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '0')
+  expect(await ingestManualInboundEmail(receivedEmail('Kunden kan starta om 30 dagar', undefined, patch))).toMatchObject({ processingState: 'needs_review' })
+  expect(io.apply).not.toHaveBeenCalled(); expect(io.continuation).not.toHaveBeenCalled()
+})
+
+it('cannot upgrade an earlier unqualified arrival using a later poll or webhook date fields', async () => {
+  vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '0')
+  const body = 'Kunden kan starta om 30 dagar'
+  await ingestManualInboundEmail(Object.assign(email(body), { receivedAt: '2026-10-24T22:30:00.000Z', receivedAtSource: 'imap_internal_date' }))
+  const original = io.db.tables.manual_inbound_messages[0]
+  const firstReceived = original.received_at
+  original.processing_state = 'matched' // A legitimate retry of this same persisted source.
+  expect(await ingestManualInboundEmail(receivedEmail(body))).toMatchObject({ processingState: 'needs_review' })
+  expect(original.received_at).toBe(firstReceived)
+  expect(original.extracted_payload).not.toHaveProperty('mailbox_receipt')
+  expect(io.apply).not.toHaveBeenCalled()
 })
 
 it('uses a complete original attachment as evidence and binds its hash before applying the exact customer terms', async () => {
@@ -134,14 +214,15 @@ it('transcribes the original PDF, applies its cited terms, and resumes a failed 
     return new Response(JSON.stringify({ status: 'completed', output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify(content) }] }] }))
   })
   io.apply.mockRejectedValueOnce(new Error('synthetic transaction unavailable'))
-  const message = email('Se bilagan.', { attachments: [{ filename: 'avtal.pdf', contentType: 'application/pdf', sizeBytes: bytes.length,
+  const message = Object.assign(receivedEmail('Se bilagan.'), { attachments: [{ filename: 'avtal.pdf', contentType: 'application/pdf', sizeBytes: bytes.length,
     mimePart: 1, sha256, sourceRole: 'attachment', contentBase64: bytes.toString('base64') }] })
   await expect(ingestManualInboundEmail(message)).rejects.toThrow('synthetic transaction unavailable')
   expect(calls).toHaveLength(2)
   expect(await ingestManualInboundEmail(message)).toMatchObject({ processingState: 'applied' })
   expect(calls).toHaveLength(2)
   const payload = io.db.tables.manual_inbound_messages[0].extracted_payload as Row
-  expect(payload).toMatchObject({ manual_automation: { documentReading: { status: 'completed', context: { company_id: null } },
+  expect(payload).toMatchObject({ manual_automation: { mailboxReceipt: { receivedAt: '2026-10-24T22:30:00.000Z', source: 'imap_internal_date' },
+    documentReading: { status: 'completed', context: { company_id: null } },
     documentSources: { manifest: [expect.objectContaining({ sha256 })] } }, ai_read_only: { source_version: 2 } })
 })
 
@@ -521,3 +602,97 @@ it('accepts a matching explicitly labelled customer identity with ordinary forma
     p_payload: expect.objectContaining({ extracted: expect.objectContaining({ customer_identity_number: '200001010001' }) }),
   }))
 })
+
+
+// Regression: a sender/source hold is an ordinary reply requiring review,
+// even if the correlation classifier returned ignored before that hold.
+// Genuine RFC3834 auto-replies take their earlier separate return path.
+async function currentSenderHoldReviewRows() {
+  let predicate = ''
+  const query: Row = {}
+  for (const method of ['select', 'order', 'range']) query[method] = () => query
+  query.or = (value: string) => { predicate = value; return query }
+  query.then = (resolve: (value: unknown) => unknown) => {
+    const resolutions = predicate.match(/(?:^|,)resolution_status\.in\.\(([^)]+)\)/)?.[1].split(',') ?? []
+    const states = predicate.match(/(?:^|,)processing_state\.in\.\(([^)]+)\)/)?.[1].split(',') ?? []
+    const rows = io.db.tables.manual_inbound_messages.filter(row => resolutions.includes(String(row.resolution_status))
+      || states.includes(String(row.processing_state)))
+    return Promise.resolve(resolve({ data: rows, count: rows.length, error: null }))
+  }
+  return getManualMailReviewQueue({ from: () => query } as never, {})
+}
+
+it.each([false, true])('keeps sender-held ordinary replies review-visible when correlation said ignored (authenticated: %s)', async authenticated => {
+  vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '1'); vi.stubEnv('OPENAI_API_KEY', 'synthetic')
+  const fetcher = vi.fn(() => { throw new Error('A held source must not reserve or spend AI.') })
+  vi.stubGlobal('fetch', fetcher)
+  const candidateEvidence = { case_reference_matched: true, reply_reference_matched: true, request_bound_by_reply: true,
+    reply_reference_outbox_ids: ['original-outbox-a'], reply_reference_match_methods: ['outbound_rfc_message_id'] }
+  io.correlationOverride = { resolutionStatus: 'ignored', senderCredible: false, evidence: candidateEvidence }
+  if (authenticated) io.documentRouting.mockResolvedValue({ resolutionStatus: 'ignored', companyId: 'tenant-a', customerId: 'customer-a',
+    requestId: 'request-a', request: { ...request }, senderCredible: false,
+    sites: [{ customerSiteId: 'site-a', facilityId: null, units: [] }], reasons: [], evidence: candidateEvidence })
+  const message = email('Tidigaste start: 2027-04-01\nBrytavgift: Ingen', {
+    inReplyTo: '<original-outbox@example.org>', references: ['<original-outbox@example.org>'],
+    ...(authenticated ? {} : { senderVerification: undefined }),
+  })
+  const originalRequest = structuredClone(io.db.tables.grid_owner_information_requests[0])
+  const first = await ingestManualInboundEmail(message)
+  expect(first).toMatchObject({ resolutionStatus: 'unmatched', processingState: 'needs_review', companyId: null,
+    customerId: null, requestId: null, customerSiteId: null, meteringPointId: null })
+  const source = io.db.tables.manual_inbound_messages[0]
+  expect(source).toMatchObject({ resolution_status: 'unmatched', processing_state: 'needs_review', company_id: null,
+    customer_id: null, request_id: null, customer_site_id: null, metering_point_id: null, grid_owner_id: null,
+    correlation_evidence: { ...candidateEvidence,
+      unverified_candidate: { companyId: 'tenant-a', customerId: 'customer-a', requestId: 'request-a', customerSiteId: 'site-a' },
+      source_review_reasons: expect.arrayContaining(['sender_not_credible', ...(!authenticated ? ['sender_not_authenticated'] : [])]),
+    } })
+  expect(source.extracted_payload).not.toHaveProperty('ai_read_only')
+  expect(io.db.tables.grid_owner_information_requests[0]).toEqual(originalRequest)
+  expect((await currentSenderHoldReviewRows()).rows.map(row => row.id)).toContain(first.inboundId)
+  const second = await ingestManualInboundEmail(message)
+  expect(second).toMatchObject({ inboundId: first.inboundId, resolutionStatus: 'unmatched', processingState: 'needs_review', companyId: null, customerId: null })
+  expect(io.db.tables.manual_inbound_messages).toHaveLength(1)
+  expect(fetcher).not.toHaveBeenCalled(); expect(io.apply).not.toHaveBeenCalled()
+  expect(io.facility).not.toHaveBeenCalled(); expect(io.continuation).not.toHaveBeenCalled(); expect(io.multiSite).not.toHaveBeenCalled()
+  expect(io.db.tables.grid_owner_information_requests[0]).toEqual(originalRequest)
+})
+
+it('keeps true auto-submitted replies ignored and outside the manual review queue without inference or business replay', async () => {
+  vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '1'); vi.stubEnv('OPENAI_API_KEY', 'synthetic')
+  const fetcher = vi.fn(() => { throw new Error('An auto-reply must not spend AI.') })
+  vi.stubGlobal('fetch', fetcher)
+  io.correlationOverride = { resolutionStatus: 'ignored', senderCredible: false }
+  const originalRequest = structuredClone(io.db.tables.grid_owner_information_requests[0])
+  const message = email('Automatic reply: We received your request.', { senderVerification: undefined,
+    autoReplyHeaders: { 'auto-submitted': 'auto-replied' } })
+  const first = await ingestManualInboundEmail(message)
+  expect(first).toMatchObject({ resolutionStatus: 'ignored', companyId: null, requestId: null })
+  expect(io.db.tables.manual_inbound_messages[0]).toMatchObject({ resolution_status: 'ignored', processing_state: 'ignored',
+    correlation_evidence: { classification: 'ignored_auto_reply', auto_reply_reason: 'auto_submitted' } })
+  expect((await currentSenderHoldReviewRows()).rows).toHaveLength(0)
+  await ingestManualInboundEmail(message)
+  expect(io.db.tables.manual_inbound_messages).toHaveLength(1)
+  expect(io.correlationInput).toBeNull()
+  expect(fetcher).not.toHaveBeenCalled(); expect(io.apply).not.toHaveBeenCalled()
+  expect(io.facility).not.toHaveBeenCalled(); expect(io.continuation).not.toHaveBeenCalled(); expect(io.multiSite).not.toHaveBeenCalled()
+  expect(io.db.tables.grid_owner_information_requests[0]).toEqual(originalRequest)
+})
+
+it.each(['metering_point_lookup', 'grid_area_confirmation', 'grid_contract_information'])(
+  'keeps %s replies for review instead of calling an unsupported facility completion', async requestType => {
+    vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '0')
+    io.db.tables.grid_owner_information_requests[0].request_type = requestType
+    const originalRequest = structuredClone(io.db.tables.grid_owner_information_requests[0])
+    // The canonical completion accepts facility_lookup/identifier_lookup only.
+    io.facility.mockRejectedValue(new Error('Begäran är inte en anläggningsuppgiftsbegäran.'))
+    const result = await ingestManualInboundEmail(email('Anläggnings-ID: 735999100000000001\nNätområde: ABC\nElområde: SE3'))
+    expect(result).toMatchObject({ processingState: 'needs_review', resolutionStatus: 'matched',
+      companyId: 'tenant-a', customerId: 'customer-a', requestId: 'request-a' })
+    expect((await currentSenderHoldReviewRows()).rows.map(row => row.id)).toContain(result.inboundId)
+    expect(io.facility).not.toHaveBeenCalled()
+    expect(io.apply).not.toHaveBeenCalled()
+    expect(io.continuation).not.toHaveBeenCalled()
+    expect(io.db.tables.grid_owner_information_requests[0]).toEqual(originalRequest)
+  },
+)

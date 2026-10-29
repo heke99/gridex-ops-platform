@@ -1,3 +1,4 @@
+import { s01L359AggregateWire } from '../scripts/helpers/utiltsS01AggregateFixture'
 // masterplan: DB-03, AT-DB-03
 import { describe, expect, it } from 'vitest'
 
@@ -12,22 +13,17 @@ import {
 import { resolveUtiltsTransactionId as resolveFromIdentity } from '@/lib/ediel/utilts/transactionIdentity'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { energyHandoffMessage } from './helpers/utiltsObservationHandoff'
-import { recountEdifactUnt } from './helpers/recountEdifactUnt'
 
 describe('UTILTS transaction persistence payload', () => {
   it('keeps SG5 field 512 and field 532 as separate UTC instants in their respective series', () => {
     const e66 = energyHandoffMessage('2026-10-01', 'tenant-timestamps')
     const s01 = { ...e66, message_code: 'S01', application_reference: '23-DDK-S01-S',
-      raw_payload: recountEdifactUnt(e66.raw_payload!
-        .replace('BGM+E66::260', 'BGM+S01:SVK:260')
-        .replace('23-DDQ-E66-T', '23-DDK-S01-S')
-        .replace('DTM+597:202607010020:203', 'DTM+368:202607010020:203')
-        .split('\n').filter(segment => !segment.startsWith('DTM+597:')).join('\n')),
+      raw_payload: s01L359AggregateWire(e66.raw_payload!, [{ transactionId: 'S01-L359-532', latestUpdateDate: '202607010020', quantity: '500' }]),
     }
 
     for (const [message, expected] of [
       [e66, { registrationDate: '2026-06-30T22:20:00.000Z', latestUpdateDate: null }],
-      [s01, { registrationDate: null, latestUpdateDate: '2026-06-30T22:20:00.000Z' }],
+      [s01, { registrationDate: null, latestUpdateDate: '2026-06-30T23:20:00.000Z' }],
     ] as const) {
       const runtime = runUtiltsRuntimeForMessage(message)
       expect(runtime.validation.ok).toBe(true)

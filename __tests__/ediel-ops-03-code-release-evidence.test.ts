@@ -67,7 +67,33 @@ const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).di
 // Normalize only the exact reviewed native-log capture/redaction/upload delta
 // inside this historical finite Git port. No changed workflow becomes current
 // native proof; unknown bytes remain subject to the unchanged producer guard.
+// Invert only the exact reviewed two Action pins inside this historical finite
+// Git port. This never admits changed workflow bytes as current native proof.
+// Invert only the exact reviewed bootstrap-cache prelude within the finite
+// historical Git port. Its restored bytes retain all previous producer pins;
+// current-head native qualification still comes from actual CI originals.
+const reviewedImageCachePrelude = "      - name: Prime content-verified Supabase bootstrap image caches\n        shell: bash\n        env:\n          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io\n          PYTHONDONTWRITEBYTECODE: '1'\n        run: |\n          python3 scripts/gridex-prime-verified-postgres-cache-selftest.py\n          python3 scripts/gridex-prime-verified-postgres-cache.py\n"
+function reviewedImageCacheWorkflow(bytes: Buffer) {
+  if (sha256(bytes) !== 'feb5067725b6e539f87e37d521d7148ba5ecb2fff40eafcfd307db2fd52b3eac') return bytes
+  const source = bytes.toString('utf8')
+  if (source.split(reviewedImageCachePrelude).length !== 3) throw Error('fixture_reviewed_image_cache_inverse_count')
+  const restored = Buffer.from(source.split(reviewedImageCachePrelude).join(''))
+  if (sha256(restored) !== '6b1c6f212913167ae0e5ff81a9b98e8ffae93e13cf0f4681ca4075010e590428') throw Error('fixture_reviewed_image_cache_inverse_digest_mismatch')
+  return restored
+}
+function reviewedActionPinWorkflow(bytes: Buffer) {
+  bytes = reviewedImageCacheWorkflow(bytes)
+  if (sha256(bytes) !== '6b1c6f212913167ae0e5ff81a9b98e8ffae93e13cf0f4681ca4075010e590428') return bytes
+  const current = 'supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1 (branch snapshot)'
+  const previous = 'supabase/setup-cli@v1'
+  const source = bytes.toString('utf8')
+  if (source.split(current).length !== 3) throw Error('fixture_reviewed_action_pin_inverse_count')
+  const restored = Buffer.from(source.split(current).join(previous))
+  if (sha256(restored) !== '64ff9c4237e559f40dffb28399ba70412e8c9a02b24804d45189d77031acd13e') throw Error('fixture_reviewed_action_pin_inverse_digest_mismatch')
+  return restored
+}
 function reviewedNativeEvidenceLoggingWorkflow(bytes: Buffer) {
+  bytes = reviewedActionPinWorkflow(bytes)
   if (sha256(bytes) !== '64ff9c4237e559f40dffb28399ba70412e8c9a02b24804d45189d77031acd13e') return bytes
   const corrections: [string, string][] = [
     [
@@ -122,7 +148,19 @@ function reviewedStorageLifecycleWorkflow(bytes: Buffer) {
   if (sha256(restored) !== 'f1c03e2be5a38d2b41d96c2cfcb53259c6a2dd9af99f5a17311c693c91237d9d') throw Error('fixture_reviewed_storage_workflow_inverse_digest_mismatch')
   return restored
 }
+// This finite Git port recognizes only the exact reviewed POA registration.
+// Neither reader admits that new case or changed current producer as proof.
+function reviewedPoaConfig(bytes: Buffer) {
+  if (sha256(bytes) !== 'bdc56285237a27fa526c3038510e5480c42cf7883e86e30e86fb972bbe9c42b7') return bytes
+  const addition = "    'scripts/ediel-online-poa-capture-native.test.ts',\n"
+  const current = bytes.toString('utf8')
+  if (current.split(addition).length !== 2) throw Error('fixture_reviewed_poa_include_not_unique')
+  const restored = Buffer.from(current.replace(addition, ''))
+  if (sha256(restored) !== 'd9bd80bf7038f9232362ecba4deaa29b3ae264ef3c89000873fc91ad740fd0db') throw Error('fixture_reviewed_poa_config_inverse_digest_mismatch')
+  return restored
+}
 function reviewedProducerFixture(file: string, bytes: Buffer) {
+  if (file === 'scripts/ediel-source-owner-native.config.ts') bytes = reviewedPoaConfig(bytes)
   if (file === '.github/workflows/ops-hardening.yml') bytes = reviewedStorageLifecycleWorkflow(bytes)
   // Model the exact reviewed default helper only. The optional public case
   // creator and its new native assertions confer no historical/current proof.
@@ -726,9 +764,16 @@ it.each(['foreign_rule_status', 'foreign_at_status', 'foreign_evidence', 'spec',
 
 // Exercise the actual finite port, including its whole-byte admission guards.
 // The historical DDQ port restores known bytes only; it does not run native cases.
-it('historical workflow port restores the exact reviewed producer after bounded key-download retries', () => {
-  const file = '.github/workflows/ops-hardening.yml', current = readFileSync(file)
-  expect(sha256(current)).toBe('64ff9c4237e559f40dffb28399ba70412e8c9a02b24804d45189d77031acd13e')
+it('historical workflow port restores the exact reviewed producer after bounded key-download retries and bootstrap cache preparation', () => {
+  const file = '.github/workflows/ops-hardening.yml', rawCurrent = readFileSync(file)
+  expect(sha256(rawCurrent)).toBe('feb5067725b6e539f87e37d521d7148ba5ecb2fff40eafcfd307db2fd52b3eac')
+  const current = reviewedImageCacheWorkflow(rawCurrent)
+  expect(reviewedImageCacheWorkflow(current)).toEqual(current)
+  expect(reviewedProducerFixture(file, rawCurrent)).toEqual(reviewedProducerFixture(file, current))
+  expect(sha256(current)).toBe('6b1c6f212913167ae0e5ff81a9b98e8ffae93e13cf0f4681ca4075010e590428')
+  const actionPinPreimage = reviewedActionPinWorkflow(current)
+  expect(sha256(actionPinPreimage)).toBe('64ff9c4237e559f40dffb28399ba70412e8c9a02b24804d45189d77031acd13e')
+  expect(reviewedActionPinWorkflow(actionPinPreimage)).toEqual(actionPinPreimage)
   const source = reviewedStorageLifecycleWorkflow(current)
   expect(sha256(source)).toBe('f1c03e2be5a38d2b41d96c2cfcb53259c6a2dd9af99f5a17311c693c91237d9d')
   const original = reviewedProducerFixture(file, source)
@@ -737,6 +782,13 @@ it('historical workflow port restores the exact reviewed producer after bounded 
 })
 it.each([
   ['unknown suffix', (source: string) => source + '\n# unreviewed workflow\n'],
+  ['foreign Action commit', (source: string) => source.replaceAll('supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb', 'supabase/setup-cli@' + 'b'.repeat(40))],
+  ['only one Action pin', (source: string) => source.replace('supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1 (branch snapshot)', 'supabase/setup-cli@v1')],
+  ['duplicate Action pin', (source: string) => source + '\n# supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1 (branch snapshot)\n'],
+  ['changed cache helper', (source: string) => source.replace('python3 scripts/gridex-prime-verified-postgres-cache.py', 'python3 scripts/unreviewed-cache.py')],
+  ['missing cache prelude', (source: string) => source.replace(reviewedImageCachePrelude, '')],
+  ['duplicate cache prelude', (source: string) => source + reviewedImageCachePrelude],
+  ['changed cache registry', (source: string) => source.replace('SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io', 'SUPABASE_INTERNAL_IMAGE_REGISTRY: example.invalid')],
   ['changed key anchor', (source: string) => source.replace('media/keys/ACCC4CF8.asc', 'media/keys/unreviewed.asc')],
   ['missing download', (source: string) => source.replace(source.match(/          # Retry transient DNS\/transfer faults;[^\n]*\n(?:[^\n]*\n){4}/)![0], '')],
   ['duplicate download', (source: string) => source + source.match(/          # Retry transient DNS\/transfer faults;[^\n]*\n(?:[^\n]*\n){4}/)![0]],
@@ -803,7 +855,7 @@ it.each([
 // never imported, changed or qualified as current producer proof by this port.
 const billingNativeInclude = "    'scripts/ediel-canonical-signature-billing-projection-native.test.ts',\n"
 function prospectiveBillingConfig(input?: Buffer) {
-  const current = (input ?? readFileSync('scripts/ediel-source-owner-native.config.ts')).toString('utf8')
+  const current = reviewedPoaConfig(input ?? readFileSync('scripts/ediel-source-owner-native.config.ts')).toString('utf8')
   const digest = sha256(current)
   expect(['7461db28b3fbd1546bd45e9b5fe4a470bba786460731d215a675828d0903fedf',
     'd9bd80bf7038f9232362ecba4deaa29b3ae264ef3c89000873fc91ad740fd0db']).toContain(digest)

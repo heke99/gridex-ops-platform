@@ -123,12 +123,39 @@ describe('private fullmakt PDF storage', () => {
   it('recovers only the exact accepted portal legal document and verifies its hash', async () => {
     const body = 'Original accepted portal authorization', hash = createHash('sha256').update(body).digest('hex')
     io.db.tables.powers_of_attorney[0].fullmakt_snapshot = { legal_bundle_version_id: 'bundle-a', legal_bundle_version_document_id: 'doc-a', document_hash: hash, scopes: ['supplier_switch'] }
-    io.db.tables.legal_bundle_versions = [{ id: 'bundle-a', company_id: A }]
-    io.db.tables.legal_bundle_version_documents = [{ id: 'doc-a', legal_bundle_version_id: 'bundle-a', content_sha256: hash, rendered_body: body, title: 'Fullmakt', template_version: 'v1' }]
+    io.db.tables.legal_bundle_versions = [{ id: 'bundle-a', company_id: A, locked_at: acceptedAt, rendered_snapshot: { schema: 'gridex_legal_bundle_v4' } }]
+    io.db.tables.legal_bundle_version_documents = [{ id: 'doc-a', legal_bundle_version_id: 'bundle-a', module_key: 'power_of_attorney', content_sha256: hash, rendered_body: body, title: 'Fullmakt', template_version: 'v1' }]
     expect((await ensurePoaPdfArchive(scope)).pdf.toString('latin1')).toContain(body)
     io.db.tables.powers_of_attorney[0].document_path = null
     io.db.tables.legal_bundle_version_documents[0].rendered_body = 'Changed after acceptance'
     await expect(ensurePoaPdfArchive(scope)).rejects.toThrow('kontrollsumma')
+  })
+  it('recovers the exact V5 title-and-body document while retaining an archived locked parent',async()=>{
+    const title='Fullmakt',body='Original V5 authorization',hash=createHash('sha256').update(`${title}\n${body}`,'utf8').digest('hex')
+    io.db.tables.powers_of_attorney[0].fullmakt_snapshot={legal_bundle_version_id:'bundle-a',legal_bundle_version_document_id:'doc-a',document_hash:hash,scopes:['supplier_switch']}
+    io.db.tables.legal_bundle_versions=[{id:'bundle-a',company_id:A,status:'archived',locked_at:acceptedAt,rendered_snapshot:{schema:'gridex_legal_bundle_v5'}}]
+    io.db.tables.legal_bundle_version_documents=[{id:'doc-a',legal_bundle_version_id:'bundle-a',module_key:'power_of_attorney',content_sha256:hash,rendered_body:body,title,template_version:'v5'}]
+    expect((await ensurePoaPdfArchive(scope)).pdf.toString('latin1')).toContain(body)
+    expect(io.db.tables.legal_bundle_version_documents[0].content_sha256).toBe(hash)
+  })
+  it.each(['v4','earliest'] as const)('retains a proven %s body-only hash without upgrading its original',async kind=>{
+    const title='Legacy fullmakt',body='Original historical authorization',hash=createHash('sha256').update(body).digest('hex')
+    const legacy={module_key:'power_of_attorney',legacy_id:'legacy-text-a',title,body_sha256:hash}
+    io.db.tables.powers_of_attorney[0].fullmakt_snapshot={legal_bundle_version_id:'bundle-a',legal_bundle_version_document_id:'doc-a',document_hash:hash,scopes:['supplier_switch']}
+    io.db.tables.legal_bundle_versions=[{id:'bundle-a',company_id:A,status:'archived',locked_at:acceptedAt,legacy_legal_bundle_id:'legacy-bundle-a',rendered_snapshot:kind==='v4'?{schema:'gridex_legal_bundle_v4'}:{documents:[legacy]}}]
+    io.db.tables.legal_bundle_version_documents=[{id:'doc-a',legal_bundle_version_id:'bundle-a',module_key:'power_of_attorney',legacy_legal_text_version_id:'legacy-text-a',content_sha256:hash,rendered_body:body,title,template_version:'old'}]
+    expect((await ensurePoaPdfArchive(scope)).pdf.toString('latin1')).toContain(body)
+    expect(io.db.tables.legal_bundle_version_documents[0].content_sha256).toBe(hash)
+  })
+  it.each([null,'','future-format','unproved-earliest','ambiguous-earliest','unlocked','numeric-title','malformed-array','wrong-module'] as const)('holds %s provenance before rendering/storage',async variant=>{
+    const title=variant==='numeric-title'?'123':'Legacy fullmakt',body='Original historical authorization',hash=createHash('sha256').update(body).digest('hex')
+    const legacy={module_key:'power_of_attorney',legacy_id:'legacy-text-a',title,body_sha256:hash}
+    io.db.tables.powers_of_attorney[0].fullmakt_snapshot={legal_bundle_version_id:'bundle-a',legal_bundle_version_document_id:'doc-a',document_hash:hash,scopes:['supplier_switch']}
+    const snapshot:Row=variant==='unproved-earliest'?{}:variant==='ambiguous-earliest'?{documents:[legacy,legacy]}:variant==='numeric-title'?{documents:[{...legacy,title:123}]}:variant==='malformed-array'?{documents:[legacy,0]}:{schema:variant==='unlocked'||variant==='wrong-module'?'gridex_legal_bundle_v4':variant}
+    io.db.tables.legal_bundle_versions=[{id:'bundle-a',company_id:A,locked_at:variant==='unlocked'?null:acceptedAt,legacy_legal_bundle_id:'legacy-bundle-a',rendered_snapshot:snapshot}]
+    io.db.tables.legal_bundle_version_documents=[{id:'doc-a',legal_bundle_version_id:'bundle-a',module_key:variant==='wrong-module'?'terms':'power_of_attorney',legacy_legal_text_version_id:'legacy-text-a',content_sha256:hash,rendered_body:body,title,template_version:'old'}]
+    await expect(ensurePoaPdfArchive(scope)).rejects.toThrow(/kontrollsumma|dokumentformat/)
+    expect(io.db.storageFiles.size).toBe(0)
   })
   it('does not attach an IP from another consent timestamp or change the signer', async () => {
     await completePoaCaptureEvidence(scope, { signerName: 'Synthetic Alpha', signerIdentity: 'synthetic-a', method: 'website_acceptance', acceptedAt: '2026-10-02T10:00:00Z', signerIp: '192.0.2.11' })

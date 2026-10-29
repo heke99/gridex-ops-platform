@@ -1,3 +1,4 @@
+import { resolveContractStartDate } from "./operationalDates";
 import { createHash, randomUUID } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import type {
@@ -1042,7 +1043,7 @@ export async function createCustomerContract(input: {
       billing_street: input.billingStreet ?? null,
       billing_postal_code: input.billingPostalCode ?? null,
       billing_city: input.billingCity ?? null,
-      billing_country: input.billingCountry ?? null,
+      billing_country: input.billingCountry ?? undefined,
       billing_address_same_as_site: input.billingAddressSameAsSite ?? false,
       billing_level: input.billingLevel ?? "customer",
       consolidated_invoice: input.consolidatedInvoice ?? false,
@@ -1382,7 +1383,7 @@ export async function addCustomerContractEvent(input: {
     const { data: current, error: currentError } = await supabaseService
       .from("customer_contracts")
       .select(
-        "starts_at, ends_at, binding_months, notice_months, status, auto_renew_enabled, auto_renew_term_months, termination_reason",
+        "actual_start_date, actual_start_at, ends_at, binding_months, notice_months, status, auto_renew_enabled, auto_renew_term_months, termination_reason",
       )
       .eq("id", input.customerContractId)
       .eq("company_id", input.companyId)

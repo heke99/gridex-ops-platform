@@ -47,9 +47,7 @@ vi.mock('@/lib/integrations/apiAuth', () => ({
 }))
 
 vi.mock('@/lib/integrations/tenantContext', () => ({
-  loadExternalTenantContext: vi.fn(async () => ({
-    tenant_reference: publicContractsFixture.meta.tenant_reference,
-  })),
+  loadExternalTenantReference: vi.fn(async () => publicContractsFixture.meta.tenant_reference),
   ExternalTenantContextError: class ExternalTenantContextError extends Error {},
 }))
 

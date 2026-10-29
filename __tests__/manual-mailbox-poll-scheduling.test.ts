@@ -83,7 +83,7 @@ vi.mock('imapflow', () => ({ ImapFlow: class {
     throw new Error(`Unexpected search: ${JSON.stringify(query)}`)
   }
   async fetchOne(uid: string, query: unknown, options: unknown) {
-    expect(query).toEqual({ uid: true, envelope: true, source: true })
+    expect(query).toEqual({ uid: true, envelope: true, source: true, internalDate: true })
     expect(options).toEqual({ uid: true })
     io.trace.push(`fetch:${uid}:complete`)
     if (io.fetchFailures > 0) { io.fetchFailures--; throw new Error('synthetic fetch failure') }

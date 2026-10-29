@@ -70,7 +70,7 @@ const CustomerSchema = z
     billing_country: OPTIONAL_TEXT,
     registered_address: RegisteredAddressSchema.optional(),
   })
-  .default({});
+  .prefault({});
 
 const SiteSchema = z
   .object({
@@ -300,13 +300,13 @@ export const ApplicationSchema = z.object({
   site: SiteSchema,
   metering_point: MeteringPointSchema,
   contract: ContractSchema,
-  consents: z.record(z.unknown()).optional(),
+  consents: z.record(z.string(), z.unknown()).optional(),
   legal_bundle_version: OPTIONAL_TEXT,
   legalAcceptances: z.array(LegalAcceptanceSchema).optional(),
   legal_acceptances: z.array(LegalAcceptanceSchema).optional(),
   powerOfAttorney: PowerOfAttorneySchema,
   power_of_attorney: PowerOfAttorneySchema,
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 type StructuredPowerOfAttorney = z.infer<typeof PowerOfAttorneySchema>;

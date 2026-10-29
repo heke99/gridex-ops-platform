@@ -5010,6 +5010,20 @@ export type Database = {
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
           },
+          {
+            foreignKeyName: "billing_underlay_events_company_underlay_fk"
+            columns: ["company_id", "billing_underlay_id"]
+            isOneToOne: false
+            referencedRelation: "billing_export_readiness_v"
+            referencedColumns: ["company_id", "billing_underlay_id"]
+          },
+          {
+            foreignKeyName: "billing_underlay_events_company_underlay_fk"
+            columns: ["company_id", "billing_underlay_id"]
+            isOneToOne: false
+            referencedRelation: "billing_underlays"
+            referencedColumns: ["company_id", "id"]
+          },
         ]
       }
       billing_underlay_items: {
@@ -11144,6 +11158,7 @@ export type Database = {
         Row: {
           attempt_count: number
           available_at: string
+          claim_turn: number
           claimed_at: string | null
           company_id: string
           completed_at: string | null
@@ -11168,6 +11183,7 @@ export type Database = {
         Insert: {
           attempt_count?: number
           available_at?: string
+          claim_turn?: number
           claimed_at?: string | null
           company_id: string
           completed_at?: string | null
@@ -11192,6 +11208,7 @@ export type Database = {
         Update: {
           attempt_count?: number
           available_at?: string
+          claim_turn?: number
           claimed_at?: string | null
           company_id?: string
           completed_at?: string | null
@@ -20351,6 +20368,83 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "customer_documents_company_contract_fk"
+            columns: ["company_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contract_lifecycle_readiness_v"
+            referencedColumns: ["company_id", "customer_contract_id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_contract_fk"
+            columns: ["company_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contracts"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_contract_fk"
+            columns: ["company_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_billing_launch_readiness_v"
+            referencedColumns: ["company_id", "contract_id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_contract_fk"
+            columns: ["company_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_customer_contracts_missing_price_snapshot_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_contract_fk"
+            columns: ["company_id", "customer_contract_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contract_lifecycle_readiness_v"
+            referencedColumns: ["company_id", "customer_contract_id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_contract_fk"
+            columns: ["company_id", "customer_contract_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contracts"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_contract_fk"
+            columns: ["company_id", "customer_contract_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_billing_launch_readiness_v"
+            referencedColumns: ["company_id", "contract_id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_contract_fk"
+            columns: ["company_id", "customer_contract_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_customer_contracts_missing_price_snapshot_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_site_fk"
+            columns: ["company_id", "customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_site_fk"
+            columns: ["company_id", "customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_site_fk"
+            columns: ["company_id", "customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["company_id", "site_id"]
+          },
+          {
             foreignKeyName: "customer_documents_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -20461,6 +20555,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_metering_point_fk"
+            columns: ["company_id", "metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_metering_points_incomplete_area_context_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_metering_point_fk"
+            columns: ["company_id", "metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "metering_points"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_power_of_attorney_fk"
+            columns: ["company_id", "power_of_attorney_id"]
+            isOneToOne: false
+            referencedRelation: "powers_of_attorney"
+            referencedColumns: ["company_id", "id"]
           },
           {
             foreignKeyName: "customer_documents_contract_id_fkey"
@@ -59132,6 +59247,7 @@ export type Database = {
           tenant_resolution_method: string | null
           thread_id: string | null
           to_email: string | null
+          gridex_manual_mail_has_pending_partial_v1: boolean | null
         }
         Insert: {
           attachments?: Json
@@ -95597,6 +95713,15 @@ export type Database = {
         Args: { p_actor_user_id: string; p_company_id: string }
         Returns: number
       }
+      ediel_inbound_graph_snapshot_basis_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_metering_point_id: string
+          p_site_id: string
+        }
+        Returns: Json
+      }
       ediel_inbound_reception_request_v1: {
         Args: {
           p_actor_user_id: string
@@ -95857,6 +95982,10 @@ export type Database = {
           p_raw_payload: string
           p_route_id: string
         }
+        Returns: Json
+      }
+      ediel_preserve_inbound_graph_payload_v1: {
+        Args: { current_row: Json; directive: Json; payload: Json }
         Returns: Json
       }
       ediel_probe_source_rule_pack_capture_v1: {
@@ -97586,6 +97715,17 @@ export type Database = {
         Args: { p_run_type?: string }
         Returns: Json
       }
+      gridex_add_customer_support_message_v1: {
+        Args: {
+          p_api_client_id: string
+          p_case_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_message: string
+          p_portal_identity_id: string
+        }
+        Returns: Json
+      }
       gridex_address_complete: { Args: { p_value: Json }; Returns: boolean }
       gridex_address_is_complete: { Args: { p_value: Json }; Returns: boolean }
       gridex_admin_dashboard_summary: {
@@ -97623,6 +97763,18 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      gridex_advance_contract_confirmation_v2: {
+        Args: {
+          p_action: string
+          p_company_id: string
+          p_contract_id: string
+          p_document_sha256?: string
+          p_error?: string
+          p_expected_lease_until?: string
+          p_request_id: string
+        }
+        Returns: Json
       }
       gridex_ai_bi_personal_storage_scope_v1: {
         Args: {
@@ -98393,6 +98545,20 @@ export type Database = {
         Args: { p_source?: string }
         Returns: Json
       }
+      gridex_complete_online_signature_poa_archive_v1: {
+        Args: {
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_evidence_sha256: string
+          p_path: string
+          p_poa_id: string
+          p_request_id: string
+          p_sha256: string
+          p_size_bytes: number
+        }
+        Returns: Json
+      }
       gridex_complete_unreferenced_internal_invoice_fee_tasks: {
         Args: never
         Returns: Json
@@ -98421,6 +98587,10 @@ export type Database = {
       gridex_consume_api_rate_limit: {
         Args: { p_api_client_id: string; p_company_id: string; p_limit: number }
         Returns: Json
+      }
+      gridex_consume_public_password_reset_budget_v1: {
+        Args: { p_client_key: string; p_email_key: string }
+        Returns: boolean
       }
       gridex_consume_utilts_billing_v1: {
         Args: {
@@ -98729,6 +98899,19 @@ export type Database = {
           p_street: string
         }
         Returns: string
+      }
+      gridex_create_customer_support_case_v1: {
+        Args: {
+          p_api_client_id: string
+          p_category: string
+          p_company_id: string
+          p_customer_id: string
+          p_idempotency_key: string
+          p_message: string
+          p_portal_identity_id: string
+          p_title: string
+        }
+        Returns: Json
       }
       gridex_create_external_staff_invitation_v1: {
         Args: { p_command: Json }
@@ -99488,6 +99671,18 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_enqueue_normal_supplier_switch_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_expected_payload_hash: string
+          p_intent_id: string
+          p_message_id: string
+          p_outbound_request_id: string
+          p_switch_id: string
+        }
+        Returns: Json
+      }
       gridex_ensure_internal_contract_publication: {
         Args: {
           p_actor_user_id?: string
@@ -99526,6 +99721,18 @@ export type Database = {
         Args: {
           p_signed_ip_hash?: string
           p_signed_user_agent?: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      gridex_finalize_customer_contract_signature_v2: {
+        Args: {
+          p_poa_accepted?: boolean
+          p_poa_scopes?: string[]
+          p_poa_terms_version?: string
+          p_signed_ip_hash?: string
+          p_signed_user_agent?: string
+          p_signer_ip?: string
           p_token_hash: string
         }
         Returns: Json
@@ -99613,6 +99820,25 @@ export type Database = {
           p_target_ids: string[]
         }
         Returns: Json
+      }
+      gridex_forecast_metering_period_totals_v1: {
+        Args: {
+          p_company_id: string
+          p_metering_point_id: string
+          p_period_end: string
+          p_period_start: string
+        }
+        Returns: {
+          total_kwh: number
+          value_count: number
+        }[]
+      }
+      gridex_forecast_point_inventory_v1: {
+        Args: { p_company_id: string }
+        Returns: {
+          points: Json
+          total_count: number
+        }[]
       }
       gridex_generate_portfolio_price_estimate: {
         Args: {
@@ -100027,6 +100253,14 @@ export type Database = {
       gridex_manual_inbound_source_retired_v1: {
         Args: { p_mailbox: string; p_provider_id: string }
         Returns: boolean
+      }
+      gridex_manual_mail_has_pending_partial_v1: {
+        Args: {
+          "": Database["public"]["Tables"]["manual_inbound_messages"]["Row"]
+        }
+        Returns: {
+          error: true
+        } & "the function public.gridex_manual_mail_has_pending_partial_v1 with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
       }
       gridex_manual_reply_application_v2: {
         Args: { p_request: Json; p_source: Json }

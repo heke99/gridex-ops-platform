@@ -1,0 +1,2149 @@
+{
+ "captured_at": "2026-10-23",
+ "project": "piidsfebjqjmnepdpnas",
+ "repo_reference": "origin/main bd506233 supabase/schema.sql",
+ "method": "sha256(prosrc) per schema.function, prod pg_proc vs repo schema.sql dollar-quoted bodies; functions only",
+ "items": [
+  {
+   "kind": "missing",
+   "fn": "gridex_ai_processing.customer_row_epoch_v1",
+   "first": "20261001021408",
+   "last": "20261001045349",
+   "files": [
+    "20261001021408",
+    "20261001045349"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ai_processing.network_registry_basis_v1",
+   "first": "20260930174145",
+   "last": "20261001142600",
+   "files": [
+    "20260930174145",
+    "20261001142600"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ai_processing.require_export_decision_for_phase_v1",
+   "first": "20260930220942",
+   "last": "20260930220942",
+   "files": [
+    "20260930220942"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ai_processing.require_export_decision_v1",
+   "first": "20260930201813",
+   "last": "20260930220942",
+   "files": [
+    "20260930201813",
+    "20260930220942"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ai_processing.require_original_rows_before_customer_v1",
+   "first": "20261001003642",
+   "last": "20261001003642",
+   "files": [
+    "20261001003642"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ai_processing.row_epoch_before_customer_v1",
+   "first": "20261001003642",
+   "last": "20261001003642",
+   "files": [
+    "20261001003642"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_bilateral_prodat.dispatch_mixed_start_v1",
+   "first": "20261001052735",
+   "last": "20261001052735",
+   "files": [
+    "20261001052735"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_bilateral_prodat.source_capability_v1",
+   "first": "20261001013034",
+   "last": "20261002233800",
+   "files": [
+    "20261001013034",
+    "20261002233800"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_billing_source.protect_underlay_v1",
+   "first": "20260930175405",
+   "last": "20260930175405",
+   "files": [
+    "20260930175405"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_certificate_trust.publish_v1",
+   "first": "20260930163734",
+   "last": "20260930163734",
+   "files": [
+    "20260930163734"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_certificate_trust.read_v1",
+   "first": "20260930163734",
+   "last": "20260930163734",
+   "files": [
+    "20260930163734"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_customer_life_events.publish_certification_v1",
+   "first": "20261001032824",
+   "last": "20261001032824",
+   "files": [
+    "20261001032824"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_customer_life_events.revoke_certification_v1",
+   "first": "20261001032824",
+   "last": "20261001032824",
+   "files": [
+    "20261001032824"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_ack_replay.capture_positive_service_scope_v1",
+   "first": "20260930235702",
+   "last": "20261001015846",
+   "files": [
+    "20260930235702",
+    "20261001015846"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_ack_replay.create_scope_v2",
+   "first": "20261001014735",
+   "last": "20261010102349",
+   "files": [
+    "20261001014735",
+    "20261001021918",
+    "20261001134000",
+    "20261002233000",
+    "20261002233100",
+    "20261010102349"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_ack_replay.create_v1",
+   "first": "20260930231958",
+   "last": "20261002233100",
+   "files": [
+    "20260930231958",
+    "20261001014735",
+    "20261001021918",
+    "20261001134500",
+    "20261002233000",
+    "20261002233100"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_ack_replay.positive_service_scope_projection_v1",
+   "first": "20260930235702",
+   "last": "20261001043917",
+   "files": [
+    "20260930235702",
+    "20261001015846",
+    "20261001043917"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_ack_replay.read_exact_v2",
+   "first": "20261001014735",
+   "last": "20261010102349",
+   "files": [
+    "20261001014735",
+    "20261001021918",
+    "20261001124000",
+    "20261001134000",
+    "20261001134500",
+    "20261010102349"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_ack_replay.read_scope_v2",
+   "first": "20261001014735",
+   "last": "20261010102349",
+   "files": [
+    "20261001014735",
+    "20261001124000",
+    "20261001134000",
+    "20261010102349"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_ack_replay.read_v1",
+   "first": "20260930224443",
+   "last": "20261001134500",
+   "files": [
+    "20260930224443",
+    "20260930231958",
+    "20261001014735",
+    "20261001021918",
+    "20261001124000",
+    "20261001134500"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_common_header.prepare_v1",
+   "first": "20260930205320",
+   "last": "20260930205320",
+   "files": [
+    "20260930205320"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_duplicate_responses.matches_business_sequence_v1",
+   "first": "20261001134500",
+   "last": "20261002235200",
+   "files": [
+    "20261001134500",
+    "20261002235200"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_header_negative_birth.create_v1",
+   "first": "20261010102349",
+   "last": "20261010102349",
+   "files": [
+    "20261010102349"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_header_negative_birth.family_basis_v1",
+   "first": "20261010102349",
+   "last": "20261010102349",
+   "files": [
+    "20261010102349"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_header_negative_birth.immutable_guide_v1",
+   "first": "20261010102349",
+   "last": "20261010102349",
+   "files": [
+    "20261010102349"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_retention.finance_guard_v1_5deeea5777841dc25ff551d49db435fb",
+   "first": null,
+   "last": null,
+   "files": []
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_retention.finance_guard_v1_7ddb10144d6f8333b9c1b21ecec204e6",
+   "first": null,
+   "last": null,
+   "files": []
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_services.require_periodic_outcome_v1",
+   "first": "20261001041152",
+   "last": "20261001041152",
+   "files": [
+    "20261001041152"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_services.require_periodic_reason_v1",
+   "first": "20261001041152",
+   "last": "20261001041152",
+   "files": [
+    "20261001041152"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_services.review_before_source_timing_v1",
+   "first": "20261001043917",
+   "last": "20261001043917",
+   "files": [
+    "20261001043917"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_source_rules.read_outbound_ack_v1",
+   "first": "20260930190015",
+   "last": "20260930190015",
+   "files": [
+    "20260930190015"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_source_rules.read_source_v1",
+   "first": "20260930190015",
+   "last": "20260930190015",
+   "files": [
+    "20260930190015"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_ediel_technical_ack.read_persisted_contrl_v1",
+   "first": "20260930200005",
+   "last": "20261001134600",
+   "files": [
+    "20260930200005",
+    "20261001134600"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_negative_fixtures.decode_latin1_v1",
+   "first": "20260930171839",
+   "last": "20260930171839",
+   "files": [
+    "20260930171839"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_negative_fixtures.publish_positive_v1",
+   "first": "20260930212435",
+   "last": "20260930212435",
+   "files": [
+    "20260930212435"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_negative_fixtures.publish_v1",
+   "first": "20260930171839",
+   "last": "20260930171839",
+   "files": [
+    "20260930171839"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_negative_fixtures.read_v1",
+   "first": "20260930171839",
+   "last": "20261001142620",
+   "files": [
+    "20260930171839",
+    "20261001142620"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_received_err_response.require_positive_before_received_err_v1",
+   "first": "20261001003657",
+   "last": "20261001003657",
+   "files": [
+    "20261001003657"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_received_sources.append_prodat_response_validation_v3",
+   "first": "20261001000147",
+   "last": "20261001032758",
+   "files": [
+    "20261001000147",
+    "20261001032758"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_received_sources.append_prodat_source_function_validation_v5",
+   "first": "20261001032758",
+   "last": "20261001032758",
+   "files": [
+    "20261001032758"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_received_sources.append_prodat_validation_v4",
+   "first": "20261001010321",
+   "last": "20261001032759",
+   "files": [
+    "20261001010321",
+    "20261001032758",
+    "20261001032759"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_received_sources.append_prodat_validation_v5",
+   "first": "20261001025115",
+   "last": "20261001032759",
+   "files": [
+    "20261001025115",
+    "20261001032758",
+    "20261001032759"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_received_sources.normal_switch_confirm_mixed_v1",
+   "first": "20260930224726",
+   "last": "20261001052735",
+   "files": [
+    "20260930224726",
+    "20261001000148",
+    "20261001052735"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_received_sources.recovery_reference_wire_data_v1",
+   "first": "20261001141000",
+   "last": "20261001141000",
+   "files": [
+    "20261001141000"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_received_sources.render_owned_li_repair_v1",
+   "first": "20261001141000",
+   "last": "20261001141000",
+   "files": [
+    "20261001141000"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_received_sources.require_utilts_transaction_before_issuer_v1",
+   "first": "20261001015127",
+   "last": "20261001015127",
+   "files": [
+    "20261001015127"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_received_sources.require_utilts_transaction_v1",
+   "first": "20260930193740",
+   "last": "20261001041152",
+   "files": [
+    "20260930193740",
+    "20261001015127",
+    "20261001041152"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_received_sources.supply_period_source_before_internal_site_v1",
+   "first": "20260930231447",
+   "last": "20260930231447",
+   "files": [
+    "20260930231447"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_regulated_supply.source_capability_v1",
+   "first": "20261001013034",
+   "last": "20261002233800",
+   "files": [
+    "20261001013034",
+    "20261002233800"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_service_permission.context_before_agreement_reference_v1",
+   "first": "20260930231633",
+   "last": "20261001062832",
+   "files": [
+    "20260930231633",
+    "20261001062832"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_service_permission.context_before_requested_method_v1",
+   "first": "20260930235816",
+   "last": "20261001062832",
+   "files": [
+    "20260930235816",
+    "20261001062831",
+    "20261001062832"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_service_permission.require_current_before_agreement_reference_v1",
+   "first": "20260930231633",
+   "last": "20260930231633",
+   "files": [
+    "20260930231633"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_service_permission.require_current_before_requested_method_v1",
+   "first": "20260930235816",
+   "last": "20260930235816",
+   "files": [
+    "20260930235816"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_service_permission.require_original_current_v1",
+   "first": "20260930194512",
+   "last": "20261001065415",
+   "files": [
+    "20260930194512",
+    "20261001065415"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_supply_rescission.require_recorded_outbound_v1",
+   "first": "20261001115000",
+   "last": "20261001115000",
+   "files": [
+    "20261001115000"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_transport_exception.publish_v1",
+   "first": "20261001000609",
+   "last": "20261001000609",
+   "files": [
+    "20261001000609"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_transport_exception.revoke_v1",
+   "first": "20261001000609",
+   "last": "20261001000609",
+   "files": [
+    "20261001000609"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_utilts_binding.legacy_retry_item_v1",
+   "first": "20260930145350",
+   "last": "20260930145350",
+   "files": [
+    "20260930145350"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_utilts_binding.persist_consumption_before_actor_v1",
+   "first": "20261001110500",
+   "last": "20261001110500",
+   "files": [
+    "20261001110500"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_utilts_binding.persist_consumption_before_precision_v1",
+   "first": "20260930191608",
+   "last": "20261001053437",
+   "files": [
+    "20260930191608",
+    "20261001053437"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_utilts_binding.persist_series_legacy_v1",
+   "first": "20261001010230",
+   "last": "20261001010230",
+   "files": [
+    "20261001010230"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_utilts_binding.persist_series_v2",
+   "first": "20261001010230",
+   "last": "20261003150200",
+   "files": [
+    "20261001010230",
+    "20261003150200"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_utilts_binding.preserve_committed_projection_v1",
+   "first": "20261001003807",
+   "last": "20261012120000",
+   "files": [
+    "20261001003807",
+    "20261012120000"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_utilts_binding.require_current_esco_storage_v1",
+   "first": "20261001003807",
+   "last": "20261001041152",
+   "files": [
+    "20261001003807",
+    "20261001015846",
+    "20261001041152"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_utilts_binding.require_execution_actor_v1",
+   "first": "20261001110500",
+   "last": "20261001110500",
+   "files": [
+    "20261001110500"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_utilts_binding.unowned_regulating_object_v1",
+   "first": "20260928173000",
+   "last": "20260928201500",
+   "files": [
+    "20260928173000",
+    "20260928201500"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_utilts_binding.valid_rejected_item_v3",
+   "first": "20261001053437",
+   "last": "20261001053437",
+   "files": [
+    "20261001053437"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "gridex_utilts_binding.validate_rejected_contract_v3",
+   "first": "20261001053437",
+   "last": "20261001053437",
+   "files": [
+    "20261001053437"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "gridex_correction_process.witness_v1",
+   "first": "20260924080601",
+   "last": "20261001015945",
+   "files": [
+    "20260924080601",
+    "20261001015945"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "gridex_internal.actor_open_blocking_conflict_counts",
+   "first": "20260809131500",
+   "last": "20260809131500",
+   "files": [
+    "20260809131500"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "gridex_received_sources.observe_document_reference_v1",
+   "first": "20260924013820",
+   "last": "20260929082115",
+   "files": [
+    "20260924013820",
+    "20260929082115"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "gridex_utilts_binding.persist_series_v1",
+   "first": "20260923135706",
+   "last": "20261001010230",
+   "files": [
+    "20260923135706",
+    "20260927160000",
+    "20260928173000",
+    "20260928181500",
+    "20261001010230"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_apply_customer_before_bilateral_v1",
+   "first": "20261001010758",
+   "last": "20261001013836",
+   "files": [
+    "20261001010758",
+    "20261001013836"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_apply_reviewed_customer_source_v1",
+   "first": "20261001002600",
+   "last": "20261001010758",
+   "files": [
+    "20261001002600",
+    "20261001010758"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_apply_reviewed_structure_v1",
+   "first": "20260930193612",
+   "last": "20261001011232",
+   "files": [
+    "20260930193612",
+    "20260930205032",
+    "20261001011232"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_archive_service_evidence_v1",
+   "first": "20261001000926",
+   "last": "20261001043917",
+   "files": [
+    "20261001000926",
+    "20261001041436",
+    "20261001043917"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_capture_technical_syntax_ack_basis_v1",
+   "first": "20260930184410",
+   "last": "20260930184410",
+   "files": [
+    "20260930184410"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_confirmed_customer_snapshot_before_scope_fence_v1",
+   "first": "20261001010758",
+   "last": "20261001010758",
+   "files": [
+    "20261001010758"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_confirmed_customer_snapshot_v1",
+   "first": "20261001003642",
+   "last": "20261001010758",
+   "files": [
+    "20261001003642",
+    "20261001010758"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_consume_prodat_mixed_reply_v1",
+   "first": "20260930224726",
+   "last": "20260930224726",
+   "files": [
+    "20260930224726"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_create_assigned_prodat_header_negative_v1",
+   "first": "20261010102349",
+   "last": "20261010102349",
+   "files": [
+    "20261010102349"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_create_outbound_ack_atomic_v1",
+   "first": "20260930231958",
+   "last": "20260930231958",
+   "files": [
+    "20260930231958"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_create_outbound_ack_scope_atomic_v2",
+   "first": "20261001014735",
+   "last": "20261001014735",
+   "files": [
+    "20261001014735"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_customer_record_retention_targets_v1",
+   "first": "20261001012305",
+   "last": "20261001012305",
+   "files": [
+    "20261001012305"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_is_duplicate_protocol_ack_v1",
+   "first": "20261001124000",
+   "last": "20261001124000",
+   "files": [
+    "20261001124000"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_metering_method_change_message_basis_v1",
+   "first": "20260930225504",
+   "last": "20261001121001",
+   "files": [
+    "20260930225504",
+    "20261001121000",
+    "20261001121001"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_metering_method_recovery_scope_v1",
+   "first": "20261001121000",
+   "last": "20261001121001",
+   "files": [
+    "20261001121000",
+    "20261001121001"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_metering_method_recovery_source_v1",
+   "first": "20261001121000",
+   "last": "20261001121001",
+   "files": [
+    "20261001121000",
+    "20261001121001"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_originate_requested_change_before_scope_fence_v1",
+   "first": "20261001010758",
+   "last": "20261006221015",
+   "files": [
+    "20261001010758",
+    "20261002235600",
+    "20261006214250",
+    "20261006221015"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_originate_requested_change_v1",
+   "first": "20260930224540",
+   "last": "20261006221015",
+   "files": [
+    "20260930224540",
+    "20261001010758",
+    "20261006214250",
+    "20261006221015"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_prepare_common_header_negative_ack_v1",
+   "first": "20260930205320",
+   "last": "20260930205320",
+   "files": [
+    "20260930205320"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_prepare_customer_masterdata_recovery_v1",
+   "first": "20261001112223",
+   "last": "20261009082553",
+   "files": [
+    "20261001112223",
+    "20261009082553"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_prepare_prodat_recovery_references_v1",
+   "first": "20261001141000",
+   "last": "20261001141000",
+   "files": [
+    "20261001141000"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_prepare_switch_cancellation_customer_masterdata_v1",
+   "first": "20261009082553",
+   "last": "20261009082553",
+   "files": [
+    "20261009082553"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_process_prodat_mixed_z04_v1",
+   "first": "20260930224726",
+   "last": "20260930224726",
+   "files": [
+    "20260930224726"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_prodat_recovery_workspace_v1",
+   "first": "20261001141500",
+   "last": "20261001141500",
+   "files": [
+    "20261001141500"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_project_supply_end_followup_v1",
+   "first": "20261001054018",
+   "last": "20261001054018",
+   "files": [
+    "20261001054018"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_publish_customer_event_certification_v1",
+   "first": "20261001032824",
+   "last": "20261001032824",
+   "files": [
+    "20261001032824"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_publish_transport_exception_v1",
+   "first": "20261001000609",
+   "last": "20261001000609",
+   "files": [
+    "20261001000609"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_qualify_bilateral_prodat_outbound_draft_v1",
+   "first": "20261001023248",
+   "last": "20261001023248",
+   "files": [
+    "20261001023248"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_qualify_bilateral_prodat_switch_preparation_v1",
+   "first": "20261001031053",
+   "last": "20261001031053",
+   "files": [
+    "20261001031053"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_qualify_persisted_prodat_outbound_source_v1",
+   "first": "20261001115200",
+   "last": "20261001115200",
+   "files": [
+    "20261001115200"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_qualify_supply_rescission_draft_v1",
+   "first": "20261001115000",
+   "last": "20261001115000",
+   "files": [
+    "20261001115000"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_qualify_supply_rescission_prepared_original_v1",
+   "first": "20261001115200",
+   "last": "20261001115200",
+   "files": [
+    "20261001115200"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_outbound_ack_replay_v1",
+   "first": "20260930224443",
+   "last": "20260930224443",
+   "files": [
+    "20260930224443"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_outbound_ack_scope_replay_v2",
+   "first": "20261001014735",
+   "last": "20261001014735",
+   "files": [
+    "20261001014735"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_outbound_ack_source_rule_pack_basis_v1",
+   "first": "20260930190015",
+   "last": "20260930190015",
+   "files": [
+    "20260930190015"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_persisted_technical_contrl_basis_v1",
+   "first": "20260930200005",
+   "last": "20260930200005",
+   "files": [
+    "20260930200005"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_prodat_bilateral_source_capability_v1",
+   "first": "20261001013034",
+   "last": "20261001013034",
+   "files": [
+    "20261001013034"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_prodat_customer_masterdata_original_v1",
+   "first": "20261010102455",
+   "last": "20261010102455",
+   "files": [
+    "20261010102455"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_prodat_h_accepted_original_v1",
+   "first": "20261010102455",
+   "last": "20261010102455",
+   "files": [
+    "20261010102455"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_prodat_mixed_reply_v1",
+   "first": "20260930224726",
+   "last": "20260930224726",
+   "files": [
+    "20260930224726"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_received_err_application_response_authority_v1",
+   "first": "20261001003657",
+   "last": "20261001003657",
+   "files": [
+    "20261001003657"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_service_evidence_archive_v1",
+   "first": "20261001000926",
+   "last": "20261001000926",
+   "files": [
+    "20261001000926"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_source_rule_pack_basis_v1",
+   "first": "20260930190015",
+   "last": "20260930190015",
+   "files": [
+    "20260930190015"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_supply_rescission_original_v1",
+   "first": "20261001115000",
+   "last": "20261001115000",
+   "files": [
+    "20261001115000"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_technical_source_endpoint_v1",
+   "first": "20260930184410",
+   "last": "20261001142520",
+   "files": [
+    "20260930184410",
+    "20261001142520"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_transport_exception_v1",
+   "first": "20261001000609",
+   "last": "20261001000609",
+   "files": [
+    "20261001000609"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_read_z06f_reading_followup_v1",
+   "first": "20261001042609",
+   "last": "20261001044958",
+   "files": [
+    "20261001042609",
+    "20261001044958"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_record_scoped_capability_evidence_v1",
+   "first": "20260930145202",
+   "last": "20260930145202",
+   "files": [
+    "20260930145202"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_record_technical_syntax_facet_v1",
+   "first": "20260930184410",
+   "last": "20260930184410",
+   "files": [
+    "20260930184410"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_requested_change_message_basis_before_scope_fence_v1",
+   "first": "20261001010758",
+   "last": "20261001010758",
+   "files": [
+    "20261001010758"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_requested_change_message_basis_v1",
+   "first": "20260930224540",
+   "last": "20261001010758",
+   "files": [
+    "20260930224540",
+    "20261001010758"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_requested_change_source_before_scope_fence_v1",
+   "first": "20261001010758",
+   "last": "20261001010758",
+   "files": [
+    "20261001010758"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_requested_change_source_v1",
+   "first": "20260930224540",
+   "last": "20261001010758",
+   "files": [
+    "20260930224540",
+    "20261001010758"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_requested_customer_change_selected_facts_v1",
+   "first": "20261006184000",
+   "last": "20261006184000",
+   "files": [
+    "20261006184000"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_require_prodat_bilateral_positive_source_v1",
+   "first": "20261001020013",
+   "last": "20261001085523",
+   "files": [
+    "20261001020013",
+    "20261001085523"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_require_technical_syntax_ack_basis_v1",
+   "first": "20260930184410",
+   "last": "20260930184410",
+   "files": [
+    "20260930184410"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_review_service_evidence_v1",
+   "first": "20261001000926",
+   "last": "20261001043917",
+   "files": [
+    "20261001000926",
+    "20261001043917"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_revoke_customer_event_certification_v1",
+   "first": "20261001032824",
+   "last": "20261001032824",
+   "files": [
+    "20261001032824"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_revoke_transport_exception_v1",
+   "first": "20261001000609",
+   "last": "20261001000609",
+   "files": [
+    "20261001000609"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_supply_start_is_cancelled_v1",
+   "first": "20260930161624",
+   "last": "20260930161624",
+   "files": [
+    "20260930161624"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_switch_cancellation_customer_masterdata_basis_v1",
+   "first": "20261009082553",
+   "last": "20261009082553",
+   "files": [
+    "20261009082553"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_switch_cancellation_customer_masterdata_message_basis_v1",
+   "first": "20261009082553",
+   "last": "20261009082553",
+   "files": [
+    "20261009082553"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_witness_confirmed_customer_source_before_scope_fence_v1",
+   "first": "20261001010758",
+   "last": "20261001010758",
+   "files": [
+    "20261001010758"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.ediel_witness_confirmed_customer_source_v1",
+   "first": "20261001002600",
+   "last": "20261001010758",
+   "files": [
+    "20261001002600",
+    "20261001010758"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_ai_export_decision_v1",
+   "first": "20260930203354",
+   "last": "20260930203354",
+   "files": [
+    "20260930203354"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_ediel_business_expectations_v1",
+   "first": "20260930154712",
+   "last": "20260930154712",
+   "files": [
+    "20260930154712"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_ediel_certificate_trust_publish_v1",
+   "first": "20260930163734",
+   "last": "20260930163734",
+   "files": [
+    "20260930163734"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_ediel_certificate_trust_read_v1",
+   "first": "20260930163734",
+   "last": "20260930163734",
+   "files": [
+    "20260930163734"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_ediel_metering_method_expectations_v1",
+   "first": "20260930230944",
+   "last": "20260930230944",
+   "files": [
+    "20260930230944"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_ediel_negative_fixture_prepare_read_v1",
+   "first": "20260930212435",
+   "last": "20260930212435",
+   "files": [
+    "20260930212435"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_ediel_negative_fixture_publish_v1",
+   "first": "20260930171839",
+   "last": "20260930171839",
+   "files": [
+    "20260930171839"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_ediel_negative_fixture_read_v1",
+   "first": "20260930171839",
+   "last": "20260930171839",
+   "files": [
+    "20260930171839"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_ediel_positive_fixture_publish_v1",
+   "first": "20260930212435",
+   "last": "20260930212435",
+   "files": [
+    "20260930212435"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_outbound_dispatch_event_company_v1",
+   "first": "20261001230000",
+   "last": "20261001230000",
+   "files": [
+    "20261001230000"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_read_committed_inbound_ack_v1",
+   "first": "20260930203615",
+   "last": "20260930203615",
+   "files": [
+    "20260930203615"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_read_outbound_acks_for_source_v1",
+   "first": "20260930223930",
+   "last": "20260930223930",
+   "files": [
+    "20260930223930"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_record_prodat_response_source_validation_v3",
+   "first": "20261001000147",
+   "last": "20261001000147",
+   "files": [
+    "20261001000147"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_record_prodat_source_function_validation_v5",
+   "first": "20261001032758",
+   "last": "20261001032758",
+   "files": [
+    "20261001032758"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_record_prodat_source_validation_v2",
+   "first": "20260930215244",
+   "last": "20260930215244",
+   "files": [
+    "20260930215244"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_record_prodat_source_validation_v3",
+   "first": "20260930234111",
+   "last": "20261001000148",
+   "files": [
+    "20260930234111",
+    "20261001000147",
+    "20261001000148"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_record_prodat_source_validation_v4",
+   "first": "20261001010321",
+   "last": "20261001010321",
+   "files": [
+    "20261001010321"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_record_prodat_source_validation_v5",
+   "first": "20261001025115",
+   "last": "20261001032759",
+   "files": [
+    "20261001025115",
+    "20261001032758",
+    "20261001032759"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_record_utilts_source_validation_v1",
+   "first": "20260930193740",
+   "last": "20260930193740",
+   "files": [
+    "20260930193740"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_record_utilts_source_validation_v2",
+   "first": "20260930211020",
+   "last": "20260930211020",
+   "files": [
+    "20260930211020"
+   ]
+  },
+  {
+   "kind": "missing",
+   "fn": "public.gridex_record_utilts_source_validation_v3",
+   "first": "20260930212911",
+   "last": "20260930212911",
+   "files": [
+    "20260930212911"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.canonical_authenticated_tenant_context",
+   "first": "20260810193450",
+   "last": "20261014004020",
+   "files": [
+    "20260810193450",
+    "20260810224500",
+    "20260902091000",
+    "20261014004020"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.canonical_provision_company_v3_pre_invitation_intent",
+   "first": "20260810193450",
+   "last": "20260817210500",
+   "files": [
+    "20260810193450",
+    "20260817210500"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.canonical_restore_pre_engine_live_ediel_approval",
+   "first": "20260815114530",
+   "last": "20260815210353",
+   "files": [
+    "20260815114530",
+    "20260815210353"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.canonical_run_architecture_reconciliation",
+   "first": "20260810213851",
+   "last": "20260811155851",
+   "files": [
+    "20260810213851",
+    "20260810224500",
+    "20260811080000",
+    "20260811155851"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.canonical_transition_ediel_production",
+   "first": "20260802011000",
+   "last": "20261006235632",
+   "files": [
+    "20260802011000",
+    "20260802170000",
+    "20260902094600",
+    "20261006235632"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.canonical_transition_ediel_production_v1_unchecked",
+   "first": "20260802170000",
+   "last": "20261006235632",
+   "files": [
+    "20260802170000",
+    "20261006235632"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.canonical_transition_tenant_lifecycle_v3_pre_offboarding",
+   "first": "20260810191822",
+   "last": "20260814230500",
+   "files": [
+    "20260810191822",
+    "20260814230500"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_apply_exact_z02_core",
+   "first": "20260821145500",
+   "last": "20261001022917",
+   "files": [
+    "20260821145500",
+    "20260821151000",
+    "20260903213000",
+    "20260930154552",
+    "20260930164947",
+    "20261001022917"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_approve_portal_claim_v1",
+   "first": "20261002223000",
+   "last": "20261002223000",
+   "files": [
+    "20261002223000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_assign_customer_contract_identity_v1",
+   "first": "20260818121500",
+   "last": "20260818121500",
+   "files": [
+    "20260818121500"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_attach_portfolio_settlement_to_invoice",
+   "first": "20260718162000",
+   "last": "20261001070000",
+   "files": [
+    "20260718162000",
+    "20260803150723",
+    "20261001070000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_billing_profile_revisions_append_only",
+   "first": "20261002140000",
+   "last": "20261002140000",
+   "files": [
+    "20261002140000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_bind_locked_portfolio_settlement_to_underlay",
+   "first": "20260718162000",
+   "last": "20261001070000",
+   "files": [
+    "20260718162000",
+    "20261001070000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_bind_poa_authorization_document",
+   "first": "20260824140830",
+   "last": "20260824140830",
+   "files": [
+    "20260824140830"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_can",
+   "first": "01",
+   "last": "20260523",
+   "files": [
+    "01",
+    "20260522",
+    "20260523"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_canonicalize_company_org_number",
+   "first": "20260811080000",
+   "last": "20260811080000",
+   "files": [
+    "20260811080000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_close_customer_lifecycle_v1",
+   "first": "20261002212000",
+   "last": "20261002212000",
+   "files": [
+    "20261002212000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_create_customer_site_with_address",
+   "first": "20260618230000",
+   "last": "20261012190000",
+   "files": [
+    "20260618230000",
+    "20260630143000",
+    "20260708193000",
+    "20261012190000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_create_grid_owner_data_request_v1",
+   "first": "20261002218000",
+   "last": "20261002218000",
+   "files": [
+    "20261002218000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_create_invoice_export_graph_v1_core",
+   "first": "20260727164000",
+   "last": "20260728170000",
+   "files": [
+    "20260727164000",
+    "20260728170000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_create_supplier_switch_v1",
+   "first": "20261002215000",
+   "last": "20261002215000",
+   "files": [
+    "20261002215000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_customer_billing_profile_bump",
+   "first": "20261002140000",
+   "last": "20261002140000",
+   "files": [
+    "20261002140000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_customer_contracts_auto_renew_guard",
+   "first": "20260818170213",
+   "last": "20260818170213",
+   "files": [
+    "20260818170213"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_customer_retention_until_v1",
+   "first": "20261002214000",
+   "last": "20261002214000",
+   "files": [
+    "20261002214000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_dependency_circuit_before_request_v1",
+   "first": "20260813230000",
+   "last": "20260813230000",
+   "files": [
+    "20260813230000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_dependency_circuit_record_v1",
+   "first": "20260813230000",
+   "last": "20260813230000",
+   "files": [
+    "20260813230000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_end_customer_supply_v1",
+   "first": "20261002213000",
+   "last": "20261002213000",
+   "files": [
+    "20261002213000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_enforce_supplier_utilts_outbound_v1",
+   "first": "20260822130000",
+   "last": "20260822130000",
+   "files": [
+    "20260822130000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_enqueue_signed_contract_operation_v1",
+   "first": "20260829140500",
+   "last": "20260829140500",
+   "files": [
+    "20260829140500"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_finalize_signature_before_record_retention_v1",
+   "first": "20261001012305",
+   "last": "20261013093621",
+   "files": [
+    "20261001012305",
+    "20261008051727",
+    "20261013093430",
+    "20261013093621"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_get_signature_before_record_retention_v1",
+   "first": "20261001012305",
+   "last": "20261013093621",
+   "files": [
+    "20261001012305",
+    "20261013093430",
+    "20261013093621"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_import_billing_underlays_v1",
+   "first": "20261002220000",
+   "last": "20261002220000",
+   "files": [
+    "20261002220000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_import_grid_area_master_row",
+   "first": "20260611100000",
+   "last": "20260902100045",
+   "files": [
+    "20260611100000",
+    "20260902100045"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_invalidate_site_operations_on_address_change",
+   "first": "20260618213000",
+   "last": "20260902221500",
+   "files": [
+    "20260618213000",
+    "20260709161000",
+    "20260902221500"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_materialize_poa_scopes",
+   "first": "20260902100045",
+   "last": "20260902100045",
+   "files": [
+    "20260902100045"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_materialize_supplier_switch_process_variant",
+   "first": "20260821140500",
+   "last": "20261001142540",
+   "files": [
+    "20260821140500",
+    "20261001142540"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_normalize_grid_owner_information_request",
+   "first": "20260821144000",
+   "last": "20260824132814",
+   "files": [
+    "20260821144000",
+    "20260824132814"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_normalize_signature_request_event_truth_v1",
+   "first": "20260818124500",
+   "last": "20260818124500",
+   "files": [
+    "20260818124500"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_ops_health_checks_v4",
+   "first": "20260811155412",
+   "last": "20260811155412",
+   "files": [
+    "20260811155412"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_ops_health_checks_v5",
+   "first": "20260812113000",
+   "last": "20260812130500",
+   "files": [
+    "20260812113000",
+    "20260812114500",
+    "20260812121100",
+    "20260812130500"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_outbound_dispatch_v1",
+   "first": "20260924031626",
+   "last": "20260930175554",
+   "files": [
+    "20260924031626",
+    "20260930175554"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_persist_utilts_consumption_v1",
+   "first": "20260923135706",
+   "last": "20261013141048",
+   "files": [
+    "20260923135706",
+    "20260923191510",
+    "20260926213000",
+    "20260928234022",
+    "20260928235411",
+    "20260929170231",
+    "20260929202207",
+    "20260929234037",
+    "20260930145350",
+    "20260930191608",
+    "20261001003807",
+    "20261001051410",
+    "20261001110500",
+    "20261013141048"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_platform_dashboard_summary_v1",
+   "first": "20260826093000",
+   "last": "20261013094648",
+   "files": [
+    "20260826093000",
+    "20261013094648"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_public_catalog_dependency_revision_trigger_v1",
+   "first": "20260818121500",
+   "last": "20260818121500",
+   "files": [
+    "20260818121500"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_record_legacy_api_key_use_v1",
+   "first": "20260813230000",
+   "last": "20260813230000",
+   "files": [
+    "20260813230000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_record_staff_identity_delivery_v1",
+   "first": "20261005124901",
+   "last": "20261005124901",
+   "files": [
+    "20261005124901"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_refresh_customer_process_summary",
+   "first": "20260821134500",
+   "last": "20261001142580",
+   "files": [
+    "20260821134500",
+    "20260823185028",
+    "20261001142580"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_refresh_platform_runtime_readiness_v1",
+   "first": "20260813230000",
+   "last": "20260813230000",
+   "files": [
+    "20260813230000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_register_customer_lifecycle_decision_v1",
+   "first": "20261002216000",
+   "last": "20261002216000",
+   "files": [
+    "20261002216000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_save_website_application_review_v1",
+   "first": "20261003100000",
+   "last": "20261003100000",
+   "files": [
+    "20261003100000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_stage_energy_geodata_features_v2",
+   "first": "20260813230000",
+   "last": "20260813230000",
+   "files": [
+    "20260813230000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_suppress_retired_onboarding_outbox_v1",
+   "first": "20260818121500",
+   "last": "20260818121500",
+   "files": [
+    "20260818121500"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_transition_customer_application_workflow",
+   "first": "20260724210000",
+   "last": "20260728170000",
+   "files": [
+    "20260724210000",
+    "20260728170000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_transition_supplier_switch_v1",
+   "first": "20261002215000",
+   "last": "20261002215000",
+   "files": [
+    "20261002215000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_validate_outbound_payload",
+   "first": "20260707120000",
+   "last": "20260709160000",
+   "files": [
+    "20260707120000",
+    "20260709160000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.gridex_validate_website_application_portal_identity",
+   "first": "20260804121000",
+   "last": "20260820213000",
+   "files": [
+    "20260804121000",
+    "20260804151500",
+    "20260820213000"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.public_contract_feed_fingerprint_v1",
+   "first": "20260809183210",
+   "last": "20260818121500",
+   "files": [
+    "20260809183210",
+    "20260818121500"
+   ]
+  },
+  {
+   "kind": "changed",
+   "fn": "public.run_tenant_integrity_audit",
+   "first": "20260827134553",
+   "last": "20260830012500",
+   "files": [
+    "20260827134553",
+    "20260827134617",
+    "20260830012500"
+   ]
+  }
+ ],
+ "prod_only_legacy": {
+  "non_public": [
+   "gridex_ediel_retention.finance_guard_api_522dd88bde8db5b554852cbc261c3f7e",
+   "gridex_ediel_retention.finance_guard_api_acf51d6c530bc0f7b5deccde675f28c4"
+  ],
+  "public": [
+   "canonical_next_application_number",
+   "canonical_next_contract_number",
+   "canonical_next_customer_number",
+   "canonical_sync_ediel_production_capability_v1",
+   "ediel_derive_ack_outcome",
+   "ediel_messages_set_ack_outcome",
+   "ediel_resolve_inbound_message_rules",
+   "ediel_resolve_message_rule",
+   "gridex_add_months_timestamptz",
+   "gridex_apply_public_contract_backfill_v2",
+   "gridex_assert_company_operational_for_write",
+   "gridex_assert_same_company",
+   "gridex_audit_critical_row_change",
+   "gridex_auth_has_any_role",
+   "gridex_auth_has_role",
+   "gridex_billing_underlays_company_guard",
+   "gridex_clear_stale_manual_request_blocker_metadata",
+   "gridex_companies_missing_ediel_profile",
+   "gridex_companies_missing_route_setup",
+   "gridex_company_is_writable",
+   "gridex_company_status_is_writable",
+   "gridex_customer_contracts_company_guard",
+   "gridex_customer_legal_acceptances_company_guard",
+   "gridex_customer_sites_company_guard",
+   "gridex_debug_column_exists",
+   "gridex_ediel_runtime_summary",
+   "gridex_ediel_unresolved_summary",
+   "gridex_emit_domain_event",
+   "gridex_generate_customer_number",
+   "gridex_get_user_permission_overrides",
+   "gridex_get_user_roles",
+   "gridex_has_effective_permission",
+   "gridex_jsonb_text",
+   "gridex_metering_points_company_guard",
+   "gridex_outbound_requests_guard",
+   "gridex_partner_exports_guard",
+   "gridex_partner_exports_status_guard_2",
+   "gridex_powers_of_attorney_company_guard",
+   "gridex_preview_public_contract_backfill_v2",
+   "gridex_publication_invoice_fee_evidence_v1",
+   "gridex_refresh_platform_schema_state_v2",
+   "gridex_table_has_company_id",
+   "gridex_user_has_white_label_admin_membership",
+   "gridex_user_is_super_admin",
+   "gridex_validate_partner_export_payload",
+   "set_current_timestamp_updated_at",
+   "set_ediel_inbound_cases_updated_at",
+   "set_ediel_tgt_test_data_updated_at",
+   "set_updated_at"
+  ],
+  "schema_private": "23 functions; schema not present in repo schema.sql"
+ }
+}

@@ -1,4 +1,6 @@
-export type UtiltsGuideRevision = '25-A-3' | '25-A-4'
+import { UTILTS_25_A_5_SOURCE } from './utilts25A5'
+
+export type UtiltsGuideRevision = '25-A-3' | '25-A-4' | '25-A-5'
 export type UtiltsMessageUseMode = 'live_inbound' | 'outbound' | 'historical_replay'
 
 export type UtiltsProcessabilityPolicy = {
@@ -19,7 +21,7 @@ export type UtiltsProcessabilityPolicy = {
   validateMeterAndRegisterAgainstStructuralInformation: boolean
   source: {
     document: string
-    section: '1.8 Change log'
+    section: '1.8 Change log' | '1.8 Versionshantering'
     effectiveFrom: string
   }
   structuralComparisonSource: {
@@ -99,7 +101,28 @@ export const UTILTS_25_A_4_POLICY: UtiltsProcessabilityPolicy = {
   },
 }
 
-for (const policy of [UTILTS_25_A_3_POLICY, UTILTS_25_A_4_POLICY]) {
+/** Swedish U5 p6 retains the dated processability removals. All38 retained
+ * U tables/471 rows were compared directly to the Swedish U5 original; this
+ * bounded reuse is not a claim that the unavailable U4 prose is identical.
+ * The U5 clarification of3.6.13 is separately traced in the source supplement. */
+export const UTILTS_25_A_5_POLICY: UtiltsProcessabilityPolicy = {
+  ...UTILTS_25_A_4_POLICY,
+  guideRevision: '25-A-5',
+  source: {
+    document: UTILTS_25_A_5_SOURCE.document,
+    section: '1.8 Versionshantering',
+    effectiveFrom: UTILTS_25_A_5_SOURCE.effectiveFrom,
+  },
+  structuralComparisonSource: {
+    document: UTILTS_25_A_5_SOURCE.filename,
+    sha256: UTILTS_25_A_5_SOURCE.sha256,
+    sections: ['Bilaga 2 p132 fields 224/527', '3.6.8 p37', '3.6.11 pp40–41', '3.6.18 p47'],
+    scope: 'Swedish received structural-information comparison; source ownership and historical coverage remain separately qualified',
+  },
+}
+
+const policies = [UTILTS_25_A_3_POLICY, UTILTS_25_A_4_POLICY, UTILTS_25_A_5_POLICY]
+for (const policy of policies) {
   Object.freeze(policy.activeOutboundMessageCodes)
   Object.freeze(policy.historicalReceiveOnlyMessageCodes)
   Object.freeze(policy.removedFieldNumbers)
@@ -120,7 +143,15 @@ function isoDate(value: string): string {
 export function resolveUtiltsProcessabilityPolicy(referenceDate: string): UtiltsProcessabilityPolicy {
   const date = isoDate(referenceDate)
   if (date < UTILTS_25_A_3_POLICY.effectiveFrom) throw new Error(`utilts_guide_not_effective:${date}`)
-  return date >= UTILTS_25_A_4_POLICY.effectiveFrom ? UTILTS_25_A_4_POLICY : UTILTS_25_A_3_POLICY
+  return date >= UTILTS_25_A_5_POLICY.effectiveFrom ? UTILTS_25_A_5_POLICY : UTILTS_25_A_3_POLICY
+}
+
+/** Pure semantics for an already qualified named original/accepted candidate.
+ * This is not admission authority for a historical new outbound message. */
+export function utiltsProcessabilityPolicyForRevision(revision: string): UtiltsProcessabilityPolicy {
+  const policy = policies.find(candidate => candidate.guideRevision === revision)
+  if (!policy) throw new Error(`utilts_guide_revision_unqualified:${revision}`)
+  return policy
 }
 
 /**

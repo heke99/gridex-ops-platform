@@ -118,7 +118,7 @@ export const priceOptionAreaPriceSchema = z
     vat_treatment: z.enum(["standard", "exempt"]).default("standard"),
     valid_from: nullableDate.default(null),
     valid_to: nullableDate.default(null),
-    metadata: z.record(z.unknown()).default({}),
+    metadata: z.record(z.string(), z.unknown()).default({}),
   })
   .strict()
   .superRefine((row, context) => {
@@ -155,7 +155,7 @@ export const priceOptionSchema = z
     sort_order: z.number().int().min(0).max(100_000),
     version_number: z.number().int().min(1).default(1),
     area_prices: z.array(priceOptionAreaPriceSchema).max(4),
-    metadata: z.record(z.unknown()).default({}),
+    metadata: z.record(z.string(), z.unknown()).default({}),
   })
   .strict()
   .superRefine((option, context) => {
@@ -312,9 +312,9 @@ export const commercialComponentSchema = z
     sort_order: z.number().int().min(0).max(100_000),
     valid_from: nullableDate.default(null),
     valid_to: nullableDate.default(null),
-    conditions: componentConditionsSchema.default({}),
+    conditions: componentConditionsSchema.prefault({}),
     website_published: z.boolean().default(true),
-    metadata: z.record(z.unknown()).default({}),
+    metadata: z.record(z.string(), z.unknown()).default({}),
   })
   .strict()
   .superRefine((component, context) => {

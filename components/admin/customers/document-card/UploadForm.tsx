@@ -89,8 +89,11 @@ export default function UploadForm({
  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-700 "
  >
  <option value="power_of_attorney">Fullmakt</option>
- <option value="complete_agreement">Komplett avtal</option>
+ <option value="complete_agreement">Avtalsdokument</option>
  </select>
+ {documentType === 'complete_agreement' ? (
+ <p className="text-xs text-slate-600">Här sparar du en dokumentkopia. Registrera ett signerat avtal under fliken Avtal för att koppla det till rätt kundavtal.</p>
+ ) : null}
  </label>
 
  <label className="space-y-1 text-sm text-slate-700 ">

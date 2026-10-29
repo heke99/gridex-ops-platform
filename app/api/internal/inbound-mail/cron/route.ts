@@ -14,8 +14,9 @@ export const maxDuration = 300
 const ROUTE_DEADLINE_RESERVE_MS = 30_000
 
 function isAuthorized(request: NextRequest): boolean {
-  const configuredSecret = process.env.EDIEL_INBOUND_CRON_SECRET ?? process.env.CRON_SECRET
-  if (!configuredSecret) return false
+  const configuredSecrets = [process.env.EDIEL_INBOUND_CRON_SECRET, process.env.CRON_SECRET]
+    .filter((secret): secret is string => Boolean(secret?.trim()))
+  if (!configuredSecrets.length) return false
 
   const authorization = request.headers.get('authorization') ?? ''
   const bearer = authorization.startsWith('Bearer ') ? authorization.slice('Bearer '.length) : null
@@ -24,8 +25,10 @@ function isAuthorized(request: NextRequest): boolean {
   return [bearer, headerSecret].some((candidate) => {
     if (!candidate) return false
     const left = Buffer.from(candidate)
-    const right = Buffer.from(configuredSecret)
-    return left.length === right.length && timingSafeEqual(left, right)
+    return configuredSecrets.some((secret) => {
+      const right = Buffer.from(secret)
+      return left.length === right.length && timingSafeEqual(left, right)
+    })
   })
 }
 

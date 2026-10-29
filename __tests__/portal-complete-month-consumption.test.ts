@@ -5,7 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 // F15 month cards plus the F79 access windows (owner decision 2026-10-22): both migrations are applied in
 // order, so the month cards and the Mina sidor detail list run the real SQL functions.
-const MIGRATIONS = ['20261009130000_portal_monthly_consumption_summary.sql', '20261022100000_customer_metering_access_windows.sql']
+const MIGRATIONS = ['20261009130000_portal_monthly_consumption_summary.sql', '20261022100500_customer_metering_access_windows.sql']
 const TENANT_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 const TENANT_B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 const CUSTOMER_A = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'

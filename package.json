@@ -306,7 +306,7 @@
     "imapflow": "2.2.1",
     "ldapts": "^8.1.8",
     "mailauth": "7.3.1",
-    "next": "16.3.8",
+    "next": "16.4.2",
     "node-forge": "^1.4.0",
     "nodemailer": "10.0.13",
     "pdf-lib": "1.17.1",
@@ -314,7 +314,7 @@
     "react-dom": "19.2.4",
     "resend": "^6.12.4",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zod": "^3.24.1"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.11.3",
@@ -344,6 +344,9 @@
     "brace-expansion": "1.1.18",
     "@typescript-eslint/typescript-estree": {
       "brace-expansion": "5.0.9"
+    },
+    "mailauth": {
+      "undici": "8.12.2"
     }
   },
   "packageManager": "npm@10.9.2",

@@ -1,3 +1,4 @@
+import { resolveContractStartDate } from "@/lib/customer-contracts/operationalDates";
 import { supabaseService } from "@/lib/supabase/service";
 import {
   isPriceArea,
@@ -363,9 +364,7 @@ function underlayToInput(
   const intervalPeriod = underlayIntervalPeriod(underlay, period);
   const periodStart =
     stringValue(underlay.billing_period_start) ?? period.startDate;
-  const contractStart =
-    stringValue(contract?.starts_at) ??
-    stringValue(contract?.actual_start_at);
+  const contractStart = resolveContractStartDate(contract, "pricing");
   const firstContractPeriod =
     Boolean(contractStart) &&
     contractStart!.slice(0, 7) === periodStart.slice(0, 7);

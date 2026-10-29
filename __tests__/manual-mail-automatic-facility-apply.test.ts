@@ -23,6 +23,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from(table: string
   const query = {
     select: () => query,
     eq: (key: string, value: unknown) => { filters.push([key, value]); return query },
+    is: (key: string, value: unknown) => { filters.push([key, value]); return query },
     update: (value: Record<string, unknown>) => { patch = value; return query },
     limit: async (count: number) => ({ data: execute().slice(0, count), error: null }),
     maybeSingle: async () => ({ data: execute()[0] ?? null, error: null }),
@@ -56,7 +57,8 @@ beforeEach(() => {
   io.writes = []
   io.rows = {
     customer_sites: [{ id: 'site-a', company_id: 'tenant-a', customer_id: 'customer-a', facility_id: null, grid_area_code: 'LKR', price_area_code: 'SE4', grid_owner_id: 'owner-a', protected_identity: false }],
-    platform_grid_areas: [{ id: 'area-a', grid_area_code: 'LKR', grid_owner_id: 'owner-a', price_area: 'SE4', is_active: true }],
+    platform_grid_areas: [{ id: 'area-a', grid_area_code: 'LKR', grid_owner_id: 'owner-a', price_area: 'SE4', is_active: true, valid_from: null, valid_to: null, platform_grid_owners: { ops_grid_owner_id: 'owner-a', is_active: true } }],
+    grid_owners: [{ id: 'owner-a', company_id: 'tenant-a', is_active: true }],
     grid_owner_information_requests: [{ id: 'request-a', company_id: 'tenant-a', customer_id: 'customer-a', customer_site_id: 'site-a', grid_owner_id: 'owner-a', status: 'waiting_manual_response', parsed_payload: { prior_evidence: true }, metadata: {} }],
   }
   io.complete.mockResolvedValue({ ok: true, requestId: 'request-a', status: 'completed', intakeDecision: { state: 'ready_for_supplier_switch' }, supplierSwitchResult: { decision: 'prepare_supplier_switch' } })
@@ -144,4 +146,32 @@ describe('automatic facility reply adapter', () => {
     expect(io.writes).toEqual([])
     expect(io.emit).not.toHaveBeenCalled()
   })
+
+  it.each([
+    ['foreign', { id: 'owner-a', company_id: 'tenant-b', is_active: true }],
+    ['inactive', { id: 'owner-a', company_id: 'tenant-a', is_active: false }],
+  ])('refuses a %s OPS owner despite an active platform bridge', async (_reason, owner) => {
+    io.rows.grid_owners = [owner]
+    const before = structuredClone(io.rows.grid_owner_information_requests[0])
+
+    const result = await applyManualFacilityResponse(input())
+
+    expect(result).toMatchObject({ outcome: 'needs_review', reasons: ['grid_area_grid_owner_unavailable'] })
+    expect(io.complete).not.toHaveBeenCalled()
+    expect(io.rows.grid_owner_information_requests[0]).toEqual(before)
+    expect(io.writes).toEqual([])
+    expect(io.emit).not.toHaveBeenCalled()
+  })
+
+  it('uses the explicitly shared active OPS owner only when the own-tenant tier is empty', async () => {
+    io.rows.grid_owners = [{ id: 'owner-a', company_id: null, is_active: true }]
+
+    const result = await applyManualFacilityResponse(input())
+
+    expect(result).toMatchObject({ outcome: 'applied', reasons: [] })
+    expect(io.complete).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ companyId: 'tenant-a', requestId: 'request-a' }))
+    expect(io.writes).toEqual([])
+    expect(io.emit).not.toHaveBeenCalled()
+  })
+
 })

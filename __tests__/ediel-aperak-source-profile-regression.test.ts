@@ -31,7 +31,7 @@ describe('E058 / GOV-03 source-bound APERAK profiles', () => {
     })
 
     expect(september.guideRevision).toBe('25-A-3')
-    expect(october.guideRevision).toBe('25-A-4')
+    expect(october.guideRevision).toBe('25-A-5')
   })
 
   it('selects the P-family wire profile for PRODAT acknowledgements', () => {

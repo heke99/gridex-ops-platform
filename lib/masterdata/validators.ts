@@ -7,6 +7,7 @@ const requiredTrimmedString = z
 
 const nullableTrimmedString = z
   .union([z.string(), z.null(), z.undefined()])
+  .optional()
   .transform((value) => {
     if (value === null || value === undefined) return null;
     const trimmed = value.trim();
@@ -147,6 +148,7 @@ export const customerSiteInputSchema = z.object({
   move_in_date: nullableTrimmedString,
   annual_consumption_kwh: z
     .union([z.number(), z.string(), z.null(), z.undefined()])
+    .optional()
     .transform((value) => {
       if (value === null || value === undefined || value === "") return null;
       const parsed = Number(value);

@@ -556,25 +556,44 @@ async function syncVerifiedActorToCustomerMasterdata(actorId: string, userId: st
   }
 
   if (roles.has('electricity_supplier')) {
-    const existing = await supabaseService.from('electricity_suppliers').select('id').eq('ediel_id', edielId ?? '').maybeSingle()
-    if (existing.error && existing.error.code !== 'PGRST116') throw existing.error
+    // Customer-facing suppliers link to this qualified registry actor. Shared
+    // verification must never overwrite a tenant's own supplier record.
+    const existing = await supabaseService.from('electricity_suppliers')
+      .select('id,platform_market_actor_id,updated_at').is('company_id', null).eq('ediel_id', edielId ?? '').maybeSingle()
+    if (existing.error) throw existing.error
+    if (existing.data?.platform_market_actor_id && existing.data.platform_market_actor_id !== actorId) {
+      throw new Error('electricity_supplier_actor_binding_conflict')
+    }
     const payload = {
       name: actor.name,
+      platform_market_actor_id: actorId,
       org_number: actor.org_number ?? null,
       ediel_id: edielId,
       email,
       is_active: true,
       is_own_supplier: false,
-      lifecycle_status: 'active',
       verified_for_customer_flow: true,
       actor_registry_status: 'verified',
       notes: 'Verifierad via platform actor registry. Får väljas i kundintag men routes kontrolleras separat av Ediel guard.',
       updated_by: userId,
     }
-    const result = existing.data?.id
-      ? await supabaseService.from('electricity_suppliers').update(payload).eq('id', existing.data.id)
-      : await supabaseService.from('electricity_suppliers').insert({ ...payload, created_by: userId })
-    if (result.error) throw result.error
+    if (existing.data) {
+      let update = supabaseService.from('electricity_suppliers').update(payload)
+        .eq('id', existing.data.id).is('company_id', null).eq('ediel_id', edielId ?? '')
+      update = existing.data.platform_market_actor_id
+        ? update.eq('platform_market_actor_id', existing.data.platform_market_actor_id)
+        : update.is('platform_market_actor_id', null)
+      update = existing.data.updated_at
+        ? update.eq('updated_at', existing.data.updated_at)
+        : update.is('updated_at', null)
+      const result = await update.select('id').maybeSingle()
+      if (result.error) throw result.error
+      if (!result.data) throw new Error('electricity_supplier_actor_binding_changed')
+    } else {
+      const result = await supabaseService.from('electricity_suppliers')
+        .insert({ ...payload, company_id: null, created_by: userId })
+      if (result.error) throw result.error
+    }
   }
 }
 

@@ -21,10 +21,12 @@ describe('same-source UTILTS ERR guide, original and own physical transactions',
  })
  it('publishes the authentic prior and current source scope for the same native projection',()=>{
   const prior=CANONICAL_UTILTS_ERR_REASON_GUIDE_SCOPES.find(scope=>scope.guideVersion==='25-A-3')!
-  const current=CANONICAL_UTILTS_ERR_REASON_GUIDE_SCOPES.find(scope=>scope.guideVersion==='25-A-4')!
+  const retained=CANONICAL_UTILTS_ERR_REASON_GUIDE_SCOPES.find(scope=>scope.guideVersion==='25-A-4')!
+  const current=CANONICAL_UTILTS_ERR_REASON_GUIDE_SCOPES.find(scope=>scope.guideVersion==='25-A-5')!
   expect(prior.allowedReasons).toContain('E19');expect(current.allowedReasons).not.toContain('E19')
   expect(prior.source).toMatchObject({sha256:'fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798',field:'531',pages:[131,138]})
-  expect(current.source.sha256).toBe('0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be')
+  expect(retained.source.sha256).toBe('0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be')
+  expect(current.source.sha256).toBe('b76a61b9aa6f136771e5db4948296d1b632b8d775314eb6c93783595ae419db2')
  })
  it('accepts the national response and all present own source copies',()=>{expect(guide()).toEqual([])})
  it.each(CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS.allowedReasons)('uses the same exported national field531 reason %s',code=>{expect(guide(err(code))).toEqual([])})

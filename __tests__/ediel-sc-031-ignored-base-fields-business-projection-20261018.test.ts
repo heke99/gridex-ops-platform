@@ -51,7 +51,6 @@ function execute(q: Query) {
     const rows = [{ id: CUSTOMER, company_id: COMPANY, org_number: '0000000000', personal_number: '000000000000' }, { id: FOREIGN, company_id: FOREIGN, org_number: '0000000000', personal_number: '000000000000' }]
     return { data: rows.find(matches) ?? null, error: null }
   }
-  // platform_grid_areas: the F114 grid area registry lookup; no registry row is declared.
   if (['metering_points', 'customer_sites', 'grid_owners', 'platform_grid_areas', 'audit_logs'].includes(q.table)) return { data: null, error: null }
   throw Error(`UNEXPECTED_DECLARED_TABLE:${q.table}`)
 }
@@ -81,7 +80,14 @@ beforeEach(() => {
     if (command.company_id !== COMPANY || command.actor_user_id !== ACTOR || context.companyId !== COMPANY) throw Error('DECLARED_GRAPH_TENANT_ACTOR_MISMATCH')
     commands.push(structuredClone(command)); return { ...PORT_RESULT, operation_id: `declared-op-${commands.length}` }
   })
-  ports.rpc.mockImplementation(async (name: string) => { throw Error(`UNEXPECTED_DECLARED_RPC:${name}`) })
+  ports.rpc.mockImplementation(async (name: string,args: Row) => {
+    if(name==='ediel_inbound_graph_snapshot_basis_v1'){
+      if(args.p_company_id!==COMPANY)throw Error('DECLARED_BASIS_TENANT_MISMATCH')
+      const row=args.p_customer_id===CUSTOMER?{id:CUSTOMER,company_id:COMPANY,org_number:'0000000000',personal_number:'000000000000'}:null
+      return {data:{customer:row?JSON.stringify(row):null,site:null,metering_point:null},error:null}
+    }
+    throw Error(`UNEXPECTED_DECLARED_RPC:${name}`)
+  })
 })
 const stage = () => createOrUpdateInboundProdatCase({ actorUserId: ACTOR, message })
 const approveSingle = () => approveEdielInboundCase({ actorUserId: ACTOR, companyId: COMPANY, caseId: CASE, mode: 'create_new_customer' })

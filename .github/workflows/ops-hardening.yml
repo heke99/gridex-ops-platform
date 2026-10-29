@@ -100,7 +100,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1 (branch snapshot)
         with:
           version: 2.101.0
       - name: Install a PostgreSQL client matching the replay server
@@ -128,6 +128,14 @@ jobs:
           echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
           psql --version
           "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
+      - name: Prime content-verified Supabase bootstrap image caches
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python3 scripts/gridex-prime-verified-postgres-cache-selftest.py
+          python3 scripts/gridex-prime-verified-postgres-cache.py
       - name: Clean empty-database replay and verify generated types
         shell: bash
         env:
@@ -592,7 +600,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1 (branch snapshot)
         with:
           version: 2.101.0
       - name: Install a PostgreSQL client matching the replay server
@@ -620,6 +628,14 @@ jobs:
           echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
           psql --version
           "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
+      - name: Prime content-verified Supabase bootstrap image caches
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python3 scripts/gridex-prime-verified-postgres-cache-selftest.py
+          python3 scripts/gridex-prime-verified-postgres-cache.py
       - name: Genuine ancestor upgrade and independent clean parity
         shell: bash
         env:

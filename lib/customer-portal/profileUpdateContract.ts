@@ -37,7 +37,7 @@ const facilityDataSchema = z.object({
 const profileUpdateSchema = z.object({
   profile: profileSchema.optional(),
   facility_data: facilityDataSchema.optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 }).strict().superRefine((value, context) => {
   if (!value.profile && !value.facility_data) {
     context.addIssue({

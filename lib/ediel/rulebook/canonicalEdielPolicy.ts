@@ -41,10 +41,11 @@ import { getUtiltsFieldRules, type UtiltsFieldRule } from '@/lib/ediel/rulebook/
 import { resolveCanonicalUtiltsProfile, type UtiltsCanonicalProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
 import {
   assertUtiltsMessageUseAllowed,
-  resolveUtiltsProcessabilityPolicy,
+  utiltsProcessabilityPolicyForRevision,
   type UtiltsProcessabilityPolicy,
 } from '@/lib/ediel/rulebook/utilts25A4'
 import type { RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
+import { UTILTS_25_A_5_SOURCE } from '@/lib/ediel/rulebook/utilts25A5'
 
 export type CanonicalEdielPolicyDirection = 'inbound' | 'outbound'
 export type CanonicalEdielPolicyMode = 'send' | 'parse' | 'historical_replay' | 'catalog_evidence'
@@ -118,6 +119,31 @@ function normalize(value: unknown): string {
   return String(value ?? '').trim().toUpperCase()
 }
 
+/** Bounded executable projection of the unchanged Swedish p54 source cell.
+ * Other raw R/D/O/X rows still require their own qualified scope/conditions.
+ * Keep the original semantic key/path alongside the generic validator's shape. */
+function canonicalUtiltsFieldRules(code: string, guide: AuthoritativeEdielGuide, referenceDate: string): readonly (RulebookFieldRule | UtiltsFieldRule)[] {
+  const rows = getUtiltsFieldRules(code)
+  if (code !== 'S01' || guide.guideRevision !== UTILTS_25_A_5_SOURCE.guideRevision
+    || guide.primarySource?.sha256 !== UTILTS_25_A_5_SOURCE.sha256
+    || guide.primarySource.language !== UTILTS_25_A_5_SOURCE.language
+    || referenceDate < UTILTS_25_A_5_SOURCE.effectiveFrom || referenceDate < guide.effectiveFrom
+    || (guide.effectiveTo !== null && referenceDate > guide.effectiveTo)) return rows
+  return rows.map(row => {
+    if (row.fieldNo !== '209' || row.scope !== 'transaction' || row.requirements.S01 !== 'X') return row
+    const projected: UtiltsFieldRule & RulebookFieldRule & {
+      sourceSegmentPath: string; sourceEdition: string; sourceSha256: string
+    } = {
+      ...row, family: 'UTILTS', code, fieldNumber: row.fieldNo,
+      fieldKey: 'metering_point', label: row.fieldLabel,
+      sourceSegmentPath: row.segmentPath, segmentPath: row.segmentPath.replace(/^SG5\//, ''),
+      sourceEdition: guide.guideRevision, sourceSha256: guide.primarySource!.sha256,
+      requirement: 'forbidden', errorCodeIfInvalid: `UTILTS_FIELD_${row.fieldNo}_FORBIDDEN`,
+    }
+    return projected
+  })
+}
+
 function normalizeDate(value: string): string {
   const date = String(value ?? '').trim().slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('canonical_ediel_reference_date_required')
@@ -181,6 +207,12 @@ function policyMode(input: {
  * actually has that bilateral capability. It must never be used to send data.
  */
 export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyInput): CanonicalEdielPolicy {
+  return composeCanonicalEdielPolicy(input)
+}
+
+/** Only the protected-original ACK path below can supply this private override.
+ * Public callers still pass the current/bounded inbound acceptance gateway. */
+function composeCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyInput, retainedAckGuide?: AuthoritativeEdielGuide): CanonicalEdielPolicy {
   const family = normalizeFamily(input.family)
   const code = family === 'UTILTS_ERR' ? 'ERR' : normalize(input.messageCode)
   const referenceDate = normalizeDate(input.referenceDate)
@@ -193,12 +225,12 @@ export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyIn
     referenceDate,
     associationAssignedCode: input.associationAssignedCode ?? null,
   })
-  const directionGuides = input.direction === 'inbound'
+  const directionGuides = retainedAckGuide ? [retainedAckGuide] : input.direction === 'inbound'
     ? acceptance.acceptedInbound
     : acceptance.acceptedOutbound
-  const selectedGuide = input.selectedGuideRevision
+  const selectedGuide = retainedAckGuide ?? (input.selectedGuideRevision
     ? directionGuides.find(guide => guide.guideRevision === input.selectedGuideRevision)
-    : acceptance.current
+    : acceptance.current)
   if (!selectedGuide) throw new Error(`canonical_ediel_guide_candidate_not_accepted:${family}:${referenceDate}:${input.selectedGuideRevision}`)
   // Older guides are admitted only by the bounded acceptance window above.
   // Their complete semantics use their own revision; the decision still carries
@@ -318,6 +350,7 @@ export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyIn
       messageCode: code,
       businessDate: guideReferenceDate,
       version,
+      guideRevision: selectedGuide.guideRevision,
     })
     assertUtiltsMessageUseAllowed({
       referenceDate,
@@ -350,7 +383,7 @@ export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyIn
       })
     }
 
-    const processability = resolveUtiltsProcessabilityPolicy(guideReferenceDate)
+    const processability = utiltsProcessabilityPolicyForRevision(selectedGuide.guideRevision)
     return deepFreeze({
       family,
       code,
@@ -368,7 +401,7 @@ export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyIn
       previousGuideGraceActive: acceptance.previousGuideGraceActive,
       associationAssignedCode,
       applicationReference,
-      fieldRules: family === 'UTILTS' ? getUtiltsFieldRules(code) : [],
+      fieldRules: family === 'UTILTS' ? canonicalUtiltsFieldRules(code, selectedGuide, referenceDate) : [],
       prodatDependentConditions: [],
       ackRule,
       utiltsProfile,
@@ -438,8 +471,12 @@ export function resolveCanonicalInheritedAckPolicy(input:{policy:CanonicalEdielP
  const originalGuide=AUTHORITATIVE_EDIEL_GUIDES.find(guide=>guide.family===input.originalFamily&&identifier(guide.guideRevision)===identifier(input.guideVersion))
  const expectedRevision=input.originalFamily==='PRODAT'?getCanonicalProdatProfile(input.originalCode)?.guideRevision:/-(\d+)$/.exec(originalGuide?.guideRevision??'')?.[1]
  if(!originalGuide||!expectedRevision||input.guideRevision!==expectedRevision)throw new Error('canonical_ack_original_guide_scope_unqualified')
- const template=resolveCanonicalEdielPolicy({family,messageCode:family==='UTILTS_ERR'?'ERR':'APERAK',direction:input.policy.direction,
-  referenceDate:originalGuide.effectiveFrom,associationAssignedCode:originalGuide.associationAssignedCode,applicationReference:input.policy.applicationReference,mode:'parse'})
+ const retainedAckGuide=AUTHORITATIVE_EDIEL_GUIDES.find(guide=>guide.family===guideFamily(family)
+  &&guide.guideRevision===originalGuide.guideRevision&&guide.associationAssignedCode===originalGuide.associationAssignedCode)
+ if(!retainedAckGuide)throw new Error('canonical_ack_original_guide_scope_unqualified')
+ const template=composeCanonicalEdielPolicy({family,messageCode:family==='UTILTS_ERR'?'ERR':'APERAK',direction:input.policy.direction,
+  referenceDate:originalGuide.effectiveFrom,associationAssignedCode:originalGuide.associationAssignedCode,applicationReference:input.policy.applicationReference,mode:'parse'},retainedAckGuide)
  return deepFreeze({...template,referenceDate:input.policy.referenceDate,timeAnchors:input.policy.timeAnchors,
+  acceptedInboundGuides:[retainedAckGuide],acceptedOutboundGuides:[retainedAckGuide],previousGuideGraceActive:false,
   sourceTrace:[...template.sourceTrace,{authority:'guide',document:originalGuide.documentName,section:`Original registered scope ${input.originalVersion}; unchanged protected source edition.`}]})
 }

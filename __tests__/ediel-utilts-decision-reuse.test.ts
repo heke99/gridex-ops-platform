@@ -83,7 +83,7 @@ function finalIo(source:EdielMessageRow){const base=createUtiltsFinalValidationI
 
 beforeEach(()=>{
   vi.clearAllMocks()
-  mocks.rpc.mockImplementation(async(name,args)=>name==='gridex_read_utilts_issuer_identity_authority_v1'?issuerReply(mocks.source!,args):({data:[activationEvidence(args.p_business_date==='2026-09-30' ? '3' : '4',args.p_message_code)],error:null}))
+  mocks.rpc.mockImplementation(async(name,args)=>name==='gridex_read_utilts_issuer_identity_authority_v1'?issuerReply(mocks.source!,args):({data:[activationEvidence(args.p_business_date==='2026-09-30' ? '3' : '5',args.p_message_code)],error:null}))
 })
 
 describe('UTILTS decision reuse across document and receipt dates', () => {
@@ -153,7 +153,7 @@ describe('UTILTS decision reuse across document and receipt dates', () => {
 })
 
 // Database activation evidence is synthetic; protocol/policy/validator code is real.
-function activationEvidence(revision: '3' | '4',code='E66') {
+function activationEvidence(revision: '3' | '5',code='E66') {
   const version = `25-A-${revision}`
   const row={
     rule_pack_id: '11111111-1111-4111-8111-111111111111',
@@ -170,13 +170,15 @@ function activationEvidence(revision: '3' | '4',code='E66') {
   return {...row,original_version:`${version}:r${revision}`,original_snapshot:{
     rulePack:{id:row.rule_pack_id,source_hash:row.source_hash,guide_version:version,guide_revision:revision},
     messageProfile:{id:row.message_profile_id,rule_pack_id:row.rule_pack_id,profile_key:row.profile_key},
-    guideSources:[{id:'55555555-5555-4555-8555-555555555555',rule_pack_id:row.rule_pack_id}],
+    guideSources:[{id:'55555555-5555-4555-8555-555555555555',rule_pack_id:row.rule_pack_id,
+      ...(revision==='5'?{source_type:'technical_guide',revision:'25-A-5',source_hash:'b76a61b9aa6f136771e5db4948296d1b632b8d775314eb6c93783595ae419db2',source_locator:'https://www.ediel.se/Portal/Document/3364'}:{}),
+    }],
   }}
 }
 
 describe('UTILTS selected reference survives registry verification', () => {
   it.each([
-    ['2026-09-30', '2026-10-01', '4'],
+    ['2026-09-30', '2026-10-01', '5'],
     ['2026-10-01', '2026-09-30', '3'],
   ] as const)('runtime preserves document date %s separately from selected admission %s', async (date, received, revision) => {
     mocks.rpc.mockReset().mockImplementation(async(name,args)=>name==='gridex_read_utilts_issuer_identity_authority_v1'?issuerReply(mocks.source!,args):({data:[activationEvidence(revision)],error:null}))
@@ -192,7 +194,7 @@ describe('UTILTS selected reference survives registry verification', () => {
     expect(mocks.rpc).toHaveBeenCalledWith('resolve_canonical_ediel_rule_pack_with_witness_v1', expect.objectContaining({ p_business_date: received, p_family: 'UTILTS' }))
   })
 
-  it.each([['2026-09-30', '3'], ['2026-10-01', '4']] as const)('public validator retains E66 reference on %s', async (date, revision) => {
+  it.each([['2026-09-30', '3'], ['2026-10-01', '5']] as const)('public validator retains E66 reference on %s', async (date, revision) => {
     mocks.rpc.mockReset().mockImplementation(async(name,args)=>name==='gridex_read_utilts_issuer_identity_authority_v1'?issuerReply(mocks.source!,args):({data:[activationEvidence(revision)],error:null}))
     const source = message(date, date)
     const result = await validateRulebookMessageWithRegistry({

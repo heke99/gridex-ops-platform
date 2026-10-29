@@ -8,9 +8,10 @@ type CopyCodeBlockProps = {
   children?: string
   code?: string
   language?: string
+  label?: string
 }
 
-export function CopyCodeBlock({ children, code }: CopyCodeBlockProps) {
+export function CopyCodeBlock({ children, code, label: regionLabel = 'Code example' }: CopyCodeBlockProps) {
   const [state, setState] = useState<CopyState>('idle')
   const value = children ?? code ?? ''
 
@@ -48,7 +49,7 @@ export function CopyCodeBlock({ children, code }: CopyCodeBlockProps) {
             ? 'The code example could not be copied.'
             : ''}
       </span>
-      <pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 pr-32 text-xs leading-6 text-slate-100">
+      <pre role="region" aria-label={regionLabel} tabIndex={0} className="overflow-x-auto rounded-2xl bg-slate-950 p-4 pr-32 text-xs leading-6 text-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
         <code>{value}</code>
       </pre>
     </div>

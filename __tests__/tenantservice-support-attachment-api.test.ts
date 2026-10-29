@@ -79,9 +79,12 @@ function builder(table: string) {
 }
 
 const objects = new Map<string, Buffer>()
-vi.mock('@/lib/supabase/service', () => ({
+vi.mock('@/lib/supabase/service', async () => {
+  const { makeSupportTransactionPort } = await import('./helpers/supportPortalHarness')
+  return {
   supabaseService: {
     from: (table: string) => builder(table),
+    rpc: (name: string, args: Row) => makeSupportTransactionPort(db, builder)(name, args),
     storage: {
       from: () => ({
         upload: async (path: string, bytes: Buffer) => { objects.set(path, Buffer.from(bytes)); return { error: null } },
@@ -93,7 +96,8 @@ vi.mock('@/lib/supabase/service', () => ({
       }),
     },
   },
-}))
+  }
+})
 vi.mock('@/lib/customer-portal/keysetPagination', () => ({
   portalPageLimit: (value?: number | null) => Math.min(Math.max(Math.trunc(value ?? 50), 1), 100),
   decodePortalCursor: () => null,

@@ -10,7 +10,7 @@ type AccessWindow = { company_id: string; customer_id: string; metering_point_id
 const NORMALIZED_RPC = 'gridex_customer_normalized_metering_values_v1'
 const m = vi.hoisted(() => ({ tables: {} as Record<string, Row[]>, mutations: [] as string[], rpc: vi.fn(), windows: [] as AccessWindow[], fromTables: [] as string[] }))
 // Test model of gridex_customer_normalized_metering_values_v1 in
-// supabase/migrations/20261022100000_customer_metering_access_windows.sql (FINDINGS F79): argument checks,
+// supabase/migrations/20261022100500_customer_metering_access_windows.sql (FINDINGS F79): argument checks,
 // company, customer, optional site/facility/range/keyset filters, then the access window of the same customer
 // and metering point (whole interval inside), ordered period_start DESC, id DESC and cut at p_limit.
 function accessNormalized(args: Row, rows: Row[], windows: AccessWindow[], customers: Row[]): { data: Row[] | null; error: unknown } {

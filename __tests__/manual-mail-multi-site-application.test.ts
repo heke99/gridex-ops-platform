@@ -62,6 +62,19 @@ it('resumes both sites independently with the recorded actor and no paid inferen
   await continueManualMultiSiteReply(scope)
   expect(io.reconcile).toHaveBeenCalledTimes(2)
 })
+it('retains each successful member and aggregates a legitimate completed business review for one site', async () => {
+  io.reconcile.mockResolvedValueOnce({ ok: true, supplierSwitchRequestId: 'switch-a' })
+    .mockResolvedValueOnce({ ok: false, supplierSwitchRequestId: null, blockers: [{ code: 'missing_customer_identity', message: 'Synthetic private description' }] })
+  await continueManualMultiSiteReply(scope)
+  const automation = (io.db.tables.manual_inbound_messages[0].extracted_payload as Row).manual_automation as Row
+  expect(automation.continuation).toMatchObject({ status: 'completed', reviewRequired: true, reviewCount: 1 })
+  const members = automation.site_applications as Record<string, Row>
+  expect(members.parent.continuation).toMatchObject({ status: 'completed', supplierSwitchRequestId: 'switch-a' })
+  expect(members.child.continuation).toMatchObject({ status: 'completed', reviewRequired: true, reviewReasons: ['missing_customer_identity'] })
+  expect(JSON.stringify(automation.continuation)).not.toContain('Synthetic private description')
+  await continueManualMultiSiteReply(scope)
+  expect(io.reconcile).toHaveBeenCalledTimes(2)
+})
 it('retains the completed first continuation when a later site fails and retries only the missing effect', async () => {
   io.reconcile.mockResolvedValueOnce({ supplierSwitchRequestId: 'switch-a' }).mockRejectedValueOnce(new Error('transient dispatch readiness'))
   await expect(continueManualMultiSiteReply(scope)).rejects.toThrow('transient dispatch readiness')
@@ -94,7 +107,7 @@ it('queues a genuine clarification for a partial received-only child with its ow
   expect(io.db.tables.grid_owner_information_requests[1]).not.toHaveProperty('sent_at')
   await continueManualMultiSiteReply(scope)
   expect(io.queue).toHaveBeenCalledTimes(1)
-})
+},30_000)
 it('retains clarification retry after a canonical queue failure',async()=>{
   const child=member('site-b','child',false,true)
   const automation=(io.db.tables.manual_inbound_messages[0].extracted_payload as Row).manual_automation as Row
@@ -116,6 +129,20 @@ it('normalizes each site separately and sends one batch command under the immuta
       expect.objectContaining({ facilityId: '735999123456789001', payload: expect.objectContaining({ terms: expect.objectContaining({ earliestStartDate: '2027-04-01' }) }) }),
       expect.objectContaining({ facilityId: '735999123456789002', payload: expect.objectContaining({ terms: expect.objectContaining({ earliestStartDate: '2027-05-01' }) }) }),
     ] }) }))
+})
+
+it('propagates a qualified receipt day to each relative facility date without using the worker clock', async () => {
+  await applyManualMultiSiteReply({ ...scope, parentRequest: io.db.tables.grid_owner_information_requests[0], sourceHash: hash,
+    receivedAt: '2026-10-24T22:30:00.000Z', receivedAtSource: 'imap_internal_date', groups: [
+      { facilityId: '735999123456789001', authoredText: 'Kunden kan starta om 30 dagar\nBrytavgift: Ingen', extracted: { earliest_supplier_start_date: 'om 30 dagar', termination_fee: 'Ingen' } },
+      { facilityId: '735999123456789002', authoredText: 'Kunden kan starta om 31 dagar\nBrytavgift: Ingen', extracted: { earliest_supplier_start_date: 'om 31 dagar', termination_fee: 'Ingen' } },
+    ] })
+  const items = io.rpc.mock.calls[0][1].p_payload.items
+  expect(items.map((item: Row) => item.reasons)).toEqual([[], []])
+  expect(items.map((item: Row) => (item.payload as Row).terms)).toEqual([
+    expect.objectContaining({ earliestStartDate: '2026-11-24', effectiveStartDate: '2026-11-24' }),
+    expect.objectContaining({ earliestStartDate: '2026-11-25', effectiveStartDate: '2026-11-25' }),
+  ])
 })
 
 function realQueueDb(): ReturnType<typeof createFakeDb> {

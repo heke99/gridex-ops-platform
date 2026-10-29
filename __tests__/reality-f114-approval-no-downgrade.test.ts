@@ -9,8 +9,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Row = Record<string, unknown>
-const io = vi.hoisted(() => ({ tables: {} as Record<string, Row[]>, commands: [] as Row[] }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => {
+const io = vi.hoisted(() => ({ tables: {} as Record<string, Row[]>, commands: [] as Row[], basisError: null as Error | null, invalidBasis: false }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: async (name: string, args: Row) => {
+ if(name!=='ediel_inbound_graph_snapshot_basis_v1')throw Error('unexpected RPC '+name)
+ if(io.basisError)return {data:null,error:io.basisError}
+ const customer=(io.tables.customers??[]).find(row=>row.id===args.p_customer_id&&row.company_id===args.p_company_id)
+ const child=(table:string,key:string)=>customer?(io.tables[table]??[]).find(row=>row.id===args[key]&&row.company_id===args.p_company_id&&row.customer_id===customer.id):null
+ const site=child('customer_sites','p_site_id'),point=child('metering_points','p_metering_point_id')
+ return {data:{customer:customer?JSON.stringify(customer):null,site:site?JSON.stringify(site):null,metering_point:point?JSON.stringify(point):null,...(io.invalidBasis?{unknown:true}:{})},error:null}
+},from: (table: string) => {
   const filters: Array<(row: Row) => boolean> = []
   let order: [string, boolean] | null = null
   const rows = () => {
@@ -76,10 +83,14 @@ const approve = async (mode: 'update_existing_customer' | 'link_existing_only' |
   expect(io.commands).toHaveLength(1)
   return io.commands[0] as unknown as Command
 }
-/** gridex_update_jsonb_row: every key present in the payload is assigned to the existing row. */
-const assignPresentKeys = (row: Row, payload: Row): Row => ({ ...row, ...payload })
+/** Declared in-memory projection only: the real SQL test executes the actual
+ * locked preserve/metadata-merge helper and checks exact PostgreSQL values. */
+const assignPresentKeys = (row: Row, payload: Row): Row => ({ ...row, ...payload,
+ ...(payload.metadata&&typeof payload.metadata==='object'?{metadata:{...(row.metadata as Row??{}),...(payload.metadata as Row)}}:{}),
+})
 
 beforeEach(() => {
+  io.basisError=null;io.invalidBasis=false
   io.tables = {
     grid_owners: [], platform_grid_areas: [], platform_grid_owners: [],
     customers: [customer(), { ...customer(), company_id: OTHER, status: 'draft', personal_number: null, metadata: {} }],
@@ -165,5 +176,59 @@ describe('create mode is unchanged', () => {
       metadata: { inboundCaseId: CASE, edielMessageId: '00000000-0000-4000-8000-0000000002c6', caseType: 'Z04' } })
     expect(command.site).toMatchObject({ status: 'draft', street: null, postal_code: null, city: null, annual_consumption_kwh: null, created_by: ACTOR })
     expect(command.metering_point).toMatchObject({ status: 'draft', reading_frequency: 'hourly', created_by: ACTOR })
+  })
+})
+
+
+describe('single-case preserved graph compare-and-set boundary', () => {
+  it('sends original lineage delta, never copied existing metadata, while opaque row text carries the exact basis',async()=>{
+    const command=await approve('update_existing_customer') as unknown as Row
+    expect((command.customer as Row).metadata).toEqual({inboundCaseId:CASE,edielMessageId:'00000000-0000-4000-8000-0000000002c6',caseType:'Z04'})
+    const directive=(command.ediel_existing_graph_preservation as Row).customer as Row
+    expect(directive.metadata_delta).toEqual((command.customer as Row).metadata)
+    expect(directive.wire_keys).not.toContain('status');expect(directive.wire_keys).not.toContain('created_by')
+    expect((command.ediel_existing_graph_snapshot as Row).customer).toBe(JSON.stringify(customer()))
+  })
+  it('does not call onboarding when the compatible basis reader is unavailable',async()=>{
+    io.tables.ediel_inbound_cases=[inboundCase()];io.commands=[];io.basisError=Error('ediel_inbound_graph_core_not_ready')
+    await expect(approveEdielInboundCase({actorUserId:ACTOR,companyId:TENANT,caseId:CASE,mode:'update_existing_customer',selectedCustomerId:CUSTOMER})).rejects.toThrow('ediel_inbound_graph_core_not_ready')
+    expect(io.commands).toEqual([])
+  })
+  it('does not accept an unknown or expanded basis RPC response shape',async()=>{
+    io.tables.ediel_inbound_cases=[inboundCase()];io.commands=[];io.invalidBasis=true
+    await expect(approveEdielInboundCase({actorUserId:ACTOR,companyId:TENANT,caseId:CASE,mode:'update_existing_customer',selectedCustomerId:CUSTOMER})).rejects.toThrow('ediel_inbound_graph_snapshot_basis_invalid')
+    expect(io.commands).toEqual([])
+  })
+
+  it('binds all three exact pre-read rows, without merging inbound lineage into the expected metadata', async () => {
+    const command = await approve('update_existing_customer')
+    expect(command).toHaveProperty('ediel_existing_graph_snapshot', {
+      customer: JSON.stringify(customer()), site: JSON.stringify(site()), metering_point: JSON.stringify(point()),
+    })
+    expect(command.customer.metadata).toMatchObject({ inboundCaseId: CASE })
+  })
+
+  it('also binds a naturally matched graph so a concurrent edit cannot bypass selected-row checks', async () => {
+    const command = await approve('update_existing_customer',
+      inboundCase({ customer: { customerType: 'private', personalNumber: '19900101-1234' }, caseRow: { customer_id: null, site_id: null, metering_point_id: null } }),
+      { selectedCustomerId: null })
+    expect(command).toHaveProperty('ediel_existing_graph_snapshot', {
+      customer: JSON.stringify(customer()), site: JSON.stringify(site()), metering_point: JSON.stringify(point()),
+    })
+  })
+
+  it('binds absent rows explicitly so a new match appearing before RPC is rejected rather than overwritten', async () => {
+    io.tables.customers = []
+    io.tables.customer_sites = []
+    io.tables.metering_points = []
+    const command = await approve('update_existing_customer', inboundCase({ caseRow: { customer_id: null, site_id: null, metering_point_id: null } }), {})
+    expect(command).toHaveProperty('ediel_existing_graph_snapshot', {
+      customer: null, site: null, metering_point: null,
+    })
+  })
+
+  it('keeps create-separate commands outside the existing-row snapshot protocol', async () => {
+    const command = await approve('create_new_customer', inboundCase({ caseRow: { customer_id: null, site_id: null, metering_point_id: null } }), {})
+    expect(command).not.toHaveProperty('ediel_existing_graph_snapshot')
   })
 })

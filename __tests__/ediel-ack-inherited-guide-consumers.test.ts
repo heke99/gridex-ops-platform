@@ -42,6 +42,13 @@ describe('all actual ERR consumers retain the original protected guide edition, 
   expect(decision).toMatchObject({applicationDecision:'accepted',functionalDecision:'accepted',policy:{guide:{guideRevision:'25-A-3'}},validationReport:{canonicalPolicy:{guide:{guideRevision:'25-A-3'}},rulePackEvidence:{version:'opaque-original-at-first-admission'}}})
   expect(io.rulePack).not.toHaveBeenCalled()
  })
+ it('keeps a protected U4 original in the actual ERR runtime after current U5 supersession',async()=>{
+  const retained=evidence();retained.snapshot.rulePack.guide_version='25-A-4';retained.snapshot.rulePack.guide_revision='4'
+  io.rpc.mockResolvedValue({data:{version:1,sourceMessage:{...source(),message_sent_at:'2026-10-02T10:00:00Z',immutable_rendered_at:'2026-10-02T09:00:00Z'},sourceRulePackEvidence:retained},error:null})
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(ack())
+  expect(decision).toMatchObject({applicationDecision:'accepted',functionalDecision:'accepted',policy:{guide:{guideRevision:'25-A-4'}},validationReport:{canonicalPolicy:{guide:{guideRevision:'25-A-4'}}}})
+  expect(io.rulePack).not.toHaveBeenCalled()
+ })
  it('admits retained E19 at synchronous preflight only with the genuine protected original',async()=>{
   io.rpc.mockResolvedValue({data:{version:1,sourceMessage:source('inbound'),sourceRulePackEvidence:evidence()},error:null})
   const q=await readSourceBoundOutboundAckRulePackEvidence({companyId:company,environment:'test',sourceMessageId:sourceId})

@@ -162,7 +162,7 @@ beforeEach(() => {
     platform_actor_contacts: [],
     platform_market_actors: [{ id: OWNER_ACTOR, status: 'active', match_status: 'verified' }],
     platform_actor_roles: [{ actor_id: OWNER_ACTOR, actor_role: 'grid_owner', is_active: true }],
-    platform_grid_areas: [{ id: 'area', grid_area_code: 'ABC', grid_owner_id: OWNER, price_area: 'SE3', is_active: true }],
+    platform_grid_areas: [{ id: 'area', grid_area_code: 'ABC', grid_owner_id: OWNER, price_area: 'SE3', is_active: true, valid_from: null, valid_to: null, platform_grid_owners: { ops_grid_owner_id: OWNER, is_active: true } }],
     platform_runtime_readiness: [{ id: true, is_ready: true, blocking_issues: [], schema_fingerprint: 'a'.repeat(64),
       schema_version: '20260803093300-gridex-runtime-readiness-v3', capabilities: {} }],
     grid_owner_contact_channels: [], manual_email_outbox: [], communication_log_events: [],
@@ -259,14 +259,14 @@ Brytavgift: enligt faktisk återstående avtalstid`)
     const result = await resolveManualInboundCorrelation({ email: email(), caseReference: CASE, normalizedText: '', extracted: {} })
     expect(result.evidence.verified_sender_tenant_ids).toEqual([])
   })
-  it('retains tenant hints in evidence while refusing to bind ignored messages to tenant-readable entities', async () => {
+  it('keeps unverified messages reviewable without binding them to tenant-readable entities', async () => {
     const result = await ingestManualInboundEmail(email({ fromEmail: 'unverified@example.test', senderVerification: undefined }))
-    expect(result).toMatchObject({ resolutionStatus: 'ignored', companyId: null, customerId: null, customerSiteId: null, requestId: null })
+    expect(result).toMatchObject({ resolutionStatus: 'unmatched', processingState: 'needs_review', companyId: null, customerId: null, customerSiteId: null, requestId: null })
     expect(io.tables.manual_inbound_messages[0]).toMatchObject({ company_id: null, request_id: null,
-      customer_id: null, customer_site_id: null, grid_owner_id: null, resolution_status: 'ignored' })
+      customer_id: null, customer_site_id: null, grid_owner_id: null, resolution_status: 'unmatched', processing_state: 'needs_review' })
     expect(io.tables.manual_inbound_messages[0].correlation_evidence).toMatchObject({ request_id: REQUEST, customer_id: CUSTOMER, customer_site_id: SITE })
     expect(io.tables.inbound_operation_events[0]).toMatchObject({ company_id: null, business_object_id: null,
-      customer_id: null, customer_site_id: null, grid_owner_id: null, business_event_fingerprint: null })
+      customer_id: null, customer_site_id: null, grid_owner_id: null, business_event_fingerprint: null, processing_state: 'needs_review', tenant_resolution_status: 'unmatched' })
     expect(io.completionCount).toBe(0)
   })
 })

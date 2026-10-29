@@ -17,6 +17,7 @@ import { inspectMimeStructure, mimeParameter } from '@/lib/inbound-mail/mimeStru
 import { binaryToBuffer, decodeTextBytes, toBinaryString } from '@/lib/inbound-mail/mimeCharset'
 import { extractAutoReplyHeaders } from '@/lib/inbound-mail/autoReply'
 import { verifyManualMailSender } from '@/lib/inbound-mail/manualSenderVerification'
+import { captureManualMailboxReceipt, MANUAL_MAILBOX_RECEIPT } from '@/lib/inbound-mail/manualMailboxReceipt'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { resolveManualMailboxSecret } from '@/lib/email/manualOperationsMailbox'
@@ -378,7 +379,7 @@ async function pollOneMailbox(listed: JsonRecord, workerId: string, result: Manu
           }
         }
         try {
-          const message = await client.fetchOne(String(messageUid), { uid: true, envelope: true, source: true }, { uid: true })
+          const message = await client.fetchOne(String(messageUid), { uid: true, envelope: true, source: true, internalDate: true }, { uid: true })
           if (!message) {
             clearUidAttempts()
             scan.last_scanned_uid = Math.max(scan.last_scanned_uid, messageUid)
@@ -393,6 +394,9 @@ async function pollOneMailbox(listed: JsonRecord, workerId: string, result: Manu
           const parsedMime = parseMimeSource(source)
           const envelopeInReplyTo = clean(envelope.inReplyTo)
           const dedupKey = manualMessageDedupKey(clean(envelope.messageId), source)
+          const receipt = captureManualMailboxReceipt({ internalDate: message.internalDate, source,
+            mailbox: clean(mailbox.from_email) ?? username, mailboxId,
+            mailboxFingerprint: scan.mailbox_fingerprint, uidValidity: scan.uid_validity, uid: messageUid })
           const email: ManualInboundEmail = {
             mailbox: clean(mailbox.from_email) ?? username, mailboxCompanyId: clean(mailbox.company_id),
             fromEmail: from.address, fromName: from.name, toEmail: to.address ?? clean(mailbox.from_email),
@@ -403,6 +407,7 @@ async function pollOneMailbox(listed: JsonRecord, workerId: string, result: Manu
             inReplyTo: senderVerification.status === 'verified' ? parsedMime.inReplyTo : parsedMime.inReplyTo ?? envelopeInReplyTo,
             references: parsedMime.references, attachments: parsedMime.attachments, autoReplyHeaders: parsedMime.autoReplyHeaders,
             senderVerification, mimeRequiresReview: parsedMime.mimeRequiresReview,
+            ...(receipt ? { [MANUAL_MAILBOX_RECEIPT]: receipt } : {}),
           }
           const ingestResult: ManualInboundResult = await ingestManualInboundEmail(email)
           result.ingested += 1
