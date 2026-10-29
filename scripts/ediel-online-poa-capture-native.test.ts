@@ -476,3 +476,21 @@ it('creates the first canonical receipt for an unsigned manual PDF contract thro
  expect(components.some(c=>['invoice_fee','invoice_administration_fee'].includes(String(c.component_code??c.componentCode))&&Number(c.amount)===19)).toBe(true)
  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.contract_price_snapshots WHERE contract_id=${literal(contractId)}`)).toBe(1)
 })
+
+it('admits exactly one durable postcommit tail claim for two retries of the same failed native intake',async()=>{
+ guard();const id=randomUUID()
+ const created=await supabaseService.from('customer_application_intakes').insert({id,company_id:f.companyId,
+  route:'admin/customers/intake',method:'create',idempotency_key:`SYNTHETIC-native-tail-CAS-${id}`,
+  payload_hash:digest(`SYNTHETIC-native-tail-CAS-${id}`),status:'failed',stage:'received',
+ }).select('id,status,updated_at').single()
+ expect(created.error).toBeNull();const before=created.data!
+ const claims=[randomUUID(),randomUUID()]
+ const results=await Promise.all(claims.map(claim=>supabaseService.from('customer_application_intakes')
+  .update({status:'completed',stage:'completed',customer_id:f.customerId,result:{review_required:true,claim_id:claim},updated_at:new Date().toISOString()})
+  .eq('id',id).eq('company_id',f.companyId).eq('status',before.status!).eq('updated_at',before.updated_at)
+  .select('id,result').single()))
+ expect(results.filter(r=>r.error===null&&r.data?.id===id)).toHaveLength(1)
+ expect(results.filter(r=>r.error?.code==='PGRST116')).toHaveLength(1)
+ const actual=await supabaseService.from('customer_application_intakes').select('result').eq('id',id).eq('company_id',f.companyId).single()
+ expect(actual.error).toBeNull();expect(actual.data?.result).toEqual(results.find(r=>r.error===null)!.data!.result)
+})

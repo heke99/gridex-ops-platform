@@ -196,10 +196,13 @@ export async function createCustomerAction(
             correlation_id:receipt.correlation_id}
           // Strict, exact tenant-scoped receipt. The generic compatibility helper
           // can discard result columns or match zero rows, so it is not a fence.
-          const saved = await supabaseService.from('customer_application_intakes')
+          let marker = supabaseService.from('customer_application_intakes')
             .update({stage:'completed',status:'completed',customer_id:receipt.customer_id,result,updated_at:new Date().toISOString()})
             .eq('id',intake.id).eq('company_id',companyId)
-            .select('id,company_id,status,customer_id,result').single()
+            // Raw PostgreSQL timestamp is preserved; no JS millisecond rewrite.
+            .eq('updated_at',intake.updated_at)
+          marker = intake.status === null ? marker.is('status',null) : marker.eq('status',intake.status)
+          const saved = await marker.select('id,company_id,status,customer_id,result').single()
           const row=saved.data
           const recorded=row?.result && typeof row.result === 'object' && !Array.isArray(row.result)
             ? row.result as Record<string,unknown> : null

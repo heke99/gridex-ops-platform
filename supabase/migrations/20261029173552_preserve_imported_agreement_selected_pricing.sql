@@ -121,6 +121,14 @@ begin
       where id = v_contract.id and company_id = v_contract.company_id
       returning * into v_contract;
     else
+      if coalesce(v_contract.source_type,'') not in ('manual','manual_override')
+         or v_contract.public_contract_offer_id is not null or v_contract.quote_reference is not null
+         or v_contract.contract_product_version_id is not null
+         or v_contract.contract_publication_version_id is not null
+         or v_contract.price_plan_version_id is not null
+         or v_contract.legal_bundle_version_id is not null then
+        raise exception using errcode='23514',message='admin_signed_contract_import_manual_binding_requires_reconciliation';
+      end if;
       v_binding := public.gridex_prepare_manual_contract_binding(
         v_contract.company_id,
         jsonb_strip_nulls(jsonb_build_object(
@@ -302,28 +310,10 @@ begin
     if exists(select 1 from public.contract_price_snapshots where company_id=v_contract.company_id and contract_id=v_contract.id) then
       raise exception using errcode='23514',message='admin_signed_contract_import_current_receipt_pointer_missing';
     end if;
-    -- A missing ledger is not permission to replace customer prices with the
-    -- publication master. Only a manual binding just created from this exact
-    -- contract, or a complete coherent frozen customer selection, may proceed.
-    if not v_created_manual_binding and (
-      coalesce(v_contract.price_snapshot->>'snapshot_schema',v_contract.price_snapshot->>'schema_version','')
-        not in ('gridex_contract_pricing_v6_selection','gridex_contract_pricing_v7_signed_receipt','gridex_contract_pricing_v8_area_bound')
-      or (v_contract.price_snapshot ? 'schema_version' and v_contract.price_snapshot->>'schema_version'
-          is distinct from coalesce(v_contract.price_snapshot->>'snapshot_schema',v_contract.price_snapshot->>'schema_version'))
-      or (v_contract.price_snapshot ? 'company_id' and v_contract.price_snapshot->>'company_id' is distinct from v_contract.company_id::text)
-      or (v_contract.price_snapshot ? 'customer_id' and v_contract.price_snapshot->>'customer_id' is distinct from v_contract.customer_id::text)
-      or (v_contract.price_snapshot ? 'contract_id' and v_contract.price_snapshot->>'contract_id' is distinct from v_contract.id::text)
-      or (v_contract.price_snapshot ? 'price_plan_id' and v_contract.price_snapshot->>'price_plan_id' is distinct from v_contract.price_plan_id::text)
-      or (v_contract.price_snapshot ? 'price_book_id' and v_contract.price_snapshot->>'price_book_id' is distinct from v_contract.price_book_id::text)
-      or jsonb_typeof(v_contract.price_snapshot->'base_price_components_snapshot') is distinct from 'array'
-      or jsonb_typeof(v_contract.price_snapshot->'price_components_snapshot') is distinct from 'array'
-      or (v_contract.price_snapshot ? 'base_components' and v_contract.price_snapshot->'base_components' is distinct from v_contract.price_snapshot->'base_price_components_snapshot')
-      or (v_contract.price_snapshot ? 'price_components' and v_contract.price_snapshot->'price_components' is distinct from v_contract.price_snapshot->'price_components_snapshot')
-      or v_contract.price_snapshot->>'contract_product_version_id' is distinct from v_contract.contract_product_version_id::text
-      or v_contract.price_snapshot->>'contract_publication_version_id' is distinct from v_contract.contract_publication_version_id::text
-      or v_contract.price_snapshot->>'price_plan_version_id' is distinct from v_contract.price_plan_version_id::text
-      or v_contract.price_snapshot->>'legal_bundle_version_id' is distinct from v_contract.legal_bundle_version_id::text
-    ) then
+    -- Unsigned contract JSON is staff-editable and is not an immutable price
+    -- witness, even with familiar schema labels and graph IDs. Only a manual
+    -- binding created in this very import can create the first receipt here.
+    if not v_created_manual_binding then
       raise exception using errcode='23514',message='admin_signed_contract_import_current_receipt_requires_reconciliation';
     end if;
   -- Create a fresh canonical receipt snapshot bound to the exact versions and

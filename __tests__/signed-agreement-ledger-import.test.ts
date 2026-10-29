@@ -193,17 +193,11 @@ describe('legacy intake with ambiguous thin pricing',()=>{
  })
 })
 
-describe('complete customer-selected input before its first immutable receipt',()=>{
- it('preserves the complete customer components when no historical receipt exists',async()=>{
-  await db.exec(`update customer_contracts set contract_price_snapshot_id=null,price_snapshot=price_snapshot||'{"price_option_reference":"OPTION-EXACT","invoice_delivery_method":"email"}'::jsonb; delete from contract_price_snapshots`)
-  await importPdf()
-  const result=await state()
-  expect(result).toMatchObject({status:'signed',ledgers:1,price_option_reference:'OPTION-EXACT',invoice_delivery_method:'email'})
-  const pricing=result.snapshot_json as Record<string,unknown>
-  expect(pricing.price_components_snapshot).toEqual(selected.price_components_snapshot)
-  expect(pricing.price_components).toEqual(selected.price_components_snapshot)
-  expect(pricing.base_components).toEqual(selected.base_price_components_snapshot)
-  expect(pricing.invoice_fee_sek).toBe(19)
+describe('staff-editable JSON is not immutable pricing evidence',()=>{
+ it('holds complete-looking selected JSON without its canonical receipt',async()=>{
+  await db.exec('update customer_contracts set contract_price_snapshot_id=null;delete from contract_price_snapshots')
+  await expect(importPdf()).rejects.toThrow('admin_signed_contract_import_current_receipt_requires_reconciliation')
+  expect((await db.query('select status from customer_contracts')).rows[0]).toMatchObject({status:'pending_signature'})
  })
 })
 
@@ -218,7 +212,16 @@ describe('unproven fallback pricing',()=>{
 
 describe('actual CPS insert normalization cannot replace intended customer pricing',()=>{
  it('rolls back when the real binder fills empty customer components from conflicting master components',async()=>{
-  await db.exec(`update customer_contracts set contract_price_snapshot_id=null,price_snapshot=jsonb_set(jsonb_set(price_snapshot,'{price_components_snapshot}','[]'),'{price_components}','[]');delete from contract_price_snapshots`)
+  // Finite materializer output port; the real CPS binder/normalizer/hash
+  // still execute. Full real authoring is separately required in native tests.
+  await db.exec(`create function public.gridex_prepare_manual_contract_binding(uuid,jsonb,jsonb,uuid) returns jsonb language sql as $$
+    select jsonb_build_object('contract_product_version_id','${id(7)}','contract_publication_version_id','${id(8)}',
+      'price_plan_version_id','${id(9)}','legal_bundle_version_id','${id(10)}','price_plan_id','${id(14)}','price_book_id','${id(15)}',
+      'commercial_snapshot','{"price_components_snapshot":[{"component_code":"invoice_fee","amount":99}]}'::jsonb,'legal_snapshot','{"terms":"CURRENT"}'::jsonb)
+    $$;`)
+  await db.exec(`update customer_contracts set contract_price_snapshot_id=null,contract_offer_id=null,source_type='manual_override',
+    contract_product_version_id=null,contract_publication_version_id=null,price_plan_version_id=null,legal_bundle_version_id=null,
+    price_snapshot=jsonb_set(jsonb_set(price_snapshot,'{price_components_snapshot}','[]'),'{price_components}','[]');delete from contract_price_snapshots`)
   await expect(importPdf()).rejects.toThrow('admin_signed_contract_import_normalized_components_changed')
   expect((await db.query('select status from customer_contracts')).rows[0]).toMatchObject({status:'pending_signature'})
   expect((await db.query('select count(*)::int n from contract_price_snapshots')).rows[0]).toMatchObject({n:0})

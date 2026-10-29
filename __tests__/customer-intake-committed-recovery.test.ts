@@ -2,7 +2,7 @@ import React from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 // Real staff action with finite intake ledger and customer-graph ports.
-const io=vi.hoisted(()=>({created:true,status:'received',graph:vi.fn(),complete:vi.fn(),fail:vi.fn(),denied:false,review:false,result:{} as Record<string,unknown>,ui:{} as Record<string,unknown>,onboard:vi.fn(),shared:vi.fn(),send:vi.fn(),marker:vi.fn(),markerMode:'exact'}))
+const io=vi.hoisted(()=>({created:true,status:'received',graph:vi.fn(),complete:vi.fn(),fail:vi.fn(),denied:false,review:false,result:{} as Record<string,unknown>,ui:{} as Record<string,unknown>,onboard:vi.fn(),shared:vi.fn(),send:vi.fn(),marker:vi.fn(),markerMode:'exact',intakeUpdatedAt:'',casRow:null as Record<string,unknown>|null,tail:vi.fn()}))
 vi.mock('server-only',()=>({}))
 vi.mock('react',async(importOriginal)=>({...await importOriginal<typeof import('react')>(),useActionState:()=>[io.ui,vi.fn(),false]}))
 vi.mock('next/link',()=>({default:'a'}))
@@ -21,13 +21,18 @@ vi.mock('@/lib/customer-contracts/autoSendSigningLink',()=>({autoSendSigningLink
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{
  expect(table).toBe('customer_application_intakes')
  let payload:Record<string,unknown>={};const filters:Record<string,unknown>={}
- const query={update:(value:Record<string,unknown>)=>{payload=value;io.marker(value);return query},eq:(key:string,value:unknown)=>{filters[key]=value;return query},select:()=>query,single:async()=>({data:io.markerMode==='missing'?null:{...payload,...filters,result:io.markerMode==='dropped'?null:payload.result},error:null})}
+ const query={update:(value:Record<string,unknown>)=>{payload=value;io.marker(value);return query},eq:(key:string,value:unknown)=>{filters[key]=value;return query},is:(key:string,value:unknown)=>{filters[key]=value;return query},select:()=>query,single:async()=>{
+ if(io.casRow && Object.entries(filters).some(([key,value])=>io.casRow![key]!==value))return {data:null,error:{code:'PGRST116'}}
+ const row={...filters,...payload,result:io.markerMode==='dropped'?null:payload.result}
+ if(io.casRow)io.casRow=row
+ return {data:io.markerMode==='missing'?null:row,error:null}
+ }}
  return query
 }}}))
 vi.mock('@/lib/tenant/scope',()=>({requireOperationalCompanyId:async()=>'company-a'}))
 vi.mock('@/lib/tenant/governance',()=>({requireCompanyOperationalForWrites:async()=>undefined}))
 vi.mock('@/lib/intakes/customerApplicationIntakes',()=>({
- getOrCreateCustomerApplicationIntake:async()=>({created:io.created,intake:{id:'intake-a',status:io.status,result:io.result,updated_at:new Date().toISOString()}}),
+ getOrCreateCustomerApplicationIntake:async()=>({created:io.created,intake:{id:'intake-a',status:io.status,result:io.result,updated_at:io.intakeUpdatedAt||new Date().toISOString()}}),
  completeCustomerApplicationIntake:io.complete,failCustomerApplicationIntake:io.fail,
 }))
 vi.mock('@/app/admin/customers/actions.part-1',()=>({
@@ -47,7 +52,7 @@ import {CustomerGraphCommittedReviewError} from '@/app/admin/customers/actions.p
 import {createCustomerAction} from '@/app/admin/customers/actions.part-3'
 import {initialIntakeActionState} from '@/app/admin/customers/actionState'
 beforeEach(()=>{
- io.shared.mockReset();io.send.mockReset();io.created=true;io.status='received';io.denied=false;io.result={};io.markerMode='exact';io.marker.mockReset();io.graph.mockReset();io.complete.mockReset().mockResolvedValue(undefined);io.fail.mockReset().mockResolvedValue(undefined)
+ io.shared.mockReset();io.send.mockReset();io.tail.mockReset();io.casRow=null;io.intakeUpdatedAt='';io.created=true;io.status='received';io.denied=false;io.result={};io.markerMode='exact';io.marker.mockReset();io.graph.mockReset();io.complete.mockReset().mockResolvedValue(undefined);io.fail.mockReset().mockResolvedValue(undefined)
  io.graph.mockResolvedValue({id:'customer-a',customer_number:'SYNTHETIC',__createdNewCustomer:true,__createdSiteId:'site-a',__duplicateWarnings:[]})
 })
 describe('staff intake admission',()=>{
@@ -144,5 +149,22 @@ describe('signed-PDF intake never manufactures a signed core row',()=>{
   expect(io.onboard.mock.calls.at(-1)?.[0].contract).toMatchObject({status:'pending_signature',signed_at:null,price_snapshot:expect.objectContaining({invoiceFeeSek:19})})
   expect(io.onboard.mock.calls.at(-1)?.[0].price_snapshot).toBeNull()
   expect(io.shared).not.toHaveBeenCalled();expect(io.send).not.toHaveBeenCalled()
+ })
+})
+
+describe('one durable tail owner for competing failed-intake retries',()=>{
+ it('allows exactly one core-marker winner before any non-idempotent tail work',async()=>{
+  io.created=false;io.status='failed';io.intakeUpdatedAt='2026-10-29T10:00:00.123456+00:00'
+  io.casRow={id:'intake-a',company_id:'company-a',status:io.status,updated_at:io.intakeUpdatedAt}
+  let entered=0;let release!:()=>void;const barrier=new Promise<void>(resolve=>{release=resolve})
+  io.graph.mockImplementation(async(_params,options)=>{
+   const receipt={customer_id:'customer-a',site_id:'site-a',contract_id:'contract-a',correlation_id:'correlation-a'}
+   entered++;if(entered===2)release();await barrier
+   try {await options.onCoreCommitted(receipt)} catch {throw new CustomerGraphCommittedReviewError(receipt as never)}
+   io.tail();return {id:'customer-a',customer_number:'SYNTHETIC',__createdNewCustomer:true,__duplicateWarnings:[]}
+  })
+  const results=await Promise.all([createCustomerAction(initialIntakeActionState,new FormData()),createCustomerAction(initialIntakeActionState,new FormData())])
+  expect(results.map(r=>r.status).sort()).toEqual(['committed_review','success'])
+  expect(io.graph).toHaveBeenCalledTimes(2);expect(io.tail).toHaveBeenCalledOnce();expect(io.fail).not.toHaveBeenCalled()
  })
 })
