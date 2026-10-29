@@ -31,7 +31,7 @@ Statusvärden: **RÄTTAD** = rättad på branchen med regressionstest som är r�
 - **Var:** `gridex_utilts_binding.wire_tokens_v1`, `gridex_received_sources.wire_tokens_bounded_v1` (och `closure_wire_tokens_v2`), `gridex_prodat_object_batch.raw_segments_v1`, `gridex_ediel_technical_ack.envelope`.
 - **Bevis:** en månad med kvartsvärden (2 976 observationer) tog ~96 s per `wire_tokens_v1`-anrop (nu ~0,45 s). För `envelope` var siffrorna 8,4 s respektive 0,25 s. Resultatet är identiskt för 47 fixturer ur repot, specialfall och genererade storlekar. Ägare och ACL:er är oförändrade.
 - **Påverkan:** månadsfiler med tim- eller kvartsvärden gick inte att lagra (tidsgräns 8 s).
-- **Rättning:** migrationen `20261020120000_ediel_wire_tokenizer_linear_time.sql`. Test: `__tests__/ediel-wire-tokenizer-linear-time.test.ts`.
+- **Rättning:** migrationen `20261020230600_ediel_wire_tokenizer_linear_time.sql` (version flyttad från `20261020120000` vid main-integrationen: main's `20261020230048` pinnar förbilden av `wire_tokens_bounded_v1`). Test: `__tests__/ediel-wire-tokenizer-linear-time.test.ts`.
 - **Verifiering:** full `npm test` gav 18 699 gröna och 0 nya fel. 92 av 99 SQL-regressioner har identiskt utfall före och efter. De 7 som misslyckas gör det också på main.
 - **Kvar:** schema- och typ-capture görs av befintlig GEN-ägare.
 
