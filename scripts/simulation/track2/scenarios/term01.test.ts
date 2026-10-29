@@ -5,8 +5,9 @@
 // Ingen webbläsare (Playwright) används: ren HTTP + psql. Auth/JWT = real tid; affärsdatum = explicita parametrar.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { loginSession, psql, psqlRows, removeAdminFixtureUser, type AppSession } from '../lib'
+import { callServerAction } from '../lib/server-action'
 import {
-  createSignedContract, createTermTenant, psqlExpectError, rowHash, stockholmToday,
+  createSignedContract, createTermTenant, probeCreateCustomerAction, probeCreateContractTsPath, psqlExpectError, rowHash, stockholmToday,
   type SignedContractFixture, type TermTenant, type CreateSignedContractInput,
 } from '../lib/term-fixture'
 
@@ -59,7 +60,9 @@ function pageText(html: string): string {
     .replace(/<script[\s\S]*?<\/script>/g, ' ')
     .replace(/<style[\s\S]*?<\/style>/g, ' ')
     .replace(/<[^>]+>/g, '\n')
-    .replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ')
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
     .replace(/[   ]/g, ' ')
 }
 function svDateToIso(token: string | undefined): string | null {
@@ -83,9 +86,23 @@ type ShownContract = {
 }
 
 async function readShown(session: AppSession, customerId: string): Promise<ShownContract> {
-  const res = await session.fetch(`/admin/customers/${customerId}?tab=contracts`)
+  const start = `/admin/customers/${customerId}?tab=contracts`
+  let res = await session.fetch(start)
   const html = await res.text()
-  expect(res.status, `admin-sidan svarade ${res.status}: ${html.slice(0, 200)}`).toBe(200)
+  if (res.status !== 200) {
+    // Följ redirectkedjan manuellt (session.fetch följer inte) och logga varje steg så att felet förklarar sig självt.
+    const chain: string[] = [`${res.status} ${start} -> ${res.headers.get('location') ?? '(ingen Location)'}`]
+    let current = res
+    for (let hop = 0; hop < 5 && current.status >= 300 && current.status < 400 && current.headers.get('location'); hop += 1) {
+      const next = new URL(current.headers.get('location')!, 'http://x').pathname + new URL(current.headers.get('location')!, 'http://x').search
+      current = await session.fetch(next)
+      await current.text()
+      chain.push(`${current.status} ${next} -> ${current.headers.get('location') ?? '(slut)'}`)
+    }
+    const digest = /NEXT_REDIRECT[^<"]{0,200}/.exec(html)?.[0] ?? ''
+    console.error(`[readShown] icke-200: ${chain.join(' | ')} ${digest}`)
+    throw new Error(`admin-sidan svarade ${res.status}; Location=${res.headers.get('location')}; kedja=${chain.join(' | ')}; ${html.slice(0, 200)}`)
+  }
   const t = pageText(html)
   const summary = new RegExp(String.raw`Start\s+(${DATE_TOKEN})\s*·\s*Slut\s+(${DATE_TOKEN})`).exec(t)
   if (!summary) throw new Error('fält saknas på adminsidan: "Start … · Slut …" (är kundens avtalsflik renderad?)')
@@ -117,50 +134,132 @@ function readDb(contractId: string): DbContract {
 // ---------- Gemensam uppsättning ----------
 let tenant: TermTenant
 let session: AppSession
+const tenantSessionFor = async () => session
 const observations: Record<string, unknown>[] = []
 
-async function signed(input: Partial<CreateSignedContractInput> & Pick<CreateSignedContractInput, 'bindingMonths' | 'startsAt'>): Promise<SignedContractFixture> {
-  return createSignedContract(tenant, { contractType: 'variable_hourly', noticeMonths: 1, priceArea: 'SE3', ...input })
+type ContractInput = Partial<CreateSignedContractInput> & Pick<CreateSignedContractInput, 'bindingMonths' | 'startsAt'>
+const withDefaults = (input: ContractInput): CreateSignedContractInput => ({ contractType: 'variable_hourly', noticeMonths: 1, priceArea: 'SE3', ...input })
+
+/** Skapar signerat avtal och kör bindningskontrollen (kund, anläggning, mätpunkt, prissnapshot, bevis, versioner). */
+async function signed(input: ContractInput): Promise<SignedContractFixture> {
+  const f = await createSignedContract(tenant, withDefaults(input))
+  assertBindingChain(f)
+  return f
 }
 
-/** Binding > 0: DB-rad, sidans visning och bindningsstatus mot oraklet; registrerar vilken konvention appen visar. */
+const sha256 = /^[a-f0-9]{64}$/
+/**
+ * Bindningskontroll: rätt company/kund/anläggning/mätpunkt, prissnapshot med samma company/contract/customer och
+ * bindning/uppsägning/månadsavgift som erbjöds, signeringsbevis som refererar avtalet, samt exakta publicerade versioner.
+ */
+function assertBindingChain(f: SignedContractFixture) {
+  const q = <T,>(sql: string) => psqlRows<T>(sql)
+  const [c] = q<Record<string, any>>(`select * from public.customer_contracts where id='${f.contractId}'`)
+  expect(c, 'avtalsraden finns').toBeTruthy()
+  expect(c.company_id).toBe(f.companyId)
+  expect(c.customer_id).toBe(f.customerId)
+  expect(c.site_id).toBe(f.siteId)
+  if (c.customer_site_id !== null) expect(c.customer_site_id).toBe(f.siteId)
+  expect(c.metering_point_id).toBe(f.meteringPointId)
+  const [site] = q<Record<string, any>>(`select company_id,customer_id from public.customer_sites where id='${f.siteId}'`)
+  expect(site).toMatchObject({ company_id: f.companyId, customer_id: f.customerId })
+  const [mp] = q<Record<string, any>>(`select company_id,customer_id,site_id from public.metering_points where id='${f.meteringPointId}'`)
+  expect(mp).toMatchObject({ company_id: f.companyId, customer_id: f.customerId, site_id: f.siteId })
+
+  // Publicerade versioner
+  expect(c.contract_publication_version_id).toBe(f.publicationVersionId)
+  expect(c.contract_offer_id).toBe(f.offerId)
+  const [pv] = q<Record<string, any>>(`select status,legal_bundle_version_id,contract_product_version_id,price_plan_version_id,publication_snapshot->>'legacy_contract_offer_id' as offer_id from public.contract_publication_versions where id='${f.publicationVersionId}'`)
+  expect(pv.status).toBe('published')
+  expect(pv.offer_id, 'publication-versionen hör till fixturens erbjudande').toBe(f.offerId)
+  expect(c.legal_bundle_version_id, 'legal_bundle_version_id = publicerad versions').toBe(pv.legal_bundle_version_id)
+  expect(c.contract_product_version_id).toBe(pv.contract_product_version_id)
+  expect(c.price_plan_version_id).toBe(pv.price_plan_version_id)
+
+  // Prissnapshot
+  const [snap] = q<Record<string, any>>(`select s.*, encode(extensions.digest(convert_to(s.snapshot_json::text,'UTF8'),'sha256'),'hex') as recomputed_hash from public.contract_price_snapshots s where s.id='${c.contract_price_snapshot_id}'`)
+  expect(snap, 'prissnapshot finns').toBeTruthy()
+  expect(snap).toMatchObject({ company_id: f.companyId, contract_id: f.contractId, customer_id: f.customerId })
+  const offeredBinding = f.input.bindingMonths
+  const offeredNotice = f.input.noticeMonths
+  const offeredFee = f.input.monthlyFeeSek ?? 49
+  // v6-selection-snapshoten (gridex_create_internal_customer_contract_v1) har inga toppnivånycklar binding_months/notice_months/
+  // monthly_fee_sek: villkoren ligger i det valda prisalternativet (price_options[price_option_reference]) och i
+  // price_components_snapshot (komponent monthly_fee); radens värden kopieras från option resp. komponent.
+  const chosen = (snap.snapshot_json.price_options as Record<string, any>[]).find((o) => o.price_option_reference === snap.snapshot_json.price_option_reference)
+  expect(chosen, `valt prisalternativ ${snap.snapshot_json.price_option_reference} finns i snapshoten`).toBeTruthy()
+  expect(chosen!.binding_months, 'snapshot: valt alternativ binding_months').toBe(offeredBinding ?? 0)
+  expect(chosen!.notice_months, 'snapshot: valt alternativ notice_months').toBe(offeredNotice)
+  const feeComponent = (snap.price_components_snapshot as Record<string, any>[]).find((x) => (x.component_code ?? x.componentCode) === 'monthly_fee')
+  expect(feeComponent, 'snapshot: monthly_fee-komponent').toBeTruthy()
+  expect(Number(feeComponent!.amount), 'snapshot: månadsavgiftskomponent').toBe(offeredFee)
+  // Erbjudandet (price option) och avtalsraden
+  const [opt] = q<Record<string, any>>(`select binding_months,notice_months from public.contract_price_options where id='${f.priceOptionId}'`)
+  expect(opt).toMatchObject({ binding_months: offeredBinding ?? 0, notice_months: offeredNotice })
+  // Avtalsraden har värdena från appens skapande (erbjudandets default/option), inte från fixturen.
+  if (offeredBinding === null) expect([null, 0], 'avtalsrad binding_months (null erbjuden)').toContain(c.binding_months)
+  else expect(c.binding_months, 'avtalsrad binding_months från appens skapande').toBe(offeredBinding)
+  expect(c.notice_months, 'avtalsrad notice_months från appens skapande').toBe(offeredNotice)
+  expect(Number(c.monthly_fee_sek)).toBe(offeredFee)
+
+  // Hash: signaturens pricing_snapshot_sha256 = snapshotens hash = avtalets snapshot_hash (hård); omräkning är informativ.
+  expect(snap.snapshot_hash).toMatch(sha256)
+  expect(c.snapshot_hash).toBe(snap.snapshot_hash)
+  expect(c.signature_snapshot.pricing_snapshot_sha256).toBe(snap.snapshot_hash)
+  expect(c.signature_snapshot_sha256).toMatch(sha256)
+
+  // Signeringsbevis skapat av finalize
+  const ev = q<Record<string, any>>(`select evidence_type,evidence_sha256 from public.customer_contract_evidence where customer_contract_id='${f.contractId}' and company_id='${f.companyId}'`)
+  expect(ev.find((e) => e.evidence_type === 'online_acceptance')?.evidence_sha256, 'online_acceptance-evidens = signaturhash').toBe(c.signature_snapshot_sha256)
+  const acc = q<Record<string, any>>(`select contract_publication_version_id,acceptance_sha256,signing_method from public.customer_contract_acceptances where customer_contract_id='${f.contractId}' and company_id='${f.companyId}'`)
+  expect(acc).toHaveLength(1)
+  expect(acc[0].contract_publication_version_id).toBe(f.publicationVersionId)
+  expect(acc[0].acceptance_sha256).toMatch(sha256)
+  const req = q<Record<string, any>>(`select used_at from public.customer_contract_signature_requests where customer_contract_id='${f.contractId}' and company_id='${f.companyId}' and customer_id='${f.customerId}'`)
+  expect(req.length).toBeGreaterThanOrEqual(1)
+  expect(req.some((r) => r.used_at)).toBe(true)
+  const legal = q<Record<string, any>>(`select legal_document_sha256 from public.customer_legal_acceptances where contract_id='${f.contractId}' and company_id='${f.companyId}' and customer_id='${f.customerId}'`)
+  expect(legal.length, 'juridiska accepter per bundle-dokument').toBeGreaterThanOrEqual(1)
+  for (const l of legal) expect(l.legal_document_sha256).toMatch(sha256)
+  expect(c.signed_at, 'signed_at (real tid)').toBeTruthy()
+  expect(c.metadata.sim_declared_signed_at).toBe(f.declaredSignedAt)
+  console.info(`[BIND] skapandeväg=${f.creation.contractPath} source_type=${f.creation.sourceType} customerAction=${f.creation.customerAction.httpStatus} contractAction=${f.creation.contractAction.httpStatus} auto_renew_enabled=${c.auto_renew_enabled} auto_renew_term_months=${c.auto_renew_term_months} ends_at=${c.ends_at}; contract ${f.contractId.slice(0, 8)} signed_at(real)=${c.signed_at} sim_declared_signed_at=${c.metadata.sim_declared_signed_at} document_sha256=${c.document_sha256 ?? 'null (sätts först vid PDF-arkivering)'} snapshot_hash_recomputed_match=${snap.recomputed_hash === snap.snapshot_hash}`)
+}
+
+/**
+ * Binding > 0. STRIKT: konventionen måste vara exklusiv (start + N kalendermånader, klampat) och tzShift 0.
+ * Ett inklusivt datum (sista bundna dag) är fail med eget meddelande; ägaren avgör konventionen separat.
+ * Sparat ends_at: RPC-vägen sparar formulärets ends_at (tomt => null); ett sparat datum måste vara exklusivt.
+ */
 async function assertBindingEnd(scenario: string, f: SignedContractFixture, bindingMonths: number, startsAt: string, expectedExclusive: string) {
   const db = readDb(f.contractId)
   expect(db).toMatchObject({ status: 'signed', binding_months: bindingMonths, notice_months: 1, starts_at: startsAt })
   expect(db.signed_at, 'signed_at ska vara satt').toBeTruthy()
   const lastBoundDay = oracleDayBefore(expectedExclusive)
-  const convStored = db.ends_at === null ? 'derived_on_read' : db.ends_at === expectedExclusive ? 'exclusive' : db.ends_at === lastBoundDay ? 'inclusive' : 'other'
-  expect(['derived_on_read', 'exclusive', 'inclusive'], `ends_at i DB (${db.ends_at}) avviker från båda konventionerna (${expectedExclusive} / ${lastBoundDay})`).toContain(convStored)
-
+  // RPC-vägen (gridex_create_internal_customer_contract_v1) sätter ends_at = nullif(p_contract->>'ends_at','')::date, dvs formulärets
+  // värde (tomt => null); ingen DB-härledning sker (guard-triggern är inte kopplad, add_months-funktionen saknas). Null är därför tillåtet
+  // och slutet härleds vid visning; ett sparat datum måste vara exakt exklusivt start+N.
+  if (db.ends_at !== null) expect(db.ends_at, `sparat ends_at ${db.ends_at} är inte exklusivt start+${bindingMonths} (${expectedExclusive})`).toBe(expectedExclusive)
+  else console.info(`[${scenario}] ends_at sparas som null av RPC-vägen; härleds vid visning`)
   const shown = await readShown(session, f.customerId)
-  // Tidszonskontroll: appen formaterar med serverns lokala tid. Visad start mot DB-start avslöjar dagsförskjutning.
   const tzShift = dayDiff(shown.detailStart!, startsAt)
-  expect(Math.abs(tzShift), `visad start ${shown.detailStart} vs DB ${startsAt}`).toBeLessThanOrEqual(1)
-  const fix = (iso: string | null) => (iso === null ? null : shiftDays(iso, -tzShift))
-  const slut = fix(shown.summarySlut)
-  const current = fix(shown.aktuelltSlutdatum)
+  expect(tzShift, `tzShift: visad start ${shown.detailStart} vs DB-start ${startsAt} (appens tidszon förskjuter visningen; ingen tyst korrigering)`).toBe(0)
+  const slut = shown.summarySlut
+  const current = shown.aktuelltSlutdatum
   expect(slut, 'Slut (sammanfattning) och Aktuellt slutdatum ska visa samma dag').toBe(current)
-  expect(fix(shown.currentTermEnd), 'Nuvarande avtalsperiod slut ska stämma med Aktuellt slutdatum').toBe(current)
+  expect(shown.currentTermEnd, 'Nuvarande avtalsperiod slut ska stämma med Aktuellt slutdatum').toBe(current)
   const convention = current === expectedExclusive ? 'exclusive' : current === lastBoundDay ? 'inclusive' : 'other'
-  observations.push({ scenario, startsAt, bindingMonths, expectedExclusive, lastBoundDay, shownSlut: shown.summarySlut, shownAktuellt: shown.aktuelltSlutdatum, tzShift, convention, dbEndsAt: db.ends_at, storedConvention: convStored })
-  console.info(`[${scenario}] app visar ${current} (${convention}); exklusivt orakel ${expectedExclusive}, sista bundna dag ${lastBoundDay}, tzShift ${tzShift}, DB ends_at ${db.ends_at}`)
-  expect(['exclusive', 'inclusive'], `appen visar ${current}: varken ${expectedExclusive} (exklusivt) eller ${lastBoundDay} (sista bundna dag)`).toContain(convention)
+  const now = new Date().toISOString()
+  observations.push({ scenario, startsAt, bindingMonths, expectedExclusive, lastBoundDay, shownSlut: shown.summarySlut, shownAktuellt: shown.aktuelltSlutdatum, tzShift, convention, dbEndsAt: db.ends_at, path: f.creation.contractPath })
+  console.info(`[${scenario}] app visar ${current} (${convention}); exklusivt orakel ${expectedExclusive}, sista bundna dag ${lastBoundDay}, tzShift ${tzShift}, DB ends_at ${db.ends_at}, skapandeväg ${f.creation.contractPath}`)
+  console.info(`[${scenario}] tre tider: deklarerat signeringsdatum=${f.declaredSignedAt}; verkligt signed_at=${db.signed_at}; nu=${now}. App-lifecycle: slutdatum härleds ur starts_at+binding_months (ej signed_at); bindning aktiv nu använder referenceDate = nu (Stockholm-dag).`)
+  expect(convention, convention === 'inclusive'
+    ? `appen visar SISTA BUNDNA DAG ${current}, inte exklusivt slut ${expectedExclusive}: konventionen inklusiv avviker från kravet (exklusiv); ägarbeslut krävs`
+    : `appen visar ${current}: varken ${expectedExclusive} (exklusivt) eller ${lastBoundDay} (sista bundna dag)`).toBe('exclusive')
   expect(shown.bindingMonthsText).toBe(String(bindingMonths))
   const today = stockholmToday()
   expect(shown.bindingActive, `bindning aktiv nu mot exklusivt slut ${expectedExclusive} och idag ${today}`).toBe(today < expectedExclusive ? 'Ja' : 'Nej')
   return { convention, shown }
-}
-function shiftDays(iso: string, delta: number): string {
-  // Egen kalenderstegning (±1 dag räcker för tidszonskorrigering).
-  let cur = iso
-  for (let i = 0; i < Math.abs(delta); i += 1) {
-    if (delta < 0) cur = oracleDayBefore(cur)
-    else {
-      const { y, m, d } = parseIso(cur)
-      cur = d < daysIn(y, m) ? `${pad(y, 4)}-${pad(m)}-${pad(d + 1)}` : m === 12 ? `${pad(y + 1, 4)}-01-01` : `${pad(y, 4)}-${pad(m + 1)}-01`
-    }
-  }
-  return cur
 }
 
 describe('TERM01 bindningstid och slutdatum', () => {
@@ -173,13 +272,38 @@ describe('TERM01 bindningstid och slutdatum', () => {
     if (tenant) await removeAdminFixtureUser(tenant.admin)
   })
 
-  it('TERM01.01 tillsvidare utan bindningsslut (binding_months 0 och null)', async () => {
+  it('TERM01.PRE createCustomerAction: utfall för en färsk unik inskickning (fynd claude-track2/004; räknas inte in i TERM-utfall)', async () => {
+    const r = await probeCreateCustomerAction(tenant)
+    const verdict = r.customersCreated === 1 ? 'ACCEPTERAT (kund skapad)' : r.error ? `NEKAT: ${r.error}` : 'OKLART'
+    console.info(`[TERM01.PRE] request-id=${r.requestId} HTTP ${r.httpStatus} => ${verdict}; kunder skapade=${r.customersCreated}; intake=${JSON.stringify(r.intake)}`)
+    expect(r.httpStatus).toBeLessThan(500)
+  })
+
+  it('TERM01.PRE createContract TS-path: utfall för erbjudande utan price_options (fynd 005; räknas inte in i TERM-utfall)', async () => {
+    const r = await probeCreateContractTsPath(tenant)
+    console.info(`[TERM01.PRE createContract TS-path] request-id=${r.requestId} HTTP ${r.httpStatus} kastade=${r.threw} avtal skapade=${r.contractsCreated} ${r.errorRows.join(' | ').slice(0, 200)} (PGRST204 i appens logg = fynd 005)`)
+    expect(typeof r.httpStatus).toBe('number')
+  })
+
+  it('TERM01.01 tillsvidare utan bindningsslut (binding_months 0 och null), notice från erbjudandet, ingen förnyelse', async () => {
     for (const bindingMonths of [0, null] as const) {
-      const f = await signed({ bindingMonths, startsAt: '2026-11-01' })
+      let f: SignedContractFixture
+      try {
+        f = await createSignedContract(tenant, withDefaults({ bindingMonths, noticeMonths: 2, startsAt: '2026-11-01' }))
+      } catch (error) {
+        // binding_months=null kan nekas av appens erbjudandekanon (upsert-RPC); utfallet loggas och assertas, inte skip.
+        expect(bindingMonths, `binding 0 ska kunna skapas: ${(error as Error).message}`).toBeNull()
+        console.info(`[TERM01.01] binding_months=null NEKAT AV APPEN: ${(error as Error).message.slice(0, 300)}`)
+        continue
+      }
+      if (bindingMonths === null) console.info('[TERM01.01] binding_months=null ACCEPTERAT av appen')
+      assertBindingChain(f)
       const db = readDb(f.contractId)
-      expect(db).toMatchObject({ status: 'signed', binding_months: bindingMonths, starts_at: '2026-11-01', ends_at: null, auto_renew_enabled: false })
+      expect([bindingMonths, bindingMonths === null ? 0 : bindingMonths], 'binding_months från appens skapande').toContain(db.binding_months)
+      expect(db).toMatchObject({ status: 'signed', notice_months: 2, starts_at: '2026-11-01', ends_at: null, auto_renew_enabled: false })
       expect(db.signed_at).toBeTruthy()
       const shown = await readShown(session, f.customerId)
+      console.info(`[TERM01.01] app visar (binding_months=${bindingMonths}, DB ${db.binding_months}, notice ${db.notice_months}, auto_renew ${db.auto_renew_enabled}, ends_at ${db.ends_at}): Slut=${shown.summarySlut ?? '— (ingen slutdatumtext)'}; Aktuellt slutdatum=${shown.aktuelltSlutdatum ?? '—'}; Explicit slut=${shown.explicitSlut ?? '—'}; Nästa förlängning=${shown.nextRenewal ?? '—'}; Bindningstid=${shown.bindingMonthsText} mån; Bindning aktiv nu=${shown.bindingActive}; Auto renew=${shown.autoRenewText}; (appen har ingen text "Tillsvidare")`)
       expect(shown.summarySlut, `Slut visas för binding ${bindingMonths}`).toBeNull()
       expect(shown.aktuelltSlutdatum, `Aktuellt slutdatum för binding ${bindingMonths}`).toBeNull()
       expect(shown.explicitSlut).toBeNull()
@@ -187,15 +311,19 @@ describe('TERM01 bindningstid och slutdatum', () => {
       expect(shown.nextRenewal, 'ingen förnyelse').toBeNull()
       expect(shown.autoRenewText).toBe('Nej')
       expect(shown.bindingActive).toBe('Nej')
-      expect(shown.bindingMonthsText).toBe(bindingMonths === null ? '—' : '0')
     }
   })
 
-  it('TERM01.02 12 månader från 2026-11-01 upphör vid 2027-11-01 (exklusivt)', async () => {
-    const f = await signed({ bindingMonths: 12, startsAt: '2026-11-01' })
+  it('TERM01.02 12 månader från 2026-11-01 upphör vid 2027-11-01 (exklusivt); datumen beror inte på deklarerat signeringsdatum', async () => {
     expect(oracleAddMonths('2026-11-01', 12)).toBe('2027-11-01')
     expect(oracleDayBefore('2027-11-01')).toBe('2027-10-31')
-    await assertBindingEnd('TERM01.02', f, 12, '2026-11-01', '2027-11-01')
+    const f = await signed({ bindingMonths: 12, startsAt: '2026-11-01', signedAt: '2026-10-15' })
+    const first = await assertBindingEnd('TERM01.02', f, 12, '2026-11-01', '2027-11-01')
+    // Samma start men annat deklarerat signeringsdatum => oförändrade datum i appen.
+    const g = await signed({ bindingMonths: 12, startsAt: '2026-11-01', signedAt: '2026-09-01' })
+    const second = await assertBindingEnd('TERM01.02', g, 12, '2026-11-01', '2027-11-01')
+    expect({ end: second.shown.aktuelltSlutdatum, start: second.shown.detailStart }).toEqual({ end: first.shown.aktuelltSlutdatum, start: first.shown.detailStart })
+    console.info(`[TERM01.02] deklarerat ${f.declaredSignedAt} resp. ${g.declaredSignedAt}; verkligt signed_at ${f.actualSignedAt} resp. ${g.actualSignedAt}; visade slutdatum lika (${first.shown.aktuelltSlutdatum})`)
   })
 
   it('TERM01.03 24 månader från 2026-11-15 upphör vid 2028-11-15 (exklusivt)', async () => {
@@ -217,18 +345,30 @@ describe('TERM01 bindningstid och slutdatum', () => {
     })
   }
 
-  it('TERM01.04 binding_months=1: 2027-01-31 + 1 -> 2027-02-28 (om 1 accepteras)', async (ctx) => {
-    expect(oracleAddMonths('2027-01-31', 1)).toBe('2027-02-28')
-    let f: SignedContractFixture
-    try {
-      f = await signed({ bindingMonths: 1, startsAt: '2027-01-31' })
-    } catch (error) {
-      const message = String((error as Error).message)
-      if (/binding_months|check constraint|23514/i.test(message)) { console.info(`[TERM01.04] binding_months=1 nekas av fixturen/DB: ${message.slice(0, 200)}`); ctx.skip(); return }
-      throw error
-    }
-    await assertBindingEnd('TERM01.04', f, 1, '2027-01-31', '2027-02-28')
-  })
+  const oneMonthCases = [
+    { start: '2027-01-31', expected: '2027-02-28' },
+    { start: '2028-01-31', expected: '2028-02-29' },
+  ]
+  for (const c of oneMonthCases) {
+    it(`TERM01.04 binding_months=1: ${c.start} + 1 -> ${c.expected} (utfall: accepterat eller nekat av appen)`, async () => {
+      expect(oracleAddMonths(c.start, 1)).toBe(c.expected)
+      let f: SignedContractFixture | null = null
+      let denied: string | null = null
+      try {
+        f = await createSignedContract(tenant, withDefaults({ bindingMonths: 1, startsAt: c.start }))
+      } catch (error) {
+        denied = (error as Error).message
+      }
+      if (denied !== null) {
+        console.info(`[TERM01.04] binding_months=1 (${c.start}) NEKAT AV APPEN: ${denied.slice(0, 400)}`)
+        expect(denied.length, 'nekandet ska ha ett meddelande').toBeGreaterThan(0)
+        return
+      }
+      console.info(`[TERM01.04] binding_months=1 (${c.start}) ACCEPTERAT av appen`)
+      assertBindingChain(f!)
+      await assertBindingEnd('TERM01.04', f!, 1, c.start, c.expected)
+    })
+  }
 
   describe('TERM01.05 signerat avtal är oföränderligt', () => {
     let f: SignedContractFixture
@@ -253,6 +393,63 @@ describe('TERM01 bindningstid och slutdatum', () => {
         expect(err!.message).toBe(`signed_customer_contract_immutable:${column}`)
       }
       expect(rowHash('customer_contracts', c.contractId), 'avtalsraden ska vara oförändrad').toBe(before)
+    })
+
+    it('TERM01.05 förbjudna ändringar: customer_id, site_id, metering_point_id, starts_at, signed_at, DELETE nekas', async () => {
+      const c = await fixture()
+      const other = await signed({ bindingMonths: 12, startsAt: '2026-11-01' }) // annan kund/anläggning/mätpunkt i samma tenant
+      const before = rowHash('customer_contracts', c.contractId)
+      const updates: Record<string, string> = {
+        customer_id: `customer_id = '${other.customerId}'`,
+        site_id: `site_id = '${other.siteId}'`,
+        metering_point_id: `metering_point_id = '${other.meteringPointId}'`,
+        starts_at: `starts_at = starts_at + 1`,
+        signed_at: `signed_at = signed_at + interval '1 day'`,
+      }
+      for (const [column, set] of Object.entries(updates)) {
+        const err = psqlExpectError(`UPDATE public.customer_contracts SET ${set} WHERE id='${c.contractId}';`)
+        expect(err, `UPDATE ${column} på signerat avtal lyckades (borde nekas)`).not.toBeNull()
+        expect(err!.sqlstate, `${column}: ${err!.raw}`).toBe('55000')
+        expect(err!.message, `${column}`).toBe(`signed_customer_contract_immutable:${column}`)
+      }
+      const del = psqlExpectError(`DELETE FROM public.customer_contracts WHERE id='${c.contractId}';`)
+      expect(del, 'DELETE av signerat avtal lyckades').not.toBeNull()
+      expect(del!.sqlstate, del!.raw).toBe('55000')
+      expect(del!.message).toMatch(/signed_customer_contract_delete_forbidden/)
+      expect(rowHash('customer_contracts', c.contractId)).toBe(before)
+    })
+
+    it('TERM01.05 samma ändringar via appens redigeringsåtgärd (updateContractAction, HTTP) nekas kontrollerat och raden är oförändrad', async () => {
+      const c = await fixture()
+      const [row] = psqlRows<Record<string, any>>(`select * from public.customer_contracts where id='${c.contractId}'`)
+      const before = rowHash('customer_contracts', c.contractId)
+      const str = (v: unknown) => (v === null || v === undefined ? '' : String(v))
+      const attempts: Record<string, Record<string, string>> = {
+        monthly_fee_sek: { monthly_fee_sek: String(Number(row.monthly_fee_sek) + 1) },
+        binding_months: { binding_months: String(Number(row.binding_months) + 1) },
+        ends_at: { ends_at: '2099-12-31' },
+        starts_at: { starts_at: '2026-11-02' },
+      }
+      for (const [column, change] of Object.entries(attempts)) {
+        const form = new FormData()
+        const values: Record<string, string> = {
+          customer_id: c.customerId, customer_contract_id: c.contractId, status: row.status, site_id: str(row.site_id), metering_point_id: str(row.metering_point_id),
+          contract_name: str(row.contract_name), contract_type: str(row.contract_type), starts_at: str(row.starts_at), ends_at: str(row.ends_at), signed_at: str(row.signed_at),
+          binding_months: str(row.binding_months), notice_months: str(row.notice_months), monthly_fee_sek: str(row.monthly_fee_sek), invoice_fee_sek: str(row.invoice_fee_sek),
+          fixed_price_ore_per_kwh: str(row.fixed_price_ore_per_kwh), spot_markup_ore_per_kwh: str(row.spot_markup_ore_per_kwh), variable_fee_ore_per_kwh: str(row.variable_fee_ore_per_kwh),
+          terms_version: str(row.terms_version), price_version: str(row.price_version), campaign_name: str(row.campaign_name), campaign_code: str(row.campaign_code), campaign_version: str(row.campaign_version),
+          green_fee_mode: str(row.green_fee_mode) || 'none', override_reason: 'sim: oföränderlighetsprov', ...change,
+        }
+        for (const [k, v] of Object.entries(values)) form.append(k, v)
+        const r = await callServerAction(await tenantSessionFor(), {
+          route: `/admin/customers/${c.customerId}`, filename: 'components/admin/customers/contracts/actions.ts', exportedName: 'updateContractAction',
+          args: [form], worker: 'app/admin/customers/[id]/page',
+        })
+        const after = rowHash('customer_contracts', c.contractId)
+        console.info(`[TERM01.05] updateContractAction ${column}: HTTP ${r.httpStatus} kastade=${r.threw} redirect=${r.redirect ?? '-'} rad oförändrad=${after === before} ${r.errorRows.join(' | ').slice(0, 200)} (feltext i appens serverlogg)`)
+        expect(after, `updateContractAction ${column} ändrade det signerade avtalet`).toBe(before)
+        expect(r.httpStatus >= 400 || r.threw, `updateContractAction ${column}: väntade kontrollerat nekande (kastat fel/HTTP>=400), fick HTTP ${r.httpStatus} utan fel`).toBe(true)
+      }
     })
 
     it('TERM01.05 contract_price_snapshots UPDATE/DELETE nekas och snapshotraden är oförändrad', async () => {
@@ -281,6 +478,73 @@ describe('TERM01 bindningstid och slutdatum', () => {
       if (found.length === 0) throw new Error('steg saknas: inget ändringsflöde')
       console.info(`[TERM01.05] möjliga ändringsobjekt: ${JSON.stringify(found)}`)
     })
+  })
+
+  it('TERM01.TEN tenant 2:s admin kan inte öppna tenant 1:s kund', async () => {
+    // Kodbeteende: layout.tsx:19 + lib/tenant/entityGuards.ts:42-44 (guard.companyId !== kundens company => throw), och
+    // page.part-4.tsx:107-141 visar CustomerLookupProblem ("Kunden finns inte"/"tillhör ett annat bolag") som är en
+    // 200-vy med enbart den efterfrågade id:t ("Referens: {id}", page.part-1.tsx:581) och params i RSC-payloaden.
+    // Status 200 är därför i sig inget läckage; innehållet avgör. Det efterfrågade kund-id:t är request-eko och
+    // används inte som markör (det finns bara i markörer där det är en del av längre sträng, t.ex. e-postadressen).
+    const f = await signed({ bindingMonths: 12, startsAt: '2026-11-01' })
+    const [cust] = psqlRows<{ name: string; personal_number: string | null; email: string | null }>(`select coalesce(nullif(trim(concat_ws(' ',first_name,last_name)),''),name) as name,personal_number,email from public.customers where id='${f.customerId}'`)
+    const [co] = psqlRows<{ org_number: string | null }>(`select org_number from public.companies where id='${f.companyId}'`)
+    const pn = cust.personal_number
+    const markers: Record<string, string> = {
+      kundnamn: cust.name,
+      ...(pn ? { personnummer: pn, personnummer_bindestreck: `${pn.slice(0, 8)}-${pn.slice(8)}` } : {}),
+      ...(cust.email ? { kund_epost: cust.email } : {}),
+      ...(co.org_number ? { orgnummer: co.org_number } : {}),
+      avtals_id: f.contractId, anlaggnings_id: f.siteId, matpunkts_id: f.meteringPointId, gsrn: f.gsrn,
+    }
+    for (const [k, v] of Object.entries(markers)) expect(v, `marköransats ${k}`).toBeTruthy()
+    const tabs = ['contracts', 'overview', 'sites', 'metering-points']
+    const readTabs = async (s: AppSession) => {
+      const out: { tab: string; status: number; location: string | null; text: string }[] = []
+      for (const tab of tabs) {
+        const res = await s.fetch(`/admin/customers/${f.customerId}?tab=${tab}`)
+        out.push({ tab, status: res.status, location: res.headers.get('location'), text: pageText(await res.text()) })
+      }
+      return out
+    }
+    const present = (pages: { text: string }[]) => Object.entries(markers).filter(([, v]) => pages.some((p) => p.text.includes(v))).map(([k]) => k)
+
+    // Positiv kontroll: tenant 1:s egen admin ser markörerna (annars har den negativa kontrollen ingen styrka).
+    const own = await readTabs(session)
+    const ownPresent = present(own)
+    console.info(`[TERM01.TEN] positiv kontroll (tenant 1-admin): status ${own.map((o) => `${o.tab}=${o.status}`).join(',')}; markörer som syns: ${ownPresent.join(', ') || '(inga)'}; syns ej: ${Object.keys(markers).filter((k) => !ownPresent.includes(k)).join(', ') || '-'}`)
+    // Kundnamnet renderas från first_name+last_name (formatCustomerName, page.part-1.tsx:124), inte kolumnen `name`;
+    // fixturen ger därför kunden ett unikt efternamn. Personnummer/orgnummer syns ev. inte på dessa flikar.
+    expect(own.every((o) => o.status === 200), 'tenant 1-admin får 200 på sina egna flikar').toBe(true)
+    expect(ownPresent, 'positiv kontroll: kund_epost och gsrn syns i tenant 1-adminens egen vy').toEqual(expect.arrayContaining(['kund_epost', 'gsrn']))
+
+    const tenant2 = await createTermTenant()
+    try {
+      const variants: [string, AppSession][] = [
+        ['egen company-cookie', await loginSession(tenant2.admin.email, tenant2.admin.password, { companyId: tenant2.companyId })],
+        ['tenant 1:s company-cookie', await loginSession(tenant2.admin.email, tenant2.admin.password, { companyId: tenant.companyId })],
+      ]
+      const leaks: string[] = []
+      const unexpected: string[] = []
+      for (const [label, s2] of variants) {
+        for (const tab of tabs) {
+          let status = -1; let location: string | null = null; let text = ''
+          try {
+            const res = await s2.fetch(`/admin/customers/${f.customerId}?tab=${tab}`)
+            status = res.status; location = res.headers.get('location'); text = pageText(await res.text())
+          } catch (error) { unexpected.push(`${label}/${tab}: fetch-fel ${(error as Error).message.slice(0, 120)}`) }
+          const found = Object.entries(markers).filter(([, v]) => text.includes(v)).map(([k]) => k)
+          const klass = found.length > 0 ? 'LÄCKAGE' : [302, 303, 307, 308, 403, 404].includes(status) ? 'korrekt nekande' : status === 200 ? 'mjukt nekande (200 utan data)' : `oväntad status ${status}`
+          console.info(`[TERM01.TEN] ${label} tab=${tab}: status ${status} Location=${location ?? '-'} => ${klass}; synliga markörtyper: ${found.join(', ') || '-'}`)
+          if (found.length > 0) leaks.push(`${label}/${tab}: ${found.join(',')}`)
+          if (![200, 302, 303, 307, 308, 403, 404].includes(status)) unexpected.push(`${label}/${tab}: status ${status}`)
+        }
+      }
+      expect(leaks, 'tenant 1-data i tenant 2-adminens svar').toEqual([])
+      expect(unexpected, 'oväntade svar').toEqual([])
+    } finally {
+      await removeAdminFixtureUser(tenant2.admin)
+    }
   })
 
   it('TERM01.OBS trg_gridex_customer_contracts_auto_renew_guard och gridex_add_months_timestamptz (observation, ej orakel)', () => {

@@ -29,11 +29,13 @@
 //    monthly_fee_sek, binding_months, notice_months, starts_at, ends_at kopierade från raden) och sätter
 //    customer_contracts.contract_price_snapshot_id. Snapshotens komponenter kommer från publicerad commercial_snapshot.
 //  Fixturen håller offer, option, rad och komponent i samma värden och exponerar alla i `sources`.
-import { randomBytes, randomUUID } from 'node:crypto'
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { psql, psqlRows, serviceClient } from './db'
 import { sim } from './env'
 import { createAdminFixture, type AdminFixture } from './fixture'
+import { loginSession, type AppSession } from './session'
+import { callServerAction, type ServerActionResult } from './server-action'
 
 const lit = (v: unknown): string => v === null || v === undefined ? 'NULL'
   : `'${String(typeof v === 'object' ? JSON.stringify(v) : v).replaceAll("'", "''")}'`
@@ -82,7 +84,34 @@ export type TermTenant = {
   edielSender: string
   edielReceiver: string
   gridOwnerId: string
-  offerCache: Map<string, { offerId: string; publicationVersionId: string; priceOptionId: string }>
+  offerCache: Map<string, { offerId: string; publicationVersionId: string; priceOptionId: string; optionReference: string }>
+  /** Inloggad admin-session (lazy, se tenantSession). */
+  session?: AppSession
+}
+
+/** Riktig cookie-session för tenantens admin (auth = real tid). */
+export async function tenantSession(tenant: TermTenant): Promise<AppSession> {
+  tenant.session ??= await loginSession(tenant.admin.email, tenant.admin.password, { companyId: tenant.companyId })
+  return tenant.session
+}
+
+/**
+ * Det som INTE går via appens egna ingångar utan skrivs direkt (SQL/RPC) i fixturen. Skrivs ut i loggen en gång.
+ * Avtal och avtalsändringsförsök går via HTTP server actions; kund/anläggning/mätpunkt via SQL (fynd claude-track2/004).
+ */
+export const BACKEND_REPLACEMENTS = [
+  'SQL: company-uppgifter (org_number, legal profile), ediel_actor/brp/route-profiler, company_email_settings/templates/event_rules, platform_market_actors + identifiers, tenant_actor_identifiers, grid_owners (verified_for_customer_flow=true, actor_registry_status=verified)',
+  'SQL: auth.users/user_profiles/company_memberships/roles/user_roles/role_permissions/admin_users för builder-aktör och login-adminens engångsroll (role_permissions ger customers.write/contracts.write m.fl.)',
+  'RPC (service_role): gridex_upsert_internal_contract_offer_v3 (skapar även contract_price_options ur snapshotens price_options, som appens egen väg), gridex_publish_internal_contract_version (publishContractVersionAction-motsvarighet; ingen kanalaktivering, se kommentar i ensureOffer)',
+  'SQL: gridex_materialize_legal_bundle_version + UPDATE contract_offers.legal_bundle_version_id (legal bundle)',
+  'SQL: INSERT customers/customer_contacts/customer_addresses/customer_sites/metering_points (is_test_data=true) - ersätter createCustomerAction p.g.a. fynd claude-track2/004',
+  'RPC (service_role): gridex_prepare_customer_contract_signature_request_v1 + gridex_finalize_customer_contract_signature_v1 (ersätter UI-/länksignering; signed_at = real tid)',
+] as const
+let replacementsLogged = false
+function logBackendReplacements() {
+  if (replacementsLogged) return
+  replacementsLogged = true
+  console.info(`[BACKEND_REPLACEMENTS]\n - ${BACKEND_REPLACEMENTS.join('\n - ')}`)
 }
 
 /**
@@ -90,10 +119,13 @@ export type TermTenant = {
  * för att den kanoniska publiceringen ska godkänna ett erbjudande. companies saknar is_test_data; kund, site
  * och mätpunkt märks is_test_data=true i createSignedContract.
  */
+/** Det fixturens egna HTTP-actions kräver (requireAdminActionAccess i lib/admin/guards.ts:269 kastar Forbidden annars); alltid en union med det anroparen begär. */
+export const FIXTURE_REQUIRED_PERMISSIONS = ['customers.read', 'customers.write', 'contracts.read', 'contracts.write', 'contracts.create', 'masterdata.read'] as const
+
 export async function createTermTenant(opts: { permissionKeys?: string[] } = {}): Promise<TermTenant> {
   const runId = randomBytes(4).toString('hex')
   const admin = await createAdminFixture({
-    permissionKeys: opts.permissionKeys ?? ['customers.read', 'contracts.read', 'masterdata.read'],
+    permissionKeys: Array.from(new Set([...FIXTURE_REQUIRED_PERMISSIONS, ...(opts.permissionKeys ?? [])])),
     companyName: `Synthetic TERM tenant ${runId}`,
   })
   const companyId = admin.companyId
@@ -103,13 +135,20 @@ export async function createTermTenant(opts: { permissionKeys?: string[] } = {})
   const brpEdielId = '99876'
 
   // Aktörsroll så att medlemskapet listas av kanoniska tenantkontexten (nativeActorRoleSql i förlagan), för båda användarna.
-  const roleSql = (userId: string) => {
+  // HARNESSFEL (rättat): adminsidans behörighet kommer från canonical_authenticated_tenant_context_v1_scoped, som
+  // läser user_roles -> role_permissions -> permissions, INTE user_permissions. Utan role_permissions blir
+  // permissions=[] => isAdmin=false => requireAdminAccess redirect('/login') (lib/admin/guards.ts:~190) => 307.
+  // Login-adminens engångsroll får därför role_permissions för nyckellistan.
+  const roleSql = (userId: string, permissionKeys: string[] = []) => {
     const role = randomUUID(); const key = `native_actor_${role}`
+    const grants = permissionKeys.length === 0 ? '' : `
+      INSERT INTO public.role_permissions(role_id,role_key,permission_id,permission_key,effect)
+        SELECT ${lit(role)},${lit(key)},id,key,'allow' FROM public.permissions WHERE key IN (${permissionKeys.map(lit).join(',')});`
     return `INSERT INTO public.roles(id,key,name,scope) VALUES(${lit(role)},${lit(key)},'Disposable native actor role','company');
-      INSERT INTO public.user_roles(user_id,company_id,role_id,role,status,is_active) VALUES(${lit(userId)},${lit(companyId)},${lit(role)},${lit(key)},'active',true);`
+      INSERT INTO public.user_roles(user_id,company_id,role_id,role,status,is_active) VALUES(${lit(userId)},${lit(companyId)},${lit(role)},${lit(key)},'active',true);${grants}`
   }
   psql(`BEGIN;
-    ${roleSql(admin.userId)}
+    ${roleSql(admin.userId, admin.permissionKeys)}
     INSERT INTO auth.users(instance_id,confirmation_token,recovery_token,email_change_token_new,email_change,id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
       VALUES('00000000-0000-0000-0000-000000000000','','','','',${lit(builderUserId)},'authenticated','authenticated',${lit(`${builderUserId}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
     INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${lit(builderUserId)},${lit(`${builderUserId}@example.invalid`)},'Synthetic TERM builder','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
@@ -135,7 +174,7 @@ export async function createTermTenant(opts: { permissionKeys?: string[] } = {})
     INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) VALUES(${lit(companyId)},'test',${lit(builderUserId)},'electricity_supplier',clock_timestamp()-interval '1 day');
     INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id) VALUES(${lit(companyId)},'test','Synthetic TERM supplier',${lit(edielSender)},${lit(edielSender)});
     INSERT INTO public.ediel_brp_settings(company_id,environment,brp_ediel_id,brp_name) VALUES(${lit(companyId)},'test',${lit(brpEdielId)},'Synthetic TERM BRP');
-    INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status,owner_code) VALUES(${lit(gridOwnerId)},${lit(companyId)},'Synthetic TERM grid',${lit(edielReceiver)},'test',true,'active','TES');
+    INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status,owner_code,verified_for_customer_flow,actor_registry_status) VALUES(${lit(gridOwnerId)},${lit(companyId)},'Synthetic TERM grid',${lit(edielReceiver)},'test',true,'active','TES',true,'verified');
     INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id) VALUES(${lit(companyId)},'production','Synthetic TERM supplier',${lit(edielSender)},${lit(edielSender)});
     INSERT INTO public.ediel_brp_settings(company_id,environment,brp_ediel_id,brp_name) VALUES(${lit(companyId)},'production',${lit(brpEdielId)},'Synthetic BRP');
     INSERT INTO public.ediel_route_profiles(company_id,environment,route_name,message_family) VALUES(${lit(companyId)},'production','Synthetic PRODAT','PRODAT'),(${lit(companyId)},'production','Synthetic UTILTS','UTILTS');
@@ -177,6 +216,13 @@ export async function createTermTenant(opts: { permissionKeys?: string[] } = {})
   return { runId, companyId, admin, builderUserId, edielSender, edielReceiver, gridOwnerId, offerCache: new Map() }
 }
 
+/** Kopia av appens identitetsnyckel (app/admin/customers/actions.part-3.ts:35-83) för ett intake utan avtalsdel. */
+function expectedIntakeKey(companyId: string, f: { personalNumber: string; email: string; firstName: string; lastName: string; facilityId: string; meterPointId: string; street: string; postalCode: string; city: string; siteName: string }): string {
+  const identity = ['private', f.personalNumber, '', f.email, '', f.firstName, f.lastName, '', f.facilityId, f.meterPointId, f.street, f.postalCode, f.city, f.siteName,
+    '', '', '', '', '', '', '', '', 'create_new_pending_review', '', '', '', '', '', '', '', '', '', '', '', '', '', '[]'].join('|')
+  return `customer_create:${companyId}:${createHash('sha256').update(identity).digest('hex')}`
+}
+
 export type ContractTypeInput = 'variable_monthly' | 'variable_hourly' | 'variable_quarterly' | (string & {})
 
 export type CreateSignedContractInput = {
@@ -212,6 +258,7 @@ export type SignedContractFixture = {
   declaredSignedAt: string
   actualSignedAt: string
   input: CreateSignedContractInput
+  creation: CreationTrail
   /** Fälten som avtalspris/månadsavgift/bindning kommer ifrån, så som de ligger i DB efter signering. */
   sources: {
     contractRow: Record<string, unknown>
@@ -241,10 +288,10 @@ function pricingFor(input: CreateSignedContractInput, monthlyFee: number, area: 
   }
 }
 
-async function ensureOffer(tenant: TermTenant, input: CreateSignedContractInput, monthlyFee: number, area: string) {
+async function ensureOffer(tenant: TermTenant, input: CreateSignedContractInput, monthlyFee: number, area: string, mode: 'rpc_v3' | 'legacy_v2' = 'rpc_v3') {
   const bindingForOption = input.bindingMonths ?? 0
   const renewTerm = input.autoRenew ? (input.autoRenewTermMonths ?? (bindingForOption > 0 ? bindingForOption : 12)) : null
-  const key = JSON.stringify([input.contractType, bindingForOption, input.noticeMonths, monthlyFee, input.prorationPolicy ?? null, area, input.autoRenew ?? false, renewTerm])
+  const key = JSON.stringify([input.contractType, bindingForOption, input.noticeMonths, monthlyFee, input.prorationPolicy ?? null, area, input.autoRenew ?? false, renewTerm, mode])
   const cached = tenant.offerCache.get(key)
   if (cached) return cached
   const n = tenant.offerCache.size + 1
@@ -253,17 +300,36 @@ async function ensureOffer(tenant: TermTenant, input: CreateSignedContractInput,
   const offer = {
     name: `Synthetic TERM offer ${slug}`, slug, lifecycle_status: 'draft', contract_type: input.contractType, customer_type: 'both',
     pricing_model: 'spot', energy_direction: 'consumption', terms_version: 'test-v1', spot_markup_ore_per_kwh: 4,
-    monthly_fee_sek: monthlyFee, invoice_fee_sek: 19, default_binding_months: bindingForOption,
+    monthly_fee_sek: monthlyFee, invoice_fee_sek: 19, default_binding_months: input.bindingMonths,
     default_notice_months: input.noticeMonths, automatic_renewal: Boolean(input.autoRenew),
     ...(renewTerm ? { automatic_renewal_term_months: renewTerm } : {}),
     power_of_attorney_required: true,
     valid_from: new Date(Date.now() - 86_400_000).toISOString().slice(0, 10),
   }
   const client = serviceClient()
-  const created = await client.rpc('gridex_upsert_internal_contract_offer_v2', {
-    p_company_id: companyId, p_offer_id: null, p_payload: offer, p_pricing_snapshot: pricingFor(input, monthlyFee, area), p_actor_user_id: builderUserId,
+  const optionRef = `term-${tenant.runId}-${n}`
+  // rpc_v3 = appens egen väg (app/admin/contracts/actions.ts:392): v3-RPC:n skapar contract_price_options/områdespriser
+  // ur pricing-snapshotens price_options, och erbjudandets commercial_snapshot får då en kommersiell modell, vilket gör att
+  // createContractFromOfferAction väljer RPC-vägen gridex_create_internal_customer_contract_v1. legacy_v2 (utan price_options)
+  // ger TS-vägen createCustomerContract (fynd 005) och används bara av TERM01.PRE.
+  const pricing = pricingFor(input, monthlyFee, area)
+  const snapshot = mode === 'rpc_v3'
+    ? {
+        ...pricing, snapshot_schema: 'gridex_contract_pricing_v6_selection', schema_version: 'gridex_contract_pricing_v6_selection',
+        price_options: [{
+          price_option_reference: optionRef, option_code: optionRef, customer_name: 'Synthetic TERM price', internal_description: null,
+          contract_type: input.contractType, customer_type: 'both', binding_months: bindingForOption, notice_months: input.noticeMonths,
+          auto_renew_enabled: Boolean(input.autoRenew), renewal_term_months: renewTerm, default: true, selection_required: false,
+          valid_from: null, valid_to: null, earliest_start_date: null, latest_start_date: null, status: 'active', sort_order: 0, version_number: 1,
+          area_prices: [], metadata: { customer_type: 'both', is_default: true, selection_required: false },
+        }],
+        commercial_components: [], invoice_delivery_methods: ['email'], default_price_option_reference: optionRef,
+      }
+    : pricing
+  const created = await client.rpc(mode === 'rpc_v3' ? 'gridex_upsert_internal_contract_offer_v3' : 'gridex_upsert_internal_contract_offer_v2', {
+    p_company_id: companyId, p_offer_id: null, p_payload: offer, p_pricing_snapshot: snapshot, p_actor_user_id: builderUserId,
   })
-  if (created.error) throw new Error(`upsert_offer: ${created.error.message}`)
+  if (created.error) throw new Error(`upsert_offer(${mode}): ${created.error.message}`)
   const createdData = created.data as { ok?: boolean; code?: string; offer?: { id?: string } } | null
   if (!createdData?.ok || !createdData.offer?.id) throw new Error(`upsert_offer ej ok: ${JSON.stringify(createdData)}`)
   const offerId = createdData.offer.id
@@ -277,77 +343,121 @@ async function ensureOffer(tenant: TermTenant, input: CreateSignedContractInput,
   const pub = published.data as { ok?: boolean; mode?: string } | null
   if (!pub?.ok || pub.mode !== 'published') throw new Error(`publish_version ej published: ${JSON.stringify(pub)}`)
 
-  // Valbart pris för mallen: option med avtalets bindning/uppsägning/förnyelse + områdespris (som förlagan).
-  const optionRef = `term-${tenant.runId}-${n}`
-  const priceOptionId = sqlJson<string>(`WITH template AS (
-    INSERT INTO public.contract_price_options(company_id,contract_product_version_id,price_plan_version_id,option_reference,option_code,customer_name,contract_type,
-      binding_months,notice_months,auto_renew_enabled,renewal_term_months,status,customer_type,is_default,selection_required,created_by)
-    SELECT ${lit(companyId)},contract_product_version_id,price_plan_version_id,${lit(optionRef)},${lit(optionRef)},'Synthetic TERM price',${lit(input.contractType)},
-      ${bindingForOption},${input.noticeMonths},${input.autoRenew ? 'true' : 'false'},${renewTerm === null ? 'NULL' : renewTerm},'active','both',true,false,${lit(builderUserId)}
-    FROM public.contract_offers WHERE id=${lit(offerId)}
-    RETURNING id,company_id,price_plan_version_id
-  ), area AS (
-    INSERT INTO public.contract_price_option_area_prices(company_id,contract_price_option_id,price_plan_version_id,price_row_reference,price_area,amount,unit,created_by)
-    SELECT company_id,id,price_plan_version_id,${lit(`${optionRef}-${area.toLowerCase()}`)},${lit(area)},4,'ore_per_kwh',${lit(builderUserId)} FROM template RETURNING 1
-  ) SELECT to_jsonb(id) FROM template`)
+  // INGEN gridex_publish_contract_channel här. Appens sekvens är: spara (v3) -> publishContractVersionAction
+  // (gridex_publish_internal_contract_version, sätter offer published/active/is_active) -> skapa avtal. Avtals-RPC:n
+  // gridex_create_internal_customer_contract_v1 anropar själv gridex_ensure_internal_contract_publication, som skapar den publicerade
+  // publication-versionen (snapshot gridex_internal_publication_v1). En föregående kanalaktivering skapar en annan publicerad version
+  // (gridex_contract_publication_v6) i samma publication och ensure kolliderar då mot unikindexet
+  // contract_publication_versions_one_published_per_publication_uid (23505): se rapporterad produktkandidat.
+  let priceOptionId = ''
+  if (mode === 'rpc_v3') {
+    const rows = psqlRows<{ id: string }>(`select id from public.contract_price_options where company_id=${lit(companyId)} and option_reference=${lit(optionRef)}`)
+    if (rows.length !== 1) throw new Error(`v3-RPC skapade ${rows.length} contract_price_options för ${optionRef} (väntade 1)`)
+    priceOptionId = rows[0].id
+  }
 
-  const channel = await client.rpc('gridex_publish_contract_channel', { p_company_id: companyId, p_offer_id: offerId, p_channel: 'internal', p_actor_user_id: builderUserId })
-  if (channel.error) throw new Error(`publish_channel: ${channel.error.message}`)
-  const channelData = channel.data as { ok?: boolean; channel?: string; contract_publication_version_id?: string } | null
-  if (!channelData?.ok || channelData.channel !== 'internal' || !channelData.contract_publication_version_id) throw new Error(`publish_channel ej ok: ${JSON.stringify(channelData)}`)
-
-  const entry = { offerId, publicationVersionId: channelData.contract_publication_version_id, priceOptionId }
+  const entry = { offerId, publicationVersionId: '', priceOptionId, optionReference: optionRef }
   tenant.offerCache.set(key, entry)
   return entry
 }
 
+/** Hjälp: kasta tydligt fel när en server action kastade eller inte gav väntat resultat. */
+function assertActionOk(label: string, r: ServerActionResult) {
+  if (r.httpStatus >= 400 || r.threw) {
+    throw new Error(`${label}: server action misslyckades (HTTP ${r.httpStatus}, kastade=${r.threw}, redirect=${r.redirect ?? '-'}) ${r.errorRows.join(' | ')} :: ${r.excerpt.replace(/\s+/g, ' ').slice(0, 300)} (meddelandet finns i appens serverlogg, app.log)`)
+  }
+}
+
+export type CreationTrail = {
+  customerAction: { httpStatus: number; redirect: string | null; state: unknown }
+  contractAction: { httpStatus: number; redirect: string | null }
+  /** metadata.source_of_truth på avtalsraden: 'contract_price_options' = RPC-vägen, annars TS-vägen createCustomerContract. */
+  contractPath: 'rpc_gridex_create_internal_customer_contract_v1' | 'ts_createCustomerContract'
+  sourceType: string | null
+}
+
 /**
- * Skapar kund + anläggning + mätpunkt (is_test_data) och ett draft-avtal från publicerad publication version,
- * signerar via prepare/finalize-RPC:erna (service_role) och returnerar id:n och prisfältens källor.
+ * Skapar kund + anläggning + mätpunkt via appens intake-action (createCustomerAction, HTTP server action) och avtalet
+ * via createContractFromOfferAction (HTTP server action) som den inloggade tenant-adminen. Signeringen görs med de
+ * kanoniska prepare/finalize-RPC:erna (ersättning för UI-signering). Märkning is_test_data sätts efteråt.
+ * Avtalsfälten (binding/notice/månadsavgift/auto_renew/ends_at) härleds av appens skapande från erbjudandet
+ * (price option/offer-defaults) och formuläret, inte av fixturen.
  */
-export async function createSignedContract(tenant: TermTenant, input: CreateSignedContractInput): Promise<SignedContractFixture> {
+/** Bär utfallet av createContractFromOfferAction till TERM01.PRE-proben (kastas bara när opts.probe är satt). */
+export class ContractActionProbe extends Error {
+  constructor(public result: ServerActionResult, public contractCount: number) { super('contract_action_probe') }
+}
+
+export async function createSignedContract(tenant: TermTenant, input: CreateSignedContractInput, opts: { offerMode?: 'rpc_v3' | 'legacy_v2'; probe?: boolean } = {}): Promise<SignedContractFixture> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.startsAt)) throw new Error('startsAt måste vara YYYY-MM-DD')
+  logBackendReplacements()
   const area = input.priceArea ?? 'SE3'
   const monthlyFee = input.monthlyFeeSek ?? 49
-  const declaredSignedAt = input.signedAt ?? stockholmToday()
+  const declaredSignedAt = input.signedAt ?? '2026-10-15'
   const { companyId, builderUserId } = tenant
-  const offer = await ensureOffer(tenant, input, monthlyFee, area)
+  const offer = await ensureOffer(tenant, input, monthlyFee, area, opts.offerMode ?? 'rpc_v3')
+  const session = await tenantSession(tenant)
 
-  const customerId = randomUUID(); const siteId = randomUUID(); const pointId = randomUUID(); const contractId = randomUUID()
+  // 1. Kund + anläggning + mätpunkt via SQL-ersättning (ersätter createCustomerAction p.g.a. fynd claude-track2/004).
+  // Samma fält/kopplingar som intake-grafen skapar (actions.part-1.ts:877-1000 buildCreateCustomerParams och
+  // actions.part-2.ts:691+ createCustomerGraph -> canonical_onboard_customer_graph): kund (private, active, source
+  // admin_customer_intake), primär kontakt, registrerad adress, anläggning (draft, consumption, nätägare, prisområde,
+  // adress, okänd nuvarande leverantör) och mätpunkt (draft, hourly, consumption, settlement-relevant).
   const gsrn = fixtureGsrn()
+  const suffix = randomBytes(4).toString('hex')
+  const email = `synthetic-${suffix}-${tenant.runId}@example.invalid`
+  const customerId = randomUUID(); const siteId = randomUUID(); const pointId = randomUUID()
+  const lastName = `Term${suffix}`
   const marker = { test_center: { kind: 'invoice_test_customer' } }
-  const contractMarker = { ...marker, sim_declared_signed_at: declaredSignedAt }
-  const email = `synthetic-${customerId}@example.invalid`
-  const renewTerm = input.autoRenew ? (input.autoRenewTermMonths ?? ((input.bindingMonths ?? 0) > 0 ? input.bindingMonths! : 12)) : null
-
   psql(`BEGIN;
-    INSERT INTO public.customers(id,company_id,first_name,last_name,name,customer_number,personal_number,email,source,is_test_data,metadata)
-      VALUES(${lit(customerId)},${lit(companyId)},'Synthetic','Term',${lit(`Synthetic TERM customer ${customerId.slice(0, 8)}`)},${lit(customerId)},${lit(syntheticPersonalNumber())},${lit(email)},'invoice_test_center',true,${lit(marker)}::jsonb);
-    INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,facility_id,grid_owner_id,grid_area_code,price_area_code,status,is_test_data,metadata)
-      VALUES(${lit(siteId)},${lit(companyId)},${lit(customerId)},'TERM site',${lit(gsrn)},${lit(tenant.gridOwnerId)},'TES',${lit(area)},'active',true,${lit(marker)}::jsonb);
-    INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,ediel_metering_point_id,grid_owner_id,grid_owner_ediel_id,grid_area_code,price_area_code,status,reading_frequency,measurement_type,product_direction,is_settlement_relevant,is_test_data,metadata)
-      VALUES(${lit(pointId)},${lit(companyId)},${lit(customerId)},${lit(siteId)},${lit(siteId)},${lit(gsrn)},${lit(gsrn)},${lit(gsrn)},${lit(tenant.gridOwnerId)},${lit(tenant.edielReceiver)},'TES',${lit(area)},'active','hourly','consumption','consumption',true,true,${lit(marker)}::jsonb);
-    INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,
-      contract_offer_id,status,contract_version,requested_start_date,starts_at,metadata,created_by,contract_publication_version_id,
-      contract_product_id,contract_product_version_id,price_plan_id,price_plan_version_id,
-      price_book_id,legal_bundle_version_id,offer_reference,commercial_snapshot,legal_snapshot,
-      contract_type,binding_months,notice_months,monthly_fee_sek,auto_renew_enabled,auto_renew_term_months)
-    SELECT ${lit(contractId)},${lit(companyId)},${lit(customerId)},${lit(siteId)},
-      ${lit(pointId)},${lit(offer.offerId)},'draft','v1',${lit(input.startsAt)}::date,${lit(input.startsAt)}::date,${lit(contractMarker)}::jsonb,
-      ${lit(builderUserId)},v.id,p.contract_product_id,v.contract_product_version_id,
-      v.price_plan_id,v.price_plan_version_id,v.price_book_id,v.legal_bundle_version_id,
-      v.offer_reference,p.commercial_snapshot,l.rendered_snapshot,
-      ${lit(input.contractType)},${input.bindingMonths === null ? 'NULL' : input.bindingMonths},${input.noticeMonths},${monthlyFee},
-      ${input.autoRenew ? 'true' : 'false'},${renewTerm === null ? 'NULL' : renewTerm}
-    FROM public.contract_publication_versions v
-    JOIN public.contract_product_versions p ON p.id=v.contract_product_version_id
-    JOIN public.legal_bundle_versions l ON l.id=v.legal_bundle_version_id
-    WHERE v.id=${lit(offer.publicationVersionId)} AND v.status='published';
+    INSERT INTO public.customers(id,company_id,customer_type,status,first_name,last_name,full_name,personal_number,email,source,customer_number,is_test_data,metadata)
+      VALUES(${lit(customerId)},${lit(companyId)},'private','active','Synthetic',${lit(lastName)},${lit(`Synthetic ${lastName}`)},${lit(syntheticPersonalNumber())},${lit(email)},'admin_customer_intake',${lit(customerId)},true,${lit(marker)}::jsonb);
+    INSERT INTO public.customer_contacts(company_id,customer_id,type,name,email,is_primary)
+      VALUES(${lit(companyId)},${lit(customerId)},'primary',${lit(`Synthetic ${lastName}`)},${lit(email)},true);
+    INSERT INTO public.customer_addresses(company_id,customer_id,type,street_1,postal_code,city,country,is_active)
+      VALUES(${lit(companyId)},${lit(customerId)},'registered','Testgatan 1','12345','Teststad','SE',true);
+    INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,facility_id,site_type,status,grid_owner_id,price_area_code,grid_area_code,street,postal_code,city,country,current_supplier_name,current_supplier_unknown,is_test_data,metadata)
+      VALUES(${lit(siteId)},${lit(companyId)},${lit(customerId)},'TERM site',${lit(gsrn)},'consumption','draft',${lit(tenant.gridOwnerId)},${lit(area)},'TES','Testgatan 1','12345','Teststad','SE','Okänd nuvarande leverantör',true,true,${lit({ ...marker, addressSource: 'admin_customer_intake' })}::jsonb);
+    INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,ediel_metering_point_id,site_facility_id,grid_owner_id,grid_owner_ediel_id,grid_area_code,price_area_code,status,reading_frequency,measurement_type,product_direction,is_settlement_relevant,is_test_data,metadata)
+      VALUES(${lit(pointId)},${lit(companyId)},${lit(customerId)},${lit(siteId)},${lit(siteId)},${lit(gsrn)},${lit(gsrn)},${lit(gsrn)},${lit(gsrn)},${lit(tenant.gridOwnerId)},${lit(tenant.edielReceiver)},'TES',${lit(area)},'draft','hourly','consumption','consumption',true,true,${lit(marker)}::jsonb);
     COMMIT;`)
-  const exists = sqlJson<boolean>(`SELECT to_jsonb(count(*)=1) FROM public.customer_contracts WHERE id=${lit(contractId)}`)
-  if (!exists) throw new Error('term_fixture_draft_contract_not_created (publication version saknas eller inte published)')
+  const customerResult: ServerActionResult = { httpStatus: 0, redirect: null, value: 'sql_replacement', threw: false, errorRows: [], excerpt: '' }
+  const siteRows = [{ id: siteId }]; const pointRows = [{ id: pointId }]
+  void siteRows; void pointRows
 
-  // Canonical signering: prepare + finalize (invoiceTestContractLifecycle.ts:22-104). Token-hashen lämnar aldrig backend.
+  // 2. Avtal från erbjudande: createContractFromOfferAction (kundkortets formulär).
+  const renewTerm = input.autoRenew ? (input.autoRenewTermMonths ?? ((input.bindingMonths ?? 0) > 0 ? input.bindingMonths! : 12)) : null
+  const contractForm = new FormData()
+  const cput = (k: string, v: string) => contractForm.append(k, v)
+  cput('customer_id', customerId); cput('contract_offer_id', offer.offerId); cput('site_id', siteId); cput('metering_point_id', pointId)
+  cput('starts_at', input.startsAt); cput('signing_method', 'draft'); cput('invoice_delivery_method', 'email')
+  cput('price_option_reference', offer.optionReference)
+  const hasModel = psql(`select (jsonb_typeof(commercial_snapshot->'price_options')='array' and jsonb_array_length(commercial_snapshot->'price_options')>0)::text from public.contract_offers where id=${lit(offer.offerId)}`) === 'true'
+  const predictedPath = hasModel ? 'rpc_gridex_create_internal_customer_contract_v1' : 'ts_createCustomerContract'
+  console.info(`[contractPath] FÖRE anrop: offer ${offer.offerId.slice(0, 8)} price_options i commercial_snapshot=${hasModel} => förutsagd väg ${predictedPath}`)
+  const contractResult = await callServerAction(session, {
+    route: `/admin/customers/${customerId}`, filename: 'components/admin/customers/contracts/actions.ts',
+    exportedName: 'createContractFromOfferAction', args: [contractForm], worker: 'app/admin/customers/[id]/page',
+  })
+  console.info(`[contractPath] EFTER anrop: HTTP ${contractResult.httpStatus} kastade=${contractResult.threw} förutsagd väg ${predictedPath} request-id=${contractResult.requestId}`)
+  if (opts.probe) throw new ContractActionProbe(contractResult, Number(psql(`select count(*) from public.customer_contracts where company_id=${lit(companyId)} and customer_id=${lit(customerId)}`)))
+  assertActionOk('createContractFromOfferAction', contractResult)
+  const contractRows = psqlRows<{ id: string }>(`select id from public.customer_contracts where company_id=${lit(companyId)} and customer_id=${lit(customerId)}`)
+  if (contractRows.length !== 1) throw new Error(`createContractFromOfferAction skapade ${contractRows.length} avtal; svar: ${contractResult.excerpt.slice(0, 300)}`)
+  const contractId = contractRows[0].id
+  const created = psqlRows<{ status: string; source_type: string | null; metadata: Record<string, unknown> | null }>(`select status,source_type,metadata from public.customer_contracts where id=${lit(contractId)}`)[0]
+  const pubVersionId = psql(`select contract_publication_version_id from public.customer_contracts where id=${lit(contractId)}`)
+  if (!pubVersionId) throw new Error('avtalet saknar contract_publication_version_id efter skapandet')
+  offer.publicationVersionId = pubVersionId
+  const contractPath = created.metadata?.source_of_truth === 'contract_price_options' ? 'rpc_gridex_create_internal_customer_contract_v1' as const : 'ts_createCustomerContract' as const
+  console.info(`[contractPath] contract ${contractId.slice(0, 8)} => ${contractPath} (source_of_truth=${String(created.metadata?.source_of_truth ?? '-')}, source_type=${created.source_type})`)
+  if (contractPath !== 'rpc_gridex_create_internal_customer_contract_v1') {
+    throw new Error('TS-vägen createCustomerContract valdes i stället för RPC-vägen; TS-vägen skriver kolumner som saknas i schemat (fynd 005, t.ex. current_supplier_contract_end_date). TERM-stegen kräver RPC-vägen.')
+  }
+  // Deklarerat signeringsdatum följer med som metadata (ingen affärslogik); skrivs före signering på ett draft-avtal.
+  psql(`UPDATE public.customer_contracts SET metadata=coalesce(metadata,'{}'::jsonb)||${lit({ sim_declared_signed_at: declaredSignedAt, test_center: { kind: 'invoice_test_customer' } })}::jsonb WHERE id=${lit(contractId)} AND status='draft' AND signed_at IS NULL;`)
+
+  // 3. Signering: kanonisk prepare/finalize (ersätter UI-signering).
   const client = serviceClient()
   const tokenHash = randomBytes(32).toString('hex')
   const prepared = await client.rpc('gridex_prepare_customer_contract_signature_request_v1', {
@@ -366,7 +476,7 @@ export async function createSignedContract(tenant: TermTenant, input: CreateSign
   }
   const priceSnapshotId = String(contractRow.contract_price_snapshot_id)
   const snapshotRow = psqlRows<Record<string, unknown>>(`SELECT * FROM public.contract_price_snapshots WHERE id=${lit(priceSnapshotId)}`)[0]
-  const optionRow = psqlRows<Record<string, unknown>>(`SELECT * FROM public.contract_price_options WHERE id=${lit(offer.priceOptionId)}`)[0]
+  const optionRow = offer.priceOptionId ? psqlRows<Record<string, unknown>>(`SELECT * FROM public.contract_price_options WHERE id=${lit(offer.priceOptionId)}`)[0] : {}
   const snapshotJson = (snapshotRow.snapshot_json ?? {}) as Record<string, unknown>
   const components = Array.isArray(snapshotRow.price_components_snapshot) ? snapshotRow.price_components_snapshot as Record<string, unknown>[] : []
   const feeComponent = components.find((c) => (c.component_code ?? c.componentCode) === 'monthly_fee') ?? null
@@ -376,13 +486,63 @@ export async function createSignedContract(tenant: TermTenant, input: CreateSign
     tenant, companyId, customerId, siteId, meteringPointId: pointId, gsrn, contractId,
     offerId: offer.offerId, publicationVersionId: offer.publicationVersionId, priceOptionId: offer.priceOptionId, priceSnapshotId,
     declaredSignedAt, actualSignedAt: String(contractRow.signed_at), input,
+    creation: {
+      customerAction: { httpStatus: customerResult.httpStatus, redirect: customerResult.redirect, state: customerResult.value },
+      contractAction: { httpStatus: contractResult.httpStatus, redirect: contractResult.redirect },
+      contractPath, sourceType: created.source_type,
+    },
     sources: {
       contractRow, optionRow, snapshotRow,
-      snapshotMonthlyFeeSek: asNumber(snapshotJson.monthly_fee_sek),
-      snapshotBindingMonths: asNumber(snapshotJson.binding_months),
+      // v6-selection: avgiften ligger i price_components_snapshot (monthly_fee), bindningen i valt prisalternativ.
+      snapshotMonthlyFeeSek: asNumber(feeComponent?.amount ?? snapshotJson.monthly_fee_sek),
+      snapshotBindingMonths: asNumber((Array.isArray(snapshotJson.price_options) ? (snapshotJson.price_options as Record<string, unknown>[]).find((o) => o.price_option_reference === snapshotJson.price_option_reference)?.binding_months : undefined) ?? snapshotJson.binding_months),
       snapshotMonthlyFeeComponent: feeComponent,
     },
   }
+}
+
+/**
+ * TERM01.PRE: en färsk unik inskickning via createCustomerAction (HTTP). Skapar ingen data som övriga steg använder.
+ * Utfallet loggas av anroparen; räknas inte in i TERM-ID:ns utfall.
+ */
+export async function probeCreateCustomerAction(tenant: TermTenant): Promise<{ httpStatus: number; requestId?: string; state: unknown; intake: { id: string; status: string; stage: string }[]; customersCreated: number; error: string | null }> {
+  const session = await tenantSession(tenant)
+  const gsrn = fixtureGsrn(); const suffix = randomBytes(4).toString('hex')
+  const email = `synthetic-pre-${suffix}-${tenant.runId}@example.invalid`
+  const personalNumber = syntheticPersonalNumber()
+  const form = new FormData()
+  const put = (k: string, v: string) => form.append(k, v)
+  put('customerType', 'private'); put('firstName', 'Synthetic'); put('lastName', `Pre${suffix}`)
+  put('email', email); put('personalNumber', personalNumber)
+  put('siteName', 'TERM site'); put('facilityId', gsrn); put('meterPointId', gsrn); put('siteType', 'consumption')
+  put('gridOwnerId', tenant.gridOwnerId); put('priceAreaCode', 'SE3'); put('gridAreaCode', 'TES')
+  put('street', 'Testgatan 1'); put('postalCode', '12345'); put('city', 'Teststad'); put('country', 'SE'); put('currentSupplierUnknown', 'on')
+  const r = await callServerAction(session, {
+    route: '/admin/customers/intake', filename: 'app/admin/customers/actions.ts', exportedName: 'createCustomerAction',
+    args: [{ status: 'idle', message: '', fieldErrors: {}, values: {}, createdCustomerId: null }, form], worker: 'app/admin/customers/intake/page',
+  })
+  const key = expectedIntakeKey(tenant.companyId, { personalNumber, email, firstName: 'Synthetic', lastName: `Pre${suffix}`, facilityId: gsrn, meterPointId: gsrn, street: 'Testgatan 1', postalCode: '12345', city: 'Teststad', siteName: 'TERM site' })
+  const intake = psqlRows<{ id: string; status: string; stage: string }>(`select id,status,stage from public.customer_application_intakes where company_id=${lit(tenant.companyId)} and idempotency_key=${lit(key)}`)
+  const customersCreated = Number(psql(`select count(*) from public.customers where company_id=${lit(tenant.companyId)} and email=${lit(email)}`))
+  const state = r.value as { status?: string; message?: string } | null
+  return { httpStatus: r.httpStatus, requestId: r.requestId, state, intake, customersCreated, error: r.threw ? r.errorRows.join(' | ') : state?.status === 'error' ? String(state.message) : null }
+}
+
+/**
+ * TERM01.PRE createContract TS-path: erbjudande utan price_options => appens action väljer TS-vägen createCustomerContract.
+ * Deterministiskt (ingen price_option_reference, ingen kommersiell modell). Loggar fynd 005-utfallet; inga signeringar.
+ */
+export async function probeCreateContractTsPath(tenant: TermTenant): Promise<{ httpStatus: number; requestId?: string; threw: boolean; errorRows: string[]; excerpt: string; contractsCreated: number }> {
+  try {
+    await createSignedContract(tenant, { contractType: 'variable_hourly', bindingMonths: 12, noticeMonths: 1, startsAt: '2026-11-01', priceArea: 'SE3' }, { offerMode: 'legacy_v2', probe: true })
+  } catch (error) {
+    if (error instanceof ContractActionProbe) {
+      const r = error.result
+      return { httpStatus: r.httpStatus, requestId: r.requestId, threw: r.threw, errorRows: r.errorRows, excerpt: r.excerpt, contractsCreated: error.contractCount }
+    }
+    throw error
+  }
+  throw new Error('probe: createSignedContract returnerade utan probe-utfall')
 }
 
 export type SqlErrorResult = { sqlstate: string; message: string; raw: string }
