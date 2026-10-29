@@ -87,8 +87,8 @@ export function fixtureSteps() {
       },
     },
     {
-      id: 'FX03', title: 'customer, site, metering point, fixed-price contract, price snapshot, supply period (tenant A)', scope: 'sql', mechanism: 'sql',
-      note: 'SUBSTITUTION: the product creates these through onboarding/contract flows (website application, signing, Ediel switch). Triggers on contract_price_snapshots / customer_contracts (quote binding, canonical publication binding, state machine) may demand more than set here.',
+      id: 'FX03', title: 'customer, site, metering point, fixed-price contract, price snapshot, supply period (tenant A)', scope: 'sql', mechanism: 'sql (contract part: superuser, triggers bypassed)',
+      note: 'SUBSTITUTION. customer/site/metering point: plain SQL (triggers active). Contract/snapshot/supply period: SQL as superuser with product triggers BYPASSED (session_replication_role=replica) because the product only creates signed/active contracts through the signature + activation commands (catalog offer, legal bundle, signed PDF, supply graph) and has no import command; see comment in seed.mjs.',
       needs: ['FX01'],
       async run(ctx) {
         const fx = ctx.fixture
@@ -99,26 +99,43 @@ export function fixtureSteps() {
         const baseComponents = [{ source_type: 'fixed', price_area: T.priceArea, weight_percent: 100, fixed_price_sek_per_kwh: Number(T.fixedOrePerKwh) / 100, label: 'Fastpris' }]
         const priceComponents = [{ component_type: 'fixed_monthly_fee', name: 'Fast månadsavgift', calculation_type: 'fixed_monthly', amount: Number(T.monthlyFeeSek), unit: 'sek_month', vat_applicable: true, lifecycle: 'recurring' }]
         const snapshotJson = { contract_type: 'fixed', pricing_model: 'fixed', price_area: T.priceArea, vat_rate: Number(T.vatRate) }
+        // Part 1: customer, site, metering point - plain INSERTs, product triggers active.
         await ctx.sql.exec(`
           INSERT INTO public.customers(id,company_id,customer_type,status,first_name,last_name,full_name,name,email,customer_number,billing_street,billing_postal_code,billing_city,billing_country,invoice_email,is_test_data)
             VALUES (${lit(ids.customer)},${lit(c)},'private','active','Tora','T4Kund','Tora T4Kund','Tora T4Kund',${lit(`t4-kund-${fx.tag}@example.invalid`)},${lit(`T4-${fx.tag}`)},'Testvägen 1','41101','Göteborg','SE',${lit(`t4-faktura-${fx.tag}@example.invalid`)},true);
           INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,facility_id,status,street,postal_code,city,price_area_code,site_type,is_test_data)
             VALUES (${lit(ids.site)},${lit(c)},${lit(ids.customer)},'T4 Anläggning',${lit(gsrn)},'active','Testvägen 1','41101','Göteborg',${lit(T.priceArea)},'consumption',true);
           INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,status,price_area_code,price_area,start_date,is_test_data)
-            VALUES (${lit(ids.mp)},${lit(c)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.site)},${lit(gsrn)},${lit(gsrn)},'active',${lit(T.priceArea)},${lit(T.priceArea)},${lit(T.contractStart)},true);
+            VALUES (${lit(ids.mp)},${lit(c)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.site)},${lit(gsrn)},${lit(gsrn)},'active',${lit(T.priceArea)},${lit(T.priceArea)},${lit(T.contractStart)},true);`)
+        // Part 2: signed/active contract, price snapshot, supply period.
+        // BACKEND SUBSTITUTION with product triggers BYPASSED. The product has no import command: customer_contracts
+        // rows with status signed/active can only come from the signature command (online signing: published offer ->
+        // gridex_create_internal_customer_contract_v1 -> pending_signature -> signed with product/publication/legal-bundle
+        // version and signature evidence -> activate_customer_supply_v1 with a supply graph). Driving that needs a
+        // published catalog (contract_offers, price options, area prices, legal bundle version) and a signed PDF; not built.
+        // So this runs as the local superuser (supabase_admin) with session_replication_role=replica (triggers AND FK
+        // checks off, CHECK constraints still on). Verifies nothing about contract creation, signing, activation, quote /
+        // publication binding or snapshot hash/area guards; the snapshot hash is computed here the way the integrity
+        // trigger does (sha256 of snapshot_json::text). Catalog/evidence reference columns are left NULL.
+        await ctx.sqlAdmin.exec(`
+          SET session_replication_role = replica;
           INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,source_type,status,contract_name,contract_type,contract_number,
-              fixed_price_ore_per_kwh,monthly_fee_sek,starts_at,actual_start_date,price_area_used,vat_rate,invoice_recipient,invoice_email,billing_street,billing_postal_code,billing_city,billing_country)
+              fixed_price_ore_per_kwh,monthly_fee_sek,starts_at,actual_start_date,price_area_used,vat_rate,invoice_recipient,invoice_email,billing_street,billing_postal_code,billing_city,billing_country,
+              signed_at,locked_at,signature_snapshot,signature_snapshot_sha256,lifecycle_stage,energy_direction,metadata)
             VALUES (${lit(ids.contract)},${lit(c)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.site)},${lit(ids.mp)},'manual','active','T4 Fastpris','fixed',${lit(`T4-AVT-${fx.tag}`)},
-              ${T.fixedOrePerKwh},${T.monthlyFeeSek},${lit(T.contractStart)},${lit(T.contractStart)},${lit(T.priceArea)},${T.vatRate},'Tora T4Kund',${lit(`t4-faktura-${fx.tag}@example.invalid`)},'Testvägen 1','41101','Göteborg','SE');
+              ${T.fixedOrePerKwh},${T.monthlyFeeSek},${lit(T.contractStart)},${lit(T.contractStart)},${lit(T.priceArea)},${T.vatRate},'Tora T4Kund',${lit(`t4-faktura-${fx.tag}@example.invalid`)},'Testvägen 1','41101','Göteborg','SE',
+              ${lit(`${T.contractStart}T08:00:00Z`)},${lit(`${T.contractStart}T08:00:00Z`)},${lit({ t4_fixture: 'signature evidence is synthetic' })}::jsonb,repeat('a',64),'active','consumption',${lit({ t4_fixture: 'triggers bypassed' })}::jsonb);
           INSERT INTO public.contract_price_snapshots(id,company_id,contract_id,customer_id,pricing_model,base_price_components_snapshot,price_components_snapshot,snapshot_json,valid_from,snapshot_hash,source)
-            VALUES (${lit(ids.snapshot)},${lit(c)},${lit(ids.contract)},${lit(ids.customer)},'fixed',${lit(baseComponents)}::jsonb,${lit(priceComponents)}::jsonb,${lit(snapshotJson)}::jsonb,${lit(T.contractStart)},'','manual');
-          UPDATE public.customer_contracts SET contract_price_snapshot_id=${lit(ids.snapshot)} WHERE id=${lit(ids.contract)};
+            VALUES (${lit(ids.snapshot)},${lit(c)},${lit(ids.contract)},${lit(ids.customer)},'fixed',${lit(baseComponents)}::jsonb,${lit(priceComponents)}::jsonb,${lit(snapshotJson)}::jsonb,${lit(T.contractStart)},repeat('0',64),'manual');
+          UPDATE public.contract_price_snapshots SET snapshot_hash=encode(extensions.digest(convert_to(snapshot_json::text,'UTF8'),'sha256'),'hex') WHERE id=${lit(ids.snapshot)};
+          UPDATE public.customer_contracts SET contract_price_snapshot_id=${lit(ids.snapshot)}, snapshot_hash=(SELECT snapshot_hash FROM public.contract_price_snapshots WHERE id=${lit(ids.snapshot)}) WHERE id=${lit(ids.contract)};
           INSERT INTO public.customer_supply_periods(id,company_id,customer_id,metering_point_id,contract_id,customer_contract_id,start_date,actual_start_date,status,source)
             VALUES (${lit(ids.supply)},${lit(c)},${lit(ids.customer)},${lit(ids.mp)},${lit(ids.contract)},${lit(ids.contract)},${lit(T.contractStart)},${lit(T.contractStart)},'active','manual');`)
         Object.assign(fx, { ids, gsrn })
         const snap = await ctx.sql.one(`SELECT snapshot_hash, snapshot_schema_version FROM public.contract_price_snapshots WHERE id=${lit(ids.snapshot)}`)
         ctx.value('snapshot', snap)
-        ctx.assert.match(snap.snapshot_hash, /^[0-9a-f]{64}$/, 'snapshot hash must be filled by the integrity trigger')
+        ctx.assert.match(snap.snapshot_hash, /^[0-9a-f]{64}$/, 'snapshot hash')
+        ctx.assert.notEqual(snap.snapshot_hash, '0'.repeat(64))
         ctx.value('gsrn', gsrn)
       },
     },

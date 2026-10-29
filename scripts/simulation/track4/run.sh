@@ -9,6 +9,10 @@ set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 
 SCENARIO="${1:-}"
+# Accept a path relative to track4/ (scenarios/x.mjs), to the repo root, or to the cwd.
+for cand in "$SCENARIO" "$T4_DIR/$SCENARIO" "$APP_DIR/$SCENARIO"; do
+  if [ -n "$SCENARIO" ] && [ -f "$cand" ]; then SCENARIO="$cand"; break; fi
+done
 [ -n "$SCENARIO" ] && [ -f "$SCENARIO" ] || { echo "usage: run.sh <scenario-file.mjs> [runner options]" >&2; exit 2; }
 shift
 SCENARIO="$(cd "$(dirname "$SCENARIO")" && pwd)/$(basename "$SCENARIO")"

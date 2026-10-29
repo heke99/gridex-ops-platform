@@ -82,18 +82,20 @@ run_replay() {
 if [ "${SKIP_REPLAY:-0}" = 1 ]; then
   t4_db_ready || t4_die "SKIP_REPLAY=1 but no replayed schema on 127.0.0.1:$T4_DB_PORT"
   if [ ! -s "$SIM_HOME/replay-commit" ]; then
-    # Adopting a stack that was replayed by hand: record the commit it is assumed to match.
-    echo "$HEAD_SHA" > "$SIM_HOME/replay-commit"; t4_now > "$SIM_HOME/replay-at"; : > "$SIM_HOME/applied-migrations.tsv"
-    t4_log "adopted running stack (assumed replayed from $HEAD_SHA)"
+    # Adopting a stack that was replayed by hand: record the base commit (T4_ADOPT_REPLAY_COMMIT or T4_BASE_COMMIT),
+    # never HEAD. An existing replay-commit is never overwritten.
+    echo "${T4_ADOPT_REPLAY_COMMIT:-$T4_BASE_COMMIT}" > "$SIM_HOME/replay-commit"; t4_now > "$SIM_HOME/replay-at"; : > "$SIM_HOME/applied-migrations.tsv"
+    t4_log "adopted running stack (replay commit recorded as $(cat "$SIM_HOME/replay-commit"))"
   fi
   [ -d "$STACK_SRC" ] || t4_die "SKIP_REPLAY=1 needs $STACK_SRC to read stack keys"
-elif t4_db_ready && [ "$(cat "$SIM_HOME/replay-commit" 2>/dev/null || true)" = "$HEAD_SHA" ]; then
-  t4_log "stack already replayed from $HEAD_SHA"
+elif t4_db_ready && t4_same_app "$(cat "$SIM_HOME/replay-commit" 2>/dev/null || true)"; then
+  t4_log "stack already replayed from $(cat "$SIM_HOME/replay-commit") (HEAD $HEAD_SHA differs only in the harness)"
 else
   run_replay
 fi
 
 # ---- 3: env ----------------------------------------------------------------------------------------
+if [ -d "$ENV_FILE" ]; then mv "$ENV_FILE" "$ENV_FILE.dir.$(date +%s)"; t4_log "moved aside a directory named env"; fi
 STATUS_ENV="$SIM_HOME/status.env"
 ( cd "$STACK_SRC" && supabase status -o env ) > "$STATUS_ENV" 2>/dev/null || t4_die "supabase status failed (is the stack running?)"
 chmod 600 "$STATUS_ENV"
@@ -152,8 +154,8 @@ ON CONFLICT (id) DO UPDATE SET user_status='active';
 SQL
 
 BUILT="$(cat "$SIM_HOME/built-commit" 2>/dev/null || true)"
-if [ "${SKIP_BUILD:-0}" = 1 ] && [ "$BUILT" = "$HEAD_SHA" ] && [ -s "$APP_DIR/.next/BUILD_ID" ]; then
-  t4_log "reusing build of $HEAD_SHA"
+if [ "${SKIP_BUILD:-0}" = 1 ] && t4_same_app "$BUILT" && [ -s "$APP_DIR/.next/BUILD_ID" ]; then
+  t4_log "reusing build of $BUILT"
 else
   t4_log "npm run build (log $LOG_DIR/next-build.log)"
   rm -f "$SIM_HOME/built-commit" "$APP_DIR/.next/BUILD_ID"
@@ -171,7 +173,7 @@ if ! t4_pid_alive "$PID_DIR/sink.pid"; then
   t4_wait_port "$T4_SINK_PORT" 15 || t4_die "sink did not open port $T4_SINK_PORT"
 fi
 
-if t4_pid_alive "$PID_DIR/app.pid" && [ "$BUILT" = "$HEAD_SHA" ]; then
+if t4_pid_alive "$PID_DIR/app.pid" && t4_same_app "$(cat "$SIM_HOME/built-commit" 2>/dev/null || true)"; then
   t4_log "app already running (pid $(cat "$PID_DIR/app.pid"))"
 else
   if t4_pid_alive "$PID_DIR/app.pid"; then kill "$(cat "$PID_DIR/app.pid")" 2>/dev/null || true; sleep 1; fi

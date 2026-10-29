@@ -231,13 +231,21 @@ const steps = [
   },
 
   {
-    id: 'MAIN05.05', title: 'unknown UUID, malformed id and other-tenant id -> 404', scope: 'api', needs: ['MAIN05.01'],
+    id: 'MAIN05.05', title: 'unknown UUID and malformed id -> 404', scope: 'api', needs: ['FX06'],
+    note: 'Needs only the staff session (no fixture data, no file).',
     async run(ctx) {
-      const fx = ctx.fixture, a = await ensureSession(ctx, 'A'), b = await ensureSession(ctx, 'B')
+      const a = await ensureSession(ctx, 'A')
       const unknown = await getFile(ctx, a, randomUUID(), { label: 'unknown uuid (A)' })
       ctx.assert.equal(unknown.status, 404, 'unknown uuid')
       const malformed = await getFile(ctx, a, 'not-a-uuid', { label: 'malformed id (A)' })
       ctx.assert.equal(malformed.status, 404, 'malformed id')
+    },
+  },
+
+  {
+    id: 'MAIN05.05b', title: 'invoice file id of another tenant -> 404 (and own file still 200)', scope: 'api', needs: ['MAIN05.01'],
+    async run(ctx) {
+      const fx = ctx.fixture, a = await ensureSession(ctx, 'A'), b = await ensureSession(ctx, 'B')
       const other = await getFile(ctx, b, fx.fileId, { label: 'tenant A file id requested by tenant B' })
       ctx.assert.equal(other.status, 404, 'other tenant must see 404, not the file')
       ctx.assert.ok(!other.text().includes(fx.fileRow.rows[0].invoice_number), 'no leak of tenant A content')
@@ -247,7 +255,7 @@ const steps = [
   },
 
   {
-    id: 'MAIN05.06', title: "'-' x 36 as file id -> controlled 4xx (5xx = FAIL)", scope: 'api', needs: ['MAIN05.01'],
+    id: 'MAIN05.06', title: "'-' x 36 as file id -> controlled 4xx (5xx = FAIL)", scope: 'api', needs: ['FX06'],
     note: "Route guard is /^[0-9a-f-]{36}$/i, which accepts '-'x36; the id is then used in a uuid-typed query. Expected finding if the response is 500.",
     async run(ctx) {
       const a = await ensureSession(ctx, 'A')

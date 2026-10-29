@@ -36,7 +36,8 @@ script excludes mailpit), app 3104, sink 3194. Project id `gridex-sim-t4`.
 |---|---|---|
 | FX01 tenants A and B | **SQL** | `companies` rows (active, provider `file_export` env `test`, `invoice_export_enabled`). Product provisions via platform-admin tooling; not exercised. |
 | FX02 staff users | **Auth admin API** + **SQL** | Users created with `auth.admin.createUser` (real). `user_profiles`, role `t4_billing_staff` with `billing_underlay.read`/`.export`, `role_permissions`, `company_memberships`, `user_roles` are SQL: `canonical_authenticated_tenant_context` reads exactly these. |
-| FX03 customer, site, metering point, contract (fixed 84.75 öre/kWh + 49.50 SEK/month, 25 %), price snapshot, supply period | **SQL** | Product creates them through website application / signing / Ediel switch / contract flows. Triggers (quote binding, canonical publication binding, contract state machine, customer chain) fire on these inserts; the snapshot hash is filled by the product trigger. Verifies nothing about onboarding or contract creation. |
+| FX03 customer, site, metering point | **SQL** | Plain INSERTs, product triggers active. |
+| FX03 contract (fixed 84.75 öre/kWh + 49.50 SEK/month, 25 %), price snapshot, supply period | **SQL, superuser, triggers bypassed** | `customer_contracts` signed/active rows can only be created by the product's signature + activation commands (published offer -> `gridex_create_internal_customer_contract_v1` -> signing with catalog/legal-bundle refs and evidence -> `activate_customer_supply_v1`); there is no import command (the trigger message `customer_contract_signed_insert_requires_import_command` names none). The fixture inserts as local `supabase_admin` with `session_replication_role=replica` (triggers and FK checks off, CHECKs on). Verifies nothing about contract creation, signing, activation, quote/publication binding or snapshot guards; catalog and evidence reference columns stay NULL, signature evidence is synthetic, snapshot hash computed as the integrity trigger does. |
 | FX04 meter values -> READY underlay | **SQL (default)** | Underlays inserted as `validated`/`ready` with `total_kwh` (3 months: main 2026-09 = 437.215 kWh, 2026-08 = 120.5, 2026-07 = 310). Bypasses meter-value intake and `generateBillingUnderlaysForMonth`, so it verifies neither. `T4_UNDERLAY_MODE=engine` calls the real `POST /api/internal/billing/generate-underlay`, but only works once qualified meter values exist (see Open). |
 | FX05 expected amounts | compute | `fixtures/expected.mjs`. |
 | FX06 sessions | **API** | Password sign-in through `@supabase/ssr` (same cookie format as the app), active-company cookie `gridex_admin_selected_company_id`; checks `canonical_authenticated_tenant_context` and `GET /admin/billing` = 200. |
@@ -60,6 +61,7 @@ exact-decimal value and record the other variants as findings. Nothing in the re
 status passed|failed|skipped + reason, HTTP status/bytes/sha256/location of every request, DB row counts before/after/delta
 for tenant A, values, findings, file sha256s; top-level `skipped` list and vitest-style `vitest` counters),
 `summary.json`. Exit: 0 ok, 1 a step failed, 2 usage, 3 stack not ready, 4 another run active.
+MAIN05.05/.06 depend only on FX06 (no fixture data); MAIN05.05b/.04 need a real file. `run.sh` accepts a path relative to track4/ (`scenarios/x.mjs`). Replay/build reuse accepts a HEAD that differs from `replay-commit`/`built-commit` only under `scripts/simulation/track4/`; adopting a stack never overwrites `replay-commit` (records `T4_BASE_COMMIT` if absent).
 `--only ID[,ID]` runs the fixture steps plus the step and its `needs`.
 
 ## Origins
@@ -71,7 +73,7 @@ for tenant A, values, findings, file sha256s; top-level `skipped` list and vites
 - Patch set for config/replay script: taken from the runner's `config.diff` / `replay-script.diff`.
 
 ## Open / unverified (authoring session had no stack access; all SQL fixture inserts are untested)
-- Constraint/trigger errors in FX01-FX04 are expected on the first run: fix as HARNESS defects.
+- Constraint/trigger errors in FX01-FX04 are possible on a run: fix as HARNESS defects.
 - Real meter values need a genuine inbound UTILTS E66 (`gridex_read_billing_source_values_v1` verifies the Ediel
   message, stored consumer contract and rule-pack basis): TODO T4-FX04b, blocks `T4_UNDERLAY_MODE=engine` and BILLNEG01.04b.
 - `file_export` is not `selectable` in `invoice_provider_catalog`; if a trigger/guard refuses it use `T4_INVOICE_PROVIDER=nordfin`

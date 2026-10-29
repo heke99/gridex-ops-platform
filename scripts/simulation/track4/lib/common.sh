@@ -35,6 +35,18 @@ t4_log() { echo "[t4 $(basename "${0:-t4}")] $*"; }
 t4_die() { echo "[t4 $(basename "${0:-t4}")] ERROR: $*" >&2; exit 1; }
 t4_now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 t4_head() { git -C "$APP_DIR" rev-parse HEAD; }
+# Commit the stack/schema was replayed from (base of the campaign); used when adopting a hand-made stack.
+T4_BASE_COMMIT="${T4_BASE_COMMIT:-1c0c088cb4ed66d0dd8b3e34c9606019342a1a56}"
+# True when $1 (a commit sha) is HEAD, or HEAD differs from it only under scripts/simulation/track4/ (harness-only
+# commits do not change the app or the schema, so the replay/build of $1 is still valid).
+t4_same_app() {
+  local from="$1" head changed
+  [ -n "$from" ] || return 1
+  head="$(t4_head)"
+  [ "$from" = "$head" ] && return 0
+  changed="$(git -C "$APP_DIR" diff --name-only "$from" "$head" 2>/dev/null)" || return 1
+  [ -z "$(printf '%s\n' "$changed" | grep -v -e '^$' -e '^scripts/simulation/track4/')" ]
+}
 
 t4_init() {
   mkdir -p "$SIM_HOME" "$LOG_DIR" "$PID_DIR" "$RUNS_DIR"

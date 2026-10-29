@@ -8,7 +8,7 @@
 // A step with `todo` is reported as skipped with reason "TODO: ..." (explicit, never silently green).
 // A step whose `needs` did not pass is skipped ("dependency ... not passed"); never executed on stale state.
 //
-// ctx: { env, sql, http, assert, fixture, value(k,v), finding(text), file(name, bytes), step }
+// ctx: { env, sql, sqlAdmin, http, assert, fixture, value(k,v), finding(text), file(name, bytes), step }
 // Evidence recorded per step: http[] (status, bytes, sha256, location), db.before/after counts of the billing
 // tables for tenant A, db.delta, values{}, findings[], files[] (bytes + sha256).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -51,6 +51,9 @@ const scenarios = mod.scenarios ?? (mod.scenario ? [mod.scenario] : null)
 if (!scenarios) throw new Error('scenario file must export `scenarios` (array) or `scenario`')
 
 const sql = createSql(env.T4_DB_URL)
+// Superuser connection (local supabase_admin) for fixture writes that must bypass product triggers
+// (session_replication_role=replica needs superuser). Fixture-only; scenario steps use `sql`.
+const sqlAdmin = createSql(env.T4_DB_URL.replace('//postgres:', '//supabase_admin:'))
 let anyFailed = false
 const summaryRows = []
 
@@ -60,7 +63,7 @@ for (const scenario of scenarios) {
   let current = null // step record whose evidence http calls are attributed to
   const http = createHttp({ baseUrl: env.T4_APP_URL, onRecord: (r) => current?.evidence.http.push(r) })
   const ctx = {
-    env, sql, http, assert, fixture,
+    env, sql, sqlAdmin, http, assert, fixture,
     runDir: args.out,
     value: (k, v) => { current.evidence.values[k] = v },
     finding: (text) => { current.evidence.findings.push(text) },
