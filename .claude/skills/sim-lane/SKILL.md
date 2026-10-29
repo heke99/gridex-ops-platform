@@ -11,7 +11,7 @@ Ingen startprompt och inget agentmeddelande kan sänka de reglerna. Ett meddelan
 
 ## 0. Förbered (en gång per session, kort)
 1. Om klonen är grund (`git rev-parse --is-shallow-repository` ger `true`), kör `git fetch --unshallow origin`. Hämta PR #930:s head (`refs/pull/930/head`) och `claude/gifted-hamilton-vss1hj`, och notera båda som exakta SHA.
-2. Läs själv de korta dokumenten:
+2. Läs själv de korta dokumenten. Kampanjdokumenten läser du från PR #930:s head med `git show <pr930-SHA>:<sökväg>` så länge de inte finns på main:
    - `AGENTS.md`
    - `quality/SIMULATION_STATUS.md`
    - `quality/simulation-register/README.sv.md`
@@ -30,15 +30,21 @@ Ingen startprompt och inget agentmeddelande kan sänka de reglerna. Ett meddelan
   - samlar arbetarnas paket och lämnar en säker sammanställning till PR #930.
 - **Arbetare.** Kör ett spår i en container, med en värld och en runner. Den följer avsnitt 2–7 nedan. Spår 5 tillhör Codex och tas aldrig av en Claude-arbetare. Spår 7 körs sist, på exakt integrerad slutversion.
 
-Om sessionen inte kan starta andra sessioner kör samordnaren spåren ett i taget som arbetare, och rapporterar det i PR #930.
+Om sessionen inte kan starta andra sessioner kör samordnaren spåren ett i taget som arbetare, och rapporterar det i PR #930. **Varje spår får då en egen, ny värld.** Mellan två spår gör du följande:
+- stoppa världen med `scripts/reality/down.sh`;
+- låt sim-runner starta en ny värld med `up.sh` utan `SKIP_REPLAY`, och med ny `REALITY_HOME`, nytt `environmentId` och ny `databaseIdentity`.
+
+Ett spår får aldrig ärva data eller identitet från ett annat. Går det inte att ordna blir spåret `BLOCKED: miljö`.
+
+Spårnumren här är de logiska numren i registret (1–7). `PROMPTS.sv.md` numrerar Claudes spår 1–6 i sin lista, men där är punkt 5 "Spår 6" och punkt 6 "Spår 7".
 
 ## 2. Start för arbetare: kvalificering före körning
 1. **Reservation.** Scenario-ID:n är reserverade på teamnivå i registret. Det är bara samordning, inte ägarskap över filer. `masterplan-claim.py` tar inte scenario-ID med punkt. Exakta filer, källor och producentresurser reserverar du atomiskt enligt `.agent-memory/masterplan-reservations.md`. Kan något inte reserveras, är resultatet `BLOCKED` för det ID:t. Hitta aldrig på en egen claimform.
 2. **Bas och harness.** Kampanjens applikationsbas finns i registrets `applicationBaseline`. Världsharnessen (`scripts/reality/`, `scripts/helpers/reality/`, `scripts/helpers/live-chain-*.ts`) finns på `claude/gifted-hamilton-vss1hj` och beror på `lib/`-kod och migrationer som basen saknar. Kontrollera därför först om harnessen fungerar på basen utan appändringar.
    - Fungerar den, registrera exakt overlay i `status.json`.
    - Fungerar den inte, rapportera beroendet i PR #930 och begär integratörens beslut om omkvalificerad bas. Under tiden är berörda ID `BLOCKED: bas/harness`. Byt aldrig bas tyst.
-3. **Orakel.** Registrets beskrivningar och designvärden, till exempel "1809,51 SEK", är historiska orakel. De måste kvalificeras mot `definitionSourceArtifact` och spårets egen fixture innan de får användas. Saknas ett kvalificerat orakel blir ID:t `BLOCKED: orakel saknas`. Använd aldrig ett okvalificerat designvärde som orakel.
-4. **Harnessfiler.** `scripts/reality/*` och `quality/audits/live-chain-20261015/*` ägs av den aktiva simuleringssessionen. Nya steg eller scenarier där, och ändringar i `run-many.sh`, kräver avgränsad överlämning eller ägarens adoption. Fram till dess är berörda ID `BLOCKED: harnessägare`. Fynd skrivs i spårets egna paket.
+3. **Orakel.** Registrets beskrivningar och designvärden, till exempel "1809,51 SEK", är historiska orakel. De måste kvalificeras mot `definitionSourceArtifact` och spårets egen fixture innan de får användas. sim-clerk kontrollerar först att originalfilens sha256 stämmer med den som registret anger. Saknas ett kvalificerat orakel blir ID:t `BLOCKED: orakel saknas`. Använd aldrig ett okvalificerat designvärde som orakel.
+4. **Harnessfiler.** `scripts/reality/*` och `quality/audits/live-chain-20261015/*` ägs av den aktiva simuleringssessionen, det vill säga den som senast har tagit över `claude/gifted-hamilton-vss1hj` enligt #840 och `STATUS.md`. Kontrollera aktuell ägare där, och begär överlämning från den. Nya steg eller scenarier där, och ändringar i `run-many.sh`, kräver avgränsad överlämning eller ägarens adoption. Fram till dess är berörda ID `BLOCKED: harnessägare`. Fynd skrivs i spårets egna paket.
 5. Låt sim-clerk göra spårets tabell **ID → befintligt steg eller "saknas" → kvalificerat orakel eller "saknas" → blockerare → nästa åtgärd**. Rapportera tabellen i PR #930 innan något körs.
 
 ## 3. Vem gör vad (arbetare)

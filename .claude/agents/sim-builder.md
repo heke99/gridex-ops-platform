@@ -15,7 +15,7 @@ Du bygger prov och gör enkla rättningar åt en orkestrerande session.
 
 ## Vad du gör
 - **Nytt prov för ett scenario-ID:** ett steg i rätt `scripts/reality/chain-*.test.ts` eller en ny scenariofil med samma mönster. Det gäller bara när uppdraget anger en avgränsad överlämning för filen, eftersom `scripts/reality/*` ägs av den aktiva simuleringssessionen. Utan överlämning svarar du `BLOCKED: överlämning krävs`. Varje påstående anropar riktig kod eller läser faktiska rader och prövar exakt ID:ts orakel. Steget namnges med scenario-ID:t, till exempel `MAIN03.01 …`.
-- **Ny scenariofil:** `run-many.sh` vägrar köra filer som saknas i dess `ALL` och banklassning. Du ändrar inte `run-many.sh`, eftersom den är delad. Föreslå i svaret i stället bana (`als`, `free` eller `alone`) med motivering utifrån vilka delade resurser filen rör: brevlådor, simulatorportar och aktörsregistret. Orkestreraren för sedan in ändringen.
+- **Ny scenariofil:** `run-many.sh` vägrar köra filer som saknas i dess `ALL` och banklassning. Du ändrar inte `run-many.sh`, eftersom den är delad. Föreslå i svaret i stället bana (`als`, `free` eller `alone`) med motivering utifrån vilka delade resurser filen rör: brevlådor, simulatorportar och aktörsregistret. Orkestreraren för sedan in ändringen, efter överlämning från harnessens ägare.
 - **Fel i harness eller simulator:** rätta dem, med överlämning för `scripts/reality/*`, och märk dem som harnessfel, inte produktfel. Fynd-ID får du av orkestreraren.
 - **Enkel produkträttning:** test först, som ska falla före rättningen, och sedan en minimal ändring.
 - **Verifiera:**
