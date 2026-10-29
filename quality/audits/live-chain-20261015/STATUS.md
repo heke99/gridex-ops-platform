@@ -1,11 +1,55 @@
 # Verklighetssimuleringen — läge och nästa steg
 
-Uppdaterad 2026-10-28 kl. 20:25 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
+Uppdaterad 2026-10-29 kl. 10:05 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
 
 Den hör ihop med tre andra dokument:
 - [FINDINGS.md](FINDINGS.md): alla fynd. Inget tas bort därifrån.
 - [OWNER-DECISIONS.md](OWNER-DECISIONS.md): ägarens beslut (1–43) och öppna frågor.
 - #840: anspråk och leveranser per fil.
+
+## ÅTERUPPTA HÄRIFRÅN (läs först om arbetet har stannat)
+Senast uppdaterad 2026-10-29 10:05 UTC. Grenen `claude/wonderful-franklin-o8gx2p`, head `0344f8587` (allt nedan är pushat).
+
+**Var jag är:** ägarbeslut 35–43 är genomförda och applicerade i världen. Två saker återstår innan J1 är klar:
+1. **J1-B6 (öppen, hög):** den negativa APERAK:en för leveransägarens nya hållskäl (42/210, 42/226, 40/105, 40/107, 40/104) vägras av databasens kvittensguide (`ediel_native_ack_guide_invalid`), eftersom en hållning inte lämnar något beständigt bevis. Se FINDINGS "J1-B6".
+   - **Pågår:** J1-agenten (arbetskopia `.claude/worktrees/agent-a0d3c7c5b1a08c97d`) bygger ett hashat hållkvitto i ägarens transaktion och en guideväg som godtar exakt kvittots svar. Migrationer i intervallet `20261028103000–109999`. Ändrar skyddade ACK-kroppar, så `handover-J1.md` utökas och postas i #840.
+   - **Om agenten har stannat:** läs dess arbetskopia (`git log`, `git status`). Fortsätt från den, eller gör uppgiften själv enligt FINDINGS J1-B6.
+2. **Verifiering av J1 (35–38):**
+   - `inbound-prodat-j1-native` ska vara grön utom 40/103 (`it.fails`).
+   - `ediel-at-z03l-z03lk-supplier-native` var 23 gröna och 11 röda under cronlast (deadlock, ENOBUFS). Den körs nu om utan appen. Är den fortfarande röd: kör samma svit på `22ac29587` (före J1) och jämför de röda testen.
+   - `ediel-source-owner-native` hade många röda i en avbruten körning under last. Samma jämförelse.
+   - `ediel-z04l-z04lk-future-start-native` kan inte köras lokalt (GitHub-värd krävs).
+   - Därefter `npm run ediel:masterplan-v2:test-coverage -- --check` (måste vara 352/352).
+
+**Världens läge:**
+- Databasen och GreenMail kör.
+- **Appen är avsiktligt stoppad** under nativetesterna (cronjobben gav deadlockar). Starta den med `SKIP_REPLAY=1 SKIP_BUILD=1` och övriga flaggor, se "Återstart" nedan.
+- Alla migrationer `20261028*` är installerade och registrerade i `supabase_migrations.schema_migrations`.
+
+**Återstart efter en containeromstart** (har hänt nio gånger):
+1. `rm -f /var/run/docker.pid; nohup dockerd &`
+2. `docker rm -f gx-mail`
+3. Supabase-containrarna startar själva med dockerd.
+4. För hela världen: i `/home/user/gx-wt-run` (detached på grenens head) kör `SKIP_REPLAY=1 [SKIP_BUILD=1] GRIDEX_REALITY_TICK_MS=3000 GRIDEX_REALITY_F6C_MODE=cron GRIDEX_REALITY_F6C_PAGES=2 REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic bash scripts/reality/up.sh`.
+5. För bara GreenMail: kör `docker run` med `/tmp/gridex-reality/tls` som i `up.sh` rad 40.
+
+**Nästa steg efter J1:**
+- Integrera J1-B6.
+- Bygg om appen och kör J1 och J2 i världen.
+- Kör F i en ny värld (ny replay).
+- Ta prestandafyndet G-6b.
+- Väntande ägarfrågor: avsnittet "Öppna frågor (2026-10-28 kväll)" i OWNER-DECISIONS.
+
+**Leveranser i denna omgång (alla pushade):**
+- `af52dcad9`: beslut 41.
+- `b6ab5795e`: beslut 42.
+- `5231eaaab`: beslut 39.
+- `340fb6a62`: beslut 43.
+- `22ac29587`: beslut 40.
+- `f649ece0a`: beslut 38.
+- `d7ccf01eb`: beslut 35–37.
+- `0344f8587`: FINDINGS J1-B6.
+- Överlämningar i #840: F48, J2-02 och J1.
 
 ## Var jag är nu
 - **Ägarbeslut 35–43 (2026-10-28 ca 15:40 UTC):** alla nio frågor besvarade och registrerade i OWNER-DECISIONS (status per beslut i tabellen). Ägarens villkor: ändringar i skyddad kod och godkända tester kräver avgränsad överlämning, bevarade skydd och nya positiva och negativa regressioner.
