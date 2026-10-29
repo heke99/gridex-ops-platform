@@ -934,7 +934,9 @@
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
     "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
     "20261014211648_ediel_sc046_bound_newer_metering_correction.sql": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b",
-    "20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql": "42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff"
+    "20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql": "42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff",
+    "20261029105939_edit_unsigned_customer_contract_atomic.sql": "380a72c032425bb9d913b2b80fb56b25e98e301c1fb5a5fe21b8e59cbc90127f",
+    "20261029173552_preserve_imported_agreement_selected_pricing.sql": "48a167a0bbe96a646e7e3115e3e4ee0cba4853de6637d8100bceca4f40b7cadc"
   },
   "generatedAt": "2026-10-14T00:52:50.668Z",
   "schemaVersion": 1

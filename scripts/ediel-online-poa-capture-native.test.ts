@@ -3,6 +3,7 @@
 // unsigned contract with NULL commercial dates, its own V2 consent and PDF.
 // No claimed browser/customer authentication, provider delivery or activation.
 import {createHash,randomBytes,randomUUID} from 'node:crypto'
+import {PDFDocument} from 'pdf-lib'
 import {spawn} from 'node:child_process'
 import {createClient,type SupabaseClient} from '@supabase/supabase-js'
 import {afterAll,beforeAll,expect,it} from 'vitest'
@@ -412,4 +413,66 @@ it('rechecks expiry after actual blocked-row lock acquisition, never committing 
   try{if(child.exitCode===null){child.stdin.end('COMMIT;\n');await done}}
   finally{if(response)await Promise.allSettled([response])}
  }
+})
+
+// Real local Storage + full native DB profile. Synthetic fixture PDF only;
+// this never proves a real customer's signature, IP, utility reply or LIVE.
+async function importedNativeFixturePdf(contractId:string){
+ guard()
+ const pdf=await PDFDocument.create();pdf.addPage().drawText('SYNTHETIC LOCAL NATIVE FIXTURE - not a real customer signature')
+ const bytes=Buffer.from(await pdf.save()),checksum=digest(bytes),path=`${f.customerId}/native-signed-import/${randomUUID()}.pdf`
+ const upload=await supabaseService.storage.from('customer-documents').upload(path,bytes,{contentType:'application/pdf',upsert:false})
+ expect(upload.error).toBeNull()
+ const result=await supabaseService.from('customer_authorization_documents').insert({
+  company_id:f.companyId,customer_id:f.customerId,site_id:f.siteId,metering_point_id:f.pointId,
+  customer_contract_id:contractId,document_type:'complete_agreement',status:'active',
+  title:'SYNTHETIC local native imported fixture',file_name:'synthetic-local-fixture.pdf',mime_type:'application/pdf',file_size_bytes:bytes.length,
+  storage_bucket:'customer-documents',file_path:path,file_checksum:checksum,created_by:f.actorUserId,
+  uploaded_at:new Date().toISOString(),metadata:{source:'customer_intake',documentRole:'signed_agreement',channel:'synthetic_local_native_only'},
+ }).select('id').single()
+ expect(result.error).toBeNull();expect(result.data?.id).toBeTruthy()
+ return {documentId:result.data!.id,checksum,path}
+}
+
+it('imports a local fixture PDF against the exact existing canonical price receipt without appending or changing its fees',async()=>{
+ const p=await revisionPending(),before=revisionGraph(p)
+ const rows=sql<unknown>(`SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.contract_price_snapshots s WHERE s.company_id=${literal(f.companyId)} AND s.contract_id=${literal(p.contractId)}`)
+ const imported=await importedNativeFixturePdf(p.contractId),after=revisionGraph(p)
+ expect(after.contract).toMatchObject({status:'signed',document_sha256:imported.checksum,contract_price_snapshot_id:before.ledger.id})
+ expect(after.ledger).toEqual(before.ledger)
+ expect(sql<unknown>(`SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.contract_price_snapshots s WHERE s.company_id=${literal(f.companyId)} AND s.contract_id=${literal(p.contractId)}`)).toEqual(rows)
+ expect(after.contract.signature_snapshot).toMatchObject({signing_method:'imported_signed_document',source_authorization_document_id:imported.documentId,pricing_snapshot_sha256:before.ledger.snapshot_hash})
+})
+
+it('imports an actually edited unsigned agreement against its privately authorized current receipt and preserves historical prices',async()=>{
+ const p=await revisionPending(),old=revisionGraph(p)
+ const saved=await supabaseService.rpc('gridex_edit_unsigned_customer_contract_v1',editArgs(p,{invoice_fee_sek:25.5,override_reason:'SYNTHETIC local revised PDF import'}))
+ expect(saved.error).toBeNull()
+ const revised=revisionGraph(p);expect(revised.ledger.source).toBe('customer_contract_unsigned_edit')
+ const imported=await importedNativeFixturePdf(p.contractId),after=revisionGraph(p)
+ expect(after.contract).toMatchObject({status:'signed',invoice_fee_sek:25.5,document_sha256:imported.checksum,contract_price_snapshot_id:revised.ledger.id})
+ expect(after.ledger).toEqual(revised.ledger)
+ expect(sql<unknown>(`SELECT to_jsonb(s) FROM public.contract_price_snapshots s WHERE id=${literal(String(old.ledger.id))}`)).toEqual(old.ledger)
+ expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.contract_price_snapshots WHERE company_id=${literal(f.companyId)} AND contract_id=${literal(p.contractId)}`)).toBe(2)
+})
+
+it('creates the first canonical receipt for an unsigned manual PDF contract through the real materializer and full import profile',async()=>{
+ guard();const contractId=randomUUID()
+ const created=await supabaseService.from('customer_contracts').insert({id:contractId,company_id:f.companyId,customer_id:f.customerId,
+  site_id:f.siteId,customer_site_id:f.siteId,metering_point_id:f.pointId,status:'draft',source_type:'manual_override',
+  contract_name:'SYNTHETIC simple manual PDF intake',contract_type:'variable_monthly',energy_direction:'consumption',
+  spot_markup_ore_per_kwh:1,variable_fee_ore_per_kwh:8,monthly_fee_sek:49,invoice_fee_sek:19,vat_rate:0.25,
+  starts_at:null,ends_at:null,signed_at:null,price_area_used:'SE3',created_by:f.actorUserId,updated_by:f.actorUserId,
+  price_snapshot:{spotMarkupOrePerKwh:1,variableFeeOrePerKwh:8,monthlyFeeSek:49,invoiceFeeSek:19,vatRate:0.25,optionalFeeLines:[]},
+  metadata:{test_center:{kind:'invoice_test_customer'},test:'SYNTHETIC native manual PDF only'},
+ })
+ expect(created.error).toBeNull()
+ expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.contract_price_snapshots WHERE contract_id=${literal(contractId)}`)).toBe(0)
+ const imported=await importedNativeFixturePdf(contractId)
+ const after=revisionGraph({contractId,requestId:'not-used',tokenHash:'not-used'})
+ expect(after.contract).toMatchObject({status:'signed',signed_at:expect.any(String),invoice_fee_sek:19,document_sha256:imported.checksum})
+ expect(after.ledger).toMatchObject({snapshot_quality:'canonical',source:'admin_signed_document_import',invoice_delivery_method:null})
+ const components=after.ledger.price_components_snapshot as Array<Record<string,unknown>>
+ expect(components.some(c=>['invoice_fee','invoice_administration_fee'].includes(String(c.component_code??c.componentCode))&&Number(c.amount)===19)).toBe(true)
+ expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.contract_price_snapshots WHERE contract_id=${literal(contractId)}`)).toBe(1)
 })

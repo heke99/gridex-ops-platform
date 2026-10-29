@@ -47,7 +47,7 @@ import {CustomerGraphCommittedReviewError} from '@/app/admin/customers/actions.p
 import {createCustomerAction} from '@/app/admin/customers/actions.part-3'
 import {initialIntakeActionState} from '@/app/admin/customers/actionState'
 beforeEach(()=>{
- io.created=true;io.status='received';io.denied=false;io.result={};io.markerMode='exact';io.marker.mockReset();io.graph.mockReset();io.complete.mockReset().mockResolvedValue(undefined);io.fail.mockReset().mockResolvedValue(undefined)
+ io.shared.mockReset();io.send.mockReset();io.created=true;io.status='received';io.denied=false;io.result={};io.markerMode='exact';io.marker.mockReset();io.graph.mockReset();io.complete.mockReset().mockResolvedValue(undefined);io.fail.mockReset().mockResolvedValue(undefined)
  io.graph.mockResolvedValue({id:'customer-a',customer_number:'SYNTHETIC',__createdNewCustomer:true,__createdSiteId:'site-a',__duplicateWarnings:[]})
 })
 describe('staff intake admission',()=>{
@@ -132,5 +132,17 @@ describe('strict core receipt persistence before side effects',()=>{
   })
   expect(await createCustomerAction(initialIntakeActionState,new FormData())).toMatchObject({status:'committed_review',createdCustomerId:'customer-a'})
   expect(io.marker).toHaveBeenCalledOnce();expect(io.fail).not.toHaveBeenCalled();expect(io.complete).not.toHaveBeenCalled()
+ })
+})
+
+describe('signed-PDF intake never manufactures a signed core row',()=>{
+ it('creates the contract unsigned with no signing timestamp before document import',async()=>{
+  const actual=await vi.importActual<typeof import('@/app/admin/customers/actions.part-2')>('@/app/admin/customers/actions.part-2')
+  io.onboard.mockResolvedValue({ok:true,code:'customer_onboarding_committed',customer_id:'customer-a',customer_number:'SYNTHETIC',contract_id:'contract-a',site_id:null,correlation_id:'correlation-a'})
+  const params={companyId:'company-a',actorUserId:'staff-a',customerType:'private',country:'SE',optionalFeeLines:[],contractStatus:'signed',contractTypeOverride:'variable_monthly',spotMarkupOrePerKwh:0,invoiceFeeSek:19,signedAgreementFile:new File(['%PDF fixture'],'signed.pdf',{type:'application/pdf'})} as unknown as Parameters<typeof actual.createCustomerGraph>[0]
+  await expect(actual.createCustomerGraph(params,{onCoreCommitted:async()=>{throw Error('stop before file work')}})).rejects.toMatchObject({name:'CustomerGraphCommittedReviewError'})
+  expect(io.onboard.mock.calls.at(-1)?.[0].contract).toMatchObject({status:'pending_signature',signed_at:null,price_snapshot:expect.objectContaining({invoiceFeeSek:19})})
+  expect(io.onboard.mock.calls.at(-1)?.[0].price_snapshot).toBeNull()
+  expect(io.shared).not.toHaveBeenCalled();expect(io.send).not.toHaveBeenCalled()
  })
 })

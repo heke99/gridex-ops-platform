@@ -780,12 +780,12 @@ export async function createCustomerGraph(
   // Staff signing choice (form intake). Already validated above.
   const signingChoice = resolveIntakeSigningChoice(params);
   const resolvedChoice = signingChoice?.ok ? signingChoice : null;
-  // Intake only creates draft or pending-signature contracts; "signed" requires
-  // the signed agreement file. Activation happens later in the contract flow.
+  // A file selection is not imported signature evidence. The core row is
+  // always unsigned; only the canonical PDF import may finalize its signature.
   const requestedStatus = resolvedChoice
     ? resolvedChoice.createStatus
     : params.contractStatus === "draft" ? "draft" : "pending_signature";
-  const contractStatus = hasSignedAgreement ? "signed" : requestedStatus;
+  const contractStatus = requestedStatus;
   const contractType = params.contractTypeOverride ?? offer?.contract_type ?? "variable_hourly";
   const signedScopes = params.signedPowerOfAttorneyFile
     ? signedAuthorizationScopes({
@@ -815,6 +815,38 @@ export async function createCustomerGraph(
     permissions: ["customers.write"],
     sourceChannel: "admin",
   });
+
+  const intakePriceSnapshot = hasContract
+      ? {
+          pricing_model: contractType,
+          snapshot_json: {
+            offerId: offer?.id ?? null,
+            priceVersion: offer?.price_version ?? "v1",
+            termsVersion: offer?.terms_version ?? "v1",
+            fixedPriceOrePerKwh: params.fixedPriceOrePerKwh ?? offer?.fixed_price_ore_per_kwh ?? null,
+            spotMarkupOrePerKwh: params.spotMarkupOrePerKwh ?? offer?.spot_markup_ore_per_kwh ?? null,
+            variableFeeOrePerKwh: params.variableFeeOrePerKwh ?? offer?.variable_fee_ore_per_kwh ?? null,
+            monthlyFeeSek: params.monthlyFeeSek ?? offer?.monthly_fee_sek ?? null,
+            invoiceFeeSek: params.invoiceFeeSek ?? offer?.invoice_fee_sek ?? null,
+            startFeeSek: params.startFeeSek ?? offer?.start_fee_sek ?? null,
+            adminFeeSek: params.adminFeeSek ?? offer?.admin_fee_sek ?? null,
+            breakFeeSek: params.breakFeeSek ?? offer?.break_fee_sek ?? null,
+            discountValue: offer?.discount_value ?? null,
+            discountUnit: offer?.discount_unit ?? null,
+            greenFeeMode: params.greenFeeMode ?? offer?.green_fee_mode ?? "none",
+            greenFeeValue: params.greenFeeValue ?? offer?.green_fee_value ?? null,
+            vatRate: offer?.vat_rate ?? SWEDISH_STANDARD_VAT_RATE,
+            optionalFeeLines: params.optionalFeeLines.length > 0 ? params.optionalFeeLines : (offer?.optional_fee_lines ?? []),
+          },
+          valid_from: normalizeOptionalString(params.contractStartDate) ?? normalizeOptionalString(params.confirmedStartDate) ?? normalizeOptionalString(params.expectedStartDate),
+        }
+      : null;
+  // A simple manual PDF contract has no prior canonical customer selection.
+  // Keep its exact prices on the unsigned contract; the real import creates its
+  // first immutable receipt. Catalog/complex selections are never inferred.
+  const deferManualPdfReceipt = hasContract && hasSignedAgreement && !offer
+    && params.optionalFeeLines.length === 0
+    && ['fixed','variable_monthly','variable_hourly','variable_quarterly'].includes(contractType);
 
   const result = await onboardCustomerGraph({
     company_id: params.companyId,
@@ -927,6 +959,7 @@ export async function createCustomerGraph(
       ? {
           contract_offer_id: offer?.id ?? null,
           source_type: params.contractOfferId && !params.overrideReason ? "catalog" : "manual_override",
+          price_snapshot: deferManualPdfReceipt ? intakePriceSnapshot?.snapshot_json : undefined,
           status: contractStatus,
           contract_name: offer?.name ?? "Kundspecifikt avtal",
           contract_type: contractType,
@@ -956,7 +989,7 @@ export async function createCustomerGraph(
           confirmed_start_at: normalizeOptionalString(params.confirmedStartDate),
           actual_start_at: normalizeOptionalString(params.actualStartDate),
           start_date_source: normalizeOptionalString(params.startDateSource),
-          signed_at: ["signed", "active"].includes(contractStatus) ? new Date().toISOString() : null,
+          signed_at: null,
           override_reason: normalizeOptionalString(params.overrideReason),
           invoice_recipient: billingSnapshot.recipient,
           invoice_email: billingSnapshot.email,
@@ -972,31 +1005,7 @@ export async function createCustomerGraph(
           updated_by: params.actorUserId,
         }
       : null,
-    price_snapshot: hasContract
-      ? {
-          pricing_model: contractType,
-          snapshot_json: {
-            offerId: offer?.id ?? null,
-            priceVersion: offer?.price_version ?? "v1",
-            termsVersion: offer?.terms_version ?? "v1",
-            fixedPriceOrePerKwh: params.fixedPriceOrePerKwh ?? offer?.fixed_price_ore_per_kwh ?? null,
-            spotMarkupOrePerKwh: params.spotMarkupOrePerKwh ?? offer?.spot_markup_ore_per_kwh ?? null,
-            variableFeeOrePerKwh: params.variableFeeOrePerKwh ?? offer?.variable_fee_ore_per_kwh ?? null,
-            monthlyFeeSek: params.monthlyFeeSek ?? offer?.monthly_fee_sek ?? null,
-            invoiceFeeSek: params.invoiceFeeSek ?? offer?.invoice_fee_sek ?? null,
-            startFeeSek: params.startFeeSek ?? offer?.start_fee_sek ?? null,
-            adminFeeSek: params.adminFeeSek ?? offer?.admin_fee_sek ?? null,
-            breakFeeSek: params.breakFeeSek ?? offer?.break_fee_sek ?? null,
-            discountValue: offer?.discount_value ?? null,
-            discountUnit: offer?.discount_unit ?? null,
-            greenFeeMode: params.greenFeeMode ?? offer?.green_fee_mode ?? "none",
-            greenFeeValue: params.greenFeeValue ?? offer?.green_fee_value ?? null,
-            vatRate: offer?.vat_rate ?? SWEDISH_STANDARD_VAT_RATE,
-            optionalFeeLines: params.optionalFeeLines.length > 0 ? params.optionalFeeLines : (offer?.optional_fee_lines ?? []),
-          },
-          valid_from: normalizeOptionalString(params.contractStartDate) ?? normalizeOptionalString(params.confirmedStartDate) ?? normalizeOptionalString(params.expectedStartDate),
-        }
-      : null,
+    price_snapshot: deferManualPdfReceipt ? null : intakePriceSnapshot,
     legal: hasSignedAgreement || signedScopes.length > 0
       ? {
           terms_version: offer?.terms_version ?? "v1",
