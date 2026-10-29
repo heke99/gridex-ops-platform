@@ -44,7 +44,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { substitute } from './substitutions'
-import { http, signIn, timed, type Session } from './runtime'
+import { dbRead, http, lit, signIn, timed, type Session } from './runtime'
 import { chooseSafeSalt, QUARTERS_PER_DAY, spotDayPayload, syntheticMonth, type Oracle, type OraclePricing } from './synthetic'
 
 export class FixtureParamUnsupported extends Error {
@@ -237,6 +237,23 @@ async function importSyntheticSpot(params: Main03Params, salt: number): Promise<
   return { status: result.status, errors: result.errors }
 }
 
+/** Read-only: is (month, area) already locked, and does every stored hourly price equal this fixture's? */
+function lockedSpotMonthMatches(params: Main03Params, salt: number): { locked: boolean; matches: boolean; detail: string } {
+  const status = dbRead<string | undefined>(`SELECT status FROM public.spot_price_monthly_summaries
+    WHERE source='elprisetjustnu' AND price_area=${lit(params.priceArea)} AND billing_month=${lit(params.billingMonth)}`)
+  if (status !== 'locked') return { locked: false, matches: false, detail: String(status ?? 'absent') }
+  const month = syntheticMonth(params.billingMonth)
+  const expected = new Map<number, string>()
+  for (let day = 1; day <= month.days; day += 1) {
+    for (const row of spotDayPayload(month, day, salt)) expected.set(Date.parse(String(row.time_start)), Number(row.SEK_per_kWh).toFixed(5))
+  }
+  const stored = dbRead<Array<{ t: string; p: string }>>(`SELECT coalesce(json_agg(json_build_object('t',time_start,'p',round(sek_per_kwh,5)::text) ORDER BY time_start),'[]') FROM public.spot_price_intervals
+    WHERE source='elprisetjustnu' AND price_area=${lit(params.priceArea)} AND time_start>=${lit(new Date(month.startMs).toISOString())} AND time_start<${lit(new Date(month.endMs).toISOString())}`)
+  const mismatches = stored.filter(row => expected.get(Date.parse(row.t)) !== Number(row.p).toFixed(5))
+  const matches = stored.length === expected.size && mismatches.length === 0
+  return { locked: true, matches, detail: `stored=${stored.length} expected=${expected.size} mismatches=${mismatches.length}` }
+}
+
 // ----------------------------------------------------------------- UTILTS days
 
 function sha256(text: string): string { return createHash('sha256').update(text, 'utf8').digest('hex') }
@@ -351,12 +368,23 @@ export async function buildMain03Fixture(overrides: Partial<Main03Params> = {}):
   // SUBSTITUTE: the provider HTTP endpoint (elprisetjustnu.se) replaced by an in-process fetch with synthetic hourly rows — verifierar inte leverantörens API, nätverk eller TLS.
   substitute({ id: 'spot-provider', step: 'fixture: spot prices', substitute: 'in-process fetchImpl serving synthetic elprisetjustnu-format hourly rows into the real importSpotPricesForMonth',
     notVerified: 'the external provider API, its quarter-hour format and network/TLS handling' })
-  const imported = await timed('fixture: spot import', () => importSyntheticSpot(params, salt))
-  must(imported.errors.length === 0, `fixture_spot_import_errors:${imported.errors.slice(0, 3).join(' | ')}`)
-  const locked = await timed('fixture: spot lock-month (HTTP)', () => http(session, 'POST', '/api/internal/spot/lock-month', { json: { billing_month: params.billingMonth, price_area: params.priceArea, reason: 'track1 fixture settlement lock' } }))
-  must(locked.status === 200, `fixture_spot_lock_status_${locked.status}:${JSON.stringify(locked.body)?.slice(0, 400)}`)
-  const lockBody = ((locked.body as { data?: Record<string, unknown> } | null)?.data ?? {}) as Record<string, unknown>
-  must(lockBody.status === 'locked', 'fixture_spot_lock_not_locked')
+  // Spot prices are global per price area. A later scenario file in the same stack finds the
+  // month already locked (the importer then refuses with locked_market_price_immutable), so a
+  // locked month is reused only if every stored hourly price equals this fixture's own value.
+  const spotReuse = lockedSpotMonthMatches(params, salt)
+  if (spotReuse.locked) {
+    must(spotReuse.matches, `fixture_spot_locked_month_differs:${spotReuse.detail}`)
+    substitute({ id: 'spot-locked-month-reuse', step: 'fixture: spot prices',
+      substitute: 'month already imported and locked by an earlier fixture run in this stack; all 672 stored hourly rows compared equal to this fixture before reuse',
+      notVerified: 'import and lock-month for this file (verified in the run that first locked the month)' })
+  } else {
+    const imported = await timed('fixture: spot import', () => importSyntheticSpot(params, salt))
+    must(imported.errors.length === 0, `fixture_spot_import_errors:${imported.errors.slice(0, 3).join(' | ')}`)
+    const locked = await timed('fixture: spot lock-month (HTTP)', () => http(session, 'POST', '/api/internal/spot/lock-month', { json: { billing_month: params.billingMonth, price_area: params.priceArea, reason: 'track1 fixture settlement lock' } }))
+    must(locked.status === 200, `fixture_spot_lock_status_${locked.status}:${JSON.stringify(locked.body)?.slice(0, 400)}`)
+    const lockBody = ((locked.body as { data?: Record<string, unknown> } | null)?.data ?? {}) as Record<string, unknown>
+    must(lockBody.status === 'locked', 'fixture_spot_lock_not_locked')
+  }
 
   // UTILTS parties and the synthetic data request, then 28 daily files.
   // SUBSTITUTE: grid-owner issuer registry, transport mandate and history ground are inserted by psql as the base's native tests do — verifierar inte nätägarregistret eller mandatet.
