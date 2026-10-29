@@ -13,6 +13,27 @@ På ägarens uppdrag ("ta över franklin-grenen och börja med integrationen mot
 - **Den tidigare sessionens pågående jämförelse** (Z03L och källägarsviterna, arbetskopian `/home/user/gx-wt-prej1`) körs i dess egen container. Resultatet följer inte med, och jämförelsen görs om vid behov.
 - **Nästa steg:** integrera mot main (174 commits sedan den gemensamma basen) och dela sedan upp arbetet i granskningsbara PR:er. Läget uppdateras i avsnittet nedan.
 
+### Integration mot main — 2026-10-29
+- **Merge `f134155cc`** (main `40792fc33`) och rättelser `a7fa11561`. Claim i #840, kommentar 6496463638.
+- **Krockande migrationer:** tre migrationer bytte version med +5 minuter (`20261022100500`, `20261023130500`, `20261023150500`), och den inaktuella G-3-hashen togs bort ur `additions.json`.
+- **Designkonflikter, main vinner:**
+  - Leveranskvittot för Z03 (`a749614d5`): en misslyckad förberedelse släpper inte nyckeln. Det ersätter vår I-B5-release.
+  - Inkommande grafbevarande via SQL-ögonblicksbild.
+  - Utkorgens begränsade tömning.
+  - Lease-kvitton (PERF006).
+- **Designkonflikter, vi behåller:**
+  - F113 objektbatch: main's gren för enbart egna rader (`registryArea:false`) finns kvar, men anropsstället använder registret.
+  - F58 normalizer, H3d B5 uppsägningsslut, I-B11 ankomstordning och F113 uppslag.
+- **Två regressioner från sammanslagningen, rättade:**
+  1. Utkorgsrutten tappade F89–F91 (`recordCompanyCertifiedScopes`).
+  2. Lagringen av mailboxförsök använde `locked_by = workerId` i stället för lease-kvittot. Det upptäcktes genom att J3-04 föll.
+- **Main-test anpassat till ägarbeslut 21:** `contract-operational-dates`. Avtalet slutar efter uppsägningstiden och en avgiftsgranskning skapas, i stället för slut vid bindningstidens golv.
+- **Verifiering:**
+  - Vitest: 1512 filer gröna och 2 överhoppade (25669 test).
+  - tsc: 0 fel. eslint: rent på de ändrade filerna.
+  - `ediel:masterplan-v2:test-coverage -- --check` utan app.env: 352/352.
+- **Pågår:** ny värld i `/home/user/gx-wt-run` på `a7fa11561` med full migreringsuppspelning (`SKIP_REPLAY=0`). Därefter körs F, G, I, J1 och K om, med J2 och J4 som kontroll.
+
 ## ÅTERUPPTA HÄRIFRÅN (läs först om arbetet har stannat)
 Senast uppdaterad 2026-10-29 11:00 UTC. Grenen `claude/wonderful-franklin-o8gx2p`, head `5d88e4c75` (allt nedan är pushat).
 
