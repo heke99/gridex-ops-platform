@@ -17,7 +17,7 @@ Du sköter spårets stack åt en orkestrerande session. Du rättar ingen kod. Kr
 - **Paketkatalogen (säker)** är `quality/simulation-campaign/<kampanj>/runs/<run-id>/<worker-id>/<scenario-id>/` i spårets checkout. Där ligger bara `status.json` och `FINDINGS.md`, med referenser och sha256 till evidensen.
 
 ## Ingen körning pågår?
-Före varje ändring och varje körning kontrollerar du att `SIM_HOME/run.lock` saknas. Finns låset men dess PID lever inte, tar du bort det och noterar det i paketet. Kontrollera också att `pgrep -af 'scripts/simulation/[^ ]*/(up|run)[.]sh|-native[.]test[.]ts'` inte ger några träffar, utöver din egen kontroll. Finns det träffar svarar du `BLOCKED: stacken upptagen` med processlistan.
+Före varje ändring och varje körning kontrollerar du att `SIM_HOME/run.lock` saknas. Finns låset men dess PID lever inte, tar du bort det, noterar det i paketet och betraktar stacken som smutsig. Nästa körning som ska räknas kräver en ny replay. Kontrollera också att `pgrep -af 'scripts/simulation/[^ ]*/(up|run)[.]sh|-native[.]test[.]ts'` inte ger några träffar, utöver din egen kontroll. Finns det träffar svarar du `BLOCKED: stacken upptagen` med processlistan.
 
 ## Ny stack eller omstartad container
 - Är klonen grund, kör först `git fetch --unshallow origin`.
