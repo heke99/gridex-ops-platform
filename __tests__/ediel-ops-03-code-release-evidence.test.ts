@@ -148,7 +148,19 @@ function reviewedStorageLifecycleWorkflow(bytes: Buffer) {
   if (sha256(restored) !== 'f1c03e2be5a38d2b41d96c2cfcb53259c6a2dd9af99f5a17311c693c91237d9d') throw Error('fixture_reviewed_storage_workflow_inverse_digest_mismatch')
   return restored
 }
+// This finite Git port recognizes only the exact reviewed POA registration.
+// Neither reader admits that new case or changed current producer as proof.
+function reviewedPoaConfig(bytes: Buffer) {
+  if (sha256(bytes) !== 'bdc56285237a27fa526c3038510e5480c42cf7883e86e30e86fb972bbe9c42b7') return bytes
+  const addition = "    'scripts/ediel-online-poa-capture-native.test.ts',\n"
+  const current = bytes.toString('utf8')
+  if (current.split(addition).length !== 2) throw Error('fixture_reviewed_poa_include_not_unique')
+  const restored = Buffer.from(current.replace(addition, ''))
+  if (sha256(restored) !== 'd9bd80bf7038f9232362ecba4deaa29b3ae264ef3c89000873fc91ad740fd0db') throw Error('fixture_reviewed_poa_config_inverse_digest_mismatch')
+  return restored
+}
 function reviewedProducerFixture(file: string, bytes: Buffer) {
+  if (file === 'scripts/ediel-source-owner-native.config.ts') bytes = reviewedPoaConfig(bytes)
   if (file === '.github/workflows/ops-hardening.yml') bytes = reviewedStorageLifecycleWorkflow(bytes)
   // Model the exact reviewed default helper only. The optional public case
   // creator and its new native assertions confer no historical/current proof.
@@ -843,7 +855,7 @@ it.each([
 // never imported, changed or qualified as current producer proof by this port.
 const billingNativeInclude = "    'scripts/ediel-canonical-signature-billing-projection-native.test.ts',\n"
 function prospectiveBillingConfig(input?: Buffer) {
-  const current = (input ?? readFileSync('scripts/ediel-source-owner-native.config.ts')).toString('utf8')
+  const current = reviewedPoaConfig(input ?? readFileSync('scripts/ediel-source-owner-native.config.ts')).toString('utf8')
   const digest = sha256(current)
   expect(['7461db28b3fbd1546bd45e9b5fe4a470bba786460731d215a675828d0903fedf',
     'd9bd80bf7038f9232362ecba4deaa29b3ae264ef3c89000873fc91ad740fd0db']).toContain(digest)

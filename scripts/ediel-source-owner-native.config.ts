@@ -27,6 +27,7 @@ export default defineConfig({
     'scripts/staff-user-client-concurrency-native.test.ts',
     'scripts/ediel-source-owner-native.test.ts',
     'scripts/ediel-canonical-signature-billing-projection-native.test.ts',
+    'scripts/ediel-online-poa-capture-native.test.ts',
     'scripts/ediel-test-original-outcome-native.test.ts',
     'scripts/ediel-closure-wire-native.test.ts',
     'scripts/ediel-utilts-consumption-native.test.ts',

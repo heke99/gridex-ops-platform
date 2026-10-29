@@ -1,6 +1,7 @@
 import { LOGIN_EMAIL_CONFIRMED_MESSAGE } from '@/lib/auth/loginError'
 
-export function getBaseAppUrl(): string {
+export function getBaseAppUrl(purpose: 'app' | 'signing' = 'app'): string {
+  if (purpose === 'signing') return getPublicSigningBaseUrl()
   const value =
     process.env.NEXT_PUBLIC_APP_URL ??
     process.env.NEXT_PUBLIC_SITE_URL ??
@@ -16,6 +17,21 @@ export function getBaseAppUrl(): string {
   }
 
   return value.replace(/\/$/, '')
+}
+
+/** Dedicated customer-facing origin; never change staff authentication URLs. */
+export function getPublicSigningBaseUrl(): string {
+  const configured = process.env.PUBLIC_SIGNING_BASE_URL?.trim()
+  if (!configured) return getBaseAppUrl()
+  try {
+    const url = new URL(configured)
+    if (url.protocol !== 'https:' || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+      throw new Error('invalid origin')
+    }
+    return url.origin
+  } catch {
+    throw new Error('public_signing_origin_invalid')
+  }
 }
 
 function isSafeRelativeNextPath(value: string): boolean {

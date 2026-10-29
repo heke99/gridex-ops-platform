@@ -4,6 +4,7 @@ import { redirect, unstable_rethrow } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { sendOnlineContractSignatureRequest } from '@/lib/customer-contracts/onlineSigning'
+import { contractHasValidSigningSite, SIGNING_LINK_SITE_REQUIRED_MESSAGE } from '@/lib/customer-contracts/autoSendSigningLink'
 import { supabaseService } from '@/lib/supabase/service'
 import { getCustomerContractById } from '@/lib/customer-contracts/db'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
@@ -110,6 +111,7 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
   const customerId = text(formData.get('customer_id'))
   const contractId = text(formData.get('contract_id'))
   const recipientEmail = text(formData.get('recipient_email')).toLowerCase()
+  let deliveryStatus = 'queued'
 
   if (!customerId || !contractId) {
     throw new Error('customer_id och contract_id krävs')
@@ -133,6 +135,9 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
       throw new Error('Avtalet kan inte skickas för signering i nuvarande status.')
     }
     if (contract.signed_at) throw new Error('Avtalet är redan signerat.')
+    if (!await contractHasValidSigningSite({ companyId, customerId, contractId })) {
+      throw new Error(SIGNING_LINK_SITE_REQUIRED_MESSAGE)
+    }
 
     const { data: customer, error: customerError } = await supabaseService
       .from('customers')
@@ -147,7 +152,7 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
       throw new Error('Kunden måste ha en giltig e-postadress för online-signering.')
     }
 
-    await sendOnlineContractSignatureRequest({
+    const result = await sendOnlineContractSignatureRequest({
       companyId,
       customerId,
       contractId,
@@ -155,6 +160,7 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
       actorUserId: guard.userId,
       channel: 'internal',
     })
+    deliveryStatus = result.deliveryStatus
 
     revalidatePath(`/admin/customers/${customerId}`)
     revalidatePath(`/admin/customers/${customerId}/contracts/${contractId}/signature`)
@@ -166,5 +172,5 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
     )
   }
 
-  redirect(`/admin/customers/${customerId}/contracts/${contractId}/signature?sent=1`)
+  redirect(`/admin/customers/${customerId}/contracts/${contractId}/signature?sent=1&delivery=${encodeURIComponent(deliveryStatus)}`)
 }

@@ -23,6 +23,28 @@ function reversePatch(schema:string,patch:Patch):string{
 export function db05PredecessorSchema(schema:string):string{
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
+ if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6'){
+  // Genuine ordinary C14 capture03e5eac4/artifact12864584609. Restore exact
+  // C12 bytes before every unchanged older inverse; no native/runtime credit.
+  const tenantKey:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-poa-tenant-key-20261029.patch.json',import.meta.url),'utf8'))
+  if(tenantKey.preSha256!=='4a0a481dd5b6af7323f45dd78b5f03f37d08cc3ae244fbd9ea1074f3803d0746'||tenantKey.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  return db05PredecessorSchema(reversePatch(schema,tenantKey))
+ }
+ if(actual==='4a0a481dd5b6af7323f45dd78b5f03f37d08cc3ae244fbd9ea1074f3803d0746'){
+  // Genuine ordinary C12 capture011c1c44/artifact12862355503. Restore the
+  // unchanged3132 POA capture before every historical DB05 inverse/oracle.
+  // This finite inverse grants no confirmation/POA native or business proof.
+  const successor:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-poa-20261029.patch.json',import.meta.url),'utf8'))
+  if(successor.preSha256!=='313208382efbca3f87375e054352f96d4dfc33e4e48fcf1d1d21bf64698e6e9b'||successor.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  return db05PredecessorSchema(reversePatch(schema,successor))
+ }
+ if(actual==='313208382efbca3f87375e054352f96d4dfc33e4e48fcf1d1d21bf64698e6e9b'){
+  // Genuine ordinary POA capture23491/artifact12845430969. This inverse only
+  // preserves historical DB05 fixtures; it grants no proof for the new POA SQL.
+  const poaPatch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-poa-20261028.patch.json',import.meta.url),'utf8'))
+  if(poaPatch.preSha256!=='4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca'||poaPatch.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  return db05PredecessorSchema(reversePatch(schema,poaPatch))
+ }
  if(actual==='4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca'){
   // Genuine ordinary G3 capture012cc8bf/artifact12561956311. Rebuild exact
   // MAIN3d08 capture before its unchanged audit28 -> audit27 -> audit26 chain.

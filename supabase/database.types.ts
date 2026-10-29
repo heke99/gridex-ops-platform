@@ -97764,6 +97764,18 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      gridex_advance_contract_confirmation_v2: {
+        Args: {
+          p_action: string
+          p_company_id: string
+          p_contract_id: string
+          p_document_sha256?: string
+          p_error?: string
+          p_expected_lease_until?: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
       gridex_ai_bi_personal_storage_scope_v1: {
         Args: {
           p_actor_user_id: string
@@ -98531,6 +98543,20 @@ export type Database = {
       }
       gridex_complete_grid_owner_readiness: {
         Args: { p_source?: string }
+        Returns: Json
+      }
+      gridex_complete_online_signature_poa_archive_v1: {
+        Args: {
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_evidence_sha256: string
+          p_path: string
+          p_poa_id: string
+          p_request_id: string
+          p_sha256: string
+          p_size_bytes: number
+        }
         Returns: Json
       }
       gridex_complete_unreferenced_internal_invoice_fee_tasks: {
@@ -99695,6 +99721,18 @@ export type Database = {
         Args: {
           p_signed_ip_hash?: string
           p_signed_user_agent?: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      gridex_finalize_customer_contract_signature_v2: {
+        Args: {
+          p_poa_accepted?: boolean
+          p_poa_scopes?: string[]
+          p_poa_terms_version?: string
+          p_signed_ip_hash?: string
+          p_signed_user_agent?: string
+          p_signer_ip?: string
           p_token_hash: string
         }
         Returns: Json

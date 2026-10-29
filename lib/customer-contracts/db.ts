@@ -1,3 +1,4 @@
+import { resolveContractStartDate } from "./operationalDates";
 import { createHash, randomUUID } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import type {
@@ -1317,7 +1318,7 @@ export async function addCustomerContractEvent(input: {
     const { data: current, error: currentError } = await supabaseService
       .from("customer_contracts")
       .select(
-        "starts_at, ends_at, binding_months, notice_months, status, auto_renew_enabled, auto_renew_term_months, termination_reason",
+        "actual_start_date, actual_start_at, ends_at, binding_months, notice_months, status, auto_renew_enabled, auto_renew_term_months, termination_reason",
       )
       .eq("id", input.customerContractId)
       .eq("company_id", input.companyId)
@@ -1326,7 +1327,7 @@ export async function addCustomerContractEvent(input: {
     if (currentError) throw currentError;
     if (!current) throw new Error("Kundavtalet hittades inte för valt bolag.");
     derivedEndsAt = deriveContractEndsAt({
-      startsAt: current.starts_at ?? null,
+      startsAt: resolveContractStartDate(current, "delivered"),
       endsAt: current.ends_at ?? null,
       bindingMonths: current.binding_months ?? null,
       noticeMonths: current.notice_months ?? null,

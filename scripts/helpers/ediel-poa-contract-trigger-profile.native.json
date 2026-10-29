@@ -1,0 +1,375 @@
+{
+  "status": "PRIVATE_UNAPPLIED_PROFILE_METADATA_CANDIDATE_NOT_EXECUTED",
+  "observedAt": "2026-10-28T18:42:04.014643+00",
+  "functions": [
+    {
+      "identity": "public.gridex_assign_customer_contract_identity_v1()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_assign_customer_contract_identity_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nbegin\n  if new.customer_id is null or new.company_id is null then return new; end if;\n  if nullif(btrim(new.customer_number),'') is null then\n    select c.customer_number into new.customer_number from public.customers c where c.id=new.customer_id and c.company_id=new.company_id;\n  end if;\n  if nullif(btrim(new.customer_number),'') is null then raise exception using errcode='23502',message='customer_contract_customer_number_required'; end if;\n  if nullif(btrim(new.contract_number),'') is null then new.contract_number := public.gridex_next_contract_number(new.company_id,new.customer_number); end if;\n  return new;\nend\n$function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "03be24db96490bc3e08c5e33cfddb9de"
+    },
+    {
+      "identity": "public.gridex_normalize_customer_contract_pricing_snapshot_v1()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_normalize_customer_contract_pricing_snapshot_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'private', 'pg_catalog', 'pg_temp'\nAS $function$\nbegin\n  if new.price_snapshot is not null then\n    new.price_snapshot := private.gridex_normalize_fixed_area_snapshot_v1(new.price_snapshot);\n  end if;\n  return new;\nend\n$function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "5f39538467dcc041ad92914e21fbc950"
+    },
+    {
+      "identity": "public.gridex_fill_customer_contract_price_area_v1()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_fill_customer_contract_price_area_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  v_site_area text; v_meter_area text; v_site_grid text; v_meter_grid text; v_area text; v_grid text;\nbegin\n  if new.customer_site_id is not null or new.site_id is not null then\n    select upper(nullif(btrim(s.price_area_code),'')), upper(nullif(btrim(s.grid_area_code),'')) into v_site_area,v_site_grid\n    from public.customer_sites s where s.id=coalesce(new.customer_site_id,new.site_id) and s.company_id=new.company_id limit 1;\n  end if;\n  if new.metering_point_id is not null then\n    select upper(nullif(btrim(coalesce(m.price_area_code,m.price_area)),'')), upper(nullif(btrim(m.grid_area_code),'')) into v_meter_area,v_meter_grid\n    from public.metering_points m where m.id=new.metering_point_id and m.company_id=new.company_id limit 1;\n  end if;\n  if v_site_area in ('SE1','SE2','SE3','SE4') and v_meter_area in ('SE1','SE2','SE3','SE4') and v_site_area<>v_meter_area then\n    raise exception using errcode='23514',message='contract_price_area_source_conflict';\n  end if;\n  v_area:=coalesce(case when v_meter_area in ('SE1','SE2','SE3','SE4') then v_meter_area end,case when v_site_area in ('SE1','SE2','SE3','SE4') then v_site_area end);\n  v_grid:=coalesce(v_meter_grid,v_site_grid);\n  if nullif(btrim(coalesce(new.price_area_used,'')),'') is null then new.price_area_used:=v_area;\n  elsif v_area is not null and upper(btrim(new.price_area_used))<>v_area then raise exception using errcode='23514',message='contract_price_area_binding_mismatch';\n  else new.price_area_used:=upper(btrim(new.price_area_used)); end if;\n  if nullif(btrim(coalesce(new.grid_area_code_used,'')),'') is null then new.grid_area_code_used:=v_grid;\n  elsif v_grid is not null and upper(btrim(new.grid_area_code_used))<>v_grid then raise exception using errcode='23514',message='contract_grid_area_binding_mismatch';\n  else new.grid_area_code_used:=upper(btrim(new.grid_area_code_used)); end if;\n  return new;\nend; $function$\n",
+      "owner": "postgres",
+      "acl": "{=X/postgres,postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "ceb675a95b3421fea7e569f1767333f8"
+    },
+    {
+      "identity": "public.gridex_enforce_quote_binding_v2()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_enforce_quote_binding_v2()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  v_row jsonb:=to_jsonb(new);\n  v_quote public.website_contract_quotes%rowtype;\n  v_company_id uuid:=nullif(v_row->>'company_id','')::uuid;\n  v_quote_reference text:=nullif(v_row->>'quote_reference','');\n  v_text text;\nbegin\n  if v_quote_reference is null then return new; end if;\n\n  select * into v_quote\n  from public.website_contract_quotes q\n  where q.company_id=v_company_id\n    and q.quote_reference=v_quote_reference;\n  if not found then\n    raise exception using errcode='23503',message='quote_binding_not_found_for_tenant';\n  end if;\n\n  foreach v_text in array array[\n    nullif(v_row->>'contract_product_id',''),\n    nullif(v_row->>'contract_product_version_id',''),\n    nullif(v_row->>'contract_publication_version_id',''),\n    nullif(v_row->>'price_plan_id',''),\n    nullif(v_row->>'price_plan_version_id',''),\n    nullif(v_row->>'price_book_id',''),\n    nullif(v_row->>'legal_bundle_version_id',''),\n    nullif(v_row->>'energy_direction','')\n  ] loop\n    if v_text is null then\n      raise exception using errcode='23502',message='quote_binding_target_identity_incomplete';\n    end if;\n  end loop;\n\n  if v_quote.contract_product_id is distinct from (v_row->>'contract_product_id')::uuid then\n    raise exception using errcode='23514',message='quote_binding_contract_product_mismatch';\n  end if;\n  if v_quote.contract_product_version_id is distinct from (v_row->>'contract_product_version_id')::uuid then\n    raise exception using errcode='23514',message='quote_binding_contract_version_mismatch';\n  end if;\n  if v_quote.contract_publication_version_id is distinct from (v_row->>'contract_publication_version_id')::uuid then\n    raise exception using errcode='23514',message='quote_binding_publication_version_mismatch';\n  end if;\n  if v_quote.price_plan_id is distinct from (v_row->>'price_plan_id')::uuid then\n    raise exception using errcode='23514',message='quote_binding_price_plan_mismatch';\n  end if;\n  if v_quote.price_plan_version_id is distinct from (v_row->>'price_plan_version_id')::uuid then\n    raise exception using errcode='23514',message='quote_binding_price_plan_version_mismatch';\n  end if;\n  if v_quote.price_book_id is distinct from (v_row->>'price_book_id')::uuid then\n    raise exception using errcode='23514',message='quote_binding_price_book_mismatch';\n  end if;\n  if v_quote.legal_bundle_version_id is distinct from (v_row->>'legal_bundle_version_id')::uuid then\n    raise exception using errcode='23514',message='quote_binding_legal_bundle_mismatch';\n  end if;\n  if v_quote.energy_direction is distinct from (v_row->>'energy_direction') then\n    raise exception using errcode='23514',message='quote_binding_energy_direction_mismatch';\n  end if;\n\n  return new;\nend\n$function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "5862470ea1dd16986dd27b55f34305eb"
+    },
+    {
+      "identity": "public.gridex_bind_customer_contract_to_exact_publication()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_bind_customer_contract_to_exact_publication()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  v public.contract_publication_versions;\n  pv public.contract_product_versions;\nbegin\n  if new.contract_publication_version_id is not null then\n    select cpv.*\n    into v\n    from public.contract_publication_versions cpv\n    join public.contract_publications publication\n      on publication.id = cpv.contract_publication_id\n    join public.tenant_contract_assignments assignment\n      on assignment.id = publication.assignment_id\n    where cpv.id = new.contract_publication_version_id\n      and assignment.company_id = new.company_id\n      and assignment.status = 'active'\n      and cpv.status = 'published'\n      and cpv.locked_at is not null\n      and (new.offer_reference is null or new.offer_reference = cpv.offer_reference)\n    limit 1;\n  elsif new.public_contract_offer_id is not null or new.offer_reference is not null then\n    select cpv.*\n    into v\n    from public.contract_publication_versions cpv\n    where cpv.offer_reference = new.offer_reference\n      and cpv.legacy_public_contract_offer_id = new.public_contract_offer_id\n      and cpv.status = 'published'\n      and cpv.locked_at is not null\n      and exists (\n        select 1\n        from public.public_contract_offers offer\n        where offer.id = cpv.legacy_public_contract_offer_id\n          and offer.company_id = new.company_id\n      )\n    limit 1;\n  else\n    return new;\n  end if;\n\n  if not found then\n    raise exception using errcode='23514', message='exact_published_contract_version_required';\n  end if;\n\n  select *\n  into pv\n  from public.contract_product_versions\n  where id = v.contract_product_version_id\n    and locked_at is not null\n    and status = 'approved';\n  if not found then\n    raise exception using errcode='23514', message='exact_approved_contract_product_version_required';\n  end if;\n\n  new.offer_reference := v.offer_reference;\n  new.contract_publication_version_id := v.id;\n  new.contract_product_version_id := pv.id;\n  new.contract_product_id := pv.contract_product_id;\n  new.legal_bundle_version_id := v.legal_bundle_version_id;\n  new.price_plan_id := v.price_plan_id;\n  new.price_plan_version_id := v.price_plan_version_id;\n  new.price_book_id := v.price_book_id;\n  new.commercial_snapshot := coalesce(\n    v.publication_snapshot->'commercial_snapshot',\n    pv.commercial_snapshot,\n    '{}'::jsonb\n  );\n  new.legal_snapshot := coalesce(\n    v.publication_snapshot->'legal_snapshot',\n    (select rendered_snapshot from public.legal_bundle_versions where id = v.legal_bundle_version_id),\n    '{}'::jsonb\n  );\n  return new;\nend\n$function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "b8370e6ded6d9d0e91006dea7c60b599"
+    },
+    {
+      "identity": "public.gridex_bind_internal_customer_contract()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_bind_internal_customer_contract()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  v_publication_id uuid; v_publication public.contract_publication_versions%rowtype;\n  v_product public.contract_product_versions%rowtype;\nbegin\n  if new.contract_offer_id is null or new.contract_publication_version_id is not null then return new; end if;\n  v_publication_id:=public.gridex_ensure_internal_contract_publication(new.company_id,new.contract_offer_id,coalesce(new.created_by,new.updated_by));\n  select * into v_publication from public.contract_publication_versions where id=v_publication_id;\n  select * into v_product from public.contract_product_versions where id=v_publication.contract_product_version_id;\n  new.contract_publication_version_id:=v_publication.id;\n  new.contract_product_version_id:=v_product.id;\n  new.contract_product_id:=v_product.contract_product_id;\n  new.legal_bundle_version_id:=v_publication.legal_bundle_version_id;\n  new.price_plan_id:=v_publication.price_plan_id;\n  new.price_plan_version_id:=v_publication.price_plan_version_id;\n  new.price_book_id:=v_publication.price_book_id;\n  new.offer_reference:=coalesce(new.offer_reference,v_publication.offer_reference);\n  new.commercial_snapshot:=v_product.commercial_snapshot;\n  new.legal_snapshot:=(select rendered_snapshot from public.legal_bundle_versions where id=v_publication.legal_bundle_version_id);\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "c31ed2a998585afcea34abff9a712cc2"
+    },
+    {
+      "identity": "public.gridex_enforce_contract_availability_and_capacity()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_enforce_contract_availability_and_capacity()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  o public.contract_offers%rowtype;\n  v_count bigint;\n  v_statuses text[]:=array['draft','pending_signature','signed','active'];\n  v_reserved_one_off boolean:=false;\nbegin\n  if new.status not in ('draft','pending_signature','signed','active') then\n    return new;\n  end if;\n  if new.contract_offer_id is null and new.contract_product_id is null and new.contract_product_version_id is null then\n    return new;\n  end if;\n\n  select * into o\n  from public.contract_offers\n  where company_id=new.company_id and (\n    id=new.contract_offer_id\n    or (new.contract_product_version_id is not null and contract_product_version_id=new.contract_product_version_id)\n    or (new.contract_product_id is not null and contract_product_id=new.contract_product_id and lifecycle_status='published')\n  )\n  order by version_number desc limit 1 for update;\n  if not found then\n    raise exception using errcode='23514',message='contract_offer_not_available';\n  end if;\n\n  perform pg_advisory_xact_lock(hashtextextended(o.version_series_id::text,0));\n\n  -- A materializer-reserved one-off offer is bindable only by the contract that\n  -- references it directly, in the same tenant, and only by one contract.\n  if o.id=new.contract_offer_id then\n    update gridex_one_off_offer_binding.reservations r\n    set consumed_contract_id=new.id,consumed_at=coalesce(r.consumed_at,now())\n    where r.offer_id=o.id and r.company_id=new.company_id\n      and (r.consumed_contract_id is null or r.consumed_contract_id=new.id)\n      and (r.intended_contract_id is null or r.intended_contract_id=new.id);\n    v_reserved_one_off:=found;\n  end if;\n\n  if not v_reserved_one_off and (\n     o.lifecycle_status<>'published' or not o.is_active\n     or (o.valid_from is not null and o.valid_from>current_date)\n     or (o.valid_to is not null and o.valid_to<current_date)) then\n    raise exception using errcode='23514',message='contract_offer_not_available';\n  end if;\n  if not exists(\n    select 1 from public.tenant_contract_assignments ta\n    join public.tenant_contract_channels ch on ch.assignment_id=ta.id\n    where ta.company_id=new.company_id\n      and ta.contract_product_version_id=o.contract_product_version_id\n      and ta.status='active'\n      and ch.channel in ('internal','website','api','partner','phone') and ch.status='active'\n      and (\n        (ch.channel='internal' and ta.internal_sales_allowed)\n        or (ch.channel='website' and ta.website_publication_allowed)\n        or ch.channel in ('api','partner','phone')\n      )\n      and (ch.valid_from is null or ch.valid_from<=now())\n      and (ch.valid_to is null or ch.valid_to>=now())\n  ) then\n    raise exception using errcode='23514',message='contract_channel_not_available';\n  end if;\n\n  if o.max_customers is not null then\n    select count(*) into v_count\n    from public.customer_contracts c\n    where c.company_id=new.company_id and c.id is distinct from new.id\n      and c.status=any(v_statuses) and (\n        c.contract_offer_id=o.id\n        or c.contract_product_id=o.contract_product_id\n        or c.contract_product_version_id=o.contract_product_version_id\n      );\n    if v_count>=o.max_customers then\n      raise exception using errcode='23514',message='contract_capacity_reached';\n    end if;\n  end if;\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "df1473beee05d9b41c913e40c3b8f314"
+    },
+    {
+      "identity": "public.gridex_assert_customer_not_archived_for_insert()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_assert_customer_not_archived_for_insert()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_catalog', 'pg_temp'\nAS $function$\ndeclare\n  v_status text;\nbegin\n  if new.customer_id is null then\n    return new;\n  end if;\n\n  select status into v_status from public.customers where id = new.customer_id;\n\n  if v_status = 'archived' then\n    raise exception 'Customer % is archived, new % rows are blocked', new.customer_id, tg_table_name\n      using errcode = 'P0001';\n  end if;\n\n  return new;\nend\n$function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "b9b1e17a40dec80652294e44937179ab"
+    },
+    {
+      "identity": "gridex_ediel_retention.record_c40a67d5fa7766230451_guard_v1()",
+      "ddl": "CREATE OR REPLACE FUNCTION gridex_ediel_retention.record_c40a67d5fa7766230451_guard_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public, pg_catalog, pg_temp'\nAS $function$\ndeclare\n  v_old jsonb := to_jsonb(old);\n  v_new jsonb := to_jsonb(new);\n  v_immutable_keys text[] := array[\n    'company_id','customer_id','contract_name','contract_type',\n    'energy_direction','site_id','customer_site_id','metering_point_id',\n    'contract_offer_id','public_contract_offer_id','offer_reference',\n    'quote_reference','contract_product_id','contract_product_version_id',\n    'contract_publication_version_id','price_plan_id',\n    'price_plan_version_id','price_book_id','legal_bundle_version_id',\n    'contract_price_snapshot_id','commercial_snapshot','legal_snapshot',\n    'legal_versions_snapshot','tenant_communication_snapshot',\n    'tenant_communication_snapshot_sha256','tenant_legal_party_snapshot',\n    'signature_snapshot','signature_snapshot_sha256',\n    'price_snapshot','campaign_snapshot','fixed_price_ore_per_kwh',\n    'spot_markup_ore_per_kwh','variable_fee_ore_per_kwh',\n    'markup_ore_per_kwh','monthly_fee_sek','invoice_fee_sek',\n    'discount_value','discount_unit','start_fee_sek','admin_fee_sek',\n    'break_fee_sek','vat_rate','green_fee_mode','green_fee_value',\n    'binding_months','notice_months','optional_fee_lines','starts_at',\n    'expected_start_at','ends_at','auto_renew_enabled',\n    'auto_renew_term_months','terms_version','terms_signed_version',\n    'signed_version','signed_at','signed_ip_hash','signed_user_agent'\n  ];\n  v_key text;\nBEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_customer_record_transition_v1(TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n  if tg_op='DELETE' then\n    if old.status in ('signed','active','terminated','cancelled','expired')\n       or old.signed_at is not null or old.locked_at is not null then\n      raise exception using errcode='55000',message='signed_customer_contract_delete_forbidden';\n    end if;\n    return old;\n  end if;\n\n  if old.status in ('signed','active','terminated','cancelled','expired')\n     or old.signed_at is not null or old.locked_at is not null then\n    foreach v_key in array v_immutable_keys loop\n      if v_new->v_key is distinct from v_old->v_key then\n        raise exception using errcode='55000',message='signed_customer_contract_immutable:'||v_key;\n      end if;\n    end loop;\n\n    if new.snapshot_hash is distinct from old.snapshot_hash then\n      if nullif(btrim(new.snapshot_hash),'') is null\n         or not exists (\n           select 1 from public.contract_price_snapshots p\n           where p.id=old.contract_price_snapshot_id\n             and p.company_id=old.company_id\n             and p.contract_id=old.id\n             and p.snapshot_hash=new.snapshot_hash\n             and nullif(btrim(p.snapshot_hash),'') is not null\n         ) then\n        raise exception using errcode='55000',message='signed_customer_contract_price_hash_binding_invalid';\n      end if;\n    end if;\n\n    if new.document_sha256 is distinct from old.document_sha256 then\n      if old.document_sha256 is not null\n         or coalesce(new.document_sha256,'') !~ '^[0-9a-f]{64}$'\n         or not exists(\n           select 1 from public.customer_contract_documents d\n           where d.company_id=old.company_id\n             and d.customer_contract_id=old.id\n             and d.document_type='signed_contract_pdf'\n             and d.document_sha256=new.document_sha256\n             and d.verified_at is not null\n         ) then\n        raise exception using errcode='55000',message='signed_customer_contract_document_hash_binding_invalid';\n      end if;\n    end if;\n\n    new.locked_at:=coalesce(old.locked_at,old.signed_at,now());\n  elsif new.signed_at is not null or new.status in ('signed','active') then\n    new.locked_at:=coalesce(new.locked_at,new.signed_at,now());\n  end if;\n  return new;\nend\n$function$\n",
+      "owner": "gridex_ediel_retention_owner",
+      "acl": "{gridex_ediel_retention_owner=X/gridex_ediel_retention_owner}",
+      "bodyMD5": "d413658b065c282e3e64aea5f53fff6f"
+    },
+    {
+      "identity": "public.gridex_lock_customer_contract_tenant_snapshot()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_lock_customer_contract_tenant_snapshot()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'extensions', 'pg_temp'\nAS $function$\ndeclare v_profile jsonb; v_company jsonb; v_email jsonb; v_snapshot jsonb;\nbegin\n  if tg_op='UPDATE' and (old.signed_at is not null or old.locked_at is not null or old.status in('signed','active','terminated','cancelled','expired'))\n     and old.tenant_communication_snapshot<>'{}'::jsonb then\n    new.tenant_communication_snapshot:=old.tenant_communication_snapshot;\n    new.tenant_communication_snapshot_sha256:=old.tenant_communication_snapshot_sha256;\n    new.tenant_legal_party_snapshot:=old.tenant_legal_party_snapshot;\n    return new;\n  end if;\n  if new.company_id is null then return new; end if;\n  select to_jsonb(t) into v_profile from public.tenant_legal_profiles t where t.company_id=new.company_id;\n  select to_jsonb(c) into v_company from public.companies c where c.id=new.company_id;\n  select to_jsonb(e) into v_email from public.company_email_settings e where e.company_id=new.company_id;\n  new.tenant_legal_party_snapshot:=jsonb_strip_nulls(jsonb_build_object(\n    'company_id',new.company_id,'legal_name',coalesce(v_profile->>'legal_name',v_company->>'name'),\n    'organization_number',coalesce(v_profile->>'organization_number',v_company->>'org_number'),\n    'postal_address',v_profile->'postal_address','customer_service_email',v_profile->>'customer_service_email',\n    'phone',v_profile->>'phone','website',v_profile->>'website','tenant_legal_profile_sha256',encode(digest(coalesce(v_profile,'{}')::text,'sha256'),'hex')\n  ));\n  v_snapshot:=jsonb_strip_nulls(jsonb_build_object(\n    'snapshot_version','gridex_tenant_communication_v1',\n    'company_id',new.company_id,'legal_name',coalesce(v_profile->>'legal_name',v_company->>'name'),\n    'organization_number',coalesce(v_profile->>'organization_number',v_company->>'org_number'),\n    'brand_name',coalesce(v_company#>>'{branding,brand_name}',v_company#>>'{branding,display_name}',v_company->>'name'),\n    'sender_name',coalesce(v_email->>'sender_name',v_company#>>'{branding,display_name}',v_company->>'name'),\n    'sender_email',v_email->>'sender_email','reply_to',coalesce(v_email->>'reply_to_email',v_email->>'support_email',v_profile->>'customer_service_email'),\n    'support_email',coalesce(v_email->>'support_email',v_profile->>'customer_service_email'),\n    'logo_url',coalesce(v_company#>>'{branding,logo_url}',v_company->>'logo_url'),\n    'brand_colors',coalesce(v_company#>'{branding,colors}','{}'::jsonb),\n    'legal_footer',coalesce(v_company#>>'{branding,legal_footer}',v_email->>'legal_footer'),\n    'phone',coalesce(v_profile->>'phone',v_company->>'phone'),\n    'website',coalesce(v_profile->>'website',v_company->>'website'),\n    'contract_publication_version_id',new.contract_publication_version_id,\n    'price_plan_version_id',new.price_plan_version_id,'legal_bundle_version_id',new.legal_bundle_version_id,\n    'locked_at',coalesce(new.signed_at,new.created_at,now())\n  ));\n  new.tenant_communication_snapshot:=v_snapshot;\n  new.tenant_communication_snapshot_sha256:=encode(digest(v_snapshot::text,'sha256'),'hex');\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "4d653e223a6111e641c4e1c54c1b84e9"
+    },
+    {
+      "identity": "public.gridex_partner_contract_event_v1()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_partner_contract_event_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'private', 'pg_catalog', 'pg_temp'\nAS $function$\ndeclare\n  v_event_type text;\n  v_data jsonb;\nbegin\n  if coalesce(new.metadata->>'source_channel','') <> 'partner_api' then\n    return new;\n  end if;\n\n  if tg_op = 'INSERT' then\n    v_event_type := 'contract.created';\n    v_data := jsonb_build_object(\n      'contract_reference',new.customer_contract_reference,\n      'status',new.status,\n      'offer_reference',new.offer_reference\n    );\n  elsif new.status is distinct from old.status then\n    v_event_type := 'contract.status_changed';\n    v_data := jsonb_build_object(\n      'contract_reference',new.customer_contract_reference,\n      'status',new.status,\n      'previous_status',old.status,\n      'offer_reference',new.offer_reference\n    );\n  else\n    return new;\n  end if;\n\n  perform private.gridex_emit_partner_resource_event_v2(\n    new.company_id,\n    new.customer_id,\n    v_event_type,\n    'contract',\n    new.customer_contract_reference,\n    v_data,\n    'partner:' || v_event_type || ':' || new.id::text || ':' || coalesce(new.updated_at::text,new.created_at::text,now()::text)\n  );\n  return new;\nend\n$function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "9cefc9bd267f3ff3879d159ab0d3ef95"
+    },
+    {
+      "identity": "public.gridex_enqueue_signed_contract_operation_v1()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_enqueue_signed_contract_operation_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog', 'public'\nAS $function$\ndeclare\n  v_candidate_site_id uuid := coalesce(new.customer_site_id, new.site_id);\n  v_site_id uuid;\n  v_site_address_hash text;\n  v_site_grid_owner_id uuid;\n  v_site_grid_area_code text;\n  v_site_facility_id text;\n  v_site_snapshot jsonb;\n  v_operation_id uuid := gen_random_uuid();\n  v_trace_id uuid := gen_random_uuid();\n  v_job_id uuid;\n  v_review_reason text;\nbegin\n  if new.status is distinct from 'signed' or new.signed_at is null then\n    return new;\n  end if;\n\n  if tg_op = 'UPDATE' and old.status = 'signed' and old.signed_at is not null then\n    return new;\n  end if;\n\n  if v_candidate_site_id is not null then\n    select\n      s.id,\n      coalesce(\n        nullif(trim(s.address_hash), ''),\n        nullif(\n          lower(concat_ws(\n            '|',\n            nullif(trim(s.street), ''),\n            nullif(regexp_replace(coalesce(s.postal_code, ''), '\\D', '', 'g'), ''),\n            nullif(trim(s.city), '')\n          )),\n          ''\n        ),\n        'missing'\n      ),\n      s.grid_owner_id,\n      s.grid_area_code,\n      s.facility_id\n    into\n      v_site_id,\n      v_site_address_hash,\n      v_site_grid_owner_id,\n      v_site_grid_area_code,\n      v_site_facility_id\n    from public.customer_sites s\n    where s.id = v_candidate_site_id\n      and s.company_id = new.company_id\n      and s.customer_id = new.customer_id;\n  end if;\n\n  if coalesce(new.energy_direction, 'consumption') <> 'consumption' then\n    insert into public.customer_operation_events (\n      company_id, customer_id, customer_site_id, metering_point_id,\n      operation_id, event_code, title, message, status, severity,\n      action_required, source, visibility, payload, idempotency_key\n    ) values (\n      new.company_id, new.customer_id, v_site_id, new.metering_point_id,\n      v_operation_id, 'contract.signed.lifecycle_skipped',\n      'Signerat avtal kr\u00e4ver ingen consumption supplier-switch',\n      'Avtalets energiriktning hanteras av en annan dom\u00e4nprocess och har inte k\u00f6ats f\u00f6r Z03.',\n      'completed', 'info', false, 'contract_lifecycle_orchestrator', 'tenant',\n      jsonb_build_object(\n        'contract_id', new.id,\n        'candidate_site_id', v_candidate_site_id,\n        'energy_direction', new.energy_direction,\n        'operation_id', v_operation_id,\n        'trace_id', v_trace_id\n      ),\n      'contract-signed-skipped:' || new.id::text\n    )\n    on conflict (company_id, idempotency_key)\n      where idempotency_key is not null do nothing;\n    return new;\n  end if;\n\n  if v_site_id is null then\n    v_review_reason := case\n      when v_candidate_site_id is null then 'signed_contract_site_missing'\n      else 'signed_contract_site_tenant_mismatch'\n    end;\n\n    insert into public.customer_operation_jobs (\n      company_id, customer_id, customer_site_id, metering_point_id,\n      job_type, status, priority, idempotency_key, payload, result,\n      attempts, max_attempts, run_after, created_by, operation_id, trace_id,\n      review_reason_code, review_environment, review_sla_due_at\n    ) values (\n      new.company_id, new.customer_id, null, new.metering_point_id,\n      'start_supplier_switch', 'needs_review', 25,\n      'contract-signed:' || new.id::text,\n      jsonb_build_object(\n        'contract_id', new.id,\n        'candidate_site_id', v_candidate_site_id,\n        'trigger', 'contract_signed',\n        'signed_at', new.signed_at,\n        'requested_start_date', coalesce(new.requested_start_date, new.expected_start_at),\n        'operation_id', v_operation_id,\n        'trace_id', v_trace_id\n      ),\n      jsonb_build_object('reason_code', v_review_reason, 'contract_id', new.id),\n      0, 5, now(), coalesce(new.updated_by, new.created_by),\n      v_operation_id, v_trace_id, v_review_reason, 'production', now() + interval '4 hours'\n    )\n    on conflict (company_id, job_type, idempotency_key)\n      where job_type = 'start_supplier_switch' and idempotency_key like 'contract-signed:%'\n    do nothing\n    returning id into v_job_id;\n\n    insert into public.customer_operation_tasks (\n      company_id, customer_id, site_id, metering_point_id, task_type, status,\n      priority, title, description, due_at, metadata, created_by\n    )\n    select\n      new.company_id, new.customer_id, null, new.metering_point_id,\n      'contract_lifecycle_readiness', 'open', 'high',\n      'Signerat avtal saknar s\u00e4ker anl\u00e4ggningskoppling',\n      'Komplettera eller r\u00e4tta avtalets tenant-s\u00e4kra anl\u00e4ggningskoppling innan leverant\u00f6rsbyte kan startas.',\n      now() + interval '4 hours',\n      jsonb_build_object(\n        'contract_id', new.id,\n        'candidate_site_id', v_candidate_site_id,\n        'reason_code', v_review_reason,\n        'operation_id', v_operation_id,\n        'customer_operation_job_id', v_job_id\n      ),\n      coalesce(new.updated_by, new.created_by)\n    where not exists (\n      select 1 from public.customer_operation_tasks t\n      where t.company_id = new.company_id\n        and t.customer_id = new.customer_id\n        and t.task_type = 'contract_lifecycle_readiness'\n        and t.status in ('open', 'in_progress', 'blocked')\n        and t.metadata ->> 'contract_id' = new.id::text\n    );\n\n    insert into public.customer_operation_events (\n      company_id, customer_id, customer_site_id, metering_point_id,\n      customer_operation_job_id, operation_id, event_code, title, message,\n      status, severity, action_required, action_url, source, visibility,\n      payload, idempotency_key\n    ) values (\n      new.company_id, new.customer_id, null, new.metering_point_id,\n      v_job_id, v_operation_id, 'contract.signed.review_required',\n      'Signerat avtal kr\u00e4ver granskning',\n      'Avtalet kan inte g\u00e5 vidare automatiskt f\u00f6rr\u00e4n anl\u00e4ggningskopplingen \u00e4r tenant-s\u00e4ker.',\n      'needs_review', 'warning', true,\n      '/admin/customers/' || new.customer_id::text || '?tab=supplier-switch',\n      'contract_lifecycle_orchestrator', 'tenant',\n      jsonb_build_object(\n        'contract_id', new.id,\n        'candidate_site_id', v_candidate_site_id,\n        'customer_operation_job_id', v_job_id,\n        'operation_id', v_operation_id,\n        'trace_id', v_trace_id,\n        'outcome_class', 'REVIEW'\n      ),\n      'contract-signed:' || new.id::text\n    )\n    on conflict (company_id, idempotency_key)\n      where idempotency_key is not null do nothing;\n\n    return new;\n  end if;\n\n  v_site_snapshot := jsonb_build_object(\n    'site_id', v_site_id,\n    'address_hash', v_site_address_hash,\n    'grid_owner_id', v_site_grid_owner_id,\n    'grid_area_code', v_site_grid_area_code,\n    'route_profile_id', null,\n    'facility_id', v_site_facility_id,\n    'captured_at', now(),\n    'contract_id', new.id,\n    'operation_id', v_operation_id,\n    'trace_id', v_trace_id\n  );\n\n  insert into public.customer_operation_jobs (\n    company_id, customer_id, customer_site_id, metering_point_id,\n    job_type, status, priority, idempotency_key, payload, result,\n    attempts, max_attempts, run_after, created_by, operation_id, trace_id,\n    request_snapshot\n  ) values (\n    new.company_id, new.customer_id, v_site_id, new.metering_point_id,\n    'start_supplier_switch', 'queued', 25,\n    'contract-signed:' || new.id::text,\n    jsonb_build_object(\n      'contract_id', new.id,\n      'trigger', 'contract_signed',\n      'signed_at', new.signed_at,\n      'requested_start_date', coalesce(new.requested_start_date, new.expected_start_at),\n      'operation_id', v_operation_id,\n      'trace_id', v_trace_id,\n      'site_snapshot', v_site_snapshot\n    ),\n    '{}'::jsonb, 0, 5, now(), coalesce(new.updated_by, new.created_by),\n    v_operation_id, v_trace_id, v_site_snapshot\n  )\n  on conflict (company_id, job_type, idempotency_key)\n    where job_type = 'start_supplier_switch' and idempotency_key like 'contract-signed:%'\n  do nothing\n  returning id into v_job_id;\n\n  insert into public.customer_operation_events (\n    company_id, customer_id, customer_site_id, metering_point_id,\n    customer_operation_job_id, operation_id, event_code, title, message,\n    status, severity, action_required, action_url, source, visibility,\n    payload, idempotency_key\n  ) values (\n    new.company_id, new.customer_id, v_site_id, new.metering_point_id,\n    v_job_id, v_operation_id, 'contract.signed',\n    'Signerat avtal k\u00f6at f\u00f6r automatisk onboarding',\n    'Systemet forts\u00e4tter automatiskt med readiness och leverant\u00f6rsbyte.',\n    'in_progress', 'info', false,\n    '/admin/customers/' || new.customer_id::text || '?tab=supplier-switch',\n    'contract_lifecycle_orchestrator', 'tenant',\n    jsonb_build_object(\n      'contract_id', new.id,\n      'signed_at', new.signed_at,\n      'customer_operation_job_id', v_job_id,\n      'operation_id', v_operation_id,\n      'trace_id', v_trace_id,\n      'outcome_class', 'AUTO'\n    ),\n    'contract-signed:' || new.id::text\n  )\n  on conflict (company_id, idempotency_key)\n    where idempotency_key is not null do nothing;\n\n  return new;\nend;\n$function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "526df36dbb291f651c3158f6928e6e49"
+    },
+    {
+      "identity": "public.gridex_enforce_customer_contract_state_v1()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_enforce_customer_contract_state_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_catalog', 'pg_temp'\nAS $function$\ndeclare\n  v_allowed boolean := false;\nbegin\n  if tg_op = 'INSERT' then\n    if new.status in ('signed', 'active')\n       and (\n         new.signed_at is null\n         or new.locked_at is null\n         or nullif(new.signature_snapshot_sha256, '') is null\n         or new.contract_product_version_id is null\n         or new.contract_publication_version_id is null\n         or new.legal_bundle_version_id is null\n         or new.contract_price_snapshot_id is null\n       ) then\n      raise exception using\n        errcode = '23514',\n        message = 'customer_contract_signed_insert_requires_import_command';\n    end if;\n    return new;\n  end if;\n\n  if new.status is not distinct from old.status then\n    return new;\n  end if;\n\n  v_allowed := case old.status\n    when 'draft' then new.status in ('pending_signature', 'cancelled')\n    when 'pending_signature' then\n      new.status in ('signature_failed', 'signed', 'cancelled')\n    when 'signature_failed' then\n      new.status in ('pending_signature', 'cancelled')\n    when 'signed' then new.status in ('active', 'terminated', 'cancelled')\n    when 'active' then new.status in ('terminated', 'cancelled', 'expired')\n    else false\n  end;\n  if not v_allowed then\n    raise exception using\n      errcode = '23514',\n      message = format(\n        'customer_contract_transition_not_allowed:%s:%s',\n        old.status,\n        new.status\n      );\n  end if;\n\n  if new.status = 'signed'\n     and (\n       new.signed_at is null\n       or new.locked_at is null\n       or nullif(new.signature_snapshot_sha256, '') is null\n       or jsonb_typeof(coalesce(new.signature_snapshot, 'null'::jsonb))\n         <> 'object'\n       or new.signature_snapshot = '{}'::jsonb\n       or new.contract_product_version_id is null\n       or new.contract_publication_version_id is null\n       or new.legal_bundle_version_id is null\n       or new.contract_price_snapshot_id is null\n     ) then\n    raise exception using\n      errcode = '23514',\n      message = 'customer_contract_signature_evidence_incomplete';\n  end if;\n\n  if new.status = 'active'\n     and (\n       old.status <> 'signed'\n       or new.signed_at is null\n       or nullif(new.signature_snapshot_sha256, '') is null\n       or new.actual_start_date is null\n       or new.billing_eligible_at is null\n       or new.lifecycle_stage <> 'active'\n       or coalesce(new.billing_eligibility_source, '')\n          <> 'activate_customer_supply_v1'\n     ) then\n    raise exception using\n      errcode = '23514',\n      message = 'customer_contract_activation_requires_supply_graph';\n  end if;\n  if new.status in ('terminated', 'cancelled', 'expired')\n     and (\n       new.ended_at is null\n       or nullif(new.status_reason_code, '') is null\n     ) then\n    raise exception using\n      errcode = '23514',\n      message = 'customer_contract_terminal_evidence_required';\n  end if;\n\n  return new;\nend\n$function$\n",
+      "owner": "postgres",
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "74ce106ca92af5de234e6259f50640f1"
+    },
+    {
+      "identity": "public.gridex_assert_company_operational_for_write()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_assert_company_operational_for_write()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'auth', 'extensions'\nAS $function$\ndeclare\n  v_company_status text;\nbegin\n  if new.company_id is null then\n    return new;\n  end if;\n\n  select status into v_company_status\n  from public.companies\n  where id = new.company_id;\n\n  if coalesce(v_company_status, 'active') not in ('active', 'onboarding') then\n    raise exception 'Tenant % is %, write is blocked for operational data', new.company_id, v_company_status\n      using errcode = 'P0001';\n  end if;\n\n  return new;\nend;\n$function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "0e284faf5a5227464e544a22001f62a1"
+    },
+    {
+      "identity": "gridex_correction_process.capture_v1()",
+      "ddl": "CREATE OR REPLACE FUNCTION gridex_correction_process.capture_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE\n old_row jsonb; new_row jsonb; old_fact jsonb; new_fact jsonb;\n old_company text; new_company text; selected_company uuid; fact_id bigint;\n fields text[]:=ARRAY[\n  'id','company_id','customer_id','customer_contract_id','contract_id','site_id','customer_site_id',\n  'metering_point_id','meter_point_id','normalized_metering_point_id','facility_id',\n  'normalized_facility_id','site_facility_id','ediel_metering_point_id','ediel_reference',\n  'grid_owner_id','grid_owner_ediel_id','switch_request_id','supplier_switch_request_id',\n  'customer_case_id','customer_operation_job_id','operation_id','outbound_request_id',\n  'cancellation_ediel_message_id','source_message_id','source_switch_request_id',\n  'outbound_z03_message_id','inbound_z04_message_id','rff_li_reference',\n  'event_type','event_status','event_code','case_type','job_type','task_type',\n  'request_type','process_type','source_process','source','status','start_status',\n  'cancellation_status','withdrawal_scenario','withdrawal_possible','switch_can_be_stopped',\n  'cancellation_required','billing_blocked','billing_manual_review','lifecycle_blocked',\n  'start_date','end_date','actual_start_date','actual_end_date','starts_at','ends_at',\n  'ended_at','signed_at','termination_notice_date','withdrawal_requested_at',\n  'requested_start_date','confirmed_start_date','completed_at','failed_at',\n  'submitted_at','resolved_at','closed_at','move_in_date','move_out_date',\n  'happened_at','occurred_at','created_at','updated_at','archived_at','source_type','operation_id',\n  'idempotency_key','actual_start_at','delivery_start_at','withdrawal_deadline_at'\n ];\nBEGIN IF TG_OP='UPDATE' AND public.ediel_capture_customer_record_retention_origin_v1(TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n IF TG_TABLE_SCHEMA<>'public' OR NOT EXISTS\n  (SELECT FROM gridex_correction_process.epochs e WHERE e.table_name=TG_TABLE_NAME) THEN\n  RAISE EXCEPTION 'correction_process_unregistered_producer' USING ERRCODE='23514';\n END IF;\n IF TG_OP<>'INSERT' THEN old_row:=to_jsonb(OLD); END IF;\n IF TG_OP<>'DELETE' THEN new_row:=to_jsonb(NEW); END IF;\n IF coalesce(octet_length(old_row::text),0)+coalesce(octet_length(new_row::text),0)>6291456 THEN\n  RAISE EXCEPTION 'correction_process_transition_too_large' USING ERRCODE='22001';\n END IF;\n SELECT jsonb_object_agg(key,value) INTO old_fact FROM jsonb_each(old_row) WHERE key=ANY(fields);\n SELECT jsonb_object_agg(key,value) INTO new_fact FROM jsonb_each(new_row) WHERE key=ANY(fields);\n IF coalesce(octet_length(old_fact::text),0)>65536 OR coalesce(octet_length(new_fact::text),0)>65536 THEN\n  RAISE EXCEPTION 'correction_process_fact_too_large' USING ERRCODE='22001';\n END IF;\n old_company:=old_row->>'company_id'; new_company:=new_row->>'company_id';\n selected_company:=coalesce(old_company,new_company)::uuid;\n INSERT INTO gridex_correction_process.facts(table_name,row_id,operation,company_id,old_fact,new_fact,facts_hash)\n VALUES (TG_TABLE_NAME,(coalesce(old_row,new_row)->>'id')::uuid,TG_OP,selected_company,old_fact,new_fact,\n  encode(sha256(convert_to(jsonb_build_object('table',TG_TABLE_NAME,'rowId',coalesce(old_row,new_row)->>'id',\n   'operation',TG_OP,'old',old_fact,'new',new_fact)::text,'UTF8')),'hex')) RETURNING id INTO fact_id;\n IF selected_company IS NULL OR (TG_OP='UPDATE' AND old_company IS DISTINCT FROM new_company) THEN\n  INSERT INTO gridex_correction_process.gaps(fact_id,reason,old_scope,new_scope)\n  VALUES(fact_id,CASE WHEN old_company IS NULL OR new_company IS NULL THEN 'unbound_company' ELSE 'company_changed' END,\n   old_fact,new_fact);\n END IF;\n IF TG_OP='DELETE' THEN RETURN OLD; END IF;\n RETURN NEW;\nEND $function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "bodyMD5": "68fe8b6945faaf2d8b441bfea7cf2cbe"
+    },
+    {
+      "identity": "gridex_correction_process.immutable_v1()",
+      "ddl": "CREATE OR REPLACE FUNCTION gridex_correction_process.immutable_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'pg_catalog'\nAS $function$\nBEGIN\n RAISE EXCEPTION 'correction_process_append_only' USING ERRCODE='55000';\nEND $function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "bodyMD5": "3b486a7ad93dd5b4038e33d73ce7a4a6"
+    },
+    {
+      "identity": "public.gridex_apply_contract_offer_standard_fees()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_apply_contract_offer_standard_fees()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  v_offer public.contract_offers%rowtype;\nbegin\n  if new.contract_offer_id is null or new.company_id is null then\n    return new;\n  end if;\n\n  -- Customer-specific/manual pricing is intentional and must not be replaced\n  -- by catalog values merely because the original offer reference is retained.\n  if coalesce(new.source_type, '') in ('manual', 'manual_override') then\n    return new;\n  end if;\n\n  select offer.*\n    into v_offer\n  from public.contract_offers offer\n  where offer.id = new.contract_offer_id\n    and offer.company_id = new.company_id;\n\n  if not found then\n    return new;\n  end if;\n\n  new.monthly_fee_sek := v_offer.monthly_fee_sek;\n  new.invoice_fee_sek := v_offer.invoice_fee_sek;\n  new.green_fee_mode := v_offer.green_fee_mode;\n  new.green_fee_value := v_offer.green_fee_value;\n  new.discount_value := v_offer.discount_value;\n  new.discount_unit := v_offer.discount_unit;\n  new.start_fee_sek := v_offer.start_fee_sek;\n  new.admin_fee_sek := v_offer.admin_fee_sek;\n  new.break_fee_sek := v_offer.break_fee_sek;\n  new.vat_rate := v_offer.vat_rate;\n\n  return new;\nend;\n$function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "b8d78aa1c6b9267550bfa65d404e9321"
+    },
+    {
+      "identity": "public.gridex_audit_critical_row_change()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_audit_critical_row_change()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'auth', 'extensions'\nAS $function$\n      declare\n        v_old jsonb := case when TG_OP in ('UPDATE','DELETE') then to_jsonb(OLD) else null end;\n        v_new jsonb := case when TG_OP in ('INSERT','UPDATE') then to_jsonb(NEW) else null end;\n        v_company_id uuid := null;\n        v_actor uuid := null;\n        v_entity_id text := null;\n      begin\n        if TG_TABLE_NAME = 'audit_logs' then\n          return coalesce(NEW, OLD);\n        end if;\n\n        v_company_id := nullif(coalesce(v_new ->> 'company_id', v_old ->> 'company_id'), '')::uuid;\n        if v_company_id is null and TG_TABLE_NAME = 'companies' then\n          v_company_id := nullif(coalesce(v_new ->> 'id', v_old ->> 'id'), '')::uuid;\n        end if;\n\n        v_actor := nullif(coalesce(\n          v_new ->> 'updated_by',\n          v_new ->> 'created_by',\n          v_new ->> 'actor_user_id',\n          v_new ->> 'invited_by',\n          v_new ->> 'paused_by',\n          v_old ->> 'updated_by',\n          v_old ->> 'created_by',\n          v_old ->> 'actor_user_id',\n          v_old ->> 'invited_by',\n          v_old ->> 'paused_by'\n        ), '')::uuid;\n\n        v_entity_id := coalesce(v_new ->> 'id', v_old ->> 'id');\n\n        insert into public.audit_logs (\n          company_id,\n          actor_user_id,\n          entity_type,\n          entity_id,\n          action,\n          old_values,\n          new_values,\n          metadata\n        ) values (\n          v_company_id,\n          v_actor,\n          TG_TABLE_NAME,\n          v_entity_id,\n          lower(TG_TABLE_NAME || '_' || TG_OP),\n          v_old,\n          v_new,\n          jsonb_build_object(\n            'source', 'gridex_audit_critical_row_change',\n            'operation', TG_OP,\n            'table', TG_TABLE_NAME\n          )\n        );\n\n        return coalesce(NEW, OLD);\n      end;\n      $function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "f2cb324e1bbc22b3705fcf5216eb779e"
+    },
+    {
+      "identity": "public.gridex_customer_contracts_company_guard()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_customer_contracts_company_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  parent_company_id uuid;\nbegin\n  if new.customer_id is not null and to_regclass('public.customers') is not null then\n    select company_id into parent_company_id from public.customers where id = new.customer_id;\n    perform public.gridex_assert_same_company(new.company_id, parent_company_id, TG_TABLE_NAME, 'customer_id');\n  end if;\n\n  if new.site_id is not null and to_regclass('public.customer_sites') is not null then\n    select company_id into parent_company_id from public.customer_sites where id = new.site_id;\n    perform public.gridex_assert_same_company(new.company_id, parent_company_id, TG_TABLE_NAME, 'site_id');\n  end if;\n\n  if new.customer_site_id is not null and to_regclass('public.customer_sites') is not null then\n    select company_id into parent_company_id from public.customer_sites where id = new.customer_site_id;\n    perform public.gridex_assert_same_company(new.company_id, parent_company_id, TG_TABLE_NAME, 'customer_site_id');\n  end if;\n\n  if new.metering_point_id is not null and to_regclass('public.metering_points') is not null then\n    select company_id into parent_company_id from public.metering_points where id = new.metering_point_id;\n    perform public.gridex_assert_same_company(new.company_id, parent_company_id, TG_TABLE_NAME, 'metering_point_id');\n  end if;\n\n  return new;\nend;\n$function$\n",
+      "owner": "postgres",
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "a879d646fecba4131e6d5df5c92ca609"
+    },
+    {
+      "identity": "public.gridex_guard_history_truncate_v1()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_guard_history_truncate_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nbegin\n  if current_user in ('postgres', 'supabase_admin') then\n    return null;\n  end if;\n  raise exception using\n    errcode = '23001',\n    message = 'history_truncate_blocked',\n    detail = format('TRUNCATE of %I.%I would remove retained history.', tg_table_schema, tg_table_name);\nend\n$function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "bodyMD5": "dac69d6ea2834051f49ab8faed87b8aa"
+    },
+    {
+      "identity": "public.set_updated_at()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.set_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'auth', 'extensions'\nAS $function$\nbegin\n  new.updated_at = now();\n  return new;\nend;\n$function$\n",
+      "owner": "postgres",
+      "acl": "{=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "9b1889f56258bf9d6554213c05019c76"
+    },
+    {
+      "identity": "public.gridex_customer_contracts_set_company_id()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_customer_contracts_set_company_id()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'auth', 'extensions'\nAS $function$\nbegin\n  if new.company_id is null and new.customer_id is not null then\n    select c.company_id\n      into new.company_id\n      from public.customers c\n     where c.id = new.customer_id;\n  end if;\n  return new;\nend;\n$function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "fd131a138d024bde27c94b1d34c4e9d9"
+    },
+    {
+      "identity": "public.gridex_require_customer_contract_canonical_binding()",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_require_customer_contract_canonical_binding()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  v_requires_binding_check boolean;\nbegin\n  v_requires_binding_check := tg_op='INSERT'\n    or old.contract_publication_version_id is not null\n    or new.status is distinct from old.status\n    or new.signed_at is distinct from old.signed_at\n    or new.contract_offer_id is distinct from old.contract_offer_id\n    or new.public_contract_offer_id is distinct from old.public_contract_offer_id\n    or new.contract_publication_version_id is distinct from old.contract_publication_version_id\n    or new.contract_product_version_id is distinct from old.contract_product_version_id\n    or new.price_plan_version_id is distinct from old.price_plan_version_id\n    or new.legal_bundle_version_id is distinct from old.legal_bundle_version_id;\n\n  if new.status <> 'draft' and v_requires_binding_check then\n    if new.contract_publication_version_id is null\n       or new.contract_product_version_id is null\n       or new.price_plan_version_id is null\n       or new.legal_bundle_version_id is null then\n      raise exception using errcode='23514',message='customer_contract_canonical_versions_required';\n    end if;\n  end if;\n\n  if (new.signed_at is not null or new.status in ('signed','active'))\n     and (v_requires_binding_check or new.contract_publication_version_id is not null) then\n    if coalesce(new.commercial_snapshot,'{}'::jsonb)='{}'::jsonb\n       or coalesce(new.legal_snapshot,'{}'::jsonb)='{}'::jsonb then\n      raise exception using errcode='23514',message='signed_customer_contract_exact_snapshots_required';\n    end if;\n    if not exists(\n      select 1\n      from public.contract_publication_versions cpv\n      join public.contract_product_versions ctv on ctv.id=cpv.contract_product_version_id\n      join public.price_plan_versions ppv on ppv.id=cpv.price_plan_version_id\n      join public.legal_bundle_versions lbv on lbv.id=cpv.legal_bundle_version_id\n      join public.contract_publications cp on cp.id=cpv.contract_publication_id\n      join public.tenant_contract_assignments ta on ta.id=cp.assignment_id\n      where cpv.id=new.contract_publication_version_id\n        and ta.company_id=new.company_id\n        and cpv.contract_product_version_id=new.contract_product_version_id\n        and cpv.price_plan_version_id=new.price_plan_version_id\n        and cpv.legal_bundle_version_id=new.legal_bundle_version_id\n        and cpv.status='published' and cpv.locked_at is not null\n        and ctv.status='approved' and ctv.locked_at is not null\n        and ppv.status in('published','approved','active') and ppv.locked_at is not null\n        and lbv.status='published' and lbv.locked_at is not null\n        and cardinality(lbv.unresolved_variables)=0\n    ) then\n      raise exception using errcode='23514',message='signed_customer_contract_versions_not_locked';\n    end if;\n  end if;\n  return new;\nend $function$\n",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "c4bc9c3b93d91179731815aeccb3e273"
+    },
+    {
+      "identity": "gridex_ediel_retention.record_target_guard_v1()",
+      "ddl": "CREATE OR REPLACE FUNCTION gridex_ediel_retention.record_target_guard_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE spec gridex_ediel_retention.record_class_catalog%rowtype;t gridex_ediel_retention.record_tombstones%rowtype;BEGIN\n SELECT * INTO STRICT spec FROM gridex_ediel_retention.record_class_catalog WHERE source_table=TG_TABLE_NAME;\n SELECT * INTO t FROM gridex_ediel_retention.record_tombstones WHERE retention_class=spec.retention_class AND target_id=(CASE WHEN TG_OP='INSERT' THEN new.id ELSE old.id END);\n IF FOUND THEN IF TG_OP='UPDATE' AND public.ediel_is_qualified_customer_record_transition_v1(TG_TABLE_NAME,to_jsonb(old),to_jsonb(new)) THEN RETURN new;END IF;RAISE EXCEPTION 'customer_record_retention_tombstoned';END IF;\n IF TG_OP='INSERT' AND TG_TABLE_NAME IN('customer_contract_documents','customer_contract_signature_requests','customer_contract_acceptances','customer_contract_evidence') AND EXISTS(SELECT FROM gridex_ediel_retention.record_tombstones WHERE company_id=new.company_id AND contract_id=(to_jsonb(new)->>'customer_contract_id')::uuid) THEN RAISE EXCEPTION 'customer_contract_records_retention_tombstoned';END IF;\n IF TG_OP='DELETE' THEN RAISE EXCEPTION 'customer_record_native_class_retention_required';ELSE RETURN new;END IF;\nEND$function$\n",
+      "owner": "gridex_ediel_retention_owner",
+      "acl": "{gridex_ediel_retention_owner=X/gridex_ediel_retention_owner}",
+      "bodyMD5": "e2a03ccb78b1e28ab5a13784f1dd8176"
+    },
+    {
+      "identity": "public.gridex_assert_same_company(uuid, uuid, text, text)",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_assert_same_company(p_child_company_id uuid, p_parent_company_id uuid, p_child_table text, p_reference_column text)\n RETURNS void\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nbegin\n  if p_child_company_id is not null\n     and p_parent_company_id is not null\n     and p_child_company_id <> p_parent_company_id then\n    raise exception 'Cross-tenant reference blocked: %.% does not belong to company_id %',\n      p_child_table, p_reference_column, p_child_company_id\n      using errcode = '23514';\n  end if;\nend;\n$function$\n",
+      "owner": "postgres",
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "1a0203bdce2f536bdb31edf23770dc73"
+    },
+    {
+      "identity": "public.gridex_add_months_timestamptz(timestamp with time zone, integer)",
+      "ddl": "CREATE OR REPLACE FUNCTION public.gridex_add_months_timestamptz(base_value timestamp with time zone, months_int integer)\n RETURNS timestamp with time zone\n LANGUAGE sql\n STABLE\n SET search_path TO 'public', 'auth', 'extensions'\nAS $function$\n  select\n    case\n      when base_value is null then null\n      when months_int is null then null\n      when months_int <= 0 then base_value\n      else (\n        (\n          date_trunc('month', base_value at time zone 'UTC')\n          + make_interval(months => months_int)\n        )\n        + make_interval(\n            days => least(\n              extract(day from base_value at time zone 'UTC')::int,\n              extract(\n                day from (\n                  date_trunc('month', base_value at time zone 'UTC')\n                  + make_interval(months => months_int + 1)\n                  - interval '1 day'\n                )\n              )::int\n            ) - 1\n          )\n      ) at time zone 'UTC'\n    end\n$function$\n",
+      "owner": "postgres",
+      "acl": "{=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "bodyMD5": "5dd35b48278930851ee15d5cb945c344"
+    }
+  ],
+  "triggers": [
+    {
+      "name": "aa_customer_contracts_assign_identity_v1",
+      "ddl": "CREATE TRIGGER aa_customer_contracts_assign_identity_v1 BEFORE INSERT ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_assign_customer_contract_identity_v1()",
+      "enabled": "O",
+      "function": "public.gridex_assign_customer_contract_identity_v1()",
+      "bodyMD5": "03be24db96490bc3e08c5e33cfddb9de"
+    },
+    {
+      "name": "ab_customer_contracts_normalize_fixed_area_snapshot_v1",
+      "ddl": "CREATE TRIGGER ab_customer_contracts_normalize_fixed_area_snapshot_v1 BEFORE INSERT OR UPDATE OF price_snapshot ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_normalize_customer_contract_pricing_snapshot_v1()",
+      "enabled": "O",
+      "function": "public.gridex_normalize_customer_contract_pricing_snapshot_v1()",
+      "bodyMD5": "5f39538467dcc041ad92914e21fbc950"
+    },
+    {
+      "name": "ac_customer_contracts_price_area_binding_v1",
+      "ddl": "CREATE TRIGGER ac_customer_contracts_price_area_binding_v1 BEFORE INSERT OR UPDATE OF customer_site_id, site_id, metering_point_id, price_area_used, grid_area_code_used ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_fill_customer_contract_price_area_v1()",
+      "enabled": "O",
+      "function": "public.gridex_fill_customer_contract_price_area_v1()",
+      "bodyMD5": "ceb675a95b3421fea7e569f1767333f8"
+    },
+    {
+      "name": "customer_contract_quote_binding_v2",
+      "ddl": "CREATE TRIGGER customer_contract_quote_binding_v2 BEFORE INSERT OR UPDATE OF company_id, quote_reference, contract_product_id, contract_product_version_id, contract_publication_version_id, price_plan_id, price_plan_version_id, price_book_id, legal_bundle_version_id, energy_direction ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_enforce_quote_binding_v2()",
+      "enabled": "O",
+      "function": "public.gridex_enforce_quote_binding_v2()",
+      "bodyMD5": "5862470ea1dd16986dd27b55f34305eb"
+    },
+    {
+      "name": "customer_contracts_bind_exact_publication",
+      "ddl": "CREATE TRIGGER customer_contracts_bind_exact_publication BEFORE INSERT OR UPDATE OF public_contract_offer_id, offer_reference ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_bind_customer_contract_to_exact_publication()",
+      "enabled": "O",
+      "function": "public.gridex_bind_customer_contract_to_exact_publication()",
+      "bodyMD5": "b8370e6ded6d9d0e91006dea7c60b599"
+    },
+    {
+      "name": "customer_contracts_bind_internal_publication",
+      "ddl": "CREATE TRIGGER customer_contracts_bind_internal_publication BEFORE INSERT OR UPDATE OF contract_offer_id ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_bind_internal_customer_contract()",
+      "enabled": "O",
+      "function": "public.gridex_bind_internal_customer_contract()",
+      "bodyMD5": "c31ed2a998585afcea34abff9a712cc2"
+    },
+    {
+      "name": "customer_contracts_contract_availability",
+      "ddl": "CREATE TRIGGER customer_contracts_contract_availability BEFORE INSERT OR UPDATE OF status, contract_offer_id, contract_product_id, contract_product_version_id ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_enforce_contract_availability_and_capacity()",
+      "enabled": "O",
+      "function": "public.gridex_enforce_contract_availability_and_capacity()",
+      "bodyMD5": "df1473beee05d9b41c913e40c3b8f314"
+    },
+    {
+      "name": "customer_contracts_customer_archived_guard_trg",
+      "ddl": "CREATE TRIGGER customer_contracts_customer_archived_guard_trg BEFORE INSERT ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_assert_customer_not_archived_for_insert()",
+      "enabled": "O",
+      "function": "public.gridex_assert_customer_not_archived_for_insert()",
+      "bodyMD5": "b9b1e17a40dec80652294e44937179ab"
+    },
+    {
+      "name": "customer_contracts_lock_signed",
+      "ddl": "CREATE TRIGGER customer_contracts_lock_signed BEFORE DELETE OR UPDATE ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.record_c40a67d5fa7766230451_guard_v1()",
+      "enabled": "O",
+      "function": "gridex_ediel_retention.record_c40a67d5fa7766230451_guard_v1()",
+      "bodyMD5": "d413658b065c282e3e64aea5f53fff6f"
+    },
+    {
+      "name": "customer_contracts_lock_tenant_snapshot",
+      "ddl": "CREATE TRIGGER customer_contracts_lock_tenant_snapshot BEFORE INSERT OR UPDATE OF company_id, contract_publication_version_id, price_plan_version_id, legal_bundle_version_id, signed_at ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_lock_customer_contract_tenant_snapshot()",
+      "enabled": "O",
+      "function": "public.gridex_lock_customer_contract_tenant_snapshot()",
+      "bodyMD5": "4d653e223a6111e641c4e1c54c1b84e9"
+    },
+    {
+      "name": "customer_contracts_partner_api_events_v1",
+      "ddl": "CREATE TRIGGER customer_contracts_partner_api_events_v1 AFTER INSERT OR UPDATE OF status ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_partner_contract_event_v1()",
+      "enabled": "O",
+      "function": "public.gridex_partner_contract_event_v1()",
+      "bodyMD5": "9cefc9bd267f3ff3879d159ab0d3ef95"
+    },
+    {
+      "name": "customer_contracts_signed_operation_v1",
+      "ddl": "CREATE TRIGGER customer_contracts_signed_operation_v1 AFTER INSERT OR UPDATE ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_enqueue_signed_contract_operation_v1()",
+      "enabled": "O",
+      "function": "public.gridex_enqueue_signed_contract_operation_v1()",
+      "bodyMD5": "526df36dbb291f651c3158f6928e6e49"
+    },
+    {
+      "name": "customer_contracts_state_machine_v1",
+      "ddl": "CREATE TRIGGER customer_contracts_state_machine_v1 BEFORE INSERT OR UPDATE OF status ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_enforce_customer_contract_state_v1()",
+      "enabled": "O",
+      "function": "public.gridex_enforce_customer_contract_state_v1()",
+      "bodyMD5": "74ce106ca92af5de234e6259f50640f1"
+    },
+    {
+      "name": "customer_contracts_tenant_operational_guard_trg",
+      "ddl": "CREATE TRIGGER customer_contracts_tenant_operational_guard_trg BEFORE INSERT OR UPDATE ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_assert_company_operational_for_write()",
+      "enabled": "O",
+      "function": "public.gridex_assert_company_operational_for_write()",
+      "bodyMD5": "0e284faf5a5227464e544a22001f62a1"
+    },
+    {
+      "name": "e035_process_after_write",
+      "ddl": "CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1()",
+      "enabled": "A",
+      "function": "gridex_correction_process.capture_v1()",
+      "bodyMD5": "68fe8b6945faaf2d8b441bfea7cf2cbe"
+    },
+    {
+      "name": "e035_process_before_delete",
+      "ddl": "CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1()",
+      "enabled": "A",
+      "function": "gridex_correction_process.capture_v1()",
+      "bodyMD5": "68fe8b6945faaf2d8b441bfea7cf2cbe"
+    },
+    {
+      "name": "e035_process_no_truncate",
+      "ddl": "CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON customer_contracts FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1()",
+      "enabled": "A",
+      "function": "gridex_correction_process.immutable_v1()",
+      "bodyMD5": "3b486a7ad93dd5b4038e33d73ce7a4a6"
+    },
+    {
+      "name": "gridex_apply_contract_offer_standard_fees_trg",
+      "ddl": "CREATE TRIGGER gridex_apply_contract_offer_standard_fees_trg BEFORE INSERT OR UPDATE OF contract_offer_id, source_type ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_apply_contract_offer_standard_fees()",
+      "enabled": "O",
+      "function": "public.gridex_apply_contract_offer_standard_fees()",
+      "bodyMD5": "b8d78aa1c6b9267550bfa65d404e9321"
+    },
+    {
+      "name": "gridex_audit_customer_contracts",
+      "ddl": "CREATE TRIGGER gridex_audit_customer_contracts AFTER INSERT OR DELETE OR UPDATE ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_audit_critical_row_change()",
+      "enabled": "O",
+      "function": "public.gridex_audit_critical_row_change()",
+      "bodyMD5": "f2cb324e1bbc22b3705fcf5216eb779e"
+    },
+    {
+      "name": "gridex_customer_contracts_company_guard_tg",
+      "ddl": "CREATE TRIGGER gridex_customer_contracts_company_guard_tg BEFORE INSERT OR UPDATE ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_customer_contracts_company_guard()",
+      "enabled": "O",
+      "function": "public.gridex_customer_contracts_company_guard()",
+      "bodyMD5": "a879d646fecba4131e6d5df5c92ca609"
+    },
+    {
+      "name": "gridex_history_truncate_guard",
+      "ddl": "CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON customer_contracts FOR EACH STATEMENT EXECUTE FUNCTION gridex_guard_history_truncate_v1()",
+      "enabled": "O",
+      "function": "public.gridex_guard_history_truncate_v1()",
+      "bodyMD5": "dac69d6ea2834051f49ab8faed87b8aa"
+    },
+    {
+      "name": "trg_customer_contracts_updated_at",
+      "ddl": "CREATE TRIGGER trg_customer_contracts_updated_at BEFORE UPDATE ON customer_contracts FOR EACH ROW EXECUTE FUNCTION set_updated_at()",
+      "enabled": "O",
+      "function": "public.set_updated_at()",
+      "bodyMD5": "9b1889f56258bf9d6554213c05019c76"
+    },
+    {
+      "name": "trg_gridex_customer_contracts_auto_renew_guard",
+      "ddl": "CREATE TRIGGER trg_gridex_customer_contracts_auto_renew_guard BEFORE INSERT OR UPDATE ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_customer_contracts_auto_renew_guard()",
+      "enabled": "O",
+      "function": "public.gridex_customer_contracts_auto_renew_guard()",
+      "bodyMD5": "de1bd1d011c84f19b3795887fc84b55a"
+    },
+    {
+      "name": "trg_gridex_customer_contracts_set_company_id",
+      "ddl": "CREATE TRIGGER trg_gridex_customer_contracts_set_company_id BEFORE INSERT OR UPDATE OF customer_id, company_id ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_customer_contracts_set_company_id()",
+      "enabled": "O",
+      "function": "public.gridex_customer_contracts_set_company_id()",
+      "bodyMD5": "fd131a138d024bde27c94b1d34c4e9d9"
+    },
+    {
+      "name": "zz_customer_contracts_require_canonical_binding",
+      "ddl": "CREATE TRIGGER zz_customer_contracts_require_canonical_binding BEFORE INSERT OR UPDATE OF status, signed_at, contract_offer_id, public_contract_offer_id, contract_publication_version_id, contract_product_version_id, price_plan_version_id, legal_bundle_version_id ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_require_customer_contract_canonical_binding()",
+      "enabled": "O",
+      "function": "public.gridex_require_customer_contract_canonical_binding()",
+      "bodyMD5": "c4bc9c3b93d91179731815aeccb3e273"
+    },
+    {
+      "name": "zz_record_retention_target",
+      "ddl": "CREATE TRIGGER zz_record_retention_target BEFORE INSERT OR DELETE OR UPDATE ON customer_contracts FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.record_target_guard_v1()",
+      "enabled": "O",
+      "function": "gridex_ediel_retention.record_target_guard_v1()",
+      "bodyMD5": "e2a03ccb78b1e28ab5a13784f1dd8176"
+    }
+  ],
+  "candidateSQLSHA256": "83b072dfedbe98813b848caebdd2578231934b893169b5ae77f8cc97d4702e8d",
+  "explicitLimit": "Metadata-only actual DDL copied as data; proposal not executed. Parent must review generic code before source adoption.",
+  "candidateGuardBodyMD5": "a7f82350b9b9ded9b99d66450292eec9"
+}

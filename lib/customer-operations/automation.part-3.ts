@@ -16,6 +16,7 @@ import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEve
 import { transitionCorrelatedCustomerApplicationWorkflow } from '@/lib/website/customerApplicationWorkflowBridge'
 
 import { getMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
+import { resumeCustomerIntake } from '@/lib/customer-operations/customerIntakeOrchestrator'
 
 
 
@@ -45,6 +46,39 @@ export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
   let candidate = meteringPoints.find((point) => point.id === readiness.candidateMeteringPointId) ?? null
   candidate = await normalizeVerifiedMeteringPointIdentity({ companyId: job.company_id, point: candidate })
   const meteringIdentity = getMeteringPointIdentity(candidate)
+  // Signed-contract triggers enqueue directly, bypassing the enqueue helper's
+  // facility gate. Resume the same scoped intake for already-claimed jobs too;
+  // it verifies the contract, archived POA and recipient before queuing mail.
+  if (!site.facility_id || !meteringIdentity) {
+    const intakeDecision = await resumeCustomerIntake({
+      companyId: job.company_id,
+      customerId: job.customer_id,
+      siteId,
+      contractId: clean(record(job.payload).contract_id),
+      actorUserId,
+    })
+    const waiting = intakeDecision.nextAction === 'wait_for_grid_owner'
+    await emitCustomerOperationEvent({
+      companyId: job.company_id, customerId: job.customer_id, actorUserId,
+      eventType: waiting ? 'supplier_switch.facility_lookup_waiting' : 'supplier_switch.facility_lookup_needs_review',
+      title: waiting ? 'Anläggningsuppgifter begärda från nätägaren' : 'Anläggningsuppgifter behöver kompletteras',
+      message: intakeDecision.customerMessage,
+      customerSiteId: siteId, meteringPointId: candidate?.id ?? null,
+      customerOperationJobId: job.id, operationId,
+      status: waiting ? 'waiting_response' : 'needs_review',
+      actionRequired: !waiting,
+      actionUrl: `/admin/customers/${job.customer_id}?tab=data-requests`,
+      payload: { redirect: 'manual_facility_information_request',
+        grid_owner_information_request_id: intakeDecision.references.gridOwnerInformationRequestId,
+        intake_state: intakeDecision.state, next_action: intakeDecision.nextAction, blockers: intakeDecision.blockers },
+      idempotencyKey: `supplier-switch-facility-intake:${job.id}:${intakeDecision.state}`,
+    })
+    return { status: waiting ? 'waiting_response' : 'needs_review', result: {
+      redirect: 'manual_facility_information_request', reason_code: 'facility_or_metering_point_missing',
+      grid_owner_information_request_id: intakeDecision.references.gridOwnerInformationRequestId,
+      intake_state: intakeDecision.state, next_action: intakeDecision.nextAction, blockers: intakeDecision.blockers,
+    } }
+  }
   const gridOwnerId = clean(candidate?.grid_owner_id) ?? clean(site.grid_owner_id)
   const verification = await getGridOwnerVerification(gridOwnerId).catch(() => null)
   const isGridOwnerReady = Boolean(verification?.canStartSupplierSwitch || (verification?.verificationStatus === 'verified' && verification?.verifiedForCustomerFlow))

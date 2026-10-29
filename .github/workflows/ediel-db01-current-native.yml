@@ -485,7 +485,7 @@ jobs:
           def current_write_api_install_spec():
               return {'before_catalog_sha256':'709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
                   'preimage_artifact_id':12655280424,'preimage_source':'c6a02ec1edfbf72d81a2c3755e004781da8bc5d6',
-                  'schema_sha256':'4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca','function_count':251,
+                  'schema_sha256':'aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6','function_count':251,
                   'projection_old_body':'01a18718d1d55c93238f2f9a8cfcb44da7cd5b35dbee96af964066a1848b7379',
                   'projection_new_body':'66d86e98130ca6f5e64ae966d710f35bce86204452febe714684025943a81f17',
                   'actor_old_body':'48696b52c449df7b7d76b7d6ed5c71ecf0544621f9f2c3de82f51ba200ff0b60',
