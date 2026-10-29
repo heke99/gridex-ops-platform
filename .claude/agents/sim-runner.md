@@ -33,7 +33,7 @@ Starta en ny värld **utan** `SKIP_REPLAY`. Varje steg som misslyckas rapportera
    ```
    setsid nohup bash -c 'cd <körkatalog> && [SKIP_REPLAY=1] <flaggor> bash scripts/reality/up.sh > <evidens>/up.log 2>&1; echo "exit $?" >> <evidens>/up.log' &
    ```
-   Flaggorna skickas med varje gång, eftersom de inte sparas mellan körningar. Utan annan instruktion gäller `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic`, plus `REALITY_EDIEL_LANE=test` när E ska köras. Skriv flaggorna i paketet.
+   Flaggorna skickas med varje gång, eftersom de inte sparas mellan körningar. Det gäller även för `run.sh` och `run-many.sh`, och alltid inklusive `REALITY_HOME`. Utan annan instruktion gäller `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic`, plus `REALITY_EDIEL_LANE=test` när E ska köras. Skriv flaggorna i paketet.
 3. När bygget har lyckats utan `SKIP_BUILD`, skriv SHA till `$REALITY_HOME/built-commit`.
 4. **`SKIP_BUILD=1` är tillåtet** bara när varje fil i `git diff --name-only <built-commit> <SHA>` ligger under någon av dessa sökvägar:
    - `scripts/reality/`
@@ -56,7 +56,8 @@ Starta en ny värld **utan** `SKIP_REPLAY`. Varje steg som misslyckas rapportera
    - Skriv **inte** in versionen i den officiella ledgern `supabase_migrations.schema_migrations`, eftersom replayens proveniens ska bevaras.
    - Lägg i stället till en rad med version, filnamn, sha256 och tid i `$REALITY_HOME/applied-migrations.tsv`, och kopiera filen till evidenskatalogen.
    - Ändra aldrig själva migrationsfilen.
-6. **Schemaidentitet:** ange replayens bas, det vill säga den commit världen startades från utan `SKIP_REPLAY`. Kör `scripts/gridex-aud-003-schema-fingerprint.sql` mot världen och spara sha256 av resultatet. Det är en delidentitet, eftersom skriptet bara täcker utvalda tabeller. Spara även sha256 av `applied-migrations.tsv`. Ange båda, och exakta kommandon, i paketet.
+6. **Fullständighet:** jämför `applied-migrations.tsv` med de migrationsfiler som `git diff --name-status <replaybas> HEAD -- supabase/migrations` visar som tillagda (A). Varje sådan fil ska vara applicerad. Ändrade (M) eller borttagna (D) filer betyder att världen måste startas om från ny replay. Rapportera avvikelser under `FEL`.
+7. **Schemaidentitet:** ange replayens bas, det vill säga den commit världen startades från utan `SKIP_REPLAY`. Kör `scripts/gridex-aud-003-schema-fingerprint.sql` mot världen och spara sha256 av resultatet. Det är en delidentitet, eftersom skriptet bara täcker utvalda tabeller. Spara även sha256 av `applied-migrations.tsv`. Ange båda, och exakta kommandon, i paketet.
 
 ## Köra
 - Kör hela scenariofiler från körkatalogen, i bakgrunden:
@@ -92,7 +93,7 @@ PAKET-UTKAST: <sökväg till status.json>
 - clockModel, med Auth-klocka och affärstid var för sig;
 - Node- och PG-version;
 - native-läge före och efter per scenario, heartbeatAtUtc och cleanupReceipt;
-- tider, executionScope (`ISOLATED_NATIVE` för harnessen, aldrig `BROWSER_E2E`);
+- tider, executionScope (`ISOLATED_NATIVE` för harnessen, `BROWSER_E2E` bara för steg som faktiskt kör gränssnittet i webbläsare);
 - kommando och evidensreferenser med sha256, och flaggor.
 
 Sätt `state` till `RUNNING`, `FAIL`, `BLOCKED` eller `PARTIAL`, **aldrig `PASS`**. PASS sätts bara av den orkestrerande sessionen efter granskning. Fält du inte känner lämnar du tomma och markerar dem. Därefter är det sim-clerk som kompletterar.
