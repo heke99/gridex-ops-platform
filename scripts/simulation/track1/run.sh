@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 # Run one whole scenario file against the active track 1 stack.
 # Usage: run.sh <scenario-file.test.ts> [run-label]
-# One run at a time per container (flock). Each run gets its own directory with
+# Requires SIM_REPORT (path of the JSON report). One run at a time per
+# container (SIM_HOME/run.lock, atomic; a stale lock is left for sim-runner). Each run gets its own directory with
 # report.json (vitest JSON reporter), run.log and a final "exit <code>" line.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+[[ -n "${SIM_REPORT:-}" ]] || die "SIM_REPORT (path for the JSON report) is required"
+[[ -f "${1:-}" ]] || die "scenario file required"
 SCENARIO="$(readlink -f "${1:?scenario file required}")"
 LABEL="${2:-$(basename "$SCENARIO" .test.ts)}"
 ENV_DIR="$(current_env_dir)"
 [[ -f "$ENV_DIR/stack.json" ]] || die "stack not ready"
-exec 9>"$SIM_HOME/run.lock"
-flock -n 9 || die "another run is active"
+acquire_lock
 
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$LABEL"
 RUN_DIR="$ENV_DIR/runs/$RUN_ID"
@@ -45,5 +47,35 @@ set -e
 MS=$(( ($(date +%s%N) - T0) / 1000000 ))
 echo "wallMs $MS" >> "$RUN_DIR/run.log"
 echo "exit $CODE" >> "$RUN_DIR/run.log"
+mkdir -p "$(dirname "$SIM_REPORT")"
+python3 - "$RUN_DIR/report.json" "$SIM_REPORT" "$SCENARIO" "$RUN_ID" "$RUN_DIR" "$CODE" "$MS" <<'PY'
+import json, re, sys, os
+vit, out, scenario, run_id, run_dir, code, ms = sys.argv[1:]
+idre = re.compile(r"^\s*([A-Z][A-Z0-9]*\d+(?:\.\d+)*)\b")
+raw, err = {}, None
+try: raw = json.load(open(vit))
+except Exception as e: err = f"vitest report unreadable: {e}"
+norm = {"passed": "passed", "failed": "failed"}
+steps = []
+for tr in raw.get("testResults", []):
+    for a in tr.get("assertionResults", []):
+        title = a.get("title", ""); full = a.get("fullName") or title
+        m = idre.match(title) or idre.match(full) or next((x for x in map(idre.match, a.get("ancestorTitles", [])) if x), None)
+        fm = a.get("failureMessages") or []
+        steps.append({"scenarioId": m.group(1) if m else None, "step": title,
+                      "status": norm.get(a.get("status"), "skipped"),
+                      "durationMs": a.get("duration"),
+                      "failure": (fm[0].splitlines()[0][:300] if fm else None)})
+per = {}
+for st in steps:
+    k = st["scenarioId"] or "UNASSIGNED"; per.setdefault(k, []).append(st["status"])
+rank = lambda l: "failed" if "failed" in l else ("skipped" if "skipped" in l else "passed")
+rep = {"runId": run_id, "scenarioFile": scenario.split("/scripts/simulation/", 1)[-1],
+       "runDir": run_dir, "exitCode": int(code), "wallMs": int(ms), "error": err,
+       "vitest": {k: raw.get(k) for k in ("numTotalTests", "numPassedTests", "numFailedTests", "numPendingTests", "numTodoTests", "numTotalTestSuites", "numFailedTestSuites", "success", "startTime")},
+       "steps": steps, "scenarios": {k: rank(v) for k, v in per.items()}}
+tmp = out + ".tmp"
+json.dump(rep, open(tmp, "w"), indent=2); os.replace(tmp, out)
+PY
 log "run $RUN_ID exit $CODE (${MS} ms) -> $RUN_DIR"
 exit $CODE

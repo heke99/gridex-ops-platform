@@ -3,8 +3,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 ENV_DIR="$(current_env_dir)"
-exec 9>"$SIM_HOME/run.lock"
-flock -n 9 || die "a run is in progress; refusing to stop the stack"
+acquire_lock
 
 if [[ -f "$ENV_DIR/app.pid" ]]; then
   pid="$(cat "$ENV_DIR/app.pid")"
@@ -29,5 +28,6 @@ json.dump({"environmentId": "$(basename "$ENV_DIR")", "stoppedAtUtc": "$(utc)",
 PY
 cat "$ENV_DIR/cleanup.json"
 [[ "$left_containers" == 0 && "${left_app:-0}" == 0 && "$left_volumes" == 0 ]] || die "cleanup incomplete"
+clear_markers
 rm -f "$SIM_HOME/current"
 log "stack $(basename "$ENV_DIR") stopped"
