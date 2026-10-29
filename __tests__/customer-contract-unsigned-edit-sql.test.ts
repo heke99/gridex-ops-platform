@@ -66,12 +66,13 @@ beforeAll(async()=>{
     insert into customer_contract_events(company_id,customer_contract_id,customer_id,event_type,metadata,actor_user_id) values(c,k,u,t,m,a);return '{}'::jsonb;end$$;`)
  // Run the real insert-time canonical binder/hash guards: finite materializer
  // ports must not hide mixed old/new graph identities or post-trigger hashes.
- for(const name of ['gridex_fill_contract_price_snapshot_binding_v1','gridex_enforce_contract_price_snapshot_hash_v1']){
+ for(const name of ['gridex_fill_contract_price_snapshot_binding_v1','gridex_enforce_contract_price_snapshot_hash_v1','gridex_apply_contract_offer_standard_fees']){
   const body=schema.match(new RegExp(`CREATE FUNCTION public\\.${name}\\(\\) RETURNS trigger[\\s\\S]*?\\$\\$;`))![0]
   await db.exec(body)
  }
  await db.exec(`create trigger aab_binding before insert on contract_price_snapshots for each row execute function gridex_fill_contract_price_snapshot_binding_v1();
   create trigger zzzz_hash before insert on contract_price_snapshots for each row execute function gridex_enforce_contract_price_snapshot_hash_v1();
+  create trigger gridex_apply_contract_offer_standard_fees_trg before insert or update of contract_offer_id,source_type on customer_contracts for each row execute function gridex_apply_contract_offer_standard_fees();
   create unique index contract_price_snapshots_contract_valid_from_uidx on contract_price_snapshots(company_id,contract_id,valid_from) where contract_id is not null;`)
  const profile=JSON.parse(fs.readFileSync('scripts/helpers/ediel-poa-contract-trigger-profile.native.json','utf8')) as {functions:Array<{identity:string;ddl:string}>}
  await db.exec(profile.functions.find(f=>f.identity.startsWith('public.gridex_add_months_timestamptz('))!.ddl)
@@ -196,6 +197,12 @@ describe('actual atomic unsigned agreement edit transaction',()=>{
   const {rows}=await db.query<Record<string,unknown>>(`select price_snapshot,campaign_snapshot,actual_start_at,billing_blocker_reasons,customer_site_id,site_id from customer_contracts where id='${id(3)}'`)
   expect(rows[0]).toMatchObject({price_snapshot:{opaque:'ORIGINAL'},campaign_snapshot:{campaign:'KEEP'},billing_blocker_reasons:[{reason:'KEEP'}],customer_site_id:id(4),site_id:id(4)})
   expect(rows[0].actual_start_at).not.toBeNull()
+ })
+ it('does not reproject catalog fees while saving only a site or staff comment',async()=>{
+  await db.exec(`update contract_offers set invoice_fee_sek=19,vat_rate=0.25 where id='${id(5)}';update customer_contracts set source_type='catalog' where id='${id(3)}';update contract_offers set invoice_fee_sek=99 where id='${id(5)}'`)
+  expect(await edit({site_id:id(4)},false)).toMatchObject({ok:true,pricing_revised:false})
+  const {rows}=await db.query<{invoice:number}>(`select invoice_fee_sek::float8 invoice from customer_contracts where id='${id(3)}'`)
+  expect(rows[0].invoice).toBe(19)
  })
  it('rejects stale compare-and-swap before creating any version or revoking any token',async()=>{
   const before=await counts();expect(await edit({invoice_fee_sek:25,override_reason:'stale'},true,id(15),'2026-10-29T10:00:00.123455+00:00')).toMatchObject({error:'40001'});expect(await counts()).toEqual(before)
