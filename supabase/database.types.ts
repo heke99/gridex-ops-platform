@@ -99650,6 +99650,19 @@ export type Database = {
         Args: { p_qualifier: string; p_raw: string }
         Returns: string
       }
+      gridex_edit_unsigned_customer_contract_v1: {
+        Args: {
+          p_acknowledge_current_terms: boolean
+          p_actor_user_id: string
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_edit_id: string
+          p_expected_updated_at: string
+          p_patch: Json
+        }
+        Returns: Json
+      }
       gridex_end_contract_channel: {
         Args: {
           p_actor_user_id: string

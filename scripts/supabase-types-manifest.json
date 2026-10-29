@@ -1,11 +1,11 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-29T01:17:33.063874+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run40798577553-job123200908515-attempt1",
-  "sha256": "7f6ae05f83bb8fe7b5d1ce18b7e96e5397a518069278a14e85f586caef694972",
-  "latest_migration": "20261028091248_allow_contract_signature_before_supply_start.sql",
-  "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of explicit POA evidence and the permanent confirmation runtime fence with the existing company/request unique key; no native/parity or production-installation result implied.",
-  "composition_capture_pending": false,
+  "generated_at": "2026-10-29T19:30:00Z",
+  "generated_with": "supabase-cli-2.101.0-LOCAL_CANDIDATE-gen-session-pr932-e069630d-pending-genuine-staff-api-schema-capture",
+  "sha256": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
+  "latest_migration": "20261029173552_preserve_imported_agreement_selected_pricing.sql",
+  "latest_migration_schema_effect": "PR932 adds the gridex_unsigned_contract_revision schema and public.gridex_edit_unsigned_customer_contract_v1, changes the contract_price_snapshots unique index and imported-agreement pricing function bodies. LOCAL candidate only; not a genuine CI capture.",
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-15T01:56:39.362659+00:00",
@@ -864,7 +864,7 @@
       }
     }
   },
-  "composition_note": "Byte-exact RAW3 from run40798577553/job123200908515 source03e5eac47a87a9065fbefdf965536522eefdf131/tree989596f7ae5ee3c784727182fb6a7a2379470ce9. All nine previous active literal values and every other historical field remain retained. The adopting successor is not the captured source. Current native, upgrade/parity and mandatory CI remain required; no whole approval.",
+  "composition_note": "LOCAL_CANDIDATE from an isolated local clean replay of PR932 head e069630d (replay fingerprint 5168f69b unchanged). Adoption requires a byte-identical genuine staff-api-schema-capture artifact on the GEN PR head; otherwise the CI artifact is adopted and the deviation recorded. All previous active values are archived under pr932_local_candidate_capture_20261029.previous_active_fields.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -100653,5 +100653,38 @@
     "active_generated_outputs_origin": "3f060dac78cd84943475e6f27b1ea69a64afdaf4d54be3f050450ce319e0f63b"
   },
   "input_hash_scope": "Eight inputs bind captured C14 exactly. The adopting successor manifest is a new source value, not a captured self-hash."
-}
+},
+  "pr932_local_candidate_capture_20261029": {
+    "kind": "LOCAL_CANDIDATE_PENDING_GENUINE_CAPTURE",
+    "producer_session": "session_01UHTg8KVQcYJS5fqdU3XihA",
+    "source_custody_receipt": "d36c59292a01aa341ff304a60809269c2d1f0af4",
+    "producer_receipt": "c4139fff8e1cf47d135b8489ed42679765b43fd2",
+    "captured_source_head": "e069630d69087ccc472c2c5f55cdfcfc3e108536",
+    "captured_source_branch": "codex/customer-contract-edit-integration-20261029",
+    "new_migrations": [
+      "20261029105939_edit_unsigned_customer_contract_atomic.sql",
+      "20261029173552_preserve_imported_agreement_selected_pricing.sql"
+    ],
+    "local_output_sha256": {
+      "database.types.ts": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
+      "schema.sql": "b97f5a7bc49fc9ca513b9fa417d69d6aa6058920faa6f19b990cbd2f8bc9512e",
+      "schema.fingerprint.json": "e14222a1bae70c3f0d9a2bfa332394e7587c8cc28076cd20e2cca95959cc297f"
+    },
+    "source_manifest_preimage_sha256": "c9f46adf7cab0076030629808c485bb355402d792bbeb881ace52715fd783075",
+    "previous_active_fields": {
+      "generated_at": "2026-10-29T01:17:33.063874+00:00",
+      "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run40798577553-job123200908515-attempt1",
+      "sha256": "7f6ae05f83bb8fe7b5d1ce18b7e96e5397a518069278a14e85f586caef694972",
+      "latest_migration": "20261028091248_allow_contract_signature_before_supply_start.sql",
+      "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of explicit POA evidence and the permanent confirmation runtime fence with the existing company/request unique key; no native/parity or production-installation result implied.",
+      "composition_capture_pending": false,
+      "composition_note": "Byte-exact RAW3 from run40798577553/job123200908515 source03e5eac47a87a9065fbefdf965536522eefdf131/tree989596f7ae5ee3c784727182fb6a7a2379470ce9. All nine previous active literal values and every other historical field remain retained. The adopting successor is not the captured source. Current native, upgrade/parity and mandatory CI remain required; no whole approval."
+    },
+    "limits": {
+      "genuine_ci_capture": "PENDING",
+      "native_tests": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "whole_approval": false
+    }
+  }
 }
