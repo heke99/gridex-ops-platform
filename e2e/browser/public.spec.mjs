@@ -81,9 +81,10 @@ for (const width of [1280, 375]) {
 
     const regions = page.getByRole('region')
     await expect(regions).toHaveCount(11)
+    const scrollTargets = page.locator('[role="region"], [role="group"][tabindex="0"]')
     let horizontallyScrolled = 0
-    for (let index = 0; index < await regions.count(); index += 1) {
-      const region = regions.nth(index)
+    for (let index = 0; index < await scrollTargets.count(); index += 1) {
+      const region = scrollTargets.nth(index)
       await expect(region).toHaveAccessibleName(/\S/)
       await expect(region).toHaveAttribute('tabindex', '0')
       await region.focus()
@@ -104,6 +105,17 @@ for (const width of [1280, 375]) {
       body: Buffer.from(JSON.stringify({ ...layout, horizontallyScrolled })),
       contentType: 'application/json',
     })
+
+    const endpointList = page.getByRole('region', { name: 'Customer Portal endpoints', exact: true })
+    for (const identifier of await endpointList.locator('code').all()) {
+      const textLayout = await identifier.evaluate(element => ({
+        fontSize: parseFloat(getComputedStyle(element).fontSize),
+        height: element.clientHeight,
+        lineHeight: parseFloat(getComputedStyle(element).lineHeight),
+      }))
+      expect(textLayout.fontSize, 'Endpoint identifiers must remain readable').toBeGreaterThanOrEqual(16)
+      expect(textLayout.height, 'Long paths and scopes must not become vertical letter columns').toBeLessThanOrEqual(textLayout.lineHeight + 1)
+    }
 
     const scrollingAccessibility = await new AxeBuilder({ page })
       .withRules(['scrollable-region-focusable'])

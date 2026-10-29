@@ -466,7 +466,7 @@ export default function CustomerPortalApiDocumentationPage() {
               a compact JWS (RS256, PS256 or ES256) with your organization&apos;s <code>iss</code> and <code>aud</code>, <code>sub</code> = the linked portal user id, <code>exp</code> at most 15 minutes after <code>iat</code> and a unique <code>jti</code>.
               In report mode a missing or invalid assertion is only logged; when verification is required the API returns <code>403 customer_assertion_required</code> or <code>403 customer_assertion_invalid</code>. Organizations without a configuration are unaffected.
             </p>
-            <section aria-labelledby="poa-archive-heading" className="space-y-6 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base leading-7 text-slate-700 sm:p-6 [&_code]:break-words [&_code]:text-[0.95em]">
+            <div role="group" aria-labelledby="poa-archive-heading" className="space-y-6 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base leading-7 text-slate-700 sm:p-6 [&_code]:break-words [&_code]:text-[0.95em]">
               <h3 id="poa-archive-heading" className="text-xl font-semibold text-slate-950">Archived powers of attorney: PDF and verification</h3>
               <p>List archived powers of attorney, verify the original file and let the customer download a verified PDF through your portal.</p>
               <div className="space-y-3">
@@ -506,7 +506,7 @@ export default function CustomerPortalApiDocumentationPage() {
                 {' '}or <a className="underline" href="/api/v1/openapi/2026-10-19.1/poa-archive-v1.json">pinned release 2026-10-19.1</a>.
                 Existing Website and Customer Portal contract releases are unchanged.
               </p>
-            </section>
+            </div>
             <EndpointTable rows={customerPortalRows} label="Customer Portal endpoints" />
           </Section>
 
