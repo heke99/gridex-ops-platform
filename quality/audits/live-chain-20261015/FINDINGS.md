@@ -2518,6 +2518,12 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **ÖPPET:**
     - `wire_tokens_v1` delar upp filen i token cirka 12 gånger per värde, vilket kostar cirka 300 ms. Förslag: dela upp en gång i `stored_contract_v1` och skicka vidare.
     - Hela filen valideras fortfarande per värde. En RPC som behandlar en hel fil i taget kräver ett designbeslut, eftersom den ändrar fastlåsta kroppar.
+  - **Ny mätning 2026-10-29, integrerad värld på `b9183e46c` (main plus G-2, G-6 och G-8; pg_stat_statements; cirka 9 850 lagrade värden; 4 kärnor):**
+    - Per värde (medel): gate 56 ms, read 44 ms och `metering_values` 35 ms. Det är cirka 135 ms databastid per värde, alltså cirka 13 s per fil med 96 värden. Före G-2 var det cirka 1,3 s per värde.
+    - En hel fil tar ändå 80–165 s när operatören återupptar den (F6c, körning 163624Z). Tiden ökade under körningen.
+    - Skillnaden ligger utanför de mätta RPC:erna: HTTP och appens overhead för de cirka 6–8 anropen per värde i `persistUtiltsConsumption`, som anropar `normalizeAndStoreMeteringValue` och `updateMeterValueBillingReadiness` en gång per värde. Till det kommer kvittensen `ediel_create_outbound_ack_atomic_v1` (medel 1,8 s) och transportförsöket (0,34 s).
+    - **Följd:** den schemalagda upptagningen av hållna UTILTS (O2) hinner en fil per körning, eftersom den förväntade tiden är 150 s per källa mot en budget på 120 s. F6c i cron-läge hann 4 av 120 filer på cirka 15 minuter, så en månad på 120 filer tar flera timmar.
+    - **Nästa steg:** profilera en enda fil, med tidsstämplar per anrop, innan batchningen designas. Batchningen kräver fortfarande ett designbeslut, eftersom fastlåsta kroppar berörs.
 
 ### G-3 Provisioneringsjobben `ediel_readiness_revalidate` slås aldrig ihop, och claimen tar de äldsta först över alla tenants — BEKRÄFTAD (världen), medel; ÖPPEN
 - Ett jobb skapas per konfigurationsögonblicksbild, och claimen tar 20 per körning.
