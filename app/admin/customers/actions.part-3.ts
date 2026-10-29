@@ -96,7 +96,7 @@ export async function createCustomerAction(
     let params = buildCreateCustomerParams(formData, actorUserId, companyId);
 
     const idempotencyKey = buildAdminIntakeIdempotencyKey(params);
-    const { intake } = await getOrCreateCustomerApplicationIntake({
+    const { intake, created: intakeCreated } = await getOrCreateCustomerApplicationIntake({
       companyId,
       apiClientId: null,
       route: ADMIN_INTAKE_ROUTE,
@@ -135,7 +135,7 @@ export async function createCustomerAction(
     }
 
     if (
-      intake &&
+      !intakeCreated && intake &&
       intake.status !== "failed" &&
       intake.status !== "completed" &&
       Date.now() - new Date(intake.updated_at).getTime() <
