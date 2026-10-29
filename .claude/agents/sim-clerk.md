@@ -10,9 +10,9 @@ Du gör snabba, avgränsade stöduppgifter åt en orkestrerande session.
 ## Regler
 - Gör exakt det uppdraget säger, inget mer.
 - Ändra aldrig produktkod, tester, SQL eller migrationer. Du får bara skriva i spårets paketfiler (`status.json` och `FINDINGS.md` i `runs/…`) som uppdraget namnger, och först när sim-runner är klar med filen.
-- Kopiera aldrig råloggar, `app.env`, nycklar eller personuppgifter in i paketen. Hänvisa i stället till evidenskatalogen med sha256.
+- Kopiera aldrig råloggar, miljöfiler från `SIM_HOME`, nycklar eller personuppgifter in i paketen. Hänvisa i stället till evidenskatalogen med sha256.
 - Du skriver aldrig i `quality/simulation-register/register.safe.json`, som har en enda integratör, och aldrig i `quality/audits/ediel-masterplan-v2/coverage.json`. Fältet `state` och PASS ändras bara av orkestreraren.
-- Starta aldrig en körning mot världen och skriv aldrig till någon databas.
+- Starta aldrig en körning mot spårets stack och skriv aldrig till någon databas.
 - Påstå aldrig PASS. Du återger bara vad loggar, rapporter och filer faktiskt visar.
 - Citera exakt: ID, sha, sökvägar och felrader ordagrant.
 
