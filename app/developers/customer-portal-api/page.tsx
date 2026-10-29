@@ -37,27 +37,26 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 function EndpointTable({ rows, label }: { rows: readonly (readonly [string, string, string, string])[]; label: string }) {
   return (
-    <div role="region" aria-label={label} tabIndex={0} className="overflow-x-auto rounded-xl border border-slate-200 bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
-      <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-        <thead className="bg-slate-50 text-slate-700">
-          <tr>
-            <th className="px-4 py-3 font-semibold">Method</th>
-            <th className="px-4 py-3 font-semibold">Endpoint</th>
-            <th className="px-4 py-3 font-semibold">Required scope</th>
-            <th className="px-4 py-3 font-semibold">Purpose</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100 text-slate-700">
-          {rows.map(([method, path, scope, description]) => (
-            <tr key={`${method}:${path}`}>
-              <td className="whitespace-nowrap px-4 py-3 font-mono text-xs font-semibold text-slate-950">{method}</td>
-              <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{path}</td>
-              <td className="px-4 py-3 font-mono text-xs">{scope || 'Public'}</td>
-              <td className="min-w-[320px] px-4 py-3">{description}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div role="region" aria-label={label} tabIndex={0} className="min-w-0 rounded-xl border border-slate-200 bg-white text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+      <ul className="divide-y divide-slate-200">
+        {rows.map(([method, path, scope, description]) => (
+          <li key={`${method}:${path}`} className="min-w-0 space-y-4 p-5 sm:p-6">
+            <div className="min-w-0 space-y-3">
+              <span className="inline-block rounded-md bg-emerald-50 px-3 py-1 font-mono text-base font-semibold text-emerald-900">{method}</span>
+              <div role="group" aria-label={`${method} ${path} endpoint`} tabIndex={0} className="overflow-x-auto rounded-lg bg-slate-50 p-3 [overflow-wrap:normal] [word-break:normal] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+                <code className="block whitespace-pre font-mono text-base leading-7">{path}</code>
+              </div>
+            </div>
+            <p className="text-base leading-7 text-slate-700 [overflow-wrap:normal] [word-break:normal]">{description}</p>
+            <div className="min-w-0 space-y-2">
+              <p className="text-base font-semibold text-slate-950">Required scope</p>
+              <div role="group" aria-label={`Required scope for ${method} ${path}`} tabIndex={0} className="overflow-x-auto [overflow-wrap:normal] [word-break:normal] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+                <code className="block whitespace-pre font-mono text-base leading-7 text-slate-700">{scope || 'Public'}</code>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
@@ -412,7 +411,7 @@ export default function CustomerPortalApiDocumentationPage() {
               scopes and evidence as a PDF, with the verification number on every page. The IP of your API server
               is recorded separately. A form click or <code>method: bankid</code> does not prove a verified BankID signature.
               BankID is optional; missing evidence blocks external email until completed. Organization users can retrieve
-              their PDFs in OPS under Fullmakter; platform administrators can search across organizations.
+              their organization’s PDFs in OPS under Fullmakter.
             </p>
             <p className="text-sm leading-6 text-slate-600">
               The legal references, hashes and versions in this example are placeholders. In production, copy the exact values returned by the legal-bundle endpoint. Do not generate or modify them locally.
@@ -467,26 +466,47 @@ export default function CustomerPortalApiDocumentationPage() {
               a compact JWS (RS256, PS256 or ES256) with your organization&apos;s <code>iss</code> and <code>aud</code>, <code>sub</code> = the linked portal user id, <code>exp</code> at most 15 minutes after <code>iat</code> and a unique <code>jti</code>.
               In report mode a missing or invalid assertion is only logged; when verification is required the API returns <code>403 customer_assertion_required</code> or <code>403 customer_assertion_invalid</code>. Organizations without a configuration are unaffected.
             </p>
-            <h3 className="text-lg font-semibold text-slate-950">Archived powers of attorney: PDF and verification</h3>
-            <p className="leading-7 text-slate-700">
-              The independent additive archive contract always requires a fresh, verified <code>x-gridex-customer-assertion</code>,
-              an active linked customer in the API key&apos;s organization, and BOTH <code>customer_power_of_attorney.read</code> AND <code>customer_documents.read</code>.
-              This requirement also applies in report mode; a missing provider configuration or an unverified assertion does not authorize archive access.
-              Keep the API key and assertion on your trusted server and expose an authenticated download through your own portal.
-            </p>
-            <p className="leading-7 text-slate-700">
-              List existing archives with <code>GET /customer/powers-of-attorney/evidence</code>. Discovery status <code>archived_unverified</code> describes metadata only.
-              Use the returned verification reference with <code>GET /customer/powers-of-attorney/evidence/&#123;verificationReference&#125;?format=json</code> to verify the actual original bytes,
-              or <code>format=pdf</code> to download the verified PDF (at most 15 MiB). The optional <code>sha256</code> query compares your supplied digest;
-              an incorrect digest returns <code>submitted_sha256_matches: false</code> in the JSON response without changing the archive.
-              These GET requests never generate a PDF or create consent. Missing original IP/time evidence remains missing;
-              <code> pdf_signature_validation: not_performed</code> does not claim cryptographic PDF-signature or BankID validation.
-            </p>
-            <p className="text-sm leading-6 text-slate-600">
-              Full schemas, limits and error responses: <a className="underline" href="/api/v1/openapi/poa-archive-v1.json">current POA archive OpenAPI</a>
-              {' '}or <a className="underline" href="/api/v1/openapi/2026-10-19.1/poa-archive-v1.json">pinned release 2026-10-19.1</a>.
-              Existing Website and Customer Portal contract releases are unchanged.
-            </p>
+            <div role="group" aria-labelledby="poa-archive-heading" className="space-y-6 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base leading-7 text-slate-700 sm:p-6 [&_code]:break-words [&_code]:text-[0.95em]">
+              <h3 id="poa-archive-heading" className="text-xl font-semibold text-slate-950">Archived powers of attorney: PDF and verification</h3>
+              <p>List archived powers of attorney, verify the original file and let the customer download a verified PDF through your portal.</p>
+              <div className="space-y-3">
+                <h4 className="text-lg font-semibold text-slate-950">Access requirements</h4>
+                <ul className="list-disc space-y-2 pl-5">
+                  <li>A fresh, verified <code>x-gridex-customer-assertion</code> and an active linked customer in the API key&apos;s organization.</li>
+                  <li>Both scopes: <code>customer_power_of_attorney.read</code> and <code>customer_documents.read</code>.</li>
+                  <li>A configured identity provider. These requirements also apply in report mode; an unverified assertion does not authorize access.</li>
+                </ul>
+                <p>Keep the API key and assertion on your trusted server. Offer the download only to the authenticated customer through your portal.</p>
+              </div>
+              <div className="space-y-3">
+                <h4 className="text-lg font-semibold text-slate-950">List, verify and download</h4>
+                <ol className="list-decimal space-y-4 pl-5">
+                  <li>
+                    <strong>Find the archive.</strong> Call <code>GET /customer/powers-of-attorney/evidence</code>.
+                    The status <code>archived_unverified</code> describes metadata only; it does not verify the file.
+                  </li>
+                  <li>
+                    <strong>Verify the original.</strong> Use the returned verification reference with{' '}
+                    <code>GET /customer/powers-of-attorney/evidence/&#123;verificationReference&#125;?format=json</code>.
+                    The optional <code>sha256</code> query compares your supplied digest. A mismatch returns{' '}
+                    <code>submitted_sha256_matches: false</code> without changing the archive.
+                  </li>
+                  <li>
+                    <strong>Download the PDF.</strong> Use the same endpoint with <code>format=pdf</code> to download the verified PDF, up to 15 MiB.
+                  </li>
+                </ol>
+              </div>
+              <div className="space-y-3">
+                <h4 className="text-lg font-semibold text-slate-950">What verification means</h4>
+                <p>These GET requests never generate a PDF or create consent. Missing original IP or time evidence remains missing.</p>
+                <p><code>pdf_signature_validation: not_performed</code> means that cryptographic PDF-signature and BankID validation have not been performed.</p>
+              </div>
+              <p>
+                Full schemas, limits and error responses: <a className="underline" href="/api/v1/openapi/poa-archive-v1.json">current POA archive OpenAPI</a>
+                {' '}or <a className="underline" href="/api/v1/openapi/2026-10-19.1/poa-archive-v1.json">pinned release 2026-10-19.1</a>.
+                Existing Website and Customer Portal contract releases are unchanged.
+              </p>
+            </div>
             <EndpointTable rows={customerPortalRows} label="Customer Portal endpoints" />
           </Section>
 
