@@ -79,6 +79,24 @@ for (const width of [1280, 375]) {
     expect(response.status(), 'API documentation must return HTTP 200').toBe(200)
     await expect(page.getByRole('heading', { level: 1, name: 'Gridex API', exact: true })).toBeVisible()
 
+    const navigation = page.getByRole('navigation', { name: 'API documentation' })
+    await expect(navigation).toBeVisible()
+    if (width < 1024) {
+      await navigation.getByText('Jump to section', { exact: true }).click()
+      await navigation.getByRole('link', { name: 'Customer Portal', exact: true }).click()
+      await expect(page).toHaveURL(/#customer-portal$/)
+      await expect(page.getByRole('heading', { name: '5. Customer Portal API', exact: true })).toBeInViewport()
+    }
+    for (const block of await page.locator('pre').all()) {
+      const layout = await block.evaluate(element => ({
+        font: parseFloat(getComputedStyle(element).fontSize),
+        top: element.getBoundingClientRect().top,
+        buttonBottom: element.parentElement.querySelector('button').getBoundingClientRect().bottom,
+      }))
+      expect(layout.font).toBeGreaterThanOrEqual(16)
+      expect(layout.buttonBottom, 'Copy toolbar must not overlap the code').toBeLessThanOrEqual(layout.top)
+    }
+
     const regions = page.getByRole('region')
     await expect(regions).toHaveCount(11)
     const scrollTargets = page.locator('[role="region"], [role="group"][tabindex="0"]')
@@ -128,3 +146,43 @@ for (const width of [1280, 375]) {
     await attachAccessibilityEvidence(page, testInfo, `api-docs-${width}`)
   })
 }
+
+for (const width of [1280, 375]) {
+  test(`Staff API contains wide tables at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 })
+    const response = await page.goto('/developers/staff-api')
+    await expectHealthyResponse(response, 'Staff documentation')
+    for (const label of ['Staff scopes and permissions', 'Staff API endpoints', 'Staff API errors']) {
+      const region = page.getByRole('region', { name: label, exact: true })
+      await expect(region).toHaveAttribute('tabindex', '0')
+      await region.focus()
+      if (await region.evaluate(element => element.scrollWidth > element.clientWidth + 1)) {
+        await page.keyboard.press('ArrowRight')
+        await expect.poll(() => region.evaluate(element => element.scrollLeft)).toBeGreaterThan(0)
+      }
+    }
+    const layout = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }))
+    expect(layout.document).toBeLessThanOrEqual(layout.viewport + 1)
+    await attachAccessibilityEvidence(page, testInfo, `staff-docs-${width}`)
+  })
+}
+
+test('Developer entry uses clear Swedish and keeps the guide reachable', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 900 })
+  await page.goto('/developers')
+  await expect(page.getByRole('heading', { level: 1, name: 'Guider för Gridex API' })).toBeVisible()
+  const layout = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }))
+  expect(layout.document).toBeLessThanOrEqual(layout.viewport + 1)
+  await expect(page.locator('main')).not.toContainText(/tenant-hemsida|Supabase auth-user|External Auth Linking|\bOPS\b/)
+  await page.getByRole('link', { name: /Koppla hemsida och Mina sidor/ }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Gridex API', exact: true })).toBeVisible()
+})
+
+test('Code examples copy the complete original text', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.goto('/developers/customer-portal-api')
+  const code = page.getByRole('region', { name: 'Authentication example', exact: true })
+  const value = await code.innerText()
+  await code.locator('..').getByRole('button', { name: 'Copy code example' }).click()
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(value)
+})
