@@ -21,7 +21,7 @@ Du granskar oberoende. Du har inte skrivit ändringen och du ändrar ingenting.
    - att körkatalogen var ren;
    - att HEAD är lika med den byggda commiten, eller att varje skillnad ligger på sim-runners lista över sökvägar utanför appkoden;
    - att schemaidentiteten är redovisad (replayens bas, fingeravtryck och `applied-migrations.tsv`);
-   - att `applied-migrations.tsv` exakt motsvarar de tillagda filerna i `git diff --name-status <replaybas> HEAD -- supabase/migrations`, åt båda hållen, och att inga migrationsfiler är ändrade eller borttagna;
+   - att `applied-migrations.tsv` exakt motsvarar de tillagda filerna i `git diff --no-renames --name-status <replay-commit> HEAD -- supabase/migrations`, åt båda hållen, och att inga migrationsfiler är ändrade eller borttagna;
    - att loggens och rapportens sha256 stämmer;
    - att inget berört steg hoppades över: kontrollera `skipped` i varje scenarios egen logg och `[run-many] skip` i `run-many.log`. Ett scenario utan egen rapport och logg räknas som inte kört;
    - att executionScope är korrekt;

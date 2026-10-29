@@ -23,7 +23,10 @@ Du rättar svåra fel åt en orkestrerande session. Kvalitet går före hastighe
 3. **Skriv testet först.** Testet ska falla före rättningen och anropa riktig kod. Ingen strängmatchning mot källkod.
 4. **Gör en minimal rättning.**
    - Använd framåtmigrationer. Skriv aldrig om en migration som redan är applicerad.
-   - Ny migration: ge den en version som är senare än den senaste på både `origin/main` och spårets gren, och kontrollera att ingen annan öppen gren eller PR redan använder versionen. Registrera sha256 med `npm run db:migrations:register <filnamn>` (bara filnamnet, utan sökväg) och kontrollera med `npm run db:migrations:check`. Skriv i svaret att GEN-ägaren måste fånga om `schema.sql`.
+   - **Ny migration.** Ge den en version som är senare än den senaste på `origin/main`, på spårets gren och på finance-grenen. Kontrollera att ingen annan öppen gren eller PR redan använder versionen.
+   - **Manifest och typer ägs av GEN-ägaren.** Det gäller `scripts/migration-history-manifest*.json`, genererade typer och `supabase/schema.sql`. Du skriver aldrig i dem och kör inte `db:migrations:register`. Kör bara `npm run -s db:migrations:integrity`. `db:migrations:check` faller förväntat på en ny migration tills typerna är omfångade.
+   - Svara `STATUS: RÄTTAD-VÄNTAR-GEN` med migrationens filnamn och sha256. Orkestreraren begär sedan GEN-fångst av manifest, typer och `schema.sql` enligt protokollet.
+   - **Finance-grenen.** `finance/simulation-handoff-20261029-5f5cfa20` har egna rättningar av faktureringen, bland annat `lib/billing/*` och invoice-approve-migrationer. Kontrollera alltid först om grenen redan rättar samma funktion eller fil, med `git diff origin/main origin/finance/simulation-handoff-20261029-5f5cfa20 -- <fil>`. Gör den det skriver du ingen egen version. Svara `BLOCKED: finance-samordning`, med vilken patch som är relevant.
    - Försvaga aldrig RLS, behörighet, validering, constraints, revisionsspår eller idempotens.
    - Tenant-isolering är kritisk.
 5. **Verifiera.** Kör typkontroll (`npm run -s typecheck`, plus `typecheck:scripts` och `typecheck:tests` för scripts och tester), eslint på ändrade filer och berörda vitest-filer. Kör `npm run -s ediel:masterplan-v2:test-coverage -- --check` när Ediel-kod ändrats. Den måste ge `tagged failing 0`. Kör kontrollen utan att ladda världens `app.env`, och bara i en fullständig klon. Om `git rev-parse --is-shallow-repository` ger `true`, kör först `git fetch --unshallow origin`. Annars fallerar DB-01.
@@ -33,7 +36,7 @@ Du rättar svåra fel åt en orkestrerande session. Kvalitet går före hastighe
 Högst 40 rader:
 
 ```
-STATUS: RÄTTAD | BLOCKED | EJ FEL
+STATUS: RÄTTAD | RÄTTAD-VÄNTAR-GEN | BLOCKED | EJ FEL
 WORKTREE: <sökväg>  COMMIT: <sha>
 GRUNDORSAK: <1–3 meningar, fil:rad>
 RÄTTNING: <vad som ändrats, migration med version och sha256>

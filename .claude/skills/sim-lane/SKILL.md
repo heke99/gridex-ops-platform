@@ -46,7 +46,8 @@ Spårnumren här är de logiska numren i registret (1–7). `PROMPTS.sv.md` numr
    - Fungerar den inte, rapportera beroendet i PR #930 och begär integratörens beslut om omkvalificerad bas. Under tiden är berörda ID `BLOCKED: bas/harness`. Byt aldrig bas tyst.
 3. **Orakel.** Registrets beskrivningar och designvärden, till exempel "1809,51 SEK", är historiska orakel. De måste kvalificeras mot `definitionSourceArtifact` och spårets egen fixture innan de får användas. sim-clerk kontrollerar först att originalfilens sha256 stämmer med den som registret anger. Saknas ett kvalificerat orakel blir ID:t `BLOCKED: orakel saknas`. Använd aldrig ett okvalificerat designvärde som orakel.
 4. **Harnessfiler.** `scripts/reality/*` och `quality/audits/live-chain-20261015/*` ägs av den aktiva simuleringssessionen, det vill säga den som senast har tagit över `claude/gifted-hamilton-vss1hj` enligt #840 och `STATUS.md`. Kontrollera aktuell ägare där, och begär överlämning från den. Nya steg eller scenarier där, och ändringar i `run-many.sh`, kräver avgränsad överlämning eller ägarens adoption. Fram till dess är berörda ID `BLOCKED: harnessägare`. Fynd skrivs i spårets egna paket.
-5. Låt sim-clerk göra spårets tabell **ID → befintligt steg eller "saknas" → kvalificerat orakel eller "saknas" → blockerare → nästa åtgärd**. Rapportera tabellen i PR #930 innan något körs.
+5. **Finance-referensen.** `finance/simulation-handoff-20261029-5f5cfa20` (fäst vid den SHA som `campaign.json` anger) är referensunderlag för fakturering, särskilt för spår 1 och 4. Låt sim-clerk lista vilka av dess patchar som rör spårets ID. Slå aldrig in grenen som helhet. Relevanta patchar adopteras efter granskning och i samordning med finance-ägaren.
+6. Låt sim-clerk göra spårets tabell **ID → befintligt steg eller "saknas" → kvalificerat orakel eller "saknas" → blockerare → nästa åtgärd**. Rapportera tabellen i PR #930 innan något körs.
 
 ## 3. Vem gör vad (arbetare)
 
@@ -62,6 +63,8 @@ Spårnumren här är de logiska numren i registret (1–7). `PROMPTS.sv.md` numr
 **Eskalering:** sim-builder → sim-fixer → arbetarsessionen.
 - Svarar sim-builder `ESKALERA` skickar du samma uppdrag, med dess anteckningar, till sim-fixer.
 - Svarar sim-builder eller sim-fixer `BLOCKED: överlämning krävs` begär du överlämning enligt protokollet och går vidare med annat.
+- Svarar sim-fixer `RÄTTAD-VÄNTAR-GEN` begär du att den befintliga GEN-ägaren fångar manifest, typer och `schema.sql`, enligt protokollet och i PR #930. Ingen session eller agent skriver de filerna själv.
+- Svarar sim-fixer `BLOCKED: finance-samordning` tar du upp den relevanta finance-patchen med finance-ägaren i PR #930. Granska den exakta patchen och föreslå adoption. Skriv inte en parallell version.
 - Fynd numreras enligt `REPORTING.sv.md` (`<campaign>/<worker>/<löpnummer>`), inte med egna F- eller T-nummer.
 
 ## 4. Parallellism i en arbetarsession
@@ -95,7 +98,7 @@ Lägg dem inte under `/tmp`, eftersom ej inslagna commits då försvinner när c
 4. **Granska.** En ny sim-reviewer granskar varje rättning. Godkända commits slår du in på spårets gren.
 5. **Bygg om.** När ingen körning pågår uppdaterar sim-runner körkatalogen, bygger om och applicerar nya migrationer från HEAD.
 6. **Kör om.** Spela aldrig om ett oklart affärsanrop innan databasens tillstånd och idempotensen är avstämda. Det gäller bland annat MAIN03.05, Site2-intake och okänd CONTRL. sim-runner skriver paketutkast. Först därefter kompletterar sim-clerk dem.
-7. **Granska PASS och spara.** En ny sim-reviewer granskar paket som ska bli PASS. Först efter godkännande sätter du `state: PASS`. Committa och pusha sedan **bara säkra paketfiler**, alltså `status.json` och `FINDINGS.md` utan råloggar och hemligheter. Lämna kort status i PR #930.
+7. **Granska PASS och spara.** En ny sim-reviewer granskar paket som ska bli PASS. Först efter godkännande sätter du `state: PASS`. Committa och pusha sedan **bara säkra paketfiler**, alltså `status.json` och `FINDINGS.md` utan råloggar och hemligheter. Pusha till spårets egen arbetsgren, som samordnaren har rapporterat, och bara under en egen skrivclaim för paketsökvägen. Lämna kort status i PR #930.
 
 ## 6. När ett ID får `state: PASS`
 Alla villkor ska vara uppfyllda:
@@ -103,7 +106,7 @@ Alla villkor ska vara uppfyllda:
 - Körkatalogen är ren.
 - Appen är byggd på HEAD, eller skillnaden ligger bara utanför appkoden enligt sim-runners lista.
 - Världens schemaidentitet är redovisad enligt sim-runner: replayens bas, fingeravtrycket (som bara täcker utvalda tabeller och därför är en delidentitet) och listan över applicerade migrationer.
-- Migrationerna stämmer **åt båda hållen**. Raderna i `applied-migrations.tsv` ska exakt motsvara de migrationsfiler som `git diff --name-status <replaybas> HEAD -- supabase/migrations` visar som tillagda. Ingen migrationsfil får vara ändrad eller borttagen. Saknas något, eller saknas fingeravtrycket, blir utfallet högst `PARTIAL`.
+- Migrationerna stämmer **åt båda hållen**. Raderna i `applied-migrations.tsv` ska exakt motsvara de migrationsfiler som `git diff --no-renames --name-status <replay-commit> HEAD -- supabase/migrations` visar som tillagda. Ingen migrationsfil får vara ändrad eller borttagen. Saknas något, eller saknas fingeravtrycket, blir utfallet högst `PARTIAL`.
 - `appCommit` är kampanjens bas plus en dokumenterad overlay, eller en omkvalificerad bas som integratören har godkänt. Körs spåret på egna, ännu ej mergade produkträttningar, blir utfallet högst `PARTIAL`, med rättningarna angivna, tills de är mergade och kört om på godkänd bas.
 - Inget berört steg är överhoppat. Det kontrolleras med vitests `skipped` i varje scenarios egen logg och rapport, och med `[run-many] skip` i `run-many.sh`:s egen utdata. Ett scenario utan egen rapport och logg är inte kört.
 - Paketet har alla fält som `REPORTING.sv.md` kräver, inklusive ersättningssteg och vad de inte verifierar.
@@ -116,9 +119,10 @@ Ett käll- eller modelltest ger aldrig PASS, och ett delsteg ger aldrig PASS fö
 - **Produkträttningar:** gör en ny gren från `origin/main` och cherry-picka bara rättningens commits, utan harness och utan paket. Verifiera om där:
   - typkontroll;
   - berörda tester;
-  - vid ny migration: `npm run db:migrations:register <filnamn>` och `npm run db:migrations:check`.
+  - vid ny migration: `npm run db:migrations:integrity`. Manifest, typer och `schema.sql` fångas av GEN-ägaren, och PR:en är inte redo förrän det är gjort och `db:migrations:check` är grön.
 
   Öppna sedan en liten PR med findings-ID, originalfelkvitto och regression.
+- **Versioner för nya migrationer** samordnas mellan spåren. Ange versionen i PR #930 innan den används, eftersom flera spår kan skapa migrationer parallellt.
 - **Före merge** krävs två oberoende slutgranskningar och gröna obligatoriska kontroller på exakt slutversion. Den befintliga leveransägaren gör merge.
 - `register.safe.json` uppdateras bara av integratören. `quality/audits/ediel-masterplan-v2/coverage.json` rörs inte.
 
@@ -142,7 +146,7 @@ Börja med sim-builder när det är oklart hur svårt ett fel är, eftersom eska
 
 **Vänta på körningar:** sim-runner svarar `PÅGÅR` med loggens sökväg. Du väntar sedan själv med Monitor eller ett Bash-kommando i bakgrunden tills loggen har en `exit`-rad.
 
-**Återanvänd agenter** med SendMessage. Saknas SendMessage, ge en ny agent av samma typ den förra agentens svar som underlag.
+**Återanvänd agenter** med SendMessage, utom sim-reviewer, som alltid ska vara en ny instans. Saknas SendMessage, ge en ny agent av samma typ den förra agentens svar som underlag.
 
 ## Aldrig
 - produktion, riktiga kunder, leverantörer, betalningar eller riktiga Ediel- och mejlutskick;
