@@ -99,12 +99,16 @@ it('explicit reading opt-in supplies each physical register before birth while k
  expect(Number(segmentComposite(tokens.segments[unt],1,tokens.una)[0])).toBe(unt-unh+1)
  expect(segmentComposite(tokens.segments[unt],2,tokens.una)).toEqual(segmentComposite(tokens.segments[unh],1,tokens.una))
 })
-it('the unchanged default lacks private own readings even with the real actor and poisoned public false',async()=>{
+// J1-10 (owner decision 38, bounded handover quality/audits/live-chain-20261015/handover-J1.md): the default wire has no
+// own 259, which is itself the source's declaration of no readings; the objects are then decided on their own facts
+// (the same outcome as an explicit declaration), never left unavailable. The poisoned public FALSE still fills nothing.
+it('the unchanged default without own 259 declares no readings itself (J1-10) and decides each object, despite a poisoned public false',async()=>{
  const wire=mixedProdatNativeWire(nativeFixtureInput),m=prodatOwnSourceReadingMessage(wire)
  m.parsed_payload={subtype:'L',prodatDependentFacts:{market:'electricity',meterReadingsSentInUtilts:false}}
  installProdatOwnSourceReadingFixture(reads,m,'L',{actorUserId:prodatOwnSourceReadingActor,receivedAt:m.message_received_at!,mailId:m.inbound_email_message_id!,parseId:'00000000-0000-4000-8000-000000000005',receptionId:'00000000-0000-4000-8000-000000000006',legalActorId:'00000000-0000-4000-8000-000000000008'})
  const d=await resolveCanonicalRuntimeDecisionWithRegistry(m,{actorUserId:prodatOwnSourceReadingActor})
- expect(projectReceivedProdatObjectValidation(wire,d)?.objects.map(o=>o.disposition)).toEqual(['unavailable','unavailable'])
+ expect(d.policy?.prodatDependentFacts?.registerObjects?.map(o=>o.meterReadingsSentInUtilts)).toEqual([false,false])
+ expect(projectReceivedProdatObjectValidation(wire,d)?.objects.map(o=>o.disposition)).toEqual(['rejected','accepted'])
 })
 it('native source oracle is full-guide mixed with every own field actual, without wholesale dependent overrides',async()=>{
  const wire=mixedProdatNativeWire({...nativeFixtureInput,ownReadingDeclarations:true}),m=prodatOwnSourceReadingMessage(wire)

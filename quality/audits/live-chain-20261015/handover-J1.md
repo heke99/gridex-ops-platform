@@ -37,6 +37,7 @@
 | Fil | Godkänt ID | Ändring | Skäl |
 |---|---|---|---|
 | `__tests__/ediel-prodat-own-source-register-reading-component.test.ts` | AT-Z03L-SUPPLIER, AT-Z03LK-SUPPLIER | `missing`/`other-object` 259 väntar FALSE i stället för UNKNOWN; inget 214/218 krävs eller är obestämt. `duplicate`, `malformed`, `misplaced`, `header` oförändrade (UNKNOWN). Anroparens TRUE/FALSE fyller fortfarande aldrig deklarationen. | Beslut 38 |
+| `__tests__/ediel-prodat-mixed-object-outcome.test.ts` | ACK-08, AT-ACK-08 | Standardtråden utan egen 259 deklarerar nu själv FALSE. Objekten avgörs därför (`rejected`, `accepted`, samma utfall som med uttrycklig deklaration) i stället för `unavailable`. Det förgiftade publika FALSE fyller fortfarande inget. | Beslut 38 |
 | `__tests__/ediel-prodat-own-source-runtime-integration.test.ts` | (evidens för samma källkomponent) | Samma uppdelning i den riktiga runtime-vägen. | Beslut 38 |
 | `scripts/ediel-z04l-z04lk-future-start-native.test.ts` | AT-Z04L-SUPPLIER, AT-Z04LK-SUPPLIER, SC-037 | Varianten `start` väntar `normal_z04_start_date_conflict`. Övriga varianter oförändrade. | Beslut 35 |
 | `scripts/helpers/ediel-z03-native-supply-observation.ts` (+ `scripts/ediel-at-z03l-z03lk-supplier-native.test.ts`) | AT-Z03L-SUPPLIER, AT-Z03LK-SUPPLIER | Kontrasterna `start date` och `line reference` väntar `normal_z04_start_date_conflict` respektive `normal_z04_own_z03_missing`; listan över kända hållskäl får de fem nya. | Beslut 35, 36 |
