@@ -194,3 +194,35 @@ export function quartersOnHourlyPrices(quarterWh: (index: number) => number, hou
   })
 }
 
+
+// ---------------------------------------------------------------- timserier för DST-månader (TERM02.05/06 timvariant)
+
+/** Timserie för hela månaden (743 timmar i 2027-03, 745 i 2027-10). */
+export function dstHourlySeries(month: string, seed: 'mar' | 'oct'): Point[] {
+  const a = seed === 'mar' ? { pm: 3300, pi: 113, pr: 6800, wm: 300, wi: 53, wr: 900 } : { pm: 3700, pi: 127, pr: 6200, wm: 250, wi: 59, wr: 800 }
+  return monthSlots(month, 60).map((slot) => ({
+    slot,
+    wh: a.wm + ((slot.index * a.wi) % a.wr) + (slot.index % 17 === 0 ? 1 : 0),
+    p4: a.pm + ((slot.index * a.pi + (slot.index >> 2) * 19) % a.pr),
+  }))
+}
+
+/**
+ * Felaktig timserie: `badDay` har 24 timmar från lokal midnatt som om dygnet alltid var 24 timmar (vårdagen får en
+ * timme som inte finns lokalt 02:00-03:00 och spiller 1 timme in i nästa dygn = överlapp; höstdagen saknar sista
+ * timmen = lucka mot månadens slut). Övriga dagar är korrekta. Totalt 31*24 rader.
+ */
+export function faultyDstHourlySeries(month: string, badDay: string): Point[] {
+  const b = stockholmMonthBoundsUtc(month)
+  const out: Point[] = []
+  let running = 0
+  for (const day of b.days) {
+    const d = stockholmDayBoundsUtc(day)
+    const endMs = day === badDay ? d.startMs + 24 * 3_600_000 : d.endMs
+    for (const slot of slots(d.startMs, endMs, 60)) {
+      out.push({ slot: { startMs: slot.startMs, endMs: slot.endMs, index: running }, wh: 300 + ((running * 53) % 900), p4: 0 })
+      running += 1
+    }
+  }
+  return out
+}

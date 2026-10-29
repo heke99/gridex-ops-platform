@@ -28,12 +28,12 @@ import {
 } from '../lib/term-billing'
 import {
   civilFromDays, dec, decAdd, decCmp, decMul, decToString, describeLocal, divRound, daysFromCivil, halfCaseLines, isoUtc,
-  oracleAllModes, oracleInvoice, oreToSek, quartersInDay, quartersInMonth, ratioRound, ROUND_MODES, roundDec, sekNumberToOre,
+  oracleAllModes, oracleInvoice, oreToSek, hoursInDay, hoursInMonth, quartersInDay, quartersInMonth, ratioRound, ROUND_MODES, roundDec, sekNumberToOre,
   stockholmDateOf, stockholmDayBoundsUtc, stockholmLocalToUtcCandidates, stockholmMonthBoundsUtc, stockholmOffsetMinutes,
   sumEnergy, sumKwh, vatOnOre, weightedPrice, ymd, type OracleInterval, type OracleTerms, type RoundMode,
 } from '../lib/term-oracle'
 import {
-  DUP_HOUR_FIRST_UTC, DUP_HOUR_SECOND_UTC, HALF_CASES, dstQuarterSeries, faultyDstDaySeries, quartersOnHourlyPrices, term0201Hourly,
+  DUP_HOUR_FIRST_UTC, DUP_HOUR_SECOND_UTC, HALF_CASES, dstHourlySeries, dstQuarterSeries, faultyDstDaySeries, faultyDstHourlySeries, quartersOnHourlyPrices, term0201Hourly,
   term0202Hourly, term0203Hourly, term0204HourlyPrices, term0204HourlyWh, term0204QuarterPrices, term0204QuarterWh, term0207Hourly,
   term0208Consumption, term0208Prices, toMeterValues, toOracle, toSpotIntervals, whToKwh, p4ToSek, type Point,
 } from '../lib/term02-data'
@@ -230,6 +230,7 @@ describe('TERM02 orakel (offline)', () => {
     expect(quartersInMonth('2027-03')).toBe(31 * 96 - 4)
     expect(quartersInMonth('2027-10')).toBe(31 * 96 + 4)
     expect(quartersInMonth('2026-09')).toBe(30 * 96)
+    expect([hoursInDay('2027-03-28'), hoursInMonth('2027-03'), hoursInDay('2027-10-31'), hoursInMonth('2027-10')]).toEqual([23, 743, 25, 745])
     // Lokal tid: dubblerad och saknad timme
     const fold = stockholmLocalToUtcCandidates(2027, 10, 31, 2, 30)
     expect(fold.map(isoUtc)).toEqual(['2027-10-31T00:30:00.000Z', '2027-10-31T01:30:00.000Z'])
@@ -301,6 +302,14 @@ describe('TERM02 orakel (offline)', () => {
     const d06 = dstQuarterSeries('2027-10', 'oct')
     expect(d06).toHaveLength(2980)
     check('06', d06)
+    const h05 = dstHourlySeries('2027-03', 'mar')
+    expect(h05).toHaveLength(743)
+    check('05 tim', h05)
+    const h06 = dstHourlySeries('2027-10', 'oct')
+    expect(h06).toHaveLength(745)
+    check('06 tim', h06)
+    expect(faultyDstHourlySeries('2027-03', '2027-03-28')).toHaveLength(31 * 24)
+    expect(faultyDstHourlySeries('2027-10', '2027-10-31')).toHaveLength(31 * 24)
     const d07 = term0207Hourly('2027-10')
     expect(d07).toHaveLength(745)
     check('07', d07)
@@ -537,32 +546,74 @@ describe('TERM02.04 matris: avtalsupplösning och mätupplösning (2026-08, SE1 
   }, LONG)
 })
 
+
+let matrixF: Promise<{ tenant: TermTenant; session: AppSession; contract: SignedContractFixture; points: Point[]; gen: GenerateUnderlayData }> | null = null
+/** TERM02.04 f): eget bolag; spotmånaden SE1 2026-08 är idempotent (samma data som matrisen). */
+function matrixSetupF() {
+  return (matrixF ??= (async () => {
+    ensureFootprint()
+    const { tenant, session } = await setupTenant()
+    const hourPrices = term0204HourlyPrices('2026-08')
+    await spot('SE1', '2026-08', 'hourly', hourPrices, session)
+    const points = quartersOnHourlyPrices(term0204QuarterWh, hourPrices, '2026-08')
+    const contract = await newContract(tenant, { type: 'variable_monthly', area: 'SE1' })
+    insertMeteringValues(contract, toMeterValues(points, 'PT15M'))
+    return { tenant, session, contract, points, gen: expectGenerate(await generateUnderlay(session, '2026-08')) }
+  })())
+}
+
+describe('TERM02.04 f) månadsavtal + kvartsmätning (egen uppställning, delar spotmånad 2026-08 SE1 med matrisen)', () => {
+  it('TERM02.04 f) månadsavtal + kvartsmätning: utfallet registreras (stödd med korrekt energibelopp, eller kontrollerat nekad)', async () => {
+    const combo = await matrixSetupF()
+    const id = 'TERM02.04 f) månadsavtal + kvartsmätning'
+    const { row, result } = underlayFor(combo.tenant.companyId, '2026-08', combo.contract, combo.gen)
+    const res = await pricePreview(combo.session, { underlayId: row.id })
+    expect(res.status, `HTTP ${res.status} (aldrig 5xx): ${res.text}`).toBeLessThan(500)
+    const supportedOutcome = res.status === 200 && res.data?.status === 'success'
+    observe(id, { utfall: supportedOutcome ? 'stödd' : 'kontrollerat nekad', underlayStatus: result.status, http: res.status, previewStatus: res.data?.status, errors: res.data?.errors, app: res.data ? describeApp(res.data) : null })
+    if (supportedOutcome) {
+      expectCoverageClean(id, row, result, combo.points.length)
+      expectTotalKwh(id, row, combo.points)
+      await checkMonthlyContract(combo.session, row.id, combo.points, readContractTerms(combo.contract), id)
+    } else {
+      expect(res.status >= 400 || (res.data !== null && res.data.errors.length > 0), 'nekandet ska ha ett fel och inget tyst belopp').toBe(true)
+    }
+  }, LONG)
+})
+
 // ---------------------------------------------------------------- TERM02.05 / TERM02.06 (DST-månader)
 
 function describeDstMonth(cfg: {
   id: 'TERM02.05' | 'TERM02.06'; month: string; area: PriceAreaCode; seed: 'mar' | 'oct'; dstDay: string; dayQuarters: number; monthQuarters: number
+  step?: 15 | 60 // 60 = timserie (dayQuarters/monthQuarters är då antal timmar)
   faultKind: 'overlap' | 'gap'; faultText: string
 }) {
-  describe(`${cfg.id} ${cfg.month} (${cfg.dstDay}: ${cfg.dayQuarters} kvartar; månaden ${cfg.monthQuarters}), ${cfg.area}`, () => {
+  const hourly = cfg.step === 60
+  const unitName = hourly ? 'timmar' : 'kvartar'
+  const perDayNormal = hourly ? 24 : 96
+  const intervalsInDay = (d: string) => (hourly ? hoursInDay(d) : quartersInDay(d))
+  const contractType = hourly ? 'variable_hourly' : 'variable_quarterly'
+  const resolutionText = hourly ? 'PT60M' : 'PT15M'
+  describe(`${cfg.id} ${cfg.month} ${hourly ? 'TIMSERIE' : 'kvartsserie'} (${cfg.dstDay}: ${cfg.dayQuarters} ${unitName}; månaden ${cfg.monthQuarters}), ${cfg.area}`, () => {
     let ctx!: { tenant: TermTenant; session: AppSession; badTenant: TermTenant; badGen: GenerateUnderlayData; good: SignedContractFixture; bad: SignedContractFixture; goodPts: Point[]; badPts: Point[]; gen: GenerateUnderlayData; goodNormalized: string[] }
     const setup = lazy(async () => {
       ensureFootprint()
       const { tenant, session } = await setupTenant()
       const bt = await setupTenant()
-      const good = await newContract(tenant, { type: 'variable_quarterly', area: cfg.area })
-      const bad = await newContract(bt.tenant, { type: 'variable_quarterly', area: cfg.area })
-      const goodPts = dstQuarterSeries(cfg.month, cfg.seed)
+      const good = await newContract(tenant, { type: contractType, area: cfg.area })
+      const bad = await newContract(bt.tenant, { type: contractType, area: cfg.area })
+      const goodPts = hourly ? dstHourlySeries(cfg.month, cfg.seed) : dstQuarterSeries(cfg.month, cfg.seed)
       expect(goodPts).toHaveLength(cfg.monthQuarters)
-      await spot(cfg.area, cfg.month, 'quarter_hour', goodPts, session)
-      const badPts = faultyDstDaySeries(cfg.month, cfg.dstDay, cfg.seed)
-      const mvGood = insertMeteringValues(good, toMeterValues(goodPts, 'PT15M'))
-      insertMeteringValues(bad, toMeterValues(badPts, 'PT15M'))
+      await spot(cfg.area, cfg.month, hourly ? 'hourly' : 'quarter_hour', goodPts, session)
+      const badPts = hourly ? faultyDstHourlySeries(cfg.month, cfg.dstDay) : faultyDstDaySeries(cfg.month, cfg.dstDay, cfg.seed)
+      const mvGood = insertMeteringValues(good, toMeterValues(goodPts, resolutionText))
+      insertMeteringValues(bad, toMeterValues(badPts, resolutionText))
       const gen = expectGenerate(await generateUnderlay(session, cfg.month))
       const badGen = expectGenerate(await generateUnderlay(bt.session, cfg.month))
       ctx = { tenant, session, badTenant: bt.tenant, badGen, good, bad, goodPts, badPts, gen, goodNormalized: mvGood.normalizedIds }
     })
 
-    it(`${cfg.id} spotdata: exakt ${cfg.dayQuarters} kvartar för ${cfg.dstDay} och ${cfg.monthQuarters} kvartar för månaden (verifierad och låst)`, async () => {
+    it(`${cfg.id} spotdata${hourly ? ' (timpris)' : ''}: exakt ${cfg.dayQuarters} ${unitName} för ${cfg.dstDay} och ${cfg.monthQuarters} för månaden (verifierad och låst)`, async () => {
       await setup()
       const day = stockholmDayBoundsUtc(cfg.dstDay)
       const perDay = psqlRows<{ price_date: string; interval_count: number; expected_interval_count: number; expected_duration_minutes: number; status: string }>(`
@@ -579,9 +630,9 @@ function describeDstMonth(cfg: {
       expect([month.status, month.interval_count, month.expected_interval_count]).toEqual(['locked', cfg.monthQuarters, cfg.monthQuarters])
     })
 
-    it(`${cfg.id} A: korrekt serie (${cfg.dayQuarters} kvartar ${cfg.dstDay}, ${cfg.monthQuarters} i månaden) ger täckningsrent underlag och rätt belopp`, async () => {
+    it(`${cfg.id} A${hourly ? ' timserie' : ''}: korrekt serie (${cfg.dayQuarters} ${unitName} ${cfg.dstDay}, ${cfg.monthQuarters} i månaden) ger täckningsrent underlag och rätt belopp`, async () => {
       await setup()
-      const id = `${cfg.id} A`
+      const id = `${cfg.id} A${hourly ? ' timserie' : ''}`
       const { row, result } = underlayFor(ctx.tenant.companyId, cfg.month, ctx.good, ctx.gen)
       expectCoverageClean(id, row, result, cfg.monthQuarters)
       expectTotalKwh(id, row, ctx.goodPts)
@@ -593,23 +644,23 @@ function describeDstMonth(cfg: {
       // Antal kvartar per Stockholm-dag enligt oraklets egen kalender
       const perDay = new Map<string, number>()
       for (const it of readUnderlayItems(row.id)) perDay.set(stockholmDateOf(Date.parse(it.period_start)), (perDay.get(stockholmDateOf(Date.parse(it.period_start))) ?? 0) + 1)
-      const wrong = bounds.days.filter((d) => perDay.get(d) !== quartersInDay(d)).map((d) => `${d}: ${perDay.get(d) ?? 0} (väntat ${quartersInDay(d)})`)
+      const wrong = bounds.days.filter((d) => perDay.get(d) !== intervalsInDay(d)).map((d) => `${d}: ${perDay.get(d) ?? 0} (väntat ${intervalsInDay(d)})`)
       expect(wrong, 'kvartar per dag i underlaget').toEqual([])
       expect(perDay.get(cfg.dstDay)).toBe(cfg.dayQuarters)
       observe(`${id} källbevis`, { note: 'B2: kan inte kvalificeras; ready_for_pricing kan därför inte uppnås i harnessen', status: result.status, basis: await readSourceBasisSummary(ctx.tenant.companyId, ctx.goodNormalized.slice(0, 50)) })
       await priceAndCompare(ctx.session, row.id, ctx.goodPts, readContractTerms(ctx.good), id)
     }, LONG)
 
-    it(`${cfg.id} B: ${cfg.faultText} avvisas (needs_review med ${cfg.faultKind === 'overlap' ? 'överlapp/dubbletter' : 'lucka'})`, async () => {
+    it(`${cfg.id} B${hourly ? ' timserie' : ''}: ${cfg.faultText} avvisas (needs_review med ${cfg.faultKind === 'overlap' ? 'överlapp/dubbletter' : 'lucka'})`, async () => {
       await setup()
-      const id = `${cfg.id} B`
+      const id = `${cfg.id} B${hourly ? ' timserie' : ''}`
       const { row, result } = underlayFor(ctx.badTenant.companyId, cfg.month, ctx.bad, ctx.badGen)
       const cls = classifyUnderlayWarnings(result.warnings)
       const perDay = new Map<string, number>()
       for (const p of ctx.badPts) perDay.set(stockholmDateOf(p.slot.startMs), (perDay.get(stockholmDateOf(p.slot.startMs)) ?? 0) + 1)
       observe(id, { status: result.status, rowStatus: row.status, readiness: row.readiness_status, sourceRows: result.sourceRows, missing: row.missing_values_count, warnings: cls, rowsOnDstDayByLocalDate: perDay.get(cfg.dstDay) })
       expect(result.status, `${id}: felaktig serie får inte bli ready_for_pricing`).toBe('needs_review')
-      expect(result.sourceRows).toBe(31 * 96)
+      expect(result.sourceRows).toBe(31 * perDayNormal)
       const pattern = cfg.faultKind === 'overlap' ? /Överlappande mätintervall|Dubbla aktuella mätvärden/ : /Mätvärdeslucka/
       expect(cls.coverage.some((w) => pattern.test(w)), `${id}: väntade ${cfg.faultKind}-varning; varningar: ${result.warnings.join(' | ')}`).toBe(true)
       if (cfg.faultKind === 'gap') expect(row.missing_values_count ?? 0, 'missing_values_count').toBeGreaterThan(0)
@@ -625,6 +676,15 @@ describeDstMonth({
 describeDstMonth({
   id: 'TERM02.06', month: '2027-10', area: 'SE2', seed: 'oct', dstDay: '2027-10-31', dayQuarters: 100, monthQuarters: 2980,
   faultKind: 'gap', faultText: '96 kvartar för 2027-10-31 (den dubblerade timmen saknas)',
+})
+
+describeDstMonth({
+  id: 'TERM02.05', month: '2027-03', area: 'SE1', seed: 'mar', dstDay: '2027-03-28', dayQuarters: 23, monthQuarters: 743, step: 60,
+  faultKind: 'overlap', faultText: '24 timmar för 2027-03-28 (lokala 02:00-03:00 som inte finns)',
+})
+describeDstMonth({
+  id: 'TERM02.06', month: '2027-10', area: 'SE1', seed: 'oct', dstDay: '2027-10-31', dayQuarters: 25, monthQuarters: 745, step: 60,
+  faultKind: 'gap', faultText: '24 timmar för 2027-10-31 (den dubblerade timmen saknas)',
 })
 
 // ---------------------------------------------------------------- TERM02.07
