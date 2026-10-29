@@ -12,9 +12,9 @@
 // native seed, which is out of scope for this first fixture.
 //
 // ORIGIN of copied/adapted code (base 1c0c088cb4ed66d0dd8b3e34c9606019342a1a56):
-//  - scripts/ediel-at-z04a-assigned-supply-native.test.ts  `ground`, `source`,
-//    `assignedWire`, `assertAssignedEffects` (activation of an assigned supply
-//    through the real regulated-ground archive/review and processInboundEdielMessage)
+//  - scripts/helpers/ediel-requested-change-native-fixture.ts and
+//    scripts/ediel-z04l-z04lk-future-start-native.test.ts `receive`/`confirm`
+//    (normal supplier switch: sent Z03, Z04 L public birth, processInboundEdielMessage)
 //  - scripts/ediel-utilts-consumption-native.test.ts  `seed`/`insertSource`/`prepare`
 //    (UTILTS source birth, final runtime, contract preparation, bound persistence)
 //  - __tests__/ediel-sc-050-053-utilts-scenarios.test.ts  `day` (a winter 96-quarter
@@ -22,16 +22,17 @@
 // Everything else is new in this harness.
 import { createHash, randomUUID } from 'node:crypto'
 import { vi } from 'vitest'
-import { createRegulatedSupplyGroundNativeFixture } from '@/scripts/helpers/ediel-regulated-supply-ground-native-fixture'
-import { nativeSql as sql, literal } from '@/scripts/helpers/ediel-normal-switch-native-fixture'
-import { seedOriginalMailboxNative, recordOriginalMailboxNativeReception } from '@/scripts/helpers/originalMailboxNative'
+import nodemailer from 'nodemailer'
+import { seedNormalSwitchNativeFixture, nativeSql as sql, literal } from '@/scripts/helpers/ediel-normal-switch-native-fixture'
+import { buildCancellationProspectiveZ04 } from '@/scripts/helpers/ediel-cancellation-prospective-source-2ea'
+import { seedOriginalMailboxNative } from '@/scripts/helpers/originalMailboxNative'
 import { registerUtiltsIssuer, seedUtiltsIssuerHistoryGround, recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, setUtiltsReceiverRole } from '@/scripts/helpers/utiltsConsumptionParties'
 import { buildDayWire } from './wire'
-import { guideOrderedFixtureRaw } from '@/__tests__/helpers/prodatGuideOrderedFixture'
-import { characteristic, line, qty, type Parts } from '@/__tests__/fixtures/prodat-register'
-import { archiveRegulatedSupplyGround, reviewRegulatedSupplyGround } from '@/lib/ediel/production/regulatedSupplyGroundIntake'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
+import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
+import { matchOutboundRequestForInbound, matchMeteringPointForInbound } from '@/lib/inbound-mail/inboundMatcher'
+import { getEdielMessageById } from '@/lib/ediel/db'
 import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
@@ -74,7 +75,7 @@ export const DEFAULT_MAIN03_PARAMS: Main03Params = {
 function assertSupported(params: Main03Params): void {
   if (params.sites !== 1) throw new FixtureParamUnsupported('sites', 'native seed creates exactly one site/metering point')
   if (params.priceArea !== 'SE3') throw new FixtureParamUnsupported('priceArea', 'native seed fixes price area SE3')
-  if (params.contractStartDate !== '2026-10-15') throw new FixtureParamUnsupported('contractStartDate', 'native regulated-ground seed fixes 2026-10-15')
+  if (params.contractStartDate !== '2026-10-15') throw new FixtureParamUnsupported('contractStartDate', 'native switch seed and fixture oracle are only verified for 2026-10-15')
   if (params.pricing.markupOrePerKwh !== 4 || params.pricing.monthlyFeeSek !== 49 || params.pricing.vatPercent !== 25 || params.pricing.spotWeightPercent !== 100) {
     throw new FixtureParamUnsupported('pricing', 'native seed fixes spot 100 %, 4 ore/kWh, 49 SEK/month, VAT 25 %')
   }
@@ -118,74 +119,81 @@ export type Main03Fixture = {
 
 function must(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message) }
 
-// ------------------------------------------------------------- assigned supply
+// ------------------------------------------------- normal supplier switch
 
-type Ground = Awaited<ReturnType<typeof createRegulatedSupplyGroundNativeFixture>>
+type Ground = Awaited<ReturnType<typeof seedNormalSwitchNativeFixture>>
 
-function assignedWire(f: Ground, reference: string): string {
-  // Adapted from scripts/ediel-at-z04a-assigned-supply-native.test.ts `assignedWire`.
-  const start = new Date(Date.parse(f.submission.startAt) + 3600000).toISOString().slice(0, 16).replace(/[-T:]/g, '')
-  const body: Parts[] = [
-    ['NAD', 'FR', [f.receiver, '160', 'SVK'], '', '', '', '', '', '', 'SE'],
-    ['NAD', 'DO', [f.sender, '160', 'SVK'], '', '', '', '', '', '', 'SE'],
-    line('1', f.external, undefined, '9'), ['DTM', ['92', start, '203']], ['DTM', ['354', '15', '806']], qty('1000'),
-    ...characteristic('Z13', 'Z26'), ...characteristic('Z04', 'Z04'), ...characteristic('Z07', 'Z12'),
-    ...characteristic('Z12', 'D', 3), ...characteristic('Z15', 'Z32'), ['CCI', '', 'Z14'], ['CAV', ['', '', '', 'L639Q']],
-    ...characteristic('Z02', '1', 3), ...characteristic('Z05', '6', 3), ...characteristic('Z16', '111', 3),
-    ['RFF', ['MG', `METER-${f.external}`]], ['RFF', ['Z05', f.gridAreaCode]], ['RFF', ['LI', reference]],
-    ['NAD', 'UD', [f.customerIdentity.id, f.customerIdentity.qualifier, f.customerIdentity.agency], '', 'Synthetic Own Customer', 'Street', 'City', '', '12345', 'SE'],
-    ['NAD', 'IT', [f.external, '', '9'], '', '', 'Street', 'Town', '', '12345', 'SE'],
-    ['NAD', 'Z02', [f.brpEdielId, '160', 'SVK']],
-  ]
-  return guideOrderedFixtureRaw(body, 'Z04')
-    .replace('+S+R+', `+${f.receiver}:14+${f.sender}:14+`)
-    .replace("+23-DDQ-PRODAT'", "+23-DDQ-PRODAT++1++1'")
-    .replace('+I++23-DDQ-PRODAT', `+${reference}++23-DDQ-PRODAT`).replace("UNZ+1+I'", `UNZ+1+${reference}'`)
-    .replace('UNH+M+', `UNH+${reference}+`).replace(/UNT\+(\d+)\+M'/, `UNT+$1+${reference}'`)
-    .replace('BGM+Z04+D+', `BGM+Z04+${reference}+`)
+const SYNTHETIC_SMTP_ENV: Record<string, string> = {
+  EDIEL_SHARED_MAILBOX_ADDRESS: 'synthetic@example.invalid', EDIEL_APP_DKIM_ENABLED: 'false', EMAIL_PROVIDER: 'resend', EDIEL_EMAIL_PROVIDER: 'strato',
+  EDIEL_SMTP_FROM: 'synthetic@example.invalid', EDIEL_SMTP_USER: 'synthetic@example.invalid', EDIEL_SMTP_PASS: 'synthetic-only',
 }
 
 /**
- * Activates an assigned supply for the seeded point through the real
- * regulated-ground archive + separate review + inbound PRODAT Z04 processing.
+ * SMTP provider port for the outbound Z03 original, the same port the base's
+ * native tests inject (`provider` of seedNormalSwitchNativeFixture). The
+ * scenario mocks nodemailer with a bare `vi.fn()` whose undefined result is no
+ * provider acceptance, so the transport is replaced by one that accepts.
  */
-async function activateAssignedSupply(f: Ground): Promise<{ supplyPeriodId: string; sourceId: string; ms: number }> {
+function syntheticSmtpProvider(email: string): void {
+  vi.spyOn(nodemailer, 'createTransport').mockImplementation((() => ({
+    sendMail: async () => ({ accepted: [email], rejected: [], messageId: `<synthetic-${randomUUID()}@example.invalid>`, response: '250 synthetic accepted (track 1 fixture)' }),
+  })) as unknown as typeof nodemailer.createTransport)
+}
+
+/**
+ * Normal supplier switch for the seeded signed contract, as in the base's own
+ * native tests: the seed (seedNormalSwitchNativeFixture) creates the
+ * supplier_switch_requests row for the signed contract, renders, archives,
+ * queues and sends the Z03 through prepareAndQueueEdielZ03 +
+ * sendEdielMessageViaSmtp. Here the grid owner's Z04 (subtype L) answering that
+ * Z03's LI case reference is born through the public inbound creator and then
+ * processed by processInboundEdielMessage. The database owner
+ * gridex_received_sources.normal_switch_confirm_v1 inserts the supply period
+ * with contract_id = the switch request's contract.
+ *
+ * ORIGIN (base 1c0c088c): scripts/helpers/ediel-requested-change-native-fixture.ts
+ * `createRequestedChangeSupplyFixture` (wire + public birth) and
+ * scripts/ediel-z04l-z04lk-future-start-native.test.ts `receive`/`confirm`
+ * (public birth followed by processInboundEdielMessage, one period with
+ * source_switch_request_id). The earlier PRODAT Z04 subtype A (assigned supply,
+ * scripts/ediel-at-z04a-assigned-supply-native.test.ts) is the process for a
+ * customer WITHOUT a contract; its owner inserts no contract_id by design.
+ */
+async function activateNormalSwitchSupply(f: Ground): Promise<{ supplyPeriodId: string; sourceId: string; ms: number }> {
   const started = Date.now()
-  for (const [key, value] of Object.entries({ EDIEL_SHARED_MAILBOX_ADDRESS: 'synthetic@example.invalid', EDIEL_APP_DKIM_ENABLED: 'false',
-    EDIEL_SMTP_FROM: 'synthetic@example.invalid', EDIEL_SMTP_USER: 'synthetic@example.invalid', EDIEL_SMTP_PASS: 'synthetic-only', EDIEL_EMAIL_PROVIDER: 'strato' })) vi.stubEnv(key, value)
-  const artifact = await archiveRegulatedSupplyGround({ companyId: f.companyId, actorUserId: f.actorUserId, ...f.signed() })
-  const authorized = await reviewRegulatedSupplyGround({ companyId: f.companyId, actorUserId: f.reviewer,
-    artifactId: String(artifact.artifactId), sourceHash: String(artifact.sourceHash), scopeHash: String(artifact.scopeHash),
-    decision: 'approve', reason: 'Separate synthetic assigned-supply review (track 1 fixture)' })
-  must(authorized.status === 'authorized', `fixture_ground_not_authorized:${JSON.stringify(authorized)}`)
-  const reference = `A${randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`
-  const wire = assignedWire(f, reference), smtp = assertEdielSmtpReadiness(), receivedAt = new Date().toISOString()
+  const smtp = assertEdielSmtpReadiness()
+  // SUBSTITUTE: the grid owner's PRODAT Z04 (L) is a synthetic wire (app helper buildCancellationProspectiveZ04) placed in the
+  // mailbox tables by seedOriginalMailboxNative instead of an IMAP fetch — verifierar inte nätägarens riktiga Z04, IMAP/S-MIME eller brevlådans hämtning.
+  const wire = buildCancellationProspectiveZ04(f), receivedAt = new Date().toISOString()
   const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw: wire, receivedAt, smtpFrom: smtp.from })
+  // SUBSTITUTE: ACK route/profile for the APERAK/CONTRL replies inserted by psql (as the base's native Z04 tests do) — verifierar inte routeadministrationen.
   const ackRoute = randomUUID(), ackProfile = randomUUID()
   sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
-    VALUES(${literal(ackRoute)},${literal(f.companyId)},'Synthetic assigned ACK route','ediel_ack',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid');
+    VALUES(${literal(ackRoute)},${literal(f.companyId)},'Synthetic switch ACK route','ediel_ack',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid');
     INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,transport_security_mode,mailbox,smtp_host,smtp_port,smtp_to,receiver_email)
-    VALUES(${literal(ackProfile)},${literal(f.companyId)},${literal(ackRoute)},'Synthetic assigned ACK profile','test','edifact','edifact',${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'unencrypted',${literal(smtp.from)},${literal(smtp.host)},${smtp.port},'recipient@example.invalid','recipient@example.invalid');`)
-  const sourceId = randomUUID()
-  sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-    SELECT ${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},${literal({ ...mail.parsed, prodatDependentFacts: { market: 'electricity', meterReadingsSentInUtilts: false } })}::jsonb,
-      ${literal(receivedAt)}::timestamptz,'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},${literal(mail.parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
-    FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:A:26.A:r3' AND profile.is_enabled;`)
-  await recordOriginalMailboxNativeReception({ ...mail, companyId: f.companyId, sourceMessageId: sourceId, actorUserId: f.actorUserId })
-  const stored = await supabaseService.from('ediel_messages').select('*').eq('id', sourceId).single()
-  must(!stored.error && stored.data, `fixture_z04_source_unreadable:${stored.error?.message}`)
-  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(stored.data as unknown as EdielMessageRow)
+    VALUES(${literal(ackProfile)},${literal(f.companyId)},${literal(ackRoute)},'Synthetic switch ACK profile','test','edifact','edifact',${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'unencrypted',${literal(smtp.from)},${literal(smtp.host)},${smtp.port},'recipient@example.invalid','recipient@example.invalid');`)
+  const outboundMatch = await matchOutboundRequestForInbound({ companyId: f.companyId, parsed: mail.parsed, inboundEmailMessageId: mail.inboundEmailMessageId, parseResultId: mail.parseResultId })
+  const meteringPointMatch = await matchMeteringPointForInbound({ companyId: f.companyId, parsed: mail.parsed })
+  const sourceId = await createInboundEdielMessage({ companyId: f.companyId, actorUserId: f.actorUserId, environment: 'test', inboundEmailMessageId: mail.inboundEmailMessageId,
+    parseResultId: mail.parseResultId, parsed: mail.parsed, outboundMatch, meteringPointMatch })
+  must(sourceId, `fixture_z04_public_birth_refused:${JSON.stringify({ outboundMatch, meteringPointMatch })}`)
+  const message = await getEdielMessageById(sourceId)
+  must(message && message.company_id === f.companyId && message.message_code === 'Z04' && message.rule_profile_key === 'PRODAT:Z04:L:26.A:r3',
+    `fixture_z04_source_unexpected:${JSON.stringify(message && { company: message.company_id, code: message.message_code, profile: message.rule_profile_key })}`)
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(message, { actorUserId: f.actorUserId })
   must([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision].every(value => value === 'accepted'),
     `fixture_z04_not_accepted:${JSON.stringify(decision.issues)}`)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: sourceId })
-  const periods = await supabaseService.from('customer_supply_periods').select('id,status,contract_id,metering_point_id,customer_id,start_date,end_date,market_start_at,source_process').eq('company_id', f.companyId)
+  const periods = await supabaseService.from('customer_supply_periods').select('id,status,contract_id,customer_contract_id,metering_point_id,customer_id,start_date,end_date,market_start_at,source_process,source_message_id,source_switch_request_id').eq('company_id', f.companyId)
   must(!periods.error, `fixture_supply_read_failed:${periods.error?.message}`)
   const rows = periods.data ?? []
   must(rows.length === 1, `fixture_supply_period_count:${rows.length}`)
   const period = rows[0] as Record<string, unknown>
   must(period.metering_point_id === f.pointId && period.customer_id === f.customerId, 'fixture_supply_period_wrong_owner')
-  // Candidate product finding if this fires: the billing-underlay store requires
-  // supply_period.contract_id = contract.id (gridex_store_billing_underlay).
+  must(period.source_message_id === sourceId && period.source_switch_request_id === f.switchId && period.source_process === 'supplier_switch_confirmation',
+    `fixture_supply_period_not_from_switch:${JSON.stringify(period)}`)
+  must(period.status === 'confirmed_by_grid_owner' && period.start_date === f.requestedStartDate, `fixture_supply_period_state:${JSON.stringify(period)}`)
+  // gridex_store_billing_underlay requires supply_period.contract_id = contract.id.
   must(period.contract_id === f.contractId, `fixture_supply_period_contract_unset:${String(period.contract_id)}`)
   return { supplyPeriodId: String(period.id), sourceId, ms: Date.now() - started }
 }
@@ -279,14 +287,24 @@ export async function buildMain03Fixture(overrides: Partial<Main03Params> = {}):
   substitute({ id: 'tenant-customer-contract-seed', step: 'fixture: tenant/customer/site/metering point/contract',
     substitute: 'scripts/helpers/ediel-normal-switch-native-fixture.ts (psql inserts + real offer/publication/signature RPCs)',
     notVerified: 'admin customer intake (claude-track2/004), contract from offer (claude-track2/005), customer-facing signing UI' })
-  const ground = await timed('fixture: tenant + contract + regulated ground', () => createRegulatedSupplyGroundNativeFixture())
+  // SUBSTITUTE: the SMTP provider of the outbound Z03 original is an in-process nodemailer transport that accepts — verifierar inte
+  // leverantörens SMTP, TLS eller att Z03 faktiskt når nätägaren.
+  substitute({ id: 'z03-smtp-provider', step: 'fixture: normal supplier switch (Z03 send)',
+    substitute: 'vi.spyOn(nodemailer.createTransport) returning an accepting sendMail, injected through the seed provider port; the real prepareAndQueueEdielZ03 + sendEdielMessageViaSmtp render, archive and record the send',
+    notVerified: 'real SMTP provider, TLS, network delivery of the Z03 to the grid owner' })
+  for (const [key, value] of Object.entries(SYNTHETIC_SMTP_ENV)) vi.stubEnv(key, value)
+  const ground = await timed('fixture: tenant + contract + supplier switch (Z03 sent)',
+    () => seedNormalSwitchNativeFixture({ requestedStartDate: params.contractStartDate, provider: syntheticSmtpProvider }))
 
-  // SUBSTITUTE: the legal supply source (signed regulated-supply ground, issuer receipt and the inbound PRODAT Z04 from the grid owner)
-  // is synthetic — verifierar inte nätägarens riktiga Z04, juridisk grund eller marknadsaktivering.
-  substitute({ id: 'supply-activation', step: 'fixture: supply period',
-    substitute: 'synthetic regulated-supply ground (HMAC receipt from a synthetic issuer) + synthetic PRODAT Z04 inserted as ediel_messages row, then real processInboundEdielMessage',
-    notVerified: 'real grid-owner Z04, real legal ground, mailbox/IMAP transport, S/MIME, outbound ACK delivery (nodemailer is mocked)' })
-  const supply = await timed('fixture: assigned supply activation', () => activateAssignedSupply(ground))
+  // SUBSTITUTE: the grid owner's confirming PRODAT Z04 (L) is a synthetic wire placed in the mailbox tables (seedOriginalMailboxNative),
+  // then the public inbound creator and the real processInboundEdielMessage run — verifierar inte nätägarens riktiga Z04, IMAP/S-MIME eller utgående ACK-leverans.
+  substitute({ id: 'supply-activation', step: 'fixture: supply period (normal supplier switch)',
+    substitute: 'synthetic PRODAT Z04 subtype L answering the sent Z03 LI case reference (app helper buildCancellationProspectiveZ04), mailbox rows via seedOriginalMailboxNative, then real matchOutboundRequestForInbound/createInboundEdielMessage/processInboundEdielMessage',
+    notVerified: 'real grid-owner Z04, IMAP fetch, S/MIME, outbound APERAK/CONTRL delivery (nodemailer is mocked), contract activation on the start day (cron)' })
+  substitute({ id: 'switch-ack-route', step: 'fixture: supply period (normal supplier switch)',
+    substitute: 'ediel_ack communication_routes/ediel_route_profiles rows inserted by psql (as the base native Z04 tests do)',
+    notVerified: 'route administration UI/API' })
+  const supply = await timed('fixture: normal switch supply activation', () => activateNormalSwitchSupply(ground))
 
   // SUBSTITUTE: permissions and a password are granted by SQL / the auth admin API — verifierar inte rolladministration eller användarinbjudan.
   substitute({ id: 'actor-permissions-password', step: 'fixture: operator session',
