@@ -15,7 +15,7 @@ Du granskar oberoende. Du har inte skrivit ändringen och du ändrar ingenting.
 ## Granska
 1. **Korrekthet.** Löser ändringen grundorsaken, eller bara symtomet? Följ hela anropsvägen, inte bara diffen.
 2. **Isolering och skydd.** Läcker data mellan tenanter, bolag eller kunder? Är RLS, behörighet, validering, constraints, revisionsspår eller idempotens försvagade?
-3. **Migrationer.** Är de framåtmigrationer? Är sha256 registrerad? Ändras ingen redan applicerad migration? Ändras ingen skyddad kropp utan överlämning?
+3. **Migrationer.** Är de framåtmigrationer? Är sha256 registrerad i manifestet? Eller väntar migrationen uttryckligen på GEN-fångst, med sha256 angiven och "missing from checksum manifest" för just den filen som enda integritetsfel? Ändras ingen redan applicerad migration? Ändras ingen skyddad kropp utan överlämning?
 4. **Tester.** Faller de före ändringen? Anropar de riktig kod? Prövar de både positiva och negativa fall?
 5. **Paket (`status.json` och `FINDINGS.md`).** Styrker paketet exakt scenario-ID:ts kvalificerade orakel, med en faktisk körning? Kontrollera särskilt:
    - att körkatalogen var ren;

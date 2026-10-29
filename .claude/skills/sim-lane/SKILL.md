@@ -64,6 +64,8 @@ Spårnumren här är de logiska numren i registret (1–7). `PROMPTS.sv.md` numr
 - Svarar sim-builder `ESKALERA` skickar du samma uppdrag, med dess anteckningar, till sim-fixer.
 - Svarar sim-builder eller sim-fixer `BLOCKED: överlämning krävs` begär du överlämning enligt protokollet och går vidare med annat.
 - Svarar sim-fixer `RÄTTAD-VÄNTAR-GEN` begär du att den befintliga GEN-ägaren fångar manifest, typer och `schema.sql`, enligt protokollet och i PR #930. Ingen session eller agent skriver de filerna själv.
+  - **Medan fångsten väntar** får sim-runner applicera migrationen i världen, om du i uppdraget anger den som `väntar GEN-fångst`. Utfallet blir då högst `PARTIAL`.
+  - **När GEN-ägarens fångst har landat** på main slår du in den på spårets gren. Då ska `db:migrations:integrity` vara grön igen.
 - Svarar sim-fixer `BLOCKED: finance-samordning` tar du upp den relevanta finance-patchen med finance-ägaren i PR #930. Granska den exakta patchen och föreslå adoption. Skriv inte en parallell version.
 - Fynd numreras enligt `REPORTING.sv.md` (`<campaign>/<worker>/<löpnummer>`), inte med egna F- eller T-nummer.
 
@@ -119,7 +121,7 @@ Ett käll- eller modelltest ger aldrig PASS, och ett delsteg ger aldrig PASS fö
 - **Produkträttningar:** gör en ny gren från `origin/main` och cherry-picka bara rättningens commits, utan harness och utan paket. Verifiera om där:
   - typkontroll;
   - berörda tester;
-  - vid ny migration: `npm run db:migrations:integrity`. Manifest, typer och `schema.sql` fångas av GEN-ägaren, och PR:en är inte redo förrän det är gjort och `db:migrations:check` är grön.
+  - vid ny migration: `npm run db:migrations:integrity`. Före GEN-fångsten är det enda tillåtna felet "Migration is missing from checksum manifest" för den egna nya filen. Manifest, typer och `schema.sql` fångas av GEN-ägaren, och PR:en är inte redo förrän det är gjort och `db:migrations:check` är grön.
 
   Öppna sedan en liten PR med findings-ID, originalfelkvitto och regression.
 - **Versioner för nya migrationer** samordnas mellan spåren. Ange versionen i PR #930 innan den används, eftersom flera spår kan skapa migrationer parallellt.

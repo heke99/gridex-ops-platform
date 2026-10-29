@@ -54,6 +54,8 @@ Starta en ny värld **utan** `SKIP_REPLAY`. Varje steg som misslyckas rapportera
    `up.sh` skriver alltid HEAD som `GIT_COMMIT_SHA`. Den byggda versionen är därför den i `built-commit`.
 5. **Migrationer:** applicera bara de migrationsfiler som uppdraget namnger. De ska finnas i körkatalogens HEAD och vara nya sedan världens replay. Applicera dem i versionsordning.
    - Kontrollera först integriteten med `npm run -s db:migrations:integrity` i körkatalogen. Den läser alla manifest.
+     - Får du bara felet "Migration is missing from checksum manifest", och bara för filer som uppdraget anger som `väntar GEN-fångst`, får du applicera dem. Notera dem i paketet som `pendingGenCapture`.
+     - Alla andra integritetsfel ger `BLOCKED: migrationsintegritet`, och då applicerar du ingenting.
    - Applicera mot världens lokala databas med `psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f <fil>`, utan `-1`.
    - Faller en migration halvvägs är världen smutsig. Svara `BLOCKED: miljö`. Världen måste då startas om med ny replay.
    - Skriv **inte** in versionen i den officiella ledgern `supabase_migrations.schema_migrations`, eftersom replayens proveniens ska bevaras.
