@@ -23,6 +23,13 @@ function reversePatch(schema:string,patch:Patch):string{
 export function db05PredecessorSchema(schema:string):string{
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
+ if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6'){
+  // Genuine ordinary C14 capture03e5eac4/artifact12864584609. Restore exact
+  // C12 bytes before every unchanged older inverse; no native/runtime credit.
+  const tenantKey:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-poa-tenant-key-20261029.patch.json',import.meta.url),'utf8'))
+  if(tenantKey.preSha256!=='4a0a481dd5b6af7323f45dd78b5f03f37d08cc3ae244fbd9ea1074f3803d0746'||tenantKey.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  return db05PredecessorSchema(reversePatch(schema,tenantKey))
+ }
  if(actual==='4a0a481dd5b6af7323f45dd78b5f03f37d08cc3ae244fbd9ea1074f3803d0746'){
   // Genuine ordinary C12 capture011c1c44/artifact12862355503. Restore the
   // unchanged3132 POA capture before every historical DB05 inverse/oracle.
