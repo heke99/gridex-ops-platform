@@ -10,74 +10,76 @@ Du sköter världen åt en orkestrerande session. Du rättar ingen kod. Krav på
 ## Begrepp
 - **Körkatalogen:** spårets frånkopplade worktree (bas plus dokumenterad overlay) med en riktig kopia av `node_modules`. Bara du ändrar den.
 - **Världen:** stacken som `scripts/reality/up.sh` startar, med `REALITY_HOME` (normalt `/tmp/gridex-reality`). Det finns en värld per container.
-- **Paketkatalog:** `runs/<run-id>/<worker-id>/<scenario-id>/` på den plats uppdraget anger. Den ligger aldrig i körkatalogen och aldrig under `/tmp`, eftersom `/tmp` töms när containern startas om.
+- **Evidenskatalog (privat):** `$HOME/sim-evidence/<run-id>/<worker-id>/<scenario-id>/`. Här sparas råloggar och rapporter. Den ligger aldrig i repot och aldrig under `/tmp`, eftersom `/tmp` töms när containern startas om.
+- **Paketkatalog (säker):** `quality/simulation-campaign/<kampanj>/runs/<run-id>/<worker-id>/<scenario-id>/` i spårets checkout. Här finns bara `status.json` och `FINDINGS.md`, med referenser och sha256 till evidensen. Råloggar och miljövärden hör aldrig hemma här.
 
 ## Ingen körning pågår?
 Kontrollera före varje ändring och varje körning:
 ```
 pgrep -af 'reality-native[.]config[.]ts|-native[.]test[.]ts|scripts/reality/(run|run-many|up)[.]sh'
 ```
-Kommandot ska inte ge någon träff. Om det ger träff svarar du `BLOCKED: världen upptagen` med processlistan.
+Bortse från träffar som är din egen kontroll, till exempel `grep`, `pgrep` eller det `bash -c` som kör kontrollen. Övriga träffar betyder att en körning pågår. Då svarar du `BLOCKED: världen upptagen` med processlistan.
 
 ## Ny värld eller omstartad container
-Följ `STATUS.md` på `claude/gifted-hamilton-vss1hj`, avsnittet "Så körs världen" (punkt 5–7), steg för steg:
-- `dockerd`, och `docker rm -f gx-mail`;
-- `iptables` för 54322;
-- Supabase-wrappern mot docker.io;
-- `npm`-installationen utan `xlsx` och med `xlsx` lokalt;
-- körkatalogen med en riktig `node_modules`.
+Är klonen grund, kör först `git fetch --unshallow origin`. Följ sedan `quality/audits/live-chain-20261015/STATUS.md` på `claude/gifted-hamilton-vss1hj`, avsnittet "Så körs världen" (punkt 5–7). Det gäller `dockerd`, `docker rm -f gx-mail`, `iptables` för 54322, `npm`-installationen utan `xlsx` (och med `xlsx` lokalt) och körkatalogen med en riktig `node_modules`.
 
-Starta en ny värld **utan** `SKIP_REPLAY`. `SKIP_REPLAY=1` gäller bara när stacken redan kör. Varje steg som misslyckas rapporteras som `BLOCKED: miljö`, med kommandot och den första felraden.
+Supabase-wrappern som STATUS nämner finns inte i en ny container. Skapa den enligt beskrivningen: den ska exportera `SUPABASE_INTERNAL_IMAGE_REGISTRY=docker.io` och köra `npx -y supabase@2.101.0`.
+
+Starta en ny värld **utan** `SKIP_REPLAY`. Varje steg som misslyckas rapporteras som `BLOCKED: miljö`, med kommandot och den första felraden.
 
 ## Uppdatera och bygga
 1. `git -C <körkatalog> checkout -q --detach <SHA>`. Därefter måste `git -C <körkatalog> status --porcelain` vara tomt.
-2. **Bygg om i bakgrunden**, eftersom ett bygge kan ta längre tid än en förgrundsgräns:
+2. **Bygg om i bakgrunden:**
    ```
-   setsid nohup bash -c 'cd <körkatalog> && [SKIP_REPLAY=1] <flaggor> bash scripts/reality/up.sh > <logg> 2>&1; echo "exit $?" >> <logg>' &
+   setsid nohup bash -c 'cd <körkatalog> && [SKIP_REPLAY=1] <flaggor> bash scripts/reality/up.sh > <evidens>/up.log 2>&1; echo "exit $?" >> <evidens>/up.log' &
    ```
-   Skicka med alla lägesflaggor varje gång (`REALITY_EDIEL_LANE`, `REALITY_SVK_SOURCE`, `REALITY_SPOT_SOURCE` och liknande), eftersom de inte sparas mellan körningar. Spara flaggorna i paketet.
+   Flaggorna skickas med varje gång, eftersom de inte sparas mellan körningar. Utan annan instruktion gäller `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic`, plus `REALITY_EDIEL_LANE=test` när E ska köras. Skriv flaggorna i paketet.
 3. När bygget har lyckats utan `SKIP_BUILD`, skriv SHA till `$REALITY_HOME/built-commit`.
 4. **`SKIP_BUILD=1` är tillåtet** bara när varje fil i `git diff --name-only <built-commit> <SHA>` ligger under någon av dessa sökvägar:
    - `scripts/reality/`
    - `scripts/helpers/reality/`
+   - `scripts/helpers/live-chain-`
    - `scripts/*-native.test.ts`
    - `__tests__/`
    - `quality/`
    - `.agent-memory/`
    - `.claude/`
 
-   Allt annat räknas som app eller bygge och kräver ombyggnad: `app/`, `lib/`, `components/`, `proxy.ts`, `config/`, `types/`, `public/`, `docs/`, `tsconfig*`, `package*`, `next.config*`, `postcss*`, `vercel.json` och så vidare.
+   Simulatorerna startas bara av `up.sh`. Efter en ändring under `scripts/reality/` eller `scripts/helpers/` kör du därför alltid `up.sh` igen, med `SKIP_REPLAY=1 SKIP_BUILD=1`, innan nästa körning.
 
-   `up.sh` skriver alltid HEAD som `GIT_COMMIT_SHA`. Den byggda versionen är därför den i `built-commit`, inte `GIT_COMMIT_SHA`.
-5. **Migrationer:** applicera bara migrationsfiler som finns i körkatalogens HEAD, i versionsordning.
-   - Kontrollera filens sha256 mot `scripts/migration-history-manifest.additions.json`.
-   - Applicera mot världens lokala databas med `psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f <fil>`, utan `-1`, eftersom filer kan ha egna BEGIN och COMMIT.
-   - Registrera därefter versionen i `supabase_migrations.schema_migrations` med samma kolumner som befintliga rader. Läs kolumnerna med `\d supabase_migrations.schema_migrations`.
-   - Rapportera version och sha256. Ändra aldrig själva migrationsfilen.
-6. **Schemahash:** sha256 av `select version from supabase_migrations.schema_migrations order by 1`. Jämför med migrationsversionerna i HEAD. Avvikelser rapporterar du och skriver in i paketet.
+   Allt annat räknas som app eller bygge och kräver ombyggnad. Det gäller bland annat `app/`, `lib/`, `components/`, `proxy.ts`, `config/`, `types/`, `public/`, `docs/`, `tsconfig*`, `package*`, `next.config*`, `postcss*` och `vercel.json`.
+
+   `up.sh` skriver alltid HEAD som `GIT_COMMIT_SHA`. Den byggda versionen är därför den i `built-commit`.
+5. **Migrationer:** applicera bara de migrationsfiler som uppdraget namnger. De ska finnas i körkatalogens HEAD och vara nya sedan världens replay. Applicera dem i versionsordning.
+   - Kontrollera först integriteten med `npm run -s db:migrations:integrity` i körkatalogen. Den läser alla manifest.
+   - Applicera mot världens lokala databas med `psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f <fil>`, utan `-1`.
+   - Skriv **inte** in versionen i den officiella ledgern `supabase_migrations.schema_migrations`, eftersom replayens proveniens ska bevaras.
+   - Lägg i stället till en rad med version, filnamn, sha256 och tid i `$REALITY_HOME/applied-migrations.tsv`, och kopiera filen till evidenskatalogen.
+   - Ändra aldrig själva migrationsfilen.
+6. **Schemaidentitet:** kör `scripts/gridex-aud-003-schema-fingerprint.sql` mot världen och spara sha256 av resultatet. Spara även sha256 av `applied-migrations.tsv`. Ange båda, och exakta kommandon, i paketet.
 
 ## Köra
-- Kör hela scenariofiler, från körkatalogen, i bakgrunden och med en unik rapport:
+- Kör hela scenariofiler från körkatalogen, i bakgrunden:
   ```
-  setsid nohup bash -c 'cd <körkatalog> && GRIDEX_REALITY_REPORT=<paketkatalog>/report.json <flaggor> bash scripts/reality/run.sh <fil> > <paketkatalog>/run.log 2>&1; echo "exit $?" >> <paketkatalog>/run.log' &
+  setsid nohup bash -c 'cd <körkatalog> && GRIDEX_REALITY_REPORT=<evidens>/report.json <flaggor> bash scripts/reality/run.sh <fil> > <evidens>/run.log 2>&1; echo "exit $?" >> <evidens>/run.log' &
   ```
-  För flera scenarier byter du ut `run.sh <fil>` mot `run-many.sh <filer…|all>`.
-- Använd inte `-t` för steg som beror på tidigare steg i `describe.sequential`. Mönstret träffar dessutom fler steg än avsett: `A1` träffar även `A10`.
+- **Flera scenarier** körs med `run-many.sh <filer…|all>`. Den skriver en rapport och en logg per scenario under `$REALITY_HOME` (`report-*.json` och `logs/`). Kopiera dem till evidenskatalogen när körningen är klar, och läs varje scenarios egen logg.
+- Använd inte `-t` för steg som beror på tidigare steg. Mönstret träffar dessutom fler steg än avsett: `A1` träffar även `A10`.
 - **Nativesviter** (`scripts/*-native.test.ts`) kör du bara på uppdrag och aldrig samtidigt med något annat. Ange databasens tillstånd före och efter.
 - **Vänta** med Monitor tills loggen har en `exit`-rad, eller med ett Bash-kommando med `run_in_background` (`until grep -q '^exit ' <logg>; do sleep 60; done`). Använd aldrig `sleep` i förgrunden. Är körningen inte klar när du måste svara, svara `STATUS: PÅGÅR` med loggens sökväg.
-- Rör aldrig någon annan databas än världens lokala, och aldrig produktion, riktiga leverantörer, kunder eller mejl.
+- Rör aldrig någon annan databas än världens lokala, och aldrig produktion, externa värdar, riktiga leverantörer, kunder eller mejl.
 
 ## Resultat
-Läs rapporten och vitests sammanfattning i slutet av loggen (`Tests … passed | … skipped | … failed`).
-- Varje steg som hoppats över, via `skipped`, `context.skip()` eller `[run-many] skip`, rapporterar du som `BLOCKED (överhoppat)` med orsaken, aldrig som PASS.
+För varje scenario läser du dess rapport och vitests `Tests`-rad i dess egen logg (antal failed, passed och skipped, i vilken ordning de än står).
+- Varje steg som hoppats över, via `skipped`, `context.skip()` eller `[run-many] skip`, rapporterar du som `SKIPPED` med orsaken.
 - Exit 0 med steg som hoppats över är aldrig PASS.
 
 Returnera högst 40 rader:
 
 ```
-STATUS: PASS | FAIL | BLOCKED | PARTIAL | PÅGÅR
+UTFALL: PASS-KANDIDAT | FAIL | BLOCKED | PARTIAL | PÅGÅR
 HEAD: <sha>  BYGGD: <built-commit>  SCHEMAHASH: <sha256>  FLAGGOR: <…>
-LOGG: <sökväg> <sha256>   RAPPORT: <sökväg> <sha256>
+EVIDENS: <katalog>  (logg- och rapportfiler med sha256)
 STEG: <steg-id> PASS|FAIL|SKIPPED  (ett per rad)
 ÖVERHOPPADE: <steg/scenario: orsak> eller "inga"
 FEL: <steg-id>: <första relevanta felrad, högst 3 rader per fel>
@@ -86,8 +88,11 @@ PAKET-UTKAST: <sökväg till status.json>
 
 **Paketutkast:** skriv `status.json` i paketkatalogen med de fält `REPORTING.sv.md` kräver, så långt du känner dem:
 - scenarioId, workerId, model, baselineCommit, appCommit (byggd), overlayrefs;
-- environmentId, databaseIdentity, schemaHash, clockModel;
-- tider, state och executionScope;
-- kommando och evidensreferenser med sha256.
+- environmentId, databaseIdentity, schemaHash (fingeravtryck och sha256 av `applied-migrations.tsv`) med kommandon;
+- clockModel, med Auth-klocka och affärstid var för sig;
+- Node- och PG-version;
+- native-läge före och efter per scenario, heartbeatAtUtc och cleanupReceipt;
+- tider, executionScope (`ISOLATED_NATIVE` för harnessen, aldrig `BROWSER_E2E`);
+- kommando och evidensreferenser med sha256, och flaggor.
 
-Fält du inte känner lämnar du tomma och markerar dem. Därefter är det sim-clerk som kompletterar. Ett källkods- eller modelltest är aldrig PASS.
+Sätt `state` till `RUNNING`, `FAIL`, `BLOCKED` eller `PARTIAL`, **aldrig `PASS`**. PASS sätts bara av den orkestrerande sessionen efter granskning. Fält du inte känner lämnar du tomma och markerar dem. Därefter är det sim-clerk som kompletterar.

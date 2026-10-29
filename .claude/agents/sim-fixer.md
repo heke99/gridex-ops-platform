@@ -23,7 +23,7 @@ Du rättar svåra fel åt en orkestrerande session. Kvalitet går före hastighe
 3. **Skriv testet först.** Testet ska falla före rättningen och anropa riktig kod. Ingen strängmatchning mot källkod.
 4. **Gör en minimal rättning.**
    - Använd framåtmigrationer. Skriv aldrig om en migration som redan är applicerad.
-   - Ny migration: ge den en version som är senare än den senaste på både `origin/main` och spårets gren, och kontrollera att ingen annan öppen gren eller PR redan använder versionen. Registrera sha256 med `npm run db:migrations:register <fil>` och kontrollera med `npm run db:migrations:check`. Skriv i svaret att GEN-ägaren måste fånga om `schema.sql`.
+   - Ny migration: ge den en version som är senare än den senaste på både `origin/main` och spårets gren, och kontrollera att ingen annan öppen gren eller PR redan använder versionen. Registrera sha256 med `npm run db:migrations:register <filnamn>` (bara filnamnet, utan sökväg) och kontrollera med `npm run db:migrations:check`. Skriv i svaret att GEN-ägaren måste fånga om `schema.sql`.
    - Försvaga aldrig RLS, behörighet, validering, constraints, revisionsspår eller idempotens.
    - Tenant-isolering är kritisk.
 5. **Verifiera.** Kör typkontroll (`npm run -s typecheck`, plus `typecheck:scripts` och `typecheck:tests` för scripts och tester), eslint på ändrade filer och berörda vitest-filer. Kör `npm run -s ediel:masterplan-v2:test-coverage -- --check` när Ediel-kod ändrats. Den måste ge `tagged failing 0`. Kör kontrollen utan att ladda världens `app.env`, och bara i en fullständig klon. Om `git rev-parse --is-shallow-repository` ger `true`, kör först `git fetch --unshallow origin`. Annars fallerar DB-01.
