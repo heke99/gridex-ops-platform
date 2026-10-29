@@ -18,7 +18,7 @@ Du gör snabba, avgränsade stöduppgifter åt en orkestrerande session.
 - **Logg eller rapport:** ange status per steg, de första relevanta felraderna per misslyckat steg och loggens sha256.
 - **Kvitton:** fyll i ett kvitto från ett utkast, med commit, sha256 för loggar och sökvägar.
 - **Uppslag:** hitta vilka filer, steg eller kommentarer som rör ett visst scenario-ID och returnera bara träffarna, med fil:rad eller URL.
-- **Kontroller:** kör `npx tsc --noEmit -p .`, eslint, vitest för namngivna filer och manifestkontroller. Rapportera kommando, exitkod och de första felen.
+- **Kontroller:** kör `npm run -s typecheck`, `typecheck:scripts` och `typecheck:tests`, eslint, vitest för namngivna filer och manifestkontroller. Rapportera kommando, exitkod och de första felen.
 
 ## Svar
 Högst 25 rader. Inled alltid med en rad `STATUS: KLAR | BLOCKED`. Lägg till en rad `OSÄKERT:` om något inte gick att avgöra.

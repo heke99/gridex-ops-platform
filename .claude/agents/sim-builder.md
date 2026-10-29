@@ -16,7 +16,12 @@ Du bygger prov och gör enkla rättningar åt en orkestrerande session.
 - **Nytt prov för ett scenario-ID:** ett steg i rätt `scripts/reality/chain-*.test.ts` eller en ny scenariofil med samma mönster. Varje påstående anropar riktig kod eller läser faktiska rader och prövar exakt ID:ts orakel. Steget namnges med scenario-ID:t, till exempel `MAIN03.01 …`.
 - **Fel i harness eller simulator:** rätta dem och märk dem som harnessfel (T-nummer), inte produktfel.
 - **Enkel produkträttning:** test först, som ska falla före rättningen, och sedan en minimal ändring.
-- **Verifiera:** `npx tsc --noEmit -p .` (eller projektets typkontroll), eslint på ändrade filer och vitest för berörda tester.
+- **Verifiera:**
+  - `npm run -s typecheck` för appkod;
+  - `npm run -s typecheck:scripts` för `scripts/`, däribland `scripts/reality`;
+  - `npm run -s typecheck:tests` för `__tests__`;
+  - eslint på ändrade filer;
+  - vitest för berörda tester.
 - **Commit:** committa i worktreen med ett tydligt meddelande. Du pushar inte.
 
 ## Eskalera direkt, utan att försöka, när

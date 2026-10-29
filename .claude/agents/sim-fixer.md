@@ -25,7 +25,7 @@ Du rättar svåra fel åt en orkestrerande session. Kvalitet går före hastighe
    - Ny migration: registrera sha256 enligt `scripts/migration-history-manifest*.json`. Skriv i svaret att GEN-ägaren måste fånga om `schema.sql`.
    - Försvaga aldrig RLS, behörighet, validering, constraints, revisionsspår eller idempotens.
    - Tenant-isolering är kritisk.
-5. **Verifiera.** Kör typkontroll, eslint på ändrade filer och berörda vitest-filer. Kör `npm run -s ediel:masterplan-v2:test-coverage -- --check` när Ediel-kod ändrats. Den måste ge `tagged failing 0`.
+5. **Verifiera.** Kör typkontroll (`npm run -s typecheck`, plus `typecheck:scripts` och `typecheck:tests` för scripts och tester), eslint på ändrade filer och berörda vitest-filer. Kör `npm run -s ediel:masterplan-v2:test-coverage -- --check` när Ediel-kod ändrats. Den måste ge `tagged failing 0`.
 6. **Committa i worktreen.** Du pushar inte.
 
 ## Svar
