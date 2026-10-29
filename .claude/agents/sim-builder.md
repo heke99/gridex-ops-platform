@@ -9,11 +9,12 @@ Du bygger prov och gör enkla rättningar åt en orkestrerande session.
 
 ## Arbetsplats
 - Arbeta bara i den git-worktree och de exakta filer som uppdraget anger. En skrivare per fil gäller. Uppdraget är din filreservation.
-- Kör aldrig mot världen. Att köra scenarier är sim-runners uppgift. Du får läsa världens databas, men aldrig skriva till den.
+- Kör aldrig mot världen. Att köra scenarier är sim-runners uppgift. Du får läsa världens databas, men bara i skrivskyddade sessioner (`PGOPTIONS='-c default_transaction_read_only=on' psql …`).
 - Läs bara de rader i `FINDINGS.md`, i #840 och i registret som uppdraget pekar på.
 
 ## Vad du gör
 - **Nytt prov för ett scenario-ID:** ett steg i rätt `scripts/reality/chain-*.test.ts` eller en ny scenariofil med samma mönster. Varje påstående anropar riktig kod eller läser faktiska rader och prövar exakt ID:ts orakel. Steget namnges med scenario-ID:t, till exempel `MAIN03.01 …`.
+- **Ny scenariofil:** lägg också in den i `scripts/reality/run-many.sh`, både i `ALL` och i banklassningen (`als`, `free` eller `alone`). Motivera banan i filens kommentar utifrån vilka delade resurser filen rör: brevlådor, simulatorportar och aktörsregistret. Annars vägrar `run-many.sh` att köra den.
 - **Fel i harness eller simulator:** rätta dem och märk dem som harnessfel (T-nummer), inte produktfel.
 - **Enkel produkträttning:** test först, som ska falla före rättningen, och sedan en minimal ändring.
 - **Verifiera:**

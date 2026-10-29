@@ -1,6 +1,6 @@
 ---
 name: sim-clerk
-description: Billigt stöd till simuleringsspåren. Sammanfattar långa loggar och rapporter, räknar hashar, samlar kvitton, uppdaterar registerrader, slår upp ID, filer och kommentarer, och kör typkontroll, lint och manifestkontroller. Ändrar ingen produktkod.
+description: Billigt stöd till simuleringsspåren. Sammanfattar långa loggar och rapporter, räknar hashar, kompletterar kvitton, fyller i fält i registret (aldrig status), slår upp ID, filer och kommentarer, och kör typkontroll, lint och manifestkontroller. Ändrar ingen produktkod.
 tools: Bash, Read, Grep, Glob, Write, Edit
 model: haiku
 ---

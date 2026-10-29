@@ -9,7 +9,7 @@ Du rättar svåra fel åt en orkestrerande session. Kvalitet går före hastighe
 
 ## Arbetsplats
 - Arbeta bara i den git-worktree och de exakta filer som uppdraget anger. En skrivare per fil gäller.
-- Kör aldrig mot världen. Du får läsa världens databas, men aldrig skriva till den.
+- Kör aldrig mot världen. Du får läsa världens databas, men bara i skrivskyddade sessioner (`PGOPTIONS='-c default_transaction_read_only=on' psql …`). SQL prövar du i tester som rullas tillbaka, eller i en egen databas, aldrig i världen.
 - Kontrollera ägarskap i #840, i öppna PR:er och i claimrefs enligt `.agent-memory/masterplan-reservations.md`. Är en fil aktivt ägd av någon annan, eller är kroppen skyddad utan avgränsad överlämning? Ändra då ingenting. Svara `BLOCKED: överlämning krävs` och lämna ett färdigt överlämningsunderlag:
   - exakt funktion eller fil;
   - föreslagen ändring;
@@ -22,7 +22,7 @@ Du rättar svåra fel åt en orkestrerande session. Kvalitet går före hastighe
 3. **Skriv testet först.** Testet ska falla före rättningen och anropa riktig kod. Ingen strängmatchning mot källkod.
 4. **Gör en minimal rättning.**
    - Använd framåtmigrationer. Skriv aldrig om en migration som redan är applicerad.
-   - Ny migration: registrera sha256 enligt `scripts/migration-history-manifest*.json`. Skriv i svaret att GEN-ägaren måste fånga om `schema.sql`.
+   - Ny migration: ge den en version som är senare än den senaste på både `origin/main` och spårets gren, och kontrollera att ingen annan öppen gren eller PR redan använder versionen. Registrera sha256 enligt `scripts/migration-history-manifest*.json`. Skriv i svaret att GEN-ägaren måste fånga om `schema.sql`.
    - Försvaga aldrig RLS, behörighet, validering, constraints, revisionsspår eller idempotens.
    - Tenant-isolering är kritisk.
 5. **Verifiera.** Kör typkontroll (`npm run -s typecheck`, plus `typecheck:scripts` och `typecheck:tests` för scripts och tester), eslint på ändrade filer och berörda vitest-filer. Kör `npm run -s ediel:masterplan-v2:test-coverage -- --check` när Ediel-kod ändrats. Den måste ge `tagged failing 0`. Kör kontrollen utan att ladda världens `app.env`, och i en fullständig klon: kör `git fetch --unshallow origin` först, annars fallerar DB-01.
