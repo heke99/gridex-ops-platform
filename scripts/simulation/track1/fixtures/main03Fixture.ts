@@ -30,6 +30,7 @@ import { registerUtiltsIssuer, seedUtiltsIssuerHistoryGround, recordUtiltsFinalR
 import { buildDayWire } from './wire'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
+import { advanceSupplyMarketDeadlines } from '@/lib/ediel/flows/supplyMarketTransition'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { matchOutboundRequestForInbound, matchMeteringPointForInbound } from '@/lib/inbound-mail/inboundMatcher'
 import { getEdielMessageById } from '@/lib/ediel/db'
@@ -195,6 +196,22 @@ async function activateNormalSwitchSupply(f: Ground): Promise<{ supplyPeriodId: 
   must(period.status === 'confirmed_by_grid_owner' && period.start_date === f.requestedStartDate, `fixture_supply_period_state:${JSON.stringify(period)}`)
   // gridex_store_billing_underlay requires supply_period.contract_id = contract.id.
   must(period.contract_id === f.contractId, `fixture_supply_period_contract_unset:${String(period.contract_id)}`)
+
+  // A confirmed normal start is billable only after its due activation: the billing gate
+  // (gridex_set_metering_billing_gate -> gridex_received_sources.billing_supply_basis_v1) requires
+  // `activated`, i.e. a gridex_received_sources.normal_supply_activations row written by
+  // activate_customer_supply_v1. Normally the customer-operations cron
+  // (app/api/internal/customer-operations/cron/route.ts step supplyMarketDeadlines) runs
+  // advanceSupplyMarketDeadlines -> ediel_advance_supply_deadlines_v1 for the automation actor.
+  // SUBSTITUTE: the scheduled cron route (secret, GRIDEX_AUTOMATION_USER_ID, all other cron steps) is replaced by a direct call of its
+  // supplyMarketDeadlines step, scoped to this tenant — verifierar inte schemaläggningen, cron-autentiseringen eller cronens övriga steg.
+  const swept = await advanceSupplyMarketDeadlines({ actorUserId: f.actorUserId, companyId: f.companyId, limit: 10 })
+  const activated = sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.normal_supply_activations WHERE company_id=${literal(f.companyId)} AND period_id=${literal(period.id)}`)
+  if (activated !== 1) {
+    // Diagnostic only: the sweep swallows the owner's refusal. Ask the same owner for its reason.
+    const refusal = await supabaseService.rpc('activate_customer_supply_v1', { p_company_id: f.companyId, p_supplier_switch_request_id: f.switchId, p_source_message_id: sourceId, p_actor_user_id: f.actorUserId })
+    throw new Error(`fixture_supply_not_activated:${JSON.stringify({ swept, activated, refusal: refusal.error?.message ?? null })}`)
+  }
   return { supplyPeriodId: String(period.id), sourceId, ms: Date.now() - started }
 }
 
@@ -304,6 +321,9 @@ export async function buildMain03Fixture(overrides: Partial<Main03Params> = {}):
   substitute({ id: 'switch-ack-route', step: 'fixture: supply period (normal supplier switch)',
     substitute: 'ediel_ack communication_routes/ediel_route_profiles rows inserted by psql (as the base native Z04 tests do)',
     notVerified: 'route administration UI/API' })
+  substitute({ id: 'supply-activation-cron', step: 'fixture: supply period (due normal start activation)',
+    substitute: 'advanceSupplyMarketDeadlines({ actorUserId, companyId }) called in-process (the supplyMarketDeadlines step of /api/internal/customer-operations/cron), scoped to the fixture tenant',
+    notVerified: 'cron scheduling and secret authentication, GRIDEX_AUTOMATION_USER_ID configuration, the other cron steps, the global (unscoped) sweep' })
   const supply = await timed('fixture: normal switch supply activation', () => activateNormalSwitchSupply(ground))
 
   // SUBSTITUTE: permissions and a password are granted by SQL / the auth admin API — verifierar inte rolladministration eller användarinbjudan.
