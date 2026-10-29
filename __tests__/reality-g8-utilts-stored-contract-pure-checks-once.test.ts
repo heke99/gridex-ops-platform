@@ -18,6 +18,7 @@ const sha = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex')
 const migration = read('supabase/migrations/20261024150000_g8_utilts_stored_contract_pure_checks_once.sql')
 const g6 = read('supabase/migrations/20261024130000_g6_billing_source_bases_once_per_source.sql')
 const v2 = read('supabase/migrations/20260930145350_ediel_utilts_exact_decimal_contract_v2.sql')
+const s01 = read('supabase/migrations/20261023201053_ediel_s01_area_aggregate_identity.sql')
 const FN = 'gridex_utilts_binding.stored_contract_v1(uuid,uuid,text)'
 
 function preImage() {
@@ -28,6 +29,12 @@ function preImage() {
   const quoted = (tag: string) => [...chunk.matchAll(new RegExp(`\\$${tag}\\$([\\s\\S]*?)\\$${tag}\\$`, 'g'))].map((x) => x[1])
   const old = quoted('g6old'), next = quoted('g6new')
   expect(sha(body)).toBe('0e74bd2f78c2d81c06cd8216d96f31a362204cf4f2aa61e3d651179d78cdeae9')
+  // main's S01 patch of stored_contract_v1 (its second old_body/new_body pair), installed before G-6.
+  const patch = s01.slice(s01.lastIndexOf('DECLARE old_body text; new_body text; ddl text;'))
+  const s01Old = /old_body:=\$old\$([\s\S]*?)\$old\$/.exec(patch)![1], s01New = /new_body:=\$new\$([\s\S]*?)\$new\$/.exec(patch)![1]
+  expect(body.split(s01Old).length - 1).toBe(1)
+  body = body.split(s01Old).join(s01New)
+  expect(sha(body)).toBe('63fa2bb2786d2ae65604bdab34475a46080cc2463347c6e4bf6cf4d6148d798c')
   old.forEach((o, i) => { body = body.split(o).join(next[i]) })
   return body
 }
@@ -55,6 +62,10 @@ async function freshDb() {
       begin perform set_config('calls.validate_contract_v1',(coalesce(nullif(current_setting('calls.validate_contract_v1',true),''),'0')::int+1)::text,false); return c->>'bad' is null; end $$;
     create function gridex_utilts_binding.validate_decimal_source_v2(tokens jsonb, item jsonb, mark text) returns boolean language plpgsql immutable set search_path to pg_catalog as $$
       begin perform set_config('calls.validate_decimal_source_v2',(coalesce(nullif(current_setting('calls.validate_decimal_source_v2',true),''),'0')::int+1)::text,false); return tokens->>0 not like '%BADDEC%'; end $$;
+    -- main's S01 area helpers (20261023201053): the sources here are not S01, so they are only planned, never reached.
+    create function gridex_utilts_binding.s01_l359_area_identity_v1(tokens jsonb, transaction_id text) returns jsonb language sql immutable as $$ select null::jsonb $$;
+    create function gridex_utilts_binding.s01_l359_item_matches_v1(tokens jsonb, item jsonb) returns boolean language sql immutable as $$ select false $$;
+    create function gridex_utilts_binding.require_s01_l359_basis_v1(p_company uuid, p_source uuid) returns void language sql as $$ select $$;
   `)
   await db.exec(`CREATE FUNCTION ${FN.replace('(uuid,uuid,text)', '(p_company uuid,p_source uuid,p_transaction text)')} RETURNS jsonb
     LANGUAGE plpgsql SET search_path=pg_catalog,public,extensions AS $pre$${preImage()}$pre$;
@@ -109,7 +120,7 @@ async function run(db: PGlite, cases: Array<{ source: string; tx: string }>) {
 
 describe('G-8 stored_contract_v1 runs its pure checks once per hash-bound content and rule set', () => {
   it('reconstructs the installed pre-image', () => {
-    expect(sha(preImage())).toBe('9a580dde9c41c81d7352f8801b026e36e572d4bcf647a9eaa2f5b31f65f3af47')
+    expect(sha(preImage())).toBe('1ea52c365e001d5d9a99fd86210242791a3b9feb5094a430de06b2a2c2b9944f')
   })
 
   it('returns identical results and errors before and after, and skips the pure checks on repeated passed calls', async () => {

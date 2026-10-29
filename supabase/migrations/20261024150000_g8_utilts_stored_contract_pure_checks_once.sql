@@ -58,7 +58,8 @@ revoke all on table gridex_utilts_binding.stored_contract_pure_checks from publi
 
 select pg_temp.g8_rewrite(
   'gridex_utilts_binding.stored_contract_v1(uuid,uuid,text)'::regprocedure,
-  '9a580dde9c41c81d7352f8801b026e36e572d4bcf647a9eaa2f5b31f65f3af47',
+  -- Pre-image: the G-6 body over main's S01 stored_contract_v1 (20261024130000).
+  '1ea52c365e001d5d9a99fd86210242791a3b9feb5094a430de06b2a2c2b9944f',
   array[
     E' v_tokens jsonb;\n',
     E' SELECT c.* INTO v_contract FROM gridex_utilts_binding.contracts c WHERE c.series_id=v_series.id AND c.company_id=p_company;\n',
@@ -81,7 +82,8 @@ select pg_temp.g8_rewrite(
     E' IF v_memo_point IS NOT NULL THEN v_point:=v_memo_point; ELSE\n'
     || E' v_tokens:=gridex_utilts_binding.wire_tokens_v1(v_source.raw_payload);\n v_point:=gridex_utilts_binding.supported_point_v1(v_tokens,p_transaction);\n END IF;\n',
     E' IF v_memo_point IS NULL AND v_contract.contract_version=2 AND NOT coalesce(gridex_utilts_binding.validate_decimal_source_v2(',
-    E' IF v_memo_point IS NULL AND v_check_key IS NOT NULL THEN\n'
+    E' -- An S01 area source has no supported point and is never remembered (main 20261023201053).\n'
+    || E' IF v_memo_point IS NULL AND v_check_key IS NOT NULL AND v_point IS NOT NULL THEN\n'
     || E'  INSERT INTO gridex_utilts_binding.stored_contract_pure_checks(check_key,supported_point) VALUES (v_check_key,v_point) ON CONFLICT (check_key) DO NOTHING;\n'
     || E' END IF;\n RETURN v_contract.contract;\n'
   ]

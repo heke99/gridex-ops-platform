@@ -209,21 +209,29 @@ begin
 end
 $g6check$;
 
+-- stored_contract_v1 pre-image: main's S01 body (20261023201053, postcondition 63fa2bb2…), which added the S01 area
+-- branch and two more tokenizations of the same source. The source is tokenized once per path: in the S01 branch before
+-- its area checks, otherwise right before supported_point_v1 (as before S01), and the decimal check reuses it.
 select pg_temp.g6_rewrite(
   'gridex_utilts_binding.stored_contract_v1(uuid,uuid,text)'::regprocedure,
-  '0e74bd2f78c2d81c06cd8216d96f31a362204cf4f2aa61e3d651179d78cdeae9',
-  '9a580dde9c41c81d7352f8801b026e36e572d4bcf647a9eaa2f5b31f65f3af47',
+  '63fa2bb2786d2ae65604bdab34475a46080cc2463347c6e4bf6cf4d6148d798c',
+  '1ea52c365e001d5d9a99fd86210242791a3b9feb5094a430de06b2a2c2b9944f',
   array[
-    $g6old$ v_contract gridex_utilts_binding.contracts%rowtype; v_point text;
+    $g6old$ v_contract gridex_utilts_binding.contracts%rowtype; v_point text; area_identity jsonb;
 $g6old$,
+    $g6old$ area_identity:=CASE WHEN v_source.message_code='S01' THEN gridex_utilts_binding.s01_l359_area_identity_v1(gridex_utilts_binding.wire_tokens_v1(v_source.raw_payload),p_transaction) END;$g6old$,
+    $g6old$gridex_utilts_binding.s01_l359_item_matches_v1(gridex_utilts_binding.wire_tokens_v1(v_source.raw_payload),v_series.raw_transaction)$g6old$,
     $g6old$ v_point:=gridex_utilts_binding.supported_point_v1(gridex_utilts_binding.wire_tokens_v1(v_source.raw_payload),p_transaction);$g6old$,
     $g6old$gridex_utilts_binding.validate_decimal_source_v2(gridex_utilts_binding.wire_tokens_v1(v_source.raw_payload),v_series.raw_transaction,$g6old$
   ],
   array[
-    $g6new$ v_contract gridex_utilts_binding.contracts%rowtype; v_point text;
+    $g6new$ v_contract gridex_utilts_binding.contracts%rowtype; v_point text; area_identity jsonb;
  -- G-6 (20261024130000): the source is tokenized once (wire_tokens_v1 is IMMUTABLE).
  v_tokens jsonb;
 $g6new$,
+    $g6new$ IF v_source.message_code='S01' THEN v_tokens:=gridex_utilts_binding.wire_tokens_v1(v_source.raw_payload); END IF;
+ area_identity:=CASE WHEN v_source.message_code='S01' THEN gridex_utilts_binding.s01_l359_area_identity_v1(v_tokens,p_transaction) END;$g6new$,
+    $g6new$gridex_utilts_binding.s01_l359_item_matches_v1(v_tokens,v_series.raw_transaction)$g6new$,
     $g6new$ v_tokens:=gridex_utilts_binding.wire_tokens_v1(v_source.raw_payload);
  v_point:=gridex_utilts_binding.supported_point_v1(v_tokens,p_transaction);$g6new$,
     $g6new$gridex_utilts_binding.validate_decimal_source_v2(v_tokens,v_series.raw_transaction,$g6new$

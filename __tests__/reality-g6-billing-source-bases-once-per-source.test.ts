@@ -147,16 +147,20 @@ describe('G-6 billing source bases once per source', () => {
       'public.gridex_store_billing_underlay(uuid,jsonb,jsonb,uuid)',
     ])
     expect(Object.fromEntries(specs().map((s) => [s.name, [s.pre, s.post]]))).toEqual({
-      'gridex_utilts_binding.stored_contract_v1(uuid,uuid,text)': ['0e74bd2f78c2d81c06cd8216d96f31a362204cf4f2aa61e3d651179d78cdeae9', '9a580dde9c41c81d7352f8801b026e36e572d4bcf647a9eaa2f5b31f65f3af47'],
+      // Pre-image: main's S01 body (20261023201053) since the main integration; it added the S01 area branch.
+      'gridex_utilts_binding.stored_contract_v1(uuid,uuid,text)': ['63fa2bb2786d2ae65604bdab34475a46080cc2463347c6e4bf6cf4d6148d798c', '1ea52c365e001d5d9a99fd86210242791a3b9feb5094a430de06b2a2c2b9944f'],
       'gridex_billing_source.basis_before_precision_v1(uuid,uuid)': ['d1965eb86c40723593accc3c1249ec382091bde14a4f6a3b84adc3daf4db2644', '70f24d94162cd04b82a886230edb5abea551b4e9715a3b3d83037159c4ce2e25'],
       'gridex_billing_source.basis_v1(uuid,uuid)': ['cf5325a4fa00b070ca0be113354497f818d308c2c482371a91d2668f724f69de', 'd2a211ec8b87ca1e403e49de57046cf8b171c7d89d5f900e638ef6f9526d7d50'],
       'public.gridex_read_billing_source_values_v1(uuid,uuid[])': ['3d1a829f6b04f93ae332a3ee35168e8c15efdbb0861ef65266b5fb6bc5634b50', 'f7cdbd917f7c956e7acd168576e98671afc91456d29e02f0c550b1fc84df5be5'],
       'public.gridex_store_billing_underlay(uuid,jsonb,jsonb,uuid)': ['bd80a4d3600f047d4ea7a330204bd293ee8f99315a4c29b960a5b61c646c0c47', '014b52dff80a6fed8d95aa4e1549dfe2d304fa16c63641018a6aa36f14e9115b'],
     })
-    // Every needle is replaced, never dropped: stored_contract_v1 tokenizes once and passes the tokens on.
+    // Every needle is replaced, never dropped: stored_contract_v1 tokenizes once per path (the S01 area branch, else the
+    // point branch) instead of four times, and passes the tokens on.
     const sc = spec('gridex_utilts_binding.stored_contract_v1(uuid,uuid,text)')
-    expect(sc.old.join('').split('wire_tokens_v1(').length - 1).toBe(2)
-    expect(sc.next.join('').split('wire_tokens_v1(').length - 1).toBe(1)
+    expect(sc.old.join('').split('wire_tokens_v1(').length - 1).toBe(4)
+    expect(sc.next.join('').split('wire_tokens_v1(').length - 1).toBe(2)
+    expect(sc.next.join('')).toContain('s01_l359_area_identity_v1(v_tokens,')
+    expect(sc.next.join('')).toContain('s01_l359_item_matches_v1(v_tokens,')
     expect(sc.next.join('')).toContain('validate_decimal_source_v2(v_tokens,')
     const [bases, entry] = [quoted(migration, 'g6bases')[0], quoted(migration, 'g6entry')[0]]
     expect(migration).toContain(`'${sha(bases)}'`)
