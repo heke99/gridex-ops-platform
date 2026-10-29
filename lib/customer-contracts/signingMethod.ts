@@ -164,7 +164,7 @@ export function resolveContractSigningChoice(input: {
 export const SIGNED_AGREEMENT_IMPORTED_MESSAGE =
   "Signerat avtal uppladdat – avtalet är registrerat som signerat.";
 export const SIGNED_AGREEMENT_IMPORT_FAILED_MESSAGE =
-  "Avtalet skapades men det signerade avtalet kunde inte registreras, så avtalet är inte signerat. Kontrollera PDF-filen och försök igen eller kontakta support.";
+  "Avtalet skapades, men registreringen av det signerade dokumentet kunde inte bekräftas. Kontrollera avtalets status och dokumentarkivet innan du försöker igen. Kontakta support om utfallet är oklart.";
 
 /**
  * Document fields for an uploaded signed agreement. `uploaded_at` is the real

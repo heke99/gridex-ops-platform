@@ -6,6 +6,7 @@ import {
   ONLINE_POA_TERMS_VERSION,
 } from '@/lib/customer-contracts/onlineSigning'
 import { loadContractConfirmationState } from '@/lib/customer-contracts/confirmationDelivery'
+import { isRejectedSignatureLink } from '@/lib/customer-contracts/signatureReceiptReadError'
 import { signContractAction } from './actions'
 import SignSubmitButton from './SignSubmitButton'
 
@@ -71,14 +72,24 @@ export default async function ContractSigningPage({
   let receipt: Awaited<ReturnType<typeof loadOnlineSignatureReceipt>> | null = null
   try {
     receipt = await loadOnlineSignatureReceipt(token)
-  } catch {
+  } catch (error) {
+    const rejectedLink = isRejectedSignatureLink(error)
     return (
       <main className="min-h-screen bg-slate-50 px-4 py-12 text-slate-950">
         <div className="mx-auto max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-semibold">Signeringslänken kan inte användas</h1>
+          <h1 className="text-2xl font-semibold">
+            {rejectedLink ? 'Signeringslänken kan inte användas' : 'Avtalet kunde inte hämtas just nu'}
+          </h1>
           <p className="mt-3 text-sm leading-6 text-slate-700">
-            Länken är ogiltig, har löpt ut eller har ersatts av en ny signeringslänk. Kontakta din elhandlare om du behöver en ny länk.
+            {rejectedLink
+              ? 'Länken är ogiltig, har löpt ut eller har ersatts av en ny signeringslänk. Kontakta din elhandlare om du behöver en ny länk.'
+              : 'Vi kunde inte kontrollera avtalet. Försök igen med samma länk. Kontakta din elhandlare om problemet kvarstår.'}
           </p>
+          {!rejectedLink && (
+            <a className="mt-5 inline-block font-semibold text-slate-900 underline" href={`/sign/contract/${encodeURIComponent(token)}`}>
+              Försök igen med samma länk
+            </a>
+          )}
         </div>
       </main>
     )
