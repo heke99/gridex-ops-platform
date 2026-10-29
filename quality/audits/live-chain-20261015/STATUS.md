@@ -16,7 +16,8 @@ Senast uppdaterad 2026-10-29 10:05 UTC. Grenen `claude/wonderful-franklin-o8gx2p
    - **Om agenten har stannat:** läs dess arbetskopia (`git log`, `git status`). Fortsätt från den, eller gör uppgiften själv enligt FINDINGS J1-B6.
 2. **Verifiering av J1 (35–38):**
    - `inbound-prodat-j1-native` ska vara grön utom 40/103 (`it.fails`).
-   - `ediel-at-z03l-z03lk-supplier-native` var 23 gröna och 11 röda under cronlast (deadlock, ENOBUFS). Den körs nu om utan appen. Är den fortfarande röd: kör samma svit på `22ac29587` (före J1) och jämför de röda testen.
+   - `ediel-at-z03l-z03lk-supplier-native`: 23/11 under cronlast. Utan appen (10:10) 24 gröna och 10 röda, fortfarande med deadlockar mellan `platform_market_actors` (tabellås SHARE) och `platform_actor_identifiers`. Det tyder på två nativekörningar som sår fixturer samtidigt (min och J1-agentens).
+     - **Gör:** när J1-agenten är klar, kör sviten ensam, först på `22ac29587` (före J1, arbetskopia) och sedan på head, och jämför de röda testen. Kör aldrig två nativesviter samtidigt mot världen.
    - `ediel-source-owner-native` hade många röda i en avbruten körning under last. Samma jämförelse.
    - `ediel-z04l-z04lk-future-start-native` kan inte köras lokalt (GitHub-värd krävs).
    - Därefter `npm run ediel:masterplan-v2:test-coverage -- --check` (måste vara 352/352).
