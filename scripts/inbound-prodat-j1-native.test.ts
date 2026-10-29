@@ -450,10 +450,11 @@ SET LOCAL session_replication_role=origin;`)
 // the platform actually produced, and forged variants of it, in a transaction that is always rolled back.
 function guide(ack: string, replace: string | null, extra = '') {
   const statements = `${extra}
-SELECT to_jsonb(r) FROM (SELECT (SELECT gridex_ediel_ack_guide.require_before_mixed_object_results_v1(jsonb_populate_record(NULL::public.ediel_messages,
-  to_jsonb(a)||jsonb_build_object('id',NULL,'execution_context_snapshot','{}'::jsonb,'raw_payload',${replace ?? 'a.raw_payload'})))) IS NULL AS ok
+SELECT jsonb_build_object('ok',count(*)=1) FROM (SELECT gridex_ediel_ack_guide.require_before_mixed_object_results_v1(jsonb_populate_record(NULL::public.ediel_messages,
+  to_jsonb(a)||jsonb_build_object('id',NULL,'execution_context_snapshot','{}'::jsonb,'raw_payload',${replace ?? 'a.raw_payload'}))) AS checked
   FROM public.ediel_messages a WHERE a.id=${literal(ack)}) r;`
-  try { return rolledBack<{ ok: boolean }>(statements).ok ? 'accepted' : 'refused' }
+  // The guide raises on refusal; a returned row means the guide accepted this exact APERAK.
+  try { return rolledBack<{ ok: boolean }>(statements).ok ? 'accepted' : 'no_ack_row' }
   catch (error) {
     const text = String((error as { stderr?: string }).stderr ?? error)
     return /ediel_native_ack_guide_invalid/.test(text) ? 'refused' : `error:${text.slice(0, 300)}`
