@@ -73,7 +73,20 @@ const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).di
 // historical Git port. Its restored bytes retain all previous producer pins;
 // current-head native qualification still comes from actual CI originals.
 const reviewedImageCachePrelude = "      - name: Prime content-verified Supabase bootstrap image caches\n        shell: bash\n        env:\n          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io\n          PYTHONDONTWRITEBYTECODE: '1'\n        run: |\n          python3 scripts/gridex-prime-verified-postgres-cache-selftest.py\n          python3 scripts/gridex-prime-verified-postgres-cache.py\n"
+// Invert only the exact reviewed storage-wrapper pin that admits PR932's
+// opt-in replay error boundary. Restored bytes retain every earlier pin.
+const reviewedReplayPinCurrent = 'test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d \' \' -f 1)" = "2902fdd232d21f0f84dd2ffcd1b5d9b94417213f3e0fd25557c3faf91a27668e"'
+const reviewedReplayPinPrevious = 'test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d \' \' -f 1)" = "330b6d405869a12b7c57bc04da75e5f685ccebdbdb0478e03a02fbcd780292cd"'
+function reviewedReplayPinWorkflow(bytes: Buffer) {
+  if (sha256(bytes) !== '56aa98815126df6e08e4d1e3891e1fd1135aeecb221b382f2934a349efbc7727') return bytes
+  const source = bytes.toString('utf8')
+  if (source.split(reviewedReplayPinCurrent).length !== 3) throw Error('fixture_reviewed_replay_pin_inverse_count')
+  const restored = Buffer.from(source.split(reviewedReplayPinCurrent).join(reviewedReplayPinPrevious))
+  if (sha256(restored) !== 'feb5067725b6e539f87e37d521d7148ba5ecb2fff40eafcfd307db2fd52b3eac') throw Error('fixture_reviewed_replay_pin_inverse_digest_mismatch')
+  return restored
+}
 function reviewedImageCacheWorkflow(bytes: Buffer) {
+  bytes = reviewedReplayPinWorkflow(bytes)
   if (sha256(bytes) !== 'feb5067725b6e539f87e37d521d7148ba5ecb2fff40eafcfd307db2fd52b3eac') return bytes
   const source = bytes.toString('utf8')
   if (source.split(reviewedImageCachePrelude).length !== 3) throw Error('fixture_reviewed_image_cache_inverse_count')
@@ -765,8 +778,12 @@ it.each(['foreign_rule_status', 'foreign_at_status', 'foreign_evidence', 'spec',
 // Exercise the actual finite port, including its whole-byte admission guards.
 // The historical DDQ port restores known bytes only; it does not run native cases.
 it('historical workflow port restores the exact reviewed producer after bounded key-download retries and bootstrap cache preparation', () => {
-  const file = '.github/workflows/ops-hardening.yml', rawCurrent = readFileSync(file)
+  const file = '.github/workflows/ops-hardening.yml', rawPinned = readFileSync(file)
+  expect(sha256(rawPinned)).toBe('56aa98815126df6e08e4d1e3891e1fd1135aeecb221b382f2934a349efbc7727')
+  const rawCurrent = reviewedReplayPinWorkflow(rawPinned)
   expect(sha256(rawCurrent)).toBe('feb5067725b6e539f87e37d521d7148ba5ecb2fff40eafcfd307db2fd52b3eac')
+  expect(reviewedReplayPinWorkflow(rawCurrent)).toEqual(rawCurrent)
+  expect(reviewedProducerFixture(file, rawPinned)).toEqual(reviewedProducerFixture(file, rawCurrent))
   const current = reviewedImageCacheWorkflow(rawCurrent)
   expect(reviewedImageCacheWorkflow(current)).toEqual(current)
   expect(reviewedProducerFixture(file, rawCurrent)).toEqual(reviewedProducerFixture(file, current))
@@ -792,6 +809,8 @@ it.each([
   ['changed key anchor', (source: string) => source.replace('media/keys/ACCC4CF8.asc', 'media/keys/unreviewed.asc')],
   ['missing download', (source: string) => source.replace(source.match(/          # Retry transient DNS\/transfer faults;[^\n]*\n(?:[^\n]*\n){4}/)![0], '')],
   ['duplicate download', (source: string) => source + source.match(/          # Retry transient DNS\/transfer faults;[^\n]*\n(?:[^\n]*\n){4}/)![0]],
+  ['foreign storage wrapper pin', (source: string) => source.replaceAll('2902fdd232d21f0f84dd2ffcd1b5d9b94417213f3e0fd25557c3faf91a27668e', 'c'.repeat(64))],
+  ['only one storage wrapper pin', (source: string) => source.replace('2902fdd232d21f0f84dd2ffcd1b5d9b94417213f3e0fd25557c3faf91a27668e', '330b6d405869a12b7c57bc04da75e5f685ccebdbdb0478e03a02fbcd780292cd')],
 ])('historical workflow port refuses %s without admitting current native proof', (_name, mutate) => {
   const file = '.github/workflows/ops-hardening.yml', source = readFileSync(file, 'utf8'), changed = mutate(source)
   expect(changed).not.toBe(source)
