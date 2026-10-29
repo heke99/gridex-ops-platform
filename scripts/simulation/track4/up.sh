@@ -99,9 +99,10 @@ if [ -d "$ENV_FILE" ]; then mv "$ENV_FILE" "$ENV_FILE.dir.$(date +%s)"; t4_log "
 STATUS_ENV="$SIM_HOME/status.env"
 ( cd "$STACK_SRC" && supabase status -o env ) > "$STATUS_ENV" 2>/dev/null || t4_die "supabase status failed (is the stack running?)"
 chmod 600 "$STATUS_ENV"
-python3 - "$STATUS_ENV" "$ENV_FILE" "$T4_API_PORT" "$T4_DB_PORT" "$T4_APP_PORT" "$T4_SINK_PORT" "$HEAD_SHA" <<'PY'
+t4_tls_prepare
+python3 - "$STATUS_ENV" "$ENV_FILE" "$T4_API_PORT" "$T4_DB_PORT" "$T4_APP_PORT" "$T4_SINK_PORT" "$HEAD_SHA" "$TLS_DIR" "$T4_SMTPS_PORT" "$T4_IMAPS_PORT" "$T4_MAIL_API_PORT" <<'PY'
 import pathlib, secrets, sys, uuid
-status_path, env_path, api, db, app, sink, head = sys.argv[1:]
+status_path, env_path, api, db, app, sink, head, tls, smtps, imaps, mailapi = sys.argv[1:]
 status = {}
 for line in pathlib.Path(status_path).read_text().splitlines():
     if '=' in line:
@@ -134,11 +135,32 @@ env = {
   'T4_DB_URL': f'postgresql://postgres:postgres@127.0.0.1:{db}/postgres',
   'T4_APP_URL': f'http://127.0.0.1:{app}', 'T4_SINK_URL': sinkurl,
 }
+# ---- mail counterparty (GreenMail) and Ediel mailboxes, TEST lane. Origin of the key set: claude/gifted-hamilton-vss1hj
+# @ 2711f862 scripts/reality/up.sh step 3 (app environment); ports and lane are T4's.
+test_box, prod_box = 'gridex-ediel-test@example.invalid', 'gridex-ediel@example.invalid'
+test_pw = cur.get('GRIDEX_SHARED_EDIEL_TEST_IMAP_PASS') or secrets.token_hex(12)
+prod_pw = cur.get('GRIDEX_SHARED_EDIEL_PRODUCTION_IMAP_PASS') or secrets.token_hex(12)
+env.update({
+  # The one Ediel SMTP account is the test lane's mailbox (SMTP and IMAP password must match: GreenMail pins it at first login).
+  'EDIEL_SMTP_HOST': 'localhost', 'EDIEL_SMTP_PORT': smtps, 'EDIEL_SMTP_SECURE': 'true',
+  'EDIEL_SMTP_USER': test_box, 'EDIEL_SMTP_PASS': test_pw, 'EDIEL_SMTP_FROM': test_box,
+  'GRIDEX_SHARED_EDIEL_TEST_EMAIL': test_box, 'GRIDEX_SHARED_EDIEL_TEST_IMAP_HOST': 'localhost', 'GRIDEX_SHARED_EDIEL_TEST_IMAP_PORT': imaps,
+  'GRIDEX_SHARED_EDIEL_TEST_IMAP_SECURE': 'true', 'GRIDEX_SHARED_EDIEL_TEST_IMAP_USERNAME': test_box, 'GRIDEX_SHARED_EDIEL_TEST_IMAP_PASS': test_pw,
+  'GRIDEX_SHARED_EDIEL_TEST_SMTP_HOST': 'localhost', 'GRIDEX_SHARED_EDIEL_TEST_SMTP_PORT': smtps, 'GRIDEX_SHARED_EDIEL_TEST_SMTP_FROM': test_box,
+  'GRIDEX_SHARED_EDIEL_PRODUCTION_EMAIL': prod_box, 'GRIDEX_SHARED_EDIEL_PRODUCTION_IMAP_PASS': prod_pw,
+  'GRIDEX_MANUAL_OPERATIONS_MAILBOX_PASS': test_pw,
+  'NODE_EXTRA_CA_CERTS': f'{tls}/combined-ca.pem',
+  # harness-only
+  'T4_SMTPS_PORT': smtps, 'T4_IMAPS_PORT': imaps, 'T4_MAIL_API_PORT': mailapi, 'T4_PROJECT_ID': 'gridex-sim-t4',
+  'GRIDEX_LIVE_APP_URL': f'http://127.0.0.1:{app}',
+})
 p.write_text(''.join(f'{k}={v}\n' for k, v in env.items()))
 p.chmod(0o600)
 PY
 t4_load_env
 t4_assert_local
+t4_mail_up
+t4_mail_claim
 
 # ---- 4: automation user, build, app ----------------------------------------------------------------
 # Origin of the user-creation pattern: claude/gifted-hamilton-vss1hj 2711f862:scripts/reality/up.sh (step 4).
@@ -173,7 +195,8 @@ if ! t4_pid_alive "$PID_DIR/sink.pid"; then
   t4_wait_port "$T4_SINK_PORT" 15 || t4_die "sink did not open port $T4_SINK_PORT"
 fi
 
-if t4_pid_alive "$PID_DIR/app.pid" && t4_same_app "$(cat "$SIM_HOME/built-commit" 2>/dev/null || true)"; then
+ENV_SHA="$(sha256sum "$ENV_FILE" | cut -d' ' -f1)"
+if t4_pid_alive "$PID_DIR/app.pid" && t4_same_app "$(cat "$SIM_HOME/built-commit" 2>/dev/null || true)" && [ "$(cat "$SIM_HOME/app-env.sha" 2>/dev/null || true)" = "$ENV_SHA" ]; then
   t4_log "app already running (pid $(cat "$PID_DIR/app.pid"))"
 else
   if t4_pid_alive "$PID_DIR/app.pid"; then kill "$(cat "$PID_DIR/app.pid")" 2>/dev/null || true; sleep 1; fi
@@ -182,6 +205,7 @@ else
   ( cd "$APP_DIR" && exec setsid nohup node node_modules/next/dist/bin/next start -H 127.0.0.1 -p "$T4_APP_PORT" \
       > "$LOG_DIR/next-start.log" 2>&1 < /dev/null ) &
   echo $! > "$PID_DIR/app.pid"
+  echo "$ENV_SHA" > "$SIM_HOME/app-env.sha"
   up=0
   for _ in $(seq 1 90); do
     [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$T4_APP_PORT/login" 2>/dev/null)" = 200 ] && { up=1; break; }

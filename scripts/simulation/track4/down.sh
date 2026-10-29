@@ -24,6 +24,10 @@ stop_pid "$PID_DIR/sink.pid"
 # Listeners on T4's own ports only (these ports belong to T4 by assignment).
 for port in "$T4_APP_PORT" "$T4_SINK_PORT"; do fuser -k "${port}/tcp" >/dev/null 2>&1 || true; done
 
+docker rm -f "$T4_MAIL_CONTAINER" >/dev/null 2>&1 || true
+# simulators the source-chain run started (grid owner) and any vitest chain run
+for f in "$PID_DIR"/gridowner-*.pid; do [ -f "$f" ] && stop_pid "$f"; done
+rm -f "$SIM_HOME/app-env.sha"
 if [ "${T4_KEEP_DB:-0}" != 1 ]; then
   if [ -d "$STACK_SRC" ] && command -v supabase >/dev/null; then
     ( cd "$STACK_SRC" && supabase stop --no-backup >/dev/null 2>&1 ) || true
@@ -32,10 +36,12 @@ if [ "${T4_KEEP_DB:-0}" != 1 ]; then
   docker ps -aq --filter "name=_${T4_PROJECT_ID}\$" | xargs -r docker rm -f >/dev/null 2>&1 || true
   docker volume ls -q --filter "name=_${T4_PROJECT_ID}\$" | xargs -r docker volume rm -f >/dev/null 2>&1 || true
   docker network ls -q --filter "name=_${T4_PROJECT_ID}\$" | xargs -r docker network rm >/dev/null 2>&1 || true
-  rm -f "$SIM_HOME/replay-commit" "$SIM_HOME/replay-at" "$SIM_HOME/applied-migrations.tsv" "$SIM_HOME/built-commit" "$SIM_HOME/fixture.json"
+  rm -f "$SIM_HOME/replay-commit" "$SIM_HOME/replay-at" "$SIM_HOME/applied-migrations.tsv" "$SIM_HOME/built-commit" "$SIM_HOME/fixture.json" "$SIM_HOME/chain.json"
 fi
 
 left=0
+c="$(docker ps -a --format '{{.Names}}' | grep -x "$T4_MAIL_CONTAINER" || true)"; [ -z "$c" ] || { echo "[t4 down] REMAINS: container $c" >&2; left=1; }
+for port in "$T4_SMTPS_PORT" "$T4_IMAPS_PORT" "$T4_MAIL_API_PORT"; do t4_port_open "$port" && { echo "[t4 down] REMAINS: port $port open" >&2; left=1; }; done
 report() { echo "[t4 down] REMAINS: $*" >&2; left=1; }
 if [ "${T4_KEEP_DB:-0}" != 1 ]; then
   c="$(docker ps -a --format '{{.Names}}' | grep -E "_${T4_PROJECT_ID}\$" || true)"; [ -z "$c" ] || report "containers: $c"

@@ -18,6 +18,13 @@ T4_POOLER_PORT="${T4_POOLER_PORT:-55429}"
 T4_ANALYTICS_PORT="${T4_ANALYTICS_PORT:-55427}"
 T4_APP_PORT="${T4_APP_PORT:-3104}"
 T4_SINK_PORT="${T4_SINK_PORT:-3194}"
+# Local synthetic mail counterparty (GreenMail): SMTPS / IMAPS / API on loopback-only host ports.
+T4_SMTPS_PORT="${T4_SMTPS_PORT:-55425}"
+T4_IMAPS_PORT="${T4_IMAPS_PORT:-55426}"
+T4_MAIL_API_PORT="${T4_MAIL_API_PORT:-55428}"
+T4_MAIL_CONTAINER="${T4_MAIL_CONTAINER:-gx-t4-mail}"
+T4_GREENMAIL_IMAGE="${T4_GREENMAIL_IMAGE:-greenmail/standalone:2.1.3}"
+TLS_DIR="$SIM_HOME/tls"
 
 STACK_SRC="$SIM_HOME/stack-src"
 ENV_FILE="$SIM_HOME/env"
@@ -82,3 +89,60 @@ t4_assert_local() {
 }
 
 t4_pid_alive() { [ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null; }
+
+# ---- local CA + GreenMail --------------------------------------------------------------------------------
+# Origin: claude/gifted-hamilton-vss1hj @ 2711f86287fd77da12e48aa5fd26a695f4a51426, scripts/reality/up.sh steps 1 and 3
+# (local CA, GreenMail with TLS keystore, combined CA for Node, mailbox claim); ports, container name and paths are T4's.
+# Pitfalls from that runbook: the app must trust the CA (NODE_EXTRA_CA_CERTS), and GreenMail pins an account's password at
+# its first login, so the shared mailboxes are claimed with the app's own credentials before anything else uses them.
+t4_tls_prepare() {
+  mkdir -p "$TLS_DIR"
+  if [ ! -f "$TLS_DIR/srv.p12" ]; then
+    t4_log "creating local CA and mail server certificate"
+    ( cd "$TLS_DIR" && \
+      openssl req -x509 -newkey rsa:2048 -nodes -keyout ca.key -out ca.pem -days 30 -subj '/CN=Gridex T4 Local CA' 2>/dev/null && \
+      openssl req -newkey rsa:2048 -nodes -keyout srv.key -out srv.csr -subj '/CN=localhost' 2>/dev/null && \
+      printf 'subjectAltName=DNS:localhost,IP:127.0.0.1\n' > ext.cnf && \
+      openssl x509 -req -in srv.csr -CA ca.pem -CAkey ca.key -CAcreateserial -out srv.pem -days 30 -extfile ext.cnf 2>/dev/null && \
+      openssl pkcs12 -export -in srv.pem -inkey srv.key -certfile ca.pem -out srv.p12 -passout pass:t4livetest -name greenmail && \
+      chmod 644 ./* ) || t4_die "TLS material creation failed"
+  fi
+  cat "$TLS_DIR/ca.pem" > "$TLS_DIR/combined-ca.pem"
+  for proxy_ca in /root/.ccr/ca-bundle.crt "${SSL_CERT_FILE:-}"; do
+    [ -n "$proxy_ca" ] && [ -f "$proxy_ca" ] && cat "$proxy_ca" >> "$TLS_DIR/combined-ca.pem"
+  done
+  return 0
+}
+
+t4_mail_running() { docker ps --format '{{.Names}}' | grep -qx "$T4_MAIL_CONTAINER"; }
+
+t4_mail_up() {
+  t4_tls_prepare
+  # A running GreenMail with another TLS directory would not be trusted by the app: recreate it.
+  if t4_mail_running && [ "$(docker inspect "$T4_MAIL_CONTAINER" --format '{{range .Mounts}}{{.Source}}{{end}}' 2>/dev/null)" = "$TLS_DIR" ]; then
+    t4_log "GreenMail already running ($T4_MAIL_CONTAINER)"
+  else
+    docker rm -f "$T4_MAIL_CONTAINER" >/dev/null 2>&1 || true
+    t4_log "starting GreenMail ($T4_GREENMAIL_IMAGE) SMTPS $T4_SMTPS_PORT IMAPS $T4_IMAPS_PORT API $T4_MAIL_API_PORT"
+    docker run -d --name "$T4_MAIL_CONTAINER" -v "$TLS_DIR:/tls:ro" \
+      -e GREENMAIL_OPTS='-Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled -Dgreenmail.tls.keystore.file=/tls/srv.p12 -Dgreenmail.tls.keystore.password=t4livetest -Dgreenmail.tls.key.password=t4livetest' \
+      -p "127.0.0.1:${T4_SMTPS_PORT}:3465" -p "127.0.0.1:${T4_IMAPS_PORT}:3993" -p "127.0.0.1:${T4_MAIL_API_PORT}:8080" \
+      "$T4_GREENMAIL_IMAGE" >/dev/null || t4_die "could not start GreenMail"
+  fi
+  t4_wait_port "$T4_SMTPS_PORT" 60 && t4_wait_port "$T4_IMAPS_PORT" 60 || t4_die "GreenMail ports did not open"
+}
+
+# Claim both shared Ediel mailboxes with the app's own credentials (needs the env loaded).
+t4_mail_claim() {
+  python3 - "$TLS_DIR/ca.pem" "$T4_IMAPS_PORT" "$T4_SMTPS_PORT" <<'PY'
+import imaplib, os, smtplib, ssl, sys
+ca, imap_port, smtp_port = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
+ctx = ssl.create_default_context(cafile=ca)
+ctx.verify_flags &= ~getattr(ssl, 'VERIFY_X509_STRICT', 0)  # the local CA has no key-usage extension
+for box, pw in ((os.environ['GRIDEX_SHARED_EDIEL_PRODUCTION_EMAIL'], os.environ['GRIDEX_SHARED_EDIEL_PRODUCTION_IMAP_PASS']),
+                (os.environ['GRIDEX_SHARED_EDIEL_TEST_EMAIL'], os.environ['GRIDEX_SHARED_EDIEL_TEST_IMAP_PASS'])):
+    imap = imaplib.IMAP4_SSL('localhost', imap_port, ssl_context=ctx); imap.login(box, pw); imap.logout()
+    with smtplib.SMTP_SSL('localhost', smtp_port, context=ctx) as smtp: smtp.login(box, pw)
+    print(f'[t4] mailbox {box} claimed with the app credentials')
+PY
+}
