@@ -496,10 +496,11 @@ export async function calculatePricingPreviewForUnderlay(input: {
   warnings.push(...config.warnings);
 
   // With 0 kWh every energy amount is 0, so no base/spot price is needed.
-  const requiresSpotPrice = !zeroEnergy && config.baseComponents.some(
+  const spotWeighted = config.baseComponents.some(
     (component) =>
       component.sourceType === "spot" && component.weightPercent > 0,
   );
+  const requiresSpotPrice = !zeroEnergy && spotWeighted;
   if (requiresSpotPrice) {
     const spotImport = await ensureSpotPricesForBillingMonth({
       billingMonth: priceMonth,
@@ -535,7 +536,9 @@ export async function calculatePricingPreviewForUnderlay(input: {
   let intervalEvidence: IntervalPriceEvidence[] = [];
   let intervalInputSnapshot: IntervalInputSnapshot | undefined;
   if (
-    requiresSpotPrice &&
+    // At 0 kWh the interval read still runs: its sum must match the underlay,
+    // so metered consumption can never be billed silently as 0 kr.
+    spotWeighted &&
     (intervalResolution === "hourly" || intervalResolution === "quarterly")
   ) {
     const spotWeight = config.baseComponents
@@ -555,7 +558,8 @@ export async function calculatePricingPreviewForUnderlay(input: {
     errors.push(...intervalPricing.errors);
     intervalEvidence = intervalPricing.evidence;
     intervalInputSnapshot = intervalPricing.inputSnapshot;
-    sourceValues.spotSekPerKwh = intervalPricing.weightedAverageSekPerKwh;
+    if (!zeroEnergy)
+      sourceValues.spotSekPerKwh = intervalPricing.weightedAverageSekPerKwh;
   }
 
   const base = zeroEnergy

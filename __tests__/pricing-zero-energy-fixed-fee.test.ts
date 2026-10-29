@@ -10,6 +10,7 @@ const fixture = vi.hoisted(() => ({
   priceComponents: [] as Array<Record<string, unknown>>,
   sourceValues: {} as Record<string, unknown>,
   externalCalls: [] as string[],
+  intervalSnapshot: null as Record<string, unknown> | null,
 }));
 
 vi.mock("@/lib/supabase/service", () => ({
@@ -31,7 +32,11 @@ vi.mock("@/lib/supabase/service", () => ({
       };
       return query;
     },
-    rpc: async () => { throw new Error("Unexpected unit command"); },
+    rpc: async (name: string) => {
+      if (name !== "gridex_read_interval_pricing_snapshot_v1" || !fixture.intervalSnapshot)
+        throw new Error("Unexpected unit command");
+      return { data: fixture.intervalSnapshot, error: null };
+    },
   },
 }));
 vi.mock("@/lib/pricing/priceSourceResolver", () => ({
@@ -80,6 +85,55 @@ beforeEach(() => {
   fixture.priceComponents = [monthlyFee, markup];
   fixture.sourceValues = { fixedSekPerKwh: 1 };
   fixture.externalCalls = [];
+  fixture.intervalSnapshot = null;
+});
+
+// September 2026 in Europe/Stockholm, two metered hours with real interval code.
+function hourlySnapshot(kwh: [number, number]) {
+  const hours = ["2026-09-01T00:00:00.000Z", "2026-09-01T01:00:00.000Z", "2026-09-01T02:00:00.000Z"];
+  const items = [0, 1].map((i) => ({
+    id: `0000000${i}-item`, company_id: "unit-company", billing_underlay_id: "unit-underlay",
+    period_start: hours[i], period_end: hours[i + 1], quantity_kwh: kwh[i],
+  }));
+  const prices = [0, 1].map((i) => ({
+    id: `0000000${i}-price`, source: "unit-source", price_area: "SE3", resolution: "hourly",
+    time_start: hours[i], time_end: hours[i + 1], sek_per_kwh: 1.5,
+  }));
+  const policies = [{ source_key: "unit-source", priority: 1 }];
+  return {
+    items, prices, policies,
+    receipt: {
+      schema_version: 1, company_id: "unit-company", billing_underlay_id: "unit-underlay",
+      price_area: "SE3", required_resolution: "hourly",
+      period_start: "2026-08-31T22:00:00.000Z", period_end: "2026-09-30T22:00:00.000Z",
+      item_count: 2, price_count: 2, policy_count: 1, fingerprint: "a".repeat(64),
+    },
+  };
+}
+
+describe("zero-energy hourly spot contract keeps the interval-sum check", () => {
+  beforeEach(() => {
+    fixture.underlay.pricing_snapshot = { contract_type: "variable_hourly", vat_rate: 0.25, interval_resolution: "hourly" };
+    fixture.baseComponents = [{ sourceType: "spot", weightPercent: 100 }];
+    fixture.sourceValues = { spotSekPerKwh: null };
+  });
+
+  it("fails when the underlay says 0 kWh but the intervals show consumption", async () => {
+    fixture.intervalSnapshot = hourlySnapshot([2, 3]);
+    const result = await preview();
+    expect(result.status).not.toBe("success");
+    expect(result.errors).toContain("Mätintervallens totala kWh stämmer inte med faktureringsunderlaget.");
+  });
+
+  it("prices only the monthly fee when all intervals are 0 kWh", async () => {
+    fixture.intervalSnapshot = hourlySnapshot([0, 0]);
+    const result = await preview();
+    expect(result.errors).toEqual([]);
+    expect(result.status).toBe("success");
+    expect(Math.round(result.totalExVat * 100)).toBe(4900);
+    expect(Math.round(result.totalIncVat * 100)).toBe(6125);
+    expect(energyLinesWithAmount(result.lines)).toEqual([]);
+  });
 });
 
 function energyLinesWithAmount(lines: Array<{ unit: string; amountExVat: number; lineType: string }>) {
