@@ -404,8 +404,14 @@ export async function calculatePricingPreviewForUnderlay(input: {
   if (!contract) errors.push("Aktivt kundavtal saknas för fakturaperioden.");
   if (underlay.quantityKwh === null)
     errors.push("Mätförbrukning saknas på fakturaunderlaget.");
-  if (underlay.quantityKwh !== null && underlay.quantityKwh <= 0)
-    errors.push("Energimängden är noll för fakturaperioden.");
+  // 0 kWh consumption may still carry contracted fixed fees; it is decided
+  // after component pricing below. Negative or non-consumption 0 still fails.
+  const zeroEnergyMessage = "Energimängden är noll för fakturaperioden.";
+  const zeroEnergy =
+    underlay.quantityKwh === 0 &&
+    (underlay.energyDirection ?? "consumption") === "consumption";
+  if (underlay.quantityKwh !== null && underlay.quantityKwh <= 0 && !zeroEnergy)
+    errors.push(zeroEnergyMessage);
   if (!underlay.pricingSnapshot)
     errors.push("Exakt låst prissnapshot saknas på fakturaunderlaget.");
 
@@ -489,7 +495,8 @@ export async function calculatePricingPreviewForUnderlay(input: {
   });
   warnings.push(...config.warnings);
 
-  const requiresSpotPrice = config.baseComponents.some(
+  // With 0 kWh every energy amount is 0, so no base/spot price is needed.
+  const requiresSpotPrice = !zeroEnergy && config.baseComponents.some(
     (component) =>
       component.sourceType === "spot" && component.weightPercent > 0,
   );
@@ -551,11 +558,13 @@ export async function calculatePricingPreviewForUnderlay(input: {
     sourceValues.spotSekPerKwh = intervalPricing.weightedAverageSekPerKwh;
   }
 
-  const base = calculateBasePrice({
-    underlay,
-    components: config.baseComponents,
-    sourceValues,
-  });
+  const base = zeroEnergy
+    ? { lines: [], warnings: [], errors: [] }
+    : calculateBasePrice({
+        underlay,
+        components: config.baseComponents,
+        sourceValues,
+      });
   warnings.push(...base.warnings);
   errors.push(...base.errors);
 
@@ -593,13 +602,22 @@ export async function calculatePricingPreviewForUnderlay(input: {
       (sum, line) => sum + line.amountExVat,
       0,
     ),
-    spotAmountExVat: hasSpotBase ? spotAmountExVat : null,
-    portfolioAmountExVat: hasPortfolioBase ? portfolioAmountExVat : null,
+    spotAmountExVat: zeroEnergy ? 0 : hasSpotBase ? spotAmountExVat : null,
+    portfolioAmountExVat: zeroEnergy
+      ? 0
+      : hasPortfolioBase
+        ? portfolioAmountExVat
+        : null,
     vatRate: config.vatRate,
     startSortOrder: 100,
   });
   warnings.push(...component.warnings);
   errors.push(...component.errors);
+  if (
+    zeroEnergy &&
+    !component.lines.some((line) => line.amountExVat !== 0)
+  )
+    errors.push(zeroEnergyMessage);
 
   // Invoice wording: preliminary periods and their later settlement are explicit.
   const periodLabel = priceMonth;
