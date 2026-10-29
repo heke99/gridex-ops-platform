@@ -11,7 +11,7 @@ vi.mock('server-only', () => ({}))
 vi.mock('next/cache', () => ({revalidatePath: vi.fn()}))
 vi.mock('next/navigation', () => ({redirect: (url: string) => {throw new Error('REDIRECT:'+url)}}))
 vi.mock('@/lib/admin/guards', () => ({requireAdminActionAccess: async () => {if(io.deny)throw new Error('denied');return {userId:'staff-a'}}}))
-vi.mock('@/lib/tenant/entityGuards', () => ({loadCustomerTenantContext: async () => ({companyId:'company-a'})}))
+vi.mock('@/lib/tenant/entityGuards', () => ({loadCustomerTenantContext: async () => ({companyId:'company-a'}),assertCustomerSiteTenant:vi.fn(),assertMeteringPointTenant:vi.fn()}))
 vi.mock('@/lib/customer-contracts/autoSendSigningLink', () => ({autoSendSigningLinkAfterCreate: vi.fn()}))
 vi.mock('@/lib/customer-contracts/db', () => ({createCustomerContract: io.create,getContractOfferById: async () => ({id:'offer-a',is_active:true,status:'active'}),addCustomerContractEvent:vi.fn(),getCustomerContractById:vi.fn(),updateCustomerContract:vi.fn()}))
 vi.mock('@/lib/operations/db', () => ({ saveCustomerAuthorizationDocument: io.save }))
@@ -127,4 +127,14 @@ describe('contract creation signed-PDF validation feedback', () => {
     await expect(createContractAction(new FormData())).rejects.toThrow('denied')
     expect(io.create).not.toHaveBeenCalled()
   })
+})
+
+describe('successful draft creation continuation',()=>{
+ it('redirects to the committed contract instead of re-enabling the same create form',async()=>{
+  io.create.mockResolvedValue({id:'contract-created',status:'draft'})
+  const {createContractAction}=await import('@/components/admin/customers/contracts/actions')
+  const form=new FormData();form.set('customer_id','customer-a');form.set('contract_name','Synthetic draft');form.set('spot_markup_ore_per_kwh','0');form.set('override_reason','Synthetic contract regression');form.set('contract_type','variable_monthly');form.set('signing_method','draft')
+  await expect(createContractAction(form)).rejects.toThrow('REDIRECT:/admin/customers/customer-a/contracts/contract-created/signature')
+  expect(io.create).toHaveBeenCalledOnce();expect(io.upload).not.toHaveBeenCalled();expect(io.save).not.toHaveBeenCalled()
+ })
 })

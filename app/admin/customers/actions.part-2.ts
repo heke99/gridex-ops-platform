@@ -23,7 +23,7 @@ import { signedAgreementDocumentTiming } from "@/lib/customer-contracts/signingM
 
 
 import { processManualCustomerIntake, processPdfCustomerIntake } from "@/lib/customer-operations/customerIntakeOrchestrator"
-import { canonicalIdempotencyKey, onboardCustomerGraph, signedAuthorizationScopes } from "@/lib/customers/canonicalOnboarding"
+import { canonicalIdempotencyKey, onboardCustomerGraph, signedAuthorizationScopes, type CanonicalOnboardingSuccess } from "@/lib/customers/canonicalOnboarding"
 import { createTenantContext } from "@/lib/tenant/context"
 import type { CreateCustomerGraphParams, IntakeDocumentUploadResult } from './actions.part-1'
 import { IntakeValidationError, buildBillingAddressSnapshot, buildCustomerDocumentPath, checksumFile, createValidationErrorFromFieldErrors, insertAuditLog, normalizeCountryCode, normalizeOptionalString, resolveIntakeSigningChoice, validateCreateCustomerParams } from './actions.part-1'
@@ -610,6 +610,12 @@ export function mapUnknownErrorToIntakeState(
   error: unknown,
   values: IntakeFormValues = {},
 ): IntakeActionState {
+  if (error instanceof CustomerGraphCommittedReviewError) {
+    return {status:'committed_review', message:error.message, fieldErrors:{}, values,
+      createdCustomerId:error.receipt.customer_id, createdSiteId:error.receipt.site_id,
+      createdMeteringPointId:error.receipt.metering_point_id, createdContractId:error.receipt.contract_id,
+      correlationId:error.receipt.correlation_id}
+  }
   if (error instanceof IntakeValidationError) {
     return {
       status: "error",
@@ -679,7 +685,17 @@ export type CustomerGraphResult = CustomerGraphRow & {
   __signingLink?: AutoSendSigningLinkResult | null
 }
 
+/** Core commit is known; postcommit processing must be inspected on this customer. */
+export class CustomerGraphCommittedReviewError extends Error {
+  constructor(public readonly receipt: CanonicalOnboardingSuccess, cause?: unknown) {
+    super('Kunden är registrerad men efterföljande dokument- eller signeringssteg kunde inte bekräftas. Öppna den befintliga kunden för granskning; skapa inte kunden igen.', {cause})
+    this.name = 'CustomerGraphCommittedReviewError'
+  }
+}
+
 export type CreateCustomerGraphOptions = {
+  /** Persist core IDs before any storage, orchestration or send side effect. */
+  onCoreCommitted?: (receipt: CanonicalOnboardingSuccess) => Promise<void>
   /**
    * Send the online signing link after commit when the graph created a
    * pending_signature contract. Opt-in so bulk imports and test tooling do
@@ -1066,6 +1082,10 @@ export async function createCustomerGraph(
     );
   }
 
+  try {
+    // An uncertain receipt write stops all later side effects. The caller keeps
+    // the known core IDs and must never classify this as a fresh failed intake.
+    await options.onCoreCommitted?.(result)
   const documentUpload = await uploadCustomerIntakeDocuments({
     companyId: params.companyId,
     actorUserId: params.actorUserId,
@@ -1136,6 +1156,12 @@ export async function createCustomerGraph(
       ? "Okänd nuvarande leverantör"
       : normalizeOptionalString(params.currentSupplierName),
   };
+  } catch (error) {
+    if (options.onCoreCommitted) throw new CustomerGraphCommittedReviewError(result, error)
+    // Legacy bulk callers retain their existing error contract; recovery for
+    // those flows must be qualified with their per-row result handling.
+    throw error
+  }
 }
 
 export const ADMIN_INTAKE_ROUTE = "admin/customers/intake";
