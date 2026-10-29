@@ -3,6 +3,10 @@
 -- with an explicitly acknowledged new agreement and its current tenant terms.
 -- This command never signs, sends mail, changes supply dates or edits originals.
 begin;
+-- Serialize the zero-source check with every existing CPS writer; otherwise
+-- an old transaction could commit an unproven reserved label between the
+-- check and installing the guarded source/index policy.
+lock table public.contract_price_snapshots in share row exclusive mode;
 do $$begin
   if exists(select from public.contract_price_snapshots where source='customer_contract_unsigned_edit') then
     raise exception 'unsigned_contract_edit_reserved_source_already_present';
@@ -497,7 +501,8 @@ begin
           and used_at is null and revoked_at is null;
       get diagnostics revoked=row_count;
     end if;
-    update public.customer_contracts set
+    if commercial then
+      update public.customer_contracts set
       source_type=case when commercial then 'manual_override' else c.source_type end,
       site_id=n.site_id,customer_site_id=n.customer_site_id,metering_point_id=n.metering_point_id,
       contract_name=n.contract_name,contract_type=n.contract_type,campaign_name=n.campaign_name,
@@ -525,7 +530,16 @@ begin
       snapshot_hash=case when commercial then public.canonical_json_sha256(snapshot) else c.snapshot_hash end,
       snapshot_quality=case when commercial then 'canonical' else c.snapshot_quality end,
       updated_by=p_actor_user_id,updated_at=clock_timestamp()
-    where id=p_contract_id and company_id=p_company_id and customer_id=p_customer_id;
+      where id=p_contract_id and company_id=p_company_id and customer_id=p_customer_id;
+    else
+      -- Column-specific catalog/publication triggers fire even when a listed
+      -- column is assigned its old value. A site/note edit must not invoke
+      -- those commercial projections or rebuild any unsubmitted snapshot.
+      update public.customer_contracts set site_id=n.site_id,customer_site_id=n.customer_site_id,
+        metering_point_id=n.metering_point_id,override_reason=n.override_reason,
+        updated_by=p_actor_user_id,updated_at=clock_timestamp()
+      where id=p_contract_id and company_id=p_company_id and customer_id=p_customer_id;
+    end if;
     perform public.gridex_record_customer_contract_event_v1(p_company_id,p_contract_id,p_customer_id,'updated',clock_timestamp(),
       n.override_reason,jsonb_build_object('source','unsigned_contract_edit_v1','changed_fields',(select jsonb_agg(k) from jsonb_object_keys(p_patch) k),
         'old_price_snapshot_id',c.contract_price_snapshot_id,'new_price_snapshot_id',coalesce(fresh_id,c.contract_price_snapshot_id),
