@@ -929,12 +929,17 @@
     "20261014004020_admin_api_current_context_projection.sql": "852f0517f86b31e1baffd756f48e9cf3faad798df4d802d77f99300cfb92ed59",
     "20261014011520_ediel_sc031_source_owned_business_projection.sql": "d4555df6177b1d702a4262fc0d305986e0e029bbf50124a285e5418e3beb3a89",
     "20261014153206_gridex_data_quality_active_status_search_path.sql": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9",
+    "20261028184500_invoice_review_atomic_approval.sql": "031cc1a870e0b0d5e83fd01250cf196502864054866f2e816fabae76f5bfe072",
+    "20261028220418_finance_invoice_file_reference_qualified.sql": "23f90adfa66faee868cfecdb84044c0a0061ee2eb79ddc59d82a30b0c9c7e9fa",
+    "20261028222913_finance_qualify_existing_website_audit_consumer.sql": "30bd2e1225fe4218c4c092aa7ed65d486033c3dc2c80fbca5fabe29af15900e1",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
     "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
     "20261014211648_ediel_sc046_bound_newer_metering_correction.sql": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b",
-    "20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql": "42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff"
+    "20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql": "42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff",
+    "20261029130000_finance_termination_review_supply_end.sql": "6ddb4923fad357a373f7913584fce901d559370626b2ac264a1db6721d975517",
+    "20261029140000_finance_d11_export_source_qualification.sql": "cebf78aa8a63a3994052cd69589cd21a6ffa97a6c5fd457155d6dfdf2953ff63"
   },
   "generatedAt": "2026-10-14T00:52:50.668Z",
   "schemaVersion": 1

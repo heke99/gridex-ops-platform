@@ -18,6 +18,14 @@ import type { CapwayEnvironment, CapwayFinancingMode } from '@/lib/integrations/
 
 type Row = Record<string, unknown>
 
+export class InvoiceApprovalAlreadyRunningError extends Error {
+  readonly code = 'invoice_approval_busy'
+  constructor() {
+    super('En annan körning godkänner redan fakturan. Försök igen.')
+    this.name = 'InvoiceApprovalAlreadyRunningError'
+  }
+}
+
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
@@ -129,50 +137,31 @@ async function approveItem(companyId: string, itemId: string, actorUserId: strin
   const context = await loadItemContext(companyId, itemId)
   if (context.item.status !== 'pending' || context.invoice.status !== 'draft') throw new Error('Endast oskickade draftfakturor kan godkännas.')
   await assertItemStillReady(context)
-  const existingApproval = approval(context.item.metadata)
-  if (existingApproval.status === 'approved' && approval(context.invoice.metadata).status === 'approved') return context
-  const calculationHash = text(context.invoice.calculation_snapshot_sha256)
-  const reviewHash = sha256({
+  const review = {
     invoice_export_item_id: itemId,
     billing_underlay_id: text(context.underlay.id),
     pricing_run_id: text(context.pricingRun.id),
-    calculation_snapshot_sha256: calculationHash,
+    calculation_snapshot_sha256: text(context.invoice.calculation_snapshot_sha256),
     total_kwh: num(context.underlay.total_kwh),
     total_inc_vat: num(context.invoice.amount_inc_vat),
     price_area: text(context.invoice.price_area_code) ?? text(context.underlay.price_area),
-  })
-  const approvedAt = new Date().toISOString()
-  const approved = {
-    status: 'approved',
-    approved_at: approvedAt,
-    approved_by: actorUserId,
-    review_hash: reviewHash,
-    calculation_snapshot_sha256: calculationHash,
   }
-  const itemUpdate = await supabaseService.from('invoice_export_items').update({
-    metadata: { ...objectValue(context.item.metadata), approval: approved },
-    updated_at: approvedAt,
-  }).eq('company_id', companyId).eq('id', itemId).eq('status', 'pending').select('id').maybeSingle()
-  if (itemUpdate.error) throw itemUpdate.error
-  if (!itemUpdate.data) throw new Error('Fakturan kunde inte godkännas; status ändrades under granskningen.')
-  const invoiceUpdate = await supabaseService.from('customer_invoices').update({
-    metadata: { ...objectValue(context.invoice.metadata), approval: approved },
-    updated_at: approvedAt,
-  }).eq('company_id', companyId).eq('invoice_export_item_id', itemId).eq('status', 'draft').select('id').maybeSingle()
-  if (invoiceUpdate.error) throw invoiceUpdate.error
-  if (!invoiceUpdate.data) throw new Error('Fakturaspegeln kunde inte godkännas.')
-  await emitDomainEvent({
-    companyId,
-    eventType: 'invoice.approved',
-    aggregateType: 'invoice_export_item',
-    aggregateId: itemId,
-    subjectCustomerId: text(context.item.customer_id),
-    actorUserId,
-    source: 'invoice_approved_dispatch_v1',
-    payload: { approved_at: approvedAt, review_hash: reviewHash },
-    idempotencyKey: `invoice-approved:${itemId}:${reviewHash}`,
-  }).catch(() => null)
-  return loadItemContext(companyId, itemId)
+  // The native command rechecks this reviewed basis under row locks and commits
+  // both metadata mirrors, the domain event and its durable outbox atomically.
+  const result = await supabaseService.rpc('gridex_approve_invoice_review_v1', {
+    p_company_id: companyId,
+    p_invoice_export_item_id: itemId,
+    p_actor_user_id: actorUserId,
+    p_review: review,
+    p_review_hash: sha256(review),
+  })
+  if (result.error) {
+    if (result.error.code === '55P03') throw new InvoiceApprovalAlreadyRunningError()
+    throw new Error(result.error.message || 'Fakturan kunde inte godkännas.')
+  }
+  const receipt = objectValue(result.data)
+  if (typeof receipt.newly_approved !== 'boolean') throw new Error('Fakturan saknar en giltig godkännandekvittens.')
+  return receipt.newly_approved
 }
 
 export async function updateLegacyProjection(input: { companyId: string; runId: string; itemId: string; status: 'sent' | 'failed'; error?: string | null }) {
@@ -444,14 +433,12 @@ export async function approveAndSendReadyInvoicesForMonth(input: { companyId: st
   let approved = 0
   let sent = 0
   let failed = 0
-  const errors: Array<{ invoiceExportItemId: string; error: string }> = []
+  const errors: Array<{ invoiceExportItemId: string; error: string; errorCode?: 'invoice_approval_busy' }> = []
   for (const item of items) {
     const itemId = text(item.id) ?? 'unknown'
     try {
-      if (approval(item.metadata).status !== 'approved') {
-        await approveItem(input.companyId, itemId, input.actorUserId)
-        approved += 1
-      }
+      const newlyApproved = await approveItem(input.companyId, itemId, input.actorUserId)
+      if (newlyApproved) approved += 1
       if (approveOnly) continue
       const result = await sendApprovedItem({ companyId: input.companyId, itemId, actorUserId: input.actorUserId })
       if (result.status === 'sent') sent += 1
@@ -461,7 +448,11 @@ export async function approveAndSendReadyInvoicesForMonth(input: { companyId: st
       }
     } catch (error) {
       failed += 1
-      errors.push({ invoiceExportItemId: itemId, error: error instanceof Error ? error.message : 'Fakturan kunde inte godkännas/skickas.' })
+      errors.push({
+        invoiceExportItemId: itemId,
+        error: error instanceof Error ? error.message : 'Fakturan kunde inte godkännas/skickas.',
+        ...(error instanceof InvoiceApprovalAlreadyRunningError ? { errorCode: error.code } : {}),
+      })
     }
   }
   return { approved, sent, failed, errors, approveOnly, dispatchEnabled }

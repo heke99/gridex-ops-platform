@@ -45,6 +45,12 @@ const facts = (patch: Partial<RetryFacts> = {}): RetryFacts => ({ switchRequest:
   contract: { id: CT, company_id: C, customer_id: CU, status: 'signed', withdrawal_requested_at: null, ends_at: null }, confirmedSupplyPeriods: 0,
   z03: { id: MSG, status: 'sent', message_sent_at: '2026-10-20T10:00:00Z', canonical_ack_state: 'aperak_received_negative' }, today: '2026-10-26', ...patch })
 
+function assessNonRetry(input: RetryFacts) {
+  const result = assessSupplierSwitchRetry(input)
+  if (result.decision === 'retry') throw new Error('Expected a non-retry assessment with reasons')
+  return result
+}
+
 describe('I-B2d the retry decision', () => {
   it('a definitively rejected Z03 on a valid contract is retried with the agreed start date', () => {
     expect(assessSupplierSwitchRetry(facts())).toEqual({ decision: 'retry', startDate: '2026-11-24', contractId: CT })
@@ -57,25 +63,25 @@ describe('I-B2d the retry decision', () => {
       expect(assessSupplierSwitchRetry(facts({ z03: { id: MSG, status: 'sent', message_sent_at: 'x', canonical_ack_state: state } })).decision).toBe('investigate')
     expect(assessSupplierSwitchRetry(facts({ z03: null }))).toEqual({ decision: 'investigate', reasons: ['z03_status_unknown'] })
     expect(assessSupplierSwitchRetry(facts({ switchRequest: failed({ outbound_z03_message_id: null }), z03: null })).decision).toBe('investigate')
-    expect(assessSupplierSwitchRetry(facts({ switchRequest: failed({ failure_reason: null }) })).reasons).toContain('failure_reason_unknown')
+    expect(assessNonRetry(facts({ switchRequest: failed({ failure_reason: null }) })).reasons).toContain('failure_reason_unknown')
   })
 
   it('a confirmed switch is never restarted, and an open one is never duplicated', () => {
-    expect(assessSupplierSwitchRetry(facts({ siblings: [failed({ id: 'b', status: 'accepted' })] })).reasons).toContain('switch_already_confirmed')
-    expect(assessSupplierSwitchRetry(facts({ confirmedSupplyPeriods: 1 })).reasons).toContain('switch_already_confirmed')
-    expect(assessSupplierSwitchRetry(facts({ siblings: [failed({ id: 'b', status: 'prepared' })] })).reasons).toContain('open_switch_exists')
+    expect(assessNonRetry(facts({ siblings: [failed({ id: 'b', status: 'accepted' })] })).reasons).toContain('switch_already_confirmed')
+    expect(assessNonRetry(facts({ confirmedSupplyPeriods: 1 })).reasons).toContain('switch_already_confirmed')
+    expect(assessNonRetry(facts({ siblings: [failed({ id: 'b', status: 'prepared' })] })).reasons).toContain('open_switch_exists')
     expect(assessSupplierSwitchRetry(facts({ switchRequest: failed({ status: 'accepted' }) })).decision).toBe('refused')
   })
 
   it('checks contract validity, the failure reason and the date, and never moves the date', () => {
-    expect(assessSupplierSwitchRetry(facts({ contract: null })).reasons).toContain('contract_missing')
-    expect(assessSupplierSwitchRetry(facts({ contract: { ...facts().contract!, status: 'terminated' } })).reasons).toContain('contract_not_valid:terminated')
-    expect(assessSupplierSwitchRetry(facts({ contract: { ...facts().contract!, withdrawal_requested_at: 'x' } })).reasons).toContain('contract_withdrawal_requested')
-    expect(assessSupplierSwitchRetry(facts({ contract: { ...facts().contract!, company_id: OTHER } })).reasons).toContain('contract_missing')
-    expect(assessSupplierSwitchRetry(facts({ switchRequest: failed({ failure_reason: 'Kunden ångrade avtalet (withdrawal)' }) })).reasons).toContain('failure_reason_not_retryable')
+    expect(assessNonRetry(facts({ contract: null })).reasons).toContain('contract_missing')
+    expect(assessNonRetry(facts({ contract: { ...facts().contract!, status: 'terminated' } })).reasons).toContain('contract_not_valid:terminated')
+    expect(assessNonRetry(facts({ contract: { ...facts().contract!, withdrawal_requested_at: 'x' } })).reasons).toContain('contract_withdrawal_requested')
+    expect(assessNonRetry(facts({ contract: { ...facts().contract!, company_id: OTHER } })).reasons).toContain('contract_missing')
+    expect(assessNonRetry(facts({ switchRequest: failed({ failure_reason: 'Kunden ångrade avtalet (withdrawal)' }) })).reasons).toContain('failure_reason_not_retryable')
     expect(assessSupplierSwitchRetry(facts({ switchRequest: failed({ requested_start_date: '2026-10-01' }) }))).toEqual({ decision: 'refused', reasons: ['start_date_passed'] })
-    expect(assessSupplierSwitchRetry(facts({ switchRequest: failed({ requested_start_date: null }) })).reasons).toContain('start_date_missing')
-    expect(assessSupplierSwitchRetry(facts({ contract: { ...facts().contract!, ends_at: '2026-11-01' } })).reasons).toContain('contract_ends_before_start')
+    expect(assessNonRetry(facts({ switchRequest: failed({ requested_start_date: null }) })).reasons).toContain('start_date_missing')
+    expect(assessNonRetry(facts({ contract: { ...facts().contract!, ends_at: '2026-11-01' } })).reasons).toContain('contract_ends_before_start')
   })
 })
 

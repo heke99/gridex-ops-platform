@@ -8,7 +8,6 @@
 // Synthetic ids only.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PGlite } from '@electric-sql/pglite'
-// @ts-expect-error -- plain ESM fixture shared with the node regression script
 import { createFeeReviewDb, ids } from '../scripts/helpers/h3d-move-out-fee-review-sql-fixture.mjs'
 
 type Task = { task_type: string; status: string; metering_point_id: string | null; title: string; metadata: Record<string, unknown> }

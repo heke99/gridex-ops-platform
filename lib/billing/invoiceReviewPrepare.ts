@@ -12,6 +12,7 @@ import {
 import { lockPricingPreview } from '@/lib/pricing/engine'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { invoiceBillingPeriod } from '@/lib/billing/billingMonth'
+import { AutomationAlreadyRunningError, withAutomationLock } from '@/lib/automation/locks'
 
 type Row = Record<string, unknown>
 
@@ -452,19 +453,35 @@ export async function prepareInvoiceDraftsForReview(input: {
       const contractId = text(underlay.customer_contract_id) ?? text(underlay.contract_id)
       const contract = contractId ? contracts.get(contractId) : null
       if (!contract) throw new Error('Exakt kundavtal saknas eller ligger utanför tenant.')
-      await createDraft({
+      const createdDraft = await withAutomationLock({
+        lockKey: `invoice-review-prepare:${input.companyId}:${underlayId}`,
         companyId: input.companyId,
-        billingMonth: input.billingMonth,
-        environment: input.environment ?? 'test',
-        provider: input.provider ?? 'capway_aptic',
-        actorUserId: input.actorUserId ?? null,
-        underlay,
-        contract,
+        ttlSeconds: 7_200,
+        metadata: { domain: 'invoice_review_prepare', billingUnderlayId: underlayId },
+        run: async () => {
+          // The first reservation read predates lock acquisition. Recheck before
+          // calculating prices or creating a graph from that possibly stale read.
+          const existing = await loadExistingUnderlayIds(input.companyId, [underlayId])
+          if (existing.has(underlayId)) return false
+          await createDraft({
+            companyId: input.companyId,
+            billingMonth: input.billingMonth,
+            environment: input.environment ?? 'test',
+            provider: input.provider ?? 'capway_aptic',
+            actorUserId: input.actorUserId ?? null,
+            underlay,
+            contract,
+          })
+          return true
+        },
       })
-      created += 1
+      if (createdDraft) created += 1
+      else reservedUnderlays.add(underlayId)
     } catch (error) {
       failed += 1
-      errors.push({ billingUnderlayId: underlayId, error: error instanceof Error ? error.message : 'Draftfakturan kunde inte skapas.' })
+      errors.push({ billingUnderlayId: underlayId, error: error instanceof AutomationAlreadyRunningError
+        ? 'Fakturaunderlaget förbereds redan av en annan körning. Försök igen.'
+        : error instanceof Error ? error.message : 'Draftfakturan kunde inte skapas.' })
     }
   })
   for (let offset = 0; offset < jobs.length; offset += 10) {

@@ -32,7 +32,7 @@ vi.mock('@/lib/customer-operations/supplierSwitchOrchestration', () => ({
 
 import { tryPrepareSupplierSwitch } from '@/lib/customer-operations/customerProcessNextStepEngine'
 
-const input = {
+const input: Parameters<typeof tryPrepareSupplierSwitch>[0] = {
   companyId: '00000000-0000-4000-8000-000000000001', customerId: '00000000-0000-4000-8000-000000000002',
   site: { id: '00000000-0000-4000-8000-000000000003', move_in_date: null } as never,
   meteringPoint: { id: 'mp-1' } as never, actorUserId: '00000000-0000-4000-8000-000000000004',

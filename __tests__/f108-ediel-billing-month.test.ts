@@ -343,6 +343,7 @@ describe('F108 the invoice prints the exact covered period and is labelled by it
     expect(xml).toContain('<PeriodText>2026-09-01 01:00 – 2026-10-01 01:00 (svensk tid)</PeriodText>')
     expect(xml).toContain(`<PeriodStart>${SEP_EDIEL.start}</PeriodStart>`)
     const csv = renderInvoiceFile({ id: 'abcdef12-0000', billing_month: '2026-09', rows: [row], rows_sha256: 'x', created_at: '2026-10-05T10:00:00Z' }, 'csv').body
+    if (typeof csv !== 'string') throw new Error('CSV rendering must return text')
     expect(csv.split('\r\n')[0]).toContain('Fakturaperiod;Leveransperiod (exakt)')
     expect(csv.split('\r\n')[1]).toContain('September 2026;2026-09-01 01:00 – 2026-10-01 01:00 (svensk tid)')
 

@@ -23,6 +23,7 @@ type PageProps = {
     mode?: string
     file?: string
     file_error?: string
+    approval_error?: string
   }>
 }
 
@@ -123,6 +124,12 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
               : params.mode === 'file'
               ? <>Batch klar: <strong>{params.approved ?? '0'} nygodkända</strong> och {params.failed ?? '0'} misslyckade. Skapa fakturafilen nedan för att skicka dem till fakturaleverantören.</>
               : <>Batch klar: <strong>{params.sent ?? '0'} skickade</strong>, {params.failed ?? '0'} misslyckade och {params.approved ?? '0'} nygodkända.</>}
+          </section>
+        ) : null}
+
+        {companyId && params.approval_error === 'busy' ? (
+          <section role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+            En annan körning godkänner redan fakturan. Försök igen om en stund.
           </section>
         ) : null}
 

@@ -8,7 +8,6 @@
 // slice (they fail). Synthetic ids only.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PGlite } from '@electric-sql/pglite'
-// @ts-expect-error -- plain ESM fixture shared with the node regression script
 import { createNoticeDb, ids } from '../scripts/helpers/h3d-notice-termination-sql-fixture.mjs'
 import { contractNoticeEndDate, contractTerminationEndDate } from '@/lib/customer-contracts/lifecycle'
 

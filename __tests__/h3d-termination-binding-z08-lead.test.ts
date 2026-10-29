@@ -7,7 +7,6 @@
 // in the world before this change (B5/B6 fail; the B7 keep-cases pass on both). Synthetic ids only.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PGlite } from '@electric-sql/pglite'
-// @ts-expect-error -- plain ESM fixture shared with the node regression script
 import { createNoticeDb, ids } from '../scripts/helpers/h3d-notice-termination-sql-fixture.mjs'
 import { contractTerminationEndDate } from '@/lib/customer-contracts/lifecycle'
 import { TERMINATION_Z08_TASK_LEAD_DAYS } from '@/lib/customer-contracts/terminationNoticeExpiry'
