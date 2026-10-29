@@ -137,6 +137,7 @@ set -a; # shellcheck disable=SC1090
 python3 - "$TLS/ca.pem" <<'PY'
 import imaplib,os,smtplib,ssl,sys
 ctx=ssl.create_default_context(cafile=sys.argv[1])
+ctx.verify_flags&=~getattr(ssl,'VERIFY_X509_STRICT',0)  # the local test CA has no key-usage extension
 for box,pw in ((os.environ['GRIDEX_SHARED_EDIEL_PRODUCTION_EMAIL'],os.environ['GRIDEX_SHARED_EDIEL_PRODUCTION_IMAP_PASS']),
                (os.environ['GRIDEX_SHARED_EDIEL_TEST_EMAIL'],os.environ['GRIDEX_SHARED_EDIEL_TEST_IMAP_PASS'])):
     imap=imaplib.IMAP4_SSL('localhost',3993,ssl_context=ctx); imap.login(box,pw); imap.logout()
