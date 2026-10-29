@@ -180,4 +180,55 @@ describe('termination notice: first valid receipt wins', () => {
         previous_termination_notice_date: '2026-09-01', new_termination_notice_date: '2026-10-15' })
     })
   })
+
+  it('uses the Europe/Stockholm calendar date (00:30 local on the start day)', async () => {
+    await notice({ happenedAt: '2026-02-28T23:30:00Z', key: 'tz' })
+    expect((await state() as { notice: string }).notice).toBe('2026-03-01')
+    const again = await notice({ happenedAt: '2026-03-01T10:00:00Z', key: 'tz-2' })
+    expect(again.rows[0].result).toMatchObject({ existing: true })
+    expect(await eventCount()).toBe(1)
+  })
+
+  it('requires a derived end when overriding a contract that already has ended_at', async () => {
+    await notice({ happenedAt: '2026-09-01T00:00:00Z', derived: '2027-03-01T00:00:00Z', key: 'n1' })
+    await expect(notice({ happenedAt: '2026-08-20T00:00:00Z', key: 'n2',
+      metadata: { override: true, override_reason: 'Rättat' } }))
+      .rejects.toThrow(/termination_notice_override_ends_at_required/)
+    expect(await state()).toEqual({ notice: '2026-09-01', ended: '2027-03-01' })
+  })
+
+  it('allows an override without derived end when no end is stored', async () => {
+    await notice({ happenedAt: '2026-09-01T00:00:00Z', key: 'n1' })
+    await notice({ happenedAt: '2026-08-20T00:00:00Z', key: 'n2', metadata: { override: true, override_reason: 'Rättat' } })
+    expect(await state()).toEqual({ notice: '2026-08-20', ended: null })
+  })
+})
+
+describe('direct table writes cannot bypass the first-wins rule', () => {
+  it('allows the first direct setting of the notice date', async () => {
+    await db.exec(`update public.customer_contracts set termination_notice_date='2026-09-01'`)
+    expect((await state() as { notice: string }).notice).toBe('2026-09-01')
+  })
+
+  it.each([`'2026-10-15'`, 'null'])('rejects a direct change of a recorded date to %s', async (value) => {
+    await db.exec(`update public.customer_contracts set termination_notice_date='2026-09-01'`)
+    await expect(db.exec(`update public.customer_contracts set termination_notice_date=${value}`))
+      .rejects.toThrow(/termination_notice_already_recorded/)
+    expect((await state() as { notice: string }).notice).toBe('2026-09-01')
+  })
+
+  it('does not block other column updates or keeping the same date', async () => {
+    await db.exec(`update public.customer_contracts set termination_notice_date='2026-09-01'`)
+    await db.exec(`update public.customer_contracts set termination_reason='customer_request',
+      termination_notice_date='2026-09-01', ended_at='2027-03-01T00:00:00Z'`)
+    expect(await state()).toEqual({ notice: '2026-09-01', ended: '2027-03-01' })
+  })
+
+  it('still lets the command override after a direct first write, and clears its marker', async () => {
+    await db.exec(`update public.customer_contracts set termination_notice_date='2026-09-01'`)
+    await notice({ happenedAt: '2026-08-20T00:00:00Z', key: 'o1', metadata: { override: true, override_reason: 'Rättat' } })
+    expect((await state() as { notice: string }).notice).toBe('2026-08-20')
+    await expect(db.exec(`update public.customer_contracts set termination_notice_date='2026-10-15'`))
+      .rejects.toThrow(/termination_notice_already_recorded/)
+  })
 })

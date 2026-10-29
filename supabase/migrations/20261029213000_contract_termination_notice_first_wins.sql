@@ -9,7 +9,11 @@
 --   3. a receipt before coalesce(actual_start_date, starts_at) or before
 --      signed_at::date is rejected (termination_notice_before_contract_start);
 --   4. terminated/cancelled metadata may not replace a recorded notice date
---      except through the same audited override.
+--      except through the same audited override;
+--   5. receipt dates are Europe/Stockholm calendar dates; an override that
+--      moves the date of a contract with ended_at requires p_derived_ends_at;
+--   6. a BEFORE UPDATE trigger blocks changing/clearing a recorded notice
+--      date outside the command (transaction-local writer marker).
 
 begin;
 
@@ -35,7 +39,7 @@ declare
   v_previous_status text;
   v_new_status text;
   v_domain_event_id uuid;
-  v_notice_date date := p_happened_at::date;
+  v_notice_date date := (p_happened_at at time zone 'Europe/Stockholm')::date;
   v_notice_override boolean := false;
   v_notice_override_reason text;
   v_notice_audit jsonb;
@@ -116,7 +120,7 @@ begin
   end if;
   if p_event_type in ('terminated', 'cancelled')
      and v_contract.termination_notice_date is not null
-     and nullif(p_metadata->>'termination_notice_date', '')::timestamptz::date
+     and (nullif(p_metadata->>'termination_notice_date', '')::timestamptz at time zone 'Europe/Stockholm')::date
        <> v_contract.termination_notice_date
      and not v_notice_override then
     raise exception using
@@ -125,10 +129,19 @@ begin
   end if;
   if p_event_type = 'termination_notice_received' then
     if v_notice_date < coalesce(v_contract.actual_start_date, v_contract.starts_at)
-       or v_notice_date < v_contract.signed_at::date then
+       or v_notice_date < (v_contract.signed_at at time zone 'Europe/Stockholm')::date then
       raise exception using
         errcode = '23514',
         message = 'termination_notice_before_contract_start';
+    end if;
+    if v_notice_override
+       and v_contract.termination_notice_date is distinct from v_notice_date
+       and v_contract.ended_at is not null
+       and p_derived_ends_at is null then
+      -- Never keep an end derived from the replaced notice date.
+      raise exception using
+        errcode = '22023',
+        message = 'termination_notice_override_ends_at_required';
     end if;
     if v_contract.termination_notice_date is not null and not v_notice_override then
       if v_contract.termination_notice_date <> v_notice_date then
@@ -142,7 +155,7 @@ begin
       where event.company_id = p_company_id
         and event.customer_contract_id = p_customer_contract_id
         and event.event_type = 'termination_notice_received'
-        and event.happened_at::date = v_notice_date
+        and (event.happened_at at time zone 'Europe/Stockholm')::date = v_notice_date
       order by event.created_at
       limit 1;
       if found then
@@ -186,6 +199,7 @@ begin
     end;
     v_previous_notice_date := v_contract.termination_notice_date;
     v_previous_ended_at := v_contract.ended_at;
+    perform set_config('gridex.contract_event_writer', 'on', true);
     update public.customer_contracts
     set status = v_new_status,
         ended_at = coalesce(
@@ -226,6 +240,7 @@ begin
       and company_id = p_company_id
     returning termination_notice_date, ended_at
     into v_contract.termination_notice_date, v_contract.ended_at;
+    perform set_config('gridex.contract_event_writer', '', true);
     if v_notice_override
        and v_contract.termination_notice_date is distinct from v_previous_notice_date then
       v_notice_audit := jsonb_build_object(
@@ -239,8 +254,9 @@ begin
   elsif p_event_type = 'termination_notice_received' then
     v_previous_notice_date := v_contract.termination_notice_date;
     v_previous_ended_at := v_contract.ended_at;
+    perform set_config('gridex.contract_event_writer', 'on', true);
     update public.customer_contracts
-    set termination_notice_date = p_happened_at,
+    set termination_notice_date = v_notice_date,
         ended_at = coalesce(p_derived_ends_at, ended_at),
         updated_by = p_actor_user_id,
         updated_at = now()
@@ -248,6 +264,7 @@ begin
       and company_id = p_company_id
     returning termination_notice_date, ended_at
     into v_contract.termination_notice_date, v_contract.ended_at;
+    perform set_config('gridex.contract_event_writer', '', true);
     if v_notice_override then
       v_notice_audit := jsonb_build_object(
         'reason', v_notice_override_reason,
@@ -355,5 +372,34 @@ comment on function public.gridex_record_customer_contract_event_v1(
   uuid, uuid, uuid, text, timestamptz, text, jsonb, uuid, timestamptz, text
 ) is
   'Atomic, tenant-scoped customer-contract event command. Signed events require pre-existing canonical evidence; activation is reserved for the supply activation graph. Termination notices: first valid receipt wins, corrections require an audited override with reason, receipts before contract start or signing are rejected.';
+
+-- Direct table writes (e.g. the customer card update) may set the first
+-- notice date, but changing or clearing a recorded date requires the event
+-- command above, which enforces override reason and audit.
+create or replace function public.gridex_guard_customer_contract_termination_notice_v1()
+returns trigger
+language plpgsql
+set search_path = public, pg_catalog, pg_temp
+as $$
+begin
+  if old.termination_notice_date is not null
+     and new.termination_notice_date is distinct from old.termination_notice_date
+     and coalesce(current_setting('gridex.contract_event_writer', true), '') <> 'on' then
+    raise exception using
+      errcode = '23514',
+      message = 'termination_notice_already_recorded';
+  end if;
+  return new;
+end
+$$;
+
+revoke all on function public.gridex_guard_customer_contract_termination_notice_v1()
+  from public, anon, authenticated;
+
+drop trigger if exists customer_contracts_termination_notice_first_wins
+  on public.customer_contracts;
+create trigger customer_contracts_termination_notice_first_wins
+before update on public.customer_contracts
+for each row execute function public.gridex_guard_customer_contract_termination_notice_v1();
 
 commit;
