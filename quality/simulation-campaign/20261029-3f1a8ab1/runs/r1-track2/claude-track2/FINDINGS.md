@@ -17,7 +17,7 @@ Paketet innehåller bara säkra sammanfattningar. Råloggar, miljöfiler och nyc
 | DB | Lokal Supabase (CLI 2.101.0, images från ghcr.io), postgres 17.6 på 127.0.0.1:54322 |
 | Replay | `scripts/gridex-aud-003-clean-replay.sh`, privat patchad kopia. Patcharna: EXIT-trap utan `supabase stop`, mailpit påslaget, portar. Diffen finns lokalt. Klar 2026-10-29T19:26:32Z. |
 | Migrationer | `applied-migrations.tsv` tom. `git diff --name-status <replay> HEAD -- supabase/migrations` tom. |
-| Schemaidentitet | Replayens fingeravtryck (delidentitet, utvalda tabeller) `d5816bb40115141c0e38af283de87d211191ca6c334cbd65ee259cdda89c0363`. `pg_dump --schema-only -n public` sha256 `c1b1b1644e73955a07141bbdb0851941334f145764ef263d399d3505754747b7`. |
+| Schemaidentitet | Replayens fingeravtryck (delidentitet, utvalda tabeller) `d5816bb40115141c0e38af283de87d211191ca6c334cbd65ee259cdda89c0363`. Normaliserad `pg_dump --schema-only -n public` (utan pg_dumps slumpade `\restrict`-rader) sha256 `997d7631883327e55ca5b25e799171e2a502a912227d0e325e1ec26b1f7d593f`. Det tidigare angivna värdet `c1b1b164…` var en rå hash som inte går att reproducera. Hashen är identisk med ny replay 2026-10-29T20:55:20Z. |
 | Node/PG | v22.22.0 / 17.6 |
 | Resurser | Container med 4 vCPU och 15 GiB RAM, en stack och en körning åt gången |
 | Klockor | Auth/JWT följer real tid och manipuleras aldrig. Affärstid sätts med explicita fixturdatum (`starts_at`, `billing_month`, `happened_at`) via normala ingångar. Där appen använder `now()` (lifecycle `referenceDate`) gäller real Stockholmsdag. Deklarerat signeringsdatum lagras bara som metadata. Faktiskt `signed_at` är real tid från finalize-RPC:n. |

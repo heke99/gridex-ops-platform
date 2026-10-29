@@ -14,8 +14,9 @@
   "databaseIdentity": "local postgres 17.6 (supabase/postgres:17.6.1.155) 127.0.0.1:54322; clean replay of 1c0c088c via scripts/gridex-aud-003-clean-replay.sh (private patched copy) at 2026-10-29T19:26:32Z; applied-migrations.tsv empty; replay-commit == built-commit == HEAD",
   "schemaHash": {
     "replayFingerprintSha256Partial": "d5816bb40115141c0e38af283de87d211191ca6c334cbd65ee259cdda89c0363",
-    "pgDumpSchemaOnlyPublicSha256": "c1b1b1644e73955a07141bbdb0851941334f145764ef263d399d3505754747b7",
-    "note": "fingerprint covers selected tables only (partial identity)"
+    "pgDumpSchemaOnlyPublicNormalizedSha256": "997d7631883327e55ca5b25e799171e2a502a912227d0e325e1ec26b1f7d593f",
+    "normalization": "pg_dump 17.6 --schema-only --no-owner --no-privileges -n public, rader '\\restrict'/'\\unrestrict' (slumpad token) borttagna",
+    "note": "tidigare angivet c1b1b164… var rå hash inkl. slumpad restrict-rad och är inte reproducerbar; samma dump normaliserad = 997d7631…, identisk med ny replay 2026-10-29T20:55:20Z"
   },
   "clockModel": "Auth/JWT: real wall clock, never manipulated. Business time: explicit fixture dates (starts_at, billing_month, happened_at) passed through normal entries; where app uses now() (lifecycle referenceDate) it is the real Stockholm day. Declared signing date stored as metadata only; actual signed_at = real time from finalize RPC.",
   "nodeVersion": "v22.22.0",
