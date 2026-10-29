@@ -308,21 +308,21 @@ export async function buildMain03Fixture(overrides: Partial<Main03Params> = {}):
 
   // SUBSTITUTE: permissions and a password are granted by SQL / the auth admin API — verifierar inte rolladministration eller användarinbjudan.
   substitute({ id: 'actor-permissions-password', step: 'fixture: operator session',
-    substitute: 'company role + role_permissions + user_roles rows via psql, password via auth admin API, then a real password login producing the app session cookies',
+    substitute: 'role_permissions rows on the actor\'s existing seed role via psql, password via auth admin API, then a real password login producing the app session cookies',
     notVerified: 'role/permission administration UI, invitation and password-reset flows' })
   const password = `T1-${randomUUID()}`
   const email = `${ground.actorUserId}@example.invalid`
   // Allow grants come only from roles: canonical_authenticated_tenant_context builds
   // `permissions` from user_roles → role_permissions; user_permissions rows only DENY
   // (supabase/migrations/20261014004020_admin_api_current_context_projection.sql).
-  // Pattern after claude/sim-20261029-track4 @ e986a964, scripts/simulation/track4/fixtures/seed.mjs (FX02).
-  const roleKey = `t1_billing_operator_${ground.companyId.replaceAll('-', '').slice(0, 12)}`
-  sql(`INSERT INTO public.roles(key,name,description,scope,is_active) VALUES(${literal(roleKey)},'T1 billing operator','Track 1 simulation role','company',true) ON CONFLICT (key) DO NOTHING;
-    INSERT INTO public.role_permissions(role_id,role_key,permission_id,permission_key,effect)
-      SELECT r.id,r.key,p.id,p.key,'allow' FROM public.roles r JOIN public.permissions p ON p.key IN('billing_underlay.read','billing_underlay.export','pricing.write')
-      WHERE r.key=${literal(roleKey)} AND NOT EXISTS(SELECT 1 FROM public.role_permissions x WHERE x.role_id=r.id AND x.permission_id=p.id);
-    INSERT INTO public.user_roles(user_id,company_id,role,role_id,status,is_active)
-      SELECT ${literal(ground.actorUserId)},${literal(ground.companyId)},r.key,r.id,'active',true FROM public.roles r WHERE r.key=${literal(roleKey)};`)
+  // Compare claude/sim-20261029-track4 @ e986a964, scripts/simulation/track4/fixtures/seed.mjs (FX02).
+  // One active role per (company,user) (user_roles_company_user_single_active_uidx), so the
+  // three billing permissions are added to the actor's existing seed role.
+  sql(`INSERT INTO public.role_permissions(role_id,role_key,permission_id,permission_key,effect)
+    SELECT r.id,r.key,p.id,p.key,'allow' FROM public.user_roles ur JOIN public.roles r ON r.id=ur.role_id
+      JOIN public.permissions p ON p.key IN('billing_underlay.read','billing_underlay.export','pricing.write')
+    WHERE ur.user_id=${literal(ground.actorUserId)} AND ur.company_id=${literal(ground.companyId)} AND ur.status='active' AND ur.is_active
+      AND NOT EXISTS(SELECT 1 FROM public.role_permissions x WHERE x.role_id=r.id AND x.permission_id=p.id);`)
   const updated = await supabaseService.auth.admin.updateUserById(ground.actorUserId, { password })
   must(!updated.error, `fixture_password_failed:${updated.error?.message}`)
   const session = await timed('fixture: sign in', () => signIn({ email, password, userId: ground.actorUserId, companyId: ground.companyId }))
