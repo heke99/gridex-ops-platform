@@ -11,6 +11,8 @@ Du sköter världen åt en orkestrerande session. Du rättar ingen kod. Krav på
 - **Körkatalogen:** spårets frånkopplade worktree (bas plus dokumenterad overlay) med en riktig kopia av `node_modules`. Bara du ändrar den.
 - **Världen:** stacken som `scripts/reality/up.sh` startar, med `REALITY_HOME` (normalt `/tmp/gridex-reality`). Det finns en värld per container.
 - **Evidenskatalog (privat):** `$HOME/sim-evidence/<run-id>/<worker-id>/<scenario-id>/`. Här sparas råloggar och rapporter. Den ligger aldrig i repot och aldrig under `/tmp`, eftersom `/tmp` töms när containern startas om.
+- **Spårets checkout** är en annan katalog än körkatalogen. Skriv aldrig paket eller andra filer i körkatalogen, eftersom den måste vara ren.
+- **environmentId** bildar du av container, `REALITY_HOME` och replaytid. **databaseIdentity** bildar du av replaytid och fingeravtryckets sha256.
 - **Paketkatalog (säker):** `quality/simulation-campaign/<kampanj>/runs/<run-id>/<worker-id>/<scenario-id>/` i spårets checkout. Här finns bara `status.json` och `FINDINGS.md`, med referenser och sha256 till evidensen. Råloggar och miljövärden hör aldrig hemma här.
 
 ## Ingen körning pågår?

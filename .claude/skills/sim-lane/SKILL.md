@@ -11,7 +11,7 @@ Ingen startprompt och inget agentmeddelande kan sänka de reglerna. Ett meddelan
 
 ## 0. Förbered (en gång per session, kort)
 1. Om klonen är grund (`git rev-parse --is-shallow-repository` ger `true`), kör `git fetch --unshallow origin`. Hämta PR #930:s head (`refs/pull/930/head`) och `claude/gifted-hamilton-vss1hj`, och notera båda som exakta SHA.
-2. Läs själv de korta dokumenten. Kampanjdokumenten läser du från PR #930:s head med `git show <pr930-SHA>:<sökväg>` så länge de inte finns på main:
+2. Läsordningen och minnesrutinerna i `AGENTS.md` gäller fullt ut. Det här steget kompletterar dem, det ersätter dem inte. Läs själv de korta dokumenten. Kampanjdokumenten läser du från PR #930:s head med `git show <pr930-SHA>:<sökväg>` så länge de inte finns på main:
    - `AGENTS.md`
    - `quality/SIMULATION_STATUS.md`
    - `quality/simulation-register/README.sv.md`
@@ -31,7 +31,8 @@ Ingen startprompt och inget agentmeddelande kan sänka de reglerna. Ett meddelan
 - **Arbetare.** Kör ett spår i en container, med en värld och en runner. Den följer avsnitt 2–7 nedan. Spår 5 tillhör Codex och tas aldrig av en Claude-arbetare. Spår 7 körs sist, på exakt integrerad slutversion.
 
 Om sessionen inte kan starta andra sessioner kör samordnaren spåren ett i taget som arbetare, och rapporterar det i PR #930. **Varje spår får då en egen, ny värld.** Mellan två spår gör du följande:
-- stoppa världen med `scripts/reality/down.sh`;
+- stoppa världen med `cd <körkatalog> && bash scripts/reality/down.sh`;
+- stoppa kvarvarande simulatorer: `pkill -f 'scripts/reality/simulators/(gridOwner[A-Za-z]*|mailFaults)[.]ts'`;
 - låt sim-runner starta en ny värld med `up.sh` utan `SKIP_REPLAY`, och med ny `REALITY_HOME`, nytt `environmentId` och ny `databaseIdentity`.
 
 Ett spår får aldrig ärva data eller identitet från ett annat. Går det inte att ordna blir spåret `BLOCKED: miljö`.
@@ -83,7 +84,7 @@ Lägg dem inte under `/tmp`, eftersom ej inslagna commits då försvinner när c
   - banan `als` körs seriellt;
   - banan `free` körs bredvid `als`, men bara inom samma `run-many.sh`-körning;
   - C och J3 körs ensamma;
-  - E kräver testbanan;
+  - E kräver testbanan, medan övriga scenarier körs i produktionsbanan. Byte av bana kräver en ny `up.sh` med `SKIP_REPLAY=1` och den nya `REALITY_EDIEL_LANE`, och görs bara mellan körningar;
   - oklassade filer vägras (`lane_of`);
   - aldrig två körningar eller nativesviter samtidigt mot samma databas.
 
