@@ -1013,7 +1013,7 @@ export function CreateFromOfferForm({
         </div>
       </div>
 
-      <form action={createContractFromOfferAction} className="mt-4 space-y-4">
+      <ContractEditFeedbackForm action={createContractFromOfferAction}>
         <input type="hidden" name="customer_id" value={customerId} />
         <input type="hidden" name="contract_offer_id" value={offer.id} />
 
@@ -1170,7 +1170,7 @@ export function CreateFromOfferForm({
         <button className="w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 ">
           Skapa kundavtal från mall
         </button>
-      </form>
+      </ContractEditFeedbackForm>
     </details>
   );
 }
@@ -1190,7 +1190,7 @@ export function CreateManualContractForm({
         Skapa manuellt kundavtal
       </div>
 
-      <form action={createContractAction} className="mt-4 space-y-4">
+      <ContractEditFeedbackForm action={createContractAction}>
         <input type="hidden" name="customer_id" value={customerId} />
 
         <ManualCoreFields
@@ -1218,7 +1218,7 @@ export function CreateManualContractForm({
         <button className="w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 ">
           Skapa manuellt kundavtal
         </button>
-      </form>
+      </ContractEditFeedbackForm>
     </div>
   );
 }

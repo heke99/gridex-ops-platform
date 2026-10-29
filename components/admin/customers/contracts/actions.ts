@@ -267,9 +267,6 @@ function parseCreateSigningChoice(
     signedDate: getString(formData, 'signed_date'),
     uploadedCreateStatus,
   })
-  if (!choice.ok) {
-    throw new Error(Object.values(choice.errors)[0] ?? 'Välj hur avtalet ska signeras.')
-  }
   return { choice, file }
 }
 
@@ -415,6 +412,12 @@ export async function createContractFromOfferAction(formData: FormData) {
   }
 
   const { choice: signingChoice, file: signedAgreementFile } = parseCreateSigningChoice(formData, 'pending_signature')
+  if (!signingChoice.ok) {
+    const fields = {signingMethod:'signing_method', signedAgreementFile:'signed_agreement_file', signedDate:'signed_date'}
+    const entry = Object.entries(signingChoice.errors).find(([,message]) => message)
+    return {status:'invalid' as const, message: entry?.[1] ?? 'Välj hur avtalet ska signeras.',
+      field: entry ? fields[entry[0] as keyof typeof fields] : 'signing_method'}
+  }
   const status: CustomerContractRow['status'] = signingChoice.createStatus
   const siteId = parseStringOrNull(formData.get('site_id'))
   const meteringPointId = parseStringOrNull(formData.get('metering_point_id'))
@@ -764,6 +767,7 @@ export async function createContractFromOfferAction(formData: FormData) {
     choice: signingChoice,
     file: signedAgreementFile,
   })
+  redirect(`/admin/customers/${customerId}/contracts/${contract.id}/signature`)
 }
 
 export async function createContractAction(formData: FormData) {
@@ -791,6 +795,12 @@ export async function createContractAction(formData: FormData) {
   }
 
   const { choice: signingChoice, file: signedAgreementFile } = parseCreateSigningChoice(formData, 'draft')
+  if (!signingChoice.ok) {
+    const fields = {signingMethod:'signing_method', signedAgreementFile:'signed_agreement_file', signedDate:'signed_date'}
+    const entry = Object.entries(signingChoice.errors).find(([,message]) => message)
+    return {status:'invalid' as const, message: entry?.[1] ?? 'Välj hur avtalet ska signeras.',
+      field: entry ? fields[entry[0] as keyof typeof fields] : 'signing_method'}
+  }
   const status: CustomerContractRow['status'] = signingChoice.createStatus
   const siteId = parseStringOrNull(formData.get('site_id'))
   const meteringPointId = parseStringOrNull(formData.get('metering_point_id'))
@@ -951,6 +961,7 @@ export async function createContractAction(formData: FormData) {
     choice: signingChoice,
     file: signedAgreementFile,
   })
+  redirect(`/admin/customers/${customerId}/contracts/${contract.id}/signature`)
 }
 
 export async function updateContractAction(formData: FormData) {
