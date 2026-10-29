@@ -25,7 +25,10 @@ Ingen startprompt och inget agentmeddelande kan sänka de reglerna. Ett meddelan
 ## 1. Två roller
 - **Samordnare.** Det här är Claude-prompten i `PROMPTS.sv.md`, med ansvar för sex spår. Samordnaren kör ingen värld själv. Den gör följande:
   - rapporterar först PR-head, egen session, planerade arbetsgrenar, miljöer och claims, och markerar det som saknas som PENDING eller BLOCKED;
-  - startar en **arbetarsession per spår**, som en egen session med egen container, när kapaciteten räcker och beroendena tillåter: spår 1, 2, 3 och fristående behörighetsfall först, spår 4 och 6 efter sina underlag, och spår 7 sist;
+  - startar en **arbetarsession per spår**, som en egen session med egen container, när kapaciteten räcker och beroendena tillåter:
+    - spår 1, 2, 3 och fristående behörighetsfall först;
+    - spår 4 och 6 efter sina underlag. De skapar sina egna kvalificerade underlag, till exempel godkända snapshots, i sin egen databas och hämtar dem aldrig från ett annat spårs databas;
+    - spår 7 sist;
   - ger varje arbetare spårets ID-lista och den här skillen;
   - samlar arbetarnas paket och lämnar en säker sammanställning till PR #930.
 - **Arbetare.** Kör ett spår i en container, med en värld och en runner. Den följer avsnitt 2–7 nedan. Spår 5 tillhör Codex och tas aldrig av en Claude-arbetare. Spår 7 körs sist, på exakt integrerad slutversion.
@@ -60,11 +63,14 @@ Spårnumren här är de logiska numren i registret (1–7). `PROMPTS.sv.md` numr
 | Granska rättningar och PASS-paket | `sim-reviewer` (alltid en ny instans) | stark |
 | Klassa fel, prioritera, besluta, slå in commits, sätta `state`, status i PR #930, överlämningar | arbetarsessionen själv | stark |
 
+**Filclaims före skrivning.** Innan en builder eller fixer får skriva i en fil, även en ny migration eller en fil som upptäcks under arbetet, reserverar du filen atomiskt enligt protokollet. Claimverktyget kräver en ren worktree på exakt aktuell main. Går reservationen inte igenom får agenten inte skriva, och svaret blir `BLOCKED: överlämning krävs`. Spår 1 (MAIN04.04) och spår 4 (BILLNEG01.02) rör samma approve-väg och måste samordnas via claims.
+
 **Eskalering:** sim-builder → sim-fixer → arbetarsessionen.
 - Svarar sim-builder `ESKALERA` skickar du samma uppdrag, med dess anteckningar, till sim-fixer.
 - Svarar sim-builder eller sim-fixer `BLOCKED: överlämning krävs` begär du överlämning enligt protokollet och går vidare med annat.
 - Svarar sim-fixer `RÄTTAD-VÄNTAR-GEN` begär du att den befintliga GEN-ägaren fångar manifest, typer och `schema.sql`, enligt protokollet och i PR #930. Ingen session eller agent skriver de filerna själv.
-  - **Medan fångsten väntar** får sim-runner applicera migrationen i världen, om du i uppdraget anger den som `väntar GEN-fångst`. Utfallet blir då högst `PARTIAL`.
+  - **Medan fångsten väntar** får sim-runner applicera migrationen i den världen som redan kör, om du i uppdraget anger den som `väntar GEN-fångst`. Utfallet blir då högst `PARTIAL`.
+  - En **ny replay** av en HEAD med migrationer som inte är registrerade går inte. Clean-replay kräver checksummepinnade källor. En sådan replay blir därför `BLOCKED: väntar GEN-fångst`.
   - **När GEN-ägarens fångst har landat** på main slår du in den på spårets gren. Då ska `db:migrations:integrity` vara grön igen.
 - Svarar sim-fixer `BLOCKED: finance-samordning` tar du upp den relevanta finance-patchen med finance-ägaren i PR #930. Granska den exakta patchen och föreslå adoption. Skriv inte en parallell version.
 - Fynd numreras enligt `REPORTING.sv.md` (`<campaign>/<worker>/<löpnummer>`), inte med egna F- eller T-nummer.
