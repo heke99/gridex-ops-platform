@@ -1,0 +1,50 @@
+{
+  "scenarioId": "MAIN03.04",
+  "workerId": "claude-track1",
+  "model": "Claude",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "overlayRefs": [
+    {
+      "kind": "harness",
+      "branch": "claude/sim-20261029-track1",
+      "commit": "f7a22f82",
+      "path": "scripts/simulation/track1/"
+    }
+  ],
+  "environmentId": "t1-20261029T201808Z-6576e10a",
+  "databaseIdentity": "t1-20261029T201808Z-6576e10a/pg-sysid-7702186716638527527",
+  "schemaHash": {
+    "fingerprint": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+    "scope": "partial identity: selected tables only (scripts/gridex-aud-003-schema-fingerprint.sql)",
+    "replayBase": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+    "postReplayAppliedMigrations": 0
+  },
+  "clockModel": "Real wall clock for Auth/JWT and DB now(); business period February 2027 (Europe/Stockholm) lies in the future relative to now() and is carried only by fixture data; no clock manipulation.",
+  "startedAtUtc": "2026-10-29T20:29:04Z",
+  "heartbeatAtUtc": "2026-10-29T20:30:49+00:00",
+  "state": "RUNNING",
+  "executionScope": "ISOLATED_NATIVE",
+  "commands": [
+    "scripts/simulation/track1/run.sh scripts/simulation/track1/scenarios/main03.test.ts main03"
+  ],
+  "evidenceRefs": [
+    {
+      "attempt": 1,
+      "run": "20261029T202904Z-main03",
+      "exit": 1,
+      "privateLocation": "SIM_HOME/t1-20261029T201808Z-6576e10a/runs/20261029T202904Z-main03",
+      "report.json": "8ea9ec12b093544ce615c115b9d445691924bb3ac044ff365515f3d4888d7f22",
+      "run.log": "e052c9fd2288cb62a407f57aca483bfdb73a0a42eb0bdacd5ef4bafd4fdcb056",
+      "run-meta.json": "60c1c259bf3967b99635647deb941d84d38cf663f0d879e8ec2266b7e11edc35",
+      "stack.json": "27bdd4f40c81db00b97e3333ae97671f63d8599530ca6a483ef0d4334a2f8a92",
+      "outcome": "fixture aborted before any scenario step (5/5 skipped)"
+    }
+  ],
+  "findingsIds": [
+    "20261029-3f1a8ab1/claude-track1/004"
+  ],
+  "blocker": "Fixture: supply period from PRODAT Z04a has contract_id null (finding 004, under diagnosis by sim-fixer)",
+  "nextAction": "Apply reviewed fixture fix, re-run main03.test.ts as a whole file",
+  "cleanupReceipt": null
+}

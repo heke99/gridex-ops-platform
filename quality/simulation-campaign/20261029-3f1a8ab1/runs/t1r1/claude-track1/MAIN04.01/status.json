@@ -1,0 +1,34 @@
+{
+  "scenarioId": "MAIN04.01",
+  "workerId": "claude-track1",
+  "model": "Claude",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "overlayRefs": [
+    {
+      "kind": "harness",
+      "branch": "claude/sim-20261029-track1",
+      "commit": "f7a22f82",
+      "path": "scripts/simulation/track1/"
+    }
+  ],
+  "environmentId": "t1-20261029T201808Z-6576e10a",
+  "databaseIdentity": "t1-20261029T201808Z-6576e10a/pg-sysid-7702186716638527527",
+  "schemaHash": {
+    "fingerprint": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+    "scope": "partial identity: selected tables only (scripts/gridex-aud-003-schema-fingerprint.sql)",
+    "replayBase": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+    "postReplayAppliedMigrations": 0
+  },
+  "clockModel": "Real wall clock for Auth/JWT and DB now(); business period February 2027 (Europe/Stockholm) lies in the future relative to now() and is carried only by fixture data; no clock manipulation.",
+  "startedAtUtc": null,
+  "heartbeatAtUtc": "2026-10-29T20:30:49+00:00",
+  "state": "NOT_RUN",
+  "executionScope": null,
+  "commands": [],
+  "evidenceRefs": [],
+  "findingsIds": [],
+  "blocker": "Needs saved MAIN03 underlay in this DB",
+  "nextAction": "Scenario main04.test.ts being written; run after MAIN03 passes",
+  "cleanupReceipt": null
+}
