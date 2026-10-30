@@ -5,22 +5,26 @@ Appcommit och baslinje `1c0c088cb4ed66d0dd8b3e34c9606019342a1a56`; overlay endas
 (gren `claude/sim-20261029-track3`). Miljö `t3-vm-20261029`: lokal Supabase (CLI 2.101.0, PG 17.6,
 system_identifier 7702183760217968679), Node 22.22.0, egen loopback-CA, lokal SMTP/IMAP-motpart. Ingen extern trafik.
 Schemafingeravtryck (delidentitet) `5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c`; inga
-tillagda migrationer (`applied-migrations.tsv` tom).
+tillagda migrationer (`applied-migrations.tsv` tom) fram till 2026-10-30T14:44Z; därefter är migration
+`20261030130400` (PR #949@49a60a1e, fynd 005) applicerad i stacken som "väntar GEN-fångst" – körningar efter det ger högst PARTIAL.
 
 | Fynd | Kategori / allvar | Scenario-ID | Status |
 |---|---|---|---|
-| 001 | produktfel / kritisk | EDIEL01.01, EDIEL02.* (inbound) | rättat-väntar-omtest (PR #942); dubblett: track4/3 |
+| 001 | produktfel / kritisk | EDIEL01.01, EDIEL02.* (inbound) | rättat, mergad till main (PR #942, 6454d540); omtest efter ny bas; dubblett: track4/3 |
 | 002 | produktfel / hög | EDIEL01.01, EDIEL02.* (inbound) | rättat-väntar-omtest (PR #943) |
 | 003 | schema/kod-avvikelse / medel | EDIEL01.* (inbound-poll) | styrkt; väntar beslut väg (a)/(b) |
 | 004 | produktfel / hög | EDIEL01.01, EDIEL02.06 | rättat-väntar-omtest (PR #945); inkl. track4/2 |
-| 005 | prestanda → fel utfall / hög | EDIEL02.*, EDIEL03.03, EDIEL03.04 | styrkt; rättning förbereds lokalt, väntar beslut |
+| 005 | prestanda → fel utfall / hög | EDIEL02.*, EDIEL03.03, EDIEL03.04, EDIEL01.01–.03 (N=28) | rättat-väntar-GEN (PR #949, två APPROVE) |
 | 006 | produktfel (observerat mot orakel) | EDIEL03.01, EDIEL03.02 | observerat i officiell körning; EDIEL03.02 = FAIL; grundorsak ej styrkt |
 | 007 | obekräftad kandidat | EDIEL03.04 | observerat, ej styrkt |
-| 008 | obekräftad kandidat | EDIEL01.01, EDIEL02.* | observerat, ej styrkt |
+| 008 | produktfel / hög | EDIEL01.01, EDIEL02.* | observerat i officiella körningar; = T4 track4/4, ägs av T3 (rättning efter #945) |
 | 009 | obekräftad kandidat | EDIEL02.06 | observerat (finns på main), ej styrkt |
 | 010 | testharness/miljö-kandidat | – (CI på PR #942) | omkörning pågår |
 | 011 | obekräftad kandidat | EDIEL03.03 | kodläsning, ej styrkt |
 | 012 | obekräftad kandidat | EDIEL01/02 (inbound) | observerat, ej styrkt |
+| 013 | avfärdat (avsiktlig deadline-logik) | EDIEL01.06 | se nedan |
+| 014 | produktfel (säkerhet) / medel | EDIEL01.04 | observerat i officiell körning; EDIEL01.04 = FAIL |
+| 015 | ej fel (observation) | EDIEL01.05 | – |
 
 ## 20261029-3f1a8ab1/claude-track3/001 – IMAP-pollern kör kommandon inne i öppen FETCH
 - 2026-10-29, produktfel, kritisk. `lib/inbound-mail/edielMailboxPoller.part-2.ts:425,430,447`: `messageFlagsAdd`
@@ -86,8 +90,23 @@ tillagda migrationer (`applied-migrations.tsv` tom).
 ## …/012 – pollern tappar feltext (kandidat)
 - `autoProcessErrors` rapporterar "Okänt fel" i stället för PostgREST-felet.
 
+## …/013 – äldre outbound_requests-rad ändras av kedjan
+- 2026-10-30. EDIEL01.06: en seedad äldre `outbound_requests`-rad med status `sent` utan kvittens får `waiting_attention`
+  och `failure_reason` "Ediel-kvittens saknas" (radhash före/efter olika) när motorn kör. Observerat i körningarna
+  20261030T144355Z-6ab491 (bas, N=2) och 20261030T144535Z-8b8258 (N=28). Designoraklet kräver oförändrade äldre köposter.
+  AVFÄRDAT efter oberoende granskning: `checkAckDeadlines` flyttar avsiktligt en skickad begäran utan kvittens efter
+  deadline till `waiting_attention`; Ediel-kedjans äldre poster var oförändrade. Raden var seedad med rå SQL.
+
+## …/014 – IMAP kan köras i klartext
+- `lib/inbound-mail/edielMailboxPoller.part-2.ts:358`: `imap_secure=false` tillåts på valfri port utom 993 utan krav på
+  STARTTLS. Observerat i körning 20261030T144355Z-6ab491: pollern loggade in och hämtade i klartext (fetched 1, stored 1).
+  Strider mot EDIEL01.04 "strikt TLS". Produktionsbanan ej prövad.
+
+## …/015 – provider_result.messageId skiljer sig från Message-ID-huvudet (ej fel)
+- Observerat i EDIEL01.05: `provider_result.messageId` ≠ trådens Message-ID; `binding.rfcMessageId` stämmer med huvudet.
+
 ## Miljöhändelser
-- Containeromstart ~2026-10-30T11:5xZ; dockerd och stack återstartade 12:09–12:12Z; databasidentitet oförändrad.
+- Containeromstarter ~2026-10-30T11:5xZ och ~14:3xZ (app ombyggd 14:38–14:42Z på e65a6721); dockerd och stack återstartade 12:09–12:12Z; databasidentitet oförändrad.
 - `next build` dödades två gånger (OOM) när andra agenter körde typkontroll parallellt; lyckades med 4 GB heap 12:12Z.
 - `ALTER ROLE authenticator SET jit=off` sattes under felsökning och återställdes (`RESET jit`) före officiella körningar.
 - ECR gav "Data limit exceeded"; Supabase-images från Docker Hub med samma taggar. Replayens `supabase stop` neutraliserad

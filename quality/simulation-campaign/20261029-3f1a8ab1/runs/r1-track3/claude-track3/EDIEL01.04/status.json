@@ -1,0 +1,534 @@
+{
+  "scenarioId": "EDIEL01.04",
+  "workerId": "claude-track3",
+  "model": "claude-opus-5-5 (orchestrator) / sonnet (runner)",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appBuildRef": "e65a6721f (= bas + endast harness/paket)",
+  "overlayRefs": [
+    {
+      "kind": "harness",
+      "commit": "b32af2d35",
+      "paths": [
+        "scripts/simulation/track3/**"
+      ]
+    }
+  ],
+  "environmentId": "t3-vm-20261029",
+  "databaseIdentity": "pg-sysid-7702183760217968679@127.0.0.1:54322/postgres",
+  "schemaHash": {
+    "fingerprintSha256": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+    "partialIdentity": true,
+    "note": "Delidentitet: täcker bara utvalda tabeller; före migrationen",
+    "appliedMigrationsTsvSha256_nu": "0050fae361912d0ddbf4a8c81b4a7e34c3f829405fa39d4ea48dafd201ce4554",
+    "appliedMigrationsTsvNote": "A: tom fil enligt uppdraget (sha256 e3b0c442...b855); B: en rad, se appliedMigrations"
+  },
+  "clockModel": {
+    "authClock": "DB now()",
+    "businessTime": "checkAckDeadlines({now}) med injicerad tid (due-11/-9/-4/+1)",
+    "note": "Auth-klocka och affärstid redovisade var för sig"
+  },
+  "nodeVersion": "v22.22.0",
+  "pgVersion": "17.6",
+  "executionScope": "ISOLATED_NATIVE",
+  "runs": [
+    {
+      "run": "A",
+      "runId": "20261030T144355Z-6ab491",
+      "exit": 1,
+      "passed": 15,
+      "failed": 3,
+      "skipped": 0,
+      "startedAt": "2026-10-30T14:43:55Z",
+      "endedAt": "2026-10-30T14:45:17Z",
+      "reportPath": "/home/user/sim-home/track3/runs/20261030T144355Z-6ab491/ediel01/report.json",
+      "reportSha256": "70f165772d032271f35ddff1ce7bda41f9cc2776de198d20b168c5af50509a21",
+      "logPath": "/home/user/sim-home/track3/runs/20261030T144355Z-6ab491/ediel01/log.txt",
+      "logSha256": "5685f49312abf35e9e5cc23b98a79cc0ef0d7e493b2587fbe0510b9e9da350cb",
+      "manifestPath": "/home/user/sim-home/track3/evidence/20261030T144355Z-6ab491/ediel01/MANIFEST.sha256",
+      "manifestSha256": "9de546ce41b56c7670a7c4802f1b056d4074035709cfef5854f4f0f365628f7d"
+    },
+    {
+      "run": "B",
+      "runId": "20261030T144535Z-8b8258",
+      "exit": 1,
+      "passed": 15,
+      "failed": 3,
+      "skipped": 0,
+      "startedAt": "2026-10-30T14:45:35Z",
+      "endedAt": "2026-10-30T14:49:47Z",
+      "reportPath": "/home/user/sim-home/track3/runs/20261030T144535Z-8b8258/ediel01/report.json",
+      "reportSha256": "602793a29cff49496ce93794fb5d3c2d32198961748c600dd6406113a67015a0",
+      "logPath": "/home/user/sim-home/track3/runs/20261030T144535Z-8b8258/ediel01/log.txt",
+      "logSha256": "19ee94dec507c640948d54cdf1bcf713c3213e22154a95c7d88000fe8e311700",
+      "manifestPath": "/home/user/sim-home/track3/evidence/20261030T144535Z-8b8258/ediel01/MANIFEST.sha256",
+      "manifestSha256": "76f1151c32e80913225d582ecd125bff17d8e830b5a8f7904cad8d47a264c236"
+    }
+  ],
+  "cohortSizeNote": "A=2, B=28",
+  "appliedMigrations": [
+    {
+      "run": "B",
+      "file": "20261030130400_ediel_contrl_retained_source_linear.sql",
+      "migrationId": "20261030130400",
+      "sourceRef": "PR #949@49a60a1e",
+      "sha256": "118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75",
+      "status": "väntar GEN-fångst",
+      "appliedAtUtc": "2026-10-30T14:45:35Z",
+      "tsvPath": "/home/user/sim-home/track3/applied-migrations.tsv",
+      "tsvSha256": "0050fae361912d0ddbf4a8c81b4a7e34c3f829405fa39d4ea48dafd201ce4554"
+    }
+  ],
+  "appliedMigrationsRunA": "ingen (utan migration)",
+  "originalsForTrack6": {
+    "A": {
+      "run": "A",
+      "manifestPath": "/home/user/sim-home/track3/evidence/20261030T144355Z-6ab491/ediel01/MANIFEST.sha256",
+      "manifestSha256": "9de546ce41b56c7670a7c4802f1b056d4074035709cfef5854f4f0f365628f7d",
+      "rowCount": 35,
+      "categories": {
+        "inbound E66 (.edi/.eml)": 2,
+        "outbound CONTRL": 2,
+        "outbound APERAK": 2,
+        "outbound DSO-MIME": 4,
+        "legacy": 6
+      }
+    },
+    "B": {
+      "run": "B",
+      "manifestPath": "/home/user/sim-home/track3/evidence/20261030T144535Z-8b8258/ediel01/MANIFEST.sha256",
+      "manifestSha256": "76f1151c32e80913225d582ecd125bff17d8e830b5a8f7904cad8d47a264c236",
+      "rowCount": 191,
+      "categories": {
+        "inbound E66 (.edi/.eml)": 28,
+        "outbound CONTRL": 28,
+        "outbound APERAK": 28,
+        "outbound DSO-MIME": 56,
+        "legacy": 6
+      }
+    }
+  },
+  "replacementSteps": [
+    "Aktörsväg in-process (poll/processa/drain via app-kod) i stället för HTTP-cron med aktör; HTTP-cron utan aktör loggas separat som observation.",
+    "Egen tenant 16711 (A) / 16712 (B) i stället för designens Root-kohort (T3_E01_OWN_ID).",
+    "Syntetisk historikgrund: äldre rader skapas av kodens egen väg i EDIEL01.06 pre-steg (failed CONTRL-outboxrad, arkiverad legacy-MIME permfail 554, äldre outbound_requests); ingen produktionshistorik.",
+    "SMTP-negativfall (okänd CA, klartext) kört i testprocessen med produktens sendEdielEmail och env-override i stället för via appens process; verifierar inte appens egen konfiguration."
+  ],
+  "replayCommit": "eca552636865cf0f31ca346da13907410aaad248",
+  "heartbeatAtUtc": null,
+  "durations": {
+    "A_20261030T144355Z-6ab491": {
+      "product": {
+        "imap_append": {
+          "calls": 3,
+          "totalMs": 674,
+          "maxMs": 373,
+          "allMs": [
+            373,
+            149,
+            152
+          ]
+        },
+        "imap_poll_store": {
+          "calls": 2,
+          "totalMs": 9884,
+          "maxMs": 9183,
+          "allMs": [
+            9183,
+            701
+          ]
+        },
+        "intake_queue_first_pass": {
+          "calls": 2,
+          "totalMs": 353,
+          "maxMs": 344,
+          "allMs": [
+            9,
+            344
+          ]
+        },
+        "intake_reprocess": {
+          "calls": 3,
+          "totalMs": 2176,
+          "maxMs": 1707,
+          "allMs": [
+            1707,
+            275,
+            194
+          ]
+        },
+        "intake_auto_process_engine": {
+          "calls": 2,
+          "totalMs": 9310,
+          "maxMs": 5095,
+          "allMs": [
+            5095,
+            4215
+          ]
+        },
+        "legacy_drain_permfail": {
+          "calls": 1,
+          "totalMs": 1411,
+          "maxMs": 1411,
+          "allMs": [
+            1411
+          ]
+        },
+        "imap_poll_http_cron": {
+          "calls": 1,
+          "totalMs": 31096,
+          "maxMs": 31096,
+          "allMs": [
+            31096
+          ]
+        },
+        "outbox_drain_http": {
+          "calls": 2,
+          "totalMs": 3355,
+          "maxMs": 1895,
+          "allMs": [
+            1895,
+            1460
+          ]
+        },
+        "process_inbound_edi_message": {
+          "calls": 2,
+          "totalMs": 4769,
+          "maxMs": 2487,
+          "allMs": [
+            2487,
+            2282
+          ]
+        },
+        "native_enqueue_orchestrator": {
+          "calls": 2,
+          "totalMs": 373,
+          "maxMs": 196,
+          "allMs": [
+            177,
+            196
+          ]
+        },
+        "imap_poll_unknown_ca": {
+          "calls": 1,
+          "totalMs": 73,
+          "maxMs": 73,
+          "allMs": [
+            73
+          ]
+        },
+        "imap_poll_plaintext": {
+          "calls": 1,
+          "totalMs": 514,
+          "maxMs": 514,
+          "allMs": [
+            514
+          ]
+        }
+      },
+      "harness": {}
+    },
+    "B_20261030T144535Z-8b8258": {
+      "product": {
+        "imap_append": {
+          "calls": 29,
+          "totalMs": 4377,
+          "maxMs": 159,
+          "allMs": [
+            154,
+            156,
+            151,
+            151,
+            151,
+            155,
+            159,
+            146,
+            153,
+            154,
+            151,
+            148,
+            146,
+            146,
+            148,
+            154,
+            146,
+            155,
+            154,
+            149,
+            147,
+            159,
+            150,
+            150,
+            149,
+            149,
+            147,
+            151,
+            148
+          ]
+        },
+        "imap_poll_store": {
+          "calls": 2,
+          "totalMs": 9378,
+          "maxMs": 8082,
+          "allMs": [
+            8082,
+            1296
+          ]
+        },
+        "intake_queue_first_pass": {
+          "calls": 2,
+          "totalMs": 3839,
+          "maxMs": 3829,
+          "allMs": [
+            10,
+            3829
+          ]
+        },
+        "intake_reprocess": {
+          "calls": 29,
+          "totalMs": 5121,
+          "maxMs": 245,
+          "allMs": [
+            245,
+            201,
+            230,
+            179,
+            160,
+            150,
+            160,
+            171,
+            182,
+            235,
+            176,
+            162,
+            164,
+            160,
+            164,
+            157,
+            160,
+            211,
+            169,
+            159,
+            164,
+            179,
+            148,
+            171,
+            187,
+            164,
+            173,
+            172,
+            168
+          ]
+        },
+        "intake_auto_process_engine": {
+          "calls": 2,
+          "totalMs": 50925,
+          "maxMs": 48403,
+          "allMs": [
+            2522,
+            48403
+          ]
+        },
+        "legacy_drain_permfail": {
+          "calls": 1,
+          "totalMs": 933,
+          "maxMs": 933,
+          "allMs": [
+            933
+          ]
+        },
+        "imap_poll_http_cron": {
+          "calls": 1,
+          "totalMs": 30662,
+          "maxMs": 30662,
+          "allMs": [
+            30662
+          ]
+        },
+        "outbox_drain_http": {
+          "calls": 2,
+          "totalMs": 48629,
+          "maxMs": 31812,
+          "allMs": [
+            31812,
+            16817
+          ]
+        },
+        "process_inbound_edi_message": {
+          "calls": 28,
+          "totalMs": 60347,
+          "maxMs": 2683,
+          "allMs": [
+            2683,
+            2395,
+            2296,
+            2221,
+            2130,
+            2342,
+            2308,
+            2060,
+            1992,
+            2002,
+            2269,
+            1942,
+            2010,
+            2125,
+            2086,
+            2079,
+            2029,
+            2313,
+            2215,
+            2267,
+            2210,
+            2060,
+            2171,
+            2037,
+            1919,
+            2184,
+            2127,
+            1875
+          ]
+        },
+        "native_enqueue_orchestrator": {
+          "calls": 28,
+          "totalMs": 5213,
+          "maxMs": 224,
+          "allMs": [
+            185,
+            181,
+            190,
+            215,
+            217,
+            174,
+            180,
+            208,
+            168,
+            158,
+            207,
+            220,
+            224,
+            189,
+            220,
+            176,
+            207,
+            176,
+            204,
+            179,
+            150,
+            175,
+            170,
+            169,
+            184,
+            174,
+            156,
+            157
+          ]
+        },
+        "imap_poll_unknown_ca": {
+          "calls": 1,
+          "totalMs": 70,
+          "maxMs": 70,
+          "allMs": [
+            70
+          ]
+        },
+        "imap_poll_plaintext": {
+          "calls": 1,
+          "totalMs": 525,
+          "maxMs": 525,
+          "allMs": [
+            525
+          ]
+        }
+      },
+      "harness": {}
+    }
+  },
+  "runDirectoryClean": {
+    "head": "b32af2d35",
+    "trackedChanges": "none (git status --porcelain: endast ospårad quality/simulation-campaign/)",
+    "note": "FINDINGS.md uppdaterades efter körningarna (paketfil, ej harness/app)"
+  },
+  "cleanupReceipt": {
+    "note": "containeromstarter 2026-10-30 ~11:5xZ och ~14:3xZ, stack återstartad med samma DB-identitet, app ombyggd 14:38–14:42Z"
+  },
+  "nativeMode": null,
+  "state": "FAIL",
+  "runnerObservedState": "EXIT_1",
+  "command": "SIM_HOME=/home/user/sim-home/track3 T3_E01_N=2 T3_E01_OWN_ID=16711 bash scripts/simulation/track3/run.sh scenarios/ediel01.test.ts (run A); ...T3_E01_N=28 T3_E01_OWN_ID=16712 (run B)",
+  "flags": "SIM_HOME=/home/user/sim-home/track3; ingen SKIP_BUILD/SKIP_REPLAY; inga -t",
+  "cohortSize": {
+    "A": 2,
+    "B": 28
+  },
+  "findingsIds": [
+    "20261029-3f1a8ab1/claude-track3/014"
+  ],
+  "candidateFindings": [
+    ".../014"
+  ],
+  "candidateNote": "IMAP tillåter imap_secure=false, lib/inbound-mail/edielMailboxPoller.part-2.ts:358; ej prövat mot produktionsbanan",
+  "observed": "positivt TLS mot egen CA; okänd CA ger certfel för SMTP och IMAP; klartext/STARTTLS-nedgradering nekas",
+  "blocker": "väntar sim-reviewer",
+  "evidenceBasis": "A",
+  "review": {
+    "reviewer": "sim-reviewer (ny oberoende instans)",
+    "at": "2026-10-30T15:05Z",
+    "verdict": "CHANGES_REQUESTED → FAIL tillämpat"
+  },
+  "steps": [
+    {
+      "run": "A",
+      "name": "EDIEL01.04 TLS över egen CA; certfel mot okänd CA; ingen klartext EDIEL01.04 positivt: all trafik SMTP/IMAP gick över TLS >= 1.2 med egen CA (versioner loggas)",
+      "status": "passed",
+      "firstError": null
+    },
+    {
+      "run": "A",
+      "name": "EDIEL01.04 TLS över egen CA; certfel mot okänd CA; ingen klartext EDIEL01.04 negativt SMTP: okänd CA och klartext/STARTTLS-lös motpart -> sändningen faller och ingen mejlkommando går i klartext",
+      "status": "passed",
+      "firstError": null
+    },
+    {
+      "run": "A",
+      "name": "EDIEL01.04 TLS över egen CA; certfel mot okänd CA; ingen klartext EDIEL01.04 negativt IMAP: poll mot server med okänd CA nekas utan att inloggningsuppgifter skickas; imap_secure=false-banan loggas",
+      "status": "passed",
+      "firstError": null
+    },
+    {
+      "run": "B",
+      "name": "EDIEL01.04 TLS över egen CA; certfel mot okänd CA; ingen klartext EDIEL01.04 positivt: all trafik SMTP/IMAP gick över TLS >= 1.2 med egen CA (versioner loggas)",
+      "status": "passed",
+      "firstError": null
+    },
+    {
+      "run": "B",
+      "name": "EDIEL01.04 TLS över egen CA; certfel mot okänd CA; ingen klartext EDIEL01.04 negativt SMTP: okänd CA och klartext/STARTTLS-lös motpart -> sändningen faller och ingen mejlkommando går i klartext",
+      "status": "passed",
+      "firstError": null
+    },
+    {
+      "run": "B",
+      "name": "EDIEL01.04 TLS över egen CA; certfel mot okänd CA; ingen klartext EDIEL01.04 negativt IMAP: poll mot server med okänd CA nekas utan att inloggningsuppgifter skickas; imap_secure=false-banan loggas",
+      "status": "passed",
+      "firstError": null
+    }
+  ],
+  "evidenceRefs": {
+    "A": {
+      "report": "/home/user/sim-home/track3/runs/20261030T144355Z-6ab491/ediel01/report.json",
+      "reportSha256": "70f165772d032271f35ddff1ce7bda41f9cc2776de198d20b168c5af50509a21",
+      "manifest": "/home/user/sim-home/track3/evidence/20261030T144355Z-6ab491/ediel01/MANIFEST.sha256",
+      "manifestSha256": "9de546ce41b56c7670a7c4802f1b056d4074035709cfef5854f4f0f365628f7d"
+    },
+    "B": {
+      "report": "/home/user/sim-home/track3/runs/20261030T144535Z-8b8258/ediel01/report.json",
+      "reportSha256": "602793a29cff49496ce93794fb5d3c2d32198961748c600dd6406113a67015a0",
+      "manifest": "/home/user/sim-home/track3/evidence/20261030T144535Z-8b8258/ediel01/MANIFEST.sha256",
+      "manifestSha256": "76f1151c32e80913225d582ecd125bff17d8e830b5a8f7904cad8d47a264c236"
+    }
+  },
+  "nextAction": "Väntar sim-reviewer före PASS-status",
+  "replayNote": "= 1c0c088c + endast scripts/simulation/track3; schema = basens (clean replay 2026-10-29)",
+  "failure": "SMTP uppfyller oraklet (TLS mot egen CA; okänd CA och klartext/STARTTLS-nedgradering nekas, 0 applikationsbytes). IMAP uppfyller inte \"strikt TLS\": med imap_secure=false loggade produktens poller in och hämtade i klartext (evidens tls/imap-plaintext-observation.json: fetched 1, stored 1). Positivt IMAP-fall prövat endast med harnessens tlsHandshake, inte appens anslutning."
+}
