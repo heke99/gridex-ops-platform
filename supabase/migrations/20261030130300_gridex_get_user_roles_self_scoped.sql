@@ -13,11 +13,23 @@
 --
 -- The function answers only for the caller's own user id, or for service_role
 -- (server-side owners that check their own authorisation). Any other request
--- returns no rows. Every session caller above passes its own user id; the
--- service-role callers are unchanged. The result shape matches what all
--- callers already parse (role_key/key/code/name rows) and includes active
--- platform admin_users roles, as the 20260525 definition did.
+-- returns no rows. proxy.ts and app/dashboard pass the session's own user id;
+-- lib/rbac/getUserPermissions.ts can be called for a viewed user (admin user
+-- page), where the role fallback now returns no rows instead of another user's
+-- roles. The service-role callers are unchanged. The result shape matches what
+-- all callers already parse (role_key/key/code/name rows).
+--
+-- proxy.ts admits /admin/platform when a returned role is platform_admin or
+-- super_admin. A platform role is therefore returned only when
+-- canonical_actor_is_platform_admin() agrees (active admin_users grant or global
+-- user_roles row, active profile); company-scoped rows and free-text membership
+-- roles never yield one. Inactive roles are excluded.
+--
+-- The legacy debug view gridex_debug_batch2_rbac_v depends on the legacy
+-- function and exposes membership data with owner rights; no code reads it.
+-- It is dropped so the replacement also applies on legacy databases.
 
+drop view if exists public.gridex_debug_batch2_rbac_v;
 drop function if exists public.gridex_get_user_roles(uuid);
 
 create function public.gridex_get_user_roles(p_user_id uuid)
@@ -43,6 +55,7 @@ as $$
     left join public.roles r on r.id = ur.role_id
     where coalesce(ur.is_active, true)
       and coalesce(ur.status, 'active') = 'active'
+      and (r.id is null or coalesce(r.is_active, true))
     union
     select coalesce(nullif(cm.role_key, ''), nullif(cm.membership_role::text, ''), nullif(cm.role, '')),
            coalesce(nullif(cm.role_key, ''), nullif(cm.membership_role::text, ''), nullif(cm.role, ''))
@@ -51,14 +64,19 @@ as $$
     where coalesce(cm.is_active, true)
       and coalesce(cm.status, 'active') = 'active'
     union
-    select lower(nullif(au.role, '')), lower(nullif(au.role, ''))
+    select public.gridex_normalize_platform_role(nullif(au.role, '')),
+           public.gridex_normalize_platform_role(nullif(au.role, ''))
     from public.admin_users au
     join allowed a on a.user_id = au.user_id
     where coalesce(au.is_active, true)
   )
   select role_key, role_key, role_key, coalesce(role_name, role_key)
   from roles
-  where role_key is not null;
+  where role_key is not null
+    and (
+      public.gridex_normalize_platform_role(role_key) not in ('super_admin', 'platform_admin')
+      or public.canonical_actor_is_platform_admin(p_user_id)
+    );
 $$;
 
 revoke all on function public.gridex_get_user_roles(uuid) from public, anon;

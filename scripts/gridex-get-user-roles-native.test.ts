@@ -32,19 +32,26 @@ async function session(u:User){
 }
 const keys=(rows:unknown)=>((rows??[]) as {role_key:string}[]).map(r=>r.role_key).sort()
 
-let member:User,platform:User,other:User,company=''
+let member:User,platform:User,other:User,scoped:User,company='',company2=''
 const roleKey=`native_roles_${randomUUID().slice(0,8)}`
 beforeAll(async()=>{
- member=await user('member');platform=await user('platform');other=await user('other')
- company=randomUUID()
+ member=await user('member');platform=await user('platform');other=await user('other');scoped=await user('scoped')
+ company=randomUUID();company2=randomUUID()
  sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(company)},'Synthetic roles company','active');
   INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,is_active,accepted_at,joined_at,role,role_key)
    VALUES(${literal(company)},${literal(member.id)},'company_admin','active',true,now(),now(),'company_admin','company_admin');
   WITH r AS (INSERT INTO public.roles(id,key,name,scope) VALUES(gen_random_uuid(),${literal(roleKey)},'Synthetic role','company') RETURNING id)
   INSERT INTO public.user_roles(user_id,company_id,role_id,role,status,is_active) SELECT ${literal(member.id)},${literal(company)},id,${literal(roleKey)},'active',true FROM r;
-  INSERT INTO public.admin_users(user_id,role,is_active) VALUES(${literal(platform.id)},'platform_admin',true);`)
+  INSERT INTO public.admin_users(user_id,role,is_active) VALUES(${literal(platform.id)},'superadmin',true);
+  -- A platform-like key that is not a platform grant (free-text membership role;
+  -- company-scoped platform user_roles rows are refused by a trigger), plus an inactive role.
+  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,is_active,accepted_at,joined_at,role,role_key)
+   VALUES(${literal(company)},${literal(scoped.id)},'company_admin','active',true,now(),now(),'platform_admin','platform_admin');
+  INSERT INTO public.user_roles(user_id,company_id,role,status,is_active) VALUES(${literal(scoped.id)},${literal(company)},'billing','active',true);
+  WITH r AS (INSERT INTO public.roles(id,key,name,scope,is_active) VALUES(gen_random_uuid(),${literal(`${roleKey}_off`)},'Inactive role','company',false) RETURNING id)
+  INSERT INTO public.user_roles(user_id,company_id,role_id,role,status,is_active) SELECT ${literal(scoped.id)},${literal(company2)},id,${literal(`${roleKey}_off`)},'active',true FROM r;`)
 })
-afterAll(async()=>{for(const u of [member,platform,other])await supabaseService.auth.admin.deleteUser(u.id).catch(()=>undefined)})
+afterAll(async()=>{for(const u of [member,platform,other,scoped])await supabaseService.auth.admin.deleteUser(u.id).catch(()=>undefined)})
 
 it('returns the calling user\'s own roles, including platform admin_users roles',async()=>{
  const own=await (await session(member)).rpc('gridex_get_user_roles',{p_user_id:member.id})
@@ -52,7 +59,23 @@ it('returns the calling user\'s own roles, including platform admin_users roles'
  expect(keys(own.data)).toEqual(['company_admin',roleKey].sort())
  const admin=await (await session(platform)).rpc('gridex_get_user_roles',{p_user_id:platform.id})
  expect(admin.error).toBeNull()
- expect(keys(admin.data)).toEqual(['platform_admin'])
+ expect(keys(admin.data)).toEqual(['super_admin'])
+})
+
+it('returns no platform role from membership text, and skips inactive roles',async()=>{
+ const own=await (await session(scoped)).rpc('gridex_get_user_roles',{p_user_id:scoped.id})
+ expect(own.error).toBeNull()
+ expect(keys(own.data)).toEqual(['billing'])
+ const viaService=await supabaseService.rpc('gridex_get_user_roles',{p_user_id:scoped.id})
+ expect(keys(viaService.data)).toEqual(['billing'])
+})
+
+it('replaces the legacy function even where the legacy debug view depends on it',()=>{
+ sql(`CREATE OR REPLACE VIEW public.gridex_debug_batch2_rbac_v AS SELECT * FROM public.gridex_get_user_roles(NULL::uuid);`)
+ execFileSync('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1','-f',
+  'supabase/migrations/20261030130300_gridex_get_user_roles_self_scoped.sql'],{encoding:'utf8',timeout:20000})
+ expect(sql(`SELECT to_regclass('public.gridex_debug_batch2_rbac_v') IS NULL`)).toBe('t')
+ expect(sql(`SELECT to_regprocedure('public.gridex_get_user_roles(uuid)') IS NOT NULL`)).toBe('t')
 })
 
 it('returns no rows for another user\'s id',async()=>{
