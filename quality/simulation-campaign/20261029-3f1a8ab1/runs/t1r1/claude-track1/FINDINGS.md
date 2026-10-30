@@ -153,3 +153,23 @@ file cites them by path and SHA256 only.
 ## Review: MAIN03.01 and MAIN03.02 → PASS
 - Independent sim-reviewer, 2026-10-30, on run `20261030T125039Z-main03` (harness `eb16eac1`, app `1c0c088c`): both GODKÄND. Oracle from `fixtures/synthetic.ts` (no app import) asserted against DB rows; all §6 conditions met (clean run dir, build = base, fingerprint + 0 post-replay migrations, empty migration diff, 0 skipped, hashes match, ISOLATED_NATIVE). Substitutions documented; they do not remove what .01/.02 assert (month shape and source linkage), and do not verify IMAP/S-MIME, reception duplicate screening, processInboundUtiltsMessage/ACK or cron scheduling.
 - Reviewer also confirmed MAIN03.03/.04/.05 = FAIL as product finding 010 (app log 57014, trace cc1f6991…).
+
+### 007/010 update — root cause established by measurement (2026-10-30, sim-fixer, rolled-back transactions only)
+Stack `t1-20261030T120956Z-3bad2e45`, company of attempt 10 (28 UTILTS messages ≈ 6.9 kB / 406 segments each, ≈ 96 values per message, 1 supply transition). Per-function stats via `track_functions='all'` + `pg_stat_xact_user_functions` inside `BEGIN … ROLLBACK`. metering_values 2688 → 2688, billing_underlays 0 → 0 (no lasting change).
+
+| ids per `gridex_read_billing_source_values_v1` | wall | `wire_tokens_v1` calls / self | `validate_decimal_source_v2` self |
+|---|---|---|---|
+| 1 | 0.34–0.47 s | 4 / 217 ms | 65 ms |
+| 10 | 3.4–3.9 s | 40 / 2 346 ms | 680 ms |
+| 100 | 35.3 s | – | – |
+
+- Linear ≈ 0.35 s per value → a 1000-id batch ≈ 350 s, the month (2688) ≈ 940 s, against an 8 s statement timeout. `wire_tokens_v1` 69 %, `validate_decimal_source_v2` 20 % of time.
+- `gridex_set_metering_billing_gate` (1 value): 0.36–0.40 s, same profile (4 × `wire_tokens_v1`).
+- `wire_tokens_v1` alone vs payload size: 406 segments 60 ms, 812 → 283 ms, 1 624 → 909 ms (quadratic).
+- **Established causes:** (1) the same `raw_payload` is tokenised 4× per value (`stored_contract_v1` ×3, `basis_before_precision_v1` ×1), ≈ 384× per message, nothing shared across values; (2) `wire_tokens_v1` appends with `result := result || jsonb_build_array(...)` per segment, copying the array each time → O(S²); (3) `validate_decimal_source_v2` validates the whole series per value (≈ O(Q·T)).
+- **Ruled out by data here:** locks and transition scans (`lock_values_v1` ≈ 1 ms/value; `lock_graph_v1`, `retained_source_v1`, `envelope`, `supply_period_source_basis_v1` not significant). Not measured: companies with many transitions; `gridex_consume_utilts_metering_v1` (needs a full inbound payload).
+- **Versus T3/005:** same class (per-message work repeated per value), different path (`stored_contract_v1`/`basis_before_precision_v1` → `wire_tokens_v1`/`validate_decimal_source_v2`, not `retained_source_v1`/envelope), worsened by quadratic token building.
+- **Fix proposal (not implemented; owner decision pending):** (1) build `wire_tokens_v1` linearly (aggregate into an array, `to_jsonb` once); (2) group ids by `source_message_id` in `gridex_read_billing_source_values_v1` and the gate and compute tokens + contract/decimal validation once per message, passing them into token-taking variants of `stored_contract_v1`/`basis_before_precision_v1`; estimated 1000 ids over ~11 messages ≈ 350 s → ≈ 4–5 s, below 2 s with (1). The per-value gate additionally needs (1) plus a batch call or cache. Alternative: persist tokens immutably and hash-bound at ingest (needs review of immutability guards). Requires a forward migration replacing `gridex_utilts_binding.wire_tokens_v1`, `stored_contract_v1`, `gridex_billing_source.basis_before_precision_v1`, `basis_v1`, `public.gridex_read_billing_source_values_v1` → GEN queue.
+
+## MAIN04 and SITE01 — BLOCKED by finding 010
+All need a saved underlay (`generate-underlay`), which times out for any full month of 15-min data (010). Not run; scenarios committed and ready.

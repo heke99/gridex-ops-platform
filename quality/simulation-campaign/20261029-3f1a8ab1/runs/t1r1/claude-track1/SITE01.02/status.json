@@ -22,13 +22,15 @@
   },
   "clockModel": "Real wall clock for Auth/JWT and DB now(); business period February 2027 (Europe/Stockholm) lies in the future relative to now() and is carried only by fixture data; no clock manipulation.",
   "startedAtUtc": null,
-  "heartbeatAtUtc": "2026-10-29T20:30:49+00:00",
-  "state": "NOT_RUN",
+  "heartbeatAtUtc": "2026-10-30T13:54:18+00:00",
+  "state": "BLOCKED",
   "executionScope": null,
   "commands": [],
   "evidenceRefs": [],
-  "findingsIds": [],
-  "blocker": "Two-site fixture not built yet (native seed fixes one site/SE3)",
-  "nextAction": "Build own two-site fixture after MAIN03 fixture is stable",
+  "findingsIds": [
+    "20261029-3f1a8ab1/claude-track1/010"
+  ],
+  "blocker": "Product finding 20261029-3f1a8ab1/claude-track1/010: generate-underlay times out (57014) for a full 15-min month; no underlay can be saved through the normal entry point",
+  "nextAction": "Run the committed scenario after a reviewed fix for 010 is available (owner decision via coordinator)",
   "cleanupReceipt": null
 }
