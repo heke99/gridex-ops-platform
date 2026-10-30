@@ -3,7 +3,8 @@
 const runDir = process.env.RUN_DIR ?? '/root/sim/track5'
 
 export default {
-  resolve: { alias: [{ find: '@', replacement: runDir }] },
+  // 'server-only' löses som i Next serverbygge (tom markör), som i scripts/ediel-source-owner-native.config.ts @ 1c0c088c.
+  resolve: { alias: [{ find: '@', replacement: runDir }, { find: /^server-only$/, replacement: `${runDir}/node_modules/next/dist/compiled/server-only/empty.js` }] },
   test: {
     environment: 'node',
     include: ['scenarios/**/*.test.ts'],

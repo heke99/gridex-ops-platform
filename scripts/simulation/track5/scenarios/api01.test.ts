@@ -156,23 +156,7 @@ describe('API01 partner-API', () => {
     expect(cross.status, brief(cross)).toBe(404)
   })
 
-  it('API01.03 utgången POA: observation av normal ingång (orakel kräver beslut, se FINDINGS)', async () => {
-    expect(siteA1, 'kräver API01.02').toBeTruthy()
-    const obs: Record<string, unknown> = {}
-    // a) Partner-API:t har inget giltighetsfält: ett skickat valid_to i det förflutna.
-    const withExpiry = await partner(keyA, 'POST', `customer/${fixtureCustA}/site/${siteA1}/powerofattorney`, { ...poaBody('utgangen'), valid_to: '2020-01-01' })
-    obs.postWithPastValidTo = { status: withExpiry.status, body: withExpiry.text.slice(0, 300) }
-    // b) Befintlig POA görs utgången i DB (kontrollerad klocka: valid_to/expires_at i det förflutna) och läses via GET.
-    const ref = psql(`select power_of_attorney_reference from public.powers_of_attorney where customer_site_id=(select id from public.customer_sites where facility_reference='${siteA1}') and status='signed' order by created_at limit 1`)
-    psql(`update public.powers_of_attorney set valid_to = date '2020-01-01', valid_until = date '2020-01-01', expires_at = timestamptz '2020-01-01' where power_of_attorney_reference='${ref}'`)
-    const g = await partner(keyA, 'GET', `customer/${fixtureCustA}/site/${siteA1}/powerofattorney`)
-    obs.getAfterExpiry = { status: g.status, body: g.text.slice(0, 600) }
-    fs.mkdirSync(path.join(SIM_HOME, 'observations'), { recursive: true })
-    fs.writeFileSync(path.join(SIM_HOME, 'observations', 'API01.03.json'), JSON.stringify(obs, null, 2))
-    // Det som kan påstås utan beslut: läsningen är tenantbunden och läcker inte till B.
-    const gB = await partner(keyB, 'GET', `customer/${fixtureCustA}/site/${siteA1}/powerofattorney`)
-    expect(gB.status, brief(gB)).toBe(404)
-  })
+  // API01.03 prövas mot det kvalificerade oraklet i scenarios/api01-poa.test.ts.
 
   it('API01.04 samma Idempotency-Key ger samma svar och inga nya rader; ändrad payload ger 409', async () => {
     // Site-skrivning (fungerar på basen; POST customer blockeras av fynd 001 och prövas i API01.01).
