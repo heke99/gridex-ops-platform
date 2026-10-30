@@ -31,6 +31,8 @@ tillagda migrationer (`applied-migrations.tsv` tom) fram till 2026-10-30T14:44Z;
 | 019 | produktfel mot orakel / medel | EDIEL02.06 | 06a3 bekräftad |
 | 020 | ej fel (beslut) | EDIEL02.06 | manual_review synligt för operatör; stängt |
 | 022 | produktbrist / medel | EDIEL02.02, EDIEL02.03 (016, 017) | styrkt; tilldelad T3 efter 021 |
+| 023 | produktfel / medel | EDIEL02.06 (indirekt), alla outbox-utskick | KANDIDAT; väntar beslut ägare |
+| 024 | produktfel / hög | EDIEL01.01, EDIEL02.06, alla CONTRL/outbox-utskick | KANDIDAT; väntar beslut ägare |
 
 ## 20261029-3f1a8ab1/claude-track3/001 – IMAP-pollern kör kommandon inne i öppen FETCH
 - 2026-10-29, produktfel, kritisk. `lib/inbound-mail/edielMailboxPoller.part-2.ts:425,430,447`: `messageFlagsAdd`
@@ -141,6 +143,24 @@ tillagda migrationer (`applied-migrations.tsv` tom) fram till 2026-10-30T14:44Z;
   detaljsida med öppen granskning). Stängt som ej fel. Felaktiga segment och UNOC-brott (06a1/a2/b1/b2) ger
   korrekt negativ CONTRL (UCI 4) som mottas hos DSO.
 
+
+## …/023 – outbox lagrar icke-Error-undantag som `[object Object]` (KANDIDAT)
+- 2026-10-30, körningar 20261030T205248Z-098c25 och 20261030T205916Z-efabbd (ediel02-syntax 06a1).
+- `lib/ediel/outbox/sendOutboxItem.ts` ~307: undantaget görs om med `String(error)`; ett PostgREST-felobjekt blir
+  `last_error='[object Object]'` och drain-svaret `[object Object]`. Den verkliga orsaken (`PGRST116 Results contain 5 rows`)
+  syntes bara genom att anropa läsvägen direkt.
+- Bevis: outbox `92276ccd-4462-45a1-8eed-44e5c36c1120` (CONTRL `1bd09d9f-…`) `failed`, `last_error='[object Object]'`,
+  inget försök i `gridex_ediel_transport.attempts`.
+- Förslag: lagra felkod och meddelande (utan payload) för icke-Error-undantag.
+
+## …/024 – fler än en routeprofil på en route stoppar alla CONTRL-/outbox-utskick (KANDIDAT)
+- 2026-10-30, samma körningar. `lib/ediel/config.ts` ~382–394 `getEdielRouteRuntimeByCommunicationRouteId`: på
+  sändvägen (utan ackProfile) filtreras bara på `communication_route_id` och `company_id` före `.maybeSingle()`.
+  Vyn `ediel_route_runtime_v` filtrerar inte på profilens `is_active`.
+- Följd: fler än en profil på samma route, även inaktiva, ger `PGRST116` i `evaluateEdielRouteContract` och varje
+  CONTRL/outbox-utskick fallerar före SMTP, i stället för att välja den aktiva profilen eller ge ett tydligt konfigurationsfel.
+- Bevis: route `a80c31a3-ae18-4f35-93fe-7f4ccb810b13` med 5 profiler (4 inaktiva) gav fel; efter att de inaktiva flyttats
+  till egna rutter (harness 4c4eda839) gick körning 20261030T210357Z-83181a identiskt med referenskörningen 603e4b.
 
 ## …/022 – ingen operatörsvy för `ediel_manual_review_items`
 - 2026-10-30, granskning av 016 steg 1 (f71f93f8): inget i `app/` eller `components/` läser tabellen; enda andra
