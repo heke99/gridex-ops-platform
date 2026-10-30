@@ -12,6 +12,7 @@
 //   * reuses the env-only secret-reference + stale-lock patterns from Ediel.
 
 import { ImapFlow } from 'imapflow'
+import { resolveImapTls } from '@/lib/inbound-mail/imapTls'
 import { createHash, randomUUID } from 'node:crypto'
 import { inspectMimeStructure, mimeParameter } from '@/lib/inbound-mail/mimeStructure'
 import { binaryToBuffer, decodeTextBytes, toBinaryString } from '@/lib/inbound-mail/mimeCharset'
@@ -300,10 +301,12 @@ async function pollOneMailbox(listed: JsonRecord, workerId: string, result: Manu
   }
 
   const port = typeof mailbox.imap_port === 'number' ? mailbox.imap_port : 993
+  // IMAPS or mandatory STARTTLS; imap_secure can request IMAPS but never cleartext.
+  const imapTls = resolveImapTls({ host, port, secure: mailbox.imap_secure !== false, environment: clean(mailbox.environment) })
   const client = new ImapFlow({
     host,
     port,
-    secure: mailbox.imap_secure !== false,
+    ...imapTls,
     auth: { user: username, pass: password },
     logger: false,
     // Bounded so a stalled IMAP server fails this mailbox (recorded in

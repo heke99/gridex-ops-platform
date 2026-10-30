@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
 import { supabaseService } from "@/lib/supabase/service";
 import { isEdielReservedSender } from "@/lib/email/manualOperationsMailbox";
+import { resolveImapSecureForSave } from "@/lib/inbound-mail/imapTls";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -73,6 +74,17 @@ export async function saveManualMailboxAction(formData: FormData): Promise<void>
     const environment = value(formData, "environment") ?? "test";
     if (!ENVIRONMENTS.has(environment)) throw new Error("Ogiltig miljö.");
 
+    const imapHost = value(formData, "imap_host");
+    const imapPort = intValue(formData, "imap_port", 993);
+    // true = IMAPS, false = mandatory STARTTLS; cleartext cannot be saved.
+    const imapSecure = resolveImapSecureForSave({
+      formData,
+      host: imapHost ?? "",
+      port: imapPort,
+      secure: boolValue(formData, "imap_secure"),
+      environment,
+    });
+
     const fromEmail = value(formData, "from_email");
     if (!fromEmail || !EMAIL_RE.test(fromEmail)) throw new Error("Ange en giltig avsändaradress.");
     // The Ediel transport sender must never be reused for manual operations.
@@ -98,12 +110,12 @@ export async function saveManualMailboxAction(formData: FormData): Promise<void>
       smtp_username: value(formData, "smtp_username"),
       smtp_secret_reference: validateSecretReference(value(formData, "smtp_secret_reference")),
       smtp_secure: boolValue(formData, "smtp_secure"),
-      imap_host: value(formData, "imap_host"),
-      imap_port: intValue(formData, "imap_port", 993),
+      imap_host: imapHost,
+      imap_port: imapPort,
       imap_username: value(formData, "imap_username"),
       imap_secret_reference: validateSecretReference(value(formData, "imap_secret_reference")),
       imap_folder: value(formData, "imap_folder") ?? "INBOX",
-      imap_secure: boolValue(formData, "imap_secure"),
+      imap_secure: imapSecure,
       is_active: boolValue(formData, "is_active"),
       is_verified: boolValue(formData, "is_verified"),
       updated_by: userId,

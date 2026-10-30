@@ -1,6 +1,7 @@
 // app/api/internal/inbound-mail/cron/route.ts
 import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveConfiguredEdielAutomationActorId } from '@/lib/ediel/automationActor'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,6 +61,14 @@ export async function POST(request: NextRequest) {
   const debugForceAllowed = request.headers.get('x-gridex-internal-debug') === 'true'
   const force = debugForceAllowed && ['1', 'true', 'yes'].includes((request.nextUrl.searchParams.get('force') ?? '').toLowerCase())
 
+  let actorUserId: string
+  try {
+    actorUserId = await resolveConfiguredEdielAutomationActorId()
+  } catch (error) {
+    console.error('[inbound-mail-cron] automation actor configuration failed', error)
+    return NextResponse.json({ ok: false, error: 'Ediel-automation saknar giltig systemaktör.', code: 'ediel_automation_actor_missing' }, { status: 503 })
+  }
+
   try {
     const { runInboundEdielMailEngine } = await import('@/lib/inbound-mail/edielMailboxPoller')
     const result = await runInboundEdielMailEngine({
@@ -68,6 +77,7 @@ export async function POST(request: NextRequest) {
       force,
       sharedOnly: !mailboxId,
       allowMissingMailboxConfig: true,
+      actorUserId,
     })
     return NextResponse.json({ ok: true, result })
   } catch (error) {
