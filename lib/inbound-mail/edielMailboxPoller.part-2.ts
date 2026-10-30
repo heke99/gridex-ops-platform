@@ -1,5 +1,6 @@
 // Extracted from edielMailboxPoller.ts; keep public imports on the facade module.
 import { ImapFlow } from "imapflow"
+import { resolveImapTls } from "./imapTls"
 import { rawSourceToText } from "./mimeCharset"
 import { createHash } from "crypto"
 import { isDeliveryStatusNotification } from './dsnClassifier'
@@ -352,10 +353,17 @@ export async function pollEdielMailbox(input: {
     }
 
     const imapPort = mailbox.imap_port ?? 993;
-    const client = new ImapFlow({
+    // IMAPS or mandatory STARTTLS; metadata can request IMAPS but never cleartext.
+    const imapTls = resolveImapTls({
       host: mailbox.imap_host,
       port: imapPort,
       secure: metadataBool(mailbox, "imap_secure", imapPort === 993),
+      environment: mailbox.environment,
+    });
+    const client = new ImapFlow({
+      host: mailbox.imap_host,
+      port: imapPort,
+      ...imapTls,
       auth: {
         user: mailbox.username,
         pass: password,
