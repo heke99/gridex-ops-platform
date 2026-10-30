@@ -123,8 +123,8 @@ t6_greenmail_jar() {
   [[ "$want" == "$have" ]] || { t6_log "GreenMail-jar sha1 avviker: $have != $want" >&2; rm -f "$jar" "$jar.sha1"; return 1; }
   printf 'jar=%s\nsha1_actual=%s\nsha1_maven_central=%s\nsha256=%s\n' "$jar" "$have" "$want" "$(sha256sum "$jar" | cut -d' ' -f1)" > "$SIM_HOME/evidence/greenmail-jar-hashes.txt"
   t6_pid_alive "$pf" && return 0
-  # Bara 127.0.0.1; test-setup ger IMAP på 3143 + offset.
-  setsid nohup java -Dgreenmail.setup.test.imap -Dgreenmail.hostname=127.0.0.1 -Dgreenmail.port.offset=$((T6_IMAP_PLAIN_PORT-3143)) \
+  # Bara 127.0.0.1; imap.port/hostname ersätter test-setupen (kombination med setup.test.imap ger "imap found twice").
+  setsid nohup java -Dgreenmail.imap.hostname=127.0.0.1 -Dgreenmail.imap.port="$T6_IMAP_PLAIN_PORT" \
     "-Dgreenmail.users=${T6_IMAP_USER}:${IMAP_PASS}@${T6_MAIL_DOMAIN}" -jar "$jar" >"$LOG_DIR/greenmail-jar.log" 2>&1 &
   echo $! > "$pf"
 }
