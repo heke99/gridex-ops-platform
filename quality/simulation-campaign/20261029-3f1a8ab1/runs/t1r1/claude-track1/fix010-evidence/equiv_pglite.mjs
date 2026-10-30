@@ -1,4 +1,4 @@
-import { PGlite } from process.env.APP_DIR + '/node_modules/@electric-sql/pglite/dist/index.js';
+const { PGlite } = await import(process.env.APP_DIR + '/node_modules/@electric-sql/pglite/dist/index.js'); // APP_DIR = checkout of base 1c0c088c
 import fs from 'node:fs';
 const D=process.argv[2];
 const db=new PGlite();
@@ -8,7 +8,7 @@ await db.exec(old);
 const neu=fs.readFileSync(D+'/new_wire_tokens.sql','utf8').replace('gridex_utilts_binding.wire_tokens_v1(p_raw text)','pg_temp.wire_tokens_new(p_raw text)').replace(/REVOKE.*$/m,'');
 await db.exec(neu);
 const cases=[];
-for (const f of fs.readdirSync('${APP_DIR}/quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/canonical-observation-main-60b2c7a7')) cases.push(fs.readFileSync('${APP_DIR}/quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/canonical-observation-main-60b2c7a7/'+f,'latin1'));
+for (const f of fs.readdirSync(process.env.APP_DIR+'/quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/canonical-observation-main-60b2c7a7')) cases.push(fs.readFileSync(process.env.APP_DIR+'/quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/canonical-observation-main-60b2c7a7/'+f,'latin1'));
 const hdr="UNB+UNOC:3+7300009000001:14+7365565000001:14+261030:1200+REF1'UNH+1+UTILTS:D:02B:UN:E5SE1B'BGM+E66+DOC1+9'NAD+MS+7300009000001::9'";
 const syn=["","'","UNA:+.? '","UNA:+.? 'UNH+1'","UNA:+,? 'UNH+1+A?'B'","UNA*~.# 'UNH~1*x#~y'","UNA:+.?'","una:+.? 'UNH+1'","UNH+1","UNH+1''","  UNH+1'","UNH+1 '","UNH+1? '","UNH+1?","unh+1'","UNA'","LIN+1'".repeat(4097),"UNH+"+"x".repeat(4097)+"'","UNH"+"+a".repeat(129)+"'","UNH+"+"a:".repeat(129)+"'",
  hdr+"QTY+220:1?.5'MOA+?:?+??'UNT+5+1'UNZ+1+REF1'", "UNH+1'\r\nBGM+2'\nUNT+2'", "UNH+1'\rX'", "UNH+1+:+::+'", "UNH++++'", "?A'", "UNH+1'+'", "UNH+1':'"];
