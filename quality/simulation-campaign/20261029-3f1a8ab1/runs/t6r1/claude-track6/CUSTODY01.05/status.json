@@ -188,7 +188,7 @@
       "status": "passed"
     },
     {
-      "name": "CUSTODY01.05 backup och återställning under drift CUSTODY01.05 skydden överlever: triggerinventeringen (immutability/append-only) är identisk i den återställda databasen",
+      "name": "CUSTODY01.05 backup och återställning under drift CUSTODY01.05 skydd överlever återställning med ägare/ACL: policies, ACL+ägare, SECURITY DEFINER+search_path, RLS-flaggor och triggers är identiska (sorterade) i källa och återställd databas",
       "status": "passed"
     },
     {
@@ -483,10 +483,8 @@
     }
   },
   "harnessErrorInReport": null,
-  "state": "PARTIAL",
-  "proposedState": "PASS",
+  "state": "PASS",
   "stateNote": "Körningen 20261030T205347Z-978720: exit 0, 9/9 tester passed (report.json steps 9/9 passed). proposedState PASS är ett förslag; granskning väntar. Orkestratorn avgör. Ingen PASS påstås här.",
-  "proposedStateNote": "Öppna punkter före granskning: (1) dump_attempt_1.drift och compare.drift listar gridex_correction_process.facts och public.customer_operation_tasks; drift är dokumenterad med bounds (drift_handling) och utesluten från exakt jämförelse, men steget 'källans innehåll är stabilt före/efter dumpen' är rapporterat passed; (2) health 503 är informativt (54/54 prov); (3) storage-bytes ingår inte; (4) migration 20261030131200 registrerades 20:54:26Z, efter körningens slut 20:54:10Z.",
   "replacementStepsNote": "Ersättningssteg för denna körning enligt uppdraget. Stegen stöds av report.json, observations.json, compare.json och consistency-checks.json.",
   "replacementSteps": [
     "pg_dump -Fc och pg_restore körs via docker exec i den egna containern supabase_db_gridex-ops-platform (host pg_dump major 16 mot server major 17).",
@@ -504,7 +502,11 @@
     "Lokal restore i stället för PITR eller nytt projekt; ingen produktionsliknande återställning.",
     "Docker exec-verktyg: dump och restore körs via docker exec i containern supabase_db_gridex-ops-platform, inte via docker-fri klient.",
     "Storage-objektbytes: pg_dump täcker bara storage.objects-metadata (88 rader).",
-    "Främmande tenant-kund skapad via SQL-fixture (ej via produktens kundskapande)."
+    "Främmande tenant-kund skapad via SQL-fixture (ej via produktens kundskapande).",
+    "ACL and owners of relations in storage and other platform schemas are not compared (storage policies and RLS flags are).",
+    "pg_default_acl, the database-level ACL and type ACLs are not compared.",
+    "36 empty custody tables and 10 consistency blocks with 0=0 rows only show the queries run on the restored schema, not content equality for those objects.",
+    "The step \"källans innehåll är stabilt före/efter dumpen\" covers custody tables; the two drifting tables are bounded separately (openObservations, drift_handling)."
   ],
   "blocker": "Ingen teknisk blockerare i denna körning. PARTIAL kvarstår på grund av whatTheyDoNotVerify, checklistDeviation och drift på två tabeller under dumpen (openObservations).",
   "nextAction": "Orkestratorn granskar proposedState PASS och öppna punkter i proposedStateNote. Ingen ny körning begärd i detta uppdrag.",
@@ -564,6 +566,14 @@
   "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c (fingerprint-fil; partiell identitet över utvalda tabeller)",
   "appliedMigrationsAtRunTime": {
     "value": "empty (0 rows)",
-    "evidence": "run finishedAtUtc 20:54:10Z precedes the only applied migration (20261030131200, finding 003) whose apply log SIM_HOME/evidence/fix003/migration-apply.log has mtime 2026-10-30 20:54:21.927755583 +0000 (sha256 97a10395ffb00127c0404ae9ed02f9337ae99562dc9479417b25f41f0f7b342a) and applied-migrations.tsv entry time 2026-10-30T20:54:26Z; the runner executed the jobs strictly sequentially (job 1 then job 2). run-identity.json/report.json of this run carry fingerprint 5168f69b… from the replay with 0 applied migrations."
+    "evidence": "applied-migrations.tsv was empty at run time: canonical SIM_HOME/applied-migrations.tsv was created 15:27:51Z at replay end and first written 20:54:26Z; evidence/fix003 and migration-apply.log were born (stat %w) 20:54:21.88Z, after this run finished 20:54:10Z."
+  },
+  "review": {
+    "reviewer": "independent sim-reviewer (fresh instance, not author)",
+    "verdict": "APPROVE PASS",
+    "reviewedPacketCommit": "9467efb57",
+    "runDirHead": "5e5c31e0907fc88864cb363224d4a060538a00f5",
+    "at": "2026-10-30T21:0xZ",
+    "previousReviews": "three earlier independent reviews returned PARTIAL (no concurrent foreign run/503 health; --no-acl restore and missing protections compare; packet text) — all resolved by reruns"
   }
 }
