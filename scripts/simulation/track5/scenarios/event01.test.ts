@@ -7,9 +7,9 @@
 // Kontrollerad klocka: där backoff ska löpa ut sätts next_attempt_at = now() i DB; det är inte verklig väntan.
 import { createHmac, randomUUID } from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { psql, psqlRows, requireEnv, sim } from '../lib'
+import { psql, psqlRows, requireEnv, serviceClient, sim } from '../lib'
 import { brief, createPartnerClient, partner, type PartnerClient } from '../lib/partner'
-import { createCompany } from '../lib/t5-world'
+import { createCompany, createCustomer } from '../lib/t5-world'
 
 const ctrl = () => requireEnv('SIM_RECEIVER_CTRL_URL')
 const [HOST_A, HOST_B] = requireEnv('SIM_RECEIVER_HOSTS').split(',')
@@ -35,12 +35,7 @@ const deliveries = (subId: string) => psqlRows<Delivery>(`select id, company_id,
   round(extract(epoch from next_attempt_at - now()))::int secs_to_next
   from public.webhook_deliveries where webhook_subscription_id='${subId}' order by created_at`)
 
-const SCOPES = ['partner_webhooks.manage', 'partner_customers.write', 'customer_profile.read']
-const customerBody = (label: string) => ({
-  first_name: 'Sim', last_name: label, soc_id: '199001019802', customer_type: 'PRIVATE', invoice_address: 'Testgatan 1',
-  zip_code: '12345', city: 'Teststad', country: 'SE', email: `t5-ev-${label.toLowerCase()}-${randomUUID().slice(0, 6)}@example.invalid`, cell_phone: '0701234567',
-})
-
+const SCOPES = ['partner_webhooks.manage', 'partner_sites.write', 'customer_sites.read']
 function verifyGridexSignature(r: Received, secret: string): boolean {
   const body = Buffer.from(r.bodyBase64, 'base64').toString('utf8')
   const ts = r.headers['x-gridex-timestamp']
@@ -55,15 +50,25 @@ describe('EVENT01 webhooks', () => {
   const secretB = `simB-${randomUUID()}-${randomUUID()}`
   let subA = '', subB = '', subRetry = ''
   let eventA = ''
+  let custRefA = '', custRefB = ''
 
+  // Subscription skapas med partner-API:ts egen RPC (gridex_create_partner_webhook_subscription_v1, samma argument som
+  // lib/partner-api/core.ts createWebhook). Backendersättning: HTTP-vägen ger 500 på basen (fynd 001, steg SETUP nedan).
   async function subscribe(key: PartnerClient, host: string, name: string, secret: string): Promise<string> {
-    const r = await partner(key, 'POST', 'webhooks/subscriptions', {
-      name: `sim ${name}`, endpoint_url: `https://${host}/hook/${name}`, event_types: ['customer.created'], signing_secret: secret, description: 'sim t5',
+    const r = await serviceClient().rpc('gridex_create_partner_webhook_subscription_v1', {
+      p_company_id: key.companyId, p_api_client_id: key.id, p_name: `sim ${name}`, p_endpoint_url: `https://${host}/hook/${name}`,
+      p_event_types: ['site.created'], p_secret: secret, p_description: 'sim t5',
     })
-    expect(r.status, brief(r)).toBe(201)
+    expect(r.error, JSON.stringify(r.error)).toBeNull()
     const id = psql(`select id from public.webhook_subscriptions where company_id='${key.companyId}' and endpoint_url='https://${host}/hook/${name}'`)
     expect(id).toMatch(/^[0-9a-f-]{36}$/)
     return id
+  }
+  /** Affärshändelse via normal ingång: partner-API POST customer/{ref}/site -> site.created. */
+  async function createSite(key: PartnerClient, customerRef: string, n: number) {
+    const r = await partner(key, 'POST', `customer/${customerRef}/site`, { address: `Eventvägen ${n}`, zip_code: '12345', city: 'Teststad', country: 'SE', site_electricity_type: 'CONSUMPTION' })
+    expect(r.status, brief(r)).toBe(201)
+    return String((r.json as { entity_id: string }).entity_id)
   }
 
   beforeAll(async () => {
@@ -72,15 +77,23 @@ describe('EVENT01 webhooks', () => {
     B = createCompany('Sim T5 EVENT bolag B')
     keyA = createPartnerClient(A, SCOPES)
     keyB = createPartnerClient(B, SCOPES)
+    custRefA = psql(`select customer_reference from public.customers where id='${createCustomer(A, 'EventA')}'`)
+    custRefB = psql(`select customer_reference from public.customers where id='${createCustomer(B, 'EventB')}'`)
     // Isolering före dispatch: mottagarnamnen löser upp till test-IP:n och den nås bara via lokal DNAT.
     expect(HOST_A && HOST_B).toBeTruthy()
   }, 120_000)
 
+  it('SETUP webhook-subscription via partner-API POST webhooks/subscriptions (normal väg; fynd 001 om 500)', async () => {
+    const r = await partner(keyA, 'POST', 'webhooks/subscriptions', {
+      name: 'sim setup', endpoint_url: `https://${HOST_A}/hook/setup`, event_types: ['site.created'], signing_secret: secretA, description: 'sim t5',
+    })
+    expect(r.status, brief(r)).toBe(201)
+  })
+
   it('EVENT01.01 affärshändelse ger exakt ett korrekt signerat lokalt kvitto och leveransen blir sent', async () => {
     subA = await subscribe(keyA, HOST_A, 'a1', secretA)
     subB = await subscribe(keyB, HOST_B, 'b1', secretB)
-    const c = await partner(keyA, 'POST', 'customer', customerBody('EvA'))
-    expect(c.status, brief(c)).toBe(201)
+    const siteRef = await createSite(keyA, custRefA, 1)
     const d = await dispatch()
     expect(d.status, d.text.slice(0, 300)).toBe(200)
     const got = await received('a1')
@@ -89,13 +102,13 @@ describe('EVENT01 webhooks', () => {
     expect(r.host).toBe(HOST_A)
     expect(verifyGridexSignature(r, secretA), 'HMAC-SHA256 över ts.body med A:s secret').toBe(true)
     const [row] = deliveries(subA)
-    expect(row).toMatchObject({ company_id: A, status: 'sent', attempts: 1, response_status: 200, event_type: 'customer.created' })
+    expect(row).toMatchObject({ company_id: A, status: 'sent', attempts: 1, response_status: 200, event_type: 'site.created' })
     expect(row.request_body_hash).toBe(r.sha256)
     expect(r.headers['x-gridex-delivery-id']).toBe(row.public_delivery_id)
-    expect(r.headers['x-gridex-event-type']).toBe('customer.created')
+    expect(r.headers['x-gridex-event-type']).toBe('site.created')
     const body = JSON.parse(Buffer.from(r.bodyBase64, 'base64').toString('utf8')) as Record<string, unknown>
     expect(body.delivery_id).toBe(row.public_delivery_id)
-    expect(JSON.stringify(body)).toContain(String((c.json as { entity_id: string }).entity_id))
+    expect(JSON.stringify(body)).toContain(siteRef)
     eventA = row.domain_event_id
   })
 
@@ -165,8 +178,7 @@ describe('EVENT01 webhooks', () => {
     // Bara retry-subscriptionen ska få nästa event: pausa övriga i A via DB (dokumenterad fixtur).
     psql(`update public.webhook_subscriptions set status='paused' where company_id='${A}' and id<>'${subRetry}'`)
     await mode('retry', 500)
-    const c = await partner(keyA, 'POST', 'customer', customerBody('Retry'))
-    expect(c.status, brief(c)).toBe(201)
+    await createSite(keyA, custRefA, 2)
     await dispatch()
     let [row] = deliveries(subRetry)
     expect(row).toMatchObject({ status: 'failed', attempts: 1, response_status: 500, max_attempts: 4 })
@@ -197,8 +209,7 @@ describe('EVENT01 webhooks', () => {
 
   it('EVENT01.05 tenant och hemligheter: B får bara egna händelser, ingen klartext-secret, privat mål nekas', async () => {
     expect(await received('b1'), 'A:s händelse får inte nå B').toHaveLength(0)
-    const cB = await partner(keyB, 'POST', 'customer', customerBody('EvB'))
-    expect(cB.status, brief(cB)).toBe(201)
+    await createSite(keyB, custRefB, 3)
     await dispatch()
     const gotB = await received('b1')
     expect(gotB).toHaveLength(1)
@@ -218,10 +229,10 @@ describe('EVENT01 webhooks', () => {
     }
     // B:s nyckel kan inte se A:s kund, och produktens SSRF-skydd står kvar: privat/loopback-mål nekas.
     const loop = await partner(keyB, 'POST', 'webhooks/subscriptions', { name: 'sim loop', endpoint_url: 'https://127.0.0.1/hook/x',
-      event_types: ['customer.created'], signing_secret: secretB, description: 'sim' })
+      event_types: ['site.created'], signing_secret: secretB, description: 'sim' })
     expect(loop.status, brief(loop)).toBe(422)
     const http = await partner(keyB, 'POST', 'webhooks/subscriptions', { name: 'sim http', endpoint_url: `http://${HOST_B}/hook/x`,
-      event_types: ['customer.created'], signing_secret: secretB, description: 'sim' })
+      event_types: ['site.created'], signing_secret: secretB, description: 'sim' })
     expect(http.status, brief(http)).toBe(422)
   })
 })
