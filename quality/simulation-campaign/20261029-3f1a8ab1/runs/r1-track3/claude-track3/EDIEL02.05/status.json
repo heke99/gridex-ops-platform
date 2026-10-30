@@ -1,0 +1,218 @@
+{
+  "scenarioId": "EDIEL02.05",
+  "workerId": "claude-track3",
+  "model": "claude-opus-5-5 (orchestrator) / sonnet (runner)",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appBuildRef": "e65a6721f (= bas + endast harness/paket)",
+  "overlayRefs": [
+    {
+      "kind": "harness",
+      "commit": "7f48f361",
+      "paths": [
+        "scripts/simulation/track3/**"
+      ]
+    }
+  ],
+  "environmentId": "t3-vm-20261029",
+  "databaseIdentity": "pg-sysid-7702183760217968679@127.0.0.1:54322/postgres",
+  "schemaHash": {
+    "fingerprintSha256": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+    "partialIdentity": true,
+    "note": "Delidentitet: täcker bara utvalda tabeller; före migrationen",
+    "appliedMigrationsTsvSha256_nu": "0050fae361912d0ddbf4a8c81b4a7e34c3f829405fa39d4ea48dafd201ce4554",
+    "appliedMigrationsTsvNote": "A: tom fil enligt uppdraget (sha256 e3b0c442...b855); B: en rad, se appliedMigrations"
+  },
+  "clockModel": {
+    "authClock": "DB now()",
+    "businessTime": "checkAckDeadlines({now}) med injicerad tid (due-11/-9/-4/+1)",
+    "note": "Auth-klocka och affärstid redovisade var för sig"
+  },
+  "nodeVersion": "v22.22.0",
+  "pgVersion": "17.6",
+  "executionScope": "ISOLATED_NATIVE",
+  "runs": [
+    {
+      "run": "official",
+      "runId": "20261030T150744Z-11cdbd",
+      "exit": 1,
+      "passed": 2,
+      "failed": 1,
+      "skipped": 0,
+      "startedAt": "2026-10-30T15:07:44Z",
+      "endedAt": "2026-10-30T15:08:17Z",
+      "reportPath": "/home/user/sim-home/track3/runs/20261030T150744Z-11cdbd/ediel02-auth/report.json",
+      "reportSha256": "33382e2526ba2074863004cef07974ad455b215a28673df390220a92b27cf5be",
+      "logPath": "/home/user/sim-home/track3/runs/20261030T150744Z-11cdbd/ediel02-auth/log.txt",
+      "logSha256": "c66fa397c8042185e51feddbe0673591912a2bb7b4e3e35dc697abb27c637c96",
+      "manifestPath": "/home/user/sim-home/track3/evidence/20261030T150744Z-11cdbd/ediel02-auth/MANIFEST.sha256",
+      "manifestSha256": "1157f123ce7c3e47dce5f2dad745506224582f4a00cb50258a96abce51c0bef7",
+      "fileScope": "hela filen; stegen nedan är de som hör till ID"
+    }
+  ],
+  "appliedMigrations": [
+    {
+      "run": "B",
+      "file": "20261030130400_ediel_contrl_retained_source_linear.sql",
+      "migrationId": "20261030130400",
+      "sourceRef": "PR #949@49a60a1e",
+      "sha256": "118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75",
+      "status": "väntar GEN-fångst",
+      "appliedAtUtc": "2026-10-30T14:45:35Z",
+      "tsvPath": "/home/user/sim-home/track3/applied-migrations.tsv",
+      "tsvSha256": "0050fae361912d0ddbf4a8c81b4a7e34c3f829405fa39d4ea48dafd201ce4554"
+    }
+  ],
+  "originalsForTrack6": {
+    "manifestPath": "/home/user/sim-home/track3/evidence/20261030T150744Z-11cdbd/ediel02-auth/MANIFEST.sha256",
+    "manifestSha256": "1157f123ce7c3e47dce5f2dad745506224582f4a00cb50258a96abce51c0bef7",
+    "manifestVerified": "sha256sum -c: 0 fel",
+    "files": [
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150744Z-11cdbd/ediel02-auth/05a/unknown-receiver.edi",
+        "sha256": "61ffffc9aef16195195e9ad682e106295ceadf7c573711f93e7a2649d65d418b"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150744Z-11cdbd/ediel02-auth/05a/unknown-receiver.eml",
+        "sha256": "8777ea35321da31e0f018e47e3d4f23404998db4f70e8dbc0d637f89637d7247"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150744Z-11cdbd/ediel02-auth/05b/unregistered-sender.edi",
+        "sha256": "faa01722e2a49224ac51a22b671d18ae56e21e204cac2333bc0f10ed8ad5f911"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150744Z-11cdbd/ediel02-auth/05b/unregistered-sender.eml",
+        "sha256": "216fbe285cb2c330b4ac6ab64b0ceb2a956cf33d229338dcce2378e0bc3a8afc"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150744Z-11cdbd/ediel02-auth/05c/foreign-only-point.edi",
+        "sha256": "794ca4998ec455143bb33b8cb9cd61e888d431e6e3841baa33b919160fbe52e4"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150744Z-11cdbd/ediel02-auth/05c/foreign-only-point.eml",
+        "sha256": "761318dc576d53684bc56e3cb14c713f85d43e5cf279132aa69752448b808e49"
+      }
+    ],
+    "outboundCONTRL_APERAK": "se manifest (utgående kvitton sparas bara om manifestet listar dem)"
+  },
+  "replacementSteps": [
+    "Aktörsväg in-process (poll/processa/drain via app-kod) i stället för HTTP-cron med aktör; HTTP-cron utan aktör loggas separat som observation.",
+    "Egen tenant 16711 (A) / 16712 (B) i stället för designens Root-kohort (T3_E01_OWN_ID).",
+    "Syntetisk historikgrund: äldre rader skapas av kodens egen väg i EDIEL01.06 pre-steg (failed CONTRL-outboxrad, arkiverad legacy-MIME permfail 554, äldre outbound_requests); ingen produktionshistorik."
+  ],
+  "replayCommit": "eca552636865cf0f31ca346da13907410aaad248",
+  "heartbeatAtUtc": null,
+  "durations": {
+    "official_20261030T150744Z-11cdbd": {
+      "product": {
+        "poll": {
+          "calls": 3,
+          "totalMs": 12166,
+          "maxMs": 8300
+        },
+        "intake": {
+          "calls": 3,
+          "totalMs": 460,
+          "maxMs": 158
+        },
+        "reprocess": {
+          "calls": 2,
+          "totalMs": 2562,
+          "maxMs": 1811
+        },
+        "drain": {
+          "calls": 3,
+          "totalMs": 925,
+          "maxMs": 851
+        },
+        "harness": {
+          "calls": 3,
+          "totalMs": 2693,
+          "maxMs": 2350
+        }
+      }
+    }
+  },
+  "runDirectoryClean": {
+    "head": "7f48f361",
+    "trackedChanges": "none (git status --porcelain: endast ospårad quality/)",
+    "note": "kontrollerat före körning"
+  },
+  "cleanupReceipt": {
+    "note": "stacken kvar uppe; inga processer av spåret stoppade; migration 20261030130400 kvar (väntar GEN-fångst)"
+  },
+  "nativeMode": null,
+  "state": "PARTIAL",
+  "runnerObservedState": "EXIT_1",
+  "command": "SIM_HOME=/home/user/sim-home/track3 T3_E02_OWN_ID=16724 bash scripts/simulation/track3/run.sh scenarios/ediel02-auth.test.ts",
+  "flags": "SIM_HOME=/home/user/sim-home/track3; T3_E02_OWN_ID=16724 (ny tom tenant); inga -t; ingen SKIP_BUILD/SKIP_REPLAY",
+  "cohortSize": null,
+  "findingsIds": [
+    ".../018"
+  ],
+  "failure": null,
+  "blocker": null,
+  "evidenceBasis": "official run",
+  "review": {
+    "reviewer": "sim-reviewer (ny oberoende instans)",
+    "at": "2026-10-30T15:25Z",
+    "verdict": "APPROVE (PARTIAL, 018)"
+  },
+  "steps": [
+    {
+      "name": "EDIEL02.05 okänd part / utan mandat EDIEL02.05a okänd mottagarpart (99999, ingen tenant) hålls: inget affärsutfall, ingen negativ CONTRL (routing unresolved)",
+      "status": "passed",
+      "firstError": null,
+      "durationMs": 11764
+    },
+    {
+      "name": "EDIEL02.05 okänd part / utan mandat EDIEL02.05b avsändare utan godkänd utfärdare/mandat (70099) ger ingen affärseffekt",
+      "status": "passed",
+      "firstError": null,
+      "durationMs": 6449
+    },
+    {
+      "name": "EDIEL02.05 okänd part / utan mandat EDIEL02.05c främmande tenants mätpunkt (SC-047) nekas med UTILTS ERR E10 på TN och skapar ingen stamdata/affärseffekt",
+      "status": "failed",
+      "firstError": "AssertionError: expected 0 to be greater than or equal to 1",
+      "durationMs": 7792
+    }
+  ],
+  "evidenceRefs": {
+    "report": {
+      "path": "/home/user/sim-home/track3/runs/20261030T150744Z-11cdbd/ediel02-auth/report.json",
+      "sha256": "33382e2526ba2074863004cef07974ad455b215a28673df390220a92b27cf5be"
+    },
+    "log": {
+      "path": "/home/user/sim-home/track3/runs/20261030T150744Z-11cdbd/ediel02-auth/log.txt",
+      "sha256": "c66fa397c8042185e51feddbe0673591912a2bb7b4e3e35dc697abb27c637c96"
+    },
+    "manifest": {
+      "path": "/home/user/sim-home/track3/evidence/20261030T150744Z-11cdbd/ediel02-auth/MANIFEST.sha256",
+      "sha256": "1157f123ce7c3e47dce5f2dad745506224582f4a00cb50258a96abce51c0bef7"
+    }
+  },
+  "nextAction": "Granskning av orkestrerande session",
+  "replayNote": "= 1c0c088c + endast scripts/simulation/track3; schema = basens (clean replay 2026-10-29)",
+  "runId": "20261030T150744Z-11cdbd",
+  "exit": 1,
+  "vitest": {
+    "passed": 2,
+    "failed": 1,
+    "skipped": 0,
+    "fileTotals": {
+      "passed": 2,
+      "failed": 1,
+      "skipped": 0
+    }
+  },
+  "observed": {
+    "expected": "05a/05b/05c: ingen affärseffekt; främmande tenants mätpunkt nekas med UTILTS ERR E10 på TN",
+    "actual": "passed: nget affärsutfall, ingen negativ CONTRL (routing unresolved); passed: utan godkänd utfärdare/mandat (70099) ger ingen affärseffekt; failed:  UTILTS ERR E10 på TN och skapar ingen stamdata/affärseffekt -> AssertionError: expected 0 to be greater than or equal to 1 | Faktiskt: 05a och 05b gröna. 05c: ingen affärseffekt (foreignRows 0|0) men UTILTS_ERR ligger kvar som draft (ej skickad; väntade >=1 skickad, fick 0), och en positiv CONTRL skickades till DSO. PARTIAL enligt villkoret (nekad men ERR/E10 ej skickad).",
+    "source": "report.json steps + observations"
+  },
+  "tenantOwnId": "16724 (ny tom tenant)",
+  "startedAtUtc": "2026-10-30T15:07:44Z",
+  "finishedAtUtc": "2026-10-30T15:08:17Z",
+  "observedNote": "Körningen 20261030T150744Z-11cdbd gav exit 1: steget 05c (UTILTS ERR E10 skickas till DSO) föll – ERR ligger kvar som draft. Kärnoraklet \"förblir nekad\" uppfyllt i 05a–c (ingen affärseffekt)."
+}

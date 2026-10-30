@@ -25,6 +25,11 @@ tillagda migrationer (`applied-migrations.tsv` tom) fram till 2026-10-30T14:44Z;
 | 013 | avfärdat (avsiktlig deadline-logik) | EDIEL01.06 | se nedan |
 | 014 | produktfel (säkerhet) / medel | EDIEL01.04 | observerat i officiell körning; EDIEL01.04 = FAIL |
 | 015 | ej fel (observation) | EDIEL01.05 | – |
+| 016 | produktfel mot orakel / hög | EDIEL02.02 | observerat i officiell körning |
+| 017 | kandidat (tolkningsfråga) | EDIEL02.03 | avsiktligt persistensbeteende, ingen visad affärseffekt |
+| 018 | produktfel mot orakel / medel | EDIEL02.05 | observerat i officiell körning |
+| 019 | produktfel mot orakel / medel | EDIEL02.06 | 06a3 bekräftad |
+| 020 | tolkningsfråga (ej fel) | EDIEL02.06 | 06c1/06c2 utan tolkbar UNB → manual_review |
 
 ## 20261029-3f1a8ab1/claude-track3/001 – IMAP-pollern kör kommandon inne i öppen FETCH
 - 2026-10-29, produktfel, kritisk. `lib/inbound-mail/edielMailboxPoller.part-2.ts:425,430,447`: `messageFlagsAdd`
@@ -104,6 +109,29 @@ tillagda migrationer (`applied-migrations.tsv` tom) fram till 2026-10-30T14:44Z;
 
 ## …/015 – provider_result.messageId skiljer sig från Message-ID-huvudet (ej fel)
 - Observerat i EDIEL01.05: `provider_result.messageId` ≠ trådens Message-ID; `binding.rfcMessageId` stämmer med huvudet.
+
+## …/016 – samma referens med ändrat innehåll ger inget synligt skydd
+- 2026-10-30, körning 20261030T150551Z-660435 (tenant 16724, med ej mergad migration 005 i stacken). Ett mejl med samma
+  UNB-referens men ändrat innehåll (nytt Message-ID) blir `manual_review` utan `identity_conflict`, svarsbegäran eller
+  hold-task; originalets mätvärden orörda. Byggarens tidigare körning såg i stället tyst dedupe (`stored 0, deduped 2`) via
+  `findExistingInboundEmail` (sender+interchange_ref). Grundorsak ej styrkt.
+
+## …/017 – avvisad rättelse flyttar seriehuvudet
+- 2026-10-30, körning 20261030T150650Z-339ec7. En ogiltig rättelse (samma uppdateringsdatum, annan mängd) avvisas korrekt
+  med `utilts_consumption_correction_not_newer`, men seriehuvudet pekar efteråt på den avvisade versionen (700) medan
+  gällande mätvärde är 600. Persistensen gör detta avsiktligt (`20261003150200:38`, `not v_late_older`); ingen app-läsare av
+  `is_current` hittad. Efter granskning: kandidat/tolkningsfråga, EDIEL02.03 = PARTIAL.
+
+## …/018 – E10-nekande för främmande mätpunkt skickas inte
+- 2026-10-30, körning 20261030T150744Z-11cdbd. UTILTS ERR med E10 på TN skapas men ligger kvar som `draft` och når aldrig
+  outbox/DSO. Ingen affärseffekt (nekandet håller); positiv teknisk CONTRL skickas. Om ERR kräver separat sändning är oklart.
+
+## …/019 – meddelande med giltig UNB men utan BGM får inget felkvitto
+- 2026-10-30, körning 20261030T150817Z-603e4b. 06a3 (BGM saknas) ger varken CONTRL eller UTILTS_ERR; bara `manual_review`.
+
+## …/020 – meddelanden utan tolkbar UNB (06c1 ren text, 06c2 trasig multipart) → manual_review (ej fel)
+- Efter granskning: utan UNB finns inget att kvittera mot enligt EDIFACT/Ediel; manual_review bedöms rimligt. Felaktiga segment och UNOC-brott (06a1/a2/b1/b2) ger
+  korrekt negativ CONTRL (UCI 4) som mottas hos DSO.
 
 ## Miljöhändelser
 - Containeromstarter ~2026-10-30T11:5xZ och ~14:3xZ (app ombyggd 14:38–14:42Z på e65a6721); dockerd och stack återstartade 12:09–12:12Z; databasidentitet oförändrad.

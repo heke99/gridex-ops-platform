@@ -42,14 +42,14 @@
     "note": "Ingen nativesvit körd; ej tillämpligt"
   },
   "heartbeatAtUtc": null,
-  "startedAtUtc": "2026-10-30T12:43:25Z",
-  "finishedAtUtc": "2026-10-30T12:44:46Z",
-  "state": "BLOCKED",
-  "runnerObservedState": "FAIL",
+  "startedAtUtc": "2026-10-30T14:57:26Z",
+  "finishedAtUtc": "2026-10-30T14:57:52Z",
+  "state": "PARTIAL",
+  "runnerObservedState": "EXIT_0",
   "executionScope": "ISOLATED_NATIVE",
   "command": "SIM_HOME=/home/user/sim-home/track3 bash scripts/simulation/track3/run.sh scenarios/ediel03-04.test.ts",
   "flags": "SIM_HOME=/home/user/sim-home/track3; ingen SKIP_BUILD/SKIP_REPLAY vid körning; inga -t",
-  "runId": "20261030T124325Z-ee5195",
+  "runId": "20261030T145726Z-7c23b1",
   "exit": 1,
   "vitest": {
     "passed": 0,
@@ -59,45 +59,192 @@
   "steps": [
     {
       "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 fixture + claim som aldrig slutförs (status sending, ingen SMTP, inga attempts)",
-      "status": "failed"
+      "status": "passed",
+      "durationMs": 21687.836773,
+      "failureMessages": []
     },
     {
       "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 drain medan leasen är giltig rör inte raderna (processed:0, status kvar sending)",
-      "status": "failed"
+      "status": "passed",
+      "durationMs": 142.9738780000007,
+      "failureMessages": []
     },
     {
       "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 B: utgången lease innan svepet -> gammal worker kan inte nå SMTP (ediel_outbox_worker_lease_expired)",
-      "status": "failed"
+      "status": "passed",
+      "durationMs": 124.16903999999704,
+      "failureMessages": []
     },
     {
       "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 A: lease > 10 min + ny drain -> delivery_uncertain stale_sending_lock_requires_transport_reconciliation, ingen återsändning",
-      "status": "failed"
+      "status": "passed",
+      "durationMs": 1380.9572229999976,
+      "failureMessages": []
     },
     {
       "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 gammal worker återupptas -> fencad (outbox_item_not_claimed_by_worker, ediel_transport_worker_fence_lost), 0 attempts, 0 SMTP",
-      "status": "failed"
+      "status": "passed",
+      "durationMs": 819.0395730000018,
+      "failureMessages": []
     }
   ],
   "evidenceRefs": {
-    "report": {
-      "path": "/home/user/sim-home/track3/runs/20261030T124325Z-ee5195/ediel03-04/report.json",
-      "sha256": "6458f9399f53f12c4baad10289bab8c15cc026d33217f2262b6c39332b523172"
-    },
-    "log": {
-      "path": "/home/user/sim-home/track3/runs/20261030T124325Z-ee5195/ediel03-04/log.txt",
-      "sha256": "1ba9e4db1286320bf8d1236fb67de39c38c893a270ef61b1d11f0d3df55e465a"
-    },
-    "manifest": {
-      "path": "/home/user/sim-home/track3/evidence/20261030T124325Z-ee5195/ediel03-04/MANIFEST.sha256",
-      "sha256": "e453159c93d68a445108f8dce1b3294ca258433f06b0106610a680f81d961497"
-    }
+    "report": "/home/user/sim-home/track3/runs/20261030T145726Z-7c23b1/ediel03-04/report.json",
+    "reportSha256": "62ef2b2009ceab805cb30de8dc1ac062574111a56b2bca91f4cbd205c2dc4dc9",
+    "log": "/home/user/sim-home/track3/runs/20261030T145726Z-7c23b1/ediel03-04/log.txt",
+    "logSha256": "c8824992f75539ff905df8c50ae62e5811cc1e285fa4c6e303709ed3d3248544",
+    "manifest": "/home/user/sim-home/track3/evidence/20261030T145726Z-7c23b1/ediel03-04/MANIFEST.sha256",
+    "manifestSha256": "174c098f01bb018050651b2a97a2b6047f6bdcd2ce82415f26b000ca5a6c7f0a"
   },
   "findingsIds": [
     "20261029-3f1a8ab1/claude-track3/005",
     "20261029-3f1a8ab1/claude-track3/007"
   ],
-  "blocker": "BLOCKED: 005 – seed-fas 57014 ×3 (~21 s); orakel ej bedömt. Builderns tidigare icke-officiella gröna körningar (20261030T122154Z-b444f8, 20261030T122421Z-21e90a) dokumenteras som tidigare observation, ej paketunderlag",
-  "observed": "Orakel: stale lease/fence -> delivery_uncertain utan återsändning. Faktiskt: 5/5 FAIL; seed-a föll 3 försök med statement timeout 57014 (~21 s), övriga steg följdfel (outboxId undefined). Orakel ej bedömt.",
+  "blocker": "Oraklet uppfyllt (stale lease → delivery_uncertain/stale_sending_lock_requires_transport_reconciliation, fence, ingen återsändning), men endast med ej mergad migration 005 i stacken. Kandidat 007 kvarstår.",
+  "observed": {
+    "run": {
+      "runId": "20261030145727-566f88",
+      "prefix": "T3S26103014579323",
+      "label": "ediel03-04",
+      "id": "EDIEL03.04"
+    },
+    "flush_before": {
+      "status": 200,
+      "claimed": 0,
+      "sent": 0,
+      "blocked": 0,
+      "failed": 0,
+      "deliveryUncertain": 0
+    },
+    "drain_lease_active": {
+      "claimed": 0,
+      "processed": 0,
+      "sent": 0,
+      "failed": 0,
+      "blocked": 0,
+      "deliveryUncertain": 0,
+      "results": [],
+      "stoppedBy": "queue_empty",
+      "batches": 1
+    },
+    "b_old_worker_resumes_unswept": {
+      "status": "blocked",
+      "messageId": null,
+      "error": "ediel_outbox_worker_lease_expired"
+    },
+    "drain_after_expiry": {
+      "http": 200,
+      "result": {
+        "claimed": 0,
+        "processed": 0,
+        "sent": 0,
+        "failed": 0,
+        "blocked": 0,
+        "deliveryUncertain": 0,
+        "results": [],
+        "stoppedBy": "queue_empty",
+        "batches": 1
+      },
+      "foreignClaimableBefore": 0
+    },
+    "a_after_sweep": {
+      "status": "delivery_uncertain",
+      "last_error": "stale_sending_lock_requires_transport_reconciliation",
+      "locked_by": null,
+      "current_send_attempt_id": "8222ba55-5f32-43c8-899b-30d5ee6084f5"
+    },
+    "b_after_sweep": {
+      "status": "delivery_uncertain",
+      "last_error": "stale_sending_lock_requires_transport_reconciliation",
+      "locked_by": null
+    },
+    "operator_visibility_a": {
+      "tablesProbed": [
+        "gridex_ediel_transport.reconciliation_cases",
+        "gridex_ediel_transport.reconciliation_case_events",
+        "public.ediel_masterdata_reconciliation_items",
+        "public.ediel_dead_letter_items",
+        "public.platform_reconciliation_findings",
+        "public.invoice_dead_letters"
+      ],
+      "rows": {
+        "gridex_ediel_transport.reconciliation_cases": [],
+        "gridex_ediel_transport.reconciliation_case_events": {
+          "note": "ingen meddelandekoppling",
+          "columns": 9
+        },
+        "public.ediel_masterdata_reconciliation_items": [],
+        "public.ediel_dead_letter_items": [],
+        "public.platform_reconciliation_findings": {
+          "note": "ingen meddelandekoppling",
+          "columns": 19
+        },
+        "public.invoice_dead_letters": {
+          "note": "ingen meddelandekoppling",
+          "columns": 12
+        }
+      },
+      "deadLetters": [],
+      "tasks": "public.tasks finns inte i schemat"
+    },
+    "a_message_events": [
+      [
+        "created",
+        "Ediel message CONTRL CONTRL skapad."
+      ],
+      [
+        "queued",
+        "Ediel outbox item prepared by backend automation."
+      ]
+    ],
+    "a_old_worker_resumes_sendOutboxItem": {
+      "status": "blocked",
+      "messageId": null,
+      "error": "outbox_item_not_claimed_by_worker"
+    },
+    "a_old_worker_resumes_transport_fence": {
+      "threw": "ediel_transport_worker_fence_lost"
+    },
+    "seed_retries": [],
+    "timing": {
+      "totalsMs": {
+        "drain": 199,
+        "harness": 19708
+      },
+      "log": [
+        {
+          "category": "drain",
+          "label": "flush-before",
+          "ms": 31
+        },
+        {
+          "category": "harness",
+          "label": "seed-a",
+          "ms": 16157
+        },
+        {
+          "category": "harness",
+          "label": "seed-b",
+          "ms": 3551
+        },
+        {
+          "category": "drain",
+          "label": "drain-lease-active",
+          "ms": 24
+        },
+        {
+          "category": "drain",
+          "label": "drain-after-lease-expiry",
+          "ms": 127
+        },
+        {
+          "category": "drain",
+          "label": "drain-final",
+          "ms": 17
+        }
+      ]
+    }
+  },
   "durations": {
     "drain": 85,
     "harness": 79289,
@@ -114,12 +261,110 @@
   "replayCommitNote": "= 1c0c088c + endast scripts/simulation/track3; schema = basens (clean replay körd 2026-10-29 på körkatalogen vid 1c0c088c)",
   "review": {
     "reviewer": "sim-reviewer (ny oberoende instans)",
-    "at": "2026-10-30T12:55Z",
-    "verdict": "APPROVE"
+    "at": "2026-10-30T15:25Z",
+    "verdict": "CHANGES_REQUESTED → omskriven till ny körning, PARTIAL"
   },
   "runDirectoryClean": {
-    "head": "56e0fcd96af4ef4c62d3577215cc029cbcfbf69b",
-    "trackedChanges": "none (git status --porcelain: bara ospårad quality/simulation-campaign/)",
-    "note": "kontrollerat efter körning; spårade filer orörda"
+    "head": "0f6d968a",
+    "trackedChanges": "none"
+  },
+  "runs": [
+    {
+      "run": "previous",
+      "runId": "20261030T124325Z-ee5195",
+      "exit": 1,
+      "vitest": {
+        "passed": 0,
+        "failed": 5,
+        "skipped": 0
+      },
+      "state": "BLOCKED",
+      "evidenceRefs": {
+        "report": {
+          "path": "/home/user/sim-home/track3/runs/20261030T124325Z-ee5195/ediel03-04/report.json",
+          "sha256": "6458f9399f53f12c4baad10289bab8c15cc026d33217f2262b6c39332b523172"
+        },
+        "log": {
+          "path": "/home/user/sim-home/track3/runs/20261030T124325Z-ee5195/ediel03-04/log.txt",
+          "sha256": "1ba9e4db1286320bf8d1236fb67de39c38c893a270ef61b1d11f0d3df55e465a"
+        },
+        "manifest": {
+          "path": "/home/user/sim-home/track3/evidence/20261030T124325Z-ee5195/ediel03-04/MANIFEST.sha256",
+          "sha256": "e453159c93d68a445108f8dce1b3294ca258433f06b0106610a680f81d961497"
+        }
+      }
+    },
+    {
+      "run": "reconfirm-after-migration",
+      "runId": "20261030T145726Z-7c23b1",
+      "exit": 0,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "headAtRun": "0f6d968a",
+      "appliedMigrations": "20261030130400 (PR949@49a60a1e, väntar GEN-fångst)",
+      "reportPath": "/home/user/sim-home/track3/runs/20261030T145726Z-7c23b1/ediel03-04/report.json",
+      "reportSha256": "62ef2b2009ceab805cb30de8dc1ac062574111a56b2bca91f4cbd205c2dc4dc9",
+      "logPath": "/home/user/sim-home/track3/runs/20261030T145726Z-7c23b1/ediel03-04/log.txt",
+      "logSha256": "c8824992f75539ff905df8c50ae62e5811cc1e285fa4c6e303709ed3d3248544",
+      "manifestPath": "/home/user/sim-home/track3/evidence/20261030T145726Z-7c23b1/ediel03-04/MANIFEST.sha256",
+      "manifestSha256": "174c098f01bb018050651b2a97a2b6047f6bdcd2ce82415f26b000ca5a6c7f0a",
+      "steps": [
+        {
+          "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 fixture + claim som aldrig slutförs (status sending, ingen SMTP, inga attempts)",
+          "status": "passed"
+        },
+        {
+          "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 drain medan leasen är giltig rör inte raderna (processed:0, status kvar sending)",
+          "status": "passed"
+        },
+        {
+          "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 B: utgången lease innan svepet -> gammal worker kan inte nå SMTP (ediel_outbox_worker_lease_expired)",
+          "status": "passed"
+        },
+        {
+          "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 A: lease > 10 min + ny drain -> delivery_uncertain stale_sending_lock_requires_transport_reconciliation, ingen återsändning",
+          "status": "passed"
+        },
+        {
+          "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 gammal worker återupptas -> fencad (outbox_item_not_claimed_by_worker, ediel_transport_worker_fence_lost), 0 attempts, 0 SMTP",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "appliedMigrations": [
+    {
+      "version": "20261030130400",
+      "source": "PR949@49a60a1e (ej i körkatalogens HEAD)",
+      "status": "väntar GEN-fångst"
+    }
+  ],
+  "previousPrimaryRun": {
+    "runId": "20261030T124325Z-ee5195",
+    "steps": [
+      {
+        "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 fixture + claim som aldrig slutförs (status sending, ingen SMTP, inga attempts)",
+        "status": "failed"
+      },
+      {
+        "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 drain medan leasen är giltig rör inte raderna (processed:0, status kvar sending)",
+        "status": "failed"
+      },
+      {
+        "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 B: utgången lease innan svepet -> gammal worker kan inte nå SMTP (ediel_outbox_worker_lease_expired)",
+        "status": "failed"
+      },
+      {
+        "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 A: lease > 10 min + ny drain -> delivery_uncertain stale_sending_lock_requires_transport_reconciliation, ingen återsändning",
+        "status": "failed"
+      },
+      {
+        "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.04 gammal worker återupptas -> fencad (outbox_item_not_claimed_by_worker, ediel_transport_worker_fence_lost), 0 attempts, 0 SMTP",
+        "status": "failed"
+      }
+    ],
+    "blocker": "BLOCKED: 005 – seed-fas 57014 ×3 (~21 s); orakel ej bedömt. Builderns tidigare icke-officiella gröna körningar (20261030T122154Z-b444f8, 20261030T122421Z-21e90a) dokumenteras som tidigare observation, ej paketunderlag",
+    "runnerObservedState": "FAIL"
   }
 }

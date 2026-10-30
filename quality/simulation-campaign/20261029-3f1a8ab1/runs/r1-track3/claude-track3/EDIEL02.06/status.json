@@ -1,0 +1,294 @@
+{
+  "scenarioId": "EDIEL02.06",
+  "workerId": "claude-track3",
+  "model": "claude-opus-5-5 (orchestrator) / sonnet (runner)",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appBuildRef": "e65a6721f (= bas + endast harness/paket)",
+  "overlayRefs": [
+    {
+      "kind": "harness",
+      "commit": "7f48f361",
+      "paths": [
+        "scripts/simulation/track3/**"
+      ]
+    }
+  ],
+  "environmentId": "t3-vm-20261029",
+  "databaseIdentity": "pg-sysid-7702183760217968679@127.0.0.1:54322/postgres",
+  "schemaHash": {
+    "fingerprintSha256": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+    "partialIdentity": true,
+    "note": "Delidentitet: täcker bara utvalda tabeller; före migrationen",
+    "appliedMigrationsTsvSha256_nu": "0050fae361912d0ddbf4a8c81b4a7e34c3f829405fa39d4ea48dafd201ce4554",
+    "appliedMigrationsTsvNote": "A: tom fil enligt uppdraget (sha256 e3b0c442...b855); B: en rad, se appliedMigrations"
+  },
+  "clockModel": {
+    "authClock": "DB now()",
+    "businessTime": "checkAckDeadlines({now}) med injicerad tid (due-11/-9/-4/+1)",
+    "note": "Auth-klocka och affärstid redovisade var för sig"
+  },
+  "nodeVersion": "v22.22.0",
+  "pgVersion": "17.6",
+  "executionScope": "ISOLATED_NATIVE",
+  "runs": [
+    {
+      "run": "official",
+      "runId": "20261030T150817Z-603e4b",
+      "exit": 1,
+      "passed": 8,
+      "failed": 3,
+      "skipped": 0,
+      "startedAt": "2026-10-30T15:08:17Z",
+      "endedAt": "2026-10-30T15:09:00Z",
+      "reportPath": "/home/user/sim-home/track3/runs/20261030T150817Z-603e4b/ediel02-syntax/report.json",
+      "reportSha256": "b766e3106e35345b30a3282d6f27e83ac6c0f7ad1881d0a7ecab9d5e0fb24294",
+      "logPath": "/home/user/sim-home/track3/runs/20261030T150817Z-603e4b/ediel02-syntax/log.txt",
+      "logSha256": "40fd84131b164f55050ee1d1d90c94c678d81a82e60cac9e38f6295e3a6cf812",
+      "manifestPath": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/MANIFEST.sha256",
+      "manifestSha256": "a5658612088b0db560a376efdec6be8d2bff07c27f1efa675b44acd954f59fdc",
+      "fileScope": "hela filen; stegen nedan är de som hör till ID"
+    }
+  ],
+  "appliedMigrations": [
+    {
+      "run": "B",
+      "file": "20261030130400_ediel_contrl_retained_source_linear.sql",
+      "migrationId": "20261030130400",
+      "sourceRef": "PR #949@49a60a1e",
+      "sha256": "118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75",
+      "status": "väntar GEN-fångst",
+      "appliedAtUtc": "2026-10-30T14:45:35Z",
+      "tsvPath": "/home/user/sim-home/track3/applied-migrations.tsv",
+      "tsvSha256": "0050fae361912d0ddbf4a8c81b4a7e34c3f829405fa39d4ea48dafd201ce4554"
+    }
+  ],
+  "originalsForTrack6": {
+    "manifestPath": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/MANIFEST.sha256",
+    "manifestSha256": "a5658612088b0db560a376efdec6be8d2bff07c27f1efa675b44acd954f59fdc",
+    "manifestVerified": "sha256sum -c: 0 fel",
+    "files": [
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06a1/input.edi",
+        "sha256": "7848dface1b6803ea307a58263cbd875aa7fd8717e393e69c29ba50de56d482a"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06a1/input.eml",
+        "sha256": "e7be5bc36b4ac8cf8c6505f73160d9d423cac84a13f32b23fb746a5e72bc336b"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06a2/input.edi",
+        "sha256": "a7c5cfc7352084b1e841ef58207b9b04f79bd9b31dc8e1144f164e52fd2a24f7"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06a2/input.eml",
+        "sha256": "db45f87f235db0bf69f3a5cc044f3cb1d73604287821d55e3ede4eb1c2e2049c"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06a3/input.edi",
+        "sha256": "d10301e0c410a1b36d4dce9392461d2aced26fd7da68f92f63e49e401ebc976c"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06a3/input.eml",
+        "sha256": "8057b8cdfd3579bc095dd1d49003dfb70e24a431bec3df2f68a74270b0906eaa"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06b1/input.edi",
+        "sha256": "d3af4f685eb9bfd58974fe15da3440068c8fc5b467082e19a29e76561d349e8d"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06b1/input.eml",
+        "sha256": "754a0d40015a7ce294c8bac955046dde16c818eafc8ed13780faebcd04b7a8c5"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06b2/input.edi",
+        "sha256": "249406cee42ba21fd59bcef9e02176baa7638fa48d5d3929dcb89c06e6c191a8"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06b2/input.eml",
+        "sha256": "fc7cfdad927413668c2f148b85c77aaa04eb9926edc738675fc2cdd1abb500aa"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06c1/input.eml",
+        "sha256": "74dfd0103c2fef14dab99a88cf3daad299166414c203827e4e3c501d9ba61ac3"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06c2/input.eml",
+        "sha256": "1cf22fca6b83ba6a21b86f8ce81acab7027905ddea6222c2c30ba74f47bb805f"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/06c3/input.eml",
+        "sha256": "6269b7e6708abbb7304da3597acbf8a2dcef918081448f2e6fa08ddf4e579a9a"
+      }
+    ],
+    "outboundCONTRL_APERAK": "se manifest; i 06 sparas bara indata; inga utgående kvittens-MIME i denna run"
+  },
+  "replacementSteps": [
+    "Aktörsväg in-process (poll/processa/drain via app-kod) i stället för HTTP-cron med aktör; HTTP-cron utan aktör loggas separat som observation.",
+    "Egen tenant 16711 (A) / 16712 (B) i stället för designens Root-kohort (T3_E01_OWN_ID).",
+    "Syntetisk historikgrund: äldre rader skapas av kodens egen väg i EDIEL01.06 pre-steg (failed CONTRL-outboxrad, arkiverad legacy-MIME permfail 554, äldre outbound_requests); ingen produktionshistorik."
+  ],
+  "replayCommit": "eca552636865cf0f31ca346da13907410aaad248",
+  "heartbeatAtUtc": null,
+  "durations": {
+    "official_20261030T150817Z-603e4b": {
+      "product": {
+        "poll": {
+          "calls": 8,
+          "totalMs": 18588,
+          "maxMs": 8945
+        },
+        "intake": {
+          "calls": 8,
+          "totalMs": 1192,
+          "maxMs": 156
+        },
+        "reprocess": {
+          "calls": 5,
+          "totalMs": 2954,
+          "maxMs": 704
+        },
+        "drain": {
+          "calls": 8,
+          "totalMs": 4910,
+          "maxMs": 1034
+        },
+        "harness": {
+          "calls": 6,
+          "totalMs": 3081,
+          "maxMs": 2239
+        }
+      }
+    }
+  },
+  "runDirectoryClean": {
+    "head": "7f48f361",
+    "trackedChanges": "none (git status --porcelain: endast ospårad quality/)",
+    "note": "kontrollerat före körning"
+  },
+  "cleanupReceipt": {
+    "note": "stacken kvar uppe; inga processer av spåret stoppade; migration 20261030130400 kvar (väntar GEN-fångst)"
+  },
+  "nativeMode": null,
+  "state": "FAIL",
+  "runnerObservedState": "EXIT_1",
+  "command": "SIM_HOME=/home/user/sim-home/track3 T3_E02_OWN_ID=16724 bash scripts/simulation/track3/run.sh scenarios/ediel02-syntax.test.ts",
+  "flags": "SIM_HOME=/home/user/sim-home/track3; T3_E02_OWN_ID=16724 (ny tom tenant); inga -t; ingen SKIP_BUILD/SKIP_REPLAY",
+  "cohortSize": null,
+  "findingsIds": [
+    "20261029-3f1a8ab1/claude-track3/019",
+    "20261029-3f1a8ab1/claude-track3/020"
+  ],
+  "failure": "06a3: giltig UNB men BGM saknas → ingen CONTRL/ERR (019, bekräftad avvikelse). 06a1/a2/b1/b2 ger korrekt negativ CONTRL. 06c1/06c2 saknar tolkbar UNB → manual_review bedöms rimligt (020, tolkningsfråga, ej fel).",
+  "blocker": null,
+  "evidenceBasis": "official run",
+  "review": {
+    "reviewer": "sim-reviewer (ny oberoende instans)",
+    "at": "2026-10-30T15:25Z",
+    "verdict": "APPROVE (FAIL, 019 delad)"
+  },
+  "steps": [
+    {
+      "name": "EDIEL02.06ab syntaxfel ger faktisk negativ CONTRL till DSO EDIEL02.06a1 okänt segment (ZZZ) i meddelandet: negativ CONTRL skapas och skickas till DSO",
+      "status": "passed",
+      "firstError": null,
+      "durationMs": 13883
+    },
+    {
+      "name": "EDIEL02.06ab syntaxfel ger faktisk negativ CONTRL till DSO EDIEL02.06a2 fel segmentantal i UNT: negativ CONTRL skapas och skickas till DSO",
+      "status": "passed",
+      "firstError": null,
+      "durationMs": 6848
+    },
+    {
+      "name": "EDIEL02.06ab syntaxfel ger faktisk negativ CONTRL till DSO EDIEL02.06a3 obligatoriskt segment (BGM) saknas: negativ CONTRL skapas och skickas till DSO",
+      "status": "failed",
+      "firstError": "AssertionError: expected [] to have a length of 1 but got +0",
+      "durationMs": 3811
+    },
+    {
+      "name": "EDIEL02.06ab syntaxfel ger faktisk negativ CONTRL till DSO EDIEL02.06b1 UNOC-brott: tecken utanför ISO 8859-1 (euro) i fritext: negativ CONTRL skapas och skickas till DSO",
+      "status": "passed",
+      "firstError": null,
+      "durationMs": 7225
+    },
+    {
+      "name": "EDIEL02.06ab syntaxfel ger faktisk negativ CONTRL till DSO EDIEL02.06b2 UNOA-brott: gemener och icke-A-tecken under teckensetet UNOA: negativ CONTRL skapas och skickas till DSO",
+      "status": "passed",
+      "firstError": null,
+      "durationMs": 7129
+    },
+    {
+      "name": "EDIEL02.06c trasig MIME / ingen EDIFACT EDIEL02.06c1 ren text utan EDIFACT: ingen affärseffekt och synlig manuell granskning",
+      "status": "passed",
+      "firstError": null,
+      "durationMs": 3739
+    },
+    {
+      "name": "EDIEL02.06c trasig MIME / ingen EDIFACT EDIEL02.06c1-receipt ren text utan EDIFACT: designen \"faktiskt felkvitto\" => negativt kvitto skickas till DSO (kandidatfynd om det saknas)",
+      "status": "failed",
+      "firstError": "AssertionError: expected [] to have a length of 1 but got +0",
+      "durationMs": 2
+    },
+    {
+      "name": "EDIEL02.06c trasig MIME / ingen EDIFACT EDIEL02.06c2 trasig multipart (fel boundary, avklippt bilaga, ogiltig base64): ingen affärseffekt och synlig manuell granskning",
+      "status": "passed",
+      "firstError": null,
+      "durationMs": 3612
+    },
+    {
+      "name": "EDIEL02.06c trasig MIME / ingen EDIFACT EDIEL02.06c2-receipt trasig multipart (fel boundary, avklippt bilaga, ogiltig base64): designen \"faktiskt felkvitto\" => negativt kvitto skickas till DSO (kandidatfynd om det saknas)",
+      "status": "failed",
+      "firstError": "AssertionError: expected [] to have a length of 1 but got +0",
+      "durationMs": 3
+    },
+    {
+      "name": "EDIEL02.06c trasig MIME / ingen EDIFACT EDIEL02.06c3 avklippt EDIFACT (UNB utan UNH/UNZ): ingen affärseffekt och synlig manuell granskning",
+      "status": "passed",
+      "firstError": null,
+      "durationMs": 5965
+    },
+    {
+      "name": "EDIEL02.06c trasig MIME / ingen EDIFACT EDIEL02.06c3-receipt avklippt EDIFACT (UNB utan UNH/UNZ): designen \"faktiskt felkvitto\" => negativt kvitto skickas till DSO (kandidatfynd om det saknas)",
+      "status": "passed",
+      "firstError": null,
+      "durationMs": 2
+    }
+  ],
+  "evidenceRefs": {
+    "report": {
+      "path": "/home/user/sim-home/track3/runs/20261030T150817Z-603e4b/ediel02-syntax/report.json",
+      "sha256": "b766e3106e35345b30a3282d6f27e83ac6c0f7ad1881d0a7ecab9d5e0fb24294"
+    },
+    "log": {
+      "path": "/home/user/sim-home/track3/runs/20261030T150817Z-603e4b/ediel02-syntax/log.txt",
+      "sha256": "40fd84131b164f55050ee1d1d90c94c678d81a82e60cac9e38f6295e3a6cf812"
+    },
+    "manifest": {
+      "path": "/home/user/sim-home/track3/evidence/20261030T150817Z-603e4b/ediel02-syntax/MANIFEST.sha256",
+      "sha256": "a5658612088b0db560a376efdec6be8d2bff07c27f1efa675b44acd954f59fdc"
+    }
+  },
+  "nextAction": "Granskning av orkestrerande session",
+  "replayNote": "= 1c0c088c + endast scripts/simulation/track3; schema = basens (clean replay 2026-10-29)",
+  "runId": "20261030T150817Z-603e4b",
+  "exit": 1,
+  "vitest": {
+    "passed": 8,
+    "failed": 3,
+    "skipped": 0,
+    "fileTotals": {
+      "passed": 8,
+      "failed": 3,
+      "skipped": 0
+    }
+  },
+  "observed": {
+    "expected": "Syntaxfel ger faktisk negativ CONTRL till DSO; ren text/trasig MIME ger synlig granskning och faktiskt felkvitto",
+    "actual": "passed: Z) i meddelandet: negativ CONTRL skapas och skickas till DSO; passed: gmentantal i UNT: negativ CONTRL skapas och skickas till DSO; failed: ent (BGM) saknas: negativ CONTRL skapas och skickas till DSO -> AssertionError: expected [] to have a length of 1 but got +0; passed: (euro) i fritext: negativ CONTRL skapas och skickas till DSO; passed: teckensetet UNOA: negativ CONTRL skapas och skickas till DSO; passed: an EDIFACT: ingen affärseffekt och synlig manuell granskning; failed: egativt kvitto skickas till DSO (kandidatfynd om det saknas) -> AssertionError: expected [] to have a length of 1 but got +0; passed: ig base64): ingen affärseffekt och synlig manuell granskning; failed: egativt kvitto skickas till DSO (kandidatfynd om det saknas) -> AssertionError: expected [] to have a length of 1 but got +0; passed: n UNH/UNZ): ingen affärseffekt och synlig manuell granskning; passed: egativt kvitto skickas till DSO (kandidatfynd om det saknas) | Faktiskt: 8/11 gröna. 06a3 (BGM saknas), 06c1-receipt (ren text) och 06c2-receipt (trasig multipart) saknar felkvitto (contrl=0, utiltsErr=0, dso=[]); ingen affärseffekt, manual_review satt. FAIL enligt villkoret.",
+    "source": "report.json steps + observations"
+  },
+  "tenantOwnId": "16724 (ny tom tenant)",
+  "startedAtUtc": "2026-10-30T15:08:17Z",
+  "finishedAtUtc": "2026-10-30T15:09:00Z"
+}

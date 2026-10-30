@@ -42,14 +42,14 @@
     "note": "Ingen nativesvit körd; ej tillämpligt"
   },
   "heartbeatAtUtc": null,
-  "startedAtUtc": "2026-10-30T12:41:48Z",
-  "finishedAtUtc": "2026-10-30T12:43:25Z",
+  "startedAtUtc": "2026-10-30T14:56:50Z",
+  "finishedAtUtc": "2026-10-30T14:57:26Z",
   "state": "PARTIAL",
-  "runnerObservedState": "FAIL",
+  "runnerObservedState": "EXIT_0",
   "executionScope": "ISOLATED_NATIVE",
   "command": "SIM_HOME=/home/user/sim-home/track3 bash scripts/simulation/track3/run.sh scenarios/ediel03-03.test.ts",
   "flags": "SIM_HOME=/home/user/sim-home/track3; ingen SKIP_BUILD/SKIP_REPLAY vid körning; inga -t",
-  "runId": "20261030T124148Z-ae1663",
+  "runId": "20261030T145650Z-2ae70f",
   "exit": 1,
   "vitest": {
     "passed": 1,
@@ -59,32 +59,352 @@
   "steps": [
     {
       "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.03 drop-after-data -> klass unknown, delivery_uncertain, drain processed:0, exakt 1 kopia, ingen blind retry",
-      "status": "passed"
+      "status": "passed",
+      "durationMs": 21484.275842,
+      "failureMessages": []
     },
     {
       "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.03 hang (hangMs 6 s) -> samma oracle",
-      "status": "failed"
+      "status": "passed",
+      "durationMs": 13729.299971,
+      "failureMessages": []
     }
   ],
   "evidenceRefs": {
-    "report": {
-      "path": "/home/user/sim-home/track3/runs/20261030T124148Z-ae1663/ediel03-03/report.json",
-      "sha256": "a9d1bbb520ee5e1fad727d3d85a6d7dc8b28597d9518f688c9ad77769a23de82"
-    },
-    "log": {
-      "path": "/home/user/sim-home/track3/runs/20261030T124148Z-ae1663/ediel03-03/log.txt",
-      "sha256": "f9e1f9e422f224151b46aee7e0c894c0d3c32cd9fb8f14b1dd01e06beafa90c6"
-    },
-    "manifest": {
-      "path": "/home/user/sim-home/track3/evidence/20261030T124148Z-ae1663/ediel03-03/MANIFEST.sha256",
-      "sha256": "9eeb3dd50b0a9c48e97a46c96276b76bb31c8dded77b4d63aa16acc9b8df3b5a"
-    }
+    "report": "/home/user/sim-home/track3/runs/20261030T145650Z-2ae70f/ediel03-03/report.json",
+    "reportSha256": "df70e78ede320973255de0af054a48d88312a5d05e3757dffb0ae567aba031d2",
+    "log": "/home/user/sim-home/track3/runs/20261030T145650Z-2ae70f/ediel03-03/log.txt",
+    "logSha256": "7ac25bca35793407645df0655da73e6b1d401a002d266e55301cf0be05ace7ae",
+    "manifest": "/home/user/sim-home/track3/evidence/20261030T145650Z-2ae70f/ediel03-03/MANIFEST.sha256",
+    "manifestSha256": "6d1e2b1b0cabb3b4aa09e19c98763004c850f03316102eb384091cfd49d96469"
   },
   "findingsIds": [
     "20261029-3f1a8ab1/claude-track3/005"
   ],
-  "blocker": "variant drop-after-data uppfyller orakel; variant hang föll i seed-fas på 005 (57014 efter 20,7 s), orakel ej bedömt",
-  "observed": "Orakel: avbruten/hängd SMTP -> unknown, delivery_uncertain, ingen blind retry. Faktiskt: drop-after-data pass; hang-steget FAIL i harnessens seed (statement timeout 57014 i processInboundEdielMessage efter ~20,7 s) innan orakelsteget nåddes.",
+  "blocker": "Båda varianterna (drop-after-data, hang) uppfyller oraklet, men endast med ej mergad migration 005 i stacken.",
+  "observed": {
+    "run": {
+      "runId": "20261030145651-fdd4ff",
+      "prefix": "T3S2610301456BD4B",
+      "label": "ediel03-03",
+      "id": "EDIEL03.03",
+      "hangMs": 6000
+    },
+    "flush_before": {
+      "status": 200,
+      "claimed": 0,
+      "sent": 0,
+      "blocked": 0,
+      "failed": 0,
+      "deliveryUncertain": 0
+    },
+    "drop-after-data_drain_1": {
+      "http": 200,
+      "ms": 1226,
+      "result": {
+        "claimed": 1,
+        "processed": 1,
+        "sent": 0,
+        "failed": 0,
+        "blocked": 0,
+        "deliveryUncertain": 1,
+        "results": [
+          {
+            "id": "6373a574-8540-4fb5-8952-d83f8bdc56fc",
+            "status": "delivery_uncertain",
+            "messageId": null,
+            "error": "Connection closed unexpectedly"
+          }
+        ],
+        "stoppedBy": "queue_empty",
+        "batches": 1
+      },
+      "foreignClaimableBefore": 0
+    },
+    "drop-after-data_attempt": {
+      "classification": "unknown",
+      "entered_at": "2026-10-30T14:57:09.277223+00:00",
+      "observed_at": "2026-10-30T14:57:09.465661+00:00",
+      "provider_result": {
+        "error": {
+          "code": "ECONNECTION",
+          "command": "CONN",
+          "message": "Connection closed unexpectedly",
+          "syscall": null,
+          "response": null,
+          "responseCode": null
+        },
+        "queueId": null,
+        "smtpCode": null
+      }
+    },
+    "drop-after-data_outbox": {
+      "status": "delivery_uncertain",
+      "last_error": "delivery_uncertain_after_smtp_send: Connection closed unexpectedly",
+      "locked_by": null
+    },
+    "drop-after-data_no_blind_retry": {
+      "sendOutboxItemDirect": {
+        "status": "blocked",
+        "messageId": null,
+        "error": "outbox_item_not_found_or_already_processing"
+      },
+      "transportDirectResend": {
+        "threw": "ediel_transport_resend_suppressed",
+        "name": "SmtpDeliveryUncertainError"
+      },
+      "copiesForThisMessage": 1,
+      "allMailsSinceBaseline": 1
+    },
+    "drop-after-data_recovery_path_contrl": {
+      "outcome": {
+        "threw": "prodat_recovery_sealed_original_required"
+      },
+      "copiesAfter": 1,
+      "exposedFor": "PRODAT only (lib/ediel/recovery/prodatRecovery.ts)"
+    },
+    "drop-after-data_operator_visibility": {
+      "tablesProbed": [
+        "gridex_ediel_transport.reconciliation_cases",
+        "gridex_ediel_transport.reconciliation_case_events",
+        "public.ediel_masterdata_reconciliation_items",
+        "public.ediel_dead_letter_items",
+        "public.platform_reconciliation_findings",
+        "public.invoice_dead_letters"
+      ],
+      "rows": {
+        "gridex_ediel_transport.reconciliation_cases": [
+          {
+            "id": "cb474448-1068-4175-bd2a-05d960bfb889",
+            "lane": "generic_journal",
+            "reason": "provider_outcome_unknown",
+            "opened_at": "2026-10-30T14:57:09.482576+00:00",
+            "attempt_id": "9051b68f-d68c-4808-b563-4c4833445a3d",
+            "company_id": "8e3a0848-ebdb-479b-af91-e6538c57ee4f",
+            "entered_at": "2026-10-30T14:57:09.277223+00:00",
+            "message_id": "f61c3390-8ac4-4c8e-99c3-b1b1cdb32be7",
+            "environment": "test",
+            "mime_length": 699,
+            "mime_sha256": "c3d09aedeeb62489ae50f666fac0810a840f0329ec0b6fe02470a02fba5164da",
+            "binding_hash": "bbf4f5782f3cce005026ae0a4cbb9e670aaafd018d92d9ce4f85f427c9492861",
+            "actor_user_id": "4535ef5b-5517-47d0-81c7-c50830b5aa15",
+            "original_hash": "ff551239fd93514b533b47806286c83b963d6a5ebd58cacfb53ce1e17a6f558d",
+            "rfc_message_id": "<ediel-20261030145708-4ly7x1wk@t3.sim.invalid>",
+            "mime_archive_ref": "storage://ediel-files/transport/8e3a0848-ebdb-479b-af91-e6538c57ee4f/f61c3390-8ac4-4c8e-99c3-b1b1cdb32be7/c3d09aedeeb62489ae50f666fac0810a840f0329ec0b6fe02470a02fba5164da.eml",
+            "mime_payload_snapshot_id": "67242f7e-0fbe-4203-8b69-fd97eb0ccfcb"
+          }
+        ],
+        "gridex_ediel_transport.reconciliation_case_events": {
+          "note": "ingen meddelandekoppling",
+          "columns": 9
+        },
+        "public.ediel_masterdata_reconciliation_items": [],
+        "public.ediel_dead_letter_items": [],
+        "public.platform_reconciliation_findings": {
+          "note": "ingen meddelandekoppling",
+          "columns": 19
+        },
+        "public.invoice_dead_letters": {
+          "note": "ingen meddelandekoppling",
+          "columns": 12
+        }
+      },
+      "deadLetters": [],
+      "tasks": "public.tasks finns inte i schemat"
+    },
+    "drop-after-data_final_outbox": {
+      "status": "delivery_uncertain"
+    },
+    "recovery_expectation": {
+      "expected": "hold/'verified_transfer_loss_required' eller avvisning",
+      "actual": {
+        "threw": "prodat_recovery_sealed_original_required"
+      }
+    },
+    "hang_drain_1": {
+      "http": 200,
+      "ms": 7021,
+      "result": {
+        "claimed": 1,
+        "processed": 1,
+        "sent": 0,
+        "failed": 0,
+        "blocked": 0,
+        "deliveryUncertain": 1,
+        "results": [
+          {
+            "id": "e86c38dd-a6fa-455c-b7f7-c8814d913eb3",
+            "status": "delivery_uncertain",
+            "messageId": null,
+            "error": "Connection closed unexpectedly"
+          }
+        ],
+        "stoppedBy": "queue_empty",
+        "batches": 1
+      },
+      "foreignClaimableBefore": 0
+    },
+    "hang_attempt": {
+      "classification": "unknown",
+      "entered_at": "2026-10-30T14:57:17.082615+00:00",
+      "observed_at": "2026-10-30T14:57:23.256081+00:00",
+      "provider_result": {
+        "error": {
+          "code": "ECONNECTION",
+          "command": "CONN",
+          "message": "Connection closed unexpectedly",
+          "syscall": null,
+          "response": null,
+          "responseCode": null
+        },
+        "queueId": null,
+        "smtpCode": null
+      }
+    },
+    "hang_outbox": {
+      "status": "delivery_uncertain",
+      "last_error": "delivery_uncertain_after_smtp_send: Connection closed unexpectedly",
+      "locked_by": null
+    },
+    "hang_no_blind_retry": {
+      "sendOutboxItemDirect": {
+        "status": "blocked",
+        "messageId": null,
+        "error": "outbox_item_not_found_or_already_processing"
+      },
+      "transportDirectResend": {
+        "threw": "ediel_transport_resend_suppressed",
+        "name": "SmtpDeliveryUncertainError"
+      },
+      "copiesForThisMessage": 1,
+      "allMailsSinceBaseline": 1
+    },
+    "hang_recovery_path_contrl": {
+      "outcome": {
+        "threw": "prodat_recovery_sealed_original_required"
+      },
+      "copiesAfter": 1,
+      "exposedFor": "PRODAT only (lib/ediel/recovery/prodatRecovery.ts)"
+    },
+    "hang_operator_visibility": {
+      "tablesProbed": [
+        "gridex_ediel_transport.reconciliation_cases",
+        "gridex_ediel_transport.reconciliation_case_events",
+        "public.ediel_masterdata_reconciliation_items",
+        "public.ediel_dead_letter_items",
+        "public.platform_reconciliation_findings",
+        "public.invoice_dead_letters"
+      ],
+      "rows": {
+        "gridex_ediel_transport.reconciliation_cases": [
+          {
+            "id": "77a12f7f-4b17-4f43-a335-b31d0ac6d8d9",
+            "lane": "generic_journal",
+            "reason": "provider_outcome_unknown",
+            "opened_at": "2026-10-30T14:57:23.269199+00:00",
+            "attempt_id": "21771761-e7c2-436e-98d6-78ae2f0b53e9",
+            "company_id": "8e3a0848-ebdb-479b-af91-e6538c57ee4f",
+            "entered_at": "2026-10-30T14:57:17.082615+00:00",
+            "message_id": "11debd78-ac54-445b-b282-5e4874d22440",
+            "environment": "test",
+            "mime_length": 699,
+            "mime_sha256": "2c77c1a59fce033499c7bb9f9cdc279eac84a6891e55955d88e8d3285705a919",
+            "binding_hash": "c5a958314383e84b3b67a704276ca7cc85d5f01e6c1d3f5efd2dfbeecf524d50",
+            "actor_user_id": "4535ef5b-5517-47d0-81c7-c50830b5aa15",
+            "original_hash": "f95664c2d2b1fef9b0d0166a54f8a43cb708d5f1da923c783141891f700cc9d0",
+            "rfc_message_id": "<ediel-20261030145716-kzd9xak6@t3.sim.invalid>",
+            "mime_archive_ref": "storage://ediel-files/transport/8e3a0848-ebdb-479b-af91-e6538c57ee4f/11debd78-ac54-445b-b282-5e4874d22440/2c77c1a59fce033499c7bb9f9cdc279eac84a6891e55955d88e8d3285705a919.eml",
+            "mime_payload_snapshot_id": "a4f2692f-8e57-48e4-8d53-7ed64802cb7b"
+          }
+        ],
+        "gridex_ediel_transport.reconciliation_case_events": {
+          "note": "ingen meddelandekoppling",
+          "columns": 9
+        },
+        "public.ediel_masterdata_reconciliation_items": [],
+        "public.ediel_dead_letter_items": [],
+        "public.platform_reconciliation_findings": {
+          "note": "ingen meddelandekoppling",
+          "columns": 19
+        },
+        "public.invoice_dead_letters": {
+          "note": "ingen meddelandekoppling",
+          "columns": 12
+        }
+      },
+      "deadLetters": [],
+      "tasks": "public.tasks finns inte i schemat"
+    },
+    "hang_final_outbox": {
+      "status": "delivery_uncertain"
+    },
+    "seed_retries": [],
+    "timing": {
+      "totalsMs": {
+        "drain": 8317,
+        "harness": 20218,
+        "smtp_transport": 6362,
+        "wait": 3000
+      },
+      "log": [
+        {
+          "category": "drain",
+          "label": "flush-before",
+          "ms": 24
+        },
+        {
+          "category": "harness",
+          "label": "seed-drop-after-data",
+          "ms": 16843
+        },
+        {
+          "category": "drain",
+          "label": "drain-1-drop-after-data",
+          "ms": 1226
+        },
+        {
+          "category": "smtp_transport",
+          "label": "drop-after-data entered->observed",
+          "ms": 188
+        },
+        {
+          "category": "wait",
+          "label": "settle-drop-after-data",
+          "ms": 1500
+        },
+        {
+          "category": "drain",
+          "label": "drain-2-drop-after-data",
+          "ms": 24
+        },
+        {
+          "category": "harness",
+          "label": "seed-hang",
+          "ms": 3375
+        },
+        {
+          "category": "drain",
+          "label": "drain-1-hang",
+          "ms": 7021
+        },
+        {
+          "category": "smtp_transport",
+          "label": "hang entered->observed",
+          "ms": 6174
+        },
+        {
+          "category": "wait",
+          "label": "settle-hang",
+          "ms": 1500
+        },
+        {
+          "category": "drain",
+          "label": "drain-2-hang",
+          "ms": 22
+        }
+      ]
+    }
+  },
   "durations": {
     "drain": 2504,
     "harness": 88180,
@@ -103,12 +423,86 @@
   "replayCommitNote": "= 1c0c088c + endast scripts/simulation/track3; schema = basens (clean replay körd 2026-10-29 på körkatalogen vid 1c0c088c)",
   "review": {
     "reviewer": "sim-reviewer (ny oberoende instans)",
-    "at": "2026-10-30T12:55Z",
-    "verdict": "APPROVE"
+    "at": "2026-10-30T15:25Z",
+    "verdict": "CHANGES_REQUESTED → omskriven till ny körning, PARTIAL"
   },
   "runDirectoryClean": {
-    "head": "56e0fcd96af4ef4c62d3577215cc029cbcfbf69b",
-    "trackedChanges": "none (git status --porcelain: bara ospårad quality/simulation-campaign/)",
-    "note": "kontrollerat efter körning; spårade filer orörda"
+    "head": "0f6d968a",
+    "trackedChanges": "none"
+  },
+  "runs": [
+    {
+      "run": "previous",
+      "runId": "20261030T124148Z-ae1663",
+      "exit": 1,
+      "vitest": {
+        "passed": 1,
+        "failed": 1,
+        "skipped": 0
+      },
+      "state": "PARTIAL",
+      "evidenceRefs": {
+        "report": {
+          "path": "/home/user/sim-home/track3/runs/20261030T124148Z-ae1663/ediel03-03/report.json",
+          "sha256": "a9d1bbb520ee5e1fad727d3d85a6d7dc8b28597d9518f688c9ad77769a23de82"
+        },
+        "log": {
+          "path": "/home/user/sim-home/track3/runs/20261030T124148Z-ae1663/ediel03-03/log.txt",
+          "sha256": "f9e1f9e422f224151b46aee7e0c894c0d3c32cd9fb8f14b1dd01e06beafa90c6"
+        },
+        "manifest": {
+          "path": "/home/user/sim-home/track3/evidence/20261030T124148Z-ae1663/ediel03-03/MANIFEST.sha256",
+          "sha256": "9eeb3dd50b0a9c48e97a46c96276b76bb31c8dded77b4d63aa16acc9b8df3b5a"
+        }
+      }
+    },
+    {
+      "run": "reconfirm-after-migration",
+      "runId": "20261030T145650Z-2ae70f",
+      "exit": 0,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "headAtRun": "0f6d968a",
+      "appliedMigrations": "20261030130400 (PR949@49a60a1e, väntar GEN-fångst)",
+      "reportPath": "/home/user/sim-home/track3/runs/20261030T145650Z-2ae70f/ediel03-03/report.json",
+      "reportSha256": "df70e78ede320973255de0af054a48d88312a5d05e3757dffb0ae567aba031d2",
+      "logPath": "/home/user/sim-home/track3/runs/20261030T145650Z-2ae70f/ediel03-03/log.txt",
+      "logSha256": "7ac25bca35793407645df0655da73e6b1d401a002d266e55301cf0be05ace7ae",
+      "manifestPath": "/home/user/sim-home/track3/evidence/20261030T145650Z-2ae70f/ediel03-03/MANIFEST.sha256",
+      "manifestSha256": "6d1e2b1b0cabb3b4aa09e19c98763004c850f03316102eb384091cfd49d96469",
+      "steps": [
+        {
+          "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.03 drop-after-data -> klass unknown, delivery_uncertain, drain processed:0, exakt 1 kopia, ingen blind retry",
+          "status": "passed"
+        },
+        {
+          "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.03 hang (hangMs 6 s) -> samma oracle",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "appliedMigrations": [
+    {
+      "version": "20261030130400",
+      "source": "PR949@49a60a1e (ej i körkatalogens HEAD)",
+      "status": "väntar GEN-fångst"
+    }
+  ],
+  "previousPrimaryRun": {
+    "runId": "20261030T124148Z-ae1663",
+    "steps": [
+      {
+        "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.03 drop-after-data -> klass unknown, delivery_uncertain, drain processed:0, exakt 1 kopia, ingen blind retry",
+        "status": "passed"
+      },
+      {
+        "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.03 hang (hangMs 6 s) -> samma oracle",
+        "status": "failed"
+      }
+    ],
+    "blocker": "variant drop-after-data uppfyller orakel; variant hang föll i seed-fas på 005 (57014 efter 20,7 s), orakel ej bedömt",
+    "runnerObservedState": "FAIL"
   }
 }

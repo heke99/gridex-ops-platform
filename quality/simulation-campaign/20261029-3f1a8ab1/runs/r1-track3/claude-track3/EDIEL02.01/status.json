@@ -1,0 +1,209 @@
+{
+  "scenarioId": "EDIEL02.01",
+  "workerId": "claude-track3",
+  "model": "claude-opus-5-5 (orchestrator) / sonnet (runner)",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appBuildRef": "e65a6721f (= bas + endast harness/paket)",
+  "overlayRefs": [
+    {
+      "kind": "harness",
+      "commit": "7f48f361",
+      "paths": [
+        "scripts/simulation/track3/**"
+      ]
+    }
+  ],
+  "environmentId": "t3-vm-20261029",
+  "databaseIdentity": "pg-sysid-7702183760217968679@127.0.0.1:54322/postgres",
+  "schemaHash": {
+    "fingerprintSha256": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+    "partialIdentity": true,
+    "note": "Delidentitet: täcker bara utvalda tabeller; före migrationen",
+    "appliedMigrationsTsvSha256_nu": "0050fae361912d0ddbf4a8c81b4a7e34c3f829405fa39d4ea48dafd201ce4554",
+    "appliedMigrationsTsvNote": "A: tom fil enligt uppdraget (sha256 e3b0c442...b855); B: en rad, se appliedMigrations"
+  },
+  "clockModel": {
+    "authClock": "DB now()",
+    "businessTime": "checkAckDeadlines({now}) med injicerad tid (due-11/-9/-4/+1)",
+    "note": "Auth-klocka och affärstid redovisade var för sig"
+  },
+  "nodeVersion": "v22.22.0",
+  "pgVersion": "17.6",
+  "executionScope": "ISOLATED_NATIVE",
+  "runs": [
+    {
+      "run": "official",
+      "runId": "20261030T150551Z-660435",
+      "exit": 1,
+      "passed": 2,
+      "failed": 1,
+      "skipped": 0,
+      "startedAt": "2026-10-30T15:05:51Z",
+      "endedAt": "2026-10-30T15:06:50Z",
+      "reportPath": "/home/user/sim-home/track3/runs/20261030T150551Z-660435/ediel02-dup/report.json",
+      "reportSha256": "2da5ecbcaae7edde66b8658f29881b13adfb36be850054b29b1f02f3c57e0ad9",
+      "logPath": "/home/user/sim-home/track3/runs/20261030T150551Z-660435/ediel02-dup/log.txt",
+      "logSha256": "139c69b5bb1aedceabf580e54e5ef046a226529a938346154691f5e75ea0ef56",
+      "manifestPath": "/home/user/sim-home/track3/evidence/20261030T150551Z-660435/ediel02-dup/MANIFEST.sha256",
+      "manifestSha256": "02ba21611f85ebdc61ce079fc7fa89a78ef7e93c50205fd99adcfe52f3bf366b",
+      "fileScope": "hela filen; stegen nedan är de som hör till ID"
+    }
+  ],
+  "appliedMigrations": [
+    {
+      "run": "B",
+      "file": "20261030130400_ediel_contrl_retained_source_linear.sql",
+      "migrationId": "20261030130400",
+      "sourceRef": "PR #949@49a60a1e",
+      "sha256": "118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75",
+      "status": "väntar GEN-fångst",
+      "appliedAtUtc": "2026-10-30T14:45:35Z",
+      "tsvPath": "/home/user/sim-home/track3/applied-migrations.tsv",
+      "tsvSha256": "0050fae361912d0ddbf4a8c81b4a7e34c3f829405fa39d4ea48dafd201ce4554"
+    }
+  ],
+  "originalsForTrack6": {
+    "manifestPath": "/home/user/sim-home/track3/evidence/20261030T150551Z-660435/ediel02-dup/MANIFEST.sha256",
+    "manifestSha256": "02ba21611f85ebdc61ce079fc7fa89a78ef7e93c50205fd99adcfe52f3bf366b",
+    "manifestVerified": "sha256sum -c: 0 fel",
+    "files": [
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150551Z-660435/ediel02-dup/01/original.edi",
+        "sha256": "2af693c2e1582e237f83d009ac79b5198ae0651b2069b5bf9d57c7320cd19275"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150551Z-660435/ediel02-dup/01/original.eml",
+        "sha256": "2ffc3409c05fe06b41e8e65e109c5125383d1de90c2fb11d67dea69aded2d063"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150551Z-660435/ediel02-dup/11/original.edi",
+        "sha256": "e992bdb6bed1689bfeabe913ded14d776b0c655dc8daf12ba5f8cc752570c2b2"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150551Z-660435/ediel02-dup/11/original.eml",
+        "sha256": "39b21f488e1dae3e04c0a8a5f79c0f012231e39309a4aead2d65121712ee2f09"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150551Z-660435/ediel02-dup/11/resent-new-message-id.edi",
+        "sha256": "e992bdb6bed1689bfeabe913ded14d776b0c655dc8daf12ba5f8cc752570c2b2"
+      },
+      {
+        "path": "/home/user/sim-home/track3/evidence/20261030T150551Z-660435/ediel02-dup/11/resent-new-message-id.eml",
+        "sha256": "615caad24af5922a85dabbeb8bacc9e6b50c4e02b7a55a999c32704560cd58f1"
+      }
+    ],
+    "outboundCONTRL_APERAK": "se manifest (utgående kvitton sparas bara om manifestet listar dem)"
+  },
+  "replacementSteps": [
+    "Aktörsväg in-process (poll/processa/drain via app-kod) i stället för HTTP-cron med aktör; HTTP-cron utan aktör loggas separat som observation.",
+    "Egen tenant 16711 (A) / 16712 (B) i stället för designens Root-kohort (T3_E01_OWN_ID).",
+    "Syntetisk historikgrund: äldre rader skapas av kodens egen väg i EDIEL01.06 pre-steg (failed CONTRL-outboxrad, arkiverad legacy-MIME permfail 554, äldre outbound_requests); ingen produktionshistorik."
+  ],
+  "replayCommit": "eca552636865cf0f31ca346da13907410aaad248",
+  "heartbeatAtUtc": null,
+  "durations": {
+    "official_20261030T150551Z-660435": {
+      "product": {
+        "poll": {
+          "calls": 6,
+          "totalMs": 20360,
+          "maxMs": 9849
+        },
+        "intake": {
+          "calls": 6,
+          "totalMs": 921,
+          "maxMs": 161
+        },
+        "reprocess": {
+          "calls": 4,
+          "totalMs": 8044,
+          "maxMs": 2245
+        },
+        "drain": {
+          "calls": 6,
+          "totalMs": 3032,
+          "maxMs": 1071
+        },
+        "harness": {
+          "calls": 5,
+          "totalMs": 4730,
+          "maxMs": 4013
+        }
+      }
+    }
+  },
+  "runDirectoryClean": {
+    "head": "7f48f361",
+    "trackedChanges": "none (git status --porcelain: endast ospårad quality/)",
+    "note": "kontrollerat före körning"
+  },
+  "cleanupReceipt": {
+    "note": "stacken kvar uppe; inga processer av spåret stoppade; migration 20261030130400 kvar (väntar GEN-fångst)"
+  },
+  "nativeMode": null,
+  "state": "PARTIAL",
+  "runnerObservedState": "EXIT_1",
+  "command": "SIM_HOME=/home/user/sim-home/track3 T3_E02_OWN_ID=16724 bash scripts/simulation/track3/run.sh scenarios/ediel02-dup.test.ts",
+  "flags": "SIM_HOME=/home/user/sim-home/track3; T3_E02_OWN_ID=16724 (ny tom tenant); inga -t; ingen SKIP_BUILD/SKIP_REPLAY",
+  "cohortSize": null,
+  "findingsIds": [],
+  "failure": null,
+  "blocker": null,
+  "evidenceBasis": "official run",
+  "review": {
+    "reviewer": "sim-reviewer (ny oberoende instans)",
+    "at": "2026-10-30T15:25Z",
+    "verdict": "APPROVE (PARTIAL)"
+  },
+  "steps": [
+    {
+      "name": "EDIEL02 dubbletter EDIEL02.01 byteidentisk andra leverans av samma MIME ger ingen ny mottagning, ACK, outbox eller mätvärdesrad",
+      "status": "passed",
+      "firstError": null,
+      "durationMs": 21053
+    },
+    {
+      "name": "EDIEL02 dubbletter EDIEL02.01b (komplement) samma EDIFACT i nytt MIME (nytt Message-ID) skapar inget nytt mätvärde",
+      "status": "passed",
+      "firstError": null,
+      "durationMs": 13418
+    }
+  ],
+  "evidenceRefs": {
+    "report": {
+      "path": "/home/user/sim-home/track3/runs/20261030T150551Z-660435/ediel02-dup/report.json",
+      "sha256": "2da5ecbcaae7edde66b8658f29881b13adfb36be850054b29b1f02f3c57e0ad9"
+    },
+    "log": {
+      "path": "/home/user/sim-home/track3/runs/20261030T150551Z-660435/ediel02-dup/log.txt",
+      "sha256": "139c69b5bb1aedceabf580e54e5ef046a226529a938346154691f5e75ea0ef56"
+    },
+    "manifest": {
+      "path": "/home/user/sim-home/track3/evidence/20261030T150551Z-660435/ediel02-dup/MANIFEST.sha256",
+      "sha256": "02ba21611f85ebdc61ce079fc7fa89a78ef7e93c50205fd99adcfe52f3bf366b"
+    }
+  },
+  "nextAction": "Granskning av orkestrerande session",
+  "replayNote": "= 1c0c088c + endast scripts/simulation/track3; schema = basens (clean replay 2026-10-29)",
+  "runId": "20261030T150551Z-660435",
+  "exit": 1,
+  "vitest": {
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "fileTotals": {
+      "passed": 2,
+      "failed": 1,
+      "skipped": 0
+    }
+  },
+  "observed": {
+    "expected": "Dublett: byteidentisk MIME (01) och samma EDIFACT i nytt MIME (01b) skapar ingen ny mottagning/ACK/outbox/mätvärde",
+    "actual": "passed: MIME ger ingen ny mottagning, ACK, outbox eller mätvärdesrad; passed: ACT i nytt MIME (nytt Message-ID) skapar inget nytt mätvärde",
+    "source": "report.json steps + observations"
+  },
+  "tenantOwnId": "16724 (ny tom tenant)",
+  "startedAtUtc": "2026-10-30T15:05:51Z",
+  "finishedAtUtc": "2026-10-30T15:06:50Z"
+}
