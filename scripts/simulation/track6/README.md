@@ -33,6 +33,8 @@ evidens med `MANIFEST.sha256`.
 
 * **Image-register:** `up.sh` sätter `SUPABASE_INTERNAL_IMAGE_REGISTRY=${T6_IMAGE_REGISTRY:-ghcr.io}` för replayen, så Supabase CLI hämtar `ghcr.io/supabase/<namn>:<tag>` i stället för `public.ecr.aws` (datagräns) eller docker.io (429). Image-digests sparas i `SIM_HOME/evidence/image-digests.txt`.
 
+* **GreenMail utan docker:** misslyckas `docker run` (t.ex. docker.io 429) eller är `T6_GREENMAIL_MODE=jar`, hämtar `up.sh` `greenmail-standalone-2.1.8.jar` från Maven Central till `SIM_HOME/tools`, verifierar sha1 mot `.jar.sha1` (hashar i `SIM_HOME/evidence/greenmail-jar-hashes.txt`) och kör den med java på 127.0.0.1 (pid i `pids/greenmail.pid`, logg `logs/greenmail-jar.log`). `down.sh` stoppar den.
+
 ## Portar och namn
 
 App 3106, SMTP (TLS) 3625, IMAP TLS 3693, IMAP plain (GreenMail) 3643, kontroll 3699 (`T6_*_PORT`). Supabase 54321/54322 är

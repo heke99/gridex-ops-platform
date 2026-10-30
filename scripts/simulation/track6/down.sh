@@ -26,6 +26,7 @@ stop_pid() { # <pidfil> <namn>
 stop_pid "$PID_DIR/app.pid" "next start"
 rm -f "$PID_DIR/app.env-sha"
 stop_pid "$PID_DIR/counterparty.pid" "mailmotpart"
+stop_pid "$PID_DIR/greenmail.pid" "greenmail (jar)"
 if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx "$T6_GREENMAIL_NAME"; then
   t6_log "stoppar container $T6_GREENMAIL_NAME"
   docker rm -f -v "$T6_GREENMAIL_NAME" >/dev/null 2>&1 || true

@@ -105,13 +105,40 @@ SMTP_PASS="$(gen_secret smtp-pass)"; IMAP_PASS="$(gen_secret imap-pass)"
 CRON_SECRET_INBOUND="$(gen_secret cron-inbound)"; CRON_SECRET_OUTBOX="$(gen_secret cron-outbox)"
 
 # ---- (c) mailmotpart: GreenMail (IMAP, docker) + Node (SMTP TLS, IMAP TLS-terminator, kontroll) ----
-if ! docker ps --format '{{.Names}}' | grep -qx "$T6_GREENMAIL_NAME"; then
+t6_greenmail_jar() {
+  # GreenMail 2.1.8 utan docker: jar från Maven Central, sha1 verifieras mot .jar.sha1.
+  local v=2.1.8 base=https://repo1.maven.org/maven2/com/icegreen/greenmail-standalone/2.1.8 d="$SIM_HOME/tools"
+  local jar="$d/greenmail-standalone-$v.jar" pf="$PID_DIR/greenmail.pid"
+  mkdir -p "$d" "$SIM_HOME/evidence"
+  if [[ ! -s "$jar" ]]; then
+    curl -fsSL -o "$jar.part" "$base/greenmail-standalone-$v.jar" && curl -fsSL -o "$jar.sha1" "$base/greenmail-standalone-$v.jar.sha1" || return 1
+    mv "$jar.part" "$jar"
+  fi
+  local want have
+  want="$(tr -d ' \n\r' < "$jar.sha1" | cut -c1-40)"; have="$(sha1sum "$jar" | cut -d' ' -f1)"
+  [[ "$want" == "$have" ]] || { t6_log "GreenMail-jar sha1 avviker: $have != $want" >&2; rm -f "$jar" "$jar.sha1"; return 1; }
+  printf 'jar=%s\nsha1_actual=%s\nsha1_maven_central=%s\nsha256=%s\n' "$jar" "$have" "$want" "$(sha256sum "$jar" | cut -d' ' -f1)" > "$SIM_HOME/evidence/greenmail-jar-hashes.txt"
+  t6_pid_alive "$pf" && return 0
+  # Bara 127.0.0.1; test-setup ger IMAP på 3143 + offset.
+  setsid nohup java -Dgreenmail.setup.test.imap -Dgreenmail.hostname=127.0.0.1 -Dgreenmail.port.offset=$((T6_IMAP_PLAIN_PORT-3143)) \
+    "-Dgreenmail.users=${T6_IMAP_USER}:${IMAP_PASS}@${T6_MAIL_DOMAIN}" -jar "$jar" >"$LOG_DIR/greenmail-jar.log" 2>&1 &
+  echo $! > "$pf"
+}
+if ! docker ps --format '{{.Names}}' | grep -qx "$T6_GREENMAIL_NAME" && ! t6_pid_alive "$PID_DIR/greenmail.pid"; then
   docker rm -f "$T6_GREENMAIL_NAME" >/dev/null 2>&1 || true
-  t6_log "startar GreenMail ($T6_GREENMAIL_IMAGE) på 127.0.0.1:$T6_IMAP_PLAIN_PORT"
-  docker run -d --name "$T6_GREENMAIL_NAME" --label sim.track=track6 --label sim.campaign=20261029-3f1a8ab1 \
-    -p "127.0.0.1:${T6_IMAP_PLAIN_PORT}:3143" \
-    -e GREENMAIL_OPTS="-Dgreenmail.setup.test.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=${T6_IMAP_USER}:${IMAP_PASS}@${T6_MAIL_DOMAIN}" \
-    "$T6_GREENMAIL_IMAGE" >"$LOG_DIR/greenmail-run.log" 2>&1 || t6_die "docker run greenmail misslyckades (se $LOG_DIR/greenmail-run.log)"
+  started=0
+  if [[ "${T6_GREENMAIL_MODE:-docker}" != "jar" ]]; then
+    t6_log "startar GreenMail ($T6_GREENMAIL_IMAGE) på 127.0.0.1:$T6_IMAP_PLAIN_PORT"
+    docker run -d --name "$T6_GREENMAIL_NAME" --label sim.track=track6 --label sim.campaign=20261029-3f1a8ab1 \
+      -p "127.0.0.1:${T6_IMAP_PLAIN_PORT}:3143" \
+      -e GREENMAIL_OPTS="-Dgreenmail.setup.test.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=${T6_IMAP_USER}:${IMAP_PASS}@${T6_MAIL_DOMAIN}" \
+      "$T6_GREENMAIL_IMAGE" >"$LOG_DIR/greenmail-run.log" 2>&1 && started=1
+    (( started )) || docker rm -f "$T6_GREENMAIL_NAME" >/dev/null 2>&1 || true
+  fi
+  if (( ! started )); then
+    t6_log "GreenMail via jar (java, Maven Central 2.1.8) på 127.0.0.1:$T6_IMAP_PLAIN_PORT"
+    t6_greenmail_jar || t6_die "GreenMail-jar misslyckades (se $LOG_DIR/greenmail-jar.log)"
+  fi
 fi
 t6_wait_for "GreenMail IMAP" 90 t6_port_open "$T6_IMAP_PLAIN_PORT"
 
