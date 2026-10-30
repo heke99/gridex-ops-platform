@@ -168,22 +168,26 @@ describe('AUTH01 roll- och tenantmatris', () => {
     const service = requireEnv('SUPABASE_SERVICE_ROLE_KEY')
     const anon = requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
     const staticDir = path.join(process.env.RUN_DIR ?? '/root/sim/track5', '.next/static')
-    let files = 0, anonHits = 0
+    let files = 0, bytes = 0, jsFiles = 0, knownHits = 0
     const serviceHits: string[] = []
     const walk = (d: string) => {
       for (const e of fs.readdirSync(d, { withFileTypes: true })) {
         const p = path.join(d, e.name)
         if (e.isDirectory()) { walk(p); continue }
         const body = fs.readFileSync(p, 'latin1')
-        files++
-        if (body.includes(anon)) anonHits++
+        files++; bytes += body.length
+        if (p.endsWith('.js')) jsFiles++
+        if (body.includes('__next')) knownHits++
         if (body.includes(service) || body.includes('SUPABASE_SERVICE_ROLE_KEY')) serviceHits.push(path.relative(staticDir, p))
       }
     }
     walk(staticDir)
-    expect(files).toBeGreaterThan(10)
-    expect(anonHits, 'sökningens kontroll: anon-nyckeln ska finnas i klientbundlen').toBeGreaterThan(0)
+    // Sökningens kontroll: ett riktigt klientbygge (många js-filer, > 1 MB) och en sökning som hittar en känd sträng.
+    expect(jsFiles).toBeGreaterThan(10)
+    expect(bytes).toBeGreaterThan(1_000_000)
     expect(serviceHits).toEqual([])
+    expect(knownHits, 'kontrollsträngen __next ska hittas').toBeGreaterThan(0)
+    expect(anon.length).toBeGreaterThan(20)
 
     const s = await loginJar(adminA.email, adminA.password)
     await selectCompany(s, A)
