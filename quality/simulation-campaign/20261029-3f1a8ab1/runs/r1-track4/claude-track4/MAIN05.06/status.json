@@ -1,0 +1,42 @@
+{
+  "workerId": "claude-track4",
+  "model": "claude (session_01UHTg8Ku6P35GA6fSrg1U1B)",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "overlayRefs": [
+    "claude/sim-20261029-track4@4c5e0f751 scripts/simulation/track4/** (harness only)"
+  ],
+  "environmentId": "konform miljö: saknas; icke-konform env1: t4-20261029T201002Z (nedmonterad)",
+  "databaseIdentity": "saknas",
+  "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHashKind": "partial fingerprint",
+  "clockModel": "real time; business dates explicit in fixtures (supply from 2026-07-01, billing months 2026-07..09); no faketime",
+  "startedAtUtc": "saknas",
+  "finishedAtUtc": "saknas",
+  "heartbeatAtUtc": "saknas",
+  "cleanupReceipt": "env1 (t4-20261029T201002Z) nedmonterad 2026-10-30; evidens arkiverad lokalt i /root/sim-evidence/t4-env1, MANIFEST.sha256 (lokal, ej i repo)",
+  "campaign": "20261029-3f1a8ab1",
+  "runId": "r1-track4",
+  "scenarioId": "MAIN05.06",
+  "state": "FAIL",
+  "executionScope": "ISOLATED_NATIVE",
+  "evidence": [
+    "20261029T194639Z-6067 report sha256 f892f0b34a5ea7d402e42ba8e41caf2e0b2c5a679e6ca9b95f2aa4d01469adeb",
+    "20261029T201053Z-22827 report sha256 87dbcadb1ca7460fcf3ffe42fc4a58a3e62d9a33c69ae7b43f20ff2ecb4cd74a",
+    "komponentprobe: PostgREST 400 / 22P02"
+  ],
+  "findingsIds": [
+    "20261029-3f1a8ab1/claude-track4/1"
+  ],
+  "blocker": "produktfel (HTTP 500 för 36 bindestreck); rättning PR #939 mergad 2026-10-30T11:50:02Z (commit fd8cb105d); omtest i konform miljö ej utförd",
+  "nextAction": "omtest av MAIN05.06 i ny konform miljö mot mergad main",
+  "fixRef": "PR #939 commit fd8cb105d; regression __tests__/admin-invoice-file-download-id-validation.test.ts (uppgift: red 2/6 -> green 70/70)",
+  "fixState": "rättat-väntar-omtest",
+  "observed": {
+    "input": "36 x '-'",
+    "httpStatus": 500,
+    "bytes": 0,
+    "pgCode": "22P02",
+    "expectedHttpStatus": 404
+  }
+}

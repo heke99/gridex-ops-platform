@@ -1,0 +1,27 @@
+{
+  "workerId": "claude-track4",
+  "model": "claude (session_01UHTg8Ku6P35GA6fSrg1U1B)",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "overlayRefs": [
+    "claude/sim-20261029-track4@4c5e0f751 scripts/simulation/track4/** (harness only)"
+  ],
+  "environmentId": "konform miljö: saknas; icke-konform env1: t4-20261029T201002Z (nedmonterad)",
+  "databaseIdentity": "saknas",
+  "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHashKind": "partial fingerprint",
+  "clockModel": "real time; business dates explicit in fixtures (supply from 2026-07-01, billing months 2026-07..09); no faketime",
+  "startedAtUtc": "saknas",
+  "finishedAtUtc": "saknas",
+  "heartbeatAtUtc": "saknas",
+  "cleanupReceipt": "env1 (t4-20261029T201002Z) nedmonterad 2026-10-30; evidens arkiverad lokalt i /root/sim-evidence/t4-env1, MANIFEST.sha256 (lokal, ej i repo)",
+  "campaign": "20261029-3f1a8ab1",
+  "runId": "r1-track4",
+  "scenarioId": "MAIN05.04",
+  "state": "BLOCKED",
+  "executionScope": "saknas",
+  "evidence": [],
+  "findingsIds": [],
+  "blocker": "behöver riktig fakturafil; anonym GET mot ogiltigt id gav 307 till /login 85 B (inte orakel)",
+  "nextAction": "kör med riktig fakturafil i konform miljö"
+}
