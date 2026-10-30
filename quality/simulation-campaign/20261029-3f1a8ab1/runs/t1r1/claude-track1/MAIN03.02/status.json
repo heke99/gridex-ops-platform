@@ -22,8 +22,8 @@
   },
   "clockModel": "Real wall clock for Auth/JWT and DB now(); business period February 2027 (Europe/Stockholm) lies in the future relative to now() and is carried only by fixture data; no clock manipulation.",
   "startedAtUtc": "2026-10-29T20:29:04Z",
-  "heartbeatAtUtc": "2026-10-29T20:30:49+00:00",
-  "state": "RUNNING",
+  "heartbeatAtUtc": "2026-10-30T13:53:47+00:00",
+  "state": "PASS",
   "executionScope": "ISOLATED_NATIVE",
   "commands": [
     "scripts/simulation/track1/run.sh scripts/simulation/track1/scenarios/main03.test.ts main03"
@@ -144,7 +144,17 @@
     "20261029-3f1a8ab1/claude-track1/009"
   ],
   "blocker": null,
-  "nextAction": "Step passed in attempt 10 (28 sources x 96); awaiting sim-reviewer before PASS",
-  "cleanupReceipt": null,
-  "finishedAtUtc": "2026-10-30T13:50:32Z"
+  "nextAction": "Re-confirm on the integrated final version (track 7); no further T1 action",
+  "cleanupReceipt": {
+    "stack": "t1-20261030T120956Z-3bad2e45",
+    "state": "still running for MAIN04/SITE01; down.sh cleanup.json to follow at track end"
+  },
+  "finishedAtUtc": "2026-10-30T13:50:32Z",
+  "reviewer": "sim-reviewer oberoende 2026-10-30: GODKÄND, körning 20261030T125039Z-main03, harness eb16eac1, app 1c0c088c; orakel från synthetic.ts asserterat mot DB-rader; ersättningssteg dokumenterade",
+  "migrationIdentity": {
+    "ledgerMigrationsTsv": "48 rows sha256 d476b2a7…",
+    "postReplayApplied": 0,
+    "gitDiffMigrationsBaseToHead": "empty"
+  },
+  "notes": "run-meta.harnessCommit ac6e50b4 differs from eb16eac1 only in FINDINGS.md (scripts/ identical). Source-basis qualification (gridex_read_billing_source_values_v1) is MAIN03.03 scope, not proven here."
 }
