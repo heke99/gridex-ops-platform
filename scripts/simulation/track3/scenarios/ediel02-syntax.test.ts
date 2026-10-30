@@ -1,14 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // EDIEL02.06: syntaxfel -> faktisk negativ CONTRL skapad och skickad till DSO-motparten. Ingen webbläsare.
 //  a) felaktigt segment (okänt segment, fel UNT-segmentantal, saknat BGM)  b) ogiltigt teckenset / UNOC-brott (UNOC med tecken utanför ISO 8859-1, UNOA med gemener/icke-A)
 //  c) trasig MIME / ingen EDIFACT: koden förväntas ge manual_review utan CONTRL; designen kräver ett faktiskt felkvitto, så det
 //     asserteras som eget steg (06c-*-receipt) och faller om inget kvitto skickas (kandidatfynd, inte bortassertat).
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { appendToInbox, purgeInbox, readReceivedEml, receivedMail } from '../lib/counterparty'
+import { purgeInbox, readReceivedEml, receivedMail } from '../lib/counterparty'
 import { buildE02Utilts } from '../lib/e02-edifact'
 import { type DsoMail, sha } from '../lib/e02-flow'
 import { lit, sql } from '../lib/e02-flow'
 import { e02MeteringPoint, seedE02Routable, type E02Fixture } from '../lib/e02-seed'
 import { e02Counts } from '../lib/e02-state'
+import { E02_OWN_ID } from '../lib/e02-tenant'
 import { setupE02 } from '../lib/e02-setup'
 import { buildEdifactMime } from '../lib/mime'
 
@@ -59,7 +61,7 @@ function expectNegativeContrl(f: Fate) {
   const uci = m.segments.find((s) => s.startsWith('UCI+'))!
   expect(uci).toBeTruthy()
   expect(uci).toContain(`+${f.interchangeRef}+`) // refererar den felaktiga överföringen
-  expect(uci).toMatch(/\+70007:ZZ\+16700:ZZ\+|\+16700:ZZ\+70007:ZZ\+/) // ursprunglig avsändare/mottagare i UCI (kopplat till 70007<->16700)
+  expect(uci).toMatch(new RegExp(`\\+70007:ZZ\\+${E02_OWN_ID}:ZZ\\+|\\+${E02_OWN_ID}:ZZ\\+70007:ZZ\\+`)) // ursprunglig avsändare/mottagare i UCI (kopplat till 70007<->16700)
   expect(m.contrlStatus).not.toBe('1') // 1 = accepterad; negativt kvitto bär annan kod
   expect(m.contrlStatus).toBe('4')
   const ownContrl = f.messages.filter((x) => x.dir === 'outbound' && x.family === 'CONTRL')

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // EDIEL02: flödeshjälp. IMAP-inläggning -> poll (motorn med automationsaktören, företagsbrevlåda) -> granskad historikgrund (syntetisk) ->
 // ombearbetning -> outbox-drain -> läsning av mottagna DSO-mejl. Varaktigheter loggas per fas.
 import { createHash } from 'node:crypto'

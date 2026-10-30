@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // EDIEL02.05: meddelande från okänd/främmande part eller utan mandat -> nekat/fail-closed, ingen affärseffekt. Ingen webbläsare.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { purgeInbox, receivedMail } from '../lib/counterparty'

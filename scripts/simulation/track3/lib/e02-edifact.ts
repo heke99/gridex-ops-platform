@@ -5,7 +5,8 @@
 // Skillnad mot lib/edifact.ts buildUtiltsE66: den genererar månadsserie utan testindikator (UNB 0035) och hålls i test-miljön av
 // ediel_inbound_context (derive_before_received_err_response_v1) -> `ediel_inbound_legal_context_required`. Det är ett harnessfel
 // i delad lib (inte ändrat här), den här filen är ersättningen för EDIEL02.
-import { COUNTERPARTY_EDIEL_ID, OWN_EDIEL_ID } from './seed.mjs'
+import { COUNTERPARTY_EDIEL_ID } from './seed.mjs'
+import { E02_OWN_ID } from './e02-tenant'
 
 export type E02Options = {
   prefix: string
@@ -40,7 +41,7 @@ const hhmm = (d: Date) => `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}`
 
 export function buildE02Utilts(o: E02Options): E02Edifact {
   const now = o.now ?? new Date()
-  const sender = o.sender ?? COUNTERPARTY_EDIEL_ID, receiver = o.receiver ?? OWN_EDIEL_ID
+  const sender = o.sender ?? COUNTERPARTY_EDIEL_ID, receiver = o.receiver ?? E02_OWN_ID
   const key = `${o.prefix}${pad(o.seq, 3)}`
   const interchangeRef = o.interchangeRef ?? `${key}I`.slice(-14)
   const documentRef = o.documentRef ?? `${key}D`

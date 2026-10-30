@@ -4,6 +4,7 @@ import { setSmtpMode } from './counterparty'
 import { E02Flow, purgeInbox } from './e02-flow'
 import { ensureE02AckRouteProfile, ensureE02CompanyMailbox, registerE02Issuer, setE02MailboxActive } from './e02-seed'
 import { Evidence } from './evidence'
+import { ensureE02Tenant } from './e02-tenant'
 import { dbUrl, newRunContext } from './seed.mjs'
 
 export async function setupE02(label: string) {
@@ -11,6 +12,7 @@ export async function setupE02(label: string) {
   const ev = new Evidence()
   const mode = (process.env.T3_MODE as 'test' | 'production') ?? 'test'
   const t0 = Date.now()
+  const tenant = await ensureE02Tenant()
   registerE02Issuer()
   ensureE02AckRouteProfile(mode)
   const mailboxId = ensureE02CompanyMailbox(mode)
@@ -19,7 +21,7 @@ export async function setupE02(label: string) {
   const purged = await purgeInbox()
   const flow = new E02Flow(ev, mailboxId, mode)
   flow.durations.harness.push(Date.now() - t0)
-  ev.observe('run', { ...run, mode, mailboxId, purgedImap: purged })
+  ev.observe('run', { ...run, tenant, mode, mailboxId, purgedImap: purged })
   // Diagnos: statements som varit aktiva > 2 s (pg_stat_activity, skrivskyddad) loggas separat i slow-statements.json.
   const slow = new Map<string, { firstSeen: string; maxMs: number; waitEvent: string | null; query: string }>()
   const sampler = setInterval(() => {

@@ -7,7 +7,8 @@
 //    syntetisk utfärdare/transportmandat för 70007 så att fält 203/505-namnrymden finns.
 // Egen part (tenant 16700), grid_owner 70007 och automationsaktören kommer ur lib/seed.mjs-fixturen (up.sh).
 import { registerUtiltsIssuer, seedUtiltsIssuerHistoryGround } from '../../../helpers/utiltsConsumptionParties'
-import { adminClient, COUNTERPARTY_EDIEL_ID, COMPANY_NAME, jlit, lit, sql, sqlJson } from './seed.mjs'
+import { adminClient, COUNTERPARTY_EDIEL_ID, jlit, lit, sql, sqlJson } from './seed.mjs'
+import { e02CompanyId, E02_OWN_ID } from './e02-tenant'
 import { createHash, randomUUID } from 'node:crypto'
 
 export type E02Fixture = {
@@ -30,8 +31,8 @@ export function e02MeteringPoint(prefix: string, salt = 0): string {
 
 /** Seeda kund/kundobjekt/mätpunkt/datarequest för en given mätpunkt i tenant 16700 (idempotent per mätpunkt). */
 export function seedE02Routable(meteringPoint: string, label: string, environment: 'test' | 'production' = 'test'): E02Fixture {
-  const companyId = sql(`SELECT id FROM public.companies WHERE name=${lit(COMPANY_NAME)} LIMIT 1`)
-  const actorUserId = process.env.EDIEL_AUTOMATION_ACTOR_USER_ID!
+  const companyId = e02CompanyId()
+  const actorUserId = process.env.EDIEL_AUTOMATION_ACTOR_USER_ID! // sätts av ensureE02Tenant för isolerad tenant
   const gridOwnerId = sql(`SELECT id FROM public.grid_owners WHERE company_id=${lit(companyId)} AND environment=${lit(environment)} AND ediel_id=${lit(COUNTERPARTY_EDIEL_ID)} LIMIT 1`)
   const existing = sqlJson(`SELECT to_jsonb(x) FROM (SELECT p.id point, p.customer_id customer, p.site_id site,
       (SELECT id FROM public.grid_owner_data_requests r WHERE r.metering_point_id=p.id LIMIT 1) request
@@ -64,8 +65,8 @@ export { adminClient, jlit }
  * Raden skapas inaktiv och aktiveras bara under EDIEL02-körningen (setE02MailboxActive).
  */
 export function ensureE02CompanyMailbox(environment: 'test' | 'production' = 'test'): string {
-  const companyId = sql(`SELECT id FROM public.companies WHERE name=${lit(COMPANY_NAME)} LIMIT 1`)
-  const name = `T3SIM E02 company mailbox (${environment})`
+  const companyId = e02CompanyId()
+  const name = `T3SIM E02 company mailbox ${E02_OWN_ID} (${environment})`
   const found = sql(`SELECT id FROM public.ediel_mailboxes WHERE mailbox_name=${lit(name)} LIMIT 1`)
   if (found) return found
   return sql(`INSERT INTO public.ediel_mailboxes(company_id,mailbox_name,email_address,environment,is_active,imap_host,imap_port,username,secret_reference,smtp_from,
@@ -132,8 +133,8 @@ export function masterDataFingerprint(companyIds: string[]): string {
  * EDIEL02 lägger en egen kompletterande profil (kopia av ediel_ack-profilen) per miljö med '23-DDQ-E66-T'.
  */
 export function ensureE02AckRouteProfile(environment: 'test' | 'production' = 'test', app = '23-DDQ-E66-T'): void {
-  if (Number(sql(`SELECT count(*) FROM public.ediel_route_profiles WHERE environment=${lit(environment)} AND route_name LIKE 'T3SIM ediel_ack%' AND application_reference=${lit(app)}`)) > 0) return
+  if (Number(sql(`SELECT count(*) FROM public.ediel_route_profiles WHERE company_id=${lit(e02CompanyId())} AND environment=${lit(environment)} AND route_name LIKE '%ediel_ack%' AND application_reference=${lit(app)}`)) > 0) return
   sql(`INSERT INTO public.ediel_route_profiles(company_id,communication_route_id,is_enabled,is_active,environment,route_name,sender_ediel_id,own_ediel_id,receiver_ediel_id,counterparty_ediel_id,receiver_email,smtp_to,smtp_from,smtp_host,smtp_port,mailbox,is_test_route,is_production_route,transport_mode,tls_required,encryption_mode,default_test_flag,application_reference)
     SELECT company_id,communication_route_id,is_enabled,is_active,environment,route_name,sender_ediel_id,own_ediel_id,receiver_ediel_id,counterparty_ediel_id,receiver_email,smtp_to,smtp_from,smtp_host,smtp_port,mailbox,is_test_route,is_production_route,transport_mode,tls_required,encryption_mode,default_test_flag,${lit(app)}
-    FROM public.ediel_route_profiles WHERE environment=${lit(environment)} AND route_name LIKE 'T3SIM ediel_ack%' AND application_reference IS NULL ORDER BY created_at LIMIT 1`)
+    FROM public.ediel_route_profiles WHERE company_id=${lit(e02CompanyId())} AND environment=${lit(environment)} AND route_name LIKE '%ediel_ack%' AND application_reference IS NULL ORDER BY created_at LIMIT 1`)
 }

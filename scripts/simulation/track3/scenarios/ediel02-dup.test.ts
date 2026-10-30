@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // EDIEL02.01 / EDIEL02.02: dubbletter. Ingen webbläsare (Playwright används inte).
 // Kedja: IMAP-TLS -> poller (motorn med automationsaktören, företagsbrevlåda) -> intake/parsing -> authority -> metering
 // (gridex_consume_utilts_metering_v1 via processInboundEdielMessage) -> outbox-drain -> DSO-motpart.

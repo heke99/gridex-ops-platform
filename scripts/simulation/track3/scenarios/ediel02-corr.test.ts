@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // EDIEL02.03 / EDIEL02.04: rättelser och felordning (UTILTS E66, SC046-semantik). Ingen webbläsare.
 // Replaced/superseded avgörs av meter_reading_series.latest_update_date (DTM+597 i huvudet); normal väg = poller -> processInboundEdielMessage.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
