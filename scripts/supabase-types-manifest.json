@@ -3,7 +3,7 @@
   "generated_at": "2026-10-30T13:25:02.918513+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run41060729893-job124079498428-attempt1",
   "sha256": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
-  "latest_migration": "20261029173552_preserve_imported_agreement_selected_pricing.sql",
+  "latest_migration": "20261030131500_audit19_qualify_onboard_customer_graph_core_hash.sql",
   "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of PR932 with its fixes: unsigned edit RPC refusals use PT409 and the manual-import trigger derives only absent pricing model, resolution and components. Native/parity/production installation remain unverified.",
   "composition_capture_pending": false,
   "capture": {
