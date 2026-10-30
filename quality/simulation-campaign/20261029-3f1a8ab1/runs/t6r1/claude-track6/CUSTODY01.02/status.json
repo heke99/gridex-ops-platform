@@ -1,0 +1,39 @@
+{
+  "scenarioId": "CUSTODY01.02",
+  "workerId": "claude-track6",
+  "model": "claude (session_01UHTg8Hora3xtZg4oHMrcGi)",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
+  "appCommitNote": "Angiven main-commit enligt uppdraget. Lokal ref main pekar på 0535e618; 6454d540 är inte ancestor av lokal main (git merge-base --is-ancestor exit 1). Ej verifierat mot faktisk remote-main.",
+  "patch": "none (ingen appkodspatch)",
+  "overlayRefs": [
+    {
+      "harness": "claude/sim-20261029-track6 scripts/simulation/track6/**",
+      "appCodeChanged": false
+    }
+  ],
+  "environmentId": "t6-local-20261030",
+  "databaseIdentity": "local supabase 127.0.0.1:54322, replay 1e0a29bc, fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHashNote": "Samma fingerprint som databaseIdentity; partiell identitet (ingen separat schemahash-beräkning gjord i denna packet).",
+  "clockModel": "real UTC (no fixture clock used)",
+  "startedAtUtc": "2026-10-30T16:04:26Z",
+  "finishedAtUtc": "2026-10-30T16:04:26Z",
+  "state": "BLOCKED",
+  "executionScope": "SOURCE_ONLY",
+  "command": "none (ingen runner-körning; källkontroll med git show, sed, git grep)",
+  "evidence": [
+    "oracle 27862b90:quality/simulation-campaign/oracle-original/all-systems-scenarios.safe.json:549 ('Fysisk originaldata bevaras trots utelämnade två diagnostikkopior') sha256 96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+    "lib/ediel/retention/financeCopies.catalog.ts (16 finance-kopieklasser, ingen benämnd diagnostisk; källkontroll på 0535e618)",
+    "__tests__/ediel-tenant-diagnostic-custody.test.ts (rör ediel_unresolved_items-routing, inte kopior)",
+    "git grep -i diagnostic lib/ediel/retention på 0535e618: inga träffar",
+    "Källor utan identifiering av de två diagnostikkopiorna: main, gifted-hamilton-vss1hj, adoring-wright-8qbon8 audits, .agent-memory"
+  ],
+  "findingsIds": [],
+  "blocker": "BLOCKED: orakel saknas – vilka två diagnostikkopior som avses är inte definierat",
+  "requiredExternalInput": [
+    "Ägare/koordinering måste definiera vilka två diagnostikkopior som avses (eller pensionera fallet)."
+  ],
+  "nextAction": "owner/coordination must define which two copies (or retire the case); then T6 runs it natively",
+  "cleanupReceipt": "not applicable – no runtime mutation"
+}

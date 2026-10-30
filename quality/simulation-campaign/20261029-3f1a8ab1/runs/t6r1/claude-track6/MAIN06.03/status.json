@@ -1,0 +1,39 @@
+{
+  "scenarioId": "MAIN06.03",
+  "workerId": "claude-track6",
+  "model": "claude (session_01UHTg8Hora3xtZg4oHMrcGi)",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
+  "appCommitNote": "Angiven main-commit enligt uppdraget. Lokal ref main pekar på 0535e618; 6454d540 är inte ancestor av lokal main (git merge-base --is-ancestor exit 1). Ej verifierat mot faktisk remote-main.",
+  "patch": "none (ingen appkodspatch)",
+  "overlayRefs": [
+    {
+      "harness": "claude/sim-20261029-track6 scripts/simulation/track6/**",
+      "appCodeChanged": false
+    }
+  ],
+  "environmentId": "t6-local-20261030",
+  "databaseIdentity": "local supabase 127.0.0.1:54322, replay 1e0a29bc, fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHashNote": "Samma fingerprint som databaseIdentity; partiell identitet (ingen separat schemahash-beräkning gjord i denna packet).",
+  "clockModel": "real UTC (no fixture clock used)",
+  "startedAtUtc": "2026-10-30T16:04:26Z",
+  "finishedAtUtc": "2026-10-30T16:04:26Z",
+  "state": "BLOCKED",
+  "executionScope": "EXTERNAL_ACCEPTANCE",
+  "command": "none (ingen runner-körning; källkontroll med git grep/git show/sed)",
+  "evidence": [
+    "Kod för mottagarkvitto eller svar från Nordfin saknas i lib/billing (källkontroll på 6454d540)",
+    "bodySHA saknas i faktureringskoden (källkontroll på 6454d540)",
+    "supabase/migrations/20261010100000_nordfin_invoice_file_provider.sql:1-4 (Nordfin endast filleverantör)",
+    "https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6526407702 (oraklet MAIN06 = HOLD)",
+    "oracle 27862b90:quality/simulation-campaign/oracle-original/all-systems-scenarios.safe.json sha256 96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3"
+  ],
+  "findingsIds": [],
+  "blocker": "BLOCKED: extern – avtalad testmottagare hos Nordfin och deras kvittoformat saknas",
+  "requiredExternalInput": [
+    "3. En avtalad testmottagare hos Nordfin, med SFTP/API-endpoint och testkonto som ägaren tillhandahåller, och deras kvittoformat. Kvittot ska innehålla fakturanummer och en referens som kan bindas till filens bodySHA256. Utöver det krävs ett faktiskt mottagarkvitto för en inskickad testfil. En lokal 200 räknas inte."
+  ],
+  "nextAction": "ägaren tillhandahåller 3 (avtalad testmottagare med SFTP/API-endpoint, testkonto och kvittoformat som binder fakturanummer och bodySHA256)",
+  "cleanupReceipt": "not applicable – no runtime mutation"
+}
