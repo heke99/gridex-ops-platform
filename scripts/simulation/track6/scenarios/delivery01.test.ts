@@ -65,12 +65,18 @@ function appEnvFileValue(name: string): string | null {
   return line ? line.slice(name.length + 1).replace(/^["']|["']$/g, '') : null
 }
 
-/** Last 400 kB of the app log, to tell a 57014 statement timeout (claude-track1/010) from another 5xx. Never written to evidence. */
-function appLogMentions(needle: string): boolean {
+/** Reads the app log (last 600 kB) for the block `[ctx] failed { traceId: '<id>', code: '<db/pg code>', error: '<message>' }` of a 5xx trace_id. Never written raw to evidence. */
+function appLogErrorForTrace(traceId: string | null): { traceId: string; code: string | null; error: string | null } | null {
   const file = `${process.env.T6_SIM_HOME ?? ''}/logs/app.log`
-  if (!process.env.T6_SIM_HOME || !existsSync(file)) return false
-  const size = statSync(file).size, length = Math.min(size, 400_000), fd = openSync(file, 'r')
-  try { const buffer = Buffer.alloc(length); readSync(fd, buffer, 0, length, size - length); return buffer.toString('utf8').includes(needle) } finally { closeSync(fd) }
+  if (!traceId || !process.env.T6_SIM_HOME || !existsSync(file)) return null
+  const size = statSync(file).size, length = Math.min(size, 600_000), fd = openSync(file, 'r')
+  try {
+    const buffer = Buffer.alloc(length); readSync(fd, buffer, 0, length, size - length)
+    const text = buffer.toString('utf8'), at = text.lastIndexOf(traceId)
+    if (at < 0) return null
+    const block = text.slice(at, at + 600)
+    return { traceId, code: /code:\s*'([^']*)'/.exec(block)?.[1] ?? null, error: /error:\s*'([^']*)'/.exec(block)?.[1] ?? null }
+  } finally { closeSync(fd) }
 }
 
 const rowFor = (rows: Array<Record<string, unknown>>) => rows[0] as Record<string, unknown> | undefined
@@ -141,11 +147,13 @@ describe('Track6 DELIVERY01: fakturaleverans (e-post/post/adress) i Nordfin-file
       needs(ctx, `chain:${key}`, 'spot')
       const chain = S.chains[key]!
       const res = await generateUnderlay(chain.session)
-      const timeout57014 = res.status >= 500 && appLogMentions('57014')
-      evidence.observe(`${key}_generate_underlay`, { status: res.status, ms: res.ms, valuesInMonth: 96, body: res.body ?? res.text.slice(0, 300), appLog57014: timeout57014 })
+      const traceId = (res.body as { trace_id?: string } | null)?.trace_id ?? null
+      const logged = res.status >= 500 ? appLogErrorForTrace(traceId) : null
+      const timeout57014 = logged?.code === '57014'
+      evidence.observe(`${key}_generate_underlay`, { status: res.status, ms: res.ms, valuesInMonth: 96, body: res.body ?? res.text.slice(0, 300), appLog: logged })
       if (res.status >= 500) {
-        evidence.observe('BLOCKED_BY', timeout57014 ? 'claude-track1/010 (57014 statement timeout i generate-underlay)' : `generate-underlay HTTP ${res.status} utan 57014 i app-loggen: orsak oklar`)
-        throw new Error(`${timeout57014 ? 'BLOCKED_BY claude-track1/010' : 'generate-underlay misslyckades'}: HTTP ${res.status} efter ${res.ms} ms med 24 värden: ${JSON.stringify(res.body)?.slice(0, 300)}`)
+        evidence.observe('BLOCKED_BY', timeout57014 ? 'claude-track1/010 (57014 statement timeout i generate-underlay)' : `generate-underlay HTTP ${res.status}: app-logg ${JSON.stringify(logged)}`)
+        throw new Error(`${timeout57014 ? 'BLOCKED_BY claude-track1/010' : 'generate-underlay misslyckades'}: HTTP ${res.status} efter ${res.ms} ms med 96 värden; trace ${traceId}; db-kod ${logged?.code ?? '?'} ${logged?.error ?? ''}`)
       }
       expect(res.status).toBe(200)
       const underlays = underlaysFor(chain.companyId)
