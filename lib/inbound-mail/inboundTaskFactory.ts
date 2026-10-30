@@ -6,6 +6,43 @@ function cleanId(value?: string | null): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
+type InboundMailTaskInput = Parameters<typeof createInboundMailTask>[0]
+
+// A held duplicate/identity-conflict reception without a canonical customer is
+// queued for operators in the tenant's EDIEL manual review queue instead of
+// being dropped. Only references and hashes are copied; no meter values or
+// personal data. Idempotent per (ediel_message_id, issue_type); an existing row
+// is never overwritten, and a reception from another tenant is refused.
+async function createHeldResponseManualReview(companyId: string, input: InboundMailTaskInput): Promise<void> {
+  const reception = input.metadata?.reception as Record<string, unknown> | undefined
+  const edielMessageId = cleanId(typeof reception?.sourceMessageId === 'string' ? reception.sourceMessageId : null)
+  if (!reception || !edielMessageId || reception.companyId !== companyId) {
+    console.warn('[inbound-mail] Held reception lacks a same-tenant source message; manual review item not created.', { companyId })
+    return
+  }
+  const str = (value: unknown) => (typeof value === 'string' ? value : null)
+  const { error } = await supabaseService.from('ediel_manual_review_items').upsert({
+    company_id: companyId,
+    ediel_message_id: edielMessageId,
+    issue_type: 'inbound_duplicate_response_held',
+    title: input.title,
+    description: input.description ?? input.title,
+    status: 'open',
+    payload: {
+      inboundEmailMessageId: str(reception.inboundEmailMessageId),
+      receptionId: str(reception.receptionId),
+      parseResultId: str(reception.parseResultId),
+      responseRequestId: str(reception.responseRequestId),
+      classification: str(reception.classification),
+      reason: str(reception.reason),
+      protocolResponseFailureCode: str(input.metadata?.protocolResponseFailureCode),
+      canonicalPayloadHash: str(reception.canonicalPayloadHash),
+      receivedPayloadHash: str(reception.receivedPayloadHash),
+    },
+  }, { onConflict: 'ediel_message_id,issue_type', ignoreDuplicates: true })
+  if (error) console.warn('[inbound-mail] Kunde inte skapa manuell granskningspost', error)
+}
+
 export async function createInboundMailTask(input: {
   companyId?: string | null
   customerId?: string | null
@@ -25,6 +62,10 @@ export async function createInboundMailTask(input: {
   // is NOT NULL. Unresolved EDIEL/routing issues belong in the EDIEL event and
   // unresolved-item audit streams until a canonical customer has been matched.
   const customerId = cleanId(input.customerId)
+  if (!customerId && input.taskType === 'ediel_duplicate_response_held') {
+    await createHeldResponseManualReview(companyId, input)
+    return
+  }
   if (!customerId) {
     console.warn('[inbound-mail] Skipping customer-scoped task because no canonical customer is resolved.', {
       companyId,
