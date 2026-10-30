@@ -280,10 +280,14 @@ describe('TERM01 bindningstid och slutdatum', () => {
     expect(r.httpStatus).toBeLessThan(500)
   })
 
-  it('TERM01.PRE createContract TS-path: utfall för erbjudande utan price_options (fynd 005; räknas inte in i TERM-utfall)', async () => {
+  it('TERM01.PRE createContract TS-path: erbjudande utan price_options skapar avtalet (fynd 005; räknas inte in i TERM-utfall)', async () => {
     const r = await probeCreateContractTsPath(tenant)
     console.info(`[TERM01.PRE createContract TS-path] request-id=${r.requestId} HTTP ${r.httpStatus} kastade=${r.threw} avtal skapade=${r.contractsCreated} ${r.errorRows.join(' | ').slice(0, 200)} (PGRST204 i appens logg = fynd 005)`)
-    expect(typeof r.httpStatus).toBe('number')
+    // Fynd 005: TS-vägen ska skapa avtalet utan schemafel (PGRST204 på current_supplier_*-kolumner före rättningen).
+    expect(r.threw, `createContractFromOfferAction kastade: ${r.errorRows.join(' | ').slice(0, 200)}`).toBe(false)
+    expect(r.httpStatus).toBe(200)
+    expect(r.errorRows).toEqual([])
+    expect(r.contractsCreated, 'exakt ett nytt kundavtal i DB').toBe(1)
   })
 
   it('TERM01.01 tillsvidare utan bindningsslut (binding_months 0; null i erbjudandet normaliseras till 0 av fixturen), notice från erbjudandet, ingen förnyelse', async () => {

@@ -35,7 +35,7 @@ import {
 import {
   DUP_HOUR_FIRST_UTC, DUP_HOUR_SECOND_UTC, HALF_CASES, dstHourlySeries, dstQuarterSeries, faultyDstDaySeries, faultyDstHourlySeries, quartersOnHourlyPrices, term0201Hourly,
   term0202Hourly, term0203Hourly, term0204HourlyPrices, term0204HourlyWh, term0204QuarterPrices, term0204QuarterWh, term0207Hourly,
-  term0208Consumption, term0208Prices, toMeterValues, toOracle, toSpotIntervals, whToKwh, p4ToSek, type Point,
+  term0208Consumption, term0208Prices, term02OriginalExampleHourly, ORIGINAL_EXAMPLE_WH, ORIGINAL_EXAMPLE_P4, toMeterValues, toOracle, toSpotIntervals, whToKwh, p4ToSek, type Point,
 } from '../lib/term02-data'
 
 const PERMS = ['billing_underlay.read', 'billing_underlay.export', 'pricing.read', 'pricing.write', 'customers.read', 'contracts.read', 'masterdata.read']
@@ -419,6 +419,57 @@ describe('TERM02.02 timavtal med negativa och nollpriser (2026-09, SE2)', () => 
       appFollows: appVat === oracle.totalVatOre ? 'moms per rad (summan av radernas avrundade moms)' : appVat === oracle.vatOnTotalOre ? 'moms på summan' : 'ingen av dem',
       negativeContributionOre: (exactOre - clamped).toString(),
     })
+  }, LONG)
+})
+
+// ---------------------------------------------------------------- TERM02.01/.02 originalorakelts exempelvärden
+
+describe('TERM02.01 TERM02.02 originalorakelts exempelvärden: 16 kombinationer av kWh 0/0,25/1,5/2 och pris -0,50/0/0,75/1,20 (2026-06, SE3)', () => {
+  const MONTH = '2026-06'
+  let ctx!: { tenant: TermTenant; session: AppSession; c: SignedContractFixture; pts: Point[]; gen: GenerateUnderlayData }
+  const setup = lazy(async () => {
+    ensureFootprint()
+    const { tenant, session } = await setupTenant()
+    const c = await newContract(tenant, { type: 'variable_hourly', area: 'SE3' })
+    const pts = term02OriginalExampleHourly(MONTH)
+    await spot('SE3', MONTH, 'hourly', pts, session)
+    insertMeteringValues(c, toMeterValues(pts, 'PT60M'))
+    ctx = { tenant, session, c, pts, gen: expectGenerate(await generateUnderlay(session, MONTH)) }
+  })
+
+  it('TERM02.01 TERM02.02 original exempelvärden: alla 16 kombinationer förekommer; energirad ex/moms/inkl exakt mot oraklet och mot handräknad Σ(q·p) i BigInt', async () => {
+    await setup()
+    const id = 'TERM02.01/.02 original'
+    // Handräknad Σ(q·p): Wh (heltal) × p4 (tiondels öre/kWh) = enhet 1e-7 kWh·SEK/kWh = 1e-7 SEK. Antal förekomster per kombination räknas oberoende av datafunktionen.
+    const hours = 24 * 30
+    const counts = new Map<string, bigint>()
+    let manual = 0n
+    for (let i = 0; i < hours; i++) {
+      const wh = BigInt(ORIGINAL_EXAMPLE_WH[i % 4]), p4 = BigInt(ORIGINAL_EXAMPLE_P4[(i >> 2) % 4])
+      manual += wh * p4
+      counts.set(`${wh}/${p4}`, (counts.get(`${wh}/${p4}`) ?? 0n) + 1n)
+    }
+    expect(counts.size, 'antal olika kombinationer').toBe(16)
+    expect(ctx.pts, 'antal timslotar').toHaveLength(hours)
+    const seen = new Map<string, bigint>()
+    for (const p of ctx.pts) seen.set(`${p.wh}/${p.p4}`, (seen.get(`${p.wh}/${p.p4}`) ?? 0n) + 1n)
+    expect([...seen.entries()].sort(), 'förekomster per kombination i datat').toEqual([...counts.entries()].sort())
+    for (const n of counts.values()) expect(n === 45n, 'förekomster per kombination (720 = 45 x 16)').toBe(true)
+    const intervals = toOracle(ctx.pts)
+    expect(decToString(sumEnergy(intervals)), 'orakelfunktionen sumEnergy = handräknad Σ(q·p)').toBe(decToString({ n: manual, s: 7 }))
+    const manualOre = roundDec({ n: manual, s: 7 }, 2, 'half_away')
+
+    const { row, result } = underlayFor(ctx.tenant.companyId, MONTH, ctx.c, ctx.gen)
+    expectCoverageClean(id, row, result, hours)
+    expectTotalKwh(id, row, ctx.pts)
+    expectItemsMatch(id, row.id, ctx.pts)
+    const terms = readContractTerms(ctx.c)
+    const data = await priceAndCompare(ctx.session, row.id, ctx.pts, terms, id)
+    const base = appLinesOre(data).find((l) => l.kind === 'spot')!
+    expect(base.exVatOre, 'basraden (ex moms, öre) = handräknad Σ(q·p) avrundad').toBe(manualOre)
+    const oracle = oracleInvoice({ intervals, terms }, 'half_away')
+    const oSpot = oracle.lines.find((l) => l.code === 'spot')
+    observe(`${id} orakel`, { manualOre: manualOre.toString(), oracleSpot: oSpot ? `ex ${oSpot.exVatOre} moms ${oSpot.vatOre}` : null, appSpot: `ex ${base.exVatOre}` })
   }, LONG)
 })
 

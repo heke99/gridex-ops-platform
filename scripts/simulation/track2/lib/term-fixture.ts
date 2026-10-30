@@ -452,7 +452,7 @@ export async function createSignedContract(tenant: TermTenant, input: CreateSign
     exportedName: 'createContractFromOfferAction', args: [contractForm], worker: 'app/admin/customers/[id]/page',
   })
   console.info(`[contractPath] EFTER anrop: HTTP ${contractResult.httpStatus} kastade=${contractResult.threw} förutsagd väg ${predictedPath} request-id=${contractResult.requestId}`)
-  if (opts.probe) throw new ContractActionProbe(contractResult, Number(psql(`select count(*) from public.customer_contracts where company_id=${lit(companyId)} and customer_id=${lit(customerId)}`)))
+  if (opts.probe) throw new ContractActionProbe(contractResult, psqlRows<{ id: string }>(`select id from public.customer_contracts where company_id=${lit(companyId)} and customer_id=${lit(customerId)}`).filter((r) => !knownContractIds.has(r.id)).length)
   assertActionOk('createContractFromOfferAction', contractResult)
   const contractRows = psqlRows<{ id: string }>(`select id from public.customer_contracts where company_id=${lit(companyId)} and customer_id=${lit(customerId)}`).filter((r) => !knownContractIds.has(r.id))
   if (contractRows.length !== 1) throw new Error(`createContractFromOfferAction skapade ${contractRows.length} nya avtal; svar: ${contractResult.excerpt.slice(0, 300)}`)

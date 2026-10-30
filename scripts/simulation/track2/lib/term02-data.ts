@@ -226,3 +226,19 @@ export function faultyDstHourlySeries(month: string, badDay: string): Point[] {
   }
   return out
 }
+
+// ---------------------------------------------------------------- TERM02.01/.02 originalorakelts exempelvärden
+
+/** Originalorakelts (all-systems-scenarios.safe.json, TERM02 fixture) exempelvärden: 0 / 0,25 / 1,5 / 2 kWh. */
+export const ORIGINAL_EXAMPLE_WH: readonly number[] = [0, 250, 1500, 2000]
+/** Originalorakelts exempelpriser: -0,50 / 0 / 0,75 / 1,20 SEK/kWh (p4 = SEK/kWh * 10 000). */
+export const ORIGINAL_EXAMPLE_P4: readonly number[] = [-5000, 0, 7500, 12000]
+
+/** Timslot i cyklar deterministiskt genom alla 16 (wh, p4)-kombinationer: wh = i % 4, p4 = floor(i / 4) % 4. */
+export function term02OriginalExampleHourly(month: string): Point[] {
+  return monthSlots(month, 60).map((slot) => ({
+    slot,
+    wh: ORIGINAL_EXAMPLE_WH[slot.index % 4],
+    p4: ORIGINAL_EXAMPLE_P4[Math.floor(slot.index / 4) % 4],
+  }))
+}

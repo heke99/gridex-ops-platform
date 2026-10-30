@@ -197,8 +197,10 @@ async function checkPartial(spec: PartialSpec, ctx: PartialCtx, run: PartialCtx[
     expect(fee[0].exVatOre, `${label}: med proration_policy ska avgiften vara ${deliveredDays}/${monthDays} av ${FEE} = ${proOre} öre; appen valde "${feeKind}" (${fee[0].exVatOre} öre)`).toBe(proOre)
     expectedFee = proOre
   } else {
-    console.info(`[${label}] ÖPPEN ÄGARFRÅGA: utan proration_policy väljer appen "${feeKind}" för månadsavgiften i en delperiod (${deliveredDays}/${monthDays} dagar levererade). Registrerat, ej orakelkrav.`)
-    expect(['hel månad', `pro rata ${deliveredDays}/${monthDays}`], `${label}: månadsavgiften är varken hel eller ${deliveredDays}/${monthDays}`).toContain(feeKind)
+    // Produktregel (ägarbeslut 013(a), samordningen 2026-10-30): proration kräver explicit opt-in i komponentens metadata
+    // (lib/pricing/priceComponentCalculator.ts:114-138). Utan policy ska en delperiod debiteras exakt hel månad.
+    expect(fee[0].exVatOre, `${label}: utan proration_policy ska avgiften vara hel månad = ${fullOre} öre; appen valde "${feeKind}" (${fee[0].exVatOre} öre)`).toBe(fullOre)
+    expectedFee = fullOre
   }
   expect(fee[0].vatOre, `${label}: moms på månadsavgiften`).toBe(vatOnOre(expectedFee, terms.vatPercent, 'half_away'))
   const wantEx = energy.totalExVatOre + expectedFee
