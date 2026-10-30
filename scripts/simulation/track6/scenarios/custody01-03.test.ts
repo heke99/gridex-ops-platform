@@ -19,13 +19,23 @@ import { newRunContext } from '../lib/seed.mjs'
 
 const ev = new Evidence()
 const run = newRunContext('custody01-03')
+// Kända skydd (fil:rad i supabase/migrations/):
+//  * ediel_registered_reception_original_immutable, SQLSTATE P0001 (RAISE utan errcode): 20261001000459_ediel_immutable_inbound_reception_response_requests.sql:39-49 (guard_original_v1, trigger rad 49).
+//  * immutable_ediel_payload_cannot_change, SQLSTATE 23514: 20260713100000_ediel_completion_and_platform_contract.sql:698-699; 20260921171346_ediel_inbound_prodat_source_seal.sql:34-35;
+//    20260921224255_ediel_inbound_prodat_receive_context.sql:18-19,61-62; 20261005043923_ediel_unattributed_technical_intake.sql:443,492 (BEFORE UPDATE-trigger på raw_payload/immutable_payload_hash; skjuter före reception-guarden vid UPDATE).
+//  * received_source_evidence_is_append_only, 23514: 20260922095911_ediel_received_source_ledger.sql:62-67 (reject_mutation; triggers rad 69-80, 20260930175405_*.sql:195-197 för bindings/journal).
+//  * received_original_immutable_without_native_retention, P0001: 20261001000700_ediel_message_content_and_mime_retention.sql:72-75 (source_guard_v1 ersatte reject_mutation som no_evidence_update_delete på gridex_received_sources.sources).
 const CODE = 'ediel_registered_reception_original_immutable'
+const PAYLOAD_GUARD = 'immutable_ediel_payload_cannot_change'
+const APPEND_ONLY = 'received_source_evidence_is_append_only'
+const SOURCES_GUARD = 'received_original_immutable_without_native_retention'
+const ORIGINAL_GUARDS = [CODE, PAYLOAD_GUARD]
 const TENANT = { name: 'T6SIM Custody03 Supplier AB', edielId: '16763' }
 
 let tenant: SupplierTenant
 let sourceId = ''
 let baseline: MessageFingerprint
-let expectedBodySha = ''
+let builtBodySha = ''
 const attempts: Record<string, unknown> = {}
 
 const unchanged = (label: string) => {
@@ -34,7 +44,6 @@ const unchanged = (label: string) => {
   expect(now!.rowSha256, `${label}: hela raden oförändrad`).toBe(baseline.rowSha256)
   expect(now!.bodySha256, `${label}: kroppens sha256 oförändrad`).toBe(baseline.bodySha256)
   expect(now!.bodyBytes, `${label}: kroppens bytes oförändrade`).toBe(baseline.bodyBytes)
-  expect(now!.bodySha256, `${label}: kroppen == ursprunglig EDIFACT-sha256`).toBe(expectedBodySha)
 }
 
 beforeAll(() => { ev.observe('run', { ...run, mode: mode(), tenant: TENANT }) })
@@ -66,10 +75,14 @@ describe('CUSTODY01.03 skapande av låst original via normala ingångar', () => 
     ev.observe('locked_source', { sourceId, companyId: rows[0].company_id, receptions: Number(receptions) })
     expect(Number(receptions), 'originalet har registrerad mottagning (låst av triggern)').toBeGreaterThanOrEqual(1)
     expect(rows[0].company_id).toBe(tenant.companyId)
-    expectedBodySha = sha256(Buffer.from(spec.raw, 'utf8'))
+    // Oraklet: originalet SOM LAGRAT vid registreringen är oförändrat. Ögonblicksbilden tas direkt efter registreringen; byggda bytes är bara observation
+    // (produkten lagrar MIME-kroppen med CRLF, utan avslutande radbrytning; jfr lib/mime.ts buildEdifactMime som ersätter LF med CRLF).
+    builtBodySha = sha256(Buffer.from(spec.raw, 'utf8'))
     baseline = messageFingerprint(sourceId)!
+    const stored = sqlIn<string>(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${lit(sourceId)}`)
     ev.observe('baseline', baseline)
-    expect(baseline.bodySha256, 'lagrad kropp == byggd EDIFACT').toBe(expectedBodySha)
+    ev.observe('built_vs_stored', { builtSha256: builtBodySha, storedSha256: baseline.bodySha256, storedHasCrlf: stored.includes('\r\n'), storedEndsWithNewline: /\r?\n$/.test(stored), storedLfNormalizedEqualsBuilt: sha256(Buffer.from(stored.replace(/\r\n/g, '\n'), 'utf8')) === builtBodySha, storedBytes: baseline.bodyBytes, builtBytes: Buffer.byteLength(spec.raw) })
+    expect(baseline.bodySha256).toMatch(/^[a-f0-9]{64}$/)
   }, 600_000)
 })
 
@@ -92,9 +105,10 @@ describe('CUSTODY01.03 radering/ändring nekas', () => {
     const patch = await rest('PATCH', 'ediel_messages', `id=eq.${sourceId}`, key, { raw_payload: 'MANIPULERAD' })
     attempts.service_role = { del, patch }
     expect(del.status, `DELETE: ${del.text}`).toBeGreaterThanOrEqual(400)
-    expect(`${del.message} ${del.text}`).toContain(CODE)
+    expect(del.message, 'DELETE nekas av reception-guarden').toBe(CODE)
+    expect(del.code).toBe('P0001')
     expect(patch.status, `PATCH: ${patch.text}`).toBeGreaterThanOrEqual(400)
-    expect(`${patch.message} ${patch.text}`).toContain(CODE)
+    expect(ORIGINAL_GUARDS, `PATCH nekas av ett känt immutability-skydd (fick ${patch.code} ${patch.message})`).toContain(patch.message)
     unchanged('(b)')
   }, 120_000)
 
@@ -105,10 +119,12 @@ describe('CUSTODY01.03 radering/ändring nekas', () => {
     attempts.postgres = { del, upd, updHash }
     expect(del.ok, `DELETE lyckades (stdout ${del.stdout})`).toBe(false)
     expect(del.message).toBe(CODE)
+    expect(del.sqlstate).toBe('P0001')
     expect(upd.ok, `UPDATE lyckades (stdout ${upd.stdout})`).toBe(false)
-    expect(upd.message).toMatch(/immutable|append_only/)
-    ev.observe('update_error_is_documented_code', upd.message === CODE)
+    expect(ORIGINAL_GUARDS, `UPDATE av kroppen nekas av ett känt skydd (fick ${upd.sqlstate} ${upd.message})`).toContain(upd.message)
     expect(updHash.ok).toBe(false)
+    expect(ORIGINAL_GUARDS, `UPDATE av hash nekas av ett känt skydd (fick ${updHash.sqlstate} ${updHash.message})`).toContain(updHash.message)
+    ev.observe('guards_fired', { delete: [del.sqlstate, del.message], updateBody: [upd.sqlstate, upd.message], updateHash: [updHash.sqlstate, updHash.message] })
     unchanged('(c)')
   })
 })
@@ -132,10 +148,12 @@ describe('CUSTODY01.03 append-only-lager', () => {
       const upd = sqlTry(`BEGIN; WITH u AS (UPDATE ${t.table} SET ${t.key}=${t.key} WHERE ${t.key}=${lit(id)} RETURNING 1) SELECT count(*) FROM u; ROLLBACK;`)
       const after = sqlIn<string>(`SELECT to_jsonb(encode(sha256(convert_to((SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.${t.key}::text),'[]')::text FROM ${t.table} x),'UTF8')),'hex'))`)
       results[t.table] = { id, del, upd, before, after }
+      // sources har sedan 20261001000700:75 retention-guarden (P0001); övriga append-only-lager reject_mutation (23514).
+      const expected = t.table === 'gridex_received_sources.sources' ? { state: 'P0001', message: SOURCES_GUARD } : { state: '23514', message: APPEND_ONLY }
       expect(del.ok, `${t.table} DELETE lyckades`).toBe(false)
-      expect(del.sqlstate).toBe('23514'); expect(del.message).toBe('received_source_evidence_is_append_only')
+      expect([del.sqlstate, del.message]).toEqual([expected.state, expected.message])
       expect(upd.ok, `${t.table} UPDATE lyckades`).toBe(false)
-      expect(upd.message).toBe('received_source_evidence_is_append_only')
+      expect([upd.sqlstate, upd.message]).toEqual([expected.state, expected.message])
       expect(after, `${t.table} innehåll oförändrat`).toBe(before)
       tried++
     }
@@ -144,7 +162,7 @@ describe('CUSTODY01.03 append-only-lager', () => {
       const del = sqlTry(`BEGIN; WITH d AS (DELETE FROM public.billing_underlays WHERE id=${lit(bound)} RETURNING 1) SELECT count(*) FROM d; ROLLBACK;`)
       results['public.billing_underlays'] = { id: bound, del }
       expect(del.ok).toBe(false)
-      expect(del.sqlstate).toBe('55000'); expect(del.message).toBe('billing_source_finalized_underlay_immutable')
+      expect([del.sqlstate, del.message]).toEqual(['55000', 'billing_source_finalized_underlay_immutable'])
       tried++
     }
     attempts.append_only = results

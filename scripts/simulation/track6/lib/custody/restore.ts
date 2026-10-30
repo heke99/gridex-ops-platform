@@ -1,5 +1,10 @@
 // Backup/restore-hjälpare för CUSTODY01.05: pg_dump -Fc av stackens databas, pg_restore till en NY databas på samma server, jämförelse.
 // Bara databasen t6_restore_<runid> skapas/tas bort; inga andra databaser eller containrar ändras.
+// Avvikelse från docs/backup-restore-checklist.md (som beskriver Supabase PITR/backup in i projektet): lokalt finns bara en klusterdelad Postgres där
+// rollen postgres inte är superuser. Därför `pg_restore --no-owner --no-acl` in i en ny, tom databas (roller är klusterglobala och finns redan) och
+// objekt som ägs av plattformsrollerna (supabase_admin: vault.secrets, extensions.spatial_ref_sys, realtime.list_changes med SET log_min_messages)
+// kan inte återskapas av postgres. De klassificeras som plattformsfel (se platformOnly) och verifieras separat med radantal; custody-tabeller får inget fel.
+// Steg 3 i checklistan (production_consistency_checks.sql) finns inte i repot; ersätts av per-tabell radantal/sha256 och triggerinventering.
 // Verktyg: värdens pg_dump/pg_restore om major >= serverns; annars `docker exec` i stackens egen db-container (supabase_db_*, endast pg_dump/pg_restore).
 import { spawnSync } from 'node:child_process'
 import { closeSync, mkdirSync, openSync, readFileSync, statSync } from 'node:fs'
@@ -42,7 +47,8 @@ export function createDb(db: string) { sqlIn(`CREATE DATABASE "${db}"`) }
 export function dropDb(db: string) { sqlIn(`DROP DATABASE IF EXISTS "${db}" WITH (FORCE)`) }
 export const dbExists = (db: string) => sqlIn<boolean>(`SELECT to_jsonb(EXISTS(SELECT 1 FROM pg_database WHERE datname='${db}'))`)
 
-export function restore(t: Tooling, file: string, db: string): { ms: number; status: number | null; errors: string[]; stderrTail: string } {
+export type RestoreErrorBlock = { error: string; command: string }
+export function restore(t: Tooling, file: string, db: string): { ms: number; status: number | null; errors: string[]; blocks: RestoreErrorBlock[]; stderrTail: string } {
   const t0 = Date.now()
   const input = openSync(file, 'r')
   try {
@@ -50,7 +56,8 @@ export function restore(t: Tooling, file: string, db: string): { ms: number; sta
       ? spawnSync('pg_restore', ['--no-owner', '--no-acl', '-d', urlFor(db)], { stdio: [input, 'ignore', 'pipe'], env: { ...process.env, PGPASSWORD: 'postgres' }, maxBuffer: 64_000_000 })
       : spawnSync('docker', ['exec', '-i', t.container, 'pg_restore', '--no-owner', '--no-acl', '-U', dbUser(), '-d', db], { stdio: [input, 'ignore', 'pipe'], maxBuffer: 64_000_000 })
     const stderr = String(r.stderr)
-    return { ms: Date.now() - t0, status: r.status, errors: stderr.split('\n').filter((l) => /error:/i.test(l)).slice(0, 200), stderrTail: stderr.slice(-3000) }
+    const blocks: RestoreErrorBlock[] = [...stderr.matchAll(/pg_restore: error: ([^\n]*)\n(?:Command was: ([^\n]*))?/g)].map((m) => ({ error: m[1], command: (m[2] ?? '').slice(0, 300) }))
+    return { ms: Date.now() - t0, status: r.status, errors: stderr.split('\n').filter((l) => /error:/i.test(l)).slice(0, 200), blocks, stderrTail: stderr.slice(-3000) }
   } finally { closeSync(input) }
 }
 
@@ -85,3 +92,7 @@ export function contentHashes(url: string, allTables: string[]): Record<string, 
 /** Triggerinventering (skydden som ska överleva återställning). */
 export const triggerInventory = (url: string): string[] => psqlRows(url, `SELECT c.relnamespace::regnamespace::text||'.'||c.relname||':'||t.tgname FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid WHERE NOT t.tgisinternal AND c.relnamespace::regnamespace::text NOT IN ('pg_catalog','information_schema') ORDER BY 1;`).map((r) => r[0])
 export { custodyDir }
+
+/** Fel som beror på att postgres-rollen inte äger plattformsobjekt (supabase_admin), inte på custody-data. Allt annat är datapåverkande/okänt. */
+export const platformOnly = (b: RestoreErrorBlock): boolean =>
+  /permission denied/.test(b.error) && /(COPY extensions\.spatial_ref_sys|COPY vault\.secrets|FUNCTION realtime\.list_changes)/.test(b.command)

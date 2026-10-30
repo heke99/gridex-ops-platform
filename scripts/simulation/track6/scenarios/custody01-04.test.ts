@@ -90,7 +90,8 @@ describe('CUSTODY01.04 förberedelse', () => {
 })
 
 describe('CUSTODY01.04 negativt: retainUntil i framtiden och otillåtna vägar', () => {
-  it('CUSTODY01.04 (neg) samma användare får inte godkänna egen inlämning; framtida retainUntil ger ingen radering (begin purge nekas), objektet finns kvar', async () => {
+  it('CUSTODY01.04 (neg) samma användare får inte godkänna egen inlämning; framtida retainUntil ger ingen radering (begin purge nekas), objektet finns kvar', async (ctx) => {
+    if (!A || !B) return ctx.skip('setup misslyckades (fixturerna A/B saknas); se setup-steget')
     const { decisions } = await decide(B)
     // Samma användare (writer) kan inte godkänna sin egen inlämning.
     const self = await B.writer.client.rpc('ediel_review_invoice_file_retention_v1', { p_company_id: B.companyId, p_actor_user_id: B.writer.id, p_decision_id: decisions[0].decisionId, p_outcome: 'approve', p_reason: 'SYNTHETIC self review' })
@@ -116,7 +117,8 @@ describe('CUSTODY01.04 negativt: retainUntil i framtiden och otillåtna vägar',
 })
 
 describe('CUSTODY01.04 positivt: berättigat objekt raderas enligt policy', () => {
-  it('CUSTODY01.04 tre klassbeslut kräver granskning av annan användare; purge ger tombstone, HTTP 404 och bytesAvailable=false; finans oförändrad', async () => {
+  it('CUSTODY01.04 tre klassbeslut kräver granskning av annan användare; purge ger tombstone, HTTP 404 och bytesAvailable=false; finans oförändrad', async (ctx) => {
+    if (!A || !B) return ctx.skip('setup misslyckades (fixturerna A/B saknas); se setup-steget')
     const { sources, decisions } = await decide(A)
     expect(new Set(decisions.map((d) => d.decisionId)).size).toBe(3)
     await reviewAll(A, [decisions[0], decisions[1]])
@@ -163,7 +165,8 @@ describe('CUSTODY01.04 positivt: berättigat objekt raderas enligt policy', () =
     } finally { observer.mockRestore() }
   }, 900_000)
 
-  it('CUSTODY01.04 låsta objekt är orörda efter raderingen: B (ej berättigad), befintliga registrerade original, ledger-källor och underlay-bindningar', async () => {
+  it('CUSTODY01.04 låsta objekt är orörda efter raderingen: B (ej berättigad), befintliga registrerade original, ledger-källor och underlay-bindningar', async (ctx) => {
+    if (!A || !B || !coreB) return ctx.skip('setup misslyckades (fixturerna A/B saknas); se setup-steget')
     await expectExactBytes(B.path, B.pdf)
     expect(invoicePdfCore(B)).toEqual(coreB)
     expect(invoicePdfEffects(B)).toEqual({ tombstones: [], events: [] })

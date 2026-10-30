@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { startHealthPoll } from '../lib/custody/app'
 import { custodyDir, mode } from '../lib/custody/base'
-import { baseTables, chooseTooling, contentHashes, createDb, dbExists, dropDb, dump, restore, restoreUrl, rowCounts, triggerInventory, type Tooling } from '../lib/custody/restore'
+import { baseTables, chooseTooling, contentHashes, createDb, dbExists, dropDb, dump, platformOnly, restore, restoreUrl, rowCounts, triggerInventory, type Tooling } from '../lib/custody/restore'
 import { dbUrl, newRunContext } from '../lib/seed.mjs'
 import { Evidence } from '../lib/evidence'
 import { join } from 'node:path'
@@ -78,8 +78,10 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
     ev.save('pg_restore-errors.json', { status: restoreResult.status, errors: restoreResult.errors, tail: restoreResult.stderrTail })
     ev.observe('pg_restore', { ms: restoreResult.ms, status: restoreResult.status, errorLines: restoreResult.errors.length })
     // Datapåverkande fel (COPY/constraint/ogiltigt värde) är aldrig acceptabla; tillägg/roller/extensions utanför databasen kan ge ofarliga fel och loggas.
-    const dataErrors = restoreResult.errors.filter((l) => /COPY|violates|invalid input|could not|out of memory|No space/i.test(l))
-    expect(dataErrors).toEqual([])
+    // Endast plattformsägda objekt (postgres saknar rätt att återskapa dem) accepteras; allt annat fel är underkänt. Se restore.ts för avvikelsen mot checklistan.
+    const unexpected = restoreResult.blocks.filter((b) => !platformOnly(b))
+    ev.observe('pg_restore_platform_only', restoreResult.blocks.filter(platformOnly))
+    expect(unexpected).toEqual([])
   }, 900_000)
 
   it('CUSTODY01.05 per tabell: radantal och innehålls-sha256 i återställd databas == källan (originalkroppar, fakturafiler, underlag, gridex_billing_source, storage.objects-metadata)', () => {
@@ -105,7 +107,7 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
     const missing = src.filter((t) => !res.includes(t))
     ev.observe('triggers', { source: src.length, restored: res.length, missing })
     expect(missing).toEqual([])
-    for (const must of ['public.ediel_messages:registered_reception_original_immutable', 'gridex_received_sources.sources:received_sources_no_update_delete']) expect(res, must).toContain(must)
+    for (const must of ['public.ediel_messages:registered_reception_original_immutable', 'gridex_received_sources.sources:no_evidence_update_delete', 'gridex_received_sources.snapshots:no_evidence_update_delete', 'gridex_billing_source.correction_journal:immutable_update_delete']) expect(res, must).toContain(must)
   })
 
   it('CUSTODY01.05 appen svarade under hela proceduren (hälsopollning utan fel)', async () => {
