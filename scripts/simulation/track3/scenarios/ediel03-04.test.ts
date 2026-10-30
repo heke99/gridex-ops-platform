@@ -6,7 +6,7 @@
 // Oraklet: ny drain -> delivery_uncertain 'stale_sending_lock_requires_transport_reconciliation', ingen återsändning,
 // gammal worker fencad (outbox_item_not_claimed_by_worker / ediel_transport_worker_fence_lost) om den återupptas.
 import { randomUUID } from 'node:crypto'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { receivedMail, setSmtpMode } from '../lib/counterparty'
 import { Evidence } from '../lib/evidence'
 import { newRunContext } from '../lib/seed.mjs'
@@ -19,7 +19,8 @@ const timing = new Timing()
 const seedLog: Array<Record<string, unknown>> = []
 const A = () => actor()
 
-beforeAll(async () => { evidence.observe('run', { ...run, id: 'EDIEL03.04' }); evidence.observe('flush_before', await flushQueuedInAcceptMode(timing)) })
+beforeAll(async () => { await setSmtpMode('accept'); evidence.observe('run', { ...run, id: 'EDIEL03.04' }); evidence.observe('flush_before', await flushQueuedInAcceptMode(timing)) })
+afterEach(async () => { await setSmtpMode('accept').catch(() => undefined) })
 afterAll(async () => {
   await setSmtpMode('accept').catch(() => undefined)
   evidence.observe('seed_retries', seedLog)

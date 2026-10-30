@@ -9,7 +9,7 @@
 // Produktavvikelser asserteras som FAIL (maskeras inte); övrigt loggas som observation i report.json.
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { triggerInbound, triggerOutbox } from '../lib/app'
 import { appendToInbox, counterpartyState, purgeInbox, readReceivedEml, receivedMail, setSmtpMode, tlsHandshake, type ReceivedMail } from '../lib/counterparty'
 import { lit, resetMailboxSchedule } from '../lib/db'
@@ -92,6 +92,7 @@ beforeAll(async () => {
   ev.observe('seeded', { companyId: seeded.companyId, meteringPoints: seeded.points.length, issuer: `${COUNTERPARTY_EDIEL_ID} (gridex_utilts_issuer)` })
 }, 300_000)
 
+afterEach(async () => { await setSmtpMode('accept').catch(() => undefined) })
 afterAll(async () => {
   await setSmtpMode('accept').catch(() => undefined)
   if (ackRoutePrevious) setAckRouteApplicationReference(ackRoutePrevious.previous)
@@ -113,8 +114,8 @@ describe('EDIEL01.06 förberedelse: äldre rader skapas av kodens egen väg för
     const lc = outRows('CONTRL', [lsrc[0].id])
     expect(lc.length, 'legacy-CONTRL skapad').toBe(1)
     await setSmtpMode('permfail-5xx', { code: 554 })
-    const d = await timer.p('legacy_drain_permfail', () => triggerOutbox(mode, 100))
-    await setSmtpMode('accept')
+    let d: Awaited<ReturnType<typeof triggerOutbox>>
+    try { d = await timer.p('legacy_drain_permfail', () => triggerOutbox(mode, 100)) } finally { await setSmtpMode('accept').catch(() => undefined) }
     ev.save(`${dir}/drain-response.json`, d.body ?? d.text)
     const after = outRows('CONTRL', [lsrc[0].id])[0]
     ev.observe('legacy_outbox_after_permfail', { status: after.outbox_status, attempts: after.send_attempt_count })

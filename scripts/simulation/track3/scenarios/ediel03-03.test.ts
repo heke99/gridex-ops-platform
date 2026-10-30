@@ -3,7 +3,7 @@
 // exakt EN kopia, ingen blind omsändning (varken via drain, direktanrop av sendOutboxItem eller sendEdielMessageViaSmtp).
 // Återhämtningsväg: lib/ediel/recovery/prodatRecovery.ts finns bara för PRODAT; anropet mot CONTRL loggas (utfall, ej antaget).
 import { randomUUID } from 'node:crypto'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { receivedMail, setSmtpMode } from '../lib/counterparty'
 import { Evidence } from '../lib/evidence'
 import { newRunContext } from '../lib/seed.mjs'
@@ -16,7 +16,8 @@ const timing = new Timing()
 const seedLog: Array<Record<string, unknown>> = []
 const HANG_MS = 6000
 
-beforeAll(async () => { evidence.observe('run', { ...run, id: 'EDIEL03.03', hangMs: HANG_MS }); evidence.observe('flush_before', await flushQueuedInAcceptMode(timing)) })
+beforeAll(async () => { await setSmtpMode('accept'); evidence.observe('run', { ...run, id: 'EDIEL03.03', hangMs: HANG_MS }); evidence.observe('flush_before', await flushQueuedInAcceptMode(timing)) })
+afterEach(async () => { await setSmtpMode('accept').catch(() => undefined) })
 afterAll(async () => {
   await setSmtpMode('accept').catch(() => undefined)
   evidence.observe('seed_retries', seedLog)

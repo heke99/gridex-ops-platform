@@ -3,7 +3,7 @@
 // createAckTimersForMessage. checkAckDeadlines({now}) körs med kontrollerad klocka vid due-11, due-9, due-4 och due+1 min.
 // Mottagningstiden sätts 3 dygn bakåt (inbound_email_messages.received_at, deklarerad klockfixtur) så att de simulerade
 // klockslagen ligger i det förflutna och inte kan flytta andra spårs framtida timers.
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { setSmtpMode } from '../lib/counterparty'
 import { Evidence } from '../lib/evidence'
 import { newRunContext } from '../lib/seed.mjs'
@@ -22,7 +22,8 @@ const timers = () => (sqlJson(`SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.
 const slaEvents = async () => (await eventsFor(src.sourceMessageId)).filter((e) => /SLA timer is now/.test(String(e.message)))
 const iso = (ms: number) => new Date(ms).toISOString()
 
-beforeAll(() => { evidence.observe('run', { ...run, id: 'EDIEL03.05' }) })
+beforeAll(async () => { await setSmtpMode('accept'); evidence.observe('run', { ...run, id: 'EDIEL03.05' }) })
+afterEach(async () => { await setSmtpMode('accept').catch(() => undefined) })
 afterAll(async () => {
   await setSmtpMode('accept').catch(() => undefined)
   evidence.observe('seed_retries', seedLog)

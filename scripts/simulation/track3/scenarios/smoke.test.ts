@@ -4,7 +4,7 @@
 // men asserteras INTE: det är underlag för scenarier, inte ett förväntat PASS.
 import { readFileSync } from 'node:fs'
 import nodemailer from 'nodemailer'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { appUrl, triggerInbound, triggerOutbox } from '../lib/app'
 import {
   appendToInbox, counterpartyState, inboxStatus, markSeenByMessageIds, purgeInbox, readReceivedEml, receivedMail, setSmtpMode, tlsHandshake, waitForReceived,
@@ -34,7 +34,8 @@ const probeMail = (tag: string) => ({
     'X-T3-Probe: 1', 'Content-Type: text/plain', '', '.leading dot line', '..two dots', 'end', ''].join('\r\n')),
 })
 
-beforeAll(() => { evidence.observe('run', { ...run, mode, appUrl: appUrl() }); before = snapshotIds() })
+beforeAll(async () => { await setSmtpMode('accept'); evidence.observe('run', { ...run, mode, appUrl: appUrl() }); before = snapshotIds() })
+afterEach(async () => { await setSmtpMode('accept').catch(() => undefined) })
 afterAll(async () => { await setSmtpMode('accept').catch(() => undefined); evidence.finalize() })
 
 describe('Track3 smoke: infrastruktur', () => {

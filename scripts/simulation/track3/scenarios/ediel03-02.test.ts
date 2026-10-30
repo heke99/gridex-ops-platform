@@ -1,7 +1,7 @@
 // EDIEL03.02: SMTP 554 (permanent avvisning) vid sändning av CONTRL ur outbox (Playwright används inte).
 // Oraklet: synligt misslyckande (outboxstatus + attempt-klass + ev. transportärende synligt för operatör), ingen ny
 // sändning. Kontrollsteg: samma flöde med 451 i samma körning så att "4xx och 5xx behandlas identiskt" kan loggas.
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { setSmtpMode } from '../lib/counterparty'
 import { Evidence } from '../lib/evidence'
 import { newRunContext } from '../lib/seed.mjs'
@@ -16,7 +16,8 @@ let perm: E03Source, temp: E03Source
 let n0 = 0
 const outcomes: Record<string, { outbox: Record<string, unknown>; attempt: Record<string, unknown>; copies: number; eventTypes: string[] }> = {}
 
-beforeAll(async () => { evidence.observe('run', { ...run, id: 'EDIEL03.02' }); evidence.observe('flush_before', await flushQueuedInAcceptMode(timing)) })
+beforeAll(async () => { await setSmtpMode('accept'); evidence.observe('run', { ...run, id: 'EDIEL03.02' }); evidence.observe('flush_before', await flushQueuedInAcceptMode(timing)) })
+afterEach(async () => { await setSmtpMode('accept').catch(() => undefined) })
 afterAll(async () => {
   await setSmtpMode('accept').catch(() => undefined)
   evidence.observe('seed_retries', seedLog)

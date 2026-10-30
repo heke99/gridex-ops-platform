@@ -2,7 +2,7 @@
 // Oraklet: försöket registreras med SMTP-status och klass explicit_negative, outbox blir inte 'sent', ingen automatisk
 // ny sändning vid nästa drain (exakt ett mottaget MIME-försök hos motparten). Designens "föreskrivna väntan" saknar
 // kodmotsvarighet; vad som finns (next_attempt/väntekolumner) LOGGAS som observation och asserteras inte bort.
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { counterpartyState, setSmtpMode } from '../lib/counterparty'
 import { Evidence } from '../lib/evidence'
 import { newRunContext } from '../lib/seed.mjs'
@@ -17,10 +17,12 @@ let src: E03Source
 let n0 = 0
 
 beforeAll(async () => {
+  await setSmtpMode('accept')
   evidence.observe('run', { ...run, id: 'EDIEL03.01' })
   // Flusha köade rester från andra körningar i accept-läge innan eget läge sätts (rapporteras, inte maskerat).
   evidence.observe('flush_before', await flushQueuedInAcceptMode(timing))
 })
+afterEach(async () => { await setSmtpMode('accept').catch(() => undefined) })
 afterAll(async () => {
   await setSmtpMode('accept').catch(() => undefined)
   evidence.observe('seed_retries', seedLog)
