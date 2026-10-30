@@ -353,6 +353,7 @@ export default function CustomerIntakeForm({
 
   const formRef = useRef<HTMLFormElement>(null);
   const fieldErrors = state.fieldErrors;
+  const needsCommittedReview = state.status === "committed_review";
   useEffect(() => {
     const form = formRef.current;
     if (!form) return;
@@ -398,9 +399,19 @@ export default function CustomerIntakeForm({
         </div>
       ) : null}
 
+      {needsCommittedReview ? (
+        <div role="alert" className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-semibold">Kunden är registrerad – efterföljande steg behöver granskas.</p>
+          <p className="mt-1">{state.message}</p>
+          {state.correlationId ? <p className="mt-2">Referens: {state.correlationId}</p> : null}
+          {state.createdCustomerId ? <Link className="mt-3 inline-flex underline" href={`/admin/customers/${encodeURIComponent(state.createdCustomerId)}?tab=contracts`}>Öppna befintligt kundkort och kontrollera avtal och dokument</Link> : null}
+        </div>
+      ) : null}
+
       <form
         ref={formRef}
         action={formAction}
+        onSubmitCapture={(event) => {if (needsCommittedReview) event.preventDefault()}}
         onInvalidCapture={(event) => openFieldSections(event.target as HTMLElement)}
         className="mt-4 space-y-3"
         data-customer-intake-form
@@ -1465,12 +1476,12 @@ export default function CustomerIntakeForm({
         <div className="sticky bottom-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           <p className="text-xs text-slate-600">Ofullständiga uppgifter kan kompletteras senare.</p>
           <div className="ml-auto flex items-center gap-2">
-            <button type="submit" name="intakeCreateMode" value="create" disabled={isPending} className="min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
+            <button type="submit" name="intakeCreateMode" value="create" disabled={isPending || needsCommittedReview} className="min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
               {isPending ? "Skapar…" : "Skapa kund"}
             </button>
-            <CustomerActionsMenu label="Alternativ" disabled={isPending} placement="top">
-              <button type="submit" name="postCreateActionOverride" value="request_data" disabled={isPending}>Skapa och begär uppgifter</button>
-              <button type="submit" name="intakeCreateMode" value="create_blocked" disabled={isPending}>Skapa och markera som blockerad</button>
+            <CustomerActionsMenu label="Alternativ" disabled={isPending || needsCommittedReview} placement="top">
+              <button type="submit" name="postCreateActionOverride" value="request_data" disabled={isPending || needsCommittedReview}>Skapa och begär uppgifter</button>
+              <button type="submit" name="intakeCreateMode" value="create_blocked" disabled={isPending || needsCommittedReview}>Skapa och markera som blockerad</button>
             </CustomerActionsMenu>
           </div>
         </div>

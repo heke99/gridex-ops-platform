@@ -1,6 +1,7 @@
 import { resolveContractStartDate } from "./operationalDates";
 import { createHash, randomUUID } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
+import { tenantDb } from "@/lib/supabase/tenantDb";
 import type {
   ContractOfferRow,
   ContractType,
@@ -1274,6 +1275,73 @@ export async function updateCustomerContract(input: {
     .single();
 
   if (error) throw error;
+  return data as CustomerContractRow;
+}
+
+/**
+ * Lifecycle transitions the customer card may perform on a sealed (signed or
+ * locked) contract. Subset of gridex_enforce_customer_contract_state_v1
+ * (20260727167000:47-48). Terminal targets are recorded only through the
+ * terminated/cancelled event RPC, which also sets ended_at and
+ * status_reason_code (20260727165000:200-243); this writer only performs
+ * signed -> active and reason-only updates.
+ */
+export const SEALED_CONTRACT_LIFECYCLE_TRANSITIONS: Readonly<Record<string, readonly string[]>> = {
+  signed: ["active", "cancelled"],
+  active: ["terminated", "cancelled"],
+};
+
+export const SEALED_CONTRACT_TRANSITION_REFUSED_MESSAGE =
+  "Statusbytet är inte tillåtet för ett signerat avtal – använd avtalsåtgärder.";
+
+/**
+ * Writes only lifecycle columns that the signed-contract immutability trigger
+ * leaves open (status, termination_reason, updated_by/updated_at). Never
+ * writes price, dates, snapshots or signature columns.
+ */
+export async function updateSealedCustomerContractLifecycle(input: {
+  id: string;
+  customerId: string;
+  companyId: string | null;
+  currentStatus: CustomerContractRow["status"];
+  status?: CustomerContractRow["status"];
+  terminationReason?: CustomerContractTerminationReason | null;
+  actorUserId: string | null;
+}): Promise<CustomerContractRow> {
+  if (!input.companyId) {
+    throw new Error("Bolag krävs för kundavtalet.");
+  }
+  const statusChanged =
+    input.status !== undefined && input.status !== input.currentStatus;
+  if (
+    statusChanged &&
+    !(input.currentStatus === "signed" && input.status === "active")
+  ) {
+    throw new Error(SEALED_CONTRACT_TRANSITION_REFUSED_MESSAGE);
+  }
+  const patch: Record<string, unknown> = {
+    updated_by: input.actorUserId ?? null,
+    updated_at: new Date().toISOString(),
+  };
+  if (statusChanged) patch.status = input.status;
+  if (input.terminationReason !== undefined) {
+    patch.termination_reason = input.terminationReason;
+  }
+  // tenantDb adds the company_id filter itself (service-role ratchet).
+  const { data, error } = await (tenantDb(input.companyId)
+    .from("customer_contracts")
+    .update(patch) as ReturnType<ReturnType<typeof supabaseService.from>["update"]>)
+    .eq("id", input.id)
+    .eq("customer_id", input.customerId)
+    .eq("status", input.currentStatus)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    throw new Error(
+      "Kundavtalet hittades inte för valt bolag eller har ändrats. Ladda om sidan.",
+    );
+  }
   return data as CustomerContractRow;
 }
 

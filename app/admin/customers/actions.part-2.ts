@@ -23,7 +23,7 @@ import { signedAgreementDocumentTiming } from "@/lib/customer-contracts/signingM
 
 
 import { processManualCustomerIntake, processPdfCustomerIntake } from "@/lib/customer-operations/customerIntakeOrchestrator"
-import { canonicalIdempotencyKey, onboardCustomerGraph, signedAuthorizationScopes } from "@/lib/customers/canonicalOnboarding"
+import { canonicalIdempotencyKey, onboardCustomerGraph, signedAuthorizationScopes, type CanonicalOnboardingSuccess } from "@/lib/customers/canonicalOnboarding"
 import { createTenantContext } from "@/lib/tenant/context"
 import type { CreateCustomerGraphParams, IntakeDocumentUploadResult } from './actions.part-1'
 import { IntakeValidationError, buildBillingAddressSnapshot, buildCustomerDocumentPath, checksumFile, createValidationErrorFromFieldErrors, insertAuditLog, normalizeCountryCode, normalizeOptionalString, resolveIntakeSigningChoice, validateCreateCustomerParams } from './actions.part-1'
@@ -610,6 +610,12 @@ export function mapUnknownErrorToIntakeState(
   error: unknown,
   values: IntakeFormValues = {},
 ): IntakeActionState {
+  if (error instanceof CustomerGraphCommittedReviewError) {
+    return {status:'committed_review', message:error.message, fieldErrors:{}, values,
+      createdCustomerId:error.receipt.customer_id, createdSiteId:error.receipt.site_id,
+      createdMeteringPointId:error.receipt.metering_point_id, createdContractId:error.receipt.contract_id,
+      correlationId:error.receipt.correlation_id}
+  }
   if (error instanceof IntakeValidationError) {
     return {
       status: "error",
@@ -679,7 +685,17 @@ export type CustomerGraphResult = CustomerGraphRow & {
   __signingLink?: AutoSendSigningLinkResult | null
 }
 
+/** Core commit is known; postcommit processing must be inspected on this customer. */
+export class CustomerGraphCommittedReviewError extends Error {
+  constructor(public readonly receipt: CanonicalOnboardingSuccess, cause?: unknown) {
+    super('Kunden är registrerad men efterföljande dokument- eller signeringssteg kunde inte bekräftas. Öppna den befintliga kunden för granskning; skapa inte kunden igen.', {cause})
+    this.name = 'CustomerGraphCommittedReviewError'
+  }
+}
+
 export type CreateCustomerGraphOptions = {
+  /** Persist core IDs before any storage, orchestration or send side effect. */
+  onCoreCommitted?: (receipt: CanonicalOnboardingSuccess) => Promise<void>
   /**
    * Send the online signing link after commit when the graph created a
    * pending_signature contract. Opt-in so bulk imports and test tooling do
@@ -764,12 +780,12 @@ export async function createCustomerGraph(
   // Staff signing choice (form intake). Already validated above.
   const signingChoice = resolveIntakeSigningChoice(params);
   const resolvedChoice = signingChoice?.ok ? signingChoice : null;
-  // Intake only creates draft or pending-signature contracts; "signed" requires
-  // the signed agreement file. Activation happens later in the contract flow.
+  // A file selection is not imported signature evidence. The core row is
+  // always unsigned; only the canonical PDF import may finalize its signature.
   const requestedStatus = resolvedChoice
     ? resolvedChoice.createStatus
     : params.contractStatus === "draft" ? "draft" : "pending_signature";
-  const contractStatus = hasSignedAgreement ? "signed" : requestedStatus;
+  const contractStatus = requestedStatus;
   const contractType = params.contractTypeOverride ?? offer?.contract_type ?? "variable_hourly";
   const signedScopes = params.signedPowerOfAttorneyFile
     ? signedAuthorizationScopes({
@@ -799,6 +815,38 @@ export async function createCustomerGraph(
     permissions: ["customers.write"],
     sourceChannel: "admin",
   });
+
+  const intakePriceSnapshot = hasContract
+      ? {
+          pricing_model: contractType,
+          snapshot_json: {
+            offerId: offer?.id ?? null,
+            priceVersion: offer?.price_version ?? "v1",
+            termsVersion: offer?.terms_version ?? "v1",
+            fixedPriceOrePerKwh: params.fixedPriceOrePerKwh ?? offer?.fixed_price_ore_per_kwh ?? null,
+            spotMarkupOrePerKwh: params.spotMarkupOrePerKwh ?? offer?.spot_markup_ore_per_kwh ?? null,
+            variableFeeOrePerKwh: params.variableFeeOrePerKwh ?? offer?.variable_fee_ore_per_kwh ?? null,
+            monthlyFeeSek: params.monthlyFeeSek ?? offer?.monthly_fee_sek ?? null,
+            invoiceFeeSek: params.invoiceFeeSek ?? offer?.invoice_fee_sek ?? null,
+            startFeeSek: params.startFeeSek ?? offer?.start_fee_sek ?? null,
+            adminFeeSek: params.adminFeeSek ?? offer?.admin_fee_sek ?? null,
+            breakFeeSek: params.breakFeeSek ?? offer?.break_fee_sek ?? null,
+            discountValue: offer?.discount_value ?? null,
+            discountUnit: offer?.discount_unit ?? null,
+            greenFeeMode: params.greenFeeMode ?? offer?.green_fee_mode ?? "none",
+            greenFeeValue: params.greenFeeValue ?? offer?.green_fee_value ?? null,
+            vatRate: offer?.vat_rate ?? SWEDISH_STANDARD_VAT_RATE,
+            optionalFeeLines: params.optionalFeeLines.length > 0 ? params.optionalFeeLines : (offer?.optional_fee_lines ?? []),
+          },
+          valid_from: normalizeOptionalString(params.contractStartDate) ?? normalizeOptionalString(params.confirmedStartDate) ?? normalizeOptionalString(params.expectedStartDate),
+        }
+      : null;
+  // A simple manual PDF contract has no prior canonical customer selection.
+  // Keep its exact prices on the unsigned contract; the real import creates its
+  // first immutable receipt. Catalog/complex selections are never inferred.
+  const deferManualPdfReceipt = hasContract && hasSignedAgreement && !offer
+    && params.optionalFeeLines.length === 0
+    && ['fixed','variable_monthly','variable_hourly','variable_quarterly'].includes(contractType);
 
   const result = await onboardCustomerGraph({
     company_id: params.companyId,
@@ -911,6 +959,7 @@ export async function createCustomerGraph(
       ? {
           contract_offer_id: offer?.id ?? null,
           source_type: params.contractOfferId && !params.overrideReason ? "catalog" : "manual_override",
+          price_snapshot: deferManualPdfReceipt ? intakePriceSnapshot?.snapshot_json : undefined,
           status: contractStatus,
           contract_name: offer?.name ?? "Kundspecifikt avtal",
           contract_type: contractType,
@@ -940,7 +989,7 @@ export async function createCustomerGraph(
           confirmed_start_at: normalizeOptionalString(params.confirmedStartDate),
           actual_start_at: normalizeOptionalString(params.actualStartDate),
           start_date_source: normalizeOptionalString(params.startDateSource),
-          signed_at: ["signed", "active"].includes(contractStatus) ? new Date().toISOString() : null,
+          signed_at: null,
           override_reason: normalizeOptionalString(params.overrideReason),
           invoice_recipient: billingSnapshot.recipient,
           invoice_email: billingSnapshot.email,
@@ -956,31 +1005,7 @@ export async function createCustomerGraph(
           updated_by: params.actorUserId,
         }
       : null,
-    price_snapshot: hasContract
-      ? {
-          pricing_model: contractType,
-          snapshot_json: {
-            offerId: offer?.id ?? null,
-            priceVersion: offer?.price_version ?? "v1",
-            termsVersion: offer?.terms_version ?? "v1",
-            fixedPriceOrePerKwh: params.fixedPriceOrePerKwh ?? offer?.fixed_price_ore_per_kwh ?? null,
-            spotMarkupOrePerKwh: params.spotMarkupOrePerKwh ?? offer?.spot_markup_ore_per_kwh ?? null,
-            variableFeeOrePerKwh: params.variableFeeOrePerKwh ?? offer?.variable_fee_ore_per_kwh ?? null,
-            monthlyFeeSek: params.monthlyFeeSek ?? offer?.monthly_fee_sek ?? null,
-            invoiceFeeSek: params.invoiceFeeSek ?? offer?.invoice_fee_sek ?? null,
-            startFeeSek: params.startFeeSek ?? offer?.start_fee_sek ?? null,
-            adminFeeSek: params.adminFeeSek ?? offer?.admin_fee_sek ?? null,
-            breakFeeSek: params.breakFeeSek ?? offer?.break_fee_sek ?? null,
-            discountValue: offer?.discount_value ?? null,
-            discountUnit: offer?.discount_unit ?? null,
-            greenFeeMode: params.greenFeeMode ?? offer?.green_fee_mode ?? "none",
-            greenFeeValue: params.greenFeeValue ?? offer?.green_fee_value ?? null,
-            vatRate: offer?.vat_rate ?? SWEDISH_STANDARD_VAT_RATE,
-            optionalFeeLines: params.optionalFeeLines.length > 0 ? params.optionalFeeLines : (offer?.optional_fee_lines ?? []),
-          },
-          valid_from: normalizeOptionalString(params.contractStartDate) ?? normalizeOptionalString(params.confirmedStartDate) ?? normalizeOptionalString(params.expectedStartDate),
-        }
-      : null,
+    price_snapshot: deferManualPdfReceipt ? null : intakePriceSnapshot,
     legal: hasSignedAgreement || signedScopes.length > 0
       ? {
           terms_version: offer?.terms_version ?? "v1",
@@ -1066,6 +1091,10 @@ export async function createCustomerGraph(
     );
   }
 
+  try {
+    // An uncertain receipt write stops all later side effects. The caller keeps
+    // the known core IDs and must never classify this as a fresh failed intake.
+    await options.onCoreCommitted?.(result)
   const documentUpload = await uploadCustomerIntakeDocuments({
     companyId: params.companyId,
     actorUserId: params.actorUserId,
@@ -1136,6 +1165,12 @@ export async function createCustomerGraph(
       ? "Okänd nuvarande leverantör"
       : normalizeOptionalString(params.currentSupplierName),
   };
+  } catch (error) {
+    if (options.onCoreCommitted) throw new CustomerGraphCommittedReviewError(result, error)
+    // Legacy bulk callers retain their existing error contract; recovery for
+    // those flows must be qualified with their per-row result handling.
+    throw error
+  }
 }
 
 export const ADMIN_INTAKE_ROUTE = "admin/customers/intake";

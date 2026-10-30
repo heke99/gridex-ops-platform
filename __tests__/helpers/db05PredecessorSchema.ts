@@ -16,6 +16,18 @@ function reversePatch(schema:string,patch:Patch):string{
  return rebuilt
 }
 
+/** Exact pre-PR932 C14 capture. The genuine PR932 capture is reversed by its
+ * generated patch; the C14 capture itself is returned unchanged. Any other
+ * capture fails closed. */
+export function prePr932UnsignedEditSchema(schema:string):string{
+ const actual=sha(schema)
+ if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6')return schema
+ if(actual!=='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b')throw Error('db05_schema_predecessor_unknown:'+actual)
+ const pr932:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-pr932-unsigned-edit-20261029.patch.json',import.meta.url),'utf8'))
+ if(pr932.preSha256!=='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6'||pr932.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+ return reversePatch(schema,pr932)
+}
+
 /** Exact pre-DB-05 schema.sql capture. The checked-in capture is either that
  * predecessor or an authenticated post-DB-05 GEN; each is reversed by
  * the generated patch and the result must hash to the pinned predecessor.
@@ -23,6 +35,11 @@ function reversePatch(schema:string,patch:Patch):string{
 export function db05PredecessorSchema(schema:string):string{
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
+ if(actual==='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b'){
+  // Genuine ordinary PR932 capture 9c39bd60/artifact12981765531. Restore the
+  // exact C14 bytes before every unchanged older inverse; no native credit.
+  return db05PredecessorSchema(prePr932UnsignedEditSchema(schema))
+ }
  if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6'){
   // Genuine ordinary C14 capture03e5eac4/artifact12864584609. Restore exact
   // C12 bytes before every unchanged older inverse; no native/runtime credit.

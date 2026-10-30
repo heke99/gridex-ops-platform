@@ -32,8 +32,10 @@ import {
 import { saveContractWithFeedbackAction } from "@/app/admin/customers/[id]/contracts/[contractId]/signature/actions";
 
 import { ContractEditFeedbackForm } from "./ContractEditFeedbackForm";
+import {usesAtomicUnsignedEdit, unsignedRevisionBlocker} from "@/lib/customer-contracts/revision";
 
 function pricingReadOnly(contract: CustomerContractRow) {
+  if (usesAtomicUnsignedEdit(contract) && !unsignedRevisionBlocker(contract)) return false;
   return Boolean(["signed", "active", "terminated", "cancelled", "expired"].includes(contract.status) || contract.locked_at || contract.signed_at || contract.contract_offer_id || contract.public_contract_offer_id || contract.contract_publication_version_id || contract.price_plan_version_id || ("contract_price_snapshot_id" in contract && contract.contract_price_snapshot_id));
 }
 
@@ -163,15 +165,17 @@ function CampaignVersionFields({
 }: {
   contract?: CustomerContractRow;
 }) {
+  const readOnly = Boolean(contract && usesAtomicUnsignedEdit(contract));
   return (
     <SectionCard
       title="Kampanj och prisversion"
-      description="Här kopplas avtalet till kampanj, prisversion och villkor så att kundkort och fakturering använder rätt underlag."
+      description={readOnly ? "Kampanj- och versionsuppgifter kommer från avtalsmallen. Byt mall för att ändra dem." : "Här kopplas avtalet till kampanj, prisversion och villkor så att kundkort och fakturering använder rätt underlag."}
     >
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Kampanjnamn">
           <input
             name="campaign_name"
+            readOnly={readOnly}
             defaultValue={contract?.campaign_name ?? ""}
             placeholder="Ex. Vårkampanj 2026"
             className={inputClassName()}
@@ -181,6 +185,7 @@ function CampaignVersionFields({
         <Field label="Kampanjkod">
           <input
             name="campaign_code"
+            readOnly={readOnly}
             defaultValue={contract?.campaign_code ?? ""}
             placeholder="Ex. VAR-2026"
             className={inputClassName()}
@@ -190,6 +195,7 @@ function CampaignVersionFields({
         <Field label="Kampanjversion">
           <input
             name="campaign_version"
+            readOnly={readOnly}
             defaultValue={contract?.campaign_version ?? ""}
             placeholder="Ex. 2026-01"
             className={inputClassName()}
@@ -199,6 +205,7 @@ function CampaignVersionFields({
         <Field label="Prisversion">
           <input
             name="price_version"
+            readOnly={readOnly}
             defaultValue={contract?.price_version ?? ""}
             placeholder="Ex. RÖRLIG-2026-01"
             className={inputClassName()}
@@ -208,6 +215,7 @@ function CampaignVersionFields({
         <Field label="Villkorsversion">
           <input
             name="terms_version"
+            readOnly={readOnly}
             defaultValue={contract?.terms_version ?? ""}
             placeholder="Ex. AVTAL-2026-A"
             className={inputClassName()}
@@ -229,9 +237,9 @@ function ExtraPriceFields({ contract }: { contract?: CustomerContractRow }) {
     >
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Field label="Grön avgift">
-          {readOnly ? <input type="hidden" name="green_fee_mode" value={contract?.green_fee_mode ?? "none"} /> : null}
+          {readOnly || (contract && usesAtomicUnsignedEdit(contract)) ? <input type="hidden" name="green_fee_mode" value={contract?.green_fee_mode ?? "none"} /> : null}
           <select
-            disabled={readOnly}
+            disabled={readOnly || Boolean(contract && usesAtomicUnsignedEdit(contract))}
             name="green_fee_mode"
             defaultValue={contract?.green_fee_mode ?? "none"}
             className={inputClassName()}
@@ -254,16 +262,16 @@ function ExtraPriceFields({ contract }: { contract?: CustomerContractRow }) {
         <Field label="Rabattvärde">
           <input
             name="discount_value"
-            readOnly={readOnly}
+            readOnly={readOnly || Boolean(contract && usesAtomicUnsignedEdit(contract))}
             defaultValue={contract?.discount_value ?? ""}
             className={inputClassName()}
           />
         </Field>
 
         <Field label="Rabattenhet">
-          {readOnly ? <input type="hidden" name="discount_unit" value={contract?.discount_unit ?? ""} /> : null}
+          {readOnly || (contract && usesAtomicUnsignedEdit(contract)) ? <input type="hidden" name="discount_unit" value={contract?.discount_unit ?? ""} /> : null}
           <select
-            disabled={readOnly}
+            disabled={readOnly || Boolean(contract && usesAtomicUnsignedEdit(contract))}
             name="discount_unit"
             defaultValue={contract?.discount_unit ?? ""}
             className={inputClassName()}
@@ -531,8 +539,10 @@ function CoreContractFields({
         </Field>
 
         <Field label="Status">
+          {usesAtomicUnsignedEdit(contract) ? <input type="hidden" name="status" value={contract.status} /> : null}
           <select
             name="status"
+            disabled={usesAtomicUnsignedEdit(contract)}
             defaultValue={contract.status}
             className={inputClassName()}
           >
@@ -578,14 +588,17 @@ function CoreContractFields({
         </Field>
 
         <Field label="Avtalstyp">
+          {usesAtomicUnsignedEdit(contract) ? <input type="hidden" name="contract_type" value={contract.contract_type} /> : null}
           <select
             name="contract_type"
+            disabled={usesAtomicUnsignedEdit(contract)}
             defaultValue={contract.contract_type}
             className={inputClassName()}
           >
             <option value="fixed">Fast</option>
             <option value="variable_monthly">Rörlig månad</option>
             <option value="variable_hourly">Rörlig tim</option>
+            <option value="variable_quarterly">Rörlig kvart</option>
             <option value="portfolio">Portfölj</option>
             <option value="mixed">Mix</option>
           </select>
@@ -650,7 +663,7 @@ function PriceFields({ contract }: { contract: CustomerContractRow }) {
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Fast pris (öre/kWh)">
           <input
-            readOnly={readOnly}
+            readOnly={readOnly || usesAtomicUnsignedEdit(contract)}
             name="fixed_price_ore_per_kwh"
             defaultValue={contract.fixed_price_ore_per_kwh ?? ""}
             className={inputClassName()}
@@ -854,6 +867,11 @@ export function EditContractForm({
       >
         <input type="hidden" name="customer_id" value={customerId} />
         <input type="hidden" name="customer_contract_id" value={contract.id} />
+        {usesAtomicUnsignedEdit(contract) ? <>
+          <input type="hidden" name="edit_request_id" value={crypto.randomUUID()} />
+          <input type="hidden" name="expected_updated_at" value={contract.updated_at} />
+          <input type="hidden" name="auto_renew_present" value="1" />
+        </> : null}
 
         <CoreContractFields
           contract={contract}
@@ -863,10 +881,10 @@ export function EditContractForm({
         <CampaignVersionFields contract={contract} />
         <PriceFields contract={contract} />
         <ExtraPriceFields contract={contract} />
-        <TerminationFields
+        {usesAtomicUnsignedEdit(contract) ? <p className="text-xs text-slate-600">Status och uppsägning hanteras via avtalets åtgärder. Byte av prismodell, avgiftsenhet eller rabatt görs genom en ny avtalsmall.</p> : <TerminationFields
           terminationNoticeDate={contract.termination_notice_date}
           terminationReason={contract.termination_reason}
-        />
+        />}
         <AutoRenewFields
           autoRenewEnabled={contract.auto_renew_enabled}
           autoRenewTermMonths={contract.auto_renew_term_months}
@@ -874,7 +892,7 @@ export function EditContractForm({
 
         <SectionCard
           title="Manuell kommentar / override"
-          description="Ange en tydlig orsak till manuella avvikelser. En kommentar ändrar inte avtalets låsta prisversion."
+          description="Ange en tydlig orsak till manuella avvikelser. Signerade avtal behåller alltid sitt ursprungliga underlag."
         >
           <textarea
             name="override_reason"
@@ -883,6 +901,14 @@ export function EditContractForm({
             className={inputClassName()}
           />
         </SectionCard>
+
+        {usesAtomicUnsignedEdit(contract) ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <p>Ändrade priser eller villkor skapar en ny kundspecifik avtalsversion med aktuella villkor. Det gamla underlaget sparas och tidigare signeringslänkar återkallas. Kunden behöver granska och signera hela den nya versionen.</p>
+          {unsignedRevisionBlocker(contract) ? <p className="mt-2">{unsignedRevisionBlocker(contract)}</p> : <label className="mt-3 flex items-start gap-2">
+            <input type="checkbox" name="acknowledge_current_terms" className="mt-1" />
+            <span>Vid ändrade priser eller villkor godkänner jag att en ny avtalsversion med aktuella villkor skapas. Detta registrerar inte kundens godkännande eller signatur.</span>
+          </label>}
+        </div> : null}
 
         <div className="flex justify-end">
           <button className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ">
@@ -987,7 +1013,7 @@ export function CreateFromOfferForm({
         </div>
       </div>
 
-      <form action={createContractFromOfferAction} className="mt-4 space-y-4">
+      <ContractEditFeedbackForm action={createContractFromOfferAction}>
         <input type="hidden" name="customer_id" value={customerId} />
         <input type="hidden" name="contract_offer_id" value={offer.id} />
 
@@ -1144,7 +1170,7 @@ export function CreateFromOfferForm({
         <button className="w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 ">
           Skapa kundavtal från mall
         </button>
-      </form>
+      </ContractEditFeedbackForm>
     </details>
   );
 }
@@ -1164,7 +1190,7 @@ export function CreateManualContractForm({
         Skapa manuellt kundavtal
       </div>
 
-      <form action={createContractAction} className="mt-4 space-y-4">
+      <ContractEditFeedbackForm action={createContractAction}>
         <input type="hidden" name="customer_id" value={customerId} />
 
         <ManualCoreFields
@@ -1192,7 +1218,7 @@ export function CreateManualContractForm({
         <button className="w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 ">
           Skapa manuellt kundavtal
         </button>
-      </form>
+      </ContractEditFeedbackForm>
     </div>
   );
 }

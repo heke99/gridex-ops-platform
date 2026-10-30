@@ -9,6 +9,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { getCustomerContractById } from '@/lib/customer-contracts/db'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import { updateContractAction } from '@/components/admin/customers/contracts/actions'
+import {prepareUnsignedContractEdit, usesAtomicUnsignedEdit} from '@/lib/customer-contracts/revision'
 import {
   assertContractTenant,
   loadCustomerTenantContext,
@@ -18,7 +19,9 @@ function text(value: FormDataEntryValue | null) {
   return String(value ?? '').trim()
 }
 
-export type ContractEditSaveResult = {status: 'saved'} | {status: 'invalid'; message: string; field?: string}
+export type ContractEditSaveResult = {status: 'saved'; signingLinkNeedsRenewal?: boolean; pricingRevised?: boolean}
+  | {status: 'invalid'; message: string; field?: string}
+  | {status: 'unconfirmed'; message: string}
 
 /** Price versions used by signing and invoicing cannot be rewritten by an
  * edit of the customer-card scalars. Keep the existing command and its gates. */
@@ -31,6 +34,30 @@ export async function saveContractWithFeedbackAction(formData: FormData): Promis
   if (!companyId) throw new Error('Bolag krävs för kundavtalet.')
   const before = await getCustomerContractById(contractId, {companyId}) as (CustomerContractRow & {contract_price_snapshot_id?: string | null}) | null
   if (!before || before.customer_id !== customerId || before.company_id !== companyId) throw new Error('Kundavtalet kunde inte hittas')
+  if (usesAtomicUnsignedEdit(before) || formData.has('edit_request_id')) {
+    const prepared = prepareUnsignedContractEdit(before, formData)
+    if (!prepared.ok) return {status:'invalid', message:prepared.message, ...(prepared.field ? {field:prepared.field} : {})}
+    const {data, error} = await supabaseService.rpc('gridex_edit_unsigned_customer_contract_v1', {
+      p_company_id:companyId, p_customer_id:customerId, p_contract_id:contractId,
+      p_actor_user_id:guard.userId, p_edit_id:prepared.editId,
+      p_expected_updated_at:prepared.expectedUpdatedAt, p_patch:prepared.patch,
+      p_acknowledge_current_terms:prepared.acknowledgeCurrentTerms,
+    })
+    if (error) {
+      if (error.code === '42501') return {status:'invalid', message:'Du saknar behörighet för den här avtalsändringen. En ny prisversion kräver även behörighet att skapa avtal och ändra priser.'}
+      if (['22023','23514','55000','PT409'].includes(error.code) && error.message.startsWith('unsigned_contract_edit_')) {
+        return {status:'invalid', message:'Avtalet kunde inte ändras med detta underlag. Kontrollera att det fortfarande är osignerat och att priser, villkor och anläggning stämmer. Ladda om om någon annan har ändrat avtalet.'}
+      }
+      // Do not claim rollback or retry an unknown network/provider outcome.
+      return {status:'unconfirmed', message:'Sparningen kunde inte bekräftas. Ladda om kundkortet och kontrollera de sparade uppgifterna innan du försöker igen.'}
+    }
+    if (!data || data.ok !== true || data.contract_id !== contractId) {
+      return {status:'unconfirmed', message:'Sparningen kunde inte bekräftas. Ladda om kundkortet och kontrollera de sparade uppgifterna innan du försöker igen.'}
+    }
+    revalidatePath(`/admin/customers/${customerId}`)
+    revalidatePath(`/admin/customers/${customerId}/contracts/${contractId}/signature`)
+    return {status:'saved', signingLinkNeedsRenewal:Number(data.links_revoked ?? 0) > 0, pricingRevised:data.pricing_revised === true}
+  }
   const bound = Boolean(['signed', 'active', 'terminated', 'cancelled', 'expired'].includes(before.status) || before.locked_at || before.signed_at || before.price_plan_version_id || before.contract_price_snapshot_id || before.contract_offer_id || before.public_contract_offer_id || before.contract_publication_version_id)
   // The original authoring helper preserves historic VAT for non-drafts and
   // offer-bound rows, but cannot preserve a legacy snapshot-only draft.
@@ -80,6 +107,12 @@ export async function saveContractWithFeedbackAction(formData: FormData): Promis
     }
     if (error instanceof Error && error.message === 'Slutdatum kan inte vara före startdatum.') {
       return {status: 'invalid', field: 'ends_at', message: error.message}
+    }
+    if (error instanceof Error && ['Signerat avtal kan inte ändras – använd avtalsåtgärder.', 'Statusbytet är inte tillåtet för ett signerat avtal – använd avtalsåtgärder.', 'Avtalet kan bara aktiveras när leveransstarten är registrerad – använd avtalsåtgärder.', 'Avslut kräver slutdatum och orsakskod – använd avtalsåtgärder.', 'Kundavtalet hittades inte för valt bolag eller har ändrats. Ladda om sidan.'].includes(error.message)) {
+      return {status: 'invalid', message: error.message}
+    }
+    if (error instanceof Error && ['Uppsägningsdatum är redan registrerat och kan inte ändras här – använd avtalsåtgärder.', 'Uppsägningsdatum kan inte vara före avtalets startdatum.'].includes(error.message)) {
+      return {status: 'invalid', field: 'termination_notice_date', message: error.message}
     }
     const problem = error && typeof error === 'object' ? error as {code?: unknown; message?: unknown} : null
     if (problem?.code === '55000' && typeof problem.message === 'string' && /^signed_customer_contract_immutable:[a-z_]+$/.test(problem.message)) {

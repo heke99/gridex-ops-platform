@@ -485,7 +485,9 @@ jobs:
           def current_write_api_install_spec():
               return {'before_catalog_sha256':'709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
                   'preimage_artifact_id':12655280424,'preimage_source':'c6a02ec1edfbf72d81a2c3755e004781da8bc5d6',
-                  'schema_sha256':'aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6','function_count':251,
+                  'schema_sha256':'20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b','function_count':251,
+                  # PR #932 capture (pre aa5d9975): closure of 251 writer functions is byte-identical.
+                  'canonical_definitions_sha256':'23866bb938ea1230a1f623073c436ae3d6583b5518378d0ee8eabd403eeb383d',
                   'projection_old_body':'01a18718d1d55c93238f2f9a8cfcb44da7cd5b35dbee96af964066a1848b7379',
                   'projection_new_body':'66d86e98130ca6f5e64ae966d710f35bce86204452febe714684025943a81f17',
                   'actor_old_body':'48696b52c449df7b7d76b7d6ed5c71ecf0544621f9f2c3de82f51ba200ff0b60',
@@ -557,6 +559,7 @@ jobs:
                 or before.get('entry_name_present') is not False or before.get('missing_function_names')!=[entry] or before.get('unresolved_source_names')!=[] \
                 or len(names)!=spec['function_count'] or len(set(names))!=len(names) or len(rows)!=spec['function_count']-1 \
                 or len(before.get('canonical_function_definitions',[]))!=spec['function_count'] \
+                or sha(json.dumps(before.get('canonical_function_definitions',[]),sort_keys=True,separators=(',',':')))!=spec['canonical_definitions_sha256'] \
                 or sha(json.dumps(rows,sort_keys=True,separators=(',',':')))!=spec['before_catalog_sha256']:
                   fail('db01_current_write_api_unqualified_preimage')
               sql_text,donors=build_current_write_api_sql(spec)

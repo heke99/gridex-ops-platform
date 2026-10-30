@@ -94,11 +94,13 @@ export type IntakeFieldErrors = Partial<Record<IntakeField, string>>
 export type IntakeFormValues = Partial<Record<IntakeField, string>>
 
 export type IntakeActionState = {
-  status: 'idle' | 'success' | 'error'
+  status: 'idle' | 'success' | 'error' | 'committed_review'
   message: string | null
   fieldErrors: IntakeFieldErrors
   values: IntakeFormValues
   createdCustomerId: string | null
+  createdContractId?: string | null
+  correlationId?: string | null
   createdSiteId?: string | null
   createdMeteringPointId?: string | null
   createdGridOwnerId?: string | null
