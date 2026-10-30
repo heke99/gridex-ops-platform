@@ -200,10 +200,24 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
     const src = protectionsInventory(sourceUrl), res = protectionsInventory(restoreUrl(restoreDb))
     const counts: Record<string, { source: number; restored: number }> = {}
     const diffs: Record<string, { onlySource: string[]; onlyRestored: string[] }> = {}
-    for (const k of Object.keys(src)) {
+    const diffOf = (k: string) => ({ onlySource: src[k].filter((x) => !(res[k] ?? []).includes(x)), onlyRestored: (res[k] ?? []).filter((x) => !src[k].includes(x)) })
+    for (const k of Object.keys(src).filter((x) => !x.startsWith('raw_'))) {
       counts[k] = { source: src[k].length, restored: res[k]?.length ?? 0 }
-      if (JSON.stringify(src[k]) !== JSON.stringify(res[k] ?? [])) diffs[k] = { onlySource: src[k].filter((x) => !(res[k] ?? []).includes(x)).slice(0, 8), onlyRestored: (res[k] ?? []).filter((x) => !src[k].includes(x)).slice(0, 8) }
+      if (JSON.stringify(src[k]) !== JSON.stringify(res[k] ?? [])) diffs[k] = { onlySource: diffOf(k).onlySource.slice(0, 8), onlyRestored: diffOf(k).onlyRestored.slice(0, 8) }
     }
+    // ACL jämförs som EFFEKTIVA privilegier (coalesce(acl, acldefault)); rå ACL-text avviker ofarligt när källan har explicit ägar-default och den återställda NULL.
+    // Allt som skiljer i rå text men är lika effektivt listas här (inget döljs).
+    const effOf: Record<string, string> = { raw_relation_acl: 'relation_acl_owner', raw_schema_acl: 'schema_acl_owner', raw_function_acl: 'function_owner_acl_secdef_config' }
+    const rawOnly: Record<string, string[]> = {}
+    for (const [raw, eff] of Object.entries(effOf)) {
+      const d = diffOf(raw), names = new Set([...d.onlySource, ...d.onlyRestored].map((x) => x.split('|')[0]))
+      const effDiff = new Set([...(diffs[eff]?.onlySource ?? []), ...(diffs[eff]?.onlyRestored ?? [])].map((x) => x.split('|')[0]))
+      rawOnly[raw] = [...names].filter((n) => !effDiff.has(n))
+    }
+    ev.observe('acl_raw_text_differs_effective_same', {
+      count: Object.values(rawOnly).reduce((n, l) => n + l.length, 0), objects: rawOnly,
+      explanation: 'pg_dump emitterar ingen GRANT för en ACL som är lika med ägarens default (acldefault), så källan kan ha explicit {owner=arwdDxtm/owner} medan den återställda databasen har NULL; effektiva privilegier (aclexplode(coalesce(acl, acldefault(typ, ägare)))) är identiska.',
+    })
     ev.observe('protections_counts', counts)
     ev.save('protections-diffs.json', { counts, diffs })
     expect(diffs).toEqual({})

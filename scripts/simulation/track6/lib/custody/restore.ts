@@ -114,6 +114,7 @@ export function runBlock(url: string, sqlText: string): string[] {
 }
 
 const PLATFORM_SCHEMAS = `'pg_catalog','information_schema','pg_toast','auth','extensions','vault','graphql','graphql_public','pgsodium','pgsodium_masks','realtime','supabase_functions','supabase_migrations','net','cron','_realtime','_analytics','pgbouncer','storage'`
+const effTuple = `x.grantor::regrole::text||':'||CASE x.grantee WHEN 0 THEN 'PUBLIC' ELSE x.grantee::regrole::text END||':'||x.privilege_type||':'||x.is_grantable::text`
 const oneLine = (e: string) => `replace(replace(coalesce(${e},''),E'\\n',' '),E'\\r',' ')`
 /**
  * Skyddsinventering (ska vara identisk, sorterad, i källa och återställd databas): policies, ACL/ägare (tabeller, kolumner, scheman, funktioner),
@@ -124,10 +125,16 @@ export function protectionsInventory(url: string): Record<string, string[]> {
   return Object.fromEntries([
     q('policies', `SELECT schemaname||'.'||tablename||'|'||policyname||'|'||cmd||'|'||permissive::text||'|'||roles::text||'|'||${oneLine('qual')}||'|'||${oneLine('with_check')} FROM pg_policies WHERE schemaname NOT IN ('pg_catalog','information_schema') ORDER BY 1;`),
     q('rls_flags', `SELECT n.nspname||'.'||c.relname||'|'||c.relrowsecurity::text||'|'||c.relforcerowsecurity::text FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind IN ('r','p') AND (n.nspname NOT IN (${PLATFORM_SCHEMAS}) OR n.nspname='storage') ORDER BY 1;`),
-    q('relation_acl_owner', `SELECT n.nspname||'.'||c.relname||'|'||c.relkind::text||'|'||pg_get_userbyid(c.relowner)||'|'||coalesce(c.relacl::text,'') FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind IN ('r','p','v','m','S','f') AND n.nspname NOT IN (${PLATFORM_SCHEMAS}) ORDER BY 1;`),
-    q('column_acl', `SELECT n.nspname||'.'||c.relname||'.'||a.attname||'|'||a.attacl::text FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE a.attacl IS NOT NULL AND NOT a.attisdropped AND n.nspname NOT IN (${PLATFORM_SCHEMAS}) ORDER BY 1;`),
-    q('schema_acl_owner', `SELECT nspname||'|'||pg_get_userbyid(nspowner)||'|'||coalesce(nspacl::text,'') FROM pg_namespace WHERE nspname NOT IN (${PLATFORM_SCHEMAS}) AND nspname NOT LIKE 'pg_temp%' AND nspname NOT LIKE 'pg_toast_temp%' ORDER BY 1;`),
-    q('function_owner_acl_secdef_config', `SELECT n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')|'||pg_get_userbyid(p.proowner)||'|'||p.prosecdef::text||'|'||coalesce(p.proconfig::text,'')||'|'||coalesce(p.proacl::text,'') FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname NOT IN (${PLATFORM_SCHEMAS}) ORDER BY 1;`),
+    // Effektiva privilegier: pg_dump skriver ingen GRANT för en ACL som är lika med ägarens default, så källan kan ha explicit {owner=arwdDxtm/owner} medan den återställda
+    // har NULL (= acldefault). Båda normaliseras via aclexplode(coalesce(acl, acldefault(typ, ägare))). Kolumner har ingen default (NULL = tom mängd).
+    q('relation_acl_owner', `SELECT n.nspname||'.'||c.relname||'|'||c.relkind::text||'|'||pg_get_userbyid(c.relowner)||'|'||coalesce((SELECT string_agg(${effTuple}, ',' ORDER BY x.grantor, x.grantee, x.privilege_type) FROM aclexplode(coalesce(c.relacl, acldefault(CASE WHEN c.relkind='S' THEN 'S'::"char" ELSE 'r'::"char" END, c.relowner))) x),'') FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind IN ('r','p','v','m','S','f') AND n.nspname NOT IN (${PLATFORM_SCHEMAS}) ORDER BY 1;`),
+    q('column_acl', `SELECT n.nspname||'.'||c.relname||'.'||a.attname||'|'||(SELECT string_agg(${effTuple}, ',' ORDER BY x.grantor, x.grantee, x.privilege_type) FROM aclexplode(a.attacl) x) FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE a.attacl IS NOT NULL AND cardinality(a.attacl)>0 AND NOT a.attisdropped AND n.nspname NOT IN (${PLATFORM_SCHEMAS}) ORDER BY 1;`),
+    q('schema_acl_owner', `SELECT nspname||'|'||pg_get_userbyid(nspowner)||'|'||coalesce((SELECT string_agg(${effTuple}, ',' ORDER BY x.grantor, x.grantee, x.privilege_type) FROM aclexplode(coalesce(nspacl, acldefault('n'::"char", nspowner))) x),'') FROM pg_namespace WHERE nspname NOT IN (${PLATFORM_SCHEMAS}) AND nspname NOT LIKE 'pg_temp%' AND nspname NOT LIKE 'pg_toast_temp%' ORDER BY 1;`),
+    q('function_owner_acl_secdef_config', `SELECT n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')|'||pg_get_userbyid(p.proowner)||'|'||p.prosecdef::text||'|'||coalesce(p.proconfig::text,'')||'|'||coalesce((SELECT string_agg(${effTuple}, ',' ORDER BY x.grantor, x.grantee, x.privilege_type) FROM aclexplode(coalesce(p.proacl, acldefault('f'::"char", p.proowner))) x),'') FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname NOT IN (${PLATFORM_SCHEMAS}) ORDER BY 1;`),
+    // Rå ACL-text (endast observation; ingår inte i påståendet).
+    q('raw_relation_acl', `SELECT n.nspname||'.'||c.relname||'|'||coalesce(c.relacl::text,'') FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind IN ('r','p','v','m','S','f') AND n.nspname NOT IN (${PLATFORM_SCHEMAS}) ORDER BY 1;`),
+    q('raw_schema_acl', `SELECT nspname||'|'||coalesce(nspacl::text,'') FROM pg_namespace WHERE nspname NOT IN (${PLATFORM_SCHEMAS}) AND nspname NOT LIKE 'pg_temp%' AND nspname NOT LIKE 'pg_toast_temp%' ORDER BY 1;`),
+    q('raw_function_acl', `SELECT n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')|'||coalesce(p.proacl::text,'') FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname NOT IN (${PLATFORM_SCHEMAS}) ORDER BY 1;`),
     ['triggers', triggerInventory(url)] as const,
   ])
 }
