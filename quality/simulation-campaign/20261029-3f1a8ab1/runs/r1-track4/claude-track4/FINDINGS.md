@@ -8,7 +8,9 @@ Kampanj 20261029-3f1a8ab1. Session `session_01UHTg8Ku6P35GA6fSrg1U1B`. Gren `cla
 |---|---|---|---|---|
 | t4-20261029T192155Z | 1c0c088c | 766f4963/cf6a2b22 | nej, portpatchad kopia av `supabase/config.toml` och replayskriptet | bara felkvitton |
 | t4-20261029T201002Z | 1c0c088c | e986a964 → 8ce5a6f7 | nej, samma patchning | bara felkvitton och kedjediagnos |
-| ny (pågår) | main a0958815 + harness 4c5e0f75 (lokal `t4-run-main` 8b2e6190) | 4c5e0f75 | ja | omtest |
+| t4-20261030T120157Z | main a0958815 + harness 4c5e0f75 (lokal `t4-run-main` 8b2e6190) | 4c5e0f75 | ja | omtest och kvalificerade kvitton |
+
+Orakel: originalet `all-systems-scenarios.safe.json` är återställt (sha256 `96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3`, 41 736 B). Raderna per ID är enradare, och kvittokraven ligger på gruppnivå: MAIN04, MAIN05 och BILLNEG01.
 
 Gemensamt för miljöerna:
 - PG 17.6 (ghcr.io/supabase/postgres 17.6.1.155) och supabase CLI 2.101.0.
@@ -30,7 +32,10 @@ Gemensamt för miljöerna:
   - Vakten kräver nu kanonisk 8-4-4-4-12-form.
   - Regression i `__tests__/admin-invoice-file-download-id-validation.test.ts`: före rättningen fallerade 2 av 6 fall, efter rättningen gick 70/70 igenom.
   - Två oberoende slutgranskningar (PR-kommentar 6508584225) och grön CI.
-- **Läge:** rättat, väntar på omtest i konform miljö.
+- **Läge: verifierad rättning.**
+- **Omtest:** körning `20261030T120536Z-7454` i konform miljö `t4-20261030T120157Z`. Appen är main a0958815 med harness som overlay.
+- **Utfall:** GET med 36 bindestreck ger 404, `text/plain`, 27 B. Kroppens sha256 är `c316c002…dbc2f` ("Fakturafilen hittades inte."). Inget 5xx, inget DB-fel.
+- **Granskning:** godkänd av oberoende sim-reviewer, och MAIN05.06 är **PASS**.
 - **Varianter:** samma svaga mönster finns i `lib/ediel/retention/contractDocumentPurge.ts:19`, `lib/ediel/scopedCapabilityReadiness.ts:61`, `lib/ediel/transport/rawMimeArchive.ts:30`, `lib/ediel/utilts/issuerIdentityAuthority.ts:73` och `lib/operations/db.part-2.ts:511-512`. Ingen av dem är en route-ingång, och ingen är styrkt som fel.
 
 ## 20261029-3f1a8ab1/claude-track4/2 – inkommande Ediel, blockerar T4:s faktureringskälla – produktfel, hög

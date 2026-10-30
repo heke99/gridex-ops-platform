@@ -2,27 +2,46 @@
   "workerId": "claude-track4",
   "model": "claude (session_01UHTg8Ku6P35GA6fSrg1U1B)",
   "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
-  "appCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "a09588150d6f5c629a9b75ee618d920288ed97d7",
   "overlayRefs": [
-    "claude/sim-20261029-track4@4c5e0f751 scripts/simulation/track4/** (harness only)"
+    "lokal t4-run-main 8b2e6190e = main a0958815 + merge av harness 4c5e0f751 (diff mot main endast scripts/simulation/track4/**)"
   ],
-  "environmentId": "konform miljö: saknas; icke-konform env1: t4-20261029T201002Z (nedmonterad)",
-  "databaseIdentity": "saknas",
+  "environmentId": "t4-20261030T120157Z",
+  "databaseIdentity": "replay av 8b2e6190e klar 2026-10-30T12:01:57Z, fingeravtryck 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c (delidentitet); applied-migrations.tsv tom; replay-commit = built-commit = HEAD",
   "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
   "schemaHashKind": "partial fingerprint",
   "clockModel": "real time; business dates explicit in fixtures (supply from 2026-07-01, billing months 2026-07..09); no faketime",
-  "startedAtUtc": "saknas",
+  "startedAtUtc": "2026-10-30T12:05:36Z",
   "finishedAtUtc": "saknas",
-  "heartbeatAtUtc": "saknas",
+  "heartbeatAtUtc": "2026-10-30T12:16:07Z",
   "cleanupReceipt": "env1 (t4-20261029T201002Z) nedmonterad 2026-10-30; evidens arkiverad lokalt i /root/sim-evidence/t4-env1, MANIFEST.sha256 (lokal, ej i repo)",
   "campaign": "20261029-3f1a8ab1",
   "runId": "r1-track4",
   "scenarioId": "MAIN05.05",
   "state": "PARTIAL",
-  "executionScope": "saknas",
-  "evidence": [],
+  "executionScope": "ISOLATED_NATIVE",
+  "evidence": [
+    "run 20261030T120536Z-7454: scenario report sha256 d7f7c33a03bcc94d2fe43f109bb45c89d12fd723312ed893f230e8a956e5b3f9",
+    "SIM_REPORT billing-20261030T120536Z.json sha256 94057eb66c0e8fabfe9e66d6756086279465ed9bf7909387cdd8c3b965583af3",
+    "run.log sha256 e742c93a3dbe76b54a200de326f8d6aeddaf8d41b237dedc65c301511cf63e09",
+    "oracle original sha256 96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3"
+  ],
   "evidenceNote": "sha256 för körningsrespons ej angiven; svar: okänt UUID 404 27 B; ogiltigt id (not-a-uuid) 404 27 B",
   "findingsIds": [],
-  "blocker": "annan-tenant-fall ej körd (behöver riktig fil); miljö icke-konform -> omkörning krävs",
-  "nextAction": "kör annan-tenant-fallet med riktig fil i konform miljö"
+  "blocker": "delsteg MAIN05.05b (annan tenants faktiska fil + kontrollanrop 200) överhoppat: kräver godkänd faktura/fil (MAIN04/MAIN05.01), som blockeras av faktureringskällan (claude-track4/2, /3 hos T3; C3b nätkälla)",
+  "nextAction": "kör MAIN05.05b när en faktisk fil finns",
+  "appCommitNote": "omkvalificerad bas enligt samordningens instruktion 2026-10-30 (kör mot main efter #939/#936/#937); main a0958815 har inga migrationer utöver 1c0c088c",
+  "observed": {
+    "unknownUuid": {
+      "httpStatus": 404,
+      "bytes": 27,
+      "bodySha256": "c316c002bc1142571b704268fd284c0220462f392c96418fa5c38020e29dbc2f"
+    },
+    "notAUuid": {
+      "httpStatus": 404,
+      "bytes": 27,
+      "bodySha256": "c316c002bc1142571b704268fd284c0220462f392c96418fa5c38020e29dbc2f"
+    }
+  },
+  "review": "oberoende sim-reviewer 2026-10-30: förblir PARTIAL (överhoppat berört steg)"
 }
