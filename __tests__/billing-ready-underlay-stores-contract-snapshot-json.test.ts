@@ -18,12 +18,16 @@ const tables: Record<string, Row[]> = {}
 const rpcCalls: Array<{ fn: string; args: Row }> = []
 
 function builder(table: string) {
-  const result = () => Promise.resolve({ data: tables[table] ?? [], error: null })
+  // Equality filters are honoured so the unsigned-revision lookup (eq source) sees no revision rows.
+  const eqs: Array<[string, unknown]> = []
+  const rows = () => (tables[table] ?? []).filter(row => eqs.every(([column, value]) => row[column] === value))
+  const result = () => Promise.resolve({ data: rows(), error: null })
   const chain: Record<string, unknown> = {}
-  for (const method of ['select', 'eq', 'in', 'not', 'lt', 'lte', 'gt', 'gte', 'or', 'order', 'limit', 'is', 'neq'])
+  for (const method of ['select', 'in', 'not', 'lt', 'lte', 'gt', 'gte', 'or', 'order', 'limit', 'is', 'neq'])
     chain[method] = () => chain
+  chain.eq = (column: string, value: unknown) => { eqs.push([column, value]); return chain }
   chain.range = result
-  chain.maybeSingle = () => Promise.resolve({ data: (tables[table] ?? [])[0] ?? null, error: null })
+  chain.maybeSingle = () => Promise.resolve({ data: rows()[0] ?? null, error: null })
   chain.then = (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) => result().then(resolve, reject)
   return chain
 }
