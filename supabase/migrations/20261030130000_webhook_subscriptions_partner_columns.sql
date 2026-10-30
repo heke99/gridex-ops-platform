@@ -21,8 +21,28 @@ alter table public.webhook_subscriptions add column if not exists last_failure_a
 
 -- The API client must belong to the subscription's own tenant. Deleting the
 -- client keeps the subscription (and its delivery history) but clears the link.
+-- Where the legacy 20260609162000 column FK (api_client_id -> id, not
+-- tenant-bound) exists, it is replaced: two FKs to the same table would also
+-- make unhinted PostgREST embeds ambiguous (PGRST201).
 do $$
+declare
+  v_legacy record;
 begin
+  for v_legacy in
+    select c.conname
+    from pg_constraint c
+    where c.conrelid = 'public.webhook_subscriptions'::regclass
+      and c.contype = 'f'
+      and c.confrelid = 'public.integration_api_clients'::regclass
+      and c.conname <> 'webhook_subscriptions_company_api_client_fkey'
+      and c.conkey = array[(
+        select a.attnum from pg_attribute a
+        where a.attrelid = 'public.webhook_subscriptions'::regclass and a.attname = 'api_client_id'
+      )]::smallint[]
+  loop
+    execute format('alter table public.webhook_subscriptions drop constraint %I', v_legacy.conname);
+  end loop;
+
   if not exists (
     select 1 from pg_constraint
     where conrelid = 'public.webhook_subscriptions'::regclass
@@ -38,8 +58,15 @@ begin
 end
 $$;
 
+-- Validated separately (SHARE UPDATE EXCLUSIVE): an existing cross-tenant link
+-- fails the migration instead of staying undetected.
+alter table public.webhook_subscriptions
+  validate constraint webhook_subscriptions_company_api_client_fkey;
+
+-- Same definition as 20260609162000, so both kinds of database converge.
 create index if not exists webhook_subscriptions_api_client_idx
-  on public.webhook_subscriptions(api_client_id, status, created_at desc);
+  on public.webhook_subscriptions(api_client_id, status, created_at desc)
+  where api_client_id is not null;
 
 -- Same canonical uniqueness as 20260821103000, which skipped it while the
 -- column was absent. Refuse rather than guess when duplicates already exist.

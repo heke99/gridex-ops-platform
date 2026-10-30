@@ -118,6 +118,7 @@ it('defaults a non-partner subscription to empty metadata so it stays on the web
 it('records success and failure health and pauses only after the tenth dead letter',async()=>{
  const name=`health-${randomUUID().slice(0,8)}`
  const {id,secret}=websiteSubscription(A,name)
+ const bystander=websiteSubscription(B,`bystander-${randomUUID().slice(0,8)}`).id
 
  sql(`UPDATE public.webhook_subscriptions SET failure_count=4 WHERE id=${literal(id)};`)
  await deliverOnce(A,id,secret)
@@ -151,6 +152,16 @@ it('records success and failure health and pauses only after the tenth dead lett
  await dispatchDueWebhookDeliveries(10)
  expect(delivery(last).status).toBe('dead_letter')
  expect(row(id)).toMatchObject({failure_count:10,status:'paused'})
- // Tenant B is untouched by A's health projection.
- expect(sql(`SELECT count(*) FROM public.webhook_subscriptions WHERE company_id=${literal(B)} AND (failure_count>0 OR status='paused')`)).toBe('0')
+ // Tenant B's subscription is untouched by A's health projection.
+ expect(row(bystander)).toMatchObject({company_id:B,failure_count:0,status:'active',last_success_at:null,last_failure_at:null})
+})
+
+it('replaces a legacy single-column client FK with the validated tenant-bound one',()=>{
+ sql(`ALTER TABLE public.webhook_subscriptions ADD CONSTRAINT webhook_subscriptions_api_client_id_fkey
+  FOREIGN KEY (api_client_id) REFERENCES public.integration_api_clients(id) ON DELETE SET NULL;`)
+ execFileSync('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1','-f',
+  'supabase/migrations/20261030130000_webhook_subscriptions_partner_columns.sql'],{encoding:'utf8',timeout:20000})
+ expect(sql(`SELECT string_agg(conname||':'||convalidated::text, ',' ORDER BY conname) FROM pg_constraint
+  WHERE conrelid='public.webhook_subscriptions'::regclass AND contype='f' AND confrelid='public.integration_api_clients'::regclass`))
+  .toBe('webhook_subscriptions_company_api_client_fkey:true')
 })
