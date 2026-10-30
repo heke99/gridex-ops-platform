@@ -37,7 +37,7 @@ describe('customer card lookup outcome (finding 003)', () => {
 // The workspace layout runs before the page and used to throw different errors for a
 // missing id ("Kunden hittades inte.") and another tenant's id ("Du saknar behörighet
 // för valt bolag."). Both must now end in the same notFound().
-const layoutIo = vi.hoisted(() => ({ row: null as null | { id: string; company_id: string | null; status: string | null }, contextCalls: 0, companyId: 'company-a' as string | null }))
+const layoutIo = vi.hoisted(() => ({ row: null as null | { id: string; company_id: string | null; status: string | null }, contextCalls: 0, queries: 0, companyId: 'company-a' as string | null }))
 vi.mock('server-only', () => ({}))
 vi.mock('next/navigation', () => ({ notFound: () => { throw new Error('NEXT_NOT_FOUND') } }))
 vi.mock('@/components/admin/customers/CustomerActionsMenu', () => ({ default: () => null }))
@@ -50,7 +50,7 @@ vi.mock('@/lib/tenant/entityGuards', () => ({
   loadCustomerTenantContext: async () => { layoutIo.contextCalls += 1; return { companyId: 'company-a' } },
 }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: () => {
-  const q = { select: () => q, eq: () => q, in: () => q, is: () => q, order: () => q, limit: async () => ({ data: [], error: null }), maybeSingle: async () => ({ data: layoutIo.row, error: null }) }
+  const q = { select: () => q, eq: () => q, in: () => q, is: () => q, order: () => q, limit: async () => ({ data: [], error: null }), maybeSingle: async () => { layoutIo.queries += 1; return { data: layoutIo.row, error: null } } }
   return q
 } } }))
 
@@ -64,20 +64,26 @@ describe('customer workspace layout answers 404 before any tenant-specific error
     layoutIo.row = null; layoutIo.contextCalls = 0
     const missing = await run('00000000-0000-4000-8000-000000000003')
     layoutIo.row = { id: 'c-b', company_id: 'company-b', status: 'active' }
-    const foreign = await run('c-b')
+    const foreign = await run('00000000-0000-4000-8000-0000000000cb')
     expect(missing).toBe('NEXT_NOT_FOUND')
     expect(foreign).toBe(missing)
     expect(layoutIo.contextCalls, 'tenant guard with distinct error text is never reached').toBe(0)
   })
 
+  it('answers a malformed id with the same notFound and never queries the database', async () => {
+    layoutIo.row = null; layoutIo.contextCalls = 0; layoutIo.queries = 0
+    expect(await run('not-a-uuid')).toBe('NEXT_NOT_FOUND')
+    expect(layoutIo.queries).toBe(0)
+  })
+
   it('treats a customer without company link as not found', async () => {
     layoutIo.row = { id: 'c-x', company_id: null, status: 'active' }
-    expect(await run('c-x')).toBe('NEXT_NOT_FOUND')
+    expect(await run('00000000-0000-4000-8000-0000000000c0')).toBe('NEXT_NOT_FOUND')
   })
 
   it('still runs the full tenant guard for the actor\'s own customer', async () => {
     layoutIo.row = { id: 'c-a', company_id: 'company-a', status: 'active' }; layoutIo.contextCalls = 0
-    expect(await run('c-a')).toBe('rendered')
+    expect(await run('00000000-0000-4000-8000-0000000000ca')).toBe('rendered')
     expect(layoutIo.contextCalls).toBe(1)
   })
 
@@ -86,7 +92,7 @@ describe('customer workspace layout answers 404 before any tenant-specific error
     layoutIo.row = null
     const missing = await run('00000000-0000-4000-8000-000000000003')
     layoutIo.row = { id: 'c-b', company_id: 'company-b', status: 'active' }
-    const foreign = await run('c-b')
+    const foreign = await run('00000000-0000-4000-8000-0000000000cb')
     layoutIo.companyId = 'company-a'
     expect(missing).toBe('rendered')
     expect(foreign).toBe(missing)
