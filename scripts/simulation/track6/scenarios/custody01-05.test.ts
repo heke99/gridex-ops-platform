@@ -1,6 +1,6 @@
 // CUSTODY01.05: backup/återställning bevarar custody-data. Spår 6, kampanj 20261029-3f1a8ab1. Ingen webbläsare/Playwright.
 //   Under pg_dump OCH pg_restore körs en syntetisk "främmande körning" (lib/custody/foreign.ts) i en separat tenant: loop av autentiserade PostgREST-operationer
-//   (INSERT/SELECT/UPDATE på public.customers med GoTrue-session) som committar. Alla iterationer ska lyckas, ingen operation får vänta > 5 s, minst N iterationer
+//   (INSERT/SELECT/UPDATE på public.customer_operation_tasks med GoTrue-session, produktens egen skrivväg) som committar. Alla iterationer ska lyckas, ingen operation får vänta > 5 s, minst N iterationer
 //   ska överlappa vardera fönstret (N loggas) och den främmande tenantens rader ska vara intakta (källan + återställd kopia).
 //   Hälsopollen (/api/internal/system/health) är ENDAST information om processens responsivitet: routen svarar 503 före all DB-åtkomst (route.ts:41-43), så 503 är avsiktligt.
 //   Stackens databas pg_dump -Fc:as till SIM_HOME,
@@ -71,8 +71,10 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
     foreignTag = `fr${run.runId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`
     const name = `T6SIM Custody05 Foreign AB ${foreignTag}`
     foreignCompany = sql(`INSERT INTO public.companies(name,status,default_environment) VALUES(${lit(name)},'active','test') RETURNING id`).split('\n')[0]
-    const user = await createTenantUser(foreignCompany, ['customers.read', 'customers.write'], 'company_admin')
-    foreign = startForeignRun({ companyId: foreignCompany, accessToken: user.accessToken, tag: foreignTag, intervalMs: 100 })
+    // Fixtur (SQL): en kund i den främmande tenanten som uppgifterna refererar till (kundskapande går annars via serverkod).
+    const foreignCustomer = sql(`INSERT INTO public.customers(company_id,name,customer_number) VALUES(${lit(foreignCompany)},'T6SIM foreign customer','${foreignTag}') RETURNING id`).split('\n')[0]
+    const user = await createTenantUser(foreignCompany, ['customers.read', 'customers.write', 'operations.read', 'operations.write'], 'company_admin')
+    foreign = startForeignRun({ companyId: foreignCompany, customerId: foreignCustomer, accessToken: user.accessToken, tag: foreignTag, intervalMs: 100 })
     const first = await foreign.waitForFirst(3)
     ev.observe('foreign_run', { company: foreignCompany, tag: foreignTag, user: user.id, preflightIterations: first.length, preflightOk: first.filter((x) => x.ok).length, firstError: first.find((x) => !x.ok)?.error ?? null })
     expect(first.length, 'främmande körning kom igång').toBeGreaterThanOrEqual(3)
@@ -132,13 +134,13 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
     expect(nDump, 'iterationer som överlappar pg_dump').toBeGreaterThanOrEqual(MIN_OVERLAP.dump)
     expect(nRestore, 'iterationer som överlappar pg_restore').toBeGreaterThanOrEqual(MIN_OVERLAP.restore)
     // Egna rader intakta i källan: en rad per lyckad iteration, alla uppdaterade (':u').
-    const srcCount = psqlRows(sourceUrl, `SELECT count(*) FROM public.customers WHERE company_id=${lit(foreignCompany)} AND name LIKE ${lit(foreignTag + '-%:u')};`)[0][0]
-    const srcOther = psqlRows(sourceUrl, `SELECT count(*) FROM public.customers WHERE company_id=${lit(foreignCompany)} AND name NOT LIKE ${lit('%:u')};`)[0][0]
+    const srcCount = psqlRows(sourceUrl, `SELECT count(*) FROM public.customer_operation_tasks WHERE company_id=${lit(foreignCompany)} AND title LIKE ${lit(foreignTag + '-%:u')};`)[0][0]
+    const srcOther = psqlRows(sourceUrl, `SELECT count(*) FROM public.customer_operation_tasks WHERE company_id=${lit(foreignCompany)} AND title NOT LIKE ${lit('%:u')};`)[0][0]
     expect(Number(srcCount)).toBe(iters.length)
     expect(Number(srcOther)).toBe(0)
     // Rader som var färdiga innan den återställda dumpen startade ska vara identiska i den återställda databasen.
     const done = iters.filter((x) => x.t1 < windows.dump!.start && x.id).map((x) => x.id as string)
-    const q = `SELECT id, name, company_id FROM public.customers WHERE id IN (${done.map(lit).join(',')}) ORDER BY id;`
+    const q = `SELECT id, title, status, company_id FROM public.customer_operation_tasks WHERE id IN (${done.map(lit).join(',')}) ORDER BY id;`
     const a = psqlRows(sourceUrl, q), b = psqlRows(restoreUrl(restoreDb), q)
     ev.observe('foreign_rows_in_restored', { checked: done.length, source: a.length, restored: b.length })
     expect(done.length).toBeGreaterThan(0)
@@ -157,7 +159,7 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
       .map((t) => ({ table: t, source: before.hashes[t], restored: hashes[t] ?? null }))
     const emptyCustody = Object.entries(before.hashes).filter(([, v]) => v.rows === 0).map(([t]) => t)
     ev.save('compare.json', { missing, countDiffs, hashDiffs, drift, emptyCustodyTables: emptyCustody, compared: { tables: tables.length, hashed: Object.keys(before.hashes).length }, sourceHashes: before.hashes })
-    ev.observe('empty_custody_tables_count', emptyCustody.length)
+    ev.observe('empty_custody_tables_count', { computed: emptyCustody.length, note: 'beräknas per körning (rows=0 i custody-tabellerna). 39 -> 37 -> 36 i körningarna 161811, 162702, 164432: tidigare tomma tabeller fylls av övriga scenarier (senast gridex_received_sources.utilts_header_validations), inte av restore' })
     ev.observe('compare', { missing: missing.length, countDiffs: countDiffs.length, hashDiffs: hashDiffs.length, drift, emptyCustodyTables: emptyCustody, ediel_messages: before.hashes['public.ediel_messages'], invoice_export_files: before.hashes['public.invoice_export_files'], storage_objects: before.hashes['storage.objects'] })
     expect(missing, 'tabeller saknas efter återställning').toEqual([])
     expect(countDiffs).toEqual([])
