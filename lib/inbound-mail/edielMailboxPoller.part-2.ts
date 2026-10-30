@@ -1,5 +1,6 @@
 // Extracted from edielMailboxPoller.ts; keep public imports on the facade module.
 import { ImapFlow } from "imapflow"
+import { resolveImapTls } from "./imapTls"
 import { rawSourceToText } from "./mimeCharset"
 import { createHash } from "crypto"
 import { isDeliveryStatusNotification } from './dsnClassifier'
@@ -97,7 +98,13 @@ export async function storeInboundEmail(
         transactionReference: dedupeFacts.transactionReference,
         externalReference: dedupeFacts.externalReference,
       });
-      if (existingAfterConflict)
+      // Finding 016 step 2: never silently dedupe changed content behind a
+      // business-reference conflict; only identical (or legacy NULL) sha dedupes.
+      const conflictSha = existingAfterConflict?.rawMessageSha256 ?? null;
+      if (
+        existingAfterConflict &&
+        !(existingAfterConflict.scope === "tenant_environment" && rawMessageSha256 && conflictSha && conflictSha !== rawMessageSha256)
+      )
         return { id: existingAfterConflict.id, deduped: true };
     }
 
@@ -352,10 +359,17 @@ export async function pollEdielMailbox(input: {
     }
 
     const imapPort = mailbox.imap_port ?? 993;
-    const client = new ImapFlow({
+    // IMAPS or mandatory STARTTLS; metadata can request IMAPS but never cleartext.
+    const imapTls = resolveImapTls({
       host: mailbox.imap_host,
       port: imapPort,
       secure: metadataBool(mailbox, "imap_secure", imapPort === 993),
+      environment: mailbox.environment,
+    });
+    const client = new ImapFlow({
+      host: mailbox.imap_host,
+      port: imapPort,
+      ...imapTls,
       auth: {
         user: mailbox.username,
         pass: password,

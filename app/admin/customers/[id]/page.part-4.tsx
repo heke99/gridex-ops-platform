@@ -3,6 +3,8 @@ import { platformWorkspaceGroups, tenantWorkspaceGroups } from "./workspaceGroup
 import CustomerWorkspaceNav from "@/components/admin/customers/CustomerWorkspaceNav";
 import { hasPermissionRequirement } from "@/lib/admin/accessModel";
 import Link from "next/link"
+import { notFound } from "next/navigation"
+import { resolveCustomerCardLookup } from "./customer-lookup-outcome"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { isPlatformAdminContext, requireAdminPageAccess } from "@/lib/admin/guards"
 import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
@@ -98,6 +100,8 @@ export async function CustomerAdminDetailPage({
   const supabase = await createSupabaseServerClient();
   const tenantScope = await resolveAdminTenantReadScope(access);
 
+  // Only the scope check may answer before the row is read; every other refusal is a
+  // plain 404, identical for a missing id and another tenant's customer (finding 003).
   if (!tenantScope.isPlatformAdmin && !tenantScope.companyId) {
     return (
       <CustomerLookupProblem
@@ -108,29 +112,10 @@ export async function CustomerAdminDetailPage({
     );
   }
 
-  const customer = await getCustomer(supabase, id);
+  const customerRow = await getCustomer(supabase, id);
+  const lookup = resolveCustomerCardLookup(tenantScope, customerRow);
 
-  if (!customer) {
-    return (
-      <CustomerLookupProblem
-        title="Kunden finns inte i kundregistret"
-        description="Kunden hittades inte i det aktiva kundregistret. Kontrollera att du är i rätt bolag och att kunden inte har flyttats eller rensats från denna miljö."
-        lookupId={id}
-      />
-    );
-  }
-
-  if (!customer.company_id) {
-    return (
-      <CustomerLookupProblem
-        title="Kunden saknar bolagskoppling"
-        description="Kunden saknar bolagskoppling och kan därför inte användas i kundflödet. Koppla kunden till rätt bolag eller arkivera raden innan den används."
-        lookupId={id}
-      />
-    );
-  }
-
-  if (customer.source === "ediel_portal_test") {
+  if (lookup.kind === "ediel_portal_test") {
     return (
       <CustomerLookupProblem
         title="Edielportalens kontrollkund visas inte som vanlig kund"
@@ -139,23 +124,9 @@ export async function CustomerAdminDetailPage({
       />
     );
   }
-
-  if (
-    !tenantScope.isPlatformAdmin &&
-    customer.company_id !== tenantScope.companyId
-  ) {
-    return (
-      <CustomerLookupProblem
-        title="Kunden tillhör ett annat bolag"
-        description="Kunden tillhör inte ditt bolag och kan inte visas."
-        lookupId={id}
-      />
-    );
-  }
-
-  const customerCompanyId = tenantScope.isPlatformAdmin
-    ? customer.company_id
-    : tenantScope.companyId;
+  if (lookup.kind !== "ok" || !customerRow) notFound();
+  const customer = customerRow;
+  const customerCompanyId = lookup.companyId;
   // Load only the data required by the selected workspace tab. The overview
   // keeps a lightweight cross-process summary; provider-heavy diagnostics are
   // only loaded on the dedicated platform diagnostics tab.
