@@ -45,7 +45,7 @@ export async function saveContractWithFeedbackAction(formData: FormData): Promis
     })
     if (error) {
       if (error.code === '42501') return {status:'invalid', message:'Du saknar behörighet för den här avtalsändringen. En ny prisversion kräver även behörighet att skapa avtal och ändra priser.'}
-      if (['22023','23514','40001','55000'].includes(error.code) && error.message.startsWith('unsigned_contract_edit_')) {
+      if (['22023','23514','55000','PT409'].includes(error.code) && error.message.startsWith('unsigned_contract_edit_')) {
         return {status:'invalid', message:'Avtalet kunde inte ändras med detta underlag. Kontrollera att det fortfarande är osignerat och att priser, villkor och anläggning stämmer. Ladda om om någon annan har ändrat avtalet.'}
       }
       // Do not claim rollback or retry an unknown network/provider outcome.
