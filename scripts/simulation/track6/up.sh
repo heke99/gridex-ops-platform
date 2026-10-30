@@ -54,7 +54,7 @@ SHIM
   fi
   rm -f "$SIM_HOME/replay-commit"
   date +%s > "$SIM_HOME/replay.start"
-  ( cd "$RUN_DIR" && PATH="$SIM_HOME/shim:$PATH" bash scripts/gridex-aud-003-clean-replay.sh ) >"$LOG_DIR/replay-up.log" 2>&1 \
+  ( cd "$RUN_DIR" && SUPABASE_INTERNAL_IMAGE_REGISTRY="${T6_IMAGE_REGISTRY:-ghcr.io}" PATH="$SIM_HOME/shim:$PATH" bash scripts/gridex-aud-003-clean-replay.sh ) >"$LOG_DIR/replay-up.log" 2>&1 \
     || t6_die "replay misslyckades, se $LOG_DIR/replay-up.log"
   date +%s > "$SIM_HOME/replay.end"
   # Replayskriptet har själv jämfört fingeravtrycket med EXPECTED_FINGERPRINT; spara dess värde (ingen ny beräkning).

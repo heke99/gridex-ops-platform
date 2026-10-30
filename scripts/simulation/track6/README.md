@@ -31,6 +31,8 @@ evidens med `MANIFEST.sha256`.
   ligger kvar. Efter en **ny** replay sparas replayskriptets egna verifierade fingeravtryck i `SIM_HOME/fingerprint`, samt
   `replay-commit`, `replay-at` och tom `applied-migrations.tsv`. `db-url` (en rad, lokala standarduppgifter) skrivs till `SIM_HOME`.
 
+* **Image-register:** `up.sh` sätter `SUPABASE_INTERNAL_IMAGE_REGISTRY=${T6_IMAGE_REGISTRY:-ghcr.io}` för replayen, så Supabase CLI hämtar `ghcr.io/supabase/<namn>:<tag>` i stället för `public.ecr.aws` (datagräns) eller docker.io (429). Image-digests sparas i `SIM_HOME/evidence/image-digests.txt`.
+
 ## Portar och namn
 
 App 3106, SMTP (TLS) 3625, IMAP TLS 3693, IMAP plain (GreenMail) 3643, kontroll 3699 (`T6_*_PORT`). Supabase 54321/54322 är
