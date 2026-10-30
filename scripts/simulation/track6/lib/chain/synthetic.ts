@@ -41,9 +41,14 @@ export function syntheticMonth(billingMonth: string): SyntheticMonth {
   const nextYear = month === 12 ? year + 1 : year, nextMonth = month === 12 ? 1 : month + 1
   const endMs = localToUtcMs(nextYear, nextMonth, 1)
   const startOffset = stockholmOffsetMinutes(startMs), endOffset = stockholmOffsetMinutes(endMs - 1)
-  if (startOffset !== endOffset) throw new Error(`fixture_month_contains_dst_transition:${billingMonth}`)
-  if ((endMs - startMs) !== days * 86_400_000) throw new Error(`fixture_month_length_unexpected:${billingMonth}`)
+  // DST transitions inside the month are allowed (October 2026): use offsetAtDay()/spotDayPayload() for per-day offsets.
+  void endOffset
   return { billingMonth, year, month, days, offsetMinutes: startOffset, startMs, endMs }
+}
+
+/** Stockholm offset (minutes) at local noon of a day (days used by DELIVERY01 are not transition days). */
+export function offsetAtDay(month: SyntheticMonth, day: number): number {
+  return stockholmOffsetMinutes(localToUtcMs(month.year, month.month, day, 12))
 }
 
 export const HOURS_PER_DAY = 24
@@ -100,23 +105,24 @@ export function isoWithOffset(utcMs: number, offsetMinutes: number): string {
   return `${local.getUTCFullYear()}-${pad2(local.getUTCMonth() + 1)}-${pad2(local.getUTCDate())}T${pad2(local.getUTCHours())}:${pad2(local.getUTCMinutes())}:00${sign}${pad2(Math.floor(abs / 60))}:${pad2(abs % 60)}`
 }
 
-/** An elprisetjustnu-format day payload (hourly rows, local offset timestamps). */
+/** An elprisetjustnu-format day payload: one row per real UTC hour of the local day (23/24/25 rows), each with the offset valid at that instant. */
 export function spotDayPayload(month: SyntheticMonth, day: number, salt: number): Array<Record<string, unknown>> {
-  return Array.from({ length: 24 }, (_, hour) => {
-    const startMs = month.startMs + ((day - 1) * 24 + hour) * 3_600_000
-    const e5 = hourlySpotE5(day, hour, salt)
-    return {
+  const from = localToUtcMs(month.year, month.month, day), to = localToUtcMs(month.year, month.month, day + 1)
+  const rows: Array<Record<string, unknown>> = []
+  for (let startMs = from, index = 0; startMs < to; startMs += 3_600_000, index++) {
+    const e5 = hourlySpotE5(day, index, salt)
+    rows.push({
       SEK_per_kWh: spotSekPerKwh(e5), EUR_per_kWh: Math.round(spotSekPerKwh(e5) / 11.5 * 1e6) / 1e6, EXR: 11.5,
-      time_start: isoWithOffset(startMs, month.offsetMinutes), time_end: isoWithOffset(startMs + 3_600_000, month.offsetMinutes),
-    }
-  })
+      time_start: isoWithOffset(startMs, stockholmOffsetMinutes(startMs)), time_end: isoWithOffset(startMs + 3_600_000, stockholmOffsetMinutes(startMs + 3_600_000 - 1)),
+    })
+  }
+  return rows
 }
 
-/** Billing month of DELIVERY01: supply starts on the SECOND-TO-LAST day and the E66 covers the LAST day. September 2026 is past (activation is due)
- *  and has no DST transition (SITE01_BILLING_MONTH rationale in track1 site01Synthetic.ts). */
-export const DELIVERY01_BILLING_MONTH = '2026-09'
-/** Supply start: next-to-last day. The E66 day must not begin before market_start_at: PRODAT DTM is read as UTC+1, so a start on 09-30 gives
- *  market_start_at 2026-09-29T23:00Z and the first summer-time hour (22:00Z) is refused by the billing gate (meterValueBillingMatcher.ts:117,125). */
-export const DELIVERY01_START_DATE = '2026-09-29'
-/** Day (of the billing month) covered by the single E66 with 24 hourly values: the last day. */
-export const DELIVERY01_START_DAY = 30
+/** Billing month of DELIVERY01: WINTER time. A summer-time start day cannot be covered (finding 001: first local hour 22:00Z < market_start_at 23:00Z; and a
+ *  gap before the first value otherwise). DST ended 2026-10-25; the clock reads 2026-10-30. */
+export const DELIVERY01_BILLING_MONTH = '2026-10'
+/** Supply start (local date). PRODAT DTM is read as UTC+1 -> market_start_at 2026-10-27T23:00Z = local midnight in winter time. */
+export const DELIVERY01_START_DATE = '2026-10-28'
+/** Days of the billing month with one hourly E66 each (24 values): 28, 29, 30 and 31 (31 is in the future of the stack clock; recorded, not assumed). */
+export const DELIVERY01_E66_DAYS = [28, 29, 30, 31] as const

@@ -4,7 +4,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { energyHandoffMessage } from '@/__tests__/helpers/utiltsObservationHandoff'
 import { utiltsNativeSourceFixture, utiltsRecountUnt, utiltsTestEnvironmentWire } from '@/__tests__/helpers/utiltsNativeSourceFixture'
-import { edifactOffset, formatMilliKwh, hourMilliKwh, HOURS_PER_DAY, localStamp, type SyntheticMonth } from './synthetic'
+import { edifactOffset, formatMilliKwh, hourMilliKwh, HOURS_PER_DAY, localStamp, offsetAtDay, type SyntheticMonth } from './synthetic'
 
 export type HourlyWire = {
   sourceId: string
@@ -14,6 +14,7 @@ export type HourlyWire = {
   bgmRef: string
   /** ISO instant at which the file is received (06:30 local the day after the readings). */
   receivedAt: string
+  receivedAtClamped: boolean
   values: number
   totalMilliKwh: number
 }
@@ -41,7 +42,7 @@ export function buildHourlyDayWire(input: {
   const bgmRef = `M${sourceId.replaceAll('-', '').slice(0, 20)}`
   const unbDate = `${nextDayStamp.slice(2, 8)}:0600`
   const head = lines.slice(0, at).map(entry => entry
-    .replace("DTM+735:?+0200:406'", `DTM+735:?${edifactOffset(month.offsetMinutes)}:406'`)
+    .replace("DTM+735:?+0200:406'", `DTM+735:?${edifactOffset(offsetAtDay(month, day))}:406'`)
     .replace(/DTM\+137:\d{12}:203/, `DTM+137:${nextDayStamp}0600:203`)
     .replace('202607010000202607010015:719', `${startStamp}${endStamp}:719`)
     .replace('DTM+597:202607010020:203', `DTM+597:${endStamp}:203`)
@@ -63,6 +64,8 @@ export function buildHourlyDayWire(input: {
   }
   const assembled = [...head, ...observations, "UNT+0+1'", lines[lines.length - 1]].join('\n')
   const fixture = utiltsNativeSourceFixture(utiltsRecountUnt(utiltsTestEnvironmentWire(assembled)), sourceId)
-  const receivedAt = new Date(Date.UTC(Number(nextDayStamp.slice(0, 4)), Number(nextDayStamp.slice(4, 6)) - 1, Number(nextDayStamp.slice(6, 8)), 6, 30) - month.offsetMinutes * 60_000).toISOString()
-  return { sourceId, raw: fixture.raw, parsed: fixture.parsed, txRef, bgmRef, receivedAt, values: HOURS_PER_DAY, totalMilliKwh: total }
+  const receivedMs = (Date.UTC(Number(nextDayStamp.slice(0, 4)), Number(nextDayStamp.slice(4, 6)) - 1, Number(nextDayStamp.slice(6, 8)), 6, 30) - offsetAtDay(month, day) * 60_000)
+  // Not later than now: a file for a day that has not ended cannot have been received yet (the report records the real value in `receivedAtClamped`).
+  const receivedAtIso = new Date(Math.min(receivedMs, Date.now() - 60_000)).toISOString()
+  return { sourceId, raw: fixture.raw, parsed: fixture.parsed, txRef, bgmRef, receivedAt: receivedAtIso, receivedAtClamped: receivedAtIso !== new Date(receivedMs).toISOString(), values: HOURS_PER_DAY, totalMilliKwh: total }
 }

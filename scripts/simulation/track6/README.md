@@ -83,4 +83,4 @@ fingerprint, BLOCKED-kontroll). Ediel-scenariofiler och e0x-hjälpkod är inte k
 
 ## DELIVERY01 (kedja)
 
-`scenarios/delivery01.test.ts` + `lib/chain/`: leverans från näst sista dagen (2026-09-29); ETT E66 med 24 timvärden på sista dagen (2026-09-30). Start på sista dagen ger `billing_gate_qualified_supply_source_required` (PRODAT DTM läses som UTC+1, `market_start_at` 2026-09-29T23:00Z; sommartidens första timme 22:00Z ligger före). Rapportens observation `<Cn>_chain.gate` visar `market_start_at` och första värdets intervall.
+`scenarios/delivery01.test.ts` + `lib/chain/`: VINTERTID. Leverans från 2026-10-28, faktureringsmånad 2026-10, fyra E66 (dygn 28-31, 24 timvärden vardera). Sommartidsstart ger antingen luck före första värdet eller gate-abort (`billing_gate_qualified_supply_source_required`: PRODAT DTM läses som UTC+1, `market_start_at` = lokal midnatt vintertid). Dygn 31 ligger i framtiden relativt stackens klocka; utfallet loggas. Observationen `<Cn>_chain.gate` visar `market_start_at` och första värdets intervall; `<Cn>_chain.e66.perMessage` ger tid per meddelande.

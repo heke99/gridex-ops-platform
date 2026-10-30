@@ -31,7 +31,7 @@ import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { buildHourlyDayWire } from './hourlyWire'
 import { substitute } from './substitutions'
 import { dbRead, http, lit, sha256Hex, signIn, timed, type Session } from './runtime'
-import { DELIVERY01_BILLING_MONTH, DELIVERY01_START_DATE, DELIVERY01_START_DAY, HOURS_PER_DAY, spotDayPayload, syntheticMonth } from './synthetic'
+import { DELIVERY01_BILLING_MONTH, DELIVERY01_E66_DAYS, DELIVERY01_START_DATE, HOURS_PER_DAY, spotDayPayload, syntheticMonth } from './synthetic'
 
 function must(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message) }
 
@@ -94,7 +94,7 @@ export type CustomerChain = {
   }
   /** Gate precondition: supply period market_start_at and the first stored value's interval. */
   gate: { marketStartAt: string | null; startDate: string | null; firstIntervalStart: string | null; firstIntervalEnd: string | null; valueCount: number }
-  e66: { sourceId: string; transactionRef: string; values: number; totalMilliKwh: number; rawSha256: string; persistMs: number; ingestMs: number; meteringValueIds: string[] }
+  e66: { values: number; persistMs: number; ingestMs: number; messages: Array<{ day: number; sourceId: string; transactionRef: string; values: number; rawSha256: string; receivedAt: string; receivedAtClamped: boolean; persistMs: number; ingestMs: number; totalMs: number; meteringValueIds: string[] }> }
   timingsMs: Record<string, number>
 }
 
@@ -198,8 +198,9 @@ function applyCustomerProfile(f: Ground, spec: CustomerSpec): void {
 
 // -------------------------------------------------------------------- UTILTS
 
+type E66Message = CustomerChain['e66']['messages'][number]
+
 async function ingestHourlyE66(f: Ground, salt: number): Promise<CustomerChain['e66']> {
-  const month = syntheticMonth(DELIVERY01_BILLING_MONTH)
   // SUBSTITUTE: grid_owner_data_requests row inserted by psql — verifierar inte hur en historikbegäran normalt skapas och skickas.
   const dataRequestId = randomUUID()
   sql(`INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope) VALUES(${literal(dataRequestId)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},${literal(f.gridId)},'billing_underlay')`)
@@ -208,7 +209,18 @@ async function ingestHourlyE66(f: Ground, salt: number): Promise<CustomerChain['
   registerUtiltsIssuer(sql, literal, f.receiver, f.actorUserId)
   setUtiltsReceiverRole(sql, literal, f.companyId, f.actorUserId, 'E66')
 
-  const wire = buildHourlyDayWire({ month, day: DELIVERY01_START_DAY, salt, companyId: f.companyId, external: f.external, sender: f.sender, receiver: f.receiver })
+  const messages: E66Message[] = []
+  for (const day of DELIVERY01_E66_DAYS) messages.push(await ingestHourlyDay(f, salt, day, dataRequest))
+  return {
+    values: messages.reduce((n, m) => n + m.values, 0), 
+    persistMs: messages.reduce((n, m) => n + m.persistMs, 0), ingestMs: messages.reduce((n, m) => n + m.ingestMs, 0), messages,
+  }
+}
+
+async function ingestHourlyDay(f: Ground, salt: number, day: number, dataRequest: GridOwnerDataRequestRow): Promise<E66Message> {
+  const month = syntheticMonth(DELIVERY01_BILLING_MONTH)
+  const dayStarted = Date.now()
+  const wire = buildHourlyDayWire({ month, day, salt, companyId: f.companyId, external: f.external, sender: f.sender, receiver: f.receiver })
   const { raw, parsed, txRef, receivedAt } = wire
   const fixtureId = wire.sourceId
   // SUBSTITUTE: inbound mail transport (IMAP fetch, S/MIME, mailbox custody) replaced by a direct ediel_messages insert for the canonical UTILTS E66 profile
@@ -239,7 +251,7 @@ async function ingestHourlyE66(f: Ground, salt: number): Promise<CustomerChain['
   const stored = await ingestBoundUtiltsMetering({ actorUserId: f.actorUserId, message: source, boundOutcomes: outcomes })
   const ingestMs = Date.now() - ingestStarted
   must(stored.length === HOURS_PER_DAY, `delivery01_utilts_stored_${stored.length}_expected_${HOURS_PER_DAY}`)
-  return { sourceId: source.id, transactionRef: txRef, values: wire.values, totalMilliKwh: wire.totalMilliKwh, rawSha256: sha256Hex(raw), persistMs, ingestMs, meteringValueIds: stored.map(row => row.id) }
+  return { day, sourceId: source.id, transactionRef: txRef, values: wire.values, rawSha256: sha256Hex(raw), receivedAt, receivedAtClamped: wire.receivedAtClamped, persistMs, ingestMs, totalMs: Date.now() - dayStarted, meteringValueIds: stored.map(row => row.id) }
 }
 
 // ------------------------------------------------------------ chain per customer
@@ -305,7 +317,7 @@ export async function buildCustomerChain(spec: CustomerSpec, salt: number): Prom
   must(!updated.error, `delivery01_password_failed:${updated.error?.message}`)
   const session = await t('sign in', () => signIn({ email, password, userId: ground.actorUserId, companyId: ground.companyId }))
 
-  const e66 = await t('hourly E66 (24 values)', () => ingestHourlyE66(ground, salt))
+  const e66 = await t('hourly E66 (4 messages x 24 values)', () => ingestHourlyE66(ground, salt))
 
   const effective = dbRead<CustomerChain['effective']['customer'] & { __c: boolean | null; __m: string | null }>(`SELECT jsonb_build_object(
       '__c',(SELECT billing_address_same_as_site FROM public.customer_contracts WHERE id=${lit(ground.contractId)}),

@@ -9,7 +9,7 @@
 import { nativeSql as sql, literal } from '@/scripts/helpers/ediel-normal-switch-native-fixture'
 import { supabaseService } from '@/lib/supabase/service'
 import { substitute } from './substitutions'
-import { dbRead, findActionForm, http, lit, postServerAction, type HttpResult, type Session } from './runtime'
+import { dbRead, findActionForm, http, lit, postServerAction, sha256Hex, type HttpResult, type Session } from './runtime'
 import { DELIVERY01_BILLING_MONTH } from './synthetic'
 
 export type FlowLog = { step: string; via: 'ui-action' | 'api' | 'ersättningssteg'; detail: unknown }
@@ -83,7 +83,11 @@ const ACTION_MARKERS = { approve: /Godkänn/, createFile: /Skapa fakturafil/ } a
 /** approveAndSendReadyInvoicesAction / createInvoiceFileAction posted like a browser form from /admin/billing. */
 export async function runBillingAction(session: Session, kind: keyof typeof ACTION_MARKERS) {
   const form = await findActionForm(session, BILLING_PAGE, html => ACTION_MARKERS[kind].test(html))
-  if (!form) throw new Error(`no <form> with a server action matching ${ACTION_MARKERS[kind]} on ${BILLING_PAGE} (rendered only when there is something to ${kind === 'approve' ? 'approve' : 'put in a file'})`)
+  if (!form) {
+    const page = await http(session, 'GET', BILLING_PAGE, { headers: { accept: 'text/html' } })
+    const hint = { status: page.status, forms: (page.text.match(/<form/g) ?? []).length, actionIds: (page.text.match(/\$ACTION_ID_/g) ?? []).length, containsMarker: ACTION_MARKERS[kind].test(page.text), month: DELIVERY01_BILLING_MONTH }
+    throw new Error(`no <form> with a server action matching ${ACTION_MARKERS[kind]} on ${BILLING_PAGE} (rendered only when there is something to ${kind === 'approve' ? 'approve' : 'put in a file'}): ${JSON.stringify(hint)}`)
+  }
   const r = await postServerAction(session, BILLING_PAGE, form, { billing_month: DELIVERY01_BILLING_MONTH })
   return { ...r, fileId: r.params.file ?? null, fileError: r.params.file_error ?? null }
 }
@@ -147,4 +151,18 @@ export function parseNordfinXml(xml: string): NordfinInvoice[] {
       facility: facility ? { address: xmlField(facility, 'FacilityAddress'), zip: xmlField(facility, 'FacilityZipCode'), city: xmlField(facility, 'FacilityCity') } : null,
     }
   })
+}
+
+/**
+ * Where a readiness blocker code can surface through normal entries: the /admin/billing page for the month (invoiceReviewData blocker text) and the underlay
+ * row. The account-level codes (invoice_distribution_missing, invoice_recipient_missing; billingReadiness.ts) are produced only by
+ * evaluateBillingMonthInvoiceReadiness, whose only caller is createInvoiceExportRun (lib/integrations/billing/invoiceExportCore.ts:53); no route calls that
+ * (grep app/ lib/ on this base), and the nordfin flow prepare -> approve -> file does not call it.
+ */
+export async function readinessSurfaces(session: Session, companyId: string, codes: string[]): Promise<{ page: { status: number; sha256: string; codesFound: string[]; blockerSnippets: string[] }; underlayRowCodes: string[] }> {
+  const page = await http(session, 'GET', BILLING_PAGE, { headers: { accept: 'text/html' } })
+  const text = page.text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
+  const blockerSnippets = [...text.matchAll(/(?:Flaggad|Saknar mätvärden|blockerad)[^.]{0,160}/gi)].map(m => m[0]).slice(0, 6)
+  const rows = JSON.stringify(underlaysFor(companyId))
+  return { page: { status: page.status, sha256: sha256Hex(page.bytes), codesFound: codes.filter(c => page.text.includes(c)), blockerSnippets }, underlayRowCodes: codes.filter(c => rows.includes(c)) }
 }

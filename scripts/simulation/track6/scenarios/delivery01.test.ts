@@ -1,6 +1,6 @@
 // sim: DELIVERY01.01-.05
 // DELIVERY01 (spår 6): fakturaleverans i Nordfin-filen. Playwright används inte (appens HTTP-ingångar och serveråtgärder postas som no-JS-formulär).
-// Kedja per kund: offert -> publicering -> avtal -> signering -> Z03 -> Z04 L -> aktivering -> spot -> ETT UTILTS E66 med 24 timvärden ->
+// Kedja per kund: offert -> publicering -> avtal -> signering -> Z03 -> Z04 L -> aktivering -> spot -> fyra UTILTS E66 (28-31 oktober) med 24 timvärden vardera ->
 // generate-underlay -> prepare -> godkänn -> fakturafil (nordfin) -> XML. Allt i testmiljön (environment test), appmiljö
 // GRIDEX_INVOICE_DELIVERY_RESOLVER läses ur SIM_HOME/env/track6.env och loggas; förväntat värde `shared` (produktionsinställningen).
 // Ursprung för kopierad kod: se lib/chain/*.ts (spår 1 ba065053/3ea5cd2b, spår 4 766f4963).
@@ -11,11 +11,11 @@ import { Evidence } from '../lib/evidence'
 import { B1, B2, CUSTOMER_SPECS, NEW_C1_INVOICE_EMAIL, S1, buildCustomerChain, importAndLockSpot, type CustomerChain, type CustomerSpec } from '../lib/chain/customerChain'
 import {
   changeBillingProfileAfterApproval, downloadInvoiceFile, enableNordfinProvider, exportItemsFor, filesFor, generateUnderlay, parseNordfinXml, prepareInvoices,
-  revisionsFor, runBillingAction, runItemsFor, underlaysFor, type FlowLog,
+  readinessSurfaces, revisionsFor, runBillingAction, runItemsFor, underlaysFor, type FlowLog,
 } from '../lib/chain/billingFlow'
 import { appUrl, sha256Hex, TIMINGS } from '../lib/chain/runtime'
 import { SUBSTITUTIONS, substitutionObservation } from '../lib/chain/substitutions'
-import { DELIVERY01_BILLING_MONTH, DELIVERY01_START_DATE, DELIVERY01_START_DAY } from '../lib/chain/synthetic'
+import { DELIVERY01_BILLING_MONTH, DELIVERY01_E66_DAYS, DELIVERY01_START_DATE } from '../lib/chain/synthetic'
 
 // The native seed signs the contract inside seedNormalSwitchNativeFixture. This wrapper lets the chain choose the contract's
 // invoice_delivery_method on the DRAFT contract just before signing (see installDeliveryMethodHook). Behaviour is otherwise unchanged.
@@ -79,7 +79,7 @@ describe('Track6 DELIVERY01: fakturaleverans (e-post/post/adress) i Nordfin-file
   afterAll(() => {
     evidence.observe('ERSÄTTNINGSSTEG', SUBSTITUTIONS.map(substitutionObservation))
     evidence.observe('stegtider_ms', TIMINGS)
-    evidence.observe('scope', { billingMonth: DELIVERY01_BILLING_MONTH, supplyStart: DELIVERY01_START_DATE, e66Day: DELIVERY01_START_DAY, hourlyValuesPerCustomer: 24, environment: 'test', provider: 'nordfin',
+    evidence.observe('scope', { billingMonth: DELIVERY01_BILLING_MONTH, supplyStart: DELIVERY01_START_DATE, e66Days: DELIVERY01_E66_DAYS, hourlyValuesPerCustomer: 96, messagesPerCustomer: 4, note31: 'dag 31 ligger i framtiden relativt stackens klocka', environment: 'test', provider: 'nordfin',
       note: 'Ett eget syntetiskt bolag per kund (nativa seeden skapar bolag + Ediel-ID); T6SIM 16760 används inte av kedjan.' })
     evidence.finalize()
   })
@@ -101,15 +101,15 @@ describe('Track6 DELIVERY01: fakturaleverans (e-post/post/adress) i Nordfin-file
 
   for (const key of KEYS) {
     const spec = CUSTOMER_SPECS[key]
-    it(`DELIVERY01 setup ${key} (${spec.label}): bolag, avtal ${spec.deliveryMethod}, Z03/Z04, aktivering, kundprofil och ETT E66 med 24 timvärden (ERSÄTTNINGSSTEG: nativ seed, syntetisk Z04, direktinmatad UTILTS, kundprofil via psql)`, async ctx => {
+    it(`DELIVERY01 setup ${key} (${spec.label}): bolag, avtal ${spec.deliveryMethod}, Z03/Z04, aktivering, kundprofil och 4 E66 (dygn 28-31, 24 timvärden vardera) (ERSÄTTNINGSSTEG: nativ seed, syntetisk Z04, direktinmatad UTILTS, kundprofil via psql)`, async ctx => {
       needs(ctx, 'precondition')
       const chain = await buildCustomerChain(spec, SALT)
       S.chains[key] = chain
       evidence.save(`chain/${key}.json`, { ...chain, session: { userId: chain.session.userId, companyId: chain.session.companyId } })
-      evidence.observe(`${key}_chain`, { companyId: chain.companyId, customerId: chain.customerId, timingsMs: chain.timingsMs, effective: chain.effective, gate: chain.gate, e66: { values: chain.e66.values, persistMs: chain.e66.persistMs, ingestMs: chain.e66.ingestMs, rawSha256: chain.e66.rawSha256 } })
+      evidence.observe(`${key}_chain`, { companyId: chain.companyId, customerId: chain.customerId, timingsMs: chain.timingsMs, effective: chain.effective, gate: chain.gate, e66: { values: chain.e66.values, persistMs: chain.e66.persistMs, ingestMs: chain.e66.ingestMs, perMessage: chain.e66.messages.map(m => ({ day: m.day, totalMs: m.totalMs, persistMs: m.persistMs, ingestMs: m.ingestMs, rawSha256: m.rawSha256, receivedAt: m.receivedAt, receivedAtClamped: m.receivedAtClamped })) } })
       // Fixture premises for the oracles below (not product claims): a separate billing address only matters when the contract does not say "same as site".
       expect(chain.effective.contractBillingAddressSameAsSite, 'contract.billing_address_same_as_site must be false').toBe(false)
-      expect(chain.e66.values).toBe(24)
+      expect(chain.e66.values).toBe(96)
       // Gate precondition (visible in the report): every E66 interval starts at or after market_start_at.
       if (chain.gate.marketStartAt && chain.gate.firstIntervalStart) expect(Date.parse(chain.gate.firstIntervalStart)).toBeGreaterThanOrEqual(Date.parse(chain.gate.marketStartAt))
       S.ok.add(`chain:${key}`)
@@ -137,12 +137,12 @@ describe('Track6 DELIVERY01: fakturaleverans (e-post/post/adress) i Nordfin-file
   }
 
   for (const key of KEYS) {
-    it(`DELIVERY01 setup ${key}: generate-underlay (N=24 timvärden, leverans från näst sista dagen; E66 på sista dagen)`, async ctx => {
+    it(`DELIVERY01 setup ${key}: generate-underlay (N=96 timvärden i 4 meddelanden, leverans från 2026-10-28, vintertid)`, async ctx => {
       needs(ctx, `chain:${key}`, 'spot')
       const chain = S.chains[key]!
       const res = await generateUnderlay(chain.session)
       const timeout57014 = res.status >= 500 && appLogMentions('57014')
-      evidence.observe(`${key}_generate_underlay`, { status: res.status, ms: res.ms, valuesInMonth: 24, body: res.body ?? res.text.slice(0, 300), appLog57014: timeout57014 })
+      evidence.observe(`${key}_generate_underlay`, { status: res.status, ms: res.ms, valuesInMonth: 96, body: res.body ?? res.text.slice(0, 300), appLog57014: timeout57014 })
       if (res.status >= 500) {
         evidence.observe('BLOCKED_BY', timeout57014 ? 'claude-track1/010 (57014 statement timeout i generate-underlay)' : `generate-underlay HTTP ${res.status} utan 57014 i app-loggen: orsak oklar`)
         throw new Error(`${timeout57014 ? 'BLOCKED_BY claude-track1/010' : 'generate-underlay misslyckades'}: HTTP ${res.status} efter ${res.ms} ms med 24 värden: ${JSON.stringify(res.body)?.slice(0, 300)}`)
@@ -167,19 +167,25 @@ describe('Track6 DELIVERY01: fakturaleverans (e-post/post/adress) i Nordfin-file
     }, LONG)
   }
 
-  it('DELIVERY01.04 C4 (ingen faktura-e-post, ingen faktureringsadress, billing_address_same_as_site false): beredskapen är blockerad med invoice_distribution_missing (eller invoice_recipient_missing)', async ctx => {
+  it('DELIVERY01.04 C4 (ingen faktura-e-post, ingen faktureringsadress, billing_address_same_as_site false): blockerad av beredskapen — kod invoice_distribution_missing/invoice_recipient_missing via normal yta, ingen faktura förbereds', async ctx => {
     needs(ctx, 'prepare:C4')
     const chain = S.chains.C4!
+    const codes = ['invoice_distribution_missing', 'invoice_recipient_missing']
     const underlays = underlaysFor(chain.companyId)
     const underlay = rowFor(underlays)
+    const items = exportItemsFor(chain.companyId)
+    const surfaces = await readinessSurfaces(chain.session, chain.companyId, codes)
     evidence.save('delivery01.04/C4-underlay.json', underlays)
-    expect(underlay, 'C4 has a billing underlay (readiness is evaluated per underlay)').toBeTruthy()
-    const text = JSON.stringify(underlay)
-    evidence.observe('C4_underlay_readiness', { status: underlay!.status, readiness_status: underlay!.readiness_status, invoice_readiness_status: underlay!.invoice_readiness_status,
-      codes: ['invoice_distribution_missing', 'invoice_recipient_missing'].filter(code => text.includes(code)) })
-    expect(['invoice_distribution_missing', 'invoice_recipient_missing'].some(code => text.includes(code)), `blocker code in underlay row: ${text.slice(0, 600)}`).toBe(true)
-    expect(underlay!.status === 'validated' && underlay!.readiness_status === 'ready' && underlay!.invoice_readiness_status === 'ready_for_invoice', 'C4 must not be ready for invoice').toBe(false)
-  })
+    evidence.observe('C4_readiness', { underlay: underlay && { status: underlay.status, readiness_status: underlay.readiness_status, invoice_readiness_status: underlay.invoice_readiness_status, billing_block_reason: underlay.billing_block_reason },
+      itemsPrepared: items.length, surfaces,
+      codeSurface: 'Kodens enda producent är evaluateBillingMonthInvoiceReadiness (lib/billing/invoiceReadiness.ts:299), vars enda anropare är createInvoiceExportRun (lib/integrations/billing/invoiceExportCore.ts:53, Capway); ingen route anropar den och nordfin-flödet prepare -> godkänn -> fil gör det inte. Ytorna ovan är därför det närmaste som kan observeras.' })
+    expect(underlay, 'C4 has a billing underlay').toBeTruthy()
+    // Closest normal observable: C4 must not be prepared for review/approval.
+    expect(items, 'C4 must not be prepared as an invoice (invoice_export_items)').toEqual([])
+    expect(underlay!.status === 'validated' && underlay!.readiness_status === 'ready', `C4 underlay must be blocked, was ${String(underlay!.status)}/${String(underlay!.readiness_status)}`).toBe(false)
+    const found = [...surfaces.page.codesFound, ...surfaces.underlayRowCodes]
+    expect(found.length, `blocker code (${codes.join(' | ')}) visible on /admin/billing or the underlay row; found: ${JSON.stringify(found)}`).toBeGreaterThan(0)
+  }, LONG)
 
   for (const key of BILLED) {
     it(`DELIVERY01 setup ${key}: godkänn (approveAndSendReadyInvoicesAction) och spara frysta mottagaruppgifter per post`, async ctx => {
