@@ -8,12 +8,12 @@
     {
       "kind": "harness",
       "branch": "claude/sim-20261029-track1",
-      "commit": "e5565a08",
+      "commit": "eb16eac1",
       "path": "scripts/simulation/track1/"
     }
   ],
-  "environmentId": "t1-20261029T201808Z-6576e10a",
-  "databaseIdentity": "t1-20261029T201808Z-6576e10a/pg-sysid-7702186716638527527",
+  "environmentId": "t1-20261030T120956Z-3bad2e45",
+  "databaseIdentity": "t1-20261030T120956Z-3bad2e45/pg-sysid-7702431992323727399",
   "schemaHash": {
     "fingerprint": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
     "scope": "partial identity: selected tables only (scripts/gridex-aud-003-schema-fingerprint.sql)",
@@ -109,6 +109,30 @@
       "exit": null,
       "run-meta.json": "0029a63e6c6bc7914bd397e85b5fde0deadec4af9c59588165cf7432d44328a4",
       "outcome": "BLOCKED: miljö — killed by container restart ~12:05Z (finding 009); no report"
+    },
+    {
+      "attempt": 10,
+      "run": "20261030T125039Z-main03",
+      "environmentId": "t1-20261030T120956Z-3bad2e45",
+      "databaseIdentity": "t1-20261030T120956Z-3bad2e45/pg-sysid-7702431992323727399",
+      "harnessCommit": "eb16eac1",
+      "nextBuildId": "3djFBH8kyOzZ3iCx5Tx3x",
+      "exit": 1,
+      "wallMs": 3593339,
+      "report.json": "4dc46f03c888707f68f443b13838cc96f1c0433bc4cf692641c733309be2b25d",
+      "run.log": "8276f2343c8e1780a47ed1a7eec6eebabbf2c0438308506599ed965e01cfd1b1",
+      "results.json": "a01d6834af3865f39217877a7d80f1356428c0ebf8508a870015d64ea366173e",
+      "substitutions.json": "510fdddc65e3df27180946ab8f2428a5f9f467c6e670b3b519b1127bdeaded56",
+      "timings.json": "0cfb1838c557747c7ee231a9c8139c48139e32cd9c0ca1fe005b58ee4bf73b90",
+      "run-meta.json": "68060f90fda098c9ce8fbe1b15bfffcd590d9137f102c646ccf158b4791a2027",
+      "SIM_REPORT": "ec4d9b818fa4addf0be394b2129880d61b5c441a4452882c1b55dc61822f9284",
+      "stepResults": {
+        "MAIN03.01": "passed",
+        "MAIN03.02": "passed",
+        "MAIN03.03": "failed: canceling statement due to statement timeout",
+        "MAIN03.05": "failed: generate-underlay retry HTTP 500 (57014)",
+        "MAIN03.04": "failed: generate-underlay HTTP 500 billing_underlay_generate_failed (57014)"
+      }
     }
   ],
   "findingsIds": [
@@ -120,6 +144,7 @@
     "20261029-3f1a8ab1/claude-track1/009"
   ],
   "blocker": null,
-  "nextAction": "Attempt 10 running detached on stack started 2026-10-30 ~12:10Z; then sim-reviewer",
-  "cleanupReceipt": null
+  "nextAction": "Step passed in attempt 10 (28 sources x 96); awaiting sim-reviewer before PASS",
+  "cleanupReceipt": null,
+  "finishedAtUtc": "2026-10-30T13:50:32Z"
 }
