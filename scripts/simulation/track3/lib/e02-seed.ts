@@ -141,7 +141,7 @@ export function ensureE02AckRouteProfile(environment: 'test' | 'production' = 't
 }
 
 /**
- * Engångsstädning: RADERAR överskjutande aktiva profiler per (route, miljö) för fixturens egna bolag; den nyaste behålls.
+ * Engångsstädning: RADERAR överskjutande profiler (aktiva och inaktiva) per (route, miljö) för fixturens egna bolag; den nyaste behålls.
  * ediel_route_runtime_v filtrerar inte på is_active, så avaktivering räcker inte (PGRST116 i maybeSingle).
  * Rader med FK mot en profil som ska bort flyttas först till en inaktiv dummyprofil på en inaktiv dummyrutt (samma bolag).
  */
@@ -150,8 +150,8 @@ export function deactivateDuplicateE02RouteProfiles(): void {
   sql(`DO $$
 DECLARE co uuid := ${co}; dup uuid[]; keep record; dr uuid; dp uuid; fk record;
 BEGIN
-  SELECT array_agg(id) INTO dup FROM (SELECT id, row_number() OVER (PARTITION BY communication_route_id, environment ORDER BY created_at DESC, id DESC) rn
-    FROM public.ediel_route_profiles WHERE company_id=co AND is_active) t WHERE rn>1;
+  SELECT array_agg(id) INTO dup FROM (SELECT id, row_number() OVER (PARTITION BY communication_route_id, environment ORDER BY is_active DESC, created_at DESC, id DESC) rn
+    FROM public.ediel_route_profiles WHERE company_id=co) t WHERE rn>1;
   IF dup IS NULL THEN RETURN; END IF;
   FOR fk IN SELECT c.conrelid::regclass AS tbl, a.attname AS col FROM pg_constraint c
       JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=c.conkey[1]
@@ -180,7 +180,7 @@ END $$;`)
 
 /** Vakt: exakt en rad i ediel_route_runtime_v per fixturens ACK-rutt (annars kastar runtime-uppslaget PGRST116). */
 export function assertSingleAckRuntimeRow(environment: 'test' | 'production' = 'test'): void {
-  const routes = sql(`SELECT id FROM public.communication_routes WHERE company_id=${lit(e02CompanyId())} AND is_active AND route_name LIKE 'T3SIM E02 %ediel_ack%' AND environment_type=${environment === 'test' ? "'tgt_test'" : "'production'"}`).split('\n').filter(Boolean)
+  const routes = sql(`SELECT DISTINCT communication_route_id FROM public.ediel_route_profiles WHERE company_id=${lit(e02CompanyId())} AND environment=${lit(environment)} AND route_name LIKE '%ediel_ack%'`).split('\n').filter(Boolean)
   if (routes.length === 0) throw new Error('E02 setup: ingen ACK-rutt hittad för fixturen')
   for (const r of routes) {
     const n = Number(sql(`SELECT count(*) FROM public.ediel_route_runtime_v WHERE communication_route_id=${lit(r)}`))
