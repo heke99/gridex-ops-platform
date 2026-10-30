@@ -29,6 +29,16 @@ function wire(input:{sender:string;receiver:string;reference:string;bgm?:string;
  return [...(input.unb===false?[]:[unb]),...body,`UNT+${body.length+1}+1`,`UNZ+1+${input.reference}`].join("'")+"'"
 }
 
+// Public prospective ACK route configuration for the technical reply only; no
+// source, receipt or effect fact is seeded.
+function ackRoute(t:{companyId:string;receiver:string;sender:string}){
+ const smtp=assertEdielSmtpReadiness(),route=randomUUID(),profile=randomUUID()
+ sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
+  VALUES(${literal(route)},${literal(t.companyId)},'Synthetic missing-BGM ACK route','ediel_ack','bilateral_test',true,'recipient@example.invalid');
+  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,sender_sub_address,receiver_sub_address,application_reference,is_enabled,is_active,transport_security_mode,smtp_to,receiver_email,message_family,business_code,mailbox,smtp_host,smtp_port)
+  VALUES(${literal(profile)},${literal(t.companyId)},${literal(route)},'Synthetic missing-BGM ACK profile','test','edifact','edifact',${literal(t.receiver)},${literal(t.sender)},NULL,NULL,'23-DDQ-E66-T',true,true,'unencrypted','recipient@example.invalid','recipient@example.invalid',NULL,NULL,${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)})`)
+}
+
 async function tenant(){
  const companyId=randomUUID()
  sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'Synthetic missing-BGM tenant','active')`)
@@ -57,6 +67,7 @@ it('UTILTS without BGM gets exactly one negative CONTRL for its own UNB, stable 
  for(const[k,v]of Object.entries(SMTP_ENV))vi.stubEnv(k,v)
  delivery.smtp.mockResolvedValue({accepted:['synthetic@example.invalid'],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'})
  const t=await tenant(),ref=reference(),raw=wire({sender:t.sender,receiver:t.receiver,reference:ref})
+ ackRoute(t)
  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:t.companyId,environment:'test',raw,smtpFrom:assertEdielSmtpReadiness().from})
  expect(mail.parsed).toMatchObject({messageFamily:'UTILTS',messageCode:'UTILTS_UNKNOWN'})
  const birth={companyId:t.companyId,actorUserId:t.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed}
