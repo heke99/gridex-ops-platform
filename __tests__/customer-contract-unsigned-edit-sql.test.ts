@@ -1,11 +1,14 @@
 import fs from 'node:fs'
 import {PGlite} from '@electric-sql/pglite'
 import {beforeAll,beforeEach,afterAll,describe,it,expect} from 'vitest'
+import {prePr932UnsignedEditSchema} from './helpers/db05PredecessorSchema'
 
 // Actual transaction SQL in PostgreSQL WASM; permission resolution, legal/
 // price materialization and event routing are finite external ports here.
 // The existing native owner must qualify those complete real dependencies.
-const schema=fs.readFileSync('supabase/schema.sql','utf8')
+// The forward is applied to the exact pre-PR932 capture, never to a capture
+// that already contains it.
+const schema=prePr932UnsignedEditSchema(fs.readFileSync('supabase/schema.sql','utf8'))
 const forward='supabase/migrations/20261029105939_edit_unsigned_customer_contract_atomic.sql'
 const id=(n:number)=>`10000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const instant='2026-10-29T10:00:00.123456+00:00'
@@ -205,7 +208,7 @@ describe('actual atomic unsigned agreement edit transaction',()=>{
   expect(rows[0].invoice).toBe(19)
  })
  it('rejects stale compare-and-swap before creating any version or revoking any token',async()=>{
-  const before=await counts();expect(await edit({invoice_fee_sek:25,override_reason:'stale'},true,id(15),'2026-10-29T10:00:00.123455+00:00')).toMatchObject({error:'40001'});expect(await counts()).toEqual(before)
+  const before=await counts();expect(await edit({invoice_fee_sek:25,override_reason:'stale'},true,id(15),'2026-10-29T10:00:00.123455+00:00')).toMatchObject({error:'PT409'});expect(await counts()).toEqual(before)
  })
  it('replays an identical command once and refuses different-payload reuse',async()=>{
   const patch={invoice_fee_sek:25,override_reason:'Synthetic revision'},first=await edit(patch);expect(first).toMatchObject({ok:true});const saved=await counts()

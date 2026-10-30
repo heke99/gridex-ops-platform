@@ -129,6 +129,53 @@ begin
          or v_contract.legal_bundle_version_id is not null then
         raise exception using errcode='23514',message='admin_signed_contract_import_manual_binding_requires_reconciliation';
       end if;
+      -- A simple manual intake stores only scalar prices. Its first receipt
+      -- must still carry exactly those fees: derive components only when the
+      -- snapshot has none, with the unsigned-edit scalar mapping. Optional
+      -- fee lines without components cannot be derived safely and stay held.
+      v_price_components := coalesce(
+        v_contract.price_snapshot->'price_components_snapshot',
+        v_contract.price_snapshot->'price_components');
+      v_base_components := coalesce(
+        v_contract.price_snapshot->'base_price_components_snapshot',
+        v_contract.price_snapshot->'base_components');
+      if v_price_components is null then
+        if jsonb_typeof(v_contract.price_snapshot->'optionalFeeLines')='array'
+           and jsonb_array_length(v_contract.price_snapshot->'optionalFeeLines')>0 then
+          raise exception using errcode='23514',message='admin_signed_contract_import_manual_binding_requires_reconciliation';
+        end if;
+        select coalesce(jsonb_agg(jsonb_build_object('component_code',m.code,'component_type','fee',
+            'name',m.label,'unit',m.unit,'amount',m.amount,'calculation_type',m.calculation,
+            'vat_applicable',true,'invoice_line_visible',true,'website_card_visible',true,
+            'calculation_inclusion','included','priority',m.priority,'metadata',
+            case when m.code in ('start_fee','administration_fee') then jsonb_build_object('lifecycle','once_per_contract','event','contract_started')
+                 when m.code='break_fee' then jsonb_build_object('lifecycle','event_only','event','early_termination')
+                 else '{}'::jsonb end) order by m.priority),'[]'::jsonb)
+          into v_price_components
+        from (values
+          ('monthly_fee',to_jsonb(v_contract.monthly_fee_sek),'sek_month','per_month','Månadsavgift',100),
+          ('invoice_fee',to_jsonb(v_contract.invoice_fee_sek),'sek_invoice','per_invoice','Fakturaavgift',110),
+          ('spot_markup',to_jsonb(v_contract.spot_markup_ore_per_kwh),'ore_per_kwh','per_kwh','Påslag',130),
+          ('variable_fee',to_jsonb(v_contract.variable_fee_ore_per_kwh),'ore_per_kwh','per_kwh','Rörlig avgift',140),
+          ('green_energy_fee',case when coalesce(v_contract.green_fee_mode,'none')='none' then null else to_jsonb(v_contract.green_fee_value) end,
+            case when v_contract.green_fee_mode='sek_month' then 'sek_month' else 'ore_per_kwh' end,
+            case when v_contract.green_fee_mode='sek_month' then 'per_month' else 'per_kwh' end,'Grönt el-tillägg',150),
+          ('start_fee',to_jsonb(v_contract.start_fee_sek),'sek_contract','fixed_once','Startavgift',170),
+          ('administration_fee',to_jsonb(v_contract.admin_fee_sek),'sek_contract','fixed_once','Administrativ avgift',180),
+          ('break_fee',to_jsonb(v_contract.break_fee_sek),'sek_event','event_only','Brytavgift',190)
+        ) m(code,amount,unit,calculation,label,priority)
+        where m.amount is not null and m.amount<>'null'::jsonb;
+      end if;
+      if v_base_components is null and nullif(v_contract.price_area_used,'') is not null then
+        v_base_components := case
+          when v_contract.contract_type='fixed' and v_contract.fixed_price_ore_per_kwh is not null then
+            jsonb_build_array(jsonb_build_object('source_type','fixed','label','Fast pris','weight_percent',100,
+              'fixed_price_sek_per_kwh',v_contract.fixed_price_ore_per_kwh/100,'price_area',v_contract.price_area_used))
+          when v_contract.contract_type in ('variable_monthly','variable_hourly','variable_quarterly','spot') then
+            jsonb_build_array(jsonb_build_object('source_type','spot','label','Spot','weight_percent',100,
+              'price_area',v_contract.price_area_used))
+        end;
+      end if;
       v_binding := public.gridex_prepare_manual_contract_binding(
         v_contract.company_id,
         jsonb_strip_nulls(jsonb_build_object(
@@ -166,8 +213,42 @@ begin
           'start_fee_sek', v_contract.start_fee_sek,
           'admin_fee_sek', v_contract.admin_fee_sek,
           'break_fee_sek', v_contract.break_fee_sek,
-          'vat_rate', v_contract.vat_rate
-        )),
+          'vat_rate', v_contract.vat_rate,
+          -- A simple manual intake snapshot carries no pricing model or
+          -- resolution. Supply only an absent value from the contract type
+          -- (the manual-binding and readiness mappings); an explicit, even
+          -- conflicting, value keeps its normal refusal path.
+          'pricing_model', coalesce(
+            nullif(btrim(v_contract.price_snapshot->>'pricing_model'), ''),
+            case
+              when v_contract.contract_type in ('fixed','portfolio','mixed') then v_contract.contract_type
+              else 'spot'
+            end
+          ),
+          'interval_resolution', coalesce(
+            nullif(btrim(v_contract.price_snapshot->>'interval_resolution'), ''),
+            nullif(btrim(v_contract.price_snapshot#>>'{pricing,interval_resolution}'), ''),
+            nullif(btrim(v_contract.price_snapshot->>'resolution'), ''),
+            case v_contract.contract_type
+              when 'variable_monthly' then 'monthly'
+              when 'spot' then 'monthly'
+              when 'variable_hourly' then 'hourly'
+              when 'variable_quarterly' then 'quarterly'
+              when 'fixed' then 'fixed'
+              when 'portfolio' then 'portfolio'
+            end
+          )
+        ))
+        -- Only derived arrays are added; existing component arrays stay byte-exact.
+        || case when coalesce(v_contract.price_snapshot->'price_components_snapshot',
+                              v_contract.price_snapshot->'price_components') is null
+                then jsonb_build_object('price_components', v_price_components)
+                else '{}'::jsonb end
+        || case when coalesce(v_contract.price_snapshot->'base_price_components_snapshot',
+                              v_contract.price_snapshot->'base_components') is null
+                     and v_base_components is not null
+                then jsonb_build_object('base_components', v_base_components)
+                else '{}'::jsonb end,
         new.created_by
       );
 
