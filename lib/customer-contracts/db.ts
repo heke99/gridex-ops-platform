@@ -1,6 +1,7 @@
 import { resolveContractStartDate } from "./operationalDates";
 import { createHash, randomUUID } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
+import { tenantDb } from "@/lib/supabase/tenantDb";
 import type {
   ContractOfferRow,
   ContractType,
@@ -1338,12 +1339,12 @@ export async function updateSealedCustomerContractLifecycle(input: {
   if (input.terminationReason !== undefined) {
     patch.termination_reason = input.terminationReason;
   }
-  const { data, error } = await supabaseService
+  // tenantDb adds the company_id filter itself (service-role ratchet).
+  const { data, error } = await (tenantDb(input.companyId)
     .from("customer_contracts")
-    .update(patch)
+    .update(patch) as ReturnType<ReturnType<typeof supabaseService.from>["update"]>)
     .eq("id", input.id)
     .eq("customer_id", input.customerId)
-    .eq("company_id", input.companyId)
     .eq("status", input.currentStatus)
     .select("*")
     .maybeSingle();

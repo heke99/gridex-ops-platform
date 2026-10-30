@@ -212,7 +212,8 @@ describe('updateSealedCustomerContractLifecycle (real db.ts)', () => {
     await expect(fn({id: 'contract-a', customerId: 'customer-a', companyId: 'company-a', currentStatus: 'signed', status: 'active', actorUserId: 'staff-a'})).resolves.toMatchObject({status: 'active'})
     expect(Object.keys(io.db.payloads[0]).sort()).toEqual(['status', 'updated_at', 'updated_by'])
     for (const key of ['price_snapshot', 'ends_at', 'signed_version']) expect(io.db.payloads[0]).not.toHaveProperty(key)
-    expect(io.db.filters).toEqual([['id', 'contract-a'], ['customer_id', 'customer-a'], ['company_id', 'company-a'], ['status', 'signed']])
+    expect(io.db.filters).toHaveLength(4)
+    expect(io.db.filters).toEqual(expect.arrayContaining([['id', 'contract-a'], ['customer_id', 'customer-a'], ['company_id', 'company-a'], ['status', 'signed']]))
   })
 
   it.each([['signed', 'terminated'], ['signed', 'cancelled'], ['active', 'terminated'], ['active', 'cancelled'], ['signed', 'draft'], ['active', 'signed'], ['active', 'expired'], ['terminated', 'active']])('refuses %s -> %s before any DB call', async (from, to) => {
