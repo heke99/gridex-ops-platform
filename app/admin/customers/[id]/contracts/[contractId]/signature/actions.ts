@@ -45,7 +45,7 @@ export async function saveContractWithFeedbackAction(formData: FormData): Promis
     })
     if (error) {
       if (error.code === '42501') return {status:'invalid', message:'Du saknar behörighet för den här avtalsändringen. En ny prisversion kräver även behörighet att skapa avtal och ändra priser.'}
-      if (['22023','23514','40001','55000'].includes(error.code) && error.message.startsWith('unsigned_contract_edit_')) {
+      if (['22023','23514','55000','PT409'].includes(error.code) && error.message.startsWith('unsigned_contract_edit_')) {
         return {status:'invalid', message:'Avtalet kunde inte ändras med detta underlag. Kontrollera att det fortfarande är osignerat och att priser, villkor och anläggning stämmer. Ladda om om någon annan har ändrat avtalet.'}
       }
       // Do not claim rollback or retry an unknown network/provider outcome.
@@ -107,6 +107,12 @@ export async function saveContractWithFeedbackAction(formData: FormData): Promis
     }
     if (error instanceof Error && error.message === 'Slutdatum kan inte vara före startdatum.') {
       return {status: 'invalid', field: 'ends_at', message: error.message}
+    }
+    if (error instanceof Error && ['Signerat avtal kan inte ändras – använd avtalsåtgärder.', 'Statusbytet är inte tillåtet för ett signerat avtal – använd avtalsåtgärder.', 'Avtalet kan bara aktiveras när leveransstarten är registrerad – använd avtalsåtgärder.', 'Avslut kräver slutdatum och orsakskod – använd avtalsåtgärder.', 'Kundavtalet hittades inte för valt bolag eller har ändrats. Ladda om sidan.'].includes(error.message)) {
+      return {status: 'invalid', message: error.message}
+    }
+    if (error instanceof Error && ['Uppsägningsdatum är redan registrerat och kan inte ändras här – använd avtalsåtgärder.', 'Uppsägningsdatum kan inte vara före avtalets startdatum.'].includes(error.message)) {
+      return {status: 'invalid', field: 'termination_notice_date', message: error.message}
     }
     const problem = error && typeof error === 'object' ? error as {code?: unknown; message?: unknown} : null
     if (problem?.code === '55000' && typeof problem.message === 'string' && /^signed_customer_contract_immutable:[a-z_]+$/.test(problem.message)) {
