@@ -72,7 +72,7 @@ as $$
     where coalesce(au.is_active, true)
   )
   -- Platform-like is decided with the broadest normalisation any caller applies
-  -- (lib/rbac/roleKeys.ts: fold å/ä/ö, collapse non-alphanumerics to '_', trim
+  -- (lib/rbac/roleKeys.ts: fold å/ä/ö, also upper case regardless of collation, collapse non-alphanumerics to '_', trim
   -- '_', then the platform aliases), on both the key and the name, so spellings
   -- such as 'Platform-Admin' or 'Super Admin' cannot pass as non-platform text.
   select r.role_key, r.role_key, r.role_key, coalesce(r.role_name, r.role_key)
@@ -80,7 +80,7 @@ as $$
   cross join lateral (
     select coalesce(bool_or(
       public.gridex_normalize_platform_role(
-        btrim(regexp_replace(translate(lower(v), 'åäö', 'aao'), '[^a-z0-9]+', '_', 'g'), '_')
+        btrim(regexp_replace(translate(lower(v), 'åäöÅÄÖ', 'aaoaao'), '[^a-z0-9]+', '_', 'g'), '_')
       ) in ('super_admin', 'platform_admin')
     ), false) as platform_like
     from unnest(array[r.role_key, r.role_name]) as v

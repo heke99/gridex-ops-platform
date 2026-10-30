@@ -5,6 +5,8 @@
 import {execFileSync} from 'node:child_process'
 import {randomBytes,randomUUID} from 'node:crypto'
 import {createClient} from '@supabase/supabase-js'
+import {createServerClient} from '@supabase/ssr'
+import {NextRequest} from 'next/server'
 import {beforeAll,afterAll,expect,it} from 'vitest'
 import {supabaseService} from '@/lib/supabase/service'
 
@@ -29,6 +31,15 @@ async function session(u:User){
  const {error}=await client.auth.signInWithPassword({email:u.email,password:u.password})
  if(error)throw error
  return client
+}
+// Real @supabase/ssr session cookies for a signed-in user, as the browser would hold them.
+async function sessionCookie(u:User):Promise<string>{
+ const jar=new Map<string,string>()
+ const client=createServerClient(url,anonKey,{cookies:{getAll:()=>[...jar].map(([name,value])=>({name,value})),
+  setAll:(list)=>{for(const {name,value} of list)jar.set(name,value)}}})
+ const {error}=await client.auth.signInWithPassword({email:u.email,password:u.password})
+ if(error)throw error
+ return [...jar].map(([name,value])=>`${name}=${value}`).join('; ')
 }
 const keys=(rows:unknown)=>((rows??[]) as {role_key:string}[]).map(r=>r.role_key).sort()
 
@@ -72,6 +83,17 @@ it('returns no platform role from membership text, and skips inactive roles',asy
  expect(keys(own.data)).toEqual(['billing'])
  const viaService=await supabaseService.rpc('gridex_get_user_roles',{p_user_id:scoped.id})
  expect(keys(viaService.data)).toEqual(['billing'])
+})
+
+it('keeps a free-text membership role out of /admin/platform in the real proxy',async()=>{
+ const {proxy}=await import('@/proxy')
+ const call=async(u:User)=>proxy(new NextRequest('http://127.0.0.1:3000/admin/platform',{headers:{cookie:await sessionCookie(u)}}))
+ const denied=await call(scoped)
+ expect(denied.status).toBe(307)
+ expect(new URL(denied.headers.get('location')!).pathname).toBe('/admin/company-settings')
+ const admitted=await call(platform)
+ expect(admitted.headers.get('location')).toBeNull()
+ expect(admitted.headers.get('x-middleware-next')).toBe('1')
 })
 
 it('replaces the legacy function even where the legacy debug view depends on it',()=>{
