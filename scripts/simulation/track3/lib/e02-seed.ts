@@ -133,8 +133,16 @@ export function masterDataFingerprint(companyIds: string[]): string {
  * EDIEL02 lägger en egen kompletterande profil (kopia av ediel_ack-profilen) per miljö med '23-DDQ-E66-T'.
  */
 export function ensureE02AckRouteProfile(environment: 'test' | 'production' = 'test', app = '23-DDQ-E66-T'): void {
-  if (Number(sql(`SELECT count(*) FROM public.ediel_route_profiles WHERE company_id=${lit(e02CompanyId())} AND environment=${lit(environment)} AND route_name LIKE '%ediel_ack%' AND application_reference=${lit(app)}`)) > 0) return
-  sql(`INSERT INTO public.ediel_route_profiles(company_id,communication_route_id,is_enabled,is_active,environment,route_name,sender_ediel_id,own_ediel_id,receiver_ediel_id,counterparty_ediel_id,receiver_email,smtp_to,smtp_from,smtp_host,smtp_port,mailbox,is_test_route,is_production_route,transport_mode,tls_required,encryption_mode,default_test_flag,application_reference)
-    SELECT company_id,communication_route_id,is_enabled,is_active,environment,route_name,sender_ediel_id,own_ediel_id,receiver_ediel_id,counterparty_ediel_id,receiver_email,smtp_to,smtp_from,smtp_host,smtp_port,mailbox,is_test_route,is_production_route,transport_mode,tls_required,encryption_mode,default_test_flag,${lit(app)}
-    FROM public.ediel_route_profiles WHERE company_id=${lit(e02CompanyId())} AND environment=${lit(environment)} AND route_name LIKE '%ediel_ack%' AND application_reference IS NULL ORDER BY created_at LIMIT 1`)
+  const co = lit(e02CompanyId()), env = lit(environment)
+  // Idempotent: sätt application_reference på den befintliga ediel_ack-profilen i stället för att kopiera den (en kopia ger två aktiva profiler på samma rutt -> PGRST116 i maybeSingle).
+  if (Number(sql(`SELECT count(*) FROM public.ediel_route_profiles WHERE company_id=${co} AND environment=${env} AND is_active AND route_name LIKE '%ediel_ack%' AND application_reference=${lit(app)}`)) === 0)
+    sql(`UPDATE public.ediel_route_profiles SET application_reference=${lit(app)} WHERE id=(SELECT id FROM public.ediel_route_profiles WHERE company_id=${co} AND environment=${env} AND is_active AND route_name LIKE '%ediel_ack%' AND application_reference IS NULL ORDER BY created_at DESC LIMIT 1)`)
+  deactivateDuplicateE02RouteProfiles()
+}
+
+/** Engångsstädning: avaktiverar (raderar inte) överskjutande aktiva profiler per (route, miljö) för fixturens egna bolag; den nyaste behålls. */
+export function deactivateDuplicateE02RouteProfiles(): void {
+  sql(`UPDATE public.ediel_route_profiles SET is_active=false WHERE id IN (
+    SELECT id FROM (SELECT id, row_number() OVER (PARTITION BY communication_route_id, environment ORDER BY created_at DESC, id DESC) rn
+      FROM public.ediel_route_profiles WHERE company_id=${lit(e02CompanyId())} AND is_active) t WHERE rn>1)`)
 }
