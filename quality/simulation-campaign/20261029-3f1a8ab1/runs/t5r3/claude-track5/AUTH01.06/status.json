@@ -52,7 +52,7 @@
     {
       "name": "AUTH01.06 kvittoutdata AUTH01.06 kvittoutdata efter alla körningar innehåller inte service-role-nyckeln eller tokens",
       "status": "passed",
-      "durationMs": 17
+      "durationMs": 30
     }
   ],
   "relatedSteps": [],
@@ -157,23 +157,23 @@
       },
       {
         "file": "scan-report.json",
-        "sha256": "331ceaa284dbd43f7dca74e2bd0c03737ffe68be3a440180de6168e54cf196eb"
+        "sha256": "ecd6dd1ebbde33692086c512bb08fbccce07faa3c1a7d9b914dbffab5747a85f"
       },
       {
         "file": "scan-report.json.sha256",
-        "sha256": "9e332f86a991ea735739b972a8598fe5c48bcd56e2cc570d0c1f9811d37a5ab1"
+        "sha256": "8007b6efe7311c135f096d47c9eb67a1d63cb90b802d96e67097b77d088b5fe4"
       },
       {
         "file": "scan-report.receipts.jsonl",
-        "sha256": "c464c47fb1041af821b9b2d3db11da4c56e0bc01fcf89e9a425454eca2799651"
+        "sha256": "ee13198273bf841f9164d821281b050ce442ff16359ff452c4c3734aa83d64df"
       },
       {
         "file": "scan-run.log",
-        "sha256": "4054e1b0aad35e5c3c250f51eb34673172a954045b5b1afd8249f7ed6640bd54"
+        "sha256": "c35e869efb8404406f912ae05492c63f907e9d8604b20fc2234b1077be5e4c0f"
       },
       {
         "file": "scan-vitest.log",
-        "sha256": "aecf34a6eb9d5cca76a12cd54b710482b07ccd30995d21187247518ecf35d712"
+        "sha256": "6a5443f3af3f6a39db939a41007d638b75a5c9b7268e9b88a09d5c28bba79bbb"
       },
       {
         "file": "schema-fingerprint.out",
@@ -232,20 +232,20 @@
       ]
     },
     {
-      "at": "2026-10-30T12:56:23.627Z",
+      "at": "2026-10-30T13:08:42.648Z",
       "scenarioId": "AUTH01.06",
       "step": "post-run scan",
       "scans": [
         {
           "dir": "/root/sim-evidence/t5r3/claude-track5/final",
-          "files": 19,
-          "bytes": 57975,
+          "files": 25,
+          "bytes": 70086,
           "hits": []
         },
         {
-          "dir": "/root/sim/track5/quality/simulation-campaign/20261029-3f1a8ab1/runs",
-          "files": 18,
-          "bytes": 155944,
+          "dir": "/home/user/gridex-ops-platform/quality/simulation-campaign/20261029-3f1a8ab1/runs/t5r3/claude-track5",
+          "files": 17,
+          "bytes": 172928,
           "hits": []
         },
         {
@@ -256,8 +256,8 @@
         },
         {
           "dir": "/root/sim-home/track5/logs",
-          "files": 33,
-          "bytes": 7954273,
+          "files": 35,
+          "bytes": 7961106,
           "hits": []
         }
       ]
@@ -265,13 +265,29 @@
   ],
   "proposedState": "PASS",
   "harnessCommit": "241a29dbee7127dfc477b5b59d69540c2c1e58d2",
-  "oracle": "Originalets beskrivning (quality/simulation-register/oracles/all-systems-scenarios.safe.json, sha256 96518c18…29df3; samma bytes som samordnarens återställda kopia på claude/adoring-wright-8qbon8@27862b90) tillämpad på spårets egna syntetiska bolag. \"Service-role nyckel exponeras inte i klient/kvittoutdata\": nyckelns värde finns inte i .next/static eller i svar från /login, /admin, API och /api/partner/v1/openapi.json (auth01); efter alla körningar skannas hela evidenskatalogen (rapporter, kvitton, run-/vitest-loggar), paketkatalogen och stackens rapport- och loggkataloger efter nyckeln och efter JWT-/token-/whsec-/sb-cookiemönster (scan.test.ts), utan träffar.",
+  "additionalRuns": [
+    {
+      "group": "scan",
+      "command": "SIM_HOME=$SIM_HOME RUN_DIR=$RUN_DIR SIM_REPORT=<evidens>/scan-report.json SIM_PACKETS_DIR=<levererad paketkatalog> bash scripts/simulation/track5/run.sh scenarios/scan.test.ts",
+      "harnessCommit": "39f0fd02a441d48897436d18c13bb7c400f25f18",
+      "startedAtUtc": "2026-10-30T13:08:41Z",
+      "finishedAtUtc": "2026-10-30T13:08:42Z",
+      "reportSha256": "ecd6dd1ebbde33692086c512bb08fbccce07faa3c1a7d9b914dbffab5747a85f",
+      "vitestLogSha256": "6a5443f3af3f6a39db939a41007d638b75a5c9b7268e9b88a09d5c28bba79bbb"
+    }
+  ],
+  "oracle": "Originalets beskrivning (quality/simulation-register/oracles/all-systems-scenarios.safe.json, sha256 96518c18…29df3; samma bytes som samordnarens återställda kopia på claude/adoring-wright-8qbon8@27862b90) tillämpad på spårets egna syntetiska bolag. \"Service-role nyckel exponeras inte i klient/kvittoutdata\": nyckelns värde finns inte i .next/static eller i svar från /login, /admin, API och /api/partner/v1/openapi.json (auth01); efter alla körningar och efter att packet.py skrivit paketen skannas hela evidenskatalogen (rapporter, kvitton, run-/vitest-loggar), den levererade paketkatalogen runs/t5r3/claude-track5 (16 status.json och FINDINGS.md, SIM_PACKETS_DIR) och stackens rapport- och loggkataloger efter nyckeln och efter JWT-/token-/whsec-/sb-cookiemönster (scan.test.ts, se additionalRuns), utan träffar.",
   "substitutions": [],
   "notVerified": [],
   "findingsIds": [],
   "blocker": null,
-  "nextAction": "Ingen produktåtgärd; väntar på oberoende granskning (PASS sätts därefter).",
-  "review": null,
-  "cleanupReceipt": "EJ UTFÖRD: stacken behålls för omkörning efter rättningarna (#944/#946/003/005). Föregående stack revs 12:47:14Z med down.sh: \"down: inget kvar\" (processer, containrar, volymer, hosts- och iptables-regler).",
-  "heartbeatAtUtc": "2026-10-30T13:00:00Z"
+  "nextAction": "Omgranskning av AUTH01.06 efter skanning av levererade paket; PASS sätts först efter godkännande.",
+  "review": {
+    "reviewer": "oberoende granskare, runda 3",
+    "reviewedAtUtc": "2026-10-30T13:06:00Z",
+    "verdict": "REJECT: paketskanningen täckte inte de levererade t5r3-paketen",
+    "remediation": "skanningen omkörd efter packet.py mot levererad katalog (harness 39f0fd02); väntar på omgranskning"
+  },
+  "cleanupReceipt": "EJ UTFÖRD: stacken behålls för omkörning efter rättningarna. Efter t5r3:s körningar applicerades migrationerna 20261030130300 (005), 20261030130000 (002) och 20261030130200 (003) för native-tester, registrerade som pendingGenCapture i SIM_HOME/applied-migrations.tsv; t5r3:s evidens (applied-migrations.tsv tom) är tagen före dem. Nästa spårkörning kräver ny replay. Föregående stack revs 12:47:14Z med down.sh: \"down: inget kvar\".",
+  "heartbeatAtUtc": "2026-10-30T13:12:00Z"
 }

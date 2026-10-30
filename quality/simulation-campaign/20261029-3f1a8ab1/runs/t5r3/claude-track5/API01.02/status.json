@@ -39,7 +39,7 @@
   },
   "startedAtUtc": "2026-10-30T12:55:48Z",
   "finishedAtUtc": "2026-10-30T12:55:55Z",
-  "state": "PARTIAL",
+  "state": "PASS",
   "executionScope": "ISOLATED_NATIVE",
   "command": "SIM_HOME=$SIM_HOME RUN_DIR=$RUN_DIR SIM_REPORT=<evidens>/api01-report.json bash scripts/simulation/track5/run.sh scenarios/api01.test.ts",
   "scenarioFile": "scenarios/api01.test.ts",
@@ -152,23 +152,23 @@
       },
       {
         "file": "scan-report.json",
-        "sha256": "331ceaa284dbd43f7dca74e2bd0c03737ffe68be3a440180de6168e54cf196eb"
+        "sha256": "ecd6dd1ebbde33692086c512bb08fbccce07faa3c1a7d9b914dbffab5747a85f"
       },
       {
         "file": "scan-report.json.sha256",
-        "sha256": "9e332f86a991ea735739b972a8598fe5c48bcd56e2cc570d0c1f9811d37a5ab1"
+        "sha256": "8007b6efe7311c135f096d47c9eb67a1d63cb90b802d96e67097b77d088b5fe4"
       },
       {
         "file": "scan-report.receipts.jsonl",
-        "sha256": "c464c47fb1041af821b9b2d3db11da4c56e0bc01fcf89e9a425454eca2799651"
+        "sha256": "ee13198273bf841f9164d821281b050ce442ff16359ff452c4c3734aa83d64df"
       },
       {
         "file": "scan-run.log",
-        "sha256": "4054e1b0aad35e5c3c250f51eb34673172a954045b5b1afd8249f7ed6640bd54"
+        "sha256": "c35e869efb8404406f912ae05492c63f907e9d8604b20fc2234b1077be5e4c0f"
       },
       {
         "file": "scan-vitest.log",
-        "sha256": "aecf34a6eb9d5cca76a12cd54b710482b07ccd30995d21187247518ecf35d712"
+        "sha256": "6a5443f3af3f6a39db939a41007d638b75a5c9b7268e9b88a09d5c28bba79bbb"
       },
       {
         "file": "schema-fingerprint.out",
@@ -282,16 +282,24 @@
   ],
   "proposedState": "PASS",
   "harnessCommit": "241a29dbee7127dfc477b5b59d69540c2c1e58d2",
+  "additionalRuns": [],
   "oracle": "Originalets beskrivning (quality/simulation-register/oracles/all-systems-scenarios.safe.json, sha256 96518c18…29df3; samma bytes som samordnarens återställda kopia på claude/adoring-wright-8qbon8@27862b90) tillämpad på spårets egna syntetiska bolag. \"Två sites kopplas till rätt kund och respektive POA\": två egna sites och en POA per site via partner-API i samma steg; DB visar varje sites egen kund (customer_sites.customer_id) och POA:ns kund/site, rätt bolag; GET returnerar rätt POA per site; korskombination ger 404. Kvitton med requestId/bodySHA för alla anrop.",
   "substitutions": [
     "Partnernyckel som SQL-fixtur med launch_ready, installationskvitto och capability api_sales (ersätter plattformens provisionering; lib/partner.ts).",
     "Kund skapad som SQL-fixtur (POST customer ger 500, fynd 001)."
   ],
   "notVerified": [],
-  "findingsIds": [],
+  "findingsIds": [
+    "20261029-3f1a8ab1/claude-track5/001"
+  ],
   "blocker": null,
-  "nextAction": "Ingen produktåtgärd; väntar på oberoende granskning (PASS sätts därefter).",
-  "review": null,
-  "cleanupReceipt": "EJ UTFÖRD: stacken behålls för omkörning efter rättningarna (#944/#946/003/005). Föregående stack revs 12:47:14Z med down.sh: \"down: inget kvar\" (processer, containrar, volymer, hosts- och iptables-regler).",
-  "heartbeatAtUtc": "2026-10-30T13:00:00Z"
+  "nextAction": "Ingen; PASS godkänt av oberoende granskare.",
+  "review": {
+    "reviewer": "oberoende granskare (separat agent, ej författare), runda 3",
+    "reviewedAtUtc": "2026-10-30T13:06:00Z",
+    "verdict": "APPROVE PASS",
+    "scope": "t5r3-paket @ 4aada5b6 mot privat evidens, orakel och harness"
+  },
+  "cleanupReceipt": "EJ UTFÖRD: stacken behålls för omkörning efter rättningarna. Efter t5r3:s körningar applicerades migrationerna 20261030130300 (005), 20261030130000 (002) och 20261030130200 (003) för native-tester, registrerade som pendingGenCapture i SIM_HOME/applied-migrations.tsv; t5r3:s evidens (applied-migrations.tsv tom) är tagen före dem. Nästa spårkörning kräver ny replay. Föregående stack revs 12:47:14Z med down.sh: \"down: inget kvar\".",
+  "heartbeatAtUtc": "2026-10-30T13:12:00Z"
 }

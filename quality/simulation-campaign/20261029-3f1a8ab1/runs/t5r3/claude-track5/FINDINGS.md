@@ -199,17 +199,17 @@ Det är samma driftklass som 002. Det är obekräftat om produktion har funktion
 
 ## Utfall per ID
 
-Utfallen gäller t5r3 med harness och app `241a29db`. PASS sätts först efter oberoende granskning.
+Utfallen gäller t5r3 med harness och app `241a29db`, och skanningen efter paketen med harness `39f0fd02`. PASS sätts först efter oberoende granskning. Granskningsrunda 3 (13:06Z) godkände PASS för AUTH01.01–.05, EVENT01.02 och API01.02 och underkände AUTH01.06. AUTH01.06 är omkörd och väntar på omgranskning.
 
 | ID | Stegutfall | Föreslaget | Blockerare |
 |---|---|---|---|
-| AUTH01.01–.05 | alla gröna (AUTH01.05 i två delar) | PASS (efter granskning) | – |
-| AUTH01.06 | gröna: klient-/svarsskanning, och skanning efter alla körningar och efter att paketen skrivits, 0 träffar | PASS (efter granskning) | – |
+| AUTH01.01–.05 | alla gröna (AUTH01.05 i två delar) | **PASS** (godkänt i runda 3) | – |
+| AUTH01.06 | gröna: klient-/svarsskanning, och skanning efter alla körningar och efter att paketen skrivits, 0 träffar | PARTIAL, väntar på omgranskning för PASS | – |
 | EVENT01.01, .03, .05 | gröna | PARTIAL | 001/002 (subscription bara via fixtur), 003 |
-| EVENT01.02 | grönt | PASS (efter granskning) | – |
+| EVENT01.02 | grönt | **PASS** (godkänt i runda 3) | – |
 | EVENT01.04 | rött (`failure_count` 0) | FAIL | 002 |
 | API01.01 | site grönt; kund och avtal röda | FAIL | 001 |
-| API01.02 | grönt | PASS (efter granskning) | – |
+| API01.02 | grönt | **PASS** (godkänt i runda 3) | – |
 | API01.03 | Z03-spärren grön; simple-GET röd | FAIL | 004 |
 | API01.04 | grönt för site och POA | PARTIAL | 001 (kund och avtal) |
 | API01.05 | körtidsnekanden gröna; utfärdandet rött (503) | PARTIAL | 005 |
