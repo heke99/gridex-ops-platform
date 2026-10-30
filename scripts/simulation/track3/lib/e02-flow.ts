@@ -102,7 +102,9 @@ export { sha, purgeInbox, sql, sqlJson, lit }
 export async function deliverE02(flow: E02Flow, name: string, raw: string, subject: string, opts: { reprocessErrors?: Record<string, unknown> } = {}) {
   const inj = await flow.inject(name, raw, { subject })
   const poll = await flow.poll(name.replace(/\W+/g, '-'))
-  const ids = (poll.summary.edielMessageIds as string[]) ?? []
+  // Bara källor för mejl som lagrades i just denna poll (tidigare mejl i inkorgen hämtas om och dedupas).
+  const stored = (poll.summary.storedIds as string[]) ?? []
+  const ids: string[] = stored.length ? (sqlJson(`SELECT coalesce(jsonb_agg(id ORDER BY created_at),'[]') FROM public.ediel_messages WHERE inbound_email_message_id IN (${stored.map((x) => lit(x)).join(',')})`) as string[]) : []
   const reproc = await flow.groundAndReprocess(ids)
   void opts
   return { inj, poll, ids, reproc }
