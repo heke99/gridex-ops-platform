@@ -367,6 +367,16 @@ export async function pollEdielMailbox(input: {
       greetingTimeout: 15_000,
       socketTimeout: 90_000,
     });
+    // After connect imapflow reports connection failures (e.g. socket timeout)
+    // as 'error' events; without a listener Node throws them as
+    // uncaughtException. The in-flight command is rejected too, so the catch
+    // below records the mailbox failure.
+    // typeof guard only for test doubles without EventEmitter; ImapFlow always has on().
+    if (typeof client.on === "function") {
+      client.on("error", (error: Error) => {
+        console.warn("[inbound-mail] IMAP connection error", { mailboxId: mailbox.id, error: error.message });
+      });
+    }
 
     await client.connect();
     const folder = normalizeImapMailboxFolder(

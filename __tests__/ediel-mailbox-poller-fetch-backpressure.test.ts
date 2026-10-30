@@ -13,9 +13,10 @@ const io = vi.hoisted(() => ({
   commandsDuringFetch: [] as string[],
   flagCalls: [] as number[],
   insertSeq: 0,
+  socketErrorOnFetch: false,
 }))
 
-vi.mock('imapflow', () => ({ ImapFlow: class {
+vi.mock('imapflow', async () => { const { EventEmitter } = await import('node:events'); return { ImapFlow: class extends EventEmitter {
   async connect() { return undefined }
   async getMailboxLock() { return { release: () => undefined } }
   guard(name: string) {
@@ -25,6 +26,13 @@ vi.mock('imapflow', () => ({ ImapFlow: class {
     this.guard('fetch')
     io.fetchOpen = true
     try {
+      if (io.socketErrorOnFetch) {
+        // imapflow emits 'error' on socket failure and rejects the in-flight
+        // command. EventEmitter throws synchronously when nobody listens.
+        const err = new Error('Socket timeout')
+        this.emit('error', err)
+        throw err
+      }
       for (const m of io.messages.filter(x => query.seen === false ? !x.seen : true)) {
         yield { uid: m.uid, envelope: { messageId: `<m${m.uid}@t>`, subject: m.failStore ? 'FAIL' : `s${m.uid}` }, source: Buffer.from(`Subject: s${m.uid}\r\n\r\nbody`), internalDate: new Date('2026-10-29T00:00:00Z') }
       }
@@ -54,7 +62,7 @@ vi.mock('imapflow', () => ({ ImapFlow: class {
     return true
   }
   async logout() { return undefined }
-} }))
+} } })
 
 vi.mock('@/lib/ediel/aiBiPersonalDataStorage', () => ({ requireAiBiPersonalDataStorage: async () => null }))
 vi.mock('@/lib/ediel/transport/smime', () => ({ unpackInboundSmimeIfNeeded: async () => ({ detected: false, decryptedText: null }) }))
@@ -85,7 +93,7 @@ const mailbox = { id: 'mb-1', company_id: 'co-1', environment: 'test', mailbox_n
 beforeEach(() => {
   vi.stubEnv('UNIT_IMAP_PASS', 'synthetic')
   io.messages = [1, 2, 3].map(uid => ({ uid, seen: false }))
-  io.fetchOpen = false; io.commandsDuringFetch = []; io.flagCalls = []; io.insertSeq = 0
+  io.fetchOpen = false; io.commandsDuringFetch = []; io.flagCalls = []; io.insertSeq = 0; io.socketErrorOnFetch = false
 })
 
 describe('pollEdielMailbox IMAP fetch backpressure', () => {
@@ -120,5 +128,17 @@ describe('pollEdielMailbox IMAP fetch backpressure', () => {
     expect(r).toMatchObject({ fetched: 4, unseenFetched: 3, seenRecentFetched: 1, stored: 4 })
     const capped = await pollEdielMailbox({ mailbox, maxMessages: 1 })
     expect(capped.fetched).toBeLessThanOrEqual(1)
+  })
+
+  // Adopted from 7b0ccaad: a client 'error' event must not crash the process.
+  it('handles an IMAP client error event as a recorded mailbox failure', async () => {
+    io.socketErrorOnFetch = true
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const r = await pollEdielMailbox({ mailbox })
+    expect(r.errors).toEqual(['Socket timeout'])
+    expect(r).toMatchObject({ fetched: 0, stored: 0 })
+    expect(io.flagCalls).toEqual([])
+    expect(warn).toHaveBeenCalledWith('[inbound-mail] IMAP connection error', { mailboxId: 'mb-1', error: 'Socket timeout' })
+    warn.mockRestore()
   })
 })
