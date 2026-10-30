@@ -3,40 +3,40 @@
   "campaignId": "20261029-3f1a8ab1",
   "workerId": "claude-track6",
   "model": "claude (session_01UHTg8Hora3xtZg4oHMrcGi)",
-  "runId": "20261030T204203Z-764b04",
+  "runId": "20261030T205347Z-978720",
   "root": "/home/user/sim-home/track6",
   "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
   "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
-  "appCommitNote": "appBase enligt runs/20261030T204203Z-764b04/run-identity.json. appCodeEqualsBase=true, changedPathsOutsideSimulationAndQuality=[].",
+  "appCommitNote": "appBase enligt runs/20261030T205347Z-978720/run-identity.json. appCodeEqualsBase=true, changedPathsOutsideSimulationAndQuality=[].",
   "builtCommits": {
     "builtCommit": "220edef2f0cfb2f25cd4b60fa54209a18d7f2b85",
     "commitsJson": "saknas för denna körning (ingen commits.json i körningens evidens)",
-    "note": "builtCommit enligt run-identity.json. Den tidigare körningens runDirHead 3e9f46f3 gäller inte längre; denna körning har runDirHead 886f904c."
+    "note": "builtCommit enligt run-identity.json. Körningens runDirHead 5e5c31e0907fc88864cb363224d4a060538a00f5 (runDirClean=true)."
   },
   "patch": "none (appCodeEqualsBase=true enligt run-identity.json)",
   "runIdentity": {
-    "runId": "20261030T204203Z-764b04",
+    "runId": "20261030T205347Z-978720",
     "runDir": "/root/sim-run/track6",
-    "runDirHead": "886f904cd1f8492a5e6c66d3a8fb369d237f046e",
+    "runDirHead": "5e5c31e0907fc88864cb363224d4a060538a00f5",
     "gitStatusPorcelain": [],
     "runDirClean": true,
     "builtCommit": "220edef2f0cfb2f25cd4b60fa54209a18d7f2b85",
     "appBase": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
     "changedPathsOutsideSimulationAndQuality": [],
     "appCodeEqualsBase": true,
-    "source": "runs/20261030T204203Z-764b04/run-identity.json"
+    "source": "runs/20261030T205347Z-978720/run-identity.json"
   },
   "environmentId": "t6-local-20261030 (identitet via identityRefs replay-commit och fingerprint)",
-  "databaseIdentity": "local supabase 127.0.0.1:54322; replay-commit 1e0a29bc04cc168e135f86b7ab955805073a107b; fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c (partiell identitet); applied-migrations 0 rader (identityRefs)",
+  "databaseIdentity": "local supabase 127.0.0.1:54322; replay-commit 1e0a29bc04cc168e135f86b7ab955805073a107b; fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c (partiell identitet); applied-migrations 0 rader vid körningens slut (finishedAtUtc 2026-10-30T20:54:10Z, enligt uppdraget); migration 20261030131200 registrerad 2026-10-30T20:54:26Z efter körningen (evidence/fix003/applied-migrations.tsv)",
   "postgresImage": "ghcr.io/supabase/postgres:17.6.1.155 sha256:3866d94d8426927e8db3f1c5d790752292bfbe27b5f1f46e199ae1b7d3c1710b (identityRefs evidence/image-digests.txt)",
   "postgresServerMajor": 17,
   "postgresVersion": "17.6 (identityRefs: evidence/image-digests.txt)",
   "nodeVersion": "v22.22.0",
-  "clockModel": "real UTC (no fixture clock)",
-  "startedAtUtc": "2026-10-30T20:42:03Z",
-  "finishedAtUtc": "2026-10-30T20:42:30Z",
+  "clockModel": "real UTC",
+  "startedAtUtc": "2026-10-30T20:53:47Z",
+  "finishedAtUtc": "2026-10-30T20:54:10Z",
   "executionScope": "ISOLATED_NATIVE",
-  "command": "run.log: 'kör scenarios/custody01-05.test.ts' (run-id 20261030T204203Z-764b04)",
+  "command": "run.log: 'kör scenarios/custody01-05.test.ts' (run-id 20261030T205347Z-978720)",
   "exitCode": 0,
   "vitest": {
     "numTotalTests": 9,
@@ -45,79 +45,87 @@
   },
   "evidence": [
     {
-      "path": "runs/20261030T204203Z-764b04/run-identity.json",
-      "sha256": "2a5a1a686e1cbbcad7609eabe3f52e60605600cd7344a5f325b8233311786c35"
+      "path": "runs/20261030T205347Z-978720/run-identity.json",
+      "sha256": "ddabd1b06ae2fd9c9ecc81778f2e513216a041a49fd900f58f97e724e1234f38"
     },
     {
-      "path": "runs/20261030T204203Z-764b04/summary.json",
-      "sha256": "23d5594fdd5760bd5952fd81b63317d0a074d9dd7901bf6fa4565c94841eaf4f"
+      "path": "runs/20261030T205347Z-978720/summary.json",
+      "sha256": "1d52a01e44ce10586711452a964967bfe6c8f4c957f1ce19c63c51869186d147"
     },
     {
-      "path": "runs/20261030T204203Z-764b04/custody01-05/report.json",
-      "sha256": "6e3ef7bf794559b684a9abd65e1474a10f0d8c3bf896b8d95224abddd768e9b4"
+      "path": "runs/20261030T205347Z-978720/custody01-05/report.json",
+      "sha256": "e594f481609d123133067bab8d0789bb52925d142a398fd5c4d0dcbb1c1d9c2e"
     },
     {
-      "path": "runs/20261030T204203Z-764b04/custody01-05/log.txt",
-      "sha256": "d48612651eefa83e4cc6194b663967f6bed2f307e16ad2b43249fcfeb264f072"
+      "path": "runs/20261030T205347Z-978720/custody01-05/log.txt",
+      "sha256": "6d41c23b0c579dc4f9ec249a88ede56b22f04bef27e765ce192e4536ab7c7950"
     },
     {
-      "path": "runs/20261030T204203Z-764b04/custody01-05/vitest.json",
-      "sha256": "e680c0826f5c7a3d90b125423d3421ba2faf6fc15a02ee3cd09d097ed53116da"
+      "path": "runs/20261030T205347Z-978720/custody01-05/vitest.json",
+      "sha256": "6c7971a16e9dd31105ac0fb78d7316241f5b525f12ccb1f0f8c831bfd7eec759"
     },
     {
-      "path": "evidence/t6r1-20261030T204203Z-custody01-05/report.json",
-      "sha256": "be979457f42b9277383fe002e6ab6196260ad5e6f8969b00424b56df7ce2a885"
+      "path": "evidence/t6r1-20261030T205347Z-custody01-05/report.json",
+      "sha256": "4a16ba4fb013ef5cc7547b09fe96ceaf9268cc788b9f498ff1b3574c407b921d"
     },
     {
-      "path": "evidence/t6r1-20261030T204203Z-custody01-05/run.log",
-      "sha256": "d7f680a2e90009142fe9576c1f50f8f2bef357a890675da4c72fcc39926f1a7b"
+      "path": "evidence/t6r1-20261030T205347Z-custody01-05/run.log",
+      "sha256": "1a616bec51194aa190f4b17ae53b8242059a65be636a251235762bbc74f72b59"
     },
     {
-      "path": "evidence/20261030T204203Z-764b04/custody01-05/MANIFEST.sha256",
-      "sha256": "892a3c3eb5bbd906e777d2d11d95a818f57ba722b985429e9a72ef61e8d90dcf"
+      "path": "evidence/20261030T205347Z-978720/custody01-05/MANIFEST.sha256",
+      "sha256": "1e85199fb2b5a29e47b428890805077ec61e190086f7b5a2ac7474e5bcd5308a"
     },
     {
-      "path": "evidence/20261030T204203Z-764b04/custody01-05/observations.json",
-      "sha256": "9fe9eecdfc94de239fe0f39309f570fd62af31e35dfe29b6e293869c4dca3efd"
+      "path": "evidence/20261030T205347Z-978720/custody01-05/observations.json",
+      "sha256": "c6d9e4506a83eb333ed1442240ada28dd6a434528747a8cc627f8f413e82fccb"
     },
     {
-      "path": "evidence/20261030T204203Z-764b04/custody01-05/compare.json",
-      "sha256": "ec3a926f6ecec8ec3e0d7201f097e682317b8b608fdd397638fed5ed41d436ad"
+      "path": "evidence/20261030T205347Z-978720/custody01-05/compare.json",
+      "sha256": "ad5f2c622e90ae7335a5584d2bb8f90c82cbda3137e3ad2cb54f8bcebdb5409c"
     },
     {
-      "path": "evidence/20261030T204203Z-764b04/custody01-05/consistency-checks.json",
+      "path": "evidence/20261030T205347Z-978720/custody01-05/consistency-checks.json",
       "sha256": "f711d0112f6d5b1a5ff48044b18cd17803dc5d79ffd32a51e91450ada8f27766"
     },
     {
-      "path": "evidence/20261030T204203Z-764b04/custody01-05/foreign-iterations.json",
-      "sha256": "358983d351bdf6de581c3b6a223717666e8acac6246a9b486cf4b0393efb029d"
+      "path": "evidence/20261030T205347Z-978720/custody01-05/foreign-iterations.json",
+      "sha256": "2f01b071d92ea03e4cf77f87a7a0675c1cbe39b473caa748ed0f46bcdc12b4a5"
     },
     {
-      "path": "evidence/20261030T204203Z-764b04/custody01-05/health-samples.json",
-      "sha256": "4593cc6356c1e1517f71b45137b34a026d4aa70728bbe414ecb72bce5ca003fb"
+      "path": "evidence/20261030T205347Z-978720/custody01-05/health-samples.json",
+      "sha256": "70ec096ac9d93327ee36a3e794fd869c18eff77cc51729c7f14d919949db14f5"
     },
     {
-      "path": "evidence/20261030T204203Z-764b04/custody01-05/pg_restore-errors.json",
-      "sha256": "f6889b2f1c2b16e5a32f1e3a45edd5c4c8df05405c528d48f36b4527c034e7e9"
+      "path": "evidence/20261030T205347Z-978720/custody01-05/pg_restore-errors.json",
+      "sha256": "6d7307f0a9fd13812cd3f5cc879a9b36156ae0c93f7c6d00afd4602b988c4711"
     },
     {
-      "path": "custody/backup/t6_restore_2026103020420466cc1c-attempt1.dump",
-      "sha256": "32d4602857c7f54cbee0471e322a541bea5f68b352fee60fec23abd7e06f8c74"
+      "path": "evidence/20261030T205347Z-978720/custody01-05/protections-diffs.json",
+      "sha256": "f32db84d744f8ec421c5aeb5d0920e8f92a3681be09e6f30418fccd864c051cb"
     },
     {
-      "path": "custody/receipts/t6_restore_2026103020420466cc1c.json",
-      "sha256": "3d86757872c142e33221eebc5982d4b40c182160b4fcec3f239454d100695592"
+      "path": "custody/backup/t6_restore_20261030205348608bb5-attempt1.dump",
+      "sha256": "f62b29ed55ea544daccc2d17539a307749de4a6c4c6f588a106bc19d16550243"
     },
     {
-      "path": "custody/foreign/fr2026103020420466cc1c.jsonl",
-      "sha256": "c2c66c2af8857ba44f90dd52c3134f633c6239a209b1e14dc4d91958a29b6b5d"
+      "path": "custody/receipts/t6_restore_20261030205348608bb5.json",
+      "sha256": "6b45ec1d0413cf8f4c64c5ee3700355b6f3d01cc316eea6f477cda92515d83ef"
     },
     {
-      "path": "custody/health/poll-1793392924795.jsonl",
-      "sha256": "19a91e48b38ee21ca439a4fbedc2eed69f17330f99cb82b393260e3ac8b156e8"
+      "path": "custody/foreign/fr20261030205348608bb5.jsonl",
+      "sha256": "a61d3e94e9022ae5bf7900fc2e43e02a8e0b08b9b438b3b243340640bde692ca"
+    },
+    {
+      "path": "custody/health/poll-1793393628603.jsonl",
+      "sha256": "acc401bfd75b0826e1f485c2edacecffd2f4e75c27484bcfc25fda2f338504e0"
+    },
+    {
+      "path": "evidence/fix003/applied-migrations.tsv",
+      "sha256": "aaf66a43ea96a9bdab289087a4af73d422e9929d79f714049ba1e86f4a844697"
     }
   ],
-  "evidenceNote": "MANIFEST.sha256 finns (sha256 892a3c3e...); sha256sum -c OK för compare.json, consistency-checks.json, foreign-iterations.json, health-samples.json, observations.json, pg_restore-errors.json. Dumpfilen (25 694 355 bytes) och övriga custody-filer är inte kopierade hit; endast sha256 refereras.",
+  "evidenceNote": "MANIFEST.sha256 (sha256 1e85199f...) och sha256sum -c OK för compare.json, consistency-checks.json, foreign-iterations.json, health-samples.json, observations.json, pg_restore-errors.json, protections-diffs.json. Dumpfilen (26 182 748 bytes) och övriga custody-filer är inte kopierade hit; endast sha256 refereras.",
   "identityRefs": [
     {
       "name": "replay-commit",
@@ -135,17 +143,17 @@
     },
     {
       "name": "applied-migrations.tsv",
-      "ref": "0 rader / 0 byte",
-      "sourcePath": "/home/user/sim-home/track6/applied-migrations.tsv",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "note": "tom fil"
+      "ref": "0 rader vid körningens slut (uppdraget); 1 rad efter (20261030131200, 2026-10-30T20:54:26Z)",
+      "sourcePath": "/home/user/sim-home/track6/evidence/fix003/applied-migrations.tsv",
+      "sha256": "aaf66a43ea96a9bdab289087a4af73d422e9929d79f714049ba1e86f4a844697",
+      "note": "sha256 avser filen som den ser ut nu (1 rad, 204 byte); tomhet vid körningens slut anges av uppdraget, ej separat kvitterad"
     },
     {
       "name": "evidence/image-digests.txt (paketbas)",
       "ref": "ghcr.io/supabase/postgres:17.6.1.155",
-      "sourcePath": "runs/t6r1/claude-track6/FINDINGS.md (referens)",
+      "sourcePath": "/home/user/sim-home/track6/evidence/image-digests.txt",
       "sha256": "95a0dd1376143260010f25dffa87afb2b94d5bc2234023d882e0d2a0f7e4cc22",
-      "note": "hash från FINDINGS.md; filen ej lokaliserad för återberäkning här"
+      "note": "digest enligt image-digests.txt"
     }
   ],
   "findingsIds": [],
@@ -197,56 +205,48 @@
     },
     "source_tables": 907,
     "foreign_run": {
-      "tag": "fr2026103020420466cc1c",
-      "preflightIterations": 4,
-      "preflightOk": 4,
+      "company": "4b43da31-08f4-4cfa-a374-262fc15b9d17",
+      "tag": "fr20261030205348608bb5",
+      "user": "b3415e76-2f07-4948-90a7-c669be6cd5eb",
+      "preflightIterations": 3,
+      "preflightOk": 3,
       "firstError": null
     },
     "foreign_summary": {
-      "iterations": 171,
-      "ok": 171,
+      "iterations": 143,
+      "ok": 143,
       "failed": 0,
-      "maxOpMs": 66,
-      "p95OpMs": 18,
+      "maxOpMs": 85,
+      "p95OpMs": 14,
       "lockWaitBoundMs": 5000,
-      "dumpWindowMs": 3455,
-      "restoreWindowMs": 17149,
-      "overlapDump": 27,
-      "overlapRestore": 132,
+      "dumpWindowMs": 2723,
+      "restoreWindowMs": 13528,
+      "overlapDump": 21,
+      "overlapRestore": 109,
       "requiredN": {
         "dump": 3,
         "restore": 5
       }
     },
     "foreign_rows_in_restored": {
-      "checked": 9,
-      "source": 9,
-      "restored": 9
+      "checked": 8,
+      "source": 8,
+      "restored": 8
     },
     "dump_attempt_1": {
-      "ms": 3419,
-      "bytes": 25694355,
-      "sha256": "32d4602857c7f54cbee0471e322a541bea5f68b352fee60fec23abd7e06f8c74",
+      "ms": 2691,
+      "bytes": 26182748,
+      "sha256": "f62b29ed55ea544daccc2d17539a307749de4a6c4c6f588a106bc19d16550243",
       "drift": [
         "gridex_correction_process.facts",
         "public.customer_operation_tasks"
       ]
     },
     "pg_restore": {
-      "ms": 17149,
-      "status": 1,
-      "errorLines": 3,
-      "errors": [
-        "pg_restore: error: could not execute query: ERROR:  permission denied to set parameter \"log_min_messages\"",
-        "pg_restore: error: could not execute query: ERROR:  permission denied for table spatial_ref_sys",
-        "pg_restore: error: could not execute query: ERROR:  permission denied for table secrets"
-      ],
-      "errorsSource": "evidence/20261030T204203Z-764b04/custody01-05/pg_restore-errors.json (errors[0..2], ordagrant); log.txt innehåller inte felraderna, bara 'pg_restore: warning: errors ignored on restore: 3' (per pg_restore-errors.json tail).",
-      "platformOnly": [
-        "realtime.list_changes (CREATE FUNCTION ... SET log_min_messages) -> log_min_messages",
-        "extensions.spatial_ref_sys (COPY) -> spatial_ref_sys",
-        "vault.secrets (COPY) -> secrets"
-      ]
+      "ms": 13527,
+      "status": 0,
+      "errorLines": 0,
+      "flags": "utan --no-owner/--no-acl; supabase_admin (restore.ts:3, :52)"
     },
     "drift_handling": {
       "excludedFromExactCompare": [
@@ -256,84 +256,125 @@
       "bounds": [
         {
           "table": "gridex_correction_process.facts",
-          "before": 1347,
-          "restored": 1357,
-          "after": 1409
+          "before": 2303,
+          "restored": 2311,
+          "after": 2355
         },
         {
           "table": "public.customer_operation_tasks",
-          "before": 189,
-          "restored": 193,
-          "after": 220
+          "before": 646,
+          "restored": 649,
+          "after": 672
         }
       ],
-      "scope": "compare = den återställda dumpens snapshot; källan efter dumpen har fler rader i driftande tabeller (främmande körningen pågick även under restore).",
-      "explanation": "gridex_correction_process.facts är ett trigger-matat journalbord (gridex_correction_process.capture_v1 på 24 spårade tabeller, bl.a. customer_operation_tasks); varje INSERT/UPDATE i den främmande körningen skapar en facts-rad."
+      "explanation": "gridex_correction_process.facts är ett trigger-matat journalbord (gridex_correction_process.capture_v1 på 24 spårade tabeller, bl.a. customer_operation_tasks); varje INSERT/UPDATE i den främmande körningen skapar en facts-rad. Driften är alltså den främmande körningens följd, inte ett bakgrundsjobb.",
+      "scope": "compare = den återställda dumpens snapshot; källan efter dumpen har fler rader i driftande tabeller (främmande körningen pågick även under restore)."
     },
     "empty_custody_tables_count": {
       "computed": 36,
       "source": "observations.json empty_custody_tables_count.computed, antal poster i compare.emptyCustodyTables (36)"
     },
-    "consistency_rows_per_block": {
-      "blocks": 10,
-      "source_vs_restored": "identiskt (0 = 0 för alla 10 block; compare-diffs: [])",
-      "rows": [
-        {
-          "n": 1,
-          "source": 0,
-          "restored": 0
-        },
-        {
-          "n": 2,
-          "source": 0,
-          "restored": 0
-        },
-        {
-          "n": 3,
-          "source": 0,
-          "restored": 0
-        },
-        {
-          "n": 4,
-          "source": 0,
-          "restored": 0
-        },
-        {
-          "n": 5,
-          "source": 0,
-          "restored": 0
-        },
-        {
-          "n": 6,
-          "source": 0,
-          "restored": 0
-        },
-        {
-          "n": 7,
-          "source": 0,
-          "restored": 0
-        },
-        {
-          "n": 8,
-          "source": 0,
-          "restored": 0
-        },
-        {
-          "n": 9,
-          "source": 0,
-          "restored": 0
-        },
-        {
-          "n": 10,
-          "source": 0,
-          "restored": 0
-        }
-      ],
-      "note": "rader sorterade textuellt (blocken saknar ORDER BY och har limit 100); källan jämförs efter dumpen"
+    "consistency_rows_per_block": [
+      {
+        "n": 1,
+        "title": "Active contracts without customer or site",
+        "source": 0,
+        "restored": 0
+      },
+      {
+        "n": 2,
+        "title": "Active contracts whose site is missing an SE price area",
+        "source": 0,
+        "restored": 0
+      },
+      {
+        "n": 3,
+        "title": "Active contracts without a contract price snapshot",
+        "source": 0,
+        "restored": 0
+      },
+      {
+        "n": 4,
+        "title": "Open supplier switches whose site lacks metering point or grid owner",
+        "source": 0,
+        "restored": 0
+      },
+      {
+        "n": 5,
+        "title": "Invoice export runs where the item counts do not match the run bookkeeping",
+        "source": 0,
+        "restored": 0
+      },
+      {
+        "n": 6,
+        "title": "Sent invoice export items without a provider invoice guid",
+        "source": 0,
+        "restored": 0
+      },
+      {
+        "n": 7,
+        "title": "Duplicate billing underlays per contract (or metering point) and period",
+        "source": 0,
+        "restored": 0
+      },
+      {
+        "n": 8,
+        "title": "Duplicate active pricing runs per underlay (should be prevented by",
+        "source": 0,
+        "restored": 0
+      },
+      {
+        "n": 9,
+        "title": "Invoice export retry backlog (retry cron liveness)",
+        "source": 0,
+        "restored": 0
+      },
+      {
+        "n": 10,
+        "title": "Provider events stuck unprocessed",
+        "source": 0,
+        "restored": 0
+      }
+    ],
+    "consistency_blocks_found": 10,
+    "acl_raw_text_differs_effective_same": {
+      "count": 388,
+      "relations": 359,
+      "schemas": 29,
+      "functions": 0,
+      "explanation": "pg_dump emitterar ingen GRANT för en ACL som är lika med ägarens default (acldefault), så källan kan ha explicit {owner=arwdDxtm/owner} medan den återställda databasen har NULL; effektiva privilegier (aclexplode(coalesce(acl, acldefault(typ, ägare)))) är identiska."
+    },
+    "protections_counts": {
+      "policies": {
+        "source": 2576,
+        "restored": 2576
+      },
+      "rls_flags": {
+        "source": 865,
+        "restored": 865
+      },
+      "relation_acl_owner": {
+        "source": 1015,
+        "restored": 1015
+      },
+      "column_acl": {
+        "source": 4,
+        "restored": 4
+      },
+      "schema_acl_owner": {
+        "source": 64,
+        "restored": 64
+      },
+      "function_owner_acl_secdef_config": {
+        "source": 2349,
+        "restored": 2349
+      },
+      "triggers": {
+        "source": 1704,
+        "restored": 1704
+      }
     },
     "compare": {
-      "compared_tables": 907,
-      "hashed": 66,
       "missing": 0,
       "countDiffs": 0,
       "hashDiffs": 0,
@@ -341,57 +382,90 @@
         "gridex_correction_process.facts",
         "public.customer_operation_tasks"
       ],
+      "emptyCustodyTables": [
+        "gridex_billing_source.correction_journal",
+        "gridex_ediel_inbound_receptions.response_requests",
+        "gridex_received_sources.correction_concerns",
+        "gridex_received_sources.correction_witnesses",
+        "gridex_received_sources.customer_primary_response_receipts",
+        "gridex_received_sources.document_reference_attempts",
+        "gridex_received_sources.document_reference_outcomes",
+        "gridex_received_sources.document_reference_witnesses",
+        "gridex_received_sources.permission_effect_receipts",
+        "gridex_received_sources.permission_partition_receipts",
+        "gridex_received_sources.permission_transitions",
+        "gridex_received_sources.prodat_mixed_object_receipts",
+        "gridex_received_sources.prodat_mixed_reply_consumptions",
+        "gridex_received_sources.prodat_mixed_reply_outbox",
+        "gridex_received_sources.prodat_recovery_attempts",
+        "gridex_received_sources.prodat_recovery_li_preparations",
+        "gridex_received_sources.prodat_recovery_messages",
+        "gridex_received_sources.prodat_recovery_operations",
+        "gridex_received_sources.prodat_recovery_origins",
+        "gridex_received_sources.prodat_recovery_outboxes",
+        "gridex_received_sources.prodat_source_function_facets",
+        "gridex_received_sources.production_contract_brp_bindings",
+        "gridex_received_sources.production_contract_confirmations",
+        "gridex_received_sources.production_contract_events",
+        "gridex_received_sources.production_contract_origins",
+        "gridex_received_sources.production_contract_periods",
+        "gridex_received_sources.production_contract_revocations",
+        "gridex_received_sources.regulated_supply_ground_versions",
+        "gridex_received_sources.structural_apply_batches",
+        "gridex_received_sources.structural_apply_receipts",
+        "gridex_received_sources.structural_object_apply_receipts",
+        "gridex_received_sources.supply_end_followups",
+        "gridex_received_sources.utilts_functional_validations",
+        "gridex_received_sources.utilts_functional_validations_v2",
+        "gridex_received_sources.z02_core_applications",
+        "public.invoice_export_files"
+      ],
       "ediel_messages": {
-        "rows": 240,
-        "sha256": "3bef19d04d89761a770a195a724f9e6cb27c72e7606ad24e02daa12fd87ffe5f"
+        "rows": 250,
+        "sha256": "df77324572e72f1b9f2953b5399dae21c7a113be3e3e6ab636a7c06a0854f016"
       },
       "invoice_export_files": {
         "rows": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
       "storage_objects": {
-        "rows": 84,
-        "sha256": "b9d009fe15f2b9165f5ba316cb0a43d86c876b53d8fbdb640667eb7417154779"
+        "rows": 88,
+        "sha256": "e5b0bea00329d329fb5043bf714dc41cc39ec428649b4475fdd2a737028f9e90"
       }
     },
-    "triggers": {
-      "source": 1704,
-      "restored": 1704,
-      "missing": []
-    },
     "health_informational": {
-      "samples": 63,
+      "samples": 54,
       "failures": 0,
-      "maxMs": 39,
-      "p95Ms": 11,
+      "maxMs": 36,
+      "p95Ms": 5,
       "statuses": [
         503
       ],
       "note": "Routen svarar 503 före all DB-åtkomst (app/api/internal/system/health/route.ts:41-43); enbart processens responsivitet, inte DB-hälsa. Beviset för orörda främmande körningar är foreign_summary."
     },
-    "storage_bytes_note": "pg_dump täcker storage.objects-metadata (84 rader i denna körning), inte objektens bytes i Storage-volymen; bytesåterställning kräver separat storage-backup (docs/backup-restore-checklist.md).",
+    "storage_bytes_note": "pg_dump täcker storage.objects-metadata, inte objektens bytes i Storage-volymen; bytesåterställning kräver separat storage-backup (docs/backup-restore-checklist.md).",
     "cleanup_receipt": {
-      "restoreDb": "t6_restore_2026103020420466cc1c",
+      "restoreDb": "t6_restore_20261030205348608bb5",
       "created": true,
       "dropped": true,
-      "finishedAt": "2026-10-30T20:42:30.908Z",
-      "evidence": "custody/receipts/t6_restore_2026103020420466cc1c.json (sha256 3d86757872c142e33221eebc5982d4b40c182160b4fcec3f239454d100695592)"
+      "finishedAt": "2026-10-30T20:54:10.746Z"
     }
   },
   "measuredDurations": {
-    "pgDumpStepMs": 4540.55,
-    "pgDumpObservedMs": 3419,
-    "pgRestoreStepMs": 17229.58,
-    "pgRestoreObservedMs": 17149,
-    "compareStepMs": 579.96,
-    "consistencyStepMs": 832.29,
-    "triggerStepMs": 92.79,
-    "healthStepMs": 957.23,
-    "healthP95MsFromRunner": 11,
-    "healthMaxMs": 39,
-    "healthSamples": 63,
-    "vitestTotalMs": 26259,
-    "note": "Stegsteg-tider från report.json steps[].durationMs; observerade tider från observations.json; vitestTotalMs från log.txt."
+    "pgDumpStepMs": 3778.71,
+    "pgDumpObservedMs": 2691,
+    "pgRestoreStepMs": 13659.53,
+    "pgRestoreObservedMs": 13527,
+    "foreignStartStepMs": 1067.58,
+    "compareStepMs": 520.37,
+    "consistencyStepMs": 698.92,
+    "protectionsStepMs": 1063.03,
+    "healthStepMs": 854.2,
+    "healthP95MsFromRunner": 5,
+    "healthMaxMs": 36,
+    "healthSamples": 54,
+    "vitestTotalMs": 22680,
+    "note": "Stegvisa tider från report.json steps[].durationMs; observerade tider från observations.json; vitestTotalMs ≈ 22.68 s från log.txt (Duration 22.68s)."
   },
   "oracle": {
     "source": "quality/simulation-campaign/oracle-original/all-systems-scenarios.safe.json",
@@ -411,40 +485,35 @@
   "harnessErrorInReport": null,
   "state": "PARTIAL",
   "proposedState": "PASS",
-  "stateNote": "Körningen 20261030T204203Z-764b04: exit 0, 9/9 tester passed (report.json steps 9/9 passed). proposedState PASS är ett förslag; granskning väntar. Orkestratorn avgör. Ingen PASS påstås här.",
-  "proposedStateNote": "Öppna punkter före granskning: (1) dump_attempt_1.drift och compare.drift listar gridex_correction_process.facts och public.customer_operation_tasks; drift är dokumenterad med bounds (drift_handling) och utesluten från exakt jämförelse, men steget 'källans innehåll är stabilt före/efter dumpen' är rapporterat passed; (2) 3 pg_restore-plattformsfel accepteras av runnern; (3) health 503 är informativt; (4) storage-bytes ingår inte.",
+  "stateNote": "Körningen 20261030T205347Z-978720: exit 0, 9/9 tester passed (report.json steps 9/9 passed). proposedState PASS är ett förslag; granskning väntar. Orkestratorn avgör. Ingen PASS påstås här.",
+  "proposedStateNote": "Öppna punkter före granskning: (1) dump_attempt_1.drift och compare.drift listar gridex_correction_process.facts och public.customer_operation_tasks; drift är dokumenterad med bounds (drift_handling) och utesluten från exakt jämförelse, men steget 'källans innehåll är stabilt före/efter dumpen' är rapporterat passed; (2) health 503 är informativt (54/54 prov); (3) storage-bytes ingår inte; (4) migration 20261030131200 registrerades 20:54:26Z, efter körningens slut 20:54:10Z.",
   "replacementStepsNote": "Ersättningssteg för denna körning enligt uppdraget. Stegen stöds av report.json, observations.json, compare.json och consistency-checks.json.",
   "replacementSteps": [
     "pg_dump -Fc och pg_restore körs via docker exec i den egna containern supabase_db_gridex-ops-platform (host pg_dump major 16 mot server major 17).",
-    "pg_restore till ny databas t6_restore_2026103020420466cc1c på samma server. Ingen PITR lokalt.",
-    "production_consistency_checks.sql körs nu (steg 'checklistans steg 3' passed): alla 10 block körs separat i källa och återställd databas; radantal source = restored för varje block (0 = 0 för alla 10), consistency-checks.json diffs: []. Kompletterat med per-tabell radantal och innehålls-sha256 (907 tabeller, 66 hashade) samt triggerinventering (1704/1704).",
-    "Främmande tenants kund skapas som SQL-fixture. Workload är skrivningar via autentiserad GoTrue-session på public.customer_operation_tasks (produktvägen lib/operations/db.part-2.ts:196-213). 171 iterationer, 0 fel.",
-    "Storage: pg_dump täcker bara storage.objects-metadata (84 rader). Objektens bytes ingår inte."
+    "pg_restore som supabase_admin, utan --no-owner/--no-acl, till ny databas t6_restore_20261030205348608bb5 på samma server. Ingen PITR lokalt.",
+    "production_consistency_checks.sql körs: alla 10 block separat i källa och återställd databas, 0 = 0 för alla block (consistency-checks.json diffs: []). Kompletterat med per-tabell radantal och innehålls-sha256 (907 tabeller, 66 hashade, missing 0, countDiffs 0, hashDiffs 0 utom drifttabellerna) samt triggerinventering (1704/1704) och ACL/ägare/RLS-inventering (protections-diffs.json diffs {}).",
+    "Främmande tenant (kund) skapas som SQL-fixture. Workload är skrivningar via autentiserad GoTrue-session på public.customer_operation_tasks (produktvägen lib/operations/db.part-2.ts:196-213). 143 iterationer, 143 ok, 0 fel; foreign_rows_in_restored 8/8/8.",
+    "Storage: pg_dump täcker bara storage.objects-metadata (88 rader i compare.storage_objects). Objektens bytes ingår inte."
   ],
   "checklistDeviation": [
-    "docs/backup-restore-checklist.md beskriver PITR/återställning till produktion eller nytt projekt. Denna körning: pg_dump -Fc via docker i lokal stack och pg_restore till ny databas på samma server. /admin/system-health-sidan är inte körd (endast health-routen pollas, 503).",
+    "docs/backup-restore-checklist.md beskriver PITR/återställning till produktion eller nytt projekt. Denna körning: pg_dump -Fc via docker exec i lokal stack och pg_restore till ny databas på samma server. /admin/system-health-sidan är inte körd (endast health-routen pollas, 503).",
     "Checklistens storage-krav är inte uppfyllt: pg_dump täcker storage.objects-metadata, inte objektens bytes (observations.storage_bytes_note).",
-    "pg_restore exit status 1 med 3 rapporterade fel på plattformsägda objekt accepterades av runnern (report.json, steg 'pg_restore till NY databas på samma server' passed).",
-    "Restore kördes med --no-owner --no-acl (scripts/simulation/track6/lib/custody/restore.ts:57-58): ägare och grants återställs inte, och RLS-policyer och grants jämförs inte i denna körning. Omkörning med ACL/ägare bevarade och skydd jämförda pågår (uppgift från uppdraget, ej verifierad här)."
+    "Främmande tenant skapas som SQL-fixture i stället för via produktens kundflöde; skrivningarna går via produktvägen (replacementSteps)."
   ],
   "whatTheyDoNotVerify": [
-    "Storage-objektbytes: pg_dump täcker bara storage.objects-metadata (84 rader).",
-    "Innehåll i vault.secrets, extensions.spatial_ref_sys och realtime.list_changes i återställd databas (plattformsägda, pg_restore-fel).",
-    "Tomma custodytabeller: 36 tabeller hade 0 rader i källan, så deras jämförelse är 0=0 utan innehållsbevis.",
-    "Källans stabilitet under dumpen för gridex_correction_process.facts och public.customer_operation_tasks (drift i dump_attempt_1 och compare; exkluderade från exakt jämförelse, endast bounds).",
-    "Produktionsliknande återställning (PITR eller nytt projekt) och körning av /admin/system-health-sidan (ej körd).",
-    "Appens funktionella hälsa: health-routen gav HTTP 503 i samtliga 63 prov (avsiktligt, route.ts:41-43). Runnerns failures=0 är inte oberoende verifierat.",
-    "Restore kördes med --no-owner --no-acl (scripts/simulation/track6/lib/custody/restore.ts:57-58): ägare och grants återställs inte, och RLS-policyer och grants jämförs inte i denna körning. Omkörning med ACL/ägare bevarade och skydd jämförda pågår (uppgift från uppdraget, ej verifierad här).",
-    "Samtidiga processer: uppdraget anger att vitest-processen wt-fix003 (pid 26926) kördes med `env -u DATABASE_URL` utan DB/Supabase-env (ingen effekt på stacken), och att wt-fix001-head startade 20:46:51, efter att denna körning slutade 20:42:30 (finishedAtUtc). Ej re-verifierat här: pid 26926 finns inte i /proc och ingen av processerna syns i ps vid kontroll."
+    "Lokal restore i stället för PITR eller nytt projekt; ingen produktionsliknande återställning.",
+    "Docker exec-verktyg: dump och restore körs via docker exec i containern supabase_db_gridex-ops-platform, inte via docker-fri klient.",
+    "Storage-objektbytes: pg_dump täcker bara storage.objects-metadata (88 rader).",
+    "Främmande tenant-kund skapad via SQL-fixture (ej via produktens kundskapande)."
   ],
-  "blocker": "Ingen teknisk blockerare i denna körning. PARTIAL kvarstår på grund av punkterna i whatTheyDoNotVerify och drift på två tabeller under dumpen.",
-  "nextAction": "Orkestratorn granskar proposedState PASS och de öppna punkterna i proposedStateNote. Ingen ny körning begärd i detta uppdrag.",
+  "blocker": "Ingen teknisk blockerare i denna körning. PARTIAL kvarstår på grund av whatTheyDoNotVerify, checklistDeviation och drift på två tabeller under dumpen (openObservations).",
+  "nextAction": "Orkestratorn granskar proposedState PASS och öppna punkter i proposedStateNote. Ingen ny körning begärd i detta uppdrag.",
   "cleanupReceipt": {
-    "restoreDb": "t6_restore_2026103020420466cc1c",
+    "restoreDb": "t6_restore_20261030205348608bb5",
     "created": true,
     "dropped": true,
-    "finishedAt": "2026-10-30T20:42:30.908Z",
-    "evidence": "custody/receipts/t6_restore_2026103020420466cc1c.json (sha256 3d86757872c142e33221eebc5982d4b40c182160b4fcec3f239454d100695592); observations.json cleanup_receipt"
+    "finishedAt": "2026-10-30T20:54:10.746Z",
+    "evidence": "custody/receipts/t6_restore_20261030205348608bb5.json (sha256 6b45ec1d0413cf8f4c64c5ee3700355b6f3d01cc316eea6f477cda92515d83ef); observations.json cleanup_receipt"
   },
   "previousRuns": [
     {
@@ -466,15 +535,35 @@
       "runId": "20261030T203633Z-0b0946",
       "exitCode": 0,
       "reason": "8/8 but lacked checklist step 3 and drift disclosure"
+    },
+    {
+      "runId": "20261030T204203Z-764b04",
+      "exitCode": 0,
+      "reason": "9/9 men restore med --no-owner --no-acl; ägare, grants, RLS-policyer och ACL jämfördes inte."
+    },
+    {
+      "runId": "20261030T205029Z-1077f2",
+      "exitCode": 1,
+      "reason": "Vitest 8/9; rå ACL-text skiljer (388 objekt) trots identisk effektiv ACL; jämförelsen av rå ACL-text föll."
+    },
+    {
+      "runId": "20261030T205239Z-99efe5",
+      "exitCode": 1,
+      "reason": "Vitest 8/9; harness-bugg i sekvensen acldefault('S'), rättad i 5e5c31e09."
     }
   ],
   "openObservations": [
-    "dump_attempt_1.drift och compare.drift: gridex_correction_process.facts (before 1347 / restored 1357 / after 1409) och public.customer_operation_tasks (before 189 / restored 193 / after 220) ändrades under dumpfönstret; förklaring i observations.drift_handling (trigger-matad journal av främmande körningen). Runnerns steg 'källans innehåll är stabilt före/efter dumpen' är rapporterat passed.",
-    "health-samples: 63 av 63 prov HTTP 503 (ms 3-39). Avsiktligt enligt route.ts:41-43, informativt.",
-    "empty_custody_tables_count 36 (39 -> 37 -> 36 över körningarna 161811, 162702, 164432 enligt observations.json; oförändrat i 203633 och 204203).",
-    "Samtidiga processer: uppdraget anger att vitest-processen wt-fix003 (pid 26926) kördes med `env -u DATABASE_URL` utan DB/Supabase-env (ingen effekt på stacken), och att wt-fix001-head startade 20:46:51, efter att denna körning slutade 20:42:30 (finishedAtUtc). Ej re-verifierat här: pid 26926 finns inte i /proc och ingen av processerna syns i ps vid kontroll."
+    "dump_attempt_1.drift och compare.drift: gridex_correction_process.facts (before 2303 / restored 2311 / after 2355) och public.customer_operation_tasks (before 646 / restored 649 / after 672) ändrades under dumpfönstret; förklaring i observations.drift_handling (trigger-matad journal av främmande körningen). Runnerns steg 'källans innehåll är stabilt före/efter dumpen' är rapporterat passed.",
+    "health-samples: 54 av 54 prov HTTP 503 (ms 2-36). Avsiktligt enligt route.ts:41-43, informativt.",
+    "empty_custody_tables_count 36 (observations.json; compare.emptyCustodyTables 36). Deras jämförelse är 0=0 utan innehållsbevis.",
+    "applied-migrations.tsv: 0 rader vid körningens slut enligt uppdraget (finishedAtUtc 20:54:10Z); migration 20261030131200 registrerades 2026-10-30T20:54:26Z (evidence/fix003/applied-migrations.tsv). Ej separat kvitterat som tom vid körningens början.",
+    "Samtidiga processer under körningen 20:53:47Z–20:54:10Z: ej kontrollerade i denna uppdatering."
   ],
   "healthPollNote": "Health route /api/internal/system/health returnerar 503 när ingen cron-hemlighet är konfigurerad (route.ts:41-43). 503 är avsiktligt och informativt. Det visar endast processens responsivitet, inte funktionell hälsa.",
-  "topLevelRunStatus": "Toppnivån avser den senaste körningen 20261030T204203Z-764b04. Tidigare försök finns i previousRuns.",
-  "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c (replay fingerprint; partial identity over selected tables)"
+  "topLevelRunStatus": "Toppnivån avser den senaste körningen 20261030T205347Z-978720. Tidigare försök finns i previousRuns.",
+  "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c (fingerprint-fil; partiell identitet över utvalda tabeller)",
+  "appliedMigrationsAtRunTime": {
+    "value": "empty (0 rows)",
+    "evidence": "run finishedAtUtc 20:54:10Z precedes the only applied migration (20261030131200, finding 003) whose apply log SIM_HOME/evidence/fix003/migration-apply.log has mtime 2026-10-30 20:54:21.927755583 +0000 (sha256 97a10395ffb00127c0404ae9ed02f9337ae99562dc9479417b25f41f0f7b342a) and applied-migrations.tsv entry time 2026-10-30T20:54:26Z; the runner executed the jobs strictly sequentially (job 1 then job 2). run-identity.json/report.json of this run carry fingerprint 5168f69b… from the replay with 0 applied migrations."
+  }
 }
