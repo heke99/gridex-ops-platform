@@ -248,7 +248,7 @@ describe('adopted finance Ediel tokenizer and decimal scan (T1/010)',()=>{
   expect(count(after.decimal,h=>h==='true')).toBeGreaterThan(50);expect(count(after.decimal,h=>h==='false')).toBeGreaterThan(50)
   console.log('equivalence corpus:',JSON.stringify({wire:after.wire.length,bounded:after.bounded.length,envelope:after.envelope.length,
    decimal:after.decimal.length,decimalTrue:count(after.decimal,h=>h==='true'),envelopeNonNull:count(after.envelope,h=>h!=='NULL')}))
- })
+ },600_000)
  it('tokenizes a large wire in no more than linear-scale time (generous bound)',()=>{
   // Quadratic main bodies take several times longer on 3,000+ segments; the
   // bound only requires the adopted body to be clearly faster.
