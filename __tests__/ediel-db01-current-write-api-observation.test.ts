@@ -114,7 +114,7 @@ after_rows[0]['body_sha256']=original_spec['projection_new_body'];after_rows[1][
 after_rows.append({'schema':'public','name':'gridex_enqueue_normal_supplier_switch_v1','body_sha256':original_spec['coordinator_body']})
 definitions_meta=[{'identity':list(key),'body_sha256':'f'*64} for key in [actor,projection,coordinator]]
 observation={'schema':'db01_current_write_api_observation_v1','status':'OBSERVED_ONLY','native_or_approval_credit':False,'source_sha':'synthetic-head','source_schema_sha256':original_spec['schema_sha256'],'entry_name_present':False,'planned_function_names':['public.ediel_project_accepted_source_state_v1','public.ediel_retention_lock_auth_actor_v1','public.gridex_enqueue_normal_supplier_switch_v1'],'canonical_function_definitions':definitions_meta,'observed_functions':before_rows,'missing_function_names':['public.gridex_enqueue_normal_supplier_switch_v1'],'relation_tokens':[],'unresolved_source_names':[]}
-spec=copy.deepcopy(original_spec);spec['before_catalog_sha256']=sha(json.dumps(before_rows,sort_keys=True,separators=(',',':')));spec['function_count']=3
+spec=copy.deepcopy(original_spec);spec['before_catalog_sha256']=sha(json.dumps(before_rows,sort_keys=True,separators=(',',':')));spec['function_count']=3;spec['canonical_definitions_sha256']=sha(json.dumps(definitions_meta,sort_keys=True,separators=(',',':')))
 if case.get('preimageDrift'):before_rows[0]['body_sha256']='0'*64
 if case.get('metadataDrift'):after_rows[0]['unexpected_flag']=True
 if case.get('surroundingDrift'):after_catalog[stable]='changed unrelated relation'
