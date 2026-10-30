@@ -444,5 +444,6 @@
     "Observation (ej verifierad av mig som påverkan): tre vitest-processer (pid 1706, 1842, 29332; ppid 26926) med cwd /root/sim-wt/wt-fix003 fanns i containern vid kontroll efter körningen. Uppdragsgivaren anger att de är en enhetstestkörning som kördes samtidigt men inte använde stackens DB."
   ],
   "healthPollNote": "Health route /api/internal/system/health returnerar 503 när ingen cron-hemlighet är konfigurerad (route.ts:41-43). 503 är avsiktligt och informativt. Det visar endast processens responsivitet, inte funktionell hälsa.",
-  "topLevelRunStatus": "Toppnivån avser den senaste körningen 20261030T204203Z-764b04. Tidigare försök finns i previousRuns."
+  "topLevelRunStatus": "Toppnivån avser den senaste körningen 20261030T204203Z-764b04. Tidigare försök finns i previousRuns.",
+  "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c (replay fingerprint; partial identity over selected tables)"
 }
