@@ -37,7 +37,7 @@ const roleKey=`native_roles_${randomUUID().slice(0,8)}`
 beforeAll(async()=>{
  member=await user('member');platform=await user('platform');other=await user('other');scoped=await user('scoped')
  company=randomUUID();company2=randomUUID()
- sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(company)},'Synthetic roles company','active');
+ sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(company)},'Synthetic roles company','active'),(${literal(company2)},'Synthetic roles company 2','active');
   INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,is_active,accepted_at,joined_at,role,role_key)
    VALUES(${literal(company)},${literal(member.id)},'company_admin','active',true,now(),now(),'company_admin','company_admin');
   WITH r AS (INSERT INTO public.roles(id,key,name,scope) VALUES(gen_random_uuid(),${literal(roleKey)},'Synthetic role','company') RETURNING id)
