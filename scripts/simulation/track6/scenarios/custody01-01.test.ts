@@ -23,7 +23,11 @@ const run = newRunContext('custody01-01')
 const TENANT = { name: 'T6SIM Custody01 Supplier AB', edielId: '16712' }
 
 let imported: ReturnType<typeof importOriginals>
-let parsed: Array<ParsedE66 & { name: string; ediSha: string; emlSha: string }> = []
+let parsed: Array<ParsedE66 & { name: string; ediSha: string; emlSha: string; mimeBodySha: string; mimeBodyTrimSha: string }> = []
+// Orakel för lagrad kropp: den MOTTAGNA MIME-kroppen (CRLF, som publicerad i .eml), inte den LF-normaliserade .edi (manifestet gäller filerna).
+const mimeBody = (eml: Buffer): Buffer => { const i = eml.indexOf('\r\n\r\n'); return eml.subarray(i + 4) }
+const dropFinalCrlf = (b: Buffer): Buffer => (b.subarray(-2).toString('latin1') === '\r\n' ? b.subarray(0, -2) : b)
+const expectedStoredSha = (interchangeRef: string | undefined): string | undefined => parsed.find((p) => p.interchangeRef === interchangeRef)?.mimeBodyTrimSha
 let tenant: SupplierTenant
 let subjectLike = ''
 let sources: SourceRow[] = []
@@ -36,7 +40,7 @@ describe('CUSTODY01.01 import av T3 kohort B oförändrad', () => {
     imported = importOriginals()
     ev.observe('import', { repo: imported.repo, commit: imported.commit, manifestSha256: imported.manifestSha256, dir: imported.dir, files: imported.inbound.length * 2 })
     expect(imported.inbound).toHaveLength(28)
-    parsed = imported.inbound.map(({ eml, edi }) => ({ name: eml.relPath, ediSha: edi.sha256, emlSha: eml.sha256, ...parseE66(edi.data.toString('utf8')) }))
+    parsed = imported.inbound.map(({ eml, edi }) => ({ name: eml.relPath, ediSha: edi.sha256, emlSha: eml.sha256, mimeBodySha: sha256(mimeBody(eml.data)), mimeBodyTrimSha: sha256(dropFinalCrlf(mimeBody(eml.data))), ...parseE66(edi.data.toString('utf8')) }))
     ev.save('parsed-e66.json', parsed.map((p) => ({ name: p.name, sender: p.sender, receiver: p.receiver, interchangeRef: p.interchangeRef, documentRef: p.documentRef, meteringPoint: p.meteringPoint, testIndicator: p.testIndicator, emlSha256: p.emlSha, ediSha256: p.ediSha })))
     expect(new Set(parsed.map((p) => p.receiver))).toEqual(new Set(['16712']))
     expect(new Set(parsed.map((p) => p.sender))).toEqual(new Set(['70007']))
@@ -103,25 +107,29 @@ describe('CUSTODY01.01 intag via normala ingångar', () => {
     const byRef = new Map(sources.map((s) => [s.interchange_reference, s]))
     const rows: Array<Record<string, unknown>> = []
     const mismatches: string[] = []
+    const finalCrlfTrimmed: string[] = []
     for (const p of parsed) {
       const s = byRef.get(p.interchangeRef!)
       if (!s) { mismatches.push(`${p.name}: ediel_messages saknas för ${p.interchangeRef}`); continue }
       const bodySha = sha256(Buffer.from(s.raw_payload, 'utf8'))
       const fp = messageFingerprint(s.id)
       rows.push({ name: p.name, id: s.id, interchangeRef: p.interchangeRef, manifestEdiSha256: p.ediSha, dbBodySha256: fp?.bodySha256, immutablePayloadHash: s.immutable_payload_hash, company: s.company_id === tenant.companyId })
-      if (bodySha !== p.ediSha || fp?.bodySha256 !== p.ediSha) mismatches.push(`${p.name}: body sha256 ${fp?.bodySha256} != manifest ${p.ediSha} (${s.raw_payload.length} tecken)`)
-      if (s.immutable_payload_hash && s.immutable_payload_hash !== p.ediSha) mismatches.push(`${p.name}: immutable_payload_hash ${s.immutable_payload_hash} != manifest`)
+      if (bodySha !== p.mimeBodyTrimSha || fp?.bodySha256 !== p.mimeBodyTrimSha) mismatches.push(`${p.name}: body sha256 ${fp?.bodySha256} != mottagen MIME-kropp (utan slutlig CRLF) ${p.mimeBodyTrimSha} (${s.raw_payload.length} tecken)`)
+      if (s.immutable_payload_hash && s.immutable_payload_hash !== p.mimeBodyTrimSha) mismatches.push(`${p.name}: immutable_payload_hash ${s.immutable_payload_hash} != mottagen MIME-kropp`)
+      if (bodySha === p.mimeBodyTrimSha && bodySha !== p.mimeBodySha) finalCrlfTrimmed.push(p.name)
       if (s.company_id !== tenant.companyId) mismatches.push(`${p.name}: fel company ${s.company_id}`)
     }
     ev.save('ediel-messages-vs-manifest.json', rows)
     ev.observe('body_sha_mismatches', mismatches)
+    // Kandidatfynd (observation): produkten lagrar mottagen kropp byte-lika förutom att slutlig CRLF (MIME-radslut) saknas.
+    ev.observe('stored_body_final_crlf_trimmed', { count: finalCrlfTrimmed.length, of: parsed.length })
     expect(mismatches).toEqual([])
   })
 
   it('CUSTODY01.01 originalen har bevarat bytes efter hela intaget (omläsning, rad + kropp)', () => {
     const second = sources.map((s) => ({ id: s.id, ...messageFingerprint(s.id)! }))
     ev.save('ediel-messages-fingerprints.json', second)
-    for (const [i, s] of sources.entries()) expect(second[i].bodySha256, s.interchange_reference).toBe(parsed.find((p) => p.interchangeRef === s.interchange_reference)!.ediSha)
+    for (const [i, s] of sources.entries()) expect(second[i].bodySha256, s.interchange_reference).toBe(expectedStoredSha(s.interchange_reference))
   })
 })
 
@@ -149,6 +157,6 @@ describe('CUSTODY01.01 nedströms: kan lagrade original nå underlag/faktura? (o
     // Oraklet: inga original utan kvalificerad kedja (leveransperiod/kontrakt/pris) får ge bindande underlagskälla.
     expect(after.underlay_bindings, 'ingen bunden (finaliserad) underlay härledd ur de 28 originalen').toBe(0)
     // Originalen är fortfarande bytevis oförändrade efter försöket.
-    for (const s of sources) expect(messageFingerprint(s.id)!.bodySha256).toBe(parsed.find((p) => p.interchangeRef === s.interchange_reference)!.ediSha)
+    for (const s of sources) expect(messageFingerprint(s.id)!.bodySha256).toBe(expectedStoredSha(s.interchange_reference))
   }, 300_000)
 })
