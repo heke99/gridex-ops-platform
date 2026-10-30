@@ -211,3 +211,21 @@ Inget PASS är UI-PASS eller BROWSER_E2E.
 - TERM03 19/0/0 med strikt orakel enligt beslut 013(a).
 - Originalorakelt (`27862b90`, sha256 `96518c18…9df3`) har inga numeriska TERM-värden; alla belopp härleds ur egen fixture.
 - Granskat av oberoende sim-reviewer (tre rundor). Cleanup: `down.sh` exit 0, inget kvar.
+
+## Registreringar och leveranser 2026-10-30 (efter omtest)
+
+| Fynd | Läge | Leverans / ägare |
+|---|---|---|
+| 003 | Rättat, mergat | PR #954 (`5958606b`). Följdfynd: existensoracle via server actions (säkerhet, medel; överlämnat till SC-018-ägaren, T2 förslagsställare), riktig 404 under strömning (produktfråga, låg), signatursidans guard utan aktivt bolag (T2, efter kön) |
+| 007 | Rättat, mergat i #932-grenen | PR #941 (PT409-mappning och tenantDb-skrivning ingår) |
+| 014 | Rättat, väntar GEN slot 16 | PR #964, två godkännanden på `bfc83029`; ersätter finance F57 (beslut B). Reproducerat på main `5958606b`: kanalpublicering och sedan avtal ger HTTP 500/23505 |
+| 014b | Registrerat, T2 | Omvänd ordning: ensure publicerar v1, sedan `gridex_publish_contract_channel` skapar draft som vid finalize ger samma 23505 |
+| 002 | Designbeslut (c) | PR #968: död triggerfunktion dokumenteras, vakttest i CI |
+| 002a | Registrerat, T2, låg–medel | auto_renew_enabled kräver auto_renew_term_months eller binding_months > 0 saknas i DB |
+| 002b | Registrerat, T2, låg–medel | termination_reason kräver termination_notice_date saknas i DB |
+| 002c | Registrerat, T2, medel | ends_at >= starts_at saknas helt (DB och app) |
+| 002d | Registrerat, T2, låg | status=active kräver actual_start_date kontrolleras bara vid UPDATE av status, inte vid INSERT |
+| 002e | Registrerat, T2, låg | green_fee_mode=none kräver green_fee_value null/0 bara i appens schema |
+| 011 | Dubblett | Samma rotorsak som T1/010, T1 äger; omtest efter merge |
+
+Beslut 2026-10-30: 002a, 002b och 002c levereras som en migration med CHECK-constraints (NOT VALID och VALIDATE i samma migration; produktionsdata 2 rader, 0 avvikelser enligt samordningens läskontroll). 002d och 002e efteråt.
