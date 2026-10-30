@@ -16,7 +16,8 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{
    filters.push(row=>row[key]===null||row[key]===value);return query},
   maybeSingle:async()=>{const rows=(table==='ediel_route_profiles'?io.profiles:io.views).filter(row=>filters.every(f=>f(row)))
    if(rows.length>1)return {data:null,error:{code:'PGRST116',message:'Multiple rows cannot be returned as one JSON object'}}
-   return {data:table==='ediel_route_runtime_v'&&rows[0]&&io.override?{...rows[0],...io.override}:rows[0]??null,error:null}}}
+   return {data:table==='ediel_route_runtime_v'&&rows[0]&&io.override?{...rows[0],...io.override}:rows[0]??null,error:null}},
+  then:(resolve:(value:unknown)=>unknown,reject:(reason:unknown)=>unknown)=>Promise.resolve({data:(table==='ediel_route_profiles'?io.profiles:io.views).filter(row=>filters.every(f=>f(row))),error:null}).then(resolve,reject)}
  return query
 }}}))
 vi.mock('@/lib/ediel/core/actorRegistry',()=>({resolveCanonicalActorContext:io.actor}))
@@ -42,7 +43,7 @@ beforeEach(()=>{vi.clearAllMocks();io.reads=[];io.override=null
 
 describe('fresh ACK profiles use the source-qualified unique configuration',()=>{
  it('keeps the original unqualified three-profile ambiguity visible',async()=>{
-  await expect(getEdielRouteRuntimeByCommunicationRouteId(route,{companyId:company})).rejects.toMatchObject({code:'PGRST116'})
+  await expect(getEdielRouteRuntimeByCommunicationRouteId(route,{companyId:company})).rejects.toMatchObject({code:'ediel_route_profile_ambiguous'})
  })
  it('selects only actual source-APP APERAK among retained E66 and CONTRL',async()=>{
   await expect(getEdielRouteRuntimeByCommunicationRouteId(route,selection())).resolves.toMatchObject({route_profile_id:'aperak',application_reference:app,message_family:'APERAK'})
@@ -105,7 +106,7 @@ describe('fresh ACK profiles use the source-qualified unique configuration',()=>
  it('retains the ordinary single-profile path without an ACK candidate query',async()=>{
   configure([profile('ordinary',null,'23-DGI-E66-T',null)])
   await expect(getEdielRouteRuntimeByCommunicationRouteId(route,{companyId:company})).resolves.toMatchObject({route_profile_id:'ordinary'})
-  expect(io.reads).toEqual(['ediel_route_runtime_v'])
+  expect(io.reads).toEqual(['ediel_route_runtime_v','ediel_route_profiles'])
  })
  it('refuses incomplete or unsafe ACK query context before any profile read',async()=>{
   for(const context of [{...selection(),companyId:null},

@@ -439,6 +439,21 @@ export async function getEdielRouteRuntimeByCommunicationRouteId(
     return resolveActiveRouteRuntime(communicationRouteId, scopedCompanyId)
   }
   if (error) throw error
+  if (!selection && data) {
+    // Never route through an inactive profile, even when it is the only row.
+    let activeQuery = supabaseService
+      .from('ediel_route_profiles')
+      .select('id,company_id,communication_route_id,is_active')
+      .eq('id', data.route_profile_id)
+      .eq('communication_route_id', communicationRouteId)
+    if (scopedCompanyId) activeQuery = activeQuery.eq('company_id', scopedCompanyId)
+    const { data: owner, error: ownerError } = await activeQuery.maybeSingle()
+    if (ownerError) throw ownerError
+    if (!owner || owner.id !== data.route_profile_id || owner.communication_route_id !== communicationRouteId
+      || owner.company_id !== data.company_id || !(owner.is_active === true || owner.is_active === null)) {
+      throw routeProfileConfigError('ediel_route_profile_inactive')
+    }
+  }
   if (selection && (!data || data.route_profile_id !== selectedProfileId || data.company_id !== scopedCompanyId
     || data.communication_route_id !== communicationRouteId || data.environment !== selection.environment
     || data.application_reference !== selection.applicationReference || data.is_enabled !== true

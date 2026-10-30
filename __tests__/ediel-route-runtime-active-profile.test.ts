@@ -61,7 +61,13 @@ describe('unselected route runtime resolves the active profile',()=>{
   io.profiles=[profile('only',true)]
   await expect(getEdielRouteRuntimeByCommunicationRouteId(route,{companyId:company}))
    .resolves.toMatchObject({route_profile_id:'only'})
-  expect(io.reads).toEqual(['ediel_route_runtime_v'])
+  expect(io.reads).toEqual(['ediel_route_runtime_v','ediel_route_profiles'])
+ })
+ it('refuses a single inactive profile and returns no runtime to send through',async()=>{
+  io.profiles=[profile('only-old',false)]
+  const result=getEdielRouteRuntimeByCommunicationRouteId(route,{companyId:company})
+  await expect(result).rejects.toMatchObject({code:'ediel_route_profile_inactive',message:'ediel_route_profile_inactive'})
+  expect(io.reads).toEqual(['ediel_route_runtime_v','ediel_route_profiles'])
  })
  it('keeps the ACK selection path unchanged',async()=>{
   io.profiles=[profile('aperak',true,{message_family:'APERAK',business_code:'APERAK'}),profile('old',false)]
