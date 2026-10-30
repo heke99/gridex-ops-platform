@@ -1,0 +1,87 @@
+// Backup/restore-hjälpare för CUSTODY01.05: pg_dump -Fc av stackens databas, pg_restore till en NY databas på samma server, jämförelse.
+// Bara databasen t6_restore_<runid> skapas/tas bort; inga andra databaser eller containrar ändras.
+// Verktyg: värdens pg_dump/pg_restore om major >= serverns; annars `docker exec` i stackens egen db-container (supabase_db_*, endast pg_dump/pg_restore).
+import { spawnSync } from 'node:child_process'
+import { closeSync, mkdirSync, openSync, readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+import { custodyDir, sha256, sqlIn } from './base'
+import { dbUrl } from '../seed.mjs'
+
+export type Tooling = { kind: 'host'; hostMajor: number; serverMajor: number } | { kind: 'docker'; container: string; hostMajor: number | null; serverMajor: number }
+
+export function chooseTooling(): Tooling {
+  const serverMajor = Number(sqlIn<number>(`SELECT to_jsonb(current_setting('server_version_num')::int/10000)`))
+  const v = spawnSync('pg_dump', ['--version'], { encoding: 'utf8' })
+  const hostMajor = v.status === 0 ? Number(/(\d+)(?:\.\d+)?/.exec(v.stdout)?.[1] ?? 0) : null
+  if (hostMajor !== null && hostMajor >= serverMajor && spawnSync('pg_restore', ['--version']).status === 0) return { kind: 'host', hostMajor, serverMajor }
+  const ps = spawnSync('docker', ['ps', '--filter', 'name=supabase_db_', '--format', '{{.Names}}'], { encoding: 'utf8' })
+  const names = ps.stdout.split('\n').map((s) => s.trim()).filter(Boolean)
+  if (names.length !== 1) throw new Error(`BLOCKED: varken host-pg_dump >= ${serverMajor} (host: ${hostMajor}) eller exakt en supabase_db_*-container (${names.join(',') || 'ingen'})`)
+  return { kind: 'docker', container: names[0], hostMajor, serverMajor }
+}
+
+const urlFor = (db: string): string => { const u = new URL(dbUrl()); u.pathname = `/${db}`; return u.toString() }
+export const restoreUrl = (db: string) => urlFor(db)
+const dbUser = () => decodeURIComponent(new URL(dbUrl()).username || 'postgres')
+const baseDb = () => new URL(dbUrl()).pathname.replace(/^\//, '') || 'postgres'
+
+export function dump(t: Tooling, file: string): { ms: number; bytes: number; sha256: string; stderr: string } {
+  const t0 = Date.now()
+  mkdirSync(join(file, '..'), { recursive: true })
+  const out = openSync(file, 'w', 0o600)
+  try {
+    const r = t.kind === 'host'
+      ? spawnSync('pg_dump', ['-Fc', '-d', dbUrl()], { stdio: ['ignore', out, 'pipe'], env: { ...process.env, PGPASSWORD: 'postgres' } })
+      : spawnSync('docker', ['exec', t.container, 'pg_dump', '-Fc', '-U', dbUser(), baseDb()], { stdio: ['ignore', out, 'pipe'] })
+    if (r.status !== 0) throw new Error(`pg_dump misslyckades (${r.status}): ${String(r.stderr).slice(0, 800)}`)
+    return { ms: Date.now() - t0, bytes: statSync(file).size, sha256: sha256(readFileSync(file)), stderr: String(r.stderr).slice(0, 2000) }
+  } finally { closeSync(out) }
+}
+
+export function createDb(db: string) { sqlIn(`CREATE DATABASE "${db}"`) }
+export function dropDb(db: string) { sqlIn(`DROP DATABASE IF EXISTS "${db}" WITH (FORCE)`) }
+export const dbExists = (db: string) => sqlIn<boolean>(`SELECT to_jsonb(EXISTS(SELECT 1 FROM pg_database WHERE datname='${db}'))`)
+
+export function restore(t: Tooling, file: string, db: string): { ms: number; status: number | null; errors: string[]; stderrTail: string } {
+  const t0 = Date.now()
+  const input = openSync(file, 'r')
+  try {
+    const r = t.kind === 'host'
+      ? spawnSync('pg_restore', ['--no-owner', '--no-acl', '-d', urlFor(db)], { stdio: [input, 'ignore', 'pipe'], env: { ...process.env, PGPASSWORD: 'postgres' }, maxBuffer: 64_000_000 })
+      : spawnSync('docker', ['exec', '-i', t.container, 'pg_restore', '--no-owner', '--no-acl', '-U', dbUser(), '-d', db], { stdio: [input, 'ignore', 'pipe'], maxBuffer: 64_000_000 })
+    const stderr = String(r.stderr)
+    return { ms: Date.now() - t0, status: r.status, errors: stderr.split('\n').filter((l) => /error:/i.test(l)).slice(0, 200), stderrTail: stderr.slice(-3000) }
+  } finally { closeSync(input) }
+}
+
+/** psql mot given URL; returnerar råa rader (fältsep '|'). */
+export function psqlRows(url: string, script: string): string[][] {
+  const r = spawnSync('psql', [url, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { input: script, encoding: 'utf8', timeout: 300_000, maxBuffer: 128_000_000, env: { ...process.env, PGPASSWORD: 'postgres' } })
+  if (r.status !== 0) throw new Error(`psql ${url.replace(/:[^:@/]*@/, ':***@')}: ${r.stderr.slice(0, 600)}`)
+  return r.stdout.split('\n').filter(Boolean).map((l) => l.split('|'))
+}
+
+export const baseTables = (url: string): string[] => psqlRows(url, `SELECT table_schema||'.'||table_name FROM information_schema.tables WHERE table_type='BASE TABLE' AND table_schema NOT IN ('pg_catalog','information_schema') ORDER BY 1;`).map((r) => r[0])
+
+const q = (t: string) => t.split('.').map((p) => `"${p}"`).join('.')
+export function rowCounts(url: string, tables: string[]): Record<string, number> {
+  const rows = psqlRows(url, tables.map((t) => `SELECT '${t}', count(*) FROM ${q(t)};`).join('\n'))
+  return Object.fromEntries(rows.map((r) => [r[0], Number(r[1])]))
+}
+
+/** Innehållshash (sha256 över ordnat innehåll) för kustodytabellerna; originalkropparna i ediel_messages, rows_sha256-fakturafiler, underlag, gridex_billing_source/received_sources, storage.objects-metadata. */
+export function contentHashes(url: string, allTables: string[]): Record<string, { rows: number; sha256: string }> {
+  const generic = (t: string, cols = 'to_jsonb(x)::text') => `SELECT '${t}', count(*), encode(sha256(convert_to(coalesce(string_agg(r, E'\\n' ORDER BY r),''),'UTF8')),'hex') FROM (SELECT ${cols} r FROM ${q(t)} x) z;`
+  const custom: Record<string, string> = {
+    'public.ediel_messages': generic('public.ediel_messages', `x.id::text||':'||coalesce(x.raw_payload,'')||':'||coalesce(x.immutable_payload_hash,'')||':'||coalesce(x.interchange_reference,'')`),
+    'public.invoice_export_files': generic('public.invoice_export_files', `x.id::text||':'||x.rows_sha256||':'||x.rows::text`),
+    'storage.objects': generic('storage.objects', `x.id::text||':'||x.bucket_id||':'||x.name||':'||coalesce(x.metadata::text,'')||':'||coalesce(x.version,'')`),
+  }
+  const scope = allTables.filter((t) => t === 'public.billing_underlays' || t === 'public.ediel_messages' || t === 'public.invoice_export_files' || t === 'storage.objects' || t.startsWith('gridex_billing_source.') || t.startsWith('gridex_received_sources.') || t.startsWith('gridex_ediel_inbound_receptions.'))
+  const rows = psqlRows(url, scope.map((t) => custom[t] ?? generic(t)).join('\n'))
+  return Object.fromEntries(rows.map((r) => [r[0], { rows: Number(r[1]), sha256: r[2] }]))
+}
+
+/** Triggerinventering (skydden som ska överleva återställning). */
+export const triggerInventory = (url: string): string[] => psqlRows(url, `SELECT c.relnamespace::regnamespace::text||'.'||c.relname||':'||t.tgname FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid WHERE NOT t.tgisinternal AND c.relnamespace::regnamespace::text NOT IN ('pg_catalog','information_schema') ORDER BY 1;`).map((r) => r[0])
+export { custodyDir }
