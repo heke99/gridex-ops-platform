@@ -54,6 +54,12 @@ function birthRefusalReason(error: unknown): string | null {
   return typeof message === 'string' ? message.slice(0, 200) : null
 }
 
+/** Payload-free DB/runtime error for logs: code + truncated message only.
+ * details/hint (and any other field) can carry raw wire bytes and are never logged. */
+function safeDbError(error: unknown): { code: string | null; message: string | null } {
+  return { code: postgresErrorCode(error), message: birthRefusalReason(error) }
+}
+
 /** Structured, payload-free log for a check-constraint (23514) refusal at birth. */
 function logInboundBirthCheckRefusal(input: { error: unknown; stage: string; messageFamily: string | null; messageCode: string | null; inboundEmailMessageId: string; interchangeReference: string | null }) {
   if (postgresErrorCode(input.error) !== '23514') return
@@ -610,7 +616,7 @@ export async function createInboundEdielMessage(input: {
       if (isUnsafeBatch7aTransactionConflict(result.error)) {
         console.warn(
           '[inbound-mail] Inbound ediel_message blockerades av gammalt för grovt Batch 7A transaction-unique-index. Kör migration 20260604113000_fix_ediel_inbound_transaction_dedupe.sql och synka igen.',
-          { code: postgresErrorCode(result.error), message: birthRefusalReason(result.error) },
+          safeDbError(result.error),
         )
         return null
       }
@@ -620,7 +626,7 @@ export async function createInboundEdielMessage(input: {
       messageCode: insertPayload.message_code ?? null, inboundEmailMessageId, interchangeReference: input.parsed.interchangeReference ?? null })
     // Payload-free: details/hint can carry the raw wire, so only code+message.
     if (postgresErrorCode(result.error) !== '23514') console.warn('[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message', {
-      code: postgresErrorCode(result.error), message: birthRefusalReason(result.error), inboundEmailMessageId,
+      ...safeDbError(result.error), inboundEmailMessageId,
     })
     return null
   }
@@ -677,7 +683,7 @@ export async function createUnresolvedInboundEdielMessage(input: {
     })
     edielMessageId = admitted.sourceMessageId
   } catch (error) {
-    console.warn('[inbound-mail] Teknisk källa hålls utan säker originalauktoritet', error)
+    console.warn('[inbound-mail] Teknisk källa hålls utan säker originalauktoritet', safeDbError(error))
     return null
   }
 
@@ -748,7 +754,7 @@ async function updateOutboundEdielAckState(input: {
     .limit(5)
 
   if (error) {
-    console.warn('[inbound-mail] Kunde inte läsa outbound ediel_messages för ACK-update', error)
+    console.warn('[inbound-mail] Kunde inte läsa outbound ediel_messages för ACK-update', safeDbError(error))
     return
   }
 
@@ -764,7 +770,7 @@ async function updateOutboundEdielAckState(input: {
     })
     .in('id', messageIds)
 
-  if (updateError) console.warn('[inbound-mail] Kunde inte uppdatera outbound ediel_messages ACK-status', updateError)
+  if (updateError) console.warn('[inbound-mail] Kunde inte uppdatera outbound ediel_messages ACK-status', safeDbError(updateError))
 
   await supabaseService.from('ediel_message_events').insert(messageIds.map((id) => ({
     company_id: input.companyId,
@@ -839,7 +845,7 @@ async function updateMeteringPermissionFromZ14(input: {
       })
       .eq('company_id', input.companyId)
       .eq('id', sourceId)
-    if (error) console.warn('[inbound-mail] Kunde inte uppdatera metering_permission från Z14', error)
+    if (error) console.warn('[inbound-mail] Kunde inte uppdatera metering_permission från Z14', safeDbError(error))
     return
   }
 
@@ -852,7 +858,7 @@ async function updateMeteringPermissionFromZ14(input: {
       .limit(5)
 
     if (error) {
-      console.warn('[inbound-mail] Kunde inte leta metering_permission via grid_owner_data_request', error)
+      console.warn('[inbound-mail] Kunde inte leta metering_permission via grid_owner_data_request', safeDbError(error))
       return
     }
 
@@ -873,7 +879,7 @@ async function updateMeteringPermissionFromZ14(input: {
       })
       .eq('company_id', input.companyId)
       .eq('id', rows[0].id)
-    if (updateError) console.warn('[inbound-mail] Kunde inte uppdatera metering_permission via grid_owner_data_request', updateError)
+    if (updateError) console.warn('[inbound-mail] Kunde inte uppdatera metering_permission via grid_owner_data_request', safeDbError(updateError))
   }
 }
 
@@ -939,7 +945,7 @@ async function importUtiltsMeteringValue(input: {
     .eq('company_id', input.companyId)
     .eq('canonical_dedupe_key', canonicalDedupeKey)
     .maybeSingle()
-  if (existing.error) console.warn('[inbound-mail] Kunde inte kontrollera UTILTS dedupe', existing.error)
+  if (existing.error) console.warn('[inbound-mail] Kunde inte kontrollera UTILTS dedupe', safeDbError(existing.error))
   if ((existing.data as { id?: string } | null)?.id) return
 
   const outbound = matchedOutboundRow(input.outboundMatch)
@@ -1077,7 +1083,7 @@ async function updateBusinessStatusFromInbound(input: {
       })
       .eq('company_id', input.companyId)
       .eq('id', sourceId)
-    if (error) console.warn('[inbound-mail] Kunde inte markera metering_permission som terminated från Z15V', error)
+    if (error) console.warn('[inbound-mail] Kunde inte markera metering_permission som terminated från Z15V', safeDbError(error))
   }
 
 

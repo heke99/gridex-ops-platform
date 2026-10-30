@@ -7,9 +7,9 @@ import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
 import {mapEdielErrorToAck} from '@/lib/ediel/ack/errorCodeMapper'
 
-const io=vi.hoisted(()=>({rpc:vi.fn(),actor:vi.fn(),tables:{} as Record<string,{data:unknown;error:unknown}>,inserts:[] as Array<{table:string;row:unknown}>,reception:vi.fn()}))
+const io=vi.hoisted(()=>({rpc:vi.fn(),actor:vi.fn(),tables:{} as Record<string,{data:unknown;error:unknown}>,inserts:[] as Array<{table:string;row:unknown}>,reception:vi.fn(),admit:vi.fn()}))
 vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:io.actor}))
-vi.mock('@/lib/ediel/inbound/receptions',async original=>({...await original<Record<string,unknown>>(),recordInboundReception:io.reception,requireFirstReception:()=>undefined}))
+vi.mock('@/lib/ediel/inbound/receptions',async original=>({...await original<Record<string,unknown>>(),recordInboundReception:io.reception,requireFirstReception:()=>undefined,admitUnattributedTechnicalSource:io.admit}))
 vi.mock('@/lib/ediel/core/dedupe',async original=>({...await original<Record<string,unknown>>(),findInboundDuplicateByCanonicalIdentity:async()=>null}))
 vi.mock('@/lib/supabase/service',()=>{
  function chain(table:string):unknown{
@@ -24,7 +24,7 @@ vi.mock('@/lib/supabase/service',()=>{
  }
  return {supabaseService:{rpc:io.rpc,from:(table:string)=>chain(table)}}
 })
-import {createInboundEdielMessage,observeUtiltsMissingBgmSyntaxNegative} from '@/lib/inbound-mail/inboundStatusUpdater'
+import {applySafeInboundStatusUpdate,createInboundEdielMessage,createUnresolvedInboundEdielMessage,observeUtiltsMissingBgmSyntaxNegative} from '@/lib/inbound-mail/inboundStatusUpdater'
 
 const company='00000000-0000-4000-8000-000000000011',actor='00000000-0000-4000-8000-000000000012'
 const mail='00000000-0000-4000-8000-000000000013',parse='00000000-0000-4000-8000-000000000014',source='00000000-0000-4000-8000-000000000015'
@@ -131,4 +131,31 @@ it.each([
  expect(logged).not.toContain('UNB+')
  expect(logged).not.toContain('NAD+')
  expect(logged).toContain(base.code)
+})
+
+function consoleText(errorSpy:{mock:{calls:unknown[][]}}){return JSON.stringify([...warn.mock.calls,...errorSpy.mock.calls])}
+it('unattributed technical admission failure never logs details/hint payload',async()=>{
+ const raw=utilts(),errorSpy=vi.spyOn(console,'error').mockImplementation(()=>undefined)
+ io.admit.mockRejectedValue({code:'23514',message:'unattributed_refused',details:raw,hint:raw})
+ expect(await createUnresolvedInboundEdielMessage({actorUserId:actor,inboundEmailMessageId:mail,parseResultId:parse,parsed:parseEdifactPayload(raw),
+  tenantStatus:'unassigned',reasons:[],candidates:[],environment:'test'})).toBeNull()
+ const logged=consoleText(errorSpy);errorSpy.mockRestore()
+ expect(io.admit).toHaveBeenCalledOnce()
+ expect(logged).toContain('unattributed_refused');expect(logged).not.toContain('UNB+');expect(logged).not.toContain('NAD+')
+})
+it('outbound ACK-state read failure never logs details/hint payload',async()=>{
+ const raw=["UNB+UNOC:3+70007:ZZ+16724:ZZ+261030:1508+CTRLREF0001++23-DDQ-E66-T","UNH+1+CONTRL:2:2:UN:EDIEL2","UCI+ORIGREF0001+16724:ZZ+70007:ZZ+7","UNT+3+1","UNZ+1+CTRLREF0001"].join("'")+"'"
+ const errorSpy=vi.spyOn(console,'error').mockImplementation(()=>undefined)
+ let reads=0
+ Object.defineProperty(io.tables,'ediel_messages',{configurable:true,enumerable:true,get:()=>{
+  if(!io.inserts.some(row=>row.table==='ediel_messages'))return {data:[],error:null}
+  if(++reads===1)return {data:{id:source},error:null}
+  return {data:null,error:{code:'XX000',message:'ack_state_read_failed',details:raw,hint:raw}}}})
+ io.reception.mockResolvedValue({classification:'first_reception'})
+ await applySafeInboundStatusUpdate({companyId:company,environment:'test',parsed:parseEdifactPayload(raw),actorUserId:actor,inboundEmailMessageId:mail,parseResultId:parse,
+  outboundMatch:{status:'matched',entityType:'outbound_request',entityId:'00000000-0000-4000-8000-000000000016',candidates:[]} as never,
+  meteringPointMatch:{status:'unmatched',candidates:[]} as never}).catch(e=>{(globalThis as Record<string,unknown>).__e=String(e?.message??e)})
+ expect((globalThis as Record<string,unknown>).__e).toBeUndefined()
+ const logged=consoleText(errorSpy);errorSpy.mockRestore()
+ expect(logged).toContain('ack_state_read_failed');expect(logged).not.toContain('UNB+');expect(logged).not.toContain('UCI+')
 })
