@@ -41,7 +41,7 @@ beforeAll(async () => {
     oracle: { intervalCount: fx.oracle.intervalCount, totalKwh: fx.oracle.totalKwhText, lines: fx.oracle.lines, vatCents: fx.oracle.vatCents, totalExVatCents: fx.oracle.totalExVatCents, totalIncVatCents: fx.oracle.totalIncVatCents, perDay: fx.oracle.perDay },
     days: fx.days.map(day => ({ day: day.day, sourceId: day.sourceId, transactionRef: day.transactionRef, bgmReference: day.bgmReference, rawSha256: day.rawSha256, meteringValues: day.meteringValueIds.length, normalized: day.normalizedIds.length, persistMs: day.persistMs, ingestMs: day.ingestMs })),
   })
-}, 3_600_000)
+}, 3 * 3_600_000) // UTILTS ingest ≈1.46 s per value (finding 007): 2688 values ≈ 65 min, plus margin
 
 afterAll(() => {
   // Written even when a step failed, so the substitutions of a partial run stay visible.

@@ -92,7 +92,7 @@ beforeAll(async () => {
   underlayId = rows[0]
   writeArtifact('main04-fixture.json', { note: 'ids only', companyId: fx.companyId, customerId: fx.customerId, pointId: fx.pointId, contractId: fx.contractId, underlayId, salt: fx.salt,
     oracle: { totalKwh: fx.oracle.totalKwhText, lines: fx.oracle.lines, vatCents: fx.oracle.vatCents, totalExVatCents: fx.oracle.totalExVatCents, totalIncVatCents: fx.oracle.totalIncVatCents } })
-}, 3_600_000)
+}, 3 * 3_600_000) // UTILTS ingest ≈1.46 s per value (finding 007): 2688 values ≈ 65 min, plus margin
 
 afterAll(() => {
   writeArtifact('main04-substitutions.json', SUBSTITUTIONS)
