@@ -199,12 +199,14 @@ Det är samma driftklass som 002. Det är obekräftat om produktion har funktion
 
 ## Utfall per ID
 
-Utfallen gäller t5r3 med harness och app `241a29db`, och skanningen efter paketen med harness `39f0fd02`. PASS sätts först efter oberoende granskning. Granskningsrunda 3 (13:06Z) godkände PASS för AUTH01.01–.05, EVENT01.02 och API01.02 och underkände AUTH01.06. AUTH01.06 är omkörd och väntar på omgranskning.
+Utfallen gäller t5r3 med harness och app `241a29db`, och skanningen efter paketen med harness `39f0fd02`. PASS sätts först efter oberoende granskning. Granskningsrunda 3 (13:06Z) godkände PASS för AUTH01.01–.05, EVENT01.02 och API01.02 och underkände AUTH01.06. Efter omkörning mot de levererade paketen godkändes AUTH01.06 vid omgranskning (13:24Z).
+
+**Bekräftande skanning.** Ett paket kan inte lista en skanning av sig självt. Därför skannas de slutliga paketbytes en gång till efter varje ändring (`scan-confirm/`), och resultatet kvitteras i PR930 med rapportens sha256. Den första bekräftande skanningen (13:20:28Z, sha `fc8aa3df…a599`) gällde `c6aa721d`.
 
 | ID | Stegutfall | Föreslaget | Blockerare |
 |---|---|---|---|
 | AUTH01.01–.05 | alla gröna (AUTH01.05 i två delar) | **PASS** (godkänt i runda 3) | – |
-| AUTH01.06 | gröna: klient-/svarsskanning, och skanning efter alla körningar och efter att paketen skrivits, 0 träffar | PARTIAL, väntar på omgranskning för PASS | – |
+| AUTH01.06 | gröna: klient-/svarsskanning, och skanning efter alla körningar och efter att paketen skrivits, 0 träffar | **PASS** (godkänt vid omgranskning) | – |
 | EVENT01.01, .03, .05 | gröna | PARTIAL | 001/002 (subscription bara via fixtur), 003 |
 | EVENT01.02 | grönt | **PASS** (godkänt i runda 3) | – |
 | EVENT01.04 | rött (`failure_count` 0) | FAIL | 002 |

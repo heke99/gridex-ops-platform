@@ -39,7 +39,7 @@
   },
   "startedAtUtc": "2026-10-30T12:51:58Z",
   "finishedAtUtc": "2026-10-30T12:55:48Z",
-  "state": "PARTIAL",
+  "state": "PASS",
   "executionScope": "ISOLATED_NATIVE",
   "command": "SIM_HOME=$SIM_HOME RUN_DIR=$RUN_DIR SIM_REPORT=<evidens>/auth01-report.json bash scripts/simulation/track5/run.sh scenarios/auth01.test.ts",
   "scenarioFile": "scenarios/auth01.test.ts",
@@ -281,13 +281,13 @@
   "notVerified": [],
   "findingsIds": [],
   "blocker": null,
-  "nextAction": "Omgranskning av AUTH01.06 efter skanning av levererade paket; PASS sätts först efter godkännande.",
+  "nextAction": "Ingen; PASS godkänt av oberoende granskare. Bekräftande skanning av slutliga paketbytes kvitteras i PR930.",
   "review": {
-    "reviewer": "oberoende granskare, runda 3",
-    "reviewedAtUtc": "2026-10-30T13:06:00Z",
-    "verdict": "REJECT: paketskanningen täckte inte de levererade t5r3-paketen",
-    "remediation": "skanningen omkörd efter packet.py mot levererad katalog (harness 39f0fd02); väntar på omgranskning"
+    "reviewer": "oberoende granskare (separat agent, ej författare), runda 3 och omgranskning",
+    "reviewedAtUtc": "2026-10-30T13:24:00Z",
+    "verdict": "APPROVE PASS",
+    "scope": "skanning av levererade t5r3-paket (harness 39f0fd02), additionalRuns, evidens-sha i final/; tidigare REJECT 13:06Z åtgärdad"
   },
   "cleanupReceipt": "EJ UTFÖRD: stacken behålls för omkörning efter rättningarna. Efter t5r3:s körningar applicerades migrationerna 20261030130300 (005), 20261030130000 (002) och 20261030130200 (003) för native-tester, registrerade som pendingGenCapture i SIM_HOME/applied-migrations.tsv; t5r3:s evidens (applied-migrations.tsv tom) är tagen före dem. Nästa spårkörning kräver ny replay. Föregående stack revs 12:47:14Z med down.sh: \"down: inget kvar\".",
-  "heartbeatAtUtc": "2026-10-30T13:12:00Z"
+  "heartbeatAtUtc": "2026-10-30T13:25:00Z"
 }
