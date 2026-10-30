@@ -134,9 +134,10 @@ function tokenizeSegments(rawPayload:string|null|undefined,completedOnly:boolean
   return {
     una,
     segments: rawSegments.map(({ source, startOffset, endOffset }, index) => {
-      // A repeated UNA inside the stream is service advice, not data; keep its
-      // legacy trim so a concatenated second interchange is still rejected.
-      const raw = /^\s*UNA/i.test(source) ? source.trim() : trimUnreleased(source, una.releaseCharacter)
+      // A UNA not at offset 0 (after junk or a prior interchange) ends its own
+      // segment with service advice, not data; keep the legacy trim so it is
+      // still rejected instead of being read as a released space.
+      const raw = /UNA[\s\S]{5}$/i.test(source) ? source.trim() : trimUnreleased(source, una.releaseCharacter)
       const elements = splitReleased(raw, una.dataElementSeparator, una.releaseCharacter)
       const token: EdifactTokenizedSegment = {
         index,

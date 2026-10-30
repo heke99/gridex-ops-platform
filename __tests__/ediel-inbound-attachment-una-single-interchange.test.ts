@@ -88,3 +88,13 @@ describe('released trailing space before a segment terminator (finding 004, trac
     expect(ftx.raw).toBe('FTX+AAA+++X??'); expect(ftx.elements[4]).toBe('X?')
   })
 })
+
+describe('UNA service advice that is not at offset 0 is never released data (finding 004 follow-up)', () => {
+  const tail = "UNB+UNOC:3+A+B+261029:1200+R1'FTX+AAA+++ABC? 'UNZ+1+R1'"
+  it.each(['unexpected-prefix', '  junk\r\n', "UNB+UNOC:3+A+B+261029:1200+R0'UNZ+0+R0'"])('rejects %j before UNA', prefix => {
+    expect(() => tokenizeEdifact(`${prefix}UNA:+.? '${tail}`)).toThrow('edifact_dangling_release_character')
+  })
+  it('a leading UNA still allows the released trailing space', () => {
+    expect(tokenizeEdifact(`UNA:+.? '${tail}`).segments.find(s => s.tag === 'FTX')!.elements[4]).toBe('ABC ')
+  })
+})
