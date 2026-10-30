@@ -181,22 +181,32 @@ function tenantSnapshot(companyId: string) {
 }
 const tally = (rows: ValueState[]) => rows.reduce<Record<string, number>>((acc, row) => ({ ...acc, [`${row.billing_status}/${row.billing_gate_status}`]: (acc[`${row.billing_status}/${row.billing_gate_status}`] ?? 0) + 1 }), {})
 
-const S: { winter?: { f: Ground; periodId: string; received: Received }; winterSnapshot?: unknown; summer?: { f: Ground; periodId: string; received: Received }; summerFirst?: ValueState[]; summerItems?: ReturnType<typeof openItems> } = {}
+const WINTER_START = '2026-10-28'
+const S: { winter?: { f: Ground; periodId: string; received: Received; result: Awaited<ReturnType<typeof ingest>> }; winterSnapshot?: unknown; summer?: { f: Ground; periodId: string; received: Received }; summerFirst?: ValueState[]; summerItems?: ReturnType<typeof openItems> } = {}
+
+/** Tenant B / winter control: supply from WINTER_START (CET, after the 2026-10-25 DST change, inside the E66 rule-pack basis), E66 for that day. Created once. */
+async function winterTenant(): Promise<NonNullable<typeof S.winter>> {
+  if (S.winter) return S.winter
+  const { f, periodId } = await activatedSupply(WINTER_START)
+  const received = await receiveHourlyE66(f, 2026, 10, 28)
+  const result = await ingest(f, received)
+  S.winter = { f, periodId, received, result }
+  S.winterSnapshot = tenantSnapshot(f.companyId)
+  return S.winter
+}
 
 describe('billing gate: a database refusal for an unqualified supply source blocks one value, not the UTILTS ingest (sim 001a)', () => {
-  it('(b) winter start 2026-03-01 (market start = local midnight): E66 for the start day, all 24 values billable, no open item', async () => {
-    const { f, periodId } = await activatedSupply('2026-03-01')
-    const received = await receiveHourlyE66(f, 2026, 3, 1)
+  it(`(b) winter start ${WINTER_START} (CET, market start = local midnight): E66 for the start day, all 24 values billable, no open item`, async () => {
+    const winter = await winterTenant()
+    const { f, periodId, received } = winter
+    expect(sql<string>(`SELECT to_json(to_char(market_start_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"')) FROM public.customer_supply_periods WHERE id=${literal(periodId)}`)).toBe('2026-10-27T23:00:00Z')
     expect(received.readIn).toBe(HOURS)
-    const result = await ingest(f, received)
-    expect(result).toEqual({ error: null, returned: HOURS })
+    expect(winter.result).toEqual({ error: null, returned: HOURS })
     const rows = values(f.companyId)
     expect(rows).toHaveLength(HOURS)
     expect(tally(rows)).toEqual({ 'billable/eligible': HOURS })
     expect(rows.every(row => row.supply_period_id === periodId)).toBe(true)
     expect(openItems(f.companyId)).toEqual([])
-    S.winter = { f, periodId, received }
-    S.winterSnapshot = tenantSnapshot(f.companyId)
   })
 
   it('(a) summer start 2026-09-30: E66 for the start day, ingest completes, 24 read = 24 persisted, 1 blocked supply_source_unqualified, 23 billable, one open item', async () => {
@@ -234,9 +244,15 @@ describe('billing gate: a database refusal for an unqualified supply source bloc
   })
 
   it('(c) tenant isolation: the other tenant is unchanged by these ingests and its values cannot be read or gated in this tenant', async () => {
-    must(S.winter && S.summer, 'cases_missing')
-    const a = S.summer.f, b = S.winter.f
-    expect(tenantSnapshot(b.companyId)).toEqual(S.winterSnapshot)
+    must(S.summer, 'tenant_a_summer_supply_missing: case (a) did not create tenant A')
+    // Tenant B is (b)'s tenant when (b) created it; otherwise (c) creates its own B (needs no B billing outcome).
+    const createdHere = !S.winter
+    const b = (await winterTenant()).f
+    const a = S.summer.f
+    must(S.winterSnapshot, 'tenant_b_snapshot_missing')
+    expect(values(b.companyId).length, 'tenant B has stored values').toBeGreaterThan(0)
+    // Unchanged by A's ingest and rerun (B created before them) or by the denied attempts below.
+    if (!createdHere) expect(tenantSnapshot(b.companyId)).toEqual(S.winterSnapshot)
     const bRaw = await supabaseService.from('metering_values').select('*').eq('company_id', b.companyId).limit(1).single()
     must(!bRaw.error && bRaw.data, `tenant_b_value_unreadable:${bRaw.error?.message}`)
     const bValue = bRaw.data as unknown as MeteringValueRow
