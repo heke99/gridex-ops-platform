@@ -235,5 +235,5 @@
     "scope": "t5r3-paket @ 4aada5b6 mot privat evidens, orakel och harness"
   },
   "cleanupReceipt": "EJ UTFÖRD: stacken behålls för omkörning efter rättningarna. Efter t5r3:s körningar applicerades migrationerna 20261030130300 (005), 20261030130000 (002) och 20261030130200 (003) för native-tester, registrerade som pendingGenCapture i SIM_HOME/applied-migrations.tsv; t5r3:s evidens (applied-migrations.tsv tom) är tagen före dem. Nästa spårkörning kräver ny replay. Föregående stack revs 12:47:14Z med down.sh: \"down: inget kvar\".",
-  "heartbeatAtUtc": "2026-10-30T13:25:00Z"
+  "heartbeatAtUtc": "2026-10-30T13:23:00Z"
 }
