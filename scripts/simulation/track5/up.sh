@@ -213,7 +213,8 @@ else
   [[ -x "$RUN_DIR/node_modules/.bin/next" ]] || die "RUN_DIR/node_modules saknas (sim-runner kör npm ci)"
   log "next build (logg: $SIM_HOME/logs/build.log)"
   rm -f "$SIM_HOME/built-commit"
-  (cd "$RUN_DIR" && set -a && . "$SIM_HOME/app.env" && set +a && npm run build) >"$SIM_HOME/logs/build.log" 2>&1 \
+  # next build typkontrollerar i en underprocess som inte ärver byggskriptets --max-old-space-size (OOM vid ~2 GB).
+  (cd "$RUN_DIR" && set -a && . "$SIM_HOME/app.env" && set +a && NODE_OPTIONS="--max-old-space-size=6144" npm run build) >"$SIM_HOME/logs/build.log" 2>&1 \
     || die "bygget misslyckades, se $SIM_HOME/logs/build.log"
   printf '%s\n' "$HEAD_SHA" >"$SIM_HOME/built-commit"
 fi
