@@ -110,3 +110,21 @@ file cites them by path and SHA256 only.
 | 20:45 | run main03 #6 | exit 1, finding 008 (harness bug) |
 | 20:46–21:17 | run main03 #7 | interrupted (exit 130), measurement 007 |
 | 21:18 | run main03 #8 | running |
+
+### 20261029-3f1a8ab1/claude-track1/009 — environment: container restarted twice
+- IDs: all running work. Category: miljö.
+- Restart 1: between 2026-10-29T22:17Z and 2026-10-30T11:49Z (uptime 0 at 11:49:25Z). dockerd, app and the vitest process were gone. On dockerd restart, Docker's restart policy revived the old stack `t1-20261029T201808Z-6576e10a` from its volume (same pg system_identifier 7702186716638527527). Treated as dirty; removed with `down.sh` at 11:52:05Z (clean: 0 containers, 0 volumes, 0 app processes).
+- Restart 2: ~2026-10-30T12:05Z (uptime 0 at 12:09:10Z), during MAIN03 attempt 9 on stack `t1-20261030T115211Z-a961d9e5`; the run left `run.lock` with a dead PID (removed by T1 acting as sim-runner); revived stack removed by `down.sh` at 12:09:49Z (clean).
+- Also observed: after each restart dockerd's first start failed with "timeout waiting for containerd to start" until the stale containerd process was killed.
+- Effect: attempt 9 → `BLOCKED: miljö` (not FAIL). Mitigation: state and evidence stay under `$HOME` (`/root/sim-home/track1`); stack start and run now launched as one detached process (`setsid nohup`), which still does not survive a container restart.
+
+### MAIN03 attempt 8 — beforeAll timeout (finding 007)
+- Run `20261029T211717Z-main03` (env `t1-20261029T201808Z-6576e10a`, harness `ba065053`): exit 1 after 3 612 954 ms, "Hook timed out in 3600000ms" during UTILTS ingest; 5/5 skipped. Hook timeout raised to 3 h (`e5565a08`). Harness conformed to the PR935 contract (`904448b5`).
+
+| Time (UTC) | Step | Result |
+|---|---|---|
+| 21:17–22:17 | run main03 #8 | exit 1, hook timeout (007) |
+| 11:49–11:52 (10-30) | restart 1 handled | old stack down, clean |
+| 11:52–11:59 | up.sh | PASS, replay 168 s, fingerprint 5168f69b…, build 227 s |
+| 11:59–~12:05 | run main03 #9 | BLOCKED: miljö (restart 2) |
+| 12:09–12:10 | restart 2 handled | stack down, clean; up + run #10 detached |

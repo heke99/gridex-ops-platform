@@ -8,7 +8,7 @@
     {
       "kind": "harness",
       "branch": "claude/sim-20261029-track1",
-      "commit": "ba065053",
+      "commit": "e5565a08",
       "path": "scripts/simulation/track1/"
     }
   ],
@@ -90,6 +90,25 @@
       "exit": 130,
       "run.log": "6856a0744dc86ac12a7e7dc0e71716c0588037afa3ed3bfabc12fbdbc476c0c4",
       "outcome": "fixture passed spot reuse and ingested UTILTS for ~31 min (perf finding 007); interrupted by T1 at 21:17Z because the loaded fixture code had a certain ReferenceError at its return (lockBody, fixed in 3ea5cd2b); fixture-only tenant, no scenario step run, no in-flight RPC afterwards"
+    },
+    {
+      "attempt": 8,
+      "run": "20261029T211717Z-main03",
+      "harnessCommit": "ba065053",
+      "exit": 1,
+      "wallMs": 3612954,
+      "report.json": "b2f2c07ee7c895ca710ed26a729833deef53eb29f0d562f758126d3b8d20f842",
+      "run.log": "0b32667f30fa6d906649da4a7a516dc67e08087e09a087e278df89d79979007c",
+      "outcome": "fixture beforeAll timed out at 3600000 ms during UTILTS ingest (finding 007); 5/5 skipped"
+    },
+    {
+      "attempt": 9,
+      "run": "20261030T115854Z-main03",
+      "environmentId": "t1-20261030T115211Z-a961d9e5",
+      "harnessCommit": "e5565a08",
+      "exit": null,
+      "run-meta.json": "0029a63e6c6bc7914bd397e85b5fde0deadec4af9c59588165cf7432d44328a4",
+      "outcome": "BLOCKED: miljö — killed by container restart ~12:05Z (finding 009); no report"
     }
   ],
   "findingsIds": [
@@ -97,9 +116,10 @@
     "20261029-3f1a8ab1/claude-track1/005",
     "20261029-3f1a8ab1/claude-track1/006",
     "20261029-3f1a8ab1/claude-track1/007",
-    "20261029-3f1a8ab1/claude-track1/008"
+    "20261029-3f1a8ab1/claude-track1/008",
+    "20261029-3f1a8ab1/claude-track1/009"
   ],
   "blocker": null,
-  "nextAction": "Attempt 8 (harness ba065053) running; evaluate whole-file result, then sim-reviewer",
+  "nextAction": "Attempt 10 running detached on stack started 2026-10-30 ~12:10Z; then sim-reviewer",
   "cleanupReceipt": null
 }
