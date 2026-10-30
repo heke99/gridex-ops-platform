@@ -3,7 +3,7 @@
   "generated_at": "2026-10-29T01:17:33.063874+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run40798577553-job123200908515-attempt1",
   "sha256": "7f6ae05f83bb8fe7b5d1ce18b7e96e5397a518069278a14e85f586caef694972",
-  "latest_migration": "20261028091248_allow_contract_signature_before_supply_start.sql",
+  "latest_migration": "20261029213000_contract_termination_notice_first_wins.sql",
   "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of explicit POA evidence and the permanent confirmation runtime fence with the existing company/request unique key; no native/parity or production-installation result implied.",
   "composition_capture_pending": false,
   "capture": {
