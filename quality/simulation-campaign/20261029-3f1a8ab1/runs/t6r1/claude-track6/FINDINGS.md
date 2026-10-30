@@ -84,3 +84,35 @@ Status: utkast från claude-track6 för integratörens granskning. Inga state- e
 
 ## Avfärdade misstankar
 - Inga i denna packet.
+
+## CUSTODY01.01 – overlay-körning 20261030T211803Z-36bbd8 (state PARTIAL, ej PASS)
+- Packet: runs/t6r1/claude-track6/CUSTODY01.01/status.json. Miljö: SIM_HOME /home/user/sim-home/track6-overlay, RUN_DIR /root/sim-run/track6-overlay2, appCommit da20086f5 (= origin/main 614b1926 + track6-harness + donorhunkar i lib/inbound-mail/edielInboundProcessor.ts). run-identity.json: changedPathsOutsideSimulationAndQuality ["lib/inbound-mail/edielInboundProcessor.ts"], appCodeEqualsBase false. Overlay ej mergad.
+- Donorhunkar d74cf9942→560e3c597 och 7d8fefb51→da20086f5 från finance c400f695; processordiff sha256 22007380fe86b7e49cf65ab1d7852c10eac7363d0e123882d7ab2640532f8a55 (63 rader). Rapporterat av orkestratorn, ej omräknat här.
+- Ny ren replay: replay-commit da20086f5, fingerprint/schemaHash 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c (innehåll i fingerprint-filen), replay-at 1793394878, applied-migrations.tsv 0 byte.
+- Resultat: vitest 8/8, steps 8/8 passed, exit 0 (report.json steps[].status).
+  - HTTP-cron (normal ingång): after mails 25, edielMessages 25 av 28.
+  - Ersättningssteg med aktör: poll fetched 28, stored 3, deduped 25, errorsByMailbox "Okänt pollingfel." (klass track4/6). Reason "HTTP-cron gav 25 av 28 ediel_messages".
+  - 28 ediel_messages med raw_payload sha256 == manifest .edi (steg 6 passed); body_sha_mismatches []; stored_body_final_crlf_trimmed 28 av 28.
+  - tenant_mismatch i log.txt: 0 rader.
+  - Nedströms: contracts, supply_periods, billing_underlays, customer_invoices, underlay_bindings, normalized_metering_values = 0 före och efter; generate-underlay 2026-10 ger sourceRows 0, underlays 0.
+- Öppen observation, ej avgjord: orkestratorn uppger 56 ediel_messages för tenanten. report.json anger edielMessagesAfter 28 och cron-after edielMessages 25; 56 är inte verifierat här. Eventuellt inkluderas genererade utgående kvitton (ej verifierat).
+- Oracle CUSTODY01.01 (all-systems-scenarios.safe.json rad 544, commit 27862b90, sha256 96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3): "Alla28 fakturakällor återfinns via frysta referenser". Orkestratorns brief skrev "Alla 28"; orakelfilen saknar mellanslag. Ej nått: kedjan till låst faktura.
+- Varför inte PASS: (a) overlay ej mergad (track4/4-donor); (b) 3 av 28 endast via ersättningssteg, cron-batch 25 plus generiskt pollingfel; (c) kedjan till låst faktura blockerad på main av track6/004 (ready underlag avvisas 23514) och track1/010 (underlag timeout vid 2688 värden, orkestratorns uppgift); (d) ingen supply-/contract-fixture för tenant 16712.
+- Nästa åtgärd: efter merge av track4/4-donor, 004 och track1/010 köra om med supply-fixture och full kedja till låst faktura. Ingen körning gjord här.
+- Huvudvarianten (main 6454d540), originalfelkvitto, superseded av CRLF-orakelfixarna 033af0d86 och 6d4603141 (båda finns i repo):
+  - 20261030T161714Z-952f60: exit 1, vitest 5/8. log.txt: 28 rader "ediel_message_inbound_email_tenant_mismatch" (code 23514). Cron before/after mails 0, edielMessages 0. Ersättningssteg: "28 mail lagrade: expected +0 to be 28". Ingen ediel_message skapad.
+  - 20261030T162427Z-bd6f92: exit 1, vitest 5/8. body_sha_mismatches 56 poster (CRLF-klass, t.ex. "inbound/e66-001.eml: body sha256 41c8c211… != manifest a4b612a6…"). Cron before mails 28, after mails 28, edielMessages 0. log.txt: 0 tenant_mismatch-rader.
+  - Obs: orkestratorns brief säger att 952f60-cron lagrade mail men skapade 0 ediel_messages. report.json visar 0 mails för 952f60. Den beskrivningen gäller i stället 162427Z (ej verifierad tolkning av mails-räknaren).
+- T3-ursprung: import commit 01d97c27ec73544f6c303936fadf4cb73a5e25dc (finns i repo), manifestSha256 d2e0f795d68d07c8362309c1e412d88357b28c4a00ed1b7eaa7840e47dd2594d, 56 filer (28 par .eml/.edi) enligt report.json. "184/184 verifierade" är orkestratorns uppgift, ej verifierad här. Kohort B producerad med ej mergad #949 (beroende).
+- Smoke-körningen 20261030T211758Z-0e8acf (scenario smoke, exit 0) är inte del av utfallet.
+
+## DELIVERY01 – BLOCKED av finance-samordning (004), ej PASS
+- Packets: runs/t6r1/claude-track6/DELIVERY01.01 … DELIVERY01.05/status.json. Alla state BLOCKED, executionScope ISOLATED_NATIVE (attempted).
+- Körningar (report.json, exit 1 i alla): 20261030T161447Z-a24101 (summer-DST-gate: billing_gate_qualified_supply_source_required i setup C1–C4, relaterad till 001); 20261030T162009Z-f58e37 (gap/needs_review: DELIVERY01.04 C4 "blocker code in underlay row", status pending); 20261030T163400Z-c673e2 (UTILTS_MESSAGE_DATE_INVALID "Ogiltigt meddelandedatum", DTM+137 framtida datum, harnessfix); 20261030T163703Z-9c7deb (setup C1–C4 nådde generate-underlay, HTTP 500 billing_underlay_generate_failed, 4 av 4; nuvarande blockerare 004).
+- Blocker 004: 946c56630 är ancestor av c400f695 men inte av origin/main (614b1926d), verifierat med git merge-base. "adopted by T4" gäller T4:s overlay, inte main.
+- Scenariofil scripts/simulation/track6/scenarios/delivery01.test.ts finns i repo och i RUN_DIR. "Redo att köras om efter 004-merge" är orkestratorns påstående; ej kört här.
+- Harnesshistorik: c673e2 (DTM+137 framtida datum) klassas enligt brief som harnessfel och är rättad i harnessen (commit ej angiven). Gap/needs_review i f58e37 och a24101-gatefelet är observationer, ej klassade här; a24101 kopplas till 001.
+- Obekräftad kandidat (ej fynd) DELIVERY01.03: lib/billing/nordfinInvoiceXml.ts:79 skriver `el('Delivery', row.email ? 'EMAIL' : 'PRINT')`. Om en e-postadress finns skrivs EMAIL, även om fakturan är markerad som papper. Ej runtime-bekräftad. Enum i lib/pricing/commercialModel.ts:56-61 och DB-check i supabase/migrations/20260729200000_contract_commercial_selection_completion.sql:181 innehåller paper.
+- Obekräftad kandidat (ej fynd) DELIVERY01.04: readiness-koderna emitteras i lib/billing/billingReadiness.ts:194, :210, :268 och nås via evaluateBillingMonthInvoiceReadiness (lib/billing/invoiceReadiness.ts:299). Enda anropare i git grep på 614b1926 är lib/integrations/billing/invoiceExportCore.ts:53. Nordfin prepare→approve→file-vägen anropar den inte. Ej runtime-bekräftad. Orkestratorns referens "endast i invoiceReadiness.ts:299" är inte helt korrekt, eftersom koderna emitteras i billingReadiness.ts.
+- Notering till 004 (ändrar inte 004-texten): sha256 för sim-home/track6/logs/app.log är nu 92f4d8dfc88bab1da3db244d2167e71008c996504851ef30e24e1c3aa9f5a66d. 004-evidensen anger 65e4eebdde484c157911e3f3e50cfceff32656d7bf38f55e2b336e191abff054. Loggen är muterbar; hashen behöver omräknas i nästa 004-uppdatering.
+- DELIVERY01.05 kodgenomgång (ingen normal ändringsväg efter godkännande) är orkestratorns uppgift, ej verifierad här.

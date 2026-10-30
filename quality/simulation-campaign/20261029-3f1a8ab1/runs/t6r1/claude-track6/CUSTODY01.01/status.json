@@ -1,0 +1,361 @@
+{
+  "scenarioId": "CUSTODY01.01",
+  "campaignId": "20261029-3f1a8ab1",
+  "workerId": "claude-track6",
+  "model": "claude (session_01UHTg8Hora3xtZg4oHMrcGi)",
+  "runId": "20261030T211803Z-36bbd8",
+  "runIdNote": "Primär körning (overlay-varianten). Övriga försök listas i attempts. Smoke-körningen 20261030T211758Z-0e8acf (scenario smoke, exit 0) ingår inte i utfallet.",
+  "attempts": [
+    {
+      "variant": "main",
+      "runId": "20261030T161714Z-952f60",
+      "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
+      "simHome": "/home/user/sim-home/track6",
+      "startedAtUtc": "2026-10-30T16:17:14Z",
+      "endedAtUtc": "2026-10-30T16:17:49Z",
+      "exitCode": 1,
+      "vitest": {
+        "numTotalTests": 8,
+        "numPassedTests": 5,
+        "numFailedTests": 3
+      },
+      "failedSteps": [
+        "CUSTODY01.01 import av T3 kohort B oförändrad: AssertionError 'inbound/e66-001.eml: .edi ingår i .eml: expected false to be true' (custody01-01.test.ts:46:123)",
+        "CUSTODY01.01 ERSÄTTNINGSSTEG: AssertionError '28 mail lagrade: expected +0 to be 28' (custody01-01.test.ts:91:61)",
+        "CUSTODY01.01 28 ediel_messages: AssertionError '28 inkommande ediel_messages: expected [] to have a length of 28 but got +0'"
+      ],
+      "observedOutcome": "HTTP-cron: before mails 0 / edielMessages 0, after mails 0 / edielMessages 0. Ersättningssteg används med reason 'HTTP-cron gav 0 av 28 ediel_messages'. Ingen ediel_message skapades. Loggen innehåller 28 rader 'Kunde inte skapa/uppdatera inbound ediel_message' med code 23514 och message 'ediel_message_inbound_email_tenant_mismatch' (grep-antal 28 i log.txt).",
+      "supersededHarness": true,
+      "supersededNote": "Harnessfel i jämförelsen av .edi mot MIME-kropp (CRLF). Ersatt av 033af0d86 och 6d4603141 (båda existerar i repo; subjects: 'track6: custody01-01 jämför .edi mot MIME-kropp efter CRLF->LF (harnessfel)' respektive 'track6: custody01-01 orakel för lagrad kropp = mottagen MIME-kropp (CRLF); observation om slutlig CRLF (harnessfel)'). Behålls som originalfelkvitto, inte som utfall.",
+      "evidence": {
+        "report.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T161714Z-952f60/custody01-01/report.json",
+          "sha256": "d90868e5f7114bd3112a3e916a706055980bd3e7862caad9d82dc5c683db015e"
+        },
+        "log.txt": {
+          "path": "/home/user/sim-home/track6/runs/20261030T161714Z-952f60/custody01-01/log.txt",
+          "sha256": "6a1185c63f28ad641a948abb115af01769aec712c34cbb25a5e02644f554ffed"
+        },
+        "vitest.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T161714Z-952f60/custody01-01/vitest.json",
+          "sha256": "cfac1d71d268eaace7922a3862ee316b51f6aa3c46e270fde6f786d8147d7cf6"
+        },
+        "summary.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T161714Z-952f60/summary.json",
+          "sha256": "26537f5b80a30d3cd7a74e610831d20dc4239a22161ffaefb7632959053339f3"
+        }
+      },
+      "runIdentityFile": "saknas (ingen run-identity.json för denna körning)"
+    },
+    {
+      "variant": "main",
+      "runId": "20261030T162427Z-bd6f92",
+      "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
+      "simHome": "/home/user/sim-home/track6",
+      "startedAtUtc": "2026-10-30T16:24:27Z",
+      "endedAtUtc": "2026-10-30T16:26:28Z",
+      "exitCode": 1,
+      "vitest": {
+        "numTotalTests": 8,
+        "numPassedTests": 5,
+        "numFailedTests": 3
+      },
+      "failedSteps": [
+        "CUSTODY01.01 28 ediel_messages finns, med raw_payload sha256 == manifestets .edi och rätt tenant: AssertionError 'expected [ …(56) ] to deeply equal []' (custody01-01.test.ts:118:24)",
+        "CUSTODY01.01 originalen har bevarat bytes efter hela intaget: AssertionError 'I0b1d663fcb9d4: expected '7625f4dff51d599e4bbe4a96721f70c727f2a…' to be '02824a926ee2f7e50d3bcda1adc90cfcc4d74…''",
+        "CUSTODY01.01 nedströms (observation): samma AssertionError-form som ovan"
+      ],
+      "observedOutcome": "HTTP-cron: before mails 28 / edielMessages 0, after mails 28 / edielMessages 0 (fältnamnen som i report.json; tolkning av mails-räknaren ej verifierad). Ersättningssteg används med reason 'HTTP-cron gav 0 av 28 ediel_messages'. body_sha_mismatches: 56 poster (t.ex. 'inbound/e66-001.eml: body sha256 41c8c211… != manifest a4b612a6…'). Loggen innehåller 0 rader med ediel_message_inbound_email_tenant_mismatch.",
+      "supersededHarness": true,
+      "supersededNote": "Samma CRLF-harnessklass som ovan; jämförelsen av lagrad kropp mot manifestets sha256 är ej giltig i denna körning. Behålls som originalfelkvitto.",
+      "evidence": {
+        "report.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T162427Z-bd6f92/custody01-01/report.json",
+          "sha256": "446be5bbc99ece769b0c7749b5fa2359d31a2b8664e188c61db3f602a9833360"
+        },
+        "log.txt": {
+          "path": "/home/user/sim-home/track6/runs/20261030T162427Z-bd6f92/custody01-01/log.txt",
+          "sha256": "247c441047ee0ccd15a9fff95554875d39ad5aee89d597ac2e794cd2cbc912c8"
+        },
+        "vitest.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T162427Z-bd6f92/custody01-01/vitest.json",
+          "sha256": "136b93f53ccdf8ddc9de5a3fd0e2e629e246e44908397ed7a995d0225b4e391f"
+        },
+        "summary.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T162427Z-bd6f92/summary.json",
+          "sha256": "c5819711d66fb6cb9aad89f6383445a65939c3fc7e85e3dbe04723f256053832"
+        }
+      },
+      "runIdentityFile": "saknas (ingen run-identity.json för denna körning)"
+    },
+    {
+      "variant": "overlay",
+      "runId": "20261030T211803Z-36bbd8",
+      "appCommit": "da20086f5ee9fd3847aae15e9c90c26af5081a9e",
+      "simHome": "/home/user/sim-home/track6-overlay",
+      "runDir": "/root/sim-run/track6-overlay2",
+      "startedAtUtc": "2026-10-30T21:18:03Z",
+      "endedAtUtc": "2026-10-30T21:23:28Z",
+      "exitCode": 0,
+      "vitest": {
+        "numTotalTests": 8,
+        "numPassedTests": 8,
+        "numFailedTests": 0
+      },
+      "steps": "8/8 passed (se replacementSteps)",
+      "evidence": {
+        "report.json": {
+          "path": "/home/user/sim-home/track6-overlay/runs/20261030T211803Z-36bbd8/custody01-01/report.json",
+          "sha256": "b9074acdd7c5304d7df1376775eb036f29587c2a08bb03fcb01815fa8263c953"
+        },
+        "log.txt": {
+          "path": "/home/user/sim-home/track6-overlay/runs/20261030T211803Z-36bbd8/custody01-01/log.txt",
+          "sha256": "1fff5287c355906c859a28ee2286e78dd3dbc5ccc4ca504a4ba5a1d604a6135a"
+        },
+        "vitest.json": {
+          "path": "/home/user/sim-home/track6-overlay/runs/20261030T211803Z-36bbd8/custody01-01/vitest.json",
+          "sha256": "a7e49ea5736d741c56d48929e0dd0ed5a6855cce8b231375d1bfa14fc8bade9f"
+        },
+        "run-identity.json": {
+          "path": "/home/user/sim-home/track6-overlay/runs/20261030T211803Z-36bbd8/run-identity.json",
+          "sha256": "f43a034f1e378628460c77c890c3d6e1ca0d1f337a0fe589c174927e6bc18671"
+        },
+        "summary.json": {
+          "path": "/home/user/sim-home/track6-overlay/runs/20261030T211803Z-36bbd8/summary.json",
+          "sha256": "96f74633bd329af3fb7bb9270d15b4ea5082ca8d0c33cc09399ed7e2cf4b0c1b"
+        }
+      },
+      "evidenceDir": "/home/user/sim-home/track6-overlay/evidence/20261030T211803Z-36bbd8/custody01-01 (MANIFEST.sha256 i katalogen; innehåll ej kopierat)"
+    }
+  ],
+  "appCommit": "da20086f5ee9fd3847aae15e9c90c26af5081a9e",
+  "appBase": "614b1926d1332769ce7d6e33d3a7925ee8ad00b2",
+  "appCommitNote": "Overlay-varianten: origin/main 614b1926 (verifierat: origin/main = 614b1926d) + track6-harness + donorhunkar i lib/inbound-mail/edielInboundProcessor.ts. run-identity.json: builtCommit = runDirHead = da20086f5, appBase 614b1926, gitStatusPorcelain [], runDirClean true, changedPathsOutsideSimulationAndQuality [\"lib/inbound-mail/edielInboundProcessor.ts\"], appCodeEqualsBase false. Huvudvarianten: appCommit 6454d540 (ancestor av origin/main, enligt tidigare packet).",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "baselineNote": "Kampanjens baseline. Overlay-varianten jämförs mot origin/main 614b1926 (appBase).",
+  "patch": "Overlay: lib/inbound-mail/edielInboundProcessor.ts (donorhunkar, se overlayRefs). Ingen annan produktkodsändring i denna körning.",
+  "overlayRefs": [
+    {
+      "file": "lib/inbound-mail/edielInboundProcessor.ts",
+      "donorSource": "finance c400f695",
+      "donorHunks": [
+        "d74cf9942 -> 560e3c597",
+        "7d8fefb51 -> da20086f5"
+      ],
+      "diffLines": 63,
+      "diffSha256": "22007380fe86b7e49cf65ab1d7852c10eac7363d0e123882d7ab2640532f8a55",
+      "diffSha256Note": "Rapporterad av orkestratorn; samma som T4:s processordiff. Ej omräknad i denna packet (ingen git-diff av donorhunkarna utförd).",
+      "mergeStatus": "ej mergad på main; beroende av track4/4 (donor)"
+    }
+  ],
+  "environmentId": "t6-overlay-20261030 (SIM_HOME /home/user/sim-home/track6-overlay, replay-at 1793394878) for the overlay attempt; t6-local-20261030 for the main attempts",
+  "environmentNote": "SIM_HOME=/home/user/sim-home/track6-overlay (ny miljö); RUN_DIR=/root/sim-run/track6-overlay2. Huvudvarianten: SIM_HOME=/home/user/sim-home/track6.",
+  "databaseIdentity": "replay-commit da20086f5ee9fd3847aae15e9c90c26af5081a9e; fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c; replay-at 1793394878; ny ren replay för overlay-körningen.",
+  "identityRefs": [
+    {
+      "file": "/home/user/sim-home/track6-overlay/fingerprint",
+      "sha256": "2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839",
+      "contentNote": "innehåll 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c"
+    },
+    {
+      "file": "/home/user/sim-home/track6-overlay/replay-commit",
+      "sha256": "d65669639730a7e88da19757705dd3e28f6c85c4131b1dabcb48d497aa2e6679",
+      "contentNote": "da20086f5ee9fd3847aae15e9c90c26af5081a9e"
+    },
+    {
+      "file": "/home/user/sim-home/track6-overlay/replay-at",
+      "sha256": "54eccf98d33bd0195cce5f84bbada41483112a0dbbd869123cafd2ca9d74039c",
+      "contentNote": "1793394878"
+    },
+    {
+      "file": "/home/user/sim-home/track6-overlay/applied-migrations.tsv",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contentNote": "0 byte (inga migrationer registrerade)"
+    }
+  ],
+  "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHashNote": "Identisk med fingerprint-innehållet. Partiell identitet.",
+  "postgresImage": "saknas (ej angivet i overlay-rapporten)",
+  "nodeVersion": "v22.22.0",
+  "clockModel": "real UTC (no fixture clock)",
+  "startedAtUtc": "2026-10-30T21:18:03Z",
+  "finishedAtUtc": "2026-10-30T21:23:28Z",
+  "heartbeatAtUtc": null,
+  "executionScope": "ISOLATED_NATIVE",
+  "command": "custody01-01 via /home/user/sim-home/track6-overlay/runone.sh (vitest i /root/sim-run/track6-overlay2/scripts/simulation/track6, scenarios/custody01-01.test.ts). Kommandoraden i sin helhet ej verifierad i denna packet.",
+  "exitCode": 0,
+  "vitest": {
+    "numTotalTests": 8,
+    "numPassedTests": 8,
+    "numFailedTests": 0
+  },
+  "t3OriginalsProvenance": {
+    "importCommit": "01d97c27ec73544f6c303936fadf4cb73a5e25dc",
+    "manifestSha256": "d2e0f795d68d07c8362309c1e412d88357b28c4a00ed1b7eaa7840e47dd2594d",
+    "cohort": "B (B-20261030T144535Z-8b8258)",
+    "files": 56,
+    "filesNote": "56 filer = 28 .eml/.edi-par; verifierat i report.json.",
+    "verifiedCountNote": "184/184 verifierade filer: rapporterat av orkestratorn, ej verifierat i denna packet.",
+    "dependency": "Kohort B producerad med ej mergad #949 (beroende noteras; ej verifierat i denna packet)."
+  },
+  "evidence": [
+    "report.json, log.txt, vitest.json, run-identity.json, summary.json för overlay-körningen (se attempts[2].evidence)",
+    "evidenceDir: /home/user/sim-home/track6-overlay/evidence/20261030T211803Z-36bbd8/custody01-01 (MANIFEST.sha256; innehåll ej kopierat)"
+  ],
+  "findingsIds": [
+    "20261029-3f1a8ab1/claude-track6/004"
+  ],
+  "findingsIdsNote": "004 gäller ready-underlag som avvisas (DELIVERY01, finance-beroende). Nedan externa referenser som inte är denna packets fynd.",
+  "externalRefs": [
+    "track4/4 (fix/donor, ej mergad på main): tenant_mismatch-klass",
+    "track4/6: mailbox-fel 'Okänt pollingfel.' (klass)",
+    "track6/004 (main: 946c56630 ej ancestor av origin/main 614b1926): ready underlag avvisas 23514 billing_underlay_supply_contract_price_basis_required",
+    "track1/010: underlag timeout vid 2688 värden (orkestratorns uppgift, ej verifierad här)"
+  ],
+  "steps": [
+    {
+      "n": 1,
+      "status": "passed",
+      "durationMs": 210.3,
+      "name": "CUSTODY01.01 originalen läses ur git, skrivs till SIM_HOME och verifieras mot manifestets sha256 (28 par .eml/.edi)"
+    },
+    {
+      "n": 2,
+      "status": "passed",
+      "durationMs": 10317.2,
+      "name": "CUSTODY01.01 tenant med Ediel-ID 16712 och de parsade mätpunkterna seedas"
+    },
+    {
+      "n": 3,
+      "status": "passed",
+      "durationMs": 4592.2,
+      "name": "CUSTODY01.01 28 .eml läggs byte-exakt i GreenMail-IMAP (läses tillbaka och jämförs sha256 mot manifestet)"
+    },
+    {
+      "n": 4,
+      "status": "passed",
+      "durationMs": 97674,
+      "name": "CUSTODY01.01 HTTP inbound-cron (normal ingång) körs först; utfall loggas"
+    },
+    {
+      "n": 5,
+      "status": "passed",
+      "durationMs": 208148,
+      "name": "CUSTODY01.01 intag med aktör (ERSÄTTNINGSSTEG om HTTP-cron inte gav 28 ediel_messages): poll -> kö -> Processa om -> motor"
+    },
+    {
+      "n": 6,
+      "status": "passed",
+      "durationMs": 1146,
+      "name": "CUSTODY01.01 28 ediel_messages finns, med raw_payload sha256 == manifestets .edi och rätt tenant"
+    },
+    {
+      "n": 7,
+      "status": "passed",
+      "durationMs": 1091,
+      "name": "CUSTODY01.01 originalen har bevarat bytes efter hela intaget (omläsning, rad + kropp)"
+    },
+    {
+      "n": 8,
+      "status": "passed",
+      "durationMs": 1348,
+      "name": "CUSTODY01.01 försök generera faktureringsunderlag för 2026-10 och läs spärr/utfall (ingen omväg)"
+    }
+  ],
+  "observations": {
+    "httpInboundCron": {
+      "status": 200,
+      "ms": 97440,
+      "before": {
+        "mails": 0,
+        "edielMessages": 0
+      },
+      "after": {
+        "mails": 25,
+        "edielMessages": 25
+      }
+    },
+    "ersattningssteg": {
+      "used": true,
+      "reason": "HTTP-cron gav 25 av 28 ediel_messages",
+      "poll": {
+        "fetched": 28,
+        "stored": 3,
+        "deduped": 25,
+        "processedJobs": 1,
+        "failedJobs": 0,
+        "errorsByMailbox": [
+          "Okänt pollingfel."
+        ]
+      },
+      "queueFirstPass": {
+        "processed": 2,
+        "failed": 0,
+        "edielMessagesAfter": 28
+      },
+      "engineAuto": {
+        "fetched": 28,
+        "edielMessageIds": 28,
+        "autoProcessErrors": []
+      }
+    },
+    "bodyShaMismatches": [],
+    "storedBodyFinalCrlfTrimmed": "28 av 28",
+    "tenantMismatchLogLines": 0,
+    "downstream": {
+      "before": {
+        "contracts": 0,
+        "supply_periods": 0,
+        "billing_underlays": 0,
+        "customer_invoices": 0,
+        "underlay_bindings": 0,
+        "normalized_metering_values": 0
+      },
+      "after": {
+        "contracts": 0,
+        "supply_periods": 0,
+        "billing_underlays": 0,
+        "customer_invoices": 0,
+        "underlay_bindings": 0,
+        "normalized_metering_values": 0
+      },
+      "result": {
+        "billingMonth": "2026-10",
+        "sourceRows": 0,
+        "underlays": 0,
+        "readyForPricing": 0,
+        "needsReview": 0,
+        "threw": false
+      }
+    }
+  },
+  "oracle": {
+    "source": "quality/simulation-campaign/oracle-original/all-systems-scenarios.safe.json",
+    "sourceCommit": "27862b90",
+    "sourceSha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+    "caseId": "CUSTODY01.01",
+    "oracleLine": 544,
+    "caseDescriptionVerbatim": "Alla28 fakturakällor återfinns via frysta referenser",
+    "caseDescriptionNote": "Texten i orakelfilen saknar mellanslag ('Alla28'). Orkestratorns brief skrev 'Alla 28'.",
+    "caseStatusInOracle": "DESIGN_NOT_RUN_CURRENT_SCOPE"
+  },
+  "state": "PARTIAL",
+  "stateNote": "Ingen PASS. Oraklet kräver en låst faktura vars frysta källreferenser löser upp till de 28 originalen. Den kedjan nåddes inte.",
+  "whatTheyDoNotVerify": [
+    "Att de 28 fakturakällorna återfinns via frysta referenser i en låst faktura (oraklet) – kedjan nåddes inte.",
+    "Normal intagsväg för samtliga 28 (25 via HTTP-cron, 3 via ersättningssteg med aktör).",
+    "Underlag/faktura för tenant 16712: ingen contract- eller supply-fixture, 0 source rows, 0 underlag.",
+    "Oberoende granskning av denna packet."
+  ],
+  "blocker": "(a) overlay (track4/4-donor) ej mergad på main; (b) 3 av 28 endast via ersättningssteg, cron-batch 25 plus generiskt pollingfel 'Okänt pollingfel.' (track4/6-klass); (c) kedjan till låst faktura blockerad på main av track6/004 (ready underlag avvisas 23514) och track1/010 (underlag timeout vid 2688 värden); (d) ingen supply-/contract-fixture för tenant 16712.",
+  "nextAction": "Efter merge av track4/4-donor, track6/004 och track1/010: kör om CUSTODY01.01 med supply-fixture och full kedja till låst faktura. Ingen ny körning görs i denna packet.",
+  "cleanupReceipt": "Ingen cleanup utförd. Syntetiska rader kvar i T6:s lokala stack enligt samma design som CUSTODY01.03. Cleanup-receipt för overlay-körningen saknas.",
+  "openObservations": [
+    "Orkestratorn rapporterar 56 ediel_messages för tenanten. Ej verifierat: report.json anger edielMessagesAfter 28 och cron-after edielMessages 25. Öppen observation, förmodligen inklusive genererade utgående kvitton (ej verifierat).",
+    "Huvudvarianten 20261030T161714Z-952f60 och 20261030T162427Z-bd6f92 skiljer sig från orkestratorns brief: i 952f60 skapades 0 ediel_messages och cron-after mails var 0; tenant_mismatch-raderna (28) finns endast i 952f60 log.txt. 162427Z har 0 sådana rader.",
+    "Bekräftat: report.json i overlay anger tenant_mismatch-fel 0 i log.txt (grep-antal 0)."
+  ],
+  "review": "saknas: ingen oberoende granskning av denna packet",
+  "t3Note": "Orkestratorns brief anger 184/184 verifierade originalfiler; denna packet verifierar bara manifest-hash och 56 filer i report.json.",
+  "postgresVersion": "17.6"
+}

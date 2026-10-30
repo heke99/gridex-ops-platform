@@ -1,0 +1,218 @@
+{
+  "harnessHistory": [
+    "20261030T161447Z-a24101: summer-DST-gate (billing_gate_qualified_supply_source_required) -> relaterad till fynd 001 (scenario finding-001-start-hour, separat körning 20261030T162723Z-f4b727).",
+    "20261030T162009Z-f58e37: gap/needs_review för mätvärdeslucka 00-01 lokal tid (observerat).",
+    "20261030T163400Z-c673e2: UTILTS_MESSAGE_DATE_INVALID 'Ogiltigt meddelandedatum' (DTM+137); klassat som harnessdatum (framtida datum). Rättning enligt brief, commit ej angiven.",
+    "20261030T163703Z-9c7deb: setup-stegen C1-C4 passerar till generate-underlay som ger HTTP 500 (billing_underlay_generate_failed). Nuvarande blockerare."
+  ],
+  "scenarioFileReady": {
+    "note": "Filen finns i repo-arbetsträdet och i RUN_DIR. Att den är 'redo att köras om' är orkestratorns påstående, ej kört i denna packet.",
+    "repoCopy": {
+      "path": "/home/user/gridex-ops-platform/scripts/simulation/track6/scenarios/delivery01.test.ts",
+      "sha256": "b5a804a6e1feffe882790fac3542a8fa0c236fd6f50ccd5f2713ad408ae50713"
+    },
+    "runDirCopy": {
+      "path": "/root/sim-run/track6/scripts/simulation/track6/scenarios/delivery01.test.ts",
+      "sha256": "b5a804a6e1feffe882790fac3542a8fa0c236fd6f50ccd5f2713ad408ae50713"
+    }
+  },
+  "app": {
+    "appLogEvidence": {
+      "path": "/home/user/sim-home/track6/logs/app.log",
+      "sha256": "92f4d8dfc88bab1da3db244d2167e71008c996504851ef30e24e1c3aa9f5a66d",
+      "sha256NoteFromPriorPacket": "FINDINGS.md 004 anger 65e4eebdde484c157911e3f3e50cfceff32656d7bf38f55e2b336e191abff054; omräknad sha256 avviker (filen kan ha ändrats sedan). Innehåll ej kopierat."
+    },
+    "errorLines": [
+      "9c7deb log.txt: 'Error: generate-underlay misslyckades: HTTP 500 efter 4902 ms med 24 värden: {\"error\":\"Fakturaunderlaget kunde inte skapas.\",\"code\":\"billing_underlay_generate_failed\",...}'",
+      "app.log (per orkestratorn/tidigare packet): [billing-underlay-generate] failed code '23514' error 'billing_underlay_supply_contract_price_basis_required'; ej verifierat i denna packet, endast hash"
+    ]
+  },
+  "finding004Verification": {
+    "fixCommit": "946c56630",
+    "fixOnOriginMain": false,
+    "verifiedBy": "git merge-base --is-ancestor 946c56630 origin/main = ej ancestor (origin/main = 614b1926d). 946c56630 är ancestor av c400f695 (finance-gren).",
+    "note": "Blockern 'adopted by T4' gäller T4:s overlay/donor, inte main."
+  },
+  "nextAction": "Efter merge av 946c56630 (eller motsvarande rättning) på origin/main: kör om scripts/simulation/track6/scenarios/delivery01.test.ts med samma setup (C1-C4) och verifiera .01-.05-oraklen. Ingen ny körning görs i denna packet.",
+  "cleanupReceipt": "Ingen cleanup utförd. Syntetiska rader kvar i T6:s lokala stack. Cleanup-receipt saknas för delivery-körningarna.",
+  "state": "BLOCKED",
+  "executionScope": "ISOLATED_NATIVE",
+  "executionScopeNote": "Attempted: körning startad, blockerad vid generate-underlay (ingen PASS).",
+  "blocker": "BLOCKED: finance-samordning — finding 20261029-3f1a8ab1/claude-track6/004 (ready underlay rejected 23514 billing_underlay_supply_contract_price_basis_required; fix finance 946c56630, adopted by T4)",
+  "blockerNote": "Verifierat: 946c56630 är inte ancestor av origin/main (614b1926).",
+  "findingsIds": [
+    "20261029-3f1a8ab1/claude-track6/004"
+  ],
+  "candidateObservations": [
+    "OBEKRÄFTAD KANDIDAT (ej fynd): nordfinInvoiceXml.ts:79 skriver PRINT endast när email saknas, så en pappersmarkering ignoreras när en e-postadress finns. Ej runtime-bekräftad."
+  ],
+  "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
+  "environmentId": "t6-local-20261030",
+  "databaseIdentity": "saknas (ej i delivery-rapporter)",
+  "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c (replay fingerprint; partial identity)",
+  "clockModel": "real UTC (no fixture clock)",
+  "heartbeatAtUtc": null,
+  "patch": "none (ingen appkodspatch i denna packet)",
+  "overlayRefs": [],
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "campaignId": "20261029-3f1a8ab1",
+  "workerId": "claude-track6",
+  "model": "claude (session_01UHTg8Hora3xtZg4oHMrcGi)",
+  "runId": "20261030T163703Z-9c7deb",
+  "attempts": [
+    {
+      "runId": "20261030T161447Z-a24101",
+      "startedAtUtc": "2026-10-30T16:14:47Z",
+      "endedAtUtc": "2026-10-30T16:15:25Z",
+      "exitCode": 1,
+      "vitest": {
+        "numTotalTests": 32,
+        "numPassedTests": 1,
+        "numFailedTests": 4
+      },
+      "stepsFailed": 4,
+      "stepsPassed": 1,
+      "outcomeNote": "summer-DST-gate: billing_gate_qualified_supply_source_required i setup C1-C4 (relaterad till fynd 20261029-3f1a8ab1/claude-track6/001)",
+      "evidence": {
+        "report.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T161447Z-a24101/delivery01/report.json",
+          "sha256": "e3e1cbe3ad389a65b9a7ce46877b5342aa83dcc7c20fbc277dacf1cc921b6670"
+        },
+        "log.txt": {
+          "path": "/home/user/sim-home/track6/runs/20261030T161447Z-a24101/delivery01/log.txt",
+          "sha256": "8c82edf6a1782160e87727a84cd436ee99740aad4a281458e19d19d0ba558b0d"
+        },
+        "vitest.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T161447Z-a24101/delivery01/vitest.json",
+          "sha256": "9583315dbeaf0ea3a1475fb90b6986adb87f94c7988282bff803b701599fe442"
+        },
+        "summary.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T161447Z-a24101/summary.json",
+          "sha256": "32b98c4ec097ba9f580da6babe6ccfc25ad849934a633cba5fef94090a04141f"
+        }
+      },
+      "runIdentityFile": "saknas (ingen run-identity.json för delivery-körningar)"
+    },
+    {
+      "runId": "20261030T162009Z-f58e37",
+      "startedAtUtc": "2026-10-30T16:20:09Z",
+      "endedAtUtc": "2026-10-30T16:21:18Z",
+      "exitCode": 1,
+      "vitest": {
+        "numTotalTests": 32,
+        "numPassedTests": 19,
+        "numFailedTests": 4
+      },
+      "stepsFailed": 4,
+      "stepsPassed": 19,
+      "outcomeNote": "gap/needs_review: DELIVERY01.04 C4 'blocker code in underlay row' (status pending); setup C1-C3 approveAction saknar Godkänn-formulär",
+      "evidence": {
+        "report.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T162009Z-f58e37/delivery01/report.json",
+          "sha256": "d2b159515a3d19fba6bc73d8d87e93cfbf29568ce670b9c3b7d1f47dd1e9673c"
+        },
+        "log.txt": {
+          "path": "/home/user/sim-home/track6/runs/20261030T162009Z-f58e37/delivery01/log.txt",
+          "sha256": "495ac40b0b579ea6e7699965bcedeeab6d93ba9a191dfc7027a4d6e848d86442"
+        },
+        "vitest.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T162009Z-f58e37/delivery01/vitest.json",
+          "sha256": "5f01fafc8879113eda1eb1f61978996a891336b54f43de83248172f032df2845"
+        },
+        "summary.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T162009Z-f58e37/summary.json",
+          "sha256": "a71e5a7567d1eda2c0e7f8d0a1ebd976aad0dfcab0cf3513fe57cd65ffb60838"
+        }
+      },
+      "runIdentityFile": "saknas (ingen run-identity.json för delivery-körningar)"
+    },
+    {
+      "runId": "20261030T163400Z-c673e2",
+      "startedAtUtc": "2026-10-30T16:34:01Z",
+      "endedAtUtc": "2026-10-30T16:35:20Z",
+      "exitCode": 1,
+      "vitest": {
+        "numTotalTests": 32,
+        "numPassedTests": 1,
+        "numFailedTests": 4
+      },
+      "stepsFailed": 4,
+      "stepsPassed": 1,
+      "outcomeNote": "UTILTS_MESSAGE_DATE_INVALID (DTM+137 framtida datum) i setup C1-C4; harnessfix för datum (commit ej angiven i brief)",
+      "evidence": {
+        "report.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T163400Z-c673e2/delivery01/report.json",
+          "sha256": "f7d1d18e431972656cbbd7aa0fb9aa22cac8e8d510ba28e4397c0b7fb726c387"
+        },
+        "log.txt": {
+          "path": "/home/user/sim-home/track6/runs/20261030T163400Z-c673e2/delivery01/log.txt",
+          "sha256": "2feaed4e426f339e0da4dd57b50d2c079de4cdb0aa24ee82b7e35f713a1fb049"
+        },
+        "vitest.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T163400Z-c673e2/delivery01/vitest.json",
+          "sha256": "c03db4f8f63cf8029ae447816454b38704747c692246899504b5484a9a6dcba4"
+        },
+        "summary.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T163400Z-c673e2/summary.json",
+          "sha256": "b4641578f74b2722bed465329427a699460c6ca72e62b4cfe8657f50289b90fa"
+        }
+      },
+      "runIdentityFile": "saknas (ingen run-identity.json för delivery-körningar)"
+    },
+    {
+      "runId": "20261030T163703Z-9c7deb",
+      "startedAtUtc": "2026-10-30T16:37:03Z",
+      "endedAtUtc": "2026-10-30T16:39:31Z",
+      "exitCode": 1,
+      "vitest": {
+        "numTotalTests": 32,
+        "numPassedTests": 10,
+        "numFailedTests": 4
+      },
+      "stepsFailed": 4,
+      "stepsPassed": 10,
+      "outcomeNote": "setup C1-C4 generate-underlay HTTP 500 code billing_underlay_generate_failed (app.log: 23514 billing_underlay_supply_contract_price_basis_required)",
+      "evidence": {
+        "report.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T163703Z-9c7deb/delivery01/report.json",
+          "sha256": "6feee29c44174404598dc7632a00453fcf8d3585d28caec6671b48b5756a456a"
+        },
+        "log.txt": {
+          "path": "/home/user/sim-home/track6/runs/20261030T163703Z-9c7deb/delivery01/log.txt",
+          "sha256": "b99e0e8cd4bdec0b7ffaf5f54b7e8d3e932b261f152df6533d7b7499c7432578"
+        },
+        "vitest.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T163703Z-9c7deb/delivery01/vitest.json",
+          "sha256": "118a73d36f57e90a32237bea632ad33058ece049ecde2bb925b4f2888bf60868"
+        },
+        "summary.json": {
+          "path": "/home/user/sim-home/track6/runs/20261030T163703Z-9c7deb/summary.json",
+          "sha256": "4390c6f30fe0ebe741243c8937f83ff79e5c30cd8bada4307475ace95c62a052"
+        }
+      },
+      "runIdentityFile": "saknas (ingen run-identity.json för delivery-körningar)"
+    }
+  ],
+  "whatTheyDoNotVerify": [
+    "Inget oracle för denna DELIVERY01-ID har nåtts i körning (setup stoppar före ID-steg).",
+    "Attributen som kräver funktionell körning: se oracle och observation."
+  ],
+  "review": "saknas: ingen oberoende granskning av denna packet",
+  "scenarioId": "DELIVERY01.03",
+  "oracle": {
+    "source": "quality/simulation-campaign/oracle-original/all-systems-scenarios.safe.json",
+    "sourceCommit": "27862b90",
+    "sourceSha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+    "caseId": "DELIVERY01.03",
+    "oracleLine": 386,
+    "caseDescriptionVerbatim": "Pappersfaktura om faktiskt stödd",
+    "caseStatusInOracle": "DESIGN_NOT_RUN_CURRENT_SCOPE"
+  },
+  "qualificationFromCode": "invoice_delivery_method enum: email, e_invoice, paper, direct_debit (lib/pricing/commercialModel.ts:56-61 verifierad; DB-check i supabase/migrations/20260729200000_contract_commercial_selection_completion.sql:181 verifierad). XML <Delivery> = EMAIL om email finns, annars PRINT (lib/billing/nordfinInvoiceXml.ts:79 verifierad på 614b1926).",
+  "runtimeOutcome": "Ej nådd. Steg 'DELIVERY01.03 C2 (invoice_delivery_method...)' och 'DELIVERY01.03 C3 (papper, ingen faktura...)' failed utan failureMessages i alla fyra körningarna.",
+  "stateNote": "BLOCKED. Ingen PASS. Setup stoppar på finance-blockern före ID-stegets utfall.",
+  "nextActionNote": "Se nextAction.",
+  "nodeVersion": "v22.22.0",
+  "postgresVersion": "17.6",
+  "appLogNote": "SIM_HOME/logs/app.log is append-only and grew after the run; its current sha256 differs from the value captured for finding 004. The 23514 lines for traces cff801d9…/0ac53cb7… are unchanged in it."
+}
