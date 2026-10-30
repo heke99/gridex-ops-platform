@@ -68,3 +68,23 @@ describe('single physical interchange is parsed once (finding 004)', () => {
     expect(text).toContain('OTHERREF'); expect(text).toContain('FXREF1')
   })
 })
+
+import {segmentUntrimmedRaw, tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+describe('released trailing space before a segment terminator (finding 004, track4/2 variant)', () => {
+  const ic = "UNA:+.? 'UNB+UNOC:3+70007:14+16700:14+261029:1200+FXREF1'\r\nFTX+AAA+++ABC? '\r\nUNZ+1+FXREF1'\r\n"
+  it('keeps the released space as data and does not throw', () => {
+    const ftx = tokenizeEdifact(ic).segments.find(s => s.tag === 'FTX')!
+    expect(ftx.raw).toBe('FTX+AAA+++ABC? ')
+    expect(ftx.elements[4]).toBe('ABC ')
+    expect(segmentUntrimmedRaw(ftx)).toBe('FTX+AAA+++ABC? ')
+  })
+  it('still trims unreleased whitespace and line breaks around segments', () => {
+    const segs = tokenizeEdifact("  UNB+UNOC:3+A+B+261029:1200+R1'\n  FTX+AAA+++X  '\r\nUNZ+1+R1'  \n").segments
+    expect(segs.map(s => s.raw)).toEqual(['UNB+UNOC:3+A+B+261029:1200+R1', 'FTX+AAA+++X', 'UNZ+1+R1'])
+    expect(segmentUntrimmedRaw(segs[1])).toBe('  FTX+AAA+++X  ')
+  })
+  it('a double release (escaped release char) followed by space is still trimmed', () => {
+    const ftx = tokenizeEdifact("UNB+UNOC:3+A+B+261029:1200+R1'FTX+AAA+++X??  'UNZ+1+R1'").segments[1]
+    expect(ftx.raw).toBe('FTX+AAA+++X??'); expect(ftx.elements[4]).toBe('X?')
+  })
+})

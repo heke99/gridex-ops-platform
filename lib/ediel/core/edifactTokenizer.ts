@@ -23,7 +23,23 @@ const untrimmedSegments = new WeakMap<EdifactTokenizedSegment, string>()
  * This is observational evidence, not original MIME bytes or input authority. */
 export function segmentUntrimmedRaw(segment: EdifactTokenizedSegment): string {
   const retained = untrimmedSegments.get(segment)
-  return retained !== undefined && retained.trim() === segment.raw ? retained : segment.raw
+  return retained !== undefined && trimUnreleased(retained, retainedRelease.get(segment) ?? '?') === segment.raw ? retained : segment.raw
+}
+
+const retainedRelease = new WeakMap<EdifactTokenizedSegment, string>()
+
+/** Trim whitespace framing a segment, but never a released (escaped) trailing
+ * character: `ABC? '` carries the data value `ABC ` (finding 004 / track4/2). */
+function trimUnreleased(source: string, releaseCharacter: string): string {
+  const start = source.trimStart()
+  let end = start.length
+  while (end > 0 && /\s/.test(start[end - 1])) {
+    let releases = 0
+    while (end - 2 - releases >= 0 && start[end - 2 - releases] === releaseCharacter) releases += 1
+    if (releases % 2 === 1) break
+    end -= 1
+  }
+  return start.slice(0, end)
 }
 
 export type EdifactSourceSpan = Readonly<{
@@ -118,7 +134,9 @@ function tokenizeSegments(rawPayload:string|null|undefined,completedOnly:boolean
   return {
     una,
     segments: rawSegments.map(({ source, startOffset, endOffset }, index) => {
-      const raw = source.trim()
+      // A repeated UNA inside the stream is service advice, not data; keep its
+      // legacy trim so a concatenated second interchange is still rejected.
+      const raw = /^\s*UNA/i.test(source) ? source.trim() : trimUnreleased(source, una.releaseCharacter)
       const elements = splitReleased(raw, una.dataElementSeparator, una.releaseCharacter)
       const token: EdifactTokenizedSegment = {
         index,
@@ -126,7 +144,7 @@ function tokenizeSegments(rawPayload:string|null|undefined,completedOnly:boolean
         raw,
         elements,
       }
-      if (source !== raw) untrimmedSegments.set(token, source)
+      if (source !== raw) { untrimmedSegments.set(token, source); retainedRelease.set(token, una.releaseCharacter) }
       originalSources.set(token, { raw, originalRaw: original.slice(startOffset, endOffset),
         span: Object.freeze({ startOffset, endOffset, unit: 'utf16_code_unit' }) })
       return token
