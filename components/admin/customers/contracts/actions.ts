@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { redirect } from 'next/navigation'
+import { toInternalContractCreateError } from '@/lib/customer-contracts/internalPublicationRpcError'
 import { autoSendSigningLinkAfterCreate } from '@/lib/customer-contracts/autoSendSigningLink'
 import { importSignedAgreementForContract } from '@/lib/customer-contracts/importSignedAgreement'
 import {
@@ -658,7 +659,7 @@ export async function createContractFromOfferAction(formData: FormData) {
         p_actor_user_id: user.id,
       })
     : null
-  if (canonicalCommand?.error) throw canonicalCommand.error
+  if (canonicalCommand?.error) throw toInternalContractCreateError(canonicalCommand.error)
   const canonicalContract = canonicalCommand?.data
     ? ((canonicalCommand.data as Record<string, unknown>)
         .contract as CustomerContractRow | undefined)
