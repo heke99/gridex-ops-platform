@@ -1,12 +1,14 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-const mocks = vi.hoisted(() => ({ ctx: { companyId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', actorUserId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', apiClientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', permissions: ['users.write', 'users.read'] }, write: vi.fn(), invite: vi.fn(), disable: vi.fn(), enable: vi.fn(), list: vi.fn(), change: vi.fn() }))
+const mocks = vi.hoisted(() => ({ ctx: { companyId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', actorUserId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', apiClientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', permissions: ['users.write', 'users.read'] }, member: true, write: vi.fn(), invite: vi.fn(), disable: vi.fn(), enable: vi.fn(), list: vi.fn(), change: vi.fn() }))
 vi.mock('@/lib/staff-api/http', () => ({ withStaffApi: async (_request: unknown, _options: unknown, handler: (ctx: unknown) => Promise<Response>) => handler(mocks.ctx), staffApiJson: (body: unknown, init: number | ResponseInit = 200) => Response.json(body, typeof init === 'number' ? { status: init } : init) }))
 vi.mock('@/lib/tenant/staffCommands', () => ({ inviteStaff: mocks.invite, disableStaff: mocks.disable, reactivateStaff: mocks.enable, listStaff: mocks.list, changeStaffRole: mocks.change, listStaffRoles: vi.fn() }))
 vi.mock('@/lib/api/strictRequest', async importOriginal => {
   const actual = await importOriginal<typeof import('@/lib/api/strictRequest')>()
   return { ...actual, executeIdempotentPortalWrite: mocks.write }
 })
+// The target-membership check reads company_memberships; these route tests stub it as a member.
+vi.mock('@/lib/supabase/tenantQuery', () => ({ tenantSelect: () => ({ eq: () => ({ limit: () => ({ maybeSingle: async () => (mocks.member ? { data: { user_id: 'member' }, error: null } : { data: null, error: null }) }) }) }) }))
 import { disableStaffUser, enableStaffUser, postStaffUser, getStaffUsers } from '@/lib/staff-api/userHandlers'
 
 function request(path: string, body: unknown, method = 'POST') {
@@ -15,6 +17,7 @@ function request(path: string, body: unknown, method = 'POST') {
 const target = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.member = true
   mocks.write.mockImplementation(async input => ({ ...(await input.execute()), replayed: false }))
   mocks.invite.mockResolvedValue({ email: 'staff@example.invalid', role_key: 'customer_service_agent', membership_role: 'support', status: 'pending' })
   mocks.disable.mockResolvedValue({ user_id: target, role_key: 'customer_service_agent', membership_role: 'support', status: 'disabled' })
@@ -43,6 +46,17 @@ describe('staff user route request boundaries', () => {
     const response = await enableStaffUser(request(`users/${target}/enable`, {}), { params: Promise.resolve({ id: target }) })
     expect((await response.json()).data.status).toBe('active')
     expect(mocks.enable.mock.calls[0][1]).not.toHaveProperty('roleKey')
+  })
+  it('refuses a target user outside the tenant before claiming the ledger', async () => {
+    mocks.member = false
+    await expect(disableStaffUser(request(`users/${target}/disable`, {}), { params: Promise.resolve({ id: target }) })).rejects.toMatchObject({ code: 'staff_user_not_found', status: 404 })
+    expect(mocks.write).not.toHaveBeenCalled()
+    expect(mocks.disable).not.toHaveBeenCalled()
+  })
+  it('records the route template and binds the target user into the hashed payload', async () => {
+    await enableStaffUser(request(`users/${target}/enable`, {}), { params: Promise.resolve({ id: target }) })
+    expect(mocks.write).toHaveBeenCalledWith(expect.objectContaining({ customerId: null, operation: '/api/v1/staff/users/[id]/enable',
+      payload: { actor_user_id: mocks.ctx.actorUserId, user_id: target, data: {} } }))
   })
   it('requires idempotency before attempting a disable write', async () => {
     const noKey = request(`users/${target}/disable`, {})

@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({ write: vi.fn(), order: [] as string[], ctx: { 
 vi.mock('@/lib/staff-api/http', async importOriginal => ({ ...await importOriginal<typeof import('@/lib/staff-api/http')>(), withStaffApi: async (_r: unknown, _o: unknown, h: (ctx: unknown) => Promise<Response>) => { mocks.order.push('auth'); return h(mocks.ctx) } }))
 vi.mock('@/lib/tenant/staffCommands', () => ({ inviteStaff: vi.fn(), changeStaffRole: vi.fn(), disableStaff: vi.fn(), reactivateStaff: vi.fn(), listStaff: vi.fn(), listStaffRoles: vi.fn() }))
 vi.mock('@/lib/api/strictRequest', async importOriginal => ({ ...await importOriginal<typeof import('@/lib/api/strictRequest')>(), executeIdempotentPortalWrite: mocks.write }))
+// The target-membership check reads company_memberships; these route tests stub it as a member.
+vi.mock('@/lib/supabase/tenantQuery', () => ({ tenantSelect: () => ({ eq: () => ({ limit: () => ({ maybeSingle: async () => ({ data: { user_id: 'member' }, error: null }) }) }) }) }))
 
 import { disableStaffUser, enableStaffUser, patchStaffUser, postStaffUser } from '@/lib/staff-api/userHandlers'
 
