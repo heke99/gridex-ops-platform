@@ -184,11 +184,15 @@ export async function processInboundEmailMessage(input: {
       status: 'processed', matchStatus: 'ai_bi_reconciled', matchPayload: { classification: 'ai_bi_reconciliation', sourceMessageId: message.id } })
     return { status: 'processed', companyId, parseResultId: null }
   }
-  const attachmentText = [
+  // raw_edifact_payload is normally a copy of an EDIFACT attachment. Joining
+  // identical physical copies would forge a second interchange (finding 004);
+  // genuinely different sources are still all passed on.
+  const attachmentText = [...new Map([
     typeof row.raw_edifact_payload === 'string' ? row.raw_edifact_payload : null,
     ...attachments
       .map((attachment) => typeof attachment.raw_text === 'string' ? attachment.raw_text : null),
-  ].filter((value): value is string => Boolean(value)).join('\n\n')
+  ].filter((value): value is string => Boolean(value?.trim()))
+    .map((value) => [value.trim(), value] as const)).values()].join('\n\n')
 
   const parsed = parseInboundEmailContent({
     rawEmail: typeof row.raw_email === 'string' ? row.raw_email : null,
