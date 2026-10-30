@@ -60,6 +60,53 @@ Gemensamt för miljöerna:
 - **Donator:** e9acfd648 (part-2) och 7b0ccaad7.
 - **Läge:** dubblett. T4 testar om efter T3:s merge.
 
+## Läge 2026-10-30 för track4/2 och /3
+
+- `/3` rättas av T3 #942, som är mergad (6454d540). `/2` rättas av T3 #945, som inte är mergad.
+- Båda är verifierade som lokal overlay i T4:s kedja: miljö `t4-20261030T133336Z`, körning `20261030T133759Z-15665`.
+  - Alla 95 mejl hämtas och lagras.
+  - Inget `edifact_dangling_release_character` och inget `Connection not available`.
+
+## 20261029-3f1a8ab1/claude-track4/4: inga inkommande original sparas från den delade mejllådan (produktfel, hög)
+
+- **Observerat** i overlay-körningen `20261030T133759Z-15665`:
+  - Postgres-loggen har 99 `ediel_message_inbound_email_tenant_mismatch`: 1 CONTRL, 1 APERAK, 5 Z04-försök och 92 E66.
+  - Det finns 0 inkommande `ediel_messages`.
+  - Z04-jobbet slutar som `failed/processor_failed` med `ediel_inbound_original_persistence_required`.
+  - Leveransperioden aktiveras aldrig (C5).
+- **Orsak:**
+  - Den delade testmejllådan har `company_id` NULL.
+  - Tenant löses korrekt via `verified_legal_identity`.
+  - Processorn binder bolaget till mejlet först efter att originalet har infogats (`lib/inbound-mail/edielInboundProcessor.ts:327,405`).
+  - Triggern i `supabase/migrations/20261002234100_ediel_messages_inbound_email_link.sql:27-32` kräver samma bolag på mejl och meddelande.
+- **Inte harness:**
+  - Id, subadresser och aktörsregistrering stämmer.
+  - Det finns ingen normal ingång för en tenant-avgränsad mejllåda: `app/admin/inbound-mail/actions.ts` skriver alltid `company_id: null`.
+- **Donator** (finance-refen `c400f695` och gifted-hamilton):
+  - `d74cf9942`: binder bolaget från NULL och ger konflikt om ett annat bolag redan är satt.
+  - `7d8fefb51`: tar hand om den null-retur som annars ignoreras.
+  - Båda applicerar rent på main (processorfilen).
+- **Läge:** styrkt. Ägarbesked krävs, eftersom filen har den gamla claimref:en `a6707ead`.
+- **Lokal overlay** för vidare körning: `t4-run-t3overlay` 05d413d78. Den pushas inte och ger högst PARTIAL.
+
+## 20261029-3f1a8ab1/claude-track4/5: kvittens tillämpas utan sparat original (produktfel, hög, revisionsspår)
+
+- `lib/ediel/...canonicalInboundAckStatusUpdater.ts:161-163` loggar en misslyckad insert och fortsätter ändå.
+- Den utgående Z03 sätts då till `contrl_status`/`aperak_status = accepted`, och mejlet till `processed`, utan att något original är sparat.
+- Felet är inte rättat på main, gifted eller finance.
+- **Varianter:**
+  - `inboundStatusUpdater.ts:540-541` loggar och returnerar null.
+  - `inbound_processing_jobs.company_id` får aldrig något bolag.
+
+## 20261029-3f1a8ab1/claude-track4/6: generiskt pollfel (produktfel, låg, observability)
+
+- `lib/inbound-mail/edielMailboxPoller.part-2.ts:487-489` ersätter fel som inte är av typen `Error` med "Okänt pollingfel." och tappar detaljerna.
+- Felet är observerat två gånger med 0 hämtade mejl. Orsaken är inte fastställd.
+
+## Designnotering, inget fynd
+
+Periodiska E66 går till `manual_review`. Mätvärden importeras via admin-åtgärden "Kör UTILTS engine" (`processInboundUtiltsMessage`, `lib/ediel/operationalBridge.ts:180-190`). Den vägen kräver ett inkommande original, så den blockeras också av /4.
+
 ## Obekräftade källkandidater
 
 - `lib/billing/invoiceReviewPrepare.ts:454`: fel som inte är av typen `Error` ersätts med texten "Draftfakturan kunde inte skapas.", så grundorsaken döljs. Klass: observability.
