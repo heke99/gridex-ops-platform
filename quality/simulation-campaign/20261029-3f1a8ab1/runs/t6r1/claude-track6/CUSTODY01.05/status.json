@@ -1,0 +1,280 @@
+{
+  "scenarioId": "CUSTODY01.05",
+  "campaignId": "20261029-3f1a8ab1",
+  "workerId": "claude-track6",
+  "model": "claude (session_01UHTg8Hora3xtZg4oHMrcGi)",
+  "runId": "20261030T162702Z-7cd581",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
+  "appCommitNote": "Angiven main-commit enligt uppdraget. Lokal main = 0535e618f; 6454d540 ar inte ancestor av lokal main (git merge-base --is-ancestor rc=1). Faktisk remote-main ej verifierad i denna packet.",
+  "builtCommits": {
+    "commitsJson": {
+      "appCommit": "7afacc78a478f97c14295635d8228e3149a98128",
+      "harnessCommit": "7afacc78a478f97c14295635d8228e3149a98128",
+      "builtCommit": "7afacc78a478f97c14295635d8228e3149a98128"
+    },
+    "note": "Harnessbygge 7afacc78. git diff --name-only 6454d540..7afacc78 utanfor scripts/simulation/track6 ar tom, dvs appkodsvagen ar identisk med 6454d540."
+  },
+  "patch": "none (ingen appkodspatch)",
+  "overlayRefs": [
+    {
+      "harnessBranch": "claude/sim-20261029-track6",
+      "runDirCommit": "84a3e6883",
+      "appCodeChanged": false,
+      "note": "Branchhuvud ar nu 8666916eb; RUN_DIR-commit ar ancestor till branchen."
+    }
+  ],
+  "environmentId": "t6-local-20261030",
+  "databaseIdentity": "local supabase 127.0.0.1:54322; replay 1e0a29bc04cc168e135f86b7ab955805073a107b; fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c; applied-migrations 0 rader (partiell identitet: fingerprint tacker utvalda tabeller)",
+  "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHashNote": "Innehall i filen fingerprint (samma som databaseIdentity). Partiell identitet.",
+  "postgresImage": "ghcr.io/supabase/postgres:17.6.1.155 sha256:3866d94d8426927e8db3f1c5d790752292bfbe27b5f1f46e199ae1b7d3c1710b",
+  "postgresServerMajor": "17 (serverMajor rapporterad endast i CUSTODY01.05-report)",
+  "nodeVersion": "MISSING (ej i kvitton)",
+  "clockModel": "real UTC (no fixture clock used)",
+  "startedAtUtc": "2026-10-30T16:27:02Z",
+  "finishedAtUtc": "2026-10-30T16:27:23Z",
+  "heartbeatAtUtc": null,
+  "executionScope": "ISOLATED_NATIVE",
+  "command": "/home/user/sim-home/track6/runone.sh custody01-05 (SIM_HOME=/home/user/sim-home/track6; i /root/sim-run/track6: bash scripts/simulation/track6/run.sh scenarios/custody01-05.test.ts)",
+  "exitCode": 0,
+  "vitest": {
+    "numTotalTests": 6,
+    "numPassedTests": 6,
+    "numFailedTests": 0
+  },
+  "evidence": [
+    {
+      "path": "runs/20261030T162702Z-7cd581/custody01-05/report.json",
+      "sha256": "9ba545d5ee00f4b66947e23de3c01ea0580da9d73c54aff340817b063804108b"
+    },
+    {
+      "path": "runs/20261030T162702Z-7cd581/custody01-05/log.txt",
+      "sha256": "fc4276cb79e4ce67c9a9c77dc729d8482afba709ed59707a60c8e17f8bf71893"
+    },
+    {
+      "path": "runs/20261030T162702Z-7cd581/custody01-05/vitest.json",
+      "sha256": "1cfeb242100961e653ec774876818333624b86dfa09e1121f70659d6d6aaf8a1"
+    },
+    {
+      "path": "evidence/t6r1-20261030T162702Z-custody01-05/report.json",
+      "sha256": "38464145c398ed50fd7a2bbfcc8c64d85c55c012f3c304f0cd2c31432b0415ca"
+    },
+    {
+      "path": "evidence/t6r1-20261030T162702Z-custody01-05/run.log",
+      "sha256": "bb50df53e49791809381f3baf7006622a7669a81a0717a4f0319993ad0cb8531"
+    },
+    {
+      "path": "evidence/20261030T162702Z-7cd581/custody01-05/MANIFEST.sha256",
+      "sha256": "87b6aec5b39951e933a27f9a9600fd429490b4aafab21623e7603f51d7e0c76c"
+    },
+    {
+      "path": "evidence/20261030T162702Z-7cd581/custody01-05/observations.json",
+      "sha256": "cc523d3047e1cd0e713a3ebcc76f46c3b11c244dfbd79d97c980fc9821436040"
+    },
+    {
+      "path": "evidence/20261030T162702Z-7cd581/custody01-05/compare.json",
+      "sha256": "d56f446b3f5a39dcdb5be01dca18be5c77b9443e237d31edd3694b25847c600d"
+    },
+    {
+      "path": "evidence/20261030T162702Z-7cd581/custody01-05/health-samples.json",
+      "sha256": "56c16761af31a08b1be9897aa31dd398c6e549a54180c4adb737b8f495998c46"
+    },
+    {
+      "path": "evidence/20261030T162702Z-7cd581/custody01-05/pg_restore-errors.json",
+      "sha256": "f6889b2f1c2b16e5a32f1e3a45edd5c4c8df05405c528d48f36b4527c034e7e9"
+    }
+  ],
+  "identityRefs": [
+    {
+      "path": "commits.json",
+      "sha256": "301b3821a4d19d31af96a45e2614ff596d08a21444e973c5fdda6f5012fc883b"
+    },
+    {
+      "path": "replay-commit",
+      "sha256": "53cc4193f0ea29eeefdf082994ea72f6afdd5ca8de12c0ae4d68895c31f5256f"
+    },
+    {
+      "path": "fingerprint",
+      "sha256": "2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839"
+    },
+    {
+      "path": "applied-migrations.tsv",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/image-digests.txt",
+      "sha256": "95a0dd1376143260010f25dffa87afb2b94d5bc2234023d882e0d2a0f7e4cc22"
+    },
+    {
+      "path": "evidence/greenmail-jar-hashes.txt",
+      "sha256": "e819bdaef3a4a085c6aad57f327a1f005e5546e7268fbcd807920514f3e1b02d"
+    }
+  ],
+  "findingsIds": [],
+  "skipped": [],
+  "steps": [
+    {
+      "name": "CUSTODY01.05 backup och återställning under drift CUSTODY01.05 förberedelse: verktyg, tabellista och hälso-pollning startar",
+      "status": "passed",
+      "durationMs": 160.0,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.05 backup och återställning under drift CUSTODY01.05 pg_dump -Fc av stackens databas utan driftavbrott (källans innehåll är stabilt före/efter dumpen)",
+      "status": "passed",
+      "durationMs": 3212.8,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.05 backup och återställning under drift CUSTODY01.05 pg_restore till NY databas på samma server",
+      "status": "passed",
+      "durationMs": 15124.6,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.05 backup och återställning under drift CUSTODY01.05 per tabell: radantal och innehålls-sha256 i återställd databas == källan (originalkroppar, fakturafiler, underlag, gridex_billing_source, storage.objects-metadata)",
+      "status": "passed",
+      "durationMs": 628.7,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.05 backup och återställning under drift CUSTODY01.05 skydden överlever: triggerinventeringen (immutability/append-only) är identisk i den återställda databasen",
+      "status": "passed",
+      "durationMs": 101.8,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.05 backup och återställning under drift CUSTODY01.05 appen svarade under hela proceduren (hälsopollning utan fel)",
+      "status": "passed",
+      "durationMs": 862.8,
+      "failureMessages": 0
+    }
+  ],
+  "oracle": {
+    "source": "quality/simulation-campaign/oracle-original/all-systems-scenarios.safe.json",
+    "sourceCommit": "27862b90",
+    "sourceSha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+    "caseDescription": "Backup/återläsning verifieras utan att stoppa främmande körningar",
+    "oracleLine": 562,
+    "caseStatusInOracle": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+    "group": {
+      "groupId": "CUSTODY01",
+      "groupTitle": "Historik, retention och kallkopior",
+      "groupReceipt": "Kedja av verkliga ID/hashar, aterlasningsbar kalla och dokumenterat nekad otillaten radering.",
+      "groupBlocker": "MAIN04/05 for positiv kedja; nya negativa fixtures och exakt retentionregel kravs.",
+      "groupStatusInOracle": "PARTIAL;48 funktionskroppar jamforda, full negativ historikkedja aterstar."
+    }
+  },
+  "harnessErrorInReport": null,
+  "state": "PARTIAL",
+  "proposedState": "PASS",
+  "stateNote": "Placeholder PARTIAL. Runnern rapporterar 6/6 passed. PASS foreslas endast. pg_restore exit 1 med 3 plattformsobjektfel ar accepterat av runnern; avvikelse fran docs/backup-restore-checklist.md (se checklistDeviation).",
+  "replacementStepsNote": "Inga ERSATTNINGSSTEG namngivna i report.json for CUSTODY01.05.",
+  "replacementSteps": [],
+  "checklistDeviation": [
+    "docs/backup-restore-checklist.md beskriver PITR/backup-ateråterstallning till produktion eller nytt projekt, sedan supabase/sql/checks/production_consistency_checks.sql och /admin/system-health. Denna korning: pg_dump -Fc av lokal stack (docker-verktyg, host major 16, server major 17) och pg_restore till ny databas pa samma server. Ingen omnamnd korning av production_consistency_checks.sql eller /admin/system-health i report.json.",
+    "Checklistens storage-krav ar inte uppfyllt: pg_dump tacker storage.objects-metadata, inte objektens bytes (observations.storage_bytes_note).",
+    "pg_restore exit status 1 med 3 rapporterade fel pa plattformsagda objekt accepterades av runnern (pg_restore_platform_only)."
+  ],
+  "whatTheyDoNotVerify": [
+    "Storage-objektbytes: pg_dump tacker bara storage.objects-metadata (observations.storage_bytes_note).",
+    "Innehall i vault.secrets, extensions.spatial_ref_sys och realtime.list_changes-funktionen i aterstalld databas (plattformsagda, restore-fel).",
+    "Tomma custodytabeller: 38 tabeller hade 0 rader i kallan (compare.emptyCustodyTables), darfor ar deras jamforelse 0=0 utan innehallsbevis.",
+    "Produktionsliknande aterstallning (PITR eller nytt projekt) och checklistens konsistenskontroller.",
+    "Appens tillganglighet: health-polling gav HTTP 503 i samtliga 49 prov (se oppna observationer); runnerns failures=0 ar inte oberoende verifierat."
+  ],
+  "blocker": "Ingen runner-blocker. PARTIAL tills granskning. Oppna punkter: health 503 i alla prov, checklistavvikelse, pg_restore-plattformsfel.",
+  "nextAction": "Orkestratorn granskar proposedState PASS mot checklistavvikelsen och health-observationen. Denna packet gor ingen ny korning.",
+  "cleanupReceipt": {
+    "restoreDb": "t6_restore_20261030162702155490",
+    "created": true,
+    "dropped": true,
+    "finishedAt": "2026-10-30T16:27:23.086Z"
+  },
+  "observations": {
+    "tooling": {
+      "kind": "docker",
+      "container": "supabase_db_gridex-ops-platform",
+      "hostMajor": 16,
+      "serverMajor": 17
+    },
+    "source_tables": 907,
+    "dump": {
+      "bytes": 19664503,
+      "sha256": "5248fe67569c1f31e56c29a7721c9b539babcae731bbd9f94b11aa1d3444da34",
+      "ms": 2159,
+      "drift": []
+    },
+    "pg_restore": {
+      "status": 1,
+      "errorLines": 3,
+      "ms": 15051
+    },
+    "pg_restore_platform_only": [
+      {
+        "error": "could not execute query: ERROR:  permission denied to set parameter \"log_min_messages\"",
+        "command": "CREATE FUNCTION realtime.list_changes(publication name, slot_name name, max_changes integer, max_record_bytes integer) RETURNS TABLE(wal jsonb, is_rls_enabled boolean, subscription_ids uuid[], errors text[], slot_changes_count bigint)"
+      },
+      {
+        "error": "could not execute query: ERROR:  permission denied for table spatial_ref_sys",
+        "command": "COPY extensions.spatial_ref_sys (srid, auth_name, auth_srid, srtext, proj4text) FROM stdin;"
+      },
+      {
+        "error": "could not execute query: ERROR:  permission denied for table secrets",
+        "command": "COPY vault.secrets (id, name, description, secret, key_id, nonce, created_at, updated_at) FROM stdin;"
+      }
+    ],
+    "compare": {
+      "missing": 0,
+      "countDiffs": 0,
+      "hashDiffs": 0,
+      "drift": [],
+      "emptyCustodyTablesCount": 37,
+      "ediel_messages": {
+        "rows": 100,
+        "sha256": "a9d5822834d6fa88ef8de9d3207ae151a6a71cc1012d687d039c9c37da0dbd1f"
+      },
+      "invoice_export_files": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "storage_objects": {
+        "rows": 23,
+        "sha256": "ef6fe0863678c6dd458be682e95cf567d545261ecd70d5055c262d77bc73c52b"
+      }
+    },
+    "triggers": {
+      "source": 1704,
+      "restored": 1704,
+      "missing": []
+    },
+    "health": {
+      "samples": 49,
+      "failures": 0,
+      "maxMs": 49,
+      "p95Ms": 9,
+      "statuses": [
+        503
+      ]
+    },
+    "storage_bytes_note": "pg_dump täcker storage.objects-metadata, inte objektens bytes i Storage-volymen; bytesåterställning kräver separat storage-backup (docs/backup-restore-checklist.md)."
+  },
+  "measuredDurations": {
+    "pgDumpMs": 3212.8,
+    "pgDumpObservedMs": 2159,
+    "pgRestoreStepMs": 15124.6,
+    "pgRestoreObservedMs": 15051,
+    "compareStepMs": 628.7,
+    "triggerStepMs": 101.8,
+    "healthStepMs": 862.8,
+    "healthP95MsFromRunner": 9,
+    "healthMaxMs": 49,
+    "healthSamples": 49,
+    "vitestTotalMs": 20420,
+    "note": "Runnerns egen p95 over 49 prov; urvalsmetod ej beskriven i report.json; warm/cold ej angivet"
+  },
+  "openObservations": [
+    "health-samples.json: samtliga 49 prov HTTP 503 (ms 3-49). Runnern rapporterar failures=0 och statuses=[503]. Betydelsen av 503 ar OSAKERT och ej utredd."
+  ]
+}

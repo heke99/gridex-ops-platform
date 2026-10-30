@@ -1,39 +1,281 @@
 {
   "scenarioId": "CUSTODY01.02",
+  "campaignId": "20261029-3f1a8ab1",
   "workerId": "claude-track6",
   "model": "claude (session_01UHTg8Hora3xtZg4oHMrcGi)",
+  "runId": "20261030T163002Z-ae7294",
   "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
   "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
-  "appCommitNote": "Angiven main-commit enligt uppdraget. Lokal ref main pekar på 0535e618; 6454d540 är inte ancestor av lokal main (git merge-base --is-ancestor exit 1). Ej verifierat mot faktisk remote-main.",
+  "appCommitNote": "Angiven main-commit enligt uppdraget. Lokal main = 0535e618f; 6454d540 ar inte ancestor av lokal main (git merge-base --is-ancestor rc=1). Faktisk remote-main ej verifierad i denna packet.",
+  "builtCommits": {
+    "commitsJson": {
+      "appCommit": "7afacc78a478f97c14295635d8228e3149a98128",
+      "harnessCommit": "7afacc78a478f97c14295635d8228e3149a98128",
+      "builtCommit": "7afacc78a478f97c14295635d8228e3149a98128"
+    },
+    "note": "Harnessbygge 7afacc78. git diff --name-only 6454d540..7afacc78 utanfor scripts/simulation/track6 ar tom, dvs appkodsvagen ar identisk med 6454d540."
+  },
   "patch": "none (ingen appkodspatch)",
   "overlayRefs": [
     {
-      "harness": "claude/sim-20261029-track6 scripts/simulation/track6/**",
-      "appCodeChanged": false
+      "harnessBranch": "claude/sim-20261029-track6",
+      "runDirCommit": "4d67fa7c2",
+      "appCodeChanged": false,
+      "note": "Branchhuvud ar nu 8666916eb; RUN_DIR-commit ar ancestor till branchen."
     }
   ],
   "environmentId": "t6-local-20261030",
-  "databaseIdentity": "local supabase 127.0.0.1:54322, replay 1e0a29bc, fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "databaseIdentity": "local supabase 127.0.0.1:54322; replay 1e0a29bc04cc168e135f86b7ab955805073a107b; fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c; applied-migrations 0 rader (partiell identitet: fingerprint tacker utvalda tabeller)",
   "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
-  "schemaHashNote": "Samma fingerprint som databaseIdentity; partiell identitet (ingen separat schemahash-beräkning gjord i denna packet).",
+  "schemaHashNote": "Innehall i filen fingerprint (samma som databaseIdentity). Partiell identitet.",
+  "postgresImage": "ghcr.io/supabase/postgres:17.6.1.155 sha256:3866d94d8426927e8db3f1c5d790752292bfbe27b5f1f46e199ae1b7d3c1710b",
+  "postgresServerMajor": "17 (serverMajor rapporterad endast i CUSTODY01.05-report)",
+  "nodeVersion": "MISSING (ej i kvitton)",
   "clockModel": "real UTC (no fixture clock used)",
-  "startedAtUtc": "2026-10-30T16:04:26Z",
-  "finishedAtUtc": "2026-10-30T16:04:26Z",
-  "state": "BLOCKED",
-  "executionScope": "SOURCE_ONLY",
-  "command": "none (ingen runner-körning; källkontroll med git show, sed, git grep)",
+  "startedAtUtc": "2026-10-30T16:30:02Z",
+  "finishedAtUtc": "2026-10-30T16:30:03Z",
+  "heartbeatAtUtc": null,
+  "executionScope": "ISOLATED_NATIVE",
+  "command": "/home/user/sim-home/track6/runone.sh custody01-02 (SIM_HOME=/home/user/sim-home/track6; i /root/sim-run/track6: bash scripts/simulation/track6/run.sh scenarios/custody01-02.test.ts)",
+  "exitCode": 0,
+  "vitest": {
+    "numTotalTests": 4,
+    "numPassedTests": 4,
+    "numFailedTests": 0
+  },
   "evidence": [
-    "oracle 27862b90:quality/simulation-campaign/oracle-original/all-systems-scenarios.safe.json:549 ('Fysisk originaldata bevaras trots utelämnade två diagnostikkopior') sha256 96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
-    "lib/ediel/retention/financeCopies.catalog.ts (16 finance-kopieklasser, ingen benämnd diagnostisk; källkontroll på 0535e618)",
-    "__tests__/ediel-tenant-diagnostic-custody.test.ts (rör ediel_unresolved_items-routing, inte kopior)",
-    "git grep -i diagnostic lib/ediel/retention på 0535e618: inga träffar",
-    "Källor utan identifiering av de två diagnostikkopiorna: main, gifted-hamilton-vss1hj, adoring-wright-8qbon8 audits, .agent-memory"
+    {
+      "path": "runs/20261030T163002Z-ae7294/custody01-02/report.json",
+      "sha256": "1f0dc62e962f7f27e9379e62ace554ec28908af9dbfb5ff8bde4a1f5b89fc571"
+    },
+    {
+      "path": "runs/20261030T163002Z-ae7294/custody01-02/log.txt",
+      "sha256": "eab82c9e7395b8f4f6b2980148ef82990f1825c2f6dc51682e7f31623f3734d9"
+    },
+    {
+      "path": "runs/20261030T163002Z-ae7294/custody01-02/vitest.json",
+      "sha256": "d346090567a270dfe7ac94afa32f77eba385bf7385b931cf09273cb3f137b6fb"
+    },
+    {
+      "path": "evidence/t6r1-20261030T163002Z-custody01-02/report.json",
+      "sha256": "9f790966c16b61d1afe4e5d509bf79f5af53d6e2b6ea95b3ae50839f6875123e"
+    },
+    {
+      "path": "evidence/t6r1-20261030T163002Z-custody01-02/run.log",
+      "sha256": "98d84f4547220447bc897b8dec0c3c6cea568bd3db6b13ea07108834d354a74e"
+    },
+    {
+      "path": "evidence/20261030T163002Z-ae7294/custody01-02/MANIFEST.sha256",
+      "sha256": "4f0587e41f1ac01b14a96d4a6953db460adc13be9361d00c83c4826f20ced9c2"
+    },
+    {
+      "path": "evidence/20261030T163002Z-ae7294/custody01-02/observations.json",
+      "sha256": "26f5ca52b1cb154c462f59340579a18b8aa7516d93aef019e79db4c0aa1b54d3"
+    }
+  ],
+  "identityRefs": [
+    {
+      "path": "commits.json",
+      "sha256": "301b3821a4d19d31af96a45e2614ff596d08a21444e973c5fdda6f5012fc883b"
+    },
+    {
+      "path": "replay-commit",
+      "sha256": "53cc4193f0ea29eeefdf082994ea72f6afdd5ca8de12c0ae4d68895c31f5256f"
+    },
+    {
+      "path": "fingerprint",
+      "sha256": "2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839"
+    },
+    {
+      "path": "applied-migrations.tsv",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/image-digests.txt",
+      "sha256": "95a0dd1376143260010f25dffa87afb2b94d5bc2234023d882e0d2a0f7e4cc22"
+    },
+    {
+      "path": "evidence/greenmail-jar-hashes.txt",
+      "sha256": "e819bdaef3a4a085c6aad57f327a1f005e5546e7268fbcd807920514f3e1b02d"
+    }
   ],
   "findingsIds": [],
-  "blocker": "BLOCKED: orakel saknas – vilka två diagnostikkopior som avses är inte definierat",
-  "requiredExternalInput": [
-    "Ägare/koordinering måste definiera vilka två diagnostikkopior som avses (eller pensionera fallet)."
+  "skipped": [],
+  "steps": [
+    {
+      "name": "CUSTODY01.02 NOT_APPLICABLE: koden saknar begreppet diagnostikkopia av en källa CUSTODY01.02 katalogerna: 16 finance-copy-klasser, ingen är diagnostik/debug och ingen riktar sig mot ett mottaget original",
+      "status": "passed",
+      "durationMs": 2.8,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.02 NOT_APPLICABLE: koden saknar begreppet diagnostikkopia av en källa CUSTODY01.02 schemat: ingen tabell/kolumn för diagnostik-/debugexport eller härledd källkopia; parsade kolumner på ediel_messages saknar retentionsväg",
+      "status": "passed",
+      "durationMs": 153.7,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.02 NOT_APPLICABLE: koden saknar begreppet diagnostikkopia av en källa CUSTODY01.02 ingen falsk \"saknad källa\"-varning: källkopieportarna ger inget fel utan tombstone (testat mot verkliga RPC:er med slumpade id:n)",
+      "status": "passed",
+      "durationMs": 177.5,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.02 NOT_APPLICABLE: koden saknar begreppet diagnostikkopia av en källa CUSTODY01.02 utfall: NOT_APPLICABLE (inget kvalificerande diagnostikkopieobjekt finns i koden; inga original rörda eller utelämnade)",
+      "status": "passed",
+      "durationMs": 0.4,
+      "failureMessages": 0
+    }
   ],
-  "nextAction": "owner/coordination must define which two copies (or retire the case); then T6 runs it natively",
-  "cleanupReceipt": "not applicable – no runtime mutation"
+  "oracle": {
+    "source": "quality/simulation-campaign/oracle-original/all-systems-scenarios.safe.json",
+    "sourceCommit": "27862b90",
+    "sourceSha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+    "coordinationOracleText": "Fysisk originaldata bevaras trots utelämnade två diagnostikkopior",
+    "oracleLine": 549,
+    "caseStatusInOracle": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+    "group": {
+      "groupId": "CUSTODY01",
+      "groupTitle": "Historik, retention och kallkopior",
+      "groupReceipt": "Kedja av verkliga ID/hashar, aterlasningsbar kalla och dokumenterat nekad otillaten radering.",
+      "groupBlocker": "MAIN04/05 for positiv kedja; nya negativa fixtures och exakt retentionregel kravs.",
+      "groupStatusInOracle": "PARTIAL;48 funktionskroppar jamforda, full negativ historikkedja aterstar."
+    }
+  },
+  "harnessErrorInReport": null,
+  "state": "BLOCKED",
+  "outcome": "NOT_APPLICABLE",
+  "proposedState": null,
+  "proposedStateNote": "Ingen PASS foreslagen. Utfall NOT_APPLICABLE, beslut fran koordinering pending.",
+  "justification": "Koden har ingen klass, tabell eller kolumn för diagnostikkopior av en faktura-/mätkälla. Finance-copy-klasserna är policystyrda rättsliga kopior vars utrensning ändrar bindningsraden och med avsikt spärrar fakturering (finance_copy_retention_tombstoned); ediel_messages.parsed_payload/validation_report saknar omit-/retentionsväg.",
+  "justificationEvidence": [
+    "lib/ediel/retention/financeCopies.catalog.ts:2-3",
+    "lib/ediel/retention/financeCopyRetention.ts:53",
+    "supabase/migrations/20261001070000_ediel_finance_copy_class_retention.sql:167-170",
+    "lib/inbound-mail/edielMailboxPoller.part-2.ts:814"
+  ],
+  "replacementSteps": [],
+  "replacementStepsNote": "Inga ERSATTNINGSSTEG namngivna i report.json for CUSTODY01.02.",
+  "whatTheyDoNotVerify": [
+    "Att nagon diagnostikkopia av en kalla (de tva i oraklet) existerar eller hur den skulle utelamnas: oraklets beskrivning finns inte i koden enligt katalog-, schema- och gatekontroll.",
+    "Fysisk originalbevarande for en specifik kalla i en korning med dataforandring: inga original rordes, inga utelamnades.",
+    "Schemakolumnen public.ediel_certificate_directory_cache.diagnostics (rapporterad av runnern) ar inte utredd i motiveringen."
+  ],
+  "blocker": "BLOCKED: beslut fran koordinering saknas om NOT_APPLICABLE accepteras for oraklet som beskriver tva diagnostikkopior.",
+  "nextAction": "Koordinering beslutar: acceptera NOT_APPLICABLE eller omdefiniera/pensionera fallet. Ingen ny korning fore beslut.",
+  "cleanupReceipt": "MISSING (report.json har ingen cleanupReceipt; ingen runtime-mutation rapporterad)",
+  "observations": {
+    "outcome_observed": "NOT_APPLICABLE",
+    "finance_catalog_classes": 16,
+    "finance_catalog": [
+      {
+        "class": "billing_underlay_source_body",
+        "table": "gridex_billing_source.underlay_bindings",
+        "permission": "ediel.retention.billing_source_evidence"
+      },
+      {
+        "class": "billing_underlay_payload_body",
+        "table": "public.billing_underlays",
+        "permission": "ediel.retention.billing_source_evidence"
+      },
+      {
+        "class": "invoice_calculation_body",
+        "table": "public.customer_invoices",
+        "permission": "ediel.retention.invoice_copy_evidence"
+      },
+      {
+        "class": "invoice_line_body",
+        "table": "public.customer_invoice_lines",
+        "permission": "ediel.retention.invoice_copy_evidence"
+      },
+      {
+        "class": "invoice_export_item_body",
+        "table": "public.invoice_export_items",
+        "permission": "ediel.retention.invoice_copy_evidence"
+      },
+      {
+        "class": "invoice_export_run_body",
+        "table": "public.invoice_export_runs",
+        "permission": "ediel.retention.invoice_copy_evidence"
+      },
+      {
+        "class": "invoice_provider_event_body",
+        "table": "public.invoice_provider_events",
+        "permission": "ediel.retention.invoice_copy_evidence"
+      },
+      {
+        "class": "invoice_purchase_event_body",
+        "table": "public.invoice_purchase_events",
+        "permission": "ediel.retention.invoice_copy_evidence"
+      },
+      {
+        "class": "invoice_document_provider_body",
+        "table": "public.invoice_documents",
+        "permission": "ediel.retention.invoice_copy_evidence"
+      },
+      {
+        "class": "invoice_dead_letter_body",
+        "table": "public.invoice_dead_letters",
+        "permission": "ediel.retention.invoice_copy_evidence"
+      },
+      {
+        "class": "invoice_export_attempt_body",
+        "table": "public.invoice_export_attempts",
+        "permission": "ediel.retention.invoice_copy_evidence"
+      },
+      {
+        "class": "billing_export_item_body",
+        "table": "public.billing_export_run_items",
+        "permission": "ediel.retention.invoice_copy_evidence"
+      },
+      {
+        "class": "partner_export_body",
+        "table": "public.partner_exports",
+        "permission": "ediel.retention.invoice_copy_evidence"
+      },
+      {
+        "class": "settlement_calculation_body",
+        "table": "public.portfolio_monthly_settlements",
+        "permission": "ediel.retention.settlement_copy_evidence"
+      },
+      {
+        "class": "settlement_audit_body",
+        "table": "public.portfolio_settlement_audit_log",
+        "permission": "ediel.retention.settlement_copy_evidence"
+      },
+      {
+        "class": "settlement_invoice_binding_body",
+        "table": "public.portfolio_settlement_invoice_bindings",
+        "permission": "ediel.retention.settlement_copy_evidence"
+      }
+    ],
+    "invoice_source_gate_classes": [
+      "billing_underlay_source_body",
+      "billing_underlay_payload_body",
+      "settlement_calculation_body",
+      "invoice_calculation_body",
+      "invoice_export_item_body"
+    ],
+    "schema": {
+      "diagnosticTables": [],
+      "diagnosticColumns": [
+        "public.ediel_certificate_directory_cache.diagnostics"
+      ],
+      "derivedProjectionColumnsOnEdielMessages": [
+        "parsed_payload",
+        "validation_report"
+      ]
+    },
+    "gate_without_tombstone": {
+      "error": null,
+      "code": null
+    }
+  },
+  "measuredDurations": {
+    "vitestTotalMs": 339,
+    "note": "Stegtider ur report.json; ingen p95"
+  },
+  "openObservations": [
+    "schema.diagnosticColumns listar public.ediel_certificate_directory_cache.diagnostics; motiveringen namner den inte."
+  ]
 }

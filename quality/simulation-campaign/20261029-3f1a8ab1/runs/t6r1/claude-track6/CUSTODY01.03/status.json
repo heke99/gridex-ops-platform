@@ -1,0 +1,304 @@
+{
+  "scenarioId": "CUSTODY01.03",
+  "campaignId": "20261029-3f1a8ab1",
+  "workerId": "claude-track6",
+  "model": "claude (session_01UHTg8Hora3xtZg4oHMrcGi)",
+  "runId": "20261030T162628Z-bf9849",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
+  "appCommitNote": "Angiven main-commit enligt uppdraget. Lokal main = 0535e618f; 6454d540 ar inte ancestor av lokal main (git merge-base --is-ancestor rc=1). Faktisk remote-main ej verifierad i denna packet.",
+  "builtCommits": {
+    "commitsJson": {
+      "appCommit": "7afacc78a478f97c14295635d8228e3149a98128",
+      "harnessCommit": "7afacc78a478f97c14295635d8228e3149a98128",
+      "builtCommit": "7afacc78a478f97c14295635d8228e3149a98128"
+    },
+    "note": "Harnessbygge 7afacc78. git diff --name-only 6454d540..7afacc78 utanfor scripts/simulation/track6 ar tom, dvs appkodsvagen ar identisk med 6454d540."
+  },
+  "patch": "none (ingen appkodspatch)",
+  "overlayRefs": [
+    {
+      "harnessBranch": "claude/sim-20261029-track6",
+      "runDirCommit": "84a3e6883",
+      "appCodeChanged": false,
+      "note": "Branchhuvud ar nu 8666916eb; RUN_DIR-commit ar ancestor till branchen."
+    }
+  ],
+  "environmentId": "t6-local-20261030",
+  "databaseIdentity": "local supabase 127.0.0.1:54322; replay 1e0a29bc04cc168e135f86b7ab955805073a107b; fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c; applied-migrations 0 rader (partiell identitet: fingerprint tacker utvalda tabeller)",
+  "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHashNote": "Innehall i filen fingerprint (samma som databaseIdentity). Partiell identitet.",
+  "postgresImage": "ghcr.io/supabase/postgres:17.6.1.155 sha256:3866d94d8426927e8db3f1c5d790752292bfbe27b5f1f46e199ae1b7d3c1710b",
+  "postgresServerMajor": "17 (serverMajor rapporterad endast i CUSTODY01.05-report)",
+  "nodeVersion": "MISSING (ej i kvitton)",
+  "clockModel": "real UTC (no fixture clock used)",
+  "startedAtUtc": "2026-10-30T16:26:28Z",
+  "finishedAtUtc": "2026-10-30T16:26:41Z",
+  "heartbeatAtUtc": null,
+  "executionScope": "ISOLATED_NATIVE",
+  "command": "/home/user/sim-home/track6/runone.sh custody01-03 (SIM_HOME=/home/user/sim-home/track6; i /root/sim-run/track6: bash scripts/simulation/track6/run.sh scenarios/custody01-03.test.ts)",
+  "exitCode": 0,
+  "vitest": {
+    "numTotalTests": 5,
+    "numPassedTests": 5,
+    "numFailedTests": 0
+  },
+  "evidence": [
+    {
+      "path": "runs/20261030T162628Z-bf9849/custody01-03/report.json",
+      "sha256": "e775784f85e0432c22d491c698a585c435712c054d7673f05ce759e487482330"
+    },
+    {
+      "path": "runs/20261030T162628Z-bf9849/custody01-03/log.txt",
+      "sha256": "d82e334e48f9b7b4f323d6d9d3fc9e55cb1efcb56c975ca18e2cb5cac91d71ea"
+    },
+    {
+      "path": "runs/20261030T162628Z-bf9849/custody01-03/vitest.json",
+      "sha256": "f3d3ebf0617d347251eafa1fef3bff323dc3572b7061c093a955a35bed2ae9c7"
+    },
+    {
+      "path": "evidence/t6r1-20261030T162628Z-custody01-03/report.json",
+      "sha256": "09d300d5fa96b0ebabf52ff0e2a6b14f8dde4807e9fb9eb915abd6796b05cd2f"
+    },
+    {
+      "path": "evidence/t6r1-20261030T162628Z-custody01-03/run.log",
+      "sha256": "abda4b4b9b1c02039c4ef840959ebcef3fc807877f660ec558f154ad66078710"
+    },
+    {
+      "path": "evidence/20261030T162628Z-bf9849/custody01-03/MANIFEST.sha256",
+      "sha256": "e99a045027429ceb4995c8099240f8620cf22dcbb688565ab71ffe7c5ae351bc"
+    },
+    {
+      "path": "evidence/20261030T162628Z-bf9849/custody01-03/observations.json",
+      "sha256": "6f344979f7324ee7783a1a04015c583f56fff96aef8c20a9982b830715981c1c"
+    }
+  ],
+  "identityRefs": [
+    {
+      "path": "commits.json",
+      "sha256": "301b3821a4d19d31af96a45e2614ff596d08a21444e973c5fdda6f5012fc883b"
+    },
+    {
+      "path": "replay-commit",
+      "sha256": "53cc4193f0ea29eeefdf082994ea72f6afdd5ca8de12c0ae4d68895c31f5256f"
+    },
+    {
+      "path": "fingerprint",
+      "sha256": "2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839"
+    },
+    {
+      "path": "applied-migrations.tsv",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/image-digests.txt",
+      "sha256": "95a0dd1376143260010f25dffa87afb2b94d5bc2234023d882e0d2a0f7e4cc22"
+    },
+    {
+      "path": "evidence/greenmail-jar-hashes.txt",
+      "sha256": "e819bdaef3a4a085c6aad57f327a1f005e5546e7268fbcd807920514f3e1b02d"
+    }
+  ],
+  "findingsIds": [],
+  "skipped": [],
+  "steps": [
+    {
+      "name": "CUSTODY01.03 skapande av låst original via normala ingångar CUSTODY01.03 setup: inkommande E66 -> ediel_messages-original med registrerad mottagning (låst)",
+      "status": "passed",
+      "durationMs": 10983.9,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.03 radering/ändring nekas CUSTODY01.03 (a) authenticated tenantanvändare via PostgREST: DELETE och PATCH berör 0 rader / nekas",
+      "status": "passed",
+      "durationMs": 405.8,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.03 radering/ändring nekas CUSTODY01.03 (b) service_role via PostgREST: DELETE och PATCH ger triggerfelet",
+      "status": "passed",
+      "durationMs": 49.7,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.03 radering/ändring nekas CUSTODY01.03 (c) direkt SQL som postgres: DELETE och UPDATE av kroppen ger triggerfelet (körs i transaktion som rullas tillbaka)",
+      "status": "passed",
+      "durationMs": 169.3,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.03 append-only-lager CUSTODY01.03 gridex_received_sources / underlay_bindings / correction_journal / billing_underlays: UPDATE/DELETE nekas, rader oförändrade",
+      "status": "passed",
+      "durationMs": 566.5,
+      "failureMessages": 0
+    }
+  ],
+  "oracle": {
+    "source": "quality/simulation-campaign/oracle-original/all-systems-scenarios.safe.json",
+    "sourceCommit": "27862b90",
+    "sourceSha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+    "caseDescription": "Otillåten radering av låst källa nekas",
+    "oracleLine": 552,
+    "caseStatusInOracle": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+    "group": {
+      "groupId": "CUSTODY01",
+      "groupTitle": "Historik, retention och kallkopior",
+      "groupReceipt": "Kedja av verkliga ID/hashar, aterlasningsbar kalla och dokumenterat nekad otillaten radering.",
+      "groupBlocker": "MAIN04/05 for positiv kedja; nya negativa fixtures och exakt retentionregel kravs.",
+      "groupStatusInOracle": "PARTIAL;48 funktionskroppar jamforda, full negativ historikkedja aterstar."
+    }
+  },
+  "harnessErrorInReport": null,
+  "state": "PARTIAL",
+  "proposedState": "PASS",
+  "stateNote": "Placeholder PARTIAL. Runnern rapporterar alla steg passed (5/5). PASS foreslas endast; granskning av orkestratoren ar pending. Ingen PASS satt har.",
+  "replacementSteps": [
+    {
+      "id": "03-motor-med-aktor",
+      "source": "report.json observations.ersattningssteg_motor_med_aktor; scenarios/custody01-03.test.ts:67-69",
+      "substitute": "runIntakeWithActor(...) i testprocessen (lib/custody/inprocess.ts) efter att HTTP inbound-cron gav 0 ediel_messages-original (http_inbound_cron.edielMessages=0)",
+      "notVerified": "att HTTP inbound-cron sjalv slutfor mottagningen; cron skickar ingen actorUserId (kallan: app/api/internal/inbound-mail/cron/route.ts). Observerat: reprocess status manual_review, engineAuto fetched 1 / edielMessageIds 1"
+    }
+  ],
+  "whatTheyDoNotVerify": [
+    "Att HTTP inbound-cron sjalv producerar en registrerad mottagning (ersatt med in-process-ingang med aktor).",
+    "Lagringsbyten/bytes i Storage for det lasta originalet (endast DB-guards och radsha256 verifierade).",
+    "gridex_billing_source.underlay_bindings och correction_journal hade 0 rader i denna korning (append_only_rows_present n=0); nekad UPDATE/DELETE ar inte verifierad for dessa tabeller. billing_underlays ingar inte i append_only_rows_present.",
+    "Att rader i inbound-kedjan hanteras korrekt efter pollingfelet (se oppna observationer)."
+  ],
+  "blocker": "Ingen runner-blocker. PARTIAL tills orkestratorn granskat proposedState PASS och replacementSteps.",
+  "nextAction": "Orkestratorn granskar proposedState och replacementSteps. Denna packet gor ingen ny korning.",
+  "cleanupReceipt": "MISSING (report.json innehaller ingen cleanupReceipt for CUSTODY01.03)",
+  "observations": {
+    "http_inbound_cron": {
+      "status": 200,
+      "ms": 529,
+      "mailsStored": 1,
+      "edielMessages": 0,
+      "failedJobs": 1,
+      "errorsByMailbox": [
+        "Okänt pollingfel."
+      ]
+    },
+    "lockedSource": {
+      "sourceId": "38394231-c5e4-468a-aed5-44208612fd86",
+      "companyId": "d490f922-6635-4a77-8a7e-3e95f26beb52",
+      "receptions": 1
+    },
+    "bodyBaseline": {
+      "bodyBytes": 638,
+      "rowSha256": "81aaf96fd44ca4acec4867c2bbdb1b4951c675bdecaf97884bfe4fd0e154b1c9",
+      "bodySha256": "af1102439c075129ce2606a182e3c76b42749f3dee9bbe59aef85ece04a08298"
+    },
+    "builtVsStored": {
+      "builtSha256": "673a6877612eefcc18e3aed3c66011a03d02990c027663fc6b61af4584f12c6d",
+      "storedSha256": "af1102439c075129ce2606a182e3c76b42749f3dee9bbe59aef85ece04a08298",
+      "storedHasCrlf": true,
+      "storedEndsWithNewline": false,
+      "storedLfNormalizedEqualsBuilt": true,
+      "storedBytes": 638,
+      "builtBytes": 612
+    },
+    "guardsFired": {
+      "delete": [
+        "P0001",
+        "ediel_registered_reception_original_immutable"
+      ],
+      "updateBody": [
+        "23514",
+        "immutable_ediel_payload_cannot_change"
+      ],
+      "updateHash": [
+        "23514",
+        "immutable_ediel_payload_cannot_change"
+      ]
+    },
+    "attempts": {
+      "authenticated_postgrest": {
+        "readableRows": 1,
+        "readableStatus": 200,
+        "delete": {
+          "status": 200,
+          "rows": 0
+        },
+        "patch": {
+          "status": 200,
+          "rows": 0
+        },
+        "note": "HTTP 200 med tom array (0 rader paverkade), ej HTTP-fel"
+      },
+      "service_role_postgrest": {
+        "delete": {
+          "status": 400,
+          "code": "P0001",
+          "message": "ediel_registered_reception_original_immutable"
+        },
+        "patch": {
+          "status": 400,
+          "code": "23514",
+          "message": "immutable_ediel_payload_cannot_change"
+        }
+      },
+      "postgres_sql": {
+        "delete": {
+          "sqlstate": "P0001",
+          "message": "ediel_registered_reception_original_immutable"
+        },
+        "update_body": {
+          "sqlstate": "23514",
+          "message": "immutable_ediel_payload_cannot_change"
+        },
+        "update_hash": {
+          "sqlstate": "23514",
+          "message": "immutable_ediel_payload_cannot_change"
+        }
+      }
+    },
+    "append_only": {
+      "rows_present": [
+        {
+          "table": "gridex_received_sources.sources",
+          "key": "source_message_id",
+          "n": 46
+        },
+        {
+          "table": "gridex_received_sources.snapshots",
+          "key": "id",
+          "n": 30
+        },
+        {
+          "table": "gridex_billing_source.underlay_bindings",
+          "key": "underlay_id",
+          "n": 0
+        },
+        {
+          "table": "gridex_billing_source.correction_journal",
+          "key": "id",
+          "n": 0
+        }
+      ],
+      "gridex_received_sources.sources": {
+        "delete": "P0001 received_original_immutable_without_native_retention",
+        "update": "P0001 received_original_immutable_without_native_retention",
+        "rowShaBefore": "be08257f17a0abe1402eca2ebd0dcd10772f8a97975e6430e3b9d6346852a63c",
+        "rowShaAfter": "be08257f17a0abe1402eca2ebd0dcd10772f8a97975e6430e3b9d6346852a63c"
+      },
+      "gridex_received_sources.snapshots": {
+        "delete": "23514 received_source_evidence_is_append_only",
+        "update": "23514 received_source_evidence_is_append_only",
+        "rowShaBefore": "c7e302b8db6083b7f8b7def42ef25603f8561cfa2842cfe96b956c9b9fe02575",
+        "rowShaAfter": "c7e302b8db6083b7f8b7def42ef25603f8561cfa2842cfe96b956c9b9fe02575"
+      }
+    },
+    "substitutedStep": "ersattningssteg_motor_med_aktor (se replacementSteps)"
+  },
+  "measuredDurations": {
+    "setupStepMs": 10983.9,
+    "vitestTotalMs": 12181,
+    "note": "Fran report.json steps; warm/cold och P95 ej redovisat (ej mattyp)"
+  },
+  "openObservations": [
+    "Stderr i setup-loggen (log.txt): \"[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message\" code 23514 message 'ediel_message_inbound_email_tenant_mismatch'. Ej klassificerat (produktfel eller fixtureartefakt): mailbox companyId null i debug.",
+    "Stderr: \"[inbound-mail] Skipping customer-scoped task because no canonical customer is resolved.\" (2 ggr). Ej klassificerat."
+  ]
+}

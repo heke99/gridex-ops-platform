@@ -1,0 +1,267 @@
+{
+  "scenarioId": "CUSTODY01.04",
+  "campaignId": "20261029-3f1a8ab1",
+  "workerId": "claude-track6",
+  "model": "claude (session_01UHTg8Hora3xtZg4oHMrcGi)",
+  "runId": "20261030T162641Z-930cdb",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
+  "appCommitNote": "Angiven main-commit enligt uppdraget. Lokal main = 0535e618f; 6454d540 ar inte ancestor av lokal main (git merge-base --is-ancestor rc=1). Faktisk remote-main ej verifierad i denna packet.",
+  "builtCommits": {
+    "commitsJson": {
+      "appCommit": "7afacc78a478f97c14295635d8228e3149a98128",
+      "harnessCommit": "7afacc78a478f97c14295635d8228e3149a98128",
+      "builtCommit": "7afacc78a478f97c14295635d8228e3149a98128"
+    },
+    "note": "Harnessbygge 7afacc78. git diff --name-only 6454d540..7afacc78 utanfor scripts/simulation/track6 ar tom, dvs appkodsvagen ar identisk med 6454d540."
+  },
+  "patch": "none (ingen appkodspatch)",
+  "overlayRefs": [
+    {
+      "harnessBranch": "claude/sim-20261029-track6",
+      "runDirCommit": "84a3e6883",
+      "appCodeChanged": false,
+      "note": "Branchhuvud ar nu 8666916eb; RUN_DIR-commit ar ancestor till branchen."
+    }
+  ],
+  "environmentId": "t6-local-20261030",
+  "databaseIdentity": "local supabase 127.0.0.1:54322; replay 1e0a29bc04cc168e135f86b7ab955805073a107b; fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c; applied-migrations 0 rader (partiell identitet: fingerprint tacker utvalda tabeller)",
+  "schemaHash": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHashNote": "Innehall i filen fingerprint (samma som databaseIdentity). Partiell identitet.",
+  "postgresImage": "ghcr.io/supabase/postgres:17.6.1.155 sha256:3866d94d8426927e8db3f1c5d790752292bfbe27b5f1f46e199ae1b7d3c1710b",
+  "postgresServerMajor": "17 (serverMajor rapporterad endast i CUSTODY01.05-report)",
+  "nodeVersion": "MISSING (ej i kvitton)",
+  "clockModel": "real UTC (no fixture clock used)",
+  "startedAtUtc": "2026-10-30T16:26:41Z",
+  "finishedAtUtc": "2026-10-30T16:27:02Z",
+  "heartbeatAtUtc": null,
+  "executionScope": "ISOLATED_NATIVE",
+  "command": "/home/user/sim-home/track6/runone.sh custody01-04 (SIM_HOME=/home/user/sim-home/track6; i /root/sim-run/track6: bash scripts/simulation/track6/run.sh scenarios/custody01-04.test.ts)",
+  "exitCode": 0,
+  "vitest": {
+    "numTotalTests": 4,
+    "numPassedTests": 4,
+    "numFailedTests": 0
+  },
+  "evidence": [
+    {
+      "path": "runs/20261030T162641Z-930cdb/custody01-04/report.json",
+      "sha256": "0cee3830242e478e8c1a95ee492195bbad20b7b29dae596d949efb53674f8a6e"
+    },
+    {
+      "path": "runs/20261030T162641Z-930cdb/custody01-04/log.txt",
+      "sha256": "6dd66b348eaf1a5a7ff3c97ea2b62b04dbd2b2ef4f54ee5d1ddfc2f42ae26407"
+    },
+    {
+      "path": "runs/20261030T162641Z-930cdb/custody01-04/vitest.json",
+      "sha256": "05cb7578fba45e726e8c1fac3469f59a91bc89f02b50e08786e1c7a5a81270b7"
+    },
+    {
+      "path": "evidence/t6r1-20261030T162641Z-custody01-04/report.json",
+      "sha256": "c0344cc83f058aaa1339646731c601d842f2e9c7584457d0f979fe0d4656cb1b"
+    },
+    {
+      "path": "evidence/t6r1-20261030T162641Z-custody01-04/run.log",
+      "sha256": "00bf47fcaddd8133e23131a961628ae8e3adce43238edf3c5246a8082044e911"
+    },
+    {
+      "path": "evidence/20261030T162641Z-930cdb/custody01-04/MANIFEST.sha256",
+      "sha256": "b8df9f27289857d80f70cf3730afd1d1f81dbc503200dc5bb57e4d2c4bb3649d"
+    },
+    {
+      "path": "evidence/20261030T162641Z-930cdb/custody01-04/observations.json",
+      "sha256": "b5dfa598bf538ad404fbf679b8e2b762750f754bdc8ee11aca10b5b6f64305f3"
+    }
+  ],
+  "identityRefs": [
+    {
+      "path": "commits.json",
+      "sha256": "301b3821a4d19d31af96a45e2614ff596d08a21444e973c5fdda6f5012fc883b"
+    },
+    {
+      "path": "replay-commit",
+      "sha256": "53cc4193f0ea29eeefdf082994ea72f6afdd5ca8de12c0ae4d68895c31f5256f"
+    },
+    {
+      "path": "fingerprint",
+      "sha256": "2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839"
+    },
+    {
+      "path": "applied-migrations.tsv",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/image-digests.txt",
+      "sha256": "95a0dd1376143260010f25dffa87afb2b94d5bc2234023d882e0d2a0f7e4cc22"
+    },
+    {
+      "path": "evidence/greenmail-jar-hashes.txt",
+      "sha256": "e819bdaef3a4a085c6aad57f327a1f005e5546e7268fbcd807920514f3e1b02d"
+    }
+  ],
+  "findingsIds": [],
+  "skipped": [],
+  "steps": [
+    {
+      "name": "CUSTODY01.04 förberedelse CUSTODY01.04 setup: två syntetiska fakturaobjekt (A: retainUntil förfallen = berättigad, B: retainUntil framtid = ej berättigad) + fingeravtryck av befintliga låsta objekt",
+      "status": "passed",
+      "durationMs": 11967.2,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.04 negativt: retainUntil i framtiden och otillåtna vägar CUSTODY01.04 (neg) samma användare får inte godkänna egen inlämning; framtida retainUntil ger ingen radering (begin purge nekas), objektet finns kvar",
+      "status": "passed",
+      "durationMs": 1948.2,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.04 positivt: berättigat objekt raderas enligt policy CUSTODY01.04 tre klassbeslut kräver granskning av annan användare; purge ger tombstone, HTTP 404 och bytesAvailable=false; finans oförändrad",
+      "status": "passed",
+      "durationMs": 2684.0,
+      "failureMessages": 0
+    },
+    {
+      "name": "CUSTODY01.04 positivt: berättigat objekt raderas enligt policy CUSTODY01.04 låsta objekt är orörda efter raderingen: B (ej berättigad), befintliga registrerade original, ledger-källor och underlay-bindningar",
+      "status": "passed",
+      "durationMs": 166.8,
+      "failureMessages": 0
+    }
+  ],
+  "oracle": {
+    "source": "quality/simulation-campaign/oracle-original/all-systems-scenarios.safe.json",
+    "sourceCommit": "27862b90",
+    "sourceSha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+    "caseDescription": "Legitimt rensningsbart separat testobjekt följer policy",
+    "oracleLine": 557,
+    "caseStatusInOracle": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+    "group": {
+      "groupId": "CUSTODY01",
+      "groupTitle": "Historik, retention och kallkopior",
+      "groupReceipt": "Kedja av verkliga ID/hashar, aterlasningsbar kalla och dokumenterat nekad otillaten radering.",
+      "groupBlocker": "MAIN04/05 for positiv kedja; nya negativa fixtures och exakt retentionregel kravs.",
+      "groupStatusInOracle": "PARTIAL;48 funktionskroppar jamforda, full negativ historikkedja aterstar."
+    }
+  },
+  "harnessErrorInReport": null,
+  "state": "PARTIAL",
+  "proposedState": "PASS",
+  "stateNote": "Placeholder PARTIAL. Runnern rapporterar 4/4 passed. PASS foreslas endast; granskning av orkestratoren pending.",
+  "replacementSteps": [
+    {
+      "id": "04-route-i-testprocess",
+      "source": "scenarios/custody01-04.test.ts:6-7 (header; ej namngiven i report.json steps/observations)",
+      "substitute": "App-route-handlern (invoice-file-retention) kors i testprocessen med mockad cookie/Supabase-server-klient; riktiga GoTrue-sessioner",
+      "notVerified": "HTTP-transport och cookiehantering i deployad Next-runtime; utfardarkompetens (issuers, HMAC-nyckel) och billing-/pricing-rader ar syntetiska GIVEN"
+    }
+  ],
+  "whatTheyDoNotVerify": [
+    "Riktig HTTP-vag och cookiehantering i deployad Next-runtime (route-handler kors i testprocessen).",
+    "Utfardarkompetens, HMAC-nyckelhantering och billing-/pricing-radernas ursprung (syntetiska GIVEN).",
+    "Att rensningsbeslut fattas av behoriga produktionsroller (testanvandare och roller ar seedade).",
+    "Att andra Storage-objekt an de tre testobjekten ar opavverkade (bara de tre sourceIds i storage-events observerade)."
+  ],
+  "blocker": "Ingen runner-blocker. PARTIAL tills orkestratorn granskat proposedState PASS och ersattningssteg.",
+  "nextAction": "Orkestratorn granskar proposedState. Denna packet gor ingen ny korning.",
+  "cleanupReceipt": "MISSING (ingen cleanupReceipt i report.json; purge-kvitto och tombstones ar raderingseffekter, inte stadkvitto)",
+  "observations": {
+    "setup": {
+      "companyA": "df6cd8df-808f-46fb-ade6-280861b85b60",
+      "companyB": "e5e9ff47-3101-433a-a89c-dbc458467f58",
+      "lockedObjectsBefore": 85,
+      "lockedKinds": [
+        "ediel_messages",
+        "received_sources",
+        "underlay_bindings"
+      ]
+    },
+    "locked_untouched": {
+      "checked": 85,
+      "changed": []
+    },
+    "negative": {
+      "self_review": {
+        "error": "invoice_file_separate_reviewer_required",
+        "code": "P0001"
+      },
+      "future_retain_begin": {
+        "error": "invoice_file_each_copy_current_legal_review_required",
+        "code": "P0001"
+      },
+      "future_retain_http": {
+        "status": 403,
+        "body": "{\"error\":\"Aktuell bolags-, klass- eller källbehörighet saknas.\"}"
+      },
+      "future_retain_direct_storage_remove": {
+        "error": null,
+        "removed": 0
+      }
+    },
+    "positive_purge": {
+      "result": {
+        "status": "purged",
+        "sourceId": "6c9cc1d5-b929-448f-a4d5-d5f83581fde6",
+        "sourceHash": "52baa8997e747917748bfa65044416ee41d788be4d6217a7ae39e58defcb59d5",
+        "byteLength": 3950,
+        "bytesAvailable": false,
+        "replay": false
+      },
+      "storage_events": [
+        {
+          "kind": "storage_delete_authorized",
+          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
+          "sourceId": "4ce3bf43-fbfa-4b0a-ade9-2ee3420625f5"
+        },
+        {
+          "kind": "storage_object_absent",
+          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
+          "sourceId": "4ce3bf43-fbfa-4b0a-ade9-2ee3420625f5"
+        },
+        {
+          "kind": "storage_delete_authorized",
+          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
+          "sourceId": "6c9cc1d5-b929-448f-a4d5-d5f83581fde6"
+        },
+        {
+          "kind": "storage_object_absent",
+          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
+          "sourceId": "6c9cc1d5-b929-448f-a4d5-d5f83581fde6"
+        },
+        {
+          "kind": "storage_delete_authorized",
+          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
+          "sourceId": "7bf8f8cd-6caf-4866-81d7-23e52b07cd13"
+        },
+        {
+          "kind": "storage_object_absent",
+          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
+          "sourceId": "7bf8f8cd-6caf-4866-81d7-23e52b07cd13"
+        }
+      ],
+      "tombstones": [
+        {
+          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
+          "sourceId": "4ce3bf43-fbfa-4b0a-ade9-2ee3420625f5",
+          "decisionId": "bee06d94-941e-4dbe-af94-22a51d167b97"
+        },
+        {
+          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
+          "sourceId": "6c9cc1d5-b929-448f-a4d5-d5f83581fde6",
+          "decisionId": "6421184a-0d49-4b6a-b01d-c552f1f6b2c1"
+        },
+        {
+          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
+          "sourceId": "7bf8f8cd-6caf-4866-81d7-23e52b07cd13",
+          "decisionId": "cb5add92-4cb5-4071-9979-33705030fedc"
+        }
+      ]
+    }
+  },
+  "measuredDurations": {
+    "setupStepMs": 11967.2,
+    "negStepMs": 1948.2,
+    "purgeStepMs": 2684.0,
+    "lockedStepMs": 166.8,
+    "vitestTotalMs": 16770
+  },
+  "openObservations": []
+}
