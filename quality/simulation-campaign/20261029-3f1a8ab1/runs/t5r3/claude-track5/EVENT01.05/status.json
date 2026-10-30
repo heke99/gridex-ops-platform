@@ -1,0 +1,223 @@
+{
+  "scenarioId": "EVENT01.05",
+  "workerId": "claude-track5",
+  "session": "session_01UHTg8KRCLzrvSEoYLm14un",
+  "model": "Claude Code-session session_01UHTg8KRCLzrvSEoYLm14un; exakt modell-ID i sessionens metadata (get_session: session_context.model och last_served_model, verifierade 12:46Z) och publiceras inte i repot enligt sessionsregel",
+  "campaignId": "20261029-3f1a8ab1",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "241a29dbee7127dfc477b5b59d69540c2c1e58d2",
+  "appCommitNote": "byggd app = bas + endast harness under scripts/simulation/track5 (ingen appkod ändrad)",
+  "overlayRefs": [
+    {
+      "kind": "harness",
+      "branch": "claude/sim-20261029-track5",
+      "commit": "241a29dbee7127dfc477b5b59d69540c2c1e58d2",
+      "paths": [
+        "scripts/simulation/track5/**"
+      ]
+    }
+  ],
+  "environmentId": "container vm / SIM_HOME=/root/sim-home/track5 / replay 2026-10-30T12:49:55Z",
+  "databaseIdentity": "replay 2026-10-30T12:49:55Z, fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHash": {
+    "replayCommit": "241a29dbee7127dfc477b5b59d69540c2c1e58d2",
+    "replayFingerprint": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+    "schemaFingerprintOutSha256": "2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839",
+    "appliedMigrationsTsvSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "appliedMigrations": [],
+    "command": "psql \"$(cat $SIM_HOME/db-url)\" -XAt -f scripts/gridex-aud-003-schema-fingerprint.sql"
+  },
+  "clockModel": {
+    "auth": "real tid; stackens Auth jwt_expiry=60 s, sessions.timebox=3m (endast konfigkopia)",
+    "business": "real tid; kontrollerad klocka i EVENT01.04 (next_attempt_at) och API01.03 (valid_to)"
+  },
+  "versions": {
+    "node": "22.22.0",
+    "postgres": "17.6",
+    "next": "16.4.2",
+    "supabaseCli": "2.101.0"
+  },
+  "startedAtUtc": "2026-10-30T12:56:14Z",
+  "finishedAtUtc": "2026-10-30T12:56:22Z",
+  "state": "PARTIAL",
+  "executionScope": "ISOLATED_NATIVE",
+  "command": "SIM_HOME=$SIM_HOME RUN_DIR=$RUN_DIR SIM_REPORT=<evidens>/event01-report.json bash scripts/simulation/track5/run.sh scenarios/event01.test.ts",
+  "scenarioFile": "scenarios/event01.test.ts",
+  "steps": [
+    {
+      "name": "EVENT01 webhooks EVENT01.05 tenant och hemligheter: B får bara egna händelser, ingen klartext-secret, privat mål nekas",
+      "status": "passed",
+      "durationMs": 534
+    }
+  ],
+  "relatedSteps": [
+    {
+      "name": "EVENT01 webhooks SETUP webhook-subscription via partner-API POST webhooks/subscriptions (normal väg; fynd 001/002)",
+      "status": "failed"
+    }
+  ],
+  "skipped": [],
+  "scenarioSummary": {
+    "passed": 4,
+    "failed": 2,
+    "skipped": 0,
+    "total": 6
+  },
+  "runDirClean": true,
+  "evidenceRefs": {
+    "privateDir": "/root/sim-evidence/t5r3/claude-track5/final (privat)",
+    "files": [
+      {
+        "file": "all.log",
+        "sha256": "bbeaa4432ca1aefcf34bc8146ea137814ff4436cdd9f9ce1358137433b996636"
+      },
+      {
+        "file": "api01-poa-report.json",
+        "sha256": "1b7d49459f5792862acefd5fb9ebb1f6bf528225a1e9e4ddce5a66a3d1d0e2ec"
+      },
+      {
+        "file": "api01-poa-report.json.sha256",
+        "sha256": "5bfa50b77fe75f8c68d30b221ed3cc62a46b4a2edc2e8ea9055dc6afb60a5399"
+      },
+      {
+        "file": "api01-poa-report.receipts.jsonl",
+        "sha256": "985235c5117d357c7f10ce7d517b33fa7eccd13dc6dca6543665249ad9e6c107"
+      },
+      {
+        "file": "api01-poa-run.log",
+        "sha256": "dbfc6fff0c124d20f5ebbde9087d021147190434a77a10ab3a7a5f8c908f2ce1"
+      },
+      {
+        "file": "api01-poa-vitest.log",
+        "sha256": "3c3cfc7c4eefdec4e3fbde4b3b74d4ef1d54064d01157742c896187b25b25009"
+      },
+      {
+        "file": "api01-report.json",
+        "sha256": "65914410fe1d2c68197d223bbbf02e0d1ea3ae80f8499139d6ae74e2941fc4ed"
+      },
+      {
+        "file": "api01-report.json.sha256",
+        "sha256": "330f50cc6ff0ecbde801e65bc07555173bee4255a9781658aee8a12597e45981"
+      },
+      {
+        "file": "api01-report.receipts.jsonl",
+        "sha256": "6e6b0e6c799a7d49894010425a0b956ed070011517055fb749818deddf010fa2"
+      },
+      {
+        "file": "api01-run.log",
+        "sha256": "c0a19ae715984276416f5260f15f33ad59ccc535e8cedf3129e9e171158f33bd"
+      },
+      {
+        "file": "api01-vitest.log",
+        "sha256": "73e2aca36a5255b73570e42777455dc3f915679b53b13be2682a768e2d724918"
+      },
+      {
+        "file": "applied-migrations.tsv",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "auth01-report.json",
+        "sha256": "b63e6b8b3d32f4c05d1bf58a944746009d2acd487d9bc1344158f28f70b72fd9"
+      },
+      {
+        "file": "auth01-report.json.sha256",
+        "sha256": "e095101af0d20b1d6a51354d8b666f761221d2fb3524c16399912c472ba94a9e"
+      },
+      {
+        "file": "auth01-report.receipts.jsonl",
+        "sha256": "f0fbf8438e10c5f85d39d3f5bcb8c6e14636ed3ff7a215b3b87548701debc283"
+      },
+      {
+        "file": "auth01-run.log",
+        "sha256": "36c0c55b8fe14a0f377fe63ea8d52b3f9aa035ced138db95e90de759a534621a"
+      },
+      {
+        "file": "auth01-vitest.log",
+        "sha256": "2e593d83cbeb9d39513d07ce92bfcface18f25e084be93282cea80cb37129bc6"
+      },
+      {
+        "file": "event01-report.json",
+        "sha256": "2162468ecfaec74f97ee7802d13d8b9205bf0970323107faaf3a91ecf50617be"
+      },
+      {
+        "file": "event01-report.json.sha256",
+        "sha256": "a709358392cb9821e1dbae8249b0ff8f3e20f6a9d5bba73cc5b96e18f40fb2c0"
+      },
+      {
+        "file": "event01-report.receipts.jsonl",
+        "sha256": "1ddb749491c38356a67604652aef22d18f9abaa7219c9cc9603ed69948858f17"
+      },
+      {
+        "file": "event01-run.log",
+        "sha256": "9a92b9bfd9377aa0d05a7c4c155bb877fe5661d6200fe52a7fb8826db6e253d0"
+      },
+      {
+        "file": "event01-vitest.log",
+        "sha256": "48f9dd660f3f743ff7563948e3481bb420f292cd4495599d90d0c70eb4176034"
+      },
+      {
+        "file": "scan-report.json",
+        "sha256": "331ceaa284dbd43f7dca74e2bd0c03737ffe68be3a440180de6168e54cf196eb"
+      },
+      {
+        "file": "scan-report.json.sha256",
+        "sha256": "9e332f86a991ea735739b972a8598fe5c48bcd56e2cc570d0c1f9811d37a5ab1"
+      },
+      {
+        "file": "scan-report.receipts.jsonl",
+        "sha256": "c464c47fb1041af821b9b2d3db11da4c56e0bc01fcf89e9a425454eca2799651"
+      },
+      {
+        "file": "scan-run.log",
+        "sha256": "4054e1b0aad35e5c3c250f51eb34673172a954045b5b1afd8249f7ed6640bd54"
+      },
+      {
+        "file": "scan-vitest.log",
+        "sha256": "aecf34a6eb9d5cca76a12cd54b710482b07ccd30995d21187247518ecf35d712"
+      },
+      {
+        "file": "schema-fingerprint.out",
+        "sha256": "2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839"
+      }
+    ],
+    "reportSha256": "2162468ecfaec74f97ee7802d13d8b9205bf0970323107faaf3a91ecf50617be",
+    "vitestLogSha256": "48f9dd660f3f743ff7563948e3481bb420f292cd4495599d90d0c70eb4176034"
+  },
+  "receipts": [
+    {
+      "at": "2026-10-30T12:56:15.683Z",
+      "scenarioId": "SETUP",
+      "step": "POST webhooks/subscriptions",
+      "status": 500,
+      "bodySha256": "3f22086e4a8722c88da38df7b91ffa3566640bc21c0329af774a4c1010c342e3",
+      "errorCode": "partner_api_internal_error"
+    },
+    {
+      "at": "2026-10-30T12:56:22.742Z",
+      "scenarioId": "EVENT01.05",
+      "step": "tenant+secrets",
+      "receivedB": 1,
+      "deliveriesB": 1,
+      "loopback": 422,
+      "plainHttp": 422
+    }
+  ],
+  "proposedState": null,
+  "harnessCommit": "241a29dbee7127dfc477b5b59d69540c2c1e58d2",
+  "oracle": "Originalets beskrivning (quality/simulation-register/oracles/all-systems-scenarios.safe.json, sha256 96518c18…29df3; samma bytes som samordnarens återställda kopia på claude/adoring-wright-8qbon8@27862b90) tillämpad på spårets egna syntetiska bolag. \"Tenantfilter och hemligheter hålls korrekta\": A:s händelse når inte B, B:s når bara B, rätt company_id, ingen klartext-secret i DB/payload/headers, loopback- och http-mål nekas 422 webhook_target_not_public.",
+  "substitutions": [
+    "Partnernyckel som SQL-fixtur med launch_ready, installationskvitto och capability api_sales (ersätter plattformens provisionering; lib/partner.ts).",
+    "Webhook-subscription som SQL-fixtur med vault-secret (partner-API och RPC går inte på basen: fynd 001/002); utan metadata går leveransen via website-projektionen, inte partnerprojektionen (som dessutom blockeras av fynd 003).",
+    "Tenantens capability 'webhooks' = ready som fixtur (sätts annars av plattformen)."
+  ],
+  "notVerified": [],
+  "findingsIds": [
+    "20261029-3f1a8ab1/claude-track5/001",
+    "20261029-3f1a8ab1/claude-track5/002"
+  ],
+  "blocker": "fynd 001/002",
+  "nextAction": "Efter #944/003: kör om med normal subscription.",
+  "review": null,
+  "cleanupReceipt": "EJ UTFÖRD: stacken behålls för omkörning efter rättningarna (#944/#946/003/005). Föregående stack revs 12:47:14Z med down.sh: \"down: inget kvar\" (processer, containrar, volymer, hosts- och iptables-regler).",
+  "heartbeatAtUtc": "2026-10-30T13:00:00Z"
+}
