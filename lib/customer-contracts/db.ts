@@ -999,18 +999,6 @@ export async function createCustomerContract(input: {
       campaign_snapshot: input.campaignSnapshot ?? null,
       billing_ready_status: input.billingReadyStatus ?? null,
       billing_blocker_reasons: input.billingBlockerReasons ?? [],
-      current_supplier_id: input.currentSupplierId ?? null,
-      current_supplier_name: input.currentSupplierName ?? null,
-      current_supplier_org_number: input.currentSupplierOrgNumber ?? null,
-      current_supplier_contract_status:
-        input.currentSupplierContractStatus ?? null,
-      current_supplier_contract_end_date:
-        input.currentSupplierContractEndDate ?? null,
-      current_supplier_notice_period: input.currentSupplierNoticePeriod ?? null,
-      current_supplier_termination_fee:
-        input.currentSupplierTerminationFee ?? null,
-      current_supplier_response_status:
-        input.currentSupplierResponseStatus ?? null,
       withdrawal_requested_at: input.withdrawalRequestedAt ?? null,
       rejected_reason: input.rejectedReason ?? null,
       fixed_price_ore_per_kwh: input.fixedPriceOrePerKwh ?? null,
