@@ -84,9 +84,24 @@ it('still refuses a customer-less row on every other route',async()=>{
  }
  let executed=false
  await expect(executeIdempotentPortalWrite({request:request('/api/v1/customer/profile-update',key),companyId:A,clientId:clientA,customerId:null,
-  operation:'/api/v1/customer/profile-update',payload:{},execute:async()=>{executed=true;return {statusCode:200,body:{}}}})).rejects.toBeTruthy()
+  operation:'/api/v1/customer/profile-update',payload:{},execute:async()=>{executed=true;return {statusCode:200,body:{}}}}))
+  .rejects.toMatchObject({code:'23514',message:expect.stringContaining('customer_portal_write_idempotency_customer_required_check')})
  expect(executed).toBe(false)
  expect(ledgerRows(A,'/api/v1/customer/profile-update',key)).toBe(0)
+})
+
+it('keeps the same customer-less key and route independent per tenant',async()=>{
+ const route='/api/partner/v1/customer',key=randomUUID()
+ const runs={A:0,B:0}
+ const write=(companyId:string,clientId:string,tenant:'A'|'B')=>executeIdempotentPortalWrite({request:request(route,key),companyId,clientId,
+  customerId:null,operation:route,payload:{route,tenant},execute:async()=>{runs[tenant]+=1;return {statusCode:201,body:{tenant}}}})
+ await expect(write(A,clientA,'A')).resolves.toMatchObject({statusCode:201,body:{tenant:'A'},replayed:false})
+ // Same key and route from tenant B: B's own write runs; A's stored response is never returned.
+ await expect(write(B,clientB,'B')).resolves.toMatchObject({statusCode:201,body:{tenant:'B'},replayed:false})
+ await expect(write(B,clientB,'B')).resolves.toMatchObject({statusCode:201,body:{tenant:'B'},replayed:true})
+ expect(runs).toEqual({A:1,B:1})
+ expect(ledgerRows(A,route,key)).toBe(1)
+ expect(ledgerRows(B,route,key)).toBe(1)
 })
 
 it('rejects a customer-less row whose API client belongs to another tenant',()=>{
