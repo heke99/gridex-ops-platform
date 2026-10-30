@@ -2,7 +2,7 @@
 import { execFile } from 'node:child_process'
 import { setSmtpMode } from './counterparty'
 import { E02Flow, purgeInbox } from './e02-flow'
-import { ensureE02AckRouteProfile, ensureE02CompanyMailbox, registerE02Issuer, setE02MailboxActive } from './e02-seed'
+import { assertSingleAckRuntimeRow, ensureE02AckRouteProfile, ensureE02CompanyMailbox, registerE02Issuer, setE02MailboxActive } from './e02-seed'
 import { Evidence } from './evidence'
 import { ensureE02Tenant } from './e02-tenant'
 import { dbUrl, newRunContext } from './seed.mjs'
@@ -15,6 +15,7 @@ export async function setupE02(label: string) {
   const tenant = await ensureE02Tenant()
   registerE02Issuer()
   ensureE02AckRouteProfile(mode)
+  assertSingleAckRuntimeRow(mode)
   const mailboxId = ensureE02CompanyMailbox(mode)
   setE02MailboxActive(mailboxId, true)
   await setSmtpMode('accept')

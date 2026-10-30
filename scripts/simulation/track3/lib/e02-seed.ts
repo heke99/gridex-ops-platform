@@ -140,9 +140,50 @@ export function ensureE02AckRouteProfile(environment: 'test' | 'production' = 't
   deactivateDuplicateE02RouteProfiles()
 }
 
-/** Engångsstädning: avaktiverar (raderar inte) överskjutande aktiva profiler per (route, miljö) för fixturens egna bolag; den nyaste behålls. */
+/**
+ * Engångsstädning: RADERAR överskjutande aktiva profiler per (route, miljö) för fixturens egna bolag; den nyaste behålls.
+ * ediel_route_runtime_v filtrerar inte på is_active, så avaktivering räcker inte (PGRST116 i maybeSingle).
+ * Rader med FK mot en profil som ska bort flyttas först till en inaktiv dummyprofil på en inaktiv dummyrutt (samma bolag).
+ */
 export function deactivateDuplicateE02RouteProfiles(): void {
-  sql(`UPDATE public.ediel_route_profiles SET is_active=false WHERE id IN (
-    SELECT id FROM (SELECT id, row_number() OVER (PARTITION BY communication_route_id, environment ORDER BY created_at DESC, id DESC) rn
-      FROM public.ediel_route_profiles WHERE company_id=${lit(e02CompanyId())} AND is_active) t WHERE rn>1)`)
+  const co = lit(e02CompanyId())
+  sql(`DO $$
+DECLARE co uuid := ${co}; dup uuid[]; keep record; dr uuid; dp uuid; fk record;
+BEGIN
+  SELECT array_agg(id) INTO dup FROM (SELECT id, row_number() OVER (PARTITION BY communication_route_id, environment ORDER BY created_at DESC, id DESC) rn
+    FROM public.ediel_route_profiles WHERE company_id=co AND is_active) t WHERE rn>1;
+  IF dup IS NULL THEN RETURN; END IF;
+  FOR fk IN SELECT c.conrelid::regclass AS tbl, a.attname AS col FROM pg_constraint c
+      JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=c.conkey[1]
+      WHERE c.contype='f' AND c.confrelid='public.ediel_route_profiles'::regclass AND array_length(c.conkey,1)=1 LOOP
+    IF fk.tbl::text='public.ediel_route_profiles' THEN CONTINUE; END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.ediel_route_profiles WHERE id=ANY(dup)) THEN EXIT; END IF;
+    IF dp IS NULL THEN
+      INSERT INTO public.communication_routes(company_id,route_name,route_scope,route_type,is_active,target_email,counterparty_ediel_id,environment_type,market_party_role)
+        SELECT r.company_id,'T3SIM E02 dummy archive',r.route_scope,r.route_type,false,r.target_email,r.counterparty_ediel_id,r.environment_type,r.market_party_role
+        FROM public.communication_routes r JOIN public.ediel_route_profiles p ON p.communication_route_id=r.id WHERE p.id=dup[1]
+        ON CONFLICT DO NOTHING;
+      SELECT id INTO dr FROM public.communication_routes WHERE company_id=co AND route_name='T3SIM E02 dummy archive';
+      SELECT * INTO keep FROM public.ediel_route_profiles WHERE id=dup[1];
+      SELECT id INTO dp FROM public.ediel_route_profiles WHERE company_id=co AND communication_route_id=dr LIMIT 1;
+      IF dp IS NULL THEN
+        INSERT INTO public.ediel_route_profiles(company_id,communication_route_id,is_enabled,is_active,environment,route_name,sender_ediel_id,own_ediel_id,receiver_ediel_id,counterparty_ediel_id,receiver_email,smtp_to,smtp_from,smtp_host,smtp_port,mailbox,is_test_route,is_production_route,transport_mode,tls_required,encryption_mode,default_test_flag,application_reference)
+        VALUES(co,dr,false,false,keep.environment,'T3SIM E02 dummy archive',keep.sender_ediel_id,keep.own_ediel_id,keep.receiver_ediel_id,keep.counterparty_ediel_id,keep.receiver_email,keep.smtp_to,keep.smtp_from,keep.smtp_host,keep.smtp_port,keep.mailbox,keep.is_test_route,keep.is_production_route,keep.transport_mode,keep.tls_required,keep.encryption_mode,keep.default_test_flag,keep.application_reference)
+        RETURNING id INTO dp;
+      END IF;
+    END IF;
+    EXECUTE format('UPDATE %s SET %I=%L WHERE %I=ANY(%L)', fk.tbl, fk.col, dp, fk.col, dup);
+  END LOOP;
+  DELETE FROM public.ediel_route_profiles WHERE id=ANY(dup);
+END $$;`)
+}
+
+/** Vakt: exakt en rad i ediel_route_runtime_v per fixturens ACK-rutt (annars kastar runtime-uppslaget PGRST116). */
+export function assertSingleAckRuntimeRow(environment: 'test' | 'production' = 'test'): void {
+  const routes = sql(`SELECT id FROM public.communication_routes WHERE company_id=${lit(e02CompanyId())} AND is_active AND route_name LIKE 'T3SIM E02 %ediel_ack%' AND environment_type=${environment === 'test' ? "'tgt_test'" : "'production'"}`).split('\n').filter(Boolean)
+  if (routes.length === 0) throw new Error('E02 setup: ingen ACK-rutt hittad för fixturen')
+  for (const r of routes) {
+    const n = Number(sql(`SELECT count(*) FROM public.ediel_route_runtime_v WHERE communication_route_id=${lit(r)}`))
+    if (n !== 1) throw new Error(`E02 setup: ediel_route_runtime_v har ${n} rader (förväntat 1) för ACK-rutt ${r}`)
+  }
 }
