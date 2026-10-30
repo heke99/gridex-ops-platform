@@ -47,7 +47,9 @@ process.on('SIGTERM', () => { stop = true })
 /**
  * Hälso-pollning parallellt med en annan åtgärd, i en EGEN process (testprocessens händelseloop blockeras av spawnSync under dump/restore).
  * Route: /api/internal/system/health (oautentiserad => 401/503, aldrig 200 utan hemlighet; jfr scenarios/smoke.test.ts SMOKE.02).
- * "Svarar" = HTTP-svar < 500 eller exakt 503 (ops-hemlighet ej konfigurerad) inom 10 s. Provsvar skrivs till fil i SIM_HOME.
+ * Enbart INFORMATION om processens responsivitet: routen svarar 503 före all DB-åtkomst (app/api/internal/system/health/route.ts:41-43), så 503 är avsiktligt
+ * och bevisar INTE att databasen är uppe. "Fel" = nätverksfel/timeout/HTTP >= 500 utom 503. Beviset för "utan att stoppa främmande körningar" är lib/custody/foreign.ts.
+ * Provsvar skrivs till fil i SIM_HOME.
  */
 export function startHealthPoll(intervalMs = 500, file = join(custodyDir('health'), `poll-${Date.now()}.jsonl`)): { file: string; stop: () => Promise<{ samples: HealthSample[]; failures: HealthSample[]; maxMs: number; p95Ms: number }> } {
   writeFileSync(file, '', { mode: 0o600 })

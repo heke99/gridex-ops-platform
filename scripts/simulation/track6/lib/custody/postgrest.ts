@@ -7,13 +7,13 @@ import { env } from './base'
 
 export type TenantUser = { id: string; email: string; client: SupabaseClient; accessToken: string }
 
-export async function createTenantUser(companyId: string, permissions: string[]): Promise<TenantUser> {
+export async function createTenantUser(companyId: string, permissions: string[], membershipRole = 'member'): Promise<TenantUser> {
   const email = `${randomUUID()}@custody.t6.sim.invalid`, password = `${randomUUID()}Aa1!`
   const created = await adminClient().auth.admin.createUser({ email, password, email_confirm: true })
   if (created.error) throw created.error
   const id = created.data.user!.id
   sql(`INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${lit(id)},${lit(email)},'T6SIM custody actor (syntetisk)','active') ON CONFLICT(id) DO UPDATE SET user_status='active'`)
-  sql(`INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(${lit(companyId)},${lit(id)},'member','active',now(),'{}','member',true,now(),'member')`)
+  sql(`INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(${lit(companyId)},${lit(id)},${lit(membershipRole)},'active',now(),'{}','member',true,now(),'member')`)
   if (permissions.length) {
     sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${lit(id)},${lit(companyId)},id,key FROM public.permissions WHERE key=ANY(ARRAY[${permissions.map(lit).join(',')}]::text[])`)
   }

@@ -1,14 +1,20 @@
 // CUSTODY01.05: backup/återställning bevarar custody-data. Spår 6, kampanj 20261029-3f1a8ab1. Ingen webbläsare/Playwright.
-//   Under hela proceduren pollas appen (/api/internal/system/health) parallellt; inga fel tillåts. Stackens databas pg_dump -Fc:as till SIM_HOME,
+//   Under pg_dump OCH pg_restore körs en syntetisk "främmande körning" (lib/custody/foreign.ts) i en separat tenant: loop av autentiserade PostgREST-operationer
+//   (INSERT/SELECT/UPDATE på public.customers med GoTrue-session) som committar. Alla iterationer ska lyckas, ingen operation får vänta > 5 s, minst N iterationer
+//   ska överlappa vardera fönstret (N loggas) och den främmande tenantens rader ska vara intakta (källan + återställd kopia).
+//   Hälsopollen (/api/internal/system/health) är ENDAST information om processens responsivitet: routen svarar 503 före all DB-åtkomst (route.ts:41-43), så 503 är avsiktligt.
+//   Stackens databas pg_dump -Fc:as till SIM_HOME,
 //   en NY databas t6_restore_<runid> skapas på samma server, pg_restore körs dit, och per-tabell radantal samt sha256 över ordnat innehåll jämförs
 //   (ediel_messages originalkroppar, invoice_export_files inkl. rows_sha256, billing_underlays, gridex_billing_source.*, gridex_received_sources.*, storage.objects-metadata).
 //   Återställningsdatabasen droppas sist (städkvitto). Storage-BYTES ingår inte i en databasdump; endast objektmetadata jämförs (se observation).
 //   Körs lämpligen efter custody01-01/03/04 (alfabetisk ordning) så att det finns innehåll att jämföra.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { startHealthPoll } from '../lib/custody/app'
+import { maxOpMs, overlaps, startForeignRun, type ForeignIteration } from '../lib/custody/foreign'
+import { createTenantUser } from '../lib/custody/postgrest'
 import { custodyDir, mode } from '../lib/custody/base'
-import { baseTables, chooseTooling, contentHashes, createDb, dbExists, dropDb, dump, platformOnly, restore, restoreUrl, rowCounts, triggerInventory, type Tooling } from '../lib/custody/restore'
-import { dbUrl, newRunContext } from '../lib/seed.mjs'
+import { psqlRows, baseTables, chooseTooling, contentHashes, createDb, dbExists, dropDb, dump, platformOnly, restore, restoreUrl, rowCounts, triggerInventory, type Tooling } from '../lib/custody/restore'
+import { dbUrl, lit, newRunContext, sql } from '../lib/seed.mjs'
 import { Evidence } from '../lib/evidence'
 import { join } from 'node:path'
 import { writeFileSync } from 'node:fs'
@@ -27,7 +33,14 @@ let dumped: ReturnType<typeof dump>
 let dumpFile = ''
 let before: { counts: Record<string, number>; hashes: ReturnType<typeof contentHashes> }
 let drift: string[] = []
+const isCustody = (t: string) => /^(public\.ediel_messages|public\.invoice_export_files|public\.billing_underlays|gridex_billing_source\.|gridex_received_sources\.|storage\.objects)/.test(t)
 let restoreResult: ReturnType<typeof restore>
+let foreign: ReturnType<typeof startForeignRun> | null = null
+let foreignCompany = ''
+let foreignTag = ''
+const windows: { dump?: { start: number; end: number }; restore?: { start: number; end: number } } = {}
+const LOCK_WAIT_BOUND_MS = 5000
+const MIN_OVERLAP = { dump: 3, restore: 5 }
 
 beforeAll(() => { ev.observe('run', { ...run, mode: mode(), restoreDb, sourceDb: new URL(sourceUrl).pathname }) })
 afterAll(async () => {
@@ -35,6 +48,7 @@ afterAll(async () => {
     if (dbExists(restoreDb)) dropDb(restoreDb)
     receipt.dropped = !dbExists(restoreDb)
   } catch (e) { receipt.dropError = e instanceof Error ? e.message : String(e) }
+  if (foreign) await foreign.stop().catch(() => undefined)
   if (!healthResult && health) healthResult = await health.stop()
   receipt.finishedAt = new Date().toISOString()
   ev.observe('storage_bytes_note', 'pg_dump täcker storage.objects-metadata, inte objektens bytes i Storage-volymen; bytesåterställning kräver separat storage-backup (docs/backup-restore-checklist.md).')
@@ -53,28 +67,45 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
     expect(tables).toContain('public.ediel_messages')
   })
 
+  it('CUSTODY01.05 främmande körning startas i separat tenant (egen tenant + GoTrue-session; första iterationerna lyckas före dumpen)', async () => {
+    foreignTag = `fr${run.runId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`
+    const name = `T6SIM Custody05 Foreign AB ${foreignTag}`
+    foreignCompany = sql(`INSERT INTO public.companies(name,status,default_environment) VALUES(${lit(name)},'active','test') RETURNING id`).split('\n')[0]
+    const user = await createTenantUser(foreignCompany, ['customers.read', 'customers.write'], 'company_admin')
+    foreign = startForeignRun({ companyId: foreignCompany, accessToken: user.accessToken, tag: foreignTag, intervalMs: 100 })
+    const first = await foreign.waitForFirst(3)
+    ev.observe('foreign_run', { company: foreignCompany, tag: foreignTag, user: user.id, preflightIterations: first.length, preflightOk: first.filter((x) => x.ok).length, firstError: first.find((x) => !x.ok)?.error ?? null })
+    expect(first.length, 'främmande körning kom igång').toBeGreaterThanOrEqual(3)
+    expect(first.filter((x) => !x.ok).map((x) => x.error)).toEqual([])
+  }, 120_000)
+
   it('CUSTODY01.05 pg_dump -Fc av stackens databas utan driftavbrott (källans innehåll är stabilt före/efter dumpen)', () => {
     let lastDrift: string[] = []
     for (let attempt = 1; attempt <= 3; attempt++) {
       const b = { counts: rowCounts(sourceUrl, tables), hashes: contentHashes(sourceUrl, tables) }
       dumpFile = join(custodyDir('backup'), `${restoreDb}-attempt${attempt}.dump`)
+      const w0 = Date.now()
       dumped = dump(tooling, dumpFile)
+      windows.dump = { start: w0, end: Date.now() }
       const a = { counts: rowCounts(sourceUrl, tables), hashes: contentHashes(sourceUrl, tables) }
       lastDrift = tables.filter((t) => b.counts[t] !== a.counts[t]).concat(Object.keys(b.hashes).filter((t) => b.hashes[t].sha256 !== a.hashes[t]?.sha256))
       ev.observe(`dump_attempt_${attempt}`, { ms: dumped.ms, bytes: dumped.bytes, sha256: dumped.sha256, drift: lastDrift })
       before = b
-      if (lastDrift.length === 0) break
+      // Främmande skrivningar gör att icke-custody-tabeller driver; omförsök bara om en custody-tabell drev.
+      if (!lastDrift.some(isCustody)) break
     }
     drift = [...new Set(lastDrift)]
     expect(dumped.bytes).toBeGreaterThan(10_000)
     // Driftande tabeller (aktiv app skriver) undantas från jämförelsen och listas; custody-tabellerna får inte driva.
-    const custodyDrift = drift.filter((t) => /^(public\.ediel_messages|public\.invoice_export_files|public\.billing_underlays|gridex_billing_source\.|gridex_received_sources\.|storage\.objects)/.test(t))
+    const custodyDrift = drift.filter(isCustody)
     expect(custodyDrift, 'custody-tabeller ändrades under dumpen; körningen ogiltig').toEqual([])
   }, 900_000)
 
   it('CUSTODY01.05 pg_restore till NY databas på samma server', () => {
     createDb(restoreDb); receipt.created = true
+    const r0 = Date.now()
     restoreResult = restore(tooling, dumpFile, restoreDb)
+    windows.restore = { start: r0, end: Date.now() }
     ev.save('pg_restore-errors.json', { status: restoreResult.status, errors: restoreResult.errors, tail: restoreResult.stderrTail })
     ev.observe('pg_restore', { ms: restoreResult.ms, status: restoreResult.status, errorLines: restoreResult.errors.length })
     // Datapåverkande fel (COPY/constraint/ogiltigt värde) är aldrig acceptabla; tillägg/roller/extensions utanför databasen kan ge ofarliga fel och loggas.
@@ -83,6 +114,37 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
     ev.observe('pg_restore_platform_only', restoreResult.blocks.filter(platformOnly))
     expect(unexpected).toEqual([])
   }, 900_000)
+
+  it('CUSTODY01.05 främmande körning: alla iterationer lyckades, ingen väntan > 5 s, överlapp med dump- och restorefönstren, egna rader intakta (källa + återställd kopia)', async () => {
+    const iters: ForeignIteration[] = await foreign!.stop(); foreign = null
+    const lat = iters.flatMap((x) => [x.insertMs, x.selectMs, x.updateMs]).sort((a, b) => a - b)
+    const nDump = iters.filter((x) => x.ok && overlaps(x, windows.dump!)).length
+    const nRestore = iters.filter((x) => x.ok && overlaps(x, windows.restore!)).length
+    ev.save('foreign-iterations.json', iters)
+    ev.observe('foreign_summary', {
+      iterations: iters.length, ok: iters.filter((x) => x.ok).length, failed: iters.filter((x) => !x.ok).length,
+      maxOpMs: lat.at(-1) ?? 0, p95OpMs: lat[Math.floor(lat.length * 0.95)] ?? 0, lockWaitBoundMs: LOCK_WAIT_BOUND_MS,
+      dumpWindowMs: windows.dump!.end - windows.dump!.start, restoreWindowMs: windows.restore!.end - windows.restore!.start,
+      overlapDump: nDump, overlapRestore: nRestore, requiredN: MIN_OVERLAP,
+    })
+    expect(iters.filter((x) => !x.ok).map((x) => ({ i: x.i, error: x.error, statuses: x.statuses }))).toEqual([])
+    expect(iters.filter((x) => maxOpMs(x) > LOCK_WAIT_BOUND_MS).map((x) => ({ i: x.i, ms: maxOpMs(x) })), 'operation väntade längre än gränsen').toEqual([])
+    expect(nDump, 'iterationer som överlappar pg_dump').toBeGreaterThanOrEqual(MIN_OVERLAP.dump)
+    expect(nRestore, 'iterationer som överlappar pg_restore').toBeGreaterThanOrEqual(MIN_OVERLAP.restore)
+    // Egna rader intakta i källan: en rad per lyckad iteration, alla uppdaterade (':u').
+    const srcCount = psqlRows(sourceUrl, `SELECT count(*) FROM public.customers WHERE company_id=${lit(foreignCompany)} AND name LIKE ${lit(foreignTag + '-%:u')};`)[0][0]
+    const srcOther = psqlRows(sourceUrl, `SELECT count(*) FROM public.customers WHERE company_id=${lit(foreignCompany)} AND name NOT LIKE ${lit('%:u')};`)[0][0]
+    expect(Number(srcCount)).toBe(iters.length)
+    expect(Number(srcOther)).toBe(0)
+    // Rader som var färdiga innan den återställda dumpen startade ska vara identiska i den återställda databasen.
+    const done = iters.filter((x) => x.t1 < windows.dump!.start && x.id).map((x) => x.id as string)
+    const q = `SELECT id, name, company_id FROM public.customers WHERE id IN (${done.map(lit).join(',')}) ORDER BY id;`
+    const a = psqlRows(sourceUrl, q), b = psqlRows(restoreUrl(restoreDb), q)
+    ev.observe('foreign_rows_in_restored', { checked: done.length, source: a.length, restored: b.length })
+    expect(done.length).toBeGreaterThan(0)
+    expect(b).toEqual(a)
+    expect(b).toHaveLength(done.length)
+  }, 120_000)
 
   it('CUSTODY01.05 per tabell: radantal och innehålls-sha256 i återställd databas == källan (originalkroppar, fakturafiler, underlag, gridex_billing_source, storage.objects-metadata)', () => {
     const rUrl = restoreUrl(restoreDb)
@@ -95,6 +157,7 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
       .map((t) => ({ table: t, source: before.hashes[t], restored: hashes[t] ?? null }))
     const emptyCustody = Object.entries(before.hashes).filter(([, v]) => v.rows === 0).map(([t]) => t)
     ev.save('compare.json', { missing, countDiffs, hashDiffs, drift, emptyCustodyTables: emptyCustody, compared: { tables: tables.length, hashed: Object.keys(before.hashes).length }, sourceHashes: before.hashes })
+    ev.observe('empty_custody_tables_count', emptyCustody.length)
     ev.observe('compare', { missing: missing.length, countDiffs: countDiffs.length, hashDiffs: hashDiffs.length, drift, emptyCustodyTables: emptyCustody, ediel_messages: before.hashes['public.ediel_messages'], invoice_export_files: before.hashes['public.invoice_export_files'], storage_objects: before.hashes['storage.objects'] })
     expect(missing, 'tabeller saknas efter återställning').toEqual([])
     expect(countDiffs).toEqual([])
@@ -110,11 +173,10 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
     for (const must of ['public.ediel_messages:registered_reception_original_immutable', 'gridex_received_sources.sources:no_evidence_update_delete', 'gridex_received_sources.snapshots:no_evidence_update_delete', 'gridex_billing_source.correction_journal:immutable_update_delete']) expect(res, must).toContain(must)
   })
 
-  it('CUSTODY01.05 appen svarade under hela proceduren (hälsopollning utan fel)', async () => {
+  it('CUSTODY01.05 (information) hälsopoll: processen svarade under proceduren; 503 är avsiktligt och säger inget om databasen', async () => {
     healthResult = await health.stop()
     ev.save('health-samples.json', healthResult.samples)
-    ev.observe('health', { samples: healthResult.samples.length, failures: healthResult.failures.length, maxMs: healthResult.maxMs, p95Ms: healthResult.p95Ms, statuses: [...new Set(healthResult.samples.map((s) => s.status))] })
-    expect(healthResult.samples.length).toBeGreaterThanOrEqual(5)
-    expect(healthResult.failures).toEqual([])
+    ev.observe('health_informational', { samples: healthResult.samples.length, failures: healthResult.failures.length, maxMs: healthResult.maxMs, p95Ms: healthResult.p95Ms, statuses: [...new Set(healthResult.samples.map((x) => x.status))], note: 'Routen svarar 503 före all DB-åtkomst (app/api/internal/system/health/route.ts:41-43); enbart processens responsivitet, inte DB-hälsa. Beviset för orörda främmande körningar är foreign_summary.' })
+    expect(healthResult.samples.length).toBeGreaterThanOrEqual(1)
   })
 })
