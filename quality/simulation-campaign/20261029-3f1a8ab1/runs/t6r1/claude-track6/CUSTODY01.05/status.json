@@ -6,7 +6,7 @@
   "runId": "20261030T162702Z-7cd581",
   "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
   "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
-  "appCommitNote": "Angiven main-commit enligt uppdraget. Lokal main = 0535e618f; 6454d540 ar inte ancestor av lokal main (git merge-base --is-ancestor rc=1). Faktisk remote-main ej verifierad i denna packet.",
+  "appCommitNote": "6454d540 is an ancestor of origin/main af0ed93b (verified with git merge-base --is-ancestor against origin/main); the stale local \"main\" branch is irrelevant. RUN_DIR diff vs 6454d540 touches only scripts/simulation/track6/** and quality/**.",
   "builtCommits": {
     "commitsJson": {
       "appCommit": "7afacc78a478f97c14295635d8228e3149a98128",
@@ -30,7 +30,7 @@
   "schemaHashNote": "Innehall i filen fingerprint (samma som databaseIdentity). Partiell identitet.",
   "postgresImage": "ghcr.io/supabase/postgres:17.6.1.155 sha256:3866d94d8426927e8db3f1c5d790752292bfbe27b5f1f46e199ae1b7d3c1710b",
   "postgresServerMajor": "17 (serverMajor rapporterad endast i CUSTODY01.05-report)",
-  "nodeVersion": "MISSING (ej i kvitton)",
+  "nodeVersion": "v22.22.0",
   "clockModel": "real UTC (no fixture clock used)",
   "startedAtUtc": "2026-10-30T16:27:02Z",
   "finishedAtUtc": "2026-10-30T16:27:23Z",
@@ -276,5 +276,7 @@
   },
   "openObservations": [
     "health-samples.json: samtliga 49 prov HTTP 503 (ms 3-49). Runnern rapporterar failures=0 och statuses=[503]. Betydelsen av 503 ar OSAKERT och ej utredd."
-  ]
+  ],
+  "postgresVersion": "17.6",
+  "healthPollNote": "Health route /api/internal/system/health returns 503 ok:false by design when no cron secret is configured (qualified in smoke SMOKE.02). The 49 probes all returned 503 within timeout = app process responsive throughout; this verifies responsiveness only, not functional health."
 }

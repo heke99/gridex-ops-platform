@@ -24,7 +24,7 @@ Status: utkast från claude-track6 för integratörens granskning. Inga state- e
 - Kontroll (b): E66 2026-10-01, 24 rader, alla eligible/billable, ingen DB-vägran.
 - Rotorsak (kodläsning, ej bekräftad av rättning): lib/billing/meterValueBillingMatcher.ts:58,117,125; lib/billing/billingGate.ts:70-111, 286-296; DB-funktion i supabase/migrations/20261014103601_ops_api_atomic_bb0b_source_part_07.sql.
 - Observerat vs hypotes: observerat är DB-vägran och 1/24 pending_match. Att TS-grinden och DB-funktionen är orsaken är hypotes.
-- Bedömd påverkan: första sommartimmen på leveransstartdagen blockeras i faktureringsgrinden. Allvar: OSÄKERT, ej bedömt i uppdraget; orkestratorn sätter.
+- Bedömd påverkan: varje leveransstart under sommartid stoppar UTILTS-intaget för startdygnet (hela batchen avbryts i persistBillingGate, meterValueBillingMatcher.ts:58). Undviks första timmen blir underlaget ofullständigt (mätvärdeslucka 00–01 lokal tid → needs_review, observerat i DELIVERY01 körning 20261030T162009Z-f58e37). Vintertid opåverkad. Allvar: hög (fakturerings- och intagsblockerande), bedömt av T6; samordningen har vidarebefordrat förslag om rättning (a) per-värde blocked/pending före (b) juridiskt startögonblick.
 - Öppet: om 22:00Z-instanten är juridiskt korrekt. Ej avgjort.
 - Rättning: ingen. Omtest: ej.
 - Evidens (sha256): runs/20261030T162723Z-f4b727/finding-001-start-hour/report.json 24af814c7b22ea58a06efa28591e310ef62a3f514fd5f354fde13d1cabe817bb; .../log.txt de05ba7d3b5d161da1dfda679f89e6639261ed3d62cc7e23a58bcd1894f2cc3f; .../vitest.json b5d4b5dec9c6e897776e5eb60d9425d4b8d56de38edb7061dbe7f6219d323040; evidence/t6r1-20261030T162723Z-finding-001-start-hour/report.json a50faf354d25778a3025fb0bcfcb4aefcc354bb7301ed19fa5b0ba8c88980db4; .../run.log 689bd68fd7181f6cf5239eac594c949a2aeee0bff16b96f91af34d8d30717dd4. Katalog: evidence/t6r1-20261030T162723Z-finding-001-start-hour.
@@ -34,9 +34,16 @@ Status: utkast från claude-track6 för integratörens granskning. Inga state- e
 - Före (evidence/fix002/before.log, sha256 55615459ad5ab983cab67e83649d93fbe413c4687f596a7e9bfcec86d72428b6): 3/3 fail. Ordagrant: `ERROR:  syntax error at or near ")"`. Felplats: scripts/helpers/ediel-invoice-file-retention-native-fixture.ts:17:2 (stray ")" i SQL-helper).
 - Rättning: be062e718 "fix(test): remove stray paren in invoice-file retention native fixture SQL (T6/002)", 1 insertion, 1 deletion, scripts/helpers/ediel-invoice-file-retention-native-fixture.ts.
 - Efter (evidence/fix002/after.log, sha256 0cff8c0f08208bcce4cf7157f8c876eacfc31a0a0eb759c01dc7fac0831f0bd3): 2 passed, 1 failed. Ordagrant: `AssertionError: expected 403 to be 200 // Object.is equality` (scripts/ediel-invoice-file-retention-native.test.ts:26:92).
-- Under analys: om 403 beror på produkt, testbehörighet eller harness är ej avgjort.
+- 403-analys (DB-logg + funktionskroppar, läsande): eget produktfel, registrerat som 003 nedan. Rad 26 nåddes aldrig före rättningen. Ej orsakat av 002.
+- Leverans: PR #958 (head be062e71808fad55dc67359408e690bdf8312ee6). Granskning 1/2 (oberoende sim-reviewer): GODKÄND. Andra granskning ordnas av samordningen.
 - Övriga evidensfiler: db-before.txt "before|23|138", db-mid.txt "mid|26|138", db-after.txt "after|32|138" (tolkning ej gjord). SHA256SUMS sha256 ce8cecc3c5bfbb2dc5b4ffbc7f73174fc946c5a6067bbe3275d1deb8563dc73e.
 - Påverkan på CUSTODY01.04: enligt commit 0a9a0ef39 använder CUSTODY01.04 egen kopia av fixturen. 002 är inte belagt som orsak till 04-resultatet.
+
+### 20261029-3f1a8ab1/claude-track6/003 – produktfel (läsbehörig nekas fakturafilens källa)
+- Upptäckt: 2026-10-30 i efter-körningen för 002 (evidence/fix002/after.log). Kategori: produktfel, behörighet (överstrikt nekande, inget läckage). State: styrkt (DB-logg), ej rättat.
+- Faktiskt: readonly-användare med ediel.retention.read + ediel.retention.invoice_copy_evidence får 403 på `source`-läsning; DB-logg `ediel_retention_current_actor_forbidden` (actor_v1 rad 11 ← invoice_file_actor_v1 rad 2 ← ediel_read_invoice_file_source_v1 rad 2).
+- Rotorsak: `ediel_read_invoice_file_source_v1` väljer op via `permission_v1(c,actor,'ediel.retention.read')` (supabase/migrations/20261001071000_ediel_invoice_file_copy_class_retention.sql:107); `permission_v1`:s `retention_keys` (20261001000710_…sql:13) saknar `ediel.retention.read` → op blir `ediel.retention.review` → actor_v1 nekar. `invoice_file_actor_v1` har redan en read-gren som aldrig nås.
+- Rättning: kräver migration (RÄTTAD-VÄNTAR-GEN); ägarskap och version väntar på samordningens beslut.
 
 ## Ersättningssteg och avvikelser (sammanfattning)
 - CUSTODY01.03: ERSATTNINGSSTEG motor med aktör (runIntakeWithActor). Se status.json replacementSteps.
