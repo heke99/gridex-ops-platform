@@ -99,7 +99,11 @@ Fynd-ID har formen `20261029-3f1a8ab1/claude-track5/<n>`.
 - `assertPublicResponsePayload` (`lib/api/publicPayloadSafety.ts:57-62, 95-99`) tillåter bara `$.data[n].event_id`.
 - Värdet kommer från `opaqueReference`, som är `sha256(tenantReference:event:eventId)` trunkerat (`webhooks.ts:77-87`). Det är alltså härlett och inte slumpat.
 
-**Evidens.** Observationen gjordes i t5r2-stacken efter att #944:s migration applicerats för dess native-test (privat evidens `t5r2/claude-track5/fix002/`). I t5r3, som körs på ren bas, döljs 003 av 002.
+**Evidens.** Den ursprungliga t5r2-observationen sparades inte. Därför reproducerades den 2026-10-30T13:03Z i T5-stacken med #944:s migration applicerad och 003-ändringarna i koden bortplockade, i native-testet `scripts/webhook-public-event-id-native.test.ts` på grenen `claude/sim-20261029-track5-fix003`. Leveransen till en partner-subscription fick `status = failed`, `attempts = 2` och `failure_reason = "Public response contains a forbidden internal field at $.event_id."`. Privat evidens finns i `/root/sim-evidence/t5r3/claude-track5/fix003/`:
+- `before-fix-delivery.txt`, sha `53d58c47…2e04`;
+- `before-fix.log`, sha `13ba1e7b…c151`.
+
+I t5r3, som körs på ren bas, döljs 003 av 002.
 
 **Beslut.** Alternativ (a): ett slumpat, lagrat `event_id` med unik constraint och format-CHECK, därefter ett smalt undantag i skyddet för exakt `$.event_id` med exakt regex `^event_[a-f0-9]{32}$`, med negativa tester. Version `20261030130200`, köad efter #946.
 
@@ -142,7 +146,7 @@ Det är samma driftklass som 002. Det är obekräftat om produktion har funktion
 
 **Beslut.** Alternativ B: en SECURITY DEFINER-funktion med `search_path = ''`, som bara svarar för eget id eller service_role. REVOKE ALL FROM PUBLIC och anon; EXECUTE bara till authenticated och service_role. Version `20261030130300`, köad efter 003.
 
-**Status.** Rättningen pågår på `claude/sim-20261029-track5-fix005`. Den är inte pushad ännu.
+**Rättning.** PR #948. Native-regressionen gav 4/4 efter migrationen och var röd före med `PGRST202`. Status: **RÄTTAD-VÄNTAR-GEN**. I T5-stacken passerar `/admin/platform/api-clients` proxyn efter migrationen, men server action nekas då av fynd 008.
 
 ### 006: staff-API:ts kundlösa skrivningar med dynamisk route
 
@@ -168,6 +172,20 @@ Det är samma driftklass som 002. Det är obekräftat om produktion har funktion
 
 **Status.** Registrerat i PR930 (kommentar 6523351793). 005:s migration ersätter funktionen med en självbegränsad version.
 
+### 008: en plattformsadmin som bara finns i `admin_users` nekas av adminguarden
+
+| | |
+|---|---|
+| **Kategori** | Produktfel eller fixturfråga, styrkt i T5-stacken; kräver beslut |
+| **Allvar** | Hög för plattformsdrift |
+| **Berör** | API01.05 (utfärdandevägen), synlig först efter 005 |
+
+**Observerat.** Med 005:s migration applicerad i T5-stacken gav server action `updateIntegrationApiClientPermissionsAction` 500, och appens logg visar `Endast platform admin kan utföra den här åtgärden.` (`lib/admin/guards.ts:214`). Scopes var oförändrade. Den privata evidensen ligger i `/root/sim-evidence/t5r3/claude-track5/fix005/api01-after-005-*`.
+
+**Rotorsak.** `canonical_authenticated_tenant_context_v1_scoped` (`schema.sql:39210`) ger `is_platform_admin = true` via `canonical_actor_is_platform_admin`, som godtar `admin_users`. Men `roles` och `permissions` byggs bara från `user_roles` (`schema.sql:39308-39325`), och det kanoniska schemat har ingen roll `platform_admin`. Därför blir `isAdmin` falskt (`guards.ts:164-166`).
+
+**Status.** Beslut är begärt hos samordningen. Fixturen ändras inte för att dölja felet.
+
 ## Harness och miljö
 
 | Försök | Fel | Rättning |
@@ -175,6 +193,7 @@ Det är samma driftklass som 002. Det är obekräftat om produktion har funktion
 | granskningen av t5r1 | inloggningen gick inte via appens `loginAction`; utgången session saknades; för få kvitton och för svaga assertions | åtgärdat i `ee0bb862` och `615dd209` |
 | t5r2 api01-poa (attempt1) | `Cannot find package 'server-only'` när backendingången laddades | alias, `2c48389b` |
 | granskningen av t5r2 | AUTH01.06 skannade innan alla körningar var klara; API01.02 berodde på API01.01 och saknade kundkontroll per site; paketfälten var ofullständiga | `scan.test.ts`, en självständig API01.02 och paketfälten, `241a29db` |
+| granskningen av t5r3 | paketskanningen täckte t5r2-katalogen, eftersom t5r3-paketen skrevs efter skanningen; AUTH01.06:s paket redovisade inte skanningskörningen | skanningen körs om efter `packet.py` med `SIM_PACKETS_DIR`, och `additionalRuns` läggs till i paketet |
 
 **Paketfält.** `model` anger sessionen. Det exakta modell-ID:t finns i sessionens metadata och publiceras inte i repot. `cleanupReceipt` anger att stacken behålls för omkörning efter rättningarna.
 
@@ -185,7 +204,7 @@ Utfallen gäller t5r3 med harness och app `241a29db`. PASS sätts först efter o
 | ID | Stegutfall | Föreslaget | Blockerare |
 |---|---|---|---|
 | AUTH01.01–.05 | alla gröna (AUTH01.05 i två delar) | PASS (efter granskning) | – |
-| AUTH01.06 | gröna: klient-/svarsskanning och skanning efter alla körningar, 0 träffar | PASS (efter granskning) | – |
+| AUTH01.06 | gröna: klient-/svarsskanning, och skanning efter alla körningar och efter att paketen skrivits, 0 träffar | PASS (efter granskning) | – |
 | EVENT01.01, .03, .05 | gröna | PARTIAL | 001/002 (subscription bara via fixtur), 003 |
 | EVENT01.02 | grönt | PASS (efter granskning) | – |
 | EVENT01.04 | rött (`failure_count` 0) | FAIL | 002 |

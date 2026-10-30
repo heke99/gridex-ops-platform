@@ -3,7 +3,8 @@
 // Spår 5, AUTH01.06 "Service-role nyckel exponeras inte i klient/kvittoutdata": körs SIST, efter alla andra
 // scenariofiler, och skannar hela körningens kvittoutdata (rapporter, kvitton, run- och vitest-loggar i
 // evidenskatalogen inklusive tidigare försök), stackens rapport- och loggkataloger och spårets paketkatalog i
-// körkatalogen efter nyckelns värde och efter JWT-/tokenmönster.
+// körkatalogen efter nyckelns värde och efter JWT-/tokenmönster. Paketen skrivs efter körningarna, så skanningen körs om
+// efter packet.py med SIM_PACKETS_DIR satt till den levererade paketkatalogen (runs/<run>/claude-track5).
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -41,7 +42,7 @@ describe('AUTH01.06 kvittoutdata', () => {
     const service = requireEnv('SUPABASE_SERVICE_ROLE_KEY')
     const evidence = path.dirname(process.env.SIM_RECEIPTS ?? '')
     const runDir = process.env.RUN_DIR ?? '/root/sim/track5'
-    const packets = path.join(runDir, 'quality/simulation-campaign/20261029-3f1a8ab1/runs')
+    const packets = process.env.SIM_PACKETS_DIR || path.join(runDir, 'quality/simulation-campaign/20261029-3f1a8ab1/runs')
     // Kvittoutdata som publiceras eller delas: evidenskatalogen (rapporter, kvitton, loggar) och paketen. Där krävs
     // även frånvaro av tokenmönster. Stackens råa app-/run-loggar är privata men skannas också efter nyckeln.
     const results = [
@@ -60,6 +61,12 @@ describe('AUTH01.06 kvittoutdata', () => {
     }
     expect(ev.files).toBeGreaterThanOrEqual(8)
     expect(results[1].files, 'paketkatalogen').toBeGreaterThan(0)
+    if (process.env.SIM_PACKETS_DIR) {
+      // Den levererade paketkatalogen: ett status.json per ID i spåret och FINDINGS.md.
+      const ids = fs.readdirSync(packets, { withFileTypes: true }).filter((e) => e.isDirectory() && fs.existsSync(path.join(packets, e.name, 'status.json')))
+      expect(ids.length, 'status.json per ID').toBe(16)
+      expect(fs.existsSync(path.join(packets, 'FINDINGS.md')), 'FINDINGS.md').toBe(true)
+    }
     for (const r of results) expect(r.hits, `träffar i ${r.dir}`).toEqual([])
   })
 })
