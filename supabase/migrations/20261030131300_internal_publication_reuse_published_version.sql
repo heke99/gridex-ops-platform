@@ -11,7 +11,8 @@
 --
 -- Owner decision (alternative a): when the publication already has a published
 -- version, reuse it only when every binding business field of the offer is
--- unchanged against the version's own columns (not the snapshot hash). Any
+-- unchanged against the version's own columns (not the snapshot hash) and the
+-- version's snapshot names this same offer. Any
 -- difference raises the controlled domain error
 -- internal_publication_republish_required (P0001); the call is atomic, so a
 -- contract is never bound to stale terms. Without a published version the
@@ -42,7 +43,7 @@ begin
   v_hash := pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(f.prosrc, 'UTF8')), 'hex');
   if v_hash not in (
     'fcb963b3d282b1f886cbbc5c90c35b34d8d4647c0f4e4e6d6330a55314659984',
-    '0495eaea1ae38cff17ea3b1f4bd50adbe97f61a193bdd0d3a4bfc8acdbe50e8f'
+    'd18ca44d2865bb020f750ad88bc9213b1ff62017f21f42bfdcfe074771357a7d'
   ) then
     raise exception 'internal_publication_reuse_source_changed:%', v_hash using errcode = '55000';
   end if;
@@ -116,7 +117,15 @@ begin
     where cpv.contract_publication_id=v_publication_id and cpv.status='published'
     order by cpv.version_number desc limit 1;
     if found then
-      if v_published.contract_product_version_id is distinct from o.contract_product_version_id
+      -- Same offer only: gridex_publish_contract_channel stores the offer as
+      -- source_contract_offer_id, this function as legacy_contract_offer_id.
+      -- contract_type has no version column; it is compared where the
+      -- snapshot carries it (v1) and is otherwise fixed by the same offer id.
+      if not (coalesce(v_published.publication_snapshot->>'source_contract_offer_id'=o.id::text,false)
+              or coalesce(v_published.publication_snapshot->>'legacy_contract_offer_id'=o.id::text,false))
+        or (v_published.publication_snapshot ? 'contract_type'
+            and v_published.publication_snapshot->>'contract_type' is distinct from o.contract_type)
+        or v_published.contract_product_version_id is distinct from o.contract_product_version_id
         or v_published.price_plan_id is distinct from o.price_plan_id
         or v_published.price_plan_version_id is distinct from o.price_plan_version_id
         or v_published.price_book_id is distinct from o.price_book_id
@@ -181,7 +190,7 @@ declare
 begin
   select p.* into f from pg_catalog.pg_proc p
   where p.oid = pg_catalog.to_regprocedure('public.gridex_ensure_internal_contract_publication(uuid,uuid,uuid)');
-  if pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(f.prosrc, 'UTF8')), 'hex') <> '0495eaea1ae38cff17ea3b1f4bd50adbe97f61a193bdd0d3a4bfc8acdbe50e8f'
+  if pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(f.prosrc, 'UTF8')), 'hex') <> 'd18ca44d2865bb020f750ad88bc9213b1ff62017f21f42bfdcfe074771357a7d'
     or not f.prosecdef
     or f.proconfig is distinct from array['search_path=public, extensions, pg_temp']
     or coalesce(f.proacl::text, '') is distinct from pg_catalog.current_setting('gridex.internal_publication_reuse_acl', true) then

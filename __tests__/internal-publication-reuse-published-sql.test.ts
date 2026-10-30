@@ -33,6 +33,7 @@ const PPV2 = '30000000-0000-4000-8000-000000000003'
 const PB = '30000000-0000-4000-8000-000000000004'
 const LBV = '40000000-0000-4000-8000-000000000001'
 const LBV2 = '40000000-0000-4000-8000-000000000002'
+const OTHER_OFFER = '10000000-0000-4000-8000-000000000002'
 const ACTOR = '50000000-0000-4000-8000-000000000001'
 
 let db: PGlite
@@ -67,7 +68,7 @@ async function errorOf(fn: () => Promise<unknown>): Promise<{ code?: string; mes
 
 // Mirrors gridex_publish_contract_channel's internal-channel insert: own v6
 // snapshot (other content hash), customer_type=o.customer_type, published.
-async function publishChannel(): Promise<string> {
+async function publishChannel(snapshotOffer: string | null = OFFER): Promise<string> {
   await db.exec(`
     insert into tenant_contract_assignments(company_id,contract_product_version_id,internal_sales_allowed,status,valid_from,valid_to)
     select company_id,contract_product_version_id,true,'active',valid_from,valid_to from contract_offers where id='${OFFER}'
@@ -81,7 +82,7 @@ async function publishChannel(): Promise<string> {
       publication_snapshot,offer_reference,content_sha256,status,published_at,locked_at)
     select cp.id,1,o.contract_product_version_id,o.price_plan_id,o.price_plan_version_id,o.price_book_id,o.legal_bundle_version_id,
       o.customer_type,'internal',o.valid_from::timestamptz,o.valid_to::timestamptz,
-      jsonb_build_object('schema','gridex_contract_publication_v6','source_contract_offer_id',o.id),
+      jsonb_strip_nulls(jsonb_build_object('schema','gridex_contract_publication_v6','source_contract_offer_id',${snapshotOffer === null ? 'null::uuid' : `'${snapshotOffer}'::uuid`})),
       'GX-CHANNEL-1',encode(sha256(convert_to('channel-v6','UTF8')),'hex'),'published',now(),now()
     from contract_offers o join tenant_contract_assignments ta on ta.company_id=o.company_id
     join contract_publications cp on cp.assignment_id=ta.id and cp.channel='internal'
@@ -191,6 +192,27 @@ describe('gridex_ensure_internal_contract_publication reuses a published channel
     })
     expect(await ensure(A)).toBe(first)
     expect(await counts()).toMatchObject({ versions: 1, published: 1, publications: 1, assignments: 1 })
+  })
+
+  it.each([
+    ['another offer with identical business fields', OTHER_OFFER],
+    ['a version without any offer id', null],
+  ])('published version from %s -> internal_publication_republish_required, no writes', async (_label, snapshotOffer) => {
+    await publishChannel(snapshotOffer)
+    const before = await counts()
+    const rowsBefore = (await db.query('select * from contract_publication_versions order by id')).rows
+    expect(await errorOf(() => ensure(A))).toEqual({ code: 'P0001', message: 'internal_publication_republish_required' })
+    expect(await counts()).toEqual(before)
+    expect((await db.query('select * from contract_publication_versions order by id')).rows).toEqual(rowsBefore)
+  })
+
+  it('own ensure version (legacy_contract_offer_id) is reused; contract_type change in its snapshot is refused', async () => {
+    const first = await ensure(A)
+    expect(await ensure(A)).toBe(first)
+    await db.exec(`update contract_offers set contract_type='variable' where id='${OFFER}'`)
+    const before = await counts()
+    expect(await errorOf(() => ensure(A))).toEqual({ code: 'P0001', message: 'internal_publication_republish_required' })
+    expect(await counts()).toEqual(before)
   })
 
   it('inactive offer keeps the previous draft path unchanged', async () => {
