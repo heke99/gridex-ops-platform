@@ -184,8 +184,8 @@
     "Produktionsliknande aterstallning (PITR eller nytt projekt) och checklistens konsistenskontroller.",
     "Appens tillganglighet: health-polling gav HTTP 503 i samtliga 49 prov (se oppna observationer); runnerns failures=0 ar inte oberoende verifierat."
   ],
-  "blocker": "Ingen runner-blocker. PARTIAL tills granskning. Oppna punkter: health 503 i alla prov, checklistavvikelse, pg_restore-plattformsfel.",
-  "nextAction": "Orkestratorn granskar proposedState PASS mot checklistavvikelsen och health-observationen. Denna packet gor ingen ny korning.",
+  "blocker": "Senaste försök 20261030T164432Z-86c1b9 exit 1: främmande körning 0/158 ok, första fel insert 403 42501 (permission denied for function gridex_new_public_resource_reference). Ingen PASS. Kräver ny körning med normal tenant-skrivning.",
+  "nextAction": "change foreign workload to normal tenant write; rerun",
   "cleanupReceipt": {
     "restoreDb": "t6_restore_20261030162702155490",
     "created": true,
@@ -278,5 +278,79 @@
     "health-samples.json: samtliga 49 prov HTTP 503 (ms 3-49). Runnern rapporterar failures=0 och statuses=[503]. Betydelsen av 503 ar OSAKERT och ej utredd."
   ],
   "postgresVersion": "17.6",
-  "healthPollNote": "Health route /api/internal/system/health returns 503 ok:false by design when no cron secret is configured (qualified in smoke SMOKE.02). The 49 probes all returned 503 within timeout = app process responsive throughout; this verifies responsiveness only, not functional health."
+  "healthPollNote": "Health route /api/internal/system/health returns 503 ok:false by design when no cron secret is configured (qualified in smoke SMOKE.02). The 49 probes all returned 503 within timeout = app process responsive throughout; this verifies responsiveness only, not functional health.",
+  "latestAttempt": {
+    "runId": "20261030T164432Z-86c1b9",
+    "exitCode": 1,
+    "startedAtUtc": "2026-10-30T16:44:32Z",
+    "endedAtUtc": "2026-10-30T16:44:52Z",
+    "vitest": {
+      "numTotalTests": 8,
+      "numPassedTests": 6,
+      "numFailedTests": 2
+    },
+    "foreignRun": {
+      "iterations": 158,
+      "ok": 0,
+      "failed": 158,
+      "firstError": "insert: 403 {\"code\":\"42501\",\"details\":null,\"hint\":null,\"message\":\"permission denied for function gridex_new_public_resource_reference\"}"
+    },
+    "empty_custody_tables_count": 36,
+    "pg_restore": {
+      "status": 1,
+      "errorLines": 3
+    },
+    "harnessNote": "Orkestratorns beskrivning: harnessen valde en icke-normal skrivväg för främmande körningen (ej verifierat här).",
+    "runIdentity": {
+      "runId": "20261030T164432Z-86c1b9",
+      "runDir": "/root/sim-run/track6",
+      "runDirHead": "220edef2f0cfb2f25cd4b60fa54209a18d7f2b85",
+      "gitStatusPorcelain": [],
+      "runDirClean": true,
+      "builtCommit": "7afacc78a478f97c14295635d8228e3149a98128",
+      "appBase": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
+      "changedPathsOutsideSimulationAndQuality": [],
+      "appCodeEqualsBase": true
+    },
+    "evidence": [
+      {
+        "path": "runs/20261030T164432Z-86c1b9/custody01-05/report.json",
+        "sha256": "821fa5308ab0633eea63e25bb751ab9b2549c6109cdefcbbc8f4c420c15a5999"
+      },
+      {
+        "path": "runs/20261030T164432Z-86c1b9/custody01-05/log.txt",
+        "sha256": "1b6f8ec20d25dd4758c23bbab50cda73b2c9f99c0dcdc0cb56220a478ffa99ce"
+      },
+      {
+        "path": "runs/20261030T164432Z-86c1b9/custody01-05/vitest.json",
+        "sha256": "b530aafe75f0c7eae4be761402527bd8b09d8f0445cf7b590e6b6852d98c22b5"
+      },
+      {
+        "path": "runs/20261030T164432Z-86c1b9/run-identity.json",
+        "sha256": "43c4546d6ce73bf7c22ed1f5c1567e253130ea031de5054d8323e2209a82f362"
+      },
+      {
+        "path": "runs/20261030T164432Z-86c1b9/summary.json",
+        "sha256": "25df1aea3c235c42d89fb6430a29d9b2dc83cfaaa6fdc01a0d9688de921ce069"
+      },
+      {
+        "path": "evidence/t6r1-20261030T164432Z-custody01-05/report.json",
+        "sha256": "57acf6cd44d717c5885e05e4c0f28dba47860db373567cc005de09b2ecd5c327"
+      },
+      {
+        "path": "evidence/t6r1-20261030T164432Z-custody01-05/run.log",
+        "sha256": "7f4d0aa836e3ebc6ff1791b4ed18b7d4db4616fdb6c81bc8c8c06c0bbe1c56b8"
+      },
+      {
+        "path": "evidence/20261030T164432Z-86c1b9/custody01-05/MANIFEST.sha256",
+        "sha256": "13a90e4e0743dce3730a039acda21ed240135e04222cb1ebe7de31d6d5bcdd82"
+      },
+      {
+        "path": "evidence/20261030T164432Z-86c1b9/custody01-05/observations.json",
+        "sha256": "57711bc04806a224b265d4ec5593d13ee809d67c8c3c02244e620ce7e0ab2805"
+      }
+    ]
+  },
+  "proposedStateNote": "proposedState PASS gäller ej senaste försök 20261030T164432Z-86c1b9 (exit 1, 2 av 8 tester failade). Orkestratorn avgör.",
+  "topLevelRunStatus": "superseded av latestAttempt 20261030T164432Z-86c1b9; toppnivåfälten avser 20261030T162702Z-7cd581 (saknar run-identity.json, clean-tree-kvitto)"
 }

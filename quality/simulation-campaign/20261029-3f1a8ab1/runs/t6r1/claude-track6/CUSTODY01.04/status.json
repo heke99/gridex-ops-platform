@@ -3,7 +3,7 @@
   "campaignId": "20261029-3f1a8ab1",
   "workerId": "claude-track6",
   "model": "claude (session_01UHTg8Hora3xtZg4oHMrcGi)",
-  "runId": "20261030T162641Z-930cdb",
+  "runId": "20261030T164413Z-9e4383",
   "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
   "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
   "appCommitNote": "6454d540 is an ancestor of origin/main af0ed93b (verified with git merge-base --is-ancestor against origin/main); the stale local \"main\" branch is irrelevant. RUN_DIR diff vs 6454d540 touches only scripts/simulation/track6/** and quality/**.",
@@ -19,9 +19,10 @@
   "overlayRefs": [
     {
       "harnessBranch": "claude/sim-20261029-track6",
-      "runDirCommit": "84a3e6883",
+      "runDirCommit": "220edef2f0cfb2f25cd4b60fa54209a18d7f2b85",
       "appCodeChanged": false,
-      "note": "Branchhuvud ar nu 8666916eb; RUN_DIR-commit ar ancestor till branchen."
+      "note": "Branchhuvud ar nu 8666916eb; RUN_DIR-commit ar ancestor till branchen.",
+      "harnessCommit": "220edef2f0cfb2f25cd4b60fa54209a18d7f2b85"
     }
   ],
   "environmentId": "t6-local-20261030",
@@ -32,8 +33,8 @@
   "postgresServerMajor": "17 (serverMajor rapporterad endast i CUSTODY01.05-report)",
   "nodeVersion": "v22.22.0",
   "clockModel": "real UTC (no fixture clock used)",
-  "startedAtUtc": "2026-10-30T16:26:41Z",
-  "finishedAtUtc": "2026-10-30T16:27:02Z",
+  "startedAtUtc": "2026-10-30T16:44:13Z",
+  "finishedAtUtc": "2026-10-30T16:44:32Z",
   "heartbeatAtUtc": null,
   "executionScope": "ISOLATED_NATIVE",
   "command": "/home/user/sim-home/track6/runone.sh custody01-04 (SIM_HOME=/home/user/sim-home/track6; i /root/sim-run/track6: bash scripts/simulation/track6/run.sh scenarios/custody01-04.test.ts)",
@@ -45,32 +46,40 @@
   },
   "evidence": [
     {
-      "path": "runs/20261030T162641Z-930cdb/custody01-04/report.json",
-      "sha256": "0cee3830242e478e8c1a95ee492195bbad20b7b29dae596d949efb53674f8a6e"
+      "path": "runs/20261030T164413Z-9e4383/custody01-04/report.json",
+      "sha256": "530ba1fac5cd6952abb93110fd1cbfa52b5c6590678edfbdc380ff3010288f03"
     },
     {
-      "path": "runs/20261030T162641Z-930cdb/custody01-04/log.txt",
-      "sha256": "6dd66b348eaf1a5a7ff3c97ea2b62b04dbd2b2ef4f54ee5d1ddfc2f42ae26407"
+      "path": "runs/20261030T164413Z-9e4383/custody01-04/log.txt",
+      "sha256": "d1b999c4ff4def624d1769458479b4419b02189d6078c228dec2d6560d76dfb3"
     },
     {
-      "path": "runs/20261030T162641Z-930cdb/custody01-04/vitest.json",
-      "sha256": "05cb7578fba45e726e8c1fac3469f59a91bc89f02b50e08786e1c7a5a81270b7"
+      "path": "runs/20261030T164413Z-9e4383/custody01-04/vitest.json",
+      "sha256": "76426f62d71fbd10550a49b677923ed7a510069ad5e277ac64d8df21c91c54d8"
     },
     {
-      "path": "evidence/t6r1-20261030T162641Z-custody01-04/report.json",
-      "sha256": "c0344cc83f058aaa1339646731c601d842f2e9c7584457d0f979fe0d4656cb1b"
+      "path": "runs/20261030T164413Z-9e4383/run-identity.json",
+      "sha256": "5f0883e1b63864f7b75ca181140b988a60dbc56bba7e4dd0661dea1196694171"
     },
     {
-      "path": "evidence/t6r1-20261030T162641Z-custody01-04/run.log",
-      "sha256": "00bf47fcaddd8133e23131a961628ae8e3adce43238edf3c5246a8082044e911"
+      "path": "runs/20261030T164413Z-9e4383/summary.json",
+      "sha256": "d12059c721b6e772c86cefcfc8ea31bad6bf0f12f740ec1707e82df64b83744f"
     },
     {
-      "path": "evidence/20261030T162641Z-930cdb/custody01-04/MANIFEST.sha256",
-      "sha256": "b8df9f27289857d80f70cf3730afd1d1f81dbc503200dc5bb57e4d2c4bb3649d"
+      "path": "evidence/t6r1-20261030T164413Z-custody01-04/report.json",
+      "sha256": "f9ad72ed759fd5b078e1e6f45c787f7f1698578bcfc99d4d03dcd0fe8a4a6eb3"
     },
     {
-      "path": "evidence/20261030T162641Z-930cdb/custody01-04/observations.json",
-      "sha256": "b5dfa598bf538ad404fbf679b8e2b762750f754bdc8ee11aca10b5b6f64305f3"
+      "path": "evidence/t6r1-20261030T164413Z-custody01-04/run.log",
+      "sha256": "bcc02d3fbf14388c286f446a66f55cb2c83d5e86d999004fa8ffe5220e56eebb"
+    },
+    {
+      "path": "evidence/20261030T164413Z-9e4383/custody01-04/MANIFEST.sha256",
+      "sha256": "b1fb57fca7363be59dc4ce6275d832fa1ab97f7e6a63b7c365ee396545ae88b0"
+    },
+    {
+      "path": "evidence/20261030T164413Z-9e4383/custody01-04/observations.json",
+      "sha256": "cc69ab6e7ec091b79096764fa16c1afed37d7493fe38b935fa3e2577f9c81d85"
     }
   ],
   "identityRefs": [
@@ -104,27 +113,19 @@
   "steps": [
     {
       "name": "CUSTODY01.04 förberedelse CUSTODY01.04 setup: två syntetiska fakturaobjekt (A: retainUntil förfallen = berättigad, B: retainUntil framtid = ej berättigad) + fingeravtryck av befintliga låsta objekt",
-      "status": "passed",
-      "durationMs": 11967.2,
-      "failureMessages": 0
+      "status": "passed"
     },
     {
       "name": "CUSTODY01.04 negativt: retainUntil i framtiden och otillåtna vägar CUSTODY01.04 (neg) samma användare får inte godkänna egen inlämning; framtida retainUntil ger ingen radering (begin purge nekas), objektet finns kvar",
-      "status": "passed",
-      "durationMs": 1948.2,
-      "failureMessages": 0
+      "status": "passed"
     },
     {
       "name": "CUSTODY01.04 positivt: berättigat objekt raderas enligt policy CUSTODY01.04 tre klassbeslut kräver granskning av annan användare; purge ger tombstone, HTTP 404 och bytesAvailable=false; finans oförändrad",
-      "status": "passed",
-      "durationMs": 2684.0,
-      "failureMessages": 0
+      "status": "passed"
     },
     {
       "name": "CUSTODY01.04 positivt: berättigat objekt raderas enligt policy CUSTODY01.04 låsta objekt är orörda efter raderingen: B (ej berättigad), befintliga registrerade original, ledger-källor och underlay-bindningar",
-      "status": "passed",
-      "durationMs": 166.8,
-      "failureMessages": 0
+      "status": "passed"
     }
   ],
   "oracle": {
@@ -161,13 +162,19 @@
     "Att andra Storage-objekt an de tre testobjekten ar opavverkade (bara de tre sourceIds i storage-events observerade)."
   ],
   "blocker": "Ingen runner-blocker. PARTIAL tills orkestratorn granskat proposedState PASS och ersattningssteg.",
-  "nextAction": "Orkestratorn granskar proposedState. Denna packet gor ingen ny korning.",
+  "nextAction": "Orkestratorn granskar proposedState mot körning 20261030T164413Z-9e4383. Denna packet gör ingen ny körning.",
   "cleanupReceipt": "No cleanup by design: synthetic tenants/rows stay in T6’s own local stack for audit until track teardown (down.sh --stack with cleanup-receipt.json). No shared or foreign resources were touched.",
   "observations": {
+    "run": {
+      "runId": "20261030164417-190d50",
+      "prefix": "T6S2610301644590C",
+      "label": "custody01-04",
+      "mode": "test"
+    },
     "setup": {
-      "companyA": "df6cd8df-808f-46fb-ade6-280861b85b60",
-      "companyB": "e5e9ff47-3101-433a-a89c-dbc458467f58",
-      "lockedObjectsBefore": 85,
+      "companyA": "2847b73d-9f76-416f-91d5-6f9e65c506d4",
+      "companyB": "54b027a4-0377-4a77-bbaf-62457d0ef1a0",
+      "lockedObjectsBefore": 160,
       "lockedKinds": [
         "ediel_messages",
         "received_sources",
@@ -175,10 +182,10 @@
       ]
     },
     "locked_untouched": {
-      "checked": 85,
+      "checked": 160,
       "changed": []
     },
-    "negative": {
+    "details": {
       "self_review": {
         "error": "invoice_file_separate_reviewer_required",
         "code": "P0001"
@@ -194,66 +201,68 @@
       "future_retain_direct_storage_remove": {
         "error": null,
         "removed": 0
-      }
-    },
-    "positive_purge": {
-      "result": {
-        "status": "purged",
-        "sourceId": "6c9cc1d5-b929-448f-a4d5-d5f83581fde6",
-        "sourceHash": "52baa8997e747917748bfa65044416ee41d788be4d6217a7ae39e58defcb59d5",
-        "byteLength": 3950,
-        "bytesAvailable": false,
-        "replay": false
       },
-      "storage_events": [
-        {
-          "kind": "storage_delete_authorized",
-          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
-          "sourceId": "4ce3bf43-fbfa-4b0a-ade9-2ee3420625f5"
+      "purge": {
+        "result": {
+          "status": "purged",
+          "sourceId": "91db83cd-f376-41d9-adfe-749f12af87ff",
+          "sourceHash": "8bbbf5cf19042927cf3267febdbbc7ca2750cb4d5896e072f0212d0bc2a0be7d",
+          "byteLength": 3950,
+          "bytesAvailable": false,
+          "replay": false
         },
-        {
-          "kind": "storage_object_absent",
-          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
-          "sourceId": "4ce3bf43-fbfa-4b0a-ade9-2ee3420625f5"
-        },
-        {
-          "kind": "storage_delete_authorized",
-          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
-          "sourceId": "6c9cc1d5-b929-448f-a4d5-d5f83581fde6"
-        },
-        {
-          "kind": "storage_object_absent",
-          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
-          "sourceId": "6c9cc1d5-b929-448f-a4d5-d5f83581fde6"
-        },
-        {
-          "kind": "storage_delete_authorized",
-          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
-          "sourceId": "7bf8f8cd-6caf-4866-81d7-23e52b07cd13"
-        },
-        {
-          "kind": "storage_object_absent",
-          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
-          "sourceId": "7bf8f8cd-6caf-4866-81d7-23e52b07cd13"
+        "effects": {
+          "events": [
+            {
+              "kind": "storage_delete_authorized",
+              "actorId": "acbb937c-563a-4a6d-8230-58e9418b673e",
+              "sourceId": "3a284560-7bf3-43b9-b5b0-5942204b2683"
+            },
+            {
+              "kind": "storage_object_absent",
+              "actorId": "acbb937c-563a-4a6d-8230-58e9418b673e",
+              "sourceId": "3a284560-7bf3-43b9-b5b0-5942204b2683"
+            },
+            {
+              "kind": "storage_delete_authorized",
+              "actorId": "acbb937c-563a-4a6d-8230-58e9418b673e",
+              "sourceId": "91db83cd-f376-41d9-adfe-749f12af87ff"
+            },
+            {
+              "kind": "storage_object_absent",
+              "actorId": "acbb937c-563a-4a6d-8230-58e9418b673e",
+              "sourceId": "91db83cd-f376-41d9-adfe-749f12af87ff"
+            },
+            {
+              "kind": "storage_delete_authorized",
+              "actorId": "acbb937c-563a-4a6d-8230-58e9418b673e",
+              "sourceId": "9a45c531-2026-4bda-a8bd-126b7bbc4297"
+            },
+            {
+              "kind": "storage_object_absent",
+              "actorId": "acbb937c-563a-4a6d-8230-58e9418b673e",
+              "sourceId": "9a45c531-2026-4bda-a8bd-126b7bbc4297"
+            }
+          ],
+          "tombstones": [
+            {
+              "actorId": "acbb937c-563a-4a6d-8230-58e9418b673e",
+              "sourceId": "3a284560-7bf3-43b9-b5b0-5942204b2683",
+              "decisionId": "b34c8af4-1403-410c-bc50-a52f16d73848"
+            },
+            {
+              "actorId": "acbb937c-563a-4a6d-8230-58e9418b673e",
+              "sourceId": "91db83cd-f376-41d9-adfe-749f12af87ff",
+              "decisionId": "2f671868-b8c1-4484-85aa-ca9eccd85b74"
+            },
+            {
+              "actorId": "acbb937c-563a-4a6d-8230-58e9418b673e",
+              "sourceId": "9a45c531-2026-4bda-a8bd-126b7bbc4297",
+              "decisionId": "b4c896e4-c1d0-4513-a01a-f96a34f376b0"
+            }
+          ]
         }
-      ],
-      "tombstones": [
-        {
-          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
-          "sourceId": "4ce3bf43-fbfa-4b0a-ade9-2ee3420625f5",
-          "decisionId": "bee06d94-941e-4dbe-af94-22a51d167b97"
-        },
-        {
-          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
-          "sourceId": "6c9cc1d5-b929-448f-a4d5-d5f83581fde6",
-          "decisionId": "6421184a-0d49-4b6a-b01d-c552f1f6b2c1"
-        },
-        {
-          "actorId": "4755b57e-ab53-4a32-8e6e-df350cb319f7",
-          "sourceId": "7bf8f8cd-6caf-4866-81d7-23e52b07cd13",
-          "decisionId": "cb5add92-4cb5-4071-9979-33705030fedc"
-        }
-      ]
+      }
     }
   },
   "measuredDurations": {
@@ -261,8 +270,29 @@
     "negStepMs": 1948.2,
     "purgeStepMs": 2684.0,
     "lockedStepMs": 166.8,
-    "vitestTotalMs": 16770
+    "vitestTotalMs": 16770,
+    "note": "Durationer från föregående körning 20261030T162641Z-930cdb; ej omräknade för 20261030T164413Z-9e4383."
   },
   "openObservations": [],
-  "postgresVersion": "17.6"
+  "postgresVersion": "17.6",
+  "previousRuns": [
+    {
+      "runId": "20261030T162641Z-930cdb",
+      "status": "superseded",
+      "reason": "saknar clean-tree-kvitto (runIdentity)"
+    }
+  ],
+  "runIdentity": {
+    "runId": "20261030T164413Z-9e4383",
+    "runDir": "/root/sim-run/track6",
+    "runDirHead": "220edef2f0cfb2f25cd4b60fa54209a18d7f2b85",
+    "gitStatusPorcelain": [],
+    "runDirClean": true,
+    "builtCommit": "7afacc78a478f97c14295635d8228e3149a98128",
+    "appBase": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
+    "changedPathsOutsideSimulationAndQuality": [],
+    "appCodeEqualsBase": true
+  },
+  "denialCodeNote": "Nekandet av B-objektet (retainUntil i framtiden) i 20261030T164413Z-9e4383 använder generisk kod: HTTP 403 'Aktuell bolags-, klass- eller källbehörighet saknas.' (observations.details.future_retain_http). Begin purge ger P0001 invoice_file_each_copy_current_legal_review_required. retainUntil som orsak visas endast indirekt via kontrollobjekt A (berättigat, purgat med samma väg).",
+  "observationsSource": "SIM_HOME/runs/20261030T164413Z-9e4383/custody01-04/report.json"
 }

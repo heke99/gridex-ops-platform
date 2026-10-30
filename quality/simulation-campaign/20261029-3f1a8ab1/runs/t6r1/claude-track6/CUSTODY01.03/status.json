@@ -3,7 +3,7 @@
   "campaignId": "20261029-3f1a8ab1",
   "workerId": "claude-track6",
   "model": "claude (session_01UHTg8Hora3xtZg4oHMrcGi)",
-  "runId": "20261030T162628Z-bf9849",
+  "runId": "20261030T164358Z-460836",
   "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
   "appCommit": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
   "appCommitNote": "6454d540 is an ancestor of origin/main af0ed93b (verified with git merge-base --is-ancestor against origin/main); the stale local \"main\" branch is irrelevant. RUN_DIR diff vs 6454d540 touches only scripts/simulation/track6/** and quality/**.",
@@ -19,9 +19,10 @@
   "overlayRefs": [
     {
       "harnessBranch": "claude/sim-20261029-track6",
-      "runDirCommit": "84a3e6883",
+      "runDirCommit": "220edef2f0cfb2f25cd4b60fa54209a18d7f2b85",
       "appCodeChanged": false,
-      "note": "Branchhuvud ar nu 8666916eb; RUN_DIR-commit ar ancestor till branchen."
+      "note": "Branchhuvud ar nu 8666916eb; RUN_DIR-commit ar ancestor till branchen.",
+      "harnessCommit": "220edef2f0cfb2f25cd4b60fa54209a18d7f2b85"
     }
   ],
   "environmentId": "t6-local-20261030",
@@ -32,8 +33,8 @@
   "postgresServerMajor": "17 (serverMajor rapporterad endast i CUSTODY01.05-report)",
   "nodeVersion": "v22.22.0",
   "clockModel": "real UTC (no fixture clock used)",
-  "startedAtUtc": "2026-10-30T16:26:28Z",
-  "finishedAtUtc": "2026-10-30T16:26:41Z",
+  "startedAtUtc": "2026-10-30T16:43:58Z",
+  "finishedAtUtc": "2026-10-30T16:44:13Z",
   "heartbeatAtUtc": null,
   "executionScope": "ISOLATED_NATIVE",
   "command": "/home/user/sim-home/track6/runone.sh custody01-03 (SIM_HOME=/home/user/sim-home/track6; i /root/sim-run/track6: bash scripts/simulation/track6/run.sh scenarios/custody01-03.test.ts)",
@@ -45,32 +46,40 @@
   },
   "evidence": [
     {
-      "path": "runs/20261030T162628Z-bf9849/custody01-03/report.json",
-      "sha256": "e775784f85e0432c22d491c698a585c435712c054d7673f05ce759e487482330"
+      "path": "runs/20261030T164358Z-460836/custody01-03/report.json",
+      "sha256": "fbc5d1de180357e44b4589cbe3615bcb2e71235aafb15f9b6a5632a94cb71387"
     },
     {
-      "path": "runs/20261030T162628Z-bf9849/custody01-03/log.txt",
-      "sha256": "d82e334e48f9b7b4f323d6d9d3fc9e55cb1efcb56c975ca18e2cb5cac91d71ea"
+      "path": "runs/20261030T164358Z-460836/custody01-03/log.txt",
+      "sha256": "5c99db638866a550e66d8d3d7ff1bbd8873d71448460dc79b8bd0439844dfc84"
     },
     {
-      "path": "runs/20261030T162628Z-bf9849/custody01-03/vitest.json",
-      "sha256": "f3d3ebf0617d347251eafa1fef3bff323dc3572b7061c093a955a35bed2ae9c7"
+      "path": "runs/20261030T164358Z-460836/custody01-03/vitest.json",
+      "sha256": "05399db30d5b8ee16a61389abbac08fd0d123ec94a0dbdd69d1e4b03f276700a"
     },
     {
-      "path": "evidence/t6r1-20261030T162628Z-custody01-03/report.json",
-      "sha256": "09d300d5fa96b0ebabf52ff0e2a6b14f8dde4807e9fb9eb915abd6796b05cd2f"
+      "path": "runs/20261030T164358Z-460836/run-identity.json",
+      "sha256": "28d0e78e821668e793e22a083a31e53195bc6372ae940e3e6db599f541cfb826"
     },
     {
-      "path": "evidence/t6r1-20261030T162628Z-custody01-03/run.log",
-      "sha256": "abda4b4b9b1c02039c4ef840959ebcef3fc807877f660ec558f154ad66078710"
+      "path": "runs/20261030T164358Z-460836/summary.json",
+      "sha256": "9f811a118e07f08fd20556cae409004ccc2492f46d9f747f8aa5256392c50432"
     },
     {
-      "path": "evidence/20261030T162628Z-bf9849/custody01-03/MANIFEST.sha256",
-      "sha256": "e99a045027429ceb4995c8099240f8620cf22dcbb688565ab71ffe7c5ae351bc"
+      "path": "evidence/t6r1-20261030T164358Z-custody01-03/report.json",
+      "sha256": "c72d273d835a7947d35730336c72fdbd6445e8119b7936f3da52e36d299a84a4"
     },
     {
-      "path": "evidence/20261030T162628Z-bf9849/custody01-03/observations.json",
-      "sha256": "6f344979f7324ee7783a1a04015c583f56fff96aef8c20a9982b830715981c1c"
+      "path": "evidence/t6r1-20261030T164358Z-custody01-03/run.log",
+      "sha256": "b0f68762aabe2d7625500c2a8e24e7502d67c60926486bb93e5377c2ccdac8a2"
+    },
+    {
+      "path": "evidence/20261030T164358Z-460836/custody01-03/MANIFEST.sha256",
+      "sha256": "1ae89253ae88ab2b1de1b453fa8ec85cbe7927058a58aa9b15d36f9830940787"
+    },
+    {
+      "path": "evidence/20261030T164358Z-460836/custody01-03/observations.json",
+      "sha256": "bf4da368007c734e5e9f973091f0ee1077d2298735f05c4bceb2f2ddf389ff3c"
     }
   ],
   "identityRefs": [
@@ -104,33 +113,23 @@
   "steps": [
     {
       "name": "CUSTODY01.03 skapande av låst original via normala ingångar CUSTODY01.03 setup: inkommande E66 -> ediel_messages-original med registrerad mottagning (låst)",
-      "status": "passed",
-      "durationMs": 10983.9,
-      "failureMessages": 0
+      "status": "passed"
     },
     {
       "name": "CUSTODY01.03 radering/ändring nekas CUSTODY01.03 (a) authenticated tenantanvändare via PostgREST: DELETE och PATCH berör 0 rader / nekas",
-      "status": "passed",
-      "durationMs": 405.8,
-      "failureMessages": 0
+      "status": "passed"
     },
     {
       "name": "CUSTODY01.03 radering/ändring nekas CUSTODY01.03 (b) service_role via PostgREST: DELETE och PATCH ger triggerfelet",
-      "status": "passed",
-      "durationMs": 49.7,
-      "failureMessages": 0
+      "status": "passed"
     },
     {
       "name": "CUSTODY01.03 radering/ändring nekas CUSTODY01.03 (c) direkt SQL som postgres: DELETE och UPDATE av kroppen ger triggerfelet (körs i transaktion som rullas tillbaka)",
-      "status": "passed",
-      "durationMs": 169.3,
-      "failureMessages": 0
+      "status": "passed"
     },
     {
       "name": "CUSTODY01.03 append-only-lager CUSTODY01.03 gridex_received_sources / underlay_bindings / correction_journal / billing_underlays: UPDATE/DELETE nekas, rader oförändrade",
-      "status": "passed",
-      "durationMs": 566.5,
-      "failureMessages": 0
+      "status": "passed"
     }
   ],
   "oracle": {
@@ -155,52 +154,201 @@
   "replacementSteps": [
     {
       "id": "03-motor-med-aktor",
-      "source": "report.json observations.ersattningssteg_motor_med_aktor; scenarios/custody01-03.test.ts:67-69",
-      "substitute": "runIntakeWithActor(...) i testprocessen (lib/custody/inprocess.ts) efter att HTTP inbound-cron gav 0 ediel_messages-original (http_inbound_cron.edielMessages=0)",
-      "notVerified": "att HTTP inbound-cron sjalv slutfor mottagningen; cron skickar ingen actorUserId (kallan: app/api/internal/inbound-mail/cron/route.ts). Observerat: reprocess status manual_review, engineAuto fetched 1 / edielMessageIds 1"
-    },
-    "Locked original creation: the normal HTTP inbound-cron path stored the mail but created 0 ediel_messages (ediel_message_inbound_email_tenant_mismatch 23514 in DB log = known finding claude-track4/4); the original was therefore registered via the in-process engine with the automation actor (ERSÄTTNINGSSTEG). The deny oracle (DELETE/UPDATE refused, row+body unchanged) is exercised natively on that registered row; what the substitute does not verify: that the normal cron path can produce the locked original."
+      "source": "runs/20261030T164358Z-460836/custody01-03/report.json observations.http_inbound_cron och observations.ersattningssteg_motor_med_aktor; log.txt; scenarios/custody01-03.test.ts:67-69",
+      "substitute": "runIntakeWithActor(...) i testprocessen (lib/custody/inprocess.ts) efter att HTTP inbound-cron lagrat mailet men skapat 0 ediel_messages (http_inbound_cron.mailsStored=1, edielMessages=0)",
+      "observedCause": "Normal HTTP inbound-cron lagrade mailet men skapade 0 ediel_messages. DB-loggen visar ediel_message_inbound_email_tenant_mismatch (23514) i log.txt: '[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message'. Samma fel som claude-track4/4.",
+      "notVerified": "Att HTTP inbound-cron kan producera den låsta mottagningen (ej verifierat i denna körning). Mailboxens debug visar companyId null (observerat, ej klassificerat som orsak)."
+    }
   ],
   "whatTheyDoNotVerify": [
     "Att HTTP inbound-cron sjalv producerar en registrerad mottagning (ersatt med in-process-ingang med aktor).",
     "Lagringsbyten/bytes i Storage for det lasta originalet (endast DB-guards och radsha256 verifierade).",
-    "gridex_billing_source.underlay_bindings och correction_journal hade 0 rader i denna korning (append_only_rows_present n=0); nekad UPDATE/DELETE ar inte verifierad for dessa tabeller. billing_underlays ingar inte i append_only_rows_present.",
+    "gridex_billing_source.underlay_bindings och correction_journal hade 0 rader i denna korning (append_only_rows_present n=0); nekad UPDATE/DELETE är därför inte verifierad för dessa tabeller (append-only otestad, utanför oracle). billing_underlays ingår inte i append_only_rows_present.",
     "Att rader i inbound-kedjan hanteras korrekt efter pollingfelet (se oppna observationer)."
   ],
   "blocker": "Ingen runner-blocker. PARTIAL tills orkestratorn granskat proposedState PASS och replacementSteps.",
-  "nextAction": "Orkestratorn granskar proposedState och replacementSteps. Denna packet gor ingen ny korning.",
+  "nextAction": "Orkestratorn granskar proposedState och replacementSteps mot körning 20261030T164358Z-460836. Denna packet gör ingen ny körning.",
   "cleanupReceipt": "No cleanup by design: synthetic tenants/rows stay in T6’s own local stack for audit until track teardown (down.sh --stack with cleanup-receipt.json). No shared or foreign resources were touched.",
   "observations": {
+    "run": {
+      "runId": "20261030164359-420453",
+      "prefix": "T6S261030164304A3",
+      "label": "custody01-03",
+      "mode": "test",
+      "tenant": {
+        "name": "T6SIM Custody03 Supplier AB",
+        "edielId": "16763"
+      }
+    },
     "http_inbound_cron": {
       "status": 200,
-      "ms": 529,
+      "ms": 1031,
+      "body": {
+        "ok": true,
+        "result": {
+          "workerId": "inbound-mail-engine-2026-10-30T16:44:03.952Z",
+          "startedAt": "2026-10-30T16:44:03.952Z",
+          "finishedAt": "2026-10-30T16:44:04.962Z",
+          "mailboxesChecked": 1,
+          "configuredMailboxes": 1,
+          "dueMailboxes": 1,
+          "skippedLockedMailboxes": 0,
+          "skippedNotDueMailboxes": 0,
+          "fetchedMessages": 1,
+          "storedEmails": 1,
+          "dedupedEmails": 0,
+          "processedJobs": 0,
+          "failedJobs": 1,
+          "overdueTasks": {
+            "ackOverdue": 0,
+            "z04Overdue": 0,
+            "z14Overdue": 0
+          },
+          "inboundEmailMessageIds": [
+            "b75363e1-24e0-4bb3-8773-64d97cf8b5ef"
+          ],
+          "edielMessageIds": [],
+          "debug": {
+            "configuredMailboxes": [
+              {
+                "mailboxId": "74a56ad8-a33e-4fe8-b4b1-5260e3dc9cdd",
+                "mailboxName": "Gridex shared Ediel mailbox (test)",
+                "companyId": null,
+                "environment": "test",
+                "lastPolledAt": null,
+                "lockedAt": null,
+                "pollIntervalMinutes": 5
+              }
+            ],
+            "dueMailboxes": [
+              {
+                "mailboxId": "74a56ad8-a33e-4fe8-b4b1-5260e3dc9cdd",
+                "mailboxName": "Gridex shared Ediel mailbox (test)",
+                "companyId": null,
+                "environment": "test",
+                "lastPolledAt": null,
+                "lockedAt": null,
+                "pollIntervalMinutes": 5
+              }
+            ],
+            "skippedLocked": [],
+            "skippedNotDue": [],
+            "messagesFetched": 1,
+            "messagesStored": 1,
+            "jobsProcessed": 0,
+            "customerOperationJobs": {
+              "claimed": 10,
+              "completed": 0,
+              "needsReview": 7,
+              "failed": 0,
+              "errors": [
+                "521b6cec-2cba-4360-90e2-8c7021db6d0a: supplier_switch_worker_scope_forbidden",
+                "5e7eeb05-559e-4696-afd0-db71fb7fb920: supplier_switch_worker_scope_forbidden",
+                "70b6200b-c8a2-4357-ab91-2ee0b5336758: supplier_switch_worker_scope_forbidden"
+              ]
+            },
+            "errorsByMailbox": [
+              {
+                "mailboxId": "74a56ad8-a33e-4fe8-b4b1-5260e3dc9cdd",
+                "mailboxName": "Gridex shared Ediel mailbox (test)",
+                "errors": [
+                  "Okänt pollingfel."
+                ]
+              }
+            ],
+            "configurationError": null,
+            "autoProcessedEdielMessages": 0,
+            "autoProcessErrors": []
+          },
+          "results": [
+            {
+              "mailboxId": "74a56ad8-a33e-4fe8-b4b1-5260e3dc9cdd",
+              "mailboxName": "Gridex shared Ediel mailbox (test)",
+              "environment": "test",
+              "fetched": 1,
+              "unseenFetched": 1,
+              "seenRecentFetched": 0,
+              "searchedSeenRecentSince": null,
+              "folder": "INBOX",
+              "stored": 1,
+              "deduped": 0,
+              "skippedLocked": false,
+              "inboundEmailMessageIds": [
+                "b75363e1-24e0-4bb3-8773-64d97cf8b5ef"
+              ],
+              "dedupedInboundEmailMessageIds": [],
+              "processed": 0,
+              "errors": [
+                "Okänt pollingfel."
+              ]
+            }
+          ]
+        }
+      },
       "mailsStored": 1,
-      "edielMessages": 0,
-      "failedJobs": 1,
-      "errorsByMailbox": [
-        "Okänt pollingfel."
-      ]
+      "edielMessages": 0
     },
-    "lockedSource": {
-      "sourceId": "38394231-c5e4-468a-aed5-44208612fd86",
+    "ersattningssteg_motor_med_aktor": {
+      "polls": [
+        {
+          "poll": 1,
+          "ms": 4435,
+          "fetched": 1,
+          "stored": 0,
+          "deduped": 1,
+          "processedJobs": 1,
+          "failedJobs": 0,
+          "errorsByMailbox": [
+            {
+              "mailboxId": "74a56ad8-a33e-4fe8-b4b1-5260e3dc9cdd",
+              "mailboxName": "Gridex shared Ediel mailbox (test)",
+              "errors": [
+                "Okänt pollingfel."
+              ]
+            }
+          ]
+        }
+      ],
+      "queueFirstPass": {
+        "ms": 10,
+        "processed": 0,
+        "failed": 0,
+        "edielMessagesAfter": 0
+      },
+      "reprocess": [
+        {
+          "mailId": "b75363e1-24e0-4bb3-8773-64d97cf8b5ef",
+          "ms": 162,
+          "status": "manual_review"
+        }
+      ],
+      "engineAuto": {
+        "ms": 1957,
+        "fetched": 1,
+        "edielMessageIds": 1,
+        "autoProcessErrors": []
+      }
+    },
+    "locked_source": {
+      "sourceId": "aaa397d6-a551-43a5-a262-27943234c446",
       "companyId": "d490f922-6635-4a77-8a7e-3e95f26beb52",
       "receptions": 1
     },
-    "bodyBaseline": {
+    "baseline": {
       "bodyBytes": 638,
-      "rowSha256": "81aaf96fd44ca4acec4867c2bbdb1b4951c675bdecaf97884bfe4fd0e154b1c9",
-      "bodySha256": "af1102439c075129ce2606a182e3c76b42749f3dee9bbe59aef85ece04a08298"
+      "rowSha256": "860847706e12599950580e0a7a0f6b1e0abef19437c3d899993b8b427c702dbd",
+      "bodySha256": "edcc9de8ffd90f4553d3ee187c5faa3a1106fc44d2c1a71f3f70a01ea1934748"
     },
-    "builtVsStored": {
-      "builtSha256": "673a6877612eefcc18e3aed3c66011a03d02990c027663fc6b61af4584f12c6d",
-      "storedSha256": "af1102439c075129ce2606a182e3c76b42749f3dee9bbe59aef85ece04a08298",
+    "built_vs_stored": {
+      "builtSha256": "fe1a7203c22b77282a9a4d157469cde58b1786b6ca584a4f99d0ae63d994329f",
+      "storedSha256": "edcc9de8ffd90f4553d3ee187c5faa3a1106fc44d2c1a71f3f70a01ea1934748",
       "storedHasCrlf": true,
       "storedEndsWithNewline": false,
       "storedLfNormalizedEqualsBuilt": true,
       "storedBytes": 638,
       "builtBytes": 612
     },
-    "guardsFired": {
+    "guards_fired": {
       "delete": [
         "P0001",
         "ediel_registered_reception_original_immutable"
@@ -214,93 +362,174 @@
         "immutable_ediel_payload_cannot_change"
       ]
     },
+    "append_only_rows_present": [
+      {
+        "table": "gridex_received_sources.sources",
+        "key": "source_message_id",
+        "n": 103
+      },
+      {
+        "table": "gridex_received_sources.snapshots",
+        "key": "id",
+        "n": 31
+      },
+      {
+        "table": "gridex_billing_source.underlay_bindings",
+        "key": "underlay_id",
+        "n": 3
+      },
+      {
+        "table": "gridex_billing_source.correction_journal",
+        "key": "id",
+        "n": 0
+      }
+    ],
     "attempts": {
-      "authenticated_postgrest": {
+      "authenticated": {
         "readableRows": 1,
         "readableStatus": 200,
-        "delete": {
+        "del": {
           "status": 200,
-          "rows": 0
+          "rows": [],
+          "code": null,
+          "message": null,
+          "text": "[]"
         },
         "patch": {
           "status": 200,
-          "rows": 0
-        },
-        "note": "HTTP 200 med tom array (0 rader paverkade), ej HTTP-fel"
+          "rows": [],
+          "code": null,
+          "message": null,
+          "text": "[]"
+        }
       },
-      "service_role_postgrest": {
-        "delete": {
+      "service_role": {
+        "del": {
           "status": 400,
+          "rows": null,
           "code": "P0001",
-          "message": "ediel_registered_reception_original_immutable"
+          "message": "ediel_registered_reception_original_immutable",
+          "text": "{\"code\":\"P0001\",\"details\":null,\"hint\":null,\"message\":\"ediel_registered_reception_original_immutable\"}"
         },
         "patch": {
           "status": 400,
+          "rows": null,
           "code": "23514",
-          "message": "immutable_ediel_payload_cannot_change"
+          "message": "immutable_ediel_payload_cannot_change",
+          "text": "{\"code\":\"23514\",\"details\":null,\"hint\":null,\"message\":\"immutable_ediel_payload_cannot_change\"}"
         }
       },
-      "postgres_sql": {
-        "delete": {
+      "postgres": {
+        "del": {
+          "ok": false,
           "sqlstate": "P0001",
-          "message": "ediel_registered_reception_original_immutable"
+          "message": "ediel_registered_reception_original_immutable",
+          "stdout": ""
         },
-        "update_body": {
+        "upd": {
+          "ok": false,
           "sqlstate": "23514",
-          "message": "immutable_ediel_payload_cannot_change"
+          "message": "immutable_ediel_payload_cannot_change",
+          "stdout": ""
         },
-        "update_hash": {
+        "updHash": {
+          "ok": false,
           "sqlstate": "23514",
-          "message": "immutable_ediel_payload_cannot_change"
+          "message": "immutable_ediel_payload_cannot_change",
+          "stdout": ""
         }
-      }
-    },
-    "append_only": {
-      "rows_present": [
-        {
-          "table": "gridex_received_sources.sources",
-          "key": "source_message_id",
-          "n": 46
-        },
-        {
-          "table": "gridex_received_sources.snapshots",
-          "key": "id",
-          "n": 30
-        },
-        {
-          "table": "gridex_billing_source.underlay_bindings",
-          "key": "underlay_id",
-          "n": 0
-        },
-        {
-          "table": "gridex_billing_source.correction_journal",
-          "key": "id",
-          "n": 0
-        }
-      ],
-      "gridex_received_sources.sources": {
-        "delete": "P0001 received_original_immutable_without_native_retention",
-        "update": "P0001 received_original_immutable_without_native_retention",
-        "rowShaBefore": "be08257f17a0abe1402eca2ebd0dcd10772f8a97975e6430e3b9d6346852a63c",
-        "rowShaAfter": "be08257f17a0abe1402eca2ebd0dcd10772f8a97975e6430e3b9d6346852a63c"
       },
-      "gridex_received_sources.snapshots": {
-        "delete": "23514 received_source_evidence_is_append_only",
-        "update": "23514 received_source_evidence_is_append_only",
-        "rowShaBefore": "c7e302b8db6083b7f8b7def42ef25603f8561cfa2842cfe96b956c9b9fe02575",
-        "rowShaAfter": "c7e302b8db6083b7f8b7def42ef25603f8561cfa2842cfe96b956c9b9fe02575"
+      "append_only": {
+        "gridex_received_sources.sources": {
+          "id": "00088207-2253-4bf7-8060-68b082ccead2",
+          "del": {
+            "ok": false,
+            "sqlstate": "P0001",
+            "message": "received_original_immutable_without_native_retention",
+            "stdout": ""
+          },
+          "upd": {
+            "ok": false,
+            "sqlstate": "P0001",
+            "message": "received_original_immutable_without_native_retention",
+            "stdout": ""
+          },
+          "before": "e02bec56eeebdcce40137945910bd5d1773c938d13b516ccec09394b9cb0d1e2",
+          "after": "e02bec56eeebdcce40137945910bd5d1773c938d13b516ccec09394b9cb0d1e2"
+        },
+        "gridex_received_sources.snapshots": {
+          "id": "0d4918c3-5c65-4e1f-9af8-002862611676",
+          "del": {
+            "ok": false,
+            "sqlstate": "23514",
+            "message": "received_source_evidence_is_append_only",
+            "stdout": ""
+          },
+          "upd": {
+            "ok": false,
+            "sqlstate": "23514",
+            "message": "received_source_evidence_is_append_only",
+            "stdout": ""
+          },
+          "before": "76eb551274e4bbf6d75e4198d6a60b8bc6a6689ec6ede6c0e88b58cebcaa4295",
+          "after": "76eb551274e4bbf6d75e4198d6a60b8bc6a6689ec6ede6c0e88b58cebcaa4295"
+        },
+        "gridex_billing_source.underlay_bindings": {
+          "id": "205488a0-0c6b-4440-bef1-12931aea3318",
+          "del": {
+            "ok": false,
+            "sqlstate": "23514",
+            "message": "received_source_evidence_is_append_only",
+            "stdout": ""
+          },
+          "upd": {
+            "ok": false,
+            "sqlstate": "23514",
+            "message": "received_source_evidence_is_append_only",
+            "stdout": ""
+          },
+          "before": "0feb038e2d05d6f8ea50f8de4c19341f93131cc669085b5e8df26308fc483dab",
+          "after": "0feb038e2d05d6f8ea50f8de4c19341f93131cc669085b5e8df26308fc483dab"
+        },
+        "public.billing_underlays": {
+          "id": "205488a0-0c6b-4440-bef1-12931aea3318",
+          "del": {
+            "ok": false,
+            "sqlstate": "55000",
+            "message": "billing_source_finalized_underlay_immutable",
+            "stdout": ""
+          }
+        }
       }
-    },
-    "substitutedStep": "ersattningssteg_motor_med_aktor (se replacementSteps)"
+    }
   },
   "measuredDurations": {
     "setupStepMs": 10983.9,
     "vitestTotalMs": 12181,
-    "note": "Fran report.json steps; warm/cold och P95 ej redovisat (ej mattyp)"
+    "note": "Durationer från föregående körning 20261030T162628Z-bf9849; ej omräknade för 20261030T164358Z-460836 (ny rapport saknar per-steg-tid). Ny vitest-totaltid enligt log.txt: 13810 ms."
   },
   "openObservations": [
-    "Stderr i setup-loggen (log.txt): \"[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message\" code 23514 message 'ediel_message_inbound_email_tenant_mismatch'. Ej klassificerat (produktfel eller fixtureartefakt): mailbox companyId null i debug.",
+    "Stderr i setup-loggen (log.txt, run 20261030T164358Z-460836): '[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message' code 23514 message 'ediel_message_inbound_email_tenant_mismatch'. Observerad DB-orsak till 0 ediel_messages i normal HTTP-väg (se replacementSteps); produkt- eller fixturfel ej klassificerat.",
     "Stderr: \"[inbound-mail] Skipping customer-scoped task because no canonical customer is resolved.\" (2 ggr). Ej klassificerat."
   ],
-  "postgresVersion": "17.6"
+  "postgresVersion": "17.6",
+  "previousRuns": [
+    {
+      "runId": "20261030T162628Z-bf9849",
+      "status": "superseded",
+      "reason": "saknar clean-tree-kvitto (runIdentity)"
+    }
+  ],
+  "runIdentity": {
+    "runId": "20261030T164358Z-460836",
+    "runDir": "/root/sim-run/track6",
+    "runDirHead": "220edef2f0cfb2f25cd4b60fa54209a18d7f2b85",
+    "gitStatusPorcelain": [],
+    "runDirClean": true,
+    "builtCommit": "7afacc78a478f97c14295635d8228e3149a98128",
+    "appBase": "6454d540b6978a9c25434b8c66bcd7a0e335c99c",
+    "changedPathsOutsideSimulationAndQuality": [],
+    "appCodeEqualsBase": true
+  },
+  "observationsSource": "SIM_HOME/runs/20261030T164358Z-460836/custody01-03/report.json"
 }
