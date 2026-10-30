@@ -109,7 +109,8 @@ export function seedRoutableChain(meteringPoints: string[], environment: 'test' 
  */
 export function setAckRouteApplicationReference(value: string | null, environment: 'test' | 'production' = (process.env.T3_MODE as 'test' | 'production') ?? 'test'): { profileId: string; previous: string | null } {
   const row = sqlJson(`SELECT to_jsonb(x) FROM (SELECT p.id AS "profileId", p.application_reference AS previous FROM public.ediel_route_profiles p
-    WHERE p.route_name=${lit(`T3SIM E01 ediel_ack -> DSO ${COUNTERPARTY_EDIEL_ID} (${environment})`)}) x`) as { profileId: string; previous: string | null }
+    JOIN public.companies c ON c.id=p.company_id
+    WHERE c.name=${lit(E01_COMPANY_NAME)} AND p.route_name=${lit(`T3SIM E01 ediel_ack -> DSO ${COUNTERPARTY_EDIEL_ID} (${environment})`)}) x`) as { profileId: string; previous: string | null }
   sqlIn(`UPDATE public.ediel_route_profiles SET application_reference=${value === null ? 'NULL' : lit(value)} WHERE id=${lit(row.profileId)}`)
   return row
 }
