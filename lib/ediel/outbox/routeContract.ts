@@ -100,6 +100,13 @@ async function loadCertificate(id: string): Promise<CertificateRow | null> {
   return (data as CertificateRow | null) ?? null
 }
 
+// Controlled route-profile configuration errors from the runtime lookup
+// (inactive/ambiguous profile); every other error keeps propagating.
+function routeProfileConfigErrorCode(error: unknown): string | null {
+  const code = error && typeof error === 'object' ? (error as { code?: unknown }).code : null
+  return code === 'ediel_route_profile_inactive' || code === 'ediel_route_profile_ambiguous' ? code : null
+}
+
 export async function evaluateEdielRouteContract(message: EdielMessageRow): Promise<EdielRouteContract> {
   if (message.direction !== 'outbound') {
     return { ok: true, blocker: null, fingerprint: null, routeId: null, receiverEdielId: null, receiverSubaddress: null, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: ['not_outbound'] }
@@ -107,7 +114,14 @@ export async function evaluateEdielRouteContract(message: EdielMessageRow): Prom
 
   const routeId = clean(message.communication_route_id)
   if (!routeId) return { ok: false, blocker: 'route_profile_missing', fingerprint: null, routeId: null, receiverEdielId: null, receiverSubaddress: null, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
-  const runtime = await getEdielRouteRuntimeByCommunicationRouteId(routeId, { companyId: message.company_id ?? null })
+  let runtime: EdielRouteRuntimeRow | null
+  try {
+    runtime = await getEdielRouteRuntimeByCommunicationRouteId(routeId, { companyId: message.company_id ?? null })
+  } catch (error) {
+    const blocker = routeProfileConfigErrorCode(error)
+    if (!blocker) throw error
+    return { ok: false, blocker, fingerprint: null, routeId, receiverEdielId: null, receiverSubaddress: null, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
+  }
   if (!runtime || runtime.is_enabled !== true || runtime.communication_route_active !== true) {
     return { ok: false, blocker: 'route_not_active', fingerprint: null, routeId, receiverEdielId: null, receiverSubaddress: null, receiverEmail: null, certificateId: null, certificateFingerprint: null, checks: [] }
   }

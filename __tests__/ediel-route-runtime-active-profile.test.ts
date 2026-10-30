@@ -2,6 +2,9 @@
 // active profile instead of failing with PGRST116 on retained inactive rows.
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 import {getEdielRouteRuntimeByCommunicationRouteId} from '@/lib/ediel/config'
+import {evaluateEdielRouteContract} from '@/lib/ediel/outbox/routeContract'
+import {getAutomaticAckPolicy} from '@/lib/ediel/core/ackPolicy'
+import type {EdielMessageRow} from '@/lib/ediel/types'
 
 type Row=Record<string,unknown>
 const io=vi.hoisted(()=>({profiles:[] as Row[],reads:[] as string[]}))
@@ -57,7 +60,7 @@ describe('unselected route runtime resolves the active profile',()=>{
   await expect(getEdielRouteRuntimeByCommunicationRouteId(route,{companyId:company}))
    .resolves.toMatchObject({route_profile_id:'legacy'})
  })
- it('keeps the exact single-profile path unchanged (one view read)',async()=>{
+ it('keeps the single active profile result, verified by a scoped profile read',async()=>{
   io.profiles=[profile('only',true)]
   await expect(getEdielRouteRuntimeByCommunicationRouteId(route,{companyId:company}))
    .resolves.toMatchObject({route_profile_id:'only'})
@@ -83,5 +86,41 @@ describe('unselected route runtime resolves the active profile',()=>{
   io.profiles=[profile('old',false),profile('old-2',false),profile('foreign',true,{company_id:other})]
   await expect(getEdielRouteRuntimeByCommunicationRouteId(route,{companyId:company}))
    .rejects.toMatchObject({code:'ediel_route_profile_inactive'})
+ })
+})
+
+describe('route contract and ACK policy handle profile configuration errors',()=>{
+ const outbound=()=>({id:'m1',company_id:company,communication_route_id:route,direction:'outbound',environment:'test',
+  message_family:'UTILTS',message_code:'E66',receiver_ediel_id:'COUNTERPART'}) as unknown as EdielMessageRow
+ it('blocks two active profiles with ediel_route_profile_ambiguous before any send-side read',async()=>{
+  io.profiles=[profile('a',true),profile('b',true)]
+  await expect(evaluateEdielRouteContract(outbound())).resolves.toMatchObject({ok:false,blocker:'ediel_route_profile_ambiguous',routeId:route})
+  expect(io.reads).toEqual(['ediel_route_runtime_v','ediel_route_profiles'])
+ })
+ it('blocks a single inactive profile with ediel_route_profile_inactive',async()=>{
+  io.profiles=[profile('old',false)]
+  await expect(evaluateEdielRouteContract(outbound())).resolves.toMatchObject({ok:false,blocker:'ediel_route_profile_inactive'})
+ })
+ it('blocks an active but disabled profile as route_not_active',async()=>{
+  io.profiles=[profile('off',true,{is_enabled:false})]
+  await expect(evaluateEdielRouteContract(outbound())).resolves.toMatchObject({ok:false,blocker:'route_not_active'})
+ })
+ const inbound=(companyId:string|null)=>({id:'s1',company_id:companyId,communication_route_id:route,direction:'inbound',
+  message_standard:'edifact',message_family:'UTILTS',message_code:'E66',environment:'test',
+  application_reference:'23-DGI-E66-T',raw_payload:"UNB+UNOC:3+SENDER:14+RECEIVER:14+261030:1000+REF++23-DGI-E66-T'UNH+M+UTILTS:D:02B:UN:E5SE5A'BGM+E66+DOC+9'IDE+24+IDE-A'LOC+172+POINT-A:::9'UNT+5+M'UNZ+1+REF'",
+  created_at:'2026-10-30T10:00:00.000Z',message_received_at:'2026-10-30T10:00:00.000Z'}) as unknown as EdielMessageRow
+ it('ACK policy uses the tenant-scoped lookup and default ack mode for inactive/ambiguous profiles',async()=>{
+  io.profiles=[profile('a',true),profile('b',true),profile('foreign',true,{company_id:other})]
+  const ambiguous=await getAutomaticAckPolicy(inbound(company))
+  expect(io.reads.slice(0,2)).toEqual(['ediel_route_runtime_v','ediel_route_profiles'])
+  io.reads=[];io.profiles=[profile('old',false)]
+  await expect(getAutomaticAckPolicy(inbound(company))).resolves.toEqual(ambiguous)
+  expect(ambiguous.ackDueAt).not.toBeNull()
+ })
+ it('ACK policy without company scope keeps the legacy single view read (no cross-tenant profile reads)',async()=>{
+  io.profiles=[profile('only',true)]
+  await getAutomaticAckPolicy(inbound(null))
+  expect(io.reads[0]).toBe('ediel_route_runtime_v')
+  expect(io.reads).not.toContain('ediel_route_profiles')
  })
 })

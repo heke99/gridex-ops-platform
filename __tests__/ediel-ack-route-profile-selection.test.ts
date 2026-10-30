@@ -103,7 +103,7 @@ describe('fresh ACK profiles use the source-qualified unique configuration',()=>
   configure([profile('aperak')]);io.views=[]
   await expect(getEdielRouteRuntimeByCommunicationRouteId(route,selection())).rejects.toThrow('ediel_ack_route_profile_scope_mismatch')
  })
- it('retains the ordinary single-profile path without an ACK candidate query',async()=>{
+ it('retains the ordinary single-profile result after a scoped active-profile read',async()=>{
   configure([profile('ordinary',null,'23-DGI-E66-T',null)])
   await expect(getEdielRouteRuntimeByCommunicationRouteId(route,{companyId:company})).resolves.toMatchObject({route_profile_id:'ordinary'})
   expect(io.reads).toEqual(['ediel_route_runtime_v','ediel_route_profiles'])

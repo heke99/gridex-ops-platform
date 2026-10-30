@@ -343,33 +343,33 @@ function routeProfileConfigError(code: 'ediel_route_profile_ambiguous' | 'ediel_
 // ambiguity with a controlled configuration error instead of PGRST116.
 async function resolveActiveRouteRuntime(
   communicationRouteId: string,
-  scopedCompanyId: string | null
+  scopedCompanyId: string
 ): Promise<EdielRouteRuntimeRow> {
-  let profileQuery = supabaseService
+  const profileQuery = supabaseService
     .from('ediel_route_profiles')
     .select('id,company_id,communication_route_id,is_active')
     .eq('communication_route_id', communicationRouteId)
-  if (scopedCompanyId) profileQuery = profileQuery.eq('company_id', scopedCompanyId)
+    .eq('company_id', scopedCompanyId)
   const { data: profiles, error: profileError } = await profileQuery
   if (profileError) throw profileError
   const active = ((profiles ?? []) as Array<Record<string, unknown>>).filter((row) =>
     typeof row.id === 'string' && row.communication_route_id === communicationRouteId
-    && (!scopedCompanyId || row.company_id === scopedCompanyId)
+    && row.company_id === scopedCompanyId
     && (row.is_active === true || row.is_active === null))
   if (active.length === 0) throw routeProfileConfigError('ediel_route_profile_inactive')
   if (active.length > 1) throw routeProfileConfigError('ediel_route_profile_ambiguous')
   const profile = active[0]
 
-  let runtimeQuery = supabaseService
+  const runtimeQuery = supabaseService
     .from('ediel_route_runtime_v')
     .select('*')
     .eq('communication_route_id', communicationRouteId)
     .eq('route_profile_id', profile.id as string)
-  if (scopedCompanyId) runtimeQuery = runtimeQuery.eq('company_id', scopedCompanyId)
+    .eq('company_id', scopedCompanyId)
   const { data, error } = await runtimeQuery.maybeSingle()
   if (error) throw error
   if (!data || data.route_profile_id !== profile.id || data.communication_route_id !== communicationRouteId
-    || data.company_id !== profile.company_id || (scopedCompanyId && data.company_id !== scopedCompanyId)) {
+    || data.company_id !== scopedCompanyId) {
     throw routeProfileConfigError('ediel_route_profile_inactive')
   }
   return data as EdielRouteRuntimeRow
@@ -435,18 +435,20 @@ export async function getEdielRouteRuntimeByCommunicationRouteId(
 
   const { data, error } = await query.maybeSingle()
 
-  if (error && !selection && error.code === 'PGRST116') {
+  // Active-profile resolution requires a company scope so the extra profile
+  // reads never run cross-tenant; unscoped callers keep the legacy behaviour.
+  if (error && !selection && scopedCompanyId && error.code === 'PGRST116') {
     return resolveActiveRouteRuntime(communicationRouteId, scopedCompanyId)
   }
   if (error) throw error
-  if (!selection && data) {
+  if (!selection && scopedCompanyId && data) {
     // Never route through an inactive profile, even when it is the only row.
-    let activeQuery = supabaseService
+    const activeQuery = supabaseService
       .from('ediel_route_profiles')
       .select('id,company_id,communication_route_id,is_active')
       .eq('id', data.route_profile_id)
       .eq('communication_route_id', communicationRouteId)
-    if (scopedCompanyId) activeQuery = activeQuery.eq('company_id', scopedCompanyId)
+      .eq('company_id', scopedCompanyId)
     const { data: owner, error: ownerError } = await activeQuery.maybeSingle()
     if (ownerError) throw ownerError
     if (!owner || owner.id !== data.route_profile_id || owner.communication_route_id !== communicationRouteId
