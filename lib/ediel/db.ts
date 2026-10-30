@@ -5,6 +5,7 @@ import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 // lib/ediel/db.ts
 
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { assertNoTgtLeakageInProductionInput } from '@/lib/ediel/core/productionGuards'
 import { findRulebookTestCase } from '@/lib/ediel/rulebook/testCaseMatcher'
 import { parseRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
@@ -837,10 +838,19 @@ export async function listCanonicalAckEnqueueBlockedEvents(params: {
   limit?: number
   companyId: string
 }): Promise<CanonicalIssueEventRow[]> {
-  const rows = await listRecentManualIssueEvents(Math.max(params.limit ?? 100, 50))
-  return rows
-    .filter((row) => row.issue_kind === 'ack_enqueue_blocked' && row.company_id === params.companyId)
-    .slice(0, params.limit ?? 100)
+  // Tenant and guard filters run in SQL so other tenants' rows are never read
+  // and their newer events cannot push this tenant's blocks out of the limit.
+  const query = tenantDb(params.companyId).from('ediel_message_events').select('*') as ReturnType<ReturnType<typeof supabaseService.from>['select']>
+  const { data, error } = await query
+    .eq('event_type', 'manual_note')
+    .eq('payload->>blockedBy', 'canonical_inbound_ack_guard')
+    .order('created_at', { ascending: false })
+    .limit(params.limit ?? 100)
+  if (error) throw error
+  return ((data ?? []) as EdielMessageEventRow[])
+    .filter((row) => row.company_id === params.companyId)
+    .map(mapCanonicalIssueEvent)
+    .filter((row): row is CanonicalIssueEventRow => row !== null && row.issue_kind === 'ack_enqueue_blocked')
 }
 
 export async function listCanonicalAckConflictEvents(params?: {
