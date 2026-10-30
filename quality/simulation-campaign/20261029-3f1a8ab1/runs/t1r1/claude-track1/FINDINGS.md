@@ -128,3 +128,9 @@ file cites them by path and SHA256 only.
 | 11:52–11:59 | up.sh | PASS, replay 168 s, fingerprint 5168f69b…, build 227 s |
 | 11:59–~12:05 | run main03 #9 | BLOCKED: miljö (restart 2) |
 | 12:09–12:10 | restart 2 handled | stack down, clean; up + run #10 detached |
+
+## Oracle source status (2026-10-30)
+- Definition source verified twice, byte-identical: PR930 `d6edd3a3:quality/simulation-register/oracles/all-systems-scenarios.safe.json` and `claude/adoring-wright-8qbon8 @ 27862b90:quality/simulation-campaign/oracle-original/all-systems-scenarios.safe.json`; both 41 736 bytes, sha256 `96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3`.
+- No track 1 ID was ever marked `BLOCKED: orakel saknas` in this packet; all 13 used the verified file from the start.
+- What the file supplies per ID: MAIN03 receipt fields (2688 evidence IDs, 28 sources, lock/transaction check); MAIN04 flow (prepare → money/lineage oracle → locked draft → approve); SITE01 `consolidation.passRequires` (exactly one invoice identity; two invoices in one file is not consolidation).
+- Amounts are NOT taken from it: 1809,51 / 1447,61 / 361,90 SEK belong to a historical fixture (b5/9f4 customer, product 24a over 017f) that is not reproduced here. Amount oracles are computed independently from this track's own synthetic inputs with the native rounding rules cited by file:line in `scripts/simulation/track1/fixtures/synthetic.ts` and `site01Synthetic.ts`.
