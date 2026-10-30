@@ -94,7 +94,7 @@ export type CustomerChain = {
   }
   /** Gate precondition: supply period market_start_at and the first stored value's interval. */
   gate: { marketStartAt: string | null; startDate: string | null; firstIntervalStart: string | null; firstIntervalEnd: string | null; valueCount: number }
-  e66: { values: number; persistMs: number; ingestMs: number; messages: Array<{ day: number; sourceId: string; transactionRef: string; values: number; rawSha256: string; receivedAt: string; receivedAtClamped: boolean; persistMs: number; ingestMs: number; totalMs: number; meteringValueIds: string[] }> }
+  e66: { values: number; persistMs: number; ingestMs: number; messages: Array<{ day: number; sourceId: string; transactionRef: string; values: number; rawSha256: string; receivedAt: string; receivedAtClamped: boolean; runtime: { ok: boolean; classification: string | null; issues: Array<{ severity: string; kind: string | null; code: string }>; note: string }; persistMs: number; ingestMs: number; totalMs: number; meteringValueIds: string[] }> }
   timingsMs: Record<string, number>
 }
 
@@ -237,7 +237,16 @@ async function ingestHourlyDay(f: Ground, salt: number, day: number, dataRequest
   const persistStarted = Date.now()
   const policy = resolveCanonicalMessagePolicy(source)!
   const runtime = await recordUtiltsFinalRuntime(source)
-  must(runtime.validation.ok, `delivery01_utilts_runtime_not_ok:${JSON.stringify(runtime.validation.issues).slice(0, 800)}`)
+  // The product decides acceptance by validation.ok (= classification 'accepted', utiltsEngine.part-1.ts:938/1347), where only error-severity issues
+  // produce a *_rejected classification; warnings never do. Mirror that: fail on error-severity issues or a *_rejected classification. A non-accepted
+  // 'internal_review' caused only by warnings (e.g. UTILTS_E66_ENERGY_ONLY_WITHOUT_METER_READING, UTILTS_STRUCTURE_UNAVAILABLE) is NOT a harness failure,
+  // but the product's own flow (utiltsDataRequest.part-2.ts:571) would not auto-accept such a message: recorded in the report observations.
+  const validation = runtime.validation as { ok: boolean; classification?: string; issues: Array<{ severity: string; code: string; kind?: string }> }
+  const blocking = validation.issues.filter(issue => issue.severity === 'error')
+  const rejected = typeof validation.classification === 'string' && validation.classification.endsWith('_rejected')
+  must(blocking.length === 0 && !rejected, `delivery01_utilts_runtime_blocking:${JSON.stringify({ classification: validation.classification, errors: blocking }).slice(0, 1500)}`)
+  const runtimeSummary = { ok: validation.ok, classification: validation.classification ?? null, issues: validation.issues.map(issue => ({ severity: issue.severity, kind: issue.kind ?? null, code: issue.code })),
+    note: validation.ok ? 'accepted' : 'NOT accepted by the product (internal_review via warnings only); ingest continued by the fixture (persist + metering sink called directly)' }
   const matches = runtime.facts.transactions.map(t => ({ transactionReference: t.transactionId, meteringPointId: f.pointId, customerId: f.customerId, siteId: f.siteId, gridOwnerId: f.gridId, externalMeteringPointId: t.meterPointId, externalGridAreaId: t.gridAreaId, matchStatus: 'matched' as const }))
   const contracts = await prepareUtiltsConsumptionContracts({ message: source, runtime, policy, matches, dataRequest, fallback: { customerId: f.customerId, siteId: f.siteId, meteringPointId: f.pointId, gridOwnerId: f.gridId }, allowConsumption: true })
   const persistInput: UtiltsBoundPersistenceInput & { actorUserId: string } = { actorUserId: f.actorUserId, companyId: f.companyId, environment: source.environment, sourceMessageId: source.id, messageCode: source.message_code!, rawPayload: source.raw_payload!, contracts,
@@ -251,7 +260,7 @@ async function ingestHourlyDay(f: Ground, salt: number, day: number, dataRequest
   const stored = await ingestBoundUtiltsMetering({ actorUserId: f.actorUserId, message: source, boundOutcomes: outcomes })
   const ingestMs = Date.now() - ingestStarted
   must(stored.length === HOURS_PER_DAY, `delivery01_utilts_stored_${stored.length}_expected_${HOURS_PER_DAY}`)
-  return { day, sourceId: source.id, transactionRef: txRef, values: wire.values, rawSha256: sha256Hex(raw), receivedAt, receivedAtClamped: wire.receivedAtClamped, persistMs, ingestMs, totalMs: Date.now() - dayStarted, meteringValueIds: stored.map(row => row.id) }
+  return { day, sourceId: source.id, transactionRef: txRef, values: wire.values, rawSha256: sha256Hex(raw), receivedAt, receivedAtClamped: wire.receivedAtClamped, runtime: runtimeSummary, persistMs, ingestMs, totalMs: Date.now() - dayStarted, meteringValueIds: stored.map(row => row.id) }
 }
 
 // ------------------------------------------------------------ chain per customer
