@@ -133,9 +133,10 @@ Kategorierna är produkt, prestanda, harness, miljö och obekräftad källkandid
 - **Felet beror inte på val av nämnare.** Faktorn blir strukturellt 1 för ett klippt segment, och en dagsproportion för 16 eller 15 levererade dagar kan aldrig ge en hel månadsavgift.
 - **Tolkning som bör bekräftas:** bara de exakta beloppen 2 613 och 2 450 öre vilar på antagandet att nämnaren är kalendermånadens dagar. Ägaren bör bekräfta det.
 
-### 20261029-3f1a8ab1/claude-track2/013: delperiod utan `proration_policy` ger hel månadsavgift (ägarfråga)
-- **Scenario:** TERM03.01, .02, .05. **Kategori:** ägarfråga. **Status:** observerad.
-- Appen valde hel månad vid 16/30, 15/30 och 20/30 levererade dagar. Det är registrerat och är inget orakelkrav.
+### 20261029-3f1a8ab1/claude-track2/013: delperiod utan `proration_policy` ger hel månadsavgift (DESIGNBESLUT)
+- **Scenario:** TERM03.01, .02, .05. **Kategori:** ägarfråga. **Status:** stängd som designbeslut 2026-10-30.
+- Appen valde hel månad vid 16/30, 15/30 och 20/30 levererade dagar.
+- **Beslut (användaren, 2026-10-30):** alternativ (a). Proration av månadsavgift kräver uttrycklig opt-in i komponentens metadata (`lib/pricing/priceComponentCalculator.ts:114-138`). Utan policy debiteras en delperiod som hel månad. Oraklet kräver nu exakt hel månad utan policy och exakt pro rata med policy.
 
 ### 20261029-3f1a8ab1/claude-track2/014: kanalpublicering plus avtalsskapande kan ge 23505
 - **Kategori:** obekräftad källkandidat. **Status:** observerad i fixture, inte i UI.
@@ -175,10 +176,10 @@ term01 kördes nio gånger före den låsta körningen. Felen var: 307 till `/lo
 
 ## Öppna ägarfrågor
 
-1. Hur ska en ändring av ett signerat avtal versioneras (001)?
+1. ~~Hur ska en ändring av ett signerat avtal versioneras (001)?~~ Beslut 2026-10-30: uppsägning plus nytt avtal är rutin; supersede-kedja (`supersedes_contract_id` plus atomisk RPC) är öppen produktförbättring som inte blockerar kampanjen.
 2. Vilken avrundningsregel gäller (009)?
 3. Ska månadsavtal ha förbrukningsviktat spotpris (010)?
-4. Ska månadsavgiften i en delperiod utan policy räknas pro rata (013)?
+4. ~~Ska månadsavgiften i en delperiod utan policy räknas pro rata (013)?~~ Beslut 2026-10-30: nej, opt-in krävs (designbeslut).
 5. Ska bindningsslutet räknas exklusivt eller inklusivt? Appen använder exklusivt (start + N månader), och det oberoende oraklet utgår från samma konvention.
 6. Vilken uppsägningsmottagning gäller, den första eller den senaste? Får en mottagning ligga före avtalets start (015)?
 
@@ -190,14 +191,23 @@ term01 kördes nio gånger före den låsta körningen. Felen var: 307 till `/lo
 | TERM01.05 | PARTIAL | 001, 007 |
 | TERM02.01 | PARTIAL | 010 |
 | TERM02.02 | PASS (ISOLATED_NATIVE) | – |
-| TERM02.03 | FAIL | 006 |
+| TERM02.03 | PASS (ISOLATED_NATIVE, omtest 2026-10-30) | 006 rättat |
 | TERM02.04 | PARTIAL | 010 |
 | TERM02.05, .06 | PARTIAL | – (B2/B4) |
 | TERM02.07 | PARTIAL | 008 |
 | TERM02.08 | PARTIAL | 009 |
-| TERM03.01, .02 | FAIL | 012, 013 |
+| TERM03.01, .02 | PASS (ISOLATED_NATIVE, omtest 2026-10-30) | 012 rättat; 013 designbeslut |
 | TERM03.03 | PASS (ISOLATED_NATIVE) | – |
 | TERM03.04 | PASS (ISOLATED_NATIVE) | 015 (kontrollfall) |
-| TERM03.05 | PARTIAL | 013 (B1) |
+| TERM03.05 | PARTIAL | B1 (013 designbeslut) |
 
-Inget PASS är UI-PASS eller BROWSER_E2E. Cleanup-kvittot fylls i när stacken stängs.
+Inget PASS är UI-PASS eller BROWSER_E2E.
+
+## Omtest 2026-10-30 (main `a0958815`, med #936 och #937)
+
+- Ny replay och full build, normaliserad schemahash `20a07cbb…7641`, harness `6035b7f7`.
+- TERM01 16/1/0 (enda felet TERM01.05, fynd 001). Fynd 005: TS-vägen asserterar threw=false, HTTP 200, inga felrader, exakt ett nytt avtal → löst.
+- TERM02 35/0/0, inklusive nytt steg med originalorakelts exempelvärden (0/0,25/1,5/2 kWh × −0,50/0/0,75/1,20 SEK/kWh, BigInt-orakel).
+- TERM03 19/0/0 med strikt orakel enligt beslut 013(a).
+- Originalorakelt (`27862b90`, sha256 `96518c18…9df3`) har inga numeriska TERM-värden; alla belopp härleds ur egen fixture.
+- Granskat av oberoende sim-reviewer (tre rundor). Cleanup: `down.sh` exit 0, inget kvar.

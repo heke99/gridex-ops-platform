@@ -20,8 +20,8 @@
   },
   "clockModel": "Auth/JWT: real wall clock, never manipulated. Business time: explicit fixture dates (starts_at, billing_month, happened_at) passed through normal entries; where app uses now() (lifecycle referenceDate) it is the real Stockholm day. Declared signing date stored as metadata only; actual signed_at = real time from finalize RPC.",
   "nodeVersion": "v22.22.0",
-  "cleanupReceipt": "PENDING: stacken kör vidare för omtest av rättningar; down.sh-kvitto fylls i när paketet stängs",
-  "state": "FAIL",
+  "cleanupReceipt": "down.sh exit 0 'down: inget kvar' efter varje omtestkörning 2026-10-30 (0 containrar, 0 volymer, inga processer, run.lock saknas); första stacken 2026-10-29 stängdes vid containeromstart",
+  "state": "PASS",
   "executionScope": "ISOLATED_NATIVE",
   "startedAtUtc": "2026-10-29T20:32:50Z",
   "finishedAtUtc": "2026-10-29T20:34:35Z",
@@ -45,10 +45,27 @@
   "review": "sim-reviewer GODKÄND FAIL (produktfel 012; felet gäller oavsett nämnare)",
   "findingsIds": [
     "20261029-3f1a8ab1/claude-track2/012",
-    "20261029-3f1a8ab1/claude-track2/013"
+    "20261029-3f1a8ab1/claude-track2/013 (DESIGNBESLUT)"
   ],
-  "blocker": "produktfel 012: periodizationFactor delar med klippt segments dagar (priceComponentCalculator.ts:24-49, engine.ts:261-309)",
-  "nextAction": "Rättning av 012 med claim och regression; omtest; ägaren bekräftar nämnaren (kalendermånad)",
+  "blocker": null,
+  "nextAction": "Inget; stängt efter omtest",
   "harnessCommit": "29285443",
-  "replacements": "B1 leveransperiod via SQL (ej Z03/Z04-bytesprocess); B2 mätvärden via SQL, underlag needs_review (ready_for_pricing ej verifierat); B3/B4 spotdata via SQL, lås via route (importör/validateSpotPriceDay ej verifierad); B5 estimering avstängd"
+  "replacements": "B1 leveransperiod via SQL (ej Z03/Z04-bytesprocess); B2 mätvärden via SQL, underlag needs_review (ready_for_pricing ej verifierat); B3/B4 spotdata via SQL, lås via route (importör/validateSpotPriceDay ej verifierad); B5 estimering avstängd",
+  "omtest20261030": {
+    "appCommit": "a09588150d6f5c629a9b75ee618d920288ed97d7",
+    "harnessCommit": "6035b7f7",
+    "schemaHashNormalized": "20a07cbbebeb4e6fd21ccf9c651269e8e86a2e7f52c853a577c1c51da3937641",
+    "previousState": "FAIL",
+    "run": "rerun-term03",
+    "harness": "8cdb5ba462adb347ab681b38233d46132758ff84c53de84e24b871e73edb28dd",
+    "logs": {
+      "term03": "c50b45a150ace433fd6b3af00db8d0a7bacfe8484b104dad0657b3748a7016a0"
+    },
+    "reports": {
+      "term03": "6ca817ea18795e49f489d0f87ffe9363c8cc6eb307244e02c6cac14faba05021"
+    },
+    "state": "PASS",
+    "note": "fynd 012 rättat; regel 013(a): utan policy exakt 4900, med policy exakt 2450 (15/30)",
+    "review": "sim-reviewer GODKÄND 2026-10-30 (omtestkvitto results-v2, efter tre granskningsrundor)"
+  }
 }

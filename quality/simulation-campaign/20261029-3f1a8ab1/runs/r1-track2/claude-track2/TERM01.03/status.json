@@ -20,7 +20,7 @@
   },
   "clockModel": "Auth/JWT: real wall clock, never manipulated. Business time: explicit fixture dates (starts_at, billing_month, happened_at) passed through normal entries; where app uses now() (lifecycle referenceDate) it is the real Stockholm day. Declared signing date stored as metadata only; actual signed_at = real time from finalize RPC.",
   "nodeVersion": "v22.22.0",
-  "cleanupReceipt": "PENDING: stacken kör vidare för omtest av rättningar; down.sh-kvitto fylls i när paketet stängs",
+  "cleanupReceipt": "down.sh exit 0 'down: inget kvar' efter varje omtestkörning 2026-10-30 (0 containrar, 0 volymer, inga processer, run.lock saknas); första stacken 2026-10-29 stängdes vid containeromstart",
   "state": "PASS",
   "executionScope": "ISOLATED_NATIVE",
   "startedAtUtc": "2026-10-29T20:22:28Z",
@@ -46,5 +46,23 @@
   "findingsIds": [],
   "blocker": null,
   "nextAction": "Inga",
-  "harnessCommit": "da7a655c"
+  "harnessCommit": "da7a655c",
+  "omtest20261030": {
+    "appCommit": "a09588150d6f5c629a9b75ee618d920288ed97d7",
+    "harnessCommit": "6035b7f7",
+    "schemaHashNormalized": "20a07cbbebeb4e6fd21ccf9c651269e8e86a2e7f52c853a577c1c51da3937641",
+    "previousState": "PASS",
+    "run": "rerun-005 (term01+term02)",
+    "harness": "0107a1ceb9cc6b417528fd67f1d18b7f3d6f7deb7d231f7c312ab4466e146380",
+    "logs": {
+      "term01": "b1a5d62e21daed31…",
+      "term02": "b174b454a1ce4511…"
+    },
+    "reports": {
+      "term01": "32eb00deb65fa468…",
+      "term02": "71dc68b2415ff7d4…"
+    },
+    "state": "PASS",
+    "review": "sim-reviewer GODKÄND 2026-10-30 (omtestkvitto results-v2, efter tre granskningsrundor)"
+  }
 }
