@@ -31,9 +31,25 @@ resolve_scenario() {
 curl -sS -m 5 -o /dev/null "http://127.0.0.1:$T6_APP_PORT/" 2>/dev/null || t6_die "appen svarar inte på :$T6_APP_PORT (kör up.sh)"
 curl -fsS -m 5 -o /dev/null "http://127.0.0.1:$T6_CONTROL_PORT/health" 2>/dev/null || t6_die "mailmotparten svarar inte på :$T6_CONTROL_PORT (kör up.sh)"
 
+# Körkatalogens identitet: HEAD, rent träd (annars vägrar körningen), builtCommit och ändrade sökvägar sedan appbasen.
+T6_APP_BASE="${T6_APP_BASE:-6454d540b6978a9c25434b8c66bcd7a0e335c99c}"
+ID_HEAD="$(git -C "$RUN_DIR" rev-parse HEAD)" || t6_die "git rev-parse HEAD misslyckades i $RUN_DIR"
+ID_STATUS="$(git -C "$RUN_DIR" status --porcelain)"
+if [[ -n "$ID_STATUS" ]]; then
+  printf 'körkatalogen %s är inte ren (git status --porcelain):\n%s\n' "$RUN_DIR" "$ID_STATUS" >&2
+  t6_die "NEKAD: smutsig körkatalog, körningen startas inte"
+fi
+ID_BUILT="$(cat "$SIM_HOME/built-commit" 2>/dev/null || true)"
+ID_OUTSIDE="$(git -C "$RUN_DIR" diff --name-only "$T6_APP_BASE" HEAD | grep -v -e '^scripts/simulation/' -e '^quality/' || true)"
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$(openssl rand -hex 3)"
 RUN_ROOT="$SIM_HOME/runs/$RUN_ID"
 mkdir -p "$RUN_ROOT"
+ID_JSON="$RUN_ROOT/run-identity.json"
+ID_HEAD="$ID_HEAD" ID_STATUS="$ID_STATUS" ID_BUILT="$ID_BUILT" ID_OUTSIDE="$ID_OUTSIDE" ID_BASE="$T6_APP_BASE" ID_RUN="$RUN_ID" ID_DIR="$RUN_DIR" node -e '
+const e=process.env,l=v=>v?v.split("\n").filter(Boolean):[];
+const o={runId:e.ID_RUN,runDir:e.ID_DIR,runDirHead:e.ID_HEAD,gitStatusPorcelain:l(e.ID_STATUS),runDirClean:l(e.ID_STATUS).length===0,
+ builtCommit:e.ID_BUILT||null,appBase:e.ID_BASE,changedPathsOutsideSimulationAndQuality:l(e.ID_OUTSIDE),appCodeEqualsBase:l(e.ID_OUTSIDE).length===0};
+require("fs").writeFileSync(process.argv[1],JSON.stringify(o,null,2)+"\n");' "$ID_JSON" || t6_die "kunde inte skriva run-identity.json"
 t6_log "run-id $RUN_ID"
 overall=0
 declare -a SUMMARY_ITEMS=()
@@ -57,6 +73,7 @@ for arg in "$@"; do
   node "$T6_DIR/lib/make-report.mjs" --scenario "$name" --file "$rel" --run-id "$RUN_ID" --exit "$code" \
     --started "$started" --ended "$ended" --vitest "$dir/vitest.json" --log "$dir/log.txt" \
     --evidence "$SIM_HOME/evidence/$RUN_ID/$name" --out "$dir/report.json" || t6_log "make-report misslyckades" >&2
+  node -e 'const fs=require("fs");const [,r,i]=process.argv;try{const j=JSON.parse(fs.readFileSync(r,"utf8"));j.runIdentity=JSON.parse(fs.readFileSync(i,"utf8"));fs.writeFileSync(r,JSON.stringify(j,null,2))}catch(e){console.error("runIdentity ej inlagd:",e.message)}' "$dir/report.json" "$ID_JSON"
   t6_log "$name: exit $code -> $dir/report.json"
   (( code == 0 )) || overall=1
   SUMMARY_ITEMS+=("{\"scenario\":\"$name\",\"exit\":$code,\"report\":\"$dir/report.json\"}")
