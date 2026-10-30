@@ -4,10 +4,10 @@ Status: utkast från claude-track6 för integratörens granskning. Inga state- e
 
 ## Gemensamt för packeten
 - Utförare: claude-track6 (model: claude (session_01UHTg8Hora3xtZg4oHMrcGi)). Datum: 2026-10-30 (UTC).
-- baselineCommit 1c0c088cb4ed66d0dd8b3e34c9606019342a1a56. appCommit 6454d540b6978a9c25434b8c66bcd7a0e335c99c (main enligt uppdrag). Lokal main är 0535e618f; 6454d540 är inte ancestor av den (rc=1). Faktisk remote-main är inte verifierad här.
-- Harnessbygge 7afacc78 (commits.json). Harness-RUN_DIR-commit: 220edef2f (CUSTODY01.03/.04 reruns; earlier runs 84a3e6883) (FINDING-001, CUSTODY01.03/.04/.05), 4d67fa7c2 (CUSTODY01.02). git diff --name-only 6454d540..7afacc78 utanför scripts/simulation/track6 är tom, så appkoden är oförändrad. overlay: claude/sim-20261029-track6, appCodeChanged false.
+- baselineCommit 1c0c088cb4ed66d0dd8b3e34c9606019342a1a56. appCommit 6454d540b6978a9c25434b8c66bcd7a0e335c99c (main enligt uppdrag). 6454d540 är ancestor av origin/main (verifierat med git merge-base --is-ancestor); den inaktuella lokala grenen main saknar betydelse.
+- Harness-RUN_DIR-commit: 220edef2f för CUSTODY01.03/.04-omkörningarna (bygg 7afacc78, endast harnessdiff); 84a3e6883 för FINDING-001 och tidigare CUSTODY-körningar, 4d67fa7c2 (CUSTODY01.02). git diff --name-only 6454d540..7afacc78 utanför scripts/simulation/track6 är tom, så appkoden är oförändrad. overlay: claude/sim-20261029-track6, appCodeChanged false.
 - Miljö: environmentId t6-local-20261030. Lokal Supabase 127.0.0.1:54322, replay 1e0a29bc04cc168e135f86b7ab955805073a107b, fingerprint/schemaHash 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c (partiell identitet). applied-migrations: 0 rader.
-- Postgres: ghcr.io/supabase/postgres:17.6.1.155 (digest i evidence/image-digests.txt). Node-version: saknas i kvitton (MISSING).
+- Postgres: ghcr.io/supabase/postgres:17.6.1.155 (digest i evidence/image-digests.txt). Node v22.22.0, PG 17.6.
 - clockModel: real UTC. executionScope: ISOLATED_NATIVE.
 - Identitetsfiler (sha256): commits.json 301b3821a4d19d31af96a45e2614ff596d08a21444e973c5fdda6f5012fc883b; replay-commit 53cc4193f0ea29eeefdf082994ea72f6afdd5ca8de12c0ae4d68895c31f5256f; fingerprint 2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839; applied-migrations.tsv e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 (0 byte); evidence/image-digests.txt 95a0dd1376143260010f25dffa87afb2b94d5bc2234023d882e0d2a0f7e4cc22; evidence/greenmail-jar-hashes.txt e819bdaef3a4a085c6aad57f327a1f005e5546e7268fbcd807920514f3e1b02d.
 
