@@ -13,7 +13,7 @@ import { startHealthPoll } from '../lib/custody/app'
 import { maxOpMs, overlaps, startForeignRun, type ForeignIteration } from '../lib/custody/foreign'
 import { createTenantUser } from '../lib/custody/postgrest'
 import { custodyDir, mode } from '../lib/custody/base'
-import { consistencyBlocks, runBlock, psqlRows, baseTables, chooseTooling, contentHashes, createDb, dbExists, dropDb, dump, platformOnly, restore, restoreUrl, rowCounts, triggerInventory, type Tooling } from '../lib/custody/restore'
+import { protectionsInventory, consistencyBlocks, runBlock, psqlRows, baseTables, chooseTooling, contentHashes, createDb, dbExists, dropDb, dump, platformOnly, restore, restoreUrl, rowCounts, type Tooling } from '../lib/custody/restore'
 import { dbUrl, lit, newRunContext, sql } from '../lib/seed.mjs'
 import { Evidence } from '../lib/evidence'
 import { join } from 'node:path'
@@ -196,13 +196,21 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
     expect(diffs).toEqual([])
   }, 600_000)
 
-  it('CUSTODY01.05 skydden överlever: triggerinventeringen (immutability/append-only) är identisk i den återställda databasen', () => {
-    const src = triggerInventory(sourceUrl), res = triggerInventory(restoreUrl(restoreDb))
-    const missing = src.filter((t) => !res.includes(t))
-    ev.observe('triggers', { source: src.length, restored: res.length, missing })
-    expect(missing).toEqual([])
-    for (const must of ['public.ediel_messages:registered_reception_original_immutable', 'gridex_received_sources.sources:no_evidence_update_delete', 'gridex_received_sources.snapshots:no_evidence_update_delete', 'gridex_billing_source.correction_journal:immutable_update_delete']) expect(res, must).toContain(must)
-  })
+  it('CUSTODY01.05 skydd överlever återställning med ägare/ACL: policies, ACL+ägare, SECURITY DEFINER+search_path, RLS-flaggor och triggers är identiska (sorterade) i källa och återställd databas', () => {
+    const src = protectionsInventory(sourceUrl), res = protectionsInventory(restoreUrl(restoreDb))
+    const counts: Record<string, { source: number; restored: number }> = {}
+    const diffs: Record<string, { onlySource: string[]; onlyRestored: string[] }> = {}
+    for (const k of Object.keys(src)) {
+      counts[k] = { source: src[k].length, restored: res[k]?.length ?? 0 }
+      if (JSON.stringify(src[k]) !== JSON.stringify(res[k] ?? [])) diffs[k] = { onlySource: src[k].filter((x) => !(res[k] ?? []).includes(x)).slice(0, 8), onlyRestored: (res[k] ?? []).filter((x) => !src[k].includes(x)).slice(0, 8) }
+    }
+    ev.observe('protections_counts', counts)
+    ev.save('protections-diffs.json', { counts, diffs })
+    expect(diffs).toEqual({})
+    for (const k of ['policies', 'rls_flags', 'relation_acl_owner', 'function_owner_acl_secdef_config', 'triggers']) expect(src[k].length, `${k}: inventeringen är inte tom`).toBeGreaterThan(0)
+    const res_tr = res.triggers
+    for (const must of ['public.ediel_messages:registered_reception_original_immutable', 'gridex_received_sources.sources:no_evidence_update_delete', 'gridex_received_sources.snapshots:no_evidence_update_delete', 'gridex_billing_source.correction_journal:immutable_update_delete']) expect(res_tr, must).toContain(must)
+  }, 300_000)
 
   it('CUSTODY01.05 (information) hälsopoll: processen svarade under proceduren; 503 är avsiktligt och säger inget om databasen', async () => {
     healthResult = await health.stop()

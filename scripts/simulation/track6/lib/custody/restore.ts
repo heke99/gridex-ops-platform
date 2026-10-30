@@ -1,9 +1,9 @@
 // Backup/restore-hjälpare för CUSTODY01.05: pg_dump -Fc av stackens databas, pg_restore till en NY databas på samma server, jämförelse.
 // Bara databasen t6_restore_<runid> skapas/tas bort; inga andra databaser eller containrar ändras.
-// Avvikelse från docs/backup-restore-checklist.md (som beskriver Supabase PITR/backup in i projektet): lokalt finns bara en klusterdelad Postgres där
-// rollen postgres inte är superuser. Därför `pg_restore --no-owner --no-acl` in i en ny, tom databas (roller är klusterglobala och finns redan) och
-// objekt som ägs av plattformsrollerna (supabase_admin: vault.secrets, extensions.spatial_ref_sys, realtime.list_changes med SET log_min_messages)
-// kan inte återskapas av postgres. De klassificeras som plattformsfel (se platformOnly) och verifieras separat med radantal; custody-tabeller får inget fel.
+// Återställning MED ägare och ACL (ingen --no-owner/--no-acl): pg_restore körs som den lokala superusern supabase_admin (roller är klusterglobala och finns
+// redan på samma server), så att ALTER OWNER, GRANT/REVOKE, SECURITY DEFINER-ägare och policies återskapas. Skyddsjämförelsen (protectionsInventory) verifierar det.
+// Avvikelse från docs/backup-restore-checklist.md (Supabase PITR/backup in i projektet): lokalt återställs en dump in i en ny, tom databas på samma kluster. Fel på
+// plattformsobjekt accepteras bara om de exakt matchar platformOnly (listan loggas); alla andra fel underkänner.
 // Steg 3 i checklistan (supabase/sql/checks/production_consistency_checks.sql, checklistan rad 27) körs blockvis mot både källan och den återställda databasen (consistencyBlocks/runBlock).
 // Verktyg: värdens pg_dump/pg_restore om major >= serverns; annars `docker exec` i stackens egen db-container (supabase_db_*, endast pg_dump/pg_restore).
 import { spawnSync } from 'node:child_process'
@@ -26,7 +26,7 @@ export function chooseTooling(): Tooling {
   return { kind: 'docker', container: names[0], hostMajor, serverMajor }
 }
 
-const urlFor = (db: string): string => { const u = new URL(dbUrl()); u.pathname = `/${db}`; return u.toString() }
+const urlFor = (db: string, role?: string): string => { const u = new URL(dbUrl()); u.pathname = `/${db}`; if (role) u.username = role; return u.toString() }
 export const restoreUrl = (db: string) => urlFor(db)
 const dbUser = () => decodeURIComponent(new URL(dbUrl()).username || 'postgres')
 const baseDb = () => new URL(dbUrl()).pathname.replace(/^\//, '') || 'postgres'
@@ -49,13 +49,14 @@ export function dropDb(db: string) { sqlIn(`DROP DATABASE IF EXISTS "${db}" WITH
 export const dbExists = (db: string) => sqlIn<boolean>(`SELECT to_jsonb(EXISTS(SELECT 1 FROM pg_database WHERE datname='${db}'))`)
 
 export type RestoreErrorBlock = { error: string; command: string }
+const RESTORE_ROLE = 'supabase_admin'
 export function restore(t: Tooling, file: string, db: string): { ms: number; status: number | null; errors: string[]; blocks: RestoreErrorBlock[]; stderrTail: string } {
   const t0 = Date.now()
   const input = openSync(file, 'r')
   try {
     const r = t.kind === 'host'
-      ? spawnSync('pg_restore', ['--no-owner', '--no-acl', '-d', urlFor(db)], { stdio: [input, 'ignore', 'pipe'], env: { ...process.env, PGPASSWORD: 'postgres' }, maxBuffer: 64_000_000 })
-      : spawnSync('docker', ['exec', '-i', t.container, 'pg_restore', '--no-owner', '--no-acl', '-U', dbUser(), '-d', db], { stdio: [input, 'ignore', 'pipe'], maxBuffer: 64_000_000 })
+      ? spawnSync('pg_restore', ['-d', urlFor(db, RESTORE_ROLE)], { stdio: [input, 'ignore', 'pipe'], env: { ...process.env, PGPASSWORD: 'postgres' }, maxBuffer: 64_000_000 })
+      : spawnSync('docker', ['exec', '-i', t.container, 'pg_restore', '-U', RESTORE_ROLE, '-d', db], { stdio: [input, 'ignore', 'pipe'], maxBuffer: 64_000_000 })
     const stderr = String(r.stderr)
     const blocks: RestoreErrorBlock[] = [...stderr.matchAll(/pg_restore: error: ([^\n]*)\n(?:Command was: ([^\n]*))?/g)].map((m) => ({ error: m[1], command: (m[2] ?? '').slice(0, 300) }))
     return { ms: Date.now() - t0, status: r.status, errors: stderr.split('\n').filter((l) => /error:/i.test(l)).slice(0, 200), blocks, stderrTail: stderr.slice(-3000) }
@@ -110,4 +111,23 @@ export function runBlock(url: string, sqlText: string): string[] {
   const r = spawnSync('psql', [url, '-XAt', '-v', 'ON_ERROR_STOP=1', '-c', 'SET default_transaction_read_only=on', '-c', sqlText], { encoding: 'utf8', timeout: 300_000, maxBuffer: 64_000_000, env: { ...process.env, PGPASSWORD: 'postgres' } })
   if (r.status !== 0) throw new Error(`consistency block misslyckades: ${r.stderr.slice(0, 500)}`)
   return r.stdout.split('\n').filter((l) => l && l !== 'SET').sort()
+}
+
+const PLATFORM_SCHEMAS = `'pg_catalog','information_schema','pg_toast','auth','extensions','vault','graphql','graphql_public','pgsodium','pgsodium_masks','realtime','supabase_functions','supabase_migrations','net','cron','_realtime','_analytics','pgbouncer','storage'`
+const oneLine = (e: string) => `replace(replace(coalesce(${e},''),E'\\n',' '),E'\\r',' ')`
+/**
+ * Skyddsinventering (ska vara identisk, sorterad, i källa och återställd databas): policies, ACL/ägare (tabeller, kolumner, scheman, funktioner),
+ * SECURITY DEFINER + proconfig (search_path), RLS-flaggor samt triggers. Plattformsscheman undantas utom att policies/RLS på storage ingår (produktens storage-skydd).
+ */
+export function protectionsInventory(url: string): Record<string, string[]> {
+  const q = (name: string, sqlText: string) => [name, psqlRows(url, sqlText).map((r) => r.join('|'))] as const
+  return Object.fromEntries([
+    q('policies', `SELECT schemaname||'.'||tablename||'|'||policyname||'|'||cmd||'|'||permissive::text||'|'||roles::text||'|'||${oneLine('qual')}||'|'||${oneLine('with_check')} FROM pg_policies WHERE schemaname NOT IN ('pg_catalog','information_schema') ORDER BY 1;`),
+    q('rls_flags', `SELECT n.nspname||'.'||c.relname||'|'||c.relrowsecurity::text||'|'||c.relforcerowsecurity::text FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind IN ('r','p') AND (n.nspname NOT IN (${PLATFORM_SCHEMAS}) OR n.nspname='storage') ORDER BY 1;`),
+    q('relation_acl_owner', `SELECT n.nspname||'.'||c.relname||'|'||c.relkind::text||'|'||pg_get_userbyid(c.relowner)||'|'||coalesce(c.relacl::text,'') FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind IN ('r','p','v','m','S','f') AND n.nspname NOT IN (${PLATFORM_SCHEMAS}) ORDER BY 1;`),
+    q('column_acl', `SELECT n.nspname||'.'||c.relname||'.'||a.attname||'|'||a.attacl::text FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE a.attacl IS NOT NULL AND NOT a.attisdropped AND n.nspname NOT IN (${PLATFORM_SCHEMAS}) ORDER BY 1;`),
+    q('schema_acl_owner', `SELECT nspname||'|'||pg_get_userbyid(nspowner)||'|'||coalesce(nspacl::text,'') FROM pg_namespace WHERE nspname NOT IN (${PLATFORM_SCHEMAS}) AND nspname NOT LIKE 'pg_temp%' AND nspname NOT LIKE 'pg_toast_temp%' ORDER BY 1;`),
+    q('function_owner_acl_secdef_config', `SELECT n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')|'||pg_get_userbyid(p.proowner)||'|'||p.prosecdef::text||'|'||coalesce(p.proconfig::text,'')||'|'||coalesce(p.proacl::text,'') FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname NOT IN (${PLATFORM_SCHEMAS}) ORDER BY 1;`),
+    ['triggers', triggerInventory(url)] as const,
+  ])
 }
