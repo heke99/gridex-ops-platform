@@ -333,6 +333,48 @@ export async function resolveMessageVersion(
   return resolved.selectedVersion
 }
 
+function routeProfileConfigError(code: 'ediel_route_profile_ambiguous' | 'ediel_route_profile_inactive') {
+  return Object.assign(new Error(code), { code })
+}
+
+// A route may retain historical/inactive profiles. Without an ACK selection the
+// unscoped runtime lookup must resolve exactly one active profile (explicit
+// true or legacy NULL); it never falls back to an inactive profile and refuses
+// ambiguity with a controlled configuration error instead of PGRST116.
+async function resolveActiveRouteRuntime(
+  communicationRouteId: string,
+  scopedCompanyId: string | null
+): Promise<EdielRouteRuntimeRow> {
+  let profileQuery = supabaseService
+    .from('ediel_route_profiles')
+    .select('id,company_id,communication_route_id,is_active')
+    .eq('communication_route_id', communicationRouteId)
+  if (scopedCompanyId) profileQuery = profileQuery.eq('company_id', scopedCompanyId)
+  const { data: profiles, error: profileError } = await profileQuery
+  if (profileError) throw profileError
+  const active = ((profiles ?? []) as Array<Record<string, unknown>>).filter((row) =>
+    typeof row.id === 'string' && row.communication_route_id === communicationRouteId
+    && (!scopedCompanyId || row.company_id === scopedCompanyId)
+    && (row.is_active === true || row.is_active === null))
+  if (active.length === 0) throw routeProfileConfigError('ediel_route_profile_inactive')
+  if (active.length > 1) throw routeProfileConfigError('ediel_route_profile_ambiguous')
+  const profile = active[0]
+
+  let runtimeQuery = supabaseService
+    .from('ediel_route_runtime_v')
+    .select('*')
+    .eq('communication_route_id', communicationRouteId)
+    .eq('route_profile_id', profile.id as string)
+  if (scopedCompanyId) runtimeQuery = runtimeQuery.eq('company_id', scopedCompanyId)
+  const { data, error } = await runtimeQuery.maybeSingle()
+  if (error) throw error
+  if (!data || data.route_profile_id !== profile.id || data.communication_route_id !== communicationRouteId
+    || data.company_id !== profile.company_id || (scopedCompanyId && data.company_id !== scopedCompanyId)) {
+    throw routeProfileConfigError('ediel_route_profile_inactive')
+  }
+  return data as EdielRouteRuntimeRow
+}
+
 export type EdielAckRouteProfileSelection = {
   family: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
   code: string
@@ -393,6 +435,9 @@ export async function getEdielRouteRuntimeByCommunicationRouteId(
 
   const { data, error } = await query.maybeSingle()
 
+  if (error && !selection && error.code === 'PGRST116') {
+    return resolveActiveRouteRuntime(communicationRouteId, scopedCompanyId)
+  }
   if (error) throw error
   if (selection && (!data || data.route_profile_id !== selectedProfileId || data.company_id !== scopedCompanyId
     || data.communication_route_id !== communicationRouteId || data.environment !== selection.environment
