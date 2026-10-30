@@ -208,7 +208,7 @@ describe('actual atomic unsigned agreement edit transaction',()=>{
   expect(rows[0].invoice).toBe(19)
  })
  it('rejects stale compare-and-swap before creating any version or revoking any token',async()=>{
-  const before=await counts();expect(await edit({invoice_fee_sek:25,override_reason:'stale'},true,id(15),'2026-10-29T10:00:00.123455+00:00')).toMatchObject({error:'40001'});expect(await counts()).toEqual(before)
+  const before=await counts();expect(await edit({invoice_fee_sek:25,override_reason:'stale'},true,id(15),'2026-10-29T10:00:00.123455+00:00')).toMatchObject({error:'PT409'});expect(await counts()).toEqual(before)
  })
  it('replays an identical command once and refuses different-payload reuse',async()=>{
   const patch={invoice_fee_sek:25,override_reason:'Synthetic revision'},first=await edit(patch);expect(first).toMatchObject({ok:true});const saved=await counts()

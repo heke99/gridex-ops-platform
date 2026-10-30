@@ -94,7 +94,7 @@ const revisionBases=['SE1','SE2','SE3','SE4'].map(price_area=>({source_type:'spo
 async function revisionPending():Promise<Pending>{
  guard();const id=randomUUID()
  const snapshot={schema:'gridex_contract_pricing_v5',pricing_model:'spot',contract_type:'variable_monthly',energy_direction:'consumption',
-  interval_resolution:'hourly',vat_rate:0.25,price_areas:['SE1','SE2','SE3','SE4'],price_area:'SE3',
+  interval_resolution:'monthly',vat_rate:0.25,price_areas:['SE1','SE2','SE3','SE4'],price_area:'SE3',
   base_components:revisionBases,base_price_components_snapshot:revisionBases,
   price_components:revisionComponents,price_components_snapshot:revisionComponents}
  const authored=await supabaseService.rpc('gridex_prepare_manual_contract_binding',{
@@ -128,10 +128,12 @@ function revisionGraph(p:Pending){return sql<{contract:Record<string,unknown>;le
  WHERE c.id=${literal(p.contractId)} AND c.company_id=${literal(f.companyId)} AND c.customer_id=${literal(f.customerId)}`)}
 function authoredState(){
  const tables=['contract_offers','contract_products','price_plans','price_plan_versions','price_books','legal_bundle_versions','canonical_command_results','audit_logs']
- return sql<unknown>(`SELECT jsonb_build_object(${tables.map(t=>`${literal(t)},(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.${t} r WHERE company_id=${literal(f.companyId)})`).join(',')},
+ // A digest keeps the exact-equality proof while the growing tenant audit
+ // history stays inside the psql output buffer.
+ return sql<unknown>(`SELECT to_jsonb(md5(jsonb_build_object(${tables.map(t=>`${literal(t)},(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.${t} r WHERE company_id=${literal(f.companyId)})`).join(',')},
  'revision_origins',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.snapshot_id),'[]') FROM gridex_unsigned_contract_revision.price_revisions r WHERE r.company_id=${literal(f.companyId)}),
  'products',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.contract_product_versions v JOIN public.contract_products p ON p.id=v.contract_product_id WHERE p.company_id=${literal(f.companyId)}),
- 'publications',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.contract_publication_versions v JOIN public.contract_product_versions c ON c.id=v.contract_product_version_id JOIN public.contract_products p ON p.id=c.contract_product_id WHERE p.company_id=${literal(f.companyId)}))`)
+ 'publications',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.contract_publication_versions v JOIN public.contract_product_versions c ON c.id=v.contract_product_version_id JOIN public.contract_products p ON p.id=c.contract_product_id WHERE p.company_id=${literal(f.companyId)}))::text))`)
 }
 async function signed(p:Pending){const r=await supabaseService.rpc('gridex_finalize_customer_contract_signature_v2',params(p));expect(r.error?.code??null).toBeNull();const receipt=r.data as Receipt;expect(receipt).toMatchObject({company_id:f.companyId,customer_id:f.customerId,contract_id:p.contractId,request_id:p.requestId,already_signed:false});return receipt}
 function original(p:Pending){return sql<{poa:Record<string,unknown>;signature:Record<string,unknown>;signedAt:string;usedAt:string;startsAt:null;endsAt:null;price:string;job:Record<string,unknown>}>(`SELECT jsonb_build_object('poa',to_jsonb(p),'signature',c.signature_snapshot,
@@ -279,7 +281,7 @@ it('refuses a busy direct-event advisory key immediately and leaves the contract
  lock.child.stdin.write(`BEGIN;SELECT pg_advisory_xact_lock(hashtextextended(${literal(f.companyId+':'+p.contractId)},0));SELECT 'UNSIGNED_LOCK_READY';\n`)
  try{
   await lock.ready();const result=await supabaseService.rpc('gridex_edit_unsigned_customer_contract_v1',args)
-  expect(result.error?.code).toBe('40001');expect(result.error?.message).toContain('unsigned_contract_edit_concurrent_event');expect(effects()).toEqual(before)
+  expect(result.error?.code).toBe('PT409');expect(result.error?.message).toContain('unsigned_contract_edit_concurrent_event');expect(effects()).toEqual(before)
  }finally{if(lock.child.exitCode===null){lock.child.stdin.end('ROLLBACK;\n');expect(await lock.done).toBe(0)}}
 },120000)
 
@@ -288,7 +290,7 @@ it('refuses an already-locked customer before an archival lock-order cycle can f
  lock.child.stdin.write(`BEGIN;SELECT id FROM public.customers WHERE id=${literal(f.customerId)} AND company_id=${literal(f.companyId)} FOR UPDATE;SELECT 'UNSIGNED_LOCK_READY';\n`)
  try{
   await lock.ready();const result=await supabaseService.rpc('gridex_edit_unsigned_customer_contract_v1',args)
-  expect(result.error?.code).toBe('40001');expect(result.error?.message).toContain('unsigned_contract_edit_customer_busy');expect(effects()).toEqual(before)
+  expect(result.error?.code).toBe('PT409');expect(result.error?.message).toContain('unsigned_contract_edit_customer_busy');expect(effects()).toEqual(before)
  }finally{if(lock.child.exitCode===null){lock.child.stdin.end('ROLLBACK;\n');expect(await lock.done).toBe(0)}}
 },120000)
 

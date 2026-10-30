@@ -206,7 +206,7 @@ begin
       and archived_at is null and status is distinct from 'archived' for share nowait;
     if not found then raise exception using errcode='22023',message='unsigned_contract_edit_customer_not_found';end if;
   exception when lock_not_available then
-    raise exception using errcode='40001',message='unsigned_contract_edit_customer_busy';
+    raise exception using errcode='PT409',message='unsigned_contract_edit_customer_busy';
   end;
 
   command_key:=p_contract_id::text||':'||p_edit_id::text;
@@ -227,13 +227,13 @@ begin
     raise exception using errcode='55000',message='unsigned_contract_edit_signed_or_locked';
   end if;
   if c.updated_at is distinct from p_expected_updated_at then
-    raise exception using errcode='40001',message='unsigned_contract_edit_stale';
+    raise exception using errcode='PT409',message='unsigned_contract_edit_stale';
   end if;
   -- Direct event commands acquire this advisory key before their contract
   -- lock; finalization acquires it afterwards. Never wait here while holding
   -- the contract: a competing event gets a retryable, effect-free refusal.
   if not pg_try_advisory_xact_lock(hashtextextended(p_company_id::text||':'||p_contract_id::text,0)) then
-    raise exception using errcode='40001',message='unsigned_contract_edit_concurrent_event';
+    raise exception using errcode='PT409',message='unsigned_contract_edit_concurrent_event';
   end if;
   perform id from public.customer_contract_signature_requests where company_id=p_company_id
     and customer_id=p_customer_id and customer_contract_id=p_contract_id order by id for update;
@@ -260,7 +260,7 @@ begin
     begin
       select * into site from public.customer_sites where id=n.customer_site_id and company_id=p_company_id and customer_id=p_customer_id for share nowait;
     exception when lock_not_available then
-      raise exception using errcode='40001',message='unsigned_contract_edit_site_busy';
+      raise exception using errcode='PT409',message='unsigned_contract_edit_site_busy';
     end;
     if not found or (c.price_area_used is not null and site.price_area_code is distinct from c.price_area_used) then
       raise exception using errcode='22023',message='unsigned_contract_edit_owned_same_area_site_required';
@@ -272,7 +272,7 @@ begin
         and customer_id=p_customer_id and site_id=n.customer_site_id for share nowait;
       if not found then raise exception using errcode='22023',message='unsigned_contract_edit_owned_point_required';end if;
     exception when lock_not_available then
-      raise exception using errcode='40001',message='unsigned_contract_edit_point_busy';
+      raise exception using errcode='PT409',message='unsigned_contract_edit_point_busy';
     end;
   end if;
   for key,value in select * from jsonb_each(p_patch) loop
