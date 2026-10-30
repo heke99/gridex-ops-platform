@@ -117,3 +117,18 @@ it('a mismatched returned birth is refused',async()=>{
  io.rpc.mockResolvedValue({data,error:null})
  await expect(createInboundEdielMessage(call(raw))).rejects.toThrow('ediel_utilts_syntax_negative_birth_required')
 })
+
+it.each([
+ ['23514 check refusal',{code:'23514',message:'canonical_inbound_rule_profile_resolution_failed:UTILTS:ZZZ:2026-10-30:0'}],
+ ['other DB error',{code:'XX000',message:'synthetic_internal_error'}],
+] as const)('%s on the ordinary insert never writes details/raw payload to console',async(_name,base)=>{
+ const raw=utilts('BGM+ZZZ+DOC1+9'),errorSpy=vi.spyOn(console,'error').mockImplementation(()=>undefined)
+ const refused={data:null,error:{...base,details:raw,hint:raw}}
+ Object.defineProperty(io.tables,'ediel_messages',{configurable:true,enumerable:true,get:()=>io.inserts.length?refused:{data:[],error:null}})
+ expect(await createInboundEdielMessage(call(raw))).toBeNull()
+ const logged=JSON.stringify([...warn.mock.calls,...errorSpy.mock.calls])
+ errorSpy.mockRestore()
+ expect(logged).not.toContain('UNB+')
+ expect(logged).not.toContain('NAD+')
+ expect(logged).toContain(base.code)
+})

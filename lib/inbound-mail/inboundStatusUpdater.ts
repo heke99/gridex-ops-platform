@@ -610,7 +610,7 @@ export async function createInboundEdielMessage(input: {
       if (isUnsafeBatch7aTransactionConflict(result.error)) {
         console.warn(
           '[inbound-mail] Inbound ediel_message blockerades av gammalt för grovt Batch 7A transaction-unique-index. Kör migration 20260604113000_fix_ediel_inbound_transaction_dedupe.sql och synka igen.',
-          result.error,
+          { code: postgresErrorCode(result.error), message: birthRefusalReason(result.error) },
         )
         return null
       }
@@ -618,7 +618,10 @@ export async function createInboundEdielMessage(input: {
 
     logInboundBirthCheckRefusal({ error: result.error, stage: 'ediel_message_insert', messageFamily: input.parsed.messageFamily ?? null,
       messageCode: insertPayload.message_code ?? null, inboundEmailMessageId, interchangeReference: input.parsed.interchangeReference ?? null })
-    console.warn('[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message', result.error)
+    // Payload-free: details/hint can carry the raw wire, so only code+message.
+    if (postgresErrorCode(result.error) !== '23514') console.warn('[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message', {
+      code: postgresErrorCode(result.error), message: birthRefusalReason(result.error), inboundEmailMessageId,
+    })
     return null
   }
 
