@@ -101,6 +101,7 @@ export type CanonicalIssueKind =
   | 'ack_conflict'
   | 'version_mismatch'
   | 'invalid_code_usage'
+  | 'ack_enqueue_blocked'
 
 export type CanonicalIssueEventRow = EdielMessageEventRow & {
   issue_kind: CanonicalIssueKind
@@ -249,7 +250,13 @@ function hasInvalidCodeUsage(row: EdielMessageRow): boolean {
   return false
 }
 
-function mapCanonicalIssueEvent(row: EdielMessageEventRow): CanonicalIssueEventRow | null {
+/** Fynd 025: a canonical inbound ACK guard block (e.g. failed outbox enqueue
+ * of an own ACK draft) is an operator-visible issue, not a silent note. */
+export function isAckEnqueueBlockedEvent(row: Pick<EdielMessageEventRow, 'payload'>): boolean {
+  return ensureJson(row.payload).blockedBy === 'canonical_inbound_ack_guard'
+}
+
+export function mapCanonicalIssueEvent(row: EdielMessageEventRow): CanonicalIssueEventRow | null {
   const payload = ensureJson(row.payload)
 
   const duplicateBlocked = asBoolean(payload.duplicateBlocked)
@@ -270,6 +277,8 @@ function mapCanonicalIssueEvent(row: EdielMessageEventRow): CanonicalIssueEventR
     issueKind = 'version_mismatch'
   } else if (invalidCodeUsage) {
     issueKind = 'invalid_code_usage'
+  } else if (isAckEnqueueBlockedEvent(row)) {
+    issueKind = 'ack_enqueue_blocked'
   }
 
   if (!issueKind) return null
@@ -294,7 +303,7 @@ function mapCanonicalIssueEvent(row: EdielMessageEventRow): CanonicalIssueEventR
     dedupe_layer: dedupeLayer,
     ack_family: ackFamily,
     source_message_id: asString(payload.sourceMessageId),
-    existing_ack_message_id: asString(payload.existingAckMessageId),
+    existing_ack_message_id: asString(payload.existingAckMessageId) ?? asString(payload.ackMessageId),
     attempted_outcome: payloadOutcomeOrNull(payload.attemptedOutcome),
     existing_outcome: payloadOutcomeOrNull(payload.existingOutcome),
     reason: asString(payload.reason),
@@ -822,6 +831,16 @@ export async function listCanonicalDuplicateBlockEvents(params?: {
         (!params?.companyId || row.company_id === params.companyId)
     )
     .slice(0, params?.limit ?? 100)
+}
+
+export async function listCanonicalAckEnqueueBlockedEvents(params: {
+  limit?: number
+  companyId: string
+}): Promise<CanonicalIssueEventRow[]> {
+  const rows = await listRecentManualIssueEvents(Math.max(params.limit ?? 100, 50))
+  return rows
+    .filter((row) => row.issue_kind === 'ack_enqueue_blocked' && row.company_id === params.companyId)
+    .slice(0, params.limit ?? 100)
 }
 
 export async function listCanonicalAckConflictEvents(params?: {

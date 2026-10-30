@@ -167,7 +167,19 @@ async function createAckIfMissing(params: {
     utiltsHeaderRejected:params.utiltsHeaderRejected,relatedTransactionReference:params.relatedTransactionReference});
   // A protected immutable original is returned without outbox repair or a new
   // blocked-event audit. A separately authorized fresh repair has its own port.
-  if(prepared.kind==='existing'){params.onProtectedExisting?.();return prepared.message;}
+  if(prepared.kind==='existing'){
+    // Fynd 025: an own draft whose enqueue failed earlier has no outbox row; it
+    // is queued insert-only. Failure is audited as blocked and propagated.
+    if(prepared.queueRepair===true){
+      const ack=prepared.message;
+      try{await createOutboxItem({actorUserId:params.actorUserId,message:ack,sourceMessageId:params.sourceMessage.id,status:"queued",queueOnlyIfInserted:true,
+        payload:{createdBy:"inbound_backend_automation",ackFamily:params.ackFamily,outcome:params.outcome??null,sourceMessageId:params.sourceMessage.id,
+          messageFamily:params.sourceMessage.message_family,messageCode:params.sourceMessage.message_code}});}
+      catch(error){await createAckBlockedEvent({actorUserId:params.actorUserId,sourceMessage:params.sourceMessage,ackFamily:params.ackFamily,
+        reason:`outbox queue misslyckades: ${formatErrorMessage(error, "okänt fel")}`,details:{ackMessageId:ack.id}});throw error;}
+      return ack;
+    }
+    params.onProtectedExisting?.();return prepared.message;}
   const ack = await createCanonicalAckMessage({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,

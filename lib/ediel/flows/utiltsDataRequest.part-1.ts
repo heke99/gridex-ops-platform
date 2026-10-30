@@ -535,15 +535,16 @@ export async function createAckIfMissing(params: {
   utiltsHeaderRejected?: boolean
 }) {
   const prepared=await prepareSourceAckDraft(params)
-  if(prepared.kind==='existing')return prepared.message
-  const draft=prepared.draft
+  // Fynd 025: only an own unqueued draft (queueRepair) re-enters the queue
+  // branch; every other existing original is returned untouched.
+  if(prepared.kind==='existing'&&prepared.queueRepair!==true)return prepared.message
 
-  const ackMessage = await createCanonicalAckMessage({
+  const ackMessage = prepared.kind==='existing' ? prepared.message : await createCanonicalAckMessage({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     ackFamily: params.ackFamily,
     outcome: params.outcome,
-    draft,
+    draft: prepared.draft,
   })
 
   // Mirror inboundProcessing: a fresh draft is only "sent" once it is queued.
