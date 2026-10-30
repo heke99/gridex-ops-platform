@@ -125,33 +125,42 @@ describe('API01 partner-API', () => {
   })
 
   it('API01.02 två sites hos samma kund får varsin POA bunden till rätt site och kund', async () => {
-    expect(siteA1, 'kräver API01.01:s site').toBeTruthy()
-    const s2 = await partner(keyA, 'POST', `customer/${fixtureCustA}/site`, siteBody(3))
+    // Självständigt steg: båda sites skapas här (inget beroende på API01.01).
+    const s1 = await partner(keyA, 'POST', `customer/${fixtureCustA}/site`, siteBody(31))
+    expect(s1.status, brief(s1)).toBe(201)
+    const s2 = await partner(keyA, 'POST', `customer/${fixtureCustA}/site`, siteBody(32))
     expect(s2.status, brief(s2)).toBe(201)
+    const site1 = entity(s1)
     siteA2 = entity(s2)
-    const p1 = await partner(keyA, 'POST', `customer/${fixtureCustA}/site/${siteA1}/powerofattorney`, poaBody('site1'))
+    rec('API01.02', 'POST site1', s1, { customerRef: fixtureCustA }); rec('API01.02', 'POST site2', s2, { customerRef: fixtureCustA })
+    const p1 = await partner(keyA, 'POST', `customer/${fixtureCustA}/site/${site1}/powerofattorney`, poaBody('site1'))
     expect(p1.status, brief(p1)).toBe(201)
     const p2 = await partner(keyA, 'POST', `customer/${fixtureCustA}/site/${siteA2}/powerofattorney`, poaBody('site2'))
     expect(p2.status, brief(p2)).toBe(201)
-    const rows = psqlRows<{ ref: string; site_ref: string; customer_ref: string; company_id: string; same_site: boolean }>(
-      `select p.power_of_attorney_reference ref, s.facility_reference site_ref, c.customer_reference customer_ref, p.company_id,
-              p.site_id = p.customer_site_id same_site
-         from public.powers_of_attorney p join public.customer_sites s on s.id = p.customer_site_id join public.customers c on c.id = p.customer_id
-        where p.power_of_attorney_reference in ('${entity(p1)}','${entity(p2)}') order by s.facility_reference = '${siteA1}' desc`)
-    rec('API01.02', 'POST poa site1', p1, { site: siteA1 }); rec('API01.02', 'POST poa site2', p2, { site: siteA2 })
-    receipt('API01.02', 'db-readback', { rows, dependsOn: 'API01.01 site-steg (siteA1)', substitution: 'kund skapad som SQL-fixtur (fynd 001)' })
+    rec('API01.02', 'POST poa site1', p1, { site: site1 }); rec('API01.02', 'POST poa site2', p2, { site: siteA2 })
+    // Readback: sitens egen kund (customer_sites.customer_id) och POA:ns kund/site, var för sig.
+    const rows = psqlRows<{ ref: string; site_ref: string; site_customer_ref: string; poa_customer_ref: string; company_id: string; site_company: string; same_site: boolean }>(
+      `select p.power_of_attorney_reference ref, s.facility_reference site_ref, sc.customer_reference site_customer_ref,
+              pc.customer_reference poa_customer_ref, p.company_id, s.company_id site_company, p.site_id = p.customer_site_id same_site
+         from public.powers_of_attorney p
+         join public.customer_sites s on s.id = p.customer_site_id
+         join public.customers sc on sc.id = s.customer_id
+         join public.customers pc on pc.id = p.customer_id
+        where p.power_of_attorney_reference in ('${entity(p1)}','${entity(p2)}') order by s.facility_reference = '${site1}' desc`)
+    receipt('API01.02', 'db-readback', { rows, substitution: 'kund skapad som SQL-fixtur (fynd 001)' })
     expect(rows).toEqual([
-      { ref: entity(p1), site_ref: siteA1, customer_ref: fixtureCustA, company_id: A, same_site: true },
-      { ref: entity(p2), site_ref: siteA2, customer_ref: fixtureCustA, company_id: A, same_site: true },
+      { ref: entity(p1), site_ref: site1, site_customer_ref: fixtureCustA, poa_customer_ref: fixtureCustA, company_id: A, site_company: A, same_site: true },
+      { ref: entity(p2), site_ref: siteA2, site_customer_ref: fixtureCustA, poa_customer_ref: fixtureCustA, company_id: A, site_company: A, same_site: true },
     ])
-    const g1 = await partner(keyA, 'GET', `customer/${fixtureCustA}/site/${siteA1}/powerofattorney`)
+    const g1 = await partner(keyA, 'GET', `customer/${fixtureCustA}/site/${site1}/powerofattorney`)
     const g2 = await partner(keyA, 'GET', `customer/${fixtureCustA}/site/${siteA2}/powerofattorney`)
+    rec('API01.02', 'GET poa site1', g1); rec('API01.02', 'GET poa site2', g2)
     expect(g1.status, brief(g1)).toBe(200)
     expect(g2.status, brief(g2)).toBe(200)
-    expect(g1.text).toContain(entity(p1)); expect(g1.text).not.toContain(entity(p2))
-    expect(g2.text).toContain(entity(p2)); expect(g2.text).not.toContain(entity(p1))
+    expect(entity(g1)).toBe(entity(p1))
+    expect(entity(g2)).toBe(entity(p2))
     // Fel kombination kund/site från en annan kund nekas.
-    const cross = await partner(keyA, 'POST', `customer/${fixtureCustA2}/site/${siteA1}/powerofattorney`, poaBody('kors'))
+    const cross = await partner(keyA, 'POST', `customer/${fixtureCustA2}/site/${site1}/powerofattorney`, poaBody('kors'))
     rec('API01.02', 'POST poa cross-customer', cross)
     expect(cross.status, brief(cross)).toBe(404)
   })
@@ -248,7 +257,7 @@ describe('API01 partner-API', () => {
     const platform = await createAuthUser('api-platform')
     try {
       psql(`INSERT INTO public.admin_users(user_id,role,is_active) VALUES('${platform.userId}','platform_admin',true);`)
-      const target = createPartnerClient(A, ['customer_profile.read'])
+      const target = createPartnerClient(A, ['customer_profile.read', 'partner_customers.write'])
       const s = await loginViaUi(platform.email, platform.password, '/admin/platform/api-clients')
       const form = new FormData()
       form.set('clientId', target.id)
@@ -264,6 +273,7 @@ describe('API01 partner-API', () => {
       expect(stored.scopes).not.toContain('*')
       expect(stored.scopes).not.toContain('admin.everything')
       expect(stored.scopes).toContain('customer_profile.read')
+      expect(stored.scopes, 'ändringen sparades (partner_customers.write togs bort)').not.toContain('partner_customers.write')
       // Ändrade behörigheter kräver ny go-live; nyckeln nekas tills dess.
       expect(stored.launch_ready).toBe(false)
       const after = await partner(target, 'GET', `customer/${fixtureCustA}`)

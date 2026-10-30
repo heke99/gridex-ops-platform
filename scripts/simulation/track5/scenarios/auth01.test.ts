@@ -137,6 +137,14 @@ describe('AUTH01 roll- och tenantmatris', () => {
       expect(lock?.company_id ?? A, 'fallback-unlock ska gälla A').toBe(A)
     }
     expect(explicit.status, explicitText.slice(0, 200)).toBe(403)
+    // Appens normala väg: A-admin begär B via navigation-mode; appen får inte välja B.
+    const s2 = await loginViaUi(adminA.email, adminA.password)
+    await selectCompany('AUTH01.03', s2, B)
+    expect(s2.jar.get(SELECTED) ?? null, 'navigation-mode får inte välja ett icke-medlemsbolag').not.toBe(B)
+    const viaUi = await s2.fetch(`${LOCKS}?billing_month=2031-03`)
+    const viaUiText = await viaUi.text()
+    expect(viaUiText.includes('"isLocked":true'), 'B:s lås lästes via UI-vägen').toBe(false)
+    receipt('AUTH01.03', 'navigation-mode to B', { selected: s2.jar.get(SELECTED) === B ? 'B' : 'not-B', read: http(viaUi.status, viaUiText) })
     expect(companyHash(B)).toBe(beforeB)
     expect(locksOf(B)).toEqual(lockB)
   })

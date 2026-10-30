@@ -17,9 +17,9 @@ meta = cls.pop('_meta')
 def sha(p: pathlib.Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
-reports = {name: json.loads((ev / f'{name}-report.json').read_text()) for name in ('auth01', 'api01', 'api01-poa', 'event01')}
+reports = {name: json.loads((ev / f'{name}-report.json').read_text()) for name in ('auth01', 'api01', 'api01-poa', 'event01', 'scan')}
 receipts = {}
-for name in ('auth01', 'api01', 'api01-poa', 'event01'):
+for name in ('auth01', 'api01', 'api01-poa', 'event01', 'scan'):
     f = ev / f'{name}-report.receipts.jsonl'
     receipts[name] = [json.loads(l) for l in f.read_text().splitlines() if l.strip()] if f.exists() else []
 evidence_files = sorted(p for p in ev.iterdir() if p.is_file())
@@ -29,6 +29,8 @@ for scenario_id, c in cls.items():
     group = 'api01-poa' if scenario_id == 'API01.03' else {'AUTH01': 'auth01', 'API01': 'api01', 'EVENT01': 'event01'}[scenario_id.split('.')[0]]
     rep = reports[group]
     steps = [s for s in rep['steps'] if f' {scenario_id} ' in f" {s['name']} "]
+    extra = [s for s in reports['scan']['steps'] if f' {scenario_id} ' in f" {s['name']} "] if scenario_id == 'AUTH01.06' else []
+    steps = steps + extra
     related = [s for s in rep['steps'] if s['name'].split(' webhooks ')[-1].startswith('SETUP')] if group == 'event01' else []
     status = {
         'scenarioId': scenario_id,
@@ -59,7 +61,9 @@ for scenario_id, c in cls.items():
         'runDirClean': rep['runDirClean'],
         'evidenceRefs': {'privateDir': meta['evidenceDir'], 'files': evidence,
                          'reportSha256': sha(ev / f'{group}-report.json'), 'vitestLogSha256': rep['logSha256']},
-        'receipts': [r for r in receipts[group] if r.get('scenarioId') == scenario_id or (group == 'event01' and r.get('scenarioId') == 'SETUP')],
+        'receipts': [r for r in receipts[group] + (receipts['scan'] if scenario_id == 'AUTH01.06' else []) if r.get('scenarioId') == scenario_id or (group == 'event01' and r.get('scenarioId') == 'SETUP')],
+        'proposedState': c.get('proposedState'),
+        'harnessCommit': rep['appCommit'],
         'oracle': c['oracle'],
         'substitutions': c.get('substitutions', []),
         'notVerified': c.get('notVerified', []),
