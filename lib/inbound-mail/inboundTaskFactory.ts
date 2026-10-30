@@ -59,15 +59,34 @@ async function createHeldResponseManualReview(companyId: string, input: InboundM
   }, { onConflict: 'ediel_message_id,issue_type', ignoreDuplicates: true }).select('id')
   if (error) throw heldReviewFailure('held_response_review_upsert_failed', companyId, error)
 
-  // Audit only the actual creation; a duplicate (ignored) upsert returns no row.
-  const created = ((data ?? []) as Array<{ id?: unknown }>)[0]
-  if (!created || typeof created.id !== 'string') return
+  // A duplicate (ignored) upsert returns no row. Resolve the existing item so a
+  // retry after a lost audit write heals it; an audited item is never re-audited.
+  let itemId = ((data ?? []) as Array<{ id?: unknown }>)[0]?.id
+  if (typeof itemId !== 'string') {
+    const { data: existing, error: existingError } = await supabaseService.from('ediel_manual_review_items')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('ediel_message_id', edielMessageId)
+      .eq('issue_type', issueType)
+      .maybeSingle()
+    if (existingError) throw heldReviewFailure('held_response_review_lookup_failed', companyId, existingError)
+    itemId = (existing as { id?: unknown } | null)?.id
+    if (typeof itemId !== 'string') throw heldReviewFailure('held_response_review_item_missing', companyId)
+    const { data: audits, error: auditLookupError } = await supabaseService.from('audit_logs')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('entity_type', 'ediel_manual_review_item')
+      .eq('entity_id', itemId)
+      .limit(1)
+    if (auditLookupError) throw heldReviewFailure('held_response_review_audit_lookup_failed', companyId, auditLookupError)
+    if (((audits ?? []) as unknown[]).length > 0) return
+  }
   const actorUserId = cleanId(input.actorUserId)
   const { error: auditError } = await supabaseService.from('audit_logs').insert({
     company_id: companyId,
     actor_user_id: actorUserId,
     entity_type: 'ediel_manual_review_item',
-    entity_id: created.id,
+    entity_id: itemId,
     action: 'ediel_manual_review_item_created',
     new_values: { issue_type: issueType, ediel_message_id: edielMessageId, status: 'open' },
     metadata: {
