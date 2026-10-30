@@ -367,6 +367,16 @@ export async function pollEdielMailbox(input: {
       greetingTimeout: 15_000,
       socketTimeout: 90_000,
     });
+    // After connect imapflow reports connection failures (e.g. socket timeout)
+    // as 'error' events; without a listener Node throws them as
+    // uncaughtException. The in-flight command is rejected too, so the catch
+    // below records the mailbox failure.
+    // typeof guard only for test doubles without EventEmitter; ImapFlow always has on().
+    if (typeof client.on === "function") {
+      client.on("error", (error: Error) => {
+        console.warn("[inbound-mail] IMAP connection error", { mailboxId: mailbox.id, error: error.message });
+      });
+    }
 
     await client.connect();
     const folder = normalizeImapMailboxFolder(
@@ -427,10 +437,30 @@ export async function pollEdielMailbox(input: {
         return true;
       };
 
-      for await (const message of client.fetch({ seen: false }, fetchOptions)) {
-        const shouldContinue = await handleFetchedMessage(message, "unseen");
-        if (!shouldContinue || fetched >= maxMessages) break;
-      }
+      // ImapFlow forbids other IMAP commands (Seen/STORE) while a FETCH
+      // iteration is open: it deadlocks client-side until socket timeout.
+      // Collect at most the remaining budget of new UIDs, let the FETCH finish,
+      // then store each message and set its Seen flag after successful storage.
+      const pollUids = async (
+        query: Record<string, unknown>,
+        bucket: "unseen" | "seenRecent",
+      ) => {
+        const batch: unknown[] = [];
+        const batchUids = new Set<number>();
+        for await (const message of client.fetch(query, fetchOptions)) {
+          const uid = (message as { uid?: unknown }).uid;
+          if (typeof uid === "number" && (seenUids.has(uid) || batchUids.has(uid))) continue;
+          if (typeof uid === "number") batchUids.add(uid);
+          batch.push(message);
+          if (fetched + batch.length >= maxMessages) break;
+        }
+        for (const message of batch) {
+          const shouldContinue = await handleFetchedMessage(message, bucket);
+          if (!shouldContinue || fetched >= maxMessages) break;
+        }
+      };
+
+      await pollUids({ seen: false }, "unseen");
 
       if (input.includeSeenRecent && fetched < maxMessages) {
         const recentDays =
@@ -444,13 +474,7 @@ export async function pollEdielMailbox(input: {
         // previous client access. UID de-dupe above prevents duplicates from
         // the unseen pass, while this keeps manual AGT sync from missing a
         // message just because it is already read or has inconsistent flags.
-        for await (const message of client.fetch({ since }, fetchOptions)) {
-          const shouldContinue = await handleFetchedMessage(
-            message,
-            "seenRecent",
-          );
-          if (!shouldContinue || fetched >= maxMessages) break;
-        }
+        await pollUids({ since }, "seenRecent");
       }
     } finally {
       lock.release();
