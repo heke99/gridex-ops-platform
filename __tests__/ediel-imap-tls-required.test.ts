@@ -183,6 +183,14 @@ describe('resolveImapTls', () => {
     expect(resolveImapTls({ host: '127.0.0.1', port: 143, environment: 'test', env: { ...env, VERCEL_ENV: 'production' } }))
       .toMatchObject({ doSTARTTLS: true })
   })
+  it('unknown or missing environment fails closed to STARTTLS even with opt-out and loopback', () => {
+    const env = { GRIDEX_IMAP_ALLOW_PLAINTEXT_LOOPBACK: 'true' }
+    for (const environment of [null, undefined, '', 'staging', 'Test']) {
+      expect(resolveImapTls({ host: '127.0.0.1', port: 143, environment, env })).toMatchObject({ doSTARTTLS: true })
+    }
+    expect(resolveImapTls({ host: '127.0.0.1', port: 143, environment: 'test', env: { ...env, NODE_ENV: 'production' } }))
+      .toMatchObject({ doSTARTTLS: true })
+  })
   it('loopback opt-out outside production is cleartext with a warning', () => {
     const warn = vi.mocked(console.warn)
     expect(resolveImapTls({ host: 'localhost', port: 143, environment: 'test', env: { GRIDEX_IMAP_ALLOW_PLAINTEXT_LOOPBACK: 'true' } }))

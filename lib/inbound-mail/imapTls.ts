@@ -8,7 +8,8 @@
 //
 // Cleartext is only possible through server configuration
 // (GRIDEX_IMAP_ALLOW_PLAINTEXT_LOOPBACK=true) for a loopback host outside
-// production. Tenant/user input (mailbox metadata, admin forms) can never
+// production. The mailbox environment must be explicitly "test" (unknown or
+// missing environment fails closed to STARTTLS). Tenant/user input (mailbox metadata, admin forms) can never
 // select cleartext or disable certificate verification.
 
 export const IMAP_PLAINTEXT_LOOPBACK_ENV = "GRIDEX_IMAP_ALLOW_PLAINTEXT_LOOPBACK";
@@ -62,6 +63,7 @@ export function resolveImapTls(input: ResolveImapTlsInput): ImapTlsOptions {
   if (
     env[IMAP_PLAINTEXT_LOOPBACK_ENV] === "true" &&
     isLoopbackImapHost(host) &&
+    input.environment === "test" &&
     !isProduction(input.environment, env)
   ) {
     console.warn("[inbound-mail] IMAP plaintext loopback opt-out active", {
