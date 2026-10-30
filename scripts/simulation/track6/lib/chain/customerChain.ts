@@ -94,7 +94,7 @@ export type CustomerChain = {
   }
   /** Gate precondition: supply period market_start_at and the first stored value's interval. */
   gate: { marketStartAt: string | null; startDate: string | null; firstIntervalStart: string | null; firstIntervalEnd: string | null; valueCount: number }
-  e66: { values: number; persistMs: number; ingestMs: number; messages: Array<{ day: number; sourceId: string; transactionRef: string; values: number; rawSha256: string; receivedAt: string; receivedAtClamped: boolean; runtime: { ok: boolean; classification: string | null; issues: Array<{ severity: string; kind: string | null; code: string }>; note: string }; persistMs: number; ingestMs: number; totalMs: number; meteringValueIds: string[] }> }
+  e66: { values: number; persistMs: number; ingestMs: number; messages: Array<{ day: number; sourceId: string; transactionRef: string; values: number; rawSha256: string; receivedAt: string; receivedAtClamped: boolean; documentDate: string; documentDateClamped: boolean; runtime: { ok: boolean; classification: string | null; issues: Array<{ severity: string; kind: string | null; code: string }>; note: string }; persistMs: number; ingestMs: number; totalMs: number; meteringValueIds: string[] }> }
   timingsMs: Record<string, number>
 }
 
@@ -260,7 +260,7 @@ async function ingestHourlyDay(f: Ground, salt: number, day: number, dataRequest
   const stored = await ingestBoundUtiltsMetering({ actorUserId: f.actorUserId, message: source, boundOutcomes: outcomes })
   const ingestMs = Date.now() - ingestStarted
   must(stored.length === HOURS_PER_DAY, `delivery01_utilts_stored_${stored.length}_expected_${HOURS_PER_DAY}`)
-  return { day, sourceId: source.id, transactionRef: txRef, values: wire.values, rawSha256: sha256Hex(raw), receivedAt, receivedAtClamped: wire.receivedAtClamped, runtime: runtimeSummary, persistMs, ingestMs, totalMs: Date.now() - dayStarted, meteringValueIds: stored.map(row => row.id) }
+  return { day, sourceId: source.id, transactionRef: txRef, values: wire.values, rawSha256: sha256Hex(raw), receivedAt, receivedAtClamped: wire.receivedAtClamped, documentDate: wire.documentDate, documentDateClamped: wire.documentDateClamped, runtime: runtimeSummary, persistMs, ingestMs, totalMs: Date.now() - dayStarted, meteringValueIds: stored.map(row => row.id) }
 }
 
 // ------------------------------------------------------------ chain per customer

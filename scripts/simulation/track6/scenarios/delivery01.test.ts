@@ -106,7 +106,7 @@ describe('Track6 DELIVERY01: fakturaleverans (e-post/post/adress) i Nordfin-file
       const chain = await buildCustomerChain(spec, SALT)
       S.chains[key] = chain
       evidence.save(`chain/${key}.json`, { ...chain, session: { userId: chain.session.userId, companyId: chain.session.companyId } })
-      evidence.observe(`${key}_chain`, { companyId: chain.companyId, customerId: chain.customerId, timingsMs: chain.timingsMs, effective: chain.effective, gate: chain.gate, e66: { values: chain.e66.values, persistMs: chain.e66.persistMs, ingestMs: chain.e66.ingestMs, perMessage: chain.e66.messages.map(m => ({ day: m.day, totalMs: m.totalMs, persistMs: m.persistMs, ingestMs: m.ingestMs, rawSha256: m.rawSha256, receivedAt: m.receivedAt, receivedAtClamped: m.receivedAtClamped, runtime: m.runtime })) } })
+      evidence.observe(`${key}_chain`, { companyId: chain.companyId, customerId: chain.customerId, timingsMs: chain.timingsMs, effective: chain.effective, gate: chain.gate, e66: { values: chain.e66.values, persistMs: chain.e66.persistMs, ingestMs: chain.e66.ingestMs, perMessage: chain.e66.messages.map(m => ({ day: m.day, totalMs: m.totalMs, persistMs: m.persistMs, ingestMs: m.ingestMs, rawSha256: m.rawSha256, receivedAt: m.receivedAt, receivedAtClamped: m.receivedAtClamped, documentDate: m.documentDate, documentDateClamped: m.documentDateClamped, runtime: m.runtime })) } })
       // Fixture premises for the oracles below (not product claims): a separate billing address only matters when the contract does not say "same as site".
       expect(chain.effective.contractBillingAddressSameAsSite, 'contract.billing_address_same_as_site must be false').toBe(false)
       expect(chain.e66.values).toBe(96)

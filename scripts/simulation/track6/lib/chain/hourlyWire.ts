@@ -15,6 +15,9 @@ export type HourlyWire = {
   /** ISO instant at which the file is received (06:30 local the day after the readings). */
   receivedAt: string
   receivedAtClamped: boolean
+  /** DTM+137 as sent (local YYYYMMDDHHmm) and whether it was capped at now - 2 min. */
+  documentDate: string
+  documentDateClamped: boolean
   values: number
   totalMilliKwh: number
 }
@@ -40,10 +43,16 @@ export function buildHourlyDayWire(input: {
   const txRef = `H${createHash('sha256').update(`${input.companyId}:${input.external}:${month.billingMonth}:${day}`).digest('hex').slice(0, 15).toUpperCase()}`
   const sourceId = input.sourceId ?? randomUUID()
   const bgmRef = `M${sourceId.replaceAll('-', '').slice(0, 20)}`
-  const unbDate = `${nextDayStamp.slice(2, 8)}:0600`
+  // Message/document date (DTM+137, format 203) must be a valid NON-FUTURE date (UTILTS_MESSAGE_DATE_INVALID). Planned: 06:00 local the day after the
+  // readings (as track1 wire.ts); capped at now - 2 min on the container clock. Measurement-interval DTMs are NOT changed.
+  const plannedMs = Date.UTC(Number(nextDayStamp.slice(0, 4)), Number(nextDayStamp.slice(4, 6)) - 1, Number(nextDayStamp.slice(6, 8)), 6, 0) - offsetAtDay(month, day) * 60_000
+  const documentMs = Math.min(plannedMs, Date.now() - 2 * 60_000)
+  const documentLocal = new Date(documentMs + offsetAtDay(month, day) * 60_000)
+  const documentStamp = `${documentLocal.getUTCFullYear()}${String(documentLocal.getUTCMonth() + 1).padStart(2, '0')}${String(documentLocal.getUTCDate()).padStart(2, '0')}${String(documentLocal.getUTCHours()).padStart(2, '0')}${String(documentLocal.getUTCMinutes()).padStart(2, '0')}`
+  const unbDate = `${documentStamp.slice(2, 8)}:${documentStamp.slice(8, 12)}`
   const head = lines.slice(0, at).map(entry => entry
     .replace("DTM+735:?+0200:406'", `DTM+735:?${edifactOffset(offsetAtDay(month, day))}:406'`)
-    .replace(/DTM\+137:\d{12}:203/, `DTM+137:${nextDayStamp}0600:203`)
+    .replace(/DTM\+137:\d{12}:203/, `DTM+137:${documentStamp}:203`)
     .replace('202607010000202607010015:719', `${startStamp}${endStamp}:719`)
     .replace('DTM+597:202607010020:203', `DTM+597:${endStamp}:203`)
     // HOURLY resolution: 1 hour, format 805 (lib/ediel/utilts/resolution.ts:11, quantityPrecision.ts:62).
@@ -67,5 +76,5 @@ export function buildHourlyDayWire(input: {
   const receivedMs = (Date.UTC(Number(nextDayStamp.slice(0, 4)), Number(nextDayStamp.slice(4, 6)) - 1, Number(nextDayStamp.slice(6, 8)), 6, 30) - offsetAtDay(month, day) * 60_000)
   // Not later than now: a file for a day that has not ended cannot have been received yet (the report records the real value in `receivedAtClamped`).
   const receivedAtIso = new Date(Math.min(receivedMs, Date.now() - 60_000)).toISOString()
-  return { sourceId, raw: fixture.raw, parsed: fixture.parsed, txRef, bgmRef, receivedAt: receivedAtIso, receivedAtClamped: receivedAtIso !== new Date(receivedMs).toISOString(), values: HOURS_PER_DAY, totalMilliKwh: total }
+  return { sourceId, raw: fixture.raw, parsed: fixture.parsed, txRef, bgmRef, receivedAt: receivedAtIso, documentDate: documentStamp, documentDateClamped: documentMs !== plannedMs, receivedAtClamped: receivedAtIso !== new Date(receivedMs).toISOString(), values: HOURS_PER_DAY, totalMilliKwh: total }
 }
