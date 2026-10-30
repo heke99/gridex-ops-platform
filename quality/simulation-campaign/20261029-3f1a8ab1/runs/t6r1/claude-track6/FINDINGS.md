@@ -5,7 +5,7 @@ Status: utkast från claude-track6 för integratörens granskning. Inga state- e
 ## Gemensamt för packeten
 - Utförare: claude-track6 (model: claude (session_01UHTg8Hora3xtZg4oHMrcGi)). Datum: 2026-10-30 (UTC).
 - baselineCommit 1c0c088cb4ed66d0dd8b3e34c9606019342a1a56. appCommit 6454d540b6978a9c25434b8c66bcd7a0e335c99c (main enligt uppdrag). Lokal main är 0535e618f; 6454d540 är inte ancestor av den (rc=1). Faktisk remote-main är inte verifierad här.
-- Harnessbygge 7afacc78 (commits.json). Harness-RUN_DIR-commit: 84a3e6883 (FINDING-001, CUSTODY01.03/.04/.05), 4d67fa7c2 (CUSTODY01.02). git diff --name-only 6454d540..7afacc78 utanför scripts/simulation/track6 är tom, så appkoden är oförändrad. overlay: claude/sim-20261029-track6, appCodeChanged false.
+- Harnessbygge 7afacc78 (commits.json). Harness-RUN_DIR-commit: 220edef2f (CUSTODY01.03/.04 reruns; earlier runs 84a3e6883) (FINDING-001, CUSTODY01.03/.04/.05), 4d67fa7c2 (CUSTODY01.02). git diff --name-only 6454d540..7afacc78 utanför scripts/simulation/track6 är tom, så appkoden är oförändrad. overlay: claude/sim-20261029-track6, appCodeChanged false.
 - Miljö: environmentId t6-local-20261030. Lokal Supabase 127.0.0.1:54322, replay 1e0a29bc04cc168e135f86b7ab955805073a107b, fingerprint/schemaHash 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c (partiell identitet). applied-migrations: 0 rader.
 - Postgres: ghcr.io/supabase/postgres:17.6.1.155 (digest i evidence/image-digests.txt). Node-version: saknas i kvitton (MISSING).
 - clockModel: real UTC. executionScope: ISOLATED_NATIVE.

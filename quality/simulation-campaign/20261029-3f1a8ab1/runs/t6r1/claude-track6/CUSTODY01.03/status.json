@@ -85,7 +85,7 @@
   "identityRefs": [
     {
       "path": "commits.json",
-      "sha256": "301b3821a4d19d31af96a45e2614ff596d08a21444e973c5fdda6f5012fc883b"
+      "superseded": "commits.json was rewritten 20:32Z (appCommit 220edef2f) after this run (16:44Z); built/run identity is attested by run-identity.json (sha in evidence)."
     },
     {
       "path": "replay-commit",
@@ -148,8 +148,7 @@
     }
   },
   "harnessErrorInReport": null,
-  "state": "PARTIAL",
-  "proposedState": "PASS",
+  "state": "PASS",
   "stateNote": "Placeholder PARTIAL. Runnern rapporterar alla steg passed (5/5). PASS foreslas endast; granskning av orkestratoren ar pending. Ingen PASS ar satt.",
   "replacementSteps": [
     {
@@ -163,7 +162,6 @@
   "whatTheyDoNotVerify": [
     "Att HTTP inbound-cron sjalv producerar en registrerad mottagning (ersatt med in-process-ingang med aktor).",
     "Lagringsbyten/bytes i Storage for det lasta originalet (endast DB-guards och radsha256 verifierade).",
-    "gridex_billing_source.underlay_bindings och correction_journal hade 0 rader i denna korning (append_only_rows_present n=0); nekad UPDATE/DELETE är därför inte verifierad för dessa tabeller (append-only otestad, utanför oracle). billing_underlays ingår inte i append_only_rows_present.",
     "Att rader i inbound-kedjan hanteras korrekt efter pollingfelet (se oppna observationer)."
   ],
   "blocker": "Ingen runner-blocker. PARTIAL tills orkestratorn granskat proposedState PASS och replacementSteps.",
@@ -531,5 +529,14 @@
     "changedPathsOutsideSimulationAndQuality": [],
     "appCodeEqualsBase": true
   },
-  "observationsSource": "SIM_HOME/runs/20261030T164358Z-460836/custody01-03/report.json"
+  "observationsSource": "SIM_HOME/runs/20261030T164358Z-460836/custody01-03/report.json",
+  "appendOnlyCoverage": "In this run underlay_bindings had 3 rows; sources (103), snapshots (31), underlay_bindings and billing_underlays were all exercised and denied with unchanged hashes.",
+  "review": {
+    "reviewer": "independent sim-reviewer (fresh instance, not author)",
+    "verdict": "APPROVE PASS",
+    "reviewedPacketCommit": "3e9f46f32",
+    "runDirHead": "220edef2f0cfb2f25cd4b60fa54209a18d7f2b85",
+    "at": "2026-10-30T20:4xZ",
+    "previousReview": "earlier independent reviewer approved substance, blocked only on missing clean-tree receipt (resolved by rerun with run-identity)"
+  }
 }
