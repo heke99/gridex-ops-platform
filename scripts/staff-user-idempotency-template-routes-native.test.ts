@@ -95,6 +95,15 @@ it('answers 409 when the same key is reused against another user, without runnin
  expect(ledger(A,key)).toEqual([{route:'/api/v1/staff/users/[id]/disable',customer:null,status:'completed'}])
 })
 
+it('answers 409 when the same key and user carry a different body, without running the command',async()=>{
+ const key=randomUUID()
+ expect((await patchStaffUser(req(`/${userOne}`,{role_key:'customer_service_agent'},key,'PATCH'),params(userOne))).status).toBe(200)
+ await expect(patchStaffUser(req(`/${userOne}`,{role_key:'company_admin'},key,'PATCH'),params(userOne)))
+  .rejects.toMatchObject({code:'idempotency_conflict',status:409})
+ expect(io.calls).toEqual([{op:'change',userId:userOne}])
+ expect(ledger(A,key)).toEqual([{route:'/api/v1/staff/users/[id]',customer:null,status:'completed'}])
+})
+
 it('claims the invite route without a customer',async()=>{
  const key=randomUUID()
  const res=await postStaffUser(req('',{email:`invite-${randomUUID().slice(0,8)}@example.invalid`,role_key:'customer_service_agent'},key))
