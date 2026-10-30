@@ -26,10 +26,10 @@ tillagda migrationer (`applied-migrations.tsv` tom) fram till 2026-10-30T14:44Z;
 | 014 | produktfel (säkerhet) / medel | EDIEL01.04 | observerat i officiell körning; EDIEL01.04 = FAIL |
 | 015 | ej fel (observation) | EDIEL01.05 | – |
 | 016 | produktfel mot orakel / hög | EDIEL02.02 | observerat i officiell körning |
-| 017 | kandidat (tolkningsfråga) | EDIEL02.03 | avsiktligt persistensbeteende, ingen visad affärseffekt |
+| 017 | produktfel / hög (latent) | EDIEL02.03 | rättas (migration 20261030130900, GEN-kö 13); prod: 0 påverkade rader |
 | 018 | produktfel mot orakel / medel | EDIEL02.05 | observerat i officiell körning |
 | 019 | produktfel mot orakel / medel | EDIEL02.06 | 06a3 bekräftad |
-| 020 | tolkningsfråga (ej fel) | EDIEL02.06 | 06c1/06c2 utan tolkbar UNB → manual_review |
+| 020 | ej fel (beslut) | EDIEL02.06 | manual_review synligt för operatör; stängt |
 
 ## 20261029-3f1a8ab1/claude-track3/001 – IMAP-pollern kör kommandon inne i öppen FETCH
 - 2026-10-29, produktfel, kritisk. `lib/inbound-mail/edielMailboxPoller.part-2.ts:425,430,447`: `messageFlagsAdd`
@@ -121,6 +121,11 @@ tillagda migrationer (`applied-migrations.tsv` tom) fram till 2026-10-30T14:44Z;
   med `utilts_consumption_correction_not_newer`, men seriehuvudet pekar efteråt på den avvisade versionen (700) medan
   gällande mätvärde är 600. Persistensen gör detta avsiktligt (`20261003150200:38`, `not v_late_older`); ingen app-läsare av
   `is_current` hittad. Efter granskning: kandidat/tolkningsfråga, EDIEL02.03 = PARTIAL.
+- 2026-10-30 uppdatering: SC023 `gridex_vh_history.coverage_v1` (`20261012212000:121`) bygger VH-historik ur is_current-serien
+  → skulle skicka 700 (avvisad rättelse) med giltigt VH-kvitto; SC046-persist och consume_v1 påverkas också. Allvar höjd till
+  hög (latent). Beslut: (B)+(C), migration 20261030130900. Produktionskvitto (samordningen, read-only, SQL sha256
+  09eb9efca942699167efdf09f234a9b739346871b5bca359a27fa0edff370afc): fråga 1 = 0 rader, meter_reading_series totalt 0,
+  gridex_vh_history.deliveries 0 → inga felaktiga VH-data kan ha skickats; ingen retroaktiv åtgärd.
 
 ## …/018 – E10-nekande för främmande mätpunkt skickas inte
 - 2026-10-30, körning 20261030T150744Z-11cdbd. UTILTS ERR med E10 på TN skapas men ligger kvar som `draft` och når aldrig
@@ -130,7 +135,9 @@ tillagda migrationer (`applied-migrations.tsv` tom) fram till 2026-10-30T14:44Z;
 - 2026-10-30, körning 20261030T150817Z-603e4b. 06a3 (BGM saknas) ger varken CONTRL eller UTILTS_ERR; bara `manual_review`.
 
 ## …/020 – meddelanden utan tolkbar UNB (06c1 ren text, 06c2 trasig multipart) → manual_review (ej fel)
-- Efter granskning: utan UNB finns inget att kvittera mot enligt EDIFACT/Ediel; manual_review bedöms rimligt. Felaktiga segment och UNOC-brott (06a1/a2/b1/b2) ger
+- Efter granskning: utan UNB finns inget att kvittera mot enligt EDIFACT/Ediel; manual_review bedöms rimligt.
+- Beslut (A) 2026-10-30: ingen kvittens; verifierat att manual_review syns för operatör (admin/inbound-mail räknare och
+  detaljsida med öppen granskning). Stängt som ej fel. Felaktiga segment och UNOC-brott (06a1/a2/b1/b2) ger
   korrekt negativ CONTRL (UCI 4) som mottas hos DSO.
 
 ## Miljöhändelser
