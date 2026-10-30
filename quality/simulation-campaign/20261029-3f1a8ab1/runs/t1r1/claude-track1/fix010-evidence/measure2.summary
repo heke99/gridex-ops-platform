@@ -1,0 +1,49 @@
+ A_B1000_1 | OK 7df30e6319f75009798b1120c8654216
+Time: 293330.297 ms (04:53.330)
+ A_B1000_2 | OK cdfb0c849c39ed433889e5fa761c903f
+Time: 286644.954 ms (04:46.645)
+ A_B1000_3 | OK 4b111bf8312ccc8ddcd6f4ba5c2f29d2
+Time: 142870.962 ms (02:22.871)
+ A_STATS  | try                                  |     3 | 722841 |    1305
+ A_STATS  | gridex_read_billing_source_values_v1 |     3 | 721536 |  465152
+ A_STATS  | basis_v1                             |  2688 | 256343 |     528
+ A_STATS  | basis_before_precision_v1            |  2688 | 227850 |    3305
+ A_STATS  | stored_contract_v1                   |  2688 | 186000 |    3217
+ A_STATS  | wire_tokens_v1                       | 10752 | 100486 |  100486
+ A_STATS  | validate_decimal_source_v2           |  2688 |  85738 |   77661
+ A_STATS  | validate_contract_v1                 |  2688 |  43017 |   14534
+ A_STATS  | validate_legacy_contract_v1          |  2688 |  26893 |    6207
+ A_STATS  | validate_contract_base_v1            |  2688 |  20686 |    7400
+Time: 6.638 ms
+Time: 0.756 ms
+ B_B1000_1 | OK 7df30e6319f75009798b1120c8654216
+Time: 92542.371 ms (01:32.542)
+ B_B1000_2 | OK cdfb0c849c39ed433889e5fa761c903f
+Time: 92440.841 ms (01:32.441)
+ B_B1000_3 | OK 4b111bf8312ccc8ddcd6f4ba5c2f29d2
+Time: 63289.767 ms (01:03.290)
+ B_STATS  | try                                  |     3 | 248269 |    1233
+ B_STATS  | gridex_read_billing_source_values_v1 |     3 | 247036 |    2883
+ B_STATS  | basis_v1                             |  2688 | 244125 |     451
+ B_STATS  | basis_before_precision_v1            |  2688 | 216749 |    2964
+ B_STATS  | stored_contract_v1                   |  2688 | 177001 |    2933
+ B_STATS  | wire_tokens_v1                       | 10752 |  96148 |   96148
+ B_STATS  | validate_decimal_source_v2           |  2688 |  82404 |   74583
+ B_STATS  | validate_contract_v1                 |  2688 |  40324 |   13632
+ B_STATS  | validate_legacy_contract_v1          |  2688 |  25245 |    5864
+ B_STATS  | validate_contract_base_v1            |  2688 |  19382 |    6910
+Time: 3.552 ms
+ NEG wrong_tenant | ERR P0002 billing_source_value_missing
+Time: 1.238 ms
+ NEG other_company_real | ERR P0002 billing_source_value_missing
+Time: 3.244 ms
+ NEG unknown_id | ERR P0002 billing_source_value_missing
+Time: 0.550 ms
+ NEG null_id | ERR 22023 billing_source_scope_required
+Time: 0.372 ms
+ NEG invalid_decimal | OK 7a56c06bbbc335fe7933fb18daf95ab8
+Time: 4.320 ms
+ NEG valid_after_restore | OK dde870730ffd1d7335c76e487f69eaf4
+Time: 98.476 ms
+ END | c5c3e342a1064e18b08eceac7484c33c | 7f52056924f869e207db329b5ef84d34 | 04b6e6e5b348081fc7920c11b1df3b19 | 2688 | 2688 |  0
+Time: 1.723 ms

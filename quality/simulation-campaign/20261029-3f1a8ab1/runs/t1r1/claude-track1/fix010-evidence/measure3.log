@@ -1,0 +1,50 @@
+Timing is on.
+ tag  |                wt                |                rd                |                vd                | nmv  |  mv  | bu 
+------+----------------------------------+----------------------------------+----------------------------------+------+------+----
+ BASE | c5c3e342a1064e18b08eceac7484c33c | 7f52056924f869e207db329b5ef84d34 | 04b6e6e5b348081fc7920c11b1df3b19 | 2688 | 2688 |  0
+
+Time: 6.283 ms
+ tag  |             def_md5              | nmv  |  mv  | bu 
+------+----------------------------------+------+------+----
+ BASE | c5c3e342a1064e18b08eceac7484c33c | 2688 | 2688 |  0
+
+Time: 1.627 ms
+SELECT 2688
+Time: 7.107 ms
+GRANT
+Time: 3.618 ms
+CREATE FUNCTION
+Time: 2.008 ms
+GRANT
+Time: 0.958 ms
+CREATE FUNCTION
+Time: 1.337 ms
+SET
+Time: 0.398 ms
+BEGIN
+Time: 0.128 ms
+CREATE FUNCTION
+Time: 1.448 ms
+CREATE FUNCTION
+Time: 1.343 ms
+CREATE FUNCTION
+Time: 0.808 ms
+CREATE FUNCTION
+Time: 1.062 ms
+DO
+Time: 3.836 ms
+CREATE FUNCTION
+Time: 1.596 ms
+CREATE FUNCTION
+Time: 2.830 ms
+CREATE FUNCTION
+Time: 0.802 ms
+REVOKE
+Time: 1.429 ms
+REVOKE
+Time: 0.522 ms
+DO
+Time: 1.132 ms
+psql:<fix010-dir>/fin_g6_notx.sql:230: ERROR:  g6_billing_source_basis_rule_source_changed:gridex_utilts_binding.stored_contract_v1(uuid,uuid,text)
+CONTEXT:  PL/pgSQL function pg_temp_36.g6_rewrite(regprocedure,text,text,text[],text[]) line 12 at RAISE
+Time: 1.225 ms

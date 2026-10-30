@@ -46,3 +46,15 @@ md5 per batch identiskt före och efter (7df30e63…, cdfb0c84…, 4b111bf8…),
 Efter, per funktion (2688 värden): read self 458 s, validate_decimal 190 s, wire_tokens 106 s (11203 anrop), validate_contract 15 s.
 Variant: read_billing_source_values_v1 bygger result med jsonb || (O(n²) med stora element). Finance rör den inte.
 FINANCE: c400f695 har 20261020120000_ediel_wire_tokenizer_linear_time.sql med samma rättning. Den är ekvivalent i PGlite (20035 fall, 0 avvikelser).
+
+## Runda 3 (measure2.sql/log/summary): finance-patchar och läsrättningen
+Finance 20261020120000 och g2 20261024120000 (utan begin/commit och utan 20261020280000) applicerades rent; g2:s pre-image matchade.
+(a) bara finance: 293 / 287 / 143 s per batch. (b) finance + read_billing_linear.sql: 92,5 / 92,4 / 63,3 s per batch. md5 identiskt med före i båda.
+(b) per funktion: read self 2,9 s (var 465 s), wire_tokens 96 s (10752 anrop, ca 9 ms), validate_decimal 75 s, validate_contract* ca 26 s, stored_contract self 2,9 s.
+28 meddelanden = 28 (meddelande, transaktion): 96 värden per transaktion.
+read_billing_linear.sql sha256 1349ba449c474cb0ff420182a9e5629d4c902551e9670421e719a28ee60c1e54
+
+## Runda 4: G-6 på finance (20261024130000_g6_billing_source_bases_once_per_source.sql, 392e99ae8)
+G-6 gör redan grupperingen (bases_v1 med memo per (source, tx); basis_v1/bbp_v1/read blir wrappers; låser source FOR UPDATE när fler än ett värde).
+Mot main/stack: ERROR g6_billing_source_basis_rule_source_changed:stored_contract_v1. main 20261023201053 (S01 area aggregate, finns inte i finance) har ändrat stored_contract_v1, så G-6:s pre-image är inaktuell. Finance behöver rebase.
+G-6 har kvar O(n²): bases_v1 result:=result||…, och läsfunktionen result:=result||(…).
