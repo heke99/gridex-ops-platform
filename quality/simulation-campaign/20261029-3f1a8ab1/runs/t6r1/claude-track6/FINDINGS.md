@@ -59,7 +59,7 @@ Status: utkast från claude-track6 för integratörens granskning. Inga state- e
 ## Ersättningssteg och avvikelser (sammanfattning)
 - CUSTODY01.03: ERSATTNINGSSTEG motor med aktör (runIntakeWithActor). Se status.json replacementSteps.
 - CUSTODY01.04: ERSATTNINGSSTEG route i testprocess med mockad klient. Se status.json replacementSteps.
-- CUSTODY01.05: avvikelse från docs/backup-restore-checklist.md: pg_dump -Fc och pg_restore till ny databas på samma server (docker, host major 16, server major 17). Ingen PITR eller nytt projekt. Storage-bytes ingår inte. pg_restore exit 1 med 3 plattformsfel accepterades. Se status.json checklistDeviation.
+- CUSTODY01.05 (senaste körningen 20261030T204203Z-764b04, 9/9 steg passed, exit 0): avvikelse från docs/backup-restore-checklist.md: pg_dump -Fc och pg_restore till ny databas på samma server (docker, host major 16, server major 17). Restore kördes med --no-owner --no-acl (scripts/simulation/track6/lib/custody/restore.ts:57-58): grants/ägare återställs inte, RLS-policyer/grants jämförs inte i denna körning. En omkörning med ACL/ägare bevarade och skydd jämförda pågår (uppgift från uppdraget, ej verifierad här). Ingen PITR eller nytt projekt. Storage-bytes ingår inte. pg_restore exit 1 med 3 plattformsfel accepterades. Historik: äldre körningar 161811, 162702, 164432, 203633 (se status.json previousRuns). Se status.json checklistDeviation.
 - CUSTODY01.02: NOT_APPLICABLE, beslut från koordinering pending.
 
 ## Harness och miljö
@@ -71,14 +71,15 @@ Status: utkast från claude-track6 för integratörens granskning. Inga state- e
 - CUSTODY01.02: totalt 339 (vitest). Steg 2.83, 153.67, 177.54, 0.36.
 - CUSTODY01.03: setup 10983.93; (a) 405.77; (b) 49.70; (c) 169.26; append-only 566.47; vitest 12181.
 - CUSTODY01.04: setup 11967.18; negativt 1948.24; positivt 2683.98; låsta objekt 166.77; vitest 16770.
-- CUSTODY01.05: pg_dump-steg 3212.80 (observation 2159); pg_restore-steg 15124.63 (observation 15051); compare 628.66; triggers 101.77; health 862.85; vitest 20420. Health över 49 prov: max 49 ms, p95 9 ms (runnerns beräkning, urvalsmetod ej beskriven). Warm/cold ej angivet.
+- CUSTODY01.05 (20261030T204203Z-764b04, källa runs/20261030T204203Z-764b04/custody01-05/report.json, steps[].durationMs): pg_dump-steg 4540.55 (observation 3419); pg_restore-steg 17229.58 (observation 17149); compare 579.96; consistency 832.29; triggers 92.79; health 957.23; främmande körning startsteg 1127.37; vitest tests 26.26 s (log.txt, Duration 26.66 s). Health: maxMs 39, p95Ms 11 (health-samples.json, 63 prov). Warm/cold ej angivet. Historik (äldre körning, utan run-id i tidigare text): pg_dump 3212.80, pg_restore 15124.63, vitest 20420.
 
 ## Öppna observationer (ej klassificerade, inga fynd)
 - CUSTODY01.03 setup-logg: "ediel_message_inbound_email_tenant_mismatch" (23514) vid skapande av inbound ediel_message. Mailbox companyId null. Ej klassificerat: produktfel eller fixtureartefakt.
 - CUSTODY01.03 inbound-cron: failedJobs 1, errorsByMailbox "Okänt pollingfel.".
-- CUSTODY01.05 health: samtliga 49 prov HTTP 503. Runnern räknar failures=0. Betydelsen är OSÄKER och ej utredd.
+- CUSTODY01.05 health (20261030T204203Z-764b04): 63 prov, samtliga HTTP 503 (health-samples.json; observations.json health_informational.statuses [503]). 503 är avsiktligt före all DB-åtkomst (app/api/internal/system/health/route.ts:41-43) och informativt: säger inget om DB-hälsa. Runnern räknar failures=0. Historik: 49 prov i äldre körning. OBS: uppdraget angav 88 prov; evidensen visar 63 och det är angivet här.
 - CUSTODY01.02 schema: runnern rapporterar kolumnen public.ediel_certificate_directory_cache.diagnostics. Motiveringen nämner den inte.
-- CUSTODY01.05: 38 custodytabeller hade 0 rader i källan. Deras jämförelse är 0=0.
+- CUSTODY01.05 (20261030T204203Z-764b04): empty_custody_tables_count 36 (observations.json; compare.emptyCustodyTables 36). Deras jämförelse är 0=0. Historik: 38 i äldre körning.
+- CUSTODY01.05 (20261030T204203Z-764b04): främmande körning 171/171 ok, 0 fel, maxOpMs 66, överlapp 27 mot dump och 132 mot restore (foreign_summary). Konsistenskontroller: 10 block identiska, 0 rader på båda sidor. Detta visar att frågorna körs mot det återställda schemat, inte innehållet. Drift (trigger-matad, exkluderad från exakt jämförelse, bounds): gridex_correction_process.facts 1347 ≤ 1357 ≤ 1409 (matad av capture_v1 från främmande körningen) och public.customer_operation_tasks 189 ≤ 193 ≤ 220. Ej verifierat: ägare, grants och RLS-policyer (se rad om --no-owner --no-acl ovan).
 
 ## Avfärdade misstankar
 - Inga i denna packet.

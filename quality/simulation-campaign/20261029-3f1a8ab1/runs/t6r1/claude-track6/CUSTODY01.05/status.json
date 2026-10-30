@@ -26,13 +26,13 @@
     "appCodeEqualsBase": true,
     "source": "runs/20261030T204203Z-764b04/run-identity.json"
   },
-  "environmentId": "t6-local-20261030 (från paketbasen; ej omverifierad för denna körning)",
-  "databaseIdentity": "local supabase 127.0.0.1:54322; fingerprint/replay från paketbasen; ej omverifierad för denna körning",
-  "postgresImage": "ghcr.io/supabase/postgres:17.6.1.155 sha256:3866d94d8426927e8db3f1c5d790752292bfbe27b5f1f46e199ae1b7d3c1710b (från paketbasen; ej omverifierad för denna körning)",
+  "environmentId": "t6-local-20261030 (identitet via identityRefs replay-commit och fingerprint)",
+  "databaseIdentity": "local supabase 127.0.0.1:54322; replay-commit 1e0a29bc04cc168e135f86b7ab955805073a107b; fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c (partiell identitet); applied-migrations 0 rader (identityRefs)",
+  "postgresImage": "ghcr.io/supabase/postgres:17.6.1.155 sha256:3866d94d8426927e8db3f1c5d790752292bfbe27b5f1f46e199ae1b7d3c1710b (identityRefs evidence/image-digests.txt)",
   "postgresServerMajor": 17,
-  "postgresVersion": "17.6 (från paketbasen; ej omverifierad för denna körning)",
-  "nodeVersion": "saknas för denna körning",
-  "clockModel": "saknas för denna körning",
+  "postgresVersion": "17.6 (identityRefs: evidence/image-digests.txt)",
+  "nodeVersion": "v22.22.0",
+  "clockModel": "real UTC (no fixture clock)",
   "startedAtUtc": "2026-10-30T20:42:03Z",
   "finishedAtUtc": "2026-10-30T20:42:30Z",
   "executionScope": "ISOLATED_NATIVE",
@@ -118,7 +118,36 @@
     }
   ],
   "evidenceNote": "MANIFEST.sha256 finns (sha256 892a3c3e...); sha256sum -c OK för compare.json, consistency-checks.json, foreign-iterations.json, health-samples.json, observations.json, pg_restore-errors.json. Dumpfilen (25 694 355 bytes) och övriga custody-filer är inte kopierade hit; endast sha256 refereras.",
-  "identityRefs": [],
+  "identityRefs": [
+    {
+      "name": "replay-commit",
+      "ref": "1e0a29bc04cc168e135f86b7ab955805073a107b",
+      "sourcePath": "/home/user/sim-home/track6/replay-commit",
+      "sha256": "53cc4193f0ea29eeefdf082994ea72f6afdd5ca8de12c0ae4d68895c31f5256f",
+      "note": "41 byte, inkl. avslutande radbrytning"
+    },
+    {
+      "name": "fingerprint",
+      "ref": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+      "sourcePath": "/home/user/sim-home/track6/fingerprint",
+      "sha256": "2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839",
+      "note": "65 byte, inkl. avslutande radbrytning; schemaHash"
+    },
+    {
+      "name": "applied-migrations.tsv",
+      "ref": "0 rader / 0 byte",
+      "sourcePath": "/home/user/sim-home/track6/applied-migrations.tsv",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "note": "tom fil"
+    },
+    {
+      "name": "evidence/image-digests.txt (paketbas)",
+      "ref": "ghcr.io/supabase/postgres:17.6.1.155",
+      "sourcePath": "runs/t6r1/claude-track6/FINDINGS.md (referens)",
+      "sha256": "95a0dd1376143260010f25dffa87afb2b94d5bc2234023d882e0d2a0f7e4cc22",
+      "note": "hash från FINDINGS.md; filen ej lokaliserad för återberäkning här"
+    }
+  ],
   "findingsIds": [],
   "skipped": [],
   "steps": [
@@ -395,7 +424,8 @@
   "checklistDeviation": [
     "docs/backup-restore-checklist.md beskriver PITR/återställning till produktion eller nytt projekt. Denna körning: pg_dump -Fc via docker i lokal stack och pg_restore till ny databas på samma server. /admin/system-health-sidan är inte körd (endast health-routen pollas, 503).",
     "Checklistens storage-krav är inte uppfyllt: pg_dump täcker storage.objects-metadata, inte objektens bytes (observations.storage_bytes_note).",
-    "pg_restore exit status 1 med 3 rapporterade fel på plattformsägda objekt accepterades av runnern (report.json, steg 'pg_restore till NY databas på samma server' passed)."
+    "pg_restore exit status 1 med 3 rapporterade fel på plattformsägda objekt accepterades av runnern (report.json, steg 'pg_restore till NY databas på samma server' passed).",
+    "Restore kördes med --no-owner --no-acl (scripts/simulation/track6/lib/custody/restore.ts:57-58): ägare och grants återställs inte, och RLS-policyer och grants jämförs inte i denna körning. Omkörning med ACL/ägare bevarade och skydd jämförda pågår (uppgift från uppdraget, ej verifierad här)."
   ],
   "whatTheyDoNotVerify": [
     "Storage-objektbytes: pg_dump täcker bara storage.objects-metadata (84 rader).",
@@ -404,7 +434,8 @@
     "Källans stabilitet under dumpen för gridex_correction_process.facts och public.customer_operation_tasks (drift i dump_attempt_1 och compare; exkluderade från exakt jämförelse, endast bounds).",
     "Produktionsliknande återställning (PITR eller nytt projekt) och körning av /admin/system-health-sidan (ej körd).",
     "Appens funktionella hälsa: health-routen gav HTTP 503 i samtliga 63 prov (avsiktligt, route.ts:41-43). Runnerns failures=0 är inte oberoende verifierat.",
-    "Oberoende verifiering att vitest-processen från /root/sim-wt/wt-fix003 (se openObservations) inte påverkade stackens DB är inte gjord."
+    "Restore kördes med --no-owner --no-acl (scripts/simulation/track6/lib/custody/restore.ts:57-58): ägare och grants återställs inte, och RLS-policyer och grants jämförs inte i denna körning. Omkörning med ACL/ägare bevarade och skydd jämförda pågår (uppgift från uppdraget, ej verifierad här).",
+    "Samtidiga processer: uppdraget anger att vitest-processen wt-fix003 (pid 26926) kördes med `env -u DATABASE_URL` utan DB/Supabase-env (ingen effekt på stacken), och att wt-fix001-head startade 20:46:51, efter att denna körning slutade 20:42:30 (finishedAtUtc). Ej re-verifierat här: pid 26926 finns inte i /proc och ingen av processerna syns i ps vid kontroll."
   ],
   "blocker": "Ingen teknisk blockerare i denna körning. PARTIAL kvarstår på grund av punkterna i whatTheyDoNotVerify och drift på två tabeller under dumpen.",
   "nextAction": "Orkestratorn granskar proposedState PASS och de öppna punkterna i proposedStateNote. Ingen ny körning begärd i detta uppdrag.",
@@ -441,7 +472,7 @@
     "dump_attempt_1.drift och compare.drift: gridex_correction_process.facts (before 1347 / restored 1357 / after 1409) och public.customer_operation_tasks (before 189 / restored 193 / after 220) ändrades under dumpfönstret; förklaring i observations.drift_handling (trigger-matad journal av främmande körningen). Runnerns steg 'källans innehåll är stabilt före/efter dumpen' är rapporterat passed.",
     "health-samples: 63 av 63 prov HTTP 503 (ms 3-39). Avsiktligt enligt route.ts:41-43, informativt.",
     "empty_custody_tables_count 36 (39 -> 37 -> 36 över körningarna 161811, 162702, 164432 enligt observations.json; oförändrat i 203633 och 204203).",
-    "Observation (ej verifierad av mig som påverkan): tre vitest-processer (pid 1706, 1842, 29332; ppid 26926) med cwd /root/sim-wt/wt-fix003 fanns i containern vid kontroll efter körningen. Uppdragsgivaren anger att de är en enhetstestkörning som kördes samtidigt men inte använde stackens DB."
+    "Samtidiga processer: uppdraget anger att vitest-processen wt-fix003 (pid 26926) kördes med `env -u DATABASE_URL` utan DB/Supabase-env (ingen effekt på stacken), och att wt-fix001-head startade 20:46:51, efter att denna körning slutade 20:42:30 (finishedAtUtc). Ej re-verifierat här: pid 26926 finns inte i /proc och ingen av processerna syns i ps vid kontroll."
   ],
   "healthPollNote": "Health route /api/internal/system/health returnerar 503 när ingen cron-hemlighet är konfigurerad (route.ts:41-43). 503 är avsiktligt och informativt. Det visar endast processens responsivitet, inte funktionell hälsa.",
   "topLevelRunStatus": "Toppnivån avser den senaste körningen 20261030T204203Z-764b04. Tidigare försök finns i previousRuns.",
