@@ -17,16 +17,16 @@ meta = cls.pop('_meta')
 def sha(p: pathlib.Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
-reports = {name: json.loads((ev / f'{name}-report.json').read_text()) for name in ('auth01', 'api01', 'event01')}
+reports = {name: json.loads((ev / f'{name}-report.json').read_text()) for name in ('auth01', 'api01', 'api01-poa', 'event01')}
 receipts = {}
-for name in ('auth01', 'api01', 'event01'):
+for name in ('auth01', 'api01', 'api01-poa', 'event01'):
     f = ev / f'{name}-report.receipts.jsonl'
     receipts[name] = [json.loads(l) for l in f.read_text().splitlines() if l.strip()] if f.exists() else []
 evidence_files = sorted(p for p in ev.iterdir() if p.is_file())
 evidence = [{'file': p.name, 'sha256': sha(p)} for p in evidence_files]
 
 for scenario_id, c in cls.items():
-    group = {'AUTH01': 'auth01', 'API01': 'api01', 'EVENT01': 'event01'}[scenario_id.split('.')[0]]
+    group = 'api01-poa' if scenario_id == 'API01.03' else {'AUTH01': 'auth01', 'API01': 'api01', 'EVENT01': 'event01'}[scenario_id.split('.')[0]]
     rep = reports[group]
     steps = [s for s in rep['steps'] if f' {scenario_id} ' in f" {s['name']} "]
     related = [s for s in rep['steps'] if s['name'].split(' webhooks ')[-1].startswith('SETUP')] if group == 'event01' else []

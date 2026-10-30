@@ -1,0 +1,197 @@
+{
+  "scenarioId": "EVENT01.02",
+  "workerId": "claude-track5",
+  "session": "session_01UHTg8KRCLzrvSEoYLm14un",
+  "model": "Claude (Opus-klass, se sessionens get_session)",
+  "campaignId": "20261029-3f1a8ab1",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "ee0bb862bbb64b09c04111badb55b6e111cb4493",
+  "appCommitNote": "byggd app = bas + endast harness under scripts/simulation/track5 (ingen appkod ändrad)",
+  "overlayRefs": [
+    {
+      "kind": "harness",
+      "branch": "claude/sim-20261029-track5",
+      "commit": "615dd209b8e3782fab2992120f47ef378dfb0d9a",
+      "paths": [
+        "scripts/simulation/track5/**"
+      ]
+    }
+  ],
+  "environmentId": "container vm / SIM_HOME=/root/sim-home/track5 / replay 2026-10-30T12:28:57Z",
+  "databaseIdentity": "replay 2026-10-30T12:28:57Z, fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHash": {
+    "replayCommit": "ee0bb862bbb64b09c04111badb55b6e111cb4493",
+    "replayFingerprint": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+    "schemaFingerprintOutSha256": "2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839",
+    "appliedMigrationsTsvSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "appliedMigrations": [],
+    "command": "psql \"$(cat $SIM_HOME/db-url)\" -XAt -f scripts/gridex-aud-003-schema-fingerprint.sql"
+  },
+  "clockModel": {
+    "auth": "real tid; stackens Auth jwt_expiry=60 s, sessions.timebox=3m (endast konfigkopia)",
+    "business": "real tid; kontrollerad klocka i EVENT01.04 (next_attempt_at) och API01.03 (valid_to)"
+  },
+  "versions": {
+    "node": "22.22.0",
+    "postgres": "17.6",
+    "next": "16.4.2",
+    "supabaseCli": "2.101.0"
+  },
+  "startedAtUtc": "2026-10-30T12:35:34Z",
+  "finishedAtUtc": "2026-10-30T12:35:43Z",
+  "state": "PARTIAL",
+  "executionScope": "ISOLATED_NATIVE",
+  "command": "SIM_HOME=$SIM_HOME RUN_DIR=$RUN_DIR SIM_REPORT=<evidens>/event01-report.json bash scripts/simulation/track5/run.sh scenarios/event01.test.ts",
+  "scenarioFile": "scenarios/event01.test.ts",
+  "steps": [
+    {
+      "name": "EVENT01 webhooks EVENT01.02 fel eller saknad signatur nekas utan effekt; korrekt signatur godtas",
+      "status": "passed",
+      "durationMs": 178
+    }
+  ],
+  "relatedSteps": [
+    {
+      "name": "EVENT01 webhooks SETUP webhook-subscription via partner-API POST webhooks/subscriptions (normal väg; fynd 001/002)",
+      "status": "failed"
+    }
+  ],
+  "skipped": [],
+  "scenarioSummary": {
+    "passed": 4,
+    "failed": 2,
+    "skipped": 0,
+    "total": 6
+  },
+  "runDirClean": true,
+  "evidenceRefs": {
+    "privateDir": "/root/sim-evidence/t5r2/claude-track5/final (privat)",
+    "files": [
+      {
+        "file": "all.log",
+        "sha256": "85140f9953ffc7b95beac81dc3283ffc519ffab1e67cf1ef66ef2300d0a2881b"
+      },
+      {
+        "file": "api01-poa-report.json",
+        "sha256": "eecbf33aa261d28758264d18a216b55b286e69437fe2f9ab32306030f631602d"
+      },
+      {
+        "file": "api01-poa-report.json.sha256",
+        "sha256": "45d8771da7e6e17aa423391db811f053fc9b658e82df18a83fc919026252e6a2"
+      },
+      {
+        "file": "api01-poa-report.receipts.jsonl",
+        "sha256": "a69e2024de67af703a9e3524ad9055febcd6415c465009f7afaf31eecaeaa6f8"
+      },
+      {
+        "file": "api01-poa-run.log",
+        "sha256": "5817f005457ca50e36297bbd9c2e37df1cbe4888b42186e6f9c531c06a96c4a6"
+      },
+      {
+        "file": "api01-poa-vitest.log",
+        "sha256": "8978ef903950f0e0d4bada96f82bd1c1b49659e4b0534d0031ef4b56f4736042"
+      },
+      {
+        "file": "api01-report.json",
+        "sha256": "be8af3cf2dea9eae4a0aa08f12faaa0143bbc1a1846717e90ee93d58739c47a1"
+      },
+      {
+        "file": "api01-report.json.sha256",
+        "sha256": "d5cc6656ff7a650ba3cf9cde9bd7cbebb1572ce810d6d73b6e95cd0e18500089"
+      },
+      {
+        "file": "api01-report.receipts.jsonl",
+        "sha256": "c9aeaaedb1715e7a570e110021f41c796caee913b5e202349d4b8722dfe09a15"
+      },
+      {
+        "file": "api01-run.log",
+        "sha256": "9461132b2c2f1ff41d5336f13f981d6ebe3e416b63b8cafd16a56abd53c3b7d1"
+      },
+      {
+        "file": "api01-vitest.log",
+        "sha256": "1027200083e13010fb14d4100e0b39fdf22993c17b9673621d60cd4ac9e7ebc3"
+      },
+      {
+        "file": "applied-migrations.tsv",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "auth01-report.json",
+        "sha256": "85b0cebc4f70d44ef61bf7122fc5776ae32158522ce83615683daef2a43a9a27"
+      },
+      {
+        "file": "auth01-report.json.sha256",
+        "sha256": "7de3816f1d251fd4292ca13df88cb667722adc6553b936ed52ae65c01f0415fa"
+      },
+      {
+        "file": "auth01-report.receipts.jsonl",
+        "sha256": "98acedad63d20cb4a64f7182f9aec46af4b1a57ddd7579ad677f0e17ace27d44"
+      },
+      {
+        "file": "auth01-run.log",
+        "sha256": "1e8b9c6ec6008f21a1b8b284cff2fb76ec6c039fd9a43610941b7a57b57b73a2"
+      },
+      {
+        "file": "auth01-vitest.log",
+        "sha256": "fc116c8655bb0d29b3fc5567c783657c5e55ff04640bd95c8ea390541166b723"
+      },
+      {
+        "file": "event01-report.json",
+        "sha256": "b6f3da4894338ef54d594a5f3899708bbd03bf894ed503591973a795fa04ba11"
+      },
+      {
+        "file": "event01-report.json.sha256",
+        "sha256": "b5e82db76877094c80c36611470739f57cde0cb203078888aaecb285f13aaf8c"
+      },
+      {
+        "file": "event01-report.receipts.jsonl",
+        "sha256": "d97dee6429439d26a3736a342f13b8b3224178414575a353cb03ea772bb4e2ea"
+      },
+      {
+        "file": "event01-run.log",
+        "sha256": "6e0afde5820e8a53001b618b0323ef6fba8a66e355a87a17692729e749ae0cfb"
+      },
+      {
+        "file": "event01-vitest.log",
+        "sha256": "263a073699d33d779e709a42d4e4742dfb095314b7f23ef5f16d91f1488bbfac"
+      },
+      {
+        "file": "schema-fingerprint.out",
+        "sha256": "2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839"
+      }
+    ],
+    "reportSha256": "b6f3da4894338ef54d594a5f3899708bbd03bf894ed503591973a795fa04ba11",
+    "vitestLogSha256": "263a073699d33d779e709a42d4e4742dfb095314b7f23ef5f16d91f1488bbfac"
+  },
+  "receipts": [
+    {
+      "at": "2026-10-30T12:35:36.014Z",
+      "scenarioId": "SETUP",
+      "step": "POST webhooks/subscriptions",
+      "status": 500,
+      "bodySha256": "4c600aedd9a13d0bcfe62c1f3f256a5382d597d706ed5a511b3129798755bd6d",
+      "errorCode": "partner_api_internal_error"
+    },
+    {
+      "at": "2026-10-30T12:35:36.574Z",
+      "scenarioId": "EVENT01.02",
+      "step": "inbound resend",
+      "badSignature": 401,
+      "missingHeaders": 400,
+      "signatureOverOtherBody": 401,
+      "valid": 200,
+      "rowsForId": 1
+    }
+  ],
+  "oracle": "Originalets beskrivning (quality/simulation-register/oracles/all-systems-scenarios.safe.json, sha256 96518c18…29df3; samma bytes som samordnarens återställda kopia på claude/adoring-wright-8qbon8@27862b90) tillämpad på spårets egna syntetiska bolag. \"Fel signatur nekas hos tillämplig verifierare\": /api/webhooks/resend: fel signatur 401, saknade headers 400, giltig signatur över ändrad kropp 401, korrekt 200; ingen rad vid nekan.",
+  "substitutions": [],
+  "notVerified": [
+    "Mottagarsidans negativa HMAC-kontroll beror på EVENT01.01 men bär inte påståendet."
+  ],
+  "findingsIds": [],
+  "blocker": null,
+  "nextAction": "Ingen.",
+  "review": null,
+  "cleanupReceipt": "stack kvar för omkörning; down.sh verifierar processer, containrar, volymer, hosts- och iptables-regler",
+  "heartbeatAtUtc": "2026-10-30T12:40:00Z"
+}

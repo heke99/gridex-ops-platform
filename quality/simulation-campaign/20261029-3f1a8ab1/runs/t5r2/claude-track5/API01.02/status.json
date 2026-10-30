@@ -1,0 +1,232 @@
+{
+  "scenarioId": "API01.02",
+  "workerId": "claude-track5",
+  "session": "session_01UHTg8KRCLzrvSEoYLm14un",
+  "model": "Claude (Opus-klass, se sessionens get_session)",
+  "campaignId": "20261029-3f1a8ab1",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "ee0bb862bbb64b09c04111badb55b6e111cb4493",
+  "appCommitNote": "byggd app = bas + endast harness under scripts/simulation/track5 (ingen appkod ändrad)",
+  "overlayRefs": [
+    {
+      "kind": "harness",
+      "branch": "claude/sim-20261029-track5",
+      "commit": "2c48389b0357123b3bd720c0fe2bf6c3dac7e5f9",
+      "paths": [
+        "scripts/simulation/track5/**"
+      ]
+    }
+  ],
+  "environmentId": "container vm / SIM_HOME=/root/sim-home/track5 / replay 2026-10-30T12:28:57Z",
+  "databaseIdentity": "replay 2026-10-30T12:28:57Z, fingerprint 5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+  "schemaHash": {
+    "replayCommit": "ee0bb862bbb64b09c04111badb55b6e111cb4493",
+    "replayFingerprint": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+    "schemaFingerprintOutSha256": "2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839",
+    "appliedMigrationsTsvSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "appliedMigrations": [],
+    "command": "psql \"$(cat $SIM_HOME/db-url)\" -XAt -f scripts/gridex-aud-003-schema-fingerprint.sql"
+  },
+  "clockModel": {
+    "auth": "real tid; stackens Auth jwt_expiry=60 s, sessions.timebox=3m (endast konfigkopia)",
+    "business": "real tid; kontrollerad klocka i EVENT01.04 (next_attempt_at) och API01.03 (valid_to)"
+  },
+  "versions": {
+    "node": "22.22.0",
+    "postgres": "17.6",
+    "next": "16.4.2",
+    "supabaseCli": "2.101.0"
+  },
+  "startedAtUtc": "2026-10-30T12:37:19Z",
+  "finishedAtUtc": "2026-10-30T12:37:27Z",
+  "state": "PARTIAL",
+  "executionScope": "ISOLATED_NATIVE",
+  "command": "SIM_HOME=$SIM_HOME RUN_DIR=$RUN_DIR SIM_REPORT=<evidens>/api01-report.json bash scripts/simulation/track5/run.sh scenarios/api01.test.ts",
+  "scenarioFile": "scenarios/api01.test.ts",
+  "steps": [
+    {
+      "name": "API01 partner-API API01.02 två sites hos samma kund får varsin POA bunden till rätt site och kund",
+      "status": "passed",
+      "durationMs": 426
+    }
+  ],
+  "relatedSteps": [],
+  "skipped": [],
+  "scenarioSummary": {
+    "passed": 4,
+    "failed": 3,
+    "skipped": 0,
+    "total": 7
+  },
+  "runDirClean": true,
+  "evidenceRefs": {
+    "privateDir": "/root/sim-evidence/t5r2/claude-track5/final (privat)",
+    "files": [
+      {
+        "file": "all.log",
+        "sha256": "85140f9953ffc7b95beac81dc3283ffc519ffab1e67cf1ef66ef2300d0a2881b"
+      },
+      {
+        "file": "api01-poa-report.json",
+        "sha256": "eecbf33aa261d28758264d18a216b55b286e69437fe2f9ab32306030f631602d"
+      },
+      {
+        "file": "api01-poa-report.json.sha256",
+        "sha256": "45d8771da7e6e17aa423391db811f053fc9b658e82df18a83fc919026252e6a2"
+      },
+      {
+        "file": "api01-poa-report.receipts.jsonl",
+        "sha256": "a69e2024de67af703a9e3524ad9055febcd6415c465009f7afaf31eecaeaa6f8"
+      },
+      {
+        "file": "api01-poa-run.log",
+        "sha256": "5817f005457ca50e36297bbd9c2e37df1cbe4888b42186e6f9c531c06a96c4a6"
+      },
+      {
+        "file": "api01-poa-vitest.log",
+        "sha256": "8978ef903950f0e0d4bada96f82bd1c1b49659e4b0534d0031ef4b56f4736042"
+      },
+      {
+        "file": "api01-report.json",
+        "sha256": "be8af3cf2dea9eae4a0aa08f12faaa0143bbc1a1846717e90ee93d58739c47a1"
+      },
+      {
+        "file": "api01-report.json.sha256",
+        "sha256": "d5cc6656ff7a650ba3cf9cde9bd7cbebb1572ce810d6d73b6e95cd0e18500089"
+      },
+      {
+        "file": "api01-report.receipts.jsonl",
+        "sha256": "c9aeaaedb1715e7a570e110021f41c796caee913b5e202349d4b8722dfe09a15"
+      },
+      {
+        "file": "api01-run.log",
+        "sha256": "9461132b2c2f1ff41d5336f13f981d6ebe3e416b63b8cafd16a56abd53c3b7d1"
+      },
+      {
+        "file": "api01-vitest.log",
+        "sha256": "1027200083e13010fb14d4100e0b39fdf22993c17b9673621d60cd4ac9e7ebc3"
+      },
+      {
+        "file": "applied-migrations.tsv",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "auth01-report.json",
+        "sha256": "85b0cebc4f70d44ef61bf7122fc5776ae32158522ce83615683daef2a43a9a27"
+      },
+      {
+        "file": "auth01-report.json.sha256",
+        "sha256": "7de3816f1d251fd4292ca13df88cb667722adc6553b936ed52ae65c01f0415fa"
+      },
+      {
+        "file": "auth01-report.receipts.jsonl",
+        "sha256": "98acedad63d20cb4a64f7182f9aec46af4b1a57ddd7579ad677f0e17ace27d44"
+      },
+      {
+        "file": "auth01-run.log",
+        "sha256": "1e8b9c6ec6008f21a1b8b284cff2fb76ec6c039fd9a43610941b7a57b57b73a2"
+      },
+      {
+        "file": "auth01-vitest.log",
+        "sha256": "fc116c8655bb0d29b3fc5567c783657c5e55ff04640bd95c8ea390541166b723"
+      },
+      {
+        "file": "event01-report.json",
+        "sha256": "b6f3da4894338ef54d594a5f3899708bbd03bf894ed503591973a795fa04ba11"
+      },
+      {
+        "file": "event01-report.json.sha256",
+        "sha256": "b5e82db76877094c80c36611470739f57cde0cb203078888aaecb285f13aaf8c"
+      },
+      {
+        "file": "event01-report.receipts.jsonl",
+        "sha256": "d97dee6429439d26a3736a342f13b8b3224178414575a353cb03ea772bb4e2ea"
+      },
+      {
+        "file": "event01-run.log",
+        "sha256": "6e0afde5820e8a53001b618b0323ef6fba8a66e355a87a17692729e749ae0cfb"
+      },
+      {
+        "file": "event01-vitest.log",
+        "sha256": "263a073699d33d779e709a42d4e4742dfb095314b7f23ef5f16d91f1488bbfac"
+      },
+      {
+        "file": "schema-fingerprint.out",
+        "sha256": "2cb1ad4a6bec22c093013eed199518bf62083cdd3007d3345ce7015bb881e839"
+      }
+    ],
+    "reportSha256": "be8af3cf2dea9eae4a0aa08f12faaa0143bbc1a1846717e90ee93d58739c47a1",
+    "vitestLogSha256": "1027200083e13010fb14d4100e0b39fdf22993c17b9673621d60cd4ac9e7ebc3"
+  },
+  "receipts": [
+    {
+      "at": "2026-10-30T12:37:22.964Z",
+      "scenarioId": "API01.02",
+      "step": "POST poa site1",
+      "status": 201,
+      "bodySha256": "8f53ff714a2777e2f5400d7d489362a604482350ab339eff8f9eebab93a27ad0",
+      "requestId": "aacfbe1a-73f5-4e58-a478-025a0423d6a3",
+      "entityId": "poa_25ad7dcc65a847e9bc015d7f7b4c7e09",
+      "errorCode": null,
+      "site": "facility_7e19fa92e95b46669c8985f334a1be27"
+    },
+    {
+      "at": "2026-10-30T12:37:22.965Z",
+      "scenarioId": "API01.02",
+      "step": "POST poa site2",
+      "status": 201,
+      "bodySha256": "cd641b7b58c3a114fadaf3aed8afe0bba4d789ebaad16581dd5bf75b9a4719a9",
+      "requestId": "811e4445-ea69-4507-8b56-42487ae1d1f0",
+      "entityId": "poa_0d6d1886d59e4e62bdc4780d97bef82d",
+      "errorCode": null,
+      "site": "facility_95f54d1e4b534a1581a8a89f8efa1963"
+    },
+    {
+      "at": "2026-10-30T12:37:22.965Z",
+      "scenarioId": "API01.02",
+      "step": "db-readback",
+      "rows": [
+        {
+          "ref": "poa_25ad7dcc65a847e9bc015d7f7b4c7e09",
+          "site_ref": "facility_7e19fa92e95b46669c8985f334a1be27",
+          "customer_ref": "customer_b3fc56fec6bd45668bf51b27f9c6bb1f",
+          "company_id": "bf18093e-ac4c-46ee-b407-ef3df685c3cc",
+          "same_site": true
+        },
+        {
+          "ref": "poa_0d6d1886d59e4e62bdc4780d97bef82d",
+          "site_ref": "facility_95f54d1e4b534a1581a8a89f8efa1963",
+          "customer_ref": "customer_b3fc56fec6bd45668bf51b27f9c6bb1f",
+          "company_id": "bf18093e-ac4c-46ee-b407-ef3df685c3cc",
+          "same_site": true
+        }
+      ],
+      "dependsOn": "API01.01 site-steg (siteA1)",
+      "substitution": "kund skapad som SQL-fixtur (fynd 001)"
+    },
+    {
+      "at": "2026-10-30T12:37:23.086Z",
+      "scenarioId": "API01.02",
+      "step": "POST poa cross-customer",
+      "status": 404,
+      "bodySha256": "9cfd174235ba378f6f7c4f0ba6802ce70867111fa22faf291d8ddd5f8c7af650",
+      "requestId": "f2b729d8-7126-4f31-b39c-03d8e958aedf",
+      "entityId": null,
+      "errorCode": "site_not_found"
+    }
+  ],
+  "oracle": "Originalets beskrivning (quality/simulation-register/oracles/all-systems-scenarios.safe.json, sha256 96518c18…29df3; samma bytes som samordnarens återställda kopia på claude/adoring-wright-8qbon8@27862b90) tillämpad på spårets egna syntetiska bolag. \"Två sites kopplas till rätt kund och respektive POA\": två sites och en POA per site via partner-API; varje POA bunden till rätt site/kund (DB och GET), korskombination ger 404.",
+  "substitutions": [
+    "Partnernyckel som SQL-fixtur med launch_ready, installationskvitto och capability api_sales (ersätter plattformens provisionering; lib/partner.ts).",
+    "Kund skapad som SQL-fixtur (POST customer ger 500, fynd 001)."
+  ],
+  "notVerified": [
+    "Beroende: siteA1 från API01.01:s site-steg."
+  ],
+  "findingsIds": [],
+  "blocker": null,
+  "nextAction": "Ingen.",
+  "review": null,
+  "cleanupReceipt": "stack kvar för omkörning; down.sh verifierar processer, containrar, volymer, hosts- och iptables-regler",
+  "heartbeatAtUtc": "2026-10-30T12:40:00Z"
+}
