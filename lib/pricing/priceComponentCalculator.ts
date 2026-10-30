@@ -8,6 +8,7 @@ import {
   normalizePricingUnitForComponent,
   sekPerKwhFromComponent,
 } from "@/lib/pricing/unitConversion";
+import { stockholmMonthBounds } from "@/lib/time/stockholm";
 
 function roundMoney(value: number): number {
   return Math.round(value * 100) / 100;
@@ -21,6 +22,20 @@ function daysBetween(start: string, end: string): number {
   return Math.ceil((endMs - startMs) / 86_400_000);
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function calendarDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = value.slice(0, 10);
+  return ISO_DATE.test(date) ? date : null;
+}
+
+function nextCalendarDate(date: string): string {
+  const next = new Date(`${date}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  return next.toISOString().slice(0, 10);
+}
+
 function periodizationFactor(
   underlay: BillingUnderlayInput,
   component: PriceComponent,
@@ -30,6 +45,38 @@ function periodizationFactor(
     component.periodizationMode !== "prorated_by_days"
   )
     return 1;
+  const periodStart = calendarDate(underlay.periodStart);
+  const periodEnd = calendarDate(underlay.periodEnd);
+  if (periodStart && periodEnd) {
+    // Rule (owner decision H3d part 1): fixed monthly fee factor =
+    // delivered days / days of the Europe/Stockholm calendar month.
+    // Denominator: calendar days of the Stockholm billing month the period
+    // belongs to (the underlay period is already clipped to delivery).
+    // Numerator: active delivery days within that month. Contract ends_at is
+    // an inclusive calendar date; the underlay period end is exclusive.
+    const month = stockholmMonthBounds(periodStart.slice(0, 7));
+    const monthDays = Math.max(
+      daysBetween(month.startDate, month.endDateExclusive),
+      1,
+    );
+    const activeFrom = calendarDate(underlay.activeFrom);
+    const activeTo = calendarDate(underlay.activeTo);
+    const starts = [month.startDate, periodStart, activeFrom].filter(
+      (value): value is string => Boolean(value),
+    );
+    const ends = [
+      month.endDateExclusive,
+      periodEnd,
+      activeTo ? nextCalendarDate(activeTo) : null,
+    ].filter((value): value is string => Boolean(value));
+    const activeStart = starts.reduce((a, b) => (b > a ? b : a));
+    const activeEnd = ends.reduce((a, b) => (b < a ? b : a));
+    const activeDays = Math.min(
+      Math.max(daysBetween(activeStart, activeEnd), 0),
+      monthDays,
+    );
+    return activeDays / monthDays;
+  }
   const totalDays = Math.max(
     daysBetween(underlay.periodStart, underlay.periodEnd),
     1,
