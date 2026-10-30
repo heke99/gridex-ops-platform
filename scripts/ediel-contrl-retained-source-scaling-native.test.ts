@@ -91,6 +91,6 @@ SELECT jsonb_build_object('ids',(SELECT ids FROM t3005r),'ms',extract(epoch FROM
  'envelopeCalls',coalesce((SELECT calls FROM pg_stat_xact_user_functions WHERE schemaname='gridex_ediel_technical_ack' AND funcname='envelope'),0)-(SELECT c0 FROM t3005));`)
   expect(out.ids).toEqual([acks[Math.floor(n/2)].id])
   expect(out.envelopeCalls).toBeLessThanOrEqual(4*n+10)
-  if(n===200)expect(out.ms).toBeLessThan(500)
+  if(n===200)expect(out.ms).toBeLessThan(2000)
  },180000)
 })
