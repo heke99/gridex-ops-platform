@@ -77,6 +77,13 @@ describe('EVENT01 webhooks', () => {
     B = createCompany('Sim T5 EVENT bolag B')
     keyA = createPartnerClient(A, SCOPES)
     keyB = createPartnerClient(B, SCOPES)
+    // Tenantkonfiguration (sätts annars av plattformen): webhookleverans aktiverad för A och B. Utan den blir
+    // leveransen blocked_tenant_state/capability_not_ready (observerat i försök 2, korrekt spärr).
+    for (const company of [A, B]) {
+      psql(`UPDATE public.company_capabilities SET enabled=true, readiness_status='ready' WHERE company_id='${company}' AND capability_code='webhook_delivery_enabled';
+        INSERT INTO public.company_capabilities(company_id,capability_code,enabled,readiness_status)
+        SELECT '${company}','webhook_delivery_enabled',true,'ready' WHERE NOT EXISTS (SELECT 1 FROM public.company_capabilities WHERE company_id='${company}' AND capability_code='webhook_delivery_enabled');`)
+    }
     custRefA = psql(`select customer_reference from public.customers where id='${createCustomer(A, 'EventA')}'`)
     custRefB = psql(`select customer_reference from public.customers where id='${createCustomer(B, 'EventB')}'`)
     // Isolering före dispatch: mottagarnamnen löser upp till test-IP:n och den nås bara via lokal DNAT.
