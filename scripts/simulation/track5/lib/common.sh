@@ -27,6 +27,9 @@ SIM_RECEIVER_CTRL_PORT="${SIM_RECEIVER_CTRL_PORT:-3196}"
 SIM_RECEIVER_IP="${SIM_RECEIVER_IP:-45.45.45.45}"
 SIM_RECEIVER_HOSTS="receiver-a.t5.sim.invalid receiver-b.t5.sim.invalid"
 SIM_IPT_TAG="gridex-sim-track5"
+# AUTH01.05: verklig kort sessionslivslängd i stackens Auth (bara i konfigkopian; real tid).
+export SIM_AUTH_JWT_EXPIRY="${SIM_AUTH_JWT_EXPIRY:-60}"
+export SIM_AUTH_SESSION_TIMEBOX="${SIM_AUTH_SESSION_TIMEBOX:-3m}"
 
 # Docker Hub (429) och ECR (data limit) fungerar inte; ghcr.io/supabase/* gör det.
 export SUPABASE_INTERNAL_IMAGE_REGISTRY="${SUPABASE_INTERNAL_IMAGE_REGISTRY:-ghcr.io}"

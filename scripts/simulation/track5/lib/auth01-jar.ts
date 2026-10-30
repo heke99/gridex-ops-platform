@@ -1,5 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { sim } from './env'
+import { callServerAction } from './server-action'
+import type { AppSession } from './session'
 
 /**
  * Webbläsarlik session: riktig inloggning mot lokala GoTrue med @supabase/ssr (samma cookieformat som appen),
@@ -71,4 +73,29 @@ export function rawFetch(cookieHeader: string, p: string, init: RequestInit = {}
     ...init,
     headers: { ...(init.headers as Record<string, string> | undefined), cookie: cookieHeader },
   })
+}
+
+/**
+ * Naturlig UI-inloggning: appens egen loginAction (app/login/actions.ts) POST:as mot /login som server action.
+ * Sessionscookies kommer från appens Set-Cookie, inte från harnessen.
+ */
+export async function loginViaUi(email: string, password: string, next = '/admin'): Promise<JarSession & { redirect: string | null }> {
+  const jar = new Map<string, string>()
+  const cookieHeader = () => [...jar].map(([n, v]) => `${n}=${v}`).join('; ')
+  const doFetch = async (p: string, init: RequestInit = {}) => {
+    const res = await fetch(new URL(p, sim.appUrl), {
+      redirect: 'manual',
+      ...init,
+      headers: { ...(init.headers as Record<string, string> | undefined), cookie: cookieHeader() },
+    })
+    applySetCookies(jar, res)
+    return res
+  }
+  const form = new FormData()
+  form.set('email', email); form.set('password', password); form.set('next', next)
+  const anon: AppSession = { userId: '', cookieHeader: '', fetch: doFetch }
+  const result = await callServerAction(anon, { route: '/login', filename: 'app/login/actions.ts', exportedName: 'loginAction', args: [form] })
+  const sb = [...jar.keys()].filter((k) => k.startsWith('sb-'))
+  if (sb.length === 0) throw new Error(`UI-inloggning gav inga sb-cookies (HTTP ${result.httpStatus}, redirect ${result.redirect})`)
+  return { userId: '', jar, cookieHeader, fetch: doFetch, redirect: result.redirect }
 }

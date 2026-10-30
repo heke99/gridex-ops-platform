@@ -32,4 +32,18 @@ t = set_in_table(t, 'db.pooler', 'port', pooler)
 t = set_in_table(t, 'studio', 'port', studio)
 t = set_in_table(t, 'inbucket', 'port', mail)
 t = set_in_table(t, 'inbucket', 'smtp_port', smtp, uncomment=True)
+# Spår 5 (AUTH01.05): kort, verklig sessionslivslängd i realtid så att en session faktiskt kan löpa ut.
+# Bara i kopian; ingen klockmanipulation. Tom variabel = repots värde.
+import os
+jwt_expiry = os.environ.get('SIM_AUTH_JWT_EXPIRY', '').strip()
+timebox = os.environ.get('SIM_AUTH_SESSION_TIMEBOX', '').strip()
+if jwt_expiry:
+    if not jwt_expiry.isdigit():
+        raise SystemExit('SIM_AUTH_JWT_EXPIRY måste vara sekunder')
+    t = set_in_table(t, 'auth', 'jwt_expiry', jwt_expiry)
+if timebox:
+    if not re.fullmatch(r'\d+[smh]', timebox):
+        raise SystemExit('SIM_AUTH_SESSION_TIMEBOX måste vara t.ex. 3m')
+    t = re.sub(r'^#\s*\[auth\.sessions\]\s*$', '[auth.sessions]', t, count=1, flags=re.M)
+    t = set_in_table(t, 'auth.sessions', 'timebox', f'"{timebox}"', uncomment=True)
 path.write_text(t)

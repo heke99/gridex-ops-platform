@@ -27,13 +27,14 @@ ensure_node_modules
 NAME="$(basename "$SCEN" .test.ts)"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 RAW="$SIM_HOME/reports/.${NAME}-${TS}.raw.json"
-OUT="$SIM_REPORT"; mkdir -p "$(dirname "$OUT")"
+OUT="$SIM_REPORT"; mkdir -p "$(dirname "$OUT")"; : >"${SIM_REPORT%.json}.receipts.jsonl"
 LOGF="$SIM_HOME/logs/run-${NAME}-${TS}.log"
 STARTED="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 (
   cd "$HARNESS_DIR" && set -a && . "$SIM_HOME/app.env" && set +a
   export SIM_HOME RUN_DIR
+  export SIM_RECEIPTS="${SIM_REPORT%.json}.receipts.jsonl"
   exec "$RUN_DIR/node_modules/.bin/vitest" run --root "$HARNESS_DIR" --config "$HARNESS_DIR/vitest.config.ts" \
     --reporter=default --reporter=json --outputFile.json="$RAW" "$REL"
 ) 2>&1 | tee "$LOGF"

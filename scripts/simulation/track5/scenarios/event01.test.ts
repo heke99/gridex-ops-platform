@@ -10,6 +10,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { psql, psqlRows, requireEnv, sim } from '../lib'
 import { brief, createPartnerClient, partner, type PartnerClient } from '../lib/partner'
 import { createCompany, createCustomer, lit } from '../lib/t5-world'
+import { receipt, sha256 } from '../lib/receipts'
 
 const ctrl = () => requireEnv('SIM_RECEIVER_CTRL_URL')
 const [HOST_A, HOST_B] = requireEnv('SIM_RECEIVER_HOSTS').split(',')
@@ -94,6 +95,7 @@ describe('EVENT01 webhooks', () => {
     const r = await partner(keyA, 'POST', 'webhooks/subscriptions', {
       name: 'sim setup', endpoint_url: `https://${HOST_A}/hook/setup`, event_types: ['site.created'], signing_secret: secretA, description: 'sim t5',
     })
+    receipt('SETUP', 'POST webhooks/subscriptions', { status: r.status, bodySha256: sha256(r.text), errorCode: (r.json as { error?: { code?: unknown } } | null)?.error?.code ?? null })
     expect(r.status, brief(r)).toBe(201)
   })
 
@@ -117,6 +119,8 @@ describe('EVENT01 webhooks', () => {
     expect(body.delivery_id).toBe(row.public_delivery_id)
     expect(JSON.stringify(body)).toContain(siteRef)
     eventA = row.domain_event_id
+    receipt('EVENT01.01', 'delivery', { eventId: r.headers['x-gridex-event-id'], deliveryId: row.public_delivery_id, payloadSha256: r.sha256,
+      requestBodyHash: row.request_body_hash, signatureVerified: true, receivedCount: got.length, status: row.status, attempts: row.attempts, siteRef })
   })
 
   it('EVENT01.02 fel eller saknad signatur nekas utan effekt; korrekt signatur godtas', async () => {
@@ -142,6 +146,7 @@ describe('EVENT01 webhooks', () => {
     const ok = await post({ 'svix-id': id, 'svix-timestamp': ts, 'svix-signature': good })
     expect(ok.status, await ok.text()).toBe(200)
     expect(count()).toBe(1)
+    receipt('EVENT01.02', 'inbound resend', { badSignature: r1.status, missingHeaders: r2.status, signatureOverOtherBody: r3.status, valid: ok.status, rowsForId: count() })
     // Mottagarsidans kontroll: A:s kvitto verifieras inte med fel secret.
     const [r] = await received('a1')
     expect(verifyGridexSignature(r, secretB)).toBe(false)
@@ -155,7 +160,8 @@ describe('EVENT01 webhooks', () => {
     expect(await received('a1')).toHaveLength(1)
     const strip = (x: Delivery) => ({ ...x, secs_to_next: null })
     expect(deliveries(subA).map(strip)).toEqual(before.map(strip))
-    // Samma händelse köas igen via databasens egen köfunktion (idempotency_key webhook:<sub>:<event>).
+    // Unikvillkoret på idempotency_key (webhook:<sub>:<event>) prövas direkt i DB: en andra rad för samma (sub, event)
+    // kan inte skapas. (enqueueWebhookDeliveriesForEvent använder samma nyckel med upsert ignoreDuplicates.)
     const dup = psql(`insert into public.webhook_deliveries(company_id,webhook_subscription_id,domain_event_id,event_type,status,attempts,max_attempts,payload,target_url,idempotency_key)
       select company_id,webhook_subscription_id,domain_event_id,event_type,'queued',0,max_attempts,payload,target_url,idempotency_key from public.webhook_deliveries where id='${before[0].id}'
       on conflict do nothing returning id`)
@@ -175,6 +181,7 @@ describe('EVENT01 webhooks', () => {
     const second = await send(); expect(second.status).toBe(200)
     expect(((await second.json()) as { duplicate?: boolean }).duplicate).toBe(true)
     expect(Number(psql(`select count(*) from public.communication_log_events where provider='resend' and provider_event_id='${id}'`))).toBe(1)
+    receipt('EVENT01.03', 'replay', { deliveriesForEvent: deliveries(subA).length, receivedCount: (await received('a1')).length, duplicateInsertRejected: dup === '', inboundDuplicate: true })
   })
 
   it('EVENT01.04 4xx, 5xx och timeout ger föreskriven status, backoff och till sist dead_letter', async () => {
@@ -210,8 +217,17 @@ describe('EVENT01 webhooks', () => {
     ;[row] = deliveries(subRetry)
     expect(row).toMatchObject({ status: 'dead_letter', attempts: 4, response_status: 503 })
     await new Promise((r) => setTimeout(r, 3500))
-    expect((await received('retry')).length, 'en POST per försök').toBe(4)
+    const posts = await received('retry')
+    expect(posts.length, 'en POST per försök').toBe(4)
+    const ids = new Set(posts.map((p) => p.headers['x-gridex-delivery-id']))
+    expect(ids.size, 'samma leverans-ID över alla försök').toBe(1)
+    const health = psqlRows<{ failure_count: number; last_failure_at: string | null }>(
+      `select failure_count, (to_jsonb(s)->>'last_failure_at') last_failure_at from public.webhook_subscriptions s where id='${subRetry}'`)[0]
+    receipt('EVENT01.04', 'retry', { deliveryId: [...ids][0], attempts: row.attempts, finalStatus: row.status, posts: posts.map((p) => p.respondedStatus), health })
     psql(`update public.webhook_subscriptions set status='active' where company_id='${A}' and id<>'${subRetry}' and status='paused'`)
+    // Föreskriven status omfattar subscriptionens hälsa (webhooks.ts updateSubscriptionFailure): fyra fel ger failure_count 4.
+    expect(health.failure_count, 'failure_count efter 4 misslyckade försök (fynd 002)').toBe(4)
+    expect(health.last_failure_at, 'last_failure_at (fynd 002)').not.toBeNull()
   })
 
   it('EVENT01.05 tenant och hemligheter: B får bara egna händelser, ingen klartext-secret, privat mål nekas', async () => {
@@ -238,8 +254,11 @@ describe('EVENT01 webhooks', () => {
     const loop = await partner(keyB, 'POST', 'webhooks/subscriptions', { name: 'sim loop', endpoint_url: 'https://127.0.0.1/hook/x',
       event_types: ['site.created'], signing_secret: secretB, description: 'sim' })
     expect(loop.status, brief(loop)).toBe(422)
+    expect(loop.text).toContain('webhook_target_not_public')
     const http = await partner(keyB, 'POST', 'webhooks/subscriptions', { name: 'sim http', endpoint_url: `http://${HOST_B}/hook/x`,
       event_types: ['site.created'], signing_secret: secretB, description: 'sim' })
     expect(http.status, brief(http)).toBe(422)
+    expect(http.text).toMatch(/webhook_target_not_public|webhook_https_required/)
+    receipt('EVENT01.05', 'tenant+secrets', { receivedB: gotB.length, deliveriesB: deliveries(subB).length, loopback: loop.status, plainHttp: http.status })
   })
 })

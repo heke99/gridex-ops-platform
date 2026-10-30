@@ -9,8 +9,14 @@ import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { psql, psqlRows, SIM_HOME } from '../lib'
 import { publishApiOffer, type ApiOffer } from '../lib/api01-offer'
-import { brief, createPartnerClient, partner, type PartnerClient } from '../lib/partner'
+import { brief, createPartnerClient, partner, type PartnerClient, type PartnerResponse } from '../lib/partner'
+import { loginViaUi } from '../lib/auth01-jar'
+import { http, receipt, sha256 } from '../lib/receipts'
+import { callServerAction } from '../lib/server-action'
 import { createAuthUser, createCompany, createCustomer, deleteAuthUser, grantAdmin, type T5User } from '../lib/t5-world'
+
+const rec = (id: string, step: string, r: PartnerResponse, extra: Record<string, unknown> = {}) =>
+  receipt(id, step, { ...http(r.status, r.text), requestId: r.headers.get('x-request-id'), entityId: (r.json as { entity_id?: unknown } | null)?.entity_id ?? null, errorCode: (r.json as { error?: { code?: unknown } } | null)?.error?.code ?? null, ...extra })
 
 const WRITE_SCOPES = ['partner_customers.write', 'partner_sites.write', 'partner_power_of_attorney.write', 'partner_contracts.write',
   'customer_profile.read', 'customer_sites.read', 'customer_power_of_attorney.read']
@@ -82,6 +88,7 @@ describe('API01 partner-API', () => {
 
   it('API01.01 giltig partner skapar kund via POST customer (2xx, bunden till nyckelns bolag)', async () => {
     const c = await partner(keyA, 'POST', 'customer', customerBody(1, 'Kund'))
+    rec('API01.01', 'POST customer', c)
     expect(c.status, brief(c)).toBe(201)
     custA = entity(c)
     expect(psql(`select company_id from public.customers where customer_reference='${custA}'`)).toBe(A)
@@ -89,6 +96,7 @@ describe('API01 partner-API', () => {
 
   it('API01.01 giltig partner skapar site via POST customer/{id}/site, bunden till kund och bolag', async () => {
     const s = await partner(keyA, 'POST', `customer/${fixtureCustA}/site`, siteBody(1))
+    rec('API01.01', 'POST site', s, { customerRef: fixtureCustA })
     expect(s.status, brief(s)).toBe(201)
     siteA1 = entity(s)
     const rows = psqlRows<{ company_id: string; customer_reference: string; site_company: string; site_customer_ok: boolean }>(
@@ -102,6 +110,7 @@ describe('API01 partner-API', () => {
     expect(offerError, 'API-erbjudandefixturen').toBeNull()
     const before = companyCounts(A)
     const k = await partner(keyA, 'POST', 'contract', { customer: customerBody(2, 'Avtal'), site: siteBody(2), power_of_attorney: poaBody('avtal') })
+    rec('API01.01', 'POST contract', k, { offerFixture: offerError ? 'failed' : 'published' })
     expect(k.status, brief(k)).toBe(201)
     const out = k.json as { entity_id: string; customer: { entity_id: string }; site: { entity_id: string }; power_of_attorney: { entity_id: string } | null }
     const contract = psqlRows<{ company_id: string; customer_company: string; site_company: string; site_of_customer: boolean }>(
@@ -129,6 +138,8 @@ describe('API01 partner-API', () => {
               p.site_id = p.customer_site_id same_site
          from public.powers_of_attorney p join public.customer_sites s on s.id = p.customer_site_id join public.customers c on c.id = p.customer_id
         where p.power_of_attorney_reference in ('${entity(p1)}','${entity(p2)}') order by s.facility_reference = '${siteA1}' desc`)
+    rec('API01.02', 'POST poa site1', p1, { site: siteA1 }); rec('API01.02', 'POST poa site2', p2, { site: siteA2 })
+    receipt('API01.02', 'db-readback', { rows, dependsOn: 'API01.01 site-steg (siteA1)', substitution: 'kund skapad som SQL-fixtur (fynd 001)' })
     expect(rows).toEqual([
       { ref: entity(p1), site_ref: siteA1, customer_ref: fixtureCustA, company_id: A, same_site: true },
       { ref: entity(p2), site_ref: siteA2, customer_ref: fixtureCustA, company_id: A, same_site: true },
@@ -141,6 +152,7 @@ describe('API01 partner-API', () => {
     expect(g2.text).toContain(entity(p2)); expect(g2.text).not.toContain(entity(p1))
     // Fel kombination kund/site från en annan kund nekas.
     const cross = await partner(keyA, 'POST', `customer/${fixtureCustA2}/site/${siteA1}/powerofattorney`, poaBody('kors'))
+    rec('API01.02', 'POST poa cross-customer', cross)
     expect(cross.status, brief(cross)).toBe(404)
   })
 
@@ -172,9 +184,12 @@ describe('API01 partner-API', () => {
     const again = await partner(keyA, 'POST', `customer/${fixtureCustA}/site`, body, { idempotencyKey: key })
     expect([200, 201], brief(again)).toContain(again.status)
     expect(entity(again)).toBe(entity(first))
+    expect(sha256(again.text), 'återspelad svarskropp').toBe(sha256(first.text))
+    rec('API01.04', 'site first', first, { idempotencyKey: 'K1' }); rec('API01.04', 'site replay', again, { idempotencyKey: 'K1' })
     expect(companyCounts(A)).toEqual(before)
     const changed = await partner(keyA, 'POST', `customer/${fixtureCustA}/site`, { ...body, address: 'Annan väg 9' }, { idempotencyKey: key })
     expect(changed.status, brief(changed)).toBe(409)
+    rec('API01.04', 'site changed payload', changed, { idempotencyKey: 'K1' })
     expect(companyCounts(A)).toEqual(before)
     // Samma nyckel och payload för POA på samma site: ingen ny POA-rad och samma referens.
     const pkey = randomUUID()
@@ -185,42 +200,93 @@ describe('API01 partner-API', () => {
     const p2 = await partner(keyA, 'POST', `customer/${fixtureCustA}/site/${siteA2}/powerofattorney`, pb, { idempotencyKey: pkey })
     expect([200, 201], brief(p2)).toContain(p2.status)
     expect(entity(p2)).toBe(entity(p1))
+    expect(sha256(p2.text)).toBe(sha256(p1.text))
+    rec('API01.04', 'poa first', p1, { idempotencyKey: 'K2' }); rec('API01.04', 'poa replay', p2, { idempotencyKey: 'K2' })
     expect(companyCounts(A).poas).toBe(poas)
     // Samma nyckel mot en annan site återspelar inte den första sitens POA.
     const p3 = await partner(keyA, 'POST', `customer/${fixtureCustA}/site/${siteA1}/powerofattorney`, pb, { idempotencyKey: pkey })
     expect(p3.status, brief(p3)).toBe(409)
+    rec('API01.04', 'poa same key other site', p3, { idempotencyKey: 'K2' })
     expect(companyCounts(A).poas).toBe(poas)
     // Saknad Idempotency-Key på en skrivning nekas utan rad.
     const none = await partner(keyA, 'POST', `customer/${fixtureCustA}/site`, siteBody(6), { idempotencyKey: null })
     expect(none.status, brief(none)).toBeGreaterThanOrEqual(400)
     expect(none.status).toBeLessThan(500)
+    rec('API01.04', 'site without key', none)
     expect(companyCounts(A).sites).toBe(before.sites)
+    receipt('API01.04', 'counts', { before, after: companyCounts(A), notVerified: 'kund- och avtalsskrivningar (fynd 001)' })
   })
 
-  it('API01.05 fel tenant, scope eller nyckel nekas utan rader eller läckt data', async () => {
+  it('API01.05 fel tenant eller för bred scope nekas utan rader eller läckt data', async () => {
     const beforeA = companyCounts(A), beforeB = companyCounts(B)
+    // Begäran utöver nyckelns scope nekas.
     const readOnly = createPartnerClient(A, ['customer_profile.read'])
-    const noScope = await partner(readOnly, 'POST', 'customer', customerBody(7, 'Scope'))
+    const noScope = await partner(readOnly, 'POST', `customer/${fixtureCustA}/site`, siteBody(7))
+    rec('API01.05', 'write beyond scope', noScope)
     expect(noScope.status, brief(noScope)).toBe(403)
-    const tenant = await partner(keyA, 'POST', 'customer', { ...customerBody(8, 'Tenant'), company_id: B })
+    expect(noScope.text).toContain('api_scope_missing')
+    // Fel tenant: tenantväljare i kroppen och främmande resurser.
+    const tenant = await partner(keyA, 'POST', `customer/${fixtureCustA}/site`, { ...siteBody(8), company_id: B })
+    rec('API01.05', 'tenant selector in body', tenant)
     expect(tenant.status, brief(tenant)).toBe(422)
     expect(tenant.text).toContain('tenant_selection_forbidden')
+    const fixtureEmail = psql(`select email from public.customers where customer_reference='${fixtureCustA}'`)
     const foreignGet = await partner(keyB, 'GET', `customer/${fixtureCustA}`)
+    rec('API01.05', 'foreign customer read', foreignGet)
     expect(foreignGet.status, brief(foreignGet)).toBe(404)
-    expect(foreignGet.text).not.toContain('Testgatan')
+    expect(foreignGet.text).toContain('customer_not_found')
+    expect(fixtureEmail).toMatch(/@example\.invalid$/)
+    expect(foreignGet.text).not.toContain(fixtureEmail)
     const foreignSite = await partner(keyB, 'POST', `customer/${fixtureCustA}/site`, siteBody(9))
+    rec('API01.05', 'foreign customer write', foreignSite)
     expect(foreignSite.status, brief(foreignSite)).toBe(404)
+    expect(foreignSite.text).toContain('customer_not_found')
+    // Ogiltiga nycklar.
     const revoked = createPartnerClient(A, WRITE_SCOPES, { status: 'revoked' })
-    const r1 = await partner(revoked, 'POST', 'customer', customerBody(10, 'Revoked'))
+    const r1 = await partner(revoked, 'POST', `customer/${fixtureCustA}/site`, siteBody(10))
+    rec('API01.05', 'revoked key', r1)
     expect([401, 403], brief(r1)).toContain(r1.status)
     expect(r1.text).toMatch(/api_client_(inactive|revoked)|invalid_api_token/)
     const expired = createPartnerClient(A, WRITE_SCOPES, { expiresAt: '2020-01-01T00:00:00Z' })
-    const r2 = await partner(expired, 'POST', 'customer', customerBody(11, 'Expired'))
+    const r2 = await partner(expired, 'POST', `customer/${fixtureCustA}/site`, siteBody(11))
+    rec('API01.05', 'expired key', r2)
     expect([401, 403], brief(r2)).toContain(r2.status)
     expect(r2.text).toMatch(/api_client_expired|api_client_inactive|invalid_api_token|expired/)
-    const anon = await partner(null, 'POST', 'customer', customerBody(12, 'Anon'))
+    const anon = await partner(null, 'POST', `customer/${fixtureCustA}/site`, siteBody(12))
+    rec('API01.05', 'no key', anon)
     expect(anon.status, brief(anon)).toBe(401)
+    expect(anon.text).toContain('missing_api_token')
     expect(companyCounts(A)).toEqual(beforeA)
     expect(companyCounts(B)).toEqual(beforeB)
+  })
+
+  it('API01.05 för bred scope vid utfärdande: plattformens behörighetsändring tar bort okända och jokerscopes', async () => {
+    const platform = await createAuthUser('api-platform')
+    try {
+      psql(`INSERT INTO public.admin_users(user_id,role,is_active) VALUES('${platform.userId}','platform_admin',true);`)
+      const target = createPartnerClient(A, ['customer_profile.read'])
+      const s = await loginViaUi(platform.email, platform.password, '/admin/platform/api-clients')
+      const form = new FormData()
+      form.set('clientId', target.id)
+      for (const scope of ['*', 'admin.everything', 'customer_profile.read']) form.append('scopes', scope)
+      form.set('allowedOrigins', 'https://partner.example.com')
+      const result = await callServerAction({ userId: '', cookieHeader: s.cookieHeader(), fetch: s.fetch }, {
+        route: '/admin/platform/api-clients', filename: 'app/admin/platform/api-clients/actions.ts',
+        exportedName: 'updateIntegrationApiClientPermissionsAction', args: [form] })
+      const stored = psqlRows<{ scopes: string[]; status: string; launch_ready: boolean }>(
+        `select scopes, status, launch_ready from public.integration_api_clients where id='${target.id}'`)[0]
+      receipt('API01.05', 'platform permission update', { httpStatus: result.httpStatus, threw: result.threw, stored })
+      expect(result.threw, result.excerpt).toBe(false)
+      expect(stored.scopes).not.toContain('*')
+      expect(stored.scopes).not.toContain('admin.everything')
+      expect(stored.scopes).toContain('customer_profile.read')
+      // Ändrade behörigheter kräver ny go-live; nyckeln nekas tills dess.
+      expect(stored.launch_ready).toBe(false)
+      const after = await partner(target, 'GET', `customer/${fixtureCustA}`)
+      rec('API01.05', 'key after permission change', after)
+      expect([401, 403], brief(after)).toContain(after.status)
+    } finally {
+      await deleteAuthUser(platform.userId)
+    }
   })
 })

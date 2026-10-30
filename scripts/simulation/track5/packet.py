@@ -18,6 +18,10 @@ def sha(p: pathlib.Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
 reports = {name: json.loads((ev / f'{name}-report.json').read_text()) for name in ('auth01', 'api01', 'event01')}
+receipts = {}
+for name in ('auth01', 'api01', 'event01'):
+    f = ev / f'{name}-report.receipts.jsonl'
+    receipts[name] = [json.loads(l) for l in f.read_text().splitlines() if l.strip()] if f.exists() else []
 evidence_files = sorted(p for p in ev.iterdir() if p.is_file())
 evidence = [{'file': p.name, 'sha256': sha(p)} for p in evidence_files]
 
@@ -55,6 +59,7 @@ for scenario_id, c in cls.items():
         'runDirClean': rep['runDirClean'],
         'evidenceRefs': {'privateDir': meta['evidenceDir'], 'files': evidence,
                          'reportSha256': sha(ev / f'{group}-report.json'), 'vitestLogSha256': rep['logSha256']},
+        'receipts': [r for r in receipts[group] if r.get('scenarioId') == scenario_id or (group == 'event01' and r.get('scenarioId') == 'SETUP')],
         'oracle': c['oracle'],
         'substitutions': c.get('substitutions', []),
         'notVerified': c.get('notVerified', []),
