@@ -30,6 +30,7 @@ tillagda migrationer (`applied-migrations.tsv` tom) fram till 2026-10-30T14:44Z;
 | 018 | produktfel mot orakel / medel | EDIEL02.05 | observerat i officiell körning |
 | 019 | produktfel mot orakel / medel | EDIEL02.06 | 06a3 bekräftad |
 | 020 | ej fel (beslut) | EDIEL02.06 | manual_review synligt för operatör; stängt |
+| 022 | produktbrist / medel | EDIEL02.02, EDIEL02.03 (016, 017) | styrkt; tilldelad T3 efter 021 |
 
 ## 20261029-3f1a8ab1/claude-track3/001 – IMAP-pollern kör kommandon inne i öppen FETCH
 - 2026-10-29, produktfel, kritisk. `lib/inbound-mail/edielMailboxPoller.part-2.ts:425,430,447`: `messageFlagsAdd`
@@ -140,6 +141,13 @@ tillagda migrationer (`applied-migrations.tsv` tom) fram till 2026-10-30T14:44Z;
   detaljsida med öppen granskning). Stängt som ej fel. Felaktiga segment och UNOC-brott (06a1/a2/b1/b2) ger
   korrekt negativ CONTRL (UCI 4) som mottas hos DSO.
 
+
+## …/022 – ingen operatörsvy för `ediel_manual_review_items`
+- 2026-10-30, granskning av 016 steg 1 (f71f93f8): inget i `app/` eller `components/` läser tabellen; enda andra
+  skrivaren är `lib/ediel/inboundRequestAutomation.ts:139`. Poster från 016 (`inbound_duplicate_response_held`) och
+  017 (`utilts_series_version_conflict`) skrivs tenant-scopat och auditerat men syns inte för operatör.
+- Beslut (samordningen 16:38Z): 016 (d) godkänd som auditerad post utan vy (alternativ 2). 022 ägs av T3 efter 021:
+  läsande vy, tenant-scopad under RLS (`tenant_lifecycle_select_guard`), read-only, med test.
 ## Miljöhändelser
 - Containeromstarter ~2026-10-30T11:5xZ och ~14:3xZ (app ombyggd 14:38–14:42Z på e65a6721); dockerd och stack återstartade 12:09–12:12Z; databasidentitet oförändrad.
 - `next build` dödades två gånger (OOM) när andra agenter körde typkontroll parallellt; lyckades med 4 GB heap 12:12Z.
