@@ -1,4 +1,4 @@
--- Adopted from finance (simulation T1 finding 010), placeholder version 20261030160100 (GEN assigns the final one).
+-- Adopted from finance (simulation T1 finding 010) as version 20261030120100, assigned by GEN in the PR #930 queue.
 -- Source: c400f6959d8c279fb518b7199fe6e77da30409c4:supabase/migrations/20261024120000_g2_utilts_decimal_source_own_transaction_scans.sql
 --   (source file sha256 8e585f942588327cf911b9469c4153ef2fe81525b4e97130d4f897973c7d43cb). Everything below this
 -- header is the source file byte for byte; its pre-image guard bb11ba59... equals main's current

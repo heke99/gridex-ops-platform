@@ -1,4 +1,4 @@
--- Adopted from finance (simulation T1 finding 010), placeholder version 20261030160000 (GEN assigns the final one).
+-- Adopted from finance (simulation T1 finding 010) as version 20261030120000, assigned by GEN in the PR #930 queue.
 -- Source: c400f6959d8c279fb518b7199fe6e77da30409c4:supabase/migrations/20261020120000_ediel_wire_tokenizer_linear_time.sql
 --   (source file sha256 be403a83e8f240e4a7d97797017ea8f246f28e66c45018d9e5c5d92e618f9334).
 -- Adopted verbatim: the source header and the CREATE OR REPLACE statements of wire_tokens_v1,

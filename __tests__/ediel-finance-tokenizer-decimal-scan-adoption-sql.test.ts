@@ -24,8 +24,8 @@ import {afterAll,beforeAll,describe,expect,it} from 'vitest'
 
 const schema=readFileSync(resolve('supabase/schema.sql'),'utf8')
 // Adopted in order: g1 (finance 20261020120000), then g2 (finance 20261024120000).
-const migrationPaths=['20261030160000_adopt_finance_ediel_wire_tokenizer_linear_time.sql',
- '20261030160100_adopt_finance_g2_utilts_decimal_source_own_transaction_scans.sql'].map(file=>resolve('supabase/migrations',file))
+const migrationPaths=['20261030120000_adopt_finance_ediel_wire_tokenizer_linear_time.sql',
+ '20261030120100_adopt_finance_g2_utilts_decimal_source_own_transaction_scans.sql'].map(file=>resolve('supabase/migrations',file))
 const digest=(text:string)=>createHash('sha256').update(text,'utf8').digest('hex')
 
 const WIRE='gridex_utilts_binding.wire_tokens_v1(text)'
