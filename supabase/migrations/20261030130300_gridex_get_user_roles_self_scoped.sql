@@ -23,7 +23,8 @@
 -- super_admin. A platform role is therefore returned only when
 -- canonical_actor_is_platform_admin() agrees (active admin_users grant or global
 -- user_roles row, active profile); company-scoped rows and free-text membership
--- roles never yield one. Inactive roles are excluded.
+-- roles never yield one, in any spelling the callers normalise. Inactive roles
+-- are excluded.
 --
 -- The legacy debug view gridex_debug_batch2_rbac_v depends on the legacy
 -- function and exposes membership data with owner rights; no code reads it.
@@ -70,13 +71,22 @@ as $$
     join allowed a on a.user_id = au.user_id
     where coalesce(au.is_active, true)
   )
-  select role_key, role_key, role_key, coalesce(role_name, role_key)
-  from roles
-  where role_key is not null
-    and (
-      public.gridex_normalize_platform_role(role_key) not in ('super_admin', 'platform_admin')
-      or public.canonical_actor_is_platform_admin(p_user_id)
-    );
+  -- Platform-like is decided with the broadest normalisation any caller applies
+  -- (lib/rbac/roleKeys.ts: fold å/ä/ö, collapse non-alphanumerics to '_', trim
+  -- '_', then the platform aliases), on both the key and the name, so spellings
+  -- such as 'Platform-Admin' or 'Super Admin' cannot pass as non-platform text.
+  select r.role_key, r.role_key, r.role_key, coalesce(r.role_name, r.role_key)
+  from roles r
+  cross join lateral (
+    select coalesce(bool_or(
+      public.gridex_normalize_platform_role(
+        btrim(regexp_replace(translate(lower(v), 'åäö', 'aao'), '[^a-z0-9]+', '_', 'g'), '_')
+      ) in ('super_admin', 'platform_admin')
+    ), false) as platform_like
+    from unnest(array[r.role_key, r.role_name]) as v
+  ) c
+  where r.role_key is not null
+    and (not c.platform_like or public.canonical_actor_is_platform_admin(p_user_id));
 $$;
 
 revoke all on function public.gridex_get_user_roles(uuid) from public, anon;

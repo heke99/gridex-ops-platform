@@ -32,12 +32,12 @@ async function session(u:User){
 }
 const keys=(rows:unknown)=>((rows??[]) as {role_key:string}[]).map(r=>r.role_key).sort()
 
-let member:User,platform:User,other:User,scoped:User,company='',company2=''
+let member:User,platform:User,other:User,scoped:User,company='',company2='',company3=''
 const roleKey=`native_roles_${randomUUID().slice(0,8)}`
 beforeAll(async()=>{
  member=await user('member');platform=await user('platform');other=await user('other');scoped=await user('scoped')
- company=randomUUID();company2=randomUUID()
- sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(company)},'Synthetic roles company','active'),(${literal(company2)},'Synthetic roles company 2','active');
+ company=randomUUID();company2=randomUUID();company3=randomUUID()
+ sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(company)},'Synthetic roles company','active'),(${literal(company2)},'Synthetic roles company 2','active'),(${literal(company3)},'Synthetic roles company 3','active');
   INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,is_active,accepted_at,joined_at,role,role_key)
    VALUES(${literal(company)},${literal(member.id)},'company_admin','active',true,now(),now(),'company_admin','company_admin');
   WITH r AS (INSERT INTO public.roles(id,key,name,scope) VALUES(gen_random_uuid(),${literal(roleKey)},'Synthetic role','company') RETURNING id)
@@ -48,6 +48,10 @@ beforeAll(async()=>{
   INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,is_active,accepted_at,joined_at,role,role_key)
    VALUES(${literal(company)},${literal(scoped.id)},'company_admin','active',true,now(),now(),'platform_admin','platform_admin');
   INSERT INTO public.user_roles(user_id,company_id,role,status,is_active) VALUES(${literal(scoped.id)},${literal(company)},'billing','active',true);
+  -- Spellings the callers normalise to platform roles.
+  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,is_active,accepted_at,joined_at,role,role_key)
+   VALUES(${literal(company2)},${literal(scoped.id)},'company_admin','active',true,now(),now(),'Platform-Admin','Platform-Admin');
+  INSERT INTO public.user_roles(user_id,company_id,role,status,is_active) VALUES(${literal(scoped.id)},${literal(company3)},'Super Admin','active',true);
   WITH r AS (INSERT INTO public.roles(id,key,name,scope,is_active) VALUES(gen_random_uuid(),${literal(`${roleKey}_off`)},'Inactive role','company',false) RETURNING id)
   INSERT INTO public.user_roles(user_id,company_id,role_id,role,status,is_active) SELECT ${literal(scoped.id)},${literal(company2)},id,${literal(`${roleKey}_off`)},'active',true FROM r;`)
 })
