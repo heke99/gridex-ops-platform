@@ -173,7 +173,7 @@
   "replacementStepsNote": "Inga ERSATTNINGSSTEG namngivna i report.json for CUSTODY01.05.",
   "replacementSteps": [],
   "checklistDeviation": [
-    "docs/backup-restore-checklist.md beskriver PITR/backup-ateråterstallning till produktion eller nytt projekt, sedan supabase/sql/checks/production_consistency_checks.sql och /admin/system-health. Denna korning: pg_dump -Fc av lokal stack (docker-verktyg, host major 16, server major 17) och pg_restore till ny databas pa samma server. Ingen omnamnd korning av production_consistency_checks.sql eller /admin/system-health i report.json.",
+    "docs/backup-restore-checklist.md beskriver PITR/backup-ateråterstallning till produktion eller nytt projekt, sedan supabase/sql/checks/production_consistency_checks.sql och /admin/system-health. Denna korning: pg_dump -Fc av lokal stack (docker-verktyg, host major 16, server major 17) och pg_restore till ny databas pa samma server. Ingen korning av production_consistency_checks.sql eller /admin/system-health namns i report.json.",
     "Checklistens storage-krav ar inte uppfyllt: pg_dump tacker storage.objects-metadata, inte objektens bytes (observations.storage_bytes_note).",
     "pg_restore exit status 1 med 3 rapporterade fel pa plattformsagda objekt accepterades av runnern (pg_restore_platform_only)."
   ],

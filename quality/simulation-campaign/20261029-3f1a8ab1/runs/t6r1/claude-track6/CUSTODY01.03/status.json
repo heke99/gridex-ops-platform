@@ -151,7 +151,7 @@
   "harnessErrorInReport": null,
   "state": "PARTIAL",
   "proposedState": "PASS",
-  "stateNote": "Placeholder PARTIAL. Runnern rapporterar alla steg passed (5/5). PASS foreslas endast; granskning av orkestratoren ar pending. Ingen PASS satt har.",
+  "stateNote": "Placeholder PARTIAL. Runnern rapporterar alla steg passed (5/5). PASS foreslas endast; granskning av orkestratoren ar pending. Ingen PASS ar satt.",
   "replacementSteps": [
     {
       "id": "03-motor-med-aktor",
