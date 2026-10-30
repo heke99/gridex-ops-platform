@@ -83,6 +83,8 @@ export async function publishApiOffer(companyId: string, actorUserId: string): P
   ) INSERT INTO public.contract_price_option_area_prices(company_id,contract_price_option_id,price_plan_version_id,price_row_reference,price_area,amount,unit,created_by)
     SELECT company_id,id,price_plan_version_id,'t5-se3','SE3',4,'ore_per_kwh','${actorUserId}' FROM template;`)
 
+  // Plattformens tillåtelse att publicera i API-kanalen (sätts annars av plattformsadmin på tilldelningen).
+  psql(`UPDATE public.tenant_contract_assignments SET api_publication_allowed=true WHERE company_id='${companyId}';`)
   const channel = await sb.rpc('gridex_publish_contract_channel', { p_company_id: companyId, p_offer_id: offerId, p_channel: 'api', p_actor_user_id: actorUserId })
   if (channel.error || (channel.data as { ok?: boolean } | null)?.ok !== true) {
     throw new Error(`publish channel api: ${channel.error?.message ?? JSON.stringify(channel.data)}`)
