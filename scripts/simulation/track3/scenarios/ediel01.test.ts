@@ -548,6 +548,7 @@ describe('EDIEL01.06 äldre rader oförändrade', () => {
     ev.save('legacy/final-hashes.json', now)
     const diffs = Object.keys({ ...legacyBaseline!, ...now }).filter((k) => legacyBaseline![k] !== now[k]).map((k) => ({ key: k, before: legacyBaseline![k] ?? null, after: now[k] ?? null }))
     ev.observe('legacy_unchanged', { compared: Object.keys(legacyBaseline!).length, changed: diffs })
+    ev.observe('legacy_outbound_requests_now', q(`SELECT coalesce(jsonb_agg(to_jsonb(x)),'[]') FROM (SELECT id,status,attempts_count,failure_reason,updated_at FROM public.outbound_requests WHERE external_reference LIKE ${lit(`${run.prefix}-LEGACY-%`)}) x`))
     // Observation av tillståndet i slutet (sparas, men oraklet är oförändrad hash).
     ev.observe('final_counterparty', await counterpartyState())
     expect(diffs, JSON.stringify(diffs.slice(0, 3))).toEqual([])

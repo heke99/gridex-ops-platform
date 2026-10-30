@@ -103,9 +103,17 @@ export async function runIntake(prefix: string, expected: number, t: Timer, mode
     reprocess.push({ mailId: mail.id, ms: Math.round(performance.now() - t2), status: outcome.status })
   }
 
-  resetMailboxSchedule(mode)
+  // Produktens standard EDIEL_INBOUND_MESSAGE_CONCURRENCY=4 gav vid N=28 statement timeouts/"Okänt fel" (globala tabelllås i ack-skapandet);
+  // körningen 20261030T124519Z-357e3f dokumenterar det. Här körs motorn seriellt (=1) och upprepas upp till 3 gånger tills alla CONTRL finns.
+  process.env.EDIEL_INBOUND_MESSAGE_CONCURRENCY = '1'
   const t3 = performance.now()
-  const auto = await t.p('intake_auto_process_engine', () => runInboundEngineAsAutomationActor(mode, { processLimit: 200 }))
+  let auto = await t.p('intake_auto_process_engine', async () => { resetMailboxSchedule(mode); return runInboundEngineAsAutomationActor(mode, { processLimit: 200 }) })
+  for (let again = 0; again < 2; again++) {
+    const ids = sourceRows(prefix, opts.legacy).map((r) => r.id)
+    const have = Number(q<number>(`SELECT count(*) FROM public.ediel_messages WHERE direction='outbound' AND message_family='CONTRL' AND related_message_id IN (${ids.length ? ids.map(lit).join(',') : "'00000000-0000-0000-0000-000000000000'"})`))
+    if (have >= expected) break
+    auto = await t.p('intake_auto_process_engine_retry', async () => { resetMailboxSchedule(mode); return runInboundEngineAsAutomationActor(mode, { processLimit: 200 }) })
+  }
   const engineAuto = auto.ok
     ? { ms: Math.round(performance.now() - t3), fetched: auto.result.fetchedMessages, edielMessageIds: auto.result.edielMessageIds.length, autoProcessErrors: auto.result.debug.autoProcessErrors }
     : { ms: Math.round(performance.now() - t3), error: auto.error }
@@ -113,7 +121,7 @@ export async function runIntake(prefix: string, expected: number, t: Timer, mode
 }
 
 /** Seedar granskat historiktäckningsunderlag och kör inbound-bearbetningen på nytt (samma anrop som motorns autoprocess) -> positiv APERAK-utkast. */
-export async function reprocessSources(ids: string[], t: Timer, concurrency = 4): Promise<Array<{ id: string; error: string | null; ms: number }>> {
+export async function reprocessSources(ids: string[], t: Timer, concurrency = 1): Promise<Array<{ id: string; error: string | null; ms: number }>> {
   const { processInboundEdielMessage } = await import('@/lib/ediel/flows/inboundProcessing')
   const out: Array<{ id: string; error: string | null; ms: number }> = []
   let next = 0

@@ -168,7 +168,9 @@ export function seedE01Tenant(): { companyId: string; actorUserId: string } {
       const routeName = `T3SIM E01 ${scope} -> DSO ${COUNTERPARTY_EDIEL_ID} (${environment})`
       const routeId = ensure('public.communication_routes', `company_id=${lit(companyId)} AND route_name=${lit(routeName)}`,
         { company_id: companyId, route_name: routeName, route_scope: scope, route_type: 'ediel_partner', is_active: true, target_email: 'dso@t3.sim.invalid', counterparty_ediel_id: COUNTERPARTY_EDIEL_ID,
-          environment_type: environment === 'test' ? 'tgt_test' : 'production', market_party_role: 'grid_owner', grid_owner_id: gridOwnerId })
+          environment_type: environment === 'test' ? 'tgt_test' : 'production', market_party_role: 'grid_owner' })
+      // Generisk rutt (grid_owner_id NULL): replyGridOwnerId() hittar två 70007-nätägare (test+production) och faller då tillbaka på generiska rutten.
+      sql(`UPDATE public.communication_routes SET grid_owner_id=NULL WHERE id=${lit(routeId)}`); void gridOwnerId
       ensure('public.ediel_route_profiles', `company_id=${lit(companyId)} AND communication_route_id=${lit(routeId)}`,
         { company_id: companyId, communication_route_id: routeId, is_enabled: true, is_active: true, environment, route_name: routeName, sender_ediel_id: OWN_EDIEL_ID, own_ediel_id: OWN_EDIEL_ID,
           receiver_ediel_id: COUNTERPARTY_EDIEL_ID, counterparty_ediel_id: COUNTERPARTY_EDIEL_ID, receiver_email: 'dso@t3.sim.invalid', smtp_to: 'dso@t3.sim.invalid', smtp_from: mailboxAddress,
