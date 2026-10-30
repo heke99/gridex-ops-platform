@@ -15,6 +15,36 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+const OUTBOX_ERROR_MESSAGE_MAX = 500
+
+// Fynd 023: ediel_outbox.last_error is text. Non-Error throwables (PostgREST
+// {code,message,details,hint}) previously became "[object Object]". Keep only
+// code and a bounded message; details/hint may echo row/payload data and are
+// deliberately omitted.
+function errorCode(value: unknown): string | null {
+  const code = (value as { code?: unknown }).code
+  return typeof code === 'string' && /^[A-Za-z0-9_.-]{1,64}$/.test(code) ? code : null
+}
+
+export function describeOutboxError(error: unknown): string {
+  if (typeof error === 'string') return error
+  if (error instanceof Error) {
+    // SmtpDeliveryUncertainError carries its own sanitized, code-bearing message.
+    if (error instanceof SmtpDeliveryUncertainError) return error.message
+    const code = errorCode(error)
+    return code && !error.message.startsWith(code) ? `${code}: ${error.message}` : error.message
+  }
+  if (error && typeof error === 'object') {
+    const message = (error as { message?: unknown }).message
+    const code = errorCode(error)
+    const text = typeof message === 'string' && message.trim() ? message.trim().slice(0, OUTBOX_ERROR_MESSAGE_MAX) : null
+    if (code && text) return `${code}: ${text}`
+    if (text) return text
+    if (code) return code
+  }
+  return 'unknown_error'
+}
+
 function lockMatchesEnvironment(row: Record<string, unknown>, environment: string | null): boolean {
   const lockEnvironment = clean(row.environment)
   if (!lockEnvironment || !environment) return true
@@ -304,7 +334,7 @@ export async function sendOutboxItem(params: {
     })
     return { status: 'sent', messageId: providerMessageId }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorMessage = describeOutboxError(error)
 
     if (providerAccepted || isSmtpDeliveryUncertain(error)) {
       if (error instanceof SmtpDeliveryUncertainError) providerMessageId = error.smtpMessageId ?? providerMessageId
@@ -323,7 +353,7 @@ export async function sendOutboxItem(params: {
           },
         })
       } catch (uncertainError) {
-        const uncertainMessage = uncertainError instanceof Error ? uncertainError.message : String(uncertainError)
+        const uncertainMessage = describeOutboxError(uncertainError)
         return {
           status: 'delivery_uncertain',
           messageId: providerMessageId,
