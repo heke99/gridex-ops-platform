@@ -98,7 +98,13 @@ export async function storeInboundEmail(
         transactionReference: dedupeFacts.transactionReference,
         externalReference: dedupeFacts.externalReference,
       });
-      if (existingAfterConflict)
+      // Finding 016 step 2: never silently dedupe changed content behind a
+      // business-reference conflict; only identical (or legacy NULL) sha dedupes.
+      const conflictSha = existingAfterConflict?.rawMessageSha256 ?? null;
+      if (
+        existingAfterConflict &&
+        !(existingAfterConflict.scope === "tenant_environment" && rawMessageSha256 && conflictSha && conflictSha !== rawMessageSha256)
+      )
         return { id: existingAfterConflict.id, deduped: true };
     }
 

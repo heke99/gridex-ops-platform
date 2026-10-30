@@ -1042,7 +1042,7 @@ export async function findExistingInboundEmail(input: {
   interchangeReference?: string | null;
   transactionReference?: string | null;
   externalReference?: string | null;
-}): Promise<{ id: string; scope: string; reason: string } | null> {
+}): Promise<{ id: string; scope: string; reason: string; rawMessageSha256?: string | null } | null> {
   // Phase 1: before tenant resolution, only mailbox-scoped immutable mail identity
   // is safe for dedupe. Business references must not be tenant-neutral in a
   // shared mailbox because two tenants can legitimately receive the same
@@ -1086,37 +1086,51 @@ export async function findExistingInboundEmail(input: {
   const environment = normalizeEnvironment(input.environment) ?? "test";
   if (!companyId) return null;
 
+  // Finding 016 step 2: a business reference only identifies a duplicate when
+  // the content is identical. Same reference with a different raw sha is a
+  // conflict and must be inserted so reception/identity_conflict can see it.
+  // NULL sha on either side keeps the previous (reference-only) behaviour:
+  // without input sha no filter is applied; stored NULL-sha rows still match.
+  const inputSha = stringOrNull(input.rawMessageSha256);
+  const shaFilter = inputSha
+    ? `raw_message_sha256.eq.${inputSha},raw_message_sha256.is.null`
+    : null;
+
   if (input.senderEdielId && input.interchangeReference) {
     const { data, error } = await supabaseService
       .from("inbound_email_messages")
-      .select("id")
+      .select("id, raw_message_sha256")
       .eq("environment", environment)
       .eq("company_id", companyId)
       .eq("sender_ediel_id", input.senderEdielId)
       .eq("interchange_reference", input.interchangeReference)
+      .or(shaFilter ?? "id.not.is.null")
       .limit(1)
       .maybeSingle();
 
     if (error) throw error;
-    const id = (data as { id?: string } | null)?.id;
-    if (id) return { id, scope: "tenant_environment", reason: "interchange_reference" };
+    const row = data as { id?: string; raw_message_sha256?: string | null } | null;
+    const id = row?.id;
+    if (id) return { id, rawMessageSha256: row?.raw_message_sha256 ?? null, scope: "tenant_environment", reason: "interchange_reference" };
   }
 
   if (input.senderEdielId && input.transactionReference && input.externalReference) {
     const { data, error } = await supabaseService
       .from("inbound_email_messages")
-      .select("id")
+      .select("id, raw_message_sha256")
       .eq("environment", environment)
       .eq("company_id", companyId)
       .eq("sender_ediel_id", input.senderEdielId)
       .eq("transaction_reference", input.transactionReference)
       .eq("external_reference", input.externalReference)
+      .or(shaFilter ?? "id.not.is.null")
       .limit(1)
       .maybeSingle();
 
     if (error) throw error;
-    const id = (data as { id?: string } | null)?.id;
-    if (id) return { id, scope: "tenant_environment", reason: "transaction_external_reference" };
+    const row = data as { id?: string; raw_message_sha256?: string | null } | null;
+    const id = row?.id;
+    if (id) return { id, rawMessageSha256: row?.raw_message_sha256 ?? null, scope: "tenant_environment", reason: "transaction_external_reference" };
   }
 
   return null;
