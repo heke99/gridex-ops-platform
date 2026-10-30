@@ -1,20 +1,20 @@
 {
   "format": "exact-generated-schema-inverse-v1",
   "origin": {
-    "source": "f0d801caa27354b57035d75d0b74e452b66023e2",
-    "tree": "8cd0cb66f57b9166ff4e443236ac89108eda0d1a",
-    "run": 40942273081,
+    "source": "9c39bd6078af9b23e57c65455966628acd41700f",
+    "tree": "83fd8a9c9dfc8fb901d95c012f9a33cd31ed96ae",
+    "run": 41060729893,
     "attempt": 1,
-    "job": 123688451375,
-    "artifact": 12926254740,
-    "ZIPsha256": "9418c03723fd5ad8e171955629302373c089af0a7b22244870b5010aecb085fc",
-    "candidateSQLSHA256": "c729ce3855343b71f3b599f6cb1cc551528012b1989f6176410b4635a8bb5acb",
+    "job": 124079498428,
+    "artifact": 12981765531,
+    "ZIPsha256": "dcfaeab993af7fef8ea13bbbda09abefbab64801a8aee0a4444fbf1be5c8aea0",
+    "candidateSQLSHA256": "69413d7266160a3f5d9b95b1bd27046ab5ab89668f35a02de2589ab0412b24d3",
     "preimageSource": "genuineC14 capture12864584609 (aa5d9975); unchanged tenant-key linked inverse retained",
     "nativeCredit": false,
     "wholeBusinessCredit": false
   },
   "preSha256": "aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6",
-  "postSha256": "b97f5a7bc49fc9ca513b9fa417d69d6aa6058920faa6f19b990cbd2f8bc9512e",
+  "postSha256": "20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b",
   "hunks": [
     {
       "preStart": 371,
@@ -182,7 +182,7 @@
         "      and archived_at is null and status is distinct from 'archived' for share nowait;",
         "    if not found then raise exception using errcode='22023',message='unsigned_contract_edit_customer_not_found';end if;",
         "  exception when lock_not_available then",
-        "    raise exception using errcode='40001',message='unsigned_contract_edit_customer_busy';",
+        "    raise exception using errcode='PT409',message='unsigned_contract_edit_customer_busy';",
         "  end;",
         "",
         "  command_key:=p_contract_id::text||':'||p_edit_id::text;",
@@ -203,13 +203,13 @@
         "    raise exception using errcode='55000',message='unsigned_contract_edit_signed_or_locked';",
         "  end if;",
         "  if c.updated_at is distinct from p_expected_updated_at then",
-        "    raise exception using errcode='40001',message='unsigned_contract_edit_stale';",
+        "    raise exception using errcode='PT409',message='unsigned_contract_edit_stale';",
         "  end if;",
         "  -- Direct event commands acquire this advisory key before their contract",
         "  -- lock; finalization acquires it afterwards. Never wait here while holding",
         "  -- the contract: a competing event gets a retryable, effect-free refusal.",
         "  if not pg_try_advisory_xact_lock(hashtextextended(p_company_id::text||':'||p_contract_id::text,0)) then",
-        "    raise exception using errcode='40001',message='unsigned_contract_edit_concurrent_event';",
+        "    raise exception using errcode='PT409',message='unsigned_contract_edit_concurrent_event';",
         "  end if;",
         "  perform id from public.customer_contract_signature_requests where company_id=p_company_id",
         "    and customer_id=p_customer_id and customer_contract_id=p_contract_id order by id for update;",
@@ -236,7 +236,7 @@
         "    begin",
         "      select * into site from public.customer_sites where id=n.customer_site_id and company_id=p_company_id and customer_id=p_customer_id for share nowait;",
         "    exception when lock_not_available then",
-        "      raise exception using errcode='40001',message='unsigned_contract_edit_site_busy';",
+        "      raise exception using errcode='PT409',message='unsigned_contract_edit_site_busy';",
         "    end;",
         "    if not found or (c.price_area_used is not null and site.price_area_code is distinct from c.price_area_used) then",
         "      raise exception using errcode='22023',message='unsigned_contract_edit_owned_same_area_site_required';",
@@ -248,7 +248,7 @@
         "        and customer_id=p_customer_id and site_id=n.customer_site_id for share nowait;",
         "      if not found then raise exception using errcode='22023',message='unsigned_contract_edit_owned_point_required';end if;",
         "    exception when lock_not_available then",
-        "      raise exception using errcode='40001',message='unsigned_contract_edit_point_busy';",
+        "      raise exception using errcode='PT409',message='unsigned_contract_edit_point_busy';",
         "    end;",
         "  end if;",
         "  for key,value in select * from jsonb_each(p_patch) loop",
@@ -560,7 +560,7 @@
         "--"
       ],
       "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "postSha256": "85ef823971580dc8024ebe483e3604152c62e6ce68ce43748019ef659c6baf5d"
+      "postSha256": "e0335143e47ea04afd7ce42338be7fea77e7a3575c213ce4d69d55c895679785"
     },
     {
       "preStart": 73314,
@@ -578,7 +578,7 @@
       "preStart": 73425,
       "preCount": 0,
       "postStart": 73939,
-      "postCount": 8,
+      "postCount": 55,
       "preLines": [],
       "postLines": [
         "      if coalesce(v_contract.source_type,'') not in ('manual','manual_override')",
@@ -588,15 +588,112 @@
         "         or v_contract.price_plan_version_id is not null",
         "         or v_contract.legal_bundle_version_id is not null then",
         "        raise exception using errcode='23514',message='admin_signed_contract_import_manual_binding_requires_reconciliation';",
+        "      end if;",
+        "      -- A simple manual intake stores only scalar prices. Its first receipt",
+        "      -- must still carry exactly those fees: derive components only when the",
+        "      -- snapshot has none, with the unsigned-edit scalar mapping. Optional",
+        "      -- fee lines without components cannot be derived safely and stay held.",
+        "      v_price_components := coalesce(",
+        "        v_contract.price_snapshot->'price_components_snapshot',",
+        "        v_contract.price_snapshot->'price_components');",
+        "      v_base_components := coalesce(",
+        "        v_contract.price_snapshot->'base_price_components_snapshot',",
+        "        v_contract.price_snapshot->'base_components');",
+        "      if v_price_components is null then",
+        "        if jsonb_typeof(v_contract.price_snapshot->'optionalFeeLines')='array'",
+        "           and jsonb_array_length(v_contract.price_snapshot->'optionalFeeLines')>0 then",
+        "          raise exception using errcode='23514',message='admin_signed_contract_import_manual_binding_requires_reconciliation';",
+        "        end if;",
+        "        select coalesce(jsonb_agg(jsonb_build_object('component_code',m.code,'component_type','fee',",
+        "            'name',m.label,'unit',m.unit,'amount',m.amount,'calculation_type',m.calculation,",
+        "            'vat_applicable',true,'invoice_line_visible',true,'website_card_visible',true,",
+        "            'calculation_inclusion','included','priority',m.priority,'metadata',",
+        "            case when m.code in ('start_fee','administration_fee') then jsonb_build_object('lifecycle','once_per_contract','event','contract_started')",
+        "                 when m.code='break_fee' then jsonb_build_object('lifecycle','event_only','event','early_termination')",
+        "                 else '{}'::jsonb end) order by m.priority),'[]'::jsonb)",
+        "          into v_price_components",
+        "        from (values",
+        "          ('monthly_fee',to_jsonb(v_contract.monthly_fee_sek),'sek_month','per_month','Månadsavgift',100),",
+        "          ('invoice_fee',to_jsonb(v_contract.invoice_fee_sek),'sek_invoice','per_invoice','Fakturaavgift',110),",
+        "          ('spot_markup',to_jsonb(v_contract.spot_markup_ore_per_kwh),'ore_per_kwh','per_kwh','Påslag',130),",
+        "          ('variable_fee',to_jsonb(v_contract.variable_fee_ore_per_kwh),'ore_per_kwh','per_kwh','Rörlig avgift',140),",
+        "          ('green_energy_fee',case when coalesce(v_contract.green_fee_mode,'none')='none' then null else to_jsonb(v_contract.green_fee_value) end,",
+        "            case when v_contract.green_fee_mode='sek_month' then 'sek_month' else 'ore_per_kwh' end,",
+        "            case when v_contract.green_fee_mode='sek_month' then 'per_month' else 'per_kwh' end,'Grönt el-tillägg',150),",
+        "          ('start_fee',to_jsonb(v_contract.start_fee_sek),'sek_contract','fixed_once','Startavgift',170),",
+        "          ('administration_fee',to_jsonb(v_contract.admin_fee_sek),'sek_contract','fixed_once','Administrativ avgift',180),",
+        "          ('break_fee',to_jsonb(v_contract.break_fee_sek),'sek_event','event_only','Brytavgift',190)",
+        "        ) m(code,amount,unit,calculation,label,priority)",
+        "        where m.amount is not null and m.amount<>'null'::jsonb;",
+        "      end if;",
+        "      if v_base_components is null and nullif(v_contract.price_area_used,'') is not null then",
+        "        v_base_components := case",
+        "          when v_contract.contract_type='fixed' and v_contract.fixed_price_ore_per_kwh is not null then",
+        "            jsonb_build_array(jsonb_build_object('source_type','fixed','label','Fast pris','weight_percent',100,",
+        "              'fixed_price_sek_per_kwh',v_contract.fixed_price_ore_per_kwh/100,'price_area',v_contract.price_area_used))",
+        "          when v_contract.contract_type in ('variable_monthly','variable_hourly','variable_quarterly','spot') then",
+        "            jsonb_build_array(jsonb_build_object('source_type','spot','label','Spot','weight_percent',100,",
+        "              'price_area',v_contract.price_area_used))",
+        "        end;",
         "      end if;"
       ],
       "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "postSha256": "25b8f4428f6824dc9d5c3be10ec2ddaead2e9d6c3b3c67935922e0ac24d4e7ae"
+      "postSha256": "b9dfe6a3c4f1fb1c74350b7ffa842ef6a35f1b8cf5800a065ad5581b4841a20e"
+    },
+    {
+      "preStart": 73462,
+      "preCount": 2,
+      "postStart": 74031,
+      "postCount": 36,
+      "preLines": [
+        "          'vat_rate', v_contract.vat_rate",
+        "        )),"
+      ],
+      "postLines": [
+        "          'vat_rate', v_contract.vat_rate,",
+        "          -- A simple manual intake snapshot carries no pricing model or",
+        "          -- resolution. Supply only an absent value from the contract type",
+        "          -- (the manual-binding and readiness mappings); an explicit, even",
+        "          -- conflicting, value keeps its normal refusal path.",
+        "          'pricing_model', coalesce(",
+        "            nullif(btrim(v_contract.price_snapshot->>'pricing_model'), ''),",
+        "            case",
+        "              when v_contract.contract_type in ('fixed','portfolio','mixed') then v_contract.contract_type",
+        "              else 'spot'",
+        "            end",
+        "          ),",
+        "          'interval_resolution', coalesce(",
+        "            nullif(btrim(v_contract.price_snapshot->>'interval_resolution'), ''),",
+        "            nullif(btrim(v_contract.price_snapshot#>>'{pricing,interval_resolution}'), ''),",
+        "            nullif(btrim(v_contract.price_snapshot->>'resolution'), ''),",
+        "            case v_contract.contract_type",
+        "              when 'variable_monthly' then 'monthly'",
+        "              when 'spot' then 'monthly'",
+        "              when 'variable_hourly' then 'hourly'",
+        "              when 'variable_quarterly' then 'quarterly'",
+        "              when 'fixed' then 'fixed'",
+        "              when 'portfolio' then 'portfolio'",
+        "            end",
+        "          )",
+        "        ))",
+        "        -- Only derived arrays are added; existing component arrays stay byte-exact.",
+        "        || case when coalesce(v_contract.price_snapshot->'price_components_snapshot',",
+        "                              v_contract.price_snapshot->'price_components') is null",
+        "                then jsonb_build_object('price_components', v_price_components)",
+        "                else '{}'::jsonb end",
+        "        || case when coalesce(v_contract.price_snapshot->'base_price_components_snapshot',",
+        "                              v_contract.price_snapshot->'base_components') is null",
+        "                     and v_base_components is not null",
+        "                then jsonb_build_object('base_components', v_base_components)",
+        "                else '{}'::jsonb end,"
+      ],
+      "preSha256": "0ffda44b5692ac4022f2f0f44fd03cac0a977411f1a53580d3ec1bd89f93042e",
+      "postSha256": "72f9dfbc7822681f066a3ac793901ebc51c922970c813c0fbcd8657b6d7cf3cf"
     },
     {
       "preStart": 73467,
       "preCount": 0,
-      "postStart": 73989,
+      "postStart": 74070,
       "postCount": 1,
       "preLines": [],
       "postLines": [
@@ -608,7 +705,7 @@
     {
       "preStart": 73547,
       "preCount": 0,
-      "postStart": 74070,
+      "postStart": 74151,
       "postCount": 64,
       "preLines": [],
       "postLines": [
@@ -683,7 +780,7 @@
     {
       "preStart": 73555,
       "preCount": 0,
-      "postStart": 74142,
+      "postStart": 74223,
       "postCount": 2,
       "preLines": [],
       "postLines": [
@@ -696,7 +793,7 @@
     {
       "preStart": 73557,
       "preCount": 1,
-      "postStart": 74146,
+      "postStart": 74227,
       "postCount": 0,
       "preLines": [
         "    v_contract.price_snapshot->'base_price_components_snapshot',"
@@ -708,7 +805,7 @@
     {
       "preStart": 73561,
       "preCount": 0,
-      "postStart": 74149,
+      "postStart": 74230,
       "postCount": 2,
       "preLines": [],
       "postLines": [
@@ -721,7 +818,7 @@
     {
       "preStart": 73563,
       "preCount": 1,
-      "postStart": 74153,
+      "postStart": 74234,
       "postCount": 0,
       "preLines": [
         "    v_contract.price_snapshot->'price_components_snapshot',"
@@ -733,7 +830,7 @@
     {
       "preStart": 73609,
       "preCount": 0,
-      "postStart": 74198,
+      "postStart": 74279,
       "postCount": 1,
       "preLines": [],
       "postLines": [
@@ -745,7 +842,7 @@
     {
       "preStart": 73610,
       "preCount": 0,
-      "postStart": 74200,
+      "postStart": 74281,
       "postCount": 1,
       "preLines": [],
       "postLines": [
@@ -757,7 +854,7 @@
     {
       "preStart": 73614,
       "preCount": 0,
-      "postStart": 74205,
+      "postStart": 74286,
       "postCount": 2,
       "preLines": [],
       "postLines": [
@@ -770,7 +867,7 @@
     {
       "preStart": 73633,
       "preCount": 1,
-      "postStart": 74226,
+      "postStart": 74307,
       "postCount": 5,
       "preLines": [
         "    snapshot_schema_version"
@@ -788,7 +885,7 @@
     {
       "preStart": 73652,
       "preCount": 1,
-      "postStart": 74249,
+      "postStart": 74330,
       "postCount": 5,
       "preLines": [
         "    'gridex_contract_pricing_v7_signed_receipt'"
@@ -806,7 +903,7 @@
     {
       "preStart": 73654,
       "preCount": 0,
-      "postStart": 74255,
+      "postStart": 74336,
       "postCount": 8,
       "preLines": [],
       "postLines": [
@@ -825,7 +922,7 @@
     {
       "preStart": 73656,
       "preCount": 0,
-      "postStart": 74265,
+      "postStart": 74346,
       "postCount": 3,
       "preLines": [],
       "postLines": [
@@ -839,7 +936,7 @@
     {
       "preStart": 73663,
       "preCount": 0,
-      "postStart": 74275,
+      "postStart": 74356,
       "postCount": 9,
       "preLines": [],
       "postLines": [
@@ -859,7 +956,7 @@
     {
       "preStart": 112392,
       "preCount": 0,
-      "postStart": 113013,
+      "postStart": 113094,
       "postCount": 19,
       "preLines": [],
       "postLines": [
@@ -889,7 +986,7 @@
     {
       "preStart": 124568,
       "preCount": 1,
-      "postStart": 125208,
+      "postStart": 125289,
       "postCount": 3,
       "preLines": [
         "          WHERE ((cps_1.company_id = cc.company_id) AND (cps_1.contract_id = cc.id))"
@@ -905,7 +1002,7 @@
     {
       "preStart": 136642,
       "preCount": 0,
-      "postStart": 137284,
+      "postStart": 137365,
       "postCount": 14,
       "preLines": [],
       "postLines": [
@@ -930,7 +1027,7 @@
     {
       "preStart": 142334,
       "preCount": 1,
-      "postStart": 142990,
+      "postStart": 143071,
       "postCount": 1,
       "preLines": [
         "CREATE UNIQUE INDEX contract_price_snapshots_contract_valid_from_uidx ON public.contract_price_snapshots USING btree (company_id, contract_id, valid_from) WHERE (contract_id IS NOT NULL);"
@@ -944,7 +1041,7 @@
     {
       "preStart": 142341,
       "preCount": 0,
-      "postStart": 142997,
+      "postStart": 143078,
       "postCount": 6,
       "preLines": [],
       "postLines": [
@@ -961,7 +1058,7 @@
     {
       "preStart": 157496,
       "preCount": 0,
-      "postStart": 158158,
+      "postStart": 158239,
       "postCount": 6,
       "preLines": [],
       "postLines": [
@@ -978,7 +1075,7 @@
     {
       "preStart": 157728,
       "preCount": 0,
-      "postStart": 158396,
+      "postStart": 158477,
       "postCount": 6,
       "preLines": [],
       "postLines": [
@@ -995,7 +1092,7 @@
     {
       "preStart": 168146,
       "preCount": 0,
-      "postStart": 168820,
+      "postStart": 168901,
       "postCount": 14,
       "preLines": [],
       "postLines": [
@@ -1020,7 +1117,7 @@
     {
       "preStart": 178648,
       "preCount": 0,
-      "postStart": 179336,
+      "postStart": 179417,
       "postCount": 6,
       "preLines": [],
       "postLines": [
@@ -1037,7 +1134,7 @@
     {
       "preStart": 204263,
       "preCount": 0,
-      "postStart": 204957,
+      "postStart": 205038,
       "postCount": 12,
       "preLines": [],
       "postLines": [
@@ -1060,7 +1157,7 @@
     {
       "preStart": 209415,
       "preCount": 0,
-      "postStart": 210121,
+      "postStart": 210202,
       "postCount": 7,
       "preLines": [],
       "postLines": [

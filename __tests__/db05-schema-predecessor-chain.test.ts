@@ -43,7 +43,7 @@ vi.mock('node:fs',async original=>{
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
 type CapturePatch={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
 const pr932Capture=readFileSync('supabase/schema.sql','utf8')
-const pr932Sha='b97f5a7bc49fc9ca513b9fa417d69d6aa6058920faa6f19b990cbd2f8bc9512e'
+const pr932Sha='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b'
 const pr932PreSha='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6'
 const pr932Patch=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-pr932-unsigned-edit-20261029.patch.json','utf8')) as CapturePatch
 function exactPr932Fixture(schema:string,forward:boolean):string{

@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-29T19:46:19.430854+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run40942273081-job123688451375-attempt1",
+  "generated_at": "2026-10-30T13:25:02.918513+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run41060729893-job124079498428-attempt1",
   "sha256": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
   "latest_migration": "20261029173552_preserve_imported_agreement_selected_pricing.sql",
-  "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of PR932: the gridex_unsigned_contract_revision schema, public.gridex_edit_unsigned_customer_contract_v1, the changed contract_price_snapshots unique index and imported-agreement pricing function bodies. Native/parity/production installation remain unverified.",
+  "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of PR932 with its fixes: unsigned edit RPC refusals use PT409 and the manual-import trigger derives only absent pricing model, resolution and components. Native/parity/production installation remain unverified.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -864,7 +864,7 @@
       }
     }
   },
-  "composition_note": "Byte-exact RAW3 from run40942273081/job123688451375 source f0d801caa27354b57035d75d0b74e452b66023e2/tree 8cd0cb66f57b9166ff4e443236ac89108eda0d1a, byte-identical to the local candidate committed there. Previous active values before the candidate are archived under pr932_local_candidate_capture_20261029.previous_active_fields. Capture only; new-head native, upgrade/parity and mandatory CI remain required; no production installation or whole approval.",
+  "composition_note": "Byte-exact RAW3 from run41060729893/job124079498428 source 9c39bd6078af9b23e57c65455966628acd41700f/tree 83fd8a9c9dfc8fb901d95c012f9a33cd31ed96ae. Previous active values are archived under pr932_fix_genuine_ordinary_capture_adoption_20261030.previous_active_fields. Capture only; new-head native, upgrade/parity and mandatory CI remain required; no production installation or whole approval.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -100725,6 +100725,52 @@
     "byte_identical_to_local_candidate": true,
     "local_candidate_commit": "f0d801caa27354b57035d75d0b74e452b66023e2",
     "source_manifest_preimage_sha256": "882be3bf3e5f07656e86c1a8ffb463446f07a832706320020dffbc764a614409",
+    "producer_session": "session_01UHTg8KVQcYJS5fqdU3XihA",
+    "producer_receipt": "c4139fff8e1cf47d135b8489ed42679765b43fd2",
+    "source_custody_receipt": "d36c59292a01aa341ff304a60809269c2d1f0af4"
+  },
+  "pr932_fix_genuine_ordinary_capture_adoption_20261030": {
+    "kind": "genuine_existing_ordinary_capture_RAW3_source_adoption_only",
+    "captured_at": "2026-10-30T13:25:02.918513+00:00",
+    "captured_source_head": "9c39bd6078af9b23e57c65455966628acd41700f",
+    "captured_source_tree": "83fd8a9c9dfc8fb901d95c012f9a33cd31ed96ae",
+    "new_original_origin": {
+      "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+      "source_head": "9c39bd6078af9b23e57c65455966628acd41700f",
+      "source_tree": "83fd8a9c9dfc8fb901d95c012f9a33cd31ed96ae",
+      "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+      "workflow_run_id": 41060729893,
+      "workflow_job_id": 124079498428,
+      "attempt": 1,
+      "artifact_id": 12981765531,
+      "artifact_name": "staff-schema-capture-9c39bd6078af9b23e57c65455966628acd41700f",
+      "artifact_archive_sha256": "dcfaeab993af7fef8ea13bbbda09abefbab64801a8aee0a4444fbf1be5c8aea0",
+      "artifact_archive_bytes": 1853410,
+      "capture_receipt_sha256": "95af38470e4af5c01b08389d26a8948eabfd3bcd2b65201315983ab3cf927fe9",
+      "raw_output_sha256": {
+        "database.types.ts": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
+        "schema.sql": "20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b",
+        "schema.fingerprint.json": "96bd2ac2f6300c272516aa59338a4764dc7120782ad452822f7d9ffcd9184af2"
+      },
+      "schema_fingerprint": "3375df3a93dfa12be94ddcc912274d92390f8aae93744c3aa244610e2cdbd606",
+      "latest_replay_migration": {
+        "name": "20261029173552_preserve_imported_agreement_selected_pricing.sql",
+        "sha256": "69413d7266160a3f5d9b95b1bd27046ab5ab89668f35a02de2589ab0412b24d3"
+      },
+      "workflow_job_conclusion": "success",
+      "native_tests": "NOT_RUN",
+      "browser_tests": "NOT_RUN",
+      "type_schema_comparison": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "whole_approval": false
+    },
+    "previous_active_fields": {
+      "generated_at": "2026-10-29T19:46:19.430854+00:00",
+      "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run40942273081-job123688451375-attempt1",
+      "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of PR932: the gridex_unsigned_contract_revision schema, public.gridex_edit_unsigned_customer_contract_v1, the changed contract_price_snapshots unique index and imported-agreement pricing function bodies. Native/parity/production installation remain unverified.",
+      "composition_note": "Byte-exact RAW3 from run40942273081/job123688451375 source f0d801caa27354b57035d75d0b74e452b66023e2/tree 8cd0cb66f57b9166ff4e443236ac89108eda0d1a, byte-identical to the local candidate committed there. Previous active values before the candidate are archived under pr932_local_candidate_capture_20261029.previous_active_fields. Capture only; new-head native, upgrade/parity and mandatory CI remain required; no production installation or whole approval."
+    },
+    "source_manifest_preimage_sha256": "fa50724679cd85e54f2cf291d15104439204b23c93110402167956af52e8e458",
     "producer_session": "session_01UHTg8KVQcYJS5fqdU3XihA",
     "producer_receipt": "c4139fff8e1cf47d135b8489ed42679765b43fd2",
     "source_custody_receipt": "d36c59292a01aa341ff304a60809269c2d1f0af4"
