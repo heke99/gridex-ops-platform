@@ -7,9 +7,9 @@
 // Kontrollerad klocka: där backoff ska löpa ut sätts next_attempt_at = now() i DB; det är inte verklig väntan.
 import { createHmac, randomUUID } from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { psql, psqlRows, requireEnv, serviceClient, sim } from '../lib'
+import { psql, psqlRows, requireEnv, sim } from '../lib'
 import { brief, createPartnerClient, partner, type PartnerClient } from '../lib/partner'
-import { createCompany, createCustomer } from '../lib/t5-world'
+import { createCompany, createCustomer, lit } from '../lib/t5-world'
 
 const ctrl = () => requireEnv('SIM_RECEIVER_CTRL_URL')
 const [HOST_A, HOST_B] = requireEnv('SIM_RECEIVER_HOSTS').split(',')
@@ -52,15 +52,15 @@ describe('EVENT01 webhooks', () => {
   let eventA = ''
   let custRefA = '', custRefB = ''
 
-  // Subscription skapas med partner-API:ts egen RPC (gridex_create_partner_webhook_subscription_v1, samma argument som
-  // lib/partner-api/core.ts createWebhook). Backendersättning: HTTP-vägen ger 500 på basen (fynd 001, steg SETUP nedan).
+  // Subscription skapas som SQL-fixtur efter mönstret i gridex_create_partner_webhook_subscription_v1 (migration
+  // 20260816170000): secret i Supabase Vault, signing_secret_ref = vault-id, hash = sha256(secret). Kolumnerna
+  // api_client_id/description/metadata saknas i basens schema (fynd 002) och utelämnas; HTTP-vägen ger dessutom 500
+  // (fynd 001, steg SETUP). Backendersättning: det som prövas är händelse -> kö -> dispatch -> signerat kvitto.
   async function subscribe(key: PartnerClient, host: string, name: string, secret: string): Promise<string> {
-    const r = await serviceClient().rpc('gridex_create_partner_webhook_subscription_v1', {
-      p_company_id: key.companyId, p_api_client_id: key.id, p_name: `sim ${name}`, p_endpoint_url: `https://${host}/hook/${name}`,
-      p_event_types: ['site.created'], p_secret: secret, p_description: 'sim t5',
-    })
-    expect(r.error, JSON.stringify(r.error)).toBeNull()
-    const id = psql(`select id from public.webhook_subscriptions where company_id='${key.companyId}' and endpoint_url='https://${host}/hook/${name}'`)
+    const id = psql(`with s as (select vault.create_secret(${lit(secret)}, 'gridex_webhook_'||replace(gen_random_uuid()::text,'-',''), 'sim t5') id)
+      insert into public.webhook_subscriptions(company_id,name,endpoint_url,event_types,status,signing_algorithm,signing_secret_ref,signing_secret_hash,custom_headers,timeout_ms,max_attempts)
+      select '${key.companyId}', ${lit(`sim ${name}`)}, ${lit(`https://${host}/hook/${name}`)}, array['site.created'], 'active', 'HMAC-SHA256', s.id::text,
+        encode(extensions.digest(convert_to(${lit(secret)},'utf8'),'sha256'),'hex'), '{}'::jsonb, 10000, 8 from s returning id`)
     expect(id).toMatch(/^[0-9a-f-]{36}$/)
     return id
   }
@@ -83,7 +83,7 @@ describe('EVENT01 webhooks', () => {
     expect(HOST_A && HOST_B).toBeTruthy()
   }, 120_000)
 
-  it('SETUP webhook-subscription via partner-API POST webhooks/subscriptions (normal väg; fynd 001 om 500)', async () => {
+  it('SETUP webhook-subscription via partner-API POST webhooks/subscriptions (normal väg; fynd 001/002)', async () => {
     const r = await partner(keyA, 'POST', 'webhooks/subscriptions', {
       name: 'sim setup', endpoint_url: `https://${HOST_A}/hook/setup`, event_types: ['site.created'], signing_secret: secretA, description: 'sim t5',
     })
