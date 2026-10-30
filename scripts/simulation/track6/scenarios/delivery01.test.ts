@@ -15,7 +15,7 @@ import {
 } from '../lib/chain/billingFlow'
 import { appUrl, sha256Hex, TIMINGS } from '../lib/chain/runtime'
 import { SUBSTITUTIONS, substitutionObservation } from '../lib/chain/substitutions'
-import { DELIVERY01_BILLING_MONTH, DELIVERY01_START_DATE } from '../lib/chain/synthetic'
+import { DELIVERY01_BILLING_MONTH, DELIVERY01_START_DATE, DELIVERY01_START_DAY } from '../lib/chain/synthetic'
 
 // The native seed signs the contract inside seedNormalSwitchNativeFixture. This wrapper lets the chain choose the contract's
 // invoice_delivery_method on the DRAFT contract just before signing (see installDeliveryMethodHook). Behaviour is otherwise unchanged.
@@ -79,7 +79,7 @@ describe('Track6 DELIVERY01: fakturaleverans (e-post/post/adress) i Nordfin-file
   afterAll(() => {
     evidence.observe('ERSÄTTNINGSSTEG', SUBSTITUTIONS.map(substitutionObservation))
     evidence.observe('stegtider_ms', TIMINGS)
-    evidence.observe('scope', { billingMonth: DELIVERY01_BILLING_MONTH, supplyStart: DELIVERY01_START_DATE, hourlyValuesPerCustomer: 24, environment: 'test', provider: 'nordfin',
+    evidence.observe('scope', { billingMonth: DELIVERY01_BILLING_MONTH, supplyStart: DELIVERY01_START_DATE, e66Day: DELIVERY01_START_DAY, hourlyValuesPerCustomer: 24, environment: 'test', provider: 'nordfin',
       note: 'Ett eget syntetiskt bolag per kund (nativa seeden skapar bolag + Ediel-ID); T6SIM 16760 används inte av kedjan.' })
     evidence.finalize()
   })
@@ -106,10 +106,12 @@ describe('Track6 DELIVERY01: fakturaleverans (e-post/post/adress) i Nordfin-file
       const chain = await buildCustomerChain(spec, SALT)
       S.chains[key] = chain
       evidence.save(`chain/${key}.json`, { ...chain, session: { userId: chain.session.userId, companyId: chain.session.companyId } })
-      evidence.observe(`${key}_chain`, { companyId: chain.companyId, customerId: chain.customerId, timingsMs: chain.timingsMs, effective: chain.effective, e66: { values: chain.e66.values, persistMs: chain.e66.persistMs, ingestMs: chain.e66.ingestMs, rawSha256: chain.e66.rawSha256 } })
+      evidence.observe(`${key}_chain`, { companyId: chain.companyId, customerId: chain.customerId, timingsMs: chain.timingsMs, effective: chain.effective, gate: chain.gate, e66: { values: chain.e66.values, persistMs: chain.e66.persistMs, ingestMs: chain.e66.ingestMs, rawSha256: chain.e66.rawSha256 } })
       // Fixture premises for the oracles below (not product claims): a separate billing address only matters when the contract does not say "same as site".
       expect(chain.effective.contractBillingAddressSameAsSite, 'contract.billing_address_same_as_site must be false').toBe(false)
       expect(chain.e66.values).toBe(24)
+      // Gate precondition (visible in the report): every E66 interval starts at or after market_start_at.
+      if (chain.gate.marketStartAt && chain.gate.firstIntervalStart) expect(Date.parse(chain.gate.firstIntervalStart)).toBeGreaterThanOrEqual(Date.parse(chain.gate.marketStartAt))
       S.ok.add(`chain:${key}`)
     }, LONG)
   }
@@ -135,7 +137,7 @@ describe('Track6 DELIVERY01: fakturaleverans (e-post/post/adress) i Nordfin-file
   }
 
   for (const key of KEYS) {
-    it(`DELIVERY01 setup ${key}: generate-underlay (N=24 timvärden, leverans från sista dagen i månaden)`, async ctx => {
+    it(`DELIVERY01 setup ${key}: generate-underlay (N=24 timvärden, leverans från näst sista dagen; E66 på sista dagen)`, async ctx => {
       needs(ctx, `chain:${key}`, 'spot')
       const chain = S.chains[key]!
       const res = await generateUnderlay(chain.session)

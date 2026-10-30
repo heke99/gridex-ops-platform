@@ -112,8 +112,11 @@ export function spotDayPayload(month: SyntheticMonth, day: number, salt: number)
   })
 }
 
-/** Billing month of DELIVERY01: supply starts on its LAST day (see DELIVERY01_START_DATE). September 2026 is past (activation is due)
+/** Billing month of DELIVERY01: supply starts on the SECOND-TO-LAST day and the E66 covers the LAST day. September 2026 is past (activation is due)
  *  and has no DST transition (SITE01_BILLING_MONTH rationale in track1 site01Synthetic.ts). */
 export const DELIVERY01_BILLING_MONTH = '2026-09'
-export const DELIVERY01_START_DATE = '2026-09-30'
+/** Supply start: next-to-last day. The E66 day must not begin before market_start_at: PRODAT DTM is read as UTC+1, so a start on 09-30 gives
+ *  market_start_at 2026-09-29T23:00Z and the first summer-time hour (22:00Z) is refused by the billing gate (meterValueBillingMatcher.ts:117,125). */
+export const DELIVERY01_START_DATE = '2026-09-29'
+/** Day (of the billing month) covered by the single E66 with 24 hourly values: the last day. */
 export const DELIVERY01_START_DAY = 30

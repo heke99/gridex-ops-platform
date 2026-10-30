@@ -92,6 +92,8 @@ export type CustomerChain = {
     deliveryMethodHook: string
     customer: Record<string, unknown> | null
   }
+  /** Gate precondition: supply period market_start_at and the first stored value's interval. */
+  gate: { marketStartAt: string | null; startDate: string | null; firstIntervalStart: string | null; firstIntervalEnd: string | null; valueCount: number }
   e66: { sourceId: string; transactionRef: string; values: number; totalMilliKwh: number; rawSha256: string; persistMs: number; ingestMs: number; meteringValueIds: string[] }
   timingsMs: Record<string, number>
 }
@@ -311,8 +313,14 @@ export async function buildCustomerChain(spec: CustomerSpec, salt: number): Prom
       'invoice_email',c.invoice_email,'email',c.email,'billing_street',c.billing_street,'billing_postal_code',c.billing_postal_code,'billing_city',c.billing_city,'billing_profile_revision',c.billing_profile_revision)
     FROM public.customers c WHERE c.id=${lit(ground.customerId)}`)
   const { __c, __m, ...customer } = (effective ?? {}) as Record<string, unknown>
+  const gate = dbRead<CustomerChain['gate']>(`SELECT jsonb_build_object(
+      'marketStartAt',(SELECT market_start_at FROM public.customer_supply_periods WHERE id=${lit(supply.supplyPeriodId)}),
+      'startDate',(SELECT start_date FROM public.customer_supply_periods WHERE id=${lit(supply.supplyPeriodId)}),
+      'firstIntervalStart',(SELECT min(period_start) FROM public.metering_values WHERE metering_point_id=${lit(ground.pointId)}),
+      'firstIntervalEnd',(SELECT period_end FROM public.metering_values WHERE metering_point_id=${lit(ground.pointId)} ORDER BY period_start LIMIT 1),
+      'valueCount',(SELECT count(*) FROM public.metering_values WHERE metering_point_id=${lit(ground.pointId)}))`)
   return {
-    spec, companyId: ground.companyId, actorUserId: ground.actorUserId, customerId: ground.customerId, siteId: ground.siteId, pointId: ground.pointId, contractId: ground.contractId,
+    gate, spec, companyId: ground.companyId, actorUserId: ground.actorUserId, customerId: ground.customerId, siteId: ground.siteId, pointId: ground.pointId, contractId: ground.contractId,
     gridOwnerId: ground.gridId, external: ground.external, ownEdielId: ground.sender, issuerEdielId: ground.receiver, supplyPeriodId: supply.supplyPeriodId, session,
     effective: { contractBillingAddressSameAsSite: (__c as boolean | null) ?? null, snapshotInvoiceDeliveryMethod: (__m as string | null) ?? null, deliveryMethodHook: hook.note, customer },
     e66, timingsMs,

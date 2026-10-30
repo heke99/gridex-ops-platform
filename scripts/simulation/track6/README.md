@@ -80,3 +80,7 @@ fingerprint, BLOCKED-kontroll). Ediel-scenariofiler och e0x-hjälpkod är inte k
 | `counterparty/mail-counterparty.mjs` | `01d97c27:scripts/simulation/track3/counterparty/mail-counterparty.mjs` |
 | `scenarios/smoke.test.ts` | nyskriven för spår 6 |
 | `README.md` | efter `01d97c27:scripts/simulation/track3/README.md` |
+
+## DELIVERY01 (kedja)
+
+`scenarios/delivery01.test.ts` + `lib/chain/`: leverans från näst sista dagen (2026-09-29); ETT E66 med 24 timvärden på sista dagen (2026-09-30). Start på sista dagen ger `billing_gate_qualified_supply_source_required` (PRODAT DTM läses som UTC+1, `market_start_at` 2026-09-29T23:00Z; sommartidens första timme 22:00Z ligger före). Rapportens observation `<Cn>_chain.gate` visar `market_start_at` och första värdets intervall.
