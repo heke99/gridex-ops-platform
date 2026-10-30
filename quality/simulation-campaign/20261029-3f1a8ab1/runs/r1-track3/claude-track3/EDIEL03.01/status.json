@@ -1,0 +1,122 @@
+{
+  "scenarioId": "EDIEL03.01",
+  "workerId": "claude-track3",
+  "model": "claude-opus-5-5 (orchestrator) / sonnet (runner)",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "overlayRefs": [
+    {
+      "kind": "harness",
+      "commit": "56e0fcd96af4ef4c62d3577215cc029cbcfbf69b",
+      "paths": [
+        "scripts/simulation/track3/**"
+      ]
+    }
+  ],
+  "environmentId": "t3-vm-20261029",
+  "databaseIdentity": "pg-sysid-7702183760217968679@127.0.0.1:54322/postgres",
+  "replay": {
+    "replayCommitOriginal": "1c0c088c (replay 2026-10-29)",
+    "replayCommitFile": "eca552636865cf0f31ca346da13907410aaad248 (SIM_HOME/replay-commit, skriven av up.sh senare)",
+    "note": "eca55263 = 1c0c088c + bara scripts/simulation/track3; schemat är basens"
+  },
+  "schemaHash": {
+    "fingerprintSha256": "5168f69b67b1e45168ef327ecf92efec6dc7bcd9dc2cf66f48f4ea96527c782c",
+    "command": "psql postgresql://postgres:***@127.0.0.1:54322/postgres -XAt -f scripts/gridex-aud-003-schema-fingerprint.sql (skriptet returnerar själv sha256)",
+    "partialIdentity": true,
+    "note": "Delidentitet: täcker bara utvalda tabeller",
+    "appliedMigrationsTsvSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "appliedMigrationsCommand": "sha256sum $SIM_HOME/applied-migrations.tsv (tom fil)",
+    "migrationDiff": "git diff --no-renames --name-status 1c0c088c HEAD -- supabase/migrations = tomt"
+  },
+  "clockModel": {
+    "authClock": "DB now()",
+    "businessTime": "DB now()",
+    "note": "Auth-klocka och affärstid redovisade var för sig"
+  },
+  "nodeVersion": "v22.22.0",
+  "pgVersion": "17.6",
+  "nativeMode": {
+    "before": null,
+    "after": null,
+    "note": "Ingen nativesvit körd; ej tillämpligt"
+  },
+  "heartbeatAtUtc": null,
+  "startedAtUtc": "2026-10-30T12:40:32Z",
+  "finishedAtUtc": "2026-10-30T12:41:03Z",
+  "state": "PARTIAL",
+  "runnerObservedState": "EXIT_0",
+  "executionScope": "ISOLATED_NATIVE",
+  "command": "SIM_HOME=/home/user/sim-home/track3 bash scripts/simulation/track3/run.sh scenarios/ediel03-01.test.ts",
+  "flags": "SIM_HOME=/home/user/sim-home/track3; ingen SKIP_BUILD/SKIP_REPLAY vid körning; inga -t",
+  "runId": "20261030T124032Z-02c969",
+  "exit": 0,
+  "vitest": {
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0
+  },
+  "steps": [
+    {
+      "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.01 fixture: CONTRL i outbox via kodens egen mottagnings- och ACK-väg",
+      "status": "passed"
+    },
+    {
+      "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.01 SMTP 451 -> försök med SMTP-status, klass explicit_negative, outbox ej sent",
+      "status": "passed"
+    },
+    {
+      "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.01 ingen automatisk ny sändning vid nästa drain (exakt 1 MIME hos motparten)",
+      "status": "passed"
+    },
+    {
+      "name": "EDIEL03 deadlines, retry och återhämtning EDIEL03.01 observation: föreskriven väntan/next_attempt finns i koden? (loggas, asserteras inte bort)",
+      "status": "passed"
+    }
+  ],
+  "evidenceRefs": {
+    "report": {
+      "path": "/home/user/sim-home/track3/runs/20261030T124032Z-02c969/ediel03-01/report.json",
+      "sha256": "5395d21fceeec337aba6bd7b97b8cf49b8cf0c7966b4057093628b0bf6c70b10"
+    },
+    "log": {
+      "path": "/home/user/sim-home/track3/runs/20261030T124032Z-02c969/ediel03-01/log.txt",
+      "sha256": "2175f496203cfecd43f0d0a006508a81b26061c3e019ea04a3c65b1ab53389e8"
+    },
+    "manifest": {
+      "path": "/home/user/sim-home/track3/evidence/20261030T124032Z-02c969/ediel03-01/MANIFEST.sha256",
+      "sha256": "452e0c10548f72cfe1d0c85289ca3d4a5d7fb246197b2468af252da291723984"
+    }
+  },
+  "findingsIds": [
+    "20261029-3f1a8ab1/claude-track3/006"
+  ],
+  "blocker": "orakel saknas för 'föreskriven väntan': varken regler TR-02/TR-05/TR-10 eller kod föreskriver väntetid; observerbar del (registrerat försök, ingen blind omsändning, 1 MIME) uppfylld",
+  "observed": "Orakel: SMTP 451 -> försök med SMTP-status, ingen auto-resend. Faktiskt: 4/4 pass; outbox delivery_uncertain (ej sent), attempts 1, exakt 1 MIME. OBS: 451 ger delivery_uncertain, inte retry-väntan.",
+  "durations": {
+    "drain": 2114,
+    "harness": 23908,
+    "app": null,
+    "db": null,
+    "smtp": null,
+    "smtp_transport": 134,
+    "wait": 1500
+  },
+  "nextAction": "Granskning av orkestrerande session",
+  "cleanupReceipt": {
+    "stackStopped": false,
+    "note": "Containeromstart ~2026-10-30T11:5xZ och stackomstart 12:09-12:12Z; DB-identitet oförändrad; JIT-ändring på rollen authenticator sattes under felsökning och återställdes före dessa körningar. Stacken är kvar uppe."
+  },
+  "replayCommit": "eca552636865cf0f31ca346da13907410aaad248",
+  "replayCommitNote": "= 1c0c088c + endast scripts/simulation/track3; schema = basens (clean replay körd 2026-10-29 på körkatalogen vid 1c0c088c)",
+  "review": {
+    "reviewer": "sim-reviewer (ny oberoende instans)",
+    "at": "2026-10-30T12:55Z",
+    "verdict": "APPROVE"
+  },
+  "runDirectoryClean": {
+    "head": "56e0fcd96af4ef4c62d3577215cc029cbcfbf69b",
+    "trackedChanges": "none (git status --porcelain: bara ospårad quality/simulation-campaign/)",
+    "note": "kontrollerat efter körning; spårade filer orörda"
+  }
+}
