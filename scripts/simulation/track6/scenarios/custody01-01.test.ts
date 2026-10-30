@@ -42,8 +42,14 @@ describe('CUSTODY01.01 import av T3 kohort B oförändrad', () => {
     expect(new Set(parsed.map((p) => p.sender))).toEqual(new Set(['70007']))
     expect(new Set(parsed.map((p) => p.interchangeRef)).size).toBe(28)
     expect(parsed.every((p) => !!p.meteringPoint)).toBe(true)
-    // EDIFACT-nyttolasten ligger byte-exakt inuti MIME-kroppen (inline, 8bit).
-    for (const { eml, edi } of imported.inbound) expect(eml.data.includes(edi.data), `${eml.relPath}: .edi ingår i .eml`).toBe(true)
+    // EDIFACT-nyttolasten ligger inline (8bit, application/edifact) i MIME-kroppen. .eml har CRLF (MIME-radslut) medan .edi har LF;
+    // jämförelsen görs på kroppen efter första tomma raden med CRLF->LF. Manifestets sha256 för båda filerna är redan verifierat strikt av importOriginals().
+    for (const { eml, edi } of imported.inbound) {
+      const text = eml.data.toString('latin1')
+      const bodyStart = text.search(/\r?\n\r?\n/)
+      const body = Buffer.from(text.slice(bodyStart).replace(/^\r?\n\r?\n/, '').replace(/\r\n/g, '\n'), 'latin1')
+      expect(body.equals(edi.data) || body.equals(Buffer.concat([edi.data, Buffer.from('\n')])), `${eml.relPath}: .edi == MIME-kropp (CRLF->LF)`).toBe(true)
+    }
     const subjects = imported.inbound.map(({ eml }) => /^Subject: (E66 \S+) \d{3}\r?$/m.exec(eml.data.toString('latin1'))?.[1])
     expect(new Set(subjects).size, 'gemensamt ämnesprefix').toBe(1)
     subjectLike = `${subjects[0]} %`
