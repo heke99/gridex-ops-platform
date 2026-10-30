@@ -111,7 +111,11 @@ t6_greenmail_jar() {
   local jar="$d/greenmail-standalone-$v.jar" pf="$PID_DIR/greenmail.pid"
   mkdir -p "$d" "$SIM_HOME/evidence"
   if [[ ! -s "$jar" ]]; then
-    curl -fsSL -o "$jar.part" "$base/greenmail-standalone-$v.jar" && curl -fsSL -o "$jar.sha1" "$base/greenmail-standalone-$v.jar.sha1" || return 1
+    local b ok=0
+    for b in "$base" "${base/repo1.maven.org/repo.maven.apache.org}"; do   # repo1 ger ibland 429 via proxyn; samma artefakt på repo.maven.apache.org
+      if curl -fsSL -o "$jar.part" "$b/greenmail-standalone-$v.jar" && curl -fsSL -o "$jar.sha1" "$b/greenmail-standalone-$v.jar.sha1"; then ok=1; break; fi
+    done
+    (( ok )) || return 1
     mv "$jar.part" "$jar"
   fi
   local want have
