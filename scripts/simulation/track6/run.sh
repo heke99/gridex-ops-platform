@@ -17,6 +17,7 @@ printf 'pid=%s\nstarted=%s\n' "$$" "$(t6_utc)" > "$SIM_HOME/run.lock"
 trap 'rm -f "$SIM_HOME/run.lock"' EXIT
 
 t6_load_env
+export T6_SIM_HOME="$SIM_HOME"
 REPO_ROOT="$(cd "$T6_DIR/../../.." && pwd)"
 resolve_scenario() {
   local a="$1" c
