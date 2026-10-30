@@ -4,11 +4,12 @@
 // rollen postgres inte är superuser. Därför `pg_restore --no-owner --no-acl` in i en ny, tom databas (roller är klusterglobala och finns redan) och
 // objekt som ägs av plattformsrollerna (supabase_admin: vault.secrets, extensions.spatial_ref_sys, realtime.list_changes med SET log_min_messages)
 // kan inte återskapas av postgres. De klassificeras som plattformsfel (se platformOnly) och verifieras separat med radantal; custody-tabeller får inget fel.
-// Steg 3 i checklistan (production_consistency_checks.sql) finns inte i repot; ersätts av per-tabell radantal/sha256 och triggerinventering.
+// Steg 3 i checklistan (supabase/sql/checks/production_consistency_checks.sql, checklistan rad 27) körs blockvis mot både källan och den återställda databasen (consistencyBlocks/runBlock).
 // Verktyg: värdens pg_dump/pg_restore om major >= serverns; annars `docker exec` i stackens egen db-container (supabase_db_*, endast pg_dump/pg_restore).
 import { spawnSync } from 'node:child_process'
 import { closeSync, mkdirSync, openSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { custodyDir, sha256, sqlIn } from './base'
 import { dbUrl } from '../seed.mjs'
 
@@ -96,3 +97,17 @@ export { custodyDir }
 /** Fel som beror på att postgres-rollen inte äger plattformsobjekt (supabase_admin), inte på custody-data. Allt annat är datapåverkande/okänt. */
 export const platformOnly = (b: RestoreErrorBlock): boolean =>
   /permission denied/.test(b.error) && /(COPY extensions\.spatial_ref_sys|COPY vault\.secrets|FUNCTION realtime\.list_changes)/.test(b.command)
+
+const checksPath = () => fileURLToPath(new URL('../../../../../supabase/sql/checks/production_consistency_checks.sql', import.meta.url))
+/** Delar production_consistency_checks.sql i dess numrerade block ("-- N) ..."); filen säger "Run each block separately". */
+export function consistencyBlocks(): Array<{ n: number; title: string; sql: string }> {
+  const text = readFileSync(checksPath(), 'utf8')
+  const marks = [...text.matchAll(/^-- (\d+)\) (.*)$/gm)]
+  return marks.map((m, i) => ({ n: Number(m[1]), title: m[2], sql: text.slice(m.index! + m[0].length, marks[i + 1]?.index ?? text.length).trim() }))
+}
+/** Kör ett block (skrivskyddad diagnostik) mot en URL; returnerar utdatarader sorterade (blocken saknar ORDER BY på alla). */
+export function runBlock(url: string, sqlText: string): string[] {
+  const r = spawnSync('psql', [url, '-XAt', '-v', 'ON_ERROR_STOP=1', '-c', 'SET default_transaction_read_only=on', '-c', sqlText], { encoding: 'utf8', timeout: 300_000, maxBuffer: 64_000_000, env: { ...process.env, PGPASSWORD: 'postgres' } })
+  if (r.status !== 0) throw new Error(`consistency block misslyckades: ${r.stderr.slice(0, 500)}`)
+  return r.stdout.split('\n').filter((l) => l && l !== 'SET').sort()
+}

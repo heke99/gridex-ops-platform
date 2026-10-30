@@ -13,7 +13,7 @@ import { startHealthPoll } from '../lib/custody/app'
 import { maxOpMs, overlaps, startForeignRun, type ForeignIteration } from '../lib/custody/foreign'
 import { createTenantUser } from '../lib/custody/postgrest'
 import { custodyDir, mode } from '../lib/custody/base'
-import { psqlRows, baseTables, chooseTooling, contentHashes, createDb, dbExists, dropDb, dump, platformOnly, restore, restoreUrl, rowCounts, triggerInventory, type Tooling } from '../lib/custody/restore'
+import { consistencyBlocks, runBlock, psqlRows, baseTables, chooseTooling, contentHashes, createDb, dbExists, dropDb, dump, platformOnly, restore, restoreUrl, rowCounts, triggerInventory, type Tooling } from '../lib/custody/restore'
 import { dbUrl, lit, newRunContext, sql } from '../lib/seed.mjs'
 import { Evidence } from '../lib/evidence'
 import { join } from 'node:path'
@@ -33,6 +33,7 @@ let dumped: ReturnType<typeof dump>
 let dumpFile = ''
 let before: { counts: Record<string, number>; hashes: ReturnType<typeof contentHashes> }
 let drift: string[] = []
+let afterCounts: Record<string, number> = {}
 const isCustody = (t: string) => /^(public\.ediel_messages|public\.invoice_export_files|public\.billing_underlays|gridex_billing_source\.|gridex_received_sources\.|storage\.objects)/.test(t)
 let restoreResult: ReturnType<typeof restore>
 let foreign: ReturnType<typeof startForeignRun> | null = null
@@ -93,6 +94,7 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
       lastDrift = tables.filter((t) => b.counts[t] !== a.counts[t]).concat(Object.keys(b.hashes).filter((t) => b.hashes[t].sha256 !== a.hashes[t]?.sha256))
       ev.observe(`dump_attempt_${attempt}`, { ms: dumped.ms, bytes: dumped.bytes, sha256: dumped.sha256, drift: lastDrift })
       before = b
+      afterCounts = a.counts
       // Främmande skrivningar gör att icke-custody-tabeller driver; omförsök bara om en custody-tabell drev.
       if (!lastDrift.some(isCustody)) break
     }
@@ -157,6 +159,15 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
     const hashes = contentHashes(rUrl, restoredTables)
     const hashDiffs = Object.keys(before.hashes).filter((t) => !drift.includes(t) && (hashes[t]?.sha256 !== before.hashes[t].sha256 || hashes[t]?.rows !== before.hashes[t].rows))
       .map((t) => ({ table: t, source: before.hashes[t], restored: hashes[t] ?? null }))
+    // Jämförelsen gäller den återställda DUMPENS ögonblicksbild, inte källan efter dumpen. Tabeller som drev under dumpen (föreg. räkning != efterföljande) undantas från exakt
+    // radantal/hash-jämförelse och får i stället en gränskontroll: före <= återställt <= efter (tabellerna är insert-only under körningen).
+    const driftBounds = drift.map((t) => ({ table: t, before: before.counts[t] ?? null, restored: counts[t] ?? null, after: afterCounts[t] ?? null }))
+    const boundViolations = driftBounds.filter((d) => d.restored === null || (d.before !== null && d.restored < d.before) || (d.after !== null && d.restored > d.after))
+    ev.observe('drift_handling', {
+      excludedFromExactCompare: drift, bounds: driftBounds,
+      explanation: 'gridex_correction_process.facts är ett trigger-matat journalbord (gridex_correction_process.capture_v1 på 24 spårade tabeller, bl.a. customer_operation_tasks); varje INSERT/UPDATE i den främmande körningen skapar en facts-rad. Driften är alltså den främmande körningens följd, inte ett bakgrundsjobb.',
+      scope: 'compare = den återställda dumpens snapshot; källan efter dumpen har fler rader i driftande tabeller (främmande körningen pågick även under restore).',
+    })
     const emptyCustody = Object.entries(before.hashes).filter(([, v]) => v.rows === 0).map(([t]) => t)
     ev.save('compare.json', { missing, countDiffs, hashDiffs, drift, emptyCustodyTables: emptyCustody, compared: { tables: tables.length, hashed: Object.keys(before.hashes).length }, sourceHashes: before.hashes })
     ev.observe('empty_custody_tables_count', { computed: emptyCustody.length, note: 'beräknas per körning (rows=0 i custody-tabellerna). 39 -> 37 -> 36 i körningarna 161811, 162702, 164432: tidigare tomma tabeller fylls av övriga scenarier (senast gridex_received_sources.utilts_header_validations), inte av restore' })
@@ -164,8 +175,26 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
     expect(missing, 'tabeller saknas efter återställning').toEqual([])
     expect(countDiffs).toEqual([])
     expect(hashDiffs).toEqual([])
+    expect(boundViolations, 'driftande tabeller utanför före/efter-gränserna').toEqual([])
     expect(before.hashes['public.ediel_messages']?.rows ?? 0, 'det finns original att jämföra (kör efter custody01-01/03)').toBeGreaterThan(0)
   }, 900_000)
+
+  it('CUSTODY01.05 checklistans steg 3: production_consistency_checks.sql, varje block separat, identiskt resultat i källa och återställd databas', () => {
+    const blocks = consistencyBlocks()
+    ev.observe('consistency_blocks_found', blocks.map((b) => ({ n: b.n, title: b.title })))
+    expect(blocks.length, 'filen har 10 numrerade block').toBe(10)
+    const rUrl = restoreUrl(restoreDb)
+    const rows: Array<{ n: number; title: string; source: number; restored: number }> = []
+    const diffs: Array<{ n: number; onlySource: string[]; onlyRestored: string[] }> = []
+    for (const b of blocks) {
+      const src = runBlock(sourceUrl, b.sql), res = runBlock(rUrl, b.sql)
+      rows.push({ n: b.n, title: b.title, source: src.length, restored: res.length })
+      if (JSON.stringify(src) !== JSON.stringify(res)) diffs.push({ n: b.n, onlySource: src.filter((x) => !res.includes(x)).slice(0, 5), onlyRestored: res.filter((x) => !src.includes(x)).slice(0, 5) })
+    }
+    ev.observe('consistency_rows_per_block', rows)
+    ev.save('consistency-checks.json', { rows, diffs, note: 'rader sorterade textuellt (blocken saknar ORDER BY och har limit 100); källan jämförs efter dumpen, de berörda tabellerna skrivs inte av den främmande körningen' })
+    expect(diffs).toEqual([])
+  }, 600_000)
 
   it('CUSTODY01.05 skydden överlever: triggerinventeringen (immutability/append-only) är identisk i den återställda databasen', () => {
     const src = triggerInventory(sourceUrl), res = triggerInventory(restoreUrl(restoreDb))
