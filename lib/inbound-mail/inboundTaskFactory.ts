@@ -12,19 +12,36 @@ type InboundMailTaskInput = Parameters<typeof createInboundMailTask>[0]
 // queued for operators in the tenant's EDIEL manual review queue instead of
 // being dropped. Only references and hashes are copied; no meter values or
 // personal data. Idempotent per (ediel_message_id, issue_type); an existing row
-// is never overwritten, and a reception from another tenant is refused.
+// is never overwritten, and a reception from another tenant is refused. The
+// creation is audited in audit_logs (tenant-scoped, references only).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function heldReviewFailure(code: string, companyId: string, detail?: unknown): Error {
+  console.error('[inbound-mail] held_response_manual_review_failed', {
+    code,
+    companyId,
+    dbCode: typeof (detail as { code?: unknown } | null)?.code === 'string' ? (detail as { code: string }).code : null,
+  })
+  return new Error(code)
+}
+
+// Failures throw so the inbound job is retried/failed visibly by the poller
+// (edielMailboxPoller.part-2.ts per-job catch) instead of being dropped.
 async function createHeldResponseManualReview(companyId: string, input: InboundMailTaskInput): Promise<void> {
   const reception = input.metadata?.reception as Record<string, unknown> | undefined
   const edielMessageId = cleanId(typeof reception?.sourceMessageId === 'string' ? reception.sourceMessageId : null)
-  if (!reception || !edielMessageId || reception.companyId !== companyId) {
-    console.warn('[inbound-mail] Held reception lacks a same-tenant source message; manual review item not created.', { companyId })
-    return
+  if (!reception || reception.companyId !== companyId) {
+    throw heldReviewFailure('held_response_review_tenant_mismatch', companyId)
+  }
+  if (!edielMessageId || !UUID_RE.test(edielMessageId)) {
+    throw heldReviewFailure('held_response_review_invalid_source_message_id', companyId)
   }
   const str = (value: unknown) => (typeof value === 'string' ? value : null)
-  const { error } = await supabaseService.from('ediel_manual_review_items').upsert({
+  const issueType = 'inbound_duplicate_response_held'
+  const { data, error } = await supabaseService.from('ediel_manual_review_items').upsert({
     company_id: companyId,
     ediel_message_id: edielMessageId,
-    issue_type: 'inbound_duplicate_response_held',
+    issue_type: issueType,
     title: input.title,
     description: input.description ?? input.title,
     status: 'open',
@@ -39,8 +56,27 @@ async function createHeldResponseManualReview(companyId: string, input: InboundM
       canonicalPayloadHash: str(reception.canonicalPayloadHash),
       receivedPayloadHash: str(reception.receivedPayloadHash),
     },
-  }, { onConflict: 'ediel_message_id,issue_type', ignoreDuplicates: true })
-  if (error) console.warn('[inbound-mail] Kunde inte skapa manuell granskningspost', error)
+  }, { onConflict: 'ediel_message_id,issue_type', ignoreDuplicates: true }).select('id')
+  if (error) throw heldReviewFailure('held_response_review_upsert_failed', companyId, error)
+
+  // Audit only the actual creation; a duplicate (ignored) upsert returns no row.
+  const created = ((data ?? []) as Array<{ id?: unknown }>)[0]
+  if (!created || typeof created.id !== 'string') return
+  const actorUserId = cleanId(input.actorUserId)
+  const { error: auditError } = await supabaseService.from('audit_logs').insert({
+    company_id: companyId,
+    actor_user_id: actorUserId,
+    entity_type: 'ediel_manual_review_item',
+    entity_id: created.id,
+    action: 'ediel_manual_review_item_created',
+    new_values: { issue_type: issueType, ediel_message_id: edielMessageId, status: 'open' },
+    metadata: {
+      ...(actorUserId ? {} : { system_actor: 'inbound_mail_processor' }),
+      responseRequestId: str(reception.responseRequestId),
+      classification: str(reception.classification),
+    },
+  })
+  if (auditError) throw heldReviewFailure('held_response_review_audit_failed', companyId, auditError)
 }
 
 export async function createInboundMailTask(input: {
