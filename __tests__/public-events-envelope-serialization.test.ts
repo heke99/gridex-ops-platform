@@ -107,7 +107,11 @@ describe('public event list envelope serialization', () => {
     { data: [{ event_id: `event_${'A'.repeat(32)}` }] },
     { data: [{ event_id: `event_${'a'.repeat(31)}` }] },
     { data: [{ event_id: `event_${'a'.repeat(33)}` }] },
-    { event_id: EVENT_REFERENCE },
+    { event_id: EVENT },
+    { event_id: 'event_synthetic' },
+    { event_id: `event_${'A'.repeat(32)}` },
+    { event_id: `event_${'a'.repeat(31)}` },
+    { event_id: `event_${'a'.repeat(33)}` },
     { data: { event_id: EVENT_REFERENCE } },
     { data: [{ data: { event_id: EVENT_REFERENCE } }] },
     { data: [{ nested_payload: { event_id: EVENT_REFERENCE } }] },
@@ -115,5 +119,11 @@ describe('public event list envelope serialization', () => {
     { data: [{ customer_id: EVENT_REFERENCE }] },
   ])('rejects internal, malformed and unrelated event identifier paths: %j', payload => {
     expect(() => assertPublicResponsePayload(payload)).toThrow(PublicPayloadSafetyError)
+  })
+
+  // T5/003: the webhook envelope carries its opaque event reference at the root, so exactly
+  // $.event_id with a canonical event_<32 hex> value is accepted; other root values stay rejected above.
+  it('accepts the canonical opaque event reference at the webhook root', () => {
+    expect(() => assertPublicResponsePayload({ event_id: EVENT_REFERENCE })).not.toThrow()
   })
 })

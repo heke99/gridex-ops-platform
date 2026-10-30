@@ -74,6 +74,8 @@ function eventEnvironment(data: Record<string, unknown>): 'test' | 'production' 
   return value === 'test' || value === 'production' ? value : null
 }
 
+const PUBLIC_EVENT_ID_PATTERN = /^event_[a-f0-9]{32}$/
+
 function opaqueReference(
   prefix: string,
   tenantReference: string,
@@ -215,8 +217,14 @@ export function buildPublicWebhookPayload(
         )
       : null)
 
+  // The database assigns every new event a random opaque reference
+  // (domain_events.public_event_id, 20261030130200). Events created before that
+  // keep the reference they were already delivered and listed with.
+  const storedEventId = (event as DomainEventRow & { public_event_id?: string | null }).public_event_id
   return {
-    event_id: opaqueReference('event', tenantReference, event.id),
+    event_id: storedEventId && PUBLIC_EVENT_ID_PATTERN.test(storedEventId)
+      ? storedEventId
+      : opaqueReference('event', tenantReference, event.id),
     event_type: event.event_type,
     created_at: event.occurred_at,
     organization_reference: organizationReference,

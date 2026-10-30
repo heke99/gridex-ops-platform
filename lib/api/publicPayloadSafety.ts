@@ -52,9 +52,10 @@ const LEGACY_LEGAL_ID_PATH_ALLOWLIST = [
 const LEGACY_OFFER_ALIAS_PATH =
   /^\$\.(?:data|contracts)\[\d+\]\.(?:id|contract_offer_id)$/
 const EXTERNAL_OFFER_REFERENCE = /^[a-z0-9][a-z0-9_-]{2,99}$/
-// GET /api/v1/events already documents this derived webhook event reference.
-// Only the event list envelope path and the mapper's exact opaque format qualify.
-const PUBLIC_EVENT_REFERENCE_PATH = /^\$\.data\[\d+\]\.event_id$/
+// GET /api/v1/events already documents this webhook event reference, and every
+// webhook payload carries it at its root. Only the event list envelope path, the
+// exact root path and the mapper's exact opaque format qualify.
+const PUBLIC_EVENT_REFERENCE_PATH = /^\$(?:\.data\[\d+\])?\.event_id$/
 const PUBLIC_EVENT_REFERENCE = /^event_[a-f0-9]{32}$/
 
 function isVersionedPublicIdException(path: string, value: unknown): boolean {
