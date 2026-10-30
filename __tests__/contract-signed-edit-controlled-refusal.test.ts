@@ -1,6 +1,9 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 const io = vi.hoisted(() => ({
+  atomic: false,
+  rpcError: null as null | {code: string; message: string},
+  rpcCalls: 0,
   row: {} as Record<string, unknown>,
   updateCalls: [] as Array<Record<string, unknown>>,
   updateError: null as unknown,
@@ -16,7 +19,14 @@ vi.mock('next/cache', () => ({revalidatePath: () => undefined}))
 vi.mock('next/navigation', () => ({redirect: (url: string) => { throw Error('REDIRECT:' + url) }, unstable_rethrow: (e: unknown) => { if (e instanceof Error && e.message.startsWith('REDIRECT:')) throw e }}))
 vi.mock('@/lib/admin/guards', () => ({requireAdminActionAccess: async () => ({userId: 'staff-a'})}))
 vi.mock('@/lib/supabase/server', () => ({createSupabaseServerClient: async () => ({auth: {getUser: async () => ({data: {user: {id: 'staff-a'}}})}})}))
-vi.mock('@/lib/supabase/service', () => ({supabaseService: {from: (table: string) => {
+vi.mock('@/lib/customer-contracts/revision', async (importActual) => {
+  const actual = await importActual<typeof import('@/lib/customer-contracts/revision')>()
+  return {...actual,
+    usesAtomicUnsignedEdit: (row: never) => io.atomic || actual.usesAtomicUnsignedEdit(row),
+    prepareUnsignedContractEdit: (row: never, f: FormData) => io.atomic ? {ok: true, editId: 'edit-1', expectedUpdatedAt: '2026-10-29T10:00:00Z', patch: {}, acknowledgeCurrentTerms: false} : actual.prepareUnsignedContractEdit(row, f),
+  }
+})
+vi.mock('@/lib/supabase/service', () => ({supabaseService: {rpc: async () => { io.rpcCalls += 1; return io.rpcError ? {data: null, error: io.rpcError} : {data: {ok: true, contract_id: 'contract-a'}, error: null} }, from: (table: string) => {
   if (table !== 'customer_contracts') throw Error('unexpected table')
   const q = {
     update: (payload: Record<string, unknown>) => { io.db.payloads.push(payload); return q },
@@ -78,7 +88,7 @@ const form = () => {
   return f
 }
 
-beforeEach(() => { io.row = base(); io.updateCalls = []; io.updateError = null; io.events = []; io.eventError = null; io.lifecycleCalls = []; io.lifecycleError = null; io.db = {payloads: [], filters: [], result: null} })
+beforeEach(() => { io.atomic = false; io.rpcError = null; io.rpcCalls = 0; io.row = base(); io.updateCalls = []; io.updateError = null; io.events = []; io.eventError = null; io.lifecycleCalls = []; io.lifecycleError = null; io.db = {payloads: [], filters: [], result: null} })
 
 describe('customer-card edit of signed contracts', () => {
   it('still edits an unsigned draft through the existing writer', async () => {
@@ -215,5 +225,23 @@ describe('updateSealedCustomerContractLifecycle (real db.ts)', () => {
     io.db.result = row()
     const fn = await load()
     await expect(fn({id: 'contract-a', customerId: 'customer-a', companyId: 'company-b', currentStatus: 'signed', status: 'active', actorUserId: 'staff-a'})).rejects.toThrow('Kundavtalet hittades inte för valt bolag')
+  })
+})
+
+describe('unsigned atomic edit maps RPC refusals (PT409 replaces 40001)', () => {
+  for (const message of ['unsigned_contract_edit_stale', 'unsigned_contract_edit_customer_busy', 'unsigned_contract_edit_concurrent_event']) {
+    it(`PT409 ${message} is a controlled invalid answer`, async () => {
+      io.atomic = true; io.rpcError = {code: 'PT409', message}
+      const result = await saveContractWithFeedbackAction(form())
+      expect(io.rpcCalls).toBe(1)
+      expect(result.status).toBe('invalid')
+    })
+  }
+
+  it('40001 is no longer treated as a controlled refusal', async () => {
+    io.atomic = true; io.rpcError = {code: '40001', message: 'unsigned_contract_edit_stale'}
+    const result = await saveContractWithFeedbackAction(form())
+    expect(io.rpcCalls).toBe(1)
+    expect(result.status).toBe('unconfirmed')
   })
 })
