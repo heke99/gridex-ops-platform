@@ -16,7 +16,7 @@ import { COUNTERPARTY_EDIEL_ID, dbUrl, lit, sql, sqlJson } from './seed.mjs'
 
 /** Egen part för EDIEL01: en egen tenant (se seedE01Tenant), inte basfixturens 16700. */
 export const OWN_EDIEL_ID = process.env.T3_E01_OWN_ID ?? '16701'
-export const E01_COMPANY_NAME = 'T3SIM E01 Supplier AB'
+export const E01_COMPANY_NAME = OWN_EDIEL_ID === '16701' ? 'T3SIM E01 Supplier AB' : `T3SIM E01 Supplier AB ${OWN_EDIEL_ID}`
 
 /** psql via stdin (BEGIN/COMMIT-block och flera satser). Tom utdata -> undefined, annars JSON. */
 export function sqlIn<T = unknown>(input: string): T {
