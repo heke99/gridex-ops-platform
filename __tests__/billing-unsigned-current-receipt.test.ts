@@ -43,6 +43,17 @@ describe('real underlay entrypoint selects a controlled signed revision',()=>{
   expect(io.commands[0].underlay).toMatchObject({contract_price_snapshot_id:'new-ledger',price_plan_version_id:'ppv-new',pricing_snapshot:{invoice_fee_sek:26}})
   expect(io.queries.filter(q=>q.table==='contract_price_snapshots').some(q=>q.filters.some(([k,v])=>k==='id'&&v==='new-ledger'))).toBe(true)
  })
+ it('keeps the unsigned-revision lookup company-scoped through tenantDb',async()=>{
+  await generateBillingUnderlaysForMonth({companyId:'company-a',customerId:'customer-a',billingMonth:'2027-03'})
+  const lookup=io.queries.find(q=>q.table==='contract_price_snapshots'&&q.filters.some(([k,v])=>k==='source'&&v==='customer_contract_unsigned_edit')&&!q.filters.some(([k])=>k==='id'))
+  expect(lookup?.filters).toEqual(expect.arrayContaining([['company_id','company-a'],['contract_id','contract-a'],['source','customer_contract_unsigned_edit']]))
+ })
+ it('does not treat another company unsigned revision as this contract revision',async()=>{
+  io.contract.price_snapshot={};io.snapshots=[snapshot('old-ledger','ppv-old','signature_prepare'),{...snapshot('new-ledger','ppv-new','customer_contract_unsigned_edit'),company_id:'company-b'}]
+  await generateBillingUnderlaysForMonth({companyId:'company-a',customerId:'customer-a',billingMonth:'2027-03'})
+  expect(io.commands).toHaveLength(1)
+  expect(io.commands[0].underlay).toMatchObject({contract_price_snapshot_id:'old-ledger'})
+ })
  it('holds a missing current CPS without selecting a different proposal',async()=>{
   io.snapshots=io.snapshots.filter(s=>s.id!=='new-ledger')
   await expect(generateBillingUnderlaysForMonth({companyId:'company-a',billingMonth:'2027-03'})).rejects.toThrow('billing_unsigned_revision_snapshot_binding_invalid')

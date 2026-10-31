@@ -26,6 +26,7 @@ export type BillingGateReasonCode =
   | "supply_period_tenant_mismatch"
   | "supply_period_meter_mismatch"
   | "supply_period_does_not_cover_value"
+  | "supply_source_unqualified"
   | "customer_missing"
   | "contract_missing"
   | "contract_conflict"
