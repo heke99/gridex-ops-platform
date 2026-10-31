@@ -70,6 +70,29 @@ function resolveTrustedTestCenterCompanyId(input: {
   return companyId
 }
 
+/**
+ * Shared-mailbox mail is stored before its tenant is known (company_id NULL).
+ * Once the tenant is verified, attribute the mail to it before any
+ * ediel_messages row is created from it: the database only links a message to
+ * mail of the same company. Mail already owned by another tenant is a
+ * conflict and stops processing instead of being re-attributed.
+ */
+async function attributeInboundEmailToTenant(input: { inboundEmailMessageId: string; companyId: string }) {
+  const { error } = await supabaseService.from('inbound_email_messages')
+    .update({ company_id: input.companyId, updated_at: new Date().toISOString() })
+    .eq('id', input.inboundEmailMessageId)
+    .is('company_id', null)
+  if (error) throw error
+  const { data, error: readError } = await supabaseService.from('inbound_email_messages')
+    .select('company_id')
+    .eq('id', input.inboundEmailMessageId)
+    .maybeSingle()
+  if (readError) throw readError
+  if (!data || (data as { company_id?: unknown }).company_id !== input.companyId) {
+    throw new Error('inbound_email_tenant_attribution_conflict')
+  }
+}
+
 export async function processInboundEmailMessage(input: {
   inboundEmailMessageId: string
   actorUserId?: string | null
@@ -290,6 +313,8 @@ export async function processInboundEmailMessage(input: {
     return { status: 'manual_review', companyId: null, parseResultId }
   }
 
+  await attributeInboundEmailToTenant({ inboundEmailMessageId: input.inboundEmailMessageId, companyId: tenant.companyId })
+
   const outboundMatch = await matchOutboundRequestForInbound({
     companyId: tenant.companyId,
     parsed,
@@ -352,7 +377,7 @@ export async function processInboundEmailMessage(input: {
         tenantResolution: tenant.shared,
       })
     } else {
-      await createInboundEdielMessage({
+      const edielMessageId = await createInboundEdielMessage({
         actorUserId: input.actorUserId,
         companyId: tenant.companyId,
         environment,
@@ -363,6 +388,10 @@ export async function processInboundEmailMessage(input: {
         meteringPointMatch,
         tenantResolution: tenant.shared,
       })
+      // Same contract as the matched path (applySafeInboundStatusUpdate): an
+      // unpersisted original fails the job so it is retried, instead of ending
+      // as a manual-matching review that hides the database error.
+      if (!edielMessageId) throw new Error('ediel_inbound_original_persistence_required')
 
       await createInboundMailTask({
         companyId: tenant.companyId,
