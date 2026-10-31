@@ -5,25 +5,91 @@
 // Avvikelse från docs/backup-restore-checklist.md (Supabase PITR/backup in i projektet): lokalt återställs en dump in i en ny, tom databas på samma kluster. Fel på
 // plattformsobjekt accepteras bara om de exakt matchar platformOnly (listan loggas); alla andra fel underkänner.
 // Steg 3 i checklistan (supabase/sql/checks/production_consistency_checks.sql, checklistan rad 27) körs blockvis mot både källan och den återställda databasen (consistencyBlocks/runBlock).
-// Verktyg: värdens pg_dump/pg_restore om major >= serverns; annars `docker exec` i stackens egen db-container (supabase_db_*, endast pg_dump/pg_restore).
+// Verktyg: explicit T6-tilldelning krävs även för värdverktyg. Ingen container väljs från en global namnlista.
 import { spawnSync } from 'node:child_process'
-import { closeSync, mkdirSync, openSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { closeSync, lstatSync, mkdirSync, openSync, readFileSync, statSync } from 'node:fs'
+import { isAbsolute, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { custodyDir, sha256, sqlIn } from './base'
 import { dbUrl } from '../seed.mjs'
 
-export type Tooling = { kind: 'host'; hostMajor: number; serverMajor: number } | { kind: 'docker'; container: string; hostMajor: number | null; serverMajor: number }
+type BackendAssignment = {
+  version: 1; workerId: 'T6'; environmentId: string; containerId: string; projectId: string
+  host: '127.0.0.1' | 'localhost'; port: number; database: string; systemIdentifier: string
+}
+type DatabaseIdentity = { systemIdentifier: string; database: string; serverMajor: number }
+export type Tooling = (
+  { kind: 'host'; hostMajor: number; serverMajor: number }
+  | { kind: 'docker'; container: string; hostMajor: number | null; serverMajor: number }
+) & { assignment: BackendAssignment }
+
+const blocked = (reason: string): never => { throw new Error(`BLOCKED: T6 backend assignment ${reason}`) }
+const IDENTITY_SQL = `SET default_transaction_read_only=on; SELECT jsonb_build_object('systemIdentifier', (pg_control_system()).system_identifier::text, 'database', current_database(), 'serverMajor', current_setting('server_version_num')::int/10000)`
+
+function readAssignment(): BackendAssignment {
+  const file = process.env.T6_BACKEND_ASSIGNMENT_FILE
+  if (!file || !isAbsolute(file)) return blocked('missing (T6_BACKEND_ASSIGNMENT_FILE must name an explicit private allocation)')
+  let value: Partial<BackendAssignment>
+  try {
+    const info = lstatSync(file)
+    if (!info.isFile() || (info.mode & 0o077) !== 0) return blocked('file must be a private regular file (0600)')
+    value = JSON.parse(readFileSync(file, 'utf8')) as Partial<BackendAssignment>
+  } catch { return blocked('file is unavailable or invalid') }
+  if (!value || value.version !== 1 || value.workerId !== 'T6'
+    || typeof value.environmentId !== 'string' || !value.environmentId.trim()
+    || typeof value.containerId !== 'string' || !/^[a-f0-9]{64}$/.test(value.containerId)
+    || typeof value.projectId !== 'string' || !value.projectId.trim()
+    || !['127.0.0.1', 'localhost'].includes(value.host ?? '')
+    || !Number.isInteger(value.port) || value.port! < 1 || value.port! > 65535
+    || typeof value.database !== 'string' || !/^[a-zA-Z0-9_][a-zA-Z0-9_-]{0,62}$/.test(value.database)
+    || typeof value.systemIdentifier !== 'string' || !/^\d+$/.test(value.systemIdentifier)) return blocked('fields do not identify an explicit T6 allocation')
+  return {
+    version: 1, workerId: 'T6', environmentId: value.environmentId, containerId: value.containerId,
+    projectId: value.projectId, host: value.host as BackendAssignment['host'], port: value.port!,
+    database: value.database, systemIdentifier: value.systemIdentifier,
+  }
+}
+
+/** Read-only checks against the allocated container AND the configured host DB; never discovers or stamps an allocation. */
+function requireOwnedBackend(tooling?: Tooling): { assignment: BackendAssignment; serverMajor: number } {
+  const assignment = readAssignment()
+  const source = new URL(dbUrl())
+  if (source.hostname !== assignment.host || Number(source.port) !== assignment.port
+    || decodeURIComponent(source.pathname.slice(1)) !== assignment.database) return blocked('does not match the configured source DB endpoint')
+  if (tooling && (JSON.stringify(tooling.assignment) !== JSON.stringify(assignment)
+    || (tooling.kind === 'docker' && tooling.container !== assignment.containerId))) return blocked('changed since tooling selection')
+
+  // Select only nonsecret identity fields, not Config.Env or the full inspect payload.
+  const format = '{"Id":{{json .Id}},"Running":{{json .State.Running}},"Labels":{{json .Config.Labels}},"Ports":{{json .NetworkSettings.Ports}}}'
+  const inspect = spawnSync('docker', ['inspect', '--type', 'container', '--format', format, assignment.containerId], { encoding: 'utf8', timeout: 10_000, maxBuffer: 1_000_000 })
+  if (inspect.status !== 0) return blocked('container inspection failed')
+  let actual: { Id?: string; Running?: boolean; Labels?: Record<string, string>; Ports?: Record<string, Array<{ HostIp: string; HostPort: string }>> }
+  try { actual = JSON.parse(inspect.stdout) as typeof actual } catch { return blocked('container inspection is ambiguous or invalid') }
+  if (!actual || Array.isArray(actual) || actual.Id !== assignment.containerId || actual.Running !== true
+    || actual.Labels?.['com.supabase.cli.project'] !== assignment.projectId) return blocked('container ID, state or project ownership does not match')
+  const ports = actual.Ports?.['5432/tcp']
+  if (!Array.isArray(ports) || !ports.some(p => p && ['127.0.0.1', '::1'].includes(p.HostIp) && p.HostPort === String(assignment.port))) return blocked('database port is not published on the assigned loopback endpoint')
+
+  let host: DatabaseIdentity
+  try { host = sqlIn<DatabaseIdentity>(IDENTITY_SQL) } catch { return blocked('host DB identity query failed') }
+  const queried = spawnSync('docker', ['exec', assignment.containerId, 'psql', '-U', dbUser(), '-d', assignment.database, '-XAtq', '-v', 'ON_ERROR_STOP=1', '-c', IDENTITY_SQL], { encoding: 'utf8', timeout: 10_000, maxBuffer: 100_000 })
+  if (queried.status !== 0) return blocked('container DB identity query failed')
+  let container: DatabaseIdentity
+  try { container = JSON.parse(queried.stdout) as DatabaseIdentity } catch { return blocked('container DB identity is invalid') }
+  for (const identity of [host, container]) {
+    if (!identity || identity.systemIdentifier !== assignment.systemIdentifier || identity.database !== assignment.database
+      || !Number.isInteger(identity.serverMajor) || identity.serverMajor < 10) return blocked('runtime database identity does not match')
+  }
+  if (host.serverMajor !== container.serverMajor) return blocked('host and container DB versions differ')
+  return { assignment, serverMajor: host.serverMajor }
+}
 
 export function chooseTooling(): Tooling {
-  const serverMajor = Number(sqlIn<number>(`SELECT to_jsonb(current_setting('server_version_num')::int/10000)`))
+  const { assignment, serverMajor } = requireOwnedBackend()
   const v = spawnSync('pg_dump', ['--version'], { encoding: 'utf8' })
   const hostMajor = v.status === 0 ? Number(/(\d+)(?:\.\d+)?/.exec(v.stdout)?.[1] ?? 0) : null
-  if (hostMajor !== null && hostMajor >= serverMajor && spawnSync('pg_restore', ['--version']).status === 0) return { kind: 'host', hostMajor, serverMajor }
-  const ps = spawnSync('docker', ['ps', '--filter', 'name=supabase_db_', '--format', '{{.Names}}'], { encoding: 'utf8' })
-  const names = ps.stdout.split('\n').map((s) => s.trim()).filter(Boolean)
-  if (names.length !== 1) throw new Error(`BLOCKED: varken host-pg_dump >= ${serverMajor} (host: ${hostMajor}) eller exakt en supabase_db_*-container (${names.join(',') || 'ingen'})`)
-  return { kind: 'docker', container: names[0], hostMajor, serverMajor }
+  if (hostMajor !== null && hostMajor >= serverMajor && spawnSync('pg_restore', ['--version']).status === 0) return { kind: 'host', hostMajor, serverMajor, assignment }
+  return { kind: 'docker', container: assignment.containerId, hostMajor, serverMajor, assignment }
 }
 
 const urlFor = (db: string, role?: string): string => { const u = new URL(dbUrl()); u.pathname = `/${db}`; if (role) u.username = role; return u.toString() }
@@ -32,6 +98,7 @@ const dbUser = () => decodeURIComponent(new URL(dbUrl()).username || 'postgres')
 const baseDb = () => new URL(dbUrl()).pathname.replace(/^\//, '') || 'postgres'
 
 export function dump(t: Tooling, file: string): { ms: number; bytes: number; sha256: string; stderr: string } {
+  requireOwnedBackend(t)
   const t0 = Date.now()
   mkdirSync(join(file, '..'), { recursive: true })
   const out = openSync(file, 'w', 0o600)
@@ -44,13 +111,18 @@ export function dump(t: Tooling, file: string): { ms: number; bytes: number; sha
   } finally { closeSync(out) }
 }
 
-export function createDb(db: string) { sqlIn(`CREATE DATABASE "${db}"`) }
-export function dropDb(db: string) { sqlIn(`DROP DATABASE IF EXISTS "${db}" WITH (FORCE)`) }
-export const dbExists = (db: string) => sqlIn<boolean>(`SELECT to_jsonb(EXISTS(SELECT 1 FROM pg_database WHERE datname='${db}'))`)
+const requireRestoreDb = (db: string) => {
+  if (!/^t6_restore_[a-zA-Z0-9_]+$/.test(db) || db.length > 63 || db === new URL(dbUrl()).pathname.slice(1)) return blocked('temporary restore DB name is not allowed')
+}
+export function createDb(db: string) { requireRestoreDb(db); requireOwnedBackend(); sqlIn(`CREATE DATABASE "${db}"`) }
+export function dropDb(db: string) { requireRestoreDb(db); requireOwnedBackend(); sqlIn(`DROP DATABASE IF EXISTS "${db}" WITH (FORCE)`) }
+export const dbExists = (db: string) => { requireRestoreDb(db); requireOwnedBackend(); return sqlIn<boolean>(`SELECT to_jsonb(EXISTS(SELECT 1 FROM pg_database WHERE datname='${db}'))`) }
 
 export type RestoreErrorBlock = { error: string; command: string }
 const RESTORE_ROLE = 'supabase_admin'
 export function restore(t: Tooling, file: string, db: string): { ms: number; status: number | null; errors: string[]; blocks: RestoreErrorBlock[]; stderrTail: string } {
+  requireRestoreDb(db)
+  requireOwnedBackend(t)
   const t0 = Date.now()
   const input = openSync(file, 'r')
   try {

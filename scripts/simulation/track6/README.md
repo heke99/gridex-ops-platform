@@ -59,6 +59,26 @@ Nya prov: steg i `scenarios/*.test.ts`, namngivna med scenario-ID. Webbläsarste
 
 ## Ursprung
 
+### Explicit backendtilldelning för CUSTODY01.05
+
+Backup, restore och skapande/borttagning av temporär restore-DB kräver
+`T6_BACKEND_ASSIGNMENT_FILE`, en absolut sökväg till en privat vanlig JSON-fil (0600).
+Den lämnas av samordnaren efter faktisk exklusiv miljötilldelning och innehåller:
+`version: 1`, `workerId: "T6"`, `environmentId`, fullständigt 64-teckens `containerId`,
+`projectId`, `host` (`127.0.0.1` eller `localhost`), `port`, `database` och PostgreSQLs
+verkliga `systemIdentifier` från `pg_control_system()`.
+
+Hjälparen skapar ingen sådan tilldelning. Den kräver att exakt container-ID kör,
+att dess `com.supabase.cli.project`-etikett matchar, att databasporten är bunden på
+tilldelad loopback-port och att både den konfigurerade värdanslutningen och
+containeranslutningen rapporterar tilldelad databas och klusteridentitet. Kontrollerna
+upprepas före dump/restore, även när värdens PostgreSQL-verktyg används. Bara nya
+databasnamn under `t6_restore_` får skapas/raderas eller användas som restore-mål.
+Saknad eller avvikande bindning ger BLOCKED före backup-/restore-kommandot.
+
+Kopiera inte värden från en godtycklig eller ensam `supabase_db_*`-container för att
+få kontrollen grön. Detta källövertagande tilldelar ingen faktisk backend.
+
 Kopierat från kampanjens spår 3, commit `01d97c27ec73544f6c303936fadf4cb73a5e25dc`, med namnbyte track3/T3/t3 -> track6/T6/t6,
 nya portar och Ediel-ID 16760, samt tillägg i `up.sh`/`down.sh`/`lib/common.sh` (dockerd, CLI-installation, appCommit/harnessCommit,
 fingerprint, BLOCKED-kontroll). Ediel-scenariofiler och e0x-hjälpkod är inte kopierade.
