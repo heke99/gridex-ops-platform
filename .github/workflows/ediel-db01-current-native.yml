@@ -485,8 +485,8 @@ jobs:
           def current_write_api_install_spec():
               return {'before_catalog_sha256':'709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
                   'preimage_artifact_id':12655280424,'preimage_source':'c6a02ec1edfbf72d81a2c3755e004781da8bc5d6',
-                  'schema_sha256':'20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b','function_count':251,
-                  # PR #932 capture (pre aa5d9975): closure of 251 writer functions is byte-identical.
+                  'schema_sha256':'bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b','function_count':251,
+                  # PR #973 capture (pre 20b8165b, aa5d9975): closure of 251 writer functions is byte-identical.
                   'canonical_definitions_sha256':'23866bb938ea1230a1f623073c436ae3d6583b5518378d0ee8eabd403eeb383d',
                   'projection_old_body':'01a18718d1d55c93238f2f9a8cfcb44da7cd5b35dbee96af964066a1848b7379',
                   'projection_new_body':'66d86e98130ca6f5e64ae966d710f35bce86204452febe714684025943a81f17',

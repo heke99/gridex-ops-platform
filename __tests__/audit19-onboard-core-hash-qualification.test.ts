@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { prePr973Audit19Schema } from './helpers/db05PredecessorSchema'
 
 // simulation: 20261029-3f1a8ab1/claude-track2/014c
 // Actual main source-contract body and actual main onboarding-core body (both
@@ -11,7 +12,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 // native concurrency or production installation evidence. The onboarding core
 // is created with check_function_bodies=off because its referenced tables are
 // not loaded; its prosrc bytes are unchanged and it is never invoked.
-const schema = readFileSync('supabase/schema.sql', 'utf8')
+// The forward is applied to the exact pre-PR973 capture, never to a capture
+// that already contains it.
+const schema = prePr973Audit19Schema(readFileSync('supabase/schema.sql', 'utf8'))
 const forwardPath = 'supabase/migrations/20261030131500_audit19_qualify_onboard_customer_graph_core_hash.sql'
 const forward = existsSync(forwardPath) ? readFileSync(forwardPath, 'utf8') : ''
 const supportDonor = readFileSync('supabase/migrations/20261020180847_audit19_customer_support_consumer_contract.sql', 'utf8')
