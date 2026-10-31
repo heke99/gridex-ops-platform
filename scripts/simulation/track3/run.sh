@@ -7,12 +7,39 @@ set -uo pipefail
 # shellcheck source=lib/common.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 (( $# )) || t3_die "användning: run.sh <scenariofil...>"
+[[ -n "${SIM_REPORT:-}" && "$SIM_REPORT" == /* ]] || t3_die "SIM_REPORT måste vara en absolut privat rapportsökväg"
+T3_REQUESTED_REPORT="$SIM_REPORT"
+t3_load_env
+[[ "${SIM_REPORT:-}" == "$T3_REQUESTED_REPORT" ]] || t3_die "env-filen ändrade SIM_REPORT; körningen startas inte"
+# Kontrollera den verkliga målsökvägen innan lås, nätanrop eller Vitest.
+T3_REPORT_PATH="$(python3 - "$SIM_REPORT" <<'PY'
+from pathlib import Path
+import subprocess
+import sys
+
+target = Path(sys.argv[1])
+if target.is_symlink() or (target.exists() and not target.is_file()):
+    sys.exit('SIM_REPORT måste vara en vanlig fil, inte en länk eller katalog')
+target = target.resolve()
+parent = target.parent
+while not parent.exists():
+    parent = parent.parent
+if not parent.is_dir():
+    sys.exit('SIM_REPORT har ingen giltig föräldrakatalog')
+for flag in ('--is-inside-work-tree', '--is-inside-git-dir'):
+    result = subprocess.run(['git', '-C', str(parent), 'rev-parse', flag], capture_output=True, text=True)
+    if result.returncode == 0 and result.stdout.strip() == 'true':
+        sys.exit('SIM_REPORT måste ligga utanför Git-arbetsytor och Git-metadata')
+print(target)
+PY
+)" || t3_die "ogiltig SIM_REPORT"
+umask 077
 
 mkdir -p "$SIM_HOME/runs"
 exec 9>"$SIM_HOME/run.lock"
 if ! flock -n 9; then t3_die "en annan körning pågår (lås: $SIM_HOME/run.lock)"; fi
 
-t3_load_env
+mkdir -p -- "$(dirname "$T3_REPORT_PATH")" || t3_die "kunde inte skapa rapportkatalogen"
 REPO_ROOT="$(cd "$T3_DIR/../../.." && pwd)"
 resolve_scenario() {
   local a="$1" c
@@ -34,7 +61,7 @@ overall=0
 declare -a SUMMARY_ITEMS=()
 VITEST_BIN="$RUN_DIR/node_modules/vitest/vitest.mjs"
 for arg in "$@"; do
-  if ! file="$(resolve_scenario "$arg")"; then t3_log "scenariofil saknas: $arg" >&2; overall=2; continue; fi
+  if ! file="$(resolve_scenario "$arg")"; then t3_log "scenariofil saknas: $arg" >&2; (( overall != 0 )) || overall=2; continue; fi
   rel="${file#"$T3_DIR"/}"
   name="$(basename "$file" .test.ts)"
   dir="$RUN_ROOT/$name"; mkdir -p "$dir"
@@ -48,14 +75,18 @@ for arg in "$@"; do
       --outputFile.json="$dir/vitest.json" "$rel"
   ) >"$dir/log.txt" 2>&1
   code=$?
+  (( code == 0 || overall != 0 )) || overall="$code"
   ended="$(t3_utc)"
   node "$T3_DIR/lib/make-report.mjs" --scenario "$name" --file "$rel" --run-id "$RUN_ID" --exit "$code" \
     --started "$started" --ended "$ended" --vitest "$dir/vitest.json" --log "$dir/log.txt" \
-    --evidence "$SIM_HOME/evidence/$RUN_ID/$name" --out "$dir/report.json" || t3_log "make-report misslyckades" >&2
+    --evidence "$SIM_HOME/evidence/$RUN_ID/$name" --out "$dir/report.json" || {
+      t3_log "make-report misslyckades" >&2
+      (( overall != 0 )) || overall=1
+    }
   t3_log "$name: exit $code -> $dir/report.json"
-  (( code == 0 )) || overall=1
   SUMMARY_ITEMS+=("{\"scenario\":\"$name\",\"exit\":$code,\"report\":\"$dir/report.json\"}")
 done
-printf '{"runId":"%s","exit":%s,"scenarios":[%s]}\n' "$RUN_ID" "$overall" "$(IFS=,; echo "${SUMMARY_ITEMS[*]:-}")" > "$RUN_ROOT/summary.json"
+printf '{"runId":"%s","exit":%s,"scenarios":[%s]}\n' "$RUN_ID" "$overall" "$(IFS=,; echo "${SUMMARY_ITEMS[*]:-}")" > "$RUN_ROOT/summary.json" || t3_die "kunde inte skriva summary.json"
+node "$T3_DIR/lib/make-report.mjs" --summary "$RUN_ROOT/summary.json" --out "$T3_REPORT_PATH" || t3_die "kunde inte skriva SIM_REPORT"
 echo "$RUN_ROOT"
 exit "$overall"

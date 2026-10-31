@@ -10,17 +10,23 @@ Harnessen kräver inga ändringar i produktkod (basen: `1c0c088cb4ed66d0dd8b3e34
 | --- | --- |
 | `up.sh [--mode test\|production]` | Idempotent. Verifierar stacken (annars clean replay), skriver replay-kvitton, genererar CA, startar mailmotpart, seedar fixture, skriver `env/track3.env`, bygger (`next build`) vid behov och startar `next start`. |
 | `down.sh [--stack] [--purge]` | Stoppar app, mailmotpart och GreenMail-containern (med `--stack` även Supabase-stacken inkl. volymer), verifierar att inget är kvar och skriver `SIM_HOME/cleanup-receipt.json`. Exit 1 om något finns kvar. |
-| `run.sh <scenariofil...>` | En körning åt gången (flock på `SIM_HOME/run.lock`). Per scenario: `SIM_HOME/runs/<run-id>/<scenario>/{report.json,log.txt,vitest.json}`. |
+| `run.sh <scenariofil...>` | Kräver `SIM_REPORT`, en absolut privat fil utanför Git-arbetsytor och Git-metadata. Ogiltigt mål eller en env-fil som ändrar `SIM_REPORT` nekas före lås, nätanrop och Vitest. En körning åt gången (flock på `SIM_HOME/run.lock`). Per scenario: `SIM_HOME/runs/<run-id>/<scenario>/{report.json,log.txt,vitest.json}`. |
 
 Rapporten (`report.json`) har `exit`, `startedAt`/`endedAt` (UTC), `steps[]` (`passed|failed|skipped`), `skipped[]`,
 vitests sammanfattning (`vitest`), `observations` (utfall som scenariot loggar utan att assertera) och sökväg till
 evidenskatalogen med `MANIFEST.sha256`.
 
+`SIM_REPORT` innehåller `{runId, exit, scenarios}` med de faktiska scenariorapporterna, inklusive `scenarioId` per
+EDIEL-steg. Varje rapport måste matcha körningens ID, scenario och verkliga exitkod. Första icke-noll-exitkoden från
+Vitest bevaras; saknad scenariofil eller misslyckad rapportering ger också icke-noll. Rapportfilen får 0600 även
+om den redan finns; befintliga symlänkar eller kataloger godtas inte som rapportmål.
+Förkontrollen använder Python 3 och Git för att kontrollera den upplösta målsökvägen.
+
 ## Körning
 
 ```
 bash scripts/simulation/track3/up.sh                  # första gången: bygge kan ta >10 min (SKIP_BUILD=1 återanvänder)
-bash scripts/simulation/track3/run.sh scenarios/smoke.test.ts
+SIM_REPORT=/privat/evidens/track3-report.json bash scripts/simulation/track3/run.sh scenarios/smoke.test.ts
 bash scripts/simulation/track3/down.sh                # --stack stoppar även Supabase
 ```
 

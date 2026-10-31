@@ -1,9 +1,23 @@
 // Bygger report.json per scenario ur vitests JSON-rapport. Status per steg: passed | failed | skipped.
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const args = process.argv.slice(2)
 const get = (f, d = null) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : d }
+if (get('--summary')) {
+  const summary = JSON.parse(readFileSync(get('--summary'), 'utf8'))
+  const scenarios = summary.scenarios.map((entry) => {
+    const report = JSON.parse(readFileSync(entry.report, 'utf8'))
+    if (report.runId !== summary.runId || report.scenario !== entry.scenario || report.exit !== entry.exit) {
+      throw new Error('scenariorapporten hör inte till denna körning')
+    }
+    return report
+  })
+  const out = get('--out')
+  if (existsSync(out)) chmodSync(out, 0o600)
+  writeFileSync(out, JSON.stringify({ runId: summary.runId, exit: summary.exit, scenarios }, null, 2), { mode: 0o600 })
+  process.exit(0)
+}
 const vitestPath = get('--vitest')
 const evidence = get('--evidence')
 let vitest = null
@@ -15,6 +29,7 @@ for (const file of vitest?.testResults ?? []) {
   for (const a of file.assertionResults ?? []) {
     steps.push({
       name: a.fullName ?? a.title,
+      scenarioId: String(a.fullName ?? a.title ?? '').match(/\bEDIEL\d{2}\.\d{2}\b/)?.[0] ?? null,
       status: statusOf(a.status),
       durationMs: a.duration ?? null,
       failureMessages: (a.failureMessages ?? []).map((m) => String(m).split('\n').slice(0, 12).join('\n')),
