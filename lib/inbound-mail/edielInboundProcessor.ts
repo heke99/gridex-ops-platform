@@ -21,6 +21,7 @@ import {
   updateInboundEmailProcessingStatus,
 } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { parseAiBiTechnicalFile } from '@/lib/ediel/aiListFormat'
 import { registerInboundCanonicalMessage } from '@/lib/ediel/core/kernel'
 
@@ -78,12 +79,15 @@ function resolveTrustedTestCenterCompanyId(input: {
  * conflict and stops processing instead of being re-attributed.
  */
 async function attributeInboundEmailToTenant(input: { inboundEmailMessageId: string; companyId: string }) {
-  const { error } = await supabaseService.from('inbound_email_messages')
+  // Deliberately cross-tenant: the row is still unattributed (company_id NULL)
+  // and the read must see another tenant's ownership to refuse it.
+  const db = tenantDb(input.companyId).unscoped()
+  const { error } = await db.from('inbound_email_messages')
     .update({ company_id: input.companyId, updated_at: new Date().toISOString() })
     .eq('id', input.inboundEmailMessageId)
     .is('company_id', null)
   if (error) throw error
-  const { data, error: readError } = await supabaseService.from('inbound_email_messages')
+  const { data, error: readError } = await db.from('inbound_email_messages')
     .select('company_id')
     .eq('id', input.inboundEmailMessageId)
     .maybeSingle()
