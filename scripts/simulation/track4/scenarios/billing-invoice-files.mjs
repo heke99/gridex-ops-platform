@@ -258,13 +258,15 @@ const steps = [
   },
 
   {
-    id: 'MAIN05.06', title: "'-' x 36 as file id -> controlled 4xx (5xx = FAIL)", scope: 'api', needs: ['FX06'],
-    note: "Route guard is /^[0-9a-f-]{36}$/i, which accepts '-'x36; the id is then used in a uuid-typed query. Expected finding if the response is 500.",
+    id: 'MAIN05.06', title: "'-' x 36 as file id -> exact 404 not-found response", scope: 'api', needs: ['FX06'],
+    note: 'Regression for the original weak UUID guard. Authentication, permission or rate-limit failures must not count as a controlled malformed-ID response.',
     async run(ctx) {
       const a = await ensureSession(ctx, 'A')
       const r = await getFile(ctx, a, '-'.repeat(36), { label: "GET id='-'x36" })
       ctx.value('status', r.status)
-      ctx.assert.ok(r.status >= 400 && r.status < 500, `controlled 4xx expected, got ${r.status}: ${r.text().slice(0, 200)}`)
+      ctx.assert.equal(r.status, 404, `malformed file id must return 404, got ${r.status}`)
+      ctx.assert.match(r.contentType ?? '', /^text\/plain(?:;|$)/i, 'malformed file id must return plain text')
+      ctx.assert.equal(r.text(), 'Fakturafilen hittades inte.', 'malformed file id must return the expected not-found body')
     },
   },
 
