@@ -54,6 +54,31 @@ export type ServerActionResult = {
 
 export type ActionArg = unknown | FormData
 
+export type ContractEditFeedback = { status: 'saved' } | { status: 'invalid'; message: string; field?: string }
+
+/** Harness oracle for the normal edit form's returned feedback, not native proof.
+ * A transport error, thrown action, redirect or unconfirmed write is never a
+ * successful save/refusal. Callers must separately assert native before/after.
+ */
+export function assertContractEditFeedback(
+  result: ServerActionResult,
+  expected: { status: 'saved' | 'invalid'; field?: string; message?: string },
+): ContractEditFeedback {
+  if (result.httpStatus !== 200) throw new Error('contract_edit_feedback_http')
+  if (result.threw || result.errorRows.length > 0) throw new Error('contract_edit_feedback_action_failed')
+  if (result.redirect !== null) throw new Error('contract_edit_feedback_redirect')
+  const value = result.value
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('contract_edit_feedback_shape')
+  const feedback = value as Record<string, unknown>
+  if (feedback.status !== expected.status) throw new Error('contract_edit_feedback_status')
+  if (expected.field !== undefined && feedback.field !== expected.field) throw new Error('contract_edit_feedback_field')
+  if (feedback.status === 'invalid' && (typeof feedback.message !== 'string' || !feedback.message.trim())) {
+    throw new Error('contract_edit_feedback_message')
+  }
+  if (expected.message !== undefined && feedback.message !== expected.message) throw new Error('contract_edit_feedback_message')
+  return feedback as ContractEditFeedback
+}
+
 /**
  * Anropar en server action. `route` är sidan som POST:as (t.ex. `/admin/customers/<id>`), `args` är actionens
  * argument i ordning (FormData-argument ersätts med $K-referenser).

@@ -6,7 +6,7 @@
 // Ingen webbläsare (Playwright) används: ren HTTP + psql. Auth/JWT = real tid; affärsdatum = explicita parametrar.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { loginSession, psql, psqlRows, removeAdminFixtureUser, type AppSession } from '../lib'
-import { callServerAction } from '../lib/server-action'
+import { assertContractEditFeedback, callServerAction, type ServerActionResult } from '../lib/server-action'
 import {
   createSignedContract, createTermTenant, probeCreateCustomerAction, probeCreateContractTsPath, psqlExpectError, rowHash, stockholmToday,
   type SignedContractFixture, type TermTenant, type CreateSignedContractInput,
@@ -405,10 +405,16 @@ describe('TERM01 bindningstid och slutdatum', () => {
       expect(rowHash('customer_contracts', c.contractId)).toBe(before)
     })
 
-    it('TERM01.05 updateContractAction (HTTP): FYND 007 registreras exakt, HTTP 500 och oförändrad rad (ej kontrollerat nekande)', async () => {
+    it('TERM01.05 normalt redigeringsformulär: oförändrad kontroll sparas, låsta villkor nekas med feedback och native state bevaras', async () => {
       const c = await fixture()
       const [row] = psqlRows<Record<string, any>>(`select * from public.customer_contracts where id='${c.contractId}'`)
-      const before = rowHash('customer_contracts', c.contractId)
+      const nativeState = () => ({
+        contract: rowHash('customer_contracts', c.contractId),
+        snapshot: rowHash('contract_price_snapshots', c.priceSnapshotId),
+        events: psql(`select md5(coalesce(jsonb_agg(to_jsonb(e) order by e.id),'[]'::jsonb)::text)
+          from public.customer_contract_events e where e.company_id='${c.companyId}' and e.customer_contract_id='${c.contractId}'`),
+      })
+      const before = nativeState()
       const str = (v: unknown) => (v === null || v === undefined ? '' : String(v))
       const attempts: Record<string, Record<string, string>> = {
         'kontroll: oförändrade värden': {},
@@ -417,7 +423,7 @@ describe('TERM01 bindningstid och slutdatum', () => {
         ends_at: { ends_at: '2099-12-31' },
         starts_at: { starts_at: '2026-11-02' },
       }
-      const outcomes: Record<string, { http: number; threw: boolean; unchanged: boolean }> = {}
+      const outcomes: Record<string, { http: number; feedback: string; field?: string }> = {}
       for (const [column, change] of Object.entries(attempts)) {
         const form = new FormData()
         const values: Record<string, string> = {
@@ -430,18 +436,23 @@ describe('TERM01 bindningstid och slutdatum', () => {
         }
         for (const [k, v] of Object.entries(values)) form.append(k, v)
         const r = await callServerAction(await tenantSessionFor(), {
-          route: `/admin/customers/${c.customerId}`, filename: 'components/admin/customers/contracts/actions.ts', exportedName: 'updateContractAction',
+          // EditContractForm imports this feedback action on the customer page.
+          // Its manifest binding is checked by findActionId; no route is guessed
+          // from the action module's signature/ pathname.
+          route: `/admin/customers/${c.customerId}`, filename: 'app/admin/customers/[id]/contracts/[contractId]/signature/actions.ts', exportedName: 'saveContractWithFeedbackAction',
           args: [form], worker: 'app/admin/customers/[id]/page',
         })
-        const unchanged = rowHash('customer_contracts', c.contractId) === before
-        outcomes[column] = { http: r.httpStatus, threw: r.threw, unchanged }
-        console.info(`[TERM01.05 FYND 007] updateContractAction ${column}: HTTP ${r.httpStatus} kastade=${r.threw} rad oförändrad=${unchanged} ${r.errorRows.join(' | ').slice(0, 200)} (feltext i appens serverlogg; actions.ts:1050 skriver alltid om priceSnapshot, vilket trigger 55000 signed_customer_contract_immutable:price_snapshot)`)
+        const feedback = assertContractEditFeedback(r, column === 'kontroll: oförändrade värden'
+          ? { status: 'saved' }
+          : column === 'monthly_fee_sek'
+            ? { status: 'invalid', field: 'monthly_fee_sek', message: 'Priset hör till en låst avtalsversion som används vid signering och fakturering. Skapa en ny avtalsversion för att ändra priser eller avgifter; den här ändringen har inte sparats.' }
+            : { status: 'invalid', message: 'Signerat avtal kan inte ändras – använd avtalsåtgärder.' })
+        expect(nativeState(), `redigeringsformuläret ${column} ändrade avtal, snapshot eller avtalshändelser`).toEqual(before)
+        outcomes[column] = { http: r.httpStatus, feedback: feedback.status, ...('field' in feedback ? { field: feedback.field } : {}) }
       }
-      console.info(`[TERM01.05 FYND 007] okontrollerat HTTP 500 i stället för kontrollerat nekande; utfall per försök: ${JSON.stringify(outcomes)}. Kontrollfallet (oförändrade värden) visar att felet inte beror på vilken kolumn som ändras.`)
-      for (const [column, o] of Object.entries(outcomes)) {
-        expect(o.unchanged, `updateContractAction ${column} ändrade det signerade avtalet`).toBe(true)
-        expect(o.http, `updateContractAction ${column}: väntat registrerat utfall HTTP 500 (fynd 007)`).toBe(500)
-      }
+      // Original FYND 007/HTTP500 receipts remain in the donor packet. A later
+      // native rerun of this regression must pass before changing its status.
+      console.info(`[TERM01.05 edit feedback] ${JSON.stringify(outcomes)}`)
     })
 
     it('TERM01.05 contract_price_snapshots UPDATE/DELETE nekas och snapshotraden är oförändrad', async () => {
@@ -546,5 +557,49 @@ describe('TERM01 bindningstid och slutdatum', () => {
     const guardUsers = psqlRows(`select tgname, tgrelid::regclass::text as tbl from pg_trigger where tgfoid in (select oid from pg_proc where proname='gridex_customer_contracts_auto_renew_guard') and not tgisinternal`)
     console.info(`[TERM01.OBS] ${JSON.stringify({ trigger_trg_gridex_customer_contracts_auto_renew_guard: trigger, function_gridex_add_months_timestamptz: addMonths, function_auto_renew_guard: guardFn, triggers_using_guard_function: guardUsers })}`)
     expect(true).toBe(true)
+  })
+})
+
+// COMPONENT only: the oracle rejects uncertain/failed transport and a false save.
+// These tests run without Auth/DB and do not prove native immutability or TERM01.05.
+describe('TERM01.COMPONENT contract edit feedback oracle', () => {
+  const result = (value: unknown, overrides: Partial<ServerActionResult> = {}): ServerActionResult => ({
+    httpStatus: 200, redirect: null, value, threw: false, errorRows: [], excerpt: '', ...overrides,
+  })
+  const sealedMessage = 'Signerat avtal kan inte ändras – använd avtalsåtgärder.'
+
+  it('accepts an ordinary unchanged save and an explicit sealed-contract refusal', () => {
+    expect(assertContractEditFeedback(result({ status: 'saved' }), { status: 'saved' })).toEqual({ status: 'saved' })
+    expect(assertContractEditFeedback(result({ status: 'invalid', message: sealedMessage }), {
+      status: 'invalid', message: sealedMessage,
+    })).toEqual({ status: 'invalid', message: sealedMessage })
+    expect(assertContractEditFeedback(result({ status: 'invalid', field: 'monthly_fee_sek', message: 'Locked price version' }), {
+      status: 'invalid', field: 'monthly_fee_sek', message: 'Locked price version',
+    })).toMatchObject({ status: 'invalid', field: 'monthly_fee_sek' })
+  })
+
+  it.each([
+    ['wrong actor', result({ status: 'saved' }, { httpStatus: 403 }), 'contract_edit_feedback_http'],
+    ['unauthenticated actor', result({ status: 'saved' }, { httpStatus: 401 }), 'contract_edit_feedback_http'],
+    ['invalid contract', result({ status: 'saved' }, { httpStatus: 404 }), 'contract_edit_feedback_http'],
+    ['server error', result({ status: 'saved' }, { httpStatus: 500 }), 'contract_edit_feedback_http'],
+    ['thrown action', result({ status: 'saved' }, { threw: true }), 'contract_edit_feedback_action_failed'],
+    ['Flight error row', result({ status: 'saved' }, { errorRows: ['1:E{"digest":"synthetic"}'] }), 'contract_edit_feedback_action_failed'],
+    ['unexpected redirect', result({ status: 'saved' }, { redirect: '/login' }), 'contract_edit_feedback_redirect'],
+    ['unknown outcome', result({ status: 'unconfirmed', message: 'Inspect saved state before retry' }), 'contract_edit_feedback_status'],
+    ['missing return', result(null), 'contract_edit_feedback_shape'],
+    ['invalid shape', result([{ status: 'saved' }]), 'contract_edit_feedback_shape'],
+  ] as const)('refuses %s as evidence of a successful save', (_label, actual, error) => {
+    expect(() => assertContractEditFeedback(actual, { status: 'saved' })).toThrowError(error)
+  })
+
+  it('fails if a changed sealed field was saved or the refusal is unrelated', () => {
+    const expected = { status: 'invalid' as const, field: 'monthly_fee_sek', message: 'Locked price version' }
+    for (const [value, error] of [
+      [{ status: 'saved' }, 'contract_edit_feedback_status'],
+      [{ status: 'invalid', field: 'override_reason', message: 'Locked price version' }, 'contract_edit_feedback_field'],
+      [{ status: 'invalid', field: 'monthly_fee_sek', message: 'Unrelated validation' }, 'contract_edit_feedback_message'],
+      [{ status: 'invalid', field: 'monthly_fee_sek', message: '' }, 'contract_edit_feedback_message'],
+    ] as const) expect(() => assertContractEditFeedback(result(value), expected)).toThrowError(error)
   })
 })
