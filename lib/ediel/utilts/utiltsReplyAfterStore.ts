@@ -61,20 +61,24 @@ export async function createUtiltsRepliesAfterStore<T>(params: {
     try {
       Object.defineProperty(error, MARK, { value: failure, enumerable: false, configurable: true })
     } catch { /* a frozen error keeps the old behaviour: the action reports a plain failure */ }
-    await createEdielMessageEvent({
-      actorUserId: params.actorUserId,
-      edielMessageId: params.sourceMessageId,
-      eventType: 'manual_note',
-      eventStatus: 'error',
-      message: `${storedMeterValueIds.length} mätvärde(n) lagrades${billingUnderlayId ? ' och fakturaunderlag skapades' : ''}, men applikationssvaret (APERAK/UTILTS-ERR) kunde inte skapas: ${failure.error}. Lagrade värden behålls; svaret saknas tills engine körs igen.`,
-      payload: {
-        phase: 'utilts_reply_failed_after_store',
-        storedMeterValueCount: storedMeterValueIds.length,
-        storedMeterValueIds,
-        billingUnderlayId,
-        error: failure.error,
-      },
-    }).catch(() => null)
+    // Best effort: the event write (sync throw, rejection or a non-promise
+    // return) must never replace the original reply error rethrown below.
+    try {
+      await createEdielMessageEvent({
+        actorUserId: params.actorUserId,
+        edielMessageId: params.sourceMessageId,
+        eventType: 'manual_note',
+        eventStatus: 'error',
+        message: `${storedMeterValueIds.length} mätvärde(n) lagrades${billingUnderlayId ? ' och fakturaunderlag skapades' : ''}, men applikationssvaret (APERAK/UTILTS-ERR) kunde inte skapas: ${failure.error}. Lagrade värden behålls; svaret saknas tills engine körs igen.`,
+        payload: {
+          phase: 'utilts_reply_failed_after_store',
+          storedMeterValueCount: storedMeterValueIds.length,
+          storedMeterValueIds,
+          billingUnderlayId,
+          error: failure.error,
+        },
+      })
+    } catch { /* the original error stays authoritative */ }
     throw error
   }
 }
