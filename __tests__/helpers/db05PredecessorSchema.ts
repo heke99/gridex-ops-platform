@@ -16,12 +16,27 @@ function reversePatch(schema:string,patch:Patch):string{
  return rebuilt
 }
 
+/** Exact pre-PR973 PR932 capture. The genuine PR973 capture is reversed by
+ * its generated patch; the PR932 capture itself is returned unchanged. Any
+ * other capture fails closed. */
+export function prePr973Audit19Schema(schema:string):string{
+ const actual=sha(schema)
+ if(actual==='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b')return schema
+ if(actual!=='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b')throw Error('db05_schema_predecessor_unknown:'+actual)
+ // Genuine ordinary PR973 capture 4551eff2/artifact13019755967; the audit19
+ // hash requalification is its only hunk.
+ const pr973:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-pr973-audit19-20261030.patch.json',import.meta.url),'utf8'))
+ if(pr973.preSha256!=='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b'||pr973.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+ return reversePatch(schema,pr973)
+}
+
 /** Exact pre-PR932 C14 capture. The genuine PR932 capture is reversed by its
  * generated patch; the C14 capture itself is returned unchanged. Any other
  * capture fails closed. */
 export function prePr932UnsignedEditSchema(schema:string):string{
  const actual=sha(schema)
  if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6')return schema
+ if(actual==='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b')return prePr932UnsignedEditSchema(prePr973Audit19Schema(schema))
  if(actual!=='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b')throw Error('db05_schema_predecessor_unknown:'+actual)
  const pr932:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-pr932-unsigned-edit-20261029.patch.json',import.meta.url),'utf8'))
  if(pr932.preSha256!=='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6'||pr932.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
@@ -35,9 +50,9 @@ export function prePr932UnsignedEditSchema(schema:string):string{
 export function db05PredecessorSchema(schema:string):string{
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
- if(actual==='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b'){
-  // Genuine ordinary PR932 capture 9c39bd60/artifact12981765531. Restore the
-  // exact C14 bytes before every unchanged older inverse; no native credit.
+ if(actual==='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b'||actual==='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b'){
+  // Genuine ordinary PR973 4551eff2/artifact13019755967 or PR932 capture
+  // 9c39bd60/artifact12981765531. Restore the exact C14 bytes before every unchanged older inverse; no native credit.
   return db05PredecessorSchema(prePr932UnsignedEditSchema(schema))
  }
  if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6'){
