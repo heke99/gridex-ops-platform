@@ -333,6 +333,48 @@ export async function resolveMessageVersion(
   return resolved.selectedVersion
 }
 
+function routeProfileConfigError(code: 'ediel_route_profile_ambiguous' | 'ediel_route_profile_inactive') {
+  return Object.assign(new Error(code), { code })
+}
+
+// A route may retain historical/inactive profiles. Without an ACK selection the
+// unscoped runtime lookup must resolve exactly one active profile (explicit
+// true or legacy NULL); it never falls back to an inactive profile and refuses
+// ambiguity with a controlled configuration error instead of PGRST116.
+async function resolveActiveRouteRuntime(
+  communicationRouteId: string,
+  scopedCompanyId: string
+): Promise<EdielRouteRuntimeRow> {
+  const profileQuery = supabaseService
+    .from('ediel_route_profiles')
+    .select('id,company_id,communication_route_id,is_active')
+    .eq('communication_route_id', communicationRouteId)
+    .eq('company_id', scopedCompanyId)
+  const { data: profiles, error: profileError } = await profileQuery
+  if (profileError) throw profileError
+  const active = ((profiles ?? []) as Array<Record<string, unknown>>).filter((row) =>
+    typeof row.id === 'string' && row.communication_route_id === communicationRouteId
+    && row.company_id === scopedCompanyId
+    && (row.is_active === true || row.is_active === null))
+  if (active.length === 0) throw routeProfileConfigError('ediel_route_profile_inactive')
+  if (active.length > 1) throw routeProfileConfigError('ediel_route_profile_ambiguous')
+  const profile = active[0]
+
+  const runtimeQuery = supabaseService
+    .from('ediel_route_runtime_v')
+    .select('*')
+    .eq('communication_route_id', communicationRouteId)
+    .eq('route_profile_id', profile.id as string)
+    .eq('company_id', scopedCompanyId)
+  const { data, error } = await runtimeQuery.maybeSingle()
+  if (error) throw error
+  if (!data || data.route_profile_id !== profile.id || data.communication_route_id !== communicationRouteId
+    || data.company_id !== scopedCompanyId) {
+    throw routeProfileConfigError('ediel_route_profile_inactive')
+  }
+  return data as EdielRouteRuntimeRow
+}
+
 export type EdielAckRouteProfileSelection = {
   family: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
   code: string
@@ -393,7 +435,27 @@ export async function getEdielRouteRuntimeByCommunicationRouteId(
 
   const { data, error } = await query.maybeSingle()
 
+  // Active-profile resolution requires a company scope so the extra profile
+  // reads never run cross-tenant; unscoped callers keep the legacy behaviour.
+  if (error && !selection && scopedCompanyId && error.code === 'PGRST116') {
+    return resolveActiveRouteRuntime(communicationRouteId, scopedCompanyId)
+  }
   if (error) throw error
+  if (!selection && scopedCompanyId && data) {
+    // Never route through an inactive profile, even when it is the only row.
+    const activeQuery = supabaseService
+      .from('ediel_route_profiles')
+      .select('id,company_id,communication_route_id,is_active')
+      .eq('id', data.route_profile_id)
+      .eq('communication_route_id', communicationRouteId)
+      .eq('company_id', scopedCompanyId)
+    const { data: owner, error: ownerError } = await activeQuery.maybeSingle()
+    if (ownerError) throw ownerError
+    if (!owner || owner.id !== data.route_profile_id || owner.communication_route_id !== communicationRouteId
+      || owner.company_id !== data.company_id || !(owner.is_active === true || owner.is_active === null)) {
+      throw routeProfileConfigError('ediel_route_profile_inactive')
+    }
+  }
   if (selection && (!data || data.route_profile_id !== selectedProfileId || data.company_id !== scopedCompanyId
     || data.communication_route_id !== communicationRouteId || data.environment !== selection.environment
     || data.application_reference !== selection.applicationReference || data.is_enabled !== true
