@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 2,
+  "campaignId": "20261029-3f1a8ab1",
+  "repository": "heke99/gridex-ops-platform",
+  "baseBranch": "main",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "baselineTree": "254fcbe596d387506b74bf9e333c4ddc8d20a647",
+  "baselineStatus": "NOT_RUNTIME_QUALIFIED",
+  "referenceBranch": "claude/gifted-hamilton-vss1hj",
+  "referenceBranchIsCampaignBase": false,
+  "integrationBranch": "codex/shared-simulation-20261029-3f1a8ab1",
+  "integrationWriter": "Codex /root for this coordination branch only",
+  "productionMergeOwner": "existing serial delivery owner; unchanged",
+  "board": "https://github.com/heke99/gridex-ops-platform/pull/930",
+  "permissions": {
+    "repositoryPublicRead": true,
+    "codexConnectorPushObserved": true,
+    "claudeWriteAccess": "MUST_VERIFY_IN_CLAUDE_SESSION"
+  },
+  "ownershipRule": "Proposed lanes are not file or producer claims. Existing owners and atomic claim protocol take precedence.",
+  "performanceRule": "Record measured workload, versions, resources, n, warm/cold and latency before classifying slowness.",
+  "freshRunsExecutedByThisPackage": 0,
+  "tracks": [
+    {
+      "id": "1",
+      "coordinationOwner": "Claude",
+      "title": "Kund, underlag och godkännande",
+      "scenarioIds": [
+        "MAIN03.01",
+        "MAIN03.02",
+        "MAIN03.03",
+        "MAIN03.04",
+        "MAIN03.05",
+        "MAIN04.01",
+        "MAIN04.03",
+        "MAIN04.04",
+        "SITE01.01",
+        "SITE01.02",
+        "SITE01.03",
+        "SITE01.04",
+        "SITE01.05"
+      ],
+      "count": 13,
+      "executionAdmission": "REQUIRES_OWN_ENVIRONMENT_AND_EXACT_CUSTODY"
+    },
+    {
+      "id": "2",
+      "coordinationOwner": "Claude",
+      "title": "Avtal och kontraktstider",
+      "scenarioIds": [
+        "TERM01.01",
+        "TERM01.02",
+        "TERM01.03",
+        "TERM01.04",
+        "TERM01.05",
+        "TERM02.01",
+        "TERM02.02",
+        "TERM02.03",
+        "TERM02.04",
+        "TERM02.05",
+        "TERM02.06",
+        "TERM02.07",
+        "TERM02.08",
+        "TERM03.01",
+        "TERM03.02",
+        "TERM03.03",
+        "TERM03.04",
+        "TERM03.05"
+      ],
+      "count": 18,
+      "executionAdmission": "REQUIRES_OWN_ENVIRONMENT_AND_EXACT_CUSTODY"
+    },
+    {
+      "id": "3",
+      "coordinationOwner": "Claude",
+      "title": "Ediel-trafik och parsning",
+      "scenarioIds": [
+        "EDIEL01.01",
+        "EDIEL01.02",
+        "EDIEL01.03",
+        "EDIEL01.04",
+        "EDIEL01.05",
+        "EDIEL01.06",
+        "EDIEL02.01",
+        "EDIEL02.02",
+        "EDIEL02.03",
+        "EDIEL02.04",
+        "EDIEL02.05",
+        "EDIEL02.06",
+        "EDIEL03.01",
+        "EDIEL03.02",
+        "EDIEL03.03",
+        "EDIEL03.04",
+        "EDIEL03.05"
+      ],
+      "count": 17,
+      "executionAdmission": "REQUIRES_OWN_ENVIRONMENT_AND_EXACT_CUSTODY"
+    },
+    {
+      "id": "4",
+      "coordinationOwner": "Claude",
+      "title": "Faktura, samtidighet och fil",
+      "scenarioIds": [
+        "MAIN04.02",
+        "MAIN04.05",
+        "BILLNEG01.01",
+        "BILLNEG01.02",
+        "BILLNEG01.03",
+        "BILLNEG01.04",
+        "BILLNEG01.05",
+        "MAIN05.01",
+        "MAIN05.02",
+        "MAIN05.03",
+        "MAIN05.04",
+        "MAIN05.05",
+        "MAIN05.06"
+      ],
+      "count": 13,
+      "executionAdmission": "REQUIRES_OWN_ENVIRONMENT_AND_EXACT_CUSTODY"
+    },
+    {
+      "id": "5",
+      "coordinationOwner": "Codex",
+      "title": "Händelser, Auth och API",
+      "scenarioIds": [
+        "EVENT01.01",
+        "EVENT01.02",
+        "EVENT01.03",
+        "EVENT01.04",
+        "EVENT01.05",
+        "AUTH01.01",
+        "AUTH01.02",
+        "AUTH01.03",
+        "AUTH01.04",
+        "AUTH01.05",
+        "AUTH01.06",
+        "API01.01",
+        "API01.02",
+        "API01.03",
+        "API01.04",
+        "API01.05"
+      ],
+      "count": 16,
+      "executionAdmission": "REQUIRES_OWN_ENVIRONMENT_AND_EXACT_CUSTODY"
+    },
+    {
+      "id": "6",
+      "coordinationOwner": "Claude",
+      "title": "Leverans, custody och mottagarkvitto",
+      "scenarioIds": [
+        "DELIVERY01.01",
+        "DELIVERY01.02",
+        "DELIVERY01.03",
+        "DELIVERY01.04",
+        "DELIVERY01.05",
+        "CUSTODY01.01",
+        "CUSTODY01.02",
+        "CUSTODY01.03",
+        "CUSTODY01.04",
+        "CUSTODY01.05",
+        "MAIN06.01",
+        "MAIN06.02",
+        "MAIN06.03"
+      ],
+      "count": 13,
+      "executionAdmission": "REQUIRES_OWN_ENVIRONMENT_AND_EXACT_CUSTODY"
+    },
+    {
+      "id": "7",
+      "coordinationOwner": "Claude",
+      "title": "UI och slutliga kvalitetsgrindar",
+      "scenarioIds": [
+        "UI01.01",
+        "UI01.02",
+        "UI01.03",
+        "UI01.04",
+        "UI01.05",
+        "QA01.01",
+        "QA01.02",
+        "QA01.03",
+        "QA01.04",
+        "QA01.05",
+        "QA02.01",
+        "QA02.02",
+        "QA02.03",
+        "QA02.04",
+        "QA02.05"
+      ],
+      "count": 15,
+      "executionAdmission": "REQUIRES_OWN_ENVIRONMENT_AND_EXACT_CUSTODY"
+    }
+  ],
+  "operationalBoard": "https://github.com/heke99/gridex-ops-platform/pull/930",
+  "authoritativeRegister": "quality/simulation-register/register.safe.json",
+  "historicalAndClaimBoard": "https://github.com/heke99/gridex-ops-platform/issues/840",
+  "coordinationReservationIsFileClaim": false,
+  "financeReference": {
+    "branch": "finance/simulation-handoff-20261029-5f5cfa20",
+    "head": "c400f6959d8c279fb518b7199fe6e77da30409c4",
+    "aheadOfBaseline": 353,
+    "behindBaseline": 249,
+    "use": "REFERENCE_ONLY_EXACT_PATCH_AND_SOURCE_APPLICABILITY_REQUIRED"
+  },
+  "eventHandoff": {
+    "state": "BLOCKED_AWAITING_EXISTING_OWNER_PUBLIC_BRANCH_OR_PR",
+    "expectedMigrationPrefix": "20261028140000",
+    "matchingTestRequired": true,
+    "sourceBytesPresentInThisSession": false,
+    "nativeEnvironmentAssignedToThisSession": false
+  },
+  "assignmentClarification": "Aktuell tilldelning enligt delegerat beslut6506143437: Claude T1/T2/T3/T4/T6/T7 (89 ID), Codex T5 (16 ID). GEN-producent: session_01UHTg8KVQcYJS5fqdU3XihA, med egen autentiserad ALL-target-ACK före write. T4 betyder Faktura, samtidighet och fil (13 ID); finance-grenen används endast som referens. Originalfilen är återhämtad och hashverifierad; historiska orakel kräver fortfarande kvalificering för aktuell fixture och kodversion.",
+  "assignmentDecisionReferences": [
+    "https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6506143437",
+    "https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6506161415"
+  ],
+  "genProducer": {
+    "session": "session_01UHTg8KVQcYJS5fqdU3XihA",
+    "sourceReceipt": "d36c59292a01aa341ff304a60809269c2d1f0af4",
+    "producerRef": "refs/tags/agent-claims/masterplan/producer-gen",
+    "producerReceipt": "c4139fff8e1cf47d135b8489ed42679765b43fd2",
+    "proxyPacket": "08d2d632-fc9c-474a-a642-99b48fe40434",
+    "handoffReference": "https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6506303596",
+    "workerReadback": "REQUIRES_RECEIVER_ALL_TARGET_ACK",
+    "queue": [
+      {
+        "pr": 932,
+        "order": 1,
+        "delivery": "SMALL_PR_AGAINST_932_BRANCH; NO_GENERAL_BRANCH_HANDOFF"
+      }
+    ],
+    "track5Rule": "Submit GEN needs to this queue; no second producer"
+  },
+  "originalRecovery": {
+    "path": "quality/simulation-register/oracles/all-systems-scenarios.safe.json",
+    "sha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+    "bytes": 41736,
+    "state": "RECOVERED_HASH_VERIFIED_DESIGN_ONLY",
+    "snapshot": "snap_YPcWkbvLjmNGuL5cFP4vnrwCWoSP",
+    "qualification": "Original provenance available; fixture/source-specific expected values still require independent qualification"
+  }
+}
