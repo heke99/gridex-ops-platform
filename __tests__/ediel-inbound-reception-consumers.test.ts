@@ -1,7 +1,7 @@
 // These explicitly declared receipt ports prove consumers, not authentic mail
 // trust, T duplicate response policy or native acceptance.
 import{beforeEach,describe,expect,it,vi}from'vitest'
-const io=vi.hoisted(()=>({read:vi.fn(),record:vi.fn(),events:vi.fn(),acks:vi.fn(),create:vi.fn(),queue:vi.fn(),safe:vi.fn(),inbound:vi.fn(),parse:vi.fn(),status:vi.fn(),task:vi.fn(),match:'matched'}))
+const io=vi.hoisted(()=>({read:vi.fn(),record:vi.fn(),events:vi.fn(),acks:vi.fn(),create:vi.fn(),queue:vi.fn(),safe:vi.fn(),inbound:vi.fn(),parse:vi.fn(),status:vi.fn(),task:vi.fn(),match:'matched',mailCompany:null as string|null}))
 vi.mock('@/lib/ediel/inbound/receptions',async(original)=>({...await original<object>(),readInboundReceptionRequest:io.read,recordInboundReception:io.record}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{
  rpc:async(name:string,args:Record<string,unknown>)=>{
@@ -10,7 +10,7 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{
   // This ordinary reception has no protected technical birth; null grants no authority.
   return{data:null,error:null}
  },
- from:(table:string)=>{const q={select:()=>q,eq:()=>q,order:()=>q,limit:async()=>({data:[],error:null}),maybeSingle:async()=>({data:table==='inbound_email_messages'?{id:'00000000-0000-4000-8000-000000000010',body_text:"UNB+UNOC:3+54321:ZZ+21660:ZZ+261001:0000+OWN+++++23-DDQ-PRODAT'UNH+1+PRODAT:D:96B:UN:E2SE6A'BGM+Z02+OWN+9'LIN+1'UNT+4+1'UNZ+1+OWN'",environment:'test',ediel_mailboxes:{id:'00000000-0000-4000-8000-000000000004',environment:'test'}}:null,error:null})};return q}}}))
+ from:(table:string)=>{const q={select:()=>q,eq:()=>q,is:()=>q,update:(patch:{company_id?:string})=>{if(table==='inbound_email_messages'&&patch.company_id)io.mailCompany=patch.company_id;return q},order:()=>q,limit:async()=>({data:[],error:null}),maybeSingle:async()=>({data:table==='inbound_email_messages'?{id:'00000000-0000-4000-8000-000000000010',body_text:"UNB+UNOC:3+54321:ZZ+21660:ZZ+261001:0000+OWN+++++23-DDQ-PRODAT'UNH+1+PRODAT:D:96B:UN:E2SE6A'BGM+Z02+OWN+9'LIN+1'UNT+4+1'UNZ+1+OWN'",environment:'test',company_id:io.mailCompany,ediel_mailboxes:{id:'00000000-0000-4000-8000-000000000004',environment:'test'}}:null,error:null})};return q}}}))
 vi.mock('@/lib/inbound-mail/inboundStatusUpdater',()=>({applySafeInboundStatusUpdate:io.safe,createInboundEdielMessage:io.inbound,createParseResult:io.parse,createUnresolvedInboundEdielMessage:vi.fn(),updateInboundEmailProcessingStatus:io.status}))
 vi.mock('@/lib/inbound-mail/inboundTaskFactory',()=>({createInboundMailTask:io.task}))
 vi.mock('@/lib/inbound-mail/inboundTenantResolver',()=>({resolveTenantForInboundEdiel:vi.fn(async()=>({status:'resolved',companyId:'00000000-0000-4000-8000-000000000001',shared:null}))}))
@@ -33,7 +33,7 @@ function message(patch:Partial<EdielMessageRow>={}):EdielMessageRow{return {
  message_created_at:null,message_received_at:null,message_sent_at:null,parsed_at:null,validated_at:null,acknowledged_at:null,failed_at:null,ack_due_at:null,created_at:'2026-09-30T12:00:00Z',updated_at:'2026-09-30T12:00:00Z',created_by:null,updated_by:null,...patch}}
 const held:InboundReception={companyId:company,sourceMessageId:sourceId,inboundEmailMessageId:mail,parseResultId:parse,receptionId:'receipt',classification:'protocol_duplicate',isReplay:false,receivedAt:'2026-10-01T00:00:00Z',canonicalPayloadHash:'a'.repeat(64),receivedPayloadHash:'a'.repeat(64),responseRequestId:'request',status:'held',reason:'authentic_duplicate_transport_response_policy_required',businessEffectAuthorized:false}
 const decision:EdielEngineDecision={kind:'ack',ackFamily:'APERAK',outcome:'positive',messageText:null,applicationErrors:[],reason:'synthetic consumer probe',ruleKeys:[],classification:null}
-beforeEach(()=>{vi.resetAllMocks();io.match='matched';io.parse.mockResolvedValue(parse);io.safe.mockRejectedValue(new InboundReceptionHeldError(held));io.inbound.mockRejectedValue(new InboundReceptionHeldError(held));io.read.mockResolvedValue(held);io.acks.mockResolvedValue([])})
+beforeEach(()=>{vi.resetAllMocks();io.match='matched';io.mailCompany=null;io.parse.mockResolvedValue(parse);io.safe.mockRejectedValue(new InboundReceptionHeldError(held));io.inbound.mockRejectedValue(new InboundReceptionHeldError(held));io.read.mockResolvedValue(held);io.acks.mockResolvedValue([])})
 describe('new receipt held projection and existing ACK separation',()=>{
  it.each(['matched','missing'])('keeps NEWmail held and stops business work/status overwrite for %s ingress',async(match)=>{
   io.match=match

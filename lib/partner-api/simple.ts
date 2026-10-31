@@ -904,7 +904,7 @@ async function getPowerOfAttorney(request: NextRequest, customerReference: strin
     const { customer, site } = await requireCustomerSite(context.client.company_id, customerReference, siteReference)
     const result = await supabaseService
       .from('powers_of_attorney')
-      .select('power_of_attorney_reference,method,document_path,evidence_payload,created_at')
+      .select('power_of_attorney_reference,status,valid_from,valid_to,revoked_at,method,document_path,evidence_payload,created_at')
       .eq('company_id', context.client.company_id)
       .eq('customer_id', customer.id)
       .eq('customer_site_id', site.id)
@@ -923,6 +923,10 @@ async function getPowerOfAttorney(request: NextRequest, customerReference: strin
       transaction_type: String(evidence.transaction_type ?? 'SWITCH').toUpperCase(),
       file_base64: file ? file.toString('base64') : null,
       file_extension: file ? 'pdf' : null,
+      status: result.data.status,
+      valid_from: result.data.valid_from,
+      valid_to: result.data.valid_to,
+      revoked_at: result.data.revoked_at,
     }, 200, context.id)
   } catch (error) {
     return failureResponse({ request, client: context.client, startedAt: context.startedAt, id: context.id, error })
