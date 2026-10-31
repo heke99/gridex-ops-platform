@@ -1,0 +1,413 @@
+{
+  "schemaVersion": 1,
+  "kind": "GRIDEX_CODEX_CAMPAIGN_TAKEOVER",
+  "decidedAtLocal": "2026-11-01 Europe/Stockholm",
+  "recordedAtUtc": "2026-10-31T23:21:59.378249+00:00",
+  "campaignId": "20261029-3f1a8ab1",
+  "authority": "Explicit current user mandate: Codex takes over all prior Claude work and continues autonomously; user confirms six predecessor workers and coordinator paused. Private authority/journals remain outside Git.",
+  "sourceDocumentationHead": "d6edd3a375261e30a94771027acec70f6b7a6572",
+  "coordinator": "Codex /root",
+  "coordinatorSourceReceipt": "0c687c6baa61a1eb66c84041fbffeba58dd15540",
+  "workers": [
+    {
+      "trackId": 1,
+      "coordinationOwner": "Codex",
+      "worker": "codex-track1",
+      "count": 13,
+      "scenarioIds": [
+        "MAIN03.01",
+        "MAIN03.02",
+        "MAIN03.03",
+        "MAIN03.04",
+        "MAIN03.05",
+        "MAIN04.01",
+        "MAIN04.03",
+        "MAIN04.04",
+        "SITE01.01",
+        "SITE01.02",
+        "SITE01.03",
+        "SITE01.04",
+        "SITE01.05"
+      ],
+      "donorBranch": "claude/sim-20261029-track1",
+      "donorHead": "b1aa8164e1e9f8adad7f15ef924202f03a3ea87d",
+      "sourceCustodyReceipt": "4dfff447cd3cd80ad88f0cde2488adb26d554b75",
+      "sourceState": "ADOPTED_UNDER_EXACT_FILE_CUSTODY",
+      "runtimeState": "NOT_ASSIGNED_OR_EXECUTED_BY_TAKEOVER",
+      "scenarioAcceptancePromotedByTakeover": 0
+    },
+    {
+      "trackId": 2,
+      "coordinationOwner": "Codex",
+      "worker": "codex-track2",
+      "count": 18,
+      "scenarioIds": [
+        "TERM01.01",
+        "TERM01.02",
+        "TERM01.03",
+        "TERM01.04",
+        "TERM01.05",
+        "TERM02.01",
+        "TERM02.02",
+        "TERM02.03",
+        "TERM02.04",
+        "TERM02.05",
+        "TERM02.06",
+        "TERM02.07",
+        "TERM02.08",
+        "TERM03.01",
+        "TERM03.02",
+        "TERM03.03",
+        "TERM03.04",
+        "TERM03.05"
+      ],
+      "donorBranch": "claude/sim-20261029-track2",
+      "donorHead": "87704933b8946661f3740b9abf5cce918c168539",
+      "sourceCustodyReceipt": "3409dfdecfe9ac61bf429fe177d35d8afc714ae3",
+      "sourceState": "ADOPTED_UNDER_EXACT_FILE_CUSTODY",
+      "runtimeState": "NOT_ASSIGNED_OR_EXECUTED_BY_TAKEOVER",
+      "scenarioAcceptancePromotedByTakeover": 0
+    },
+    {
+      "trackId": 3,
+      "coordinationOwner": "Codex",
+      "worker": "codex-track3",
+      "count": 17,
+      "scenarioIds": [
+        "EDIEL01.01",
+        "EDIEL01.02",
+        "EDIEL01.03",
+        "EDIEL01.04",
+        "EDIEL01.05",
+        "EDIEL01.06",
+        "EDIEL02.01",
+        "EDIEL02.02",
+        "EDIEL02.03",
+        "EDIEL02.04",
+        "EDIEL02.05",
+        "EDIEL02.06",
+        "EDIEL03.01",
+        "EDIEL03.02",
+        "EDIEL03.03",
+        "EDIEL03.04",
+        "EDIEL03.05"
+      ],
+      "donorBranch": "claude/sim-20261029-track3",
+      "donorHead": "d09ed48f27d329c79a51829ceb7df2b753f05fde",
+      "sourceCustodyReceipt": "53e6211a7892a091bd74823e48252f6decec1144",
+      "sourceState": "ADOPTED_UNDER_EXACT_FILE_CUSTODY",
+      "runtimeState": "NOT_ASSIGNED_OR_EXECUTED_BY_TAKEOVER",
+      "scenarioAcceptancePromotedByTakeover": 0
+    },
+    {
+      "trackId": 4,
+      "coordinationOwner": "Codex",
+      "worker": "codex-track4",
+      "count": 13,
+      "scenarioIds": [
+        "MAIN04.02",
+        "MAIN04.05",
+        "BILLNEG01.01",
+        "BILLNEG01.02",
+        "BILLNEG01.03",
+        "BILLNEG01.04",
+        "BILLNEG01.05",
+        "MAIN05.01",
+        "MAIN05.02",
+        "MAIN05.03",
+        "MAIN05.04",
+        "MAIN05.05",
+        "MAIN05.06"
+      ],
+      "donorBranch": "claude/sim-20261029-track4",
+      "donorHead": "3ba5b330a0dadeb756ccb8a82935bfcd0bfadd07",
+      "sourceCustodyReceipt": "bfd332c87028ea30b695b0240a01d9bf35df10d8",
+      "sourceState": "ADOPTED_UNDER_EXACT_FILE_CUSTODY",
+      "runtimeState": "NOT_ASSIGNED_OR_EXECUTED_BY_TAKEOVER",
+      "scenarioAcceptancePromotedByTakeover": 0
+    },
+    {
+      "trackId": 5,
+      "coordinationOwner": "Codex",
+      "worker": "codex-track5",
+      "count": 16,
+      "scenarioIds": [
+        "EVENT01.01",
+        "EVENT01.02",
+        "EVENT01.03",
+        "EVENT01.04",
+        "EVENT01.05",
+        "AUTH01.01",
+        "AUTH01.02",
+        "AUTH01.03",
+        "AUTH01.04",
+        "AUTH01.05",
+        "AUTH01.06",
+        "API01.01",
+        "API01.02",
+        "API01.03",
+        "API01.04",
+        "API01.05"
+      ],
+      "donorBranch": "claude/sim-20261029-track5",
+      "donorHead": "77054d0d43dbf79f43b77b172e72bc7c5eca476b",
+      "sourceCustodyReceipt": "8b0e1bed0c8ba0a227cff8a022dd2b7aa70d2585",
+      "sourceState": "ADOPTED_UNDER_EXACT_FILE_CUSTODY",
+      "runtimeState": "NOT_ASSIGNED_OR_EXECUTED_BY_TAKEOVER",
+      "scenarioAcceptancePromotedByTakeover": 0
+    },
+    {
+      "trackId": 6,
+      "coordinationOwner": "Codex",
+      "worker": "codex-track6",
+      "count": 13,
+      "scenarioIds": [
+        "DELIVERY01.01",
+        "DELIVERY01.02",
+        "DELIVERY01.03",
+        "DELIVERY01.04",
+        "DELIVERY01.05",
+        "CUSTODY01.01",
+        "CUSTODY01.02",
+        "CUSTODY01.03",
+        "CUSTODY01.04",
+        "CUSTODY01.05",
+        "MAIN06.01",
+        "MAIN06.02",
+        "MAIN06.03"
+      ],
+      "donorBranch": "claude/sim-20261029-track6",
+      "donorHead": "09dc7b422d9bfea3edebd82585a4cae4f4edec1c",
+      "sourceCustodyReceipt": "1d2f2bc035d32220f1ee6e599970ee9e45695a99",
+      "sourceState": "ADOPTED_UNDER_EXACT_FILE_CUSTODY",
+      "runtimeState": "NOT_ASSIGNED_OR_EXECUTED_BY_TAKEOVER",
+      "scenarioAcceptancePromotedByTakeover": 0
+    },
+    {
+      "trackId": 7,
+      "coordinationOwner": "Codex",
+      "worker": "reuse-completed-worker-for-final-T7",
+      "count": 15,
+      "scenarioIds": [
+        "UI01.01",
+        "UI01.02",
+        "UI01.03",
+        "UI01.04",
+        "UI01.05",
+        "QA01.01",
+        "QA01.02",
+        "QA01.03",
+        "QA01.04",
+        "QA01.05",
+        "QA02.01",
+        "QA02.02",
+        "QA02.03",
+        "QA02.04",
+        "QA02.05"
+      ],
+      "donorBranch": null,
+      "donorHead": null,
+      "sourceCustodyReceipt": null,
+      "sourceState": "FINAL_STAGE_NOT_STARTED",
+      "runtimeState": "NOT_ASSIGNED_OR_EXECUTED_BY_TAKEOVER",
+      "scenarioAcceptancePromotedByTakeover": 0
+    }
+  ],
+  "executionMode": "Six source workers T1-T6; reuse one finished slot forT7 on a qualified integrated finalversion. Delegate independent work as capacity permits; serialize heavy runtimes until own isolation is qualified.",
+  "ownership": "Only exact acquired file resources transfer; all other foreign refs/sourcehistory remain preserved. Logical track ownership does not assert private process termination or producer/runtime custody.",
+  "applicationBase": {
+    "historicalCampaignBase": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+    "successorSourceStart": "14007c0938af0e0d7de136fe76748b3589822ca6",
+    "successorTree": "f2b393eed6690389a9994606484c559ba68c4cd0",
+    "runtimeQualified": false,
+    "newRunsInThisPublication": 0,
+    "qualification": "Record exact source/build/overlays/schema/fixture applicability before reuse or execution; no silent baseline mixing."
+  },
+  "historicalReportedSnapshot": {
+    "scope": "Published worker markers only; not105whole-scenario/current-main acceptance",
+    "counts": {
+      "PASS": 26,
+      "FAIL": 11,
+      "BLOCKED": 28,
+      "PARTIAL": 25,
+      "NO_PUBLIC_PACKET_FOUND": 15
+    },
+    "reportedPassIds": [
+      "MAIN03.01",
+      "MAIN03.02",
+      "MAIN05.06",
+      "TERM01.01",
+      "TERM01.02",
+      "TERM01.03",
+      "TERM01.04",
+      "TERM02.02",
+      "TERM02.03",
+      "TERM03.01",
+      "TERM03.02",
+      "TERM03.03",
+      "TERM03.04",
+      "EDIEL01.05",
+      "EDIEL03.05",
+      "CUSTODY01.03",
+      "CUSTODY01.04",
+      "CUSTODY01.05",
+      "API01.02",
+      "AUTH01.01",
+      "AUTH01.02",
+      "AUTH01.03",
+      "AUTH01.04",
+      "AUTH01.05",
+      "AUTH01.06",
+      "EVENT01.02"
+    ],
+    "allReportedPassExecutionScope": "ISOLATED_NATIVE",
+    "sourceStatusBlobs": [
+      {
+        "scenarioId": "MAIN03.01",
+        "statusBlob": "faa105dec1ec17afe7352c4d4c45d50f37cb9de8",
+        "branchHead": "b1aa8164e1e9f8adad7f15ef924202f03a3ea87d"
+      },
+      {
+        "scenarioId": "MAIN03.02",
+        "statusBlob": "2ec363b938c005a46e3c85c03b6b388b388565eb",
+        "branchHead": "b1aa8164e1e9f8adad7f15ef924202f03a3ea87d"
+      },
+      {
+        "scenarioId": "MAIN05.06",
+        "statusBlob": "74ebc1644b218a51ae90cd307494c5aab335ded5",
+        "branchHead": "3ba5b330a0dadeb756ccb8a82935bfcd0bfadd07"
+      },
+      {
+        "scenarioId": "TERM01.01",
+        "statusBlob": "03125a66c356fdaf70e8a565742ad29153028df5",
+        "branchHead": "87704933b8946661f3740b9abf5cce918c168539"
+      },
+      {
+        "scenarioId": "TERM01.02",
+        "statusBlob": "e9e15d597b78cb8c3dc62c277315992a1f6852c4",
+        "branchHead": "87704933b8946661f3740b9abf5cce918c168539"
+      },
+      {
+        "scenarioId": "TERM01.03",
+        "statusBlob": "1cef452de4d1198345e9943de6452bb18d4a2219",
+        "branchHead": "87704933b8946661f3740b9abf5cce918c168539"
+      },
+      {
+        "scenarioId": "TERM01.04",
+        "statusBlob": "a931b2a4c9f23eb7bedb0b38de08e0c9e03584dd",
+        "branchHead": "87704933b8946661f3740b9abf5cce918c168539"
+      },
+      {
+        "scenarioId": "TERM02.02",
+        "statusBlob": "1ca7c639ea4419fca72362b550471e048fb92fc8",
+        "branchHead": "87704933b8946661f3740b9abf5cce918c168539"
+      },
+      {
+        "scenarioId": "TERM02.03",
+        "statusBlob": "00178b2cb5fdf834ac11d2c716966a72fcf8970a",
+        "branchHead": "87704933b8946661f3740b9abf5cce918c168539"
+      },
+      {
+        "scenarioId": "TERM03.01",
+        "statusBlob": "ad5ca5a14212d4984425694e898a0c2497a126df",
+        "branchHead": "87704933b8946661f3740b9abf5cce918c168539"
+      },
+      {
+        "scenarioId": "TERM03.02",
+        "statusBlob": "89da57b34e78d6f8e3ecbacc1b1a20d513163198",
+        "branchHead": "87704933b8946661f3740b9abf5cce918c168539"
+      },
+      {
+        "scenarioId": "TERM03.03",
+        "statusBlob": "e3c7096947e895765da2fe3ec2299bac4157c14e",
+        "branchHead": "87704933b8946661f3740b9abf5cce918c168539"
+      },
+      {
+        "scenarioId": "TERM03.04",
+        "statusBlob": "4aadd6e31a41b4b03088ca48cee1c929794ba27c",
+        "branchHead": "87704933b8946661f3740b9abf5cce918c168539"
+      },
+      {
+        "scenarioId": "EDIEL01.05",
+        "statusBlob": "42021da982a8c3424ef3b373f85f19465c0f085f",
+        "branchHead": "d09ed48f27d329c79a51829ceb7df2b753f05fde"
+      },
+      {
+        "scenarioId": "EDIEL03.05",
+        "statusBlob": "bc244862be326313088b5c37e10a81b0efe6113c",
+        "branchHead": "d09ed48f27d329c79a51829ceb7df2b753f05fde"
+      },
+      {
+        "scenarioId": "CUSTODY01.03",
+        "statusBlob": "050d073db7ce84d3d1617411e68dce8de6638d18",
+        "branchHead": "09dc7b422d9bfea3edebd82585a4cae4f4edec1c"
+      },
+      {
+        "scenarioId": "CUSTODY01.04",
+        "statusBlob": "445fda3c8e44d498f3109e0699f1a5b1445b8555",
+        "branchHead": "09dc7b422d9bfea3edebd82585a4cae4f4edec1c"
+      },
+      {
+        "scenarioId": "CUSTODY01.05",
+        "statusBlob": "de47a471408e2788975896b8c4ed0361d63898fc",
+        "branchHead": "09dc7b422d9bfea3edebd82585a4cae4f4edec1c"
+      },
+      {
+        "scenarioId": "API01.02",
+        "statusBlob": "96302895b1b138193df8abc0348df39c83568534",
+        "branchHead": "77054d0d43dbf79f43b77b172e72bc7c5eca476b"
+      },
+      {
+        "scenarioId": "AUTH01.01",
+        "statusBlob": "e31889442415230dfa1dfb04728bb7089b64c2ed",
+        "branchHead": "77054d0d43dbf79f43b77b172e72bc7c5eca476b"
+      },
+      {
+        "scenarioId": "AUTH01.02",
+        "statusBlob": "2816b0e7518ab8a31b535aa8754930613620ef04",
+        "branchHead": "77054d0d43dbf79f43b77b172e72bc7c5eca476b"
+      },
+      {
+        "scenarioId": "AUTH01.03",
+        "statusBlob": "a84a190abf4086ca214bf4916fda0124ea93b8d3",
+        "branchHead": "77054d0d43dbf79f43b77b172e72bc7c5eca476b"
+      },
+      {
+        "scenarioId": "AUTH01.04",
+        "statusBlob": "be306c4acb635d34abfd0b6b12b12e335c4629d4",
+        "branchHead": "77054d0d43dbf79f43b77b172e72bc7c5eca476b"
+      },
+      {
+        "scenarioId": "AUTH01.05",
+        "statusBlob": "e5fcef736b0d2674a7607e70cc643bb478971db5",
+        "branchHead": "77054d0d43dbf79f43b77b172e72bc7c5eca476b"
+      },
+      {
+        "scenarioId": "AUTH01.06",
+        "statusBlob": "07ff79bed08b1de154ffef201040faa0c262da79",
+        "branchHead": "77054d0d43dbf79f43b77b172e72bc7c5eca476b"
+      },
+      {
+        "scenarioId": "EVENT01.02",
+        "statusBlob": "b04c1d5d038ecd6eadeca8fd3bc32fce6371beaa",
+        "branchHead": "77054d0d43dbf79f43b77b172e72bc7c5eca476b"
+      }
+    ],
+    "currentTargetPassesPromoted": 0,
+    "limits": [
+      "Private raw artifacts remain at their original locations; public hashes/source review do not replace raw verification.",
+      "Top-level appCommit fields can predate nested reruns; qualify actual code/build/overlays perID.",
+      "Historical substituted/mock/backend steps must be judged against each full criterion."
+    ]
+  },
+  "genTransition": {
+    "state": "EXISTING_REFS_PRESERVED_PENDING_RUN_OUTPUT_RECONCILIATION",
+    "priorSourceReceipt": "d36c59292a01aa341ff304a60809269c2d1f0af4",
+    "priorProducerReceipt": "c4139fff8e1cf47d135b8489ed42679765b43fd2",
+    "policy": "One qualified producer per source/inputepoch; do not start a replacement until exact run/output and terminal state are reconciled."
+  },
+  "delivery": "Small reviewed fixes; two independent final reviewers and relevant exact-candidate gates before ordinary serial merge; installation and external acceptance remain separate evidence.",
+  "privacy": "No secrets, private plan/journal, credential files or private raw logs are included.",
+  "originalOracleSha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+  "definitionChanges": false
+}
