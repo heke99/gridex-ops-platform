@@ -54,8 +54,11 @@ function readAssignment(): BackendAssignment {
 function requireOwnedBackend(tooling?: Tooling): { assignment: BackendAssignment; serverMajor: number } {
   const assignment = readAssignment()
   const source = new URL(dbUrl())
-  if (source.hostname !== assignment.host || Number(source.port) !== assignment.port
-    || decodeURIComponent(source.pathname.slice(1)) !== assignment.database) return blocked('does not match the configured source DB endpoint')
+  // libpq query parameters can override URI path/host (including restore targets).
+  // Accept only the canonical local endpoint, with no query/fragment or encoded DB alias.
+  if (!['postgresql:', 'postgres:'].includes(source.protocol) || source.search || source.hash
+    || source.hostname !== assignment.host || Number(source.port) !== assignment.port
+    || source.pathname !== `/${assignment.database}`) return blocked('does not match the canonical configured source DB endpoint')
   if (tooling && (JSON.stringify(tooling.assignment) !== JSON.stringify(assignment)
     || (tooling.kind === 'docker' && tooling.container !== assignment.containerId))) return blocked('changed since tooling selection')
 
@@ -95,7 +98,7 @@ export function chooseTooling(): Tooling {
 const urlFor = (db: string, role?: string): string => { const u = new URL(dbUrl()); u.pathname = `/${db}`; if (role) u.username = role; return u.toString() }
 export const restoreUrl = (db: string) => urlFor(db)
 const dbUser = () => decodeURIComponent(new URL(dbUrl()).username || 'postgres')
-const baseDb = () => new URL(dbUrl()).pathname.replace(/^\//, '') || 'postgres'
+const baseDb = () => decodeURIComponent(new URL(dbUrl()).pathname.slice(1))
 
 export function dump(t: Tooling, file: string): { ms: number; bytes: number; sha256: string; stderr: string } {
   requireOwnedBackend(t)
@@ -112,7 +115,7 @@ export function dump(t: Tooling, file: string): { ms: number; bytes: number; sha
 }
 
 const requireRestoreDb = (db: string) => {
-  if (!/^t6_restore_[a-zA-Z0-9_]+$/.test(db) || db.length > 63 || db === new URL(dbUrl()).pathname.slice(1)) return blocked('temporary restore DB name is not allowed')
+  if (!/^t6_restore_[a-zA-Z0-9_]+$/.test(db) || db.length > 63 || db === baseDb()) return blocked('temporary restore DB name is not allowed')
 }
 export function createDb(db: string) { requireRestoreDb(db); requireOwnedBackend(); sqlIn(`CREATE DATABASE "${db}"`) }
 export function dropDb(db: string) { requireRestoreDb(db); requireOwnedBackend(); sqlIn(`DROP DATABASE IF EXISTS "${db}" WITH (FORCE)`) }

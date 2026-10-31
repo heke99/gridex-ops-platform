@@ -75,6 +75,8 @@ containeranslutningen rapporterar tilldelad databas och klusteridentitet. Kontro
 upprepas före dump/restore, även när värdens PostgreSQL-verktyg används. Bara nya
 databasnamn under `t6_restore_` får skapas/raderas eller användas som restore-mål.
 Saknad eller avvikande bindning ger BLOCKED före backup-/restore-kommandot.
+`T6_DB_URL` måste vara en kanonisk `postgresql:`-/`postgres:`-URL utan queryparametrar,
+fragment eller kodade alias för databasnamnet; libpq-parametrar får inte överstyra målet.
 
 Kopiera inte värden från en godtycklig eller ensam `supabase_db_*`-container för att
 få kontrollen grön. Detta källövertagande tilldelar ingen faktisk backend.
