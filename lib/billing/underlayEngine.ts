@@ -1,4 +1,5 @@
 import { supabaseService } from "@/lib/supabase/service";
+import { tenantDb } from "@/lib/supabase/tenantDb";
 import { isPriceArea } from "@/lib/pricing/types";
 import { assertBillingPeriodOpen, getBillingPeriodLock } from "@/lib/billing/invoiceReadiness";
 import { assertPlatformSchemaReady } from "@/lib/platform/schemaReadiness";
@@ -291,8 +292,9 @@ async function loadSnapshot(
   // Only controlled unsigned proposal revisions extend the original timeline.
   // These have a private, insert-time provenance guard; after real signing,
   // the current contract and receipt bind the authoritative immutable CPS.
-  const revisionLookup = await supabaseService.from("contract_price_snapshots").select("id")
-    .eq("company_id", companyId).eq("contract_id", contractId)
+  // tenantDb adds the company_id filter itself (service-role ratchet).
+  const revisionLookup = await (tenantDb(companyId).from("contract_price_snapshots").select("id") as ReturnType<ReturnType<typeof supabaseService.from>["select"]>)
+    .eq("contract_id", contractId)
     .eq("source", "customer_contract_unsigned_edit").limit(1);
   if (revisionLookup.error) throw revisionLookup.error;
   const hasRevision = (revisionLookup.data ?? []).length > 0;
@@ -1373,7 +1375,9 @@ export async function generateBillingUnderlaysForMonth(input: {
             })),
             timezone: "Europe/Stockholm",
           },
-          pricing_snapshot: snapshotJson,
+          // gridex_store_billing_underlay binds a ready underlay to the contract price snapshot's own JSON
+          // (FINDINGS F8-B1); the enriched pricing payload is derived and would be refused.
+          pricing_snapshot: object(snapshot?.snapshot_json),
           received_at: now,
           validated_at: ready ? now : null,
         };

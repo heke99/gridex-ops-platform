@@ -3,11 +3,15 @@ import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
 import {db05PredecessorSchema} from './helpers/db05PredecessorSchema'
 
-const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,patchPoa:null as string|null,patchPoaNext:null as string|null,patchTenantKey:null as string|null,patchPr932:null as string|null,reads:[] as string[]}))
+const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,patchPoa:null as string|null,patchPoaNext:null as string|null,patchTenantKey:null as string|null,patchPr932:null as string|null,patchPr973:null as string|null,reads:[] as string[]}))
 vi.mock('node:fs',async original=>{
  const actual=await original<typeof import('node:fs')>()
  return {...actual,readFileSync:(path:Parameters<typeof actual.readFileSync>[0],options?:Parameters<typeof actual.readFileSync>[1])=>{
   const name=String(path)
+  if(name.endsWith('db05-schema-predecessor-pr973-audit19-20261030.patch.json')){
+   injected.reads.push('pr973Audit19')
+   if(injected.patchPr973!==null)return injected.patchPr973
+  }
   if(name.endsWith('db05-schema-predecessor-pr932-unsigned-edit-20261029.patch.json')){
    injected.reads.push('pr932UnsignedEdit')
    if(injected.patchPr932!==null)return injected.patchPr932
@@ -42,10 +46,28 @@ vi.mock('node:fs',async original=>{
 })
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
 type CapturePatch={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
-const pr932Capture=readFileSync('supabase/schema.sql','utf8')
+const pr973Capture=readFileSync('supabase/schema.sql','utf8')
+const pr973Sha='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b'
+const pr973Patch=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-pr973-audit19-20261030.patch.json','utf8')) as CapturePatch
+function exactPatchFixture(patch:CapturePatch,preSha:string,postSha:string,schema:string,forward:boolean):string{
+ expect(patch.preSha256).toBe(preSha);expect(patch.postSha256).toBe(postSha)
+ expect(sha(schema)).toBe(forward?preSha:postSha)
+ const lines=schema.split('\n')
+ for(const h of [...patch.hunks].reverse()){
+  expect(h.preLines).toHaveLength(h.preCount);expect(h.postLines).toHaveLength(h.postCount)
+  expect(sha(h.preLines.join('\n'))).toBe(h.preSha256);expect(sha(h.postLines.join('\n'))).toBe(h.postSha256)
+  const start=forward?h.preStart:h.postStart,count=forward?h.preCount:h.postCount
+  expect(sha(lines.slice(start,start+count).join('\n'))).toBe(forward?h.preSha256:h.postSha256)
+  lines.splice(start,count,...(forward?h.postLines:h.preLines))
+ }
+ const result=lines.join('\n');expect(sha(result)).toBe(forward?postSha:preSha);return result
+}
 const pr932Sha='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b'
 const pr932PreSha='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6'
 const pr932Patch=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-pr932-unsigned-edit-20261029.patch.json','utf8')) as CapturePatch
+const exactPr973Fixture=(schema:string,forward:boolean)=>exactPatchFixture(pr973Patch,pr932Sha,pr973Sha,schema,forward)
+// The genuine PR973 checked-in capture is reversed to the exact PR932 bytes.
+const pr932Capture=sha(pr973Capture)===pr973Sha?exactPr973Fixture(pr973Capture,false):pr973Capture
 function exactPr932Fixture(schema:string,forward:boolean):string{
  expect(pr932Patch.preSha256).toBe(pr932PreSha);expect(pr932Patch.postSha256).toBe(pr932Sha)
  expect(sha(schema)).toBe(forward?pr932PreSha:pr932Sha)
@@ -102,7 +124,7 @@ const capture=sha(actualCapture)===successorSha?exactSuccessorFixture(actualCapt
 const audit27=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit27.patch.json','utf8')) as {
  preSha256:string;postSha256:string;hunks:{postStart:number;postCount:number;postSha256:string;preLines:string[]}[]}
 const audit26=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit26.patch.json','utf8')) as {preSha256:string;postSha256:string}
-afterEach(()=>{injected.patch=null;injected.patch28=null;injected.patch29=null;injected.patchPoa=null;injected.patchPoaNext=null;injected.patchTenantKey=null;injected.patchPr932=null;injected.reads=[]})
+afterEach(()=>{injected.patchPr973=null;injected.patch=null;injected.patch28=null;injected.patch29=null;injected.patchPoa=null;injected.patchPoaNext=null;injected.patchTenantKey=null;injected.patchPr932=null;injected.reads=[]})
 // Both immutable genuine captures are covered even when the checked-in context
 // is the older one. The fixture stores only the exact changed line ranges.
 type Audit28={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
@@ -391,4 +413,34 @@ it.each(['prefix','suffix','truncated'] as const)('rejects an altered PR932 capt
 it('retains the tenant-key inverse refusal after reversing the genuine PR932 capture',()=>{
  const changed=structuredClone(tenantKeyPatch);changed.preSha256='f'.repeat(64);injected.patchTenantKey=JSON.stringify(changed)
  expect(()=>db05PredecessorSchema(pr932Capture)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+
+it('reverses the genuine PR973 capture through every unchanged original capture',()=>{
+ expect(sha(pr973Capture)).toBe(pr973Sha)
+ expect(exactPr973Fixture(pr973Capture,false)).toBe(pr932Capture)
+ expect(exactPr973Fixture(pr932Capture,true)).toBe(pr973Capture);injected.reads=[]
+ expect(sha(db05PredecessorSchema(pr973Capture))).toBe('c4e86b3bda8dc8579df1b3bfa9bdc8994b9ca0085c07710c36a15e1259069823')
+ expect(injected.reads).toEqual(['pr973Audit19','pr932UnsignedEdit','poaTenantKey','poa20261029','poa20261028','audit29','audit28','audit27','audit26'])
+})
+it.each(['preSha256','postSha256'] as const)('rejects a changed genuine PR973 link %s',field=>{
+ const changed=structuredClone(pr973Patch);changed[field]='f'.repeat(64);injected.patchPr973=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(pr973Capture)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+it('rejects a changed or moved PR973 successor hunk',()=>{
+ const changed=structuredClone(pr973Patch);changed.hunks[0].postSha256='f'.repeat(64);injected.patchPr973=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(pr973Capture)).toThrow('db05_schema_predecessor_hunk_changed:')
+ const moved=structuredClone(pr973Patch);moved.hunks[0].postStart+=1;injected.patchPr973=JSON.stringify(moved)
+ expect(()=>db05PredecessorSchema(pr973Capture)).toThrow('db05_schema_predecessor_hunk_changed:')
+})
+it('rejects a PR973 inverse that rebuilds unqualified older bytes',()=>{
+ const changed=structuredClone(pr973Patch);changed.hunks[0].preLines.push('-- unqualified');injected.patchPr973=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(pr973Capture)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+it.each(['prefix','suffix','truncated'] as const)('rejects an altered PR973 capture %s',mutation=>{
+ const changed=mutation==='prefix'?'-- unqualified\n'+pr973Capture:mutation==='suffix'?pr973Capture+'\n':pr973Capture.slice(1)
+ expect(()=>db05PredecessorSchema(changed)).toThrow('db05_schema_predecessor_unknown:')
+})
+it('retains the PR932 inverse refusal after reversing the genuine PR973 capture',()=>{
+ const changed=structuredClone(pr932Patch);changed.preSha256='f'.repeat(64);injected.patchPr932=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(pr973Capture)).toThrow('db05_schema_predecessor_rebuild_mismatch')
 })

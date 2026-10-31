@@ -222,6 +222,7 @@ jobs:
           exact_next_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': '6773cdc230b659091700b6582181477e01856a86', 'sha256': '8106165e1d34761e56f1eba99f9268f3aaa2228f105f2f20e365d6bc2c9a5fde'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': '31f1c20801f94cfbef7ec71722e8452967cbb470', 'sha256': '59623bc0f74bc1e57c5940788e8ed0b3c65123d08193f34e9d6659c5065f9f7c'}}
           exact_zod_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': '7f0baef1da8ff1aa410a40d0835346749281a506', 'sha256': '52af42e9b40c440622dd09ad15126968278ad121f9fa66451c2fac68783f0f38'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': 'a6e86ff9b2dff932b18afcd0963c3d3fae12de58', 'sha256': 'd0501a03422daaa93721fc7813751eb5eee12a85ae85a6ff6902d48546d2edc4'}}
           exact_undici_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': '573c4d9650dac26a8ad62cf7f5dd3a2d7e83870f', 'sha256': '5e4efe56665e72e90c5ff5a300b9bf5e0dfa7f18871df7bae5983833f18a445c'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': '566689dbc2a2dd33b553e10f6b3f567a3fcaf078', 'sha256': '92c0e55a7775b8e87e5a6eb02bbf908a9d6ddf7061cfad4b477d7f9f768e5a10'}}
+          exact_forge_joi_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': 'f7bb37021b03a953e86e09bd57551f95d3bd1d77', 'sha256': '360f2511a66f0d60fb697228b36cb7fead17e7872e9a5532894691ff7271f5fa'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': '625ec084c3761d1faa348a43210024222320681c', 'sha256': 'e025dae372c71bf915c0d707c28e70648be2900f219936751ad4dba96100a933'}}
           def qualify_mailauth_undici(root):
               # Only the reviewed scoped override and official undici tuple may compose
               # with the immutable, exact Zod dependency pair. No BASE file is modified.
@@ -242,14 +243,40 @@ jobs:
               if any(node.get(k)!=v for k,v in exact.items()):raise RuntimeError('mailauth_undici_lock_tuple_unqualified')
               for k in exact:node[k]=prior[1]['packages']['node_modules/undici'][k]
               if declared!=prior[0] or locked!=prior[1]:raise RuntimeError('mailauth_undici_other_dependency_changed')
+          def qualify_forge_joi(root):
+              # Only node-forge 1.4.2 (GHSA-86w9-cpqp-85rv, GHSA-4642-5mcj-2rqw,
+              # GHSA-6wvx-3r32-xmcg) and the scoped mailauth joi 18.3.1 override
+              # (GHSA-4528-x5fx-h6hg) may compose with the exact reviewed Undici pair.
+              prior_oids=('573c4d9650dac26a8ad62cf7f5dd3a2d7e83870f','566689dbc2a2dd33b553e10f6b3f567a3fcaf078')
+              prior_hashes=('5e4efe56665e72e90c5ff5a300b9bf5e0dfa7f18871df7bae5983833f18a445c','92c0e55a7775b8e87e5a6eb02bbf908a9d6ddf7061cfad4b477d7f9f768e5a10')
+              prior=[]
+              for oid,expected in zip(prior_oids,prior_hashes):
+                  data=subprocess.check_output(['git','cat-file','blob',oid],cwd=root)
+                  if hashlib.sha256(data).hexdigest()!=expected:raise RuntimeError('forge_joi_predecessor_unqualified')
+                  prior.append(json.loads(data))
+              declared=json.loads((root/'package.json').read_text())
+              locked=json.loads((root/'package-lock.json').read_text())
+              if declared.get('overrides',{}).get('mailauth')!={'undici':'8.12.2','joi':'18.3.1'}:raise RuntimeError('forge_joi_override_unqualified')
+              declared['overrides']['mailauth']={'undici':'8.12.2'}
+              exact={'node_modules/node-forge':json.loads('{"version":"1.4.2","resolved":"https://registry.npmjs.org/node-forge/-/node-forge-1.4.2.tgz","integrity":"sha512-rRtAR5XLJ8gCKd9du4qrKAsgCG1ObGP4gLeNJMa4vYSeq4bmBMOJk5IHkrviBV0q7uoAJlVd8HEQYQSVUb4FGQ==","license":"(BSD-3-Clause OR GPL-2.0)","engines":{"node":">= 6.13.0"}}'),
+                     'node_modules/joi':json.loads('{"version":"18.3.1","resolved":"https://registry.npmjs.org/joi/-/joi-18.3.1.tgz","integrity":"sha512-mV9M4Llh4va3NT90p7KBtQhoZqjs8xLX7EWYE4y/GG3yLF6REbIBEHSUb0UX1JXRht2w5tiLSsvmpYc5akiqIw==","license":"BSD-3-Clause","dependencies":{"@hapi/address":"^5.1.1","@hapi/formula":"^3.0.2","@hapi/hoek":"^11.0.7","@hapi/pinpoint":"^2.0.1","@hapi/tlds":"^1.1.1","@hapi/topo":"^6.0.2","@standard-schema/spec":"^1.1.0"},"engines":{"node":">= 20"}}')}
+              for name,node in exact.items():
+                  if locked['packages'].get(name)!=node:raise RuntimeError('forge_joi_lock_tuple_unqualified:'+name)
+                  locked['packages'][name]=prior[1]['packages'][name]
+              if declared!=prior[0] or locked!=prior[1]:raise RuntimeError('forge_joi_other_dependency_changed')
+              for name,version in (('node-forge','1.4.2'),('joi','18.3.1')):
+                  if json.loads((root/'node_modules'/name/'package.json').read_text())['version']!=version:raise RuntimeError('forge_joi_installed_version_mismatch:'+name)
           if {p:baseline['blobs'].get(p) for p in dependency_paths} != expected_base_dependencies:
               raise RuntimeError('db01_BASE_dependency_inputs_changed')
+          exact_forge_joi = {p:current['blobs'].get(p) for p in dependency_paths} == exact_forge_joi_security_dependencies
+          if exact_forge_joi:
+              qualify_forge_joi(root)
           exact_undici = {p:current['blobs'].get(p) for p in dependency_paths} == exact_undici_security_dependencies
           if exact_undici:
               qualify_mailauth_undici(root)
               if json.loads((root/'node_modules/undici/package.json').read_text())['version']!='8.12.2':raise RuntimeError('mailauth_undici_installed_version_mismatch')
-          exact_mail = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_mail_dependencies, exact_next_security_dependencies, exact_zod_security_dependencies, exact_undici_security_dependencies)
-          exact_zod = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_zod_security_dependencies, exact_undici_security_dependencies)
+          exact_mail = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_mail_dependencies, exact_next_security_dependencies, exact_zod_security_dependencies, exact_undici_security_dependencies, exact_forge_joi_security_dependencies)
+          exact_zod = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_zod_security_dependencies, exact_undici_security_dependencies, exact_forge_joi_security_dependencies)
           for path in ['package.json','package-lock.json','.nvmrc','.npmrc']:
               if current['blobs'].get(path) != baseline['blobs'].get(path) and not (exact_mail and path in dependency_paths):
                   raise RuntimeError('BASE/current dependency inputs differ: '+path)
@@ -280,6 +307,8 @@ jobs:
               dependency_compatibility['compatibility']='EXACT_ZOD_4_6_7_WITH_NEXT_16_4_2_MAIL_AND_SECURITY_FIXES'
               dependency_compatibility['actual_installed_versions']['zod']=actual
               dependency_compatibility['actual_locked_zod']=locked['packages']['node_modules/zod']['version']
+          if exact_forge_joi:
+              dependency_compatibility['qualified_forge_joi']={'override':{'mailauth':{'undici':'8.12.2','joi':'18.3.1'}},'locked_versions':{'node-forge':'1.4.2','joi':'18.3.1'},'predecessor':'EXACT_MAILAUTH_UNDICI_8_12_2'}
           if exact_undici:
               dependency_compatibility['qualified_mailauth_undici']={'override':{'mailauth':{'undici':'8.12.2'}},'locked_version':'8.12.2','predecessor':'EXACT_ZOD_4_6_7_WITH_NEXT_16_4_2_MAIL_AND_SECURITY_FIXES'}
           for path,expected in expected_sql_hashes.items():
@@ -485,8 +514,8 @@ jobs:
           def current_write_api_install_spec():
               return {'before_catalog_sha256':'709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
                   'preimage_artifact_id':12655280424,'preimage_source':'c6a02ec1edfbf72d81a2c3755e004781da8bc5d6',
-                  'schema_sha256':'20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b','function_count':251,
-                  # PR #932 capture (pre aa5d9975): closure of 251 writer functions is byte-identical.
+                  'schema_sha256':'bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b','function_count':251,
+                  # PR #973 capture (pre 20b8165b, aa5d9975): closure of 251 writer functions is byte-identical.
                   'canonical_definitions_sha256':'23866bb938ea1230a1f623073c436ae3d6583b5518378d0ee8eabd403eeb383d',
                   'projection_old_body':'01a18718d1d55c93238f2f9a8cfcb44da7cd5b35dbee96af964066a1848b7379',
                   'projection_new_body':'66d86e98130ca6f5e64ae966d710f35bce86204452febe714684025943a81f17',
