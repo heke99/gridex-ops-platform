@@ -23,7 +23,7 @@
   "tracks": [
     {
       "id": "1",
-      "coordinationOwner": "Claude",
+      "coordinationOwner": "Codex",
       "title": "Kund, underlag och godkännande",
       "scenarioIds": [
         "MAIN03.01",
@@ -45,7 +45,7 @@
     },
     {
       "id": "2",
-      "coordinationOwner": "Claude",
+      "coordinationOwner": "Codex",
       "title": "Avtal och kontraktstider",
       "scenarioIds": [
         "TERM01.01",
@@ -72,7 +72,7 @@
     },
     {
       "id": "3",
-      "coordinationOwner": "Claude",
+      "coordinationOwner": "Codex",
       "title": "Ediel-trafik och parsning",
       "scenarioIds": [
         "EDIEL01.01",
@@ -98,7 +98,7 @@
     },
     {
       "id": "4",
-      "coordinationOwner": "Claude",
+      "coordinationOwner": "Codex",
       "title": "Faktura, samtidighet och fil",
       "scenarioIds": [
         "MAIN04.02",
@@ -145,7 +145,7 @@
     },
     {
       "id": "6",
-      "coordinationOwner": "Claude",
+      "coordinationOwner": "Codex",
       "title": "Leverans, custody och mottagarkvitto",
       "scenarioIds": [
         "DELIVERY01.01",
@@ -167,7 +167,7 @@
     },
     {
       "id": "7",
-      "coordinationOwner": "Claude",
+      "coordinationOwner": "Codex",
       "title": "UI och slutliga kvalitetsgrindar",
       "scenarioIds": [
         "UI01.01",
