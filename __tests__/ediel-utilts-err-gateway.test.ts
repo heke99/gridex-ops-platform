@@ -233,6 +233,8 @@ function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['trans
   database.sourceBases.set(source.id,{version:1,sourceMessage:structuredClone(source),sourceRulePackEvidence})
   for (const [table, rows] of Object.entries({
     ediel_messages: [source], ediel_message_events: [], ediel_ack_transaction_results: reservations, grid_owners: [],
+    // Modeled empty outbox: each fresh own ACK original must be queued exactly once.
+    ediel_outbox: [],
     company_memberships:[{company_id:company,user_id:actor,status:'active',is_active:true,accepted_at:`${date}T00:00:00Z`}],
     user_profiles:[{id:actor,user_status:'active'}],
     ediel_actor_settings: [{ id: actor, company_id: company, environment: 'test', is_active: true, ediel_id: '21660', sender_subaddress: 'DDQ' }],
@@ -580,6 +582,12 @@ it('SC-048 an own E50 period fault on a known object is finalized as a physical 
  const codes=wire.segments.filter(s=>s.tag==='STS'||s.tag==='ERC').flatMap(s=>s.elements.flatMap((_,i)=>segmentComposite(s,i,wire.una)))
  expect(codes).toContain('E50');expect(codes).not.toContain('E10')
  expect(wire.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,wire.una)).filter(c=>c[0]==='TN').map(c=>c[1])).toEqual(['OWN-E50'])
+ // Transport, not master data: every fresh own ACK has exactly one queued outbox row and nothing else is queued.
+ const queued=database.tables.get('ediel_outbox')!
+ for(const ack of f.acks())expect(queued.filter(row=>row.ediel_message_id===ack.id&&row.status==='queued')).toHaveLength(1)
+ expect(queued).toHaveLength(f.acks().length)
+ // Proven queue rows are set aside so the master-data comparison below stays exactly as strict.
+ database.tables.set('ediel_outbox',[])
  // No master data was created to make the check pass.
  expect([...database.tables.keys()].filter(t=>t!=='ediel_messages'&&t!=='ediel_message_events'&&t!=='ediel_ack_transaction_results').map(t=>[t,database.tables.get(t)!.length])).toEqual(tablesBefore)
 })
@@ -602,6 +610,7 @@ it('SC-047 an object known only in another tenant is unknown here: the real look
  await createUtiltsRuntimeAcks({actorUserId:f.actor,sourceMessage:source,ackPlan:runtime.ackPlan,transactionDispositions:runtime.transactionDispositions})
  const errs=f.acks().filter(row=>row.message_family==='UTILTS_ERR')
  expect(errs).toHaveLength(1)
+ expect(database.tables.get('ediel_outbox')!.filter(row=>row.ediel_message_id===errs[0].id&&row.status==='queued')).toHaveLength(1)
  const wire=EdifactEnvelopeCodec.decode(String(errs[0].raw_payload))
  expect(wire.segments.flatMap(s=>s.elements.flatMap((_,i)=>segmentComposite(s,i,wire.una)))).toContain('E10')
  expect(wire.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,wire.una)).filter(c=>c[0]==='TN').map(c=>c[1])).toEqual(['OWN-E10'])
@@ -612,4 +621,16 @@ it('SC-047 an object known only in another tenant is unknown here: the real look
  const own=await matchUtiltsTransactionsForTenant({message:f.source,facts:f.runtime.facts})
  expect(own[0]).toMatchObject({meteringPointId:'own-point',matchStatus:'matched'})
  expect(runUtiltsRuntimeForMessage({...source,parsed_payload:{...(f.source.parsed_payload??{}),utiltsTransactionMatches:own}} as EdielMessageRow,{referenceDate:'2026-10-01',canonicalPolicy:policy}).ackPlan.utiltsErrCodes).toEqual([])
+})
+
+it('each fresh own ACK original is queued exactly once in the outbox and a replay adds no outbox row',async()=>{
+ const f=seed([{reference:'Q-ERR',outcome:'processability_rejected'},{reference:'Q-OK',outcome:'accepted'}])
+ await f.finalize()
+ const acks=f.acks(),outbox=database.tables.get('ediel_outbox')!
+ expect(acks.length).toBeGreaterThan(0)
+ for(const ack of acks)expect(outbox.filter(row=>row.ediel_message_id===ack.id&&row.status==='queued'&&row.company_id===f.source.company_id)).toHaveLength(1)
+ expect(outbox).toHaveLength(acks.length)
+ await f.finalize()
+ expect(f.acks()).toHaveLength(acks.length)
+ expect(database.tables.get('ediel_outbox')).toHaveLength(acks.length)
 })
