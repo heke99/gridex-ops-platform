@@ -1,13 +1,69 @@
-# Spår 2 – lokal simuleringsharness (tillfälligt utanför repot)
+# Spår 2 – lokal simuleringsharness
 
-Flyttas till `scripts/simulation/track2/` när filclaim finns. Ingen appändring på basen krävs.
+Donorn från Claude är bevarad i den separata adoptionscommiten. Ny körning kräver
+samordnarens uttryckliga miljötilldelning; gamla hem, standardportar och tidigare
+PASS-markörer ger ingen ny körbehörighet.
 
 ## Användning
+
+Samordnaren tilldelar först en privat JSON-fil med formatet nedan, ägd av aktuell
+OS-användare och utan grupp-/övrig åtkomst (`chmod 600`). Filen och `SIM_HOME`
+ska ligga utanför Git. `RUN_DIR` ska vara en ren checkout på exakt `sourceCommit`.
+Alla nio portar ska vara olika och samordnaren måste separat verifiera att projekt,
+portar, DB/Auth/Storage, processer och lokala motparter är exklusivt tilldelade.
+Formatet är ett lokalt tilldelningsunderlag, ingen automatisk backendattest.
+
+```json
+{
+  "schema": "gridex-simulation-runtime-assignment-v1",
+  "worker": "T2",
+  "state": "ACTIVE",
+  "environmentId": "t2-coordinator-assigned-epoch",
+  "expiresAt": "<framtida tid med tidszon>",
+  "allowedOperations": ["up", "run", "down"],
+  "runDir": "<absolut kanonisk sökväg till ren app-checkout>",
+  "sourceCommit": "<observerad fullständig 40-teckens Git-SHA>",
+  "simHome": "<absolut kanonisk privat sökväg utanför Git>",
+  "projectId": "sim-t2-<unik tilldelning>",
+  "ports": {
+    "SIM_API_PORT": 55101, "SIM_DB_PORT": 55102,
+    "SIM_SHADOW_PORT": 55103, "SIM_POOLER_PORT": 55104,
+    "SIM_STUDIO_PORT": 55105, "SIM_MAIL_HTTP_PORT": 55106,
+    "SIM_SMTP_PORT": 55107, "SIM_APP_PORT": 55108,
+    "SIM_COUNTERPART_PORT": 55109
+  }
+}
 ```
-SIM_HOME=/root/sim/home-track2 RUN_DIR=/root/sim/track2 ./up.sh     # SKIP_REPLAY=1 / SKIP_BUILD=1 återanvänder
-./run.sh scenarios/smoke.test.ts                                     # rapport: $SIM_HOME/reports/<namn>-<utc>.json
-./down.sh                                                            # stoppar app, motparter, supabase + volymer
+
+Portarna ovan illustrerar formatet och är ingen faktisk tilldelning. När verklig
+körning är kvalificerad används samma explicit exporterade tilldelning för varje
+kommando:
+
+```bash
+export SIM_RUNTIME_ASSIGNMENT_FILE=/privat/t2-assignment.json
+export SIM_HOME=/privat/t2-runtime RUN_DIR=/checkout/app
+./up.sh
+./run.sh scenarios/smoke.test.ts
+./down.sh
 ```
+
+`common.sh` verifierar tilldelningen före katalogskapande och innan något av
+kommandona når Docker, processhantering eller fixturer. `ports.env` läses endast
+som data och måste exakt matcha tilldelningen; kod, dubbla nycklar och gamla
+portvärden avvisas. En utgången/återkallad tilldelning eller ändrad appkälla kräver
+samordnarens nya kontroll, även före `down.sh`.
+
+Detta spärrar **otilldelad start**, men kvalificerar inte verklig körning:
+replaypatchar, faktisk installerad migration/DB-identitet, bygg-/schema-/loggbevis,
+process-ID:n och up/down-rensning måste fortfarande granskas mot den tilldelade
+miljön. `SKIP_REPLAY`/`SKIP_BUILD` och enbart textmarkörer är inte sådant bevis.
+Ingen verklig körning eller ny scenario-PASS är utförd med denna ändring.
+
+## Bevarat donorflöde — kräver separat körkvalificering
+
+Beskrivningen nedan dokumenterar det övertagna flödet. Standardvärden och
+återanvändning som nämns där ger ingen tilldelning; den nya spärren ovan gäller.
+
 Typkontroll: `RUN_DIR/node_modules/.bin/tsc -p tsconfig.json` (run.sh länkar `node_modules` -> RUN_DIR/node_modules om repo saknas runt harnessen).
 
 ## Flöde i up.sh
