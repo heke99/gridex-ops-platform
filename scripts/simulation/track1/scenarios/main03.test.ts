@@ -215,6 +215,8 @@ describe('MAIN03 full month, one customer, 28 daily sources', () => {
     // First save attempt: the client gives up after 400 ms and never sees the response.
     const attempt = await timed('MAIN03.05 aborted generate-underlay', () => http(fx.session, 'POST', '/api/internal/billing/generate-underlay', { json: { billing_month: BILLING_MONTH }, abortAfterMs: 400 }))
     const provoked = attempt.aborted
+    results['MAIN03.05'] = { provokedUnknownOutcome: provoked, abortedAfterMs: attempt.ms, firstAttemptStatus: attempt.status, beforeCall, lockBefore }
+    expect(provoked, `HARNESS_PRECONDITION: MAIN03.05 requires an observed client abort before the first response; received status ${attempt.status} in ${attempt.ms} ms. A qualified unknown-outcome stimulus is required before this scenario can pass.`).toBe(true)
 
     // Read the actual graph and the period lock BEFORE any retry; then wait for the server side to settle.
     const justAfter = graph()
@@ -240,8 +242,6 @@ describe('MAIN03 full month, one customer, 28 daily sources', () => {
     const lockAfter = await periodLockRead()
     results['MAIN03.05'] = { provokedUnknownOutcome: provoked, abortedAfterMs: attempt.ms, beforeCall, justAfter, settled, afterRetry, lockBefore, lockJustAfter, lockSettled, lockAfter, retryStatus: retry.status }
 
-    // Documented limitation, not a pass: if the server answered within the client timeout there was no unknown outcome.
-    if (!provoked) console.warn(`MAIN03.05: the response arrived in ${attempt.ms} ms; the client abort did not occur, so no unknown outcome was provoked (status ${attempt.status})`)
     expect(retry.status).toBe(200)
     expect(afterRetry.underlays).toBe(1)
     expect(afterRetry.items).toBe(2688)

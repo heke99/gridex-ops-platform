@@ -54,21 +54,34 @@ mkdir -p "$(dirname "$SIM_REPORT")"
 python3 - "$RUN_DIR/report.json" "$SIM_REPORT" "$SCENARIO" "$RUN_ID" "$RUN_DIR" "$CODE" "$MS" <<'PY'
 import json, re, sys, os, tempfile
 vit, out, scenario, run_id, run_dir, code, ms = sys.argv[1:]
-idre = re.compile(r"^\s*([A-Z][A-Z0-9]*\d+(?:\.\d+)*)\b")
+# Only the thirteen assigned canonical IDs and the two declared SITE01.05
+# substeps are reportable. Consume the entire leading token: a suffix must
+# never backtrack to SITE01 or silently create another campaign ID.
+idre = re.compile(r"^\s*([A-Z][A-Z0-9]*\d+(?:\.[A-Za-z0-9]+)*)(?=\s|$)")
+canonical = {*(f"MAIN03.{n:02d}" for n in range(1, 6)), "MAIN04.01", "MAIN04.03", "MAIN04.04", *(f"SITE01.{n:02d}" for n in range(1, 6))}
+declared = {**{k: k for k in canonical}, "SITE01.05a": "SITE01.05", "SITE01.05b": "SITE01.05"}
 raw, err = {}, None
 try: raw = json.load(open(vit))
 except Exception as e: err = f"vitest report unreadable: {e}"
 norm = {"passed": "passed", "failed": "failed"}
 steps = []
+seen = set()
 for tr in raw.get("testResults", []):
     for a in tr.get("assertionResults", []):
         title = a.get("title", ""); full = a.get("fullName") or title
         m = idre.match(title) or idre.match(full) or next((x for x in map(idre.match, a.get("ancestorTitles", [])) if x), None)
+        step_id = m.group(1) if m else None
+        if step_id not in declared or step_id in seen:
+            raise ValueError(f"undeclared or duplicate scenario step: {step_id}")
+        seen.add(step_id)
         fm = a.get("failureMessages") or []
-        steps.append({"scenarioId": m.group(1) if m else None, "step": title,
+        steps.append({"scenarioId": declared[step_id], "declaredStepId": step_id, "step": title,
                       "status": norm.get(a.get("status"), "skipped"),
                       "durationMs": a.get("duration"),
                       "failure": (fm[0].splitlines()[0][:300] if fm else None)})
+site05 = {"SITE01.05", "SITE01.05a", "SITE01.05b"}
+if seen & site05 and not site05 <= seen:
+    raise ValueError("SITE01.05 requires preparation, consolidation and file substeps in the report")
 per = {}
 for st in steps:
     k = st["scenarioId"] or "UNASSIGNED"; per.setdefault(k, []).append(st["status"])
