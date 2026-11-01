@@ -23,7 +23,7 @@ export function e02Counts(fx: E02Fixture, prefix: string): E02Counts {
     contrl: n(`SELECT count(*) FROM public.ediel_messages WHERE company_id=${company} AND direction='outbound' AND message_family='CONTRL' AND related_message_id IN ${src}`),
     aperak: n(`SELECT count(*) FROM public.ediel_messages WHERE company_id=${company} AND direction='outbound' AND message_family='APERAK' AND related_message_id IN ${src}`),
     utiltsErr: n(`SELECT count(*) FROM public.ediel_messages WHERE company_id=${company} AND direction='outbound' AND message_family='UTILTS_ERR' AND related_message_id IN ${src}`),
-    outbox: n(`SELECT count(*) FROM public.ediel_outbox o WHERE o.company_id=${company} AND o.source_message_id IN (SELECT id FROM public.ediel_messages WHERE company_id=${company} AND related_message_id IN ${src})`),
+    outbox: n(`SELECT count(*) FROM public.ediel_outbox o WHERE o.company_id=${company} AND o.source_message_id IN ${src}`),
     series: n(`SELECT count(*) FROM public.meter_reading_series WHERE company_id=${company} AND metering_point_id=${pt}`),
     seriesCurrent: n(`SELECT count(*) FROM public.meter_reading_series WHERE company_id=${company} AND metering_point_id=${pt} AND is_current`),
     meterReadingValues: n(`SELECT count(*) FROM public.meter_reading_values v JOIN public.meter_reading_series s ON s.id=v.series_id WHERE s.company_id=${company} AND s.metering_point_id=${pt}`),
