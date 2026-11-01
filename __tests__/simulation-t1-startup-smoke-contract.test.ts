@@ -278,7 +278,7 @@ try:
     except Exception as failure:publish_error=str(failure)
     result={'published':(home/'safe/proof.json').exists(),'error':publish_error}
     if result['published']:result['proof']=module.read_json(home/'safe/proof.json')
- elif op=='admission':
+ elif op in ('admission','site-admission'):
   with tempfile.TemporaryDirectory() as folder:
    root=pathlib.Path(folder);home=root/'home';home.mkdir(mode=0o700)
    for name in ['app','harness','carrier']:(root/name).mkdir()
@@ -291,12 +291,28 @@ try:
    versions={'node':'v22.23.4','npm':'10.9.2','supabase':'2.101.0','supabase-go':'2.101.0','psql':'psql 17.11','pg_dump':'pg_dump 17.11','docker':'28.0'}
    descriptor=home/'admission.json'
    a={'schema':'track1-hosted-producer-admission-v1','workerId':'codex-track1','exclusiveHost':True,'admissionFile':str(descriptor),'simHome':str(home),'expiresAtUtc':(module.now()+module.dt.timedelta(minutes=30)).isoformat(),'cleanupExpiresAtUtc':(module.now()+module.dt.timedelta(minutes=40)).isoformat(),'event':event,'budget':{'jobs':1,'replays':1,'builds':1,'appStarts':1,'smokes':1,'retries':0},'projectId':'t1-123-1','ports':{'db':54322,'api':54321,'app':3101},'appDir':str(root/'app'),'appCommit':'a'*40,'appTree':'b'*40,'harnessDir':str(harness),'harnessCommit':'d'*40,'harnessTree':'e'*40,'carrierDir':str(root/'carrier'),'workflowCarrier':'c'*40,'workflowTree':'f'*40,'workflowBlob':'7'*40,'smokeSha256':module.sha(b'reviewed smoke'),'requiredGenGates':{'qualified':True,'receiptSha256':'8'*64},'tools':{name:{'sha256':module.sha(binary.read_bytes()),'version':version} for name,version in versions.items()}}
+   if op=='site-admission':
+    event.update(branch='codex/t1-site-native',job='site-native')
+    a.update(schema='track1-hosted-site-admission-v1',reportKind='site_native_v2',budget=dict(module.SITE_BUDGET),siteContract={'schema':'track1-site-native-contract-v1','inputEpoch':'site-native-input-v2','startConvention':'ediel-fixed-utc+01','sites':copy.deepcopy(module.SITE_EXPECTED),'businessBudgetSeconds':1800,'minAuthHeadroomSeconds':120,'producerId':'coordinator','outputDirectory':'site-native','sourceSha256':{p:module.SITE_REVIEWED_HASHES.get(p,'a'*64)for p in module.SITE_SOURCE_PATHS},'marketBoundsSourceSha256':'6573f66302a5900308e7a566569a1a389e854b682202f19a745f8ef0363adb06'})
+    a['requiredGenGates']['applicability']={'schemaUnchanged':True,'typesUnchanged':True,'migrationsUnchanged':True}
+    if case=='branch':event['branch']='codex/t1-startup-smoke-native'
+    if case=='attempt':event['attempt']=2
+    if case=='profile':a['reportKind']='infrastructure_smoke'
+    if case=='site-budget':a['budget']['siteInvocations']=2
+    if case=='cleanup-work-expired':a['expiresAtUtc']=(module.now()-module.dt.timedelta(seconds=1)).isoformat()
+    eventfile.write_text(json.dumps({'action':'opened','pull_request':{'head':{'sha':'c'*40,'ref':event['branch'],'repo':{'full_name':module.REPO}}}}))
+    os.environ['GITHUB_JOB']=event['job']
+    module.check_site_sources=lambda _a:None
    refs=[module.PREFIX+'backend-test-t1',module.PREFIX+'producer-test-t1'];source_refs=[module.PREFIX+'slot-session-test']+[module.PREFIX+'file-'+module.sha(name.encode()) for name in module.SOURCE_PATHS]
    source={'base':'0'*40,'files':list(module.SOURCE_PATHS),'operation':'Reserve source files and rule IDs'}
+   if op=='site-admission':
+    source['files']=sorted(set(module.SOURCE_PATHS+module.SITE_SOURCE_PATHS));source['files']=[p for p in source['files'] if not(case=='cleanup-claim' and p=='scripts/simulation/track1/lib.sh')];source_refs=[module.PREFIX+'slot-session-test']+[module.PREFIX+'file-'+module.sha(name.encode())for name in source['files']];source['operation']='Reserve source files and rule IDs; resources-sha256='+module.sha('\n'.join(sorted(source_refs)).encode())
+    if case=='source-capsule':source['operation']+='changed'
    a['sourceClaims']=[{'receipt':'2'*40,'expectedNeutral':source,'refs':source_refs}]
    core=copy.deepcopy(a);attempt={key:a[key] for key in ['event','appCommit','appTree','harnessCommit','harnessTree','workflowCarrier','workflowBlob']}
    fields={'resources-sha256':module.sha(('\n'.join(sorted(refs))+'\n').encode()),'inputs-sha256':module.sha(module.encoded(attempt)),'admission-core-sha256':module.sha(module.encoded(core)),**{key:a[key] for key in ['appCommit','appTree','harnessCommit','harnessTree','workflowCarrier','workflowBlob']}}
-   neutral={'base':'0'*40,'files':[],'operation':'simulation-t1-startup-smoke-v1; '+'; '.join(key+'='+value for key,value in fields.items())}
+   if op=='site-admission':fields['site-contract-sha256']=module.sha(module.encoded(a['siteContract']))
+   neutral={'base':'0'*40,'files':[],'operation':('simulation-t1-site-native-v2; ' if op=='site-admission' else 'simulation-t1-startup-smoke-v1; ')+'; '.join(key+'='+value for key,value in fields.items())}
    a['reservation']={'refs':refs,'receipt':'1'*40,'expectedNeutral':neutral}
    if case=='namespace':neutral['operation']=neutral['operation'].replace('simulation-t1-startup-smoke-v1','contrl-native-v1')
    if case=='source-receipt':neutral['files']=['source.ts']
@@ -311,7 +327,7 @@ try:
    observed_versions=iter(versions.values());module.command=lambda *_args,**_kwargs:next(observed_versions).encode()
    def fake_api(endpoint):
     if endpoint=='actions/runs/123':return {'id':123,'run_attempt':1,'event':'pull_request','head_sha':'c'*40,'path':module.WORKFLOW,'status':'in_progress'}
-    if endpoint.startswith('actions/runs/123/attempts/1/jobs'):return {'jobs':[{'name':'startup-smoke','id':999 if case=='job' else 321,'status':'in_progress'}]}
+    if endpoint.startswith('actions/runs/123/attempts/1/jobs'):return {'jobs':[{'name':event['job'],'id':999 if case=='job' else 321,'status':'in_progress'}]}
     if endpoint.startswith('git/ref/'):
      ref='refs/'+endpoint.removeprefix('git/ref/');receipt='1'*40 if ref in refs else '2'*40
      if case=='pair' and ref==refs[1]:receipt='9'*40
@@ -321,7 +337,7 @@ try:
     data=neutral if commit=='1'*40 else source
     return {'message':json.dumps(data),'parents':[{'sha':'0'*40}],'tree':{'sha':'3'*40}}
    module.api=fake_api
-   module.admission(str(descriptor));result={'accepted':True}
+   module.admission(str(descriptor),teardown=case=='cleanup-work-expired');result={'accepted':True}
  else:raise RuntimeError('unknown test operation')
  print(json.dumps({'error':None,'result':result}))
 except Exception as error:print(json.dumps({'error':str(error),'result':None}))
@@ -870,5 +886,225 @@ describe('actual exported checkpoint and cleanup admission interoperability', ()
   it.each([['effect', 'runtime_phase_deadline'], ['cleanup-expired', 'runtime_admission_expired']])('refuses expired %s authority', (change, error) => {
     const result = JSON.parse(execFileSync('python3', ['-B', '-c', cleanupDeadlineRegression, change], { encoding: 'utf8', timeout: 10_000 }))
     expect(result.error).toBe(error)
+  })
+})
+
+const sitePython = String.raw`
+import importlib.util,json,pathlib,sys,copy,tempfile
+s=importlib.util.spec_from_file_location('site_runtime','scripts/simulation/runtime/assigned_backend.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+case=sys.argv[1]
+c={'schema':'track1-site-native-contract-v1','inputEpoch':'site-native-input-v2','startConvention':'ediel-fixed-utc+01','businessBudgetSeconds':1800,'minAuthHeadroomSeconds':120,'producerId':'finite-producer','outputDirectory':'site-native','sourceSha256':{p:getattr(m,'SITE_REVIEWED_HASHES',{}).get(p,'a'*64) for p in getattr(m,'SITE_SOURCE_PATHS',[])},'marketBoundsSourceSha256':'6573f66302a5900308e7a566569a1a389e854b682202f19a745f8ef0363adb06','sites':{'A':{'rawStartMinute':'202609010000','startUtc':'2026-08-31T23:00:00.000Z','endUtc':'2026-09-30T22:00:00.000Z','salt':12,'intervals':2876,'totalMilliKwh':491266,'totalIncVatCents':57347,'preStartReadings':4,'preStartBillable':0},'B':{'rawStartMinute':'202609160000','startUtc':'2026-09-15T23:00:00.000Z','endUtc':'2026-09-25T22:00:00.000Z','salt':24,'intervals':956,'totalMilliKwh':156969,'totalIncVatCents':26377,'preStartReadings':4,'preStartBillable':0}}}
+a={'budget':dict(m.SITE_BUDGET),'schema':'track1-hosted-site-admission-v1','reportKind':'site_native_v2','siteContract':c,'event':{'actor':'finite-producer'},'requiredGenGates':{'qualified':True,'receiptSha256':'b'*64,'applicability':{'schemaUnchanged':True,'typesUnchanged':True,'migrationsUnchanged':True}}}
+try:
+ if case.startswith('report'):
+  ids=['SITE01.01','SITE01.02','SITE01.03','SITE01.04','SITE01.05','SITE01.05a','SITE01.05b']
+  steps=[{'title':i+' actual substep','status':'passed','failureMessages':[]}for i in ids]
+  if case=='report-gap':steps[5].update(status='failed',failureMessages=['FEATURE_GAP'])
+  if case=='report-missing':steps.pop()
+  if case=='report-duplicate':steps[-1]=steps[0]
+  raw={'success':case!='report-gap','numTotalTests':len(steps),'numPassedTests':6 if case=='report-gap' else 7,'numFailedTests':1 if case=='report-gap' else 0,'numPendingTests':0,'numTodoTests':0,'numFailedTestSuites':1 if case=='report-gap' else 0,'testResults':[{'status':'failed' if case=='report-gap' else 'passed','assertionResults':steps}]}
+  result=m.site_report(raw,1 if case=='report-gap' else 0)
+ else:
+  if case=='missing':a.pop('siteContract')
+  if case=='epoch':c['inputEpoch']='historical-v1'
+  if case=='start':c['sites']['B']['startUtc']='2026-09-15T22:00:00.000Z'
+  if case=='end':c['sites']['B']['endUtc']='2026-09-26T00:00:00.000Z'
+  if case=='money':c['sites']['A']['totalIncVatCents']=56830
+  if case=='presupply':c['sites']['A']['preStartBillable']=4
+  if case=='source':c['sourceSha256'].pop(next(iter(c['sourceSha256'])))
+  if case=='cleanup-source':c['sourceSha256'].pop('scripts/simulation/track1/lib.sh',None)
+  if case=='old-source':c['sourceSha256']['scripts/simulation/track1/fixtures/site01Synthetic.ts']='f'*64
+  if case=='market-source':c['marketBoundsSourceSha256']='f'*64
+  if case=='gen':a['requiredGenGates']['applicability']['typesUnchanged']=False
+  if case=='budget':c['businessBudgetSeconds']=True
+  if case=='boolean-operation':a['budget']['siteInvocations']=True
+  if case=='extra-operation':a['budget']['main03']=1
+  if case=='actor':c['producerId']='foreign'
+  m.check_site_contract(a);result={'accepted':True}
+ print(json.dumps({'result':result,'error':None}))
+except Exception as e:print(json.dumps({'result':None,'error':str(e)}))
+`
+function siteProbe(change: string) {
+  return JSON.parse(execFileSync('python3', ['-B', '-c', sitePython, change], { encoding: 'utf8', timeout: 10_000 }))
+}
+describe('explicit SITE hosted input-v2 authority', () => {
+  it('accepts a separate exact source/input/budget contract', () => expect(siteProbe('valid')).toEqual({ result: { accepted: true }, error: null }))
+  it.each(['missing', 'epoch', 'start', 'end', 'money', 'presupply', 'source', 'gen', 'budget', 'actor', 'old-source', 'market-source', 'boolean-operation', 'extra-operation', 'cleanup-source'])('refuses %s before preparing resources', change => {
+    expect(siteProbe(change).error).toMatch(/^runtime_site_/)
+  })
+  it('reports all seven exact substeps without whole-scenario credit', () => {
+    expect(siteProbe('report-valid').result).toMatchObject({ qualified: true, new105ScenarioPassAttestations: 0, scenarios: {} })
+  })
+  it('preserves the consolidation FEATURE_GAP as a failed, nonqualified substep', () => {
+    const r = siteProbe('report-gap').result
+    expect(r.qualified).toBe(false)
+    expect(r.steps.find((v: { declaredStepId: string }) => v.declaredStepId === 'SITE01.05a').status).toBe('failed')
+  })
+  it.each(['report-missing', 'report-duplicate'])('refuses %s reporting instead of inventing observations', change => expect(siteProbe(change).error).toMatch(/^runtime_site_/))
+})
+
+const siteLifecyclePython = String.raw`
+import importlib.util,json,pathlib,sys,tempfile,datetime,time,os
+s=importlib.util.spec_from_file_location('site_runtime','scripts/simulation/runtime/assigned_backend.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+case=sys.argv[1]
+with tempfile.TemporaryDirectory() as directory:
+ home=pathlib.Path(directory);(home/'phases').mkdir();output=home/'site-native';output.mkdir()
+ assignment=home/'assignment.json';m.seal(assignment,{'finite':'assignment'})
+ a={'harnessDir':str(home),'expiresAtUtc':(m.now()+m.dt.timedelta(seconds=0.5 if case=='utc-advance' else 60)).isoformat(),'siteContract':{'businessBudgetSeconds':0.05 if case in ['timeout','slow-verify'] else 10}}
+ stopped_during_verify=None
+ def verify(*_args):
+  global stopped_during_verify
+  if case=='drift':raise RuntimeError('runtime_finite_custody_changed')
+  if case in ['slow-verify','utc-advance']:
+   if case=='utc-advance':
+    original_wall=m.time.time;m.time.time=lambda:original_wall()+1
+   time.sleep(0.4 if case=='slow-verify' else 0.1);stopped_during_verify=not bool(m.group_members(m.read_json(output/'child-birth.json')['pid']))
+ m.verify=verify
+ m.check_site_live=lambda *_args:None
+ error=None
+ try:m.phase(home,'site',lambda:m.site_child(a,str(assignment),[sys.executable,'-c','import time;time.sleep(30)' if case in ['timeout','drift','slow-verify','utc-advance'] else 'pass'],dict(os.environ),output))
+ except Exception as e:error=type(e).__name__
+ birth=m.read_json(output/'child-birth.json')
+ result={'error':error,'phase':m.read_json(home/'phases/site.json'),'alive':bool(m.group_members(birth['pid'])),'stoppedDuringVerify':stopped_during_verify}
+ print(json.dumps(result))
+`
+describe('SITE parent owns finite subprocess lifecycle', () => {
+  it.each(['timeout', 'drift'])('records %s as unknown business outcome and reaps only its session', change => {
+    const r = JSON.parse(execFileSync('python3', ['-B', '-c', siteLifecyclePython, change], { encoding: 'utf8', timeout: 10_000 }))
+    expect(r.error).toBe('OutcomeUnknown')
+    expect(r.phase).toMatchObject({ status: 'OUTCOME_UNKNOWN', exitCode: null })
+    expect(r.alive).toBe(false)
+  })
+})
+
+const siteRunnerPython = String.raw`
+import importlib.util,json,pathlib,sys,tempfile,copy,subprocess
+s=importlib.util.spec_from_file_location('site_runtime','scripts/simulation/runtime/assigned_backend.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+case=sys.argv[1]
+with tempfile.TemporaryDirectory() as directory:
+ home=pathlib.Path(directory);(home/'phases').mkdir();(home/'reports').mkdir();(home/'private').mkdir();(home/'tool-home').mkdir(mode=0o700);m.PRIVATE_TOOL_HOME=home/'tool-home'
+ assignment=home/'assignment.json';m.seal(assignment,{'finite':'assignment'})
+ c={'businessBudgetSeconds':1800,'minAuthHeadroomSeconds':120};a={'schema':'track1-hosted-site-admission-v1','simHome':str(home),'appDir':str(home),'harnessDir':str(home),'projectId':'owned-project','appCommit':'a'*40,'siteContract':c}
+ admission=home/'admission.json';m.seal(admission,a)
+ r={'schema':'track1-runtime-assignment-site-v1','mode':'coordinator_prepared_site','reportKind':'site_native_v2','allowedActions':['up','site-run'],'siteContractSha256':m.sha(m.encoded(c)),'preparedReceiptSha256':'b'*64}
+ prepared={'siteContractSha256':m.sha(m.encoded(c)),'observedAuthLifetimeSeconds':3600}
+ calls=[];orphan=None
+ m.admission=lambda *_args,**_kwargs:a
+ def verify(*args):
+  calls.append('verify');m.check_site_assignment(a,r);return a,r,prepared
+ m.verify=verify;m.check_site_live=lambda *_args:None
+ m.seal(home/'private/app-values.json',{'NEXT_PUBLIC_SUPABASE_URL':m.API_URL,'NEXT_PUBLIC_SUPABASE_ANON_KEY':'local-anon','SUPABASE_SERVICE_ROLE_KEY':'local-service'})
+ if case.startswith('assignment'):
+  if case=='assignment-smoke':r['schema']='track1-runtime-assignment-v2'
+  if case=='assignment-actions':r['allowedActions'].append('run')
+  if case=='assignment-contract':r['siteContractSha256']='f'*64
+  error=None
+  try:m.check_site_assignment(a,r)
+  except Exception as e:error=str(e)
+  print(json.dumps({'error':error}));sys.exit()
+ if case=='build-drift':
+  (home/'.next').mkdir();(home/'.next/BUILD_ID').write_text('same-id');(home/'.next/app.js').write_text('original')
+  first=m.site_build_manifest(home);(home/'.next/app.js').write_text('changed');print(json.dumps({'detected':first!=m.site_build_manifest(home)}));sys.exit()
+ def child(a,file,argv,env,output):
+  global orphan
+  calls.append('child')
+  if case in ['orphan','birth-unknown']:
+   m.seal(output/'child-launch.intent.json',{})
+   if case=='orphan':
+    orphan=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)'],start_new_session=True);m.seal(output/'child-birth.json',m.proc_birth(orphan.pid))
+  assert argv[-1]==str(home/m.SITE_SCENARIO) and not any(k in env for k in ['GH_TOKEN','GITHUB_TOKEN','AWS_SECRET_ACCESS_KEY'])
+  ids=list(m.SITE_IDS);steps=[{'title':i+' finite observation','status':'failed' if case=='gap' and i=='SITE01.05a' else 'passed'}for i in ids]
+  raw={'success':case!='gap','numTotalTests':7,'numPassedTests':6 if case=='gap' else 7,'numFailedTests':1 if case=='gap' else 0,'numPendingTests':0,'testResults':[{'status':'failed' if case=='gap' else 'passed','assertionResults':steps}]}
+  if case!='missing-report':m.seal(output/'vitest.json',raw)
+  m.seal(output/'site01-fixture.json',{'companyId':'finite-company','customerId':'finite-customer','actorUserId':'finite-actor','sites':{k:{'siteId':'site-'+k,'pointId':'point-'+k,'contractId':'contract-'+k}for k in ['A','B']}})
+  return 1 if case=='gap' else 0
+ m.site_child=child
+ if case=='overwrite':(home/'site-native').mkdir()
+ if case=='short-auth':prepared['observedAuthLifetimeSeconds']=1800
+ error=None
+ try:m.run_site(str(assignment))
+ except Exception as e:error=type(e).__name__+':'+str(e)
+ def cleanup(_path):
+  calls.append('cleanup');m.seal(home/'phases/cleanup.intent.json',{});m.seal(home/'phases/cleanup.json',{'status':'PASS','exitCode':0});m.seal(home/'cleanup.json',{'clean':True,'remainingAssignedResources':0,'sourceRestored':True,'admissionSha256':m.sha(admission.read_bytes())})
+ m.cleanup=cleanup;m.seal(home/'initial.json',{})
+ for n in m.REQUIRED_PHASES[:-2]:
+  if not (home/'phases'/ (n+'.json')).exists():m.seal(home/'phases'/ (n+'.json'),{'status':'PASS','exitCode':0})
+ if case=='cleanup-unknown':m.seal(home/'phases/cleanup.intent.json',{})
+ finish_error=None
+ try:m.site_finish(str(admission),0 if error is None else 1)
+ except Exception as e:finish_error=str(e)
+ first_cleanup=calls.count('cleanup')
+ try:m.site_finish(str(admission),0)
+ except Exception:pass
+ if orphan is not None:orphan.terminate();orphan.wait(timeout=5)
+ print(json.dumps({'error':error,'finishError':finish_error,'calls':calls,'cleanupCount':calls.count('cleanup'),'firstCleanup':first_cleanup,'proof':m.read_json(home/'safe/site-proof.json'),'sitePhase':m.read_json(home/'phases/site.json')if(home/'phases/site.json').exists()else None}))
+`
+function siteRunnerProbe(change: string) {
+  return JSON.parse(execFileSync('python3', ['-B', '-c', siteRunnerPython, change], { encoding: 'utf8', timeout: 10_000 }))
+}
+describe('actual separate SITE runner and once-only cleanup', () => {
+  it('runs only the reviewed SITE child with local credentials and cleans up once', () => {
+    const r = siteRunnerProbe('valid')
+    expect(r.error).toBeNull()
+    expect(r.proof).toMatchObject({ qualified: true, cleanupObserved: true, scenarios: {}, new105ScenarioPassAttestations: 0 })
+    expect(r.cleanupCount).toBe(1)
+    expect(r.calls.filter((v: string) => v === 'child')).toHaveLength(1)
+  })
+  it('retains completed functional failure and cleans up without retry', () => {
+    const r = siteRunnerProbe('gap')
+    expect(r.sitePhase).toMatchObject({ status: 'FAIL', exitCode: 1 })
+    expect(r.proof.steps[5]).toEqual({ declaredStepId: 'SITE01.05a', status: 'failed' })
+    expect(r.proof.qualified).toBe(false)
+    expect(r.cleanupCount).toBe(1)
+  })
+  it('records missing child results as unknown and still cleans up', () => {
+    const r = siteRunnerProbe('missing-report')
+    expect(r.sitePhase).toMatchObject({ status: 'OUTCOME_UNKNOWN', exitCode: null })
+    expect(r.proof.qualified).toBe(false)
+    expect(r.cleanupCount).toBe(1)
+  })
+  it.each(['overwrite', 'short-auth'])('refuses %s before the business child', change => {
+    const r = siteRunnerProbe(change)
+    expect(r.error).toMatch(/runtime_site_/)
+    expect(r.calls).not.toContain('child')
+    expect(r.cleanupCount).toBe(1)
+  })
+  it('retains unknown cleanup intent without repeating a destructive attempt', () => {
+    const r = siteRunnerProbe('cleanup-unknown')
+    expect(r.cleanupCount).toBe(0)
+    expect(r.proof).toMatchObject({ qualified: false, cleanupObserved: false })
+  })
+  it.each(['assignment-smoke', 'assignment-actions', 'assignment-contract'])('refuses %s authority', change => expect(siteRunnerProbe(change).error).toBe('runtime_site_assignment_contract'))
+  it('detects changed compiled app bytes despite an unchanged build ID', () => expect(siteRunnerProbe('build-drift').detected).toBe(true))
+})
+
+describe('actual SITE admission and interrupted-parent cleanup guard', () => {
+  it('admits the separate exact SITE profile through the actual shared verifier', () => expect(probe({ op: 'site-admission' }).error).toBeNull())
+  it.each(['branch', 'attempt', 'profile', 'site-budget', 'gate', 'pair', 'source-capsule', 'cleanup-claim'])('refuses SITE %s assignment', change => expect(probe({ op: 'site-admission', case: change }).error).toMatch(/^runtime_/))
+  it('permits only teardown after the workload deadline while cleanup admission remains live', () => expect(probe({ op: 'site-admission', case: 'cleanup-work-expired' }).error).toBeNull())
+  it.each(['orphan', 'birth-unknown'])('holds backend cleanup for %s rather than destroying resources under a writer', change => {
+    const r = siteRunnerProbe(change)
+    expect(r.cleanupCount).toBe(0)
+    expect(r.proof).toMatchObject({ qualified: false, cleanupObserved: false })
+    expect(r.finishError).toMatch(/^runtime_site_child_/)
+  })
+})
+
+describe('SITE deadline is independent of remote verifier progress', () => {
+  it('stops the actual owned child while verification is still blocked', () => {
+    const r = JSON.parse(execFileSync('python3', ['-B', '-c', siteLifecyclePython, 'slow-verify'], { encoding: 'utf8', timeout: 10_000 }))
+    expect(r.stoppedDuringVerify).toBe(true)
+    expect(r.error).toBe('OutcomeUnknown')
+    expect(r.phase).toMatchObject({ status: 'OUTCOME_UNKNOWN', exitCode: null })
+    expect(r.alive).toBe(false)
+  })
+})
+
+describe('SITE watchdog respects absolute UTC expiry', () => {
+  it('stops the child on a modeled UTC advance even within the clock-drift tolerance', () => {
+    const r = JSON.parse(execFileSync('python3', ['-B', '-c', siteLifecyclePython, 'utc-advance'], { encoding: 'utf8', timeout: 10_000 }))
+    expect(r.stoppedDuringVerify).toBe(true)
+    expect(r.phase).toMatchObject({ status: 'OUTCOME_UNKNOWN', exitCode: null })
+    expect(r.alive).toBe(false)
   })
 })
