@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "main": false
+    }
+  },
   "buildCommand": "npm run build && node scripts/verify-manual-mail-ai-deployment.cjs",
   "regions": ["arn1"],
   "crons": [
