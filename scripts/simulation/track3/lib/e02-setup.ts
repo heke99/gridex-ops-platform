@@ -20,7 +20,7 @@ export async function setupE02(label: string) {
   setE02MailboxActive(mailboxId, true)
   await setSmtpMode('accept')
   const purged = await purgeInbox()
-  const flow = new E02Flow(ev, mailboxId, mode)
+  const flow = new E02Flow(ev, mailboxId, mode, tenant.companyId)
   flow.durations.harness.push(Date.now() - t0)
   ev.observe('run', { ...run, tenant, mode, mailboxId, purgedImap: purged })
   // Diagnos: statements som varit aktiva > 2 s (pg_stat_activity, skrivskyddad) loggas separat i slow-statements.json.

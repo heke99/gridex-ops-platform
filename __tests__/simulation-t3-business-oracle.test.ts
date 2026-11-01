@@ -202,11 +202,12 @@ function unknownIssuer(mode: 'denied' | 'poll-failed' | 'business-effect' | 'hea
     },
     poll: async () => { polls.push(summary); return { out: { ok: mode !== 'poll-failed' }, summary } },
     groundAndReprocess: async () => ({ 'own-source': { reprocess: mode === 'processing-error' ? { ok: false, error: 'synthetic timeout; unknown outcome' } : { ok: true } } }),
+    sourceIdsForEmails: () => parsed,
     drain: async () => { drains++; return { mails: [] } },
   }
   // Execute actual deliverE02, including empty storedIds -> empty ids on failed poll.
   const flowModule = load('lib/e02-flow.ts', {
-    'node:crypto': crypto, './counterparty': {}, './app': {}, './evidence': {}, './inprocess': {}, './mime': {},
+    'node:crypto': crypto, './counterparty': {}, './app': {}, './evidence': {}, './inprocess': {}, './mime': {}, './e02-outbox': {},
     './e02-seed': {}, './seed.mjs': { lit, sqlJson: () => parsed },
   })
   const sql = (q: string) => {
