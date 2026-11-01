@@ -11,6 +11,10 @@ import { psql, psqlRows, requireEnv, sim } from '../lib'
 import { brief, createPartnerClient, partner, type PartnerClient } from '../lib/partner'
 import { createCompany, createCustomer, lit } from '../lib/t5-world'
 import { receipt, sha256 } from '../lib/receipts'
+import { enqueueWebhookDeliveriesForEvent } from '@/lib/integrations/webhooks'
+import type { DomainEventRow } from '@/lib/events/domainEvents'
+import { PARTNER_API_VERSION } from '@/lib/partner-api/openApi'
+import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
 
 const ctrl = () => requireEnv('SIM_RECEIVER_CTRL_URL')
 const [HOST_A, HOST_B] = requireEnv('SIM_RECEIVER_HOSTS').split(',')
@@ -30,17 +34,17 @@ async function dispatch(): Promise<{ status: number; text: string }> {
 }
 type Delivery = { id: string; company_id: string; webhook_subscription_id: string; domain_event_id: string; event_type: string; status: string
   attempts: number; max_attempts: number; next_attempt_at: string | null; response_status: number | null; public_delivery_id: string | null
-  request_body_hash: string | null; idempotency_key: string; secs_to_next: number | null }
+  request_body_hash: string | null; idempotency_key: string; secs_to_next: number | null; target_url: string }
 const deliveries = (subId: string) => psqlRows<Delivery>(`select id, company_id, webhook_subscription_id, domain_event_id, event_type, status,
-  attempts, max_attempts, next_attempt_at, response_status, public_delivery_id, request_body_hash, idempotency_key,
+  attempts, max_attempts, next_attempt_at, response_status, public_delivery_id, request_body_hash, idempotency_key, target_url,
   round(extract(epoch from next_attempt_at - now()))::int secs_to_next
   from public.webhook_deliveries where webhook_subscription_id='${subId}' order by created_at`)
 
 const SCOPES = ['partner_webhooks.manage', 'partner_sites.write', 'customer_sites.read']
 function verifyGridexSignature(r: Received, secret: string): boolean {
-  const body = Buffer.from(r.bodyBase64, 'base64').toString('utf8')
+  const body = Buffer.from(r.bodyBase64, 'base64')
   const ts = r.headers['x-gridex-timestamp']
-  const expected = `sha256=${createHmac('sha256', secret).update(`${ts}.${body}`).digest('hex')}`
+  const expected = `sha256=${createHmac('sha256', secret).update(Buffer.from(`${ts}.`, 'utf8')).update(body).digest('hex')}`
   return r.headers['x-gridex-signature'] === expected
 }
 
@@ -53,23 +57,111 @@ describe('EVENT01 webhooks', () => {
   let eventA = ''
   let custRefA = '', custRefB = ''
 
-  // Subscription skapas som SQL-fixtur efter mönstret i gridex_create_partner_webhook_subscription_v1 (migration
-  // 20260816170000): secret i Supabase Vault, signing_secret_ref = vault-id, hash = sha256(secret). Kolumnerna
-  // api_client_id/description/metadata saknas i basens schema (fynd 002) och utelämnas; HTTP-vägen ger dessutom 500
-  // (fynd 001, steg SETUP). Backendersättning: det som prövas är händelse -> kö -> dispatch -> signerat kvitto.
+  type Subscription = { id: string; company_id: string; api_client_id: string; webhook_subscription_reference: string; name: string; endpoint_url: string;
+    event_types: string[]; status: string; signing_algorithm: string; signing_secret_hash: string; metadata: { source?: string } }
+  type Site = { id: string; company_id: string; customer_id: string; facility_reference: string; status: string; data_quality_status: string | null }
+  type Customer = { id: string; company_id: string; customer_reference: string; customer_number: string | null }
+  type Source = { site: Site; customer: Customer; tenantReference: string; event: DomainEventRow }
+  const subscriptions = new Map<string, { key: PartnerClient; host: string; name: string; secret: string; reference: string }>()
+  const sources = new Map<string, { key: PartnerClient; customerReference: string; source: Source }>()
+  function one<T>(rows: T[], label: string): T { expect(rows, `EVENT_HARNESS_PRECONDITION: ${label}`).toHaveLength(1); return rows[0] }
+  function object(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('EVENT_HARNESS_PRECONDITION: malformed public object')
+    return value as Record<string, unknown>
+  }
+  function readSubscription(idOrReference: string): Subscription {
+    return one(psqlRows<Subscription>(`select id,company_id,api_client_id,webhook_subscription_reference,name,endpoint_url,event_types,status,
+      signing_algorithm,signing_secret_hash,metadata from public.webhook_subscriptions where webhook_subscription_reference=${lit(idOrReference)} or id::text=${lit(idOrReference)}`), 'exact subscription')
+  }
   async function subscribe(key: PartnerClient, host: string, name: string, secret: string): Promise<string> {
-    const id = psql(`with s as (select vault.create_secret(${lit(secret)}, 'gridex_webhook_'||replace(gen_random_uuid()::text,'-',''), 'sim t5') id)
-      insert into public.webhook_subscriptions(company_id,name,endpoint_url,event_types,status,signing_algorithm,signing_secret_ref,signing_secret_hash,custom_headers,timeout_ms,max_attempts)
-      select '${key.companyId}', ${lit(`sim ${name}`)}, ${lit(`https://${host}/hook/${name}`)}, array['site.created'], 'active', 'HMAC-SHA256', s.id::text,
-        encode(extensions.digest(convert_to(${lit(secret)},'utf8'),'sha256'),'hex'), '{}'::jsonb, 10000, 8 from s returning id`)
-    expect(id).toMatch(/^[0-9a-f-]{36}$/)
-    return id
+    const endpoint = `https://${host}/hook/${name}`, displayName = `sim ${name}`
+    const result = await partner(key, 'POST', 'webhooks/subscriptions', { name: displayName, endpoint_url: endpoint, event_types: ['site.created'], signing_secret: secret, description: 'sim t5' })
+    expect(result.status, 'EVENT_HARNESS_PRECONDITION: actual partner subscription create').toBe(201)
+    const reference = object(object(result.json).data).webhook_subscription_reference
+    expect(typeof reference, 'EVENT_HARNESS_PRECONDITION: subscription public reference').toBe('string'); expect(reference).not.toBe('')
+    const row = readSubscription(reference as string)
+    expect(row, 'exact subscription client/source identity').toMatchObject({ company_id: key.companyId, api_client_id: key.id, webhook_subscription_reference: reference, name: displayName,
+      endpoint_url: endpoint, event_types: ['site.created'], status: 'active', signing_algorithm: 'HMAC-SHA256', signing_secret_hash: sha256(secret), metadata: { source: 'partner_api' } })
+    expect(row.id).toMatch(/^[0-9a-f-]{36}$/)
+    const listed = await partner(key, 'GET', 'webhooks/subscriptions')
+    expect(listed.status, 'EVENT_HARNESS_PRECONDITION: same-client subscription read').toBe(200)
+    const publicRows = object(object(listed.json).data).subscriptions
+    expect(Array.isArray(publicRows)).toBe(true)
+    expect((publicRows as Array<Record<string, unknown>>).filter(value => value.webhook_subscription_reference === reference)).toHaveLength(1)
+    const visible = (publicRows as Array<Record<string, unknown>>).find(value => value.webhook_subscription_reference === reference)!
+    expect(visible).toMatchObject({ name: displayName, endpoint_url: endpoint, event_types: ['site.created'], status: 'active' })
+    subscriptions.set(row.id, { key, host, name, secret, reference: reference as string })
+    return row.id
+  }
+  function readSource(key: PartnerClient, customerReference: string, siteReference: string): Source {
+    const site = one(psqlRows<Site>(`select id,company_id,customer_id,facility_reference,status,data_quality_status from public.customer_sites where facility_reference=${lit(siteReference)}`), 'exact created site')
+    expect(site).toMatchObject({ company_id: key.companyId, facility_reference: siteReference })
+    const customer = one(psqlRows<Customer>(`select id,company_id,customer_reference,customer_number from public.customers where id=${lit(site.customer_id)}`), 'exact source customer')
+    expect(customer).toMatchObject({ company_id: key.companyId, customer_reference: customerReference })
+    const company = one(psqlRows<{ id: string; status: string; external_tenant_reference: string }>(`select id,status,external_tenant_reference from public.companies where id=${lit(key.companyId)}`), 'exact source company')
+    expect(company).toMatchObject({ id: key.companyId, status: 'active' }); expect(typeof company.external_tenant_reference).toBe('string'); expect(company.external_tenant_reference.trim()).not.toBe('')
+    const event = one(psqlRows<DomainEventRow>(`select * from public.domain_events where aggregate_id=${lit(siteReference)} and aggregate_type='site' and event_type='site.created'`), 'exact originating site event')
+    expect(event, 'EVENT_HARNESS_PRECONDITION: originating source identity').toMatchObject({ company_id: key.companyId, event_type: 'site.created', aggregate_type: 'site', aggregate_id: siteReference,
+      subject_customer_id: customer.id, source: 'partner_api_resource_trigger_v2' })
+    expect(event.payload).toEqual({ site_reference: siteReference, status: site.status, data_quality_status: site.data_quality_status })
+    expect(Number.isFinite(Date.parse(event.occurred_at))).toBe(true)
+    return { site, customer, tenantReference: company.external_tenant_reference.trim(), event }
+  }
+  function sourceFor(siteReference: string): Source {
+    const original = sources.get(siteReference)
+    if (!original) throw new Error('EVENT_HARNESS_PRECONDITION: site has no assigned source')
+    const current = readSource(original.key, original.customerReference, siteReference)
+    expect(current, 'originating event/source changed').toEqual(original.source)
+    return current
+  }
+  function verifyReceipt(subId: string, siteReference: string, row: Delivery, received: Received) {
+    const assigned = subscriptions.get(subId)
+    if (!assigned) throw new Error('EVENT_HARNESS_PRECONDITION: subscription not assigned')
+    const sub = readSubscription(subId), source = sourceFor(siteReference)
+    expect(sub).toMatchObject({ id: subId, company_id: assigned.key.companyId, api_client_id: assigned.key.id, webhook_subscription_reference: assigned.reference, metadata: { source: 'partner_api' } })
+    expect(row, 'exact delivery source/subscription identity').toMatchObject({ company_id: source.site.company_id, webhook_subscription_id: subId, domain_event_id: source.event.id,
+      event_type: source.event.event_type, target_url: `https://${assigned.host}/hook/${assigned.name}`, idempotency_key: `webhook:${subId}:${source.event.id}` })
+    expect(received.host).toBe(assigned.host); expect(received.name).toBe(assigned.name)
+    const raw = Buffer.from(received.bodyBase64, 'base64'), bodyHash = sha256(raw)
+    expect(received.sha256, 'receiver exact byte hash').toBe(bodyHash)
+    expect(row.request_body_hash, 'stored exact byte hash').toBe(bodyHash)
+    expect(verifyGridexSignature(received, assigned.secret), 'HMAC over original bytes').toBe(true)
+    const body = object(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(raw)))
+    const eventId = `event_${sha256(`${source.tenantReference}:event:${source.event.id}`).slice(0, 32)}`
+    const organization = publicOrganizationReference(source.tenantReference)
+    expect(organization).not.toBeNull()
+    const deliveryId = `delivery_${sha256(`${organization}:delivery:${row.id}`).slice(0, 32)}`
+    expect(received.headers['x-gridex-event-id'], 'public source event ID').toBe(eventId)
+    expect(received.headers['x-gridex-event-type']).toBe(source.event.event_type)
+    expect(received.headers['x-gridex-delivery-id']).toBe(deliveryId)
+    expect(row.public_delivery_id).toBe(deliveryId)
+    expect(body.event_id, 'body source event ID').toBe(eventId); expect(body.event_type).toBe(source.event.event_type)
+    expect(body.delivery_id).toBe(deliveryId); expect(body.api_version).toBe(PARTNER_API_VERSION)
+    expect(Date.parse(String(body.created_at))).toBe(Date.parse(source.event.occurred_at))
+    expect(body.resource, 'exact source resource').toEqual({ type: 'site', reference: siteReference })
+    // The site event carries no customer_reference/number in its payload. The
+    // public builder derives the customer identity from this exact tenant and
+    // subject, rather than exporting the database customer's separate reference.
+    expect(body.customer, 'exact source customer').toEqual({
+      customer_reference: `customer_${sha256(`${source.tenantReference}:customer:${source.customer.id}`).slice(0, 32)}`,
+      customer_number: null,
+    })
+    expect(body.data).toEqual(source.event.payload)
+    const environment = String(source.event.payload.environment ?? '').trim().toLowerCase()
+    if (environment === 'test' || environment === 'production') { expect(body.environment).toBe(environment); expect(received.headers['x-gridex-environment']).toBe(environment) }
+    else { expect(body.environment).toBeUndefined(); expect(received.headers['x-gridex-environment']).toBeUndefined() }
+    expect(Object.keys(body).sort()).toEqual(['api_version','created_at','customer','data','delivery_id','event_id','event_type','resource', ...(environment === 'test' || environment === 'production' ? ['environment'] : [])].sort())
+    return { eventId, deliveryId, bodyHash }
   }
   /** Affärshändelse via normal ingång: partner-API POST customer/{ref}/site -> site.created. */
   async function createSite(key: PartnerClient, customerRef: string, n: number) {
     const r = await partner(key, 'POST', `customer/${customerRef}/site`, { address: `Eventvägen ${n}`, zip_code: '12345', city: 'Teststad', country: 'SE', site_electricity_type: 'CONSUMPTION' })
     expect(r.status, brief(r)).toBe(201)
-    return String((r.json as { entity_id: string }).entity_id)
+    const siteReference = object(r.json).entity_id
+    expect(typeof siteReference).toBe('string'); expect(siteReference).not.toBe('')
+    const source = readSource(key, customerRef, siteReference as string)
+    sources.set(siteReference as string, { key, customerReference: customerRef, source })
+    return siteReference as string
   }
 
   beforeAll(async () => {
@@ -107,19 +199,11 @@ describe('EVENT01 webhooks', () => {
     expect(d.status, d.text.slice(0, 300)).toBe(200)
     const got = await received('a1')
     expect(got, 'mottagna POST till A').toHaveLength(1)
-    const r = got[0]
-    expect(r.host).toBe(HOST_A)
-    expect(verifyGridexSignature(r, secretA), 'HMAC-SHA256 över ts.body med A:s secret').toBe(true)
-    const [row] = deliveries(subA)
-    expect(row).toMatchObject({ company_id: A, status: 'sent', attempts: 1, response_status: 200, event_type: 'site.created' })
-    expect(row.request_body_hash).toBe(r.sha256)
-    expect(r.headers['x-gridex-delivery-id']).toBe(row.public_delivery_id)
-    expect(r.headers['x-gridex-event-type']).toBe('site.created')
-    const body = JSON.parse(Buffer.from(r.bodyBase64, 'base64').toString('utf8')) as Record<string, unknown>
-    expect(body.delivery_id).toBe(row.public_delivery_id)
-    expect(JSON.stringify(body)).toContain(siteRef)
+    const r = got[0], row = one(deliveries(subA), 'one delivery for assigned subscription')
+    expect(row).toMatchObject({ status: 'sent', attempts: 1, response_status: 200 })
+    const verified = verifyReceipt(subA, siteRef, row, r)
     eventA = row.domain_event_id
-    receipt('EVENT01.01', 'delivery', { eventId: r.headers['x-gridex-event-id'], deliveryId: row.public_delivery_id, payloadSha256: r.sha256,
+    receipt('EVENT01.01', 'delivery', { eventId: verified.eventId, deliveryId: verified.deliveryId, payloadSha256: verified.bodyHash,
       requestBodyHash: row.request_body_hash, signatureVerified: true, receivedCount: got.length, status: row.status, attempts: row.attempts, siteRef })
   })
 
@@ -160,14 +244,16 @@ describe('EVENT01 webhooks', () => {
     expect(await received('a1')).toHaveLength(1)
     const strip = (x: Delivery) => ({ ...x, secs_to_next: null })
     expect(deliveries(subA).map(strip)).toEqual(before.map(strip))
-    // Unikvillkoret på idempotency_key (webhook:<sub>:<event>) prövas direkt i DB: en andra rad för samma (sub, event)
-    // kan inte skapas. (enqueueWebhookDeliveriesForEvent använder samma nyckel med upsert ignoreDuplicates.)
-    const dup = psql(`insert into public.webhook_deliveries(company_id,webhook_subscription_id,domain_event_id,event_type,status,attempts,max_attempts,payload,target_url,idempotency_key)
-      select company_id,webhook_subscription_id,domain_event_id,event_type,'queued',0,max_attempts,payload,target_url,idempotency_key from public.webhook_deliveries where id='${before[0].id}'
-      on conflict do nothing returning id`)
-    expect(dup, 'dubblett av samma (sub, event) får inte skapas').toBe('')
+    // Exercise the supported own-event enqueue, not only a SQL unique index.
+    const assigned = [...sources.values()].find(value => value.source.event.id === eventA)
+    if (!assigned) throw new Error('EVENT_HARNESS_PRECONDITION: replay source missing')
+    const source = sourceFor(assigned.source.site.facility_reference)
+    expect(await enqueueWebhookDeliveriesForEvent(source.event, { strict: true, subscriptionIds: [subA] })).toBe(1)
+    expect(deliveries(subA).map(strip)).toEqual(before.map(strip))
     await dispatch()
-    expect(await received('a1')).toHaveLength(1)
+    const replayReceipts = await received('a1')
+    expect(replayReceipts).toHaveLength(1)
+    verifyReceipt(subA, source.site.facility_reference, one(deliveries(subA), 'one replay delivery'), replayReceipts[0])
     // Inbound: samma svix-id och signatur igen är en dubblett utan ny rad.
     const whsec = requireEnv('RESEND_WEBHOOK_SECRET')
     const key = Buffer.from(whsec.replace(/^whsec_/, ''), 'base64')
@@ -181,7 +267,7 @@ describe('EVENT01 webhooks', () => {
     const second = await send(); expect(second.status).toBe(200)
     expect(((await second.json()) as { duplicate?: boolean }).duplicate).toBe(true)
     expect(Number(psql(`select count(*) from public.communication_log_events where provider='resend' and provider_event_id='${id}'`))).toBe(1)
-    receipt('EVENT01.03', 'replay', { deliveriesForEvent: deliveries(subA).length, receivedCount: (await received('a1')).length, duplicateInsertRejected: dup === '', inboundDuplicate: true })
+    receipt('EVENT01.03', 'replay', { deliveriesForEvent: deliveries(subA).length, receivedCount: (await received('a1')).length, supportedOwnEventEnqueueReplay: true, inboundDuplicate: true })
   })
 
   it('EVENT01.04 4xx, 5xx och timeout ger föreskriven status, backoff och till sist dead_letter', async () => {
@@ -192,7 +278,7 @@ describe('EVENT01 webhooks', () => {
     // Bara retry-subscriptionen ska få nästa event: pausa övriga i A via DB (dokumenterad fixtur).
     psql(`update public.webhook_subscriptions set status='paused' where company_id='${A}' and id<>'${subRetry}'`)
     await mode('retry', 500)
-    await createSite(keyA, custRefA, 2)
+    const retrySite = await createSite(keyA, custRefA, 2)
     await dispatch()
     let [row] = deliveries(subRetry)
     expect(row).toMatchObject({ status: 'failed', attempts: 1, response_status: 500, max_attempts: 4 })
@@ -219,6 +305,7 @@ describe('EVENT01 webhooks', () => {
     await new Promise((r) => setTimeout(r, 3500))
     const posts = await received('retry')
     expect(posts.length, 'en POST per försök').toBe(4)
+    for (const post of posts) verifyReceipt(subRetry, retrySite, row, post)
     const ids = new Set(posts.map((p) => p.headers['x-gridex-delivery-id']))
     expect(ids.size, 'samma leverans-ID över alla försök').toBe(1)
     const health = psqlRows<{ failure_count: number; last_failure_at: string | null }>(
@@ -232,10 +319,11 @@ describe('EVENT01 webhooks', () => {
 
   it('EVENT01.05 tenant och hemligheter: B får bara egna händelser, ingen klartext-secret, privat mål nekas', async () => {
     expect(await received('b1'), 'A:s händelse får inte nå B').toHaveLength(0)
-    await createSite(keyB, custRefB, 3)
+    const siteB = await createSite(keyB, custRefB, 3)
     await dispatch()
     const gotB = await received('b1')
     expect(gotB).toHaveLength(1)
+    verifyReceipt(subB, siteB, one(deliveries(subB), 'one B delivery'), gotB[0])
     expect(verifyGridexSignature(gotB[0], secretB)).toBe(true)
     expect(verifyGridexSignature(gotB[0], secretA)).toBe(false)
     expect(deliveries(subB).every((d) => d.company_id === B)).toBe(true)
