@@ -241,26 +241,84 @@ function capture(program, argv, options = {}) {
 function jcapture(program, argv, options) {
   try { return JSON.parse(capture(program, argv, options)) } catch { throw new Hold('observational_json_failed') }
 }
+function procGroupRecord(pid) {
+  try {
+    const fields = readFileSync(`/proc/${pid}/stat`, 'utf8').split(') ').at(-1).split(' ')
+    return { pid, state: fields[0], groupId: Number(fields[2]), sessionId: Number(fields[3]), startTicks: fields[19] }
+  } catch (error) {
+    if (['ENOENT', 'ESRCH'].includes(error.code)) return null
+    throw new Hold('owned_process_inventory_unavailable')
+  }
+}
+function ownedGroupSnapshot(owner) {
+  const leader = procGroupRecord(owner.pid)
+  need(!leader || leader.startTicks === owner.startTicks, 'owned_process_group_identity_changed')
+  const members = readdirSync('/proc').filter((name) => /^[0-9]+$/.test(name))
+    .map((name) => procGroupRecord(Number(name))).filter((item) => item?.groupId === owner.pid)
+  need(members.every((item) => item.sessionId === owner.pid && BigInt(item.startTicks) >= BigInt(owner.startTicks)),
+    'owned_process_group_membership_changed')
+  return { live: members.filter((item) => !['Z', 'X'].includes(item.state)),
+    zombies: members.filter((item) => ['Z', 'X'].includes(item.state)) }
+}
+function signalOwnedGroup(owner, signal) {
+  // Recheck the fresh session/group and birth identities immediately before
+  // signaling. Never signal a recycled leader or a group with foreign members.
+  const snapshot = ownedGroupSnapshot(owner)
+  if (!snapshot.live.length) return
+  try { process.kill(-owner.pid, signal) }
+  catch (error) { if (error.code !== 'ESRCH') throw new Hold('owned_process_group_signal_failed') }
+}
 export async function ownedChild(program, argv, options, timeoutMs, logPath) {
+  need(Number.isFinite(timeoutMs) && timeoutMs > 0, 'finite_owned_child_timeout_required')
   const log = openSync(logPath, 'wx', 0o600)
   const child = spawn(program, argv, { ...options, detached: true, stdio: ['ignore', log, log] })
-  let expired = false
-  let escalation
-  const close = new Promise((resolveClose, reject) => {
-    child.once('error', () => reject(new Hold('owned_child_spawn_failed')))
-    child.once('close', (code, signal) => resolveClose({ code, signal }))
-  })
-  const timer = setTimeout(() => {
-    expired = true
-    try { process.kill(-child.pid, 'SIGTERM') } catch { /* close still determines outcome */ }
-    escalation = setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL') } catch { /* already closed */ } }, 5_000)
-  }, timeoutMs)
+  let outcome, spawnError
+  child.once('error', () => { spawnError = true })
+  child.once('close', (code, signal) => { outcome = { code, signal } })
   try {
-    const result = await close
-    need(!expired && result.code === 0, expired ? 'owned_child_timeout_terminal' : 'owned_child_failed')
-    return 0
-  } finally { clearTimeout(timer); clearTimeout(escalation); closeSync(log) }
+    await new Promise((done, reject) => { child.once('spawn', done)
+      child.once('error', () => reject(new Hold('owned_child_spawn_failed'))) })
+    const owner = procGroupRecord(child.pid)
+    need(owner?.groupId === child.pid && owner.sessionId === child.pid, 'owned_child_session_required')
+    seal(`${logPath}.process-start.json`, { owner, timeoutMs })
+    const deadline = Date.now() + timeoutMs
+    let expired = false, background = false, termAt = null, killAt = null
+    while (true) {
+      need(!spawnError, 'owned_child_spawn_failed')
+      const now = Date.now()
+      const snapshot = ownedGroupSnapshot(owner)
+      if (!expired && !outcome && now >= deadline) expired = true
+      if (outcome && snapshot.live.length && termAt === null && !expired) background = true
+      if ((expired || background) && snapshot.live.length && termAt === null) {
+        signalOwnedGroup(owner, 'SIGTERM')
+        termAt = now
+      }
+      // A leader close is NOT a group close. Keep escalation alive until every
+      // executable member is terminal, even with direct-file stdio/backgrounds.
+      if (termAt !== null && now - termAt >= 5_000 && snapshot.live.length && killAt === null) {
+        signalOwnedGroup(owner, 'SIGKILL')
+        killAt = now
+      }
+      if (outcome && !snapshot.live.length) {
+        seal(`${logPath}.process-terminal.json`, { owner, outcome, expired, background,
+          liveMembers: [], zombieMembers: snapshot.zombies, allProcessesReaped: snapshot.zombies.length === 0 })
+        // Zombies cannot execute and cannot be killed. Host PID1 may reap them
+        // later; the original observation explicitly records that distinction.
+        need(!expired, 'owned_child_timeout_terminal')
+        need(!background, 'owned_child_background_descendants_terminal')
+        need(outcome.code === 0, 'owned_child_failed')
+        return 0
+      }
+      if (killAt !== null && now - killAt >= 2_000) {
+        seal(`${logPath}.process-incomplete.json`, { owner, outcome, liveMembers: snapshot.live,
+          zombieMembers: snapshot.zombies, expired, background })
+        throw new Hold('owned_process_group_not_terminal')
+      }
+      await new Promise((done) => setTimeout(done, 25))
+    }
+  } finally { closeSync(log) }
 }
+
 function source(root, commit, tree) {
   need(isAbsolute(root) && realpathSync(root) === root, 'canonical_source_root_required')
   need(capture('git', ['-C', root, 'rev-parse', 'HEAD']) === commit
@@ -348,20 +406,31 @@ function ownProcess(actual, expected) {
     && actual.groupId === expected.groupId && actual.cwd === expected.cwd
     && actual.environmentSha256 === expected.environmentSha256, 'owned_process_identity_changed')
 }
-async function stopOwnedApp(record) {
-  if (!record || !existsSync(`/proc/${record.pid}`)) return
-  ownProcess(processIdentity(record.pid), record)
-  process.kill(-record.pid, 'SIGTERM')
-  const until = Date.now() + 5_000
-  while (existsSync(`/proc/${record.pid}`) && Date.now() < until) await new Promise((done) => setTimeout(done, 50))
-  if (existsSync(`/proc/${record.pid}`)) {
-    ownProcess(processIdentity(record.pid), record)
-    process.kill(-record.pid, 'SIGKILL')
-    const killUntil = Date.now() + 2_000
-    while (existsSync(`/proc/${record.pid}`) && Date.now() < killUntil) await new Promise((done) => setTimeout(done, 50))
+async function stopOwnedApp(record, receiptPath) {
+  need(record?.groupId === record?.pid && record, 'owned_app_group_original_required')
+  const leader = procGroupRecord(record.pid)
+  if (leader && !['Z', 'X'].includes(leader.state)) ownProcess(processIdentity(record.pid), record)
+  // Use the SAME session/birth checks as command teardown, including when the
+  // original app leader has already exited but owned descendants still execute.
+  let snapshot = ownedGroupSnapshot(record)
+  if (snapshot.live.length) signalOwnedGroup(record, 'SIGTERM')
+  const started = Date.now()
+  let killed = false
+  while (snapshot.live.length) {
+    const elapsed = Date.now() - started
+    if (elapsed >= 5_000 && !killed) { signalOwnedGroup(record, 'SIGKILL'); killed = true }
+    if (elapsed >= 7_000) {
+      seal(receiptPath, { owner: record, liveMembers: snapshot.live, zombieMembers: snapshot.zombies,
+        executionTerminal: false, allProcessesReaped: false })
+      throw new Hold('owned_app_group_not_terminal')
+    }
+    await new Promise((done) => setTimeout(done, 25))
+    snapshot = ownedGroupSnapshot(record)
   }
-  need(!existsSync(`/proc/${record.pid}`), 'owned_app_not_terminal')
+  seal(receiptPath, { owner: record, liveMembers: [], zombieMembers: snapshot.zombies,
+    executionTerminal: true, allProcessesReaped: snapshot.zombies.length === 0 })
 }
+
 function inspectResources(plan, network) {
   const now = inventory(plan)
   const containers = now.containers.map((id) => dockerJson(plan, 'inspect', id)[0])
@@ -844,58 +913,75 @@ async function nativeActual(plan) {
   verifyInstalledRpc(plan, 'after-native')
   return validateNativeReport(readJson(report), code)
 }
-async function cleanupActual(plan, state) {
-  // Cleanup uses only actual originals/finite intents from this same host. A
-  // missing parsed bootstrap result is not permission to forget partial births.
+export async function cleanupActual(plan, state, backend = { inventory, dockerJson, docker }) {
+  // Compare ALL daemon networks with the immutable pre-mutation baseline.
+  // Labels/names never substitute for the recorded full owned network ID.
+  const initial = readJson(join(plan.home, 'receipts', 'initial-inventory.json'))
+  need(Array.isArray(initial.networks) && initial.networks.every((id) => HEX64.test(id))
+    && initial.containers?.length === 0 && initial.volumes?.length === 0, 'immutable_initial_inventory_required')
   const appPath = join(plan.home, 'receipts', 'app-process.json')
-  if (existsSync(appPath)) await stopOwnedApp(readJson(appPath))
+  if (existsSync(appPath)) await stopOwnedApp(readJson(appPath), join(plan.home, 'receipts', 'app-process-terminal.json'))
+  const before = backend.inventory(plan)
   const intentPath = join(plan.home, 'receipts', 'network.intent.json')
-  if (!existsSync(intentPath)) return { verified: true, foreignDeleted: 0, unknown: [] }
-  const intent = readJson(intentPath)
-  need(intent.owner === plan.owner && intent.inputEpoch === plan.inputEpoch && intent.projectId === plan.projectId,
+  const recordPath = join(plan.home, 'receipts', 'network.json')
+  const intent = existsSync(intentPath) ? readJson(intentPath) : null
+  const recorded = existsSync(recordPath) ? readJson(recordPath) : null
+  if (intent) need(intent.owner === plan.owner && intent.inputEpoch === plan.inputEpoch && intent.projectId === plan.projectId,
     'owned_cleanup_intent_changed')
-  const before = inventory(plan)
-  const networks = before.networks.map((id) => dockerJson(plan, 'network', 'inspect', id)[0])
-  const ours = networks.filter((network) => network.Name === intent.name
-    && network.Labels?.['t4.owner'] === plan.owner && network.Labels?.['t4.input-epoch'] === plan.inputEpoch)
-  need(ours.length <= 1, 'owned_cleanup_network_ambiguous')
-  if (!ours.length) {
-    need(before.containers.length === 0 && before.volumes.length === 0, 'partial_cleanup_unqualified_resources')
-    return { verified: true, foreignDeleted: 0, unknown: [] }
+  if (recorded) need(intent && HEX64.test(recorded.Id) && !initial.networks.includes(recorded.Id)
+    && recorded.Name === intent.name && recorded.Labels?.['t4.owner'] === plan.owner
+    && recorded.Labels?.['t4.input-epoch'] === plan.inputEpoch, 'owned_cleanup_network_original_required')
+  const unknown = before.networks.filter((id) => !initial.networks.includes(id) && id !== recorded?.Id)
+  const finish = (deletedContainerIds = [], deletedVolumeNames = [], deletedNetworkIds = []) => {
+    const after = backend.inventory(plan)
+    for (const id of after.networks) if (!initial.networks.includes(id) && !deletedNetworkIds.includes(id)) unknown.push(id)
+    for (const id of initial.networks) if (!after.networks.includes(id)) unknown.push(id)
+    for (const id of after.containers) unknown.push(id)
+    for (const name of after.volumes) unknown.push(name)
+    const unique = [...new Set(unknown)]
+    seal(join(plan.home, 'receipts', 'cleanup-observation.json'), { initial, before, after,
+      deletedContainerIds, deletedNetworkIds, deletedVolumeNames, unknown: unique, foreignDeleted: 0 })
+    return { verified: unique.length === 0, foreignDeleted: 0, unknown: unique }
   }
-  const network = ours[0]
+  if (!recorded || !before.networks.includes(recorded.Id)) {
+    // An outcome with no immutable full ID is unknown, even if a new network
+    // copies our labels. Preserve it; do not upgrade a name match into custody.
+    return finish()
+  }
+  const network = backend.dockerJson(plan, 'network', 'inspect', recorded.Id)[0]
+  need(network.Id === recorded.Id && network.Name === recorded.Name && network.Created === recorded.Created
+    && network.Labels?.['t4.owner'] === plan.owner && network.Labels?.['t4.input-epoch'] === plan.inputEpoch,
+  'owned_cleanup_network_changed')
   const actual = state.bootstrap ?? (existsSync(join(plan.home, 'receipts', 'actual-bootstrap.json'))
     ? readJson(join(plan.home, 'receipts', 'actual-bootstrap.json')) : null)
-  const containers = before.containers.map((id) => dockerJson(plan, 'inspect', id)[0])
+  const containers = before.containers.map((id) => backend.dockerJson(plan, 'inspect', id)[0])
   const owned = containers.filter((item) => item.Config?.Labels?.['com.supabase.cli.project'] === plan.projectId
     && Object.values(item.NetworkSettings?.Networks ?? {}).some((entry) => entry.NetworkID === network.Id))
-  const unknown = containers.filter((item) => !owned.some((ours_) => ours_.Id === item.Id)).map((item) => item.Id)
-  // Actual births and labels are re-read immediately before each exact deletion.
+  unknown.push(...containers.filter((item) => !owned.some((ours) => ours.Id === item.Id)).map((item) => item.Id))
   for (const item of owned) {
-    const current = dockerJson(plan, 'inspect', item.Id)[0]
+    const current = backend.dockerJson(plan, 'inspect', item.Id)[0]
     verifyResourceBirth(plan, current, network.Id)
     need(current.Created === item.Created, 'owned_cleanup_container_changed')
-    docker(plan, 'rm', '--force', item.Id)
+    backend.docker(plan, 'rm', '--force', item.Id)
   }
   const volumeNames = new Set(owned.flatMap((item) => item.Mounts.filter((mount) => mount.Type === 'volume').map((mount) => mount.Name)))
   for (const volume of actual?.resources.volumes ?? []) volumeNames.add(volume.Name)
   for (const name of before.volumes) {
-    const volume = dockerJson(plan, 'volume', 'inspect', name)[0]
+    const volume = backend.dockerJson(plan, 'volume', 'inspect', name)[0]
     if (!volumeNames.has(name) || volume.Labels?.['com.supabase.cli.project'] !== plan.projectId) { unknown.push(name); continue }
-    docker(plan, 'volume', 'rm', name)
+    backend.docker(plan, 'volume', 'rm', name)
   }
-  const currentNetwork = dockerJson(plan, 'network', 'inspect', network.Id)[0]
-  need(currentNetwork.Name === intent.name && currentNetwork.Labels?.['t4.owner'] === plan.owner
-    && currentNetwork.Labels?.['t4.input-epoch'] === plan.inputEpoch
-    && Object.keys(currentNetwork.Containers ?? {}).length === 0, 'owned_cleanup_network_changed')
-  docker(plan, 'network', 'rm', network.Id)
-  const after = inventory(plan)
+  const current = backend.dockerJson(plan, 'network', 'inspect', recorded.Id)[0]
+  need(current.Id === recorded.Id && current.Name === recorded.Name && current.Created === recorded.Created
+    && current.Labels?.['t4.owner'] === plan.owner && current.Labels?.['t4.input-epoch'] === plan.inputEpoch
+    && Object.keys(current.Containers ?? {}).length === 0, 'owned_cleanup_network_changed')
+  backend.docker(plan, 'network', 'rm', recorded.Id)
+  const after = backend.inventory(plan)
   need(!after.containers.some((id) => owned.some((item) => item.Id === id))
-    && !after.networks.includes(network.Id) && !after.volumes.some((name) => volumeNames.has(name)), 'owned_cleanup_not_terminal')
-  seal(join(plan.home, 'receipts', 'cleanup-observation.json'), { before, after, deletedContainerIds: owned.map((item) => item.Id),
-    deletedNetworkIds: [network.Id], deletedVolumeNames: [...volumeNames], unknown, foreignDeleted: 0 })
-  return { verified: unknown.length === 0, foreignDeleted: 0, unknown }
+    && !after.networks.includes(recorded.Id) && !after.volumes.some((name) => volumeNames.has(name)), 'owned_cleanup_not_terminal')
+  return finish(owned.map((item) => item.Id), [...volumeNames], [recorded.Id])
 }
+
 function exportActual(plan, state) {
   const files = {}
   const collect = (directory) => {

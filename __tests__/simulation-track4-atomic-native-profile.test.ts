@@ -140,7 +140,7 @@ describe('T4 same-host profile phase orchestration: controlled adapters only', (
 // These exercise actual local crypto/process/source controls, not a database,
 // producer lease or native SQL acceptance. Test keys have no customer identity.
 import { createCipheriv, createDecipheriv, createHash, generateKeyPairSync, privateDecrypt, constants } from 'node:crypto'
-import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { decryptInputEnvelope, encryptEvidence, normalizeDockerEndpoint, ownedChild,
@@ -210,7 +210,7 @@ describe('actual profile controls without backend execution', () => {
 })
 
 import { createRequire } from 'node:module'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 type ProfileWorkflow = { on: { workflow_dispatch?: unknown }; jobs: Record<string, { if: string; env: Record<string, string>; steps: Array<{ name?: string; run?: string; uses?: string; with?: { path?: string } }> }> }
 const { load: parse } = createRequire(import.meta.url)('js-yaml') as { load(source: string): ProfileWorkflow }
 describe('profile workflow and failure boundaries', () => {
@@ -359,4 +359,207 @@ describe('immutable default-main public gate: actual capsule control', () => {
       expect(readFileSync(join(preparer, 'node_modules/foreign'), 'utf8')).toBe('preserve')
     } finally { rmSync(root, { recursive: true, force: true }) }
   })
+})
+
+type FixtureNetwork = { Id: string; Name: string; Created?: string; Labels: Record<string, string>; Containers: Record<string, unknown> }
+function processRecord(pid: number) {
+  try {
+    const fields = readFileSync(`/proc/${pid}/stat`, 'utf8').split(') ').at(-1)!.split(' ')
+    return { pid, state: fields[0], startTicks: fields[19], groupId: Number(fields[2]) }
+  } catch { return null }
+}
+async function descendantControl(normalExit: boolean) {
+  const root = mkdtempSync(join(tmpdir(), 't4-owned-descendant-'))
+  const recordPath = join(root, 'descendant.json')
+  let record: ReturnType<typeof processRecord> = null
+  try {
+    const grandchild = `const fs=require('node:fs');process.on('SIGTERM',()=>{});
+      fs.writeFileSync(${JSON.stringify(recordPath)},JSON.stringify({pid:process.pid}));setInterval(()=>{},100);`
+    const parent = `const {spawn}=require('node:child_process');const fs=require('node:fs');
+      spawn(process.execPath,['-e',${JSON.stringify(grandchild)}],{stdio:'ignore'});
+      const timer=setInterval(()=>{if(fs.existsSync(${JSON.stringify(recordPath)})){
+        clearInterval(timer);${normalExit ? 'process.exit(0)' : 'setInterval(()=>{},100)'} }},10);`
+    let outcome = ''
+    try { await ownedChild(process.execPath, ['-e', parent], {}, 600, join(root, 'child.log')) }
+    catch (error) { outcome = (error as Error).message }
+    const pid = JSON.parse(readFileSync(recordPath, 'utf8')).pid as number
+    record = processRecord(pid)
+    expect(record === null || ['Z', 'X'].includes(record.state)).toBe(true)
+    expect(outcome).toBe(normalExit ? 'owned_child_background_descendants_terminal' : 'owned_child_timeout_terminal')
+    const terminal = JSON.parse(readFileSync(join(root, 'child.log.process-terminal.json'), 'utf8'))
+    expect(terminal.liveMembers).toEqual([])
+    expect(terminal.allProcessesReaped).toBe(terminal.zombieMembers.length === 0)
+    if (record?.state === 'Z') expect(terminal.zombieMembers.some((row: { pid: number }) => row.pid === record?.pid)).toBe(true)
+  } finally {
+    // Baseline RED intentionally exposes a live descendant. Clean ONLY the
+    // actual fixture identity, never a recycled PID or any foreign process.
+    if (record && !['Z', 'X'].includes(record.state)) {
+      const current = processRecord(record.pid)
+      if (current?.startTicks === record.startTicks && current.groupId === record.groupId) process.kill(record.pid, 'SIGKILL')
+    }
+    rmSync(root, { recursive: true, force: true })
+  }
+}
+describe('review cleanup regressions: actual process groups and cleanup adapter', () => {
+  it('keeps escalation after TERM exits the leader while its grandchild ignores TERM', async () => {
+    await descendantControl(false)
+  }, 15_000)
+  it('does not accept normal leader exit with a background grandchild still running', async () => {
+    await descendantControl(true)
+  }, 15_000)
+  it('preserves and reports a new unknown Docker network instead of verified cleanup', async () => {
+    const root = mkdtempSync(join(tmpdir(), 't4-network-cleanup-'))
+    try {
+      mkdirSync(join(root, 'receipts'))
+      const baseline = '1'.repeat(64), owned = '2'.repeat(64), foreign = '3'.repeat(64)
+      const { plan } = fixture()
+      const actualPlan = { ...plan, home: root }
+      const ownNetwork = { Id: owned, Name: 'supabase_network_gridex-ops-platform', Labels: {
+        't4.owner': plan.owner, 't4.input-epoch': plan.inputEpoch }, Containers: {} }
+      privateJson(join(root, 'receipts/initial-inventory.json'), { containers: [], volumes: [], networks: [baseline] })
+      privateJson(join(root, 'receipts/network.intent.json'), { owner: plan.owner, inputEpoch: plan.inputEpoch,
+        projectId: plan.projectId, name: ownNetwork.Name })
+      privateJson(join(root, 'receipts/network.json'), ownNetwork)
+      const networks = new Map<string, FixtureNetwork>([[baseline, { Id: baseline, Name: 'bridge', Labels: {}, Containers: {} }],
+        [owned, ownNetwork], [foreign, { Id: foreign, Name: 'new-foreign-network', Labels: {}, Containers: {} }]])
+      const deleted: string[] = []
+      const backend = {
+        inventory: () => ({ containers: [], volumes: [], networks: [...networks.keys()] }),
+        dockerJson: (_plan: unknown, _kind: string, _action: string, id: string) => [networks.get(id)],
+        docker: (_plan: unknown, kind: string, action: string, id: string) => {
+          expect([kind, action]).toEqual(['network', 'rm']); deleted.push(id); networks.delete(id); return ''
+        },
+      }
+      const result = await actualProfile.cleanupActual(actualPlan, {}, backend)
+      expect(result.verified).toBe(false)
+      expect(result.unknown).toContain(foreign)
+      expect(deleted).toEqual([owned])
+      expect(networks.has(baseline)).toBe(true)
+      expect(networks.has(foreign)).toBe(true)
+    } finally { rmSync(root, { recursive: true, force: true }) }
+  })
+})
+
+async function cleanupNetworkControl(mode: 'copied' | 'late' | 'none') {
+  const root = mkdtempSync(join(tmpdir(), 't4-network-custody-'))
+  try {
+    mkdirSync(join(root, 'receipts'))
+    const baseline = 'a'.repeat(64), owned = 'b'.repeat(64), unknown = 'c'.repeat(64)
+    const { plan } = fixture()
+    const network = { Id: owned, Name: 'owned-network', Created: '2026-11-01T00:00:00Z',
+      Labels: { 't4.owner': plan.owner, 't4.input-epoch': plan.inputEpoch }, Containers: {} }
+    privateJson(join(root, 'receipts/initial-inventory.json'), { containers: [], volumes: [], networks: [baseline] })
+    privateJson(join(root, 'receipts/network.intent.json'), { owner: plan.owner, inputEpoch: plan.inputEpoch,
+      projectId: plan.projectId, name: network.Name })
+    privateJson(join(root, 'receipts/network.json'), network)
+    const networks = new Map<string, FixtureNetwork>([[baseline, { ...network, Id: baseline, Name: 'bridge' }]])
+    if (mode === 'copied') networks.set(unknown, { ...network, Id: unknown })
+    else networks.set(owned, network)
+    const deleted: string[] = []
+    const backend = {
+      inventory: () => ({ containers: [], volumes: [], networks: [...networks.keys()] }),
+      dockerJson: (_plan: unknown, _kind: string, _action: string, id: string) => [networks.get(id)],
+      docker: (_plan: unknown, kind: string, action: string, id: string) => {
+        expect([kind, action]).toEqual(['network', 'rm'])
+        deleted.push(id); networks.delete(id)
+        if (mode === 'late') networks.set(unknown, { ...network, Id: unknown, Name: 'late-foreign' })
+        return ''
+      },
+    }
+    const result = await actualProfile.cleanupActual({ ...plan, home: root }, {}, backend)
+    return { result, deleted, baselinePresent: networks.has(baseline), unknownPresent: networks.has(unknown), unknown }
+  } finally { rmSync(root, { recursive: true, force: true }) }
+}
+describe('exact network ID custody and complete cleanup observations', () => {
+  it('preserves an unknown replacement that copied the original labels and name', async () => {
+    const observed = await cleanupNetworkControl('copied')
+    expect(observed.result.verified).toBe(false)
+    expect(observed.result.unknown).toContain(observed.unknown)
+    expect(observed.deleted).toEqual([])
+    expect(observed.unknownPresent).toBe(true)
+    expect(observed.baselinePresent).toBe(true)
+  })
+  it('reports an unknown birth first observed after owned network deletion', async () => {
+    const observed = await cleanupNetworkControl('late')
+    expect(observed.result.verified).toBe(false)
+    expect(observed.result.unknown).toContain(observed.unknown)
+    expect(observed.deleted).toEqual(['b'.repeat(64)])
+    expect(observed.unknownPresent).toBe(true)
+    expect(observed.baselinePresent).toBe(true)
+  })
+  it('can verify exact owned cleanup while preserving unchanged baseline networks', async () => {
+    const observed = await cleanupNetworkControl('none')
+    expect(observed.result).toEqual({ verified: true, foreignDeleted: 0, unknown: [] })
+    expect(observed.deleted).toEqual(['b'.repeat(64)])
+    expect(observed.baselinePresent).toBe(true)
+  })
+})
+
+describe('owned process signaling boundary', () => {
+  it('leaves a distinct fixture session alive while terminating its owned command group', async () => {
+    const root = mkdtempSync(join(tmpdir(), 't4-distinct-session-'))
+    const sentinel = spawn(process.execPath, ['-e', 'setInterval(()=>{},100)'], { detached: true, stdio: 'ignore' })
+    const closed = new Promise<void>((done) => sentinel.once('close', () => done()))
+    let record: ReturnType<typeof processRecord> = null
+    try {
+      await new Promise<void>((done, reject) => { sentinel.once('spawn', done); sentinel.once('error', reject) })
+      record = processRecord(sentinel.pid!)
+      expect(record).not.toBeNull()
+      await expect(ownedChild(process.execPath, ['-e', 'setInterval(()=>{},100)'], {}, 80,
+        join(root, 'owned.log'))).rejects.toThrow('owned_child_timeout_terminal')
+      const current = processRecord(sentinel.pid!)
+      expect(current?.startTicks).toBe(record?.startTicks)
+      expect(current && !['Z', 'X'].includes(current.state)).toBe(true)
+    } finally {
+      if (record) {
+        const current = processRecord(record.pid)
+        if (current?.startTicks === record.startTicks && current.groupId === record.groupId) process.kill(record.pid, 'SIGKILL')
+      }
+      await closed
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('app teardown uses the same complete owned group boundary', () => {
+  it('does not verify cleanup while a Next-like owned descendant survives app leader TERM', async () => {
+    const root = mkdtempSync(join(tmpdir(), 't4-app-group-'))
+    const pidPath = join(root, 'grandchild.json')
+    const script = `const fs=require('node:fs');process.on('SIGTERM',()=>{});
+      fs.writeFileSync(${JSON.stringify(pidPath)},JSON.stringify({pid:process.pid}));setInterval(()=>{},100)`
+    const parent = spawn(process.execPath, ['-e', `require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(script)}],{stdio:'ignore'});setInterval(()=>{},100)`],
+      { detached: true, stdio: 'ignore' })
+    const closed = new Promise<void>((done) => parent.once('close', () => done()))
+    let descendant: ReturnType<typeof processRecord> = null
+    let leader: ReturnType<typeof processRecord> = null
+    try {
+      await new Promise<void>((done, reject) => { parent.once('spawn', done); parent.once('error', reject) })
+      leader = processRecord(parent.pid!)
+      expect(leader).not.toBeNull()
+      const deadline = Date.now() + 2000
+      while (!existsSync(pidPath) && Date.now() < deadline) await new Promise((done) => setTimeout(done, 10))
+      descendant = processRecord(JSON.parse(readFileSync(pidPath, 'utf8')).pid)
+      mkdirSync(join(root, 'receipts'))
+      privateJson(join(root, 'receipts/initial-inventory.json'), { containers: [], networks: [], volumes: [] })
+      privateJson(join(root, 'receipts/app-process.json'), { ...leader, cwd: realpathSync(`/proc/${parent.pid}/cwd`),
+        environmentSha256: digest(readFileSync(`/proc/${parent.pid}/environ`)) })
+      const { plan } = fixture()
+      const backend = { inventory: () => ({ containers: [], networks: [], volumes: [] }),
+        dockerJson: () => { throw new Error('no Docker inspection expected') }, docker: () => { throw new Error('no Docker mutation expected') } }
+      const result = await actualProfile.cleanupActual({ ...plan, home: root }, {}, backend)
+      expect(result.verified).toBe(true)
+      const current = processRecord(descendant!.pid)
+      expect(!current || ['Z', 'X'].includes(current.state)).toBe(true)
+    } finally {
+      for (const original of [leader, descendant]) {
+        if (!original) continue
+        const current = processRecord(original.pid)
+        if (current?.startTicks === original.startTicks && current.groupId === original.groupId && !['Z', 'X'].includes(current.state)) {
+          process.kill(original.pid, 'SIGKILL')
+        }
+      }
+      await closed
+      rmSync(root, { recursive: true, force: true })
+    }
+  }, 15_000)
 })
