@@ -1,11 +1,13 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { preparationProducerScope, prepareAtomicNative } from '../scripts/simulation/track4/lib/atomicNativePreparation.mjs'
 
 import { chmodSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
-import { createOutputHome, main, readPrivateJson, realAdapters, verifyLocalDockerBindings } from '../scripts/simulation/track4/prepare-atomic-native.mjs'
+import { createOutputHome, main, readPrivateJson, realAdapters, verifyLocalDockerBindings, verifyNeutralProducerCapsule, FINAL_SOURCE_PREDICATE } from '../scripts/simulation/track4/prepare-atomic-native.mjs'
+
+import { PGlite } from '@electric-sql/pglite'
 
 const uuid = (digit: string) => `${digit.repeat(8)}-${digit.repeat(4)}-4${digit.repeat(3)}-8${digit.repeat(3)}-${digit.repeat(12)}`
 const sha = 'a'.repeat(64)
@@ -34,7 +36,7 @@ function fixture() {
     format: 't4_atomic_native_preparation_input_v1', source, harness, backend,
     expiresAt: '2026-11-01T18:00:00Z', appUrl: 'http://127.0.0.1:3104',
     companyId, otherCompanyId, actors, targets, tools: { supabaseCli: { path: '/private/cli/supabase', sha256: sha } }, cohort: { path: '/private/cohort.json', sha256: sha },
-    producer: { ref: 'refs/tags/agent-claims/masterplan/producer-t4-atomic-native-test', nativeResource: 'producer-t4-atomic-native-test', inputEpoch: 'owned-input-epoch', outputHome: '/private/producer/atomic-preparation', receipt: '3'.repeat(40),
+    producer: { ref: 'refs/tags/agent-claims/masterplan/producer-t4-atomic-native-test', nativeResource: 'producer-t4-atomic-native-test', inputEpoch: 'owned-input-epoch', outputHome: '/private/producer/atomic-preparation', attempt: { path: '/private/producer/attempt.json', sha256: sha }, receipt: '3'.repeat(40),
       bodySha256: sha, agent: 'owned-producer', slot: 'owned-slot' },
   }
   const provenance = { normalizedIdsSha256: sha, sourceBasisSha256: sha,
@@ -56,7 +58,7 @@ function fixture() {
   const io = {
     now: () => Date.parse('2026-11-01T17:00:00Z'),
     verifyProducer: vi.fn(async () => ({ ...input.producer, source: source.commit, epoch: 'gridex-five-agent-20261012', protocol: 'masterplan-reservation-v1',
-      neutralVerified: true, scope: preparationProducerScope(input) })),
+      neutralVerified: true, attemptVerified: true, scope: preparationProducerScope(input) })),
     observeHost: vi.fn(async () => ({ source, harness, backend, effectiveRamBytes: 9 * 2 ** 30,
       freeDockerBytes: 50 * 2 ** 30, appStartedAfterBuild: true, appBuildAndEnvironmentBound: true })),
     observeDatabase: vi.fn(async () => ({ databaseSystemIdentifier: backend.databaseSystemIdentifier,
@@ -113,7 +115,7 @@ describe('T4 normal-flow atomic-native preparation contract (controlled adapters
       }))
       if (fault === 'producer') io.verifyProducer.mockImplementation(async () => ({
         ...input.producer, receipt: '0'.repeat(40), source: source.commit, epoch: 'gridex-five-agent-20261012',
-        protocol: 'masterplan-reservation-v1', neutralVerified: true, scope: preparationProducerScope(input),
+        protocol: 'masterplan-reservation-v1', neutralVerified: true, attemptVerified: true, scope: preparationProducerScope(input),
       }))
       if (fault === 'database') io.observeDatabase.mockImplementation(async () => ({
         databaseSystemIdentifier: 'wrong', majorVersion: 17, approvalSourceBound: true,
@@ -222,7 +224,7 @@ describe('T4 preparation additional negative boundaries', () => {
     const { input, io } = fixture()
     const scope = preparationProducerScope(input)
     io.verifyProducer.mockImplementation(async () => ({ ...input.producer, source: source.commit,
-      epoch: 'gridex-five-agent-20261012', protocol: 'masterplan-reservation-v1', neutralVerified: true,
+      epoch: 'gridex-five-agent-20261012', protocol: 'masterplan-reservation-v1', neutralVerified: true, attemptVerified: true,
       scope: { ...scope, backendSha256: '0'.repeat(64) } }))
     await expect(prepareAtomicNative(input, io)).rejects.toThrow('live_producer_binding_changed')
     expect(io.observeHost).not.toHaveBeenCalled()
@@ -385,5 +387,110 @@ describe('T4 publication evidence and stopped-operation diagnostics', () => {
     expect(JSON.parse(evidence)).toEqual({ phase: 'preparation-failed', code: 'fixed_local_app_required' })
     expect(evidence).not.toContain(input.actors.a.password)
     expect(evidence).not.toContain(input.actors.a.email)
+  })
+})
+
+
+describe('T4 producer neutral capsule with private sealed attempt', () => {
+  function binding() {
+    const { input } = fixture()
+    const attempt = { protocol: 'masterplan-reservation-v1', repo: 'heke99/gridex-ops-platform',
+      owner: input.producer.agent, slot: input.producer.slot, epoch: 'gridex-five-agent-20261012',
+      inputEpoch: input.producer.inputEpoch, resource: input.producer.ref, sourceHead: source.commit,
+      sourceTree: source.tree, scope: preparationProducerScope(input),
+      budget: { prepareCalls: 3, nativeFixtureRuns: 0, manualReruns: 0, provision: 0, builds: 0,
+        migrations: 0, genCaptures: 0, merges: 0, deployments: 0 },
+      sourceResources: [{ ref: `refs/tags/agent-claims/masterplan/file-${sha}`, receipt: '6'.repeat(40) }],
+    }
+    const resourceHash = createHash('sha256').update(input.producer.ref).digest('hex')
+    const capsule = { base: '7'.repeat(40), files: [],
+      operation: `Acquire bounded ${input.producer.nativeResource}; resources-sha256=${resourceHash}; attempt-sha256=${input.producer.attempt.sha256}; state=PENDING_INPUT_QUALIFICATION` }
+    const commit = { sha: input.producer.receipt, message: JSON.stringify(capsule),
+      parents: [{ sha: capsule.base }], tree: { sha: '8'.repeat(40) } }
+    input.producer.bodySha256 = createHash('sha256').update(commit.message).digest('hex')
+    return { input, attempt, capsule, commit, base: { sha: capsule.base, tree: { sha: '8'.repeat(40) } } }
+  }
+
+  it('accepts the existing public-minimal/private-attempt pattern without publishing identity or allocation', () => {
+    const { input, attempt, commit, base } = binding()
+    expect(() => verifyNeutralProducerCapsule(input, attempt, commit, base)).not.toThrow()
+    expect(Object.keys(JSON.parse(commit.message)).sort()).toEqual(['base', 'files', 'operation'])
+    expect(commit.message).not.toContain(input.backend.databaseContainerId)
+    expect(commit.message).not.toContain(input.producer.agent)
+  })
+
+  it('rejects public full-identity or allocation fields', () => {
+    const { input, attempt, capsule, commit, base } = binding()
+    commit.message = JSON.stringify({ ...capsule, agent: input.producer.agent })
+    input.producer.bodySha256 = createHash('sha256').update(commit.message).digest('hex')
+    expect(() => verifyNeutralProducerCapsule(input, attempt, commit, base))
+      .toThrow('neutral_public_capsule_mismatch')
+  })
+
+  it('requires the exact private-attempt hash sealed by the public operation', () => {
+    const { input, attempt, commit, base } = binding()
+    input.producer.attempt.sha256 = '0'.repeat(64)
+    expect(() => verifyNeutralProducerCapsule(input, attempt, commit, base))
+      .toThrow('neutral_public_capsule_mismatch')
+  })
+
+  it('rejects a non-neutral tree or another commit target', () => {
+    const { input, attempt, commit, base } = binding()
+    commit.tree.sha = '9'.repeat(40)
+    expect(() => verifyNeutralProducerCapsule(input, attempt, commit, base))
+      .toThrow('neutral_producer_parent_tree_mismatch')
+  })
+
+  it('rejects a private budget that would also run native, provision or perform GEN', () => {
+    const { input, attempt, commit, base } = binding()
+    attempt.budget.nativeFixtureRuns = 1
+    expect(() => verifyNeutralProducerCapsule(input, attempt, commit, base))
+      .toThrow('bounded_preparation_budget_required')
+  })
+
+  it('rejects a substituted private backend scope even with unchanged public receipt data', () => {
+    const { input, attempt, commit, base } = binding()
+    attempt.scope.backendSha256 = '0'.repeat(64)
+    expect(() => verifyNeutralProducerCapsule(input, attempt, commit, base))
+      .toThrow('sealed_private_producer_scope_mismatch')
+  })
+})
+
+
+// In-process PostgreSQL expression evaluation only; no native backend/Auth proof.
+// Execute the SAME exported predicate interpolated by the real CLI source query.
+describe('T4 actual FINAL-source SQL predicate null semantics', () => {
+  let db: PGlite
+  beforeAll(async () => { db = new PGlite(); await db.waitReady }, 15_000)
+  afterAll(async () => { await db.close() })
+  const valid = { id: 'one', billing_source_basis: { normalizedValueId: 'one', qualified: true,
+    qualityEstablished: true, quality: null } }
+  async function allFinal(values: unknown[]) {
+    const result = await db.query<{ all_final: boolean | null }>(
+      `SELECT bool_and(${FINAL_SOURCE_PREDICATE}) AS all_final FROM jsonb_array_elements($1::jsonb) v`,
+      [JSON.stringify(values)],
+    )
+    return result.rows[0].all_final
+  }
+
+  it('qualifies an explicit FINAL observation', async () => {
+    expect(await allFinal([valid])).toBe(true)
+  })
+  it('does not ignore a missing basis beside a valid FINAL row', async () => {
+    expect(await allFinal([valid, { id: 'two' }])).toBe(false)
+  })
+  it('does not confuse missing quality with explicit JSONnull', async () => {
+    expect(await allFinal([valid, { id: 'two', billing_source_basis: {
+      normalizedValueId: 'two', qualified: true, qualityEstablished: true,
+    } }])).toBe(false)
+  })
+  it('rejects estimated quality or an observation-identity mismatch', async () => {
+    expect(await allFinal([valid, { ...valid, billing_source_basis: {
+      ...valid.billing_source_basis, quality: 'estimated',
+    } }])).toBe(false)
+    expect(await allFinal([valid, { ...valid, id: 'another-id' }])).toBe(false)
+  })
+  it('an empty source set cannot qualify FINAL', async () => {
+    expect(await allFinal([])).not.toBe(true)
   })
 })

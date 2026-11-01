@@ -18,7 +18,12 @@ import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
 import { createServerClient } from '@supabase/ssr'
-import { canonicalPreparationJson, NATIVE_SOURCE, PreparationError, preparationFailureCode, prepareAtomicNative } from './lib/atomicNativePreparation.mjs'
+import { canonicalPreparationJson, NATIVE_SOURCE, PreparationError, preparationFailureCode, preparationProducerScope, prepareAtomicNative } from './lib/atomicNativePreparation.mjs'
+
+export const FINAL_SOURCE_PREDICATE = `COALESCE(v#>>'{billing_source_basis,normalizedValueId}'=v->>'id'
+  AND v#>>'{billing_source_basis,qualified}'='true'
+  AND v#>>'{billing_source_basis,qualityEstablished}'='true'
+  AND v#>'{billing_source_basis,quality}'='null'::jsonb,false)`
 
 const must = (condition, code) => { if (!condition) throw new PreparationError(code) }
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
@@ -91,6 +96,38 @@ export function createOutputHome(path) {
     },
     close: () => closeSync(journal),
   }
+}
+
+/** Validate the existing minimal public capsule/private sealed-attempt pattern.
+ * No owner, allocation, backend or budget metadata may enter the public message.
+ * The private attempt is bounded input data, never an ACTIVE authorization flag.
+ */
+export function verifyNeutralProducerCapsule(input, attempt, commit, base) {
+  let capsule
+  try { capsule = JSON.parse(commit.message) } catch { throw new PreparationError('neutral_producer_capsule_invalid') }
+  const resourceDigest = sha(Buffer.from(input.producer.ref))
+  const operation = `Acquire bounded ${input.producer.nativeResource}; resources-sha256=${resourceDigest}; attempt-sha256=${input.producer.attempt.sha256}; state=PENDING_INPUT_QUALIFICATION`
+  must(Object.keys(capsule).sort().join(',') === 'base,files,operation'
+    && Array.isArray(capsule.files) && capsule.files.length === 0
+    && capsule.operation === operation && sha(Buffer.from(commit.message)) === input.producer.bodySha256,
+  'neutral_public_capsule_mismatch')
+  must(commit.sha === input.producer.receipt && base.sha === capsule.base && commit.parents.length === 1 && commit.parents[0].sha === capsule.base
+    && commit.tree.sha === base.tree.sha, 'neutral_producer_parent_tree_mismatch')
+  const scope = preparationProducerScope(input)
+  must(attempt.protocol === 'masterplan-reservation-v1' && attempt.repo === 'heke99/gridex-ops-platform'
+    && attempt.owner === input.producer.agent && attempt.slot === input.producer.slot
+    && attempt.epoch === 'gridex-five-agent-20261012' && attempt.inputEpoch === input.producer.inputEpoch
+    && attempt.resource === input.producer.ref && attempt.sourceHead === input.source.commit
+    && attempt.sourceTree === input.source.tree
+    && canonicalPreparationJson(attempt.scope) === canonicalPreparationJson(scope),
+  'sealed_private_producer_scope_mismatch')
+  must(attempt.budget?.prepareCalls === scope.prepareBudget
+    && ['nativeFixtureRuns', 'manualReruns', 'provision', 'builds', 'migrations', 'genCaptures', 'merges', 'deployments']
+      .every((key) => attempt.budget[key] === 0), 'bounded_preparation_budget_required')
+  must(Array.isArray(attempt.sourceResources) && attempt.sourceResources.length > 0
+    && attempt.sourceResources.every((binding) =>
+      /^refs\/tags\/agent-claims\/masterplan\/(file-[a-f0-9]{64}|slot-session-[a-f0-9-]{36})$/.test(binding.ref)
+      && /^[a-f0-9]{40}$/.test(binding.receipt)), 'exact_source_resource_bindings_required')
 }
 
 export function verifyLocalDockerBindings(input, contextHost, database, api) {
@@ -207,27 +244,24 @@ export function realAdapters(input, output) {
   return {
     now: () => Date.now(), evidence: output.evidence,
     verifyProducer: async () => {
+      const attempt = readPrivateJson(input.producer.attempt.path)
+      must(regularHash(input.producer.attempt.path) === input.producer.attempt.sha256,
+        'private_producer_attempt_changed')
       const ref = jsonCommand('gh', ['api', `repos/heke99/gridex-ops-platform/git/ref/${input.producer.ref.slice(5)}`])
       must(ref.object.sha === input.producer.receipt, 'live_producer_ref_changed')
       const commit = jsonCommand('gh', ['api', `repos/heke99/gridex-ops-platform/git/commits/${ref.object.sha}`])
-      must(sha(Buffer.from(commit.message)) === input.producer.bodySha256, 'live_producer_body_changed')
-      let receipt
-      try { receipt = JSON.parse(commit.message) } catch { throw new PreparationError('live_producer_receipt_invalid') }
-      must(receipt.protocol === 'masterplan-reservation-v1'
-        && ['packet', 'branch', 'checkpoint', 'base', 'createdAt', 'inputEpoch',
-          'preparedSourceHead', 'preparedSourceTree'].every((key) => typeof receipt[key] === 'string' && receipt[key])
-        && Array.isArray(receipt.ids) && Array.isArray(receipt.files)
-        && receipt.preparedSourceTree === input.source.tree && receipt.inputEpoch === input.producer.inputEpoch,
-      'full_native_producer_receipt_required')
-      const base = jsonCommand('gh', ['api', `repos/heke99/gridex-ops-platform/git/commits/${receipt.base}`])
-      must(commit.parents.length === 1 && commit.parents[0].sha === receipt.base
-        && commit.tree.sha === base.tree.sha, 'neutral_producer_receipt_required')
-      must(/^[a-zA-Z0-9._-]+$/.test(receipt.slot), 'exact_producer_slot_required')
-      const slot = jsonCommand('gh', ['api', `repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/slot-${receipt.slot}`])
-      must(slot.object.sha === input.producer.receipt, 'live_producer_slot_changed')
-      return { ...input.producer, source: receipt.preparedSourceHead, agent: receipt.agent, slot: receipt.slot,
-        epoch: receipt.epoch, protocol: receipt.protocol, neutralVerified: true,
-        scope: receipt.sources?.nativeApproval }
+      let capsule
+      try { capsule = JSON.parse(commit.message) } catch { throw new PreparationError('neutral_producer_capsule_invalid') }
+      must(/^[a-f0-9]{40}$/.test(capsule.base), 'neutral_producer_base_required')
+      const base = jsonCommand('gh', ['api', `repos/heke99/gridex-ops-platform/git/commits/${capsule.base}`])
+      verifyNeutralProducerCapsule(input, attempt, commit, base)
+      for (const binding of attempt.sourceResources) {
+        const current = jsonCommand('gh', ['api', `repos/heke99/gridex-ops-platform/git/ref/${binding.ref.slice(5)}`])
+        must(current.object.sha === binding.receipt, 'source_resource_binding_changed')
+      }
+      return { ...input.producer, source: attempt.sourceHead, agent: attempt.owner, slot: attempt.slot,
+        epoch: attempt.epoch, protocol: attempt.protocol, neutralVerified: true, attemptVerified: true,
+        scope: attempt.scope }
     },
     observeHost: async () => {
       must(process.versions.node.startsWith('22.'), 'node22_runtime_required')
@@ -370,10 +404,7 @@ export function realAdapters(input, output) {
           'allSourcesFinal',(SELECT count(*)=(SELECT count(*) FROM ids)
             AND count(DISTINCT v->>'id')=(SELECT count(*) FROM ids)
             AND NOT EXISTS(SELECT FROM actual WHERE NOT EXISTS(SELECT FROM ids WHERE id::text=actual.v->>'id'))
-            AND bool_and(v#>>'{billing_source_basis,normalizedValueId}'=v->>'id'
-              AND v#>>'{billing_source_basis,qualified}'='true'
-              AND v#>>'{billing_source_basis,qualityEstablished}'='true'
-              AND v#>'{billing_source_basis,quality}'='null'::jsonb) FROM actual)
+            AND bool_and(${FINAL_SOURCE_PREDICATE}) FROM actual)
           AND NOT EXISTS(SELECT FROM public.billing_underlay_items WHERE company_id=${company}::uuid
             AND billing_underlay_id=${underlay}::uuid AND source_normalized_metering_value_id IS NULL));`)
       const binding = sql(`SELECT jsonb_build_object('sourceBasisSha256',source_basis_hash)

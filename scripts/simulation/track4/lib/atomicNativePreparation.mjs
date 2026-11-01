@@ -77,6 +77,8 @@ export function validatePreparationInput(input, now) {
     && typeof input.producer.inputEpoch === 'string' && input.producer.inputEpoch.length > 0
     && typeof input.producer.outputHome === 'string' && input.producer.outputHome.startsWith('/')
     && git.test(input.producer?.receipt) && sha.test(input.producer?.bodySha256)
+    && typeof input.producer.attempt?.path === 'string' && input.producer.attempt.path.startsWith('/')
+    && sha.test(input.producer.attempt?.sha256)
     && typeof input.producer.agent === 'string' && input.producer.agent.length > 0
     && typeof input.producer.slot === 'string' && input.producer.slot.length > 0,
   'existing_producer_binding_required')
@@ -121,6 +123,7 @@ export async function prepareAtomicNative(input, io) {
     && producer.slot === input.producer.slot && producer.source === input.source.commit
     && producer.epoch === 'gridex-five-agent-20261012'
     && producer.protocol === 'masterplan-reservation-v1' && producer.neutralVerified === true
+    && producer.attemptVerified === true
     && equal(producer.scope, preparationProducerScope(input)), 'live_producer_binding_changed')
   const host = await io.observeHost(input)
   verifyHost(input, host) // Must precede psql, Auth or other backend work.
@@ -183,6 +186,7 @@ export async function prepareAtomicNative(input, io) {
       const currentProducer = await io.verifyProducer(input)
       must(currentProducer.receipt === producer.receipt && currentProducer.bodySha256 === producer.bodySha256
         && currentProducer.protocol === 'masterplan-reservation-v1' && currentProducer.neutralVerified === true
+        && currentProducer.attemptVerified === true
         && equal(currentProducer.scope, preparationProducerScope(input)), 'live_producer_binding_changed')
       must(Date.parse(input.expiresAt) > io.now(), 'preparation_input_expired')
       await io.evidence({ phase: 'prepare-intent', month, expectedIds })
