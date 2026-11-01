@@ -513,7 +513,9 @@ export async function calculatePricingPreviewForUnderlay(input: {
       );
   }
 
-  const sourceValues = await resolveBasePriceSourceValues({
+  const sourceValues = zeroEnergy
+    ? { spotSekPerKwh: null, portfolioSekPerKwh: null, fixedSekPerKwh: null, manualSekPerKwh: null }
+    : await resolveBasePriceSourceValues({
     companyId: input.companyId,
     priceArea: underlay.priceArea as PriceArea,
     billingMonth: priceMonth,

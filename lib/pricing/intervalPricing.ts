@@ -24,6 +24,8 @@ const MAX_INTERVAL_ROWS = 150_000;
 /** Internal database receipt; never part of the public pricing preview DTO. */
 export type IntervalInputSnapshot = {
   schema_version: 1;
+  /** Native exact-NUMERIC zero validation; never inferred from JSON quantities. */
+  input_kind?: "metering_only_zero_consumption_v1";
   company_id: string;
   billing_underlay_id: string;
   period_start: string;
@@ -155,6 +157,24 @@ function quantityKwh(row: Row): number | null {
   return null;
 }
 
+/** Reject available nonzero decimal strings before Number can underflow them.
+ * SQL validates actual NUMERIC before JSON serialization; this is an additional
+ * wire check, never a replacement for the server-derived input_kind receipt. */
+function exactZero(value: unknown): boolean {
+  if (typeof value === "number") return Number.isFinite(value) && value === 0;
+  return typeof value === "string" && /^[+-]?(?:0+(?:\.0*)?|\.0+)(?:[eE][+-]?\d+)?$/.test(value.trim());
+}
+function zeroItemQuantity(item: Row): boolean {
+  const rawPresent = item.quantity !== undefined && item.quantity !== null;
+  const normalizedPresent = item.quantity_kwh !== undefined && item.quantity_kwh !== null;
+  if (normalizedPresent && !exactZero(item.quantity_kwh)) return false;
+  if (rawPresent) {
+    const unit = text(item.unit)?.toLowerCase();
+    if (!unit || !["kwh", "wh", "mwh"].includes(unit) || !exactZero(item.quantity)) return false;
+  }
+  return rawPresent || normalizedPresent;
+}
+
 function intervalResolution(milliseconds: number): "hour" | "quarter" | null {
   if (milliseconds === 60 * 60 * 1_000) return "hour";
   if (milliseconds === 15 * 60 * 1_000) return "quarter";
@@ -226,6 +246,29 @@ export async function resolveIntervalSpotPricing(input: {
   inputSnapshot: IntervalInputSnapshot;
 }> {
   const { items, prices, policies, receipt } = await readIntervalSnapshot(input);
+  if (input.expectedQuantityKwh === 0) {
+    // An old backend may already have rounded a tiny SQL NUMERIC to JSON zero.
+    // Require native classification and absence of price inputs, not a TS guess.
+    if (receipt.input_kind !== "metering_only_zero_consumption_v1" || prices.length !== 0 || policies.length !== 0) {
+      throw new Error("Nollförbrukning saknar verifierat mätunderlag utan prisindata.");
+    }
+    const errors: string[] = [];
+    if (items.length === 0) errors.push("Intervallbaserat avtal saknar faktureringsbara mätintervall.");
+    for (const item of items) {
+      const id = text(item.id), start = text(item.period_start), end = text(item.period_end);
+      const startMs = start ? Date.parse(start) : Number.NaN;
+      const endMs = end ? Date.parse(end) : Number.NaN;
+      const resolution = intervalResolution(endMs - startMs);
+      if (!id || !Number.isFinite(startMs) || !Number.isFinite(endMs)
+        || startMs < Date.parse(input.periodStart) || endMs > Date.parse(input.periodEnd)
+        || !resolution || input.requiredResolution === "quarterly" && resolution !== "quarter") {
+        errors.push("Ett mätintervall saknar giltigt ID, tid eller upplösning inom fakturaperioden.");
+      }
+      if (!zeroItemQuantity(item)) errors.push("Mätintervallens totala kWh stämmer inte med faktureringsunderlaget.");
+    }
+    return { weightedAverageSekPerKwh: null, evidence: [], errors, inputSnapshot: receipt };
+  }
+  if (receipt.input_kind !== undefined) throw new Error("Prisunderlagets klassificering stämmer inte med förbrukningen.");
   if (policies.length === 0) {
     return {
       weightedAverageSekPerKwh: null,
