@@ -50,6 +50,40 @@ function register() {
   return { tests, ports: { expect, it: test, describe: (_: string, fn: () => void) => fn(),
     beforeAll() {}, afterAll() {}, afterEach() {} } }
 }
+
+describe('T3 SLA idempotency has no global cron side effect', () => {
+  it.each(['missing', 'different', 'matching'])('never probes global HTTP with %s route credentials', async (credentials) => {
+    const r = register()
+    let httpCalls = 0
+    const deadlineCalls: unknown[] = []
+    const observations: Record<string, unknown> = {}
+    class SlaEvidence extends Evidence {
+      override observe(key: string, value: unknown) { observations[key] = value }
+    }
+    const unit = load<{ prepare: () => void }>('scenarios/ediel03-05.test.ts', {
+      vitest: r.ports,
+      '../lib/counterparty': { setSmtpMode: refused },
+      '../lib/evidence': { Evidence: SlaEvidence },
+      '../lib/seed.mjs': { newRunContext: () => ({ prefix: 'synthetic-sla' }) },
+      '../lib/e03-fixture': { actor: () => 'synthetic-actor', eventsFor: async () => [], seedInboundSource: refused },
+      '../lib/e03-steps': { seedWithRetry: refused, sql: refused,
+        sqlJson: () => [{ timer_type: 'aperak_due', status: 'expired' }, { timer_type: 'contrl_due', status: 'expired' }],
+        Timing: class {} },
+      '@/lib/ediel/sla/checkAckDeadlines': { checkAckDeadlines: async (params: unknown) => { deadlineCalls.push(params) } },
+    }, "exports.prepare = () => { src = { companyId: 'synthetic-company', sourceMessageId: 'synthetic-source' }; dueMs = 0; };", {
+      process: { env: { T3_APP_URL: 'http://synthetic.invalid', EDIEL_CRON_SECRET: 'synthetic-token',
+        ...(credentials === 'missing' ? {} : { CRON_SECRET: credentials === 'matching' ? 'synthetic-token' : 'synthetic-other-token' }) } },
+      fetch: async () => { httpCalls++; return { status: 200 } },
+    })
+    unit.prepare()
+    const callback = [...r.tests].find(([name]) => name.startsWith('EDIEL03.05 idempotens'))?.[1]
+    expect(callback).toBeTypeOf('function')
+    await callback!()
+    expect(deadlineCalls).toEqual([{ actorUserId: 'synthetic-actor', companyId: 'synthetic-company', now: '1970-01-01T00:02:00.000Z' }])
+    expect(httpCalls).toBe(0)
+    expect(observations.cron_route_path).toMatchObject({ invoked: false, status: 'NOT_RUN', reason: 'global_customer_operations_cron_not_admitted' })
+  })
+})
 function legacy(mode: 'stable' | 'changed' | 'missing' | 'empty' | 'read-rejected' | 'missing-path' | 'missing-manifest') {
   const r = register(); let reads = 0
   const sqlIn = (q: string) => {
