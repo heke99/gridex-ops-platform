@@ -552,3 +552,55 @@ describe.each(['MAIN05.02', 'BILLNEG01.03'])('%s actual frozen-file replay callb
     await expect(runCallback(id, h.ctx)).rejects.toThrow()
   })
 })
+
+// Execute negative download callbacks through the real HTTP helper; no Auth/DB writers run.
+function negativeDownloadHarness(alter: (reply: Download, path: string) => Download = reply => reply) {
+  const file = stored([jsonRow])
+  const requests: { cookie?: string; path: string }[] = []
+  const ctx = {
+    assert, value() {},
+    fixture: { fileId: file.id, fileRow: file,
+      sessions: { A: { cookie: () => 'negative-A' }, B: { cookie: () => 'negative-B' } } },
+    http: { async get(path: string, options: { cookie?: string }) {
+      requests.push({ cookie: options.cookie, path })
+      const url = new URL(path, 'http://negative.invalid')
+      if (options.cookie === 'negative-A' && url.pathname.endsWith('/' + file.id)) {
+        const format = url.searchParams.get('format') ?? 'csv'
+        const rendered = renderInvoiceFile(file, format as Parameters<typeof renderInvoiceFile>[1])
+        return response(rendered.body, 200, rendered.contentType, `attachment; filename="${rendered.fileName}"`)
+      }
+      return alter(response('Fakturafilen hittades inte.', 404, 'text/plain; charset=utf-8'), path)
+    } },
+  }
+  return { ctx, requests }
+}
+
+describe.each(['MAIN05.05', 'MAIN05.05b', 'MAIN05.06'])('%s negative file response contract', id => {
+  it('accepts the exact controlled not-found response', async () => {
+    const h = negativeDownloadHarness()
+    await runCallback(id, h.ctx)
+    if (id !== 'MAIN05.06') {
+      const denied = h.requests.filter(request => id === 'MAIN05.05' || request.cookie === 'negative-B')
+      expect(new Set(denied.map(request => new URL(request.path, 'http://negative.invalid').searchParams.get('format'))))
+        .toEqual(new Set([null, 'nordfin_xml', 'json', 'csv', 'xlsx']))
+    }
+    if (id === 'MAIN05.05b') expect(h.requests.some(request => request.cookie === 'negative-A' && request.path.endsWith('?format=nordfin_xml'))).toBe(true)
+  })
+  it.each([
+    ['leaked content in a 404', (r: Download) => replaceBody(r, 'private customer address and account details')],
+    ['file attachment on a 404', (r: Download) => ({ ...r, contentDisposition: 'attachment; filename="invoice.csv"' })],
+    ['wrong response type', (r: Download) => ({ ...r, contentType: 'application/xml' })],
+    ['redirect header on a 404', (r: Download) => ({ ...r, location: '/private-invoice' })],
+    ['authentication setup failure', (r: Download) => ({ ...r, status: 403 })],
+  ])('rejects %s', async (_label, mutate) => {
+    const h = negativeDownloadHarness(mutate)
+    await expect(runCallback(id, h.ctx)).rejects.toThrow()
+    if (id === 'MAIN05.05b') expect(h.requests.some(request => request.cookie === 'negative-B')).toBe(true)
+  })
+  if (id !== 'MAIN05.06') it('rejects a leak confined to the explicit XML format', async () => {
+    const h = negativeDownloadHarness((r, path) => path.endsWith('?format=nordfin_xml')
+      ? replaceBody(r, '<Invoice>private billing data</Invoice>') : r)
+    await expect(runCallback(id, h.ctx)).rejects.toThrow()
+    expect(h.requests.some(request => request.path.endsWith('?format=nordfin_xml') && (id !== 'MAIN05.05b' || request.cookie === 'negative-B'))).toBe(true)
+  })
+})

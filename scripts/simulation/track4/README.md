@@ -228,3 +228,12 @@ steps remain separate unmet runtime/acceptance gates. No provider relabeling or 
 - Server-action post via `$ACTION_ID_` and Origin handling in Next 16.4.2 is unverified; the approve form exists only while
   something is approvable.
 - Assertions encode my reading of each scenario ID, not the register oracle.
+
+Negative file-download callbacks also bind the denial body to the installed route contract:
+`404`, plain text, exact UTF-8 bytes `Fakturafilen hittades inte.`, no download
+or redirect header. Unknown IDs, malformed IDs and other-tenant access are checked
+for default, XML, JSON, CSV and XLSX requests. The other-tenant probe first validates
+an authenticated owner XML download against the frozen file snapshot, so a missing
+file or broken owner download cannot stand in for tenant isolation. These callback
+regressions are component evidence; the qualified runtime and original MAIN cohort
+requirements above still apply.

@@ -74,6 +74,15 @@ export async function runAction(ctx, session, kind, month, label) {
 export const getFile = (ctx, session, id, { format, label } = {}) =>
   ctx.http.get(`/admin/billing/invoice-files/${id}${format ? `?format=${format}` : ''}`, { cookie: session?.cookie(), label: label ?? `GET invoice-file ${id}${format ? ` (${format})` : ''}` })
 
+/** Exact installed denial contract: a 404 must never carry invoice data or download headers. */
+export function assertFileNotFound(response) {
+  assert.equal(response.status, 404, 'file lookup must reach the controlled not-found response')
+  assert.match(response.contentType ?? '', /^text\/plain(?:;|$)/i, 'not-found response must be plain text')
+  assert.deepEqual(response.bytes, Buffer.from('Fakturafilen hittades inte.', 'utf8'), 'exact not-found bytes without private content')
+  assert.ok(!response.contentDisposition, 'not-found response must not advertise a file')
+  assert.ok(!response.location, 'not-found response must not redirect to file content')
+}
+
 // ---- Row readers --------------------------------------------------------------------------------------
 export const itemsFor = (sql, companyId, month) => sql.rows(`
   SELECT i.id, i.status, i.billing_underlay_id, i.pricing_run_id, i.total_kwh, i.amount_ex_vat, i.vat_amount, i.amount_inc_vat, i.export_file_id,

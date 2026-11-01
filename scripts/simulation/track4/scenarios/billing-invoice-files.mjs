@@ -10,10 +10,11 @@ import { randomUUID } from 'node:crypto'
 import { fixtureSteps, ensureSession } from '../fixtures/seed.mjs'
 import { FIXTURE_MONTHS } from '../fixtures/expected.mjs'
 import { lit } from '../runner/lib/sql.mjs'
-import { countsFor, diffCounts, prepare, runAction, actionId, getFile, itemsFor, filesFor, pricingRunsFor, rowsSha256, money, assertCreateFileRedirect, assertApproveRedirect, assertFileReplayRedirect, assertPrepareResponse, freezeFileSnapshot, assertInvoiceJson, assertInvoiceXml } from '../fixtures/flows.mjs'
+import { countsFor, diffCounts, prepare, runAction, actionId, getFile, itemsFor, filesFor, pricingRunsFor, rowsSha256, money, assertCreateFileRedirect, assertApproveRedirect, assertFileReplayRedirect, assertPrepareResponse, assertFileNotFound, freezeFileSnapshot, assertInvoiceJson, assertInvoiceXml } from '../fixtures/flows.mjs'
 
 const M = FIXTURE_MONTHS
 const N = Number(process.env.T4_CONCURRENCY ?? 10)
+const DENIED_FILE_FORMATS = [undefined, 'nordfin_xml', 'json', 'csv', 'xlsx']
 const histogram = (list) => list.reduce((h, v) => ((h[v] = (h[v] ?? 0) + 1), h), {})
 
 async function concurrentActors(ctx) {
@@ -269,10 +270,11 @@ const steps = [
     note: 'Needs only the staff session (no fixture data, no file).',
     async run(ctx) {
       const a = await ensureSession(ctx, 'A')
-      const unknown = await getFile(ctx, a, randomUUID(), { label: 'unknown uuid (A)' })
-      ctx.assert.equal(unknown.status, 404, 'unknown uuid')
-      const malformed = await getFile(ctx, a, 'not-a-uuid', { label: 'malformed id (A)' })
-      ctx.assert.equal(malformed.status, 404, 'malformed id')
+      const unknownId = randomUUID()
+      for (const format of DENIED_FILE_FORMATS) {
+        assertFileNotFound(await getFile(ctx, a, unknownId, { format, label: `unknown uuid (A) ${format ?? 'default'}` }))
+        assertFileNotFound(await getFile(ctx, a, 'not-a-uuid', { format, label: `malformed id (A) ${format ?? 'default'}` }))
+      }
     },
   },
 
@@ -280,11 +282,13 @@ const steps = [
     id: 'MAIN05.05b', scenarioId: 'MAIN05.05', title: 'invoice file id of another tenant -> 404 (and own file still 200)', scope: 'api', needs: ['MAIN05.01'],
     async run(ctx) {
       const fx = ctx.fixture, a = await ensureSession(ctx, 'A'), b = await ensureSession(ctx, 'B')
-      const other = await getFile(ctx, b, fx.fileId, { label: 'tenant A file id requested by tenant B' })
-      ctx.assert.equal(other.status, 404, 'other tenant must see 404, not the file')
-      ctx.assert.ok(!other.text().includes(fx.fileRow.rows[0].invoice_number), 'no leak of tenant A content')
-      const own = await getFile(ctx, a, fx.fileId, { label: 'control: tenant A own file' })
+      // Establish the file is real and readable by its owner before interpreting a denial.
+      const own = await getFile(ctx, a, fx.fileId, { format: 'nordfin_xml', label: 'control: tenant A own XML' })
       ctx.assert.equal(own.status, 200, 'control request still works')
+      assertInvoiceXml(own, fx.fileRow)
+      for (const format of DENIED_FILE_FORMATS) {
+        assertFileNotFound(await getFile(ctx, b, fx.fileId, { format, label: `tenant A file requested by B ${format ?? 'default'}` }))
+      }
     },
   },
 
@@ -295,9 +299,7 @@ const steps = [
       const a = await ensureSession(ctx, 'A')
       const r = await getFile(ctx, a, '-'.repeat(36), { label: "GET id='-'x36" })
       ctx.value('status', r.status)
-      ctx.assert.equal(r.status, 404, `malformed file id must return 404, got ${r.status}`)
-      ctx.assert.match(r.contentType ?? '', /^text\/plain(?:;|$)/i, 'malformed file id must return plain text')
-      ctx.assert.equal(r.text(), 'Fakturafilen hittades inte.', 'malformed file id must return the expected not-found body')
+      assertFileNotFound(r)
     },
   },
 
