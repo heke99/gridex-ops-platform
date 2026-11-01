@@ -370,6 +370,9 @@ describe('BILLNEG01.02 actual contender callback rejection', () => {
     ctx.sql.scalar = async (query?: string) => query?.includes('actor_user_id=') ? 1 : 2
     await expect(runCallback('BILLNEG01.02', ctx)).rejects.toThrow()
   })
+  it('binds the stored approval to the actual actor reporting the unique win', async () => {
+    await expect(runCallback('BILLNEG01.02', approvalHarness(undefined, { ...validStoredApproval, approved_by: 'actor-A2' }))).rejects.toThrow()
+  })
   it('rejects an approval attributed to an actor outside the two contenders', async () => {
     const ctx = approvalHarness(undefined, { ...validStoredApproval, approved_by: 'foreign-actor' })
     await expect(runCallback('BILLNEG01.02', ctx)).rejects.toThrow()
@@ -461,6 +464,10 @@ describe('BILLNEG01.01 actual concurrent prepare callback', () => {
     const ctx = prepareHarness()
     await runCallback('BILLNEG01.01', ctx)
     expect(new Set(ctx.cookies)).toEqual(new Set(['component-A', 'component-A2']))
+  })
+  it('rejects multiple responses claiming the unique preparation win', async () => {
+    const ctx = prepareHarness(reply => ({ ...reply, body: { ...reply.body, data: { ...reply.body.data, created: 1, alreadyPrepared: 0 } } }))
+    await expect(runCallback('BILLNEG01.01', ctx)).rejects.toThrow()
   })
   it('rejects forbidden contenders despite one successful preparation and correct final graph', async () => {
     const ctx = prepareHarness((reply, index) => index === 0 ? reply : { ...reply, status: 403 })
