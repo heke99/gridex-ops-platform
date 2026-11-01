@@ -227,3 +227,197 @@ describe('DB01 closed current write API source projection', () => {
     expect(result.receipt.current_write_api_projection?.status).not.toBe('PASS')
   })
 })
+
+const contrlHarness = String.raw`
+import ast, copy, hashlib, json, pathlib, re, sys, tempfile, textwrap, types
+case=json.loads(sys.argv[1]);repo=pathlib.Path.cwd()
+lines=(repo/'.github/workflows/ediel-db01-current-native.yml').read_text().splitlines()
+start=next(i for i,line in enumerate(lines) if 'cat > "$DB01_PRIVATE/qualify-current-guards.py"' in line)+1
+end=next(i for i in range(start,len(lines)) if lines[i].strip()=='PY')
+tree=ast.parse(textwrap.dedent('\n'.join(lines[start:end])))
+required={'blocks','current_contrl_source_spec','current_contrl_catalog','apply_current_contrl_source'}
+nodes=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in required]
+if {n.name for n in nodes}!=required:
+ print(json.dumps({'error':'db01_current_contrl_source_installer_missing','runs':0,'receipt':{}}));sys.exit(0)
+donor='supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sql'
+digest='118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'
+pre='142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e'
+post='e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa'
+schema='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
+sha=lambda value:hashlib.sha256(value.encode() if isinstance(value,str) else value).hexdigest()
+def fail(message):raise RuntimeError(message)
+before={'oid':'12345','metadata_sha256':'a'*64,'body_sha256':pre}
+after={**before,'body_sha256':post}
+if case.get('preimageDrift'):before['body_sha256']='0'*64
+if case.get('metadataShape'):before['metadata_sha256']='invalid'
+if case.get('postimageDrift'):after['body_sha256']='0'*64
+if case.get('metadataDrift'):after['metadata_sha256']='b'*64
+if case.get('oidDrift'):after['oid']='54321'
+runs=[];queries=[];events=[];forward_items=[]
+if case.get('phase'):
+ source=(repo/'.github/workflows/ediel-db01-current-native.yml').read_text()
+ initial=ast.parse(textwrap.dedent(source.split("python3 - <<'PY'\n",1)[1].split('\n          PY',1)[0]))
+ declaration=next(n for n in initial.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='current_read_manifest' for t in n.targets))
+ forward_items=ast.literal_eval(declaration.value)
+def sql(query):
+ queries.append(query)
+ if case.get('missingCatalog') and len(queries)==1:return 'null'
+ return json.dumps(before if len(queries)==1 else after)
+def run(args,**kwargs):
+ if case.get('phase') and args[-1]!=str(root/donor):
+  item=next(item for item in forward_items if str(root/item['path'])==args[-1])
+  assert sha((root/item['path']).read_bytes())==item['sha256'];events.append('legacy-forward')
+  return types.SimpleNamespace(returncode=0)
+ assert args==['psql','postgresql://postgres:postgres@127.0.0.1:54322/postgres','-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-f',str(root/donor)]
+ events.append('contrl')
+ runs.append({'sqlSha256':sha((root/donor).read_bytes()),'timeout':kwargs.get('timeout')})
+ if case.get('unknownOutcome'):raise TimeoutError('synthetic opaque outcome')
+ return types.SimpleNamespace(returncode=17 if case.get('ddlFailure') else 0)
+with tempfile.TemporaryDirectory(prefix='db01-current-contrl-unit-') as folder:
+ root=pathlib.Path(folder);private=root/'private';private.mkdir();receipt_path=private/'receipt.json'
+ for name in [donor,'supabase/schema.sql',*[item['path'] for item in forward_items]]:
+  target=root/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes((repo/name).read_bytes())
+ blobs={donor:{'mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d','sha256':digest},'supabase/schema.sql':{'sha256':schema}}
+ if case.get('fileDrift'):(root/donor).write_bytes((root/donor).read_bytes()+b'\n-- unqualified drift\n')
+ if case.get('manifestDrift'):blobs[donor]['sha256']='0'*64
+ if case.get('schemaDrift'):blobs['supabase/schema.sql']['sha256']='0'*64
+ if case.get('schemaFileDrift'):(root/'supabase/schema.sql').write_bytes((root/'supabase/schema.sql').read_bytes()+b'\n-- drift\n')
+ receipt={'checkout_sha':'synthetic-head','root_source':{'blobs':blobs}}
+ namespace={'hashlib':hashlib,'json':json,'re':re,'sha':sha,'fail':fail,'root':root,'private':private,'receipt':receipt,'receipt_path':receipt_path,'url':'postgresql://postgres:postgres@127.0.0.1:54322/postgres','sql':sql,'subprocess':types.SimpleNamespace(run=run)}
+ exec(compile(ast.Module(body=nodes,type_ignores=[]),'<actual-contrl-source-installer>','exec'),namespace)
+ namespace['expected']=namespace['blocks']((root/'supabase/schema.sql').read_text())
+ error=None
+ try:
+  if case.get('phase'):
+   receipt['current_database_basis']={'forwards':forward_items}
+   namespace.update(sys=sys,forward_prerequisites={},apply_current_api_projection=lambda:events.append('api'),apply_s01_current_source=lambda:events.append('s01'))
+   modes=next(n for n in tree.body if isinstance(n,ast.If) and ast.unparse(n.test)=="mode == 'before'")
+   phase=modes.orelse[0];assert ast.unparse(phase.test)=="mode == 'forwards'"
+   exec(compile(ast.Module(body=phase.body,type_ignores=[]),'<actual-forwards-phase>','exec'),namespace)
+  else:namespace['apply_current_contrl_source']()
+ except Exception as e:error=str(e)
+ print(json.dumps({'error':error,'runs':len(runs),'executions':runs,'queries':queries,'events':events,'receipt':receipt}))
+`
+type ContrlResult = {
+  error: string | null; runs: number; executions: Array<{sqlSha256: string; timeout: number}>; queries: string[]; events: string[];
+  receipt: {current_contrl_source_install?: {status: string; exit_code?: number; native_or_approval_credit: boolean}};
+}
+function contrlProbe(input: Record<string, unknown> = {}): ContrlResult {
+  return JSON.parse(execFileSync('python3', ['-c', contrlHarness, JSON.stringify(input)], {encoding: 'utf8', timeout: 10_000}))
+}
+describe('DB01 current CONTRL source installation', () => {
+  it('runs the preserved sixteen forwards and API/S01 sources before the exact current CONTRL installation', () => {
+    const result = contrlProbe({phase: true})
+    expect(result.error).toBeNull()
+    expect(result.events).toEqual([...Array(16).fill('legacy-forward'), 'api', 's01', 'contrl'])
+    expect(result.runs).toBe(1)
+    expect(result.receipt.current_contrl_source_install?.status).toBe('PASS')
+  })
+  it('executes the unchanged canonical 949 migration once before qualifying its actual catalog transition', () => {
+    const result = contrlProbe()
+    expect(result.error).toBeNull()
+    expect(result.runs).toBe(1)
+    expect(result.executions).toEqual([{sqlSha256: '118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75', timeout: 120}])
+    expect(result.receipt.current_contrl_source_install).toMatchObject({status: 'PASS', exit_code: 0, native_or_approval_credit: false})
+    expect(result.queries).toHaveLength(2)
+    expect(result.queries.every(query => query.trim().toLowerCase().startsWith('select'))).toBe(true)
+  })
+  it.each(['fileDrift', 'manifestDrift', 'schemaDrift', 'schemaFileDrift'])('refuses %s before any installation', change => {
+    const result = contrlProbe({[change]: true})
+    expect(result.error).toBe('db01_current_contrl_source_unqualified')
+    expect(result.runs).toBe(0)
+  })
+  it.each(['preimageDrift', 'metadataShape', 'missingCatalog'])('refuses catalog %s before any installation', change => {
+    const result = contrlProbe({[change]: true})
+    expect(result.error).toBe('db01_current_contrl_preimage_unqualified')
+    expect(result.runs).toBe(0)
+  })
+  it.each(['postimageDrift', 'metadataDrift', 'oidDrift'])('cannot qualify %s after execution', change => {
+    const result = contrlProbe({[change]: true})
+    expect(result.error).toBe('db01_current_contrl_catalog_changed')
+    expect(result.runs).toBe(1)
+    expect(result.receipt.current_contrl_source_install?.status).not.toBe('PASS')
+  })
+  it.each([['ddlFailure', 'db01_current_contrl_install_failed'], ['unknownOutcome', 'db01_current_contrl_install_outcome_unknown']])('does not retry or qualify %s', (change, error) => {
+    const result = contrlProbe({[change]: true})
+    expect(result.error).toBe(error)
+    expect(result.runs).toBe(1)
+    expect(result.receipt.current_contrl_source_install?.status).not.toBe('PASS')
+  })
+})
+
+const contrlQualificationHarness = String.raw`
+import ast, copy, json, pathlib, re, sys, textwrap
+case=sys.argv[1];source=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
+programs=[ast.parse(textwrap.dedent(x)) for x in re.findall(r"python3 - <<'PY'[^\n]*\n(.*?)\n          PY",source,re.S)]
+module=next(tree for tree in programs if any(isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='expected_historical' for t in n.targets) for n in tree.body))
+definitions=[n for n in module.body if isinstance(n,ast.FunctionDef) and n.name=='qualify_current_contrl_execution']
+calls=[n for n in module.body if isinstance(n,ast.Expr) and isinstance(n.value,ast.Call) and isinstance(n.value.func,ast.Name) and n.value.func.id=='qualify_current_contrl_execution']
+if len(definitions)!=1 or len(calls)!=1:
+ print(json.dumps({'error':'db01_current_contrl_qualifier_missing'}));sys.exit(0)
+donor={'path':'supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sql','mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d','sha256':'118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'}
+pre='142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e';post='e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa';schema='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
+before={'oid':'12345','metadata_sha256':'a'*64,'body_sha256':pre};after={**before,'body_sha256':post}
+record={'schema':'db01_current_contrl_source_v1','status':'PASS','exit_code':0,'native_or_approval_credit':False,'source_sha':'synthetic-head','source_schema_sha256':schema,'donor':donor,'preimage_sha256':pre,'postimage_sha256':post,'expected_definition_sha256':'72f56c36a939142fd80ea0630a90c002fcec206437238010634530e46f34927d','catalog_before':before,'catalog_after':after}
+receipt={'checkout_sha':'synthetic-head','root_source':{'blobs':{donor['path']:{k:v for k,v in donor.items() if k!='path'},'supabase/schema.sql':{'sha256':schema}}},'current_contrl_source_install':record}
+if case=='missing':del receipt['current_contrl_source_install']
+if case=='failed':record['status']='EXECUTED_UNQUALIFIED'
+if case=='wrong-exit':record['exit_code']=17
+if case=='wrong-head':record['source_sha']='different-head'
+if case=='wrong-schema':record['source_schema_sha256']='0'*64
+if case=='wrong-donor':record['donor']={**donor,'sha256':'0'*64}
+if case=='wrong-preimage':record['catalog_before']={**before,'body_sha256':'0'*64}
+if case=='wrong-postimage':record['catalog_after']={**after,'body_sha256':'0'*64}
+if case=='wrong-metadata':record['catalog_after']={**after,'metadata_sha256':'b'*64}
+if case=='wrong-oid':record['catalog_after']={**after,'oid':'54321'}
+if case=='fake-credit':record['native_or_approval_credit']=True
+namespace={'receipt':receipt,'re':re}
+error=None
+try:exec(compile(ast.Module(body=definitions+calls,type_ignores=[]),'<actual-final-contrl-qualification>','exec'),namespace)
+except Exception as e:error=str(e)
+print(json.dumps({'error':error}))
+`
+it.each(['valid', 'missing', 'failed', 'wrong-exit', 'wrong-head', 'wrong-schema', 'wrong-donor', 'wrong-preimage', 'wrong-postimage', 'wrong-metadata', 'wrong-oid', 'fake-credit'])(
+  'requires an exact executed CONTRL receipt in final workflow qualification: %s', change => {
+    const result = JSON.parse(execFileSync('python3', ['-c', contrlQualificationHarness, change], {encoding: 'utf8', timeout: 5000}))
+    expect(result.error).toBe(change === 'valid' ? null : 'db01_current_contrl_execution_required')
+  })
+
+it('admits the genuine post949 schema only with the unchanged 251-function writer closure', () => {
+  const python = String.raw`
+import ast, hashlib, json, pathlib, re, subprocess, tempfile, textwrap
+repo=pathlib.Path.cwd();lines=(repo/'.github/workflows/ediel-db01-current-native.yml').read_text().splitlines()
+start=next(i for i,line in enumerate(lines) if 'cat > "$DB01_PRIVATE/qualify-current-guards.py"' in line)+1
+end=next(i for i in range(start,len(lines)) if lines[i].strip()=='PY')
+tree=ast.parse(textwrap.dedent('\n'.join(lines[start:end])))
+names={'blocks','functions','observe_current_write_api','current_write_api_install_spec'}
+nodes=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in names]
+sha=lambda value:hashlib.sha256(value.encode()).hexdigest()
+def fail(message):raise RuntimeError(message)
+namespace={'json':json,'re':re,'hashlib':hashlib,'sha':sha,'fail':fail}
+exec(compile(ast.Module(body=nodes,type_ignores=[]),'<actual-writer-source-closure>','exec'),namespace)
+spec=namespace['current_write_api_install_spec']();results=[]
+old=subprocess.check_output(['git','show','14007c0938af0e0d7de136fe76748b3589822ca6:supabase/schema.sql'],text=True)
+new=(repo/'supabase/schema.sql').read_text()
+with tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder:
+ path=pathlib.Path(folder)/'receipt.json'
+ for source in [old,new]:
+  catalog=namespace['blocks'](source);receipt={'checkout_sha':'source-only','root_source':{'blobs':{'supabase/schema.sql':{'sha256':sha(source)}}}}
+  namespace.update(expected=catalog,source_functions=namespace['functions'](catalog),receipt=receipt,receipt_path=path,sql=lambda query:'[]')
+  namespace['observe_current_write_api']();observation=receipt['current_write_api_observation']
+  results.append({'schema':sha(source),'definitions':observation['canonical_function_definitions'],'names':observation['planned_function_names'],'catalog':catalog})
+ changed=[list(key) for key in sorted(set(results[0]['catalog'])|set(results[1]['catalog'])) if results[0]['catalog'].get(key)!=results[1]['catalog'].get(key)]
+ print(json.dumps({'schemaPin':spec['schema_sha256'],'oldSchema':results[0]['schema'],'newSchema':results[1]['schema'],'changedObjects':changed,'writerCounts':[len(x['names']) for x in results],'writerDefinitionDigests':[sha(json.dumps(x['definitions'],sort_keys=True,separators=(',',':'))) for x in results],'definitionsIdentical':results[0]['definitions']==results[1]['definitions'],'949InWriter':any('gridex_ack_authority.read_outbound_originals_v1' in x['names'] for x in results),'beforeCatalogPin':spec['before_catalog_sha256']}))
+`
+  const result = JSON.parse(execFileSync('python3', ['-c', python], {encoding: 'utf8', timeout: 10_000}))
+  expect(result).toEqual({
+    schemaPin: 'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc',
+    oldSchema: 'bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b',
+    newSchema: 'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc',
+    changedObjects: [['gridex_ack_authority', 'FUNCTION', 'read_outbound_originals_v1(uuid, text)']],
+    writerCounts: [251, 251],
+    writerDefinitionDigests: Array(2).fill('23866bb938ea1230a1f623073c436ae3d6583b5518378d0ee8eabd403eeb383d'),
+    definitionsIdentical: true, '949InWriter': false,
+    beforeCatalogPin: '709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
+  })
+})

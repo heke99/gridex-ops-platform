@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-30T23:06:23.379405+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run41138002145-job124345113427-attempt1",
+  "generated_at": "2026-11-01T00:29:23.971226+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run41256573704-job124700896694-attempt1",
   "sha256": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
   "latest_migration": "20261030131500_audit19_qualify_onboard_customer_graph_core_hash.sql",
-  "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of PR973: gridex_ediel_retention.audit19_source_contract_v1 requalifies the onboard_customer_graph_core hash after the Ediel CAS redefinition. Generated types are unchanged. Native/parity/production installation remain unverified.",
+  "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of main14007 plus PR949: gridex_ack_authority.read_outbound_originals_v1 gains linear CONTRL discovery, with the remaining qualification body unchanged. The new 20261030130400 migration sorts before the already included audit19 migration, so latest_migration remains 20261030131500. Generated types are unchanged. Capture only; native/browser/upgrade parity and production installation remain unverified.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -864,7 +864,7 @@
       }
     }
   },
-  "composition_note": "Byte-exact RAW3 from run41138002145/job124345113427 source 4551eff26b91c89c79bfd77723f9fd7345ee305f/tree 4a2cac873efc8694f89d25d4985e637c590f61ca. Previous active values are archived under pr973_audit19_genuine_ordinary_capture_adoption_20261030.previous_active_fields. Capture only; new-head native, upgrade/parity and mandatory CI remain required; no production installation or whole approval.",
+  "composition_note": "Schema and fingerprint are byte-exact RAW3 from run41256573704/job124700896694, source 3e8a830cab79546a2d910bea6ff2221fa9514c1e/tree b2b224a1e9fcc58065b85c3f2921d805ae7259eb; existing generated types have the same original artifact hash and are not rewritten. Previous active values are archived under pr949_contrl_linear_genuine_ordinary_capture_adoption_20261101.previous_active_fields. Historical legacy capture and epoch fields retain their original source applicability; this ordinary capture supplies no new legacy owned-capture admission. Current-head mandatory gates and independent final reviews remain required; no native/browser/upgrade or whole approval.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -100818,5 +100818,51 @@
     },
     "source_manifest_preimage_sha256": "544ffcb2b988a5a61687bdef5d26c98af6405ccaa59713f8d9df61f18870ac3b",
     "producer_session": "session_01UHTg8KVQcYJS5fqdU3XihA"
+  },
+  "pr949_contrl_linear_genuine_ordinary_capture_adoption_20261101": {
+    "kind": "genuine_existing_ordinary_capture_RAW3_source_adoption_only",
+    "captured_at": "2026-11-01T00:29:23.971226+00:00",
+    "captured_source_head": "3e8a830cab79546a2d910bea6ff2221fa9514c1e",
+    "captured_source_tree": "b2b224a1e9fcc58065b85c3f2921d805ae7259eb",
+    "new_original_origin": {
+      "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+      "source_head": "3e8a830cab79546a2d910bea6ff2221fa9514c1e",
+      "source_tree": "b2b224a1e9fcc58065b85c3f2921d805ae7259eb",
+      "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+      "workflow_run_id": 41256573704,
+      "workflow_job_id": 124700896694,
+      "attempt": 1,
+      "artifact_id": 13063971334,
+      "artifact_name": "staff-schema-capture-3e8a830cab79546a2d910bea6ff2221fa9514c1e",
+      "artifact_archive_sha256": "d4cdfd714b4ac4ff891618de486333d22442b55fdf0811570676ca7a3806dc7d",
+      "artifact_archive_bytes": 1853632,
+      "capture_receipt_sha256": "23612bc735572f466719f360fd5570db990f987004360d25230ccc2c85df9ecd",
+      "raw_output_sha256": {
+        "database.types.ts": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
+        "schema.sql": "a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc",
+        "schema.fingerprint.json": "2de807c7eaa746bc4f28b23e7062ce50d3cd5e07fe7215bcf39e05cbd9c1055a"
+      },
+      "schema_fingerprint": "ae9e52818d62610473b73ca95ce58993bd4f2e50fbaa6a9598c357f4603fe7ee",
+      "latest_replay_migration": {
+        "name": "20261030131500_audit19_qualify_onboard_customer_graph_core_hash.sql",
+        "sha256": "059749c8ccb35c2147ad63991059ffd3db34314f6d05186ac6f244641f9953c1"
+      },
+      "supabase_cli_version": "2.101.0",
+      "postgres_server_version": "17.6",
+      "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
+      "workflow_job_conclusion": "success",
+      "native_tests": "NOT_RUN",
+      "browser_tests": "NOT_RUN",
+      "type_schema_comparison": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "whole_approval": false
+    },
+    "previous_active_fields": {
+      "generated_at": "2026-10-30T23:06:23.379405+00:00",
+      "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run41138002145-job124345113427-attempt1",
+      "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of PR973: gridex_ediel_retention.audit19_source_contract_v1 requalifies the onboard_customer_graph_core hash after the Ediel CAS redefinition. Generated types are unchanged. Native/parity/production installation remain unverified.",
+      "composition_note": "Byte-exact RAW3 from run41138002145/job124345113427 source 4551eff26b91c89c79bfd77723f9fd7345ee305f/tree 4a2cac873efc8694f89d25d4985e637c590f61ca. Previous active values are archived under pr973_audit19_genuine_ordinary_capture_adoption_20261030.previous_active_fields. Capture only; new-head native, upgrade/parity and mandatory CI remain required; no production installation or whole approval."
+    },
+    "source_manifest_preimage_sha256": "917e7597e7e2e02e4d8cdefdba69043eb5dbcf18b154abeda5b31e096e1fb3ea"
   }
 }
