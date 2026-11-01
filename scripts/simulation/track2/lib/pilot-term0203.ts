@@ -249,8 +249,8 @@ export async function runPreparedTerm0203Pilot(input: PilotInput, ports: PilotPo
   const oracle = oracleAllModes({ intervals: intervals.map(() => ({ kwh: '0', price: '0' })), terms })
   if (new Set(Object.values(oracle).map(v => `${v.totalExVatOre}/${v.totalVatOre}/${v.totalIncVatOre}`)).size !== 1) throw Error('pilot_rounding_policy_needed')
   const expected = oracle.half_away, actualLines = appLinesOre(preview)
-  const expectedNonzero = expected.lines.filter(v => v.exVatOre !== 0n || v.vatOre !== 0n)
-  if (actualLines.filter(v => v.exVatOre !== 0n || v.vatOre !== 0n).length !== expectedNonzero.length) throw Error('pilot_unexpected_pricing_line')
+  const expectedNonzero = expected.lines.filter(v => v.exVatOre !== BigInt(0) || v.vatOre !== BigInt(0))
+  if (actualLines.filter(v => v.exVatOre !== BigInt(0) || v.vatOre !== BigInt(0)).length !== expectedNonzero.length) throw Error('pilot_unexpected_pricing_line')
   for (const line of expectedNonzero) {
     const found = actualLines.filter(v => v.kind === line.code)
     if (found.length !== 1 || found[0].exVatOre !== line.exVatOre || found[0].vatOre !== line.vatOre) throw Error('pilot_pricing_line_mismatch')
