@@ -1,0 +1,167 @@
+{
+  "schema": "gridex-t2-hosted-requirements-v1",
+  "state": "SOURCE_REVIEW_REQUIRED_NOT_PROVISIONED",
+  "provisioned": false,
+  "runner": "ubuntu-24.04",
+  "lifecycle": [
+    "prepare",
+    "qualify",
+    "scenario",
+    "always-cleanup"
+  ],
+  "minimumRAMBytes": 8589934592,
+  "minimumDockerFreeBytes": {
+    "overlay2": 16106127360,
+    "overlayfs": 16106127360,
+    "vfs": 42949672960
+  },
+  "toolchain": {
+    "nodeMajor": 22,
+    "supabaseCLI": "2.101.0",
+    "supabaseGo": "2.101.0",
+    "supabaseGoCanonicalFile": "adjacent-to-canonical-supabase/supabase-go",
+    "postgresMajor": 17,
+    "pythonMinimum": "3.11",
+    "opensslMinimum": "3.0",
+    "nodeExact": "22.22.0",
+    "npmExact": "10.9.2"
+  },
+  "requiredBindings": [
+    "sourceCommit",
+    "sourceTree",
+    "ownedSourceFiles",
+    "sourceFiles",
+    "github",
+    "sourceCustody",
+    "startupAttempt",
+    "genSource",
+    "inputEpoch",
+    "budget",
+    "expiresAt",
+    "cleanupExpiresAt",
+    "ports",
+    "syntheticActors",
+    "clock",
+    "cleanupPolicy",
+    "scenario",
+    "canonicalReplaySHA256",
+    "schemaFingerprint",
+    "pilotId",
+    "mailCapabilities",
+    "pilotMailbox",
+    "pilotTerm0203.materialSpecificationSha256",
+    "bootstrapProofSHA256",
+    "installationPolicy"
+  ],
+  "admissionPublicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAU8tvHM1A+pq+UoMH+vCpZRFZCWJpRernZ8TPewkM1TM=\n-----END PUBLIC KEY-----\n",
+  "activationPrerequisites": [
+    "two-independent-final-source-reviews",
+    "qualified-current-integrated-app-and-GEN-source",
+    "actual-separate-backend-and-producer-custody",
+    "actual-run-and-recipient-bound-CMS-delivery-before-any-backend-start",
+    "independently-reviewed-pristine-canonical-same-shell-lifetime-and-real-native-proof"
+  ],
+  "wholeScenarioAcceptance": "HOLD_INDEPENDENT_EFFECT_REVIEW_REQUIRED",
+  "privateAdmissionTransport": {
+    "version": "t2-cms-recipient-v1",
+    "publicNoticeTitle": "T2_CMS_RECIPIENT_V1",
+    "deliveryTagPrefix": "refs/tags/t2-private-admission/",
+    "waitSeconds": 600,
+    "recipientKey": "ephemeral-same-host-RSA4096-owner0600",
+    "keyWrapping": "RSA-OAEP-SHA256-MGF1-SHA256",
+    "contentCipher": "AES-256-GCM",
+    "signedPayload": "existing-pinned-Ed25519-exact-input",
+    "environmentOrSecretAdministration": false,
+    "pilotGate": "TERM02.03 requires actual decrypted-and-authenticated input before any backend start",
+    "payloadFields": [
+      "assignment",
+      "signature",
+      "materials"
+    ],
+    "assignmentBytesMaximum": 65536,
+    "materialPacketBytesMaximum": 131072,
+    "cmsBytesMaximum": 524288
+  },
+  "runtimeReadiness": "SOURCE_IMPLEMENTED_NOT_NATIVE_QUALIFIED",
+  "pilotMailboxImage": "greenmail/standalone@sha256:beb3cfe6ec697592164a60515d7bd9164f3f29170b02e83e8defabdfe3da2c1d",
+  "pilotProfile": {
+    "pilotId": "TERM02.03",
+    "scenario": "scenarios/pilot-term0203.test.ts",
+    "mailCapabilities": {
+      "mode": "GREENMAIL_TLS_ONLY",
+      "smtps": "VERIFIED_TLS",
+      "imaps": "VERIFIED_TLS",
+      "legacySmtp": "RESERVED_NOT_USED",
+      "mailHttp": "RESERVED_NOT_USED"
+    },
+    "canonicalDBPort": 54322
+  },
+  "businessAcceptance": "HOLD_E66_HISTORY_ISSUER_AND_FILE_EXPORT_ORDINARY_SOURCE_GATES",
+  "privateMaterialPacket": {
+    "schema": "gridex-t2-term0203-materials-v1",
+    "exactFields": [
+      "schema",
+      "assignmentSha256",
+      "sourceCommit",
+      "environmentId",
+      "specification"
+    ],
+    "specificationHash": "SHA256 UTF8 JS JSON.stringify compatible typed strings/objects/arrays in preserved property order",
+    "runtimePath": "RUNNER_TEMP/t2-admission-rendezvous/materials.json",
+    "environmentPathOnly": "SIM_TERM0203_MATERIALS_FILE",
+    "permissions": "directory0700 file0600; canonical no symlinks; owner uid",
+    "earlyGate": "receiver and actual prepare/up/run validate bindings/size/privatepath/appointmentexpiry before backend; raw received digest checked again"
+  },
+  "bootstrapRecipientCertificate": "-----BEGIN CERTIFICATE-----\nMIIFQzCCAyugAwIBAgIUIushdEUmN9L7djS0LT+/1g+0/5kwDQYJKoZIhvcNAQEL\nBQAwMTEvMC0GA1UEAwwmZ3JpZGV4LXQyLWJvb3RzdHJhcC1yZWNpcGllbnQtMjAy\nNjExMDEwHhcNMjYxMTAxMTgxODEwWhcNMjYxMjAxMTgxODEwWjAxMS8wLQYDVQQD\nDCZncmlkZXgtdDItYm9vdHN0cmFwLXJlY2lwaWVudC0yMDI2MTEwMTCCAiIwDQYJ\nKoZIhvcNAQEBBQADggIPADCCAgoCggIBAKYxY69tGgLWLLjuMapAnNIJffRQ/sWI\nEW8FhkVqUbp3LoOOI6PkZhL87Vi2gFb+nmLAfcdim3p4XEIhMSzXlt5RgvHHCfCN\nAKgER1MBANwmztrEYYUix5ksvQCsa0I/wlLyy8xL4cKpUNMMMhx/4A4KnXYbB8zj\nJxQ5COm9ldYzjotmcktfYjUs9VMkDELOhK3BG6hi6klkJkYNBiCEaXKYYhbJJUai\nAqLj4DxdnJlYh4OYYfU7wlGUmV0ALYUCKQWC30gHYS4Yg1cdxxjubZXf9mJpKDYL\n0CEI8VxMPFpufY0bNGnVGgvt/Q4IzQcrkX+5oE9QJCKX4lWHIVM7Bc44ypg0jNsB\nIWjjIrmChCFMKxTokkmbx1OctVGp2JW0w3sqd+Z5gFXVd2DeF8L+iKMxnOqvO0eX\nrZNOMxQ1uuT2LSqHO8quudKyrgijltcM9/7Tg0YEWl8UDkGLs26ZP1pvJ2AJze8B\npyTHoMDUs3DMJFgOALTVpYVRbJAHdk6dVWqSZ0kh3GdJt6EE+CAiU/XMHTxBM8nl\n9ThmvNjiPw8YLgiFIed+uGoXtcGtgSU72yxQXIsEu/4H4IzFZC2lmWQAAC8Depnd\nQ2PHGIpIki/OuD1ivcA2sLpYtQ/6ECNJ0bq+wnR22+CiTPLm4PrN+/YuksjYEHhJ\nyXqqee04KmfHAgMBAAGjUzBRMB0GA1UdDgQWBBSS7JFOonDNu9hDbL0wcgtbUPup\n9TAfBgNVHSMEGDAWgBSS7JFOonDNu9hDbL0wcgtbUPup9TAPBgNVHRMBAf8EBTAD\nAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQBNZ6v4qH7ekQMK+C05L+E2EZJLS5gAjVzx\nU2zBmdFxZHMwhiWup+YwO/mCXlT82W+HYJL45ctCPpDVLaiuzXO1Vr1dnF1XFqrD\nBa9WKDJHexEKte3P3kjtfEUdRU3bwikcA48GuoVecQv05XcHYsVSCve4kiD0aS+Z\nq522Z35x8TMpUs6YZg+FIBpV+HbvBwXBAVbQWgFtrXiFiaSQ+mtOKIAx3K1m26HY\n8YQEgB7q5m/UQT4vClB6ihedrroayAu7lCumS7cuGSR6Dl7/qlkq7MSVr0RBGlZ6\neUvy7s1sNsQTL+PLZpscl4Xv1BOTrNIBdrHqapkfm6FWYgJQAmLW/A1DcN5QGcDV\nVfpRZAQUQWz3kcbWikkPZV68PIdoHr81vg6R8WcWAcl1WH87K3bNWp9/CvKdAzPk\nYH8UiesaTvnV+7wVWAJsMgsNg8yRYM+KQKlQeeoNLhA2qeIcicb5vn/67SooHcrU\nbjCOQQ2Ur2aDioCslcow5T8UOfIvZcbYwNkJCRWEcI4HXZtM6BbgdmrgLw5TYp70\nQIcs+oex8FL96WB7YQTO20XGHOBQkw3K8RMZP6ylgNbnWxIrcZHi6sGBlcYI/bZ7\n4T3ZY7wLBJnZQY/cpaqKfcfDzS825fbE8YukpulhgsiyO1MxKrya1hNj6J9X2Rsz\nyHqnmzQtHA==\n-----END CERTIFICATE-----\n",
+  "bootstrapRecipientCertificateSHA256": "9fa5942683e1520eb5f0623e6938b1a6b670aaadfcdcb01f6148881da2828851",
+  "bootstrap": {
+    "state": "OBSERVATION_ONLY_NOT_ACTIVE",
+    "privateProofMaximumBytes": 24576,
+    "maxAgeMinutes": 45,
+    "sameHostRevalidation": true,
+    "prHostReusableForTerm": false,
+    "noHeavyBeforeBoundInput": true,
+    "noticeTransport": {
+      "schema": "cms-framed-v1",
+      "headerTitle": "T2_BOOTSTRAP_PROOF_V1",
+      "chunkTitle": "T2_BOOTSTRAP_CIPHER_V1",
+      "maximumMessageBytes": 3500,
+      "base64ChunkCharacters": 2400,
+      "maximumCipherBytesExclusive": 24576,
+      "maximumAnnotations": 100,
+      "binding": "each indexed unique chunk hashes whole header including exact run/source/job/attempt/proofSHA/cipherSHA/count; origin job/check independently authenticated"
+    }
+  },
+  "qualifiedImagePolicy": {
+    "images": {
+      "ghcr.io/supabase/postgres@sha256:3e2a7ab48783077d0122dc72ed5174afb543110c38266c845716c51d130658e4": "sha256:56da3fb43b03aca9b8fa264c156177dd204f722e9500e8d80008f5c9f7b82985",
+      "ghcr.io/supabase/kong@sha256:e21b0b793879ab96720ed4188f9441260273f4bf775bcbff8d435e019ffb759a": "sha256:3cefb958bcd694597b65adc00053a762b1f9a6df3c6031af528d052d75a64e1a",
+      "ghcr.io/supabase/postgrest@sha256:78c0a947ae556093def31de0b76c37d36ca09394d603a6e61785f4c0008aeb12": "sha256:fe5428d51d9805147859ed38db0a26e9e424c4639dc851733e99a86829e1d5aa",
+      "ghcr.io/supabase/postgres-meta@sha256:97c0d82ff90b54c04992ca1a5f2253acd89775fd288f67bdeac7db54ab6d5343": "sha256:103063d9a3652760363e8f924b0d1ae2e742d4fe8807a9eccdb5384a46a70c89",
+      "ghcr.io/supabase/gotrue@sha256:61f1099e790c4f364b70d6fb92cc07e5f90275abf2cf690ff045c63f1d96ee4b": "sha256:b061f1fa636f31bc01de0a791986352e82772760cce8e1d55bbec6f552930a1e",
+      "ghcr.io/supabase/realtime@sha256:630c1f1e1443762c100147decca9cf87afe52f22a8a96d30fe7d8782741f19fb": "sha256:65d7549b3ce537cef75da797ac8018ce2c1bcd89fdbd9adabbf98b54ea4aa759",
+      "ghcr.io/supabase/storage-api@sha256:6395ec6600b89e8133ae65e2b203d04f37a24d3626144ea2cb21973bfaa2471c": "sha256:da6409e5fd135ab8895f0c344f82066d99c107ca1031ed4a1ab1d33f0b775572",
+      "greenmail/standalone@sha256:beb3cfe6ec697592164a60515d7bd9164f3f29170b02e83e8defabdfe3da2c1d": "sha256:f5fca47c13932f010ebfce59994709fad0f66382b93b15d242515194c085a8f1"
+    },
+    "imageSelectors": {
+      "ghcr.io/supabase/postgres:17.6.1.155": "ghcr.io/supabase/postgres@sha256:3e2a7ab48783077d0122dc72ed5174afb543110c38266c845716c51d130658e4",
+      "ghcr.io/supabase/kong:2.8.1": "ghcr.io/supabase/kong@sha256:e21b0b793879ab96720ed4188f9441260273f4bf775bcbff8d435e019ffb759a",
+      "ghcr.io/supabase/postgrest:v14.10": "ghcr.io/supabase/postgrest@sha256:78c0a947ae556093def31de0b76c37d36ca09394d603a6e61785f4c0008aeb12",
+      "ghcr.io/supabase/postgres-meta:v0.96.4": "ghcr.io/supabase/postgres-meta@sha256:97c0d82ff90b54c04992ca1a5f2253acd89775fd288f67bdeac7db54ab6d5343",
+      "ghcr.io/supabase/gotrue:v2.188.1": "ghcr.io/supabase/gotrue@sha256:61f1099e790c4f364b70d6fb92cc07e5f90275abf2cf690ff045c63f1d96ee4b",
+      "ghcr.io/supabase/realtime:v2.86.3": "ghcr.io/supabase/realtime@sha256:630c1f1e1443762c100147decca9cf87afe52f22a8a96d30fe7d8782741f19fb",
+      "ghcr.io/supabase/storage-api:v1.54.1": "ghcr.io/supabase/storage-api@sha256:6395ec6600b89e8133ae65e2b203d04f37a24d3626144ea2cb21973bfaa2471c",
+      "docker.io/greenmail/standalone:2.1.3": "greenmail/standalone@sha256:beb3cfe6ec697592164a60515d7bd9164f3f29170b02e83e8defabdfe3da2c1d"
+    },
+    "metadataProofSHA256": "85ab11d33930999866a6e433d3e5cbdff2e50c0a0cd4527d3e3dccb373866374"
+  },
+  "qualifiedToolHashes": {
+    "node": "1bec56ef7cfa9a76f3e0b7c0a87f220eb73f23102b9c0b4c7529a3f7c3ce7c31",
+    "supabase": "b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f",
+    "supabase-go": "9dd9e81a21074081328b77a27a8aef7be45a2828f81d99c4e1fb65efbec73947",
+    "psql": "3dfa07948610868b5b97e292eaa294651a599b338e792a96ab0e4191f06a2c4a",
+    "pg_dump": "a656502909efe19336fc411e89abba2a32b5bfaecdb959a7acb4b4523ed5a15d",
+    "npm": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7"
+  },
+  "qualifiedToolArtifactProofSHA256": "44c66d9603dbf54cda6928d0eada4c16c5136b5bffcc796383c2ad0500679930"
+}

@@ -1,0 +1,156 @@
+name: T2 disposable TERM runtime
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/t2-term-disposable.yml'
+      - 'scripts/simulation/track2/**'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Read-only bootstrap or fully admitted native lifecycle
+        type: choice
+        options: [bootstrap, admitted]
+        default: bootstrap
+permissions:
+  contents: read
+  actions: read
+jobs:
+  source-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - run: python3 -B scripts/simulation/track2/hosted/qualification.test.py
+      - run: bash -n scripts/simulation/track2/{up,run,down}.sh scripts/simulation/track2/lib/common.sh scripts/simulation/track2/hosted/{prepare,cleanup}.sh
+  bootstrap-probe:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      SIM_BOOTSTRAP_MODE: pr-probe
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Observe this PR host without installation or backend allocation
+        run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation bootstrap-observe
+  allocation:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    outputs:
+      run-id: ${{ github.run_id }}
+      source-head: ${{ github.sha }}
+    steps:
+      - name: Expose invocation identity for T2 admission binding
+        env:
+          RUN_ID: ${{ github.run_id }}
+          SOURCE_HEAD: ${{ github.sha }}
+        run: printf 'T2 invocation %s source %s; backend not provisioned\n' "$RUN_ID" "$SOURCE_HEAD"
+  term:
+    if: github.event_name == 'workflow_dispatch'
+    needs: [source-contracts, allocation]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      SIM_BOOTSTRAP_MODE: ${{ inputs.mode }}
+      SIM_REQUIRE_ACTOR_RECEIPT: '1'
+      NODE_OPTIONS: --max-old-space-size=6144
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Bind private runtime paths from actual runner process environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${RUNNER_TEMP:?actual runner temp required}" "${GITHUB_WORKSPACE:?actual workspace required}" "${GITHUB_ENV:?actual environment file required}"
+          printf '%s\n' "SIM_RUNTIME_ASSIGNMENT_FILE=$RUNNER_TEMP/t2-admission.json" "SIM_HOME=$RUNNER_TEMP/t2-runtime" "RUN_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Observe actual same-host boot, daemon, capacity and source before heavy work
+        run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation bootstrap-observe
+      - name: Receive encrypted private run-bound admission on this same host
+        if: inputs.mode == 'admitted'
+        run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation receive-admission
+      - name: Validate assignment-bound private materials before backend allocation
+        if: inputs.mode == 'admitted'
+        run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation check-materials
+      - name: Authenticate source before dependency scripts
+        if: inputs.mode == 'admitted'
+        run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation check-source
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        if: inputs.mode == 'admitted'
+        with:
+          node-version: 22.22.0
+          cache: npm
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb
+        if: inputs.mode == 'admitted'
+        with:
+          version: 2.101.0
+      - name: Install source-pinned npm without lifecycle scripts
+        if: inputs.mode == 'admitted'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --connect-timeout 10 --max-time 60 -o "$RUNNER_TEMP/npm-10.9.2.tgz" https://registry.npmjs.org/npm/-/npm-10.9.2.tgz
+          echo '5cd1e5ab971ea6333f910bc2d50700167c5ef4e66da279b2a3efc874c6b116e4  '"$RUNNER_TEMP/npm-10.9.2.tgz" | sha256sum --check --status
+          npm install --global --ignore-scripts --no-audit --no-fund "$RUNNER_TEMP/npm-10.9.2.tgz"
+      - name: Install verified PostgreSQL17 client and ABI dependency packages
+        if: inputs.mode == 'admitted'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --connect-timeout 10 --max-time 60 -o "$RUNNER_TEMP/postgresql-client-17.deb" https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-17/postgresql-client-17_17.11-1.pgdg24.04+2_amd64.deb
+          curl -fsS --connect-timeout 10 --max-time 60 -o "$RUNNER_TEMP/libpq5.deb" https://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-18/libpq5_18.6-1.pgdg24.04+2_amd64.deb
+          echo 'b3b071b67a814a382516d6f6241b529c52f909672457e2f48083acce047b634f  '"$RUNNER_TEMP/postgresql-client-17.deb" | sha256sum --check --status
+          echo 'b487c5ed2ceb9244c6a9d6ae65818ed6707c3c44a2e14488394ae4194c52c53b  '"$RUNNER_TEMP/libpq5.deb" | sha256sum --check --status
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "$RUNNER_TEMP/libpq5.deb" "$RUNNER_TEMP/postgresql-client-17.deb"
+          echo '/usr/lib/postgresql/17/bin' >> "$GITHUB_PATH"
+      - name: Verify signed install policy and install exact lock dependencies privately
+        if: inputs.mode == 'admitted'
+        run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation install-dependencies
+      - name: Prime only signed immutable image inventory on this admitted host
+        if: inputs.mode == 'admitted'
+        run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation prime-images
+      - name: Replay, consume and restore within one owned canonical shell
+        if: inputs.mode == 'admitted'
+        shell: bash
+        run: |
+          # No raw replay/build/assignment output enters Actions logs/artifacts.
+          umask 077
+          if ! bash scripts/simulation/track2/hosted/prepare.sh --execute > "$RUNNER_TEMP/t2-prepare.private.log" 2>&1; then
+            echo 'T2 supervised replay/consumer lifecycle HOLD; no acceptance claimed'
+            exit 1
+          fi
+      - name: Always clean exact owned resources on this host
+        if: always() && inputs.mode == 'admitted'
+        shell: bash
+        run: |
+          umask 077
+          if [[ -f "$SIM_RUNTIME_ASSIGNMENT_FILE" && -f "$SIM_RUNTIME_ASSIGNMENT_FILE.sig" ]]; then
+            if ! bash scripts/simulation/track2/down.sh --full > "$RUNNER_TEMP/t2-cleanup.private.log" 2>&1; then
+              echo 'T2 cleanup HOLD; no blanket deletion; private journal retained'
+              exit 1
+            fi
+          fi
+      - name: Create strictly allowlisted safe summary
+        if: always() && inputs.mode == 'admitted'
+        run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation safe-summary
+      - name: Export only safe review receipt
+        if: always() && inputs.mode == 'admitted'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: t2-safe-receipt-${{ github.run_id }}
+          path: ${{ runner.temp }}/t2-safe-receipt.json
+          if-no-files-found: error
+          retention-days: 7
+      # No raw logs, keys, fixtures or assignment/receipt journals are uploaded.
