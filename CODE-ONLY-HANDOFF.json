@@ -1,0 +1,204 @@
+{
+  "format": "t4-to-t3-code-only-source-handoff-v1",
+  "purpose": "Source transfer for T3 own post-hostproof importer/signing adaptation only",
+  "repository": "heke99/gridex-ops-platform",
+  "donors": {
+    "profile": {
+      "commit": "0a06e96abfef3c66228289f2f71924619393c644",
+      "tree": "a324eafcb7cc3ff48490fad3544c1a780077a9a3",
+      "tag": "refs/tags/agent-source-handoffs/t4-code-only/20261101-profile-0a06e96a",
+      "onlyNewDonorPaths": [
+        ".github/workflows/t4-atomic-native.yml",
+        "__tests__/simulation-track4-atomic-native-profile.test.ts",
+        "scripts/simulation/track4/atomic-native-profile.mjs"
+      ]
+    },
+    "preparer": {
+      "commit": "9e46259e8c312ebbc2e23451769e76906ffc7188",
+      "tree": "efe919d6494865c8a68a2d414dc3bd6a119cbefe",
+      "tag": "refs/tags/agent-source-handoffs/t4-code-only/20261101-preparer-9e46259e",
+      "onlyNewDonorPaths": [
+        "__tests__/simulation-track4-atomic-native-preparation.test.ts",
+        "scripts/simulation/track4/lib/atomicNativePreparation.mjs",
+        "scripts/simulation/track4/prepare-atomic-native.mjs"
+      ]
+    }
+  },
+  "files": [
+    {
+      "donor": "profile",
+      "commit": "0a06e96abfef3c66228289f2f71924619393c644",
+      "path": ".github/workflows/t4-atomic-native.yml",
+      "blob": "e5e21e5d5b8b2bf54417a6c6e4332be1f231a7fd",
+      "bytes": 14823,
+      "sha256": "b0712f86e876bea9591b1d0ce498df82c7ef9e2fad71db8e9fdfb26b13467f9c",
+      "literalImports": [],
+      "url": "https://github.com/heke99/gridex-ops-platform/blob/0a06e96abfef3c66228289f2f71924619393c644/.github/workflows/t4-atomic-native.yml",
+      "rawUrl": "https://raw.githubusercontent.com/heke99/gridex-ops-platform/0a06e96abfef3c66228289f2f71924619393c644/.github/workflows/t4-atomic-native.yml"
+    },
+    {
+      "donor": "profile",
+      "commit": "0a06e96abfef3c66228289f2f71924619393c644",
+      "path": "__tests__/simulation-track4-atomic-native-profile.test.ts",
+      "blob": "91a852489dad245d13369e44a187b73da13dadd3",
+      "bytes": 69250,
+      "sha256": "52f69119ad2525796943206872bca72ad087d330bedc6c9720204af74d9ee621",
+      "literalImports": [
+        "../scripts/simulation/track4/atomic-native-profile.mjs",
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:module",
+        "node:os",
+        "node:path",
+        "node:zlib",
+        "vitest"
+      ],
+      "url": "https://github.com/heke99/gridex-ops-platform/blob/0a06e96abfef3c66228289f2f71924619393c644/__tests__/simulation-track4-atomic-native-profile.test.ts",
+      "rawUrl": "https://raw.githubusercontent.com/heke99/gridex-ops-platform/0a06e96abfef3c66228289f2f71924619393c644/__tests__/simulation-track4-atomic-native-profile.test.ts"
+    },
+    {
+      "donor": "profile",
+      "commit": "0a06e96abfef3c66228289f2f71924619393c644",
+      "path": "scripts/simulation/track4/atomic-native-profile.mjs",
+      "blob": "d572433d5e20fd208598f6bc98720ee80e5be692",
+      "bytes": 128070,
+      "sha256": "1a7bf147feda28dbd8db68ed7684bd71c960f23abd701ea4b4c0d1761c478cac",
+      "literalImports": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:module",
+        "node:os",
+        "node:path",
+        "node:url",
+        "node:zlib"
+      ],
+      "url": "https://github.com/heke99/gridex-ops-platform/blob/0a06e96abfef3c66228289f2f71924619393c644/scripts/simulation/track4/atomic-native-profile.mjs",
+      "rawUrl": "https://raw.githubusercontent.com/heke99/gridex-ops-platform/0a06e96abfef3c66228289f2f71924619393c644/scripts/simulation/track4/atomic-native-profile.mjs"
+    },
+    {
+      "donor": "preparer",
+      "commit": "9e46259e8c312ebbc2e23451769e76906ffc7188",
+      "path": "__tests__/simulation-track4-atomic-native-preparation.test.ts",
+      "blob": "e30ced78b9ea33d861f7368c0f5dd667638dfef0",
+      "bytes": 34016,
+      "sha256": "454bc649a86e3c14dfc85541595a256107ab134b34fa1d7362b1ebb920b7d851",
+      "literalImports": [
+        "../scripts/simulation/track4/lib/atomicNativePreparation.mjs",
+        "../scripts/simulation/track4/prepare-atomic-native.mjs",
+        "@electric-sql/pglite",
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "vitest"
+      ],
+      "url": "https://github.com/heke99/gridex-ops-platform/blob/9e46259e8c312ebbc2e23451769e76906ffc7188/__tests__/simulation-track4-atomic-native-preparation.test.ts",
+      "rawUrl": "https://raw.githubusercontent.com/heke99/gridex-ops-platform/9e46259e8c312ebbc2e23451769e76906ffc7188/__tests__/simulation-track4-atomic-native-preparation.test.ts"
+    },
+    {
+      "donor": "preparer",
+      "commit": "9e46259e8c312ebbc2e23451769e76906ffc7188",
+      "path": "scripts/simulation/track4/lib/atomicNativePreparation.mjs",
+      "blob": "1f5320e471abd91f0a60f7ac902ca414b79931a3",
+      "bytes": 22685,
+      "sha256": "bd520d9fcb5fdbe62b560046b9d0d04bc7229ea961351a8d829332669b124805",
+      "literalImports": [
+        "node:crypto",
+        "node:util"
+      ],
+      "url": "https://github.com/heke99/gridex-ops-platform/blob/9e46259e8c312ebbc2e23451769e76906ffc7188/scripts/simulation/track4/lib/atomicNativePreparation.mjs",
+      "rawUrl": "https://raw.githubusercontent.com/heke99/gridex-ops-platform/9e46259e8c312ebbc2e23451769e76906ffc7188/scripts/simulation/track4/lib/atomicNativePreparation.mjs"
+    },
+    {
+      "donor": "preparer",
+      "commit": "9e46259e8c312ebbc2e23451769e76906ffc7188",
+      "path": "scripts/simulation/track4/prepare-atomic-native.mjs",
+      "blob": "ed1a03cef760b4406f98a539f2ff281fff377148",
+      "bytes": 30729,
+      "sha256": "a752a7573f3e4f7d06d92fbd26ced8b5fcfa1bdf1ef6f8a2814f1e0f3014ef23",
+      "literalImports": [
+        "./lib/atomicNativePreparation.mjs",
+        "@supabase/ssr",
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "node:url"
+      ],
+      "url": "https://github.com/heke99/gridex-ops-platform/blob/9e46259e8c312ebbc2e23451769e76906ffc7188/scripts/simulation/track4/prepare-atomic-native.mjs",
+      "rawUrl": "https://raw.githubusercontent.com/heke99/gridex-ops-platform/9e46259e8c312ebbc2e23451769e76906ffc7188/scripts/simulation/track4/prepare-atomic-native.mjs"
+    }
+  ],
+  "imports": {
+    "profileModuleTopLevel": "Node builtin modules only; source-only module import is guarded from CLI execution",
+    "preparerPureLibrary": "node:crypto and node:util only",
+    "preparerCLIWrapper": "@supabase/ssr plus adjacent pure library; real Auth/business APIs only if separately admitted CLI deliberately executed",
+    "tests": "vitest; preparation tests additionally @electric-sql/pglite; no test execution is requested by this transfer",
+    "lockedExternalDependencies": {
+      "@supabase/ssr": {
+        "version": "0.9.0",
+        "integrity": "sha512-UFY6otYV3yqCgV+AyHj80vNkTvbf1Gas2LW4dpbQ4ap6p6v3eB2oaDfcI99jsuJzwVBCFU4BJI+oDYyhNk1z0Q=="
+      },
+      "@supabase/supabase-js": {
+        "version": "2.103.0",
+        "integrity": "sha512-j/6q5+LtXbR/YOLSLhy7Na74RD1cV2v+KwIIuuqMEjk1JpLEEyu0ynwDHpGoxMncDQl+R5FogaVqZm+85lZvtw=="
+      },
+      "@electric-sql/pglite": {
+        "version": "0.3.14",
+        "integrity": "sha512-3DB258dhqdsArOI1fIt7cb9RpUOgcDg5hXWVgVHAeqVQ/qxtFy605QKs4gx6mFq3jWsSPqDN8TgSEsqC3OfV9Q=="
+      },
+      "vitest": {
+        "version": "4.1.9",
+        "integrity": "sha512-nE3/LEyc0z87uHYLZebqCUOaJr2hdtuPp7BQ4BosVFnfltxgAvMG08NyrSGlPpOUWvR27c5flSmYFTNr78L9GQ=="
+      },
+      "typescript": {
+        "version": "5.9.3",
+        "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
+      }
+    },
+    "lockfile": {
+      "commit": "9e46259e8c312ebbc2e23451769e76906ffc7188",
+      "path": "package-lock.json",
+      "sha256": "e025dae372c71bf915c0d707c28e70648be2900f219936751ad4dba96100a933",
+      "url": "https://raw.githubusercontent.com/heke99/gridex-ops-platform/9e46259e8c312ebbc2e23451769e76906ffc7188/package-lock.json"
+    },
+    "cryptoImporterOnly": "decryptBootstrapAssignment/selectBootstrapCarrier/readBootstrapCarrier/encryptEvidence require Node builtins only. @supabase/ssr is NOT a crypto importer dependency; it is only the separate preparation CLI wrapper dependency."
+  },
+  "importerContract": {
+    "entrypoints": [
+      "decryptBootstrapAssignment",
+      "selectBootstrapCarrier",
+      "readBootstrapCarrier"
+    ],
+    "signature": "SHA256 with RSA-PSS padding and saltLength32 over recursively key-sorted canonical JSON payload; verifier public key hash pinned in source",
+    "encryption": "fresh AES-256-GCM content key; RSA-OAEP-SHA256 wrapped to actual ephemeral host RSA3072 public key; no host private key exported",
+    "bindings": [
+      "own runId",
+      "runAttempt",
+      "job",
+      "sourceHead",
+      "sourceTree",
+      "bootId",
+      "host proof SHA256",
+      "nonce",
+      "recipient public-key SHA256",
+      "bounded expiry"
+    ],
+    "carrier": "ciphertext-only issue930 JSON <=60000bytes, ciphertext string<=58000; two complete stable authenticated snapshots, capped1000comments, ordered uniqueIDs/body/counts, duplicate/malformed/truncated/foreign/replay refused; adaptive>=45s polls plus actualglobalGitHubcorequota reserve64",
+    "sourceFormats": "t4_private_evidence_envelope_v1; t4_signed_bootstrap_assignment_v1; t4-bootstrap-assignment-envelope-v1 are donor-specific and require reviewed T3 own scope adaptation",
+    "donorBudget": "bootstrap-only deliberately business0/native0; exactfilekeys code-attempt.json/bootstrap-attempt.json; NEVER reinterpret as T3 business/native allocation",
+    "canonicalization": "NORMATIVE: exact profile canonical() recursively serializes object keys using Object.keys(value).sort() (ECMAScript deterministic UTF-16 code-unit order), arrays in existing order, JSON.stringify primitives. Sign the exact resulting UTF-8 bytes. Do NOT substitute localeCompare: the test signer helper is illustrative for its fixed test keys and is not the general payload byte contract."
+  },
+  "keys": "The donor public PEM and EVIDENCE_RECIPIENT_SHA256 are PUBLIC CODE CONSTANTS, not transferred authority. T3 must replace/pin OWN signer/verifier, recipient, namespace and scopes under exact custody and independent reviews. No T4 private key, existing repository secret, allocation journal, private input or backend is included. Never fetch blocked Secrets API data through another endpoint.",
+  "sourceReviews": {
+    "profile": "two independent exact-source final approvals;76 source-component controls and full typechecks/lint/actionlint qualified as relayed by T4 source owner",
+    "preparer": "two independent exact-source final approvals;55 controlled component checks and full typechecks/lint qualified as relayed by T4 source owner",
+    "limits": "Reviews are SOURCE ONLY; no actual hosted proof, assignment, native, GEN or scenario acceptance is transferred."
+  },
+  "runtimeReferences": "Other FROZEN app/proof/build/replay commit pins in donor profile are NOT importer/signature import dependencies, NOT part of this minimal handoff and NOT an execution grant. Both actual importer/preparer prerequisite source commits are tagged/fetchable. Do not invoke full donor CLI or workflow as a shortcut.",
+  "admission": "Tag/create workflows audited ZERO on actualmain51/profile52/preparer51 definitions. No branch push, no Vercel Git branch preview, no PR, CI/native/GEN/dispatch/label/producer acquisition or main integration is authorized. Existing donor heads and all prior refs remain intact.",
+  "recipientNext": "T3 existing sole author may read/hash-verify exact bytes, adapt only its already owned source with OWN keys/scopes; two applicable independent source finals plus actual complete source/run/job/host-bound producer\u2192transport\u2192consumer evidence required before its own separately granted event/admission."
+}
