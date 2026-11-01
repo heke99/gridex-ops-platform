@@ -4,11 +4,12 @@
 // Återhämtningsväg: lib/ediel/recovery/prodatRecovery.ts finns bara för PRODAT; anropet mot CONTRL loggas (utfall, ej antaget).
 import { createHash, randomUUID } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { receivedMail, setSmtpMode } from '../lib/counterparty'
+import { receivedMail } from '../lib/counterparty'
+import { setE03PhysicalSmtp, holdE03Physical } from '../lib/e03-reception'
 import { Evidence } from '../lib/evidence'
 import { newRunContext } from '../lib/seed.mjs'
 import { outboxRow, seedInboundSource, type E03Source } from '../lib/e03-fixture'
-import { capture, drain, flushQueuedInAcceptMode, maxReceivedN, mimeCopiesFor, operatorVisibility, physicalCaptureSince, rfcIdOf, seedWithRetry, sql, Timing } from '../lib/e03-steps'
+import { capture, drainPhysical as drain, flushQueuedInAcceptMode, maxReceivedN, mimeCopiesFor, operatorVisibility, physicalCaptureSince, rfcIdOf, seedWithRetry, sql, Timing } from '../lib/e03-steps'
 
 const run = newRunContext('ediel03-03')
 const evidence = new Evidence()
@@ -16,23 +17,22 @@ const timing = new Timing()
 const seedLog: Array<Record<string, unknown>> = []
 const HANG_MS = 6000
 
-beforeAll(async () => { await setSmtpMode('accept'); evidence.observe('run', { ...run, id: 'EDIEL03.03', hangMs: HANG_MS }); evidence.observe('flush_before', await flushQueuedInAcceptMode(timing)) })
-afterEach(async () => { await setSmtpMode('accept').catch(() => undefined) })
+beforeAll(async () => { await setE03PhysicalSmtp(null, 'accept'); evidence.observe('run', { ...run, id: 'EDIEL03.03', hangMs: HANG_MS }); evidence.observe('flush_before', await flushQueuedInAcceptMode(timing)) })
+afterEach(({ task }) => { if (task.result?.state === 'fail') holdE03Physical() })
 afterAll(async () => {
-  await setSmtpMode('accept').catch(() => undefined)
   evidence.observe('seed_retries', seedLog)
   evidence.observe('timing', { totalsMs: timing.totals, log: timing.log })
   evidence.finalize()
 })
 
 async function lostResponseCase(label: 'drop-after-data' | 'hang', seq: number) {
-  const src: E03Source = await seedWithRetry(timing, `seed-${label}`, (a) => seedInboundSource({ prefix: run.prefix, seq: seq + a * 100 }), seedLog)
+  const src: E03Source = await seedWithRetry(timing, `seed-${label}`, (a) => seedInboundSource({ prefix: run.prefix, seq: seq + a * 100, physical: true }), seedLog)
   expect(src.outboxId, 'CONTRL-outbox skapades inte av koden').toBeTruthy()
   const n0 = await maxReceivedN()
-  if (label === 'hang') await setSmtpMode('hang', { hangMs: HANG_MS }); else await setSmtpMode('drop-after-data')
+  if (label === 'hang') await setE03PhysicalSmtp(src, 'hang', { hangMs: HANG_MS }); else await setE03PhysicalSmtp(src, 'drop-after-data')
   const d1 = await drain(src.outboxId!, timing, `drain-1-${label}`)
   evidence.save(`${label}/drain-1.json`, d1)
-  await setSmtpMode('accept') // återställ direkt; fortsatta steg ska bevisa att ingen omsändning sker trots friskt SMTP
+  await setE03PhysicalSmtp(src, 'accept') // återställ direkt; fortsatta steg ska bevisa att ingen omsändning sker trots friskt SMTP
   const snap = await capture(evidence, `${label}/after-drain-1`, { outboxId: src.outboxId!, ackMessageId: src.ackMessageId!, fromN: n0 })
   const attempt = snap.attempts[0] as Record<string, unknown>
   if (attempt?.entered_at && attempt?.observed_at) timing.add('smtp_transport', `${label} entered->observed`, Date.parse(String(attempt.observed_at)) - Date.parse(String(attempt.entered_at)))
@@ -59,7 +59,7 @@ async function lostResponseCase(label: 'drop-after-data' | 'hang', seq: number) 
 
   // nästa drain: processed 0, ingen ny kopia
   await timing.sleep(`settle-${label}`, 1500)
-  const d2 = await drain(src.outboxId!, timing, `drain-2-${label}`)
+  const d2 = await drain(src.outboxId!, timing, `drain-2-${label}`, [src.outboxId!], { uncertainNoResendProbe: true })
   evidence.save(`${label}/drain-2.json`, d2)
   expect(d2.result).toMatchObject({ processed: 0 })
   expect(((d2.result?.results as Array<{ id: string }> | undefined) ?? []).filter((r) => r.id === src.outboxId)).toHaveLength(0)

@@ -1,9 +1,12 @@
+// physical:true is the explicit EDIEL03.03 ordinary-MIME pilot only.
+// Other original E03 fixtures retain the legacy path below, with no new physical claim.
 // EDIEL03-hjälpare: skapar en inkommande syntetisk UTILTS E66-källa och låter KODENS EGEN väg
 // (createInboundEdielMessage -> processInboundEdielMessage) bygga teknisk CONTRL, outbox-rad och ACK-timers.
 // Ersättningssteg (dokumenterat): raden i inbound_email_messages läggs med SQL (inte via IMAP-poll), eftersom appens
 // poller inte kan slutföra mottagning utan aktör och fastnar i ImapFlow-bakåttrycket (README, kandidatfynd 1-2).
 // Mönster: scripts/ediel-tr-05-recovery-native.test.ts receiveAck() och scripts/helpers/utiltsConsumptionParties.ts
 // receiveUtiltsRetry() på 1c0c088c (raw-insert av inbound_email_messages + createParseResult + createInboundEdielMessage).
+import { receiveE03Physical } from './e03-reception'
 import { randomUUID } from 'node:crypto'
 import { buildUtiltsE66 } from './edifact'
 import { lit, sql, sqlJson } from './seed.mjs'
@@ -72,7 +75,7 @@ export function seedE03Tenant(): string {
   return id
 }
 
-export async function seedInboundSource(o: { prefix: string; seq: number; receivedAt?: Date; process?: boolean }): Promise<E03Source> {
+export async function seedInboundSource(o: { prefix: string; seq: number; receivedAt?: Date; process?: boolean; physical?: boolean }): Promise<E03Source> {
   const { parseEdifactPayload } = await import('@/lib/inbound-mail/edielEmailParser')
   const { createInboundEdielMessage, createParseResult } = await import('@/lib/inbound-mail/inboundStatusUpdater')
   const { processInboundEdielMessage } = await import('@/lib/ediel/flows/inboundProcessing')
@@ -82,6 +85,13 @@ export async function seedInboundSource(o: { prefix: string; seq: number; receiv
   // och den tekniska CONTRL-basen hålls (gridex_ediel_technical_ack.sources.status='held'). Testindikatorn läggs här.
   const e66 = buildUtiltsE66({ prefix: o.prefix, seq: o.seq, receiver: E03_OWN_ID,
     mutate: mode() === 'test' ? (segs) => segs.map((s) => (s.startsWith('UNB+') && !/\+\+1\+\+1$/.test(s) ? `${s}++1` : s)) : undefined })
+  if (o.physical === true) {
+    if (o.process === false) throw new Error('T3_HARNESS_PRECONDITION: physical pilot requires ordinary processing')
+    if (o.receivedAt) throw new Error('T3_HARNESS_PRECONDITION: physical reception clock cannot be fabricated')
+    return receiveE03Physical({ prefix: o.prefix, seq: o.seq, raw: e66.raw, companyId: cid, environment: mode() })
+  }
+  // Retained legacy E03 fixture for other original oracles. This direct-row
+  // path does not qualify the physical .03 worker. process:false is SLA-only.
   const parsed = parseEdifactPayload(e66.raw)
   const mailbox = sql(`SELECT id FROM public.ediel_mailboxes WHERE company_id IS NULL AND environment=${lit(mode())} AND COALESCE(metadata->>'scope','')='platform_shared' LIMIT 1`)
   const mailId = randomUUID()

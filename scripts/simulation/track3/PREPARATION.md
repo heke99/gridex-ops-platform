@@ -219,6 +219,23 @@ Do not broaden global drain authority or replay an uncertain submission. The
 E01 intake/drain path still needs its own complete ordinary-flow applicability
 review before a producer treats this full suite as natively qualified.
 
+The EDIEL03.03 source path explicitly requests physical reception: one MIME
+APPEND followed by one ordinary HTTP intake for the private fixture's assigned
+mailbox. Immutable returned email/source IDs, independently extracted MIME and
+payload hashes, and the causal CONTRL/outbox receipt must agree before transport.
+An ambiguous intake or dispatch remains held; another prefix is not retry
+authority. The second dispatch is solely the original known-uncertain no-resend
+probe. Both drop-after-DATA and hang cases retain their complete physical-copy
+and direct-resend assertions.
+
+The ordinary intake also invokes global inbound/customer job workers and overdue
+monitoring. Its qualified producer must retain an exclusive quiescent phase;
+mailbox selection alone does not restrict those workers. Missing prerequisites
+or foreign pending work must stop the pilot. This physical path is scoped to
+EDIEL03.03; other E03 fixtures retain their existing explicit substitute paths
+and have no new native qualification from this change. The capacity, producer,
+consumer/profile and genuine-input gates above still apply.
+
 The producer needs: a frozen integrated app plus config overlay; reviewed
 backend/canonical-replay/cleanup adapters; real reserved resources; original
 cohort/MIME/actor applicability; complete private plan and mail inputs. This

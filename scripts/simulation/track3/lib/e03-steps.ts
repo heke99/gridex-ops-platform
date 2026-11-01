@@ -1,3 +1,4 @@
+import { dispatchE03Physical } from './e03-reception'
 // EDIEL03-hjälpare för scenarier: tidtagning per kategori, drain via appens HTTP-ingång, bevisinsamling.
 import { createHash } from 'node:crypto'
 import { triggerOutbox } from './app'
@@ -160,4 +161,14 @@ export async function seedWithRetry(timing: Timing, label: string, make: (attemp
     log.push({ label, attempt: 0, error: String((e as Error)?.message ?? e).slice(0, 300), recovery: 'preserve_unknown_partial_seed_no_retry' })
     throw e
   }
+}
+
+/** Physical .03 pilot only; retained legacy drain above remains unqualified for
+ * this path and cannot manufacture the independent physical receipt brand. */
+export async function drainPhysical(ownOutboxId: string, timing: Timing, label: string, ownedIds: readonly string[] = [ownOutboxId], opts: { uncertainNoResendProbe?: boolean } = {}): Promise<DrainOutcome> {
+  if (ownedIds.length !== 1 || ownedIds[0] !== ownOutboxId) precondition('physical .03 pilot requires one exact owned target')
+  const r = await dispatchE03Physical(ownOutboxId, () => triggerOutbox(mode(), 25), opts.uncertainNoResendProbe ?? false)
+  timing.add('drain', label, r.ms)
+  const body = r.body as { result: Record<string, unknown> }
+  return { status: r.status, ms: r.ms, result: body.result, raw: r.body, foreignClaimableBefore: 0 }
 }

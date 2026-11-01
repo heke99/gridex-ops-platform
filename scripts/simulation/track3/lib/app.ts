@@ -13,8 +13,8 @@ async function call(path: string, secret: string, init: RequestInit = {}): Promi
 }
 
 /** app/api/internal/inbound-mail/cron/route.ts */
-export const triggerInbound = (environment: 'test' | 'production' = (process.env.T3_MODE as 'test' | 'production') ?? 'test') =>
-  call(`/api/internal/inbound-mail/cron?environment=${environment}`, env('EDIEL_INBOUND_CRON_SECRET'), { method: 'POST' })
+export const triggerInbound = (environment: 'test' | 'production' = (process.env.T3_MODE as 'test' | 'production') ?? 'test', mailboxId?: string) =>
+  call(`/api/internal/inbound-mail/cron?environment=${environment}${mailboxId ? `&mailboxId=${encodeURIComponent(mailboxId)}` : ''}`, env('EDIEL_INBOUND_CRON_SECRET'), { method: 'POST' })
 
 /** app/api/ediel/outbox/process/route.ts */
 export const triggerOutbox = (environment: 'test' | 'production' = (process.env.T3_MODE as 'test' | 'production') ?? 'test', limit = 25) =>

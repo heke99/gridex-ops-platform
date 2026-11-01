@@ -226,6 +226,7 @@ function steps(queueCount: number) {
     ackCompanyId: 'own-company', ackSourceMessageId: 'source', sourceCompanyId: 'own-company', sourceEnvironment: 'test', direction: 'outbound', family: 'CONTRL' },
   ...(queueCount ? [{ id: 'foreign', status: 'queued' }] : [])]
   const unit = load<ControlledSteps>('lib/e03-steps.ts', {
+    './e03-reception': { dispatchE03Physical: refused },
     'node:crypto': crypto,
     './app': { triggerOutbox: async () => { triggerCalls++; return { status: 200, ms: 1, body: { result: { processed: queueCount } } } } },
     './counterparty': { setSmtpMode: async () => { modeCalls++ }, receivedMail: refused, readReceivedEml: refused },
@@ -258,6 +259,7 @@ function lostResponse(extra: 'none' | 'same-rfc' | 'new-rfc' | 'generic-error' |
   }
   // Execute the real capture, rfcIdOf, mimeCopiesFor, drain and Timing helpers.
   const helper = load('lib/e03-steps.ts', {
+    './e03-reception': { dispatchE03Physical: refused },
     'node:crypto': crypto, './counterparty': counterpart,
     './app': { triggerOutbox: async () => { drainCalls++; if (drainCalls === 1) addMail('<original@example.invalid>');
       return { status: 200, ms: 1, body: { result: { processed: drainCalls === 1 ? 1 : 0, results: [] } } } } },
@@ -268,7 +270,9 @@ function lostResponse(extra: 'none' | 'same-rfc' | 'new-rfc' | 'generic-error' |
       ackCompanyId: fixture.companyId, ackSourceMessageId: fixture.sourceMessageId, sourceCompanyId: fixture.companyId,
       sourceEnvironment: 'test', direction: 'outbound', family: 'CONTRL' }] },
   })
-  const finiteHelper = { ...helper,
+  // Physical receipt admission is qualified separately by the actual reception
+  // module tests. This finite port retains these physical-copy adversaries.
+  const finiteHelper = { ...helper, drainPhysical: helper.drain,
     operatorVisibility: () => ({ deadLetters: [], tasks: [] }),
   }
   const collectEvidence = class extends Evidence {
@@ -279,6 +283,7 @@ function lostResponse(extra: 'none' | 'same-rfc' | 'new-rfc' | 'generic-error' |
     '../lib/evidence': { Evidence: collectEvidence },
     '../lib/seed.mjs': { newRunContext: () => ({ prefix: 'synthetic' }) },
     '../lib/e03-fixture': { outboxRow: outbox, seedInboundSource: async () => fixture },
+    '../lib/e03-reception': { setE03PhysicalSmtp: counterpart.setSmtpMode, holdE03Physical: () => undefined },
     '../lib/e03-steps': finiteHelper,
     '@/lib/ediel/outbox/sendOutboxItem': { sendOutboxItem: async () => ({ status: 'blocked' }) },
     '@/lib/ediel/db': { getEdielMessageById: async () => ({ id: 'ack', company_id: extra === 'wrong-company' ? 'foreign-company' : fixture.companyId,
