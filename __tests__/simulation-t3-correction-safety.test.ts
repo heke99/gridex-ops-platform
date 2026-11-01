@@ -15,6 +15,7 @@ function load<T>(file: string, ports: Record<string, unknown>, bridge = ''): T {
   const exports = {}
   runInNewContext(code + '\n' + bridge, {
     exports, Buffer, process: { env: {} }, Date, console,
+    setTimeout: (fn: () => void) => { fn(); return 1 },
     require: (name: string) => {
       if (!Object.hasOwn(ports, name)) throw new Error('Undeclared import: ' + name)
       return ports[name]
@@ -31,9 +32,20 @@ function flowWith(result: { ok: boolean; error?: string }, thrown?: Error) {
       reprocessInbound: async (id: string) => { calls.push('process:' + id); if (thrown) throw thrown; return result },
     },
     './seed.mjs': {},
+    './e02-outbox': { E02OutboxAdmission: class {
+      assertSources() {}
+      captureOutboxes() { return [] }
+    } },
   })
   const flow = new unit.E02Flow({ save: (name: string, value: unknown) => { saved[name] = value } }, 'owned-mailbox')
   return { flow, calls, saved }
+}
+async function wrappedProcessingFailure(error: unknown) {
+  const unit = load<{ reprocessInbound: (id: string) => Promise<{ ok: true } | { ok: false; error: string }> }>('lib/e02-seed.ts', {
+    '../../../helpers/utiltsConsumptionParties': {}, './seed.mjs': {}, './e02-tenant': {}, 'node:crypto': {},
+    '@/lib/ediel/flows/inboundProcessing': { processInboundEdielMessage: async () => { throw error } },
+  })
+  return unit.reprocessInbound('source-A')
 }
 describe('T3 E02 unknown processing outcome', () => {
   it.each(['57014: canceling statement due to statement timeout', 'statement timeout'])('stops after %s without repeating or processing the next source', async error => {
@@ -60,6 +72,142 @@ describe('T3 E02 unknown processing outcome', () => {
   it('preserves a successful processing result', async () => {
     const c = flowWith({ ok: true })
     await expect(c.flow.groundAndReprocess(['source-A'])).resolves.toMatchObject({ 'source-A': { attempts: 1, reprocess: { ok: true } } })
+  })
+  it.each([
+    'utilts_consumption_correction_not_newer',
+    'utilts_consumption_correction_ancestry_invalid',
+    'utilts_consumption_correction_binding_invalid',
+    'utilts_consumption_late_history',
+    'utilts_consumption_stale_version',
+  ])('retains the actual PostgREST wrapper result for %s', async message => {
+    const result = await wrappedProcessingFailure({ message, code: 'P0U01' })
+    expect(result).toEqual({ ok: false, error: `${message} [P0U01]` })
+    const c = flowWith(result)
+    await expect(c.flow.groundAndReprocess(['source-A'])).resolves.toMatchObject({ 'source-A': { attempts: 1, reprocess: result } })
+    expect(c.calls).toEqual(['grant:source-A', 'process:source-A'])
+  })
+  it.each([
+    { message: 'utilts_consumption_correction_not_newer', code: '57014' },
+    { message: 'utilts_consumption_correction_not_newer', code: 'P0U01', cause: { message: 'connection closed after dispatch' } },
+    { message: 'fetch failed: utilts_consumption_correction_not_newer', code: 'P0U01' },
+  ])('holds an unqualified wrapper error %j', async error => {
+    const result = await wrappedProcessingFailure(error)
+    const c = flowWith(result)
+    await expect(c.flow.groundAndReprocess(['source-A'])).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(c.calls).toEqual(['grant:source-A', 'process:source-A'])
+  })
+})
+
+function receiptFlow(options: { foreign?: boolean; failedHttp?: boolean; processingError?: string; pollError?: string } = {}) {
+  const events: string[] = []
+  let sourceIds: string[] = []
+  let workerCalls = 0
+  class Admission {
+    get sources() { return sourceIds.map(sourceMessageId => ({ sourceMessageId })) }
+    rememberMime() { events.push('remember-mime') }
+    observePoll() { sourceIds = ['source-A']; return sourceIds }
+    assertSources(ids: string[]) {
+      if (ids.some(id => !sourceIds.includes(id))) throw new Error('T3_HARNESS_PRECONDITION: unknown source')
+    }
+    captureOutboxes() { events.push('capture'); return [{ id: 'outbox-A' }] }
+    admit(ids: string[]) {
+      events.push('admit:' + ids.join(','))
+      if (options.foreign) throw new Error('T3_HARNESS_PRECONDITION: unassigned active row')
+      return { workerNeeded: ids.length > 0, assigned: [] }
+    }
+  }
+  const unit = load<{ E02Flow: new (...args: unknown[]) => {
+    putRaw: (mime: Buffer) => Promise<void>
+    poll: (label: string) => Promise<unknown>
+    groundAndReprocess: (ids: string[]) => Promise<unknown>
+    drain: (label: string) => Promise<{ workerInvoked: boolean }>
+  } }>('lib/e02-flow.ts', {
+    'node:crypto': {}, './e02-outbox': { E02OutboxAdmission: Admission },
+    './counterparty': { appendToInbox: async () => { events.push('append') }, receivedMail: async () => [], readReceivedEml: refused },
+    './app': { triggerOutbox: async () => { workerCalls++; events.push('worker'); return { status: options.failedHttp ? 500 : 200, ok: !options.failedHttp, body: { ok: !options.failedHttp }, text: '', ms: 1 } } },
+    './evidence': {}, './mime': {},
+    './inprocess': { runInboundEngineAsAutomationActor: async () => ({ ok: true, result: {
+      inboundEmailMessageIds: ['email-A'], edielMessageIds: ['source-A'], results: [], debug: { errorsByMailbox: [], autoProcessErrors: options.pollError ? [options.pollError] : [] },
+    } }) },
+    './e02-seed': { grantHistoryGround: () => { events.push('grant'); return 1 }, reprocessInbound: async () => { events.push('process'); return options.processingError ? { ok: false, error: options.processingError } : { ok: true } } },
+    './seed.mjs': {},
+  })
+  const flow = new unit.E02Flow({ save() {} }, 'owned-mailbox', 'test', 'own-company')
+  return { flow, events, workers: () => workerCalls }
+}
+describe('T3 E02 receipt admission at mutation boundaries', () => {
+  it('does not process an unreceived source or grant it synthetic history', async () => {
+    const c = receiptFlow()
+    await expect(c.flow.groundAndReprocess(['unknown-source'])).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(c.events).toEqual([])
+  })
+  it('returns an empty phase without invoking the worker', async () => {
+    const c = receiptFlow()
+    await expect(c.flow.drain('empty')).resolves.toMatchObject({ workerInvoked: false })
+    expect(c.workers()).toBe(0)
+  })
+  it('refuses an unassigned active row before invoking the worker', async () => {
+    const c = receiptFlow({ foreign: true })
+    await expect(c.flow.drain('foreign')).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(c.workers()).toBe(0)
+  })
+  it('captures only the first completed processing and consumes its explicit phase assignment', async () => {
+    const c = receiptFlow()
+    await c.flow.putRaw(Buffer.from('own MIME'))
+    await c.flow.poll('received')
+    await c.flow.groundAndReprocess(['source-A'])
+    await c.flow.drain('first')
+    await c.flow.poll('duplicate')
+    await c.flow.groundAndReprocess(['source-A'])
+    await c.flow.drain('duplicate')
+    expect(c.events).toEqual(['append', 'remember-mime', 'grant', 'process', 'capture', 'admit:outbox-A', 'worker', 'grant', 'process', 'admit:'])
+    expect(c.workers()).toBe(1)
+  })
+  it('holds after a failed HTTP outcome instead of trying the worker again', async () => {
+    const c = receiptFlow({ failedHttp: true })
+    await c.flow.poll('received')
+    await c.flow.groundAndReprocess(['source-A'])
+    await expect(c.flow.drain('first')).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    await expect(c.flow.drain('retry')).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(c.workers()).toBe(1)
+  })
+  it('does not retry an unknown processing result from the poll engine', async () => {
+    const c = receiptFlow({ pollError: 'source-A: Okänt fel' })
+    await expect(c.flow.poll('unknown')).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    await expect(c.flow.groundAndReprocess(['source-A'])).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    await expect(c.flow.drain('unknown')).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(c.events).toEqual([])
+    expect(c.workers()).toBe(0)
+  })
+  it('does not capture outputs or send after a returned connection failure', async () => {
+    const c = receiptFlow({ processingError: 'connection closed after dispatch' })
+    await c.flow.poll('received')
+    await expect(c.flow.groundAndReprocess(['source-A'])).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    await expect(c.flow.drain('unknown')).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(c.events).toEqual(['grant', 'process'])
+    expect(c.workers()).toBe(0)
+  })
+  it('retains a qualified business refusal without treating it as an unknown outcome', async () => {
+    const c = receiptFlow({ processingError: 'utilts_consumption_correction_not_newer' })
+    await c.flow.poll('received')
+    await c.flow.groundAndReprocess(['source-A'])
+    await c.flow.drain('refused')
+    expect(c.events).toEqual(['grant', 'process', 'capture', 'admit:outbox-A', 'worker'])
+    expect(c.workers()).toBe(1)
+  })
+  it('keeps the hold even if a previously captured source fails during a later phase', async () => {
+    const options: { processingError?: string } = {}
+    const c = receiptFlow(options)
+    await c.flow.poll('received')
+    await c.flow.groundAndReprocess(['source-A'])
+    await c.flow.drain('first')
+    options.processingError = 'connection closed after dispatch'
+    await expect(c.flow.groundAndReprocess(['source-A'])).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    await expect(c.flow.groundAndReprocess(['source-A'])).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    await expect(c.flow.poll('retry')).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    await expect(c.flow.drain('retry')).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(c.events.filter(event => event === 'capture')).toHaveLength(1)
+    expect(c.workers()).toBe(1)
   })
 })
 
