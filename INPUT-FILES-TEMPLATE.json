@@ -1,0 +1,32 @@
+[
+  {
+    "directory": "authority",
+    "name": "producer-capsule.json",
+    "base64Bytes": null,
+    "sha256": null
+  },
+  {
+    "directory": "authority",
+    "name": "backend-capsule.json",
+    "base64Bytes": null,
+    "sha256": null
+  },
+  {
+    "directory": "authority",
+    "name": "user-native-mandate.json",
+    "base64Bytes": null,
+    "sha256": null
+  },
+  {
+    "directory": "authority",
+    "name": "independent-review-1.json",
+    "base64Bytes": null,
+    "sha256": null
+  },
+  {
+    "directory": "authority",
+    "name": "independent-review-2.json",
+    "base64Bytes": null,
+    "sha256": null
+  }
+]
