@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { preparationProducerScope, prepareAtomicNative } from '../scripts/simulation/track4/lib/atomicNativePreparation.mjs'
+import { preparationProducerScope, prepareAtomicNative, observeMemoryBoundary } from '../scripts/simulation/track4/lib/atomicNativePreparation.mjs'
 
 import { chmodSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -8,6 +8,15 @@ import { createHash } from 'node:crypto'
 import { createOutputHome, main, readPrivateJson, realAdapters, verifyLocalDockerBindings, verifyNeutralProducerCapsule, FINAL_SOURCE_PREDICATE } from '../scripts/simulation/track4/prepare-atomic-native.mjs'
 
 import { PGlite } from '@electric-sql/pglite'
+
+function qualifiedMemory(limit = 16 * 2 ** 30) {
+  const files = new Map([['/proc/meminfo', 'MemTotal: 16777216 kB'], ['/proc/self/cgroup', '0::/owned/job'],
+    ['/proc/self/mountinfo', '1 0 0:1 / /sys/fs/cgroup rw - cgroup2 cgroup2 rw'],
+    ['/sys/fs/cgroup/owned/memory.max', String(limit)], ['/sys/fs/cgroup/owned/job/memory.max', 'max']])
+  return observeMemoryBoundary({ mount: () => ({ fsType: 0x63677270, directory: true, symlink: false }), read: (path: string) => { if (!files.has(path)) throw Object.assign(new Error(), { code: 'ENOENT' }); return files.get(path)! },
+    namespace: () => ({ status: 'OBSERVED', system: 'Linux', kernelRelease: '6.18.57', inode: 4026531835,
+      nsType: 33554432, link: 'cgroup:[4026531835]' }) })
+}
 
 const uuid = (digit: string) => `${digit.repeat(8)}-${digit.repeat(4)}-4${digit.repeat(3)}-8${digit.repeat(3)}-${digit.repeat(12)}`
 const sha = 'a'.repeat(64)
@@ -59,7 +68,7 @@ function fixture() {
     now: () => Date.parse('2026-11-01T17:00:00Z'),
     verifyProducer: vi.fn(async () => ({ ...input.producer, source: source.commit, epoch: 'gridex-five-agent-20261012', protocol: 'masterplan-reservation-v1',
       neutralVerified: true, attemptVerified: true, scope: preparationProducerScope(input) })),
-    observeHost: vi.fn(async () => ({ source, harness, backend, effectiveRamBytes: 9 * 2 ** 30,
+    observeHost: vi.fn(async () => ({ source, harness, backend, memoryProof: qualifiedMemory(9 * 2 ** 30), effectiveRamBytes: 9 * 2 ** 30,
       freeDockerBytes: 50 * 2 ** 30, appStartedAfterBuild: true, appBuildAndEnvironmentBound: true })),
     observeDatabase: vi.fn(async () => ({ databaseSystemIdentifier: backend.databaseSystemIdentifier,
       majorVersion: 17, approvalSourceBound: true, status: {
@@ -101,16 +110,16 @@ describe('T4 normal-flow atomic-native preparation contract (controlled adapters
     'rejects %s drift before authentication or preparation', async (fault) => {
       const { input, io } = fixture()
       if (fault === 'capacity') io.observeHost.mockImplementation(async () => ({
-        source, harness, backend, effectiveRamBytes: 7 * 2 ** 30, freeDockerBytes: 50 * 2 ** 30,
+        source, harness, backend, memoryProof: qualifiedMemory(7 * 2 ** 30), effectiveRamBytes: 7 * 2 ** 30, freeDockerBytes: 50 * 2 ** 30,
         appStartedAfterBuild: true, appBuildAndEnvironmentBound: true,
       }))
       if (fault === 'source') input.source = { ...source, tree: 'f'.repeat(40) }
       if (fault === 'old-app') io.observeHost.mockImplementation(async () => ({
-        source, harness, backend, effectiveRamBytes: 9 * 2 ** 30, freeDockerBytes: 50 * 2 ** 30,
+        source, harness, backend, memoryProof: qualifiedMemory(9 * 2 ** 30), effectiveRamBytes: 9 * 2 ** 30, freeDockerBytes: 50 * 2 ** 30,
         appStartedAfterBuild: false, appBuildAndEnvironmentBound: true,
       }))
       if (fault === 'environment') io.observeHost.mockImplementation(async () => ({
-        source, harness, backend, effectiveRamBytes: 9 * 2 ** 30, freeDockerBytes: 50 * 2 ** 30,
+        source, harness, backend, memoryProof: qualifiedMemory(9 * 2 ** 30), effectiveRamBytes: 9 * 2 ** 30, freeDockerBytes: 50 * 2 ** 30,
         appStartedAfterBuild: true, appBuildAndEnvironmentBound: false,
       }))
       if (fault === 'producer') io.verifyProducer.mockImplementation(async () => ({
@@ -234,7 +243,7 @@ describe('T4 preparation additional negative boundaries', () => {
     const { input, io } = fixture()
     input.backend = { ...backend, driver: 'vfs' }
     io.observeHost.mockImplementation(async () => ({ source, harness, backend: input.backend,
-      effectiveRamBytes: 9 * 2 ** 30, freeDockerBytes: 39 * 2 ** 30,
+      memoryProof: qualifiedMemory(9 * 2 ** 30), effectiveRamBytes: 9 * 2 ** 30, freeDockerBytes: 39 * 2 ** 30,
       appStartedAfterBuild: true, appBuildAndEnvironmentBound: true }))
     await expect(prepareAtomicNative(input, io)).rejects.toThrow('owned_capacity_hold')
     expect(io.observeDatabase).not.toHaveBeenCalled()
@@ -492,5 +501,88 @@ describe('T4 actual FINAL-source SQL predicate null semantics', () => {
   })
   it('an empty source set cannot qualify FINAL', async () => {
     expect(await allFinal([])).not.toBe(true)
+  })
+})
+
+describe('cgroup namespace completeness precedes Auth and SQL', () => {
+  it('rejects visible16GiB when namespace/mount proof says hidden ancestors', async () => {
+    const { input, io } = fixture()
+    const observed = await io.observeHost()
+    io.observeHost.mockResolvedValue({ ...observed, effectiveRamBytes: 16 * 2 ** 30,
+      memoryProof: { ...observed.memoryProof, qualification: 'UNKNOWN', effectiveRamBytes: null, reasons: ['non_initial_cgroup_namespace'] } })
+    await expect(prepareAtomicNative(input, io)).rejects.toThrow()
+    expect(io.observeDatabase).not.toHaveBeenCalled()
+    expect(io.signIn).not.toHaveBeenCalled()
+    expect(io.prepareMonth).not.toHaveBeenCalled()
+  })
+})
+
+function memoryBoundaryCase() {
+  const files = new Map([['/proc/meminfo', 'MemTotal: 16777216 kB'], ['/proc/self/cgroup', '0::/parent/job'],
+    ['/proc/self/mountinfo', '1 0 0:1 / /sys/fs/cgroup rw - cgroup2 cgroup2 rw'],
+    ['/sys/fs/cgroup/parent/memory.max', String(12 * 2 ** 30)], ['/sys/fs/cgroup/parent/job/memory.max', 'max']])
+  const namespace = { status: 'OBSERVED', system: 'Linux', kernelRelease: '6.18.57', inode: 4026531835,
+    nsType: 33554432, link: 'cgroup:[4026531835]' }
+  const mount = { fsType: 0x63677270, directory: true, symlink: false }
+  return { files, namespace, mount, read: () => observeMemoryBoundary({ namespace: () => namespace, mount: () => mount,
+    read: (path: string) => { if (!files.has(path)) throw Object.assign(new Error(), { code: 'ENOENT' }); return files.get(path)! } }) }
+}
+describe('finite kernel ABI/global cgroup boundary contract: controlled VM observations', () => {
+  it('qualifies only initial namespace + actual global mount + every nonroot ancestor', () => {
+    const f = memoryBoundaryCase(), proof = f.read()
+    expect(proof.qualification).toBe('KNOWN')
+    expect(proof.effectiveRamBytes).toBe(12 * 2 ** 30)
+    expect(proof.limits.filter((row) => row.required)).toHaveLength(2)
+    expect(proof.reads.some((row) => row.path.startsWith('/proc/1/'))).toBe(false)
+    f.files.set('/sys/fs/cgroup/parent/memory.max', String(2 * 2 ** 30))
+    expect(f.read().effectiveRamBytes).toBe(2 * 2 ** 30)
+  })
+  it('accepts legitimate max and the ABI-defined absent GLOBAL root memory.max', () => {
+    const f = memoryBoundaryCase()
+    f.files.set('/sys/fs/cgroup/parent/memory.max', 'max')
+    expect(f.read().effectiveRamBytes).toBe(16 * 2 ** 30)
+    f.files.set('/proc/self/cgroup', '0::/')
+    expect(f.read().qualification).toBe('KNOWN')
+    f.namespace.inode = 4026532205; f.namespace.link = 'cgroup:[4026532205]'
+    expect(f.read().qualification).toBe('UNKNOWN') // '/' alone proves nothing.
+  })
+  it('keeps visible observations but denies hidden namespace and non-global mounts', () => {
+    const f = memoryBoundaryCase()
+    f.namespace.inode = 4026532205; f.namespace.link = 'cgroup:[4026532205]'
+    const proof = f.read()
+    expect(proof.qualification).toBe('UNKNOWN'); expect(proof.effectiveRamBytes).toBeNull()
+    expect(proof.visibleRamBytes).toBe(12 * 2 ** 30)
+    expect(proof.namespace.inode).toBe(4026532205)
+    const g = memoryBoundaryCase()
+    g.files.set('/proc/self/mountinfo', '1 0 0:1 /hidden /sys/fs/cgroup rw - cgroup2 cgroup2 rw')
+    expect(g.read().qualification).toBe('UNKNOWN')
+  })
+  it.each(['', 'NaN', '-1', '1e10', 'MAX', '18446744073709551616'])('rejects malformed ancestor bound %j', (value) => {
+    const f = memoryBoundaryCase(); f.files.set('/sys/fs/cgroup/parent/memory.max', value)
+    expect(f.read().qualification).toBe('UNKNOWN'); expect(f.read().effectiveRamBytes).toBeNull()
+  })
+  it('rejects missing ancestors, malformed membership, wrong ns type/kernel and masked mount', () => {
+    const missing = memoryBoundaryCase(); missing.files.delete('/sys/fs/cgroup/parent/memory.max')
+    expect(missing.read().qualification).toBe('UNKNOWN')
+    const path = memoryBoundaryCase(); path.files.set('/proc/self/cgroup', '0::/../hidden')
+    expect(path.read().qualification).toBe('UNKNOWN')
+    const type = memoryBoundaryCase(); type.namespace.nsType = 0
+    expect(type.read().qualification).toBe('UNKNOWN')
+    const kernel = memoryBoundaryCase(); kernel.namespace.kernelRelease = '7.0.1'
+    expect(kernel.read().qualification).toBe('UNKNOWN')
+    const mount = memoryBoundaryCase(); mount.mount.fsType = 0x01021994
+    expect(mount.read().qualification).toBe('UNKNOWN')
+    const overmount = memoryBoundaryCase()
+    overmount.files.set('/proc/self/mountinfo', overmount.files.get('/proc/self/mountinfo') + '\n2 1 0:2 / /sys/fs/cgroup/parent rw - tmpfs tmpfs rw')
+    expect(overmount.read().qualification).toBe('UNKNOWN')
+  })
+  it('logs unknown observations and denies before SQL/Auth even when nominal RAM claims16GiB', async () => {
+    const f = fixture(), memory = memoryBoundaryCase()
+    memory.namespace.status = 'UNKNOWN'
+    const proof = memory.read(), previous = await f.io.observeHost()
+    f.io.observeHost.mockResolvedValue({ ...previous, memoryProof: proof, effectiveRamBytes: 16 * 2 ** 30 })
+    await expect(prepareAtomicNative(f.input, f.io)).rejects.toThrow('global_memory_capacity_unknown')
+    expect(f.io.evidence).toHaveBeenCalledWith({ phase: 'host-memory-observed', memoryProof: proof })
+    expect(f.io.observeDatabase).not.toHaveBeenCalled(); expect(f.io.signIn).not.toHaveBeenCalled()
   })
 })

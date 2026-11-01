@@ -18,7 +18,7 @@ import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
 import { createServerClient } from '@supabase/ssr'
-import { canonicalPreparationJson, NATIVE_SOURCE, PreparationError, preparationFailureCode, preparationProducerScope, prepareAtomicNative } from './lib/atomicNativePreparation.mjs'
+import { canonicalPreparationJson, NATIVE_SOURCE, PreparationError, preparationFailureCode, preparationProducerScope, prepareAtomicNative, observeMemoryBoundary, CGROUP_NAMESPACE_PROBE_PYTHON } from './lib/atomicNativePreparation.mjs'
 
 export const FINAL_SOURCE_PREDICATE = `COALESCE(v#>>'{billing_source_basis,normalizedValueId}'=v->>'id'
   AND v#>>'{billing_source_basis,qualified}'='true'
@@ -264,6 +264,10 @@ export function realAdapters(input, output) {
         scope: attempt.scope }
     },
     observeHost: async () => {
+      const memoryProof = observeProcessMemory()
+      if (memoryProof.qualification !== 'KNOWN' || memoryProof.effectiveRamBytes < 8 * 2 ** 30) {
+        return { memoryProof, effectiveRamBytes: memoryProof.effectiveRamBytes }
+      }
       must(process.versions.node.startsWith('22.'), 'node22_runtime_required')
       must(!process.env.DOCKER_HOST || process.env.DOCKER_HOST === `unix://${input.backend.socketPath}`,
         'local_docker_endpoint_required')
@@ -287,16 +291,13 @@ export function realAdapters(input, output) {
       verifyLocalDockerBindings(input, contextHost, db, api)
       const fs = statfsSync(info.DockerRootDir)
       const freeDockerBytes = Number(fs.bavail) * Number(fs.bsize)
-      const physical = Number(readFileSync('/proc/meminfo', 'utf8').match(/^MemTotal:\s+(\d+)/m)?.[1]) * 1024
-      const limits = ['/sys/fs/cgroup/memory.max', '/sys/fs/cgroup/memory/memory.limit_in_bytes']
-        .filter(existsSync).map((path) => Number(readFileSync(path, 'utf8').trim())).filter(Number.isFinite)
-      const effectiveRamBytes = Math.min(physical, ...limits)
+      const effectiveRamBytes = memoryProof.effectiveRamBytes
       // Reject undercapacity before inspecting the running app or contacting DB/Auth.
       const minimum = info.Driver === 'vfs' ? 40 : ['overlay2', 'overlayfs'].includes(info.Driver) ? 15 : Infinity
       must(effectiveRamBytes >= 8 * 2 ** 30 && freeDockerBytes >= minimum * 2 ** 30, 'owned_capacity_hold')
       const build = observeBuildAndProcess(input)
       const harness = observeHarness(input)
-      return { ...build, harness, effectiveRamBytes, freeDockerBytes,
+      return { ...build, harness, memoryProof, effectiveRamBytes, freeDockerBytes,
         cpu: { availableParallelism: availableParallelism(),
           quota: existsSync('/sys/fs/cgroup/cpu.max') ? readFileSync('/sys/fs/cgroup/cpu.max', 'utf8').trim() : null },
         toolVersions: { node: process.version, docker: info.ServerVersion }, backend: { ...input.backend,
@@ -452,4 +453,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     process.stderr.write(`T4 preparation stopped: ${preparationFailureCode(error)}; preserve private evidence and reconcile before retry.\n`)
     process.exitCode = 1
   })
+}
+
+export function observeProcessMemory() {
+  return observeMemoryBoundary({ read: (path) => readFileSync(path, 'utf8'),
+    mount: (path) => ({ fsType: Number(statfsSync(path).type), directory: lstatSync(path).isDirectory(), symlink: lstatSync(path).isSymbolicLink() }),
+    namespace: () => jsonCommand('python3', ['-c', CGROUP_NAMESPACE_PROBE_PYTHON], { stdio: ['ignore', 'pipe', 'pipe'] }) })
 }

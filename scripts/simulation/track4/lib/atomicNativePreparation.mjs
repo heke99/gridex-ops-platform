@@ -93,6 +93,9 @@ export function validatePreparationInput(input, now) {
 }
 
 function verifyHost(input, observation) {
+  must(observation.memoryProof?.contract === 't4_global_memory_boundary_v1'
+    && observation.memoryProof.qualification === 'KNOWN'
+    && observation.effectiveRamBytes === observation.memoryProof.effectiveRamBytes, 'global_memory_capacity_unknown')
   must(equal(input.harness, observation.harness), 'preparation_harness_binding_changed')
   must(equal(input.source, observation.source), 'source_build_binding_changed')
   must(equal(input.backend, observation.backend), 'backend_identity_changed')
@@ -126,6 +129,7 @@ export async function prepareAtomicNative(input, io) {
     && producer.attemptVerified === true
     && equal(producer.scope, preparationProducerScope(input)), 'live_producer_binding_changed')
   const host = await io.observeHost(input)
+  await io.evidence({ phase: 'host-memory-observed', memoryProof: host.memoryProof })
   verifyHost(input, host) // Must precede psql, Auth or other backend work.
   const database = await io.observeDatabase(input)
   must(database.databaseSystemIdentifier === input.backend.databaseSystemIdentifier
@@ -251,4 +255,95 @@ export async function prepareAtomicNative(input, io) {
   }
   await io.evidence({ phase: 'prepared-inputs-not-native-acceptance', fixtureSha256: digest(result.fixture) })
   return result
+}
+
+// Linux6.8-6.18 initial cgroup inode source qualification manifestSHA
+// 11ed57529dbea8e0fd176afe8c0fff6c7c9bcd28c51a1d1d25fa3a7cd15a5766.
+// v6.18 UAPI nsfs.h SHA b9e98fbcaabd0573a38b794c4da5deb349721dd4676e56501938b312ca361483:
+// CGROUP_NS_INIT_INO=0xEFFFFFFB; NS_GET_NSTYPE=_IO(0xb7,3).
+// sched.h SHA2081b07cee6adab443e4ba320d0ccb13db4c97bed64f3eefafbfde2f25c833a4:
+// CLONE_NEWCGROUP=0x02000000. cgroup-v2.rst SHAda9a788f2d2ece7b6535c96b56324f28893f8a211768333df7257f586075cd97:
+// memory.max is required on NON-ROOT cgroups; absent global-root file is legitimate.
+export const CGROUP_NAMESPACE_PROBE_PYTHON = `import os,fcntl,json
+r={'status':'UNKNOWN','system':os.uname().sysname,'kernelRelease':os.uname().release}
+try:
+ r['link']=os.readlink('/proc/self/ns/cgroup')
+ fd=os.open('/proc/self/ns/cgroup',os.O_RDONLY)
+ try:
+  r['inode']=os.fstat(fd).st_ino
+  r['nsType']=fcntl.ioctl(fd,0xb703)
+ finally:os.close(fd)
+ r['status']='OBSERVED'
+except Exception as e:r['error']=type(e).__name__
+print(json.dumps(r))`
+export function observeMemoryBoundary(io) {
+  const reasons = [], reads = []
+  const read = (path, maximum = 1048576) => {
+    try {
+      const raw = io.read(path)
+      if (typeof raw !== 'string' || raw.length > maximum) throw new Error('invalid_read')
+      const item = { path, status: 'OBSERVED', raw }; reads.push(item); return item
+    } catch (error) {
+      const item = { path, status: 'UNAVAILABLE', code: error.code === 'ENOENT' ? 'ENOENT' : 'READ_FAILED' }
+      reads.push(item); return item
+    }
+  }
+  let namespace
+  try { namespace = io.namespace() } catch { namespace = { status: 'UNKNOWN', error: 'NAMESPACE_READ_FAILED' } }
+  if (!(namespace?.status === 'OBSERVED' && namespace.system === 'Linux'
+    && /^6\.(8|9|10|11|12|13|14|15|16|17|18)\.\d+(?:[-+].*)?$/.test(namespace.kernelRelease ?? '')
+    && namespace.inode === 4026531835 && namespace.nsType === 33554432 && namespace.link === 'cgroup:[4026531835]')) {
+    reasons.push('initial_kernel_cgroup_namespace_unproved')
+  }
+  const physicalRead = read('/proc/meminfo', 65536), membershipRead = read('/proc/self/cgroup', 65536)
+  const mountRead = read('/proc/self/mountinfo')
+  const physicalMatch = physicalRead.raw?.match(/^MemTotal:\s+([1-9][0-9]*) kB$/m)
+  const physicalRamBytes = physicalMatch ? Number(physicalMatch[1]) * 1024 : null
+  if (!Number.isSafeInteger(physicalRamBytes) || physicalRamBytes <= 0) reasons.push('physical_memory_unproved')
+  const memberships = membershipRead.raw?.trim().split('\n') ?? []
+  const unified = memberships.filter((line) => /^0::\//.test(line))
+  const member = unified.length === 1 ? unified[0].slice(3) : null
+  const safePath = (path) => typeof path === 'string' && path.startsWith('/') && !path.includes('\0')
+    && !path.includes('\\') && path.split('/').filter(Boolean).length <= 64
+    && !path.split('/').some((part) => part === '.' || part === '..') && !path.includes('//')
+  if (!safePath(member) || memberships.some((line) => !/^\d+:[^:]*:\/[^\n]*$/.test(line)
+    || line.split(':')[1].split(',').includes('memory'))) reasons.push('global_unified_membership_unproved')
+  const mounts = [], allMounts = []
+  if (mountRead.raw) for (const line of mountRead.raw.trim().split('\n')) {
+    const fields = line.split(' '), divider = fields.indexOf('-')
+    if (divider < 6 || fields.length < divider + 4) { reasons.push('mountinfo_malformed'); continue }
+    const decode = (value) => value.replace(/\\(040|011|012|134)/g, (_, octal) => String.fromCharCode(parseInt(octal, 8)))
+    const row = { root: decode(fields[3]), point: decode(fields[4]) }; allMounts.push(row)
+    if (fields[divider + 1] === 'cgroup2') mounts.push(row)
+  }
+  if (mounts.length !== 1 || mounts[0]?.root !== '/' || !safePath(mounts[0]?.point)) reasons.push('global_cgroup_mount_unproved')
+  let mountWitness
+  if (mounts.length === 1 && safePath(mounts[0].point)) {
+    try { mountWitness = io.mount(mounts[0].point) } catch { mountWitness = { status: 'UNAVAILABLE' } }
+    if (!(mountWitness?.fsType === 0x63677270 && mountWitness.directory === true && mountWitness.symlink === false)) reasons.push('actual_cgroup_mount_unproved')
+  }
+  const limits = [], finite = []
+  if (safePath(member) && mounts.length === 1 && safePath(mounts[0].point)) {
+    const parts = member.split('/').filter(Boolean)
+    for (let depth = 0; depth <= parts.length; depth++) {
+      const path = `${mounts[0].point === '/' ? '' : mounts[0].point}${depth ? `/${parts.slice(0, depth).join('/')}` : ''}/memory.max`
+      if (allMounts.some((row) => row !== mounts[0] && (row.point === mounts[0].point || row.point.startsWith(`${mounts[0].point}/`))
+        && (path === row.point || path.startsWith(`${row.point}/`)))) reasons.push('memory_ancestor_overmounted')
+      const observation = read(path, 128)
+      const value = observation.raw?.trim()
+      limits.push({ ...observation, required: depth > 0 })
+      if (observation.status !== 'OBSERVED') {
+        if (depth > 0 || observation.code !== 'ENOENT') reasons.push('required_ancestor_memory_unavailable')
+      } else if (value === 'max') {
+        // Legitimate unlimited bound; no invented finite RAM override.
+      } else if (/^(0|[1-9][0-9]{0,19})$/.test(value ?? '') && BigInt(value) <= 18446744073709551615n) {
+        finite.push(BigInt(value))
+      } else reasons.push('ancestor_memory_limit_malformed')
+    }
+  } else reasons.push('ancestor_walk_unproved')
+  const visibleRamBytes = Number.isSafeInteger(physicalRamBytes) && physicalRamBytes > 0
+    ? Number(finite.reduce((minimum, limit) => limit < minimum ? limit : minimum, BigInt(physicalRamBytes))) : null
+  return { contract: 't4_global_memory_boundary_v1', qualification: reasons.length ? 'UNKNOWN' : 'KNOWN',
+    effectiveRamBytes: reasons.length ? null : visibleRamBytes, visibleRamBytes, physicalRamBytes,
+    namespace, membership: member, mounts, mountWitness, limits, reads, reasons: [...new Set(reasons)] }
 }
