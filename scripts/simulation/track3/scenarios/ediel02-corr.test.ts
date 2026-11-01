@@ -58,9 +58,10 @@ describe('EDIEL02 rättelser och ordning', () => {
     const reprocessError = JSON.stringify([(c.reproc as any)[c.ids[0]]?.reprocess, again, direct.error?.message])
     expect(reprocessError).toMatch(/utilts_consumption_correction_not_newer/)
     expect(direct.error?.message ?? '').toMatch(/utilts_consumption_correction_(not_newer|ancestry_invalid|binding_invalid)/)
-    // Affärsrader (mätvärden, normaliserat, fakturaunderlag) oförändrade av den avvisade rättelsen. Seriehuvudet flyttas av persistensen
-    // (kanonisk lagring accepterar källan och exponerar den som current, jfr SC046 EQUAL) men konsumeras inte: loggas som observation.
+    // A rejected correction may remain as history but cannot replace the
+    // accepted current source, even when physical metering quantities agree.
     ev.observe('EDIEL02.03.seriesHeadVsMetering', { seriesCurrent: QC.series.filter((x) => x.current).map((x) => x.qty), meteringCurrent: QC.metering.filter((x) => x.current).map((x) => x.kwh) })
+    expect(QC.series.filter((s) => s.current), 'rejected correction preserves the accepted current source').toEqual(QB.series.filter((s) => s.current))
     expect(QC.metering).toEqual(QB.metering); expect(QC.normalized).toEqual(QB.normalized); expect(QC.billing).toEqual(QB.billing)
     expect(CC.meteringValues).toBe(CB.meteringValues); expect(CC.normalized).toBe(CB.normalized); expect(CC.billingUnderlays).toBe(CB.billingUnderlays); expect(CC.invoices).toBe(0)
     await flow.drain('03')
