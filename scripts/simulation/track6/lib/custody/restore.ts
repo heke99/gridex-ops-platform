@@ -122,24 +122,84 @@ export function dump(t: Tooling, file: string): { ms: number; bytes: number; sha
 const requireRestoreDb = (db: string) => {
   if (!/^t6_restore_[a-zA-Z0-9_]+$/.test(db) || db.length > 63 || db === baseDb()) return blocked('temporary restore DB name is not allowed')
 }
-export function createDb(db: string) { requireRestoreDb(db); requireOwnedBackend(); sqlIn(`CREATE DATABASE "${db}"`) }
-export function dropDb(db: string) { requireRestoreDb(db); requireOwnedBackend(); sqlIn(`DROP DATABASE IF EXISTS "${db}" WITH (FORCE)`) }
 export const dbExists = (db: string) => { requireRestoreDb(db); requireOwnedBackend(); return sqlIn<boolean>(`SELECT to_jsonb(EXISTS(SELECT 1 FROM pg_database WHERE datname='${db}'))`) }
+
+type RestoreIdentity = { database: string; oid: string; ownerOid: string; ownerName: string; creator: string }
+export type CreatedRestoreDb = Readonly<{
+  version: 1; runId: string; database: string; oid: string; ownerOid: string; ownerName: string
+  backend: Readonly<BackendAssignment>
+}>
+// A serialized receipt records evidence but cannot manufacture cleanup authority.
+const createdDatabases = new WeakMap<CreatedRestoreDb, string>()
+function restoreIdentity(db: string): RestoreIdentity {
+  const value = sqlIn<RestoreIdentity | undefined>(`SET default_transaction_read_only=on; SELECT jsonb_build_object('database',datname,'oid',oid::text,'ownerOid',datdba::text,'ownerName',pg_get_userbyid(datdba),'creator',current_user) FROM pg_database WHERE datname='${db}'`)
+  if (!value || value.database !== db || typeof value.oid !== 'string' || typeof value.ownerOid !== 'string'
+    || !/^[1-9][0-9]*$/.test(value.oid) || !/^[1-9][0-9]*$/.test(value.ownerOid)
+    || value.ownerName !== value.creator || value.creator !== dbUser()) return blocked('restore DB identity is unknown or not created by the current role')
+  return value
+}
+function requireCreatedDb(db: string, handle: CreatedRestoreDb, runId: string, tooling?: Tooling): void {
+  requireRestoreDb(db)
+  const { assignment } = requireOwnedBackend(tooling)
+  if (!handle || !createdDatabases.has(handle) || handle.database !== db || handle.runId !== runId
+    || createdDatabases.get(handle) !== JSON.stringify(assignment)) return blocked('restore DB has no matching current-attempt creation handle')
+  const actual = restoreIdentity(db)
+  if (actual.oid !== handle.oid || actual.ownerOid !== handle.ownerOid || actual.ownerName !== handle.ownerName) return blocked('restore DB identity changed after creation')
+}
+export function createDb(db: string, runId: string): CreatedRestoreDb {
+  requireRestoreDb(db)
+  if (typeof runId !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(runId)
+    || db !== `t6_restore_${runId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`) return blocked('restore DB run identity does not match')
+  const { assignment } = requireOwnedBackend()
+  sqlIn(`CREATE DATABASE "${db}"`)
+  // Failure after CREATE leaves an unknown target for coordinator reconciliation.
+  const current = requireOwnedBackend()
+  if (JSON.stringify(current.assignment) !== JSON.stringify(assignment)) return blocked('allocation changed during restore DB creation')
+  const identity = restoreIdentity(db)
+  const handle: CreatedRestoreDb = Object.freeze({ version: 1, runId, database: db, oid: identity.oid,
+    ownerOid: identity.ownerOid, ownerName: identity.ownerName, backend: Object.freeze({ ...assignment }) })
+  createdDatabases.set(handle, JSON.stringify(assignment))
+  return handle
+}
+export function dropDb(db: string, handle: CreatedRestoreDb, runId: string): void {
+  requireCreatedDb(db, handle, runId)
+  // Requires the separately qualified exclusive DDL producer. Identity-check +
+  // DROP is not transactional; no FORCE against unidentified connections.
+  sqlIn(`DROP DATABASE "${db}"`)
+  createdDatabases.delete(handle)
+}
 
 export type RestoreErrorBlock = { error: string; command: string }
 const RESTORE_ROLE = 'supabase_admin'
-export function restore(t: Tooling, file: string, db: string): { ms: number; status: number | null; errors: string[]; blocks: RestoreErrorBlock[]; stderrTail: string } {
-  requireRestoreDb(db)
-  requireOwnedBackend(t)
+export function restore(t: Tooling, file: string, db: string, handle: CreatedRestoreDb, runId: string): { ms: number; status: number; errors: string[]; blocks: RestoreErrorBlock[]; stderrTail: string } {
+  requireCreatedDb(db, handle, runId, t)
   const t0 = Date.now()
   const input = openSync(file, 'r')
   try {
     const r = t.kind === 'host'
       ? spawnSync('pg_restore', ['-d', urlFor(db, RESTORE_ROLE)], { stdio: [input, 'ignore', 'pipe'], env: { ...process.env, PGPASSWORD: 'postgres' }, maxBuffer: 64_000_000 })
       : spawnSync('docker', ['exec', '-i', t.container, 'pg_restore', '-U', RESTORE_ROLE, '-d', db], { stdio: [input, 'ignore', 'pipe'], maxBuffer: 64_000_000 })
-    const stderr = String(r.stderr)
-    const blocks: RestoreErrorBlock[] = [...stderr.matchAll(/pg_restore: error: ([^\n]*)\n(?:Command was: ([^\n]*))?/g)].map((m) => ({ error: m[1], command: (m[2] ?? '').slice(0, 300) }))
-    return { ms: Date.now() - t0, status: r.status, errors: stderr.split('\n').filter((l) => /error:/i.test(l)).slice(0, 200), blocks, stderrTail: stderr.slice(-3000) }
+    const stderr = r.stderr == null ? '' : String(r.stderr)
+    const refuse = (reason: string): never => {
+      const code = (r.error as NodeJS.ErrnoException | undefined)?.code
+      throw Object.assign(new Error(`pg_restore_refused: ${reason}`), { restoreFailure: {
+        reason, status: Number.isInteger(r.status) ? r.status : null, signal: r.signal ?? null,
+        spawnCode: typeof code === 'string' && /^[A-Z0-9_]+$/.test(code) ? code : null,
+        ms: Date.now() - t0, stderrBytes: Buffer.byteLength(stderr), stderrSha256: sha256(stderr),
+      } })
+    }
+    // Process completion is checked before interpreting any stderr as allowed SQL errors.
+    if (r.error || r.signal || (r.status !== 0 && r.status !== 1)) refuse('process_did_not_complete_normally')
+    const pattern = /^pg_restore: error: ([^\n]*)\nCommand was: ([^\n]*)(?:\n|$)/gm
+    const blocks: RestoreErrorBlock[] = [...stderr.matchAll(pattern)].map(m => ({ error: m[1], command: m[2] }))
+    const errors = stderr.split('\n').filter(l => /error:/i.test(l))
+    const summaries = [...stderr.matchAll(/^pg_restore: warning: errors ignored on restore: ([1-9][0-9]*)\s*$/gm)]
+    const residue = stderr.replace(pattern, '').replace(/^pg_restore: warning: errors ignored on restore: [1-9][0-9]*\s*$/gm, '')
+      .split('\n').filter(l => l.trim() && !/^pg_restore: (while PROCESSING TOC:|from TOC entry [0-9]+; [^\r\n]+)$/.test(l))
+    const allowed = r.status === 0 ? stderr.trim() === '' : blocks.length > 0 && blocks.every(platformOnly)
+      && errors.length === blocks.length && summaries.length === 1 && Number(summaries[0][1]) === blocks.length && residue.length === 0
+    if (!allowed) refuse('unaccounted_restore_diagnostics')
+    return { ms: Date.now() - t0, status: r.status!, errors: errors.slice(0, 200), blocks, stderrTail: stderr.slice(-3000) }
   } finally { closeSync(input) }
 }
 

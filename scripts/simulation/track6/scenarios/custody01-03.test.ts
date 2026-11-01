@@ -89,13 +89,24 @@ describe('CUSTODY01.03 skapande av låst original via normala ingångar', () => 
 describe('CUSTODY01.03 radering/ändring nekas', () => {
   it('CUSTODY01.03 (a) authenticated tenantanvändare via PostgREST: DELETE och PATCH berör 0 rader / nekas', async () => {
     const user = await createTenantUser(tenant.companyId, ['communication.read', 'communication.write', 'ediel.read', 'ediel.write'])
-    const readable = await rest('GET', 'ediel_messages', `id=eq.${sourceId}&select=id`, user.accessToken)
+    const readOwn = async () => {
+      const readable = await rest('GET', 'ediel_messages', `id=eq.${sourceId}&select=id`, user.accessToken)
+      expect(readable.status, 'authenticated own-target positive read must succeed').toBe(200)
+      expect(readable.code).toBeNull()
+      expect(readable.rows, 'exact own original must be readable before mutation').toEqual([{ id: sourceId }])
+      return readable
+    }
+    const denied = (r: { status: number; rows: unknown[] | null; code: string | null; message: string | null }) =>
+      r.status === 200 ? Array.isArray(r.rows) && r.rows.length === 0 && r.code === null && r.message === null
+        : r.status === 400 && r.rows === null && ((r.code === 'P0001' && r.message === CODE) || (r.code === '23514' && r.message === PAYLOAD_GUARD))
+    const readable = await readOwn()
     const del = await rest('DELETE', 'ediel_messages', `id=eq.${sourceId}`, user.accessToken)
-    const patch = await rest('PATCH', 'ediel_messages', `id=eq.${sourceId}`, user.accessToken, { raw_payload: 'MANIPULERAD' })
-    attempts.authenticated = { readableRows: readable.rows?.length ?? null, readableStatus: readable.status, del, patch }
-    const denied = (r: { status: number; rows: unknown[] | null }) => (r.status >= 200 && r.status < 300 ? (r.rows?.length ?? 0) === 0 : [400, 401, 403, 404].includes(r.status))
     expect(denied(del), `DELETE nekad: ${del.status} ${del.text}`).toBe(true)
+    await readOwn()
+    const patch = await rest('PATCH', 'ediel_messages', `id=eq.${sourceId}`, user.accessToken, { raw_payload: 'MANIPULERAD' })
     expect(denied(patch), `PATCH nekad: ${patch.status} ${patch.text}`).toBe(true)
+    await readOwn()
+    attempts.authenticated = { readableRows: readable.rows?.length ?? null, readableStatus: readable.status, del, patch }
     unchanged('(a)')
   }, 120_000)
 

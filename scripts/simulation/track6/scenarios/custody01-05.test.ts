@@ -24,6 +24,7 @@ const run = newRunContext('custody01-05')
 const restoreDb = `t6_restore_${run.runId.replace(/[^a-z0-9]/gi, '').toLowerCase()}`
 const sourceUrl = dbUrl()
 const receipt: Record<string, unknown> = { restoreDb, created: false, dropped: false }
+let createdDb: ReturnType<typeof createDb> | undefined
 
 let tooling: Tooling
 let tables: string[] = []
@@ -49,17 +50,31 @@ beforeAll(() => {
   ev.observe('run', { ...run, mode: mode(), restoreDb, sourceDb: new URL(sourceUrl).pathname })
 })
 afterAll(async () => {
-  try {
-    if (dbExists(restoreDb)) dropDb(restoreDb)
+  const failures: Array<{ step: string; kind: string }> = []
+  const attempt = async (step: string, action: () => unknown) => {
+    try { await action() } catch (error) {
+      failures.push({ step, kind: error instanceof Error ? error.name : 'UnknownError' })
+    }
+  }
+  await attempt('database', () => {
+    if (!createdDb) {
+      receipt.databaseCleanup = 'not_created_or_unqualified'
+      if (receipt.creationAttempted) throw new Error('restore_database_creation_unqualified')
+      return
+    }
+    dropDb(restoreDb, createdDb, run.runId)
     receipt.dropped = !dbExists(restoreDb)
-  } catch (e) { receipt.dropError = e instanceof Error ? e.message : String(e) }
-  if (foreign) await foreign.stop().catch(() => undefined)
-  if (!healthResult && health) healthResult = await health.stop()
+    if (!receipt.dropped) throw new Error('restore_database_cleanup_unconfirmed')
+  })
+  await attempt('foreign_stop', async () => { if (foreign) await foreign.stop(); foreign = null })
+  await attempt('health_stop', async () => { if (!healthResult && health) healthResult = await health.stop() })
   receipt.finishedAt = new Date().toISOString()
-  ev.observe('storage_bytes_note', 'pg_dump täcker storage.objects-metadata, inte objektens bytes i Storage-volymen; bytesåterställning kräver separat storage-backup (docs/backup-restore-checklist.md).')
-  ev.observe('cleanup_receipt', receipt)
-  writeFileSync(join(custodyDir('receipts'), `${restoreDb}.json`), JSON.stringify(receipt, null, 2), { mode: 0o600 })
-  ev.finalize()
+  receipt.cleanupFailures = failures
+  await attempt('storage_note', () => ev.observe('storage_bytes_note', 'pg_dump täcker storage.objects-metadata, inte objektens bytes i Storage-volymen; bytesåterställning kräver separat storage-backup (docs/backup-restore-checklist.md).'))
+  await attempt('receipt_observation', () => ev.observe('cleanup_receipt', receipt))
+  await attempt('evidence_finalize', () => ev.finalize())
+  await attempt('receipt_write', () => writeFileSync(join(custodyDir('receipts'), `${restoreDb}.json`), JSON.stringify(receipt, null, 2), { mode: 0o600 }))
+  if (failures.length) throw new AggregateError(failures.map(f => new Error(`T6_cleanup_${f.step}_failed`)), 'T6 cleanup failed: ' + failures.map(f => f.step).join(', '))
 }, 300_000)
 
 describe('CUSTODY01.05 backup och återställning under drift', () => {
@@ -109,12 +124,22 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
   }, 900_000)
 
   it('CUSTODY01.05 pg_restore till NY databas på samma server', () => {
-    createDb(restoreDb); receipt.created = true
+    receipt.creationAttempted = true
+    createdDb = createDb(restoreDb, run.runId)
+    receipt.created = true; receipt.creation = createdDb
     const r0 = Date.now()
-    restoreResult = restore(tooling, dumpFile, restoreDb)
+    try {
+      restoreResult = restore(tooling, dumpFile, restoreDb, createdDb, run.runId)
+    } catch (error) {
+      const failure = error && typeof error === 'object' && 'restoreFailure' in error ? error.restoreFailure : { reason: 'backend_or_target_refused' }
+      ev.save('pg_restore-failure.json', failure)
+      ev.observe('pg_restore_failure', failure)
+      throw error
+    }
     windows.restore = { start: r0, end: Date.now() }
     ev.save('pg_restore-errors.json', { status: restoreResult.status, errors: restoreResult.errors, tail: restoreResult.stderrTail })
     ev.observe('pg_restore', { ms: restoreResult.ms, status: restoreResult.status, errorLines: restoreResult.errors.length })
+    expect([0, 1]).toContain(restoreResult.status)
     // Datapåverkande fel (COPY/constraint/ogiltigt värde) är aldrig acceptabla; tillägg/roller/extensions utanför databasen kan ge ofarliga fel och loggas.
     // Endast plattformsägda objekt (postgres saknar rätt att återskapa dem) accepteras; allt annat fel är underkänt. Se restore.ts för avvikelsen mot checklistan.
     const unexpected = restoreResult.blocks.filter((b) => !platformOnly(b))
@@ -196,6 +221,7 @@ describe('CUSTODY01.05 backup och återställning under drift', () => {
     }
     ev.observe('consistency_rows_per_block', rows)
     ev.save('consistency-checks.json', { rows, diffs, note: 'rader sorterade textuellt (blocken saknar ORDER BY och har limit 100); källan jämförs efter dumpen, de berörda tabellerna skrivs inte av den främmande körningen' })
+    expect(rows.filter(r => r.source !== 0 || r.restored !== 0), 'every non-zero consistency check must be resolved; matching violations are not healthy').toEqual([])
     expect(diffs).toEqual([])
   }, 600_000)
 
