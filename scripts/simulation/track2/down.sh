@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Endast registrerade processer; backend/volymer behöver separat admission.
 set -euo pipefail
+if [[ $# == 1 && "$1" == --full ]]; then
+  exec bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/hosted/cleanup.sh"
+fi
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 [[ $# == 1 && "$1" == --processes-only ]] || die "backend-/volymcleanup saknar kvalificerad tilldelning; endast --processes-only är tillåtet"
 LOCK="$SIM_HOME/run.lock"

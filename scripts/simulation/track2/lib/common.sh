@@ -4,6 +4,12 @@ HARNESS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*" >&2; }
 die() { log "FEL: $*"; exit 1; }
 
+# Authenticate the signed one-attempt hosted admission before directory/resource writes.
+t2_operation="$(basename "$0" .sh)"
+[[ "$t2_operation" != down ]] || t2_operation=check-down
+python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation "$t2_operation" \
+  || die "authenticated runtime admission failed"
+
 # Ingen standardstack, gammal shellfil eller källmarkör ger en ny körtilldelning.
 # Kontrollera samordnarens privata, tidsbegränsade tilldelning FÖRE mkdir och
 # före up/run/down når Docker, processer, credentials eller scenariofixturer.
@@ -32,7 +38,7 @@ try:
     data = json.loads(assignment.read_text())
     require(data['schema'] == 'gridex-simulation-runtime-assignment-v1' and data['worker'] == 'T2' and data['state'] == 'ACTIVE')
     require(isinstance(data['environmentId'], str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{2,100}', data['environmentId']))
-    expiry = datetime.datetime.fromisoformat(data['expiresAt'].replace('Z', '+00:00'))
+    expiry = datetime.datetime.fromisoformat((data['cleanupExpiresAt'] if pathlib.Path(sys.argv[2]).name == 'down.sh' else data['expiresAt']).replace('Z', '+00:00'))
     require(expiry.tzinfo is not None and expiry > datetime.datetime.now(datetime.timezone.utc))
     operation = pathlib.Path(sys.argv[2]).name.removesuffix('.sh')
     operations = data['allowedOperations']
