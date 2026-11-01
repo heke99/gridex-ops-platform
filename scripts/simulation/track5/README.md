@@ -48,13 +48,65 @@ och måste exakt matcha projekt, elva portar och mottagar-IP. Filen körs aldrig
 som shellkod. Fel stoppar även `run.sh` och `down.sh`, som saknar `errexit`,
 före katalogskapande eller vidare skriptkörning.
 
-**Runtime är fortfarande inte kvalificerad av denna inträdeskontroll.** De
-ärvda up/down-skripten har PID-/namn-/portbaserad processstädning, bred
-projekt-labelstädning och ändrar värdens Docker-/hosts-/iptables-/sysctl-
-tillstånd. Dessa livscykler behöver separat kontroll av exakta egna resurser;
-ingen främmande resurs får städas. Direkt scenarioimport kan också kringgå
-shellinträdet. Faktisk backend-identitet, bygge, replay och schemascope måste
-kvalificeras separat innan samordnaren tilldelar en verklig körning.
+**Runtime är fortfarande inte kvalificerad av inträdeskontrollen.** Direkt
+scenarioimport kan kringgå shellinträdet. Faktisk backend-identitet, bygge,
+replay och schemascope måste kvalificeras separat innan samordnaren tilldelar
+en verklig körning. Process- och mottagarnätets avgränsningar beskrivs nedan.
+
+## Processägande och extern nätförberedelse
+
+`up.sh` kräver även `SIM_NAMESPACE_PLAN_FILE` före första backendkommando.
+Det är samordnarens privata vanliga `0600`-fil utanför Git med
+`schema: "gridex-simulation-namespace-plan-v1"`, `worker: "T5"`,
+`state: "QUALIFIED"`, `mode: "PREPARED_EXTERNALLY"`, samma `environmentId`,
+`assignmentSha256` för runtime-tilldelningens råa bytes, `networkNamespace`
+som matchar `/proc/self/ns/net`, en framtida tidszonssatt `expiresAt` och
+`receiver`. Mottagarobjektet innehåller tilldelningens `ip`, `hosts`,
+`networkTag` samt `tlsPort` och `controlPort` från porttilldelningen.
+Planen dokumenterar samordnarens förberedelse; parsern provar inte exklusivitet
+eller att hela nätet är korrekt konfigurerat.
+
+T5 ändrar inte `/etc/hosts`, iptables eller sysctl, startar ingen värd-dockerd
+och utför ingen automatisk backendstädning. Samordnarens kvalificerade
+producent förbereder och återställer separat nät/daemon/backend. Saknas plan,
+daemon eller entydig inventering av ett nytt projekts resurser avbryter up.
+
+Start/stopp delar `run.lock` med scenariokörningen; ett kvarlämnat lås rensas
+inte automatiskt. Före nya starter kontrolleras alla befintliga app-, motparts-
+och mottagarkvitton. Enbart PID-, namn- eller portträffar ger ingen stopprätt.
+Varje ny process får omedelbart ett privat `pids/<roll>.birth.json` och en
+PID-fil. Birth-observationen kräver aktuell användare, ett nytt eget
+sessions-/processgruppsledarskap, rätt Node-exekverbar fil och arbetskatalog
+samt att processen är ett barn till den aktuella startaren. Observationen
+binder PID, startticks, UID, exe, cwd, grupp/session, kommandoradshash och
+runtime-tilldelningens hash.
+
+Efter hälsokontrollen skrivs separat `pids/<roll>.ready.json`, bundet till
+birth-filens hash och samma oföränderliga processidentitet. Detta bevarar
+Nexts ändring av processtiteln utan att skriva över startobservationen.
+Hälsosvar bevisar inte ensamt portägande; faktisk runtime behöver fortsatt
+kvalificering. Om ett tidigt haveri saknar ready-observation och kommandoraden
+har ändrats krävs samordnarens avstämning. En felaktig ready-observation får
+aldrig kringgås genom återfall till birth.
+
+```sh
+SIM_RUNTIME_ASSIGNMENT_FILE=/private/runtime.json SIM_HOME=/private/t5 RUN_DIR=/private/app \
+  bash scripts/simulation/track5/down.sh --processes-only
+```
+
+`down.sh` stöder endast `--processes-only`. Hela målsetet verifieras före
+första signalen; pidfd binder sedan signalen till exakt registrerad process.
+En återanvänd PID, främmande identitet, ändrad tilldelning, ett okänt barn eller
+en föräldralös sessionsmedlem stoppar automatisk städning. Endast en registrerad
+ledare utan andra levande sessions-/gruppmedlemmar kan signaleras; efteråt
+måste dess session vara tom. Inga processgruppssignaler eller breda pkill görs.
+
+En privat journal under `process-cleanup-receipts/` reserveras före signalerna
+och bevarar ursprungliga birth/ready-observationer. Endast slutförda registrerade
+ledare får sina PID-/identitetsfiler borttagna. Resultatet anger uttryckligen
+`backendStopped: false` och `hostNetworkChanged: false`; det godkänner inte
+städning av backend, volymer, nät, okända barn eller hela miljön. Ursprungliga
+replay-/byggmarkörer och credentials behålls för samordnarens separata custody.
 
 ## Nya statuspaket: explicit proveniens
 

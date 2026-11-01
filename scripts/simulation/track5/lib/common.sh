@@ -140,7 +140,295 @@ REPLAY_ROOT="$SIM_HOME/replay-root"
 sb() { (cd "$REPLAY_ROOT" && supabase "$@"); }
 
 app_pid_alive() {
-  [[ -f "$SIM_HOME/pids/app.pid" ]] && kill -0 "$(cat "$SIM_HOME/pids/app.pid")" 2>/dev/null
+  t5_process_custody alive app >/dev/null
+}
+
+# Separata birth/ready-observationer. Endast exakt registrerade ledare får
+# signaleras; okända barn/sessioner lämnas åt samordnarens återställning.
+t5_process_custody() {
+  python3 -I - "$@" "$SIM_HOME" "$RUN_DIR" "$HARNESS_DIR" "$SIM_RUNTIME_ASSIGNMENT_FILE" "$0" <<'PY'
+import datetime, fcntl, hashlib, json, os, pathlib, re, select, shutil, signal, stat, subprocess, sys, time, uuid
+
+def require(ok, code):
+    if not ok:
+        raise ValueError(code)
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        require(key not in result, 'duplicate_json_key')
+        result[key] = value
+    return result
+
+def private(path):
+    require(str(path.resolve()) == str(path), 'private_path_changed')
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        info = os.fstat(descriptor)
+        require(stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid()
+                and stat.S_IMODE(info.st_mode) == 0o600, 'private_file_required')
+        raw = os.read(descriptor, 65537)
+        require(len(raw) <= 65536, 'private_file_too_large')
+        return raw
+    finally:
+        os.close(descriptor)
+
+def parsed(raw):
+    return json.loads(raw, object_pairs_hook=unique_object)
+
+def future(value):
+    expiry = datetime.datetime.fromisoformat(value.replace('Z', '+00:00'))
+    require(expiry.tzinfo is not None and expiry > datetime.datetime.now(datetime.timezone.utc), 'assignment_expired')
+
+def present(path):
+    return path.exists() or path.is_symlink()
+
+def snapshot(pid):
+    proc = pathlib.Path('/proc') / str(pid)
+    try:
+        require(proc.stat().st_uid == os.getuid(), 'process_owner_mismatch')
+        fields = (proc / 'stat').read_text().rsplit(')', 1)[1].split()
+        if fields[0] == 'Z':
+            return None
+        return {'uid': proc.stat().st_uid, 'parentPid': int(fields[1]), 'processGroup': int(fields[2]),
+                'sessionId': int(fields[3]), 'startTimeTicks': fields[19], 'exe': os.readlink(proc / 'exe'),
+                'cwd': os.readlink(proc / 'cwd'), 'cmdlineSha256': hashlib.sha256((proc / 'cmdline').read_bytes()).hexdigest()}
+    except (FileNotFoundError, ProcessLookupError):
+        return None
+
+def members(pid):
+    found = []
+    for proc in pathlib.Path('/proc').iterdir():
+        if not proc.name.isdigit():
+            continue
+        try:
+            fields = (proc / 'stat').read_text().rsplit(')', 1)[1].split()
+            if fields[0] != 'Z' and pid in (int(fields[2]), int(fields[3])):
+                found.append(int(proc.name))
+        except (FileNotFoundError, ProcessLookupError):
+            pass
+    return found
+
+def exited(descriptor, timeout=0):
+    poller = select.poll()
+    poller.register(descriptor, select.POLLIN)
+    return bool(poller.poll(timeout))
+
+handles = []
+try:
+    operation, *arguments = sys.argv[1:]
+    role_args, tail = arguments[:-5], arguments[-5:]
+    home, app, harness, assignment = map(pathlib.Path, tail[:4])
+    entry = pathlib.Path(tail[4]).name.removesuffix('.sh')
+    info = home.stat()
+    pids = home / 'pids'
+    pids_info = pids.stat()
+    require(home.is_dir() and str(home.resolve()) == str(home) and info.st_uid == os.getuid()
+            and stat.S_IMODE(info.st_mode) == 0o700, 'home_identity_mismatch')
+    require(pids.is_dir() and str(pids.resolve()) == str(pids) and pids_info.st_uid == os.getuid(), 'pid_directory_mismatch')
+    original_assignment = private(assignment)
+    assigned = parsed(original_assignment)
+    assignment_sha = hashlib.sha256(original_assignment).hexdigest()
+    require(assigned['schema'] == 'gridex-simulation-runtime-assignment-v1'
+            and assigned['worker'] == 'T5' and assigned['state'] == 'ACTIVE'
+            and assigned['simHome'] == str(home) and assigned['runDir'] == str(app)
+            and isinstance(assigned['allowedOperations'], list) and entry in assigned['allowedOperations'], 'assignment_identity_mismatch')
+    require(re.fullmatch(r'[0-9a-f]{40}', assigned['sourceCommit'])
+            and subprocess.check_output(['git', '-C', str(app), 'rev-parse', 'HEAD'], text=True, stderr=subprocess.DEVNULL).strip() == assigned['sourceCommit']
+            and not subprocess.check_output(['git', '-C', str(app), 'status', '--porcelain', '--untracked-files=normal'], text=True, stderr=subprocess.DEVNULL).strip(),
+            'assignment_source_mismatch')
+    require(entry in ('up', 'down') or (entry == 'run' and operation == 'alive'), 'operation_not_assigned')
+    require(operation not in ('birth', 'ready', 'namespace-plan') or entry == 'up', 'operation_not_assigned')
+
+    def still_assigned():
+        current, current_pids = home.stat(), pids.stat()
+        require(private(assignment) == original_assignment
+                and (current.st_dev, current.st_ino) == (info.st_dev, info.st_ino)
+                and current.st_uid == os.getuid() and stat.S_IMODE(current.st_mode) == 0o700
+                and str(home.resolve()) == str(home)
+                and (current_pids.st_dev, current_pids.st_ino) == (pids_info.st_dev, pids_info.st_ino)
+                and str(pids.resolve()) == str(pids), 'assignment_or_directory_changed')
+        future(assigned['expiresAt'])
+
+    still_assigned()
+    lock = os.open(home / 'process-custody.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    handles.append(lock)
+    lock_info = os.fstat(lock)
+    require(stat.S_ISREG(lock_info.st_mode) and lock_info.st_uid == os.getuid()
+            and stat.S_IMODE(lock_info.st_mode) == 0o600, 'process_lock_not_private')
+    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    roles = ('app', 'counterparts', 'receiver')
+    immutable = ('uid', 'processGroup', 'sessionId', 'startTimeTicks', 'exe', 'cwd')
+    identity_keys = (*immutable, 'cmdlineSha256')
+    require(hasattr(os, 'pidfd_open') and hasattr(signal, 'pidfd_send_signal'), 'pidfd_support_required')
+
+    def validate(record, role, phase):
+        pid = record['pid']
+        require(record['schema'] == 'track5-process-identity-v1' and record['worker'] == 'T5'
+                and record['role'] == role and record['phase'] == phase
+                and record['environmentId'] == assigned['environmentId']
+                and record['assignmentSha256'] == assignment_sha, 'receipt_assignment_mismatch')
+        require(type(pid) is int and pid > 1 and pid not in (os.getpid(), os.getppid())
+                and type(record['uid']) is int and record['uid'] == os.getuid()
+                and record['processGroup'] == pid and record['sessionId'] == pid,
+                'receipt_process_identity_invalid')
+        require(isinstance(record['startTimeTicks'], str) and record['startTimeTicks'].isdigit()
+                and re.fullmatch(r'[0-9a-f]{64}', record['cmdlineSha256']), 'receipt_process_identity_invalid')
+        require(record['cwd'] == str(app if role == 'app' else harness)
+                and record['exe'] == str(pathlib.Path(shutil.which('node')).resolve()), 'receipt_process_paths_invalid')
+        return pid
+
+    def write_new(path, record):
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(descriptor, 'w') as stream:
+            json.dump(record, stream)
+            stream.write('\n')
+
+    if operation == 'namespace-plan':
+        require(not role_args, 'invalid_namespace_plan_operation')
+        plan_path = pathlib.Path(os.environ.get('SIM_NAMESPACE_PLAN_FILE', ''))
+        require(plan_path.is_absolute(), 'external_namespace_plan_required')
+        plan = parsed(private(plan_path))
+        for flag in ('--is-inside-work-tree', '--is-inside-git-dir'):
+            probe = subprocess.run(['git', '-C', str(plan_path.parent), 'rev-parse', flag], capture_output=True, text=True)
+            require(not (probe.returncode == 0 and probe.stdout.strip() == 'true'), 'namespace_plan_inside_git')
+        require(plan['schema'] == 'gridex-simulation-namespace-plan-v1' and plan['worker'] == 'T5'
+                and plan['state'] == 'QUALIFIED' and plan['mode'] == 'PREPARED_EXTERNALLY'
+                and plan['environmentId'] == assigned['environmentId'] and plan['assignmentSha256'] == assignment_sha
+                and plan['networkNamespace'] == os.readlink('/proc/self/ns/net'), 'namespace_plan_mismatch')
+        require(plan['receiver'] == {**assigned['receiver'], 'tlsPort': assigned['ports']['SIM_RECEIVER_TLS_PORT'],
+                                    'controlPort': assigned['ports']['SIM_RECEIVER_CTRL_PORT']}, 'namespace_receiver_mismatch')
+        future(plan['expiresAt'])
+    elif operation == 'birth':
+        require(len(role_args) == 2 and role_args[0] in roles and role_args[1].isdigit(), 'invalid_birth_arguments')
+        role, pid = role_args[0], int(role_args[1])
+        require(pid > 1 and pid not in (os.getpid(), os.getppid()), 'invalid_process_pid')
+        require(not any(present(pids / (role + suffix)) for suffix in ('.pid', '.birth.json', '.ready.json')), 'process_receipt_already_exists')
+        descriptor = os.pidfd_open(pid)
+        handles.append(descriptor)
+        node = str(pathlib.Path(shutil.which('node')).resolve())
+        for _ in range(100):
+            identity = snapshot(pid)
+            require(not exited(descriptor) and identity is not None, 'new_process_exited')
+            if identity['exe'] == node:
+                break
+            time.sleep(.01)
+        require(identity['exe'] == node and identity['parentPid'] == os.getppid()
+                and identity['processGroup'] == pid and identity['sessionId'] == pid
+                and identity['cwd'] == str(app if role == 'app' else harness), 'new_process_identity_mismatch')
+        record = {'schema': 'track5-process-identity-v1', 'worker': 'T5', 'role': role, 'phase': 'birth',
+                  'environmentId': assigned['environmentId'], 'assignmentSha256': assignment_sha, 'pid': pid, **identity}
+        still_assigned()
+        write_new(pids / (role + '.birth.json'), record)
+        descriptor = os.open(pids / (role + '.pid'), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(descriptor, 'w') as stream:
+            stream.write(str(pid) + '\n')
+    elif operation == 'ready':
+        require(len(role_args) == 1 and role_args[0] in roles, 'invalid_ready_arguments')
+        role = role_args[0]
+        birth_raw = private(pids / (role + '.birth.json'))
+        birth = parsed(birth_raw)
+        pid = validate(birth, role, 'birth')
+        descriptor = os.pidfd_open(pid)
+        handles.append(descriptor)
+        identity = snapshot(pid)
+        require(not exited(descriptor) and identity is not None
+                and all(identity[key] == birth[key] for key in immutable), 'ready_birth_identity_mismatch')
+        still_assigned()
+        require(private(pids / (role + '.birth.json')) == birth_raw, 'birth_receipt_changed')
+        write_new(pids / (role + '.ready.json'), {**birth, **identity, 'phase': 'ready',
+                                                'birthSha256': hashlib.sha256(birth_raw).hexdigest()})
+    else:
+        require(operation in ('stop', 'alive') and (not role_args if operation == 'stop'
+                else len(role_args) == 1 and role_args[0] in roles), 'invalid_process_operation')
+        resources, seen = [], set()
+        for role in roles if operation == 'stop' else role_args:
+            birth_path, ready_path, pid_path = (pids / (role + suffix) for suffix in ('.birth.json', '.ready.json', '.pid'))
+            if not present(birth_path):
+                require(not present(ready_path) and not present(pid_path), 'unreceipted_process')
+                require(operation != 'alive', 'recorded_process_not_alive')
+                continue
+            birth_raw = private(birth_path)
+            birth = parsed(birth_raw)
+            pid = validate(birth, role, 'birth')
+            selected, originals = birth, [(birth_path, birth_raw)]
+            if present(ready_path):
+                ready_raw = private(ready_path)
+                ready = parsed(ready_raw)
+                require(validate(ready, role, 'ready') == pid and ready['birthSha256'] == hashlib.sha256(birth_raw).hexdigest()
+                        and all(ready[key] == birth[key] for key in immutable), 'ready_birth_binding_mismatch')
+                selected = ready
+                originals.append((ready_path, ready_raw))
+            require(pid not in seen, 'duplicate_process_pid')
+            seen.add(pid)
+            if present(pid_path):
+                require(private(pid_path).decode().strip() == str(pid), 'pidfile_identity_mismatch')
+            try:
+                descriptor = os.pidfd_open(pid)
+            except ProcessLookupError:
+                descriptor = None
+            if descriptor is not None:
+                handles.append(descriptor)
+                observed = snapshot(pid)
+                require(exited(descriptor) or observed is not None and all(observed[key] == selected[key] for key in identity_keys),
+                        'process_identity_mismatch')
+            require(set(members(pid)) <= {pid}, 'unassigned_session_members')
+            if operation == 'alive':
+                require(descriptor is not None and not exited(descriptor), 'recorded_process_not_alive')
+            resources.append((pid, selected, originals, pid_path, descriptor))
+        if operation == 'stop':
+            receipts = home / 'process-cleanup-receipts'
+            require(not receipts.is_symlink(), 'cleanup_receipt_directory_symlink')
+            receipts.mkdir(mode=0o700, exist_ok=True)
+            require(receipts.is_dir() and receipts.stat().st_uid == os.getuid()
+                    and stat.S_IMODE(receipts.stat().st_mode) == 0o700, 'cleanup_receipt_directory_not_private')
+            destination = receipts / (str(uuid.uuid4()) + '.jsonl')
+            descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(descriptor, 'w') as journal:
+                def event(state, **data):
+                    journal.write(json.dumps({'state': state, 'assignmentSha256': assignment_sha, **data}) + '\n')
+                    journal.flush()
+                event('STARTED', scope='recorded_leaders_only', originals=[parsed(raw) for _, _, originals, _, _ in resources for _, raw in originals])
+                for pid, selected, originals, pid_path, descriptor in resources:
+                    still_assigned()
+                    require(all(private(path) == raw for path, raw in originals), 'process_receipt_changed')
+                    require(not present(pid_path) or private(pid_path).decode().strip() == str(pid), 'pidfile_changed')
+                    require(set(members(pid)) <= {pid}, 'unassigned_session_members')
+                    if descriptor is not None and not exited(descriptor):
+                        observed = snapshot(pid)
+                        require(observed is not None and all(observed[key] == selected[key] for key in identity_keys), 'process_identity_changed')
+                        signal.pidfd_send_signal(descriptor, signal.SIGTERM)
+                        if not exited(descriptor, 2000):
+                            still_assigned()
+                            signal.pidfd_send_signal(descriptor, signal.SIGKILL)
+                            require(exited(descriptor, 2000), 'recorded_process_did_not_exit')
+                    require(not members(pid), 'session_not_empty')
+                    if present(pid_path):
+                        require(private(pid_path).decode().strip() == str(pid), 'pidfile_changed')
+                        pid_path.unlink()
+                    for path, raw in reversed(originals):
+                        require(private(path) == raw, 'process_receipt_changed')
+                        path.unlink()
+                    event('PROCESS_STOPPED', pid=pid, sessionEmpty=True)
+                still_assigned()
+                event('DONE', scope='recorded_leaders_only', backendStopped=False, hostNetworkChanged=False)
+            print(json.dumps({'scope': 'recorded_leaders_only', 'processesStopped': len(resources), 'backendStopped': False,
+                              'hostNetworkChanged': False, 'receipt': str(destination)}))
+except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as error:
+    code = str(error) if isinstance(error, ValueError) and re.fullmatch(r'[a-z_]+', str(error)) else 'process_custody_failed'
+    print('track5_process_refused: ' + code, file=sys.stderr)
+    raise SystemExit(1)
+finally:
+    for descriptor in handles:
+        os.close(descriptor)
+PY
+}
+
+t5_acquire_runtime_lock() {
+  LOCK="$SIM_HOME/run.lock"
+  mkdir "$LOCK" 2>/dev/null || die "run.lock finns; samordnaren måste avstämma kvarlämnad låsning"
+  (umask 077; printf '%s\n' "$$" >"$LOCK/pid") || die "kunde inte registrera egen körlåsning"
+  trap 'if [[ "$(cat "$LOCK/pid" 2>/dev/null)" == "$$" ]]; then rm -f -- "$LOCK/pid"; rmdir -- "$LOCK" 2>/dev/null || true; fi' EXIT
 }
 
 # Utanför repot finns ingen node_modules i föräldrakedjan; länka RUN_DIR:s (ignoreras av git).

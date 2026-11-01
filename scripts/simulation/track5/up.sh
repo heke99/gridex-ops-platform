@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Startar spår 5:s egna lokala stack från RUN_DIR:s HEAD. Se README.md.
-#   SIM_HOME (default /root/sim-home/track5)   RUN_DIR (default /root/sim/track5)
+#   SIM_HOME, RUN_DIR och privata runtime-/namespace-tilldelningar krävs uttryckligen.
 #   SKIP_REPLAY=1  återanvänd stack/DB (diff replay-commit..HEAD får bara lägga till migrationer, som sim-runner applicerar)
 #   SKIP_BUILD=1   återanvänd bygget (diff built-commit..HEAD får bara röra icke-appsökvägar, se build_reusable)
 #   SIM_*_PORT     se lib/common.sh
 set -euo pipefail
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+t5_process_custody namespace-plan || die "samordnarens kvalificerade externa mottagarnät krävs; inga värdnätändringar utförs"
+t5_acquire_runtime_lock
+t5_process_custody stop || die "gamla processer saknar verifierat ägande; samordnaren måste återställa"
 
 export SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io   # Docker Hub (429) / ECR (data limit) går inte; finns i CLI 2.101.0
 [[ "$(supabase --version 2>/dev/null | tail -1)" == 2.101.0 ]] || die "supabase CLI måste vara 2.101.0 (replayskriptet kräver det)"
@@ -15,14 +18,7 @@ for c in docker supabase psql python3 node curl openssl; do command -v "$c" >/de
 [[ "${SKIP_BUILD:-0}" == 1 || -x "$RUN_DIR/node_modules/.bin/next" ]] || die "RUN_DIR/node_modules saknas (sim-runner kör npm ci)"
 
 # --- 1. docker -----------------------------------------------------------------------
-if ! docker info >/dev/null 2>&1; then
-  log "docker svarar inte; startar dockerd (logg: $SIM_HOME/dockerd.log)"
-  nohup dockerd >"$SIM_HOME/dockerd.log" 2>&1 &
-  echo $! >"$SIM_HOME/pids/dockerd.pid"
-  : >"$SIM_HOME/dockerd.started-by-up"
-  for _ in $(seq 1 90); do docker info >/dev/null 2>&1 && break; sleep 1; done
-  docker info >/dev/null 2>&1 || die "dockerd blev inte redo, se $SIM_HOME/dockerd.log"
-fi
+docker info >/dev/null 2>&1 || die "kvalificerad Docker-daemon saknas; up.sh startar ingen värddaemon"
 
 # --- 2. portar -----------------------------------------------------------------------
 cat >"$SIM_HOME/ports.env" <<PORTS
@@ -86,9 +82,14 @@ else
   if docker ps --format '{{.Names}}' --filter name=supabase_db_ | grep -q .; then
     die "BLOCKED: stacken upptagen ($(docker ps --format '{{.Names}}' --filter name=supabase_db_ | tr '\n' ' ')); kör down.sh först"
   fi
+  existing_containers="$(docker ps -aq --filter "label=com.supabase.cli.project=$SIM_PROJECT_ID")" \
+    || die "kunde inte inventera projektcontainrar; ingen replay utförs"
+  existing_volumes="$(docker volume ls -q --filter "label=com.supabase.cli.project=$SIM_PROJECT_ID")" \
+    || die "kunde inte inventera projektvolymer; ingen replay utförs"
+  [[ -z "$existing_containers" && -z "$existing_volumes" ]] \
+    || die "projektresurser finns redan; ingen automatisk backendstädning utförs"
   prepare_replay_root
-  log "rensar ev. gammal stack och kör ren replay (logg: $SIM_HOME/logs/replay.log)"
-  sb stop --no-backup >>"$SIM_HOME/logs/replay.log" 2>&1 || true
+  log "kör ren replay (logg: $SIM_HOME/logs/replay.log)"
   rm -f "$SIM_HOME/replay-commit" "$SIM_HOME/replay-at" "$SIM_HOME/built-commit" "$SIM_HOME/fingerprint"
   (cd "$REPLAY_ROOT" && bash scripts/gridex-aud-003-clean-replay.sh) >>"$SIM_HOME/logs/replay.log" 2>&1 \
     || die "replay misslyckades, se $SIM_HOME/logs/replay.log"
@@ -157,18 +158,17 @@ chmod 600 "$SIM_HOME/app.env"
 # LANTMATERIET_*_USERNAME/PASSWORD sätts INTE (tomma = integrationen avstängd).
 
 # --- 5. lokala motparter ---------------------------------------------------------------
-if [[ -f "$SIM_HOME/pids/counterparts.pid" ]] && kill -0 "$(cat "$SIM_HOME/pids/counterparts.pid")" 2>/dev/null; then
-  kill "$(cat "$SIM_HOME/pids/counterparts.pid")" 2>/dev/null || true; sleep 1
-fi
-SIM_HOME="$SIM_HOME" SIM_COUNTERPART_PORT="$SIM_COUNTERPART_PORT" \
-  setsid nohup node "$HARNESS_DIR/lib/counterparts.mjs" >"$SIM_HOME/logs/counterparts.log" 2>&1 &
-echo $! >"$SIM_HOME/pids/counterparts.pid"
+(cd "$HARNESS_DIR" && exec env SIM_HOME="$SIM_HOME" SIM_COUNTERPART_PORT="$SIM_COUNTERPART_PORT" \
+  setsid nohup node "$HARNESS_DIR/lib/counterparts.mjs") >"$SIM_HOME/logs/counterparts.log" 2>&1 &
+counterparts_pid=$!
+t5_process_custody birth counterparts "$counterparts_pid" || die "motparts-PID $counterparts_pid saknar birth-kvitto; samordnaråterställning krävs"
 for _ in $(seq 1 20); do curl -fsS "$CP_URL/__health" >/dev/null 2>&1 && break; sleep 0.5; done
 curl -fsS "$CP_URL/__health" >/dev/null || die "motparter startade inte"
+t5_process_custody ready counterparts
 
 # --- 5b. EVENT01: lokal https-webhookmottagare bakom publik test-IP ----------------------
-# Appen godtar bara https-mål med publik adress. Mottagaren är lokal: /etc/hosts -> SIM_RECEIVER_IP,
-# iptables DNAT SIM_RECEIVER_IP:443 -> 127.0.0.1:SIM_RECEIVER_TLS_PORT, REJECT för all övrig trafik dit.
+# Appen godtar bara https-mål med publik adress. Samordnaren måste redan ha
+# förberett det tilldelade mottagarnätet; inga hosts/iptables/sysctl ändras här.
 mkdir -p "$SIM_HOME/receiver"
 if [[ ! -f "$SIM_HOME/receiver/ca.pem" ]]; then
   ( umask 077; cd "$SIM_HOME/receiver"
@@ -178,26 +178,13 @@ if [[ ! -f "$SIM_HOME/receiver/ca.pem" ]]; then
     openssl x509 -req -in server.csr -CA ca.pem -CAkey ca.key -CAcreateserial -days 7 -extfile san.ext -out server.pem >/dev/null 2>&1 )
   [[ -s "$SIM_HOME/receiver/server.pem" ]] || die "kunde inte skapa mottagarcertifikat"
 fi
-receiver_net_up() {
-  sed -i "/# $SIM_IPT_TAG\$/d" /etc/hosts
-  for h in $SIM_RECEIVER_HOSTS; do printf '%s %s # %s\n' "$SIM_RECEIVER_IP" "$h" "$SIM_IPT_TAG" >>/etc/hosts; done
-  iptables -t nat -C OUTPUT -d "$SIM_RECEIVER_IP/32" -p tcp --dport 443 -m comment --comment "$SIM_IPT_TAG" \
-      -j DNAT --to-destination "127.0.0.1:$SIM_RECEIVER_TLS_PORT" 2>/dev/null \
-    || iptables -t nat -A OUTPUT -d "$SIM_RECEIVER_IP/32" -p tcp --dport 443 -m comment --comment "$SIM_IPT_TAG" \
-      -j DNAT --to-destination "127.0.0.1:$SIM_RECEIVER_TLS_PORT"
-  iptables -C OUTPUT -d "$SIM_RECEIVER_IP/32" -m comment --comment "$SIM_IPT_TAG" -j REJECT 2>/dev/null \
-    || iptables -A OUTPUT -d "$SIM_RECEIVER_IP/32" -m comment --comment "$SIM_IPT_TAG" -j REJECT
-  sysctl -qw net.ipv4.conf.all.route_localnet=1 >/dev/null 2>&1 || true
-}
-receiver_net_up
-if [[ -f "$SIM_HOME/pids/receiver.pid" ]] && kill -0 "$(cat "$SIM_HOME/pids/receiver.pid")" 2>/dev/null; then
-  kill "$(cat "$SIM_HOME/pids/receiver.pid")" 2>/dev/null || true; sleep 1
-fi
-SIM_HOME="$SIM_HOME" SIM_RECEIVER_TLS_PORT="$SIM_RECEIVER_TLS_PORT" SIM_RECEIVER_CTRL_PORT="$SIM_RECEIVER_CTRL_PORT" \
-  setsid nohup node "$HARNESS_DIR/lib/webhook-receiver.mjs" >"$SIM_HOME/logs/receiver.log" 2>&1 &
-echo $! >"$SIM_HOME/pids/receiver.pid"
+(cd "$HARNESS_DIR" && exec env SIM_HOME="$SIM_HOME" SIM_RECEIVER_TLS_PORT="$SIM_RECEIVER_TLS_PORT" SIM_RECEIVER_CTRL_PORT="$SIM_RECEIVER_CTRL_PORT" \
+  setsid nohup node "$HARNESS_DIR/lib/webhook-receiver.mjs") >"$SIM_HOME/logs/receiver.log" 2>&1 &
+receiver_pid=$!
+t5_process_custody birth receiver "$receiver_pid" || die "mottagar-PID $receiver_pid saknar birth-kvitto; samordnaråterställning krävs"
 for _ in $(seq 1 20); do curl -fsS "http://127.0.0.1:$SIM_RECEIVER_CTRL_PORT/__health" >/dev/null 2>&1 && break; sleep 0.5; done
 curl -fsS "http://127.0.0.1:$SIM_RECEIVER_CTRL_PORT/__health" >/dev/null || die "webhookmottagaren startade inte"
+t5_process_custody ready receiver
 first_host="${SIM_RECEIVER_HOSTS%% *}"
 curl -fsS --noproxy '*' --cacert "$SIM_HOME/receiver/ca.pem" -X POST "https://$first_host/hook/__probe" -d '{}' >/dev/null \
   || die "mottagaren nås inte via $first_host -> $SIM_RECEIVER_IP (DNAT)"
@@ -220,16 +207,17 @@ else
 fi
 
 # --- 7. app ----------------------------------------------------------------------------
-if app_pid_alive; then kill "$(cat "$SIM_HOME/pids/app.pid")" 2>/dev/null || true; sleep 2; fi
 (cd "$RUN_DIR" && set -a && . "$SIM_HOME/app.env" && set +a && \
   exec setsid nohup node node_modules/next/dist/bin/next start -H 127.0.0.1 -p "$SIM_APP_PORT") \
   >"$SIM_HOME/logs/app.log" 2>&1 &
-echo $! >"$SIM_HOME/pids/app.pid"
+app_pid=$!
+t5_process_custody birth app "$app_pid" || die "app-PID $app_pid saknar birth-kvitto; samordnaråterställning krävs"
 for _ in $(seq 1 120); do
   code="$(curl -s -o /dev/null -w '%{http_code}' "$APP_URL/" || true)"
   [[ "$code" =~ ^[1-5][0-9][0-9]$ ]] && break
-  app_pid_alive || die "appen dog, se $SIM_HOME/logs/app.log"
+  kill -0 "$app_pid" 2>/dev/null || die "den nyss startade appen dog, se $SIM_HOME/logs/app.log"
   sleep 1
 done
 [[ "${code:-000}" != 000 ]] || die "appen svarade inte på $APP_URL/"
+t5_process_custody ready app
 log "klart: app=$APP_URL (/ -> $code) api=$API_URL db=127.0.0.1:$SIM_DB_PORT mail=http://127.0.0.1:$SIM_MAIL_HTTP_PORT smtp=127.0.0.1:$SIM_SMTP_PORT"
