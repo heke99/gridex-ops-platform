@@ -285,7 +285,7 @@ export type SignedContractFixture = {
   }
 }
 
-function pricingFor(input: CreateSignedContractInput, monthlyFee: number, area: string) {
+function pricingFor(input: CreateSignedContractInput, monthlyFee: number, area: string, pilotInvoiceFee = false) {
   const resolution = /quarter/.test(input.contractType) ? 'quarterly' : /hour/.test(input.contractType) ? 'hourly' : 'monthly'
   const feeComponent: Record<string, unknown> = {
     component_code: 'monthly_fee', component_type: 'fee', name: 'Månadsavgift', calculation_type: 'fixed_monthly',
@@ -300,11 +300,14 @@ function pricingFor(input: CreateSignedContractInput, monthlyFee: number, area: 
     price_components: [
       { component_code: 'spot_markup', component_type: 'markup', name: 'Påslag', calculation_type: 'per_kwh', amount: 4, unit: 'ore_per_kwh', website_card_visible: true },
       feeComponent,
+      // Opt-in pilot preserves the existing offer's 19 SEK invoice fee in its
+      // actual accepted component snapshot; legacy case snapshots stay intact.
+      ...(pilotInvoiceFee ? [{ component_code: 'invoice_fee', component_type: 'invoice_fee', name: 'Fakturaavgift', calculation_type: 'fixed_once', amount: 19, unit: 'sek_invoice', website_card_visible: true }] : []),
     ],
   }
 }
 
-async function ensureOffer(tenant: TermTenant, input: CreateSignedContractInput, monthlyFee: number, area: string, mode: 'rpc_v3' | 'legacy_v2' = 'rpc_v3') {
+async function ensureOffer(tenant: TermTenant, input: CreateSignedContractInput, monthlyFee: number, area: string, mode: 'rpc_v3' | 'legacy_v2' = 'rpc_v3', historicalValidFrom?: string) {
   const bindingForOption = input.bindingMonths ?? 0
   const renewTerm = input.autoRenew ? (input.autoRenewTermMonths ?? (bindingForOption > 0 ? bindingForOption : 12)) : null
   const key = JSON.stringify([input.contractType, bindingForOption, input.noticeMonths, monthlyFee, input.prorationPolicy ?? null, area, input.autoRenew ?? false, renewTerm, mode])
@@ -320,7 +323,7 @@ async function ensureOffer(tenant: TermTenant, input: CreateSignedContractInput,
     default_notice_months: input.noticeMonths, automatic_renewal: Boolean(input.autoRenew),
     ...(renewTerm ? { automatic_renewal_term_months: renewTerm } : {}),
     power_of_attorney_required: true,
-    valid_from: new Date(Date.now() - 86_400_000).toISOString().slice(0, 10),
+    valid_from: historicalValidFrom ?? new Date(Date.now() - 86_400_000).toISOString().slice(0, 10),
   }
   const client = serviceClient()
   const optionRef = `term-${tenant.runId}-${n}`
@@ -328,7 +331,7 @@ async function ensureOffer(tenant: TermTenant, input: CreateSignedContractInput,
   // ur pricing-snapshotens price_options, och erbjudandets commercial_snapshot får då en kommersiell modell, vilket gör att
   // createContractFromOfferAction väljer RPC-vägen gridex_create_internal_customer_contract_v1. legacy_v2 (utan price_options)
   // ger TS-vägen createCustomerContract (fynd 005) och används bara av TERM01.PRE.
-  const pricing = pricingFor(input, monthlyFee, area)
+  const pricing = pricingFor(input, monthlyFee, area, historicalValidFrom !== undefined)
   const snapshot = mode === 'rpc_v3'
     ? {
         ...pricing, snapshot_schema: 'gridex_contract_pricing_v6_selection', schema_version: 'gridex_contract_pricing_v6_selection',
@@ -404,14 +407,22 @@ export class ContractActionProbe extends Error {
   constructor(public result: ServerActionResult, public contractCount: number) { super('contract_action_probe') }
 }
 
-export async function createSignedContract(tenant: TermTenant, input: CreateSignedContractInput, opts: { offerMode?: 'rpc_v3' | 'legacy_v2'; probe?: boolean } = {}): Promise<SignedContractFixture> {
+export async function createSignedContract(tenant: TermTenant, input: CreateSignedContractInput, opts: { offerMode?: 'rpc_v3' | 'legacy_v2'; probe?: boolean; uploadedAgreement?: { file: File; signedDate: string; offerValidFrom: string } } = {}): Promise<SignedContractFixture> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.startsAt)) throw new Error('startsAt måste vara YYYY-MM-DD')
   logBackendReplacements()
   const area = input.priceArea ?? 'SE3'
   const monthlyFee = input.monthlyFeeSek ?? 49
   const declaredSignedAt = input.signedAt ?? '2026-10-15'
   const { companyId, builderUserId } = tenant
-  const offer = await ensureOffer(tenant, input, monthlyFee, area, opts.offerMode ?? 'rpc_v3')
+  const uploaded = opts.uploadedAgreement
+  if (uploaded) {
+    const dates = [uploaded.signedDate, uploaded.offerValidFrom, input.startsAt]
+    if (dates.some(value => !/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString().slice(0, 10) !== value)
+      || uploaded.offerValidFrom > uploaded.signedDate || uploaded.signedDate > input.startsAt || uploaded.signedDate >= stockholmToday()
+      || !uploaded.file || uploaded.file.type !== 'application/pdf' || uploaded.file.size === 0) throw new Error('pilot_historical_signing_invalid')
+    if (tenant.offerCache.size || input.existing) throw new Error('pilot_fresh_offer_and_customer_required')
+  }
+  const offer = await ensureOffer(tenant, input, monthlyFee, area, opts.offerMode ?? 'rpc_v3', uploaded?.offerValidFrom)
   const session = await tenantSession(tenant)
 
   // 1. Kund/site/mätpunkt skapas av ordinarie intake. Vid okänt eller delvis
@@ -499,7 +510,8 @@ export async function createSignedContract(tenant: TermTenant, input: CreateSign
   const contractForm = new FormData()
   const cput = (k: string, v: string) => contractForm.append(k, v)
   cput('customer_id', customerId); cput('contract_offer_id', offer.offerId); cput('site_id', siteId); cput('metering_point_id', pointId)
-  cput('starts_at', input.startsAt); cput('signing_method', 'draft'); cput('invoice_delivery_method', 'email')
+  cput('starts_at', input.startsAt); cput('signing_method', uploaded ? 'uploaded_signed' : 'draft'); cput('invoice_delivery_method', 'email')
+  if (uploaded) { contractForm.append('signed_agreement_file', uploaded.file); cput('signed_date', uploaded.signedDate) }
   cput('price_option_reference', offer.optionReference)
   const hasModel = psql(`select (jsonb_typeof(commercial_snapshot->'price_options')='array' and jsonb_array_length(commercial_snapshot->'price_options')>0)::text from public.contract_offers where id=${lit(offer.offerId)}`) === 'true'
   const predictedPath = hasModel ? 'rpc_gridex_create_internal_customer_contract_v1' : 'ts_createCustomerContract'
@@ -525,24 +537,33 @@ export async function createSignedContract(tenant: TermTenant, input: CreateSign
     throw new Error('TS-vägen createCustomerContract valdes i stället för RPC-vägen; TS-vägen skriver kolumner som saknas i schemat (fynd 005, t.ex. current_supplier_contract_end_date). TERM-stegen kräver RPC-vägen.')
   }
   // Deklarerat signeringsdatum följer med som metadata (ingen affärslogik); skrivs före signering på ett draft-avtal.
-  psql(`UPDATE public.customer_contracts SET metadata=coalesce(metadata,'{}'::jsonb)||${lit({ sim_declared_signed_at: declaredSignedAt, test_center: { kind: 'invoice_test_customer' } })}::jsonb WHERE id=${lit(contractId)} AND status='draft' AND signed_at IS NULL;`)
+  if (!uploaded) psql(`UPDATE public.customer_contracts SET metadata=coalesce(metadata,'{}'::jsonb)||${lit({ sim_declared_signed_at: declaredSignedAt, test_center: { kind: 'invoice_test_customer' } })}::jsonb WHERE id=${lit(contractId)} AND status='draft' AND signed_at IS NULL;`)
 
-  // 3. Signering: kanonisk prepare/finalize (ersätter UI-signering).
-  const client = serviceClient()
-  const tokenHash = randomBytes(32).toString('hex')
-  const prepared = await client.rpc('gridex_prepare_customer_contract_signature_request_v1', {
-    p_company_id: companyId, p_customer_id: customerId, p_contract_id: contractId, p_token_hash: tokenHash,
-    p_recipient_email: email, p_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), p_actor_user_id: builderUserId, p_channel: 'internal',
-  })
-  if (prepared.error) throw new Error(`prepare_signature: ${prepared.error.message}`)
-  const finalized = await client.rpc('gridex_finalize_customer_contract_signature_v1', {
-    p_token_hash: tokenHash, p_signed_ip_hash: null, p_signed_user_agent: 'Gridex TERM sim synthetic acceptance · TEST ONLY',
-  })
-  if (finalized.error) throw new Error(`finalize_signature: ${finalized.error.message}`)
+  // Uploaded pilot uses the same create action's actual PDF import; legacy cases retain canonical RPC signing.
+  if (!uploaded) {
+    // 3. Signering: kanonisk prepare/finalize (ersätter UI-signering).
+    const client = serviceClient()
+    const tokenHash = randomBytes(32).toString('hex')
+    const prepared = await client.rpc('gridex_prepare_customer_contract_signature_request_v1', {
+      p_company_id: companyId, p_customer_id: customerId, p_contract_id: contractId, p_token_hash: tokenHash,
+      p_recipient_email: email, p_expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), p_actor_user_id: builderUserId, p_channel: 'internal',
+    })
+    if (prepared.error) throw new Error(`prepare_signature: ${prepared.error.message}`)
+    const finalized = await client.rpc('gridex_finalize_customer_contract_signature_v1', {
+      p_token_hash: tokenHash, p_signed_ip_hash: null, p_signed_user_agent: 'Gridex TERM sim synthetic acceptance · TEST ONLY',
+    })
+    if (finalized.error) throw new Error(`finalize_signature: ${finalized.error.message}`)
+  }
 
   const contractRow = psqlRows<Record<string, unknown>>(`SELECT * FROM public.customer_contracts WHERE id=${lit(contractId)}`)[0]
   if (!contractRow || contractRow.status !== 'signed' || !contractRow.signed_at || !contractRow.contract_price_snapshot_id) {
     throw new Error(`term_fixture_signing_not_verified: ${JSON.stringify({ status: contractRow?.status, signed_at: contractRow?.signed_at })}`)
+  }
+  if (uploaded) {
+    const documents = psqlRows<Record<string, unknown>>(`SELECT id,document_sha256,verified_at,generated_at,storage_path FROM public.customer_contract_documents WHERE company_id=${lit(companyId)} AND customer_contract_id=${lit(contractId)} AND document_type='signed_contract_pdf' AND document_sha256=${lit(contractRow.document_sha256)}`)
+    const expectedHash = createHash('sha256').update(Buffer.from(await uploaded.file.arrayBuffer())).digest('hex')
+    if (String(contractRow.signed_at).slice(0, 10) !== uploaded.signedDate || contractRow.document_sha256 !== expectedHash
+      || documents.length !== 1 || !documents[0].verified_at || !documents[0].storage_path || !documents[0].generated_at) throw new Error('pilot_uploaded_signature_readback_failed')
   }
   const priceSnapshotId = String(contractRow.contract_price_snapshot_id)
   const snapshotRow = psqlRows<Record<string, unknown>>(`SELECT * FROM public.contract_price_snapshots WHERE id=${lit(priceSnapshotId)}`)[0]
