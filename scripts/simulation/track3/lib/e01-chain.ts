@@ -76,7 +76,7 @@ export type IntakeResult = {
 // the global intake worker to revisit those effects; recovery needs observation.
 const attemptedIntakes = new Set<string>()
 let unresolvedIntake = false
-function qualifiedEngine(out: Awaited<ReturnType<typeof runInboundEngineAsAutomationActor>>) {
+export function qualifiedEngine(out: Awaited<ReturnType<typeof runInboundEngineAsAutomationActor>>) {
   const jobs = out.ok ? out.result.debug?.customerOperationJobs : null
   if (!out.ok || !Number.isSafeInteger(out.result.failedJobs) || out.result.failedJobs !== 0
     || !Array.isArray(out.result.debug?.errorsByMailbox)
@@ -92,7 +92,7 @@ function qualifiedEngine(out: Awaited<ReturnType<typeof runInboundEngineAsAutoma
 }
 
 /** poll (transport) -> queue-bearbetning (första försöket) -> "Processa om" per mail -> motor som autobearbetar ediel_messages. */
-export async function runIntake(prefix: string, expected: number, t: Timer, mode: 'test' | 'production', opts: { maxPolls?: number; legacy?: boolean } = {}): Promise<IntakeResult> {
+export async function runIntake(prefix: string, expected: number, t: Timer, mode: 'test' | 'production', opts: { maxPolls?: number; legacy?: boolean; observe?: (result: ReturnType<typeof qualifiedEngine>) => void } = {}): Promise<IntakeResult> {
   const key = JSON.stringify([mode, prefix, Boolean(opts.legacy)])
   const maxPolls = opts.maxPolls ?? 8
   if (!prefix || !Number.isSafeInteger(expected) || expected < 1 || expected > 28
@@ -111,7 +111,8 @@ export async function runIntake(prefix: string, expected: number, t: Timer, mode
       resetMailboxSchedule(mode)
       const t0 = performance.now()
       const out = await t.p('imap_poll_store', () => runInboundEngineAsAutomationActor(mode, { processLimit: 0 }))
-      qualifiedEngine(out)
+      const reception = qualifiedEngine(out)
+      opts.observe?.(reception)
       const ms = Math.round(performance.now() - t0)
       polls.push(out.ok
         ? { poll, ms, fetched: out.result.fetchedMessages, stored: out.result.storedEmails, deduped: out.result.dedupedEmails, processedJobs: out.result.processedJobs, failedJobs: out.result.failedJobs, errorsByMailbox: out.result.debug.errorsByMailbox }
@@ -152,6 +153,7 @@ export async function runIntake(prefix: string, expected: number, t: Timer, mode
     const t3 = performance.now()
     const auto = await t.p('intake_auto_process_engine', async () => { resetMailboxSchedule(mode); return runInboundEngineAsAutomationActor(mode, { processLimit: 200 }) })
     const result = qualifiedEngine(auto)
+    opts.observe?.(result)
     const engineAuto = { ms: Math.round(performance.now() - t3), fetched: result.fetchedMessages, edielMessageIds: result.edielMessageIds.length, autoProcessErrors: result.debug.autoProcessErrors }
     unresolvedIntake = false
     return { polls, queueFirstPass, reprocess, engineAuto }
