@@ -16,14 +16,13 @@ concurrency:
 
 jobs:
   contrl-native:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gen-contrl-native-20261101' && github.actor == 'heke99'
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/gen-contrl-native-v2-20261101' && github.actor == 'heke99'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     defaults:
       run:
         shell: bash
     env:
-      CONTRL_HOME: ${{ runner.temp }}/contrl-native
       GH_TOKEN: ${{ github.token }}
       SUPABASE_TELEMETRY_DISABLED: '1'
       DO_NOT_TRACK: '1'
@@ -43,6 +42,8 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
+          export CONTRL_HOME="${RUNNER_TEMP:?RUNNER_TEMP is required}/contrl-native"
+          printf 'CONTRL_HOME=%s\n' "$CONTRL_HOME" >> "$GITHUB_ENV"
           mkdir -p "$CONTRL_HOME/raw"
           cat > "$CONTRL_HOME/guard.py" <<'PY'
           import hashlib, io, json, os, pathlib, re, stat, subprocess, urllib.parse, urllib.request, zipfile
@@ -120,11 +121,11 @@ jobs:
               return {'receipt':values[0],'operation':validate_operation(data['operation'],carrier,blob)}
           def once(event):
               need(os.environ['GITHUB_EVENT_NAME']=='pull_request' and event['action']=='opened' and os.environ['GITHUB_RUN_ATTEMPT']=='1','one_opened_event')
-              pr=event['pull_request'];need(pr['head']['repo']['full_name']==REPO and pr['head']['ref']=='codex/gen-contrl-native-20261101'
+              pr=event['pull_request'];need(pr['head']['repo']['full_name']==REPO and pr['head']['ref']=='codex/gen-contrl-native-v2-20261101'
                 and event['sender']['login']=='heke99' and pr['user']['login']=='heke99','operator_or_branch')
               current=api('actions/runs/'+os.environ['GITHUB_RUN_ID'])
               need(current['event']=='pull_request' and current['run_attempt']==1,'run_event')
-              runs=api('actions/workflows/'+str(current['workflow_id'])+'/runs?event=pull_request&branch=codex%2Fgen-contrl-native-20261101&per_page=100')
+              runs=api('actions/workflows/'+str(current['workflow_id'])+'/runs?event=pull_request&branch=codex%2Fgen-contrl-native-v2-20261101&per_page=100')
               need(runs['total_count']<=100,'run_history_ambiguous')
               matching=[r for r in runs['workflow_runs'] if r['head_sha']==current['head_sha']]
               need(len(matching)==1 and matching[0]['id']==current['id'],'duplicate_native_event')
@@ -584,12 +585,12 @@ jobs:
           python3 "$CONTRL_HOME/runtime.py" observe postfix-after
       - name: Preserve only redacted bounded evidence
         id: evidence
-        if: always()
+        if: always() && env.CONTRL_HOME != ''
         run: |
           set -euo pipefail
           python3 "$CONTRL_HOME/evidence.py"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
+        if: always() && env.CONTRL_HOME != ''
         with:
           name: contrl-native-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
           path: ${{ env.CONTRL_HOME }}/safe/
