@@ -184,7 +184,9 @@ def verify_native_binding(binding, assignment, kind):
                 'inputEpoch': assignment['inputEpoch'], 'budget': assignment['budget'],
                 'expiresAt': assignment['expiresAt'], 'cleanupExpiresAt': assignment['cleanupExpiresAt'],
                 'environmentId': assignment['environmentId'], 'github': assignment['github'],
-                'files': sorted(assignment['sourceFiles'])}
+                'files': sorted(assignment['sourceFiles']),
+                'bootstrapProofSHA256':assignment['bootstrapProofSHA256'],
+                'installationPolicy':assignment['installationPolicy']}
     require(all(proof.get(key) == value for key, value in expected.items()), 'native-private-source-input-budget-mismatch')
     refs = sorted([native, 'refs/tags/agent-claims/masterplan/slot-session-' + packet])
     require(binding['ref'] == native and binding['refs'] == refs, 'native-exact-own-resource-set-required')
@@ -371,6 +373,10 @@ def inventory(a, home):
     state = load_private(home / 'attempt.json')
     require(identity == state['daemon'], 'daemon-identity-changed')
     resources = docker_resources(a['projectId'])
+    for resource in resources:
+        if resource['kind'] == 'container':
+            image_id = command(['docker','inspect','--format','{{.Image}}',resource['id']])
+            require(image_id in a['installationPolicy']['images'].values(),'runtime-container-image-not-locked')
     # Append-only snapshots cover failures during startup; no recorded snapshot is replaced.
     import uuid
     save_private(home / ('resources-' + str(uuid.uuid4()) + '.json'),
@@ -378,10 +384,314 @@ def inventory(a, home):
     return resources
 
 
+BOOTSTRAP_TITLE = 'T2_BOOTSTRAP_PROOF_V1'
+
+
+def bootstrap_directory():
+    return Path(os.environ['RUNNER_TEMP']) / 't2-bootstrap'
+
+
+def bootstrap_source():
+    app = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+    head = git(app,'rev-parse','HEAD')
+    require(head == os.environ['GITHUB_SHA'] and not git(app,'status','--porcelain'), 'bootstrap-source-dirty-or-wrong-head')
+    paths = ['.github/workflows/t2-term-disposable.yml', 'scripts/simulation/track2/hosted/qualify-runtime.py',
+             'scripts/simulation/track2/hosted/profile.requirements.json', 'package-lock.json',
+             'scripts/gridex-aud-003-clean-replay.sh']
+    return {'commit':head, 'tree':git(app,'rev-parse','HEAD^{tree}'),
+            'files':{path:digest(app / path) for path in paths}}
+
+
+def bootstrap_identity():
+    boot = read_text('/proc/sys/kernel/random/boot_id')
+    machine = read_text('/etc/machine-id')
+    require(boot and machine and read_text('/etc/os-release') and os.uname().nodename,
+            'bootstrap-host-identity-unavailable')
+    require(os.uname().machine == 'x86_64' and 'ID=ubuntu' in read_text('/etc/os-release')
+            and 'VERSION_ID="24.04"' in read_text('/etc/os-release'),'qualified-ubuntu-amd64-required')
+    return {'bootId':boot,'machineId':machine,'hostname':os.uname().nodename,'architecture':os.uname().machine,
+            'mountNamespace':os.readlink('/proc/self/ns/mnt'), 'osReleaseSHA256':digest('/etc/os-release')}
+
+
+def bootstrap_run():
+    require(os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('GITHUB_REPOSITORY') == REPOSITORY
+            and os.environ.get('GITHUB_RUN_ATTEMPT') == '1' and os.environ.get('GITHUB_JOB') in ('term','bootstrap-probe'),
+            'bootstrap-not-qualified-actions-job')
+    event = os.environ['GITHUB_EVENT_NAME']
+    require(event in ('workflow_dispatch','pull_request'), 'bootstrap-event-unsupported')
+    if event == 'pull_request':
+        event_data = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+        require(event_data['pull_request']['head']['repo']['full_name'] == REPOSITORY
+                and event_data['pull_request']['base']['repo']['full_name'] == REPOSITORY,
+                'bootstrap-fork-forbidden')
+    require(os.environ.get('SIM_BOOTSTRAP_MODE') in (('pr-probe',) if event == 'pull_request' else ('bootstrap','admitted')),
+            'bootstrap-mode-unsupported')
+    return {'repository':REPOSITORY,'runId':int(os.environ['GITHUB_RUN_ID']), 'runAttempt':1,
+            'job':os.environ['GITHUB_JOB'], 'event':event, 'sourceCommit':os.environ['GITHUB_SHA'],
+            'mode':os.environ['SIM_BOOTSTRAP_MODE'],
+            'workflowHeadCommit':event_data['pull_request']['head']['sha'] if event == 'pull_request' else os.environ['GITHUB_SHA']}
+
+
+def encrypt_bootstrap(proof, directory):
+    import base64
+    requirements = json.loads(Path(__file__).with_name('profile.requirements.json').read_text())
+    cert = directory / 'root-recipient.crt'
+    private_bytes(cert,requirements['bootstrapRecipientCertificate'].encode())
+    require(digest(cert) == requirements['bootstrapRecipientCertificateSHA256'], 'bootstrap-root-certificate-pin-mismatch')
+    command(['openssl','x509','-in',str(cert),'-checkend','600','-noout'])
+    source, sealed = directory / 'proof.json', directory / 'proof.cms'
+    save_private(source,proof)
+    original = os.umask(0o077)
+    try:
+        command(['openssl','cms','-encrypt','-binary','-aes-256-gcm','-in',str(source),'-outform','DER',
+                 '-out',str(sealed),'-recip',str(cert),'-keyopt','rsa_padding_mode:oaep',
+                 '-keyopt','rsa_oaep_md:sha256','-keyopt','rsa_mgf1_md:sha256'])
+    finally:
+        os.umask(original)
+    require(0 < sealed.stat().st_size < 24576,'bootstrap-proof-too-large')
+    require_cms_algorithms(sealed)
+    return base64.b64encode(sealed.read_bytes()).decode('ascii')
+
+
+def bootstrap_observe():
+    # Read-only host/daemon/source probes only: no install, pull, start, native allocation or ACTIVE claim.
+    run = bootstrap_run()
+    directory = bootstrap_directory()
+    require(directory.parent.is_absolute() and directory.parent.resolve() == directory.parent
+            and directory.parent.is_dir(), 'runner-temp-not-canonical')
+    directory.mkdir(mode=0o700)
+    private_material_directory(directory)
+    source, host = bootstrap_source(), bootstrap_identity()
+    identity, observation = daemon_identity(capacity=False)
+    require(not docker_resources('__t2_bootstrap_no_owned_resources__'), 'bootstrap-daemon-not-empty')
+    errors = capacity_errors(observation)
+    proof = {'schema':'gridex-t2-bootstrap-private-v1','run':run,'source':source,'host':host,
+             'daemon':identity,'capacity':observation,'capacityErrors':errors,
+             'observedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+             'state':'OBSERVED_NOT_BACKEND_ACTIVE','opensslVersion':command(['openssl','version']),
+             'pythonVersion':command(['python3','--version'])}
+    ciphertext = encrypt_bootstrap(proof,directory)
+    safe = {'schema':'gridex-t2-bootstrap-safe-v1','run':run,'proofSHA256':digest(directory / 'proof.json'),
+            'state':'CAPACITY_HOLD' if errors else 'CAPACITY_OBSERVED_NOT_ADMITTED',
+            'runtimeActive':False,'wholeScenarioPass':False, 'driver':observation['driver'],
+            'effectiveRAMBytes':observation['effectiveRAMBytes'],'dockerRootFreeBytes':observation['dockerRootFreeBytes'],
+            'capacityErrors':errors,'cmsBase64':ciphertext}
+    save_private(directory / 'safe.json',safe)
+    print('::notice title=' + BOOTSTRAP_TITLE + '::' + json.dumps(safe,separators=(',',':')),flush=True)
+    require(not errors,'bootstrap-capacity-unqualified')
+    return proof
+
+
+def bootstrap_context(run_id,source,job_name):
+    import re
+    require(type(run_id) is int and run_id > 0 and re.fullmatch('[0-9a-f]{40}',source)
+            and job_name in ('term','bootstrap-probe'),'bootstrap-context-arguments-invalid')
+    run = delivery_get('actions/runs/' + str(run_id))
+    event = 'pull_request' if job_name == 'bootstrap-probe' else 'workflow_dispatch'
+    require(run['run_attempt'] == 1 and run['event'] == event
+            and run['path'] == '.github/workflows/t2-term-disposable.yml','bootstrap-api-run-mismatch')
+    commit = delivery_get('git/commits/' + source)
+    require(commit['sha'] == source and (run['head_sha'] == source if event == 'workflow_dispatch'
+            else run['head_sha'] in [parent['sha'] for parent in commit['parents']]),'bootstrap-checkout-head-mismatch')
+    jobs = delivery_get('actions/runs/' + str(run_id) + '/attempts/1/jobs?per_page=100')
+    require(jobs['total_count'] == len(jobs['jobs']) <= 100,'bootstrap-job-inventory-incomplete')
+    selected = [job for job in jobs['jobs'] if job['name'] == job_name]
+    require(len(selected) == 1,'bootstrap-job-not-unique')
+    job = selected[0]
+    require(job['run_id'] == run_id and job['run_attempt'] == 1 and job['head_sha'] == run['head_sha'],
+            'bootstrap-api-job-mismatch')
+    prefix = 'https://api.github.com/repos/' + REPOSITORY + '/check-runs/'
+    require(job['check_run_url'].startswith(prefix) and job['check_run_url'].removeprefix(prefix).isdigit(),
+            'bootstrap-check-url-invalid')
+    check_id = job['check_run_url'].removeprefix(prefix)
+    check = delivery_get('check-runs/' + check_id)
+    require(check['app']['slug'] == 'github-actions' and check['head_sha'] == run['head_sha']
+            and check['details_url'] == 'https://github.com/' + REPOSITORY + '/actions/runs/' + str(run_id) + '/job/' + str(job['id']),
+            'bootstrap-check-provenance-mismatch')
+    return {'runId':run_id,'runAttempt':1,'sourceCommit':source,'jobId':job['id'],'checkId':check_id,
+            'annotationsCount':check['output']['annotations_count'],'checkoutTree':commit['tree']['sha'],
+            'workflowHeadCommit':run['head_sha'],'event':event,'job':job_name}
+
+
+def published_bootstrap(context):
+    import base64
+    annotations = delivery_get('check-runs/' + str(context['checkId']) + '/annotations?per_page=100')
+    require(len(annotations) == context['annotationsCount'] <= 100,'bootstrap-annotations-incomplete')
+    selected = [item for item in annotations if item['title'] == BOOTSTRAP_TITLE and item['annotation_level'] == 'notice']
+    require(len(selected) == 1,'bootstrap-notice-not-unique')
+    safe = strict_transport_json(selected[0]['message'])
+    require(set(safe) == {'schema','run','proofSHA256','state','runtimeActive','wholeScenarioPass','driver',
+                         'effectiveRAMBytes','dockerRootFreeBytes','capacityErrors','cmsBase64'}
+            and safe['schema'] == 'gridex-t2-bootstrap-safe-v1' and safe['runtimeActive'] is False
+            and safe['wholeScenarioPass'] is False,'bootstrap-safe-schema-invalid')
+    require(safe['run']['runId'] == context['runId'] and safe['run']['runAttempt'] == 1
+            and safe['run']['repository'] == REPOSITORY and safe['run']['sourceCommit'] == context['sourceCommit']
+            and safe['run']['job'] == context.get('job','term') and safe['run']['event'] == context.get('event','workflow_dispatch')
+            and safe['run']['workflowHeadCommit'] == context.get('workflowHeadCommit',context['sourceCommit'])
+            and safe['run']['mode'] in (('pr-probe',) if context.get('job') == 'bootstrap-probe' else ('bootstrap','admitted')),
+            'bootstrap-public-run-binding-mismatch')
+    require(0 < len(base64.b64decode(safe['cmsBase64'],validate=True)) < 24576,'bootstrap-proof-too-large')
+    return safe
+
+
+def verify_published_bootstrap(context,a):
+    safe = published_bootstrap(context)
+    require(safe['run']['mode'] == 'admitted' and not safe['capacityErrors'] and safe['state'] == 'CAPACITY_OBSERVED_NOT_ADMITTED'
+            and safe['proofSHA256'] == a.get('bootstrapProofSHA256'), 'delivery-bootstrap-binding-mismatch')
+
+
+def decrypt_bootstrap(context,key,output):
+    import tempfile, base64
+    safe = published_bootstrap(context)
+    key = private_file(key)
+    private_material_directory(output.parent)
+    with tempfile.TemporaryDirectory(dir=output.parent) as temporary:
+        temporary = Path(temporary)
+        sealed, plain = temporary / 'proof.cms', temporary / 'proof.json'
+        private_bytes(sealed,base64.b64decode(safe['cmsBase64'],validate=True))
+        require_cms_algorithms(sealed)
+        original = os.umask(0o077)
+        try:
+            command(['openssl','cms','-decrypt','-binary','-inform','DER','-in',str(sealed),
+                     '-inkey',str(key),'-out',str(plain)])
+        finally:
+            os.umask(original)
+        proof = load_private(plain)
+        require(digest(plain) == safe['proofSHA256'] and proof['run'] == safe['run']
+                and proof['source']['commit'] == context['sourceCommit']
+                and proof['source']['tree'] == context.get('checkoutTree',proof['source']['tree']) and proof['capacityErrors'] == safe['capacityErrors']
+                and proof['schema'] == 'gridex-t2-bootstrap-private-v1','bootstrap-decrypted-binding-mismatch')
+        private_bytes(output,plain.read_bytes())
+    return safe['proofSHA256']
+
+
+def bootstrap_observed():
+    return load_private(bootstrap_directory() / 'proof.json')
+
+
+def validate_bootstrap(a, *, reobserve=False):
+    directory = bootstrap_directory()
+    proof_path = private_file(directory / 'proof.json')
+    proof = load_private(proof_path)
+    require(proof['schema'] == 'gridex-t2-bootstrap-private-v1' and not proof['capacityErrors']
+            and a.get('bootstrapProofSHA256') == digest(proof_path), 'bootstrap-proof-not-bound-or-unqualified')
+    require(proof['run'] == bootstrap_run() and proof['run']['event'] == 'workflow_dispatch'
+            and proof['run']['job'] == 'term' and proof['run']['mode'] == 'admitted' and proof['source'] == bootstrap_source()
+            and proof['source']['commit'] == a['sourceCommit'] and proof['source']['tree'] == a['sourceTree'],
+            'bootstrap-run-or-source-changed')
+    age = datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.fromisoformat(proof['observedAt'])
+    require(datetime.timedelta(0) <= age <= datetime.timedelta(minutes=45), 'bootstrap-proof-stale')
+    require(proof['host'] == bootstrap_identity(), 'bootstrap-host-or-boot-changed')
+    if reobserve:
+        identity, _ = daemon_identity()
+        require(identity == proof['daemon'], 'bootstrap-daemon-changed')
+    return proof
+
+
+def installed_tool_receipt(a):
+    import shutil
+    versions = {'node':['node','--version'],'npm':['npm','--version'], 'supabase':['supabase','--version'],
+                'psql':['psql','--version'],'pg_dump':['pg_dump','--version']}
+    tools = {}
+    for tool, argv in versions.items():
+        path = shutil.which(tool)
+        require(path is not None,'locked-tool-missing')
+        executable = Path(path).resolve()
+        tools[tool] = {'version':command(argv), 'executableSHA256':digest(executable)}
+    require(tools['node']['version'] == 'v22.22.0' and tools['supabase']['version'].splitlines()[-1] == '2.101.0'
+            and ' 17.' in tools['psql']['version'] and ' 17.' in tools['pg_dump']['version'], 'required-tool-version-mismatch')
+    policy = a.get('installationPolicy',{})
+    require(set(policy) == {'tools','packageLockSHA256','images','imageSelectors','provenanceSHA256'} and policy['tools'] == tools
+            and policy['packageLockSHA256'] == digest(Path(a['runDir']) / 'package-lock.json'),
+            'signed-installation-policy-mismatch')
+    import re
+    images = policy['images']
+    require(type(images) is dict and images and all(re.fullmatch(r'[^\s@]+@sha256:[0-9a-f]{64}',image)
+            and re.fullmatch(r'sha256:[0-9a-f]{64}',image_id) for image,image_id in images.items()),
+            'signed-image-digest-lock-required')
+    require(json.loads(Path(__file__).with_name('profile.requirements.json').read_text())['pilotMailboxImage'] in images,
+            'mailbox-image-lock-missing')
+    require(type(policy['imageSelectors']) is dict and policy['imageSelectors']
+            and all(isinstance(tag,str) and re.fullmatch(r'[A-Za-z0-9./_-]+:[A-Za-z0-9._-]+',tag)
+                    and reference in images for tag,reference in policy['imageSelectors'].items())
+            and re.fullmatch('[0-9a-f]{64}',policy['provenanceSHA256']), 'qualified-image-selectors-and-provenance-required')
+    requirements = json.loads(Path(__file__).with_name('profile.requirements.json').read_text())
+    require({tool:entry['executableSHA256'] for tool,entry in tools.items()} == requirements['qualifiedToolHashes']
+            and tools['npm']['version'] == '10.9.2', 'tool-distribution-provenance-mismatch')
+    require(images == requirements['qualifiedImagePolicy']['images']
+            and policy['imageSelectors'] == requirements['qualifiedImagePolicy']['imageSelectors'],
+            'complete-qualified-image-inventory-required')
+    return {'tools':tools,'packageLockSHA256':policy['packageLockSHA256'], 'images':images,
+            'imageSelectors':policy['imageSelectors'],'provenanceSHA256':policy['provenanceSHA256'],
+            'source':a['sourceCommit'],'bootstrapProofSHA256':a['bootstrapProofSHA256']}
+
+
+def install_dependencies():
+    a, _, app = authenticate('up')
+    validate_bootstrap(a,reobserve=True)
+    receipt = installed_tool_receipt(a)  # exact expected versions + bytes before running any dependency lifecycle scripts
+    directory = bootstrap_directory()
+    require(not (directory / 'installation-started.json').exists(),'dependency-install-already-attempted')
+    save_private(directory / 'installation-started.json',receipt)
+    log = directory / 'npm-ci.private.log'
+    with open(log,'x',opener=lambda path, flags:os.open(path,flags,0o600)) as output:
+        result = subprocess.run(['npm','ci'],cwd=app,stdout=output,stderr=subprocess.STDOUT,timeout=600)
+    require(result.returncode == 0,'dependency-install-failed-private-log')
+    require(installed_tool_receipt(a) == receipt,'tool-or-lock-drift-during-install')
+    receipt['installedLockSHA256'] = digest(app / 'node_modules/.package-lock.json')
+    save_private(directory / 'installation.json',receipt)
+
+
+def verify_image_cache(policy):
+    for reference, expected_id in policy['images'].items():
+        observed = json.loads(command(['docker','image','inspect',reference]))
+        require(len(observed) == 1 and observed[0]['Id'] == expected_id
+                and reference in observed[0]['RepoDigests'], 'locked-image-cache-missing-or-mismatched')
+    for selector, reference in policy['imageSelectors'].items():
+        require(command(['docker','image','inspect','--format','{{.Id}}',selector]) == policy['images'][reference],
+                'locked-image-selector-mismatch')
+
+
+def prime_images():
+    import time
+    a, _, _ = authenticate('up')
+    validate_bootstrap(a,reobserve=True)
+    policy = installed_tool_receipt(a)
+    directory = bootstrap_directory()
+    require(len(policy['images']) <= 32 and not (directory / 'image-priming-started.json').exists(),
+            'image-priming-budget-exceeded')
+    save_private(directory / 'image-priming-started.json',policy)
+    deadline = time.monotonic() + 900
+    with open(directory / 'image-pulls.private.log','x',opener=lambda path,flags:os.open(path,flags,0o600)) as log:
+        for reference in policy['images']:
+            remaining = deadline-time.monotonic()
+            require(remaining > 0,'image-priming-timeout')
+            result = subprocess.run(['docker','pull',reference],stdout=log,stderr=subprocess.STDOUT,timeout=min(300,remaining))
+            require(result.returncode == 0,'immutable-image-pull-failed')
+            data = json.loads(command(['docker','image','inspect',reference]))
+            require(len(data) == 1 and data[0]['Id'] == policy['images'][reference]
+                    and reference in data[0]['RepoDigests'],'pulled-image-digest-or-id-mismatch')
+        for selector, reference in policy['imageSelectors'].items():
+            command(['docker','tag',reference,selector])  # local cache alias, never mutable network pull
+    verify_image_cache(policy)
+    save_private(directory / 'image-priming.json',policy)
+
+
+def validate_installation(a):
+    validate_bootstrap(a,reobserve=True)
+    receipt = load_private(bootstrap_directory() / 'installation.json')
+    expected = installed_tool_receipt(a)
+    expected['installedLockSHA256'] = digest(Path(a['runDir']) / 'node_modules/.package-lock.json')
+    require(receipt == expected,'installed-tool-or-dependency-receipt-changed')
+    require(load_private(bootstrap_directory() / 'image-priming.json') == installed_tool_receipt(a),'image-priming-receipt-changed')
+    verify_image_cache(expected)
+
+
 def prepare_attempt():
     require(__import__('sys').version_info >= (3, 11), 'python311-required')
     a, home, app = authenticate('up')
     validate_installed_materials(a,Path(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE']))
+    validate_installation(a)
     import re
     require(re.fullmatch('[a-z0-9][a-z0-9_-]{2,62}', a['projectId']) is not None
             and a['projectId'] != 'gridex-ops-platform', 'invalid-project')
@@ -1002,6 +1312,7 @@ def consume_carrier(directory, commit, context, public, base_tree, assignment_pa
         a = verified_assignment(candidate)
         require(a['github'] == {'runId':context['runId'],'runAttempt':1}
                 and a['sourceCommit'] == context['sourceCommit'], 'decrypted-admission-run-mismatch')
+        validate_bootstrap(a,reobserve=True)
         material_candidate = temporary / 'materials.json'
         private_bytes(material_candidate,base64.b64decode(value['materials'],validate=True))
         material_proof = validate_material_packet(candidate,material_candidate,a)
@@ -1021,6 +1332,8 @@ def receive_admission():
             and os.environ.get('GITHUB_JOB') == 'term' and os.environ.get('GITHUB_RUN_ATTEMPT') == '1',
             'recipient-must-be-current-term-job')
     context = delivery_context(int(os.environ['GITHUB_RUN_ID']),os.environ['GITHUB_SHA'])
+    validate_bootstrap_observed = bootstrap_observed()
+    require(not validate_bootstrap_observed['capacityErrors'],'bootstrap-capacity-unqualified')
     directory = recipient_directory()
     public = generate_recipient(directory,context)
     # Fixed safe notice, deliberately outside raw private logs; no private key/path/input.
@@ -1125,6 +1438,7 @@ def publish_delivery(assignment_path,journal_path,materials_path):
         require(binding['body']['operation'].startswith('Reserve source files and rule IDs; resources-sha256='), 'ordinary-source-custody-required')
         verify_binding(binding)
     public = discover_recipient(context)
+    verify_published_bootstrap(context,a)
     journal = DeliveryJournal(journal_path,context,public)
     try:
         ref = delivery_ref(context)
@@ -1480,10 +1794,15 @@ def require_terminal_supervisor(a,home):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--observe-host', action='store_true')
-    parser.add_argument('--operation', choices=['prepare', 'up', 'run', 'down', 'inventory', 'qualify', 'replay-before', 'replay-after', 'execute', 'enter', 'check-down', 'check-source', 'safe-summary', 'scenario', 'actor-proof', 'receive-admission', 'publish-delivery','supervisor-entered','replay-live','supervisor-cleanup-preflight','mailbox-start','mailbox-export','check-materials'])
+    parser.add_argument('--operation', choices=['prepare', 'up', 'run', 'down', 'inventory', 'qualify', 'replay-before', 'replay-after', 'execute', 'enter', 'check-down', 'check-source', 'safe-summary', 'scenario', 'actor-proof', 'receive-admission', 'publish-delivery','supervisor-entered','replay-live','supervisor-cleanup-preflight','mailbox-start','mailbox-export','check-materials','bootstrap-observe','install-dependencies','read-bootstrap','prime-images'])
     parser.add_argument('--assignment-file')
     parser.add_argument('--journal-file')
     parser.add_argument('--materials-file')
+    parser.add_argument('--bootstrap-key')
+    parser.add_argument('--bootstrap-proof-file')
+    parser.add_argument('--run-id',type=int)
+    parser.add_argument('--source-commit')
+    parser.add_argument('--bootstrap-job',choices=['term','bootstrap-probe'],default='term')
     args = parser.parse_args()
     if args.observe_host:
         print(json.dumps(observe_host(), sort_keys=True))
@@ -1491,7 +1810,17 @@ def main():
     if not args.operation:
         print(json.dumps({'state': 'HOLD', 'errors': ['explicit-operation-and-signed-assignment-required']}))
         return 78
-    if args.operation == 'receive-admission':
+    if args.operation == 'read-bootstrap':
+        require(args.run_id and args.source_commit and args.bootstrap_key and args.bootstrap_proof_file,'bootstrap-read-private-arguments-required')
+        context = bootstrap_context(args.run_id,args.source_commit,args.bootstrap_job)
+        decrypt_bootstrap(context,Path(args.bootstrap_key),Path(args.bootstrap_proof_file))
+    elif args.operation == 'bootstrap-observe':
+        bootstrap_observe()
+    elif args.operation == 'prime-images':
+        prime_images()
+    elif args.operation == 'install-dependencies':
+        install_dependencies()
+    elif args.operation == 'receive-admission':
         receive_admission()
     elif args.operation == 'publish-delivery':
         require(args.assignment_file and args.journal_file and args.materials_file, 'delivery-private-input-materials-and-journal-required')

@@ -280,7 +280,8 @@ class OperationalContracts(unittest.TestCase):
              'sourceFiles': {'.github/workflows/t2-term-disposable.yml': '3' * 64},
              'inputEpoch': '4' * 64, 'budget': {'startup': 1, 'scenario': 1},
              'expiresAt': '2099-01-01T00:00:00Z', 'cleanupExpiresAt': '2099-01-02T00:00:00Z',
-             'environmentId': 'synthetic-t2', 'github': {'runId': 1, 'runAttempt': 1}}
+             'environmentId': 'synthetic-t2', 'github': {'runId': 1, 'runAttempt': 1},
+             'bootstrapProofSHA256':'a'*64,'installationPolicy':{'synthetic':'exact-policy'}}
         packet = str(uuid.uuid4())
         proof = {'protocol': 'masterplan-reservation-v1', 'worker': 'T2', 'resourceKind': 'producer',
                  'epoch': 'gridex-five-agent-20261012', 'packet': packet, 'slot': 'session-' + packet,
@@ -289,7 +290,7 @@ class OperationalContracts(unittest.TestCase):
                  'source': a['sourceCommit'], 'sourceTree': a['sourceTree'],
                  'workflowSHA256': a['sourceFiles']['.github/workflows/t2-term-disposable.yml'],
                  'files': sorted(a['sourceFiles'])}
-        proof.update({k: a[k] for k in ['inputEpoch','budget','expiresAt','cleanupExpiresAt','environmentId','github']})
+        proof.update({k: a[k] for k in ['inputEpoch','budget','expiresAt','cleanupExpiresAt','environmentId','github','bootstrapProofSHA256','installationPolicy']})
         ref = 'refs/tags/agent-claims/masterplan/producer-t2-term-disposable'
         binding = {'ref': ref, 'refs': sorted([ref, 'refs/tags/agent-claims/masterplan/slot-session-' + packet]),
                    'base': proof['base'], 'privateProof': proof,
@@ -523,6 +524,11 @@ class RendezvousContracts(unittest.TestCase):
         cls.shared.cleanup()
 
     def setUp(self):
+        for function, value in [('validate_bootstrap',{}),('verify_published_bootstrap',None),
+                                ('bootstrap_observed',{'capacityErrors':[]})]:
+            patch = mock.patch.object(module,function,return_value=value)
+            patch.start()
+            self.addCleanup(patch.stop)
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
@@ -1241,6 +1247,305 @@ class PilotMailPolicyContracts(unittest.TestCase):
             self.assertIn('SIM_PILOT_MAILBOX_PASSWORD=synthetic',text)
             self.assertEqual((home/'mailbox.env').stat().st_mode & 0o777,0o600)
 
+
+class BootstrapContracts(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.shared=tempfile.TemporaryDirectory()
+        cls.keys=Path(cls.shared.name)
+        cls.key=cls.keys/'root.key';cls.cert=cls.keys/'root.crt'
+        module.command(['openssl','req','-newkey','rsa:4096','-x509','-noenc','-sha256','-days','1',
+                        '-subj','/CN=confined-bootstrap-root','-keyout',str(cls.key),'-out',str(cls.cert)])
+        cls.key.chmod(0o600)
+
+    @classmethod
+    def tearDownClass(cls):cls.shared.cleanup()
+
+    def setUp(self):
+        import hashlib
+        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
+        self.root=Path(self.tmp.name);self.root.chmod(0o700)
+        self.env={'RUNNER_TEMP':str(self.root),'GITHUB_ACTIONS':'true','GITHUB_REPOSITORY':module.REPOSITORY,
+                  'GITHUB_RUN_ATTEMPT':'1','GITHUB_RUN_ID':'777','GITHUB_JOB':'term','GITHUB_EVENT_NAME':'workflow_dispatch','SIM_BOOTSTRAP_MODE':'admitted',
+                  'GITHUB_SHA':'a'*40,'GITHUB_WORKSPACE':str(self.root),'SIM_RUNTIME_ASSIGNMENT_FILE':str(self.root/'assignment.json')}
+        patch=mock.patch.dict(os.environ,self.env);patch.start();self.addCleanup(patch.stop)
+        self.run=module.bootstrap_run()
+        self.source={'commit':'a'*40,'tree':'b'*40,'files':{'package-lock.json':'c'*64}}
+        self.host={'bootId':'PRIVATE-BOOT-SENTINEL','machineId':'PRIVATE-MACHINE-SENTINEL','hostname':'PRIVATE-HOST-SENTINEL'}
+        self.daemon={'driver':'overlay2','daemonId':'PRIVATE-DAEMON-SENTINEL','dockerRootDir':'/private-root',
+                     'socketIdentity':{'device':1,'inode':2}}
+        self.observation={**self.daemon,'effectiveRAMBytes':16*module.GIB,'dockerRootFreeBytes':50*module.GIB,
+                          'rootNamespaceVerified':True,'cpuQuota':[{'quota':'max 100000'}]}
+        self.context={'runId':777,'runAttempt':1,'sourceCommit':'a'*40,'jobId':888,'checkId':'888','annotationsCount':1}
+        self.requirements={'bootstrapRecipientCertificate':self.cert.read_text(),
+                           'bootstrapRecipientCertificateSHA256':hashlib.sha256(self.cert.read_bytes()).hexdigest()}
+
+    def observe(self,observation=None):
+        import io
+        original=Path.read_text
+        def read(path,*args,**kwargs):
+            if path.name=='profile.requirements.json':return json.dumps(self.requirements)
+            return original(path,*args,**kwargs)
+        with mock.patch.object(module,'bootstrap_source',return_value=self.source), \
+             mock.patch.object(module,'bootstrap_identity',return_value=self.host), \
+             mock.patch.object(module,'daemon_identity',return_value=(self.daemon,observation or self.observation)), \
+             mock.patch.object(module,'docker_resources',return_value=[]),mock.patch.object(Path,'read_text',read), \
+             mock.patch('sys.stdout',new_callable=io.StringIO) as console:
+            try:return module.bootstrap_observe(),console.getvalue()
+            finally:self.console=console.getvalue()
+
+    def validate(self,a=None,**patches):
+        a=a or {'bootstrapProofSHA256':module.digest(module.bootstrap_directory()/'proof.json'),
+                'sourceCommit':'a'*40,'sourceTree':'b'*40}
+        with mock.patch.object(module,'bootstrap_source',return_value=patches.get('source',self.source)), \
+             mock.patch.object(module,'bootstrap_identity',return_value=patches.get('host',self.host)), \
+             mock.patch.object(module,'daemon_identity',return_value=(patches.get('daemon',self.daemon),self.observation)):
+            return module.validate_bootstrap(a,reobserve=True)
+
+    def annotation(self):
+        safe=module.load_private(module.bootstrap_directory()/'safe.json')
+        return {'title':module.BOOTSTRAP_TITLE,'annotation_level':'notice','message':json.dumps(safe)}
+
+    def test_real_bootstrap_cms_roundtrip_keeps_host_private_and_run_bound(self):
+        proof,console=self.observe()
+        for secret in ('PRIVATE-BOOT-SENTINEL','PRIVATE-MACHINE-SENTINEL','PRIVATE-HOST-SENTINEL','PRIVATE-DAEMON-SENTINEL'):
+            self.assertNotIn(secret,console)
+        self.assertIn('CAPACITY_OBSERVED_NOT_ADMITTED',console)
+        self.assertEqual(self.validate(),proof)
+        output=self.root/'root-observed.json'
+        with mock.patch.object(module,'delivery_get',return_value=[self.annotation()]):
+            digest=module.decrypt_bootstrap(self.context,self.key,output)
+        self.assertEqual(digest,module.digest(output))
+        self.assertEqual(json.loads(output.read_text()),proof)
+        self.assertEqual(output.stat().st_mode & 0o777,0o600)
+        self.assertEqual((module.bootstrap_directory()/'proof.json').stat().st_mode & 0o777,0o600)
+
+    def test_capacity_hold_emits_only_encrypted_proof_without_install_or_backend(self):
+        low=dict(self.observation,effectiveRAMBytes=module.GIB)
+        with mock.patch.object(module,'install_dependencies') as install,mock.patch.object(module,'prime_images') as images:
+            with self.assertRaisesRegex(ValueError,'bootstrap-capacity-unqualified'):self.observe(low)
+        install.assert_not_called();images.assert_not_called()
+        self.assertIn('CAPACITY_HOLD',self.console)
+        self.assertNotIn('PRIVATE-BOOT-SENTINEL',self.console)
+
+    def test_assignment_missing_wrong_or_tampered_host_digest_rejected(self):
+        self.observe()
+        for digest in (None,'d'*64):
+            with self.assertRaisesRegex(ValueError,'bootstrap-proof-not-bound-or-unqualified'):
+                self.validate({'bootstrapProofSHA256':digest})
+        with self.assertRaisesRegex(ValueError,'bootstrap-host-or-boot-changed'):
+            self.validate(host=dict(self.host,bootId='another-boot'))
+        with self.assertRaisesRegex(ValueError,'bootstrap-daemon-changed'):
+            self.validate(daemon=dict(self.daemon,daemonId='another-daemon'))
+        with self.assertRaisesRegex(ValueError,'bootstrap-run-or-source-changed'):
+            self.validate(source=dict(self.source,tree='e'*40))
+
+    def test_stale_proof_and_pr_host_cannot_admit_term(self):
+        self.observe();path=module.bootstrap_directory()/'proof.json';proof=module.load_private(path)
+        proof['observedAt']='2020-01-01T00:00:00+00:00';path.write_text(json.dumps(proof))
+        with self.assertRaisesRegex(ValueError,'bootstrap-proof-stale'):self.validate()
+        proof['run']['job']='bootstrap-probe';path.write_text(json.dumps(proof))
+        with self.assertRaisesRegex(ValueError,'bootstrap-run-or-source-changed'):self.validate()
+
+    def test_public_digest_run_certificate_and_gcm_tamper_cannot_install_proof(self):
+        import base64
+        self.observe();annotation=self.annotation()
+        for field,value in [('proofSHA256','f'*64),('cmsBase64',base64.b64encode(b'invalid').decode())]:
+            changed=json.loads(annotation['message']);changed[field]=value
+            with mock.patch.object(module,'delivery_get',return_value=[dict(annotation,message=json.dumps(changed))]):
+                with self.assertRaises((ValueError,subprocess.SubprocessError)):
+                    module.decrypt_bootstrap(self.context,self.key,self.root/('rejected-'+field))
+            self.assertFalse((self.root/('rejected-'+field)).exists())
+        changed=json.loads(annotation['message']);changed['run']['runId']=999
+        with mock.patch.object(module,'delivery_get',return_value=[dict(annotation,message=json.dumps(changed))]):
+            with self.assertRaisesRegex(ValueError,'bootstrap-public-run-binding-mismatch'):
+                module.verify_published_bootstrap(self.context,{'bootstrapProofSHA256':'f'*64})
+
+    def test_expired_or_substituted_root_certificate_prevents_notice(self):
+        self.requirements['bootstrapRecipientCertificateSHA256']='0'*64
+        with self.assertRaisesRegex(ValueError,'bootstrap-root-certificate-pin-mismatch'):self.observe()
+        self.assertEqual(self.console,'')
+
+    def test_fork_probe_refused_before_any_daemon_observation(self):
+        event=self.root/'event.json';event.write_text(json.dumps({'pull_request':{'head':{'repo':{'full_name':'foreign/repo'}},
+                     'base':{'repo':{'full_name':module.REPOSITORY}}}}))
+        with mock.patch.dict(os.environ,{'GITHUB_EVENT_NAME':'pull_request','GITHUB_JOB':'bootstrap-probe','GITHUB_EVENT_PATH':str(event)}), \
+             mock.patch.object(module,'daemon_identity') as daemon:
+            with self.assertRaisesRegex(ValueError,'bootstrap-fork-forbidden'):module.bootstrap_observe()
+        daemon.assert_not_called()
+
+    def image_policy(self):
+        ref='registry.invalid/owned@sha256:'+'a'*64
+        return {'images':{ref:'sha256:'+'b'*64},'imageSelectors':{'registry.invalid/owned:qualified':ref},
+                'provenanceSHA256':'c'*64}
+
+    def test_real_priming_path_pulls_only_digest_then_checks_before_local_alias(self):
+        policy=self.image_policy();module.bootstrap_directory().mkdir(mode=0o700)
+        calls=[]
+        def command(argv,**kwargs):
+            calls.append(argv)
+            if '--format' in argv:return 'sha256:'+'b'*64
+            if argv[:3]==['docker','image','inspect']:return json.dumps([{'Id':'sha256:'+'b'*64,'RepoDigests':list(policy['images'])}])
+            return ''
+        def run(argv,**kwargs):calls.append(argv);return subprocess.CompletedProcess(argv,0)
+        with mock.patch.object(module,'authenticate',return_value=({},None,self.root)), \
+             mock.patch.object(module,'validate_bootstrap'),mock.patch.object(module,'installed_tool_receipt',return_value=policy), \
+             mock.patch.object(module,'command',side_effect=command),mock.patch.object(subprocess,'run',side_effect=run):
+            module.prime_images()
+            with self.assertRaisesRegex(ValueError,'image-priming-budget-exceeded'):module.prime_images()
+        pulls=[x for x in calls if x[:2]==['docker','pull']]
+        self.assertEqual(pulls,[['docker','pull',next(iter(policy['images']))]])
+        self.assertTrue((module.bootstrap_directory()/'image-priming.json').exists())
+        self.assertLess(calls.index(pulls[0]),next(i for i,x in enumerate(calls) if x[:2]==['docker','tag']))
+
+    def test_wrong_image_id_never_tags_or_records_priming_success(self):
+        policy=self.image_policy();module.bootstrap_directory().mkdir(mode=0o700)
+        calls=[]
+        def command(argv,**kwargs):calls.append(argv);return json.dumps([{'Id':'sha256:'+'0'*64,'RepoDigests':list(policy['images'])}])
+        with mock.patch.object(module,'authenticate',return_value=({},None,self.root)), \
+             mock.patch.object(module,'validate_bootstrap'),mock.patch.object(module,'installed_tool_receipt',return_value=policy), \
+             mock.patch.object(module,'command',side_effect=command), \
+             mock.patch.object(subprocess,'run',return_value=subprocess.CompletedProcess([],0)):
+            with self.assertRaisesRegex(ValueError,'pulled-image-digest-or-id-mismatch'):module.prime_images()
+        self.assertFalse(any(x[:2]==['docker','tag'] for x in calls))
+        self.assertFalse((module.bootstrap_directory()/'image-priming.json').exists())
+
+    def test_actual_prepare_rejects_missing_bootstrap_before_daemon_or_home_creation(self):
+        a={'runDir':str(self.root)}
+        home=self.root/'runtime'
+        with mock.patch.object(module,'authenticate',return_value=(a,home,self.root)), \
+             mock.patch.object(module,'validate_installed_materials'),mock.patch.object(module,'daemon_identity') as daemon:
+            with self.assertRaises(FileNotFoundError):module.prepare_attempt()
+        daemon.assert_not_called();self.assertFalse(home.exists())
+
+
+    def tool_fixture(self):
+        bins=self.root/'bin';bins.mkdir()
+        versions={'node':'v22.22.0','npm':'10.9.2','supabase':'2.101.0','psql':'psql (PostgreSQL) 17.11',
+                  'pg_dump':'pg_dump (PostgreSQL) 17.11'}
+        for tool,version in versions.items():
+            content='#!/bin/sh\n'
+            if tool=='npm':content+='if [ "$1" = ci ]; then mkdir -p node_modules; echo "{}" > node_modules/.package-lock.json; echo PRIVATE-NPM-LOG-SENTINEL; exit 0; fi\n'
+            content+="printf '%s\\n' '"+version+"'\n"
+            file=bins/tool;file.write_text(content);file.chmod(0o700)
+        lock=self.root/'package-lock.json';lock.write_text('{}')
+        requirements=json.loads(Path(module.__file__).with_name('profile.requirements.json').read_text())
+        tools={tool:{'version':version,'executableSHA256':module.digest(bins/tool)} for tool,version in versions.items()}
+        requirements['qualifiedToolHashes']={tool:entry['executableSHA256'] for tool,entry in tools.items()}
+        policy={'tools':tools,'packageLockSHA256':module.digest(lock),
+                'images':requirements['qualifiedImagePolicy']['images'],
+                'imageSelectors':requirements['qualifiedImagePolicy']['imageSelectors'],'provenanceSHA256':'a'*64}
+        return bins,requirements,{'runDir':str(self.root),'sourceCommit':'a'*40,'bootstrapProofSHA256':'b'*64,'installationPolicy':policy}
+
+    def fixture_requirements(self,requirements):
+        original=Path.read_text
+        def read(path,*args,**kwargs):
+            if path.name=='profile.requirements.json':return json.dumps(requirements)
+            return original(path,*args,**kwargs)
+        return mock.patch.object(Path,'read_text',read)
+
+    def test_actual_finite_npm_install_receipt_and_one_shot_boundary(self):
+        import io
+        bins,requirements,a=self.tool_fixture();module.bootstrap_directory().mkdir(mode=0o700)
+        with self.fixture_requirements(requirements),mock.patch.dict(os.environ,{'PATH':str(bins)+':'+os.environ['PATH']}), \
+             mock.patch.object(module,'authenticate',return_value=(a,None,self.root)),mock.patch.object(module,'validate_bootstrap'), \
+             mock.patch('sys.stdout',new_callable=io.StringIO) as output:
+            module.install_dependencies()
+            with self.assertRaisesRegex(ValueError,'dependency-install-already-attempted'):module.install_dependencies()
+            receipt=module.load_private(module.bootstrap_directory()/'installation.json')
+            self.assertEqual(receipt['installedLockSHA256'],module.digest(self.root/'node_modules/.package-lock.json'))
+            self.assertNotIn('PRIVATE-NPM-LOG-SENTINEL',output.getvalue())
+        self.assertIn('PRIVATE-NPM-LOG-SENTINEL',(module.bootstrap_directory()/'npm-ci.private.log').read_text())
+        self.assertEqual((module.bootstrap_directory()/'npm-ci.private.log').stat().st_mode & 0o777,0o600)
+
+    def test_unqualified_tool_or_incomplete_image_policy_never_runs_npm(self):
+        bins,requirements,a=self.tool_fixture();module.bootstrap_directory().mkdir(mode=0o700)
+        with self.fixture_requirements(requirements),mock.patch.dict(os.environ,{'PATH':str(bins)+':'+os.environ['PATH']}), \
+             mock.patch.object(module,'authenticate',return_value=(a,None,self.root)),mock.patch.object(module,'validate_bootstrap'):
+            a['installationPolicy']['images']={requirements['pilotMailboxImage']:requirements['qualifiedImagePolicy']['images'][requirements['pilotMailboxImage']]}
+            with self.assertRaisesRegex(ValueError,'qualified-image-selectors-and-provenance-required|complete-qualified-image-inventory-required'):
+                module.install_dependencies()
+            self.assertFalse((self.root/'node_modules').exists())
+            a['installationPolicy']['images']=requirements['qualifiedImagePolicy']['images']
+            # A signed caller-chosen hash cannot substitute source-qualified executable bytes.
+            requirements['qualifiedToolHashes']['node']='0'*64
+            with self.assertRaisesRegex(ValueError,'tool-distribution-provenance-mismatch'):module.install_dependencies()
+            self.assertFalse((self.root/'node_modules').exists())
+
+    def test_real_certificate_insufficient_lifetime_rejected_before_public_notice(self):
+        real=module.command
+        def command(argv,**kwargs):
+            if argv[:2]==['openssl','x509'] and '-checkend' in argv:
+                argv=list(argv);argv[argv.index('-checkend')+1]='8640000'
+            return real(argv,**kwargs)
+        with mock.patch.object(module,'command',side_effect=command):
+            with self.assertRaises(subprocess.SubprocessError):self.observe()
+        self.assertEqual(self.console,'')
+
+    def test_gcm_ciphertext_tamper_rejected_without_private_proof_output(self):
+        import base64
+        self.observe();annotation=self.annotation();safe=json.loads(annotation['message'])
+        ciphertext=bytearray(base64.b64decode(safe['cmsBase64']));ciphertext[-1]^=1
+        safe['cmsBase64']=base64.b64encode(ciphertext).decode()
+        with mock.patch.object(module,'delivery_get',return_value=[dict(annotation,message=json.dumps(safe))]):
+            with self.assertRaises(subprocess.SubprocessError):module.decrypt_bootstrap(self.context,self.key,self.root/'tampered-proof')
+        self.assertFalse((self.root/'tampered-proof').exists())
+
+    def context_ports(self,pr=False):
+        head='f'*40 if pr else 'a'*40
+        run={'head_sha':head,'run_attempt':1,'event':'pull_request' if pr else 'workflow_dispatch',
+             'path':'.github/workflows/t2-term-disposable.yml'}
+        commit={'sha':'a'*40,'tree':{'sha':'b'*40},'parents':[{'sha':head}]}
+        job={'id':888,'name':'bootstrap-probe' if pr else 'term','run_id':777,'run_attempt':1,'head_sha':head,
+             'check_run_url':'https://api.github.com/repos/'+module.REPOSITORY+'/check-runs/888'}
+        check={'app':{'slug':'github-actions'},'head_sha':head,
+               'details_url':'https://github.com/'+module.REPOSITORY+'/actions/runs/777/job/888',
+               'output':{'annotations_count':1}}
+        return [run,commit,{'total_count':1,'jobs':[job]},check]
+
+    def test_root_api_consumer_distinguishes_pr_head_merge_and_real_term_provenance(self):
+        for pr in (False,True):
+            with self.subTest(pr=pr),mock.patch.object(module,'delivery_get',side_effect=self.context_ports(pr)):
+                context=module.bootstrap_context(777,'a'*40,'bootstrap-probe' if pr else 'term')
+            self.assertEqual(context['checkoutTree'],'b'*40)
+            self.assertEqual(context['workflowHeadCommit'],('f' if pr else 'a')*40)
+        ports=self.context_ports(True);ports[1]['parents']=[{'sha':'0'*40}]
+        with mock.patch.object(module,'delivery_get',side_effect=ports):
+            with self.assertRaisesRegex(ValueError,'bootstrap-checkout-head-mismatch'):
+                module.bootstrap_context(777,'a'*40,'bootstrap-probe')
+        ports=self.context_ports();ports[-1]['app']['slug']='another-app'
+        with mock.patch.object(module,'delivery_get',side_effect=ports):
+            with self.assertRaisesRegex(ValueError,'bootstrap-check-provenance-mismatch'):
+                module.bootstrap_context(777,'a'*40,'term')
+
+    def test_actual_prepare_rejects_installation_receipt_drift_before_resource_allocation(self):
+        self.observe();bins,requirements,a=self.tool_fixture()
+        a['bootstrapProofSHA256']=module.digest(module.bootstrap_directory()/'proof.json')
+        a['sourceTree']='b'*40
+        installed=self.root/'node_modules';installed.mkdir();(installed/'.package-lock.json').write_text('{}')
+        with self.fixture_requirements(requirements),mock.patch.dict(os.environ,{'PATH':str(bins)+':'+os.environ['PATH']}):
+            receipt=module.installed_tool_receipt(a)
+            receipt['installedLockSHA256']='0'*64
+            module.save_private(module.bootstrap_directory()/'installation.json',receipt)
+            with mock.patch.object(module,'authenticate',return_value=(a,self.root/'runtime',self.root)), \
+                 mock.patch.object(module,'validate_installed_materials'),mock.patch.object(module,'bootstrap_source',return_value=self.source), \
+                 mock.patch.object(module,'bootstrap_identity',return_value=self.host), \
+                 mock.patch.object(module,'daemon_identity',return_value=(self.daemon,self.observation)), \
+                 mock.patch.object(module,'docker_resources') as resources:
+                with self.assertRaisesRegex(ValueError,'installed-tool-or-dependency-receipt-changed'):module.prepare_attempt()
+            resources.assert_not_called()
+        self.assertFalse((self.root/'runtime').exists())
+
+    def test_pr_or_bootstrap_only_public_proof_cannot_be_used_for_admitted_delivery(self):
+        self.observe();safe=module.load_private(module.bootstrap_directory()/'safe.json')
+        safe['run']['mode']='bootstrap'
+        with mock.patch.object(module,'delivery_get',return_value=[{'title':module.BOOTSTRAP_TITLE,'annotation_level':'notice','message':json.dumps(safe)}]):
+            with self.assertRaisesRegex(ValueError,'delivery-bootstrap-binding-mismatch'):
+                module.verify_published_bootstrap(self.context,{'bootstrapProofSHA256':safe['proofSHA256']})
+        safe['run'].update(mode='pr-probe',event='pull_request',job='bootstrap-probe')
+        with mock.patch.object(module,'delivery_get',return_value=[{'title':module.BOOTSTRAP_TITLE,'annotation_level':'notice','message':json.dumps(safe)}]):
+            with self.assertRaisesRegex(ValueError,'bootstrap-public-run-binding-mismatch'):
+                module.verify_published_bootstrap(self.context,{'bootstrapProofSHA256':safe['proofSHA256']})
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

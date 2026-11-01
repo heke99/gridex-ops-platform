@@ -339,3 +339,88 @@ ordinary E66 issuer/history qualification and the nonselectable file_export
 source path remain concrete pilot business blockers; infrastructure/component
 verification cannot turn those HOLD results into native PASS. Raw runner
 disk is ephemeral; do not claim it as retained/reviewable after job teardown.
+
+### Measured bootstrap before private admission
+
+The workflow now defaults manual dispatch to `mode=bootstrap`. This mode checks
+out the exact source, reads actual boot/machine/mount/daemon identities, measures
+RAM and free space at the daemon root, verifies an empty dedicated daemon, and
+emits one `T2_BOOTSTRAP_PROOF_V1` notice. It does not install tools/dependencies,
+pull images, allocate backend resources, accept business inputs, or claim ACTIVE.
+The same-repository trusted PR `bootstrap-probe` job provides the first executable
+precursor while this workflow is absent from default branch. A fork is refused.
+PR observations apply to that PR host only; they never qualify a later term host.
+No `pull_request_target`, environment administration or new service is used.
+
+The fixed public notice contains run/source identity, measured capacity, explicit
+`runtimeActive:false` / `wholeScenarioPass:false`, private proof SHA256, and CMS
+ciphertext only. Raw host/boot/machine/socket identities stay in the owner0600
+private proof. The root RSA4096 recipient certificate is pinned in requirements;
+its private key remains root-owned outside Git. Expired/changed certificates fail
+before notice publication. Encryption uses the existing OpenSSL CMS AES256-GCM
+and RSA-OAEP-SHA256/MGF1-SHA256 checks. Certificate expiration requires a reviewed
+public-certificate source update, never logging or exporting its private key.
+
+For `mode=admitted`, this **same term host** observes itself before the recipient
+announcement. While its bounded rendezvous waits, root uses actual run/job/check
+APIs and `--operation read-bootstrap --run-id RUN --source-commit SHA
+--bootstrap-key /private/root.key --bootstrap-proof-file /private/host-proof.json`
+to read the unique term notice, decrypt privately and verify the exact digest/run.
+The output is create-only owner0600 in an owner0700 directory. Root qualifies the
+actual source, host, input, tool distributions and complete image inventory, then
+signs the existing Ed25519 assignment containing `bootstrapProofSHA256` and
+`installationPolicy`. Both actual backend and producer full-v1 private receipts
+must repeat these fields; source custody is never a substitute. Root publishes
+only the existing encrypted assignment/signature/material packet carrier.
+The receiver revalidates the locally measured proof before installing input.
+A PR proof, stale proof (>45min), another boot/daemon/source, absent/mismatched
+signed digest, missing materials or inadequate capacity cannot reach installation.
+
+`installationPolicy` has exactly `tools`, `packageLockSHA256`, `images`,
+`imageSelectors`, and `provenanceSHA256`. `tools` maps node/npm/supabase/psql/pg_dump
+to exact `version` and resolved executable `executableSHA256`; root must qualify
+these from genuine distribution/package provenance, not approve a newly observed
+hash merely because it was observed. Node is source-pinned22.22.0, CLI2.101.0 and
+Postgres clients17.11. The workflow downloads exact SHA256-pinned PG17.11 and
+libpq18.6 ABI dependency packages (libpq is not the database server version),
+source-qualified via signed PGDG Release→Packages→deb proof. OS dependency packages
+remain supplied by Ubuntu's signed repositories. npm10.9.2 uses exact archive
+SHA256/SRI-qualified bytes with lifecycle scripts disabled; upstream npm signature
+was not independently verified. Resolved final executables must equal source-pinned
+qualified hashes, not merely signed caller-selected hashes.
+`provenanceSHA256` binds root's independently qualified private distribution/image
+proof, not an automatically generated approval. Actual qualification/acquisition
+of that proof is still required before admitted execution.
+
+After full admission, exact tool/lock checks precede the one-shot bounded
+`npm ci`; its raw log stays private. Receipt pins source, bootstrap proof, tool
+bytes, source lock and actual installed lock. `prime-images` then performs only
+signed `name@sha256:digest` pulls, checks actual image IDs/RepoDigests, and installs
+only signed local selector aliases for canonical CLI compatibility. It never
+pulls mutable network tags or edits canonical source. Priming is one-shot with
+32-image/900-second limits and a private journal; ambiguous/failed attempts are
+not silently retried. Prepare checks unchanged tool/dependency/priming receipts,
+all cached digest/selector identities (the complete source-pinned seven Supabase
+images plus GreenMail, including postgres-meta), current capacity, original boot/daemon,
+source, assignment and materials before home/cgroup/backend allocation. Owned
+container inventory subsequently refuses image IDs outside the signed lock.
+
+Actual delivery sequence under T2's standing mandate: finish independent source
+reviews; publish the reviewed PR through the serial delivery owner; execute its
+read-only PR probe and retain exact source/run/check/notice digest; merge the
+reviewed workflow so manual dispatch exists; execute `mode=bootstrap` to observe
+an actual term host without issuer materials; then use a **new** `mode=admitted`
+invocation only once genuine business/input/native/tool/image qualification is
+available, and sign that invocation's fresh proof. Root handles publication and
+dispatch; this source author has performed neither. Successful bootstrap remains
+source/host observation only. E66/history/issuer, ordinary application gates,
+actor observations and independent business-effect acceptance remain mandatory.
+
+The same root read command also consumes a completed trusted PR observation with
+`--bootstrap-job bootstrap-probe --source-commit CHECKED_OUT_MERGE_SHA`. It verifies
+actual run event/attempt/workflow path, unique job, GitHub Actions check provenance,
+actual head as a parent of the checked-out merge commit, and commit tree readback.
+It never confuses API PR head with checkout merge SHA. Private/public run, mode,
+proof digest and checkout tree must match. Term uses `--bootstrap-job term` and
+requires dispatch head equality. PR proof and bootstrap-only mode cannot satisfy
+admitted delivery, regardless of passing capacity.
