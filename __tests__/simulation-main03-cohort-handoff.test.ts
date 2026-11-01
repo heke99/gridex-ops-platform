@@ -119,7 +119,7 @@ function actualServiceSingleton(url: string, key: string): Record<string, unknow
   return { ...exports, transport }
 }
 function admittedEnvironment(c: ReturnType<typeof protocolControl>): NodeJS.ProcessEnv {
-  return { TRACK1_RUN_DIR: c.admission.runDir, TRACK1_STACK_JSON: c.admission.stack.path, TRACK1_APP_URL: c.admission.appUrl, TRACK1_APP_DIR: c.admission.appDir,
+  return { NODE_ENV: 'test', TRACK1_RUN_DIR: c.admission.runDir, TRACK1_STACK_JSON: c.admission.stack.path, TRACK1_APP_URL: c.admission.appUrl, TRACK1_APP_DIR: c.admission.appDir,
     TRACK1_APP_COMMIT: c.admission.runtime.appCommit, TRACK1_APP_PORT: '3101', TRACK1_DB_URL: c.admission.dbUrl, SIM_HOME: c.home,
     NEXT_PUBLIC_SUPABASE_URL: c.admission.authUrl, NEXT_PUBLIC_SUPABASE_ANON_KEY: c.admission.anonKey, SUPABASE_SERVICE_ROLE_KEY: 'controlled-only-service-key' }
 }
@@ -557,7 +557,7 @@ describe('actual entry and read-only system adapters', () => {
   })
   it('actual standalone Node22 seal entry fails closed before any external read without an explicit business admission', () => {
     const node = process.execPath, source = path.resolve('scripts/simulation/track1/fixtures/main03Cohort.ts')
-    try { execFileSync(node, [source, 'seal'], { env: { PATH: '/usr/bin:/bin', HOME: tmpdir() }, stdio: ['ignore', 'pipe', 'pipe'] }); throw new Error('unexpected CLI success') }
+    try { execFileSync(node, [source, 'seal'], { env: { NODE_ENV: 'test', PATH: '/usr/bin:/bin', HOME: tmpdir() }, stdio: ['ignore', 'pipe', 'pipe'] }); throw new Error('unexpected CLI success') }
     catch (error) { expect((error as { status: number }).status).toBe(1); expect(String((error as { stderr: Buffer }).stderr)).toContain('cohort_hold:seal_failed') }
   })
   it('refuses a foreign ambient DB URL before the actual scenario can seed or prepare', () => {
@@ -574,7 +574,7 @@ describe('actual entry and read-only system adapters', () => {
     expect(() => loadCohortAdmissionFromEnv('MAIN03_CANDIDATE')).toThrow('ambient_scenario_binding')
   })
   it('binds the actual scenario environment and actual cached service client; current smoke assignment stays unusable', () => {
-    const c = protocolControl(), env: NodeJS.ProcessEnv = { TRACK1_RUN_DIR: c.admission.runDir, TRACK1_STACK_JSON: c.admission.stack.path, TRACK1_APP_URL: c.admission.appUrl,
+    const c = protocolControl(), env: NodeJS.ProcessEnv = { NODE_ENV: 'test', TRACK1_RUN_DIR: c.admission.runDir, TRACK1_STACK_JSON: c.admission.stack.path, TRACK1_APP_URL: c.admission.appUrl,
       TRACK1_APP_DIR: c.admission.appDir, TRACK1_APP_COMMIT: c.admission.runtime.appCommit, TRACK1_APP_PORT: '3101', TRACK1_DB_URL: c.admission.dbUrl, SIM_HOME: c.home,
       NEXT_PUBLIC_SUPABASE_URL: c.admission.authUrl, NEXT_PUBLIC_SUPABASE_ANON_KEY: c.admission.anonKey, SUPABASE_SERVICE_ROLE_KEY: 'controlled-only-service-key' }
     const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: { fetch: () => { throw new Error('network forbidden') } } }

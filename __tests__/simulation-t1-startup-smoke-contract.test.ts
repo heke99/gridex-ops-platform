@@ -484,7 +484,7 @@ describe('T1 assigned hosted infrastructure contract', () => {
       copyFileSync('scripts/simulation/track1/scenarios/smoke.test.ts', path.join(scenarios, 'smoke.test.ts'))
       const listing = execFileSync(process.execPath, [path.resolve('node_modules/vitest/vitest.mjs'), 'list',
         '--config', path.join(scenarios, '../vitest.config.mts'), '--root', harness, '--maxWorkers=1', '--json',
-      ], { encoding: 'utf8', timeout: 20_000, env: { PATH: process.env.PATH, HOME: root, CI: '1', TRACK1_APP_DIR: app } })
+      ], { encoding: 'utf8', timeout: 20_000, env: { NODE_ENV: 'test', PATH: process.env.PATH, HOME: root, CI: '1', TRACK1_APP_DIR: app } })
       const tests = JSON.parse(listing) as { name: string }[]
       expect(tests).toHaveLength(3)
       expect(tests.map(test => test.name.match(/T1SMOKE\.0[123]/)?.[0]).sort()).toEqual(['T1SMOKE.01', 'T1SMOKE.02', 'T1SMOKE.03'])
