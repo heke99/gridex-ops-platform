@@ -514,8 +514,9 @@ jobs:
           def current_write_api_install_spec():
               return {'before_catalog_sha256':'709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
                   'preimage_artifact_id':12655280424,'preimage_source':'c6a02ec1edfbf72d81a2c3755e004781da8bc5d6',
-                  'schema_sha256':'bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b','function_count':251,
-                  # PR #973 capture (pre 20b8165b, aa5d9975): closure of 251 writer functions is byte-identical.
+                  'schema_sha256':'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc','function_count':251,
+                  # Exact949 changes only a reader outside this unchanged251 writer closure.
+                  # Preserve the genuine preimage, canonical definitions and all metadata gates.
                   'canonical_definitions_sha256':'23866bb938ea1230a1f623073c436ae3d6583b5518378d0ee8eabd403eeb383d',
                   'projection_old_body':'01a18718d1d55c93238f2f9a8cfcb44da7cd5b35dbee96af964066a1848b7379',
                   'projection_new_body':'66d86e98130ca6f5e64ae966d710f35bce86204452febe714684025943a81f17',
@@ -653,6 +654,60 @@ jobs:
               finally:
                   schemas.clear();schemas.update(original_schemas)
                   receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+          def current_contrl_source_spec():
+              return {'donor':{'path':'supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sql',
+                'mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d',
+                'sha256':'118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'},
+                'schema_sha256':'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc',
+                'preimage':'142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e',
+                'postimage':'e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa',
+                'definition_sha256':'72f56c36a939142fd80ea0630a90c002fcec206437238010634530e46f34927d'}
+
+          def current_contrl_catalog():
+              return json.loads(sql("""SELECT jsonb_build_object('oid',p.oid::text,
+                'metadata_sha256',encode(sha256(convert_to((to_jsonb(p)-'prosrc')::text,'UTF8')),'hex'),
+                'body_sha256',encode(sha256(convert_to(p.prosrc,'UTF8')),'hex'))
+                FROM pg_catalog.pg_proc p
+                WHERE p.oid=to_regprocedure('gridex_ack_authority.read_outbound_originals_v1(uuid,text)');"""))
+
+          def apply_current_contrl_source():
+              spec=current_contrl_source_spec();donor=spec['donor'];path=root/donor['path']
+              if receipt['root_source']['blobs'].get(donor['path'])!={k:donor[k] for k in ['mode','git_blob_oid','sha256']} \
+                or receipt['root_source']['blobs']['supabase/schema.sql']['sha256']!=spec['schema_sha256'] \
+                or hashlib.sha256(path.read_bytes()).hexdigest()!=donor['sha256'] \
+                or hashlib.sha256((root/'supabase/schema.sql').read_bytes()).hexdigest()!=spec['schema_sha256'] \
+                or sha(expected[('gridex_ack_authority','FUNCTION','read_outbound_originals_v1(uuid, text)')])!=spec['definition_sha256']:
+                  fail('db01_current_contrl_source_unqualified')
+              before=current_contrl_catalog()
+              if not isinstance(before,dict) or set(before)!={'oid','metadata_sha256','body_sha256'} \
+                or not isinstance(before['oid'],str) or not before['oid'].isdigit() or int(before['oid'])<=0 \
+                or not isinstance(before['metadata_sha256'],str) or not re.fullmatch('[0-9a-f]{64}',before['metadata_sha256']) \
+                or before['body_sha256']!=spec['preimage']:
+                  fail('db01_current_contrl_preimage_unqualified')
+              result={'schema':'db01_current_contrl_source_v1','status':'EXECUTION_INTENT_RECORDED',
+                'source_sha':receipt['checkout_sha'],'source_schema_sha256':spec['schema_sha256'],
+                'donor':donor,'preimage_sha256':spec['preimage'],'postimage_sha256':spec['postimage'],
+                'expected_definition_sha256':spec['definition_sha256'],'catalog_before':before,
+                'native_or_approval_credit':False}
+              receipt['current_contrl_source_install']=result;receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+              try:
+                  with (private/'current-contrl-source-install.private.log').open('xb') as log:
+                      execution=subprocess.run(['psql',url,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose','-f',str(path)],
+                        stdout=log,stderr=log,timeout=120)
+              except Exception:
+                  result['status']='OUTCOME_UNKNOWN';receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+                  fail('db01_current_contrl_install_outcome_unknown')
+              result.update(status='EXECUTED_UNQUALIFIED',exit_code=execution.returncode)
+              receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+              if execution.returncode!=0:fail('db01_current_contrl_install_failed')
+              try:
+                  after=current_contrl_catalog();result['catalog_after']=after
+                  if not isinstance(after,dict) or set(after)!=set(before) or after['body_sha256']!=spec['postimage'] \
+                    or {k:v for k,v in after.items() if k!='body_sha256'}!={k:v for k,v in before.items() if k!='body_sha256'}:
+                      fail('db01_current_contrl_catalog_changed')
+                  result['status']='PASS'
+              finally:receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+
           reader_roots=['public.ediel_read_prodat_h_accepted_original_v1','public.ediel_read_prodat_customer_masterdata_original_v1']
           reader_names=set(); pending=list(reader_roots)
           false_calls={'gridex_ediel_ack_guide.outbound_prodat_scopes','gridex_received_sources.object_selection_snapshots'}
@@ -1006,6 +1061,8 @@ jobs:
                   # source-qualified API effects inside this same bounded phase.
                   apply_current_api_projection()
                   apply_s01_current_source()
+                  # Separate current source install: the historical16/59/35 contract stays intact.
+                  apply_current_contrl_source()
               finally:
                   receipt['current_read_forward_executions']=executed
                   receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
@@ -1188,7 +1245,7 @@ jobs:
             if [[ "$current_exit" != 0 ]]; then exit "$current_exit"; fi
             qualification_exit=0
             python3 - <<'PY' || qualification_exit=$?
-          import json,os,pathlib,subprocess,xml.etree.ElementTree as ET
+          import json,os,pathlib,re,subprocess,xml.etree.ElementTree as ET
           evidence=pathlib.Path(os.environ['GRIDEX_DB01_NATIVE_RECEIPT']).parent
           scope='scripts/ediel-db01-legacy-address-containment-native.test.ts'
           expected_historical={'BASE56 actual public direct and protected H births retain prospective legacy hints before custody; capture upgrade witnesses'}
@@ -1295,6 +1352,27 @@ jobs:
           s01_install=receipt.get('current_s01_source_install',{})
           if s01_install.get('status')!='PASS' or s01_install.get('exit_code')!=0 or s01_install.get('donor_path')!='supabase/migrations/20261023201053_ediel_s01_area_aggregate_identity.sql' or s01_install.get('donor_sha256')!='ae647d1d240a2e3cfa202906766eed3b13f6d5d15a0afd14885fe36b63da4a5d' or s01_install.get('source_schema_sha256')!=receipt['root_source']['blobs']['supabase/schema.sql']['sha256'] or s01_install.get('sql_sha256')!='deafe7916db6e2c82f7c66cacc9560f1fd44d539e6a9129e115dce658864580b' or s01_install.get('predecessor_definition_sha256')!='11de04c3af4dd571693cfe8b249d3a30fc163848a78d1e7aee287ab3c093a7b6' or s01_install.get('objects')!=[{'identity': ['gridex_utilts_binding', 'FUNCTION', 'require_s01_l359_basis_v1(uuid, uuid)'], 'sha256': '756c2184e515cfb2efc0201a4d01d947501f0b6dd4a5c7ce3b76423bff2b2b7f'}, {'identity': ['gridex_utilts_binding', 'FUNCTION', 's01_l359_area_identity_v1(jsonb, text)'], 'sha256': '52bd8c0239577b75f87506265fb5bc4761d4c9bb5a4f93ab229c952cdc10dcf1'}, {'identity': ['gridex_utilts_binding', 'FUNCTION', 's01_l359_item_matches_v1(jsonb, jsonb)'], 'sha256': '26cd5f8e845341c63f38d120ac033d092b60bd3f6aea84c2fc1928f69eeedf05'}, {'identity': ['gridex_utilts_binding', 'FUNCTION', 'stored_contract_v1(uuid, uuid, text)'], 'sha256': 'fa8fa4ebce573824387d63174f0fa8452572bda16a70dff3ec204bac4faed51f'}, {'identity': ['gridex_utilts_binding', 'ACL', 'FUNCTION require_s01_l359_basis_v1(company uuid, source uuid)'], 'sha256': '2e18096846aa2788c7f5e0defd444ac4faebafada82a918b9b28b5a1bacac358'}, {'identity': ['gridex_utilts_binding', 'ACL', 'FUNCTION s01_l359_area_identity_v1(tokens jsonb, transaction_id text)'], 'sha256': '7c9bdcd4e0285550e3ce64bc3f53db8a73d9cd05b9ef6585a6c74d32ad168eee'}, {'identity': ['gridex_utilts_binding', 'ACL', 'FUNCTION s01_l359_item_matches_v1(tokens jsonb, item jsonb)'], 'sha256': '9f7dfed55a9f6d041386506f95d10bee853aaa2c2da5d98b5b3468b66c4aa15f'}, {'identity': ['gridex_utilts_binding', 'ACL', 'FUNCTION stored_contract_v1(p_company uuid, p_source uuid, p_transaction text)'], 'sha256': '1a30a8358593cac23115f59ecd31fc1fe781a4d3254aa3257eccfa5e1d71a455'}]:
               raise RuntimeError('JUnit qualification requires exact executed S01 read-side source install')
+          def qualify_current_contrl_execution(receipt):
+              donor={'path':'supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sql',
+                'mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d',
+                'sha256':'118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'}
+              schema='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
+              pre='142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e'
+              post='e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa'
+              item=receipt.get('current_contrl_source_install',{});before=item.get('catalog_before',{});after=item.get('catalog_after',{})
+              if item.get('schema')!='db01_current_contrl_source_v1' or item.get('status')!='PASS' or item.get('exit_code')!=0 \
+                or item.get('native_or_approval_credit') is not False or item.get('source_sha')!=receipt['checkout_sha'] \
+                or item.get('source_schema_sha256')!=schema or receipt['root_source']['blobs']['supabase/schema.sql']['sha256']!=schema \
+                or item.get('donor')!=donor or receipt['root_source']['blobs'].get(donor['path'])!={k:donor[k] for k in ['mode','git_blob_oid','sha256']} \
+                or item.get('preimage_sha256')!=pre or item.get('postimage_sha256')!=post \
+                or item.get('expected_definition_sha256')!='72f56c36a939142fd80ea0630a90c002fcec206437238010634530e46f34927d' \
+                or set(before)!={'oid','metadata_sha256','body_sha256'} or set(after)!=set(before) \
+                or not isinstance(before.get('oid'),str) or not before['oid'].isdigit() or int(before['oid'])<=0 \
+                or not isinstance(before.get('metadata_sha256'),str) or not re.fullmatch('[0-9a-f]{64}',before['metadata_sha256']) \
+                or before.get('body_sha256')!=pre or after.get('body_sha256')!=post \
+                or {k:v for k,v in before.items() if k!='body_sha256'}!={k:v for k,v in after.items() if k!='body_sha256'}:
+                  raise RuntimeError('db01_current_contrl_execution_required')
+          qualify_current_contrl_execution(receipt)
           database=receipt.get('current_database_basis',{})
           executions=receipt.get('current_read_forward_executions',[])
           guard=receipt.get('current_guard_result',{})
