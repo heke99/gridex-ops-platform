@@ -2,6 +2,7 @@
 // EDIEL02.05: meddelande från okänd/främmande part eller utan mandat -> nekat/fail-closed, ingen affärseffekt. Ingen webbläsare.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createHash } from 'node:crypto'
+import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { purgeInbox, receivedMail } from '../lib/counterparty'
 import { buildE02Utilts } from '../lib/e02-edifact'
 import { deliverE02, lit, sql } from '../lib/e02-flow'
@@ -77,12 +78,18 @@ describe('EDIEL02.05 okänd part / utan mandat', () => {
     expect((d.reproc[sourceId] as { reprocess?: { ok: boolean } } | undefined)?.reprocess, 'T3_HARNESS_PRECONDITION: processing completed').toEqual({ ok: true })
     expect(again, 'T3_HARNESS_PRECONDITION: reprocessing completed').toEqual({ ok: true })
     expect(received.messages.filter((m: any) => m.id === sourceId && m.dir === 'inbound' && m.family === 'UTILTS' && m.company === fx.companyId)).toHaveLength(1)
+    // This ASCII inline MIME is CRLF-normalized by buildEdifactMime. Bind the
+    // admission to the exact injected payload, independently of stored DB hashes.
+    const expectedSource = parseInboundEmailContent({ rawEmail: d.inj.mime.toString('utf8') })
+    if (!expectedSource) throw new Error('T3_HARNESS_PRECONDITION: injected EDIFACT payload is missing')
+    expect(expectedSource).toMatchObject({ messageFamily: 'UTILTS', senderEdielId: '70099', interchangeReference: e.interchangeRef })
+    expect(expectedSource.rawPayload).toBe(e.raw.replace(/\r?\n/g, '\r\n'))
     const denial = j(`SELECT coalesce(jsonb_agg(jsonb_build_object('sourceId',a.source_message_id,'companyId',a.company_id,'environment',a.environment,'sourceHash',a.source_payload_hash,
       'namespaceId',a.namespace_id,'issuerVersionId',a.issuer_version_id,'mandateVersionId',a.mandate_version_id,'holdReason',a.hold_reason,
       'emailId',m.inbound_email_message_id)),'[]') FROM gridex_utilts_issuer.source_admissions a JOIN public.ediel_messages m ON m.id=a.source_message_id
       WHERE a.source_message_id=${lit(sourceId)} AND m.inbound_email_message_id=${lit(d.poll.summary.storedIds[0])}`)
     expect(denial, 'T3_HARNESS_PRECONDITION: persisted issuer denial').toEqual([{
-      sourceId, companyId: fx.companyId, environment: S.mode, sourceHash: createHash('sha256').update(e.raw, 'utf8').digest('hex'),
+      sourceId, companyId: fx.companyId, environment: S.mode, sourceHash: createHash('sha256').update(expectedSource.rawPayload, 'utf8').digest('hex'),
       namespaceId: null, issuerVersionId: null, mandateVersionId: null, holdReason: 'ediel_utilts_foreign_issuer_basis_unavailable', emailId: d.poll.summary.storedIds[0],
     }])
     const drain = await flow.drain('05b')

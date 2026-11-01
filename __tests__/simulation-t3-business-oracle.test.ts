@@ -7,6 +7,7 @@ import * as crypto from 'node:crypto'
 import ts from 'typescript'
 import { describe, it, expect } from 'vitest'
 import { fileURLToPath } from 'node:url'
+import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 
 const root = fileURLToPath(new URL('../scripts/simulation/track3/', import.meta.url))
 const refused = () => { throw new Error('Undeclared service operation') }
@@ -183,9 +184,22 @@ function unknownIssuer(mode: 'denied' | 'poll-failed' | 'business-effect' | 'hea
   const summary = mode === 'poll-failed'
     ? { error: 'synthetic IMAP connection failed', storedIds: [] }
     : { storedIds: ['own-email'], stored: 1, edielMessageIds: ['own-source'], errorsByMailbox: mode === 'healthy-diagnostics' ? [{ errors: [] }] : [] }
-  const mime = Buffer.from('synthetic MIME'), mimeSha = crypto.createHash('sha256').update(mime).digest('hex')
+  const builder = load<typeof import('../scripts/simulation/track3/lib/e02-edifact')>('lib/e02-edifact.ts', {
+    './seed.mjs': { COUNTERPARTY_EDIEL_ID: '70007' }, './e02-tenant': { E02_OWN_ID: '16700' },
+  })
+  const mimeBuilder = load<typeof import('../scripts/simulation/track3/lib/mime')>('lib/mime.ts', { 'node:crypto': crypto })
+  let mimeSha = '', sourceHash = '', fixtureRaw = '', receivedRaw = ''
   const flow = {
-    inject: async () => ({ mime, sha256: mimeSha }),
+    inject: async (_name: string, raw: string, options: { subject: string }) => {
+      fixtureRaw = raw
+      const built = mimeBuilder.buildEdifactMime({ raw, from: '70099@dso.t3.sim.invalid', to: 'ediel@t3.sim.invalid', subject: options.subject, placement: 'inline' })
+      const parsed = parseInboundEmailContent({ rawEmail: built.mime.toString('utf8') })
+      if (!parsed || parsed.messageFamily !== 'UTILTS' || parsed.senderEdielId !== '70099') throw new Error('Actual wire parse failed')
+      receivedRaw = parsed.rawPayload
+      sourceHash = crypto.createHash('sha256').update(receivedRaw, 'utf8').digest('hex')
+      mimeSha = crypto.createHash('sha256').update(built.mime).digest('hex')
+      return { ...built, sha256: mimeSha }
+    },
     poll: async () => { polls.push(summary); return { out: { ok: mode !== 'poll-failed' }, summary } },
     groundAndReprocess: async () => ({ 'own-source': { reprocess: mode === 'processing-error' ? { ok: false, error: 'synthetic timeout; unknown outcome' } : { ok: true } } }),
     drain: async () => { drains++; return { mails: [] } },
@@ -199,7 +213,7 @@ function unknownIssuer(mode: 'denied' | 'poll-failed' | 'business-effect' | 'hea
     if (q.includes('processing_status'))
       return JSON.stringify(mode === 'poll-failed' ? [] : [{ id: 'own-email', status: mode === 'failed-parse' ? 'failed' : 'manual_review', company: mode === 'foreign-email' ? 'foreign-company' : fixture.companyId, sender: '70099', rawSha256: mimeSha }])
     if (q.includes('FROM gridex_utilts_issuer.source_admissions')) return JSON.stringify(mode === 'missing-denial' ? [] : [{ sourceId: 'own-source', companyId: fixture.companyId,
-      environment: 'test', sourceHash: mode === 'wrong-hash' ? '0'.repeat(64) : crypto.createHash('sha256').update('synthetic EDIFACT').digest('hex'), namespaceId: null,
+      environment: 'test', sourceHash: mode === 'wrong-hash' ? '0'.repeat(64) : sourceHash, namespaceId: null,
       issuerVersionId: null, mandateVersionId: null, holdReason: mode === 'infrastructure-denial' ? 'ediel_utilts_issuer_identity_read_failed' : 'ediel_utilts_foreign_issuer_basis_unavailable', emailId: 'own-email' }])
     if (q.includes('FROM public.ediel_messages')) return JSON.stringify(mode === 'poll-failed' ? [] : [{ id: mode === 'unrelated-source' ? 'unrelated-source' : 'own-source', dir: 'inbound', family: 'UTILTS', company: fixture.companyId }])
     if (q.includes('FROM public.customer_operation_tasks')) return '[]'
@@ -207,7 +221,8 @@ function unknownIssuer(mode: 'denied' | 'poll-failed' | 'business-effect' | 'hea
   }
   const unit = load<{ controlledPrime: (context: unknown) => void }>('scenarios/ediel02-auth.test.ts', {
     'node:crypto': crypto, vitest: r.ports, '../lib/counterparty': { purgeInbox: async () => 0, receivedMail: async () => [] },
-    '../lib/e02-edifact': { buildE02Utilts: () => ({ raw: 'synthetic EDIFACT', transactionRef: 'synthetic-tx' }) },
+    '../lib/e02-edifact': builder,
+    '@/lib/inbound-mail/edielEmailParser': { parseInboundEmailContent },
     '../lib/e02-flow': { deliverE02: flowModule.deliverE02, lit, sql },
     '../lib/e02-seed': { e02MeteringPoint: () => fixture.meteringPoint, seedE02Routable: () => fixture,
       masterDataFingerprint: () => 'unchanged', reprocessInbound: async () => ({ ok: true }) },
@@ -218,9 +233,17 @@ function unknownIssuer(mode: 'denied' | 'poll-failed' | 'business-effect' | 'hea
   unit.controlledPrime({ flow, run: { prefix: 'synthetic' }, mode: 'test', ev: new Evidence() })
   const callback = [...r.tests].find(([n]) => n.startsWith('EDIEL02.05b '))?.[1]
   if (!callback) throw new Error('Actual unknown-issuer callback missing')
-  return { callback, polls, get drains() { return drains } }
+  return { callback, polls, wire: () => ({ fixtureRaw, receivedRaw, sourceHash, mimeSha }), get drains() { return drains } }
 }
 describe('T3 actual unknown-issuer denial must reach qualified reception', () => {
+  it('accepts the actual multiline E02 wire after MIME CRLF conversion and canonical extraction', async () => {
+    const c = unknownIssuer('denied'); await c.callback()
+    const wire = c.wire()
+    expect(wire.fixtureRaw).toContain("'\n")
+    expect(wire.receivedRaw).toBe(wire.fixtureRaw.replace(/\r?\n/g, '\r\n'))
+    expect(wire.sourceHash).not.toBe(crypto.createHash('sha256').update(wire.fixtureRaw, 'utf8').digest('hex'))
+    expect(c.drains).toBe(1)
+  })
   it('accepts controlled reception with actual refusal and no business effects', async () => { const c = unknownIssuer('denied'); await c.callback(); expect(c.polls).toHaveLength(1) })
   it('rejects physical business effects', async () => { await expect(unknownIssuer('business-effect').callback()).rejects.toThrow() })
   it('must refuse failed IMAP setup with no email or source before drain', async () => {
