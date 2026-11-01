@@ -72,52 +72,93 @@ export type IntakeResult = {
   engineAuto: { ms: number; fetched?: number; edielMessageIds?: number; autoProcessErrors?: string[]; error?: string }
 }
 
+// A failed call can have committed effects. New timers/prefixes do not authorize
+// the global intake worker to revisit those effects; recovery needs observation.
+const attemptedIntakes = new Set<string>()
+let unresolvedIntake = false
+function qualifiedEngine(out: Awaited<ReturnType<typeof runInboundEngineAsAutomationActor>>) {
+  const jobs = out.ok ? out.result.debug?.customerOperationJobs : null
+  if (!out.ok || !Number.isSafeInteger(out.result.failedJobs) || out.result.failedJobs !== 0
+    || !Array.isArray(out.result.debug?.errorsByMailbox)
+    || out.result.debug.errorsByMailbox.some(mailbox => !Array.isArray(mailbox.errors) || mailbox.errors.length > 0)
+    || !Array.isArray(out.result.debug?.autoProcessErrors) || out.result.debug.autoProcessErrors.length > 0
+    || out.result.debug.configurationError !== null
+    || !jobs || !Number.isSafeInteger(jobs.claimed) || jobs.claimed < 0
+    || !Number.isSafeInteger(jobs.completed) || jobs.completed < 0 || jobs.claimed !== jobs.completed
+    || jobs.failed !== 0 || jobs.needsReview !== 0 || !Array.isArray(jobs.errors) || jobs.errors.length > 0) {
+    throw new Error('T3_HARNESS_PRECONDITION: intake outcome requires observation before another operation', { cause: out })
+  }
+  return out.result
+}
+
 /** poll (transport) -> queue-bearbetning (första försöket) -> "Processa om" per mail -> motor som autobearbetar ediel_messages. */
 export async function runIntake(prefix: string, expected: number, t: Timer, mode: 'test' | 'production', opts: { maxPolls?: number; legacy?: boolean } = {}): Promise<IntakeResult> {
-  const polls: IntakeResult['polls'] = []
-  for (let poll = 1; poll <= (opts.maxPolls ?? 8); poll++) {
-    resetMailboxSchedule(mode)
-    const t0 = performance.now()
-    const out = await t.p('imap_poll_store', () => runInboundEngineAsAutomationActor(mode, { processLimit: 0 }))
-    const ms = Math.round(performance.now() - t0)
-    polls.push(out.ok
-      ? { poll, ms, fetched: out.result.fetchedMessages, stored: out.result.storedEmails, deduped: out.result.dedupedEmails, processedJobs: out.result.processedJobs, failedJobs: out.result.failedJobs, errorsByMailbox: out.result.debug.errorsByMailbox }
-      : { poll, ms, error: out.error })
-    if (mailRows(prefix, opts.legacy).length >= expected) break
+  const key = JSON.stringify([mode, prefix, Boolean(opts.legacy)])
+  const maxPolls = opts.maxPolls ?? 8
+  if (!prefix || !Number.isSafeInteger(expected) || expected < 1 || expected > 28
+    || !Number.isSafeInteger(maxPolls) || maxPolls < 1 || maxPolls > 8) {
+    throw new Error('T3_HARNESS_PRECONDITION: explicit bounded intake required')
   }
-  const { processQueuedInboundProcessingJobs } = await import('@/lib/inbound-mail/edielMailboxPoller')
-  const t1 = performance.now()
-  const queue = await t.p('intake_queue_first_pass', () => processQueuedInboundProcessingJobs({ workerId: 'e01-queue', limit: 200, actorUserId: actorId() }))
-  const queueFirstPass = { ms: Math.round(performance.now() - t1), processed: queue.processed, failed: queue.failed, edielMessagesAfter: sourceRows(prefix, opts.legacy).length }
+  if (unresolvedIntake || attemptedIntakes.has(key)) {
+    throw new Error('T3_HARNESS_PRECONDITION: intake already attempted; observe persistent effects before retry')
+  }
+  attemptedIntakes.add(key)
+  unresolvedIntake = true
+  const previousConcurrency = process.env.EDIEL_INBOUND_MESSAGE_CONCURRENCY
+  try {
+    const polls: IntakeResult['polls'] = []
+    for (let poll = 1; poll <= maxPolls; poll++) {
+      resetMailboxSchedule(mode)
+      const t0 = performance.now()
+      const out = await t.p('imap_poll_store', () => runInboundEngineAsAutomationActor(mode, { processLimit: 0 }))
+      qualifiedEngine(out)
+      const ms = Math.round(performance.now() - t0)
+      polls.push(out.ok
+        ? { poll, ms, fetched: out.result.fetchedMessages, stored: out.result.storedEmails, deduped: out.result.dedupedEmails, processedJobs: out.result.processedJobs, failedJobs: out.result.failedJobs, errorsByMailbox: out.result.debug.errorsByMailbox }
+        : { poll, ms, error: out.error })
+      if (mailRows(prefix, opts.legacy).length >= expected) break
+    }
+    if (mailRows(prefix, opts.legacy).length !== expected) {
+      throw new Error('T3_HARNESS_PRECONDITION: exact physical intake cohort required before processing')
+    }
+    const { processQueuedInboundProcessingJobs } = await import('@/lib/inbound-mail/edielMailboxPoller')
+    const t1 = performance.now()
+    const queue = await t.p('intake_queue_first_pass', () => processQueuedInboundProcessingJobs({ workerId: 'e01-queue', limit: 200, actorUserId: actorId() }))
+    if (!Number.isSafeInteger(queue.processed) || queue.processed < 0 || !Number.isSafeInteger(queue.failed) || queue.failed !== 0) {
+      throw new Error('T3_HARNESS_PRECONDITION: failed queue effects require observation before reprocessing', { cause: queue })
+    }
+    const queueFirstPass = { ms: Math.round(performance.now() - t1), processed: queue.processed, failed: queue.failed, edielMessagesAfter: sourceRows(prefix, opts.legacy).length }
 
-  // Produktens "Processa om" (app/admin/inbound-mail/actions.ts reprocessInboundEmailAction rad 272-285) för de mail som saknar ediel_message.
-  const { processInboundEmailMessage } = await import('@/lib/inbound-mail/edielInboundProcessor')
-  const { syncActiveInboundProcessingJobForMessage } = await import('@/lib/inbound-mail/edielMailboxPoller')
-  const have = new Set(sourceRows(prefix, opts.legacy).map((r) => r.inbound_email_message_id))
-  const reprocess: IntakeResult['reprocess'] = []
-  for (const mail of mailRows(prefix, opts.legacy)) {
-    if (have.has(mail.id)) continue
-    const t2 = performance.now()
-    const outcome = await t.p('intake_reprocess', () => processInboundEmailMessage({ inboundEmailMessageId: mail.id, actorUserId: actorId() }))
-    await syncActiveInboundProcessingJobForMessage({ inboundEmailMessageId: mail.id, outcomeStatus: outcome.status })
-    reprocess.push({ mailId: mail.id, ms: Math.round(performance.now() - t2), status: outcome.status })
-  }
+    // Produktens "Processa om" (app/admin/inbound-mail/actions.ts reprocessInboundEmailAction rad 272-285) för de mail som saknar ediel_message.
+    const { processInboundEmailMessage } = await import('@/lib/inbound-mail/edielInboundProcessor')
+    const { syncActiveInboundProcessingJobForMessage } = await import('@/lib/inbound-mail/edielMailboxPoller')
+    const have = new Set(sourceRows(prefix, opts.legacy).map((r) => r.inbound_email_message_id))
+    const reprocess: IntakeResult['reprocess'] = []
+    for (const mail of mailRows(prefix, opts.legacy)) {
+      if (have.has(mail.id)) continue
+      const t2 = performance.now()
+      const outcome = await t.p('intake_reprocess', () => processInboundEmailMessage({ inboundEmailMessageId: mail.id, actorUserId: actorId() }))
+      if (outcome.status !== 'processed') {
+        throw new Error('T3_HARNESS_PRECONDITION: held reception cannot authorize automatic reprocessing', { cause: outcome })
+      }
+      await syncActiveInboundProcessingJobForMessage({ inboundEmailMessageId: mail.id, outcomeStatus: outcome.status })
+      reprocess.push({ mailId: mail.id, ms: Math.round(performance.now() - t2), status: outcome.status })
+    }
 
-  // Produktens standard EDIEL_INBOUND_MESSAGE_CONCURRENCY=4 gav vid N=28 statement timeouts/"Okänt fel" (globala tabelllås i ack-skapandet);
-  // körningen 20261030T124519Z-357e3f dokumenterar det. Här körs motorn seriellt (=1) och upprepas upp till 3 gånger tills alla CONTRL finns.
-  process.env.EDIEL_INBOUND_MESSAGE_CONCURRENCY = '1'
-  const t3 = performance.now()
-  let auto = await t.p('intake_auto_process_engine', async () => { resetMailboxSchedule(mode); return runInboundEngineAsAutomationActor(mode, { processLimit: 200 }) })
-  for (let again = 0; again < 2; again++) {
-    const ids = sourceRows(prefix, opts.legacy).map((r) => r.id)
-    const have = Number(q<number>(`SELECT count(*) FROM public.ediel_messages WHERE direction='outbound' AND message_family='CONTRL' AND related_message_id IN (${ids.length ? ids.map(lit).join(',') : "'00000000-0000-0000-0000-000000000000'"})`))
-    if (have >= expected) break
-    auto = await t.p('intake_auto_process_engine_retry', async () => { resetMailboxSchedule(mode); return runInboundEngineAsAutomationActor(mode, { processLimit: 200 }) })
+    // Produktens standard EDIEL_INBOUND_MESSAGE_CONCURRENCY=4 gav vid N=28 statement timeouts/"Okänt fel" (globala tabelllås i ack-skapandet);
+    // körningen 20261030T124519Z-357e3f dokumenterar det. Kör motorn seriellt (=1) exakt en gång.
+    // Saknade CONTRL lämnas åt det oförändrade scenariooraklet, aldrig dold omkörning.
+    process.env.EDIEL_INBOUND_MESSAGE_CONCURRENCY = '1'
+    const t3 = performance.now()
+    const auto = await t.p('intake_auto_process_engine', async () => { resetMailboxSchedule(mode); return runInboundEngineAsAutomationActor(mode, { processLimit: 200 }) })
+    const result = qualifiedEngine(auto)
+    const engineAuto = { ms: Math.round(performance.now() - t3), fetched: result.fetchedMessages, edielMessageIds: result.edielMessageIds.length, autoProcessErrors: result.debug.autoProcessErrors }
+    unresolvedIntake = false
+    return { polls, queueFirstPass, reprocess, engineAuto }
+  } finally {
+    if (previousConcurrency === undefined) delete process.env.EDIEL_INBOUND_MESSAGE_CONCURRENCY
+    else process.env.EDIEL_INBOUND_MESSAGE_CONCURRENCY = previousConcurrency
   }
-  const engineAuto = auto.ok
-    ? { ms: Math.round(performance.now() - t3), fetched: auto.result.fetchedMessages, edielMessageIds: auto.result.edielMessageIds.length, autoProcessErrors: auto.result.debug.autoProcessErrors }
-    : { ms: Math.round(performance.now() - t3), error: auto.error }
-  return { polls, queueFirstPass, reprocess, engineAuto }
 }
 
 /** Seedar granskat historiktäckningsunderlag och kör inbound-bearbetningen på nytt (samma anrop som motorns autoprocess) -> positiv APERAK-utkast. */

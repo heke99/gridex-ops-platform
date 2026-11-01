@@ -51,6 +51,111 @@ function register() {
     beforeAll() {}, afterAll() {}, afterEach() {} } }
 }
 
+type IntakeMode = 'ok' | 'poll-error' | 'poll-throws' | 'poll-empty' | 'poll-mail-errors' | 'poll-auto-errors' | 'poll-failed-jobs' | 'poll-customer-failed' | 'poll-customer-held' | 'poll-customer-errors' | 'poll-customer-missing' | 'poll-configuration' | 'auto-customer-failed' | 'queue-failed' | 'auto-error' | 'auto-errors' | 'missing-contrl' | 'reprocess-ok' | 'reprocess-held'
+function controlledE01Intake(mode: IntakeMode) {
+  const calls: string[] = []
+  let sourceExists = !mode.startsWith('reprocess-')
+  const env: Record<string, string | undefined> = { EDIEL_AUTOMATION_ACTOR_USER_ID: 'synthetic-actor', EDIEL_INBOUND_MESSAGE_CONCURRENCY: '4' }
+  const sql = (query: string) => {
+    if (query.includes('SELECT count(*)')) return ['missing-contrl', 'auto-error', 'auto-errors'].includes(mode) ? 0 : 1
+    if (query.includes('FROM public.inbound_email_messages WHERE subject')) return mode === 'poll-empty' ? [] : [{ id: 'synthetic-mail', subject: 'synthetic' }]
+    if (query.includes('FROM public.ediel_messages m JOIN')) return sourceExists ? [{ id: 'synthetic-source', inbound_email_message_id: 'synthetic-mail' }] : []
+    throw new Error('Undeclared intake read')
+  }
+  const engine = async (_environment: string, overrides: { processLimit: number }) => {
+    const phase = overrides.processLimit === 0 ? 'poll' : 'auto'
+    calls.push('engine-' + phase)
+    if (phase === 'poll' && mode === 'poll-throws') throw new Error('synthetic ambiguous poll failure')
+    if (phase === 'poll' && mode === 'poll-error' || phase === 'auto' && mode === 'auto-error') return { ok: false, error: 'synthetic unknown outcome' }
+    return { ok: true, result: { fetchedMessages: 1, storedEmails: 1, dedupedEmails: 0,
+      processedJobs: 0, failedJobs: phase === 'poll' && mode === 'poll-failed-jobs' ? 1 : 0,
+      inboundEmailMessageIds: ['synthetic-mail'], edielMessageIds: ['synthetic-source'],
+      debug: { errorsByMailbox: phase === 'poll' && mode === 'poll-mail-errors' ? [{ errors: ['synthetic'] }] : [],
+        configurationError: mode === 'poll-configuration' ? 'synthetic missing mailbox configuration' : null,
+        customerOperationJobs: mode === 'poll-customer-missing' ? undefined : {
+          claimed: phase === 'poll' && ['poll-customer-failed', 'poll-customer-held'].includes(mode) || phase === 'auto' && mode === 'auto-customer-failed' ? 1 : 0,
+          completed: 0, failed: phase === 'poll' && mode === 'poll-customer-failed' || phase === 'auto' && mode === 'auto-customer-failed' ? 1 : 0,
+          needsReview: mode === 'poll-customer-held' ? 1 : 0, errors: mode === 'poll-customer-errors' ? ['customer_operation_jobs_schema_missing'] : [],
+        },
+        autoProcessErrors: phase === 'poll' && mode === 'poll-auto-errors' || phase === 'auto' && mode === 'auto-errors' ? ['synthetic'] : [] } } }
+  }
+  const unit = load<{ runIntake: (prefix: string, n: number, timer: object, mode: string) => Promise<unknown>; Timer: new () => object }>('lib/e01-chain.ts', {
+    'node:perf_hooks': { performance: { now: () => 0 } },
+    './counterparty': { appendToInbox: refused, purgeInbox: refused },
+    './db': { resetMailboxSchedule: () => { calls.push('schedule') } },
+    './e01-fixture': { buildRoutableE66: refused, sqlIn: sql },
+    './inprocess': { runInboundEngineAsAutomationActor: engine }, './mime': { buildEdifactMime: refused },
+    './seed.mjs': { lit }, 'node:fs': { appendFileSync: refused }, 'node:path': { join: path.join },
+    '@/lib/inbound-mail/edielMailboxPoller': {
+      processQueuedInboundProcessingJobs: async () => { calls.push('queue'); return { processed: 0, failed: mode === 'queue-failed' ? 1 : 0 } },
+      syncActiveInboundProcessingJobForMessage: async () => { calls.push('sync') },
+    },
+    '@/lib/inbound-mail/edielInboundProcessor': { processInboundEmailMessage: async () => {
+      calls.push('reprocess'); sourceExists = true
+      return { status: mode === 'reprocess-held' ? 'manual_review' : 'processed' }
+    } },
+  }, '', { process: { env } })
+  return { calls, env, run: () => unit.runIntake('synthetic-prefix', 1, new unit.Timer(), 'test'),
+    runOther: () => unit.runIntake('synthetic-other-prefix', 1, new unit.Timer(), 'test') }
+}
+
+describe('T3 E01 intake preserves uncertain effects instead of retrying', () => {
+  it.each(['poll-error', 'poll-throws', 'poll-mail-errors', 'poll-auto-errors', 'poll-failed-jobs', 'poll-customer-failed', 'poll-customer-held', 'poll-customer-errors', 'poll-customer-missing', 'poll-configuration'] as const)('stops %s before a subsequent processing operation', async mode => {
+    const control = controlledE01Intake(mode)
+    await expect(control.run()).rejects.toThrow()
+    expect(control.calls).toEqual(['schedule', 'engine-poll'])
+    await expect(control.runOther()).rejects.toThrow()
+    expect(control.calls).toEqual(['schedule', 'engine-poll'])
+    await expect(control.run()).rejects.toThrow()
+    expect(control.calls).toEqual(['schedule', 'engine-poll'])
+  })
+  it('does not process an incomplete cohort after bounded successful polls', async () => {
+    const control = controlledE01Intake('poll-empty')
+    await expect(control.run()).rejects.toThrow()
+    expect(control.calls.filter(c => c === 'engine-poll')).toHaveLength(8)
+    expect(control.calls).not.toContain('queue')
+    expect(control.calls).not.toContain('engine-auto')
+  })
+  it('serializes concurrent intake attempts before a second worker is called', async () => {
+    const control = controlledE01Intake('ok')
+    const first = control.run()
+    await expect(control.runOther()).rejects.toThrow()
+    await expect(first).resolves.toMatchObject({ engineAuto: { autoProcessErrors: [] } })
+    expect(control.calls.filter(c => c === 'engine-poll')).toHaveLength(1)
+  })
+  it('restores an originally absent concurrency setting', async () => {
+    const control = controlledE01Intake('ok')
+    delete control.env.EDIEL_INBOUND_MESSAGE_CONCURRENCY
+    await control.run()
+    expect(Object.hasOwn(control.env, 'EDIEL_INBOUND_MESSAGE_CONCURRENCY')).toBe(false)
+  })
+  it.each(['queue-failed', 'auto-error', 'auto-errors', 'auto-customer-failed', 'reprocess-held'] as const)('holds %s without another engine or synchronization', async mode => {
+    const control = controlledE01Intake(mode)
+    await expect(control.run()).rejects.toThrow()
+    const before = [...control.calls]
+    await expect(control.run()).rejects.toThrow()
+    expect(control.calls).toEqual(before)
+    expect(control.calls.filter(c => c === 'engine-auto').length).toBeLessThanOrEqual(1)
+    if (mode === 'queue-failed' || mode === 'reprocess-held') expect(control.calls).not.toContain('engine-auto')
+    if (mode === 'reprocess-held') expect(control.calls).not.toContain('sync')
+    expect(control.env.EDIEL_INBOUND_MESSAGE_CONCURRENCY).toBe('4')
+  })
+  it('leaves missing CONTRL visible to the original scenario oracle without implicit repair', async () => {
+    const control = controlledE01Intake('missing-contrl')
+    await expect(control.run()).resolves.toMatchObject({ engineAuto: { autoProcessErrors: [] } })
+    expect(control.calls.filter(c => c === 'engine-auto')).toHaveLength(1)
+  })
+  it.each(['ok', 'reprocess-ok'] as const)('keeps the ordinary successful %s path and restores concurrency', async mode => {
+    const control = controlledE01Intake(mode)
+    await expect(control.run()).resolves.toMatchObject({ engineAuto: { autoProcessErrors: [] } })
+    expect(control.calls.filter(c => c.startsWith('engine-'))).toEqual(['engine-poll', 'engine-auto'])
+    expect(control.env.EDIEL_INBOUND_MESSAGE_CONCURRENCY).toBe('4')
+    const before = [...control.calls]
+    await expect(control.run()).rejects.toThrow()
+    expect(control.calls).toEqual(before)
+  })
+})
+
 describe('T3 SLA idempotency has no global cron side effect', () => {
   it.each(['missing', 'different', 'matching'])('never probes global HTTP with %s route credentials', async (credentials) => {
     const r = register()
