@@ -21,6 +21,11 @@
  * assignment in one ciphertext-only issue930 comment <=60000bytes. No annotation
  * transport. A duplicate/malformed/truncated carrier HOLDS; no username grants
  * authority. Actual live neutral code/bootstrap leases remain mandatory.
+ * Carrier reads cap at1000 comments and require TWO complete stable authenticated
+ * snapshots (counts/ordered uniqueIDs/body). Actual GLOBAL core quota is checked;
+ * reserve64 reads and adaptive>=45s polls bound the20min window. No last-page shortcut.
+ * Image cleanup accounts full initial/current/final IDs+refs; dangling baseline
+ * expected configs HOLD before any delete, and --no-prune protects baseline parents.
  * Ephemeral PRIVATE keys are NEVER included in any export, including ciphertext.
  *
  * Bootstrap-only private plan: format=t4_atomic_bootstrap_only_v1, mode=
@@ -1420,7 +1425,8 @@ async function receiveBootstrapAssignment(proofHome, home) {
   checkCapacity(proof.host)
   const deadline = Date.now() + 20 * 60_000
   while (Date.now() < deadline) {
-    const envelope = await readBootstrapCarrier(proof)
+    let stats
+    const envelope = await readBootstrapCarrier(proof, github, readGithubCoreBudget, (value) => { stats = value })
     if (envelope) {
       const assignment = decryptBootstrapAssignment(envelope, privateFile(join(proofHome, 'ephemeral-input-key.private.pem')), proof)
       const plan = assignment.plan
@@ -1441,7 +1447,8 @@ async function receiveBootstrapAssignment(proofHome, home) {
       // it is never copied into fullproof/checkpoint/encrypted artifact exports.
       return { phase: 'receive-bootstrap', nativeExecuted: false, businessExecuted: false }
     }
-    await new Promise((done) => setTimeout(done, 5_000))
+    const nextRead = Math.min(deadline, Date.now() + bootstrapCarrierPollDelay(deadline - Date.now(), stats))
+    while (Date.now() < nextRead) await new Promise((done) => setTimeout(done, Math.min(45_000, nextRead - Date.now())))
   }
   throw new Hold('actual_signed_bootstrap_assignment_absent')
 }
@@ -1561,42 +1568,161 @@ async function bootstrapOnlyMain(path) {
   })
 }
 
-function cleanupBootstrapImages(plan) {
+export function cleanupBootstrapImages(plan, backend = { docker, dockerJson }) {
   const path = join(plan.home, 'receipts', 'images.intent.json')
   if (!existsSync(path)) return
-  const intent = readJson(path)
-  need(canonical(intent.expected) === canonical(BOOTSTRAP_IMAGES), 'owned_image_cleanup_original_required')
-  need(existsSync(join(plan.home, 'receipts', 'images-pinned.json')), 'image_pull_outcome_unqualified')
-  const ids = docker(plan, 'image', 'ls', '-aq', '--no-trunc').split('\n').filter(Boolean)
-  const current = ids.length ? dockerJson(plan, 'image', 'inspect', ...[...new Set(ids)]) : []
   const removed = []
-  for (const image of BOOTSTRAP_IMAGES) {
-    const existing = intent.initial.find((item) => item.Id === image.config)
-    const actual = current.find((item) => item.Id === image.config)
-    if (!actual) continue
-    const reference = `${image.tag.slice(0, image.tag.lastIndexOf(':'))}@${image.manifest}`
-    const allowedTags = new Set([image.tag, ...(existing?.RepoTags ?? [])])
-    const allowedDigests = new Set([reference, ...(existing?.RepoDigests ?? [])])
-    need((actual.RepoTags ?? []).every((tag) => allowedTags.has(tag))
-      && (actual.RepoDigests ?? []).every((digest) => allowedDigests.has(digest)), 'unknown_image_reference_preserved')
-    if (actual.RepoTags?.includes(image.tag) && !existing?.RepoTags?.includes(image.tag)) {
-      need(dockerJson(plan, 'image', 'inspect', image.tag)[0].Id === image.config, 'owned_image_tag_changed')
-      docker(plan, 'image', 'rm', image.tag); removed.push(image.tag)
+  try {
+    const intent = readJson(path), pinned = readJson(join(plan.home, 'receipts', 'images-pinned.json'))
+    need(canonical(intent.expected) === canonical(BOOTSTRAP_IMAGES) && canonical(pinned.inventory) === canonical(BOOTSTRAP_IMAGES),
+      'owned_image_cleanup_original_required')
+    const normalize = (rows) => {
+      need(Array.isArray(rows), 'complete_image_inventory_required')
+      const result = new Map(), references = new Set()
+      for (const row of rows) {
+        need(row && /^sha256:[a-f0-9]{64}$/.test(row.Id) && !result.has(row.Id)
+          && (row.RepoTags == null || Array.isArray(row.RepoTags))
+          && (row.RepoDigests == null || Array.isArray(row.RepoDigests)), 'complete_image_inventory_required')
+        const tags = [...(row.RepoTags ?? [])].sort(), digests = [...(row.RepoDigests ?? [])].sort()
+        for (const ref of [...tags, ...digests]) {
+          need(typeof ref === 'string' && ref.length > 0 && !references.has(ref), 'image_reference_inventory_invalid')
+          references.add(ref)
+        }
+        result.set(row.Id, { Id: row.Id, RepoTags: tags, RepoDigests: digests })
+      }
+      return result
     }
-    if (actual.RepoDigests?.includes(reference) && !existing?.RepoDigests?.includes(reference)) {
-      docker(plan, 'image', 'rm', reference); removed.push(reference)
+    const baseline = normalize(intent.initial)
+    need(Array.isArray(pinned.initialImageIds)
+      && canonical([...new Set(pinned.initialImageIds)].sort()) === canonical([...baseline.keys()].sort()),
+    'immutable_image_baseline_mismatch')
+    // Removing the last added reference may DELETE a previously dangling image
+    // config. No after-the-fact HOLD can undo that foreign deletion: refuse it
+    // BEFORE any destructive call and retain the baseline image untouched.
+    need(!BOOTSTRAP_IMAGES.some((image) => baseline.has(image.config)
+      && baseline.get(image.config).RepoTags.length + baseline.get(image.config).RepoDigests.length === 0),
+    'dangling_baseline_image_preserved')
+    const expected = normalize(intent.initial)
+    const actions = []
+    for (const image of BOOTSTRAP_IMAGES) {
+      const reference = `${image.tag.slice(0, image.tag.lastIndexOf(':'))}@${image.manifest}`
+      const row = expected.get(image.config) ?? { Id: image.config, RepoTags: [], RepoDigests: [] }
+      for (const [key, ref] of [['RepoTags', image.tag], ['RepoDigests', reference]]) {
+        if (!row[key].includes(ref)) { row[key].push(ref); row[key].sort(); actions.push({ id: image.config, key, ref }) }
+      }
+      expected.set(image.config, row)
     }
+    // Re-normalize catches an introduced ref that conflicts with a different
+    // immutable baseline config, before any deletion or implicit adoption.
+    normalize([...expected.values()])
+    const ids = () => {
+      const values = backend.docker(plan, 'image', 'ls', '-aq', '--no-trunc').split('\n').filter(Boolean)
+      need(values.every((id) => /^sha256:[a-f0-9]{64}$/.test(id)), 'complete_image_ids_required')
+      return [...new Set(values)].sort()
+    }
+    const observe = () => {
+      const before = ids()
+      const rows = before.length ? backend.dockerJson(plan, 'image', 'inspect', ...before) : []
+      const actual = normalize(rows)
+      need(canonical([...actual.keys()].sort()) === canonical(before) && canonical(ids()) === canonical(before),
+        'image_inventory_changed_during_read')
+      return actual
+    }
+    const requireExact = (actual, target) => {
+      const ordered = (map) => [...map.values()].sort((a, b) => a.Id.localeCompare(b.Id))
+      need(canonical(ordered(actual)) === canonical(ordered(target)), 'unknown_or_partial_image_inventory_preserved')
+    }
+    requireExact(observe(), expected)
+    for (const action of actions) {
+      // Fresh COMPLETE inventory and exact reference read before EACH delete.
+      // A late eighth image/ref or stolen tag stops without touching it.
+      requireExact(observe(), expected)
+      const pointed = normalize(backend.dockerJson(plan, 'image', 'inspect', action.ref))
+      need(pointed.size === 1 && pointed.has(action.id)
+        && pointed.get(action.id)[action.key].includes(action.ref), 'owned_image_reference_changed')
+      // DockerCLI remove.go (v28.5.1 SHA15b66040dd6a365566654a098337705f34a70d2a7ca81f840fe09115c63f0ebb):
+      // PruneChildren: !opts.noPrune. Never prune dangling baseline parents.
+      backend.docker(plan, 'image', 'rm', '--no-prune', action.ref)
+      removed.push(action.ref)
+      const row = expected.get(action.id)
+      row[action.key] = row[action.key].filter((ref) => ref !== action.ref)
+      if (!row.RepoTags.length && !row.RepoDigests.length && !baseline.has(action.id)) expected.delete(action.id)
+    }
+    const final = observe()
+    requireExact(final, baseline)
+    seal(join(plan.home, 'receipts', 'image-cleanup.json'), { verified: true, removed,
+      initial: [...baseline.values()], final: [...final.values()], force: false, foreignDeleted: 0 })
+  } catch (error) {
+    seal(join(plan.home, 'receipts', 'image-cleanup-incomplete.json'), { verified: false, removed,
+      code: safeCode(error), foreignDeleted: 0 })
+    throw error
   }
-  seal(join(plan.home, 'receipts', 'image-cleanup.json'), { removed, force: false, foreignDeleted: 0 })
 }
 
-export async function readBootstrapCarrier(proof, get = github) {
+const CARRIER_COMMENT_CAP = 1000
+const CARRIER_API_RESERVE = 64
+export async function readGithubCoreBudget(fetcher = fetch) {
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
+  need(token, 'authenticated_assignment_api_budget_required')
+  let response
+  try {
+    // This is a GLOBAL endpoint; the repository-prefixed github() helper must
+    // never be used for rate_limit. No raw headers/token/response are logged.
+    response = await fetcher('https://api.github.com/rate_limit', { headers: {
+      Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+    redirect: 'error', signal: AbortSignal.timeout(15_000) })
+  } catch { throw new Hold('assignment_api_budget_read_failed') }
+  need(response.status === 200, 'assignment_api_budget_read_failed')
+  const core = (await response.json())?.resources?.core
+  need(core && Number.isSafeInteger(core.remaining) && Number.isSafeInteger(core.limit)
+    && core.remaining >= 0 && core.remaining <= core.limit && Number.isSafeInteger(core.reset)
+    && core.reset * 1000 > Date.now(), 'actual_assignment_api_budget_required')
+  return { remaining: core.remaining, limit: core.limit, reset: core.reset }
+}
+export async function readBootstrapCarrier(proof, get = github, getBudget = readGithubCoreBudget, observe = (stats) => { void stats }) {
   const issue = await get('issues/930')
-  need(issue && Number.isSafeInteger(issue.comments), 'actual_assignment_carrier_read_required')
-  const page = Math.max(1, Math.ceil(issue.comments / 100))
-  const comments = await get(`issues/930/comments?per_page=100&page=${page}`)
-  need(Array.isArray(comments), 'actual_assignment_carrier_read_required')
-  const prior = page > 1 ? await get(`issues/930/comments?per_page=100&page=${page - 1}`) : []
-  need(Array.isArray(prior), 'actual_assignment_carrier_read_required')
-  return selectBootstrapCarrier([...prior, ...comments], proof)
+  need(issue && Number.isSafeInteger(issue.comments) && issue.comments >= 0
+    && issue.comments <= CARRIER_COMMENT_CAP, 'bounded_complete_assignment_snapshot_required')
+  const count = issue.comments, pages = Math.max(1, Math.ceil(count / 100))
+  // Includes complete2passes,3count reads and the quota read itself. Never
+  // assume the ROOT OAuth allowance is the Actions repository token allowance.
+  const requestCost = 2 * pages + 4
+  const budget = await getBudget()
+  need(Number.isSafeInteger(budget?.remaining) && Number.isSafeInteger(budget.limit)
+    && budget.remaining <= budget.limit && budget.remaining >= requestCost + CARRIER_API_RESERVE
+    && Number.isSafeInteger(budget.reset) && budget.reset * 1000 > Date.now(), 'assignment_api_budget_hold')
+  const scan = async () => {
+    const all = [], ids = new Set()
+    let previous = 0
+    for (let page = 1; page <= pages; page++) {
+      const rows = await get(`issues/930/comments?per_page=100&page=${page}`)
+      const expected = Math.min(100, Math.max(0, count - (page - 1) * 100))
+      need(Array.isArray(rows) && rows.length === expected, 'assignment_snapshot_page_incomplete')
+      for (const row of rows) {
+        need(row && Number.isSafeInteger(row.id) && row.id > previous && !ids.has(row.id)
+          && typeof row.body === 'string', 'assignment_snapshot_ids_invalid')
+        previous = row.id; ids.add(row.id)
+        all.push({ id: row.id, body: row.body, updated_at: row.updated_at ?? null })
+      }
+    }
+    need(all.length === count && ids.size === count, 'assignment_snapshot_count_mismatch')
+    return all
+  }
+  const stableCount = async () => {
+    const current = await get('issues/930')
+    need(current?.comments === count, 'assignment_snapshot_count_drift')
+  }
+  const first = await scan()
+  await stableCount()
+  const second = await scan()
+  await stableCount()
+  need(canonical(first) === canonical(second), 'assignment_snapshot_content_drift')
+  observe({ comments: count, requestCost, remainingAfter: budget.remaining - requestCost, reset: budget.reset })
+  return selectBootstrapCarrier(second, proof)
+}
+export function bootstrapCarrierPollDelay(remainingMs, stats) {
+  need(stats && Number.isFinite(remainingMs) && remainingMs > 0
+    && stats.remainingAfter >= stats.requestCost + CARRIER_API_RESERVE, 'assignment_poll_budget_hold')
+  const affordable = Math.max(1, Math.floor((stats.remainingAfter - CARRIER_API_RESERVE) / stats.requestCost))
+  return Math.max(45_000, Math.ceil(remainingMs / affordable))
 }

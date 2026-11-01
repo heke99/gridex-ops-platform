@@ -716,3 +716,207 @@ describe('real cryptographic two-way bootstrap assignment transport; no ROOT pri
     } finally { rmSync(home, { recursive: true, force: true }) }
   })
 })
+
+describe('complete authenticated bootstrap carrier snapshot', () => {
+  const scope = { runId: 'run', proofSha256: 'p', inputPublicKey: 'public' }
+  const match = JSON.stringify({ kind: 't4-bootstrap-assignment-envelope-v1', runId: scope.runId,
+    proofSha256: scope.proofSha256, recipientSha256: digest(scope.inputPublicKey), envelope: { actual: 'ciphertext' } })
+  function api(rows: Array<{ id: number; body: string }>, alter?: (route: string, result: unknown) => unknown) {
+    return vi.fn(async (route: string) => {
+      const page = Number(new URL(`https://test/${route}`).searchParams.get('page'))
+      const result = route === 'issues/930' ? { comments: rows.length } : rows.slice((page - 1) * 100, page * 100)
+      return alter ? alter(route, result) : result
+    })
+  }
+  const budget = async () => ({ remaining: 1000, limit: 1000, reset: Math.floor(Date.now() / 1000) + 3600 })
+  it('rejects the actual301-comment duplicate on pages1and4', async () => {
+    const rows = Array.from({ length: 301 }, (_, index) => ({ id: index + 1, body: index === 0 || index === 300 ? match : '{}' }))
+    await expect(actualProfile.readBootstrapCarrier(scope, api(rows), budget)).rejects.toThrow('bootstrap_assignment_carrier_ambiguous')
+  })
+  it('does not accept a short page hidden behind the advertised total', async () => {
+    const rows = Array.from({ length: 301 }, (_, index) => ({ id: index + 1, body: index === 300 ? match : '{}' }))
+    const get = api(rows, (route, result) => route.endsWith('page=2') ? (result as unknown[]).slice(0, 50) : result)
+    await expect(actualProfile.readBootstrapCarrier(scope, get, budget)).rejects.toThrow()
+  })
+  it('rejects count drift, duplicate IDs and missing available API budget', async () => {
+    const rows = Array.from({ length: 101 }, (_, index) => ({ id: index + 1, body: index === 100 ? match : '{}' }))
+    let counts = 0
+    await expect(actualProfile.readBootstrapCarrier(scope, api(rows, (route, result) => route === 'issues/930' && ++counts > 1
+      ? { comments: 102 } : result), budget)).rejects.toThrow()
+    await expect(actualProfile.readBootstrapCarrier(scope, api([{ id: 1, body: '{}' }, { id: 1, body: match }]), budget)).rejects.toThrow()
+    await expect(actualProfile.readBootstrapCarrier(scope, api(rows), async () => ({ remaining: 0, limit: 1000, reset: 1 }))).rejects.toThrow()
+  })
+  it('accepts one carrier only after two complete stable scans and rejects capped input', async () => {
+    const rows = Array.from({ length: 301 }, (_, index) => ({ id: index + 1, body: index === 300 ? match : '{}' }))
+    const get = api(rows)
+    await expect(actualProfile.readBootstrapCarrier(scope, get, budget)).resolves.toEqual({ actual: 'ciphertext' })
+    expect(get.mock.calls.filter(([route]) => route.includes('comments?'))).toHaveLength(8)
+    const tooMany = vi.fn(async () => ({ comments: 1001 }))
+    await expect(actualProfile.readBootstrapCarrier(scope, tooMany, budget)).rejects.toThrow()
+    expect(tooMany).toHaveBeenCalledTimes(1)
+  })
+})
+
+type ImageRow = { Id: string; RepoTags: string[]; RepoDigests: string[] }
+function imageCleanupFixture(initial: ImageRow[] = []) {
+  const home = mkdtempSync(join(tmpdir(), 't4-complete-image-cleanup-'))
+  mkdirSync(join(home, 'receipts'))
+  const pins = actualProfile.BOOTSTRAP_IMAGES
+  const reference = (pin: typeof pins[number]) => `${pin.tag.slice(0, pin.tag.lastIndexOf(':'))}@${pin.manifest}`
+  const current = new Map<string, ImageRow>(initial.map((row) => [row.Id, structuredClone(row)]))
+  for (const pin of pins) {
+    const row = current.get(pin.config) ?? { Id: pin.config, RepoTags: [], RepoDigests: [] }
+    row.RepoTags = [...new Set([...row.RepoTags, pin.tag])]
+    row.RepoDigests = [...new Set([...row.RepoDigests, reference(pin)])]
+    current.set(row.Id, row)
+  }
+  privateJson(join(home, 'receipts/images.intent.json'), { initial, expected: pins })
+  privateJson(join(home, 'receipts/images-pinned.json'), { inventory: pins, initialImageIds: initial.map((row) => row.Id) })
+  const deleted: string[] = []
+  let listReads = 0
+  let beforeList: (() => void) | undefined
+  let afterDelete: (() => void) | undefined
+  let prunableParent: string | undefined
+  const backend = {
+    docker: (_plan: unknown, ...args: string[]) => {
+      if (args[1] === 'ls') { listReads++; beforeList?.(); return [...current.keys()].join('\n') }
+      expect(args.slice(0, 2)).toEqual(['image', 'rm'])
+      const ref = args.at(-1)!, row = [...current.values()].find((item) => item.RepoTags.includes(ref) || item.RepoDigests.includes(ref))
+      if (!row) throw new Error('missing-image-ref')
+      deleted.push(ref)
+      if (prunableParent && !args.includes('--no-prune')) current.delete(prunableParent)
+      row.RepoTags = row.RepoTags.filter((tag) => tag !== ref); row.RepoDigests = row.RepoDigests.filter((digest) => digest !== ref)
+      if (!row.RepoTags.length && !row.RepoDigests.length) current.delete(row.Id)
+      afterDelete?.()
+      return ''
+    },
+    dockerJson: (_plan: unknown, ...args: string[]) => args.slice(2).map((ref) => {
+      const row = current.get(ref) ?? [...current.values()].find((item) => item.RepoTags.includes(ref) || item.RepoDigests.includes(ref))
+      if (!row) throw new Error('missing-image-inspect')
+      return structuredClone(row)
+    }),
+  }
+  return { home, pins, current, deleted, backend, reference,
+    get listReads() { return listReads }, setBeforeList: (fn: () => void) => { beforeList = fn },
+    setAfterDelete: (fn: () => void) => { afterDelete = fn }, setPrunableParent: (id: string) => { prunableParent = id }, cleanup: () => rmSync(home, { recursive: true, force: true }) }
+}
+describe('complete immutable image inventory cleanup', () => {
+  it('does not return verified cleanup with an unknown eighth config', () => {
+    const f = imageCleanupFixture()
+    try {
+      f.current.set(`sha256:${'f'.repeat(64)}`, { Id: `sha256:${'f'.repeat(64)}`, RepoTags: ['foreign:latest'], RepoDigests: [] })
+      expect(() => actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)).toThrow()
+      expect(f.current.has(`sha256:${'f'.repeat(64)}`)).toBe(true)
+      expect(f.deleted).not.toContain('foreign:latest')
+    } finally { f.cleanup() }
+  })
+  it('preserves a baseline expected config that was originally dangling', () => {
+    const pin = actualProfile.BOOTSTRAP_IMAGES[0]
+    const f = imageCleanupFixture([{ Id: pin.config, RepoTags: [], RepoDigests: [] }])
+    try {
+      expect(() => actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)).toThrow()
+      expect(f.current.has(pin.config)).toBe(true)
+      expect(f.deleted).toEqual([])
+    } finally { f.cleanup() }
+  })
+  it('detects late births and a final read error instead of returning verified', () => {
+    for (const mode of ['late', 'read-error']) {
+      const f = imageCleanupFixture()
+      try {
+        f.setAfterDelete(() => {
+          if (mode === 'late') f.current.set(`sha256:${'e'.repeat(64)}`, { Id: `sha256:${'e'.repeat(64)}`, RepoTags: ['late:foreign'], RepoDigests: [] })
+          else if (f.current.size === 0) f.setBeforeList(() => { throw new Error('actual-final-read-failed') })
+        })
+        expect(() => actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)).toThrow()
+        expect(f.deleted).not.toContain('late:foreign')
+      } finally { f.cleanup() }
+    }
+  })
+  it('returns only after exact seven-pin cleanup and unchanged baseline preservation', () => {
+    const baseline = { Id: `sha256:${'d'.repeat(64)}`, RepoTags: ['baseline:keep'], RepoDigests: [] }
+    const f = imageCleanupFixture([baseline])
+    try {
+      actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)
+      expect([...f.current.values()]).toEqual([baseline])
+      expect(f.listReads).toBeGreaterThan(2)
+      expect(JSON.parse(readFileSync(join(f.home, 'receipts/image-cleanup.json'), 'utf8')).verified).toBe(true)
+    } finally { f.cleanup() }
+  })
+})
+
+describe('quota URL and bounded polling use the actual Actions allowance', () => {
+  it('reads authenticated GLOBAL rate_limit, never the repository-prefixed endpoint', async () => {
+    vi.stubEnv('GH_TOKEN', 'synthetic-budget-test-token')
+    const urls: string[] = []
+    try {
+      const fetcher = vi.fn(async (url: string | URL | Request, options?: RequestInit) => {
+        urls.push(String(url))
+        expect(Object.hasOwn(options?.headers ?? {}, 'Authorization')).toBe(true)
+        return new Response(JSON.stringify({ resources: { core: { remaining: 91, limit: 1000,
+          reset: Math.floor(Date.now() / 1000) + 3600 } } }), { status: 200 })
+      })
+      expect((await actualProfile.readGithubCoreBudget(fetcher)).remaining).toBe(91)
+      expect(urls).toEqual(['https://api.github.com/rate_limit'])
+      await expect(actualProfile.readGithubCoreBudget(async () => new Response('', { status: 403 }))).rejects.toThrow('assignment_api_budget_read_failed')
+    } finally { vi.unstubAllEnvs() }
+  })
+  it('limits full-board polling and slows it further for an actual small remaining allowance', () => {
+    const full = actualProfile.bootstrapCarrierPollDelay(20 * 60_000, { remainingAfter: 988, requestCost: 12 })
+    const tight = actualProfile.bootstrapCarrierPollDelay(20 * 60_000, { remainingAfter: 88, requestCost: 12 })
+    expect(full).toBeGreaterThanOrEqual(45_000)
+    expect(Math.ceil(20 * 60_000 / full) * 12).toBeLessThan(400)
+    expect(tight).toBeGreaterThan(full)
+    expect(() => actualProfile.bootstrapCarrierPollDelay(1000, { remainingAfter: 64, requestCost: 12 })).toThrow()
+  })
+})
+
+describe('stable snapshot and exact image reference negative controls', () => {
+  it('rejects same-count body edits between the two complete scans', async () => {
+    const scope = { runId: 'run', proofSha256: 'proof', inputPublicKey: 'key' }
+    let pages = 0
+    const get = async (route: string) => route === 'issues/930' ? { comments: 1 }
+      : [{ id: 1, body: ++pages === 1 ? '{}' : '{"changed":true}' }]
+    await expect(actualProfile.readBootstrapCarrier(scope, get, async () => ({ remaining: 1000, limit: 1000,
+      reset: Math.floor(Date.now() / 1000) + 3600 }))).rejects.toThrow('assignment_snapshot_content_drift')
+  })
+  it('holds before deletion on partial pins and preserves late foreign reference drift', () => {
+    for (const mode of ['partial', 'ref-drift']) {
+      const f = imageCleanupFixture()
+      try {
+        if (mode === 'partial') f.current.delete(f.pins[0].config)
+        else f.setAfterDelete(() => {
+          const row = f.current.get(f.pins[1].config)
+          if (row && !row.RepoTags.includes('foreign:alias')) row.RepoTags.push('foreign:alias')
+        })
+        expect(() => actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)).toThrow()
+        if (mode === 'partial') expect(f.deleted).toEqual([])
+        else expect(f.current.get(f.pins[1].config)?.RepoTags).toContain('foreign:alias')
+        expect(f.deleted).not.toContain('foreign:alias')
+        expect(JSON.parse(readFileSync(join(f.home, 'receipts/image-cleanup-incomplete.json'), 'utf8')).verified).toBe(false)
+      } finally { f.cleanup() }
+    }
+  })
+  it('retains a preexisting tagged expected config and removes only introduced references', () => {
+    const baseline = { Id: actualProfile.BOOTSTRAP_IMAGES[0].config, RepoTags: ['baseline:keep-same-config'], RepoDigests: [] }
+    const f = imageCleanupFixture([baseline])
+    try {
+      actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)
+      expect([...f.current.values()]).toEqual([baseline])
+      expect(f.deleted).not.toContain('baseline:keep-same-config')
+    } finally { f.cleanup() }
+  })
+})
+
+describe('Docker default parent-pruning preservation', () => {
+  it('retains an immutable dangling baseline parent BEFORE destructive image deletion', () => {
+    const baseline = { Id: `sha256:${'9'.repeat(64)}`, RepoTags: [], RepoDigests: [] }
+    const f = imageCleanupFixture([baseline])
+    try {
+      // Official DockerCLI source: PruneChildren: !opts.noPrune. This adapter
+      // models that actual deletion option; a late HOLD cannot restore parentID.
+      f.setPrunableParent(baseline.Id)
+      expect(() => actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)).not.toThrow()
+      expect(f.current.get(baseline.Id)).toEqual(baseline)
+    } finally { f.cleanup() }
+  })
+})
