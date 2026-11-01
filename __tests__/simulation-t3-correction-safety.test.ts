@@ -24,7 +24,7 @@ function load<T>(file: string, ports: Record<string, unknown>, bridge = ''): T {
 }
 function flowWith(result: { ok: boolean; error?: string }, thrown?: Error) {
   const calls: string[] = [], saved: Record<string, unknown> = {}
-  const module = load<{ E02Flow: new (ev: unknown, mailbox: string) => { groundAndReprocess: (ids: string[]) => Promise<unknown> } }>('lib/e02-flow.ts', {
+  const unit = load<{ E02Flow: new (ev: unknown, mailbox: string) => { groundAndReprocess: (ids: string[]) => Promise<unknown> } }>('lib/e02-flow.ts', {
     'node:crypto': {}, './counterparty': {}, './app': {}, './evidence': {}, './inprocess': {}, './mime': {},
     './e02-seed': {
       grantHistoryGround: (id: string) => { calls.push('grant:' + id); return 1 },
@@ -32,7 +32,7 @@ function flowWith(result: { ok: boolean; error?: string }, thrown?: Error) {
     },
     './seed.mjs': {},
   })
-  const flow = new module.E02Flow({ save: (name: string, value: unknown) => { saved[name] = value } }, 'owned-mailbox')
+  const flow = new unit.E02Flow({ save: (name: string, value: unknown) => { saved[name] = value } }, 'owned-mailbox')
   return { flow, calls, saved }
 }
 describe('T3 E02 unknown processing outcome', () => {
