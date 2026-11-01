@@ -216,18 +216,26 @@ def verify_owned_source_scope(assignment, app):
     # Extra original capsule paths are only readback context, never an implicit grant.
 
 
-def authenticate(operation):
-    """Pinned T2 signature plus authenticated exact receipts; never trusts ACTIVE alone."""
+def admission_public_key():
+    return json.loads(Path(__file__).with_name('profile.requirements.json').read_text())['admissionPublicKey']
+
+
+def verified_assignment(assignment):
     import tempfile
-    assignment = private_file(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE'])
+    assignment = private_file(assignment)
     signature = private_file(str(assignment) + '.sig')
-    profile = json.loads(Path(__file__).with_name('profile.requirements.json').read_text())
     with tempfile.TemporaryDirectory() as directory:
         public = Path(directory) / 'admission.pub'
-        public.write_text(profile['admissionPublicKey'])
+        public.write_text(admission_public_key())
         command(['openssl', 'pkeyutl', '-verify', '-pubin', '-inkey', str(public),
                  '-rawin', '-in', str(assignment), '-sigfile', str(signature)])
-    a = json.loads(assignment.read_text())
+    return json.loads(assignment.read_text())
+
+
+def authenticate(operation):
+    """Pinned T2 signature plus authenticated exact receipts; never trusts ACTIVE alone."""
+    assignment = private_file(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE'])
+    a = verified_assignment(assignment)
     require(a['schema'] == 'gridex-simulation-runtime-assignment-v1' and a['worker'] == 'T2'
             and a['state'] == 'ACTIVE' and operation in a['allowedOperations'], 'assignment-operation-rejected')
     require(type(a['allowedOperations']) is list and set(a['allowedOperations']) == {'up','run','down'}, 'cleanup-operation-must-be-authorized')
@@ -659,10 +667,388 @@ def safe_summary():
     save_private(Path(os.environ['RUNNER_TEMP']) / 't2-safe-receipt.json', safe)
 
 
+# No environment/secret administration. The only public payload is a recipient
+# certificate or CMS ciphertext; existing private signed admission stays intact.
+REPOSITORY = 'heke99/gridex-ops-platform'
+RECIPIENT_TITLE = 'T2_CMS_RECIPIENT_V1'
+DELIVERY_PREFIX = 'T2_CMS_ADMISSION_V1 '
+MAX_CMS_BYTES = 262144
+
+
+def strict_transport_json(text):
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            require(key not in result, 'duplicate-transport-key')
+            result[key] = value
+        return result
+    def constant(_):
+        raise ValueError('nonstandard-transport-json')
+    return json.loads(text, object_pairs_hook=pairs, parse_constant=constant)
+
+
+def delivery_api(method, route, body=None, timeout=35):
+    """Fixed GitHub API surface; capture headers without logging tokens or redirects."""
+    import re
+    require(method == 'GET' or (method == 'POST' and route in ('git/commits','git/refs')),
+            'delivery-api-mutation-out-of-scope')
+    args = ['gh','api','--hostname','github.com','--method',method,'--include',
+            '-H','Accept: application/vnd.github+json','-H','X-GitHub-Api-Version: 2022-11-28',
+            'repos/' + REPOSITORY + '/' + route]
+    if body is not None:
+        args += ['--input','-']
+    env = dict(os.environ, GH_PROMPT_DISABLED='1', GH_PAGER='cat')
+    env.pop('GH_DEBUG', None)
+    result = subprocess.run(args, input=None if body is None else json.dumps(body),
+                            capture_output=True, text=True, timeout=timeout, env=env)
+    match = re.match(r'HTTP/\S+ (\d{3})[^\r\n]*\r?\n', result.stdout)
+    parts = re.split(r'\r?\n\r?\n', result.stdout, maxsplit=1)
+    require(match is not None and len(parts) == 2, 'delivery-api-response-unrecognized')
+    status = int(match[1])
+    value = strict_transport_json(parts[1])
+    require((status == 404 and method == 'GET') or result.returncode == 0,
+            'delivery-api-process-failed')
+    return status, value
+
+
+def delivery_get(route,timeout=35):
+    status, value = delivery_api('GET', route,timeout=timeout)
+    require(status == 200, 'delivery-read-not-successful')
+    return value
+
+
+def delivery_context(run_id, source):
+    import re
+    require(type(run_id) is int and run_id > 0 and re.fullmatch('[0-9a-f]{40}', source),
+            'invalid-delivery-invocation')
+    run = delivery_get('actions/runs/' + str(run_id))
+    require(run['head_sha'] == source and run['run_attempt'] == 1 and run['event'] == 'workflow_dispatch'
+            and run['path'] == '.github/workflows/t2-term-disposable.yml'
+            and run['status'] == 'in_progress', 'delivery-run-not-current')
+    jobs = delivery_get('actions/runs/' + str(run_id) + '/attempts/1/jobs?per_page=100')
+    require(jobs['total_count'] == len(jobs['jobs']) and len(jobs['jobs']) <= 100,
+            'delivery-job-inventory-incomplete')
+    selected = [job for job in jobs['jobs'] if job['name'] == 'term' and job['status'] == 'in_progress']
+    require(len(selected) == 1, 'delivery-job-not-unique')
+    job = selected[0]
+    require(job['run_id'] == run_id and job['run_attempt'] == 1 and job['head_sha'] == source,
+            'delivery-job-binding-mismatch')
+    check_url = job['check_run_url']
+    prefix = 'https://api.github.com/repos/' + REPOSITORY + '/check-runs/'
+    require(check_url.startswith(prefix) and check_url.removeprefix(prefix).isdigit(),
+            'delivery-check-url-invalid')
+    check_id = check_url.removeprefix(prefix)
+    check = delivery_get('check-runs/' + check_id)
+    require(check['app']['slug'] == 'github-actions' and check['head_sha'] == source
+            and check['details_url'] == 'https://github.com/' + REPOSITORY + '/actions/runs/' + str(run_id) + '/job/' + str(job['id']),
+            'delivery-check-provenance-mismatch')
+    return {'runId':run_id,'runAttempt':1,'sourceCommit':source,'jobId':job['id'],
+            'checkId':check_id, 'annotationsCount':check['output']['annotations_count']}
+
+
+def delivery_ref(context):
+    return 'refs/tags/t2-private-admission/' + str(context['runId']) + '-attempt-1'
+
+
+def private_bytes(path, data):
+    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, 'wb') as stream:
+        stream.write(data)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def recipient_directory():
+    import stat
+    root = Path(os.environ['RUNNER_TEMP'])
+    require(root.is_absolute() and root.resolve() == root and root.is_dir(), 'runner-temp-not-canonical')
+    directory = root / 't2-admission-rendezvous'
+    directory.mkdir(mode=0o700)  # reused/unknown keys or attempts are never adopted
+    require(directory.stat().st_uid == os.getuid() and stat.S_IMODE(directory.stat().st_mode) == 0o700,
+            'recipient-directory-not-private')
+    return directory
+
+
+def generate_recipient(directory, context):
+    import base64
+    version = command(['openssl','version']).split()
+    require(version[0] == 'OpenSSL' and int(version[1].split('.')[0]) >= 3,'openssl3-required')
+    key, cert, der = (directory / name for name in ('recipient.key','recipient.crt','recipient.der'))
+    original = os.umask(0o077)
+    try:
+        command(['openssl','req','-newkey','rsa:4096','-x509','-noenc','-sha256','-days','1',
+                 '-subj','/CN=gridex-t2-run-' + str(context['runId']),'-keyout',str(key),'-out',str(cert)])
+        command(['openssl','x509','-in',str(cert),'-outform','DER','-out',str(der)])
+    finally:
+        os.umask(original)
+    private_file(key)
+    private_file(cert)
+    require(len(der.read_bytes()) < 8192, 'recipient-certificate-too-large')
+    public = {'version':'t2-cms-recipient-v1','repository':REPOSITORY,
+              **{k:context[k] for k in ('runId','runAttempt','sourceCommit','jobId')},
+              'certificateSHA256':digest(der),'certificateDERBase64':base64.b64encode(der.read_bytes()).decode('ascii')}
+    save_private(directory / 'recipient.json', public)
+    return public
+
+
+def discover_recipient(context):
+    import base64
+    annotations = delivery_get('check-runs/' + context['checkId'] + '/annotations?per_page=100')
+    require(type(context['annotationsCount']) is int and context['annotationsCount'] <= 100
+            and len(annotations) == context['annotationsCount'], 'recipient-annotation-inventory-incomplete')
+    selected = [item for item in annotations if item['title'] == RECIPIENT_TITLE]
+    require(len(selected) == 1 and selected[0]['annotation_level'] == 'notice',
+            'recipient-notice-not-unique')
+    public = strict_transport_json(selected[0]['message'])
+    require(set(public) == {'version','repository','runId','runAttempt','sourceCommit','jobId',
+                            'certificateSHA256','certificateDERBase64'}
+            and public['version'] == 't2-cms-recipient-v1' and public['repository'] == REPOSITORY
+            and all(public[k] == context[k] for k in ('runId','runAttempt','sourceCommit','jobId')),
+            'recipient-notice-binding-mismatch')
+    der = base64.b64decode(public['certificateDERBase64'], validate=True)
+    import hashlib
+    require(0 < len(der) < 8192 and hashlib.sha256(der).hexdigest() == public['certificateSHA256'],
+            'recipient-certificate-digest-mismatch')
+    return public
+
+
+def cms_encrypt(assignment, certificate_der, directory):
+    import base64
+    # Keep exact signed bytes; JSON wrapping is fixed, not an archive or executable payload.
+    assignment = private_file(assignment)
+    private_file(str(assignment) + '.sig')
+    require(0 < assignment.stat().st_size <= 131072, 'private-admission-size-invalid')
+    packet = directory / 'packet.json'
+    save_private(packet, {'assignment':base64.b64encode(assignment.read_bytes()).decode('ascii'),
+                          'signature':base64.b64encode(Path(str(assignment) + '.sig').read_bytes()).decode('ascii')})
+    cert_der, cert_pem, output = (directory / name for name in ('recipient.der','recipient.crt','admission.cms'))
+    private_bytes(cert_der, certificate_der)
+    command(['openssl','x509','-inform','DER','-in',str(cert_der),'-out',str(cert_pem)])
+    original = os.umask(0o077)
+    try:
+        command(['openssl','cms','-encrypt','-binary','-aes-256-gcm','-in',str(packet),'-outform','DER',
+                 '-out',str(output),'-recip',str(cert_pem),'-keyopt','rsa_padding_mode:oaep',
+                 '-keyopt','rsa_oaep_md:sha256','-keyopt','rsa_mgf1_md:sha256'])
+    finally:
+        os.umask(original)
+    require(0 < output.stat().st_size <= MAX_CMS_BYTES, 'cms-envelope-size-invalid')
+    return output.read_bytes()
+
+
+def carrier_body(context, public, ciphertext):
+    import base64
+    require(0 < len(ciphertext) <= MAX_CMS_BYTES, 'cms-envelope-size-invalid')
+    data = {k:context[k] for k in ('runId','runAttempt','sourceCommit','jobId')}
+    data.update(recipientSHA256=public['certificateSHA256'], cmsBase64=base64.b64encode(ciphertext).decode('ascii'))
+    return {'base':context['sourceCommit'],'files':[],
+            'operation':DELIVERY_PREFIX + json.dumps(data,sort_keys=True,separators=(',',':'))}
+
+
+def parse_carrier(commit, context, public, base_tree):
+    import base64
+    require(commit['tree']['sha'] == base_tree
+            and [parent['sha'] for parent in commit['parents']] == [context['sourceCommit']],
+            'carrier-not-neutral-to-source')
+    body = strict_transport_json(commit['message'])
+    require(set(body) == {'base','files','operation'} and body['base'] == context['sourceCommit']
+            and body['files'] == [] and body['operation'].startswith(DELIVERY_PREFIX), 'carrier-shape-invalid')
+    require(len(body['operation']) <= MAX_CMS_BYTES * 2, 'carrier-operation-too-large')
+    data = strict_transport_json(body['operation'].removeprefix(DELIVERY_PREFIX))
+    require(set(data) == {'runId','runAttempt','sourceCommit','jobId','recipientSHA256','cmsBase64'}
+            and all(data[k] == context[k] for k in ('runId','runAttempt','sourceCommit','jobId'))
+            and data['recipientSHA256'] == public['certificateSHA256'], 'carrier-run-or-recipient-mismatch')
+    ciphertext = base64.b64decode(data['cmsBase64'],validate=True)
+    require(0 < len(ciphertext) <= MAX_CMS_BYTES, 'cms-envelope-size-invalid')
+    return ciphertext
+
+
+def require_cms_algorithms(path):
+    # Parse OpenSSL's ASN.1 OBJECT rows, never arbitrary rendered string/ciphertext text.
+    import re
+    structure = command(['openssl','asn1parse','-inform','DER','-in',str(path)])
+    objects = re.findall(r'^\s*\d+:d=\d+\s+hl=\d+\s+l=\s*\d+\s+prim:\s+OBJECT\s+:(\S+)\s*$',structure,re.M)
+    require(objects.count('id-smime-ct-authEnvelopedData') == 1
+            and objects.count('rsaesOaep') == 1 and objects.count('mgf1') == 1
+            and objects.count('sha256') == 2 and objects.count('aes-256-gcm') == 1
+            and 'rsaEncryption' not in objects, 'cms-algorithms-not-approved')
+
+
+def consume_carrier(directory, commit, context, public, base_tree, assignment_path):
+    import base64
+    import tempfile
+    ciphertext = parse_carrier(commit,context,public,base_tree)
+    # Even failed decrypt/signature consumes this appointment; never blindly reuse keys/tag.
+    save_private(directory / 'delivery-consumed.json', {'carrier':commit['sha'], 'recipient':public['certificateSHA256']})
+    with tempfile.TemporaryDirectory(dir=directory) as temporary:
+        temporary = Path(temporary)
+        sealed, packet = temporary / 'admission.cms', temporary / 'packet.json'
+        private_bytes(sealed,ciphertext)
+        require_cms_algorithms(sealed)
+        original = os.umask(0o077)
+        try:
+            command(['openssl','cms','-decrypt','-binary','-inform','DER','-in',str(sealed),
+                     '-recip',str(private_file(directory / 'recipient.crt')),
+                     '-inkey',str(private_file(directory / 'recipient.key')),'-out',str(packet)])
+        finally:
+            os.umask(original)
+        value = strict_transport_json(private_file(packet).read_text())
+        require(set(value) == {'assignment','signature'}, 'decrypted-packet-shape-invalid')
+        candidate = temporary / 'assignment.json'
+        private_bytes(candidate,base64.b64decode(value['assignment'],validate=True))
+        private_bytes(str(candidate) + '.sig',base64.b64decode(value['signature'],validate=True))
+        a = verified_assignment(candidate)
+        require(a['github'] == {'runId':context['runId'],'runAttempt':1}
+                and a['sourceCommit'] == context['sourceCommit'], 'decrypted-admission-run-mismatch')
+        private_bytes(assignment_path,candidate.read_bytes())
+        private_bytes(str(assignment_path) + '.sig',Path(str(candidate) + '.sig').read_bytes())
+    save_private(directory / 'delivery-received.json', {'carrier':commit['sha'], 'state':'SIGNED_INPUT_RECEIVED_NOT_RUNTIME_ADMITTED'})
+
+
+def receive_admission():
+    import time
+    require(os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('GITHUB_REPOSITORY') == REPOSITORY
+            and os.environ.get('GITHUB_JOB') == 'term' and os.environ.get('GITHUB_RUN_ATTEMPT') == '1',
+            'recipient-must-be-current-term-job')
+    context = delivery_context(int(os.environ['GITHUB_RUN_ID']),os.environ['GITHUB_SHA'])
+    directory = recipient_directory()
+    public = generate_recipient(directory,context)
+    # Fixed safe notice, deliberately outside raw private logs; no private key/path/input.
+    print('::notice title=' + RECIPIENT_TITLE + '::' + json.dumps(public,separators=(',',':')),flush=True)
+    base_tree = delivery_get('git/commits/' + context['sourceCommit'])['tree']['sha']
+    deadline = time.monotonic() + 600
+    ref = delivery_ref(context)
+    while time.monotonic() < deadline:
+        remaining = deadline - time.monotonic()
+        status, value = delivery_api('GET','git/ref/' + ref.removeprefix('refs/'),timeout=min(35,max(.1,remaining)))
+        if status == 200:
+            require(value['ref'] == ref and value['object']['type'] == 'commit', 'delivery-ref-shape-invalid')
+            remaining = deadline - time.monotonic()
+            require(remaining > 0,'private-admission-rendezvous-timeout')
+            commit = delivery_get('git/commits/' + value['object']['sha'],timeout=min(35,remaining))
+            require(time.monotonic() < deadline,'private-admission-rendezvous-timeout')
+            require(commit['sha'] == value['object']['sha'], 'delivery-ref-readback-mismatch')
+            consume_carrier(directory,commit,context,public,base_tree,Path(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE']))
+            return
+        require(status == 404, 'delivery-poll-not-authoritative-absence')
+        time.sleep(min(30,max(0,deadline-time.monotonic())))
+    raise ValueError('private-admission-rendezvous-timeout')
+
+
+class DeliveryJournal:
+    """Durable write intentions; existing/ambiguous journals are never retried automatically."""
+    def __init__(self,path,context,public):
+        import stat
+        path = Path(path)
+        require(path.is_absolute() and path.resolve() == path and path.parent.is_dir()
+                and path.parent.stat().st_uid == os.getuid()
+                and stat.S_IMODE(path.parent.stat().st_mode) == 0o700, 'delivery-journal-directory-not-private')
+        probe = subprocess.run(['git','-C',str(path.parent),'rev-parse','--is-inside-work-tree'],capture_output=True)
+        require(probe.returncode != 0, 'delivery-journal-inside-git')
+        descriptor = os.open(path,os.O_CREAT|os.O_EXCL|os.O_WRONLY|os.O_NOFOLLOW,0o600)
+        self.stream = os.fdopen(descriptor,'w')
+        self.data = {'state':'LOCAL_PREFLIGHT','runId':context['runId'],'source':context['sourceCommit'],
+                     'recipientSHA256':public['certificateSHA256'],'ref':delivery_ref(context),
+                     'operations':[],'noAutomaticMutationRetry':True}
+        self.save()
+        parent = os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+        try:
+            os.fsync(parent)
+        finally:
+            os.close(parent)
+
+    def save(self):
+        self.stream.seek(0)
+        json.dump(self.data,self.stream,sort_keys=True)
+        self.stream.write('\n')
+        self.stream.truncate()
+        self.stream.flush()
+        os.fsync(self.stream.fileno())
+
+    def post(self,route,body):
+        require(route in ('git/commits','git/refs'),'delivery-write-route-forbidden')
+        if route == 'git/commits':
+            require(set(body) == {'message','tree','parents'}
+                    and strict_transport_json(body['message']) == self.data['expectedCarrier']
+                    and body['tree'] == self.data['sourceTree'] and body['parents'] == [self.data['source']],
+                    'delivery-commit-body-out-of-scope')
+        else:
+            require(set(body) == {'ref','sha'} and body['ref'] == self.data['ref']
+                    and body['sha'] == self.data['carrier'], 'delivery-ref-body-out-of-scope')
+        operation = {'route':route,'state':'STARTED','body':body}
+        self.data['operations'].append(operation)
+        self.save()
+        try:
+            status,value = delivery_api('POST',route,body)
+            operation.update(state='RETURNED',status=status,result=value)
+            self.save()
+            require(status == 201,'delivery-create-not-successful')
+            return value
+        except Exception:
+            operation['state'] = 'FAILED_OR_AMBIGUOUS_RECONCILE_NO_RETRY'
+            self.save()
+            raise
+
+
+def recipient_still_current(context,public):
+    current = delivery_context(context['runId'],context['sourceCommit'])
+    require(all(current[key] == context[key] for key in ('runId','runAttempt','sourceCommit','jobId','checkId')),
+            'recipient-job-changed-before-publication')
+    require(discover_recipient(current) == public,'recipient-notice-changed-before-publication')
+
+
+def publish_delivery(assignment_path,journal_path):
+    import tempfile
+    import base64
+    a = verified_assignment(assignment_path)
+    context = delivery_context(a['github']['runId'],a['sourceCommit'])
+    require(a['github'] == {'runId':context['runId'],'runAttempt':1} and a['worker'] == 'T2'
+            and a['state'] == 'ACTIVE','delivery-input-not-exact-active-appointment')
+    expiry = datetime.datetime.fromisoformat(a['expiresAt'].replace('Z','+00:00'))
+    require(expiry > datetime.datetime.now(datetime.timezone.utc),'delivery-input-expired')
+    # Real native/ordinary custody is required; ciphertext delivery grants none itself.
+    for kind in ('backend','producer'):
+        verify_native_binding(a['startupAttempt'][kind + 'Reservation'],a,kind)
+    for binding in a['sourceCustody']:
+        require(binding['body']['operation'].startswith('Reserve source files and rule IDs; resources-sha256='), 'ordinary-source-custody-required')
+        verify_binding(binding)
+    public = discover_recipient(context)
+    journal = DeliveryJournal(journal_path,context,public)
+    try:
+        ref = delivery_ref(context)
+        status,_ = delivery_api('GET','git/ref/' + ref.removeprefix('refs/'))
+        require(status == 404,'delivery-tag-already-exists-or-ambiguous')
+        base = delivery_get('git/commits/' + context['sourceCommit'])
+        require(base['tree']['sha'] == a['sourceTree'],'delivery-source-tree-changed')
+        with tempfile.TemporaryDirectory(dir=Path(journal_path).parent) as temporary:
+            ciphertext = cms_encrypt(assignment_path,base64.b64decode(public['certificateDERBase64'],validate=True),Path(temporary))
+        body = carrier_body(context,public,ciphertext)
+        recipient_still_current(context,public)
+        journal.data.update(expectedCarrier=body,sourceTree=a['sourceTree'])
+        journal.save()
+        created = journal.post('git/commits',{'message':json.dumps(body,sort_keys=True,separators=(',',':')),
+                                          'tree':a['sourceTree'],'parents':[context['sourceCommit']]})
+        commit = delivery_get('git/commits/' + created['sha'])
+        require(parse_carrier(commit,context,public,a['sourceTree']) == ciphertext,'created-carrier-readback-mismatch')
+        recipient_still_current(context,public)
+        journal.data['carrier'] = created['sha']
+        journal.save()
+        created_ref = journal.post('git/refs',{'ref':ref,'sha':created['sha']})
+        require(created_ref['ref'] == ref and created_ref['object']['sha'] == created['sha'], 'created-delivery-ref-mismatch')
+        readback = delivery_get('git/ref/' + ref.removeprefix('refs/'))
+        require(readback['ref'] == ref and readback['object']['type'] == 'commit'
+                and readback['object']['sha'] == created['sha'],'delivery-final-ref-mismatch')
+        journal.data.update(state='PUBLISHED_EXACT_READBACK',carrier=created['sha'])
+        journal.save()
+    finally:
+        journal.stream.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--observe-host', action='store_true')
-    parser.add_argument('--operation', choices=['prepare', 'up', 'run', 'down', 'inventory', 'qualify', 'replay-before', 'replay-after', 'execute', 'enter', 'check-down', 'check-source', 'safe-summary', 'scenario', 'actor-proof'])
+    parser.add_argument('--operation', choices=['prepare', 'up', 'run', 'down', 'inventory', 'qualify', 'replay-before', 'replay-after', 'execute', 'enter', 'check-down', 'check-source', 'safe-summary', 'scenario', 'actor-proof', 'receive-admission', 'publish-delivery'])
+    parser.add_argument('--assignment-file')
+    parser.add_argument('--journal-file')
     args = parser.parse_args()
     if args.observe_host:
         print(json.dumps(observe_host(), sort_keys=True))
@@ -670,7 +1056,12 @@ def main():
     if not args.operation:
         print(json.dumps({'state': 'HOLD', 'errors': ['explicit-operation-and-signed-assignment-required']}))
         return 78
-    if args.operation == 'safe-summary':
+    if args.operation == 'receive-admission':
+        receive_admission()
+    elif args.operation == 'publish-delivery':
+        require(args.assignment_file and args.journal_file, 'delivery-private-input-and-journal-required')
+        publish_delivery(Path(args.assignment_file),Path(args.journal_file))
+    elif args.operation == 'safe-summary':
         safe_summary()
     elif args.operation == 'check-source':
         authenticate('up')

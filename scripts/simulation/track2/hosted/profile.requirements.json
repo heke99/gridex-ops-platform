@@ -19,7 +19,8 @@
     "nodeMajor": 22,
     "supabaseCLI": "2.101.0",
     "postgresMajor": 17,
-    "pythonMinimum": "3.11"
+    "pythonMinimum": "3.11",
+    "opensslMinimum": "3.0"
   },
   "requiredBindings": [
     "sourceCommit",
@@ -47,8 +48,21 @@
     "two-independent-final-source-reviews",
     "qualified-current-integrated-app-and-GEN-source",
     "actual-separate-backend-and-producer-custody",
-    "verified-owned-GitHub-environment-10minute-timer",
-    "actual-runId-bound-signed-private-admission-before-job-start"
+    "actual-run-and-recipient-bound-CMS-delivery-before-any-backend-start",
+    "separately-qualified-pristine-canonical-replay-same-shell-supervisor"
   ],
-  "wholeScenarioAcceptance": "HOLD_INDEPENDENT_EFFECT_REVIEW_REQUIRED"
+  "wholeScenarioAcceptance": "HOLD_INDEPENDENT_EFFECT_REVIEW_REQUIRED",
+  "privateAdmissionTransport": {
+    "version": "t2-cms-recipient-v1",
+    "publicNoticeTitle": "T2_CMS_RECIPIENT_V1",
+    "deliveryTagPrefix": "refs/tags/t2-private-admission/",
+    "waitSeconds": 600,
+    "recipientKey": "ephemeral-same-host-RSA4096-owner0600",
+    "keyWrapping": "RSA-OAEP-SHA256-MGF1-SHA256",
+    "contentCipher": "AES-256-GCM",
+    "signedPayload": "existing-pinned-Ed25519-exact-input",
+    "environmentOrSecretAdministration": false,
+    "pilotGate": "TERM02.03 requires actual decrypted-and-authenticated input before any backend start"
+  },
+  "runtimeReadiness": "HOLD_CANONICAL_REPLAY_LIFETIME_SUCCESSOR_REQUIRED"
 }

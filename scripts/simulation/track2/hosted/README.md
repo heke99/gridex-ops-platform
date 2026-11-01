@@ -7,56 +7,91 @@ The public key in profile.requirements.json belongs to T2; its private Ed25519
 key is retained outside Git by the T2 owner. No external signer or new generic
 user approval is required. Never put that key in Actions secrets or logs.
 
-## Two-stage invocation and private admission transport
+## Same-host encrypted admission rendezvous (no environment administration)
 
-T2 performs the following under its standing mandate only after actual current
-app/harness/workflow/GEN source qualification, authenticated backend/producer
-custody, execution budget and two independent final reviews:
+The selected TERM02.03 pilot has a mandatory delivery gate: the actual dedicated
+job must receive and verify its exact signed private appointment before any
+backend start. Source preparation is not delivery, and delivery is not native
+qualification. The inherited canonical replay/consumer lifetime still needs its
+separate reviewed same-shell supervisor successor; this crypto-only source
+packet is **NOT runtime-ready** and must not be dispatched before that source
+and the current app/GEN/actor/pilot adapters are integrated and qualified.
 
-1. Provision the T2-owned GitHub environment `t2-qualified-disposable`, with a
-   **10-minute wait timer and no required reviewers**. Use the official REST PUT
-   `repos/heke99/gridex-ops-platform/environments/t2-qualified-disposable` with a
-   private JSON body containing `{"wait_timer":10,"reviewers":[],
-   "deployment_branch_policy":null}`. Read it back with GET; verify the only
-   protection rule is `type=wait_timer, wait_timer=10`, with no required-reviewer
-   or custom-app rule. This environment/timer is not assumed to exist already;
-   reconcile any existing foreign allocation before changing it.
-2. Dispatch the reviewed workflow once. Its allocation job exposes only actual
-   run ID and source head, explicitly without claiming a backend. Observe that
-   exact run and the `term` job waiting on the verified environment timer.
-3. During that timer, T2 binds actual run ID/attempt1, full source vector,
-   genuine GEN/input epoch and actual separately acquired backend/producer
-   claims into a private assignment. Sign its exact bytes locally:
+T2 owns the following concrete steps under its standing mandate, after the two
+independent final reviews and real source/input/backend/producer qualification:
+
+1. Dispatch the exact reviewed integrated workflow once. No GitHub environment,
+   wait-timer configuration or Actions secret administration is used. The term
+   job checks its actual run/attempt1/head, current unique job and GitHub Actions
+   check-run provenance through authenticated API reads. On that same disposable
+   host it creates a fresh RSA4096 recipient key under RUNNER_TEMP, directory0700
+   and private key0600. Unknown/reused directories are rejected. The private key
+   never leaves that host; the T2 Ed25519 signing key never enters it.
+2. The job emits exactly one `T2_CMS_RECIPIENT_V1` notice containing only its
+   public DER certificate, certificate SHA256 and public run/head/attempt/job
+   identifiers. T2 reads it through the job/check-run annotation APIs, validates
+   the `github-actions` app, exact details URL, source/run/attempt/job and complete
+   bounded annotation inventory. Duplicate/substituted notices fail closed.
+   Artifact download and log download are not the transport. Observed annotation
+   API reads work; artifact redirected download was Forbidden in the code host.
+3. T2 acquires and verifies the real separate native resources, builds the exact
+   private assignment described below and signs its exact bytes locally using
+   its already owned private Ed25519 key. Plaintext assignment and signature stay
+   owner0600 outside Git. A signed appointment for another run is never reused.
+4. From a private owner0700 delivery directory outside Git, invoke the reviewed
+   local publisher (it performs external writes, so only after actual pilot
+   appointment/source qualification; no publication is performed by this PR):
 
    ```sh
-   openssl pkeyutl -sign -rawin -inkey <private-owner-dir>/admission.pem \
-     -in <private-owner-dir>/admission.json -out <private-owner-dir>/admission.json.sig
-   base64 -w0 <private-owner-dir>/admission.json | \
-     gh secret set T2_ADMISSION_B64 --env t2-qualified-disposable
-   base64 -w0 <private-owner-dir>/admission.json.sig | \
-     gh secret set T2_ADMISSION_SIGNATURE_B64 --env t2-qualified-disposable
+   python3 -B scripts/simulation/track2/hosted/qualify-runtime.py \
+     --operation publish-delivery \
+     --assignment-file <private-owner-dir>/admission.json \
+     --journal-file <private-owner-dir>/deliveries/run-<actual-id>.json
    ```
 
-   Both files are owner0600 outside Git. The assignment's base64 representation
-   must fit GitHub's 48KB secret limit (raw JSON at most 36KiB). Group source
-   refs sharing a receipt using the `refs` field instead of duplicating capsules.
-   Check each secret update succeeded, without printing its body. Do not use
-   repository secrets for this transport: those are read at workflow queue time.
-4. GitHub reads environment secrets when the referencing job starts, after the
-   wait timer. Stale/missing/missed-window signatures or a different run/head/
-   attempt fail before any runtime resource start. Attempt2 is forbidden; an
-   expired/failed invocation requires actual reconciliation and a newly
-   qualified source/input budget, never a blind rerun. Environment secret removal
-   later requires matching this owner's exact run/admission custody; no blanket
-   deletion of shared settings or another run's secrets.
+   The `.json.sig` sibling must already contain the pinned Ed25519 signature.
+   The helper verifies it, actual source tree and current run/certificate plus
+   real native/ordinary custody. Standard OpenSSL CMS encrypts the fixed JSON
+   wrapper of exact signed bytes with AES-256-GCM and RSA-OAEP using SHA256 for
+   both OAEP and MGF1. There is no custom hybrid format or crypto dependency.
+   OpenSSL3+ is required; weaker algorithms have no fallback.
+5. The helper creates ONLY a neutral GitData carrier commit and its separate
+   create-if-absent tag `refs/tags/t2-private-admission/<runId>-attempt-1`.
+   Public commit message is exactly `{base,files:[],operation}`. Operation starts
+   `T2_CMS_ADMISSION_V1 ` followed by compact JSON with only runId, runAttempt,
+   sourceCommit, jobId, recipientSHA256 and CMS ciphertext base64. Its tree equals
+   the authenticated actual source/base tree, with that sole parent. No source
+   branch, claim, backend or producer ref is written by this helper. The delivery
+   tag is outside agent-claims; it grants no source/backend/native authority.
+6. The owner-private journal fsyncs intent before each of the only two permitted
+   POSTs (git/commits and the exact delivery git/refs), captures returned states
+   and verifies exact commit/ref readbacks. Existing tags/journals, failures or
+   ambiguous responses stop without automatic retry, replacement, force or
+   rollback. Reconcile that SAME journal; never change journal path to retry an
+   uncertain mutation. No private input/key is included in the public carrier.
+7. The original host polls only that exact tag, at most10 minutes with30-second
+   intervals. It checks neutral parent/tree and exact run/attempt/source/job/
+   recipient metadata, then exclusive-consumes the appointment. OpenSSL ASN.1
+   algorithm checks require authenticated-enveloped CMS, AES256-GCM and
+   RSA-OAEP/SHA256/MGF1-SHA256 before private-key decryption. GCM integrity and the
+   unchanged pinned Ed25519 signature must pass before installing private
+   assignment files. Different recipient keys/runs, CBC/SHA1 downgrade, tamper,
+   duplicate consumption or timeout fail before backend startup.
+8. Existing full source/claim/GEN/expiry/budget/capacity/Auth/actor/cleanup gates
+   then run unchanged. Receiving signed bytes explicitly does NOT mark runtime
+   admitted. No raw private logs, key, assignment or journal is uploaded. The
+   existing strictly allowlisted safe receipt remains the only exported proof.
 
-Official applicability: this repository is public; wait timers are supported
-for public repositories on current GitHub plans. References:
-[secret read timing](https://docs.github.com/en/actions/reference/security/secrets),
-[environment PUT and wait_timer](https://docs.github.com/en/rest/deployments/environments#create-or-update-an-environment),
-[wait-timer semantics](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments).
-If actual account/environment policy cannot support this verified timer, STOP;
-there is no fallback that drops the run binding or invents another secret store.
+Root GitData commit/tag operations and annotation reads are observed
+capabilities. Actual rendezvous, recipient generation on a hosted job, payload
+publication and native startup remain unperformed. No environment API retry or
+alternate environment/secret endpoint is part of this source successor.
+
+OpenSSL's standard CMS documentation covers supported AES-GCM AEAD and the
+RSA-OAEP encryption/key options:
+[OpenSSL3 CMS](https://docs.openssl.org/3.0/man1/openssl-cms/).
+Actual source, all single-use native resource receipts, expiry and cleanup still
+must be qualified; encrypted delivery does not substitute for any of them.
 
 ## Exact assignment contract
 
@@ -158,7 +193,7 @@ booleans or text PASS markers do not authenticate native qualification.
 
 ## Prepare, scenario and cleanup on one dedicated host
 
-The workflow uses Ubuntu24.04, reviewed pinned actions, Node22, SupabaseCLI2.101.0,
+The workflow uses Ubuntu24.04, OpenSSL3+, reviewed pinned actions, Node22, SupabaseCLI2.101.0,
 matching PostgreSQL17 clients and the exact npm lock. No application installation
 script runs before signed-source authentication. Every replay/build/scenario log
 is redirected privately; local keys/actors, assignments and full journals never
@@ -172,13 +207,18 @@ at least8GiB, CPU quota, tools and nine free ports. Unknown driver/identity,
 remote daemon, preexisting containers/nondefault networks/volumes or a reused
 home fail closed. Different app ports do not isolate fixed DB/API resources.
 
-A fresh, recorded cgroup v2 owns startup and scenario descendants, including
+After the separate canonical same-shell supervisor successor is qualified,
+a fresh, recorded cgroup v2 owns startup and scenario descendants, including
 Next/Vitest children. Each up/run independently checks membership. Private
 append-only Docker inventories are captured before and during startup, including
 partial failure. Unknown locks are preserved. Startup/scenario budgets are
 exclusive-created once per actual run. SKIP_REPLAY/SKIP_BUILD remain forbidden.
 
-Replay runs in a private copy, with exact signed patch hash and before/after
+The existing inherited replay shell/EXIT retention seam is NOT qualified by
+this delivery packet. Its successor must preserve pristine canonical cleanup
+and retain its trap through actual consumers; no noop-stop patch is authorized.
+Required replay evidence remains: a private source copy with exact source-bound
+controls and before/after
 source-restoration receipts. Installed version/name rows are observed from
 supabase_migrations.schema_migrations and compared to the existing
 scripts/gridex-aud-003-main-ledger.json, alongside real database system ID,
