@@ -33,11 +33,12 @@ variables only for the app (`T4_APP_PORT`, 3104), the sink (3194) and GreenMail 
    `supabase start`; neither config.toml nor the script is copied or patched). Needs Supabase CLI exactly 2.101.0
    (`SIM_HOME/cli/node_modules/.bin`) and `SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io` (defaulted). Only after this replay it writes
    `SIM_HOME/fingerprint` (the script's own `EXPECTED_FINGERPRINT`, already verified by it), `replay-commit`, `replay-at` and an empty
-   `applied-migrations.tsv`. `SKIP_REPLAY=1` reuses the running stack and leaves those files untouched (it refuses if `replay-commit` is missing).
+   `applied-migrations.tsv`. `SKIP_REPLAY=1` is refused because those legacy markers do not establish actual backend ownership.
    `db-url` (one line, local defaults) is written whenever the stack is up; `built-commit` after a successful build.
 2. Writes `SIM_HOME/env` (mode 600; keys from `supabase status -o env`, random secrets, external URLs -> sink, mail/Ediel keys).
-3. GreenMail + local CA, automation user, `npm run build` (`SKIP_BUILD=1` reuses a build of the same app commit: HEAD may differ from
-   `built-commit` only under `scripts/simulation/track4/`), next start on 3104, sink on 3194; the app restarts when `SIM_HOME/env` changes.
+3. GreenMail + local CA, automation user, `npm run build` (`SKIP_BUILD=1` requires exact private source/environment/output build evidence;
+   legacy `built-commit` alone is insufficient), next start on 3104, sink on 3194. The retained app/mail process lifecycle remains unqualified;
+   an env hash or a successful build does not bind an existing process to its launched build.
 
 `down.sh` stops app, sink, GreenMail, the grid-owner process and the Supabase stack (`supabase stop --no-backup` from the run directory,
 which also removes the volumes) and fails if a container, volume, port or process remains. `T4_KEEP_DB=1` keeps the Supabase stack.
