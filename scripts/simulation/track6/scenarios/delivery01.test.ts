@@ -2,7 +2,7 @@
 // DELIVERY01 (spår 6): fakturaleverans i Nordfin-filen. Playwright används inte (appens HTTP-ingångar och serveråtgärder postas som no-JS-formulär).
 // Kedja per kund: offert -> publicering -> avtal -> signering -> Z03 -> Z04 L -> aktivering -> spot -> fyra UTILTS E66 (28-31 oktober) med 24 timvärden vardera ->
 // generate-underlay -> prepare -> godkänn -> fakturafil (nordfin) -> XML. Allt i testmiljön (environment test), appmiljö
-// GRIDEX_INVOICE_DELIVERY_RESOLVER läses ur SIM_HOME/env/track6.env och loggas; förväntat värde `shared` (produktionsinställningen).
+// GRIDEX_INVOICE_DELIVERY_RESOLVER läses ur privata SIM_HOME/env/track6.json; förväntat värde `shared` (produktionsinställningen).
 // Ursprung för kopierad kod: se lib/chain/*.ts (spår 1 ba065053/3ea5cd2b, spår 4 766f4963).
 // ERSÄTTNINGSSTEG (raw SQL / in-process) står i stegnamn och i observationen "ERSÄTTNINGSSTEG: … verifierar inte …".
 import { existsSync, readFileSync, statSync, openSync, readSync, closeSync } from 'node:fs'
@@ -59,10 +59,10 @@ function needs(ctx: TestContext, ...deps: string[]): void {
 }
 
 function appEnvFileValue(name: string): string | null {
-  const file = `${process.env.T6_SIM_HOME ?? ''}/env/track6.env`
+  const file = `${process.env.T6_SIM_HOME ?? ''}/env/track6.json`
   if (!process.env.T6_SIM_HOME || !existsSync(file)) return null
-  const line = readFileSync(file, 'utf8').split('\n').find(entry => entry.startsWith(`${name}=`))
-  return line ? line.slice(name.length + 1).replace(/^["']|["']$/g, '') : null
+  const values = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>
+  return typeof values[name] === 'string' ? values[name] : null
 }
 
 /** Reads the app log (last 600 kB) for the block `[ctx] failed { traceId: '<id>', code: '<db/pg code>', error: '<message>' }` of a 5xx trace_id. Never written raw to evidence. */
@@ -97,10 +97,10 @@ describe('Track6 DELIVERY01: fakturaleverans (e-post/post/adress) i Nordfin-file
     const health = await fetch(`${appUrl()}/api/internal/system/health`, { redirect: 'manual' })
     evidence.observe('app_health_status', health.status)
     expect([401, 503]).toContain(health.status)
-    // up.sh must put GRIDEX_INVOICE_DELIVERY_RESOLVER=shared in track6.env (production setting). With `legacy` the invoice-review snapshot ignores the
+    // The coordinator's private JSON must declare GRIDEX_INVOICE_DELIVERY_RESOLVER=shared. With `legacy` the invoice-review snapshot ignores the
     // customer billing profile (lib/billing/effectiveInvoiceDelivery.ts:157-185), so DELIVERY01 would not test the production configuration.
     if (fromFile?.trim().toLowerCase() !== 'shared' && process.env.T6_DELIVERY_ALLOW_LEGACY !== '1') {
-      throw new Error('HARNESSFEL: GRIDEX_INVOICE_DELIVERY_RESOLVER är inte `shared` i appens env (SIM_HOME/env/track6.env). up.sh ska skriva GRIDEX_INVOICE_DELIVERY_RESOLVER=shared och starta om appen. (T6_DELIVERY_ALLOW_LEGACY=1 kör ändå, men resultatet gäller då inte produktionsinställningen.)')
+      throw new Error('HARNESSFEL: GRIDEX_INVOICE_DELIVERY_RESOLVER är inte `shared` i appens privata env (SIM_HOME/env/track6.json). Samordnarens JSON ska ange GRIDEX_INVOICE_DELIVERY_RESOLVER=shared. (T6_DELIVERY_ALLOW_LEGACY=1 kör ändå, men resultatet gäller då inte produktionsinställningen.)')
     }
     S.ok.add('precondition')
   })
