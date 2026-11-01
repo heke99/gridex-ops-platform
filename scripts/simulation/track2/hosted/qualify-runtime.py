@@ -33,6 +33,11 @@ def capacity_errors(observation):
         errors.append("daemon-or-socket-identity-missing")
     if not observation.get("cpuQuota"):
         errors.append("cpu-quota-unrecorded")
+    hierarchy = observation.get('cgroupCapacity',{})
+    ancestors = hierarchy.get('ancestors') if isinstance(hierarchy,dict) else None
+    if not isinstance(hierarchy,dict) or hierarchy.get('state') != 'VERIFIED_INITIAL_GLOBAL_V2' or hierarchy.get('namespace') != {'inode':0xEFFFFFFB,'type':0x02000000} \
+       or hierarchy.get('mountRoot') != '/' or not isinstance(ancestors,list) or not ancestors or not isinstance(ancestors[-1],dict) or ancestors[-1].get('path') != '/sys/fs/cgroup':
+        errors.append('cgroup-capacity-unverified')
     return errors
 
 
@@ -43,28 +48,59 @@ def read_text(path):
         return None
 
 
+def cgroup_capacity(physical):
+    """Linux v6.18 UAPI nsfs.h/sched.h; cgroup-v2 root has no quota files."""
+    import fcntl,re
+    root = Path('/sys/fs/cgroup')
+    fd = os.open('/proc/self/ns/cgroup',os.O_RDONLY | os.O_CLOEXEC)
+    try:
+        namespace = {'inode':os.fstat(fd).st_ino,'type':fcntl.ioctl(fd,0xb703)}
+    finally:
+        os.close(fd)
+    require(namespace == {'inode':0xEFFFFFFB,'type':0x02000000},'initial-cgroup-namespace-required')
+    mountinfo = Path('/proc/self/mountinfo').read_text()
+    mounts = [line.split() for line in mountinfo.splitlines()]
+    selected = [m for m in mounts if len(m) > 6 and m[4] == str(root)]
+    require(len(selected) == 1 and selected[0][3] == '/' and selected[0][selected[0].index('-')+1] == 'cgroup2'
+            and not any(m[4].startswith(str(root)+'/') for m in mounts),'global-cgroup2-mount-required')
+    membership = Path('/proc/self/cgroup').read_text().strip()
+    require(re.fullmatch(r'0::/(?:[A-Za-z0-9_.:@-]+(?:/[A-Za-z0-9_.:@-]+)*)?',membership) is not None
+            and not set(membership[4:].split('/')).intersection({'.','..'}),'unified-cgroup-membership-required')
+    current, ancestors, limits, quotas = root / membership[4:], [], [physical], []
+    while True:
+        values = {}
+        for filename in ('memory.max','cpu.max'):
+            try:
+                raw = (current / filename).read_text().strip()
+                require(raw != 'GLOBAL_ROOT_UNLIMITED','ancestor-controller-limit-malformed')
+            except FileNotFoundError:
+                require(current == root,'ancestor-controller-limit-missing')
+                raw = 'GLOBAL_ROOT_UNLIMITED'
+            if raw != 'GLOBAL_ROOT_UNLIMITED':
+                require((filename == 'memory.max' and re.fullmatch(r'(max|[0-9]+)',raw) is not None)
+                        or (filename == 'cpu.max' and re.fullmatch(r'(max|[1-9][0-9]*) [1-9][0-9]*',raw) is not None),
+                        'ancestor-controller-limit-malformed')
+            values[filename] = raw
+        if values['memory.max'].isdigit():limits.append(int(values['memory.max']))
+        ancestors.append({'path':str(current),'limits':values})
+        quotas.append({'cgroup':str(current),'quota':values['cpu.max']})
+        if current == root:break
+        current = current.parent
+    require(Path('/proc/self/cgroup').read_text().strip() == membership
+            and Path('/proc/self/mountinfo').read_text() == mountinfo,'cgroup-hierarchy-changed')
+    return min(limits), quotas, {'state':'VERIFIED_INITIAL_GLOBAL_V2','namespace':namespace,
+                                'mountRoot':'/','membership':membership,'ancestors':ancestors}
+
+
 def observe_host():
     physical = os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
-    limits = [physical]
-    cpu_limits = []
-    # Walk visible cgroup ancestors, preserving every finite inherited limit.
-    cgroup = Path("/sys/fs/cgroup")
-    membership = read_text("/proc/self/cgroup") or ""
-    relative = next((line[3:] for line in membership.splitlines() if line.startswith("0::")), "/")
-    current = cgroup / relative.lstrip("/")
-    while current == cgroup or cgroup in current.parents:
-        cpu = read_text(current / "cpu.max")
-        if cpu:
-            cpu_limits.append({"cgroup":str(current), "quota":cpu})
-        raw = read_text(current / "memory.max")
-        if raw and raw.isdigit():
-            limits.append(int(raw))
-        if current == cgroup:
-            break
-        current = current.parent
+    try:
+        effective, cpu_limits, hierarchy = cgroup_capacity(physical)
+    except (OSError,ValueError,IndexError,TypeError):
+        effective, cpu_limits, hierarchy = None, None, {'state':'UNKNOWN_HOLD'}
     result = {"schema": "gridex-t2-host-observation-v1", "state": "OBSERVED_NOT_ADMITTED",
               "observedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-              "effectiveRAMBytes": min(limits), "cpuQuota": cpu_limits or None,
+              "effectiveRAMBytes": effective, "cpuQuota": cpu_limits, 'cgroupCapacity':hierarchy,
               "cpuCount": os.cpu_count(), "rootNamespaceVerified": False}
     # Select only non-secret fields; never emit environment, Docker config or full info.
     try:
@@ -74,7 +110,7 @@ def observe_host():
         result.update(driver=data.get("Driver"), daemonId=data.get("ID"),
                       dockerRootDir=data.get("DockerRootDir"), serverVersion=data.get("ServerVersion"))
         daemon_memory = data.get("MemTotal")
-        if positive_integer(daemon_memory):
+        if positive_integer(daemon_memory) and positive_integer(result['effectiveRAMBytes']):
             result["effectiveRAMBytes"] = min(result["effectiveRAMBytes"], daemon_memory)
         # A daemon can be remote or in another mount namespace: no statvfs guess.
         result["dockerRootFreeBytes"] = None
@@ -613,6 +649,8 @@ def decrypt_bootstrap(context,key,output):
                 and proof['source']['commit'] == context['sourceCommit']
                 and proof['source']['tree'] == context.get('checkoutTree',proof['source']['tree']) and proof['capacityErrors'] == safe['capacityErrors']
                 and proof['schema'] == 'gridex-t2-bootstrap-private-v1','bootstrap-decrypted-binding-mismatch')
+        require(proof['capacityErrors'] == capacity_errors(proof.get('capacity',{}))
+                and safe['state'] == ('CAPACITY_HOLD' if proof['capacityErrors'] else 'CAPACITY_OBSERVED_NOT_ADMITTED'),'bootstrap-capacity-evidence-unqualified')
         private_bytes(output,plain.read_bytes())
     return safe['proofSHA256']
 
@@ -626,6 +664,7 @@ def validate_bootstrap(a, *, reobserve=False):
     proof_path = private_file(directory / 'proof.json')
     proof = load_private(proof_path)
     require(proof['schema'] == 'gridex-t2-bootstrap-private-v1' and not proof['capacityErrors']
+            and not capacity_errors(proof.get('capacity',{}))
             and a.get('bootstrapProofSHA256') == digest(proof_path), 'bootstrap-proof-not-bound-or-unqualified')
     require(proof['run'] == bootstrap_run() and proof['run']['event'] == 'workflow_dispatch'
             and proof['run']['job'] == 'term' and proof['run']['mode'] == 'admitted' and proof['source'] == bootstrap_source()
@@ -1399,7 +1438,8 @@ def receive_admission():
             'recipient-must-be-current-term-job')
     context = delivery_context(int(os.environ['GITHUB_RUN_ID']),os.environ['GITHUB_SHA'])
     validate_bootstrap_observed = bootstrap_observed()
-    require(not validate_bootstrap_observed['capacityErrors'],'bootstrap-capacity-unqualified')
+    require(not validate_bootstrap_observed['capacityErrors']
+            and not capacity_errors(validate_bootstrap_observed.get('capacity',{})),'bootstrap-capacity-unqualified')
     directory = recipient_directory()
     public = generate_recipient(directory,context)
     # Fixed safe notice, deliberately outside raw private logs; no private key/path/input.

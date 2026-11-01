@@ -14,6 +14,11 @@ HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("qualify", HERE / "qualify-runtime.py")
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
+QUALIFIED_CGROUP = {'state':'VERIFIED_INITIAL_GLOBAL_V2','namespace':{'inode':0xEFFFFFFB,'type':0x02000000},
+                    'mountRoot':'/','membership':'0::/','ancestors':[{'path':'/sys/fs/cgroup','limits':{'memory.max':'GLOBAL_ROOT_UNLIMITED','cpu.max':'GLOBAL_ROOT_UNLIMITED'}}]}
+QUALIFIED_TEST_CAPACITY = {'driver':'overlay2','effectiveRAMBytes':8*module.GIB,'dockerRootFreeBytes':50*module.GIB,
+                           'dockerRootDir':'/unit/docker','rootNamespaceVerified':True,'daemonId':'unit',
+                           'socketIdentity':{'device':1,'inode':2},'cpuQuota':'max 100000','cgroupCapacity':QUALIFIED_CGROUP}
 
 
 class Contracts(unittest.TestCase):
@@ -21,7 +26,7 @@ class Contracts(unittest.TestCase):
         self.observation = {"driver": "overlay2", "effectiveRAMBytes": 8 * module.GIB,
                             "dockerRootFreeBytes": 15 * module.GIB, "dockerRootDir": "/owned/docker",
                             "rootNamespaceVerified": True, "daemonId": "synthetic-test-daemon",
-                            "socketIdentity": {"device": 1, "inode": 2}, "cpuQuota": "400000 100000"}
+                            "socketIdentity": {"device": 1, "inode": 2}, "cpuQuota": "400000 100000",'cgroupCapacity':copy.deepcopy(QUALIFIED_CGROUP)}
 
     def test_exact_capacity_boundaries(self):
         for driver, minimum in module.DRIVERS.items():
@@ -60,6 +65,78 @@ class Contracts(unittest.TestCase):
         result = subprocess.run(['python3', '-B', str(HERE / 'qualify-runtime.py')], capture_output=True, text=True)
         self.assertEqual(result.returncode, 78)
         self.assertEqual(json.loads(result.stdout)['state'], 'HOLD')
+
+class CgroupCapacityContracts(unittest.TestCase):
+    def observe(self, *, inode=4026531835, namespace_type=0x02000000, mount_root='/', membership='/parent/job', changes=None):
+        import fcntl,types
+        files={'/proc/self/cgroup':'0::'+membership,
+               '/proc/self/mountinfo':f'31 22 0:28 {mount_root} /sys/fs/cgroup rw - cgroup2 cgroup rw',
+               '/sys/fs/cgroup/parent/job/memory.max':'max','/sys/fs/cgroup/parent/job/cpu.max':'max 100000',
+               '/sys/fs/cgroup/parent/memory.max':str(2*module.GIB),'/sys/fs/cgroup/parent/cpu.max':'200000 100000'}
+        files.update(changes or {})
+        def read(path,*args,**kwargs):
+            value=files.get(str(path))
+            if value is None:raise FileNotFoundError(str(path))
+            if isinstance(value,Exception):raise value
+            return value
+        def sysconf(name):return 16*module.GIB//4096 if name=='SC_PHYS_PAGES' else 4096
+        docker=types.SimpleNamespace(stdout=json.dumps({'Driver':'overlay2','ID':'unit','DockerRootDir':'/owned/docker','MemTotal':16*module.GIB}))
+        with mock.patch.object(Path,'read_text',read),mock.patch.object(module.os,'sysconf',side_effect=sysconf), \
+             mock.patch.object(module.subprocess,'run',return_value=docker),mock.patch.object(module.os,'open',return_value=555), \
+             mock.patch.object(module.os,'close'),mock.patch.object(module.os,'fstat',return_value=types.SimpleNamespace(st_ino=inode,st_dev=4)), \
+             mock.patch.object(fcntl,'ioctl',return_value=namespace_type), \
+             mock.patch.object(Path,'stat',return_value=types.SimpleNamespace(st_dev=1,st_ino=2)):
+            observation=module.observe_host()
+        observation.update(dockerRootFreeBytes=50*module.GIB,rootNamespaceVerified=True)
+        return observation
+
+    def test_hidden_namespace_never_reports_physical_ram_as_effective(self):
+        observation=self.observe(inode=4026532205,membership='/',changes={'/sys/fs/cgroup/memory.max':'max','/sys/fs/cgroup/cpu.max':'max 100000'})
+        self.assertIsNone(observation['effectiveRAMBytes'])
+        self.assertIn('cgroup-capacity-unverified',module.capacity_errors(observation))
+
+    def test_complete_parent_hierarchy_preserves_lower_ram(self):
+        observation=self.observe()
+        self.assertEqual(observation['effectiveRAMBytes'],2*module.GIB)
+        self.assertIn('insufficient-or-unknown-ram',module.capacity_errors(observation))
+
+    def test_initial_namespace_global_mount_and_valid_limits_can_qualify(self):
+        observation=self.observe(changes={'/sys/fs/cgroup/parent/memory.max':str(10*module.GIB)})
+        self.assertEqual(observation['effectiveRAMBytes'],10*module.GIB)
+        self.assertEqual(module.capacity_errors(observation),[])
+        self.assertEqual(observation['cgroupCapacity']['state'],'VERIFIED_INITIAL_GLOBAL_V2')
+
+    def test_wrong_namespace_type_mount_subtree_or_masked_mount_is_unknown(self):
+        cases=[{'namespace_type':0x00020000},{'mount_root':'/hidden'},
+               {'changes':{'/proc/self/mountinfo':'31 22 0:28 / /sys/fs/cgroup rw - tmpfs tmpfs rw'}},
+               {'changes':{'/proc/self/mountinfo':'31 22 0:28 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n32 31 0:29 / /sys/fs/cgroup/parent rw - tmpfs tmpfs rw'}},
+               {'membership':'/parent/../escape'}]
+        for case in cases:
+            with self.subTest(case=case):
+                observation=self.observe(**case)
+                self.assertIsNone(observation['effectiveRAMBytes'])
+                self.assertIn('cgroup-capacity-unverified',module.capacity_errors(observation))
+
+    def test_missing_unreadable_or_malformed_nonroot_limit_is_unknown(self):
+        for file,value in [('memory.max',None),('cpu.max',None),('memory.max','bad'),('cpu.max','max bad'),
+                           ('memory.max',PermissionError('unit denied')),('memory.max','GLOBAL_ROOT_UNLIMITED')]:
+            with self.subTest(file=file,value=value):
+                observation=self.observe(changes={'/sys/fs/cgroup/parent/'+file:value})
+                self.assertIsNone(observation['effectiveRAMBytes'])
+                self.assertEqual(observation['cgroupCapacity']['state'],'UNKNOWN_HOLD')
+
+    def test_verified_global_root_controller_absence_is_explicit_unlimited(self):
+        observation=self.observe(membership='/')
+        self.assertEqual(module.capacity_errors(observation),[])
+        self.assertEqual(observation['cgroupCapacity']['ancestors'][0]['limits'],
+                         {'memory.max':'GLOBAL_ROOT_UNLIMITED','cpu.max':'GLOBAL_ROOT_UNLIMITED'})
+
+    def test_legacy_or_malformed_attestation_is_clean_capacity_hold(self):
+        for hierarchy in [None,'bad',{}, {'state':'VERIFIED_INITIAL_GLOBAL_V2'},
+                          dict(QUALIFIED_CGROUP,ancestors=[None]),dict(QUALIFIED_CGROUP,ancestors={'bad':'shape'})]:
+            with self.subTest(hierarchy=hierarchy):
+                observation=dict(QUALIFIED_TEST_CAPACITY,cgroupCapacity=hierarchy)
+                self.assertIn('cgroup-capacity-unverified',module.capacity_errors(observation))
 
 class OperationalContracts(unittest.TestCase):
     def setUp(self):
@@ -525,7 +602,7 @@ class RendezvousContracts(unittest.TestCase):
 
     def setUp(self):
         for function, value in [('validate_bootstrap',{}),('verify_published_bootstrap',None),
-                                ('bootstrap_observed',{'capacityErrors':[]})]:
+                                ('bootstrap_observed',{'capacityErrors':[],'capacity':copy.deepcopy(QUALIFIED_TEST_CAPACITY)})]:
             patch = mock.patch.object(module,function,return_value=value)
             patch.start()
             self.addCleanup(patch.stop)
@@ -681,6 +758,16 @@ class RendezvousContracts(unittest.TestCase):
         with mock.patch.object(module,'delivery_get',side_effect=[run,{'total_count':1,'jobs':[job]},check]):
             with self.assertRaisesRegex(ValueError,'delivery-check-provenance-mismatch'):
                 module.delivery_context(777,'a'*40)
+
+    def test_old_capacity_proof_cannot_reach_recipient_generation(self):
+        legacy=copy.deepcopy(QUALIFIED_TEST_CAPACITY);legacy.pop('cgroupCapacity')
+        env={'GITHUB_ACTIONS':'true','GITHUB_REPOSITORY':module.REPOSITORY,'GITHUB_JOB':'term',
+             'GITHUB_RUN_ATTEMPT':'1','GITHUB_RUN_ID':'777','GITHUB_SHA':'a'*40}
+        with mock.patch.dict(os.environ,env),mock.patch.object(module,'delivery_context',return_value=self.context), \
+             mock.patch.object(module,'bootstrap_observed',return_value={'capacityErrors':[],'capacity':legacy}), \
+             mock.patch.object(module,'generate_recipient') as recipient:
+            with self.assertRaisesRegex(ValueError,'bootstrap-capacity-unqualified'):module.receive_admission()
+        recipient.assert_not_called()
 
     def test_wait_is_bounded_and_timeout_never_starts_backend(self):
         import io,time
@@ -1274,7 +1361,7 @@ class BootstrapContracts(unittest.TestCase):
         self.host={'bootId':'PRIVATE-BOOT-SENTINEL','machineId':'PRIVATE-MACHINE-SENTINEL','hostname':'PRIVATE-HOST-SENTINEL'}
         self.daemon={'driver':'overlay2','daemonId':'PRIVATE-DAEMON-SENTINEL','dockerRootDir':'/private-root',
                      'socketIdentity':{'device':1,'inode':2}}
-        self.observation={**self.daemon,'effectiveRAMBytes':16*module.GIB,'dockerRootFreeBytes':50*module.GIB,
+        self.observation={**self.daemon,'effectiveRAMBytes':16*module.GIB,'dockerRootFreeBytes':50*module.GIB,'cgroupCapacity':copy.deepcopy(QUALIFIED_CGROUP),
                           'rootNamespaceVerified':True,'cpuQuota':[{'quota':'max 100000'}]}
         self.context={'runId':777,'runAttempt':1,'sourceCommit':'a'*40,'jobId':888,'checkId':'888','annotationsCount':1}
         self.requirements={'bootstrapRecipientCertificate':self.cert.read_text(),
@@ -1333,6 +1420,34 @@ class BootstrapContracts(unittest.TestCase):
         install.assert_not_called();images.assert_not_called()
         self.assertIn('CAPACITY_HOLD',self.console)
         self.assertNotIn('PRIVATE-BOOT-SENTINEL',self.console)
+
+    def test_old_capacity_proof_is_rejected_even_with_current_matching_assignment_hash(self):
+        self.observe();path=module.bootstrap_directory()/'proof.json'
+        proof=module.load_private(path);proof['capacity'].pop('cgroupCapacity');path.write_text(json.dumps(proof))
+        with self.assertRaisesRegex(ValueError,'bootstrap-proof-not-bound-or-unqualified'):self.validate()
+
+    def test_old_encrypted_capacity_proof_cannot_be_promoted_by_decryption(self):
+        self.observe();proof=module.load_private(module.bootstrap_directory()/'proof.json')
+        proof['capacity'].pop('cgroupCapacity')
+        old=self.root/'legacy-proof';old.mkdir(mode=0o700)
+        with self.fixture_requirements(self.requirements):cipher=module.encrypt_bootstrap(proof,old)
+        safe=module.load_private(module.bootstrap_directory()/'safe.json')
+        safe.update(proofSHA256=module.digest(old/'proof.json'),cmsBase64=cipher)
+        output=self.root/'legacy-decrypted.json'
+        with mock.patch.object(module,'delivery_get',return_value=self.transport(safe)):
+            with self.assertRaisesRegex(ValueError,'bootstrap-capacity-evidence-unqualified'):
+                module.decrypt_bootstrap(self.context,self.key,output)
+        self.assertFalse(output.exists())
+
+    def test_unknown_new_observation_is_hold_and_can_be_read_without_becoming_admission(self):
+        unknown=dict(self.observation,effectiveRAMBytes=None,cpuQuota=None,cgroupCapacity={'state':'UNKNOWN_HOLD'})
+        with self.assertRaisesRegex(ValueError,'bootstrap-capacity-unqualified'):self.observe(unknown)
+        safe=module.load_private(module.bootstrap_directory()/'safe.json');self.assertEqual(safe['state'],'CAPACITY_HOLD')
+        output=self.root/'unknown-observation.json'
+        with mock.patch.object(module,'delivery_get',return_value=self.transport(safe)):
+            module.decrypt_bootstrap(self.context,self.key,output)
+        self.assertEqual(module.load_private(output)['capacity']['cgroupCapacity']['state'],'UNKNOWN_HOLD')
+        with self.assertRaisesRegex(ValueError,'bootstrap-proof-not-bound-or-unqualified'):self.validate()
 
     def test_assignment_missing_wrong_or_tampered_host_digest_rejected(self):
         self.observe()
