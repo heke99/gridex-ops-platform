@@ -1062,6 +1062,7 @@ async function updateSealedContractFromCustomerCard(params: {
   }
   const terminalEvent = statusChanged && (nextStatus === 'terminated' || nextStatus === 'cancelled') ? nextStatus : null
 
+  let lifecycleWriteSucceeded = false
   try {
     if (nextNotice && !previousNotice) {
       // The canonical event command applies the notice and its database rules.
@@ -1075,6 +1076,7 @@ async function updateSealedContractFromCustomerCard(params: {
         metadata: { terminationReason },
         actorUserId,
       })
+      lifecycleWriteSucceeded = true
     }
     if (terminalEvent) {
       // The event RPC sets status, ended_at and status_reason_code atomically
@@ -1091,6 +1093,7 @@ async function updateSealedContractFromCustomerCard(params: {
         },
         actorUserId,
       })
+      lifecycleWriteSucceeded = true
     } else if (statusChanged || reasonChanged) {
       const updated = await updateSealedCustomerContractLifecycle({
         id: contractId,
@@ -1101,6 +1104,7 @@ async function updateSealedContractFromCustomerCard(params: {
         ...(reasonChanged ? { terminationReason } : {}),
         actorUserId,
       })
+      lifecycleWriteSucceeded = true
       await addCustomerContractEvent({
         companyId,
         customerContractId: contractId,
@@ -1115,8 +1119,14 @@ async function updateSealedContractFromCustomerCard(params: {
         },
         actorUserId,
       })
+      lifecycleWriteSucceeded = true
     }
   } catch (error) {
+    // Earlier commands have committed independently. Ordinary validation would
+    // invite a retry even though part of this change may already be saved.
+    if (lifecycleWriteSucceeded) {
+      throw new Error('Avtalsändringens utfall kunde inte bekräftas. Ladda om kundkortet och kontrollera de sparade uppgifterna innan du försöker igen.', { cause: error })
+    }
     throw controlledContractUpdateError(error)
   }
   revalidatePath(`/admin/customers/${customerId}`)
