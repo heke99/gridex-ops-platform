@@ -173,7 +173,7 @@ def qualify_phases(phases, primary_exit):
     return {"qualified": bool(ok), "new105ScenarioPassAttestations": 0}
 
 
-def command(args, *, env=None, cwd=None, log=None, timeout=120):
+def command(args, *, env=None, cwd=None, log=None, timeout=120, allow_failure=False):
     """No shell, no inherited credential environment, no output in exceptions."""
     process = subprocess.Popen(args, env=env or tool_environment(), cwd=cwd, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, start_new_session=True)
@@ -194,9 +194,9 @@ def command(args, *, env=None, cwd=None, log=None, timeout=120):
         seal(log, stdout + stderr)
     if group_members(process.pid):
         raise OutcomeUnknown("runtime_command_children_remaining")
-    if process.returncode != 0:
+    if process.returncode != 0 and not allow_failure:
         raise CommandFailure("runtime_command_failed:" + pathlib.Path(args[0]).name, process.returncode)
-    return stdout
+    return (stdout, stderr, process.returncode) if allow_failure else stdout
 
 
 def group_members(group):
@@ -852,15 +852,16 @@ def run_smoke(assignment_file, scenario, label, report):
         seal(home / "smoke-parent.json", {"pid": os.getpid(), "startTicks": int(fields[19]),
                                           "assignmentSha256": sha(private_path(assignment_file).read_bytes())})
         public_context = {key: os.environ[key] for key in ("GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT", "GITHUB_JOB", "GITHUB_ACTOR", "GITHUB_REPOSITORY", "GITHUB_EVENT_PATH")}
-        result = subprocess.run([str(pathlib.Path(a["appDir"]) / "node_modules/.bin/vitest"), "run", "--config",
+        _, _, exit_code = command([str(pathlib.Path(a["appDir"]) / "node_modules/.bin/vitest"), "run", "--config",
             str(pathlib.Path(a["harnessDir"]) / "scripts/simulation/track1/vitest.config.mts"), "--root", a["harnessDir"],
             "--reporter=json", "--outputFile=" + str(raw), str(expected)], cwd=a["harnessDir"],
             env=tool_environment({**public_context, "TRACK1_APP_DIR": a["appDir"], "TRACK1_ASSIGNMENT_FILE": str(assignment_file),
                                   "TRACK1_RUNTIME_HELPER": str(pathlib.Path(__file__).resolve())}),
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=180)
-        seal(home / "raw/smoke.log", result.stdout + result.stderr)
-        seal(home / "smoke-exit.json", {"exitCode": result.returncode})
-        result_report = smoke_report(json.loads(private_path(raw).read_bytes()), result.returncode)
+            log=home / "raw/smoke.log", timeout=180, allow_failure=True)
+        seal(home / "smoke-exit.json", {"exitCode": exit_code})
+        if exit_code != 0:
+            raise CommandFailure("runtime_smoke_command_failed", exit_code)
+        result_report = smoke_report(json.loads(private_path(raw).read_bytes()), exit_code)
         verify(assignment_file, "run")
         seal(output, result_report)
     phase(home, "smoke", perform)

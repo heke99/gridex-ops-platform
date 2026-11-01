@@ -105,6 +105,23 @@ try:
    try:module.command([sys.executable,'-c',code,str(root/'pids')],timeout=.4)
    except RuntimeError as error:message=str(error)
    group=int((root/'pids').read_text().split()[0]);result={'error':message,'remaining':module.group_members(group)}
+ elif op=='smoke-timeout':
+  with tempfile.TemporaryDirectory() as folder:
+   root=pathlib.Path(folder);module.PRIVATE_TOOL_HOME=root
+   for name in ['phases','raw','reports']:(root/name).mkdir(mode=0o700)
+   app=root/'app';harness=root/'harness';(app/'node_modules/.bin').mkdir(parents=True);(harness/module.SMOKE).parent.mkdir(parents=True)
+   (harness/module.SMOKE).write_text('controlled smoke source');descriptor=root/'assignment.json';module.seal(descriptor,{})
+   a={'appDir':str(app),'harnessDir':str(harness),'simHome':folder,'smokeSha256':module.sha((harness/module.SMOKE).read_bytes())};r={'allowedSmokeSourceSha256':a['smokeSha256']}
+   module.verify=lambda *_args:(a,r,{})
+   os.environ.update({key:'controlled-context' for key in ['GITHUB_RUN_ID','GITHUB_RUN_ATTEMPT','GITHUB_JOB','GITHUB_ACTOR','GITHUB_REPOSITORY','GITHUB_EVENT_PATH']})
+   executable=app/'node_modules/.bin/vitest'
+   executable.write_text('#!'+sys.executable+'\nimport os,pathlib,subprocess,time\nsubprocess.Popen(["sleep","30"])\npathlib.Path('+repr(str(root/'group'))+').write_text(str(os.getpgrp()))\ntime.sleep(30)\n');executable.chmod(0o700)
+   owned_command=module.command
+   def short_command(*args,**kwargs):kwargs['timeout']=.4;return owned_command(*args,**kwargs)
+   module.command=short_command;failure=None
+   try:module.run_smoke(str(descriptor),str(harness/module.SMOKE),'startup-smoke',str(root/'reports/startup-smoke.json'))
+   except RuntimeError as error:failure=str(error)
+   group=int((root/'group').read_text());result={'error':failure,'remaining':module.group_members(group),'phase':module.read_json(root/'phases/smoke.json')['status'],'published':(root/'reports/startup-smoke.json').exists()}
  elif op=='cleanup':
   with tempfile.TemporaryDirectory() as folder:
    root=pathlib.Path(folder);(root/'phases').mkdir(mode=0o700);actions=[]
@@ -357,6 +374,9 @@ describe('T1 assigned hosted infrastructure contract', () => {
   })
   it('terminates the actual harmless timed-out command session including its child', () => {
     expect(probe({ op: 'timeout' }).result).toEqual({ error: 'runtime_command_timeout', remaining: [] })
+  })
+  it('terminates the actual fake-Vitest worker session before leaving smoke outcome unknown', () => {
+    expect(probe({ op: 'smoke-timeout' }).result).toEqual({ error: 'runtime_command_timeout', remaining: [], phase: 'OUTCOME_UNKNOWN', published: false })
   })
   it('removes only preflighted exact resources and preserves the preexisting inventory', () => {
     expect(probe({ op: 'cleanup' }).result).toEqual({ actions: [['rm', '--force', 'a'.repeat(64)], ['volume', 'rm', 'owned'], ['network', 'rm', 'b'.repeat(64)]], error: null, clean: true })
