@@ -1547,5 +1547,42 @@ class BootstrapContracts(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'bootstrap-public-run-binding-mismatch'):
                 module.verify_published_bootstrap(self.context,{'bootstrapProofSHA256':safe['proofSHA256']})
 
+class WorkflowRunnerContextContracts(unittest.TestCase):
+    def workflow_term(self):
+        return Path(module.__file__).parents[4].joinpath('.github/workflows/t2-term-disposable.yml').read_text().split('  term:\n',1)[1]
+
+    def binding_script(self):
+        term=self.workflow_term()
+        first=term.split('    steps:\n',1)[1].split('      - uses:',1)[0]
+        self.assertIn('Bind private runtime paths from actual runner process environment',first)
+        return '\n'.join(line[10:] for line in first.split('        run: |\n',1)[1].splitlines())+'\n'
+
+    def test_job_environment_uses_only_contexts_supported_by_github_actions(self):
+        import re
+        term=self.workflow_term();job_env=term.split('    env:\n',1)[1].split('    steps:\n',1)[0]
+        # Actual GitHub schema RED: jobs.<job_id>.env does not allow runner context.
+        self.assertNotRegex(job_env,r'\$\{\{\s*runner\.')
+        for key in ('SIM_RUNTIME_ASSIGNMENT_FILE:','SIM_HOME:','RUN_DIR:'):
+            self.assertNotIn(key,job_env)
+        self.assertLess(term.index('Bind private runtime paths'),term.index('actions/checkout@'))
+
+    def test_actual_first_step_exports_real_paths_and_missing_runner_inputs_fail_closed(self):
+        script=self.binding_script()
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);runner=root/'actual runner';workspace=root/'actual workspace'
+            runner.mkdir();workspace.mkdir();envfile=root/'environment';envfile.touch()
+            env=dict(os.environ,RUNNER_TEMP=str(runner),GITHUB_WORKSPACE=str(workspace),GITHUB_ENV=str(envfile))
+            result=subprocess.run(['bash','-c',script],env=env,capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertEqual(envfile.read_text(),'SIM_RUNTIME_ASSIGNMENT_FILE='+str(runner)+'/t2-admission.json\nSIM_HOME='+str(runner)+'/t2-runtime\nRUN_DIR='+str(workspace)+'\n')
+            self.assertEqual(result.stdout,'')
+            for missing in ('RUNNER_TEMP','GITHUB_WORKSPACE','GITHUB_ENV'):
+                with self.subTest(missing=missing):
+                    envfile.write_text('');bad=dict(env);bad.pop(missing)
+                    failed=subprocess.run(['bash','-c',script],env=bad,capture_output=True,text=True)
+                    self.assertNotEqual(failed.returncode,0)
+                    self.assertEqual(envfile.read_text(),'')
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

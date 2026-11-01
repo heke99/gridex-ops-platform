@@ -62,11 +62,14 @@ jobs:
       SIM_BOOTSTRAP_MODE: ${{ inputs.mode }}
       SIM_REQUIRE_ACTOR_RECEIPT: '1'
       NODE_OPTIONS: --max-old-space-size=6144
-      SIM_RUNTIME_ASSIGNMENT_FILE: ${{ runner.temp }}/t2-admission.json
-      SIM_HOME: ${{ runner.temp }}/t2-runtime
-      RUN_DIR: ${{ github.workspace }}
       GH_TOKEN: ${{ github.token }}
     steps:
+      - name: Bind private runtime paths from actual runner process environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${RUNNER_TEMP:?actual runner temp required}" "${GITHUB_WORKSPACE:?actual workspace required}" "${GITHUB_ENV:?actual environment file required}"
+          printf '%s\n' "SIM_RUNTIME_ASSIGNMENT_FILE=$RUNNER_TEMP/t2-admission.json" "SIM_HOME=$RUNNER_TEMP/t2-runtime" "RUN_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
