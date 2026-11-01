@@ -19,7 +19,8 @@
     "nodeMajor": 22,
     "supabaseCLI": "2.101.0",
     "postgresMajor": 17,
-    "pythonMinimum": "3.11"
+    "pythonMinimum": "3.11",
+    "opensslMinimum": "3.0"
   },
   "requiredBindings": [
     "sourceCommit",
@@ -39,16 +40,46 @@
     "clock",
     "cleanupPolicy",
     "scenario",
-    "replayPatchSha256",
-    "schemaFingerprint"
+    "canonicalReplaySHA256",
+    "schemaFingerprint",
+    "pilotId",
+    "mailCapabilities",
+    "pilotMailbox"
   ],
   "admissionPublicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAU8tvHM1A+pq+UoMH+vCpZRFZCWJpRernZ8TPewkM1TM=\n-----END PUBLIC KEY-----\n",
   "activationPrerequisites": [
     "two-independent-final-source-reviews",
     "qualified-current-integrated-app-and-GEN-source",
     "actual-separate-backend-and-producer-custody",
-    "verified-owned-GitHub-environment-10minute-timer",
-    "actual-runId-bound-signed-private-admission-before-job-start"
+    "actual-run-and-recipient-bound-CMS-delivery-before-any-backend-start",
+    "independently-reviewed-pristine-canonical-same-shell-lifetime-and-real-native-proof"
   ],
-  "wholeScenarioAcceptance": "HOLD_INDEPENDENT_EFFECT_REVIEW_REQUIRED"
+  "wholeScenarioAcceptance": "HOLD_INDEPENDENT_EFFECT_REVIEW_REQUIRED",
+  "privateAdmissionTransport": {
+    "version": "t2-cms-recipient-v1",
+    "publicNoticeTitle": "T2_CMS_RECIPIENT_V1",
+    "deliveryTagPrefix": "refs/tags/t2-private-admission/",
+    "waitSeconds": 600,
+    "recipientKey": "ephemeral-same-host-RSA4096-owner0600",
+    "keyWrapping": "RSA-OAEP-SHA256-MGF1-SHA256",
+    "contentCipher": "AES-256-GCM",
+    "signedPayload": "existing-pinned-Ed25519-exact-input",
+    "environmentOrSecretAdministration": false,
+    "pilotGate": "TERM02.03 requires actual decrypted-and-authenticated input before any backend start"
+  },
+  "runtimeReadiness": "SOURCE_IMPLEMENTED_NOT_NATIVE_QUALIFIED",
+  "pilotMailboxImage": "greenmail/standalone@sha256:beb3cfe6ec697592164a60515d7bd9164f3f29170b02e83e8defabdfe3da2c1d",
+  "pilotProfile": {
+    "pilotId": "TERM02.03",
+    "scenario": "scenarios/pilot-term0203.test.ts",
+    "mailCapabilities": {
+      "mode": "GREENMAIL_TLS_ONLY",
+      "smtps": "VERIFIED_TLS",
+      "imaps": "VERIFIED_TLS",
+      "legacySmtp": "RESERVED_NOT_USED",
+      "mailHttp": "RESERVED_NOT_USED"
+    },
+    "canonicalDBPort": 54322
+  },
+  "businessAcceptance": "HOLD_E66_HISTORY_ISSUER_AND_FILE_EXPORT_ORDINARY_SOURCE_GATES"
 }

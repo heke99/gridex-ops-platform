@@ -93,6 +93,7 @@ while IFS=$'\t' read -r key value; do
 done <<< "$ASSIGNED_ENV"
 unset ASSIGNED_ENV key value
 export SIM_HOME RUN_DIR
+export PYTHONDONTWRITEBYTECODE=1
 (umask 077; mkdir -p "$SIM_HOME" "$SIM_HOME/logs" "$SIM_HOME/pids" "$SIM_HOME/reports") \
   || die "kunde inte skapa privat körkatalog"
 chmod 700 "$SIM_HOME" || die "kunde inte skydda privat körkatalog"

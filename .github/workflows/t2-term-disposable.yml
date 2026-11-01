@@ -36,7 +36,6 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     needs: [source-contracts, allocation]
     runs-on: ubuntu-24.04
-    environment: t2-qualified-disposable
     timeout-minutes: 150
     env:
       PYTHONDONTWRITEBYTECODE: '1'
@@ -52,6 +51,10 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
           fetch-depth: 0
+      - name: Receive encrypted private run-bound admission on this same host
+        run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation receive-admission
+      - name: Authenticate source before dependency scripts
+        run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation check-source
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
@@ -72,44 +75,15 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client-17
           echo '/usr/lib/postgresql/17/bin' >> "$GITHUB_PATH"
-      - name: Receive private run-bound admission
-        shell: bash
-        env:
-          T2_ADMISSION_B64: ${{ secrets.T2_ADMISSION_B64 }}
-          T2_ADMISSION_SIGNATURE_B64: ${{ secrets.T2_ADMISSION_SIGNATURE_B64 }}
-        run: |
-          python3 - <<'PY'
-          import base64, os
-          for variable, suffix in [('T2_ADMISSION_B64', ''), ('T2_ADMISSION_SIGNATURE_B64', '.sig')]:
-              value = base64.b64decode(os.environ[variable], validate=True)
-              descriptor = os.open(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE'] + suffix,
-                                   os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
-              with os.fdopen(descriptor, 'wb') as stream:
-                  stream.write(value)
-          PY
-      - name: Authenticate source before dependency scripts
-        run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation check-source
       - name: Exact lock dependencies
         run: npm ci
-      - name: Prepare and qualify on this dedicated host
+      - name: Replay, consume and restore within one owned canonical shell
         shell: bash
         run: |
           # No raw replay/build/assignment output enters Actions logs/artifacts.
           umask 077
           if ! bash scripts/simulation/track2/hosted/prepare.sh --execute > "$RUNNER_TEMP/t2-prepare.private.log" 2>&1; then
-            echo 'T2 preparation HOLD; private evidence retained on this host'
-            exit 1
-          fi
-      - name: Execute exactly the admitted scenario
-        shell: bash
-        run: |
-          umask 077
-          if ! python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation scenario > "$RUNNER_TEMP/t2-scenario.private.log" 2>&1; then
-            echo 'T2 scenario failed; no acceptance claimed'
-            exit 1
-          fi
-          if ! python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation actor-proof > "$RUNNER_TEMP/t2-actors.private.log" 2>&1; then
-            echo 'T2 per-case actor evidence HOLD; no acceptance claimed'
+            echo 'T2 supervised replay/consumer lifecycle HOLD; no acceptance claimed'
             exit 1
           fi
       - name: Always clean exact owned resources on this host
