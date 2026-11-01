@@ -393,7 +393,7 @@ function contractCoversSegment(
   return true;
 }
 
-function segmentBounds(
+export function resolveBillingUnderlaySegmentBounds(
   period: JsonRecord,
   monthStart: string,
   monthEnd: string,
@@ -402,12 +402,34 @@ function segmentBounds(
   const periodEnd = period.end_date
     ? localDateBoundary(addDays(String(period.end_date), 1))
     : monthEnd;
+  const exactBound = (field: "market_start_at" | "market_end_at"): number | null => {
+    const value = period[field];
+    if (value == null) return null;
+    // Require an explicit instant; date-only or timezone-free values must not
+    // inherit the process timezone. Reject calendar rollover accepted by Date.parse.
+    const timestamp = typeof value === "string" ? value.trim() : "";
+    const match = /^(\d{4}-\d{2}-\d{2})[Tt ](?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$/.exec(timestamp);
+    const instant = Date.parse(timestamp);
+    const date = match ? Date.parse(`${match[1]}T00:00:00Z`) : NaN;
+    if (
+      !Number.isFinite(instant) ||
+      !Number.isFinite(date) ||
+      new Date(date).toISOString().slice(0, 10) !== match?.[1]
+    ) {
+      throw new Error(`Invalid supply period ${field}.`);
+    }
+    return instant;
+  };
+  const marketStart = exactBound("market_start_at");
+  const marketEnd = exactBound("market_end_at");
+  // Exact market boundaries only narrow the civil/month intersection. Empty
+  // intersections stay empty and are excluded by the generator's overlap filter.
   return {
     start: new Date(
-      Math.max(Date.parse(monthStart), Date.parse(periodStart)),
+      Math.max(Date.parse(monthStart), Date.parse(periodStart), marketStart ?? -Infinity),
     ).toISOString(),
     end: new Date(
-      Math.min(Date.parse(monthEnd), Date.parse(periodEnd)),
+      Math.min(Date.parse(monthEnd), Date.parse(periodEnd), marketEnd ?? Infinity),
     ).toISOString(),
   };
 }
@@ -869,7 +891,7 @@ export async function generateBillingUnderlaysForMonth(input: {
     const overlappingPeriods = meterPeriods
       .map((period) => ({
         period,
-        ...segmentBounds(period, bounds.start, bounds.end),
+        ...resolveBillingUnderlaySegmentBounds(period, bounds.start, bounds.end),
       }))
       .filter((entry) => Date.parse(entry.end) > Date.parse(entry.start))
       .sort(
