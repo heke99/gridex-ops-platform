@@ -54,7 +54,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { buildDayWire } from './wire'
 import { substitute } from './substitutions'
-import { dbRead, http, lit, signIn, timed, type Session } from './runtime'
+import { dbRead, http, lit, readSiteAuthDeadlineFromEnv, signIn, timed, writeArtifact, type Session } from './runtime'
 import { QUARTERS_PER_DAY, spotDayPayload, syntheticMonth } from './synthetic'
 import { SITE_A, SITE_B, SITE01_BILLING_MONTH, chooseSiteNativeV2Oracle, assertSiteNativeV2Start, siteEndPlan, type SiteKey, type SiteOracle, type SiteSpec } from './site01Synthetic'
 
@@ -491,6 +491,7 @@ async function ingestDay(input: { f: Ground | Stage; runtime: SiteRuntime; day: 
 // ------------------------------------------------------------------- builder
 
 export async function buildSite01Fixture(): Promise<Site01Fixture> {
+  const siteAuthDeadline = readSiteAuthDeadlineFromEnv()
   const nativeInput = (spec: SiteSpec) => ({ epoch: 'site-native-input-v2' as const, convention: 'ediel-fixed-utc+01' as const, rawStartMinute: spec.startDate.replaceAll('-', '') + '0000' })
   const oracleA = chooseSiteNativeV2Oracle(SITE_A, nativeInput(SITE_A)), oracleB = chooseSiteNativeV2Oracle(SITE_B, nativeInput(SITE_B))
   for (const [key, value] of Object.entries(SYNTHETIC_SMTP_ENV)) vi.stubEnv(key, value)
@@ -521,7 +522,6 @@ export async function buildSite01Fixture(): Promise<Site01Fixture> {
     must(!update.error, `site01_grid_owner_name_failed:${spec.key}:${update.error?.message}`)
   }
 
-  const supplyEnd = await timed('fixture: site B ordinary Z05L end', () => endExistingSiteSupply(groundA, groundB, supplyB, oracleB))
 
   // Operator session (permissions + password) and spot prices for both areas, settlement-locked over HTTP.
   substitute({ id: 'actor-permissions-password', step: 'fixture: operator session', substitute: 'role_permissions rows on the actor\'s existing seed role via psql, password via auth admin API, then a real password login producing the app session cookies',
@@ -536,7 +536,10 @@ export async function buildSite01Fixture(): Promise<Site01Fixture> {
       AND NOT EXISTS(SELECT 1 FROM public.role_permissions x WHERE x.role_id=r.id AND x.permission_id=p.id);`)
   const updated = await supabaseService.auth.admin.updateUserById(groundA.actorUserId, { password })
   must(!updated.error, `site01_password_failed:${updated.error?.message}`)
-  const session = await timed('fixture: sign in', () => signIn({ email: `${groundA.actorUserId}@example.invalid`, password, userId: groundA.actorUserId, companyId: groundA.companyId }))
+  const session = await timed('fixture: sign in', () => signIn({ email: `${groundA.actorUserId}@example.invalid`, password, userId: groundA.actorUserId, companyId: groundA.companyId, siteAuthDeadline }))
+  must(session.authLifetime, 'site01_auth_observation_missing')
+  writeArtifact('site01-auth-lifetime.json', session.authLifetime)
+  const supplyEnd = await timed('fixture: site B ordinary Z05L end', () => endExistingSiteSupply(groundA, groundB, supplyB, oracleB))
   substitute({ id: 'spot-provider', step: 'fixture: spot prices SE3 + SE4', substitute: 'in-process fetchImpl serving synthetic elprisetjustnu-format hourly rows into the real importSpotPricesForMonth, one salt per price area',
     notVerified: 'the external provider API and its network/TLS handling' })
   const spotLocks: Record<string, Record<string, unknown>> = {}
