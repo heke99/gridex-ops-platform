@@ -83,6 +83,19 @@ export function assertFileNotFound(response) {
   assert.ok(!response.location, 'not-found response must not redirect to file content')
 }
 
+/** Anonymous access must reach the actual login boundary, not an unrelated denial. */
+export function assertAnonymousFileLogin(response, appUrl, requestedPath) {
+  assert.equal(response.status, 307, 'anonymous file request must use the installed login redirect')
+  assert.equal(typeof response.location, 'string', 'login redirect missing')
+  const login = new URL(response.location, appUrl)
+  assert.equal(login.origin, new URL(appUrl).origin, 'login must stay on the actual application origin')
+  assert.equal(login.pathname, '/login'); assert.equal(login.hash, '')
+  assert.deepEqual([...login.searchParams.keys()], ['next'], 'exact login continuation without duplicates')
+  assert.equal(login.searchParams.get('next'), requestedPath, 'login must retain the actual requested file/format')
+  assert.equal(response.bytes.length, 0, 'anonymous redirect must contain no file or private body bytes')
+  assert.ok(!response.contentDisposition, 'anonymous redirect must not advertise a file')
+}
+
 // ---- Row readers --------------------------------------------------------------------------------------
 export const itemsFor = (sql, companyId, month) => sql.rows(`
   SELECT i.id, i.status, i.billing_underlay_id, i.pricing_run_id, i.total_kwh, i.amount_ex_vat, i.vat_amount, i.amount_inc_vat, i.export_file_id,

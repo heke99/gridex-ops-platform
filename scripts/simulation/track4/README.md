@@ -253,3 +253,9 @@ markers never established actual backend ownership or current producer admission
 Use the separately qualified preparation/runner profile for backend reuse. These
 source corrections do not qualify the remaining legacy mail/app lifecycle,
 provision a backend or authorize a local stack on an under-capacity host.
+
+Anonymous-file checks first validate the owner’s actual protected XML. Each anonymous
+request (default/XML/JSON/CSV/XLSX) must then reach the installed307 login redirect
+on the same application origin, with the exact file/format continuation, no body
+bytes and no attachment header. A generic401/403/404 or unrelated redirect is not
+login evidence. These remain source/component controls until qualified runtime.

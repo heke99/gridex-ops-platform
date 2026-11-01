@@ -604,3 +604,53 @@ describe.each(['MAIN05.05', 'MAIN05.05b', 'MAIN05.06'])('%s negative file respon
     expect(h.requests.some(request => request.path.endsWith('?format=nordfin_xml') && (id !== 'MAIN05.05b' || request.cookie === 'negative-B'))).toBe(true)
   })
 })
+
+function anonymousDownloadHarness(alter: (reply: Download) => Download = r => r, ownStatus = 200) {
+  const file = stored([jsonRow]); const requests: { cookie?: string; path: string }[] = []
+  const appUrl = 'http://anonymous.invalid'
+  const ctx = {
+    assert, value() {}, env: { T4_APP_URL: appUrl },
+    fixture: { fileId: file.id, fileRow: file, sessions: { A: { cookie: () => 'owner-A' } } },
+    http: { async get(path: string, options: { cookie?: string } = {}) {
+      requests.push({ cookie: options.cookie, path })
+      if (options.cookie === 'owner-A') {
+        const rendered = renderInvoiceFile(file, 'nordfin_xml')
+        return response(rendered.body, ownStatus, rendered.contentType, `attachment; filename="${rendered.fileName}"`)
+      }
+      assert.equal(options.cookie, undefined, 'anonymous request must send no cookie')
+      const login = new URL('/login', appUrl); login.searchParams.set('next', path)
+      return alter(response('', 307, '', '', login.href))
+    } },
+  }
+  return { ctx, requests }
+}
+
+describe('MAIN05.04 actual anonymous login callback', () => {
+  it('validates an owner XML control and the anonymous login target for every format', async () => {
+    const h = anonymousDownloadHarness()
+    await runCallback('MAIN05.04', h.ctx)
+    expect(h.requests[0].cookie).toBe('owner-A')
+    expect(new Set(h.requests.filter(r => !r.cookie).map(r => new URL(r.path, 'http://anonymous.invalid').searchParams.get('format'))))
+      .toEqual(new Set([null, 'nordfin_xml', 'json', 'csv', 'xlsx']))
+  })
+  it.each([401, 403, 404])('rejects HTTP%s as proof of login rather than accepting a setup failure', async status => {
+    await expect(runCallback('MAIN05.04', anonymousDownloadHarness(r => ({ ...r, status })).ctx)).rejects.toThrow()
+  })
+  it.each([
+    ['foreign origin', (r: Download) => ({ ...r, location: r.location.replace('anonymous.invalid', 'foreign.invalid') })],
+    ['unrelated redirect', (r: Download) => ({ ...r, location: r.location.replace('/login?', '/unrelated?') })],
+    ['wrong continuation', (r: Download) => ({ ...r, location: 'http://anonymous.invalid/login?next=%2Fother' })],
+    ['duplicate continuation', (r: Download) => ({ ...r, location: r.location + '&next=%2Fother' })],
+    ['private redirect body', (r: Download) => replaceBody(r, 'private account and address details')],
+    ['download header', (r: Download) => ({ ...r, contentDisposition: 'attachment; filename="invoice.csv"' })],
+  ])('rejects %s', async (_label, mutate) => {
+    const h = anonymousDownloadHarness(mutate)
+    await expect(runCallback('MAIN05.04', h.ctx)).rejects.toThrow()
+    expect(h.requests.some(r => !r.cookie)).toBe(true)
+  })
+  it('rejects a failed owner control before attempting anonymous requests', async () => {
+    const h = anonymousDownloadHarness(undefined, 404)
+    await expect(runCallback('MAIN05.04', h.ctx)).rejects.toThrow()
+    expect(h.requests.some(r => !r.cookie)).toBe(false)
+  })
+})

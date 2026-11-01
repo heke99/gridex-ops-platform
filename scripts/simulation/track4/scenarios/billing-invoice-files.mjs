@@ -10,7 +10,7 @@ import { randomUUID } from 'node:crypto'
 import { fixtureSteps, ensureSession } from '../fixtures/seed.mjs'
 import { FIXTURE_MONTHS } from '../fixtures/expected.mjs'
 import { lit } from '../runner/lib/sql.mjs'
-import { countsFor, diffCounts, prepare, runAction, actionId, getFile, itemsFor, filesFor, pricingRunsFor, rowsSha256, money, assertCreateFileRedirect, assertApproveRedirect, assertFileReplayRedirect, assertPrepareResponse, assertFileNotFound, freezeFileSnapshot, assertInvoiceJson, assertInvoiceXml } from '../fixtures/flows.mjs'
+import { countsFor, diffCounts, prepare, runAction, actionId, getFile, itemsFor, filesFor, pricingRunsFor, rowsSha256, money, assertCreateFileRedirect, assertApproveRedirect, assertFileReplayRedirect, assertPrepareResponse, assertFileNotFound, assertAnonymousFileLogin, freezeFileSnapshot, assertInvoiceJson, assertInvoiceXml } from '../fixtures/flows.mjs'
 
 const M = FIXTURE_MONTHS
 const N = Number(process.env.T4_CONCURRENCY ?? 10)
@@ -251,16 +251,15 @@ const steps = [
   {
     id: 'MAIN05.04', title: 'anonymous GET of an invoice file returns no file bytes', scope: 'api', needs: ['MAIN05.01'],
     async run(ctx) {
-      const fx = ctx.fixture
-      const secrets = [fx.fileRow.rows[0].invoice_number, 'T4Kund', money(fx.fileRow.rows[0].amount_inc_vat)]
-      for (const q of [undefined, 'json', 'csv']) {
-        const r = await getFile(ctx, null, fx.fileId, { format: q, label: `anonymous GET ${q ?? 'default'}` })
-        ctx.assert.notEqual(r.status, 200, `anonymous must not get 200 (format ${q})`)
-        ctx.assert.ok([301, 302, 303, 307, 308, 401, 403, 404].includes(r.status), `controlled status expected, got ${r.status}`)
-        const body = r.text()
-        for (const secret of secrets) ctx.assert.ok(!body.includes(secret), `body must not contain ${secret === secrets[2] ? 'the amount' : secret}`)
-        ctx.assert.ok(!/attachment/.test(r.contentDisposition ?? ''), 'no attachment disposition')
-        ctx.value(`anon_${q ?? 'default'}`, { status: r.status, location: r.location, bytes: r.bytes.length })
+      const fx = ctx.fixture, owner = await ensureSession(ctx, 'A')
+      const control = await getFile(ctx, owner, fx.fileId, { format: 'nordfin_xml', label: 'anonymous test control: owner XML' })
+      ctx.assert.equal(control.status, 200, 'a real owned file must be available before anonymous probes')
+      assertInvoiceXml(control, fx.fileRow)
+      for (const format of DENIED_FILE_FORMATS) {
+        const target = `/admin/billing/invoice-files/${fx.fileId}${format ? `?format=${format}` : ''}`
+        const response = await getFile(ctx, null, fx.fileId, { format, label: `anonymous GET ${format ?? 'default'}` })
+        assertAnonymousFileLogin(response, ctx.env.T4_APP_URL, target)
+        ctx.value(`anon_${format ?? 'default'}`, { status: response.status, location: response.location, bytes: response.bytes.length })
       }
     },
   },
