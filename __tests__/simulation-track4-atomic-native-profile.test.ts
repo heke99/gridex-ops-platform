@@ -211,14 +211,14 @@ describe('actual profile controls without backend execution', () => {
 
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
-type ProfileWorkflow = { on: { workflow_dispatch?: unknown }; jobs: Record<string, { if: string; steps: Array<{ name?: string; run?: string; uses?: string; with?: { path?: string } }> }> }
+type ProfileWorkflow = { on: { workflow_dispatch?: unknown }; jobs: Record<string, { if: string; env: Record<string, string>; steps: Array<{ name?: string; run?: string; uses?: string; with?: { path?: string } }> }> }
 const { load: parse } = createRequire(import.meta.url)('js-yaml') as { load(source: string): ProfileWorkflow }
 describe('profile workflow and failure boundaries', () => {
   it('keeps provisioning, preparation, native and exact cleanup in one explicitly guarded host job', () => {
     const workflow = parse(readFileSync(join(process.cwd(), '.github/workflows/t4-atomic-native.yml'), 'utf8'))
     expect(Object.keys(workflow.jobs)).toEqual(['atomic-native'])
     expect(workflow.on.workflow_dispatch).toBeUndefined()
-    expect(workflow.jobs['atomic-native'].if).toContain("github.head_ref == 'codex/t4-atomic-native-activation'")
+    expect(workflow.jobs['atomic-native'].if).toContain("github.event.label.name == 't4-atomic-native-activation'")
     const steps = workflow.jobs['atomic-native'].steps as Array<{ name?: string; run?: string; uses?: string; with?: { path?: string } }>
     const scripts = steps.map((step) => step.run ?? '').join('\n')
     for (const phase of ['init', 'bootstrap', 'prepare', 'native', 'cleanup']) {
@@ -255,5 +255,108 @@ describe('profile workflow and failure boundaries', () => {
     io.strictSourceSnapshot.mockResolvedValueOnce({ allFinal: false, provenanceSha256: sha, rawHistorySha256: sha })
     await expect(runProfilePhase('native', plan, state, io)).rejects.toThrow('strict_final_source_required')
     expect(io.native).not.toHaveBeenCalled()
+  })
+})
+
+import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs'
+import * as actualProfile from '../scripts/simulation/track4/atomic-native-profile.mjs'
+function privateJson(path: string, data: unknown) {
+  writeFileSync(path, JSON.stringify(data), { mode: 0o600 })
+}
+describe('review regressions: real source and filesystem boundaries', () => {
+  it('never delivers the transport key to PR-head code; trusted immutable main source is gated first', () => {
+    const workflow = parse(readFileSync(join(process.cwd(), '.github/workflows/t4-atomic-native.yml'), 'utf8'))
+    expect(workflow.on).toHaveProperty('pull_request_target')
+    const steps = workflow.jobs['atomic-native'].steps
+    const checkout = steps.find((step) => step.uses?.startsWith('actions/checkout@'))
+    expect(checkout?.with).toHaveProperty('ref', '${{ github.workflow_sha }}')
+    const gateIndex = steps.findIndex((step) => step.name === 'Verify trusted immutable code and public bootstrap lease before private inputs')
+    const keyIndex = steps.findIndex((step) => step.name === 'Decrypt private input and obtain exact public source snapshots')
+    expect(gateIndex).toBeGreaterThan(0)
+    expect(gateIndex).toBeLessThan(keyIndex)
+    expect(workflow.jobs['atomic-native'].env.TRUSTED_WORKFLOW_SHA).toBe('${{ github.workflow_sha }}')
+    expect(steps[gateIndex].run).toContain('verify-code')
+  })
+  it('binds preparer imports to the actual locked app dependency environment', async () => {
+    const root = mkdtempSync(join(tmpdir(), 't4-preparer-deps-'))
+    try {
+      const app = join(root, 'app'), preparer = join(root, 'preparer')
+      for (const path of [app, preparer]) {
+        mkdirSync(path)
+        writeFileSync(join(path, 'package.json'), '{"type":"module"}')
+        writeFileSync(join(path, 'package-lock.json'), '{"lockfileVersion":3}')
+      }
+      symlinkSync(join(process.cwd(), 'node_modules'), join(app, 'node_modules'))
+      const bind = (actualProfile as unknown as { bindPreparerDependencies(app: string, preparer: string): unknown }).bindPreparerDependencies
+      await bind(app, preparer)
+      const resolved = createRequire(join(preparer, 'prepare.mjs')).resolve('@supabase/ssr')
+      expect(resolved).toBe(createRequire(join(app, 'prepare.mjs')).resolve('@supabase/ssr'))
+      expect(readFileSync(join(preparer, 'package-lock.json'), 'utf8')).toBe('{"lockfileVersion":3}')
+    } finally { rmSync(root, { recursive: true, force: true }) }
+  })
+  it('passes the complete observed daemon network set to1020 and retains separate owned cleanup network', async () => {
+    const root = mkdtempSync(join(tmpdir(), 't4-network-binding-'))
+    try {
+      const home = join(root, 'home'), app = join(root, 'app')
+      mkdirSync(home); mkdirSync(app); mkdirSync(join(home, 'receipts'))
+      for (const path of ['supabase', 'scripts']) mkdirSync(join(app, path))
+      for (const path of ['supabase/schema.sql', 'supabase/database.types.ts', 'supabase/schema.fingerprint.json',
+        'scripts/migration-history-manifest.json', 'scripts/supabase-types-manifest.json']) writeFileSync(join(app, path), 'source')
+      const networkIds = ['1', '2', '3', '4'].map((value) => value.repeat(64))
+      const ownNetwork = networkIds[3]
+      privateJson(join(home, 'receipts/actual-bootstrap.json'), { host: {}, build: { receiptSha256: sha }, app: { pid: 12, startTicks: '3' },
+        databaseSystemIdentifier: 'db', resources: { roles: { database: 'db', api: 'api' },
+          containers: [], volumes: [], network: { Id: ownNetwork }, allNetworkIds: networkIds } })
+      const facts = { companyId: 'coA', otherCompanyId: 'coB', actors: {}, targets: {} }
+      privateJson(join(home, 'facts.json'), facts)
+      privateJson(join(home, 'manifest.json'), { preparationFacts: { path: join(home, 'facts.json'),
+        sha256: digest(JSON.stringify(facts)) }, cohortArtifact: { path: '/actual/cohort', sha256: sha } })
+      const { plan } = fixture()
+      const input = await actualProfile.preparationInput({ ...plan, home,
+        cohort: { manifestPath: join(home, 'manifest.json') }, sources: { ...plan.sources, app: { ...plan.sources.app, root: app } },
+        tools: { supabaseCli: { path: '/private/supabase', sha256: sha } } })
+      expect(input.backend.networkIds).toEqual(networkIds)
+      expect(input.backend.networkIds).toContain(ownNetwork)
+    } finally { rmSync(root, { recursive: true, force: true }) }
+  })
+  it('pins both real ELF members from the inspected official2.101 archive, without fake companion provisioning', () => {
+    // Actual archive SHA285877ef... was read-only inspected independently. It
+    // contains BOTH these members; companion absence was a review hypothesis.
+    expect(actualProfile.FROZEN).toHaveProperty('supabaseBinarySha256', 'b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f')
+    expect(actualProfile.FROZEN).toHaveProperty('supabaseGoBinarySha256', '9dd9e81a21074081328b77a27a8aef7be45a2828f81d99c4e1fb65efbec73947')
+  })
+})
+
+describe('immutable default-main public gate: actual capsule control', () => {
+  it('accepts only a neutral sole-parent capsule rooted in the immutable trusted workflow commit', () => {
+    const workflowSha = 'a'.repeat(40), tree = 'b'.repeat(40), receipt = 'c'.repeat(40)
+    const resource = `refs/tags/agent-claims/masterplan/producer-t4-atomic-runtime-code-123-${workflowSha}`
+    const message = JSON.stringify({ base: workflowSha, files: [], operation:
+      `Acquire bounded ${resource.slice('refs/tags/agent-claims/masterplan/'.length)}; resources-sha256=${digest(resource)}; attempt-sha256=${'d'.repeat(64)}; state=PENDING_INPUT_QUALIFICATION` })
+    const observed = { object: { sha: receipt } }
+    const commit = { sha: receipt, message, parents: [{ sha: workflowSha }], tree: { sha: tree } }
+    const base = { sha: workflowSha, tree: { sha: tree } }
+    expect(() => actualProfile.verifyTrustedCodeCapsule(workflowSha, resource, observed, commit, base)).not.toThrow()
+    expect(() => actualProfile.verifyTrustedCodeCapsule('e'.repeat(40), resource, observed, commit, base)).toThrow()
+    expect(() => actualProfile.verifyTrustedCodeCapsule(workflowSha, resource, observed,
+      { ...commit, tree: { sha: 'f'.repeat(40) } }, base)).toThrow()
+    expect(() => actualProfile.verifyTrustedCodeCapsule(workflowSha, resource, observed,
+      { ...commit, parents: [{ sha: workflowSha }, { sha: 'e'.repeat(40) }] }, base)).toThrow()
+  })
+  it('refuses a different preparer lock and preserves any unknown dependency directory', () => {
+    const root = mkdtempSync(join(tmpdir(), 't4-preparer-deps-denial-'))
+    try {
+      const app = join(root, 'app'), preparer = join(root, 'preparer')
+      for (const path of [app, preparer]) { mkdirSync(path); writeFileSync(join(path, 'package.json'), '{}') }
+      writeFileSync(join(app, 'package-lock.json'), 'app-lock')
+      writeFileSync(join(preparer, 'package-lock.json'), 'different-lock')
+      expect(() => actualProfile.bindPreparerDependencies(app, preparer)).toThrow('preparer_dependency_inputs_differ')
+      writeFileSync(join(preparer, 'package-lock.json'), 'app-lock')
+      symlinkSync(join(process.cwd(), 'node_modules'), join(app, 'node_modules'))
+      mkdirSync(join(preparer, 'node_modules'))
+      writeFileSync(join(preparer, 'node_modules/foreign'), 'preserve')
+      expect(() => actualProfile.bindPreparerDependencies(app, preparer)).toThrow('fresh_preparer_dependency_environment_required')
+      expect(readFileSync(join(preparer, 'node_modules/foreign'), 'utf8')).toBe('preserve')
+    } finally { rmSync(root, { recursive: true, force: true }) }
   })
 })

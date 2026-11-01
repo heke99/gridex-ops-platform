@@ -1,10 +1,14 @@
 name: T4 atomic native owned-host profile
 
 # SOURCE ONLY: this package grants no execution event. A separately reviewed
-# activation PR, genuine private inputs and three live producer leases are needed.
+# activation label, genuine private inputs and live code/bootstrap/preparation/native
+# producer leases are needed. INACTIVE until this exact reviewed workflow/driver
+# is registered on trusted default main. No PR-head code is checked out or run.
+# The public neutral code lease binds github.workflow_sha BEFORE private secrets;
+# it authorizes no backend/native operations. No environment/admin capability is assumed.
 on:
-  pull_request:
-    types: [opened]
+  pull_request_target:
+    types: [labeled]
 permissions:
   contents: read
   actions: read
@@ -15,18 +19,27 @@ jobs:
   atomic-native:
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.head_ref == 'codex/t4-atomic-native-activation' && github.run_attempt == 1
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.label.name == 't4-atomic-native-activation' && github.run_attempt == 1
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     env:
       T4_HOME: ${{ runner.temp }}/t4-atomic-native-private
       GH_TOKEN: ${{ github.token }}
+      TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
+      TRUSTED_WORKFLOW_REF: ${{ github.workflow_ref }}
+      TRIGGER_PR_NUMBER: ${{ github.event.pull_request.number }}
+      TRIGGER_LABEL: ${{ github.event.label.name }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.workflow_sha }}
           path: profile
           persist-credentials: false
+      - name: Verify trusted immutable code and public bootstrap lease before private inputs
+        run: |
+          set -euo pipefail
+          node profile/scripts/simulation/track4/atomic-native-profile.mjs verify-code
       - name: Require privately authenticated input before backend mutations
         env:
           INPUT_ARTIFACT_ID: ${{ secrets.T4_PRIVATE_INPUT_ARTIFACT_ID }}
@@ -67,6 +80,12 @@ jobs:
                   assert hashlib.sha256(data).hexdigest()==digest,'public tool archive refused'
                   target=root/name;target.mkdir(mode=0o700)
                   with tarfile.open(fileobj=io.BytesIO(data)) as a:a.extractall(target,filter='data')
+              expected={'supabase':'b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f',
+                'supabase-go':'9dd9e81a21074081328b77a27a8aef7be45a2828f81d99c4e1fb65efbec73947'}
+              assert sorted(p.name for p in (root/'supabase').iterdir())==sorted(expected),'actual companion archive members required'
+              for name,digest in expected.items():
+                  binary=root/'supabase'/name
+                  assert binary.is_file() and not binary.is_symlink() and hashlib.sha256(binary.read_bytes()).hexdigest()==digest
               npm=root/'node/node-v22.23.4-linux-x64/bin/npm';npm.unlink();npm.symlink_to(root/'npm/package/bin/npm-cli.js')
           except Exception:
               raise SystemExit('T4 private/source/tool prerequisite HOLD')
@@ -102,6 +121,10 @@ jobs:
           set -euo pipefail
           umask 077
           node profile/scripts/simulation/track4/atomic-native-profile.mjs receive "$RUNNER_TEMP/t4-input.enc.json" "$T4_HOME"
+      - name: Obtain exact public source snapshots without the transport key
+        run: |
+          set -euo pipefail
+          umask 077
           python3 - <<'PY'
           try:
               import json,os,pathlib,re,subprocess

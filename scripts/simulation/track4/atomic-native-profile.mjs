@@ -8,6 +8,14 @@
  * missing either real input path fails BEFORE backend/business mutations.
  * c8c is immutable; strict1020 FINAL/provenance/raw-history checks surround it.
  *
+ * INACTIVE until registered reviewed default-main workflow. pull_request_target
+ * uses only github.workflow_sha code; a distinct public neutral code resource
+ * must seal that immutable main parent/tree BEFORE private inputs are accessed.
+ * codeGate {resource,receipt,attempt:{path,sha256}} later opens that same sealed
+ * private attempt, scope.kind=t4-atomic-runtime-code-v1/privatePlanSha256 of this
+ * plan excluding codeGate/workflowSha/expiresAt, budget.bootstrap=native=0.
+ * This source-only code gate creates no backend/native permission or resource.
+ *
  * Private input ABI (all paths canonical, inputs600/home700):
  * format/inputEpoch/owner/slot/expiresAt/home/projectId; sources each root+commit
  * +tree for app/preparer/profile/replayHelper/buildHelper; buildHelper additionally
@@ -32,14 +40,17 @@
  */
 import { spawn, execFileSync } from 'node:child_process'
 import { constants, createCipheriv, createDecipheriv, createHash, createPublicKey, publicEncrypt, randomBytes } from 'node:crypto'
-import { closeSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, statfsSync, writeFileSync } from 'node:fs'
+import { closeSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, statfsSync, symlinkSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, resolve } from 'node:path'
+import { createRequire } from 'node:module'
 import { availableParallelism } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { gzipSync } from 'node:zlib'
 
 export const EVIDENCE_RECIPIENT_SHA256 = '7048399e88324e148011152fd719d79a0bc9af82b890bc31699e982cbcf3c728'
 export const FROZEN = Object.freeze({
+  supabaseBinarySha256: 'b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f',
+  supabaseGoBinarySha256: '9dd9e81a21074081328b77a27a8aef7be45a2828f81d99c4e1fb65efbec73947',
   preparerCommit: 'de035b35ee60c429ffc87495cc4f90a851579eec',
   preparerTree: 'f13f2972926ad9a7b36ec5f6acd7cfc9bf506a18',
   preparerFiles: {
@@ -364,7 +375,7 @@ function inspectResources(plan, network) {
     need(matches.length === 1, 'backend_role_ambiguous')
     return matches[0].Id
   }
-  return { containers: ours, volumes, network, roles: {
+  return { containers: ours, volumes, network, allNetworkIds: now.networks, roles: {
     database: role('supabase_db_'), api: role('supabase_kong_'), storage: role('supabase_storage_') } }
 }
 function verifyResourceBirth(plan, item, networkId) {
@@ -389,7 +400,8 @@ export function verifyLeaseCapsule(resource, attemptBytes, observed, commit, bas
     && commit.tree.sha === base.tree.sha, 'neutral_phase_parent_tree_required')
 }
 
-function staticPreflight(plan) {
+async function staticPreflight(plan) {
+  await verifyPrivateCodeGate(plan)
   need(process.versions.node === '22.23.4' && process.env.GITHUB_ACTIONS === 'true'
     && process.env.GITHUB_RUN_ATTEMPT === '1' && process.env.GITHUB_JOB === 'atomic-native', 'one_actual_source_bound_actions_job_required')
   for (const source_ of Object.values(plan.sources)) source(source_.root, source_.commit, source_.tree)
@@ -407,7 +419,12 @@ function staticPreflight(plan) {
     && /^psql \(PostgreSQL\) 17\./.test(capture('psql', ['--version']))
     && /^pg_restore \(PostgreSQL\) 17\./.test(capture('pg_restore', ['--version'])), 'actual_pinned_toolchain_required')
   need(realpathSync(capture('which', ['supabase'])) === plan.tools.supabaseCli.path, 'actual_private_cli_path_required')
-  readBytesHash(plan.tools.supabaseCli.path, plan.tools.supabaseCli.sha256)
+  need(plan.tools.supabaseCli.sha256 === FROZEN.supabaseBinarySha256, 'official_standalone_cli_required')
+  readBytesHash(plan.tools.supabaseCli.path, FROZEN.supabaseBinarySha256)
+  const companion = realpathSync(capture('which', ['supabase-go']))
+  need(companion === join(plan.tools.supabaseCli.path.slice(0, plan.tools.supabaseCli.path.lastIndexOf('/')), 'supabase-go'),
+    'actual_adjacent_go_companion_required')
+  readBytesHash(companion, FROZEN.supabaseGoBinarySha256)
   readBytesHash(join(plan.sources.app.root, 'package-lock.json'), plan.dependencyLockSha256)
   const configured = capture('python3', ['-c', 'import pathlib,sys,tomllib;print(tomllib.loads(pathlib.Path(sys.argv[1]).read_text())["project_id"])', join(plan.sources.app.root, 'supabase/config.toml')])
   need(configured === plan.projectId && /^[a-z0-9-]+$/.test(configured), 'fixed_source_project_binding_required')
@@ -520,6 +537,8 @@ async function bootstrapActual(plan) {
   await ownedChild('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'],
     { cwd: app, env: process.env }, 600_000, join(plan.home, 'raw', 'dependencies.log'))
   const lock = readJsonLoose(join(app, 'node_modules', '.package-lock.json'))
+  const preparerDependencies = bindPreparerDependencies(app, plan.sources.preparer.root)
+  seal(join(plan.home, 'receipts', 'preparer-dependencies.json'), preparerDependencies)
   const installedNext = readJsonLoose(join(app, 'node_modules', 'next', 'package.json'))
   const sourceLock = readJsonLoose(join(app, 'package-lock.json'))
   need(installedNext.version === sourceLock.packages['node_modules/next'].version
@@ -649,7 +668,7 @@ async function restoreCohortActual(plan, resources, status) {
     sourceOriginals: manifest.sourceEvidence, guardsDisabled: false, statusApiUrl: status.API_URL })
 }
 
-async function preparationInput(plan) {
+export async function preparationInput(plan) {
   const actual = readJson(join(plan.home, 'receipts', 'actual-bootstrap.json'))
   const manifest = readJson(plan.cohort.manifestPath)
   const facts = readJson(manifest.preparationFacts.path)
@@ -671,7 +690,7 @@ async function preparationInput(plan) {
       apiContainerId: actual.resources.roles.api, databaseSystemIdentifier: actual.databaseSystemIdentifier,
       appPid: actual.app.pid, appStartTicks: actual.app.startTicks, appPort: 3104,
       containerIds: actual.resources.containers.map((item) => item.Id).sort(),
-      networkIds: [actual.resources.network.Id], volumeNames: actual.resources.volumes.map((item) => item.Name).sort() },
+      networkIds: [...actual.resources.allNetworkIds].sort(), volumeNames: actual.resources.volumes.map((item) => item.Name).sort() },
     tools: { supabaseCli: { path: plan.tools.supabaseCli.path, sha256: plan.tools.supabaseCli.sha256 } },
     appUrl: 'http://127.0.0.1:3104', expiresAt: plan.expiresAt,
     companyId: facts.companyId, otherCompanyId: facts.otherCompanyId, actors: facts.actors, targets: facts.targets,
@@ -920,6 +939,7 @@ export function realProfileAdapters(plan, state) {
 }
 export async function main(argv = process.argv.slice(2)) {
   process.umask(0o077)
+  if (argv[0] === 'verify-code') return verifyTrustedCode()
   if (argv[0] === 'receive') return receivePrivateInput(argv.slice(1))
   need(argv.length === 2 && MODES.includes(argv[0]), 'usage_phase_private_plan_required')
   const [phase, input] = argv
@@ -999,4 +1019,84 @@ function verifyInstalledRpc(plan, phase) {
   seal(join(plan.home, 'receipts', `${phase}-installed-rpc.json`), { migrationSha256: sha(migration),
     prosrcSha256: sha(actual.body), config: actual.config, securityDefiner: true,
     argumentTypes: actual.argumentTypes, resultType: actual.resultType })
+}
+
+/** Shared dependencies are safe only for byte-identical package/lock inputs.
+ * Prove resolution from the preparer's actual import location, not caller cwd.
+ * Never replace a pre-existing dependency directory/link of unknown ownership.
+ */
+export function bindPreparerDependencies(app, preparer) {
+  for (const name of ['package.json', 'package-lock.json']) {
+    need(sha(readFileSync(join(app, name))) === sha(readFileSync(join(preparer, name))), 'preparer_dependency_inputs_differ')
+  }
+  const sourceModules = realpathSync(join(app, 'node_modules'))
+  const target = join(preparer, 'node_modules')
+  need(!existsSync(target), 'fresh_preparer_dependency_environment_required')
+  symlinkSync(sourceModules, target, 'dir')
+  const imports = ['@supabase/ssr', '@supabase/supabase-js']
+  const resolutions = Object.fromEntries(imports.map((name) => {
+    const appPath = realpathSync(createRequire(join(app, 'package.json')).resolve(name))
+    const preparerPath = realpathSync(createRequire(join(preparer, 'scripts/simulation/track4/prepare-atomic-native.mjs')).resolve(name))
+    need(appPath === preparerPath && appPath.startsWith(`${sourceModules}/`), 'actual_preparer_import_binding_required')
+    return [name, { path: appPath, sha256: sha(readFileSync(appPath)) }]
+  }))
+  return { appModules: sourceModules, preparerModules: realpathSync(target),
+    packageSha256: sha(readFileSync(join(app, 'package.json'))), lockSha256: sha(readFileSync(join(app, 'package-lock.json'))), resolutions }
+}
+export function verifyTrustedCodeCapsule(workflowSha, resource, observed, commit, base) {
+  const capsule = JSON.parse(commit.message)
+  const operation = `Acquire bounded ${resource.slice(PREFIX.length)}; resources-sha256=${sha(resource)}; attempt-sha256=`
+  need(HEX40.test(workflowSha) && base.sha === workflowSha && capsule.base === workflowSha
+    && Object.keys(capsule).sort().join(',') === 'base,files,operation' && capsule.files?.length === 0
+    && typeof capsule.operation === 'string' && capsule.operation.startsWith(operation)
+    && /^[a-f0-9]{64}; state=PENDING_INPUT_QUALIFICATION$/.test(capsule.operation.slice(operation.length))
+    && observed.object.sha === commit.sha && HEX40.test(commit.sha)
+    && commit.parents.length === 1 && commit.parents[0].sha === workflowSha && commit.tree.sha === base.tree.sha,
+  'trusted_main_code_capsule_required')
+}
+async function verifyTrustedCode() {
+  const workflowSha = process.env.TRUSTED_WORKFLOW_SHA
+  const number = process.env.TRIGGER_PR_NUMBER
+  need(process.env.GITHUB_EVENT_NAME === 'pull_request_target' && /^[1-9][0-9]*$/.test(number ?? '')
+    && process.env.TRIGGER_LABEL === 't4-atomic-native-activation'
+    && process.env.TRUSTED_WORKFLOW_REF === 'heke99/gridex-ops-platform/.github/workflows/t4-atomic-native.yml@refs/heads/main'
+    && HEX40.test(workflowSha ?? ''), 'registered_default_main_workflow_required')
+  const root = resolve(fileURLToPath(new URL('../../..', import.meta.url)))
+  need(capture('git', ['-C', root, 'rev-parse', 'HEAD']) === workflowSha
+    && !capture('git', ['-C', root, 'status', '--porcelain', '--untracked-files=normal']), 'immutable_main_profile_checkout_required')
+  const resource = `${PREFIX}producer-t4-atomic-runtime-code-${number}-${workflowSha}`
+  const observed = await github(`git/ref/${resource.slice(5)}`)
+  need(observed, 'public_trusted_code_resource_absent')
+  const commit = await github(`git/commits/${observed.object.sha}`)
+  const base = await github(`git/commits/${workflowSha}`)
+  need(commit && base, 'public_trusted_code_original_absent')
+  verifyTrustedCodeCapsule(workflowSha, resource, observed, commit, base)
+  const repeated = await github(`git/ref/${resource.slice(5)}`)
+  need(repeated?.object.sha === commit.sha, 'public_trusted_code_resource_changed')
+  return { phase: 'verify-code', nativeExecuted: false, wholeScenarioPasses: 0 }
+}
+async function verifyPrivateCodeGate(plan) {
+  await verifyTrustedCode()
+  const gate = plan.codeGate
+  const expected = `${PREFIX}producer-t4-atomic-runtime-code-${process.env.TRIGGER_PR_NUMBER}-${process.env.TRUSTED_WORKFLOW_SHA}`
+  need(gate?.resource === expected && HEX40.test(gate.receipt ?? '')
+    && plan.sources.profile.commit === process.env.TRUSTED_WORKFLOW_SHA, 'sealed_trusted_code_scope_required')
+  const bytes = privateFile(gate.attempt.path)
+  need(sha(bytes) === gate.attempt.sha256, 'private_code_attempt_changed')
+  const attempt = JSON.parse(bytes)
+  const current = await github(`git/ref/${expected.slice(5)}`)
+  need(current?.object.sha === gate.receipt, 'private_code_resource_changed')
+  const commit = await github(`git/commits/${gate.receipt}`)
+  const base = await github(`git/commits/${process.env.TRUSTED_WORKFLOW_SHA}`)
+  need(commit && base, 'private_code_original_absent')
+  verifyLeaseCapsule(expected, bytes, current, commit, base)
+  const rest = Object.fromEntries(Object.entries(plan).filter(([key]) => key !== 'codeGate'))
+  need(attempt.protocol === 'masterplan-reservation-v1' && attempt.repo === 'heke99/gridex-ops-platform'
+    && attempt.owner === plan.owner && attempt.slot === plan.slot && attempt.resource === expected
+    && attempt.epoch === 'gridex-five-agent-20261012'
+    && attempt.sourceHead === process.env.TRUSTED_WORKFLOW_SHA && attempt.sourceTree === plan.sources.profile.tree
+    && attempt.inputEpoch === plan.inputEpoch && attempt.scope?.kind === 't4-atomic-runtime-code-v1'
+    && attempt.scope.privatePlanSha256 === hash(rest) && attempt.scope.workflowSha === process.env.TRUSTED_WORKFLOW_SHA
+    && attempt.scope.expiresAt === plan.expiresAt && attempt.budget?.bootstrap === 0 && attempt.budget?.native === 0,
+  'sealed_trusted_code_scope_required')
 }
