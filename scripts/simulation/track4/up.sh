@@ -3,7 +3,7 @@
 #   1. NEW replay: sources scripts/gridex-aud-003-clean-replay.sh from the run directory root (cwd = run dir; supabase/config.toml and
 #      the replay script are never modified), then LOCAL_STACK_START_ATTEMPTED=0; cleanup; trap - EXIT; set -euo pipefail, so the
 #      stack stays up. Aborts with "BLOCKED: stacken upptagen" when a supabase_db_ container already runs. Never `supabase start`.
-#      SKIP_REPLAY=1 reuses the running stack (markers from the earlier replay must exist).
+#      SKIP_REPLAY=1 is refused: legacy markers do not establish current backend ownership.
 #   2. SIM_HOME/env with local keys and random secrets (never committed, never logged)
 #   3. GreenMail (local SMTPS/IMAPS counterparty, local CA), automation user, `npm run build` (SKIP_BUILD=1 reuses a build of the
 #      same app commit) and next start on 127.0.0.1:$T4_APP_PORT (default 3104), loopback sink for every external URL
@@ -24,9 +24,7 @@ command -v docker >/dev/null || t4_die "docker missing"
 
 # ---- 1: stack ------------------------------------------------------------------------------------------
 if [ "${SKIP_REPLAY:-0}" = 1 ]; then
-  t4_db_ready || t4_die "SKIP_REPLAY=1 but no replayed schema on 127.0.0.1:$T4_DB_PORT"
-  [ -s "$SIM_HOME/replay-commit" ] || t4_die "SKIP_REPLAY=1 but $SIM_HOME/replay-commit is missing (the stack was not replayed by this harness)"
-  t4_log "reusing replayed stack (replay-commit $(cat "$SIM_HOME/replay-commit"), HEAD $T4_HEAD_SHA)"
+  t4_die "SKIP_REPLAY=1 refused: legacy commit/fingerprint markers do not bind an owned backend; use a separately qualified preparation runner"
 else
   if [ -n "$(docker ps --filter name=supabase_db_ -q)" ]; then
     echo "BLOCKED: stacken upptagen ($(docker ps --filter name=supabase_db_ --format '{{.Names}}' | tr '\n' ' '))" >&2
@@ -131,16 +129,7 @@ VALUES('$GRIDEX_AUTOMATION_USER_ID','t4-automation-$GRIDEX_AUTOMATION_USER_ID@ex
 ON CONFLICT (id) DO UPDATE SET user_status='active';
 SQL
 
-BUILT="$(cat "$SIM_HOME/built-commit" 2>/dev/null || true)"
-if [ "${SKIP_BUILD:-0}" = 1 ] && t4_same_app "$BUILT" && [ -s "$APP_DIR/.next/BUILD_ID" ]; then
-  t4_log "reusing build of $BUILT"
-else
-  t4_log "npm run build (log $LOG_DIR/next-build.log)"
-  rm -f "$SIM_HOME/built-commit" "$APP_DIR/.next/BUILD_ID"
-  ( cd "$APP_DIR" && npm run -s build ) > "$LOG_DIR/next-build.log" 2>&1 || true
-  [ -s "$APP_DIR/.next/BUILD_ID" ] || t4_die "build failed, see $LOG_DIR/next-build.log"
-  echo "$T4_HEAD_SHA" > "$SIM_HOME/built-commit"
-fi
+t4_build_app
 
 # sink first (the app's env points to it)
 if ! t4_pid_alive "$PID_DIR/sink.pid"; then

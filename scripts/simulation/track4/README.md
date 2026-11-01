@@ -237,3 +237,18 @@ an authenticated owner XML download against the frozen file snapshot, so a missi
 file or broken owner download cannot stand in for tenant isolation. These callback
 regressions are component evidence; the qualified runtime and original MAIN cohort
 requirements above still apply.
+
+Startup build evidence is separate from runtime admission. A nonzero `npm run build`
+now stops startup even if the failed command left `BUILD_ID`. A successful build
+captures a private `build-evidence.json` binding the committed clean checkout,
+private environment-file, ignored dotenv and ambient process-environment hashes,
+and every regular `.next` output file except its
+cache. `SKIP_BUILD=1` requires that exact evidence and refuses legacy markers,
+changed source/environment/output or symlinked outputs. This conservative output
+check may require a fresh build after runtime-generated output changes.
+
+`SKIP_REPLAY=1` is refused on the retained `up.sh` path: its old commit/fingerprint
+markers never established actual backend ownership or current producer admission.
+Use the separately qualified preparation/runner profile for backend reuse. These
+source corrections do not qualify the remaining legacy mail/app lifecycle,
+provision a backend or authorize a local stack on an under-capacity host.

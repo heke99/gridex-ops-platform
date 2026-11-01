@@ -305,3 +305,87 @@ describe('T4 actual runner output custody', () => {
     expect(readFileSync(c.report, 'utf8')).toBe('CONCURRENT_ORIGINAL')
   })
 })
+
+// Real startup build section + shared shell functions; fake npm never builds an app.
+function buildControl() {
+  const home = mkdtempSync(join(tmpdir(), 't4-build-contract-')); homes.push(home)
+  chmodSync(home, 0o700)
+  const app = join(home, 'app'); const sim = join(home, 'sim'); const bin = join(home, 'bin')
+  for (const dir of [app, sim, bin, join(app, 'supabase')]) mkdirSync(dir, { recursive: true, mode: 0o700 })
+  writeFileSync(join(app, 'supabase/config.toml'), 'project_id = "controlled-source-test"\n')
+  writeFileSync(join(app, '.gitignore'), '.next/\n.env*\n')
+  writeFileSync(join(app, 'source.txt'), 'original source\n')
+  const git = (...args: string[]) => {
+    const result = spawnSync('git', ['-C', app, ...args], { encoding: 'utf8' })
+    expect(result.status).toBe(0); return result.stdout.trim()
+  }
+  git('init', '-q'); git('add', '.'); git('-c', 'user.name=Component', '-c', 'user.email=component@example.invalid', 'commit', '-qm', 'controlled source')
+  writeFileSync(join(sim, 'env'), 'SYNTHETIC_BUILD_INPUT=one\n', { mode: 0o600 })
+  const effects = join(home, 'effects')
+  writeFileSync(join(bin, 'npm'), '#!/bin/bash\nprintf "build\\n" >> "$CONTROL_BUILD_EFFECTS"\nmkdir -p .next/server\nprintf "controlled-build-id\\n" > .next/BUILD_ID\nprintf "{}\\n" > .next/required-server-files.json\nprintf "compiled\\n" > .next/server/component.js\nexit "${CONTROL_BUILD_EXIT:-0}"\n', { mode: 0o700 })
+  const run = (skip = false, code = 0, overrides: Record<string, string> = {}) => {
+    const up = readFileSync(resolve('scripts/simulation/track4/up.sh'), 'utf8')
+    const start = up.includes('BUILT="') ? up.indexOf('BUILT="') : up.indexOf('\nt4_build_app\n') + 1
+    const block = up.slice(start, up.indexOf('# sink first'))
+    expect(start).toBeGreaterThan(0)
+    const script = 'set -euo pipefail\nsource "$CONTROL_COMMON"\nt4_init\nT4_HEAD_SHA="$(t4_head)"\n' + block + '\nprintf "SCENARIOS_REACHED\\n"\n'
+    return spawnSync('/bin/bash', ['-c', script], { encoding: 'utf8', timeout: 5_000,
+      env: { NODE_ENV: 'test', PATH: bin + ':/usr/bin:/bin', T4_APP_DIR: app, SIM_HOME: sim,
+        CONTROL_COMMON: resolve('scripts/simulation/track4/lib/common.sh'), CONTROL_BUILD_EFFECTS: effects,
+        CONTROL_BUILD_EXIT: String(code), SKIP_BUILD: skip ? '1' : '0', ...overrides } })
+  }
+  const reuseReplay = (source = readFileSync(resolve('scripts/simulation/track4/up.sh'), 'utf8')) => {
+    writeFileSync(join(sim, 'replay-commit'), git('rev-parse', 'HEAD'))
+    const start = source.indexOf('if [ "${SKIP_REPLAY:-0}" = 1 ]; then')
+    const block = source.slice(start, source.indexOf("printf '%s\\n' \"$T4_DBURL\""))
+    expect(start).toBeGreaterThan(0)
+    return spawnSync('/bin/bash', ['-c', 'set -euo pipefail\nsource "$CONTROL_COMMON"\nt4_init\nT4_HEAD_SHA="$(t4_head)"\nt4_db_ready(){ printf "UNBOUND_DB_PROBE\\n"; return 0; }\n' + block + '\nprintf "SCENARIOS_REACHED\\n"'], {
+      encoding: 'utf8', timeout: 5_000, env: { NODE_ENV: 'test', PATH: '/usr/bin:/bin', T4_APP_DIR: app, SIM_HOME: sim,
+        CONTROL_COMMON: resolve('scripts/simulation/track4/lib/common.sh'), SKIP_REPLAY: '1' },
+    })
+  }
+  return { app, sim, run, git, effects, reuseReplay }
+}
+
+describe('T4 actual startup build fail-closed contract', () => {
+  it('refuses legacy replay markers before probing or reusing an unbound backend', () => {
+    const result = buildControl().reuseReplay()
+    expect(result.status).not.toBe(0)
+    expect(result.stdout).not.toContain('UNBOUND_DB_PROBE')
+    expect(result.stdout).not.toContain('SCENARIOS_REACHED')
+  })
+  it('stops a failed build even if npm left BUILD_ID', () => {
+    const c = buildControl(); const result = c.run(false, 17)
+    expect(result.status).not.toBe(0); expect(result.stdout).not.toContain('SCENARIOS_REACHED')
+    expect(existsSync(join(c.sim, 'built-commit'))).toBe(false)
+  })
+  it('captures a successful build and reuses only its exact source/env/output evidence', () => {
+    const c = buildControl(); expect(c.run().status).toBe(0)
+    expect(c.run(true).status).toBe(0)
+    expect(readFileSync(c.effects, 'utf8')).toBe('build\n')
+  })
+  it('refuses legacy commit/BUILD_ID markers without actual build evidence', () => {
+    const c = buildControl(); mkdirSync(join(c.app, '.next')); writeFileSync(join(c.app, '.next/BUILD_ID'), 'legacy')
+    writeFileSync(join(c.sim, 'built-commit'), c.git('rev-parse', 'HEAD'))
+    const result = c.run(true); expect(result.status).not.toBe(0); expect(existsSync(c.effects)).toBe(false)
+  })
+  it('refuses reuse after an ignored Next dotenv override appears', () => {
+    const c = buildControl(); expect(c.run().status).toBe(0)
+    writeFileSync(join(c.app, '.env.local'), 'NEXT_PUBLIC_APP_URL=http://different.invalid\n')
+    expect(c.run(true).status).not.toBe(0)
+    expect(readFileSync(c.effects, 'utf8')).toBe('build\n')
+  })
+  it('refuses reuse after a changed ambient build input', () => {
+    const c = buildControl(); expect(c.run().status).toBe(0)
+    expect(c.run(true, 0, { NEXT_PUBLIC_APP_URL: 'http://different.invalid' }).status).not.toBe(0)
+    expect(readFileSync(c.effects, 'utf8')).toBe('build\n')
+  })
+  it.each(['source', 'environment', 'compiled output', 'BUILD_ID'])('refuses reuse after changed %s', changed => {
+    const c = buildControl(); expect(c.run().status).toBe(0)
+    const target = changed === 'source' ? join(c.app, 'source.txt') : changed === 'environment' ? join(c.sim, 'env')
+      : changed === 'compiled output' ? join(c.app, '.next/server/component.js') : join(c.app, '.next/BUILD_ID')
+    appendFileSync(target, 'changed\n')
+    expect(c.run(true).status).not.toBe(0)
+    expect(readFileSync(c.effects, 'utf8')).toBe('build\n')
+  })
+})

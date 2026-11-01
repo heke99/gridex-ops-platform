@@ -52,6 +52,90 @@ t4_same_app() {
   [ -z "$(printf '%s\n' "$changed" | grep -v -e '^$' -e '^scripts/simulation/track4/')" ]
 }
 
+# Build evidence binds local source, private build environment and compiled bytes.
+# This is not backend/native admission or permission to reuse a database.
+t4_build_evidence() {
+  python3 - "$APP_DIR" "$SIM_HOME" "$1" "${2:-}" <<'PYBUILD'
+import hashlib, json, os, pathlib, stat, subprocess, sys
+app, home = map(pathlib.Path, sys.argv[1:3])
+mode, expected = sys.argv[3:]
+def fail(message): raise SystemExit('T4 build evidence: ' + message)
+def private_file(path):
+    st = path.lstat()
+    if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or stat.S_IMODE(st.st_mode) != 0o600:
+        fail('private regular file required: ' + path.name)
+def digest(path):
+    if not stat.S_ISREG(path.lstat().st_mode): fail('non-regular build input/output')
+    h = hashlib.sha256()
+    with path.open('rb') as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b''): h.update(chunk)
+    return h.hexdigest()
+def git(*args): return subprocess.check_output(['git', '-C', str(app), *args], text=True).strip()
+def canonical(value): return json.dumps(value, sort_keys=True, separators=(',', ':')).encode()
+if str(app.resolve()) != str(app) or str(home.resolve()) != str(home): fail('canonical paths required')
+st = home.lstat()
+if not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid() or stat.S_IMODE(st.st_mode) != 0o700:
+    fail('owned private build home required')
+if git('status', '--porcelain', '--untracked-files=normal'): fail('source must be committed and clean')
+private_file(home / 'env')
+inputs = {'app': str(app), 'head': git('rev-parse', 'HEAD'), 'tree': git('rev-parse', 'HEAD^{tree}'),
+          'environmentSha256': digest(home / 'env'),
+          'dotenvSha256': {p.name: digest(p) for p in sorted(app.glob('.env*'))},
+          # Hash secrets privately; never serialize their values. Only shell bookkeeping
+          # and the build/reuse selector differ without changing build inputs.
+          'processEnvironmentSha256': hashlib.sha256(canonical({k: v for k, v in os.environ.items()
+              if k not in ('SKIP_BUILD', 'SHLVL', '_')})).hexdigest()}
+input_hash = hashlib.sha256(canonical(inputs)).hexdigest()
+if mode == 'inputs':
+    print(input_hash)
+    sys.exit(0)
+if mode not in ('capture', 'check'): fail('unknown evidence operation')
+if mode == 'capture' and input_hash != expected: fail('source/environment changed during build')
+build = app / '.next'
+if not build.is_dir() or build.is_symlink(): fail('regular build output directory required')
+for required in ['BUILD_ID', 'required-server-files.json']:
+    if not (build / required).is_file() or not (build / required).stat().st_size: fail('incomplete build output')
+if not (build / 'server').is_dir() or (build / 'server').is_symlink(): fail('compiled server output missing')
+outputs = {}
+for parent, dirs, files in os.walk(build, followlinks=False):
+    if pathlib.Path(parent) == build: dirs[:] = [d for d in dirs if d != 'cache']
+    for name in dirs:
+        if (pathlib.Path(parent) / name).is_symlink(): fail('symlinked build output directory')
+    for name in sorted(files):
+        p = pathlib.Path(parent) / name
+        outputs[str(p.relative_to(build))] = digest(p)
+evidence = {'kind': 't4-build-evidence-v1-not-runtime-admission', 'inputs': inputs, 'outputs': outputs}
+receipt = home / 'build-evidence.json'
+if mode == 'check':
+    private_file(receipt)
+    if json.loads(receipt.read_text()) != evidence: fail('source, environment or compiled output differs from captured build')
+else:
+    fd = os.open(receipt, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'wb') as f: f.write(canonical(evidence) + b'\n')
+PYBUILD
+}
+
+t4_build_app() {
+  if [ "${SKIP_BUILD:-0}" = 1 ]; then
+    t4_build_evidence check || t4_die "SKIP_BUILD requires matching actual build evidence; legacy markers are insufficient"
+    t4_log "reusing source/environment/output-bound build"
+    return 0
+  fi
+  local inputs
+  inputs="$(t4_build_evidence inputs)" || t4_die "build inputs not qualified"
+  # Refuse symlinked roots before removing this harness's old evidence/BUILD_ID.
+  [ ! -L "$APP_DIR/.next" ] && [ ! -L "$SIM_HOME/build-evidence.json" ] || t4_die "symlinked build scope"
+  rm -f "$SIM_HOME/built-commit" "$SIM_HOME/build-evidence.json" "$APP_DIR/.next/BUILD_ID"
+  t4_log "npm run build (log $LOG_DIR/next-build.log)"
+  if ! ( cd "$APP_DIR" && npm run -s build ) > "$LOG_DIR/next-build.log" 2>&1; then
+    if [ ! -L "$APP_DIR/.next" ]; then rm -f "$APP_DIR/.next/BUILD_ID"; fi
+    t4_die "build command failed; startup stopped, see $LOG_DIR/next-build.log"
+  fi
+  t4_build_evidence capture "$inputs" || t4_die "successful command produced no qualified build evidence"
+  printf '%s\n' "$(t4_head)" > "$SIM_HOME/built-commit"
+  chmod 600 "$SIM_HOME/built-commit"
+}
+
 t4_init() {
   mkdir -p "$SIM_HOME" "$LOG_DIR" "$PID_DIR" "$RUNS_DIR"
   export T4_PROJECT_ID
