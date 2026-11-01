@@ -6,6 +6,11 @@
 # report.json (vitest JSON reporter), run.log and a final "exit <code>" line.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+if [[ -n "${TRACK1_ASSIGNMENT_FILE:-}" ]] && [[ "$(python3 "$TRACK1_DIR/packet.py" --assignment-mode)" == coordinator_prepared_fresh ]]; then
+  exec python3 "$TRACK1_DIR/../runtime/assigned_backend.py" run --assignment "$TRACK1_ASSIGNMENT_FILE" \
+    --scenario "${1:-}" --label "${2:-}" --report "${SIM_REPORT:-}"
+fi
+
 require_runtime_assignment run
 
 [[ -n "${SIM_REPORT:-}" ]] || die "SIM_REPORT (path for the JSON report) is required"

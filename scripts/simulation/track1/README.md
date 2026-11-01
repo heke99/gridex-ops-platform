@@ -86,3 +86,125 @@ identity and explicit `overlayRefs`. Historical packets remain unchanged.
 `SOURCE_ONLY` and `COMPONENT` checks cannot create whole-scenario `PASS`;
 eligible runtime PASS still requires the recorded independent reviewer,
 commands and evidence and does not by itself certify a whole campaign.
+# Hosted infrastructure smoke (prepared-v2)
+
+This source extension adds one separately admitted startup producer. It awards
+**zero campaign scenario PASS**. Its three `T1SMOKE.*` observations do not run
+the 13 business scenarios, seed campaign tenants, send mail or prove physical
+Storage recovery. The original world/28/1809.51/MAIN04 cohort and whole-flow
+oracles remain required by their original acceptance gates.
+
+The new workflow is deliberately unlaunchable until a separately reviewed
+launch child pins `APP_COMMIT/APP_TREE` to the actual merged, GEN-qualified app
+and `HARNESS_COMMIT/HARNESS_TREE` to the reviewed harness. No current source
+receipt grants runtime or event authority. The only proposed trigger is one
+same-repository `pull_request: opened` on head branch
+`codex/t1-startup-smoke-native`, attempt 1, one 75-minute job. It has no push,
+synchronize, dispatch or retry path. Publication also selects other existing
+workflows; the coordinator must budget those before creating an event.
+
+`scripts/simulation/runtime/assigned_backend.py` is the sole central owner of a
+private runtime configuration overlay. It changes only `project_id` in a
+Git-derived replay copy and a private CLI config. The app's tracked config is
+never edited. The first producer uses the canonical replay's real
+DB `54322`, API `54321`, and app `3101`; arbitrary backend ports are unsupported.
+It precreates only the absent exact `supabase_network_<project>` bridge with
+`com.docker.network.bridge.host_binding_ipv4=127.0.0.1`, then observes the actual
+DB/API port bindings. Wildcard, extra IPv6 and foreign network bindings fail.
+The existing daemon must have at least 15 GiB free with overlay2/overlayfs or
+40 GiB with vfs, and 8 GiB effective memory. No daemon changes are made.
+
+The coordinator supplies a private mode0600 JSON admission, before any service
+mutation, using schema `track1-hosted-producer-admission-v1`. Required fields:
+
+| Field | Required meaning |
+| --- | --- |
+| `workerId`, `exclusiveHost` | Exactly `codex-track1`, `true` |
+| `admissionFile`, `simHome` | Canonical private file/home, outside all three checkouts |
+| `appDir`, `appCommit`, `appTree` | Separate clean, full-SHA app checkout after real GEN gates |
+| `harnessDir`, `harnessCommit`, `harnessTree` | Separate clean, reviewed harness checkout |
+| `carrierDir`, `workflowCarrier`, `workflowTree`, `workflowBlob` | Actual clean carrier and exact workflow blob |
+| `smokeSha256` | Actual reviewed `scenarios/smoke.test.ts` bytes |
+| `projectId`, `ports` | `t1-<actual-run-id>-1`, `{db:54322,api:54321,app:3101}` |
+| `expiresAtUtc`, `cleanupExpiresAtUtc` | Explicit UTC workload and later teardown deadlines |
+| `event` | Exact `repository,name,action,branch,runId,job,jobId,attempt,actor`; PR opened, `startup-smoke`, attempt1 |
+| `budget` | Exactly `{jobs:1,replays:1,builds:1,appStarts:1,smokes:1,retries:0}` |
+| `tools` | Actual executable SHA256/version for `node,npm,supabase,supabase-go,psql,pg_dump,docker` |
+| `requiredGenGates` | Coordinator-qualified actual receipt: `qualified:true,receiptSha256:<actual digest>` |
+| `sourceClaims` | Each exact held source receipt, full `expectedNeutral` and `refs`, including session; together cover all nine source paths |
+| `reservation` | Exact already-held runtime pair, as specified below |
+
+The workflow prints public tool version/digest observations, then waits at most
+400 seconds for a coordinator-created commit at
+`refs/tags/agent-runtime-admissions/t1-<actual-run-id>-1`. That commit's JSON
+message contains the admission. This input-delivery ref is **not** a runtime
+reservation. The helper never creates, replaces or releases any remote ref.
+
+`reservation` contains `refs:[<exact backend ref>,<exact producer ref>]`,
+`receipt:<actual full commit SHA>` and `expectedNeutral`. Both refs must freshly
+resolve to that same receipt. Its JSON message is exactly
+`{base:<full SHA>,files:[],operation:<string>}`, with the base as its sole parent
+and the base tree unchanged. Operation is exactly this ordered string:
+
+```text
+simulation-t1-startup-smoke-v1; resources-sha256=<R>; inputs-sha256=<I>; admission-core-sha256=<C>; appCommit=<A>; appTree=<AT>; harnessCommit=<H>; harnessTree=<HT>; workflowCarrier=<W>; workflowBlob=<WB>
+```
+
+`R` hashes the sorted exact refs joined with newlines, including a final newline.
+`C` hashes the admission excluding only `reservation`. `I` hashes exactly
+`event,appCommit,appTree,harnessCommit,harnessTree,workflowCarrier,workflowBlob`.
+JSON hashes use sorted keys, compact separators and one final newline. No source
+or session receipt, old native pair, matching arbitrary hash or planned receipt
+can satisfy this operation. The coordinator provisions it after the real job
+and its tool observations exist; no such reservation is supplied by this source.
+
+Commands, with the explicit descriptor/assignment paths:
+
+```bash
+python3 "$H/scripts/simulation/runtime/assigned_backend.py" preflight --admission "$ADMISSION"
+python3 "$H/scripts/simulation/runtime/assigned_backend.py" materialize-config --admission "$ADMISSION"
+python3 "$H/scripts/simulation/runtime/assigned_backend.py" prepare --admission "$ADMISSION" --assignment-output "$SIM_HOME/assignment.json"
+export TRACK1_ASSIGNMENT_FILE="$SIM_HOME/assignment.json"
+bash "$H/scripts/simulation/track1/up.sh"
+SIM_REPORT="$SIM_HOME/reports/startup-smoke.json" bash "$H/scripts/simulation/track1/run.sh" "$H/scripts/simulation/track1/scenarios/smoke.test.ts" startup-smoke
+bash "$H/scripts/simulation/track1/down.sh"
+```
+
+The immutable admission precedes preparation. Only successful actual replay,
+source byte/mode restoration, official status/DB/API/Storage observations and
+a fresh complete dependency install/build seal `track1-prepared-runtime-v2`.
+Only then is `track1-runtime-assignment-v2` exclusively created, binding that
+prepared receipt's actual hash. Later app/stack receipts bind the assignment;
+there is no hash cycle and no usable pending assignment. The prepared branch
+precedes all legacy collision/replay/build/stop paths. It accepts only the exact
+reviewed smoke file and `startup-smoke` label, never generic SKIP flags or
+business scenarios. Legacy fresh mode remains separate.
+
+Build/app/Vitest use a private empty tool home and an allowlisted environment;
+ignored Next dotenv inputs are refused. The harness gets an explicit recorded
+dependency symlink to the app's complete `npm ci` installation. No GitHub token
+enters those children. The parent checks live custody before/after Vitest;
+read-only child observations require that actual live parent's birth identity
+and ancestry. Local HTTP observations use no proxies and refuse redirects.
+
+App birth is sealed before readiness. Cleanup reuses the reviewed process-group
+stopper and verifies an empty group. Backend cleanup preflights full recorded
+container IDs, immutable volume/network identities, daemon identity and exact
+inventories before deleting only those resources. Unknown resources are retained
+with a nonzero, unqualified outcome. In particular, canonical CLI failure before
+a genuine resource observation is sealed can leave unknown partial resources;
+this source does not infer their ownership from names or labels and cannot
+certify successful cleanup in that case. The disposable host must then retire.
+Cleanup intents are single-use: an interrupted or failed cleanup is not retried
+blindly. The canonical replay's literal `trap cleanup EXIT` alone is delegated;
+its cleanup runs once for source restoration, with backend stop disabled.
+
+The workflow's exit owner records the actual primary exit. Publication requires
+all named actual stage receipts, complete three-case Vitest output, unchanged
+source and successful cleanup. It exports only a constructed, credential/path
+checked infrastructure summary, with `scenarios:{}` and
+`new105ScenarioPassAttestations:0`. Missing, skipped, failed, unknown or unsafe
+proof produces only a constructed `qualified:false` incident summary and a
+nonzero publisher; uploading that summary cannot change the failed producer
+step. It contains fixed phase labels, bounded exit codes and admitted source
+SHAs, with no copied raw diagnostic fields. Raw logs/status/env remain private.

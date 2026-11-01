@@ -72,6 +72,15 @@ def runtime_admission(action):
     Source custody alone never creates this file or permits a real run.
     """
     import tomllib
+    assignment_file = os.environ.get("TRACK1_ASSIGNMENT_FILE")
+    if assignment_file and json.loads(private_path(assignment_file).read_text()).get("schema") == "track1-runtime-assignment-v2":
+        import importlib.util
+        sys.dont_write_bytecode = True
+        helper = pathlib.Path(__file__).resolve().parents[1] / "runtime/assigned_backend.py"
+        spec = importlib.util.spec_from_file_location("assigned_backend", helper)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.verify(assignment_file, action)[1]
     names = ("TRACK1_APP_DIR", "TRACK1_APP_COMMIT", "SIM_HOME", "TRACK1_DB_URL", "TRACK1_APP_PORT", "TRACK1_ASSIGNMENT_FILE")
     require(all(os.environ.get(k) for k in names), "explicit app checkout/SHA, private SIM_HOME, DB URL, app port and coordinator assignment are required")
     app = pathlib.Path(os.environ["TRACK1_APP_DIR"])
@@ -145,6 +154,15 @@ def runtime_admission(action):
 
 
 def main(argv):
+    if argv[:1] == ["--assignment-mode"]:
+        a = json.loads(private_path(os.environ["TRACK1_ASSIGNMENT_FILE"]).read_text())
+        if a.get("schema") == "track1-runtime-assignment-v2":
+            require(a.get("mode") == "coordinator_prepared_fresh", "unknown prepared assignment mode")
+            print("coordinator_prepared_fresh")
+        else:
+            require(a.get("schema") == "track1-runtime-assignment-v1", "unknown assignment schema")
+            print("legacy_fresh")
+        return
     if argv[:1] == ["--env-values"]:
         for key, value in private_environment(argv[1]).items():
             sys.stdout.write(key + "=" + value + "\0")

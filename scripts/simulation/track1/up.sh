@@ -5,6 +5,10 @@
 # Usage: up.sh            (one stack per container; refuses if one is running)
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+if [[ -n "${TRACK1_ASSIGNMENT_FILE:-}" ]] && [[ "$(python3 "$TRACK1_DIR/packet.py" --assignment-mode)" == coordinator_prepared_fresh ]]; then
+  exec python3 "$TRACK1_DIR/../runtime/assigned_backend.py" up --assignment "$TRACK1_ASSIGNMENT_FILE"
+fi
+
 require_runtime_assignment up
 
 command -v docker >/dev/null && docker info >/dev/null 2>&1 || die "docker daemon not reachable"

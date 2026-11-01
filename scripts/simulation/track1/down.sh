@@ -2,6 +2,10 @@
 # Stop track 1's stack and app; verify nothing of it remains; write cleanup.json.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+if [[ -n "${TRACK1_ASSIGNMENT_FILE:-}" ]] && [[ "$(python3 "$TRACK1_DIR/packet.py" --assignment-mode)" == coordinator_prepared_fresh ]]; then
+  exec python3 "$TRACK1_DIR/../runtime/assigned_backend.py" down --assignment "$TRACK1_ASSIGNMENT_FILE"
+fi
+
 require_runtime_assignment down
 
 ENV_DIR="$(current_env_dir)"
