@@ -1,7 +1,8 @@
 // Source-only pilot client. Catalog trust is caller-provided and rechecked by
 // normal application scope/archive/review. Synthetic issuer != legal acceptance.
 import { createHash, createHmac, randomUUID } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import fs, { readFileSync } from 'node:fs'
+import path from 'node:path'
 import nodemailer from 'nodemailer'
 import { psqlRows } from './db'
 import { sim } from './env'
@@ -23,6 +24,32 @@ const id = (value: unknown): string => {
   if (typeof value !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value)) throw Error('pilot_response_id_required')
   return value
 }
+
+const evidenceText = (value: unknown, maximum: number, allowEmpty = false): string => {
+  if (typeof value !== 'string' || value.length > maximum || !allowEmpty && !value.length) throw Error('pilot_evidence_text_invalid')
+  return value
+}
+const evidenceHash = (value: unknown): string => {
+  if (typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value)) throw Error('pilot_evidence_hash_invalid')
+  return value
+}
+const evidenceInstant = (value: unknown): string => {
+  const parsed = typeof value === 'string' ? Date.parse(value) : Number.NaN
+  if (!Number.isFinite(parsed)) throw Error('pilot_evidence_instant_invalid')
+  return new Date(parsed).toISOString()
+}
+const decimalText = (value: unknown): string => {
+  if (typeof value !== 'string' && typeof value !== 'number' || !Number.isFinite(Number(value))
+    || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(String(value))) throw Error('pilot_evidence_decimal_invalid')
+  return String(value)
+}
+const nullableDecimal = (value: unknown) => value === null ? null : decimalText(value)
+const evidenceOre = (value: unknown) => sekNumberToOre(Number(decimalText(value))).toString()
+const safeInteger = (value: unknown, positive = false): number => {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || positive && value <= 0) throw Error('pilot_evidence_integer_invalid')
+  return value
+}
+const componentCode = (value: unknown) => object(value).component_code == null ? null : evidenceText(object(value).component_code, 128)
 
 /** Pilot-input relation, not a newly invented application signing rule. */
 export function validatePilotHistoricalSigning(input: { signedDate: string; offerValidFrom: string; startsAt: string }) {
@@ -144,7 +171,7 @@ export async function runPreparedTerm0203Pilot(input: PilotInput, ports: PilotPo
     || mailbox.environmentId !== session.actorProof!.environmentId) throw Error('pilot_mailbox_binding_required')
   const bounds = stockholmMonthBoundsUtc(input.billingMonth)
   const intervals = input.expectedIntervals
-  if (!/^\d{4}-\d{2}$/.test(input.billingMonth) || !intervals.length || intervals.some((v, i) => v.kwh !== '0'
+  if (!/^\d{4}-\d{2}$/.test(input.billingMonth) || intervals.length > 1000 || input.e66.length + 1 > 128 || !intervals.length || intervals.some((v, i) => v.kwh !== '0'
     || Date.parse(v.end) - Date.parse(v.start) !== 3_600_000 || i > 0 && Date.parse(intervals[i - 1].end) !== Date.parse(v.start))
     || Date.parse(intervals[0].start) !== bounds.startMs || Date.parse(intervals.at(-1)!.end) !== bounds.endMs) throw Error('pilot_zero_full_month_required')
   const post = async (actor: AppSession, route: string, body: unknown) => {
@@ -197,6 +224,7 @@ export async function runPreparedTerm0203Pilot(input: PilotInput, ports: PilotPo
     || reviewed.sourceHash !== sourceHash || reviewed.scopeHash !== scope.scopeHash) throw Error('pilot_independent_ground_review_unconfirmed')
   const tokens: Record<string, string> = { CUSTOMER_IDENTITY: String(actualScope.customerIdentity), GRID_AREA_CODE: String(actualScope.gridArea), GSRN: c.gsrn, CUSTOMER_ID: c.customerId, CONTRACT_ID: c.contractId,
     DSO_EDIEL_ID: c.tenant.edielReceiver, SUPPLIER_EDIEL_ID: c.tenant.edielSender }
+  const receivedOriginals: Array<{ messageId: string; inboundEmailMessageId: string; messageCode: 'Z04' | 'E66'; rawSha256: string }> = []
   const receive = async (template: string, code: 'Z04' | 'E66') => {
     const raw = template.replace(/\{\{([A-Z_]+)\}\}/g, (_match, key: string) => {
       if (!tokens[key]) throw Error('pilot_unknown_wire_token'); return tokens[key]
@@ -211,6 +239,7 @@ export async function runPreparedTerm0203Pilot(input: PilotInput, ports: PilotPo
     if (originals[0].mail_processing_status === 'manual_review') {
       requireAction(await ports.action(platform, { route: '/admin/inbound-mail', filename: 'app/admin/inbound-mail/actions.ts', exportedName: 'reprocessInboundEmailAction', worker: 'app/admin/inbound-mail/page', args: [form({ id: id(originals[0].inbound_email_message_id) })] }))
     }
+    receivedOriginals.push({ messageId: id(originals[0].id), inboundEmailMessageId: id(originals[0].inbound_email_message_id), messageCode: code, rawSha256: hash(evidenceText(originals[0].raw_payload, 8 * 1024 * 1024)) })
     return id(originals[0].id)
   }
   const supplyMessageId = await receive(input.z04, 'Z04')
@@ -271,7 +300,7 @@ export async function runPreparedTerm0203Pilot(input: PilotInput, ports: PilotPo
   const prepared = object(draft.data)
   if (draft.mode !== 'prepare_only' || draft.approval_required !== true || prepared.created !== 1 || prepared.failed !== 0 || prepared.blocked !== 0) throw Error('pilot_invoice_draft_unconfirmed')
   const runs = ports.read(`SELECT id,status,locked_at,total_ex_vat,vat_amount,total_inc_vat FROM public.pricing_runs WHERE company_id=${lit(c.companyId)} AND id=${lit(preview.pricingRunId)} AND billing_underlay_id=${lit(underlayId)}`)
-  const storedLines = ports.read(`SELECT line_type,amount_ex_vat,vat_amount,amount_inc_vat,metadata FROM public.pricing_preview_lines WHERE company_id=${lit(c.companyId)} AND pricing_run_id=${lit(preview.pricingRunId)} ORDER BY sort_order,id`)
+  const storedLines = ports.read(`SELECT id,line_type,description,quantity::text AS quantity,unit,unit_price_ex_vat::text AS unit_price_ex_vat,amount_ex_vat,vat_rate::text AS vat_rate,vat_amount,amount_inc_vat,sort_order,metadata FROM public.pricing_preview_lines WHERE company_id=${lit(c.companyId)} AND pricing_run_id=${lit(preview.pricingRunId)} ORDER BY sort_order,id`)
   const invoices = ports.read(`SELECT id,status,invoice_export_item_id,amount_ex_vat,vat_amount,amount_inc_vat,calculation_snapshot,calculation_snapshot_sha256 FROM public.customer_invoices WHERE company_id=${lit(c.companyId)} AND customer_id=${lit(c.customerId)} AND billing_underlay_id=${lit(underlayId)}`)
   const totalsMatch = (r: Row, ex: string, vat: string, inc: string) => sekNumberToOre(Number(r[ex])) === expected.totalExVatOre && sekNumberToOre(Number(r[vat])) === expected.totalVatOre && sekNumberToOre(Number(r[inc])) === expected.totalIncVatOre
   if (runs.length !== 1 || runs[0].status !== 'locked' || !runs[0].locked_at || !totalsMatch(runs[0], 'total_ex_vat', 'vat_amount', 'total_inc_vat')) throw Error('pilot_stored_locked_pricing_mismatch')
@@ -296,9 +325,79 @@ export async function runPreparedTerm0203Pilot(input: PilotInput, ports: PilotPo
   }
   assertStoredLines(storedLines, false)
   assertStoredLines(calculation.pricing_lines as Row[], true)
+  // Export only explicit observed fields, never entire SQL rows, source bytes,
+  // calculation snapshots, sessions or arbitrary metadata.
+  if (storedLines.length < 1 || storedLines.length > 32 || calculation.pricing_lines.length > 32) throw Error('pilot_evidence_line_limit')
+  const normalizedValues = values.map(v => ({ id: id(v.id), periodStart: evidenceInstant(v.period_start), periodEnd: evidenceInstant(v.period_end),
+    quantityKwh: decimalText(v.kwh), sourceMessageId: id(v.source_message_id), supplyPeriodId: id(v.supply_period_id),
+    billingStatus: 'billable' as const, billingGateStatus: 'eligible' as const }))
+  const pricingLines = storedLines.map(v => ({ id: id(v.id), lineType: evidenceText(v.line_type, 128), description: evidenceText(v.description, 1000, true),
+    quantity: nullableDecimal(v.quantity), unit: v.unit === null ? null : evidenceText(v.unit, 128, true), unitPriceExVat: nullableDecimal(v.unit_price_ex_vat),
+    amountExVatOre: evidenceOre(v.amount_ex_vat), vatRate: decimalText(v.vat_rate), vatOre: evidenceOre(v.vat_amount), amountIncVatOre: evidenceOre(v.amount_inc_vat),
+    sortOrder: safeInteger(v.sort_order), componentCode: componentCode(v.metadata) }))
+  const invoiceLines = (calculation.pricing_lines as Row[]).map(v => ({ lineType: evidenceText(v.componentType, 128), description: evidenceText(v.componentLabel, 1000, true),
+    quantity: nullableDecimal(v.quantity), unit: v.calculationUnit === null ? null : evidenceText(v.calculationUnit, 128, true), unitPriceExVat: nullableDecimal(v.valueAmount),
+    amountExVatOre: evidenceOre(v.amountSekExVat), vatOre: evidenceOre(v.vatAmount), amountIncVatOre: evidenceOre(v.amountIncVat), componentCode: componentCode(v.metadata) }))
+  const basis = object(supplies[0].basis)
+  const effects = {
+    regulatedSource: { artifactId, groundId: id(reviewed.groundId), sourceSha256: sourceHash, scopeSha256: evidenceHash(scope.scopeHash),
+      archiveStatus: 'archived' as const, reviewStatus: 'authorized' as const, submittedByUserId: id(session.userId), reviewedByUserId: id(reviewer.userId) },
+    receivedOriginals,
+    normalizedValues, normalizedValuesSha256: hash(JSON.stringify(normalizedValues)),
+    supply: { supplyPeriodId, qualified: true as const, sourceMessageId: id(basis.sourceMessageId), payloadSha256: evidenceHash(basis.payloadHash),
+      marketStateVersion: safeInteger(basis.marketStateVersion, true), marketStartAt: evidenceInstant(basis.marketStartAt), marketEndAt: basis.marketEndAt === null ? null : evidenceInstant(basis.marketEndAt),
+      groundId: id(basis.groundId), groundSourceSha256: evidenceHash(basis.groundSourceSha256) },
+    underlay: { id: underlayId, status: 'validated' as const, readinessStatus: 'ready' as const, sourceBasisSha256: evidenceHash(bindings[0].source_basis_hash),
+      exactTotalKwh: decimalText(bindings[0].exact_total_kwh), finalizedAt: evidenceInstant(bindings[0].finalized_at), supplyPeriodId, supplyCurrent: true as const },
+    pricing: { id: id(runs[0].id), status: 'locked' as const, lockedAt: evidenceInstant(runs[0].locked_at), totalExVatOre: evidenceOre(runs[0].total_ex_vat),
+      vatOre: evidenceOre(runs[0].vat_amount), totalIncVatOre: evidenceOre(runs[0].total_inc_vat), lines: pricingLines, linesSha256: hash(JSON.stringify(pricingLines)) },
+    invoice: { id: id(invoices[0].id), status: 'draft' as const, invoiceExportItemId: id(invoices[0].invoice_export_item_id), calculationSnapshotSha256: evidenceHash(invoices[0].calculation_snapshot_sha256),
+      totalExVatOre: evidenceOre(invoices[0].amount_ex_vat), vatOre: evidenceOre(invoices[0].vat_amount), totalIncVatOre: evidenceOre(invoices[0].amount_inc_vat), lines: invoiceLines, linesSha256: hash(JSON.stringify(invoiceLines)) },
+    export: { id: id(exports[0].id), provider: 'nordfin' as const, environment: 'test' as const, status: 'pending' as const, runStatus: 'draft' as const,
+      approvalStatus: 'pending_review' as const, attemptCount: 0 as const, sentAt: null, exportFileId: null, providerInvoiceId: null, companyAttemptCount: 0 as const },
+  }
   return { scenarioId: 'TERM02.03', state: 'APP_PATH_AND_STORED_EFFECTS_OBSERVED_NOT_WHOLE_ACCEPTANCE' as const,
-    invoiceId: id(invoices[0].id), companyId: c.companyId, contractId: c.contractId, artifactId, supplyMessageId, supplyPeriodId, meteringMessageIds,
+    effects, invoiceId: id(invoices[0].id), companyId: c.companyId, customerId: c.customerId, contractId: c.contractId, meteringPointId: c.meteringPointId, artifactId, supplyMessageId, supplyPeriodId, meteringMessageIds,
     underlayId, underlaySourceBasisSha256: bindings[0].source_basis_hash, pricingRunId: preview.pricingRunId, monthlyLineOre: '3900', monthlyVatOre: '975', provider: 'nordfin', providerEnvironment: 'test', providerTransmission: 'NOT_REQUESTED_DRAFT_ONLY',
     expectedInvoiceExVatOre: expected.totalExVatOre.toString(), expectedInvoiceVatOre: expected.totalVatOre.toString(),
     expectedInvoiceIncVatOre: expected.totalIncVatOre.toString(), legalAcceptance: 'NOT_PROVEN_SYNTHETIC_ISSUER' as const }
+}
+
+
+export type Term0203EvidenceBinding = {
+  sourceCommit: string; sourceTree: string; githubRunId: number; githubRunAttempt: number; githubJobId: number; githubJob: 'term'
+  assignmentSha256: string; materialsSha256: string; materialSpecificationSha256: string; environmentId: string; billingMonth: string; recipientCertificateSha256: string
+}
+/** Exact TERM02.03-only private artifact. Caller has completed all assertions
+ * and authenticated source/job/material/certificate binding before this call. */
+export function writeTerm0203BusinessEvidence(home: string, binding: Term0203EvidenceBinding,
+  network: Awaited<ReturnType<typeof qualifyPilotNetworkSource>>, pilot: Awaited<ReturnType<typeof runPreparedTerm0203Pilot>>,
+  actors: { submittedByUserId: string; reviewedByUserId: string }) {
+  if (!/^[a-f0-9]{40}$/.test(binding.sourceCommit) || !/^[a-f0-9]{40}$/.test(binding.sourceTree) || binding.githubJob !== 'term'
+    || !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(binding.billingMonth)) throw Error('pilot_evidence_binding_invalid')
+  const dto = { schema: 'gridex-t2-term0203-business-evidence-v1', scenarioId: 'TERM02.03', state: 'APP_PATH_AND_STORED_EFFECTS_OBSERVED_NOT_WHOLE_ACCEPTANCE',
+    wholeScenarioPass: false, legalAcceptance: 'NOT_PROVEN_SYNTHETIC_ISSUER', wholeAcceptance: 'HOLD',
+    sourceCommit: binding.sourceCommit, sourceTree: binding.sourceTree, githubRunId: safeInteger(binding.githubRunId, true), githubRunAttempt: safeInteger(binding.githubRunAttempt, true),
+    githubJobId: safeInteger(binding.githubJobId, true), githubJob: binding.githubJob, assignmentSha256: evidenceHash(binding.assignmentSha256), materialsSha256: evidenceHash(binding.materialsSha256),
+    materialSpecificationSha256: evidenceHash(binding.materialSpecificationSha256), environmentId: evidenceText(binding.environmentId, 256), billingMonth: binding.billingMonth,
+    recipientCertificateSha256: evidenceHash(binding.recipientCertificateSha256), companyId: id(pilot.companyId), customerId: id(pilot.customerId), contractId: id(pilot.contractId), meteringPointId: id(pilot.meteringPointId),
+    networkSource: { artifactId: id(network.artifactId), registryVersionId: id(network.registryVersionId), sourceSha256: evidenceHash(network.sourceHash), claimsSha256: evidenceHash(network.claimsHash),
+      archiveStatus: 'archived', reviewStatus: 'authorized', submittedByUserId: id(actors.submittedByUserId), reviewedByUserId: id(actors.reviewedByUserId) }, effects: pilot.effects }
+  const bytes = Buffer.from(JSON.stringify(dto))
+  if (bytes.length > 1_048_576) throw Error('pilot_business_evidence_too_large')
+  const privateDirectory = (directory: string) => {
+    const info = fs.lstatSync(directory)
+    if (!path.isAbsolute(directory) || fs.realpathSync(directory) !== directory || !info.isDirectory() || info.isSymbolicLink()
+      || info.uid !== process.getuid?.() || (info.mode & 0o777) !== 0o700) throw Error('pilot_business_evidence_directory_not_private')
+  }
+  privateDirectory(home)
+  const directory = path.join(home, 'business-evidence')
+  try { fs.mkdirSync(directory, { mode: 0o700 }) } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error }
+  privateDirectory(directory)
+  const fd = fs.openSync(path.join(directory, 'term0203-v1.private.json'), fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600)
+  try {
+    const info = fs.fstatSync(fd)
+    if (!info.isFile() || info.uid !== process.getuid?.() || (info.mode & 0o777) !== 0o600 || info.nlink !== 1) throw Error('pilot_business_evidence_file_not_private')
+    fs.writeFileSync(fd, bytes); fs.fsyncSync(fd)
+  } finally { fs.closeSync(fd) }
 }

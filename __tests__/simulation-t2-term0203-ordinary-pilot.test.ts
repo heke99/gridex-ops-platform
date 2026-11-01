@@ -1,5 +1,6 @@
 // Finite-port component qualification; no mailbox, Auth, DB or TERM acceptance.
-import { readFileSync } from 'node:fs'
+import fs, { readFileSync } from 'node:fs'
+import os from 'node:os'
 import { runInNewContext } from 'node:vm'
 import * as crypto from 'node:crypto'
 import path from 'node:path'
@@ -7,7 +8,7 @@ import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import * as oracle from '../scripts/simulation/track2/lib/term-oracle'
 
-function load() {
+function load(filesystem: typeof fs | Record<string, unknown> = {}) {
   const filename = new URL('../scripts/simulation/track2/lib/pilot-term0203.ts', import.meta.url)
   const exports: Record<string, (...args: unknown[]) => unknown> = {}
   const forbidden = () => { throw Error('undeclared IO') }
@@ -19,7 +20,7 @@ function load() {
     throw Error(`undeclared billing import ${name}`)
   }, Buffer, Date })
   const ports: Record<string, unknown> = {
-    'node:crypto': crypto, 'node:fs': {}, 'node:path': {}, 'nodemailer': {},
+    'node:crypto': crypto, 'node:fs': filesystem, 'node:path': path, 'nodemailer': {},
     './db': { psqlRows: forbidden }, './server-action': { callServerAction: forbidden },
     './term-fixture': {}, './term-billing': billing, './term-oracle': oracle, './env': { sim: {} },
   }
@@ -28,7 +29,7 @@ function load() {
   } }).outputText, { exports, require: (name: string) => {
     if (!(name in ports)) throw Error(`undeclared import ${name}`)
     return ports[name]
-  }, Buffer, FormData, File, URL, Response, Date, console: { info: forbidden }, process: { env: {} } })
+  }, Buffer, FormData, File, URL, Response, Date, console: { info: forbidden }, process: { env: {}, getuid: process.getuid } })
   return exports
 }
 
@@ -131,7 +132,7 @@ function termFactoryControl() {
     './fixture': { createAdminFixture: forbidden, observeFixtureActor: forbidden }, './session': { loginSession: forbidden }, './server-action': { callServerAction: forbidden } }
   runInNewContext(ts.transpileModule(readFileSync(new URL('../scripts/simulation/track2/lib/term-fixture.ts', import.meta.url), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText, {
     exports, require: (name: string) => { if (!(name in modules)) return forbidden(); return modules[name] },
-    process: { env: {} }, Buffer, Date, console: { info() {} },
+    process: { env: {}, getuid: process.getuid }, Buffer, Date, console: { info() {} },
   })
   return exports
 }
@@ -167,7 +168,7 @@ function control(failure?: string) {
     { lineType: 'fixed_monthly_fee', description: 'Monthly', amountExVat: 39, vatAmount: 9.75, amountIncVat: 48.75, metadata: { component_code: 'monthly_fee' } },
     { lineType: 'fixed_fee', description: 'Invoice', amountExVat: 19, vatAmount: 4.75, amountIncVat: 23.75, metadata: { component_code: 'invoice_fee' } },
   ]
-  const storedLines = lines.map(v => ({ line_type: v.lineType, amount_ex_vat: v.amountExVat, vat_amount: v.vatAmount, amount_inc_vat: v.amountIncVat, metadata: v.metadata }))
+  const storedLines = lines.map((v, i) => ({ id: uid(70 + i), description: v.description, quantity: '1', unit: 'månad', unit_price_ex_vat: String(v.amountExVat), vat_rate: '0.25', sort_order: i * 10, line_type: v.lineType, amount_ex_vat: v.amountExVat, vat_amount: v.vatAmount, amount_inc_vat: v.amountIncVat, metadata: { ...v.metadata, private_key: 'ROW_SECRET_SENTINEL' } }))
   const originalRows: Record<string, unknown>[] = []
   const http = async (_session: unknown, route: string, body: unknown) => {
     trace.push(route); requests.push({ route, body })
@@ -176,7 +177,7 @@ function control(failure?: string) {
     if (route.startsWith('/api/internal/inbound-mail/cron?')) return { status: 200, body: { ok: true, result: { mailboxesChecked: 1, failedJobs: 0, debug: { configurationError: null, errorsByMailbox: [], autoProcessErrors: [] } } } }
     if (route.endsWith('/scope')) return { status: 200, body: { status: 'scoped', scopeHash: 'c'.repeat(64), scope: { companyId: company, contractId, meteringPointId: point, customerIdentity: '199001010001', gridArea: 'TES' } } }
     if (route === '/api/ediel/regulated-supply-sources') return { status: 201, body: { status: 'archived', artifactId, companyId: company, sourceHash: crypto.createHash('sha256').update(input.groundPdf).digest('hex'), scopeHash: 'c'.repeat(64) } }
-    if (route.endsWith('/review')) return { status: 200, body: { status: failure === 'review-held' ? 'held' : 'authorized', artifactId, companyId: company, sourceHash: crypto.createHash('sha256').update(input.groundPdf).digest('hex'), scopeHash: 'c'.repeat(64) } }
+    if (route.endsWith('/review')) return { status: 200, body: { status: failure === 'review-held' ? 'held' : 'authorized', artifactId, groundId: uid(60), companyId: company, sourceHash: crypto.createHash('sha256').update(input.groundPdf).digest('hex'), scopeHash: 'c'.repeat(64) } }
     if (route.endsWith('/generate-underlay') || route.endsWith('/lock-preview')) return { status: 200, body: { data: {} } }
     if (route.endsWith('/pricing/preview')) return { status: 200, body: { data: { status: 'success', pricingRunId: failure === 'missing-run' ? null : run, errors: [], totalExVat: 58, vatAmount: 14.5, totalIncVat: 72.5, lines: failure === 'dropped-fee' ? lines.slice(0, 1) : lines } } }
     if (route.endsWith('/invoice-exports/create')) return { status: 200, body: { mode: 'prepare_only', approval_required: true, data: { created: 1, failed: 0, blocked: 0 } } }
@@ -186,18 +187,18 @@ function control(failure?: string) {
     if (!sql.startsWith('SELECT ')) throw Error('business SQL write forbidden')
     if (sql.includes('public.ediel_mailboxes')) return [{ id: mailboxId, email_address: input.mailbox.mailboxAddress, imap_host: '127.0.0.1', imap_port: 10993, username: 'pilot', secret_reference: 'env:SIM_PILOT_MAILBOX_PASSWORD', metadata: { imap_secure: true } }]
     if (sql.includes('public.ediel_messages')) { const result = originalRows.at(-1)!; return [{ ...result, raw_payload: failure === 'original' ? 'wrong-original' : result.raw_payload }] }
-    if (sql.includes('public.customer_supply_periods')) return [{ id: supplyPeriod, basis: { qualified: failure !== 'supply' } }]
-    if (sql.includes('public.normalized_metering_values')) return intervals.map((v, i) => ({ period_start: v.start, period_end: v.end, kwh: failure === 'nonzero-stored' && i === 0 ? '1' : '0', source_message_id: e66Message, supply_period_id: supplyPeriod, billing_status: 'billable', billing_gate_status: failure === 'metering-gate' ? 'blocked' : 'eligible' }))
-    if (sql.includes('gridex_billing_source.underlay_bindings')) return [{ underlay_id: underlay, source_basis_hash: 'f'.repeat(64), actual_hash: failure === 'binding-hash' ? '0'.repeat(64) : 'f'.repeat(64), exact_total_kwh: '0', finalized_at: 'now', supply_period_id: supplyPeriod, supply_current: failure !== 'finalized-supply' }]
+    if (sql.includes('public.customer_supply_periods')) return [{ id: supplyPeriod, basis: { qualified: failure !== 'supply', sourceMessageId: supplyMessage, payloadHash: crypto.createHash('sha256').update(originalRows[0].raw_payload as string).digest('hex'), marketStateVersion: 1, marketStartAt: '2026-08-31T22:00:00.000Z', marketEndAt: null, groundId: uid(60), groundSourceSha256: crypto.createHash('sha256').update(input.groundPdf).digest('hex') } }]
+    if (sql.includes('public.normalized_metering_values')) return intervals.map((v, i) => ({ id: uid(1000 + i), period_start: v.start, period_end: v.end, kwh: failure === 'nonzero-stored' && i === 0 ? '1' : '0', source_message_id: e66Message, supply_period_id: supplyPeriod, billing_status: 'billable', billing_gate_status: failure === 'metering-gate' ? 'blocked' : 'eligible' }))
+    if (sql.includes('gridex_billing_source.underlay_bindings')) return [{ underlay_id: underlay, source_basis_hash: 'f'.repeat(64), actual_hash: failure === 'binding-hash' ? '0'.repeat(64) : 'f'.repeat(64), exact_total_kwh: '0', finalized_at: '2026-11-01T22:00:00.000Z', supply_period_id: supplyPeriod, supply_current: failure !== 'finalized-supply' }]
     if (sql.includes('gridex_billing_source.require_underlay_v1')) { if (failure === 'source-copy') throw Error('pilot_source_copy_unavailable'); return [{}] }
     if (sql.includes('public.billing_underlays')) return [{ id: underlay, status: 'validated', readiness_status: failure === 'underlay' ? 'blocked' : 'ready' }]
     if (sql.includes('public.invoice_provider_catalog')) return [{ provider: 'nordfin', selectable: failure !== 'provider-catalog' }]
     if (sql.includes('public.companies')) return [{ invoice_export_target_system: failure === 'provider' ? 'file_export' : 'nordfin', billing_provider_environment: 'test', invoice_export_enabled: false }]
-    if (sql.includes('public.pricing_runs')) return [{ id: run, status: failure === 'unlocked' ? 'success' : 'locked', locked_at: 'now', total_ex_vat: 58, vat_amount: 14.5, total_inc_vat: 72.5 }]
+    if (sql.includes('public.pricing_runs')) return [{ id: run, status: failure === 'unlocked' ? 'success' : 'locked', locked_at: '2026-11-01T22:01:00.000Z', total_ex_vat: 58, vat_amount: 14.5, total_inc_vat: 72.5 }]
     if (sql.includes('public.pricing_preview_lines')) return failure === 'stored-fee' ? storedLines.slice(0, 1) : storedLines
     if (sql.includes('public.invoice_export_items')) return [{ id: uid(50), provider: 'nordfin', environment: 'test', status: 'pending', attempt_count: 0, sent_at: null, export_file_id: null, provider_invoice_id: null, run_status: 'draft', approval_status: 'pending_review' }]
     if (sql.includes('public.invoice_export_attempts')) return [{ count: failure === 'transmission' ? 1 : 0 }]
-    if (sql.includes('public.customer_invoices')) return [{ id: invoice, status: 'draft', invoice_export_item_id: uid(50), amount_ex_vat: failure === 'invoice-total' ? 39 : 58, vat_amount: 14.5, amount_inc_vat: 72.5, calculation_snapshot_sha256: 'e'.repeat(64), calculation_snapshot: { customer_contract_id: contractId, billing_underlay_id: underlay, pricing_run_id: run, pricing_lines: lines.map(v => ({ ...v, amountSekExVat: v.amountExVat })) } }]
+    if (sql.includes('public.customer_invoices')) return [{ id: invoice, status: 'draft', invoice_export_item_id: uid(50), amount_ex_vat: failure === 'invoice-total' ? 39 : 58, vat_amount: 14.5, amount_inc_vat: 72.5, calculation_snapshot_sha256: 'e'.repeat(64), calculation_snapshot: { customer_contract_id: contractId, billing_underlay_id: underlay, pricing_run_id: run, pricing_lines: lines.map(v => ({ componentType: v.lineType, componentLabel: v.description, calculationUnit: 'månad', quantity: 1, valueAmount: v.amountExVat, amountSekExVat: v.amountExVat, vatAmount: v.vatAmount, amountIncVat: v.amountIncVat, metadata: v.metadata })) } }]
     throw Error(`undeclared SQL ${sql}`)
   }
   const action = async (_session: unknown, command: { exportedName: string }) => {
@@ -208,10 +209,46 @@ function control(failure?: string) {
   const deliver = async (mail: { raw: string }) => {
     trace.push('SMTP')
     const isSupply = mail.raw.includes('Z04')
-    originalRows.push({ id: isSupply ? supplyMessage : e66Message, company_id: company, message_code: isSupply ? 'Z04' : 'E66', raw_payload: mail.raw, inbound_email_message_id: uid(40), mail_processing_status: 'processed' })
+    originalRows.push({ id: isSupply ? supplyMessage : e66Message, company_id: company, message_code: isSupply ? 'Z04' : 'E66', raw_payload: mail.raw, inbound_email_message_id: isSupply ? uid(40) : uid(41), mail_processing_status: 'processed' })
   }
   const runPilot = () => load().runPreparedTerm0203Pilot(input, { http, read, action, deliver }) as Promise<Record<string, unknown>>
-  return { runPilot, input, trace, requests }
+  return { runPilot, input, trace, requests, storedLines, intervals }
+}
+
+async function scenarioControl(failure?: string) {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 't2-business-scenario-')); fs.chmodSync(home, 0o700)
+  const app = path.join(home, 'app'), hosted = path.join(app, 'scripts/simulation/track2/hosted'); fs.mkdirSync(hosted, { recursive: true })
+  const sourceCommit = 'b'.repeat(40), sourceTree = 'c'.repeat(40), c = control(), observed = await c.runPilot(), calls: string[] = []
+  const helper = load(fs), profile = JSON.parse(readFileSync(new URL('../scripts/simulation/track2/hosted/profile.requirements.json', import.meta.url), 'utf8'))
+  fs.writeFileSync(path.join(hosted, 'profile.requirements.json'), JSON.stringify(profile))
+  const specification = { declaration: 'SYNTHETIC_NOT_EXTERNAL_LEGAL_ACCEPTANCE', billingMonth: '2026-09', signedDate: '2026-08-30', offerValidFrom: '2026-08-01', startsAt: '2026-09-01', startAt: '2026-08-31T22:00:00.000Z',
+    signedPdfBase64: Buffer.from('%PDF signed synthetic').toString('base64'), groundPdfBase64: c.input.groundPdf.toString('base64'), authority: fixtureControl().authority,
+    groundVersion: '1', groundDecisionReference: 'SYNTHETIC', network: { pdfBase64: Buffer.from('%PDF network synthetic').toString('base64'), reference: 'synthetic', version: '1', validFrom: '2026-01-01T00:00:00.000Z', validUntil: '2027-01-01T00:00:00.000Z', clause: { locator: '1', quote: 'synthetic' } }, z04: c.input.z04, e66: c.input.e66 }
+  const digest = (v: string | Buffer) => crypto.createHash('sha256').update(v).digest('hex')
+  const assignment = { sourceCommit, sourceTree, environmentId: 'test-pilot', github: { runId: 123, runAttempt: 1 }, pilotTerm0203: { materialSpecificationSha256: digest(JSON.stringify(specification)), businessEvidenceRecipientCertificateSHA256: failure === 'certificate' ? '0'.repeat(64) : profile.bootstrapRecipientCertificateSHA256 } }
+  const assignmentRaw = JSON.stringify(assignment), assignmentFile = path.join(home, 'assignment.json'), materialsFile = path.join(home, 'materials.json')
+  fs.writeFileSync(assignmentFile, assignmentRaw, { mode: 0o600 })
+  fs.writeFileSync(materialsFile, JSON.stringify({ schema: 'gridex-t2-term0203-materials-v1', assignmentSha256: digest(assignmentRaw), sourceCommit, environmentId: 'test-pilot', specification }), { mode: 0o600 })
+  fs.mkdirSync(path.join(home, 'pilot-mailbox'), { mode: 0o700 }); fs.writeFileSync(path.join(home, 'pilot-mailbox/descriptor.json'), JSON.stringify(c.input.mailbox), { mode: 0o600 })
+  let callback: (() => Promise<void>) | undefined
+  const imports: Record<string, unknown> = {
+    'node:crypto': crypto, 'node:fs': fs, 'node:path': path, 'vitest': { expect, it: (_name: string, fn: () => Promise<void>) => { callback = fn } },
+    'node:child_process': { execFileSync: (program: string, args: string[]) => {
+      if (program === 'git') return Buffer.from(args.at(-1) === 'HEAD^{tree}' ? failure === 'tree' ? '0'.repeat(40) : sourceTree : sourceCommit)
+      if (args.includes('--job-context')) return Buffer.from(JSON.stringify({ jobId: failure === 'job' ? 0 : 456, job: 'term' }))
+      if (args[0].endsWith('imap-mailbox.py')) return Buffer.from('{}')
+      throw Error('undeclared scenario command')
+    } },
+    '../lib/fixture': { createAdminFixture: async () => ({ email: 'synthetic@example.invalid', password: 'PASSWORD_SENTINEL' }), bootstrapPilotTestTrust: () => ({ agreementId: uid(30), networkActorId: uid(31), networkKeyId: uid(32), networkRepresentationId: uid(33), regulatedKeyId: uid(34), regulatedRepresentationId: uid(35) }) },
+    '../lib/term-fixture': { createTermTenant: async () => { calls.push('createTenant'); return { ...c.input.contract.tenant, companyId: c.input.contract.companyId } }, tenantSession: async () => c.input.session, createSignedContract: async () => c.input.contract },
+    '../lib/session': { loginSession: async () => c.input.reviewer, loginPlatformConfigurationSession: async () => c.input.platform },
+    '../lib/pilot-term0203': { ...helper, qualifyPilotNetworkSource: async () => ({ artifactId: uid(80), registryVersionId: uid(81), sourceHash: '1'.repeat(64), claimsHash: '2'.repeat(64), legalAcceptance: 'NOT_PROVEN_SYNTHETIC_ISSUER' }), runPreparedTerm0203Pilot: async () => { if (failure === 'effects') throw Error('pilot_controlled_effect_refusal'); return observed } },
+    '../lib/term-oracle': oracle,
+  }
+  runInNewContext(ts.transpileModule(readFileSync(new URL('../scripts/simulation/track2/scenarios/pilot-term0203.test.ts', import.meta.url), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText,
+    { exports: {}, require: (name: string) => { if (!(name in imports)) throw Error('undeclared scenario import'); return imports[name] }, Buffer, File,
+      process: { getuid: process.getuid, env: { SIM_REQUIRE_ACTOR_RECEIPT: '1', SIM_RUNTIME_ASSIGNMENT_FILE: assignmentFile, SIM_TERM0203_MATERIALS_FILE: materialsFile, SIM_HOME: home, RUN_DIR: app, GITHUB_JOB: 'term', GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '1', GITHUB_SHA: sourceCommit } } })
+  return { run: () => callback!(), calls, home, target: path.join(home, 'business-evidence/term0203-v1.private.json'), cleanup: () => fs.rmSync(home, { recursive: true, force: true }) }
 }
 
 describe('TERM02.03 ordinary pilot controls', () => {
@@ -339,6 +376,80 @@ describe('TERM02.03 ordinary pilot controls', () => {
     expect(c.trace.indexOf('/api/ediel/regulated-supply-sources/' + uid(6) + '/review')).toBeLessThan(c.trace.indexOf('SMTP'))
     expect(c.requests.find(v => v.route.endsWith('/pricing/preview'))?.body).toEqual({ billing_underlay_id: uid(10), persist: true })
     expect(JSON.stringify(result)).not.toContain(c.input.issuer.receiptSigningKeyHex)
+  })
+  it('returns explicit actual effect records and full normalized values with canonical hashes', async () => {
+    const c = control(); c.storedLines[0].description = 'Observed stored monthly line'; c.storedLines[0].quantity = '1.000'
+    const result = await c.runPilot(), effects = result.effects as Record<string, unknown>
+    expect(effects).toBeDefined()
+    const normalized = effects.normalizedValues as Array<Record<string, unknown>>
+    expect(normalized).toHaveLength(c.intervals.length)
+    expect(normalized[0]).toEqual({ id: uid(1000), periodStart: c.intervals[0].start, periodEnd: c.intervals[0].end, quantityKwh: '0', sourceMessageId: uid(9), supplyPeriodId: uid(8), billingStatus: 'billable', billingGateStatus: 'eligible' })
+    expect(effects.normalizedValuesSha256).toBe(crypto.createHash('sha256').update(JSON.stringify(normalized)).digest('hex'))
+    const pricing = effects.pricing as Record<string, unknown>, invoice = effects.invoice as Record<string, unknown>
+    expect(pricing).toMatchObject({ id: uid(11), status: 'locked', totalExVatOre: '5800', vatOre: '1450', totalIncVatOre: '7250' })
+    expect((pricing.lines as Array<Record<string, unknown>>)[0]).toMatchObject({ id: uid(70), description: 'Observed stored monthly line', quantity: '1.000', amountExVatOre: '3900', vatOre: '975' })
+    expect(pricing.linesSha256).toBe(crypto.createHash('sha256').update(JSON.stringify(pricing.lines)).digest('hex'))
+    expect(invoice).toMatchObject({ id: uid(12), calculationSnapshotSha256: 'e'.repeat(64), totalIncVatOre: '7250' })
+    expect((invoice.lines as Array<Record<string, unknown>>)[0]).toMatchObject({ quantity: '1', unitPriceExVat: '39' })
+    expect(invoice.linesSha256).toBe(crypto.createHash('sha256').update(JSON.stringify(invoice.lines)).digest('hex'))
+    expect(effects.regulatedSource).toMatchObject({ artifactId: uid(6), groundId: uid(60), reviewStatus: 'authorized' })
+    expect(effects.receivedOriginals).toEqual([
+      { messageId: uid(7), inboundEmailMessageId: uid(40), messageCode: 'Z04', rawSha256: crypto.createHash('sha256').update(c.input.z04.replace('{{GSRN}}', c.input.contract.gsrn)).digest('hex') },
+      { messageId: uid(9), inboundEmailMessageId: uid(41), messageCode: 'E66', rawSha256: crypto.createHash('sha256').update(c.input.e66[0].replace('{{GSRN}}', c.input.contract.gsrn)).digest('hex') },
+    ])
+    expect(effects.export).toMatchObject({ approvalStatus: 'pending_review', attemptCount: 0, companyAttemptCount: 0, sentAt: null })
+    for (const secret of [c.input.issuer.receiptSigningKeyHex, c.input.groundPdf.toString(), 'raw_payload', 'calculation_snapshot', 'ROW_SECRET_SENTINEL']) expect(JSON.stringify(effects)).not.toContain(secret)
+  })
+  it('writes only the exact private versioned DTO once after successful observations', async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), 't2-business-evidence-')); fs.chmodSync(home, 0o700)
+    try {
+      const c = control(), result = await c.runPilot(), writer = load(fs)
+      const binding = { sourceCommit: 'b'.repeat(40), sourceTree: 'c'.repeat(40), githubRunId: 123, githubRunAttempt: 1, githubJobId: 456, githubJob: 'term',
+        assignmentSha256: 'a'.repeat(64), materialsSha256: 'd'.repeat(64), materialSpecificationSha256: 'e'.repeat(64), environmentId: 'test-pilot', billingMonth: '2026-09', recipientCertificateSha256: 'f'.repeat(64) }
+      const network = { artifactId: uid(80), registryVersionId: uid(81), sourceHash: '1'.repeat(64), claimsHash: '2'.repeat(64), legalAcceptance: 'NOT_PROVEN_SYNTHETIC_ISSUER' }
+      writer.writeTerm0203BusinessEvidence(home, binding, network, result, { submittedByUserId: c.input.session.userId, reviewedByUserId: c.input.reviewer.userId })
+      const target = path.join(home, 'business-evidence/term0203-v1.private.json'), raw = fs.readFileSync(target), dto = JSON.parse(raw.toString())
+      expect(dto).toMatchObject({ schema: 'gridex-t2-term0203-business-evidence-v1', scenarioId: 'TERM02.03', wholeScenarioPass: false, wholeAcceptance: 'HOLD', legalAcceptance: 'NOT_PROVEN_SYNTHETIC_ISSUER', ...binding })
+      expect(dto.effects).toEqual(result.effects); expect(dto.networkSource).toMatchObject({ artifactId: uid(80), sourceSha256: '1'.repeat(64), reviewStatus: 'authorized' })
+      expect(fs.statSync(path.dirname(target)).mode & 0o777).toBe(0o700); expect(fs.statSync(target).mode & 0o777).toBe(0o600)
+      expect(raw.length).toBeLessThanOrEqual(1_048_576); expect(raw.toString()).not.toContain(c.input.issuer.receiptSigningKeyHex)
+      expect(() => writer.writeTerm0203BusinessEvidence(home, binding, network, result, { submittedByUserId: c.input.session.userId, reviewedByUserId: c.input.reviewer.userId })).toThrow()
+      expect(fs.readFileSync(target)).toEqual(raw)
+    } finally { fs.rmSync(home, { recursive: true, force: true }) }
+  })
+  it('registered scenario preserves network qualification and writes one complete private DTO', async () => {
+    const c = await scenarioControl()
+    try { await c.run(); const dto = JSON.parse(fs.readFileSync(c.target, 'utf8')); expect(dto.networkSource.registryVersionId).toBe(uid(81)); expect(dto.githubJobId).toBe(456); expect(dto.wholeScenarioPass).toBe(false); expect(dto.wholeAcceptance).toBe('HOLD'); expect(dto.effects.normalizedValues).toHaveLength(720) }
+    finally { c.cleanup() }
+  })
+  it.each(['certificate', 'job', 'tree'])('registered scenario refuses %s binding before company/bootstrap side effects', async failure => {
+    const c = await scenarioControl(failure)
+    try { await expect(c.run()).rejects.toThrow(/pilot_business_/); expect(c.calls).toEqual([]); expect(fs.existsSync(c.target)).toBe(false) }
+    finally { c.cleanup() }
+  })
+  it('registered scenario does not write a business file after effect refusal', async () => {
+    const c = await scenarioControl('effects')
+    try { await expect(c.run()).rejects.toThrow('pilot_controlled_effect_refusal'); expect(fs.existsSync(c.target)).toBe(false) }
+    finally { c.cleanup() }
+  })
+  it.each(['home-mode', 'directory-symlink', 'directory-mode', 'file-symlink'])('refuses unsafe private evidence filesystem %s', async failure => {
+    const c = await scenarioControl(), outside = fs.mkdtempSync(path.join(os.tmpdir(), 't2-business-outside-'))
+    try {
+      const directory = path.dirname(c.target)
+      if (failure === 'home-mode') fs.chmodSync(c.home, 0o755)
+      if (failure === 'directory-symlink') fs.symlinkSync(outside, directory)
+      if (failure === 'directory-mode') { fs.mkdirSync(directory, { mode: 0o700 }); fs.chmodSync(directory, 0o755) }
+      if (failure === 'file-symlink') { fs.mkdirSync(directory, { mode: 0o700 }); fs.symlinkSync(path.join(outside, 'untouched'), c.target) }
+      await expect(c.run()).rejects.toThrow(); expect(fs.readdirSync(outside)).toEqual([])
+    } finally { c.cleanup(); fs.rmSync(outside, { recursive: true, force: true }) }
+  })
+  it('refuses interval/original evidence beyond declared limits before app traffic', async () => {
+    for (const kind of ['intervals', 'originals']) {
+      const c = control()
+      if (kind === 'intervals') c.input.expectedIntervals = Array.from({ length: 1001 }, () => c.input.expectedIntervals[0])
+      else c.input.e66 = Array.from({ length: 128 }, () => c.input.e66[0])
+      await expect(c.runPilot()).rejects.toThrow('pilot_zero_full_month_required'); expect(c.trace).toEqual([])
+    }
   })
   it.each(['same-reviewer', 'tenant', 'binding', 'nonzero-input', 'transport', 'http-refusal', 'review-held', 'original', 'supply', 'nonzero-stored', 'metering-gate', 'underlay', 'binding-hash', 'finalized-supply', 'source-copy', 'missing-run', 'dropped-fee', 'provider-catalog', 'provider', 'unlocked', 'stored-fee', 'invoice-total', 'transmission'])('fails closed at the real %s seam', async failure => {
     const c = control(failure)

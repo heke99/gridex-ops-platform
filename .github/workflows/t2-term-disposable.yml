@@ -24,6 +24,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - run: python3 -B scripts/simulation/track2/hosted/qualification.test.py
+      - run: python3 -B scripts/simulation/track2/hosted/business-evidence.test.py
       - run: bash -n scripts/simulation/track2/{up,run,down}.sh scripts/simulation/track2/lib/common.sh scripts/simulation/track2/hosted/{prepare,cleanup}.sh
   bootstrap-probe:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
@@ -131,6 +132,9 @@ jobs:
             echo 'T2 supervised replay/consumer lifecycle HOLD; no acceptance claimed'
             exit 1
           fi
+      - name: Seal observed business effects before cleanup
+        if: always() && inputs.mode == 'admitted'
+        run: python3 -B scripts/simulation/track2/hosted/business-evidence.py --seal
       - name: Always clean exact owned resources on this host
         if: always() && inputs.mode == 'admitted'
         shell: bash
@@ -150,7 +154,11 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: t2-safe-receipt-${{ github.run_id }}
-          path: ${{ runner.temp }}/t2-safe-receipt.json
+          path: |
+            ${{ runner.temp }}/t2-safe-receipt.json
+            ${{ runner.temp }}/t2-business-evidence-export/t2-business-evidence.cms
+            ${{ runner.temp }}/t2-business-evidence-export/t2-business-evidence-manifest.json
           if-no-files-found: error
           retention-days: 7
+      # Business effects are ciphertext only; plaintext/private inputs stay local.
       # No raw logs, keys, fixtures or assignment/receipt journals are uploaded.
