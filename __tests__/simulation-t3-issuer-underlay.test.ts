@@ -14,11 +14,11 @@ vi.mock('../scripts/simulation/track3/lib/app', () => ({ triggerInbound: () => {
 import { createIssuerUnderlay, issuerAuthorityFingerprint, buildUnapprovedChallenge, UNDERLAY_NAMES, UNDERLAY_MATRIX, underlayInput, type UnderlayPorts, type Foundation } from '../scripts/simulation/track3/lib/issuer-underlay'
 type Row = Record<string, unknown>
 const digest = (value: string) => createHash('sha256').update(value).digest('hex')
-const input = underlayInput.parse({ schema: 'track3-controlled-issuer-underlay-input-v1', runLabel: 'component', validityHours: 1,
+const input = underlayInput.parse({ schema: 'track3-controlled-issuer-underlay-input-v2', runLabel: 'component', validityHours: 1,
   measurementUsageFrom: '2026-01-01T00:00:00Z', measurementUsageUntil: '2027-01-01T00:00:00Z', periodStart: '202607010000', quantity: '1',
-  meteringPoint: '735999260000000000', legalIdentity: ['88991', '160', 'SVK'], negativeLegalIdentity: ['88992', '160', 'SVK'], transportSender: ['CONTROLLED', 'ZZ'] })
-type Mode = 'ok' | 'foundation-unknown' | 'http-unknown' | 'denied-writes' | 'birth-held' | 'replay-changed' | 'equal-collapsed' | 'revocation-unobserved' | 'independence-bypassed' | 'reviewer-no-current-permission' | 'tombstone-erased' | 'damaged-accepted' | 'stale-approved' | 'uncovered-approved' | 'mismatch-approved' | 'missing-505' | 'tombstone-missing-505' | 'denied-bypassed'
-function harness(mode: Mode = 'ok') {
+  meteringPoint: '735999260000000000', legalIdentity: ['88991', '160', 'SVK'], deliveryLegalIdentity: ['88993', '160', 'SVK'], negativeLegalIdentity: ['88992', '160', 'SVK'], transportSender: ['CONTROLLED', 'ZZ'] })
+type Mode = 'ok' | 'foundation-unknown' | 'http-unknown' | 'denied-writes' | 'birth-held' | 'replay-changed' | 'equal-collapsed' | 'revocation-unobserved' | 'independence-bypassed' | 'reviewer-no-current-permission' | 'tombstone-erased' | 'damaged-accepted' | 'stale-approved' | 'uncovered-approved' | 'mismatch-approved' | 'missing-505' | 'tombstone-missing-505' | 'denied-bypassed' | 'delivery-first-held' | 'delivery-collision' | 'delivery-retrofit' | 'delivery-revoked' | 'delivery-immutable-changed'
+function harness(mode: Mode = 'ok', actualInput = input) {
   let payloadForOriginal = ''
   const artifacts = new Map<string, { body: Row; receipt: Row; actor: string }>(), history = new Set<string>(), sources = new Map<string, Row>()
   const evidence = new Map<string, unknown>(), observed = new Map<string, unknown>(), calls: string[] = []
@@ -27,25 +27,27 @@ function harness(mode: Mode = 'ok') {
   const foundation: Foundation = { companyId, mailboxId, receiver: '16700', actors, applications: [{ applicationReference: 'A', actorUserId: actors.A.id }, { applicationReference: 'B', actorUserId: actors.B.id }] }
   const bindings = foundation.applications.map(value => ({ ...value, applicationId: randomUUID() }))
   let nativeWrites = 0, seq = 0, revoked = false, firstIssuance: Row | undefined, receiveCount = 0
+  let delivery = false
+  const deliveryIds = { epochId: randomUUID(), namespaceId: randomUUID(), issuerVersionId: randomUUID(), mandateVersionId: randomUUID() }
   const common = () => ({ companyId, environment: 'test', assurance: 'controlled_test_only', epochId, namespaceId, issuerVersionId, mandateVersionId,
-    applicationBindings: bindings, applicationInventorySha256: digest('inventory'), legalIdentity: input.legalIdentity, retentionArtifactId: randomUUID(), journalSequence: String(++seq), journalHeadSha256: digest(String(seq)), marketActivationGranted: false, productionAuthorityGranted: false })
+    applicationBindings: bindings, applicationInventorySha256: digest('inventory'), ...(delivery ? deliveryIds : {}), legalIdentity: delivery ? input.deliveryLegalIdentity : input.legalIdentity, retentionArtifactId: randomUUID(), journalSequence: String(++seq), journalHeadSha256: digest(String(seq)), marketActivationGranted: false, productionAuthorityGranted: false })
   const ports: UnderlayPorts = {
-    input, prefix: 'T3COMPONENT', evidence: { save: (key, value) => { evidence.set(key, value); return key }, observe: (key, value) => { observed.set(key, value) } },
+    input: actualInput, prefix: 'T3COMPONENT', evidence: { save: (key, value) => { evidence.set(key, value); return key }, observe: (key, value) => { observed.set(key, value) } },
     preflight: async () => { calls.push('preflight') },
     foundation: async () => { calls.push('foundation'); if (mode === 'foundation-unknown') throw Error('unknown user creation'); return foundation },
     cleanup: async () => { calls.push('cleanup') },
     reviewerProof: async () => ({ actorId: actors.R.id, companyId, allowed: mode !== 'reviewer-no-current-permission' }),
     fingerprint: async () => ({ nativeWrites }),
-    immutable: async id => ({ id, originalHash: digest(id), originalAdmission: 'unchanged' }),
+    immutable: async id => ({ id, originalHash: digest(id + (mode === 'delivery-immutable-changed' && sources.get(id)?.delivery && [...sources.values()].filter(value => value.delivery).length === 3 ? String(++nativeWrites) : '')), originalAdmission: 'unchanged' }),
     challenge: async payload => { calls.push('actual-challenge-port'); const source = { sourceMessageId: negativeId, sourcePayloadSha256: digest(payload) }; sources.set(negativeId, source); return source },
-    issuer: async id => ({ status: revoked && mode !== 'revocation-unobserved' ? 'held' : history.has(id) ? 'qualified' : 'held', authorityVersionId: id === negativeId ? null : issuerVersionId,
-      holdReason: revoked ? 'ediel_utilts_foreign_issuer_basis_revoked' : 'awaiting_source_history', messageReferenceCollision: id !== negativeId && id !== originalId,
-      transactionReferenceCollisions: mode !== 'missing-505' && !(mode === 'tombstone-missing-505' && [...artifacts.values()].some(value => value.receipt.kind === 'test_delete' && value.receipt.reviewed)) && id !== negativeId && id !== originalId ? [{ transactionIndex: 0, transactionId: /IDE\+24\+([^'\r\n]+)/.exec(payloadForOriginal)?.[1] }] : [] }),
+    issuer: async id => ({ status: sources.get(id)?.delivery ? ((mode === 'delivery-first-held' && [...sources.values()].filter(value => value.delivery).length === 3 && sources.get(id)?.deliveryIndex === 0) || mode === 'delivery-revoked' ? 'held' : history.has(id) ? 'qualified' : 'held') : revoked && mode !== 'revocation-unobserved' ? 'held' : history.has(id) ? 'qualified' : 'held', authorityVersionId: id === negativeId ? null : sources.get(id)?.delivery ? deliveryIds.issuerVersionId : issuerVersionId,
+      holdReason: revoked ? 'ediel_utilts_foreign_issuer_basis_revoked' : 'awaiting_source_history', messageReferenceCollision: sources.get(id)?.delivery ? mode === 'delivery-collision' : id !== negativeId && id !== originalId,
+      transactionReferenceCollisions: !sources.get(id)?.delivery && mode !== 'missing-505' && !(mode === 'tombstone-missing-505' && [...artifacts.values()].some(value => value.receipt.kind === 'test_delete' && value.receipt.reviewed)) && id !== negativeId && id !== originalId ? [{ transactionIndex: 0, transactionId: /IDE\+24\+([^'\r\n]+)/.exec(payloadForOriginal)?.[1] }] : [] }),
     receive: async (issued, replay, payload) => {
       if (!payloadForOriginal) payloadForOriginal = payload
       calls.push(replay ? 'replay-APPEND-port' : 'issued-APPEND-port')
       if (replay) return sources.get(originalId)!
-      const id = receiveCount++ === 0 ? originalId : randomUUID(), source = { sourceMessageId: id, sourcePayloadSha256: digest(payload), issuanceId: issued.issuanceId }
+      const id = receiveCount++ === 0 ? originalId : randomUUID(), source = { sourceMessageId: id, sourcePayloadSha256: digest(payload), issuanceId: issued.issuanceId, delivery, deliveryIndex: [...sources.values()].filter(value => value.delivery).length }
       sources.set(id, source); return source
     },
     http: async (actor, path, value) => {
@@ -68,13 +70,14 @@ function harness(mode: Mode = 'ok') {
           const actual = sources.get(String(prior.body.sourceMessageId))
           if ((!checkpoint?.receipt.reviewed && mode !== 'uncovered-approved') || (actual?.issuanceId !== prior.body.currentIssuanceId && mode !== 'mismatch-approved')) return { status: 403, body: { error: 'source or checkpoint unqualified' } }
         }
+        if (prior.receipt.kind === 'test_birth' && JSON.stringify(prior.body.legalIdentity) === JSON.stringify(input.deliveryLegalIdentity)) { delivery = true; if (mode === 'delivery-retrofit') deliveryIds.namespaceId = namespaceId }
         nativeWrites++
         prior.receipt.reviewed = true
         const approved = { ...prior.receipt, ...common(), commandId: command.commandId, status: 'approved' }
         if (prior.receipt.kind === 'history') { const id = String(prior.body.sourceMessageId); history.add(id); Object.assign(approved, { sourceMessageId: id, sourcePayloadSha256: sources.get(id)!.sourcePayloadSha256 }) }
         return { status: 200, body: approved }
       }
-      if (revoked) return { status: 403, body: { error: 'revoked' } }
+      if (revoked && command.kind !== 'test_birth' && !delivery) return { status: 403, body: { error: 'revoked' } }
       const kind = command.kind as string, body = command.body as Row, artifactId = randomUUID()
       const result: Row = { ...common(), commandId: command.commandId, kind, artifactId, artifactSha256: digest(artifactId), scopeSha256: digest('scope-' + artifactId), status: 'archived' }
       if (kind === 'test_birth') result.epochId = null
@@ -94,12 +97,16 @@ beforeEach(() => vi.clearAllMocks())
 it('executes all ten real producer callbacks through finite ports and emits only its separate underlay matrix', async () => {
   const c = harness(); for (let index = 0; index < UNDERLAY_NAMES.length; index++) await c.producer.step(index)
   expect(c.observed.get('evidenceMatrix')).toEqual(UNDERLAY_MATRIX)
-  expect(c.calls).toContain('actual-challenge-port'); expect(c.calls.filter(value => value === 'issued-APPEND-port')).toHaveLength(3)
+  const effects = c.evidence.get('underlay/actual-effects.json') as { validation: { epoch: Row }; delivery: { epoch: Row; sources: Row[]; finalQualification: string } }
+  expect(effects.delivery.sources).toHaveLength(3); expect(effects.delivery.epoch.namespaceId).not.toBe(effects.validation.epoch.namespaceId)
+  expect(effects.delivery.sources.every(value => (value.currentRead as Row).status === 'qualified')).toBe(true)
+  expect(effects.delivery.finalQualification).toBe('NOT_RUN')
+  expect(c.calls).toContain('actual-challenge-port'); expect(c.calls.filter(value => value === 'issued-APPEND-port')).toHaveLength(6)
   expect(c.calls.filter(value => value === 'replay-APPEND-port')).toHaveLength(1)
   expect(UNDERLAY_NAMES).toHaveLength(10); expect(UNDERLAY_NAMES.some(name => /EDIEL\d/.test(name))).toBe(false)
   expect([...c.evidence.keys()].some(key => key.endsWith('/intent.json'))).toBe(true)
 })
-it.each(['foundation-unknown', 'http-unknown', 'denied-writes', 'birth-held', 'replay-changed', 'equal-collapsed', 'revocation-unobserved', 'independence-bypassed', 'reviewer-no-current-permission', 'tombstone-erased', 'damaged-accepted', 'stale-approved', 'uncovered-approved', 'mismatch-approved', 'missing-505', 'tombstone-missing-505', 'denied-bypassed'] as const)('preserves %s failure with no implicit command, user, APPEND or prefix retry', async mode => {
+it.each(['foundation-unknown', 'http-unknown', 'denied-writes', 'birth-held', 'replay-changed', 'equal-collapsed', 'revocation-unobserved', 'independence-bypassed', 'reviewer-no-current-permission', 'tombstone-erased', 'damaged-accepted', 'stale-approved', 'uncovered-approved', 'mismatch-approved', 'missing-505', 'tombstone-missing-505', 'denied-bypassed', 'delivery-first-held', 'delivery-collision', 'delivery-retrofit', 'delivery-revoked', 'delivery-immutable-changed'] as const)('preserves %s failure with no implicit command, user, APPEND or prefix retry', async mode => {
   const c = harness(mode)
   let failed = false
   for (let index = 0; index < UNDERLAY_NAMES.length; index++) { try { await c.producer.step(index) } catch { failed = true; break } }
@@ -167,4 +174,10 @@ it('independently decodes the actual prebirth challenge MIME into its exact auth
   const built = buildUnapprovedChallenge(raw, 'ediel@t3.sim.invalid', 'T3PHYSICAL')
   const actual = parseInboundEmailContent({ rawEmail: built.mime.toString('utf8') })
   expect(actual?.rawPayload).toBe(raw)
+})
+
+it('rejects duplicate whole delivery legal identity before fixture or HTTP effects', async () => {
+  const c = harness('ok', { ...input, deliveryLegalIdentity: [...input.legalIdentity] })
+  await expect(c.producer.step(0)).rejects.toThrow('three distinct full legal identities')
+  expect(c.calls).toEqual([])
 })

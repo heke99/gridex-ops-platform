@@ -4,6 +4,8 @@ check validates inputs read-only; execute consumes one explicit private plan onc
 Backend/replay adapters are separately reviewed tracked source, never shell data.
 """
 import argparse
+import ctypes
+from contextlib import contextmanager
 import fcntl
 import hashlib
 import json
@@ -15,7 +17,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 TRACK = Path(__file__).resolve().parent
 HARNESS = TRACK.parents[2]
@@ -73,6 +75,7 @@ def capture(argv, cwd=None, env=None):
 
 def capacity(driver, effective_ram, free_bytes):
     need(driver in ('vfs', 'overlay2', 'overlayfs'), 'unknown_docker_driver')
+    need(type(effective_ram) is int and effective_ram >= 0, 'effective_ram_not_qualified')
     need(effective_ram >= 8 * 2**30, 'effective_ram_below_8gib')
     need(free_bytes >= (40 if driver == 'vfs' else 15) * 2**30, 'docker_root_free_space_below_floor')
 
@@ -90,6 +93,240 @@ def phase_environment(host, node):
             'PYTHONDONTWRITEBYTECODE': '1', 'DOCKER_HOST': 'unix://' + host['socket']}
 
 
+# Kernel-source-qualified families, not a nominal VM/provider-size assertion.
+# proc_ns.h reserves the initial inode; cgroup.c initializes init_cgroup_ns with
+# it; nsfs.c exposes ns->inum and NS_GET_NSTYPE. Unknown kernels stay UNKNOWN.
+CGROUP_KERNEL_FAMILIES = {(6, 8), (6, 11), (6, 14)}
+PROC_CGROUP_INIT_INO = 0xEFFFFFFB
+NSFS_MAGIC, PROCFS_MAGIC = 0x6e736673, 0x9fa0
+CGROUP_MAGIC, CGROUP2_MAGIC = 0x27e0eb, 0x63677270
+NS_GET_NSTYPE, CLONE_NEWCGROUP = 0xb703, 0x02000000
+
+
+def _fd_fs_magic(descriptor):
+    need(sys.platform == 'linux' and ctypes.sizeof(ctypes.c_void_p) == 8, 'unsupported_kernel_fd_abi')
+    libc = ctypes.CDLL(None, use_errno=True)
+    function = libc.fstatfs
+    function.argtypes, function.restype = [ctypes.c_int, ctypes.c_void_p], ctypes.c_int
+    # Linux64 struct statfs is smaller than this buffer; f_type is its first long.
+    buffer = (ctypes.c_long * 64)()
+    need(function(descriptor, ctypes.byref(buffer)) == 0, 'kernel_filesystem_identity_unreadable')
+    return buffer[0]
+
+
+def _kernel_text(path, magic, device=None):
+    descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        meta = os.fstat(descriptor)
+        need(stat.S_ISREG(meta.st_mode) and _fd_fs_magic(descriptor) == magic, 'not_expected_kernel_interface')
+        if device is not None:
+            need((os.major(meta.st_dev), os.minor(meta.st_dev)) == device, 'kernel_interface_mount_changed')
+        chunks, total = [], 0
+        # PROCFS seq_files may return a valid short prefix before EOF. Keep the
+        # same checked FD open until EOF; never qualify a truncated mount view.
+        while True:
+            chunk = os.read(descriptor, min(65536, 1048577 - total))
+            if not chunk:
+                break
+            total += len(chunk)
+            need(total <= 1048576, 'kernel_interface_too_large')
+            chunks.append(chunk)
+        return b''.join(chunks).decode('utf8')
+    finally:
+        os.close(descriptor)
+
+
+def _kernel_directory(path, magic, device):
+    need(Path(path).resolve(strict=True) == Path(path), 'cgroup_symlink_or_hidden_directory')
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW)
+    try:
+        meta = os.fstat(descriptor)
+        need(_fd_fs_magic(descriptor) == magic and (os.major(meta.st_dev), os.minor(meta.st_dev)) == device,
+             'cgroup_directory_mount_changed')
+    finally:
+        os.close(descriptor)
+
+
+@contextmanager
+def cgroup_namespace_anchor():
+    release = os.uname().release
+    match = re.match(r'^(\d+)\.(\d+)(?:\.|-)', release)
+    need(match and tuple(map(int, match.groups())) in CGROUP_KERNEL_FAMILIES, 'unqualified_kernel_namespace_contract')
+    need(os.readlink('/proc/self') == str(os.getpid()), 'proc_view_not_current_process')
+    path = '/proc/self/ns/cgroup'
+    need(stat.S_ISLNK(os.lstat(path).st_mode), 'cgroup_namespace_path_not_proc_link')
+    directory = os.open('/proc/self/ns', os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    try:
+        need(_fd_fs_magic(directory) == PROCFS_MAGIC, 'namespace_directory_not_procfs')
+    finally:
+        os.close(directory)
+    descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC)
+    try:
+        namespace_type = fcntl.ioctl(descriptor, NS_GET_NSTYPE)
+        inode = os.fstat(descriptor).st_ino
+        need(_fd_fs_magic(descriptor) == NSFS_MAGIC and namespace_type == CLONE_NEWCGROUP
+             and inode == PROC_CGROUP_INIT_INO and os.readlink(path) == 'cgroup:[' + str(inode) + ']',
+             'initial_cgroup_namespace_unproven')
+        yield {'kernelRelease': release, 'inode': inode, 'namespaceType': namespace_type, 'namespaceFsMagic': NSFS_MAGIC}
+    finally:
+        os.close(descriptor)
+
+
+def _mount_inventory(text):
+    found = []
+    def decode(value):
+        return re.sub(r'\\([0-7]{3})', lambda match: chr(int(match[1], 8)), value)
+    for line in text.splitlines():
+        before, separator, after = line.partition(' - ')
+        left, right = before.split(), after.split()
+        need(separator and len(left) >= 6 and len(right) >= 3, 'mount_inventory_malformed')
+        root, point = decode(left[3]), decode(left[4])
+        need(all(value.startswith('/') and str(PurePosixPath(value)) == value and '..' not in PurePosixPath(value).parts
+                 for value in [root, point]), 'mount_inventory_not_absolute')
+        device = tuple(map(int, left[2].split(':')))
+        need(len(device) == 2, 'mount_device_malformed')
+        found.append({'id': left[0], 'root': root, 'point': point, 'device': device,
+                      'fs': right[0], 'controllers': set(right[2].split(','))})
+    need(found, 'mount_inventory_empty')
+    return found
+
+
+def _covering_mount(path, mounts):
+    matches = [mount for mount in mounts if path == mount['point'] or path.startswith(mount['point'].rstrip('/') + '/')]
+    need(matches, 'kernel_path_mount_missing')
+    depth = max(len(mount['point']) for mount in matches)
+    selected = [mount for mount in matches if len(mount['point']) == depth]
+    need(len(selected) == 1, 'kernel_path_mount_ambiguous')
+    return selected[0]
+
+
+def _cgroup_membership(text):
+    result = {}
+    for line in text.splitlines():
+        fields = line.split(':', 2)
+        need(len(fields) == 3 and fields[0].isdigit(), 'cgroup_membership_malformed')
+        path = fields[2]
+        need(path.startswith('/') and str(PurePosixPath(path)) == path and '..' not in PurePosixPath(path).parts,
+             'cgroup_membership_path_unqualified')
+        for controller in fields[1].split(',') if fields[1] else ['unified']:
+            need(controller not in result, 'cgroup_membership_ambiguous')
+            result[controller] = path
+    need(result, 'cgroup_membership_missing')
+    return result
+
+
+def cgroup_capacity_observation():
+    """A current full-hierarchy snapshot, never an override or a producer lease."""
+    try:
+        with cgroup_namespace_anchor() as anchor:
+            membership = _kernel_text('/proc/self/cgroup', PROCFS_MAGIC)
+            mount_text = _kernel_text('/proc/self/mountinfo', PROCFS_MAGIC)
+            mounts, groups = _mount_inventory(mount_text), _cgroup_membership(membership)
+            for suffix in ['cgroup', 'mountinfo', 'ns/cgroup']:
+                proc = _covering_mount('/proc/' + str(os.getpid()) + '/' + suffix, mounts)
+                need(proc['fs'] == 'proc' and proc['root'] == '/' and proc['point'] == '/proc', 'global_current_proc_view_unproven')
+            need(_kernel_text('/proc/self/cgroup', PROCFS_MAGIC, proc['device']) == membership
+                 and _kernel_text('/proc/self/mountinfo', PROCFS_MAGIC, proc['device']) == mount_text,
+                 'proc_view_changed_before_ancestor_read')
+            physical = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
+            need(type(physical) is int and physical > 0, 'physical_memory_unreadable')
+            values, memory, quotas, directories = {}, [], [], []
+
+            def select(fs, controller=None):
+                matches = [m for m in mounts if m['fs'] == fs and (controller is None or controller in m['controllers'])]
+                need(matches and all(m['root'] == '/' for m in matches), 'global_cgroup_mount_unproven')
+                matches.sort(key=lambda m: (len(m['point']), m['point']))
+                return matches[0]
+
+            def read(mount, path, optional=False):
+                need(_covering_mount(str(path), mounts)['id'] == mount['id'], 'hidden_cgroup_overmount')
+                key = str(path)
+                try:
+                    value = _kernel_text(key, CGROUP2_MAGIC if mount['fs'] == 'cgroup2' else CGROUP_MAGIC, mount['device']).strip()
+                except FileNotFoundError:
+                    need(optional, 'required_ancestor_control_missing')
+                    value = None
+                values[key] = (mount, value)
+                return value
+
+            def nodes(mount, path):
+                ancestors = [PurePosixPath('/'), *reversed(PurePosixPath(path).parents)]
+                ancestors = list(dict.fromkeys([*ancestors, PurePosixPath(path)]))
+                for relative in ancestors:
+                    directory = Path(mount['point']) / str(relative).lstrip('/')
+                    need(_covering_mount(str(directory), mounts)['id'] == mount['id'], 'hidden_cgroup_overmount')
+                    _kernel_directory(directory, CGROUP2_MAGIC if mount['fs'] == 'cgroup2' else CGROUP_MAGIC, mount['device'])
+                    directories.append((mount, directory))
+                    yield directory, relative == PurePosixPath('/')
+
+            def memory_limit(raw, path):
+                need(raw is not None and (raw == 'max' or raw == '-1' or raw.isdigit()), 'memory_limit_malformed')
+                if raw not in ['max', '-1']:
+                    memory.append({'path': str(path), 'bytes': int(raw)})
+
+            def cpu_limit(quota, period, path):
+                need(period and period.isdigit() and int(period) > 0 and (quota in ['max', '-1'] or quota.isdigit()), 'cpu_limit_malformed')
+                if quota not in ['max', '-1']:
+                    need(int(quota) > 0, 'cpu_limit_not_positive')
+                    quotas.append({'path': str(path), 'quota': int(quota), 'period': int(period), 'cores': int(quota) / int(period)})
+
+            if 'memory' in groups:
+                mount = select('cgroup', 'memory')
+                for directory, root in nodes(mount, groups['memory']):
+                    need(read(mount, directory / 'memory.use_hierarchy') == '1', 'v1_memory_hierarchy_not_enabled')
+                    raw = read(mount, directory / 'memory.limit_in_bytes', optional=root)
+                    if raw is not None: memory_limit(raw, directory / 'memory.limit_in_bytes')
+            else:
+                need('unified' in groups, 'memory_hierarchy_missing')
+            if 'unified' in groups:
+                mount, parent_enabled = select('cgroup2'), None
+                for directory, root in nodes(mount, groups['unified']):
+                    controllers = set(read(mount, directory / 'cgroup.controllers').split())
+                    enabled = set(read(mount, directory / 'cgroup.subtree_control').split())
+                    need(enabled.issubset(controllers), 'controller_inventory_inconsistent')
+                    kind = read(mount, directory / 'cgroup.type', optional=root)
+                    need(kind in [None, 'domain'], 'threaded_cgroup_not_qualified')
+                    for controller, filename in [('memory', 'memory.max'), ('cpu', 'cpu.max')]:
+                        expected = not root and controller in parent_enabled
+                        if not root:
+                            need((controller in controllers) == expected, 'controller_parent_inventory_changed')
+                        raw = read(mount, directory / filename, optional=not expected)
+                        if not root and not expected:
+                            need(raw is None, 'disabled_controller_interface_unexpected')
+                        if raw is not None:
+                            if controller == 'memory': memory_limit(raw, directory / filename)
+                            else:
+                                parts = raw.split()
+                                need(len(parts) == 2, 'cpu_max_malformed')
+                                cpu_limit(parts[0], parts[1], directory / filename)
+                    parent_enabled = enabled
+            if 'cpu' in groups:
+                mount = select('cgroup', 'cpu')
+                for directory, root in nodes(mount, groups['cpu']):
+                    quota = read(mount, directory / 'cpu.cfs_quota_us', optional=root)
+                    period = read(mount, directory / 'cpu.cfs_period_us', optional=root)
+                    need((quota is None) == (period is None), 'cpu_ancestor_control_missing')
+                    if quota is not None: cpu_limit(quota, period, directory / 'cpu.cfs_quota_us')
+            for mount, directory in reversed(directories):
+                _kernel_directory(directory, CGROUP2_MAGIC if mount['fs'] == 'cgroup2' else CGROUP_MAGIC, mount['device'])
+            for key, (mount, expected) in reversed(list(values.items())):
+                current = read(mount, key, optional=expected is None)
+                need(current == expected, 'cgroup_constraint_changed_during_observation')
+            with cgroup_namespace_anchor() as after_anchor:
+                need(_kernel_text('/proc/self/cgroup', PROCFS_MAGIC) == membership
+                     and _kernel_text('/proc/self/mountinfo', PROCFS_MAGIC) == mount_text
+                     and after_anchor == anchor, 'cgroup_view_changed_during_observation')
+            return {'status': 'QUALIFIED', 'effectiveRamBytes': min([physical] + [x['bytes'] for x in memory]),
+                'physicalRamBytes': physical, 'namespace': anchor, 'memoryLimits': memory, 'cpuQuotas': quotas,
+                'cpuQuotaCores': min(x['cores'] for x in quotas) if quotas else None,
+                'membership': membership, 'mountinfoSha256': sha(mount_text.encode()),
+                'mounts': [{**m, 'controllers': sorted(m['controllers'])} for m in mounts],
+                'ancestorInterfaces': [{'path': path, 'value': value} for path, (_, value) in values.items()]}
+    except Exception as error:
+        code = str(error) if isinstance(error, Blocked) and re.fullmatch('[a-z_]+', str(error)) else 'kernel_capacity_interface_unreadable'
+        return {'status': 'UNKNOWN', 'effectiveRamBytes': None, 'cpuQuotaCores': None, 'reason': code}
+
+
 def host_identity(enforce_capacity=True):
     # DockerRootDir must be stat-able on this host. A remote daemon is not a local runner.
     need(not os.environ.get('DOCKER_CONTEXT'), 'conflicting_docker_context_not_supported')
@@ -100,20 +337,21 @@ def host_identity(enforce_capacity=True):
                               env={'PATH': os.environ.get('PATH', '/usr/bin:/bin')}))
     root = canonical(info['DockerRootDir'])
     usage = os.statvfs(root)
-    ram = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
-    for file in ['/sys/fs/cgroup/memory.max', '/sys/fs/cgroup/memory/memory.limit_in_bytes']:
-        if Path(file).is_file():
-            text = Path(file).read_text().strip()
-            if text != 'max': ram = min(ram, int(text))
+    observation = cgroup_capacity_observation()
+    ram = observation['effectiveRamBytes']
     free = usage.f_bavail * usage.f_frsize
-    if enforce_capacity: capacity(info['Driver'], ram, free)
+    if enforce_capacity:
+        need(observation['status'] == 'QUALIFIED', 'capacity_hierarchy_unknown')
+        capacity(info['Driver'], ram, free)
     need(isinstance(info.get('ID'), str) and info['ID'], 'daemon_identity_missing')
-    cpu_file = Path('/sys/fs/cgroup/cpu.max')
+    quotas = observation.get('cpuQuotas', [])
+    tightest = min(quotas, key=lambda item: item['cores']) if quotas else None
     return {'bootId': Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
             'daemonId': info['ID'], 'driver': info['Driver'], 'dockerRootDir': str(root),
             'socket': str(sock), 'socketDev': meta.st_dev, 'socketInode': meta.st_ino,
             'effectiveRamBytes': ram, 'freeBytes': free, 'cpuCount': os.cpu_count(),
-            'cpuMax': cpu_file.read_text().strip() if cpu_file.is_file() else 'unavailable'}
+            'cpuMax': (str(tightest['quota']) + ' ' + str(tightest['period'])) if tightest else 'unlimited' if observation['status'] == 'QUALIFIED' else 'unavailable',
+            'cpuQuotaCores': observation.get('cpuQuotaCores'), 'capacityStatus': observation['status'], 'capacityObservation': observation}
 
 
 def same_host(before, after):

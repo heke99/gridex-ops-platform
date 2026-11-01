@@ -35,14 +35,15 @@ UNDERLAY_NAMES = (
     'Controlled TEST issuer underlay IU10 actual outputs and private evidence remain complete and unchanged',
 )
 UNDERLAY_MATRIX = {
-    'schema': 'controlled-test-issuer-underlay-matrix-v1', 'purpose': 'controlled_issuer_underlay', 'environment': 'test',
+    'schema': 'controlled-test-issuer-underlay-matrix-v2', 'purpose': 'controlled_issuer_underlay', 'environment': 'test',
     'assurance': 'controlled_test_only', 'marketActivationGranted': False, 'productionAuthorityGranted': False,
     'requiredEvidence': ['actual_auth_actor_and_own_permission_foundation', 'denied_actor_http_and_unchanged_authority',
         'separate_unapproved_physical_challenge_hold_and_no_retrofit', 'new_birth_originals_and_independent_review',
         'two_application_inventory_and_issuance_journal', 'issued_mime_tls_append_and_ordinary_source_binding',
         'independent_checkpoint_and_exact_source_history', 'replay_identity_and_equal_payload_distinct_issuance',
         'correction_tombstone_retention_identifier_preservation', 'revocation_future_hold_and_immutable_originals',
-        'actual_effect_ids_hashes_and_complete_private_manifest'],
+        'actual_effect_ids_hashes_and_complete_private_manifest',
+        'three_active_clean_delivery_sources_with_current_qualified_history'],
     'nativeAcceptance': 'requires_independent_actual_output_reviews',
 }
 

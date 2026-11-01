@@ -5,6 +5,10 @@ import copy
 import tempfile
 import subprocess
 import os
+import stat
+import json
+from types import SimpleNamespace
+from contextlib import contextmanager
 from unittest.mock import patch
 from pathlib import Path
 
@@ -238,6 +242,203 @@ class ContractTests(unittest.TestCase):
         self.assertFalse(result['ok'])
         self.assertNotIn('cleanup', calls)
         self.assertEqual(result['cleanup'], 'HOLD_UNKNOWN_APP_MAIL')
+
+
+class CgroupCapacityTests(unittest.TestCase):
+    """Actual host_identity, finite kernel/Docker ports; no daemon/socket use."""
+    def fixture(self):
+        root = '/sys/fs/cgroup'
+        files = {'/proc/self/cgroup': '0::/jobs/build\n',
+            '/proc/self/mountinfo': '22 1 0:4 / /proc rw - proc proc rw\n29 1 0:29 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n',
+            '/proc/sys/kernel/random/boot_id': 'synthetic-boot'}
+        for node in ['', '/jobs', '/jobs/build']:
+            files[root + node + '/cgroup.controllers'] = 'cpu memory'
+            files[root + node + '/cgroup.subtree_control'] = 'cpu memory' if node != '/jobs/build' else ''
+            files[root + node + '/cgroup.type'] = 'domain'
+            if node:
+                files[root + node + '/memory.max'] = str((4 if node == '/jobs' else 16) * 2**30)
+                files[root + node + '/cpu.max'] = '100000 100000' if node == '/jobs' else 'max 100000'
+        return files
+
+    def host(self, files, initial=True, enforce=False):
+        with tempfile.TemporaryDirectory() as directory:
+            socket = Path(directory) / 'socket'; socket.touch()
+            def read(path, *_args, **_kwargs):
+                if str(path) not in files: raise FileNotFoundError(str(path))
+                value = files[str(path)]
+                if isinstance(value, BaseException): raise value
+                if callable(value): return value()
+                return value
+            def directory_port(path, *_args):
+                if not any(key.startswith(str(path).rstrip('/') + '/') for key in files): raise FileNotFoundError(str(path))
+            @contextmanager
+            def namespace_port():
+                if not initial: raise runner.Blocked('initial_cgroup_namespace_unproven')
+                yield {'kernelRelease': '6.11.0-synthetic', 'inode': 4026531835, 'namespaceType': 0x02000000, 'namespaceFsMagic': 0x6e736673}
+            with patch.dict(os.environ, {'DOCKER_HOST': 'unix://' + str(socket)}, clear=True), \
+                 patch.object(runner, 'docker_socket', return_value=socket), patch.object(runner, 'canonical', side_effect=lambda x: Path(x)), \
+                 patch.object(runner, 'capture', return_value=json.dumps({'DockerRootDir': '/synthetic/docker', 'Driver': 'overlay2', 'ID': 'synthetic-daemon'})), \
+                 patch.object(runner.os, 'statvfs', return_value=SimpleNamespace(f_bavail=100 * 2**30, f_frsize=1)), \
+                 patch.object(runner.os, 'sysconf', side_effect=lambda key: 4096 if key == 'SC_PAGE_SIZE' else 8 * 2**20), \
+                 patch.object(Path, 'read_text', read), patch.object(Path, 'is_file', side_effect=lambda: False), \
+                 patch.object(runner, '_kernel_text', side_effect=read, create=True), \
+                 patch.object(runner, '_kernel_directory', side_effect=directory_port, create=True), \
+                 patch.object(runner, 'cgroup_namespace_anchor', side_effect=namespace_port, create=True):
+                return runner.host_identity(enforce_capacity=enforce)
+
+    def test_actual_host_identity_must_include_lower_parent_not_only_visible_root(self):
+        host = self.host(self.fixture())
+        self.assertEqual(host['effectiveRamBytes'], 4 * 2**30)
+
+    def test_actual_lower_ancestor_stops_admission(self):
+        with self.assertRaises(runner.Blocked): self.host(self.fixture(), enforce=True)
+
+    def test_known_zero_memory_limit_is_underfloor_not_fabricated_unlimited(self):
+        files = self.fixture(); files['/sys/fs/cgroup/jobs/memory.max'] = '0'
+        host = self.host(files)
+        self.assertEqual(host['effectiveRamBytes'], 0)
+        self.assertEqual(host['capacityStatus'], 'QUALIFIED')
+        with self.assertRaises(runner.Blocked): self.host(files, enforce=True)
+
+    def test_noninitial_namespace_unknown_still_allows_cleanup_identity_observation(self):
+        host = self.host(self.fixture(), initial=False)
+        self.assertIsNone(host['effectiveRamBytes'])
+        self.assertEqual(host['daemonId'], 'synthetic-daemon')
+        with self.assertRaises(runner.Blocked): self.host(self.fixture(), initial=False, enforce=True)
+
+    def test_initial_global_vm_positive_uses_full_ancestor_minimum_and_cpu_quota(self):
+        files = self.fixture()
+        files['/sys/fs/cgroup/jobs/memory.max'] = str(12 * 2**30)
+        files['/sys/fs/cgroup/jobs/build/memory.max'] = str(16 * 2**30)
+        files['/sys/fs/cgroup/jobs/cpu.max'] = '50000 100000'
+        host = self.host(files, enforce=True)
+        self.assertEqual(host['capacityStatus'], 'QUALIFIED')
+        self.assertEqual(host['effectiveRamBytes'], 12 * 2**30)
+        self.assertEqual(host['capacityObservation']['cpuQuotaCores'], .5)
+        self.assertEqual(len(host['capacityObservation']['memoryLimits']), 2)
+
+    def test_proven_global_root_exemption_is_not_missing_hidden_ancestor(self):
+        files = self.fixture(); files['/proc/self/cgroup'] = '0::/\n'
+        host = self.host(files, enforce=True)
+        self.assertEqual(host['effectiveRamBytes'], 32 * 2**30)
+        self.assertEqual(host['capacityObservation']['memoryLimits'], [])
+        self.assertIsNone(host['capacityObservation']['cpuQuotaCores'])
+
+    def test_documented_disabled_child_controllers_need_actual_parent_inventory(self):
+        files = self.fixture()
+        files['/sys/fs/cgroup/jobs/cgroup.subtree_control'] = ''
+        files['/sys/fs/cgroup/jobs/build/cgroup.controllers'] = ''
+        del files['/sys/fs/cgroup/jobs/build/memory.max']; del files['/sys/fs/cgroup/jobs/build/cpu.max']
+        host = self.host(files)
+        self.assertEqual(host['effectiveRamBytes'], 4 * 2**30)
+        files['/sys/fs/cgroup/jobs/cgroup.subtree_control'] = 'memory cpu'
+        self.assertIsNone(self.host(files)['effectiveRamBytes'])
+
+    def test_subroot_overmount_unreadable_or_missing_ancestor_never_qualifies(self):
+        variants = []
+        files = self.fixture(); files['/proc/self/mountinfo'] = files['/proc/self/mountinfo'].replace('0:29 / /sys/fs/cgroup', '0:29 /hidden /sys/fs/cgroup'); variants.append(files)
+        files = self.fixture(); files['/proc/self/mountinfo'] += '30 29 0:30 / /sys/fs/cgroup/jobs rw - cgroup2 cgroup rw\n'; variants.append(files)
+        files = self.fixture(); del files['/sys/fs/cgroup/jobs/build/memory.max']; variants.append(files)
+        files = self.fixture(); files['/sys/fs/cgroup/jobs/memory.max'] = PermissionError('finite unreadable ancestor'); variants.append(files)
+        files = self.fixture(); files = {k: v for k, v in files.items() if not k.startswith('/sys/fs/cgroup/jobs/build/')}; variants.append(files)
+        for files in variants:
+            with self.subTest(files=files):
+                host = self.host(files)
+                self.assertEqual(host['capacityStatus'], 'UNKNOWN')
+                self.assertIsNone(host['effectiveRamBytes'])
+                with self.assertRaises(runner.Blocked): self.host(files, enforce=True)
+
+    def test_membership_or_constraint_changes_cannot_splice_a_qualified_snapshot(self):
+        for which in ['membership', 'limit']:
+            files, count = self.fixture(), [0]
+            def changing():
+                count[0] += 1
+                if which == 'membership': return '0::/jobs/build\n' if count[0] == 1 else '0::/other\n'
+                return str((16 if count[0] == 1 else 4) * 2**30)
+            files['/proc/self/cgroup' if which == 'membership' else '/sys/fs/cgroup/jobs/memory.max'] = changing
+            with self.subTest(which=which): self.assertIsNone(self.host(files)['effectiveRamBytes'])
+
+    def test_v1_global_memory_and_cpu_hierarchies_include_every_parent(self):
+        files = {'/proc/self/cgroup': '3:memory:/tenant/worker\n4:cpu,cpuacct:/tenant/worker\n',
+            '/proc/self/mountinfo': '22 1 0:4 / /proc rw - proc proc rw\n31 1 0:31 / /sys/fs/cgroup/memory rw - cgroup memory rw,memory\n32 1 0:32 / /sys/fs/cgroup/cpu rw - cgroup cpu rw,cpu,cpuacct\n',
+            '/proc/sys/kernel/random/boot_id': 'synthetic-boot'}
+        for node in ['', '/tenant', '/tenant/worker']:
+            memory = '/sys/fs/cgroup/memory' + node
+            files[memory + '/memory.use_hierarchy'] = '1'
+            files[memory + '/memory.limit_in_bytes'] = str((32 if not node else 12 if node == '/tenant' else 16) * 2**30)
+            cpu = '/sys/fs/cgroup/cpu' + node
+            files[cpu + '/cpu.cfs_quota_us'] = '-1' if not node else '50000'
+            files[cpu + '/cpu.cfs_period_us'] = '100000'
+        host = self.host(files, enforce=True)
+        self.assertEqual(host['effectiveRamBytes'], 12 * 2**30)
+        self.assertEqual(host['capacityObservation']['cpuQuotaCores'], .5)
+        del files['/sys/fs/cgroup/memory/tenant/memory.limit_in_bytes']
+        self.assertIsNone(self.host(files)['effectiveRamBytes'])
+
+
+class NamespaceKernelFDTests(unittest.TestCase):
+    def test_initial_namespace_needs_nsfs_ioctl_reserved_inode_and_pinned_handle(self):
+        for mode in ['ok', 'other-inode', 'wrong-fs', 'wrong-type', 'not-proc', 'not-link', 'wrong-self', 'unknown-kernel']:
+            closed = []
+            inode = 4026531835 if mode != 'other-inode' else 4026533000
+            def readlink(path):
+                if path == '/proc/self': return str(os.getpid()) if mode != 'wrong-self' else '1'
+                return 'cgroup:[' + str(inode) + ']'
+            def magic(fd):
+                if fd == 11: return runner.PROCFS_MAGIC if mode != 'not-proc' else 123
+                return runner.NSFS_MAGIC if mode != 'wrong-fs' else runner.PROCFS_MAGIC
+            with self.subTest(mode=mode), patch.object(runner.os, 'uname', return_value=SimpleNamespace(release='6.11.0-synthetic' if mode != 'unknown-kernel' else '99.0.0-synthetic')), \
+                 patch.object(runner.os, 'readlink', side_effect=readlink), patch.object(runner.os, 'lstat', return_value=SimpleNamespace(st_mode=stat.S_IFLNK if mode != 'not-link' else stat.S_IFREG)), \
+                 patch.object(runner.os, 'open', side_effect=[11, 22]), patch.object(runner.os, 'close', side_effect=closed.append), \
+                 patch.object(runner.os, 'fstat', return_value=SimpleNamespace(st_ino=inode)), patch.object(runner, '_fd_fs_magic', side_effect=magic), \
+                 patch.object(runner.fcntl, 'ioctl', return_value=runner.CLONE_NEWCGROUP if mode != 'wrong-type' else 0):
+                if mode == 'ok':
+                    with runner.cgroup_namespace_anchor() as proof:
+                        self.assertEqual(proof['inode'], 4026531835)
+                        self.assertIn(11, closed); self.assertNotIn(22, closed)
+                    self.assertEqual(closed, [11, 22])
+                else:
+                    with self.assertRaises(runner.Blocked):
+                        with runner.cgroup_namespace_anchor(): self.fail('must never qualify')
+
+    def test_regular_file_with_limit_shaped_bytes_is_not_kernel_capacity_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            file = Path(directory) / 'memory.max'; file.write_text('34359738368')
+            with self.assertRaises(runner.Blocked): runner._kernel_text(str(file), runner.CGROUP2_MAGIC)
+
+    def test_kernel_short_reads_are_joined_until_eof_on_the_same_checked_fd(self):
+        chunks = [b'first complete record\n', b'second record\n', b'']
+        closed, reads = [], []
+        def read(fd, size):
+            reads.append((fd, size)); return chunks.pop(0)
+        with patch.object(runner.os, 'open', return_value=22), patch.object(runner.os, 'close', side_effect=closed.append), \
+             patch.object(runner.os, 'fstat', return_value=SimpleNamespace(st_mode=stat.S_IFREG)), \
+             patch.object(runner, '_fd_fs_magic', return_value=runner.PROCFS_MAGIC), patch.object(runner.os, 'read', side_effect=read):
+            self.assertEqual(runner._kernel_text('/proc/synthetic', runner.PROCFS_MAGIC), 'first complete record\nsecond record\n')
+        self.assertEqual(len(reads), 3)
+        self.assertTrue(all(fd == 22 for fd, _ in reads))
+        self.assertEqual(closed, [22])
+
+    def test_kernel_aggregate_overflow_is_rejected_instead_of_using_valid_prefix(self):
+        closed = []
+        with patch.object(runner.os, 'open', return_value=22), patch.object(runner.os, 'close', side_effect=closed.append), \
+             patch.object(runner.os, 'fstat', return_value=SimpleNamespace(st_mode=stat.S_IFREG)), \
+             patch.object(runner, '_fd_fs_magic', return_value=runner.PROCFS_MAGIC), \
+             patch.object(runner.os, 'read', side_effect=[b'x' * 65536] * 16 + [b'x']):
+            with self.assertRaisesRegex(runner.Blocked, 'kernel_interface_too_large'):
+                runner._kernel_text('/proc/synthetic', runner.PROCFS_MAGIC)
+        self.assertEqual(closed, [22])
+
+    def test_short_mount_prefix_cannot_hide_a_later_complete_overmount_record(self):
+        initial = '22 1 0:4 / /proc rw - proc proc rw\n29 1 0:29 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n'
+        suffix = '30 29 0:30 / /sys/fs/cgroup/jobs rw - cgroup2 cgroup rw\n'
+        chunks = [initial.encode(), suffix.encode(), b'']
+        with patch.object(runner.os, 'open', return_value=22), patch.object(runner.os, 'close'), \
+             patch.object(runner.os, 'fstat', return_value=SimpleNamespace(st_mode=stat.S_IFREG)), \
+             patch.object(runner, '_fd_fs_magic', return_value=runner.PROCFS_MAGIC), patch.object(runner.os, 'read', side_effect=chunks):
+            complete = runner._kernel_text('/proc/self/mountinfo', runner.PROCFS_MAGIC)
+        files = CgroupCapacityTests().fixture(); files['/proc/self/mountinfo'] = complete
+        self.assertIsNone(CgroupCapacityTests().host(files)['effectiveRamBytes'])
 
 
 if __name__ == '__main__':

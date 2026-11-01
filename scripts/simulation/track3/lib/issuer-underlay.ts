@@ -39,19 +39,19 @@ export const UNDERLAY_NAMES = [
   'IU10 actual outputs and private evidence remain complete and unchanged',
 ] as const
 export const UNDERLAY_MATRIX = {
-  schema: 'controlled-test-issuer-underlay-matrix-v1', purpose: 'controlled_issuer_underlay', environment: 'test', assurance: 'controlled_test_only',
+  schema: 'controlled-test-issuer-underlay-matrix-v2', purpose: 'controlled_issuer_underlay', environment: 'test', assurance: 'controlled_test_only',
   marketActivationGranted: false, productionAuthorityGranted: false,
   requiredEvidence: ['actual_auth_actor_and_own_permission_foundation', 'denied_actor_http_and_unchanged_authority', 'separate_unapproved_physical_challenge_hold_and_no_retrofit',
     'new_birth_originals_and_independent_review', 'two_application_inventory_and_issuance_journal', 'issued_mime_tls_append_and_ordinary_source_binding',
     'independent_checkpoint_and_exact_source_history', 'replay_identity_and_equal_payload_distinct_issuance', 'correction_tombstone_retention_identifier_preservation',
-    'revocation_future_hold_and_immutable_originals', 'actual_effect_ids_hashes_and_complete_private_manifest'],
+    'revocation_future_hold_and_immutable_originals', 'actual_effect_ids_hashes_and_complete_private_manifest', 'three_active_clean_delivery_sources_with_current_qualified_history'],
   nativeAcceptance: 'requires_independent_actual_output_reviews',
 } as const
 const text = z.string().min(1).max(200).regex(/^[A-Za-z0-9_.-]+$/)
-export const underlayInput = z.object({ schema: z.literal('track3-controlled-issuer-underlay-input-v1'), runLabel: z.string().regex(/^[a-zA-Z0-9_-]{1,24}$/),
+export const underlayInput = z.object({ schema: z.literal('track3-controlled-issuer-underlay-input-v2'), runLabel: z.string().regex(/^[a-zA-Z0-9_-]{1,24}$/),
   validityHours: z.number().int().min(1).max(24), measurementUsageFrom: z.string().datetime({ offset: true }), measurementUsageUntil: z.string().datetime({ offset: true }),
   periodStart: z.string().regex(/^[0-9]{12}$/), quantity: z.string().regex(/^[0-9]+(?:\.[0-9]{1,4})?$/), meteringPoint: z.string().regex(/^[0-9]{18}$/),
-  negativeLegalIdentity: z.array(text).min(3).max(8), legalIdentity: z.array(text).min(3).max(8), transportSender: z.array(text).min(1).max(8),
+  deliveryLegalIdentity: z.array(text).min(3).max(8), negativeLegalIdentity: z.array(text).min(3).max(8), legalIdentity: z.array(text).min(3).max(8), transportSender: z.array(text).min(1).max(8),
 }).strict()
 type Input = z.infer<typeof underlayInput>
 type Row = Record<string, unknown>
@@ -163,6 +163,7 @@ export function createIssuerUnderlay(ports: UnderlayPorts) {
   }
   const steps = [
     async () => {
+      need(new Set([ports.input.legalIdentity, ports.input.negativeLegalIdentity, ports.input.deliveryLegalIdentity].map(value => JSON.stringify(value))).size === 3, 'three distinct full legal identities required')
       await ports.preflight()
       foundation = await operation('foundation', ports.foundation, value => { const f = value as Foundation; need(f.companyId && f.mailboxId && new Set(Object.values(f.actors).map(actor => actor.id)).size === 4, 'four actual independent Auth actors') }) as Foundation
       const before = await ports.fingerprint()
@@ -241,7 +242,42 @@ export function createIssuerUnderlay(ports: UnderlayPorts) {
       await request('A', '/api/ediel/utilts-issuer-sources', { version: 1, commandId: randomUUID(), environment: 'test', kind: 'test_issue', body: { epochId: epoch.epochId, applicationId: app('A'), mailboxId: foundation.mailboxId, fromAddress: 'issuer@t3.sim.invalid', toAddress: process.env.T3_MAILBOX_ADDRESS ?? 'ediel@t3.sim.invalid', payloadOriginalRole: 'payload' }, originals: [payload] }, [403])
       need(same(before, await ports.fingerprint()) && same(originalSource, await ports.immutable(String(source.sourceMessageId))), 'revoked operation cannot change actual authority or originals')
     },
-    async () => { need(completed.length === 9, 'complete preceding actual effects'); need(same(negativeOriginal, await ports.immutable(String(negativeSource.sourceMessageId))), 'unapproved physical original remains unchanged'); ports.evidence.observe('evidenceMatrix', UNDERLAY_MATRIX); ports.evidence.save('underlay/actual-effects.json', { actors: foundation.actors, mailboxId: foundation.mailboxId, birth, epoch, issuanceA: a, issuanceB: b, source, completed }) },
+    async () => {
+      need(completed.length === 9, 'complete preceding actual effects')
+      const validation = { birth, epoch, issuanceA: a, issuanceB: b, source, originalSource }
+      need(same(negativeOriginal, await ports.immutable(String(negativeSource.sourceMessageId))), 'unapproved physical original remains unchanged')
+      // Separate new namespace: never restore, amend or adopt the revoked validation epoch.
+      epoch = undefined as unknown as Row
+      const deliveryBody = { legalIdentity: ports.input.deliveryLegalIdentity, transportSender: ports.input.transportSender, mailboxId: foundation.mailboxId,
+        validUntil: new Date(Date.now() + ports.input.validityHours * 3600000).toISOString(), measurementUsageFrom: ports.input.measurementUsageFrom,
+        measurementUsageUntil: ports.input.measurementUsageUntil, applications: foundation.applications }
+      const deliveryBirth = await archive('A', 'test_birth', deliveryBody, ['test_policy', 'test_mandate', 'test_retention_decision', 'test_application_inventory'].map(role => original(role, role === 'test_application_inventory' ? foundation.applications : { assurance: 'CONTROLLED SYNTHETIC TEST ONLY', purpose: 'separate active delivery issuer; no billing or FINAL qualification', legalIdentity: ports.input.deliveryLegalIdentity, transportSender: ports.input.transportSender, usageFrom: ports.input.measurementUsageFrom, usageUntil: ports.input.measurementUsageUntil, retention: 'retain all original bytes and identifiers' })))
+      epoch = await review(deliveryBirth, 'approve', 'approved'); last = epoch
+      need(epoch.epochId !== validation.epoch.epochId && epoch.namespaceId !== validation.epoch.namespaceId && same(epoch.legalIdentity, ports.input.deliveryLegalIdentity), 'separate actual new delivery epoch and identity required')
+      const deliveries: Row[] = []
+      for (let index = 0; index < 3; index++) {
+        const payload = raw(101 + index, ports.input.quantity, ports.input.deliveryLegalIdentity)
+        const issued = await issue(index === 1 ? 'B' : 'A', payload), received = await ports.receive(issued, false, payload)
+        const cp = await archive('A', 'test_checkpoint', { epochId: epoch.epochId, expectedSequence: last.journalSequence, expectedHeadSha256: last.journalHeadSha256, applicationInventorySha256: epoch.applicationInventorySha256 }, [original('checkpoint_approval', { assurance: 'CONTROLLED SYNTHETIC TEST ONLY', deliveryIndex: index, sequence: last.journalSequence, head: last.journalHeadSha256 })])
+        const approved = await review(cp, 'approve', 'approved')
+        const history = await archive('A', 'history', { epochId: epoch.epochId, sourceMessageId: received.sourceMessageId, currentIssuanceId: issued.issuanceId, checkpointArtifactId: approved.artifactId }, [])
+        const grounded = await review(history, 'approve', 'approved')
+        need(grounded.sourceMessageId === received.sourceMessageId && grounded.sourcePayloadSha256 === received.sourcePayloadSha256, 'actual delivery source-bound history effect')
+        deliveries.push({ issued, source: received, history: grounded, immutable: await ports.immutable(String(received.sourceMessageId)) })
+      }
+      need(new Set(deliveries.map(value => row(value.issued).issuanceId)).size === 3 && new Set(deliveries.map(value => row(value.source).sourceMessageId)).size === 3, 'three distinct actual delivery issuances and physical sources')
+      for (const delivery of deliveries) {
+        const received = row(delivery.source), current = await ports.issuer(String(received.sourceMessageId))
+        need(current.status === 'qualified' && current.authorityVersionId === epoch.issuerVersionId && current.messageReferenceCollision === false && Array.isArray(current.transactionReferenceCollisions) && current.transactionReferenceCollisions.length === 0 && same(delivery.immutable, await ports.immutable(String(received.sourceMessageId))), 'every delivery source remains currently qualified clean and immutable')
+        delivery.currentRead = current
+      }
+      const revoked = await ports.issuer(String(validation.source.sourceMessageId))
+      need(revoked.status === 'held' && typeof revoked.holdReason === 'string' && revoked.holdReason.includes('revoked') && same(validation.originalSource, await ports.immutable(String(validation.source.sourceMessageId))), 'old validation epoch remains revoked and immutable')
+      const negative = await ports.issuer(String(negativeSource.sourceMessageId))
+      need(negative.status === 'held' && negative.authorityVersionId === null && same(negativeOriginal, await ports.immutable(String(negativeSource.sourceMessageId))), 'delivery never retrofits the negative identity')
+      ports.evidence.observe('evidenceMatrix', UNDERLAY_MATRIX)
+      ports.evidence.save('underlay/actual-effects.json', { actors: foundation.actors, mailboxId: foundation.mailboxId, validation, delivery: { birth: deliveryBirth, epoch, sources: deliveries, billingQualification: 'NOT_RUN', finalQualification: 'NOT_RUN' }, completed })
+    },
   ]
   return {
     async step(index: number) {
@@ -273,8 +309,8 @@ export async function createNativeIssuerUnderlay(evidence: Evidence) {
     && execution.scenarioFile === 'scenarios/issuer-underlay.test.ts' && same(execution.expectedTestNames, UNDERLAY_NAMES.map(name => 'Controlled TEST issuer underlay ' + name))
     && same(execution.evidenceMatrix, UNDERLAY_MATRIX) && execution.inputFile === 'inputs/issuer-underlay-input.json', 'actual authorized underlay descriptor required')
   const inputFile = readPrivate('inputs/issuer-underlay-input.json'), input = underlayInput.parse(inputFile.value)
-  need(sha(inputFile.bytes) === execution.inputSha256 && !same(input.negativeLegalIdentity, input.legalIdentity)
-    && input.legalIdentity[0] !== '70007', 'frozen new controlled input required')
+  need(sha(inputFile.bytes) === execution.inputSha256 && new Set([input.legalIdentity, input.negativeLegalIdentity, input.deliveryLegalIdentity].map(value => JSON.stringify(value))).size === 3
+    && [input.legalIdentity, input.negativeLegalIdentity, input.deliveryLegalIdentity].every(value => value[0] !== '70007'), 'frozen new controlled input required')
   const fixtureFile = readPrivate('fixture.json'), fixture = fixtureFile.value, run = newRunContext(input.runLabel)
   const admin = adminClient(), sessions = new Map<ActorName, Map<string, string>>()
   const userClients = new Map<ActorName, ReturnType<typeof createServerClient>>()
@@ -428,7 +464,7 @@ export async function createNativeIssuerUnderlay(evidence: Evidence) {
     },
     fingerprint: () => issuerAuthorityFingerprint(),
     issuer: async sourceId => row(await checked(admin.rpc('gridex_read_utilts_issuer_identity_authority_v1', { p_company_id: foundation!.companyId, p_message_id: sourceId }))),
-    immutable: async sourceId => sqlJson(`SELECT jsonb_build_object('id',m.id,'company',m.company_id,'environment',m.environment,'raw',m.raw_payload,'email',m.inbound_email_message_id,'admission',to_jsonb(a)) FROM public.ediel_messages m LEFT JOIN gridex_utilts_issuer.source_admissions a ON a.source_message_id=m.id WHERE m.id=${lit(sourceId)}`),
+    immutable: async sourceId => sqlJson(`SELECT jsonb_build_object('id',m.id,'company',m.company_id,'environment',m.environment,'raw',m.raw_payload,'email',m.inbound_email_message_id,'admission',to_jsonb(a),'protectedReceivedSource',to_jsonb(r)) FROM public.ediel_messages m LEFT JOIN gridex_utilts_issuer.source_admissions a ON a.source_message_id=m.id LEFT JOIN gridex_received_sources.sources r ON r.source_message_id=m.id WHERE m.id=${lit(sourceId)}`),
     challenge: async raw => { const built = buildUnapprovedChallenge(raw, process.env.T3_MAILBOX_ADDRESS!, run.prefix); return receiveRaw(built.mime, built.messageId, raw, false) },
     receive: async (issued, replay, originalPayload) => {
       const originals = issued.originals as Row[], full = originals?.filter(value => value.role === 'issued_mime'); need(full?.length === 1 && typeof full[0].bytesBase64 === 'string', 'actual API-minted full MIME required')
