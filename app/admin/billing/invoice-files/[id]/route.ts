@@ -3,6 +3,9 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { loadInvoiceFile, parseInvoiceFileFormat, renderInvoiceFile } from '@/lib/billing/invoiceFileExport'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 
+import { assertOutboundAllowed, OutboundFrozenError } from '@/lib/platform/outboundFreeze'
+import { supabaseService } from '@/lib/supabase/service'
+
 export const dynamic = 'force-dynamic'
 
 type RouteProps = {
@@ -21,6 +24,19 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
 
   const { id } = await params
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return new NextResponse('Fakturafilen hittades inte.', { status: 404 })
+  try {
+    // The content DTO omits company identity: resolve the persisted owner first.
+    const { data: owner, error } = await supabaseService.from('invoice_export_files').select('id,company_id')
+      .eq('id', id).eq('company_id', scope.companyId).maybeSingle()
+    if (error) throw error
+    if (!owner || owner.id !== id.toLowerCase() || typeof owner.company_id !== 'string' || owner.company_id !== scope.companyId) {
+      return new NextResponse('Fakturafilen hittades inte.', { status: 404, headers: { 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } })
+    }
+    await assertOutboundAllowed({ companyId: owner.company_id, channel: 'invoice_export' })
+  } catch (error) {
+    return new NextResponse('Fakturafilen är inte tillgänglig.', { status: error instanceof OutboundFrozenError ? 423 : 503,
+      headers: { 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } })
+  }
   const file = await loadInvoiceFile(scope.companyId, id)
   if (!file) return new NextResponse('Fakturafilen hittades inte.', { status: 404 })
 
@@ -30,7 +46,7 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
     headers: {
       'content-type': rendered.contentType,
       'content-disposition': `attachment; filename="${rendered.fileName}"`,
-      'cache-control': 'no-store',
+      'cache-control': 'private, no-store',
       'x-content-type-options': 'nosniff',
     },
   })

@@ -7,6 +7,8 @@ import {
   getBillingExportRunWithItems,
 } from '@/lib/billing/exportCenter'
 
+import { assertOutboundAllowed, OutboundFrozenError } from '@/lib/platform/outboundFreeze'
+
 export const dynamic = 'force-dynamic'
 
 type RouteProps = {
@@ -36,6 +38,14 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
     return new NextResponse('Kunde inte skapa exportfil.', { status: 500 })
   }
   const { run, items } = runWithItems
+  try {
+    if (typeof run.company_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(run.company_id)
+      || companyId && run.company_id !== companyId) throw new Error('Invalid persisted company.')
+    await assertOutboundAllowed({ companyId: run.company_id, channel: 'invoice_export' })
+  } catch (error) {
+    return new NextResponse('Exportfilen är inte tillgänglig.', { status: error instanceof OutboundFrozenError ? 423 : 503,
+      headers: { 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } })
+  }
   const file = buildBillingExportFile({ run, items, format })
 
   const responseBody = typeof file.body === 'string' ? file.body : new Blob([file.body as BlobPart], { type: file.contentType })
@@ -44,7 +54,8 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
     headers: {
       'content-type': file.contentType,
       'content-disposition': `attachment; filename="${file.fileName}"`,
-      'cache-control': 'no-store',
+      'cache-control': 'private, no-store',
+      'x-content-type-options': 'nosniff',
     },
   })
 }
