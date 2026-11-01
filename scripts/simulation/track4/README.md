@@ -47,6 +47,28 @@ which also removes the volumes) and fails if a container, volume, port or proces
 atomically (noclobber; PID, start time, command), removes it on exit and refuses if it exists; `chain.sh` obeys the same lock.
 
 ## Fixture: what is a real entrypoint and what is SQL
+
+The continuation uses two distinct same-tenant Auth actors (`A` and `A2`) for
+both concurrency bursts; `B` remains the separate-tenant negative actor. FX06
+checks their actual signed-in identities and canonical tenant permissions before
+the scenarios. Successful approval contenders must all return the exact billing
+action redirect with `failed=0`, `sent=0`, `mode=file` and canonical `approved=0|1`.
+An authentication/permission failure or an unrelated redirect cannot count as a
+successful loser. Concurrency is bounded to 2–100 requests and alternates actors.
+Every prepare response must also be HTTP200 with the actual prepare-only envelope,
+the requested month, no failed items/errors, and one prepared or reused underlay.
+The stored approval must name a qualified actor and carry an actual timestamp and
+review hash; the single approval event is bound to that actor and hash.
+
+MAIN05.02 and BILLNEG01.03 compare the complete frozen file projection and two
+protected `nordfin_xml` downloads across replay, including exact raw bytes and a
+separate body SHA256. BILLNEG01.03 checks again after its mutation probes. These
+checks strengthen harness rejection; they provide no new runtime acceptance,
+independent money/cohort qualification or permission to start lifecycle scripts.
+The original MAIN February2027/2688-interval/1809.51 oracle remains separate from
+this inherited July–September synthetic fixture. BILLNEG01.04b is still TODO and
+BILLNEG01.05 remains missing/HOLD.
+
 | Step | Mechanism | Detail |
 |---|---|---|
 | FX01 tenants A and B | **SQL** | `companies` rows (active, provider `file_export` env `test`, `invoice_export_enabled`). Product provisions via platform-admin tooling; not exercised. |

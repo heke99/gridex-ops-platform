@@ -300,3 +300,248 @@ it('accepts real builder/renderer text when control stripping creates CRLF befor
   expect(row.customer_name).toBe('Första\r\u000b\nAndra')
   await run('MAIN05.03', harness(stored([row], 'nordfin')))
 })
+
+// Controlled HTTP/SQL adapters execute the registered callbacks and the actual
+// helpers. These prove harness rejection behavior, not native business effects.
+async function runCallback(id: string, ctx: object) {
+  const step = scenarios[0].steps.find((entry: { id: string }) => entry.id === id)
+  assert.ok(step && typeof step.run === 'function')
+  await step.run(ctx)
+}
+
+type ApprovalReply = { status: number; location: string }
+const validStoredApproval = {
+  status: 'approved', approved_by: 'actor-A', approved_at: '2026-10-01T10:00:00Z', review_hash: 'b'.repeat(64),
+}
+function approvalHarness(
+  alter: (reply: ApprovalReply, index: number) => ApprovalReply = reply => reply,
+  storedApproval: Record<string, string> = validStoredApproval,
+) {
+  let calls = 0
+  const actionCookies: string[] = []
+  const actor = (name: string) => ({ userId: `actor-${name}`, cookie: () => `component-${name}` })
+  const ctx = {
+    assert, actionCookies, value() {}, finding() { throw Error('unexpected finding') },
+    async dbErrorsSince() { return [] },
+    actionIds: { approve: 'a'.repeat(40) },
+    fixture: {
+      companyA: 'component-company-A', userA: { id: 'actor-A' }, userA2: { id: 'actor-A2' },
+      sessions: { A: actor('A'), A2: actor('A2') },
+      expected: { concurrentApprove: {
+        exact_per_line: { total_ex_vat: '800.00', total_vat: '200.00', total_inc_vat: '1000.00' },
+        js_float: { total_inc_vat: '1000.00' },
+      } },
+    },
+    sql: {
+      async scalar() { return 1 },
+      async rows(query: string) {
+        assert.ok(query.includes('FROM public.invoice_export_items'))
+        return [{ id: 'component-item', approval: { ...storedApproval },
+          amount_ex_vat: 800, vat_amount: 200, amount_inc_vat: 1000 }]
+      },
+    },
+    http: {
+      async post(path: string, options: { cookie: string; form?: FormData }) {
+        assert.ok(['component-A', 'component-A2'].includes(options.cookie))
+        if (path === '/api/internal/invoice-exports/create') {
+          return response(JSON.stringify({ data: { created: 1, failed: 0, errors: [] } }), 200)
+        }
+        assert.equal(path, '/admin/billing?month=2026-07')
+        assert.equal(options.form?.get('billing_month'), '2026-07')
+        actionCookies.push(options.cookie)
+        const index = calls++
+        const reply = alter({ status: 303,
+          location: `/admin/billing?month=2026-07&approved=${index === 0 ? '1' : '0'}&sent=0&failed=0&mode=file` }, index)
+        return response('', reply.status, '', '', reply.location)
+      },
+    },
+  }
+  return ctx
+}
+
+describe('BILLNEG01.02 actual contender callback rejection', () => {
+  it('accepts one successful approval and successful immutable replays', async () => {
+    const ctx = approvalHarness()
+    await runCallback('BILLNEG01.02', ctx)
+    expect(new Set(ctx.actionCookies)).toEqual(new Set(['component-A', 'component-A2']))
+  })
+  it('rejects extra approval events even when one matches the winning actor and hash', async () => {
+    const ctx = approvalHarness()
+    ctx.sql.scalar = async (query?: string) => query?.includes('actor_user_id=') ? 1 : 2
+    await expect(runCallback('BILLNEG01.02', ctx)).rejects.toThrow()
+  })
+  it('rejects an approval attributed to an actor outside the two contenders', async () => {
+    const ctx = approvalHarness(undefined, { ...validStoredApproval, approved_by: 'foreign-actor' })
+    await expect(runCallback('BILLNEG01.02', ctx)).rejects.toThrow()
+  })
+  it.each(['approved_at', 'review_hash'])('rejects an approval missing %s', async key => {
+    const malformed: Record<string, string> = { ...validStoredApproval }
+    delete malformed[key]
+    await expect(runCallback('BILLNEG01.02', approvalHarness(undefined, malformed))).rejects.toThrow()
+  })
+  it('rejects a failed loser even when exactly one other request approved', async () => {
+    const ctx = approvalHarness((reply, index) => index === 0 ? reply : {
+      ...reply, location: reply.location.replace('failed=0', 'failed=1&error=actor_forbidden'),
+    })
+    await expect(runCallback('BILLNEG01.02', ctx)).rejects.toThrow()
+  })
+  it.each([
+    '/login?month=2026-07&approved=0&sent=0&failed=0&mode=file',
+    '/admin/billing?month=2026-08&approved=0&sent=0&failed=0&mode=file',
+    'https://foreign.invalid/admin/billing?month=2026-07&approved=0&sent=0&failed=0&mode=file',
+    '/admin/billing?month=2026-07&approved=0&approved=0&sent=0&failed=0&mode=file',
+  ])('rejects unrelated or ambiguous contender redirect %s', async location => {
+    const ctx = approvalHarness((reply, index) => index === 0 ? reply : { ...reply, location })
+    await expect(runCallback('BILLNEG01.02', ctx)).rejects.toThrow()
+  })
+  it.each(['00', '0.0', '0e0', ''])('rejects noncanonical loser approved=%s', async approved => {
+    const ctx = approvalHarness((reply, index) => index === 0 ? reply : {
+      ...reply, location: reply.location.replace('approved=0', `approved=${approved}`),
+    })
+    await expect(runCallback('BILLNEG01.02', ctx)).rejects.toThrow()
+  })
+  it('rejects a numerically equivalent but malformed winning approved count', async () => {
+    const ctx = approvalHarness((reply, index) => index === 0
+      ? { ...reply, location: reply.location.replace('approved=1', 'approved=1.0') } : reply)
+    await expect(runCallback('BILLNEG01.02', ctx)).rejects.toThrow()
+  })
+})
+
+type PrepareReply = { status: number; body: {
+  mode: string; approval_required: boolean; blocked_customers_are_not_reserved_or_sent: boolean;
+  data: { billingMonth: string; created: number; alreadyPrepared: number; failed: number; errors: string[] };
+} }
+function prepareHarness(alter: (reply: PrepareReply, index: number) => PrepareReply = reply => reply) {
+  let calls = 0
+  const cookies: string[] = []
+  const values: Record<string, unknown> = {}
+  const actor = (name: string) => ({ userId: `actor-${name}`, cookie: () => `component-${name}` })
+  return {
+    assert, cookies, step: { evidence: { values } },
+    value(key: string, value: unknown) { values[key] = value },
+    finding() { throw Error('unexpected finding') }, async dbErrorsSince() { return [] },
+    fixture: {
+      companyA: 'component-company-A', userA: { id: 'actor-A' }, userA2: { id: 'actor-A2' },
+      sessions: { A: actor('A'), A2: actor('A2') }, underlays: { concurrentPrepare: 'component-underlay' },
+      expected: { concurrentPrepare: {
+        exact_per_line: { total_ex_vat: '800.00', total_vat: '200.00', total_inc_vat: '1000.00' },
+        js_float: { total_inc_vat: '1000.00' },
+      } },
+    },
+    sql: {
+      async scalar(query: string) {
+        return calls > 0 && /FROM public\.(invoice_export_runs|invoice_export_items|customer_invoices) WHERE/.test(query) ? 1 : 0
+      },
+      async rows(query: string) {
+        if (query.includes('FROM public.invoice_export_items')) return [{ id: 'component-item',
+          amount_ex_vat: 800, vat_amount: 200, amount_inc_vat: 1000 }]
+        assert.ok(query.includes('FROM public.pricing_runs'))
+        return [{ id: 'component-pricing', status: 'locked', locked_at: '2026-10-01T10:00:00Z' }]
+      },
+    },
+    http: {
+      async post(path: string, options: { cookie: string; json: { companyId: string; billing_month: string } }) {
+        assert.equal(path, '/api/internal/invoice-exports/create')
+        assert.equal(options.json.companyId, 'component-company-A')
+        assert.equal(options.json.billing_month, '2026-08')
+        assert.ok(['component-A', 'component-A2'].includes(options.cookie))
+        cookies.push(options.cookie)
+        const index = calls++
+        const reply = alter({ status: 200, body: { mode: 'prepare_only', approval_required: true,
+          blocked_customers_are_not_reserved_or_sent: true, data: { billingMonth: '2026-08',
+            created: index === 0 ? 1 : 0, alreadyPrepared: index === 0 ? 0 : 1, failed: 0, errors: [] } } }, index)
+        return response(JSON.stringify(reply.body), reply.status)
+      },
+    },
+  }
+}
+
+describe('BILLNEG01.01 actual concurrent prepare callback', () => {
+  it('accepts canonical preparation and replays by both qualified actors', async () => {
+    const ctx = prepareHarness()
+    await runCallback('BILLNEG01.01', ctx)
+    expect(new Set(ctx.cookies)).toEqual(new Set(['component-A', 'component-A2']))
+  })
+  it('rejects forbidden contenders despite one successful preparation and correct final graph', async () => {
+    const ctx = prepareHarness((reply, index) => index === 0 ? reply : { ...reply, status: 403 })
+    await expect(runCallback('BILLNEG01.01', ctx)).rejects.toThrow()
+  })
+  it('rejects HTTP200 failed contenders despite one successful preparation and correct final graph', async () => {
+    const ctx = prepareHarness((reply, index) => index === 0 ? reply : {
+      ...reply, body: { ...reply.body, data: { ...reply.body.data, alreadyPrepared: 0, failed: 1, errors: ['actor_forbidden'] } },
+    })
+    await expect(runCallback('BILLNEG01.01', ctx)).rejects.toThrow()
+  })
+})
+
+type ReplayMutation = (file: FileRecord) => void
+function replayHarness(mutate: ReplayMutation = () => {}, alterBody = false) {
+  const file = stored([structuredClone(jsonRow)])
+  let replayed = false
+  const requests: string[] = []
+  const ctx = {
+    assert, value() {}, finding() { throw Error('unexpected finding') }, file() {},
+    env: { NEXT_PUBLIC_SUPABASE_URL: 'http://component.invalid',
+      SUPABASE_SERVICE_ROLE_KEY: 'component-service', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'component-anon' },
+    actionIds: { createFile: 'a'.repeat(40) },
+    fixture: { companyA: 'component-company-A', fileId: file.id, fileRow: structuredClone(file),
+      provider: file.provider, sessions: { A: { cookie: () => 'component-session', accessToken: 'component-access' } } },
+    sql: {
+      async scalar() { return 1 },
+      async rows(query: string) {
+        assert.ok(query.includes('FROM public.invoice_export_files'))
+        return [structuredClone(file)]
+      },
+      async attempt() { return { ok: false, code: '42501' } },
+    },
+    http: {
+      async get(path: string, options: { cookie?: string }) {
+        assert.equal(options.cookie, 'component-session')
+        const url = new URL(path, 'http://component.invalid')
+        assert.equal(url.pathname, `/admin/billing/invoice-files/${file.id}`)
+        const format = url.searchParams.get('format') ?? 'csv'
+        requests.push(format)
+        const rendered = renderInvoiceFile(file, format as Parameters<typeof renderInvoiceFile>[1])
+        const body = replayed && alterBody && format === 'nordfin_xml'
+          ? Buffer.concat([Buffer.from(rendered.body), Buffer.from('\n')]) : rendered.body
+        return response(body, 200, rendered.contentType, `attachment; filename="${rendered.fileName}"`)
+      },
+      async post(path: string, options: { cookie: string; form: FormData }) {
+        assert.equal(path, '/admin/billing?month=2026-09')
+        assert.equal(options.cookie, 'component-session')
+        assert.equal(options.form.get('billing_month'), '2026-09')
+        replayed = true
+        mutate(file)
+        return response('', 303, '', '', '/admin/billing?month=2026-09&file_error=invoice_file_empty')
+      },
+    },
+  }
+  // These are controlled responses to the callback's direct mutation probes.
+  // The protected app download continues through the real HTTP helper/formatter.
+  vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ code: '42501' }), { status: 403 }))
+  return { ctx, requests }
+}
+
+describe.each(['MAIN05.02', 'BILLNEG01.03'])('%s actual frozen-file replay callback', id => {
+  it('accepts unchanged metadata and identical protected XML', async () => {
+    const h = replayHarness()
+    await runCallback(id, h.ctx)
+    expect(h.requests.filter(format => format === 'nordfin_xml')).toHaveLength(2)
+  })
+  const mutations: Array<[string, ReplayMutation]> = [
+    ['provider', file => { file.provider = 'nordfin' }],
+    ['month', file => { file.billing_month = '1900-01' }],
+    ['creation time', file => { file.created_at = '1900-01-01T00:00:00Z' }],
+    ['environment', file => { file.environment = 'production' }],
+    ['row count', file => { file.row_count += 1 }],
+    ['total', file => { file.total_inc_vat += 1 }],
+  ]
+  it.each(mutations)('rejects frozen %s drift with the rows hash preserved', async (_name, mutate) => {
+    const h = replayHarness(mutate)
+    await expect(runCallback(id, h.ctx)).rejects.toThrow()
+  })
+  it('rejects changed raw XML even when semantic XML and stored rows are unchanged', async () => {
+    const h = replayHarness(undefined, true)
+    await expect(runCallback(id, h.ctx)).rejects.toThrow()
+  })
+})

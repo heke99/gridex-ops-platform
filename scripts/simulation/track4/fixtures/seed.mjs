@@ -118,10 +118,11 @@ export function fixtureSteps() {
           return { id, email, password }
         }
         fx.userA = await mkUser('a', fx.companyA)
+        fx.userA2 = await mkUser('a2', fx.companyA)
         fx.userB = await mkUser('b', fx.companyB)
         const granted = await ctx.sql.rows(`SELECT permission_key FROM public.role_permissions WHERE role_key=${lit(ROLE_KEY)} ORDER BY 1`)
         ctx.assert.deepEqual(granted.map((r) => r.permission_key), [...REQUIRED_PERMISSIONS].sort(), 'role must carry exactly the two billing permissions')
-        ctx.value('userA', fx.userA.id); ctx.value('userB', fx.userB.id)
+        ctx.value('userA', fx.userA.id); ctx.value('userA2', fx.userA2.id); ctx.value('userB', fx.userB.id)
       },
     },
     {
@@ -255,12 +256,17 @@ export function fixtureSteps() {
       },
     },
     {
-      id: 'FX06', title: 'staff sessions (cookies incl. active-company cookie) for tenants A and B', scope: 'api', mechanism: 'api (Supabase Auth password sign-in)', needs: ['FX02'],
+      id: 'FX06', title: 'staff sessions for same-tenant actors A/A2 and other-tenant actor B', scope: 'api', mechanism: 'api (Supabase Auth password sign-in)', needs: ['FX02'],
       async run(ctx) {
         const a = await ensureSession(ctx, 'A')
+        const a2 = await ensureSession(ctx, 'A2')
         const b = await ensureSession(ctx, 'B')
+        ctx.assert.notEqual(a.userId, a2.userId, 'concurrency actors must have distinct actual Auth identities')
+        ctx.assert.equal(a.userId, ctx.fixture.userA.id)
+        ctx.assert.equal(a2.userId, ctx.fixture.userA2.id)
+        ctx.assert.equal(b.userId, ctx.fixture.userB.id)
         // The canonical tenant context must grant exactly the intended permissions to each user for its own company.
-        for (const [label, s, company] of [['A', a, ctx.fixture.companyA], ['B', b, ctx.fixture.companyB]]) {
+        for (const [label, s, company] of [['A', a, ctx.fixture.companyA], ['A2', a2, ctx.fixture.companyA], ['B', b, ctx.fixture.companyB]]) {
           const user = createClient(ctx.env.NEXT_PUBLIC_SUPABASE_URL, ctx.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${s.accessToken}` } } })
           const { data, error } = await user.rpc('canonical_authenticated_tenant_context', { p_selected_company_id: company })
           ctx.assert.ifError(error)
@@ -276,13 +282,15 @@ export function fixtureSteps() {
   ]
 }
 
-/** Sign in once per tenant label ('A'|'B') and cache the session on the fixture. */
+/** Sign in once per qualified fixture actor ('A'|'A2'|'B'). */
 export async function ensureSession(ctx, label) {
   const fx = ctx.fixture
+  if (!['A', 'A2', 'B'].includes(label)) throw new Error('unknown T4 fixture actor')
   fx.sessions ??= {}
   if (!fx.sessions[label]) {
-    const user = label === 'A' ? fx.userA : fx.userB
-    const company = label === 'A' ? fx.companyA : fx.companyB
+    const user = label === 'A' ? fx.userA : label === 'A2' ? fx.userA2 : fx.userB
+    const company = label === 'B' ? fx.companyB : fx.companyA
+    if (!user) throw new Error('qualified T4 fixture actor missing')
     fx.sessions[label] = await signIn({ url: ctx.env.NEXT_PUBLIC_SUPABASE_URL, anonKey: ctx.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, email: user.email, password: user.password, companyId: company })
   }
   return fx.sessions[label]

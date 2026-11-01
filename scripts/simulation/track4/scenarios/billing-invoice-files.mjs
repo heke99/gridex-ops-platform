@@ -10,12 +10,39 @@ import { randomUUID } from 'node:crypto'
 import { fixtureSteps, ensureSession } from '../fixtures/seed.mjs'
 import { FIXTURE_MONTHS } from '../fixtures/expected.mjs'
 import { lit } from '../runner/lib/sql.mjs'
-import { countsFor, diffCounts, prepare, runAction, actionId, getFile, itemsFor, filesFor, pricingRunsFor, rowsSha256, money, assertCreateFileRedirect, freezeFileSnapshot, assertInvoiceJson, assertInvoiceXml } from '../fixtures/flows.mjs'
+import { countsFor, diffCounts, prepare, runAction, actionId, getFile, itemsFor, filesFor, pricingRunsFor, rowsSha256, money, assertCreateFileRedirect, assertApproveRedirect, assertFileReplayRedirect, assertPrepareResponse, freezeFileSnapshot, assertInvoiceJson, assertInvoiceXml } from '../fixtures/flows.mjs'
 
 const M = FIXTURE_MONTHS
 const N = Number(process.env.T4_CONCURRENCY ?? 10)
-const isRedirect = (status) => status >= 300 && status < 400
 const histogram = (list) => list.reduce((h, v) => ((h[v] = (h[v] ?? 0) + 1), h), {})
+
+async function concurrentActors(ctx) {
+  ctx.assert.ok(Number.isSafeInteger(N) && N >= 2 && N <= 100, 'bounded concurrency requires 2–100 requests')
+  const fx = ctx.fixture
+  ctx.assert.ok(fx.userA?.id && fx.userA2?.id && fx.userA.id !== fx.userA2.id, 'two distinct qualified same-tenant actors required')
+  const actors = [await ensureSession(ctx, 'A'), await ensureSession(ctx, 'A2')]
+  ctx.assert.equal(actors[0].userId, fx.userA.id, 'first actual Auth identity must match fixture actor A')
+  ctx.assert.equal(actors[1].userId, fx.userA2.id, 'second actual Auth identity must match fixture actor A2')
+  ctx.value('actorIds', actors.map(actor => actor.userId))
+  return actors
+}
+
+async function frozenXml(ctx, session, label) {
+  const fx = ctx.fixture
+  const file = (await filesFor(ctx.sql, fx.companyA)).find(row => row.id === fx.fileId)
+  ctx.assert.deepEqual(file, fx.fileRow, 'complete frozen file snapshot must remain unchanged')
+  const download = await getFile(ctx, session, fx.fileId, { format: 'nordfin_xml', label })
+  ctx.assert.equal(download.status, 200, 'protected replay XML must remain downloadable')
+  assertInvoiceXml(download, fx.fileRow)
+  return download
+}
+
+function sameReplayBytes(ctx, before, after, prefix) {
+  ctx.assert.equal(after.sha256, before.sha256, 'protected replay body hash must remain unchanged')
+  ctx.assert.deepEqual(after.bytes, before.bytes, 'protected replay raw bytes must remain unchanged')
+  ctx.file(`${prefix}-before.xml`, before.bytes)
+  ctx.file(`${prefix}-after.xml`, after.bytes)
+}
 
 /** Amounts of the single invoice in `items` must equal the independently computed expectation. */
 function assertAmounts(ctx, item, expectedKey) {
@@ -80,9 +107,7 @@ const steps = [
       const fx = ctx.fixture, s = await ensureSession(ctx, 'A'), month = M.main.month
       const a1 = await runAction(ctx, s, 'approve', month, 'approve #1')
       ctx.value('approve1', { status: a1.status, params: a1.params })
-      ctx.assert.ok(isRedirect(a1.status), `approve #1 should redirect, got ${a1.status}: ${a1.res.text().slice(0, 200)}`)
-      ctx.assert.equal(a1.params.approved, '1')
-      ctx.assert.equal(a1.params.failed, '0')
+      ctx.assert.equal(assertApproveRedirect(a1, month), 1, 'first approval must create exactly one approval')
       const [item1] = await itemsFor(ctx.sql, fx.companyA, month)
       ctx.assert.equal(item1.approval?.status, 'approved')
       ctx.assert.ok(item1.approval.approved_at && item1.approval.review_hash && item1.approval.approved_by === fx.userA.id, 'approval record complete')
@@ -91,8 +116,7 @@ const steps = [
       const mid = await countsFor(ctx.sql, fx.companyA)
       const a2 = await runAction(ctx, s, 'approve', month, 'approve #2')
       ctx.value('approve2', { status: a2.status, params: a2.params })
-      ctx.assert.ok(isRedirect(a2.status), `approve #2 should redirect, got ${a2.status}`)
-      ctx.assert.equal(a2.params.approved, '0', 'second approve must approve nothing new')
+      ctx.assert.equal(assertApproveRedirect(a2, month), 0, 'second approve must approve nothing new')
       const [item2] = await itemsFor(ctx.sql, fx.companyA, month)
       ctx.assert.deepEqual(item2.approval, item1.approval, 'approval record (time, hash, actor) unchanged')
       ctx.assert.equal(Number(await ev()), 1, 'still one invoice.approved event')
@@ -103,15 +127,14 @@ const steps = [
   {
     id: 'BILLNEG01.01', title: `N=${N} concurrent prepare for one month -> exactly one draft graph`, scope: 'api+sql-read', needs: ['FX04', 'FX05', 'FX06'],
     async run(ctx) {
-      const fx = ctx.fixture, s = await ensureSession(ctx, 'A'), month = M.concurrentPrepare.month
+      const fx = ctx.fixture, actors = await concurrentActors(ctx), month = M.concurrentPrepare.month
       const before = await countsFor(ctx.sql, fx.companyA)
       const t0 = new Date().toISOString()
-      const results = await Promise.all(Array.from({ length: N }, (_, i) => prepare(ctx, s, { companyId: fx.companyA, month, label: `prepare concurrent #${i + 1}` })))
+      const results = await Promise.all(Array.from({ length: N }, (_, i) => prepare(ctx, actors[i % actors.length], { companyId: fx.companyA, month, label: `prepare concurrent #${i + 1}` })))
       const statuses = results.map((r) => r.status)
       ctx.value('statusHistogram', histogram(statuses))
       ctx.value('createdPerResponse', results.map((r) => { try { return r.json().data?.created ?? null } catch { return null } }))
-      ctx.assert.ok(statuses.every((c) => c < 500), `no 5xx allowed, got ${JSON.stringify(histogram(statuses))}`)
-      ctx.assert.ok(statuses.includes(200), 'at least one request must succeed')
+      for (const result of results) assertPrepareResponse(result, month)
       const after = await countsFor(ctx.sql, fx.companyA)
       const delta = diffCounts(before, after)
       ctx.value('delta', delta)
@@ -128,22 +151,29 @@ const steps = [
   {
     id: 'BILLNEG01.02', title: `N=${N} concurrent approve -> approved exactly once`, scope: 'api(server action)+sql-read', needs: ['FX04', 'FX05', 'FX06'],
     async run(ctx) {
-      const fx = ctx.fixture, s = await ensureSession(ctx, 'A'), month = M.concurrentApprove.month
+      const fx = ctx.fixture, actors = await concurrentActors(ctx), s = actors[0], month = M.concurrentApprove.month
       const p = await prepare(ctx, s, { companyId: fx.companyA, month, label: 'prepare (setup)' })
       ctx.assert.equal(p.status, 200, p.text().slice(0, 200))
+      ctx.assert.equal(p.json().data.failed, 0, 'approval setup must not contain failed preparations')
+      ctx.assert.deepEqual(p.json().data.errors, [], 'approval setup must not hide preparation errors')
       ctx.assert.equal(p.json().data.created, 1, `setup prepare created ${p.json().data.created}: ${JSON.stringify(p.json().data.errors)}; db log: ${JSON.stringify(await ctx.dbErrorsSince(new Date(Date.now() - 60_000).toISOString()))}`)
       await actionId(ctx, s, 'approve', month) // resolve (and cache) the action id once, before the burst
       const before = await countsFor(ctx.sql, fx.companyA)
-      const results = await Promise.all(Array.from({ length: N }, (_, i) => runAction(ctx, s, 'approve', month, `approve concurrent #${i + 1}`)))
+      const results = await Promise.all(Array.from({ length: N }, (_, i) => runAction(ctx, actors[i % actors.length], 'approve', month, `approve concurrent #${i + 1}`)))
       ctx.value('statusHistogram', histogram(results.map((r) => r.status)))
       ctx.value('approvedPerResponse', results.map((r) => r.params.approved ?? null))
-      ctx.assert.ok(results.every((r) => r.status < 500), 'no 5xx allowed')
-      const totalApproved = results.reduce((n, r) => n + Number(r.params.approved ?? 0), 0)
+      const totalApproved = results.reduce((n, r) => n + assertApproveRedirect(r, month), 0)
       ctx.assert.equal(totalApproved, 1, 'sum of "approved" over all responses must be exactly 1')
       const [item] = await itemsFor(ctx.sql, fx.companyA, month)
       ctx.assert.equal(item.approval?.status, 'approved')
+      ctx.assert.ok(actors.some(actor => actor.userId === item.approval.approved_by), 'winning approval must belong to one of the qualified actors')
+      ctx.assert.ok(typeof item.approval.approved_at === 'string' && Number.isFinite(Date.parse(item.approval.approved_at)), 'winning approval timestamp required')
+      ctx.assert.match(item.approval.review_hash ?? '', /^[0-9a-f]{64}$/, 'winning review hash required')
       assertAmounts(ctx, item, 'concurrentApprove')
-      const events = Number(await ctx.sql.scalar(`SELECT count(*) FROM public.domain_events WHERE company_id=${lit(fx.companyA)} AND event_type='invoice.approved' AND aggregate_id=${lit(item.id)}`))
+      const totalEvents = Number(await ctx.sql.scalar(`SELECT count(*) FROM public.domain_events WHERE company_id=${lit(fx.companyA)} AND event_type='invoice.approved' AND aggregate_id=${lit(item.id)}`))
+      ctx.assert.equal(totalEvents, 1, 'exactly one approval event in total, including malformed or foreign-actor events')
+      const events = Number(await ctx.sql.scalar(`SELECT count(*) FROM public.domain_events WHERE company_id=${lit(fx.companyA)} AND event_type='invoice.approved' AND aggregate_id=${lit(item.id)}
+        AND actor_user_id=${lit(item.approval.approved_by)} AND payload->>'review_hash'=${lit(item.approval.review_hash)}`))
       ctx.assert.equal(events, 1, 'one invoice.approved event')
       ctx.value('delta', diffCounts(before, await countsFor(ctx.sql, fx.companyA)))
     },
@@ -184,16 +214,13 @@ const steps = [
     id: 'MAIN05.02', title: 'create invoice file twice -> second call creates no file', scope: 'api(server action)+sql-read', needs: ['MAIN05.01'],
     async run(ctx) {
       const fx = ctx.fixture, s = await ensureSession(ctx, 'A'), month = M.main.month
+      const original = await frozenXml(ctx, s, 'MAIN05.02 XML before replay')
       const before = await countsFor(ctx.sql, fx.companyA)
       const a = await runAction(ctx, s, 'createFile', month, 'create file #2')
       ctx.value('create2', { status: a.status, params: a.params })
-      ctx.assert.ok(isRedirect(a.status), `got ${a.status}`)
-      ctx.assert.equal(a.params.file_error, 'invoice_file_empty', 'second create must be refused as empty (nothing approved and unfiled is left)')
-      ctx.assert.ok(!a.params.file)
+      assertFileReplayRedirect(a, month)
       ctx.assert.deepEqual(diffCounts(before, await countsFor(ctx.sql, fx.companyA)), {})
-      const files = await filesFor(ctx.sql, fx.companyA)
-      const f = files.find((x) => x.id === fx.fileId)
-      ctx.assert.equal(f.rows_sha256, fx.fileRow.rows_sha256, 'file unchanged')
+      sameReplayBytes(ctx, original, await frozenXml(ctx, s, 'MAIN05.02 XML after replay'), 'MAIN05.02-replay')
     },
   },
 
@@ -276,9 +303,10 @@ const steps = [
     note: 'The append-only trigger raises 42501 for every role (also postgres), so the direct UPDATE is tried through psql (postgres), PostgREST as service_role and PostgREST as the staff user.',
     async run(ctx) {
       const fx = ctx.fixture, s = await ensureSession(ctx, 'A'), month = M.main.month
+      const original = await frozenXml(ctx, s, 'BILLNEG01.03 XML before replay')
       const before = await countsFor(ctx.sql, fx.companyA)
       const replay = await runAction(ctx, s, 'createFile', month, 'file replay')
-      ctx.assert.equal(replay.params.file_error, 'invoice_file_empty', 'replay must not create a second file')
+      assertFileReplayRedirect(replay, month)
       ctx.assert.deepEqual(diffCounts(before, await countsFor(ctx.sql, fx.companyA)), {})
 
       const target = lit(fx.fileId)
@@ -306,6 +334,7 @@ const steps = [
       const [row] = await filesFor(ctx.sql, fx.companyA).then((rows) => rows.filter((r) => r.id === fx.fileId))
       ctx.assert.equal(row.rows_sha256, fx.fileRow.rows_sha256, 'rows_sha256 unchanged')
       ctx.assert.equal(rowsSha256(row.rows), row.rows_sha256, 'rows still hash to rows_sha256')
+      sameReplayBytes(ctx, original, await frozenXml(ctx, s, 'BILLNEG01.03 XML after replay and mutation probes'), 'BILLNEG01.03-replay')
     },
   },
 

@@ -122,6 +122,49 @@ export function assertCreateFileRedirect(action, month) {
   assert.match(url.searchParams.get('file') ?? '', UUID, 'created file UUID')
 }
 
+function billingActionRedirect(action, month, keys) {
+  assert.equal(action.status, 303, 'billing action must use the installed Next action redirect')
+  assert.equal(typeof action.location, 'string', 'billing action redirect missing')
+  assert.ok(action.location.startsWith('/admin/billing?'), 'billing action target must be the billing page')
+  const url = new URL(action.location, 'http://t4.invalid')
+  assert.equal(url.origin, 'http://t4.invalid')
+  assert.equal(url.pathname, '/admin/billing'); assert.equal(url.hash, '')
+  assert.deepEqual([...url.searchParams.keys()].sort(), [...keys].sort(), 'exact action parameters without duplicates')
+  assert.equal(url.searchParams.get('month'), month, 'action must retain the requested billing month')
+  return url.searchParams
+}
+
+export function assertApproveRedirect(action, month) {
+  const params = billingActionRedirect(action, month, ['approved', 'sent', 'failed', 'mode', 'month'])
+  assert.equal(params.get('mode'), 'file', 'file-provider approval mode required')
+  assert.equal(params.get('sent'), '0', 'file approval must not send individual invoices')
+  assert.equal(params.get('failed'), '0', 'failed contenders are not successful approval replays')
+  assert.match(params.get('approved') ?? '', /^(0|1)$/, 'one canonical winner or a successful replay required')
+  return Number(params.get('approved'))
+}
+
+export function assertFileReplayRedirect(action, month) {
+  const params = billingActionRedirect(action, month, ['month', 'file_error'])
+  assert.equal(params.get('file_error'), 'invoice_file_empty', 'file replay must find no approved unfiled invoices')
+}
+
+export function assertPrepareResponse(response, month) {
+  assert.equal(response.status, 200, 'every qualified prepare contender must reach the preparation API')
+  const body = response.json()
+  assert.equal(body.mode, 'prepare_only')
+  assert.equal(body.approval_required, true)
+  assert.equal(body.blocked_customers_are_not_reserved_or_sent, true)
+  const data = body.data
+  assert.ok(data && typeof data === 'object' && !Array.isArray(data), 'canonical preparation result required')
+  assert.equal(data.billingMonth, month)
+  assert.equal(data.failed, 0, 'failed contenders are not successful preparation replays')
+  assert.deepEqual(data.errors, [], 'successful preparation must not hide errors')
+  assert.ok(data.created === 0 || data.created === 1, 'canonical created count required')
+  assert.ok(data.alreadyPrepared === 0 || data.alreadyPrepared === 1, 'canonical replay count required')
+  assert.equal(data.created + data.alreadyPrepared, 1, 'exactly one fixture underlay must be prepared or reused')
+  return data
+}
+
 function assertStoredFile(file) {
   assert.ok(file && typeof file === 'object', 'frozen file row missing')
   assert.match(file.id, UUID); assert.match(file.billing_month, /^\d{4}-(0[1-9]|1[0-2])$/)
