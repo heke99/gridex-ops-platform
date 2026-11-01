@@ -1,5 +1,10 @@
 # Track 4 simulation harness (T4)
 
+Current source boundary: the runner's report custody and canonical selection have bounded component controls.
+The inherited lifecycle below is **not admitted for execution**: fixed/shared defaults, broad teardown, source/build/schema and
+producer identity still require separate correction and coordinator resource admission. XML/JSON semantic assertions, actual
+invoice/snapshot lineage, BILLNEG01.04b and the absent BILLNEG01.05 remain unmet. Source adoption and these controls add no scenario PASS.
+
 Own local stack, separate from every other track. Base: `1c0c088cb4ed66d0dd8b3e34c9606019342a1a56`.
 Nothing here requires app changes; all state lives under `SIM_HOME`.
 
@@ -142,8 +147,24 @@ In engine mode (default) the terms are the published offer's (85 öre/kWh, 49.00
 status passed|failed|skipped + reason, HTTP status/bytes/sha256/location of every request, DB row counts before/after/delta
 for tenant A, values, findings, file sha256s; top-level `skipped` list and vitest-style `vitest` counters),
 `summary.json`. Exit: 0 ok, 1 a step failed, 2 usage, 3 stack not ready, 4 another run active.
-MAIN05.05/.06 depend only on FX06 (no fixture data); MAIN05.05b/.04 need a real file. `run.sh` accepts a path relative to track4/ (`scenarios/x.mjs`). Replay/build reuse accepts a HEAD that differs from `replay-commit`/`built-commit` only under `scripts/simulation/track4/`; adopting a stack never overwrites `replay-commit` (records `T4_BASE_COMMIT` if absent).
-`--only ID[,ID]` runs the fixture steps plus the step and its `needs`.
+MAIN05.06 depends only on FX06. The unknown/malformed MAIN05.05 step has that narrow dependency, but selecting its canonical ID also
+includes MAIN05.05b and its real-file prerequisites. `run.sh` accepts a path relative to track4/ (`scenarios/x.mjs`). The inherited replay/build reuse policy above is not current runtime qualification.
+`--only ID[,ID]` accepts exact declared canonical T4 IDs, includes all their approved substeps and recursive dependencies, and retains
+the fixture sequence. Duplicate/empty/unknown IDs, requested IDs with no implementation, unknown substeps, duplicate steps and invalid
+dependency graphs fail before fixture execution. Dependencies must precede the step in the same scenario file; no prefix matching is used.
+BILLNEG01.04 selects both .04a and TODO .04b; the TODO remains skipped/unmet. Requesting absent BILLNEG01.05 fails before workload.
+An unfiltered report covers only declared steps: `missingScenarioIds` explicitly lists absent canonical IDs and `scope` is
+`DECLARED_STEPS_ONLY_NOT_CAMPAIGN_ACCEPTANCE`. Exit0 still permits explicit skipped/TODO steps and cannot qualify their parent scenario.
+
+The actual Node runner requires canonical absolute `T4_SIM_HOME`, `--out` and `--report` paths. The home must be owned/private0700;
+all output paths must be below it, with existing owned directory parents and no symlink components. The wrapper-created run directory
+may already exist only when empty. Any existing merged/per-scenario/summary destination, legacy `.tmp` or `.t4-reserved` marker is
+refused before fixtures. Reservations for every output are exclusive; temporary files have unpredictable same-directory names and
+mode0600. Writes use held file descriptors, and atomic hard-link publication refuses competing destinations instead of replacing them.
+Linux directory descriptors keep writes within admitted directories; directory replacement is refused. Existing originals and foreign
+replacement entries are preserved. Partial new reports from a failed publication remain evidence; do not rerun business calls blindly.
+This output contract does not admit the shell wrapper, lifecycle, backend or schema. `__tests__/simulation-track4-runner-contract.test.ts`
+tests the actual runner with synthetic noop steps, denied network and fake tools only.
 
 ## Origins
 - `stableJson`/`rowsSha256` in `fixtures/flows.mjs`: logic copied from `lib/billing/invoiceFileExport.ts` at the base
