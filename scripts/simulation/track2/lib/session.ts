@@ -19,6 +19,13 @@ export type ActorProof = {
   contextEvidence: Record<string, unknown>; substitutions: string[]
 }
 
+export type PlatformConfigurationProof = {
+  schema: 'gridex-t2-platform-configuration-actor-v1'; intent: 'platform_configuration'
+  environmentId: string; assignmentSha256: string; sourceCommit: string; userId: string; observedAt: string
+  authVerified: true; platformAdminVerified: true; selectedCompanyAuthorization: 'NOT_ASSERTED'
+  contextEvidenceSHA256: string; substitutions: string[]
+}
+
 const actorSourcePaths = ['scripts/simulation/track2/lib/fixture.ts', 'scripts/simulation/track2/lib/session.ts', 'scripts/simulation/track2/lib/term-fixture.ts']
 const sha256 = (value: string | Buffer) => createHash('sha256').update(value).digest('hex')
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -59,11 +66,18 @@ function actorRuntimeBinding() {
   if (!homeInfo.isDirectory() || homeInfo.isSymbolicLink() || homeInfo.uid !== process.getuid?.() || (homeInfo.mode & 0o777) !== 0o700) {
     throw new Error('actor_home_not_private')
   }
-  return { home, sourceCommit: actualCommit, environmentId: assignment.environmentId as string, assignmentSha256: sha256(raw) }
+  return { home, sourceCommit: actualCommit, environmentId: assignment.environmentId as string, assignmentSha256: sha256(raw),
+    pilotPlatformConfiguration: assignment.scenario === 'scenarios/pilot-term0203.test.ts'
+      && /^[a-f0-9]{64}$/.test(assignment.pilotTerm0203?.materialSpecificationSha256 ?? ''), runDir }
 }
 
-function recordActorProof(home: string, proof: ActorProof): string {
-  const dir = path.join(home, 'actor-receipts')
+/** Admission check before the explicit SQL test-admin fixture is created. */
+export function requirePlatformConfigurationRuntime(): void {
+  if (!actorRuntimeBinding().pilotPlatformConfiguration) throw Error('platform_configuration_pilot_admission_required')
+}
+
+function recordActorProof(home: string, proof: ActorProof | PlatformConfigurationProof, folder: 'actor-receipts' | 'platform-actor-receipts' = 'actor-receipts'): string {
+  const dir = path.join(home, folder)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { mode: 0o700 })
   const info = fs.lstatSync(dir)
   if (!info.isDirectory() || info.isSymbolicLink() || fs.realpathSync(dir) !== dir
@@ -80,6 +94,8 @@ export type AppSession = {
   cookieHeader: string
   /** Safe projection only; never serialize the raw Supabase/Auth response. */
   actorProof?: ActorProof
+  /** Privileged setup only; never ordinary tenant/business actor evidence. */
+  platformConfigurationProof?: PlatformConfigurationProof
   /** fetch mot appen med sessionen; följer inte redirects (status/Location blir synliga). */
   fetch: (pathAndQuery: string, init?: RequestInit) => Promise<Response>
 }
@@ -181,5 +197,63 @@ export async function loginSession(email: string, password: string, opts: { comp
     },
   }
   if (hosted) Object.defineProperty(session, 'cookieHeader', { get: cookieHeader, enumerable: false })
+  return session
+}
+
+/** Separate privileged setup session. Ordinary loginSession still requires
+ * is_platform_admin=false and tenantSession cannot accept this proof type. */
+export async function loginPlatformConfigurationSession(email: string, password: string): Promise<AppSession> {
+  if (process.env.SIM_REQUIRE_ACTOR_RECEIPT !== '1') throw Error('platform_configuration_requires_hosted_profile')
+  const jar = new Map<string, string>()
+  const supabase = createServerClient(sim.apiUrl, sim.anonKey, { cookies: {
+    getAll: () => [...jar].map(([name, value]) => ({ name, value })),
+    setAll: cookies => { for (const c of cookies) { if (c.value) jar.set(c.name, c.value); else jar.delete(c.name) } },
+  } })
+  const result = await supabase.auth.signInWithPassword({ email, password }).catch(() => { throw Error('platform_configuration_login_failed') })
+  if (result.error || !result.data.user || !jar.size) throw Error('platform_configuration_login_failed')
+  const userId = result.data.user.id
+  const cookieHeader = () => [...jar].map(([name, value]) => `${name}=${value}`).join('; ')
+  const qualify = async () => {
+    try {
+      const binding = actorRuntimeBinding(), expected = fixtureActorExpectation(email)
+      if (!binding.pilotPlatformConfiguration || expected.purpose !== 'PLATFORM_CONFIGURATION' || expected.userId !== userId) throw Error('platform_configuration_identity_unverified')
+      const auth = await supabase.auth.getUser()
+      const context = await supabase.rpc('canonical_authenticated_tenant_context', { p_selected_company_id: null })
+      if (auth.error || auth.data.user?.id !== userId || context.error || !context.data || context.data.user_id !== userId
+        || context.data.authorized !== true || context.data.is_platform_admin !== true) throw Error('platform_configuration_context_unverified')
+      const proof: PlatformConfigurationProof = { schema: 'gridex-t2-platform-configuration-actor-v1', intent: 'platform_configuration',
+        environmentId: binding.environmentId, assignmentSha256: binding.assignmentSha256, sourceCommit: binding.sourceCommit,
+        userId, observedAt: new Date().toISOString(), authVerified: true, platformAdminVerified: true, selectedCompanyAuthorization: 'NOT_ASSERTED',
+        contextEvidenceSHA256: sha256(JSON.stringify({ userId, isPlatformAdmin: true, selectedCompanyAuthorization: 'NOT_ASSERTED' })),
+        substitutions: ['GoTrue admin.createUser', 'SQL explicit hosted test admin_users.platform_admin fixture; no ordinary signup or business actor qualification'] }
+      return { binding, proof }
+    } catch { throw Error('platform_configuration_qualification_failed') }
+  }
+  let current = await qualify()
+  const session: AppSession = { userId, get cookieHeader() { return cookieHeader() }, get platformConfigurationProof() { return current.proof },
+    fetch: async (route, init = {}) => {
+      const url = new URL(route, sim.appUrl)
+      if (url.origin !== new URL(sim.appUrl).origin || url.username || url.password || (init.method ?? 'GET').toUpperCase() !== 'POST') throw Error('platform_configuration_request_forbidden')
+      if (url.pathname === '/admin/inbound-mail' && !url.search) {
+        const manifest = JSON.parse(fs.readFileSync(path.join(current.binding.runDir, '.next/server/server-reference-manifest.json'), 'utf8')).node
+        const allowed = Object.entries(manifest).filter(([, value]) => {
+          const entry = value as { filename?: string; exportedName?: string; workers?: Record<string, unknown> }
+          return entry.filename === 'app/admin/inbound-mail/actions.ts'
+            && ['saveSharedMailboxProfileAction', 'reprocessInboundEmailAction'].includes(entry.exportedName ?? '')
+            && entry.workers && 'app/admin/inbound-mail/page' in entry.workers
+        }).map(([key]) => key)
+        if (!allowed.includes(new Headers(init.headers).get('next-action') ?? '')) throw Error('platform_configuration_action_forbidden')
+      } else if (url.pathname === '/api/internal/inbound-mail/cron') {
+        if (url.searchParams.get('environment') !== 'test' || !uuid.test(url.searchParams.get('mailbox_id') ?? '')
+          || [...url.searchParams.keys()].some(key => !['environment', 'mailbox_id', 'force'].includes(key))
+          || url.searchParams.has('force') && url.searchParams.get('force') !== '1') throw Error('platform_configuration_poll_scope_forbidden')
+      } else throw Error('platform_configuration_request_forbidden')
+      current = await qualify()
+      const receiptId = recordActorProof(current.binding.home, current.proof, 'platform-actor-receipts')
+      const headers = new Headers(init.headers)
+      headers.set('cookie', cookieHeader()); headers.set('X-Sim-Platform-Actor-Receipt-Id', receiptId)
+      return fetch(url, { ...init, redirect: 'manual', headers })
+    } }
+  Object.defineProperty(session, 'cookieHeader', { get: cookieHeader, enumerable: false })
   return session
 }
