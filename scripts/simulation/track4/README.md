@@ -143,10 +143,14 @@ exact-decimal value and record the other variants as findings. Nothing in the re
 In engine mode (default) the terms are the published offer's (85 öre/kWh, 49.00 SEK/month, 25 %) and the kWh per month are the sums of the E66 files the grid owner sent (`chain.json`), not the 84.75/437.215 example above, which belongs to direct mode.
 
 ## Reports (`SIM_HOME/runs/<run-id>/`)
-`run.log`, `run.json` (exit code, start/finish, commits, sink request count), `report-<scenario>.json` (per step:
+The wrapper exclusively creates a new private0700 run directory, refusing a stale directory or symlinked parent before writing its log.
+`run.log` and `run.json` (exit code, start/finish, commits, sink request count) stay at the run-directory root.
+The runner receives the separate fresh `reports/` subdirectory for `report-<scenario>.json` (per step:
 status passed|failed|skipped + reason, HTTP status/bytes/sha256/location of every request, DB row counts before/after/delta
 for tenant A, values, findings, file sha256s; top-level `skipped` list and vitest-style `vitest` counters),
-`summary.json`. Exit: 0 ok, 1 a step failed, 2 usage, 3 stack not ready, 4 another run active.
+`summary.json`. Fixture-local `chain.log`/`chain-vitest.json`, when used, also reside under `reports/`.
+The merged report remains at the admitted `SIM_REPORT` path. Exit: 0 executed steps passed, 1 a step/admission/publication failed,
+2 usage, 3 stack not ready, 4 another run active; the wrapper preserves the runner's pipeline exit status.
 MAIN05.06 depends only on FX06. The unknown/malformed MAIN05.05 step has that narrow dependency, but selecting its canonical ID also
 includes MAIN05.05b and its real-file prerequisites. `run.sh` accepts a path relative to track4/ (`scenarios/x.mjs`). The inherited replay/build reuse policy above is not current runtime qualification.
 `--only ID[,ID]` accepts exact declared canonical T4 IDs, includes all their approved substeps and recursive dependencies, and retains
@@ -157,14 +161,14 @@ An unfiltered report covers only declared steps: `missingScenarioIds` explicitly
 `DECLARED_STEPS_ONLY_NOT_CAMPAIGN_ACCEPTANCE`. Exit0 still permits explicit skipped/TODO steps and cannot qualify their parent scenario.
 
 The actual Node runner requires canonical absolute `T4_SIM_HOME`, `--out` and `--report` paths. The home must be owned/private0700;
-all output paths must be below it, with existing owned directory parents and no symlink components. The wrapper-created run directory
-may already exist only when empty. Any existing merged/per-scenario/summary destination, legacy `.tmp` or `.t4-reserved` marker is
+all output paths must be below it, with existing owned directory parents and no symlink components. The runner's `--out` directory
+may already exist only when empty; the wrapper's log and metadata are outside it. Any existing merged/per-scenario/summary destination, legacy `.tmp` or `.t4-reserved` marker is
 refused before fixtures. Reservations for every output are exclusive; temporary files have unpredictable same-directory names and
 mode0600. Writes use held file descriptors, and atomic hard-link publication refuses competing destinations instead of replacing them.
 Linux directory descriptors keep writes within admitted directories; directory replacement is refused. Existing originals and foreign
 replacement entries are preserved. Partial new reports from a failed publication remain evidence; do not rerun business calls blindly.
-This output contract does not admit the shell wrapper, lifecycle, backend or schema. `__tests__/simulation-track4-runner-contract.test.ts`
-tests the actual runner with synthetic noop steps, denied network and fake tools only.
+These output/layout controls do not admit the lifecycle, backend, schema or a real business run. `__tests__/simulation-track4-runner-contract.test.ts`
+tests both the actual runner and the whole common.sh/run.sh/tee/runner chain with synthetic noop steps, denied network and fake tools only.
 
 ## Origins
 - `stableJson`/`rowsSha256` in `fixtures/flows.mjs`: logic copied from `lib/billing/invoiceFileExport.ts` at the base

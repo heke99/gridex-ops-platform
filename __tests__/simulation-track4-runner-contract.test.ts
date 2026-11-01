@@ -43,7 +43,35 @@ function control(steps: Step[] = [{ id: 'FX', fixture: true }, { id: 'MAIN05.03'
   const data = () => JSON.parse(readFileSync(report, 'utf8'))
   const untouched = () => { expect(executed()).toEqual([]); expect(existsSync(tools)).toBe(false) }
   const start = () => spawn(process.execPath, argv('MAIN05.03', {}), { env, stdio: 'ignore' })
-  return { home, out, report, scenario, run, start, executed, data, untouched }
+  const wrapper = (mode = 'plain', outside = '') => {
+    writeFileSync(join(home, 'env'), readFileSync(join(home, 'env'), 'utf8').replace('NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:1', 'NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321'))
+    mkdirSync(join(home, 'logs'), { recursive: true }); writeFileSync(join(home, 'logs/sink-requests.jsonl'), '')
+    // Only the wrapper's exact readiness query, fake health and DB-log calls
+    // are permitted. The actual common.sh, pipeline and runner execute.
+    for (const tool of ['psql', 'curl', 'docker']) {
+      writeFileSync(join(bin, tool), "#!/usr/bin/python3\nimport json,os,pathlib,sys\nname=pathlib.Path(sys.argv[0]).name\nwith open(os.environ['CONTROL_TOOLS'],'a')as f:f.write(json.dumps({'tool':name,'argv':sys.argv[1:]})+'\\n')\nif name=='psql' and sys.argv[-1]==\"select to_regclass('public.companies') is not null\":print('t');sys.exit(0)\nif name=='curl' and sys.argv[-1]=='http://127.0.0.1:1/login':print('200',end='');sys.exit(0)\nif name=='docker' and sys.argv[1]=='logs':sys.exit(0)\nsys.exit(99)\n", { mode: 0o700 })
+    }
+    // Explicit private fault injection before re-exec of the pinned real Node.
+    writeFileSync(join(bin, 'node'), '#!/usr/bin/python3\nimport os,pathlib,sys\np=pathlib.Path(sys.argv[sys.argv.index("--out")+1])\npathlib.Path(os.environ["CONTROL_WRAPPER_OUT"]).write_text(str(p))\nmode=os.environ["CONTROL_INJECT"]\nif mode=="stale":p.mkdir(exist_ok=True);(p/"prior.txt").write_text("PRIOR_REPORT_DIRECTORY")\nif mode=="symlink":p.symlink_to(os.environ["CONTROL_OUTSIDE"])\nos.execv(os.environ["CONTROL_NODE"],[os.environ["CONTROL_NODE"],*sys.argv[1:]])\n', { mode: 0o700 })
+    const capture = join(home, 'wrapper-out')
+    let bashEnv = ''
+    if (mode === 'stale-run' || mode === 'metadata-alias') {
+      // Metadata-only shell clock stub: expose a deterministic wrapper directory
+      // before its allocation. No Auth/business clock or system clock is changed.
+      bashEnv = join(home, 'wrapper-clock.sh')
+      let body = 'date(){ if [ "$*" = "-u +%Y%m%dT%H%M%SZ" ]; then printf "20000101T000000Z\\n"; else /usr/bin/date "$@"; fi; }\nCONTROL_ROOT="$SIM_HOME/runs/20000101T000000Z-$$"\nprintf "%s" "$CONTROL_ROOT" > "$SIM_HOME/controlled-run-root"\n'
+      if (mode === 'stale-run') body += 'mkdir -p "$CONTROL_ROOT"; printf "PRIOR_WRAPPER_LOG" > "$CONTROL_ROOT/run.log"\n'
+      else body += 'export SIM_REPORT="$CONTROL_ROOT/run.json"\n'
+      writeFileSync(bashEnv, body)
+    }
+    const result = spawnSync('/bin/bash', [resolve('scripts/simulation/track4/run.sh'), scenario, '--only', 'MAIN05.03'], {
+      env: { ...env, HOME: home, SIM_HOME: home, SIM_REPORT: report, ...(bashEnv ? { BASH_ENV: bashEnv } : {}), CONTROL_INJECT: mode, CONTROL_NODE: process.execPath, CONTROL_OUTSIDE: outside, CONTROL_WRAPPER_OUT: capture },
+      timeout: 5_000, encoding: 'utf8',
+    })
+    expect(result.error).toBeUndefined()
+    return { ...result, runnerOut: existsSync(capture) ? readFileSync(capture, 'utf8') : null }
+  }
+  return { home, out, report, scenario, run, start, wrapper, executed, data, untouched }
 }
 
 describe('T4 actual runner canonical selection', () => {
@@ -92,6 +120,79 @@ describe('T4 actual runner canonical selection', () => {
     const c = control(steps)
     expect(c.run().status).not.toBe(0)
     c.untouched()
+  })
+})
+
+describe('T4 actual whole wrapper/common/tee/runner integration', () => {
+  it('keeps wrapper log/run metadata outside the fresh runner report directory', () => {
+    const c = control(); const p = c.wrapper()
+    expect(p.status).toBe(0)
+    expect(c.executed()).toEqual(['FX', 'MAIN05.03'])
+    const runRoot = join(c.home, 'runs', readdirSync(join(c.home, 'runs'))[0])
+    expect(p.runnerOut).toBe(join(runRoot, 'reports'))
+    expect(readdirSync(runRoot).sort()).toEqual(['reports', 'run.json', 'run.log'])
+    expect(readdirSync(join(runRoot, 'reports')).sort()).toEqual(['report-CONTROLLED.json', 'summary.json'])
+    expect(lstatSync(runRoot).mode & 0o077).toBe(0)
+    expect(JSON.parse(readFileSync(join(runRoot, 'run.json'), 'utf8')).exitCode).toBe(0)
+    expect(c.data().summary.failed).toBe(0)
+  })
+
+  it('preserves prior merged evidence when the actual wrapper invokes the runner', () => {
+    const c = control(); writeFileSync(c.report, 'PRIOR_WRAPPER_REPORT')
+    expect(c.wrapper().status).not.toBe(0)
+    expect(c.executed()).toEqual([])
+    expect(readFileSync(c.report, 'utf8')).toBe('PRIOR_WRAPPER_REPORT')
+  })
+
+  it('refuses a stale reports directory injected before actual Node starts', () => {
+    const c = control(); const p = c.wrapper('stale')
+    expect(p.status).not.toBe(0)
+    expect(c.executed()).toEqual([])
+    expect(p.runnerOut).not.toBeNull()
+    expect(readFileSync(join(p.runnerOut!, 'prior.txt'), 'utf8')).toBe('PRIOR_REPORT_DIRECTORY')
+    expect(p.stdout).toContain('run output directory must be empty')
+  })
+
+  it('refuses a symlink reports directory without writing through it', () => {
+    const c = control(); const foreign = mkdtempSync(join(tmpdir(), 't4-wrapper-report-link-')); homes.push(foreign)
+    const canary = join(foreign, 'prior.txt'); writeFileSync(canary, 'PRIOR_CANARY')
+    const p = c.wrapper('symlink', foreign)
+    expect(p.status).not.toBe(0)
+    expect(c.executed()).toEqual([])
+    expect(p.stdout).toMatch(/ENOTDIR|ELOOP/)
+    expect(readFileSync(canary, 'utf8')).toBe('PRIOR_CANARY')
+    expect(readdirSync(foreign)).toEqual(['prior.txt'])
+  })
+
+  it('refuses a symlink run parent before creating wrapper logs outside the home', () => {
+    const c = control(); const foreign = mkdtempSync(join(tmpdir(), 't4-wrapper-runs-link-')); homes.push(foreign)
+    const canary = join(foreign, 'prior.txt'); writeFileSync(canary, 'PRIOR_CANARY')
+    symlinkSync(foreign, join(c.home, 'runs'))
+    expect(c.wrapper().status).not.toBe(0)
+    expect(c.executed()).toEqual([])
+    expect(readFileSync(canary, 'utf8')).toBe('PRIOR_CANARY')
+    expect(readdirSync(foreign)).toEqual(['prior.txt'])
+  })
+
+  it('preserves a pre-existing wrapper run directory and its log before tee starts', () => {
+    const c = control(); const p = c.wrapper('stale-run')
+    expect(p.status).not.toBe(0)
+    expect(p.runnerOut).toBeNull()
+    expect(p.stderr).toContain('FileExistsError')
+    expect(c.executed()).toEqual([])
+    const runRoot = readFileSync(join(c.home, 'controlled-run-root'), 'utf8')
+    expect(readFileSync(join(runRoot, 'run.log'), 'utf8')).toBe('PRIOR_WRAPPER_LOG')
+  })
+
+  it('refuses a merged report alias of the wrapper-owned metadata file', () => {
+    const c = control(); const p = c.wrapper('metadata-alias')
+    expect(p.status).not.toBe(0)
+    // The wrapper creates SIM_REPORT's parent early; this alias is therefore
+    // rejected by exclusive run-directory allocation before tee or fixtures.
+    expect(p.stderr).toContain('FileExistsError')
+    expect(c.executed()).toEqual([])
+    const runRoot = readFileSync(join(c.home, 'controlled-run-root'), 'utf8')
+    expect(existsSync(join(runRoot, 'run.json'))).toBe(false)
   })
 })
 
