@@ -17,9 +17,9 @@
 //  - lib/ediel/testing/invoiceTestContractLifecycle.ts:22-104 (signInvoiceTestContractCanonically):
 //    gridex_prepare_customer_contract_signature_request_v1 + gridex_finalize_customer_contract_signature_v1.
 //  - scripts/helpers/native-fixture-company-identity.ts (organisationsnummerallokering; förenklad till TS-loop).
-// Avvikelser mot förlagan: en egen tenant per createTermTenant() (login-admin från lib/fixture.ts är tenantens
-// admin), avtalsfälten binding_months/notice_months/monthly_fee_sek/auto_renew_* /contract_type sätts på
-// draft-raden (prepare-RPC:n bygger prissnapshoten från raden), ingen switch/POA/Z03.
+// Avvikelser mot förlagan: egen tenant per createTermTenant(); kund/site/mätpunkt via ordinarie intake,
+// avtal från erbjudande via HTTP-action och kanoniska signerings-RPC:er. Ingen switch/POA/Z03.
+// Villkoren härleds av appens skapande från valt prisalternativ och publicerad komponentversion.
 //
 // VAR AVTALSPRIS/MÅNADSAVGIFT KOMMER FRÅN (läst i stackens funktionskroppar):
 //  - customer_contracts.binding_months/notice_months/monthly_fee_sek/auto_renew_*: draft-raden. I appens
@@ -97,14 +97,14 @@ export async function tenantSession(tenant: TermTenant): Promise<AppSession> {
 
 /**
  * Det som INTE går via appens egna ingångar utan skrivs direkt (SQL/RPC) i fixturen. Skrivs ut i loggen en gång.
- * Avtal och avtalsändringsförsök går via HTTP server actions; kund/anläggning/mätpunkt via SQL (fynd claude-track2/004).
+ * Kund/anläggning/mätpunkt, avtal och avtalsändringsförsök går via HTTP server actions.
  */
 export const BACKEND_REPLACEMENTS = [
   'SQL: company-uppgifter (org_number, legal profile), ediel_actor/brp/route-profiler, company_email_settings/templates/event_rules, platform_market_actors + identifiers, tenant_actor_identifiers, grid_owners (verified_for_customer_flow=true, actor_registry_status=verified)',
   'SQL: auth.users/user_profiles/company_memberships/roles/user_roles/role_permissions/admin_users för builder-aktör och login-adminens engångsroll (role_permissions ger customers.write/contracts.write m.fl.)',
   'RPC (service_role): gridex_upsert_internal_contract_offer_v3 (skapar även contract_price_options ur snapshotens price_options, som appens egen väg), gridex_publish_internal_contract_version (publishContractVersionAction-motsvarighet; ingen kanalaktivering, se kommentar i ensureOffer)',
   'SQL: gridex_materialize_legal_bundle_version + UPDATE contract_offers.legal_bundle_version_id (legal bundle)',
-  'SQL: INSERT customers/customer_contacts/customer_addresses/customer_sites/metering_points (is_test_data=true) - ersätter createCustomerAction p.g.a. fynd claude-track2/004',
+  'HTTP: createCustomerAction skapar kund/site/mätpunkt; exakt tenant-/intake-/grafkvittokontroll före fortsatt avtal. SQL märker enbart verifierade syntetiska rader som testdata.',
   'Signerat dokument arkiveras inte (ingen PDF-arkivering; customer_contracts.document_sha256 är null): bindning via acceptansbevis (customer_contract_evidence/acceptances) och juridiska accepter (customer_legal_acceptances)',
   'RPC (service_role): gridex_prepare_customer_contract_signature_request_v1 + gridex_finalize_customer_contract_signature_v1 (ersätter UI-/länksignering; signed_at = real tid)',
 ] as const
@@ -373,7 +373,7 @@ function assertActionOk(label: string, r: ServerActionResult) {
 }
 
 export type CreationTrail = {
-  customerAction: { httpStatus: number; redirect: string | null; state: unknown }
+  customerAction: { httpStatus: number; redirect: string | null; requestId?: string; intakeId?: string; idempotencyKey?: string; state: unknown }
   contractAction: { httpStatus: number; redirect: string | null }
   /** metadata.source_of_truth på avtalsraden: 'contract_price_options' = RPC-vägen, annars TS-vägen createCustomerContract. */
   contractPath: 'rpc_gridex_create_internal_customer_contract_v1' | 'ts_createCustomerContract'
@@ -402,42 +402,88 @@ export async function createSignedContract(tenant: TermTenant, input: CreateSign
   const offer = await ensureOffer(tenant, input, monthlyFee, area, opts.offerMode ?? 'rpc_v3')
   const session = await tenantSession(tenant)
 
-  // 1. Kund + anläggning + mätpunkt via SQL-ersättning (ersätter createCustomerAction p.g.a. fynd claude-track2/004).
-  // Samma fält/kopplingar som intake-grafen skapar (actions.part-1.ts:877-1000 buildCreateCustomerParams och
-  // actions.part-2.ts:691+ createCustomerGraph -> canonical_onboard_customer_graph): kund (private, active, source
-  // admin_customer_intake), primär kontakt, registrerad adress, anläggning (draft, consumption, nätägare, prisområde,
-  // adress, okänd nuvarande leverantör) och mätpunkt (draft, hourly, consumption, settlement-relevant).
+  // 1. Kund/site/mätpunkt skapas av ordinarie intake. Vid okänt eller delvis
+  // committat utfall: stoppa och stäm av kvittot; aldrig SQL-fallback eller retry.
   let gsrn = fixtureGsrn()
   const suffix = randomBytes(4).toString('hex')
   let email = `synthetic-${suffix}-${tenant.runId}@example.invalid`
-  let customerId: string = randomUUID(); let siteId: string = randomUUID(); let pointId: string = randomUUID()
-  const lastName = `Term${suffix}`
-  const marker = { test_center: { kind: 'invoice_test_customer' } }
+  let customerId: string; let siteId: string; let pointId: string
+  let intakeReceipt: { intakeId: string; idempotencyKey: string } | undefined
+  let customerResult: ServerActionResult = { httpStatus: 0, redirect: null, value: 'existing_graph_reused', threw: false, errorRows: [], excerpt: '' }
   if (input.existing) {
-    // Andra avtalet på samma kund/anläggning/mätpunkt (TERM03.05 b): inga nya rader.
+    // TERM03.05b återanvänder den redan verifierade kundens graf, ingen ny intake.
     ;({ customerId, siteId, meteringPointId: pointId, gsrn } = input.existing)
-    email = psql(`select email from public.customers where id=${lit(customerId)}`)
+    email = psql(`select email from public.customers where id=${lit(customerId)} and company_id=${lit(companyId)}`)
   } else {
-    psql(`BEGIN;
-      INSERT INTO public.customers(id,company_id,customer_type,status,first_name,last_name,full_name,personal_number,email,source,customer_number,is_test_data,metadata)
-        VALUES(${lit(customerId)},${lit(companyId)},'private','active','Synthetic',${lit(lastName)},${lit(`Synthetic ${lastName}`)},${lit(syntheticPersonalNumber())},${lit(email)},'admin_customer_intake',${lit(customerId)},true,${lit(marker)}::jsonb);
-      INSERT INTO public.customer_contacts(company_id,customer_id,type,name,email,is_primary)
-        VALUES(${lit(companyId)},${lit(customerId)},'primary',${lit(`Synthetic ${lastName}`)},${lit(email)},true);
-      INSERT INTO public.customer_addresses(company_id,customer_id,type,street_1,postal_code,city,country,is_active)
-        VALUES(${lit(companyId)},${lit(customerId)},'registered','Testgatan 1','12345','Teststad','SE',true);
-      INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,facility_id,site_type,status,grid_owner_id,price_area_code,grid_area_code,street,postal_code,city,country,current_supplier_name,current_supplier_unknown,is_test_data,metadata)
-        VALUES(${lit(siteId)},${lit(companyId)},${lit(customerId)},'TERM site',${lit(gsrn)},'consumption','draft',${lit(tenant.gridOwnerId)},${lit(area)},'TES','Testgatan 1','12345','Teststad','SE','Okänd nuvarande leverantör',true,true,${lit({ ...marker, addressSource: 'admin_customer_intake' })}::jsonb);
-      INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,ediel_metering_point_id,site_facility_id,grid_owner_id,grid_owner_ediel_id,grid_area_code,price_area_code,status,reading_frequency,measurement_type,product_direction,is_settlement_relevant,is_test_data,metadata)
-        VALUES(${lit(pointId)},${lit(companyId)},${lit(customerId)},${lit(siteId)},${lit(siteId)},${lit(gsrn)},${lit(gsrn)},${lit(gsrn)},${lit(gsrn)},${lit(tenant.gridOwnerId)},${lit(tenant.edielReceiver)},'TES',${lit(area)},'draft','hourly','consumption','consumption',true,true,${lit(marker)}::jsonb);
-      COMMIT;`)
-
+    const firstName = 'Synthetic'; const lastName = `Term${suffix}`
+    const personalNumber = syntheticPersonalNumber()
+    const fields: Record<string, string> = {
+      customerType: 'private', firstName, lastName, personalNumber, email,
+      siteName: 'TERM site', facilityId: gsrn, meterPointId: gsrn, siteType: 'consumption',
+      gridOwnerId: tenant.gridOwnerId, priceAreaCode: area, gridAreaCode: 'TES',
+      street: 'Testgatan 1', postalCode: '12345', city: 'Teststad', country: 'SE',
+      currentSupplierUnknown: 'on', postCreateAction: 'open_customer',
+    }
+    const form = new FormData()
+    for (const [key, value] of Object.entries(fields)) form.append(key, value)
+    customerResult = await callServerAction(session, {
+      route: '/admin/customers/intake', filename: 'app/admin/customers/actions.ts', exportedName: 'createCustomerAction',
+      args: [{ status: 'idle', message: '', fieldErrors: {}, values: {}, createdCustomerId: null }, form], worker: 'app/admin/customers/intake/page',
+    })
+    if (customerResult.httpStatus !== 200 || customerResult.threw || customerResult.errorRows.length > 0 || customerResult.redirect !== null) {
+      throw new Error('term_intake_transport_unconfirmed: stäm av befintlig intake/graf före nytt försök')
+    }
+    const state = customerResult.value
+    if (!state || typeof state !== 'object' || Array.isArray(state) || !('status' in state) || state.status !== 'success') {
+      throw new Error('term_intake_outcome_unconfirmed: success krävs; committed_review eller okänt utfall måste stämmas av')
+    }
+    const result = state as Record<string, unknown>
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const returnedIds = [result.createdCustomerId, result.createdSiteId, result.createdMeteringPointId]
+    if (!returnedIds.every((id): id is string => typeof id === 'string' && uuid.test(id))) {
+      throw new Error('term_intake_graph_ids_missing: inget nytt försök eller SQL-fallback')
+    }
+    ;[customerId, siteId, pointId] = returnedIds as [string, string, string]
+    const key = expectedIntakeKey(companyId, { personalNumber, email, firstName, lastName, facilityId: gsrn, meterPointId: gsrn,
+      street: fields.street, postalCode: fields.postalCode, city: fields.city, siteName: fields.siteName })
+    // Övre admin-intake använder nyckeln nedan; kanoniska grafkommandot har
+    // separat prefix admin:. Endast den exakta tenantens sparade kvitto duger.
+    const intakes = psqlRows<{ id: string; company_id: string; status: string; customer_id: string; result: Record<string, unknown> | null }>(`
+      SELECT id,company_id,status,customer_id,result FROM public.customer_application_intakes
+      WHERE company_id=${lit(companyId)} AND idempotency_key=${lit(key)}`)
+    const intake = intakes[0]
+    if (intakes.length !== 1 || intake.company_id !== companyId || intake.status !== 'completed' || intake.customer_id !== customerId
+      || !intake.result || intake.result.review_required === true || intake.result.customer_id !== customerId
+      || intake.result.created_site_id !== siteId || intake.result.created_metering_point_id !== pointId) {
+      throw new Error('term_intake_receipt_mismatch: stäm av exakta intake- och grafidentiteter')
+    }
+    const graphs = psqlRows<Record<string, unknown>>(`
+      SELECT c.id AS customer_id,c.company_id,c.email AS customer_email,c.personal_number,
+        s.id AS site_id,s.company_id AS site_company_id,s.customer_id AS site_customer_id,s.facility_id,s.price_area_code,
+        m.id AS metering_point_id,m.company_id AS point_company_id,m.customer_id AS point_customer_id,
+        m.site_id AS point_site_id,m.meter_point_id AS point_gsrn
+      FROM public.customers c
+      JOIN public.customer_sites s ON s.id=${lit(siteId)} AND s.company_id=c.company_id AND s.customer_id=c.id
+      JOIN public.metering_points m ON m.id=${lit(pointId)} AND m.company_id=c.company_id AND m.customer_id=c.id AND m.site_id=s.id
+      WHERE c.id=${lit(customerId)} AND c.company_id=${lit(companyId)}`)
+    const graph = graphs[0]
+    const expected: Record<string, unknown> = {
+      customer_id: customerId, company_id: companyId, customer_email: email, personal_number: personalNumber,
+      site_id: siteId, site_company_id: companyId, site_customer_id: customerId, facility_id: gsrn, price_area_code: area,
+      metering_point_id: pointId, point_company_id: companyId, point_customer_id: customerId, point_site_id: siteId, point_gsrn: gsrn,
+    }
+    if (graphs.length !== 1 || Object.entries(expected).some(([field, value]) => graph[field] !== value)) {
+      throw new Error('term_intake_graph_mismatch: tenant, ägare eller inskickade affärsfält stämmer inte')
+    }
+    intakeReceipt = { intakeId: intake.id, idempotencyKey: key }
+    // Testmarkering först efter verifierat affärskvitto; inga affärsfält ändras.
+    const marker = lit({ test_center: { kind: 'invoice_test_customer' } })
+    psql(`UPDATE public.customers SET is_test_data=true,metadata=coalesce(metadata,'{}'::jsonb)||${marker}::jsonb WHERE id=${lit(customerId)} AND company_id=${lit(companyId)};
+      UPDATE public.customer_sites SET is_test_data=true,metadata=coalesce(metadata,'{}'::jsonb)||${marker}::jsonb WHERE id=${lit(siteId)} AND company_id=${lit(companyId)} AND customer_id=${lit(customerId)};
+      UPDATE public.metering_points SET is_test_data=true,metadata=coalesce(metadata,'{}'::jsonb)||${marker}::jsonb WHERE id=${lit(pointId)} AND company_id=${lit(companyId)} AND customer_id=${lit(customerId)} AND site_id=${lit(siteId)};`)
   }
-  const customerResult: ServerActionResult = { httpStatus: 0, redirect: null, value: 'sql_replacement', threw: false, errorRows: [], excerpt: '' }
-  const siteRows = [{ id: siteId }]; const pointRows = [{ id: pointId }]
-  void siteRows; void pointRows
 
   // 2. Avtal från erbjudande: createContractFromOfferAction (kundkortets formulär).
-  const renewTerm = input.autoRenew ? (input.autoRenewTermMonths ?? ((input.bindingMonths ?? 0) > 0 ? input.bindingMonths! : 12)) : null
   const contractForm = new FormData()
   const cput = (k: string, v: string) => contractForm.append(k, v)
   cput('customer_id', customerId); cput('contract_offer_id', offer.offerId); cput('site_id', siteId); cput('metering_point_id', pointId)
@@ -499,7 +545,7 @@ export async function createSignedContract(tenant: TermTenant, input: CreateSign
     offerId: offer.offerId, publicationVersionId: offer.publicationVersionId, priceOptionId: offer.priceOptionId, priceSnapshotId,
     declaredSignedAt, actualSignedAt: String(contractRow.signed_at), input,
     creation: {
-      customerAction: { httpStatus: customerResult.httpStatus, redirect: customerResult.redirect, state: customerResult.value },
+      customerAction: { httpStatus: customerResult.httpStatus, redirect: customerResult.redirect, requestId: customerResult.requestId, ...intakeReceipt, state: customerResult.value },
       contractAction: { httpStatus: contractResult.httpStatus, redirect: contractResult.redirect },
       contractPath, sourceType: created.source_type,
     },
