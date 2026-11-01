@@ -445,3 +445,163 @@ jobs:
           path: ${{ env.SMOKE_HOME }}/safe/phased-proof.json
           if-no-files-found: error
           retention-days: 14
+
+  site-native:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'codex/t1-site-native' &&
+      github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    env:
+      # Source delivery is deliberately not execution admission. Root pins the
+      # actual merged GEN-qualified app and reviewed harness in a separately
+      # reviewed launch child. No guessed future commit is executable here.
+      APP_COMMIT: ROOT_TO_PIN_ACTUAL_INTEGRATED_SITE_APP
+      APP_TREE: ROOT_TO_OBSERVE_ACTUAL_INTEGRATED_SITE_TREE
+      HARNESS_COMMIT: ROOT_TO_PIN_AFTER_TWO_SOURCE_REVIEWS
+      HARNESS_TREE: ROOT_TO_OBSERVE_AFTER_TWO_SOURCE_REVIEWS
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: carrier
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Refuse unassigned source and allocate private input directories
+        run: |
+          set -euo pipefail
+          umask 077
+          [[ "$APP_COMMIT" =~ ^[0-9a-f]{40}$ && "$APP_TREE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$HARNESS_COMMIT" =~ ^[0-9a-f]{40}$ && "$HARNESS_TREE" =~ ^[0-9a-f]{40}$ ]]
+          export SMOKE_HOME="${RUNNER_TEMP:?}/t1-${GITHUB_RUN_ID:?}-1"
+          mkdir -m 700 "$SMOKE_HOME"
+          mkdir -m 700 "$SMOKE_HOME/bootstrap" "$SMOKE_HOME/tool-home"
+          printf 'SMOKE_HOME=%s\n' "$SMOKE_HOME" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ env.APP_COMMIT }}
+          path: app
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ env.HARNESS_COMMIT }}
+          path: harness
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Prepare authenticated public tools on the disposable runner
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -m 700 "$SMOKE_HOME/bootstrap/tools"
+          python3 - <<'PY'
+          import hashlib,io,os,pathlib,tarfile,urllib.request
+          root=pathlib.Path(os.environ['SMOKE_HOME'])/'bootstrap/tools'
+          archives=[('node','https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-x64.tar.xz','1805bcd35e6815559bd2eb97db438d3fdb0eb3a5e6a977b7c1badca76337e9ce'),
+            ('npm','https://registry.npmjs.org/npm/-/npm-10.9.2.tgz','5cd1e5ab971ea6333f910bc2d50700167c5ef4e66da279b2a3efc874c6b116e4'),
+            ('supabase','https://github.com/supabase/cli/releases/download/v2.101.0/supabase_2.101.0_linux_amd64.tar.gz','285877ef9de845d76487772e0d36019a095ee28b527b9abbd6739eeba4d3dbf9')]
+          for name,url,digest in archives:
+              with urllib.request.urlopen(url,timeout=120) as response: data=response.read(128*1024*1024+1)
+              assert hashlib.sha256(data).hexdigest()==digest,'public tool archive refused'
+              destination=root/name;destination.mkdir(mode=0o700)
+              with tarfile.open(fileobj=io.BytesIO(data)) as archive:archive.extractall(destination,filter='data')
+          npm=root/'node/node-v22.23.4-linux-x64/bin/npm'
+          npm.unlink();npm.symlink_to(root/'npm/package/bin/npm-cli.js')
+          PY
+          export PATH="$SMOKE_HOME/bootstrap/tools/node/node-v22.23.4-linux-x64/bin:$SMOKE_HOME/bootstrap/tools/supabase:/usr/lib/postgresql/17/bin:$PATH"
+          printf '%s\n' "$SMOKE_HOME/bootstrap/tools/node/node-v22.23.4-linux-x64/bin" "$SMOKE_HOME/bootstrap/tools/supabase" /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+          mkdir -m 700 "$SMOKE_HOME/bootstrap/gnupg"
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' https://www.postgresql.org/media/keys/ACCC4CF8.asc > "$SMOKE_HOME/bootstrap/pgdg.asc"
+          python3 - <<'PY'
+          import os,pathlib,subprocess
+          root=pathlib.Path(os.environ['SMOKE_HOME'])/'bootstrap'
+          raw=subprocess.check_output(['gpg','--batch','--no-options','--homedir',str(root/'gnupg'),'--with-colons','--show-keys',str(root/'pgdg.asc')],text=True,stderr=subprocess.PIPE)
+          rows=[line.split(':') for line in raw.splitlines()]
+          assert sum(row[0]=='pub' for row in rows)==1 and [row[9] for row in rows if row[0]=='fpr']==['B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8']
+          PY
+          test ! -e /usr/share/keyrings/gridex-t1-pgdg.asc
+          test ! -e /etc/apt/sources.list.d/gridex-t1-pgdg.list
+          sudo install -m 644 "$SMOKE_HOME/bootstrap/pgdg.asc" /usr/share/keyrings/gridex-t1-pgdg.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/gridex-t1-pgdg.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' > "$SMOKE_HOME/bootstrap/pgdg.list"
+          sudo install -m 644 "$SMOKE_HOME/bootstrap/pgdg.list" /etc/apt/sources.list.d/gridex-t1-pgdg.list
+          sudo apt-get -o Acquire::AllowInsecureRepositories=false update -qq > "$SMOKE_HOME/bootstrap/client-install.log" 2>&1
+          sudo apt-get -o APT::Get::AllowUnauthenticated=false install -y postgresql-client-17=17.11-1.pgdg24.04+2 >> "$SMOKE_HOME/bootstrap/client-install.log" 2>&1
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,shutil,subprocess
+          def version(tool):
+              args=[tool,'version','--format','{{.Client.Version}}'] if tool=='docker' else [tool,'--version']
+              return subprocess.check_output(args,text=True,stderr=subprocess.PIPE).strip()
+          tools={name:{'sha256':hashlib.sha256(pathlib.Path(shutil.which(name)).resolve().read_bytes()).hexdigest(),'version':version(name)} for name in ['node','npm','supabase','supabase-go','psql','pg_dump','docker']}
+          assert tools['node']['version']=='v22.23.4' and tools['npm']['version']=='10.9.2'
+          assert tools['supabase']['version']==tools['supabase-go']['version']=='2.101.0'
+          assert all('17.11' in tools[name]['version'] for name in ['psql','pg_dump'])
+          package=subprocess.check_output(['dpkg-query','-W','-f=${Version}','postgresql-client-17'],text=True).strip()
+          assert package=='17.11-1.pgdg24.04+2'
+          # Public version/digest observations let the coordinator bind the
+          # actual fresh job. These are not prepared/runtime qualification.
+          print(json.dumps({'kind':'unqualified_bootstrap_observation','runId':os.environ['GITHUB_RUN_ID'],'tools':tools},sort_keys=True))
+          PY
+      - name: Receive the exact run-specific coordinator admission
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import json,os,pathlib,time,urllib.error,urllib.request
+          repo='heke99/gridex-ops-platform'
+          ref='tags/agent-runtime-admissions/t1-'+os.environ['GITHUB_RUN_ID']+'-1'
+          def get(path):
+              request=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'})
+              with urllib.request.urlopen(request,timeout=30) as response:return json.load(response)
+          for attempt in range(40):
+              try: observed=get('git/ref/'+ref);break
+              except urllib.error.HTTPError as error:
+                  if error.code!=404:raise RuntimeError('coordinator admission read refused') from None
+              time.sleep(10)
+          else:raise RuntimeError('no actual coordinator admission; backend never started')
+          assert observed['ref']=='refs/'+ref and observed['object']['type']=='commit'
+          receipt=get('git/commits/'+observed['object']['sha'])
+          descriptor=json.loads(receipt['message'])
+          assert get('git/ref/'+ref)['object']['sha']==observed['object']['sha']
+          root=pathlib.Path(os.environ['SMOKE_HOME'])
+          assert descriptor['admissionFile']==str(root/'admission.json') and descriptor['simHome']==str(root)
+          with (root/'admission.json').open('x') as stream:json.dump(descriptor,stream,sort_keys=True)
+          (root/'admission.json').chmod(0o600)
+          PY
+      - name: One admitted prepare, SITE input-v2 child and owned cleanup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          H="$GITHUB_WORKSPACE/harness"
+          ADMISSION="$SMOKE_HOME/admission.json"
+          HELPER="$H/scripts/simulation/runtime/assigned_backend.py"
+          export TRACK1_ASSIGNMENT_FILE="$SMOKE_HOME/assignment.json"
+          finish(){
+            local primary=$?
+            trap - EXIT
+            set +e
+            python3 "$HELPER" site-finish --admission "$ADMISSION" --primary-exit "$primary"
+            local finished=$?
+            [[ $primary == 0 && $finished == 0 ]] || exit 1
+          }
+          trap finish EXIT
+          python3 "$HELPER" preflight --admission "$ADMISSION"
+          python3 "$HELPER" materialize-config --admission "$ADMISSION"
+          python3 "$HELPER" prepare --admission "$ADMISSION" --assignment-output "$TRACK1_ASSIGNMENT_FILE"
+          python3 "$HELPER" up --assignment "$TRACK1_ASSIGNMENT_FILE"
+          python3 "$HELPER" site-run --assignment "$TRACK1_ASSIGNMENT_FILE"
+      - name: Preserve only constructed SITE substep/cleanup evidence
+        if: always() && env.SMOKE_HOME != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: t1-site-native-limited-proof
+          path: ${{ env.SMOKE_HOME }}/safe/site-proof.json
+          if-no-files-found: error
+          retention-days: 14

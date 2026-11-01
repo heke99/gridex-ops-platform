@@ -288,7 +288,8 @@ def admission(path, *, teardown=False, custody=True):
     p = private_path(path)
     a = read_json(p)
     phased = a.get("schema") == "track1-hosted-phased-admission-v2"
-    need(a.get("schema") in {"track1-hosted-producer-admission-v1", "track1-hosted-phased-admission-v2"} and a.get("workerId") == "codex-track1"
+    site = a.get("schema") == "track1-hosted-site-admission-v1"
+    need(a.get("schema") in {"track1-hosted-producer-admission-v1", "track1-hosted-phased-admission-v2", "track1-hosted-site-admission-v1"} and a.get("workerId") == "codex-track1"
          and a.get("exclusiveHost") is True, "runtime_admission_schema")
     home = private_path(a["simHome"], True)
     PRIVATE_TOOL_HOME = home / "tool-home"
@@ -302,7 +303,7 @@ def admission(path, *, teardown=False, custody=True):
          and expires < cleanup_expires and (cleanup_expires if teardown else expires) > now(), "runtime_admission_expired")
     event = a["event"]
     need(event.get("repository") == REPO and event.get("name") == "pull_request" and event.get("action") == "opened"
-         and event.get("branch") == ("codex/t1-phased-cohort-native" if phased else "codex/t1-startup-smoke-native") and event.get("attempt") == 1
+         and event.get("branch") == ("codex/t1-site-native" if site else "codex/t1-phased-cohort-native" if phased else "codex/t1-startup-smoke-native") and event.get("attempt") == 1
          and event.get("runId") == os.environ.get("GITHUB_RUN_ID")
          and os.environ.get("GITHUB_RUN_ATTEMPT") == "1" and event.get("job") == os.environ.get("GITHUB_JOB")
          and event.get("actor") == os.environ.get("GITHUB_ACTOR")
@@ -312,7 +313,9 @@ def admission(path, *, teardown=False, custody=True):
     need(gh_event.get("action") == "opened" and pr.get("head", {}).get("sha") == a["workflowCarrier"]
          and pr.get("head", {}).get("ref") == event["branch"]
          and pr.get("head", {}).get("repo", {}).get("full_name") == REPO, "runtime_event_identity")
-    need(a.get("budget") == ({"jobs": 1, "replays": 1, "builds": 1, "appStarts": 1, "smokes": 1, "main03": 1, "main04PrepareReview": 1, "nativeRetries": 1, "cleanup": 1} if phased else {"jobs": 1, "replays": 1, "builds": 1, "appStarts": 1, "smokes": 1, "retries": 0}), "runtime_budget")
+    need(a.get("budget") == (SITE_BUDGET if site else {"jobs": 1, "replays": 1, "builds": 1, "appStarts": 1, "smokes": 1, "main03": 1, "main04PrepareReview": 1, "nativeRetries": 1, "cleanup": 1} if phased else {"jobs": 1, "replays": 1, "builds": 1, "appStarts": 1, "smokes": 1, "retries": 0}), "runtime_budget")
+    if site:
+        check_site_contract(a)
     if phased:
         check_phase_contract(a, teardown=teardown)
     need(a.get("projectId") == "t1-" + event["runId"] + "-1"
@@ -336,9 +339,11 @@ def admission(path, *, teardown=False, custody=True):
     fields = {"resources-sha256": sha(("\n".join(sorted(refs)) + "\n").encode()),
               "inputs-sha256": sha(encoded(attempt)), "admission-core-sha256": sha(encoded(core)),
               **{k: a[k] for k in ("appCommit", "appTree", "harnessCommit", "harnessTree", "workflowCarrier", "workflowBlob")}}
+    if site:
+        fields["site-contract-sha256"] = sha(encoded(a["siteContract"]))
     if phased:
         fields["phase-contract-sha256"] = sha(encoded(a["phaseContract"]))
-    op = ("simulation-t1-phased-cohort-v1; " if phased else "simulation-t1-startup-smoke-v1; ") + "; ".join(k + "=" + v for k, v in fields.items())
+    op = ("simulation-t1-site-native-v2; " if site else "simulation-t1-phased-cohort-v1; " if phased else "simulation-t1-startup-smoke-v1; ") + "; ".join(k + "=" + v for k, v in fields.items())
     expected = reservation["expectedNeutral"]
     need(set(expected) == {"base", "files", "operation"} and expected["files"] == []
          and HEX40.fullmatch(expected["base"]) and expected["operation"] == op, "runtime_reservation_binding")
@@ -371,7 +376,15 @@ def admission(path, *, teardown=False, custody=True):
                 observed = api("git/ref/" + ref.removeprefix("refs/"))
                 need(observed.get("ref") == ref and observed["object"]["sha"] == claim["receipt"], "runtime_source_custody")
             covered.update(name for name in source["files"] if PREFIX + "file-" + sha(name.encode()) in claim["refs"])
-        need(set(SOURCE_PATHS + (PHASE_SOURCE_PATHS if phased else ())) <= covered, "runtime_source_custody")
+        need(set(SOURCE_PATHS + (SITE_SOURCE_PATHS if site else PHASE_SOURCE_PATHS if phased else ())) <= covered, "runtime_source_custody")
+    if site:
+        check_site_sources(a)
+        for claim in a["sourceClaims"]:
+            capsule = claim["expectedNeutral"]
+            sessions = [r for r in claim["refs"] if r.startswith(PREFIX + "slot-session-")]
+            expected_refs = sorted([PREFIX + "file-" + sha(p.encode()) for p in capsule["files"]] + sessions)
+            need(len(sessions) == 1 and capsule["files"] == sorted(set(capsule["files"])) and sorted(claim["refs"]) == expected_refs
+                 and capsule["operation"] == "Reserve source files and rule IDs; resources-sha256=" + sha("\n".join(expected_refs).encode()), "runtime_site_complete_source_capsule")
     for tool, expected in a["tools"].items():
         executable = pathlib.Path(shutil.which(tool) or "")
         need(executable.is_absolute() and sha(executable.resolve().read_bytes()) == expected["sha256"], "runtime_tool_identity")
@@ -680,6 +693,13 @@ def prepare(path, assignment_output):
                 "privateStatusSha256": sha(raw_status), "ownedResourceManifestSha256": sha((home / "resources.json").read_bytes()), **observed}
     if a.get("schema") == "track1-hosted-phased-admission-v2":
         prepared["schema"] = "track1-prepared-runtime-v3"
+    if a.get("schema") == "track1-hosted-site-admission-v1":
+        seconds = tomllib.loads((home / "cli/supabase/config.toml").read_text())["auth"]["jwt_expiry"]
+        c = a["siteContract"]
+        need(type(seconds) is int and seconds > c["businessBudgetSeconds"] + c["minAuthHeadroomSeconds"], "runtime_site_Auth_lifetime_HOLD")
+        seal(home / "site-build-manifest.json", site_build_manifest(app))
+        prepared.update(schema="track1-prepared-runtime-site-v1", siteContractSha256=sha(encoded(c)), observedAuthLifetimeSeconds=seconds,
+                        siteBuildManifestSha256=sha((home / "site-build-manifest.json").read_bytes()))
     seal(home / "prepared-runtime.json", prepared)
     assignment = {"schema": "track1-runtime-assignment-v2", "mode": "coordinator_prepared_fresh", "workerId": "codex-track1",
                   "admissionFile": str(path), "admissionSha256": prepared["admissionSha256"], "preparedReceiptFile": str(home / "prepared-runtime.json"),
@@ -696,6 +716,9 @@ def prepare(path, assignment_output):
         assignment.update(schema="track1-runtime-assignment-v3", mode="coordinator_prepared_phased", reportKind="phased_cohort", allowedActions=["up", "run"],
                           minimumAuthHeadroomMs=1000 * contract["minAuthHeadroomSeconds"],
                           businessLocalServiceKeySha256=sha(values["SUPABASE_SERVICE_ROLE_KEY"].encode()), phaseContractSha256=sha(encoded(contract)))
+    if a.get("schema") == "track1-hosted-site-admission-v1":
+        assignment.update(schema="track1-runtime-assignment-site-v1", mode="coordinator_prepared_site", reportKind="site_native_v2",
+                          allowedActions=["up", "site-run"], siteContractSha256=prepared["siteContractSha256"])
     seal(output, assignment)
     return assignment
 
@@ -704,9 +727,13 @@ def verify(assignment_file, action, *, custody=True):
     assignment_path = private_path(assignment_file)
     r = read_json(assignment_path)
     phased = r.get("schema") == "track1-runtime-assignment-v3"
-    need((r.get("schema"), r.get("mode"), r.get("reportKind")) == (("track1-runtime-assignment-v3", "coordinator_prepared_phased", "phased_cohort") if phased else ("track1-runtime-assignment-v2", "coordinator_prepared_fresh", "infrastructure_smoke")) and action in r.get("allowedActions", []), "runtime_assignment_schema")
+    site = r.get("schema") == "track1-runtime-assignment-site-v1"
+    need((r.get("schema"), r.get("mode"), r.get("reportKind")) == (("track1-runtime-assignment-site-v1", "coordinator_prepared_site", "site_native_v2") if site else ("track1-runtime-assignment-v3", "coordinator_prepared_phased", "phased_cohort") if phased else ("track1-runtime-assignment-v2", "coordinator_prepared_fresh", "infrastructure_smoke")) and action in r.get("allowedActions", []), "runtime_assignment_schema")
     a = admission(r["admissionFile"], teardown=action == "down", custody=custody)
     need((a.get("schema") == "track1-hosted-phased-admission-v2") == phased, "runtime_assignment_profile")
+    need((a.get("schema") == "track1-hosted-site-admission-v1") == site, "runtime_assignment_profile")
+    if site:
+        check_site_assignment(a, r)
     home = pathlib.Path(a["simHome"])
     need(assignment_path == home / "assignment.json" and r["admissionSha256"] == sha(private_path(r["admissionFile"]).read_bytes()), "runtime_assignment_binding")
     need(os.environ.get("SKIP_REPLAY", "0") == os.environ.get("SKIP_BUILD", "0") == "0", "runtime_no_generic_reuse")
@@ -721,6 +748,10 @@ def verify(assignment_file, action, *, custody=True):
          and prepared["admissionSha256"] == r["admissionSha256"] and prepared["buildExitCode"] == prepared["replayExitCode"] == 0,
          "runtime_prepared_binding")
     check_prepared_files(a, r, prepared)
+    if site:
+        need(prepared.get("siteContractSha256") == r["siteContractSha256"]
+             and sha(private_path(home / "site-build-manifest.json").read_bytes()) == prepared.get("siteBuildManifestSha256")
+             and site_build_manifest(a["appDir"]) == read_json(home / "site-build-manifest.json"), "runtime_site_build_changed")
     need(sha((home / "runtime-config.json").read_bytes()) == r["runtimeConfigDescriptorSha256"]
          == prepared["runtimeConfigDescriptorSha256"] and r["overlayRefs"] == ["runtime-config:" + r["runtimeConfigDescriptorSha256"]], "runtime_config_binding")
     check_config((home / "source-config.original").read_bytes(), (home / "cli/supabase/config.toml").read_bytes(), a["projectId"])
@@ -752,7 +783,7 @@ def check_prepared_files(a, assignment, prepared):
          and prepared["jobId"] == event["jobId"]
          and type(prepared.get("runAttempt")) is int and type(event["attempt"]) is int
          and prepared["runAttempt"] == event["attempt"] == 1, "runtime_prepared_job_identity")
-    need(prepared.get("schema") == ("track1-prepared-runtime-v3" if a.get("schema") == "track1-hosted-phased-admission-v2" else "track1-prepared-runtime-v2")
+    need(prepared.get("schema") == ("track1-prepared-runtime-site-v1" if a.get("schema") == "track1-hosted-site-admission-v1" else "track1-prepared-runtime-v3" if a.get("schema") == "track1-hosted-phased-admission-v2" else "track1-prepared-runtime-v2")
          and all(prepared[k] == a[k] for k in ("appCommit", "appTree", "harnessCommit", "harnessTree", "workflowCarrier", "workflowBlob"))
          and prepared["replayCommit"] == a["appCommit"] and prepared["replayTree"] == a["appTree"]
          and prepared["runtimeProjectId"] == a["projectId"] and prepared["runtimePorts"] == a["ports"]
@@ -816,7 +847,7 @@ def up(assignment_file):
         need((pathlib.Path("/proc") / str(process.pid) / "cmdline").read_bytes().startswith(b"next-server (v"), "runtime_app_title")
         seal(envdir / "app-ready.json", ready)
         seal(envdir / "stack.json", {**prepared, "assignmentSha256": sha(private_path(assignment_file).read_bytes()),
-             "environmentId": a["projectId"], "mode": "producer_prepared_phased_v3" if a.get("schema") == "track1-hosted-phased-admission-v2" else "producer_prepared_fresh_v2", "appUrl": "http://127.0.0.1:3101"})
+             "environmentId": a["projectId"], "mode": "producer_prepared_site_v1" if a.get("schema") == "track1-hosted-site-admission-v1" else "producer_prepared_phased_v3" if a.get("schema") == "track1-hosted-phased-admission-v2" else "producer_prepared_fresh_v2", "appUrl": "http://127.0.0.1:3101"})
         (home / "current").symlink_to(envdir)
     phase(home, "up", perform)
 
@@ -942,7 +973,7 @@ def cleanup(path):
 
 def publish_safe(path, primary_exit):
     a = admission(path, teardown=True)
-    need(a.get("schema") != "track1-hosted-phased-admission-v2", "runtime_phase_dedicated_publication_required")
+    need(a.get("schema") not in {"track1-hosted-phased-admission-v2", "track1-hosted-site-admission-v1"}, "runtime_phase_dedicated_publication_required")
     try:
         publish_qualified(a, path, primary_exit)
     except Exception:
@@ -1843,9 +1874,236 @@ def phase_finish(path):
              "cleanup": cleanup_fact})
 
 
+# SITE is a separate authority, never an extension of smoke/MAIN03 permissions.
+SITE_SCENARIO = "scripts/simulation/track1/scenarios/site01.test.ts"
+SITE_SOURCE_PATHS = (SITE_SCENARIO, "scripts/simulation/track1/vitest.config.mts", *(
+    "scripts/simulation/track1/fixtures/" + p + ".ts" for p in
+    ("site01Fixture", "site01Synthetic", "wire", "runtime", "substitutions", "main04Support", "synthetic")))
+SITE_REVIEWED_HASHES = {
+    SITE_SCENARIO: "e95b60f80c0792bdd60ff050cb17f8dfaf8bdee92617bd70c613ccf1067214bb",
+    "scripts/simulation/track1/fixtures/site01Fixture.ts": "9a5c4c269253caec4472d98f867e2917ec3e742ff6cd27b798b4279b445c2bb9",
+    "scripts/simulation/track1/fixtures/site01Synthetic.ts": "8e25f5a7b44b65cb1a70adc3bb628a75808f6a2c107f7fe2583d6dedb8e2b286"}
+SITE_IDS = ("SITE01.01", "SITE01.02", "SITE01.03", "SITE01.04", "SITE01.05", "SITE01.05a", "SITE01.05b")
+SITE_BUDGET = {"jobs": 1, "replays": 1, "builds": 1, "appStarts": 1, "siteInvocations": 1,
+               "invoiceApprovals": 2, "invoiceFiles": 1, "cleanup": 1, "retries": 0}
+SITE_EXPECTED = {
+    "A": {"rawStartMinute": "202609010000", "startUtc": "2026-08-31T23:00:00.000Z", "endUtc": "2026-09-30T22:00:00.000Z",
+          "salt": 12, "intervals": 2876, "totalMilliKwh": 491266, "totalIncVatCents": 57347, "preStartReadings": 4, "preStartBillable": 0},
+    "B": {"rawStartMinute": "202609160000", "startUtc": "2026-09-15T23:00:00.000Z", "endUtc": "2026-09-25T22:00:00.000Z",
+          "salt": 24, "intervals": 956, "totalMilliKwh": 156969, "totalIncVatCents": 26377, "preStartReadings": 4, "preStartBillable": 0}}
+
+
+def check_site_contract(a):
+    c = a.get("siteContract", {})
+    need(a.get("budget") == SITE_BUDGET and all(type(v) is int for v in a.get("budget", {}).values()), "runtime_site_operation_budget")
+    need(a.get("schema") == "track1-hosted-site-admission-v1" and a.get("reportKind") == "site_native_v2"
+         and c.get("schema") == "track1-site-native-contract-v1" and c.get("inputEpoch") == "site-native-input-v2"
+         and c.get("startConvention") == "ediel-fixed-utc+01" and c.get("sites") == SITE_EXPECTED, "runtime_site_input_contract")
+    need(type(c.get("businessBudgetSeconds")) is int and 60 <= c["businessBudgetSeconds"] <= 3600
+         and type(c.get("minAuthHeadroomSeconds")) is int and 120 <= c["minAuthHeadroomSeconds"] <= 600
+         and c.get("producerId") == a["event"]["actor"] and c.get("outputDirectory") == "site-native", "runtime_site_budget_actor_output")
+    need(c.get("marketBoundsSourceSha256") == "6573f66302a5900308e7a566569a1a389e854b682202f19a745f8ef0363adb06", "runtime_site_market_bounds_contract")
+    hashes = c.get("sourceSha256", {})
+    need(set(hashes) == set(SITE_SOURCE_PATHS) and all(isinstance(h, str) and HEX64.fullmatch(h) for h in hashes.values()), "runtime_site_source_contract")
+    need(all(hashes.get(p) == digest for p, digest in SITE_REVIEWED_HASHES.items()), "runtime_site_reviewed_epoch_source")
+    need(a.get("requiredGenGates", {}).get("applicability") == {"schemaUnchanged": True, "typesUnchanged": True, "migrationsUnchanged": True}, "runtime_site_gen_applicability")
+
+
+
+def site_build_manifest(app):
+    root = pathlib.Path(app) / ".next"
+    result = {}
+    for p in sorted(root.rglob("*")):
+        need(not p.is_symlink(), "runtime_site_build_symlink")
+        if p.is_file() and "cache" not in p.relative_to(root).parts:
+            need(len(result) < 30000, "runtime_site_build_limit")
+            result[str(p.relative_to(root))] = sha(p.read_bytes())
+    need(bool(result) and "BUILD_ID" in result, "runtime_site_build_empty")
+    return result
+
+
+def check_site_assignment(a, r):
+    need(r.get("schema") == "track1-runtime-assignment-site-v1" and r.get("mode") == "coordinator_prepared_site"
+         and r.get("reportKind") == "site_native_v2" and r.get("allowedActions") == ["up", "site-run"]
+         and r.get("siteContractSha256") == sha(encoded(a["siteContract"])), "runtime_site_assignment_contract")
+
+def check_site_sources(a):
+    need(a["siteContract"].get("marketBoundsSourceSha256") == "6573f66302a5900308e7a566569a1a389e854b682202f19a745f8ef0363adb06"
+         and sha((pathlib.Path(a["appDir"]) / "lib/billing/underlayEngine.ts").read_bytes()) == a["siteContract"]["marketBoundsSourceSha256"], "runtime_site_market_bounds_source")
+    for name, digest in a["siteContract"]["sourceSha256"].items():
+        need(sha((pathlib.Path(a["harnessDir"]) / name).read_bytes()) == digest, "runtime_site_source_changed")
+
+
+def site_report(raw, code):
+    suites = raw.get("testResults", [])
+    steps = [s for suite in suites for s in suite.get("assertionResults", [])]
+    ids = [s.get("title", "").split(" ", 1)[0] for s in steps]
+    need(type(code) is int and 0 <= code <= 255 and ids == list(SITE_IDS)
+         and len(suites) == 1 and raw.get("numTotalTests") == 7, "runtime_site_report_ids")
+    statuses = [s.get("status") for s in steps]
+    need(all(status in {"passed", "failed"} for status in statuses)
+         and raw.get("numPassedTests") == statuses.count("passed") and raw.get("numFailedTests") == statuses.count("failed")
+         and raw.get("numPendingTests") == raw.get("numTodoTests", 0) == 0
+         and all(not step.get("failureMessages") for step in steps if step.get("status") == "passed"), "runtime_site_report_incomplete")
+    qualified = code == 0 and raw.get("success") is True and statuses == ["passed"] * 7
+    qualified = qualified and suites[0].get("status") == "passed" and not suites[0].get("message") and raw.get("numFailedTestSuites", 0) == 0
+    return {"schema": "track1-site-substep-report-v1", "kind": "site_native_v2", "qualified": qualified,
+            "steps": [{"declaredStepId": i, "status": status} for i, status in zip(ids, statuses)],
+            "suiteFailed": suites[0].get("status") != "passed" or bool(suites[0].get("message")),
+            "scenarios": {}, "new105ScenarioPassAttestations": 0}
+
+
+def site_child_environment(a, assignment_file, output):
+    values = read_json(pathlib.Path(a["simHome"]) / "private/app-values.json")
+    allowed = {k: values[k] for k in ("NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY")}
+    need(allowed["NEXT_PUBLIC_SUPABASE_URL"] == API_URL and all(allowed.values()), "runtime_site_local_credentials")
+    return tool_environment({**allowed, "TRACK1_APP_DIR": a["appDir"], "TRACK1_APP_COMMIT": a["appCommit"],
+        "TRACK1_ASSIGNMENT_FILE": str(assignment_file), "SIM_HOME": a["simHome"], "TRACK1_APP_PORT": "3101", "TRACK1_DB_URL": DB_URL,
+        "TRACK1_APP_URL": "http://127.0.0.1:3101", "TRACK1_RUN_DIR": str(output),
+        "TRACK1_STACK_JSON": str(pathlib.Path(a["simHome"]) / a["projectId"] / "stack.json")})
+
+
+def site_child(a, assignment_file, argv, env, output):
+    # A live parent owns exactly one session; every refusal/timeout kills and
+    # reaps that session before cleanup is permitted. No shell or retry path.
+    wall, mono = time.time(), time.monotonic()
+    expires = dt.datetime.fromisoformat(a["expiresAtUtc"].replace("Z", "+00:00")).timestamp()
+    budget = min(a["siteContract"]["businessBudgetSeconds"], expires - wall)
+    need(budget > 0, "runtime_site_deadline")
+    child = None
+    seal(output / "child-launch.intent.json", {"atUtc": utc(), "argvSha256": sha(encoded(argv)),
+         "assignmentSha256": sha(private_path(assignment_file).read_bytes())})
+    with (output / "child.log").open("xb") as log:
+        try:
+            child = subprocess.Popen(argv, cwd=a["harnessDir"], env=env, start_new_session=True, stdout=log, stderr=log)
+            seal(output / "child-birth.json", proc_birth(child.pid))
+            check_at = mono
+            while child.poll() is None:
+                current = time.monotonic()
+                need(0 <= current - mono < budget and abs((time.time() - wall) - (current - mono)) < 5, "runtime_site_deadline")
+                if current >= check_at:
+                    verify(assignment_file, "site-run")
+                    check_site_live(a, assignment_file)
+                    check_at = current + 10
+                time.sleep(0.2)
+            need(not group_members(child.pid), "runtime_site_children_remaining")
+            return child.returncode
+        except Exception:
+            if child is not None:
+                raise OutcomeUnknown("runtime_site_child_interrupted") from None
+            raise
+        finally:
+            if child is not None and (child.poll() is None or group_members(child.pid)):
+                try:
+                    os.killpg(child.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                child.wait(timeout=10)
+                if group_members(child.pid):
+                    raise OutcomeUnknown("runtime_site_abort_unknown")
+
+
+def check_site_live(a, assignment_file):
+    home = pathlib.Path(a["simHome"])
+    ready = read_json(private_path(home / a["projectId"] / "app-ready.json"))
+    need(process_identity(ready["pid"], a["appDir"]) == ready, "runtime_site_app_changed")
+    need(read_json(private_path(home / a["projectId"] / "stack.json"))["assignmentSha256"] == sha(private_path(assignment_file).read_bytes()), "runtime_site_stack_changed")
+
+
+def run_site(assignment_file):
+    a, assignment, prepared = verify(assignment_file, "site-run")
+    need(assignment.get("schema") == "track1-runtime-assignment-site-v1", "runtime_site_assignment_required")
+    home = pathlib.Path(a["simHome"])
+    output = home / "site-native"
+    need(not output.exists() and not output.is_symlink(), "runtime_site_output_preexists")
+    need(prepared.get("siteContractSha256") == sha(encoded(a["siteContract"]))
+         and prepared.get("observedAuthLifetimeSeconds", 0) > a["siteContract"]["businessBudgetSeconds"] + a["siteContract"]["minAuthHeadroomSeconds"], "runtime_site_prepared_contract")
+    check_site_live(a, assignment_file)
+    output.mkdir(mode=0o700)
+    def perform():
+        seal(output / "binding.json", {"assignmentSha256": sha(private_path(assignment_file).read_bytes()),
+             "preparedReceiptSha256": assignment["preparedReceiptSha256"], "siteContractSha256": sha(encoded(a["siteContract"]))})
+        argv = [str(pathlib.Path(a["appDir"]) / "node_modules/.bin/vitest"), "run", "--config",
+                str(pathlib.Path(a["harnessDir"]) / "scripts/simulation/track1/vitest.config.mts"), "--root", a["harnessDir"],
+                "--reporter=json", "--outputFile=" + str(output / "vitest.json"), str(pathlib.Path(a["harnessDir"]) / SITE_SCENARIO)]
+        code = site_child(a, assignment_file, argv, site_child_environment(a, assignment_file, output), output)
+        seal(output / "exit.json", {"exitCode": code})
+        try:
+            report = site_report(read_json(private_path(output / "vitest.json")), code)
+            verify(assignment_file, "site-run")
+            check_site_live(a, assignment_file)
+        except Exception:
+            raise OutcomeUnknown("runtime_site_report_or_binding_unknown") from None
+        # Actual synthetic actors/site relationships are emitted by the reviewed
+        # fixture, never invented in admission or promoted to MAIN03 originals.
+        fixture = read_json(private_path(output / "site01-fixture.json"))
+        need(all(isinstance(fixture.get(k), str) and fixture[k] for k in ("companyId", "customerId", "actorUserId")), "runtime_site_actor_observation")
+        need(set(fixture.get("sites", {})) == {"A", "B"}
+             and all(fixture["sites"]["A"][k] != fixture["sites"]["B"][k] for k in ("siteId", "pointId", "contractId")), "runtime_site_relationship_observation")
+        seal(output / "actors.json", {k: fixture[k] for k in ("companyId", "customerId", "actorUserId")})
+        seal(home / "reports/site-native.json", report)
+        if not report["qualified"]:
+            raise CommandFailure("runtime_site_functional_failure", code or 1)
+    phase(home, "site", perform)
+
+
+def site_child_quiescent(home):
+    output = pathlib.Path(home) / "site-native"
+    if not (output / "child-launch.intent.json").exists():
+        need(not (output / "child-birth.json").exists(), "runtime_site_unbound_child_birth")
+        return
+    if not (output / "child-birth.json").exists():
+        raise OutcomeUnknown("runtime_site_child_birth_unknown")
+    birth = read_json(private_path(output / "child-birth.json"))
+    need(type(birth.get("pid")) is int and birth["pid"] > 1 and birth.get("pgid") == birth.get("sid") == birth["pid"]
+         and birth.get("uid") == os.getuid() and birth.get("bootId") == pathlib.Path("/proc/sys/kernel/random/boot_id").read_text().strip(), "runtime_site_child_birth_changed")
+    if group_members(birth["pid"]):
+        # This finalizer did not spawn/wait this session. Hold the backend;
+        # never guess a PID or destroy resources under a surviving writer.
+        raise OutcomeUnknown("runtime_site_child_still_live_HOLD")
+
+
+def site_finish(path, primary_exit):
+    # Teardown has its own admitted expiry. Unknown/duplicate cleanup intents
+    # remain HOLD; the owner never blindly repeats destructive work.
+    a = admission(path, teardown=True)
+    need(a.get("schema") == "track1-hosted-site-admission-v1", "runtime_site_finish_profile")
+    home = pathlib.Path(a["simHome"])
+    seal(home / "site-finalize.intent.json", {"atUtc": utc(), "primaryExit": primary_exit})
+    cleanup_error = None
+    try:
+        site_child_quiescent(home)
+        if (home / "initial.json").exists() and not (home / "phases/cleanup.intent.json").exists():
+            cleanup(path)
+    except Exception as error:
+        cleanup_error = error
+    safe = home / "safe"
+    safe.mkdir(mode=0o700, exist_ok=True)
+    report = {"qualified": False, "steps": [], "scenarios": {}, "new105ScenarioPassAttestations": 0}
+    if (home / "reports/site-native.json").exists():
+        report = read_json(private_path(home / "reports/site-native.json"))
+    cleaned = False
+    if (home / "cleanup.json").exists():
+        fact = read_json(private_path(home / "cleanup.json"))
+        cleaned = fact.get("clean") is True and fact.get("remainingAssignedResources") == 0 and fact.get("sourceRestored") is True
+        cleaned = cleaned and fact.get("admissionSha256") == sha(private_path(path).read_bytes())
+    phases = {n: read_json(home / "phases" / (n + ".json")) if (home / "phases" / (n + ".json")).exists() else {} for n in (*REQUIRED_PHASES[:-2], "site", "cleanup") if n != "smoke"}
+    qualified = type(primary_exit) is int and primary_exit == 0 and report["qualified"] and cleaned
+    qualified = qualified and all(p.get("status") == "PASS" and type(p.get("exitCode")) is int and p["exitCode"] == 0 for p in phases.values())
+    seal(safe / "site-proof.json", {"schema": "track1-site-limited-proof-v1", "qualified": bool(qualified),
+         "inputEpoch": "site-native-input-v2", "steps": report["steps"], "cleanupObserved": cleaned,
+         "scenarios": {}, "new105ScenarioPassAttestations": 0,
+         "sources": {k: a[k] for k in ("appCommit", "appTree", "harnessCommit", "harnessTree", "workflowCarrier", "workflowBlob") if k in a},
+         "siteContractSha256": sha(encoded(a["siteContract"])),
+         "substitutions": ["synthetic local customer/sites/signatures", "synthetic PRODAT/UTILTS mailbox and SMTP ports", "direct activation sweep", "local Auth grants/password", "library invoice approval/file creation; no browser/provider acceptance"]})
+    if cleanup_error is not None:
+        raise cleanup_error
+    need(qualified, "runtime_site_not_qualified")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("preflight", "materialize-config", "prepare", "verify", "up", "run", "down", "cleanup", "observe", "record-primary", "publish-safe", "phase-start", "phase-parent", "phase-checkpoint", "phase-accept", "phase-finish"))
+    parser.add_argument("command", choices=("preflight", "materialize-config", "prepare", "verify", "up", "run", "down", "cleanup", "observe", "record-primary", "publish-safe", "phase-start", "phase-parent", "phase-checkpoint", "phase-accept", "phase-finish", "site-run", "site-finish"))
     parser.add_argument("--admission")
     parser.add_argument("--assignment")
     parser.add_argument("--assignment-output")
@@ -1858,7 +2116,11 @@ def main():
     parser.add_argument("--ordinal", type=int)
     args = parser.parse_args()
     os.umask(0o077)
-    if args.command == "phase-start":
+    if args.command == "site-run":
+        run_site(args.assignment)
+    elif args.command == "site-finish":
+        site_finish(args.admission, args.primary_exit)
+    elif args.command == "phase-start":
         phase_start(args.assignment)
     elif args.command == "phase-parent":
         phase_parent(args.assignment)
@@ -1886,7 +2148,7 @@ def main():
         if args.command == "down":
             verify(args.assignment, "down")
         path = args.admission if args.command == "cleanup" else read_json(args.assignment)["admissionFile"]
-        need(read_json(path).get("schema") != "track1-hosted-phased-admission-v2", "runtime_phase_single_cleanup_owner")
+        need(read_json(path).get("schema") not in {"track1-hosted-phased-admission-v2", "track1-hosted-site-admission-v1"}, "runtime_phase_single_cleanup_owner")
         cleanup(path)
     elif args.command == "publish-safe":
         publish_safe(args.admission, args.primary_exit)
