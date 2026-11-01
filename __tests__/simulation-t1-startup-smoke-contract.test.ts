@@ -950,7 +950,7 @@ case=sys.argv[1]
 with tempfile.TemporaryDirectory() as directory:
  home=pathlib.Path(directory);(home/'phases').mkdir();output=home/'site-native';output.mkdir()
  assignment=home/'assignment.json';m.seal(assignment,{'finite':'assignment'})
- a={'harnessDir':str(home),'expiresAtUtc':(m.now()+m.dt.timedelta(seconds=0.5 if case=='utc-advance' else 60)).isoformat(),'siteContract':{'businessBudgetSeconds':0.05 if case in ['timeout','slow-verify'] else 10}}
+ a={'harnessDir':str(home),'expiresAtUtc':(m.now()+m.dt.timedelta(seconds=0.5 if case=='utc-advance' else 60)).isoformat(),'siteContract':{'businessBudgetSeconds':0.05 if case in ['timeout','slow-verify'] else 10,'minAuthHeadroomSeconds':120}}
  stopped_during_verify=None
  def verify(*_args):
   global stopped_during_verify
@@ -984,7 +984,7 @@ case=sys.argv[1]
 with tempfile.TemporaryDirectory() as directory:
  home=pathlib.Path(directory);(home/'phases').mkdir();(home/'reports').mkdir();(home/'private').mkdir();(home/'tool-home').mkdir(mode=0o700);m.PRIVATE_TOOL_HOME=home/'tool-home'
  assignment=home/'assignment.json';m.seal(assignment,{'finite':'assignment'})
- c={'businessBudgetSeconds':1800,'minAuthHeadroomSeconds':120};a={'schema':'track1-hosted-site-admission-v1','simHome':str(home),'appDir':str(home),'harnessDir':str(home),'projectId':'owned-project','appCommit':'a'*40,'siteContract':c}
+ c={'businessBudgetSeconds':1800,'minAuthHeadroomSeconds':120};a={'schema':'track1-hosted-site-admission-v1','simHome':str(home),'appDir':str(home),'harnessDir':str(home),'projectId':'owned-project','appCommit':'a'*40,'siteContract':c,'expiresAtUtc':(m.now()+m.dt.timedelta(seconds=3600)).isoformat()}
  admission=home/'admission.json';m.seal(admission,a)
  r={'schema':'track1-runtime-assignment-site-v1','mode':'coordinator_prepared_site','reportKind':'site_native_v2','allowedActions':['up','site-run'],'siteContractSha256':m.sha(m.encoded(c)),'preparedReceiptSha256':'b'*64}
  prepared={'siteContractSha256':m.sha(m.encoded(c)),'observedAuthLifetimeSeconds':3600}
@@ -1008,10 +1008,15 @@ with tempfile.TemporaryDirectory() as directory:
  def child(a,file,argv,env,output):
   global orphan
   calls.append('child')
-  if case in ['orphan','birth-unknown']:
-   m.seal(output/'child-launch.intent.json',{})
-   if case=='orphan':
-    orphan=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)'],start_new_session=True);m.seal(output/'child-birth.json',m.proc_birth(orphan.pid))
+  import time
+  deadline_env=m.make_site_auth_deadline(a,str(assignment),output,time.time(),time.monotonic());d=m.read_json(output/'auth-deadline.json')
+  m.seal(output/'child-launch.intent.json',{'assignmentSha256':m.sha(assignment.read_bytes()),'authDeadlineSha256':deadline_env['TRACK1_SITE_AUTH_DEADLINE_SHA256']})
+  if case!='birth-unknown':
+   observed_child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)'if case=='orphan'else'import time;time.sleep(0.05)'],start_new_session=True);m.seal(output/'child-birth.json',m.proc_birth(observed_child.pid))
+   if case=='orphan':orphan=observed_child
+   else:observed_child.wait(timeout=5)
+  expiry=d['deadlineUtcMs']+180000
+  m.seal(output/'site01-auth-lifetime.json',{'actorUserId':'finite-actor','observedAtUtcMs':int(time.time()*1000),'tokenExpiresAtUtcMs':expiry,'sdkExpiresAtUtcMs':expiry,'expiresAtUtcMs':expiry,'businessDeadlineUtcMs':d['deadlineUtcMs'],'minimumHeadroomSeconds':d['minimumHeadroomSeconds'],'assignmentSha256':m.sha(assignment.read_bytes()),'deadlineReceiptSha256':deadline_env['TRACK1_SITE_AUTH_DEADLINE_SHA256']})
   assert argv[-1]==str(home/m.SITE_SCENARIO) and not any(k in env for k in ['GH_TOKEN','GITHUB_TOKEN','AWS_SECRET_ACCESS_KEY'])
   ids=list(m.SITE_IDS);steps=[{'title':i+' finite observation','status':'failed' if case=='gap' and i=='SITE01.05a' else 'passed'}for i in ids]
   raw={'success':case!='gap','numTotalTests':7,'numPassedTests':6 if case=='gap' else 7,'numFailedTests':1 if case=='gap' else 0,'numPendingTests':0,'testResults':[{'status':'failed' if case=='gap' else 'passed','assertionResults':steps}]}
@@ -1106,5 +1111,97 @@ describe('SITE watchdog respects absolute UTC expiry', () => {
     expect(r.stoppedDuringVerify).toBe(true)
     expect(r.phase).toMatchObject({ status: 'OUTCOME_UNKNOWN', exitCode: null })
     expect(r.alive).toBe(false)
+  })
+})
+
+const siteAuthDeadlinePython = String.raw`
+import importlib.util,json,pathlib,sys,tempfile,time
+s=importlib.util.spec_from_file_location('site_auth','scripts/simulation/runtime/assigned_backend.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+case=sys.argv[1]
+with tempfile.TemporaryDirectory() as folder:
+ root=pathlib.Path(folder);output=root/'site-native';output.mkdir(mode=0o700);assignment=root/'assignment.json';m.seal(assignment,{'finite':'assignment'})
+ a={'expiresAtUtc':m.dt.datetime.fromtimestamp(time.time()+(30 if case=='expiry-first' else 120),m.dt.timezone.utc).isoformat(),'siteContract':{'businessBudgetSeconds':60,'minAuthHeadroomSeconds':120}}
+ wall,mono=time.time(),time.monotonic()
+ try:
+  env=m.make_site_auth_deadline(a,str(assignment),output,wall,mono)
+  d=m.read_json(output/'auth-deadline.json')
+  if case=='override':
+   m.reject_site_auth_deadline_override({'TRACK1_SITE_AUTH_DEADLINE_FILE':'unadmitted'})
+  expected=min(int(wall*1000)+60000,int(m.dt.datetime.fromisoformat(a['expiresAtUtc']).timestamp()*1000))
+  result={'exact':d['deadlineUtcMs']==expected,'headroom':d['minimumHeadroomSeconds'],'assignmentBound':d['assignmentSha256']==m.sha(assignment.read_bytes()),'hashBound':env['TRACK1_SITE_AUTH_DEADLINE_SHA256']==m.sha((output/'auth-deadline.json').read_bytes())}
+  print(json.dumps({'result':result,'error':None}))
+ except Exception as e:print(json.dumps({'result':None,'error':str(e)}))
+`
+describe('SITE parent seals the actual watchdog Auth deadline', () => {
+  it.each(['budget-first', 'expiry-first'])('binds %s to the exact assignment and admitted headroom', change => {
+    const r = JSON.parse(execFileSync('python3', ['-B', '-c', siteAuthDeadlinePython, change], { encoding: 'utf8', timeout: 10_000 }))
+    expect(r).toEqual({ result: { exact: true, headroom: 120, assignmentBound: true, hashBound: true }, error: null })
+  })
+  it('refuses a caller-supplied deadline override', () => {
+    const r = JSON.parse(execFileSync('python3', ['-B', '-c', siteAuthDeadlinePython, 'override'], { encoding: 'utf8', timeout: 10_000 }))
+    expect(r.error).toBe('runtime_site_auth_deadline_override')
+  })
+})
+
+const siteCpuObservationPython = String.raw`
+import importlib.util,json,pathlib,sys
+s=importlib.util.spec_from_file_location('site_cpu','scripts/simulation/runtime/assigned_backend.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+case=sys.argv[1];m.os.cpu_count=lambda:8;m.os.sched_getaffinity=lambda _pid:{0,1}
+def read(p,*_a,**_kw):
+ if case=='v2' and str(p)=='/sys/fs/cgroup/cpu.max':return '1000 100000\n'
+ if case=='unlimited' and str(p)=='/sys/fs/cgroup/cpu.max':return 'max 100000\n'
+ if case=='v1' and str(p).endswith('cpu.cfs_quota_us'):return '-1\n'
+ if case=='v1' and str(p).endswith('cpu.cfs_period_us'):return '100000\n'
+ raise OSError('unavailable finite observation')
+m.pathlib.Path.read_text=read
+try:print(json.dumps({'result':m.cpu_observation(),'error':None}))
+except Exception as e:print(json.dumps({'result':None,'error':str(e)}))
+`
+describe('host CPU quota is observation metadata without a capacity gate', () => {
+  it.each(['v2', 'unlimited', 'v1', 'unavailable'])('records %s without inventing a numeric CPU threshold', change => {
+    const r = JSON.parse(execFileSync('python3', ['-B', '-c', siteCpuObservationPython, change], { encoding: 'utf8', timeout: 10_000 }))
+    expect(r.error).toBeNull()
+    expect(r.result).toMatchObject({ logicalCpuCount: 8, affinityCpuCount: 2 })
+    expect(r.result.quota.source).toBe(change === 'v2' || change === 'unlimited' ? 'cgroup-v2' : change === 'v1' ? 'cgroup-v1' : 'unavailable')
+    if (change === 'v2') expect(r.result.quota.quotaUs).toBe(1000)
+  })
+})
+
+const siteAuthObservationPython = String.raw`
+import importlib.util,json,pathlib,sys,tempfile,time
+s=importlib.util.spec_from_file_location('site_auth','scripts/simulation/runtime/assigned_backend.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+case=sys.argv[1]
+with tempfile.TemporaryDirectory() as folder:
+ home=pathlib.Path(folder);out=home/'site-native';out.mkdir(mode=0o700);assignment=home/'assignment.json';m.seal(assignment,{'finite':'assignment'})
+ a={'expiresAtUtc':m.dt.datetime.fromtimestamp(time.time()+3600,m.dt.timezone.utc).isoformat(),'siteContract':{'businessBudgetSeconds':60,'minAuthHeadroomSeconds':120}}
+ m.make_site_auth_deadline(a,str(assignment),out,time.time(),time.monotonic());d=m.read_json(out/'auth-deadline.json')
+ launch={'assignmentSha256':m.sha(assignment.read_bytes()),'authDeadlineSha256':m.sha((out/'auth-deadline.json').read_bytes())}
+ if case=='launch-assignment':launch['assignmentSha256']='f'*64
+ if case=='launch-deadline':launch['authDeadlineSha256']='f'*64
+ m.seal(out/'child-launch.intent.json',launch)
+ if case=='rewritten-deadline':
+  d['startedAtUtcMs']-=1000;d['deadlineUtcMs']-=1000;(out/'auth-deadline.json').write_bytes(m.encoded(d))
+ expiry=d['deadlineUtcMs']+180000
+ o={'actorUserId':'finite-actor','observedAtUtcMs':int(time.time()*1000),'tokenExpiresAtUtcMs':expiry,'sdkExpiresAtUtcMs':expiry+5000 if case=='sdk-later' else expiry-5000 if case=='sdk-earlier' else expiry,'expiresAtUtcMs':expiry-5000 if case=='sdk-earlier' else expiry,'businessDeadlineUtcMs':d['deadlineUtcMs'],'minimumHeadroomSeconds':120,'assignmentSha256':m.sha(assignment.read_bytes()),'deadlineReceiptSha256':m.sha((out/'auth-deadline.json').read_bytes())}
+ if case=='actor':o['actorUserId']='foreign'
+ if case=='short':o.update(tokenExpiresAtUtcMs=d['deadlineUtcMs']+119999,expiresAtUtcMs=d['deadlineUtcMs']+119999)
+ if case=='extended':o['businessDeadlineUtcMs']+=60000
+ if case=='binding':o['assignmentSha256']='f'*64
+ if case=='unknown-field':o['access_token']='never-allowed'
+ if case=='minimum':o['minimumHeadroomSeconds']=0
+ if case!='missing':m.seal(out/'site01-auth-lifetime.json',o)
+ try:
+  r=m.validate_site_auth_observation(a,str(assignment),out,{'actorUserId':'finite-actor'});print(json.dumps({'accepted':True,'hashBound':r['authLifetimeSha256']==m.sha((out/'site01-auth-lifetime.json').read_bytes()),'error':None}))
+ except Exception as e:print(json.dumps({'accepted':False,'error':str(e)}))
+`
+describe('parent binds the actual SITE actor lifetime observation', () => {
+  it.each(['valid', 'sdk-later', 'sdk-earlier'])('accepts %s only with exact private assignment/deadline hashes', change => {
+    const r = JSON.parse(execFileSync('python3', ['-B', '-c', siteAuthObservationPython, change], { encoding: 'utf8', timeout: 10_000 }))
+    expect(r).toEqual({ accepted: true, hashBound: true, error: null })
+  })
+  it.each(['actor', 'short', 'extended', 'binding', 'unknown-field', 'minimum', 'missing', 'rewritten-deadline', 'launch-assignment', 'launch-deadline'])('refuses %s observation without credit', change => {
+    const r = JSON.parse(execFileSync('python3', ['-B', '-c', siteAuthObservationPython, change], { encoding: 'utf8', timeout: 10_000 }))
+    expect(r.accepted).toBe(false)
+    expect(r.error).toMatch(/^runtime_(site_auth|private)/)
   })
 })

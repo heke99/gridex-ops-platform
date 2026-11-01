@@ -800,3 +800,156 @@ describe('actual SITE activation binds declared input epoch', () => {
     await expect(c.run()).rejects.toThrow('site01_native_start_mismatch')
   })
 })
+
+function siteAuthRuntimeBoundary(change = 'valid') {
+  const actor = 'finite-actor', company = 'finite-company'
+  const nowSeconds = Math.floor(Date.now() / 1000), tokenExp = nowSeconds + (change === 'expired' ? -1 : change === 'short-token' ? 60 : 1800)
+  const payload: Record<string, unknown> = { sub: change === 'token-actor' ? 'foreign' : actor, exp: tokenExp }
+  if (change === 'missing-token-exp') delete payload.exp
+  if (change === 'malformed-token-exp') payload.exp = 'tomorrow'
+  const token = ['eyJhbGciOiJIUzI1NiJ9', Buffer.from(JSON.stringify(payload)).toString('base64url'), 'c3ludGhldGlj'].join('.')
+  const session: Record<string, unknown> = { access_token: change === 'malformed-token' ? 'invalid' : token, expires_at: tokenExp + (change === 'sdk-later' ? 5 : change === 'sdk-earlier' ? -5 : change === 'short-token' ? 3600 : 0), user: { id: change === 'session-actor' ? 'foreign' : actor } }
+  if (change === 'missing-sdk-exp') delete session.expires_at
+  if (change === 'malformed-sdk-exp') session.expires_at = Infinity
+  let signIns = 0
+  const filename = path.resolve('scripts/simulation/track1/fixtures/runtime.ts')
+  const js = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText
+  const exported: Record<string, (...args: unknown[]) => unknown> = {}
+  const localRequire = createRequire(import.meta.url)
+  const environment: Record<string, string> = { NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'local-anon' }
+  vm.runInNewContext(js, { exports: exported, Buffer, process: { env: environment, getuid: () => process.getuid!(), hrtime: process.hrtime }, console,
+    require: (id: string) => id === '@supabase/ssr' ? { createServerClient: (_url: unknown, _key: unknown, options: { cookies: { setAll: (values: unknown[]) => void } }) => ({ auth: { signInWithPassword: async () => { signIns++; if (change === 'provider-throw') throw new Error('synthetic-sensitive-token-marker'); options.cookies.setAll([{ name: 'sb-finite', value: 'cookie-only-in-memory' }]); return { data: { user: { id: change === 'response-actor' ? 'foreign' : actor }, session }, error: change === 'provider-error' ? { message: 'synthetic-sensitive-token-marker' } : null } } } }) } : localRequire(id),
+  }, { filename })
+  const deadline = { deadlineUtcMs: Date.now() + 30_000, minimumHeadroomSeconds: 120, assignmentSha256: 'a'.repeat(64), receiptSha256: 'b'.repeat(64) }
+  const run = () => exported.signIn({ email: 'synthetic@example.invalid', password: 'synthetic-only', userId: actor, companyId: company, ...(change === 'legacy' ? {} : { siteAuthDeadline: deadline }) }) as Promise<Record<string, unknown>>
+  return { run, signIns: () => signIns, tokenExp, deadline, exported, environment }
+}
+
+describe('actual opt-in SITE signIn token lifetime observation', () => {
+  it('captures actual expiry and actor without exporting token or cookies in the observation', async () => {
+    const c = siteAuthRuntimeBoundary()
+    const result = await c.run()
+    expect(result.authLifetime).toMatchObject({ actorUserId: 'finite-actor', tokenExpiresAtUtcMs: c.tokenExp * 1000, expiresAtUtcMs: c.tokenExp * 1000, businessDeadlineUtcMs: c.deadline.deadlineUtcMs, minimumHeadroomSeconds: 120 })
+    expect(JSON.stringify(result.authLifetime)).not.toMatch(/cookie-only|eyJ|access_token|refresh_token/)
+    expect(c.signIns()).toBe(1)
+  })
+  it.each(['sdk-later', 'sdk-earlier'])('allows benign %s synthesis while choosing the conservative expiry', async change => {
+    const c = siteAuthRuntimeBoundary(change), result = await c.run()
+    expect(result.authLifetime).toMatchObject({ expiresAtUtcMs: (c.tokenExp + (change === 'sdk-earlier' ? -5 : 0)) * 1000 })
+    expect(c.signIns()).toBe(1)
+  })
+  it.each(['expired', 'short-token', 'missing-token-exp', 'malformed-token-exp', 'missing-sdk-exp', 'malformed-sdk-exp', 'malformed-token', 'token-actor', 'session-actor', 'response-actor'])('refuses %s without refresh or any second Auth operation', async change => {
+    const c = siteAuthRuntimeBoundary(change)
+    await expect(c.run()).rejects.toThrow(/track1_sign_in_|site01_auth_/)
+    expect(c.signIns()).toBe(1)
+  })
+  it('keeps the legacy MAIN03 signIn return shape and behavior', async () => {
+    const c = siteAuthRuntimeBoundary('legacy'), result = await c.run()
+    expect(Object.keys(result).sort()).toEqual(['companyId', 'cookieHeader', 'userId'])
+    expect(result.cookieHeader).toContain('sb-finite=cookie-only-in-memory')
+    expect(c.signIns()).toBe(1)
+  })
+})
+
+function siteAuthDeadlineFiles(runtime: ReturnType<typeof siteAuthRuntimeBoundary>, change = 'valid') {
+  const root = mkdtempSync(path.join(tmpdir(), 'site-auth-deadline-'))
+  mkdirSync(path.join(root, 'site-native'), { mode: 0o700 })
+  const hash = (raw: string | Buffer) => createHash('sha256').update(raw).digest('hex')
+  const canonical = (v: unknown): string => v && typeof v === 'object' ? Array.isArray(v) ? `[${v.map(canonical).join(',')}]` : `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`).join(',')}}` : JSON.stringify(v)
+  const save = (name: string, value: unknown) => { const raw = canonical(value) + '\n'; writeFileSync(path.join(root, name), raw, { mode: 0o600 }); return hash(raw) }
+  const now = Date.now(), contract = { schema: 'track1-site-native-contract-v1', inputEpoch: 'site-native-input-v2', businessBudgetSeconds: 60, minAuthHeadroomSeconds: 120 }
+  const a = { schema: 'track1-hosted-site-admission-v1', reportKind: 'site_native_v2', simHome: root, siteContract: contract, expiresAtUtc: new Date(now + 120_000).toISOString() }
+  const admissionSha = save('admission.json', a)
+  const r = { schema: 'track1-runtime-assignment-site-v1', mode: 'coordinator_prepared_site', reportKind: 'site_native_v2', allowedActions: ['up', 'site-run'], simHome: root, admissionFile: path.join(root, 'admission.json'), admissionSha256: admissionSha, siteContractSha256: hash(canonical(contract) + '\n') }
+  const assignmentSha = save('assignment.json', r)
+  const d = { schema: 'track1-site-auth-deadline-v1', startedAtUtcMs: now - 1000, startedMonotonicNs: String(process.hrtime.bigint() - BigInt(1_000_000_000)), deadlineUtcMs: now + 59_000, businessBudgetSeconds: 60, minimumHeadroomSeconds: 120, admissionExpiresAtUtc: a.expiresAtUtc, assignmentSha256: assignmentSha, siteContractSha256: r.siteContractSha256 }
+  if (change === 'extended') d.deadlineUtcMs += 60_000
+  if (change === 'headroom') d.minimumHeadroomSeconds = 0
+  if (change === 'future-start') d.startedAtUtcMs = now + 30_000
+  if (change === 'future-monotonic') d.startedMonotonicNs = String(process.hrtime.bigint() + BigInt(30_000_000_000))
+  if (change === 'expired') { d.startedAtUtcMs = now - 120_000; d.deadlineUtcMs = now - 60_000 }
+  const receiptSha = save('site-native/auth-deadline.json', d)
+  save('site-native/child-launch.intent.json', { assignmentSha256: assignmentSha, authDeadlineSha256: change === 'launch-hash' ? 'f'.repeat(64) : receiptSha })
+  Object.assign(runtime.environment, { TRACK1_ASSIGNMENT_FILE: path.join(root, 'assignment.json'), TRACK1_SITE_AUTH_DEADLINE_FILE: path.join(root, 'site-native/auth-deadline.json'), TRACK1_SITE_AUTH_DEADLINE_SHA256: receiptSha })
+  if (change === 'missing-env') delete runtime.environment.TRACK1_SITE_AUTH_DEADLINE_FILE
+  if (change === 'path') runtime.environment.TRACK1_SITE_AUTH_DEADLINE_FILE = path.join(root, 'different.json')
+  if (change === 'hash') runtime.environment.TRACK1_SITE_AUTH_DEADLINE_SHA256 = '0'.repeat(64)
+  if (change === 'mode') chmodSync(path.join(root, 'site-native/auth-deadline.json'), 0o644)
+  if (change === 'assignment') save('assignment.json', { ...r, modified: true })
+  if (change === 'json-null') writeFileSync(path.join(root, 'assignment.json'), 'null')
+  if (change === 'json-malformed') writeFileSync(path.join(root, 'assignment.json'), '{invalid')
+  if (change === 'admission') save('admission.json', { ...a, expiresAtUtc: new Date(now + 300_000).toISOString() })
+  return { root, read: () => runtime.exported.readSiteAuthDeadlineFromEnv(), cleanup: () => rmSync(root, { recursive: true, force: true }), receiptSha, assignmentSha, deadline: d.deadlineUtcMs }
+}
+
+describe('actual SITE child consumes the parent-owned deadline receipt', () => {
+  it('recomputes the exact deadline, source assignment and launch hash', () => {
+    const c = siteAuthDeadlineFiles(siteAuthRuntimeBoundary())
+    try { expect(c.read()).toEqual({ deadlineUtcMs: c.deadline, minimumHeadroomSeconds: 120, receiptSha256: c.receiptSha, assignmentSha256: c.assignmentSha }) } finally { c.cleanup() }
+  })
+  it.each(['missing-env', 'path', 'hash', 'mode', 'assignment', 'admission', 'extended', 'headroom', 'future-start', 'future-monotonic', 'expired', 'launch-hash', 'json-null', 'json-malformed'])('refuses %s deadline authority', change => {
+    const c = siteAuthDeadlineFiles(siteAuthRuntimeBoundary(), change)
+    try { expect(c.read).toThrow('site01_auth_deadline_binding') } finally { c.cleanup() }
+  })
+})
+
+async function actualSiteBuilderAuthBoundary(sessionChange: string, deadlineChange = 'valid') {
+  const runtime = siteAuthRuntimeBoundary(sessionChange), files = siteAuthDeadlineFiles(runtime, deadlineChange)
+  const oracle = await import('../scripts/simulation/track1/fixtures/site01Synthetic')
+  const events: string[] = [], artifacts: unknown[] = []
+  const a = { actorUserId: 'finite-actor', companyId: 'finite-company', customerId: 'finite-customer', siteId: 'site-a', pointId: 'point-a', contractId: 'contract-a', gridId: 'grid-a' }
+  const b = { ...a, siteId: 'site-b', pointId: 'point-b', contractId: 'contract-b', gridId: 'grid-b' }
+  const query = { eq: () => query, then: (done: (v: unknown) => unknown) => done({ error: null }) }
+  const ports = { ...oracle, readSiteAuthDeadlineFromEnv: runtime.exported.readSiteAuthDeadlineFromEnv, signIn: runtime.exported.signIn,
+    writeArtifact: (_name: string, value: unknown) => { artifacts.push(value); events.push('auth-observation') },
+    vi: { stubEnv: () => undefined }, SYNTHETIC_SMTP_ENV: {}, substitute: () => undefined, syntheticSmtpProvider: () => undefined,
+    timed: async (_label: string, fn: () => Promise<unknown>) => fn(), seedNormalSwitchNativeFixture: async () => { events.push('seed'); return a }, seedSecondSite: async () => b,
+    activateSwitchSupply: async () => ({ supplyPeriodId: 'period', sourceId: 'source' }),
+    must: (v: unknown, why: string) => { if (!v) throw new Error(why) }, randomUUID: () => 'finite-uuid', sql: () => undefined, literal: String,
+    supabaseService: { from: () => ({ update: () => query }), auth: { admin: { updateUserById: async () => { events.push('password'); return { error: null } } } } },
+    endExistingSiteSupply: async () => { events.push('end'); throw new Error('finite-after-auth-gate') },
+    http: () => { events.push('http'); throw new Error('unexpected-http') }, ingestDay: () => { events.push('ingest'); throw new Error('unexpected-ingest') },
+  }
+  const source = readFileSync(path.resolve('scripts/simulation/track1/fixtures/site01Fixture.ts'), 'utf8')
+  const body = source.slice(source.indexOf('export async function buildSite01Fixture('))
+  const js = ts.transpileModule(body, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
+  const exported: { buildSite01Fixture?: () => Promise<unknown> } = {}
+  vm.runInNewContext(js, { ...ports, exports: exported })
+  return { run: () => exported.buildSite01Fixture!(), events, artifacts, signIns: runtime.signIns, cleanup: files.cleanup }
+}
+
+describe('actual SITE builder gates all post-login work on the issued session', () => {
+  it('observes the actual login before allowing the ordinary end', async () => {
+    const c = await actualSiteBuilderAuthBoundary('valid')
+    try {
+      await expect(c.run()).rejects.toThrow('finite-after-auth-gate')
+      expect(c.signIns()).toBe(1)
+      expect(c.events.slice(-2)).toEqual(['auth-observation', 'end'])
+      expect(JSON.stringify(c.artifacts)).not.toMatch(/cookie-only|eyJ|access_token|refresh_token/)
+    } finally { c.cleanup() }
+  })
+  it.each(['short-token', 'expired', 'missing-token-exp', 'session-actor'])('blocks %s before end, API and ingestion', async change => {
+    const c = await actualSiteBuilderAuthBoundary(change)
+    try {
+      await expect(c.run()).rejects.toThrow('site01_auth_session_lifetime')
+      expect(c.signIns()).toBe(1)
+      expect(c.events).toEqual(['seed', 'password'])
+    } finally { c.cleanup() }
+  })
+  it('refuses missing deadline authority before seeding or password login', async () => {
+    const c = await actualSiteBuilderAuthBoundary('valid', 'missing-env')
+    try {
+      await expect(c.run()).rejects.toThrow('site01_auth_deadline_binding')
+      expect(c.events).toEqual([])
+      expect(c.signIns()).toBe(0)
+    } finally { c.cleanup() }
+  })
+})
+
+describe('SITE login failures never echo provider data', () => {
+  it.each(['provider-error', 'provider-throw'])('replaces %s data with a fixed refusal', async change => {
+    const c = siteAuthRuntimeBoundary(change)
+    await expect(c.run()).rejects.toThrow('site01_auth_sign_in_failed')
+    expect(c.signIns()).toBe(1)
+  })
+})

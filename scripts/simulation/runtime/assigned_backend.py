@@ -460,6 +460,28 @@ def volume_identity(name):
     return json.loads(docker("volume", "inspect", "--format", "{{json .}}", name))
 
 
+
+def cpu_observation():
+    # Observation only: CPU quota/count never changes the RAM/disk admission.
+    result = {"logicalCpuCount": os.cpu_count(), "affinityCpuCount": None, "quota": {"source": "unavailable"}}
+    try:
+        result["affinityCpuCount"] = len(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        pass
+    try:
+        quota, period = pathlib.Path("/sys/fs/cgroup/cpu.max").read_text().split()
+        result["quota"] = {"source": "cgroup-v2", "quotaUs": None if quota == "max" else int(quota), "periodUs": int(period)}
+    except (OSError, ValueError):
+        for directory in ("/sys/fs/cgroup/cpu", "/sys/fs/cgroup/cpu,cpuacct"):
+            try:
+                quota = int((pathlib.Path(directory) / "cpu.cfs_quota_us").read_text())
+                period = int((pathlib.Path(directory) / "cpu.cfs_period_us").read_text())
+                result["quota"] = {"source": "cgroup-v1", "quotaUs": None if quota < 0 else quota, "periodUs": period}
+                break
+            except (OSError, ValueError):
+                pass
+    return result
+
 def preflight(path):
     a = admission(path)
     home = pathlib.Path(a["simHome"])
@@ -474,7 +496,7 @@ def preflight(path):
         for port in a["ports"].values():
             with socket.socket() as sock:
                 sock.bind(("127.0.0.1", port))
-        seal(home / "initial.json", {"daemon": d, "inventory": initial, "admissionSha256": sha(private_path(path).read_bytes())})
+        seal(home / "initial.json", {"daemon": d, "inventory": initial, "cpuObservation": cpu_observation(), "admissionSha256": sha(private_path(path).read_bytes())})
     phase(home, "preflight", perform)
 
 
@@ -1881,8 +1903,9 @@ SITE_SOURCE_PATHS = (SITE_SCENARIO, "scripts/simulation/track1/vitest.config.mts
     "scripts/simulation/track1/fixtures/" + p + ".ts" for p in
     ("site01Fixture", "site01Synthetic", "wire", "runtime", "substitutions", "main04Support", "synthetic")))
 SITE_REVIEWED_HASHES = {
+    "scripts/simulation/track1/fixtures/runtime.ts": "1ad97820347667576236cee4ff7521395ffd0c17d92c13f826422164a3ffcc0f",
     SITE_SCENARIO: "e95b60f80c0792bdd60ff050cb17f8dfaf8bdee92617bd70c613ccf1067214bb",
-    "scripts/simulation/track1/fixtures/site01Fixture.ts": "9a5c4c269253caec4472d98f867e2917ec3e742ff6cd27b798b4279b445c2bb9",
+    "scripts/simulation/track1/fixtures/site01Fixture.ts": "b8faac37b11df83022ad413be630619aec6e9956f85cd572aa5beb62e3819954",
     "scripts/simulation/track1/fixtures/site01Synthetic.ts": "8e25f5a7b44b65cb1a70adc3bb628a75808f6a2c107f7fe2583d6dedb8e2b286"}
 SITE_IDS = ("SITE01.01", "SITE01.02", "SITE01.03", "SITE01.04", "SITE01.05", "SITE01.05a", "SITE01.05b")
 SITE_BUDGET = {"jobs": 1, "replays": 1, "builds": 1, "appStarts": 1, "siteInvocations": 1,
@@ -1964,18 +1987,43 @@ def site_child_environment(a, assignment_file, output):
         "TRACK1_STACK_JSON": str(pathlib.Path(a["simHome"]) / a["projectId"] / "stack.json")})
 
 
+
+def reject_site_auth_deadline_override(env):
+    need(not any(key.startswith("TRACK1_SITE_AUTH_DEADLINE") for key in env), "runtime_site_auth_deadline_override")
+
+
+def make_site_auth_deadline(a, assignment_file, output, wall, mono):
+    contract = a["siteContract"]
+    expires = dt.datetime.fromisoformat(a["expiresAtUtc"].replace("Z", "+00:00")).timestamp()
+    deadline = min(int(wall * 1000) + contract["businessBudgetSeconds"] * 1000, int(expires * 1000))
+    need(deadline > wall * 1000, "runtime_site_auth_deadline_expired")
+    receipt = {"schema": "track1-site-auth-deadline-v1", "startedAtUtcMs": int(wall * 1000),
+               "startedMonotonicNs": str(int(mono * 1_000_000_000)), "deadlineUtcMs": deadline,
+               "businessBudgetSeconds": contract["businessBudgetSeconds"], "minimumHeadroomSeconds": contract["minAuthHeadroomSeconds"],
+               "admissionExpiresAtUtc": a["expiresAtUtc"], "assignmentSha256": sha(private_path(assignment_file).read_bytes()),
+               "siteContractSha256": sha(encoded(contract))}
+    path = pathlib.Path(output) / "auth-deadline.json"
+    seal(path, receipt)
+    return {"TRACK1_SITE_AUTH_DEADLINE_FILE": str(path), "TRACK1_SITE_AUTH_DEADLINE_SHA256": sha(path.read_bytes())}
+
 def site_child(a, assignment_file, argv, env, output):
     # A live parent owns exactly one session; every refusal/timeout kills and
     # reaps that session before cleanup is permitted. No shell or retry path.
     wall, mono = time.time(), time.monotonic()
     expires = dt.datetime.fromisoformat(a["expiresAtUtc"].replace("Z", "+00:00")).timestamp()
-    budget = min(a["siteContract"]["businessBudgetSeconds"], expires - wall)
+    reject_site_auth_deadline_override(env)
+    deadline_env = make_site_auth_deadline(a, assignment_file, output, wall, mono)
+    deadline_receipt = read_json(deadline_env["TRACK1_SITE_AUTH_DEADLINE_FILE"])
+    expires = deadline_receipt["deadlineUtcMs"] / 1000
+    budget = expires - wall
     need(budget > 0, "runtime_site_deadline")
+    env = {**env, **deadline_env}
     child = None
     watchdog = None
     stop_watchdog, deadline_tripped = threading.Event(), threading.Event()
     seal(output / "child-launch.intent.json", {"atUtc": utc(), "argvSha256": sha(encoded(argv)),
-         "assignmentSha256": sha(private_path(assignment_file).read_bytes())})
+         "assignmentSha256": sha(private_path(assignment_file).read_bytes()),
+         "authDeadlineSha256": deadline_env["TRACK1_SITE_AUTH_DEADLINE_SHA256"]})
     with (output / "child.log").open("xb") as log:
         try:
             child = subprocess.Popen(argv, cwd=a["harnessDir"], env=env, start_new_session=True, stdout=log, stderr=log)
@@ -2009,6 +2057,7 @@ def site_child(a, assignment_file, argv, env, output):
             if deadline_tripped.is_set():
                 raise OutcomeUnknown("runtime_site_independent_deadline")
             need(not group_members(child.pid), "runtime_site_children_remaining")
+            need(sha(private_path(deadline_env["TRACK1_SITE_AUTH_DEADLINE_FILE"]).read_bytes()) == deadline_env["TRACK1_SITE_AUTH_DEADLINE_SHA256"], "runtime_site_auth_deadline_changed")
             return child.returncode
         except Exception:
             if child is not None:
@@ -2036,6 +2085,37 @@ def check_site_live(a, assignment_file):
     need(process_identity(ready["pid"], a["appDir"]) == ready, "runtime_site_app_changed")
     need(read_json(private_path(home / a["projectId"] / "stack.json"))["assignmentSha256"] == sha(private_path(assignment_file).read_bytes()), "runtime_site_stack_changed")
 
+
+
+def validate_site_auth_observation(a, assignment_file, output, fixture):
+    output = pathlib.Path(output)
+    path = private_path(output / "site01-auth-lifetime.json")
+    observed = read_json(path)
+    receipt_path = private_path(output / "auth-deadline.json")
+    deadline = read_json(receipt_path)
+    launch = read_json(private_path(output / "child-launch.intent.json"))
+    need(launch.get("authDeadlineSha256") == sha(receipt_path.read_bytes())
+         and launch.get("assignmentSha256") == sha(private_path(assignment_file).read_bytes()), "runtime_site_auth_original_launch_binding")
+    need(deadline.get("schema") == "track1-site-auth-deadline-v1" and type(deadline.get("startedAtUtcMs")) is int
+         and type(deadline.get("deadlineUtcMs")) is int and deadline.get("admissionExpiresAtUtc") == a["expiresAtUtc"]
+         and deadline.get("businessBudgetSeconds") == a["siteContract"]["businessBudgetSeconds"]
+         and deadline["deadlineUtcMs"] == min(deadline["startedAtUtcMs"] + a["siteContract"]["businessBudgetSeconds"] * 1000,
+             int(dt.datetime.fromisoformat(a["expiresAtUtc"].replace("Z", "+00:00")).timestamp() * 1000)), "runtime_site_auth_deadline_binding")
+    fields = {"actorUserId", "observedAtUtcMs", "tokenExpiresAtUtcMs", "sdkExpiresAtUtcMs", "expiresAtUtcMs",
+              "businessDeadlineUtcMs", "minimumHeadroomSeconds", "assignmentSha256", "deadlineReceiptSha256"}
+    need(set(observed) == fields and observed["actorUserId"] == fixture["actorUserId"]
+         and all(type(observed[k]) is int for k in ("observedAtUtcMs", "tokenExpiresAtUtcMs", "sdkExpiresAtUtcMs", "expiresAtUtcMs", "businessDeadlineUtcMs", "minimumHeadroomSeconds")), "runtime_site_auth_observation_shape")
+    need(observed["assignmentSha256"] == deadline["assignmentSha256"] == sha(private_path(assignment_file).read_bytes())
+         and observed["deadlineReceiptSha256"] == sha(receipt_path.read_bytes())
+         and deadline["siteContractSha256"] == sha(encoded(a["siteContract"]))
+         and observed["businessDeadlineUtcMs"] == deadline["deadlineUtcMs"]
+         and observed["minimumHeadroomSeconds"] == deadline["minimumHeadroomSeconds"] == a["siteContract"]["minAuthHeadroomSeconds"], "runtime_site_auth_observation_binding")
+    need(deadline["startedAtUtcMs"] <= observed["observedAtUtcMs"] < deadline["deadlineUtcMs"]
+         and observed["observedAtUtcMs"] <= int(time.time() * 1000)
+         and observed["expiresAtUtcMs"] == min(observed["tokenExpiresAtUtcMs"], observed["sdkExpiresAtUtcMs"])
+         and observed["expiresAtUtcMs"] >= deadline["deadlineUtcMs"] + 1000 * deadline["minimumHeadroomSeconds"], "runtime_site_auth_observation_headroom")
+    return {"authLifetimeSha256": sha(path.read_bytes()), "assignmentSha256": observed["assignmentSha256"],
+            "deadlineReceiptSha256": observed["deadlineReceiptSha256"], "actorUserId": observed["actorUserId"]}
 
 def run_site(assignment_file):
     a, assignment, prepared = verify(assignment_file, "site-run")
@@ -2067,6 +2147,8 @@ def run_site(assignment_file):
         need(all(isinstance(fixture.get(k), str) and fixture[k] for k in ("companyId", "customerId", "actorUserId")), "runtime_site_actor_observation")
         need(set(fixture.get("sites", {})) == {"A", "B"}
              and all(fixture["sites"]["A"][k] != fixture["sites"]["B"][k] for k in ("siteId", "pointId", "contractId")), "runtime_site_relationship_observation")
+        auth_binding = validate_site_auth_observation(a, assignment_file, output, fixture)
+        seal(output / "auth-lifetime-binding.json", auth_binding)
         seal(output / "actors.json", {k: fixture[k] for k in ("companyId", "customerId", "actorUserId")})
         seal(home / "reports/site-native.json", report)
         if not report["qualified"]:
