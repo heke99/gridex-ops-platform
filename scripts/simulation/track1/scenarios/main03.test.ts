@@ -25,7 +25,7 @@ import { buildMain03Fixture, DEFAULT_MAIN03_PARAMS, type Main03Fixture } from '.
 import { SUBSTITUTIONS, resetSubstitutions } from '../fixtures/substitutions'
 import { dbRead, http, lit, sha256Json, sleep, TIMINGS, timed, writeArtifact } from '../fixtures/runtime'
 import { centsText, parseMilliKwh, QUARTERS_PER_DAY } from '../fixtures/synthetic'
-import { beginMain03CohortFromEnv, captureMain03Candidate } from '../fixtures/main03Cohort'
+import { awaitMain03RetryPermit, beginMain03CohortFromEnv, captureMain03Candidate } from '../fixtures/main03Cohort'
 
 let fx: Main03Fixture
 const results: Record<string, unknown> = {}
@@ -224,7 +224,8 @@ describe('MAIN03 full month, one customer, 28 daily sources', () => {
     expect(lockBefore.isLocked).toBe(false)
 
     // First save attempt: the client gives up after 400 ms and never sees the response.
-    const attempt = await timed('MAIN03.05 aborted generate-underlay', () => http(fx.session, 'POST', '/api/internal/billing/generate-underlay', { json: { billing_month: BILLING_MONTH }, abortAfterMs: 400 }))
+    const nativeOperationId = cohortContext.admission.operationId
+    const attempt = await timed('MAIN03.05 aborted generate-underlay', () => http(fx.session, 'POST', '/api/internal/billing/generate-underlay', { json: { billing_month: BILLING_MONTH }, headers: { 'X-Request-ID': nativeOperationId }, abortAfterMs: 400 }))
     const provoked = attempt.aborted
     results['MAIN03.05'] = { provokedUnknownOutcome: provoked, abortedAfterMs: attempt.ms, firstAttemptStatus: attempt.status, beforeCall, lockBefore }
     expect(provoked, `HARNESS_PRECONDITION: MAIN03.05 requires an observed client abort before the first response; received status ${attempt.status} in ${attempt.ms} ms. A qualified unknown-outcome stimulus is required before this scenario can pass.`).toBe(true)
@@ -245,6 +246,12 @@ describe('MAIN03 full month, one customer, 28 daily sources', () => {
       if (settled.underlays === 0 && stableRounds >= 20) break // the server gave up without effect: nothing to wait for
     }
     const lockSettled = await periodLockRead()
+
+    // Polling establishes only an observed graph. The original handler must
+    // have a genuine correlated native terminal and independent permit before
+    // this still-live callback can issue its single retry.
+    await awaitMain03RetryPermit(cohortContext, fx, { nativeOperationId, aborted: provoked,
+      abortedAfterMs: attempt.ms, beforeCall, justAfter, settled, lockBefore, lockJustAfter, lockSettled })
 
     // Retry after having looked: must neither duplicate nor change the lock.
     const retry = await timed('MAIN03.05 retry generate-underlay', () => http(fx.session, 'POST', '/api/internal/billing/generate-underlay', { json: { billing_month: BILLING_MONTH } }))

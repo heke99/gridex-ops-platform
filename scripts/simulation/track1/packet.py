@@ -73,7 +73,7 @@ def runtime_admission(action):
     """
     import tomllib
     assignment_file = os.environ.get("TRACK1_ASSIGNMENT_FILE")
-    if assignment_file and json.loads(private_path(assignment_file).read_text()).get("schema") == "track1-runtime-assignment-v2":
+    if assignment_file and json.loads(private_path(assignment_file).read_text()).get("schema") in {"track1-runtime-assignment-v2", "track1-runtime-assignment-v3"}:
         import importlib.util
         sys.dont_write_bytecode = True
         helper = pathlib.Path(__file__).resolve().parents[1] / "runtime/assigned_backend.py"
@@ -156,8 +156,8 @@ def runtime_admission(action):
 def main(argv):
     if argv[:1] == ["--assignment-mode"]:
         a = json.loads(private_path(os.environ["TRACK1_ASSIGNMENT_FILE"]).read_text())
-        if a.get("schema") == "track1-runtime-assignment-v2":
-            require(a.get("mode") == "coordinator_prepared_fresh", "unknown prepared assignment mode")
+        if a.get("schema") in {"track1-runtime-assignment-v2", "track1-runtime-assignment-v3"}:
+            require(a.get("mode") == ("coordinator_prepared_phased" if a["schema"] == "track1-runtime-assignment-v3" else "coordinator_prepared_fresh"), "unknown prepared assignment mode")
             print("coordinator_prepared_fresh")
         else:
             require(a.get("schema") == "track1-runtime-assignment-v1", "unknown assignment schema")

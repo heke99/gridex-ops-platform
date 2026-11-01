@@ -7,6 +7,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { constants, closeSync, fstatSync, fsyncSync, linkSync, lstatSync, openSync, readFileSync, readdirSync, readlinkSync, realpathSync, unlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
+import { connect } from 'node:net'
 import { createServerClient } from '@supabase/ssr'
 import { SupabaseClient } from '@supabase/supabase-js'
 import type { Main03Fixture, Main03Params } from './main03Fixture'
@@ -30,13 +31,15 @@ export type InputApproval = { basisKind: 'original_frozen_input' | 'separately_q
   params: Main03Params; salt: number; inputVectorSha256: string; independentReviewRefs: FileRef[]; substitutions: string[] }
 type Phase = 'MAIN03_CANDIDATE' | 'MAIN03_SEAL' | 'MAIN04_PREPARE_REVIEW'
 export type BusinessAdmission = {
-  schema: 'track1-cohort-business-admission-v1'; reportKind: 'business_cohort'; phase: Phase;
+  schema: 'track1-cohort-business-admission-v1' | 'track1-cohort-business-admission-v2'; reportKind: 'business_cohort'; phase: Phase;
   campaignId: string; operationId: string; producerId: string; runId: string; createdAtUtc: string; expiresAtUtc: string;
   privateHome: string; simHome: string; runDir: string; appDir: string; harnessDir: string; dbUrl: string; appUrl: string; authUrl: string; anonKey: string; serviceRoleKeySha256: string;
   runtime: RuntimeIdentity; appProcess: AppProcess; sourceManifest: Record<string, string>; buildManifest: FileRef; immutableFiles: FileRef[]; stack: FileRef;
   resourceManifest: FileRef; custody: { refs: Record<string, string>; receipts: Array<{ sha: string; parent: string; tree: string; messageSha256: string }> };
   inputApproval: FileRef; candidatePath: string; graphPath: string; authPath: string; sealedPath: string; adoptedPath: string; draftPath: string;
   candidate?: FileRef; sealed?: FileRef; terminal?: FileRef; resolution?: FileRef; reports?: { raw: FileRef; normalized: FileRef; meta: FileRef; log: FileRef };
+  phaseAdapter?: { schema: 'track1-parent-custody-ipc-v1'; assignment: FileRef; runtimeObservation: FileRef; preparedSha256: string;
+    socketPath: string; nonce: string; deadlineAtMs: number; minimumAuthHeadroomMs: number; parent: { pid: number; startTicks: string; bootId: string; exeSha256: string } };
 }
 export type ProtectedGraph = {
   sources: JsonRow[]; normalized: JsonRow[]; physical: JsonRow[]; underlays: JsonRow[]; items: JsonRow[];
@@ -130,7 +133,9 @@ function validTime(admission: BusinessAdmission, now: number) {
   need(ms(admission.expiresAtUtc) - ms(admission.createdAtUtc) <= 4 * 3_600_000, 'phase_lifetime')
 }
 export function validateBusinessAdmission(admission: BusinessAdmission, phase: Phase, now: number) {
-  need(admission.schema === 'track1-cohort-business-admission-v1' && admission.reportKind === 'business_cohort' && admission.phase === phase, 'distinct_business_phase_required')
+  need(['track1-cohort-business-admission-v1', 'track1-cohort-business-admission-v2'].includes(admission.schema) && admission.reportKind === 'business_cohort' && admission.phase === phase, 'distinct_business_phase_required')
+  if (admission.schema === 'track1-cohort-business-admission-v1') need(!admission.phaseAdapter, 'legacy_phase_expansion')
+  else assertPhasedAssignment(admission)
   validTime(admission, now); text(admission.campaignId); text(admission.operationId); text(admission.runId); text(admission.producerId)
   need(path.isAbsolute(admission.runDir) && path.normalize(admission.runDir) === admission.runDir && !admission.runDir.endsWith('/'), 'run_directory_path')
   privatePath(admission.privateHome); need(!admission.privateHome.startsWith(admission.runDir + '/'), 'private_home_inside_run')
@@ -385,12 +390,15 @@ export async function observeCohortRuntime(admission: BusinessAdmission, execute
   need(expectedResources.containerIds.includes(expectedResources.roles.storage), 'storage_resource_required')
   const receipts = admission.custody.receipts
   need(Object.keys(admission.custody.refs).some(ref => ref.includes('backend-')) && Object.keys(admission.custody.refs).some(ref => ref.includes('producer-')), 'held_business_pair_required')
-  for (const [ref, expected] of Object.entries(admission.custody.refs)) {
+  if (admission.schema === 'track1-cohort-business-admission-v2') {
+    const observed = await parentCustodyRequest(admission, 'CUSTODY', {})
+    need(observed.custodySha256 === cohortHash(admission.custody), 'parent_custody_changed')
+  } else for (const [ref, expected] of Object.entries(admission.custody.refs)) {
     need(ref.startsWith('refs/tags/agent-claims/masterplan/') && /^[a-f0-9]{40}$/.test(expected), 'custody_ref')
     const observed = row(parseCohortJson(execute(['gh', 'api', 'repos/heke99/gridex-ops-platform/git/ref/' + ref.slice(5)])))
     need(row(observed.object).sha === expected && receipts.some(receipt => receipt.sha === expected), 'custody_changed')
   }
-  for (const receipt of receipts) {
+  if (admission.schema === 'track1-cohort-business-admission-v1') for (const receipt of receipts) {
     const observed = row(parseCohortJson(execute(['gh', 'api', 'repos/heke99/gridex-ops-platform/git/commits/' + receipt.sha])))
     need(row(observed.tree).sha === receipt.tree && bytesHash(text(observed.message)) === receipt.messageSha256, 'neutral_receipt_changed')
     same((observed.parents as JsonRow[]).map(parent => parent.sha), [receipt.parent], 'neutral_parent')
@@ -475,7 +483,8 @@ export function assertCohortScenarioEnvironment(admission: BusinessAdmission, ac
   need(env.NEXT_PHASE !== 'phase-production-build' && env.SUPABASE_SERVICE_ROLE_KEY && bytesHash(env.SUPABASE_SERVICE_ROLE_KEY) === hash(admission.serviceRoleKeySha256), 'service_key_binding')
   // Integration with a future business assignment is a separate reviewed
   // source packet. Never reuse/unset/extend the currently smoke-only assignment.
-  need(!env.TRACK1_ASSIGNMENT_FILE, 'business_assignment_integration_required')
+  if (admission.schema === 'track1-cohort-business-admission-v1') need(!env.TRACK1_ASSIGNMENT_FILE, 'business_assignment_integration_required')
+  else { assertPhasedAssignment(admission); need(env.TRACK1_ASSIGNMENT_FILE === admission.phaseAdapter!.assignment.path, 'business_assignment_binding') }
   privatePath(admission.simHome); readCohortFile(admission.stack, admission.privateHome)
 }
 export function loadCohortAdmissionFromEnv(phase: Phase, actualServiceClient?: unknown): { admission: BusinessAdmission; admissionSha256: string; ports: CohortPorts } {
@@ -506,7 +515,7 @@ export async function captureMain03Candidate(context: { admission: BusinessAdmis
   const runtime = await ports.observeRuntime(admission); same(runtime, admission.runtime, 'runtime_identity')
   const graph = await ports.readGraph(ids, oracle); verifyCohortGraph(graph, ids, oracle)
   need(graph.invoices.length === 0 && graph.exportItems.length === 0 && graph.exports.length === 0, 'candidate_already_invoiced')
-  const auth = await ports.authenticate(fixture.session, admission); checkAuth(auth, ids, ports.now())
+  const auth = await ports.authenticate(fixture.session, admission); checkAuth(auth, ids, ports.now(), admission.phaseAdapter?.minimumAuthHeadroomMs)
   const sourceObservation = fixture.days.map(day => ({ day: day.day, sourceId: day.sourceId, transactionRef: day.transactionRef, bgmReference: day.bgmReference,
     rawSha256: day.rawSha256, normalizedIds: day.normalizedIds, meteringValueIds: day.meteringValueIds }))
   verifySourceObservation(sourceObservation, graph, oracle)
@@ -516,9 +525,9 @@ export async function captureMain03Candidate(context: { admission: BusinessAdmis
     createdAtMs: ports.now(), startedAfterMs: ms(admission.createdAtUtc), ids, runtime, inputApproval: admission.inputApproval, graph: graphFile, auth: authFile, completed, sourceObservation, unknownOutcome: observation['MAIN03.05'] }
   return appendCohortFile(admission.candidatePath, candidate, admission.privateHome)
 }
-function checkAuth(auth: AuthObservation, ids: CohortIds, now: number) {
+function checkAuth(auth: AuthObservation, ids: CohortIds, now: number, minimumMs = 120_000) {
   same([auth.userId, auth.companyId], [ids.actorUserId, ids.companyId], 'auth_actor_or_company')
-  need(auth.expiresAtMs > now + 120_000 && auth.permissions.includes('billing_underlay.export') && auth.permissions.includes('billing_underlay.read'), 'auth_expiry_or_permissions')
+  need(auth.expiresAtMs > now + minimumMs && auth.permissions.includes('billing_underlay.export') && auth.permissions.includes('billing_underlay.read'), 'auth_expiry_or_permissions')
 }
 function verifySourceObservation(observation: unknown, graph: ProtectedGraph, oracle: Oracle) {
   need(Array.isArray(observation) && observation.length === 28, 'observed_source_vector')
@@ -608,7 +617,7 @@ export async function adoptMain03Cohort(admission: BusinessAdmission, admissionS
   const capsule = readCohortFile<{ schema: string; session: Session; expiresAtMs: number }>(candidate.auth, admission.privateHome)
   need(capsule.schema === 'main03-private-actual-ssr-session-v1' && capsule.expiresAtMs > ports.now() + 120_000, 'private_auth_expired')
   same([capsule.session.userId, capsule.session.companyId], [candidate.ids.actorUserId, candidate.ids.companyId], 'private_auth_identity')
-  checkAuth(await ports.authenticate(capsule.session, admission), candidate.ids, ports.now())
+  checkAuth(await ports.authenticate(capsule.session, admission), candidate.ids, ports.now(), admission.phaseAdapter?.minimumAuthHeadroomMs)
   appendCohortFile(admission.adoptedPath, { state: 'ADOPTED_READ_ONLY_BEFORE_PREPARE', admissionSha256, sealed: admission.sealed, underlayId,
     graphSha256: sealed.graphSha256, inputApproval: admission.inputApproval, basisKind: approval.basisKind, atMs: ports.now(), allowedNextAction: 'PREPARE_AND_REVIEW_ONLY_NO_APPROVAL' }, admission.privateHome)
   return { ...candidate.ids, params: approval.params, salt: approval.salt, oracle, session: capsule.session, underlayId, cohortSha256: admission.sealed.sha256,
@@ -678,4 +687,114 @@ export async function recordPreparedDraftCandidate(cohort: Main04Cohort, draft: 
 if (process.argv[2] === 'seal' && process.argv[1]?.endsWith('/main03Cohort.ts')) {
   void (async () => { const context = loadCohortAdmissionFromEnv('MAIN03_SEAL'); await sealMain03Candidate(context.admission, context.ports) })()
     .then(() => { process.stdout.write('SOURCE_COHORT_SEALED_NOT_BUSINESS_PASS\n') }).catch(() => { process.stderr.write('cohort_hold:seal_failed\n'); process.exitCode = 1 })
+}
+
+// A source/resource basis contains only already observed identities and source
+// inputs. Full runtime hashes are computed here before any business admission
+// is constructed; absent future hashes are never replaced with placeholders.
+if (process.argv[2] === 'observe-basis' && process.argv[1]?.endsWith('/main03Cohort.ts')) {
+  void (async () => {
+    const file = process.env.TRACK1_COHORT_ADMISSION_FILE, digest = process.env.TRACK1_COHORT_ADMISSION_SHA256
+    need(file && digest, 'observation_basis_missing')
+    const home = path.dirname(file), basis = readCohortFile<BusinessAdmission>({ path: file, sha256: digest }, home)
+    need(file === path.join(home, 'phase-basis.json') && basis.privateHome === home
+      && basis.schema === 'track1-cohort-business-admission-v2', 'observation_basis_path')
+    const observed = await observeCohortRuntime(basis)
+    appendCohortFile(path.join(home, 'phase-runtime-observed.json'), observed, home)
+  })().catch(() => { process.stderr.write('cohort_hold:runtime_observation_failed\n'); process.exitCode = 1 })
+}
+
+// Fixed read-only parent observer; no arbitrary SQL/argv or Auth request.
+if (process.argv[2] === 'observe-retry-graph' && process.argv[1]?.endsWith('/main03Cohort.ts')) {
+  void (async () => {
+    const file = process.env.TRACK1_COHORT_ADMISSION_FILE, digest = process.env.TRACK1_COHORT_ADMISSION_SHA256
+    need(file && digest, 'retry_observation_admission')
+    const home = path.dirname(path.dirname(file)), admission = readCohortFile<BusinessAdmission>({ path: file, sha256: digest }, home)
+    validateBusinessAdmission(admission, 'MAIN03_CANDIDATE', Date.now())
+    const factsFile = path.join(home, 'business/retry-facts.json'), raw = readFileSync(factsFile)
+    need(bytesHash(raw) === process.env.TRACK1_RETRY_FACTS_SHA256, 'retry_observation_facts')
+    const facts = row(parseCohortJson(raw.toString('utf8')))
+    const ids = Object.fromEntries(ID_FIELDS.map(key => [key, uuid(row(facts.ids)[key])])) as CohortIds
+    const graph = readCohortGraph(admission, ids, inputOracle(admission).oracle)
+    process.stdout.write(JSON.stringify({ graphSha256: cohortHash(graph), graph }))
+  })().catch(() => { process.stderr.write('cohort_hold:retry_observation_failed\n'); process.exitCode = 1 })
+}
+
+/** Integrated v2 has a distinct immutable prepared assignment. Old smoke and
+ * standalone admissions cannot silently acquire these business privileges. */
+export function assertPhasedAssignment(admission: BusinessAdmission): void {
+  const bridge = admission.phaseAdapter
+  need(admission.schema === 'track1-cohort-business-admission-v2' && bridge?.schema === 'track1-parent-custody-ipc-v1', 'phased_assignment_required')
+  const assigned = readCohortFile<JsonRow>(bridge.assignment, admission.privateHome)
+  need(assigned.schema === 'track1-runtime-assignment-v3' && assigned.mode === 'coordinator_prepared_phased'
+    && assigned.reportKind === 'phased_cohort' && assigned.preparedReceiptSha256 === bridge.preparedSha256, 'phased_assignment_version')
+  same([assigned.simHome, assigned.appDir, assigned.harnessDir, assigned.appCommit, assigned.appTree, assigned.harnessCommit, assigned.harnessTree],
+    [admission.simHome, admission.appDir, admission.harnessDir, admission.runtime.appCommit, admission.runtime.appTree, admission.runtime.harnessCommit, admission.runtime.harnessTree], 'phased_assignment_source')
+  const prepared = readCohortFile<JsonRow>({ path: text(assigned.preparedReceiptFile), sha256: hash(assigned.preparedReceiptSha256) }, admission.privateHome)
+  need(prepared.schema === 'track1-prepared-runtime-v3' && prepared.databaseSystemIdentifier === admission.runtime.databaseSystemIdentifier, 'phased_prepared_backend')
+  need(assigned.businessLocalServiceKeySha256 === admission.serviceRoleKeySha256 && assigned.minimumAuthHeadroomMs === bridge.minimumAuthHeadroomMs
+    && Number.isSafeInteger(bridge.minimumAuthHeadroomMs) && bridge.minimumAuthHeadroomMs >= 120_000, 'phased_local_credential_and_Auth_budget')
+  const observation = readCohortFile<RuntimeIdentity>(bridge.runtimeObservation, admission.privateHome)
+  same(observation, admission.runtime, 'phased_actual_observation')
+  need(bridge.deadlineAtMs <= ms(admission.expiresAtUtc) && bridge.deadlineAtMs > Date.now(), 'phased_deadline')
+  need(/^[a-f0-9]{64}$/.test(bridge.nonce) && bridge.socketPath === path.join(admission.privateHome, 'phase.sock'), 'phased_socket_binding')
+}
+
+/** Only two fixed operations. Credentials stay in the parent; the server
+ * authenticates this actual Unix peer against its recorded child session. */
+export async function parentCustodyRequest(admission: BusinessAdmission, action: 'CUSTODY' | 'BEFORE_RETRY', facts: JsonRow): Promise<JsonRow> {
+  const bridge = admission.phaseAdapter
+  need(bridge && bridge.schema === 'track1-parent-custody-ipc-v1', 'parent_custody_required')
+  privatePath(admission.privateHome)
+  const socket = lstatSync(bridge.socketPath)
+  need(socket.isSocket() && socket.uid === process.getuid?.() && (socket.mode & 0o777) === 0o600 && !socket.isSymbolicLink(), 'parent_socket_identity')
+  const parent = bridge.parent
+  need(Number.isSafeInteger(parent.pid) && parent.pid > 1, 'parent_pid')
+  const checkParent = () => {
+    const raw = readFileSync(`/proc/${parent.pid}/stat`, 'utf8'), fields = raw.slice(raw.lastIndexOf(')') + 1).trim().split(/\s+/)
+    need(fields[0] !== 'Z' && fields[19] === parent.startTicks && bytesHash(readFileSync(`/proc/${parent.pid}/exe`)) === parent.exeSha256
+      && readFileSync('/proc/sys/kernel/random/boot_id', 'utf8').trim() === parent.bootId, 'parent_birth_changed')
+  }
+  checkParent()
+  const requestId = randomUUID(), deadline = Math.min(bridge.deadlineAtMs, ms(admission.expiresAtUtc))
+  need(deadline > Date.now() + 60_000, 'parent_deadline_headroom')
+  const request = { schema: bridge.schema, action, requestId, nonce: bridge.nonce, assignmentSha256: bridge.assignment.sha256,
+    admissionSha256: process.env.TRACK1_COHORT_ADMISSION_SHA256, runId: admission.runId, operationId: admission.operationId, phase: admission.phase, facts }
+  return new Promise((resolve, reject) => {
+    const stream = connect(bridge.socketPath); const buffers: Buffer[] = []; let size = 0
+    const fail = () => { stream.destroy(); reject(new Error('cohort_hold:parent_custody_unavailable')) }
+    stream.setTimeout(Math.min(deadline - Date.now(), 600_000), fail)
+    stream.once('error', fail); stream.once('connect', () => stream.end(canonical(request) + '\n'))
+    stream.on('data', (buffer: Buffer) => { size += buffer.length; if (size > 256 * 1024) fail(); else buffers.push(buffer) })
+    stream.once('end', () => {
+      try {
+        checkParent(); need(Date.now() < deadline, 'parent_deadline')
+        const reply = row(parseCohortJson(Buffer.concat(buffers).toString('utf8')))
+        need(reply.schema === bridge.schema && reply.requestId === requestId && reply.nonce === bridge.nonce
+          && reply.assignmentSha256 === bridge.assignment.sha256 && reply.action === action && reply.state === 'OBSERVED', 'parent_reply_binding')
+        resolve(row(reply.observation))
+      } catch { fail() }
+    })
+  })
+}
+
+export async function awaitMain03RetryPermit(context: { admission: BusinessAdmission; ports: CohortPorts }, fixture: Main03Fixture, facts: JsonRow): Promise<void> {
+  const { admission, ports } = context
+  validateBusinessAdmission(admission, 'MAIN03_CANDIDATE', ports.now())
+  need(admission.schema === 'track1-cohort-business-admission-v2' && facts.aborted === true, 'native_resolution_required')
+  uuid(facts.nativeOperationId)
+  const ids = Object.fromEntries(ID_FIELDS.map(key => [key, fixture[key]])) as CohortIds
+  const auth = await ports.authenticate(fixture.session, admission)
+  checkAuth(auth, ids, ports.now(), admission.phaseAdapter?.minimumAuthHeadroomMs)
+  same(await ports.observeRuntime(admission), admission.runtime, 'runtime_before_retry_hold')
+  const { oracle } = inputOracle(admission), before = await ports.readGraph(ids, oracle)
+  const permit = await parentCustodyRequest(admission, 'BEFORE_RETRY', { ...facts, ids, auth: { userId: auth.userId, companyId: auth.companyId, expiresAtMs: auth.expiresAtMs, canRead: auth.permissions.includes('billing_underlay.read'), canExport: auth.permissions.includes('billing_underlay.export') }, graphSha256: cohortHash(before), runtimeSha256: cohortHash(admission.runtime) })
+  need(permit.nativeOperationId === facts.nativeOperationId && permit.decision === 'RETRY_ONCE'
+    && permit.graphSha256 === cohortHash(before) && permit.runtimeSha256 === cohortHash(admission.runtime)
+    && Number.isSafeInteger(permit.permitExpiresAtMs) && Number(permit.permitExpiresAtMs) <= admission.phaseAdapter!.deadlineAtMs, 'native_permit_binding')
+  // A permit never replaces fresh Auth/custody/runtime/graph observations.
+  checkAuth(await ports.authenticate(fixture.session, admission), ids, ports.now(), admission.phaseAdapter?.minimumAuthHeadroomMs)
+  same(await ports.observeRuntime(admission), admission.runtime, 'runtime_after_retry_hold')
+  same(await ports.readGraph(ids, oracle), before, 'graph_changed_during_retry_hold')
+  need(Date.now() < Number(permit.permitExpiresAtMs), 'native_permit_expired_before_retry')
 }

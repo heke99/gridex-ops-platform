@@ -208,3 +208,89 @@ proof produces only a constructed `qualified:false` incident summary and a
 nonzero publisher; uploading that summary cannot change the failed producer
 step. It contains fixed phase labels, bounded exit codes and admitted source
 SHAs, with no copied raw diagnostic fields. Raw logs/status/env remain private.
+
+## Versionerad fasadapter: källa klar först, körning fortfarande HOLD
+
+Den separata `phased-cohort`-jobben får bara väljas av en ny, samordnaradmitterad
+`pull_request: opened` från `codex/t1-phased-cohort-native`, samma repo och försök 1.
+Det ursprungliga `startup-smoke`-jobbet och dess tre infrastrukturfall behåller
+sin egen gren, budget och städning. Inget dispatch, matrix, CI-omtag eller vanlig
+källbranch ger verksamhetsmandat. `ROOT_TO_PIN` måste ersättas i en separat
+slutgranskad leverans; app C, harness H och workflow-carrier W är skilda identiteter.
+
+Fasläget kräver **`track1-hosted-phased-admission-v2`**, ett uttryckligt
+`track1-sameC-phase-contract-v1`, **`track1-runtime-assignment-v3`** och
+`track1-prepared-runtime-v3`. Verksamhetsbarnet kräver därefter
+`track1-cohort-business-admission-v2`. V1/v2-infrastruktur eller fristående
+cohort-v1 får aldrig utökas genom en miljöflagga eller generisk SKIP/reuse.
+Samma observerade rena replay, build, app, backend, fulla kataloger,
+migrationsledger och resurs-ID:n måste behållas genom hela kedjan.
+
+Den fasta kedjan är `STARTUP_OBSERVED → MAIN03_RUNNING → BEFORE_RETRY →
+RETRY_PERMITTED → MAIN03_TERMINAL → SEALED → MAIN04_RUNNING → MAIN04_TERMINAL`.
+MAIN03 kör originalets fem steg i befintlig ordning. MAIN04 kör bara .01/.03;
+.04 är fortfarande **HOLD_UNADMITTED**, utan approve/send/providerdispatch.
+Fasföräldern väntar faktiskt in sina barn, kräver fullständiga rårapporter utan
+hook/globalfel och lämnar inga godkända scenario-ID:n i fasresultatet.
+
+`phase-start`, `phase-checkpoint --ordinal 0..4`, `phase-accept --ordinal 0..4`
+och den enda avslutande `phase-finish` är fasta ingångar. Checkpoint 0 uppstår
+först efter faktiska fulla runtime-/build-/process-/capture-observationer. Två
+externa, från producenten skilda granskare granskar den faktiska artifacten.
+Samordnaren levererar sedan oföränderliga, platta refs:
+`agent-runtime-admissions/t1-R-1-phase-N` och
+`agent-runtime-admissions/t1-R-1-review-N-0`/`...-review-N-1`.
+Varje nästa input binder verklig artifact-ID/arkivdigest, checkpoint, föregående
+input, C/H/W, körning/jobb/försök, exakta granskar-/sessionsidentiteter, en enda
+förutbestämd nästa åtgärd och en absolut deadline. Saknad/nekad/lokal/förfalskad,
+inaktuell, duplicerad eller tvetydig input ger HOLD. Föräldern läser om de
+verkliga autentiserade refsen före effekt; en lokal APPROVE-fil räcker aldrig.
+Föräldern kan materialisera exakt de redan autentiserade granskarpayloadernas
+bytes men får inte skapa eller märka om ett granskningsbeslut.
+
+Verksamhetsbarnet använder en privat Unix-socket, med kernelns PID/UID och
+observerad födelse, session, härkomst, cwd, exe, boot, nonce och admission-bindning.
+Det har ingen GitHub-/kontroll-/providercredential. Endast faktiska syntetiska
+aktörssessioner och den uttryckligen versionsadmitterade isolerade backendens
+lokala service-rollnyckel får finnas privat; nyckelns digest måste stämma med
+den verkligt cachade SDK-klienten. Ingen credential får finnas i publika
+checkpointar, fel eller artefakter.
+
+Originalanropet får `X-Request-ID` och behåller 400 ms-stimulansen. Stabil graf,
+timeout, waitpid eller frånvaro av SQL-aktivitet frigör aldrig återförsöket.
+Den källbundna producenten måste faktiskt avge `billing_underlay_operation_v1`:
+`started/pending → client_disconnected/pending/abortWhilePending=true →
+terminal/fulfilled/200/thrown=false`, samma korrelation, attempt, modulboot och
+verkligt ägd app-worker. Workern behöver inte vara lyssnarens PID. Redan avbruten
+request, missad/duplicerad signal, not_entered, rejected, tekniskt fel eller
+responsekonstruktionsfel förblir HOLD. Privat råcapture och processhärkomst måste
+stämma; två verkliga BEFORE_RETRY-granskningar krävs innan det levande barnet
+får göra sitt enda återförsök. Nya, separata granskningar av **redan existerande**
+kandidat, terminal och rapporter krävs före den skrivskyddade förseglingen.
+
+Producentens granskade källkontrakt, faktisk startup-readiness och originalets
+senare native-resolution är tre skilda steg. Inget framtida event-/rapporthash
+kan förhandsberäknas. Verklig UTC/monoton tid, ändliga HOLD-budgetar, konfigurerad
+Auth-livslängd och faktiska sessionsmarginaler kontrolleras; ingen klockflytt,
+TTL-förlängning eller tyst tokenrefresh införs. Okänd städning eller förlorad
+förälder/barnprocess är okvalificerad, inte ett påstått rent avslut.
+
+**Nuvarande startgräns:** originalunderlaget 1809.51, faktisk slutlig C med
+kvalificerad observation, runtimeparet/producenten, tids-/Auth-budget och verkliga
+nativefakta är ännu inte körkvalificerade. Dessa käll- och komponentkontroller
+startar ingen stack och ger **0 nya 105-PASS**. Historiska 26 PASS påverkas inte.
+
+`businessBudgetSeconds` mäter verklig monoton aktiv tid från MAIN03-start genom
+MAIN04; enbart faktiskt uppmätt väntan på de fem explicita granskningsgrindarna
+räknas som separat HOLD-tid. En senare absolut deadline utökar aldrig budgeten.
+Varje konsumerad input får en append-only observation med verklig UTC/monoton
+tid, föräldrafödelse och inputhash. Nästa checkpoint visar den redan accepterade
+inputens hash och observation, så samordnaren behöver inte gissa en framtida hash.
+Framtida effektstarter och det enda återförsöket kräver fortfarande en levande
+inputdeadline. Slutgranskningen återautentiserar historiska refs/payloads vid den
+verkligt observerade acceptanstiden; den kräver inte att gamla starttillstånd
+fortfarande är levande. Städning använder sin separata `cleanupExpiresAtUtc`,
+behåller käll-/resurs-/custody-kontroller och kan utföras efter verksamhetsdeadline.
+Ett observerat rent avslut redovisas separat även när verksamhetskedjan förblir
+okvalificerad. Missad processfödelse, kvarvarande barn eller okända resurser ger
+fortsatt okänd städning, aldrig ett påstått rent avslut.

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Single-use, coordinator-admitted T1 infrastructure producer.
+"""Single-use, coordinator-admitted T1 runtime profiles.
 
 This is not a reservation allocator. All inputs are private data, not shell
 programs. Missing admission, runtime custody or observed proof fails closed.
-The original campaign scenarios and canonical replay remain separate.
+Smoke-only v1 and explicitly versioned phased business permissions remain separate.
 """
 import argparse
 import datetime as dt
@@ -17,6 +17,7 @@ import shlex
 import shutil
 import signal
 import socket
+import struct
 import stat
 import subprocess
 import sys
@@ -286,7 +287,8 @@ def admission(path, *, teardown=False, custody=True):
     global PRIVATE_TOOL_HOME
     p = private_path(path)
     a = read_json(p)
-    need(a.get("schema") == "track1-hosted-producer-admission-v1" and a.get("workerId") == "codex-track1"
+    phased = a.get("schema") == "track1-hosted-phased-admission-v2"
+    need(a.get("schema") in {"track1-hosted-producer-admission-v1", "track1-hosted-phased-admission-v2"} and a.get("workerId") == "codex-track1"
          and a.get("exclusiveHost") is True, "runtime_admission_schema")
     home = private_path(a["simHome"], True)
     PRIVATE_TOOL_HOME = home / "tool-home"
@@ -300,7 +302,7 @@ def admission(path, *, teardown=False, custody=True):
          and expires < cleanup_expires and (cleanup_expires if teardown else expires) > now(), "runtime_admission_expired")
     event = a["event"]
     need(event.get("repository") == REPO and event.get("name") == "pull_request" and event.get("action") == "opened"
-         and event.get("branch") == "codex/t1-startup-smoke-native" and event.get("attempt") == 1
+         and event.get("branch") == ("codex/t1-phased-cohort-native" if phased else "codex/t1-startup-smoke-native") and event.get("attempt") == 1
          and event.get("runId") == os.environ.get("GITHUB_RUN_ID")
          and os.environ.get("GITHUB_RUN_ATTEMPT") == "1" and event.get("job") == os.environ.get("GITHUB_JOB")
          and event.get("actor") == os.environ.get("GITHUB_ACTOR")
@@ -310,7 +312,9 @@ def admission(path, *, teardown=False, custody=True):
     need(gh_event.get("action") == "opened" and pr.get("head", {}).get("sha") == a["workflowCarrier"]
          and pr.get("head", {}).get("ref") == event["branch"]
          and pr.get("head", {}).get("repo", {}).get("full_name") == REPO, "runtime_event_identity")
-    need(a.get("budget") == {"jobs": 1, "replays": 1, "builds": 1, "appStarts": 1, "smokes": 1, "retries": 0}, "runtime_budget")
+    need(a.get("budget") == ({"jobs": 1, "replays": 1, "builds": 1, "appStarts": 1, "smokes": 1, "main03": 1, "main04PrepareReview": 1, "nativeRetries": 1, "cleanup": 1} if phased else {"jobs": 1, "replays": 1, "builds": 1, "appStarts": 1, "smokes": 1, "retries": 0}), "runtime_budget")
+    if phased:
+        check_phase_contract(a, teardown=teardown)
     need(a.get("projectId") == "t1-" + event["runId"] + "-1"
          and a.get("ports") == {"db": 54322, "api": 54321, "app": 3101}, "runtime_ports_project")
     app = clean_source(a["appDir"], a["appCommit"], a["appTree"])
@@ -332,7 +336,9 @@ def admission(path, *, teardown=False, custody=True):
     fields = {"resources-sha256": sha(("\n".join(sorted(refs)) + "\n").encode()),
               "inputs-sha256": sha(encoded(attempt)), "admission-core-sha256": sha(encoded(core)),
               **{k: a[k] for k in ("appCommit", "appTree", "harnessCommit", "harnessTree", "workflowCarrier", "workflowBlob")}}
-    op = "simulation-t1-startup-smoke-v1; " + "; ".join(k + "=" + v for k, v in fields.items())
+    if phased:
+        fields["phase-contract-sha256"] = sha(encoded(a["phaseContract"]))
+    op = ("simulation-t1-phased-cohort-v1; " if phased else "simulation-t1-startup-smoke-v1; ") + "; ".join(k + "=" + v for k, v in fields.items())
     expected = reservation["expectedNeutral"]
     need(set(expected) == {"base", "files", "operation"} and expected["files"] == []
          and HEX40.fullmatch(expected["base"]) and expected["operation"] == op, "runtime_reservation_binding")
@@ -365,7 +371,7 @@ def admission(path, *, teardown=False, custody=True):
                 observed = api("git/ref/" + ref.removeprefix("refs/"))
                 need(observed.get("ref") == ref and observed["object"]["sha"] == claim["receipt"], "runtime_source_custody")
             covered.update(name for name in source["files"] if PREFIX + "file-" + sha(name.encode()) in claim["refs"])
-        need(set(SOURCE_PATHS) <= covered, "runtime_source_custody")
+        need(set(SOURCE_PATHS + (PHASE_SOURCE_PATHS if phased else ())) <= covered, "runtime_source_custody")
     for tool, expected in a["tools"].items():
         executable = pathlib.Path(shutil.which(tool) or "")
         need(executable.is_absolute() and sha(executable.resolve().read_bytes()) == expected["sha256"], "runtime_tool_identity")
@@ -672,6 +678,8 @@ def prepare(path, assignment_output):
                 "databaseContainerId": resources["roles"]["database"], "apiContainerId": resources["roles"]["api"],
                 "storageContainerId": resources["roles"]["storage"], "networkId": identifier,
                 "privateStatusSha256": sha(raw_status), "ownedResourceManifestSha256": sha((home / "resources.json").read_bytes()), **observed}
+    if a.get("schema") == "track1-hosted-phased-admission-v2":
+        prepared["schema"] = "track1-prepared-runtime-v3"
     seal(home / "prepared-runtime.json", prepared)
     assignment = {"schema": "track1-runtime-assignment-v2", "mode": "coordinator_prepared_fresh", "workerId": "codex-track1",
                   "admissionFile": str(path), "admissionSha256": prepared["admissionSha256"], "preparedReceiptFile": str(home / "prepared-runtime.json"),
@@ -681,6 +689,13 @@ def prepare(path, assignment_output):
                   "environmentId": a["projectId"], "dbPort": 54322, "apiPort": 54321, "appPort": 3101,
                   "runtimeConfigDescriptorSha256": prepared["runtimeConfigDescriptorSha256"],
                   "overlayRefs": ["runtime-config:" + prepared["runtimeConfigDescriptorSha256"]]}
+    if a.get("schema") == "track1-hosted-phased-admission-v2":
+        jwt_seconds = tomllib.loads((home / "cli/supabase/config.toml").read_text())["auth"]["jwt_expiry"]
+        contract = a["phaseContract"]
+        need(type(jwt_seconds) is int and contract["businessBudgetSeconds"] + 5 * contract["holdSeconds"] + 120 < jwt_seconds, "runtime_phase_actual_Auth_lifetime_HOLD")
+        assignment.update(schema="track1-runtime-assignment-v3", mode="coordinator_prepared_phased", reportKind="phased_cohort", allowedActions=["up", "run"],
+                          minimumAuthHeadroomMs=1000 * contract["minAuthHeadroomSeconds"],
+                          businessLocalServiceKeySha256=sha(values["SUPABASE_SERVICE_ROLE_KEY"].encode()), phaseContractSha256=sha(encoded(contract)))
     seal(output, assignment)
     return assignment
 
@@ -688,9 +703,10 @@ def prepare(path, assignment_output):
 def verify(assignment_file, action, *, custody=True):
     assignment_path = private_path(assignment_file)
     r = read_json(assignment_path)
-    need(r.get("schema") == "track1-runtime-assignment-v2" and r.get("mode") == "coordinator_prepared_fresh"
-         and r.get("reportKind") == "infrastructure_smoke" and action in r.get("allowedActions", []), "runtime_assignment_schema")
+    phased = r.get("schema") == "track1-runtime-assignment-v3"
+    need((r.get("schema"), r.get("mode"), r.get("reportKind")) == (("track1-runtime-assignment-v3", "coordinator_prepared_phased", "phased_cohort") if phased else ("track1-runtime-assignment-v2", "coordinator_prepared_fresh", "infrastructure_smoke")) and action in r.get("allowedActions", []), "runtime_assignment_schema")
     a = admission(r["admissionFile"], teardown=action == "down", custody=custody)
+    need((a.get("schema") == "track1-hosted-phased-admission-v2") == phased, "runtime_assignment_profile")
     home = pathlib.Path(a["simHome"])
     need(assignment_path == home / "assignment.json" and r["admissionSha256"] == sha(private_path(r["admissionFile"]).read_bytes()), "runtime_assignment_binding")
     need(os.environ.get("SKIP_REPLAY", "0") == os.environ.get("SKIP_BUILD", "0") == "0", "runtime_no_generic_reuse")
@@ -736,7 +752,7 @@ def check_prepared_files(a, assignment, prepared):
          and prepared["jobId"] == event["jobId"]
          and type(prepared.get("runAttempt")) is int and type(event["attempt"]) is int
          and prepared["runAttempt"] == event["attempt"] == 1, "runtime_prepared_job_identity")
-    need(prepared.get("schema") == "track1-prepared-runtime-v2"
+    need(prepared.get("schema") == ("track1-prepared-runtime-v3" if a.get("schema") == "track1-hosted-phased-admission-v2" else "track1-prepared-runtime-v2")
          and all(prepared[k] == a[k] for k in ("appCommit", "appTree", "harnessCommit", "harnessTree", "workflowCarrier", "workflowBlob"))
          and prepared["replayCommit"] == a["appCommit"] and prepared["replayTree"] == a["appTree"]
          and prepared["runtimeProjectId"] == a["projectId"] and prepared["runtimePorts"] == a["ports"]
@@ -800,7 +816,7 @@ def up(assignment_file):
         need((pathlib.Path("/proc") / str(process.pid) / "cmdline").read_bytes().startswith(b"next-server (v"), "runtime_app_title")
         seal(envdir / "app-ready.json", ready)
         seal(envdir / "stack.json", {**prepared, "assignmentSha256": sha(private_path(assignment_file).read_bytes()),
-             "environmentId": a["projectId"], "mode": "producer_prepared_fresh_v2", "appUrl": "http://127.0.0.1:3101"})
+             "environmentId": a["projectId"], "mode": "producer_prepared_phased_v3" if a.get("schema") == "track1-hosted-phased-admission-v2" else "producer_prepared_fresh_v2", "appUrl": "http://127.0.0.1:3101"})
         (home / "current").symlink_to(envdir)
     phase(home, "up", perform)
 
@@ -926,6 +942,7 @@ def cleanup(path):
 
 def publish_safe(path, primary_exit):
     a = admission(path, teardown=True)
+    need(a.get("schema") != "track1-hosted-phased-admission-v2", "runtime_phase_dedicated_publication_required")
     try:
         publish_qualified(a, path, primary_exit)
     except Exception:
@@ -1005,9 +1022,830 @@ def publish_qualified(a, path, primary_exit):
     publish_constructed(home, text)
 
 
+# Explicit phased profile. None of these interfaces expands the old smoke mode.
+PHASE_SOURCE_PATHS = ("scripts/simulation/track1/fixtures/main03Cohort.ts",
+                      "scripts/simulation/track1/scenarios/main03.test.ts",
+                      "scripts/simulation/track1/scenarios/main04.test.ts",
+                      "__tests__/simulation-main03-cohort-handoff.test.ts")
+PHASE_TRANSITIONS = {"STARTUP_OBSERVED": "START_MAIN03", "BEFORE_RETRY": "RETRY_ONCE",
+                     "MAIN03_TERMINAL": "SEAL_MAIN03", "SEALED": "PREPARE_REVIEW_MAIN04",
+                     "MAIN04_TERMINAL": "REVIEW_DRAFT"}
+PHASE_INPUT_STATES = tuple(PHASE_TRANSITIONS)
+NATIVE_SCHEMA = "billing_underlay_operation_v1"
+PHASE_UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\Z")
+
+
+def check_phase_contract(a, *, teardown=False):
+    c = a.get("phaseContract", {})
+    need(c.get("schema") == "track1-sameC-phase-contract-v1" and a.get("reportKind") == "phased_cohort", "runtime_phase_contract")
+    need(isinstance(c.get("producerId"), str) and c["producerId"] and c.get("coordinator", {}).get("id") != c["producerId"], "runtime_phase_actors")
+    reviewers = c.get("reviewers", [])
+    need(len(reviewers) == 2 and len({r.get("id") for r in reviewers}) == 2
+         and len({r.get("sessionRef") for r in reviewers}) == 2
+         and all(r.get("id") not in {None, "", c["producerId"]} for r in reviewers), "runtime_phase_reviewers")
+    for actor in [c["coordinator"], *reviewers]:
+        need(re.fullmatch(PREFIX + r"slot-session-[a-z0-9-]+", actor.get("sessionRef", ""))
+             and HEX40.fullmatch(actor.get("receipt", "")) and isinstance(actor.get("expectedNeutral"), dict)
+             and set(actor["expectedNeutral"]) == {"base", "files", "operation"}, "runtime_phase_actor_custody")
+    need(type(c.get("holdSeconds")) is int and 60 <= c["holdSeconds"] <= 600
+         and type(c.get("businessBudgetSeconds")) is int and 1 <= c["businessBudgetSeconds"] <= 7200
+         and type(c.get("minAuthHeadroomSeconds")) is int and c["minAuthHeadroomSeconds"] >= c["holdSeconds"] + 120,
+         "runtime_phase_finite_budget")
+    profile = c.get("nativeProfile", {})
+    need(profile.get("schema") == NATIVE_SCHEMA and profile.get("readiness") == "REVIEWED_SOURCE_RUNTIME_OBSERVATION_PENDING"
+         and "qualified" not in profile and "operationResolutionSha256" not in profile, "runtime_phase_native_profile_HOLD")
+    source_reviews = profile.get("sourceReviews", [])
+    need(len(source_reviews) == 2 and len({r.get("reviewerId") for r in source_reviews}) == 2
+         and len({r.get("receiptSha256") for r in source_reviews}) == 2
+         and all(r.get("reviewerId") not in {None, "", c["producerId"]} and HEX64.fullmatch(r.get("receiptSha256", ""))
+                 and r.get("routeSha256") == profile.get("routeSha256") and r.get("testSha256") == profile.get("testSha256") for r in source_reviews), "runtime_phase_native_source_reviews_HOLD")
+    # A separate product source/profile must actually exist on C. A source-only
+    # adapter cannot invent qualification for the current uninstrumented route.
+    route = pathlib.Path(a["appDir"]) / "app/api/internal/billing/generate-underlay/route.ts"
+    test = pathlib.Path(a["appDir"]) / "__tests__/billing-underlay-operation-observation.test.ts"
+    need(sha(route.read_bytes()) == profile.get("routeSha256") and sha(test.read_bytes()) == profile.get("testSha256")
+         and NATIVE_SCHEMA.encode() in route.read_bytes(), "runtime_phase_native_source_HOLD")
+    need(PHASE_UUID.fullmatch(c.get("operationId", "")), "runtime_phase_operation_id")
+    auth_seconds = tomllib.loads((pathlib.Path(a["appDir"]) / "supabase/config.toml").read_text())["auth"]["jwt_expiry"]
+    need(type(auth_seconds) is int and c["businessBudgetSeconds"] + 5 * c["holdSeconds"] + 120 < auth_seconds, "runtime_phase_actual_Auth_lifetime_HOLD")
+    need(c.get("inputQualification", {}).get("state") == "ACTUAL_ORIGINAL_INPUT_QUALIFIED"
+         and c["inputQualification"].get("basisKind") == "original_frozen_input"
+         and all(HEX64.fullmatch(c["inputQualification"].get(key, "")) for key in ("receiptSha256", "approvalSha256", "inputVectorSha256")), "runtime_phase_original_input_HOLD")
+    deadline = dt.datetime.fromisoformat(c["absoluteDeadlineAtUtc"].replace("Z", "+00:00"))
+    need(deadline.tzinfo is not None and (teardown or now() < deadline)
+         and deadline <= dt.datetime.fromisoformat(a["expiresAtUtc"].replace("Z", "+00:00")), "runtime_phase_deadline")
+
+
+def phase_clock(anchor, *, wall=None, mono=None):
+    wall = time.time() if wall is None else wall
+    mono = time.monotonic() if mono is None else mono
+    need(mono >= anchor["mono"] and abs((wall - anchor["wall"]) - (mono - anchor["mono"])) <= 5
+         and wall < anchor["deadline"] and mono - anchor["mono"] < anchor["deadline"] - anchor["wall"], "runtime_phase_clock_or_deadline")
+
+
+class PhaseJournal:
+    """One parent writer, append-only facts. No mutable current-state file."""
+    def __init__(self, home, binding, deadline):
+        self.root = pathlib.Path(home) / "phase-journal"
+        self.root.mkdir(mode=0o700, exist_ok=True)
+        private_path(self.root, True)
+        self.binding = binding
+        self.anchor = {"wall": time.time(), "mono": time.monotonic(), "deadline": deadline}
+        self.records = []
+        for index, path in enumerate(sorted(self.root.glob("*.json"))):
+            need(path.name == f"{index:04}.json", "runtime_phase_journal_gap")
+            record = read_json(path)
+            need(record["sequence"] == index and record["binding"] == binding
+                 and record["previousSha256"] == (sha(encoded(self.records[-1])) if index else None), "runtime_phase_journal_chain")
+            self.records.append(record)
+        # Restarting a producer loses real wait()/live socket ownership.
+        need(not self.records, "runtime_phase_parent_restart_refused")
+
+    def append(self, state, observation):
+        phase_clock(self.anchor)
+        transitions = {None: "STARTUP_OBSERVED", "STARTUP_OBSERVED": "MAIN03_RUNNING", "MAIN03_RUNNING": "BEFORE_RETRY",
+                       "BEFORE_RETRY": "RETRY_PERMITTED", "RETRY_PERMITTED": "MAIN03_TERMINAL", "MAIN03_TERMINAL": "SEALED",
+                       "SEALED": "MAIN04_RUNNING", "MAIN04_RUNNING": "MAIN04_TERMINAL", "MAIN04_TERMINAL": "CLEANUP"}
+        prior = self.records[-1]["state"] if self.records else None
+        need(state == transitions.get(prior) or (state == "HOLD" and prior not in {"HOLD", "CLEANUP"}), "runtime_phase_state_transition")
+        record = {"schema": "track1-actual-phase-observation-v1", "sequence": len(self.records),
+                  "previousSha256": sha(encoded(self.records[-1])) if self.records else None,
+                  "binding": self.binding, "state": state, "atUtc": utc(), "monotonicNs": time.monotonic_ns(), "observation": observation}
+        seal(self.root / f"{len(self.records):04}.json", record)
+        self.records.append(record)
+        return record
+
+
+def proc_birth(pid):
+    need(type(pid) is int and pid > 1, "runtime_phase_pid")
+    p = pathlib.Path("/proc") / str(pid)
+    fields = (p / "stat").read_text().rsplit(")", 1)[1].split()
+    need(fields[0] != "Z", "runtime_phase_process_dead")
+    executable = (p / "exe").resolve()
+    return {"pid": pid, "ppid": int(fields[1]), "pgid": int(fields[2]), "sid": int(fields[3]),
+            "startTicks": fields[19], "uid": p.stat().st_uid, "cwd": str((p / "cwd").resolve()),
+            "exe": str(executable), "exeSha256": sha(executable.read_bytes()),
+            "bootId": pathlib.Path("/proc/sys/kernel/random/boot_id").read_text().strip()}
+
+
+def phase_peer(pid, uid, child, expected_cwd):
+    actual = proc_birth(pid)
+    leader = proc_birth(child["pid"])
+    need(uid == actual["uid"] == leader["uid"] == os.getuid()
+         and all(leader[k] == child[k] for k in ("pid", "startTicks", "sid", "pgid", "bootId", "exeSha256", "cwd"))
+         and actual["sid"] == actual["pgid"] == leader["sid"] == leader["pid"]
+         and actual["cwd"] == expected_cwd and actual["exeSha256"] == leader["exeSha256"]
+         and actual["bootId"] == leader["bootId"], "runtime_phase_peer_identity")
+    ancestry = actual
+    for _ in range(32):
+        if ancestry["pid"] == leader["pid"]:
+            return actual
+        need(ancestry["ppid"] > 1, "runtime_phase_peer_ancestry")
+        ancestry = proc_birth(ancestry["ppid"])
+    raise RuntimeError("runtime_phase_peer_ancestry")
+
+
+def native_resolution(lines, operation_id, app_birth, app_dir, *, observe=proc_birth):
+    need(PHASE_UUID.fullmatch(operation_id) is not None, "runtime_phase_native_correlation")
+    events = []
+    for line in lines.splitlines():
+        try:
+            item = json.loads(line)
+        except (ValueError, TypeError):
+            continue
+        if isinstance(item, dict) and item.get("schema") == NATIVE_SCHEMA and item.get("correlationId") == operation_id:
+            events.append(item)
+    need(len(events) == 3 and [e.get("event") for e in events] == ["started", "client_disconnected", "terminal"], "runtime_phase_native_missing_or_ambiguous")
+    need(len({e.get("attemptId") for e in events}) == 1 and PHASE_UUID.fullmatch(events[0].get("attemptId", "")), "runtime_phase_native_attempt")
+    fields = {"schema", "route", "method", "correlationId", "attemptId", "bootId", "pid", "event", "sequence", "elapsedMs", "engineState", "status", "abortWhilePending", "thrown"}
+    need(all(set(event) == fields and type(event["sequence"]) is int for event in events), "runtime_phase_native_exact_wire")
+    need(all(e.get("route") == "/api/internal/billing/generate-underlay" and e.get("method") == "POST" for e in events)
+         and [e.get("sequence") for e in events] == [1, 2, 3], "runtime_phase_native_wire_profile")
+    need(events[0].get("engineState") == events[1].get("engineState") == "pending"
+         and events[0].get("status") is None and events[0].get("thrown") is False and events[0].get("abortWhilePending") is False
+         and events[1].get("status") is None and events[1].get("thrown") is False and events[1].get("abortWhilePending") is True
+         and events[2].get("abortWhilePending") is False and events[2].get("engineState") == "fulfilled"
+         and events[2].get("status") == 200 and events[2].get("thrown") is False, "runtime_phase_native_not_resolved")
+    stamps = [e.get("elapsedMs") for e in events]
+    need(all(type(s) is int and s >= 0 for s in stamps) and stamps[0] <= stamps[1] <= stamps[2], "runtime_phase_native_order")
+    need(len({e.get("pid") for e in events}) == 1 and len({e.get("bootId") for e in events}) == 1, "runtime_phase_native_worker")
+    worker = observe(events[0]["pid"])
+    need(worker["uid"] == app_birth["uid"] and worker["cwd"] == app_dir and worker["sid"] == app_birth["sid"]
+         and worker["exeSha256"] == app_birth["exeSha256"] and worker["bootId"] == app_birth["bootId"]
+         and PHASE_UUID.fullmatch(events[0]["bootId"]), "runtime_phase_native_process")
+    cursor = worker
+    for _ in range(32):
+        if cursor["pid"] == app_birth["pid"]:
+            need(cursor["startTicks"] == app_birth["startTicks"], "runtime_phase_native_reused_app")
+            break
+        need(cursor["ppid"] > 1, "runtime_phase_native_ancestry")
+        cursor = observe(cursor["ppid"])
+    else:
+        raise RuntimeError("runtime_phase_native_ancestry")
+    return {"schema": NATIVE_SCHEMA, "correlationId": operation_id, "attemptId": events[0]["attemptId"], "moduleBootId": events[0]["bootId"],
+            "eventsSha256": sha(encoded(events)), "events": events, "worker": worker, "engineOutcome": "fulfilled", "status": 200}
+
+
+def phase_custody(a, custody, *, teardown=False):
+    admission(a["admissionFile"], teardown=teardown)
+    expected = {}
+    for claim in [a["reservation"], *a["sourceClaims"]]:
+        expected.update({ref: claim["receipt"] for ref in claim["refs"]})
+    need(custody.get("refs") == expected, "runtime_phase_business_custody")
+    for actor in [a["phaseContract"]["coordinator"], *a["phaseContract"]["reviewers"]]:
+        observed = api("git/ref/" + actor["sessionRef"].removeprefix("refs/"))
+        need(observed.get("ref") == actor["sessionRef"] and observed["object"]["sha"] == actor["receipt"], "runtime_phase_actor_changed")
+        actor_receipt = api("git/commits/" + actor["receipt"])
+        actor_expected = actor["expectedNeutral"]
+        need(phase_json(actor_receipt["message"]) == actor_expected and [p["sha"] for p in actor_receipt["parents"]] == [actor_expected["base"]]
+             and actor_receipt["tree"]["sha"] == api("git/commits/" + actor_expected["base"])["tree"]["sha"], "runtime_phase_actor_full_neutral")
+    for receipt in custody.get("receipts", []):
+        observed = api("git/commits/" + receipt["sha"])
+        need(sha(observed["message"].encode()) == receipt["messageSha256"]
+             and observed["tree"]["sha"] == receipt["tree"] and [p["sha"] for p in observed["parents"]] == [receipt["parent"]]
+             and api("git/commits/" + receipt["parent"])["tree"]["sha"] == receipt["tree"], "runtime_phase_full_neutral_changed")
+    need({r["sha"] for r in custody["receipts"]} == set(expected.values()), "runtime_phase_full_neutral_missing")
+    return {"custodySha256": sha(canonical_phase(custody)), "atUtc": utc()}
+
+
+def canonical_phase(value):
+    # Same canonical JSON as the TS cohort protocol, without a trailing LF.
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+
+
+def read_phase_ref(a, suffix):
+    need(re.fullmatch(r"(?:phase-[0-4]|review-[0-4]-[01])", suffix), "runtime_phase_ref_suffix")
+    ref = "refs/tags/agent-runtime-admissions/t1-" + a["event"]["runId"] + "-1-" + suffix
+    observed = api("git/ref/" + ref.removeprefix("refs/"))
+    need(observed.get("ref") == ref and observed["object"]["type"] == "commit", "runtime_phase_input_ref")
+    receipt = api("git/commits/" + observed["object"]["sha"])
+    need(len(receipt["parents"]) == 1 and receipt["tree"]["sha"] == api("git/commits/" + receipt["parents"][0]["sha"])["tree"]["sha"], "runtime_phase_input_neutral")
+    value = phase_json(receipt["message"])
+    need(api("git/ref/" + ref.removeprefix("refs/"))["object"]["sha"] == receipt["sha"], "runtime_phase_input_ref_changed")
+    return value, receipt["sha"], sha(receipt["message"].encode())
+
+
+def validate_phase_input(a, checkpoint, value, reviews, artifact, previous_input, *, at=None):
+    c = a["phaseContract"]
+    need(not any(key in value for key in ("argv", "command", "url", "query", "environment")), "runtime_phase_arbitrary_effect_refused")
+    index = PHASE_INPUT_STATES.index(checkpoint["state"])
+    need(value.get("schema") == "track1-root-next-phase-input-v1" and value.get("ordinal") == index
+         and value.get("next") == PHASE_TRANSITIONS[checkpoint["state"]]
+         and value.get("previousInputSha256") == previous_input
+         and checkpoint["observation"].get("acceptedPreviousInputSha256") == previous_input
+         and value.get("checkpointSha256") == sha(encoded(checkpoint))
+         and value.get("binding") == checkpoint["binding"], "runtime_phase_input_linkage")
+    need(value.get("coordinatorId") == c["coordinator"]["id"] and value.get("producerId") == c["producerId"], "runtime_phase_input_coordinator")
+    if checkpoint["state"] == "STARTUP_OBSERVED":
+        need(value.get("nativeReadinessSha256") == sha(canonical_phase(checkpoint["observation"]["nativeReadiness"]))
+             and all(review.get("nativeReadinessSha256") == value["nativeReadinessSha256"] for review in reviews)
+             and "operationResolutionSha256" not in value, "runtime_phase_actual_profile_readiness")
+    current = time.time() if at is None else at
+    need(type(current) in {int, float} and 0 < current < float("inf"), "runtime_phase_acceptance_time")
+    need(type(value.get("notBeforeEpoch")) is int and type(value.get("deadlineEpoch")) is int
+         and value["notBeforeEpoch"] <= current < value["deadlineEpoch"]
+         and value["deadlineEpoch"] <= dt.datetime.fromisoformat(c["absoluteDeadlineAtUtc"].replace("Z", "+00:00")).timestamp(), "runtime_phase_input_expired")
+    expected_name = "t1-phase-" + a["event"]["runId"] + "-" + str(index)
+    need(artifact.get("id") == value.get("artifactId") and artifact.get("name") == expected_name
+         and artifact.get("workflow_run", {}).get("id") == int(a["event"]["runId"])
+         and artifact.get("expired") is False and artifact.get("digest") == "sha256:" + value.get("artifactArchiveSha256", "")
+         and HEX64.fullmatch(value.get("artifactArchiveSha256", "")), "runtime_phase_actual_artifact")
+    need(len(reviews) == 2 and len(value.get("reviewPayloadSha256", [])) == 2, "runtime_phase_two_reviews")
+    for n, (review, allowed) in enumerate(zip(reviews, c["reviewers"])):
+        need(review.get("schema") == "track1-independent-phase-review-v1" and review.get("reviewerId") == allowed["id"]
+             and review.get("sessionRef") == allowed["sessionRef"] and review.get("decision") == "APPROVE"
+             and review.get("ordinal") == index and review.get("checkpointSha256") == value["checkpointSha256"]
+             and review.get("binding") == checkpoint["binding"] and review.get("next") == value["next"]
+             and sha(canonical_phase(review)) == value["reviewPayloadSha256"][n], "runtime_phase_review_binding")
+    # Dynamic native/candidate/report hashes may bind only facts already in this
+    # checkpoint. The two BEFORE_RETRY reviews cannot name future terminal data.
+    if checkpoint["state"] == "BEFORE_RETRY":
+        need(checkpoint["observation"].get("native", {}).get("status") == 200
+             and all("terminalProcessSha256" not in review and "candidateSha256" not in review for review in reviews), "runtime_phase_future_terminal_refused")
+    return value["next"]
+
+
+def safe_graph_projection(graph):
+    groups = {"sources", "normalized", "physical", "underlays", "items", "bindings", "qualified", "contracts", "supplies", "priceSnapshots", "priceVersions", "spots", "spotLocks", "pricingRuns", "pricingEvidence", "invoices", "exportItems", "exports"}
+    need(isinstance(graph, dict) and set(graph) <= groups, "runtime_phase_graph_shape")
+    projected = {}
+    ids = {"id", "company_id", "customer_id", "metering_point_id", "billing_underlay_id", "billing_underlay_item_id", "underlay_id", "source_message_id", "source_ediel_message_id", "source_normalized_metering_value_id", "source_metering_value_id", "pricing_run_id", "contract_id", "supply_period_id"}
+    decimals = {"quantity_kwh", "total_kwh", "exact_total_kwh", "sek_per_kwh", "amount_ex_vat", "vat_amount", "amount_inc_vat", "total_ex_vat", "total_inc_vat", "quantity", "source_meter_value_count", "missing_values_count"}
+    times = {"period_start", "period_end", "time_start", "time_end", "billing_period_start", "billing_period_end"}
+    for group, rows in graph.items():
+        need(isinstance(rows, list) and len(rows) <= 20000, "runtime_phase_graph_rows")
+        projection = []
+        for row in rows:
+            need(isinstance(row, dict), "runtime_phase_graph_row")
+            value = {"rowSha256": sha(canonical_phase(row))}
+            for key, item in row.items():
+                if item is None:
+                    continue
+                if key in ids:
+                    need(isinstance(item, str) and re.fullmatch(r"[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}", item), "runtime_phase_graph_uuid")
+                    value[key] = item
+                elif key in decimals:
+                    need(re.fullmatch(r"-?[0-9]{1,20}(?:\.[0-9]{1,12})?", str(item)), "runtime_phase_graph_decimal")
+                    value[key] = str(item)
+                elif key in times:
+                    need(isinstance(item, str) and len(item) <= 40 and re.fullmatch(r"[0-9TZt: .+\-]+", item), "runtime_phase_graph_time")
+                    dt.datetime.fromisoformat(item.replace("Z", "+00:00")); value[key] = item
+            projection.append(value)
+        projected[group] = {"count": len(rows), "rows": projection}
+    return projected
+
+
+def phase_binding(a, assignment_file):
+    return {**{k: a[k] for k in ("appCommit", "appTree", "harnessCommit", "harnessTree", "workflowCarrier", "workflowBlob")},
+            "runId": a["event"]["runId"], "jobId": a["event"]["jobId"], "runAttempt": 1,
+            "assignmentSha256": sha(private_path(assignment_file).read_bytes()), "phaseContractSha256": sha(encoded(a["phaseContract"]))}
+
+
+def phase_child_environment(a, assignment_file, cohort_file):
+    values = read_json(pathlib.Path(a["simHome"]) / "private/app-values.json")
+    allowed = {k: values[k] for k in ("NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY")}
+    need(allowed["NEXT_PUBLIC_SUPABASE_URL"] == API_URL and all(allowed.values()), "runtime_phase_local_credentials")
+    return tool_environment({**allowed, "TRACK1_APP_DIR": a["appDir"], "TRACK1_APP_COMMIT": a["appCommit"],
+        "TRACK1_ASSIGNMENT_FILE": str(assignment_file), "SIM_HOME": a["simHome"], "TRACK1_APP_PORT": "3101", "TRACK1_DB_URL": DB_URL,
+        "TRACK1_APP_URL": "http://127.0.0.1:3101", "TRACK1_STACK_JSON": str(pathlib.Path(a["simHome"]) / a["projectId"] / "stack.json"),
+        "TRACK1_RUN_DIR": read_json(cohort_file)["runDir"], "TRACK1_COHORT_ADMISSION_FILE": str(cohort_file),
+        "TRACK1_COHORT_ADMISSION_SHA256": sha(private_path(cohort_file).read_bytes())})
+
+
+def phase_report(raw, code, workload, run_dir, run_id):
+    steps = [step for suite in raw.get("testResults", []) for step in suite.get("assertionResults", [])]
+    wanted = ["MAIN03.01", "MAIN03.02", "MAIN03.03", "MAIN03.05", "MAIN03.04"] if workload == "MAIN03" else ["MAIN04.01", "MAIN04.03"]
+    held = [] if workload == "MAIN03" else ["MAIN04.04"]
+    ids = [step.get("title", "").split(" ", 1)[0] for step in steps]
+    need(type(code) is int and code == 0 and raw.get("success") is True and raw.get("numFailedTests") == 0
+         and raw.get("numFailedTestSuites", 0) == 0 and raw.get("numTodoTests", 0) == 0
+         and raw.get("numPassedTests") == len(wanted) and raw.get("numPendingTests") == len(held)
+         and raw.get("numTotalTests") == len(wanted) + len(held) and ids == wanted + held, "runtime_phase_report_not_qualified")
+    suites = raw.get("testResults", [])
+    need(len(suites) == 1 and suites[0].get("status") == "passed" and not suites[0].get("message"), "runtime_phase_hook_or_suite_failed")
+    for step, identifier in zip(steps, ids):
+        need(step.get("status") in ({"pending", "skipped"} if identifier in held else {"passed"})
+             and not step.get("failureMessages"), "runtime_phase_required_step_failure")
+    return {"runId": run_id, "runDir": str(run_dir), "scenarioFile": "track1/scenarios/" + workload.lower() + ".test.ts",
+            "exitCode": code, "error": None, "vitest": {k: raw.get(k) for k in ("numTotalTests", "numPassedTests", "numFailedTests", "numPendingTests", "numTodoTests", "numFailedTestSuites", "success")},
+            "steps": [{"declaredStepId": identifier, "status": "skipped" if identifier in held else "passed", "failure": None} for identifier in ids],
+            "scenarios": {}, "unadmitted": held, "new105ScenarioPassAttestations": 0}
+
+
+class PhaseParent:
+    def __init__(self, assignment_file):
+        self.a, self.assignment, self.prepared = verify(assignment_file, "run")
+        need(self.assignment["schema"] == "track1-runtime-assignment-v3", "runtime_phase_assignment_required")
+        self.file, self.home = pathlib.Path(assignment_file), pathlib.Path(self.a["simHome"])
+        self.binding = phase_binding(self.a, self.file)
+        deadline = dt.datetime.fromisoformat(self.a["phaseContract"]["absoluteDeadlineAtUtc"].replace("Z", "+00:00")).timestamp()
+        self.journal = PhaseJournal(self.home, self.binding, deadline)
+        self.nonce, self.previous_input, self.child = secrets.token_hex(32), None, None
+        self.business_started, self.business_hold_seconds = None, 0.0
+        self.last_acceptance, self.last_input_deadline = None, None
+        self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.socket.bind(str(self.home / "phase.sock")); os.chmod(self.home / "phase.sock", 0o600)
+        self.socket.listen(4); self.socket.settimeout(0.2)
+        for directory in ("phase-requests", "phase-inputs", "phase-accepted", "phase-checkpoints", "business"):
+            (self.home / directory).mkdir(mode=0o700)
+        self.parent = proc_birth(os.getpid())
+        seal(self.home / "phase-parent.json", self.parent)
+        self.capture = self.capture_identity()
+        self.capture_offset = (self.home / self.a["projectId"] / "logs/app.log").stat().st_size
+        self.custody = self.actual_custody()
+        self.basis = self.make_basis()
+        self.current_admission = self.home / "phase-basis.json"
+        seal(self.current_admission, self.basis)
+
+    def check_clock(self):
+        phase_clock(self.journal.anchor)
+        if getattr(self, "business_started", None) is not None:
+            active = time.monotonic() - self.business_started - self.business_hold_seconds
+            need(0 <= active <= self.a["phaseContract"]["businessBudgetSeconds"], "runtime_phase_business_budget")
+
+    def actual_custody(self):
+        refs, receipts = {}, []
+        for claim in [self.a["reservation"], *self.a["sourceClaims"]]:
+            refs.update({ref: claim["receipt"] for ref in claim["refs"]})
+            observed = api("git/commits/" + claim["receipt"])
+            receipts.append({"sha": claim["receipt"], "parent": observed["parents"][0]["sha"], "tree": observed["tree"]["sha"], "messageSha256": sha(observed["message"].encode())})
+        value = {"refs": refs, "receipts": receipts}; phase_custody(self.a, value)
+        return value
+
+    def make_basis(self):
+        a, home = self.a, self.home
+        resources = read_json(home / "resources.json")
+        build_root = pathlib.Path(a["appDir"]) / ".next"
+        build = {}
+        for f in sorted(build_root.rglob("*")):
+            need(not f.is_symlink(), "runtime_phase_build_symlink")
+            if f.is_file():
+                need(len(build) < 30000, "runtime_phase_build_limit")
+                build[str(f.relative_to(build_root))] = sha(f.read_bytes())
+        need(build and "BUILD_ID" in build, "runtime_phase_build_empty")
+        seal(home / "business/build-manifest.json", build)
+        resource_basis = {"containerIds": [r["Id"] for r in resources["containers"]], "networkIds": [resources["network"]["Id"]],
+                          "volumeNames": [v["Name"] for v in resources["volumes"]], "roles": resources["roles"]}
+        seal(home / "business/resource-basis.json", resource_basis)
+        source = {name: sha((pathlib.Path(a["harnessDir"]) / name).read_bytes()) for name in PHASE_SOURCE_PATHS}
+        app = proc_birth(read_json(home / a["projectId"] / "app-ready.json")["pid"])
+        ready = read_json(home / a["projectId"] / "app-ready.json")
+        need(app["startTicks"] == str(ready["startTicks"]) and app["cwd"] == a["appDir"], "runtime_phase_app_birth")
+        app_process = {**{k: app[k] for k in ("pid", "startTicks", "pgid", "sid", "uid", "cwd", "exe", "exeSha256")}, "commandSha256": ready["cmdlineSha256"]}
+        def ref(relative):
+            path = home / relative
+            return {"path": str(path), "sha256": sha(private_path(path).read_bytes())}
+        return {"schema": "track1-cohort-business-admission-v2", "reportKind": "business_cohort", "phase": "MAIN03_CANDIDATE",
+            "campaignId": a["projectId"], "operationId": a["phaseContract"]["operationId"], "producerId": a["phaseContract"]["producerId"], "runId": a["event"]["runId"],
+            "createdAtUtc": utc(), "expiresAtUtc": a["phaseContract"]["absoluteDeadlineAtUtc"], "privateHome": str(home), "simHome": str(home),
+            "runDir": str(home / "business/observe"), "appDir": a["appDir"], "harnessDir": a["harnessDir"], "dbUrl": DB_URL,
+            "appUrl": "http://127.0.0.1:3101", "authUrl": API_URL, "anonKey": read_json(home / "private/app-values.json")["NEXT_PUBLIC_SUPABASE_ANON_KEY"],
+            "serviceRoleKeySha256": sha(read_json(home / "private/app-values.json")["SUPABASE_SERVICE_ROLE_KEY"].encode()),
+            "runtime": {key: a[key] for key in ("appCommit", "appTree", "harnessCommit", "harnessTree")},
+            "appProcess": app_process, "sourceManifest": source, "buildManifest": ref("business/build-manifest.json"),
+            "resourceManifest": ref("business/resource-basis.json"), "custody": self.custody, "stack": ref(a["projectId"] + "/stack.json"),
+            "immutableFiles": [ref(a["projectId"] + "/stack.json"), ref("prepared-runtime.json")],
+            **{key: str(home / "business" / value) for key, value in {"candidatePath": "candidate.json", "graphPath": "graph.json", "authPath": "auth.json", "sealedPath": "sealed.json", "adoptedPath": "adopted.json", "draftPath": "draft.json"}.items()},
+            "phaseAdapter": {"schema": "track1-parent-custody-ipc-v1", "assignment": {"path": str(self.file), "sha256": self.binding["assignmentSha256"]},
+                "preparedSha256": self.assignment["preparedReceiptSha256"], "socketPath": str(home / "phase.sock"), "nonce": self.nonce,
+                "deadlineAtMs": int(self.journal.anchor["deadline"] * 1000), "minimumAuthHeadroomMs": self.assignment["minimumAuthHeadroomMs"], "parent": self.parent}}
+
+    def capture_identity(self):
+        capture = private_path(self.home / self.a["projectId"] / "logs/app.log")
+        info = capture.stat()
+        return {"device": info.st_dev, "inode": info.st_ino, "uid": info.st_uid, "mode": stat.S_IMODE(info.st_mode),
+                "app": proc_birth(read_json(self.home / self.a["projectId"] / "app-ready.json")["pid"])}
+
+    def service(self):
+        self.check_clock()
+        try:
+            connection, _ = self.socket.accept()
+        except socket.timeout:
+            return
+        with connection:
+            connection.settimeout(2)
+            pid, uid, _gid = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i")))
+            need(self.child is not None, "runtime_phase_no_child")
+            phase_peer(pid, uid, self.child["birth"], self.a["harnessDir"])
+            raw = b""
+            while not raw.endswith(b"\n"):
+                part = connection.recv(65536)
+                need(part and len(raw) + len(part) <= 65536, "runtime_phase_request_size")
+                raw += part
+            request = phase_json(raw)
+            need(request.get("schema") == "track1-parent-custody-ipc-v1" and request.get("nonce") == self.nonce
+                 and request.get("assignmentSha256") == self.binding["assignmentSha256"]
+                 and request.get("admissionSha256") == sha(private_path(self.current_admission).read_bytes())
+                 and request.get("phase") == read_json(self.current_admission)["phase"]
+                 and request.get("runId") == self.a["event"]["runId"] and request.get("operationId") == self.basis["operationId"], "runtime_phase_request_binding")
+            need(PHASE_UUID.fullmatch(request.get("requestId", "")), "runtime_phase_request_nonce")
+            seal(self.home / "phase-requests" / (request["requestId"] + ".json"), {"pid": pid, "startTicks": proc_birth(pid)["startTicks"], "action": request.get("action"), "atUtc": utc()})
+            if request.get("action") == "CUSTODY":
+                observation = phase_custody(self.a, self.custody)
+            else:
+                need(request.get("action") == "BEFORE_RETRY" and self.child["workload"] == "MAIN03"
+                     and self.journal.records[-1]["state"] == "MAIN03_RUNNING", "runtime_phase_retry_once")
+                facts = request.get("facts", {})
+                need(facts.get("aborted") is True and facts.get("nativeOperationId") == self.basis["operationId"] and HEX64.fullmatch(facts.get("graphSha256", ""))
+                     and facts.get("runtimeSha256") == sha(canonical_phase(self.basis["runtime"])), "runtime_phase_retry_facts")
+                need(self.capture_identity() == self.capture, "runtime_phase_native_capture_changed")
+                capture_file = private_path(self.home / self.a["projectId"] / "logs/app.log")
+                with capture_file.open("rb") as stream:
+                    stream.seek(self.capture_offset); raw_log = stream.read(16 * 1024 * 1024 + 1)
+                need(len(raw_log) <= 16 * 1024 * 1024, "runtime_phase_native_capture_limit")
+                raw_log = raw_log.decode("utf-8", errors="strict")
+                auth = facts.get("auth", {})
+                need(auth.get("userId") == facts.get("ids", {}).get("actorUserId") and auth.get("companyId") == facts.get("ids", {}).get("companyId")
+                     and type(auth.get("expiresAtMs")) is int and auth["expiresAtMs"] > time.time() * 1000 + self.assignment["minimumAuthHeadroomMs"]
+                     and auth.get("canRead") is True and auth.get("canExport") is True, "runtime_phase_actual_Auth_headroom")
+                native = native_resolution(raw_log, facts.get("nativeOperationId", ""), proc_birth(read_json(self.home / self.a["projectId"] / "app-ready.json")["pid"]), self.a["appDir"])
+                phase_custody(self.a, self.custody)
+                fixture = read_json(self.child["directory"] / "fixture.json")
+                need(facts.get("ids") == {key: fixture[key] for key in ("companyId", "actorUserId", "customerId", "siteId", "pointId", "contractId", "supplyPeriodId", "gridOwnerId", "dataRequestId")}, "runtime_phase_fixture_ids")
+                seal(self.home / "business/retry-facts.json", {"ids": facts["ids"]})
+                env = phase_child_environment(self.a, self.file, self.current_admission)
+                env["TRACK1_RETRY_FACTS_SHA256"] = sha((self.home / "business/retry-facts.json").read_bytes())
+                raw_graph = command([shutil.which("node"), str(pathlib.Path(self.a["harnessDir"]) / "scripts/simulation/track1/fixtures/main03Cohort.ts"), "observe-retry-graph"], env=env, cwd=self.a["harnessDir"], timeout=60)
+                need(len(raw_graph) <= 16 * 1024 * 1024, "runtime_phase_graph_limit")
+                seal(self.home / "business/retry-observed.json", raw_graph)
+                observed_graph = json.loads(raw_graph)
+                need(observed_graph["graphSha256"] == facts["graphSha256"], "runtime_phase_actual_graph_changed")
+                checkpoint = self.checkpoint("BEFORE_RETRY", {"native": native, "graphSha256": facts["graphSha256"], "graph": safe_graph_projection(observed_graph["graph"]), "auth": auth, "runtimeSha256": facts["runtimeSha256"], "child": self.child["birth"]})
+                accepted = self.wait_input(checkpoint)
+                phase_peer(pid, uid, self.child["birth"], self.a["harnessDir"])
+                need(auth["expiresAtMs"] > time.time() * 1000 + 120000, "runtime_phase_actual_Auth_expired_during_HOLD")
+                phase_custody(self.a, self.custody)
+                self.check_clock()
+                need(time.time() < accepted["deadlineEpoch"] and auth["expiresAtMs"] > time.time() * 1000 + 120000, "runtime_phase_late_retry_resume")
+                self.journal.append("RETRY_PERMITTED", {"nativeOperationId": facts["nativeOperationId"], "inputSha256": self.previous_input})
+                observation = {"nativeOperationId": facts["nativeOperationId"], "decision": "RETRY_ONCE", "permitExpiresAtMs": 1000 * accepted["deadlineEpoch"], "graphSha256": facts["graphSha256"], "runtimeSha256": facts["runtimeSha256"]}
+            reply = {key: request[key] for key in ("schema", "requestId", "nonce", "assignmentSha256", "action")}
+            connection.sendall(encoded({**reply, "state": "OBSERVED", "observation": observation}))
+
+    def spawn(self, workload, admission_file):
+        need(self.child is None, "runtime_phase_child_already_owned")
+        if workload != "OBSERVE":
+            self.check_clock()
+            need(self.last_input_deadline is not None and time.time() < self.last_input_deadline, "runtime_phase_late_command_start")
+        self.current_admission = pathlib.Path(admission_file)
+        cohort = read_json(admission_file)
+        directory = self.home / "business/seal" if workload == "SEAL" else pathlib.Path(cohort["runDir"])
+        directory.mkdir(mode=0o700)
+        source = pathlib.Path(self.a["harnessDir"]) / "scripts/simulation/track1/fixtures/main03Cohort.ts"
+        node = shutil.which("node")
+        args = [node, str(source), "observe-basis" if workload == "OBSERVE" else "seal"]
+        if workload in {"MAIN03", "MAIN04"}:
+            scenario = str(pathlib.Path(self.a["harnessDir"]) / "scripts/simulation/track1/scenarios" / (workload.lower() + ".test.ts"))
+            args = [node, str(pathlib.Path(self.a["appDir"]) / "node_modules/vitest/vitest.mjs"), "run", "--config", str(pathlib.Path(self.a["harnessDir"]) / "scripts/simulation/track1/vitest.config.mts"),
+                    "--root", self.a["harnessDir"], "--reporter=json", "--outputFile=" + str(directory / "report.json"), scenario]
+            if workload == "MAIN04": args += ["--testNamePattern=MAIN04\\.(01|03) "]
+            seal(directory / "run-meta.json", {"runStartedAtUtc": utc(), "scenarioFile": "track1/scenarios/" + workload.lower() + ".test.ts", "scenarioSha256": sha(pathlib.Path(scenario).read_bytes()),
+                "harnessCommit": self.a["harnessCommit"], "appCommit": self.a["appCommit"], "harnessDirty": False, "appDirty": False, "stack": read_json(self.home / self.a["projectId"] / "stack.json")})
+        seal(directory / "child-start.intent.json", {"state": "OUTCOME_UNKNOWN", "workload": workload, "atUtc": utc()})
+        stream = open(directory / "run.log", "xb")
+        process = subprocess.Popen(args, cwd=self.a["harnessDir"], env=phase_child_environment(self.a, self.file, admission_file), stdout=stream, stderr=stream, start_new_session=True)
+        birth = proc_birth(process.pid)
+        need(birth["exe"] == str(pathlib.Path(node).resolve()) and birth["sid"] == birth["pgid"] == process.pid, "runtime_phase_child_birth")
+        seal(directory / "birth.json", birth)
+        self.child = {"process": process, "birth": birth, "workload": workload, "directory": directory, "stream": stream}
+
+    def reap(self):
+        child = self.child
+        need(child is not None, "runtime_phase_wait_missing")
+        while child["process"].poll() is None:
+            self.service()
+        code = child["process"].wait()
+        need(type(code) is int and not group_members(child["birth"]["sid"]), "runtime_phase_wait_or_orphan")
+        child["stream"].write(("\nexit " + str(code) + "\n").encode()); child["stream"].flush(); os.fsync(child["stream"].fileno()); child["stream"].close()
+        terminal = {"schema": "main03-observed-terminal-process-v1", "runId": self.a["event"]["runId"], "operationId": self.basis["operationId"], "pid": child["birth"]["pid"],
+                    "startTicks": child["birth"]["startTicks"], "waitObserved": True, "exitCode": code, "endedAtUtc": now().isoformat(timespec="microseconds")}
+        need(code == 0, "runtime_phase_child_nonzero")
+        if child["workload"] in {"MAIN03", "MAIN04"}:
+            directory = child["directory"]
+            normalized = phase_report(read_json(directory / "report.json"), code, child["workload"], directory, self.a["event"]["runId"])
+            seal(directory / "normalized.json", normalized)
+            terminal["reports"] = {key: {"path": str(directory / file), "sha256": sha(private_path(directory / file).read_bytes())} for key, file in {"raw": "report.json", "normalized": "normalized.json", "meta": "run-meta.json", "log": "run.log"}.items()}
+        seal(child["directory"] / "terminal.json", terminal)
+        self.child = None
+        return terminal
+
+    def checkpoint(self, state, observation):
+        self.check_clock()
+        record = self.journal.append(state, {**observation, "acceptedPreviousInputSha256": self.previous_input, "previousAcceptance": getattr(self, "last_acceptance", None)})
+        ordinal = PHASE_INPUT_STATES.index(state)
+        # Constructed allowlist only: no env, cookie/session, raw CLI status,
+        # arbitrary logs, private auth paths or peer-supplied freeform text.
+        safe = {key: record[key] for key in ("schema", "sequence", "previousSha256", "binding", "state", "atUtc", "monotonicNs")}
+        safe["observation"] = record["observation"]
+        seal(self.home / "phase-checkpoints" / f"{ordinal}.json", safe)
+        return safe
+
+    def wait_input(self, checkpoint):
+        ordinal = PHASE_INPUT_STATES.index(checkpoint["state"])
+        started = time.monotonic()
+        output = self.home / "phase-inputs" / f"{ordinal}.json"
+        while not output.exists():
+            phase_clock(self.journal.anchor)
+            need(time.monotonic() - started < self.a["phaseContract"]["holdSeconds"], "runtime_phase_review_HOLD_deadline")
+            if self.child is not None: need(self.child["process"].poll() is None, "runtime_phase_waiting_child_exited")
+            time.sleep(0.1)
+        accepted = read_json(output)
+        authenticated = authenticate_phase_input(self.a, checkpoint, self.previous_input)
+        need(accepted == authenticated and accepted["previousInputSha256"] == self.previous_input and accepted["checkpointSha256"] == sha(encoded(checkpoint)), "runtime_phase_acceptance_changed")
+        phase_custody(self.a, self.custody)
+        need(time.monotonic() - started < self.a["phaseContract"]["holdSeconds"], "runtime_phase_review_HOLD_deadline")
+        if getattr(self, "business_started", None) is not None:
+            self.business_hold_seconds += time.monotonic() - started
+        self.check_clock()
+        need(time.time() < accepted["deadlineEpoch"], "runtime_phase_late_acceptance")
+        observation = {"schema": "track1-parent-observed-acceptance-v1", "ordinal": ordinal, "binding": self.binding,
+                       "inputSha256": sha(encoded(accepted)), "acceptedAtEpoch": time.time(), "monotonicNs": time.monotonic_ns(),
+                       "phaseParentSha256": sha(encoded(self.parent))}
+        seal(self.home / "phase-accepted" / f"{ordinal}.json", observation)
+        self.last_acceptance, self.last_input_deadline = observation, accepted["deadlineEpoch"]
+        self.previous_input = sha(encoded(accepted))
+        return accepted
+
+
+def phase_json(raw):
+    need(len(raw) <= 256 * 1024, "runtime_phase_json_size")
+    def pairs(entries):
+        value = {}
+        for key, item in entries:
+            need(key not in value, "runtime_phase_duplicate_json_key")
+            value[key] = item
+        return value
+    def constant(_value):
+        raise RuntimeError("runtime_phase_nonfinite_json")
+    return json.loads(raw, object_pairs_hook=pairs, parse_constant=constant)
+
+
+def phase_accept(assignment_file, ordinal):
+    a, assignment, _ = verify(assignment_file, "run")
+    need(assignment["schema"] == "track1-runtime-assignment-v3" and type(ordinal) is int and 0 <= ordinal <= 4, "runtime_phase_accept_scope")
+    home = pathlib.Path(a["simHome"])
+    checkpoint = read_json(home / "phase-checkpoints" / f"{ordinal}.json")
+    need(checkpoint["state"] == PHASE_INPUT_STATES[ordinal] and checkpoint["binding"] == phase_binding(a, assignment_file), "runtime_phase_checkpoint_source")
+    seal(home / "phase-inputs" / f"{ordinal}.intent.json", {"atUtc": utc(), "state": "OUTCOME_UNKNOWN"})
+    start = time.monotonic()
+    while True:
+        try:
+            value, receipt, raw_sha = read_phase_ref(a, "phase-" + str(ordinal))
+            break
+        except urllib.error.HTTPError as error:
+            need(error.code == 404, "runtime_phase_input_read_denied")
+        need(time.monotonic() - start < a["phaseContract"]["holdSeconds"], "runtime_phase_input_missing_HOLD")
+        time.sleep(10)
+    reviews, review_receipts = [], []
+    for n in range(2):
+        review, review_receipt, review_raw_sha = read_phase_ref(a, f"review-{ordinal}-{n}")
+        reviews.append(review); review_receipts.append({"receipt": review_receipt, "rawSha256": review_raw_sha})
+    accepted = authenticate_phase_input(a, checkpoint, None if ordinal == 0 else sha((home / "phase-inputs" / f"{ordinal - 1}.json").read_bytes()))
+    seal(home / "phase-inputs" / f"{ordinal}.json", accepted)
+
+
+def authenticate_phase_input(a, checkpoint, previous, *, accepted_at=None, teardown=False):
+    ordinal = PHASE_INPUT_STATES.index(checkpoint["state"])
+    value, receipt, raw_sha = read_phase_ref(a, "phase-" + str(ordinal))
+    reviews, review_receipts = [], []
+    for n in range(2):
+        review, review_receipt, review_raw_sha = read_phase_ref(a, f"review-{ordinal}-{n}")
+        reviews.append(review); review_receipts.append({"receipt": review_receipt, "rawSha256": review_raw_sha})
+    artifact_id = value.get("artifactId")
+    need(type(artifact_id) is int and artifact_id > 0, "runtime_phase_artifact_id")
+    validate_phase_input(a, checkpoint, value, reviews, api("actions/artifacts/" + str(artifact_id)), previous, at=accepted_at)
+    phase_custody(a, read_json(pathlib.Path(a["simHome"]) / "phase-basis.json")["custody"], teardown=teardown)
+    return {**value, "authenticatedInputReceipt": receipt, "authenticatedInputRawSha256": raw_sha,
+            "authenticatedReviews": reviews, "authenticatedReviewReceipts": review_receipts}
+
+
+def materialize_review_message(home, relative, message, expected_sha):
+    need(isinstance(message, str) and HEX64.fullmatch(expected_sha or "") and sha(message.encode()) == expected_sha, "runtime_phase_actual_review_payload")
+    phase_json(message)
+    target = pathlib.Path(home) / "business" / relative
+    seal(target, message.encode())
+    return {"path": str(target), "sha256": expected_sha}
+
+
+def phase_cohort_admission(parent, phase_name, value):
+    home = parent.home
+    result = {**parent.basis, "runtime": read_json(home / "phase-runtime-observed.json"), "phase": phase_name,
+              "runDir": str(home / "business" / ("main04" if phase_name == "MAIN04_PREPARE_REVIEW" else "main03"))}
+    result["phaseAdapter"] = {**result["phaseAdapter"], "runtimeObservation": {"path": str(home / "phase-runtime-observed.json"), "sha256": sha((home / "phase-runtime-observed.json").read_bytes())}}
+    if phase_name == "MAIN03_CANDIDATE":
+        approval = materialize_review_message(home, "input-approval.json", value.get("inputApprovalMessage"), value.get("inputApprovalSha256"))
+        for n, review in enumerate(value["authenticatedReviews"]):
+            materialize_review_message(home, f"input-review-{n}.json", review.get("inputReviewMessage"), review.get("inputReviewSha256"))
+        original = read_json(approval["path"])
+        need(approval["sha256"] == parent.a["phaseContract"]["inputQualification"]["approvalSha256"]
+             and original.get("basisKind") == "original_frozen_input" and original.get("inputVectorSha256") == parent.a["phaseContract"]["inputQualification"]["inputVectorSha256"], "runtime_phase_actual_original_input_binding")
+        result["inputApproval"] = approval
+    else:
+        previous = read_json(home / "business/main03-admission.json")
+        result["inputApproval"] = previous["inputApproval"]
+        terminal_path = home / "business/main03/terminal.json"
+        terminal = read_json(terminal_path)
+        candidate_path = pathlib.Path(result["candidatePath"])
+        need(candidate_path.exists() and terminal["exitCode"] == 0 and terminal["waitObserved"] is True, "runtime_phase_real_candidate_terminal")
+        result.update(candidate={"path": str(candidate_path), "sha256": sha(private_path(candidate_path).read_bytes())},
+                      terminal={"path": str(terminal_path), "sha256": sha(private_path(terminal_path).read_bytes())}, reports=terminal["reports"])
+        if phase_name == "MAIN03_SEAL":
+            lifecycle_reviews = []
+            for n, review in enumerate(value["authenticatedReviews"]):
+                lifecycle_reviews.append(materialize_review_message(home, f"native-review-{n}.json", review.get("lifecycleReviewMessage"), review.get("lifecycleReviewSha256")))
+            before_retry = read_json(home / "phase-checkpoints/1.json")["observation"]["native"]
+            resolution = {"schema": "main03-independent-native-operation-resolution-v1", "runId": result["runId"], "operationId": result["operationId"],
+                "databaseSystemIdentifier": result["runtime"]["databaseSystemIdentifier"], "outcome": "COMMITTED_EXACT_COHORT_NO_INFLIGHT_ORIGINAL_HANDLER",
+                "proofKind": "INDEPENDENT_NATIVE_OPERATION_LIFECYCLE", "nativeOperationId": before_retry["correlationId"], "independentEvidence": lifecycle_reviews}
+            seal(home / "business/resolution.json", resolution)
+        result["resolution"] = {"path": str(home / "business/resolution.json"), "sha256": sha(private_path(home / "business/resolution.json").read_bytes())}
+        if phase_name == "MAIN04_PREPARE_REVIEW":
+            sealed = pathlib.Path(result["sealedPath"])
+            result["sealed"] = {"path": str(sealed), "sha256": sha(private_path(sealed).read_bytes())}
+    return result
+
+
+def phase_parent(assignment_file):
+    parent = PhaseParent(assignment_file)
+    def interrupted(_signum, _frame):
+        raise RuntimeError("runtime_phase_parent_interrupted")
+    signal.signal(signal.SIGTERM, interrupted)
+    try:
+        # Observe first. Only then may authenticated external reviews bind the
+        # resulting actual catalog/build/process/resources and original input.
+        parent.spawn("OBSERVE", parent.current_admission); parent.reap()
+        runtime = read_json(parent.home / "phase-runtime-observed.json")
+        parent.basis["runtime"] = runtime
+        checkpoint = parent.checkpoint("STARTUP_OBSERVED", {"runtime": runtime, "fullCatalogProtocol": "cohort-pg-stable-catalogs-v1", "buildFileCount": len(read_json(parent.home / "business/build-manifest.json")),
+            "nativeReadiness": {"producerContract": {key: parent.a["phaseContract"]["nativeProfile"][key] for key in ("schema", "readiness", "routeSha256", "testSha256")}, "actualAppCapture": parent.capture, "actualParent": parent.parent, "runtime": runtime}})
+        accepted = parent.wait_input(checkpoint)
+        need(time.time() + parent.a["phaseContract"]["businessBudgetSeconds"] + 4 * parent.a["phaseContract"]["holdSeconds"] < parent.journal.anchor["deadline"], "runtime_phase_remaining_budget_HOLD")
+        parent.business_started = time.monotonic()
+        candidate_admission = phase_cohort_admission(parent, "MAIN03_CANDIDATE", accepted)
+        admission_file = parent.home / "business/main03-admission.json"; seal(admission_file, candidate_admission)
+        parent.journal.append("MAIN03_RUNNING", {"admissionSha256": sha(admission_file.read_bytes())})
+        parent.spawn("MAIN03", admission_file); terminal = parent.reap()
+        need(parent.journal.records[-1]["state"] == "RETRY_PERMITTED", "runtime_phase_original_gate_not_observed")
+        candidate = private_path(parent.home / "business/candidate.json")
+        checkpoint = parent.checkpoint("MAIN03_TERMINAL", {"candidateSha256": sha(candidate.read_bytes()), "terminalSha256": sha(encoded(terminal)),
+            "reports": {key: value["sha256"] for key, value in terminal["reports"].items()}, "exitCode": terminal["exitCode"], "waitObserved": terminal["waitObserved"],
+            "graph": safe_graph_projection(phase_reference(parent.home, read_json(candidate)["graph"]))})
+        accepted = parent.wait_input(checkpoint)
+        seal_admission = phase_cohort_admission(parent, "MAIN03_SEAL", accepted)
+        admission_file = parent.home / "business/seal-admission.json"; seal(admission_file, seal_admission)
+        parent.spawn("SEAL", admission_file); parent.reap()
+        sealed = private_path(parent.home / "business/sealed.json")
+        checkpoint = parent.checkpoint("SEALED", {"sealedSha256": sha(sealed.read_bytes()), "runtime": runtime})
+        accepted = parent.wait_input(checkpoint)
+        adopted = phase_cohort_admission(parent, "MAIN04_PREPARE_REVIEW", accepted)
+        admission_file = parent.home / "business/main04-admission.json"; seal(admission_file, adopted)
+        parent.journal.append("MAIN04_RUNNING", {"admissionSha256": sha(admission_file.read_bytes())})
+        parent.spawn("MAIN04", admission_file); terminal = parent.reap()
+        draft = private_path(parent.home / "business/draft.json")
+        stored_draft = read_json(draft)
+        snapshot = stored_draft["snapshot"]
+        draft_facts = safe_graph_projection({"invoices": [{"id": stored_draft["invoiceId"], "billing_underlay_id": stored_draft["underlayId"],
+            "amount_ex_vat": snapshot["subtotal_sek_ex_vat"], "vat_amount": snapshot["vat_sek"], "amount_inc_vat": snapshot["total_sek_inc_vat"], "total_kwh": snapshot["total_kwh"]}],
+            "pricingEvidence": [{"id": row["id"], "billing_underlay_id": stored_draft["underlayId"], "billing_underlay_item_id": row["billingUnderlayItemId"],
+                "period_start": row["meteringIntervalStart"], "period_end": row["meteringIntervalEnd"], "quantity_kwh": row["consumptionKwh"], "sek_per_kwh": row["priceSekPerKwh"]} for row in snapshot["interval_evidence"]]})
+        checkpoint = parent.checkpoint("MAIN04_TERMINAL", {"draftSha256": sha(draft.read_bytes()), "draftFacts": draft_facts, "terminalSha256": sha(encoded(terminal)),
+            "reports": {key: value["sha256"] for key, value in terminal["reports"].items()}, "exitCode": terminal["exitCode"], "waitObserved": terminal["waitObserved"], "MAIN04.04": "HOLD_UNADMITTED"})
+        parent.wait_input(checkpoint)
+        seal(parent.home / "phase-completed.json", {"schema": "track1-phased-limited-observations-v1", "state": "DRAFT_REVIEWED_NO_APPROVAL", "binding": parent.binding,
+             "lastCheckpointSha256": sha(encoded(checkpoint)), "lastInputSha256": parent.previous_input, "new105ScenarioPassAttestations": 0})
+    except Exception:
+        seal(parent.home / "phase-incident.json", {"state": "HOLD_UNQUALIFIED", "atUtc": utc(), "new105ScenarioPassAttestations": 0})
+        raise
+    finally:
+        parent.socket.close()
+        if parent.child is not None:
+            stop_phase_session(parent.child["birth"])
+            parent.child["process"].wait(timeout=10)
+            parent.child["stream"].close()
+
+
+def stop_phase_session(birth):
+    try:
+        current = proc_birth(birth["pid"])
+    except FileNotFoundError:
+        need(not group_members(birth["sid"]), "runtime_phase_orphan_session_unknown")
+        return
+    need(all(current[k] == birth[k] for k in ("pid", "startTicks", "sid", "pgid", "uid", "cwd", "exeSha256", "bootId"))
+         and current["pid"] == current["pgid"] == current["sid"], "runtime_phase_cleanup_birth")
+    os.killpg(current["pgid"], signal.SIGTERM)
+    deadline = time.monotonic() + 3
+    while group_members(current["pgid"]) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    if group_members(current["pgid"]):
+        os.killpg(current["pgid"], signal.SIGKILL)
+    deadline = time.monotonic() + 3
+    while group_members(current["pgid"]) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    need(not group_members(current["pgid"]), "runtime_phase_cleanup_children_remaining")
+
+
+def phase_start(assignment_file):
+    a, assignment, _ = verify(assignment_file, "run")
+    need(assignment["schema"] == "track1-runtime-assignment-v3", "runtime_phase_assignment_required")
+    home = pathlib.Path(a["simHome"])
+    seal(home / "phase-parent-start.intent.json", {"atUtc": utc(), "state": "OUTCOME_UNKNOWN"})
+    with open(home / "raw/phase-parent.log", "xb") as stream:
+        process = subprocess.Popen([sys.executable, str(pathlib.Path(__file__).resolve()), "phase-parent", "--assignment", str(assignment_file)],
+            env={**tool_environment(), **{k: os.environ[k] for k in ("GH_TOKEN", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT", "GITHUB_JOB", "GITHUB_ACTOR", "GITHUB_REPOSITORY", "GITHUB_EVENT_PATH")}},
+            cwd=a["harnessDir"], start_new_session=True, stdout=stream, stderr=stream)
+    seal(home / "phase-parent-launch.json", proc_birth(process.pid))
+
+
+def phase_checkpoint(assignment_file, ordinal):
+    a, assignment, _ = verify(assignment_file, "run")
+    need(assignment["schema"] == "track1-runtime-assignment-v3" and type(ordinal) is int and 0 <= ordinal <= 4, "runtime_phase_checkpoint_scope")
+    home = pathlib.Path(a["simHome"])
+    target = home / "phase-checkpoints" / f"{ordinal}.json"
+    deadline = dt.datetime.fromisoformat(a["phaseContract"]["absoluteDeadlineAtUtc"].replace("Z", "+00:00")).timestamp()
+    while not target.exists():
+        need(time.time() < deadline and not (home / "phase-incident.json").exists(), "runtime_phase_checkpoint_HOLD")
+        actual = proc_birth(read_json(home / "phase-parent-launch.json")["pid"])
+        need(actual["startTicks"] == read_json(home / "phase-parent-launch.json")["startTicks"], "runtime_phase_parent_lost")
+        time.sleep(0.2)
+    need(read_json(target)["binding"] == phase_binding(a, assignment_file), "runtime_phase_checkpoint_binding")
+
+
+def phase_cleanup(path):
+    a = admission(path, teardown=True)
+    need(a.get("schema") == "track1-hosted-phased-admission-v2", "runtime_phase_cleanup_profile")
+    home = pathlib.Path(a["simHome"])
+    seal(home / "phase-cleanup.intent.json", {"atUtc": utc(), "state": "OUTCOME_UNKNOWN"})
+    if (home / "phase-parent-launch.json").exists():
+        finish_deadline = time.monotonic() + 5
+        while not (home / "phase-completed.json").exists() and not (home / "phase-incident.json").exists() and time.monotonic() < finish_deadline:
+            time.sleep(0.1)
+        stop_phase_session(read_json(home / "phase-parent-launch.json"))
+    else:
+        need(not (home / "phase-parent-start.intent.json").exists(), "runtime_phase_parent_birth_unknown")
+    need(all((intent.parent / "birth.json").exists() for intent in (home / "business").glob("*/child-start.intent.json")), "runtime_phase_child_birth_unknown")
+    for birth in sorted((home / "business").glob("*/birth.json")):
+        stop_phase_session(read_json(birth))
+    cleanup(path)
+    completed = home / "phase-completed.json"
+    need(completed.exists() and not (home / "phase-incident.json").exists(), "runtime_phase_incomplete_HOLD")
+    return phase_verify_complete(a, home)
+
+
+def phase_reference(home, reference):
+    path = private_path(reference["path"])
+    need(path.is_relative_to(home) and path.stat().st_size <= 16 * 1024 * 1024
+         and sha(path.read_bytes()) == reference["sha256"], "runtime_phase_private_reference")
+    return json.loads(path.read_bytes())
+
+
+def phase_verify_complete(a, home):
+    binding = phase_binding(a, pathlib.Path(home) / "assignment.json")
+    completed = read_json(pathlib.Path(home) / "phase-completed.json")
+    need(completed.get("schema") == "track1-phased-limited-observations-v1" and completed.get("state") == "DRAFT_REVIEWED_NO_APPROVAL"
+         and completed.get("binding") == binding and completed.get("new105ScenarioPassAttestations") == 0, "runtime_phase_complete_binding")
+    previous, last_mono = None, -1
+    for ordinal, state in enumerate(PHASE_INPUT_STATES):
+        checkpoint = read_json(pathlib.Path(home) / "phase-checkpoints" / f"{ordinal}.json")
+        need(checkpoint["binding"] == binding and checkpoint["state"] == state, "runtime_phase_complete_sequence")
+        accepted = read_json(pathlib.Path(home) / "phase-inputs" / f"{ordinal}.json")
+        observed = read_json(pathlib.Path(home) / "phase-accepted" / f"{ordinal}.json")
+        need(observed.get("schema") == "track1-parent-observed-acceptance-v1" and observed.get("ordinal") == ordinal
+             and observed.get("binding") == binding and observed.get("inputSha256") == sha(encoded(accepted))
+             and observed.get("phaseParentSha256") == sha(encoded(read_json(pathlib.Path(home) / "phase-parent.json")))
+             and type(observed.get("monotonicNs")) is int and observed["monotonicNs"] > last_mono
+             and observed.get("acceptedAtEpoch", float("inf")) <= time.time(), "runtime_phase_actual_acceptance_observation")
+        need(accepted == authenticate_phase_input(a, checkpoint, previous, accepted_at=observed["acceptedAtEpoch"], teardown=True), "runtime_phase_complete_authenticated_chain")
+        last_mono = observed["monotonicNs"]
+        previous = sha(encoded(accepted))
+    need(completed.get("lastInputSha256") == previous and completed.get("lastCheckpointSha256") == sha(encoded(checkpoint)), "runtime_phase_complete_terminal_link")
+    return binding
+
+
+def phase_finish(path):
+    home = private_path(pathlib.Path(path).parent, True)
+    qualified, binding = False, None
+    try:
+        source = private_path(path)
+        need(read_json(source).get("simHome") == str(home), "runtime_phase_finish_home")
+        binding = phase_cleanup(path)
+        qualified = True
+    finally:
+        safe = home / "safe"
+        safe.mkdir(mode=0o700, exist_ok=True)
+        cleanup_fact = {"observed": False}
+        if (home / "cleanup.json").exists() and (home / "phases/cleanup.json").exists():
+            receipt, outcome = read_json(home / "cleanup.json"), read_json(home / "phases/cleanup.json")
+            if receipt.get("clean") is True and receipt.get("remainingAssignedResources") == 0 and receipt.get("sourceRestored") is True and outcome.get("status") == "PASS" and outcome.get("exitCode") == 0:
+                cleanup_fact = {"observed": True, "remainingAssignedResources": 0, "sourceRestored": True, "receiptSha256": sha((home / "cleanup.json").read_bytes()), "admissionSha256": receipt["admissionSha256"]}
+        seal(safe / "phased-proof.json", {"schema": "track1-phased-limited-proof-v1", "kind": "phased_cohort", "qualified": qualified,
+             "scope": "STARTUP_MAIN03_CANDIDATE_SEAL_MAIN04_PREPARE_REVIEW", "MAIN04.04": "HOLD_UNADMITTED", "scenarios": {},
+             "new105ScenarioPassAttestations": 0, "binding": binding,
+             "cleanup": cleanup_fact})
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("preflight", "materialize-config", "prepare", "verify", "up", "run", "down", "cleanup", "observe", "record-primary", "publish-safe"))
+    parser.add_argument("command", choices=("preflight", "materialize-config", "prepare", "verify", "up", "run", "down", "cleanup", "observe", "record-primary", "publish-safe", "phase-start", "phase-parent", "phase-checkpoint", "phase-accept", "phase-finish"))
     parser.add_argument("--admission")
     parser.add_argument("--assignment")
     parser.add_argument("--assignment-output")
@@ -1017,9 +1855,20 @@ def main():
     parser.add_argument("--report")
     parser.add_argument("--observation", choices=("database_auth", "app_health", "storage"))
     parser.add_argument("--primary-exit", type=int)
+    parser.add_argument("--ordinal", type=int)
     args = parser.parse_args()
     os.umask(0o077)
-    if args.command == "preflight":
+    if args.command == "phase-start":
+        phase_start(args.assignment)
+    elif args.command == "phase-parent":
+        phase_parent(args.assignment)
+    elif args.command == "phase-checkpoint":
+        phase_checkpoint(args.assignment, args.ordinal)
+    elif args.command == "phase-accept":
+        phase_accept(args.assignment, args.ordinal)
+    elif args.command == "phase-finish":
+        phase_finish(args.admission)
+    elif args.command == "preflight":
         preflight(args.admission)
     elif args.command == "materialize-config":
         materialize_config(args.admission)
@@ -1037,6 +1886,7 @@ def main():
         if args.command == "down":
             verify(args.assignment, "down")
         path = args.admission if args.command == "cleanup" else read_json(args.assignment)["admissionFile"]
+        need(read_json(path).get("schema") != "track1-hosted-phased-admission-v2", "runtime_phase_single_cleanup_owner")
         cleanup(path)
     elif args.command == "publish-safe":
         publish_safe(args.admission, args.primary_exit)
