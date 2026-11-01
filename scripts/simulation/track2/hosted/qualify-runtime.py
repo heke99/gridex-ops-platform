@@ -642,14 +642,28 @@ def validate_bootstrap(a, *, reobserve=False):
 
 def installed_tool_receipt(a):
     import shutil
+    requirements = json.loads(Path(__file__).with_name('profile.requirements.json').read_text())
     versions = {'node':['node','--version'],'npm':['npm','--version'], 'supabase':['supabase','--version'],
                 'psql':['psql','--version'],'pg_dump':['pg_dump','--version']}
-    tools = {}
+    tools, canonical_paths = {}, {}
     for tool, argv in versions.items():
         path = shutil.which(tool)
         require(path is not None,'locked-tool-missing')
         executable = Path(path).resolve()
+        canonical_paths[tool] = str(executable)
         tools[tool] = {'version':command(argv), 'executableSHA256':digest(executable)}
+    # The 2.101 standalone frontend delegates legacy commands to its adjacent
+    # supabase-go. A frontend --version alone does not qualify that executable.
+    companion = Path(canonical_paths['supabase']).with_name('supabase-go')
+    require(os.environ.get('SUPABASE_GO_BINARY','') in ('',str(companion)), 'supabase-go-override-not-adjacent')
+    require(companion.is_file() and not companion.is_symlink() and os.access(companion,os.X_OK), 'adjacent-supabase-go-missing')
+    companion_hash = digest(companion)
+    require(companion_hash == requirements['qualifiedToolHashes'].get('supabase-go'), 'supabase-go-distribution-provenance-mismatch')
+    companion_version = command([str(companion),'--version'])
+    require(companion_version == '2.101.0', 'supabase-go-version-mismatch')
+    tools['supabase-go'] = {'version':companion_version,'executableSHA256':companion_hash,
+                            'canonicalFile':'adjacent-to-canonical-supabase/supabase-go'}
+    canonical_paths['supabase-go'] = str(companion)
     require(tools['node']['version'] == 'v22.22.0' and tools['supabase']['version'].splitlines()[-1] == '2.101.0'
             and ' 17.' in tools['psql']['version'] and ' 17.' in tools['pg_dump']['version'], 'required-tool-version-mismatch')
     policy = a.get('installationPolicy',{})
@@ -667,7 +681,6 @@ def installed_tool_receipt(a):
             and all(isinstance(tag,str) and re.fullmatch(r'[A-Za-z0-9./_-]+:[A-Za-z0-9._-]+',tag)
                     and reference in images for tag,reference in policy['imageSelectors'].items())
             and re.fullmatch('[0-9a-f]{64}',policy['provenanceSHA256']), 'qualified-image-selectors-and-provenance-required')
-    requirements = json.loads(Path(__file__).with_name('profile.requirements.json').read_text())
     require({tool:entry['executableSHA256'] for tool,entry in tools.items()} == requirements['qualifiedToolHashes']
             and tools['npm']['version'] == '10.9.2', 'tool-distribution-provenance-mismatch')
     require(images == requirements['qualifiedImagePolicy']['images']
@@ -675,6 +688,7 @@ def installed_tool_receipt(a):
             'complete-qualified-image-inventory-required')
     return {'tools':tools,'packageLockSHA256':policy['packageLockSHA256'], 'images':images,
             'imageSelectors':policy['imageSelectors'],'provenanceSHA256':policy['provenanceSHA256'],
+            'supabaseCanonicalPath':canonical_paths['supabase'],'supabaseGoCanonicalPath':canonical_paths['supabase-go'],
             'source':a['sourceCommit'],'bootstrapProofSHA256':a['bootstrapProofSHA256']}
 
 

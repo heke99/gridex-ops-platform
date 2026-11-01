@@ -18,6 +18,8 @@
   "toolchain": {
     "nodeMajor": 22,
     "supabaseCLI": "2.101.0",
+    "supabaseGo": "2.101.0",
+    "supabaseGoCanonicalFile": "adjacent-to-canonical-supabase/supabase-go",
     "postgresMajor": 17,
     "pythonMinimum": "3.11",
     "opensslMinimum": "3.0",
@@ -156,9 +158,10 @@
   "qualifiedToolHashes": {
     "node": "1bec56ef7cfa9a76f3e0b7c0a87f220eb73f23102b9c0b4c7529a3f7c3ce7c31",
     "supabase": "b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f",
+    "supabase-go": "9dd9e81a21074081328b77a27a8aef7be45a2828f81d99c4e1fb65efbec73947",
     "psql": "3dfa07948610868b5b97e292eaa294651a599b338e792a96ab0e4191f06a2c4a",
     "pg_dump": "a656502909efe19336fc411e89abba2a32b5bfaecdb959a7acb4b4523ed5a15d",
     "npm": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7"
   },
-  "qualifiedToolArtifactProofSHA256": "6a917c888686747ab17558b109bc9fc6a9d9328b95f36f1bbafc5bd41ada94f0"
+  "qualifiedToolArtifactProofSHA256": "44c66d9603dbf54cda6928d0eada4c16c5136b5bffcc796383c2ad0500679930"
 }

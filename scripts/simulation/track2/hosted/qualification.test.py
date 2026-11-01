@@ -1425,7 +1425,7 @@ class BootstrapContracts(unittest.TestCase):
         daemon.assert_not_called();self.assertFalse(home.exists())
 
 
-    def tool_fixture(self):
+    def tool_fixture(self,with_go=True):
         bins=self.root/'bin';bins.mkdir()
         versions={'node':'v22.22.0','npm':'10.9.2','supabase':'2.101.0','psql':'psql (PostgreSQL) 17.11',
                   'pg_dump':'pg_dump (PostgreSQL) 17.11'}
@@ -1437,6 +1437,10 @@ class BootstrapContracts(unittest.TestCase):
         lock=self.root/'package-lock.json';lock.write_text('{}')
         requirements=json.loads(Path(module.__file__).with_name('profile.requirements.json').read_text())
         tools={tool:{'version':version,'executableSHA256':module.digest(bins/tool)} for tool,version in versions.items()}
+        if with_go:
+            companion=bins/'supabase-go';companion.write_text('#!/bin/sh\nprintf "%s\\n" "2.101.0"\n');companion.chmod(0o700)
+            tools['supabase-go']={'version':'2.101.0','executableSHA256':module.digest(companion),
+                                  'canonicalFile':'adjacent-to-canonical-supabase/supabase-go'}
         requirements['qualifiedToolHashes']={tool:entry['executableSHA256'] for tool,entry in tools.items()}
         policy={'tools':tools,'packageLockSHA256':module.digest(lock),
                 'images':requirements['qualifiedImagePolicy']['images'],
@@ -1449,6 +1453,72 @@ class BootstrapContracts(unittest.TestCase):
             if path.name=='profile.requirements.json':return json.dumps(requirements)
             return original(path,*args,**kwargs)
         return mock.patch.object(Path,'read_text',read)
+
+    def test_go_missing_is_not_an_acceptable_frontend_only_installation(self):
+        bins,requirements,a=self.tool_fixture(with_go=False)
+        with self.fixture_requirements(requirements),mock.patch.dict(os.environ,{'PATH':str(bins)+':'+os.environ['PATH'],'SUPABASE_GO_BINARY':''}):
+            with self.assertRaisesRegex(ValueError,'adjacent-supabase-go-missing'):
+                module.installed_tool_receipt(a)
+
+    def test_go_foreign_override_is_rejected_even_with_good_frontend(self):
+        bins,requirements,a=self.tool_fixture(with_go=False)
+        foreign=self.root/'foreign-go';foreign.write_text('#!/bin/sh\necho 2.101.0\n');foreign.chmod(0o700)
+        with self.fixture_requirements(requirements),mock.patch.dict(os.environ,{'PATH':str(bins)+':'+os.environ['PATH'],'SUPABASE_GO_BINARY':str(foreign)}):
+            with self.assertRaisesRegex(ValueError,'supabase-go-override-not-adjacent'):
+                module.installed_tool_receipt(a)
+
+    def test_go_exact_adjacent_policy_records_canonical_paths_and_accepts_exact_override(self):
+        bins,requirements,a=self.tool_fixture()
+        companion=bins/'supabase-go'
+        with self.fixture_requirements(requirements),mock.patch.dict(os.environ,{'PATH':str(bins)+':'+os.environ['PATH'],'SUPABASE_GO_BINARY':str(companion)}):
+            receipt=module.installed_tool_receipt(a)
+            self.assertEqual(receipt['supabaseCanonicalPath'],str((bins/'supabase').resolve()))
+            self.assertEqual(receipt['supabaseGoCanonicalPath'],str(companion.resolve()))
+            self.assertEqual(receipt['tools']['supabase-go'],a['installationPolicy']['tools']['supabase-go'])
+            del a['installationPolicy']['tools']['supabase-go']
+            with self.assertRaisesRegex(ValueError,'signed-installation-policy-mismatch'):module.installed_tool_receipt(a)
+
+    def test_go_wrong_hash_rejected_before_executing_unqualified_companion(self):
+        bins,requirements,a=self.tool_fixture();companion=bins/'supabase-go'
+        companion.write_text('#!/bin/sh\necho PRIVATE-FOREIGN-GO\n')
+        original=module.command;calls=[]
+        def command(argv,**kwargs):calls.append(argv);return original(argv,**kwargs)
+        with self.fixture_requirements(requirements),mock.patch.dict(os.environ,{'PATH':str(bins)+':'+os.environ['PATH'],'SUPABASE_GO_BINARY':''}), \
+             mock.patch.object(module,'command',side_effect=command):
+            with self.assertRaisesRegex(ValueError,'supabase-go-distribution-provenance-mismatch'):module.installed_tool_receipt(a)
+        self.assertFalse(any(argv[0]==str(companion) for argv in calls))
+
+    def test_go_old_version_rejected_even_when_bytes_match_the_constrained_test_policy(self):
+        bins,requirements,a=self.tool_fixture();companion=bins/'supabase-go'
+        companion.write_text('#!/bin/sh\necho 2.100.0\n')
+        requirements['qualifiedToolHashes']['supabase-go']=module.digest(companion)
+        with self.fixture_requirements(requirements),mock.patch.dict(os.environ,{'PATH':str(bins)+':'+os.environ['PATH'],'SUPABASE_GO_BINARY':''}):
+            with self.assertRaisesRegex(ValueError,'supabase-go-version-mismatch'):module.installed_tool_receipt(a)
+
+    def test_go_symlink_companion_or_alternate_override_is_rejected(self):
+        bins,requirements,a=self.tool_fixture();companion=bins/'supabase-go'
+        actual=self.root/'actual-go';companion.rename(actual);companion.symlink_to(actual)
+        with self.fixture_requirements(requirements),mock.patch.dict(os.environ,{'PATH':str(bins)+':'+os.environ['PATH'],'SUPABASE_GO_BINARY':''}):
+            with self.assertRaisesRegex(ValueError,'adjacent-supabase-go-missing'):module.installed_tool_receipt(a)
+        companion.unlink();actual.rename(companion)
+        alias=self.root/'alias-go';alias.symlink_to(companion)
+        with self.fixture_requirements(requirements),mock.patch.dict(os.environ,{'PATH':str(bins)+':'+os.environ['PATH'],'SUPABASE_GO_BINARY':str(alias)}):
+            with self.assertRaisesRegex(ValueError,'supabase-go-override-not-adjacent'):module.installed_tool_receipt(a)
+
+    def test_go_official_distribution_pin_and_source_policy_are_complete(self):
+        requirements=json.loads(Path(module.__file__).with_name('profile.requirements.json').read_text())
+        self.assertEqual(requirements['qualifiedToolHashes']['supabase-go'],'9dd9e81a21074081328b77a27a8aef7be45a2828f81d99c4e1fb65efbec73947')
+        self.assertEqual(requirements['toolchain']['supabaseGo'],'2.101.0')
+        self.assertEqual(requirements['toolchain']['supabaseGoCanonicalFile'],'adjacent-to-canonical-supabase/supabase-go')
+
+    def test_go_missing_blocks_dependency_install_before_npm_or_install_intent(self):
+        bins,requirements,a=self.tool_fixture();(bins/'supabase-go').unlink()
+        module.bootstrap_directory().mkdir(mode=0o700)
+        with self.fixture_requirements(requirements),mock.patch.dict(os.environ,{'PATH':str(bins)+':'+os.environ['PATH'],'SUPABASE_GO_BINARY':''}), \
+             mock.patch.object(module,'authenticate',return_value=(a,None,self.root)),mock.patch.object(module,'validate_bootstrap'):
+            with self.assertRaisesRegex(ValueError,'adjacent-supabase-go-missing'):module.install_dependencies()
+        self.assertFalse((self.root/'node_modules').exists())
+        self.assertFalse((module.bootstrap_directory()/'installation-started.json').exists())
 
     def test_actual_finite_npm_install_receipt_and_one_shot_boundary(self):
         import io
