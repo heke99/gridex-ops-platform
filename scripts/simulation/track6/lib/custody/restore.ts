@@ -87,6 +87,11 @@ function requireOwnedBackend(tooling?: Tooling): { assignment: BackendAssignment
   return { assignment, serverMajor: host.serverMajor }
 }
 
+/** Vitest globalSetup: refuse every T6 scenario before collection without an owned DB binding. */
+export function setup(): void {
+  requireOwnedBackend()
+}
+
 export function chooseTooling(): Tooling {
   const { assignment, serverMajor } = requireOwnedBackend()
   const v = spawnSync('pg_dump', ['--version'], { encoding: 'utf8' })

@@ -78,6 +78,15 @@ Saknad eller avvikande bindning ger BLOCKED före backup-/restore-kommandot.
 `T6_DB_URL` måste vara en kanonisk `postgresql:`-/`postgres:`-URL utan queryparametrar,
 fragment eller kodade alias för databasnamnet; libpq-parametrar får inte överstyra målet.
 
+Spårets ordinarie Vitest-konfiguration kör samma skrivskyddade backendkontroll i
+`globalSetup`, före insamling av scenariofiler. Saknad eller avvikande tilldelning
+stoppar därmed hela provstarten före fixturerna. CUSTODY01.05 väljer dessutom verktyg
+i `beforeAll`, så att ett misslyckat verktygsval stoppar dess följande prov även med
+en annan konfiguration. Hjälparna kontrollerar åter tilldelningen före dump/restore
+och temporär DB-livscykel. Startkontrollen är ingen atomisk resurslease och intygar
+inte appens, PostgRESTs eller Storages endpointtilldelning; samordnaren måste fortsatt
+kvalificera hela körmiljön och producenten före verklig körning.
+
 Kopiera inte värden från en godtycklig eller ensam `supabase_db_*`-container för att
 få kontrollen grön. Detta källövertagande tilldelar ingen faktisk backend.
 

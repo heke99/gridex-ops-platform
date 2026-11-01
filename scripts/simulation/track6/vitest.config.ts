@@ -17,6 +17,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // Runs before scenario collection, including module-level fixture initialization.
+    globalSetup: [resolve(here, 'lib/custody/restore.ts')],
     include: ['scenarios/**/*.test.ts'],
     testTimeout: 180_000,
     hookTimeout: 180_000,

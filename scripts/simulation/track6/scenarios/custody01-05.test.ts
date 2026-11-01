@@ -43,7 +43,11 @@ const windows: { dump?: { start: number; end: number }; restore?: { start: numbe
 const LOCK_WAIT_BOUND_MS = 5000
 const MIN_OVERLAP = { dump: 3, restore: 5 }
 
-beforeAll(() => { ev.observe('run', { ...run, mode: mode(), restoreDb, sourceDb: new URL(sourceUrl).pathname }) })
+beforeAll(() => {
+  // A failed setup must block all later fixture writers, even under another Vitest config.
+  tooling = chooseTooling()
+  ev.observe('run', { ...run, mode: mode(), restoreDb, sourceDb: new URL(sourceUrl).pathname })
+})
 afterAll(async () => {
   try {
     if (dbExists(restoreDb)) dropDb(restoreDb)
@@ -60,7 +64,6 @@ afterAll(async () => {
 
 describe('CUSTODY01.05 backup och återställning under drift', () => {
   it('CUSTODY01.05 förberedelse: verktyg, tabellista och hälso-pollning startar', () => {
-    tooling = chooseTooling()
     tables = baseTables(sourceUrl)
     health = startHealthPoll(400)
     ev.observe('tooling', tooling); ev.observe('source_tables', tables.length)
