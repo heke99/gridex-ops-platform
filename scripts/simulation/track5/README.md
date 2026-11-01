@@ -96,17 +96,25 @@ SIM_RUNTIME_ASSIGNMENT_FILE=/private/runtime.json SIM_HOME=/private/t5 RUN_DIR=/
 
 `down.sh` stöder endast `--processes-only`. Hela målsetet verifieras före
 första signalen; pidfd binder sedan signalen till exakt registrerad process.
-En återanvänd PID, främmande identitet, ändrad tilldelning, ett okänt barn eller
-en föräldralös sessionsmedlem stoppar automatisk städning. Endast en registrerad
-ledare utan andra levande sessions-/gruppmedlemmar kan signaleras; efteråt
-måste dess session vara tom. Inga processgruppssignaler eller breda pkill görs.
+En återanvänd PID, främmande identitet, ändrad tilldelning, en observerad ättling
+eller en föräldralös sessionsmedlem stoppar automatisk städning. Processernas
+föräldrarelationer (PPID) läses i den skrivskyddade inventeringen före första signalen för
+hela målsetet och igen före varje ledares signal, även för barn med annan SID/PGID.
+Endast en registrerad ledare utan observerade ättlingar eller andra levande
+sessions-/gruppmedlemmar kan signaleras; efteråt måste dess session vara tom.
+Inga processgruppssignaler eller breda pkill görs.
 
 En privat journal under `process-cleanup-receipts/` reserveras före signalerna
 och bevarar ursprungliga birth/ready-observationer. Endast slutförda registrerade
 ledare får sina PID-/identitetsfiler borttagna. Resultatet anger uttryckligen
-`backendStopped: false` och `hostNetworkChanged: false`; det godkänner inte
-städning av backend, volymer, nät, okända barn eller hela miljön. Ursprungliga
-replay-/byggmarkörer och credentials behålls för samordnarens separata custody.
+`backendStopped: false`, `hostNetworkChanged: false`, `descendantsStopped: false`
+och `descendantContainment: "NOT_PROVEN"`. Kontrollen saknar cgroup-inneslutning
+och kontinuerlig spårning: barn som redan har frikopplats och fått annan
+förälder före observationen, eller som undkommer under en race, kan inte
+uteslutas. Ett DONE gäller endast registrerade ledare och intygar inte att
+alla ättlingar eller hela miljön är städade. Backend, volymer, nät och okända
+barn har separat ägare. Ursprungliga replay-/byggmarkörer och credentials
+behålls för samordnarens separata custody.
 
 ## Nya statuspaket: explicit proveniens
 

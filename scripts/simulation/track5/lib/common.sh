@@ -209,6 +209,27 @@ def members(pid):
             pass
     return found
 
+def descendants(pid):
+    # Read-only PPID ancestry also sees a live child with another SID/PGID.
+    # A child already reparented before observation cannot be proven absent.
+    parents = {}
+    for proc in pathlib.Path('/proc').iterdir():
+        if not proc.name.isdigit():
+            continue
+        try:
+            fields = (proc / 'stat').read_text().rsplit(')', 1)[1].split()
+            if fields[0] != 'Z':
+                parents[int(proc.name)] = int(fields[1])
+        except (FileNotFoundError, ProcessLookupError):
+            pass
+    found, pending = set(), [pid]
+    while pending:
+        current = pending.pop()
+        children = {child for child, parent in parents.items() if parent == current and child not in found}
+        found.update(children)
+        pending.extend(children)
+    return found
+
 def exited(descriptor, timeout=0):
     poller = select.poll()
     poller.register(descriptor, select.POLLIN)
@@ -373,6 +394,7 @@ try:
                 require(exited(descriptor) or observed is not None and all(observed[key] == selected[key] for key in identity_keys),
                         'process_identity_mismatch')
             require(set(members(pid)) <= {pid}, 'unassigned_session_members')
+            require(not descendants(pid), 'observed_descendants_require_coordinator')
             if operation == 'alive':
                 require(descriptor is not None and not exited(descriptor), 'recorded_process_not_alive')
             resources.append((pid, selected, originals, pid_path, descriptor))
@@ -388,18 +410,21 @@ try:
                 def event(state, **data):
                     journal.write(json.dumps({'state': state, 'assignmentSha256': assignment_sha, **data}) + '\n')
                     journal.flush()
-                event('STARTED', scope='recorded_leaders_only', originals=[parsed(raw) for _, _, originals, _, _ in resources for _, raw in originals])
+                event('STARTED', scope='recorded_leaders_only', descendantContainment='NOT_PROVEN',
+                      originals=[parsed(raw) for _, _, originals, _, _ in resources for _, raw in originals])
                 for pid, selected, originals, pid_path, descriptor in resources:
                     still_assigned()
                     require(all(private(path) == raw for path, raw in originals), 'process_receipt_changed')
                     require(not present(pid_path) or private(pid_path).decode().strip() == str(pid), 'pidfile_changed')
                     require(set(members(pid)) <= {pid}, 'unassigned_session_members')
+                    require(not descendants(pid), 'observed_descendants_require_coordinator')
                     if descriptor is not None and not exited(descriptor):
                         observed = snapshot(pid)
                         require(observed is not None and all(observed[key] == selected[key] for key in identity_keys), 'process_identity_changed')
                         signal.pidfd_send_signal(descriptor, signal.SIGTERM)
                         if not exited(descriptor, 2000):
                             still_assigned()
+                            require(not descendants(pid), 'observed_descendants_require_coordinator')
                             signal.pidfd_send_signal(descriptor, signal.SIGKILL)
                             require(exited(descriptor, 2000), 'recorded_process_did_not_exit')
                     require(not members(pid), 'session_not_empty')
@@ -411,9 +436,11 @@ try:
                         path.unlink()
                     event('PROCESS_STOPPED', pid=pid, sessionEmpty=True)
                 still_assigned()
-                event('DONE', scope='recorded_leaders_only', backendStopped=False, hostNetworkChanged=False)
+                event('DONE', scope='recorded_leaders_only', backendStopped=False, hostNetworkChanged=False,
+                      descendantsStopped=False, descendantContainment='NOT_PROVEN')
             print(json.dumps({'scope': 'recorded_leaders_only', 'processesStopped': len(resources), 'backendStopped': False,
-                              'hostNetworkChanged': False, 'receipt': str(destination)}))
+                              'hostNetworkChanged': False, 'descendantsStopped': False,
+                              'descendantContainment': 'NOT_PROVEN', 'receipt': str(destination)}))
 except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as error:
     code = str(error) if isinstance(error, ValueError) and re.fullmatch(r'[a-z_]+', str(error)) else 'process_custody_failed'
     print('track5_process_refused: ' + code, file=sys.stderr)
