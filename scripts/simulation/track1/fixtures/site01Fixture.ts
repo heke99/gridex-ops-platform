@@ -17,6 +17,9 @@
 //    because those functions are not exported and main03Fixture.ts must stay untouched.
 import { createHash, createHmac, randomUUID } from 'node:crypto'
 import { vi } from 'vitest'
+import { guideOrderedFixtureRaw } from '@/__tests__/helpers/prodatGuideOrderedFixture'
+import { head } from '@/__tests__/fixtures/prodat-identity'
+import { line, characteristic, type Parts } from '@/__tests__/fixtures/prodat-register'
 import nodemailer from 'nodemailer'
 import { seedNormalSwitchNativeFixture, nativeSql as sql, literal } from '@/scripts/helpers/ediel-normal-switch-native-fixture'
 import { buildCancellationProspectiveZ04 } from '@/scripts/helpers/ediel-cancellation-prospective-source-2ea'
@@ -53,7 +56,7 @@ import { buildDayWire } from './wire'
 import { substitute } from './substitutions'
 import { dbRead, http, lit, signIn, timed, type Session } from './runtime'
 import { QUARTERS_PER_DAY, spotDayPayload, syntheticMonth } from './synthetic'
-import { SITE_A, SITE_B, SITE01_BILLING_MONTH, chooseSiteOracle, type SiteKey, type SiteOracle, type SiteSpec } from './site01Synthetic'
+import { SITE_A, SITE_B, SITE01_BILLING_MONTH, chooseSiteOracle, siteEndPlan, type SiteKey, type SiteOracle, type SiteSpec } from './site01Synthetic'
 
 function must(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message) }
 
@@ -104,6 +107,87 @@ export type Site01Fixture = {
   sites: Record<SiteKey, SiteRuntime>
   days: DayRecord[]
   spotLocks: Record<string, Record<string, unknown>>
+  supplyEnd: { sourceId: string; rawSha256: string; periodId: string; effectiveAtUtc: string; endWireMinute: string }
+}
+
+
+/** Existing normal L relationship, ordinary independent Z05L. No national H
+ * cohort/mandate and no direct period/contract write is manufactured here. */
+export async function endExistingSiteSupply(a: Ground, b: Ground, supply: { supplyPeriodId: string; sourceId: string }, oracle: SiteOracle) {
+  const plan = siteEndPlan(SITE_B, oracle)
+  must(a.companyId === b.companyId && a.customerId === b.customerId && a.siteId !== b.siteId && a.pointId !== b.pointId, 'site01_end_two_site_scope_required')
+  const preserveA = () => sql(`SELECT jsonb_build_object(
+    'site',(SELECT to_jsonb(s) FROM public.customer_sites s WHERE id=${literal(a.siteId)} AND company_id=${literal(a.companyId)}),
+    'point',(SELECT to_jsonb(p) FROM public.metering_points p WHERE id=${literal(a.pointId)} AND company_id=${literal(a.companyId)}),
+    'contract',(SELECT to_jsonb(c) FROM public.customer_contracts c WHERE id=${literal(a.contractId)} AND company_id=${literal(a.companyId)}),
+    'periods',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM public.customer_supply_periods p WHERE metering_point_id=${literal(a.pointId)} AND company_id=${literal(a.companyId)}))`)
+  type EndState = { period: { id: string; customer_id: string; metering_point_id: string; source_message_id: string; contract_id: string | null; customer_contract_id: string | null; source_end_message_id: string | null; market_state_version: number; end_date: string | null; market_end_at: string | null; status: string }; contract: { status: string }; effects: number; followups: number; terminations: number; finalTasks: number; acknowledgements: Array<{ family: string; outcome: string }> }
+  const readEnd = (sourceId: string | null): EndState => {
+    const source = sourceId ? literal(sourceId) : 'NULL'
+    return sql<EndState>(`SELECT jsonb_build_object(
+      'period',(SELECT to_jsonb(p) FROM public.customer_supply_periods p WHERE id=${literal(supply.supplyPeriodId)} AND company_id=${literal(b.companyId)}),
+      'contract',(SELECT to_jsonb(c) FROM public.customer_contracts c WHERE id=${literal(b.contractId)} AND company_id=${literal(b.companyId)}),
+      'effects',(SELECT count(*) FROM gridex_received_sources.supply_object_effect_receipts WHERE source_message_id=${source} AND company_id=${literal(b.companyId)}),
+      'followups',(SELECT count(*) FROM gridex_received_sources.supply_end_followups WHERE source_message_id=${source} AND company_id=${literal(b.companyId)}),
+      'terminations',(SELECT count(*) FROM public.customer_contract_events WHERE customer_contract_id=${literal(b.contractId)} AND company_id=${literal(b.companyId)} AND event_type='terminated'),
+      'finalTasks',(SELECT count(*) FROM public.customer_operation_tasks WHERE customer_id=${literal(b.customerId)} AND company_id=${literal(b.companyId)} AND metering_point_id=${literal(b.pointId)} AND task_type='final_invoice_pending'),
+      'acknowledgements',(SELECT coalesce(jsonb_agg(jsonb_build_object('family',message_family,'outcome',ack_outcome) ORDER BY message_family),'[]'::jsonb) FROM public.ediel_messages WHERE related_message_id=${source} AND company_id=${literal(b.companyId)} AND direction='outbound' AND message_family IN('APERAK','CONTRL')))`)
+  }
+  const aBefore = JSON.stringify(preserveA()), before = readEnd(null)
+  must(before.period && before.period.id === supply.supplyPeriodId && before.period.customer_id === b.customerId
+    && before.period.metering_point_id === b.pointId && before.period.source_message_id === supply.sourceId
+    && (before.period.customer_contract_id ?? before.period.contract_id) === b.contractId
+    && before.period.source_end_message_id === null, 'site01_end_original_relationship_required')
+  const parts: Parts[] = [
+    ...head().map(part => part[0] === 'NAD' && part[1] === 'FR' ? ['NAD', 'FR', [b.receiver, '160', 'SVK'], '', '', '', '', '', '', 'SE'] as Parts
+      : part[0] === 'NAD' && part[1] === 'DO' ? ['NAD', 'DO', [b.sender, '160', 'SVK'], '', '', '', '', '', '', 'SE'] as Parts : part),
+    line('1', b.external, undefined, '9'), ['DTM', ['93', plan.endWireMinute, '203']],
+    ...characteristic('Z13', 'Z22'), ['RFF', ['LI', `SITE-END-${randomUUID().replaceAll('-', '').slice(0, 16)}`]],
+    ['RFF', ['Z05', b.gridAreaCode]],
+    ['NAD', 'UD', [b.customerIdentity.id, b.customerIdentity.qualifier, b.customerIdentity.agency], '', 'Synthetic', 'Street', 'City', '', '12345', 'SE'],
+    ['NAD', 'IT', [b.external, '', '9'], '', '', 'Street', 'Town', '', '12345', 'SE'],
+    ['NAD', 'Z02', [b.brpEdielId, '160', 'SVK']],
+  ]
+  const wire = guideOrderedFixtureRaw(parts, 'Z05').replace('+S+R+', `+${b.receiver}:14+${b.sender}:14+`)
+    .replace("++23-DDQ-PRODAT'", "++23-DDQ-PRODAT++1++1'")
+    .replace(/\+I(\+\+23-DDQ-PRODAT\+\+1\+\+1')([\s\S]*UNZ\+1\+)I'/, (_, unb: string, mid: string) => {
+      const id = `I${randomUUID().replaceAll('-', '').slice(0, 12)}`; return `+${id}${unb}${mid}${id}'`
+    })
+  substitute({ id: 'ordinary-supply-end-source', step: 'fixture: site B ordinary Z05L',
+    substitute: 'synthetic grid-owner Z05L original placed in retained mailbox, public source birth and real inbound processing for the existing B relationship',
+    notVerified: 'real grid-owner transport, IMAP fetch, S/MIME and outbound ACK transport; no national H or legal acceptance is claimed' })
+  const smtp = assertEdielSmtpReadiness()
+  const mail = await seedOriginalMailboxNative(sql, literal, { companyId: b.companyId, environment: 'test', raw: wire, receivedAt: new Date().toISOString(), smtpFrom: smtp.from })
+  const outboundMatch = await matchOutboundRequestForInbound({ companyId: b.companyId, parsed: mail.parsed, inboundEmailMessageId: mail.inboundEmailMessageId, parseResultId: mail.parseResultId })
+  const meteringPointMatch = await matchMeteringPointForInbound({ companyId: b.companyId, parsed: mail.parsed })
+  const sourceId = await createInboundEdielMessage({ companyId: b.companyId, actorUserId: b.actorUserId, environment: 'test',
+    inboundEmailMessageId: mail.inboundEmailMessageId, parseResultId: mail.parseResultId, parsed: mail.parsed, outboundMatch, meteringPointMatch })
+  must(sourceId, 'site01_z05_public_birth_refused')
+  const message = await getEdielMessageById(sourceId)
+  must(message && message.company_id === b.companyId && message.message_code === 'Z05'
+    && message.rule_profile_key === 'PRODAT:Z05:L:26.A:r3', 'site01_z05_source_unexpected')
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(message, { actorUserId: b.actorUserId })
+  must([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision].every(value => value === 'accepted'),
+    `site01_z05_not_accepted:${JSON.stringify(decision.issues)}`)
+  await processInboundEdielMessage({ actorUserId: b.actorUserId, edielMessageId: sourceId })
+  const after = readEnd(sourceId)
+  must(after.period.source_end_message_id === sourceId && after.period.end_date === plan.endDate
+    && Date.parse(String(after.period.market_end_at)) === Date.parse(plan.effectiveAtUtc)
+    && Number(after.period.market_state_version) === Number(before.period.market_state_version) + 1
+    && after.period.source_message_id === supply.sourceId && after.period.customer_id === b.customerId
+    && after.period.metering_point_id === b.pointId
+    && (after.period.customer_contract_id ?? after.period.contract_id) === b.contractId, 'site01_z05_end_effect_mismatch')
+  must(after.effects === 1 && after.followups === 1 && after.contract.status === 'terminated'
+    && after.terminations === before.terminations + 1 && after.finalTasks === before.finalTasks + 1, 'site01_z05_followup_mismatch')
+  must(JSON.stringify(after.acknowledgements) === JSON.stringify([{ family: 'APERAK', outcome: 'positive' }, { family: 'CONTRL', outcome: 'positive' }]), 'site01_z05_ack_mismatch')
+  must(JSON.stringify(preserveA()) === aBefore, 'site01_z05_changed_site_a')
+  // Reprocess only this known terminal source. No retry is inferred after an
+  // unknown client outcome; all previous effects have been read and qualified.
+  await processInboundEdielMessage({ actorUserId: b.actorUserId, edielMessageId: sourceId })
+  must(JSON.stringify(readEnd(sourceId)) === JSON.stringify(after), 'site01_z05_repeat_changed_business_graph')
+  must(JSON.stringify(preserveA()) === aBefore, 'site01_z05_repeat_changed_site_a')
+  return { sourceId, rawSha256: createHash('sha256').update(wire).digest('hex'), periodId: supply.supplyPeriodId,
+    effectiveAtUtc: plan.effectiveAtUtc, endWireMinute: plan.endWireMinute }
 }
 
 // ---------------------------------------------------- second site, same company
@@ -435,14 +519,7 @@ export async function buildSite01Fixture(): Promise<Site01Fixture> {
     must(!update.error, `site01_grid_owner_name_failed:${spec.key}:${update.error?.message}`)
   }
 
-  // SUBSTITUTE: the END of site B's delivery is written to the supply period (end_date 2026-09-25) by service role. The normal end
-  // process for an ordinary L supply is a PRODAT Z05 whose effect needs the national rescission authority chain (Z08 H original,
-  // mandate, archive; see scripts/ediel-at-z05-supplier-native.test.ts and scripts/helpers/ediel-national-end-native-fixture.ts), which is not
-  // reproducible here — verifierar inte att nätägarens Z05/avslutsflöde sätter slutdatum. market_* columns and source transitions are left untouched.
-  substitute({ id: 'supply-end-date', step: 'fixture: site B delivery end', substitute: 'service-role UPDATE customer_supply_periods.end_date=2026-09-25 before the readings are ingested',
-    notVerified: 'the Z05 end of supply, rescission authority, contract termination event and final-invoice task that the normal end process produces' })
-  const endUpdate = await supabaseService.from('customer_supply_periods').update({ end_date: SITE_B.endDate }).eq('company_id', groundB.companyId).eq('id', supplyB.supplyPeriodId).select('id,end_date,status')
-  must(!endUpdate.error && (endUpdate.data ?? []).length === 1, `site01_end_date_write_failed:${endUpdate.error?.message ?? 'no row'}`)
+  const supplyEnd = await timed('fixture: site B ordinary Z05L end', () => endExistingSiteSupply(groundA, groundB, supplyB, oracleB))
 
   // Operator session (permissions + password) and spot prices for both areas, settlement-locked over HTTP.
   substitute({ id: 'actor-permissions-password', step: 'fixture: operator session', substitute: 'role_permissions rows on the actor\'s existing seed role via psql, password via auth admin API, then a real password login producing the app session cookies',
@@ -504,5 +581,5 @@ export async function buildSite01Fixture(): Promise<Site01Fixture> {
       days.push(await timed(`fixture: UTILTS ${spec.key} day ${day}`, () => ingestDay({ f: ground, runtime, day, dataRequest, companyId: ground.companyId })))
     }
   }
-  return { companyId: groundA.companyId, actorUserId: groundA.actorUserId, customerId: groundA.customerId, ownEdielId: groundA.sender, session, sites, days, spotLocks }
+  return { companyId: groundA.companyId, actorUserId: groundA.actorUserId, customerId: groundA.customerId, ownEdielId: groundA.sender, session, sites, days, spotLocks, supplyEnd }
 }

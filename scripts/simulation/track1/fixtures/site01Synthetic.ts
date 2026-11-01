@@ -138,3 +138,26 @@ export function chooseSiteOracle(spec: SiteSpec, monthName = SITE01_BILLING_MONT
   }
   throw new Error(`site01_no_unambiguous_salt:${spec.key}`)
 }
+
+
+/** Bind the existing interval oracle to Ediel's fixed UTC+1 market minute.
+ * Stockholm is UTC+2 in September; formatting local midnight as an Ediel
+ * minute would silently add an hour. This creates no source or end effect. */
+export function siteEndPlan(spec: SiteSpec, oracle: SiteOracle): {
+  endDate: string; effectiveAtUtc: string; endWireMinute: string
+} {
+  if (!spec.endDate) throw new Error('site01_end_date_required')
+  const last = oracle.intervals.at(-1)
+  const expectedDate = `${oracle.month.billingMonth}-${String(spec.lastDay).padStart(2, '0')}`
+  if (spec.key !== oracle.spec.key || spec.lastDay !== oracle.spec.lastDay
+    || spec.endDate !== expectedDate || !last || last.endMs !== oracle.billableEndMs
+    || !Number.isSafeInteger(oracle.billableEndMs) || oracle.billableEndMs % 60_000 !== 0) {
+    throw new Error('site01_end_oracle_mismatch')
+  }
+  const market = new Date(oracle.billableEndMs + 3_600_000).toISOString()
+  if (market.slice(0, 10) !== spec.endDate) throw new Error('site01_end_oracle_mismatch')
+  return {
+    endDate: spec.endDate, effectiveAtUtc: new Date(oracle.billableEndMs).toISOString(),
+    endWireMinute: market.slice(0, 16).replace(/[-T:]/g, ''),
+  }
+}

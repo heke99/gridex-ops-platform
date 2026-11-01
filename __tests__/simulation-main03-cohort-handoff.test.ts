@@ -589,3 +589,117 @@ describe('actual entry and read-only system adapters', () => {
     expect(() => assertCohortScenarioEnvironment(c.admission, client, { ...env, TRACK1_ASSIGNMENT_FILE: '/current-infrastructure-smoke.json' }, c.admission.harnessDir)).toThrow('business_assignment_integration_required')
   })
 })
+
+
+// SITE01 source-only clock binding: actual native end still requires its own
+// accepted relationship and source provenance on a qualified backend.
+describe('SITE01 ordinary end uses the independent site oracle', () => {
+  it('binds September25 inclusive to the exact exclusive instant in Ediel fixed UTC+1', async () => {
+    const { SITE_B, chooseSiteOracle, siteEndPlan } = await import('../scripts/simulation/track1/fixtures/site01Synthetic')
+    const oracle = chooseSiteOracle(SITE_B)
+    expect(siteEndPlan(SITE_B, oracle)).toEqual({
+      endDate: '2026-09-25', effectiveAtUtc: '2026-09-25T22:00:00.000Z', endWireMinute: '202609252300',
+    })
+  })
+
+  it('refuses an active site rather than inventing an end date', async () => {
+    const { SITE_A, chooseSiteOracle, siteEndPlan } = await import('../scripts/simulation/track1/fixtures/site01Synthetic')
+    expect(() => siteEndPlan(SITE_A, chooseSiteOracle(SITE_A))).toThrow('site01_end_date_required')
+  })
+
+  it('refuses a changed civil end date that disagrees with the unchanged interval oracle', async () => {
+    const { SITE_B, chooseSiteOracle, siteEndPlan } = await import('../scripts/simulation/track1/fixtures/site01Synthetic')
+    expect(() => siteEndPlan({ ...SITE_B, endDate: '2026-09-26' }, chooseSiteOracle(SITE_B))).toThrow('site01_end_oracle_mismatch')
+  })
+})
+
+async function siteEndBoundary(mode: 'valid' | 'missing-original' | 'held' | 'missing-effects' | 'sibling-drift' | 'repeat-drift' = 'valid') {
+  const endModule = await import('../scripts/simulation/track1/fixtures/site01Synthetic')
+  const guide = await import('./helpers/prodatGuideOrderedFixture')
+  const identity = await import('./fixtures/prodat-identity')
+  const register = await import('./fixtures/prodat-register')
+  const calls: string[] = [], wires: string[] = []
+  let processes = 0
+  const a = { siteId: 'site-a', pointId: 'point-a', contractId: 'contract-a', companyId: 'own-company', customerId: 'own-customer' }
+  const b = { siteId: 'site-b', pointId: 'point-b', contractId: 'contract-b', companyId: 'own-company', customerId: 'own-customer',
+    actorUserId: 'own-actor', sender: '11111', receiver: '22222', external: '735120000000000001', gridAreaCode: 'TEB', brpEdielId: '33333',
+    customerIdentity: { id: '191212121212', qualifier: 'SE1', agency: '260' } }
+  const supply = { supplyPeriodId: 'period-b', sourceId: 'accepted-z04-source' }
+  const sql = (query: string) => {
+    if (query.includes("'site',(SELECT")) return { sibling: mode === 'sibling-drift' && processes ? 'changed' : 'unchanged' }
+    return {
+      period: { id: 'period-b', customer_id: 'own-customer', metering_point_id: 'point-b',
+        source_message_id: mode === 'missing-original' ? 'foreign-source' : supply.sourceId,
+        contract_id: 'contract-b', customer_contract_id: 'contract-b', source_end_message_id: processes ? 'new-z05-source' : null,
+        market_state_version: processes ? mode === 'repeat-drift' ? 1 + processes : 2 : 1,
+        end_date: processes ? '2026-09-25' : null, market_end_at: processes ? '2026-09-25T22:00:00Z' : null },
+      contract: { status: processes ? 'terminated' : 'signed' },
+      effects: processes && mode !== 'missing-effects' ? 1 : 0, followups: processes ? 1 : 0,
+      terminations: processes ? 1 : 0, finalTasks: processes ? 1 : 0,
+      acknowledgements: processes ? [{ family: 'APERAK', outcome: 'positive' }, { family: 'CONTRL', outcome: 'positive' }] : [],
+    }
+  }
+  // All unused application imports are inert ports: invoking one fails instead
+  // of reaching a real service. The helper's wire builders are actual modules.
+  const ports: Record<string, unknown> = {
+    'node:crypto': createRequire(import.meta.url)('node:crypto'),
+    '@/__tests__/helpers/prodatGuideOrderedFixture': guide,
+    '@/__tests__/fixtures/prodat-identity': identity,
+    '@/__tests__/fixtures/prodat-register': register,
+    '@/scripts/helpers/ediel-normal-switch-native-fixture': { nativeSql: sql, literal: (value: string) => `'${value}'` },
+    '@/scripts/helpers/originalMailboxNative': { seedOriginalMailboxNative: async (_sql: unknown, _literal: unknown, input: { raw: string }) => { calls.push('mail'); wires.push(input.raw); return { parsed: {}, inboundEmailMessageId: 'mail-original', parseResultId: 'parse-original' } } },
+    '@/lib/ediel/mailReadiness': { assertEdielSmtpReadiness: () => ({ from: 'synthetic@example.invalid' }) },
+    '@/lib/inbound-mail/inboundMatcher': { matchOutboundRequestForInbound: async () => ({ status: 'not_found' }), matchMeteringPointForInbound: async () => ({ status: 'matched' }) },
+    '@/lib/inbound-mail/inboundStatusUpdater': { createInboundEdielMessage: async () => { calls.push('birth'); return 'new-z05-source' } },
+    '@/lib/ediel/db': { getEdielMessageById: async () => ({ company_id: 'own-company', message_code: 'Z05', rule_profile_key: 'PRODAT:Z05:L:26.A:r3' }) },
+    '@/lib/ediel/core/runtimeDecision': { resolveCanonicalRuntimeDecisionWithRegistry: async () => ({ syntaxDecision: 'accepted', applicationDecision: 'accepted', functionalDecision: mode === 'held' ? 'held' : 'accepted', issues: [] }) },
+    '@/lib/ediel/flows/inboundProcessing': { processInboundEdielMessage: async (input: { edielMessageId: string }) => { expect(input.edielMessageId).toBe('new-z05-source'); calls.push('process'); processes++ } },
+    './site01Synthetic': endModule, './substitutions': { substitute: () => undefined },
+  }
+  const filename = path.resolve('scripts/simulation/track1/fixtures/site01Fixture.ts')
+  const js = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
+  const exported: { endExistingSiteSupply?: (...args: unknown[]) => Promise<unknown> } = {}
+  vm.runInNewContext(js, { exports: exported, require: (id: string) => ports[id] ?? {} }, { filename })
+  const run = () => exported.endExistingSiteSupply!(a, b, supply, endModule.chooseSiteOracle(endModule.SITE_B))
+  return { run, calls, wires }
+}
+
+describe('SITE01 actual ordinary Z05 orchestration through finite ports', () => {
+  it('uses public source birth, exact end minute, actual processing and a terminal repeat', async () => {
+    const control = await siteEndBoundary()
+    expect(await control.run()).toMatchObject({ sourceId: 'new-z05-source', periodId: 'period-b', effectiveAtUtc: '2026-09-25T22:00:00.000Z', endWireMinute: '202609252300' })
+    expect(control.calls).toEqual(['mail', 'birth', 'process', 'process'])
+    expect(control.wires).toHaveLength(1)
+    expect(control.wires[0]).toContain('DTM+93:202609252300:203')
+    expect(control.wires[0]).toContain('RFF+LI:SITE-END-')
+  })
+
+  it('refuses a mismatched original relationship before retaining a new original', async () => {
+    const control = await siteEndBoundary('missing-original')
+    await expect(control.run()).rejects.toThrow('site01_end_original_relationship_required')
+    expect(control.calls).toEqual([])
+  })
+
+  it('does not process a source whose canonical functional decision is held', async () => {
+    const control = await siteEndBoundary('held')
+    await expect(control.run()).rejects.toThrow('site01_z05_not_accepted')
+    expect(control.calls).toEqual(['mail', 'birth'])
+  })
+
+  it('does not reprocess a source when its committed effect receipt is missing', async () => {
+    const control = await siteEndBoundary('missing-effects')
+    await expect(control.run()).rejects.toThrow('site01_z05_followup_mismatch')
+    expect(control.calls).toEqual(['mail', 'birth', 'process'])
+  })
+
+  it('detects a changed sibling graph before attempting a terminal repeat', async () => {
+    const control = await siteEndBoundary('sibling-drift')
+    await expect(control.run()).rejects.toThrow('site01_z05_changed_site_a')
+    expect(control.calls).toEqual(['mail', 'birth', 'process'])
+  })
+
+  it('refuses a repeat that changes the already observed business graph', async () => {
+    const control = await siteEndBoundary('repeat-drift')
+    await expect(control.run()).rejects.toThrow('site01_z05_repeat_changed_business_graph')
+  })
+})

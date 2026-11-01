@@ -356,4 +356,3 @@ describe('MAIN03 full month, one customer, 28 daily sources', () => {
     completed.push('MAIN03.04')
   }, 900_000)
 })
-

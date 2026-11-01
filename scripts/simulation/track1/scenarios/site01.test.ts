@@ -35,7 +35,7 @@ beforeAll(async () => {
   resetSubstitutions()
   fx = await buildSite01Fixture()
   writeArtifact('site01-fixture.json', {
-    note: 'ids only; no secrets or session material', companyId: fx.companyId, customerId: fx.customerId, actorUserId: fx.actorUserId, ownEdielId: fx.ownEdielId, spotLocks: fx.spotLocks,
+    note: 'ids only; no secrets or session material', companyId: fx.companyId, customerId: fx.customerId, actorUserId: fx.actorUserId, ownEdielId: fx.ownEdielId, spotLocks: fx.spotLocks, supplyEnd: fx.supplyEnd,
     sites: Object.fromEntries(KEYS.map(key => { const s = fx.sites[key]; return [key, { spec: s.spec, siteId: s.siteId, pointId: s.pointId, contractId: s.contractId, gridOwnerId: s.gridOwnerId, gridOwnerEdielId: s.gridOwnerEdielId, external: s.external, supplyPeriodId: s.supplyPeriodId,
       oracle: { salt: s.oracle.consumptionSalt, intervals: s.oracle.intervals.length, totalKwh: s.oracle.totalKwhText, lines: s.oracle.lines, vatCents: s.oracle.vatCents, totalExVatCents: s.oracle.totalExVatCents, totalIncVatCents: s.oracle.totalIncVatCents } }] })),
     days: fx.days.map(day => ({ site: day.site, day: day.day, sourceId: day.sourceId, transactionRef: day.transactionRef, rawSha256: day.rawSha256, values: day.meteringValueIds.length, ms: day.ms })),
@@ -199,9 +199,11 @@ describe('SITE01 one customer, two sites', () => {
       'itemsAfterEnd',(SELECT count(*) FROM public.billing_underlay_items i WHERE i.billing_underlay_id=${lit(b.id)} AND i.period_start>=to_timestamp(${bSite.oracle.billableEndMs}/1000.0)),
       'firstBlockedReasons',(SELECT billing_gate_reasons FROM public.normalized_metering_values x WHERE x.company_id=${company()} AND x.metering_point_id=${lit(bSite.pointId)} AND x.period_start>=to_timestamp(${bSite.oracle.billableEndMs}/1000.0) ORDER BY x.period_start LIMIT 1))
       FROM public.normalized_metering_values WHERE company_id=${company()} AND metering_point_id=${lit(bSite.pointId)}`)
-    const period = dbRead<{ end_date: string | null; status: string }>(`SELECT jsonb_build_object('end_date',end_date,'status',status) FROM public.customer_supply_periods WHERE id=${lit(bSite.supplyPeriodId)}`)
+    const period = dbRead<{ end_date: string | null; status: string; source_end_message_id: string | null; market_end_at: string | null }>(`SELECT jsonb_build_object('end_date',end_date,'status',status,'source_end_message_id',source_end_message_id,'market_end_at',market_end_at) FROM public.customer_supply_periods WHERE id=${lit(bSite.supplyPeriodId)}`)
     results['SITE01.03'] = { normalizedB, period, bFirst: bPairs[0]?.[0], bLastEnd: lastEnd(bPairs), underlayBStart: b.start, underlayBEnd: b.end, aLastEnd: lastEnd(aPairs) }
     expect(period.end_date).toBe(SITE_B.endDate)
+    expect(period.source_end_message_id).toBe(fx.supplyEnd.sourceId)
+    expect(Date.parse(String(period.market_end_at))).toBe(bSite.oracle.billableEndMs)
     // Readings WERE delivered after the end (15 delivered days, 10 of them inside the delivery) ...
     expect(normalizedB.total).toBe(15 * 96)
     expect(normalizedB.afterEnd).toBe(5 * 96)
@@ -364,4 +366,3 @@ describe('SITE01 one customer, two sites', () => {
     results['SITE01.05b.facts'] = fileFacts
   }, 900_000)
 })
-
