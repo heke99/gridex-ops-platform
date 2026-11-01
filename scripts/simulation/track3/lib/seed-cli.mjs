@@ -39,6 +39,7 @@ function outsideGit(directory) {
   }
 }
 
+const scenarioKeys = ['T3_E01_N', 'T3_E01_OWN_ID', 'T3_E02_OWN_ID', 'T3_E03_OWN_ID', 'T3_APP_AUTOMATION_ACTOR_USER_ID']
 const envKeys = new Set([
   'T3_MODE', 'T3_APP_PORT', 'T3_APP_URL', 'T3_SMTP_PORT', 'T3_IMAP_TLS_PORT', 'T3_IMAP_PLAIN_PORT', 'T3_CONTROL_PORT',
   'T3_MAILBOX_ADDRESS', 'T3_IMAP_USER', 'T3_IMAP_PASS', 'T3_SIM_HOME', 'T3_DB_URL',
@@ -47,6 +48,7 @@ const envKeys = new Set([
   'EDIEL_SMTP_FROM', 'EDIEL_SHARED_MAILBOX_ADDRESS', 'EDIEL_MESSAGE_ID_DOMAIN', 'EDIEL_IMAP_HOST', 'EDIEL_IMAP_PORT',
   'EDIEL_IMAP_USER', 'EDIEL_IMAP_PASS', 'EDIEL_CRON_SECRET', 'EDIEL_INBOUND_CRON_SECRET', 'EDIEL_AUTOMATION_ACTOR_USER_ID',
   'NEXT_TELEMETRY_DISABLED',
+  ...scenarioKeys,
 ])
 
 function environment(home) {
@@ -55,7 +57,18 @@ function environment(home) {
   for (const [key, value] of Object.entries(values)) {
     need(envKeys.has(key) && typeof value === 'string' && !value.includes('\0'), 'environment contains an unknown key or invalid value')
   }
+  if (values.T3_E01_N !== undefined) need(/^(?:[1-9]|1[0-9]|2[0-8])$/.test(values.T3_E01_N), 'EDIEL01 cohort must be a canonical integer from 1 to 28')
+  for (const key of ['T3_E01_OWN_ID', 'T3_E02_OWN_ID', 'T3_E03_OWN_ID']) {
+    if (values[key] !== undefined) need(/^[0-9]{5}$/.test(values[key]), 'scenario party ID must contain exactly five ASCII digits')
+  }
+  if (values.T3_APP_AUTOMATION_ACTOR_USER_ID !== undefined) need(/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(values.T3_APP_AUTOMATION_ACTOR_USER_ID), 'scenario app actor must be a UUID')
   return values
+}
+
+function scenarioConfiguration(values) {
+  const e01CohortSize = Number(values.T3_E01_N ?? 28)
+  return { e01CohortSize, e01CohortScope: e01CohortSize === 28 ? 'full_cohort_28' : 'diagnostic_reduced_cohort',
+    overrides: Object.fromEntries(scenarioKeys.filter((key) => values[key] !== undefined).map((key) => [key, values[key]])) }
 }
 
 const inspectFormat = '{"Id":{{json .Id}},"Running":{{json .State.Running}},"Name":{{json .Name}},"Image":{{json .Config.Image}},"Labels":{{json .Config.Labels}},"Ports":{{json .NetworkSettings.Ports}}}'
@@ -266,7 +279,7 @@ async function main(args) {
       })
       savePrivate(join(runtime.home, 'runtime-ready.json'), { assignmentSha256: runtime.assignmentHash, preparedReceiptSha256: runtime.a.preparedReceiptSha256, privateEnvSha256: hash(readFileSync(join(runtime.home, 'env/track3.json'))), readyAtUtc: new Date().toISOString() })
     } else {
-      process.stdout.write(`${JSON.stringify({ workerId: runtime.a.workerId, model: runtime.a.model, environmentId: runtime.a.environmentId, appCommit: runtime.a.appCommit, appTree: runtime.prepared.appTree, harnessCommit: runtime.a.harnessCommit, harnessTree: runtime.a.harnessTree, historicalBaselineCommit: '1c0c088cb4ed66d0dd8b3e34c9606019342a1a56', overlayRefs: runtime.a.overlayRefs, nextBuildId: runtime.prepared.nextBuildId, replayCommit: runtime.prepared.replayCommit, sourceSchemaSha256: runtime.prepared.sourceSchemaSha256, schemaFingerprint: runtime.prepared.schemaFingerprint, schemaFingerprintScope: 'partial selected-table identity', ledgerMigrationsSha256: runtime.prepared.ledgerMigrationsSha256, databaseSystemIdentifier: runtime.backend.systemIdentifier, backendContainerId: runtime.backend.containerId, assignmentSha256: runtime.assignmentHash }, null, 2)}\n`)
+      process.stdout.write(`${JSON.stringify({ workerId: runtime.a.workerId, model: runtime.a.model, environmentId: runtime.a.environmentId, appCommit: runtime.a.appCommit, appTree: runtime.prepared.appTree, harnessCommit: runtime.a.harnessCommit, harnessTree: runtime.a.harnessTree, historicalBaselineCommit: '1c0c088cb4ed66d0dd8b3e34c9606019342a1a56', overlayRefs: runtime.a.overlayRefs, nextBuildId: runtime.prepared.nextBuildId, replayCommit: runtime.prepared.replayCommit, sourceSchemaSha256: runtime.prepared.sourceSchemaSha256, schemaFingerprint: runtime.prepared.schemaFingerprint, schemaFingerprintScope: 'partial selected-table identity', ledgerMigrationsSha256: runtime.prepared.ledgerMigrationsSha256, databaseSystemIdentifier: runtime.backend.systemIdentifier, backendContainerId: runtime.backend.containerId, assignmentSha256: runtime.assignmentHash, scenarioConfiguration: scenarioConfiguration(runtime.values) }, null, 2)}\n`)
     }
     return
   }

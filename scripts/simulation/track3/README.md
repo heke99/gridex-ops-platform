@@ -82,6 +82,18 @@ ligger utanför Git-arbetsytor och Git-metadata. Appens `.env*`-filer godtas int
 `env/track3.json` läses som JSON med en uttrycklig nyckellista; dess värden körs aldrig som shellkod.
 App, fixture och Vitest får en rensad miljö med bara de tilldelade värdena.
 
+Valfria scenarioinställningar anges också i denna JSON: `T3_E01_N` är en kanonisk heltalssträng 1–28
+(standard 28), `T3_E01_OWN_ID`, `T3_E02_OWN_ID` och `T3_E03_OWN_ID` är exakt fem ASCII-siffror som strängar,
+och `T3_APP_AUTOMATION_ACTOR_USER_ID` är en UUID-sträng för appens automationsaktör. Omgivningens motsvarande
+variabler förs inte vidare utan uttryckliga JSON-värden. Den sista inställningen bevarar appaktören när E02
+byter aktör i scenarioprocessen. Köridentiteten redovisar dessa överlagringar och faktisk E01-kohortstorlek;
+N under 28 markeras `diagnostic_reduced_cohort` och uppfyller inte hela EDIEL01-oraklet. N=28 är endast
+kohortens storlek, inget automatiskt PASS. `NODE_TLS_REJECT_UNAUTHORIZED` godtas aldrig som överlagring.
+
+Startprocessen håller `run.lock` tills den avslutas. App- och mailprocesserna stänger sitt ärvda lås så att
+senare `run.sh`/`down.sh` kan ta det. Foreground-scenarioprocessen behåller låset under körning, även om dess
+wrapper avbryts, så att cleanup inte överlappar ett ännu aktivt test.
+
 Runtime-tilldelningen har `schema: track3-runtime-assignment-v1`, `workerId: codex-track3`, explicit `model`,
 `environmentId` med prefix `t3-` och längd 8–80 tecken, framtida UTC-`expiresAtUtc`, `exclusiveHost: true`, `backendReservation`,
 `allowedActions`, `appDir`, full `appCommit`, `simHome`, `harnessCommit`, `harnessTree` och `overlayRefs`.

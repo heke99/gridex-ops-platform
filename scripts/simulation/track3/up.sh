@@ -32,6 +32,8 @@ printf '%s\n' "$mail_id" > "$PID_DIR/greenmail.pending-id"
 node "$T3_DIR/lib/seed-cli.mjs" --record-greenmail "$mail_id"
 (
   cd "$T3_DIR"
+  # The startup parent holds the operation lock; the persistent service must not.
+  exec 9>&-
   exec setsid "${T3_EXEC_ENV[@]}" "T3_SMTP_USER=$T3_MAILBOX_ADDRESS" "$T3_NODE_BIN" "$T3_DIR/counterparty/mail-counterparty.mjs"
 ) > "$LOG_DIR/counterparty.log" 2>&1 < /dev/null &
 counterparty_pid=$!
@@ -44,6 +46,7 @@ node "$T3_DIR/lib/seed-cli.mjs" --apply-fixture
 t3_load_env
 (
   cd "$RUN_DIR"
+  exec 9>&-
   exec setsid "${T3_EXEC_ENV[@]}" "$T3_NODE_BIN" "$RUN_DIR/node_modules/next/dist/bin/next" start -p "$T3_APP_PORT" -H 127.0.0.1
 ) > "$LOG_DIR/app.log" 2>&1 < /dev/null &
 app_pid=$!
