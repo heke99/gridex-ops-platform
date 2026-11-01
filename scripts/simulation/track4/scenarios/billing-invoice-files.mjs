@@ -10,7 +10,7 @@ import { randomUUID } from 'node:crypto'
 import { fixtureSteps, ensureSession } from '../fixtures/seed.mjs'
 import { FIXTURE_MONTHS } from '../fixtures/expected.mjs'
 import { lit } from '../runner/lib/sql.mjs'
-import { countsFor, diffCounts, prepare, runAction, actionId, getFile, itemsFor, filesFor, pricingRunsFor, rowsSha256, money } from '../fixtures/flows.mjs'
+import { countsFor, diffCounts, prepare, runAction, actionId, getFile, itemsFor, filesFor, pricingRunsFor, rowsSha256, money, assertCreateFileRedirect, freezeFileSnapshot, assertInvoiceJson, assertInvoiceXml } from '../fixtures/flows.mjs'
 
 const M = FIXTURE_MONTHS
 const N = Number(process.env.T4_CONCURRENCY ?? 10)
@@ -156,9 +156,7 @@ const steps = [
       const filesBefore = (await filesFor(ctx.sql, fx.companyA)).length
       const a = await runAction(ctx, s, 'createFile', month, 'create file #1')
       ctx.value('create1', { status: a.status, params: a.params })
-      ctx.assert.ok(isRedirect(a.status), `createFile should redirect, got ${a.status}: ${a.res.text().slice(0, 200)}`)
-      ctx.assert.ok(!a.params.file_error, `file_error=${a.params.file_error}`)
-      ctx.assert.match(a.params.file ?? '', /^[0-9a-f-]{36}$/)
+      assertCreateFileRedirect(a, month)
       fx.fileId = a.params.file
       const files = await filesFor(ctx.sql, fx.companyA)
       ctx.assert.equal(files.length, filesBefore + 1, 'one new invoice_export_files row')
@@ -177,8 +175,8 @@ const steps = [
       const dl = await getFile(ctx, s, fx.fileId, { format: 'json', label: 'GET file (json) after create' })
       ctx.assert.equal(dl.status, 200)
       ctx.file('invoice-file.json', dl.bytes)
-      ctx.assert.ok(dl.text().includes(e.total_inc_vat), 'downloaded json contains the expected gross amount')
-      fx.fileRow = { id: file.id, rows_sha256: file.rows_sha256, rows: file.rows }
+      assertInvoiceJson(dl, file)
+      fx.fileRow = freezeFileSnapshot(file)
     },
   },
 
@@ -203,14 +201,17 @@ const steps = [
     id: 'MAIN05.03', title: 'two authenticated GETs of /admin/billing/invoice-files/<id> return byte-identical content', scope: 'api', needs: ['MAIN05.01'],
     async run(ctx) {
       const fx = ctx.fixture, s = await ensureSession(ctx, 'A')
-      const formats = [undefined, ...(fx.provider === 'nordfin' ? ['nordfin_xml', 'xlsx', 'csv'] : ['csv', 'xlsx', 'json'])]
+      // Explicit XML is supported by both real file providers; their default format is not this oracle.
+      const formats = ['nordfin_xml', undefined, ...(fx.provider === 'nordfin' ? ['xlsx', 'csv'] : ['csv', 'xlsx', 'json'])]
       for (const format of formats) {
         const g1 = await getFile(ctx, s, fx.fileId, { format, label: `GET #1 ${format ?? 'default'}` })
         const g2 = await getFile(ctx, s, fx.fileId, { format, label: `GET #2 ${format ?? 'default'}` })
         ctx.assert.equal(g1.status, 200, `format ${format}`); ctx.assert.equal(g2.status, 200)
+        if (format === 'nordfin_xml') { assertInvoiceXml(g1, fx.fileRow); assertInvoiceXml(g2, fx.fileRow) }
         ctx.assert.ok(g1.bytes.length > 0, 'non-empty body')
         ctx.assert.equal(g1.sha256, g2.sha256, `sha256 equal for format ${format ?? 'default'}`)
         ctx.assert.equal(g1.bytes.length, g2.bytes.length)
+        ctx.assert.deepEqual(g1.bytes, g2.bytes, `raw bytes equal for format ${format ?? 'default'}`)
         ctx.file(`file-${format ?? 'default'}`, g1.bytes)
       }
     },

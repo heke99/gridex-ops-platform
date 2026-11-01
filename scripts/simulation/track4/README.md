@@ -170,6 +170,25 @@ replacement entries are preserved. Partial new reports from a failed publication
 These output/layout controls do not admit the lifecycle, backend, schema or a real business run. `__tests__/simulation-track4-runner-contract.test.ts`
 tests both the actual runner and the whole common.sh/run.sh/tee/runner chain with synthetic noop steps, denied network and fake tools only.
 
+## JSON/XML download oracle (source correction; runtime remains unqualified)
+`MAIN05.01` requires the installed Next action's 303 redirect to the same billing page/month and one file UUID.
+Its protected JSON download must have the exact attachment identity, JSON/UTF8 MIME, six-field
+`gridex_invoice_file_v1` envelope and all invoice rows equal to the native stored file. The complete file row is
+copied and recursively frozen for later comparisons; a gross-amount substring or generic 200 cannot qualify.
+
+`MAIN05.03` explicitly requests `?format=nordfin_xml` twice on the existing file provider, including `file_export`.
+Default CSV is an auxiliary repeat check and cannot substitute for XML. Both XML responses require the protected
+attachment identity, bounded fatal UTF8 decoding, XML 1.0 declaration, no DTD/entity declarations or unbound entities,
+and the exact Nordfin root/cardinalities/fields projected from every frozen invoice row. Text escaping is decoded
+once; customer identifiers, dates, amounts, specification lines, facilities and optional contract/reconciliation facts
+are compared. Both raw byte buffers and their hashes must also match. XML has no invented file UUID/currency fields.
+
+The durable `__tests__/simulation-track4-file-oracle-contract.test.ts` executes these actual registered callbacks with
+controlled HTTP/SQL adapters and real canonical pure formatters. These are component serialization proofs, not new
+campaign PASS results, an independent money/cohort oracle, XSD certification or Nordfin receiver acceptance. Actual
+auth/server-action integration, provider connection, schema/producer, assigned lifecycle and missing/TODO business
+steps remain separate unmet runtime/acceptance gates. No provider relabeling or fixture money change is authorized.
+
 ## Origins
 - `stableJson`/`rowsSha256` in `fixtures/flows.mjs`: logic copied from `lib/billing/invoiceFileExport.ts` at the base
   commit (same repository), to recompute `rows_sha256`.
