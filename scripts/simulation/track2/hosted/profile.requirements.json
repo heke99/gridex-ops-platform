@@ -1,0 +1,12 @@
+{
+  "schema": "gridex-t2-hosted-requirements-v1",
+  "state": "SOURCE_ONLY_NOT_ADMITTED",
+  "provisioned": false,
+  "runner": "ubuntu-24.04",
+  "lifecycle": ["prepare", "qualify", "scenario", "always-cleanup"],
+  "minimumRAMBytes": 8589934592,
+  "minimumDockerFreeBytes": {"overlay2": 16106127360, "overlayfs": 16106127360, "vfs": 42949672960},
+  "toolchain": {"nodeMajor": 22, "supabaseCLI": "2.101.0", "postgresMajor": 17, "pythonMinimum": "3.11"},
+  "requiredBindings": ["appCommit", "appTree", "harnessCommit", "harnessTree", "workflowBlob", "sourceCustody", "backendReservation", "producerReservation", "inputEpoch", "genSource", "budget", "expiresAt", "nineUniquePorts", "syntheticActors", "clock", "cleanupPolicy"],
+  "unimplementedGates": ["authenticated-reservation-and-source-verifier", "actual-backend-and-socket-namespace-binding", "installed-migration-ledger-and-ordered-source-applicability", "controlled-replay-patch-and-restoration-proof", "build-and-private-endpoint-attestation", "exact-backend-network-volume-and-descendant-cleanup", "single-use-budget-consumption"]
+}

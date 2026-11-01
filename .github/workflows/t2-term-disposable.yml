@@ -1,0 +1,21 @@
+name: T2 disposable runtime source contracts
+# Source-only validation. No dispatch schedule, credentials, backend or scenario execution.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/t2-term-disposable.yml'
+      - 'scripts/simulation/track2/hosted/**'
+permissions:
+  contents: read
+jobs:
+  source-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Offline fail-closed contracts
+        run: python3 -B scripts/simulation/track2/hosted/qualification.test.py
+      - name: Shell syntax
+        run: bash -n scripts/simulation/track2/hosted/prepare.sh scripts/simulation/track2/hosted/cleanup.sh
