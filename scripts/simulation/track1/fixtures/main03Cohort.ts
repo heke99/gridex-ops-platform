@@ -6,11 +6,13 @@ import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { constants, closeSync, fstatSync, fsyncSync, linkSync, lstatSync, openSync, readFileSync, readdirSync, readlinkSync, realpathSync, unlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { createRequire } from 'node:module'
 import { createServerClient } from '@supabase/ssr'
+import { SupabaseClient } from '@supabase/supabase-js'
 import type { Main03Fixture, Main03Params } from './main03Fixture'
 import type { Session } from './runtime'
 // Explicit extension permits the standalone Node22 type-stripping CLI.
-import { buildOracle, parseMilliKwh, type Oracle } from './synthetic.ts'
+import { buildOracle, chooseSafeSalt, parseMilliKwh, type Oracle } from './synthetic.ts'
 
 export const COHORT_ORACLE_SHA256 = '96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3'
 export const MAIN03_STEPS = ['MAIN03.01', 'MAIN03.02', 'MAIN03.03', 'MAIN03.05', 'MAIN03.04'] as const
@@ -166,6 +168,17 @@ function inputOracle(admission: BusinessAdmission): { approval: InputApproval; o
     same([oracle.totalExVatCents, oracle.vatCents.total, oracle.totalIncVatCents], [144761, 36190, 180951], 'original_frozen_money_input_unqualified')
   } else need(approval.basisKind === 'separately_qualified_synthetic_input' && approval.substitutions.length > 0, 'synthetic_qualification_required')
   return { approval, oracle }
+}
+
+/** Bind the actual unchanged builder's full defaults and deterministic salt
+ * before its first mutation. An arbitrary safe admitted salt is insufficient. */
+export function validateMain03DefaultInput(admission: BusinessAdmission, actualDefaults: Main03Params): Main03Params {
+  need(actualDefaults && typeof actualDefaults === 'object' && !Array.isArray(actualDefaults), 'main03_default_params')
+  const fixtureParams = structuredClone(actualDefaults), { approval } = inputOracle(admission)
+  same(approval.params, fixtureParams, 'main03_default_params')
+  const chosen = chooseSafeSalt(fixtureParams.billingMonth, fixtureParams.saltStart, fixtureParams.pricing)
+  need(approval.salt === chosen.salt && approval.inputVectorSha256 === cohortHash(chosen.oracle.intervals), 'main03_default_chosen_salt')
+  return fixtureParams
 }
 
 function unique(rows: JsonRow[], key: string, expected: number) {
@@ -417,25 +430,60 @@ function actualPorts(admission: BusinessAdmission): CohortPorts {
   return { now: Date.now, observeRuntime: observeCohortRuntime, authenticate: actualAuth,
     readGraph: async (ids, oracle) => readCohortGraph(admission, ids, oracle) }
 }
-export function assertCohortScenarioEnvironment(admission: BusinessAdmission, capturedServiceUrl: string | undefined,
+function ownData(object: unknown, key: string): unknown {
+  need(object && typeof object === 'object', 'cached_service_client_layout')
+  const descriptor = Object.getOwnPropertyDescriptor(object, key)
+  need(descriptor && Object.hasOwn(descriptor, 'value'), 'cached_service_client_layout')
+  return descriptor.value
+}
+/** SDK2.103's constructor stores these data fields and closes the same key
+ * into fetchWithAuth / initialized Auth headers. Inspect the actual singleton;
+ * never accept a declared digest, use an API request, or serialize its secrets. */
+export function assertCachedServiceClient(admission: BusinessAdmission, client: unknown): void {
+  need(client && typeof client === 'object', 'cached_service_client_layout')
+  let genuine = client instanceof SupabaseClient
+  if (!genuine) {
+    need(Object.getPrototypeOf(client) !== Object.prototype && Object.getPrototypeOf(client) !== null, 'cached_service_client_layout')
+    // The pinned package has legitimate ESM and CJS constructors. Resolve CJS
+    // from the already admitted harness module, never from an ambient cwd/PATH.
+    need(path.isAbsolute(admission.harnessDir) && path.normalize(admission.harnessDir) === admission.harnessDir, 'cached_service_client_layout')
+    try {
+      const require = createRequire(path.join(admission.harnessDir, PROTOCOL_FILES[2]))
+      const constructor: unknown = require('@supabase/supabase-js').SupabaseClient
+      genuine = typeof constructor === 'function' && client instanceof constructor
+    } catch { throw new Error('cohort_hold:cached_service_client_layout') }
+  }
+  need(genuine, 'cached_service_client_layout')
+  const url = ownData(client, 'supabaseUrl'), credential = ownData(client, 'supabaseKey'), auth = ownData(client, 'auth')
+  need(url === admission.authUrl && ownData(auth, 'url') === new URL('auth/v1', admission.authUrl + '/').href, 'cached_service_client_url')
+  need(typeof credential === 'string' && credential.length > 0, 'cached_service_client_layout')
+  const headers = row(ownData(auth, 'headers')), globalHeaders = row(ownData(client, 'headers'))
+  need(!Object.keys(globalHeaders).some(key => ['apikey', 'authorization'].includes(key.toLowerCase())), 'cached_service_credential_override')
+  need(Object.keys(headers).filter(key => key.toLowerCase() === 'apikey').length === 1 && Object.keys(headers).filter(key => key.toLowerCase() === 'authorization').length === 1, 'cached_service_credential_override')
+  need(headers.apikey === credential && headers.Authorization === 'Bearer ' + credential, 'cached_service_credential_override')
+  need(bytesHash(credential) === hash(admission.serviceRoleKeySha256), 'cached_service_client_credential')
+}
+
+export function assertCohortScenarioEnvironment(admission: BusinessAdmission, actualServiceClient: unknown,
   env: NodeJS.ProcessEnv = process.env, cwd = process.cwd()) {
   const expected: Record<string, string> = { TRACK1_RUN_DIR: admission.runDir, TRACK1_STACK_JSON: admission.stack.path, TRACK1_APP_URL: admission.appUrl,
     TRACK1_APP_DIR: admission.appDir, TRACK1_APP_COMMIT: admission.runtime.appCommit, TRACK1_APP_PORT: '3101', TRACK1_DB_URL: admission.dbUrl,
     SIM_HOME: admission.simHome, NEXT_PUBLIC_SUPABASE_URL: admission.authUrl, NEXT_PUBLIC_SUPABASE_ANON_KEY: admission.anonKey }
   need(Object.entries(expected).every(([key, value]) => env[key] === value), 'ambient_scenario_binding')
-  need(capturedServiceUrl === admission.authUrl && cwd === admission.harnessDir, 'captured_service_or_harness_binding')
+  need(cwd === admission.harnessDir, 'captured_service_or_harness_binding')
+  assertCachedServiceClient(admission, actualServiceClient)
   need(env.NEXT_PHASE !== 'phase-production-build' && env.SUPABASE_SERVICE_ROLE_KEY && bytesHash(env.SUPABASE_SERVICE_ROLE_KEY) === hash(admission.serviceRoleKeySha256), 'service_key_binding')
   // Integration with a future business assignment is a separate reviewed
   // source packet. Never reuse/unset/extend the currently smoke-only assignment.
   need(!env.TRACK1_ASSIGNMENT_FILE, 'business_assignment_integration_required')
   privatePath(admission.simHome); readCohortFile(admission.stack, admission.privateHome)
 }
-export function loadCohortAdmissionFromEnv(phase: Phase, capturedServiceUrl?: string): { admission: BusinessAdmission; admissionSha256: string; ports: CohortPorts } {
+export function loadCohortAdmissionFromEnv(phase: Phase, actualServiceClient?: unknown): { admission: BusinessAdmission; admissionSha256: string; ports: CohortPorts } {
   const file = process.env.TRACK1_COHORT_ADMISSION_FILE, expected = process.env.TRACK1_COHORT_ADMISSION_SHA256
   need(file && expected, 'separate_root_pinned_business_admission_missing')
   privatePath(path.dirname(file)); const admission = readCohortFile<BusinessAdmission>({ path: file, sha256: expected }, path.dirname(file))
   validateBusinessAdmission(admission, phase, Date.now())
-  if (phase !== 'MAIN03_SEAL') assertCohortScenarioEnvironment(admission, capturedServiceUrl)
+  if (phase !== 'MAIN03_SEAL') assertCohortScenarioEnvironment(admission, actualServiceClient)
   let outsideGit = false
   try { outsideGit = execFileSync('git', ['-C', admission.privateHome, 'rev-parse', '--is-inside-work-tree'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim() !== 'true' }
   catch (error) { outsideGit = (error as { status?: number }).status === 128 }
@@ -443,11 +491,11 @@ export function loadCohortAdmissionFromEnv(phase: Phase, capturedServiceUrl?: st
   return { admission, admissionSha256: expected, ports: actualPorts(admission) }
 }
 
-export async function beginMain03CohortFromEnv(capturedServiceUrl: string) {
-  const context = loadCohortAdmissionFromEnv('MAIN03_CANDIDATE', capturedServiceUrl)
+export async function beginMain03CohortFromEnv(actualServiceClient: unknown, actualDefaults: Main03Params) {
+  const context = loadCohortAdmissionFromEnv('MAIN03_CANDIDATE', actualServiceClient)
+  const fixtureParams = validateMain03DefaultInput(context.admission, actualDefaults)
   same(await context.ports.observeRuntime(context.admission), context.admission.runtime, 'runtime_identity')
-  inputOracle(context.admission)
-  return context
+  return { ...context, fixtureParams }
 }
 export async function captureMain03Candidate(context: { admission: BusinessAdmission; ports: CohortPorts }, fixture: Main03Fixture, completed: string[], observation: JsonRow): Promise<FileRef> {
   const { admission, ports } = context
@@ -566,8 +614,8 @@ export async function adoptMain03Cohort(admission: BusinessAdmission, admissionS
   return { ...candidate.ids, params: approval.params, salt: approval.salt, oracle, session: capsule.session, underlayId, cohortSha256: admission.sealed.sha256,
     protocol: { admission, admissionSha256, sealed, graph, ports } }
 }
-export async function adoptMain03CohortFromEnv(capturedServiceUrl: string): Promise<Main04Cohort> {
-  const context = loadCohortAdmissionFromEnv('MAIN04_PREPARE_REVIEW', capturedServiceUrl); return adoptMain03Cohort(context.admission, context.admissionSha256, context.ports)
+export async function adoptMain03CohortFromEnv(actualServiceClient: unknown): Promise<Main04Cohort> {
+  const context = loadCohortAdmissionFromEnv('MAIN04_PREPARE_REVIEW', actualServiceClient); return adoptMain03Cohort(context.admission, context.admissionSha256, context.ports)
 }
 export async function assertAdoptedCohortUnchanged(cohort: Main04Cohort): Promise<void> {
   const { admission, graph, ports } = cohort.protocol

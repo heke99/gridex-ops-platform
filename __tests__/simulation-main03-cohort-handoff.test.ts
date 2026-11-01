@@ -4,8 +4,10 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import vm from 'node:vm'
 import { execFileSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 import ts from 'typescript'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createClient as createEsmClient } from '@supabase/supabase-js'
 import { appendCohortFile, adoptMain03Cohort, assertAdoptedCohortUnchanged, captureMain03Candidate, cohortHash, COHORT_ORACLE_SHA256,
   MAIN03_STEPS, parseCohortJson, readCohortFile, sealMain03Candidate, validateBusinessAdmission, verifyCohortGraph,
   recordPreparedDraftCandidate, observeCohortAppProcess, observeCohortRuntime, readCohortGraph,
@@ -13,6 +15,7 @@ import { appendCohortFile, adoptMain03Cohort, assertAdoptedCohortUnchanged, capt
   assertCohortScenarioEnvironment,
   type BusinessAdmission, type CohortPorts, type InputApproval, type ProtectedGraph } from '../scripts/simulation/track1/fixtures/main03Cohort'
 import { chooseSafeSalt, formatMilliKwh } from '../scripts/simulation/track1/fixtures/synthetic'
+import * as actualSynthetic from '../scripts/simulation/track1/fixtures/synthetic'
 import type { Main03Fixture } from '../scripts/simulation/track1/fixtures/main03Fixture'
 
 function main04Boundary(refuse = false) {
@@ -23,7 +26,8 @@ function main04Boundary(refuse = false) {
   const seed = vi.fn(async () => fixture)
   const requests = vi.fn(async () => ({ status: 200, body: { data: { sourceRows: 2688, underlays: 1, readyForPricing: 1 } } }))
   const provider = vi.fn(async () => undefined)
-  const adopt = vi.fn(async () => {
+  const adopt = vi.fn(async (...args: unknown[]) => {
+    if (!args[0]) throw new Error('missing actual service client')
     if (refuse) throw new Error('cohort_not_admitted')
     return { ...fixture, underlayId: 'same-underlay', cohortSha256: 'a'.repeat(64) }
   })
@@ -31,9 +35,10 @@ function main04Boundary(refuse = false) {
     skip: (name: string) => cases.push({ name, skipped: true }),
   })
   const runtime = { dbRead: vi.fn(() => ['same-underlay']), http: requests, lit: String, TIMINGS: [], timed: async (_: string, fn: () => Promise<unknown>) => fn(), writeArtifact: vi.fn() }
+  const serviceClient = { componentPort: 'actual-imported-singleton' }
   const ports: Record<string, unknown> = {
     vitest: { beforeAll: (fn: () => Promise<void>) => setup.push(fn), afterAll: vi.fn(), describe: (_: string, fn: () => void) => fn(), expect, it: register, vi: { mock: vi.fn() } },
-    '@/lib/supabase/service': { supabaseService: {}, SUPABASE_SERVICE_URL: 'http://127.0.0.1:54321' }, '@/lib/billing/invoiceApprovedDispatch': {},
+    '@/lib/supabase/service': { supabaseService: serviceClient }, '@/lib/billing/invoiceApprovedDispatch': {},
     '../fixtures/main03Fixture': { buildMain03Fixture: seed, DEFAULT_MAIN03_PARAMS: { billingMonth: '2027-02' } },
     '../fixtures/main03Cohort': { adoptMain03CohortFromEnv: adopt, assertAdoptedCohortUnchanged: vi.fn() },
     '../fixtures/substitutions': { SUBSTITUTIONS: [], resetSubstitutions: vi.fn(), substitute: vi.fn() },
@@ -42,7 +47,7 @@ function main04Boundary(refuse = false) {
   const filename = path.resolve('scripts/simulation/track1/scenarios/main04.test.ts')
   const js = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
   vm.runInNewContext(js, { exports: {}, require: (id: string) => { if (!(id in ports)) throw new Error(`uncontrolled_import:${id}`); return ports[id] } }, { filename })
-  return { runSetup: () => setup[0](), seed, requests, provider, adopt, cases }
+  return { runSetup: () => setup[0](), seed, requests, provider, adopt, cases, serviceClient }
 }
 
 describe('actual MAIN04 beforeAll same-cohort boundary', () => {
@@ -52,7 +57,7 @@ describe('actual MAIN04 beforeAll same-cohort boundary', () => {
     expect(control.seed).not.toHaveBeenCalled()
     expect(control.requests).not.toHaveBeenCalled()
     expect(control.adopt).toHaveBeenCalledOnce()
-    expect(control.adopt).toHaveBeenCalledWith('http://127.0.0.1:54321')
+    expect(control.adopt.mock.calls[0][0] === control.serviceClient).toBe(true)
     expect(control.provider).toHaveBeenCalledWith('same-company')
   })
 
@@ -67,6 +72,135 @@ describe('actual MAIN04 beforeAll same-cohort boundary', () => {
   it('registers the original MAIN04.04 approval/tamper body as explicitly held', () => {
     const control = main04Boundary()
     expect(control.cases.find(test => test.name.startsWith('MAIN04.04 '))?.skipped).toBe(true)
+  })
+})
+
+const sourceRequire = createRequire(path.resolve('scripts/simulation/track1/fixtures/main03Cohort.ts'))
+function sourceDefaults(): Main03Fixture['params'] {
+  const filename = path.resolve('scripts/simulation/track1/fixtures/main03Fixture.ts'), exports: Record<string, unknown> = {}
+  const code = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText
+  vm.runInNewContext(code, { exports, require: (name: string) => name.startsWith('node:') ? sourceRequire(name) : name === './synthetic' ? actualSynthetic : name === 'vitest' ? { vi } : {} }, { filename })
+  return exports.DEFAULT_MAIN03_PARAMS as Main03Fixture['params']
+}
+function sourceBegin(context: ReturnType<typeof protocolControl>) {
+  const filename = path.resolve('scripts/simulation/track1/fixtures/main03Cohort.ts')
+  const exports: { controlledContext?: unknown; controlledBegin?: (...args: unknown[]) => Promise<unknown> } = { controlledContext: { admission: context.admission, admissionSha256: 'a'.repeat(64), ports: context.ports } }
+  const code = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText
+  // Replace only external admission/runtime IO. The actual begin body, real
+  // private input files, actual default/salt validator and callback all execute.
+  vm.runInNewContext(code + '\nloadCohortAdmissionFromEnv = () => exports.controlledContext; exports.controlledBegin = beginMain03CohortFromEnv;',
+    { exports, process, Buffer, structuredClone, require: (name: string) => name === './synthetic.ts' ? actualSynthetic : sourceRequire(name) }, { filename })
+  return exports.controlledBegin!
+}
+function registeredSetup(file: 'main03' | 'main04', cohortPorts: Record<string, unknown>, service: Record<string, unknown>, seed = vi.fn(), provider = vi.fn(async () => undefined)) {
+  let setup: () => Promise<void> = async () => { throw new Error('missing setup') }
+  const register = Object.assign(vi.fn(), { skip: vi.fn() })
+  const ports: Record<string, unknown> = {
+    vitest: { beforeAll: (callback: typeof setup) => { setup = callback }, afterAll: vi.fn(), describe: (_: string, callback: () => void) => callback(), it: register, expect, vi: { mock: vi.fn() } },
+    '@/lib/supabase/service': service, '@/lib/billing/sourceBasis': {}, '@/lib/billing/invoiceApprovedDispatch': {},
+    '../fixtures/main03Fixture': { buildMain03Fixture: seed, DEFAULT_MAIN03_PARAMS: sourceDefaults() }, '../fixtures/main03Cohort': cohortPorts,
+    '../fixtures/substitutions': { resetSubstitutions: vi.fn(), SUBSTITUTIONS: [], substitute: vi.fn() },
+    '../fixtures/runtime': { writeArtifact: vi.fn(), TIMINGS: [] }, '../fixtures/synthetic': actualSynthetic,
+    '../fixtures/main04Support': { enableFileInvoiceProvider: provider },
+  }
+  const filename = path.resolve(`scripts/simulation/track1/scenarios/${file}.test.ts`)
+  vm.runInNewContext(ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText,
+    { exports: {}, require: (name: string) => { if (!(name in ports)) throw new Error('undeclared external port'); return ports[name] } }, { filename })
+  return { setup: () => setup(), seed, provider }
+}
+function actualServiceSingleton(url: string, key: string): Record<string, unknown> {
+  const filename = path.resolve('lib/supabase/service.ts'), exports: Record<string, unknown> = {}
+  const sdk = sourceRequire('@supabase/supabase-js') as { createClient: (...args: unknown[]) => unknown }
+  const code = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText
+  const transport = vi.fn(() => { throw new Error('network forbidden') })
+  vm.runInNewContext(code, { exports, require: (name: string) => name === '@/lib/env/supabaseServer' ? { getSupabaseServiceEnv: () => ({ url, serviceRoleKey: key }) } : name === '@supabase/supabase-js' ? {
+    createClient: (u: unknown, k: unknown, options: Record<string, unknown>) => sdk.createClient(u, k, { ...options, global: { fetch: transport } }),
+  } : (() => { throw new Error('undeclared external port') })() }, { filename })
+  return { ...exports, transport }
+}
+function admittedEnvironment(c: ReturnType<typeof protocolControl>): NodeJS.ProcessEnv {
+  return { TRACK1_RUN_DIR: c.admission.runDir, TRACK1_STACK_JSON: c.admission.stack.path, TRACK1_APP_URL: c.admission.appUrl, TRACK1_APP_DIR: c.admission.appDir,
+    TRACK1_APP_COMMIT: c.admission.runtime.appCommit, TRACK1_APP_PORT: '3101', TRACK1_DB_URL: c.admission.dbUrl, SIM_HOME: c.home,
+    NEXT_PUBLIC_SUPABASE_URL: c.admission.authUrl, NEXT_PUBLIC_SUPABASE_ANON_KEY: c.admission.anonKey, SUPABASE_SERVICE_ROLE_KEY: 'controlled-only-service-key' }
+}
+
+describe('preseed admitted defaults and actual cached service credentials', () => {
+  it('rejects independently reviewed nondefault saltStart before actual MAIN03 callback can seed', async () => {
+    const c = protocolControl(), params = { ...c.approval.params, saltStart: 100 }, chosen = chooseSafeSalt(params.billingMonth, params.saltStart, params.pricing), vector = cohortHash(chosen.oracle.intervals)
+    for (const reference of c.approval.independentReviewRefs) c.changeFile(reference, review => { review.inputVectorSha256 = vector })
+    c.changeFile(c.admission.inputApproval, input => { input.params = params; input.salt = chosen.salt; input.inputVectorSha256 = vector; input.independentReviewRefs = c.approval.independentReviewRefs })
+    const seed = vi.fn(async () => c.fixture), entry = registeredSetup('main03', { beginMain03CohortFromEnv: sourceBegin(c), captureMain03Candidate: vi.fn() }, {}, seed)
+    await expect(entry.setup()).rejects.toThrow('cohort_hold:')
+    expect(seed).not.toHaveBeenCalled()
+  })
+  it('rejects the actual cached service.ts singleton stale key before actual MAIN04 provider selection', async () => {
+    const c = protocolControl(); c.admission.harnessDir = process.cwd()
+    const service = actualServiceSingleton(c.admission.authUrl, 'controlled-stale-service-key'), provider = vi.fn(async () => undefined)
+    const entry = registeredSetup('main04', { adoptMain03CohortFromEnv: async (actualPassedClient: unknown) => {
+      Reflect.apply(assertCohortScenarioEnvironment, undefined, [c.admission, actualPassedClient, admittedEnvironment(c), c.admission.harnessDir])
+      return { ...c.fixture, underlayId: id(10), cohortSha256: 'a'.repeat(64) }
+    } }, service, vi.fn(), provider)
+    await expect(entry.setup()).rejects.toThrow('cohort_hold:cached_service_client_credential')
+    expect(provider).not.toHaveBeenCalled()
+    expect(service.transport).not.toHaveBeenCalled()
+  })
+  it('passes actual checked defaults explicitly to the actual MAIN03 seed boundary', async () => {
+    const c = protocolControl(), seed = vi.fn<(params: Main03Fixture['params']) => Promise<typeof c.fixture>>(async () => c.fixture)
+    const entry = registeredSetup('main03', { beginMain03CohortFromEnv: sourceBegin(c), captureMain03Candidate: vi.fn() }, {}, seed)
+    await entry.setup()
+    expect(seed).toHaveBeenCalledOnce(); expect(seed.mock.calls[0][0]).toEqual(sourceDefaults())
+  })
+  it('rejects another reviewed ambiguity-free salt when the actual default builder would choose the first safe salt', async () => {
+    const c = protocolControl(), chosen = chooseSafeSalt(c.approval.params.billingMonth, c.approval.salt + 1, c.approval.params.pricing), vector = cohortHash(chosen.oracle.intervals)
+    for (const reference of c.approval.independentReviewRefs) c.changeFile(reference, review => { review.inputVectorSha256 = vector })
+    c.changeFile(c.admission.inputApproval, input => { input.salt = chosen.salt; input.inputVectorSha256 = vector; input.independentReviewRefs = c.approval.independentReviewRefs })
+    const seed = vi.fn(async () => c.fixture), entry = registeredSetup('main03', { beginMain03CohortFromEnv: sourceBegin(c), captureMain03Candidate: vi.fn() }, {}, seed)
+    await expect(entry.setup()).rejects.toThrow('main03_default_chosen_salt')
+    expect(seed).not.toHaveBeenCalled(); expect(c.ports.observeRuntime).not.toHaveBeenCalled()
+  })
+  it('rejects a stale actual cached singleton before the actual MAIN03 seed boundary too', async () => {
+    const c = protocolControl(); c.admission.harnessDir = process.cwd()
+    const service = actualServiceSingleton(c.admission.authUrl, 'controlled-stale-service-key'), realBegin = sourceBegin(c), seed = vi.fn(async () => c.fixture)
+    const entry = registeredSetup('main03', { beginMain03CohortFromEnv: async (client: unknown, defaults: unknown) => {
+      Reflect.apply(assertCohortScenarioEnvironment, undefined, [c.admission, client, admittedEnvironment(c), c.admission.harnessDir])
+      return realBegin(client, defaults)
+    }, captureMain03Candidate: vi.fn() }, service, seed)
+    await expect(entry.setup()).rejects.toThrow('cached_service_client_credential')
+    expect(seed).not.toHaveBeenCalled(); expect(service.transport).not.toHaveBeenCalled()
+  })
+  it('accepts matching actual service.ts CJS credentials before provider selection without any SDK request', async () => {
+    const c = protocolControl(); c.admission.harnessDir = process.cwd()
+    const service = actualServiceSingleton(c.admission.authUrl, 'controlled-only-service-key'), provider = vi.fn(async () => undefined)
+    const entry = registeredSetup('main04', { adoptMain03CohortFromEnv: async (client: unknown) => {
+      Reflect.apply(assertCohortScenarioEnvironment, undefined, [c.admission, client, admittedEnvironment(c), c.admission.harnessDir])
+      return { ...c.fixture, underlayId: id(10), cohortSha256: 'a'.repeat(64) }
+    } }, service, vi.fn(), provider)
+    await entry.setup(); expect(provider).toHaveBeenCalledWith(c.ids.companyId); expect(service.transport).not.toHaveBeenCalled()
+  })
+  it('rejects scalar URLs and digest-only or plain-object client declarations', () => {
+    const c = protocolControl(), env = admittedEnvironment(c)
+    for (const declaration of [c.admission.authUrl, { url: c.admission.authUrl, serviceRoleKeySha256: c.admission.serviceRoleKeySha256 },
+      { supabaseUrl: c.admission.authUrl, supabaseKey: 'controlled-only-service-key' }]) {
+      expect(() => assertCohortScenarioEnvironment(c.admission, declaration, env, c.admission.harnessDir)).toThrow('cached_service_client_layout')
+    }
+  })
+  it('rejects accessor lookalikes without invoking their credential getter', () => {
+    const c = protocolControl(), getter = vi.fn(() => 'controlled-only-service-key')
+    const client = createEsmClient(c.admission.authUrl, 'controlled-only-service-key', { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: { fetch: () => { throw new Error('network forbidden') } } })
+    Object.defineProperty(client, 'supabaseKey', { get: getter })
+    expect(() => assertCohortScenarioEnvironment(c.admission, client, admittedEnvironment(c), c.admission.harnessDir)).toThrow('cached_service_client_layout')
+    expect(getter).not.toHaveBeenCalled()
+  })
+  it('rejects actual SDK global credential overrides and changed initialized Auth credential headers', () => {
+    const c = protocolControl(), transport = vi.fn(() => { throw new Error('network forbidden') })
+    const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: { fetch: transport } }
+    const overridden = createEsmClient(c.admission.authUrl, 'controlled-only-service-key', { ...options, global: { ...options.global, headers: { apikey: 'controlled-override' } } })
+    expect(() => assertCohortScenarioEnvironment(c.admission, overridden, admittedEnvironment(c), c.admission.harnessDir)).toThrow('cached_service_credential_override')
+    const changed = createEsmClient(c.admission.authUrl, 'controlled-only-service-key', options)
+    const headers = Reflect.get(Reflect.get(changed, 'auth'), 'headers') as Record<string, string>
+    headers.Authorization = 'Bearer controlled-override'
+    expect(() => assertCohortScenarioEnvironment(c.admission, changed, admittedEnvironment(c), c.admission.harnessDir)).toThrow('cached_service_credential_override')
+    expect(transport).not.toHaveBeenCalled()
   })
 })
 
@@ -439,16 +573,19 @@ describe('actual entry and read-only system adapters', () => {
     vi.stubEnv('TRACK1_ASSIGNMENT_FILE', undefined); vi.stubEnv('NEXT_PHASE', undefined)
     expect(() => loadCohortAdmissionFromEnv('MAIN03_CANDIDATE')).toThrow('ambient_scenario_binding')
   })
-  it('binds the actual scenario environment and captured service-client URL; current smoke assignment stays unusable', () => {
+  it('binds the actual scenario environment and actual cached service client; current smoke assignment stays unusable', () => {
     const c = protocolControl(), env: NodeJS.ProcessEnv = { TRACK1_RUN_DIR: c.admission.runDir, TRACK1_STACK_JSON: c.admission.stack.path, TRACK1_APP_URL: c.admission.appUrl,
       TRACK1_APP_DIR: c.admission.appDir, TRACK1_APP_COMMIT: c.admission.runtime.appCommit, TRACK1_APP_PORT: '3101', TRACK1_DB_URL: c.admission.dbUrl, SIM_HOME: c.home,
       NEXT_PUBLIC_SUPABASE_URL: c.admission.authUrl, NEXT_PUBLIC_SUPABASE_ANON_KEY: c.admission.anonKey, SUPABASE_SERVICE_ROLE_KEY: 'controlled-only-service-key' }
-    expect(() => assertCohortScenarioEnvironment(c.admission, c.admission.authUrl, env, c.admission.harnessDir)).not.toThrow()
+    const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: { fetch: () => { throw new Error('network forbidden') } } }
+    const client = createEsmClient(c.admission.authUrl, 'controlled-only-service-key', options)
+    expect(() => assertCohortScenarioEnvironment(c.admission, client, env, c.admission.harnessDir)).not.toThrow()
     for (const key of ['TRACK1_DB_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'TRACK1_APP_URL', 'TRACK1_STACK_JSON']) {
-      expect(() => assertCohortScenarioEnvironment(c.admission, c.admission.authUrl, { ...env, [key]: 'foreign' }, c.admission.harnessDir)).toThrow('ambient_scenario_binding')
+      expect(() => assertCohortScenarioEnvironment(c.admission, client, { ...env, [key]: 'foreign' }, c.admission.harnessDir)).toThrow('ambient_scenario_binding')
     }
-    expect(() => assertCohortScenarioEnvironment(c.admission, 'http://foreign', env, c.admission.harnessDir)).toThrow('captured_service_or_harness_binding')
-    expect(() => assertCohortScenarioEnvironment(c.admission, c.admission.authUrl, { ...env, SUPABASE_SERVICE_ROLE_KEY: 'changed' }, c.admission.harnessDir)).toThrow('service_key_binding')
-    expect(() => assertCohortScenarioEnvironment(c.admission, c.admission.authUrl, { ...env, TRACK1_ASSIGNMENT_FILE: '/current-infrastructure-smoke.json' }, c.admission.harnessDir)).toThrow('business_assignment_integration_required')
+    const foreignClient = createEsmClient('http://127.0.0.1:59999', 'controlled-only-service-key', options)
+    expect(() => assertCohortScenarioEnvironment(c.admission, foreignClient, env, c.admission.harnessDir)).toThrow('cached_service_client_url')
+    expect(() => assertCohortScenarioEnvironment(c.admission, client, { ...env, SUPABASE_SERVICE_ROLE_KEY: 'changed' }, c.admission.harnessDir)).toThrow('service_key_binding')
+    expect(() => assertCohortScenarioEnvironment(c.admission, client, { ...env, TRACK1_ASSIGNMENT_FILE: '/current-infrastructure-smoke.json' }, c.admission.harnessDir)).toThrow('business_assignment_integration_required')
   })
 })

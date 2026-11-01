@@ -19,7 +19,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 // The base's native UTILTS/PRODAT processors send mail through nodemailer; nothing may leave this process.
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: vi.fn() }) } }))
 vi.mock('server-only', () => ({}))
-import { supabaseService, SUPABASE_SERVICE_URL } from '@/lib/supabase/service'
+import { supabaseService } from '@/lib/supabase/service'
 import { loadQualifiedBillingValues } from '@/lib/billing/sourceBasis'
 import { buildMain03Fixture, DEFAULT_MAIN03_PARAMS, type Main03Fixture } from '../fixtures/main03Fixture'
 import { SUBSTITUTIONS, resetSubstitutions } from '../fixtures/substitutions'
@@ -35,9 +35,9 @@ let cohortContext: Awaited<ReturnType<typeof beginMain03CohortFromEnv>>
 
 beforeAll(async () => {
   // Current hosted smoke does not authorize fixture/business writes.
-  cohortContext = await beginMain03CohortFromEnv(SUPABASE_SERVICE_URL)
+  cohortContext = await beginMain03CohortFromEnv(supabaseService, DEFAULT_MAIN03_PARAMS)
   resetSubstitutions()
-  fx = await buildMain03Fixture()
+  fx = await buildMain03Fixture(cohortContext.fixtureParams)
   writeArtifact('fixture.json', {
     note: 'ids only; no secrets or session material',
     params: fx.params, salt: fx.salt, companyId: fx.companyId, actorUserId: fx.actorUserId, customerId: fx.customerId, siteId: fx.siteId,

@@ -31,7 +31,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: vi.fn() }) } }))
 vi.mock('server-only', () => ({}))
-import { supabaseService, SUPABASE_SERVICE_URL } from '@/lib/supabase/service'
+import { supabaseService } from '@/lib/supabase/service'
 import { approveAndSendReadyInvoicesForMonth } from '@/lib/billing/invoiceApprovedDispatch'
 import { adoptMain03CohortFromEnv, assertAdoptedCohortUnchanged, recordPreparedDraftCandidate, type Main04Cohort } from '../fixtures/main03Cohort'
 import { SUBSTITUTIONS, resetSubstitutions, substitute } from '../fixtures/substitutions'
@@ -81,7 +81,7 @@ function readDraft(): Draft {
 
 beforeAll(async () => {
   resetSubstitutions()
-  fx = await adoptMain03CohortFromEnv(SUPABASE_SERVICE_URL) // all admission/live/Auth/input checks precede the first write
+  fx = await adoptMain03CohortFromEnv(supabaseService) // all admission/live/Auth/input checks precede the first write
   underlayId = fx.underlayId
   BILLING_MONTH = fx.params.billingMonth
   await enableFileInvoiceProvider(fx.companyId)
