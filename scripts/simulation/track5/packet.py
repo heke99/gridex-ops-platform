@@ -15,6 +15,7 @@ import os
 import pathlib
 import re
 import stat
+import struct
 import subprocess
 import sys
 import zipfile
@@ -285,6 +286,8 @@ FINAL_POLICY = {
     'encoding': 'utf8-sorted-json-newline-v1', 'needle': 'explicit-private-file-exact-bytes',
     'patterns': FINAL_PATTERNS, 'scanInputs': ['raw-zip', 'member-names', 'uncompressed-members', 'canonical-context'],
     'directoryEntries': 'canonical-empty-parents-only',
+    'zipStructure': 'zip32-single-disk-contiguous-no-descriptors-v1',
+    'compressedStreams': 'bounded-full-eof-actual-size-crc-no-trailing-v1',
     'maxArchiveBytes': 64 * 1024 * 1024, 'maxExpandedBytes': 256 * 1024 * 1024,
     'maxMemberBytes': 64 * 1024 * 1024, 'compressionMethods': [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED],
 }
@@ -373,6 +376,87 @@ def final_no_secret(value, needle):
             'final_artifact_secret_found')
 
 
+def final_zip_ranges(raw, entries):
+    # Do not let a permissive ZIP reader silently repair offsets, ignore gaps
+    # or trust a shorter central-directory view of a compressed payload.
+    position = raw.rfind(b'PK\x05\x06', max(0, len(raw) - 65557))
+    end = None
+    while position >= 0:
+        if position + 22 <= len(raw):
+            candidate = struct.unpack_from('<4s4H2IH', raw, position)
+            if position + 22 + candidate[7] == len(raw):
+                end = candidate
+                break
+        position = raw.rfind(b'PK\x05\x06', max(0, len(raw) - 65557), position)
+    require(end is not None and end[1] == end[2] == 0 and end[3] == end[4] == len(entries)
+            and end[5] != 0xffffffff and end[6] != 0xffffffff and end[6] + end[5] == position,
+            'final_archive_end_or_catalog_invalid')
+    catalog_start, catalog_end = end[6], position
+    cursor, ranges, regions = catalog_start, {}, []
+
+    def zip32_extra(extra):
+        offset = 0
+        while offset < len(extra):
+            require(offset + 4 <= len(extra), 'final_archive_extra_invalid')
+            kind, length = struct.unpack_from('<HH', extra, offset)
+            offset += 4
+            require(kind != 1 and offset + length <= len(extra), 'final_archive_zip64_or_extra_invalid')
+            offset += length
+
+    for entry in entries:
+        require(cursor + 46 <= catalog_end, 'final_archive_catalog_range_invalid')
+        central = struct.unpack_from('<4s6H3I5H2I', raw, cursor)
+        name_length, extra_length, comment_length = central[10:13]
+        next_cursor = cursor + 46 + name_length + extra_length + comment_length
+        require(central[0] == b'PK\x01\x02' and next_cursor <= catalog_end and central[13] == 0
+                and central[2] <= 20 and not central[3] & ~0x806
+                and (central[4] == zipfile.ZIP_DEFLATED or not central[3] & 6), 'final_archive_zip32_profile_required')
+        name = raw[cursor + 46:cursor + 46 + name_length]
+        decoded = name.decode('utf-8' if central[3] & 0x800 else 'cp437')
+        require(decoded == entry.filename and (central[3], central[4], central[7], central[8], central[9], central[16])
+                == (entry.flag_bits, entry.compress_type, entry.CRC, entry.compress_size, entry.file_size, entry.header_offset),
+                'final_archive_catalog_identity_mismatch')
+        zip32_extra(raw[cursor + 46 + name_length:cursor + 46 + name_length + extra_length])
+        local_offset = central[16]
+        require(local_offset + 30 <= catalog_start, 'final_archive_local_range_invalid')
+        local = struct.unpack_from('<4s5H3I2H', raw, local_offset)
+        local_name_length, local_extra_length = local[9:11]
+        data_start = local_offset + 30 + local_name_length + local_extra_length
+        data_end = data_start + central[8]
+        require(local[0] == b'PK\x03\x04' and data_start <= data_end <= catalog_start
+                and local[1:9] == (central[2], central[3], central[4], central[5], central[6], central[7], central[8], central[9])
+                and raw[local_offset + 30:local_offset + 30 + local_name_length] == name,
+                'final_archive_local_catalog_mismatch')
+        zip32_extra(raw[local_offset + 30 + local_name_length:data_start])
+        ranges[entry.filename] = (data_start, data_end)
+        regions.append((local_offset, data_end))
+        cursor = next_cursor
+    require(cursor == catalog_end, 'final_archive_catalog_length_mismatch')
+    previous = 0
+    for first, last in sorted(regions):
+        require(first == previous, 'final_archive_unbound_or_overlapping_range')
+        previous = last
+    require(previous == catalog_start, 'final_archive_unbound_or_overlapping_range')
+    return ranges
+
+
+def final_expand(compressed, entry, remaining):
+    limit = min(FINAL_POLICY['maxMemberBytes'], remaining)
+    require(limit >= 0, 'final_archive_actual_expansion_limit')
+    if entry.compress_type == zipfile.ZIP_STORED:
+        require(len(compressed) <= limit, 'final_archive_actual_expansion_limit')
+        value = compressed
+    else:
+        decoder = zlib.decompressobj(-15)
+        value = decoder.decompress(compressed, limit + 1)
+        require(len(value) <= limit, 'final_archive_actual_expansion_limit')
+        require(decoder.eof and not decoder.unused_data and not decoder.unconsumed_tail,
+                'final_archive_deflate_incomplete_or_trailing')
+    require(len(value) == entry.file_size and zlib.crc32(value) & 0xffffffff == entry.CRC,
+            'final_archive_actual_size_or_crc_mismatch')
+    return value
+
+
 def final_members(raw, needle=None):
     if needle is not None:
         final_no_secret(raw, needle)
@@ -394,8 +478,6 @@ def final_members(raw, needle=None):
                             and entry.file_size == 0 and entry.CRC == 0
                             and entry.compress_size == (0 if entry.compress_type == zipfile.ZIP_STORED else 2),
                             'final_archive_directory_invalid')
-                    with archive.open(entry) as file:
-                        require(file.read(1) == b'', 'final_archive_directory_invalid')
                     continue
                 require(name in FINAL_FILES and kind in (0, stat.S_IFREG) and not entry.external_attr & 0x10,
                         'final_archive_layout_or_special_file')
@@ -403,10 +485,15 @@ def final_members(raw, needle=None):
                 total += entry.file_size
                 require(total <= FINAL_POLICY['maxExpandedBytes'], 'final_archive_total_expansion_limit')
             require({entry.filename for entry in entries if not entry.is_dir()} == FINAL_FILES, 'final_archive_missing_files')
-            for entry in sorted((entry for entry in entries if not entry.is_dir()), key=lambda item: item.filename):
-                with archive.open(entry) as file:
-                    value = file.read(FINAL_POLICY['maxMemberBytes'] + 1)
-                require(len(value) == entry.file_size, 'final_archive_member_size_changed')
+            ranges = final_zip_ranges(raw, entries)
+            actual_total = 0
+            for entry in sorted(entries, key=lambda item: item.filename):
+                first, last = ranges[entry.filename]
+                value = final_expand(raw[first:last], entry, FINAL_POLICY['maxExpandedBytes'] - actual_total)
+                actual_total += len(value)
+                if entry.is_dir():
+                    require(not value, 'final_archive_directory_invalid')
+                    continue
                 if needle is not None:
                     final_no_secret(entry.filename.encode('utf-8'), needle)
                     final_no_secret(value, needle)

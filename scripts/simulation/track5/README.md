@@ -227,6 +227,24 @@ osäkra sökvägar, krypterade/särskilda/symlänkade poster och felaktig CRC
 avvisas. Endast ZIP_STORED och ZIP_DEFLATED stöds. Gränserna är 64 MiB arkiv,
 64 MiB per fil och 256 MiB expanderat; ingen tyst trunkering görs.
 
+Arkivprofilen är dessutom strikt ZIP32 på en enda disk: inga ZIP64-fält,
+data descriptors, inledande data, överlappande områden, luckor mellan lokala
+poster eller obundna bytes efter slutposten. Vanliga ZIP-kommentarer ingår i
+det hashade/scannade arkivet. Lokala headerfält måste stämma med den centrala
+katalogens namn, metod, flaggor, CRC och storlekar; varje komprimerat byteområde
+måste vara bundet till exakt en post. En producent som använder streaming-
+descriptors eller ZIP64 måste först välja en separat kvalificerad packningsväg;
+scannern tolkar inte om en sådan representation tyst.
+
+ZIP-bibliotekets avkortade filvy används inte för payloads. STORED läses som
+hela det bundna byteområdet. DEFLATE expanderas direkt från samma fångade
+komprimerade bytes med en positiv gräns från återstående budget, oberoende av
+deklarerad filstorlek. Fullt strömslut krävs; oanvända bytes, ytterligare
+strömmar och ofullständigt slut avvisas. Faktisk expanderad storlek och CRC
+måste därefter exakt matcha deklarationerna innan bytes scannas/hashas eller
+CLEAN kan skrivas. Detta gäller också tomma katalogposter. En förfalskad liten
+deklaration får alltså inte dölja en större komprimerad payload.
+
 Scannern läser ett avgränsat arkivsnapshot. Arkivhashning, filhashning och
 sökningen använder samma fångade bytes, inklusive rå ZIP-metadata och varje
 expanderad fil. Inga paket skrivs om och arkivet packas inte om. Omleverans
