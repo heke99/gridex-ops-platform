@@ -697,7 +697,7 @@ describe('TERM01 bindningstid och slutdatum', () => {
     try {
       const variants: [string, AppSession][] = [
         ['egen company-cookie', await loginSession(tenant2.admin.email, tenant2.admin.password, { companyId: tenant2.companyId })],
-        ['tenant 1:s company-cookie', await loginSession(tenant2.admin.email, tenant2.admin.password, { companyId: tenant.companyId })],
+        ['tenant 1:s company-cookie', await loginSession(tenant2.admin.email, tenant2.admin.password, { companyId: tenant.companyId, intent: 'expected_denial' })],
       ]
       const leaks: string[] = []
       const unexpected: string[] = []
