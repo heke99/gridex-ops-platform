@@ -46,13 +46,15 @@ independent final reviews and real source/input/backend/producer qualification:
    python3 -B scripts/simulation/track2/hosted/qualify-runtime.py \
      --operation publish-delivery \
      --assignment-file <private-owner-dir>/admission.json \
+     --materials-file <private-owner-dir>/materials.json \
      --journal-file <private-owner-dir>/deliveries/run-<actual-id>.json
    ```
 
    The `.json.sig` sibling must already contain the pinned Ed25519 signature.
    The helper verifies it, actual source tree and current run/certificate plus
    real native/ordinary custody. Standard OpenSSL CMS encrypts the fixed JSON
-   wrapper of exact signed bytes with AES-256-GCM and RSA-OAEP using SHA256 for
+   wrapper of exact signed bytes plus the private assignment-bound materials
+   packet with AES-256-GCM and RSA-OAEP using SHA256 for
    both OAEP and MGF1. There is no custom hybrid format or crypto dependency.
    OpenSSL3+ is required; weaker algorithms have no fallback.
 5. The helper creates ONLY a neutral GitData carrier commit and its separate
@@ -75,7 +77,8 @@ independent final reviews and real source/input/backend/producer qualification:
    algorithm checks require authenticated-enveloped CMS, AES256-GCM and
    RSA-OAEP/SHA256/MGF1-SHA256 before private-key decryption. GCM integrity and the
    unchanged pinned Ed25519 signature must pass before installing private
-   assignment files. Different recipient keys/runs, CBC/SHA1 downgrade, tamper,
+   assignment and materials files. The receiver exports ONLY the canonical
+   materials path through GITHUB_ENV, never material/credential contents. Different recipient keys/runs, CBC/SHA1 downgrade, tamper,
    duplicate consumption or timeout fail before backend startup.
 8. Existing full source/claim/GEN/expiry/budget/capacity/Auth/actor/cleanup gates
    then run unchanged. Receiving signed bytes explicitly does NOT mark runtime
@@ -92,6 +95,44 @@ RSA-OAEP encryption/key options:
 [OpenSSL3 CMS](https://docs.openssl.org/3.0/man1/openssl-cms/).
 Actual source, all single-use native resource receipts, expiry and cleanup still
 must be qualified; encrypted delivery does not substitute for any of them.
+
+## Bound materials: mandatory before backend allocation
+
+The CMS plaintext wrapper has exactly assignment/signature/materials base64
+fields. The publisher requires --materials-file, a canonical owner0600 file in
+an owner0700 private directory outside source output. Assignment is at most64KiB,
+material packet at most128KiB, CMS at most512KiB; oversize fails locally before
+API publication. The scenario's broader8MiB read limit is not a transport promise.
+
+Prepare the typed specification first and bind its SHA256 of UTF-8
+JSON.stringify(specification) in signed
+assignment.pilotTerm0203.materialSpecificationSha256. Sign the exact assignment
+bytes, then build the packet with exactly schema, assignmentSha256, sourceCommit,
+environmentId and specification. Schema is gridex-t2-term0203-materials-v1;
+assignmentSha256 hashes the exact signed assignment bytes. Packet bytes are
+preserved unchanged through CMS. Its raw digest is retained privately and
+rechecked after receipt, so even whitespace tampering between receive/prepare
+fails closed. No new issuer/trust/history operation is added by delivery.
+
+Specification has the exact frozen scenario's string fields, authority/network
+objects and nonempty e66 string array. Unknown fields/numbers/floats are rejected;
+property order is preserved, allowing compact UTF-8 JSON to match the actual
+JavaScript consumer hash without numeric-key/float ambiguity. This validates the
+transport contract, not legal acceptance or wire/business correctness. Existing
+ordinary issuer/source/archive/history gates remain authoritative.
+
+The receiver installs RUNNER_TEMP/t2-admission-rendezvous/materials.json
+(directory0700/file0600) only after signature, appointment expiry, schema,
+assignment/source/environment and specification-hash checks. It appends only
+SIM_TERM0203_MATERIALS_FILE=<absolute canonical private path> to the actual owned
+GITHUB_ENV file; raw material, keys, PDFs and credentials never enter environment,
+logs, artifacts or Git. Missing/unsafe paths and expired appointments fail closed.
+
+The workflow explicitly checks the bound material before dependency/backend
+steps. Actual prepare_attempt and up/run authentication independently revalidate
+that installed packet and private receipt digest, including direct manual CLI
+entry and tampering after receive. The unchanged pilot scenario then performs
+its existing assignment/specification/private-file checks before consumption.
 
 ## Exact assignment contract
 

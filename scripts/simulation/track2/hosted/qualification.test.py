@@ -526,13 +526,27 @@ class RendezvousContracts(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
-        self.receiver = self.root / 'receiver'
+        self.receiver = self.root / 't2-admission-rendezvous'
         self.receiver.mkdir(mode=0o700)
         module.private_bytes(self.receiver / 'recipient.key',self.key)
         module.private_bytes(self.receiver / 'recipient.crt',self.cert)
         self.assignment = self.root / 'signed-input.json'
+        self.materials = self.root / 'producer-materials.json'
+        self.specification = {
+            'declaration':'SYNTHETIC_NOT_EXTERNAL_LEGAL_ACCEPTANCE','billingMonth':'2026-01',
+            'signedDate':'2025-12-31','offerValidFrom':'2025-12-01','startsAt':'2026-01-01','startAt':'2025-12-31T23:00:00Z',
+            'signedPdfBase64':'U1lOVEhFVElD','groundPdfBase64':'U1lOVEhFVElD',
+            'authority':{'declaration':'TEST_TRUST_BOOTSTRAP_NOT_LEGAL_ACCEPTANCE','authoritySourceSha256':'d'*64,
+              'validFrom':'2025-01-01','validTo':'2099-01-01','regulatedIssuerCode':'SYNTHETIC',
+              'regulatedReference':'synthetic-regulated','regulatedKeyHex':'a'*64,'networkRegistryVersion':'v1',
+              'networkReference':'synthetic-network','networkKeyHex':'b'*64},
+            'groundVersion':'v1','groundDecisionReference':'synthetic-decision',
+            'network':{'pdfBase64':'U1lOVEhFVElD','reference':'synthetic-network','version':'v1','validFrom':'2025-01-01','validUntil':'2099-01-01',
+                       'clause':{'locator':'synthetic','quote':'Syntetisk åäö clause'}},
+            'z04':'UNB+SYNTHETIC','e66':['UNB+SYNTHETIC-E66']}
         self.value = {'github':{'runId':777,'runAttempt':1},'sourceCommit':'a'*40,
-                      'worker':'T2','state':'ACTIVE','sourceTree':'b'*40,
+                      'worker':'T2','state':'ACTIVE','sourceTree':'b'*40,'environmentId':'synthetic-environment',
+                      'scenario':'scenarios/pilot-term0203.test.ts',
                       'expiresAt':'2099-01-01T00:00:00Z','sourceCustody':[],
                       'startupAttempt':{'backendReservation':{},'producerReservation':{}},
                       'syntheticSecret':'SYNTHETIC-PRIVATE-SENTINEL-MUST-NEVER-BE-PUBLISHED'}
@@ -543,6 +557,7 @@ class RendezvousContracts(unittest.TestCase):
         self.addCleanup(self.pinned.stop)
 
     def write_signed(self,value):
+        value['pilotTerm0203']={'materialSpecificationSha256':module.typed_material_specification(self.specification)}
         if self.assignment.exists():
             self.assignment.write_text(json.dumps(value))
         else:
@@ -550,11 +565,15 @@ class RendezvousContracts(unittest.TestCase):
         module.command(['openssl','pkeyutl','-sign','-rawin','-inkey',str(self.edkey),
                         '-in',str(self.assignment),'-out',str(self.assignment)+'.sig'])
         Path(str(self.assignment)+'.sig').chmod(0o600)
+        packet={'schema':'gridex-t2-term0203-materials-v1','assignmentSha256':module.digest(self.assignment),
+                'sourceCommit':value['sourceCommit'],'environmentId':value['environmentId'],'specification':self.specification}
+        if self.materials.exists():self.materials.write_bytes(json.dumps(packet,ensure_ascii=False,separators=(',',':')).encode())
+        else:module.private_bytes(self.materials,json.dumps(packet,ensure_ascii=False,separators=(',',':')).encode())
 
     def encrypt(self):
         folder = self.root / 'encryption'
         folder.mkdir(mode=0o700)
-        return module.cms_encrypt(self.assignment,self.der,folder)
+        return module.cms_encrypt(self.assignment,self.der,folder,self.materials)
 
     def commit(self,ciphertext,context=None,public=None):
         context = context or self.context
@@ -709,7 +728,9 @@ class RendezvousContracts(unittest.TestCase):
                 mock.patch.object(module,'discover_recipient',return_value=self.public), \
                 mock.patch.object(module,'verify_native_binding'), mock.patch.object(module,'delivery_api',side_effect=api), \
                 mock.patch.object(module,'delivery_get',side_effect=get):
-            module.publish_delivery(self.assignment,journal)
+            import sys
+            with mock.patch.object(sys,'argv',['qualify-runtime.py','--operation','publish-delivery','--assignment-file',str(self.assignment),'--journal-file',str(journal),'--materials-file',str(self.materials)]):
+                self.assertEqual(module.main(),0)
         self.assertEqual([route for route,_ in state['posts']],['git/commits','git/refs'])
         self.assertEqual(state['ref']['ref'],'refs/tags/t2-private-admission/777-attempt-1')
         self.assertNotIn(self.value['syntheticSecret'],json.dumps(state['posts']))
@@ -724,9 +745,9 @@ class RendezvousContracts(unittest.TestCase):
                 mock.patch.object(module,'verify_native_binding'), mock.patch.object(module,'delivery_api',side_effect=api), \
                 mock.patch.object(module,'delivery_get',side_effect=get):
             with self.assertRaises(subprocess.TimeoutExpired):
-                module.publish_delivery(self.assignment,journal)
+                module.publish_delivery(self.assignment,journal,self.materials)
             with self.assertRaises(FileExistsError):
-                module.publish_delivery(self.assignment,journal)
+                module.publish_delivery(self.assignment,journal,self.materials)
         self.assertEqual(len(state['posts']),1)
         self.assertEqual(module.load_private(journal)['operations'][0]['state'],'FAILED_OR_AMBIGUOUS_RECONCILE_NO_RETRY')
 
@@ -756,6 +777,180 @@ class RendezvousContracts(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'cms-algorithms-not-approved'):
             self.consume(self.commit(output.read_bytes()))
         self.assertFalse(self.output.exists())
+
+    def test_packet_specification_hash_matches_actual_javascript_serializer(self):
+        packet=json.loads(self.materials.read_text())
+        observed=subprocess.check_output(['node','-e',
+            "const fs=require('fs'),c=require('crypto');const p=JSON.parse(fs.readFileSync(process.argv[1]));process.stdout.write(c.createHash('sha256').update(JSON.stringify(p.specification)).digest('hex'))",
+            str(self.materials)],text=True)
+        self.assertEqual(observed,self.value['pilotTerm0203']['materialSpecificationSha256'])
+        packet['specification']['unexpectedFloat']=1.5
+        with self.assertRaisesRegex(ValueError,'material-specification-schema-invalid'):
+            module.typed_material_specification(packet['specification'])
+
+    def test_publisher_rejects_missing_materials_before_any_api(self):
+        self.materials.unlink()
+        with mock.patch.object(module,'delivery_api') as api, mock.patch.object(module,'delivery_context') as context:
+            with self.assertRaises(FileNotFoundError):
+                module.publish_delivery(self.assignment,self.root/'journal.json',self.materials)
+        api.assert_not_called();context.assert_not_called()
+
+    def test_material_private_path_size_and_appointment_expiry_rejected(self):
+        for key,value in [('assignmentSha256','0'*64),('sourceCommit','f'*40),('environmentId','other-environment')]:
+            packet=json.loads(self.materials.read_text());packet[key]=value
+            wrong=self.root/('wrong-'+key+'.json');module.private_bytes(wrong,json.dumps(packet).encode())
+            with self.assertRaisesRegex(ValueError,'material-packet-assignment-mismatch'):
+                module.validate_material_packet(self.assignment,wrong)
+        link=self.root/'unsafe-link.json';link.symlink_to(self.materials)
+        with self.assertRaisesRegex(ValueError,'material-path-not-canonical'):
+            module.validate_material_packet(self.assignment,link)
+        self.materials.chmod(0o640)
+        with self.assertRaisesRegex(ValueError,'private-file-required'):
+            module.validate_material_packet(self.assignment,self.materials)
+        self.materials.chmod(0o600)
+        self.materials.write_bytes(b'x'*(module.MAX_MATERIAL_PACKET_BYTES+1))
+        with self.assertRaisesRegex(ValueError,'material-packet-size-invalid'):
+            module.validate_material_packet(self.assignment,self.materials)
+        expired=dict(self.value,expiresAt='2000-01-01T00:00:00Z');self.write_signed(expired)
+        with self.assertRaisesRegex(ValueError,'material-appointment-expired'):
+            module.validate_material_packet(self.assignment,self.materials)
+
+    def test_receiver_refuses_tampered_or_wrong_spec_before_install(self):
+        packet=json.loads(self.materials.read_text());packet['specification']['z04']='tampered-private-wire'
+        self.materials.write_text(json.dumps(packet))
+        # Simulate a hostile carrier bypassing sender validation; receiver stays real.
+        with mock.patch.object(module,'validate_material_packet',return_value={}):
+            ciphertext=self.encrypt()
+        with self.assertRaisesRegex(ValueError,'material-specification-hash-mismatch'):
+            self.consume(self.commit(ciphertext))
+        self.assertFalse(self.output.exists())
+        self.assertFalse((self.receiver/'materials.json').exists())
+
+    def install_for_handoff(self):
+        import io
+        commit=self.commit(self.encrypt())
+        envfile=self.root/'github-env';module.private_bytes(envfile,b'')
+        env={'GITHUB_ACTIONS':'true','GITHUB_REPOSITORY':module.REPOSITORY,'GITHUB_JOB':'term','GITHUB_RUN_ATTEMPT':'1',
+             'GITHUB_RUN_ID':'777','GITHUB_SHA':'a'*40,'RUNNER_TEMP':str(self.root),
+             'GITHUB_ENV':str(envfile),'SIM_RUNTIME_ASSIGNMENT_FILE':str(self.output)}
+        with mock.patch.dict(os.environ,env), mock.patch.object(module,'delivery_context',return_value=self.context), \
+             mock.patch.object(module,'recipient_directory',return_value=self.receiver), \
+             mock.patch.object(module,'generate_recipient',return_value=self.public), \
+             mock.patch.object(module,'delivery_api',return_value=(200,{'ref':module.delivery_ref(self.context),'object':{'type':'commit','sha':'c'*40}})), \
+             mock.patch.object(module,'delivery_get',side_effect=[{'tree':{'sha':'b'*40}},commit]),mock.patch('sys.stdout',new_callable=io.StringIO) as output:
+            module.receive_admission()
+        text=envfile.read_text()
+        self.assertEqual(text,'SIM_TERM0203_MATERIALS_FILE='+str(self.receiver/'materials.json')+'\n')
+        self.assertNotIn(self.specification['authority']['regulatedKeyHex'],text)
+        self.assertNotIn(self.value['syntheticSecret'],output.getvalue())
+        self.assertEqual((self.receiver/'materials.json').read_bytes(),self.materials.read_bytes())
+        return envfile
+
+    def test_real_receiver_env_then_actual_run_shell_passes_material_to_finite_scenario(self):
+        envfile=self.install_for_handoff()
+        material_path=envfile.read_text().strip().split('=',1)[1]
+        home=self.root/'run-home';home.mkdir(mode=0o700)
+        for name in ('logs','reports'):(home/name).mkdir(mode=0o700)
+        (home/'app.env').write_text('')
+        harness=self.root/'scenario-harness';(harness/'lib').mkdir(parents=True);(harness/'scenarios').mkdir()
+        (harness/'run.sh').write_text((HERE.parent/'run.sh').read_text())
+        (harness/'lib/make-report.mjs').write_text((HERE.parent/'lib/make-report.mjs').read_text())
+        (harness/'lib/common.sh').write_text('HARNESS_DIR="'+str(harness)+'"\ndie() { echo "$*" >&2; exit 1; }\nlog() { :; }\nensure_node_modules() { :; }\n')
+        (harness/'scenarios/pilot-term0203.test.ts').write_text((HERE.parent/'scenarios/pilot-term0203.test.ts').read_text())
+        app=self.root/'scenario-app';binary=app/'node_modules/.bin/vitest';binary.parent.mkdir(parents=True)
+        binary.write_text("""#!/usr/bin/env node
+const fs=require('fs'),c=require('crypto'),assert=require('assert');
+const sha=b=>c.createHash('sha256').update(b).digest('hex');
+const raw=fs.readFileSync(process.env.SIM_RUNTIME_ASSIGNMENT_FILE),a=JSON.parse(raw);
+const p=JSON.parse(fs.readFileSync(process.env.SIM_TERM0203_MATERIALS_FILE));
+assert.equal(process.argv.at(-1),'scenarios/pilot-term0203.test.ts');
+assert.equal(p.schema,'gridex-t2-term0203-materials-v1');assert.equal(p.assignmentSha256,sha(raw));
+assert.equal(p.sourceCommit,a.sourceCommit);assert.equal(p.environmentId,a.environmentId);
+assert.equal(sha(JSON.stringify(p.specification)),a.pilotTerm0203.materialSpecificationSha256);
+const out=process.argv.find(x=>x.startsWith('--outputFile.json=')).split('=')[1];
+fs.writeFileSync(out,JSON.stringify({success:true,numTotalTestSuites:1,numFailedTestSuites:0,numTotalTests:1,numPassedTests:1,numFailedTests:0,numPendingTests:0,
+ testResults:[{assertionResults:[{fullName:'finite private material ABI port',status:'passed'}]}]}));
+""")
+        binary.chmod(0o700)
+        env={'SIM_RUNTIME_ASSIGNMENT_FILE':str(self.output),'SIM_TERM0203_MATERIALS_FILE':material_path,
+             'RUNNER_TEMP':str(self.root),'RUN_DIR':str(app),'SIM_HOME':str(home)}
+        with mock.patch.dict(os.environ,env):
+            self.assertEqual(module.main.__name__,'main')
+            module.validate_installed_materials(self.value,self.output)
+            result=subprocess.run(['bash',str(harness/'run.sh'),'scenarios/pilot-term0203.test.ts'],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+        reports=list((home/'reports').glob('*.json'))
+        self.assertEqual(len(reports),1)
+        self.assertEqual(json.loads(reports[0].read_text())['summary']['passed'],1)
+
+    def test_actual_prepare_cli_rechecks_received_packet_before_daemon_or_backend(self):
+        import sys
+        envfile=self.install_for_handoff();path=self.receiver/'materials.json'
+        env={'SIM_RUNTIME_ASSIGNMENT_FILE':str(self.output),'SIM_TERM0203_MATERIALS_FILE':str(path),'RUNNER_TEMP':str(self.root)}
+        path.write_text(path.read_text()+' ') # even semantically identical bytes must match received raw digest
+        with mock.patch.dict(os.environ,env),mock.patch.object(sys,'argv',['qualify-runtime.py','--operation','prepare']), \
+             mock.patch.object(module,'authenticate',return_value=(self.value,self.root/'fresh-home',self.root)), \
+             mock.patch.object(module,'daemon_identity') as daemon:
+            with self.assertRaisesRegex(ValueError,'installed-material-packet-drift'):
+                module.main()
+        daemon.assert_not_called()
+        self.assertFalse((self.root/'fresh-home').exists())
+        path.unlink()
+        with mock.patch.dict(os.environ,env),mock.patch.object(module,'authenticate',return_value=(self.value,self.root/'fresh-home',self.root)), \
+             mock.patch.object(module,'daemon_identity') as daemon:
+            with self.assertRaises(FileNotFoundError):module.prepare_attempt()
+        daemon.assert_not_called()
+
+    def test_env_export_refuses_unsafe_target_without_writing_material_data(self):
+        self.consume(self.commit(self.encrypt()))
+        outside=self.root.parent/('unsafe-env-'+self.root.name)
+        with mock.patch.dict(os.environ,{'RUNNER_TEMP':str(self.root),'GITHUB_ENV':str(outside)}):
+            with self.assertRaisesRegex(ValueError,'github-env-path-not-owned-runner-output'):
+                module.export_material_path(self.receiver)
+        self.assertFalse(outside.exists())
+
+    def test_missing_decrypted_packet_field_and_expired_packet_never_install(self):
+        import base64
+        folder=self.root/'missing-packet';folder.mkdir(mode=0o700)
+        wrapper=folder/'packet.json'
+        module.save_private(wrapper,{'assignment':base64.b64encode(self.assignment.read_bytes()).decode(),
+                                     'signature':base64.b64encode(Path(str(self.assignment)+'.sig').read_bytes()).decode()})
+        output=folder/'envelope.cms'
+        module.command(['openssl','cms','-encrypt','-binary','-aes-256-gcm','-in',str(wrapper),'-outform','DER','-out',str(output),
+                        '-recip',str(self.receiver/'recipient.crt'),'-keyopt','rsa_padding_mode:oaep','-keyopt','rsa_oaep_md:sha256','-keyopt','rsa_mgf1_md:sha256'])
+        with self.assertRaisesRegex(ValueError,'decrypted-packet-shape-invalid'):
+            self.consume(self.commit(output.read_bytes()))
+        self.assertFalse(self.output.exists())
+        (self.receiver/'delivery-consumed.json').unlink() # new synthetic appointment in this confined fixture only
+        expired=dict(self.value,expiresAt='2000-01-01T00:00:00Z');self.write_signed(expired)
+        with mock.patch.object(module,'validate_material_packet',return_value={}):
+            ciphertext=self.encrypt()
+        with self.assertRaisesRegex(ValueError,'material-appointment-expired'):
+            self.consume(self.commit(ciphertext))
+        self.assertFalse(self.output.exists())
+        self.assertFalse((self.receiver/'materials.json').exists())
+
+    def test_manual_prepare_missing_environment_and_unsafe_directory_allocate_nothing(self):
+        import sys
+        self.install_for_handoff()
+        env={'SIM_RUNTIME_ASSIGNMENT_FILE':str(self.output),'SIM_TERM0203_MATERIALS_FILE':'', 'RUNNER_TEMP':str(self.root)}
+        with mock.patch.dict(os.environ,env),mock.patch.object(sys,'argv',['qualify-runtime.py','--operation','prepare']), \
+             mock.patch.object(module,'authenticate',return_value=(self.value,self.root/'fresh-home',self.root)),mock.patch.object(module,'daemon_identity') as daemon:
+            with self.assertRaisesRegex(ValueError,'material-private-environment-handoff-missing'):module.main()
+        daemon.assert_not_called()
+        self.receiver.chmod(0o755)
+        env['SIM_TERM0203_MATERIALS_FILE']=str(self.receiver/'materials.json')
+        with mock.patch.dict(os.environ,env),mock.patch.object(module,'authenticate',return_value=(self.value,self.root/'fresh-home',self.root)), \
+             mock.patch.object(module,'daemon_identity') as daemon:
+            with self.assertRaisesRegex(ValueError,'material-directory-not-private'):module.prepare_attempt()
+        daemon.assert_not_called();self.assertFalse((self.root/'fresh-home').exists())
+
+    def test_publisher_cli_missing_material_argument_fails_before_api(self):
+        import sys
+        with mock.patch.object(sys,'argv',['qualify-runtime.py','--operation','publish-delivery','--assignment-file',str(self.assignment),'--journal-file',str(self.root/'journal')]), \
+             mock.patch.object(module,'delivery_api') as api:
+            with self.assertRaisesRegex(ValueError,'delivery-private-input-materials-and-journal-required'):module.main()
+        api.assert_not_called()
 
 
 class CanonicalLifetimeContracts(unittest.TestCase):

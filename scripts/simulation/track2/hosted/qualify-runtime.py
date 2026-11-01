@@ -311,6 +311,8 @@ def authenticate(operation):
         for relative, expected in gen['files'].items():
             require(relative in a['sourceFiles'] and a['sourceFiles'][relative] == expected, 'gen-source-hash-mismatch')
         require(not git(app, 'status', '--porcelain', '--untracked-files=normal'), 'source-dirty')
+    if operation != 'down':
+        validate_installed_materials(a,assignment)
     return a, home, app
 
 
@@ -379,6 +381,7 @@ def inventory(a, home):
 def prepare_attempt():
     require(__import__('sys').version_info >= (3, 11), 'python311-required')
     a, home, app = authenticate('up')
+    validate_installed_materials(a,Path(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE']))
     import re
     require(re.fullmatch('[a-z0-9][a-z0-9_-]{2,62}', a['projectId']) is not None
             and a['projectId'] != 'gridex-ops-platform', 'invalid-project')
@@ -671,7 +674,7 @@ def safe_summary():
 REPOSITORY = 'heke99/gridex-ops-platform'
 RECIPIENT_TITLE = 'T2_CMS_RECIPIENT_V1'
 DELIVERY_PREFIX = 'T2_CMS_ADMISSION_V1 '
-MAX_CMS_BYTES = 262144
+MAX_CMS_BYTES = 524288
 
 
 def strict_transport_json(text):
@@ -811,15 +814,116 @@ def discover_recipient(context):
     return public
 
 
-def cms_encrypt(assignment, certificate_der, directory):
+MAX_ASSIGNMENT_BYTES = 65536
+MAX_MATERIAL_PACKET_BYTES = 131072
+
+
+def private_material_directory(parent):
+    import stat
+    parent = Path(parent)
+    require(parent.is_absolute() and parent.resolve() == parent,'material-path-not-canonical')
+    info = parent.stat()
+    require(parent.is_dir() and not parent.is_symlink() and info.st_uid == os.getuid()
+            and stat.S_IMODE(info.st_mode) == 0o700, 'material-directory-not-private')
+    return parent
+
+
+def private_material_path(path):
+    path = Path(path)
+    require(path.is_absolute() and path.resolve() == path,'material-path-not-canonical')
+    private_material_directory(path.parent)
+    probe = subprocess.run(['git','-C',str(path.parent),'rev-parse','--is-inside-work-tree'],capture_output=True)
+    require(probe.returncode != 0,'material-file-inside-git-forbidden')
+    return private_file(path)
+
+
+def typed_material_specification(spec):
+    # Fixed string/object/array schema: compact insertion-order UTF-8 JSON has
+    # the same bytes as the scenario's JSON.stringify; no numeric-key/float gap.
+    required = {'declaration','billingMonth','signedDate','offerValidFrom','startsAt','startAt',
+                'signedPdfBase64','groundPdfBase64','authority','groundVersion','groundDecisionReference',
+                'network','z04','e66'}
+    require(type(spec) is dict and set(spec) == required, 'material-specification-schema-invalid')
+    for key in required - {'authority','network','e66'}:
+        require(type(spec[key]) is str and bool(spec[key]), 'material-specification-string-required')
+    require(spec['declaration'] == 'SYNTHETIC_NOT_EXTERNAL_LEGAL_ACCEPTANCE', 'material-declaration-invalid')
+    authority = spec['authority']
+    fields = {'declaration','authoritySourceSha256','validFrom','validTo','regulatedIssuerCode',
+              'regulatedReference','regulatedKeyHex','networkRegistryVersion','networkReference','networkKeyHex'}
+    require(type(authority) is dict and set(authority) == fields
+            and all(type(value) is str and bool(value) for value in authority.values())
+            and authority['declaration'] == 'TEST_TRUST_BOOTSTRAP_NOT_LEGAL_ACCEPTANCE', 'material-authority-schema-invalid')
+    network = spec['network']
+    require(type(network) is dict and set(network) == {'pdfBase64','reference','version','validFrom','validUntil','clause'}
+            and all(type(network[key]) is str and bool(network[key]) for key in set(network)-{'clause'}),
+            'material-network-schema-invalid')
+    require(type(network['clause']) is dict and set(network['clause']) == {'locator','quote'}
+            and all(type(value) is str and bool(value) for value in network['clause'].values()), 'material-network-clause-invalid')
+    require(type(spec['e66']) is list and bool(spec['e66'])
+            and all(type(item) is str and bool(item) for item in spec['e66']), 'material-e66-array-invalid')
+    import hashlib
+    return hashlib.sha256(json.dumps(spec,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode('utf-8')).hexdigest()
+
+
+def validate_material_packet(assignment_path,materials_path,assignment=None):
+    import re
+    assignment_path = private_file(assignment_path)
+    require(0 < assignment_path.stat().st_size <= MAX_ASSIGNMENT_BYTES,'private-admission-size-invalid')
+    a = assignment if assignment is not None else strict_transport_json(assignment_path.read_text())
+    require(type(a['expiresAt']) is str,'material-appointment-expiry-invalid')
+    expiry = datetime.datetime.fromisoformat(a['expiresAt'].replace('Z','+00:00'))
+    require(expiry.tzinfo is not None and expiry > datetime.datetime.now(datetime.timezone.utc), 'material-appointment-expired')
+    path = private_material_path(materials_path)
+    require(0 < path.stat().st_size <= MAX_MATERIAL_PACKET_BYTES,'material-packet-size-invalid')
+    packet = strict_transport_json(path.read_text())
+    require(type(packet) is dict and set(packet) == {'schema','assignmentSha256','sourceCommit','environmentId','specification'}
+            and packet['schema'] == 'gridex-t2-term0203-materials-v1', 'material-packet-schema-invalid')
+    require(packet['assignmentSha256'] == digest(assignment_path) and packet['sourceCommit'] == a['sourceCommit']
+            and packet['environmentId'] == a['environmentId'], 'material-packet-assignment-mismatch')
+    expected = a['pilotTerm0203']['materialSpecificationSha256']
+    require(type(expected) is str and re.fullmatch('[0-9a-f]{64}',expected) is not None
+            and typed_material_specification(packet['specification']) == expected, 'material-specification-hash-mismatch')
+    return {'packetSHA256':digest(path),'specificationSHA256':expected}
+
+
+def export_material_path(directory):
+    import stat
+    material = private_material_path(directory / 'materials.json')
+    runner = Path(os.environ['RUNNER_TEMP'])
+    target = Path(os.environ['GITHUB_ENV'])
+    require(target.is_absolute() and target.resolve() == target and target.is_relative_to(runner.resolve())
+            and not target.is_symlink() and target != material, 'github-env-path-not-owned-runner-output')
+    require(not any(char in str(material) for char in ('\r','\n','\x00')), 'material-environment-path-unsafe')
+    descriptor = os.open(target,os.O_WRONLY|os.O_APPEND|os.O_NOFOLLOW)
+    with os.fdopen(descriptor,'a') as stream:
+        info = os.fstat(stream.fileno())
+        require(stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid(), 'github-env-not-owned-regular-file')
+        stream.write('SIM_TERM0203_MATERIALS_FILE='+str(material)+'\n')
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def validate_installed_materials(a,assignment):
+    directory = Path(os.environ['RUNNER_TEMP']) / 't2-admission-rendezvous'
+    expected = directory / 'materials.json'
+    require(os.environ.get('SIM_TERM0203_MATERIALS_FILE') == str(expected), 'material-private-environment-handoff-missing')
+    proof = validate_material_packet(assignment,expected,a)
+    received = load_private(directory / 'delivery-received.json')
+    require(received.get('materialPacketSHA256') == proof['packetSHA256']
+            and received.get('materialSpecificationSHA256') == proof['specificationSHA256'], 'installed-material-packet-drift')
+
+
+def cms_encrypt(assignment, certificate_der, directory, materials):
     import base64
     # Keep exact signed bytes; JSON wrapping is fixed, not an archive or executable payload.
     assignment = private_file(assignment)
     private_file(str(assignment) + '.sig')
-    require(0 < assignment.stat().st_size <= 131072, 'private-admission-size-invalid')
+    require(0 < assignment.stat().st_size <= MAX_ASSIGNMENT_BYTES, 'private-admission-size-invalid')
+    validate_material_packet(assignment,materials)
     packet = directory / 'packet.json'
     save_private(packet, {'assignment':base64.b64encode(assignment.read_bytes()).decode('ascii'),
-                          'signature':base64.b64encode(Path(str(assignment) + '.sig').read_bytes()).decode('ascii')})
+                          'signature':base64.b64encode(Path(str(assignment) + '.sig').read_bytes()).decode('ascii'),
+                          'materials':base64.b64encode(private_material_path(materials).read_bytes()).decode('ascii')})
     cert_der, cert_pem, output = (directory / name for name in ('recipient.der','recipient.crt','admission.cms'))
     private_bytes(cert_der, certificate_der)
     command(['openssl','x509','-inform','DER','-in',str(cert_der),'-out',str(cert_pem)])
@@ -891,16 +995,24 @@ def consume_carrier(directory, commit, context, public, base_tree, assignment_pa
         finally:
             os.umask(original)
         value = strict_transport_json(private_file(packet).read_text())
-        require(set(value) == {'assignment','signature'}, 'decrypted-packet-shape-invalid')
+        require(set(value) == {'assignment','signature','materials'}, 'decrypted-packet-shape-invalid')
         candidate = temporary / 'assignment.json'
         private_bytes(candidate,base64.b64decode(value['assignment'],validate=True))
         private_bytes(str(candidate) + '.sig',base64.b64decode(value['signature'],validate=True))
         a = verified_assignment(candidate)
         require(a['github'] == {'runId':context['runId'],'runAttempt':1}
                 and a['sourceCommit'] == context['sourceCommit'], 'decrypted-admission-run-mismatch')
+        material_candidate = temporary / 'materials.json'
+        private_bytes(material_candidate,base64.b64decode(value['materials'],validate=True))
+        material_proof = validate_material_packet(candidate,material_candidate,a)
+        # Material data never enters environment/output; only this fixed private file.
+        private_material_directory(directory)
+        private_bytes(directory / 'materials.json',material_candidate.read_bytes())
         private_bytes(assignment_path,candidate.read_bytes())
         private_bytes(str(assignment_path) + '.sig',Path(str(candidate) + '.sig').read_bytes())
-    save_private(directory / 'delivery-received.json', {'carrier':commit['sha'], 'state':'SIGNED_INPUT_RECEIVED_NOT_RUNTIME_ADMITTED'})
+    save_private(directory / 'delivery-received.json', {'carrier':commit['sha'], 'state':'SIGNED_INPUT_RECEIVED_NOT_RUNTIME_ADMITTED',
+                 'materialPacketSHA256':material_proof['packetSHA256'],
+                 'materialSpecificationSHA256':material_proof['specificationSHA256']})
 
 
 def receive_admission():
@@ -927,6 +1039,7 @@ def receive_admission():
             require(time.monotonic() < deadline,'private-admission-rendezvous-timeout')
             require(commit['sha'] == value['object']['sha'], 'delivery-ref-readback-mismatch')
             consume_carrier(directory,commit,context,public,base_tree,Path(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE']))
+            export_material_path(directory)
             return
         require(status == 404, 'delivery-poll-not-authoritative-absence')
         time.sleep(min(30,max(0,deadline-time.monotonic())))
@@ -995,10 +1108,11 @@ def recipient_still_current(context,public):
     require(discover_recipient(current) == public,'recipient-notice-changed-before-publication')
 
 
-def publish_delivery(assignment_path,journal_path):
+def publish_delivery(assignment_path,journal_path,materials_path):
     import tempfile
     import base64
     a = verified_assignment(assignment_path)
+    validate_material_packet(assignment_path,materials_path,a)  # local before any API/publication
     context = delivery_context(a['github']['runId'],a['sourceCommit'])
     require(a['github'] == {'runId':context['runId'],'runAttempt':1} and a['worker'] == 'T2'
             and a['state'] == 'ACTIVE','delivery-input-not-exact-active-appointment')
@@ -1019,7 +1133,7 @@ def publish_delivery(assignment_path,journal_path):
         base = delivery_get('git/commits/' + context['sourceCommit'])
         require(base['tree']['sha'] == a['sourceTree'],'delivery-source-tree-changed')
         with tempfile.TemporaryDirectory(dir=Path(journal_path).parent) as temporary:
-            ciphertext = cms_encrypt(assignment_path,base64.b64decode(public['certificateDERBase64'],validate=True),Path(temporary))
+            ciphertext = cms_encrypt(assignment_path,base64.b64decode(public['certificateDERBase64'],validate=True),Path(temporary),materials_path)
         body = carrier_body(context,public,ciphertext)
         recipient_still_current(context,public)
         journal.data.update(expectedCarrier=body,sourceTree=a['sourceTree'])
@@ -1366,9 +1480,10 @@ def require_terminal_supervisor(a,home):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--observe-host', action='store_true')
-    parser.add_argument('--operation', choices=['prepare', 'up', 'run', 'down', 'inventory', 'qualify', 'replay-before', 'replay-after', 'execute', 'enter', 'check-down', 'check-source', 'safe-summary', 'scenario', 'actor-proof', 'receive-admission', 'publish-delivery','supervisor-entered','replay-live','supervisor-cleanup-preflight','mailbox-start','mailbox-export'])
+    parser.add_argument('--operation', choices=['prepare', 'up', 'run', 'down', 'inventory', 'qualify', 'replay-before', 'replay-after', 'execute', 'enter', 'check-down', 'check-source', 'safe-summary', 'scenario', 'actor-proof', 'receive-admission', 'publish-delivery','supervisor-entered','replay-live','supervisor-cleanup-preflight','mailbox-start','mailbox-export','check-materials'])
     parser.add_argument('--assignment-file')
     parser.add_argument('--journal-file')
+    parser.add_argument('--materials-file')
     args = parser.parse_args()
     if args.observe_host:
         print(json.dumps(observe_host(), sort_keys=True))
@@ -1379,10 +1494,14 @@ def main():
     if args.operation == 'receive-admission':
         receive_admission()
     elif args.operation == 'publish-delivery':
-        require(args.assignment_file and args.journal_file, 'delivery-private-input-and-journal-required')
-        publish_delivery(Path(args.assignment_file),Path(args.journal_file))
+        require(args.assignment_file and args.journal_file and args.materials_file, 'delivery-private-input-materials-and-journal-required')
+        publish_delivery(Path(args.assignment_file),Path(args.journal_file),Path(args.materials_file))
     elif args.operation == 'safe-summary':
         safe_summary()
+    elif args.operation == 'check-materials':
+        assignment = private_file(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE'])
+        a = verified_assignment(assignment)
+        validate_installed_materials(a,assignment)
     elif args.operation == 'check-source':
         authenticate('up')
     elif args.operation == 'execute':

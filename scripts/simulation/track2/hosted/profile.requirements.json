@@ -44,7 +44,8 @@
     "schemaFingerprint",
     "pilotId",
     "mailCapabilities",
-    "pilotMailbox"
+    "pilotMailbox",
+    "pilotTerm0203.materialSpecificationSha256"
   ],
   "admissionPublicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAU8tvHM1A+pq+UoMH+vCpZRFZCWJpRernZ8TPewkM1TM=\n-----END PUBLIC KEY-----\n",
   "activationPrerequisites": [
@@ -65,7 +66,15 @@
     "contentCipher": "AES-256-GCM",
     "signedPayload": "existing-pinned-Ed25519-exact-input",
     "environmentOrSecretAdministration": false,
-    "pilotGate": "TERM02.03 requires actual decrypted-and-authenticated input before any backend start"
+    "pilotGate": "TERM02.03 requires actual decrypted-and-authenticated input before any backend start",
+    "payloadFields": [
+      "assignment",
+      "signature",
+      "materials"
+    ],
+    "assignmentBytesMaximum": 65536,
+    "materialPacketBytesMaximum": 131072,
+    "cmsBytesMaximum": 524288
   },
   "runtimeReadiness": "SOURCE_IMPLEMENTED_NOT_NATIVE_QUALIFIED",
   "pilotMailboxImage": "greenmail/standalone@sha256:beb3cfe6ec697592164a60515d7bd9164f3f29170b02e83e8defabdfe3da2c1d",
@@ -81,5 +90,20 @@
     },
     "canonicalDBPort": 54322
   },
-  "businessAcceptance": "HOLD_E66_HISTORY_ISSUER_AND_FILE_EXPORT_ORDINARY_SOURCE_GATES"
+  "businessAcceptance": "HOLD_E66_HISTORY_ISSUER_AND_FILE_EXPORT_ORDINARY_SOURCE_GATES",
+  "privateMaterialPacket": {
+    "schema": "gridex-t2-term0203-materials-v1",
+    "exactFields": [
+      "schema",
+      "assignmentSha256",
+      "sourceCommit",
+      "environmentId",
+      "specification"
+    ],
+    "specificationHash": "SHA256 UTF8 JS JSON.stringify compatible typed strings/objects/arrays in preserved property order",
+    "runtimePath": "RUNNER_TEMP/t2-admission-rendezvous/materials.json",
+    "environmentPathOnly": "SIM_TERM0203_MATERIALS_FILE",
+    "permissions": "directory0700 file0600; canonical no symlinks; owner uid",
+    "earlyGate": "receiver and actual prepare/up/run validate bindings/size/privatepath/appointmentexpiry before backend; raw received digest checked again"
+  }
 }
