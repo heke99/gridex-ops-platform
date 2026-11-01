@@ -35,7 +35,8 @@ export function oracleDayBefore(iso: string): string {
 }
 /** Dagar sedan 0000-03-01 (proleptisk gregoriansk, Hinnants civil-algoritm); för dagsdifferenser. */
 function ordinal(iso: string): number {
-  let { y, m, d } = parseIso(iso)
+  const { y: initialYear, m, d } = parseIso(iso)
+  let y = initialYear
   y -= m <= 2 ? 1 : 0
   const era = Math.floor(y / 400); const yoe = y - era * 400
   const doy = Math.floor((153 * (m + (m > 2 ? -3 : 9)) + 2) / 5) + d - 1
@@ -188,7 +189,7 @@ type ShownContract = {
 
 async function readShown(session: AppSession, customerId: string): Promise<ShownContract> {
   const start = `/admin/customers/${customerId}?tab=contracts`
-  let res = await session.fetch(start)
+  const res = await session.fetch(start)
   const html = await res.text()
   if (res.status !== 200) {
     // Följ redirectkedjan manuellt (session.fetch följer inte) och logga varje steg så att felet förklarar sig självt.
@@ -248,6 +249,29 @@ async function signed(input: ContractInput): Promise<SignedContractFixture> {
   return f
 }
 
+// Selected native columns and the signed v6 fixture's JSON members. These
+// annotations preserve, and do not replace, the runtime binding assertions.
+type ContractRow = {
+  company_id: string; customer_id: string | null; site_id: string | null; customer_site_id: string | null; metering_point_id: string | null
+  contract_publication_version_id: string | null; contract_offer_id: string | null; legal_bundle_version_id: string | null
+  contract_product_version_id: string | null; price_plan_version_id: string | null; contract_price_snapshot_id: string | null
+  status: string; contract_name: string; contract_type: string
+  binding_months: number | null; notice_months: number | null; monthly_fee_sek: number | null; invoice_fee_sek: number | null
+  fixed_price_ore_per_kwh: number | null; spot_markup_ore_per_kwh: number | null; variable_fee_ore_per_kwh: number | null
+  starts_at: string | null; ends_at: string | null; signed_at: string | null
+  terms_version: string | null; price_version: string | null; campaign_name: string | null; campaign_code: string | null; campaign_version: string | null
+  green_fee_mode: string | null; auto_renew_enabled: boolean; auto_renew_term_months: number | null; document_sha256: string | null
+  snapshot_hash: string | null; signature_snapshot_sha256: string | null
+  signature_snapshot: { pricing_snapshot_sha256?: string }; metadata: { sim_declared_signed_at?: string }
+}
+type SnapshotPriceOption = { price_option_reference: string; binding_months: number; notice_months: number }
+type SnapshotPriceComponent = { component_code?: string; componentCode?: string; amount: number | string | null }
+type PriceSnapshotRow = {
+  company_id: string; contract_id: string; customer_id: string | null; snapshot_hash: string; recomputed_hash: string
+  snapshot_json: { price_options: SnapshotPriceOption[]; price_option_reference: string }
+  price_components_snapshot: SnapshotPriceComponent[]
+}
+
 const sha256 = /^[a-f0-9]{64}$/
 /**
  * Bindningskontroll: rätt company/kund/anläggning/mätpunkt, prissnapshot med samma company/contract/customer och
@@ -255,22 +279,22 @@ const sha256 = /^[a-f0-9]{64}$/
  */
 function assertBindingChain(f: SignedContractFixture) {
   const q = <T,>(sql: string) => psqlRows<T>(sql)
-  const [c] = q<Record<string, any>>(`select * from public.customer_contracts where id='${f.contractId}'`)
+  const [c] = q<ContractRow>(`select * from public.customer_contracts where id='${f.contractId}'`)
   expect(c, 'avtalsraden finns').toBeTruthy()
   expect(c.company_id).toBe(f.companyId)
   expect(c.customer_id).toBe(f.customerId)
   expect(c.site_id).toBe(f.siteId)
   if (c.customer_site_id !== null) expect(c.customer_site_id).toBe(f.siteId)
   expect(c.metering_point_id).toBe(f.meteringPointId)
-  const [site] = q<Record<string, any>>(`select company_id,customer_id from public.customer_sites where id='${f.siteId}'`)
+  const [site] = q<{ company_id: string | null; customer_id: string | null }>(`select company_id,customer_id from public.customer_sites where id='${f.siteId}'`)
   expect(site).toMatchObject({ company_id: f.companyId, customer_id: f.customerId })
-  const [mp] = q<Record<string, any>>(`select company_id,customer_id,site_id from public.metering_points where id='${f.meteringPointId}'`)
+  const [mp] = q<{ company_id: string | null; customer_id: string | null; site_id: string | null }>(`select company_id,customer_id,site_id from public.metering_points where id='${f.meteringPointId}'`)
   expect(mp).toMatchObject({ company_id: f.companyId, customer_id: f.customerId, site_id: f.siteId })
 
   // Publicerade versioner
   expect(c.contract_publication_version_id).toBe(f.publicationVersionId)
   expect(c.contract_offer_id).toBe(f.offerId)
-  const [pv] = q<Record<string, any>>(`select status,legal_bundle_version_id,contract_product_version_id,price_plan_version_id,publication_snapshot->>'legacy_contract_offer_id' as offer_id from public.contract_publication_versions where id='${f.publicationVersionId}'`)
+  const [pv] = q<{ status: string; legal_bundle_version_id: string; contract_product_version_id: string; price_plan_version_id: string | null; offer_id: string | null }>(`select status,legal_bundle_version_id,contract_product_version_id,price_plan_version_id,publication_snapshot->>'legacy_contract_offer_id' as offer_id from public.contract_publication_versions where id='${f.publicationVersionId}'`)
   expect(pv.status).toBe('published')
   expect(pv.offer_id, 'publication-versionen hör till fixturens erbjudande').toBe(f.offerId)
   expect(c.legal_bundle_version_id, 'legal_bundle_version_id = publicerad versions').toBe(pv.legal_bundle_version_id)
@@ -278,7 +302,7 @@ function assertBindingChain(f: SignedContractFixture) {
   expect(c.price_plan_version_id).toBe(pv.price_plan_version_id)
 
   // Prissnapshot
-  const [snap] = q<Record<string, any>>(`select s.*, encode(extensions.digest(convert_to(s.snapshot_json::text,'UTF8'),'sha256'),'hex') as recomputed_hash from public.contract_price_snapshots s where s.id='${c.contract_price_snapshot_id}'`)
+  const [snap] = q<PriceSnapshotRow>(`select s.*, encode(extensions.digest(convert_to(s.snapshot_json::text,'UTF8'),'sha256'),'hex') as recomputed_hash from public.contract_price_snapshots s where s.id='${c.contract_price_snapshot_id}'`)
   expect(snap, 'prissnapshot finns').toBeTruthy()
   expect(snap).toMatchObject({ company_id: f.companyId, contract_id: f.contractId, customer_id: f.customerId })
   const offeredBinding = f.input.bindingMonths
@@ -287,15 +311,15 @@ function assertBindingChain(f: SignedContractFixture) {
   // v6-selection-snapshoten (gridex_create_internal_customer_contract_v1) har inga toppnivånycklar binding_months/notice_months/
   // monthly_fee_sek: villkoren ligger i det valda prisalternativet (price_options[price_option_reference]) och i
   // price_components_snapshot (komponent monthly_fee); radens värden kopieras från option resp. komponent.
-  const chosen = (snap.snapshot_json.price_options as Record<string, any>[]).find((o) => o.price_option_reference === snap.snapshot_json.price_option_reference)
+  const chosen = (snap.snapshot_json.price_options as SnapshotPriceOption[]).find((o) => o.price_option_reference === snap.snapshot_json.price_option_reference)
   expect(chosen, `valt prisalternativ ${snap.snapshot_json.price_option_reference} finns i snapshoten`).toBeTruthy()
   expect(chosen!.binding_months, 'snapshot: valt alternativ binding_months').toBe(offeredBinding ?? 0)
   expect(chosen!.notice_months, 'snapshot: valt alternativ notice_months').toBe(offeredNotice)
-  const feeComponent = (snap.price_components_snapshot as Record<string, any>[]).find((x) => (x.component_code ?? x.componentCode) === 'monthly_fee')
+  const feeComponent = (snap.price_components_snapshot as SnapshotPriceComponent[]).find((x) => (x.component_code ?? x.componentCode) === 'monthly_fee')
   expect(feeComponent, 'snapshot: monthly_fee-komponent').toBeTruthy()
   expect(Number(feeComponent!.amount), 'snapshot: månadsavgiftskomponent').toBe(offeredFee)
   // Erbjudandet (price option) och avtalsraden
-  const [opt] = q<Record<string, any>>(`select binding_months,notice_months from public.contract_price_options where id='${f.priceOptionId}'`)
+  const [opt] = q<{ binding_months: number; notice_months: number }>(`select binding_months,notice_months from public.contract_price_options where id='${f.priceOptionId}'`)
   expect(opt).toMatchObject({ binding_months: offeredBinding ?? 0, notice_months: offeredNotice })
   // Avtalsraden har värdena från appens skapande (erbjudandets default/option), inte från fixturen.
   if (offeredBinding === null) expect([null, 0], 'avtalsrad binding_months (null erbjuden)').toContain(c.binding_months)
@@ -310,16 +334,16 @@ function assertBindingChain(f: SignedContractFixture) {
   expect(c.signature_snapshot_sha256).toMatch(sha256)
 
   // Signeringsbevis skapat av finalize
-  const ev = q<Record<string, any>>(`select evidence_type,evidence_sha256 from public.customer_contract_evidence where customer_contract_id='${f.contractId}' and company_id='${f.companyId}'`)
+  const ev = q<{ evidence_type: string; evidence_sha256: string }>(`select evidence_type,evidence_sha256 from public.customer_contract_evidence where customer_contract_id='${f.contractId}' and company_id='${f.companyId}'`)
   expect(ev.find((e) => e.evidence_type === 'online_acceptance')?.evidence_sha256, 'online_acceptance-evidens = signaturhash').toBe(c.signature_snapshot_sha256)
-  const acc = q<Record<string, any>>(`select contract_publication_version_id,acceptance_sha256,signing_method from public.customer_contract_acceptances where customer_contract_id='${f.contractId}' and company_id='${f.companyId}'`)
+  const acc = q<{ contract_publication_version_id: string | null; acceptance_sha256: string; signing_method: string | null }>(`select contract_publication_version_id,acceptance_sha256,signing_method from public.customer_contract_acceptances where customer_contract_id='${f.contractId}' and company_id='${f.companyId}'`)
   expect(acc).toHaveLength(1)
   expect(acc[0].contract_publication_version_id).toBe(f.publicationVersionId)
   expect(acc[0].acceptance_sha256).toMatch(sha256)
-  const req = q<Record<string, any>>(`select used_at from public.customer_contract_signature_requests where customer_contract_id='${f.contractId}' and company_id='${f.companyId}' and customer_id='${f.customerId}'`)
+  const req = q<{ used_at: string | null }>(`select used_at from public.customer_contract_signature_requests where customer_contract_id='${f.contractId}' and company_id='${f.companyId}' and customer_id='${f.customerId}'`)
   expect(req.length).toBeGreaterThanOrEqual(1)
   expect(req.some((r) => r.used_at)).toBe(true)
-  const legal = q<Record<string, any>>(`select legal_document_sha256 from public.customer_legal_acceptances where contract_id='${f.contractId}' and company_id='${f.companyId}' and customer_id='${f.customerId}'`)
+  const legal = q<{ legal_document_sha256: string | null }>(`select legal_document_sha256 from public.customer_legal_acceptances where contract_id='${f.contractId}' and company_id='${f.companyId}' and customer_id='${f.customerId}'`)
   expect(legal.length, 'juridiska accepter per bundle-dokument').toBeGreaterThanOrEqual(1)
   for (const l of legal) expect(l.legal_document_sha256).toMatch(sha256)
   expect(c.signed_at, 'signed_at (real tid)').toBeTruthy()
@@ -507,7 +531,7 @@ describe('TERM01 bindningstid och slutdatum', () => {
 
     it('TERM01.05 normalt redigeringsformulär: oförändrad kontroll sparas, låsta villkor nekas med feedback och native state bevaras', async () => {
       const c = await fixture()
-      const [row] = psqlRows<Record<string, any>>(`select * from public.customer_contracts where id='${c.contractId}'`)
+      const [row] = psqlRows<ContractRow>(`select * from public.customer_contracts where id='${c.contractId}'`)
       const nativeState = () => ({
         contract: rowHash('customer_contracts', c.contractId),
         snapshot: rowHash('contract_price_snapshots', c.priceSnapshotId),
