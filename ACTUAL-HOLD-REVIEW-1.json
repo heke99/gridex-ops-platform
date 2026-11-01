@@ -1,0 +1,63 @@
+{
+  "schema": "t3-actual-terminal-hold-review-reattestation-v1",
+  "disclosure": "PUBLIC_SAFE_COMPACT_NORMATIVE_REATTESTATION",
+  "reviewer": "/root/review_t3_admission",
+  "verdict": "ACTUAL_TERMINAL_HOLD_EVIDENCE_QUALIFIED",
+  "activity": "Re-attestation of the completed actual-output review; no new review, test, event or authority",
+  "runId": 41359894482,
+  "jobId": 125007848417,
+  "runAttempt": 1,
+  "sourceCommit": "496288a56b0e7ef4e5043604d7fadcaf4a1f3376",
+  "sourceTree": "e1ddd2af6649e57f0245d7a4d81366f43d1b18c5",
+  "artifactId": 13104469334,
+  "artifactZipSha256": "314ec68c22a8619e33b9301810237c957c3a9c76b2fa7b91ebd005e51ae26e5b",
+  "reviewedOutcome": {
+    "state": "HOLD",
+    "stage": "host-proof:host-capacity",
+    "reason": "capacity_hierarchy_unknown",
+    "errorType": "Blocked",
+    "runConclusion": "failure",
+    "fourOriginalMemberHashesVerified": true,
+    "actualRunAndJobApi200Observed": true,
+    "encryptedHoldArtifactRetained": true,
+    "retryAuthorized": false
+  },
+  "execution": {
+    "signedAssignmentImport": "NOT_RUN",
+    "lockedToolsAndImagePulls": "NOT_RUN",
+    "executeAttemptRefConsumption": "NOT_RUN",
+    "ownedNetworkAndBackendCreation": "NOT_RUN",
+    "canonicalReplayAndGen": "NOT_RUN",
+    "appBuildStartAndFixtureAuth": "NOT_RUN",
+    "smtpImapAppendAndIntake": "NOT_RUN",
+    "physicalScenarioVariants": "NOT_RUN",
+    "native": "NOT_RUN"
+  },
+  "cleanup": {
+    "workflowCreatedBackendAppMailResources": "NOT_APPLICABLE_CREATING_PHASES_NOT_REACHED",
+    "fullBackendCleanupCertified": false,
+    "globalEmptyDockerOrTerminalProcessInventoryProven": false
+  },
+  "capacity": {
+    "qualification": "UNKNOWN",
+    "positiveRamDiskQualification": false,
+    "actualDetailedHostInventoryRetained": false,
+    "exactKernelNamespaceOrAncestorSubreasonProven": false,
+    "limit": "The detailed host observation was not retained before host_identity threw. No specific low-RAM, kernel or namespace diagnosis is established."
+  },
+  "fullReview": {
+    "sha256": "7ee6c1cbf8515fd673de73f3450afa3c6049ad6dd1c932c3aac62472b8fe35ab",
+    "status": "Original full review and raw originals retained privately by ROOT",
+    "meaning": "This JSON states the same bounded verdict; it is not a replacement raw-original bundle or an assertion of additional evidence."
+  },
+  "independenceScope": "Actual pre-import HOLD output only; no scenario ran. Earlier E01 test coauthorship does not confer full-source independence and is not used here.",
+  "signatureLimit": "No assignment/signature was imported or consumed by this job; global absence of an offhost ROOT signature is not independently established.",
+  "authority": {
+    "newNativeAuthorityGranted": false,
+    "runtimeGo": false,
+    "dataApproval": false,
+    "scenarioPass": false,
+    "newEventOrRetryPermission": false
+  },
+  "contentLimit": "No actual private keys, private capsules, credentials or raw payload originals are included."
+}

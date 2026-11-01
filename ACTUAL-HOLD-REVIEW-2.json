@@ -1,0 +1,41 @@
+{
+  "acceptedTerminal": {
+    "errorType": "Blocked",
+    "reason": "capacity_hierarchy_unknown",
+    "retryAuthorized": false,
+    "stage": "host-proof:host-capacity",
+    "state": "HOLD"
+  },
+  "agent": "/root/issuer_final_review",
+  "artifactId": 13104469334,
+  "artifactZipSha256": "314ec68c22a8619e33b9301810237c957c3a9c76b2fa7b91ebd005e51ae26e5b",
+  "authority": "NO_NEW_EVENT_RETRY_BUDGET_NATIVE_DATA_OR_PRODUCTION_AUTHORITY",
+  "classification": "SAFE_PUBLIC_NORMATIVE_ATTESTATION",
+  "contents": "No keys, private capsules or actual payloads included",
+  "executionLimits": {
+    "assignmentImport": "NOT_RUN",
+    "backendAppMailLifecycle": "NOT_RUN",
+    "boundedCleanup": "Backend/app/mail cleanup not applicable because lifecycle was not entered; encrypted transport retention and Actions checkout completion observed only.",
+    "detailedUnknownHierarchyCause": "NOT_RETAINED",
+    "fullBackendCleanup": "NOT_ATTESTED",
+    "nativeAcceptance": "NOT_GRANTED",
+    "physicalDropAfterData": "NOT_RUN",
+    "physicalHang": "NOT_RUN",
+    "positiveHostOrRamQualification": "NOT_CLAIMED"
+  },
+  "jobId": 125007848417,
+  "originalReview": {
+    "custody": "Full raw review and actual originals retained privately by ROOT",
+    "fullReportSha256": "f85012d34e6e8eddbec9e82c69260c875f1783d65eb6bd04aa16b8a2b03eaa60",
+    "relationship": "Compact standalone normative attestation of identical verdict; not a truncated original report"
+  },
+  "repository": "heke99/gridex-ops-platform",
+  "reviewStatus": "ALREADY_COMPLETED_NO_NEW_REVIEW",
+  "runAttempt": 1,
+  "runId": 41359894482,
+  "schema": "t3-independent-terminal-hold-compact-attestation-v1",
+  "sourceCommit": "496288a56b0e7ef4e5043604d7fadcaf4a1f3376",
+  "sourceTree": "e1ddd2af6649e57f0245d7a4d81366f43d1b18c5",
+  "task": "ediel03_physical",
+  "verdict": "ACCEPT_TERMINAL_HOLD_EVIDENCE_ONLY"
+}
