@@ -89,16 +89,15 @@ async function createContract(): Promise<string> {
   return id
 }
 
-async function errorOf(fn: () => Promise<unknown>): Promise<{ code?: string; message: string }> {
-  await db.exec('begin')
+async function errorOf(fn: () => Promise<unknown>): Promise<{ code?: string; message: string; detail?: string }> {
+  // Match the single RPC statement: rollback must be PostgreSQL's, not a
+  // transaction opened and rolled back by the test harness.
   try {
     await fn()
   } catch (error) {
-    await db.exec('rollback')
-    const e = error as { code?: string; message: string }
-    return { code: e.code, message: e.message }
+    const e = error as { code?: string; message: string; detail?: string }
+    return { code: e.code, message: e.message, detail: e.detail }
   }
-  await db.exec('rollback')
   throw new Error('expected an error')
 }
 
@@ -274,6 +273,7 @@ describe('PR972 proposed fail-closed reuse guard with the real validator',()=>{
   const id=await createContract();await supportGraph(id);const before=await databaseState();
   const error=await errorOf(()=>publish());
   expect(error).toMatchObject({code:'23514',message:'PUBLICATION_SOURCE_OFFER_MISMATCH'});
+  expect(JSON.parse(error.detail ?? 'null')).toEqual(['PUBLICATION_SOURCE_OFFER_MISMATCH','INVOICE_FEE_CONFIGURATION_MISSING']);
   expect(await databaseState()).toEqual(before);
  });
  it('reuses a qualified immutable version and the repeat reaches the ordinary already-active no-op',async()=>{
@@ -288,7 +288,9 @@ describe('PR972 proposed fail-closed reuse guard with the real validator',()=>{
  });
  it('also refuses a matching source whose immutable invoice-fee configuration is unqualified',async()=>{
   await canonicalFixture(false);const before=await databaseState();
-  expect(await errorOf(()=>publish())).toMatchObject({code:'23514',message:'INVOICE_FEE_CONFIGURATION_MISSING'});
+  const error=await errorOf(()=>publish());
+  expect(error).toMatchObject({code:'23514',message:'INVOICE_FEE_CONFIGURATION_MISSING'});
+  expect(JSON.parse(error.detail ?? 'null')).toEqual(['INVOICE_FEE_CONFIGURATION_MISSING']);
   expect(await databaseState()).toEqual(before);
  });
  it('refuses a different tenant before any publication mutation',async()=>{
