@@ -428,3 +428,111 @@ describe('TEN actual HTML text and attribute character-reference contexts', () =
     await expect(htmlPrivacyControl(() => '<main title="&#x110000;">Kunden finns inte</main>').run()).rejects.toThrow('oväntade svar')
   })
 })
+
+// Discovery and implementation observations cannot qualify missing business steps.
+// These controls invoke the registered callbacks, with every external port finite.
+function amendmentQualificationControl(objects: Array<{ kind: string; name: string }>) {
+  const tests = new Map<string, () => unknown>()
+  let reads = 0
+  const register = Object.assign((title: string, run: () => unknown) => tests.set(title, run), { each: () => () => {} })
+  evaluate(path.join(root, 'scenarios/term01.test.ts'), {
+    'node:buffer': { Buffer },
+    vitest: { describe: (_: string, run: () => void) => run(), it: register, expect, beforeAll: () => {}, afterAll: () => {} },
+    '../lib': { psql: refuseIO, psqlRows: () => { reads++; return objects }, loginSession: refuseIO, removeAdminFixtureUser: refuseIO },
+    '../lib/server-action': { assertContractEditFeedback: refuseIO, callServerAction: refuseIO },
+    '../lib/term-fixture': { createSignedContract: refuseIO, createTermTenant: refuseIO, probeCreateCustomerAction: refuseIO,
+      probeCreateContractTsPath: refuseIO, psqlExpectError: refuseIO, rowHash: refuseIO, stockholmToday: refuseIO },
+  }, { Intl, console: { info() {} } })
+  const run = [...tests].find(([title]) => title.startsWith('TERM01.05 ändringsflöde'))?.[1]
+  if (!run) throw new Error('missing actual amendment qualification callback')
+  return { run: () => Promise.resolve().then(run), reads: () => reads }
+}
+
+type RoundingControlOptions = { mode?: oracle.RoundMode; status?: number; wrong?: 'amount' | 'vat' | 'total' }
+function roundingQualificationControl(options: RoundingControlOptions = {}) {
+  const tests = new Map<string, () => unknown>()
+  const observations: string[] = []
+  const fixtures = new Map<string, { key: string; points: ReturnType<typeof data.term0208Consumption> }>()
+  const tenant = { companyId: 'rounding-component-company', admin: { email: 'rounding@example.invalid', password: 'synthetic' } }
+  let fixtureCount = 0
+  let currentId = ''
+  const resultFor = (id: string) => ({ underlayId: id, status: 'ready_for_pricing', sourceRows: 720, warnings: [] })
+  const fakeBilling = {
+    ...billing,
+    disableConsumptionEstimates() {}, spotImportFootprint: () => ({ runs: 0, jobs: 0 }),
+    createSupplyPeriod: () => 'rounding-component-supply', insertMeteringValues: () => ({}),
+    insertSpotIntervals() {}, prepareAndLockSpotMonth: async () => ({}), readContractTerms: () => terms,
+    generateUnderlay: async () => ({ status: 200, data: { results: [resultFor(currentId)] } }),
+    readUnderlaysForMonth: () => [...fixtures].map(([id, f]) => ({ id, metering_point_id: id,
+      status: 'validated', readiness_status: 'ready', total_kwh: oracle.decToString(oracle.sumKwh(data.toOracle(f.points))),
+      source_meter_value_count: 720, missing_values_count: 0 })),
+    pricePreview: async (_session: unknown, input: { underlayId: string }) => {
+      const fixture = fixtures.get(input.underlayId)
+      if (!fixture) throw new Error('undeclared rounding fixture')
+      const expected = oracle.oracleInvoice({ intervals: data.toOracle(fixture.points), terms }, options.mode ?? 'half_away')
+      const lines = expected.lines.map(line => ({
+        lineType: line.code === 'spot' ? 'base_price' : 'component', description: line.code,
+        amountExVat: Number(line.exVatOre) / 100, vatAmount: Number(line.vatOre) / 100, amountIncVat: Number(line.incVatOre) / 100,
+        metadata: line.code === 'spot' ? { source_type: 'spot' } : { component_code: line.code === 'markup' ? 'spot_markup' : line.code },
+      }))
+      if (options.wrong === 'amount') lines[0].amountExVat += 1
+      if (options.wrong === 'vat') lines[0].vatAmount += 1
+      return { status: options.status ?? 200, text: 'finite rounding response', data: {
+        status: 'success', errors: [], warnings: [], lines,
+        totalExVat: Number(expected.totalExVatOre) / 100, vatAmount: Number(expected.totalVatOre) / 100,
+        totalIncVat: Number(expected.totalIncVatOre) / 100 + (options.wrong === 'total' ? 1 : 0),
+      } }
+    },
+  }
+  evaluate(path.join(root, 'scenarios/term02.test.ts'), {
+    'node:fs': { mkdirSync: refuseIO, writeFileSync: refuseIO }, 'node:path': path,
+    vitest: { describe: (_: string, run: () => void) => run(), it: (title: string, run: () => unknown) => tests.set(title, run),
+      expect, beforeAll: () => {}, afterAll: () => {} },
+    '../lib': { loginSession: async () => ({}), removeAdminFixtureUser: refuseIO, SIM_HOME: 'component-private-home', psqlRows: refuseIO },
+    '../lib/term-fixture': { createTermTenant: async () => tenant, createSignedContract: async () => {
+      const spec = data.HALF_CASES[fixtureCount++]
+      if (!spec) throw new Error('undeclared rounding contract')
+      currentId = 'rounding-component-' + spec.key
+      fixtures.set(currentId, { key: spec.key, points: data.term0208Consumption('2026-09', spec.key) })
+      return { companyId: tenant.companyId, contractId: currentId, meteringPointId: currentId }
+    } },
+    '../lib/term-billing': fakeBilling, '../lib/term-oracle': oracle, '../lib/term02-data': data,
+  }, { process: { env: {} }, console: { info: (...args: unknown[]) => observations.push(args.join(' ')) } })
+  const cases = data.HALF_CASES.map(spec => {
+    const run = [...tests].find(([title]) => title.startsWith(`TERM02.08 ${spec.key}:`))?.[1]
+    if (!run) throw new Error('missing actual rounding case ' + spec.key)
+    return { key: spec.key, run: () => Promise.resolve().then(run) }
+  })
+  const summary = [...tests].find(([title]) => title.startsWith('TERM02.08 sammanställning:'))?.[1]
+  if (!summary) throw new Error('missing actual rounding qualification callback')
+  return { cases, summary: () => Promise.resolve().then(summary), observations }
+}
+
+describe('TERM qualification requires executed amendment and qualified rounding policy', () => {
+  it.each([
+    { objects: [], reason: /steg saknas|TERM01\.05.*HOLD/ },
+    { objects: [{ kind: 'function', name: 'customer_contract_new_version' }], reason: /TERM01\.05.*HOLD/ },
+    { objects: [{ kind: 'table', name: 'customer_contract_amendments' }], reason: /TERM01\.05.*HOLD/ },
+  ])('keeps amendment qualification on HOLD despite object discovery %j', async ({ objects, reason }) => {
+    await expect(amendmentQualificationControl(objects).run()).rejects.toThrow(reason)
+  })
+  it.each(oracle.ROUND_MODES)('keeps all observed %s half-cent results on HOLD without an authoritative policy', async mode => {
+    const control = roundingQualificationControl({ mode })
+    for (const test of control.cases) await expect(test.run()).resolves.toBeUndefined()
+    expect(control.observations.some(value => value.includes('TERM02.08 ORD'))).toBe(true)
+    await expect(control.summary()).rejects.toThrow(/TERM02\.08.*HOLD/)
+  })
+  it('rejects an incomplete set of half-cent observations', async () => {
+    const control = roundingQualificationControl()
+    for (const test of control.cases.slice(0, -1)) await test.run()
+    await expect(control.summary()).rejects.toThrow('alla fall måste ha körts')
+  })
+  it.each(['amount', 'vat', 'total'] as const)('retains real per-case rejection of wrong rounding %s before qualification', async wrong => {
+    const control = roundingQualificationControl({ wrong })
+    await expect(control.cases.find(test => test.key === 'ORD')!.run()).rejects.toThrow(/oraklet/)
+  })
+  it.each([401, 403, 500])('rejects HTTP %i in the actual half-cent case before qualification', async status => {
+    const control = roundingQualificationControl({ status })
+    await expect(control.cases[0].run()).rejects.toThrow('preview HTTP')
+  })
+})

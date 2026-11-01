@@ -17,20 +17,20 @@
 //   05 SE3 2027-03 | 06 SE2 2027-10 | 07 SE4 2027-10
 import fs from 'node:fs'
 import path from 'node:path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import { loginSession, psqlRows, removeAdminFixtureUser, SIM_HOME, type AppSession } from '../lib'
 import { createSignedContract, createTermTenant, type SignedContractFixture, type TermTenant } from '../lib/term-fixture'
 import {
   appLineKind, appLinesOre, checkInvoiceArithmetic, classifyUnderlayWarnings, createSupplyPeriod, describeApp, diffAgainstOracle,
   disableConsumptionEstimates, generateUnderlay, insertMeteringValues, insertSpotIntervals, pricePreview, prepareAndLockSpotMonth,
-  readContractTerms, readSourceBasisSummary, readUnderlay, readUnderlayItems, readUnderlaysForMonth, spotImportFootprint,
+  readContractTerms, readSourceBasisSummary, readUnderlayItems, readUnderlaysForMonth, spotImportFootprint,
   type GenerateUnderlayData, type PreviewData, type PriceAreaCode, type UnderlayDbRow, type UnderlayResult,
 } from '../lib/term-billing'
 import {
   civilFromDays, dec, decAdd, decCmp, decMul, decToString, describeLocal, divRound, daysFromCivil, halfCaseLines, isoUtc,
   oracleAllModes, oracleInvoice, oreToSek, hoursInDay, hoursInMonth, quartersInDay, quartersInMonth, ratioRound, ROUND_MODES, roundDec, sekNumberToOre,
   stockholmDateOf, stockholmDayBoundsUtc, stockholmLocalToUtcCandidates, stockholmMonthBoundsUtc, stockholmOffsetMinutes,
-  sumEnergy, sumKwh, vatOnOre, weightedPrice, ymd, type OracleInterval, type OracleTerms, type RoundMode,
+  sumEnergy, sumKwh, vatOnOre, weightedPrice, ymd, type OracleTerms, type RoundMode,
 } from '../lib/term-oracle'
 import {
   DUP_HOUR_FIRST_UTC, DUP_HOUR_SECOND_UTC, HALF_CASES, dstHourlySeries, dstQuarterSeries, faultyDstDaySeries, faultyDstHourlySeries, quartersOnHourlyPrices, term0201Hourly,
@@ -904,7 +904,7 @@ describe('TERM02.08 avrundning till öre: halva ören och vanliga fall (2026-09,
     }, LONG)
   }
 
-  it('TERM02.08 sammanställning: appens halvöresläge och om det är konsekvent för negativa belopp (registreras)', () => {
+  it('TERM02.08 sammanställning: observerat halvöresläge kvalificerar inte affärsregeln', () => {
     const halves = seen.flatMap((x) => x.halves)
     const side = (negative: boolean) => halves.filter((h) => h.negative === negative)
     const modesFor = (list: HalfObs[]): RoundMode[] => (list.length === 0 ? [] : ROUND_MODES.filter((m) => list.every((h) => h.modes.includes(m))))
@@ -924,10 +924,14 @@ describe('TERM02.08 avrundning till öre: halva ören och vanliga fall (2026-09,
       interpretation: posMag.join() === 'up' && negMag.join() === 'down'
         ? 'asymmetri: positiva halva ören avrundas bort från noll men negativa mot noll (Math.round, half_up mot +oändligheten); half_away och half_even är symmetriska och följs inte'
         : posMag.join() === negMag.join() ? 'symmetriskt: samma storleksriktning för positiva och negativa halva ören' : 'blandat utfall, se detail per fall',
-      note: 'Registrering, ingen assert: orakelfrågan är vilket läge som SKA gälla. Math.round(-x.5) avrundar mot noll medan half_away avrundar bort från noll.',
+      note: 'Observation, inte acceptans: affärsregeln måste kvalificeras separat. Math.round(-x.5) avrundar mot noll medan half_away avrundar bort från noll.',
       cases: seen.map((x) => x.key),
     })
     expect(seen.length, 'alla fall måste ha körts före sammanställningen').toBe(HALF_CASES.length)
+    // Preserve every per-case money/VAT/HTTP assertion above. Matching any
+    // observed implementation mode is not an independent acceptance policy;
+    // the original design oracle explicitly requires native qualification.
+    throw new Error('TERM02.08 HOLD: affärsregeln för halvöresavrundning är inte kvalificerad mot ett oberoende acceptansorakel')
   })
 })
 

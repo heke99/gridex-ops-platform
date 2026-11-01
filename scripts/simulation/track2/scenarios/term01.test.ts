@@ -646,17 +646,12 @@ describe('TERM01 bindningstid och slutdatum', () => {
       expect(psql(`select count(*) from public.contract_price_snapshots where id='${c.priceSnapshotId}'`)).toBe('1')
     })
 
-    it('TERM01.05 ändringsflöde finns', () => {
-      // rg i RUN_DIR (lib/app/components/supabase/migrations) gav inget flöde för att ändra villkor på ett signerat
-      // KUNDavtal; "ny avtalsversion" i UI-texterna gäller erbjudandemallen (contract_offer_versions). Här en DB-probe.
-      const found = psqlRows<{ kind: string; name: string }>(`
-        select 'function' kind, proname::text as name from pg_proc where pronamespace='public'::regnamespace
-          and proname ~* 'customer_contract' and proname ~* '(amend|supersede|renegotiat|change_terms|new_version)'
-        union all
-        select 'table', relname::text from pg_class where relnamespace='public'::regnamespace and relkind in ('r','v')
-          and relname ~* 'customer_contract' and relname ~* '(amend|supersede|renegotiat|version)'`)
-      if (found.length === 0) throw new Error('steg saknas: inget ändringsflöde')
-      console.info(`[TERM01.05] möjliga ändringsobjekt: ${JSON.stringify(found)}`)
+    it('TERM01.05 ändringsflöde måste verifiera ny version och bevarad historik', () => {
+      // Object names cannot prove an executed customer-contract amendment.
+      // Keep the preceding immutability assertions, but require the normal
+      // amendment, effective date, new version and preserved predecessor before
+      // this scenario can pass. No such qualified step is implemented here yet.
+      throw new Error('TERM01.05 HOLD: ordinarie ändringsflöde med ny avtalsversion och bevarad föregångare är inte verifierat')
     })
   })
 
