@@ -1,0 +1,114 @@
+name: T3 controlled test purpose on one disposable hosted runner
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'codex/t3-native-*'
+
+# The only GitData mutation is the reviewed one-shot hashed attempt-ref CREATE.
+# Source refs, producer/backend allocation and actual private inputs are separate.
+permissions:
+  contents: write
+  actions: read # Actual authenticated run/job identity observations.
+  issues: write # Only ciphertext carriers on issue930; strict source API allowlist.
+
+concurrency:
+  group: t3-e03-hosted-exclusive
+  cancel-in-progress: false
+
+jobs:
+  physical-e03:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.event.created == true &&
+       github.event.deleted == false && github.event.forced == false &&
+       github.event.before == '0000000000000000000000000000000000000000' &&
+       github.event.after == github.sha && startsWith(github.ref, 'refs/heads/codex/t3-native-'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    steps:
+      - name: Exact reviewed harness source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # verified v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          path: harness
+          fetch-depth: 0
+      - name: Qualify actual host and publish only encrypted fresh host proof
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B harness/scripts/simulation/track3/hosted-profile.py host-proof \
+            --proof-home "$RUNNER_TEMP/t3-host-proof"
+      - name: Import exact signed host-bound private allocation before app checkout
+        id: private_input
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B harness/scripts/simulation/track3/hosted-profile.py receive-input \
+            --proof-home "$RUNNER_TEMP/t3-host-proof"
+      - name: Exact qualified committed app overlay
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ steps.private_input.outputs.appCommit }}
+          path: app
+          fetch-depth: 0
+      - name: Separate canonical replay checkout of the same app commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ steps.private_input.outputs.appCommit }}
+          path: replay
+          fetch-depth: 0
+      - name: Explicit bootstrap, canonical same shell, build and exactly approved purpose
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B harness/scripts/simulation/track3/hosted-profile.py execute \
+            --profile "$RUNNER_TEMP/t3-hosted-private/profile.json"
+      - name: Encrypt retained originals, including HOLD evidence
+        id: archive
+        if: always() && steps.private_input.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B harness/scripts/simulation/track3/hosted-profile.py archive \
+            --profile "$RUNNER_TEMP/t3-hosted-private/profile.json"
+      - name: Encrypt transport HOLD originals without ephemeral private key
+        id: transport_archive
+        if: always() && steps.private_input.outcome != 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B harness/scripts/simulation/track3/hosted-profile.py transport-archive \
+            --proof-home "$RUNNER_TEMP/t3-host-proof"
+      - name: Retain only encrypted transport HOLD evidence
+        if: always() && steps.transport_archive.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: t3-transport-encrypted-hold-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/t3-hosted-transport-hold.enc.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain only encrypted originals for assigned reviewers
+        if: always() && steps.archive.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # verified v4.6.2
+        with:
+          name: t3-e03-encrypted-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/t3-hosted-originals.cms
+          if-no-files-found: error
+          retention-days: 14
+
+# Workflow completion or artifact existence never sets native/whole-suite PASS.
+# Missing signed fresh host input, full-v1 role allocation, committed config overlay,
+# actual capacity or required tools is HOLD before stack creation.
