@@ -254,7 +254,7 @@ async function databaseState() {
 }
 async function canonicalFixture(includeFee=true) {
  const oldId=await ensure();const old=(await versions()).find(row=>row.id===oldId)!;
- const copy={...old};delete copy.id;delete copy.status;delete copy.version_number;
+ const copy:Record<string,unknown>={...old};delete copy.id;delete copy.status;delete copy.version_number;
  const id='70000000-0000-4000-8000-000000000002';
  const commercial={invoice_fee_sek:0,price_components:[{component_code:'invoice_fee',status:'active',amount:0,unit:'sek_invoice',calculation_type:'per_invoice'}]};
  const snapshot={...(old.publication_snapshot as Record<string,unknown>),source_contract_offer_id:OFFER,
