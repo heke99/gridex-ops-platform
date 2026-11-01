@@ -30,11 +30,33 @@ const locksOf = (companyId: string) => psqlRows<LockRow>(
 /** Hash över bolagets period-lås och audit-rader (före/efter-jämförelse). */
 const companyHash = (companyId: string) => psql(`select md5(coalesce(string_agg(x, '|' order by x), '')) from (
     select 'L:'||row_to_json(l)::text x from public.billing_period_locks l where company_id='${companyId}'
-    union all select 'A:'||id::text from public.audit_logs where company_id='${companyId}') q`)
+    union all select 'P:'||row_to_json(p)::text from public.price_period_locks p where company_id='${companyId}'
+    union all select 'R:'||row_to_json(r)::text from public.pricing_runs r where company_id='${companyId}'
+    union all select 'A:'||row_to_json(a)::text from public.audit_logs a where company_id='${companyId}') q`)
 
 const lockBody = (month: string, action = 'lock') => JSON.stringify({ billing_month: month, action })
 const jsonPost = { method: 'POST', headers: { 'content-type': 'application/json' } }
 const pathOf = (res: Response) => new URL(res.headers.get('location') ?? '/', sim.appUrl).pathname
+
+/** Current guard JSON refusal, not a gateway/authentication/technical failure. */
+function assertForbidden(status: number, text: string): void {
+  expect(status, 'foreign access requires a supported authorization refusal').toBe(403)
+  const body = JSON.parse(text) as { error?: unknown }
+  expect(Object.keys(body).sort()).toEqual(['error'])
+  expect(['Ej behörig', 'Ej behörig för valt bolag', 'Saknar behörighet']).toContain(body.error)
+}
+
+function assertOwnLock(text: string, month: string, expected: LockRow, read = false): void {
+  const body = JSON.parse(text) as { data?: { billingMonth?: unknown; lock?: Partial<LockRow> | null; isLocked?: unknown } }
+  expect(Object.keys(body)).toEqual(['data'])
+  expect(body.data).toBeTruthy()
+  expect(Object.keys(body.data!).sort()).toEqual(read ? ['billingMonth', 'isLocked', 'lock'] : ['billingMonth', 'lock'])
+  expect(body.data!.billingMonth).toBe(month)
+  const lock = body.data!.lock
+  expect(lock, 'a null/missing lock is not proof of an own-company fallback').toBeTruthy()
+  expect({ company_id: lock!.company_id, billing_year: lock!.billing_year, billing_month: lock!.billing_month, status: lock!.status }).toEqual(expected)
+  if (read) expect(body.data!.isLocked).toBe(['locked', 'exported', 'closed'].includes(expected.status))
+}
 
 describe('AUTH01 roll- och tenantmatris', () => {
   let A: string, B: string, C: string
@@ -53,19 +75,35 @@ describe('AUTH01 roll- och tenantmatris', () => {
   }, 120_000)
   afterAll(async () => { for (const u of users) await deleteAuthUser(u.userId) })
 
-  /** Bolagsval via appens navigation-mode (Set-Cookie från appen). */
-  async function selectCompany(id: string, s: JarSession, companyId: string): Promise<Response> {
-    const res = await s.fetch(`/admin/navigation-mode?mode=company_view&company_id=${companyId}&next=/admin`)
-    expect([302, 303, 307, 308], `navigation-mode status ${res.status}`).toContain(res.status)
-    receipt(id, 'navigation-mode', { status: res.status, requestedCompany: companyId, selectedCookie: s.jar.get(SELECTED) ?? null })
-    return res
+  /** Every ordinary app redirect supplies its own scoped cookies; no positive forging. */
+  async function selectCompany(id: string, session: JarSession, companyId: string): Promise<Response> {
+    let target = `/admin/navigation-mode?${new URLSearchParams({ mode: 'company_view', company_id: companyId, next: '/admin' })}`
+    const statuses: number[] = []
+    for (let hop = 0; hop < 8; hop++) {
+      const response = await session.fetch(target)
+      await response.text()
+      statuses.push(response.status)
+      expect([302, 303, 307, 308], `navigation-mode status ${response.status}`).toContain(response.status)
+      const location = response.headers.get('location')
+      expect(location, 'navigation-mode must supply a redirect target').toBeTruthy()
+      const next = new URL(location!, sim.appUrl)
+      expect(next.origin, 'selection redirect must stay on the app origin').toBe(new URL(sim.appUrl).origin)
+      if (next.pathname === '/admin/navigation-mode') { target = next.href; continue }
+      expect(next.pathname).toBe('/admin')
+      const selected = session.cookieValue(SELECTED, LOCKS)
+      expect(selected, 'server-selected cookie must be applicable to the API URL').not.toBeNull()
+      expect(session.cookieValue(SELECTED, '/admin'), 'admin and API cookie contexts must agree after selection').toBe(selected)
+      receipt(id, 'navigation-mode', { statuses, requestedCompany: companyId, selectedCookie: selected })
+      return response
+    }
+    throw new Error('HARNESS_NAVIGATION_REDIRECT_LIMIT')
   }
 
   it('AUTH01.01 egen läsning och egen handling tillåts och skriver i eget bolag', async () => {
     const s = await loginViaUi(adminA.email, adminA.password)
-    receipt('AUTH01.01', 'login', { via: 'loginAction', redirect: s.redirect, sbCookies: [...s.jar.keys()].filter((k) => k.startsWith('sb-')).length })
+    receipt('AUTH01.01', 'login', { via: 'loginAction', redirect: s.redirect, sbCookies: s.cookieNames('/admin').filter((k) => k.startsWith('sb-')).length })
     await selectCompany('AUTH01.01', s, A)
-    expect(s.jar.get(SELECTED)).toBe(A)
+    expect(s.cookieValue(SELECTED, LOCKS)).toBe(A)
     const read = await s.fetch(`${LOCKS}?billing_month=2031-01`)
     const readText = await read.text()
     expect(read.status, readText.slice(0, 300)).toBe(200)
@@ -110,41 +148,69 @@ describe('AUTH01 roll- och tenantmatris', () => {
     const sAB = await loginViaUi(adminAB.email, adminAB.password)
     await selectCompany('AUTH01.03', sAB, B)
     const r = await sAB.fetch(LOCKS, { ...jsonPost, body: lockBody('2031-03') })
-    expect(r.status, (await r.text()).slice(0, 300)).toBe(200)
+    const setupB = await r.text()
+    expect(r.status, setupB.slice(0, 300)).toBe(200)
+    const lockedB: LockRow = { company_id: B, billing_year: 2031, billing_month: 3, status: 'locked' }
+    assertOwnLock(setupB, '2031-03', lockedB)
     const lockB = locksOf(B)
-    expect(lockB).toEqual([{ company_id: B, billing_year: 2031, billing_month: 3, status: 'locked' }])
+    expect(lockB).toEqual([lockedB])
+
+    // A known, non-null own fixture makes any permitted fallback observable.
+    // Failed setup never qualifies a later foreign-access refusal.
+    const own = await loginViaUi(adminA.email, adminA.password)
+    await selectCompany('AUTH01.03', own, A)
+    const seed = await own.fetch(LOCKS, { ...jsonPost, body: lockBody('2031-03') })
+    const setupA = await seed.text()
+    expect(seed.status, setupA.slice(0, 300)).toBe(200)
+    const lockedA: LockRow = { company_id: A, billing_year: 2031, billing_month: 3, status: 'locked' }
+    assertOwnLock(setupA, '2031-03', lockedA)
+    expect(locksOf(A).filter(row => row.billing_month === 3)).toEqual([lockedA])
+    const beforeA = companyHash(A)
     const beforeB = companyHash(B)
 
     const s = await loginViaUi(adminA.email, adminA.password)
-    s.jar.set(SELECTED, B) // förfalskad: adminA är inte medlem i B
+    s.forgeCookieForNegativeTest(`${SELECTED}=${B}; Path=/; HttpOnly; SameSite=Lax`) // Explicit negative only.
     const readB = await s.fetch(`${LOCKS}?billing_month=2031-03`)
     const readBText = await readB.text()
+    let readBranch: string
+    if (readB.status === 403) { assertForbidden(readB.status, readBText); readBranch = 'denied' }
+    else {
+      expect(readB.status).toBe(200)
+      assertOwnLock(readBText, '2031-03', lockedA, true)
+      expect(locksOf(A).filter(row => row.billing_month === 3)).toEqual([lockedA])
+      readBranch = 'fallback-own-company'
+    }
+
     const unlockB = await s.fetch(LOCKS, { ...jsonPost, body: lockBody('2031-03', 'unlock') })
     const unlockText = await unlockB.text()
+    let unlockBranch: string
+    let ownAfter = lockedA
+    if (unlockB.status === 403) {
+      assertForbidden(unlockB.status, unlockText)
+      expect(companyHash(A)).toBe(beforeA)
+      unlockBranch = 'denied'
+    } else {
+      expect(unlockB.status).toBe(200)
+      ownAfter = { ...lockedA, status: 'reopened' }
+      assertOwnLock(unlockText, '2031-03', ownAfter)
+      expect(locksOf(A).filter(row => row.billing_month === 3)).toEqual([ownAfter])
+      unlockBranch = 'fallback-own-company'
+    }
     const explicit = await s.fetch(`/api/internal/invoice-exports/00000000-0000-4000-8000-000000000000?companyId=${B}`)
     const explicitText = await explicit.text()
-    // Två tillåtna, bestämda utfall för den förfalskade cookien: 403, eller appens dokumenterade fallback till ett
-    // eget medlemskap (A). Grenen sparas. B får i inget fall läsas eller ändras.
-    const readBranch = readB.status === 403 ? 'denied' : 'fallback-own-company'
-    const unlockBranch = unlockB.status === 403 ? 'denied' : 'fallback-own-company'
+    assertForbidden(explicit.status, explicitText)
     receipt('AUTH01.03', 'forged+explicit', { readB: http(readB.status, readBText), readBranch, unlockB: http(unlockB.status, unlockText),
       unlockBranch, explicitCompanyId: http(explicit.status, explicitText) })
-    expect([200, 403], readBText.slice(0, 200)).toContain(readB.status)
-    expect([200, 403], unlockText.slice(0, 200)).toContain(unlockB.status)
-    expect(readBText.includes('"isLocked":true'), `B:s lås lästes: ${readBText.slice(0, 200)}`).toBe(false)
-    if (unlockBranch === 'fallback-own-company') {
-      const lock = (JSON.parse(unlockText) as { data?: { lock?: { company_id?: string } | null } }).data?.lock
-      expect(lock?.company_id ?? A, 'fallback-unlock ska gälla A').toBe(A)
-    }
-    expect(explicit.status, explicitText.slice(0, 200)).toBe(403)
-    // Appens normala väg: A-admin begär B via navigation-mode; appen får inte välja B.
+
     const s2 = await loginViaUi(adminA.email, adminA.password)
     await selectCompany('AUTH01.03', s2, B)
-    expect(s2.jar.get(SELECTED) ?? null, 'navigation-mode får inte välja ett icke-medlemsbolag').not.toBe(B)
+    expect(s2.cookieValue(SELECTED, LOCKS), 'nonmember selection must resolve to the actual own A cookie').toBe(A)
     const viaUi = await s2.fetch(`${LOCKS}?billing_month=2031-03`)
     const viaUiText = await viaUi.text()
-    expect(viaUiText.includes('"isLocked":true'), 'B:s lås lästes via UI-vägen').toBe(false)
-    receipt('AUTH01.03', 'navigation-mode to B', { selected: s2.jar.get(SELECTED) === B ? 'B' : 'not-B', read: http(viaUi.status, viaUiText) })
+    expect(viaUi.status).toBe(200)
+    assertOwnLock(viaUiText, '2031-03', ownAfter, true)
+    expect(locksOf(A).filter(row => row.billing_month === 3)).toEqual([ownAfter])
+    receipt('AUTH01.03', 'navigation-mode to B', { selected: A, read: http(viaUi.status, viaUiText) })
     expect(companyHash(B)).toBe(beforeB)
     expect(locksOf(B)).toEqual(lockB)
   })
@@ -152,14 +218,14 @@ describe('AUTH01 roll- och tenantmatris', () => {
   it('AUTH01.04 företagsbyte använder naturlig UI-session; icke-medlemsbolag ger fallback och ingen åtkomst', async () => {
     const s = await loginViaUi(adminAB.email, adminAB.password)
     await selectCompany('AUTH01.04', s, B)
-    expect(s.jar.get(SELECTED)).toBe(B)
+    expect(s.cookieValue(SELECTED, LOCKS)).toBe(B)
     let r = await s.fetch(LOCKS, { ...jsonPost, body: lockBody('2031-04') })
     expect(r.status, (await r.text()).slice(0, 300)).toBe(200)
     expect(locksOf(B).filter((l) => l.billing_month === 4)).toHaveLength(1)
     expect(locksOf(A).filter((l) => l.billing_month === 4)).toHaveLength(0)
 
     await selectCompany('AUTH01.04', s, A)
-    expect(s.jar.get(SELECTED)).toBe(A)
+    expect(s.cookieValue(SELECTED, LOCKS)).toBe(A)
     r = await s.fetch(LOCKS, { ...jsonPost, body: lockBody('2031-05') })
     expect(r.status, (await r.text()).slice(0, 300)).toBe(200)
     expect(locksOf(A).filter((l) => l.billing_month === 5)).toHaveLength(1)
@@ -167,7 +233,7 @@ describe('AUTH01 roll- och tenantmatris', () => {
 
     const beforeC = companyHash(C)
     await selectCompany('AUTH01.04', s, C)
-    const fallback = s.jar.get(SELECTED) ?? null
+    const fallback = s.cookieValue(SELECTED, LOCKS) ?? null
     expect(fallback, 'icke-medlemsbolag får inte väljas').not.toBe(C)
     expect([A, B]).toContain(fallback)
     r = await s.fetch(LOCKS, { ...jsonPost, body: lockBody('2031-06') })
@@ -188,7 +254,7 @@ describe('AUTH01 roll- och tenantmatris', () => {
     const out = await s.fetch('/logout', { method: 'POST' })
     expect(out.status).toBe(303)
     expect(pathOf(out)).toBe('/login')
-    expect([...s.jar.keys()].filter((k) => k.startsWith('sb-')), 'logout ska rensa sb-*-cookies').toEqual([])
+    expect(s.cookieNames('/admin').filter((k) => k.startsWith('sb-')), 'logout ska rensa sb-*-cookies').toEqual([])
     const api = await rawFetch(oldCookie, `${LOCKS}?billing_month=2031-07`)
     const apiText = await api.text()
     expect(api.status, apiText.slice(0, 200)).toBe(401)
