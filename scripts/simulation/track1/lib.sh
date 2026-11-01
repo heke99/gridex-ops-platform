@@ -5,14 +5,23 @@ set -euo pipefail
 
 TRACK1_BASELINE="1c0c088cb4ed66d0dd8b3e34c9606019342a1a56"
 TRACK1_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TRACK1_APP_DIR="${TRACK1_APP_DIR:-/root/sim-run/app}"
-SIM_HOME="${SIM_HOME:-$HOME/sim-home/track1}"
-TRACK1_APP_PORT="${TRACK1_APP_PORT:-3101}"
-TRACK1_DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+TRACK1_APP_DIR="${TRACK1_APP_DIR:-}"
+SIM_HOME="${SIM_HOME:-}"
+TRACK1_APP_PORT="${TRACK1_APP_PORT:-}"
+TRACK1_DB_URL="${TRACK1_DB_URL:-}"
+umask 077
 
 log(){ printf '[track1 %s] %s\n' "$(date -u +%H:%M:%SZ)" "$*" >&2; }
 die(){ log "FAIL: $*"; exit 1; }
 utc(){ date -u +%Y-%m-%dT%H:%M:%SZ; }
+require_runtime_assignment(){ python3 "$TRACK1_DIR/packet.py" --admit "$1" || die "runtime assignment/identity admission failed"; }
+load_private_env(){
+  local parsed item
+  parsed="$(mktemp "$ENV_DIR/private/parsed-env.XXXXXX")"
+  python3 "$TRACK1_DIR/packet.py" --env-values "$ENV_DIR/private/app.env" > "$parsed" || { rm -f "$parsed"; die "private environment could not be parsed"; }
+  while IFS= read -r -d '' item; do export "$item"; done < "$parsed"
+  rm -f "$parsed"
+}
 
 current_env_dir(){
   [[ -L "$SIM_HOME/current" ]] || die "no active stack (run up.sh)"
@@ -47,4 +56,37 @@ release_lock(){
   LOCK_HELD=0
 }
 # Marker files at the top level of SIM_HOME (describe the active stack).
-clear_markers(){ ( cd "$SIM_HOME" && rm -f replay-commit replay-at applied-migrations.tsv built-commit fingerprint db-url ); }
+clear_markers(){ ( cd "$SIM_HOME" && rm -f replay-commit replay-at applied-migrations.tsv built-commit built-build-id fingerprint db-url ); }
+
+# Only the PID/session recorded by up.sh may be stopped. Never kill by port/name.
+stop_owned_app(){
+  python3 - "$ENV_DIR/app-process.json" "$TRACK1_APP_DIR" <<'PY'
+import json, os, pathlib, signal, sys, time
+p = pathlib.Path(sys.argv[1])
+if not p.exists():
+    if p.with_name('app.pid').exists(): raise SystemExit('app process has no owned session receipt')
+    raise SystemExit(0)
+r = json.loads(p.read_text()); pid = r['pid']; proc = pathlib.Path('/proc') / str(pid)
+def owned():
+    if not proc.exists(): return False
+    # /proc/stat command names may contain spaces or parentheses.
+    try:
+        fields = (proc / 'stat').read_text().rsplit(')', 1)[1].split()
+        if int(fields[19]) != r['startTicks'] or os.getpgid(pid) != pid or str((proc / 'cwd').resolve()) != sys.argv[2]:
+            raise SystemExit('app PID/session identity differs; coordinator recovery required')
+        return fields[0] != 'Z'
+    except (FileNotFoundError, ProcessLookupError):
+        return False
+if owned():
+    os.killpg(pid, signal.SIGTERM)
+    for _ in range(20):
+        if not proc.exists(): break
+        time.sleep(.1)
+    if owned():
+        os.killpg(pid, signal.SIGKILL)
+        for _ in range(20):
+            if not owned(): break
+            time.sleep(.1)
+    if owned(): raise SystemExit('owned app session did not stop')
+PY
+}

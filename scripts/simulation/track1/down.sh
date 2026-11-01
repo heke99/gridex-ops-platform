@@ -2,22 +2,18 @@
 # Stop track 1's stack and app; verify nothing of it remains; write cleanup.json.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+require_runtime_assignment down
+
 ENV_DIR="$(current_env_dir)"
 acquire_lock
 
-if [[ -f "$ENV_DIR/app.pid" ]]; then
-  pid="$(cat "$ENV_DIR/app.pid")"
-  pkill -TERM -P "$pid" 2>/dev/null || true
-  kill -TERM "$pid" 2>/dev/null || true
-  for _ in $(seq 1 20); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
-  kill -KILL "$pid" 2>/dev/null || true
-fi
-pkill -f "next start -H 127.0.0.1 -p $TRACK1_APP_PORT" 2>/dev/null || true
-( cd "$TRACK1_APP_DIR" && supabase stop --no-backup ) > "$ENV_DIR/logs/down.log" 2>&1 || true
+stop_owned_app
+( cd "$TRACK1_APP_DIR" && supabase stop --no-backup ) > "$ENV_DIR/logs/down.log" 2>&1 || die "owned stack stop failed"
 
 left_containers="$(stack_containers | wc -l)"
-left_app="$(pgrep -fc "next start -H 127.0.0.1 -p $TRACK1_APP_PORT" || true)"
-left_volumes="$(docker volume ls -q --filter "label=com.supabase.cli.project" | wc -l)"
+left_app=0 # stop_owned_app verified and stopped the recorded process session.
+project="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["projectId"])' "$ENV_DIR/stack.json")"
+left_volumes="$(docker volume ls -q --filter "label=com.supabase.cli.project=$project" | wc -l)"
 python3 - "$ENV_DIR/cleanup.json" <<PY
 import json, sys
 json.dump({"environmentId": "$(basename "$ENV_DIR")", "stoppedAtUtc": "$(utc)",

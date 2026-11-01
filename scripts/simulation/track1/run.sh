@@ -6,18 +6,21 @@
 # report.json (vitest JSON reporter), run.log and a final "exit <code>" line.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+require_runtime_assignment run
+
 [[ -n "${SIM_REPORT:-}" ]] || die "SIM_REPORT (path for the JSON report) is required"
 [[ -f "${1:-}" ]] || die "scenario file required"
 SCENARIO="$(readlink -f "${1:?scenario file required}")"
 LABEL="${2:-$(basename "$SCENARIO" .test.ts)}"
+[[ "$LABEL" =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid run label"
 ENV_DIR="$(current_env_dir)"
 [[ -f "$ENV_DIR/stack.json" ]] || die "stack not ready"
 acquire_lock
 
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$LABEL"
 RUN_DIR="$ENV_DIR/runs/$RUN_ID"
-mkdir -p "$RUN_DIR"
-set -a; source "$ENV_DIR/private/app.env"; set +a
+mkdir "$RUN_DIR" || die "run directory already exists"
+load_private_env
 export TRACK1_RUN_DIR="$RUN_DIR" TRACK1_STACK_JSON="$ENV_DIR/stack.json" TRACK1_APP_URL="http://127.0.0.1:$TRACK1_APP_PORT"
 log "run $RUN_ID"
 python3 - "$RUN_DIR/run-meta.json" "$SCENARIO" "$ENV_DIR/stack.json" "$TRACK1_DIR" "$TRACK1_APP_DIR" <<'PY'

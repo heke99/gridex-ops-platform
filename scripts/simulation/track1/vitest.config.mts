@@ -4,7 +4,8 @@
 import path from 'node:path'
 import { defineConfig } from 'vitest/config'
 
-const appRoot = process.env.TRACK1_APP_DIR ?? '/root/sim-run/app'
+const appRoot = process.env.TRACK1_APP_DIR
+if (!appRoot || !path.isAbsolute(appRoot)) throw new Error('TRACK1_APP_DIR must explicitly name the admitted application checkout')
 
 export default defineConfig({
   resolve: { alias: [{ find: '@', replacement: path.resolve(appRoot) }] },
