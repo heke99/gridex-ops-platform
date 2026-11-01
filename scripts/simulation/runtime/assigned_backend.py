@@ -661,7 +661,7 @@ def prepare(path, assignment_output):
     prepared = {"schema": "track1-prepared-runtime-v2", "admissionSha256": sha(private_path(path).read_bytes()),
                 **{k: a[k] for k in ("appCommit", "appTree", "harnessCommit", "harnessTree", "workflowCarrier", "workflowBlob")},
                 "replayCommit": a["appCommit"], "replayTree": a["appTree"], "producerReservation": a["reservation"],
-                "runId": a["event"]["runId"], "jobId": a["event"]["job"], "runAttempt": 1,
+                "runId": a["event"]["runId"], "jobId": a["event"]["jobId"], "runAttempt": a["event"]["attempt"],
                 "runtimeConfigDescriptorSha256": sha((home / "runtime-config.json").read_bytes()),
                 "runtimeProjectId": a["projectId"], "runtimePorts": a["ports"],
                 "sourceRestorationReceiptSha256": sha((home / "restoration.json").read_bytes()),
@@ -730,6 +730,12 @@ def verify(assignment_file, action, *, custody=True):
 
 def check_prepared_files(a, assignment, prepared):
     home = pathlib.Path(a["simHome"])
+    event = a["event"]
+    need(isinstance(prepared.get("runId"), str) and prepared["runId"] == event["runId"]
+         and type(prepared.get("jobId")) is int and type(event["jobId"]) is int
+         and prepared["jobId"] == event["jobId"]
+         and type(prepared.get("runAttempt")) is int and type(event["attempt"]) is int
+         and prepared["runAttempt"] == event["attempt"] == 1, "runtime_prepared_job_identity")
     need(prepared.get("schema") == "track1-prepared-runtime-v2"
          and all(prepared[k] == a[k] for k in ("appCommit", "appTree", "harnessCommit", "harnessTree", "workflowCarrier", "workflowBlob"))
          and prepared["replayCommit"] == a["appCommit"] and prepared["replayTree"] == a["appTree"]

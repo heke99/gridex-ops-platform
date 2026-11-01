@@ -235,6 +235,25 @@ try:
    assignment=(home/'assignment.json').exists();prepared=(home/'prepared-runtime.json').exists()
    bound=assignment and module.read_json(home/'assignment.json')['preparedReceiptSha256']==module.sha((home/'prepared-runtime.json').read_bytes())
    result={'error':error,'assignment':assignment,'prepared':prepared,'hashBound':bound,'replays':sum(row[0]=='bash' for row in actions),'builds':sum(row==['npm','run','build'] for row in actions),'sourceRestored':(home/'replay/supabase/config.toml').read_bytes()==source,'cleanupCalls':(home/'cleanup-calls').read_text().splitlines()}
+   if case.startswith('identity-'):
+    prepared_data=module.read_json(home/'prepared-runtime.json')
+    if case=='identity-produced':
+     result={key:prepared_data[key] for key in ['runId','jobId','runAttempt']}
+    else:
+     # A normative prepared input isolates the consumer's tamper boundary;
+     # the independent actual-producer case above checks the emitted bytes.
+     prepared_data.update({'runId':'123','jobId':321,'runAttempt':1})
+     if case=='identity-job-name':prepared_data['jobId']='startup-smoke'
+     if case=='identity-job-number':prepared_data['jobId']=322
+     if case=='identity-run':prepared_data['runId']='456'
+     if case=='identity-attempt':prepared_data['runAttempt']=2
+     if case=='identity-boolean-job':prepared_data['jobId']=True
+     if case=='identity-boolean-attempt':prepared_data['runAttempt']=True
+     if case=='identity-missing-job':prepared_data.pop('jobId')
+     failure=None
+     try:module.check_prepared_files(a,module.read_json(home/'assignment.json'),prepared_data)
+     except RuntimeError as error:failure=str(error)
+     result={'accepted':failure is None,'error':failure}
    if case.startswith('publish'):
     for name in module.REQUIRED_PHASES:
      target=home/'phases'/ (name+'.json')
@@ -401,6 +420,15 @@ describe('T1 assigned hosted infrastructure contract', () => {
     expect(result.error).toBeNull()
     expect(result.result).toMatchObject({ assignment: false, prepared: false, hashBound: false, replays: 1, builds: change === 'replay' ? 0 : 1, sourceRestored: true, cleanupCalls: ['0'] })
     expect(result.result?.error).toBeTruthy()
+  })
+  it('seals the actual run, numeric job and attempt identity from producer admission', () => {
+    expect(probe({ op: 'prepare', case: 'identity-produced' })).toEqual({ error: null, result: { runId: '123', jobId: 321, runAttempt: 1 } })
+  })
+  it('accepts correctly bound prepared execution identity', () => {
+    expect(probe({ op: 'prepare', case: 'identity-valid' })).toEqual({ error: null, result: { accepted: true, error: null } })
+  })
+  it.each(['job-name', 'job-number', 'run', 'attempt', 'boolean-job', 'boolean-attempt', 'missing-job'])('rejects prepared execution identity %s drift', change => {
+    expect(probe({ op: 'prepare', case: `identity-${change}` })).toEqual({ error: null, result: { accepted: false, error: 'runtime_prepared_job_identity' } })
   })
   it('seals the app birth before a controlled readiness failure', () => {
     expect(probe({ op: 'startup' }).result).toMatchObject({ birthBeforeReadiness: [true], birth: true, ready: false, error: 'runtime_http_redirect' })
