@@ -1,0 +1,110 @@
+name: T3 controlled test purpose on one disposable hosted runner
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'codex/t3-native-*'
+
+# The only GitData mutation is the reviewed one-shot hashed attempt-ref CREATE.
+# Source refs, producer/backend allocation and actual private inputs are separate.
+permissions:
+  contents: write
+
+concurrency:
+  group: t3-e03-hosted-exclusive
+  cancel-in-progress: false
+
+jobs:
+  physical-e03:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.event.created == true &&
+       github.event.deleted == false && github.event.forced == false &&
+       github.event.before == '0000000000000000000000000000000000000000' &&
+       github.event.after == github.sha && startsWith(github.ref, 'refs/heads/codex/t3-native-'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    steps:
+      - name: Exact reviewed harness source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # verified v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          path: harness
+          fetch-depth: 0
+      - name: Require private allocation before source checkout or heavy work
+        shell: bash
+        env:
+          PRIVATE_PROFILE: ${{ secrets.T3_HOSTED_PROFILE_JSON }}
+          REVIEWER_CERT: ${{ secrets.T3_HOSTED_REVIEWER_CERT }}
+          PRIVATE_INPUT_FILES: ${{ secrets.T3_HOSTED_INPUT_FILES_JSON }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import base64,hashlib,json,os,pathlib,re
+          need=lambda ok: ok or (_ for _ in ()).throw(ValueError('private_input_required'))
+          need(os.environ.get('PRIVATE_PROFILE') and os.environ.get('REVIEWER_CERT'))
+          home=pathlib.Path(os.environ['RUNNER_TEMP'],'t3-hosted-private')
+          home.mkdir(mode=0o700)
+          profile=json.loads(os.environ['PRIVATE_PROFILE'])
+          plan=profile['plan']
+          need(plan['harnessCommit']==os.environ['GITHUB_SHA'])
+          plan.update(simHome=str(home.resolve()),appDir=str(pathlib.Path(os.environ['GITHUB_WORKSPACE'],'app').resolve()),
+                      replayDir=str(pathlib.Path(os.environ['GITHUB_WORKSPACE'],'replay').resolve()),
+                      nodeBin=str(home/'tools/node-v22.16.0-linux-x64/bin/node'))
+          certificate=os.environ['REVIEWER_CERT'].encode()
+          need(hashlib.sha256(certificate).hexdigest()==profile['reviewerCertificateSha256'])
+          (home/'reviewer.pem').write_bytes(certificate)
+          for directory in ['authority','qualification','inputs']:
+              (home/directory).mkdir(mode=0o700)
+          need(os.environ.get('PRIVATE_INPUT_FILES'))
+          for entry in json.loads(os.environ['PRIVATE_INPUT_FILES']):
+              need(entry['directory'] in ['authority','qualification','inputs'] and re.fullmatch(r'[A-Za-z0-9_.-]+',entry['name']) and entry['name'] not in ['.','..'])
+              data=base64.b64decode(entry['base64Bytes'],validate=True)
+              need(hashlib.sha256(data).hexdigest()==entry['sha256'])
+              with open(home/entry['directory']/entry['name'],'xb') as output: output.write(data)
+          (home/'profile.json').write_text(json.dumps(profile))
+          PY
+      - name: Exact qualified committed app overlay
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ fromJSON(secrets.T3_HOSTED_PROFILE_JSON).plan.appCommit }}
+          path: app
+          fetch-depth: 0
+      - name: Separate canonical replay checkout of the same app commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ fromJSON(secrets.T3_HOSTED_PROFILE_JSON).plan.appCommit }}
+          path: replay
+          fetch-depth: 0
+      - name: Explicit bootstrap, canonical same shell, build and exactly approved purpose
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B harness/scripts/simulation/track3/hosted-profile.py execute \
+            --profile "$RUNNER_TEMP/t3-hosted-private/profile.json"
+      - name: Encrypt retained originals, including HOLD evidence
+        id: archive
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B harness/scripts/simulation/track3/hosted-profile.py archive \
+            --profile "$RUNNER_TEMP/t3-hosted-private/profile.json"
+      - name: Retain only encrypted originals for assigned reviewers
+        if: always() && steps.archive.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # verified v4.6.2
+        with:
+          name: t3-e03-encrypted-originals-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/t3-hosted-originals.cms
+          if-no-files-found: error
+          retention-days: 14
+
+# Workflow completion or artifact existence never sets native/whole-suite PASS.
+# Missing full-v1 role allocation, reviewer certificate, committed config overlay,
+# actual capacity or required tools is HOLD before stack creation.
