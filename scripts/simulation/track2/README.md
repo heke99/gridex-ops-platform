@@ -9,6 +9,9 @@ PASS-markörer ger ingen ny körbehörighet.
 Samordnaren tilldelar först en privat JSON-fil med formatet nedan, ägd av aktuell
 OS-användare och utan grupp-/övrig åtkomst (`chmod 600`). Filen och `SIM_HOME`
 ska ligga utanför Git. `RUN_DIR` ska vara en ren checkout på exakt `sourceCommit`.
+Ett befintligt `SIM_HOME` måste vara en riktig katalog ägd av aktuell användare
+med läge 0700; symlänkar i katalogens logg-/PID-/rapportutdata avvisas. Fel vid
+katalogskapande eller rättighetskontroll stoppar även shell utan `errexit`.
 Alla nio portar ska vara olika och samordnaren måste separat verifiera att projekt,
 portar, DB/Auth/Storage, processer och lokala motparter är exklusivt tilldelade.
 Formatet är ett lokalt tilldelningsunderlag, ingen automatisk backendattest.

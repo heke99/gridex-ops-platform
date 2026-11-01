@@ -41,6 +41,12 @@ try:
     app, home = canonical(os.environ['RUN_DIR']), canonical(os.environ['SIM_HOME'])
     require(str(app) == data['runDir'] and str(home) == data['simHome'])
     require(app.is_dir() and home != pathlib.Path('/') and home != app and not home.is_relative_to(app) and not app.is_relative_to(home))
+    if home.exists():
+        require(home.is_dir() and home.stat().st_uid == os.getuid() and stat.S_IMODE(home.stat().st_mode) == 0o700)
+    for name in ('logs', 'pids', 'reports'):
+        child = home / name
+        if child.exists() or child.is_symlink():
+            require(canonical(str(child)).is_dir() and child.stat().st_uid == os.getuid())
     # Credentials/replay outputs must stay outside every Git checkout.
     for private in (assignment.parent, home):
         parent = private
@@ -81,8 +87,17 @@ while IFS=$'\t' read -r key value; do
 done <<< "$ASSIGNED_ENV"
 unset ASSIGNED_ENV key value
 export SIM_HOME RUN_DIR
-mkdir -p "$SIM_HOME" "$SIM_HOME/logs" "$SIM_HOME/pids" "$SIM_HOME/reports"
-chmod 700 "$SIM_HOME"
+(umask 077; mkdir -p "$SIM_HOME" "$SIM_HOME/logs" "$SIM_HOME/pids" "$SIM_HOME/reports") \
+  || die "kunde inte skapa privat körkatalog"
+chmod 700 "$SIM_HOME" || die "kunde inte skydda privat körkatalog"
+python3 - "$SIM_HOME" <<'PY'
+import os, pathlib, stat, sys
+p = pathlib.Path(sys.argv[1])
+paths = (p, *(p / name for name in ('logs', 'pids', 'reports')))
+if any(not x.is_dir() or x.is_symlink() or str(x.resolve()) != str(x) or x.stat().st_uid != os.getuid() for x in paths) or stat.S_IMODE(p.stat().st_mode) != 0o700:
+    raise SystemExit('runtime_directory_identity_rejected')
+PY
+[[ $? == 0 ]] || die "privat körkatalog kunde inte verifieras"
 
 # Docker Hub (429) och ECR (data limit) fungerar inte; ghcr.io/supabase/* gör det.
 export SUPABASE_INTERNAL_IMAGE_REGISTRY="${SUPABASE_INTERNAL_IMAGE_REGISTRY:-ghcr.io}"
