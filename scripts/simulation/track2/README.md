@@ -47,7 +47,7 @@ export SIM_RUNTIME_ASSIGNMENT_FILE=/privat/t2-assignment.json
 export SIM_HOME=/privat/t2-runtime RUN_DIR=/checkout/app
 ./up.sh
 ./run.sh scenarios/smoke.test.ts
-./down.sh
+./down.sh --processes-only
 ```
 
 `common.sh` verifierar tilldelningen före katalogskapande och innan något av
@@ -61,6 +61,55 @@ replaypatchar, faktisk installerad migration/DB-identitet, bygg-/schema-/loggbev
 process-ID:n och up/down-rensning måste fortfarande granskas mot den tilldelade
 miljön. `SKIP_REPLAY`/`SKIP_BUILD` och enbart textmarkörer är inte sådant bevis.
 Ingen verklig körning eller ny scenario-PASS är utförd med denna ändring.
+
+## Processer och avgränsad cleanup
+
+`up.sh` kräver dessutom en separat `startupAttempt` i samma privata tilldelning:
+
+```json
+{
+  "startupAttempt": {
+    "exclusiveHost": true,
+    "backendReservation": {"ref": "refs/tags/agent-claims/masterplan/<egen-backend>", "receipt": "<fullständig kvitto-SHA>"},
+    "producerReservation": {"ref": "refs/tags/agent-claims/masterplan/<egen-producent>", "receipt": "<fullständig kvitto-SHA>"}
+  }
+}
+```
+
+Samordnaren verifierar de verkliga reservationerna och den exklusiva miljön före
+ett sådant försök. Lokal formatkontroll förvärvar inga resurser och verifierar
+inte dessa GitHub-refar. Ett försök är inte replay-, bygg- eller scenario-PASS.
+Ingen sådan tilldelning har skapats här. Installation/schema, replaypatchar,
+endpointbindning och direkt Vitest-anrop kräver fortfarande egen kvalificering.
+
+Starten vägrar återanvända `SKIP_REPLAY`/`SKIP_BUILD` eller ett befintligt
+replay-root/app.env/processkvitto. En otillgänglig daemon startas aldrig
+automatiskt. Befintliga projektcontainrar (även stoppade), volymer eller nätverk
+blockerar starten; de stoppas eller raderas inte. Både start och cleanup tar
+`run.lock` och lämnar kvar en okänd låsning för samordnarens avstämning.
+
+Direkt efter start skriver skriptet ett nytt privat födelsekvitto med roll,
+miljö, tilldelningens hash, faktisk PID, starttid från `/proc`, körbar fil,
+arbetskatalog och kommandoradens hash. Efter beredskapskontrollen skrivs en
+separat observation bunden till samma PID/starttid/körbara fil/arbetskatalog
+och födelsekvittots hash. Därmed redovisas även Nexts ändrade processnamn.
+Gamla PID-/kvittofiler skrivs inte över. Ett avbrutet startförsök där
+kommandoraden ändrats men en senare observation saknas behöver samordnarens
+riktade avstämning; det gamla kvittot ger ingen rätt att gissa en ny identitet.
+
+`down.sh --processes-only` kontrollerar båda processernas hela kvitton före
+första signalen. Linux pidfd binder SIGTERM/SIGKILL till den verifierade
+processen även om numeriska PID återanvänds. Ingen sökning/radering efter
+namn, port eller gemensam etikett görs. Innan signaleringen reserveras en ny
+0600-journal under `SIM_HOME/process-cleanup-receipts/`, med originalkvitton
+och därefter observerade stopp. Endast en journal som slutar med `DONE`
+bekräftar avslutad processcleanup.
+
+Barnprocesser och processgrupper ingår inte i denna cleanup. Databas, containrar,
+volymer, nätverk, mailoriginal, app.env, tidigare rapporter och bevis bevaras.
+`down.sh` utan `--processes-only` vägrar köra tills en separat kvalificerad
+backend-/retentionstilldelning finns. Processkvittot påstår aldrig att hela
+miljön är städad eller att en scenariokörning är godkänd.
 
 ## Bevarat donorflöde — kräver separat körkvalificering
 

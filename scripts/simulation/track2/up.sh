@@ -1,11 +1,30 @@
 #!/usr/bin/env bash
 # Startar spår 2:s egna lokala stack från RUN_DIR:s HEAD. Se README.md.
-#   SIM_HOME (default /root/sim/home-track2)   RUN_DIR (default /root/sim/track2)
-#   SKIP_REPLAY=1  återanvänd stack/DB (kräver replay-commit == HEAD)
-#   SKIP_BUILD=1   återanvänd bygget (kräver built-commit == HEAD)
+#   Explicit SIM_HOME/RUN_DIR och samordnarens startupAttempt krävs.
+#   SKIP_REPLAY/SKIP_BUILD är spärrade tills separat kvalificering finns.
 #   SIM_*_PORT     se lib/common.sh
 set -euo pipefail
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
+
+[[ "${SKIP_REPLAY:-0}" == 0 && "${SKIP_BUILD:-0}" == 0 ]] || die "replay/build-återanvändning saknar kvalificering"
+python3 - "$SIM_RUNTIME_ASSIGNMENT_FILE" <<'PY'
+import json, re, sys
+a = json.load(open(sys.argv[1])); attempt = a.get('startupAttempt', {})
+if not isinstance(attempt, dict) or attempt.get('exclusiveHost') is not True:
+    raise SystemExit('startup_requires_separate_qualified_backend_attempt')
+for key in ('backendReservation', 'producerReservation'):
+    value = attempt.get(key, {})
+    if not isinstance(value, dict) or not str(value.get('ref', '')).startswith('refs/tags/agent-claims/masterplan/') or not re.fullmatch('[0-9a-f]{40}', str(value.get('receipt', ''))):
+        raise SystemExit('startup_requires_explicit_reservation_bindings')
+PY
+for f in replay-root app.env pids/app.pid pids/counterparts.pid pids/app.identity.json pids/counterparts.identity.json pids/app.ready.identity.json pids/counterparts.ready.identity.json; do
+  [[ ! -e "$SIM_HOME/$f" && ! -L "$SIM_HOME/$f" ]] || die "befintligt tillstånd kräver samordnarens avstämning: $f"
+done
+LOCK="$SIM_HOME/run.lock"
+mkdir "$LOCK" 2>/dev/null || die "run.lock finns; samordnaren måste avstämma kvarlämnad låsning"
+printf '%s\n' "$$" > "$LOCK/pid"
+trap 'if [[ "$(cat "$LOCK/pid" 2>/dev/null)" == "$$" ]]; then rm -f "$LOCK/pid"; rmdir "$LOCK" 2>/dev/null || true; fi' EXIT
+[[ "$(node --version)" == v22.* ]] || die "Node 22 krävs"
 
 export SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io   # Docker Hub (429) / ECR (data limit) går inte; finns i CLI 2.101.0
 [[ "$(supabase --version 2>/dev/null | tail -1)" == 2.101.0 ]] || die "supabase CLI måste vara 2.101.0 (replayskriptet kräver det)"
@@ -16,13 +35,16 @@ for c in docker supabase psql python3 node curl openssl; do command -v "$c" >/de
 
 # --- 1. docker -----------------------------------------------------------------------
 if ! docker info >/dev/null 2>&1; then
-  log "docker svarar inte; startar dockerd (logg: $SIM_HOME/dockerd.log)"
-  nohup dockerd >"$SIM_HOME/dockerd.log" 2>&1 &
-  echo $! >"$SIM_HOME/pids/dockerd.pid"
-  : >"$SIM_HOME/dockerd.started-by-up"
-  for _ in $(seq 1 90); do docker info >/dev/null 2>&1 && break; sleep 1; done
-  docker info >/dev/null 2>&1 || die "dockerd blev inte redo, se $SIM_HOME/dockerd.log"
+  die "tilldelad Docker-daemon svarar inte; automatisk host-start är spärrad"
 fi
+for resource in container volume network; do
+  if [[ "$resource" == container ]]; then
+    ids="$(docker container ls -aq --no-trunc --filter "label=com.supabase.cli.project=$SIM_PROJECT_ID")" || die "kunde inte kontrollera befintliga containrar"
+  else
+    ids="$(docker "$resource" ls -q --filter "label=com.supabase.cli.project=$SIM_PROJECT_ID")" || die "kunde inte kontrollera befintliga $resource-resurser"
+  fi
+  [[ -z "$ids" ]] || die "projektets $resource-resurser finns redan; ingen automatisk stop/radering utförs"
+done
 
 # --- 2. portar -----------------------------------------------------------------------
 cat >"$SIM_HOME/ports.env" <<PORTS
@@ -66,30 +88,17 @@ REPLAY_PG_VERSION="$(sed -n 's/^REPLAY_POSTGRES_VERSION="\(.*\)"/\1/p' "$RUN_DIR
 
 stack_running() { [[ "$(docker inspect -f '{{.State.Running}}' "supabase_db_$SIM_PROJECT_ID" 2>/dev/null)" == true ]]; }
 
-if [[ "${SKIP_REPLAY:-0}" == 1 ]]; then
-  [[ "$(cat "$SIM_HOME/replay-commit" 2>/dev/null)" == "$HEAD_SHA" ]] || die "SKIP_REPLAY=1 men replay-commit != HEAD"
-  [[ -d "$REPLAY_ROOT/supabase" ]] || die "SKIP_REPLAY=1 men $REPLAY_ROOT saknas"
-  if ! stack_running; then
-    docker volume ls -q --filter "label=com.supabase.cli.project=$SIM_PROJECT_ID" | grep -q . \
-      || die "SKIP_REPLAY=1 men stackens volymer saknas (down.sh rensar dem); kör utan SKIP_REPLAY"
-    log "startar om befintlig stack (SKIP_REPLAY)"
-    mkdir -p "$REPLAY_ROOT/supabase/.temp"; printf '%s' "$REPLAY_PG_VERSION" >"$REPLAY_ROOT/supabase/.temp/postgres-version"
-    sb start -x studio,imgproxy,edge-runtime,logflare,vector >>"$SIM_HOME/logs/supabase-start.log" 2>&1
-  fi
-else
-  prepare_replay_root
-  log "rensar ev. gammal stack och kör ren replay (logg: $SIM_HOME/logs/replay.log)"
-  sb stop --no-backup >>"$SIM_HOME/logs/replay.log" 2>&1 || true
-  rm -f "$SIM_HOME/replay-commit" "$SIM_HOME/replay-at" "$SIM_HOME/built-commit"
-  (cd "$REPLAY_ROOT" && bash scripts/gridex-aud-003-clean-replay.sh) >>"$SIM_HOME/logs/replay.log" 2>&1 \
-    || die "replay misslyckades, se $SIM_HOME/logs/replay.log"
-  # replayskriptets EXIT-trap tar bort versionspinnen; lägg tillbaka den för senare 'supabase start'.
-  mkdir -p "$REPLAY_ROOT/supabase/.temp"; printf '%s' "$REPLAY_PG_VERSION" >"$REPLAY_ROOT/supabase/.temp/postgres-version"
-  stack_running || die "stacken körs inte efter replay"
-  printf '%s\n' "$HEAD_SHA" >"$SIM_HOME/replay-commit"
-  date -u +%Y-%m-%dT%H:%M:%SZ >"$SIM_HOME/replay-at"
-  : >"$SIM_HOME/applied-migrations.tsv"
-fi
+prepare_replay_root
+log "kör ren replay i tilldelat tomt projekt (logg: $SIM_HOME/logs/replay.log)"
+rm -f "$SIM_HOME/replay-commit" "$SIM_HOME/replay-at" "$SIM_HOME/built-commit"
+(cd "$REPLAY_ROOT" && bash scripts/gridex-aud-003-clean-replay.sh) >>"$SIM_HOME/logs/replay.log" 2>&1 \
+  || die "replay misslyckades, se $SIM_HOME/logs/replay.log"
+# replayskriptets EXIT-trap tar bort versionspinnen; lägg tillbaka den för senare 'supabase start'.
+mkdir -p "$REPLAY_ROOT/supabase/.temp"; printf '%s' "$REPLAY_PG_VERSION" >"$REPLAY_ROOT/supabase/.temp/postgres-version"
+stack_running || die "stacken körs inte efter replay"
+printf '%s\n' "$HEAD_SHA" >"$SIM_HOME/replay-commit"
+date -u +%Y-%m-%dT%H:%M:%SZ >"$SIM_HOME/replay-at"
+: >"$SIM_HOME/applied-migrations.tsv"
 
 # --- 4. app.env från stackens status -------------------------------------------------
 status_env="$(sb status -o env 2>/dev/null)" || die "supabase status misslyckades"
@@ -141,34 +150,28 @@ chmod 600 "$SIM_HOME/app.env"
 # LANTMATERIET_*_USERNAME/PASSWORD sätts INTE (tomma = integrationen avstängd).
 
 # --- 5. lokala motparter ---------------------------------------------------------------
-if [[ -f "$SIM_HOME/pids/counterparts.pid" ]] && kill -0 "$(cat "$SIM_HOME/pids/counterparts.pid")" 2>/dev/null; then
-  kill "$(cat "$SIM_HOME/pids/counterparts.pid")" 2>/dev/null || true; sleep 1
-fi
-SIM_HOME="$SIM_HOME" SIM_COUNTERPART_PORT="$SIM_COUNTERPART_PORT" \
-  setsid nohup node "$HARNESS_DIR/lib/counterparts.mjs" >"$SIM_HOME/logs/counterparts.log" 2>&1 &
+(cd "$HARNESS_DIR" && exec env SIM_HOME="$SIM_HOME" SIM_COUNTERPART_PORT="$SIM_COUNTERPART_PORT" \
+  setsid node "$HARNESS_DIR/lib/counterparts.mjs") >"$SIM_HOME/logs/counterparts.log" 2>&1 &
 echo $! >"$SIM_HOME/pids/counterparts.pid"
+t2_process_custody record counterparts
 for _ in $(seq 1 20); do curl -fsS "$CP_URL/__health" >/dev/null 2>&1 && break; sleep 0.5; done
 curl -fsS "$CP_URL/__health" >/dev/null || die "motparter startade inte"
+t2_process_custody ready counterparts
 
 # --- 6. bygge --------------------------------------------------------------------------
-if [[ "${SKIP_BUILD:-0}" == 1 ]]; then
-  [[ "$(cat "$SIM_HOME/built-commit" 2>/dev/null)" == "$HEAD_SHA" && -d "$RUN_DIR/.next" ]] \
-    || die "SKIP_BUILD=1 men built-commit != HEAD eller .next saknas"
-else
-  [[ -x "$RUN_DIR/node_modules/.bin/next" ]] || die "RUN_DIR/node_modules saknas (sim-runner kör npm ci)"
-  log "next build (logg: $SIM_HOME/logs/build.log)"
-  rm -f "$SIM_HOME/built-commit"
-  (cd "$RUN_DIR" && set -a && . "$SIM_HOME/app.env" && set +a && npm run build) >"$SIM_HOME/logs/build.log" 2>&1 \
-    || die "bygget misslyckades, se $SIM_HOME/logs/build.log"
-  printf '%s\n' "$HEAD_SHA" >"$SIM_HOME/built-commit"
-fi
+[[ -x "$RUN_DIR/node_modules/.bin/next" ]] || die "RUN_DIR/node_modules saknas (sim-runner kör npm ci)"
+log "next build (logg: $SIM_HOME/logs/build.log)"
+rm -f "$SIM_HOME/built-commit"
+(cd "$RUN_DIR" && set -a && . "$SIM_HOME/app.env" && set +a && npm run build) >"$SIM_HOME/logs/build.log" 2>&1 \
+  || die "bygget misslyckades, se $SIM_HOME/logs/build.log"
+printf '%s\n' "$HEAD_SHA" >"$SIM_HOME/built-commit"
 
 # --- 7. app ----------------------------------------------------------------------------
-if app_pid_alive; then kill "$(cat "$SIM_HOME/pids/app.pid")" 2>/dev/null || true; sleep 2; fi
 (cd "$RUN_DIR" && set -a && . "$SIM_HOME/app.env" && set +a && \
   exec setsid nohup node node_modules/next/dist/bin/next start -H 127.0.0.1 -p "$SIM_APP_PORT") \
   >"$SIM_HOME/logs/app.log" 2>&1 &
 echo $! >"$SIM_HOME/pids/app.pid"
+t2_process_custody record app
 for _ in $(seq 1 120); do
   code="$(curl -s -o /dev/null -w '%{http_code}' "$APP_URL/" || true)"
   [[ "$code" =~ ^[1-5][0-9][0-9]$ ]] && break
@@ -176,4 +179,5 @@ for _ in $(seq 1 120); do
   sleep 1
 done
 [[ "${code:-000}" != 000 ]] || die "appen svarade inte på $APP_URL/"
+t2_process_custody ready app
 log "klart: app=$APP_URL (/ -> $code) api=$API_URL db=127.0.0.1:$SIM_DB_PORT mail=http://127.0.0.1:$SIM_MAIL_HTTP_PORT smtp=127.0.0.1:$SIM_SMTP_PORT"
