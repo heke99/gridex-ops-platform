@@ -149,10 +149,14 @@ async function legacyHashes(legacySourceId: string): Promise<Record<string, stri
   hashRows('outbound_requests', `SELECT id::text, to_jsonb(r) FROM public.outbound_requests r WHERE external_reference LIKE ${lit(`${run.prefix}-LEGACY-%`)}`)
   // Arkiverad legacy-MIME i lagret ediel-files (bytes).
   const payloads = q<Array<{ path: string }>>(`SELECT coalesce(jsonb_agg(to_jsonb(x)),'[]') FROM (SELECT metadata->>'archive_path' AS path FROM public.ediel_message_payloads WHERE payload_kind='raw_mime' AND ediel_message_id IN (${inList(ackIds)})) x`)
+  if (!payloads.length) throw new Error('T3_HARNESS_PRECONDITION: legacy MIME archive is missing')
   for (const p of payloads) {
+    if (typeof p.path !== 'string' || !p.path.trim()) throw new Error('T3_HARNESS_PRECONDITION: legacy MIME archive path is missing')
     const { data, error } = await adminClient().storage.from('ediel-files').download(p.path)
-    if (error || !data) { out[`storage:${p.path}`] = `ERR:${error?.message}`; continue }
-    out[`storage:${p.path}`] = sha(Buffer.from(await data.arrayBuffer()))
+    if (error || !data) throw new Error('T3_HARNESS_PRECONDITION: legacy MIME archive is unavailable')
+    const bytes = Buffer.from(await data.arrayBuffer())
+    if (!bytes.length) throw new Error('T3_HARNESS_PRECONDITION: legacy MIME archive is empty')
+    out[`storage:${p.path}`] = sha(bytes)
   }
   return out
 }

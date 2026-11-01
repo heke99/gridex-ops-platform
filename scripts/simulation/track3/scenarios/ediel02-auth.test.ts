@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // EDIEL02.05: meddelande från okänd/främmande part eller utan mandat -> nekat/fail-closed, ingen affärseffekt. Ingen webbläsare.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { createHash } from 'node:crypto'
 import { purgeInbox, receivedMail } from '../lib/counterparty'
 import { buildE02Utilts } from '../lib/e02-edifact'
 import { deliverE02, lit, sql } from '../lib/e02-flow'
@@ -16,7 +17,7 @@ const j = (q: string) => JSON.parse(sql(q))
 /** Allt som skapats för en inkommande post (e-post -> ediel_message -> ACK/ERR) och dess tillstånd, per ämnesprefix. */
 function fate(subjectLike: string, company: string) {
   return {
-    emails: j(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'company',company_id,'status',processing_status,'match',match_status,'err',error_message,'sender',sender_ediel_id,'receiver',receiver_ediel_id) ORDER BY created_at),'[]') FROM public.inbound_email_messages WHERE subject LIKE ${lit(subjectLike)}`),
+    emails: j(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'company',company_id,'status',processing_status,'match',match_status,'err',error_message,'sender',sender_ediel_id,'receiver',receiver_ediel_id,'rawSha256',raw_message_sha256) ORDER BY created_at),'[]') FROM public.inbound_email_messages WHERE subject LIKE ${lit(subjectLike)}`),
     messages: j(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',m.id,'family',m.message_family,'dir',m.direction,'status',m.status,'ack',m.ack_outcome,'tenant',m.tenant_resolution_status,'company',m.company_id,'rel',m.related_message_id) ORDER BY m.created_at),'[]')
       FROM public.ediel_messages m WHERE m.inbound_email_message_id IN (SELECT id FROM public.inbound_email_messages WHERE subject LIKE ${lit(subjectLike)})
          OR m.related_message_id IN (SELECT id FROM public.ediel_messages WHERE inbound_email_message_id IN (SELECT id FROM public.inbound_email_messages WHERE subject LIKE ${lit(subjectLike)}))`),
@@ -57,6 +58,33 @@ describe('EDIEL02.05 okänd part / utan mandat', () => {
     const subject = `E66 ${run.prefix} 05b`
     const d = await deliverE02(flow, '05b/unregistered-sender', e.raw, subject)
     const again = d.ids[0] ? await reprocessInbound(d.ids[0]) : null
+    const received = fate(subject + '%', fx.companyId)
+    // No-effects is meaningful only after successful physical reception and a
+    // protected, exact-source issuer/mandate hold. Generic infrastructure errors
+    // (including failed reads of that authority) prove no business refusal.
+    expect(d.poll.out.ok, 'T3_HARNESS_PRECONDITION: actual IMAP reception').toBe(true)
+    expect(d.poll.summary.error).toBeUndefined()
+    const pollErrors = d.poll.summary.errorsByMailbox
+    expect(Array.isArray(pollErrors), 'T3_HARNESS_PRECONDITION: poll diagnostics').toBe(true)
+    for (const diagnostic of pollErrors as Array<{ errors: unknown[] }>) expect(diagnostic.errors).toEqual([])
+    expect(d.poll.summary.stored).toBe(1)
+    expect(d.poll.summary.storedIds).toHaveLength(1)
+    expect(received.emails, 'T3_HARNESS_PRECONDITION: exact received MIME').toHaveLength(1)
+    expect(received.emails[0]).toMatchObject({ id: d.poll.summary.storedIds[0], company: fx.companyId, sender: '70099', rawSha256: d.inj.sha256 })
+    expect(['manual_review', 'processed']).toContain(received.emails[0].status)
+    expect(d.ids, 'T3_HARNESS_PRECONDITION: exact parsed source').toHaveLength(1)
+    const sourceId = d.ids[0]
+    expect((d.reproc[sourceId] as { reprocess?: { ok: boolean } } | undefined)?.reprocess, 'T3_HARNESS_PRECONDITION: processing completed').toEqual({ ok: true })
+    expect(again, 'T3_HARNESS_PRECONDITION: reprocessing completed').toEqual({ ok: true })
+    expect(received.messages.filter((m: any) => m.id === sourceId && m.dir === 'inbound' && m.family === 'UTILTS' && m.company === fx.companyId)).toHaveLength(1)
+    const denial = j(`SELECT coalesce(jsonb_agg(jsonb_build_object('sourceId',a.source_message_id,'companyId',a.company_id,'environment',a.environment,'sourceHash',a.source_payload_hash,
+      'namespaceId',a.namespace_id,'issuerVersionId',a.issuer_version_id,'mandateVersionId',a.mandate_version_id,'holdReason',a.hold_reason,
+      'emailId',m.inbound_email_message_id)),'[]') FROM gridex_utilts_issuer.source_admissions a JOIN public.ediel_messages m ON m.id=a.source_message_id
+      WHERE a.source_message_id=${lit(sourceId)} AND m.inbound_email_message_id=${lit(d.poll.summary.storedIds[0])}`)
+    expect(denial, 'T3_HARNESS_PRECONDITION: persisted issuer denial').toEqual([{
+      sourceId, companyId: fx.companyId, environment: S.mode, sourceHash: createHash('sha256').update(e.raw, 'utf8').digest('hex'),
+      namespaceId: null, issuerVersionId: null, mandateVersionId: null, holdReason: 'ediel_utilts_foreign_issuer_basis_unavailable', emailId: d.poll.summary.storedIds[0],
+    }])
     const drain = await flow.drain('05b')
     const F = fate(subject + '%', fx.companyId), C = e02Counts(fx, run.prefix), Q = e02Quantities(fx)
     ev.save('05b/state.json', { F, C, Q, poll: d.poll.summary, reproc: d.reproc, again, dso: drain.mails.map((m) => ({ s: m.subject, uci: m.uci })) })

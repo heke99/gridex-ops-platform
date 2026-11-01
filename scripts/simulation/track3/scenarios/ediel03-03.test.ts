@@ -2,13 +2,13 @@
 // Playwright används inte. Oraklet: klass 'unknown', outbox 'delivery_uncertain', nästa drain processed:0, motparten har
 // exakt EN kopia, ingen blind omsändning (varken via drain, direktanrop av sendOutboxItem eller sendEdielMessageViaSmtp).
 // Återhämtningsväg: lib/ediel/recovery/prodatRecovery.ts finns bara för PRODAT; anropet mot CONTRL loggas (utfall, ej antaget).
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { receivedMail, setSmtpMode } from '../lib/counterparty'
 import { Evidence } from '../lib/evidence'
 import { newRunContext } from '../lib/seed.mjs'
 import { outboxRow, seedInboundSource, type E03Source } from '../lib/e03-fixture'
-import { capture, drain, flushQueuedInAcceptMode, maxReceivedN, mimeCopiesFor, operatorVisibility, rfcIdOf, seedWithRetry, sql, Timing } from '../lib/e03-steps'
+import { capture, drain, flushQueuedInAcceptMode, maxReceivedN, mimeCopiesFor, operatorVisibility, physicalCaptureSince, rfcIdOf, seedWithRetry, sql, Timing } from '../lib/e03-steps'
 
 const run = newRunContext('ediel03-03')
 const evidence = new Evidence()
@@ -45,6 +45,17 @@ async function lostResponseCase(label: 'drop-after-data' | 'hang', seq: number) 
   expect(snap.copies, 'motparten sparade exakt en kopia').toHaveLength(1)
   expect(snap.copies[0].sha256Verified).toBe(true)
   expect(snap.copies[0].disposition).toBe(label === 'hang' ? 'received-no-reply-hang' : 'received-no-reply-connection-dropped')
+  // This run requires a coordinator-qualified exclusive/quiescent mail phase.
+  // Every physical addition is audited; changing the RFC ID cannot hide a copy.
+  const originalCapture = await physicalCaptureSince(n0)
+  expect(originalCapture).toHaveLength(1)
+  const binding = attempt.binding as { rfcMessageId?: string; mimeSha256?: string; originalHash?: string }
+  expect(originalCapture[0]).toMatchObject({ rfcMessageId: rfcIdOf(snap.attempts), sha256: binding.mimeSha256 })
+  const unchangedCapture = async (phase: string) => {
+    const actual = await physicalCaptureSince(n0)
+    evidence.save(`${label}/${phase}-physical-capture.json`, actual)
+    expect(actual, `${phase}: all owned physical MIME copies, independent of RFC ID`).toEqual(originalCapture)
+  }
 
   // nästa drain: processed 0, ingen ny kopia
   await timing.sleep(`settle-${label}`, 1500)
@@ -54,22 +65,27 @@ async function lostResponseCase(label: 'drop-after-data' | 'hang', seq: number) 
   expect(((d2.result?.results as Array<{ id: string }> | undefined) ?? []).filter((r) => r.id === src.outboxId)).toHaveLength(0)
   const afterDrain2 = await mimeCopiesFor(rfcIdOf(snap.attempts), n0)
   expect(afterDrain2, 'fortfarande exakt en kopia efter andra draining').toHaveLength(1)
+  await unchangedCapture('after-drain-2')
 
   // ingen blind retry via direkta vägar (accept-läge är aktivt, så en omsändning skulle synas hos motparten)
   const { sendOutboxItem } = await import('@/lib/ediel/outbox/sendOutboxItem')
   const { getEdielMessageById } = await import('@/lib/ediel/db')
   const { sendEdielMessageViaSmtp } = await import('@/lib/ediel/transport')
   const direct = await sendOutboxItem({ actorUserId: process.env.EDIEL_AUTOMATION_ACTOR_USER_ID!, outboxItemId: src.outboxId! })
+  const message = await getEdielMessageById(src.ackMessageId!)
+  expect(message).toMatchObject({ id: src.ackMessageId, company_id: src.companyId, related_message_id: src.sourceMessageId, message_family: 'CONTRL', direction: 'outbound' })
+  expect(binding.originalHash, 'attempt is bound to the exact owned ACK payload').toBe(createHash('sha256').update(message!.raw_payload ?? '', 'utf8').digest('hex'))
   let transportResend: unknown
   try {
-    const m = await getEdielMessageById(src.ackMessageId!)
-    transportResend = { returned: await sendEdielMessageViaSmtp(m!, { actorUserId: process.env.EDIEL_AUTOMATION_ACTOR_USER_ID!, smtpMimeMode: null, dispatchOwner: { kind: 'direct' } } as never) }
+    transportResend = { returned: await sendEdielMessageViaSmtp(message!, { actorUserId: process.env.EDIEL_AUTOMATION_ACTOR_USER_ID!, smtpMimeMode: null, dispatchOwner: { kind: 'direct' } } as never) }
   } catch (e) { transportResend = { threw: (e as Error).message, name: (e as Error).name } }
+  expect((transportResend as { threw?: string }).threw, 'direct transport reached the semantic resend fence').toContain('ediel_transport_resend_suppressed')
   const afterDirect = await mimeCopiesFor(rfcIdOf(snap.attempts), n0)
   const totalAfter = (await receivedMail()).filter((m) => m.n > n0).length
   evidence.observe(`${label}_no_blind_retry`, { sendOutboxItemDirect: direct, transportDirectResend: transportResend, copiesForThisMessage: afterDirect.length, allMailsSinceBaseline: totalAfter })
   expect(direct.status).toBe('blocked')
   expect(afterDirect, 'direktanrop får inte ge ny kopia').toHaveLength(1)
+  await unchangedCapture('after-direct')
 
   // återhämtningsväg (endast PRODAT i koden): loggar vad CONTRL-anropet ger
   const { prepareAndQueueProdatRecovery } = await import('@/lib/ediel/recovery/prodatRecovery')
@@ -81,6 +97,7 @@ async function lostResponseCase(label: 'drop-after-data' | 'hang', seq: number) 
   evidence.observe(`${label}_operator_visibility`, operatorVisibility(src.ackMessageId!, src.sourceMessageId))
   evidence.observe(`${label}_final_outbox`, { status: outboxRow(src.outboxId!).status })
   expect(afterRecovery).toHaveLength(1)
+  await unchangedCapture('after-recovery')
   expect(Number(sql(`SELECT count(*) FROM public.ediel_outbox WHERE id='${src.outboxId}' AND status IN ('prepared','queued','sending')`))).toBe(0)
   return { src, attempt, recovery }
 }

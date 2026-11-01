@@ -55,7 +55,7 @@ describe('EDIEL03 deadlines, retry och återhämtning', () => {
   })
 
   it('EDIEL03.04 drain medan leasen är giltig rör inte raderna (processed:0, status kvar sending)', async () => {
-    const d = await drain(a.outboxId!, timing, 'drain-lease-active')
+    const d = await drain(a.outboxId!, timing, 'drain-lease-active', [a.outboxId!, b.outboxId!])
     evidence.save('drain-lease-active.json', d)
     evidence.observe('drain_lease_active', d.result)
     expect(d.result).toMatchObject({ claimed: 0, processed: 0 })
@@ -76,7 +76,7 @@ describe('EDIEL03 deadlines, retry och återhämtning', () => {
     expireLease(a.outboxId!)
     evidence.save('outbox-a-expired.json', outboxRow(a.outboxId!))
     const before = (await receivedMail()).length
-    const d = await drain(a.outboxId!, timing, 'drain-after-lease-expiry')
+    const d = await drain(a.outboxId!, timing, 'drain-after-lease-expiry', [a.outboxId!, b.outboxId!])
     evidence.save('drain-after-expiry.json', d)
     evidence.observe('drain_after_expiry', { http: d.status, result: d.result, foreignClaimableBefore: d.foreignClaimableBefore })
     const rowA = outboxRow(a.outboxId!), rowB = outboxRow(b.outboxId!)
@@ -111,7 +111,7 @@ describe('EDIEL03 deadlines, retry och återhämtning', () => {
     expect(attemptsFor(a.ackMessageId!)).toHaveLength(0)
     expect((await receivedMail()).length).toBe(before)
     // B: ny drain återsänder inte heller.
-    const d = await drain(b.outboxId!, timing, 'drain-final')
+    const d = await drain(b.outboxId!, timing, 'drain-final', [a.outboxId!, b.outboxId!])
     expect(d.result).toMatchObject({ processed: 0 })
     expect(outboxRow(b.outboxId!).status).toBe('delivery_uncertain')
     expect((await receivedMail()).length).toBe(before)
