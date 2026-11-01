@@ -9,6 +9,7 @@ import { spawn } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { custodyDir, env } from './base'
+import { ownedChildStopper } from './app'
 
 export type ForeignIteration = { i: number; t0: number; t1: number; ok: boolean; id: string | null; statuses: number[]; insertMs: number; selectMs: number; updateMs: number; error?: string }
 
@@ -57,15 +58,13 @@ export function startForeignRun(o: { companyId: string; customerId: string; acce
     stdio: 'ignore',
     env: { ...process.env, FR_BASE: env('NEXT_PUBLIC_SUPABASE_URL'), FR_ANON: env('NEXT_PUBLIC_SUPABASE_ANON_KEY'), FR_TOKEN: o.accessToken, FR_COMPANY: o.companyId, FR_CUSTOMER: o.customerId, FR_FILE: file, FR_TAG: o.tag, FR_INTERVAL: String(o.intervalMs ?? 100) },
   })
+  const stopChild = ownedChildStopper(child, 20_000)
   const read = (): ForeignIteration[] => readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as ForeignIteration)
   return {
     file, read,
     waitForFirst: async (n: number, timeoutMs = 20_000) => { const end = Date.now() + timeoutMs; while (read().length < n && Date.now() < end) await new Promise((r) => setTimeout(r, 200)); return read() },
     stop: async () => {
-      const exited = new Promise((res) => child.once('exit', res))
-      child.kill('SIGTERM')
-      await Promise.race([exited, new Promise((res) => setTimeout(res, 20_000))])
-      if (child.exitCode === null) child.kill('SIGKILL')
+      await stopChild()
       return read()
     },
   }
