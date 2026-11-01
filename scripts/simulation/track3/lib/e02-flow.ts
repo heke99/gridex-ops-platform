@@ -49,11 +49,18 @@ export class E02Flow {
     const res: Record<string, unknown> = {}
     for (const id of ids) {
       const granted = this.time('harness', () => grantHistoryGround(id))
-      // PostgREST (authenticator) har statement_timeout=8s; under last överskrider enskilda ACK-RPC:er den. Anropen är atomära och
-      // idempotenta (samma väg som nästa poll), så harnessen försöker om upp till 5 ggr och loggar antalet.
-      let r = await this.timeAsync('reprocess', () => reprocessInbound(id)); let attempts = 1
-      while (!r.ok && /57014|statement timeout/.test(r.error) && attempts < 5) { r = await this.timeAsync('reprocess', () => reprocessInbound(id)); attempts++ }
+      // Processing spans several persistent calls. A timed-out call does not
+      // establish that the whole operation rolled back; preserve it for recovery.
+      const r = await this.timeAsync('reprocess', () => reprocessInbound(id))
+      const attempts = 1
       res[id] = { granted, attempts, reprocess: r }
+      if (!r.ok && /57014|statement timeout/i.test(r.error)) {
+        this.ev.save('reprocess-unknown-outcome.json', {
+          sourceMessageId: id, granted, attempts, reprocess: r,
+          recovery: 'observe_persistent_effects_before_retry',
+        })
+        throw new Error('T3_HARNESS_PRECONDITION: processing outcome unknown; observe persistent effects before retry')
+      }
     }
     return res
   }
