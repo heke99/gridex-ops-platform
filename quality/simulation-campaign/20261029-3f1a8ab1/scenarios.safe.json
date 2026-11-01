@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "kind": "CANONICAL_REGISTER_POINTER",
+  "authoritativeRegister": "../../simulation-register/register.safe.json",
+  "totalDesignScenarios": 105,
+  "embeddedStatusSnapshots": false,
+  "reason": "One editable source of per-ID status for Codex and Claude",
+  "assignmentClarification": "Current user mandate transfers all105logical IDs and coordination toCodex. SixworkersT1-T6 cover90IDs;T7covers15finalIDs after integration. Exact sourcecustody and qualified producers/runtimes remain separate. Historical89/16vendor allocation is superseded.",
+  "takeoverRecord": "quality/simulation-campaign/20261029-3f1a8ab1/takeover-20261101.safe.json"
+}

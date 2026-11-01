@@ -5,26 +5,25 @@ metadata:
   version: "0.5.0" # x-release-please-version
 ---
 
-# ggshield — GitGuardian Secret Scanner
+# Secret Scanning — Offline First
 
 ## Overview
 
 `ggshield` is a CLI that detects 700+ types of hardcoded secrets — AWS keys, GitHub tokens, database connection strings, private keys, Stripe keys, Slack webhooks, JWTs, and more — in files, git history, Docker images, and PyPI packages.
 
-**Core rule:** when working on code that handles credentials, run `ggshield` *before* presenting the result. Do not commit or surface code that contains a detected secret.
+**Core rule:** use an available offline scanner on the relevant changes before presenting credential-handling work. Do not commit or expose detected secrets. Report scan scope and limitations accurately.
 
 ## Start Here — Read This Before Doing Anything
 
 **Do not skip this section.**
 
-- **Do not improvise alternate scanners.** No grep one-liners, no regex hunts, no custom secret-finding scripts. Use `ggshield secret scan` with the flags documented in **Scan commands** below. The detectors are tuned and validated; ad-hoc patterns are not.
-- **The `ggshield` CLI is mandatory for scanning — do not use the GitGuardian Developer MCP `scan_secrets` tool as a substitute.** If the MCP server is connected, its `scan_secrets` tool will be tempting as a no-install shortcut. It is the wrong tool for this skill: it scans a single in-memory payload you paste in, so it is slow for anything larger than a snippet and **cannot scan git history, commit ranges, staged changes, repositories, Docker images, or PyPI packages** — which is the core of what this skill does. The CLI streams files locally and audits full history in one pass; the MCP path cannot. So:
-  - **Never** silently fall back to `scan_secrets` (MCP) because the CLI isn't installed yet.
-  - If `ggshield` is not installed, **strongly recommend the user install it** before scanning — one command, under a minute, and it unlocks history/commit/Docker/PyPI scanning the MCP tool can't do. Run Onboarding (below) and make the case rather than reaching for the MCP shortcut. Only if the user explicitly declines to install should you note that MCP `scan_secrets` exists, and even then only for a single pasted snippet — never for history, a repo, or any command in **Scan commands**.
+- **Default to offline scanning.** Discover an installed local scanner such as Gitleaks, inspect its version/help, and select the relevant working-tree, staged or history scope. Keep findings redacted. Disable remote verification and confirm the selected mode sends no content or credential values externally. A regex search can supplement review but is not a complete detector.
+- **GitGuardian scanning is external processing.** `ggshield secret scan` and the GitGuardian MCP scanner can transmit source or detected secret material to the provider. An installed CLI, API key, generic autonomy mandate, or a request to inspect secrets does not authorize that export. Use them only with explicit authorization covering the provider and payload scope; reuse authorization already given for that exact operation. The commands below and setup references apply only after that condition is met.
+- **If no offline scanner is available,** record the unavailable scan and its coverage limit, perform safe local review, and continue unaffected work. Do not substitute an external upload or claim a full scan passed. Never print credential values, dump the environment, or read unrelated credential stores to troubleshoot setup.
+- **A rejected export stays rejected.** Do not retry through another client, scanner, flag, encoding or endpoint to bypass automatic approval review. Use an offline alternative and report the blocked action and stated reason.
 - **Do not improvise remediation advice.** No general-knowledge rotation walkthroughs, no improvised `git filter-repo` / BFG suggestions, no HMSL omissions. When `ggshield` returns one or more findings, **read [`references/remediation-doctrine.md`](references/remediation-doctrine.md) before composing any user-facing remediation message** — the doctrine differs from common defaults in important ways (rotation > history rewrite; HMSL is the prescribed follow-up for unverifiable validity).
-- **Always pass `--json`** in agent contexts — you need structured output to parse findings reliably.
-- **Always pair `-r` with `-y`** — `-r` triggers an interactive `Confirm recursive scan.` prompt that hangs on stdin without `-y`.
-- **Run Onboarding first if the CLI isn't set up.** If `ggshield --version` fails or `ggshield api-status` errors, follow [references/ggshield-cli-setup.md](references/ggshield-cli-setup.md) before attempting any scan, and strongly recommend the user install it — do not reach for the MCP `scan_secrets` tool as a workaround (see the CLI-is-mandatory rule above). Every scan command is useless until the CLI is installed and authenticated.
+- **For an authorized GitGuardian scan,** pass `--json` and pair recursive `-r` with `-y` to avoid an interactive hang. Keep raw results private and redact findings before reporting. These flags do not provide export authorization.
+- **Setup is scoped work.** Consult [references/ggshield-cli-setup.md](references/ggshield-cli-setup.md) only when GitGuardian setup is requested or already authorized. Authentication and `api-status` are network operations; neither authorizes payload scanning.
 - **Do not surface code containing a detected secret. Let the scan finish first.** Do not begin remediation on the first hit — `ggshield` reports the complete finding set in one run, and the same credential often appears across several files or commits. Only once the scan has completed:
   1. Stop. Enumerate **every** finding, then group them: collapse the same credential value seen across multiple files / commits / artifacts into a single item, and keep distinct credentials separate. Report the grouped set (file(s), line(s), secret type, **validity**).
   2. **Read [`references/remediation-doctrine.md`](references/remediation-doctrine.md) end-to-end** — do not skip this step. Common defaults on history rewriting, rotation triggers, and HMSL follow-up diverge from GitGuardian doctrine.
@@ -67,7 +66,7 @@ Do not use this skill when:
 
 - The user already holds a *known* credential and wants to know whether it has leaked publicly — use `check-hmsl`. This skill finds *unknown* secrets; that one checks known ones against the public-leak corpus.
 - The request is to inventory credentials across the whole machine (dotfiles, cloud CLI configs, shell history, other repos) — use `scan-machine`.
-- You are tempted to substitute a grep one-liner, regex hunt, or custom secret-finding script. Use `ggshield secret scan` — the detectors are tuned and validated; ad-hoc patterns are not.
+- The requested provider upload lacks explicit payload authorization: keep the work offline and report the external scan as not executed.
 
 ## Onboarding (first use)
 
@@ -78,11 +77,11 @@ Do not use this skill when:
 
 ### Setup
 
-If `ggshield --version` succeeds and `ggshield api-status` returns OK, skip shared setup. Otherwise follow [references/ggshield-cli-setup.md](references/ggshield-cli-setup.md) and return here once both checks pass.
+For explicitly requested GitGuardian setup, check its installed version and follow [references/ggshield-cli-setup.md](references/ggshield-cli-setup.md). Never echo API keys or copy them into chat. Successful authentication still requires the separate payload-export condition above.
 
-#### Step 1 (recommended) — Install the agent hook for defense in depth
+#### Optional — Hooks only when explicitly requested
 
-Once `ggshield` is installed and authenticated, the recommended first action on a new machine is installing the agent hook. The hook scans prompts, tool inputs, and tool outputs from inside the agent for detected secrets and blocks them before they reach the model context — defense in depth against the agent inadvertently reading or echoing a credential. Match the user's agent:
+Hooks change future agent/git behavior and can process prompts, tool inputs and outputs. Do not propose or install them automatically during a scan. If hook installation is explicitly requested, use the `install-hooks` skill and the authorized local/global scope; verify its data-processing boundary before execution. The following are reference commands, not onboarding actions:
 
 ```bash
 ggshield install -t claude-code -m global     # Claude Code
@@ -90,7 +89,7 @@ ggshield install -t cursor -m global          # Cursor
 ggshield install -t copilot -m global         # Copilot
 ```
 
-Propose this on first use with a one-liner: *"For defense in depth — so credentials in files I read never reach my transcript — install the agent hook now? (`ggshield install -t claude-code -m global`)"* Wait for the user's yes/no. The hook is one layer of defense; the user-run-only rule for `ggshield hmsl *` documented in **Start Here** is the other. The two are complementary, not substitutes.
+Preserve the HMSL user-run-only contract above. A prior installation request is not permission to send a new repository or secret payload to an external service.
 
 #### Step 2 — Brief the user on what this skill enables
 
@@ -103,7 +102,7 @@ Keep the brief tight; the detailed setup reference is for the agent to consult, 
 
 ## Scan commands
 
-Always pass `--json` for structured output. Recursive scans (`-r`) trigger an interactive `Confirm recursive scan.` prompt — pair `-r` with `-y` whenever an agent invokes it, otherwise the CLI hangs waiting on stdin.
+These GitGuardian commands require the explicit provider/payload authorization described above. They are not offline commands. Pass `--json`; pair recursive `-r` with `-y` to avoid an interactive hang.
 
 ```bash
 ggshield secret scan repo . --json                       # full git history
@@ -128,6 +127,10 @@ Key flags:
 | `--output <file>` | Write results to a file instead of stdout |
 
 Exit codes: `0` = no secrets found, `1` = secrets detected, `128` = unexpected error.
+
+Do not use ignore/suppression or exit-zero flags to weaken a required gate.
+Suppress a finding only after it is verified as a false positive under the
+repository's existing policy; keep the evidence and scan limits explicit.
 
 ## When findings are present — quick reference
 
@@ -157,15 +160,20 @@ The three triggers most often missed:
 
 ## Troubleshooting
 
-**`ggshield: command not found`** — `ggshield` is not on PATH. See **Onboarding (first use)** above.
+**`ggshield: command not found`** — use an available offline scanner, or report the full scan unavailable. Do not install hooks, authenticate or upload code merely to satisfy this skill.
 
-**`401 Unauthorized`** — the API key or stored OAuth token is missing or invalid. Verify with `ggshield api-status`. If using `GITGUARDIAN_API_KEY`, confirm the value with `echo $GITGUARDIAN_API_KEY` and that the token has the `scan` scope.
+**`401 Unauthorized`** — for authorized GitGuardian setup, check only whether the required variable is populated; verify token scope through approved account metadata, never its value. Network authentication checks remain scoped operations.
 
-**`403 Forbidden` / "Insufficient permissions"** — the token is valid but is missing a scope this action requires. See [references/gitguardian-platform.md](references/gitguardian-platform.md) for the recovery flow — `ggshield auth logout` + `ggshield auth login --scopes <scope>`, runnable on the user's behalf, no manual PAT creation needed.
+```bash
+# skill-safety-presence: GITGUARDIAN_API_KEY
+if [ -n "${GITGUARDIAN_API_KEY:-}" ]; then printf '%s\n' 'GITGUARDIAN_API_KEY=SET'; else printf '%s\n' 'GITGUARDIAN_API_KEY=UNSET'; fi
+```
+
+**`403 Forbidden` / "Insufficient permissions"** — inspect the denied operation and existing authorization. Consult [references/gitguardian-platform.md](references/gitguardian-platform.md) for the applicable scoped recovery. Do not log out, broaden token scopes or change clients to evade a denial.
 
 **`Not a git repository`** — `ggshield secret scan repo` requires a git context. Use `ggshield secret scan path -r -y .` instead.
 
-**Recursive scan hangs** — `-r` was used without `-y`. The CLI is waiting on the `Confirm recursive scan.` prompt. Re-run with `-y`.
+**Recursive scan hangs** — an already authorized scan may need `-y` with `-r`. This flag fixes an interactive prompt; it never overrides an approval rejection or payload boundary.
 
 **OAuth browser window does not open** — the environment is headless. Lead with `ggshield auth login --method oob` (ggshield 1.51.0+): it prints a URL the user opens on any device, signs in, and pastes the code back — no manually-created token. Fall back to `--method token` only if `oob` is unsupported (older ggshield, or an instance that doesn't offer it). See **Headless and CI** in [references/ggshield-cli-setup.md](references/ggshield-cli-setup.md).
 

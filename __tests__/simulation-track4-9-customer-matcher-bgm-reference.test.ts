@@ -190,14 +190,10 @@ describe('track4/9 customer matcher with a non-UUID BGM reference', () => {
     expect(db.runs[0].completed_at).toEqual(expect.any(String))
   })
 
-  // KNOWN SEPARATE DEFECT (not fixed by 36ffc606f, not fixed on the finance
-  // branch): analyzeEdielProcessingPipeline has no failure path after
-  // createProcessingRun, so any other matcher error (here a statement timeout)
-  // propagates, recordBackendAutomationPipelineTrace swallows it into a
-  // manual_note event, and the run row keeps status 'running' with no
-  // completed_at. `it.fails` documents the desired behaviour and turns red
-  // once that defect is fixed, so this marker must then become `it`.
-  it.fails('(c) KNOWN DEFECT: a matcher failure for another reason must not leave the run running', async () => {
+  // Historical separate defect: matcher errors propagated after run creation
+  // while leaving the run running without completed_at. The run-close fix
+  // now records failure while preserving the original matcher error.
+  it('(c) a matcher failure for another reason must close the run as failed', async () => {
     db.forcedCustomersError = { code: '57014', message: 'canceling statement due to statement timeout' }
 
     await analyzeEdielProcessingPipeline({
@@ -208,10 +204,11 @@ describe('track4/9 customer matcher with a non-UUID BGM reference', () => {
     }).catch(() => null)
 
     expect(db.runs).toHaveLength(1)
-    expect(db.runs[0].status).not.toBe('running')
+    expect(db.runs[0].status).toBe('failed')
+    expect(Number.isFinite(Date.parse(String(db.runs[0].completed_at)))).toBe(true)
   })
 
-  it('(c) behaviour today: the 57014 matcher error propagates and the run row stays running', async () => {
+  it('(c) the 57014 matcher error propagates and the run row is closed as failed', async () => {
     db.forcedCustomersError = { code: '57014', message: 'canceling statement due to statement timeout' }
 
     await expect(analyzeEdielProcessingPipeline({
@@ -221,7 +218,7 @@ describe('track4/9 customer matcher with a non-UUID BGM reference', () => {
       createDecisionTrace: false,
     })).rejects.toMatchObject({ code: '57014' })
 
-    expect(db.runs[0]).toMatchObject({ status: 'running' })
-    expect(db.runs[0].completed_at).toBeUndefined()
+    expect(db.runs[0]).toMatchObject({ status: 'failed' })
+    expect(Number.isFinite(Date.parse(String(db.runs[0].completed_at)))).toBe(true)
   })
 })

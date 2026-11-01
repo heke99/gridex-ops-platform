@@ -234,7 +234,9 @@ async function loadNormalizedValues(
       error: response.error,
     };
   });
-  const qualified = await loadQualifiedBillingValues(companyId, rows.map(row => String(row.id)));
+  // Keep values of one source together without changing the returned row order.
+  const sourceOf = new Map(rows.map(row => [String(row.id), String(row.source_message_id ?? "")]));
+  const qualified = await loadQualifiedBillingValues(companyId, rows.map(row => String(row.id)), sourceOf);
   return rows.map(row => qualified.get(String(row.id))!);
 }
 

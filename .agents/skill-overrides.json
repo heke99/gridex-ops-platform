@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "kind": "LOCAL_SKILL_SAFETY_OVERRIDES",
+  "baseCommit": "14007c0938af0e0d7de136fe76748b3589822ca6",
+  "recordedAtUtc": "2026-10-31T23:29:46.180307+00:00",
+  "upstreamLock": {
+    "path": "skills-lock.json",
+    "sha256": "226fab754fefc1b2211b02268aa653f6a1a95e32bc57af3d8e829c3ad6102620",
+    "policy": "Original 42 imported-skill whole-folder hashes remain unchanged; these raw-file overrides do not replace upstream provenance."
+  },
+  "overrides": [
+    {
+      "path": ".agents/skills/scan-secrets/SKILL.md",
+      "beforeSha256": "bf2567e3c3de138e887eb8bce127250f3c1986b22d2b6da06d88e49cd8deb81d",
+      "afterSha256": "14547f746c9d7d8728a96f0fb8fb9039737248f49820dbe19409306dfadb9b5e",
+      "upstreamSkill": "scan-secrets",
+      "upstreamSource": "GitGuardian/agent-skills",
+      "reason": "Offline-first scans; explicit external provider/payload authority; no credential values, automatic hooks or approval bypass."
+    },
+    {
+      "path": ".agents/skills/systematic-debugging/SKILL.md",
+      "beforeSha256": "808fc5717aa88ad65efff312b11c186294d3e6ee301afb584e2f86599b137787",
+      "afterSha256": "ce2e203e43f485b816b7b4a7ca220a52465794eec5bcda4de8cbc25144797a24",
+      "upstreamSkill": "systematic-debugging",
+      "upstreamSource": "obra/superpowers",
+      "reason": "Replace value-printing diagnostics with executable presence-only examples and safe boundary metadata."
+    },
+    {
+      "path": ".agents/skills/using-git-worktrees/SKILL.md",
+      "beforeSha256": "8cfb86f121269e8f7f12361e6795c4f6738828340e28964c9229d365666c9edd",
+      "afterSha256": "bd7d80d9e41bc0b43105ba738bb69dcc05ac49cbdaf42c7ac1f28459ff2ad725",
+      "upstreamSkill": "using-git-worktrees",
+      "upstreamSource": "obra/superpowers",
+      "reason": "Reuse current mandate; task-scoped setup/baselines; preserve shared checkout/service isolation and actual denials."
+    },
+    {
+      "path": ".agents/skills/using-superpowers/references/codex-tools.md",
+      "beforeSha256": "d3f113a8ebbd748e8ba847b09b57b7685442775ca4ee194d693ce3663f8fac68",
+      "afterSha256": "708d539e0a047358bb5244c737901528f90204e39b83913dbdd671d3225cb02e",
+      "upstreamSkill": "using-superpowers",
+      "upstreamSource": "obra/superpowers",
+      "reason": "Discover actual host tools; correct collaboration lifecycle/wait mapping and detached-HEAD assumptions."
+    },
+    {
+      "path": ".agents/tools/check-skill-safety.py",
+      "beforeSha256": null,
+      "afterSha256": "8e9cfe9994f14bf8b96b0f95652f026bd3db0551b9b6ced86f7436d3f86881e5",
+      "upstreamSkill": null,
+      "upstreamSource": null,
+      "reason": "Local offline validator executes bounded examples under synthetic clean environments and verifies override provenance."
+    },
+    {
+      "path": "AGENTS.md",
+      "beforeSha256": "673aea4f031b1c66741b43b467d272e5369dc88b7684f3f4de3a38210e74b23a",
+      "afterSha256": "8363dc02e71e57529a2b53d55f4402431c076927e927594e2a4fcbfe402e8652",
+      "upstreamSkill": null,
+      "upstreamSource": null,
+      "reason": "Concise local precedence/safety overlay for imported skills; retain quality/custody/producer and actual approval boundaries."
+    }
+  ],
+  "manifestSelfHashExcluded": "Avoid recursive self-hashing; this manifest is reviewed as repository source.",
+  "preexistingFolderHashDifferences": [
+    "code-security",
+    "observability-and-instrumentation",
+    "performance-optimization",
+    "sql-optimization-patterns",
+    "vercel-react-best-practices",
+    "web-design-guidelines"
+  ],
+  "preexistingDifferenceScope": "Observed before this patch; none of those skill trees is changed or silently blessed by this correction. Separate provenance reconciliation remains required."
+}
