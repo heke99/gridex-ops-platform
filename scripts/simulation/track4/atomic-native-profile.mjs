@@ -1,14 +1,49 @@
 #!/usr/bin/env node
 /**
  * T4 source profile, NOT an allocated backend or an execution grant.
- * ONE Actions job/host: init -> bootstrap -> prepare -> native -> cleanup.
+ * Privileged runtime stays on ONE Actions job/host. The bounded same-repo
+ * read-only PR probe is a separate ENDED preview, never the term runtime host.
+ * Existing native: init -> bootstrap -> prepare -> native -> cleanup, with all
+ * original cohort/Auth/business/native leases plus a typed native-tools-only
+ * setup assignment BEFORE installation. The new explicit bootstrap-only format
+ * permits canonical replay/cleanup only: no restore, build, app, prepare or native.
+ * No supported path treats bootstrap-only as business/native admission.
  * Each mutating phase needs its own REAL neutral producer ref sealing the private
  * measured attempt. JSON scopes never become ACTIVE receipts. No ref is created.
  * Current ordinary issuer-authority writer and genuine retained cohort are absent:
  * missing either real input path fails BEFORE backend/business mutations.
  * c8c is immutable; strict1020 FINAL/provenance/raw-history checks surround it.
  *
- * INACTIVE until registered reviewed default-main workflow. pull_request_target
+ * Privileged manual/native paths remain INACTIVE until registered reviewed
+ * default-main workflow. PR probe runs only the owned source branch/three paths.
+ * Secret-free manual return transport uses an ephemeral host-local RSA key and
+ * a ROOT-PSS-signed, run/job/attempt/source/boot/proof/nonce/key/expiry-bound
+ * assignment in one ciphertext-only issue930 comment <=60000bytes. No annotation
+ * transport. A duplicate/malformed/truncated carrier HOLDS; no username grants
+ * authority. Actual live neutral code/bootstrap leases remain mandatory.
+ * Ephemeral PRIVATE keys are NEVER included in any export, including ciphertext.
+ *
+ * Bootstrap-only private plan: format=t4_atomic_bootstrap_only_v1, mode=
+ * bootstrap-only; hostProof.path+sha256 from THIS live job; sources app/profile/
+ * replayHelper; owner/slot/inputEpoch/expiresAt/home/projectId; images equal the
+ * exact BOOTSTRAP_IMAGES pins; budget exactly BOOTSTRAP_BUDGET; codeGate and
+ * bootstrapAdmission have live resource/receipt/attempt(path+sha256). The signed
+ * carrier payload includes plan plus exactly code-attempt.json/bootstrap-attempt.json
+ * bytes(base64), and zero business/native budget. Its source-pinned public output
+ * recipient is created locally from this code, never from an assumed repo secret.
+ *
+ * Image applicability: official CLI2.101.0 Go source archive SHA1fe2349e71a0f17d
+ * 54a28dc6dc9066e8f92e287f65b4f1f0d950f6d30839fd46, apps/cli-go/internal/utils/
+ * config.go GetServices PullPolicyMissing + DockerPullImageIfNotCached; config
+ * templates/Dockerfile SHA2972b00b75078eb9106712a2922da6029e412d8a3d7b01420715bb70e35131da.
+ * Exact app config/canonical replay hashes are checked before setup. Exclusions
+ * studio,imgproxy,mailpit,edge-runtime,logflare,vector leave SEVEN images including
+ * postgres-meta, with canonical postgres17.6.1.155. Registry metadata inventory
+ * SHA3951f7b2094a34b01188663955eac12145769547e974667b67b0a86eb2ccf977 was independently
+ * read (no layers/execution). Runtime must digest-pull, verify configID, bind CLI
+ * tag to SAME configID and recheck; tag-only evidence/unknown inputs cannot pass.
+ *
+ * Privileged manual/native paths require registered reviewed default-main workflow. pull_request_target
  * uses only github.workflow_sha code; a distinct public neutral code resource
  * must seal that immutable main parent/tree BEFORE private inputs are accessed.
  * codeGate {resource,receipt,attempt:{path,sha256}} later opens that same sealed
@@ -39,7 +74,7 @@
  * This targeted SQL profile does not start/claim the whole T4 mail/browser flow.
  */
 import { spawn, execFileSync } from 'node:child_process'
-import { constants, createCipheriv, createDecipheriv, createHash, createPublicKey, publicEncrypt, randomBytes } from 'node:crypto'
+import { constants, createCipheriv, createDecipheriv, createHash, createPublicKey, publicEncrypt, randomBytes, generateKeyPairSync, privateDecrypt, verify as cryptoVerify } from 'node:crypto'
 import { closeSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, statfsSync, symlinkSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
@@ -68,7 +103,9 @@ export const FROZEN = Object.freeze({
   replayHelperPath: 'scripts/simulation/runtime/assigned_backend.py',
   replayHelperSha256: 'b5c365532590dd854b6a3971699a29cfa1afa2aed6b5f37cb364cad613327ff6',
 })
+const HOST_EVIDENCE_PUBLIC_PEM = "-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAkVdTbJ2MD6zJ6tUCvyU1\nw4WU2wVbqcIkSakyLn2RVL+wmBGhhkXsDk0RlD7+zkoIPqiwFLwZsJkyJ2HHqKY9\niyv1Lcstz1YK9BpAknWVvp3vlNiddRxmPf2IJvcFxNYXhY1ZqOpNQGJbUyG03XOR\niSHR2Mg4NRDIWOD55cK/bcSEXNDA8aDZGBgaMKpIGYOQ5AhAGqAChFwcKEtvbsOY\n6gnGeSdQJ7SX3MOloEnwjkpxPSuNd5toxmRn8KlMNZpXz0gmL/fLq5v3gbhmAu2j\nc02vV+La2DQmzpfce9yy20PI6LasYlzlqY8RzbBQEq5m74UxKwsN/S7EDxNOVaYK\n+LNEPKzPPLBdy0pmLFvfnmgqjBZKuduMyPEbIX3MUp2quqLzjKySrqLiMffLZjuH\ncHDnF2M3LgpozgRbnPghkyzcJBrHDzuYk+9z0tz6gCsAGFzEbouymnVYvVhUYKgb\nanVS/cATGVrTYdxTfteCv7xyXEWCnQ0keO99nc692rO1AgMBAAE=\n-----END PUBLIC KEY-----\n"
 const GIB = 2 ** 30
+export const BOOTSTRAP_IMAGES = Object.freeze([{"tag":"ghcr.io/supabase/postgres:17.6.1.155","manifest":"sha256:3e2a7ab48783077d0122dc72ed5174afb543110c38266c845716c51d130658e4","config":"sha256:56da3fb43b03aca9b8fa264c156177dd204f722e9500e8d80008f5c9f7b82985"},{"tag":"ghcr.io/supabase/kong:2.8.1","manifest":"sha256:e21b0b793879ab96720ed4188f9441260273f4bf775bcbff8d435e019ffb759a","config":"sha256:3cefb958bcd694597b65adc00053a762b1f9a6df3c6031af528d052d75a64e1a"},{"tag":"ghcr.io/supabase/postgrest:v14.10","manifest":"sha256:78c0a947ae556093def31de0b76c37d36ca09394d603a6e61785f4c0008aeb12","config":"sha256:fe5428d51d9805147859ed38db0a26e9e424c4639dc851733e99a86829e1d5aa"},{"tag":"ghcr.io/supabase/gotrue:v2.188.1","manifest":"sha256:61f1099e790c4f364b70d6fb92cc07e5f90275abf2cf690ff045c63f1d96ee4b","config":"sha256:b061f1fa636f31bc01de0a791986352e82772760cce8e1d55bbec6f552930a1e"},{"tag":"ghcr.io/supabase/realtime:v2.86.3","manifest":"sha256:630c1f1e1443762c100147decca9cf87afe52f22a8a96d30fe7d8782741f19fb","config":"sha256:65d7549b3ce537cef75da797ac8018ce2c1bcd89fdbd9adabbf98b54ea4aa759"},{"tag":"ghcr.io/supabase/storage-api:v1.54.1","manifest":"sha256:6395ec6600b89e8133ae65e2b203d04f37a24d3626144ea2cb21973bfaa2471c","config":"sha256:da6409e5fd135ab8895f0c344f82066d99c107ca1031ed4a1ab1d33f0b775572"},{"tag":"ghcr.io/supabase/postgres-meta:v0.96.4","manifest":"sha256:97c0d82ff90b54c04992ca1a5f2253acd89775fd288f67bdeac7db54ab6d5343","config":"sha256:103063d9a3652760363e8f924b0d1ae2e742d4fe8807a9eccdb5384a46a70c89"}])
 const PREFIX = 'refs/tags/agent-claims/masterplan/'
 const HEX40 = /^[a-f0-9]{40}$/
 const HEX64 = /^[a-f0-9]{64}$/
@@ -364,7 +401,8 @@ function inventory(plan) {
 }
 async function inspectHost(plan, cleanup = false) {
   // Resolve the actual original endpoint without contacting a remote daemon.
-  const endpoint = process.env.DOCKER_HOST || jcapture('docker', ['context', 'inspect', capture('docker', ['context', 'show'])])[0]?.Endpoints?.docker?.Host
+  const contextEndpoint = jcapture('docker', ['context', 'inspect', capture('docker', ['context', 'show'])])[0]?.Endpoints?.docker?.Host
+  const endpoint = process.env.DOCKER_CONTEXT ? contextEndpoint : process.env.DOCKER_HOST || contextEndpoint
   const socketPath = normalizeDockerEndpoint(endpoint)
   const socket = lstatSync(socketPath)
   need(socket.isSocket(), 'actual_docker_socket_required')
@@ -592,7 +630,8 @@ function boundApplicationEnvironment(plan, status) {
     T4_RUNTIME_PROCESS_NONCE: randomBytes(24).toString('hex'),
   }
 }
-async function bootstrapActual(plan) {
+async function bootstrapActual(plan, mode = 'native') {
+  need(mode === 'native' || (mode === 'bootstrap-only' && plan.format === 't4_atomic_bootstrap_only_v1'), 'explicit_bootstrap_variant_required')
   const initial = inventory(plan)
   need(initial.containers.length === 0 && initial.volumes.length === 0, 'fresh_exclusive_daemon_required')
   seal(join(plan.home, 'receipts', 'initial-inventory.json'), initial)
@@ -602,6 +641,7 @@ async function bootstrapActual(plan) {
     need(!listeners.some((line) => { const f = line.trim().split(/\s+/); return f[3] === '0A' && f[1]?.endsWith(`:${hex}`) }), 'exclusive_fixed_port_already_listening')
   }
   const app = plan.sources.app.root
+  if (mode === 'native') {
   need(!existsSync(join(app, 'node_modules')) && !existsSync(join(app, '.next')), 'fresh_source_dependencies_build_required')
   await ownedChild('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'],
     { cwd: app, env: process.env }, 600_000, join(plan.home, 'raw', 'dependencies.log'))
@@ -614,6 +654,8 @@ async function bootstrapActual(plan) {
     && lock.packages['node_modules/next'].version === installedNext.version, 'locked_dependency_identity_required')
   seal(join(plan.home, 'receipts', 'dependencies.json'), { packageLockSha256: sha(readFileSync(join(app, 'package-lock.json'))),
     installedLockSha256: sha(readFileSync(join(app, 'node_modules', '.package-lock.json'))), nextVersion: installedNext.version })
+  }
+  if (mode === 'bootstrap-only') await pinBootstrapImages(plan)
   // Fresh replay tree: canonical script may alter only its own scratch inputs.
   const replay = join(plan.home, 'replay')
   ensureDirectory(replay)
@@ -639,9 +681,17 @@ async function bootstrapActual(plan) {
   need(driver.includes('source "$1/scripts/gridex-aud-003-clean-replay.sh"') && driver.includes('original_cleanup_called=0'),
     'qualified_replay_driver_contract_required')
   seal(join(plan.home, 'private', 'replay-driver.sh'), Buffer.from(driver))
-  const replayEnv = { ...dockerEnvironment(plan), GRIDEX_CAPTURE_ERROR_BOUNDARY: '1', RUNNER_TEMP: plan.home }
+  const replayEnv = mode === 'bootstrap-only' ? { PATH: process.env.PATH, HOME: plan.home, LANG: 'C.UTF-8',
+    DOCKER_CONFIG: join(plan.home, 'docker-client'), DOCKER_CONTEXT: `t4-${plan.inputEpoch}`,
+    SUPABASE_INTERNAL_IMAGE_REGISTRY: 'ghcr.io', GRIDEX_CAPTURE_ERROR_BOUNDARY: '1', RUNNER_TEMP: plan.home }
+    : { ...dockerEnvironment(plan), GRIDEX_CAPTURE_ERROR_BOUNDARY: '1', RUNNER_TEMP: plan.home }
   delete replayEnv.DOCKER_HOST
   delete replayEnv.GRIDEX_REPLAY_DB_URL
+  if (mode === 'bootstrap-only') {
+    const admitted = readJson(join(plan.home, 'receipts', 'setup-admission.json'))
+    const currentHost = observeHostReadOnly(); sameHost(admitted.host, currentHost); checkCapacity(currentHost)
+    need(BOOTSTRAP_IMAGES.every((image) => dockerJson(plan, 'image', 'inspect', image.tag)[0].Id === image.config), 'pre_replay_image_tag_drift')
+  }
   await ownedChild('bash', [join(plan.home, 'private', 'replay-driver.sh'), replay], { cwd: replay, env: replayEnv },
     2_400_000, join(plan.home, 'raw', 'canonical-replay.log'))
   const log = readFileSync(join(plan.home, 'raw', 'canonical-replay.log'), 'utf8')
@@ -654,6 +704,9 @@ async function bootstrapActual(plan) {
   }
   const resources = inspectResources(plan, network)
   seal(join(plan.home, 'receipts', 'resources.json'), resources)
+  if (mode === 'bootstrap-only') need(resources.containers.length === BOOTSTRAP_IMAGES.length
+    && BOOTSTRAP_IMAGES.every((image) => resources.containers.some((item) => item.Image === image.config)),
+  'actual_complete_cli_image_set_required')
   const status = JSON.parse(capture('supabase', ['status', '--output', 'json'], { cwd: app, env: dockerEnvironment(plan) }))
   need(status.API_URL === 'http://127.0.0.1:54321' && status.SERVICE_ROLE_KEY && status.ANON_KEY, 'actual_local_status_required')
   seal(join(plan.home, 'private', 'status.json'), status)
@@ -669,6 +722,12 @@ async function bootstrapActual(plan) {
     sourceTree: plan.sources.app.tree, sourceSha256: originalReplay, logSha256: sha(Buffer.from(log)),
     ledgerSha256: sha(Buffer.from(ledger)), databaseSystemIdentifier: database.databaseSystemIdentifier, postReplayMigrations: 0 }
   seal(join(plan.home, 'receipts', 'canonical-replay.json'), replayReceipt)
+  if (mode === 'bootstrap-only') {
+    const actual = { actualResources: true, host: await inspectHost(plan), replay: replayReceipt, resources,
+      databaseSystemIdentifier: database.databaseSystemIdentifier, businessExecuted: false, nativeExecuted: false }
+    seal(join(plan.home, 'receipts', 'actual-bootstrap.json'), actual)
+    return actual
+  }
   await restoreCohortActual(plan, resources, status)
   const afterRestore = sql(`SELECT jsonb_build_object('databaseSystemIdentifier',system_identifier::text) FROM pg_control_system();`, dockerEnvironment(plan))
   need(afterRestore.databaseSystemIdentifier === database.databaseSystemIdentifier, 'same_replayed_database_required')
@@ -982,12 +1041,12 @@ export async function cleanupActual(plan, state, backend = { inventory, dockerJs
   return finish(owned.map((item) => item.Id), [...volumeNames], [recorded.Id])
 }
 
-function exportActual(plan, state) {
+export function exportActual(plan, state) {
   const files = {}
   const collect = (directory) => {
     for (const name of readdirSync(directory)) {
       const path = join(directory, name)
-      if (['export', 'replay', 'restore-storage'].some((name_) => path === join(plan.home, name_))) continue
+      if (name === 'ephemeral-input-key.private.pem' || ['export', 'replay', 'restore-storage'].some((name_) => path === join(plan.home, name_))) continue
       const stat = lstatSync(path)
       need(!stat.isSymbolicLink(), 'private_export_symlink_refused')
       if (stat.isDirectory()) collect(path)
@@ -1000,7 +1059,7 @@ function exportActual(plan, state) {
   collect(plan.home)
   const envelope = encryptEvidence(gzipSync(Buffer.from(canonical({ format: 't4_profile_private_evidence_v1', files, state }))),
     privateFile(plan.evidenceRecipientPath), plan.evidenceRecipientSha256)
-  const path = join(plan.home, 'export', `evidence-${Object.keys(state.intents).length}-${randomBytes(6).toString('hex')}.enc.json`)
+  const path = join(plan.home, 'export', `evidence-${Object.keys(state.intents ?? {}).length}-${randomBytes(6).toString('hex')}.enc.json`)
   seal(path, envelope)
   return { encrypted: true, recipientSha256: plan.evidenceRecipientSha256 }
 }
@@ -1025,6 +1084,10 @@ export function realProfileAdapters(plan, state) {
 }
 export async function main(argv = process.argv.slice(2)) {
   process.umask(0o077)
+  if (argv[0] === 'receive-bootstrap') return receiveBootstrapAssignment(argv[1], argv[2])
+  if (argv[0] === 'host-probe') return runHostProbe(argv[1], argv[2])
+  if (argv[0] === 'authorize-bootstrap') return authorizeBootstrapFile(argv[1])
+  if (argv[0] === 'bootstrap-only') return bootstrapOnlyMain(argv[1])
   if (argv[0] === 'verify-code') return verifyTrustedCode()
   if (argv[0] === 'receive') return receivePrivateInput(argv.slice(1))
   need(argv.length === 2 && MODES.includes(argv[0]), 'usage_phase_private_plan_required')
@@ -1140,18 +1203,32 @@ export function verifyTrustedCodeCapsule(workflowSha, resource, observed, commit
     && commit.parents.length === 1 && commit.parents[0].sha === workflowSha && commit.tree.sha === base.tree.sha,
   'trusted_main_code_capsule_required')
 }
+function trustedCodeResource() {
+  const manual = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch'
+  return `${PREFIX}producer-t4-atomic-${manual ? 'bootstrap-code' : 'runtime-code'}-${manual ? process.env.GITHUB_RUN_ID : process.env.TRIGGER_PR_NUMBER}-${process.env.TRUSTED_WORKFLOW_SHA}`
+}
 async function verifyTrustedCode() {
   const workflowSha = process.env.TRUSTED_WORKFLOW_SHA
-  const number = process.env.TRIGGER_PR_NUMBER
-  need(process.env.GITHUB_EVENT_NAME === 'pull_request_target' && /^[1-9][0-9]*$/.test(number ?? '')
-    && process.env.TRIGGER_LABEL === 't4-atomic-native-activation'
+  const manual = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch'
+  need((manual ? process.env.GITHUB_RUN_ATTEMPT === '1' && process.env.BOOTSTRAP_MODE === 'bootstrap-only' && process.env.GITHUB_REF === 'refs/heads/main'
+    : process.env.GITHUB_EVENT_NAME === 'pull_request_target' && /^[1-9][0-9]*$/.test(process.env.TRIGGER_PR_NUMBER ?? '')
+      && process.env.TRIGGER_LABEL === 't4-atomic-native-activation')
     && process.env.TRUSTED_WORKFLOW_REF === 'heke99/gridex-ops-platform/.github/workflows/t4-atomic-native.yml@refs/heads/main'
     && HEX40.test(workflowSha ?? ''), 'registered_default_main_workflow_required')
   const root = resolve(fileURLToPath(new URL('../../..', import.meta.url)))
   need(capture('git', ['-C', root, 'rev-parse', 'HEAD']) === workflowSha
     && !capture('git', ['-C', root, 'status', '--porcelain', '--untracked-files=normal']), 'immutable_main_profile_checkout_required')
-  const resource = `${PREFIX}producer-t4-atomic-runtime-code-${number}-${workflowSha}`
-  const observed = await github(`git/ref/${resource.slice(5)}`)
+  const term = readJson(join(process.env.T4_HOST_PROOF_HOME, 'host-proof.private.json'))
+  need(term.purpose === 'bootstrap-term-host' && term.runId === process.env.GITHUB_RUN_ID
+    && term.job === process.env.GITHUB_JOB && term.head === workflowSha, 'current_term_host_proof_required')
+  const currentHost = observeHostReadOnly(); sameHost(term.host, currentHost); checkCapacity(currentHost)
+  const resource = trustedCodeResource()
+  let observed = await github(`git/ref/${resource.slice(5)}`)
+  const deadline = Date.now() + (manual ? 20 * 60_000 : 0)
+  while (!observed && Date.now() < deadline) {
+    await new Promise((done) => setTimeout(done, 5_000))
+    observed = await github(`git/ref/${resource.slice(5)}`)
+  }
   need(observed, 'public_trusted_code_resource_absent')
   const commit = await github(`git/commits/${observed.object.sha}`)
   const base = await github(`git/commits/${workflowSha}`)
@@ -1164,7 +1241,7 @@ async function verifyTrustedCode() {
 async function verifyPrivateCodeGate(plan) {
   await verifyTrustedCode()
   const gate = plan.codeGate
-  const expected = `${PREFIX}producer-t4-atomic-runtime-code-${process.env.TRIGGER_PR_NUMBER}-${process.env.TRUSTED_WORKFLOW_SHA}`
+  const expected = trustedCodeResource()
   need(gate?.resource === expected && HEX40.test(gate.receipt ?? '')
     && plan.sources.profile.commit === process.env.TRUSTED_WORKFLOW_SHA, 'sealed_trusted_code_scope_required')
   const bytes = privateFile(gate.attempt.path)
@@ -1185,4 +1262,341 @@ async function verifyPrivateCodeGate(plan) {
     && attempt.scope.privatePlanSha256 === hash(rest) && attempt.scope.workflowSha === process.env.TRUSTED_WORKFLOW_SHA
     && attempt.scope.expiresAt === plan.expiresAt && attempt.budget?.bootstrap === 0 && attempt.budget?.native === 0,
   'sealed_trusted_code_scope_required')
+}
+
+/** Read-only host capability observation: no context creation, image pull,
+ * package setup, backend or public identity dump. Preview hosts are never leases.
+ */
+export function observeHostReadOnly(io = { env: process.env, command: capture,
+  read: (path) => readFileSync(path, 'utf8'), realpath: realpathSync, socket: lstatSync,
+  disk: statfsSync, cpus: availableParallelism }) {
+  const context = io.command('docker', ['context', 'show'])
+  const contextHost = JSON.parse(io.command('docker', ['context', 'inspect', context]))[0]?.Endpoints?.docker?.Host
+  const endpoint = io.env.DOCKER_CONTEXT ? contextHost : io.env.DOCKER_HOST || contextHost
+  const socketPath = normalizeDockerEndpoint(endpoint, io.realpath)
+  const socket = io.socket(socketPath)
+  need(socket.isSocket(), 'actual_docker_socket_required')
+  const info = JSON.parse(io.command('docker', ['info', '--format', '{{json .}}']))
+  const direct = JSON.parse(io.command('docker', ['--host', `unix://${socketPath}`, 'info', '--format', '{{json .}}']))
+  need(info.ID === direct.ID, 'actual_selected_daemon_mismatch')
+  const optional = (path) => { try { return io.read(path).trim() } catch (error) {
+    if (error.code === 'ENOENT') return null
+    throw new Hold('host_cgroup_observation_failed')
+  } }
+  const cgroup = optional('/proc/self/cgroup')
+  const v2 = cgroup?.match(/^0::(\/.*)$/m)?.[1]
+  const v1 = cgroup?.split('\n').find((line) => line.split(':')[1]?.split(',').includes('memory'))?.split(':')[2]
+  const groupPath = v2 ?? v1
+  need(groupPath && groupPath.startsWith('/') && !groupPath.split('/').includes('..'), 'actual_process_cgroup_required')
+  const base = v2 ? '/sys/fs/cgroup' : '/sys/fs/cgroup/memory'
+  const leaf = v2 ? 'memory.max' : 'memory.limit_in_bytes'
+  const components = groupPath.split('/').filter(Boolean)
+  const paths = Array.from({ length: components.length + 1 }, (_, index) =>
+    `${base}${index ? `/${components.slice(0, index).join('/')}` : ''}/${leaf}`)
+  const memoryLimits = paths.map((path) => ({ path, value: optional(path) }))
+  need(memoryLimits.at(-1)?.value !== null, 'actual_process_memory_limit_unavailable')
+  const memoryMax = memoryLimits.at(-1).value
+  const physical = Number(io.read('/proc/meminfo').match(/^MemTotal:\s+(\d+)/m)?.[1]) * 1024
+  const finiteLimits = memoryLimits.map((item) => Number(item.value)).filter((value) => Number.isFinite(value) && value > 0)
+  const effectiveRamBytes = Math.min(physical, ...finiteLimits)
+  const disk = io.disk(info.DockerRootDir)
+  return { bootId: io.read('/proc/sys/kernel/random/boot_id').trim(), daemonId: info.ID,
+    socketPath, socketDev: String(socket.dev), socketIno: String(socket.ino), contextEndpointHost: contextHost,
+    driver: info.Driver, dockerRootDir: io.realpath(info.DockerRootDir),
+    effectiveRamBytes, freeDockerBytes: Number(disk.bavail) * Number(disk.bsize), cpuCount: io.cpus(),
+    cgroup, memoryMax, memoryLimits, cpuQuota: optional(v2 ? `${base}${groupPath === '/' ? '' : groupPath}/cpu.max` : '/sys/fs/cgroup/cpu/cpu.cfs_quota_us')
+      ?? optional('/sys/fs/cgroup/cpu.max'),
+    inventory: Object.fromEntries([['containers', ['ps', '-aq', '--no-trunc']],
+      ['networks', ['network', 'ls', '--no-trunc', '--format', '{{.ID}}']], ['volumes', ['volume', 'ls', '--format', '{{.Name}}']],
+      ['images', ['image', 'ls', '-aq', '--no-trunc']]].map(([key, argv]) =>
+      [key, io.command('docker', argv).split('\n').filter(Boolean).sort()])) }
+}
+async function runHostProbe(purpose, home) {
+  need(['pull-request-preview', 'bootstrap-term-host'].includes(purpose), 'explicit_host_probe_purpose_required')
+  const event = readJsonLoose(process.env.GITHUB_EVENT_PATH)
+  const root = resolve(fileURLToPath(new URL('../../..', import.meta.url)))
+  const preview = purpose === 'pull-request-preview'
+  need(process.env.GITHUB_ACTIONS === 'true' && (preview
+    ? process.env.GITHUB_EVENT_NAME === 'pull_request' && event.pull_request?.head.repo.full_name === process.env.GITHUB_REPOSITORY
+    : ['workflow_dispatch', 'pull_request_target'].includes(process.env.GITHUB_EVENT_NAME)
+      && process.env.TRUSTED_WORKFLOW_REF === 'heke99/gridex-ops-platform/.github/workflows/t4-atomic-native.yml@refs/heads/main'),
+  'actual_host_probe_event_source_required')
+  const head = capture('git', ['-C', root, 'rev-parse', 'HEAD'])
+  const tree = capture('git', ['-C', root, 'rev-parse', 'HEAD^{tree}'])
+  source(root, preview ? event.pull_request.head.sha : process.env.TRUSTED_WORKFLOW_SHA, tree)
+  need(isAbsolute(home) && !existsSync(home), 'fresh_host_proof_home_required')
+  ensureDirectory(home); ensureDirectory(join(home, 'export'))
+  const host = observeHostReadOnly()
+  let capacity = 'SUFFICIENT'
+  try { checkCapacity(host) } catch { capacity = 'HOLD' }
+  let inputPublicKey = null
+  if (!preview && process.env.GITHUB_EVENT_NAME === 'workflow_dispatch') {
+    const keys = generateKeyPairSync('rsa', { modulusLength: 3072 })
+    inputPublicKey = keys.publicKey.export({ type: 'spki', format: 'pem' }).toString()
+    seal(join(home, 'ephemeral-input-key.private.pem'), Buffer.from(keys.privateKey.export({ type: 'pkcs8', format: 'pem' })))
+  }
+  const proof = { format: 't4_actual_host_observation_v1', inputPublicKey, nonce: randomBytes(32).toString('hex'), workspaceRoot: process.env.GITHUB_WORKSPACE, purpose, head, tree, host,
+    runId: process.env.GITHUB_RUN_ID, runAttempt: process.env.GITHUB_RUN_ATTEMPT, job: process.env.GITHUB_JOB,
+    observedAtUtc: new Date().toISOString(), observerNode: process.version, capacity,
+    backendExecuted: false, nativeExecuted: false, installationExecuted: false }
+  seal(join(home, 'host-proof.private.json'), proof)
+  seal(join(home, 'export', 'host-proof.enc.json'), encryptEvidence(Buffer.from(canonical(proof)),
+    Buffer.from(HOST_EVIDENCE_PUBLIC_PEM), EVIDENCE_RECIPIENT_SHA256))
+  const safe = { format: 't4_host_probe_public_v1', purpose, sourceHead: head, sourceTree: tree,
+    proofSha256: sha(privateFile(join(home, 'host-proof.private.json'))), capacity,
+    backendExecuted: false, nativeExecuted: false, installationExecuted: false }
+  seal(join(home, 'export', 'safe-host-probe.json'), safe)
+  return safe
+}
+export async function runBootstrapOnly(plan, state, io) {
+  need(plan?.format === 't4_atomic_bootstrap_only_v1' && plan.mode === 'bootstrap-only', 'explicit_bootstrap_only_plan_required')
+  need(!state.attempted, 'bootstrap_only_no_retry')
+  await io.qualify(plan)
+  state.attempted = true
+  try {
+    await io.tools(plan)
+    state.bootstrap = await io.replay(plan)
+    need(state.bootstrap.actualResources === true && state.bootstrap.replay?.canonical === true
+      && state.bootstrap.replay.sourceRestored === true, 'actual_bootstrap_replay_required')
+  } finally {
+    try { state.cleanup = await io.cleanup(plan, state) } finally { await io.exportEncrypted(plan, state) }
+  }
+  need(state.cleanup.verified === true && state.cleanup.foreignDeleted === 0 && state.cleanup.unknown?.length === 0,
+    'exact_owned_cleanup_required')
+  return { nativeExecuted: false, businessExecuted: false, qualification: 'BOOTSTRAP_ONLY_REQUIRES_OUTPUT_REVIEW' }
+}
+
+export function decryptBootstrapAssignment(envelope, privatePem, proof, now = Date.now(), rootPublicPem = HOST_EVIDENCE_PUBLIC_PEM,
+  expectedRootSha256 = EVIDENCE_RECIPIENT_SHA256) {
+  need(sha(rootPublicPem) === expectedRootSha256 && envelope?.format === 't4_private_evidence_envelope_v1'
+    && envelope.recipientSha256 === sha(proof.inputPublicKey), 'bootstrap_assignment_recipient_required')
+  let signed
+  try {
+    need(typeof envelope.ciphertext === 'string' && envelope.ciphertext.length <= 58_000, 'bootstrap_assignment_size_refused')
+    const key = privateDecrypt({ key: privatePem, oaepHash: 'sha256', padding: constants.RSA_PKCS1_OAEP_PADDING },
+      Buffer.from(envelope.wrappedKey, 'base64'))
+    const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(envelope.nonce, 'base64'))
+    decipher.setAuthTag(Buffer.from(envelope.tag, 'base64'))
+    signed = JSON.parse(Buffer.concat([decipher.update(Buffer.from(envelope.ciphertext, 'base64')), decipher.final()]))
+    key.fill(0)
+  } catch { throw new Hold('bootstrap_assignment_decryption_failed') }
+  const payload = signed?.payload
+  need(payload && typeof signed.signature === 'string' && cryptoVerify('sha256', Buffer.from(canonical(payload)),
+    { key: createPublicKey(rootPublicPem), padding: constants.RSA_PKCS1_PSS_PADDING, saltLength: 32 }, Buffer.from(signed.signature, 'base64')),
+  'actual_root_assignment_signature_required')
+  need(payload.format === 't4_signed_bootstrap_assignment_v1' && proof.purpose === 'bootstrap-term-host'
+    && payload.proofSha256 === proof.proofSha256 && payload.nonce === proof.nonce
+    && payload.runId === proof.runId && payload.runAttempt === proof.runAttempt && payload.job === proof.job
+    && payload.sourceHead === proof.head && payload.sourceTree === proof.tree && payload.bootId === proof.host.bootId
+    && payload.recipientSha256 === sha(proof.inputPublicKey), 'fresh_host_assignment_binding_required')
+  need(Date.parse(payload.expiresAt) > now && Date.parse(payload.expiresAt) <= Date.parse(proof.observedAtUtc) + 90 * 60_000,
+    'bootstrap_assignment_expired_or_unbounded')
+  need(payload.budget?.business === 0 && payload.budget?.native === 0
+    && payload.plan?.format === 't4_atomic_bootstrap_only_v1' && payload.plan.mode === 'bootstrap-only'
+    && payload.plan.expiresAt === payload.expiresAt, 'bootstrap_assignment_zero_business_native_required')
+  need(payload.files && Object.keys(payload.files).sort().join(',') === 'bootstrap-attempt.json,code-attempt.json', 'sealed_assignment_files_required')
+  return { plan: payload.plan, files: payload.files }
+}
+export function selectBootstrapCarrier(comments, proof) {
+  const candidates = []
+  for (const comment of comments) {
+    if (typeof comment.body !== 'string' || !comment.body.includes('t4-bootstrap-assignment-envelope-v1')) continue
+    need(Buffer.byteLength(comment.body) <= 60_000, 'bootstrap_assignment_comment_too_large')
+    let body
+    try { body = JSON.parse(comment.body) } catch { throw new Hold('bootstrap_assignment_carrier_malformed') }
+    if (body.kind === 't4-bootstrap-assignment-envelope-v1' && body.runId === proof.runId
+      && body.proofSha256 === proof.proofSha256 && body.recipientSha256 === sha(proof.inputPublicKey)) candidates.push(body)
+  }
+  need(candidates.length <= 1, 'bootstrap_assignment_carrier_ambiguous')
+  return candidates[0]?.envelope ?? null
+}
+async function receiveBootstrapAssignment(proofHome, home) {
+  await verifyTrustedCode()
+  need(isAbsolute(home) && home !== proofHome && !home.startsWith(`${proofHome}/`) && !proofHome.startsWith(`${home}/`), 'separate_ephemeral_key_home_required')
+  const raw = privateFile(join(proofHome, 'host-proof.private.json'))
+  const proof = { ...JSON.parse(raw), proofSha256: sha(raw) }
+  need(proof.runId === process.env.GITHUB_RUN_ID && proof.job === process.env.GITHUB_JOB
+    && proof.head === process.env.TRUSTED_WORKFLOW_SHA && proof.purpose === 'bootstrap-term-host', 'current_term_host_proof_required')
+  checkCapacity(proof.host)
+  const deadline = Date.now() + 20 * 60_000
+  while (Date.now() < deadline) {
+    const envelope = await readBootstrapCarrier(proof)
+    if (envelope) {
+      const assignment = decryptBootstrapAssignment(envelope, privateFile(join(proofHome, 'ephemeral-input-key.private.pem')), proof)
+      const plan = assignment.plan
+      need(plan.home === home && !existsSync(home) && plan.hostProof.path === join(proofHome, 'host-proof.private.json')
+        && plan.hostProof.sha256 === proof.proofSha256, 'single_actual_bootstrap_home_required')
+      outputDirectories(plan)
+      for (const name of ['code-attempt.json', 'bootstrap-attempt.json']) {
+        need(typeof assignment.files[name] === 'string' && assignment.files[name].length <= 40_000, 'sealed_assignment_file_size_required')
+        seal(join(home, 'private', name), Buffer.from(assignment.files[name], 'base64'))
+      }
+      need(plan.codeGate.attempt.path === join(home, 'private', 'code-attempt.json')
+        && plan.bootstrapAdmission.attempt.path === join(home, 'private', 'bootstrap-attempt.json'), 'sealed_assignment_file_bindings_required')
+      need(plan.evidenceRecipientPath === join(home, 'private', 'evidence-recipient.public.pem')
+        && plan.evidenceRecipientSha256 === EVIDENCE_RECIPIENT_SHA256, 'source_pinned_evidence_recipient_required')
+      seal(plan.evidenceRecipientPath, Buffer.from(HOST_EVIDENCE_PUBLIC_PEM))
+      seal(join(home, 'plan.json'), plan)
+      // The ephemeral private key remains ONLY on this host outside plan.home;
+      // it is never copied into fullproof/checkpoint/encrypted artifact exports.
+      return { phase: 'receive-bootstrap', nativeExecuted: false, businessExecuted: false }
+    }
+    await new Promise((done) => setTimeout(done, 5_000))
+  }
+  throw new Hold('actual_signed_bootstrap_assignment_absent')
+}
+
+const BOOTSTRAP_BUDGET = Object.freeze({ toolSetups: 1, imagePulls: 7, contextCreates: 1, backend: 1, replays: 1,
+  restores: 0, builds: 0, appStarts: 0, prepareCalls: 0, nativeFixtureRuns: 0, manualReruns: 0, cleanup: 1 })
+async function authorizeBootstrapFile(path) {
+  const original = readJson(path)
+  const plan = original.format === 't4_atomic_bootstrap_only_v1' ? original : readJson(original.setupAdmission.path)
+  if (original !== plan) readBytesHash(original.setupAdmission.path, original.setupAdmission.sha256)
+  need(plan.format === 't4_atomic_bootstrap_only_v1' && ['bootstrap-only', 'native-tools-only'].includes(plan.mode)
+    && isAbsolute(plan.home) && Date.parse(plan.expiresAt) > Date.now(), 'explicit_bootstrap_assignment_required')
+  await verifyPrivateCodeGate(original)
+  const raw = privateFile(plan.hostProof.path), proof = JSON.parse(raw)
+  need(plan.hostProof.path === join(process.env.T4_HOST_PROOF_HOME, 'host-proof.private.json')
+    && sha(raw) === plan.hostProof.sha256 && proof.purpose === 'bootstrap-term-host'
+    && proof.runId === process.env.GITHUB_RUN_ID && proof.runAttempt === process.env.GITHUB_RUN_ATTEMPT
+    && proof.job === process.env.GITHUB_JOB && proof.head === process.env.TRUSTED_WORKFLOW_SHA,
+  'fresh_actual_term_host_assignment_required')
+  const current = observeHostReadOnly()
+  sameHost(proof.host, current); checkCapacity(current)
+  need(canonical(current.inventory) === canonical(proof.host.inventory), 'pre_setup_host_inventory_changed')
+  for (const input of Object.values(plan.sources)) source(input.root, input.commit, input.tree)
+  need(plan.sources.replayHelper.commit === FROZEN.replayHelperCommit, 'qualified_replay_helper_source_required')
+  readBytesHash(join(plan.sources.replayHelper.root, FROZEN.replayHelperPath), FROZEN.replayHelperSha256)
+  readBytesHash(join(plan.sources.app.root, 'supabase/config.toml'), 'b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919')
+  readBytesHash(join(plan.sources.app.root, 'scripts/gridex-aud-003-clean-replay.sh'), 'ea93219f8365eff0f6e0686877261adcf5dd109457b48d8016e9ada673da91f0')
+  const expectedBudget = plan.mode === 'bootstrap-only' ? BOOTSTRAP_BUDGET
+    : { ...BOOTSTRAP_BUDGET, imagePulls: 0, backend: 0, replays: 0, cleanup: 0 }
+  need(canonical(plan.budget) === canonical(expectedBudget), 'exact_bootstrap_only_budget_required')
+  const admission = plan.bootstrapAdmission
+  need(admission?.resource === `${PREFIX}producer-t4-atomic-bootstrap-only-${process.env.GITHUB_RUN_ID}-${plan.inputEpoch}`
+    && HEX40.test(admission.receipt), 'actual_bootstrap_only_producer_required')
+  const bytes = privateFile(admission.attempt.path)
+  need(sha(bytes) === admission.attempt.sha256, 'bootstrap_attempt_changed')
+  const attempt = JSON.parse(bytes), currentRef = await github(`git/ref/${admission.resource.slice(5)}`)
+  need(currentRef?.object.sha === admission.receipt, 'actual_bootstrap_producer_changed')
+  const commit = await github(`git/commits/${admission.receipt}`)
+  need(commit, 'actual_bootstrap_original_required')
+  const base = await github(`git/commits/${JSON.parse(commit.message).base}`)
+  need(base, 'actual_bootstrap_parent_required')
+  verifyLeaseCapsule(admission.resource, bytes, currentRef, commit, base)
+  const bound = Object.fromEntries(Object.entries(plan).filter(([key]) => !['bootstrapAdmission', 'codeGate'].includes(key)))
+  need(attempt.protocol === 'masterplan-reservation-v1' && attempt.epoch === 'gridex-five-agent-20261012'
+    && attempt.repo === 'heke99/gridex-ops-platform' && attempt.owner === plan.owner && attempt.slot === plan.slot
+    && attempt.inputEpoch === plan.inputEpoch && attempt.resource === admission.resource
+    && attempt.sourceHead === plan.sources.app.commit && attempt.sourceTree === plan.sources.app.tree
+    && attempt.scope?.kind === 't4_atomic_bootstrap_only_v1' && attempt.scope.mode === plan.mode
+    && attempt.scope.hostProofSha256 === plan.hostProof.sha256 && attempt.scope.planSha256 === hash(bound)
+    && canonical(attempt.budget) === canonical(expectedBudget), 'sealed_actual_bootstrap_assignment_required')
+  need(Array.isArray(attempt.sourceResources) && attempt.sourceResources.length > 0, 'actual_source_resource_originals_required')
+  for (const binding of attempt.sourceResources) {
+    need(/^refs\/tags\/agent-claims\/masterplan\/(file-[a-f0-9]{64}|slot-session-[a-f0-9-]{36})$/.test(binding.ref), 'exact_source_resource_originals_required')
+    const ref = await github(`git/ref/${binding.ref.slice(5)}`)
+    need(ref?.object.sha === binding.receipt, 'actual_source_resource_changed')
+  }
+  outputDirectories(plan)
+  seal(join(plan.home, 'receipts', 'setup-admission.json'), { planSha256: hash(plan), host: current,
+    resource: admission.resource, receipt: admission.receipt, budget: expectedBudget })
+  return { phase: 'authorize-bootstrap', nativeExecuted: false, businessExecuted: false }
+}
+async function pinBootstrapImages(plan) {
+  need(canonical(plan.images) === canonical(BOOTSTRAP_IMAGES), 'complete_qualified_cli_image_inventory_required')
+  const initialIds = docker(plan, 'image', 'ls', '-aq', '--no-trunc').split('\n').filter(Boolean)
+  const initial = initialIds.length ? dockerJson(plan, 'image', 'inspect', ...[...new Set(initialIds)]) : []
+  seal(join(plan.home, 'receipts', 'images.intent.json'), { initial, expected: BOOTSTRAP_IMAGES })
+  for (const image of BOOTSTRAP_IMAGES) {
+    const existing = initial.find((item) => item.RepoTags?.includes(image.tag))
+    need(!existing || existing.Id === image.config, 'foreign_cli_image_tag_conflict')
+    const reference = `${image.tag.slice(0, image.tag.lastIndexOf(':'))}@${image.manifest}`
+    await ownedChild('docker', ['pull', '--platform', 'linux/amd64', reference], { env: dockerEnvironment(plan) },
+      180_000, join(plan.home, 'raw', `image-${BOOTSTRAP_IMAGES.indexOf(image)}.log`))
+    const actual = dockerJson(plan, 'image', 'inspect', reference)[0]
+    need(actual.Id === image.config && actual.Os === 'linux' && actual.Architecture === 'amd64', 'actual_pulled_image_config_required')
+    docker(plan, 'image', 'tag', reference, image.tag)
+    need(dockerJson(plan, 'image', 'inspect', image.tag)[0].Id === image.config, 'actual_cli_tag_config_required')
+  }
+  seal(join(plan.home, 'receipts', 'images-pinned.json'), { inventory: BOOTSTRAP_IMAGES, initialImageIds: initialIds })
+}
+async function bootstrapOnlyMain(path) {
+  const plan = readJson(path), state = {}
+  return runBootstrapOnly(plan, state, {
+    qualify: async () => {
+      const admission = readJson(join(plan.home, 'receipts', 'setup-admission.json'))
+      need(admission.planSha256 === hash(plan), 'actual_setup_admission_required')
+      const host = observeHostReadOnly(); sameHost(admission.host, host); checkCapacity(host)
+      const ref = await github(`git/ref/${admission.resource.slice(5)}`)
+      need(ref?.object.sha === admission.receipt && Date.parse(plan.expiresAt) > Date.now(), 'actual_bootstrap_producer_changed')
+      seal(join(plan.home, 'receipts', 'bootstrap-only.intent.json'), { mode: plan.mode, planSha256: hash(plan) })
+    },
+    tools: async () => {
+      need(process.versions.node === '22.23.4' && capture('supabase', ['--version']) === '2.101.0'
+        && capture('supabase-go', ['--version']) === '2.101.0' && /^psql \(PostgreSQL\) 17\./.test(capture('psql', ['--version'])),
+      'actual_bootstrap_toolchain_required')
+      readBytesHash(realpathSync(capture('which', ['supabase'])), FROZEN.supabaseBinarySha256)
+      readBytesHash(realpathSync(capture('which', ['supabase-go'])), FROZEN.supabaseGoBinarySha256)
+      const tools = Object.fromEntries(['node', 'npm', 'supabase', 'supabase-go', 'psql', 'pg_restore', 'docker', 'python3']
+        .map((name) => { const path = realpathSync(capture('which', [name])); return [name, { path, sha256: sha(readFileSync(path)), version: capture(name, ['--version']) }] }))
+      seal(join(plan.home, 'receipts', 'actual-bootstrap-tools.json'), { tools })
+      await inspectHost(plan)
+    },
+    replay: (input) => bootstrapActual(input, 'bootstrap-only'),
+    cleanup: async (input, value) => {
+      // Setup failure before the replay's immutable inventory has no Docker
+      // mutation to clean; return a truthful failure if unknown resources exist.
+      if (!existsSync(join(input.home, 'receipts', 'initial-inventory.json'))) {
+        const current = observeHostReadOnly(), proof = JSON.parse(privateFile(input.hostProof.path))
+        sameHost(proof.host, current)
+        need(canonical(current.inventory) === canonical(proof.host.inventory), 'unknown_pre_replay_resource_birth')
+        return { verified: true, foreignDeleted: 0, unknown: [] }
+      }
+      const result = await cleanupActual(input, value)
+      if (result.verified) cleanupBootstrapImages(input)
+      return result
+    },
+    exportEncrypted: async (input, value) => exportActual(input, value),
+  })
+}
+
+function cleanupBootstrapImages(plan) {
+  const path = join(plan.home, 'receipts', 'images.intent.json')
+  if (!existsSync(path)) return
+  const intent = readJson(path)
+  need(canonical(intent.expected) === canonical(BOOTSTRAP_IMAGES), 'owned_image_cleanup_original_required')
+  need(existsSync(join(plan.home, 'receipts', 'images-pinned.json')), 'image_pull_outcome_unqualified')
+  const ids = docker(plan, 'image', 'ls', '-aq', '--no-trunc').split('\n').filter(Boolean)
+  const current = ids.length ? dockerJson(plan, 'image', 'inspect', ...[...new Set(ids)]) : []
+  const removed = []
+  for (const image of BOOTSTRAP_IMAGES) {
+    const existing = intent.initial.find((item) => item.Id === image.config)
+    const actual = current.find((item) => item.Id === image.config)
+    if (!actual) continue
+    const reference = `${image.tag.slice(0, image.tag.lastIndexOf(':'))}@${image.manifest}`
+    const allowedTags = new Set([image.tag, ...(existing?.RepoTags ?? [])])
+    const allowedDigests = new Set([reference, ...(existing?.RepoDigests ?? [])])
+    need((actual.RepoTags ?? []).every((tag) => allowedTags.has(tag))
+      && (actual.RepoDigests ?? []).every((digest) => allowedDigests.has(digest)), 'unknown_image_reference_preserved')
+    if (actual.RepoTags?.includes(image.tag) && !existing?.RepoTags?.includes(image.tag)) {
+      need(dockerJson(plan, 'image', 'inspect', image.tag)[0].Id === image.config, 'owned_image_tag_changed')
+      docker(plan, 'image', 'rm', image.tag); removed.push(image.tag)
+    }
+    if (actual.RepoDigests?.includes(reference) && !existing?.RepoDigests?.includes(reference)) {
+      docker(plan, 'image', 'rm', reference); removed.push(reference)
+    }
+  }
+  seal(join(plan.home, 'receipts', 'image-cleanup.json'), { removed, force: false, foreignDeleted: 0 })
+}
+
+export async function readBootstrapCarrier(proof, get = github) {
+  const issue = await get('issues/930')
+  need(issue && Number.isSafeInteger(issue.comments), 'actual_assignment_carrier_read_required')
+  const page = Math.max(1, Math.ceil(issue.comments / 100))
+  const comments = await get(`issues/930/comments?per_page=100&page=${page}`)
+  need(Array.isArray(comments), 'actual_assignment_carrier_read_required')
+  const prior = page > 1 ? await get(`issues/930/comments?per_page=100&page=${page - 1}`) : []
+  need(Array.isArray(prior), 'actual_assignment_carrier_read_required')
+  return selectBootstrapCarrier([...prior, ...comments], proof)
 }

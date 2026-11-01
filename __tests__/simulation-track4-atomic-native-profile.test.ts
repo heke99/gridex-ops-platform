@@ -140,7 +140,7 @@ describe('T4 same-host profile phase orchestration: controlled adapters only', (
 // These exercise actual local crypto/process/source controls, not a database,
 // producer lease or native SQL acceptance. Test keys have no customer identity.
 import { createCipheriv, createDecipheriv, createHash, generateKeyPairSync, privateDecrypt, constants } from 'node:crypto'
-import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { decryptInputEnvelope, encryptEvidence, normalizeDockerEndpoint, ownedChild,
@@ -216,8 +216,8 @@ const { load: parse } = createRequire(import.meta.url)('js-yaml') as { load(sour
 describe('profile workflow and failure boundaries', () => {
   it('keeps provisioning, preparation, native and exact cleanup in one explicitly guarded host job', () => {
     const workflow = parse(readFileSync(join(process.cwd(), '.github/workflows/t4-atomic-native.yml'), 'utf8'))
-    expect(Object.keys(workflow.jobs)).toEqual(['atomic-native'])
-    expect(workflow.on.workflow_dispatch).toBeUndefined()
+    expect(Object.keys(workflow.jobs)).toEqual(['host-probe', 'atomic-native'])
+    expect(workflow.on.workflow_dispatch).toMatchObject({ inputs: { mode: { options: ['bootstrap-only'] } } })
     expect(workflow.jobs['atomic-native'].if).toContain("github.event.label.name == 't4-atomic-native-activation'")
     const steps = workflow.jobs['atomic-native'].steps as Array<{ name?: string; run?: string; uses?: string; with?: { path?: string } }>
     const scripts = steps.map((step) => step.run ?? '').join('\n')
@@ -225,8 +225,9 @@ describe('profile workflow and failure boundaries', () => {
       expect(scripts).toContain(`atomic-native-profile.mjs ${phase} "$T4_HOME/plan.json"`)
     }
     const uploads = steps.filter((step) => step.uses?.startsWith('actions/upload-artifact@'))
-    expect(uploads).toHaveLength(4)
-    expect(uploads.every((step) => step.with?.path === '${{ env.T4_HOME }}/export/*')).toBe(true)
+    expect(uploads).toHaveLength(5)
+    expect(uploads.filter((step) => step.with?.path === '${{ env.T4_HOME }}/export/*')).toHaveLength(4)
+    expect(uploads.filter((step) => step.with?.path === '${{ env.T4_HOST_PROOF_HOME }}/export/*')).toHaveLength(1)
     expect(scripts).not.toMatch(/docker (?:system prune|rm -f \$\()/)
   })
   it('parses every shell/Python bootstrap block without running provisioning commands', () => {
@@ -562,4 +563,156 @@ describe('app teardown uses the same complete owned group boundary', () => {
       rmSync(root, { recursive: true, force: true })
     }
   }, 15_000)
+})
+
+describe('host-first read-only hosted probe and explicit bootstrap-only successor', () => {
+  it('has a same-repo PR probe with no secrets, installs, images or backend commands', () => {
+    const workflow = parse(readFileSync(join(process.cwd(), '.github/workflows/t4-atomic-native.yml'), 'utf8'))
+    expect(workflow.on).toHaveProperty('pull_request')
+    const probe = workflow.jobs['host-probe']
+    expect(probe).toBeDefined()
+    expect(probe.if).toContain('github.event.pull_request.head.repo.full_name == github.repository')
+    const serialized = JSON.stringify(probe)
+    expect(serialized).not.toContain('secrets.')
+    expect(serialized).not.toMatch(/npm ci|docker pull|supabase start|apt-get/)
+    expect(serialized).toContain('host-probe')
+  })
+  it('measures the real selected local endpoint and cgroup limit without mutating Docker', async () => {
+    const calls: string[] = []
+    const fs = new Map([
+      ['/proc/sys/kernel/random/boot_id', 'actual-test-boot'], ['/proc/meminfo', 'MemTotal: 16777216 kB'],
+      ['/proc/self/cgroup', '0::/owned/test'], ['/sys/fs/cgroup/memory.max', String(12 * 2 ** 30)],
+      ['/sys/fs/cgroup/cpu.max', '400000 100000'],
+      ['/sys/fs/cgroup/owned/test/memory.max', String(4 * 2 ** 30)], ['/sys/fs/cgroup/owned/memory.max', 'max'],
+    ])
+    const reader = (actualProfile as unknown as { observeHostReadOnly(io: unknown): unknown }).observeHostReadOnly
+    const result = await reader({ env: { DOCKER_CONTEXT: 'actual-local', DOCKER_HOST: 'tcp://unselected-remote:2375' },
+      command: (program: string, argv: string[]) => {
+        const command = `${program} ${argv.join(' ')}`; calls.push(command)
+        if (command.includes('context show')) return 'actual-local'
+        if (command.includes('context inspect')) return JSON.stringify([{ Endpoints: { docker: { Host: 'unix:///var/run/docker.sock' } } }])
+        if (command.includes(' info ')) return JSON.stringify({ ID: 'daemon', Driver: 'overlay2', DockerRootDir: '/docker' })
+        if (command.includes('network ls')) return 'baseline-network'
+        return ''
+      }, read: (path: string) => { if (!fs.has(path)) throw Object.assign(new Error(), { code: 'ENOENT' }); return fs.get(path) },
+      realpath: (path: string) => path === '/var/run/docker.sock' ? '/run/docker.sock' : path,
+      socket: () => ({ dev: 1, ino: 2, isSocket: () => true }),
+      disk: () => ({ bavail: 30, bsize: 2 ** 30 }), cpus: () => 4 }) as { effectiveRamBytes: number; socketPath: string }
+    expect(result.effectiveRamBytes).toBe(4 * 2 ** 30)
+    expect(result.socketPath).toBe('/run/docker.sock')
+    expect(calls.every((command) => !/docker (?:create|pull|start|stop|rm|run|prune)\b|docker context create|docker image (?:pull|rm|tag)/.test(command))).toBe(true)
+  })
+  it('supports manual bootstrap-only without requiring a business cohort or enabling native', async () => {
+    const runner = (actualProfile as unknown as { runBootstrapOnly(plan: unknown, state: unknown, io: unknown): Promise<unknown> }).runBootstrapOnly
+    const order: string[] = []
+    const io = {
+      qualify: async () => { order.push('qualify-host-source-assignment') },
+      tools: async () => { order.push('bounded-tools') },
+      replay: async () => { order.push('canonical-replay'); return { actualResources: true, replay: { canonical: true, sourceRestored: true } } },
+      cleanup: async () => { order.push('exact-cleanup'); return { verified: true, foreignDeleted: 0, unknown: [] } },
+      exportEncrypted: async () => { order.push('encrypted-evidence') },
+    }
+    const result = await runner({ format: 't4_atomic_bootstrap_only_v1', mode: 'bootstrap-only' }, {}, io)
+    expect(order).toEqual(['qualify-host-source-assignment', 'bounded-tools', 'canonical-replay', 'exact-cleanup', 'encrypted-evidence'])
+    expect(result).toMatchObject({ nativeExecuted: false, businessExecuted: false, qualification: 'BOOTSTRAP_ONLY_REQUIRES_OUTPUT_REVIEW' })
+  })
+  it('qualifies the term host before private secrets and every existing install step', () => {
+    const workflow = parse(readFileSync(join(process.cwd(), '.github/workflows/t4-atomic-native.yml'), 'utf8'))
+    expect(workflow.on.workflow_dispatch).toBeDefined()
+    const steps = workflow.jobs['atomic-native'].steps
+    const probe = steps.findIndex((step) => step.name === 'Observe actual term host before private inputs or setup')
+    const privateInput = steps.findIndex((step) => step.name === 'Require privately authenticated input before backend mutations')
+    const setup = steps.findIndex((step) => step.name === 'Install exact public tool archives on this disposable host')
+    expect(probe).toBeGreaterThan(0)
+    expect(probe).toBeLessThan(privateInput)
+    expect(probe).toBeLessThan(setup)
+    expect(steps.findIndex((step) => step.name === 'Qualify actual bootstrap assignment before installation')).toBeLessThan(setup)
+  })
+})
+
+import { sign } from 'node:crypto'
+import { gunzipSync } from 'node:zlib'
+const canonicalSigned = (value: unknown): string => Array.isArray(value) ? `[${value.map(canonicalSigned).join(',')}]`
+  : value !== null && typeof value === 'object'
+    ? `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${JSON.stringify(key)}:${canonicalSigned(item)}`).join(',')}}`
+    : JSON.stringify(value)
+describe('real cryptographic two-way bootstrap assignment transport; no ROOT private key', () => {
+  const root = generateKeyPairSync('rsa', { modulusLength: 3072 })
+  const runner = generateKeyPairSync('rsa', { modulusLength: 3072 })
+  const rootPem = root.publicKey.export({ format: 'pem', type: 'spki' }).toString()
+  const runnerPem = runner.publicKey.export({ format: 'pem', type: 'spki' }).toString()
+  const privatePem = runner.privateKey.export({ format: 'pem', type: 'pkcs8' }).toString()
+  const proof = { purpose: 'bootstrap-term-host', inputPublicKey: runnerPem, proofSha256: 'a'.repeat(64), nonce: 'b'.repeat(64),
+    runId: '123', runAttempt: '1', job: 'atomic-native', head: 'c'.repeat(40), tree: 'd'.repeat(40),
+    host: { bootId: 'actual-fixture-boot' }, observedAtUtc: '2026-11-01T18:00:00Z' }
+  const now = Date.parse('2026-11-01T18:10:00Z')
+  function envelope(overrides: Record<string, unknown> = {}, padding = '') {
+    const expiresAt = '2026-11-01T19:00:00Z'
+    const payload = { format: 't4_signed_bootstrap_assignment_v1', proofSha256: proof.proofSha256, nonce: proof.nonce,
+      runId: proof.runId, runAttempt: proof.runAttempt, job: proof.job, sourceHead: proof.head, sourceTree: proof.tree,
+      bootId: proof.host.bootId, recipientSha256: digest(runnerPem), expiresAt, budget: { business: 0, native: 0 },
+      plan: { format: 't4_atomic_bootstrap_only_v1', mode: 'bootstrap-only', expiresAt, padding },
+      files: { 'code-attempt.json': 'e30=', 'bootstrap-attempt.json': 'e30=' }, ...overrides }
+    const signature = sign('sha256', Buffer.from(canonicalSigned(payload)),
+      { key: root.privateKey, padding: constants.RSA_PKCS1_PSS_PADDING, saltLength: 32 }).toString('base64')
+    return encryptEvidence(Buffer.from(JSON.stringify({ payload, signature })), runnerPem, digest(runnerPem))
+  }
+  function open(value: ReturnType<typeof envelope>, scope = proof) {
+    return actualProfile.decryptBootstrapAssignment(value, privatePem, scope, now, rootPem, digest(rootPem))
+  }
+  it('authenticates an actual ROOT-like PSS signature and the one live runner encryption key', () => {
+    expect(open(envelope()).plan).toMatchObject({ mode: 'bootstrap-only' })
+  })
+  it('rejects wrong decryption/signing keys and ciphertext tampering', () => {
+    const value = envelope()
+    expect(() => actualProfile.decryptBootstrapAssignment(value,
+      root.privateKey.export({ format: 'pem', type: 'pkcs8' }).toString(), proof, now, rootPem, digest(rootPem))).toThrow()
+    expect(() => actualProfile.decryptBootstrapAssignment(value, privatePem, proof, now, runnerPem, digest(runnerPem))).toThrow('actual_root_assignment_signature_required')
+    const corrupted = Buffer.from(value.ciphertext, 'base64'); corrupted[0] ^= 1
+    expect(() => open({ ...value, ciphertext: corrupted.toString('base64') })).toThrow()
+  })
+  it.each(['nonce', 'proofSha256', 'runId', 'runAttempt', 'job', 'head', 'tree'] as const)('rejects %s replay or source drift', (field) => {
+    expect(() => open(envelope(), { ...proof, [field]: 'foreign' })).toThrow('fresh_host_assignment_binding_required')
+  })
+  it('rejects boot drift, expiry, business/native budget, ended preview and malformed input', () => {
+    expect(() => open(envelope(), { ...proof, host: { bootId: 'foreign' } })).toThrow()
+    expect(() => open(envelope({ expiresAt: '2026-11-01T18:01:00Z' }))).toThrow('bootstrap_assignment_expired_or_unbounded')
+    expect(() => open(envelope({ budget: { business: 1, native: 0 } }))).toThrow()
+    expect(() => open(envelope(), { ...proof, purpose: 'pull-request-preview' })).toThrow()
+    expect(() => open({ ...envelope(), wrappedKey: 'malformed' })).toThrow()
+  })
+  it('keeps carrier under the comment bound and rejects4KiB truncation, duplicates and foreign frames', () => {
+    const value = envelope({}, 'sized-private-plan'.repeat(500))
+    const body = JSON.stringify({ kind: 't4-bootstrap-assignment-envelope-v1', runId: proof.runId,
+      proofSha256: proof.proofSha256, recipientSha256: digest(runnerPem), envelope: value })
+    expect(Buffer.byteLength(body)).toBeLessThan(60_000)
+    expect(body.length).toBeGreaterThan(4096)
+    expect(actualProfile.selectBootstrapCarrier([{ body }], proof)).toEqual(value)
+    expect(() => actualProfile.selectBootstrapCarrier([{ body: body.slice(0, 4096) }], proof)).toThrow('bootstrap_assignment_carrier_malformed')
+    expect(() => actualProfile.selectBootstrapCarrier([{ body }, { body }], proof)).toThrow('bootstrap_assignment_carrier_ambiguous')
+    expect(actualProfile.selectBootstrapCarrier([{ body: body.replace('"runId":"123"', '"runId":"456"') }], proof)).toBeNull()
+    expect(() => actualProfile.selectBootstrapCarrier([{ body: body + ' '.repeat(60_000) }], proof)).toThrow()
+  })
+  it('fails on actual carrier-read/auth errors without inventing an assignment', async () => {
+    const get = vi.fn(async () => { throw new Error('authenticated_github_read_required') })
+    await expect(actualProfile.readBootstrapCarrier(proof, get)).rejects.toThrow('authenticated_github_read_required')
+    expect(get).toHaveBeenCalledTimes(1)
+  })
+  it('never exports the ephemeral input private key, even inside encrypted checkpoints', () => {
+    const home = mkdtempSync(join(tmpdir(), 't4-key-export-boundary-'))
+    try {
+      mkdirSync(join(home, 'export'), { mode: 0o700 })
+      writeFileSync(join(home, 'recipient.pem'), rootPem, { mode: 0o600 })
+      writeFileSync(join(home, 'ephemeral-input-key.private.pem'), 'NEVER_EXPORT_EPHEMERAL_PRIVATE_KEY', { mode: 0o600 })
+      actualProfile.exportActual({ home, evidenceRecipientPath: join(home, 'recipient.pem'), evidenceRecipientSha256: digest(rootPem) }, {})
+      const exported = JSON.parse(readFileSync(join(home, 'export', readdirSync(join(home, 'export'))[0]), 'utf8'))
+      const key = privateDecrypt({ key: root.privateKey, oaepHash: 'sha256', padding: constants.RSA_PKCS1_OAEP_PADDING },
+        Buffer.from(exported.wrappedKey, 'base64'))
+      const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(exported.nonce, 'base64'))
+      decipher.setAuthTag(Buffer.from(exported.tag, 'base64'))
+      const plaintext = gunzipSync(Buffer.concat([decipher.update(Buffer.from(exported.ciphertext, 'base64')), decipher.final()])).toString()
+      expect(plaintext).not.toContain('ephemeral-input-key.private.pem')
+      expect(plaintext).not.toContain('NEVER_EXPORT_EPHEMERAL_PRIVATE_KEY')
+    } finally { rmSync(home, { recursive: true, force: true }) }
+  })
 })

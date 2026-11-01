@@ -3,44 +3,100 @@ name: T4 atomic native owned-host profile
 # SOURCE ONLY: this package grants no execution event. A separately reviewed
 # activation label, genuine private inputs and live code/bootstrap/preparation/native
 # producer leases are needed. INACTIVE until this exact reviewed workflow/driver
-# is registered on trusted default main. No PR-head code is checked out or run.
+# is registered on trusted default main. Privileged native/manual paths NEVER
+# execute PR-head code. The isolated, secret-free read-only PR probe explicitly
+# checks out only this source branch/head and never provisions a backend.
 # The public neutral code lease binds github.workflow_sha BEFORE private secrets;
 # it authorizes no backend/native operations. No environment/admin capability is assumed.
 on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/t4-atomic-native.yml
+      - scripts/simulation/track4/atomic-native-profile.mjs
+      - __tests__/simulation-track4-atomic-native-profile.test.ts
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Explicit bootstrap-only; no business or native grant
+        required: true
+        type: choice
+        options: [bootstrap-only]
   pull_request_target:
     types: [labeled]
 permissions:
   contents: read
   actions: read
+  issues: read
 concurrency:
   group: t4-atomic-native-owned-host
   cancel-in-progress: false
 jobs:
+  host-probe:
+    if: >-
+      github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository &&
+      github.head_ref == 'codex/t4-atomic-native-profile-source-20261101'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: profile
+          persist-credentials: false
+      - name: Read-only PR host probe; no runtime admission
+        run: node profile/scripts/simulation/track4/atomic-native-profile.mjs host-probe pull-request-preview "$RUNNER_TEMP/t4-pr-host-proof"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: t4-pr-host-proof-encrypted
+          path: ${{ runner.temp }}/t4-pr-host-proof/export/*
+          if-no-files-found: error
+          retention-days: 3
   atomic-native:
     if: >-
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.base.ref == 'main' &&
-      github.event.label.name == 't4-atomic-native-activation' && github.run_attempt == 1
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.mode == 'bootstrap-only' && github.run_attempt == 1) ||
+      (github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.base.ref == 'main' && github.event.label.name == 't4-atomic-native-activation' && github.run_attempt == 1)
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     env:
-      T4_HOME: ${{ runner.temp }}/t4-atomic-native-private
       GH_TOKEN: ${{ github.token }}
+      BOOTSTRAP_MODE: ${{ inputs.mode }}
       TRUSTED_WORKFLOW_SHA: ${{ github.workflow_sha }}
       TRUSTED_WORKFLOW_REF: ${{ github.workflow_ref }}
       TRIGGER_PR_NUMBER: ${{ github.event.pull_request.number }}
       TRIGGER_LABEL: ${{ github.event.label.name }}
     steps:
+      - name: Initialize private paths
+        run: |
+          set -euo pipefail
+          printf 'T4_HOME=%s/t4-atomic-native-private\nT4_HOST_PROOF_HOME=%s/t4-term-host-proof\n' "$RUNNER_TEMP" "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.workflow_sha }}
           path: profile
           persist-credentials: false
+      - name: Observe actual term host before private inputs or setup
+        run: node profile/scripts/simulation/track4/atomic-native-profile.mjs host-probe bootstrap-term-host "$T4_HOST_PROOF_HOME"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: t4-term-host-encrypted
+          path: ${{ env.T4_HOST_PROOF_HOME }}/export/*
+          if-no-files-found: error
+          retention-days: 3
       - name: Verify trusted immutable code and public bootstrap lease before private inputs
         run: |
           set -euo pipefail
           node profile/scripts/simulation/track4/atomic-native-profile.mjs verify-code
+      - name: Receive signed encrypted bootstrap assignment on this term host
+        if: github.event_name == 'workflow_dispatch'
+        run: node profile/scripts/simulation/track4/atomic-native-profile.mjs receive-bootstrap "$T4_HOST_PROOF_HOME" "$T4_HOME"
       - name: Require privately authenticated input before backend mutations
+        if: github.event_name != 'workflow_dispatch'
         env:
           INPUT_ARTIFACT_ID: ${{ secrets.T4_PRIVATE_INPUT_ARTIFACT_ID }}
           INPUT_ARCHIVE_SHA256: ${{ secrets.T4_PRIVATE_INPUT_ARCHIVE_SHA256 }}
@@ -64,6 +120,35 @@ jobs:
           except Exception:
               raise SystemExit('T4 private/source/tool prerequisite HOLD')
           PY
+      - name: Decrypt private input and obtain exact public source snapshots
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          T4_RUNTIME_INPUT_KEY: ${{ secrets.T4_RUNTIME_INPUT_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          node profile/scripts/simulation/track4/atomic-native-profile.mjs receive "$RUNNER_TEMP/t4-input.enc.json" "$T4_HOME"
+      - name: Obtain exact public source snapshots without the transport key
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          try:
+              import json,os,pathlib,re,subprocess
+              plan=json.loads(pathlib.Path(os.environ['T4_HOME']+'/plan.json').read_text())
+              for key,source in plan['sources'].items():
+                  assert re.fullmatch('[a-f0-9]{40}',source['commit']) and re.fullmatch('[a-f0-9]{40}',source['tree'])
+                  root=pathlib.Path(source['root'])
+                  if key=='profile':
+                      assert root.resolve()==pathlib.Path(os.environ['GITHUB_WORKSPACE']+'/profile').resolve();continue
+                  assert root.parent.resolve()==pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve() and not root.exists()
+                  subprocess.run(['git','clone','--no-checkout','--filter=blob:none','https://github.com/heke99/gridex-ops-platform.git',str(root)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+                  subprocess.run(['git','-C',str(root),'checkout','--detach',source['commit']],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+          except Exception:
+              raise SystemExit('T4 private/source/tool prerequisite HOLD')
+          PY
+      - name: Qualify actual bootstrap assignment before installation
+        run: node profile/scripts/simulation/track4/atomic-native-profile.mjs authorize-bootstrap "$T4_HOME/plan.json"
       - name: Install exact public tool archives on this disposable host
         run: |
           set -euo pipefail
@@ -114,33 +199,11 @@ jobs:
           sudo install -m 644 "$RUNNER_TEMP/t4-tools/pgdg.list" /etc/apt/sources.list.d/gridex-t4-pgdg.list
           sudo apt-get -o Acquire::AllowInsecureRepositories=false update -qq > "$RUNNER_TEMP/t4-tools/client-install.log" 2>&1
           sudo apt-get -o APT::Get::AllowUnauthenticated=false install -y postgresql-client-17=17.11-1.pgdg24.04+2 >> "$RUNNER_TEMP/t4-tools/client-install.log" 2>&1
-      - name: Decrypt private input and obtain exact public source snapshots
-        env:
-          T4_RUNTIME_INPUT_KEY: ${{ secrets.T4_RUNTIME_INPUT_KEY }}
-        run: |
-          set -euo pipefail
-          umask 077
-          node profile/scripts/simulation/track4/atomic-native-profile.mjs receive "$RUNNER_TEMP/t4-input.enc.json" "$T4_HOME"
-      - name: Obtain exact public source snapshots without the transport key
-        run: |
-          set -euo pipefail
-          umask 077
-          python3 - <<'PY'
-          try:
-              import json,os,pathlib,re,subprocess
-              plan=json.loads(pathlib.Path(os.environ['T4_HOME']+'/plan.json').read_text())
-              for key,source in plan['sources'].items():
-                  assert re.fullmatch('[a-f0-9]{40}',source['commit']) and re.fullmatch('[a-f0-9]{40}',source['tree'])
-                  root=pathlib.Path(source['root'])
-                  if key=='profile':
-                      assert root.resolve()==pathlib.Path(os.environ['GITHUB_WORKSPACE']+'/profile').resolve();continue
-                  assert root.parent.resolve()==pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve() and not root.exists()
-                  subprocess.run(['git','clone','--no-checkout','--filter=blob:none','https://github.com/heke99/gridex-ops-platform.git',str(root)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-                  subprocess.run(['git','-C',str(root),'checkout','--detach',source['commit']],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-          except Exception:
-              raise SystemExit('T4 private/source/tool prerequisite HOLD')
-          PY
+      - name: Bootstrap-only canonical replay and exact same-host cleanup
+        if: github.event_name == 'workflow_dispatch'
+        run: node profile/scripts/simulation/track4/atomic-native-profile.mjs bootstrap-only "$T4_HOME/plan.json"
       - name: Measure host and pending bootstrap inputs (no backend grant)
+        if: github.event_name != 'workflow_dispatch'
         run: node profile/scripts/simulation/track4/atomic-native-profile.mjs init "$T4_HOME/plan.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
@@ -150,6 +213,7 @@ jobs:
           if-no-files-found: error
           retention-days: 3
       - name: Await qualified bootstrap lease; replay, restore, build and start fresh app
+        if: github.event_name != 'workflow_dispatch'
         run: node profile/scripts/simulation/track4/atomic-native-profile.mjs bootstrap "$T4_HOME/plan.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
@@ -159,6 +223,7 @@ jobs:
           if-no-files-found: error
           retention-days: 3
       - name: Await distinct measured preparation lease; call ordinary preparation
+        if: github.event_name != 'workflow_dispatch'
         run: node profile/scripts/simulation/track4/atomic-native-profile.mjs prepare "$T4_HOME/plan.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
@@ -168,12 +233,13 @@ jobs:
           if-no-files-found: error
           retention-days: 3
       - name: Await fresh native lease; strict source guards, frozen proof, source guards
+        if: github.event_name != 'workflow_dispatch'
         run: node profile/scripts/simulation/track4/atomic-native-profile.mjs native "$T4_HOME/plan.json"
       - name: Finite exact owned cleanup on the SAME host
         if: always()
         run: |
           set -euo pipefail
-          if test -f "$T4_HOME/receipts/bootstrap.intent.json"; then
+          if test -f "$T4_HOME/receipts/bootstrap.intent.json" && ! test -f "$T4_HOME/receipts/cleanup-observation.json"; then
             node profile/scripts/simulation/track4/atomic-native-profile.mjs cleanup "$T4_HOME/plan.json"
           fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
