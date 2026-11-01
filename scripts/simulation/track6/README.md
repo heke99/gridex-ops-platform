@@ -12,19 +12,19 @@ Ingen likvärdighet med en gammal appversion eller ny scenario-PASS är underfö
 
 | Kommando | Beteende |
 | --- | --- |
-| `up.sh [--mode test|production]` | Läser en uttrycklig privat samordnartilldelning och ett kvalificerat färskt replay-/byggkvitto. Kontrollerar faktisk källa, bygg-ID, schema, migrationsledger, DB/API/Storage-container-ID och lokala endpointbindningar före fixturer. Startar bara tilldelad GreenMail och egna app-/mailprocesser. Ingen automatisk daemonstart, installation, imagehämtning, replay eller bygge. |
+| `up.sh [--mode test|production]` | Läser en uttrycklig privat runtimeproducenttilldelning och ett kvalificerat färskt replay-/byggkvitto. Kontrollerar faktisk källa, bygg-ID, schema, migrationsledger, DB/API/Storage-container-ID och lokala endpointbindningar före fixturer. Startar bara tilldelad GreenMail och egna app-/mailprocesser. Ingen automatisk daemonstart, installation, imagehämtning, replay eller bygge. |
 | `run.sh <scenariofil...>` | Kontrollerar samma identiteter, färdighetskvitto och levande app-/mailresurser före arbete. Kör endast spårets scenariofiler, seriellt. Skriver nya privata rapporter utan att ersätta original. |
-| `down.sh` | Stoppar bara kvittobundna app-/mailprocessgrupper och exakt GreenMail-container-ID. Verifierar att processgrupperna är tomma. Bevarar backend, volymer och originalbevis. `--stack` och `--purge` nekas före städning; backend- och gallringssteg tillhör samordnaren. |
+| `down.sh` | Stoppar bara kvittobundna app-/mailprocessgrupper och exakt GreenMail-container-ID. Verifierar att processgrupperna är tomma. Bevarar backend, volymer och originalbevis. `--stack` och `--purge` nekas före städning; backend- och gallringssteg tillhör den särskilt tilldelade runtimeproducenten. |
 
 Node 22, Python 3.11+ (`tomllib`), Docker och PostgreSQL-klienter måste vara
 förberedda. Appcheckout och beroenden måste redan finnas. En arbetskatalog ger
 ingen DB/Auth/Storage-isolering. Miljötilldelningen intygar en separat faktiskt
-reserverad exklusiv värd/producent; JSON-filen förvärvar ingen lease. Samordnaren
+reserverad exklusiv värd/producent; JSON-filen förvärvar ingen lease. Runtimeproducenten
 verifierar de autentiserade reservationskvittona före tilldelning och behåller dem
 under hela körningen. Ingen användarbekräftelse behövs för rutinmässig lokal
 provisionering inom det givna mandatet.
 
-## Samordnarens indata
+## Runtimeproducentens indata
 
 Alla sökvägar är absoluta, kanoniska och fria från symlänkar. `SIM_HOME` har mode
 0700, ägs av aktuell uid och ligger utanför både app- och harnesscheckout. Privata
@@ -70,7 +70,7 @@ container-ID:n och samma kvalificerade projektetikett. DB-porten 5432 respektive
 API-gatewayns port 8000 måste vara publicerade enbart på tilldelad 127.0.0.1-port.
 Storage nås via samma kontrollerade API-URL. GreenMail-namnet måste vara exakt
 `<environmentId>-greenmail`; digestbilden ska redan vara hämtad och verifierad av
-samordnaren (`docker run --pull=never` används). En befintlig container ersätts inte.
+runtimeproducenten (`docker run --pull=never` används). En befintlig container ersätts inte.
 
 Den tidigare restore-hjälparens `T6_BACKEND_ASSIGNMENT_FILE` har fortsatt format:
 
@@ -83,7 +83,7 @@ Den tidigare restore-hjälparens `T6_BACKEND_ASSIGNMENT_FILE` har fortsatt forma
 }
 ```
 
-Kopiera inte identiteten från en godtycklig ensam container. Samordnaren binder
+Kopiera inte identiteten från en godtycklig ensam container. Runtimeproducenten binder
 faktisk miljö, exakt aktuellt reservationskvitto och observerad PostgreSQL-identitet.
 
 `SIM_HOME/prepared-runtime.json`:
@@ -149,15 +149,15 @@ bash scripts/simulation/track6/down.sh
 ```
 
 `--admit up` är skrivskyddad; den startar ingen stack och skriver inget kvitto.
-Förhandskontrollen ersätter inte samordnarens faktiska reservation. `up.sh` kräver
+Förhandskontrollen ersätter inte runtimeproducentens faktiska reservation. `up.sh` kräver
 nya output-/processkvitton, seedar först efter förnyad kontroll av det förberedda
 bygget och den egna mailmotparten, bevarar miljöoriginalet före aktörsuppdatering
 och skriver `runtime-ready.json` först efter egna process-/containerkontroller.
-Ofullständig start behålls för avgränsad samordnaråterställning; inga resurser gissas
+Ofullständig start behålls för avgränsad producentåterställning; inga resurser gissas
 eller raderas för att få nästa start grön.
 
 Körlås är en privat atomiskt skapad `SIM_HOME/run.lock`-katalog. Ett gammalt lås
-rensas endast av samordnaren efter verifierad ägar-/processkontroll. Varje nytt
+rensas endast av tilldelad producent efter verifierad ägar-/processkontroll. Varje nytt
 run-ID har privata per-scenario råloggar, Vitest-JSON och rapporter under `runs/`.
 `SIM_REPORT` är en ny kanonisk sökväg under `SIM_HOME`, utanför Git. Publicering är
 atomisk utan överskrivning; symlänkar, gamla original, gamla temporärfiler och
@@ -177,3 +177,113 @@ med levande gruppmedlemmar ger BLOCKED. Grupper som lämnat den kvittobundna
 processgruppen, faktisk backendgallring, produktion, externa mottagare och slutlig
 105-scenariogodkänning ligger utanför denna privata harnessverifiering. Storage-
 bytes ingår inte i `pg_dump`; tidigare custody-/delivery-substitutioner kvarstår.
+
+## T6:s egen förberedelseproducent
+
+`prepare.sh` är en separat producentväg före den konsumerande `up.sh`. Den
+förvärvar inga roller, claims eller backendresurser och kör aldrig delad GEN.
+Källkod och komponenttester kvalificerar inte ett runtimejobb. En verklig körning
+kräver först autentiserad egen producent- och backendtilldelning på en exklusiv
+värd, aktuell sourcecustody och tillämplig gemensam GEN-källa. Samordnarchatten
+samordnar; T6:s avgränsade runtimeproducent utför denna kedja.
+
+```sh
+export T6_PREPARE_ASSIGNMENT_FILE=/absolute/private/t6-prepare-assignment.json
+bash scripts/simulation/track6/prepare.sh --check
+bash scripts/simulation/track6/prepare.sh scenarios/smoke.test.ts
+```
+
+`--check` gör läsande kontroller och lämnar backend `NOT_PROVISIONED`.
+Standardvägen kontrollerar dem igen, förbrukar den enda förberedelsebudgeten med
+ett exklusivt skapat privat `producer-operation.json`, kör verkligt canonical
+clean replay och bygger appen med projektets `npm run build`. Gamla byggen,
+privata indata, rapporter och processkvitton skrivs inte över. Använd ett nytt
+redan kvalificerat outputhem för en ny separat tilldelning; byt aldrig bara hem
+för att återanvända samma budget.
+
+App och replay har separata rena checkoutar på samma fulla commit/träd.
+Harnessen kan dela den rena appcheckouten men får inte ligga i replaycheckouten.
+Replay körs med `source` i samma ägda Bash-session, eftersom den ordinarie
+replayvägen behåller temporära källändringar tills dess EXIT-städning körs.
+Den rena appen får därför aldrig använda replaycheckouten. Originalreplay,
+checksum-/ledgergrindar och source restoration ändras inte. Extern
+`GRIDEX_REPLAY_DB_URL` används inte: den vägen har inget kanoniskt ledgerbevis.
+
+Producenten binder observerad föräldra-Bash med PID, födelsetid, session/grupp,
+exekverare, argv, arbetskatalog och den committade wrapperns blob. Direkt
+`--begin`/`--produce` från en annan shell kan inte ersätta wrapperkedjan.
+Wrappern registrerar genomförd replay innan appbygget. En textrad i en logg
+ensam är inget replaybevis. DB/API/Auth/PostgREST/Realtime/Storage måste vara
+levande egna tjänster, med fulla ID:n och rätt projekt; bara canonicalprofilens
+kända tjänstenamn accepteras. DB/API ska vara exakt loopbackbundna. DB:ns
+systemidentifierare observeras både via värdendpointen och den exakta containern.
+
+Först efter verklig replay, observerad ledger/fingerprint och ett verkligt
+lyckat färskt bygge produceras de tidigare beskrivna konsumentfilerna:
+`backend-assignment.json`, `prepared-runtime.json`, `runtime-assignment.json`,
+lokalt signerade CA/servercertifikat, nya syntetiska mail-/cronhemligheter och
+`env/track6.json`. Tillståndet är `PREPARED_NOT_RUNTIME_READY` tills `up.sh`
+verifierat egna aktörer/processer och publicerat `runtime-ready.json`.
+Förberedelsens kvitton binder också råloggarnas hash och producentoperationen.
+Inga kund-/providercredentials hämtas. Ignorerade `.env`-filer i appcheckouten
+nekas så att Next inte kan läsa in en främmande providermiljö.
+
+Privat producenttilldelning har schema `track6-prepare-assignment-v1` och följande
+obligatoriska fält (formatbeskrivning, inga resurser är förvärvade här):
+
+- `workerId: "codex-track6"`, faktiskt `model`, `exclusiveHost: true`, unik
+  `allocationId`, `environmentId: "t6-..."`, fulla `sourceCommit`/`sourceTree`.
+- Kanoniska absoluta `appDir`, `replayDir`, `harnessDir`, privat `simHome` utanför
+  checkoutarna. Tilldelningsfilen ligger också utanför checkoutarna, mode 0600;
+  hemmet har mode 0700 och samma uid som producenten.
+- Faktiskt `projectId`, `mode: "test"` eller lokalt simulerat `"production"`,
+  samma sju portar som ovan. Nuvarande canonicalprofil kräver API 54321/DB 54322
+  och projektets oförändrade PostgreSQL-17-konfiguration.
+- `hostBinding` med observerade `hostname`, `bootId`, `dockerDaemonId`, kanonisk
+  lokal `dockerSocket` samt strängarna `socketDev` och `socketIno`.
+- Separata `producer` och `backend`, vardera `{ "ref": "refs/tags/agent-claims/masterplan/<kind>-t6-...", "receipt": "FULL_COMMIT_SHA" }`.
+- `allowedActions`: exakt `prepare,replay,build,up,run,down,cleanup`,
+  `budget: {"prepare":1}`, `expiresAtUtc` som framtida UTC inom sex timmar.
+- Redan hämtad `greenmailImage` med exakt digest, `overlayRefs: []` och
+  `originalsManifestSha256` för den verkliga oförändrade T3-kohortens manifest.
+
+Båda fulla runtime-allokeringskvittona måste redan finnas och deras exakta refs
+läsas tillbaka autentiserat. Kvitto-JSON är exakt:
+
+```json
+{
+  "schema": "track6-runtime-allocation-v1",
+  "kind": "producer",
+  "assignmentPayloadSha256": "SHA256_OF_CANONICAL_COMPLETE_ASSIGNMENT_PAYLOAD"
+}
+```
+
+Backendkvittot använder `kind: "backend"`. Payloaden är hela tilldelningsobjektet
+med endast de cirkulära `producer.receipt`/`backend.receipt` borttagna; deras
+`ref`-fält är kvar. JSON kanoniseras rekursivt med sorterade objektnycklar,
+bevarad arrayordning och utan whitespace före SHA256. Därmed binds även samtliga
+sökvägar/output, portar, miljöläge, originalhash och den förbrukningsbara budgeten.
+Ett neutralt sourceclaimkvitto ger inte denna runtimebehörighet. Producenten
+skapar eller ersätter aldrig sådana refs/kvitton själv.
+
+Före stackstart krävs observerat minst 8 GiB effektivt RAM och faktiskt lediga
+40 GiB vid DockerRootDir med `vfs`, eller 15 GiB med `overlay2`/`overlayfs`.
+Okänd driver/identitet, upptagen daemon, avvikande Git-källa, saknade verkliga
+28 originalpar, verktygsdrift eller otillräcklig kapacitet stoppar före start.
+Node 22, npm 10, Supabase CLI 2.101.0, matchande PG17-klienter, Python 3.11+ och
+OpenSSL ska redan finnas. Inga installations-/imagehämtningsgenvägar läggs i `up.sh`.
+
+Kedjans ägda shell behåller canonicalreplays EXIT-städning tills efter `down.sh`.
+Innan backendstädning måste samtliga observerade containrar matcha de exakt
+registrerade backend-ID:na/projektet. Okänt eller ändrat tillstånd bevaras och
+blir fel. Canonical lokal `supabase stop` är tidsbegränsad; inga globala
+Docker-/process-/DBstädningar införs. Yttre producenttimeout skickar först TERM
+så shellens EXIT-städning kan slutföras, sedan identitetskontrollerad KILL om
+240 sekunders grace misslyckas. Fem minuter reserveras före expiry för städning;
+expiry eller okända restresurser ger HOLD/fel och kräver avgränsad avstämning.
+
+`producer-terminal.json` skiljer en genomförd livscykel från
+`FAILED_UNQUALIFIED`. Scenarioresultat kommer fortfarande enbart från det
+ordinarie fullständiga scenarioflödet och dess granskning. Komponenten är inte
+bevis för fysisk Storageåterställning, RPO/PITR, Nordfinacceptans eller ny hel
+scenario-PASS. Den här källleveransen har inte kört native/replay/bygge.

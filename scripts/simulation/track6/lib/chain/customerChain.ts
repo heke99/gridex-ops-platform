@@ -212,7 +212,7 @@ async function ingestHourlyE66(f: Ground, salt: number): Promise<CustomerChain['
   const messages: E66Message[] = []
   for (const day of DELIVERY01_E66_DAYS) messages.push(await ingestHourlyDay(f, salt, day, dataRequest))
   return {
-    values: messages.reduce((n, m) => n + m.values, 0), 
+    values: messages.reduce((n, m) => n + m.values, 0),
     persistMs: messages.reduce((n, m) => n + m.persistMs, 0), ingestMs: messages.reduce((n, m) => n + m.ingestMs, 0), messages,
   }
 }
