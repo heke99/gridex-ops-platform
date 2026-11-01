@@ -1,0 +1,36 @@
+{
+  "format": "t3-actual-second-terminal-hold-attestations-v1",
+  "repository": "heke99/gridex-ops-platform",
+  "run": 41362081976,
+  "job": 125014398964,
+  "attempt": 1,
+  "sourceCommit": "a0ccb287385487e21704cff038a24201e1e0e43a",
+  "sourceTree": "40d81f9ee372f1e9b73c1ad626a2296c7d13e3d4",
+  "artifact": 13105092676,
+  "zipBytes": 3951,
+  "zipSha256": "7899c1b68ebfbb33efac2ea667e3c5d91f91d9150c613f9c5463c02dd7dbb809",
+  "actualObservation": {
+    "status": "UNKNOWN",
+    "effectiveRamBytes": null,
+    "reason": "unqualified_kernel_namespace_contract",
+    "actualKernelRelease": "NOT_RETAINED",
+    "nativeCases": "BOTH_NOT_RUN",
+    "signaturePublished": false,
+    "budgetRemaining": 0,
+    "cleanup": "Pre-backend stop only, not fullnative cleanup certification"
+  },
+  "rawPrivateOriginals": "Retained encrypted; fullprivate reviewer originals retained byT3ROOT. These are genuine reviewer-issued publicsafe compact normative reattestations, not truncated reports.",
+  "nextOwner": "ExistingT4 soleproducer closes ownsecondattemptroles against actualterminalreviews. Any further source/diagnostic/event decision is separate; no retry or positivehostgrant.",
+  "files": [
+    {
+      "path": "ACTUAL-HOLD-REVIEW-1.json",
+      "bytes": 2888,
+      "sha256": "5ae4e467b1c0d91d65db3e5c014966a693cfee3b17cfde2490bd1067b69bb6ec"
+    },
+    {
+      "path": "ACTUAL-HOLD-REVIEW-2.json",
+      "bytes": 1732,
+      "sha256": "285b47c99516e2052b23359afa8668396e4f522f4bf38217760c627b969dd2b1"
+    }
+  ]
+}

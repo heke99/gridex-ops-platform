@@ -1,0 +1,37 @@
+{
+  "acceptedTerminal": {
+    "effectiveRamBytes": null,
+    "observationReason": "unqualified_kernel_namespace_contract",
+    "observationStatus": "UNKNOWN",
+    "reason": "capacity_hierarchy_unknown",
+    "retryAuthorized": false,
+    "stage": "host-proof:host-capacity"
+  },
+  "agent": "/root/issuer_final_review",
+  "artifactId": 13105092676,
+  "artifactZipSha256": "7899c1b68ebfbb33efac2ea667e3c5d91f91d9150c613f9c5463c02dd7dbb809",
+  "authority": "NO_NEW_EVENT_RETRY_NATIVE_DATA_OR_PRODUCTION_AUTHORITY",
+  "classification": "SAFE_PUBLIC_NORMATIVE_ATTESTATION",
+  "contents": "No private keys, capsules, host identifiers or actual payloads",
+  "jobId": 125014398964,
+  "limits": {
+    "actualKernelRelease": "NOT_RETAINED_DO_NOT_INFER",
+    "cleanup": "Transport retention and checkout completion observed; backend/app/mail not entered, cleanup not applicable; full cleanup not certified",
+    "importBackendAndBothPhysicalCases": "NOT_RUN",
+    "namespaceFdAndHierarchy": "NOT_OBSERVED_GUARD_REJECTED_FIRST",
+    "positiveHostCapacity": "NOT_QUALIFIED"
+  },
+  "originalReview": {
+    "custody": "Full report and raw actual originals retained privately by ROOT",
+    "fullReportSha256": "b4aa6674b5161a21aa3b2a9a45c67a95ed9dc8a79e7532247d652b616bd0c5a0",
+    "relationship": "Standalone normative identical-verdict attestation; not truncated raw report"
+  },
+  "reviewStatus": "ALREADY_COMPLETED_NO_NEW_REVIEW",
+  "runAttempt": 1,
+  "runId": 41362081976,
+  "schema": "t3-independent-terminal-hold-compact-attestation-v1",
+  "sourceCommit": "a0ccb287385487e21704cff038a24201e1e0e43a",
+  "sourceTree": "40d81f9ee372f1e9b73c1ad626a2296c7d13e3d4",
+  "task": "ediel03_physical",
+  "verdict": "ACCEPT_TERMINAL_HOLD_EVIDENCE_ONLY"
+}

@@ -1,0 +1,64 @@
+{
+  "schema": "t3-actual-terminal-hold-review-reattestation-v1",
+  "disclosure": "PUBLIC_SAFE_COMPACT_NORMATIVE_REATTESTATION",
+  "reviewer": "/root/review_t3_admission",
+  "verdict": "ACTUAL_TERMINAL_HOLD_EVIDENCE_QUALIFIED",
+  "activity": "Re-attestation of completed actual-output review; no new authority",
+  "runId": 41362081976,
+  "jobId": 125014398964,
+  "runAttempt": 1,
+  "sourceCommit": "a0ccb287385487e21704cff038a24201e1e0e43a",
+  "sourceTree": "40d81f9ee372f1e9b73c1ad626a2296c7d13e3d4",
+  "artifactId": 13105092676,
+  "artifactZipSha256": "7899c1b68ebfbb33efac2ea667e3c5d91f91d9150c613f9c5463c02dd7dbb809",
+  "reviewedOutcome": {
+    "state": "HOLD",
+    "stage": "host-proof:host-capacity",
+    "reason": "capacity_hierarchy_unknown",
+    "errorType": "ValueError",
+    "capacitySubreason": "unqualified_kernel_namespace_contract",
+    "fiveOriginalHashesVerified": true,
+    "actualRunAndJobApi200Observed": true,
+    "encryptedHoldArtifactRetained": true,
+    "retryAuthorized": false
+  },
+  "capacity": {
+    "qualification": "UNKNOWN",
+    "effectiveRamBytes": null,
+    "driver": "overlay2",
+    "freeBytes": 91329818624,
+    "exactKernelReleaseRetained": false,
+    "namespaceFdOrAncestorMemoryObservationReached": false,
+    "limit": "Actual kernel-release regex/family contract refused before FD/namespace/ancestor reads. No exact kernel version, noninitial namespace, low-RAM diagnosis or overall capacity approval follows."
+  },
+  "execution": {
+    "signedAssignmentImport": "NOT_RUN",
+    "ephemeralInputKeyGeneration": "NOT_RUN",
+    "lockedToolsAndImagePulls": "NOT_RUN",
+    "executeAttemptRefConsumption": "NOT_RUN",
+    "ownedNetworkBackendCanonicalReplayGen": "NOT_RUN",
+    "appBuildFixtureAuthSmtpImapAppendIntake": "NOT_RUN",
+    "bothPhysicalScenarioVariants": "NOT_RUN",
+    "native": "NOT_RUN"
+  },
+  "cleanup": {
+    "workflowCreatedBackendAppMailResources": "NOT_APPLICABLE_CREATING_PHASES_NOT_REACHED",
+    "fullBackendCleanupCertified": false,
+    "globalEmptyDockerOrTerminalProcessInventoryProven": false
+  },
+  "signatureLimit": "No assignment/signature imported or consumed by job; global offhost signature absence not independently established",
+  "fullReview": {
+    "sha256": "0ad133fb10898045ddf2d7b68ea4cb4bf6104ea41f3c12b9460da0f430eba551",
+    "status": "Full original review and raw originals retained privately by ROOT",
+    "meaning": "Same bounded verdict; no replacement raw-original or host-admission claim"
+  },
+  "independenceScope": "Actual no-scenario HOLD output only; no full61-source-final independence claimed",
+  "authority": {
+    "newNativeAuthorityGranted": false,
+    "runtimeGo": false,
+    "dataApproval": false,
+    "scenarioPass": false,
+    "newEventOrRetryPermission": false
+  },
+  "contentLimit": "No actual keys, private capsules, credentials, raw payloads or raw boot/daemon/socket identifiers included"
+}
