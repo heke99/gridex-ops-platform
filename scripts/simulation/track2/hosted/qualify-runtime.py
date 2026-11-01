@@ -453,6 +453,58 @@ def encrypt_bootstrap(proof, directory):
     return base64.b64encode(sealed.read_bytes()).decode('ascii')
 
 
+BOOTSTRAP_CHUNK_TITLE = 'T2_BOOTSTRAP_CIPHER_V1'
+
+
+def bootstrap_frames(safe):
+    import base64, hashlib
+    cipher = base64.b64decode(safe['cmsBase64'],validate=True)
+    require(0 < len(cipher) < 24576,'bootstrap-proof-too-large')
+    encoded = safe['cmsBase64']
+    pieces = [encoded[i:i+2400] for i in range(0,len(encoded),2400)]
+    header = {key:value for key,value in safe.items() if key != 'cmsBase64'}
+    header.update(transport='cms-framed-v1',cipherSHA256=hashlib.sha256(cipher).hexdigest(),
+                  cipherBytes=len(cipher),chunkCount=len(pieces))
+    binding = canonical_sha256(header)
+    frames = [(BOOTSTRAP_TITLE,header)] + [(BOOTSTRAP_CHUNK_TITLE,
+              {'schema':'t2-bootstrap-cipher-chunk-v1','headerSHA256':binding,'index':i,
+               'chunkCount':len(pieces),'data':piece}) for i,piece in enumerate(pieces)]
+    rendered = [(title,json.dumps(frame,separators=(',',':'),ensure_ascii=True)) for title,frame in frames]
+    require(len(rendered) <= 16 and all(len(message.encode('utf-8')) <= 3500 for _,message in rendered),
+            'bootstrap-frame-budget-exceeded')
+    return rendered  # validate EVERY frame before printing ANY frame
+
+
+def reassemble_bootstrap(annotations):
+    import base64, hashlib
+    headers = [item for item in annotations if item['title'] == BOOTSTRAP_TITLE]
+    chunks = [item for item in annotations if item['title'] == BOOTSTRAP_CHUNK_TITLE]
+    require(len(headers) == 1 and all(item['annotation_level'] == 'notice' and
+            len(item['message'].encode('utf-8')) <= 3500 for item in headers+chunks),'bootstrap-framed-notice-invalid')
+    header = strict_transport_json(headers[0]['message'])
+    require(set(header) == {'schema','run','proofSHA256','state','runtimeActive','wholeScenarioPass','driver',
+            'effectiveRAMBytes','dockerRootFreeBytes','capacityErrors','transport','cipherSHA256','cipherBytes','chunkCount'}
+            and header['transport'] == 'cms-framed-v1' and type(header['cipherBytes']) is int
+            and 0 < header['cipherBytes'] < 24576 and type(header['chunkCount']) is int
+            and 1 <= header['chunkCount'] <= 14 and len(chunks) == header['chunkCount'],
+            'bootstrap-framed-header-or-count-invalid')
+    pieces = {}
+    for item in chunks:
+        chunk = strict_transport_json(item['message'])
+        require(set(chunk) == {'schema','headerSHA256','index','chunkCount','data'}
+                and chunk['schema'] == 't2-bootstrap-cipher-chunk-v1' and chunk['headerSHA256'] == canonical_sha256(header)
+                and type(chunk['index']) is int and 0 <= chunk['index'] < header['chunkCount'] and chunk['index'] not in pieces
+                and type(chunk['chunkCount']) is int and chunk['chunkCount'] == header['chunkCount']
+                and isinstance(chunk['data'],str) and 0 < len(chunk['data']) <= 2400,'bootstrap-chunk-binding-or-index-invalid')
+        pieces[chunk['index']] = chunk['data']
+    encoded = ''.join(pieces[i] for i in range(header['chunkCount']))
+    cipher = base64.b64decode(encoded,validate=True)
+    require(len(cipher) == header['cipherBytes'] and hashlib.sha256(cipher).hexdigest() == header['cipherSHA256'],
+            'bootstrap-reassembled-cipher-mismatch')
+    safe = {key:value for key,value in header.items() if key not in ('transport','cipherSHA256','cipherBytes','chunkCount')}
+    return dict(safe,cmsBase64=encoded)
+
+
 def bootstrap_observe():
     # Read-only host/daemon/source probes only: no install, pull, start, native allocation or ACTIVE claim.
     run = bootstrap_run()
@@ -477,7 +529,9 @@ def bootstrap_observe():
             'effectiveRAMBytes':observation['effectiveRAMBytes'],'dockerRootFreeBytes':observation['dockerRootFreeBytes'],
             'capacityErrors':errors,'cmsBase64':ciphertext}
     save_private(directory / 'safe.json',safe)
-    print('::notice title=' + BOOTSTRAP_TITLE + '::' + json.dumps(safe,separators=(',',':')),flush=True)
+    frames = bootstrap_frames(safe)
+    for title,message in frames:
+        print('::notice title=' + title + '::' + message,flush=True)
     require(not errors,'bootstrap-capacity-unqualified')
     return proof
 
@@ -517,9 +571,7 @@ def published_bootstrap(context):
     import base64
     annotations = delivery_get('check-runs/' + str(context['checkId']) + '/annotations?per_page=100')
     require(len(annotations) == context['annotationsCount'] <= 100,'bootstrap-annotations-incomplete')
-    selected = [item for item in annotations if item['title'] == BOOTSTRAP_TITLE and item['annotation_level'] == 'notice']
-    require(len(selected) == 1,'bootstrap-notice-not-unique')
-    safe = strict_transport_json(selected[0]['message'])
+    safe = reassemble_bootstrap(annotations)
     require(set(safe) == {'schema','run','proofSHA256','state','runtimeActive','wholeScenarioPass','driver',
                          'effectiveRAMBytes','dockerRootFreeBytes','capacityErrors','cmsBase64'}
             and safe['schema'] == 'gridex-t2-bootstrap-safe-v1' and safe['runtimeActive'] is False

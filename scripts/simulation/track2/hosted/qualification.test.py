@@ -1306,6 +1306,12 @@ class BootstrapContracts(unittest.TestCase):
         safe=module.load_private(module.bootstrap_directory()/'safe.json')
         return {'title':module.BOOTSTRAP_TITLE,'annotation_level':'notice','message':json.dumps(safe)}
 
+    def transport(self,safe=None):
+        safe=safe or module.load_private(module.bootstrap_directory()/'safe.json')
+        annotations=[{'title':title,'annotation_level':'notice','message':message} for title,message in module.bootstrap_frames(safe)]
+        self.context['annotationsCount']=len(annotations)
+        return annotations
+
     def test_real_bootstrap_cms_roundtrip_keeps_host_private_and_run_bound(self):
         proof,console=self.observe()
         for secret in ('PRIVATE-BOOT-SENTINEL','PRIVATE-MACHINE-SENTINEL','PRIVATE-HOST-SENTINEL','PRIVATE-DAEMON-SENTINEL'):
@@ -1313,7 +1319,7 @@ class BootstrapContracts(unittest.TestCase):
         self.assertIn('CAPACITY_OBSERVED_NOT_ADMITTED',console)
         self.assertEqual(self.validate(),proof)
         output=self.root/'root-observed.json'
-        with mock.patch.object(module,'delivery_get',return_value=[self.annotation()]):
+        with mock.patch.object(module,'delivery_get',return_value=self.transport()):
             digest=module.decrypt_bootstrap(self.context,self.key,output)
         self.assertEqual(digest,module.digest(output))
         self.assertEqual(json.loads(output.read_text()),proof)
@@ -1352,12 +1358,12 @@ class BootstrapContracts(unittest.TestCase):
         self.observe();annotation=self.annotation()
         for field,value in [('proofSHA256','f'*64),('cmsBase64',base64.b64encode(b'invalid').decode())]:
             changed=json.loads(annotation['message']);changed[field]=value
-            with mock.patch.object(module,'delivery_get',return_value=[dict(annotation,message=json.dumps(changed))]):
+            with mock.patch.object(module,'delivery_get',return_value=self.transport(changed)):
                 with self.assertRaises((ValueError,subprocess.SubprocessError)):
                     module.decrypt_bootstrap(self.context,self.key,self.root/('rejected-'+field))
             self.assertFalse((self.root/('rejected-'+field)).exists())
         changed=json.loads(annotation['message']);changed['run']['runId']=999
-        with mock.patch.object(module,'delivery_get',return_value=[dict(annotation,message=json.dumps(changed))]):
+        with mock.patch.object(module,'delivery_get',return_value=self.transport(changed)):
             with self.assertRaisesRegex(ValueError,'bootstrap-public-run-binding-mismatch'):
                 module.verify_published_bootstrap(self.context,{'bootstrapProofSHA256':'f'*64})
 
@@ -1487,7 +1493,7 @@ class BootstrapContracts(unittest.TestCase):
         self.observe();annotation=self.annotation();safe=json.loads(annotation['message'])
         ciphertext=bytearray(base64.b64decode(safe['cmsBase64']));ciphertext[-1]^=1
         safe['cmsBase64']=base64.b64encode(ciphertext).decode()
-        with mock.patch.object(module,'delivery_get',return_value=[dict(annotation,message=json.dumps(safe))]):
+        with mock.patch.object(module,'delivery_get',return_value=self.transport(safe)):
             with self.assertRaises(subprocess.SubprocessError):module.decrypt_bootstrap(self.context,self.key,self.root/'tampered-proof')
         self.assertFalse((self.root/'tampered-proof').exists())
 
@@ -1539,13 +1545,80 @@ class BootstrapContracts(unittest.TestCase):
     def test_pr_or_bootstrap_only_public_proof_cannot_be_used_for_admitted_delivery(self):
         self.observe();safe=module.load_private(module.bootstrap_directory()/'safe.json')
         safe['run']['mode']='bootstrap'
-        with mock.patch.object(module,'delivery_get',return_value=[{'title':module.BOOTSTRAP_TITLE,'annotation_level':'notice','message':json.dumps(safe)}]):
+        with mock.patch.object(module,'delivery_get',return_value=self.transport(safe)):
             with self.assertRaisesRegex(ValueError,'delivery-bootstrap-binding-mismatch'):
                 module.verify_published_bootstrap(self.context,{'bootstrapProofSHA256':safe['proofSHA256']})
         safe['run'].update(mode='pr-probe',event='pull_request',job='bootstrap-probe')
-        with mock.patch.object(module,'delivery_get',return_value=[{'title':module.BOOTSTRAP_TITLE,'annotation_level':'notice','message':json.dumps(safe)}]):
+        with mock.patch.object(module,'delivery_get',return_value=self.transport(safe)):
             with self.assertRaisesRegex(ValueError,'bootstrap-public-run-binding-mismatch'):
                 module.verify_published_bootstrap(self.context,{'bootstrapProofSHA256':safe['proofSHA256']})
+
+    def test_actual_4096_byte_annotation_clipping_red_then_framed_green_roundtrip(self):
+        # Finite realistic larger source vector reproduces the observed GitHub message clipping.
+        self.source['files'].update({'owned-source-'+str(i):'e'*64 for i in range(45)})
+        proof,console=self.observe();legacy=self.annotation()['message']
+        self.assertGreater(len(legacy.encode()),4096)
+        clipped=legacy.encode()[:4096].decode()
+        with self.assertRaises(ValueError):module.strict_transport_json(clipped)
+        annotations=[]
+        for line in console.splitlines():
+            prefix,message=line.split('::',2)[1:]
+            title=prefix.removeprefix('notice title=')
+            self.assertLessEqual(len(message.encode()),3500)
+            annotations.append({'title':title,'annotation_level':'notice','message':message.encode()[:4096].decode()})
+        self.assertGreater(len(annotations),2)
+        self.context['annotationsCount']=len(annotations)
+        with mock.patch.object(module,'delivery_get',return_value=list(reversed(annotations))):
+            output=self.root/'real-transport-proof.json';module.decrypt_bootstrap(self.context,self.key,output)
+        self.assertEqual(json.loads(output.read_text()),proof)
+        self.assertEqual(module.digest(output),json.loads(annotations[0]['message'])['proofSHA256'])
+
+    def test_missing_duplicate_wrong_index_and_inventory_never_reach_decrypt(self):
+        self.observe();frames=self.transport()
+        wrong=json.loads(frames[1]['message']);wrong['index']=999
+        duplicate=[frames[0],frames[1],frames[1]]+frames[2:]
+        cases=[frames[:-1],duplicate,[frames[0],dict(frames[1],message=json.dumps(wrong))]+frames[2:]]
+        for index,annotations in enumerate(cases):
+            with self.subTest(index=index):
+                self.context['annotationsCount']=len(annotations)
+                with mock.patch.object(module,'delivery_get',return_value=annotations),mock.patch.object(module,'command') as decrypt:
+                    with self.assertRaises(ValueError):module.decrypt_bootstrap(self.context,self.key,self.root/('missing-'+str(index)))
+                decrypt.assert_not_called()
+        self.context['annotationsCount']=len(frames)+1
+        with mock.patch.object(module,'delivery_get',return_value=frames):
+            with self.assertRaisesRegex(ValueError,'bootstrap-annotations-incomplete'):module.published_bootstrap(self.context)
+
+    def test_tampered_chunk_cross_run_and_header_binding_are_rejected(self):
+        self.observe();frames=self.transport();header=json.loads(frames[0]['message'])
+        changed=json.loads(frames[1]['message']);changed['data']=('A' if changed['data'][0]!='A' else 'B')+changed['data'][1:]
+        with self.assertRaisesRegex(ValueError,'bootstrap-reassembled-cipher-mismatch'):
+            module.reassemble_bootstrap([frames[0],dict(frames[1],message=json.dumps(changed))]+frames[2:])
+        safe=module.load_private(module.bootstrap_directory()/'safe.json');safe['run']['runId']=999
+        other=self.transport(safe)
+        with self.assertRaisesRegex(ValueError,'bootstrap-chunk-binding-or-index-invalid'):
+            module.reassemble_bootstrap([frames[0],other[1]]+frames[2:])
+        header['proofSHA256']='0'*64
+        with self.assertRaisesRegex(ValueError,'bootstrap-chunk-binding-or-index-invalid'):
+            module.reassemble_bootstrap([dict(frames[0],message=json.dumps(header))]+frames[1:])
+
+    def test_oversized_legacy_or_frame_and_cipher_budgets_fail_closed(self):
+        import base64
+        self.observe();safe=module.load_private(module.bootstrap_directory()/'safe.json');frames=self.transport()
+        with self.assertRaises(ValueError):module.reassemble_bootstrap([self.annotation()])
+        oversized=dict(frames[1],message=frames[1]['message']+' '*3501)
+        with self.assertRaisesRegex(ValueError,'bootstrap-framed-notice-invalid'):
+            module.reassemble_bootstrap([frames[0],oversized]+frames[2:])
+        safe['cmsBase64']=base64.b64encode(b'x'*24576).decode()
+        with self.assertRaisesRegex(ValueError,'bootstrap-proof-too-large'):module.bootstrap_frames(safe)
+        self.context['annotationsCount']=101
+        with mock.patch.object(module,'delivery_get',return_value=frames):
+            with self.assertRaisesRegex(ValueError,'bootstrap-annotations-incomplete'):module.published_bootstrap(self.context)
+
+    def test_all_frames_checked_before_any_notice_is_printed(self):
+        huge=dict(self.run,unsafeExtra='x'*3600)
+        with mock.patch.object(module,'bootstrap_run',return_value=huge):
+            with self.assertRaisesRegex(ValueError,'bootstrap-frame-budget-exceeded'):self.observe()
+        self.assertEqual(self.console,'')
 
 class WorkflowRunnerContextContracts(unittest.TestCase):
     def workflow_term(self):

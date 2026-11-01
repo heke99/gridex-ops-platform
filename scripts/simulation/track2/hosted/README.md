@@ -424,3 +424,30 @@ It never confuses API PR head with checkout merge SHA. Private/public run, mode,
 proof digest and checkout tree must match. Term uses `--bootstrap-job term` and
 requires dispatch head equality. PR proof and bootstrap-only mode cannot satisfy
 admitted delivery, regardless of passing capacity.
+
+### GitHub annotation framing
+
+Actual PR run41337521434/job124940375018 completed its read-only probe, but GitHub
+truncated the original single proof annotation to exactly4096bytes. That run did
+not deliver a consumable private proof and does not establish backend readiness.
+The root consumer intentionally refuses that incomplete legacy notice.
+
+The corrected transport emits one `T2_BOOTSTRAP_PROOF_V1` header and indexed
+`T2_BOOTSTRAP_CIPHER_V1` ciphertext chunks. Every UTF8 message is checked at
+≤3500bytes before **any** notice is printed; base64 chunks contain ≤2400characters.
+The header binds exact run/attempt/checkout source/API-head/job label/mode, private
+proof SHA256, whole ciphertext SHA256/length, and chunk count. Each chunk binds the
+canonical complete header SHA256, its unique index and the same count. Actual
+numeric job/check identity is independently obtained and authenticated through
+GitHub's run/job/check APIs; no fabricated job ID is inserted into the proof.
+
+The consumer requires complete annotation inventory ≤100, one header, exactly the
+specified unique indexed chunk set, exact header binding, bounded messages/cipher,
+and whole ciphertext digest before algorithm validation/decryption. API ordering
+may differ: reconstruction uses indices and accepts a complete reversed list.
+Missing/duplicate/mixed-run/changed/truncated/oversized frames fail closed; it never
+reads raw logs, alternate artifacts or partial ciphertext. Existing CMS algorithm,
+private proof digest and exact source/tree/run checks remain unchanged. No private
+payload, host identity or key is put in these public notices. Actual corrected
+source must still be independently reviewed, published once and probed on GitHub;
+local truncation controls are not a replacement for consuming that real proof.

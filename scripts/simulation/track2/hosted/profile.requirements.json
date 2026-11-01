@@ -118,7 +118,17 @@
     "maxAgeMinutes": 45,
     "sameHostRevalidation": true,
     "prHostReusableForTerm": false,
-    "noHeavyBeforeBoundInput": true
+    "noHeavyBeforeBoundInput": true,
+    "noticeTransport": {
+      "schema": "cms-framed-v1",
+      "headerTitle": "T2_BOOTSTRAP_PROOF_V1",
+      "chunkTitle": "T2_BOOTSTRAP_CIPHER_V1",
+      "maximumMessageBytes": 3500,
+      "base64ChunkCharacters": 2400,
+      "maximumCipherBytesExclusive": 24576,
+      "maximumAnnotations": 100,
+      "binding": "each indexed unique chunk hashes whole header including exact run/source/job/attempt/proofSHA/cipherSHA/count; origin job/check independently authenticated"
+    }
   },
   "qualifiedImagePolicy": {
     "images": {
