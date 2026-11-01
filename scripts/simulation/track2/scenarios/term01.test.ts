@@ -5,6 +5,7 @@
 // med riktig admin-cookie-session, och DB-raden i customer_contracts.
 // Ingen webbläsare (Playwright) används: ren HTTP + psql. Auth/JWT = real tid; affärsdatum = explicita parametrar.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { Buffer } from 'node:buffer'
 import { loginSession, psql, psqlRows, removeAdminFixtureUser, type AppSession } from '../lib'
 import { assertContractEditFeedback, callServerAction, type ServerActionResult } from '../lib/server-action'
 import {
@@ -65,6 +66,105 @@ function pageText(html: string): string {
     .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
     .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
     .replace(/[   ]/g, ' ')
+}
+
+/** Privacy checks include serialized response data, not just visible date text.
+ * This bounded profile reads Next's literal inline queue (0/1/2/3) as data.
+ * Unknown scripts/encodings mean HOLD, never a successful privacy assertion. */
+function tenantPrivacyText(html: string): string {
+  function hold(): never { throw new Error('TERM01.TEN response encoding is unqualified') }
+  const limit = 16 * 1024 * 1024
+  if (Buffer.byteLength(html, 'utf8') > limit) hold()
+  const views: string[] = [], chunks: Buffer[] = []
+  let bootstrap = false, formState = false, dataStarted = false, instructions = 0, bytes = 0, strings = 0
+  const entities = (value: string) => value
+    .replace(/&#(?:x([0-9a-f]+)|(\d+));/gi, (_, hex: string | undefined, decimal: string | undefined) => {
+      const code = hex ? parseInt(hex, 16) : Number(decimal)
+      if (!Number.isInteger(code) || code < 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) hold()
+      return String.fromCodePoint(code)
+    })
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+  const add = (value: string) => {
+    bytes += Buffer.byteLength(value, 'utf8')
+    if (bytes > limit * 4) hold()
+    views.push(value, entities(value))
+  }
+  // Keep attributes/comments as well as text; markup is not a privacy boundary.
+  add(html); add(html.replace(/<[^>]+>/g, ''))
+  const jsonStrings = (value: string) => {
+    const tokens = value.matchAll(/"(?:\\["\\/bfnrt]|\\u[0-9a-f]{4}|[^"\\\u0000-\u001f])*"/gi)
+    for (const token of tokens) {
+      if (++strings > 100000) hold()
+      const decoded: unknown = JSON.parse(token[0])
+      if (typeof decoded !== 'string') hold()
+      add(decoded)
+    }
+  }
+  // Decode quoted JSON strings after byte reassembly, including Flight model
+  // strings escaped inside the outer Next queue JSON. Never evaluate JS.
+  const scripts = /<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi
+  let matched = 0
+  for (const match of html.matchAll(scripts)) {
+    matched++
+    if (matched > 10000) hold()
+    let body = match[1].trim()
+    if (!body) {
+      if (!/\bsrc\s*=\s*(?:"[^"]+"|'[^']+')/i.test(match[0].slice(0, match[0].indexOf('>')))) hold()
+      continue
+    }
+    while (body) {
+      const initial = '(self.__next_f=self.__next_f||[]).push('
+      const next = 'self.__next_f.push('
+      const prefix = body.startsWith(initial) ? initial : body.startsWith(next) ? next : hold()
+      if (++instructions > 10000 || (prefix === initial && bootstrap) || (prefix === next && !bootstrap)) hold()
+      const input = body.slice(prefix.length)
+      if (input[0] !== '[') hold()
+      let depth = 0, quoted = false, escaped = false, end = -1
+      for (let i = 0; i < input.length; i++) {
+        const character = input[i]
+        if (quoted) {
+          if (escaped) escaped = false
+          else if (character === '\\') escaped = true
+          else if (character === '"') quoted = false
+        } else if (character === '"') quoted = true
+        else if (character === '[' || character === '{') depth++
+        else if (character === ']' || character === '}') {
+          if (--depth === 0) { end = i + 1; break }
+        }
+      }
+      if (end < 0 || input[end] !== ')') hold()
+      let payload: unknown
+      try { payload = JSON.parse(input.slice(0, end)) } catch { hold() }
+      if (!Array.isArray(payload)) hold()
+      const [tag, value] = payload
+      if (prefix === initial) {
+        if (tag !== 0 || payload.length !== 1) hold()
+        bootstrap = true
+      } else if (tag === 1 || tag === 3) {
+        if (payload.length !== 2 || typeof value !== 'string') hold()
+        if (tag === 3 && (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)
+          || Buffer.from(value, 'base64').toString('base64') !== value)) hold()
+        const chunk = Buffer.from(value, tag === 1 ? 'utf8' : 'base64')
+        bytes += chunk.length
+        if (bytes > limit * 4) hold()
+        chunks.push(chunk); dataStarted = true
+      } else if (tag === 2) {
+        if (payload.length !== 2 || formState || dataStarted) hold()
+        formState = true
+        const encoded = JSON.stringify(value)
+        add(encoded); jsonStrings(encoded)
+      } else hold()
+      body = input.slice(end + 1).trim()
+      if (body) {
+        if (!body.startsWith(';')) hold()
+        body = body.slice(1).trim()
+      }
+    }
+  }
+  if ((html.match(/<script\b/gi) ?? []).length !== matched) hold()
+  const flight = Buffer.concat(chunks).toString('utf8')
+  add(flight); jsonStrings(flight)
+  return views.join('\n')
 }
 function svDateToIso(token: string | undefined): string | null {
   if (!token || token.trim() === '—') return null
@@ -506,7 +606,7 @@ describe('TERM01 bindningstid och slutdatum', () => {
       const out: { tab: string; status: number; location: string | null; text: string }[] = []
       for (const tab of tabs) {
         const res = await s.fetch(`/admin/customers/${f.customerId}?tab=${tab}`)
-        out.push({ tab, status: res.status, location: res.headers.get('location'), text: pageText(await res.text()) })
+        out.push({ tab, status: res.status, location: res.headers.get('location'), text: tenantPrivacyText(await res.text()) })
       }
       return out
     }
@@ -534,7 +634,7 @@ describe('TERM01 bindningstid och slutdatum', () => {
           let status = -1; let location: string | null = null; let text = ''
           try {
             const res = await s2.fetch(`/admin/customers/${f.customerId}?tab=${tab}`)
-            status = res.status; location = res.headers.get('location'); text = pageText(await res.text())
+            status = res.status; location = res.headers.get('location'); text = tenantPrivacyText(await res.text())
           } catch (error) { unexpected.push(`${label}/${tab}: fetch-fel ${(error as Error).message.slice(0, 120)}`) }
           const found = Object.entries(markers).filter(([, v]) => text.includes(v)).map(([k]) => k)
           const klass = found.length > 0 ? 'LÄCKAGE' : [302, 303, 307, 308, 403, 404].includes(status) ? 'korrekt nekande' : status === 200 ? 'mjukt nekande (200 utan data)' : `oväntad status ${status}`

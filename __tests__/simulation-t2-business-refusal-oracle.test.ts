@@ -186,3 +186,154 @@ describe('TERM03 overlap actual callback must reach real overlap and no-double-b
     expect(test.calls).toMatchObject({ contract: 2, supply: 2, generate: 1, preview: 0 })
   })
 })
+
+// Actual TEN privacy callback and installed Next inline encoder; no services or untrusted script execution.
+import { createRequire } from 'node:module';
+const tenantSourceRoot = path.resolve(root, '../../..');
+const tenantRequire = createRequire(new URL('../package.json', import.meta.url));
+const { createInlinedDataReadableStream } = tenantRequire('next/dist/server/app-render/use-flight-response.js');
+function tenantControl(mode: string) {
+    const fixture = { companyId: '00000000-0000-4000-8000-000000000001', customerId: '00000000-0000-4000-8000-000000000002', contractId: '00000000-0000-4000-8000-000000000003', siteId: '00000000-0000-4000-8000-000000000004', meteringPointId: '00000000-0000-4000-8000-000000000005', gsrn: '735999100000000001' };
+    const customer = { name: mode === 'escaped-leak' ? 'Syntetisk <Hemlig> & Kund' : 'Syntetisk Hemlig Kund', personal_number: '199001019999', email: 't2-own-private@example.invalid' };
+    const observed: Array<{
+        html: string;
+    }> = [];
+    const tests = new Map<string, () => Promise<void>>();
+    const scriptGlobal: {
+        __tenantOracleExecuted?: boolean;
+    } = {};
+    const inline = async (value: string, formState: unknown = null) => new Response(createInlinedDataReadableStream(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode(value)); controller.close(); } }), null, formState)).text();
+    const own = { fetch: async () => new Response(mode === 'own-flight' ? await inline('1:' + JSON.stringify({ email: customer.email, gsrn: fixture.gsrn }) + '\n') : `<main>${customer.email} ${fixture.gsrn}</main>`, { status: 200 }) };
+    const foreign = { fetch: async () => {
+            const scriptMode = ['script-leak', 'split-leak', 'escaped-leak', 'binary-leak', 'binary-text-split', 'inner-escaped', 'formstate-leak', 'benign-flight', 'benign-formstate', 'benign-binary', 'benign-binary-text-split'].includes(mode);
+            let leak = JSON.stringify(mode === 'escaped-leak' ? { name: customer.name } : ['split-leak', 'binary-leak', 'binary-text-split', 'inner-escaped'].includes(mode) ? { email: customer.email } : ['benign-flight', 'benign-formstate', 'formstate-leak', 'benign-binary', 'benign-binary-text-split'].includes(mode) ? { notice: 'not-found' } : { ...customer, gsrn: fixture.gsrn, siteId: fixture.siteId, contractId: fixture.contractId });
+            if (mode === 'inner-escaped')
+                leak = leak.replace('@', '\\u0040');
+            const bytes = new TextEncoder().encode('1:' + leak + '\n');
+            let chunks = [bytes];
+            if (mode === 'split-leak') {
+                const cut = Buffer.from(bytes).indexOf(customer.email) + Math.floor(customer.email.length / 2);
+                chunks = [bytes.slice(0, cut), bytes.slice(cut)];
+            }
+            if (mode === 'binary-leak' || mode === 'benign-binary')
+                chunks = [Buffer.concat([Buffer.from([255]), bytes])];
+            if (mode === 'binary-text-split') {
+                const cut = Buffer.from(bytes).indexOf(customer.email) + Math.floor(customer.email.length / 2);
+                chunks = [Buffer.concat([Buffer.from([255]), bytes.slice(0, cut)]), bytes.slice(cut)];
+            }
+            if (mode === 'benign-binary-text-split') {
+                const cut = Math.floor(bytes.length / 2);
+                chunks = [Buffer.concat([Buffer.from([255]), bytes.slice(0, cut)]), bytes.slice(cut)];
+            }
+            const flight = new ReadableStream({ start(controller) { for (const chunk of chunks)
+                    controller.enqueue(chunk); controller.close(); } });
+            let actualNextScript = scriptMode ? await new Response(createInlinedDataReadableStream(flight, null, mode === 'formstate-leak' ? { email: customer.email } : mode === 'benign-formstate' ? { notice: 'not-found' } : null)).text() : '';
+            const bootstrap = '<script>(self.__next_f=self.__next_f||[]).push([0])</script>';
+            const malformed: Record<string, string> = {
+                'bad-base64': bootstrap + '<script>self.__next_f.push([3,"!invalid"])</script>',
+                'noncanonical-base64': bootstrap + '<script>self.__next_f.push([3,"QR=="])</script>',
+                'bad-json': bootstrap + '<script>self.__next_f.push([1,"unterminated])</script>',
+                'nonliteral': bootstrap + '<script>self.__next_f.push((()=>{globalThis.__tenantOracleExecuted=true;return [1,"ignored"]})())</script>',
+                'unknown-tag': bootstrap + '<script>self.__next_f.push([9,"ignored"])</script>',
+                'missing-bootstrap': '<script>self.__next_f.push([1,"ignored"])</script>',
+                'duplicate-bootstrap': bootstrap + bootstrap,
+                'bad-bootstrap': '<script>(self.__next_f=self.__next_f||[]).push([0,"ignored"])</script>',
+                'nonstring-text': bootstrap + '<script>self.__next_f.push([1,{}])</script>',
+                'extra-field': bootstrap + '<script>self.__next_f.push([1,"ignored",1])</script>',
+                'unknown-inline': '<script>globalThis.__tenantOracleExecuted=true</script>',
+                'unclosed-script': '<script>self.__next_f.push([0])',
+                'late-formstate': bootstrap + '<script>self.__next_f.push([1,"ignored"]);self.__next_f.push([2,{}])</script>',
+                'trailing-code': bootstrap + '<script>self.__next_f.push([1,"ignored"]);globalThis.__tenantOracleExecuted=true</script>',
+            };
+            if (malformed[mode])
+                actualNextScript = malformed[mode];
+            const html = mode === 'attribute-leak' ? `<main data-email="${customer.email.replace('@', '&#64;')}">Kunden finns inte</main>` : (scriptMode || actualNextScript) ? `<main>Kunden finns inte. Referens: ${fixture.customerId}</main>${actualNextScript}` : mode === 'visible-leak' ? `<main>${leak}</main>` : mode === 'benign-external' ? '<script src="/_next/static/chunks/app.js" async></script><main>Kunden finns inte</main>' : `<main>Kunden finns inte. Referens: ${fixture.customerId}</main>`;
+            observed.push({ html });
+            return new Response(html, { status: 200 });
+        } };
+    const tenant = { companyId: fixture.companyId, admin: { email: 'tenant-A@example.invalid', password: 'synthetic' } };
+    const forbidden = () => { throw new Error('undeclared service operation'); };
+    const register = Object.assign((title: string, callback: () => Promise<void>) => tests.set(title, callback), { each: () => () => { }, skip: () => { } });
+    const ports: Record<string, unknown> = {
+        'node:buffer': tenantRequire('node:buffer'),
+        vitest: { describe: (_title: string, callback: () => void) => callback(), it: register, beforeAll: () => { }, afterAll: () => { }, expect },
+        '../lib': { loginSession: async () => foreign, removeAdminFixtureUser: async () => { }, psql: forbidden, psqlRows: (sql: string) => {
+                if (sql.includes('coalesce(nullif(trim(concat_ws'))
+                    return [customer];
+                if (sql.includes('select org_number'))
+                    return [{ org_number: '5599999999' }];
+                throw new Error('undeclared SQL read');
+            } },
+        '../lib/server-action': { assertContractEditFeedback: forbidden, callServerAction: forbidden },
+        '../lib/term-fixture': { createSignedContract: forbidden, createTermTenant: async () => ({ companyId: '00000000-0000-4000-8000-000000000099', admin: { email: 'tenant-B@example.invalid', password: 'synthetic' } }), probeCreateCustomerAction: forbidden, probeCreateContractTsPath: forbidden, psqlExpectError: forbidden, rowHash: forbidden, stockholmToday: forbidden },
+    };
+    const filename = path.join(tenantSourceRoot, 'scripts/simulation/track2/scenarios/term01.test.ts');
+    const source = readFileSync(filename, 'utf8');
+    const code = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText;
+    const exports: {
+        controlledPrime?: (...args: unknown[]) => void;
+    } = {};
+    // The already-qualified own fixture is a declared port. Actual TEN callback,
+    // response decoder, marker selection, status and leak assertions execute.
+    runInNewContext(code + '\nexports.controlledPrime=(a,b,c)=>{tenant=a;session=b;signed=async()=>c};', {
+        exports, require: (name: string) => { if (!(name in ports))
+            throw new Error('undeclared import'); return ports[name]; }, console: { info() { } }, Intl, globalThis: scriptGlobal,
+    }, { filename });
+    if (!exports.controlledPrime)
+        throw new Error('missing controlled fixture port');
+    exports.controlledPrime(tenant, own, fixture);
+    const callback = [...tests].find(([title]) => title.startsWith('TERM01.TEN '))?.[1];
+    expect(callback).toBeTypeOf('function');
+    if (!callback)
+        throw new Error('missing actual TEN callback');
+    return { callback, observed, customer, fixture, scriptGlobal };
+}
+describe('T6 actual tenant guard response oracle', () => {
+    it('accepts genuine soft200 denial with harmless requested customer ID echo', async () => {
+        const c = tenantControl('denied');
+        await c.callback();
+        expect(c.observed).toHaveLength(8);
+    });
+    it('rejects visible foreign tenant markers as a real negative control', async () => {
+        const c = tenantControl('visible-leak');
+        await expect(c.callback()).rejects.toThrow('tenant 1-data');
+    });
+    it('rejects foreign tenant data leaked only in the actual HTML RSC script response', async () => {
+        const c = tenantControl('script-leak');
+        await expect(c.callback()).rejects.toThrow('tenant 1-data');
+        expect(c.observed[0].html).toContain(c.customer.email);
+    });
+});
+describe('T6 actual Next Flight encoding and chunk boundaries', () => {
+    it.each(['split-leak', 'escaped-leak', 'binary-leak', 'binary-text-split'])('rejects %s even when no complete foreign marker appears in raw HTML plaintext', async (mode) => {
+        const c = tenantControl(mode);
+        let error;
+        try {
+            await c.callback();
+        }
+        catch (caught) {
+            error = caught;
+        }
+        expect(c.observed.length).toBeGreaterThan(0);
+        const marker = mode === 'escaped-leak' ? c.customer.name : c.customer.email;
+        expect(c.observed[0].html).not.toContain(marker);
+        expect(error, 'actual TEN callback must refuse foreign Flight data rather than strip its representation').toBeDefined();
+        expect((error as Error).message).toContain('tenant 1-data');
+    });
+});
+describe('TEN privacy qualified representations and malformed boundaries', () => {
+    it.each(['benign-flight', 'benign-formstate', 'own-flight', 'benign-external', 'benign-binary', 'benign-binary-text-split'])('accepts genuine %s without foreign data', async (mode) => {
+        const c = tenantControl(mode);
+        await c.callback();
+        if (mode.startsWith('benign-binary')) expect(c.observed[0].html).toContain('.push([3,');
+        if (mode === 'benign-binary-text-split') expect(c.observed[0].html).toContain('.push([1,');
+    });
+    it.each(['inner-escaped', 'formstate-leak', 'attribute-leak'])('refuses private marker in %s', async (mode) => {
+        await expect(tenantControl(mode).callback()).rejects.toThrow('tenant 1-data');
+    });
+    it.each(['bad-base64', 'noncanonical-base64', 'bad-json', 'nonliteral', 'unknown-tag', 'missing-bootstrap', 'duplicate-bootstrap', 'bad-bootstrap', 'nonstring-text', 'extra-field', 'unknown-inline', 'unclosed-script', 'late-formstate', 'trailing-code'])('fails qualification for %s without evaluating scripts', async (mode) => {
+        const c = tenantControl(mode);
+        await expect(c.callback()).rejects.toThrow();
+        expect(c.scriptGlobal.__tenantOracleExecuted).toBeUndefined();
+    });
+});
