@@ -1,0 +1,162 @@
+name: T4 atomic native owned-host profile
+
+# SOURCE ONLY: this package grants no execution event. A separately reviewed
+# activation PR, genuine private inputs and three live producer leases are needed.
+on:
+  pull_request:
+    types: [opened]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: t4-atomic-native-owned-host
+  cancel-in-progress: false
+jobs:
+  atomic-native:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.head_ref == 'codex/t4-atomic-native-activation' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      T4_HOME: ${{ runner.temp }}/t4-atomic-native-private
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: profile
+          persist-credentials: false
+      - name: Require privately authenticated input before backend mutations
+        env:
+          INPUT_ARTIFACT_ID: ${{ secrets.T4_PRIVATE_INPUT_ARTIFACT_ID }}
+          INPUT_ARCHIVE_SHA256: ${{ secrets.T4_PRIVATE_INPUT_ARCHIVE_SHA256 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          try:
+              import hashlib,io,json,os,pathlib,re,urllib.request,zipfile
+              ident=os.environ.get('INPUT_ARTIFACT_ID',''); digest=os.environ.get('INPUT_ARCHIVE_SHA256','')
+              assert re.fullmatch('[0-9]+',ident) and re.fullmatch('[a-f0-9]{64}',digest),'qualified encrypted input absent'
+              base='https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']+'/actions/artifacts/'+ident
+              headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'}
+              def get(url):
+                  with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=60) as r:return r.read()
+              metadata=json.loads(get(base));assert not metadata['expired'] and metadata['name']=='t4-qualified-private-input'
+              data=get(base+'/zip');assert hashlib.sha256(data).hexdigest()==digest,'encrypted input archive changed'
+              with zipfile.ZipFile(io.BytesIO(data)) as z:
+                  assert z.namelist()==['input.enc.json'],'private input archive refused'
+                  pathlib.Path(os.environ['RUNNER_TEMP']+'/t4-input.enc.json').write_bytes(z.read('input.enc.json'))
+          except Exception:
+              raise SystemExit('T4 private/source/tool prerequisite HOLD')
+          PY
+      - name: Install exact public tool archives on this disposable host
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          try:
+              import hashlib,io,os,pathlib,tarfile,urllib.request
+              root=pathlib.Path(os.environ['RUNNER_TEMP'])/'t4-tools';root.mkdir(mode=0o700)
+              archives=[('node','https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-x64.tar.xz','1805bcd35e6815559bd2eb97db438d3fdb0eb3a5e6a977b7c1badca76337e9ce'),
+                ('npm','https://registry.npmjs.org/npm/-/npm-10.9.2.tgz','5cd1e5ab971ea6333f910bc2d50700167c5ef4e66da279b2a3efc874c6b116e4'),
+                ('supabase','https://github.com/supabase/cli/releases/download/v2.101.0/supabase_2.101.0_linux_amd64.tar.gz','285877ef9de845d76487772e0d36019a095ee28b527b9abbd6739eeba4d3dbf9')]
+              for name,url,digest in archives:
+                  with urllib.request.urlopen(url,timeout=120) as r:data=r.read(128*1024*1024+1)
+                  assert hashlib.sha256(data).hexdigest()==digest,'public tool archive refused'
+                  target=root/name;target.mkdir(mode=0o700)
+                  with tarfile.open(fileobj=io.BytesIO(data)) as a:a.extractall(target,filter='data')
+              npm=root/'node/node-v22.23.4-linux-x64/bin/npm';npm.unlink();npm.symlink_to(root/'npm/package/bin/npm-cli.js')
+          except Exception:
+              raise SystemExit('T4 private/source/tool prerequisite HOLD')
+          PY
+          printf '%s\n' "$RUNNER_TEMP/t4-tools/node/node-v22.23.4-linux-x64/bin" "$RUNNER_TEMP/t4-tools/supabase" /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+      - name: Install authenticated PostgreSQL17 client (no backend)
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -m 700 "$RUNNER_TEMP/t4-tools/gnupg"
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' https://www.postgresql.org/media/keys/ACCC4CF8.asc > "$RUNNER_TEMP/t4-tools/pgdg.asc"
+          python3 - <<'PYCLIENT'
+          try:
+              import os,pathlib,subprocess
+              root=pathlib.Path(os.environ['RUNNER_TEMP'])/'t4-tools'
+              result=subprocess.check_output(['gpg','--batch','--no-options','--homedir',str(root/'gnupg'),'--with-colons','--show-keys',str(root/'pgdg.asc')],text=True,stderr=subprocess.PIPE)
+              rows=[line.split(':') for line in result.splitlines()]
+              assert sum(row[0]=='pub' for row in rows)==1 and [row[9] for row in rows if row[0]=='fpr']==['B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8']
+          except Exception:
+              raise SystemExit('T4 private/source/tool prerequisite HOLD')
+          PYCLIENT
+          test ! -e /usr/share/keyrings/gridex-t4-pgdg.asc
+          test ! -e /etc/apt/sources.list.d/gridex-t4-pgdg.list
+          sudo install -m 644 "$RUNNER_TEMP/t4-tools/pgdg.asc" /usr/share/keyrings/gridex-t4-pgdg.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/gridex-t4-pgdg.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' > "$RUNNER_TEMP/t4-tools/pgdg.list"
+          sudo install -m 644 "$RUNNER_TEMP/t4-tools/pgdg.list" /etc/apt/sources.list.d/gridex-t4-pgdg.list
+          sudo apt-get -o Acquire::AllowInsecureRepositories=false update -qq > "$RUNNER_TEMP/t4-tools/client-install.log" 2>&1
+          sudo apt-get -o APT::Get::AllowUnauthenticated=false install -y postgresql-client-17=17.11-1.pgdg24.04+2 >> "$RUNNER_TEMP/t4-tools/client-install.log" 2>&1
+      - name: Decrypt private input and obtain exact public source snapshots
+        env:
+          T4_RUNTIME_INPUT_KEY: ${{ secrets.T4_RUNTIME_INPUT_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          node profile/scripts/simulation/track4/atomic-native-profile.mjs receive "$RUNNER_TEMP/t4-input.enc.json" "$T4_HOME"
+          python3 - <<'PY'
+          try:
+              import json,os,pathlib,re,subprocess
+              plan=json.loads(pathlib.Path(os.environ['T4_HOME']+'/plan.json').read_text())
+              for key,source in plan['sources'].items():
+                  assert re.fullmatch('[a-f0-9]{40}',source['commit']) and re.fullmatch('[a-f0-9]{40}',source['tree'])
+                  root=pathlib.Path(source['root'])
+                  if key=='profile':
+                      assert root.resolve()==pathlib.Path(os.environ['GITHUB_WORKSPACE']+'/profile').resolve();continue
+                  assert root.parent.resolve()==pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve() and not root.exists()
+                  subprocess.run(['git','clone','--no-checkout','--filter=blob:none','https://github.com/heke99/gridex-ops-platform.git',str(root)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+                  subprocess.run(['git','-C',str(root),'checkout','--detach',source['commit']],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+          except Exception:
+              raise SystemExit('T4 private/source/tool prerequisite HOLD')
+          PY
+      - name: Measure host and pending bootstrap inputs (no backend grant)
+        run: node profile/scripts/simulation/track4/atomic-native-profile.mjs init "$T4_HOME/plan.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: t4-init-encrypted
+          path: ${{ env.T4_HOME }}/export/*
+          if-no-files-found: error
+          retention-days: 3
+      - name: Await qualified bootstrap lease; replay, restore, build and start fresh app
+        run: node profile/scripts/simulation/track4/atomic-native-profile.mjs bootstrap "$T4_HOME/plan.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: t4-bootstrap-encrypted
+          path: ${{ env.T4_HOME }}/export/*
+          if-no-files-found: error
+          retention-days: 3
+      - name: Await distinct measured preparation lease; call ordinary preparation
+        run: node profile/scripts/simulation/track4/atomic-native-profile.mjs prepare "$T4_HOME/plan.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: t4-prepare-encrypted
+          path: ${{ env.T4_HOME }}/export/*
+          if-no-files-found: error
+          retention-days: 3
+      - name: Await fresh native lease; strict source guards, frozen proof, source guards
+        run: node profile/scripts/simulation/track4/atomic-native-profile.mjs native "$T4_HOME/plan.json"
+      - name: Finite exact owned cleanup on the SAME host
+        if: always()
+        run: |
+          set -euo pipefail
+          if test -f "$T4_HOME/receipts/bootstrap.intent.json"; then
+            node profile/scripts/simulation/track4/atomic-native-profile.mjs cleanup "$T4_HOME/plan.json"
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: t4-final-encrypted
+          path: ${{ env.T4_HOME }}/export/*
+          if-no-files-found: error
+          retention-days: 3
