@@ -411,33 +411,14 @@ describe('TERM03.05(b) två av våra avtal på samma mätpunkt med överlappande
     const c1 = await createSignedContract(tenant, { contractType: 'variable_hourly', bindingMonths: 0, noticeMonths: 1, startsAt: '2026-09-01', priceArea: 'SE3', monthlyFeeSek: Number(FEE) })
     createSupplyPeriod(c1, { startsOn: '2026-09-01', endsOn: '2026-09-20', status: 'active' })
     insertMeteringValues(c1, toMeterValues(sepSe3, 'PT60M'))
-    let c2: SignedContractFixture | null = null
-    try {
-      c2 = await createSignedContract(tenant, { contractType: 'variable_hourly', bindingMonths: 0, noticeMonths: 1, startsAt: '2026-09-10', priceArea: 'SE3', monthlyFeeSek: Number(FEE),
-        existing: { customerId: c1.customerId, siteId: c1.siteId, meteringPointId: c1.meteringPointId, gsrn: c1.gsrn } })
-    } catch (error) {
-      const message = (error as Error).message
-      // Bara ett verkligt nekande från appens action räknas som utfall; fixturfel (t.ex. felräkning av nya avtal) kastas vidare.
-      if (!/server action misslyckades|skapade 0 nya avtal/.test(message)) throw error
-      observe('TERM03.05b', { outcome: 'APPEN NEKAR ett andra avtal på samma mätpunkt', message: message.slice(0, 400) })
-      console.info(`[TERM03.05b] UTFALL: appen nekar ett andra avtal på samma kund/anläggning/mätpunkt vid skapandet: ${message.slice(0, 300)}`)
-      expect(message.length).toBeGreaterThan(0)
-      return
-    }
-    let overlapDenied: string | null = null
-    try {
-      createSupplyPeriod(c2, { startsOn: '2026-09-10', endsOn: null, status: 'active' })
-    } catch (error) {
-      overlapDenied = String((error as { stderr?: unknown }).stderr ?? error).slice(0, 400)
-    }
-    if (overlapDenied !== null) {
-      observe('TERM03.05b', { outcome: 'DB NEKAR överlappande leveransperioder', message: overlapDenied })
-      console.info(`[TERM03.05b] UTFALL: databasen nekar den överlappande leveransperioden: ${overlapDenied}`)
-      expect(psqlRows<{ n: number }>(`select count(*)::int as n from public.customer_supply_periods where metering_point_id='${c1.meteringPointId}'`)[0].n).toBe(1)
-      return
-    }
+    // Ett generiskt action-/SQL-fel bevisar inte avvisad överlappning eller frånvaro av commit.
+    // Låt alla setupfel fortplantas; endast det faktiskt skapade överlappsfallet prövas nedan.
+    const c2 = await createSignedContract(tenant, { contractType: 'variable_hourly', bindingMonths: 0, noticeMonths: 1, startsAt: '2026-09-10', priceArea: 'SE3', monthlyFeeSek: Number(FEE),
+      existing: { customerId: c1.customerId, siteId: c1.siteId, meteringPointId: c1.meteringPointId, gsrn: c1.gsrn } })
+    createSupplyPeriod(c2, { startsOn: '2026-09-10', endsOn: null, status: 'active' })
     const gen = expectGenerate(await generateUnderlay(session, SEP))
     const underlays = readUnderlaysForMonth(tenant.companyId, SEP).filter((r) => r.metering_point_id === c1.meteringPointId)
+    expect(underlays.length, 'överlappsfallet ska ha faktiska underlag att kontrollera').toBeGreaterThan(0)
     const billed = underlays.reduce((acc, r) => acc + Number(dec(r.total_kwh ?? '0').n) / 10 ** dec(r.total_kwh ?? '0').s, 0)
     const measured = Number(decToString(sumKwh(toOracle(sepSe3))))
     const overlapWarnings = gen.results.filter((r) => r.warnings.some((w) => /Överlappande leveransperioder/i.test(w)))

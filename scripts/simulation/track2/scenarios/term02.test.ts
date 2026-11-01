@@ -614,21 +614,18 @@ function matrixSetupF() {
 }
 
 describe('TERM02.04 f) månadsavtal + kvartsmätning (egen uppställning, delar spotmånad 2026-08 SE1 med matrisen)', () => {
-  it('TERM02.04 f) månadsavtal + kvartsmätning: utfallet registreras (stödd med korrekt energibelopp, eller kontrollerat nekad)', async () => {
+  it('TERM02.04 f) månadsavtal + kvartsmätning: lyckad prissättning krävs; täckning och belopp kontrolleras', async () => {
     const combo = await matrixSetupF()
     const id = 'TERM02.04 f) månadsavtal + kvartsmätning'
     const { row, result } = underlayFor(combo.tenant.companyId, '2026-08', combo.contract, combo.gen)
     const res = await pricePreview(combo.session, { underlayId: row.id })
-    expect(res.status, `HTTP ${res.status} (aldrig 5xx): ${res.text}`).toBeLessThan(500)
-    const supportedOutcome = res.status === 200 && res.data?.status === 'success'
-    observe(id, { utfall: supportedOutcome ? 'stödd' : 'kontrollerat nekad', underlayStatus: result.status, http: res.status, previewStatus: res.data?.status, errors: res.data?.errors, app: res.data ? describeApp(res.data) : null })
-    if (supportedOutcome) {
-      expectCoverageClean(id, row, result, combo.points.length)
-      expectTotalKwh(id, row, combo.points)
-      await checkMonthlyContract(combo.session, row.id, combo.points, readContractTerms(combo.contract), id)
-    } else {
-      expect(res.status >= 400 || (res.data !== null && res.data.errors.length > 0), 'nekandet ska ha ett fel och inget tyst belopp').toBe(true)
-    }
+    // Auth-, transport- och setupfel är inget styrkt domännekande för denna kombination.
+    expect(res.status, `HTTP ${res.status}: ${res.text}`).toBe(200)
+    expect(res.data?.status, `preview-status: ${res.data?.status}; fel: ${res.data?.errors?.join(' | ')}`).toBe('success')
+    observe(id, { utfall: 'stödd', underlayStatus: result.status, http: res.status, previewStatus: res.data?.status, errors: res.data?.errors, app: describeApp(res.data!) })
+    expectCoverageClean(id, row, result, combo.points.length)
+    expectTotalKwh(id, row, combo.points)
+    await checkMonthlyContract(combo.session, row.id, combo.points, readContractTerms(combo.contract), id)
   }, LONG)
 })
 
