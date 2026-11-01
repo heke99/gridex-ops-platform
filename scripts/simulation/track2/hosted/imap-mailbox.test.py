@@ -169,6 +169,7 @@ class MailboxTest(unittest.TestCase):
         self.assertNotIn('auth.disabled', env)
         self.assertNotIn('setup.test.all', env)
         self.assertTrue((directory / 'intent.json').exists())
+        self.assertEqual(m.read_descriptor(self.helper), descriptor)
         for path in directory.iterdir():
             self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
         with self.assertRaises(FileExistsError):
@@ -182,6 +183,32 @@ class MailboxTest(unittest.TestCase):
         self.assertFalse((self.home / 'pilot-mailbox/descriptor.json').exists())
         self.assertTrue((self.home / 'pilot-mailbox/container.id').exists())
         self.assertFalse(any(c[1] in ('start', 'rm', 'stop') for c in self.commands))
+
+    def test_reader_rejects_private_credential_and_ca_tampering(self):
+        self.confined()
+        path = m.start(self.helper)
+        original = path.read_text()
+        descriptor = json.loads(original)
+        descriptor['imap']['password'] = 'f' * 48
+        path.write_text(json.dumps(descriptor))
+        with self.assertRaisesRegex(ValueError, 'endpoint-invalid'):
+            m.read_descriptor(self.helper)
+        path.write_text(original)
+        ca = path.parent / 'ca.pem'
+        ca.write_text(ca.read_text() + '\nchanged')
+        with self.assertRaisesRegex(ValueError, 'private-resource-changed'):
+            m.read_descriptor(self.helper)
+
+    def test_reader_rejects_broad_live_bindings_and_foreign_birth(self):
+        self.confined()
+        m.start(self.helper)
+        self.data['NetworkSettings']['Ports']['3993/tcp'][0]['HostIp'] = '0.0.0.0'
+        with self.assertRaisesRegex(ValueError, 'live-bindings-invalid'):
+            m.read_descriptor(self.helper)
+        self.data['NetworkSettings']['Ports']['3993/tcp'][0]['HostIp'] = '127.0.0.1'
+        self.data['Created'] = 'changed'
+        with self.assertRaisesRegex(ValueError, 'resource-invalid'):
+            m.read_descriptor(self.helper)
 
     def test_foreign_image_and_birth_identity_rejected(self):
         mount = self.home / 'pilot-mailbox/server.p12'

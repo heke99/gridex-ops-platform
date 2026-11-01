@@ -13,6 +13,9 @@ sourceCommit, environmentId, smtp/imap {host,port,secure,user,password},
 mailboxAddress, tlsCaPath, nodeExtraCaPath, resourceReceiptSha256.
 Consumers must validate bindings and receipt before use; readiness proves only
 TLS/auth to the synthetic service, not app catalog/actor permission or acceptance.
+CLI `verify` checks the descriptor/resources but prints only a fixed safe result.
+read_descriptor() returns credentials only in caller memory. App startup exports
+SIM_PILOT_MAILBOX_PASSWORD and NODE_EXTRA_CA_CERTS=nodeExtraCaPath privately.
 
 GreenMail 2.1.3 documented properties: greenmail.{smtps,imaps}.{hostname,port},
 greenmail.users/login, greenmail.tls.keystore.file/password; PKCS12 supported.
@@ -91,8 +94,8 @@ def load(path):
     return json.loads(private_file(path).read_text())
 
 
-def admission(helper):
-    a, home, app = helper.authenticate('up')
+def admission(helper, operation='up'):
+    a, home, app = helper.authenticate(operation)
     helper.validate_attempt(a, home)
     group = helper.owned_cgroup(a, home)
     require(helper.read_text('/proc/self/cgroup').splitlines() == ['0::/' + group.name],
@@ -238,7 +241,9 @@ def start(helper=None):
     require(receipt['id'] == container_id, 'mailbox-container-id-mismatch')
     identity = dict(receipt)
     receipt.update(assignmentSha256=assignment_hash, sourceCommit=a['sourceCommit'], environmentId=a['environmentId'],
-                   caSHA256=sha(directory / 'ca.pem'), nodeExtraCaSHA256=sha(bundle), user=cfg['mailboxAddress'])
+                   caSHA256=sha(directory / 'ca.pem'), nodeExtraCaSHA256=sha(bundle), user=cfg['mailboxAddress'],
+                   containerEnvSHA256=sha(directory / 'container.env'),
+                   credentialSHA256=hashlib.sha256(password.encode('ascii')).hexdigest())
     record(directory / 'resource.json', receipt)  # exact ID/birth before start
     helper.inventory(a, home)
     run(['docker', 'start', container_id])
@@ -264,17 +269,62 @@ def start(helper=None):
     for protocol, key in (('smtp', 'smtps'), ('imap', 'imaps')):
         descriptor[protocol] = {'host': '127.0.0.1', 'port': cfg['ports'][key], 'secure': True,
                                 'user': cfg['mailboxAddress'], 'password': password}
-    record(directory / 'descriptor.json', descriptor)
     helper.inventory(a, home)
+    record(directory / 'descriptor.json', descriptor)
     return directory / 'descriptor.json'
+
+
+def read_descriptor(helper=None, operation='run'):
+    """Verify private service receipt, never authorize app catalog/actors."""
+    require(operation in ('up', 'run'), 'mailbox-reader-operation-invalid')
+    helper = helper or helper_module()
+    a, home, _, assignment_hash = admission(helper, operation)
+    directory = home / 'pilot-mailbox'
+    private_dir(directory)
+    descriptor = load(directory / 'descriptor.json')
+    receipt = load(directory / 'resource.json')
+    cfg = a['pilotMailbox']
+    require(descriptor.get('schema') == 'gridex-t2-pilot-mailbox-service-v1'
+            and descriptor.get('state') == 'SERVICE_READY'
+            and descriptor.get('resourceReceiptSha256') == sha(directory / 'resource.json'),
+            'mailbox-descriptor-receipt-invalid')
+    for key, expected in (('assignmentSha256', assignment_hash), ('sourceCommit', a['sourceCommit']),
+                          ('environmentId', a['environmentId'])):
+        require(descriptor.get(key) == expected and receipt.get(key) == expected, 'mailbox-descriptor-binding-invalid')
+    require(descriptor.get('tlsCaPath') == str(directory / 'ca.pem')
+            and descriptor.get('nodeExtraCaPath') == str(directory / 'node-extra-ca.pem')
+            and descriptor.get('mailboxAddress') == cfg['mailboxAddress'], 'mailbox-descriptor-path-invalid')
+    for name, key in (('ca.pem', 'caSHA256'), ('node-extra-ca.pem', 'nodeExtraCaSHA256'),
+                      ('server.p12', 'keystoreSHA256'), ('container.env', 'containerEnvSHA256')):
+        require(sha(private_file(directory / name)) == receipt.get(key), 'mailbox-private-resource-changed')
+    password = descriptor.get('smtp', {}).get('password')
+    require(isinstance(password, str) and re.fullmatch('[0-9a-f]{48}', password)
+            and hashlib.sha256(password.encode('ascii')).hexdigest() == receipt.get('credentialSHA256'),
+            'mailbox-descriptor-credential-invalid')
+    for protocol, key in (('smtp', 'smtps'), ('imap', 'imaps')):
+        require(descriptor.get(protocol) == {'host': '127.0.0.1', 'port': cfg['ports'][key], 'secure': True,
+                                            'user': cfg['mailboxAddress'], 'password': password},
+                'mailbox-descriptor-endpoint-invalid')
+    container_id = private_file(directory / 'container.id').read_text().strip()
+    require(re.fullmatch('[0-9a-f]{64}', container_id) and receipt.get('id') == container_id,
+            'mailbox-descriptor-container-invalid')
+    current = json.loads(run(['docker', 'inspect', container_id]))[0]
+    identity = validate_container(current, cfg, a['projectId'], receipt['imageId'], directory / 'server.p12')
+    require(all(receipt.get(k) == v for k, v in identity.items())
+            and current.get('State', {}).get('Running') is True, 'mailbox-descriptor-resource-invalid')
+    return descriptor
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('operation', choices=['start'])
-    parser.parse_args()
+    parser.add_argument('operation', choices=['start', 'verify'])
+    parser.add_argument('--runtime-operation', choices=['up', 'run'], default='run')
+    args = parser.parse_args()
     try:
-        start()
+        if args.operation == 'start':
+            start()
+        else:
+            read_descriptor(operation=args.runtime_operation)
         print(json.dumps({'state': 'SERVICE_READY', 'scope': 'SYNTHETIC_TLS_SERVICE_ONLY'}))
     except Exception:
         # No exception details, subprocess output, assignment or credentials.
