@@ -1,0 +1,13 @@
+# Independent bounded kernel-family source qualification review
+
+Decision: APPROVE_SOURCE_ONLY.
+
+Exact two-file private candidate on basea0ccb287385487e21704cff038a24201e1e0e43a independently hash-verified: prepare.py `6839a261294f73a21e15f86e57db4a7a742f9732581e6fc5fb398d0415cc424f`; prepare.test.py `a9009380fb8f7c1e94d70a5a14fb60d94ad869972f5041b420477a467a26b6c6`. Reviewer authored neither file and made no source edits.
+
+No confirmed blocker in focused delta. The bounded kernel family gate is retained and extends only to actual source-qualified6.8–6.18, with complete numeric major.minor.patch and explicit optional suffix. Future/older/unknown/malformed families remain UNKNOWN. Existing current-process/procfs/nsfs/type/reserved-inode FD proof, pinned handle, global root/filesystem/device/overmount checks, all hierarchy/controller/CPU minima, complete-until-EOF reads, stability rereads and capacity floors are unchanged. Raw actual release is retained in positive/UNKNOWN diagnostic observations, not replaced by a provider nominal value.
+
+Independently read and SHA256/Git-blob verified all11handed official kernel-header originals against qualification11ed5752…5766 and fresh source-verification mapping. Also independently verified all10v6.18.57implementation originals against their SHA256/Git blobs and inspected ns_common initial cgroup mapping, UAPI reserved constant, namespace initialization/type return and nsfs inode exposure/dynamic allocation separation. The6.17+ UAPI name change preserves0xEFFFFFFB. These are source/ABI applicability originals, not actual host observations or native grants.
+
+Fresh independent prepare suite38/38passed. New cases use the actual FD-anchor logic with controlled kernel ports/full hierarchy, cover each qualified family and6.18.57positive, and preserve UNKNOWN for wrong inode/type/filesystem/currentproc/link, hidden mounts/missing ancestors/membership race/unsupported ABI and out-of-range/malformed releases. Reviewed genuine positive RED receipt against unchanged prior family gate; it fails expected QUALIFIED assertion, not startup. Finite positive fixtures do not attest real hosted kernel or capacity.
+
+Prior full61physical source applicability applies to unchanged other59paths. This review approves no versionless alternative, no guessed GHA release, no actual host positive RAM/namespace result and no retry/event/native budget. Exact adopted commit/tree still needs final binding. Actual priorHOLDs remain exact old-source results. No keys/producer material, Docker/DB/service/event or native operation accessed or executed for this review.

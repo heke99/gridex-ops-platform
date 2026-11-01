@@ -1,0 +1,10 @@
+{
+  "format": "public-kernel-source-genuine-fresh-provenance-companion-v1",
+  "forComment": 6565584910,
+  "firstSourceArchiveSHA256": "e62725aaf1c6627e596d3725c627467597a5558dbac70b213f4de77b7e505ffd",
+  "originalQualificationManifestSHA256": "11ed57529dbea8e0fd176afe8c0fff6c7c9bcd28c51a1d1d25fa3a7cd15a5766",
+  "freshProvenanceSHA256": "a1edb070c79494874f23a35546f0c5c3be80fc2cff2604f79809fdd76f5bc1fe",
+  "reasonSeparate": "Fresh independent authenticated GitHub API provenance arrived after immutablefirstsourcearchivewasposted; this exact new material supplements it, not a retry or rewritten original.",
+  "sourceScope": "Same11 official torvalds/linux headers6.8\u20136.18, actualfreshURLs/refs/Gitblobs/byteSHA matches.",
+  "limits": "PUBLIC_SOURCE_ONLY. No actualhost/kernelRelease/namespace/RAM qualification. All strict actualFD/globalroot/ancestor/capacity gates remain required. No keys/runtimecapsules/budget/event/GEN/provider authority."
+}

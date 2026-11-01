@@ -1,0 +1,85 @@
+{
+  "scope": "GENUINE_READONLY_LINUX_UAPI_SOURCE_NOT_HOST_ADMISSION",
+  "tag": "v6.18.57",
+  "repository": "gregkh/linux",
+  "files": [
+    {
+      "path": "Documentation/admin-guide/cgroup-v2.rst",
+      "bytes": 128518,
+      "sha256": "e81d1d9be76afdc6ee0a28f109353b1fd0a1f94df0397652988eac0bce4b87cd",
+      "gitBlob": "edcd125d6992fb2455732f03a72eaee723d85fd0",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/v6.18.57/Documentation/admin-guide/cgroup-v2.rst"
+    },
+    {
+      "path": "fs/nsfs.c",
+      "bytes": 14991,
+      "sha256": "fb1366d38c672d0fdfa0925fb6f89a5f25c31e3bc3b84e5b558643c46174829f",
+      "gitBlob": "4dee1e728569d5a57c90479bccad546eb318c77c",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/v6.18.57/fs/nsfs.c"
+    },
+    {
+      "path": "fs/proc/generic.c",
+      "bytes": 19980,
+      "sha256": "c04b399c4f199a963d6da713933548e675091ea012881dc9bee2c314be61e3e6",
+      "gitBlob": "12b817f4ffcfd72f2a9f47375fcf8aaa6b98beef",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/v6.18.57/fs/proc/generic.c"
+    },
+    {
+      "path": "include/linux/proc_ns.h",
+      "bytes": 2004,
+      "sha256": "63376480b58e72b13c36b69daf536a089a2af558544863e9e2f1fe37e7ffd537",
+      "gitBlob": "e81b8e596e4f194fde4a60843fb95b228d4898d1",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/v6.18.57/include/linux/proc_ns.h"
+    },
+    {
+      "path": "include/uapi/linux/magic.h",
+      "bytes": 3946,
+      "sha256": "e9db5b4791371c03a4f9be955417bb7814987bfae032ad86bd27003d2df8796e",
+      "gitBlob": "bb575f3ab45e59aff283602f8e7c8af13e8bcc6a",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/v6.18.57/include/uapi/linux/magic.h"
+    },
+    {
+      "path": "include/uapi/linux/nsfs.h",
+      "bytes": 2319,
+      "sha256": "b9e98fbcaabd0573a38b794c4da5deb349721dd4676e56501938b312ca361483",
+      "gitBlob": "e098759ec917ac489dc94cd11e97414831c4022e",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/v6.18.57/include/uapi/linux/nsfs.h"
+    },
+    {
+      "path": "include/uapi/linux/sched.h",
+      "bytes": 6302,
+      "sha256": "2081b07cee6adab443e4ba320d0ccb13db4c97bed64f3eefafbfde2f25c833a4",
+      "gitBlob": "359a14cc76a4038aeacef14b2915d5ce60d0cf44",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/v6.18.57/include/uapi/linux/sched.h"
+    },
+    {
+      "path": "kernel/cgroup/namespace.c",
+      "bytes": 3267,
+      "sha256": "a1c08b79be8583789cf721faa2502983f01e8efd90864a6af6bf980be3ec1e43",
+      "gitBlob": "db9617556dd70671ef68a6ce282600911ee7deb8",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/v6.18.57/kernel/cgroup/namespace.c"
+    },
+    {
+      "path": "kernel/cgroup/cgroup.c",
+      "bytes": 199896,
+      "sha256": "967b1dca22f9aa47943f2364de64e5fc0ff0d357881d49db8d5bbbb705f03d6c",
+      "gitBlob": "5ae4c27e3b3d3dd9e03b8edb3bf59854fe40235f",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/v6.18.57/kernel/cgroup/cgroup.c"
+    },
+    {
+      "path": "include/linux/ns_common.h",
+      "bytes": 6713,
+      "sha256": "d245e45a582fdf471c966b5e6d23ef97a21033f01ef4e33fd7a8db0626ee568c",
+      "gitBlob": "08ff44e63145651aa6d1e28ca656fce36dd0ce11",
+      "url": "https://raw.githubusercontent.com/gregkh/linux/2ff600d29ee478d0a8d46ef8a58afb5e038fe692/include/linux/ns_common.h"
+    }
+  ],
+  "tagObject": "c05de972ca192e22ce318dd70ce8e990b9466f6d",
+  "commit": "2ff600d29ee478d0a8d46ef8a58afb5e038fe692",
+  "GitHubTagSignatureVerification": {
+    "verified": true,
+    "reason": "valid",
+    "scope": "Providerreportedtagverification nothostadmission"
+  },
+  "allImmutableRemoteBlobsVerified": true
+}

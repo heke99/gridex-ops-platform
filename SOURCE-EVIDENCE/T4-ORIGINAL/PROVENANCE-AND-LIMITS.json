@@ -1,0 +1,108 @@
+{
+  "format": "T4-to-T3-public-linux-kernel-source-qualification-v1",
+  "createdAtUtc": "2026-11-01T23:36:26.669264+00:00",
+  "classification": "PUBLIC_CODE_AND_SOURCE_PROVENANCE_ONLY",
+  "originalManifestSHA256": "11ed57529dbea8e0fd176afe8c0fff6c7c9bcd28c51a1d1d25fa3a7cd15a5766",
+  "origin": "Official torvalds/linux v6.8 through v6.18 header originals previously independently qualified for T4 donor0a06",
+  "localTransferChecks": "Exact originalmanifest bytes plus11 regular header files match all recorded SHA256s; no other files included",
+  "sourcePrinciple": "Known initial cgroup namespace inode0xEFFFFFFB;6.17+ names CGROUP_NS_INIT_INO inUAPI. Receiver must verify actual ABI applicability before accepting a new kernel family. Source proof does not attest actual machine release or namespace membership.",
+  "entries": [
+    {
+      "kernel": "6.8",
+      "path": "include/linux/proc_ns.h",
+      "archivePath": "linux-6.8/include/linux/proc_ns.h",
+      "bytes": 2585,
+      "sha256": "c2495216fdc3b3c809025b108f06124800ad46a58876fb6254ffc4c4a925363f",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.8/include/linux/proc_ns.h"
+    },
+    {
+      "kernel": "6.9",
+      "path": "include/linux/proc_ns.h",
+      "archivePath": "linux-6.9/include/linux/proc_ns.h",
+      "bytes": 2582,
+      "sha256": "b27a47ca4350373b24987a660eb4e59d63527936815a59a24fac060fae4cdc51",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.9/include/linux/proc_ns.h"
+    },
+    {
+      "kernel": "6.10",
+      "path": "include/linux/proc_ns.h",
+      "archivePath": "linux-6.10/include/linux/proc_ns.h",
+      "bytes": 2582,
+      "sha256": "b27a47ca4350373b24987a660eb4e59d63527936815a59a24fac060fae4cdc51",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.10/include/linux/proc_ns.h"
+    },
+    {
+      "kernel": "6.11",
+      "path": "include/linux/proc_ns.h",
+      "archivePath": "linux-6.11/include/linux/proc_ns.h",
+      "bytes": 2582,
+      "sha256": "b27a47ca4350373b24987a660eb4e59d63527936815a59a24fac060fae4cdc51",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.11/include/linux/proc_ns.h"
+    },
+    {
+      "kernel": "6.12",
+      "path": "include/linux/proc_ns.h",
+      "archivePath": "linux-6.12/include/linux/proc_ns.h",
+      "bytes": 2582,
+      "sha256": "b27a47ca4350373b24987a660eb4e59d63527936815a59a24fac060fae4cdc51",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.12/include/linux/proc_ns.h"
+    },
+    {
+      "kernel": "6.13",
+      "path": "include/linux/proc_ns.h",
+      "archivePath": "linux-6.13/include/linux/proc_ns.h",
+      "bytes": 2582,
+      "sha256": "b27a47ca4350373b24987a660eb4e59d63527936815a59a24fac060fae4cdc51",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.13/include/linux/proc_ns.h"
+    },
+    {
+      "kernel": "6.14",
+      "path": "include/linux/proc_ns.h",
+      "archivePath": "linux-6.14/include/linux/proc_ns.h",
+      "bytes": 2582,
+      "sha256": "b27a47ca4350373b24987a660eb4e59d63527936815a59a24fac060fae4cdc51",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.14/include/linux/proc_ns.h"
+    },
+    {
+      "kernel": "6.15",
+      "path": "include/linux/proc_ns.h",
+      "archivePath": "linux-6.15/include/linux/proc_ns.h",
+      "bytes": 2582,
+      "sha256": "b27a47ca4350373b24987a660eb4e59d63527936815a59a24fac060fae4cdc51",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.15/include/linux/proc_ns.h"
+    },
+    {
+      "kernel": "6.16",
+      "path": "include/linux/proc_ns.h",
+      "archivePath": "linux-6.16/include/linux/proc_ns.h",
+      "bytes": 2582,
+      "sha256": "b27a47ca4350373b24987a660eb4e59d63527936815a59a24fac060fae4cdc51",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.16/include/linux/proc_ns.h"
+    },
+    {
+      "kernel": "6.17",
+      "path": "include/uapi/linux/nsfs.h",
+      "archivePath": "linux-6.17/include/uapi/linux/nsfs.h",
+      "bytes": 1964,
+      "sha256": "8d7c3b3932e2bcaf37c5d95093d6ae64d8db1b8e86c8d93b92fc2feeaad0eb67",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.17/include/uapi/linux/nsfs.h"
+    },
+    {
+      "kernel": "6.18",
+      "path": "include/uapi/linux/nsfs.h",
+      "archivePath": "linux-6.18/include/uapi/linux/nsfs.h",
+      "bytes": 2319,
+      "sha256": "b9e98fbcaabd0573a38b794c4da5deb349721dd4676e56501938b312ca361483",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.18/include/uapi/linux/nsfs.h"
+    }
+  ],
+  "limits": [
+    "No runtime/host/kernelRelease observation is in this packet.",
+    "No private key, secret, capsule, role allocation or private runtime journal is in this packet.",
+    "Actual kernelRelease must be retained and matched to a genuinely qualified contract before positive admission.",
+    "All real namespaceFD/nsfs ioctl/initialnamespace/cgroupmount/globalroot/ancestor/stability/RAM/disk checks remain mandatory.",
+    "Unsupported or unproven hosts remain UNKNOWN; no fallback or bypass.",
+    "No new native/GEN/event/retry/production authority.",
+    "T4 ROOT current independent remote-header provenance verification is separate from this exact original transfer; recipient may re-fetch immutable origin refs and verify all digests."
+  ]
+}

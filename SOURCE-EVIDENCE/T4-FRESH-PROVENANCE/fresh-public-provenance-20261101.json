@@ -1,0 +1,95 @@
+{
+  "format": "T4-fresh-official-kernel-source-byte-provenance-v1",
+  "purpose": "Source-only ABI qualification; not actual host/kernel/RAM admission",
+  "originalQualificationManifestSHA256": "11ed57529dbea8e0fd176afe8c0fff6c7c9bcd28c51a1d1d25fa3a7cd15a5766",
+  "sources": [
+    {
+      "repository": "torvalds/linux",
+      "ref": "v6.8",
+      "kernel": "6.8",
+      "path": "include/linux/proc_ns.h",
+      "gitBlob": "49539bc416cecb7b45bfd4f11df817cd11f2e791",
+      "url": "https://github.com/torvalds/linux/blob/v6.8/include/linux/proc_ns.h"
+    },
+    {
+      "repository": "torvalds/linux",
+      "ref": "v6.9",
+      "kernel": "6.9",
+      "path": "include/linux/proc_ns.h",
+      "gitBlob": "5ea470eb4d768ad92f2785187aa9298c39025ea2",
+      "url": "https://github.com/torvalds/linux/blob/v6.9/include/linux/proc_ns.h"
+    },
+    {
+      "repository": "torvalds/linux",
+      "ref": "v6.10",
+      "kernel": "6.10",
+      "path": "include/linux/proc_ns.h",
+      "gitBlob": "5ea470eb4d768ad92f2785187aa9298c39025ea2",
+      "url": "https://github.com/torvalds/linux/blob/v6.10/include/linux/proc_ns.h"
+    },
+    {
+      "repository": "torvalds/linux",
+      "ref": "v6.11",
+      "kernel": "6.11",
+      "path": "include/linux/proc_ns.h",
+      "gitBlob": "5ea470eb4d768ad92f2785187aa9298c39025ea2",
+      "url": "https://github.com/torvalds/linux/blob/v6.11/include/linux/proc_ns.h"
+    },
+    {
+      "repository": "torvalds/linux",
+      "ref": "v6.12",
+      "kernel": "6.12",
+      "path": "include/linux/proc_ns.h",
+      "gitBlob": "5ea470eb4d768ad92f2785187aa9298c39025ea2",
+      "url": "https://github.com/torvalds/linux/blob/v6.12/include/linux/proc_ns.h"
+    },
+    {
+      "repository": "torvalds/linux",
+      "ref": "v6.13",
+      "kernel": "6.13",
+      "path": "include/linux/proc_ns.h",
+      "gitBlob": "5ea470eb4d768ad92f2785187aa9298c39025ea2",
+      "url": "https://github.com/torvalds/linux/blob/v6.13/include/linux/proc_ns.h"
+    },
+    {
+      "repository": "torvalds/linux",
+      "ref": "v6.14",
+      "kernel": "6.14",
+      "path": "include/linux/proc_ns.h",
+      "gitBlob": "5ea470eb4d768ad92f2785187aa9298c39025ea2",
+      "url": "https://github.com/torvalds/linux/blob/v6.14/include/linux/proc_ns.h"
+    },
+    {
+      "repository": "torvalds/linux",
+      "ref": "v6.15",
+      "kernel": "6.15",
+      "path": "include/linux/proc_ns.h",
+      "gitBlob": "5ea470eb4d768ad92f2785187aa9298c39025ea2",
+      "url": "https://github.com/torvalds/linux/blob/v6.15/include/linux/proc_ns.h"
+    },
+    {
+      "repository": "torvalds/linux",
+      "ref": "v6.16",
+      "kernel": "6.16",
+      "path": "include/linux/proc_ns.h",
+      "gitBlob": "5ea470eb4d768ad92f2785187aa9298c39025ea2",
+      "url": "https://github.com/torvalds/linux/blob/v6.16/include/linux/proc_ns.h"
+    },
+    {
+      "repository": "torvalds/linux",
+      "ref": "v6.17",
+      "kernel": "6.17",
+      "path": "include/uapi/linux/nsfs.h",
+      "gitBlob": "97d8d80d139fc4afb8adabe4e94b15ca3ff08aa6",
+      "url": "https://github.com/torvalds/linux/blob/v6.17/include/uapi/linux/nsfs.h"
+    },
+    {
+      "repository": "torvalds/linux",
+      "ref": "v6.18",
+      "kernel": "6.18",
+      "path": "include/uapi/linux/nsfs.h",
+      "gitBlob": "e098759ec917ac489dc94cd11e97414831c4022e",
+      "url": "https://github.com/torvalds/linux/blob/v6.18/include/uapi/linux/nsfs.h"
+    }
+  ]
+}
