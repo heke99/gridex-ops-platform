@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-# Read-only host observation. Never creates an ACTIVE assignment or starts services.
+# All actual replay/build logs remain private; failure emits only a fixed code.
 set -euo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-[[ $# == 1 && "$1" == --observe-host ]] || {
-  echo 'HOLD: only --observe-host is implemented; authenticated provisioning is not admitted' >&2
+if [[ $# == 1 && "$1" == --observe-host ]]; then
+  exec python3 -B "$HERE/qualify-runtime.py" --observe-host
+fi
+[[ $# == 1 && "$1" == --execute ]] || {
+  echo 'HOLD: explicit signed runtime admission required' >&2
   exit 78
 }
-exec python3 "$HERE/qualify-runtime.py" --observe-host
+# Assignment authentication occurs before private directory/resource creation.
+exec python3 -B "$HERE/qualify-runtime.py" --operation execute

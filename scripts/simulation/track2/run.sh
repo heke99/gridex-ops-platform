@@ -6,6 +6,13 @@ set -uo pipefail
 
 [[ $# -eq 1 ]] || die "användning: run.sh <scenariofil>"
 SCEN="$1"
+python3 - "$SIM_RUNTIME_ASSIGNMENT_FILE" "$SCEN" <<'PY_SCENARIO'
+import json, pathlib, sys
+a = json.loads(pathlib.Path(sys.argv[1]).read_text())
+if sys.argv[2] != a['scenario']:
+    raise SystemExit('scenario_not_admitted')
+PY_SCENARIO
+[[ $? == 0 ]] || die "scenario not admitted"
 [[ -f "$SCEN" ]] || SCEN="$HARNESS_DIR/$1"
 [[ -f "$SCEN" ]] || die "scenariofil saknas: $1"
 SCEN="$(cd "$(dirname "$SCEN")" && pwd)/$(basename "$SCEN")"
@@ -16,13 +23,7 @@ REL="${SCEN#"$HARNESS_DIR"/}"
 
 # Lås: en körning i taget. Gammal lås (död pid) rensas.
 LOCK="$SIM_HOME/run.lock"
-if ! mkdir "$LOCK" 2>/dev/null; then
-  other="$(cat "$LOCK/pid" 2>/dev/null || true)"
-  if [[ -n "$other" ]] && kill -0 "$other" 2>/dev/null; then
-    die "annan körning pågår (pid $other, $(cat "$LOCK/scenario" 2>/dev/null)); vägrar starta"
-  fi
-  log "rensar gammal lås (pid ${other:-okänd} finns inte)"; rm -rf "$LOCK"; mkdir "$LOCK" || die "kunde inte ta lås"
-fi
+mkdir "$LOCK" 2>/dev/null || die "unknown or active run.lock; explicit reconciliation required"
 echo $$ >"$LOCK/pid"; echo "$REL" >"$LOCK/scenario"
 trap 'rm -rf "$LOCK"' EXIT
 

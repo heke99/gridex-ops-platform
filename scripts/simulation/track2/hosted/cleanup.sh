@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# No destructive fallback: existing down --processes-only is NOT full cleanup.
+# Exact owned resources only. Unknown identity remains HOLD; no prune/fallback.
 set -euo pipefail
-printf '%s\n' 'HOLD: full exact-ID backend/network/volume/descendant cleanup is not implemented; no resources were removed' >&2
-exit 78
+HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec python3 -B "$HERE/qualify-runtime.py" --operation down

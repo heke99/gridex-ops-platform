@@ -89,16 +89,25 @@ REPLAY_PG_VERSION="$(sed -n 's/^REPLAY_POSTGRES_VERSION="\(.*\)"/\1/p' "$RUN_DIR
 stack_running() { [[ "$(docker inspect -f '{{.State.Running}}' "supabase_db_$SIM_PROJECT_ID" 2>/dev/null)" == true ]]; }
 
 prepare_replay_root
+python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation replay-before
+python3 - "$SIM_RUNTIME_ASSIGNMENT_FILE" "$REPLAY_ROOT/scripts/gridex-aud-003-clean-replay.sh" <<'PY_PATCH'
+import hashlib, json, pathlib, sys
+a = json.loads(pathlib.Path(sys.argv[1]).read_text())
+if hashlib.sha256(pathlib.Path(sys.argv[2]).read_bytes()).hexdigest() != a['replayPatchSha256']:
+    raise SystemExit('replay_patch_not_admitted')
+PY_PATCH
 log "kör ren replay i tilldelat tomt projekt (logg: $SIM_HOME/logs/replay.log)"
 rm -f "$SIM_HOME/replay-commit" "$SIM_HOME/replay-at" "$SIM_HOME/built-commit"
 (cd "$REPLAY_ROOT" && bash scripts/gridex-aud-003-clean-replay.sh) >>"$SIM_HOME/logs/replay.log" 2>&1 \
   || die "replay misslyckades, se $SIM_HOME/logs/replay.log"
+python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation replay-after
+python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation inventory
 # replayskriptets EXIT-trap tar bort versionspinnen; lägg tillbaka den för senare 'supabase start'.
 mkdir -p "$REPLAY_ROOT/supabase/.temp"; printf '%s' "$REPLAY_PG_VERSION" >"$REPLAY_ROOT/supabase/.temp/postgres-version"
 stack_running || die "stacken körs inte efter replay"
 printf '%s\n' "$HEAD_SHA" >"$SIM_HOME/replay-commit"
 date -u +%Y-%m-%dT%H:%M:%SZ >"$SIM_HOME/replay-at"
-: >"$SIM_HOME/applied-migrations.tsv"
+# Actual installed ledger is exported and compared by hosted runtime qualification.
 
 # --- 4. app.env från stackens status -------------------------------------------------
 status_env="$(sb status -o env 2>/dev/null)" || die "supabase status misslyckades"
