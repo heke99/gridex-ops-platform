@@ -1,117 +1,179 @@
-# Spår 6 – simuleringsharness (infrastruktur)
+# Spår 6 – Codex simuleringsharness
 
-Kampanj 20261029-3f1a8ab1, worker claude-track6. Separat, lokal harness: egen Supabase-stack i containern, egen
-mailmotpart (SMTP/IMAP, bara 127.0.0.1), fixture-tenant `T6SIM Supplier AB` (eget Ediel-ID 16760, motpart/DSO 70007).
-Ingen extern trafik, inga riktiga mejl, ingen extern DB. Scenariofiler läggs till av respektive scenarioägare under
-`scenarios/`; denna leverans innehåller bara infrastruktur och `scenarios/smoke.test.ts`.
+Kampanj `20261029-3f1a8ab1`. Codex äger den nya körningen. Det bevarade
+Claude-originalet är commit `09dc7b422d9bfea3edebd82585a4cae4f4edec1c`;
+byte-exakt adoption finns i `5fde1a71556fe8b8e2f22546f5a646d533c2f045`.
+Originalens rapporter och observationer förblir historik. Orakelbasen är
+`1c0c088cb4ed66d0dd8b3e34c9606019342a1a56`; nya rapporter binder faktisk
+app-SHA/träd, bygge, replay, schema, överlägg, miljö och producent.
+Ingen likvärdighet med en gammal appversion eller ny scenario-PASS är underförstådd.
 
-**Appversion:** appen körs från körkatalogen (`SIM_RUN_DIR`, default `/root/sim-run/track6`) vid dess HEAD, avsett att vara
-main `6454d540b6978a9c25434b8c66bcd7a0e335c99c`, inte kampanjbasen. `up.sh` skriver `git -C $SIM_RUN_DIR rev-parse HEAD` som
-`appCommit` i `SIM_HOME/commits.json`, tillsammans med harnessens egen commit (`harnessCommit`, `harnessDirty`) och
-`builtCommit` (även i `SIM_HOME/built-commit`). **Harnessen kräver inga ändringar i produktkod.**
+## Körkontrakt
 
-## Kontrakt
-
-| Skript | Uppgift |
+| Kommando | Beteende |
 | --- | --- |
-| `up.sh [--mode test\|production]` | Idempotent. Startar dockerd om `docker info` misslyckas, säkrar Supabase CLI 2.101.0, `npm ci` om `node_modules` saknas, clean replay om stacken inte svarar (annars återanvänds den; `SKIP_REPLAY=1` kräver att den lever), kvitton, CA, mailmotpart, fixture-seed, `env/track6.env`, `next build` vid behov (`SKIP_BUILD=1`) och `next start`. Stoppar med `BLOCKED: stacken upptagen` (exit 3) om `supabase_db_*` kör men inte svarar. |
-| `down.sh [--stack] [--purge]` | Stoppar app, mailmotpart och containrar märkta `sim.track=track6`. `--stack` stoppar även Supabase (`supabase stop --no-backup`, containrar + volymer) och dockerd om och bara om up.sh startade den (`pids/dockerd.pid`). Verifierar, skriver `SIM_HOME/cleanup-receipt.json`, exit 1 om något är kvar. |
-| `run.sh <scenariofil...>` | Kör scenariofiler med vitest och skriver per scenario `SIM_HOME/runs/<run-id>/<scenario>/{report.json,log.txt,vitest.json}`; kräver `SIM_REPORT` (sammanställd rapport skrivs dit); en körning åt gången (flock + PID/starttid i `SIM_HOME/run.lock`, tas bort vid avslut). |
+| `up.sh [--mode test|production]` | Läser en uttrycklig privat samordnartilldelning och ett kvalificerat färskt replay-/byggkvitto. Kontrollerar faktisk källa, bygg-ID, schema, migrationsledger, DB/API/Storage-container-ID och lokala endpointbindningar före fixturer. Startar bara tilldelad GreenMail och egna app-/mailprocesser. Ingen automatisk daemonstart, installation, imagehämtning, replay eller bygge. |
+| `run.sh <scenariofil...>` | Kontrollerar samma identiteter, färdighetskvitto och levande app-/mailresurser före arbete. Kör endast spårets scenariofiler, seriellt. Skriver nya privata rapporter utan att ersätta original. |
+| `down.sh` | Stoppar bara kvittobundna app-/mailprocessgrupper och exakt GreenMail-container-ID. Verifierar att processgrupperna är tomma. Bevarar backend, volymer och originalbevis. `--stack` och `--purge` nekas före städning; backend- och gallringssteg tillhör samordnaren. |
 
-Rapporten (`report.json`) har `steps[]` (`passed|failed|skipped`), vitests sammanfattning, `observations` och sökväg till
-evidens med `MANIFEST.sha256`.
+Node 22, Python 3.11+ (`tomllib`), Docker och PostgreSQL-klienter måste vara
+förberedda. Appcheckout och beroenden måste redan finnas. En arbetskatalog ger
+ingen DB/Auth/Storage-isolering. Miljötilldelningen intygar en separat faktiskt
+reserverad exklusiv värd/producent; JSON-filen förvärvar ingen lease. Samordnaren
+verifierar de autentiserade reservationskvittona före tilldelning och behåller dem
+under hela körningen. Ingen användarbekräftelse behövs för rutinmässig lokal
+provisionering inom det givna mandatet.
 
-## Docker och Supabase
+## Samordnarens indata
 
-* **docker:** om `docker info` misslyckas startar `up.sh` `dockerd` i bakgrunden (logg `SIM_HOME/logs/dockerd.log`, pid i
-  `SIM_HOME/pids/dockerd.pid`, extra flaggor via `T6_DOCKERD_ARGS`) och väntar upp till 90 s. Fanns daemonen redan rörs den inte.
-* **Supabase CLI:** `/opt/node22/bin/supabase` används om den finns och är version 2.101.0 (replayskriptet kräver exakt den
-  versionen). Annars körs `npm install supabase@2.101.0` till `SIM_HOME/tools` (`T6_SUPABASE_BIN`/`T6_SUPABASE_VERSION` åsidosätter).
-* **Replay:** som spår 3: `scripts/gridex-aud-003-clean-replay.sh` körs med en `supabase`-shim (`stop` = no-op) så att stacken
-  ligger kvar. Efter en **ny** replay sparas replayskriptets egna verifierade fingeravtryck i `SIM_HOME/fingerprint`, samt
-  `replay-commit`, `replay-at` och tom `applied-migrations.tsv`. `db-url` (en rad, lokala standarduppgifter) skrivs till `SIM_HOME`.
+Alla sökvägar är absoluta, kanoniska och fria från symlänkar. `SIM_HOME` har mode
+0700, ägs av aktuell uid och ligger utanför både app- och harnesscheckout. Privata
+indatafiler har mode 0600. De innehåller verkliga lokala körvärden; exemplen nedan
+är formatbeskrivningar och ger ingen tilldelning.
 
-* **Image-register:** `up.sh` sätter `SUPABASE_INTERNAL_IMAGE_REGISTRY=${T6_IMAGE_REGISTRY:-ghcr.io}` för replayen, så Supabase CLI hämtar `ghcr.io/supabase/<namn>:<tag>` i stället för `public.ecr.aws` (datagräns) eller docker.io (429). Image-digests sparas i `SIM_HOME/evidence/image-digests.txt`.
+Exportera `SIM_RUN_DIR`, full 40-teckens `T6_APP_COMMIT`, `SIM_HOME`, explicit
+`T6_DB_URL`, `T6_RUNTIME_ASSIGNMENT_FILE` och `T6_BACKEND_ASSIGNMENT_FILE`.
+DB-URL:en måste ange `postgresql://...@127.0.0.1:<tilldelad-port>/postgres` utan
+query, fragment eller kodade databasalias. Lägg inte URL/credentials i publika
+rapporter eller terminalutdata.
 
-* **GreenMail utan docker:** misslyckas `docker run` (t.ex. docker.io 429) eller är `T6_GREENMAIL_MODE=jar`, hämtar `up.sh` `greenmail-standalone-2.1.8.jar` från Maven Central till `SIM_HOME/tools`, verifierar sha1 mot `.jar.sha1` (hashar i `SIM_HOME/evidence/greenmail-jar-hashes.txt`) och kör den med java på 127.0.0.1 (pid i `pids/greenmail.pid`, logg `logs/greenmail-jar.log`). `down.sh` stoppar den.
+`T6_RUNTIME_ASSIGNMENT_FILE`:
 
-## Portar och namn
-
-App 3106, SMTP (TLS) 3625, IMAP TLS 3693, IMAP plain (GreenMail) 3643, kontroll 3699 (`T6_*_PORT`). Supabase 54321/54322 är
-fasta (en stack per container). Container `t6sim-greenmail`, etikett `sim.track=track6`, maildomän `t6.sim.invalid`.
-`SIM_HOME` default `/home/user/sim-home/track6`; allt tillstånd (env 0600, CA, hemligheter, evidens) ligger där.
-
-## Fixture
-
-`lib/seed.mjs` (idempotent): tenant `T6SIM Supplier AB` (Ediel-ID 16760), automationsaktör, aktörsinställningar, rutter och
-rutt-profiler 16760 -> 70007 i båda miljöerna, delad `ediel_mailboxes`-rad omdirigerad till lokal IMAP (original sparas i
-`SIM_HOME/evidence/seed-original-shared-mailboxes.json`). Unikt per körning: `newRunContext().prefix`.
-
-## Körning
-
+```json
+{
+  "schema": "track6-runtime-assignment-v1",
+  "workerId": "codex-track6",
+  "model": "ACTUAL_CODEX_MODEL",
+  "environmentId": "t6-ASSIGNED",
+  "appDir": "/absolute/assigned/app",
+  "appCommit": "FULL_40_CHARACTER_SOURCE_SHA",
+  "simHome": "/absolute/private/assigned-home",
+  "projectId": "ASSIGNED_CONFIG_PROJECT_ID",
+  "apiContainerId": "FULL_64_HEX_API_GATEWAY_ID",
+  "storageContainerId": "FULL_64_HEX_STORAGE_SERVICE_ID",
+  "ports": {"app":3106,"api":54321,"db":54322,"smtp":3625,"imapTls":3693,"imapPlain":3643,"control":3699},
+  "exclusiveHost": true,
+  "backendReservation": "AUTHENTICATED_CURRENT_BACKEND_PRODUCER_RESERVATION",
+  "allowedActions": ["up", "run", "down"],
+  "expiresAtUtc": "FUTURE_UTC_TIMESTAMP",
+  "overlayRefs": [],
+  "backendAssignmentSha256": "SHA256_OF_EXACT_BACKEND_ASSIGNMENT_BYTES",
+  "preparedReceiptSha256": "SHA256_OF_EXACT_PREPARED_RECEIPT_BYTES",
+  "greenmailName": "t6-ASSIGNED-greenmail",
+  "greenmailImage": "greenmail/standalone@sha256:VERIFIED_64_HEX_DIGEST"
+}
 ```
+
+Alla sju portar måste vara olika. Projekt och API/DB-portar måste matcha appens
+`supabase/config.toml`. DB, API-gateway och Storage har olika fullständiga
+container-ID:n och samma kvalificerade projektetikett. DB-porten 5432 respektive
+API-gatewayns port 8000 måste vara publicerade enbart på tilldelad 127.0.0.1-port.
+Storage nås via samma kontrollerade API-URL. GreenMail-namnet måste vara exakt
+`<environmentId>-greenmail`; digestbilden ska redan vara hämtad och verifierad av
+samordnaren (`docker run --pull=never` används). En befintlig container ersätts inte.
+
+Den tidigare restore-hjälparens `T6_BACKEND_ASSIGNMENT_FILE` har fortsatt format:
+
+```json
+{
+  "version": 1, "workerId": "T6", "environmentId": "t6-ASSIGNED",
+  "containerId": "FULL_64_HEX_DATABASE_CONTAINER_ID",
+  "projectId": "ASSIGNED_CONFIG_PROJECT_ID", "host": "127.0.0.1",
+  "port": 54322, "database": "postgres", "systemIdentifier": "OBSERVED_POSTGRES_SYSTEM_IDENTIFIER"
+}
+```
+
+Kopiera inte identiteten från en godtycklig ensam container. Samordnaren binder
+faktisk miljö, exakt aktuellt reservationskvitto och observerad PostgreSQL-identitet.
+
+`SIM_HOME/prepared-runtime.json`:
+
+```json
+{
+  "schema": "track6-prepared-runtime-v1",
+  "producerReservation": "AUTHENTICATED_SOURCE_APPLICABLE_PRODUCER_RECEIPT",
+  "appCommit": "FULL_40_CHARACTER_SOURCE_SHA",
+  "appTree": "OBSERVED_FULL_GIT_TREE_SHA",
+  "replayCommit": "FULL_40_CHARACTER_SOURCE_SHA",
+  "nextBuildId": "OBSERVED_NEXT_BUILD_ID",
+  "sourceSchemaSha256": "SHA256_OF_SOURCE_SUPABASE_SCHEMA_SQL",
+  "schemaFingerprint": "OBSERVED_PARTIAL_FINGERPRINT",
+  "ledgerMigrationsSha256": "SHA256_OF_RAW_PSQL_LEDGER_OUTPUT_WITH_FINAL_NEWLINE",
+  "overlayRefs": [], "postReplayAppliedMigrations": 0
+}
+```
+
+Den kvalificerade producenten utför genuin färsk clean replay och appbygge från
+angiven ren källa, bevarar råloggarna privat och binder kvittot till autentiserad
+producent, käll-SHA/träd och faktiska outputhashar. Använd repoets kvalificerade
+replay-/byggarbetsflöde; skapa aldrig ett kvitto därför att en standardport svarar.
+Appbyggets `.next/BUILD_ID`, källans `supabase/schema.sql`, faktisk migrationsledger
+(`psql -XAtq -F TAB`, `SELECT version, coalesce(name,'') FROM
+supabase_migrations.schema_migrations ORDER BY version`) och utfallet från
+`scripts/gridex-aud-003-schema-fingerprint.sql` kontrolleras på nytt. Det senare
+fingeravtrycket är en partiell identitet för utvalda tabeller, inte en fullständig
+schemarevision. Post-replay-migreringar kräver separat kvalificering; denna runner
+accepterar bara `postReplayAppliedMigrations: 0` och uttryckliga överlägg.
+
+Förbered också privata `ca/server.key`, `ca/server.pem`, `ca/ca.pem` och
+`secrets/smtp-pass` under `SIM_HOME`, alla mode 0600. Certifikatet ska vara signerat
+av den lokala CA:n och gälla `localhost`/`127.0.0.1`. Ingen TLS-verifiering stängs av.
+Skapa lokala syntetiska lösenord/cronhemligheter och ett privat JSON-objekt i
+`SIM_HOME/env/track6.json`. Nycklar och värden är strängar; okända nycklar och NUL
+nekas. Hemligheter tolkas som data och exekveras aldrig som shellkod.
+
+Krävda identiteter/endpointvärden i JSON-miljön:
+
+- `T6_MODE`: `test` eller lokalt simulerat `production`; `T6_SIM_HOME`: tilldelad privat sökväg.
+- `T6_DB_URL`: samma privata URL som exporterats; `T6_APP_URL` och `T6_APP_PORT`: tilldelad loopback-app.
+- `NEXT_PUBLIC_SUPABASE_URL` och eventuell `SUPABASE_URL`: `http://127.0.0.1:<apiPort>`; lokala anon-/service-nycklar i `NEXT_PUBLIC_SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY`.
+- `T6_SMTP_PORT`, `T6_IMAP_TLS_PORT`, `T6_IMAP_PLAIN_PORT`, `T6_CONTROL_PORT`: tilldelade portvärden.
+- `T6_MAILBOX_ADDRESS`/`EDIEL_SMTP_USER`: `ediel@t6.sim.invalid`; `T6_IMAP_USER`/`EDIEL_IMAP_USER`: samma lokala användare.
+- `EDIEL_EMAIL_PROVIDER`: `strato`; `EDIEL_SMTP_HOST`/`EDIEL_IMAP_HOST`: `127.0.0.1`; `EDIEL_SMTP_SECURE`: `true`; respektive SMTP/IMAP-port följer tilldelningen.
+- `EDIEL_SMTP_PASS` matchar privata `secrets/smtp-pass`; `T6_IMAP_PASS`/`EDIEL_IMAP_PASS` matchar varandra.
+- `NODE_EXTRA_CA_CERTS`: `SIM_HOME/ca/ca.pem`; lokala `EDIEL_CRON_SECRET`/`EDIEL_INBOUND_CRON_SECRET` och `GRIDEX_INVOICE_DELIVERY_RESOLVER=shared` för avsedda flöden.
+
+Vid behov används också `EDIEL_SMTP_FROM`, `EDIEL_SHARED_MAILBOX_ADDRESS`,
+`EDIEL_MESSAGE_ID_DOMAIN`, `NEXT_TELEMETRY_DISABLED` och efter seed
+`EDIEL_AUTOMATION_ACTOR_USER_ID`. Den fulla tillåtelselistan finns i
+`lib/seed-cli.mjs`. App, motpart och Vitest får en ren processmiljö med bara dessa
+privata värden och uttryckliga harnessidentiteter; inga ärvda providercredentials.
+
+## Start och körning
+
+```sh
+node scripts/simulation/track6/lib/seed-cli.mjs --admit up
 bash scripts/simulation/track6/up.sh
-bash scripts/simulation/track6/run.sh scenarios/smoke.test.ts
-bash scripts/simulation/track6/down.sh --stack
+SIM_REPORT="$SIM_HOME/reports/NEW-RUN.json" bash scripts/simulation/track6/run.sh scenarios/smoke.test.ts
+bash scripts/simulation/track6/down.sh
 ```
 
-Nya prov: steg i `scenarios/*.test.ts`, namngivna med scenario-ID. Webbläsarsteg: Playwright (anges i steget).
+`--admit up` är skrivskyddad; den startar ingen stack och skriver inget kvitto.
+Förhandskontrollen ersätter inte samordnarens faktiska reservation. `up.sh` kräver
+nya output-/processkvitton, seedar först efter förnyad kontroll av det förberedda
+bygget och den egna mailmotparten, bevarar miljöoriginalet före aktörsuppdatering
+och skriver `runtime-ready.json` först efter egna process-/containerkontroller.
+Ofullständig start behålls för avgränsad samordnaråterställning; inga resurser gissas
+eller raderas för att få nästa start grön.
 
-## Ursprung
+Körlås är en privat atomiskt skapad `SIM_HOME/run.lock`-katalog. Ett gammalt lås
+rensas endast av samordnaren efter verifierad ägar-/processkontroll. Varje nytt
+run-ID har privata per-scenario råloggar, Vitest-JSON och rapporter under `runs/`.
+`SIM_REPORT` är en ny kanonisk sökväg under `SIM_HOME`, utanför Git. Publicering är
+atomisk utan överskrivning; symlänkar, gamla original, gamla temporärfiler och
+blandade run-ID:n nekas. Rapportfel ger felstatus och blir aldrig scenario-PASS.
 
-### Explicit backendtilldelning för CUSTODY01.05
+Vitests `globalSetup` gör dessutom den tidigare skrivskyddade DB-bindningskontrollen
+före scenarioinsamling. CUSTODY01.05 väljer verktyg i `beforeAll`, så att fel där
+stoppar följande fixture-skrivare även under annan konfiguration. Restore kontrollerar
+DB-tilldelningen igen före dump/restore och temporär DB-livscykel; endast nya
+`t6_restore_`-databaser tillåts, aldrig källdatabasen eller URL-överstyrningar.
 
-Backup, restore och skapande/borttagning av temporär restore-DB kräver
-`T6_BACKEND_ASSIGNMENT_FILE`, en absolut sökväg till en privat vanlig JSON-fil (0600).
-Den lämnas av samordnaren efter faktisk exklusiv miljötilldelning och innehåller:
-`version: 1`, `workerId: "T6"`, `environmentId`, fullständigt 64-teckens `containerId`,
-`projectId`, `host` (`127.0.0.1` eller `localhost`), `port`, `database` och PostgreSQLs
-verkliga `systemIdentifier` från `pg_control_system()`.
-
-Hjälparen skapar ingen sådan tilldelning. Den kräver att exakt container-ID kör,
-att dess `com.supabase.cli.project`-etikett matchar, att databasporten är bunden på
-tilldelad loopback-port och att både den konfigurerade värdanslutningen och
-containeranslutningen rapporterar tilldelad databas och klusteridentitet. Kontrollerna
-upprepas före dump/restore, även när värdens PostgreSQL-verktyg används. Bara nya
-databasnamn under `t6_restore_` får skapas/raderas eller användas som restore-mål.
-Saknad eller avvikande bindning ger BLOCKED före backup-/restore-kommandot.
-`T6_DB_URL` måste vara en kanonisk `postgresql:`-/`postgres:`-URL utan queryparametrar,
-fragment eller kodade alias för databasnamnet; libpq-parametrar får inte överstyra målet.
-
-Spårets ordinarie Vitest-konfiguration kör samma skrivskyddade backendkontroll i
-`globalSetup`, före insamling av scenariofiler. Saknad eller avvikande tilldelning
-stoppar därmed hela provstarten före fixturerna. CUSTODY01.05 väljer dessutom verktyg
-i `beforeAll`, så att ett misslyckat verktygsval stoppar dess följande prov även med
-en annan konfiguration. Hjälparna kontrollerar åter tilldelningen före dump/restore
-och temporär DB-livscykel. Startkontrollen är ingen atomisk resurslease och intygar
-inte appens, PostgRESTs eller Storages endpointtilldelning; samordnaren måste fortsatt
-kvalificera hela körmiljön och producenten före verklig körning.
-
-Kopiera inte värden från en godtycklig eller ensam `supabase_db_*`-container för att
-få kontrollen grön. Detta källövertagande tilldelar ingen faktisk backend.
-
-Kopierat från kampanjens spår 3, commit `01d97c27ec73544f6c303936fadf4cb73a5e25dc`, med namnbyte track3/T3/t3 -> track6/T6/t6,
-nya portar och Ediel-ID 16760, samt tillägg i `up.sh`/`down.sh`/`lib/common.sh` (dockerd, CLI-installation, appCommit/harnessCommit,
-fingerprint, BLOCKED-kontroll). Ediel-scenariofiler och e0x-hjälpkod är inte kopierade.
-
-| Fil | Ursprung |
-| --- | --- |
-| `up.sh` | `01d97c27:scripts/simulation/track3/up.sh` (ändrad) |
-| `down.sh` | `01d97c27:scripts/simulation/track3/down.sh` (ändrad) |
-| `run.sh` | `01d97c27:scripts/simulation/track3/run.sh` |
-| `vitest.config.ts` | `01d97c27:scripts/simulation/track3/vitest.config.ts` |
-| `lib/common.sh` | `01d97c27:scripts/simulation/track3/lib/common.sh` (ändrad) |
-| `lib/seed.mjs` | `01d97c27:scripts/simulation/track3/lib/seed.mjs` (Ediel-ID 16760) |
-| `lib/seed-cli.mjs` | `01d97c27:scripts/simulation/track3/lib/seed-cli.mjs` |
-| `lib/evidence.ts` | `01d97c27:scripts/simulation/track3/lib/evidence.ts` |
-| `lib/db.ts` | `01d97c27:scripts/simulation/track3/lib/db.ts` |
-| `lib/make-report.mjs` | `01d97c27:scripts/simulation/track3/lib/make-report.mjs` |
-| `lib/counterparty.ts` | `01d97c27:scripts/simulation/track3/lib/counterparty.ts` |
-| `lib/mime.ts` | `01d97c27:scripts/simulation/track3/lib/mime.ts` |
-| `counterparty/mail-counterparty.mjs` | `01d97c27:scripts/simulation/track3/counterparty/mail-counterparty.mjs` |
-| `scenarios/smoke.test.ts` | nyskriven för spår 6 |
-| `README.md` | efter `01d97c27:scripts/simulation/track3/README.md` |
-
-## DELIVERY01 (kedja)
-
-`scenarios/delivery01.test.ts` + `lib/chain/`: VINTERTID. Leverans från 2026-10-28, faktureringsmånad 2026-10, fyra E66 (dygn 28-31, 24 timvärden vardera). Sommartidsstart ger antingen luck före första värdet eller gate-abort (`billing_gate_qualified_supply_source_required`: PRODAT DTM läses som UTC+1, `market_start_at` = lokal midnatt vintertid). Dygn 31 ligger i framtiden relativt stackens klocka; utfallet loggas. Observationen `<Cn>_chain.gate` visar `market_start_at` och första värdets intervall; `<Cn>_chain.e66.perMessage` ger tid per meddelande.
+Startkontroller är inte atomiska resursleases. Processstädning kräver rätt PID,
+starttid, session/grupp, rätt Node-exekverare och arbetskatalog. Programraden måste
+matcha startkommandot eller Nexts exakta versionsbundna `next-server`-processtitel;
+en försvunnen ledare
+med levande gruppmedlemmar ger BLOCKED. Grupper som lämnat den kvittobundna
+processgruppen, faktisk backendgallring, produktion, externa mottagare och slutlig
+105-scenariogodkänning ligger utanför denna privata harnessverifiering. Storage-
+bytes ingår inte i `pg_dump`; tidigare custody-/delivery-substitutioner kvarstår.

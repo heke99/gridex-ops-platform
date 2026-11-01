@@ -1,10 +1,11 @@
-// Spårets egen vitest-konfiguration: bara track6/scenarios. Körs av run.sh med SIM_HOME/env/track6.env laddad.
+// Spårets egen vitest-konfiguration: bara track6/scenarios. run.sh läser privat env/track6.json som data.
 // root = detta spårs katalog (scenariofilerna ligger här); appkoden (alias '@') ligger i körkatalogen.
-import { resolve } from 'node:path'
+import { isAbsolute, resolve } from 'node:path'
 import { defineConfig } from 'vitest/config'
 
 const here = __dirname
-const appRoot = process.env.SIM_RUN_DIR ?? '/root/sim-run/track6'
+const appRoot = process.env.SIM_RUN_DIR
+if (!appRoot || !isAbsolute(appRoot)) throw new Error('SIM_RUN_DIR must explicitly name the admitted app checkout')
 
 export default defineConfig({
   root: here,
