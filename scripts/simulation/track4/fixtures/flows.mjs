@@ -163,7 +163,7 @@ export function assertInvoiceJson(download, file) {
 
 // XML text is compared after one standard XML entity decode. Preserve scalar whitespace;
 // only XML 1.0 controls deliberately stripped by the canonical formatter are projected away.
-const xmlText = value => String(value ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+const xmlText = value => String(value ?? '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
 const periodText = (start, end) => start && end ? `${start}-${end}` : ''
 function fixed(value, places) {
   assert.ok(typeof value === 'number' && Number.isFinite(value), 'stored XML numeric field must be finite')
@@ -227,15 +227,22 @@ function invoiceXmlProjection(row) {
 
 function stripIndentation(value, path = '') {
   if (Array.isArray(value)) return value.map(item => stripIndentation(item, path))
-  if (typeof value === 'string' && /^\s*$/.test(value) &&
+  if (typeof value === 'string' && /^[ \t\r\n]*$/.test(value) &&
     ['Invoices.Inv.InvoiceSpecification', 'Invoices.Inv.Electricity.Facilities'].includes(path)) return ''
   if (!value || typeof value !== 'object') return value
-  return Object.fromEntries(Object.entries(value).filter(([key, item]) => !(key === '#text' && typeof item === 'string' && /^\s*$/.test(item)))
+  return Object.fromEntries(Object.entries(value).filter(([key, item]) => !(key === '#text' && typeof item === 'string' && /^[ \t\r\n]*$/.test(item)))
     .map(([key, item]) => [key, stripIndentation(item, path ? `${path}.${key}` : key)]))
 }
 
 export function assertInvoiceXml(download, file) {
   const text = downloadText(download, file, 'nordfin_xml')
+  // XMLValidator does not enforce the full XML 1.0 Char production. Check every
+  // decoded literal codepoint before the parser or indentation handling can discard it.
+  for (const character of text) {
+    const code = character.codePointAt(0)
+    assert.ok(code === 9 || code === 10 || code === 13 || (code >= 32 && code <= 0xD7FF) ||
+      (code >= 0xE000 && code <= 0xFFFD) || (code >= 0x10000 && code <= 0x10FFFF), 'literal character outside XML 1.0 Char')
+  }
   assert.match(text, /^<\?xml version="1\.0" encoding="utf-8"\?>\r?\n/, 'canonical XML 1.0 UTF8 declaration')
   assert.ok(!/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(text), 'DTD and entity declarations forbidden')
   // XMLValidator alone accepts unresolved named references. Only the five predefined entities

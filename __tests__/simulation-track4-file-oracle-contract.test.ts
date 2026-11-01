@@ -258,3 +258,34 @@ describe('MAIN05.03 actual authenticated XML repeat callback', () => {
     await expect(run('MAIN05.03', h)).rejects.toThrow()
   })
 })
+
+// XML1.0 Char and S boundaries are tested through the real callback, not parser/helper mocks.
+describe('MAIN05.03 XML1.0 character and line-ending contract', () => {
+  const forbidden = [0x00, 0x01, 0x08, 0x0b, 0x0c, 0x0e, 0x1f, 0xfffe, 0xffff]
+  it.each(forbidden)('rejects raw forbidden U+%i between elements before whitespace normalization', async code => {
+    const h = harness(stored([xmlRow()], 'nordfin'), (r, format) => format === 'nordfin_xml'
+      ? replaceBody(r, r.text().replace('  <Inv>', `${String.fromCodePoint(code)}  <Inv>`)) : r)
+    await expect(run('MAIN05.03', h)).rejects.toThrow()
+  })
+  it.each([0x00a0, 0x1680, 0x2000, 0x2028, 0x2029, 0xfeff])('preserves non-XML-S structural U+%i and refuses the extra character data', async code => {
+    const h = harness(stored([xmlRow()], 'nordfin'), (r, format) => format === 'nordfin_xml'
+      ? replaceBody(r, r.text().replace('  <Inv>', `${String.fromCodePoint(code)}  <Inv>`)) : r)
+    await expect(run('MAIN05.03', h)).rejects.toThrow()
+  })
+  it.each([0x09, 0x0a, 0x0d, 0x20, 0x7f, 0x85, 0xd7ff, 0xe000, 0xfffd, 0x10000, 0x10ffff])('accepts real canonical formatter text with allowed U+%i', async code => {
+    await run('MAIN05.03', harness(stored([xmlRow({ customer_name: `Första${String.fromCodePoint(code)}Andra` })], 'nordfin')))
+  })
+  it.each([['CRLF', 'Första\r\nAndra'], ['CR', 'Första\rAndra'], ['LF', 'Första\nAndra']])('accepts canonical field text with standard XML %s normalization', async (_name, customer_name) => {
+    await run('MAIN05.03', harness(stored([xmlRow({ customer_name })], 'nordfin')))
+  })
+  it.each(['&#11;', '&#xB;', '&#12;', '&#xC;'])('retains refusal of numeric forbidden reference %s', async entity => {
+    const h = harness(stored([xmlRow()], 'nordfin'), (r, format) => format === 'nordfin_xml'
+      ? replaceBody(r, r.text().replace('Test Testkund', `Test ${entity}`)) : r)
+    await expect(run('MAIN05.03', h)).rejects.toThrow()
+  })
+  it('accepts XML S indentation while preserving identical raw downloads', async () => {
+    const h = harness(stored([xmlRow()], 'nordfin'), (r, format) => format === 'nordfin_xml'
+      ? replaceBody(r, r.text().replace('  <Inv>', ' \t\r\n  <Inv>')) : r)
+    await run('MAIN05.03', h)
+  })
+})
