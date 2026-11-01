@@ -214,22 +214,162 @@
     "https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6506161415"
   ],
   "genProducer": {
-    "session": "session_01UHTg8KVQcYJS5fqdU3XihA",
-    "sourceReceipt": "d36c59292a01aa341ff304a60809269c2d1f0af4",
+    "owner": "Codex GEN service under root coordinator",
+    "session": "codex-gen-20261101",
+    "sourceReceipt": "bc9d5a31a43f132202e013ab9ae599664ff8fe6f",
+    "sourcePacket": "0a538987-d5a7-4d86-ba4f-9db95c710613",
+    "sourceSessionRef": "refs/tags/agent-claims/masterplan/slot-session-0a538987-d5a7-4d86-ba4f-9db95c710613",
     "producerRef": "refs/tags/agent-claims/masterplan/producer-gen",
-    "producerReceipt": "c4139fff8e1cf47d135b8489ed42679765b43fd2",
-    "proxyPacket": "08d2d632-fc9c-474a-a642-99b48fe40434",
-    "handoffReference": "https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6506303596",
-    "workerReadback": "REQUIRES_RECEIVER_ALL_TARGET_ACK",
-    "queue": [
+    "producerReceipt": "add5bacceb5aa596dc87dfdaad1bdab9d57e589d",
+    "state": "CODEX_GEN_SOURCE_AND_PRODUCER_RESERVED_PENDING_INPUT_QUALIFICATION",
+    "qualifiedToRun": false,
+    "captureOrNativeRunsInTakeover": 0,
+    "workerReadback": "Root authenticated all8 source/session targets and separateproducer; delegatedwriter must do own fullreadback before write.",
+    "captureAdmission": "Administrative reservation only; not full-v1 legacy owned capture admission. Fresh selected source/input/environment contract is required before any generation/capture.",
+    "queue": [],
+    "queueState": "CURRENT_INPUT_NOT_SELECTED; prior queue is historical and must be reconciled against current main.",
+    "previousReservation": {
+      "session": "session_01UHTg8KVQcYJS5fqdU3XihA",
+      "sourceReceipt": "d36c59292a01aa341ff304a60809269c2d1f0af4",
+      "producerRef": "refs/tags/agent-claims/masterplan/producer-gen",
+      "producerReceipt": "c4139fff8e1cf47d135b8489ed42679765b43fd2",
+      "proxyPacket": "08d2d632-fc9c-474a-a642-99b48fe40434",
+      "handoffReference": "https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6506303596",
+      "workerReadback": "REQUIRES_RECEIVER_ALL_TARGET_ACK",
+      "queue": [
+        {
+          "pr": 932,
+          "order": 1,
+          "delivery": "SMALL_PR_AGAINST_932_BRANCH; NO_GENERAL_BRANCH_HANDOFF"
+        }
+      ],
+      "track5Rule": "Submit GEN needs to this queue; no second producer",
+      "takeoverState": "EXISTING_REFS_PRESERVED_PENDING_RUN_OUTPUT_RECONCILIATION"
+    },
+    "historicalSessionPreserved": {
+      "ref": "refs/tags/agent-claims/masterplan/slot-session-08d2d632-fc9c-474a-a642-99b48fe40434",
+      "expectedOldReceipt": "d36c59292a01aa341ff304a60809269c2d1f0af4",
+      "action": "PRESERVE: historical old session ref is nonblocking; do not delete."
+    },
+    "archiveRefs": [
       {
-        "pr": 932,
-        "order": 1,
-        "delivery": "SMALL_PR_AGAINST_932_BRANCH; NO_GENERAL_BRANCH_HANDOFF"
+        "ref": "refs/tags/agent-archives/gen-cutover-20261101/source-receipt-d36c5929",
+        "sha": "d36c59292a01aa341ff304a60809269c2d1f0af4",
+        "purpose": "Preserve old custody receipt before seven file releases; historical session ref remains."
+      },
+      {
+        "ref": "refs/tags/agent-archives/gen-cutover-20261101/producer-receipt-c4139fff",
+        "sha": "c4139fff8e1cf47d135b8489ed42679765b43fd2",
+        "purpose": "Preserve ended old producer reservation before release."
+      },
+      {
+        "ref": "refs/tags/agent-archives/gen-cutover-20261101/canonical-main-14007c09",
+        "sha": "14007c0938af0e0d7de136fe76748b3589822ca6",
+        "purpose": "Preserve source baseline and recorded RAW3 bytes."
+      },
+      {
+        "ref": "refs/tags/agent-archives/gen-cutover-20261101/capture-source-4551eff2",
+        "sha": "4551eff26b91c89c79bfd77723f9fd7345ee305f",
+        "purpose": "Preserve latest recorded genuine RAW3 original source."
+      },
+      {
+        "ref": "refs/tags/agent-archives/gen-cutover-20261101/gen-deps-audit-20261031",
+        "sha": "131275b0203fdb865a134a15a8567a37e2decb9b",
+        "originalBranch": "refs/heads/claude/gen-deps-audit-20261031",
+        "purpose": "Preserve relevant public GEN source lineage without mutating its branch."
+      },
+      {
+        "ref": "refs/tags/agent-archives/gen-cutover-20261101/gen-pr932-20261029",
+        "sha": "a6ff032715c21e5397ebd94b50ff40bf7bcd00e2",
+        "originalBranch": "refs/heads/claude/gen-pr932-20261029",
+        "purpose": "Preserve relevant public GEN source lineage without mutating its branch."
+      },
+      {
+        "ref": "refs/tags/agent-archives/gen-cutover-20261101/gen-pr938-20261030",
+        "sha": "25797a9309a32653907f1ade139c834d55a4034c",
+        "originalBranch": "refs/heads/claude/gen-pr938-20261030",
+        "purpose": "Preserve relevant public GEN source lineage without mutating its branch."
+      },
+      {
+        "ref": "refs/tags/agent-archives/gen-cutover-20261101/gen-ratchet-restore-20261031",
+        "sha": "aa090bd454d00aa0f19d659f1e43b5987dc69c46",
+        "originalBranch": "refs/heads/claude/gen-ratchet-restore-20261031",
+        "purpose": "Preserve relevant public GEN source lineage without mutating its branch."
+      },
+      {
+        "ref": "refs/tags/agent-archives/gen-cutover-20261101/gen-replay-pin-pr932-20261029",
+        "sha": "74ed8cf0272be696a767e0b5c2b747a83c2193c8",
+        "originalBranch": "refs/heads/claude/gen-replay-pin-pr932-20261029",
+        "purpose": "Preserve relevant public GEN source lineage without mutating its branch."
       }
     ],
-    "track5Rule": "Submit GEN needs to this queue; no second producer",
-    "takeoverState": "EXISTING_REFS_PRESERVED_PENDING_RUN_OUTPUT_RECONCILIATION"
+    "knownOriginalArchivesRecovered": [
+      {
+        "artifactId": 13019755967,
+        "bytes": 1853413,
+        "archiveSha256": "cc519bf94356337b49cd5da7416a74d0016c3f6c25d7dc4713391a19e84b1d6a",
+        "raw3Sha256": {
+          "database.types.ts": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
+          "schema.sql": "bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b",
+          "schema.fingerprint.json": "700e4bf811c98d6cd56c6195069b9749c1d5beffb4b96c127e667a3745b115ab"
+        },
+        "currentCommittedRaw3Match": true,
+        "recordedCaptureReceiptMatch": true,
+        "sourceHead": "4551eff26b91c89c79bfd77723f9fd7345ee305f",
+        "runId": 41138002145,
+        "newCapture": false,
+        "wholeAcceptance": false
+      },
+      {
+        "artifactId": 12978975707,
+        "bytes": 1844617,
+        "archiveSha256": "058190d88a0dd881fd13fdb6f57c1e4d5efb4be77f54c819026fa43369976826",
+        "raw3Sha256": {
+          "database.types.ts": "7f6ae05f83bb8fe7b5d1ce18b7e96e5397a518069278a14e85f586caef694972",
+          "schema.sql": "5cf963f986dbdf2077c88130e33aef8a666d5b514c857cf8f9b864cd3c402a4c",
+          "schema.fingerprint.json": "aa08d3ce1739b180683255c37ffcb8a724130609c1ceaf1f46811f37335bbbb3"
+        },
+        "currentCommittedRaw3Match": null,
+        "recordedCaptureReceiptMatch": null,
+        "sourceHead": "25797a9309a32653907f1ade139c834d55a4034c",
+        "runId": 41058405299,
+        "newCapture": false,
+        "wholeAcceptance": false
+      },
+      {
+        "artifactId": 12981765531,
+        "bytes": 1853410,
+        "archiveSha256": "dcfaeab993af7fef8ea13bbbda09abefbab64801a8aee0a4444fbf1be5c8aea0",
+        "raw3Sha256": {
+          "database.types.ts": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
+          "schema.sql": "20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b",
+          "schema.fingerprint.json": "96bd2ac2f6300c272516aa59338a4764dc7120782ad452822f7d9ffcd9184af2"
+        },
+        "currentCommittedRaw3Match": null,
+        "recordedCaptureReceiptMatch": null,
+        "sourceHead": "9c39bd6078af9b23e57c65455966628acd41700f",
+        "runId": 41060729893,
+        "newCapture": false,
+        "wholeAcceptance": false
+      },
+      {
+        "artifactId": 12926254740,
+        "bytes": 1852188,
+        "archiveSha256": "9418c03723fd5ad8e171955629302373c089af0a7b22244870b5010aecb085fc",
+        "raw3Sha256": {
+          "database.types.ts": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
+          "schema.sql": "b97f5a7bc49fc9ca513b9fa417d69d6aa6058920faa6f19b990cbd2f8bc9512e",
+          "schema.fingerprint.json": "e14222a1bae70c3f0d9a2bfa332394e7587c8cc28076cd20e2cca95959cc297f"
+        },
+        "currentCommittedRaw3Match": null,
+        "recordedCaptureReceiptMatch": null,
+        "sourceHead": "f0d801caa27354b57035d75d0b74e452b66023e2",
+        "runId": 40942273081,
+        "newCapture": false,
+        "wholeAcceptance": false
+      }
+    ],
+    "otherPrivateOutputs": "UNKNOWN_UNCREDITED"
   },
   "originalRecovery": {
     "path": "quality/simulation-register/oracles/all-systems-scenarios.safe.json",
