@@ -15,6 +15,47 @@ Historisk kampanj `20261029-3f1a8ab1`, appbas `1c0c088cb4ed66d0dd8b3e34c96060193
 
 Användning, klocka och neutraliserade externa integrationer är desamma som i spår 2:s README.
 
+## Inträdeskontroll före up/run/down
+
+Alla tre shellskript kräver uttryckliga `SIM_HOME`, `RUN_DIR` och
+`SIM_RUNTIME_ASSIGNMENT_FILE`. Inga historiska standardportar, gamla
+markörfiler eller ett tidigare `ports.env` ger en ny körtilldelning.
+Tilldelningen ska utfärdas av den aktuella samordnaren, ligga utanför Git och
+vara en kanonisk, vanlig fil med aktuell användare som ägare och filmod `0600`.
+Den är ett JSON-objekt med:
+
+- `schema: "gridex-simulation-runtime-assignment-v1"`, `worker: "T5"`,
+  `state: "ACTIVE"`, `environmentId` och en framtida tidszonssatt `expiresAt`.
+- `allowedOperations`: de uttryckligen tilldelade operationerna `up`, `run`
+  och/eller `down`. Varje start kontrollerar operation och giltighet igen.
+- `runDir`, `simHome` och `sourceCommit`: exakta kanoniska sökvägar och
+  fullständig SHA för en ren `RUN_DIR`. Katalogerna får inte överlappa.
+  `SIM_HOME` ska ligga utanför Git och ha filmod `0700` om den redan finns.
+  Dess `logs`, `pids` och `reports` får inte vara symlänkar eller ha annan ägare.
+- `projectId`: ett separat tilldelat projekt, aldrig `gridex-ops-platform`.
+- `ports`: exakt elva olika heltalsportar mellan 1024 och 65535 med nycklarna
+  `SIM_API_PORT`, `SIM_DB_PORT`, `SIM_SHADOW_PORT`, `SIM_POOLER_PORT`,
+  `SIM_STUDIO_PORT`, `SIM_MAIL_HTTP_PORT`, `SIM_SMTP_PORT`, `SIM_APP_PORT`,
+  `SIM_COUNTERPART_PORT`, `SIM_RECEIVER_TLS_PORT`, `SIM_RECEIVER_CTRL_PORT`.
+- `receiver`: `ip` som är en uttryckligt tilldelad publik IPv4-adress,
+  `hosts` med mottagarens namn under `.t5.sim.invalid` och `networkTag`
+  som börjar med `gridex-sim-t5-`. Samordnaren ansvarar för att dessa resurser
+  är lediga och exklusivt tilldelade; parsern intygar inte detta.
+
+Miljöns eventuella port-/projekt-/mottagarvärden måste överensstämma med
+tilldelningen. Ett befintligt `ports.env` tolkas endast som enkla datarader
+och måste exakt matcha projekt, elva portar och mottagar-IP. Filen körs aldrig
+som shellkod. Fel stoppar även `run.sh` och `down.sh`, som saknar `errexit`,
+före katalogskapande eller vidare skriptkörning.
+
+**Runtime är fortfarande inte kvalificerad av denna inträdeskontroll.** De
+ärvda up/down-skripten har PID-/namn-/portbaserad processstädning, bred
+projekt-labelstädning och ändrar värdens Docker-/hosts-/iptables-/sysctl-
+tillstånd. Dessa livscykler behöver separat kontroll av exakta egna resurser;
+ingen främmande resurs får städas. Direkt scenarioimport kan också kringgå
+shellinträdet. Faktisk backend-identitet, bygge, replay och schemascope måste
+kvalificeras separat innan samordnaren tilldelar en verklig körning.
+
 ## Nya statuspaket: explicit proveniens
 
 `packet.py` är en offlineassembler. Den startar inga tester, läser ingen databas
