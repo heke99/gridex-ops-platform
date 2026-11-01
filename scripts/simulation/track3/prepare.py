@@ -93,10 +93,12 @@ def phase_environment(host, node):
             'PYTHONDONTWRITEBYTECODE': '1', 'DOCKER_HOST': 'unix://' + host['socket']}
 
 
-# Kernel-source-qualified families, not a nominal VM/provider-size assertion.
+# Bounded source-qualified families from T4 manifestSHA
+# 11ed57529dbea8e0fd176afe8c0fff6c7c9bcd28c51a1d1d25fa3a7cd15a5766.
+# Actual release must match; this is not a nominal VM/provider-size assertion.
 # proc_ns.h reserves the initial inode; cgroup.c initializes init_cgroup_ns with
 # it; nsfs.c exposes ns->inum and NS_GET_NSTYPE. Unknown kernels stay UNKNOWN.
-CGROUP_KERNEL_FAMILIES = {(6, 8), (6, 11), (6, 14)}
+CGROUP_KERNEL_FAMILIES = {(6, minor) for minor in range(8, 19)}
 PROC_CGROUP_INIT_INO = 0xEFFFFFFB
 NSFS_MAGIC, PROCFS_MAGIC = 0x6e736673, 0x9fa0
 CGROUP_MAGIC, CGROUP2_MAGIC = 0x27e0eb, 0x63677270
@@ -150,7 +152,7 @@ def _kernel_directory(path, magic, device):
 @contextmanager
 def cgroup_namespace_anchor():
     release = os.uname().release
-    match = re.match(r'^(\d+)\.(\d+)(?:\.|-)', release)
+    match = re.fullmatch(r'(0|[1-9]\d*)\.(0|[1-9]\d*)\.\d+(?:[-+].*)?', release)
     need(match and tuple(map(int, match.groups())) in CGROUP_KERNEL_FAMILIES, 'unqualified_kernel_namespace_contract')
     need(os.readlink('/proc/self') == str(os.getpid()), 'proc_view_not_current_process')
     path = '/proc/self/ns/cgroup'
@@ -217,6 +219,11 @@ def _cgroup_membership(text):
 
 def cgroup_capacity_observation():
     """A current full-hierarchy snapshot, never an override or a producer lease."""
+    release = None
+    try:
+        release = os.uname().release
+    except (OSError, AttributeError):
+        pass  # Retain absence honestly; the existing namespace gate still holds.
     try:
         with cgroup_namespace_anchor() as anchor:
             membership = _kernel_text('/proc/self/cgroup', PROCFS_MAGIC)
@@ -316,7 +323,7 @@ def cgroup_capacity_observation():
                 need(_kernel_text('/proc/self/cgroup', PROCFS_MAGIC) == membership
                      and _kernel_text('/proc/self/mountinfo', PROCFS_MAGIC) == mount_text
                      and after_anchor == anchor, 'cgroup_view_changed_during_observation')
-            return {'status': 'QUALIFIED', 'effectiveRamBytes': min([physical] + [x['bytes'] for x in memory]),
+            return {'status': 'QUALIFIED', 'kernelRelease': release, 'effectiveRamBytes': min([physical] + [x['bytes'] for x in memory]),
                 'physicalRamBytes': physical, 'namespace': anchor, 'memoryLimits': memory, 'cpuQuotas': quotas,
                 'cpuQuotaCores': min(x['cores'] for x in quotas) if quotas else None,
                 'membership': membership, 'mountinfoSha256': sha(mount_text.encode()),
@@ -324,7 +331,7 @@ def cgroup_capacity_observation():
                 'ancestorInterfaces': [{'path': path, 'value': value} for path, (_, value) in values.items()]}
     except Exception as error:
         code = str(error) if isinstance(error, Blocked) and re.fullmatch('[a-z_]+', str(error)) else 'kernel_capacity_interface_unreadable'
-        return {'status': 'UNKNOWN', 'effectiveRamBytes': None, 'cpuQuotaCores': None, 'reason': code}
+        return {'status': 'UNKNOWN', 'kernelRelease': release, 'effectiveRamBytes': None, 'cpuQuotaCores': None, 'reason': code}
 
 
 def host_identity(enforce_capacity=True):

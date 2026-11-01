@@ -260,7 +260,7 @@ class CgroupCapacityTests(unittest.TestCase):
                 files[root + node + '/cpu.max'] = '100000 100000' if node == '/jobs' else 'max 100000'
         return files
 
-    def host(self, files, initial=True, enforce=False):
+    def host(self, files, initial=True, enforce=False, anchor_port=None):
         with tempfile.TemporaryDirectory() as directory:
             socket = Path(directory) / 'socket'; socket.touch()
             def read(path, *_args, **_kwargs):
@@ -283,7 +283,7 @@ class CgroupCapacityTests(unittest.TestCase):
                  patch.object(Path, 'read_text', read), patch.object(Path, 'is_file', side_effect=lambda: False), \
                  patch.object(runner, '_kernel_text', side_effect=read, create=True), \
                  patch.object(runner, '_kernel_directory', side_effect=directory_port, create=True), \
-                 patch.object(runner, 'cgroup_namespace_anchor', side_effect=namespace_port, create=True):
+                 patch.object(runner, 'cgroup_namespace_anchor', side_effect=namespace_port if anchor_port is None else anchor_port, create=True):
                 return runner.host_identity(enforce_capacity=enforce)
 
     def test_actual_host_identity_must_include_lower_parent_not_only_visible_root(self):
@@ -439,6 +439,93 @@ class NamespaceKernelFDTests(unittest.TestCase):
             complete = runner._kernel_text('/proc/self/mountinfo', runner.PROCFS_MAGIC)
         files = CgroupCapacityTests().fixture(); files['/proc/self/mountinfo'] = complete
         self.assertIsNone(CgroupCapacityTests().host(files)['effectiveRamBytes'])
+
+
+class QualifiedKernelFamilyTests(unittest.TestCase):
+    release = '6.18.57'  # Finite qualified-source fixture, never actual host proof.
+
+    def host(self, files, mode='ok'):
+        original_anchor = runner.cgroup_namespace_anchor
+        @contextmanager
+        def actual_fd_anchor():
+            inode = runner.PROC_CGROUP_INIT_INO if mode != 'other-inode' else runner.PROC_CGROUP_INIT_INO + 1
+            def readlink(path):
+                if path == '/proc/self':return str(os.getpid()) if mode != 'wrong-self' else '1'
+                return 'cgroup:[' + str(inode) + ']'
+            def magic(fd):
+                if fd == 11:return runner.PROCFS_MAGIC if mode != 'not-proc' else 123
+                return runner.NSFS_MAGIC if mode != 'wrong-fs' else runner.PROCFS_MAGIC
+            with patch.object(runner.os,'readlink',side_effect=readlink),\
+                 patch.object(runner.os,'lstat',return_value=SimpleNamespace(st_mode=stat.S_IFLNK if mode!='not-link' else stat.S_IFREG)),\
+                 patch.object(runner.os,'open',side_effect=lambda path,*_:11 if str(path)=='/proc/self/ns' else 22),\
+                 patch.object(runner.os,'close'),patch.object(runner.os,'fstat',return_value=SimpleNamespace(st_ino=inode)),\
+                 patch.object(runner,'_fd_fs_magic',side_effect=magic),\
+                 patch.object(runner.fcntl,'ioctl',return_value=runner.CLONE_NEWCGROUP if mode!='wrong-type' else 0):
+                with original_anchor() as proof:yield proof
+        with patch.object(runner.os,'uname',return_value=SimpleNamespace(release=self.release)):
+            return CgroupCapacityTests().host(files,anchor_port=actual_fd_anchor)
+
+    def positive_files(self):
+        files=CgroupCapacityTests().fixture()
+        files['/sys/fs/cgroup/jobs/memory.max']=str(12*2**30)
+        return files
+
+    def test_qualified_61857_with_actual_fd_contract_and_complete_hierarchy_qualifies(self):
+        host=self.host(self.positive_files())
+        self.assertEqual(host['capacityStatus'],'QUALIFIED')
+        self.assertEqual(host['effectiveRamBytes'],12*2**30)
+        self.assertEqual(host['capacityObservation']['kernelRelease'],self.release)
+        self.assertEqual(host['capacityObservation']['namespace']['inode'],runner.PROC_CGROUP_INIT_INO)
+        self.assertEqual(host['capacityObservation']['namespace']['kernelRelease'],self.release)
+
+    def test_qualified_61857_wrong_fd_contract_remains_unknown(self):
+        for mode in ['other-inode','wrong-fs','wrong-type','not-proc','not-link','wrong-self']:
+            with self.subTest(mode=mode):
+                host=self.host(self.positive_files(),mode)
+                self.assertEqual(host['capacityStatus'],'UNKNOWN')
+                self.assertIsNone(host['effectiveRamBytes'])
+                self.assertEqual(host['capacityObservation']['kernelRelease'],self.release)
+
+    def test_qualified_61857_hidden_mount_missing_ancestor_and_race_remain_unknown(self):
+        variants=[]
+        files=self.positive_files();files['/proc/self/mountinfo']+='30 29 0:30 / /sys/fs/cgroup/jobs rw - cgroup2 cgroup rw\n';variants.append(files)
+        files=self.positive_files();del files['/sys/fs/cgroup/jobs/memory.max'];variants.append(files)
+        files=self.positive_files();count=[0]
+        def changing():
+            count[0]+=1
+            return '0::/jobs/build\n' if count[0]==1 else '0::/different\n'
+        files['/proc/self/cgroup']=changing;variants.append(files)
+        for number,files in enumerate(variants):
+            with self.subTest(variant=number):
+                host=self.host(files)
+                self.assertEqual(host['capacityStatus'],'UNKNOWN')
+                self.assertIsNone(host['effectiveRamBytes'])
+                self.assertEqual(host['capacityObservation']['kernelRelease'],self.release)
+
+    def test_linux64_fd_abi_guard_is_still_mandatory(self):
+        with patch.object(runner.sys,'platform','not-linux'),self.assertRaises(runner.Blocked):runner._fd_fs_magic(123)
+        with patch.object(runner.ctypes,'sizeof',return_value=4),self.assertRaises(runner.Blocked):runner._fd_fs_magic(123)
+
+
+
+    def test_outside_qualified_families_or_malformed_release_remains_unknown(self):
+        for release in ['7.0.0', '99.0.0', '6.19.0', '6.7.0', '6.18', '6.18.garbage', '06.18.57', '6.018.57', '6.18.57trailing', 'not-a-kernel-release']:
+            with self.subTest(release=release):
+                self.release=release
+                host=self.host(self.positive_files())
+                self.assertEqual(host['capacityStatus'],'UNKNOWN')
+                self.assertIsNone(host['effectiveRamBytes'])
+                self.assertEqual(host['capacityObservation']['kernelRelease'],release)
+                self.assertEqual(host['capacityObservation']['reason'],'unqualified_kernel_namespace_contract')
+
+    def test_only_eleven_source_qualified_families_have_positive_fd_contract_path(self):
+        for minor in range(8,19):
+            with self.subTest(minor=minor):
+                self.release=f'6.{minor}.0-source-qualified-finite-fixture'
+                host=self.host(self.positive_files())
+                self.assertEqual(host['capacityStatus'],'QUALIFIED')
+                self.assertEqual(host['effectiveRamBytes'],12*2**30)
+                self.assertEqual(host['capacityObservation']['kernelRelease'],self.release)
 
 
 if __name__ == '__main__':
