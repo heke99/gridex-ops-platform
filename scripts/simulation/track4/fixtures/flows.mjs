@@ -163,7 +163,7 @@ export function assertInvoiceJson(download, file) {
 
 // XML text is compared after one standard XML entity decode. Preserve scalar whitespace;
 // only XML 1.0 controls deliberately stripped by the canonical formatter are projected away.
-const xmlText = value => String(value ?? '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+const xmlText = value => String(value ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/\r\n?/g, '\n')
 const periodText = (start, end) => start && end ? `${start}-${end}` : ''
 function fixed(value, places) {
   assert.ok(typeof value === 'number' && Number.isFinite(value), 'stored XML numeric field must be finite')

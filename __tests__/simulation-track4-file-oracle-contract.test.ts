@@ -289,3 +289,14 @@ describe('MAIN05.03 XML1.0 character and line-ending contract', () => {
     await run('MAIN05.03', h)
   })
 })
+
+it('accepts real builder/renderer text when control stripping creates CRLF before XML normalization', async () => {
+  const row = buildInvoiceFileRow({
+    item: { id: '11111111-2222-3333-4444-555555555555', period_start: '2026-09-01', period_end: '2026-09-30', total_kwh: '412.5', amount_ex_vat: '800', vat_amount: '200', amount_inc_vat: '1000', currency: 'SEK' },
+    invoice: { invoice_number: null, price_area_code: 'SE3' },
+    customer: { customer_number: 'K-1', name: 'Första\r\u000b\nAndra', customer_type: 'private', personal_number: '19121212-1212' },
+    underlay: { price_area: 'SE3' }, lines: [], legacyItem: null, billingMonth: '2026-09', now: new Date('2026-10-02T10:00:00Z'),
+  })
+  expect(row.customer_name).toBe('Första\r\u000b\nAndra')
+  await run('MAIN05.03', harness(stored([row], 'nordfin')))
+})
