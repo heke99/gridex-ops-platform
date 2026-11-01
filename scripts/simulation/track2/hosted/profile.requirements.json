@@ -24,6 +24,7 @@
   "requiredBindings": [
     "sourceCommit",
     "sourceTree",
+    "ownedSourceFiles",
     "sourceFiles",
     "github",
     "sourceCustody",

@@ -195,6 +195,27 @@ def verify_native_binding(binding, assignment, kind):
     verify_binding(binding)
 
 
+def verify_owned_source_scope(assignment, app):
+    """Authenticated custody must cover the explicit adopted runtime scope, not readonly inputs."""
+    workflow = '.github/workflows/t2-term-disposable.yml'
+    prefix = 'scripts/simulation/track2/'
+    tracked = git(app, 'ls-files', '--', 'scripts/simulation/track2', workflow).splitlines()
+    required = sorted(tracked)
+    require(required and workflow in required and len(required) == len(set(required))
+            and all(path == workflow or path.startswith(prefix) for path in required),
+            'adopted-runtime-scope-unavailable')
+    require(assignment.get('ownedSourceFiles') == required,
+            'signed-owned-source-scope-mismatch')
+    require(set(required).issubset(assignment['sourceFiles']),
+            'owned-source-bytes-not-pinned')
+    authenticated = set()
+    for binding in assignment['sourceCustody']:
+        authenticated.update(binding['body']['files'])
+    require(set(required).issubset(authenticated),
+            'ordinary-custody-does-not-cover-runtime-scope')
+    # Extra original capsule paths are only readback context, never an implicit grant.
+
+
 def authenticate(operation):
     """Pinned T2 signature plus authenticated exact receipts; never trusts ACTIVE alone."""
     import tempfile
@@ -243,6 +264,7 @@ def authenticate(operation):
     home = Path(os.environ['SIM_HOME'])
     require(str(app.resolve()) == a['runDir'] and str(home.resolve()) == a['simHome']
             and not home.is_relative_to(app) and not home.is_symlink(), 'runtime-path-binding-mismatch')
+    verify_owned_source_scope(a, app)
     require(git(app, 'rev-parse', 'HEAD') == a['sourceCommit']
             and git(app, 'rev-parse', 'HEAD^{tree}') == a['sourceTree'], 'source-tuple-changed')
     required = {'.github/workflows/t2-term-disposable.yml', 'package-lock.json',

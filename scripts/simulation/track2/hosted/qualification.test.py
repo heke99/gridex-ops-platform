@@ -444,6 +444,56 @@ class OperationalContracts(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 module.authorize('run')
 
+    def owned_scope_fixture(self):
+        paths = sorted(['.github/workflows/t2-term-disposable.yml',
+                        'scripts/simulation/track2/up.sh', 'scripts/simulation/track2/lib/fixture.ts',
+                        'scripts/simulation/track2/hosted/qualify-runtime.py'])
+        assignment = {'ownedSourceFiles': paths, 'sourceFiles': {p: 'a' * 64 for p in paths},
+                      'sourceCustody': [{'body': {'files': paths[:2]}}, {'body': {'files': paths[2:]}}]}
+        # These inputs are readonly source identities, not T2 source-writer claims.
+        assignment['sourceFiles'].update({'package-lock.json':'b'*64, 'supabase/schema.sql':'c'*64})
+        return paths, assignment
+
+    def test_authentic_unrelated_ordinary_receipt_cannot_cover_runtime(self):
+        paths, assignment = self.owned_scope_fixture()
+        import hashlib
+        ref = 'refs/tags/agent-claims/masterplan/file-' + hashlib.sha256(b'unrelated.ts').hexdigest()
+        refs = sorted([ref, 'refs/tags/agent-claims/masterplan/slot-session-synthetic'])
+        operation = 'Reserve source files and rule IDs; resources-sha256=' + hashlib.sha256('\n'.join(refs).encode()).hexdigest()
+        body = {'base':'3'*40, 'files':['unrelated.ts'], 'operation':operation}
+        binding = {'refs':refs, 'receipt':'1'*40, 'base':'3'*40, 'tree':'2'*40, 'body':body}
+        actual_ref = json.dumps({'object':{'type':'commit','sha':'1'*40}})
+        commit = json.dumps({'tree':{'sha':'2'*40}, 'parents':[{'sha':'3'*40}], 'message':json.dumps(body)})
+        with mock.patch.object(module, 'command', side_effect=[actual_ref, actual_ref, commit, json.dumps({'tree':{'sha':'2'*40}})]):
+            module.verify_binding(binding)  # genuinely valid ordinary capsule/readbacks through the API port
+        assignment['sourceCustody'] = [binding]
+        with mock.patch.object(module,'git',return_value='\n'.join(paths)):
+            with self.assertRaisesRegex(ValueError, 'ordinary-custody-does-not-cover-runtime-scope'):
+                module.verify_owned_source_scope(assignment,self.root)
+
+    def test_signed_scope_cannot_omit_an_actual_adopted_path(self):
+        paths, assignment = self.owned_scope_fixture()
+        assignment['ownedSourceFiles'] = paths[:-1]
+        with mock.patch.object(module,'git',return_value='\n'.join(paths)):
+            with self.assertRaisesRegex(ValueError, 'signed-owned-source-scope-mismatch'):
+                module.verify_owned_source_scope(assignment,self.root)
+
+    def test_complete_adopted_custody_does_not_require_readonly_input_claims(self):
+        paths, assignment = self.owned_scope_fixture()
+        # Extra paths in old capsules do not enlarge the explicitly assigned runtime scope.
+        assignment['sourceCustody'][0]['body']['files'].append('unrelated-old-capsule.ts')
+        with mock.patch.object(module,'git',return_value='\n'.join(paths)):
+            module.verify_owned_source_scope(assignment,self.root)
+        self.assertNotIn('unrelated-old-capsule.ts',assignment['ownedSourceFiles'])
+        self.assertNotIn('package-lock.json',assignment['ownedSourceFiles'])
+
+    def test_missing_required_owned_byte_pin_is_hold(self):
+        paths, assignment = self.owned_scope_fixture()
+        assignment['sourceFiles'].pop(paths[-1])
+        with mock.patch.object(module,'git',return_value='\n'.join(paths)):
+            with self.assertRaisesRegex(ValueError, 'owned-source-bytes-not-pinned'):
+                module.verify_owned_source_scope(assignment,self.root)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -68,6 +68,15 @@ parent harness README. No default or example port is an allocation.
 
 The signed operational envelope additionally requires:
 
+- `ownedSourceFiles` is the exact sorted list of actual tracked
+  scripts/simulation/track2/** paths plus this workflow, derived from git ls-files
+  at the admitted checkout. Caller-empty/partial lists are rejected. Every path
+  must also occur in sourceFiles, and individually authenticated ordinary source
+  receipt body.files unions must cover this entire adopted runtime scope.
+  Extra paths in an original receipt are readback context, never an implicit
+  handoff/write grant. Positive exact handoffs remain independently required.
+  Unchanged readonly app/lock/GEN inputs require frozen identities, not T2 writer
+  claims; those paths do not enlarge ownedSourceFiles.
 - `sourceTree`; `sourceFiles` mapping actual repository paths to SHA256, including
   the workflow, lifecycle/runtime sources, lockfile, replay source/ledger and
   all three migration manifests. `genSource={commit,files}` binds actual adopted
