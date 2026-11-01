@@ -100,6 +100,7 @@ def admission(helper):
     assignment_hash = helper.digest(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE'])
     require(helper.load_private(home / 'up-consumed.json')['assignment'] == assignment_hash,
             'mailbox-up-admission-required')
+    require(os.getuid() != 0, 'mailbox-nonroot-owner-required')
     relative = 'scripts/simulation/track2/hosted/imap-mailbox.py'
     require(a['sourceFiles'].get(relative) == sha(Path(__file__)), 'mailbox-source-unbound')
     private_dir(home)

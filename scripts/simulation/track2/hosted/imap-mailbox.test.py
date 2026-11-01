@@ -108,6 +108,12 @@ class MailboxTest(unittest.TestCase):
             command.assert_not_called()
             socket.assert_not_called()
 
+    def test_root_cannot_start_a_root_mail_container(self):
+        with patch.object(m.os, 'getuid', return_value=0), patch.object(m, 'run') as command:
+            with self.assertRaisesRegex(ValueError, 'nonroot-owner-required'):
+                m.start(self.helper)
+            command.assert_not_called()
+
     def test_actual_openssl_san_ca_pkcs12_and_private_modes(self):
         directory = self.home / 'certs'
         directory.mkdir(mode=0o700)
