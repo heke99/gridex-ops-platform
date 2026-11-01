@@ -972,7 +972,7 @@ CREATE FUNCTION gridex_ack_authority.read_outbound_originals_v1(p_source uuid, p
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
-DECLARE source public.ediel_messages%rowtype;ack public.ediel_messages%rowtype;a jsonb;s jsonb;h jsonb;items jsonb:='[]';source_hash text;ack_hash text;qualified boolean;matched boolean;company uuid;technical gridex_ediel_technical_ack.sources%rowtype;reply gridex_ediel_technical_ack.replies%rowtype;common gridex_ediel_common_header.sources%rowtype;
+DECLARE source public.ediel_messages%rowtype;ack public.ediel_messages%rowtype;a jsonb;s jsonb;h jsonb;items jsonb:='[]';source_hash text;ack_hash text;qualified boolean;matched boolean;company uuid;technical gridex_ediel_technical_ack.sources%rowtype;reply gridex_ediel_technical_ack.replies%rowtype;common gridex_ediel_common_header.sources%rowtype;source_envelope jsonb;source_envelope_known boolean:=false;
 BEGIN
  IF p_source IS NULL OR p_family IS NULL OR p_family NOT IN('CONTRL','APERAK','UTILTS_ERR') THEN RAISE EXCEPTION 'ack_original_read_scope_required' USING ERRCODE='22023';END IF;
  SELECT * INTO source FROM public.ediel_messages WHERE id=p_source AND direction='inbound';
@@ -983,9 +983,17 @@ BEGIN
  IF source.company_id IS NULL AND technical.company_id IS NOT NULL AND common.company_id IS NOT NULL AND technical.company_id<>common.company_id THEN RAISE EXCEPTION 'ack_original_tenant_basis_ambiguous';END IF;
  company:=coalesce(source.company_id,technical.company_id,common.company_id);
  IF company IS NULL THEN RETURN jsonb_build_object('version',1,'sourceMessageId',source.id,'sourcePayloadHash',source_hash,'environment',source.environment,'companyId',NULL,'originals','[]'::jsonb);END IF;
+ -- Linear discovery: the source envelope is computed once. retained_source_v1
+ -- can only return source.id when the ACK uciRef equals this envelope's
+ -- uciReference, so other ACKs skip the per-ACK scan of all ready sources.
+ -- If the envelope cannot be computed, the unfiltered owner call is kept.
+ IF p_family='CONTRL' THEN
+  BEGIN source_envelope:=gridex_ediel_technical_ack.envelope(source.raw_payload);source_envelope_known:=true;
+  EXCEPTION WHEN OTHERS THEN source_envelope:=NULL;source_envelope_known:=false;END;
+ END IF;
  FOR ack IN SELECT m.* FROM public.ediel_messages m WHERE m.direction='outbound' AND m.company_id=company AND m.environment=source.environment AND m.message_family=p_family
   AND (m.related_message_id=source.id OR EXISTS(SELECT FROM gridex_ediel_outbound_owner.consumptions c JOIN gridex_ediel_outbound_owner.witnesses w ON w.id=c.witness_id WHERE c.source_message_id=m.id AND w.related_message_id=source.id)
-   OR EXISTS(SELECT FROM gridex_ediel_common_header.negative_consumptions c JOIN gridex_ediel_common_header.negative_witnesses w ON w.id=c.witness_id WHERE c.ack_message_id=m.id AND w.source_message_id=source.id) OR EXISTS(SELECT FROM gridex_ediel_ack_replay.creation_receipts r WHERE r.ack_message_id=m.id AND r.source_message_id=source.id AND r.company_id=company AND r.environment=source.environment AND r.source_payload_hash=source_hash AND r.ack_payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')) OR (p_family='CONTRL' AND gridex_ediel_technical_ack.retained_source_v1(m,false)=source.id)) ORDER BY m.created_at,m.id LOOP
+   OR EXISTS(SELECT FROM gridex_ediel_common_header.negative_consumptions c JOIN gridex_ediel_common_header.negative_witnesses w ON w.id=c.witness_id WHERE c.ack_message_id=m.id AND w.source_message_id=source.id) OR EXISTS(SELECT FROM gridex_ediel_ack_replay.creation_receipts r WHERE r.ack_message_id=m.id AND r.source_message_id=source.id AND r.company_id=company AND r.environment=source.environment AND r.source_payload_hash=source_hash AND r.ack_payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')) OR (p_family='CONTRL' AND CASE WHEN source_envelope_known AND (m.company_id IS DISTINCT FROM company OR m.environment IS DISTINCT FROM source.environment OR source_envelope IS NULL OR gridex_ack_authority.wire_v1(m.raw_payload)->>'uciRef' IS DISTINCT FROM source_envelope->>'uciReference') THEN false ELSE gridex_ediel_technical_ack.retained_source_v1(m,false)=source.id END)) ORDER BY m.created_at,m.id LOOP
   IF gridex_ediel_duplicate_responses.is_duplicate_ack_v1(ack.id) THEN CONTINUE;END IF;
   ack_hash:=encode(sha256(convert_to(ack.raw_payload,'UTF8')),'hex');a:=gridex_ack_authority.wire_v1(ack.raw_payload);qualified:=false;matched:=false;
   IF p_family='CONTRL' THEN
