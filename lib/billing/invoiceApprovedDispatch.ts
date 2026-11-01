@@ -129,8 +129,6 @@ async function approveItem(companyId: string, itemId: string, actorUserId: strin
   const context = await loadItemContext(companyId, itemId)
   if (context.item.status !== 'pending' || context.invoice.status !== 'draft') throw new Error('Endast oskickade draftfakturor kan godkännas.')
   await assertItemStillReady(context)
-  const existingApproval = approval(context.item.metadata)
-  if (existingApproval.status === 'approved' && approval(context.invoice.metadata).status === 'approved') return context
   const calculationHash = text(context.invoice.calculation_snapshot_sha256)
   const reviewHash = sha256({
     invoice_export_item_id: itemId,
@@ -141,38 +139,35 @@ async function approveItem(companyId: string, itemId: string, actorUserId: strin
     total_inc_vat: num(context.invoice.amount_inc_vat),
     price_area: text(context.invoice.price_area_code) ?? text(context.underlay.price_area),
   })
-  const approvedAt = new Date().toISOString()
-  const approved = {
-    status: 'approved',
-    approved_at: approvedAt,
-    approved_by: actorUserId,
-    review_hash: reviewHash,
-    calculation_snapshot_sha256: calculationHash,
+  // The database re-reads this context under locks and commits both approval
+  // copies and their event together. A stale list or a competing caller cannot
+  // overwrite the original reviewer or count an existing approval as new.
+  const result = await supabaseService.rpc('gridex_approve_invoice_export_item_v1', {
+    p_company_id: companyId,
+    p_export_item_id: itemId,
+    p_actor_user_id: actorUserId,
+    p_expected_context: {
+      item: context.item,
+      invoice: context.invoice,
+      underlay: context.underlay,
+      pricing_run: context.pricingRun,
+    },
+    p_review_hash: reviewHash,
+  })
+  if (result.error) throw result.error
+  const receipt = objectValue(result.data)
+  const storedApproval = objectValue(receipt.approval)
+  if (typeof receipt.approved_now !== 'boolean'
+    || storedApproval.status !== 'approved'
+    || storedApproval.review_hash !== reviewHash
+    || storedApproval.calculation_snapshot_sha256 !== calculationHash
+    || !text(storedApproval.approved_by)
+    || !Number.isFinite(Date.parse(text(storedApproval.approved_at) ?? ''))
+    || (receipt.approved_now && (storedApproval.approved_by !== actorUserId
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text(receipt.event_id) ?? '')))) {
+    throw new Error('Fakturans godkännandekvitto saknas eller är ogiltigt.')
   }
-  const itemUpdate = await supabaseService.from('invoice_export_items').update({
-    metadata: { ...objectValue(context.item.metadata), approval: approved },
-    updated_at: approvedAt,
-  }).eq('company_id', companyId).eq('id', itemId).eq('status', 'pending').select('id').maybeSingle()
-  if (itemUpdate.error) throw itemUpdate.error
-  if (!itemUpdate.data) throw new Error('Fakturan kunde inte godkännas; status ändrades under granskningen.')
-  const invoiceUpdate = await supabaseService.from('customer_invoices').update({
-    metadata: { ...objectValue(context.invoice.metadata), approval: approved },
-    updated_at: approvedAt,
-  }).eq('company_id', companyId).eq('invoice_export_item_id', itemId).eq('status', 'draft').select('id').maybeSingle()
-  if (invoiceUpdate.error) throw invoiceUpdate.error
-  if (!invoiceUpdate.data) throw new Error('Fakturaspegeln kunde inte godkännas.')
-  await emitDomainEvent({
-    companyId,
-    eventType: 'invoice.approved',
-    aggregateType: 'invoice_export_item',
-    aggregateId: itemId,
-    subjectCustomerId: text(context.item.customer_id),
-    actorUserId,
-    source: 'invoice_approved_dispatch_v1',
-    payload: { approved_at: approvedAt, review_hash: reviewHash },
-    idempotencyKey: `invoice-approved:${itemId}:${reviewHash}`,
-  }).catch(() => null)
-  return loadItemContext(companyId, itemId)
+  return receipt.approved_now
 }
 
 export async function updateLegacyProjection(input: { companyId: string; runId: string; itemId: string; status: 'sent' | 'failed'; error?: string | null }) {
@@ -444,10 +439,7 @@ export async function approveAndSendReadyInvoicesForMonth(input: { companyId: st
   for (const item of items) {
     const itemId = text(item.id) ?? 'unknown'
     try {
-      if (approval(item.metadata).status !== 'approved') {
-        await approveItem(input.companyId, itemId, input.actorUserId)
-        approved += 1
-      }
+      if (await approveItem(input.companyId, itemId, input.actorUserId)) approved += 1
       if (approveOnly) continue
       const result = await sendApprovedItem({ companyId: input.companyId, itemId, actorUserId: input.actorUserId })
       if (result.status === 'sent') sent += 1
