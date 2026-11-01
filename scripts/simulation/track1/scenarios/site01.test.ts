@@ -201,6 +201,9 @@ describe('SITE01 one customer, two sites', () => {
       FROM public.normalized_metering_values WHERE company_id=${company()} AND metering_point_id=${lit(bSite.pointId)}`)
     const period = dbRead<{ end_date: string | null; status: string; source_end_message_id: string | null; market_end_at: string | null }>(`SELECT jsonb_build_object('end_date',end_date,'status',status,'source_end_message_id',source_end_message_id,'market_end_at',market_end_at) FROM public.customer_supply_periods WHERE id=${lit(bSite.supplyPeriodId)}`)
     results['SITE01.03'] = { normalizedB, period, bFirst: bPairs[0]?.[0], bLastEnd: lastEnd(bPairs), underlayBStart: b.start, underlayBEnd: b.end, aLastEnd: lastEnd(aPairs) }
+    expect(period.status).toBe('ended')
+    const activePeriod = dbRead<{ status: string; source_end_message_id: string | null }>(`SELECT jsonb_build_object('status',status,'source_end_message_id',source_end_message_id) FROM public.customer_supply_periods WHERE company_id=${company()} AND id=${lit(fx.sites.A.supplyPeriodId)}`)
+    expect(activePeriod).toMatchObject({ status: 'active', source_end_message_id: null })
     expect(period.end_date).toBe(SITE_B.endDate)
     expect(period.source_end_message_id).toBe(fx.supplyEnd.sourceId)
     expect(Date.parse(String(period.market_end_at))).toBe(bSite.oracle.billableEndMs)

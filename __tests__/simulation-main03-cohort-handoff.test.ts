@@ -613,7 +613,7 @@ describe('SITE01 ordinary end uses the independent site oracle', () => {
   })
 })
 
-async function siteEndBoundary(mode: 'valid' | 'missing-original' | 'held' | 'missing-effects' | 'sibling-drift' | 'repeat-drift' = 'valid') {
+async function siteEndBoundary(mode: 'valid' | 'missing-original' | 'held' | 'missing-effects' | 'sibling-drift' | 'repeat-drift' | 'wrong-status' = 'valid') {
   const endModule = await import('../scripts/simulation/track1/fixtures/site01Synthetic')
   const guide = await import('./helpers/prodatGuideOrderedFixture')
   const identity = await import('./fixtures/prodat-identity')
@@ -630,6 +630,7 @@ async function siteEndBoundary(mode: 'valid' | 'missing-original' | 'held' | 'mi
     return {
       period: { id: 'period-b', customer_id: 'own-customer', metering_point_id: 'point-b',
         source_message_id: mode === 'missing-original' ? 'foreign-source' : supply.sourceId,
+        status: processes && mode !== 'wrong-status' ? 'ended' : 'active',
         contract_id: 'contract-b', customer_contract_id: 'contract-b', source_end_message_id: processes ? 'new-z05-source' : null,
         market_state_version: processes ? mode === 'repeat-drift' ? 1 + processes : 2 : 1,
         end_date: processes ? '2026-09-25' : null, market_end_at: processes ? '2026-09-25T22:00:00Z' : null },
@@ -702,4 +703,11 @@ describe('SITE01 actual ordinary Z05 orchestration through finite ports', () => 
     const control = await siteEndBoundary('repeat-drift')
     await expect(control.run()).rejects.toThrow('site01_z05_repeat_changed_business_graph')
   })
+})
+
+
+it('SITE01 refuses a source that leaves the historical B delivery active', async () => {
+  const control = await siteEndBoundary('wrong-status')
+  await expect(control.run()).rejects.toThrow('site01_z05_end_effect_mismatch')
+  expect(control.calls).toEqual(['mail', 'birth', 'process'])
 })

@@ -171,7 +171,7 @@ export async function endExistingSiteSupply(a: Ground, b: Ground, supply: { supp
     `site01_z05_not_accepted:${JSON.stringify(decision.issues)}`)
   await processInboundEdielMessage({ actorUserId: b.actorUserId, edielMessageId: sourceId })
   const after = readEnd(sourceId)
-  must(after.period.source_end_message_id === sourceId && after.period.end_date === plan.endDate
+  must(after.period.status === 'ended' && after.period.source_end_message_id === sourceId && after.period.end_date === plan.endDate
     && Date.parse(String(after.period.market_end_at)) === Date.parse(plan.effectiveAtUtc)
     && Number(after.period.market_state_version) === Number(before.period.market_state_version) + 1
     && after.period.source_message_id === supply.sourceId && after.period.customer_id === b.customerId
