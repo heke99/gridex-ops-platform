@@ -205,3 +205,89 @@ Paketet redovisar `sourceCommit`, `builtCommit`, `replayCommit`,
 och konsistens, inte hur rapporten producerades eller om hela schemat är
 korrekt. Schemafrågans scope, overlaylistan och körningsetiketterna kommer
 från insamlarens uttryckliga uppgifter och ersätter ingen oberoende granskning.
+
+## Slutarkivets exakta bytes och externa bevisfiler
+
+Vitest-scannen i `scenarios/scan.test.ts` är en tidigare runtimeögonblicksbild.
+Dess filantal, byteantal och träffar binder inte ett senare omgenererat paket.
+Efter alla runtimeunderlag och paket har slutförts skapar den kvalificerade
+producenten därför slutleveransens ZIP en gång. Två separata offlinekommandon
+binder och verifierar exakt detta objekt:
+
+```text
+python3 -I packet.py --scan-final-archive FINAL.zip CONTEXT.json PRIVATE_NEEDLE_FILE NEW_PROOF_DIR
+python3 -I packet.py --verify-final-archive FINAL.zip MANIFEST.json RECEIPT.json EXPECTED_HANDOFF.json
+```
+
+Slut-ZIP ska innehålla exakt de 16 kända T5-ID:ns `<ID>/status.json` och
+`FINDINGS.md` på rotnivån. Vanliga tomma föräldrakatalogposter får finnas.
+Alla utfall, inklusive uttryckliga PARTIAL/FAIL/NOT_RUN, kan bindas som bytes;
+kommandot avgör inte om scenarierna är godkända. Saknade/extra/dubbla eller
+osäkra sökvägar, krypterade/särskilda/symlänkade poster och felaktig CRC
+avvisas. Endast ZIP_STORED och ZIP_DEFLATED stöds. Gränserna är 64 MiB arkiv,
+64 MiB per fil och 256 MiB expanderat; ingen tyst trunkering görs.
+
+Scannern läser ett avgränsat arkivsnapshot. Arkivhashning, filhashning och
+sökningen använder samma fångade bytes, inklusive rå ZIP-metadata och varje
+expanderad fil. Inga paket skrivs om och arkivet packas inte om. Omleverans
+med ändrade filbytes eller ZIP-metadata kräver ett nytt terminalt bevis.
+
+`PRIVATE_NEEDLE_FILE` är en vanlig, kanonisk fil med aktuell användare som
+ägare och filmod `0600`, utanför Git. Den innehåller endast den aktuella
+service-nyckelns bytes, eventuellt med ett avslutande radbyte. Värdet lämnas
+aldrig i argv eller utdata, och inga värden hämtas genom en generell miljödump.
+Scanningen söker detta exakta värde och de versionerade JWT-/partner-token-/
+Svix-/auth-cookie-mönstren. Det är en avgränsad policy, inte en allmän garanti
+om samtliga möjliga hemligheter eller kodningar. Kontexten som ska kopieras
+till manifestet kontrolleras också; vid träff publiceras inget CLEAN-kvitto
+och ingen nyckel, matchad text eller payloadsnutt skrivs ut.
+
+`CONTEXT.json` har exakt dessa fält:
+
+- `schema: "gridex-t5-final-archive-context-v1"`.
+- Icke tomma `campaignId`, `workerId`, `session`, `model`, `buildId`,
+  `environmentId`, `databaseIdentity`. Databasidentiteten är en ofarlig
+  identifierare, aldrig en anslutningssträng eller autentiseringsuppgift.
+- `sourceCommit`, `sourceTree`, `builtCommit`, `replayCommit`: fullständiga
+  Git-SHA. Skillnader behålls; `ROOT_TO_PIN` och andra platshållare avvisas.
+- `harnessCommit`: fullständig Git-SHA eller uttryckligt `null`, samt en icke
+  tom `harnessFiles`-lista med relativa `path` och `sha256` utan dubbletter.
+- `schemaHash` med exakt `scope` och `fingerprint`; fingerprinten är SHA-256.
+  Detta intygar inte fullständigt schema, faktisk backend eller native.
+
+`NEW_PROOF_DIR` måste vara ny, utanför Git och ha en befintlig kanonisk
+föräldrakatalog. Den skapas privat och innehåller endast:
+
+- `manifest.json`: scope `FINAL_DELIVERY_ARTIFACT_BYTES_ONLY`, rå ZIP-SHA-256,
+  arkivstorlek, kontext/policy-hash och en sorterad lista över filnamn,
+  expanderad storlek och SHA-256. Kontext/policy använder UTF-8, sorterade
+  JSON-nycklar, kompakta separatorer och ett avslutande radbyte.
+- `receipt.json`: hash av manifestets faktiska bytes, samma ZIP-/kontext-/
+  policyidentiteter, scannerfilens SHA-256, UTC, räknare och `artifactScan:
+  "CLEAN"`. `campaignApproval`, `nativeApproval` och `browserApproval` är
+  alltid `false`.
+
+Manifestet och kvittot ligger utanför ZIP-arkivet. Manifestet hashar inte sig
+självt eller kvittot; kvittot pekar på manifestet och payloaden. Lägg inte till
+bevisfilerna i arkivet efteråt och generera inte om redan scannade statusfiler.
+Historiska kataloger och befintliga bevisfiler skrivs aldrig över.
+
+Verifieraren kräver en **separat, betrodd handoff** med exakt `schema:
+"gridex-t5-final-archive-handoff-v1"`, `archiveSha256`, `manifestSha256`,
+`receiptSha256`, `contextSha256`, `scannerSourceSha256` och `policySha256`.
+Alla sex hashvärden ska vara oberoende pinnade från producentens faktiska
+underlag. Att kopiera hashvärden från ett självdeklarerat kvitto skapar ingen
+auktoritet. Scannerfilen och policyn måste motsvara den pinnade versionen.
+
+Verifieringen läser de faktiskt levererade ZIP-byten, kontrollerar arkivets
+hela filuppsättning och hashbindningar samt manifest/kvittots strikta schema.
+Den ändrar inga indata och skriver inte ett nytt scan-kvitto. Det är en
+integritetskontroll; Root måste separat kvalificera producent, CI/källkedja,
+nyckelns verkliga tillämplighet och faktisk körning. Ingen signeringsnyckel
+eller attestationsauktoritet uppfinns här. Filsystemets framtida oföränderlighet
+garanteras inte; mottagaren måste verifiera det objekt som verkligen levereras.
+
+Denna slutkontroll gäller enbart slutleveransens artefaktbytes. Tidigare
+privata runtime-/logg-/static-/HTTP-underlag behöver fortsatt egen avgränsad
+evidens. Ingen scenario-PASS, native-, browser- eller kampanjstatus uppgraderas
+av CLEAN eller en lyckad leveransverifiering.

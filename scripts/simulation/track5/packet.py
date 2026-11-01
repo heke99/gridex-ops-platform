@@ -2,15 +2,23 @@
 """Assemble new T5 packets from explicitly bound observations; never certify a campaign.
 
 Usage: python3 -I packet.py evidence-directory NEW-output-directory classification.json
+       python3 -I packet.py --scan-final-archive FINAL.zip CONTEXT.json PRIVATE_NEEDLE_FILE NEW_PROOF_DIR
+       python3 -I packet.py --verify-final-archive FINAL.zip MANIFEST.json RECEIPT.json EXPECTED_HANDOFF.json
 See README.md for the successor metadata contract. No network or runtime is invoked.
 """
 import datetime as dt
 import hashlib
+import io
 import json
 import math
+import os
 import pathlib
 import re
+import stat
+import subprocess
 import sys
+import zipfile
+import zlib
 
 GROUPS = ('auth01', 'api01', 'api01-poa', 'event01', 'scan')
 STATES = {'PASS', 'PARTIAL', 'FAIL', 'BLOCKED', 'NOT_RUN'}
@@ -262,13 +270,272 @@ def assemble(directory, output, classification):
         print(scenario, packet['state'])
 
 
+FINAL_SCOPE = 'FINAL_DELIVERY_ARTIFACT_BYTES_ONLY'
+FINAL_IDS = tuple(f'{group}.{number:02d}' for group, count in (('AUTH01', 6), ('API01', 5), ('EVENT01', 5))
+                  for number in range(1, count + 1))
+FINAL_FILES = {scenario + '/status.json' for scenario in FINAL_IDS} | {'FINDINGS.md'}
+FINAL_PATTERNS = {
+    'jwt': r'\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}',
+    'partner-token': r'\bgdxp_[0-9a-f]{7}\.[A-Za-z0-9_-]{20,}',
+    'svix-secret': r'\bwhsec_[A-Za-z0-9+/=]{20,}',
+    'sb-cookie': r'sb-[a-z0-9-]+-auth-token=',
+}
+FINAL_POLICY = {
+    'schema': 'gridex-t5-final-secret-policy-v1', 'scope': FINAL_SCOPE, 'layout': 't5-status-17-v1',
+    'encoding': 'utf8-sorted-json-newline-v1', 'needle': 'explicit-private-file-exact-bytes',
+    'patterns': FINAL_PATTERNS, 'scanInputs': ['raw-zip', 'member-names', 'uncompressed-members', 'canonical-context'],
+    'directoryEntries': 'canonical-empty-parents-only',
+    'maxArchiveBytes': 64 * 1024 * 1024, 'maxExpandedBytes': 256 * 1024 * 1024,
+    'maxMemberBytes': 64 * 1024 * 1024, 'compressionMethods': [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED],
+}
+
+
+def final_encoded(value):
+    return (json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False, allow_nan=False) + '\n').encode('utf-8')
+
+
+def final_digest(value):
+    return hashlib.sha256(value).hexdigest()
+
+
+def final_path(value):
+    path = pathlib.Path(value).absolute()
+    require('..' not in path.parts and str(path.resolve()) == str(path)
+            and not any(node.is_symlink() for node in (path, *path.parents)), 'final_noncanonical_or_symlink_path')
+    return path
+
+
+def final_read(path, limit, private=False):
+    path = final_path(path)
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        before = os.fstat(descriptor)
+        require(stat.S_ISREG(before.st_mode) and before.st_size <= limit, 'final_regular_file_or_size_required')
+        require(not private or before.st_uid == os.getuid() and stat.S_IMODE(before.st_mode) == 0o600,
+                'final_private_file_required')
+        chunks, size = [], 0
+        while size <= limit:
+            chunk = os.read(descriptor, min(1024 * 1024, limit + 1 - size))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            size += len(chunk)
+        after = os.fstat(descriptor)
+        keys = ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns', 'st_ctime_ns')
+        require(size <= limit and size == before.st_size and all(getattr(before, key) == getattr(after, key) for key in keys),
+                'final_input_changed_or_too_large')
+        return b''.join(chunks)
+    finally:
+        os.close(descriptor)
+
+
+def final_outside_git(directory):
+    directory = final_path(directory)
+    require(directory.is_dir(), 'final_private_parent_required')
+    environment = {'PATH': os.environ.get('PATH', '/usr/bin:/bin'), 'LC_ALL': 'C',
+                   'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull}
+    for flag in ('--is-inside-work-tree', '--is-inside-git-dir'):
+        result = subprocess.run(['git', '-C', str(directory), 'rev-parse', flag], env=environment,
+                                capture_output=True, text=True, timeout=10)
+        require(result.returncode == 0 and result.stdout.strip() == 'false'
+                or result.returncode == 128 and 'not a git repository' in result.stderr.lower(), 'final_private_path_inside_git_or_unknown')
+
+
+def final_context(value):
+    keys = {'schema', 'campaignId', 'workerId', 'session', 'model', 'sourceCommit', 'sourceTree', 'builtCommit', 'buildId',
+            'replayCommit', 'harnessCommit', 'harnessFiles', 'environmentId', 'databaseIdentity', 'schemaHash'}
+    require(isinstance(value, dict) and set(value) == keys
+            and value['schema'] == 'gridex-t5-final-archive-context-v1', 'final_context_schema_required')
+    for key in ('campaignId', 'workerId', 'session', 'model', 'buildId', 'environmentId', 'databaseIdentity'):
+        require(text(value[key]) and len(value[key]) <= 512 and all(ord(c) >= 32 for c in value[key]), 'final_context_identity_required')
+    require('://' not in value['databaseIdentity'] and '@' not in value['databaseIdentity'], 'final_database_identifier_not_credentials')
+    for key in ('sourceCommit', 'sourceTree', 'builtCommit', 'replayCommit'):
+        require(digest(value[key], 40), 'final_context_commit_required')
+    require(value['harnessCommit'] is None or digest(value['harnessCommit'], 40), 'final_context_harness_commit_invalid')
+    files = value['harnessFiles']
+    require(isinstance(files, list) and files and len(files) <= 256, 'final_context_harness_files_required')
+    names = []
+    for file in files:
+        require(isinstance(file, dict) and set(file) == {'path', 'sha256'} and relative_path(file['path'])
+                and len(file['path']) <= 1024 and all(ord(c) >= 32 for c in file['path']) and digest(file['sha256']),
+                'final_context_harness_file_invalid')
+        names.append(file['path'])
+    require(len(names) == len(set(names)), 'final_context_duplicate_harness_file')
+    schema = value['schemaHash']
+    require(isinstance(schema, dict) and set(schema) == {'scope', 'fingerprint'} and text(schema['scope'])
+            and len(schema['scope']) <= 4096 and all(ord(c) >= 32 for c in schema['scope'])
+            and digest(schema['fingerprint']), 'final_context_schema_scope_required')
+    return value
+
+
+def final_no_secret(value, needle):
+    require(needle not in value and not any(re.search(pattern.encode('ascii'), value) for pattern in FINAL_PATTERNS.values()),
+            'final_artifact_secret_found')
+
+
+def final_members(raw, needle=None):
+    if needle is not None:
+        final_no_secret(raw, needle)
+    records, names, total = [], set(), 0
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            entries = archive.infolist()
+            require(len(entries) <= 33, 'final_archive_member_limit')
+            for entry in entries:
+                name = entry.filename
+                require(name == entry.orig_filename and name not in names and relative_path(name.rstrip('/')),
+                        'final_archive_duplicate_or_unsafe_path')
+                names.add(name)
+                require(not entry.flag_bits & 1 and entry.compress_type in FINAL_POLICY['compressionMethods'],
+                        'final_archive_encrypted_or_unsupported')
+                kind = stat.S_IFMT(entry.external_attr >> 16)
+                if entry.is_dir():
+                    require(name in {scenario + '/' for scenario in FINAL_IDS} and kind in (0, stat.S_IFDIR)
+                            and entry.file_size == 0 and entry.CRC == 0
+                            and entry.compress_size == (0 if entry.compress_type == zipfile.ZIP_STORED else 2),
+                            'final_archive_directory_invalid')
+                    with archive.open(entry) as file:
+                        require(file.read(1) == b'', 'final_archive_directory_invalid')
+                    continue
+                require(name in FINAL_FILES and kind in (0, stat.S_IFREG) and not entry.external_attr & 0x10,
+                        'final_archive_layout_or_special_file')
+                require(0 <= entry.file_size <= FINAL_POLICY['maxMemberBytes'], 'final_archive_member_expansion_limit')
+                total += entry.file_size
+                require(total <= FINAL_POLICY['maxExpandedBytes'], 'final_archive_total_expansion_limit')
+            require({entry.filename for entry in entries if not entry.is_dir()} == FINAL_FILES, 'final_archive_missing_files')
+            for entry in sorted((entry for entry in entries if not entry.is_dir()), key=lambda item: item.filename):
+                with archive.open(entry) as file:
+                    value = file.read(FINAL_POLICY['maxMemberBytes'] + 1)
+                require(len(value) == entry.file_size, 'final_archive_member_size_changed')
+                if needle is not None:
+                    final_no_secret(entry.filename.encode('utf-8'), needle)
+                    final_no_secret(value, needle)
+                records.append({'path': entry.filename, 'bytes': len(value), 'sha256': final_digest(value)})
+    except (zipfile.BadZipFile, zlib.error, RuntimeError, NotImplementedError, OverflowError):
+        raise PacketError('final_archive_invalid') from None
+    return records
+
+
+def final_publish(directory, manifest, receipt):
+    directory = final_path(directory)
+    require(not directory.exists(), 'final_new_proof_directory_required')
+    final_outside_git(directory.parent)
+    directory.mkdir(mode=0o700)
+    directory_identity = directory.stat()
+    created, complete = [], False
+    try:
+        for name, value in (('manifest.json', manifest), ('receipt.json', receipt)):
+            path = directory / name
+            descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            info = os.fstat(descriptor)
+            created.append((path, info.st_dev, info.st_ino))
+            with os.fdopen(descriptor, 'wb') as file:
+                file.write(value)
+                file.flush()
+                os.fsync(file.fileno())
+        complete = True
+    finally:
+        if not complete:
+            # Only this invocation's newly created exact files may be removed.
+            for path, device, inode in reversed(created):
+                try:
+                    info = path.lstat()
+                    if (info.st_dev, info.st_ino) == (device, inode):
+                        path.unlink()
+                except OSError:
+                    pass
+            try:
+                info = directory.lstat()
+                if (info.st_dev, info.st_ino) == (directory_identity.st_dev, directory_identity.st_ino):
+                    directory.rmdir()
+            except OSError:
+                pass
+
+
+def scan_final_archive(archive_path, context_path, needle_path, output):
+    output = final_path(output)
+    require(not output.exists(), 'final_new_proof_directory_required')
+    final_outside_git(output.parent)
+    needle_path = final_path(needle_path)
+    final_outside_git(needle_path.parent)
+    needle = final_read(needle_path, 8192, private=True)
+    if needle.endswith(b'\n'):
+        needle = needle[:-1]
+    require(16 <= len(needle) <= 8192 and all(33 <= byte <= 126 for byte in needle), 'final_private_needle_invalid')
+    context = final_context(strict_json(final_read(context_path, 65536).decode('utf-8')))
+    final_no_secret(final_encoded(context), needle)
+    raw = final_read(archive_path, FINAL_POLICY['maxArchiveBytes'])
+    records = final_members(raw, needle)
+    context_sha, policy_sha = final_digest(final_encoded(context)), final_digest(final_encoded(FINAL_POLICY))
+    manifest = final_encoded({'schema': 'gridex-t5-final-archive-manifest-v1', 'scope': FINAL_SCOPE,
+                              'archiveSha256': final_digest(raw), 'archiveBytes': len(raw), 'contextSha256': context_sha,
+                              'context': context, 'policySha256': policy_sha, 'files': records})
+    receipt = final_encoded({'schema': 'gridex-t5-final-archive-scan-v1', 'scope': FINAL_SCOPE, 'artifactScan': 'CLEAN',
+                             'archiveSha256': final_digest(raw), 'manifestSha256': final_digest(manifest),
+                             'contextSha256': context_sha, 'scannerSourceSha256': sha(pathlib.Path(__file__)),
+                             'policySha256': policy_sha, 'scannedAtUtc': dt.datetime.now(dt.timezone.utc).isoformat(),
+                             'fileCount': len(records), 'uncompressedBytes': sum(file['bytes'] for file in records),
+                             'matchCount': 0, 'campaignApproval': False, 'nativeApproval': False, 'browserApproval': False})
+    final_publish(output, manifest, receipt)
+    print(json.dumps({'scope': FINAL_SCOPE, 'artifactScan': 'CLEAN', 'archiveSha256': final_digest(raw),
+                      'manifestSha256': final_digest(manifest), 'receiptSha256': final_digest(receipt), 'campaignApproval': False}))
+
+
+def verify_final_archive(archive_path, manifest_path, receipt_path, handoff_path):
+    keys = {'archiveSha256', 'manifestSha256', 'receiptSha256', 'contextSha256', 'scannerSourceSha256', 'policySha256'}
+    handoff = strict_json(final_read(handoff_path, 65536).decode('utf-8'))
+    require(isinstance(handoff, dict) and set(handoff) == keys | {'schema'}
+            and handoff['schema'] == 'gridex-t5-final-archive-handoff-v1'
+            and all(digest(handoff[key]) for key in keys), 'final_independent_handoff_required')
+    require(handoff['scannerSourceSha256'] == sha(pathlib.Path(__file__))
+            and handoff['policySha256'] == final_digest(final_encoded(FINAL_POLICY)), 'final_handoff_source_or_policy_mismatch')
+    raw = final_read(archive_path, FINAL_POLICY['maxArchiveBytes'])
+    manifest_raw, receipt_raw = final_read(manifest_path, 262144), final_read(receipt_path, 65536)
+    require(final_digest(raw) == handoff['archiveSha256'] and final_digest(manifest_raw) == handoff['manifestSha256']
+            and final_digest(receipt_raw) == handoff['receiptSha256'], 'final_delivery_hash_mismatch')
+    manifest, receipt = strict_json(manifest_raw.decode('utf-8')), strict_json(receipt_raw.decode('utf-8'))
+    manifest_keys = {'schema', 'scope', 'archiveSha256', 'archiveBytes', 'contextSha256', 'context', 'policySha256', 'files'}
+    require(isinstance(manifest, dict) and set(manifest) == manifest_keys
+            and manifest['schema'] == 'gridex-t5-final-archive-manifest-v1' and manifest['scope'] == FINAL_SCOPE,
+            'final_manifest_schema_invalid')
+    context = final_context(manifest['context'])
+    require(manifest['contextSha256'] == final_digest(final_encoded(context)) == handoff['contextSha256']
+            and manifest['policySha256'] == handoff['policySha256'] and manifest['archiveSha256'] == handoff['archiveSha256']
+            and type(manifest['archiveBytes']) is int and manifest['archiveBytes'] == len(raw), 'final_manifest_binding_mismatch')
+    files = manifest['files']
+    require(isinstance(files, list) and all(isinstance(file, dict) and set(file) == {'path', 'bytes', 'sha256'}
+            and type(file['bytes']) is int and file['bytes'] >= 0 and digest(file['sha256']) for file in files)
+            and files == final_members(raw), 'final_manifest_file_set_mismatch')
+    receipt_keys = {'schema', 'scope', 'artifactScan', 'archiveSha256', 'manifestSha256', 'contextSha256', 'scannerSourceSha256',
+                    'policySha256', 'scannedAtUtc', 'fileCount', 'uncompressedBytes', 'matchCount',
+                    'campaignApproval', 'nativeApproval', 'browserApproval'}
+    require(isinstance(receipt, dict) and set(receipt) == receipt_keys and receipt['schema'] == 'gridex-t5-final-archive-scan-v1'
+            and receipt['scope'] == FINAL_SCOPE and receipt['artifactScan'] == 'CLEAN', 'final_receipt_schema_invalid')
+    require(all(receipt[key] == handoff[key] for key in keys - {'receiptSha256'})
+            and type(receipt['fileCount']) is int and receipt['fileCount'] == len(files)
+            and type(receipt['uncompressedBytes']) is int and receipt['uncompressedBytes'] == sum(file['bytes'] for file in files)
+            and type(receipt['matchCount']) is int and receipt['matchCount'] == 0
+            and all(receipt[key] is False for key in ('campaignApproval', 'nativeApproval', 'browserApproval')), 'final_receipt_binding_mismatch')
+    utc_time(receipt['scannedAtUtc'])
+    print(json.dumps({'scope': FINAL_SCOPE, 'integrityVerified': True, 'archiveSha256': handoff['archiveSha256'],
+                      'campaignApproval': False, 'nativeApproval': False, 'browserApproval': False}))
+
+
 def main():
     try:
+        if len(sys.argv) > 1 and sys.argv[1] == '--scan-final-archive':
+            require(len(sys.argv) == 6, 'expected_archive_context_private_needle_new_proof')
+            scan_final_archive(*sys.argv[2:])
+            return 0
+        if len(sys.argv) > 1 and sys.argv[1] == '--verify-final-archive':
+            require(len(sys.argv) == 6, 'expected_archive_manifest_receipt_handoff')
+            verify_final_archive(*sys.argv[2:])
+            return 0
         require(len(sys.argv) == 4, 'expected_evidence_output_classification')
         directory, output, source = (pathlib.Path(p) for p in sys.argv[1:])
         assemble(directory, output, strict_json(source.read_text()))
         return 0
-    except (OSError, ValueError, TypeError, KeyError) as error:
+    except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as error:
         # Do not echo evidence contents or arbitrary input values on failure.
         print('packet_refused: ' + (str(error) if isinstance(error, PacketError) else 'invalid_input_or_io'), file=sys.stderr)
         return 1
