@@ -75,6 +75,7 @@ export const SITE01_BILLING_MONTH = '2026-09'
 export type SiteInterval = { day: number; quarter: number; startMs: number; endMs: number; milliKwh: number; spotE5: number }
 
 export type SiteOracle = {
+  nativeInput?: SiteNativeV2Input
   spec: SiteSpec
   month: SyntheticMonth
   consumptionSalt: number
@@ -86,7 +87,7 @@ export type SiteOracle = {
   vatCents: { spot: number; markup: number; monthlyFee: number; total: number }
   totalExVatCents: number
   totalIncVatCents: number
-  /** First billable instant (local start of firstDay) and exclusive end (local start of the day after lastDay). */
+  /** First billable instant (v1 civil midnight; v2 declared native input) and exclusive civil end. */
   billableStartMs: number
   billableEndMs: number
   ambiguities: string[]
@@ -95,6 +96,10 @@ export type SiteOracle = {
 const halfUp = (numerator: number, denominator: number): number => Math.floor((2 * numerator + denominator) / (2 * denominator))
 
 export function buildSiteOracle(spec: SiteSpec, consumptionSalt: number, monthName = SITE01_BILLING_MONTH): SiteOracle {
+  return constructSiteOracle(spec, consumptionSalt, monthName)
+}
+
+function constructSiteOracle(spec: SiteSpec, consumptionSalt: number, monthName: string, nativeStartMs?: number): SiteOracle {
   const month = syntheticMonth(monthName)
   const intervals: SiteInterval[] = []
   const perDay: Array<{ day: number; milliKwh: number }> = []
@@ -104,6 +109,7 @@ export function buildSiteOracle(spec: SiteSpec, consumptionSalt: number, monthNa
     for (let quarter = 0; quarter < QUARTERS_PER_DAY; quarter++) {
       const milliKwh = quarterMilliKwh(day, quarter, consumptionSalt)
       const startMs = intervalStartMs(month, day, quarter)
+      if (nativeStartMs !== undefined && startMs < nativeStartMs) continue
       const spotE5 = hourlySpotE5(day, Math.floor(quarter / 4), spec.priceSalt)
       intervals.push({ day, quarter, startMs, endMs: startMs + QUARTER_MS, milliKwh, spotE5 })
       dayMilli += milliKwh; totalMilli += milliKwh; spotRawE8 += milliKwh * spotE5
@@ -127,7 +133,7 @@ export function buildSiteOracle(spec: SiteSpec, consumptionSalt: number, monthNa
   return {
     spec, month, consumptionSalt, intervals, perDay, totalMilliKwh: totalMilli, totalKwhText: formatMilliKwh(totalMilli),
     lines: { spotCents, markupCents, monthlyFeeCents }, vatCents, totalExVatCents, totalIncVatCents: totalExVatCents + vatCents.total,
-    billableStartMs: month.startMs + (spec.firstDay - 1) * 86_400_000, billableEndMs: month.startMs + spec.lastDay * 86_400_000, ambiguities,
+    billableStartMs: nativeStartMs ?? month.startMs + (spec.firstDay - 1) * 86_400_000, billableEndMs: month.startMs + spec.lastDay * 86_400_000, ambiguities,
   }
 }
 
@@ -160,4 +166,39 @@ export function siteEndPlan(spec: SiteSpec, oracle: SiteOracle): {
     endDate: spec.endDate, effectiveAtUtc: new Date(oracle.billableEndMs).toISOString(),
     endWireMinute: market.slice(0, 16).replace(/[-T:]/g, ''),
   }
+}
+
+
+/** Explicit candidate epoch. Historical buildSiteOracle/chooseSiteOracle remain v1. */
+export type SiteNativeV2Input = {
+  epoch: 'site-native-input-v2'
+  convention: 'ediel-fixed-utc+01'
+  rawStartMinute: string
+}
+
+export function buildSiteNativeV2Oracle(spec: SiteSpec, consumptionSalt: number, input: SiteNativeV2Input, monthName = SITE01_BILLING_MONTH): SiteOracle {
+  const date = `${monthName}-${String(spec.firstDay).padStart(2, '0')}`
+  if (input.epoch !== 'site-native-input-v2' || input.convention !== 'ediel-fixed-utc+01'
+    || spec.startDate !== date || input.rawStartMinute !== spec.startDate.replaceAll('-', '') + '0000') {
+    throw new Error('site01_native_input_mismatch')
+  }
+  const startMs = Date.parse(spec.startDate + 'T00:00:00+01:00')
+  if (!Number.isSafeInteger(startMs)) throw new Error('site01_native_input_mismatch')
+  return { ...constructSiteOracle(spec, consumptionSalt, monthName, startMs), nativeInput: { ...input } }
+}
+
+export function chooseSiteNativeV2Oracle(spec: SiteSpec, input: SiteNativeV2Input, monthName = SITE01_BILLING_MONTH): SiteOracle {
+  for (let salt = spec.consumptionSaltStart; salt < spec.consumptionSaltStart + 500; salt++) {
+    const oracle = buildSiteNativeV2Oracle(spec, salt, input, monthName)
+    if (oracle.ambiguities.length === 0) return oracle
+  }
+  throw new Error(`site01_no_unambiguous_native_v2_salt:${spec.key}`)
+}
+
+/** Read-only binding: a different native source is HOLD, never a rewritten expectation. */
+export function assertSiteNativeV2Start(oracle: SiteOracle, marketStartAt: unknown): void {
+  if (!oracle.nativeInput || typeof marketStartAt !== 'string'
+    || Date.parse(marketStartAt) !== oracle.billableStartMs) throw new Error('site01_native_start_mismatch')
+  const rebuilt = buildSiteNativeV2Oracle(oracle.spec, oracle.consumptionSalt, oracle.nativeInput, oracle.month.billingMonth)
+  if (rebuilt.billableStartMs !== oracle.billableStartMs) throw new Error('site01_native_start_mismatch')
 }

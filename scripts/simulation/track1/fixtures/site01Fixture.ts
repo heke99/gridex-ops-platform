@@ -56,7 +56,7 @@ import { buildDayWire } from './wire'
 import { substitute } from './substitutions'
 import { dbRead, http, lit, signIn, timed, type Session } from './runtime'
 import { QUARTERS_PER_DAY, spotDayPayload, syntheticMonth } from './synthetic'
-import { SITE_A, SITE_B, SITE01_BILLING_MONTH, chooseSiteOracle, siteEndPlan, type SiteKey, type SiteOracle, type SiteSpec } from './site01Synthetic'
+import { SITE_A, SITE_B, SITE01_BILLING_MONTH, chooseSiteNativeV2Oracle, assertSiteNativeV2Start, siteEndPlan, type SiteKey, type SiteOracle, type SiteSpec } from './site01Synthetic'
 
 function must(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message) }
 
@@ -377,7 +377,7 @@ async function seedSecondSite(a: Ground, spec: SiteSpec): Promise<Stage> {
 
 // -------------------------------------------------- Z04 L start (copy of main03)
 
-async function activateSwitchSupply(f: Ground | Stage): Promise<{ supplyPeriodId: string; sourceId: string }> {
+async function activateSwitchSupply(f: Ground | Stage, oracle: SiteOracle): Promise<{ supplyPeriodId: string; sourceId: string }> {
   const smtp = assertEdielSmtpReadiness()
   // SUBSTITUTE: the grid owner's PRODAT Z04 (L) is a synthetic wire (app helper buildCancellationProspectiveZ04) placed in the mailbox tables by
   // seedOriginalMailboxNative instead of an IMAP fetch — verifierar inte nätägarens riktiga Z04, IMAP/S-MIME eller brevlådans hämtning.
@@ -399,7 +399,7 @@ async function activateSwitchSupply(f: Ground | Stage): Promise<{ supplyPeriodId
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(message, { actorUserId: f.actorUserId })
   must([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision].every(value => value === 'accepted'), `site01_z04_not_accepted:${JSON.stringify(decision.issues)}`)
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: sourceId })
-  const periods = await supabaseService.from('customer_supply_periods').select('id,status,contract_id,metering_point_id,customer_id,start_date,end_date,source_process,source_message_id,source_switch_request_id').eq('company_id', f.companyId).eq('metering_point_id', f.pointId)
+  const periods = await supabaseService.from('customer_supply_periods').select('id,status,contract_id,metering_point_id,customer_id,start_date,end_date,source_process,source_message_id,source_switch_request_id,market_start_at').eq('company_id', f.companyId).eq('metering_point_id', f.pointId)
   must(!periods.error, `site01_supply_read_failed:${periods.error?.message}`)
   const rows = periods.data ?? []
   must(rows.length === 1, `site01_supply_period_count:${rows.length}`)
@@ -417,6 +417,7 @@ async function activateSwitchSupply(f: Ground | Stage): Promise<{ supplyPeriodId
     const refusal = await supabaseService.rpc('activate_customer_supply_v1', { p_company_id: f.companyId, p_supplier_switch_request_id: f.switchId, p_source_message_id: sourceId, p_actor_user_id: f.actorUserId })
     throw new Error(`site01_supply_not_activated:${JSON.stringify({ swept, activated, refusal: refusal.error?.message ?? null })}`)
   }
+  assertSiteNativeV2Start(oracle, period.market_start_at)
   return { supplyPeriodId: String(period.id), sourceId }
 }
 
@@ -490,7 +491,8 @@ async function ingestDay(input: { f: Ground | Stage; runtime: SiteRuntime; day: 
 // ------------------------------------------------------------------- builder
 
 export async function buildSite01Fixture(): Promise<Site01Fixture> {
-  const oracleA = chooseSiteOracle(SITE_A), oracleB = chooseSiteOracle(SITE_B)
+  const nativeInput = (spec: SiteSpec) => ({ epoch: 'site-native-input-v2' as const, convention: 'ediel-fixed-utc+01' as const, rawStartMinute: spec.startDate.replaceAll('-', '') + '0000' })
+  const oracleA = chooseSiteNativeV2Oracle(SITE_A, nativeInput(SITE_A)), oracleB = chooseSiteNativeV2Oracle(SITE_B, nativeInput(SITE_B))
   for (const [key, value] of Object.entries(SYNTHETIC_SMTP_ENV)) vi.stubEnv(key, value)
 
   substitute({ id: 'tenant-customer-contract-seed', step: 'fixture: tenant/customer/site A/contract A', substitute: 'scripts/helpers/ediel-normal-switch-native-fixture.ts (psql inserts + real offer/publication/signature RPCs)',
@@ -503,9 +505,9 @@ export async function buildSite01Fixture(): Promise<Site01Fixture> {
   substitute({ id: 'switch-ack-route', step: 'fixture: Z04 L per site', substitute: 'ediel_ack communication_routes/ediel_route_profiles rows by psql per grid owner', notVerified: 'route administration' })
 
   const groundA = await timed('fixture: tenant + site A + switch (Z03 sent)', () => seedNormalSwitchNativeFixture({ requestedStartDate: SITE_A.startDate, provider: syntheticSmtpProvider }))
-  const supplyA = await timed('fixture: site A Z04 L', () => activateSwitchSupply(groundA))
+  const supplyA = await timed('fixture: site A Z04 L', () => activateSwitchSupply(groundA, oracleA))
   const groundB = await timed('fixture: site B seed (same company/customer)', () => seedSecondSite(groundA, SITE_B))
-  const supplyB = await timed('fixture: site B Z04 L', () => activateSwitchSupply(groundB))
+  const supplyB = await timed('fixture: site B Z04 L', () => activateSwitchSupply(groundB, oracleB))
   must(groundB.companyId === groundA.companyId && groundB.customerId === groundA.customerId && groundB.siteId !== groundA.siteId && groundB.pointId !== groundA.pointId && groundB.contractId !== groundA.contractId, 'site01_not_two_sites_of_one_customer')
 
   // SUBSTITUTE: site address and grid owner name written on the seeded site / metering point rows by service role — verifierar inte kundregistrets adress- och

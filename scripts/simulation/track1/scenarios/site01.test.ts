@@ -37,7 +37,7 @@ beforeAll(async () => {
   writeArtifact('site01-fixture.json', {
     note: 'ids only; no secrets or session material', companyId: fx.companyId, customerId: fx.customerId, actorUserId: fx.actorUserId, ownEdielId: fx.ownEdielId, spotLocks: fx.spotLocks, supplyEnd: fx.supplyEnd,
     sites: Object.fromEntries(KEYS.map(key => { const s = fx.sites[key]; return [key, { spec: s.spec, siteId: s.siteId, pointId: s.pointId, contractId: s.contractId, gridOwnerId: s.gridOwnerId, gridOwnerEdielId: s.gridOwnerEdielId, external: s.external, supplyPeriodId: s.supplyPeriodId,
-      oracle: { salt: s.oracle.consumptionSalt, intervals: s.oracle.intervals.length, totalKwh: s.oracle.totalKwhText, lines: s.oracle.lines, vatCents: s.oracle.vatCents, totalExVatCents: s.oracle.totalExVatCents, totalIncVatCents: s.oracle.totalIncVatCents } }] })),
+      oracle: { epoch: s.oracle.nativeInput?.epoch, nativeInput: s.oracle.nativeInput, v1SourceReference: '74c9936a027c48cf9307ea5932fb13a99e0779f4', v1ResultReference: 'site-oracle-verification.json (A2880/B960 historical only)', billableStartMs: s.oracle.billableStartMs, billableEndMs: s.oracle.billableEndMs, salt: s.oracle.consumptionSalt, intervals: s.oracle.intervals.length, totalKwh: s.oracle.totalKwhText, lines: s.oracle.lines, vatCents: s.oracle.vatCents, totalExVatCents: s.oracle.totalExVatCents, totalIncVatCents: s.oracle.totalIncVatCents } }] })),
     days: fx.days.map(day => ({ site: day.site, day: day.day, sourceId: day.sourceId, transactionRef: day.transactionRef, rawSha256: day.rawSha256, values: day.meteringValueIds.length, ms: day.ms })),
   })
 }, 5_400_000)
@@ -160,6 +160,11 @@ describe('SITE01 one customer, two sites', () => {
       expect(contract.snapshots.map(snapshot => snapshot.id), `site ${key} snapshot belongs to its contract`).toContain(row.snapshot)
       const otherContract = contracts[fx.sites[key === 'A' ? 'B' : 'A'].contractId]
       expect(otherContract.snapshots.map(snapshot => snapshot.id)).not.toContain(row.snapshot)
+      const preStart = dbRead<{ readings: number; billable: number; items: number }>(`SELECT jsonb_build_object(
+        'readings',count(*),'billable',count(*) FILTER (WHERE billing_status='billable' AND billing_gate_status='eligible'),
+        'items',(SELECT count(*) FROM public.billing_underlay_items WHERE company_id=${company()} AND billing_underlay_id=${lit(row.id)} AND period_start<to_timestamp(${site.oracle.billableStartMs}/1000.0)))
+        FROM public.normalized_metering_values WHERE company_id=${company()} AND metering_point_id=${lit(site.pointId)} AND period_start<to_timestamp(${site.oracle.billableStartMs}/1000.0)`)
+      expect(preStart, `site ${key} keeps four wire readings before the native start, excluded from billing`).toEqual({ readings: 4, billable: 0, items: 0 })
       const pairs = itemPairs(row.id)
       expect(pairs[0] && Number(pairs[0][0]), `site ${key} first interval`).toBe(site.oracle.billableStartMs)
       expect(pairs.every(([start]) => start >= site.oracle.billableStartMs), `site ${key}: no interval before its own start`).toBe(true)

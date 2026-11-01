@@ -711,3 +711,92 @@ it('SITE01 refuses a source that leaves the historical B delivery active', async
   await expect(control.run()).rejects.toThrow('site01_z05_end_effect_mismatch')
   expect(control.calls).toEqual(['mail', 'birth', 'process'])
 })
+
+// Versioned input epoch: replacing v1 or rounding away the first hour breaks these controls.
+describe('SITE native input-v2 independent oracle', () => {
+  it('preserves the historical v1 counts and totals', async () => {
+    const m = await import('../scripts/simulation/track1/fixtures/site01Synthetic')
+    for (const [spec, count] of [[m.SITE_A, 2880], [m.SITE_B, 960]] as const) {
+      const o = m.chooseSiteOracle(spec)
+      expect(o.intervals).toHaveLength(count)
+      expect([o.totalMilliKwh, o.totalIncVatCents]).toEqual(spec.key === 'A' ? [485845, 56830] : [153310, 26046])
+      expect(o.lines).toEqual(spec.key === 'A' ? { spotCents: 38621, markupCents: 1943, monthlyFeeCents: 4900 } : { spotCents: 11557, markupCents: 1380, monthlyFeeCents: 7900 })
+      expect(o).toEqual(m.buildSiteOracle(spec, o.consumptionSalt))
+    }
+  })
+  it('derives fixed+01 starts from declared raw input and keeps the original exclusive end', async () => {
+    const m = await import('../scripts/simulation/track1/fixtures/site01Synthetic')
+    expect(m.chooseSiteNativeV2Oracle).toBeTypeOf('function')
+    for (const [spec, count] of [[m.SITE_A, 2876], [m.SITE_B, 956]] as const) {
+      const input = { epoch: 'site-native-input-v2' as const, convention: 'ediel-fixed-utc+01' as const, rawStartMinute: spec.startDate.replaceAll('-', '') + '0000' }
+      const o = m.chooseSiteNativeV2Oracle(spec, input)
+      const start = Date.parse(spec.startDate + 'T00:00:00+01:00')
+      expect(o.nativeInput).toEqual(input)
+      expect(o.billableStartMs).toBe(start)
+      expect(o.intervals).toHaveLength(count)
+      expect(o.intervals[0].quarter).toBe(4)
+      expect(o.intervals.every(i => i.startMs >= start)).toBe(true)
+      expect(o.billableEndMs).toBe(m.chooseSiteOracle(spec).billableEndMs)
+      if (spec.key === 'B') expect(m.siteEndPlan(spec, o)).toEqual({ endDate: '2026-09-25', effectiveAtUtc: '2026-09-25T22:00:00.000Z', endWireMinute: '202609252300' })
+      expect(() => m.assertSiteNativeV2Start(o, new Date(start).toISOString())).not.toThrow()
+      expect(() => m.assertSiteNativeV2Start(o, new Date(start - 3600000).toISOString())).toThrow('site01_native_start_mismatch')
+      const round = (n: bigint, d: bigint) => Number((BigInt(2) * n + d) / (BigInt(2) * d))
+      let quantity = BigInt(0), rawSpot = BigInt(0)
+      for (let day = spec.firstDay; day <= spec.lastDay; day++) for (let q = day === spec.firstDay ? 4 : 0; q < 96; q++) {
+        const milli = BigInt(actualSynthetic.quarterMilliKwh(day, q, o.consumptionSalt))
+        quantity += milli
+        rawSpot += milli * BigInt(actualSynthetic.hourlySpotE5(day, Math.floor(q / 4), spec.priceSalt))
+      }
+      const lines = { spotCents: round(rawSpot, BigInt(1000000)), markupCents: round(quantity * BigInt(spec.markupOrePerKwh), BigInt(1000)), monthlyFeeCents: spec.monthlyFeeSek * 100 }
+      const ex = Object.values(lines).reduce((a, b) => a + b, 0)
+      const vat = Object.values(lines).reduce((a, b) => a + round(BigInt(b) * BigInt(25), BigInt(100)), 0)
+      expect(o.totalMilliKwh).toBe(Number(quantity))
+      expect(o.lines).toEqual(lines)
+      expect(o.totalExVatCents).toBe(ex)
+      expect(o.vatCents.total).toBe(vat)
+      expect(o.totalIncVatCents).toBe(ex + vat)
+      expect(o.ambiguities).toEqual([])
+      expect(() => m.buildSiteNativeV2Oracle(spec, o.consumptionSalt, { ...input, rawStartMinute: '202609020000' })).toThrow('site01_native_input_mismatch')
+      expect(() => m.buildSiteNativeV2Oracle({ ...spec, firstDay: spec.firstDay + 1 }, o.consumptionSalt, input)).toThrow('site01_native_input_mismatch')
+    }
+  })
+})
+
+async function nativeActivationBoundary(marketStartAt: unknown) {
+  const m = await import('../scripts/simulation/track1/fixtures/site01Synthetic')
+  const f = { companyId: 'company', pointId: 'point', customerId: 'customer', switchId: 'switch', contractId: 'contract', requestedStartDate: m.SITE_A.startDate }
+  const oracle = m.chooseSiteNativeV2Oracle(m.SITE_A, { epoch: 'site-native-input-v2', convention: 'ediel-fixed-utc+01', rawStartMinute: '202609010000' })
+  let selected = ''
+  const read = { eq: () => read, then: (resolve: (v: unknown) => unknown) => resolve({ data: [{ id: 'period', customer_id: 'customer', source_message_id: 'source', source_switch_request_id: 'switch', source_process: 'supplier_switch_confirmation', status: 'confirmed_by_grid_owner', start_date: f.requestedStartDate, contract_id: 'contract', market_start_at: marketStartAt }] }) }
+  const ports = {
+    assertEdielSmtpReadiness: () => ({}), buildCancellationProspectiveZ04: () => 'wire',
+    seedOriginalMailboxNative: async () => ({ parsed: {} }), literal: String, randomUUID: () => 'id',
+    sql: (q: string) => q.includes('normal_supply_activations') ? 1 : undefined,
+    matchOutboundRequestForInbound: async () => ({}), matchMeteringPointForInbound: async () => ({}),
+    createInboundEdielMessage: async () => 'source',
+    getEdielMessageById: async () => ({ company_id: 'company', message_code: 'Z04', rule_profile_key: 'PRODAT:Z04:L:26.A:r3' }),
+    resolveCanonicalRuntimeDecisionWithRegistry: async () => ({ syntaxDecision: 'accepted', applicationDecision: 'accepted', functionalDecision: 'accepted' }),
+    processInboundEdielMessage: async () => undefined, advanceSupplyMarketDeadlines: async () => ({}),
+    supabaseService: { from: () => ({ select: (columns: string) => { selected = columns; return read } }) },
+    must: (v: unknown, message: string) => { if (!v) throw new Error(message) }, assertSiteNativeV2Start: m.assertSiteNativeV2Start,
+  }
+  const source = readFileSync(path.resolve('scripts/simulation/track1/fixtures/site01Fixture.ts'), 'utf8')
+  const start = source.indexOf('async function activateSwitchSupply(')
+  const end = source.indexOf('// ------------------------------------------------------------------- spot', start)
+  const js = ts.transpileModule(source.slice(start, end) + '\nexports.run = activateSwitchSupply', { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
+  const exported: { run?: (f: unknown, oracle: unknown) => Promise<unknown> } = {}
+  vm.runInNewContext(js, { ...ports, exports: exported })
+  return { run: () => exported.run!(f, oracle), selected: () => selected }
+}
+
+describe('actual SITE activation binds declared input epoch', () => {
+  it('reads and accepts only the declared fixed+01 source start', async () => {
+    const c = await nativeActivationBoundary('2026-08-31T23:00:00Z')
+    await expect(c.run()).resolves.toEqual({ supplyPeriodId: 'period', sourceId: 'source' })
+    expect(c.selected().split(',')).toContain('market_start_at')
+  })
+  it.each([null, '2026-08-31T22:00:00Z', 'invalid'])('holds a differing actual start %s', async value => {
+    const c = await nativeActivationBoundary(value)
+    await expect(c.run()).rejects.toThrow('site01_native_start_mismatch')
+  })
+})
