@@ -17,10 +17,11 @@ export const custodyDir = (...parts: string[]): string => { const d = join(simHo
 /** psql via stdin (flera satser, BEGIN/COMMIT). Utdata tolkas som JSON/bool; tom -> undefined. Kastar vid SQL-fel. */
 export function sqlIn<T = unknown>(input: string): T {
   const r = spawnSync('psql', [dbUrl(), '-XAtq', '-v', 'ON_ERROR_STOP=1'], {
-    input, encoding: 'utf8', timeout: 120_000, maxBuffer: 64_000_000, env: { ...process.env, PGPASSWORD: 'postgres' },
+    input, encoding: 'utf8', timeout: 120_000, killSignal: 'SIGKILL', maxBuffer: 64_000_000, env: { ...process.env, PGPASSWORD: 'postgres' },
   })
-  if (r.status !== 0) throw new Error(`psql: ${(r.stderr || r.error?.message || '').slice(0, 800)}`)
-  const out = r.stdout.trim()
+  if (r.error || r.signal || (r.status !== 0 && r.status !== 3)) throw new Error('psql: process_did_not_complete_normally')
+  if (r.status !== 0) throw new Error(`psql: ${String(r.stderr ?? '').slice(0, 800)}`)
+  const out = String(r.stdout ?? '').trim()
   if (out === 't' || out === 'f') return (out === 't') as T
   try { return (out ? JSON.parse(out) : undefined) as T } catch { return out as unknown as T }
 }
@@ -29,11 +30,17 @@ export type SqlAttempt = { ok: boolean; sqlstate: string | null; message: string
 /** Kör SQL och fångar fel (SQLSTATE + meddelande) i stället för att kasta. VERBOSITY=verbose ger SQLSTATE i ERROR-raden. */
 export function sqlTry(input: string, url: string = dbUrl()): SqlAttempt {
   const r = spawnSync('psql', [url, '-XAtq', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose'], {
-    input, encoding: 'utf8', timeout: 120_000, maxBuffer: 64_000_000, env: { ...process.env, PGPASSWORD: 'postgres' },
+    input, encoding: 'utf8', timeout: 120_000, killSignal: 'SIGKILL', maxBuffer: 64_000_000, env: { ...process.env, PGPASSWORD: 'postgres' },
   })
-  if (r.status === 0) return { ok: true, sqlstate: null, message: null, stdout: r.stdout.trim() }
-  const m = /ERROR:\s+([0-9A-Z]{5}):\s+(.*)/.exec(r.stderr)
-  return { ok: false, sqlstate: m?.[1] ?? null, message: m?.[2]?.trim() ?? (r.stderr || r.error?.message || '').slice(0, 500), stdout: r.stdout.trim() }
+  // An interrupted transport may contain a previous SQL error on stderr. It is
+  // not a completed business refusal and must never supply that SQLSTATE.
+  // With ON_ERROR_STOP, only exit3 attests a completed script SQL error;
+  // fatal/client/connection exits may contain stale server diagnostics.
+  if (r.error || r.signal || (r.status !== 0 && r.status !== 3)) throw new Error('psql: process_did_not_complete_normally')
+  const stdout = String(r.stdout ?? '').trim(), stderr = String(r.stderr ?? '')
+  if (r.status === 0) return { ok: true, sqlstate: null, message: null, stdout }
+  const m = /ERROR:\s+([0-9A-Z]{5}):\s+(.*)/.exec(stderr)
+  return { ok: false, sqlstate: m?.[1] ?? null, message: m?.[2]?.trim() ?? stderr.slice(0, 500), stdout }
 }
 
 /** Radens fulla innehåll + originalkroppens sha256/bytes, beräknat i databasen (bytes ur raw_payload som UTF-8). */

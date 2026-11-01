@@ -1,6 +1,7 @@
 // Actual T6 callbacks/helpers with finite Auth/DB/CLI/IO ports. No native proof.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ts from 'typescript'
+import { spawnSync as realSpawnSync, type SpawnSyncOptions } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { runInNewContext } from 'node:vm'
@@ -10,7 +11,7 @@ import type { CreatedRestoreDb, Tooling } from '../scripts/simulation/track6/lib
 
 type Callback = (...args: unknown[]) => unknown
 type Row = Record<string, unknown>
-type RestoreHelper = Pick<typeof import('../scripts/simulation/track6/lib/custody/restore'), 'createDb' | 'dropDb' | 'restore' | 'restoreUrl' | 'dbExists' | 'consistencyBlocks' | 'runBlock' | 'platformOnly'>
+type RestoreHelper = Pick<typeof import('../scripts/simulation/track6/lib/custody/restore'), 'createDb' | 'dropDb' | 'restore' | 'restoreUrl' | 'dbExists' | 'consistencyBlocks' | 'runBlock' | 'platformOnly' | 'dump' | 'chooseTooling'>
 const root = process.cwd(), database = 't6_restore_reviewowned', runId = 'reviewowned'
 const sourceUrl = 'postgresql://postgres:synthetic@127.0.0.1:15432/postgres'
 function load(file: string, modules: Record<string, unknown>, bridge = '', review: Row = {}) {
@@ -47,7 +48,7 @@ function custody03(read: ReturnType<typeof restResult>, mutation: ReturnType<typ
 }
 const ownRead = () => restResult(200, [{ id: 'own-source' }])
 
-type ProcessResult = { status: number | null; signal?: string | null; error?: NodeJS.ErrnoException; stdout?: string; stderr?: string }
+type ProcessResult = { status: number | null; signal?: string | null; error?: NodeJS.ErrnoException; stdout?: string | null; stderr?: string | null }
 const clean = { status: 0, stdout: '', stderr: '' }
 const platform = 'pg_restore: while PROCESSING TOC:\npg_restore: from TOC entry 1; 0 0 TABLE DATA spatial_ref_sys postgres\npg_restore: error: permission denied\nCommand was: COPY extensions.spatial_ref_sys (srid) FROM stdin;\npg_restore: warning: errors ignored on restore: 1\n'
 function backend(processResult: ProcessResult = clean) {
@@ -55,7 +56,11 @@ function backend(processResult: ProcessResult = clean) {
     exists: false, createError: false, identityError: false, dropError: false, opens: 0, closes: 0, sourceUrl,
     identity: { database, oid: '40001', ownerOid: '10', ownerName: 'postgres', creator: 'postgres' },
     assignment: { version: 1 as const, workerId: 'T6' as const, environmentId: 'owned', containerId: 'a'.repeat(64), projectId: 'project', host: '127.0.0.1' as const, port: 15432, database: 'postgres', systemIdentifier: '123' },
-    queries: [] as string[], commands: [] as Array<{ command: string; args: string[] }>, diagnosticRows: new Map<string, string[]>(), processResult,
+    queries: [] as string[], commands: [] as Array<{ command: string; args: string[]; options: SpawnSyncOptions }>, diagnosticRows: new Map<string, string[]>(), processResult,
+    versionResult: { status: 0, stdout: 'pg_dump (PostgreSQL) 17.6', stderr: '' } as ProcessResult,
+    restoreVersionResult: null as ProcessResult | null,
+    timeoutResult: { status: 0, stdout: 'timeout (GNU coreutils) 9.4', stderr: '' } as ProcessResult,
+    versionRunner: null as ((options: SpawnSyncOptions) => ProcessResult) | null,
   }
   const sourceIdentity = () => ({ systemIdentifier: '123', database: 'postgres', serverMajor: 17 })
   const sqlIn = (sql: string) => {
@@ -77,15 +82,20 @@ function backend(processResult: ProcessResult = clean) {
     throw new Error('unexpected SQL port')
   }
   const helper = load('scripts/simulation/track6/lib/custody/restore.ts', {
-    'node:child_process': { spawnSync: (command: string, args: string[]) => {
-      state.commands.push({ command, args })
+    'node:child_process': { spawnSync: (command: string, args: string[], options: SpawnSyncOptions = {}) => {
+      state.commands.push({ command, args, options })
       if (command === 'docker' && args[0] === 'inspect') return { status: 0, stdout: JSON.stringify({ Id: state.assignment.containerId, Running: true, Labels: { 'com.supabase.cli.project': state.assignment.projectId }, Ports: { '5432/tcp': [{ HostIp: '127.0.0.1', HostPort: '15432' }] } }), stderr: '' }
       if (command === 'docker' && args[0] === 'exec' && args.includes('psql')) return { status: 0, stdout: JSON.stringify(sourceIdentity()), stderr: '' }
-      if (command === 'pg_restore') return state.processResult
+      if (args.includes('--version')) {
+        if (command === 'docker') return state.timeoutResult
+        return state.versionRunner ? state.versionRunner(options) : command === 'pg_restore' && state.restoreVersionResult ? state.restoreVersionResult : state.versionResult
+      }
+      if (command === 'pg_restore' || command === 'pg_dump' || command === 'docker' && args.some(arg => arg === 'pg_restore' || arg === 'pg_dump')) return state.processResult
       if (command === 'psql') return { status: 0, stdout: (state.diagnosticRows.get(args[0] + '|' + args.at(-1)) ?? []).join('\n') + '\n', stderr: '' }
       throw new Error('unexpected process port')
     } },
-    'node:fs': { lstatSync: () => ({ isFile: () => true, mode: 0o600 }), openSync: (file: string) => { expect(file).toBe('/private/review.dump'); state.opens++; return 123 }, closeSync: () => { state.closes++ }, readFileSync: (file: string) => {
+    'node:fs': { mkdirSync: () => undefined, statSync: () => ({ size: 15 }), lstatSync: () => ({ isFile: () => true, mode: 0o600 }), openSync: (file: string) => { expect(file).toBe('/private/review.dump'); state.opens++; return 123 }, closeSync: () => { state.closes++ }, readFileSync: (file: string) => {
+      if (file === '/private/review.dump') return Buffer.from('synthetic dump')
       if (file === '/private/assignment.json') return JSON.stringify(state.assignment)
       if (file === path.join(root, 'supabase/sql/checks/production_consistency_checks.sql')) return readFileSync(file, 'utf8')
       throw new Error('unexpected filesystem read')
@@ -230,6 +240,122 @@ describe('T6 actual restore process has finite fully-accounted outcomes', () => 
     const b = backend(result), handle = b.create()
     expect(() => b.helper.restore(b.tooling, '/private/review.dump', database, handle, runId)).toThrow('pg_restore_refused:')
     expect(b.state.opens).toBe(1); expect(b.state.closes).toBe(1)
+  })
+})
+
+describe('T6 dump and restore commands have finite child lifetimes', () => {
+  it.each(['dump', 'restore'] as const)('bounds the host %s process and refuses an interrupted command', operation => {
+    const b = backend({ status: null, signal: 'SIGKILL', error: Object.assign(new Error('deadline'), { code: 'ETIMEDOUT' }) })
+    const handle = b.create()
+    expect(() => operation === 'dump' ? b.helper.dump(b.tooling, '/private/review.dump')
+      : b.helper.restore(b.tooling, '/private/review.dump', database, handle, runId)).toThrow()
+    const call = b.state.commands.find(c => c.command === `pg_${operation}`)!
+    expect(call.options.timeout).toBeGreaterThan(0)
+    expect(call.options.timeout).toBeLessThanOrEqual(300_000)
+    expect(call.options.killSignal).toBe('SIGKILL')
+    expect(b.state.closes).toBe(1)
+  })
+  it.each(['dump', 'restore'] as const)('times out %s inside the owned container, rather than only killing docker exec', operation => {
+    const b = backend({ status: 137, stderr: '' }), handle = b.create()
+    const docker: Tooling = { kind: 'docker', hostMajor: null, serverMajor: 17, container: b.state.assignment.containerId, assignment: b.state.assignment }
+    expect(() => operation === 'dump' ? b.helper.dump(docker, '/private/review.dump')
+      : b.helper.restore(docker, '/private/review.dump', database, handle, runId)).toThrow()
+    const call = b.state.commands.find(c => c.command === 'docker' && c.args.includes(`pg_${operation}`))!
+    expect(call.args).toContain('timeout')
+    expect(call.args).toContain('--foreground')
+    expect(call.args).toContain('--signal=KILL')
+    expect(call.args).toContain('300s')
+    expect(call.options.timeout).toBeGreaterThan(300_000)
+    expect(call.options.timeout).toBeLessThanOrEqual(315_000)
+    if (operation === 'restore') { expect(() => b.helper.dropDb(database, handle, runId)).toThrow('process state is unknown'); expect(b.drops()).toEqual([]) }
+  })
+  it.each([
+    ['outer timeout', { status: null, signal: 'SIGKILL', error: Object.assign(new Error('deadline'), { code: 'ETIMEDOUT' }) }],
+    ['daemon failure', { status: 125, stderr: 'daemon connection lost' }],
+    ['ambiguous137', { status: 137, stderr: '' }],
+  ])('preserves the owned restore DB when %s leaves in-container client state unknown', (_name, result) => {
+    const b = backend(result), handle = b.create()
+    const docker: Tooling = { kind: 'docker', hostMajor: null, serverMajor: 17, container: b.state.assignment.containerId, assignment: b.state.assignment }
+    expect(() => b.helper.restore(docker, '/private/review.dump', database, handle, runId)).toThrow()
+    expect(() => b.helper.dropDb(database, handle, runId)).toThrow('process state is unknown')
+    expect(b.drops()).toEqual([]); expect(b.state.exists).toBe(true)
+  })
+  it('refuses container tooling before opening an archive when the inner deadline utility is unsupported', () => {
+    const b = backend(), handle = b.create(); b.state.timeoutResult = { status: 0, stdout: 'BusyBox timeout' }
+    const docker: Tooling = { kind: 'docker', hostMajor: null, serverMajor: 17, container: b.state.assignment.containerId, assignment: b.state.assignment }
+    expect(() => b.helper.restore(docker, '/private/review.dump', database, handle, runId)).toThrow()
+    expect(b.state.opens).toBe(0)
+    expect(b.state.commands.some(c => c.args.includes('pg_restore'))).toBe(false)
+  })
+  it('does not fall back to container mutation after a hung version probe', () => {
+    const b = backend(); b.state.versionResult = { status: null, signal: 'SIGKILL', error: Object.assign(new Error('deadline'), { code: 'ETIMEDOUT' }) }
+    expect(() => b.helper.chooseTooling()).toThrow()
+    const call = b.state.commands.find(c => c.command === 'pg_dump')!
+    expect(call.options.timeout).toBeGreaterThan(0); expect(call.options.timeout).toBeLessThanOrEqual(10_000)
+    expect(b.state.commands.some(c => c.command === 'docker' && c.args.includes('timeout'))).toBe(false)
+  })
+  it('does not select a host restore too old to read the chosen dump archive', () => {
+    const b = backend(); b.state.versionResult = { status: 0, stdout: 'pg_dump (PostgreSQL) 18.1' }
+    b.state.restoreVersionResult = { status: 0, stdout: 'pg_restore (PostgreSQL) 17.6' }
+    expect(b.helper.chooseTooling().kind).toBe('docker')
+  })
+  it('actually kills a harmless version probe that ignores SIGTERM, and returns refusal', () => {
+    const b = backend(); let childPid = 0
+    b.state.versionRunner = options => {
+      // No DB/native tool is run. The real child receives the production deadline.
+      if (!options.timeout || options.timeout > 10_000) throw new Error('unbounded version probe')
+      const result = realSpawnSync(process.execPath, ['-e', "process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"], options)
+      childPid = result.pid
+      return result as ProcessResult
+    }
+    expect(() => b.helper.chooseTooling()).toThrow()
+    expect(childPid).toBeGreaterThan(1)
+    expect(() => process.kill(childPid, 0)).toThrow()
+  }, 15_000)
+})
+
+describe('T6 custody SQL never treats an interrupted client as a business refusal', () => {
+  function sqlPort(result: ProcessResult) {
+    const calls: Array<{ args: string[]; options: SpawnSyncOptions }> = []
+    const helper = load('scripts/simulation/track6/lib/custody/base.ts', {
+      'node:child_process': { spawnSync: (_name: string, args: string[], options: SpawnSyncOptions) => { calls.push({ args, options }); return result } },
+      'node:crypto': { createHash }, 'node:fs': { mkdirSync: () => undefined }, 'node:path': path,
+      '../seed.mjs': { dbUrl: () => sourceUrl, lit: (value: string) => JSON.stringify(value) },
+    }) as Pick<typeof import('../scripts/simulation/track6/lib/custody/base'), 'sqlIn' | 'sqlTry'>
+    return { helper, calls }
+  }
+  it.each(['sqlIn', 'sqlTry'] as const)('%s bounds its direct psql child with an uncatchable signal', method => {
+    const port = sqlPort({ status: 0, stdout: 'true', stderr: '' })
+    port.helper[method]('SELECT true')
+    expect(port.calls[0].options.timeout).toBeGreaterThan(0)
+    expect(port.calls[0].options.timeout).toBeLessThanOrEqual(120_000)
+    expect(port.calls[0].options.killSignal).toBe('SIGKILL')
+  })
+  it.each([
+    ['timeout with guard text', { status: null, error: Object.assign(new Error('deadline'), { code: 'ETIMEDOUT' }), stderr: 'ERROR: P0001: ediel_registered_reception_original_immutable' }],
+    ['signal with guard text', { status: null, signal: 'SIGKILL', stderr: 'ERROR: 23514: immutable_ediel_payload_cannot_change' }],
+    ['misleading status0/error', { status: 0, error: Object.assign(new Error('unavailable'), { code: 'EIO' }), stdout: 'true' }],
+    ['unknown null status', { status: null, stdout: null, stderr: null }],
+    ['fatal exit1 with stale guard text', { status: 1, stderr: 'ERROR: P0001: ediel_registered_reception_original_immutable' }],
+    ['connection exit2 with stale guard text', { status: 2, stderr: 'ERROR: P0001: ediel_registered_reception_original_immutable' }],
+    ['unexpected exit125 with stale guard text', { status: 125, stderr: 'ERROR: 23514: immutable_ediel_payload_cannot_change' }],
+  ] satisfies Array<[string, ProcessResult]>)('rejects %s before parsing a SQLSTATE or success payload', (_name, result) => {
+    const port = sqlPort(result)
+    expect(() => port.helper.sqlIn('CREATE DATABASE own')).toThrow('process_did_not_complete_normally')
+    expect(() => port.helper.sqlTry('DELETE FROM own')).toThrow('process_did_not_complete_normally')
+  })
+  it('preserves genuine completed SQLSTATE refusal with the original message', () => {
+    const port = sqlPort({ status: 3, stdout: '', stderr: 'ERROR: P0001: ediel_registered_reception_original_immutable\n' })
+    expect(port.helper.sqlTry('DELETE FROM own')).toEqual({ ok: false, sqlstate: 'P0001', message: 'ediel_registered_reception_original_immutable', stdout: '' })
+    expect(() => port.helper.sqlIn('DELETE FROM own')).toThrow('ediel_registered_reception_original_immutable')
+  })
+  it('handles missing diagnostic/output buffers without inventing a business SQLSTATE', () => {
+    const failed = sqlPort({ status: 3, stdout: null, stderr: null })
+    expect(failed.helper.sqlTry('SELECT true')).toEqual({ ok: false, sqlstate: null, message: '', stdout: '' })
+    expect(() => failed.helper.sqlIn('SELECT true')).toThrow('psql:')
+    const empty = sqlPort({ status: 0, stdout: null, stderr: null })
+    expect(empty.helper.sqlIn('SELECT true')).toBeUndefined()
+    expect(empty.helper.sqlTry('SELECT true')).toEqual({ ok: true, sqlstate: null, message: null, stdout: '' })
   })
 })
 

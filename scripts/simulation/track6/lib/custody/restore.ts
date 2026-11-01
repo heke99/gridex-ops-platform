@@ -24,6 +24,11 @@ export type Tooling = (
 ) & { assignment: BackendAssignment }
 
 const blocked = (reason: string): never => { throw new Error(`BLOCKED: T6 backend assignment ${reason}`) }
+// Direct host clients are killed, not merely signalled with a catchable TERM.
+const PROBE_TIMEOUT_MS = 10_000
+const CLIENT_TIMEOUT_MS = 300_000
+const DOCKER_TIMEOUT_MS = CLIENT_TIMEOUT_MS + 15_000
+
 const IDENTITY_SQL = `SET default_transaction_read_only=on; SELECT jsonb_build_object('systemIdentifier', (pg_control_system()).system_identifier::text, 'database', current_database(), 'serverMajor', current_setting('server_version_num')::int/10000)`
 
 function readAssignment(): BackendAssignment {
@@ -64,7 +69,7 @@ function requireOwnedBackend(tooling?: Tooling): { assignment: BackendAssignment
 
   // Select only nonsecret identity fields, not Config.Env or the full inspect payload.
   const format = '{"Id":{{json .Id}},"Running":{{json .State.Running}},"Labels":{{json .Config.Labels}},"Ports":{{json .NetworkSettings.Ports}}}'
-  const inspect = spawnSync('docker', ['inspect', '--type', 'container', '--format', format, assignment.containerId], { encoding: 'utf8', timeout: 10_000, maxBuffer: 1_000_000 })
+  const inspect = spawnSync('docker', ['inspect', '--type', 'container', '--format', format, assignment.containerId], { encoding: 'utf8', timeout: 10_000, killSignal: 'SIGKILL', maxBuffer: 1_000_000 })
   if (inspect.status !== 0) return blocked('container inspection failed')
   let actual: { Id?: string; Running?: boolean; Labels?: Record<string, string>; Ports?: Record<string, Array<{ HostIp: string; HostPort: string }>> }
   try { actual = JSON.parse(inspect.stdout) as typeof actual } catch { return blocked('container inspection is ambiguous or invalid') }
@@ -75,7 +80,7 @@ function requireOwnedBackend(tooling?: Tooling): { assignment: BackendAssignment
 
   let host: DatabaseIdentity
   try { host = sqlIn<DatabaseIdentity>(IDENTITY_SQL) } catch { return blocked('host DB identity query failed') }
-  const queried = spawnSync('docker', ['exec', assignment.containerId, 'psql', '-U', dbUser(), '-d', assignment.database, '-XAtq', '-v', 'ON_ERROR_STOP=1', '-c', IDENTITY_SQL], { encoding: 'utf8', timeout: 10_000, maxBuffer: 100_000 })
+  const queried = spawnSync('docker', ['exec', assignment.containerId, 'psql', '-U', dbUser(), '-d', assignment.database, '-XAtq', '-v', 'ON_ERROR_STOP=1', '-c', IDENTITY_SQL], { encoding: 'utf8', timeout: 10_000, killSignal: 'SIGKILL', maxBuffer: 100_000 })
   if (queried.status !== 0) return blocked('container DB identity query failed')
   let container: DatabaseIdentity
   try { container = JSON.parse(queried.stdout) as DatabaseIdentity } catch { return blocked('container DB identity is invalid') }
@@ -92,11 +97,34 @@ export function setup(): void {
   requireOwnedBackend()
 }
 
+/** GNU timeout runs inside the exact assigned container; timing out docker alone leaves its client unknown. */
+function requireContainerDeadline(container: string): void {
+  const probe = spawnSync('docker', ['exec', container, 'timeout', '--version'], {
+    encoding: 'utf8', timeout: PROBE_TIMEOUT_MS, killSignal: 'SIGKILL', maxBuffer: 100_000,
+  })
+  if (probe.error || probe.signal || probe.status !== 0 || !/^timeout \(GNU coreutils\) [0-9]+\./.test(probe.stdout)) {
+    return blocked('container lacks a qualified GNU timeout client deadline')
+  }
+}
+
+function hostToolMajor(name: 'pg_dump' | 'pg_restore'): number | null {
+  const probe = spawnSync(name, ['--version'], { encoding: 'utf8', timeout: PROBE_TIMEOUT_MS, killSignal: 'SIGKILL', maxBuffer: 100_000 })
+  // An absent tool may select the assigned container. A hung/interrupted probe
+  // is a real failure, not evidence to continue with a different mutation path.
+  if (probe.signal || probe.error && (probe.error as NodeJS.ErrnoException).code !== 'ENOENT') return blocked(`${name} version probe did not complete normally`)
+  if (probe.status !== 0) return null
+  const major = Number(/PostgreSQL\) (\d+)(?:\.\d+)?/.exec(probe.stdout)?.[1] ?? 0)
+  return major > 0 ? major : null
+}
+
 export function chooseTooling(): Tooling {
   const { assignment, serverMajor } = requireOwnedBackend()
-  const v = spawnSync('pg_dump', ['--version'], { encoding: 'utf8' })
-  const hostMajor = v.status === 0 ? Number(/(\d+)(?:\.\d+)?/.exec(v.stdout)?.[1] ?? 0) : null
-  if (hostMajor !== null && hostMajor >= serverMajor && spawnSync('pg_restore', ['--version']).status === 0) return { kind: 'host', hostMajor, serverMajor, assignment }
+  const hostMajor = hostToolMajor('pg_dump')
+  if (hostMajor !== null && hostMajor >= serverMajor) {
+    const restoreMajor = hostToolMajor('pg_restore')
+    if (restoreMajor !== null && restoreMajor >= hostMajor) return { kind: 'host', hostMajor, serverMajor, assignment }
+  }
+  requireContainerDeadline(assignment.containerId)
   return { kind: 'docker', container: assignment.containerId, hostMajor, serverMajor, assignment }
 }
 
@@ -107,14 +135,15 @@ const baseDb = () => decodeURIComponent(new URL(dbUrl()).pathname.slice(1))
 
 export function dump(t: Tooling, file: string): { ms: number; bytes: number; sha256: string; stderr: string } {
   requireOwnedBackend(t)
+  if (t.kind === 'docker') requireContainerDeadline(t.container)
   const t0 = Date.now()
   mkdirSync(join(file, '..'), { recursive: true })
   const out = openSync(file, 'w', 0o600)
   try {
     const r = t.kind === 'host'
-      ? spawnSync('pg_dump', ['-Fc', '-d', dbUrl()], { stdio: ['ignore', out, 'pipe'], env: { ...process.env, PGPASSWORD: 'postgres' } })
-      : spawnSync('docker', ['exec', t.container, 'pg_dump', '-Fc', '-U', dbUser(), baseDb()], { stdio: ['ignore', out, 'pipe'] })
-    if (r.status !== 0) throw new Error(`pg_dump misslyckades (${r.status}): ${String(r.stderr).slice(0, 800)}`)
+      ? spawnSync('pg_dump', ['-Fc', '-d', dbUrl()], { stdio: ['ignore', out, 'pipe'], env: { ...process.env, PGPASSWORD: 'postgres' }, timeout: CLIENT_TIMEOUT_MS, killSignal: 'SIGKILL' })
+      : spawnSync('docker', ['exec', t.container, 'timeout', '--foreground', '--signal=KILL', `${CLIENT_TIMEOUT_MS / 1000}s`, 'pg_dump', '-Fc', '-U', dbUser(), baseDb()], { stdio: ['ignore', out, 'pipe'], timeout: DOCKER_TIMEOUT_MS, killSignal: 'SIGKILL' })
+    if (r.error || r.signal || r.status !== 0) throw new Error(`pg_dump misslyckades (${r.status}): ${String(r.stderr).slice(0, 800)}`)
     return { ms: Date.now() - t0, bytes: statSync(file).size, sha256: sha256(readFileSync(file)), stderr: String(r.stderr).slice(0, 2000) }
   } finally { closeSync(out) }
 }
@@ -131,6 +160,9 @@ export type CreatedRestoreDb = Readonly<{
 }>
 // A serialized receipt records evidence but cannot manufacture cleanup authority.
 const createdDatabases = new WeakMap<CreatedRestoreDb, string>()
+// A disconnected docker client cannot attest that its in-container writer died.
+// Keep that exact target for reconciliation; a serialized handle cannot clear HOLD.
+const unknownRestoreProcesses = new WeakSet<CreatedRestoreDb>()
 function restoreIdentity(db: string): RestoreIdentity {
   const value = sqlIn<RestoreIdentity | undefined>(`SET default_transaction_read_only=on; SELECT jsonb_build_object('database',datname,'oid',oid::text,'ownerOid',datdba::text,'ownerName',pg_get_userbyid(datdba),'creator',current_user) FROM pg_database WHERE datname='${db}'`)
   if (!value || value.database !== db || typeof value.oid !== 'string' || typeof value.ownerOid !== 'string'
@@ -140,6 +172,7 @@ function restoreIdentity(db: string): RestoreIdentity {
 }
 function requireCreatedDb(db: string, handle: CreatedRestoreDb, runId: string, tooling?: Tooling): void {
   requireRestoreDb(db)
+  if (handle && unknownRestoreProcesses.has(handle)) return blocked('restore process state is unknown; preserve DB for reconciliation')
   const { assignment } = requireOwnedBackend(tooling)
   if (!handle || !createdDatabases.has(handle) || handle.database !== db || handle.runId !== runId
     || createdDatabases.get(handle) !== JSON.stringify(assignment)) return blocked('restore DB has no matching current-attempt creation handle')
@@ -173,12 +206,16 @@ export type RestoreErrorBlock = { error: string; command: string }
 const RESTORE_ROLE = 'supabase_admin'
 export function restore(t: Tooling, file: string, db: string, handle: CreatedRestoreDb, runId: string): { ms: number; status: number; errors: string[]; blocks: RestoreErrorBlock[]; stderrTail: string } {
   requireCreatedDb(db, handle, runId, t)
+  if (t.kind === 'docker') requireContainerDeadline(t.container)
   const t0 = Date.now()
   const input = openSync(file, 'r')
   try {
     const r = t.kind === 'host'
-      ? spawnSync('pg_restore', ['-d', urlFor(db, RESTORE_ROLE)], { stdio: [input, 'ignore', 'pipe'], env: { ...process.env, PGPASSWORD: 'postgres' }, maxBuffer: 64_000_000 })
-      : spawnSync('docker', ['exec', '-i', t.container, 'pg_restore', '-U', RESTORE_ROLE, '-d', db], { stdio: [input, 'ignore', 'pipe'], maxBuffer: 64_000_000 })
+      ? spawnSync('pg_restore', ['-d', urlFor(db, RESTORE_ROLE)], { stdio: [input, 'ignore', 'pipe'], env: { ...process.env, PGPASSWORD: 'postgres' }, maxBuffer: 64_000_000, timeout: CLIENT_TIMEOUT_MS, killSignal: 'SIGKILL' })
+      : spawnSync('docker', ['exec', '-i', t.container, 'timeout', '--foreground', '--signal=KILL', `${CLIENT_TIMEOUT_MS / 1000}s`, 'pg_restore', '-U', RESTORE_ROLE, '-d', db], { stdio: [input, 'ignore', 'pipe'], maxBuffer: 64_000_000, timeout: DOCKER_TIMEOUT_MS, killSignal: 'SIGKILL' })
+    // Only normal client exits attest a completed container client. Even 137
+    // could mean the wrapper died; no bare timeout/exit code authorizes DROP.
+    if (t.kind === 'docker' && (r.error || r.signal || ![0, 1].includes(r.status ?? -1))) unknownRestoreProcesses.add(handle)
     const stderr = r.stderr == null ? '' : String(r.stderr)
     const refuse = (reason: string): never => {
       const code = (r.error as NodeJS.ErrnoException | undefined)?.code
@@ -205,7 +242,7 @@ export function restore(t: Tooling, file: string, db: string, handle: CreatedRes
 
 /** psql mot given URL; returnerar råa rader (fältsep '|'). */
 export function psqlRows(url: string, script: string): string[][] {
-  const r = spawnSync('psql', [url, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { input: script, encoding: 'utf8', timeout: 300_000, maxBuffer: 128_000_000, env: { ...process.env, PGPASSWORD: 'postgres' } })
+  const r = spawnSync('psql', [url, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { input: script, encoding: 'utf8', timeout: 300_000, killSignal: 'SIGKILL', maxBuffer: 128_000_000, env: { ...process.env, PGPASSWORD: 'postgres' } })
   if (r.status !== 0) throw new Error(`psql ${url.replace(/:[^:@/]*@/, ':***@')}: ${r.stderr.slice(0, 600)}`)
   return r.stdout.split('\n').filter(Boolean).map((l) => l.split('|'))
 }
@@ -248,7 +285,7 @@ export function consistencyBlocks(): Array<{ n: number; title: string; sql: stri
 }
 /** Kör ett block (skrivskyddad diagnostik) mot en URL; returnerar utdatarader sorterade (blocken saknar ORDER BY på alla). */
 export function runBlock(url: string, sqlText: string): string[] {
-  const r = spawnSync('psql', [url, '-XAt', '-v', 'ON_ERROR_STOP=1', '-c', 'SET default_transaction_read_only=on', '-c', sqlText], { encoding: 'utf8', timeout: 300_000, maxBuffer: 64_000_000, env: { ...process.env, PGPASSWORD: 'postgres' } })
+  const r = spawnSync('psql', [url, '-XAt', '-v', 'ON_ERROR_STOP=1', '-c', 'SET default_transaction_read_only=on', '-c', sqlText], { encoding: 'utf8', timeout: 300_000, killSignal: 'SIGKILL', maxBuffer: 64_000_000, env: { ...process.env, PGPASSWORD: 'postgres' } })
   if (r.status !== 0) throw new Error(`consistency block misslyckades: ${r.stderr.slice(0, 500)}`)
   return r.stdout.split('\n').filter((l) => l && l !== 'SET').sort()
 }
