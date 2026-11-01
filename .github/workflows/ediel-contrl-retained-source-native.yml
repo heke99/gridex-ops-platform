@@ -459,9 +459,24 @@ jobs:
           PY
           export PATH="$CONTRL_HOME/tools/node/node-v22.23.4-linux-x64/bin:$CONTRL_HOME/tools/supabase:/usr/lib/postgresql/17/bin:$PATH"
           printf '%s\n' "$CONTRL_HOME/tools/node/node-v22.23.4-linux-x64/bin" "$CONTRL_HOME/tools/supabase" /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
-          # Fresh disposable runner only; signed APT metadata and exact package versions.
+          # Begin authenticated PGDG setup: fresh disposable runner only.
+          mkdir -m 700 "$CONTRL_HOME/tools/gnupg"
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' https://www.postgresql.org/media/keys/ACCC4CF8.asc > "$CONTRL_HOME/tools/pgdg.asc"
+          python3 - <<'PY'
+          import os,pathlib,subprocess
+          h=pathlib.Path(os.environ['CONTRL_HOME'])/'tools'
+          data=subprocess.check_output(['gpg','--batch','--no-options','--homedir',str(h/'gnupg'),'--with-colons','--show-keys',str(h/'pgdg.asc')],text=True,stderr=subprocess.PIPE)
+          rows=[line.split(':') for line in data.splitlines()]
+          assert sum(row[0]=='pub' for row in rows)==1 and [row[9] for row in rows if row[0]=='fpr']==['B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8'], 'PGDG signing key fingerprint refused'
+          PY
+          test ! -e /usr/share/keyrings/gridex-contrl-pgdg.asc
+          test ! -e /etc/apt/sources.list.d/gridex-contrl-pgdg.list
+          sudo install -m 644 "$CONTRL_HOME/tools/pgdg.asc" /usr/share/keyrings/gridex-contrl-pgdg.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/gridex-contrl-pgdg.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' > "$CONTRL_HOME/tools/pgdg.list"
+          sudo install -m 644 "$CONTRL_HOME/tools/pgdg.list" /etc/apt/sources.list.d/gridex-contrl-pgdg.list
           sudo apt-get -o Acquire::AllowInsecureRepositories=false update -qq > "$CONTRL_HOME/raw/client-install.log" 2>&1
           sudo apt-get -o APT::Get::AllowUnauthenticated=false install -y postgresql-client-17=17.11-1.pgdg24.04+2 >> "$CONTRL_HOME/raw/client-install.log" 2>&1
+          # End authenticated PGDG setup.
           node "$CONTRL_HOME/tools/npm/package/bin/npm-cli.js" ci --prefix "$CONTRL_HOME/baseline" --ignore-scripts --no-audit > "$CONTRL_HOME/raw/dependencies.log" 2>&1
           python3 - <<'PY'
           import hashlib,json,os,pathlib,subprocess
@@ -475,7 +490,7 @@ jobs:
           for tool in ['psql','pg_dump']:
               assert 'not found' not in run(['ldd',run(['which',tool])])
           binaries={name:hashlib.sha256(pathlib.Path(run(['which',name])).read_bytes()).hexdigest() for name in ['node','supabase','supabase-go','psql','pg_dump']}
-          (h/'tools.json').write_text(json.dumps({'versions':versions,'packages':packages,'binarySha256':binaries,'runnerImage':{'OS':os.getenv('ImageOS'),'version':os.getenv('ImageVersion')},'dependencyLifecycleScripts':'NOT_RUN'},indent=2)+'\n')
+          (h/'tools.json').write_text(json.dumps({'versions':versions,'packages':packages,'binarySha256':binaries,'pgdgSigningFingerprint':'B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8','pgdgKeySha256':hashlib.sha256((h/'tools/pgdg.asc').read_bytes()).hexdigest(),'runnerImage':{'OS':os.getenv('ImageOS'),'version':os.getenv('ImageVersion')},'dependencyLifecycleScripts':'NOT_RUN'},indent=2)+'\n')
           PY
       - name: Qualify baseline, forward SQL and four postfix native cases
         run: |
