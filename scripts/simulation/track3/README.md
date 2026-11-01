@@ -2,15 +2,16 @@
 
 Kampanj 20261029-3f1a8ab1. Separat, lokal harness för Ediel-kedjan: inkommande mejl (IMAP) -> app -> CONTRL/APERAK i
 outbox -> utgående mejl (SMTP) -> "nätägar"-motpart. Ingen extern trafik, inga riktiga mejl, ingen extern DB.
-Harnessen kräver inga ändringar i produktkod (basen: `1c0c088cb4ed66d0dd8b3e34c9606019342a1a56`).
+Ursprungsbasen `1c0c088cb4ed66d0dd8b3e34c9606019342a1a56` bevaras som historik. Nya körningar kräver
+samordnarens uttryckliga aktuella app-/harnesskällor, bygge och backend; en historisk basmarkör är inget körbevis.
 
 ## Kontrakt
 
 | Skript | Uppgift |
 | --- | --- |
-| `up.sh [--mode test\|production]` | Idempotent. Verifierar stacken (annars clean replay), skriver replay-kvitton, genererar CA, startar mailmotpart, seedar fixture, skriver `env/track3.env`, bygger (`next build`) vid behov och startar `next start`. |
+| `up.sh [--mode test\|production]` | Konsumerar samordnarens kvalificerade replay/bygge och privata JSON-miljö. Startar endast nya tilldelade app-/mailresurser, seedar den lokala fixturen och observerar exakta process-/containeridentiteter. Startar inte backend/daemon, installerar inte och bygger inte. Befintligt tillstånd kräver riktad avstämning. |
 | `down.sh` | Kräver uttryckliga `SIM_HOME`, `SIM_RUN_DIR` och en privat `T3_CLEANUP_ASSIGNMENT_FILE`. Stoppar endast exakt tilldelade processer och GreenMail-container. Skriver ett nytt privat kvitto under `SIM_HOME/cleanup-receipts/`. `--stack` och `--purge` nekas före cleanup eftersom backend-/retentionstilldelning saknas. |
-| `run.sh <scenariofil...>` | Kräver `SIM_REPORT`, en absolut privat fil utanför Git-arbetsytor och Git-metadata. Ogiltigt mål eller en env-fil som ändrar `SIM_REPORT` nekas före lås, nätanrop och Vitest. En körning åt gången (flock på `SIM_HOME/run.lock`). Per scenario: `SIM_HOME/runs/<run-id>/<scenario>/{report.json,log.txt,vitest.json}`. |
+| `run.sh <scenariofil...>` | Kräver `SIM_REPORT`, en absolut privat fil utanför Git-arbetsytor och Git-metadata. Ogiltigt mål eller en JSON-miljö med otillåtna nycklar nekas före lås, nätanrop och Vitest. En körning åt gången (flock på `SIM_HOME/run.lock`). Per scenario: `SIM_HOME/runs/<run-id>/<scenario>/{report.json,log.txt,vitest.json}`. |
 
 Rapporten (`report.json`) har `exit`, `startedAt`/`endedAt` (UTC), `steps[]` (`passed|failed|skipped`), `skipped[]`,
 vitests sammanfattning (`vitest`), `observations` (utfall som scenariot loggar utan att assertera) och sökväg till
@@ -24,18 +25,19 @@ Förkontrollen använder Python 3 och Git för att kontrollera den upplösta må
 
 ## Körning
 
-```
-bash scripts/simulation/track3/up.sh                  # första gången: bygge kan ta >10 min (SKIP_BUILD=1 återanvänder)
+Med samordnarens tilldelning och samtliga explicita variabler redan exporterade:
+
+```sh
+bash scripts/simulation/track3/up.sh
 SIM_REPORT=/privat/evidens/track3-report.json bash scripts/simulation/track3/run.sh scenarios/smoke.test.ts
-SIM_HOME=/privat/track3 SIM_RUN_DIR=/egen/app T3_CLEANUP_ASSIGNMENT_FILE=/privat/track3-cleanup.json bash scripts/simulation/track3/down.sh
+T3_CLEANUP_ASSIGNMENT_FILE="$SIM_HOME/cleanup-assignment.json" bash scripts/simulation/track3/down.sh
 ```
 
 ### Avgränsad cleanup
 
 Samordnaren måste först tilldela de verkligt ägda resurserna. En arbetskatalog eller en containeretikett ger ingen
-backend- eller processäganderätt. `up.sh` skapar ännu inte detta nya ägarkvitto och är inte kvalificerat för en ny
-autonom körning. Dess historiska replay-/byggpåståenden och återanvändning av standardstacken kräver separat rättning
-och admission före verklig start. Skapa inte en cleanup-tilldelning genom att automatiskt hitta resurser med gemensamma namn.
+backend- eller processäganderätt. `up.sh` härleder detta cleanup-kvitto först efter kvalificerad start och verkliga process-/containerobservationer.
+Ett avbrutet startförsök med enbart pending-ID:n kräver samordnarens riktade återhämtning. Skapa inte en cleanup-tilldelning genom att automatiskt hitta resurser med gemensamma namn.
 
 `T3_CLEANUP_ASSIGNMENT_FILE` är en vanlig fil med 0600, ägd av körande användare, utanför Git. `SIM_HOME` är en
 befintlig privat katalog med 0700 utanför Git; samtliga tre sökvägar anges absolut och utan symlänkar. JSON-formatet är:
@@ -61,12 +63,63 @@ ska förbli bunden till rätt process när numeriska PID återanvänds; processg
 En tilldelad `greenmail` har ett fullständigt 64-teckens container-`id` och exakt dessa `labels`: `sim.track=track3`,
 `sim.campaign=20261029-3f1a8ab1`, `sim.worker=codex-track3` och `sim.environment=<environmentId>`. Den verkliga
 containerns ID och etiketter kontrolleras före borttagning. Ingen namnbaserad eller gemensam etikettbaserad radering
-görs. `up.sh` måste senare bindas till samma tilldelning och nya etiketter före start. Volymer, Supabase-stack,
+görs. `up.sh` använder samma tilldelade namn och etiketter och vägrar ersätta en befintlig container. Volymer, Supabase-stack,
 mailoriginal, körningar och evidens gallras aldrig av denna cleanup.
 
 Cleanupen tar samma `run.lock` som `run.sh` och kontrollerar att tilldelningen inte ändrats före varje mutation.
 `clean: true` i kvittot avser enbart angivna processer och GreenMail-ID; det är inget påstående om hela miljön,
 andra processer, portar, volymer eller genomförda scenarier. Ett daemonfel räknas aldrig som bekräftad containerfrånvaro.
+
+## Aktuell startup- och körkvalificering
+
+Följande krävs uttryckligen: `SIM_HOME`, `SIM_RUN_DIR`, `T3_APP_COMMIT`, `T3_DB_URL`,
+`T3_RUNTIME_ASSIGNMENT_FILE` och `T3_BACKEND_ASSIGNMENT_FILE`. Inga gamla standardkataloger, portar,
+PID-filer, `.env`-skript, friskkontroller eller textmarkörer kan skapa ett replay-/byggbevis.
+
+Samordnaren förbereder först en exklusivt ägd lokal miljö och ett genuint replay/bygge. Privata kataloger har
+0700 och JSON-/CA-/nyckelfiler 0600, rätt ägare och kanoniska absoluta sökvägar utan symlänkar. Privata indata
+ligger utanför Git-arbetsytor och Git-metadata. Appens `.env*`-filer godtas inte som okända överlagringar.
+`env/track3.json` läses som JSON med en uttrycklig nyckellista; dess värden körs aldrig som shellkod.
+App, fixture och Vitest får en rensad miljö med bara de tilldelade värdena.
+
+Runtime-tilldelningen har `schema: track3-runtime-assignment-v1`, `workerId: codex-track3`, explicit `model`,
+`environmentId` med prefix `t3-` och längd 8–80 tecken, framtida UTC-`expiresAtUtc`, `exclusiveHost: true`, `backendReservation`,
+`allowedActions`, `appDir`, full `appCommit`, `simHome`, `harnessCommit`, `harnessTree` och `overlayRefs`.
+Den anger sju olika portar i `ports` (`app`, `api`, `db`, `smtp`, `imapTls`, `imapPlain`, `control`), ett eget
+`projectId` som skiljer sig från `gridex-ops-platform`, fulla `apiContainerId` och `storageContainerId`,
+`greenmailName: <environmentId>-greenmail` och en förladdad `greenmailImage` med full SHA256-digest.
+`backendAssignmentSha256` och `preparedReceiptSha256` binder exakta privata underlag.
+
+Backend-tilldelningen har `version: 1`, `workerId: T3`, samma `environmentId`/`projectId`, full `containerId`,
+`host: 127.0.0.1`, explicit DB-`port`, `database: postgres` och `systemIdentifier` som sträng.
+DB-URL måste vara exakt denna kanoniska loopback-endpoint utan query/fragment. DB/API/Storage-containrarnas
+fulla identiteter, projekttillhörighet och loopback-bindningar kontrolleras före fixture-/scenarioeffekter;
+DB-identiteten läses med en uttryckligt skrivskyddad fråga. Docker-inspektionen hämtar endast identitetsfält.
+
+Samordnarens `prepared-runtime.json` har `schema: track3-prepared-runtime-v1`, `producerReservation`,
+aktuella `appCommit`, `appTree`, `replayCommit`, `nextBuildId`, `sourceSchemaSha256`, `schemaFingerprint`,
+`ledgerMigrationsSha256`, `overlayRefs`, `postReplayAppliedMigrations: 0` och `publicBuildEnvSha256`.
+Den sista är SHA256 av UTF-8 `JSON.stringify([NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY])`
+för de verkliga byggindata. Bygg-ID jämförs med `.next/BUILD_ID`; source/schema, faktisk migrationsledger och
+fingerprint jämförs med kvittot. Den befintliga SQL-fingerprinten täcker valda tabeller och redovisas som
+**partiell**, inte som en fullständig schema-/runtimeacceptans.
+
+Reservationstexterna och privata filerna förvärvar ingen producent eller backend. Samordnaren verifierar de
+verkliga reservationerna och det genuina underlaget innan filerna utfärdas. Ingen faktisk runtime har tilldelats
+eller startats genom dessa kontroller. Direktanrop till gamla fixture-/Vitest-hjälpare utanför den kvalificerade
+`up.sh`/`run.sh`-kedjan är inte därmed godkända. Verkliga scenarier och deras fulla orakel behöver fortfarande köras.
+
+`up.sh` skriver nya födelsekvitton, verifierar app/mail efter start och skriver `runtime-ready.json` samt den
+härledda `cleanup-assignment.json`. Gamla kvitton skrivs inte över; okända resurser hittas eller rensas inte
+automatiskt. `run.sh` verifierar tilldelningen igen före varje scenarioprocess, tillåter bara egna scenariofiler,
+bevarar faktisk Vitest-exitkod och fogar `run-identity.json` till rapporterna med full app-/harness-/bygg-/schema-/
+ledger-/DB-identitet. Den gamla basen är uttryckligen historisk. Ingen källa eller komponentkontroll blir ett
+nytt scenario-PASS utan hela scenariobeviset och oberoende granskning.
+
+## Historiskt donorflöde — inte aktuella körinstruktioner
+
+Följande beskrivning bevarar äldre beteende och observationer. Dess standardvärden, gamla `.env`-filer och
+replay-/byggmarkörer är inte tillämpliga på den nya kvalificerade startvägen.
 
 Miljövariabler: `SIM_HOME` (default `/home/user/sim-home/track3`), `SIM_RUN_DIR` (default `/root/sim-run/track3`, appens
 kod och `node_modules`), `SKIP_BUILD=1`, `FORCE_BUILD=1`, `SKIP_REPLAY=1`, `T3_BUILD_HEAP_MB` (default 6144; `next build`

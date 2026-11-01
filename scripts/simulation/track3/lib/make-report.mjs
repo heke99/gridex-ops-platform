@@ -59,6 +59,7 @@ const report = {
   log: get('--log'),
   evidenceDir: evidence,
   evidenceManifest: evidence && existsSync(join(evidence, 'MANIFEST.sha256')) ? join(evidence, 'MANIFEST.sha256') : null,
+  identity: get('--identity') ? readJson(get('--identity')) : null,
   observations: evidence ? readJson(join(evidence, 'observations.json')) : null,
 }
 writeFileSync(get('--out'), JSON.stringify(report, null, 2))
