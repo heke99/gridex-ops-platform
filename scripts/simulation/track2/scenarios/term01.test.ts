@@ -72,26 +72,79 @@ function pageText(html: string): string {
 /** Privacy checks include serialized response data, not just visible date text.
  * This bounded profile reads Next's literal inline queue (0/1/2/3) as data.
  * Unknown scripts/encodings mean HOLD, never a successful privacy assertion. */
-function tenantPrivacyText(html: string): string {
+async function tenantPrivacyText(html: string): Promise<string> {
   function hold(): never { throw new Error('TERM01.TEN response encoding is unqualified') }
   const limit = 16 * 1024 * 1024
   if (Buffer.byteLength(html, 'utf8') > limit) hold()
   const views: string[] = [], chunks: Buffer[] = []
   let bootstrap = false, formState = false, dataStarted = false, instructions = 0, bytes = 0, strings = 0
-  const entities = (value: string) => value
-    .replace(/&#(?:x([0-9a-f]+)|(\d+));/gi, (_, hex: string | undefined, decimal: string | undefined) => {
-      const code = hex ? parseInt(hex, 16) : Number(decimal)
-      if (!Number.isInteger(code) || code < 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) hold()
-      return String.fromCodePoint(code)
-    })
-    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
   const add = (value: string) => {
     bytes += Buffer.byteLength(value, 'utf8')
     if (bytes > limit * 4) hold()
-    views.push(value, entities(value))
+    views.push(value)
   }
   // Keep attributes/comments as well as text; markup is not a privacy boundary.
   add(html); add(html.replace(/<[^>]+>/g, ''))
+  type HtmlNode = { nodeType: number; rawTagName?: string | null; rawAttrs?: string; rawAttributes?: Record<string, string | null>; rawText: string; text: string; childNodes?: HtmlNode[] }
+  type HtmlAPI = { parse: (input: string, options: { comment: boolean }) => HtmlNode; TextNode: new (input: string) => { text: string } }
+  // Next bundles this full decoder without declarations. Import only this
+  // fixed installed path and qualify its public API, with no module extraction.
+  const moduleName: string = 'next/dist/compiled/node-html-parser/index.js'
+  let imported: unknown
+  try { imported = await import(moduleName) } catch { hold() }
+  if (!imported || typeof imported !== 'object') hold()
+  const namespace = imported as Record<string, unknown>
+  const publicModule = typeof namespace.parse === 'function' ? namespace : namespace.default
+  if (!publicModule || typeof publicModule !== 'object') hold()
+  const api = publicModule as Record<string, unknown>
+  if (typeof api.parse !== 'function' || typeof api.TextNode !== 'function') hold()
+  const parseHTML = api.parse as HtmlAPI['parse'], TextNode = api.TextNode as HtmlAPI['TextNode']
+  const decodeText = (value: string): string => {
+    try {
+      const decoded = new TextNode(value).text
+      if (typeof decoded !== 'string') hold()
+      return decoded
+    } catch { return hold() }
+  }
+  const numericProfile = (value: string) => {
+    for (const reference of value.matchAll(/&#(?:x([0-9a-f]+)|(\d+));?/gi)) {
+      const code = reference[1] ? parseInt(reference[1], 16) : Number(reference[2])
+      if (!Number.isInteger(code) || code < 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) hold()
+    }
+  }
+  const attributeText = (value: string) => {
+    numericProfile(value)
+    // The public API uses text-default decoding. Attribute qualification is
+    // narrower: full semicolon-terminated named references producing 1–2 code
+    // points. Legacy-prefix ambiguity (&notit;) / unknown names mean HOLD.
+    for (const [reference] of value.matchAll(/&[a-z][a-z0-9]*;?/gi)) {
+      if (!reference.endsWith(';') || [...decodeText(reference)].length > 2) hold()
+    }
+    add(decodeText(value))
+  }
+  let document: HtmlNode
+  try { document = parseHTML(html, { comment: true }) } catch { hold() }
+  if (!document || !Array.isArray(document.childNodes)) hold()
+  const stack: Array<{ node: HtmlNode; raw: boolean }> = [{ node: document, raw: false }], textParts: string[] = []
+  const rawTags = new Set(['script', 'style', 'xmp', 'iframe', 'noembed', 'noframes', 'noscript', 'plaintext'])
+  let nodes = 0
+  while (stack.length) {
+    const { node, raw } = stack.pop()!
+    if (++nodes > 100000) hold()
+    if (node.nodeType === 1) {
+      // Audit the raw attribute representation as well as parsed values, so
+      // duplicate attributes cannot disappear behind the parser's value map.
+      if (node.rawAttrs) attributeText(node.rawAttrs)
+      for (const value of Object.values(node.rawAttributes ?? {})) attributeText(value ?? '')
+    } else if (node.nodeType === 3 && !raw) {
+      numericProfile(node.rawText)
+      const text = decodeText(node.rawText)
+      add(text); textParts.push(text)
+    }
+    const childRaw = raw || rawTags.has(node.rawTagName?.toLowerCase() ?? '')
+    for (const child of [...(node.childNodes ?? [])].reverse()) stack.push({ node: child, raw: childRaw })
+  }
+  add(textParts.join(''))
   const jsonStrings = (value: string) => {
     const tokens = value.matchAll(/"(?:\\["\\/bfnrt]|\\u[0-9a-f]{4}|[^"\\\u0000-\u001f])*"/gi)
     for (const token of tokens) {
@@ -630,7 +683,7 @@ describe('TERM01 bindningstid och slutdatum', () => {
       const out: { tab: string; status: number; location: string | null; text: string }[] = []
       for (const tab of tabs) {
         const res = await s.fetch(`/admin/customers/${f.customerId}?tab=${tab}`)
-        out.push({ tab, status: res.status, location: res.headers.get('location'), text: tenantPrivacyText(await res.text()) })
+        out.push({ tab, status: res.status, location: res.headers.get('location'), text: await tenantPrivacyText(await res.text()) })
       }
       return out
     }
@@ -658,7 +711,7 @@ describe('TERM01 bindningstid och slutdatum', () => {
           let status = -1; let location: string | null = null; let text = ''
           try {
             const res = await s2.fetch(`/admin/customers/${f.customerId}?tab=${tab}`)
-            status = res.status; location = res.headers.get('location'); text = tenantPrivacyText(await res.text())
+            status = res.status; location = res.headers.get('location'); text = await tenantPrivacyText(await res.text())
           } catch (error) { unexpected.push(`${label}/${tab}: fetch-fel ${(error as Error).message.slice(0, 120)}`) }
           const found = Object.entries(markers).filter(([, v]) => text.includes(v)).map(([k]) => k)
           const klass = found.length > 0 ? 'LÄCKAGE' : [302, 303, 307, 308, 403, 404].includes(status) ? 'korrekt nekande' : status === 200 ? 'mjukt nekande (200 utan data)' : `oväntad status ${status}`

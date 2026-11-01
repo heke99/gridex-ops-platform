@@ -256,6 +256,7 @@ function tenantControl(mode: string) {
     const register = Object.assign((title: string, callback: () => Promise<void>) => tests.set(title, callback), { each: () => () => { }, skip: () => { } });
     const ports: Record<string, unknown> = {
         'node:buffer': tenantRequire('node:buffer'),
+        'next/dist/compiled/node-html-parser/index.js': tenantRequire('next/dist/compiled/node-html-parser/index.js'),
         vitest: { describe: (_title: string, callback: () => void) => callback(), it: register, beforeAll: () => { }, afterAll: () => { }, expect },
         '../lib': { loginSession: async () => foreign, removeAdminFixtureUser: async () => { }, psql: forbidden, psqlRows: (sql: string) => {
                 if (sql.includes('coalesce(nullif(trim(concat_ws'))
@@ -337,3 +338,93 @@ describe('TEN privacy qualified representations and malformed boundaries', () =>
         expect(c.scriptGlobal.__tenantOracleExecuted).toBeUndefined();
     });
 });
+
+// Additional HTML-context stimuli. The original 65 cases above are unchanged;
+// only their explicit real decoder import port is added to the existing loader.
+function htmlPrivacyControl(render: (customer: { email: string }, fixture: { customerId: string }) => string | Promise<string>) {
+  const { fixture, customer: sourceCustomer } = tenantControl('denied')
+  // A non-hex first domain character makes &#x40 without a semicolon end at
+  // exactly40; an e-prefixed domain would instead extend the numeric reference.
+  const customer = { ...sourceCustomer, email: 't2-private@tenant.invalid' }
+  const observed: string[] = [], tests = new Map<string, () => Promise<void>>()
+  const own = { fetch: async () => new Response(`<main>${customer.email} ${fixture.gsrn}</main>`) }
+  const foreign = { fetch: async () => { const html = await render(customer, fixture); observed.push(html); return new Response(html) } }
+  const forbidden = () => { throw new Error('undeclared service operation') }
+  const register = Object.assign((title: string, run: () => Promise<void>) => tests.set(title, run), { each: () => () => {}, skip: () => {} })
+  const ports: Record<string, unknown> = {
+    'node:buffer': tenantRequire('node:buffer'),
+    'next/dist/compiled/node-html-parser/index.js': tenantRequire('next/dist/compiled/node-html-parser/index.js'),
+    vitest: { describe: (_: string, run: () => void) => run(), it: register, expect, beforeAll: () => {}, afterAll: () => {} },
+    '../lib': { psql: forbidden, psqlRows: (sql: string) => {
+      if (sql.includes('coalesce(nullif(trim(concat_ws')) return [customer]
+      if (sql.includes('select org_number')) return [{ org_number: '5599999999' }]
+      return forbidden()
+    }, loginSession: async () => foreign, removeAdminFixtureUser: async () => {} },
+    '../lib/server-action': { assertContractEditFeedback: forbidden, callServerAction: forbidden },
+    '../lib/term-fixture': { createSignedContract: forbidden, createTermTenant: async () => ({ companyId: 'tenant-B', admin: { email: 'b@example.invalid', password: 'synthetic' } }), probeCreateCustomerAction: forbidden, probeCreateContractTsPath: forbidden, psqlExpectError: forbidden, rowHash: forbidden, stockholmToday: forbidden },
+  }
+  const filename = path.join(tenantSourceRoot, 'scripts/simulation/track2/scenarios/term01.test.ts')
+  const code = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText
+  const exports: { controlledPrime?: (...args: unknown[]) => void } = {}
+  runInNewContext(code + '\nexports.controlledPrime=(a,b,c)=>{tenant=a;session=b;signed=async()=>c};', {
+    exports, require: (name: string) => { if (!Object.hasOwn(ports, name)) return forbidden(); return ports[name] },
+    console: { info() {} }, Intl,
+  }, { filename })
+  if (!exports.controlledPrime) throw new Error('missing controlled fixture port')
+  exports.controlledPrime({ companyId: fixture.companyId }, own, fixture)
+  const run = [...tests].find(([title]) => title.startsWith('TERM01.TEN '))?.[1]
+  if (!run) throw new Error('missing actual TEN callback')
+  return { run, customer, observed }
+}
+
+describe('TEN actual HTML text and attribute character-reference contexts', () => {
+  it.each(['&#64', '&#x40', '&commat;'])('refuses a private attribute marker encoded with %s', async reference => {
+    const c = htmlPrivacyControl(customer => `<main data-email="${customer.email.replace('@', reference)}">Kunden finns inte</main>`)
+    // Independent public installed-parser interpretation of the actual response.
+    const html = tenantRequire('next/dist/compiled/node-html-parser/index.js') as { parse: (input: string) => { querySelector: (selector: string) => { attributes: Record<string, string> } } }
+    const supplied = `<main data-email="${c.customer.email.replace('@', reference)}">Kunden finns inte</main>`
+    expect(html.parse(supplied).querySelector('main').attributes['data-email']).toBe(c.customer.email)
+    await expect(c.run()).rejects.toThrow('tenant 1-data')
+  })
+  it('refuses a private unquoted attribute marker', async () => {
+    const c = htmlPrivacyControl(customer => `<main data-email=${customer.email.replace('@', '&commat;')}>Kunden finns inte</main>`)
+    await expect(c.run()).rejects.toThrow('tenant 1-data')
+  })
+  it('refuses private HTML text encoded with a named reference', async () => {
+    const c = htmlPrivacyControl(customer => `<main>${customer.email.replace('@', '&commat;')}</main>`)
+    await expect(c.run()).rejects.toThrow('tenant 1-data')
+  })
+  it.each(['&#64', '&commat;'])('accepts a benign attribute with the same %s encoding', async reference => {
+    await expect(htmlPrivacyControl(() => `<main data-email="other${reference}example.invalid">Kunden finns inte</main>`).run()).resolves.toBeUndefined()
+  })
+  it('accepts standard one- and two-codepoint named attribute references', async () => {
+    await expect(htmlPrivacyControl(() => '<main title="a&amp;b &NotEqualTilde;">Kunden finns inte</main>').run()).resolves.toBeUndefined()
+  })
+  it('holds an ambiguous attribute reference rather than borrowing text-context interpretation', async () => {
+    await expect(htmlPrivacyControl(() => '<main title="&notit;">Kunden finns inte</main>').run()).rejects.toThrow('oväntade svar')
+  })
+  it('accepts the same legacy reference in its supported HTML text context', async () => {
+    await expect(htmlPrivacyControl(() => '<main>Kunden finns inte &notit;</main>').run()).resolves.toBeUndefined()
+  })
+  it('keeps numeric-reference syntax in an actual Next script as opaque JSON string data', async () => {
+    const c = htmlPrivacyControl(async customer => {
+      const bytes = new TextEncoder().encode('1:' + JSON.stringify({ notice: customer.email.replace('@', '&#64;') }) + '\n')
+      const stream = new ReadableStream({ start(controller) { controller.enqueue(bytes); controller.close() } })
+      return '<main>Kunden finns inte</main>' + await new Response(createInlinedDataReadableStream(stream, null, null)).text()
+    })
+    await expect(c.run()).resolves.toBeUndefined()
+  })
+  it('keeps raw style content outside HTML character-reference decoding', async () => {
+    await expect(htmlPrivacyControl(customer => `<style>.x{content:"${customer.email.replace('@', '&#64;')}"}</style><main>Kunden finns inte</main>`).run()).resolves.toBeUndefined()
+  })
+  it('decodes a quoted attribute once, preserving a literal encoded reference', async () => {
+    await expect(htmlPrivacyControl(customer => `<main title="${customer.email.replace('@', '&amp;commat;')}">Kunden finns inte</main>`).run()).resolves.toBeUndefined()
+  })
+  it('audits serialized duplicate attributes without trusting a last-value-only map', async () => {
+    const c = htmlPrivacyControl(customer => `<main data-email="${customer.email.replace('@', '&commat;')}" data-email="other@example.invalid">Kunden finns inte</main>`)
+    await expect(c.run()).rejects.toThrow('tenant 1-data')
+  })
+  it('preserves HOLD for an unsupported out-of-range numeric reference', async () => {
+    await expect(htmlPrivacyControl(() => '<main title="&#x110000;">Kunden finns inte</main>').run()).rejects.toThrow('oväntade svar')
+  })
+})
