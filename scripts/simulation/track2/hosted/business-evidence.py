@@ -65,17 +65,21 @@ def strict_json(raw):
         raise ValueError('invalid-json') from None
 
 
-def private_parent(path):
+def private_parent(path, private_directory=True):
     p = Path(path)
     require(p.is_absolute() and p.resolve() == p and not p.is_symlink(), 'private-path')
     parent = p.parent.stat()
+    mode = stat.S_IMODE(parent.st_mode)
     require(stat.S_ISDIR(parent.st_mode) and parent.st_uid == os.getuid()
-            and stat.S_IMODE(parent.st_mode) == 0o700, 'private-parent')
+            and (mode == 0o700 if private_directory else (mode & 0o022) == 0), 'private-parent')
     return p
 
 
 def read_private(path, limit=MAX_PLAINTEXT):
-    p = private_parent(path)
+    # Admission already lives directly in the owned, potentially0755 runner
+    # temp. Exact0600 files there remain confidential; unsafe writers do not.
+    # Business/output directory creation retains the stricter0700 requirement.
+    p = private_parent(path, private_directory=False)
     fd = os.open(p, os.O_RDONLY | os.O_NOFOLLOW)
     try:
         info = os.fstat(fd)
@@ -344,6 +348,7 @@ def seal():
                       state='HOLD_NO_BUSINESS_EVIDENCE', wholeScenarioPass=False)))
         return
     expected, _home, certificate = authenticated_context('down')
+    private_parent(proof_path)
     raw = read_private(proof_path)
     validate_evidence(strict_json(raw), expected)
     with tempfile.TemporaryDirectory(dir=temporary) as name:

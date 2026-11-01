@@ -148,6 +148,23 @@ class CryptoAndFiles(unittest.TestCase):
             with zipfile.ZipFile(archive, 'w') as zipped: zipped.writestr(name, b'{}')
             with self.assertRaises(ValueError): module.unpack_artifact(archive.getvalue())
 
+    def test_actual_owned_0755_assignment_parent_without_weakening_private_outputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            parent = Path(tmp)
+            assignment = parent/'t2-admission.json'
+            module.write_private(assignment, b'{"sourceCommit":"finite-input"}')
+            parent.chmod(0o755)  # Actual workflow location: RUNNER_TEMP/t2-admission.json.
+            self.assertEqual(module.read_private(assignment), b'{"sourceCommit":"finite-input"}')
+            # Private business/output creation still requires exactly0700.
+            with self.assertRaises(ValueError): module.write_private(parent/'output.private.json', b'{}')
+            with self.assertRaises(ValueError): module.private_parent(assignment)
+            for mode in (0o775, 0o777):
+                parent.chmod(mode)
+                with self.subTest(mode=mode), self.assertRaises(ValueError): module.read_private(assignment)
+            parent.chmod(0o755); assignment.chmod(0o644)
+            with self.assertRaises(ValueError): module.read_private(assignment)
+            parent.chmod(0o700)
+
     def artifact_fixture(self):
         proof = fixture()
         proof['recipientCertificateSha256'] = module.sha(self.cert.read_bytes())
