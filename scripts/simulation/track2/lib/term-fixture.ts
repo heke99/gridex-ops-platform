@@ -33,7 +33,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { psql, psqlRows, serviceClient } from './db'
 import { sim } from './env'
-import { createAdminFixture, type AdminFixture } from './fixture'
+import { createAdminFixture, observeFixtureActor, type AdminFixture } from './fixture'
 import { loginSession, type AppSession } from './session'
 import { callServerAction, type ServerActionResult } from './server-action'
 
@@ -92,6 +92,12 @@ export type TermTenant = {
 /** Riktig cookie-session för tenantens admin (auth = real tid). */
 export async function tenantSession(tenant: TermTenant): Promise<AppSession> {
   tenant.session ??= await loginSession(tenant.admin.email, tenant.admin.password, { companyId: tenant.companyId })
+  if (typeof process !== 'undefined' && process.env.SIM_REQUIRE_ACTOR_RECEIPT === '1'
+    && (!tenant.session.actorProof || tenant.session.actorProof.intent !== 'authorized'
+      || tenant.session.actorProof.userId !== tenant.admin.userId || tenant.session.actorProof.companyId !== tenant.companyId
+      || !tenant.session.actorProof.selectedCompanyVerified)) {
+    throw new Error('term_actor_session_proof_missing')
+  }
   return tenant.session
 }
 
@@ -213,6 +219,12 @@ export async function createTermTenant(opts: { permissionKeys?: string[] } = {})
   const ready = sqlJson<boolean>(`SELECT to_jsonb(has_actor_setting AND has_brp AND has_prodat_route AND has_utilts_route AND has_sender_identity)
     FROM public.platform_go_live_readiness_v WHERE company_id=${lit(companyId)}`)
   if (ready !== true) throw new Error('term_fixture_publication_readiness_not_met')
+
+  // Capture the role_permissions path only after the actual SQL role grants.
+  // This fixture observation never replaces fresh authenticated checks per fetch.
+  if (typeof process !== 'undefined' && process.env.SIM_REQUIRE_ACTOR_RECEIPT === '1') {
+    admin.observedFixture = observeFixtureActor(admin.userId, companyId)
+  }
 
   return { runId, companyId, admin, builderUserId, edielSender, edielReceiver, gridOwnerId, offerCache: new Map() }
 }
