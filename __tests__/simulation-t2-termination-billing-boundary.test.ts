@@ -37,7 +37,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
       limit: (n: number) => { limit = n; return query },
       range: async (from: number, to: number) => ({ data: rows().slice(from, to + 1), error: null }),
       maybeSingle: async () => ({ data: rows()[0] ?? null, error: null }),
-      then: <T,>(resolve: (result: ReturnType<typeof result>) => T) => Promise.resolve(result()).then(resolve),
+      then: <T,>(resolve: (response: ReturnType<typeof result>) => T) => Promise.resolve(result()).then(resolve),
     }
     return query
   },
@@ -151,7 +151,7 @@ describe('TERM03 component supply-end boundaries through the real underlay entry
 
   it('does not bill the notice boundary day when supply ends on the preceding civil day', async () => {
     const notice = { actualStartDate: '2026-01-02', startsAt: null, bindingMonths: 12,
-      noticeMonths: 1, terminationNoticeDate: '2026-12-02', status: 'active' }
+      noticeMonths: 1, terminationNoticeDate: '2026-12-02', status: 'active' as const }
     const end = deriveContractEndsAt(notice)
     expect(end).toBe('2027-01-02')
     expect(getContractLifecycleSummary(notice, '2027-01-02').bindingActive).toBe(false)
