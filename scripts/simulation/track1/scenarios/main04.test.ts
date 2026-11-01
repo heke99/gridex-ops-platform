@@ -1,17 +1,17 @@
 // simulation: MAIN04.01, MAIN04.03, MAIN04.04
 //
-// MAIN04 — from the exact saved underlay (MAIN03 precondition, rebuilt here) to a prepared invoice draft that
-// matches an independent oracle, and an approval that is bound to an independently read receipt.
+// MAIN04 — consume the separately sealed successful MAIN03 cohort, prepare and
+// compare its draft with independently admitted inputs. No tenant/source/price
+// or underlay is created as a setup fallback. MAIN04.04 remains HOLD.
 // MAIN04.02 (second prepare call) belongs to track 4 and is deliberately NOT exercised.
 //
 // Browser: none (no Playwright). HTTP against the running app for generate-underlay and prepare; the approve
 // path is called as a library function (see SUBSTITUTE below). Reads of stored results use read-only psql.
 //
-// DATA ISOLATION: buildMain03Fixture always creates a new tenant (company, customer, site, point, contract), so
-// nothing tenant-scoped collides with the MAIN03 run. Spot prices are NOT tenant-scoped (spot_price_intervals is
-// global per source/area/time), so this file must use the SAME salt as MAIN03 (default saltStart, i.e. identical
-// synthetic prices): a different salt would make the already imported and locked month disagree with the oracle.
-// The importer skips verified days and the settlement lock is idempotent, so a second tenant is safe.
+// Requires a distinct root-pinned business-phase admission, terminal process
+// and native unknown-outcome resolution evidence, exact source vectors and a
+// separately private existing actual SSR session. Current hosted smoke grants
+// none of these. One qualified cohort writer must remain exclusive.
 //
 // WHAT THE CODE SAYS ABOUT THE DRAFT (base 1c0c088c):
 //  - Prepare (lib/billing/invoiceReviewPrepare.ts prepareInvoiceDraftsForReview) calculates and LOCKS the pricing run
@@ -31,18 +31,18 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: vi.fn() }) } }))
 vi.mock('server-only', () => ({}))
-import { supabaseService } from '@/lib/supabase/service'
+import { supabaseService, SUPABASE_SERVICE_URL } from '@/lib/supabase/service'
 import { approveAndSendReadyInvoicesForMonth } from '@/lib/billing/invoiceApprovedDispatch'
-import { buildMain03Fixture, DEFAULT_MAIN03_PARAMS, type Main03Fixture } from '../fixtures/main03Fixture'
+import { adoptMain03CohortFromEnv, assertAdoptedCohortUnchanged, recordPreparedDraftCandidate, type Main04Cohort } from '../fixtures/main03Cohort'
 import { SUBSTITUTIONS, resetSubstitutions, substitute } from '../fixtures/substitutions'
 import { dbRead, http, lit, TIMINGS, timed, writeArtifact } from '../fixtures/runtime'
 import { cents, enableFileInvoiceProvider, expectedReviewHash, sha256Hex } from '../fixtures/main04Support'
 import { centsText, parseMilliKwh } from '../fixtures/synthetic'
 
-let fx: Main03Fixture
+let fx: Main04Cohort
 let underlayId = ''
 const results: Record<string, unknown> = {}
-const BILLING_MONTH = DEFAULT_MAIN03_PARAMS.billingMonth
+let BILLING_MONTH = ''
 const company = () => lit(fx.companyId)
 
 type Draft = {
@@ -81,18 +81,14 @@ function readDraft(): Draft {
 
 beforeAll(async () => {
   resetSubstitutions()
-  fx = await buildMain03Fixture() // unchanged MAIN03 precondition (new tenant, shared global spot data: see header)
+  fx = await adoptMain03CohortFromEnv(SUPABASE_SERVICE_URL) // all admission/live/Auth/input checks precede the first write
+  underlayId = fx.underlayId
+  BILLING_MONTH = fx.params.billingMonth
   await enableFileInvoiceProvider(fx.companyId)
-  const save = await timed('MAIN04 setup: generate-underlay (normal API)', () => http(fx.session, 'POST', '/api/internal/billing/generate-underlay', { json: { billing_month: BILLING_MONTH } }))
-  if (save.status !== 200) throw new Error(`main04_setup_generate_underlay_${save.status}:${JSON.stringify(save.body)?.slice(0, 400)}`)
-  const data = (save.body as { data?: Record<string, unknown> }).data ?? {}
-  if (data.sourceRows !== 2688 || data.underlays !== 1 || data.readyForPricing !== 1) throw new Error(`main04_setup_underlay_unexpected:${JSON.stringify(data).slice(0, 400)}`)
-  const rows = dbRead<string[]>(`SELECT jsonb_agg(id) FROM public.billing_underlays WHERE company_id=${company()} AND underlay_year=2027 AND underlay_month=2`)
-  if (rows.length !== 1) throw new Error(`main04_setup_underlay_count_${rows.length}`)
-  underlayId = rows[0]
-  writeArtifact('main04-fixture.json', { note: 'ids only', companyId: fx.companyId, customerId: fx.customerId, pointId: fx.pointId, contractId: fx.contractId, underlayId, salt: fx.salt,
+  writeArtifact('main04-fixture.json', { note: 'adopted same cohort; prepare/review only, no independent draft acceptance or approval', cohortSha256: fx.cohortSha256,
+    companyId: fx.companyId, customerId: fx.customerId, pointId: fx.pointId, contractId: fx.contractId, underlayId, salt: fx.salt,
     oracle: { totalKwh: fx.oracle.totalKwhText, lines: fx.oracle.lines, vatCents: fx.oracle.vatCents, totalExVatCents: fx.oracle.totalExVatCents, totalIncVatCents: fx.oracle.totalIncVatCents } })
-}, 3 * 3_600_000) // UTILTS ingest ≈1.46 s per value (finding 007): 2688 values ≈ 65 min, plus margin
+}, 900_000)
 
 afterAll(() => {
   writeArtifact('main04-substitutions.json', SUBSTITUTIONS)
@@ -105,6 +101,7 @@ let receipt: { itemId: string; invoiceId: string; underlayId: string; pricingRun
 
 describe('MAIN04 prepare, oracle and approval', () => {
   it('MAIN04.01 Prepare från exakt underlag ger exakt ett utkast bundet till underlags-ID:t', async () => {
+    await assertAdoptedCohortUnchanged(fx) // reobserve immediately before month-scoped prepare
     const before = readDraft()
     expect(before.invoices).toHaveLength(0)
     expect(before.items).toHaveLength(0)
@@ -142,7 +139,7 @@ describe('MAIN04 prepare, oracle and approval', () => {
     expect(draft.files).toBe(0)
   }, 900_000)
 
-  it('MAIN04.03 Utkastet matchar det oberoende oraklet och bygger på exakt underlagets 2688 intervall-evidens', () => {
+  it('MAIN04.03 Utkastet matchar det oberoende oraklet och bygger på exakt underlagets 2688 intervall-evidens', async () => {
     const draft = draftAfterPrepare ?? readDraft()
     expect(draft.invoices, 'MAIN04.01 must have produced the draft').toHaveLength(1)
     const [invoice] = draft.invoices, [item] = draft.items
@@ -184,9 +181,13 @@ describe('MAIN04 prepare, oracle and approval', () => {
         WHERE i.id=${lit(invoice.id)} AND (e->>'billingUnderlayItemId')::uuid IN (SELECT id FROM public.billing_underlay_items WHERE company_id=${company()} AND billing_underlay_id=${lit(underlayId)})))`)
     expect(itemLinks).toEqual({ evidenceItems: 2688, underlayItems: 2688, matched: 2688 })
     results['MAIN04.03'] = { oracle: { ex: centsText(o.totalExVatCents), vat: centsText(o.vatCents.total), inc: centsText(o.totalIncVatCents), kwh: o.totalKwhText }, evidence: evidence.length }
+    await recordPreparedDraftCandidate(fx, draft)
   })
 
-  it('MAIN04.04 Approve efter oberoende kvitto: kvittot läses före, approve binder exakt samma sha/belopp, ändrat utkast vägras', async () => {
+  // HOLD: separate independent actual-draft acceptance and T4 repeat handoff
+  // are not implemented/admitted by this source packet. Preserve the original
+  // negative/approval body below without executing service-role tamper/approve.
+  it.skip('MAIN04.04 Approve efter oberoende kvitto: kvittot läses före, approve binder exakt samma sha/belopp, ändrat utkast vägras', async () => {
     const draft = readDraft()
     expect(draft.invoices).toHaveLength(1)
     const [invoice] = draft.invoices, [item] = draft.items

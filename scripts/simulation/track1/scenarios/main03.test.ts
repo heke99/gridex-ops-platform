@@ -19,18 +19,23 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 // The base's native UTILTS/PRODAT processors send mail through nodemailer; nothing may leave this process.
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: vi.fn() }) } }))
 vi.mock('server-only', () => ({}))
-import { supabaseService } from '@/lib/supabase/service'
+import { supabaseService, SUPABASE_SERVICE_URL } from '@/lib/supabase/service'
 import { loadQualifiedBillingValues } from '@/lib/billing/sourceBasis'
 import { buildMain03Fixture, DEFAULT_MAIN03_PARAMS, type Main03Fixture } from '../fixtures/main03Fixture'
 import { SUBSTITUTIONS, resetSubstitutions } from '../fixtures/substitutions'
 import { dbRead, http, lit, sha256Json, sleep, TIMINGS, timed, writeArtifact } from '../fixtures/runtime'
 import { centsText, parseMilliKwh, QUARTERS_PER_DAY } from '../fixtures/synthetic'
+import { beginMain03CohortFromEnv, captureMain03Candidate } from '../fixtures/main03Cohort'
 
 let fx: Main03Fixture
 const results: Record<string, unknown> = {}
 const BILLING_MONTH = DEFAULT_MAIN03_PARAMS.billingMonth
+const completed: string[] = []
+let cohortContext: Awaited<ReturnType<typeof beginMain03CohortFromEnv>>
 
 beforeAll(async () => {
+  // Current hosted smoke does not authorize fixture/business writes.
+  cohortContext = await beginMain03CohortFromEnv(SUPABASE_SERVICE_URL)
   resetSubstitutions()
   fx = await buildMain03Fixture()
   writeArtifact('fixture.json', {
@@ -43,11 +48,14 @@ beforeAll(async () => {
   })
 }, 3 * 3_600_000) // UTILTS ingest ≈1.46 s per value (finding 007): 2688 values ≈ 65 min, plus margin
 
-afterAll(() => {
+afterAll(async () => {
   // Written even when a step failed, so the substitutions of a partial run stay visible.
   writeArtifact('substitutions.json', SUBSTITUTIONS)
   writeArtifact('timings.json', TIMINGS)
   writeArtifact('results.json', results)
+  // This is only an unqualified candidate. Actual reports/process exit do not
+  // exist until after this hook; a separately admitted post-run CLI seals it.
+  if (completed.length === 5) await captureMain03Candidate(cohortContext, fx, completed, results)
 })
 
 // ------------------------------------------------------------------ DB readers
@@ -142,6 +150,7 @@ describe('MAIN03 full month, one customer, 28 daily sources', () => {
     const actual = intervalRows('public.normalized_metering_values', 'quantity_kwh', `revision_status='current'`).map(pairKey)
     expect(actual).toEqual(oracleIntervalPairs())
     expect(parseMilliKwh(shape.sumKwh)).toBe(fx.oracle.totalMilliKwh)
+    completed.push('MAIN03.01')
   })
 
   it('MAIN03.02 Alla 28 dygnskällor är kopplade till exakt sina 96 intervall', () => {
@@ -182,6 +191,7 @@ describe('MAIN03 full month, one customer, 28 daily sources', () => {
     // No interval belongs to two sources: the union of the per-source ids is the whole month.
     const all = new Set(fx.days.flatMap(day => day.normalizedIds))
     expect(all.size).toBe(2688)
+    completed.push('MAIN03.02')
   })
 
   it('MAIN03.03 Tre läsningar av källunderlaget före sparande ger identiskt resultat och inga mutationer', async () => {
@@ -203,6 +213,7 @@ describe('MAIN03 full month, one customer, 28 daily sources', () => {
     expect(hashes[1]).toBe(hashes[0])
     expect(hashes[2]).toBe(hashes[0])
     expect(after).toEqual(before)
+    completed.push('MAIN03.03')
   }, 900_000)
 
   it('MAIN03.05 Okänt utfall: avbruten sparning läses i DB-graf och periodlås före nytt försök, utan dubblett', async () => {
@@ -256,6 +267,7 @@ describe('MAIN03 full month, one customer, 28 daily sources', () => {
       expect(lock.isLocked).toBe(false)
     }
     expect(afterRetry.periodLocks).toBe(beforeCall.periodLocks)
+    completed.push('MAIN03.05')
   }, 900_000)
 
   it('MAIN03.04 Sparat underlag: 2688 källintervall, kWh-total och prisbelopp exakt lika med oraklet', async () => {
@@ -334,6 +346,7 @@ describe('MAIN03 full month, one customer, 28 daily sources', () => {
     expect(evidence.map(([start, e5]) => `${start}:${e5}`)).toEqual(fx.oracle.intervals.map(interval => `${interval.startMs}:${interval.spotE5}`))
     const underlayAfter = dbRead<{ incVat: string | null }>(`SELECT jsonb_build_object('incVat',calculated_total_sek_inc_vat::text) FROM public.billing_underlays WHERE id=${lit(underlayId)}`)
     expect(cents(Number(underlayAfter.incVat))).toBe(fx.oracle.totalIncVatCents)
+    completed.push('MAIN03.04')
   }, 900_000)
 })
 
