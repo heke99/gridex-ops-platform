@@ -110,11 +110,68 @@ Supabase CLI2.101.0, pinned project dependencies, Docker and existing mail image
   fingerprint, then the existing consumer checks PostgreSQL17/system ID,
   containers/ports, build, schema and environment immediately before fixture.
 
-The old clean replay script stops its stack in EXIT and uses DB port54322.
-Its external-DB mode explicitly lacks official ledger provenance. Neither an
-external reconstruction, a `stop` shim nor an old capture is a qualified canonical
-replay adapter. A reviewed producer successor preserving actual canonical replay
-and lifecycle is an explicit remaining prerequisite, not supplied by filling JSON.
+The canonical clean replay script stops its stack in EXIT and uses DB port54322.
+It can be sourced and consumed in the **same shell**, as the existing
+`.github/workflows/ediel-db05-native.yml` demonstrates. A successful source returns
+while its original EXIT trap remains installed; no shared replay edit, stop shim
+or trap replacement is needed. Its external-DB mode still explicitly lacks
+official ledger provenance and is not a substitute.
+
+Replay temporarily replaces its own migration files and restores them only in
+EXIT cleanup. Therefore the replay checkout must be separate from the clean app
+and harness checkouts, with the same original app commit/tree. Do not weaken
+clean-source checks or restore/reset a foreign checkout to make them pass.
+
+## Same-shell source supervisor
+
+`same-shell.py` extends the actual `prepare.Packet` input checks. The additional
+private plan fields are `replayDir`, `replayScriptSha256`, `consumer:{path,sha256}`
+and `sameShellTimeoutSeconds`. Replay must use the exact tracked canonical script;
+the consumer is an explicit tracked reviewed Python file in the clean harness.
+There is no default consumer, dispatch, producer or backend allocation.
+
+```sh
+python3 scripts/simulation/track3/same-shell.py check --plan /private/t3/plan.json
+python3 scripts/simulation/track3/same-shell.py execute --plan /private/t3/plan.json
+```
+
+The supervisor sources replay unconditionally under `errexit`, then invokes the
+consumer in that same shell. It clears supervisor positional arguments before
+sourcing and reserves only `T3_SS_` variables; canonical variables/functions and
+EXIT cleanup remain untouched. The explicit local Docker selector is preserved.
+Timeouts and signals affect only the supervisor's newly created process group.
+The execution deadline is capped by the plan expiry immediately before spawn.
+The first cancellation starts a fixed shutdown grace period; repeated signals
+cannot extend it. Forced termination may prevent canonical EXIT cleanup.
+Private boundary events distinguish replay entry/return and consumer entry/return;
+raw canonical output remains private. No failed or ambiguous attempt is retried.
+
+Immediately before source, the pinned local daemon must contain no containers or
+volumes. The supervisor records its network IDs and independently checks after
+shell termination that containers/volumes are absent and those IDs are unchanged.
+A dirty initial inventory, observation failure or terminal discrepancy stops or
+holds the attempt. `resultDockerRestored` records this inventory comparison only;
+it does not prove process cleanup, resource birth ownership or replay provenance.
+
+The consumer owns real build/scenario/app-mail cleanup, backend observations and
+its independent primary-result/resource receipts. Calling standalone
+`prepare.py execute` as the consumer is rejected: it has its own producer lock
+and backend lifecycle. A dedicated source-reviewed consumer must bind the genuine
+canonical backend and stop app/mail before returning to canonical EXIT cleanup.
+An allocated profile, that consumer, its actual resource evidence and private
+original inputs are still prerequisites; this supervisor alone is not a completed
+or provisioned runtime producer.
+
+The original EXIT trap can affect shell status, so the supervisor does not invent
+a separately observed primary exit code or certify cleanup from shell exit0.
+It records shell/boundary/signal/timeout evidence separately and explicitly leaves
+cleanup acceptance unverified. Genuine terminal container/network/volume/process
+observations remain mandatory before runtime acceptance. A timeout/forced kill or
+ambiguous cleanup stays HOLD for the assigned producer's bounded recovery.
+
+The DB05 producer identity, claims and old workflow branch are not borrowed by this
+T3 wrapper. The pattern is reused as source evidence only. No backend, event
+budget, GEN capture or whole-scenario PASS follows from these source checks.
 
 The runner itself invokes the project's actual Next build with6144MiB heap and
 `--webpack`, from preinstalled locked dependencies and the checked private build
