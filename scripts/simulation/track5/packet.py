@@ -15,6 +15,7 @@ import sys
 GROUPS = ('auth01', 'api01', 'api01-poa', 'event01', 'scan')
 STATES = {'PASS', 'PARTIAL', 'FAIL', 'BLOCKED', 'NOT_RUN'}
 SCOPES = {'SOURCE_ONLY', 'COMPONENT', 'SCENARIO'}
+SCENARIO_PATTERN = r'(?:AUTH01\.0[1-6]|API01\.0[1-5]|EVENT01\.0[1-5])'
 
 
 class PacketError(ValueError):
@@ -132,6 +133,23 @@ def matched_steps(report, scenario):
     return [s for s in report['steps'] if re.search(pattern, s['name'])]
 
 
+def qualify_pass_run(report, scenario):
+    failed = [step for step in report['steps'] if step['status'] == 'failed']
+    for step in failed:
+        other_ids = re.findall(r'(?<![\w.])' + SCENARIO_PATTERN + r'(?![\w.])', step['name'])
+        require(other_ids and scenario not in other_ids and not step['name'].rstrip().endswith('(suite)'),
+                'unattributed_failure_cannot_pass')
+    require(report['exitCode'] in (0, 1), 'abnormal_process_exit_cannot_pass')
+    require(report['exitCode'] == 0 or bool(failed), 'unexplained_failed_exit_cannot_pass')
+    if 'vitest' in report:
+        runner = report['vitest']
+        require(isinstance(runner, dict) and type(runner.get('success')) is bool, 'missing_runner_observation')
+        count, suites = runner.get('numFailedTests'), runner.get('numFailedTestSuites')
+        require(type(count) is int and type(suites) is int and count == len(failed)
+                and (1 <= suites <= count if failed else suites == 0)
+                and runner['success'] == (not failed), 'unexplained_runner_failure_cannot_pass')
+
+
 def observed_run(group, report, binding, directory):
     return {'group': group, 'command': binding['command'], 'sourceCommit': report['appCommit'],
             'builtCommit': report['builtCommit'], 'replayCommit': report['replayCommit'],
@@ -166,7 +184,7 @@ def assemble(directory, output, classification):
     for scenario, case in classification.items():
         if scenario == '_meta':
             continue
-        require(re.fullmatch(r'(?:AUTH01\.0[1-6]|API01\.0[1-5]|EVENT01\.0[1-5])', scenario) is not None,
+        require(re.fullmatch(SCENARIO_PATTERN, scenario) is not None,
                 'unknown_scenario_id')
         require(isinstance(case, dict) and case.get('state') in STATES and case.get('evidenceScope') in SCOPES,
                 'invalid_classification_scope')
@@ -201,8 +219,7 @@ def assemble(directory, output, classification):
                             for name in GROUPS if name != 'scan'), 'scan_precedes_required_reports')
             for _, run in runs:
                 require(run['executionScope'] == 'ISOLATED_NATIVE' and run['runDirClean'], 'unqualified_pass_scope')
-                require(not any(s['status'] == 'failed' and s['name'].rstrip().endswith('(suite)') for s in run['steps']),
-                        'suite_failure_cannot_pass')
+                qualify_pass_run(run, scenario)
         steps += extra
         observed = observed_run(group, report, binding, directory)
         packets[scenario] = {
@@ -216,6 +233,7 @@ def assemble(directory, output, classification):
             'state': case['state'], 'proposedState': case.get('proposedState'),
             'evidenceScope': case['evidenceScope'], 'scope': case['scope'], 'appliesToCommit': case['appliesToCommit'],
             'executionScope': report['executionScope'], 'runExitCode': report['exitCode'],
+            'runnerSummary': report.get('vitest'),
             'scenarioFile': report['scenarioFile'], 'runDirClean': report['runDirClean'], 'scenarioSummary': report['summary'],
             'steps': [{'name': s['name'], 'status': s['status'],
                        'durationMs': None if s.get('durationMs') is None else round(s['durationMs'])} for s in steps],

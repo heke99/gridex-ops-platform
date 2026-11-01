@@ -81,8 +81,13 @@ valfri och använder samma statusvärden. `substitutions`, `notVerified` och
 `PASS` i antingen `state` eller `proposedState` kräver `SCENARIO`, inga
 `notVerified` eller `blocker`, minst ett matchande godkänt steg, ingen
 misslyckad suite-hook och rapporterade `ISOLATED_NATIVE`/`runDirClean: true`.
-Misslyckade steg för ett annat scenario döljs inte: rapportens sammanfattning
-och exitkod följer med även när ett självständigt scenario har godkänts.
+Ett oförklarat process- eller rapportfel avvisas, även om scenariots egna steg
+är godkända. Endast vanlig exitkod 1 får förklaras av uttryckliga misslyckade
+steg för andra kända scenario-ID; ett oidentifierat SETUP-/hookfel eller en
+signal-/OOM-exit får inte göra det. Om rapporten innehåller Vitest-sammanfattning
+måste dess utfall och felräknare stämma med dessa steg. Misslyckade steg för ett
+annat scenario döljs inte: rapportens sammanfattningar och exitkod följer med
+även när ett självständigt scenario har godkänts.
 Ett `COMPONENT`- eller `SOURCE_ONLY`-underlag kan aldrig få ett scenario-PASS.
 
 `AUTH01.06` kräver också godkända matchande steg i `scan` för samma bygge,
