@@ -28,7 +28,7 @@ function control(steps: Step[] = [{ id: 'FX', fixture: true }, { id: 'MAIN05.03'
   const source = steps.map(({ fail, ...step }) => '{...' + JSON.stringify(step) + ',title:' + JSON.stringify(step.id) + ',async run(){appendFileSync(process.env.CONTROL_EFFECTS,' + JSON.stringify(step.id + '\n') + ');' + (fail ? "throw Error('controlled required step failure')" : '') + '}}').join(',')
   writeFileSync(scenario, "import {appendFileSync} from 'node:fs';export const scenarios=[{id:'CONTROLLED',title:'synthetic source contract only',steps:[" + source + ']}]')
   const out = join(home, 'out'); const report = join(home, 'merged.json')
-  const env = { PATH: bin + ':/usr/bin:/bin', T4_SIM_HOME: home, CONTROL_TOOLS: tools, CONTROL_EFFECTS: effects, NODE_OPTIONS: '--require=' + deny }
+  const env = { NODE_ENV: 'test' as const, PATH: bin + ':/usr/bin:/bin', T4_SIM_HOME: home, CONTROL_TOOLS: tools, CONTROL_EFFECTS: effects, NODE_OPTIONS: '--require=' + deny }
   const argv = (only: string, overrides: { out?: string; report?: string; args?: string[]; scenario?: string }) =>
     [runner, '--scenario', overrides.scenario ?? scenario, '--out', overrides.out ?? out, '--report', overrides.report ?? report, ...(only ? ['--only', only] : []), ...(overrides.args ?? [])]
   const run = (only = 'MAIN05.03', overrides: { out?: string; report?: string; args?: string[]; scenario?: string } = {}) => {
