@@ -1,8 +1,46 @@
 // Anrop mot appens riktiga HTTP-ingångar. Härkomst: 01d97c27:scripts/simulation/track3/lib/app.ts (T3_ -> T6_), utökad med hälso-pollning.
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { appUrl, custodyDir, env, mode } from './base'
+
+/**
+ * Retain the original child handle and observe it from creation. A successful
+ * kill() means only that a signal was sent, never that the writer has stopped.
+ */
+export function ownedChildStopper(child: ChildProcess, graceMs: number): () => Promise<void> {
+  if (!Number.isInteger(graceMs) || graceMs < 0 || graceMs > 20_000) throw new Error('T6 child cleanup grace is not finite')
+  let exited = child.exitCode !== null || child.signalCode !== null
+  let childError = false
+  const waiters = new Set<() => void>()
+  child.once('exit', () => { exited = true; for (const done of [...waiters]) done() })
+  // Spawn/signal errors can precede stop(). Keep them tied to this handle and
+  // prevent an unhandled event from escaping without a cleanup failure receipt.
+  child.on('error', () => { childError = true })
+  const terminal = () => exited || child.exitCode !== null || child.signalCode !== null
+  const wait = (ms: number): Promise<boolean> => new Promise(resolve => {
+    if (terminal()) { resolve(true); return }
+    const done = () => { clearTimeout(timer); waiters.delete(done); resolve(true) }
+    const timer = setTimeout(() => { waiters.delete(done); resolve(terminal()) }, ms)
+    waiters.add(done)
+  })
+  let stopping: Promise<void> | undefined
+  return () => stopping ??= (async () => {
+    let signalFailed = false
+    const signal = (name: NodeJS.Signals): boolean => {
+      if (terminal()) return true
+      try { if (child.kill(name)) return true } catch { /* exact handle only; surface failure below */ }
+      signalFailed = true
+      return false
+    }
+    if (!terminal()) {
+      if (signal('SIGTERM')) await wait(graceMs)
+      if (!terminal()) { signal('SIGKILL'); await wait(2000) }
+    }
+    if (!terminal()) throw new Error('T6 child cleanup refused: child exit is unknown after bounded signals')
+    if (signalFailed || childError) throw new Error('T6 child cleanup refused: child signal or process error')
+  })()
+}
 
 export type HttpResult = { status: number; ok: boolean; body: unknown; text: string; ms: number }
 
@@ -54,14 +92,11 @@ process.on('SIGTERM', () => { stop = true })
 export function startHealthPoll(intervalMs = 500, file = join(custodyDir('health'), `poll-${Date.now()}.jsonl`)): { file: string; stop: () => Promise<{ samples: HealthSample[]; failures: HealthSample[]; maxMs: number; p95Ms: number }> } {
   writeFileSync(file, '', { mode: 0o600 })
   const child = spawn(process.execPath, ['-e', POLL_SCRIPT, `${appUrl()}/api/internal/system/health`, file, String(intervalMs)], { stdio: 'ignore' })
+  const stopChild = ownedChildStopper(child, 12_000)
   return {
     file,
     stop: async () => {
-      await new Promise((res) => setTimeout(res, intervalMs + 300))
-      const exited = new Promise((res) => child.once('exit', res))
-      child.kill('SIGTERM')
-      await Promise.race([exited, new Promise((res) => setTimeout(res, 12_000))])
-      if (child.exitCode === null) child.kill('SIGKILL')
+      await stopChild()
       const samples = readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l) as HealthSample)
       const failures = samples.filter((s) => s.status === null || (s.status >= 500 && s.status !== 503))
       const ms = samples.map((x) => x.ms).sort((a, b) => a - b)

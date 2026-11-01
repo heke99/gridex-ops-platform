@@ -1,8 +1,9 @@
 // Actual T6 callbacks/helpers with finite Auth/DB/CLI/IO ports. No native proof.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ts from 'typescript'
-import { spawnSync as realSpawnSync, type SpawnSyncOptions } from 'node:child_process'
+import { spawnSync as realSpawnSync, spawn as realSpawn, type ChildProcess, type SpawnSyncOptions } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { EventEmitter } from 'node:events'
 import { createHash } from 'node:crypto'
 import { runInNewContext } from 'node:vm'
 import * as path from 'node:path'
@@ -300,16 +301,19 @@ describe('T6 dump and restore commands have finite child lifetimes', () => {
     expect(b.helper.chooseTooling().kind).toBe('docker')
   })
   it('actually kills a harmless version probe that ignores SIGTERM, and returns refusal', () => {
-    const b = backend(); let childPid = 0
+    const b = backend(); let childPid = 0, actualCode: string | undefined, actualSignal: string | null | undefined, actualOutput = ''
     b.state.versionRunner = options => {
       // No DB/native tool is run. The real child receives the production deadline.
       if (!options.timeout || options.timeout > 10_000) throw new Error('unbounded version probe')
-      const result = realSpawnSync(process.execPath, ['-e', "process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"], options)
+      const result = realSpawnSync(process.execPath, ['-e', "process.on('SIGTERM',()=>{});process.stdout.write('ready');setInterval(()=>{},1000)"], options)
       childPid = result.pid
+      actualCode = (result.error as NodeJS.ErrnoException | undefined)?.code
+      actualSignal = result.signal; actualOutput = String(result.stdout ?? '')
       return result as ProcessResult
     }
     expect(() => b.helper.chooseTooling()).toThrow()
     expect(childPid).toBeGreaterThan(1)
+    expect(actualCode).toBe('ETIMEDOUT'); expect(actualSignal).toBe('SIGKILL'); expect(actualOutput).toBe('ready')
     expect(() => process.kill(childPid, 0)).toThrow()
   }, 15_000)
 })
@@ -356,6 +360,117 @@ describe('T6 custody SQL never treats an interrupted client as a business refusa
     const empty = sqlPort({ status: 0, stdout: null, stderr: null })
     expect(empty.helper.sqlIn('SELECT true')).toBeUndefined()
     expect(empty.helper.sqlTry('SELECT true')).toEqual({ ok: true, sqlstate: null, message: null, stdout: '' })
+  })
+})
+
+describe('T6 owned background children must exit before cleanup reads their evidence', () => {
+  class ControlledChild extends EventEmitter {
+    exitCode: number | null = null
+    signalCode: NodeJS.Signals | null = null
+    signals: NodeJS.Signals[] = []
+    acceptSignal = true
+    kill(signal: NodeJS.Signals) { this.signals.push(signal); return this.acceptSignal }
+    finish(code: number | null = 0, signal: NodeJS.Signals | null = null) {
+      this.exitCode = code; this.signalCode = signal; this.emit('exit', code, signal)
+    }
+  }
+  function background(kind: 'health' | 'foreign', child: ControlledChild | ChildProcess) {
+    let reads = 0
+    const modules = {
+      'node:child_process': { spawn: () => child },
+      'node:fs': { writeFileSync: () => undefined, readFileSync: () => { reads++; return '' } },
+      'node:path': path,
+      './base': { custodyDir: () => '/private/owned', env: () => 'synthetic', appUrl: () => 'http://127.0.0.1:3106', mode: () => 'test' },
+    }
+    const app = load('scripts/simulation/track6/lib/custody/app.ts', modules) as typeof import('../scripts/simulation/track6/lib/custody/app')
+    const foreign = load('scripts/simulation/track6/lib/custody/foreign.ts', { ...modules, './app': app }) as typeof import('../scripts/simulation/track6/lib/custody/foreign')
+    const handle = kind === 'health' ? app.startHealthPoll(1) : foreign.startForeignRun({ companyId: 'own', customerId: 'own', accessToken: 'synthetic', tag: 'owned' })
+    return { handle, reads: () => reads, app }
+  }
+  beforeEach(() => { vi.useFakeTimers() })
+  afterEach(() => { vi.useRealTimers() })
+  it.each(['health', 'foreign'] as const)('%s rejects failed signals and an unknown live child without reading its log', async kind => {
+    const child = new ControlledChild(); child.acceptSignal = false
+    const b = background(kind, child)
+    const outcome = b.handle.stop().then(() => ({ ok: true, message: '' }), error => ({ ok: false, message: String(error.message) }))
+    await vi.advanceTimersByTimeAsync(25_000)
+    expect(await outcome).toMatchObject({ ok: false })
+    expect(child.signals).toEqual(['SIGTERM', 'SIGKILL']); expect(b.reads()).toBe(0)
+  })
+  it.each(['health', 'foreign'] as const)('%s waits for observed KILL exit before parsing a potentially changing log', async kind => {
+    const child = new ControlledChild(), b = background(kind, child)
+    let settled = false
+    const stopped = b.handle.stop().then(value => { settled = true; return value })
+    await vi.advanceTimersByTimeAsync(kind === 'health' ? 12_000 : 20_000)
+    expect(child.signals).toEqual(['SIGTERM', 'SIGKILL'])
+    expect(settled).toBe(false); expect(b.reads()).toBe(0)
+    child.finish(null, 'SIGKILL')
+    await stopped
+    expect(b.reads()).toBe(1); expect(vi.getTimerCount()).toBe(0)
+  })
+  it.each(['health', 'foreign'] as const)('%s handles already-observed normal or signal exits without sending another signal', async kind => {
+    for (const signalled of [false, true]) {
+      const child = new ControlledChild(); child.exitCode = signalled ? null : 0; child.signalCode = signalled ? 'SIGTERM' : null
+      const b = background(kind, child), stopped = b.handle.stop()
+      await vi.advanceTimersByTimeAsync(25_000); await stopped
+      expect(child.signals).toEqual([]); expect(b.reads()).toBe(1)
+    }
+  })
+  it.each(['health', 'foreign'] as const)('%s clears its deadline after a TERM exit and shares one stop operation', async kind => {
+    const child = new ControlledChild(), b = background(kind, child)
+    const first = b.handle.stop(), second = b.handle.stop()
+    await vi.advanceTimersByTimeAsync(500)
+    child.finish(0)
+    await Promise.all([first, second])
+    expect(child.signals).toEqual(['SIGTERM']); expect(vi.getTimerCount()).toBe(0)
+  })
+  it.each(['health', 'foreign'] as const)('%s refuses a child error rather than emitting an unhandled process event', async kind => {
+    const child = new ControlledChild(), b = background(kind, child)
+    expect(() => child.emit('error', new Error('spawn or signal error'))).not.toThrow()
+    const outcome = b.handle.stop().then(() => false, () => true)
+    await vi.advanceTimersByTimeAsync(25_000)
+    expect(await outcome).toBe(true); expect(b.reads()).toBe(0)
+  })
+  it.each(['health', 'foreign'] as const)('%s rejects an accepted KILL without any terminal observation', async kind => {
+    const child = new ControlledChild(), b = background(kind, child)
+    const outcome = b.handle.stop().then(() => false, () => true)
+    await vi.advanceTimersByTimeAsync(25_000)
+    expect(await outcome).toBe(true); expect(b.reads()).toBe(0)
+    expect(child.signals).toEqual(['SIGTERM', 'SIGKILL'])
+  })
+  it.each(['health', 'foreign'] as const)('%s remembers an exit before stop and remains idempotent after completion', async kind => {
+    const child = new ControlledChild(), b = background(kind, child)
+    child.finish(0)
+    await b.handle.stop(); await b.handle.stop()
+    expect(child.signals).toEqual([]); expect(b.reads()).toBe(2); expect(vi.getTimerCount()).toBe(0)
+  })
+  it.each(['health', 'foreign'] as const)('%s surfaces a failed TERM even when the later KILL is observed', async kind => {
+    const child = new ControlledChild()
+    child.kill = signal => { child.signals.push(signal); if (signal === 'SIGKILL') child.finish(null, 'SIGKILL'); return signal !== 'SIGTERM' }
+    const b = background(kind, child)
+    const outcome = b.handle.stop().then(() => false, () => true)
+    await vi.advanceTimersByTimeAsync(25_000)
+    expect(await outcome).toBe(true); expect(b.reads()).toBe(0)
+  })
+  it('terminates and observes a harmless real child that ignores TERM using only its original handle', async () => {
+    vi.useRealTimers()
+    const child = realSpawn(process.execPath, ['-e', "process.on('SIGTERM',()=>{});process.stdout.write('ready');setInterval(()=>{},1000)"], { stdio: ['ignore', 'pipe', 'ignore'] })
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('harmless child readiness deadline')), 2000)
+        child.stdout!.once('data', () => { clearTimeout(timer); resolve() })
+        child.once('error', error => { clearTimeout(timer); reject(error) })
+      })
+      const b = background('health', child)
+      // The same shared stopper used by both actual callbacks, with a shorter
+      // grace for this harmless fixture; the KILL observation contract is real.
+      const stop = (b.app as unknown as { ownedChildStopper: (child: ChildProcess, graceMs: number) => () => Promise<void> }).ownedChildStopper(child, 25)
+      await stop()
+      expect(child.signalCode).toBe('SIGKILL'); expect(child.exitCode).toBeNull()
+      expect(() => process.kill(child.pid!, 0)).toThrow()
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+    }
   })
 })
 
