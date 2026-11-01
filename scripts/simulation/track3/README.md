@@ -9,7 +9,7 @@ Harnessen kräver inga ändringar i produktkod (basen: `1c0c088cb4ed66d0dd8b3e34
 | Skript | Uppgift |
 | --- | --- |
 | `up.sh [--mode test\|production]` | Idempotent. Verifierar stacken (annars clean replay), skriver replay-kvitton, genererar CA, startar mailmotpart, seedar fixture, skriver `env/track3.env`, bygger (`next build`) vid behov och startar `next start`. |
-| `down.sh [--stack] [--purge]` | Stoppar app, mailmotpart och GreenMail-containern (med `--stack` även Supabase-stacken inkl. volymer), verifierar att inget är kvar och skriver `SIM_HOME/cleanup-receipt.json`. Exit 1 om något finns kvar. |
+| `down.sh` | Kräver uttryckliga `SIM_HOME`, `SIM_RUN_DIR` och en privat `T3_CLEANUP_ASSIGNMENT_FILE`. Stoppar endast exakt tilldelade processer och GreenMail-container. Skriver ett nytt privat kvitto under `SIM_HOME/cleanup-receipts/`. `--stack` och `--purge` nekas före cleanup eftersom backend-/retentionstilldelning saknas. |
 | `run.sh <scenariofil...>` | Kräver `SIM_REPORT`, en absolut privat fil utanför Git-arbetsytor och Git-metadata. Ogiltigt mål eller en env-fil som ändrar `SIM_REPORT` nekas före lås, nätanrop och Vitest. En körning åt gången (flock på `SIM_HOME/run.lock`). Per scenario: `SIM_HOME/runs/<run-id>/<scenario>/{report.json,log.txt,vitest.json}`. |
 
 Rapporten (`report.json`) har `exit`, `startedAt`/`endedAt` (UTC), `steps[]` (`passed|failed|skipped`), `skipped[]`,
@@ -27,8 +27,46 @@ Förkontrollen använder Python 3 och Git för att kontrollera den upplösta må
 ```
 bash scripts/simulation/track3/up.sh                  # första gången: bygge kan ta >10 min (SKIP_BUILD=1 återanvänder)
 SIM_REPORT=/privat/evidens/track3-report.json bash scripts/simulation/track3/run.sh scenarios/smoke.test.ts
-bash scripts/simulation/track3/down.sh                # --stack stoppar även Supabase
+SIM_HOME=/privat/track3 SIM_RUN_DIR=/egen/app T3_CLEANUP_ASSIGNMENT_FILE=/privat/track3-cleanup.json bash scripts/simulation/track3/down.sh
 ```
+
+### Avgränsad cleanup
+
+Samordnaren måste först tilldela de verkligt ägda resurserna. En arbetskatalog eller en containeretikett ger ingen
+backend- eller processäganderätt. `up.sh` skapar ännu inte detta nya ägarkvitto och är inte kvalificerat för en ny
+autonom körning. Dess historiska replay-/byggpåståenden och återanvändning av standardstacken kräver separat rättning
+och admission före verklig start. Skapa inte en cleanup-tilldelning genom att automatiskt hitta resurser med gemensamma namn.
+
+`T3_CLEANUP_ASSIGNMENT_FILE` är en vanlig fil med 0600, ägd av körande användare, utanför Git. `SIM_HOME` är en
+befintlig privat katalog med 0700 utanför Git; samtliga tre sökvägar anges absolut och utan symlänkar. JSON-formatet är:
+
+```json
+{
+  "schema": "track3-cleanup-assignment-v1",
+  "worker": "codex-track3",
+  "environmentId": "unik-tilldelad-miljo",
+  "simHome": "/privat/track3",
+  "runDir": "/egen/app",
+  "processes": [],
+  "greenmail": null
+}
+```
+
+Varje tilldelad process har `pid`, `startTimeTicks` (sträng från `/proc/<pid>/stat`), absolut `exe` och `cwd`,
+`cmdlineSha256` (SHA256 av de råa NUL-separerade `/proc/<pid>/cmdline`-byten) samt `pidFile` (`app.pid` eller
+`counterparty.pid` under `SIM_HOME/pids`). Högst dessa två processer kan bindas. En befintlig pidfil utan matchande
+tilldelning blockerar hela cleanupen. Alla mål kontrolleras före första signalen. Linux pidfd krävs för att signalen
+ska förbli bunden till rätt process när numeriska PID återanvänds; processgrupper och fristående barnprocesser signaleras inte.
+
+En tilldelad `greenmail` har ett fullständigt 64-teckens container-`id` och exakt dessa `labels`: `sim.track=track3`,
+`sim.campaign=20261029-3f1a8ab1`, `sim.worker=codex-track3` och `sim.environment=<environmentId>`. Den verkliga
+containerns ID och etiketter kontrolleras före borttagning. Ingen namnbaserad eller gemensam etikettbaserad radering
+görs. `up.sh` måste senare bindas till samma tilldelning och nya etiketter före start. Volymer, Supabase-stack,
+mailoriginal, körningar och evidens gallras aldrig av denna cleanup.
+
+Cleanupen tar samma `run.lock` som `run.sh` och kontrollerar att tilldelningen inte ändrats före varje mutation.
+`clean: true` i kvittot avser enbart angivna processer och GreenMail-ID; det är inget påstående om hela miljön,
+andra processer, portar, volymer eller genomförda scenarier. Ett daemonfel räknas aldrig som bekräftad containerfrånvaro.
 
 Miljövariabler: `SIM_HOME` (default `/home/user/sim-home/track3`), `SIM_RUN_DIR` (default `/root/sim-run/track3`, appens
 kod och `node_modules`), `SKIP_BUILD=1`, `FORCE_BUILD=1`, `SKIP_REPLAY=1`, `T3_BUILD_HEAP_MB` (default 6144; `next build`
