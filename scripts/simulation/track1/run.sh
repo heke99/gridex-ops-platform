@@ -52,7 +52,7 @@ echo "wallMs $MS" >> "$RUN_DIR/run.log"
 echo "exit $CODE" >> "$RUN_DIR/run.log"
 mkdir -p "$(dirname "$SIM_REPORT")"
 python3 - "$RUN_DIR/report.json" "$SIM_REPORT" "$SCENARIO" "$RUN_ID" "$RUN_DIR" "$CODE" "$MS" <<'PY'
-import json, re, sys, os
+import json, re, sys, os, tempfile
 vit, out, scenario, run_id, run_dir, code, ms = sys.argv[1:]
 idre = re.compile(r"^\s*([A-Z][A-Z0-9]*\d+(?:\.\d+)*)\b")
 raw, err = {}, None
@@ -77,8 +77,15 @@ rep = {"runId": run_id, "scenarioFile": scenario.split("/scripts/simulation/", 1
        "runDir": run_dir, "exitCode": int(code), "wallMs": int(ms), "error": err,
        "vitest": {k: raw.get(k) for k in ("numTotalTests", "numPassedTests", "numFailedTests", "numPendingTests", "numTodoTests", "numTotalTestSuites", "numFailedTestSuites", "success", "startTime")},
        "steps": steps, "scenarios": {k: rank(v) for k, v in per.items()}}
-tmp = out + ".tmp"
-json.dump(rep, open(tmp, "w"), indent=2); os.replace(tmp, out)
+# Exclusive unpredictable temporary file, then atomic no-overwrite publication.
+# A racing writer or a stale original can never be replaced.
+fd, tmp = tempfile.mkstemp(prefix=".track1-report-", suffix=".json", dir=os.path.dirname(out))
+try:
+    with os.fdopen(fd, "w") as stream:
+        json.dump(rep, stream, indent=2)
+    os.link(tmp, out, follow_symlinks=False)
+finally:
+    os.unlink(tmp)
 PY
 log "run $RUN_ID exit $CODE (${MS} ms) -> $RUN_DIR"
 exit $CODE

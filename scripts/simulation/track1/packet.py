@@ -114,7 +114,9 @@ def runtime_admission(action):
         require(stack.get("environmentId") == a["environmentId"] and stack.get("projectId") == a["projectId"] and stack.get("assignmentSha256") == hashlib.sha256(assignment_path.read_bytes()).hexdigest(), "stack assignment binding differs")
         ids = command("docker", "ps", "--no-trunc", "-q", "--filter", "label=com.supabase.cli.project=" + a["projectId"], "--filter", "name=supabase_db_").split()
         require(ids == [stack.get("databaseContainerId")] and bool(re.fullmatch(r"[0-9a-f]{64}", ids[0] if ids else "")), "assigned database container changed or is ambiguous")
-        inspected = json.loads(command("docker", "inspect", ids[0]))
+        # Request identity fields only; never fetch Config.Env/credentials.
+        identity_format = '[{"Id":{{json .Id}},"Config":{"Labels":{{json .Config.Labels}}}}]'
+        inspected = json.loads(command("docker", "inspect", "--format", identity_format, ids[0]))
         require(len(inspected) == 1 and inspected[0]["Id"] == ids[0] and inspected[0]["Config"]["Labels"].get("com.supabase.cli.project") == a["projectId"], "database container project identity differs")
         dbargs = ("psql", os.environ["TRACK1_DB_URL"], "-XAt", "-v", "ON_ERROR_STOP=1")
         system_id = command(*dbargs, "-c", "select system_identifier from pg_control_system()").strip()
@@ -138,6 +140,7 @@ def runtime_admission(action):
             require(values.get("SUPABASE_URL", values["NEXT_PUBLIC_SUPABASE_URL"]) == values["NEXT_PUBLIC_SUPABASE_URL"], "private service endpoint differs from assignment")
             report = pathlib.Path(os.environ.get("SIM_REPORT", ""))
             require(report.is_absolute() and str(report.resolve()) == str(report) and report.is_relative_to(home) and not report.is_symlink(), "SIM_REPORT must be a canonical private path under SIM_HOME")
+            require(not report.exists() and not pathlib.Path(str(report) + ".tmp").exists() and not pathlib.Path(str(report) + ".tmp").is_symlink(), "SIM_REPORT or legacy temporary output already exists; preserve the original and choose a fresh path")
     return a
 
 

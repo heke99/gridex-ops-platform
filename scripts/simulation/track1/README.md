@@ -71,6 +71,11 @@ partial schema fingerprint against the recorded assignment/stack. The partial
 fingerprint remains partial; the source `schema.sql` hash is recorded separately.
 Post-replay migrations and reused builds/replays need new qualification.
 `SIM_REPORT` must be an absolute canonical private path under `SIM_HOME`.
+Existing reports and legacy temporary output paths are refused before the
+workload; publication uses an exclusive unpredictable temporary file and an
+atomic no-overwrite link. Raw originals are never replaced. App cleanup also
+verifies that the recorded process group is empty; a missing leader with live
+children requires coordinator recovery and cannot produce a clean receipt.
 Private environment values are parsed as data; they are never executed as shell
 source. A failed startup without a complete stack receipt requires coordinator
 recovery, rather than guessing which resources to stop.

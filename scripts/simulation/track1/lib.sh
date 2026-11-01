@@ -67,8 +67,20 @@ if not p.exists():
     if p.with_name('app.pid').exists(): raise SystemExit('app process has no owned session receipt')
     raise SystemExit(0)
 r = json.loads(p.read_text()); pid = r['pid']; proc = pathlib.Path('/proc') / str(pid)
+def members():
+    found = []
+    for entry in pathlib.Path('/proc').iterdir():
+        if not entry.name.isdigit(): continue
+        try:
+            fields = (entry / 'stat').read_text().rsplit(')', 1)[1].split()
+            if int(fields[2]) == pid and fields[0] != 'Z': found.append(int(entry.name))
+        except (FileNotFoundError, ProcessLookupError):
+            pass
+    return found
 def owned():
-    if not proc.exists(): return False
+    if not proc.exists():
+        if members(): raise SystemExit('recorded app leader is gone but assigned process group is not empty; coordinator recovery required')
+        return False
     # /proc/stat command names may contain spaces or parentheses.
     try:
         fields = (proc / 'stat').read_text().rsplit(')', 1)[1].split()
@@ -87,6 +99,8 @@ if owned():
         for _ in range(20):
             if not owned(): break
             time.sleep(.1)
-    if owned(): raise SystemExit('owned app session did not stop')
+    if owned() or members(): raise SystemExit('owned app process group did not stop; coordinator recovery required')
+elif members():
+    raise SystemExit('recorded app leader is gone but assigned process group is not empty; coordinator recovery required')
 PY
 }
