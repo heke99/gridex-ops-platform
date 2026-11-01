@@ -179,7 +179,7 @@ async function checkMonthlyContract(session: AppSession, underlayId: string, poi
   const appBaseExact = decMul(sumKwh(intervals), dec(String(appPrice)))
   const wantBase = roundDec(appBaseExact, 2, 'half_away')
   const gotBase = sekNumberToOre(base.amountExVat)
-  expect(gotBase - wantBase >= -1n && gotBase - wantBase <= 1n, `${label}: basrad ${gotBase} öre mot ΣkWh × appens pris = ${wantBase} öre`).toBe(true)
+  expect(gotBase - wantBase >= -BigInt("1") && gotBase - wantBase <= BigInt("1"), `${label}: basrad ${gotBase} öre mot ΣkWh × appens pris = ${wantBase} öre`).toBe(true)
   const oracle = oracleInvoice({ intervals, terms }, 'half_away')
   const diffs = diffAgainstOracle(data, oracle).filter((d) => !/^(spot|totalExVat|vatAmount|totalIncVat)/.test(d))
   expect(diffs, `${label}: övriga rader mot oraklet`).toEqual([])
@@ -245,8 +245,8 @@ describe('TERM02 orakel (offline)', () => {
 
   it('TERM02.08 COMPONENT orakel: avrundningslägen, exakta kvoter och JavaScripts Math.round (självtest)', () => {
     const table: Array<[string, bigint, bigint, bigint]> = [
-      ['4.5', 5n, 4n, 5n], ['5.5', 6n, 6n, 6n], ['-4.5', -5n, -4n, -4n], ['-5.5', -6n, -6n, -5n],
-      ['2.5', 3n, 2n, 3n], ['-2.5', -3n, -2n, -2n], ['0.5', 1n, 0n, 1n], ['-0.5', -1n, 0n, 0n], ['4.4', 4n, 4n, 4n], ['-4.6', -5n, -5n, -5n],
+      ['4.5', BigInt("5"), BigInt("4"), BigInt("5")], ['5.5', BigInt("6"), BigInt("6"), BigInt("6")], ['-4.5', -BigInt("5"), -BigInt("4"), -BigInt("4")], ['-5.5', -BigInt("6"), -BigInt("6"), -BigInt("5")],
+      ['2.5', BigInt("3"), BigInt("2"), BigInt("3")], ['-2.5', -BigInt("3"), -BigInt("2"), -BigInt("2")], ['0.5', BigInt("1"), BigInt("0"), BigInt("1")], ['-0.5', -BigInt("1"), BigInt("0"), BigInt("0")], ['4.4', BigInt("4"), BigInt("4"), BigInt("4")], ['-4.6', -BigInt("5"), -BigInt("5"), -BigInt("5")],
     ]
     for (const [text, away, even, up] of table) {
       const d = dec(text)
@@ -255,22 +255,22 @@ describe('TERM02 orakel (offline)', () => {
     // Binärt exakta belopp n/8 SEK: Math.round(x*100) ska följa half_up (mot +oändligheten) för alla n.
     for (let n = -80; n <= 80; n += 1) {
       const x = n / 8
-      const sek = decToString({ n: BigInt(n) * 125n, s: 3 })
+      const sek = decToString({ n: BigInt(n) * BigInt("125"), s: 3 })
       expect(roundDec(dec(sek), 2, 'half_up'), `n=${n} x=${x}`).toBe(BigInt(Math.round(x * 100)))
     }
     // Viktat pris: exakt kvot
     const w = weightedPrice([{ kwh: '1', price: '0.1' }, { kwh: '3', price: '0.5' }])
     expect(decToString(w.energy)).toBe('1.6')
     expect(decToString(w.kwh)).toBe('4')
-    expect(w.micro.half_away).toBe(400000n)
-    expect(w.simpleAverageMicro).toBe(300000n)
+    expect(w.micro.half_away).toBe(BigInt("400000"))
+    expect(w.simpleAverageMicro).toBe(BigInt("300000"))
     // Moms 25 % på tie
-    expect(ROUND_MODES.map((m) => vatOnOre(2n, 25, m))).toEqual([1n, 0n, 1n])
-    expect(ROUND_MODES.map((m) => vatOnOre(-2n, 25, m))).toEqual([-1n, 0n, 0n])
-    expect(ROUND_MODES.map((m) => divRound(-15n, 10n, m))).toEqual([-2n, -2n, -1n])
-    expect(oreToSek(1234n)).toBe('12.34')
-    expect(oreToSek(-5n)).toBe('-0.05')
-    expect(sekNumberToOre(0.29)).toBe(29n)
+    expect(ROUND_MODES.map((m) => vatOnOre(BigInt("2"), 25, m))).toEqual([BigInt("1"), BigInt("0"), BigInt("1")])
+    expect(ROUND_MODES.map((m) => vatOnOre(-BigInt("2"), 25, m))).toEqual([-BigInt("1"), BigInt("0"), BigInt("0")])
+    expect(ROUND_MODES.map((m) => divRound(-BigInt("15"), BigInt("10"), m))).toEqual([-BigInt("2"), -BigInt("2"), -BigInt("1")])
+    expect(oreToSek(BigInt("1234"))).toBe('12.34')
+    expect(oreToSek(-BigInt("5"))).toBe('-0.05')
+    expect(sekNumberToOre(0.29)).toBe(BigInt("29"))
     expect(() => sekNumberToOre(0.285)).toThrow()
   })
 
@@ -363,9 +363,9 @@ describe('TERM02.01 timavtal och månadsavtal med icke-uniform förbrukning (202
     // Σ kWh·(spot + påslag) per intervall, exakt
     const plusMarkup = intervals.map((i) => ({ kwh: i.kwh, price: decToString(decAdd(dec(i.price), dec('0.04'))) }))
     const exact = sumEnergy(plusMarkup)
-    const appEnergyOre = appLinesOre(data).filter((l) => l.kind === 'spot' || l.kind === 'markup').reduce((s, l) => s + l.exVatOre, 0n)
+    const appEnergyOre = appLinesOre(data).filter((l) => l.kind === 'spot' || l.kind === 'markup').reduce((s, l) => s + l.exVatOre, BigInt("0"))
     const exactOre = roundDec(exact, 2, 'half_away')
-    expect(appEnergyOre - exactOre >= -1n && appEnergyOre - exactOre <= 1n, `energi (spot+påslag) app ${appEnergyOre} öre mot Σ kWh·(p+0,04) = ${exactOre} öre`).toBe(true)
+    expect(appEnergyOre - exactOre >= -BigInt("1") && appEnergyOre - exactOre <= BigInt("1"), `energi (spot+påslag) app ${appEnergyOre} öre mot Σ kWh·(p+0,04) = ${exactOre} öre`).toBe(true)
     observe(`${id} effektivt pris`, { weighted: w.weightedAsNumber, simple: w.simpleAverageAsNumber, effectiveInclMarkup: w.weightedAsNumber + 0.04, appUnitPrice: base.unitPriceExVat })
   }, LONG)
 
@@ -405,7 +405,7 @@ describe('TERM02.02 timavtal med negativa och nollpriser (2026-09, SE2)', () => 
     const energy = sumEnergy(intervals)
     const clamped = roundDec(sumEnergy(intervals.map((i) => ({ kwh: i.kwh, price: decCmp(dec(i.price), dec(0)) < 0 ? '0' : i.price }))), 2, 'half_away')
     const exactOre = roundDec(energy, 2, 'half_away')
-    expect(clamped - exactOre > 100n, `klampat belopp ${clamped} öre ska skilja sig från exakt ${exactOre} öre med minst 1 SEK`).toBe(true)
+    expect(clamped - exactOre > BigInt("100"), `klampat belopp ${clamped} öre ska skilja sig från exakt ${exactOre} öre med minst 1 SEK`).toBe(true)
 
     const data = await priceAndCompare(ctx.session, row.id, ctx.pts, terms, id)
     const base = appLinesOre(data).find((l) => l.kind === 'spot')!
@@ -443,18 +443,18 @@ describe('TERM02.01 TERM02.02 originalorakelts exempelvärden: 16 kombinationer 
     // Handräknad Σ(q·p): Wh (heltal) × p4 (tiondels öre/kWh) = enhet 1e-7 kWh·SEK/kWh = 1e-7 SEK. Antal förekomster per kombination räknas oberoende av datafunktionen.
     const hours = 24 * 30
     const counts = new Map<string, bigint>()
-    let manual = 0n
+    let manual = BigInt("0")
     for (let i = 0; i < hours; i++) {
       const wh = BigInt(ORIGINAL_EXAMPLE_WH[i % 4]), p4 = BigInt(ORIGINAL_EXAMPLE_P4[(i >> 2) % 4])
       manual += wh * p4
-      counts.set(`${wh}/${p4}`, (counts.get(`${wh}/${p4}`) ?? 0n) + 1n)
+      counts.set(`${wh}/${p4}`, (counts.get(`${wh}/${p4}`) ?? BigInt("0")) + BigInt("1"))
     }
     expect(counts.size, 'antal olika kombinationer').toBe(16)
     expect(ctx.pts, 'antal timslotar').toHaveLength(hours)
     const seen = new Map<string, bigint>()
-    for (const p of ctx.pts) seen.set(`${p.wh}/${p.p4}`, (seen.get(`${p.wh}/${p.p4}`) ?? 0n) + 1n)
+    for (const p of ctx.pts) seen.set(`${p.wh}/${p.p4}`, (seen.get(`${p.wh}/${p.p4}`) ?? BigInt("0")) + BigInt("1"))
     expect([...seen.entries()].sort(), 'förekomster per kombination i datat').toEqual([...counts.entries()].sort())
-    for (const n of counts.values()) expect(n === 45n, 'förekomster per kombination (720 = 45 x 16)').toBe(true)
+    for (const n of counts.values()) expect(n === BigInt("45"), 'förekomster per kombination (720 = 45 x 16)').toBe(true)
     const intervals = toOracle(ctx.pts)
     expect(decToString(sumEnergy(intervals)), 'orakelfunktionen sumEnergy = handräknad Σ(q·p)').toBe(decToString({ n: manual, s: 7 }))
     const manualOre = roundDec({ n: manual, s: 7 }, 2, 'half_away')
@@ -503,7 +503,7 @@ describe('TERM02.03 noll kWh hela månaden med avtalad månadsavgift (2026-09, S
     expect(terms.monthlyFeeSek).toBe('39')
     const oracle = oracleInvoice({ intervals: toOracle(ctx.pts), terms }, 'half_away')
     const fee = oracle.lines.find((l) => l.code === 'monthly_fee')!
-    expect([fee.exVatOre, fee.vatOre, fee.incVatOre]).toEqual([3900n, 975n, 4875n])
+    expect([fee.exVatOre, fee.vatOre, fee.incVatOre]).toEqual([BigInt("3900"), BigInt("975"), BigInt("4875")])
 
     const res = await pricePreview(ctx.session, { underlayId: row.id })
     expect(res.status, `preview HTTP ${res.status}: ${res.text}`).toBe(200)
@@ -518,7 +518,7 @@ describe('TERM02.03 noll kWh hela månaden med avtalad månadsavgift (2026-09, S
     const monthly = lines.filter((l) => l.kind === 'monthly_fee')
     expect(monthly, 'exakt en månadsavgiftsrad').toHaveLength(1)
     expect([monthly[0].exVatOre, monthly[0].vatOre, monthly[0].incVatOre], 'månadsavgift 39 SEK + 25 % moms').toEqual([fee.exVatOre, fee.vatOre, fee.incVatOre])
-    expect(lines.filter((l) => (l.kind === 'spot' || l.kind === 'markup') && l.exVatOre !== 0n), 'ingen energirad > 0').toEqual([])
+    expect(lines.filter((l) => (l.kind === 'spot' || l.kind === 'markup') && l.exVatOre !== BigInt("0")), 'ingen energirad > 0').toEqual([])
     expect(checkInvoiceArithmetic(data, terms.vatPercent)).toEqual([])
   }, LONG)
 })
@@ -780,7 +780,7 @@ describe('TERM02.07 dubblerad lokal timme 02:00-03:00 den 2027-10-31 (2027-10, S
     const altSecondPriceForBoth = oracleInvoice({ intervals: toOracle(withPrice(first, 19000)), terms }, 'half_away').totalExVatOre
     const appTotal = sekNumberToOre(data.totalExVat)
     expect(appTotal !== altFirstPriceForBoth && appTotal !== altSecondPriceForBoth, 'appens total skiljer sig från varianterna med samma pris för båda instanserna').toBe(true)
-    expect(altFirstPriceForBoth - appTotal < -700n || altFirstPriceForBoth - appTotal > 700n).toBe(true)
+    expect(altFirstPriceForBoth - appTotal < -BigInt("700") || altFirstPriceForBoth - appTotal > BigInt("700")).toBe(true)
     observe(`${id} instanser`, { first: describeLocal(first), second: describeLocal(second), appTotalExVatOre: appTotal, altFirstPriceForBothOre: altFirstPriceForBoth, altSecondPriceForBothOre: altSecondPriceForBoth })
   }, LONG)
 })
@@ -814,8 +814,8 @@ describe('TERM02.07 COMPONENT stockholmLocalToUtc (offline)', () => {
 
 /** Rundades beloppet bort från noll (up) eller mot noll (down) jämfört med det exakta beloppet (i öre)? */
 function magnitudeDirection(appOre: bigint, exactOre: { n: bigint; s: number }): 'up' | 'down' {
-  const appAbs = decMul(dec(appOre < 0n ? -appOre : appOre), dec(1))
-  const exactAbs = { n: exactOre.n < 0n ? -exactOre.n : exactOre.n, s: exactOre.s }
+  const appAbs = decMul(dec(appOre < BigInt("0") ? -appOre : appOre), dec(1))
+  const exactAbs = { n: exactOre.n < BigInt("0") ? -exactOre.n : exactOre.n, s: exactOre.s }
   return decCmp(appAbs, exactAbs) > 0 ? 'up' : 'down'
 }
 
@@ -870,20 +870,20 @@ describe('TERM02.08 avrundning till öre: halva ören och vanliga fall (2026-09,
           const modes = ROUND_MODES.filter((m) => oracle[m].lines.find((l) => l.code === o.code)!.exVatOre === a.exVatOre)
           if (modes.length === 0) problems.push(`${o.code} exkl. moms: app ${a.exVatOre} öre matchar inget avrundningsläge (halvt öre ${o.exVatExactSek} SEK)`)
           const exactOre = decMul(dec(o.exVatExactSek), dec(100))
-          const obs: HalfObs = { negative: exactOre.n < 0n, magnitude: magnitudeDirection(a.exVatOre, exactOre), modes }
+          const obs: HalfObs = { negative: exactOre.n < BigInt("0"), magnitude: magnitudeDirection(a.exVatOre, exactOre), modes }
           record.halves.push(obs)
           record.detail.push({ line: o.code, kind: 'exVat', exactSek: o.exVatExactSek, appOre: a.exVatOre, ...obs })
         }
         // Moms räknas på appens egen avrundade rad exkl. moms (så som appen gör), i tre lägen
-        const vatTie = (a.exVatOre * 25n) % 100n === 50n || (a.exVatOre * 25n) % 100n === -50n
+        const vatTie = (a.exVatOre * BigInt("25")) % BigInt("100") === BigInt("50") || (a.exVatOre * BigInt("25")) % BigInt("100") === -BigInt("50")
         const vatByMode = ROUND_MODES.map((m) => [m, vatOnOre(a.exVatOre, terms.vatPercent, m)] as const)
         if (!vatTie) {
           if (a.vatOre !== vatByMode[0][1]) problems.push(`${o.code} moms: app ${a.vatOre} öre, väntat ${vatByMode[0][1]} öre på ${a.exVatOre} öre (inte halvt)`)
         } else {
           const modes = vatByMode.filter(([, v]) => v === a.vatOre).map(([m]) => m)
           if (modes.length === 0) problems.push(`${o.code} moms: app ${a.vatOre} öre matchar inget läge på ${a.exVatOre} öre`)
-          const exactVatOre = { n: a.exVatOre * 25n, s: 2 }
-          const obs: HalfObs = { negative: a.exVatOre < 0n, magnitude: magnitudeDirection(a.vatOre, exactVatOre), modes }
+          const exactVatOre = { n: a.exVatOre * BigInt("25"), s: 2 }
+          const obs: HalfObs = { negative: a.exVatOre < BigInt("0"), magnitude: magnitudeDirection(a.vatOre, exactVatOre), modes }
           record.halves.push(obs)
           record.detail.push({ line: o.code, kind: 'vat', exVatOre: a.exVatOre, appVatOre: a.vatOre, ...obs })
         }

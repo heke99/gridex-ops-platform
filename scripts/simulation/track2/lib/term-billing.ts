@@ -569,8 +569,8 @@ export function describeApp(app: PreviewData): string {
  */
 export function checkInvoiceArithmetic(app: PreviewData, vatPercent: number): string[] {
   const problems: string[] = []
-  let sumEx = 0n
-  let sumVat = 0n
+  let sumEx = BigInt("0")
+  let sumVat = BigInt("0")
   for (const l of appLinesOre(app)) {
     const allowed = ROUND_MODES.map((m) => vatOnOre(l.exVatOre, vatPercent, m))
     if (!allowed.includes(l.vatOre)) problems.push(`${l.kind}: moms ${l.vatOre} öre är inte ${vatPercent} % av ${l.exVatOre} öre i något avrundningsläge (${allowed.join('/')})`)

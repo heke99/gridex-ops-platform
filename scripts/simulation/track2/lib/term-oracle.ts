@@ -22,7 +22,7 @@ export type Dec = { readonly n: bigint; readonly s: number }
 export type RoundMode = 'half_away' | 'half_even' | 'half_up'
 export const ROUND_MODES: readonly RoundMode[] = ['half_away', 'half_even', 'half_up']
 
-const pow10 = (k: number): bigint => 10n ** BigInt(k)
+const pow10 = (k: number): bigint => BigInt("10") ** BigInt(k)
 
 /** Parsar en decimalsträng ('-0.0900', '12') eller ett heltal. Flyttal med decimaler nekas medvetet. */
 export function dec(input: string | number | bigint): Dec {
@@ -47,12 +47,12 @@ export const decSub = (a: Dec, b: Dec): Dec => { const x = align(a, b); return {
 export const decMul = (a: Dec, b: Dec): Dec => ({ n: a.n * b.n, s: a.s + b.s })
 export const decNeg = (a: Dec): Dec => ({ n: -a.n, s: a.s })
 export const decCmp = (a: Dec, b: Dec): -1 | 0 | 1 => { const x = align(a, b); return x.a < x.b ? -1 : x.a > x.b ? 1 : 0 }
-export const decIsZero = (a: Dec): boolean => a.n === 0n
-export const decMax0 = (a: Dec): Dec => (a.n < 0n ? { n: 0n, s: a.s } : a)
+export const decIsZero = (a: Dec): boolean => a.n === BigInt("0")
+export const decMax0 = (a: Dec): Dec => (a.n < BigInt("0") ? { n: BigInt("0"), s: a.s } : a)
 
 /** Exakt decimalsträng utan avslutande nollor (eller med exakt `scale` decimaler, avhuggna, om angivet). */
 export function decToString(d: Dec, scale?: number): string {
-  const neg = d.n < 0n
+  const neg = d.n < BigInt("0")
   const digits = (neg ? -d.n : d.n).toString().padStart(d.s + 1, '0')
   const whole = d.s === 0 ? digits : digits.slice(0, digits.length - d.s)
   let frac = d.s === 0 ? '' : digits.slice(digits.length - d.s)
@@ -67,16 +67,16 @@ export const decToNumber = (d: Dec): number => Number(decToString(d))
 
 /** num/den med heltalsdivision och valt avrundningsläge (den > 0). */
 export function divRound(num: bigint, den: bigint, mode: RoundMode): bigint {
-  if (den <= 0n) throw new Error('divRound: nämnaren måste vara positiv')
-  const neg = num < 0n
+  if (den <= BigInt("0")) throw new Error('divRound: nämnaren måste vara positiv')
+  const neg = num < BigInt("0")
   const a = neg ? -num : num
   let q = a / den
-  const twice = (a % den) * 2n
-  if (twice > den) q += 1n
+  const twice = (a % den) * BigInt("2")
+  if (twice > den) q += BigInt("1")
   else if (twice === den) {
-    if (mode === 'half_away') q += 1n
-    else if (mode === 'half_even') { if (q % 2n === 1n) q += 1n }
-    else if (!neg) q += 1n // half_up: positivt tal avrundas uppåt, negativt mot noll
+    if (mode === 'half_away') q += BigInt("1")
+    else if (mode === 'half_even') { if (q % BigInt("2") === BigInt("1")) q += BigInt("1") }
+    else if (!neg) q += BigInt("1") // half_up: positivt tal avrundas uppåt, negativt mot noll
   }
   return neg ? -q : q
 }
@@ -89,10 +89,10 @@ export function roundDec(d: Dec, scale: number, mode: RoundMode): bigint {
 
 /** round(num/den) vid `scale` decimaler. */
 export function ratioRound(num: Dec, den: Dec, scale: number, mode: RoundMode): bigint {
-  if (den.n === 0n) throw new Error('ratioRound: division med noll')
+  if (den.n === BigInt("0")) throw new Error('ratioRound: division med noll')
   let n = num.n * pow10(den.s + scale)
   let d = den.n * pow10(num.s)
-  if (d < 0n) { n = -n; d = -d }
+  if (d < BigInt("0")) { n = -n; d = -d }
   return divRound(n, d, mode)
 }
 
@@ -100,7 +100,7 @@ export function ratioRound(num: Dec, den: Dec, scale: number, mode: RoundMode): 
 export function tieDistance(d: Dec, scale: number): number {
   if (d.s <= scale) return 0.5
   const div = pow10(d.s - scale)
-  const r = (d.n < 0n ? -d.n : d.n) % div
+  const r = (d.n < BigInt("0") ? -d.n : d.n) % div
   return Math.abs(Number(r) / Number(div) - 0.5)
 }
 export const isExactHalf = (d: Dec, scale: number): boolean => d.s > scale && tieDistance(d, scale) === 0
@@ -158,7 +158,7 @@ export function sumKwh(intervals: readonly OracleInterval[]): Dec {
 export function sumEnergy(intervals: readonly OracleInterval[]): Dec {
   const sk = Math.max(0, ...intervals.map((it) => dec(it.kwh).s))
   const sp = Math.max(0, ...intervals.map((it) => dec(it.price).s))
-  let total = 0n
+  let total = BigInt("0")
   for (const it of intervals) {
     const k = dec(it.kwh)
     const p = dec(it.price)
@@ -187,7 +187,7 @@ export type WeightedPrice = {
 export function weightedPrice(intervals: readonly OracleInterval[]): WeightedPrice {
   const energy = sumEnergy(intervals)
   const kwh = sumKwh(intervals)
-  if (kwh.n === 0n) throw new Error('weightedPrice: ΣkWh är noll, viktat pris är odefinierat')
+  if (kwh.n === BigInt("0")) throw new Error('weightedPrice: ΣkWh är noll, viktat pris är odefinierat')
   const micro = Object.fromEntries(ROUND_MODES.map((m) => [m, ratioRound(energy, kwh, 6, m)])) as Record<RoundMode, bigint>
   const priceSum = intervals.reduce<Dec>((acc, it) => decAdd(acc, dec(it.price)), dec(0))
   const simpleAverageMicro = ratioRound(priceSum, dec(intervals.length), 6, 'half_away')
@@ -200,7 +200,7 @@ export function weightedPrice(intervals: readonly OracleInterval[]): WeightedPri
 
 /** Momsen för ett (redan avrundat) belopp exkl. moms i hela öre. */
 export function vatOnOre(exVatOre: bigint, vatPercent: number, mode: RoundMode): bigint {
-  return divRound(exVatOre * BigInt(vatPercent), 100n, mode)
+  return divRound(exVatOre * BigInt(vatPercent), BigInt("100"), mode)
 }
 
 function line(code: OracleLineCode, exact: Dec, vatPercent: number, mode: RoundMode): OracleLine {
@@ -229,8 +229,8 @@ export function oracleInvoice(input: { intervals: readonly OracleInterval[]; ter
   }
   if (terms.monthlyFeeSek !== null) lines.push(line('monthly_fee', dec(terms.monthlyFeeSek), terms.vatPercent, mode))
   if (terms.invoiceFeeSek !== null) lines.push(line('invoice_fee', dec(terms.invoiceFeeSek), terms.vatPercent, mode))
-  const totalExVatOre = lines.reduce((s, l) => s + l.exVatOre, 0n)
-  const totalVatOre = lines.reduce((s, l) => s + l.vatOre, 0n)
+  const totalExVatOre = lines.reduce((s, l) => s + l.exVatOre, BigInt("0"))
+  const totalVatOre = lines.reduce((s, l) => s + l.vatOre, BigInt("0"))
   return {
     mode, lines, totalExVatOre, totalVatOre, totalIncVatOre: totalExVatOre + totalVatOre,
     vatOnTotalOre: vatOnOre(totalExVatOre, terms.vatPercent, mode),
