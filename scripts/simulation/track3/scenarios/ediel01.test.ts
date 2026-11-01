@@ -13,7 +13,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { triggerInbound, triggerOutbox } from '../lib/app'
 import { appendToInbox, counterpartyState, purgeInbox, readReceivedEml, receivedMail, setSmtpMode, tlsHandshake, type ReceivedMail } from '../lib/counterparty'
 import { lit, resetMailboxSchedule } from '../lib/db'
-import { buildSources, injectAll, logLine, mailRows, runIntake, reprocessSources, sourceRows, Timer, actorId, type Source, type IntakeResult } from '../lib/e01-chain'
+import { buildSources, injectAll, logLine, mailRows, runIntake, reprocessSources, sourceRows, Timer, actorId, qualifiedEngine, type Source, type IntakeResult } from '../lib/e01-chain'
+import { E02OutboxAdmission } from '../lib/e02-outbox'
 import { OWN_EDIEL_ID, seedE01Tenant, seedHistoryGround, seedRoutableChain, setAckRouteApplicationReference, sqlIn } from '../lib/e01-fixture'
 import { startPlainSmtpListener, startUntrustedTlsListener } from '../lib/e01-tls'
 import { Evidence } from '../lib/evidence'
@@ -41,6 +42,50 @@ let aperak: OutRow[] = []
 let dsoBase = 0
 let legacyBaseline: Record<string, string> | null = null
 let intake: IntakeResult | null = null
+let phaseAdmission: E02OutboxAdmission
+let assignedMailboxId: string
+let unknownPhase = false
+const storedReceptionIds = new Set<string>()
+const dispatchedOutboxes = new Set<string>()
+function precondition(message: string): never { throw new Error(`T3_HARNESS_PRECONDITION: ${message}`) }
+function knownPhase() {
+  if (unknownPhase || !phaseAdmission) precondition('observe reception/processing/transport effects before another operation')
+}
+function observeReception(result: ReturnType<typeof qualifiedEngine>) {
+  if (!Array.isArray(result.inboundEmailMessageIds) || !Array.isArray(result.edielMessageIds)) precondition('physical reception IDs unavailable')
+  for (const id of result.inboundEmailMessageIds) storedReceptionIds.add(id)
+  phaseAdmission.observePoll([...storedReceptionIds], result.edielMessageIds)
+  ev.save('owned-reception-receipts.json', { storedReceptionIds: [...storedReceptionIds], business: phaseAdmission.sources, technical: phaseAdmission.technicalSources })
+}
+async function injectOwned(batch: Source[], dir: string) {
+  knownPhase(); unknownPhase = true
+  await injectAll(batch, timer, ev, dir)
+  for (const source of batch) phaseAdmission.rememberMime(source.eml)
+  unknownPhase = false
+}
+async function intakeOwned(expected: number, legacy = false) {
+  knownPhase(); unknownPhase = true
+  const result = await runIntake(run.prefix, expected, timer, mode, { legacy, maxPolls: legacy ? 3 : 8, observe: observeReception })
+  // A successful manual processing step may introduce a source after its own
+  // physical email was stored. Only previously returned reception IDs authorize it.
+  phaseAdmission.observePoll([...storedReceptionIds], [])
+  unknownPhase = false
+  return result
+}
+function captureContrl(ids: readonly string[]) {
+  knownPhase()
+  unknownPhase = true
+  phaseAdmission.assertSources(ids)
+  phaseAdmission.captureOutboxes(ids)
+  ev.save('owned-outbox-receipts.json', phaseAdmission.outboxes)
+  unknownPhase = false
+}
+function dispatchStates(assignment: readonly string[]) {
+  const rows = q<Array<{ id: string; status: string }>>(`/* t3-e01:dispatch-status */ SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'status',status) ORDER BY id),'[]') FROM public.ediel_outbox WHERE id IN (${inList([...assignment])})`)
+  if (!Array.isArray(rows) || rows.length !== assignment.length || new Set(rows.map(row => row.id)).size !== assignment.length
+    || rows.some(row => !assignment.includes(row.id))) precondition('assigned transport state is missing or ambiguous')
+  return rows
+}
 
 type OutRow = {
   id: string; message_family: string; status: string; ack_outcome: string | null; related_message_id: string; interchange_reference: string
@@ -117,18 +162,63 @@ function matchPhysicalCopies(mails: ReceivedMail[], rows: OutRow[], attempts: At
   })
 }
 
-async function drainUntilDone(ids: string[], maxCalls = 6) {
-  const calls: Array<{ status: number; ms: number; body: unknown }> = []
-  for (let i = 0; i < maxCalls; i++) {
-    const r = await timer.p('outbox_drain_http', () => triggerOutbox(mode, 100))
-    calls.push({ status: r.status, ms: r.ms, body: r.body ?? r.text.slice(0, 500) })
-    const open = q<number>(`SELECT count(*) FROM public.ediel_outbox WHERE ediel_message_id IN (${inList(ids)}) AND status IN ('prepared','queued','sending')`)
-    if (Number(open) === 0) break
+async function drainUntilDone(ids: string[], legacyNegative = false) {
+  knownPhase()
+  if (!ids.length) return []
+  if (new Set(ids).size !== ids.length) precondition('unique explicit ACK IDs required')
+  const bindings = phaseAdmission.outboxes.filter(row => ids.includes(row.ackMessageId))
+  if (bindings.length !== ids.length || ids.some(id => bindings.filter(row => row.ackMessageId === id).length !== 1)) precondition('exact captured outbox phase required')
+  const assignment = bindings.map(row => row.id)
+  // Full active set, including sending, is checked before touching shared SMTP
+  // mode. Inventory never establishes ownership and reads do not acquire a lease.
+  if (!phaseAdmission.admit(assignment).workerNeeded) return []
+  if (dispatchStates(assignment).some(row => !['prepared', 'queued'].includes(row.status))) precondition('transport phase is not fresh queued work')
+  if (legacyNegative) {
+    const foreign = q<number>(`/* t3-e01:smtp-inventory */ SELECT count(*) FROM public.ediel_outbox WHERE status IN ('prepared','queued','sending') AND id NOT IN (${inList(assignment)})`)
+    if (foreign !== 0) precondition('shared SMTP mode has unassigned active work')
   }
-  return calls
+  if (assignment.some(id => dispatchedOutboxes.has(id))) precondition('transport phase already attempted')
+  for (const id of assignment) dispatchedOutboxes.add(id)
+  const attempt = dispatchedOutboxes.size
+  ev.save(`outbound/drain-intent-${attempt}.json`, { assignment: bindings, legacyNegative })
+  unknownPhase = true
+  let primaryFailure: unknown
+  let hadPrimaryFailure = false
+  try {
+    if (legacyNegative) await setSmtpMode('permfail-5xx', { code: 554 })
+    phaseAdmission.admit(assignment)
+    let r: Awaited<ReturnType<typeof triggerOutbox>>
+    try { r = await timer.p('outbox_drain_http', () => triggerOutbox(mode, 100)) }
+    catch (error) { ev.save(`outbound/drain-unknown-${attempt}.json`, { assignment: bindings, outcome: 'unknown', retry: 'observe_persistent_effects_first' }); throw error }
+    ev.save(`outbound/drain-http-${attempt}.json`, { assignment: bindings, http: r })
+    const body = r.body as { ok?: boolean; result?: unknown } | null
+    if (r.status !== 200 || r.ok !== true || body?.ok !== true || !body.result || typeof body.result !== 'object') precondition('HTTP outcome unknown; preserve receipts without retry')
+    phaseAdmission.admit(assignment)
+    const rows = dispatchStates(assignment)
+    const terminal = legacyNegative ? ['failed', 'delivery_uncertain', 'blocked'] : ['sent']
+    if (!Array.isArray(rows) || rows.length !== assignment.length || new Set(rows.map(row => row.id)).size !== assignment.length
+      || rows.some(row => !assignment.includes(row.id) || !terminal.includes(row.status))) precondition('transport effect incomplete or uncertain; no automatic resend')
+    unknownPhase = false
+    return [{ status: r.status, ms: r.ms, body: r.body }]
+  } catch (error) {
+    primaryFailure = error; hadPrimaryFailure = true; throw error
+  } finally {
+    if (legacyNegative) {
+      try { await setSmtpMode('accept') } catch (error) {
+        unknownPhase = true
+        ev.save('outbound/smtp-restore-unknown.json', { assignment: bindings, outcome: 'unknown' })
+        if (hadPrimaryFailure) throw new AggregateError([primaryFailure, error], 'T3_HARNESS_PRECONDITION: transport and SMTP restoration require observation')
+        throw error
+      }
+    }
+  }
 }
 
 beforeAll(async () => {
+  // Counterparty mode spans both environments. This empty read grants no lease;
+  // the already assigned exclusive/quiescent producer phase is still required.
+  const active = q<number>(`/* t3-e01:startup-inventory */ SELECT count(*) FROM public.ediel_outbox WHERE status IN ('prepared','queued','sending')`)
+  if (active !== 0) precondition('startup requires an empty active outbox before shared SMTP mutation')
   ev.observe('run', { ...run, mode, N, startedAt: new Date(T0).toISOString() })
   await setSmtpMode('accept')
   ev.observe('e01_tenant', { ...seedE01Tenant(), ownEdielId: OWN_EDIEL_ID, note: 'egen tenant 16701 i stället för basbolaget 16700 (ack-läsningarna skalar med antalet CONTRL i bolaget; basbolaget hade ~37 -> 8 s statement_timeout)' })
@@ -137,12 +227,19 @@ beforeAll(async () => {
   const all = buildSources(run.prefix, [0, ...Array.from({ length: N }, (_, i) => i + 1)], mailbox)
   legacySource = all[0]; sources = all.slice(1)
   seeded = seedRoutableChain(all.map((s) => s.spec.meteringPoint))
+  const home = process.env.SIM_HOME
+  if (!home) precondition('assigned fixture home required')
+  const fixture = JSON.parse(readFileSync(`${home}/fixture.json`, 'utf8'))
+  const mailboxId = fixture.mailboxes?.[mode]
+  phaseAdmission = new E02OutboxAdmission({ companyId: seeded.companyId, environment: mode, mailboxId })
+  assignedMailboxId = mailboxId
   ev.observe('seeded', { companyId: seeded.companyId, meteringPoints: seeded.points.length, issuer: `${COUNTERPARTY_EDIEL_ID} (gridex_utilts_issuer)` })
 }, 300_000)
 
-afterEach(async () => { await setSmtpMode('accept').catch(() => undefined) })
+// An assertion failure is not authority for a later mutating diagnostic. This
+// hook only latches HOLD; it never changes SMTP or attempts recovery.
+afterEach(({ task }) => { if (task.result?.state === 'fail') unknownPhase = true })
 afterAll(async () => {
-  await setSmtpMode('accept').catch(() => undefined)
   if (ackRoutePrevious) setAckRouteApplicationReference(ackRoutePrevious.previous)
   ev.observe('timings', timer.summary())
   ev.observe('wall_clock_ms', Date.now() - T0)
@@ -152,19 +249,19 @@ afterAll(async () => {
 // ---------------------------------------------------------------------------------------------------------------------
 describe('EDIEL01.06 förberedelse: äldre rader skapas av kodens egen väg före huvudkörningen', () => {
   it('EDIEL01.06 pre: äldre failed CONTRL-outboxrad + arkiverad legacy-MIME (permfail 554) + äldre outbound_requests; sha256/radhash tas', async () => {
+    knownPhase()
     const dir = 'legacy'
     await purgeInbox()
-    await injectAll([legacySource!], timer, ev, dir)
-    const r = await runIntake(run.prefix, 1, timer, mode, { maxPolls: 3, legacy: true })
+    await injectOwned([legacySource!], dir)
+    const r = await intakeOwned(1, true)
     ev.save(`${dir}/intake.json`, r)
     const lsrc = sourceRows(run.prefix, true)
     expect(lsrc.length, 'legacy-källan har ett ediel_message').toBe(1)
     const lc = outRows('CONTRL', [lsrc[0].id])
     expect(lc.length, 'legacy-CONTRL skapad').toBe(1)
-    await setSmtpMode('permfail-5xx', { code: 554 })
-    let d: Awaited<ReturnType<typeof triggerOutbox>>
-    try { d = await timer.p('legacy_drain_permfail', () => triggerOutbox(mode, 100)) } finally { await setSmtpMode('accept').catch(() => undefined) }
-    ev.save(`${dir}/drain-response.json`, d.body ?? d.text)
+    captureContrl([lsrc[0].id])
+    const calls = await drainUntilDone(lc.map(row => row.id), true)
+    ev.save(`${dir}/drain-response.json`, calls)
     const after = outRows('CONTRL', [lsrc[0].id])[0]
     ev.observe('legacy_outbox_after_permfail', { status: after.outbox_status, attempts: after.send_attempt_count })
     expect(['failed', 'delivery_uncertain', 'blocked']).toContain(after.outbox_status)
@@ -212,7 +309,7 @@ async function legacyHashes(legacySourceId: string): Promise<Record<string, stri
 // ---------------------------------------------------------------------------------------------------------------------
 describe('EDIEL01.01 intake av N E66 -> N CONTRL -> drain -> N MIME hos DSO', () => {
   it('EDIEL01.01 N syntetiska E66 läggs i IMAP via TLS och ligger kvar i mappen', async () => {
-    await injectAll(sources, timer, ev, 'inbound')
+    await injectOwned(sources, 'inbound')
     const { inboxStatus } = await import('../lib/counterparty')
     const st = await inboxStatus()
     ev.observe('imap_after_inject', st)
@@ -222,23 +319,40 @@ describe('EDIEL01.01 intake av N E66 -> N CONTRL -> drain -> N MIME hos DSO', ()
     expect(new Set(sources.map((s) => s.spec.meteringPoint)).size, 'unika mätpunkter').toBe(N)
   }, 600_000)
 
-  it('EDIEL01.01 HTTP inbound-cron (utan aktör) loggas först: utfall, tid, vad som lagras', async () => {
-    resetMailboxSchedule(mode)
+  it('EDIEL01.01 HTTP inbound-cron completes the ordinary cohort before further diagnostics', async () => {
+    knownPhase(); unknownPhase = true
     const before = mailRows(run.prefix).length
-    const r = await timer.p('imap_poll_http_cron', () => triggerInbound(mode))
+    let ediel = 0
+    // The ordinary route has a bounded mailbox batch (default25), below N28.
+    // More known successful, progressing batches are normal intake, never a
+    // recovery attempt after an unknown result or a switch to another ingress.
+    for (let batch = 1; batch <= 8; batch++) {
+      resetMailboxSchedule(mode)
+      const r = await timer.p('imap_poll_http_cron', () => triggerInbound(mode))
+      ev.save(`inbound/http-cron-batch-${batch}.json`, r)
+      const http = r.body as { ok?: boolean; result?: ReturnType<typeof qualifiedEngine> } | null
+      if (!r.ok || r.status !== 200 || http?.ok !== true || !http.result) precondition('ordinary HTTP intake did not complete; no actor fallback')
+      observeReception(qualifiedEngine({ ok: true, result: http.result }))
+      const rows = sourceRows(run.prefix), known = new Set(phaseAdmission.sources.map(row => row.sourceMessageId))
+      if (new Set(rows.map(row => row.id)).size !== rows.length || rows.some(row => !known.has(row.id))
+        || rows.length <= ediel || rows.length > N) precondition('ordinary HTTP batch did not make verified source progress')
+      ediel = rows.length
+      if (ediel === N) break
+    }
     const after = mailRows(run.prefix)
     const jobs = q<Array<{ status: string; step: string | null; error_message: string | null }>>(`SELECT coalesce(jsonb_agg(to_jsonb(x)),'[]') FROM (SELECT j.status,j.step,j.error_message FROM public.inbound_processing_jobs j JOIN public.inbound_email_messages i ON i.id=j.inbound_email_message_id WHERE i.subject LIKE ${lit(`E66 ${run.prefix} %`)} AND i.subject <> ${lit(`E66 ${run.prefix} 000`)}) x`)
-    const ediel = sourceRows(run.prefix).length
-    ev.save('inbound/http-cron-outcome.json', { status: r.status, ms: r.ms, body: r.body ?? r.text.slice(0, 2000), mailsBefore: before, mailsAfter: after.length, jobs, edielMessages: ediel })
-    ev.observe('http_inbound_cron', { status: r.status, ms: r.ms, storedMails: after.length - before, jobs, edielMessages: ediel,
-      note: 'cron-routen skickar ingen actorUserId -> ediel_real_reception_actor_and_parse_required (README obs. 2); en poll hämtar ~ett meddelande (obs. 1)' })
+    ev.save('inbound/http-cron-outcome.json', { mailsBefore: before, mailsAfter: after.length, jobs, edielMessages: ediel })
+    ev.observe('http_inbound_cron', { storedMails: after.length - before, jobs, edielMessages: ediel,
+      note: 'The current route resolves its configured automation actor. Only a complete successful ordinary HTTP outcome permits further diagnostics.' })
     // Oraklet för HTTP-vägen: den ska göra hela intaket (N ediel_messages). Observerat avvikande utfall asserteras som FAIL.
-    expect(ediel, 'HTTP inbound-cron skapar ediel_messages utan aktör').toBeGreaterThan(0)
+    expect(ediel, 'ordinary HTTP intake completes the full declared cohort').toBe(N)
+    unknownPhase = false
   }, 600_000)
 
   it('EDIEL01.01 intake med aktör: poll(IMAP) lagrar N mail; första bearbetningsförsöket skapar ediel_messages', async () => {
-    // Dokumenterat ersättningssteg: samma motor i testprocessen med automationsaktören (app/admin/inbound-mail/actions.ts:75-91).
-    intake = await runIntake(run.prefix, N, timer, mode)
+    // Explicit diagnostic after the ordinary HTTP path completed. A failed or
+    // incomplete HTTP outcome stays held; this cannot substitute for that path.
+    intake = await intakeOwned(N)
     ev.save('inbound/intake-result.json', intake)
     ev.observe('intake', intake)
     expect(mailRows(run.prefix).length, 'N mail lagrade via IMAP-poll').toBe(N)
@@ -248,6 +362,7 @@ describe('EDIEL01.01 intake av N E66 -> N CONTRL -> drain -> N MIME hos DSO', ()
   }, 900_000)
 
   it('EDIEL01.01 N ediel_messages (inbound E66) finns efter "Processa om" + autobearbetning, med rätt referenser', async () => {
+    knownPhase(); unknownPhase = true
     const rows = sourceRows(run.prefix)
     srcIds = rows.map((r) => r.id)
     ev.save('inbound/source-rows.json', rows)
@@ -261,6 +376,8 @@ describe('EDIEL01.01 intake av N E66 -> N CONTRL -> drain -> N MIME hos DSO', ()
     }
     expect(intake!.engineAuto.error).toBeUndefined()
     expect(intake!.engineAuto.autoProcessErrors ?? []).toEqual([])
+    unknownPhase = false
+    captureContrl(srcIds)
   })
 
   it('EDIEL01.01 exakt N CONTRL i outbox med related_message_id = källa, positiv resultatkod; UCI refererar källans UNB-ref; avsändare/mottagare omvända', async () => {
@@ -325,6 +442,9 @@ describe('EDIEL01.02 positiva APERAK-utkast utan outbox -> native enqueue', () =
   })
 
   it('EDIEL01.02 kodens egen väg för E66 ger N positiva APERAK-utkast; observerad outbox-status loggas', async () => {
+    knownPhase()
+    phaseAdmission.assertSources(srcIds)
+    unknownPhase = true
     // Granskat historiktäckningsunderlag (syntetiskt, anpassat från native-testernas helper) för de admitterade källorna; därefter
     // samma inbound-bearbetning som motorns autoprocess -> UTILTS accepteras -> positiv APERAK.
     ev.observe('history_ground_seeded', seedHistoryGround(srcIds, actorId()))
@@ -346,6 +466,7 @@ describe('EDIEL01.02 positiva APERAK-utkast utan outbox -> native enqueue', () =
       const a = aperak.find((x) => x.related_message_id === s.sourceId)!
       ev.save(`outbound/aperak-${String(s.seq).padStart(3, '0')}.edi`, a.raw_payload)
     }
+    unknownPhase = false
   }, 900_000)
 
   it('EDIEL01.02 native enqueue via autoAckOrchestrator (prepared.kind==="existing") -> exakt en outboxrad per utkast, existing_response_retained, inga nya svarskopior', async () => {
@@ -354,14 +475,24 @@ describe('EDIEL01.02 positiva APERAK-utkast utan outbox -> native enqueue', () =
     beforeCounts = counts()
     const results: Array<{ seq: number; status: string; lifecycleStatus: string | null; ackMessageId: string | null; expectedAck: string; reason: string; ms: number }> = []
     for (const s of sources) {
+      knownPhase()
       const { data: src, error } = await supabaseService.from('ediel_messages').select('*').eq('id', s.sourceId!).single()
       expect(error).toBeNull()
       const expectedAck = aperak.find((a) => a.related_message_id === s.sourceId)!.id
+      const ackPayloadSha256 = sha(aperak.find((a) => a.id === expectedAck)!.raw_payload)
       const t0 = Date.now()
-      const r = await timer.p('native_enqueue_orchestrator', () => runAutoAckOrchestratorForInboundMessage({
+      unknownPhase = true
+      ev.save(`outbound/enqueue-intent-${s.seq}.json`, { sourceMessageId: s.sourceId, ackMessageId: expectedAck, ackPayloadSha256 })
+      let r!: Awaited<ReturnType<typeof runAutoAckOrchestratorForInboundMessage>>
+      await phaseAdmission.captureEnqueue({ sourceMessageId: s.sourceId!, ackMessageId: expectedAck, ackPayloadSha256 }, async () => {
+        r = await timer.p('native_enqueue_orchestrator', () => runAutoAckOrchestratorForInboundMessage({
         actorUserId: actorId(), sourceMessage: src as never, inboundEmailMessageId: s.mailId!,
         decision: { kind: 'ack', ackFamily: 'APERAK', outcome: 'positive', messageText: null, applicationErrors: [], reason: 'EDIEL01.02 native enqueue av befintligt APERAK-utkast', ruleKeys: [], classification: null },
-      }))
+        }))
+        return r
+      })
+      ev.save('owned-outbox-receipts.json', phaseAdmission.outboxes)
+      unknownPhase = false
       results.push({ seq: s.seq, status: r.status, lifecycleStatus: r.lifecycleStatus, ackMessageId: r.ackMessageId, expectedAck, reason: r.reason, ms: Date.now() - t0 })
     }
     ev.save('outbound/native-enqueue-results.json', results)
@@ -384,11 +515,18 @@ describe('EDIEL01.02 positiva APERAK-utkast utan outbox -> native enqueue', () =
     aperak = aperakNow
     // Idempotens: ett andra anrop skapar varken nya svar eller nya outboxrader.
     const again = counts()
-    const second = await runAutoAckOrchestratorForInboundMessage({
+    knownPhase(); unknownPhase = true
+    let second!: Awaited<ReturnType<typeof runAutoAckOrchestratorForInboundMessage>>
+    const firstAck = aperak.find(row => row.related_message_id === sources[0].sourceId)!
+    await phaseAdmission.captureEnqueue({ sourceMessageId: sources[0].sourceId!, ackMessageId: firstAck.id, ackPayloadSha256: sha(firstAck.raw_payload) }, async () => {
+      second = await runAutoAckOrchestratorForInboundMessage({
       actorUserId: actorId(), sourceMessage: (await supabaseService.from('ediel_messages').select('*').eq('id', sources[0].sourceId!).single()).data as never,
       inboundEmailMessageId: sources[0].mailId!,
       decision: { kind: 'ack', ackFamily: 'APERAK', outcome: 'positive', messageText: null, applicationErrors: [], reason: 'EDIEL01.02 repeat', ruleKeys: [], classification: null },
-    })
+      })
+      return second
+    }, true)
+    unknownPhase = false
     const afterSecond = counts()
     ev.observe('native_enqueue_repeat', { lifecycle: second.lifecycleStatus, before: again, after: afterSecond })
     expect(afterSecond).toEqual(again)
@@ -461,6 +599,7 @@ describe('EDIEL01.04 TLS över egen CA; certfel mot okänd CA; ingen klartext', 
   })
 
   it('EDIEL01.04 negativt SMTP: okänd CA och klartext/STARTTLS-lös motpart -> sändningen faller och ingen mejlkommando går i klartext', async () => {
+    knownPhase()
     const { sendEdielEmail } = await import('@/lib/email/sendEdielEmail')
     const target = contrl[0]
     const rawMime = (tag: string) => Buffer.from([`From: ${mailbox}`, `To: ${DSO_EMAIL}`, `Subject: E01 negative TLS ${tag}`, `Message-ID: <e01-neg-${tag}-${run.prefix.toLowerCase()}@t3.sim.invalid>`, 'MIME-Version: 1.0', 'Content-Type: text/plain', '', 'must never reach a server', ''].join('\r\n'))
@@ -496,7 +635,10 @@ describe('EDIEL01.04 TLS över egen CA; certfel mot okänd CA; ingen klartext', 
   }, 300_000)
 
   it('EDIEL01.04 negativt IMAP: poll mot server med okänd CA nekas utan att inloggningsuppgifter skickas; imap_secure=false-banan loggas', async () => {
-    const mbRow = q<{ id: string; imap_port: number; metadata: Record<string, unknown> }>(`SELECT to_jsonb(x) FROM (SELECT id,imap_port,metadata FROM public.ediel_mailboxes WHERE company_id IS NULL AND environment=${lit(mode)} AND COALESCE(metadata->>'scope','')='platform_shared' LIMIT 1) x`)
+    knownPhase()
+    if (!assignedMailboxId) precondition('explicit assigned mailbox required for negative diagnostic')
+    const mbRow = q<{ id: string; imap_port: number; metadata: Record<string, unknown> }>(`SELECT to_jsonb(x) FROM (SELECT id,imap_port,metadata FROM public.ediel_mailboxes WHERE id=${lit(assignedMailboxId)} AND company_id IS NULL AND environment=${lit(mode)} AND COALESCE(metadata->>'scope','')='platform_shared') x`)
+    if (!mbRow || mbRow.id !== assignedMailboxId) precondition('assigned diagnostic mailbox missing or changed')
     const unk = await startUntrustedTlsListener('* OK untrusted IMAP')
     const setBox = (port: number, secure: boolean) => q(`UPDATE public.ediel_mailboxes SET imap_port=${port}, metadata = metadata || ${lit(JSON.stringify({ imap_secure: secure }))}::jsonb, last_polled_at=NULL, locked_at=NULL, locked_by=NULL WHERE id=${lit(mbRow.id)}`)
     const restore = () => q(`UPDATE public.ediel_mailboxes SET imap_port=${mbRow.imap_port}, metadata=${lit(JSON.stringify(mbRow.metadata))}::jsonb, last_polled_at=NULL, locked_at=NULL, locked_by=NULL, last_error=NULL WHERE id=${lit(mbRow.id)}`)

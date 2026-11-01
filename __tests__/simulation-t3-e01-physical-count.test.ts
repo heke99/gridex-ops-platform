@@ -60,6 +60,7 @@ function harness(variant: Variant) {
     providerMessageId: null, smtpCode: 250, rawBase64: fixture.raw.toString('base64'),
   })
   const sql = (query: string) => {
+    if (query.includes('t3-e01:dispatch-status')) return Object.values(rows).flat().filter(row => query.includes(`'${row.outbox_id}'`)).map(row => ({ id: row.outbox_id, status: drains >= (row.message_family === 'CONTRL' ? 1 : 2) ? 'sent' : 'queued' }))
     if (query.includes('SELECT count(*)')) return 0
     if (query.includes('FROM gridex_ediel_transport.attempts')) {
       const wanted = []
@@ -82,7 +83,7 @@ function harness(variant: Variant) {
       received.push(family === 'CONTRL' ? contrl.rec : aperak.rec)
       const extraContrl = ['contrl-same-rfc', 'contrl-new-rfc', 'duplicate-capture-n', 'extra-unrelated'].includes(variant)
       if ((family === 'CONTRL' && extraContrl) || (family === 'APERAK' && variant.startsWith('aperak-'))) received.push(duplicate.rec)
-      return { status: 200, ok: true, ms: 1, body: { ok: true }, text: '' }
+      return { status: 200, ok: true, ms: 1, body: { ok: true, result: {} }, text: '' }
     } },
     '../lib/counterparty': {
       receivedMail: async () => received,
@@ -94,20 +95,24 @@ function harness(variant: Variant) {
     },
     '../lib/db': { lit: (value: string) => "'" + value.replaceAll("'", "''") + "'" },
     '../lib/e01-chain': { Timer }, '../lib/e01-fixture': { sqlIn: sql }, '../lib/e01-tls': {},
+    '../lib/e02-outbox': {},
     '../lib/evidence': { Evidence }, '../lib/inprocess': {}, '../lib/seed.mjs': { newRunContext: () => ({ prefix: 'synthetic' }) },
   }
   const exports: { prime?: (state: unknown) => void } = {}
   const code = ts.transpileModule(readFileSync(filename, 'utf8'), {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText
-  runInNewContext(code + '\nexports.prime=s=>{contrl=s.contrl;aperak=s.aperak;srcIds=["source-A"];dsoBase=0;};', {
+  // Receipt admission is an explicit finite port here; its actual implementation
+  // is tested separately. These callbacks qualify physical MIME matching only.
+  runInNewContext(code + '\nexports.prime=s=>{contrl=s.contrl;aperak=s.aperak;srcIds=["source-A"];dsoBase=0;phaseAdmission=s.admission;};', {
     exports, Buffer, process: { env: { T3_E01_N: '1' } },
     require: (name: string) => {
       if (!Object.hasOwn(ports, name)) throw new Error('Undeclared import: ' + name)
       return ports[name]
     },
   }, { filename, timeout: 5000 })
-  exports.prime!( { contrl: rows.CONTRL, aperak: rows.APERAK })
+  exports.prime!( { contrl: rows.CONTRL, aperak: rows.APERAK,
+    admission: { outboxes: Object.values(rows).flat().map(row => ({ id: row.outbox_id, ackMessageId: row.id })), admit: () => ({ workerNeeded: true }) } })
   const prefixes = ['EDIEL01.01 outbox-drain via', 'EDIEL01.03 outbox-drain via', 'EDIEL01.03 N CONTRL-MIME:']
   const run = async () => {
     for (const prefix of prefixes) {

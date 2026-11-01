@@ -15,6 +15,8 @@ export type E02OutboxReceipt = Readonly<E02SourceReceipt & {
   id: string; ackMessageId: string; ackFamily: string; ackCompanyId: string; ackEnvironment: string
   ackSourceMessageId: string; ackDirection: string; outboxFamily: string; ackPayloadSha256: string
 }>
+export type E01EnqueueExpected = Readonly<{ sourceMessageId: string; ackMessageId: string; ackPayloadSha256: string }>
+export type E01EnqueueResult = Readonly<{ status: string; ackMessageId: string | null; lifecycleStatus: string | null }>
 type Row = Record<string, unknown>
 const sourceKeys = ['companyId', 'environment', 'mailboxId', 'sourceMessageId', 'inboundEmailMessageId', 'mimeSha256', 'sourcePayloadSha256', 'direction'] as const
 const outputKeys = ['id', 'ackMessageId', 'ackFamily', 'ackCompanyId', 'ackEnvironment', 'ackSourceMessageId', 'ackDirection', 'outboxFamily', 'ackPayloadSha256'] as const
@@ -58,6 +60,7 @@ export class E02OutboxAdmission {
   private readonly technicalReceipts = new Map<string, E02TechnicalSourceReceipt>()
   private readonly outputReceipts = new Map<string, E02OutboxReceipt>()
   private readonly capturedSources = new Set<string>()
+  private enqueueHeld = false
   constructor(scope: Scope, query: (sql: string) => unknown = sqlJson) {
     if (!scope || !text(scope.companyId) || !text(scope.mailboxId) || !['test', 'production'].includes(scope.environment)) fail('explicit E02 scope required')
     this.scope = Object.freeze({ companyId: scope.companyId, environment: scope.environment, mailboxId: scope.mailboxId })
@@ -66,6 +69,9 @@ export class E02OutboxAdmission {
   get sources(): readonly E02SourceReceipt[] { return Object.freeze([...this.sourceReceipts.values()]) }
   get technicalSources(): readonly E02TechnicalSourceReceipt[] { return Object.freeze([...this.technicalReceipts.values()]) }
   get outboxes(): readonly E02OutboxReceipt[] { return Object.freeze([...this.outputReceipts.values()]) }
+  private requireKnownQueueOutcome(): void {
+    if (this.enqueueHeld) fail('enqueue outcome held; observe persistent effects before any new queue operation')
+  }
 
   /** Call only after successful owned APPEND; malformed/no-source MIME is still
    * a real input but cannot authorize any independently unextractable source. */
@@ -168,6 +174,7 @@ export class E02OutboxAdmission {
   /** Call once, after the source's own normal processing/ordinary refusal.
    * Unknown processing outcomes never authorize output capture or a worker. */
   captureOutboxes(sourceIds: readonly string[]): readonly E02OutboxReceipt[] {
+    this.requireKnownQueueOutcome()
     this.assertSources(sourceIds)
     if (sourceIds.some(id => this.capturedSources.has(id))) fail('source output capture already completed')
     if (!sourceIds.length) return Object.freeze([])
@@ -183,9 +190,70 @@ export class E02OutboxAdmission {
     return Object.freeze([...captured.values()])
   }
 
+  /** Later retained APERAK enqueue has its own causal action receipt. This is
+   * not another source-wide capture and never learns ownership from inventory.
+   * repeat=true is only the explicit idempotency probe of an already-owned row. */
+  async captureEnqueue(expected: E01EnqueueExpected, action: () => Promise<E01EnqueueResult>, repeat = false): Promise<readonly E02OutboxReceipt[]> {
+    this.requireKnownQueueOutcome()
+    if (!expected || !text(expected.sourceMessageId) || !text(expected.ackMessageId) || !hash(expected.ackPayloadSha256)
+      || typeof action !== 'function' || typeof repeat !== 'boolean') fail('exact retained ACK enqueue assignment required')
+    // Snapshot caller input before awaiting an action; caller mutation cannot
+    // change the ACK/source authorized by the pre-action observations.
+    const assigned = Object.freeze({ sourceMessageId: expected.sourceMessageId, ackMessageId: expected.ackMessageId, ackPayloadSha256: expected.ackPayloadSha256 })
+    this.assertSources([assigned.sourceMessageId])
+    if (!this.capturedSources.has(assigned.sourceMessageId)) fail('initial source output capture must precede retained ACK enqueue')
+    const readAck = (draftRequired: boolean): Row => {
+      const found = rows(this.query(`/* t3-e02:enqueue-ack */ SELECT coalesce(jsonb_agg(jsonb_build_object(
+        'ackMessageId',m.id,'companyId',m.company_id,'environment',m.environment,'sourceMessageId',m.related_message_id,
+        'direction',m.direction,'family',m.message_family,'ackOutcome',m.ack_outcome,'status',m.status,
+        'ackPayloadSha256',encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex'))),'[]')
+        FROM public.ediel_messages m WHERE m.id=${lit(assigned.ackMessageId)}`))
+      if (found.length !== 1) fail('exact retained ACK original missing or ambiguous')
+      const row = found[0]
+      if (row.ackMessageId !== assigned.ackMessageId || row.sourceMessageId !== assigned.sourceMessageId
+        || row.companyId !== this.scope.companyId || row.environment !== this.scope.environment
+        || row.direction !== 'outbound' || row.family !== 'APERAK' || row.ackOutcome !== 'positive'
+        || row.ackPayloadSha256 !== assigned.ackPayloadSha256 || !text(row.status)
+        || draftRequired && row.status !== 'draft') fail('retained APERAK original binding differs')
+      return row
+    }
+    const readOutputs = () => rows(this.query(`/* t3-e02:enqueue-outputs */ SELECT coalesce(jsonb_agg(${outputSelection} ORDER BY o.id),'[]') ${outputJoins}
+      WHERE o.ediel_message_id=${lit(assigned.ackMessageId)}`))
+    const beforeAck = readAck(!repeat), before = readOutputs()
+    const owned = [...this.outputReceipts.values()].filter(receipt => receipt.ackMessageId === assigned.ackMessageId)
+    let retained: E02OutboxReceipt | null = null
+    if (repeat) {
+      if (owned.length !== 1 || before.length !== 1) fail('repeat requires one already-owned exact outbox receipt')
+      retained = this.output(before[0])
+      if (!equal(before[0], owned[0]) || retained.sourceMessageId !== assigned.sourceMessageId
+        || retained.ackMessageId !== assigned.ackMessageId || retained.ackPayloadSha256 !== assigned.ackPayloadSha256) fail('repeat outbox binding differs')
+    } else if (before.length !== 0 || owned.length !== 0) fail('new retained ACK enqueue requires outbox absence')
+
+    // Set before entering the mutating callback. Any throw, malformed result or
+    // failed postcondition leaves a sticky HOLD, including concurrent reentry.
+    this.enqueueHeld = true
+    const result = await action()
+    if (!result || result.status !== 'retained' || result.lifecycleStatus !== 'existing_response_retained'
+      || result.ackMessageId !== assigned.ackMessageId) fail('retained ACK enqueue action did not complete with its exact original')
+    this.assertSources([assigned.sourceMessageId])
+    const afterAck = readAck(false), after = readOutputs()
+    if (after.length !== 1) fail('retained ACK enqueue did not produce exactly one outbox row')
+    const receipt = this.output(after[0])
+    if (receipt.sourceMessageId !== assigned.sourceMessageId || receipt.ackMessageId !== assigned.ackMessageId
+      || receipt.ackFamily !== 'APERAK' || receipt.ackPayloadSha256 !== assigned.ackPayloadSha256) fail('retained ACK enqueue output differs')
+    if (repeat) {
+      if (!retained || !equal(after[0], retained) || !equal(after[0], before[0]) || !equal(before[0], after[0])
+        || !equal(afterAck, beforeAck) || !equal(beforeAck, afterAck)) fail('explicit repeat changed its retained output')
+    } else if (this.outputReceipts.has(receipt.id)) fail('retained ACK enqueue reused another output identity')
+    this.outputReceipts.set(receipt.id, receipt)
+    this.enqueueHeld = false
+    return Object.freeze([receipt])
+  }
+
   /** No ownership is learned here. All active rows, including live sending
    * leases, must belong to this exact explicit phase assignment. */
   admit(assignedIds: readonly string[]): { workerNeeded: boolean; assigned: readonly E02OutboxReceipt[] } {
+    this.requireKnownQueueOutcome()
     ids(assignedIds)
     if (assignedIds.some(id => !this.outputReceipts.has(id))) fail('explicit captured outbox receipts required')
     const inventory = rows(this.query(`/* t3-e02:inventory */ SELECT coalesce(jsonb_agg(${outputSelection} ORDER BY o.id),'[]') ${outputJoins}

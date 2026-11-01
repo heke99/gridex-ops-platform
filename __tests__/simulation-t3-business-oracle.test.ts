@@ -210,6 +210,7 @@ function legacy(mode: 'stable' | 'changed' | 'missing' | 'empty' | 'read-rejecte
     '../lib/counterparty': { setSmtpMode: refused, receivedMail: refused, counterpartyState: async () => ({ stored: 0 }) },
     '../lib/db': { lit, resetMailboxSchedule: refused },
     '../lib/e01-chain': { sourceRows: () => [{ id: 'source' }], Timer: class {} },
+    '../lib/e02-outbox': {},
     '../lib/e01-fixture': { sqlIn, OWN_EDIEL_ID: '16701' },
     '../lib/e01-tls': {}, '../lib/evidence': { Evidence }, '../lib/inprocess': {},
     '../lib/seed.mjs': { adminClient, newRunContext: () => ({ prefix: 'synthetic' }), DSO_EMAIL: 'dso@example.invalid', COUNTERPARTY_EDIEL_ID: '70007' },

@@ -30,9 +30,12 @@ type Admission = {
   readonly sources: readonly Readonly<Record<string, unknown>>[]
   readonly technicalSources: readonly Readonly<Record<string, unknown>>[]
   readonly outboxes: readonly Receipt[]
+  captureEnqueue: (expected: { sourceMessageId: string; ackMessageId: string; ackPayloadSha256: string },
+    action: () => Promise<{ status: string; ackMessageId: string | null; lifecycleStatus: string | null }>, repeat?: boolean) => Promise<readonly Receipt[]>
 }
 function harness() {
   let emails: unknown = [email], sources: unknown = [source], outputs: unknown = [outbox], active: unknown = [outbox]
+  let enqueueAck: unknown = [], enqueueOutputs: unknown = []
   const calls: string[] = []
   const sqlJson = (sql: string): unknown => {
     calls.push(sql)
@@ -40,6 +43,8 @@ function harness() {
     if (sql.includes('t3-e02:sources')) return sources
     if (sql.includes('t3-e02:outputs')) return outputs
     if (sql.includes('t3-e02:inventory')) return active
+    if (sql.includes('t3-e02:enqueue-ack')) return enqueueAck
+    if (sql.includes('t3-e02:enqueue-outputs')) return enqueueOutputs
     throw new Error('Undeclared SQL port')
   }
   const exports: { E02OutboxAdmission?: new (scope: unknown, port: unknown) => Admission } = {}
@@ -61,7 +66,8 @@ function harness() {
   const capture = () => { receive(); return admission.captureOutboxes(['source-A']) }
   return { admission, calls, receive, capture,
     setEmails: (x: unknown) => { emails = x }, setSources: (x: unknown) => { sources = x },
-    setOutputs: (x: unknown) => { outputs = x }, setActive: (x: unknown) => { active = x } }
+    setOutputs: (x: unknown) => { outputs = x }, setActive: (x: unknown) => { active = x },
+    setEnqueueAck: (x: unknown) => { enqueueAck = x }, setEnqueueOutputs: (x: unknown) => { enqueueOutputs = x } }
 }
 
 describe('T3 E02 physical reception ownership', () => {
@@ -129,6 +135,112 @@ describe('T3 E02 physical reception ownership', () => {
     c.admission.rememberMime(plain); c.setEmails([{ ...email, mimeSha256: hash(plain) }]); c.setSources([]); c.setActive([])
     expect(c.admission.observePoll(['email-A'], [])).toEqual([])
     expect(c.admission.admit([]).workerNeeded).toBe(false)
+  })
+})
+
+describe('T3 later APERAK capture requires its own completed enqueue action', () => {
+  const expected = { sourceMessageId: 'source-A', ackMessageId: 'aperak-A', ackPayloadSha256: hash("UNH+1+APERAK:D:96A:UN'") }
+  const ack = { ackMessageId: 'aperak-A', companyId: 'own-company', environment: 'test', sourceMessageId: 'source-A',
+    direction: 'outbound', family: 'APERAK', ackOutcome: 'positive', status: 'draft', ackPayloadSha256: expected.ackPayloadSha256 }
+  const output = { ...outbox, id: 'aperak-outbox', ackMessageId: 'aperak-A', ackFamily: 'APERAK', outboxFamily: 'APERAK', ackPayloadSha256: expected.ackPayloadSha256 }
+  const retained = { status: 'retained', ackMessageId: 'aperak-A', lifecycleStatus: 'existing_response_retained' }
+  function ready() {
+    const c = harness(); c.capture(); c.setEnqueueAck([ack]); c.setEnqueueOutputs([]); c.setActive([{ ...outbox, status: 'sent' }])
+    return c
+  }
+  it('captures exactly the new expected ACK outbox after one successful own action', async () => {
+    const c = ready(); let actions = 0
+    const receipts = await c.admission.captureEnqueue(expected, async () => { actions++; c.setEnqueueOutputs([output]); return retained })
+    expect(actions).toBe(1)
+    expect(receipts).toMatchObject([{ id: 'aperak-outbox', sourceMessageId: 'source-A', ackMessageId: 'aperak-A', ackPayloadSha256: expected.ackPayloadSha256 }])
+    expect(Object.isFrozen(receipts)).toBe(true); expect(Object.isFrozen(receipts[0])).toBe(true)
+    c.setActive([output]); expect(c.admission.admit(['aperak-outbox']).workerNeeded).toBe(true)
+    expect(c.admission.outboxes).toHaveLength(2)
+  })
+  it('requires the initial source capture and does not treat an observed source as enqueue authority', async () => {
+    const c = harness(); c.receive(); c.setEnqueueAck([ack]); let actions = 0
+    await expect(c.admission.captureEnqueue(expected, async () => { actions++; return retained })).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(actions).toBe(0)
+  })
+  it.each(['ackMessageId', 'companyId', 'environment', 'sourceMessageId', 'direction', 'family', 'ackOutcome', 'ackPayloadSha256', 'status'])('refuses wrong pre-action ACK %s before calling the action', async key => {
+    const c = ready(); c.setEnqueueAck([{ ...ack, [key]: 'wrong' }]); let actions = 0
+    await expect(c.admission.captureEnqueue(expected, async () => { actions++; return retained })).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(actions).toBe(0)
+  })
+  it('does not adopt a pre-existing unowned output row as a new enqueue effect', async () => {
+    const c = ready(); c.setEnqueueOutputs([output]); let actions = 0
+    await expect(c.admission.captureEnqueue(expected, async () => { actions++; return retained })).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(actions).toBe(0)
+  })
+  it.each(['status', 'ackMessageId', 'lifecycleStatus'])('holds on wrong action return %s and permits no implicit recovery', async key => {
+    const c = ready(); let actions = 0
+    await expect(c.admission.captureEnqueue(expected, async () => { actions++; c.setEnqueueOutputs([output]); return { ...retained, [key]: 'wrong' } })).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(actions).toBe(1)
+    expect(() => c.admission.admit([])).toThrow('T3_HARNESS_PRECONDITION')
+    expect(() => c.admission.captureOutboxes([])).toThrow('T3_HARNESS_PRECONDITION')
+    await expect(c.admission.captureEnqueue(expected, async () => { actions++; return retained })).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(actions).toBe(1)
+  })
+  it('preserves a partial thrown action as a sticky hold even if its output later appears', async () => {
+    const c = ready(); let actions = 0; const error = new Error('statement timeout; outcome unknown')
+    await expect(c.admission.captureEnqueue(expected, async () => { actions++; c.setEnqueueOutputs([output]); throw error })).rejects.toBe(error)
+    expect(c.admission.outboxes).toHaveLength(1)
+    c.setActive([]); expect(() => c.admission.admit([])).toThrow('T3_HARNESS_PRECONDITION')
+    await expect(c.admission.captureEnqueue(expected, async () => { actions++; return retained }, true)).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(actions).toBe(1)
+  })
+  it('blocks queue admission during the in-flight own action', async () => {
+    const c = ready()
+    await c.admission.captureEnqueue(expected, async () => {
+      expect(() => c.admission.admit([])).toThrow('T3_HARNESS_PRECONDITION')
+      expect(() => c.admission.captureOutboxes([])).toThrow('T3_HARNESS_PRECONDITION')
+      c.setEnqueueOutputs([output]); return retained
+    })
+  })
+  it('snapshots expected ACK identity before the mutating callback can change its caller object', async () => {
+    const c = ready(), mutable = { ...expected }
+    const receipt = await c.admission.captureEnqueue(mutable, async () => {
+      mutable.ackMessageId = 'unassigned'; mutable.sourceMessageId = 'unassigned'; mutable.ackPayloadSha256 = '0'.repeat(64)
+      c.setEnqueueOutputs([output]); return retained
+    })
+    expect(receipt).toMatchObject([{ ackMessageId: 'aperak-A', sourceMessageId: 'source-A', ackPayloadSha256: expected.ackPayloadSha256 }])
+  })
+  it.each(['sourceMessageId', 'ackMessageId', 'companyId', 'environment', 'ackPayloadSha256', 'sourcePayloadSha256'])('holds after an action produces the wrong output %s', async key => {
+    const c = ready(); let actions = 0
+    await expect(c.admission.captureEnqueue(expected, async () => { actions++; c.setEnqueueOutputs([{ ...output, [key]: 'wrong' }]); return retained })).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(actions).toBe(1); expect(c.admission.outboxes).toHaveLength(1)
+    expect(() => c.admission.admit([])).toThrow('T3_HARNESS_PRECONDITION')
+  })
+  it.each([{ outputs: [] }, { outputs: [output, { ...output, id: 'duplicate-outbox' }] }])('requires exactly one post-action output %j', async ({ outputs }) => {
+    const c = ready()
+    await expect(c.admission.captureEnqueue(expected, async () => { c.setEnqueueOutputs(outputs); return retained })).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(c.admission.outboxes).toHaveLength(1)
+  })
+  it('allows an explicit idempotency action only for the unchanged already-owned exact receipt', async () => {
+    const c = ready(); let actions = 0
+    await c.admission.captureEnqueue(expected, async () => { actions++; c.setEnqueueOutputs([output]); return retained })
+    const again = await c.admission.captureEnqueue(expected, async () => { actions++; return retained }, true)
+    expect(actions).toBe(2); expect(again).toMatchObject([{ id: 'aperak-outbox' }]); expect(c.admission.outboxes).toHaveLength(2)
+    await expect(c.admission.captureEnqueue(expected, async () => { actions++; return retained })).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(actions).toBe(2)
+  })
+  it('refuses repeat=true when no exact owned output receipt exists', async () => {
+    const c = ready(); c.setEnqueueOutputs([output]); let actions = 0
+    await expect(c.admission.captureEnqueue(expected, async () => { actions++; return retained }, true)).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(actions).toBe(0)
+  })
+  it('holds if an explicit repeat mutates its selected existing output', async () => {
+    const c = ready(); await c.admission.captureEnqueue(expected, async () => { c.setEnqueueOutputs([output]); return retained })
+    await expect(c.admission.captureEnqueue(expected, async () => { c.setEnqueueOutputs([{ ...output, status: 'sending' }]); return retained }, true)).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(() => c.admission.admit([])).toThrow('T3_HARNESS_PRECONDITION')
+  })
+  it('keeps a changed original ACK after a completed action on HOLD', async () => {
+    const c = ready()
+    await expect(c.admission.captureEnqueue(expected, async () => {
+      c.setEnqueueOutputs([output]); c.setEnqueueAck([{ ...ack, ackPayloadSha256: '0'.repeat(64) }]); return retained
+    })).rejects.toThrow('T3_HARNESS_PRECONDITION')
+    expect(c.admission.outboxes).toHaveLength(1)
+    expect(() => c.admission.admit([])).toThrow('T3_HARNESS_PRECONDITION')
   })
 })
 
