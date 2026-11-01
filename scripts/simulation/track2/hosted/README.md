@@ -12,10 +12,10 @@ user approval is required. Never put that key in Actions secrets or logs.
 The selected TERM02.03 pilot has a mandatory delivery gate: the actual dedicated
 job must receive and verify its exact signed private appointment before any
 backend start. Source preparation is not delivery, and delivery is not native
-qualification. The inherited canonical replay/consumer lifetime still needs its
-separate reviewed same-shell supervisor successor; this crypto-only source
-packet is **NOT runtime-ready** and must not be dispatched before that source
-and the current app/GEN/actor/pilot adapters are integrated and qualified.
+qualification. This source packet implements the canonical same-shell lifetime successor,
+but is **NOT native-qualified**. Do not dispatch before its two independent
+whole-candidate reviews and actual integration/qualification of current
+app/GEN/actor/mailbox/pilot adapters and resource appointments.
 
 T2 owns the following concrete steps under its standing mandate, after the two
 independent final reviews and real source/input/backend/producer qualification:
@@ -117,8 +117,7 @@ The signed operational envelope additionally requires:
   all three migration manifests. `genSource={commit,files}` binds actual adopted
   GEN source: commit must be an ancestor of the app; every GEN file/hash must
   occur in the source vector. No reuse of closed #1006 P1/budget0.
-- `github={runId,runAttempt:1}`; scenario exactly one of
-  `scenarios/{smoke,term01,term02,term03}.test.ts`; `budget={startup:1,scenario:1}`;
+- `github={runId,runAttempt:1}`; scenario exactly `scenarios/pilot-term0203.test.ts`, pilotId `TERM02.03`; `budget={startup:1,scenario:1}`;
   inputEpoch, syntheticActors (private synthetic identities, no real customer),
   clock exactly `{jwt:'REAL_UTC',businessOracle:'EXPLICIT_FIXTURE_DATES',
   marketOffset:'+01:00',civilZone:'Europe/Stockholm',clockMutation:false}`, cleanupPolicy `exact-owned-resources`, and cleanupExpiresAt
@@ -152,10 +151,22 @@ The signed operational envelope additionally requires:
   public `resources-sha256` operation must match that ENTIRE target set. Every
   ref gets an authenticated readback. These new T2 source-defined native
   bindings do not loosen existing machine-specific full-v1 native consumers.
-- `replayPatchSha256` of the exact controlled patched replay script; and
-  schemaFingerprint qualified against the exact source. Compute/review the
-  deterministic patch from source plus assigned ports before signing; no broad
-  patch or changed SQL is authorized by a familiar filename.
+- `canonicalReplaySHA256` must equal the actual app source and untouched private
+  copy of scripts/gridex-aud-003-clean-replay.sh. No stop, exclude, URL, pin or
+  other replay-script rewriting is permitted. Only the private config may change
+  projectId and the exact seven assigned port fields; its parsed projection is
+  checked against the original config and all other values must match. The
+  signed SIM_DB_PORT is explicitly54322; this is not a default allocation.
+- `mailCapabilities` exactly `{mode:'GREENMAIL_TLS_ONLY',smtps:'VERIFIED_TLS',
+  imaps:'VERIFIED_TLS',legacySmtp:'RESERVED_NOT_USED',mailHttp:'RESERVED_NOT_USED'}`.
+  `pilotMailbox` binds the reviewed digest-pinned GreenMail image, containerName
+  projectId+'-pilot-mailbox', synthetic mailboxAddress and two explicit unique
+  smtps/imaps ports, disjoint from the nine original assigned ports. Legacy
+  SMTP/HTTP ports remain reserved and are checked unbound; no HTTP service READY
+  is claimed. Other modes, including legacy smoke, fail closed unsupported until
+  separately qualified; their HTTP expectation is not silently bypassed.
+- schemaFingerprint remains the exact source-qualified actual database oracle.
+
 
 SyntheticActors is a source-bound declaration, not an observed-actor marker:
 `{policy:'source-bound-synthetic-only-observed-receipts-required',ordinarySignup:
@@ -207,34 +218,60 @@ at least8GiB, CPU quota, tools and nine free ports. Unknown driver/identity,
 remote daemon, preexisting containers/nondefault networks/volumes or a reused
 home fail closed. Different app ports do not isolate fixed DB/API resources.
 
-After the separate canonical same-shell supervisor successor is qualified,
-a fresh, recorded cgroup v2 owns startup and scenario descendants, including
-Next/Vitest children. Each up/run independently checks membership. Private
-append-only Docker inventories are captured before and during startup, including
-partial failure. Unknown locks are preserved. Startup/scenario budgets are
-exclusive-created once per actual run. SKIP_REPLAY/SKIP_BUILD remain forbidden.
+The qualified T6 bare-source design is reused from PR1018 at
+1e35af8cf72f088b0f143101f5d35bb89e2412c4, prepare.sh/lib/prepare.mjs. PR1021's
+subsequent business/custody changes confer no T2 acceptance. The T2 supervisor
+uses the same essential boundary: an unconditional top-level bare `source`,
+then real consumers in that SAME shell, then original canonical cleanup.
+No conditional source/child replay shell may suppress errexit or close EXIT
+before consumers. An exact bounded Supabase stop wrapper retains canonical
+argv/function behavior; it never replaces cleanup with a noop.
 
-The existing inherited replay shell/EXIT retention seam is NOT qualified by
-this delivery packet. Its successor must preserve pristine canonical cleanup
-and retain its trap through actual consumers; no noop-stop patch is authorized.
-Required replay evidence remains: a private source copy with exact source-bound
-controls and before/after
-source-restoration receipts. Installed version/name rows are observed from
-supabase_migrations.schema_migrations and compared to the existing
+One source-bound PID/start-time/session and pidfd track the real supervisor
+child. Startup and consumers remain in its owned cgroup, including detached
+Next/Vitest descendants. The controller consumes one startup attempt and waits
+for actual child exit; TERM goes only to that captured, still-live exclusive
+session, with bounded grace. It does not SIGKILL an unrestored canonical shell.
+If the controller is lost, cleanup can gracefully reconcile that exact child,
+observe exit through pidfd and verify restoration, but never infer a successful
+consumer status from that recovery. Unknown/reused identities remain HOLD.
+
+Before replay the app source is copied, canonical bytes verified identical,
+private config projection checked, and scripts/supabase source bytes/modes,
+Postgres version-pin state and semantic source index captured. The original
+canonical EXIT cleanup stays live through app build, admitted scenario and
+per-case actor-proof collection. While consumers run, restoration is explicitly
+PENDING_CANONICAL_EXIT, never asserted prematurely. Original cleanup then stops
+the local stack and restores its own migrations/seed/pin. Actual child exit and
+matching source/index restoration are required BEFORE full resource teardown;
+current private copy is rechecked to reject late drift. Replay failures before
+wrapper trap replacement retain the canonical original EXIT cleanup.
+
+Installed version/name rows are observed and compared to the existing
 scripts/gridex-aud-003-main-ledger.json, alongside real database system ID,
-PostgreSQL major and source-qualified schema fingerprint. The nonempty TSV is
-actual observed ledger evidence. Build ID/manifest/log hashes, replay log and
-source receipts, resources and local Auth/app/mail/counterpart probes qualify
-runtime; each scenario rechecks bindings and consumes its one attempt.
+PostgreSQL major and source-qualified fingerprint. The TSV records actual rows.
+Build ID/manifest/log hashes, genuine replay log completion, exact source and
+resource identities remain required. A live-source receipt is not a restoration
+receipt or whole-scenario PASS.
 
-`down.sh --full` preflights all identities, accepts only resources already
-recorded by the attempt, kills the exact recorded cgroup (including scenario
-children), then removes exact recorded container/network/volume IDs in order.
-It records successful cgroup stop before subsequent Docker cleanup, allowing
-reconciled partial teardown without adopting new resources. Identity drift,
-unknown resources or incomplete cleanup remain HOLD with private journals;
-there is no prune, name/port process search, broad deletion or automatic retry.
-Legacy --processes-only still makes no backend/descendant teardown claim.
+The separately owned frozen mailbox module (51d4ad237047afd4fe6482bc4d6b196d45cc26fe)
+starts once after up/attempt/cgroup admission and canonical replay, before app
+build. Actual TLS SMTP/IMAP logins and container/pin/mount/loopback bindings are
+verified. Its private descriptor supplies SMTP secure=true, real generated
+credentials, SIM_PILOT_MAILBOX_PASSWORD and NODE_EXTRA_CA_CERTS containing the
+existing proxy trust PLUS mailbox CA. No plaintext legacy SMTP fallback or
+NODE_TLS_REJECT_UNAUTHORIZED=0 is accepted. Descriptor/probe gates replace the
+legacy HTTP probe only for the exact signed selected GreenMail-only profile.
+The nine old ports remain explicitly assigned; unused SMTP/HTTP roles are
+reserved/unbound, with two additional signed TLS mail ports.
+
+`down.sh --full` first requires actual supervisor exit and restored source,
+preflights all identities, kills only the recorded cgroup's remaining descendants,
+then removes only recorded container/network/volume IDs. Unknown resources,
+failed restoration, still-live shell, expired authority or identity drift preserve
+private evidence and fail closed. No prune, blanket deletion or blind rerun.
+The workflow keeps prepare→scenario→canonical cleanup in one supervised step
+on one disposable host, followed by exact full cleanup and safe summary.
 
 ## Evidence and verification limits
 
@@ -256,5 +293,8 @@ only runtime infrastructure/source/build/replay/endpoints; wholeScenarioPass
 is always false and actual actor-proof scope is separate. **Whole scenario acceptance
 remains HOLD pending independent review of ordinary-flow observable effects**;
 counts-only green output cannot close any TERM ID. A safe detailed effect-evidence
-format and its independent review remain an acceptance requirement. Raw runner
+format and its independent review remain an acceptance requirement. Current
+ordinary E66 issuer/history qualification and the nonselectable file_export
+source path remain concrete pilot business blockers; infrastructure/component
+verification cannot turn those HOLD results into native PASS. Raw runner
 disk is ephemeral; do not claim it as retained/reviewable after job teardown.

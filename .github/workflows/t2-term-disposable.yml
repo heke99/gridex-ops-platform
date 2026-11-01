@@ -77,25 +77,13 @@ jobs:
           echo '/usr/lib/postgresql/17/bin' >> "$GITHUB_PATH"
       - name: Exact lock dependencies
         run: npm ci
-      - name: Prepare and qualify on this dedicated host
+      - name: Replay, consume and restore within one owned canonical shell
         shell: bash
         run: |
           # No raw replay/build/assignment output enters Actions logs/artifacts.
           umask 077
           if ! bash scripts/simulation/track2/hosted/prepare.sh --execute > "$RUNNER_TEMP/t2-prepare.private.log" 2>&1; then
-            echo 'T2 preparation HOLD; private evidence retained on this host'
-            exit 1
-          fi
-      - name: Execute exactly the admitted scenario
-        shell: bash
-        run: |
-          umask 077
-          if ! python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation scenario > "$RUNNER_TEMP/t2-scenario.private.log" 2>&1; then
-            echo 'T2 scenario failed; no acceptance claimed'
-            exit 1
-          fi
-          if ! python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation actor-proof > "$RUNNER_TEMP/t2-actors.private.log" 2>&1; then
-            echo 'T2 per-case actor evidence HOLD; no acceptance claimed'
+            echo 'T2 supervised replay/consumer lifecycle HOLD; no acceptance claimed'
             exit 1
           fi
       - name: Always clean exact owned resources on this host

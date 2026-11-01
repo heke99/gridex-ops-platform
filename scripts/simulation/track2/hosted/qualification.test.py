@@ -758,5 +758,294 @@ class RendezvousContracts(unittest.TestCase):
         self.assertFalse(self.output.exists())
 
 
+class CanonicalLifetimeContracts(unittest.TestCase):
+    def setUp(self):
+        import hashlib
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.app = self.root / 'app'
+        self.harness = self.app / 'scripts/simulation/track2'
+        for relative in ('lib','hosted'):
+            (self.harness / relative).mkdir(parents=True,exist_ok=True)
+        self.home = self.root / 'private'
+        self.home.mkdir(mode=0o700)
+        for name in ('logs','pids','reports'):
+            (self.home / name).mkdir(mode=0o700)
+        self.bin = self.root / 'bin'
+        self.bin.mkdir()
+        self.backend = self.root / 'backend-live'
+        self.trace = self.root / 'trace'
+        self.index = self.root / 'index-changed'
+        self.up = self.harness / 'up.sh'
+        self.up.write_text((HERE.parent / 'up.sh').read_text())
+        (self.harness / 'lib/common.sh').write_text(
+            'umask 077\nHARNESS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"\n'
+            'REPLAY_ROOT="$SIM_HOME/replay-root"\n'
+            'die() { echo "$*" >&2; exit 1; }\nlog() { :; }\n'
+            'sb() { (cd "$REPLAY_ROOT" && supabase "$@"); }\n'
+            't2_process_custody() { :; }\napp_pid_alive() { return 0; }\n')
+        patcher = (HERE.parent / 'lib/prepare-supabase.py').read_text()
+        patcher += "\nimport os\nif os.environ.get('TEST_COPY_MUTATION') == '1':\n p=path.parents[1]/'scripts/gridex-aud-003-clean-replay.sh'\n p.write_text(p.read_text()+'\\ncleanup() { :; }\\n')\n"
+        (self.harness / 'lib/prepare-supabase.py').write_text(patcher)
+        (self.app / 'supabase').mkdir()
+        (self.app / 'supabase/config.toml').write_text('project_id="original"\n[api]\nport=54321\n[db]\nport=54322\nshadow_port=54320\nmajor_version=17\n[db.pooler]\nport=54329\n[studio]\nport=54323\n[inbucket]\nport=54324\n')
+        (self.app / 'supabase/seed.sql').write_text('original seed\n')
+        (self.app / 'supabase/migrations').mkdir()
+        (self.app / 'supabase/migrations/one.sql').write_text('original migration\n')
+        canonical = self.app / 'scripts/gridex-aud-003-clean-replay.sh'
+        canonical.write_text('''set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SEED="$ROOT/supabase/seed.sql"
+SEED_BACKUP="$(mktemp)"
+cp "$SEED" "$SEED_BACKUP"
+cleanup() {
+  local canonical_status=$?
+  set +e
+  supabase stop --no-backup
+  if [[ "${TEST_RESTORE_FAILURE:-0}" != 1 ]]; then cp "$SEED_BACKUP" "$SEED"; fi
+  rm -f "$SEED_BACKUP"
+  printf 'canonical:restore\\n' >> "$TEST_TRACE"
+}
+trap cleanup EXIT
+printf live > "$TEST_BACKEND"
+printf 'mutated seed\\n' > "$SEED"
+printf 'canonical:started\\n' >> "$TEST_TRACE"
+if [[ "${TEST_REPLAY_FAILURE:-0}" == 1 ]]; then false; printf 'ERROR-errexit-suppressed\\n' >> "$TEST_TRACE"; fi
+printf '%s\\n' '[GRIDEX-REM-002 replay] PASS: empty local Supabase -> verified reconstructed foundation -> canonical checksum-pinned history -> CLI-owned observed dev ledger'
+''')
+        self.canonical = canonical
+        self.assignment = self.root / 'assignment.json'
+        ports = {'SIM_API_PORT':55101,'SIM_DB_PORT':54322,'SIM_SHADOW_PORT':55103,'SIM_POOLER_PORT':55104,
+                 'SIM_STUDIO_PORT':55105,'SIM_MAIL_HTTP_PORT':55106,'SIM_SMTP_PORT':55107,
+                 'SIM_APP_PORT':55108,'SIM_COUNTERPART_PORT':55109}
+        self.a = {'sourceCommit':'1'*40,'projectId':'sim-t2-fixture','runDir':str(self.app),
+                  'sourceFiles':{'scripts/simulation/track2/up.sh':module.digest(self.up)},
+                  'canonicalReplaySHA256':module.digest(canonical),'ports':ports,
+                  'startupAttempt':{'exclusiveHost':True,'backendReservation':{'ref':'refs/tags/agent-claims/masterplan/backend-synthetic','receipt':'2'*40},
+                                    'producerReservation':{'ref':'refs/tags/agent-claims/masterplan/producer-synthetic','receipt':'3'*40}}}
+        module.save_private(self.assignment,self.a)
+        cli = '''import importlib.util,json,os,pathlib,sys,time
+spec=importlib.util.spec_from_file_location('actual_runtime',os.environ['TEST_REAL_QUALIFIER'])
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+a=json.load(open(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE']));home=pathlib.Path(os.environ['SIM_HOME']);app=pathlib.Path(os.environ['RUN_DIR'])
+m.git=lambda app,*args: ('INDEX_CHANGED' if pathlib.Path(os.environ['TEST_INDEX']).exists() else 'INDEX_STABLE') if args[0]=='ls-files' else ''
+m.inventory=lambda *args: []
+op=sys.argv[sys.argv.index('--operation')+1]
+def event(message):
+ with open(os.environ['TEST_TRACE'],'a') as f:f.write(message+'\\n')
+if op=='replay-before':m.lifetime_snapshot(a,home,app,'before')
+elif op=='supervisor-entered':m.verify_supervisor(a,home,require_parent=True)
+elif op=='replay-live':m.live_replay(a,home,app)
+elif op=='supervisor-cleanup-preflight':m.verify_supervisor(a,home,require_parent=True);m.canonical_copy(a,home,app)
+elif op=='replay-after':m.lifetime_snapshot(a,home,app,'after')
+elif op=='mailbox-start':event('mailbox:start-once')
+elif op=='mailbox-export':
+ m.private_bytes(home/'mailbox.env',b'EDIEL_SMTP_SECURE=true\\nSIM_PILOT_MAILBOX_PASSWORD=synthetic\\nNODE_EXTRA_CA_CERTS=/private/synthetic-ca\\n')
+elif op=='qualify':
+ assert pathlib.Path(os.environ['TEST_BACKEND']).exists();event('qualify:backend-live')
+elif op=='scenario':
+ assert pathlib.Path(os.environ['TEST_BACKEND']).exists();event('consumer:backend-live')
+ mode=os.environ.get('TEST_CONSUMER_MODE','success')
+ if mode=='failure':sys.exit(23)
+ if mode=='hang':time.sleep(30)
+ if mode=='index':pathlib.Path(os.environ['TEST_INDEX']).write_text('changed')
+ event('consumer:done')
+elif op=='actor-proof':event('actors:observed-finite-port')
+else:raise RuntimeError('unexpected fixture port '+op)
+'''
+        (self.harness / 'hosted/qualify-runtime.py').write_text(cli)
+        self.tool('git','printf "'+('1'*40)+'\\n"\n')
+        self.tool('node','if [[ "${1:-}" == --version ]]; then echo v22.0.0; fi\nexit 0\n')
+        self.tool('psql','exit 0\n')
+        self.tool('docker','exit 0\n')
+        self.tool('curl','printf 200\n')
+        self.tool('openssl','printf "'+('0'*48)+'\\n"\n')
+        self.tool('npm','[[ -f "$TEST_BACKEND" ]] || exit 10\nprintf "build:backend-live\\n" >> "$TEST_TRACE"\nmkdir -p .next\nprintf build > .next/BUILD_ID\nprintf "{}" > .next/build-manifest.json\n')
+        self.tool('supabase','''if [[ "${1:-}" == --version ]]; then echo 2.101.0
+elif [[ "${1:-}" == stop ]]; then rm -f "$TEST_BACKEND"; printf 'canonical:stop\\n' >> "$TEST_TRACE"
+elif [[ "${1:-}" == status ]]; then printf '%s\\n' 'API_URL=http://127.0.0.1:55101' 'ANON_KEY=synthetic' 'SERVICE_ROLE_KEY=synthetic' 'DB_URL=postgresql://synthetic'
+else exit 4; fi
+''')
+        next_bin = self.app / 'node_modules/.bin/next'
+        next_bin.parent.mkdir(parents=True)
+        next_bin.write_text('#!/bin/sh\nexit 0\n')
+        next_bin.chmod(0o700)
+        env = {'PATH':str(self.bin)+':'+os.environ['PATH'],'RUN_DIR':str(self.app),'SIM_HOME':str(self.home),
+               'SIM_RUNTIME_ASSIGNMENT_FILE':str(self.assignment),'SIM_PROJECT_ID':self.a['projectId'],
+               'TEST_BACKEND':str(self.backend),'TEST_TRACE':str(self.trace),'TEST_INDEX':str(self.index),
+               'TEST_REAL_QUALIFIER':str(HERE/'qualify-runtime.py'),**{k:str(v) for k,v in ports.items()}}
+        self.env=mock.patch.dict(os.environ,env)
+        self.env.start();self.addCleanup(self.env.stop)
+
+    def tool(self,name,text):
+        p=self.bin/name;p.write_text('#!/bin/bash\n'+text);p.chmod(0o700)
+
+    def supervise(self,timeout=10):
+        def git(app,*args):
+            if args[0]=='ls-files':return 'INDEX_CHANGED' if self.index.exists() else 'INDEX_STABLE'
+            return ''
+        with mock.patch.object(module,'git',side_effect=git):
+            return module.run_supervisor(['bash',str(self.up)],self.a,self.home,self.app,timeout,grace=3,observe=lambda:None)
+
+    def test_red_child_replay_stops_backend_before_consumer(self):
+        command='bash "$RUN_DIR/scripts/gridex-aud-003-clean-replay.sh"; test -f "$TEST_BACKEND"'
+        result=subprocess.run(['bash','-c',command],capture_output=True,text=True)
+        self.assertNotEqual(result.returncode,0)
+        self.assertFalse(self.backend.exists())
+        self.assertIn('canonical:stop',self.trace.read_text())
+
+    def test_red_noop_stop_copy_mutation_rejected_before_backend(self):
+        with mock.patch.dict(os.environ,{'TEST_COPY_MUTATION':'1'}):
+            with self.assertRaisesRegex(ValueError,'canonical-supervisor-consumer-or-cleanup-failed'):
+                self.supervise()
+        self.assertFalse(self.backend.exists())
+        self.assertFalse(self.trace.exists())
+        self.assertEqual(module.digest(self.canonical),self.a['canonicalReplaySHA256'])
+
+    def test_green_real_source_shell_keeps_backend_through_consumers_then_restores(self):
+        self.supervise()
+        trace=self.trace.read_text().splitlines()
+        self.assertLess(trace.index('consumer:done'),trace.index('canonical:stop'))
+        self.assertLess(trace.index('canonical:stop'),trace.index('canonical:restore'))
+        self.assertEqual(trace.count('mailbox:start-once'),1)
+        self.assertFalse(self.backend.exists())
+        self.assertEqual((self.home/'replay-root/supabase/seed.sql').read_text(),'original seed\n')
+        self.assertEqual(module.digest(self.home/'replay-root/scripts/gridex-aud-003-clean-replay.sh'),self.a['canonicalReplaySHA256'])
+        terminal=module.load_private(self.home/'supervisor-terminal.json')
+        self.assertTrue(terminal['actualChildExitObserved']);self.assertTrue(terminal['sourceRestored'])
+        self.assertEqual(terminal['returnCode'],0)
+        self.assertNotIn('SIM_MAIL_HTTP_URL=',(self.home/'app.env').read_text())
+        self.assertIn('EDIEL_SMTP_SECURE=true',(self.home/'app.env').read_text())
+
+    def test_consumer_failure_preserves_exit_and_still_runs_original_cleanup(self):
+        with mock.patch.dict(os.environ,{'TEST_CONSUMER_MODE':'failure'}):
+            with self.assertRaisesRegex(ValueError,'canonical-supervisor-consumer-or-cleanup-failed'):
+                self.supervise()
+        terminal=module.load_private(self.home/'supervisor-terminal.json')
+        self.assertEqual(terminal['returnCode'],23)
+        self.assertTrue(terminal['actualChildExitObserved']);self.assertTrue(terminal['sourceRestored'])
+        self.assertFalse(self.backend.exists())
+
+    def test_bare_source_failure_keeps_errexit_and_original_exit_cleanup(self):
+        with mock.patch.dict(os.environ,{'TEST_REPLAY_FAILURE':'1'}):
+            with self.assertRaisesRegex(ValueError,'canonical-supervisor-consumer-or-cleanup-failed'):
+                self.supervise()
+        trace=self.trace.read_text()
+        self.assertNotIn('ERROR-errexit-suppressed',trace)
+        self.assertNotIn('consumer:',trace)
+        self.assertIn('canonical:stop',trace)
+        self.assertFalse(self.backend.exists())
+        self.assertTrue(module.load_private(self.home/'supervisor-terminal.json')['sourceRestored'])
+
+    def test_timeout_gracefully_observes_real_child_exit_and_restoration(self):
+        with mock.patch.dict(os.environ,{'TEST_CONSUMER_MODE':'hang'}):
+            with self.assertRaisesRegex(ValueError,'canonical-supervisor-deadline-or-signal'):
+                self.supervise(timeout=1.5)
+        terminal=module.load_private(self.home/'supervisor-terminal.json')
+        self.assertTrue(terminal['actualChildExitObserved']);self.assertTrue(terminal['sourceRestored'])
+        self.assertIn('consumer:backend-live',self.trace.read_text())
+        self.assertNotEqual(terminal['returnCode'],0)
+        self.assertFalse(self.backend.exists())
+
+    def test_failed_source_restoration_refuses_full_cleanup_qualification(self):
+        with mock.patch.dict(os.environ,{'TEST_RESTORE_FAILURE':'1'}):
+            with self.assertRaisesRegex(ValueError,'canonical-source-not-restored-after-exit'):
+                self.supervise()
+        self.assertFalse((self.home/'supervisor-terminal.json').exists())
+        self.assertNotEqual((self.home/'replay-root/supabase/seed.sql').read_text(),'original seed\n')
+
+    def test_index_drift_is_not_accepted_as_restored_source(self):
+        with mock.patch.dict(os.environ,{'TEST_CONSUMER_MODE':'index'}):
+            with self.assertRaisesRegex(ValueError,'canonical-source-not-restored-after-exit'):
+                self.supervise()
+        self.assertFalse((self.home/'supervisor-terminal.json').exists())
+
+    def test_late_copy_drift_cannot_reuse_terminal_restoration_receipt(self):
+        self.supervise()
+        (self.home/'replay-root/supabase/seed.sql').write_text('late mutation')
+        with mock.patch.object(module,'git',return_value='INDEX_STABLE'):
+            with self.assertRaisesRegex(ValueError,'terminal-source-restoration-drift'):
+                module.require_terminal_supervisor(self.a,self.home)
+
+    def test_cleanup_reconciles_owned_live_shell_with_real_exit_not_pass(self):
+        import time
+        with mock.patch.dict(os.environ,{'TEST_CONSUMER_MODE':'hang'}):
+            process=subprocess.Popen(['bash',str(self.up)],start_new_session=True)
+            self.addCleanup(lambda: process.poll() is None and process.kill())
+            birth=module.process_identity(process.pid)
+            birth.update(assignment=module.digest(self.assignment),wrapper=str(self.up),wrapperSHA256=module.digest(self.up))
+            module.save_private(self.home/'supervisor-birth.json',birth)
+            deadline=time.monotonic()+5
+            while time.monotonic()<deadline and (not self.trace.exists() or 'consumer:backend-live' not in self.trace.read_text()):
+                time.sleep(.02)
+            self.assertIn('consumer:backend-live',self.trace.read_text())
+            with mock.patch.object(module,'git',return_value='INDEX_STABLE'):
+                module.reconcile_supervisor(self.a,self.home,grace=3)
+            process.wait(timeout=1)
+        terminal=module.load_private(self.home/'supervisor-terminal.json')
+        self.assertTrue(terminal['actualChildExitObserved']);self.assertTrue(terminal['sourceRestored'])
+        self.assertTrue(terminal['failure'])
+        self.assertEqual(terminal['observation'],'CLEANUP_RECONCILIATION_NOT_CONSUMER_ACCEPTANCE')
+        self.assertFalse(self.backend.exists())
+
+
+class PilotMailPolicyContracts(unittest.TestCase):
+    def valid(self):
+        image=json.loads((HERE/'profile.requirements.json').read_text())['pilotMailboxImage']
+        return {'pilotId':'TERM02.03','scenario':'scenarios/pilot-term0203.test.ts',
+                'mailCapabilities':dict(module.MAIL_CAPABILITIES),'projectId':'sim-t2-unit',
+                'ports':{'SIM_DB_PORT':54322,'SIM_SMTP_PORT':55107,'SIM_MAIL_HTTP_PORT':55106},
+                'pilotMailbox':{'image':image,'containerName':'sim-t2-unit-pilot-mailbox',
+                    'mailboxAddress':'unit@t2.sim.invalid','ports':{'smtps':55201,'imaps':55202}}}
+
+    def test_only_exact_pilot_mail_profile_uses_no_http_service(self):
+        a=self.valid();module.require_pilot_profile(a)
+        for key,value in [('pilotId','TERM02.04'),('scenario','scenarios/smoke.test.ts'),('mailCapabilities',{})]:
+            bad=copy.deepcopy(a);bad[key]=value
+            with self.assertRaisesRegex(ValueError,'unsupported-pilot-or-mail-capability-profile'):
+                module.require_pilot_profile(bad)
+        a['ports']['SIM_DB_PORT']=55102
+        with self.assertRaisesRegex(ValueError,'explicit-canonical-db-port-required'):
+            module.require_pilot_profile(a)
+
+    def test_mailbox_must_use_actual_pin_and_synthetic_noncolliding_ports(self):
+        a=self.valid();a['pilotMailbox']['image']='unqualified:latest'
+        with self.assertRaisesRegex(ValueError,'signed-pilot-mailbox-profile-invalid'):
+            module.require_pilot_profile(a)
+        a=self.valid();a['pilotMailbox']['ports']['smtps']=55107
+        with self.assertRaisesRegex(ValueError,'signed-mailbox-ports-invalid'):
+            module.require_pilot_profile(a)
+
+    def test_reserved_legacy_roles_refuse_foreign_listener_and_close_sockets(self):
+        import socket
+        opened=[]
+        class Socket:
+            def __init__(self):self.closed=False;opened.append(self)
+            def bind(self,address):
+                if address[1]==55106:raise OSError('confined occupied port')
+            def close(self):self.closed=True
+        with mock.patch.object(socket,'socket',side_effect=Socket):
+            with self.assertRaises(OSError):module.reserved_mail_ports(self.valid())
+        self.assertTrue(all(item.closed for item in opened))
+        self.assertEqual(len(opened),2)
+
+    def test_private_mail_export_preserves_merged_ca_and_requires_secure_smtp(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home=Path(directory)
+            a=self.valid()
+            descriptor={'nodeExtraCaPath':'/private/merged-existing-proxy-and-mailbox-ca.pem',
+                        'mailboxAddress':'unit@t2.sim.invalid','imap':{'password':'synthetic','secure':True},
+                        'smtp':{'host':'127.0.0.1','port':55201,'user':'unit@t2.sim.invalid','password':'synthetic','secure':True}}
+            with mock.patch.object(module,'authenticate',return_value=(a,home,home)), \
+                    mock.patch.object(module,'mailbox_descriptor',return_value=descriptor):
+                module.export_mailbox()
+            text=(home/'mailbox.env').read_text()
+            self.assertIn('EDIEL_SMTP_SECURE=true',text)
+            self.assertIn('NODE_EXTRA_CA_CERTS=/private/merged-existing-proxy-and-mailbox-ca.pem',text)
+            self.assertIn('SIM_PILOT_MAILBOX_PASSWORD=synthetic',text)
+            self.assertEqual((home/'mailbox.env').stat().st_mode & 0o777,0o600)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

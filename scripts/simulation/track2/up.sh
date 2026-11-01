@@ -6,6 +6,8 @@
 set -euo pipefail
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
+[[ -z "${GRIDEX_REPLAY_DB_URL:-}" ]] || die "external replay substitution is forbidden"
+[[ "$SIM_DB_PORT" == 54322 ]] || die "explicit canonical DB port 54322 required"
 [[ "${SKIP_REPLAY:-0}" == 0 && "${SKIP_BUILD:-0}" == 0 ]] || die "replay/build-återanvändning saknar kvalificering"
 python3 - "$SIM_RUNTIME_ASSIGNMENT_FILE" <<'PY'
 import json, re, sys
@@ -20,10 +22,10 @@ PY
 for f in replay-root app.env pids/app.pid pids/counterparts.pid pids/app.identity.json pids/counterparts.identity.json pids/app.ready.identity.json pids/counterparts.ready.identity.json; do
   [[ ! -e "$SIM_HOME/$f" && ! -L "$SIM_HOME/$f" ]] || die "befintligt tillstånd kräver samordnarens avstämning: $f"
 done
-LOCK="$SIM_HOME/run.lock"
-mkdir "$LOCK" 2>/dev/null || die "run.lock finns; samordnaren måste avstämma kvarlämnad låsning"
-printf '%s\n' "$$" > "$LOCK/pid"
-trap 'if [[ "$(cat "$LOCK/pid" 2>/dev/null)" == "$$" ]]; then rm -f "$LOCK/pid"; rmdir "$LOCK" 2>/dev/null || true; fi' EXIT
+T2_LOCK="$SIM_HOME/run.lock"
+mkdir "$T2_LOCK" 2>/dev/null || die "run.lock finns; samordnaren måste avstämma kvarlämnad låsning"
+printf '%s\n' "$$" > "$T2_LOCK/pid"
+trap 'if [[ "$(cat "$T2_LOCK/pid" 2>/dev/null)" == "$$" ]]; then rm -f "$T2_LOCK/pid"; rmdir "$T2_LOCK" 2>/dev/null || true; fi' EXIT
 [[ "$(node --version)" == v22.* ]] || die "Node 22 krävs"
 
 export SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io   # Docker Hub (429) / ECR (data limit) går inte; finns i CLI 2.101.0
@@ -60,54 +62,62 @@ SIM_APP_PORT=$SIM_APP_PORT
 SIM_COUNTERPART_PORT=$SIM_COUNTERPART_PORT
 PORTS
 
-# --- 3. privat kopia av scripts/ + supabase/ (RUN_DIR rörs inte) ------------------------
-prepare_replay_root() {
-  rm -rf "$REPLAY_ROOT"
-  mkdir -p "$REPLAY_ROOT"
-  cp -a "$RUN_DIR/scripts" "$RUN_DIR/supabase" "$REPLAY_ROOT/"
-  python3 "$HARNESS_DIR/lib/prepare-supabase.py" "$REPLAY_ROOT/supabase/config.toml" "$SIM_PROJECT_ID" \
-    "$SIM_API_PORT" "$SIM_DB_PORT" "$SIM_SHADOW_PORT" "$SIM_POOLER_PORT" "$SIM_STUDIO_PORT" \
-    "$SIM_MAIL_HTTP_PORT" "$SIM_SMTP_PORT"
-  # Minimala anpassningar av KOPIAN av replayskriptet (verifieras nedan):
-  local s="$REPLAY_ROOT/scripts/gridex-aud-003-clean-replay.sh"
-  # a) lämna stacken uppe efter replay (originalet kör 'supabase stop --no-backup' i EXIT-trap)
-  sed -i 's#^\(\s*\)supabase stop --no-backup >/dev/null 2>&1 || true$#\1: \# sim: stacken lämnas uppe#' "$s"
-  # b) mailpit får vara med i stacken (egen lokal mail); inget DB-beteende ändras
-  sed -i 's|studio,imgproxy,mailpit,edge-runtime|studio,imgproxy,edge-runtime|' "$s"
-  # c) DB-port
-  [[ "$SIM_DB_PORT" == 54322 ]] || sed -i "s|54322|$SIM_DB_PORT|g" "$s"
-  grep -q 'sim: stacken lämnas uppe' "$s" || die "patch a misslyckades (replayskriptet har ändrats?)"
-  grep -q 'studio,imgproxy,edge-runtime' "$s" || die "patch b misslyckades"
-  ! grep -q '^\s*supabase stop --no-backup' "$s" || die "patch a ofullständig"
-  diff <(sed 's/\s*$//' "$RUN_DIR/scripts/gridex-aud-003-clean-replay.sh") <(sed 's/\s*$//' "$s") \
-    >"$SIM_HOME/logs/replay-script-patch.diff" || true
-}
-
-REPLAY_PG_VERSION="$(sed -n 's/^REPLAY_POSTGRES_VERSION="\(.*\)"/\1/p' "$RUN_DIR/scripts/gridex-aud-003-clean-replay.sh")"
-[[ -n "$REPLAY_PG_VERSION" ]] || die "kunde inte läsa REPLAY_POSTGRES_VERSION"
-
-stack_running() { [[ "$(docker inspect -f '{{.State.Running}}' "supabase_db_$SIM_PROJECT_ID" 2>/dev/null)" == true ]]; }
-
-prepare_replay_root
+# --- 3. Private source copy, canonical replay bytes are NEVER rewritten. ----------
+mkdir "$REPLAY_ROOT"
+cp -a "$RUN_DIR/scripts" "$RUN_DIR/supabase" "$REPLAY_ROOT/"
+python3 "$HARNESS_DIR/lib/prepare-supabase.py" "$REPLAY_ROOT/supabase/config.toml" "$SIM_PROJECT_ID" \
+  "$SIM_API_PORT" "$SIM_DB_PORT" "$SIM_SHADOW_PORT" "$SIM_POOLER_PORT" "$SIM_STUDIO_PORT" \
+  "$SIM_MAIL_HTTP_PORT" "$SIM_SMTP_PORT"
 python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation replay-before
-python3 - "$SIM_RUNTIME_ASSIGNMENT_FILE" "$REPLAY_ROOT/scripts/gridex-aud-003-clean-replay.sh" <<'PY_PATCH'
-import hashlib, json, pathlib, sys
-a = json.loads(pathlib.Path(sys.argv[1]).read_text())
-if hashlib.sha256(pathlib.Path(sys.argv[2]).read_bytes()).hexdigest() != a['replayPatchSha256']:
-    raise SystemExit('replay_patch_not_admitted')
-PY_PATCH
-log "kör ren replay i tilldelat tomt projekt (logg: $SIM_HOME/logs/replay.log)"
-rm -f "$SIM_HOME/replay-commit" "$SIM_HOME/replay-at" "$SIM_HOME/built-commit"
-(cd "$REPLAY_ROOT" && bash scripts/gridex-aud-003-clean-replay.sh) >>"$SIM_HOME/logs/replay.log" 2>&1 \
-  || die "replay misslyckades, se $SIM_HOME/logs/replay.log"
-python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation replay-after
-python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation inventory
-# replayskriptets EXIT-trap tar bort versionspinnen; lägg tillbaka den för senare 'supabase start'.
-mkdir -p "$REPLAY_ROOT/supabase/.temp"; printf '%s' "$REPLAY_PG_VERSION" >"$REPLAY_ROOT/supabase/.temp/postgres-version"
-stack_running || die "stacken körs inte efter replay"
-printf '%s\n' "$HEAD_SHA" >"$SIM_HOME/replay-commit"
-date -u +%Y-%m-%dT%H:%M:%SZ >"$SIM_HOME/replay-at"
-# Actual installed ledger is exported and compared by hosted runtime qualification.
+python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation supervisor-entered
+T2_SUPABASE_BIN="$(type -P supabase)"
+[[ -n "$T2_SUPABASE_BIN" ]] || die "official Supabase CLI unavailable"
+# Same bounded stop wrapper as qualified T6: exact canonical argv and cleanup
+# function stay intact; no no-op stop, rewrite, external DB or manual pin restore.
+supabase() {
+  if [[ "${1:-}" == stop ]]; then
+    local t2_stop_status=0
+    timeout --signal=TERM --kill-after=10s 120s "$T2_SUPABASE_BIN" "$@" || t2_stop_status=$?
+    (umask 077; set -o noclobber; printf '%s\n' "$t2_stop_status" > "$SIM_HOME/canonical-stop.exit-code") || return 1
+    return "$t2_stop_status"
+  else
+    "$T2_SUPABASE_BIN" "$@"
+  fi
+}
+trap 'exit 143' TERM INT HUP
+cd "$REPLAY_ROOT"
+# This MUST be a bare source command: no child bash, conditional, ||, or function
+# wrapper that suppresses canonical errexit/EXIT behavior on replay failure.
+source "$REPLAY_ROOT/scripts/gridex-aud-003-clean-replay.sh" >> "$SIM_HOME/logs/replay.log" 2>&1
+
+t2_finish_runtime() {
+  local t2_status=$? t2_cleanup_status=0
+  trap - EXIT
+  set +e
+  t2_process_custody stop >> "$SIM_HOME/logs/process-stop.log" 2>&1 || t2_cleanup_status=1
+  if python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation supervisor-cleanup-preflight >> "$SIM_HOME/logs/canonical-finish.log" 2>&1; then
+    cleanup
+    python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation replay-after >> "$SIM_HOME/logs/canonical-finish.log" 2>&1 || t2_cleanup_status=1
+    [[ "$(cat "$SIM_HOME/canonical-stop.exit-code" 2>/dev/null)" == 0 ]] || t2_cleanup_status=1
+  else
+    t2_cleanup_status=1
+    printf '%s\n' 'HOLD: canonical cleanup admission changed; unknown resources preserved' >&2
+  fi
+  if [[ -d "$T2_LOCK" && "$(cat "$T2_LOCK/pid" 2>/dev/null)" == "$$" ]]; then
+    rm -f "$T2_LOCK/pid"
+    rmdir "$T2_LOCK" || t2_cleanup_status=1
+  fi
+  (( t2_cleanup_status == 0 )) || t2_status=1
+  exit "$t2_status"
+}
+trap t2_finish_runtime EXIT
+printf '%s\n' "$HEAD_SHA" > "$SIM_HOME/replay-commit"
+date -u +%Y-%m-%dT%H:%M:%SZ > "$SIM_HOME/replay-at"
+python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation replay-live
+# The owned TLS mailbox starts once after up/cgroup/attempt admission and before
+# the application build. Canonical replay's excluded Mailpit stays excluded.
+python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation mailbox-start
+python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation mailbox-export
 
 # --- 4. app.env från stackens status -------------------------------------------------
 status_env="$(sb status -o env 2>/dev/null)" || die "supabase status misslyckades"
@@ -127,8 +137,8 @@ SUPABASE_SERVICE_ROLE_KEY=$SERVICE
 SIM_DB_URL=$DB_URL
 SIM_APP_URL=$APP_URL
 SIM_COUNTERPART_URL=$CP_URL
-SIM_MAIL_HTTP_URL=http://127.0.0.1:$SIM_MAIL_HTTP_PORT
-SIM_SMTP_PORT=$SIM_SMTP_PORT
+SIM_MAIL_HTTP_STATE=RESERVED_NOT_USED
+SIM_LEGACY_SMTP_STATE=RESERVED_NOT_USED
 SITE_URL=$APP_URL
 NEXT_PUBLIC_SITE_URL=$APP_URL
 NEXT_PUBLIC_APP_URL=$APP_URL
@@ -144,17 +154,13 @@ SIGNATURE_EVIDENCE_SECRET=$(rnd)
 MANUAL_INBOUND_WEBHOOK_SECRET=$(rnd)
 RESEND_WEBHOOK_SECRET=$(rnd)
 EDIEL_EMAIL_PROVIDER=strato
-EDIEL_SMTP_HOST=127.0.0.1
-EDIEL_SMTP_PORT=$SIM_SMTP_PORT
-EDIEL_SMTP_SECURE=false
-EDIEL_SMTP_USER=sim@sim.invalid
-EDIEL_SMTP_PASSWORD=$(rnd)
-EDIEL_SMTP_FROM=sim@sim.invalid
 PAPILITE_GEOCODE_URL=$CP_URL/papilite
 LANTMATERIET_BELAGENHETSADRESS_BASE_URL=$CP_URL/lantmateriet
 ENV
 )
+cat "$SIM_HOME/mailbox.env" >> "$SIM_HOME/app.env"
 chmod 600 "$SIM_HOME/app.env"
+set -a; . "$SIM_HOME/mailbox.env"; set +a
 # Obs: RESEND_API_KEY, PAPILITE_API_KEY, OPENAI_API_KEY, OPENDATALOADER_API_URL,
 # LANTMATERIET_*_USERNAME/PASSWORD sätts INTE (tomma = integrationen avstängd).
 
@@ -189,4 +195,11 @@ for _ in $(seq 1 120); do
 done
 [[ "${code:-000}" != 000 ]] || die "appen svarade inte på $APP_URL/"
 t2_process_custody ready app
-log "klart: app=$APP_URL (/ -> $code) api=$API_URL db=127.0.0.1:$SIM_DB_PORT mail=http://127.0.0.1:$SIM_MAIL_HTTP_PORT smtp=127.0.0.1:$SIM_SMTP_PORT"
+python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation qualify
+# run.sh owns its own lock; release only our exact startup lock first.
+[[ "$(cat "$T2_LOCK/pid" 2>/dev/null)" == "$$" ]] || die "startup lock identity changed"
+rm "$T2_LOCK/pid"
+rmdir "$T2_LOCK"
+# Both real consumers remain under the original source shell's live EXIT trap.
+python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation scenario
+python3 -B "$HARNESS_DIR/hosted/qualify-runtime.py" --operation actor-proof

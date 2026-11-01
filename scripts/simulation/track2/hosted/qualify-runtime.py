@@ -244,7 +244,7 @@ def authenticate(operation):
     require(datetime.datetime.fromisoformat(expiry.replace('Z', '+00:00')) >
             datetime.datetime.now(datetime.timezone.utc), 'assignment-expired')
     import re
-    require(re.fullmatch(r'scenarios/(smoke|term01|term02|term03)\.test\.ts', a['scenario']) is not None, 'invalid-scenario')
+    require(re.fullmatch(r'scenarios/(smoke|term01|term02|term03|pilot-term0203)\.test\.ts', a['scenario']) is not None, 'invalid-scenario')
     run = a['github']
     require(type(run['runId']) is int and run['runId'] > 0 and type(run['runAttempt']) is int, 'github-run-number-invalid')
     require(os.environ.get('GITHUB_ACTIONS') == 'true'
@@ -258,6 +258,7 @@ def authenticate(operation):
     require(observed['head_sha'] == a['sourceCommit'] and observed['run_attempt'] == 1
             and observed['event'] == 'workflow_dispatch'
             and observed['path'] == '.github/workflows/t2-term-disposable.yml', 'github-run-not-qualified')
+    require_pilot_profile(a)
     require(a['budget'] == {'startup': 1, 'scenario': 1}
             and all(type(v) is int for v in a['budget'].values()) and a['inputEpoch'] and a['genSource']
             and isinstance(a['syntheticActors'], dict) and a['clock'] and a['cleanupPolicy'] == 'exact-owned-resources',
@@ -278,7 +279,8 @@ def authenticate(operation):
     required = {'.github/workflows/t2-term-disposable.yml', 'package-lock.json',
                 'scripts/gridex-aud-003-clean-replay.sh', 'scripts/gridex-aud-003-main-ledger.json',
                 'scripts/migration-history-manifest.json', 'scripts/migration-history-manifest.additions.json',
-                'scripts/migration-history-manifest.runtime.additions.json'}
+                'scripts/migration-history-manifest.runtime.additions.json','supabase/config.toml',
+                'scripts/simulation/track2/hosted/imap-mailbox.py'}
     required.add('scripts/simulation/track2/' + a['scenario'])
     required.update('scripts/simulation/track2/' + p for p in ('up.sh','run.sh','down.sh','lib/common.sh','lib/prepare-supabase.py'))
     required.update('scripts/simulation/track2/hosted/' + p for p in ('prepare.sh','cleanup.sh','qualify-runtime.py','profile.requirements.json'))
@@ -383,6 +385,11 @@ def prepare_attempt():
     ports = a['ports']
     require(len(ports) == 9 and len(set(ports.values())) == 9
             and all(type(v) is int and 1024 <= v <= 65535 for v in ports.values()), 'invalid-ports')
+    require_pilot_profile(a)
+    mailbox_ports = a['pilotMailbox']['ports']
+    require(set(mailbox_ports) == {'smtps','imaps'} and len(set(mailbox_ports.values())) == 2
+            and not set(mailbox_ports.values()).intersection(ports.values())
+            and all(type(v) is int and 1024 <= v <= 65535 for v in mailbox_ports.values()), 'signed-mailbox-ports-invalid')
     require(not home.exists(), 'fresh-home-required')
     require(command(['node', '--version']).startswith('v22.')
             and command(['supabase', '--version']).splitlines()[-1] == '2.101.0'
@@ -394,7 +401,7 @@ def prepare_attempt():
     import socket
     sockets = []
     try:
-        for port in ports.values():
+        for port in [*ports.values(),*mailbox_ports.values()]:
             listener = socket.socket()
             listener.bind(('127.0.0.1', port))
             sockets.append(listener)
@@ -436,6 +443,8 @@ def authorize(operation):
     if operation in ('up', 'run'):
         path = owned_cgroup(a, home)
         require(read_text('/proc/self/cgroup').splitlines() == ['0::/' + path.name], 'runtime-process-outside-owned-cgroup')
+    if a.get('pilotId') == 'TERM02.03':
+        verify_supervisor(a,home,require_parent=operation == 'up')
     if operation == 'up':
         save_private(home / 'up-consumed.json', {'assignment': digest(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE'])})
     elif operation == 'run':
@@ -488,10 +497,11 @@ def qualify():
     with ledger.open('x') as stream:
         os.chmod(ledger, 0o600)
         stream.write(database['ledger'] + '\n')
-    require(digest(home / 'replay-root/scripts/gridex-aud-003-clean-replay.sh') == a['replayPatchSha256'],
-            'replay-patch-not-qualified')
-    restore = load_private(home / 'replay-restoration.json')
-    require(restore['before'] == restore['after'], 'replay-source-not-restored')
+    verify_supervisor(a,home,require_parent=True)
+    canonical_copy(a,home,app)
+    live = load_private(home / 'replay-live.json')
+    require(live['supervisorBirthSHA256'] == digest(home / 'supervisor-birth.json'), 'live-source-shell-not-qualified')
+    mailbox_descriptor('up')
     import urllib.request
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     private_env = private_file(home / 'app.env').read_text().splitlines()
@@ -500,12 +510,12 @@ def qualify():
     with opener.open(urllib.request.Request(auth_url, headers={'apikey': values['NEXT_PUBLIC_SUPABASE_ANON_KEY']}), timeout=10) as response:
         require(response.status == 200, 'local-auth-health-unqualified')
     for url in ('http://127.0.0.1:' + str(a['ports']['SIM_APP_PORT']) + '/',
-                'http://127.0.0.1:' + str(a['ports']['SIM_COUNTERPART_PORT']) + '/__health',
-                'http://127.0.0.1:' + str(a['ports']['SIM_MAIL_HTTP_PORT']) + '/api/v1/info'):
+                'http://127.0.0.1:' + str(a['ports']['SIM_COUNTERPART_PORT']) + '/__health'):
         with opener.open(url, timeout=10) as response:
             require(response.status == 200, 'runtime-endpoint-unqualified')
     save_private(home / 'qualified.json', {'assignment': digest(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE']),
                  'resources': inventory(a, home), 'database': database,
+                 'sourceRestoration':'PENDING_CANONICAL_EXIT_NOT_YET_RESTORED',
                  'buildId': (app / '.next/BUILD_ID').read_text().strip(),
                  'buildManifest': digest(app / '.next/build-manifest.json'),
                  'replayLog': digest(home / 'logs/replay.log'), 'buildLog': digest(home / 'logs/build.log')})
@@ -516,6 +526,7 @@ def cleanup():
     if not home.exists():
         return  # no prepared attempt, no runtime side effects authorized
     validate_attempt(a, home)
+    require_terminal_supervisor(a,home)
     resources = docker_resources(a['projectId'])
     recorded = []
     for snapshot in home.glob('resources-*.json'):
@@ -555,23 +566,6 @@ def cleanup():
             command(['docker', kind, 'rm', *(['-f'] if kind == 'container' else []), resource['id']])
     require(not docker_resources(a['projectId']), 'cleanup-incomplete')
     save_private(home / ('cleanup-done-' + journal.stem + '.json'), {'state': 'DONE', 'preflight': digest(journal)})
-
-
-def snapshot_replay(home, phase):
-    root = home / 'replay-root'
-    data = {}
-    for directory in ('supabase/migrations', 'scripts'):
-        for path in sorted((root / directory).rglob('*')):
-            if path.is_file() and not path.is_symlink():
-                data[str(path.relative_to(root))] = digest(path)
-    for relative in ('supabase/seed.sql', 'supabase/config.toml'):
-        data[relative] = digest(root / relative)
-    if phase == 'before':
-        save_private(home / 'replay-before.json', data)
-    else:
-        before = load_private(home / 'replay-before.json')
-        save_private(home / 'replay-restoration.json', {'before': before, 'after': data})
-        require(before == data, 'replay-source-not-restored')
 
 
 def qualify_actors():
@@ -650,10 +644,15 @@ def safe_summary():
         intents = actors['intents']
         require(set(intents) == {'authorized','expected_denial'} and all(type(v) is int and v >= 0 for v in intents.values()) and sum(intents.values()) == actors['count'], 'unsafe-actor-summary-intents')
         safe.update(actorQualification='AUTH_TENANT_OBSERVED_LICENSE_NOT_GATED', actorReceiptCount=actors['count'], actorIntents=intents, actorReceiptsSHA256=actors['receiptsSHA256'])
+    if (home / 'supervisor-terminal.json').exists():
+        terminal = load_private(home / 'supervisor-terminal.json')
+        safe['lifecycle'] = {'actualChildExitObserved':terminal['actualChildExitObserved'],
+                             'sourceRestored':terminal['sourceRestored'],'returnCode':terminal['returnCode'],
+                             'failure':terminal['failure']}
     reports = list((home / 'reports').glob('*.json')) if home.exists() else []
     if len(reports) == 1:
         report = json.loads(reports[0].read_text())
-        if report.get('scenario') in ('smoke', 'term01', 'term02', 'term03'):
+        if report.get('scenario') in ('smoke', 'term01', 'term02', 'term03','pilot-term0203'):
             safe['scenario'] = report['scenario']
             code = report.get('exitCode')
             if type(code) is int and 0 <= code <= 255:
@@ -1043,10 +1042,331 @@ def publish_delivery(assignment_path,journal_path):
         journal.stream.close()
 
 
+MAIL_CAPABILITIES = {'mode':'GREENMAIL_TLS_ONLY','smtps':'VERIFIED_TLS','imaps':'VERIFIED_TLS',
+                     'legacySmtp':'RESERVED_NOT_USED','mailHttp':'RESERVED_NOT_USED'}
+
+
+def require_pilot_profile(a):
+    require(a.get('pilotId') == 'TERM02.03' and a.get('scenario') == 'scenarios/pilot-term0203.test.ts'
+            and a.get('mailCapabilities') == MAIL_CAPABILITIES, 'unsupported-pilot-or-mail-capability-profile')
+    require(a['ports']['SIM_DB_PORT'] == 54322, 'explicit-canonical-db-port-required')
+    import re
+    cfg = a['pilotMailbox']
+    profile = json.loads(Path(__file__).with_name('profile.requirements.json').read_text())
+    require(cfg['image'] == profile['pilotMailboxImage']
+            and cfg['containerName'] == a['projectId']+'-pilot-mailbox'
+            and re.fullmatch(r'[a-z0-9][a-z0-9.-]{0,63}@t2\.sim\.invalid',cfg['mailboxAddress']) is not None,
+            'signed-pilot-mailbox-profile-invalid')
+    require(set(cfg['ports']) == {'smtps','imaps'} and len(set(cfg['ports'].values())) == 2
+            and all(type(v) is int and 1024 <= v <= 65535 for v in cfg['ports'].values())
+            and not set(cfg['ports'].values()).intersection(a['ports'].values()), 'signed-mailbox-ports-invalid')
+    require(not os.environ.get('GRIDEX_REPLAY_DB_URL'), 'external-replay-substitution-forbidden')
+    require(os.environ.get('NODE_TLS_REJECT_UNAUTHORIZED','1') == '1', 'tls-verification-must-remain-enabled')
+
+
+def reserved_mail_ports(a):
+    import socket
+    listeners = []
+    try:
+        for key in ('SIM_SMTP_PORT','SIM_MAIL_HTTP_PORT'):
+            listener = socket.socket()
+            listeners.append(listener)
+            listener.bind(('127.0.0.1',a['ports'][key]))
+    finally:
+        for listener in listeners:
+            listener.close()
+
+
+def mailbox_helper():
+    import importlib.util
+    import types
+    path = Path(__file__).with_name('imap-mailbox.py')
+    spec = importlib.util.spec_from_file_location('t2_owned_pilot_mailbox',path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    helper = types.SimpleNamespace(**{name:globals()[name] for name in (
+        'authenticate','validate_attempt','owned_cgroup','read_text','digest','load_private',
+        'daemon_identity','docker_resources','inventory')})
+    return module,helper
+
+
+def mailbox_descriptor(operation='up',fresh_probe=True):
+    a,_,_ = authenticate(operation)
+    require_pilot_profile(a)
+    reserved_mail_ports(a)
+    module,helper = mailbox_helper()
+    descriptor = module.read_descriptor(helper=helper,operation=operation)
+    if fresh_probe:
+        module.tls_auth(a['pilotMailbox'],descriptor['imap']['password'],Path(descriptor['tlsCaPath']))
+    return descriptor
+
+
+def start_mailbox():
+    a,_,_ = authenticate('up')
+    require_pilot_profile(a)
+    reserved_mail_ports(a)
+    module,helper = mailbox_helper()
+    module.start(helper=helper)  # once; module exclusive directory/intent prevents replay
+
+
+def export_mailbox():
+    import shlex
+    a,home,_ = authenticate('up')
+    descriptor = mailbox_descriptor('up')
+    smtp = descriptor['smtp']
+    require(smtp['secure'] is True and descriptor['imap']['secure'] is True,'verified-tls-mail-descriptor-required')
+    values = {'NODE_EXTRA_CA_CERTS':descriptor['nodeExtraCaPath'],
+              'SIM_PILOT_MAILBOX_PASSWORD':descriptor['imap']['password'],
+              'EDIEL_SMTP_HOST':smtp['host'],'EDIEL_SMTP_PORT':str(smtp['port']),
+              'EDIEL_SMTP_SECURE':'true','EDIEL_SMTP_USER':smtp['user'],
+              'EDIEL_SMTP_PASSWORD':smtp['password'],'EDIEL_SMTP_FROM':descriptor['mailboxAddress']}
+    private_bytes(home / 'mailbox.env', ''.join(k+'='+shlex.quote(v)+'\n' for k,v in values.items()).encode())
+
+
+def process_identity(pid):
+    fields = Path('/proc',str(pid),'stat').read_text().rsplit(')',1)[1].split()
+    return {'pid':pid,'ticks':fields[19],'group':int(fields[2]),'session':int(fields[3]),'state':fields[0]}
+
+
+def verify_supervisor(a,home,require_parent=False):
+    birth = load_private(home / 'supervisor-birth.json')
+    require(birth['assignment'] == digest(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE'])
+            and birth['wrapperSHA256'] == a['sourceFiles']['scripts/simulation/track2/up.sh']
+            and digest(birth['wrapper']) == birth['wrapperSHA256'], 'supervisor-source-binding-changed')
+    actual = process_identity(birth['pid'])
+    require(actual['state'] != 'Z' and all(actual[k] == birth[k] for k in ('pid','ticks','group','session'))
+            and actual['group'] == actual['pid'] == actual['session'], 'supervisor-birth-identity-changed')
+    require(Path('/proc',str(birth['pid']),'exe').resolve() == Path('/bin/bash').resolve(), 'supervisor-not-owned-bash')
+    argv = Path('/proc',str(birth['pid']),'cmdline').read_bytes().split(b'\0')[:-1]
+    require(len(argv) == 2 and Path(os.fsdecode(argv[0])).name == 'bash'
+            and os.fsdecode(argv[1]) == birth['wrapper'], 'supervisor-wrapper-argv-changed')
+    if require_parent:
+        require(os.getppid() == birth['pid'], 'not-same-canonical-source-shell')
+    return birth
+
+
+def copy_state(root):
+    state = {}
+    for directory in ('scripts','supabase'):
+        for path in sorted((root / directory).rglob('*')):
+            relative = path.relative_to(root)
+            require(not path.is_symlink(), 'private-source-copy-symlink-forbidden')
+            if '.temp' not in relative.parts and path.is_file():
+                state[str(relative)] = {'sha256':digest(path),'mode':path.stat().st_mode & 0o777}
+    pin = root / 'supabase/.temp/postgres-version'
+    require(not pin.is_symlink(), 'private-postgres-pin-symlink')
+    state['supabase/.temp/postgres-version'] = {'sha256':digest(pin),'mode':pin.stat().st_mode & 0o777} if pin.exists() else None
+    return state
+
+
+def verify_config_patch(a,app,root):
+    import copy,tomllib
+    original = tomllib.loads((app / 'supabase/config.toml').read_text())
+    expected = copy.deepcopy(original)
+    expected['project_id'] = a['projectId']
+    for table,key,port in [('api','port','SIM_API_PORT'),('db','port','SIM_DB_PORT'),
+                           ('db','shadow_port','SIM_SHADOW_PORT'),('db.pooler','port','SIM_POOLER_PORT'),
+                           ('studio','port','SIM_STUDIO_PORT'),('inbucket','port','SIM_MAIL_HTTP_PORT'),
+                           ('inbucket','smtp_port','SIM_SMTP_PORT')]:
+        current = expected
+        for part in table.split('.'):
+            current = current[part]
+        current[key] = a['ports'][port]
+    require(tomllib.loads((root / 'supabase/config.toml').read_text()) == expected,
+            'private-config-patch-exceeds-assigned-ports-project')
+
+
+def canonical_copy(a,home,app):
+    root = home / 'replay-root'
+    relative = 'scripts/gridex-aud-003-clean-replay.sh'
+    require(a['canonicalReplaySHA256'] == digest(app / relative) == digest(root / relative),
+            'canonical-replay-copy-must-be-pristine')
+    return root
+
+
+def lifetime_snapshot(a,home,app,phase):
+    root = canonical_copy(a,home,app)
+    if phase == 'before':
+        verify_config_patch(a,app,root)
+        state = copy_state(root)
+        source = copy_state(app)
+        for path,value in state.items():
+            if path != 'supabase/config.toml':
+                require(value == source.get(path),'unqualified-private-source-copy')
+        save_private(home / 'replay-before.json',{'files':state,'sourceIndexSHA256':canonical_sha256(git(app,'ls-files','--stage'))})
+    else:
+        before = load_private(home / 'replay-before.json')
+        after = {'files':copy_state(root),'sourceIndexSHA256':canonical_sha256(git(app,'ls-files','--stage'))}
+        save_private(home / 'replay-restoration.json',{'before':before,'after':after})
+        require(before == after and not git(app,'status','--porcelain','--untracked-files=normal'),
+                'canonical-source-or-index-not-restored')
+
+
+def live_replay(a,home,app):
+    birth = verify_supervisor(a,home,require_parent=True)
+    canonical_copy(a,home,app)
+    require('[GRIDEX-REM-002 replay] PASS: empty local Supabase -> verified reconstructed foundation -> canonical checksum-pinned history -> CLI-owned observed dev ledger'
+            in (home / 'logs/replay.log').read_text(), 'canonical-replay-did-not-complete')
+    inventory(a,home)
+    save_private(home / 'replay-live.json',{'assignment':digest(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE']),
+                 'supervisorBirthSHA256':digest(home / 'supervisor-birth.json'),'pid':birth['pid'],
+                 'sourceRestoration':'PENDING_CANONICAL_EXIT_NOT_YET_RESTORED'})
+
+
+def canonical_cleanup_preflight(a,home,app):
+    verify_supervisor(a,home,require_parent=True)
+    validate_attempt(a,home)
+    canonical_copy(a,home,app)
+    recorded = []
+    for path in home.glob('resources-*.json'):
+        value = load_private(path)
+        require(value['assignment'] == digest(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE']), 'canonical-cleanup-inventory-changed')
+        recorded.extend(value['resources'])
+    require(all(r in recorded for r in docker_resources(a['projectId'])), 'canonical-cleanup-unknown-resources')
+
+
+def supervisor_signal(birth,descriptor):
+    import select,signal
+    if select.select([descriptor],[],[],0)[0]:
+        return
+    actual = process_identity(birth['pid'])
+    require(all(actual[k] == birth[k] for k in ('pid','ticks','group','session'))
+            and actual['pid'] == actual['group'] == actual['session'],'supervisor-signal-identity-changed')
+    os.killpg(birth['pid'],signal.SIGTERM)  # only this captured still-live source session
+
+
+def wait_owned_supervisor(process,birth,descriptor,timeout,grace,observe):
+    import time,signal
+    require(timeout > 0 and 0 < grace <= 240,'bounded-supervisor-deadlines-required')
+    deadline = time.monotonic()+timeout
+    requested = [False]
+    handlers = {sig:signal.getsignal(sig) for sig in (signal.SIGTERM,signal.SIGINT,signal.SIGHUP)}
+    for sig in handlers:
+        signal.signal(sig,lambda *_: requested.__setitem__(0,True))
+    failure = None
+    try:
+        while process.poll() is None:
+            if requested[0] or time.monotonic() >= deadline:
+                failure = ValueError('canonical-supervisor-deadline-or-signal')
+                break
+            try:
+                observe()
+            except Exception as error:
+                failure = error
+                break
+            time.sleep(min(1,max(0,deadline-time.monotonic())))
+        if failure is not None:
+            supervisor_signal(birth,descriptor)
+        try:
+            code = process.wait(timeout=grace)
+        except subprocess.TimeoutExpired:
+            # No SIGKILL before canonical restoration: preserve unknown live shell/backend.
+            raise ValueError('canonical-supervisor-still-live-reconcile-no-full-cleanup') from None
+        if failure is not None:
+            raise failure
+        return code
+    finally:
+        for sig,handler in handlers.items():
+            signal.signal(sig,handler)
+
+
+def run_supervisor(argv,a,home,app,timeout,grace=180,observe=None):
+    process = subprocess.Popen(argv,start_new_session=True)
+    descriptor = os.pidfd_open(process.pid)
+    try:
+        birth = process_identity(process.pid)
+        birth.update(assignment=digest(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE']),
+                     wrapper=str(app / 'scripts/simulation/track2/up.sh'),
+                     wrapperSHA256=a['sourceFiles']['scripts/simulation/track2/up.sh'])
+        require(birth['group'] == birth['pid'] == birth['session'],'supervisor-session-not-exclusive')
+        save_private(home / 'supervisor-birth.json',birth)
+        failure = None
+        try:
+            code = wait_owned_supervisor(process,birth,descriptor,timeout,grace,observe or (lambda:inventory(a,home)))
+        except Exception as error:
+            failure = error
+            code = process.returncode
+        require(code is not None,'supervisor-exit-not-observed')
+        restored = False
+        if (home / 'replay-before.json').exists():
+            # This observation happens AFTER wait/reap; source restoration is not a READY marker.
+            lifetime_snapshot(a,home,app,'after') if not (home / 'replay-restoration.json').exists() else None
+            value = load_private(home / 'replay-restoration.json')
+            require(value['before'] == value['after'],'canonical-source-not-restored-after-exit')
+            restored = True
+        save_private(home / 'supervisor-terminal.json',{'assignment':digest(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE']),
+                     'birthSHA256':digest(home / 'supervisor-birth.json'),'actualChildExitObserved':True,
+                     'returnCode':code,'replayStarted':(home / 'replay-before.json').exists(),
+                     'sourceRestored':restored,'failure':failure is not None})
+        if failure is not None:
+            raise failure
+        require(code == 0,'canonical-supervisor-consumer-or-cleanup-failed')
+    finally:
+        os.close(descriptor)
+
+
+def reconcile_supervisor(a,home,grace=180):
+    """Cleanup may observe an orphan's real exit, never invent a successful consumer status."""
+    import select,time
+    birth = load_private(home / 'supervisor-birth.json')
+    require(birth['assignment'] == digest(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE'])
+            and digest(birth['wrapper']) == birth['wrapperSHA256'] == a['sourceFiles']['scripts/simulation/track2/up.sh'],
+            'orphan-supervisor-binding-changed')
+    code = None
+    try:
+        descriptor = os.pidfd_open(birth['pid'])
+    except ProcessLookupError:
+        descriptor = None  # actual kernel absence, status unknown; never a PASS
+    if descriptor is not None:
+        try:
+            if not select.select([descriptor],[],[],0)[0]:
+                supervisor_signal(birth,descriptor)
+                require(select.select([descriptor],[],[],grace)[0], 'orphan-supervisor-still-live')
+            try:
+                waited,status = os.waitpid(birth['pid'],os.WNOHANG)
+                if waited == birth['pid']:
+                    code = os.waitstatus_to_exitcode(status)
+            except ChildProcessError:
+                pass
+        finally:
+            os.close(descriptor)
+    replay_started = (home / 'replay-before.json').exists()
+    if replay_started:
+        if not (home / 'replay-restoration.json').exists():
+            lifetime_snapshot(a,home,Path(a['runDir']),'after')
+        proof = load_private(home / 'replay-restoration.json')
+        require(proof['before'] == proof['after'],'orphan-source-restoration-missing')
+    save_private(home / 'supervisor-terminal.json',{'assignment':digest(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE']),
+                 'birthSHA256':digest(home / 'supervisor-birth.json'),'actualChildExitObserved':True,
+                 'returnCode':code,'replayStarted':replay_started,'sourceRestored':replay_started,
+                 'failure':True,'observation':'CLEANUP_RECONCILIATION_NOT_CONSUMER_ACCEPTANCE'})
+
+
+def require_terminal_supervisor(a,home):
+    birth = home / 'supervisor-birth.json'
+    if not birth.exists():
+        require(not (home / 'up-consumed.json').exists(),'unknown-started-supervisor')
+        return
+    terminal_path = home / 'supervisor-terminal.json'
+    if not terminal_path.exists():
+        reconcile_supervisor(a,home)
+    terminal = load_private(terminal_path)
+    require(terminal['assignment'] == digest(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE'])
+            and terminal['birthSHA256'] == digest(birth) and terminal['actualChildExitObserved'] is True
+            and (not terminal['replayStarted'] or terminal['sourceRestored'] is True),
+            'supervisor-exit-or-restoration-unqualified')
+    if terminal['replayStarted']:
+        app = Path(a['runDir'])
+        root = canonical_copy(a,home,app)
+        proof = load_private(home / 'replay-restoration.json')
+        current = {'files':copy_state(root),'sourceIndexSHA256':canonical_sha256(git(app,'ls-files','--stage'))}
+        require(proof['before'] == proof['after'] == current,'terminal-source-restoration-drift')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--observe-host', action='store_true')
-    parser.add_argument('--operation', choices=['prepare', 'up', 'run', 'down', 'inventory', 'qualify', 'replay-before', 'replay-after', 'execute', 'enter', 'check-down', 'check-source', 'safe-summary', 'scenario', 'actor-proof', 'receive-admission', 'publish-delivery'])
+    parser.add_argument('--operation', choices=['prepare', 'up', 'run', 'down', 'inventory', 'qualify', 'replay-before', 'replay-after', 'execute', 'enter', 'check-down', 'check-source', 'safe-summary', 'scenario', 'actor-proof', 'receive-admission', 'publish-delivery','supervisor-entered','replay-live','supervisor-cleanup-preflight','mailbox-start','mailbox-export'])
     parser.add_argument('--assignment-file')
     parser.add_argument('--journal-file')
     args = parser.parse_args()
@@ -1069,14 +1389,8 @@ def main():
         prepare_attempt()
         a, home, _ = authenticate('up')
         inventory(a, home)
-        process = subprocess.Popen(['python3', '-B', __file__, '--operation', 'enter'])
-        import time
-        while process.poll() is None:
-            inventory(a, home)
-            time.sleep(2)
-        inventory(a, home)
-        require(process.returncode == 0, 'startup-failed')
-        qualify()
+        seconds = min(7200,(datetime.datetime.fromisoformat(a['expiresAt'].replace('Z','+00:00'))-datetime.datetime.now(datetime.timezone.utc)).total_seconds()-180)
+        run_supervisor(['python3','-B',__file__,'--operation','enter'],a,home,Path(a['runDir']),seconds)
     elif args.operation in ('enter', 'scenario'):
         a, home, _ = authenticate('up' if args.operation == 'enter' else 'run')
         path = owned_cgroup(a, home)
@@ -1095,16 +1409,29 @@ def main():
     elif args.operation == 'check-down':
         a, home, _ = authenticate('down')
         validate_attempt(a, home)
+    elif args.operation == 'supervisor-entered':
+        a,home,_ = authenticate('up')
+        verify_supervisor(a,home,require_parent=True)
+    elif args.operation == 'replay-live':
+        a,home,app = authenticate('up')
+        live_replay(a,home,app)
+    elif args.operation == 'supervisor-cleanup-preflight':
+        a,home,app = authenticate('down')
+        canonical_cleanup_preflight(a,home,app)
+    elif args.operation == 'mailbox-start':
+        start_mailbox()
+    elif args.operation == 'mailbox-export':
+        export_mailbox()
     elif args.operation == 'qualify':
         qualify()
     elif args.operation == 'actor-proof':
         qualify_actors()
     else:
-        a, home, _ = authenticate('up')
+        a, home, app = authenticate('down' if args.operation == 'replay-after' else 'up')
         if args.operation == 'inventory':
             inventory(a, home)
         else:
-            snapshot_replay(home, args.operation.removeprefix('replay-'))
+            lifetime_snapshot(a,home,app,args.operation.removeprefix('replay-'))
     return 0
 
 
