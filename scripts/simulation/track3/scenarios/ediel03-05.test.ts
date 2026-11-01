@@ -89,16 +89,13 @@ describe('EDIEL03 deadlines, retry och återhämtning', () => {
     await checkAckDeadlines({ actorUserId: actor(), companyId: src.companyId, now: iso(dueMs + 2 * MIN) })
     expect(timers().every((r) => r.status === 'expired')).toBe(true)
     expect((await slaEvents()).length).toBe(before)
-    // Cron-routen (app/api/internal/customer-operations/cron/route.ts) anropar checkAckDeadlines utan `now`.
-    // Utan att flytta systemklockan kan bara 'expired' provas (timer med mottagning i det förflutna). Routen kräver dessutom
-    // CUSTOMER_OPERATION_CRON_SECRET eller CRON_SECRET, som saknas i track3.env -> loggas, inget anrop med extern effekt.
-    const envHas = { CUSTOMER_OPERATION_CRON_SECRET: Boolean(process.env.CUSTOMER_OPERATION_CRON_SECRET), CRON_SECRET: Boolean(process.env.CRON_SECRET) }
-    const base = process.env.T3_APP_URL ?? `http://127.0.0.1:${process.env.T3_APP_PORT}`
-    const probe = await fetch(`${base}/api/internal/customer-operations/cron`, { method: 'POST', headers: { authorization: `Bearer ${process.env.EDIEL_CRON_SECRET}` } })
+    // This route runs unrelated global customer-operation jobs after auth.
+    // Local secret presence/equality cannot authorize or isolate those effects.
+    // Keep HTTP acceptance explicitly unrun; do not use a mutating POST as a probe.
     evidence.observe('cron_route_path', {
-      routeCallsCheckAckDeadlinesWithNow: false, file: 'app/api/internal/customer-operations/cron/route.ts', testProcessEnvHasRouteSecret: envHas,
-      httpWithEdielCronSecret: probe.status, conclusion: probe.status === 401 ? 'routen avvisar track3:s hemligheter (route-secret ej konfigurerad i appens miljö): cron-vägen kan inte provas via HTTP utan harnessändring' : 'routen nåbar',
+      file: 'app/api/internal/customer-operations/cron/route.ts',
+      routeCallsCheckAckDeadlinesWithNow: false,
+      invoked: false, status: 'NOT_RUN', reason: 'global_customer_operations_cron_not_admitted',
     })
-    expect(probe.status === 401 || probe.status === 200).toBe(true)
   })
 })
