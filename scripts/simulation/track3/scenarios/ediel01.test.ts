@@ -64,10 +64,58 @@ function parseMime(raw: Buffer) {
   const headers: Record<string, string> = {}
   for (const l of head.split('\r\n')) { const i = l.indexOf(':'); if (i > 0) headers[l.slice(0, i).toLowerCase()] = l.slice(i + 1).trim() }
   const body = text.slice(cut + 4)
-  const payload = /base64/i.test(headers['content-transfer-encoding'] ?? '') ? Buffer.from(body.replace(/\s+/g, ''), 'base64').toString('latin1') : body
+  // buildSinglePartEdielMime adds exactly one framing CRLF after 8bit UNOC
+  // data. Decode that boundary only; captured MIME bytes/hashes stay untouched.
+  const payload = /base64/i.test(headers['content-transfer-encoding'] ?? '')
+    ? Buffer.from(body.replace(/\s+/g, ''), 'base64').toString('latin1')
+    : /^8bit$/i.test(headers['content-transfer-encoding'] ?? '') && body.endsWith('\r\n') ? body.slice(0, -2) : body
   return { headers, payload }
 }
 const segs = (edi: string) => edi.replace(/^UNA.{6}/, '').split("'").map((s) => s.trim()).filter(Boolean)
+
+/** Every expected attempt must match exactly one physical original. Never
+ * filter extra copies away or reuse the first matching RFC header. */
+function matchPhysicalCopies(mails: ReceivedMail[], rows: OutRow[], attempts: Attempt[], count: number) {
+  expect(Array.isArray(mails)).toBe(true)
+  expect(rows, 'exact expected ACK rows').toHaveLength(count)
+  expect(attempts, 'one attempt per expected ACK').toHaveLength(count)
+  expect(mails, 'exact physical MIME count').toHaveLength(count)
+  expect(new Set(rows.map((row) => row.id)).size).toBe(count)
+  expect(new Set(attempts.map((attempt) => attempt.message_id)).size).toBe(count)
+  expect(new Set(attempts.map((attempt) => attempt.rfc)).size).toBe(count)
+  const expected = new Map(rows.map((row) => [row.id, row]))
+  const seen = new Set<number>()
+  const files = new Map<string, { n: number; rec: ReceivedMail; raw: Buffer; parsed: ReturnType<typeof parseMime> }>()
+  for (const rec of mails) {
+    expect(rec.disposition, 'counterparty accepted the physical original').toBe('accepted')
+    expect(Number.isSafeInteger(rec.n) && rec.n > 0 && !seen.has(rec.n), 'unique physical capture index').toBe(true)
+    seen.add(rec.n)
+    const read = readReceivedEml(rec.n)
+    expect(Buffer.isBuffer(read.raw) && read.raw.length > 0, 'physical original bytes').toBe(true)
+    expect(read.sha256Matches, 'physical sidecar hash').toBe(true)
+    expect(read.sha256).toBe(sha(read.raw))
+    expect(rec.sha256).toBe(sha(read.raw))
+    const text = read.raw.toString('latin1'), cut = text.indexOf('\r\n\r\n')
+    expect(cut, 'MIME header boundary').toBeGreaterThan(0)
+    const headers = text.slice(0, cut).replace(/\r\n[ \t]+/g, ' ')
+    const ids = [...headers.matchAll(/^message-id:[ \t]*(.+)$/gim)].map((match) => match[1].trim())
+    expect(ids, 'exactly one actual Message-ID header').toHaveLength(1)
+    expect(ids[0].length > 0 && !files.has(ids[0]), 'unique physical RFC identity').toBe(true)
+    files.set(ids[0], { n: rec.n, rec, raw: read.raw, parsed: parseMime(read.raw) })
+  }
+  return attempts.map((attempt) => {
+    const file = files.get(attempt.rfc), row = expected.get(attempt.message_id)
+    if (!file || !row) throw new Error('T3_HARNESS_PRECONDITION: unmatched physical MIME or ACK attempt')
+    expect(attempt.classification).toBe('accepted')
+    expect(attempt.smtpCode).toBe(250)
+    expect(sha(file.raw)).toBe(attempt.mimeSha)
+    expect(sha(Buffer.from(file.parsed.payload, 'latin1'))).toBe(attempt.payloadHash)
+    expect(file.parsed.payload, 'decoded wire payload matches stored ACK text').toBe(row.raw_payload)
+    const family = segs(file.parsed.payload).find((segment) => segment.startsWith('UNH+'))?.split('+')[2]?.split(':')[0]
+    expect(family, 'wire family matches stored ACK').toBe(row.message_family)
+    return { ...file, attempt }
+  })
+}
 
 async function drainUntilDone(ids: string[], maxCalls = 6) {
   const calls: Array<{ status: number; ms: number; body: unknown }> = []
@@ -255,12 +303,8 @@ describe('EDIEL01.01 intake av N E66 -> N CONTRL -> drain -> N MIME hos DSO', ()
     ev.observe('contrl_outbox_after_drain', Object.fromEntries([...new Set(rows.map((r) => r.outbox_status))].map((s) => [s, rows.filter((r) => r.outbox_status === s).length])))
     const attempts = attemptsFor(now)
     const dso = (await receivedMail()).slice(dsoBase)
-    const mine: Array<{ n: number; rec: ReceivedMail; attempt: Attempt }> = []
-    for (const a of attempts) {
-      const rec = dso.find((m) => readReceivedEml(m.n).raw.toString('latin1').includes(`Message-ID: ${a.rfc}`))
-      if (rec) mine.push({ n: rec.n, rec, attempt: a })
-    }
-    for (const m of mine) { const e = readReceivedEml(m.n); ev.save(`outbound/dso-contrl-${m.n}.eml`, e.raw) }
+    const mine = matchPhysicalCopies(dso, rows, attempts, N)
+    for (const m of mine) ev.save(`outbound/dso-contrl-${m.n}.eml`, m.raw)
     ev.observe('dso_contrl', { received: mine.length, tls: [...new Set(mine.map((m) => m.rec.tlsVersion))], dispositions: [...new Set(mine.map((m) => m.rec.disposition))] })
     expect(rows.every((r) => r.outbox_status === 'sent'), `outbox-status efter drain: ${JSON.stringify(rows.map((r) => r.outbox_status).slice(0, 5))}`).toBe(true)
     expect(attempts.length, 'ett transportförsök per CONTRL').toBe(N)
@@ -368,45 +412,22 @@ describe('EDIEL01.03 drain -> N APERAK sent, accepted, N MIME hos DSO, Message-I
     expect(attempts.every((a) => a.classification === 'accepted' && a.smtpCode === 250)).toBe(true)
     const dso = await receivedMail()
     const fresh = dso.slice(dsoBefore)
-    let matched = 0
-    const problems: string[] = []
-    const providerIdDiffers: string[] = []
-    const files = new Map<number, { raw: Buffer; rec: ReceivedMail }>()
-    for (const rec of dso.slice(dsoBase)) files.set(rec.n, { raw: readReceivedEml(rec.n).raw, rec })
-    for (const a of attempts) {
-      const hit = [...files.values()].find((f) => f.raw.toString('latin1').includes(`Message-ID: ${a.rfc}`) && /APERAK/.test(f.raw.toString('latin1').slice(0, 400)))
-      if (!hit) { problems.push(`${a.message_id}: ingen MIME hos DSO med ${a.rfc}`); continue }
-      matched++
-      ev.save(`outbound/dso-aperak-${hit.rec.n}.eml`, hit.raw)
-      const parsed = parseMime(hit.raw)
-      if (hit.rec.sha256 !== a.mimeSha || sha(hit.raw) !== a.mimeSha) problems.push(`${a.message_id}: MIME-sha256 DB ${a.mimeSha} != mottagen ${hit.rec.sha256}`)
-      if (parsed.headers['message-id'] !== a.rfc) problems.push(`${a.message_id}: Message-ID DB ${a.rfc} != ${parsed.headers['message-id']}`)
-      if (sha(Buffer.from(parsed.payload, 'latin1')) !== a.payloadHash) problems.push(`${a.message_id}: payload-sha256 DB ${a.payloadHash} != mottagen ${sha(Buffer.from(parsed.payload, 'latin1'))}`)
-      if (a.providerMessageId && a.providerMessageId !== a.rfc) providerIdDiffers.push(a.message_id)
-      const row = rows.find((r) => r.id === a.message_id)!
-      if (parsed.payload !== row.raw_payload) problems.push(`${a.message_id}: skickad payload != lagrad raw_payload`)
-    }
+    const matches = matchPhysicalCopies(fresh, rows, attempts, N)
+    for (const match of matches) ev.save(`outbound/dso-aperak-${match.n}.eml`, match.raw)
+    const matched = matches.length
+    const providerIdDiffers = attempts.filter((attempt) => attempt.providerMessageId && attempt.providerMessageId !== attempt.rfc)
     ev.observe('aperak_dso', { fresh: fresh.length, matched, tls: [...new Set(fresh.map((m) => m.tlsVersion))], providerMessageIdDiffersFromHeader: providerIdDiffers.length,
       note: 'provider_result.messageId (nodemailer) != Message-ID-huvudet på tråden; DB:s binding.rfcMessageId matchar huvudet' })
     expect(matched, 'N APERAK-MIME hos DSO').toBe(N)
-    expect(problems, problems.slice(0, 5).join(' | ')).toEqual([])
   }, 900_000)
 
   it('EDIEL01.03 N CONTRL-MIME: Message-ID och sha256 i DB matchar den mottagna MIME:n', async () => {
-    const attempts = attemptsFor(contrl.map((c) => c.id))
+    const all = [...contrl, ...aperak]
+    const attempts = attemptsFor(all.map((message) => message.id))
     const dso = await receivedMail()
-    const problems: string[] = []
-    for (const a of attempts) {
-      const rec = dso.slice(dsoBase).find((m) => readReceivedEml(m.n).raw.toString('latin1').includes(`Message-ID: ${a.rfc}`))
-      if (!rec) { problems.push(`${a.message_id}: saknas hos DSO`); continue }
-      const raw = readReceivedEml(rec.n).raw
-      const parsed = parseMime(raw)
-      if (sha(raw) !== a.mimeSha || rec.sha256 !== a.mimeSha) problems.push(`${a.message_id}: mime sha`)
-      if (sha(Buffer.from(parsed.payload, 'latin1')) !== a.payloadHash) problems.push(`${a.message_id}: payload sha`)
-      if (a.classification !== 'accepted') problems.push(`${a.message_id}: klass ${a.classification}`)
-    }
-    expect(attempts.length).toBe(N)
-    expect(problems, problems.slice(0, 5).join(' | ')).toEqual([])
+    const rows = outRows('CONTRL', srcIds).concat(outRows('APERAK', srcIds))
+    const matches = matchPhysicalCopies(dso.slice(dsoBase), rows, attempts, 2 * N)
+    ev.observe('physical_delivery_count', { expected: 2 * N, actual: matches.length })
   })
 
   it('EDIEL01.03 APERAK-innehåll: positiv (BGM 312, ERC 100), DOC/RFF refererar källans BGM och transaktions-id, parter omvända', async () => {
