@@ -309,3 +309,63 @@ Denna slutkontroll gäller enbart slutleveransens artefaktbytes. Tidigare
 privata runtime-/logg-/static-/HTTP-underlag behöver fortsatt egen avgränsad
 evidens. Ingen scenario-PASS, native-, browser- eller kampanjstatus uppgraderas
 av CLEAN eller en lyckad leveransverifiering.
+
+## Ägd förberedelse och canonical replay utan omskrivning
+
+`up.sh` startar inte längre en replay eller skriver om dess EXIT-trap, mailprofil
+eller DB-port. `SKIP_REPLAY=1` och `SKIP_BUILD=1` avvisas. Bare commit-/fingerprint-
+filer är endast rapportfält. En tillåten körning behöver en separat kvalificerad
+producent och kvarvarande samma shell genom förberedelse, bygge, scenarier och
+städning. Det befintliga canonical-skriptets egna EXIT-trap behålls.
+
+Producentens arbetsordning är:
+
+1. Frys och verifiera faktiskt source/tree, delad GEN, inputepoch, operationer,
+   budget, expiry, resurscustody, bildarkiv och verktygspins. Installera beroenden
+   och förbered exakt image-set innan nätet förseglas. Ingen körningsrätt skapas
+   av dessa hjälpskript eller deras finita fixtures.
+2. Skapa exklusiv net-, mount- och PID-namespace på disponibel kvalificerad värd.
+   Endast loopback och ingen default route finns vid nätförberedelsen. Den
+   privata root-ägda nätgranten binder både värdens och de nya namespace-ID:na,
+   assignment-SHA, source och faktisk `publicWebhookTransport.ts`-SHA.
+3. Kör `receiver-network.py --prepare --assignment ... --grant ...`. Starta en
+   exakt ägd tillfällig receiver och kör `--verify`: varje hostname provas genom
+   produktens oförändrade DNS-/SSRF-/TLS-transport och faktisk mottagareffekt.
+   Stoppa just denna receiver med verifierad processidentitet innan `up.sh`
+   senare startar scenariomottagaren. Hosts-bind och brandvägg gäller endast
+   den privata namespacen; CA/servercert/nyckel hashas i den privata journalen.
+4. Starta namespace-ägd Docker med `DOCKER_HOST=unix://$SIM_HOME/docker.sock`;
+   använd inte Docker-context eller värdens delade daemon. Verifiera faktisk
+   lagringsdrivrutin/DockerRootDir-ledighet och aktuell/nästlad cgroup-RAM innan
+   image-load och på nytt före stack/bygge. Minimikraven är oförändrade.
+5. Kör `prepared-backend.py stage --assignment ... --receipt
+   "$SIM_HOME/prepared-backend.json" --replay-log "$SIM_HOME/logs/replay.log"`.
+   Steget skapar en ny privat `replay-root` med exakt spårat scripts/supabase-
+   innehåll och en separat privat inputinventory. Endast den disponibla
+   konfigurationen ändras: tilldelat project/portar och verklig Auth-livslängd
+   60 sekunder/3 minuter. Stock DB-port **54322** tilldelas uttryckligen bland
+   de elva portarna, eftersom det är canonical replay:s befintliga lokala ABI.
+6. I en kvarvarande producent-shell: `cd "$SIM_HOME/replay-root"`, avsätt en
+   privat logg med `umask 077`, lämna `GRIDEX_REPLAY_DB_URL` osatt och **source**
+   det byte-oförändrade `scripts/gridex-aud-003-clean-replay.sh`. Kör därefter
+   `prepared-backend.py record` med samma argument som ovan. Ingen child-replay,
+   stop-shim eller external-mode utan CLI-ledger används.
+7. I samma shell/livscykel: kör `up.sh`, ordinarie T5-scenarier och ägd process-
+   städning. Up verifierar det verkliga container-ID:t, daemon/socket, PG17-
+   systemidentifierare, CLI-ledger, schemafingerprint, app-/copy-/config-/logg-
+   bindningar, nätjournal och producentens PID/födelsetid före processändringar.
+   Den bygger alltid färskt och provar alla receiver-hosts efter receiverstart.
+8. Bevara canonical-skriptets ordinarie `cleanup`/EXIT. Kontrollera verklig
+   källåterställning och backendstädning. Stoppa egen daemon och ta bort endast
+   dess egna nät/bridges innan `receiver-network.py --cleanup`; hjälpen kräver
+   åter endast loopback. Privat nyckel-/evidensstädning och fullständig
+   descendant-containment tillhör den yttre producenten. Vid avbrott, expiry,
+   partiell förberedelse eller osäker processcustody förstörs hela den ägda
+   disponibla namespacen av dess supervisor; ingen global flush/kill utförs.
+
+`prepared-backend.py` är en observerande konsument, inte en producentgrant eller
+självständig attest av canonical körning. Inputinventory binder den faktiska
+kopian före replay; canonical tillåts tillfälligt omforma migrations-/seedbytes
+till sin ordinarie EXIT-återställning. Nätkontrollen skapar inte ACTIVE/QUALIFIED.
+Hela den yttre hosted-supervisorn, verkliga resurstilldelningen och körningen
+behöver fortsatt kvalificeras separat. Komponenttester är inte scenario-PASS.
