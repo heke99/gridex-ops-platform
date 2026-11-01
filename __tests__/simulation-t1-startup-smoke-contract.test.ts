@@ -306,7 +306,7 @@ try:
    refs=[module.PREFIX+'backend-test-t1',module.PREFIX+'producer-test-t1'];source_refs=[module.PREFIX+'slot-session-test']+[module.PREFIX+'file-'+module.sha(name.encode()) for name in module.SOURCE_PATHS]
    source={'base':'0'*40,'files':list(module.SOURCE_PATHS),'operation':'Reserve source files and rule IDs'}
    if op=='site-admission':
-    source['files']=sorted(set(module.SOURCE_PATHS+module.SITE_SOURCE_PATHS));source_refs=[module.PREFIX+'slot-session-test']+[module.PREFIX+'file-'+module.sha(name.encode())for name in source['files']];source['operation']='Reserve source files and rule IDs; resources-sha256='+module.sha('\n'.join(sorted(source_refs)).encode())
+    source['files']=sorted(set(module.SOURCE_PATHS+module.SITE_SOURCE_PATHS));source['files']=[p for p in source['files'] if not(case=='cleanup-claim' and p=='scripts/simulation/track1/lib.sh')];source_refs=[module.PREFIX+'slot-session-test']+[module.PREFIX+'file-'+module.sha(name.encode())for name in source['files']];source['operation']='Reserve source files and rule IDs; resources-sha256='+module.sha('\n'.join(sorted(source_refs)).encode())
     if case=='source-capsule':source['operation']+='changed'
    a['sourceClaims']=[{'receipt':'2'*40,'expectedNeutral':source,'refs':source_refs}]
    core=copy.deepcopy(a);attempt={key:a[key] for key in ['event','appCommit','appTree','harnessCommit','harnessTree','workflowCarrier','workflowBlob']}
@@ -912,6 +912,7 @@ try:
   if case=='money':c['sites']['A']['totalIncVatCents']=56830
   if case=='presupply':c['sites']['A']['preStartBillable']=4
   if case=='source':c['sourceSha256'].pop(next(iter(c['sourceSha256'])))
+  if case=='cleanup-source':c['sourceSha256'].pop('scripts/simulation/track1/lib.sh',None)
   if case=='old-source':c['sourceSha256']['scripts/simulation/track1/fixtures/site01Synthetic.ts']='f'*64
   if case=='market-source':c['marketBoundsSourceSha256']='f'*64
   if case=='gen':a['requiredGenGates']['applicability']['typesUnchanged']=False
@@ -928,7 +929,7 @@ function siteProbe(change: string) {
 }
 describe('explicit SITE hosted input-v2 authority', () => {
   it('accepts a separate exact source/input/budget contract', () => expect(siteProbe('valid')).toEqual({ result: { accepted: true }, error: null }))
-  it.each(['missing', 'epoch', 'start', 'end', 'money', 'presupply', 'source', 'gen', 'budget', 'actor', 'old-source', 'market-source', 'boolean-operation', 'extra-operation'])('refuses %s before preparing resources', change => {
+  it.each(['missing', 'epoch', 'start', 'end', 'money', 'presupply', 'source', 'gen', 'budget', 'actor', 'old-source', 'market-source', 'boolean-operation', 'extra-operation', 'cleanup-source'])('refuses %s before preparing resources', change => {
     expect(siteProbe(change).error).toMatch(/^runtime_site_/)
   })
   it('reports all seven exact substeps without whole-scenario credit', () => {
@@ -949,14 +950,22 @@ case=sys.argv[1]
 with tempfile.TemporaryDirectory() as directory:
  home=pathlib.Path(directory);(home/'phases').mkdir();output=home/'site-native';output.mkdir()
  assignment=home/'assignment.json';m.seal(assignment,{'finite':'assignment'})
- a={'harnessDir':str(home),'expiresAtUtc':(m.now()+m.dt.timedelta(minutes=1)).isoformat(),'siteContract':{'businessBudgetSeconds':0.05 if case=='timeout' else 10}}
- m.verify=lambda *_args: (_ for _ in ()).throw(RuntimeError('runtime_finite_custody_changed')) if case=='drift' else None
+ a={'harnessDir':str(home),'expiresAtUtc':(m.now()+m.dt.timedelta(seconds=0.5 if case=='utc-advance' else 60)).isoformat(),'siteContract':{'businessBudgetSeconds':0.05 if case in ['timeout','slow-verify'] else 10}}
+ stopped_during_verify=None
+ def verify(*_args):
+  global stopped_during_verify
+  if case=='drift':raise RuntimeError('runtime_finite_custody_changed')
+  if case in ['slow-verify','utc-advance']:
+   if case=='utc-advance':
+    original_wall=m.time.time;m.time.time=lambda:original_wall()+1
+   time.sleep(0.4 if case=='slow-verify' else 0.1);stopped_during_verify=not bool(m.group_members(m.read_json(output/'child-birth.json')['pid']))
+ m.verify=verify
  m.check_site_live=lambda *_args:None
  error=None
- try:m.phase(home,'site',lambda:m.site_child(a,str(assignment),[sys.executable,'-c','import time;time.sleep(30)' if case in ['timeout','drift'] else 'pass'],dict(os.environ),output))
+ try:m.phase(home,'site',lambda:m.site_child(a,str(assignment),[sys.executable,'-c','import time;time.sleep(30)' if case in ['timeout','drift','slow-verify','utc-advance'] else 'pass'],dict(os.environ),output))
  except Exception as e:error=type(e).__name__
  birth=m.read_json(output/'child-birth.json')
- result={'error':error,'phase':m.read_json(home/'phases/site.json'),'alive':bool(m.group_members(birth['pid']))}
+ result={'error':error,'phase':m.read_json(home/'phases/site.json'),'alive':bool(m.group_members(birth['pid'])),'stoppedDuringVerify':stopped_during_verify}
  print(json.dumps(result))
 `
 describe('SITE parent owns finite subprocess lifecycle', () => {
@@ -1071,12 +1080,31 @@ describe('actual separate SITE runner and once-only cleanup', () => {
 
 describe('actual SITE admission and interrupted-parent cleanup guard', () => {
   it('admits the separate exact SITE profile through the actual shared verifier', () => expect(probe({ op: 'site-admission' }).error).toBeNull())
-  it.each(['branch', 'attempt', 'profile', 'site-budget', 'gate', 'pair', 'source-capsule'])('refuses SITE %s assignment', change => expect(probe({ op: 'site-admission', case: change }).error).toMatch(/^runtime_/))
+  it.each(['branch', 'attempt', 'profile', 'site-budget', 'gate', 'pair', 'source-capsule', 'cleanup-claim'])('refuses SITE %s assignment', change => expect(probe({ op: 'site-admission', case: change }).error).toMatch(/^runtime_/))
   it('permits only teardown after the workload deadline while cleanup admission remains live', () => expect(probe({ op: 'site-admission', case: 'cleanup-work-expired' }).error).toBeNull())
   it.each(['orphan', 'birth-unknown'])('holds backend cleanup for %s rather than destroying resources under a writer', change => {
     const r = siteRunnerProbe(change)
     expect(r.cleanupCount).toBe(0)
     expect(r.proof).toMatchObject({ qualified: false, cleanupObserved: false })
     expect(r.finishError).toMatch(/^runtime_site_child_/)
+  })
+})
+
+describe('SITE deadline is independent of remote verifier progress', () => {
+  it('stops the actual owned child while verification is still blocked', () => {
+    const r = JSON.parse(execFileSync('python3', ['-B', '-c', siteLifecyclePython, 'slow-verify'], { encoding: 'utf8', timeout: 10_000 }))
+    expect(r.stoppedDuringVerify).toBe(true)
+    expect(r.error).toBe('OutcomeUnknown')
+    expect(r.phase).toMatchObject({ status: 'OUTCOME_UNKNOWN', exitCode: null })
+    expect(r.alive).toBe(false)
+  })
+})
+
+describe('SITE watchdog respects absolute UTC expiry', () => {
+  it('stops the child on a modeled UTC advance even within the clock-drift tolerance', () => {
+    const r = JSON.parse(execFileSync('python3', ['-B', '-c', siteLifecyclePython, 'utc-advance'], { encoding: 'utf8', timeout: 10_000 }))
+    expect(r.stoppedDuringVerify).toBe(true)
+    expect(r.phase).toMatchObject({ status: 'OUTCOME_UNKNOWN', exitCode: null })
+    expect(r.alive).toBe(false)
   })
 })

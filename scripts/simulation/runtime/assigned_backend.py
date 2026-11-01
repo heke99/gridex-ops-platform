@@ -23,6 +23,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 import time
 import tomllib
 import urllib.error
@@ -1876,7 +1877,7 @@ def phase_finish(path):
 
 # SITE is a separate authority, never an extension of smoke/MAIN03 permissions.
 SITE_SCENARIO = "scripts/simulation/track1/scenarios/site01.test.ts"
-SITE_SOURCE_PATHS = (SITE_SCENARIO, "scripts/simulation/track1/vitest.config.mts", *(
+SITE_SOURCE_PATHS = (SITE_SCENARIO, "scripts/simulation/track1/vitest.config.mts", "scripts/simulation/track1/lib.sh", *(
     "scripts/simulation/track1/fixtures/" + p + ".ts" for p in
     ("site01Fixture", "site01Synthetic", "wire", "runtime", "substitutions", "main04Support", "synthetic")))
 SITE_REVIEWED_HASHES = {
@@ -1971,21 +1972,42 @@ def site_child(a, assignment_file, argv, env, output):
     budget = min(a["siteContract"]["businessBudgetSeconds"], expires - wall)
     need(budget > 0, "runtime_site_deadline")
     child = None
+    watchdog = None
+    stop_watchdog, deadline_tripped = threading.Event(), threading.Event()
     seal(output / "child-launch.intent.json", {"atUtc": utc(), "argvSha256": sha(encoded(argv)),
          "assignmentSha256": sha(private_path(assignment_file).read_bytes())})
     with (output / "child.log").open("xb") as log:
         try:
             child = subprocess.Popen(argv, cwd=a["harnessDir"], env=env, start_new_session=True, stdout=log, stderr=log)
             seal(output / "child-birth.json", proc_birth(child.pid))
+            # Synchronous custody/API/tool checks may block. This independent
+            # watcher owns only this live Popen session and cannot extend time.
+            def enforce_deadline():
+                while not stop_watchdog.wait(0.01):
+                    elapsed = time.monotonic() - mono
+                    if not (0 <= elapsed < budget and time.time() < expires and abs((time.time() - wall) - elapsed) < 5):
+                        if child.poll() is None or group_members(child.pid):
+                            deadline_tripped.set()
+                            try:
+                                os.killpg(child.pid, signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass
+                        return
+            watchdog = threading.Thread(target=enforce_deadline, name="site-owned-child-deadline", daemon=True)
+            watchdog.start()
             check_at = mono
             while child.poll() is None:
                 current = time.monotonic()
-                need(0 <= current - mono < budget and abs((time.time() - wall) - (current - mono)) < 5, "runtime_site_deadline")
+                need(0 <= current - mono < budget and time.time() < expires and abs((time.time() - wall) - (current - mono)) < 5, "runtime_site_deadline")
                 if current >= check_at:
                     verify(assignment_file, "site-run")
                     check_site_live(a, assignment_file)
                     check_at = current + 10
+                if deadline_tripped.is_set():
+                    raise OutcomeUnknown("runtime_site_independent_deadline")
                 time.sleep(0.2)
+            if deadline_tripped.is_set():
+                raise OutcomeUnknown("runtime_site_independent_deadline")
             need(not group_members(child.pid), "runtime_site_children_remaining")
             return child.returncode
         except Exception:
@@ -1993,6 +2015,11 @@ def site_child(a, assignment_file, argv, env, output):
                 raise OutcomeUnknown("runtime_site_child_interrupted") from None
             raise
         finally:
+            stop_watchdog.set()
+            if watchdog is not None:
+                watchdog.join(timeout=2)
+                if watchdog.is_alive():
+                    raise OutcomeUnknown("runtime_site_deadline_watcher_unknown")
             if child is not None and (child.poll() is None or group_members(child.pid)):
                 try:
                     os.killpg(child.pid, signal.SIGKILL)
