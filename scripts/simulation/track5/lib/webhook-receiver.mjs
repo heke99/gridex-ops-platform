@@ -1,8 +1,8 @@
 // Lokal syntetisk webhook-mottagare för EVENT01 (ingen extern värd).
 //
 // Appen skickar bara till https-mål som löser upp till en publik adress (lib/integrations/publicWebhookTransport.ts).
-// up.sh mappar därför RECEIVER_HOSTS till en publik test-IP i /etc/hosts och DNAT:ar den IP:n (tcp/443) till den här
-// processen på 127.0.0.1:SIM_RECEIVER_TLS_PORT. All annan trafik till test-IP:n avvisas, så inget lämnar maskinen.
+// Den separata producenten förbereder hosts/DNAT i en exklusiv net/mount/PID-namespace före Docker.
+// Mottagarens tilldelade syntetiska IP:443 går till 127.0.0.1:SIM_RECEIVER_TLS_PORT; up.sh ändrar inte värdnätet.
 // Certifikatet är utfärdat av en lokal CA under SIM_HOME/receiver/ca.pem som appen litar på via NODE_EXTRA_CA_CERTS.
 //
 //   https  POST /hook/<namn>            tar emot leverans; svar enligt läget för <namn> (standard 200)
