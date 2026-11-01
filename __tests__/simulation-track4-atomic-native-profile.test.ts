@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
-import { runProfilePhase } from '../scripts/simulation/track4/atomic-native-profile.mjs'
+import { runProfilePhase, observeMemoryBoundary, FROZEN } from '../scripts/simulation/track4/atomic-native-profile.mjs'
+
+function qualifiedMemory(limit = 16 * 2 ** 30) {
+  const files = new Map([['/proc/meminfo', 'MemTotal: 16777216 kB'], ['/proc/self/cgroup', '0::/owned/job'],
+    ['/proc/self/mountinfo', '1 0 0:1 / /sys/fs/cgroup rw - cgroup2 cgroup2 rw'],
+    ['/sys/fs/cgroup/owned/memory.max', String(limit)], ['/sys/fs/cgroup/owned/job/memory.max', 'max']])
+  return observeMemoryBoundary({ mount: () => ({ fsType: 0x63677270, directory: true, symlink: false }), read: (path: string) => { if (!files.has(path)) throw Object.assign(new Error(), { code: 'ENOENT' }); return files.get(path)! },
+    namespace: () => ({ status: 'OBSERVED', system: 'Linux', kernelRelease: '6.18.57', inode: 4026531835,
+      nsType: 33554432, link: 'cgroup:[4026531835]' }) })
+}
 
 const sha = 'a'.repeat(64)
 function fixture() {
@@ -8,14 +17,14 @@ function fixture() {
     expiresAt: '2026-11-01T23:00:00Z', home: '/private/t4', projectId: 'gridex-ops-platform',
     evidenceRecipientSha256: '7048399e88324e148011152fd719d79a0bc9af82b890bc31699e982cbcf3c728',
     sources: { app: { root: '/private/app', commit: '1'.repeat(40), tree: '2'.repeat(40) },
-      preparer: { root: '/private/preparer', commit: 'de035b35ee60c429ffc87495cc4f90a851579eec', tree: 'f13f2972926ad9a7b36ec5f6acd7cfc9bf506a18' },
+      preparer: { root: '/private/preparer', commit: FROZEN.preparerCommit, tree: FROZEN.preparerTree },
       profile: { root: '/private/profile', commit: '3'.repeat(40), tree: '4'.repeat(40) } },
     cohort: { mode: 'retained', manifestSha256: sha, archiveSha256: sha, provenanceVerified: false },
     leases: { bootstrap: 'producer-t4-atomic-bootstrap-test', preparation: 'producer-t4-atomic-native-preparation-test',
       native: 'producer-t4-atomic-native-run-test' },
   }
   const host = { bootId: 'boot', daemonId: 'daemon', socketPath: '/run/docker.sock', socketDev: '1', socketIno: '2',
-    driver: 'overlay2', dockerRootDir: '/owned/docker', effectiveRamBytes: 16 * 2 ** 30, freeDockerBytes: 30 * 2 ** 30 }
+    driver: 'overlay2', dockerRootDir: '/owned/docker', memoryProof: qualifiedMemory(), effectiveRamBytes: 16 * 2 ** 30, freeDockerBytes: 30 * 2 ** 30 }
   const state: Record<string, unknown> = {}
   const io = {
     now: () => Date.parse('2026-11-01T20:00:00Z'),
@@ -581,12 +590,13 @@ describe('host-first read-only hosted probe and explicit bootstrap-only successo
     const calls: string[] = []
     const fs = new Map([
       ['/proc/sys/kernel/random/boot_id', 'actual-test-boot'], ['/proc/meminfo', 'MemTotal: 16777216 kB'],
-      ['/proc/self/cgroup', '0::/owned/test'], ['/sys/fs/cgroup/memory.max', String(12 * 2 ** 30)],
+      ['/proc/self/cgroup', '0::/owned/test'], ['/proc/self/mountinfo', '1 0 0:1 / /sys/fs/cgroup rw - cgroup2 cgroup2 rw'], ['/sys/fs/cgroup/memory.max', String(12 * 2 ** 30)],
       ['/sys/fs/cgroup/cpu.max', '400000 100000'],
-      ['/sys/fs/cgroup/owned/test/memory.max', String(4 * 2 ** 30)], ['/sys/fs/cgroup/owned/memory.max', 'max'],
+      ['/sys/fs/cgroup/owned/test/memory.max', String(12 * 2 ** 30)], ['/sys/fs/cgroup/owned/memory.max', 'max'],
     ])
     const reader = (actualProfile as unknown as { observeHostReadOnly(io: unknown): unknown }).observeHostReadOnly
-    const result = await reader({ env: { DOCKER_CONTEXT: 'actual-local', DOCKER_HOST: 'tcp://unselected-remote:2375' },
+    const result = await reader({ mount: () => ({ fsType: 0x63677270, directory: true, symlink: false }), namespace: () => ({ status: 'OBSERVED', system: 'Linux', kernelRelease: '6.18.57',
+      inode: 4026531835, nsType: 33554432, link: 'cgroup:[4026531835]' }), env: { DOCKER_CONTEXT: 'actual-local', DOCKER_HOST: 'tcp://unselected-remote:2375' },
       command: (program: string, argv: string[]) => {
         const command = `${program} ${argv.join(' ')}`; calls.push(command)
         if (command.includes('context show')) return 'actual-local'
@@ -598,7 +608,7 @@ describe('host-first read-only hosted probe and explicit bootstrap-only successo
       realpath: (path: string) => path === '/var/run/docker.sock' ? '/run/docker.sock' : path,
       socket: () => ({ dev: 1, ino: 2, isSocket: () => true }),
       disk: () => ({ bavail: 30, bsize: 2 ** 30 }), cpus: () => 4 }) as { effectiveRamBytes: number; socketPath: string }
-    expect(result.effectiveRamBytes).toBe(4 * 2 ** 30)
+    expect(result.effectiveRamBytes).toBe(12 * 2 ** 30)
     expect(result.socketPath).toBe('/run/docker.sock')
     expect(calls.every((command) => !/docker (?:create|pull|start|stop|rm|run|prune)\b|docker context create|docker image (?:pull|rm|tag)/.test(command))).toBe(true)
   })
@@ -999,5 +1009,40 @@ describe('Moby baseline reference preservation boundaries', () => {
       expect([...f.current.values()]).toEqual([baseline])
       expect(f.deleted).not.toContain(baseline.RepoDigests[0])
     } finally { f.cleanup() }
+  })
+})
+
+describe('initial kernel cgroup namespace and global hierarchy are mandatory', () => {
+  it('does not qualify visible16GiB/max with a hidden2GiB parent namespace', () => {
+    const values = new Map([['/proc/meminfo', 'MemTotal: 16777216 kB'], ['/proc/self/cgroup', '0::/'],
+      ['/proc/self/mountinfo', '136 135 0:24 /.. /sys/fs/cgroup ro - cgroup2 cgroup2 rw'],
+      ['/proc/sys/kernel/random/boot_id', 'boot'], ['/sys/fs/cgroup/memory.max', 'max'], ['/sys/fs/cgroup/cpu.max', 'max 100000']])
+    const io = { env: {}, namespace: () => ({ status: 'OBSERVED', kernelRelease: '6.18.57', inode: 4026532205,
+      link: 'cgroup:[4026532205]', nsType: 33554432 }),
+      read: (path: string) => { if (!values.has(path)) throw Object.assign(new Error(), { code: 'ENOENT' }); return values.get(path)! },
+      command: (_program: string, args: string[]) => args.includes('show') ? 'default' : args.includes('context')
+        ? JSON.stringify([{ Endpoints: { docker: { Host: 'unix:///run/docker.sock' } } }])
+        : args.includes('info') ? JSON.stringify({ ID: 'daemon', Driver: 'overlay2', DockerRootDir: '/docker' }) : '',
+      realpath: (path: string) => path, socket: () => ({ dev: 1, ino: 2, isSocket: () => true }),
+      disk: () => ({ bavail: 80, bsize: 2 ** 30 }), cpus: () => 4 }
+    const result = actualProfile.observeHostReadOnly(io)
+    expect(result.effectiveRamBytes).toBeNull()
+    expect(result.memoryProof.qualification).toBe('UNKNOWN')
+  })
+})
+
+describe('all admission paths require global memory qualification', () => {
+  it('rejects nominal RAM with an unknown memory boundary before bootstrap', async () => {
+    const f = fixture()
+    f.io.inspectHost.mockResolvedValue({ ...f.host, memoryProof: { ...f.host.memoryProof,
+      qualification: 'UNKNOWN', effectiveRamBytes: null, reasons: ['hidden_parent'] } })
+    await expect(runProfilePhase('init', f.plan, f.state, f.io)).rejects.toThrow('global_memory_capacity_unknown')
+    expect(f.io.reserve).not.toHaveBeenCalled(); expect(f.io.bootstrap).not.toHaveBeenCalled()
+  })
+  it('binds the standalone observer body to the exact paired preparer contract source', () => {
+    const text = readFileSync(join(process.cwd(), 'scripts/simulation/track4/atomic-native-profile.mjs'), 'utf8')
+    const start = text.indexOf('function observeMemoryBoundary(io)')
+    const end = text.indexOf('export function observeProcessMemory()', start)
+    expect(digest(text.slice(start, end).trim())).toBe(FROZEN.memoryBoundarySourceSha256)
   })
 })

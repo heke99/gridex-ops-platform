@@ -91,12 +91,13 @@ export const EVIDENCE_RECIPIENT_SHA256 = '7048399e88324e148011152fd719d79a0bc9af
 export const FROZEN = Object.freeze({
   supabaseBinarySha256: 'b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f',
   supabaseGoBinarySha256: '9dd9e81a21074081328b77a27a8aef7be45a2828f81d99c4e1fb65efbec73947',
-  preparerCommit: 'de035b35ee60c429ffc87495cc4f90a851579eec',
-  preparerTree: 'f13f2972926ad9a7b36ec5f6acd7cfc9bf506a18',
+  memoryBoundarySourceSha256: '2d8fa2017f69eee9be16f5dedb673d4be34ceb00dce483fb10c21db8b041cb21',
+  preparerCommit: '9e46259e8c312ebbc2e23451769e76906ffc7188',
+  preparerTree: 'efe919d6494865c8a68a2d414dc3bd6a119cbefe',
   preparerFiles: {
-    'scripts/simulation/track4/lib/atomicNativePreparation.mjs': '5b375e523f0b24da71fdb9f527227c9c2fd4e82942eab75fa6e1cc8a54ff7327',
-    'scripts/simulation/track4/prepare-atomic-native.mjs': '1556da942ad9fe7075e2ec7c5f6af7a4e2cd80c32e502d1bcb3693cb94f0657d',
-    '__tests__/simulation-track4-atomic-native-preparation.test.ts': 'dcb8e5379b105cb458f57317b07fc6a7280fff811f00d50354d47ec3830a773d',
+    'scripts/simulation/track4/lib/atomicNativePreparation.mjs': 'bd520d9fcb5fdbe62b560046b9d0d04bc7229ea961351a8d829332669b124805',
+    'scripts/simulation/track4/prepare-atomic-native.mjs': 'a752a7573f3e4f7d06d92fbd26ced8b5fcfa1bdf1ef6f8a2814f1e0f3014ef23',
+    '__tests__/simulation-track4-atomic-native-preparation.test.ts': '454bc649a86e3c14dfc85541595a256107ab134b34fa1d7362b1ebb920b7d851',
   },
   proofCommit: 'c8c4244d7224c46baf83695ca80fa2fe9f52f83e',
   proofSha256: 'a7b2b243265114fbb21d4c899ae8669fca31fda5cc2ca0671f5b6ad6bb766f0f',
@@ -125,6 +126,8 @@ const safeCode = (error) => error instanceof Hold && /^[a-z0-9_]+$/.test(error.c
 const literal = (value) => `'${String(value).replaceAll("'", "''")}'`
 
 export function checkCapacity(host) {
+  need(host.memoryProof?.contract === 't4_global_memory_boundary_v1' && host.memoryProof.qualification === 'KNOWN'
+    && host.effectiveRamBytes === host.memoryProof.effectiveRamBytes, 'global_memory_capacity_unknown')
   const floor = { vfs: 40, overlay2: 15, overlayfs: 15 }[host.driver]
   need(floor && host.effectiveRamBytes >= 8 * GIB && host.freeDockerBytes >= floor * GIB, 'owned_host_capacity_hold')
 }
@@ -405,6 +408,8 @@ function inventory(plan) {
     volumes: docker(plan, 'volume', 'ls', '--format', '{{.Name}}').split('\n').filter(Boolean).sort() }
 }
 async function inspectHost(plan, cleanup = false) {
+  const memoryProof = observeProcessMemory()
+  if (!cleanup) need(memoryProof.qualification === 'KNOWN' && memoryProof.effectiveRamBytes >= 8 * GIB, 'global_memory_capacity_unknown_or_insufficient')
   // Resolve the actual original endpoint without contacting a remote daemon.
   const contextEndpoint = jcapture('docker', ['context', 'inspect', capture('docker', ['context', 'show'])])[0]?.Endpoints?.docker?.Host
   const endpoint = process.env.DOCKER_CONTEXT ? contextEndpoint : process.env.DOCKER_HOST || contextEndpoint
@@ -414,6 +419,7 @@ async function inspectHost(plan, cleanup = false) {
   const direct = jcapture('docker', ['--host', `unix://${socketPath}`, 'info', '--format', '{{json .}}'])
   const client = join(plan.home, 'docker-client')
   if (!existsSync(client)) {
+    need(!cleanup, 'owned_cleanup_context_unavailable')
     ensureDirectory(client)
     const env = { ...process.env, DOCKER_CONFIG: client }
     delete env.DOCKER_CONTEXT
@@ -425,13 +431,9 @@ async function inspectHost(plan, cleanup = false) {
   const info = dockerJson(plan, 'info', '--format', '{{json .}}')
   need(info.ID === direct.ID, 'private_context_changed_daemon')
   const disk = statfsSync(info.DockerRootDir)
-  let ram = Number(readFileSync('/proc/meminfo', 'utf8').match(/^MemTotal:\s+(\d+)/m)?.[1]) * 1024
-  for (const path of ['/sys/fs/cgroup/memory.max', '/sys/fs/cgroup/memory/memory.limit_in_bytes']) {
-    if (existsSync(path)) { const value = Number(readFileSync(path, 'utf8').trim()); if (Number.isFinite(value)) ram = Math.min(ram, value) }
-  }
   const host = { bootId: readFileSync('/proc/sys/kernel/random/boot_id', 'utf8').trim(), daemonId: info.ID,
     socketPath, socketDev: String(socket.dev), socketIno: String(socket.ino), driver: info.Driver,
-    dockerRootDir: realpathSync(info.DockerRootDir), effectiveRamBytes: ram,
+    dockerRootDir: realpathSync(info.DockerRootDir), memoryProof, effectiveRamBytes: memoryProof.effectiveRamBytes,
     freeDockerBytes: Number(disk.bavail) * Number(disk.bsize), cpuCount: availableParallelism(),
     cpuQuota: existsSync('/sys/fs/cgroup/cpu.max') ? readFileSync('/sys/fs/cgroup/cpu.max', 'utf8').trim() : null,
     actionsRunId: process.env.GITHUB_RUN_ID, actionsJob: process.env.GITHUB_JOB }
@@ -1115,12 +1117,7 @@ export async function main(argv = process.argv.slice(2)) {
     throw error
   }
 }
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().then((result) => process.stdout.write(`${JSON.stringify(result)}\n`)).catch((error) => {
-    process.stderr.write(`T4 profile HOLD: ${safeCode(error)}\n`)
-    process.exitCode = 1
-  })
-}
+
 
 export function decryptInputEnvelope(envelope, keyHex) {
   need(/^[a-f0-9]{64}$/.test(keyHex ?? '') && envelope.format === 't4_private_profile_input_aes256gcm_v1',
@@ -1272,9 +1269,21 @@ async function verifyPrivateCodeGate(plan) {
 /** Read-only host capability observation: no context creation, image pull,
  * package setup, backend or public identity dump. Preview hosts are never leases.
  */
+/** @param {{env: Record<string,string|undefined>, command:(program:string,args:string[])=>string,
+ * read:(path:string)=>string, realpath:(path:string)=>string,
+ * socket:(path:string)=>{dev:number|bigint,ino:number|bigint,isSocket:()=>boolean},
+ * disk:(path:string)=>{bavail:number|bigint,bsize:number|bigint},cpus:()=>number,
+ * namespace?:()=>unknown,mount?:(path:string)=>unknown}} io */
 export function observeHostReadOnly(io = { env: process.env, command: capture,
   read: (path) => readFileSync(path, 'utf8'), realpath: realpathSync, socket: lstatSync,
-  disk: statfsSync, cpus: availableParallelism }) {
+  disk: statfsSync, cpus: availableParallelism,
+  namespace: () => jcapture('python3', ['-c', CGROUP_NAMESPACE_PROBE_PYTHON], { stdio: ['ignore', 'pipe', 'pipe'] }) }, cleanupObservation = false) {
+  const memoryProof = observeMemoryBoundary({ read: io.read, mount: io.mount
+    ?? ((path) => ({ fsType: Number(statfsSync(path).type), directory: lstatSync(path).isDirectory(), symlink: lstatSync(path).isSymbolicLink() })), namespace: io.namespace
+    ?? (() => JSON.parse(io.command('python3', ['-c', CGROUP_NAMESPACE_PROBE_PYTHON]))) })
+  if (!cleanupObservation && (memoryProof.qualification !== 'KNOWN' || memoryProof.effectiveRamBytes < 8 * GIB)) {
+    return { memoryProof, effectiveRamBytes: memoryProof.effectiveRamBytes, driver: null, freeDockerBytes: null }
+  }
   const context = io.command('docker', ['context', 'show'])
   const contextHost = JSON.parse(io.command('docker', ['context', 'inspect', context]))[0]?.Endpoints?.docker?.Host
   const endpoint = io.env.DOCKER_CONTEXT ? contextHost : io.env.DOCKER_HOST || contextHost
@@ -1288,29 +1297,12 @@ export function observeHostReadOnly(io = { env: process.env, command: capture,
     if (error.code === 'ENOENT') return null
     throw new Hold('host_cgroup_observation_failed')
   } }
-  const cgroup = optional('/proc/self/cgroup')
-  const v2 = cgroup?.match(/^0::(\/.*)$/m)?.[1]
-  const v1 = cgroup?.split('\n').find((line) => line.split(':')[1]?.split(',').includes('memory'))?.split(':')[2]
-  const groupPath = v2 ?? v1
-  need(groupPath && groupPath.startsWith('/') && !groupPath.split('/').includes('..'), 'actual_process_cgroup_required')
-  const base = v2 ? '/sys/fs/cgroup' : '/sys/fs/cgroup/memory'
-  const leaf = v2 ? 'memory.max' : 'memory.limit_in_bytes'
-  const components = groupPath.split('/').filter(Boolean)
-  const paths = Array.from({ length: components.length + 1 }, (_, index) =>
-    `${base}${index ? `/${components.slice(0, index).join('/')}` : ''}/${leaf}`)
-  const memoryLimits = paths.map((path) => ({ path, value: optional(path) }))
-  need(memoryLimits.at(-1)?.value !== null, 'actual_process_memory_limit_unavailable')
-  const memoryMax = memoryLimits.at(-1).value
-  const physical = Number(io.read('/proc/meminfo').match(/^MemTotal:\s+(\d+)/m)?.[1]) * 1024
-  const finiteLimits = memoryLimits.map((item) => Number(item.value)).filter((value) => Number.isFinite(value) && value > 0)
-  const effectiveRamBytes = Math.min(physical, ...finiteLimits)
   const disk = io.disk(info.DockerRootDir)
   return { bootId: io.read('/proc/sys/kernel/random/boot_id').trim(), daemonId: info.ID,
     socketPath, socketDev: String(socket.dev), socketIno: String(socket.ino), contextEndpointHost: contextHost,
     driver: info.Driver, dockerRootDir: io.realpath(info.DockerRootDir),
-    effectiveRamBytes, freeDockerBytes: Number(disk.bavail) * Number(disk.bsize), cpuCount: io.cpus(),
-    cgroup, memoryMax, memoryLimits, cpuQuota: optional(v2 ? `${base}${groupPath === '/' ? '' : groupPath}/cpu.max` : '/sys/fs/cgroup/cpu/cpu.cfs_quota_us')
-      ?? optional('/sys/fs/cgroup/cpu.max'),
+    memoryProof, effectiveRamBytes: memoryProof.effectiveRamBytes, freeDockerBytes: Number(disk.bavail) * Number(disk.bsize), cpuCount: io.cpus(),
+    cpuQuota: optional('/sys/fs/cgroup/cpu.max'),
     inventory: Object.fromEntries([['containers', ['ps', '-aq', '--no-trunc']],
       ['networks', ['network', 'ls', '--no-trunc', '--format', '{{.ID}}']], ['volumes', ['volume', 'ls', '--format', '{{.Name}}']],
       ['images', ['image', 'ls', '-aq', '--no-trunc']]].map(([key, argv]) =>
@@ -1555,7 +1547,7 @@ async function bootstrapOnlyMain(path) {
       // Setup failure before the replay's immutable inventory has no Docker
       // mutation to clean; return a truthful failure if unknown resources exist.
       if (!existsSync(join(input.home, 'receipts', 'initial-inventory.json'))) {
-        const current = observeHostReadOnly(), proof = JSON.parse(privateFile(input.hostProof.path))
+        const current = observeHostReadOnly(undefined, true), proof = JSON.parse(privateFile(input.hostProof.path))
         sameHost(proof.host, current)
         need(canonical(current.inventory) === canonical(proof.host.inventory), 'unknown_pre_replay_resource_birth')
         return { verified: true, foreignDeleted: 0, unknown: [] }
@@ -1746,4 +1738,108 @@ export function bootstrapCarrierPollDelay(remainingMs, stats) {
     && stats.remainingAfter >= stats.requestCost + CARRIER_API_RESERVE, 'assignment_poll_budget_hold')
   const affordable = Math.max(1, Math.floor((stats.remainingAfter - CARRIER_API_RESERVE) / stats.requestCost))
   return Math.max(45_000, Math.ceil(remainingMs / affordable))
+}
+
+// Linux6.8-6.18 initial cgroup inode source qualification manifestSHA
+// 11ed57529dbea8e0fd176afe8c0fff6c7c9bcd28c51a1d1d25fa3a7cd15a5766.
+// v6.18 UAPI nsfs.h SHA b9e98fbcaabd0573a38b794c4da5deb349721dd4676e56501938b312ca361483:
+// CGROUP_NS_INIT_INO=0xEFFFFFFB; NS_GET_NSTYPE=_IO(0xb7,3).
+// sched.h SHA2081b07cee6adab443e4ba320d0ccb13db4c97bed64f3eefafbfde2f25c833a4:
+// CLONE_NEWCGROUP=0x02000000. cgroup-v2.rst SHAda9a788f2d2ece7b6535c96b56324f28893f8a211768333df7257f586075cd97:
+// memory.max is required on NON-ROOT cgroups; absent global-root file is legitimate.
+export const CGROUP_NAMESPACE_PROBE_PYTHON = `import os,fcntl,json
+r={'status':'UNKNOWN','system':os.uname().sysname,'kernelRelease':os.uname().release}
+try:
+ r['link']=os.readlink('/proc/self/ns/cgroup')
+ fd=os.open('/proc/self/ns/cgroup',os.O_RDONLY)
+ try:
+  r['inode']=os.fstat(fd).st_ino
+  r['nsType']=fcntl.ioctl(fd,0xb703)
+ finally:os.close(fd)
+ r['status']='OBSERVED'
+except Exception as e:r['error']=type(e).__name__
+print(json.dumps(r))`
+export function observeMemoryBoundary(io) {
+  const reasons = [], reads = []
+  const read = (path, maximum = 1048576) => {
+    try {
+      const raw = io.read(path)
+      if (typeof raw !== 'string' || raw.length > maximum) throw new Error('invalid_read')
+      const item = { path, status: 'OBSERVED', raw }; reads.push(item); return item
+    } catch (error) {
+      const item = { path, status: 'UNAVAILABLE', code: error.code === 'ENOENT' ? 'ENOENT' : 'READ_FAILED' }
+      reads.push(item); return item
+    }
+  }
+  let namespace
+  try { namespace = io.namespace() } catch { namespace = { status: 'UNKNOWN', error: 'NAMESPACE_READ_FAILED' } }
+  if (!(namespace?.status === 'OBSERVED' && namespace.system === 'Linux'
+    && /^6\.(8|9|10|11|12|13|14|15|16|17|18)\.\d+(?:[-+].*)?$/.test(namespace.kernelRelease ?? '')
+    && namespace.inode === 4026531835 && namespace.nsType === 33554432 && namespace.link === 'cgroup:[4026531835]')) {
+    reasons.push('initial_kernel_cgroup_namespace_unproved')
+  }
+  const physicalRead = read('/proc/meminfo', 65536), membershipRead = read('/proc/self/cgroup', 65536)
+  const mountRead = read('/proc/self/mountinfo')
+  const physicalMatch = physicalRead.raw?.match(/^MemTotal:\s+([1-9][0-9]*) kB$/m)
+  const physicalRamBytes = physicalMatch ? Number(physicalMatch[1]) * 1024 : null
+  if (!Number.isSafeInteger(physicalRamBytes) || physicalRamBytes <= 0) reasons.push('physical_memory_unproved')
+  const memberships = membershipRead.raw?.trim().split('\n') ?? []
+  const unified = memberships.filter((line) => /^0::\//.test(line))
+  const member = unified.length === 1 ? unified[0].slice(3) : null
+  const safePath = (path) => typeof path === 'string' && path.startsWith('/') && !path.includes('\0')
+    && !path.includes('\\') && path.split('/').filter(Boolean).length <= 64
+    && !path.split('/').some((part) => part === '.' || part === '..') && !path.includes('//')
+  if (!safePath(member) || memberships.some((line) => !/^\d+:[^:]*:\/[^\n]*$/.test(line)
+    || line.split(':')[1].split(',').includes('memory'))) reasons.push('global_unified_membership_unproved')
+  const mounts = [], allMounts = []
+  if (mountRead.raw) for (const line of mountRead.raw.trim().split('\n')) {
+    const fields = line.split(' '), divider = fields.indexOf('-')
+    if (divider < 6 || fields.length < divider + 4) { reasons.push('mountinfo_malformed'); continue }
+    const decode = (value) => value.replace(/\\(040|011|012|134)/g, (_, octal) => String.fromCharCode(parseInt(octal, 8)))
+    const row = { root: decode(fields[3]), point: decode(fields[4]) }; allMounts.push(row)
+    if (fields[divider + 1] === 'cgroup2') mounts.push(row)
+  }
+  if (mounts.length !== 1 || mounts[0]?.root !== '/' || !safePath(mounts[0]?.point)) reasons.push('global_cgroup_mount_unproved')
+  let mountWitness
+  if (mounts.length === 1 && safePath(mounts[0].point)) {
+    try { mountWitness = io.mount(mounts[0].point) } catch { mountWitness = { status: 'UNAVAILABLE' } }
+    if (!(mountWitness?.fsType === 0x63677270 && mountWitness.directory === true && mountWitness.symlink === false)) reasons.push('actual_cgroup_mount_unproved')
+  }
+  const limits = [], finite = []
+  if (safePath(member) && mounts.length === 1 && safePath(mounts[0].point)) {
+    const parts = member.split('/').filter(Boolean)
+    for (let depth = 0; depth <= parts.length; depth++) {
+      const path = `${mounts[0].point === '/' ? '' : mounts[0].point}${depth ? `/${parts.slice(0, depth).join('/')}` : ''}/memory.max`
+      if (allMounts.some((row) => row !== mounts[0] && (row.point === mounts[0].point || row.point.startsWith(`${mounts[0].point}/`))
+        && (path === row.point || path.startsWith(`${row.point}/`)))) reasons.push('memory_ancestor_overmounted')
+      const observation = read(path, 128)
+      const value = observation.raw?.trim()
+      limits.push({ ...observation, required: depth > 0 })
+      if (observation.status !== 'OBSERVED') {
+        if (depth > 0 || observation.code !== 'ENOENT') reasons.push('required_ancestor_memory_unavailable')
+      } else if (value === 'max') {
+        // Legitimate unlimited bound; no invented finite RAM override.
+      } else if (/^(0|[1-9][0-9]{0,19})$/.test(value ?? '') && BigInt(value) <= 18446744073709551615n) {
+        finite.push(BigInt(value))
+      } else reasons.push('ancestor_memory_limit_malformed')
+    }
+  } else reasons.push('ancestor_walk_unproved')
+  const visibleRamBytes = Number.isSafeInteger(physicalRamBytes) && physicalRamBytes > 0
+    ? Number(finite.reduce((minimum, limit) => limit < minimum ? limit : minimum, BigInt(physicalRamBytes))) : null
+  return { contract: 't4_global_memory_boundary_v1', qualification: reasons.length ? 'UNKNOWN' : 'KNOWN',
+    effectiveRamBytes: reasons.length ? null : visibleRamBytes, visibleRamBytes, physicalRamBytes,
+    namespace, membership: member, mounts, mountWitness, limits, reads, reasons: [...new Set(reasons)] }
+}
+
+export function observeProcessMemory() {
+  return observeMemoryBoundary({ read: (path) => readFileSync(path, 'utf8'),
+    mount: (path) => ({ fsType: Number(statfsSync(path).type), directory: lstatSync(path).isDirectory(), symlink: lstatSync(path).isSymbolicLink() }),
+    namespace: () => jcapture('python3', ['-c', CGROUP_NAMESPACE_PROBE_PYTHON], { stdio: ['ignore', 'pipe', 'pipe'] }) })
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().then((result) => process.stdout.write(`${JSON.stringify(result)}\n`)).catch((error) => {
+    process.stderr.write(`T4 profile HOLD: ${safeCode(error)}\n`)
+    process.exitCode = 1
+  })
 }
