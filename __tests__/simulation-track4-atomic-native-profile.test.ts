@@ -786,6 +786,14 @@ function imageCleanupFixture(initial: ImageRow[] = []) {
       deleted.push(ref)
       if (prunableParent && !args.includes('--no-prune')) current.delete(prunableParent)
       row.RepoTags = row.RepoTags.filter((tag) => tag !== ref); row.RepoDigests = row.RepoDigests.filter((digest) => digest !== ref)
+      // Actual Mobyv28.5.1 image_delete.go139-164: removing the LAST tag
+      // for a repository also removes ALL digest refs for that repository.
+      // --no-prune affects parents, not this same-repository behavior.
+      const repository = (value: string) => value.includes('@') ? value.split('@')[0]
+        : value.slice(0, value.lastIndexOf(':'))
+      if (!ref.includes('@') && !row.RepoTags.some((tag) => repository(tag) === repository(ref))) {
+        row.RepoDigests = row.RepoDigests.filter((digest) => repository(digest) !== repository(ref))
+      }
       if (!row.RepoTags.length && !row.RepoDigests.length) current.delete(row.Id)
       afterDelete?.()
       return ''
@@ -917,6 +925,79 @@ describe('Docker default parent-pruning preservation', () => {
       f.setPrunableParent(baseline.Id)
       expect(() => actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)).not.toThrow()
       expect(f.current.get(baseline.Id)).toEqual(baseline)
+    } finally { f.cleanup() }
+  })
+})
+
+describe('actual Moby last-tag implicit same-repository digest transitions', () => {
+  it('cleans all fresh7 pins using actual digest-before-tag deletion effects', () => {
+    const f = imageCleanupFixture()
+    try {
+      expect(() => actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)).not.toThrow()
+      expect(f.current.size).toBe(0)
+      expect(f.deleted.slice(0, 7)).toEqual(f.pins.map(f.reference))
+      expect(f.deleted.slice(7)).toEqual(f.pins.map((pin) => pin.tag))
+    } finally { f.cleanup() }
+  })
+  it('HOLDs BEFORE ANY deletion when an introduced last tag would erase a baseline same-repo digest', () => {
+    const pin = actualProfile.BOOTSTRAP_IMAGES[0]
+    const digest = `${pin.tag.slice(0, pin.tag.lastIndexOf(':'))}@${pin.manifest}`
+    const baseline = { Id: pin.config, RepoTags: [], RepoDigests: [digest] }
+    const f = imageCleanupFixture([baseline])
+    try {
+      expect(() => actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)).toThrow()
+      expect(f.deleted).toEqual([])
+      expect(f.current.get(pin.config)?.RepoDigests).toContain(digest)
+      expect(f.current.has(pin.config)).toBe(true)
+      const receipt = JSON.parse(readFileSync(join(f.home, 'receipts/image-cleanup-incomplete.json'), 'utf8'))
+      expect(receipt.foreignDeleted).toBeNull()
+      expect(receipt.baselineIntegrity).toBe('UNVERIFIED')
+    } finally { f.cleanup() }
+  })
+  it('does not claim foreignDeleted0 when a destructive call has unknown partial side effects', () => {
+    const baseline = { Id: `sha256:${'8'.repeat(64)}`, RepoTags: ['foreign:keep'], RepoDigests: [] }
+    const f = imageCleanupFixture([baseline])
+    try {
+      f.setAfterDelete(() => { f.current.delete(baseline.Id); throw new Error('unknown-partial-side-effect') })
+      expect(() => actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)).toThrow()
+      const receipt = JSON.parse(readFileSync(join(f.home, 'receipts/image-cleanup-incomplete.json'), 'utf8'))
+      expect(receipt.foreignDeleted).toBeNull()
+      expect(receipt.baselineIntegrity).toBe('UNVERIFIED')
+      expect(receipt.attempted).toHaveLength(1)
+    } finally { f.cleanup() }
+  })
+})
+
+describe('Moby baseline reference preservation boundaries', () => {
+  it('preserves a baseline same-repo digest when its original same-repo tag survives', () => {
+    const pin = actualProfile.BOOTSTRAP_IMAGES[0], repo = pin.tag.slice(0, pin.tag.lastIndexOf(':'))
+    const baseline = { Id: pin.config, RepoTags: [`${repo}:baseline-keep`], RepoDigests: [`${repo}@${pin.manifest}`] }
+    const f = imageCleanupFixture([baseline])
+    try {
+      expect(() => actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)).not.toThrow()
+      expect([...f.current.values()]).toEqual([baseline])
+      expect(f.deleted).not.toContain(baseline.RepoTags[0])
+      expect(f.deleted).not.toContain(baseline.RepoDigests[0])
+    } finally { f.cleanup() }
+  })
+  it('does not mistake an unrelated-repo tag for protection of the baseline same-repo digest', () => {
+    const pin = actualProfile.BOOTSTRAP_IMAGES[0], repo = pin.tag.slice(0, pin.tag.lastIndexOf(':'))
+    const baseline = { Id: pin.config, RepoTags: ['another.invalid/example:keep'], RepoDigests: [`${repo}@${pin.manifest}`] }
+    const f = imageCleanupFixture([baseline])
+    try {
+      expect(() => actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)).toThrow('baseline_repository_digest_preserved')
+      expect(f.deleted).toEqual([])
+      expect(f.current.get(pin.config)?.RepoDigests).toEqual(baseline.RepoDigests)
+    } finally { f.cleanup() }
+  })
+  it('preserves an unrelated-repo baseline digest while removing only our repository additions', () => {
+    const pin = actualProfile.BOOTSTRAP_IMAGES[0]
+    const baseline = { Id: pin.config, RepoTags: [], RepoDigests: [`another.invalid/example@${pin.manifest}`] }
+    const f = imageCleanupFixture([baseline])
+    try {
+      expect(() => actualProfile.cleanupBootstrapImages({ home: f.home }, f.backend)).not.toThrow()
+      expect([...f.current.values()]).toEqual([baseline])
+      expect(f.deleted).not.toContain(baseline.RepoDigests[0])
     } finally { f.cleanup() }
   })
 })

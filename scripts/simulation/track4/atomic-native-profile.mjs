@@ -1571,7 +1571,7 @@ async function bootstrapOnlyMain(path) {
 export function cleanupBootstrapImages(plan, backend = { docker, dockerJson }) {
   const path = join(plan.home, 'receipts', 'images.intent.json')
   if (!existsSync(path)) return
-  const removed = []
+  const removed = [], attempted = []
   try {
     const intent = readJson(path), pinned = readJson(join(plan.home, 'receipts', 'images-pinned.json'))
     need(canonical(intent.expected) === canonical(BOOTSTRAP_IMAGES) && canonical(pinned.inventory) === canonical(BOOTSTRAP_IMAGES),
@@ -1602,6 +1602,22 @@ export function cleanupBootstrapImages(plan, backend = { docker, dockerJson }) {
     need(!BOOTSTRAP_IMAGES.some((image) => baseline.has(image.config)
       && baseline.get(image.config).RepoTags.length + baseline.get(image.config).RepoDigests.length === 0),
     'dangling_baseline_image_preserved')
+    const repository = (ref) => {
+      const named = ref.includes('@') ? ref.slice(0, ref.indexOf('@'))
+        : ref.lastIndexOf(':') > ref.lastIndexOf('/') ? ref.slice(0, ref.lastIndexOf(':')) : ref
+      return named.toLowerCase()
+    }
+    // Mobyv28.5.1 image_delete.go139-164 (SHA5776e4f3c83580ab1686bc3718cd6352d7db83ab24a076761f97a92069bd2417):
+    // deleting the LAST tag for a repository implicitly deletes its digest refs.
+    // --no-prune protects parents ONLY. A baseline digest without a surviving
+    // baseline same-repo tag cannot be preserved by removing our added tag.
+    // Reject that case BEFORE ANY deletion, including unrelated owned digests.
+    need(!BOOTSTRAP_IMAGES.some((image) => {
+      const old = baseline.get(image.config), repo = repository(image.tag)
+      return old && !old.RepoTags.includes(image.tag)
+        && old.RepoDigests.some((ref) => repository(ref) === repo)
+        && !old.RepoTags.some((ref) => repository(ref) === repo)
+    }), 'baseline_repository_digest_preserved')
     const expected = normalize(intent.initial)
     const actions = []
     for (const image of BOOTSTRAP_IMAGES) {
@@ -1612,6 +1628,10 @@ export function cleanupBootstrapImages(plan, backend = { docker, dockerJson }) {
       }
       expected.set(image.config, row)
     }
+    // Remove ALL introduced canonical digest references before ANY introduced
+    // tag. Therefore last-tag removal cannot silently consume an owned digest
+    // that the expected-state transition still assumes exists.
+    actions.sort((a, b) => Number(a.key === 'RepoTags') - Number(b.key === 'RepoTags'))
     // Re-normalize catches an introduced ref that conflicts with a different
     // immutable baseline config, before any deletion or implicit adoption.
     normalize([...expected.values()])
@@ -1642,6 +1662,7 @@ export function cleanupBootstrapImages(plan, backend = { docker, dockerJson }) {
         && pointed.get(action.id)[action.key].includes(action.ref), 'owned_image_reference_changed')
       // DockerCLI remove.go (v28.5.1 SHA15b66040dd6a365566654a098337705f34a70d2a7ca81f840fe09115c63f0ebb):
       // PruneChildren: !opts.noPrune. Never prune dangling baseline parents.
+      attempted.push(action.ref)
       backend.docker(plan, 'image', 'rm', '--no-prune', action.ref)
       removed.push(action.ref)
       const row = expected.get(action.id)
@@ -1653,8 +1674,8 @@ export function cleanupBootstrapImages(plan, backend = { docker, dockerJson }) {
     seal(join(plan.home, 'receipts', 'image-cleanup.json'), { verified: true, removed,
       initial: [...baseline.values()], final: [...final.values()], force: false, foreignDeleted: 0 })
   } catch (error) {
-    seal(join(plan.home, 'receipts', 'image-cleanup-incomplete.json'), { verified: false, removed,
-      code: safeCode(error), foreignDeleted: 0 })
+    seal(join(plan.home, 'receipts', 'image-cleanup-incomplete.json'), { verified: false, removed, attempted,
+      code: safeCode(error), baselineIntegrity: 'UNVERIFIED', foreignDeleted: null })
     throw error
   }
 }
