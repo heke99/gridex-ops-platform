@@ -126,6 +126,17 @@ function greenmail(runtime, receipt) {
   return actual
 }
 
+export function verifyPreparation(prepared, preparationBytes, host, expected, a, replayBytes) {
+  const preparation = JSON.parse(preparationBytes)
+  need(prepared.preparationRunSha256 === hash(preparationBytes)
+    && preparation.schema === 'track3-preparation-run-v1' && fullSha(preparation.planSha256, 64)
+    && preparation.appCommit === expected && preparation.harnessCommit === a.harnessCommit
+    && prepared.harnessCommit === a.harnessCommit
+    && ['bootId', 'daemonId', 'driver', 'dockerRootDir', 'socket', 'socketDev', 'socketInode'].every(key => preparation.host?.[key] === host[key])
+    && ['backend', 'replay', 'build'].every(phase => preparation.events?.filter(event => event.phase === phase && event.state === 'COMPLETED').length === 1)
+    && preparation.replayReceiptSha256 === hash(replayBytes), 'same-host producer preparation receipt missing or changed')
+}
+
 function admission(action) {
   need(['up', 'run', 'down'].includes(action), 'unknown action')
   const app = process.env.SIM_RUN_DIR
@@ -205,6 +216,9 @@ function admission(action) {
     const prepared = JSON.parse(preparedBytes)
     need(hash(preparedBytes) === a.preparedReceiptSha256 && prepared.schema === 'track3-prepared-runtime-v1'
       && typeof prepared.producerReservation === 'string' && prepared.producerReservation.length > 0, 'qualified producer replay/build receipt missing or changed')
+    const preparationBytes = readFileSync(privatePath(join(home, 'preparation-run.json')))
+    const host = JSON.parse(command('python3', [join(track, 'prepare.py'), 'host-check']))
+    verifyPreparation(prepared, preparationBytes, host, expected, a, readFileSync(privatePath(join(home, 'producer-replay.json'))))
     need(prepared.appCommit === expected && prepared.replayCommit === expected && prepared.appTree === command('git', ['-C', app, 'rev-parse', 'HEAD^{tree}'])
       && typeof prepared.nextBuildId === 'string' && prepared.nextBuildId.trim().length > 0
       && prepared.nextBuildId === readFileSync(join(app, '.next/BUILD_ID'), 'utf8').trim()
@@ -320,7 +334,7 @@ async function main(args) {
   console.log(JSON.stringify({ ok: true, companyId: fixture.companyId, actorUserId: fixture.actorUserId, mode }))
 }
 
-try { await main(process.argv.slice(2)) } catch (error) {
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) try { await main(process.argv.slice(2)) } catch (error) {
   // Never print captured commands, DB URLs, environment values or raw errors.
   console.error(error.message?.startsWith('BLOCKED: T3 runtime ') ? error.message : 'BLOCKED: T3 runtime private input or identity check failed')
   process.exitCode = 1

@@ -24,7 +24,7 @@ t3_load_env() {
   T3_NODE_BIN="$(node -p 'process.execPath')"
   T3_EXEC_ENV=(env -i "PATH=$PATH" "SIM_HOME=$SIM_HOME" "SIM_RUN_DIR=$SIM_RUN_DIR" "T3_APP_COMMIT=$T3_APP_COMMIT"
     "T3_RUNTIME_ASSIGNMENT_FILE=$T3_RUNTIME_ASSIGNMENT_FILE" "T3_BACKEND_ASSIGNMENT_FILE=$T3_BACKEND_ASSIGNMENT_FILE"
-    "NEXT_TELEMETRY_DISABLED=1" "${T3_PRIVATE_ENV[@]}")
+    "DOCKER_HOST=${DOCKER_HOST:-}" "NEXT_TELEMETRY_DISABLED=1" "${T3_PRIVATE_ENV[@]}")
 }
 t3_lock() {
   [[ -d "$SIM_HOME" && ! -L "$SIM_HOME/run.lock" ]] || t3_die 'private home or run.lock changed'

@@ -128,6 +128,16 @@ bevarar faktisk Vitest-exitkod och fogar `run-identity.json` till rapporterna me
 ledger-/DB-identitet. Den gamla basen är uttryckligen historisk. Ingen källa eller komponentkontroll blir ett
 nytt scenario-PASS utan hela scenariobeviset och oberoende granskning.
 
+## Aktuell förberedelse och producentansvar
+
+T3:s utsedda runtimeproducent förbereder backend, canonical replay, bygge och
+mailunderlag; T4:s enda GEN-/integrationstjänst sköter delad GEN och mainleverans.
+Samordnarchatten fördelar och följer upp. Äldre hänvisningar till att samordnaren
+bygger eller provisionerar ersätts av [PREPARATION.md](PREPARATION.md).
+`prepare.py` är det explicita kontraktet för check och prepare → scenario → cleanup
+på samma kvalificerade värd. Det kräver riktiga granskade producentadaptrar och
+privata tilldelningar; inga mallar märks ACTIVE och ingen stack startas av källgranskning.
+
 ## Historiskt donorflöde — inte aktuella körinstruktioner
 
 Följande beskrivning bevarar äldre beteende och observationer. Dess standardvärden, gamla `.env`-filer och
