@@ -362,7 +362,8 @@ class PostproofTests(unittest.TestCase):
         now = datetime.now(timezone.utc)
         self.proof = {'purpose': 't3-hosted-postproof-input', 'repository': 'heke99/gridex-ops-platform',
             'runId': '123456789', 'runAttempt': '1', 'job': 'physical-e03', 'head': 'b'*40, 'tree': 'c'*40,
-            'host': {'bootId': 'FINITE_BOOT_NOT_NATIVE', 'socket': '/finite/docker.sock'}, 'inventory': {'containers': [], 'volumes': [], 'networks': []},
+            'host': {'bootId': 'FINITE_BOOT_NOT_NATIVE', 'socket': '/finite/docker.sock', 'capacityStatus': 'QUALIFIED',
+                     'driver': 'overlay2', 'effectiveRamBytes': 8*2**30, 'freeBytes': 15*2**30}, 'inventory': {'containers': [], 'volumes': [], 'networks': []},
             'proofSha256': 'd'*64, 'nonce': 'e'*64, 'inputPublicKey': self.runner['publicPem'],
             'observedAtUtc': now.isoformat(), 'jobDeadlineUtc': (now + timedelta(minutes=80)).isoformat(),
             'runnerTemp': str(self.directory), 'workspaceRoot': str(self.directory / 'workspace')}
@@ -496,7 +497,7 @@ class PostproofTests(unittest.TestCase):
         self.proof['identity']={'GITHUB_RUN_ID':self.proof['runId'],'GITHUB_JOB':self.proof['job'],'GITHUB_SHA':self.proof['head']}
         self.u.save(proofhome/'host-proof.private.json',self.proof)
         self.u.fresh_private_bytes(proofhome/'ephemeral-input-key.private.pem',self.runner['privatePem'].encode())
-        prepare=SimpleNamespace(private=lambda p,*_:p,host_identity=lambda:self.proof['host'],same_host=lambda *_:None)
+        prepare=SimpleNamespace(private=lambda p,*_:p,host_identity=lambda **_:self.proof['host'],same_host=lambda *_:None)
         same=SimpleNamespace(docker_resources=lambda *_:self.proof['inventory'])
         with patch.object(self.u,'read_host_carrier',return_value=({'format':'bad'},{})):
             with self.assertRaises(ValueError):self.u.receive_host_assignment(proofhome,self.proof['identity'],prepare,same,None)
@@ -616,7 +617,7 @@ class PostproofTests(unittest.TestCase):
         self.u.fresh_private_bytes(proofhome/'ephemeral-input-key.private.pem',self.runner['privatePem'].encode())
         self.payload,_=self.realistic_full_assignment(86)
         api,calls=self.snapshot_api()
-        prepare=SimpleNamespace(private=lambda p,*_:p,host_identity=lambda:self.proof['host'],same_host=lambda *_:None)
+        prepare=SimpleNamespace(private=lambda p,*_:p,host_identity=lambda **_:self.proof['host'],same_host=lambda *_:None)
         same=SimpleNamespace(docker_resources=lambda *_:self.proof['inventory'])
         home=self.u.receive_host_assignment(proofhome,identity,prepare,same,api)
         imported=json.loads((home/'profile.json').read_bytes())
@@ -714,7 +715,7 @@ class PostproofTests(unittest.TestCase):
         def unknown(*a,**k):calls.append(a);raise urllib.error.URLError('FINITE_PRIVATE_SERVER_DETAIL')
         api.opener=SimpleNamespace(open=unknown)
         prepare=SimpleNamespace(canonical=lambda p:Path(p).resolve(strict=True),private=lambda p,*_:Path(p),
-            capture=lambda _: 'c'*40,source=lambda *_:None,host_identity=lambda:self.proof['host'])
+            capture=lambda _: 'c'*40,source=lambda *_:None,host_identity=lambda **_:self.proof['host'],capacity=lambda *_:None)
         same=SimpleNamespace(docker_resources=lambda *_:self.proof['inventory'])
         with patch.dict(self.u.os.environ,{'RUNNER_TEMP':str(self.directory),'GITHUB_WORKSPACE':str(self.directory)}),\
              patch.object(self.u,'hosted_identity',return_value=identity),patch.object(self.u,'GitHub',return_value=api),\
@@ -787,7 +788,7 @@ class PostproofTests(unittest.TestCase):
                   'GITHUB_SHA':'b'*40,'GITHUB_RUN_ATTEMPT':'1'}
         prepare=SimpleNamespace(canonical=lambda p:Path(p).resolve(strict=True),private=lambda p,*_:Path(p),
             capture=lambda _: 'c'*40,source=lambda *_:None,
-            host_identity=lambda:(_ for _ in ()).throw(ValueError('capacity_hierarchy_unknown')))
+            host_identity=lambda **_:(_ for _ in ()).throw(ValueError('capacity_hierarchy_unknown')))
         same=SimpleNamespace(docker_resources=lambda *_:self.fail('inventory must not run after unknown capacity'))
         api=SimpleNamespace(audit_home=None,call=lambda *_:self.fail('no ciphertext post after unknown capacity'))
         with patch.dict(self.u.os.environ,{'RUNNER_TEMP':str(self.directory),'GITHUB_WORKSPACE':str(self.directory)}),\
@@ -804,6 +805,70 @@ class PostproofTests(unittest.TestCase):
         self.assertEqual(failures[0]['stage'],'host-proof:host-capacity')
         self.assertEqual(failures[0]['reason'],'capacity_hierarchy_unknown')
         self.assertFalse(failures[0]['nativeExecuted'])
+
+
+
+    def run_capacity_observation_cli(self, host):
+        self.u.REVIEWER_CERT=self.runner['publicPem']
+        identity={'GITHUB_REPOSITORY':'heke99/gridex-ops-platform','GITHUB_RUN_ID':'123','GITHUB_JOB':'physical-e03',
+                  'GITHUB_SHA':'b'*40,'GITHUB_RUN_ATTEMPT':'1'}
+        real_capacity=self.u.load('prepare').capacity
+        observations=[];enforcements=[];posts=[]
+        def observe(*,enforce_capacity=True):
+            observations.append(enforce_capacity)
+            return host
+        def enforce(*values):
+            enforcements.append(values);real_capacity(*values)
+        prepare=SimpleNamespace(canonical=lambda p:Path(p).resolve(strict=True),private=lambda p,*_:Path(p),
+            capture=lambda _: 'c'*40,source=lambda *_:None,host_identity=observe,capacity=enforce)
+        same=SimpleNamespace(docker_resources=lambda *_:self.proof['inventory'])
+        api=SimpleNamespace(audit_home=None,call=lambda *args:posts.append(args))
+        proofhome=self.directory/'t3-host-proof'
+        with patch.dict(self.u.os.environ,{'RUNNER_TEMP':str(self.directory),'GITHUB_WORKSPACE':str(self.directory)}),\
+             patch.object(self.u,'hosted_identity',return_value=identity),patch.object(self.u,'GitHub',return_value=api),\
+             patch.object(self.u,'observed_job',return_value={'job':{'started_at':datetime.now(timezone.utc).isoformat()}}),\
+             patch.object(self.u,'load',side_effect=lambda name:prepare if name=='prepare' else same):
+            try:self.u.main(['host-proof','--proof-home',str(proofhome)])
+            except ValueError:pass
+            encrypted=self.u.archive_transport_hold(proofhome,prepare)
+        return self.decrypt_hold_archive(encrypted),observations,enforcements,posts,proofhome
+
+    def test_unknown_capacity_complete_observation_subreason_retained_before_enforcement(self):
+        host=deepcopy(self.proof['host'])
+        host.update(capacityStatus='UNKNOWN',effectiveRamBytes=None,
+            capacityObservation={'status':'UNKNOWN','effectiveRamBytes':None,'reason':'initial_cgroup_namespace_unproven',
+                                 'kernelRelease':'6.14.0-FINITE','observedNamespaceInode':4026532205})
+        members,observed,enforced,posts,home=self.run_capacity_observation_cli(host)
+        self.assertEqual(observed,[False])
+        self.assertEqual(enforced,[])
+        self.assertEqual(posts,[])
+        self.assertFalse((home/'ephemeral-input-key.private.pem').exists())
+        self.assertEqual(json.loads(members['transport/capacity-observation.private.json']),host)
+        failure=next(json.loads(v) for k,v in members.items() if 'transport-failure-' in k)
+        self.assertEqual(failure['reason'],'capacity_hierarchy_unknown')
+        self.assertEqual(failure['stage'],'host-proof:host-capacity')
+
+    def test_qualified_capacity_original_floors_enforced_after_saved_observation(self):
+        host=deepcopy(self.proof['host'])
+        host['capacityObservation']={'status':'QUALIFIED','effectiveRamBytes':8*2**30,'reason':'FINITE_QUALIFIED_BOUNDARY'}
+        members,observed,enforced,posts,home=self.run_capacity_observation_cli(host)
+        self.assertEqual(observed,[False])
+        self.assertEqual(enforced,[('overlay2',8*2**30,15*2**30)])
+        self.assertEqual(len(posts),1)
+        self.assertTrue((home/'ephemeral-input-key.private.pem').is_file())
+        self.assertEqual(json.loads(members['transport/capacity-observation.private.json']),host)
+        self.assertFalse(any('transport-failure-' in k for k in members))
+
+    def test_qualified_status_does_not_override_original_ram_floor(self):
+        host=deepcopy(self.proof['host']);host['effectiveRamBytes']=7*2**30
+        members,observed,enforced,posts,home=self.run_capacity_observation_cli(host)
+        self.assertEqual(observed,[False])
+        self.assertEqual(enforced,[('overlay2',7*2**30,15*2**30)])
+        self.assertEqual(posts,[])
+        self.assertFalse((home/'ephemeral-input-key.private.pem').exists())
+        self.assertEqual(json.loads(members['transport/capacity-observation.private.json']),host)
+        failure=next(json.loads(v) for k,v in members.items() if 'transport-failure-' in k)
+        self.assertEqual(failure['reason'],'effective_ram_below_8gib')
 
 
 

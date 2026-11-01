@@ -816,7 +816,7 @@ def archive_transport_hold(proof_home, prepare):
     need(proof_home == root / 't3-host-proof', 'fixed_transport_proof_home_required')
     prepare.private(proof_home, True)
     # Whitelist originals explicitly. NEVER tar proof_home or include any PEM.
-    names = ['host-proof.private.json', 'publish-intent.json', 'receive-intent.json', 'assignment-publish-intent.json']
+    names = ['host-proof.private.json', 'capacity-observation.private.json', 'publish-intent.json', 'receive-intent.json', 'assignment-publish-intent.json']
     selected = []
     for file in sorted(proof_home.iterdir()):
         if file.name in names or re.fullmatch(r'(?:api-[0-9]+-[0-9]+|transport-failure-[0-9]+)\.json', file.name):
@@ -949,7 +949,10 @@ def postproof_main(argv):
     tree = prepare.capture(['git', '-C', str(HARNESS), 'rev-parse', 'HEAD^{tree}'])
     prepare.source(HARNESS, identity['GITHUB_SHA'], tree)
     transport_stage('host-proof:host-capacity')
-    host = prepare.host_identity()
+    host = prepare.host_identity(enforce_capacity=False)
+    save(proof_home / 'capacity-observation.private.json', host)
+    need(host['capacityStatus'] == 'QUALIFIED', 'capacity_hierarchy_unknown')
+    prepare.capacity(host['driver'], host['effectiveRamBytes'], host['freeBytes'])
     transport_stage('host-proof:inventory')
     inventory = same.docker_resources(prepare, SimpleNamespace(host=host, node=shutil.which('node')))
     need(not inventory['containers'] and not inventory['volumes'], 'exclusive_empty_docker_before_hostproof_required')
