@@ -234,8 +234,15 @@ def listener_inode():
     for line in text('/proc/net/unix').splitlines()[1:]:
         row = line.split()
         if len(row) == 8 and row[7] == SOCKET:
-            require(row[4] == '0001' and int(row[3], 16) & 0x10000 and row[5] == '01', 'socket-not-listening-stream')
-            rows.append(int(row[6]))
+            require(re.fullmatch('[0-9a-fA-F]+', row[3]) is not None and re.fullmatch('[0-9]+', row[6]) is not None, 'socket-row-malformed')
+            flags, inode = int(row[3], 16), int(row[6])
+            require(row[4] == '0001' and inode > 0, 'socket-not-listening-stream')
+            # T3 adaptation: an accepted connection retains the server path but
+            # is not a listening authority. Unknown states still fail closed.
+            if flags == 0 and row[5] == '03':
+                continue
+            require(flags & 0x10000 and row[5] == '01', 'socket-not-listening-stream')
+            rows.append(inode)
     require(len(rows) == 1, 'socket-listener-not-unique')
     return rows[0]
 

@@ -330,5 +330,51 @@ class PathControls(unittest.TestCase):
         self.assertEqual(c.daemon_capacity_errors(witness), ['insufficient-or-unknown-backend-ram'])
 
 
+class T3ListenerStreams(unittest.TestCase):
+    """T3 adaptation: a connected peer is not another listening authority."""
+    def test_real_owned_listener_with_accepted_stream_keeps_exact_listener_inode(self):
+        import os
+        import socket
+        with tempfile.TemporaryDirectory(prefix='t3-owned-unix-') as directory:
+            path = str(Path(directory) / 'listener.sock')
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as server, \
+                 socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+                server.settimeout(2); client.settimeout(2)
+                server.bind(path); server.listen(1); client.connect(path)
+                accepted, _ = server.accept()
+                with accepted, patch.object(c, 'SOCKET', path):
+                    rows = [line.split() for line in c.text('/proc/net/unix').splitlines()[1:]
+                            if line.split() and line.split()[-1] == path]
+                    self.assertTrue(any(len(row) == 8 and row[3] == '00010000' and row[5] == '01' for row in rows))
+                    self.assertTrue(any(len(row) == 8 and row[3] == '00000000' and row[5] == '03' for row in rows))
+                    try:
+                        actual = c.listener_inode()
+                    except ValueError as error:
+                        self.fail('legitimate accepted stream hid the sole real listener: ' + str(error))
+                    self.assertEqual(actual, os.fstat(server.fileno()).st_ino)
+                    self.assertNotEqual(actual, os.fstat(accepted.fileno()).st_ino)
+
+    def test_duplicate_valid_listeners_remain_ambiguous_with_accepted_stream(self):
+        lines = ['Num RefCount Protocol Flags Type St Inode Path',
+                 '00: 2 0 00010000 0001 01 777 ' + c.SOCKET,
+                 '01: 2 0 00000000 0001 03 778 ' + c.SOCKET,
+                 '02: 2 0 00010000 0001 01 779 ' + c.SOCKET]
+        with patch.object(c, 'text', return_value='\n'.join(lines)), self.assertRaises(ValueError):
+            c.listener_inode()
+
+    def test_unknown_or_malformed_same_path_stream_is_not_silently_accepted(self):
+        header = 'Num RefCount Protocol Flags Type St Inode Path\n'
+        listener = '00: 2 0 00010000 0001 01 777 ' + c.SOCKET + '\n'
+        for flags, kind, state, inode in [('GGGGGGGG', '0001', '03', '778'),
+                ('00010000', '0001', '03', '778'), ('00000000', '0002', '03', '778'),
+                ('00000000', '0001', '01', '778'), ('00000000', '0001', '03', 'bad'),
+                ('00000000', '0001', '03', '0'), ('00000000', '0001', '03', '-1'),
+                ('00000000', '0001', '03', '\u0667\u0667\u0668')]:
+            with self.subTest(flags=flags, kind=kind, state=state, inode=inode):
+                row = '01: 2 0 ' + ' '.join([flags, kind, state, inode, c.SOCKET])
+                with patch.object(c, 'text', return_value=header + listener + row), self.assertRaises(ValueError):
+                    c.listener_inode()
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -337,7 +337,7 @@ def cgroup_capacity_observation():
 
 
 # Exact independently reviewed T2 donor a2682f834bd0a535fd2f109bd13bc000fd8acaad.
-BACKEND_HELPER_SHA256 = 'b3bf9301de14c8b13689a3528565a72dd859f84188e107bf3d0385f93573963f'
+BACKEND_HELPER_SHA256 = '8af60428be31289ce381e89b9c6fdee19d0cfd367b551b99ddffae6e867dab7a'
 BACKEND_OBSERVER = r'''
 import hashlib,json,pathlib,sys
 p=pathlib.Path(sys.argv[1]);raw=p.read_bytes()
