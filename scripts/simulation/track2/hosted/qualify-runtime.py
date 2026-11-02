@@ -1375,7 +1375,7 @@ def consume_carrier(directory, commit, context, public, base_tree, assignment_pa
         private_bytes(candidate,base64.b64decode(value['assignment'],validate=True))
         private_bytes(str(candidate) + '.sig',base64.b64decode(value['signature'],validate=True))
         a = verified_assignment(candidate)
-        require(a['github'] == {'runId':context['runId'],'runAttempt':1}
+        require(a['github'] == {'runId':context['runId'],'runAttempt':1, **({'headBranch':context['headBranch']} if context.get('event') == 'push' else {})}
                 and a['sourceCommit'] == context['sourceCommit'], 'decrypted-admission-run-mismatch')
         validate_bootstrap(a,reobserve=True)
         material_candidate = temporary / 'materials.json'
@@ -1493,7 +1493,7 @@ def publish_delivery(assignment_path,journal_path,materials_path):
     a = verified_assignment(assignment_path)
     validate_material_packet(assignment_path,materials_path,a)  # local before any API/publication
     context = delivery_context(a['github']['runId'],a['sourceCommit'])
-    require(a['github'] == {'runId':context['runId'],'runAttempt':1} and a['worker'] == 'T2'
+    require(a['github'] == {'runId':context['runId'],'runAttempt':1, **({'headBranch':context['headBranch']} if context.get('event') == 'push' else {})} and a['worker'] == 'T2'
             and a['state'] == 'ACTIVE','delivery-input-not-exact-active-appointment')
     expiry = datetime.datetime.fromisoformat(a['expiresAt'].replace('Z','+00:00'))
     require(expiry > datetime.datetime.now(datetime.timezone.utc),'delivery-input-expired')

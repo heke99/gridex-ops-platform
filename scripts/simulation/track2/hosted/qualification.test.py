@@ -676,6 +676,14 @@ class RendezvousContracts(unittest.TestCase):
     def consume(self,commit):
         return module.consume_carrier(self.receiver,commit,self.context,self.public,'b'*40,self.output)
 
+    def test_branch_bound_push_signed_cms_delivery_and_publication(self):
+        branch = 'codex/t2-native-00000000-0000-4000-8000-000000000001'
+        self.context = dict(self.context,event='push',headBranch=branch)
+        self.value['github']['headBranch'] = branch
+        self.write_signed(self.value)
+        self.test_real_cms_signed_roundtrip_exports_only_ciphertext()
+        self.test_create_only_publisher_exact_readback_and_private_journal()
+
     def test_real_cms_signed_roundtrip_exports_only_ciphertext(self):
         encrypted = self.encrypt()
         commit = self.commit(encrypted)
