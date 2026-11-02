@@ -12,6 +12,7 @@ permissions:
   contents: write
   actions: read # Actual authenticated run/job identity observations.
   issues: write # Only ciphertext carriers on issue930; strict source API allowlist.
+  pull-requests: write # Issue930 is a PR; allow its ciphertext comment operation.
 
 concurrency:
   group: t3-e03-hosted-exclusive
