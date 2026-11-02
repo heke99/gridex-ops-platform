@@ -1,0 +1,60 @@
+{
+  "schema": "t1-W2-independent-code-only-wiring-review-v1",
+  "observedAtUtc": "2026-11-02T00:52:20.338831+00:00",
+  "reviewer": "/root/review_atomic_sql",
+  "verdict": "CODEONLY_OWNER_HANDOFF_WITH_RUNTIME_HOLD",
+  "scope": "Exact two-file source wiring/custody applicability only; not a full helper/UI/runtime approval",
+  "head": "dfa706225ec7964426bd85b9473f591ca0bdb1f2",
+  "tree": "d36135a4126873af6438da63b940dace384a1915",
+  "soleParent": "6e314f213fc975799816f9dbe181688ba2f7d960",
+  "authors": [
+    "/root",
+    "/root/site_native_input_epoch",
+    "/root/review_t1_end_a",
+    "/root/gen_integration_service"
+  ],
+  "reviewerAcceptedPostimageContributions": [],
+  "files": {
+    ".github/workflows/simulation-t1-startup-smoke-native.yml": {
+      "blob": "1de7d689187859688e49f78d4e236a0a03fdfffd",
+      "sha256": "94c1904fb4120de87c1aa4c60882b37c226bd33ca8bb538e309de63883cbe8e2"
+    },
+    "scripts/simulation/runtime/assigned_backend.py": {
+      "blob": "4de4b6845ee2ca86561d1f4b14d37752752343e4",
+      "sha256": "0866872aafeebdb254959ce0287b3d6d3a8be09a11c3af796abf9db5e1fa822e"
+    }
+  },
+  "pins": {
+    "APP_COMMIT": "6e314f213fc975799816f9dbe181688ba2f7d960",
+    "APP_TREE": "cc43a009a03a174ff186dd4437c8ce9d67586ac6",
+    "HARNESS_COMMIT": "46faa0b6742d5d9536874a1fdf5057da6f94f54d",
+    "HARNESS_TREE": "cc9eb914ee0710851c2f98ca4632bd673996dbd5"
+  },
+  "checks": [
+    "clean exact head/tree/soleparent; exactly two added paths",
+    "helper byte-identical to reviewed donorH",
+    "reversing ONLY four UI pins restores donor workflow SHA0ead7acfdde28f3b12e81c502dad18e825d1dee10bbb7f9f7c71f9408f6d41c9",
+    "all other main source, deploy guards and GEN bytes unchanged",
+    "fresh ALL5 public custody refs match existing source receipt"
+  ],
+  "sourceCustodyReceiptPointer": "cd952571c6d91c2a795e6ae5d191165531381ba9",
+  "runtimeHold": "Unchanged donor helper has confirmed missing actual common-container-parent capacity gate; no full UI/source-ready/runtime/admission verdict",
+  "sourceTagEventAudit": {
+    "tagPattern": "agent-source-handoffs/t1-ui-W/...",
+    "workflowDefinitions": 52,
+    "pushDefinitions": 7,
+    "pushAllExplicitBranchesOnly": true,
+    "createDefinitions": 0,
+    "selectedTagPushWorkflows": 0,
+    "selectedCreateWorkflows": 0,
+    "downstreamWorkflowRunsFromThisTag": 0,
+    "limits": "Static exact-source tag/create selection only; no event performed or granted; no branch push, PR, dispatch or release included"
+  },
+  "findingsWithinWiringScope": [],
+  "limits": [
+    "donor source reviews reused only for byte applicability; runtime defect HOLD supersedes readiness inference",
+    "H default TS5097 not claimed green",
+    "no runtime/event/sourcepublication authorization",
+    "no private capsules, permits, input profiles, keys or ciphertext included"
+  ]
+}

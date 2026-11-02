@@ -1,0 +1,90 @@
+{
+  "format": "t4-to-t1-public-code-only-W2-owner-return-v1",
+  "classification": "PUBLIC_SOURCE_AND_PUBLIC_SAFE_REVIEW_RECEIPTS_ONLY",
+  "state": "CODE_ONLY_OWNER_RETURN_RUNTIME_HOLD",
+  "createdAtUtc": "2026-11-02T00:54:49.291472+00:00",
+  "repository": "heke99/gridex-ops-platform",
+  "W": {
+    "commit": "dfa706225ec7964426bd85b9473f591ca0bdb1f2",
+    "tree": "d36135a4126873af6438da63b940dace384a1915",
+    "soleParent": "6e314f213fc975799816f9dbe181688ba2f7d960"
+  },
+  "C": {
+    "commit": "6e314f213fc975799816f9dbe181688ba2f7d960",
+    "tree": "cc43a009a03a174ff186dd4437c8ce9d67586ac6"
+  },
+  "H": {
+    "commit": "46faa0b6742d5d9536874a1fdf5057da6f94f54d",
+    "tree": "cc9eb914ee0710851c2f98ca4632bd673996dbd5"
+  },
+  "files": [
+    {
+      "path": ".github/workflows/simulation-t1-startup-smoke-native.yml",
+      "bytes": 45611,
+      "blob": "1de7d689187859688e49f78d4e236a0a03fdfffd",
+      "sha256": "94c1904fb4120de87c1aa4c60882b37c226bd33ca8bb538e309de63883cbe8e2",
+      "sourceCommit": "dfa706225ec7964426bd85b9473f591ca0bdb1f2"
+    },
+    {
+      "path": "scripts/simulation/runtime/assigned_backend.py",
+      "bytes": 342545,
+      "blob": "4de4b6845ee2ca86561d1f4b14d37752752343e4",
+      "sha256": "0866872aafeebdb254959ce0287b3d6d3a8be09a11c3af796abf9db5e1fa822e",
+      "sourceCommit": "dfa706225ec7964426bd85b9473f591ca0bdb1f2"
+    }
+  ],
+  "onlyChangeFromDonor": "Helper byte-identical086; reversingfourUI APP/HARNESSpins restoresworkflow0ead. Other4UIpaths notwritten/adoptedbyW. All othermain bytes and deploymentguards preserved.",
+  "reviewOriginals": [
+    {
+      "path": "SOURCE-WIRING-REVIEW-1.json",
+      "bytes": 2827,
+      "sha256": "22e9c92eaeed728b1bd204449b43396ffee063ab5ecce5ce6c9fc12e9f1c2a89",
+      "scope": "PUBLIC_SAFE_WIRING_CODE_ONLY_OWNER_RETURN_WITH_RUNTIME_HOLD"
+    },
+    {
+      "path": "SOURCE-WIRING-REVIEW-2.json",
+      "bytes": 2163,
+      "sha256": "3cc92eeeab544c70e35cf37312adf00f58e0d82649503bd5d27cfc4ac8adefe4",
+      "scope": "PUBLIC_SAFE_WIRING_CODE_ONLY_OWNER_RETURN_WITH_RUNTIME_HOLD"
+    }
+  ],
+  "checks": {
+    "actionlint1_7_12": 0,
+    "helperAST": "PASS",
+    "Node22_23_4YamlStructuralFourPinsOnly": "PASS",
+    "diffCheck": 0,
+    "clean": true
+  },
+  "GENReuseReference": {
+    "runId": 41256573704,
+    "runAttempt": 1,
+    "jobId": 124700896694,
+    "sourceCommit": "3e8a830cab79546a2d910bea6ff2221fa9514c1e",
+    "artifactId": 13063971334,
+    "artifactDigest": "sha256:d4cdfd714b4ac4ff891618de486333d22442b55fdf0811570676ca7a3806dc7d",
+    "sourceApplicabilityReference": "#930/6565025467 andT1sourcehandoff6565350699",
+    "currentCGENRawBytesPreservedByW": true,
+    "newCapture": false,
+    "limits": "Existinggenuinereferenceonly; thiscode-ownerreturndoesnotrerun/requalifycaptureorgrantactualUIruntime."
+  },
+  "runtimeHOLD": {
+    "required": true,
+    "knownSourceGap": "Unchangedhelper qualifiesworker+actualdockerdprocessmemory only; lacksactualcontainercommonparentplacement/capacitysourcecontract.",
+    "nextOwner": "T1existinghelperowner mustprovideboundedownsourcefix/currentqualifiedH andapplicability beforeUIruntimeadmission. T4doesnotpatchforeignhelper.",
+    "actualHostOrUIOutcome": "NOT_RUN_NOT_QUALIFIED",
+    "defaultHTypecheck": "InheritedTS5097NOT_CLAIMED_GREEN"
+  },
+  "writer": "T4STOP_FROZEN_W2_RETURNED_FOR_T1_OWNER_SOURCE_WORK",
+  "prohibitedInference": [
+    "No readyUI/fullhelperruntime/source-final verdict",
+    "No native/backend/browser/GEN/PR/mainmerge/deploy authority",
+    "No new event budget or providerLIVEpermission"
+  ],
+  "payloadExclusions": [
+    "No privatecustodyoriginal/fullcapsule",
+    "No privateprofile/mandate/input/permits",
+    "No privatekeys/credentials",
+    "No encryptedprivatecarrier"
+  ],
+  "sourceOnlyHandoff": "Thistransferspublicreviewedcodeandsafeowner-returnreceipts only; notanalternativeforblockedprivateT3assignmentegress."
+}
