@@ -1,0 +1,155 @@
+{
+  "schema": "t3-reference-only-provenance-update-v1",
+  "recipient": "Existing T4 sole producer",
+  "source": {
+    "commit": "dcfbde5c644e57402073e9cc843cb997af579125",
+    "tree": "94f3a2251268cac29b5b494b3a12b659b8103205",
+    "changed": false,
+    "existingPublicSourceHandoff": "https://github.com/heke99/gridex-ops-platform/blob/d00f517eae279bca44f2ee34bebc5789c4449ca0/CODE-ONLY-HANDOFF.json",
+    "sourceHandoffSha256": "2f6f8bfd1af73e83727c09710b0e1ab98bd0a0c573cfd92a72d15189f3928c9f"
+  },
+  "receivedProvenance": {
+    "comment": 6577606546,
+    "ackComment": 6577973695,
+    "publicManifest": "https://github.com/heke99/gridex-ops-platform/blob/d351ad36375e75c0029ca8ec153a76aa3965eeb0/CAPACITY-PROVENANCE.json",
+    "manifestSha256": "07473e73c79fe961bb880bb8d79045892226286904581d34a919e70fbdded406",
+    "all4OriginalBytesSha256GitblobsVerified": true,
+    "source2BaselineBytesMatchPreservedT3Copy": true
+  },
+  "completeAuthors": [
+    {
+      "track": "T3",
+      "agent": "/root",
+      "source": "existing T3 author attestations and own current adaptation"
+    },
+    {
+      "track": "T3",
+      "agent": "/root/review_ediel03",
+      "source": "existing T3 author attestations and own current adaptation"
+    },
+    {
+      "track": "T3",
+      "agent": "/root/review_t3_receiving",
+      "source": "existing T3 author attestations and own current adaptation"
+    },
+    {
+      "track": "T3",
+      "agent": "/root/review_ediel02",
+      "source": "existing T3 author attestations and own current adaptation"
+    },
+    {
+      "track": "T3",
+      "agent": "/root/review_t3_admission",
+      "source": "existing T3 author attestations and own current adaptation"
+    },
+    {
+      "track": "T2",
+      "chatId": "01a196e2-0739-7242-8546-b98884303064",
+      "agent": "/root/t2_end_date_review",
+      "contribution": "wrote and returned original two donor files"
+    },
+    {
+      "track": "T2",
+      "chatId": "01a196e2-0739-7242-8546-b98884303064",
+      "agent": "/root",
+      "contribution": "donor design/integration author"
+    }
+  ],
+  "actualActorCount": 7,
+  "runtimeAuthorGuardAliases": [
+    "/root",
+    "/root/review_ediel02",
+    "/root/review_ediel03",
+    "/root/review_t3_admission",
+    "/root/review_t3_receiving",
+    "/root/t2_end_date_review"
+  ],
+  "canonicalAliasCount": 6,
+  "identityNote": "Canonical /root occurs in two distinct chat trees. Both actual identities are retained above; raw canonical alias deduplication for existing agent-not-in-authors guard excludes either /root conservatively, not an invented identity or omission.",
+  "existingDonorReviews": [
+    {
+      "agent": "/root/boundary_final_review_two",
+      "chatId": "01a196e2-0739-7242-8546-b98884303064",
+      "url": "https://github.com/heke99/gridex-ops-platform/blob/d351ad36375e75c0029ca8ec153a76aa3965eeb0/originals/backend-parent-final-boundary-review.json",
+      "sha256": "3bcba742eb689e48dcdacbbdbcd6e5a2f8735ef43463bc01fa7bff3dcc7449dd",
+      "actualOriginalScope": [
+        ".github/workflows/t2-term-disposable.yml",
+        "scripts/simulation/track2/hosted/README.md",
+        "scripts/simulation/track2/hosted/business-evidence.py",
+        "scripts/simulation/track2/hosted/business-evidence.test.py",
+        "scripts/simulation/track2/hosted/host-capacity.py",
+        "scripts/simulation/track2/hosted/host-capacity.test.py",
+        "scripts/simulation/track2/hosted/profile.requirements.json",
+        "scripts/simulation/track2/hosted/qualification.test.py",
+        "scripts/simulation/track2/hosted/qualify-runtime.py"
+      ],
+      "applicableSubset": [
+        "scripts/simulation/track2/hosted/host-capacity.py",
+        "scripts/simulation/track2/hosted/host-capacity.test.py"
+      ],
+      "originalScopeIsNineNotNewTwofileReview": true
+    },
+    {
+      "agent": "/root/graph_guard_final_two",
+      "chatId": "01a196e2-0739-7242-8546-b98884303064",
+      "url": "https://github.com/heke99/gridex-ops-platform/blob/d351ad36375e75c0029ca8ec153a76aa3965eeb0/originals/backend-parent-final-graph-review.json",
+      "sha256": "e2a86dde5aaccb99f652e95b02007c3fe5ab97e432b4414a278ea04d29ec1dcb",
+      "actualOriginalScope": [
+        ".github/workflows/t2-term-disposable.yml",
+        "scripts/simulation/track2/hosted/README.md",
+        "scripts/simulation/track2/hosted/business-evidence.py",
+        "scripts/simulation/track2/hosted/business-evidence.test.py",
+        "scripts/simulation/track2/hosted/host-capacity.py",
+        "scripts/simulation/track2/hosted/host-capacity.test.py",
+        "scripts/simulation/track2/hosted/profile.requirements.json",
+        "scripts/simulation/track2/hosted/qualification.test.py",
+        "scripts/simulation/track2/hosted/qualify-runtime.py"
+      ],
+      "applicableSubset": [
+        "scripts/simulation/track2/hosted/host-capacity.py",
+        "scripts/simulation/track2/hosted/host-capacity.test.py"
+      ],
+      "originalScopeIsNineNotNewTwofileReview": true
+    }
+  ],
+  "authorReturns": {
+    "final": {
+      "url": "https://github.com/heke99/gridex-ops-platform/blob/d351ad36375e75c0029ca8ec153a76aa3965eeb0/originals/host-capacity-whitespace-RETURN.private.json",
+      "sha256": "52c45d1f33fc48918d35f55619cba2598ac0f7cba54245d560df5632d0fa9940",
+      "meaning": "exact final b3bf/b51f; historical28tests; no more writes"
+    },
+    "initial": {
+      "url": "https://github.com/heke99/gridex-ops-platform/blob/d351ad36375e75c0029ca8ec153a76aa3965eeb0/originals/host-capacity-twofile-RETURN.private.json",
+      "sha256": "dc107995e9b3ebda3d69a307505e1674a75631f7624fd73cf953c57e02fbeb7a",
+      "meaning": "historicalpreimages/25controls only"
+    }
+  },
+  "adaptationBinding": {
+    "originalDonor": "a2682f834bd0a535fd2f109bd13bc000fd8acaad/7a1424741bbe52c55306624ecbe1bf79576d5d38",
+    "exactOriginalT3Copy": "de2c94f61f0ecc2ef114dbd785983bbee758af6d",
+    "currentT3Adaptation": "dcfbde5c644e57402073e9cc843cb997af579125",
+    "currentHelperSha256": "8af60428be31289ce381e89b9c6fdee19d0cfd367b551b99ddffae6e867dab7a",
+    "adaptationAuthor": "T3:/root",
+    "bitIdenticalToDonor": false,
+    "existingIntegration8": {
+      "url": "https://github.com/heke99/gridex-ops-platform/blob/d00f517eae279bca44f2ee34bebc5789c4449ca0/DELTA-COMMITTED-REBIND-ISSUER.json",
+      "sha256": "df8bb36f55f4af66ef9b4d9804bc4931886ead6727f16c0113b4124f628d2fb8"
+    },
+    "existingCurrent3": {
+      "url": "https://github.com/heke99/gridex-ops-platform/blob/d00f517eae279bca44f2ee34bebc5789c4449ca0/LISTENER-COMMITTED-REBIND-ISSUER.json",
+      "sha256": "99e70a16321e36b3418a11597d418ab32badce8f1dfae6bd236bd5d700fad23c"
+    },
+    "otherExistingDeltaReviews": "Same public d00 metadata contains admission delta originals/rebinds; admission remains E01coauthor and is not a full63nonauthor final."
+  },
+  "currentFull63SourceApplicability": {
+    "agent": "/root/issuer_final_review",
+    "artifact": "FULL63-SOURCE-APPLICABILITY.json",
+    "sha256": "ca21d5651f7106bb91c227a7aed88431efeec1f68b9a457393a518a30abddfc5",
+    "basis": "Only existing reviews and newly received provenance bound; no new donor review, source edits or test execution"
+  },
+  "nextT4Action": "Use these existing public references and completed author union; bind other existing nonauthor currentfull63 review_harness_final to unchanged source. Keep separate private destination and actual runtime role/event/host/input/output gates. No native/GEN/event authority is issued.",
+  "publicationBoundary": "References and public code/agent/source-applicability facts only. NO copied donor originals or raw donor review bodies, actual private producer profile, keys, raw runtime logs or ciphertext.",
+  "newDonorReviewOrTests": false,
+  "newSourceCode": false,
+  "native": false
+}
