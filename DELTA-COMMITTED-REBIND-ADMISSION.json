@@ -1,0 +1,30 @@
+{
+  "schema": "t3-focused-source-delta-rebind-v1",
+  "reviewerAgent": "/root/review_t3_admission",
+  "verdict": "APPROVE_SOURCE_ONLY_EXACT_EIGHT_FILE_DELTA",
+  "commit": "de2c94f61f0ecc2ef114dbd785983bbee758af6d",
+  "tree": "6fec213a29ad375644764fc2262636cbb3499512",
+  "soleParent": "efac43db257ff8334fd17f99126da01f7f9c94a2",
+  "priorReviewSha256": "37f09e39352d33edb267d142c3475d87563d5eae8830f54fd72eb2c68d29a01e",
+  "committedManifestSha256": "283c3cac36c34f15be9f5dfac320606895fdb3291d582ca9e49d9a2bca032fe0",
+  "verification": {
+    "clean": true,
+    "exactEightHashesMatchReviewedSnapshot": true,
+    "onlyEightChangedPaths": true,
+    "sixModifiedTwoNew": true,
+    "unaffectedBaselinePaths": 55,
+    "compositionHashesMatched": 63,
+    "tests": "Prior independent140/140 applicable to identical bytes; not rerun"
+  },
+  "executionScope": "Source applicability for .03 physical execution path only; no actual event or native PASS",
+  "full63Approval": false,
+  "authorshipExclusion": "Reviewer coauthored accepted E01 test elsewhere; not eligible for independent full63/E01 source final. These8files were not authored by reviewer.",
+  "remainingDependencies": [
+    "Genuine T2 donor author identities and existing normative donor review delivery via T4",
+    "User destination approval as applicable; no private transport publication authorization",
+    "T4 full-scope applicability rebind and actual scoped authority before any event"
+  ],
+  "actualHostQualified": false,
+  "nativeExecutedByReview": false,
+  "privateKeysOrActualProducerPackagesRead": false
+}

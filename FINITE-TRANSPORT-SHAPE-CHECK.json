@@ -1,0 +1,22 @@
+{
+  "state": "FINITE_ORDINARY_COMBINED_CAPSULE_SHAPE_NOT_AUTHORITY",
+  "selectedSourcePaths": 63,
+  "sourceRefs": 89,
+  "totalRefs": 93,
+  "separateRoleRefs": 2,
+  "combinedFullV1CapsuleOriginals": 1,
+  "originalFileCount": 4,
+  "mandateOriginalBytes": 1541,
+  "reviewOriginalBytes": [
+    1987,
+    1882
+  ],
+  "totalOriginalBytes": 11781,
+  "ciphertextCharacters": 48460,
+  "carrierBytes": 49496,
+  "realPrivateKeysUsed": false,
+  "networkOrPublication": false,
+  "oldFullCapsuleGuards": true,
+  "pssOaepGcmRoundtrip": true,
+  "actualSizeStillRequiredForActualPackage": true
+}

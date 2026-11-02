@@ -1,0 +1,484 @@
+{
+  "schema": "track3-hosted-bootstrap-v1",
+  "environment": "test",
+  "reviewerCertificateSha256": "e1755b953fd31cec33f21a9ecc0b8b991ea711d25116032d5b3681b5109e1e58",
+  "configOverlaySha256": "38faa949363ec32f0d58fdd7652f4bd3370ef25628629951c185702bb5644b48",
+  "authorities": {
+    "producer": {
+      "ref": null,
+      "sha": null,
+      "agent": null,
+      "capsuleName": "producer-capsule.json",
+      "capsuleSha256": null,
+      "capsuleRef": null
+    },
+    "backend": {
+      "ref": null,
+      "sha": null,
+      "agent": null,
+      "capsuleName": "backend-capsule.json",
+      "capsuleSha256": null,
+      "capsuleRef": null
+    }
+  },
+  "plan": {
+    "schema": "track3-runner-plan-v1",
+    "workerId": "codex-track3",
+    "model": null,
+    "environment": "test",
+    "environmentId": null,
+    "projectId": "t3-hosted-e03",
+    "epoch": null,
+    "inputEpoch": null,
+    "producerReservation": null,
+    "backendReservation": null,
+    "reservationRefs": [
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-022af0dbf4b58df3d6010bcca65cbb7aa254871a61c54bc649355a5542946fd1",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-054100efaa45226ff05306513f1936a08263c8eccf9c30e2a23e43253b25db7e",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-070bf8a7be3b4c974c6eda17f7e405ae31c5145931e305917124b7440b886843",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-09608bd3adefce2fec40cbf7a103b18dee2be0833bef161ce34d02b14f247378",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-0975832284fb08c064894519b289edfc3bf8c2f2b60533b54b8ed9a3307eb56e",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-09a8cebd9f0ad562d6c93b7d6886e821b2e4159d25c72adaf96121297f879620",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-0d14aabd576dc1efad22f2f672893270627da20b6ba5aa7aed39b3a22a94a020",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-0d60a9b3af1e5633f5efbe5f7c08735cc75eed5a394976f461136062b8ec6b9b",
+        "sha": "d9a50e425960634454ac0f0d1b2bd9f8d26aa89c"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-0f4f45b74eb82caa2145ca0ce975387e2d4dfa9388266bebbba3569e48cdd1dc",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-1020c48e7f157f3f20c9033f4ccd8c190d29bce0e17590720f77ae3377a3a161",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-11d727d3c7e441a173b9319249e431488aeeb072f949f87e92b5abcedf01312e",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-17ccc6a1c4014a9f7d8e0f5a91dceeacc20c319c2d4137c26aa4fd60e0e55af0",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-19f0052373255a5e75dd0c3ba8f4edf00aac387d0060d803da5b312ce11bee01",
+        "sha": "0e378d3ff380b53f0895f9acade01efe19236289"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-1e15c5745b2e1ece6477b8457a3e3a53a3e403156c7b41b771f6bab23bc0d9e7",
+        "sha": "d881f949a529587ee93aca660384f5d22c4de354"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-233c29fbf7045b35a1d80f7619d01718e253d2f3fda3bc6f6971e8e9e1bd305d",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-24d4eb2f582f7b30a4e92568702c673a9c764dd1b86f54427721975df5e95732",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-283bbd8b806f528fec741439de197aa343043cb1ed1fd8771c185f519f0606eb",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-3f0e344ea88b46f93963b5e4a72802c32b6eb2318c9bf7259561da0d270d9fba",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-408f111c44514a823f896ff016d69f934c509b1ed511e45feb74e42b79b1e997",
+        "sha": "9cf199b90757fa27fb8c9901b419f0574847b08d"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-424b593055170e19df1c49b0d596d78672b9bca75a63d35b524162dbe08377dd",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-439b4ac387284a1e8381232310dde191f29f47e2fcd87290f5f02d153228aba7",
+        "sha": "0e378d3ff380b53f0895f9acade01efe19236289"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-4b5fc0742fe35671c26bbbafc585461fb30941684132e0ebd59e27894a7f6356",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-4c88104f526b3bad681d5e9faa9f961436ec4f42b1a76482cc28274a7dbfc2f9",
+        "sha": "0ba40288b6e04136359bea40c61d6ed95cf92eee"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-4d394714e12a42826439660abe6c208ea79a8bcd904dae0c8acff025afda2c3e",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-502cabe96538b3933b39d56638998d86384ac6c9909e47801526ef0316d49c11",
+        "sha": "5089f49ff4f2fcd0efc4b8f8c2cd211265a112a7"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-5056a8edaddd4203192992414f982a870de977073abe1859c54dfdab4e720b91",
+        "sha": "0ba40288b6e04136359bea40c61d6ed95cf92eee"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-5326171361223624ede36a1a09a2d17b64589a4ddde351a301a67342af6f0be6",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-5e56d8dfb0961512ac62315c45f95c8e0d3309b25459c34535ae14e04403a37c",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-62597b3a1ee5b98986a073dea84257ab4c975e4c703a39828569802bab7f7d8c",
+        "sha": "d9a50e425960634454ac0f0d1b2bd9f8d26aa89c"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-62962873b923ed83348fcf85fda28c4449a28d187f1f8d049cea25a225586d79",
+        "sha": "e03736e4486d3aa24e842768da6829e1bbe08efa"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-63468a3ce4f20bee36e2a292d051be141334a713dd514dd83fed5fd755222879",
+        "sha": "bf724ae64014e9c586451dbf5d4ff1616258da0d"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-64a6f1497b424718eacf6410159f5332810935e0c80b78b45449d1b84d8f1fac",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-685631f4c467aa379e11aca200e32f7a83c78419924eb758d12074316d3af487",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-705b2ff521af0ab347028761b90561614d84010b016646577d0d41df883a0071",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-78f5f42db0a3cacb62f3e4aa3f330f2a074fc42a8196661b77ffa3165e575413",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-79269054dd8f92af52159eb911c2133153e0596cda457b14478a697eb80b3b4f",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-7c975e7e9630d84102d8ed128050864a327fc979a1cf803219c76c908f788151",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-891d3e3993acf012c35588838d3328961c88a268d7b6af80c08ead0dbce9b811",
+        "sha": "3e61d899eb7c65f967ea51a2604496cc79175c85"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-89451818378fd9956a033f7e4ce8afd1ce9c63a984cbf0a115183c0982a1d551",
+        "sha": "3e61d899eb7c65f967ea51a2604496cc79175c85"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-8df6b03f2681919f9558ec9e96bc90f6a5593580b281b67a29adb1932e1efece",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-93e863213150d300e3ea94761620df3eb86ea7a2807373fccf01b63d6f1da711",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-95e759ccb49fe4b56c8b142ef1625fdcf78cf655f8b8db5ab4c8466ef269dbd6",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-9cbc70506cc1ba17c7b2d182ae419fe79c759515a317c98c1cab7bac75c6f5e7",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-a19e26b54106492e6dbbc8854913bc59d78bee953bf230b567ba2f135fbadf4b",
+        "sha": "4e52636dfa3762e085b3b9574beb98d5826652cd"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-a457abb81404bd870ae5be45ea306d746112b759eaee6277f17b2e8c0e369f18",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-a58fe7b9c30e7e96bd8ac84a3bea8f266c8009bdc29a8431c0aabc057220e236",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-acfbf62b453e04f5e5c14ced889cd31e47e42b6de18d8d79b110d2955bdc30a7",
+        "sha": "0ba40288b6e04136359bea40c61d6ed95cf92eee"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-ae8fa6379b34be35bc69910647121cb2d4e50fc8c898cea07ae4ed736c8fc211",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-b02bad0dbab0da847b2b2356be9ec0fa2f045f685df6a9cd033842eaa8ef2d7d",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-b8ee90f837b45285b410b84d8c9d25162a22142971778442a2e7f99ff08d9d57",
+        "sha": "001843b635f34a81395779bbdce5bc287b459da6"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-b9b78aca4b26b192a860e037790b7cebf7b0ee067c2ab181485f5ba7fb952f00",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-bb0d8c1130ae4a6db5c58e363b3023d70ec24d523cb45c1226d1bbf819a516df",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-bda13e3f22ffa37c520a4a5e25520d94b2e5419ad1efc0ab4a048bbc552b6ae9",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-c144a6c17904fcdaa4aa4c6be442bd30078ad62077701df35ae1fdd5b68bb2d5",
+        "sha": "9cf199b90757fa27fb8c9901b419f0574847b08d"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-c2861d4346ee339c7d065df190b066c5f600c46a879777e62c74363d7af11f55",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-c47c6469eb5ee784e74ae859b5f23f8163c5f41f4d11d25981a45a3d99ac8aef",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-c82ac70df2bf245a506db943ca912ce1ced3c74eaf62a935d7b617e4e00af0bf",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-c91a198577deb5952a1c5ea3d28029a5c8ddeb6f2bc0a27ab7c9c8cc95beda3f",
+        "sha": "e03736e4486d3aa24e842768da6829e1bbe08efa"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-cbf1bf91356a8133daf4cd3fa9835318c11a556241d5363d563baff4f7832736",
+        "sha": "daa0411a399dbf2241ee097396579234b103c06a"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-cc2de2b90e293b4984dd0dff332b28dd746d2d9bb113c79934ec3e107c7bb1e5",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-ccf372334449c82849f49626e11a8f9c2e3e4465550137c01e15e3e4cb06a4f3",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-d55bf06c6502420fa6e76d502e796a6b7a5c981e7aed4aefb0ecdcdba61a0cd7",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-d59cd946a62f51f928797b815d77361d3c0a451ad86914728b6c74904ae74ac0",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-da3b474a76a0dabdffebf88bc0e3753bb43f697cc5024372336226597d8537cf",
+        "sha": "3e61d899eb7c65f967ea51a2604496cc79175c85"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-da9403d195de3c2f85d4d54ad1ccd7b5f58ca8b856cd5a0fee9eafe5e97e442e",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-dc947ae39db26521147609246e5f317a22ec3b3c22e31b02b03b86e16f1beb40",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-e1519a8cf4237aedd78f8dc5c453d3fb696071e3c9f671e6ef88edd6b034faff",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-e2f311f10b3776afbe954af090f45f837129e3ede5e3496bc3f3773cb6d2d0f0",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-e3a130f7d2ac0d6a2c11b5f82b8ba958be2bf18d9b0834d735e0583cb5e9730e",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-e862528d94a9be6d79dd72b4cfc7cabaa84517818d611217460ef7404d07f60c",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-ece82b292039f026f257b963ed0e276fd514c8705dc58507deee919eea5761f0",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-f1ec9a203417910c453d933c1b124f3f1aa9ccc5d4bcf8f3d2f53e1456f4351c",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-f52130e687b9cf8f848c46fc62e0bfdded64958f53745088acffb6b1c2cdb101",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-f5e18667b7ea2c895e006e39b90763163a8b1f06583ec0bcd164755a43017067",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-f5fa5c3fb913441e74981efe91844cccdd71d9b4b1ebd39ecd2efa26d0c2f75b",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-18d1bce6-dca8-4357-8c47-f23fbc781677",
+        "sha": "3e61d899eb7c65f967ea51a2604496cc79175c85"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-2499c172-92df-4784-a23f-d629ded3b1a0",
+        "sha": "5089f49ff4f2fcd0efc4b8f8c2cd211265a112a7"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-39c439ae-aad0-49f4-bd79-89c9682fd49d",
+        "sha": "53e6211a7892a091bd74823e48252f6decec1144"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-4c68752d-f3e8-4d2c-8312-d184b2714fc2",
+        "sha": "0e378d3ff380b53f0895f9acade01efe19236289"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-61be3464-34b6-4a6c-9428-ece332e0d494",
+        "sha": "4b9cfa4302c8aa244ea4d0c76ac77bf269dd98ae"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-67b10003-e360-408d-b107-c7b515a6804a",
+        "sha": "9cf199b90757fa27fb8c9901b419f0574847b08d"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-a001c1e6-cb19-4c7c-9ea6-608474031fae",
+        "sha": "001843b635f34a81395779bbdce5bc287b459da6"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-a6402302-d5b4-428f-9fd8-3f9f199d37b7",
+        "sha": "bf724ae64014e9c586451dbf5d4ff1616258da0d"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-ba71477a-cb5e-4abc-a01d-cdb05c62d24e",
+        "sha": "d881f949a529587ee93aca660384f5d22c4de354"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-c573f88d-c878-4d13-9d9b-17064deb848c",
+        "sha": "0ba40288b6e04136359bea40c61d6ed95cf92eee"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-c58535ea-2cd1-4a0a-9738-7fe092328ef8",
+        "sha": "4e52636dfa3762e085b3b9574beb98d5826652cd"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-c6f04144-a1ec-4879-8598-bd95fcace5b2",
+        "sha": "daa0411a399dbf2241ee097396579234b103c06a"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-e752866e-324f-4738-aaa4-954c34d26556",
+        "sha": "d9a50e425960634454ac0f0d1b2bd9f8d26aa89c"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-f32ce2c8-76e1-4258-be0c-7002ecec4c1f",
+        "sha": "e03736e4486d3aa24e842768da6829e1bbe08efa"
+      },
+      {
+        "ref": null,
+        "sha": null
+      },
+      {
+        "ref": null,
+        "sha": null
+      },
+      {
+        "ref": null,
+        "sha": null
+      },
+      {
+        "ref": null,
+        "sha": null
+      }
+    ],
+    "appCommit": "dcfbde5c644e57402073e9cc843cb997af579125",
+    "appTree": "94f3a2251268cac29b5b494b3a12b659b8103205",
+    "harnessCommit": "dcfbde5c644e57402073e9cc843cb997af579125",
+    "harnessTree": "94f3a2251268cac29b5b494b3a12b659b8103205",
+    "appDir": null,
+    "replayDir": null,
+    "simHome": null,
+    "nodeBin": null,
+    "schemaEpoch": null,
+    "overlayRefs": [
+      "dcfbde5c644e57402073e9cc843cb997af579125"
+    ],
+    "expiresAtUtc": null,
+    "exclusiveHost": true,
+    "attemptBudget": 1,
+    "allowedActions": [
+      "backend",
+      "replay",
+      "build",
+      "up",
+      "run",
+      "down",
+      "cleanup"
+    ],
+    "timeouts": {
+      "backend": 2400,
+      "replay": 2400,
+      "build": 1200,
+      "up": 600,
+      "run": 900,
+      "down": 300,
+      "cleanup": 300
+    },
+    "sameShellTimeoutSeconds": 4800,
+    "ports": {
+      "api": 54321,
+      "db": 54322,
+      "app": 3103,
+      "control": 3199,
+      "imapPlain": 3143,
+      "imapTls": 3993,
+      "smtp": 3125
+    },
+    "adapters": {
+      "backend": {
+        "path": "scripts/simulation/track3/hosted-consumer.py",
+        "sha256": "e1bd411643f7cf29f7dbfd1c293db17afb8d738b8a70a7ab158df790cc0feacd"
+      },
+      "replay": {
+        "path": "scripts/simulation/track3/hosted-consumer.py",
+        "sha256": "e1bd411643f7cf29f7dbfd1c293db17afb8d738b8a70a7ab158df790cc0feacd"
+      },
+      "cleanup": {
+        "path": "scripts/simulation/track3/hosted-consumer.py",
+        "sha256": "e1bd411643f7cf29f7dbfd1c293db17afb8d738b8a70a7ab158df790cc0feacd"
+      }
+    },
+    "consumer": {
+      "path": "scripts/simulation/track3/hosted-consumer.py",
+      "sha256": "e1bd411643f7cf29f7dbfd1c293db17afb8d738b8a70a7ab158df790cc0feacd"
+    },
+    "workflow": {
+      "path": ".github/workflows/t3-e03-hosted.yml",
+      "sha256": "3f2df4ba876a8beffdfccd8a0f640622a9009e56b6023cb9e6a12d057bfd80f6"
+    },
+    "greenmailImage": "greenmail/standalone@sha256:d556b8c7df01ba04a0e0f67dacab2c5f75a61207a51774e0654c179b83a671e1",
+    "dependencyLockSha256": "e025dae372c71bf915c0d707c28e70648be2900f219936751ad4dba96100a933",
+    "replayScriptSha256": "ea93219f8365eff0f6e0686877261adcf5dd109457b48d8016e9ada673da91f0",
+    "reviewerCertificateSha256": "e1755b953fd31cec33f21a9ecc0b8b991ea711d25116032d5b3681b5109e1e58",
+    "execution": {
+      "purpose": "ediel03_physical",
+      "scenarioFile": "scenarios/ediel03-03.test.ts",
+      "scenarioSha256": "af6b5433bbadaa490e0ec25ccb2cbce738e17ec651ccddcefd921fbe01debb16"
+    }
+  }
+}

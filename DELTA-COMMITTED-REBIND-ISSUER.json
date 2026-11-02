@@ -1,0 +1,20 @@
+{
+  "agent": "/root/issuer_final_review",
+  "authorship": "Reviewer authored none of accepted source files.",
+  "commit": "de2c94f61f0ecc2ef114dbd785983bbee758af6d",
+  "decision": "APPROVE_SOURCE_ONLY_EXACT8_DELTA",
+  "limits": "No unconditional full63 approval while provenance pending. No new event/retry/native/channel/data authority. Prior source reviews retain their valid unchanged scopes.",
+  "manifestSha256": "283c3cac36c34f15be9f5dfac320606895fdb3291d582ca9e49d9a2bca032fe0",
+  "originalReviewSha256": "7294705639a51dc0658ce8547cf3ae88c9af500c1615d85a9d94670a9ee861b8",
+  "parent": "efac43db257ff8334fd17f99126da01f7f9c94a2",
+  "pending": [
+    "Genuine T2 donor author identities and existing normative review originals",
+    "User destination approval after publication auto-review rejection",
+    "T4 current full-scope non-author source rebind before any event"
+  ],
+  "purpose": "ediel03_physical",
+  "scenarioSha256": "af6b5433bbadaa490e0ec25ccb2cbce738e17ec651ccddcefd921fbe01debb16",
+  "schema": "t3-independent-committed-delta-rebind-v1",
+  "tree": "6fec213a29ad375644764fc2262636cbb3499512",
+  "verification": "Clean committed tree; exact8delta matches frozen8hashes; all63manifest hashes checked; other55paths byte-identical to parent. No source edits or new runtime operations."
+}

@@ -1,0 +1,20 @@
+{
+  "agent": "/root/issuer_final_review",
+  "authorship": "Reviewer authored none of accepted source files.",
+  "commit": "dcfbde5c644e57402073e9cc843cb997af579125",
+  "decision": "APPROVE_SOURCE_ONLY_EXACT3_DELTA",
+  "limits": "No unconditional full63/native/host/RAM/event/retry/data authority. No new source edits, key/producer-material reads or runtime action.",
+  "manifestSha256": "b46a042b888075cec14ac1a93609eaa34a0c7a8e073ba0df84f381cb0ce0460b",
+  "originalReviewSha256": "7167abbd8b358a7fdad0e90bdd56915f28a5e2b1e4bade27e2d794fea5a38a79",
+  "parent": "de2c94f61f0ecc2ef114dbd785983bbee758af6d",
+  "pending": [
+    "Genuine T2 donor authors and prior normative originals delivery",
+    "User destination approval after automatic publication rejection",
+    "T4 current full63 non-author rebind and fresh actual allocation before any event"
+  ],
+  "provenance": "Explicit T3 adapted donor postimages; T2/a268/de2 originals preserved and not relabeled bit-identical. Prior unchanged-scope approvals retained.",
+  "purpose": "ediel03_physical exact original2cases only",
+  "schema": "t3-independent-committed-listener-delta-rebind-v1",
+  "tree": "94f3a2251268cac29b5b494b3a12b659b8103205",
+  "verification": "Clean tree; exact3delta matches frozen3hashes; all63manifest hashes checked, other60byte-identical to parent. Independent helper31/prepare51 passed previously on identical bytes; root reports143total. No broad rerun needed."
+}

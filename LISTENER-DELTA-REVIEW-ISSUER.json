@@ -1,0 +1,30 @@
+{
+  "agent": "/root/issuer_final_review",
+  "authority": "NO_NATIVE_EVENT_RETRY_HOST_RAM_OR_DATA_AUTHORITY",
+  "base": "de2c94f61f0ecc2ef114dbd785983bbee758af6d",
+  "decision": "APPROVE_SOURCE_ONLY_EXACT3_DELTA",
+  "files": [
+    {
+      "path": "scripts/simulation/track3/host-capacity.py",
+      "sha256": "8af60428be31289ce381e89b9c6fdee19d0cfd367b551b99ddffae6e867dab7a"
+    },
+    {
+      "path": "scripts/simulation/track3/host-capacity.test.py",
+      "sha256": "81d47d26590d6ad86bf4d72a27cc69751eff35203b3afc7808e1673015b2541f"
+    },
+    {
+      "path": "scripts/simulation/track3/prepare.py",
+      "sha256": "2905b0a267b43601cd55bc64ce7ddbe32f623f96813bd233b28a1fdd813f945e"
+    }
+  ],
+  "finding": "No confirmed blocker. Valid flags0/state03 accepted stream at same path is ignored as nonlistener; exactly one stream LISTEN authority with positive ASCII numeric inode remains required. Unknown/malformed rows and duplicate listeners HOLD. prepare delta only updates fixed helper hash. Existing listener-FD/dockerd birth/peer/shared-parent/owned-container/cleanup guards and floors unchanged.",
+  "pending": [
+    "Genuine T2 donor author/prior normative review delivery",
+    "User destination approval after publication auto-review rejection",
+    "T4 exact current full63 non-author rebind and fresh actual allocation before event"
+  ],
+  "schema": "t3-independent-listener-adaptation-review-v1",
+  "scope": "Explicit T3 adaptation, not bit-identical T2 donor; preserved originals/provenance remain distinct. Reviewer authored none of accepted source. Prior reviews cover unchanged60; not unconditional full63 approval.",
+  "snapshotSha256": "f5f576e08101a5e8840f23813ca93b7acb777c59fc1d6760c11a8b04564d5827",
+  "verification": "Independently ran helper31 and prepare51: all passed. Actual owned AF_UNIX bind/connect/accept and proc FD inode check ran with exec network capability; no Docker/native/outbound service operation. Reuse unchanged profile46/consumer15 source applicability. All3hashes independently match frozen snapshot."
+}

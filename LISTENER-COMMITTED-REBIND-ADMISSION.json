@@ -1,0 +1,22 @@
+{
+  "schema": "t3-focused-source-delta-rebind-v1",
+  "reviewerAgent": "/root/review_t3_admission",
+  "verdict": "APPROVE_SOURCE_ONLY_EXACT_THREE_FILE_DELTA",
+  "commit": "dcfbde5c644e57402073e9cc843cb997af579125",
+  "tree": "94f3a2251268cac29b5b494b3a12b659b8103205",
+  "soleParent": "de2c94f61f0ecc2ef114dbd785983bbee758af6d",
+  "priorReviewSha256": "feea36ed72eb7c83e82732f763ff8de866d42861519f58b5328cf2cc1c826346",
+  "committedManifestSha256": "b46a042b888075cec14ac1a93609eaa34a0c7a8e073ba0df84f381cb0ce0460b",
+  "verified": "Clean; exact3 hashes match reviewed snapshot; only3 changed paths;60 unaffected;63/63 manifest hashes match",
+  "tests": "Independent helper31 real owned AF_UNIX +prepare51 passed before identical adoption; root reports143/143; not rerun",
+  "scope": "T3 listener/parser/test/helper-pin adaptation only; .03 source applicability; not actual host/native acceptance",
+  "donorDistinction": "New helper/test explicitly T3-adapted; original T2 a268 bytes preserved at immutable de2 carrier, not claimed identical to adapted files",
+  "full63Approval": false,
+  "authorshipExclusion": "Reviewer coauthored accepted E01 test elsewhere; ineligible for independent full63/E01 final; authored none of these3 files",
+  "remainingDependencies": [
+    "Genuine T2 authors and existing normative donor final review delivery",
+    "Destination-specific approval as applicable; no private payload publication grant",
+    "T4 current full-scope rebind and fresh actual scoped allocation before event"
+  ],
+  "newNativeOrEventAuthority": false
+}

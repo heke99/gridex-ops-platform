@@ -1,0 +1,534 @@
+{
+  "base": "6e314f213fc975799816f9dbe181688ba2f7d960",
+  "sourcePaths": 63,
+  "commit": "dcfbde5c644e57402073e9cc843cb997af579125",
+  "tree": "94f3a2251268cac29b5b494b3a12b659b8103205",
+  "parent": "de2c94f61f0ecc2ef114dbd785983bbee758af6d",
+  "canonicalCompositionSha256": "9ca183bd5e10ee1b2e5c24626d2407f7afb0c0398055617fca970eebe0bc78c8",
+  "canonicalCompositionAlgorithm": "SHA256 of compact UTF8 JSON array of path/sha256 objects sorted by path; object keys sorted; no newline",
+  "previousCanonicalCompositionSha256": "12c7523c8561f9957f7fb62a86c082f719d8e783c301df34e3e4e0fd09529c26",
+  "files": [
+    {
+      "path": ".github/workflows/t3-e03-hosted.yml",
+      "sha256": "3f2df4ba876a8beffdfccd8a0f640622a9009e56b6023cb9e6a12d057bfd80f6",
+      "bytes": 4807,
+      "mode": "100644",
+      "blob": "8bd8cc5848a3e5e746c32baf3a1ff2d7e9a7ed13",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "__tests__/simulation-t3-business-oracle.test.ts",
+      "sha256": "51c11c24d0b68275c7a0850a7419b6b72006bbb4367d23b2d4831c94d034de73",
+      "bytes": 34421,
+      "mode": "100644",
+      "blob": "5a937c7576ca40bd6197fa331d205d6126222bbd",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "__tests__/simulation-t3-correction-safety.test.ts",
+      "sha256": "a019e0c78124f14ee45ffc931ea775b2621c45f8ac0fe83f41640939f8b2b9e5",
+      "bytes": 15670,
+      "mode": "100644",
+      "blob": "fd7bf31f3e4d16d57bfd26ee137c595778592b25",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "__tests__/simulation-t3-e01-drain-safety.test.ts",
+      "sha256": "ebfdbb4c6cddc0711c78b010b5ebd15c055b9f23761cf5cd5be79e6494ec15b2",
+      "bytes": 20555,
+      "mode": "100644",
+      "blob": "39bbfd23ad0e42c94fc5dc3bc0e3b16ca12d7f35",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "__tests__/simulation-t3-e01-physical-count.test.ts",
+      "sha256": "60a19c379f93d5d47df0019922316d19d6a5b59fdd461e58c48e1572ba584ee3",
+      "bytes": 9695,
+      "mode": "100644",
+      "blob": "95b23d4a1d253b381341f61b5e8247f5cafd3490",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "__tests__/simulation-t3-e02-outbox-count.test.ts",
+      "sha256": "904a3373f4ec668613ae440a330ebef7f9667fb410ecbdd67053700f0ab75114",
+      "bytes": 4553,
+      "mode": "100644",
+      "blob": "082199ffb2127c03b906341993f4e7f878a3dfe6",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "__tests__/simulation-t3-e03-reception.test.ts",
+      "sha256": "cd339fc66024968f1035405775770678f3d5e99a67efd8a671dc47a4b1ddfca7",
+      "bytes": 14848,
+      "mode": "100644",
+      "blob": "45f8297720472ac2c917ac830e414207ce101d2d",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "__tests__/simulation-t3-outbox-admission.test.ts",
+      "sha256": "e3048494e5bdc88416a24d8bf9795370bdda476db878266ac04f8ea5fc8b333b",
+      "bytes": 27161,
+      "mode": "100644",
+      "blob": "95397f71c87565bf2a286983bf2a50fdd7652828",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/PREPARATION.md",
+      "sha256": "470bd8d9ecdca7f5a68d7338d2a42efeaef68fa7b22546ec314bb4b916c5d230",
+      "bytes": 15396,
+      "mode": "100644",
+      "blob": "5b2dfba30a3cde35a40e66d12c8107e454c1d105",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/README.md",
+      "sha256": "e80f16d28b52043489dcea5ed21fb890a4dadcfd03c809b8ecc8a505169fefd5",
+      "bytes": 17982,
+      "mode": "100644",
+      "blob": "74e2a026a4f0fc77f8804a5e2ada6e0688045a39",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/counterparty/mail-counterparty.mjs",
+      "sha256": "1e94e466b876c0f5e2565759c1e6349d0419b40148c023fa45629ab2a9ad069c",
+      "bytes": 13811,
+      "mode": "100644",
+      "blob": "972b880c71d384e8daf7610053c1026f86a16029",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/down.sh",
+      "sha256": "a3b70c581a2a229a2f68e9a893720307e771a86f259475484a7bf422c0f215a0",
+      "bytes": 11313,
+      "mode": "100755",
+      "blob": "c3cf23be4011a648439f88f2ba1d7271c7bb77fb",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/host-capacity.py",
+      "sha256": "8af60428be31289ce381e89b9c6fdee19d0cfd367b551b99ddffae6e867dab7a",
+      "bytes": 29001,
+      "mode": "100644",
+      "blob": "51418906f1cd0822e57a7030b7eac055020c4c8e",
+      "source": "T3-listener-adaptation"
+    },
+    {
+      "path": "scripts/simulation/track3/host-capacity.test.py",
+      "sha256": "81d47d26590d6ad86bf4d72a27cc69751eff35203b3afc7808e1673015b2541f",
+      "bytes": 20594,
+      "mode": "100644",
+      "blob": "72defab02255637da0253f8eefed8a51301bf860",
+      "source": "T3-listener-adaptation"
+    },
+    {
+      "path": "scripts/simulation/track3/hosted-consumer.py",
+      "sha256": "e1bd411643f7cf29f7dbfd1c293db17afb8d738b8a70a7ab158df790cc0feacd",
+      "bytes": 27726,
+      "mode": "100644",
+      "blob": "70624ce138a99bb5ecffa9feda9691c69eac317a",
+      "source": "shared-backend8"
+    },
+    {
+      "path": "scripts/simulation/track3/hosted-consumer.test.py",
+      "sha256": "f87aede19e3e2d71ebe57d39d3a45fe76eb1995ea90d32c6964bf6f366ad0e85",
+      "bytes": 19040,
+      "mode": "100644",
+      "blob": "4b39ba498dcde59ca7d2484c2ded7ca4d7e9eb78",
+      "source": "shared-backend8"
+    },
+    {
+      "path": "scripts/simulation/track3/hosted-profile.py",
+      "sha256": "6a1bc712454f5f9f5f8f207bd20aa4693911e77c1ced4f9a92d28a9ddf69e575",
+      "bytes": 87777,
+      "mode": "100644",
+      "blob": "d2a170d0f8a2da4a9aa4a7f01feb0df19c5dda8d",
+      "source": "shared-backend8"
+    },
+    {
+      "path": "scripts/simulation/track3/hosted-profile.test.py",
+      "sha256": "76d958980e4a93ea9ca5c9ac94f20acd41651a364a7f29a8168cad29a76bb405",
+      "bytes": 63630,
+      "mode": "100644",
+      "blob": "a43fbd45d1ecffc27c14730d8d269f772db599a6",
+      "source": "shared-backend8"
+    },
+    {
+      "path": "scripts/simulation/track3/hosted-supabase.toml",
+      "sha256": "38faa949363ec32f0d58fdd7652f4bd3370ef25628629951c185702bb5644b48",
+      "bytes": 14153,
+      "mode": "100644",
+      "blob": "7bc2219066c37df557b77b2b9802eca4d56fd6c9",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/app.ts",
+      "sha256": "1d6d2d6b587fa306a26a5ae6ed8aef8f29e4c59bd0c5ae922be41e41a6f5bfe1",
+      "bytes": 1657,
+      "mode": "100644",
+      "blob": "3087af9e96bca6799b5a2f0282a25310189043bc",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/common.sh",
+      "sha256": "7ee0c97ccfe85a700cc40374311c8797f594d8db581dc24b34617efe495c8184",
+      "bytes": 2028,
+      "mode": "100644",
+      "blob": "65b83f8f1800d17613d76640c6173412149f7e13",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/counterparty.ts",
+      "sha256": "3751c733f545e6bd5b596f2265a2c50fda09aea1eb201fb048a242deb7e8e25f",
+      "bytes": 6344,
+      "mode": "100644",
+      "blob": "fddb6fe90200f74701062d1054f0900f05ae276c",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/db.ts",
+      "sha256": "6440afd46890901396bdfc4b75172d71bb30c97c5b52542fb0900dc66452d099",
+      "bytes": 2126,
+      "mode": "100644",
+      "blob": "3a6e8e21f5be9681452e1974a4088663a7446056",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e01-chain.ts",
+      "sha256": "ab998b5d4c9ef2ec1d8de3bb5795ca4d8fd8654390170087854164c5faf4f733",
+      "bytes": 12378,
+      "mode": "100644",
+      "blob": "bec30d004c275aa854dd8b28e6b540bdf9d5ae66",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e01-fixture.ts",
+      "sha256": "c7c4ea568603e8e18b3ee747d5e1b6fb6214cefd33607ada893d25cc280f7417",
+      "bytes": 16617,
+      "mode": "100644",
+      "blob": "9bc1905e6831c1183ddc6405cb3102583c65d17b",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e01-tls.ts",
+      "sha256": "c78357930494540d0bede091d31c004f76bb3b5d05064c8dc38a3bb9a1639ddc",
+      "bytes": 4805,
+      "mode": "100644",
+      "blob": "59201a168757820b14435476c4d1694c9bcc7507",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-edifact.ts",
+      "sha256": "7f605afde606194567f9503d1242111f3cad15fa9568ac13466a2565b801690e",
+      "bytes": 4353,
+      "mode": "100644",
+      "blob": "12dc319f7963d78ab7ea6156fd96fe57415c43aa",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-flow.ts",
+      "sha256": "dab88094e67ab230ba9c29333fe7e20af522a92c0f99ed4e594f35cfcdc8972e",
+      "bytes": 11669,
+      "mode": "100644",
+      "blob": "52a27994a83ca25be6b18e1d0cbd5ce11f038673",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-outbox.ts",
+      "sha256": "c606af01aa873a1410b97a55104757abc34beb4b1eb4966c23a16f6eb0a69ebb",
+      "bytes": 20504,
+      "mode": "100644",
+      "blob": "cb6c716346ee38857dc329ae62f900bee30bd705",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-rpc.ts",
+      "sha256": "189ca7d2f44778492ae102b2c2bc744b1f1d0803980a54aad98a138ed4b77678",
+      "bytes": 1053,
+      "mode": "100644",
+      "blob": "cf0ab9fbec79baec5ff2602f7bba35a3321e0368",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-seed.ts",
+      "sha256": "64cbae12ba0d4d1329b84a3d37b833d46bb8bd760ccc9ad0d2138d3924bf3d19",
+      "bytes": 15342,
+      "mode": "100644",
+      "blob": "38241a4c7d3242cdda32be9109a839a48c6790ee",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-setup.ts",
+      "sha256": "7407d79f39f42e11ad7f7f2eb2c7bc494030796216ec005d5f2a1b049e010263",
+      "bytes": 2680,
+      "mode": "100644",
+      "blob": "b34e7c86d7d9c97cf9ae468f8c7ccdd8ffa3a2f5",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-state.ts",
+      "sha256": "14b5f5e9797b9c9f77de9767cf4aca009bb4491732a352ce7ff7820af648ee9e",
+      "bytes": 6439,
+      "mode": "100644",
+      "blob": "9b81b00f58c8bd624c1f9db5767cfa44c0d31030",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-tenant.ts",
+      "sha256": "7042c3cd6006242eb7a8d949ab657f0b90d873ea2cab45e051a533552d73eff5",
+      "bytes": 9131,
+      "mode": "100644",
+      "blob": "de84d672c453af2ce47c378e98ada20fea670f01",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e03-fixture.ts",
+      "sha256": "1661c32a99c40af6305924ef1f5418e480cba57134472cd91c7e8a0d2788cdf6",
+      "bytes": 13991,
+      "mode": "100644",
+      "blob": "db387bc5092ed308f86b437a7c8bd3da3d3ab3b7",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e03-reception.ts",
+      "sha256": "61af222f431463a561b05fab1547528472a8d538c03dbcb48dd5c0a216ba9f2d",
+      "bytes": 13816,
+      "mode": "100644",
+      "blob": "457680c4294d79bbad72674e58199c01b7d74550",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e03-steps.ts",
+      "sha256": "ab5d2913dfdd85f3d6ccdd9c5421c0d0bbd2d22c060109f9d0c8645d6e20778e",
+      "bytes": 12434,
+      "mode": "100644",
+      "blob": "95be60adac326b98d5ff47d23d02579f0a4ae6d2",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/edifact.ts",
+      "sha256": "182c620d29b22764f903b6a70f915aaad5dd27fe4a89a07738717811e84bd6f2",
+      "bytes": 3792,
+      "mode": "100644",
+      "blob": "72ba7da39fd86ac05ae29b06da3c871ba2e11714",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/evidence.ts",
+      "sha256": "07d5bd23c9d121219ddd2a5274da7aa020f01acb5aa507b41ebb145ca83817c7",
+      "bytes": 1866,
+      "mode": "100644",
+      "blob": "7a0611e238dbc44defb4404e56c025883ebcdd61",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/inprocess.ts",
+      "sha256": "0ded70fbfa66730cd087985a01f4d871342406fb6841c9a2fabcf3788e57378f",
+      "bytes": 1824,
+      "mode": "100644",
+      "blob": "1cb90d0f7fe2b09c75d595b02bf3f024080d5d6d",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/make-report.mjs",
+      "sha256": "d469f0b9d12b6a1f71456b41ccf358e245ba22ac29519c5e839acee9440a41cc",
+      "bytes": 3272,
+      "mode": "100644",
+      "blob": "7f7f9ed90a7f63c5b68f0c1873b8fc585664211d",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/mime.ts",
+      "sha256": "17230bc073375f0164ef8b5b4d0faf73a2cc1076cf3e282190a711e357dc7db7",
+      "bytes": 1722,
+      "mode": "100644",
+      "blob": "b0af7061b1474878797cc83250a5828809ce1b81",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/seed-cli.mjs",
+      "sha256": "6e0874f00dceedef58d6cb9e24e4ae6da005cfe45c722667a0fb2e7afdbfa7f5",
+      "bytes": 27501,
+      "mode": "100644",
+      "blob": "d2d5c94156b4f9181060f69174b5d327d9e8874d",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/seed.mjs",
+      "sha256": "734c4aa4f2f543231f6cd4f61fd16f345d5f59a8016d0bacd45d90eb3c0f932e",
+      "bytes": 14096,
+      "mode": "100644",
+      "blob": "a63010c8d45468a700f75f8e5ac67d96371571db",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/prepare.py",
+      "sha256": "2905b0a267b43601cd55bc64ce7ddbe32f623f96813bd233b28a1fdd813f945e",
+      "bytes": 54700,
+      "mode": "100644",
+      "blob": "026ef2bd2abddbce327952bd064ec7f60129491d",
+      "source": "T3-listener-adaptation"
+    },
+    {
+      "path": "scripts/simulation/track3/prepare.test.py",
+      "sha256": "1e1c26764cd11d385e8035bdbd43d8c5ab656fc2aaa2f7a4130f98b3e8cd1014",
+      "bytes": 48846,
+      "mode": "100644",
+      "blob": "b32367352b846707bd5457a23bcd14d83598e3d4",
+      "source": "shared-backend8"
+    },
+    {
+      "path": "scripts/simulation/track3/run.sh",
+      "sha256": "efd1b9022921cf23f4bb522ee422b24cdad75607ae87bcd43a4a4fd5dc6ef3a6",
+      "bytes": 4732,
+      "mode": "100755",
+      "blob": "2f4c27aa87d293c617c09637b9cfb64166879b2a",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/same-shell.py",
+      "sha256": "5e7f9f842ed021c59e677d9d5894cf910692a23eb07dd578ec1d460f43dbaa5d",
+      "bytes": 12094,
+      "mode": "100644",
+      "blob": "85d27308661a1b9b057911eff31cc51aa6dfdeba",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/same-shell.test.py",
+      "sha256": "685d34733ff3d43159b59da1ccd650e894f8ab48be5b204a2ff7dca694186c89",
+      "bytes": 18447,
+      "mode": "100644",
+      "blob": "5fb78c9169e3e2741131d80be7a5490e63f326d9",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel01.test.ts",
+      "sha256": "ea2dc154a1008365649f696e6890727b477e702834850ec6b82b854747d9d2c8",
+      "bytes": 55288,
+      "mode": "100644",
+      "blob": "399314caf6ae06230532ce5a02ad7568c8b9c4c7",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel02-auth.test.ts",
+      "sha256": "88ba7d45bebb7a574f108224cb5aa683cad4c941e39032b0ce3c8c2868e1e98f",
+      "bytes": 11495,
+      "mode": "100644",
+      "blob": "4b544c1a0ccdda82e86bdd58c0b62416f8629b3f",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel02-corr.test.ts",
+      "sha256": "4535c4818c5e91a18b8b6e0599f0256300d952488e918cd6174e38b3b247dfbc",
+      "bytes": 8393,
+      "mode": "100644",
+      "blob": "5bf2efd94704823125ccde0dc0dc145c41a34900",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel02-dup.test.ts",
+      "sha256": "0dbafd6a213ca906aa1dff143d0525fd5d10ef547d420ed9b0f7ecfae51eafef",
+      "bytes": 10283,
+      "mode": "100644",
+      "blob": "5875ea30a7df6bebe66a7b66ae79934ef1e76de0",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel02-syntax.test.ts",
+      "sha256": "ec2522be9e3cefdb9be1cb8bcd85a2f50bcd40ef37087a5e84c706875dd1b6fa",
+      "bytes": 10518,
+      "mode": "100644",
+      "blob": "f9c98884ddc950106644d46b4bbd13e9c7443255",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel03-01.test.ts",
+      "sha256": "ef941484d363de34aaea3414224c8eb2704fe0f721f38a07022d6ec7cb364777",
+      "bytes": 7148,
+      "mode": "100644",
+      "blob": "07da3042c725920b713502330d4d7de455fd479a",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel03-02.test.ts",
+      "sha256": "45a4fba6c913f1aa7ae89e7d0d934f40325d4bd570cb8e45c504bc1cfa95baad",
+      "bytes": 6784,
+      "mode": "100644",
+      "blob": "a284da292afa0bac3bef8ce5e74a58e93cb1aa4a",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel03-03.test.ts",
+      "sha256": "af6b5433bbadaa490e0ec25ccb2cbce738e17ec651ccddcefd921fbe01debb16",
+      "bytes": 8936,
+      "mode": "100644",
+      "blob": "81f32265050ce7afdae9a9c4afb5920a6659ef3c",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel03-04.test.ts",
+      "sha256": "24b26f7cd1c0a69cad0c850d790c45af9d9123fb4d2753e94c2b2b0135f62cae",
+      "bytes": 8875,
+      "mode": "100644",
+      "blob": "351a3b3e2573deebd672a43999dd00097fd18d7c",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel03-05.test.ts",
+      "sha256": "58003b2a36ff86c1c169f4bac62eecb77e7f86839acdcbb2c33ddf74dc6877c1",
+      "bytes": 6624,
+      "mode": "100644",
+      "blob": "a24ff3985fc80955f440c49516e75f1f7386b268",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/smoke.test.ts",
+      "sha256": "bae14c7ad99697867b0f402bee5ed64a0ce12c123de0bc6bbf228d82ebf38b96",
+      "bytes": 15738,
+      "mode": "100644",
+      "blob": "c7fcd40f76f4e9bae005fd7630a4bf0d397469c8",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/up.sh",
+      "sha256": "11b96ec449c538ec8483d50a3f4dde7efb1beb31faec894f508d72ccd47b7d01",
+      "bytes": 3426,
+      "mode": "100755",
+      "blob": "a94fb237a986d88ab2d2445263d408ee5576c099",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "scripts/simulation/track3/vitest.config.ts",
+      "sha256": "ddc36a468d6a207f880c3067edfb3393f9d69ef4ce605a4dce6097232592442e",
+      "bytes": 1063,
+      "mode": "100644",
+      "blob": "5e217c684633f0032c3d19784a15402dd01089a1",
+      "source": "unchanged-efac"
+    },
+    {
+      "path": "supabase/config.toml",
+      "sha256": "38faa949363ec32f0d58fdd7652f4bd3370ef25628629951c185702bb5644b48",
+      "bytes": 14153,
+      "mode": "100644",
+      "blob": "7bc2219066c37df557b77b2b9802eca4d56fd6c9",
+      "source": "unchanged-efac"
+    }
+  ],
+  "native": "NOT_RUN",
+  "scope": "Current exact3 T3 listener adaptation on prior reviewed8 connection; unchanged60 parentpaths,63selectedtotal. Both T2 baseline originals preserved at de2/a268; current2helperpostimages openlyadapted. Root solewriter; no native/event/private transport permission.",
+  "checks": {
+    "prepare": 51,
+    "profile": 46,
+    "consumer": 15,
+    "adaptedHelper": 31,
+    "all143": true,
+    "actualAdoptedPath": true,
+    "sourceAst": true,
+    "diffCheck": true,
+    "wholeScenarioNewPass": 0
+  },
+  "pendingExternal": [
+    "T2 genuine donor author and existing normative review originals delivery",
+    "destination-specific user approval after automatic review rejected private ciphertext transport",
+    "T4 current full63/non-author source rebind and fresh allocation/event/start coordination before actual run"
+  ]
+}
