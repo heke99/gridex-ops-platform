@@ -1,0 +1,15 @@
+{
+  "state": "RETURNED_NO_MORE_WRITES",
+  "scope": "membership whitespace only; API unchanged",
+  "files": {
+    "scripts/simulation/track2/hosted/host-capacity.py": "b3bf9301de14c8b13689a3528565a72dd859f84188e107bf3d0385f93573963f",
+    "scripts/simulation/track2/hosted/host-capacity.test.py": "b51f298ffe330d705ee27bc80c00ae0823984b50bf0a7c712026a9a84013a4e4"
+  },
+  "tests": 28,
+  "red": "/workspace/t2-private/host-capacity-whitespace-RED.log",
+  "green": "/workspace/t2-private/host-capacity-whitespace-GREEN.log",
+  "ack": "/workspace/t2-private/host-capacity-whitespace-reopen-ACK.private.json",
+  "nativeProbes": 0,
+  "commits": 0,
+  "indexWrites": 0
+}

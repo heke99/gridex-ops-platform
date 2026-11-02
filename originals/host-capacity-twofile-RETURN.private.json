@@ -1,0 +1,29 @@
+{
+  "schema": "t2-host-capacity-twofile-return-v1",
+  "state": "RETURNED_NO_MORE_WRITES",
+  "baseHead": "b2591f4a1bfe6d3cfff8a74036521b08f739aa60",
+  "files": {
+    "scripts/simulation/track2/hosted/host-capacity.py": "8a1bb82444b27a1f5f91faf7e4ea22e47cf087152f2d0a6690fd615785e1ef35",
+    "scripts/simulation/track2/hosted/host-capacity.test.py": "f35574c402041056f13f3c4c8a552e7430e3f8e15280c8f98e9f2b5d01ef9d18"
+  },
+  "apiContract": "/workspace/t2-private/host-capacity-api.private.json",
+  "ack": "/workspace/t2-private/host-capacity-twofile-ACK.private.json",
+  "redEvidence": "/workspace/t2-private/daemon-capacity-fp-repro.json",
+  "greenLog": "/workspace/t2-private/host-capacity-tests-final.log",
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 scripts/simulation/track2/hosted/host-capacity.test.py",
+  "tests": 25,
+  "nativeProbes": 0,
+  "indexWrites": 0,
+  "commits": 0,
+  "scope": "Only two new claimed source paths; parent-owned seven existing modifications preserved. Controlled-IO tests only; actual capacity remains unobserved and unadmitted.",
+  "officialAnchors": {
+    "/workspace/t2-private/docker-parent-official-oci.go": "9761f2351e3c03e861dab0d42c2f7d1b9c0ddad02612f7350cbabfd2291e5c75",
+    "/workspace/t2-private/docker-parent-official-defaults.go": "7130be2ff694682d792d959fcec61cf3666702343856542d452a645c3fd6355d",
+    "/workspace/t2-private/docker-parent-28.0.4-defaults.go": "7130be2ff694682d792d959fcec61cf3666702343856542d452a645c3fd6355d",
+    "/workspace/t2-private/docker-parent-28.0.4-main.go": "ce02e50fff01ac8c8ca8201b28777285f3b201885f1166185205abcc4248b5da",
+    "/workspace/t2-private/docker-parent-official-config.go": "57030569d3b816554cfa15d3bed2d8c4dacdeac65881267fd3bad99efe800ff7",
+    "/workspace/t2-private/docker-parent-official-daemon.go": "adf696737ec09d33b2fbee4c6252c8f99d15d018d6555915aef870e5f4cb251d",
+    "/workspace/t2-private/docker-parent-28.0.4-rootless.go": "785063f5d22c7284fb6f47873743ede1df6f32bc6e65b9c66b38c123f3473bd1",
+    "/workspace/t2-private/docker-parent-28.0.4-oci.go": "816b53630dca6536a0ea97a2e9156818ec2a855761c887e3b5372c06ca198b3a"
+  }
+}

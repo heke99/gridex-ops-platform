@@ -1,0 +1,109 @@
+{
+  "schema": "t2-existing-capacity-provenance-handoff-v1",
+  "request": "https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6566404052",
+  "recipient": "T3 existing sole receiving writer",
+  "donorHead": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+  "donorTree": "7a1424741bbe52c55306624ecbe1bf79576d5d38",
+  "donorTag": "refs/tags/agent-source-handoffs/t2-backend-capacity/20261102-a2682f83",
+  "files": [
+    {
+      "path": "scripts/simulation/track2/hosted/host-capacity.py",
+      "sha256": "b3bf9301de14c8b13689a3528565a72dd859f84188e107bf3d0385f93573963f",
+      "gitBlob": "e59e24f1e05eaed40ccf79198d6762c2eab8ebef",
+      "authorAgentIdentities": [
+        "/root/t2_end_date_review"
+      ],
+      "T2IntegrationAndDesignAgentIdentity": "/root",
+      "receiverPath": "scripts/simulation/track3/host-capacity.py"
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/host-capacity.test.py",
+      "sha256": "b51f298ffe330d705ee27bc80c00ae0823984b50bf0a7c712026a9a84013a4e4",
+      "gitBlob": "02fbc9425bb47d25e7b4aef5e08a793979bf7942",
+      "authorAgentIdentities": [
+        "/root/t2_end_date_review"
+      ],
+      "T2IntegrationAndDesignAgentIdentity": "/root",
+      "receiverPath": "scripts/simulation/track3/host-capacity.test.py"
+    }
+  ],
+  "originals": [
+    {
+      "path": "originals/host-capacity-twofile-RETURN.private.json",
+      "role": "author-initial-return",
+      "actualAgentIdentity": "/root/t2_end_date_review",
+      "sha256": "dc107995e9b3ebda3d69a307505e1674a75631f7624fd73cf953c57e02fbeb7a",
+      "bytes": 2121,
+      "gitBlob": "99793697a0c04c6c8382d9d1493411cde8bc5b54",
+      "bytePreservingCopy": true,
+      "originalReference": "T2 /root/t2_end_date_review existing host-capacity-twofile-RETURN.private.json",
+      "scope": [
+        "scripts/simulation/track2/hosted/host-capacity.py",
+        "scripts/simulation/track2/hosted/host-capacity.test.py"
+      ]
+    },
+    {
+      "path": "originals/host-capacity-whitespace-RETURN.private.json",
+      "role": "author-final-return",
+      "actualAgentIdentity": "/root/t2_end_date_review",
+      "sha256": "52c45d1f33fc48918d35f55619cba2598ac0f7cba54245d560df5632d0fa9940",
+      "bytes": 662,
+      "gitBlob": "3b1cfd928426885dea7fcba8c4c89c4fd13e32c3",
+      "bytePreservingCopy": true,
+      "originalReference": "T2 /root/t2_end_date_review existing host-capacity-whitespace-RETURN.private.json",
+      "scope": [
+        "scripts/simulation/track2/hosted/host-capacity.py",
+        "scripts/simulation/track2/hosted/host-capacity.test.py"
+      ]
+    },
+    {
+      "path": "originals/backend-parent-final-boundary-review.json",
+      "role": "independent-final",
+      "actualAgentIdentity": "/root/boundary_final_review_two",
+      "sha256": "3bcba742eb689e48dcdacbbdbcd6e5a2f8735ef43463bc01fa7bff3dcc7449dd",
+      "bytes": 1823,
+      "gitBlob": "0c1db99b16349a2a6434567be12c56b56a7f5934",
+      "bytePreservingCopy": true,
+      "originalReference": "T2 /root/boundary_final_review_two existing backend-parent-final-boundary-review.json",
+      "scope": [
+        ".github/workflows/t2-term-disposable.yml",
+        "scripts/simulation/track2/hosted/README.md",
+        "scripts/simulation/track2/hosted/business-evidence.py",
+        "scripts/simulation/track2/hosted/business-evidence.test.py",
+        "scripts/simulation/track2/hosted/host-capacity.py",
+        "scripts/simulation/track2/hosted/host-capacity.test.py",
+        "scripts/simulation/track2/hosted/profile.requirements.json",
+        "scripts/simulation/track2/hosted/qualification.test.py",
+        "scripts/simulation/track2/hosted/qualify-runtime.py"
+      ]
+    },
+    {
+      "path": "originals/backend-parent-final-graph-review.json",
+      "role": "independent-final",
+      "actualAgentIdentity": "/root/graph_guard_final_two",
+      "sha256": "e2a86dde5aaccb99f652e95b02007c3fe5ab97e432b4414a278ea04d29ec1dcb",
+      "bytes": 1983,
+      "gitBlob": "3361424c9d798a61f9dc90cae4ca0adde72528f5",
+      "bytePreservingCopy": true,
+      "originalReference": "T2 /root/graph_guard_final_two existing backend-parent-final-graph-review.json",
+      "scope": [
+        ".github/workflows/t2-term-disposable.yml",
+        "scripts/simulation/track2/hosted/README.md",
+        "scripts/simulation/track2/hosted/business-evidence.py",
+        "scripts/simulation/track2/hosted/business-evidence.test.py",
+        "scripts/simulation/track2/hosted/host-capacity.py",
+        "scripts/simulation/track2/hosted/host-capacity.test.py",
+        "scripts/simulation/track2/hosted/profile.requirements.json",
+        "scripts/simulation/track2/hosted/qualification.test.py",
+        "scripts/simulation/track2/hosted/qualify-runtime.py"
+      ]
+    }
+  ],
+  "identityMeaning": "Actual canonical collaborating agent task identities from the T2 chat; not invented human names. Root is the T2 design/integration author; t2_end_date_review wrote and returned the two donor files. Both final reviewers are distinct non-authors.",
+  "applicability": "Existing nine-path final originals include exactly these two donor postimages. They are forwarded unchanged, not described as newly issued two-file reviews. Initial author return is historical; final whitespace RETURN supplies the exact final two hashes. T3 owns receiver-path integration and its delta reviews.",
+  "newReview": false,
+  "newExecution": false,
+  "native": false,
+  "GEN": false,
+  "eventBudgetGranted": 0
+}

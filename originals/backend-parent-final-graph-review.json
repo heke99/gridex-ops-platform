@@ -1,0 +1,49 @@
+{
+  "schema": "t2-independent-source-review-v1",
+  "reviewer": "graph_guard_final_two",
+  "head": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+  "tree": "7a1424741bbe52c55306624ecbe1bf79576d5d38",
+  "base": "b2591f4a1bfe6d3cfff8a74036521b08f739aa60",
+  "verdict": "APPROVED_SOURCE_ONLY",
+  "sourceOnly": true,
+  "clean": true,
+  "changedPaths": 9,
+  "materialFindings": [],
+  "resolvedFinding": {
+    "previousHead": "6eae775c7685fb52bb2ecf943bfdcc749099fe8f",
+    "priority": "P1",
+    "issue": "Exact two-key github comparison rejected required native headBranch.",
+    "resolution": "Publication and consumption now enforce the exact two-key manual map or exact three-key native map selected by independently established actual event/context. Real signed CMS and create-only publication roundtrip regression added."
+  },
+  "verification": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 scripts/simulation/track2/hosted/host-capacity.test.py",
+      "tests": 28,
+      "exitCode": 0
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 scripts/simulation/track2/hosted/qualification.test.py",
+      "tests": 125,
+      "exitCode": 0
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 scripts/simulation/track2/hosted/business-evidence.test.py",
+      "tests": 13,
+      "exitCode": 0
+    }
+  ],
+  "reviewed": [
+    "actual listener FD and peer/process authority",
+    "initial namespaces and complete worker/shared-parent ancestry",
+    "configuration chronology and parent mapping",
+    "owned container birth, labels and cgroup membership",
+    "signed native push/API source/run/headBranch coupling",
+    "capacity-independent exact resource cleanup",
+    "unchanged business DTO/effect assertions"
+  ],
+  "limits": [
+    "All executed controls use finite synthetic kernel/API/crypto/shell ports; no actual host/backend/CI/proof collection",
+    "No native/GEN/runtime or whole-scenario acceptance"
+  ],
+  "receiptContainsSecrets": false
+}
