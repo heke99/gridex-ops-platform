@@ -1,0 +1,43 @@
+{
+  "agent": "/root/issuer_final_review",
+  "assessment": "Adding the documented PR permission category is a plausible source-only candidate for T4 qualification. Provider grant is repository-wide, not intrinsically limited to930; application allowlist remains the code restriction. Documentation also lists Issues/write, which already existed, so necessity/rootcause and least-effective grant are not proved by this source delta. No POST201/signed-import/runtimefix evidence exists here.",
+  "authority": "No publication, API mutation, key/producer-package read, retry/event/native/data authority or actual runtime acceptance; original failed run41482096195 remains unchanged terminalHOLD evidence.",
+  "authorship": "Reviewer authored none of current accepted source files; source write authored by ROOT.",
+  "classification": "PRIVATE_SOURCE_DELTA_REVIEW_NOT_RUNTIME_REMEDIATION",
+  "custodyRecord": {
+    "meaning": "Read supplied ROOT all16/neutral custody receipt; not a new custody mutation or independent live API claim.",
+    "path": "pr-comment-permission-own-custody.private.json",
+    "sha256": "a99f0e8efa5d94ceeef56bc3ee9d9e45c41130aad197bee901d3652839b5f36e"
+  },
+  "delta": {
+    "candidatePatchSha256": "f250c9bce98c98dddc44d7dbf4596414ddad59be5389e8c9c590199cbe046330",
+    "effect": "Exactly one pull-requests:write permission line. Jobs, runtime commands, allowlist/token/no-retry/source/authority/capacity/cleanup unchanged.",
+    "path": ".github/workflows/t3-e03-hosted.yml",
+    "postimageSha256": "65dff559bca1aade784c8c690cc1aa5735cac3e47565fccdf56cfbde9560c151",
+    "preimageSha256": "3f2df4ba876a8beffdfccd8a0f640622a9009e56b6023cb9e6a12d057bfd80f6"
+  },
+  "existingFull63ApplicabilitySha256": "ca21d5651f7106bb91c227a7aed88431efeec1f68b9a457393a518a30abddfc5",
+  "independentVerification": [
+    "Verified actual head/tree/soleparent and clean status",
+    "Gitdiff contains exactly one path/one added line; deleting it reconstructs exact preimage, including all jobs unchanged",
+    "Fresh exact two existing PostproofTests both passed: checkout ordering/no static secrets; failed-import encrypted archive/upload",
+    "Existing full63 baseline/provenance/review applicability reused for unchanged62; no donor or broad audit/test rerun"
+  ],
+  "priorCandidateReview": {
+    "preservedUnchanged": true,
+    "sha256": "a9966cd744c4350150862e65c0ada099ce798417470221cfbb99654eae8fc2f2"
+  },
+  "remainingGates": [
+    "T4 actual permission-owner qualification and other applicable independent nonauthor reviewer binding this current source",
+    "Final exact source/runtime allocation and signing window before any new authorized event",
+    "Actual provider operation/import/output evidence before claiming remediation"
+  ],
+  "schema": "t3-independent-current-pr-comment-permission-source-review-v1",
+  "source": {
+    "head": "160ed2e5799a11431ab3942257f012320be8db66",
+    "parent": "dcfbde5c644e57402073e9cc843cb997af579125",
+    "tree": "2bd4527319b0630cfb9aea886ed42f5e4860cfdf",
+    "worktreeClean": true
+  },
+  "verdict": "APPROVE_SOURCE_ONLY_EXACT_PERMISSION_DELTA_RUNTIME_NECESSITY_UNPROVEN"
+}
