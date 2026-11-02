@@ -1,0 +1,36 @@
+{
+  "format": "t3-actual-third-terminal-hold-attestations-v1",
+  "repository": "heke99/gridex-ops-platform",
+  "run": 41365239873,
+  "job": 125023901595,
+  "attempt": 1,
+  "sourceCommit": "19e7b9fd737bfb8d68fb42ed04cc41873f308a5d",
+  "sourceTree": "dafe61e3168fb93609eb20698bb6dcc7e5e3c3a4",
+  "artifact": 13107037267,
+  "zipBytes": 3973,
+  "zipSha256": "c513d970ece380ef1b168d296c7421db8bfa728e4708a8cf0fcd234c5f9d14e5",
+  "actualObservation": {
+    "kernelRelease": "7.0.0-1017-azure",
+    "status": "UNKNOWN",
+    "effectiveRamBytes": null,
+    "reason": "unqualified_kernel_namespace_contract",
+    "nativeCases": "BOTH_NOT_RUN",
+    "signaturePublished": false,
+    "budgetRemaining": 0,
+    "cleanup": "Pre-backend stop only, never fullnativecleanupcertification"
+  },
+  "rawPrivateOriginals": "Actual5originals retained encrypted; fullprivate reviewer originals retained byT3ROOT. These are reviewer-issued publicsafe compact normative reattestations, not truncations.",
+  "nextOwner": "ExistingT4 soleproducer qualifies terminal/closesownthirdroles with matchingreceipt/404. Any newsource7.0qualification/event/grant is separate; no oldbudget reuse.",
+  "files": [
+    {
+      "path": "ACTUAL-HOLD-REVIEW-1.json",
+      "bytes": 1691,
+      "sha256": "e1829beeafe0f9a07585b7c67b139eb3771edab72c01e605e4fcae6e29f13f8a"
+    },
+    {
+      "path": "ACTUAL-HOLD-REVIEW-2.json",
+      "bytes": 1782,
+      "sha256": "91164e555aaddb8af3d8683ddbfe043119c0e7fb451ea4f453cfbef4562489aa"
+    }
+  ]
+}

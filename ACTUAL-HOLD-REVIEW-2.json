@@ -1,0 +1,38 @@
+{
+  "acceptedTerminal": {
+    "effectiveRamBytes": null,
+    "kernelRelease": "7.0.0-1017-azure",
+    "observationReason": "unqualified_kernel_namespace_contract",
+    "observationStatus": "UNKNOWN",
+    "reason": "capacity_hierarchy_unknown",
+    "retryAuthorized": false,
+    "stage": "host-proof:host-capacity"
+  },
+  "agent": "/root/issuer_final_review",
+  "artifactId": 13107037267,
+  "artifactZipSha256": "c513d970ece380ef1b168d296c7421db8bfa728e4708a8cf0fcd234c5f9d14e5",
+  "authority": "NO_NEW_EVENT_RETRY_NATIVE_DATA_OR_PRODUCTION_AUTHORITY",
+  "classification": "SAFE_PUBLIC_NORMATIVE_ATTESTATION",
+  "contents": "No private keys, capsules, host identifiers or actual payloads",
+  "jobId": 125023901595,
+  "limits": {
+    "cleanup": "Transport retention and checkout completion observed; backend/app/mail not entered, cleanup not applicable; full cleanup not certified",
+    "importBackendAndBothPhysicalCases": "NOT_RUN",
+    "namespaceFdAndAncestors": "NOT_OBSERVED_GUARD_REJECTED_FIRST",
+    "positiveHostCapacity": "NOT_QUALIFIED",
+    "sourceKernelScope": "6.8\u20136.18_ONLY; actual7.0outside"
+  },
+  "originalReview": {
+    "custody": "Full report and raw actual originals retained privately by ROOT",
+    "fullReportSha256": "68c0fa933f203964abdc5440bf9647e0ba261964ae7d8b43327d88b69680d6bc",
+    "relationship": "Standalone normative identical-verdict attestation; not a truncated original"
+  },
+  "reviewStatus": "ALREADY_COMPLETED_NO_NEW_REVIEW",
+  "runAttempt": 1,
+  "runId": 41365239873,
+  "schema": "t3-independent-terminal-hold-compact-attestation-v1",
+  "sourceCommit": "19e7b9fd737bfb8d68fb42ed04cc41873f308a5d",
+  "sourceTree": "dafe61e3168fb93609eb20698bb6dcc7e5e3c3a4",
+  "task": "ediel03_physical",
+  "verdict": "ACCEPT_TERMINAL_HOLD_EVIDENCE_ONLY"
+}
