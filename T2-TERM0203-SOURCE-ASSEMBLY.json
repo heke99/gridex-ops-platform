@@ -1,0 +1,620 @@
+{
+  "schema": "t2-minimal-term0203-source-assembly-inventory-v1",
+  "state": "EXACT_SOURCE_POSTIMAGES_ONLY_NOT_COMPOSED_NOT_GEN_NOT_NATIVE",
+  "at": "2026-11-02T00:36:32.511969+00:00",
+  "main": {
+    "commit": "6e314f213fc975799816f9dbe181688ba2f7d960",
+    "tree": "cc43a009a03a174ff186dd4437c8ce9d67586ac6"
+  },
+  "sources": {
+    "runtime": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+    "runtimeTree": "7a1424741bbe52c55306624ecbe1bf79576d5d38",
+    "runtimeTag": "refs/tags/agent-source-handoffs/t2-backend-capacity/20261102-a2682f83",
+    "zero": "19f82746df167678f17f34fc4598620ccd2c71e3",
+    "zeroTree": "025854c25278b2105c4dbd9c88b0c359ef94bc33",
+    "zeroBranch": "codex/t2-zero-price-input-20261101"
+  },
+  "files": [
+    {
+      "path": ".github/workflows/t2-term-disposable.yml",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "fc39fdbf56151b8913a4080412e665e22221282b",
+      "sha256": "9b93e1cf3496f071aa0f30a99d77b8a7218c5adfb22ed85fcab831cf84834183",
+      "bytes": 8813,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "__tests__/pricing-zero-energy-fixed-fee.test.ts",
+      "sourceCommit": "19f82746df167678f17f34fc4598620ccd2c71e3",
+      "sourceRole": "zero-input-pricing-fix",
+      "mode": "100644",
+      "blob": "65a01929e78a8009fc3c10b86f4a23f03239edb0",
+      "sha256": "0e67face3af7b331108213121305e18ca29135b43fa2baf496ffa10433bd3707",
+      "bytes": 17690,
+      "mainPreimageBlob": "2a4348aa4673545829d0d735be09415372695c2a",
+      "mainPreimageSha256": "92521ffd64ed2a9a4902d15baf7762da60f5ce996ad25d53a1e43ac08a630f9e"
+    },
+    {
+      "path": "__tests__/pricing-zero-energy-native-input.test.ts",
+      "sourceCommit": "19f82746df167678f17f34fc4598620ccd2c71e3",
+      "sourceRole": "zero-input-pricing-fix",
+      "mode": "100644",
+      "blob": "5109d4c2855b07e803194bede264dee77d88cca9",
+      "sha256": "cae8a44e1882babfa4cd43a8c684c4ca90bef0f556ac42e6914dc1726bd9d184",
+      "bytes": 16592,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "__tests__/simulation-t2-actor-receipt.test.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "0a77c074d17b42922912e07bca627a8dce4458e3",
+      "sha256": "81c4cfac3e0ac1e1c6c3eab06a8c859c1e2a90d327da413732f7236c2aa4bf54",
+      "bytes": 15146,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "__tests__/simulation-t2-business-refusal-oracle.test.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "dd6972d2270b7fe3cfbdcfa5d6b7511fd365e6f9",
+      "sha256": "6bf51677e1713e6618ff2ceeb54da980ab8f8aa3082b89e789919a783221467c",
+      "bytes": 37854,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "__tests__/simulation-t2-ordinary-intake-fixture.test.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "e12bb4cfb12d33ee1b55afe1a7981e726ecfbcab",
+      "sha256": "41a4bb548d6b1ed331001670f7983b0bd53399fa8566acea1b0ea8a4b7e1f5d2",
+      "bytes": 13129,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "__tests__/simulation-t2-term0203-ordinary-pilot.test.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "78d99fc7185e5991d564b56c84809c68c5ad6447",
+      "sha256": "371c4d810ac419c55518e57eda5659bbba3e0fee7a5b472deb471a2b1127e61d",
+      "bytes": 48635,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "__tests__/simulation-t2-termination-billing-boundary.test.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "eb5749f4bd08b35a688386bbce6ecd320e9fc2f0",
+      "sha256": "f2e4daa5ba2d1792185ee19c643a2e1e437c25fca0f994dccb0d4aaab7484d93",
+      "bytes": 9214,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "lib/pricing/engine.ts",
+      "sourceCommit": "19f82746df167678f17f34fc4598620ccd2c71e3",
+      "sourceRole": "zero-input-pricing-fix",
+      "mode": "100644",
+      "blob": "04ecaf6a8ce053b498c4deec3f90bac441f76e30",
+      "sha256": "dae113c9f8dc36d804cd0d576e4068f70f2d92ee1d8267a7f93f3b7de960734a",
+      "bytes": 26843,
+      "mainPreimageBlob": "15bda5bb6832e264e76feb335045f65112739a36",
+      "mainPreimageSha256": "8e5fe2416be55f9a21c5efa51f6529f1bb9f99880c051ab7d519e25591426076"
+    },
+    {
+      "path": "lib/pricing/intervalPricing.ts",
+      "sourceCommit": "19f82746df167678f17f34fc4598620ccd2c71e3",
+      "sourceRole": "zero-input-pricing-fix",
+      "mode": "100644",
+      "blob": "9e4580f48dd4b60257673b6414ee5995324d1b44",
+      "sha256": "237ca3984020c012029596f2a706f1c61c7a658ee2f546c12cf656ea5592069f",
+      "bytes": 16812,
+      "mainPreimageBlob": "027b5ad4e380b6e6bc3e44cec1175c9245f407ab",
+      "mainPreimageSha256": "607637445737beaa7ba2701ebed227df148b821157a2ecae6ae5be20571181bd"
+    },
+    {
+      "path": "scripts/simulation/track2/.gitignore",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "3c3629e647f5ddf82548912e337bea9826b434af",
+      "sha256": "16d30e4462189fb14dd611bdb708c510630c576a1f35b9383e89a4352da36c97",
+      "bytes": 13,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/README.md",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "210e9a977562a906991bf3a123dba70cc0664557",
+      "sha256": "79e9719076af263c84f75ef4e271d77963182c11a0ecf099ce94c34c71e46e59",
+      "bytes": 10227,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/down.sh",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100755",
+      "blob": "4a90e93a86065f1c823364f4197b2c22ac7d8f61",
+      "sha256": "a1663067fe2a9693f085545bf0d99507449a4e471f2387141513825c17d0feaf",
+      "bytes": 754,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/README.md",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "048f060de9ed85eee83e9c7cca2007d9f2a51103",
+      "sha256": "fcf4aa8913eeadfdb7fc24539011fa2e6e15d62a6eb8f97c55f3fbacbe4978fa",
+      "bytes": 32285,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/business-evidence.py",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "c85f3e4fa08df59897327afaec3595bc07b8afaf",
+      "sha256": "38e8c0a4cca0a44808305f6a2ab6118d1f2ef42939d5e96b5f0f1754d35c7269",
+      "bytes": 27275,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/business-evidence.test.py",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "51035acce550a5f2ab1566a496f2c798ab2827cb",
+      "sha256": "c1fb4dd861741f5848239f32e0e754203fbf4091f3e2277eb6eb23114625cb73",
+      "bytes": 19837,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/cleanup.sh",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "82271bc027473fb12d804d204fb43ed166a257b1",
+      "sha256": "0feeaa19c14a362afcc7529aec684dea84b35cda6e9781770864a5edb90e5d7c",
+      "bytes": 237,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/host-capacity.py",
+      "sourceRole": "runtime-with-business-evidence",
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null,
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "mode": "100644",
+      "blob": "e59e24f1e05eaed40ccf79198d6762c2eab8ebef",
+      "sha256": "b3bf9301de14c8b13689a3528565a72dd859f84188e107bf3d0385f93573963f",
+      "bytes": 28529
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/host-capacity.test.py",
+      "sourceRole": "runtime-with-business-evidence",
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null,
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "mode": "100644",
+      "blob": "02fbc9425bb47d25e7b4aef5e08a793979bf7942",
+      "sha256": "b51f298ffe330d705ee27bc80c00ae0823984b50bf0a7c712026a9a84013a4e4",
+      "bytes": 17604
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/imap-mailbox.py",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "ecfd04153f817d445f399f687474fd5f8916f147",
+      "sha256": "9bfa27b1989c9ac84631b03e9cbb9d515a68db096da4cd36d13a9f7f2e8247c5",
+      "bytes": 18944,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/imap-mailbox.test.py",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "9a592509fbb1c6f2812365c054b9c6fa54be2376",
+      "sha256": "b962f3f103bd075155b184ccdea4fe6f032b3770d255d4347855b9eb9d3240e6",
+      "bytes": 16013,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/prepare.sh",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "c5921ba07d1209e6b782bf50f6b1d6e3778b7596",
+      "sha256": "514267557a3167f28ca2a26c55a1b7c425219fb8d4fd9b21c141137a10b3d91d",
+      "bytes": 545,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/profile.requirements.json",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "be7e589778e1d67c41acbc50c8ddc7e3cd307865",
+      "sha256": "c0d86617f1cb5706e92ca8b1dbec98b50c8d5b761a0b3bcbe3cdad790975a47e",
+      "bytes": 10991,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/qualification.test.py",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "d2bdcb66854b3b1ca7778fac7ec8abeb88da65dc",
+      "sha256": "056c8a5f54f4365ba4ff7b7fb179c9a5d5ec34f487a2b14e28be61a6d757b385",
+      "bytes": 130681,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/hosted/qualify-runtime.py",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "21862cecb165f4e82800bdbf80dae4bf179ca8bd",
+      "sha256": "8b019fc4df856eff4a162bcac3c9f71f03780dc6636d72153ded6d1f9c05b4cc",
+      "bytes": 115087,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/common.sh",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100755",
+      "blob": "164f3f8d61ddbf0ee6b91140d85c1ba58a3981c0",
+      "sha256": "584450127823aa09f7064fddea736d0dee9f7a9ba35f80e96a472928c1c87300",
+      "bytes": 17098,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/counterparts.mjs",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "d3791eb7ded3aea4d0b1bbd8f6e0ec6646e3df1d",
+      "sha256": "06b3590866d24b62f069b788d8c3933901eb8da74ada2109bb6351192f5a1987",
+      "bytes": 2950,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/db.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "cc71697915755c71bff30e4811e48e0b90badd3e",
+      "sha256": "c16c753545db39d0be804402111f1404febb9122f204584e47afe26d465a91c8",
+      "bytes": 1357,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/env.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "5f54bda7d335050dcd7ad990bf77e4b975a1a204",
+      "sha256": "6dbd652711f4ca5d5fd895d75fb72f238e967e835d9196f16ba4117bcde8cfe9",
+      "bytes": 1411,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/fixture.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "570d3a4e0f5538da9f40a338d96fbebd2cbd2c1b",
+      "sha256": "27ea46706f084290d1e0773cc1fadd5ba379926518fe60483d60d788008e5621",
+      "bytes": 16043,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/index.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "a9f67d12e65bd8212ca9cb4104c7d17abc9c4a5a",
+      "sha256": "1cc39d454a9a243f9fad39a2fa641bc6894bca16d2c3c0d99a2a50e0bccc9edf",
+      "bytes": 95,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/make-report.mjs",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "a3aa7005e3dd0a71ea7fb58030c54ca3e4c53dd3",
+      "sha256": "c4c49776c54120d5ea7958fe50beb5d2e1ae3c9b9fad1695710484321cbe8fbc",
+      "bytes": 1797,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/pilot-term0203.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "0cf7e3fc56ef5829587d4b891cd6194245b76120",
+      "sha256": "835dd198c0946d5e6ef4baf96d28549081bfc39c329969a2ddd7f4500dbef6ef",
+      "bytes": 39713,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/prepare-supabase.py",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100755",
+      "blob": "d70649086df58895f5aaeee00e8bdd67223b314b",
+      "sha256": "17305b39e62f7d2c4bc4ce5c8a52b5253d43eee619f0d981ba2685e791e16333",
+      "bytes": 1459,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/server-action.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "a9aa4e72855ebad62085918c746ad98b2bc601d7",
+      "sha256": "dcf1198e2888c1f5b3bdc990e7f7bd4b92561e1e1396dcabfffa1c871d9f7d31",
+      "bytes": 6922,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/session.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "8502925aac68583ed922ffad749f43f75fa06bb4",
+      "sha256": "827217e6fce3e4fc150a93bd1fa608a0bec12489175f369c0bce19469bd63d93",
+      "bytes": 18286,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/term-billing.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "52d1772571db7d65fdbe8989d05b25e923587218",
+      "sha256": "400907963f595af6303d7504a96bd549cff1c02b2f09ae2727b80d3de29ab3ea",
+      "bytes": 38445,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/term-fixture.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "ce73ed4684217348cf99b4dca0cb3e5dc343c5cf",
+      "sha256": "6d071301143f71120a4ea2a88d5129f887b99c571433cead112ac273484f774e",
+      "bytes": 52138,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/term-oracle.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "21659da750f4218aedc29383e51e057a82be3c10",
+      "sha256": "c5366989fce4628f5381ea8bd0d91e20326aed57b149728070998caa1e5ee139",
+      "bytes": 19386,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/term-page.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "e262425957107e46a68930e9a17014c2ec0f5625",
+      "sha256": "7a390e47408ef6f96779d36488696575506b6fb6b9feb6e3c84ee56148547db4",
+      "bytes": 2863,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/lib/term02-data.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "03c05671c2e831bd0297234e8f60f440da79e005",
+      "sha256": "b9649d890fda9b52abca7505caf2e1ba164a408089a766d08d31b0aa0fdf7c26",
+      "bytes": 12253,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/run.sh",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100755",
+      "blob": "580ffb58d9c765d7a8d1ae44d5306a8cefd50db3",
+      "sha256": "a4a2c42cbb626a313ef1605a6e070540ff8f8bb7aecfd85cd46156026da55884",
+      "bytes": 3799,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/scenarios/pilot-term0203.test.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "6189eb13578d939956d30ba050dbbca9cb9faaba",
+      "sha256": "ec8b0f2572d01db4f42304a2c0c74671961292513653803ce564e24f2de5e02c",
+      "bytes": 10558,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/scenarios/smoke.test.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "04cee9a7f1f961610f196ef03ab8f2e6b1f0115a",
+      "sha256": "6003078739fc23b31af2d7306f23731dc836926be2e707aa2eadcea53c5b7b7f",
+      "bytes": 2103,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/scenarios/term01.test.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "138897ac5142b1be624132f85c60f60bc56ea649",
+      "sha256": "aac6e52aa107d5c801f3f7841c8c1ad45f3e3b776f7dc5599015b742f807962d",
+      "bytes": 54136,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/scenarios/term02.test.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "a014a18911af0e7a0efec168aa9f57a597bc03dc",
+      "sha256": "9999958b2e3f3b86288602e58f6b552a4a5847983a190428ef0f636ea106f616",
+      "bytes": 65222,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/scenarios/term03.test.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "42cd6fa5e684aa3ecdbd99161bcecbc103f0ca0d",
+      "sha256": "272ebee63babbf1a64a557715dfea2e540cb43152ef845c86b929df420c14900",
+      "bytes": 31218,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/tsconfig.json",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "502514fec1086bab0f17e60d52922550abd0c26c",
+      "sha256": "f870a2b3d618284a0addb0f0f2e795d93e1c4f2e430a0ef52ca1fd470cd7a2d7",
+      "bytes": 297,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/up.sh",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100755",
+      "blob": "4c291cc8111964cb821fe5e6f7ae95a8155433e7",
+      "sha256": "24eda85072546614b858a73e0516bc7958a34beb29a79dd26a49fa9f4b17c8c1",
+      "bytes": 10821,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "scripts/simulation/track2/vitest.config.ts",
+      "sourceCommit": "a2682f834bd0a535fd2f109bd13bc000fd8acaad",
+      "sourceRole": "runtime-with-business-evidence",
+      "mode": "100644",
+      "blob": "268f67c51adfe3ee5570a2557b8a083e2c4dc56b",
+      "sha256": "5fc775700632ed94746b92de804950ff1d7114d7849c142d1af4e7f8f8349b8b",
+      "bytes": 529,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    },
+    {
+      "path": "supabase/migrations/20261101212734_zero_energy_interval_price_input.sql",
+      "sourceCommit": "19f82746df167678f17f34fc4598620ccd2c71e3",
+      "sourceRole": "zero-input-pricing-fix",
+      "mode": "100644",
+      "blob": "aa447a383dea7b117eed32d6ff02027e9e02183a",
+      "sha256": "fedf3f77c3ce16a8975d59557742c1dfb6e21d37e24818f962a3b36968b232bb",
+      "bytes": 18646,
+      "mainPreimageBlob": null,
+      "mainPreimageSha256": null
+    }
+  ],
+  "preserveCurrentMain": [
+    {
+      "path": ".github/workflows/vercel-production-deploy.yml",
+      "blob": "abf853b739e89d8f00f5afee16a87e2344612784",
+      "sha256": "98a34cabada19df1aa63a386d92f43fa3f6a685cb22de3d50e403eb7801827af"
+    },
+    {
+      "path": "__tests__/main-production-deployment-policy.test.ts",
+      "blob": "36bb9e2b4fcdf8689ab62aa182767a2cdb70521d",
+      "sha256": "8bf8db1bfccc0501e9e7f37ccafbd10c27eccdcd376e8adf52d8c7f44a00404d"
+    },
+    {
+      "path": "vercel.json",
+      "blob": "3f7b85ce109fce85b988fb7204d0ed15cc539995",
+      "sha256": "7fd132ead4c6debc4771bf7948a21fd72602657d1041d6b8e48a41b2d6cba1e5"
+    }
+  ],
+  "excludedConditionalPRs": [
+    964,
+    972,
+    998,
+    1010,
+    1004
+  ],
+  "ordinaryIntake1015": "already in runtime ancestry",
+  "excludedIndependentSources": [
+    "03ee5ca",
+    "b9fba0a"
+  ],
+  "GEN": "T4 selected zero migration checksum/schema/types/replay first; current native prosrc guards unexecuted",
+  "native": 0,
+  "newUniquePass": 0,
+  "actualRemoteFetchVerification": {
+    "at": "2026-11-02T00:38:17.967595+00:00",
+    "runtimeTagFetched": "refs/tags/agent-source-handoffs/t2-backend-capacity/20261102-a2682f83",
+    "postimageCount": 51,
+    "currentMainGuardCount": 3,
+    "hashes": "all SHA256 and blob IDs matched",
+    "native": false
+  }
+}
