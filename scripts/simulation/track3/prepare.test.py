@@ -260,7 +260,7 @@ class CgroupCapacityTests(unittest.TestCase):
                 files[root + node + '/cpu.max'] = '100000 100000' if node == '/jobs' else 'max 100000'
         return files
 
-    def host(self, files, initial=True, enforce=False, anchor_port=None):
+    def host(self, files, initial=True, enforce=False, anchor_port=None, backend=None, cleanup=False):
         with tempfile.TemporaryDirectory() as directory:
             socket = Path(directory) / 'socket'; socket.touch()
             def read(path, *_args, **_kwargs):
@@ -271,6 +271,15 @@ class CgroupCapacityTests(unittest.TestCase):
                 return value
             def directory_port(path, *_args):
                 if not any(key.startswith(str(path).rstrip('/') + '/') for key in files): raise FileNotFoundError(str(path))
+            def backend_port(sock, meta, info, include_capacity):
+                shared = 8 * 2**30 if backend is None else backend
+                identity = {'state': 'VERIFIED', 'binding': {'socket': {'path': str(sock), 'filesystem': {'device': meta.st_dev, 'inode': meta.st_ino}},
+                    'process': {'pid':100,'startTicks':123,'namespaces':{'mnt':'finite-mnt','pid':'finite-pid','net':'finite-net'}},
+                    'docker':{'id':info['ID'],'rootDir':info['DockerRootDir'],'driver':info['Driver'],'serverVersion':'28.5.2','cgroupDriver':'cgroupfs'},
+                    'configuration':{'parentSetting':'/backend','cgroupDriver':'cgroupfs'}}}
+                capacity = {'schema':'gridex-t2-shared-backend-capacity-v1','state':'VERIFIED' if shared is not None and shared>=8*2**30 else 'UNKNOWN_HOLD',
+                    'backend':{'globalParent':'/backend','effectiveRAMBytes':shared},'errors':[] if shared is not None and shared>=8*2**30 else ['shared-backend-ram-below-minimum']}
+                return {'identity':identity,'capacity':capacity if include_capacity else None}
             @contextmanager
             def namespace_port():
                 if not initial: raise runner.Blocked('initial_cgroup_namespace_unproven')
@@ -283,8 +292,9 @@ class CgroupCapacityTests(unittest.TestCase):
                  patch.object(Path, 'read_text', read), patch.object(Path, 'is_file', side_effect=lambda: False), \
                  patch.object(runner, '_kernel_text', side_effect=read, create=True), \
                  patch.object(runner, '_kernel_directory', side_effect=directory_port, create=True), \
-                 patch.object(runner, 'cgroup_namespace_anchor', side_effect=namespace_port if anchor_port is None else anchor_port, create=True):
-                return runner.host_identity(enforce_capacity=enforce)
+                 patch.object(runner, 'cgroup_namespace_anchor', side_effect=namespace_port if anchor_port is None else anchor_port, create=True), \
+                 patch.object(runner, 'backend_observation', side_effect=backend_port, create=True):
+                return runner.host_identity(enforce_capacity=enforce, observe_backend=not cleanup)
 
     def test_actual_host_identity_must_include_lower_parent_not_only_visible_root(self):
         host = self.host(self.fixture())
@@ -537,6 +547,187 @@ class QualifiedKernelFamilyTests(unittest.TestCase):
         self.release='7.0.0-1017-azure'
         self.test_qualified_61857_wrong_fd_contract_remains_unknown()
         self.test_qualified_61857_hidden_mount_missing_ancestor_and_race_remain_unknown()
+
+
+class SharedBackendIntegrationTests(unittest.TestCase):
+    def files(self):
+        files=CgroupCapacityTests().fixture()
+        files['/sys/fs/cgroup/jobs/memory.max']=str(16*2**30)
+        return files
+
+    def test_actual_worker16_shared2_must_not_admit(self):
+        with self.assertRaises(runner.Blocked):
+            CgroupCapacityTests().host(self.files(),enforce=True,backend=2*2**30)
+
+    def test_cleanup_low_or_unknown_worker_and_parent_ram_keeps_same_identity(self):
+        for status in ['low','unknown']:
+            before=CgroupCapacityTests().host(self.files(),enforce=True)
+            files=self.files();files['/sys/fs/cgroup/jobs/memory.max']='1' if status=='low' else 'unreadable'
+            after=CgroupCapacityTests().host(files,enforce=False,backend=1,cleanup=True)
+            for key in ['bootId','daemonId','driver','dockerRootDir','socket','socketDev','socketInode']:
+                after[key]=before[key]
+            if 'backendIdentity' in before:
+                after['backendIdentity']=copy.deepcopy(before['backendIdentity'])
+            runner.same_host(before,after)
+
+    def test_cleanup_changed_real_dockerd_birth_cannot_use_old_socket_identity(self):
+        before=CgroupCapacityTests().host(self.files(),enforce=True)
+        after=copy.deepcopy(before)
+        # Old efac ignores this actual dockerd identity entirely.
+        before['backendIdentity']={'state':'VERIFIED','binding':{'process':{'pid':100,'startTicks':123}}}
+        after['backendIdentity']={'state':'VERIFIED','binding':{'process':{'pid':100,'startTicks':124}}}
+        with self.assertRaises(runner.Blocked):runner.same_host(before,after)
+
+
+class PrivilegedBackendRecipeTests(unittest.TestCase):
+    def setUp(self):
+        import builtins
+        self.original_exec=builtins.exec
+        spec=importlib.util.spec_from_file_location('exact_donor_tests',Path(__file__).with_name('host-capacity.test.py'))
+        self.donor_tests=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.donor_tests)
+        self.k=self.donor_tests.Kernel()
+        helper=Path(__file__).with_name('host-capacity.py')
+        self.k.files[str(helper)]=helper.read_text()
+        self.k.install(self)
+
+    def recipe(self, mode, request=None):
+        import contextlib,io,sys
+        def exact_source_with_finite_ports(code, namespace):
+            self.original_exec(code,namespace)
+            namespace.update(text=self.k.read,binary=self.k.bytes,metadata=self.k.meta,names=self.k.names,link=self.k.link,
+                socket_info=lambda:(copy.deepcopy(self.k.info),dict(self.k.peer)),
+                container_inspect=lambda cid:copy.deepcopy(self.k.inspects[cid]))
+        stdout=io.StringIO()
+        with patch.object(sys,'argv',['-c',str(Path(__file__).with_name('host-capacity.py')),mode,runner.BACKEND_HELPER_SHA256]),\
+             patch.object(sys,'stdin',SimpleNamespace(buffer=io.BytesIO(json.dumps(request).encode()))),contextlib.redirect_stdout(stdout):
+            self.original_exec(runner.BACKEND_OBSERVER,{'exec':exact_source_with_finite_ports})
+        return json.loads(stdout.getvalue())
+
+    def test_actual_cleanup_recipe_ignores_unknown_and_low_ram_without_reading_it(self):
+        for value in ['unreadable',str(2*2**30)]:
+            self.k.files[self.donor_tests.c.ROOT+'/backend/memory.max']=value
+            self.k.reads.clear()
+            result=self.recipe('identity')
+            self.assertEqual(result['identity']['state'],'VERIFIED',result)
+            self.assertIsNone(result['capacity'])
+            self.assertFalse(any(path.endswith(('/memory.max','/cpu.max')) for path in self.k.reads))
+            binding=runner.backend_binding(result['identity'])
+            self.assertEqual(binding['process']['pid'],100)
+            self.assertNotIn('memTotalBytes',binding['docker'])
+            self.assertNotIn('effectiveRAMBytes',binding['process'])
+
+    def test_actual_full_recipe_worker_unrelated_shared2_is_unknown_with_identity_retained(self):
+        self.k.files[self.donor_tests.c.ROOT+'/backend/memory.max']=str(2*2**30)
+        result=self.recipe('observe')
+        self.assertEqual(result['identity']['state'],'VERIFIED')
+        self.assertEqual(result['capacity']['state'],'UNKNOWN_HOLD')
+        self.assertEqual(result['capacity']['backend']['effectiveRAMBytes'],2*2**30)
+        self.assertIn('shared-backend-ram-below-minimum',result['capacity']['errors'])
+
+    def test_actual_full_recipe_shared8_daemon_leaf2_is_positive_and_same_binding(self):
+        self.k.files[self.donor_tests.c.ROOT+'/backend/docker.service/memory.max']=str(2*2**30)
+        result=self.recipe('observe')
+        self.assertEqual(result['capacity']['state'],'VERIFIED',result)
+        self.assertEqual(result['capacity']['process']['effectiveRAMBytes'],2*2**30)
+        self.assertEqual(runner.backend_binding(result['identity']),runner.backend_binding(result['capacity']))
+
+    def test_actual_sudo_boundary_is_source_pinned_isolated_and_has_no_fallback(self):
+        calls=[]
+        def finite(argv,**kwargs):
+            calls.append((argv,kwargs));return SimpleNamespace(returncode=0,stdout=json.dumps(self.recipe('identity')).encode())
+        with patch.object(runner.subprocess,'run',side_effect=finite):
+            result=runner.backend_call('identity')
+        self.assertEqual(result['identity']['state'],'VERIFIED')
+        argv,kwargs=calls[0]
+        self.assertEqual(argv[:6],['sudo','-n','python3','-I','-B','-c'])
+        self.assertEqual(kwargs['env'],{'PATH':'/usr/local/bin:/usr/bin:/bin'})
+        self.assertEqual(argv[-2],'identity')
+        self.assertEqual(argv[-1],runner.BACKEND_HELPER_SHA256)
+        with patch.object(runner.subprocess,'run',side_effect=PermissionError('FINITE_PRIVATE_DETAIL')):
+            result=runner.backend_call('observe')
+        self.assertEqual(result['state'],'UNKNOWN_HOLD')
+        self.assertNotIn('FINITE_PRIVATE_DETAIL',json.dumps(result))
+
+    def test_actual_selected_socket_and_info_must_match_privileged_listener(self):
+        observed=self.recipe('observe');meta=self.k.meta('/run/docker.sock')
+        info={'ID':self.k.info['ID'],'Driver':self.k.info['Driver'],'DockerRootDir':self.k.info['DockerRootDir']}
+        with patch.object(runner,'backend_call',return_value=observed),patch.object(runner.os,'readlink',side_effect=self.k.link):
+            good=runner.backend_observation(Path('/run/docker.sock'),SimpleNamespace(st_dev=meta['device'],st_ino=meta['inode']),info,True)
+            wrong=runner.backend_observation(Path('/run/docker.sock'),SimpleNamespace(st_dev=meta['device'],st_ino=meta['inode']+1),info,True)
+            other=runner.backend_observation(Path('/run/other.sock'),SimpleNamespace(st_dev=meta['device'],st_ino=meta['inode']),info,True)
+        self.assertEqual(good['identity']['state'],'VERIFIED')
+        self.assertEqual(wrong['identity']['state'],'UNKNOWN_HOLD')
+        self.assertEqual(other['identity']['state'],'UNKNOWN_HOLD')
+        with patch.object(runner,'backend_call',return_value=observed),patch.object(runner.os,'readlink',
+             side_effect=lambda path:'mnt:[999]' if path.endswith('/mnt') else self.k.link(path)):
+            mismatch=runner.backend_observation(Path('/run/docker.sock'),SimpleNamespace(st_dev=meta['device'],st_ino=meta['inode']),info,True)
+        self.assertEqual(mismatch['identity']['state'],'UNKNOWN_HOLD')
+
+    def test_actual_container_collector_binds_birth_project_parent_and_keeps_leaf2(self):
+        observed=self.recipe('observe');cid='a'*64;project='sim-t2-unit';path='/backend/docker/'+cid
+        self.k.process(500,'java',path,1001);self.k.directories.add(self.donor_tests.c.ROOT+path)
+        self.k.files[self.donor_tests.c.ROOT+path+'/memory.max']=str(2*2**30)
+        self.k.files[self.donor_tests.c.ROOT+path+'/cpu.max']='max 100000'
+        self.k.inspects[cid]={'Id':cid,'Name':'/owned','Created':'finite-birth','Config':{'Labels':{'com.supabase.cli.project':project}},
+            'State':{'Running':True,'Pid':500,'StartedAt':'finite-start'},'HostConfig':{'CgroupParent':''}}
+        host={'capacityObservation':{'status':'QUALIFIED'},'driver':'overlay2','effectiveRamBytes':16*2**30,'freeBytes':50*2**30,
+              'backendIdentity':{'state':'VERIFIED','binding':runner.backend_binding(observed['identity'])},'backendCapacity':observed['capacity']}
+        births=[{'id':cid,'name':'/owned','created':'finite-birth'}]
+        with patch.object(runner,'backend_call',side_effect=lambda mode,request=None:self.recipe(mode,request)):
+            result=runner.owned_backend_capacity(host,project,births)
+            self.assertEqual(result['state'],'VERIFIED')
+            self.assertEqual(result['containers'][0]['individualEffectiveRAMBytes'],2*2**30)
+            for change in ['birth','parent','membership']:
+                if change=='birth':self.k.inspects[cid]['Created']='changed'
+                if change=='parent':self.k.inspects[cid]['Created']='finite-birth';self.k.inspects[cid]['HostConfig']['CgroupParent']='/foreign'
+                if change=='membership':self.k.inspects[cid]['HostConfig']['CgroupParent']='';self.k.files['/proc/500/cgroup']='0::/foreign/'+cid
+                with self.subTest(change=change),self.assertRaises(runner.Blocked):runner.owned_backend_capacity(host,project,births)
+
+
+
+class OwnedBackendFreshTests(unittest.TestCase):
+    def packet(self, root):
+        home=root/'private';home.mkdir(mode=0o700);(home/'env').mkdir(mode=0o700)
+        env=b'{"T3_DB_URL":"FINITE_TEST_ONLY"}'
+        (home/'env/track3.json').write_bytes(env);(home/'env/track3.json').chmod(0o600)
+        plan={'appCommit':'a'*40,'appTree':'b'*40,'harnessCommit':'a'*40,'harnessTree':'b'*40,
+              'reservationRefs':[],'projectId':'t3-finite-only','timeouts':{}}
+        original=json.dumps(plan).encode();file=home/'plan.json';file.write_bytes(original);file.chmod(0o600)
+        packet=runner.Packet.__new__(runner.Packet)
+        packet.file=file;packet.original=original;packet.plan=plan;packet.home=home;packet.app=root;packet.node='/finite/node'
+        packet.env={'T3_DB_URL':'FINITE_TEST_ONLY'};packet.env_hash=runner.sha(env);packet.events=[];packet.adapters={};packet.lifecycle_hashes={}
+        from datetime import datetime,timedelta,timezone
+        packet.expires=datetime.now(timezone.utc)+timedelta(minutes=5)
+        packet.host={'bootId':'finite','daemonId':'finite','driver':'overlay2','dockerRootDir':'/finite',
+                     'socket':'/run/docker.sock','socketDev':1,'socketInode':2,
+                     'backendIdentity':{'state':'VERIFIED','binding':{'finiteActualIdentityPort':True}}}
+        packet.backend_containers=[{'id':'a'*64,'name':'/owned','created':'FINITE_ORIGINAL_BIRTH'}]
+        return packet
+
+    def test_actual_build_phase_rechecks_original_owned_birth_before_effect(self):
+        with tempfile.TemporaryDirectory() as directory:
+            packet=self.packet(Path(directory));effects=[];checks=[];packet.execute_command=lambda *args:effects.append(args)
+            def held(host,project,births):
+                checks.append((project,copy.deepcopy(births)));raise runner.Blocked('owned_backend_parent_unqualified')
+            with patch.object(runner,'source'),patch.object(runner,'dependencies'),\
+                 patch.object(runner,'host_identity',return_value=packet.host),patch.object(runner,'owned_backend_capacity',side_effect=held):
+                with self.assertRaises(runner.Blocked):packet.phase('build')
+            self.assertEqual(checks,[('t3-finite-only',packet.backend_containers)])
+            self.assertEqual(effects,[])
+            self.assertFalse((packet.home/'intent-build.json').exists())
+
+    def test_actual_down_phase_uses_identity_only_not_owned_health(self):
+        with tempfile.TemporaryDirectory() as directory:
+            packet=self.packet(Path(directory));effects=[];packet.execute_command=lambda *args:effects.append(args)
+            (packet.home/'cleanup-assignment.json').write_text('{}')
+            after=copy.deepcopy(packet.host);after.update(effectiveRamBytes=None,capacityStatus='UNKNOWN',backendCapacity=None)
+            with patch.object(runner,'host_identity',return_value=after) as observer,\
+                 patch.object(runner,'owned_backend_capacity',side_effect=AssertionError('cleanup must not require capacity')):
+                packet.phase('down')
+            observer.assert_called_once_with(enforce_capacity=False)
+            self.assertEqual(len(effects),1)
+            self.assertEqual(effects[0][0],'down')
+
 
 
 if __name__ == '__main__':

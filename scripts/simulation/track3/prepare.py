@@ -336,7 +336,138 @@ def cgroup_capacity_observation():
         return {'status': 'UNKNOWN', 'kernelRelease': release, 'effectiveRamBytes': None, 'cpuQuotaCores': None, 'reason': code}
 
 
-def host_identity(enforce_capacity=True):
+# Exact independently reviewed T2 donor a2682f834bd0a535fd2f109bd13bc000fd8acaad.
+BACKEND_HELPER_SHA256 = 'b3bf9301de14c8b13689a3528565a72dd859f84188e107bf3d0385f93573963f'
+BACKEND_OBSERVER = r'''
+import hashlib,json,pathlib,sys
+p=pathlib.Path(sys.argv[1]);raw=p.read_bytes()
+if hashlib.sha256(raw).hexdigest()!=sys.argv[3]:raise ValueError('helper-source-changed')
+n={'__name__':'t3_pinned_capacity','__file__':str(p)}
+exec(compile(raw,str(p),'exec'),n)
+def identity():
+ a,p=n['socket_authority']();d,peer=n['socket_info']()
+ activation,init=n['peer_authority'](peer,p,a['kernelInode'])
+ docker=n['api_summary'](d);cfg=n['configuration'](p,docker['cgroupDriver'])
+ parent=n['parent_path'](cfg['parentSetting'],docker['cgroupDriver']);directory=n['ROOT']+parent if parent!='/' else n['ROOT']
+ n['canonical_path'](directory);pm=n['metadata'](directory);n['require'](n['stat'].S_ISDIR(pm['mode']),'parent-directory-unqualified')
+ parent_identity={'globalParent':parent,'identity':{'device':pm['device'],'inode':pm['inode']}}
+ aa,pp=n['socket_authority']();n['require'](aa==a and pp==p,'daemon-or-listener-changed')
+ dd,ppp=n['socket_info']();n['require'](n['api_summary'](dd)==docker and ppp==peer,'docker-api-or-peer-changed')
+ n['require'](n['configuration'](p,docker['cgroupDriver'])==cfg and n['process_identity'](p['pid'])==p,'daemon-identity-changed')
+ if init is not None:n['require'](n['process_identity'](1)==init and n['holds_listener'](1,a['kernelInode']),'socket-activation-changed')
+ a.update(peer=peer,activation=activation)
+ if init is not None:a['activationProcess']=init
+ after_parent=n['metadata'](directory);n['require'](all(after_parent[k]==pm[k] for k in ['device','inode']),'parent-directory-changed')
+ return {'state':'VERIFIED','socket':a,'process':p,'docker':docker,'configuration':cfg,'parentIdentity':parent_identity}
+try:
+ mode=sys.argv[2]
+ if mode in ['observe','identity']:
+  try:i=identity()
+  except Exception as e:i={'state':'UNKNOWN_HOLD','errors':[n['safe_code'](e,'backend-identity-unqualified')]}
+  out={'identity':i,'capacity':n['collect_daemon']() if mode=='observe' else None}
+ elif mode=='containers':
+  raw=sys.stdin.buffer.read(262145);n['require'](len(raw)<=262144,'container-request-too-large')
+  out=n['collect_containers'](n['strict_json'](raw))
+ else:raise ValueError('observer-mode-unqualified')
+ print(json.dumps(out,sort_keys=True))
+except Exception:
+ print(json.dumps({'state':'UNKNOWN_HOLD','errors':['backend-observer-unqualified']}))
+'''
+
+
+def backend_binding(witness):
+    """Stable authority identity only: no RAM, CPU limits or free-byte health."""
+    need(isinstance(witness, dict) and isinstance(witness.get('socket'), dict)
+         and isinstance(witness.get('process'), dict) and isinstance(witness.get('docker'), dict)
+         and isinstance(witness.get('configuration'), dict), 'backend_identity_unqualified')
+    parent = witness.get('parentIdentity')
+    if parent is None:
+        backend = witness.get('backend') or {}
+        ancestors = (backend.get('hierarchy') or {}).get('ancestors') or []
+        need(ancestors and isinstance(ancestors[0].get('identity'), dict), 'backend_parent_identity_unqualified')
+        parent = {'globalParent': backend.get('globalParent'), 'identity': ancestors[0]['identity']}
+    return {'parentIdentity': parent, 'socket': witness['socket'],
+            'process': {k: v for k, v in witness['process'].items() if k not in ['effectiveRAMBytes', 'hierarchy']},
+            'docker': {k: v for k, v in witness['docker'].items() if k != 'memTotalBytes'},
+            'configuration': witness['configuration']}
+
+
+def backend_call(mode, request=None):
+    """Fixed read-only passwordless sudo probe; never an unprivileged fallback."""
+    helper = TRACK / 'host-capacity.py'
+    try:
+        need(not helper.is_symlink() and sha(helper.read_bytes()) == BACKEND_HELPER_SHA256, 'backend_helper_source_changed')
+        need(mode in ['observe', 'identity', 'containers'], 'backend_observer_mode_invalid')
+        result = subprocess.run(['sudo', '-n', 'python3', '-I', '-B', '-c', BACKEND_OBSERVER, str(helper), mode, BACKEND_HELPER_SHA256],
+                                input=None if request is None else json.dumps(request).encode(),
+                                capture_output=True, timeout=60, env={'PATH': '/usr/local/bin:/usr/bin:/bin'})
+        if result.returncode != 0 or len(result.stdout) > 16777216:
+            return {'state': 'UNKNOWN_HOLD', 'errors': ['backend_observer_failed'], 'exitCode': result.returncode}
+        value = json.loads(result.stdout)
+        need(isinstance(value, dict), 'backend_observer_malformed')
+        return value
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        return {'state': 'UNKNOWN_HOLD', 'errors': ['backend_observer_unavailable'], 'exceptionType': type(error).__name__}
+
+
+def backend_observation(sock, meta, info, include_capacity):
+    # The exact donor is deliberately fixed to its proven local listener.
+    if str(sock) != '/run/docker.sock':
+        return {'identity': {'state': 'UNKNOWN_HOLD', 'errors': ['backend_socket_not_supported']}, 'capacity': None}
+    try:
+        worker_namespaces = {kind: os.readlink('/proc/self/ns/' + kind) for kind in ['mnt', 'pid', 'net']}
+    except OSError:
+        return {'identity': {'state': 'UNKNOWN_HOLD', 'errors': ['worker_namespace_unqualified']}, 'capacity': None}
+    result = backend_call('observe' if include_capacity else 'identity')
+    identity, witness = result.get('identity'), result.get('capacity')
+    try:
+        need(identity.get('state') == 'VERIFIED', 'backend_identity_unqualified')
+        binding = backend_binding(identity)
+        need(binding['process']['namespaces'] == worker_namespaces
+             and {kind: os.readlink('/proc/self/ns/' + kind) for kind in ['mnt', 'pid', 'net']} == worker_namespaces,
+             'worker_daemon_namespace_mismatch')
+        need(binding['socket']['path'] == str(sock)
+             and binding['socket']['filesystem']['device'] == meta.st_dev
+             and binding['socket']['filesystem']['inode'] == meta.st_ino
+             and binding['docker']['id'] == info['ID'] and binding['docker']['rootDir'] == info['DockerRootDir']
+             and binding['docker']['driver'] == info['Driver'], 'backend_socket_or_daemon_changed')
+        if include_capacity and isinstance(witness, dict) and witness.get('state') == 'VERIFIED':
+            need(backend_binding(witness) == binding, 'backend_identity_changed_during_capacity')
+        identity = {'state': 'VERIFIED', 'binding': binding}
+    except (Blocked, OSError, AttributeError, KeyError, TypeError) as error:
+        code = str(error) if isinstance(error, Blocked) else 'backend_identity_unqualified'
+        identity = {'state': 'UNKNOWN_HOLD', 'errors': [code], 'workerNamespaces': worker_namespaces,
+                    'observed': identity, 'observerFailure': result if not result.get('identity') else None}
+    return {'identity': identity, 'capacity': witness}
+
+
+def enforce_host_capacity(host):
+    need(host['capacityObservation']['status'] == 'QUALIFIED', 'capacity_hierarchy_unknown')
+    capacity(host['driver'], host['effectiveRamBytes'], host['freeBytes'])
+    need(host['backendIdentity'].get('state') == 'VERIFIED', 'backend_identity_unqualified')
+    witness = host.get('backendCapacity')
+    backend = witness.get('backend') if isinstance(witness, dict) else None
+    ram = backend.get('effectiveRAMBytes') if isinstance(backend, dict) else None
+    need(isinstance(witness, dict) and witness.get('schema') == 'gridex-t2-shared-backend-capacity-v1'
+         and witness.get('state') == 'VERIFIED' and not witness.get('errors')
+         and type(ram) is int and ram >= 8 * 2**30, 'shared_backend_capacity_unqualified')
+
+
+def owned_backend_capacity(host, project, containers):
+    """Actual canonical births only; service leaves have no aggregate8GiB floor."""
+    enforce_host_capacity(host)
+    request = {'project': project, 'containers': containers, 'expectedDaemon': host['backendCapacity']}
+    result = backend_call('containers', request)
+    need(result.get('schema') == 'gridex-t2-owned-container-capacity-v1' and result.get('state') == 'VERIFIED'
+         and not result.get('errors') and isinstance(result.get('containers'), list)
+         and len(result['containers']) == len(containers)
+         and [{k: c.get(k) for k in ['id', 'name', 'created']} for c in result['containers']] == containers,
+         'owned_backend_parent_unqualified')
+    need(backend_binding(result['daemon']) == host['backendIdentity']['binding'], 'owned_backend_daemon_changed')
+    return result
+
+
+def host_identity(enforce_capacity=True, observe_backend=False):
     # DockerRootDir must be stat-able on this host. A remote daemon is not a local runner.
     need(not os.environ.get('DOCKER_CONTEXT'), 'conflicting_docker_context_not_supported')
     endpoint = os.environ.get('DOCKER_HOST') or capture(['docker', 'context', 'inspect', '--format', '{{.Endpoints.docker.Host}}'])
@@ -349,22 +480,28 @@ def host_identity(enforce_capacity=True):
     observation = cgroup_capacity_observation()
     ram = observation['effectiveRamBytes']
     free = usage.f_bavail * usage.f_frsize
-    if enforce_capacity:
-        need(observation['status'] == 'QUALIFIED', 'capacity_hierarchy_unknown')
-        capacity(info['Driver'], ram, free)
     need(isinstance(info.get('ID'), str) and info['ID'], 'daemon_identity_missing')
     quotas = observation.get('cpuQuotas', [])
     tightest = min(quotas, key=lambda item: item['cores']) if quotas else None
-    return {'bootId': Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
+    backend = backend_observation(sock, meta, {**info, 'DockerRootDir': str(root)}, enforce_capacity or observe_backend)
+    known_backend = isinstance(backend['capacity'], dict) and backend['capacity'].get('state') == 'VERIFIED'
+    host = {'bootId': Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
             'daemonId': info['ID'], 'driver': info['Driver'], 'dockerRootDir': str(root),
             'socket': str(sock), 'socketDev': meta.st_dev, 'socketInode': meta.st_ino,
             'effectiveRamBytes': ram, 'freeBytes': free, 'cpuCount': os.cpu_count(),
             'cpuMax': (str(tightest['quota']) + ' ' + str(tightest['period'])) if tightest else 'unlimited' if observation['status'] == 'QUALIFIED' else 'unavailable',
-            'cpuQuotaCores': observation.get('cpuQuotaCores'), 'capacityStatus': observation['status'], 'capacityObservation': observation}
+            'cpuQuotaCores': observation.get('cpuQuotaCores'),
+            'capacityStatus': observation['status'] if known_backend and backend['identity'].get('state') == 'VERIFIED' else 'UNKNOWN',
+            'capacityObservation': observation, 'backendCapacity': backend['capacity'], 'backendIdentity': backend['identity']}
+    if enforce_capacity:
+        enforce_host_capacity(host)
+    return host
 
 
 def same_host(before, after):
     need(all(before[key] == after[key] for key in ['bootId', 'daemonId', 'driver', 'dockerRootDir', 'socket', 'socketDev', 'socketInode']), 'runner_or_daemon_changed')
+    need(before.get('backendIdentity', {}).get('state') == after.get('backendIdentity', {}).get('state') == 'VERIFIED'
+         and before['backendIdentity'] == after['backendIdentity'], 'backend_identity_changed')
 
 
 def validate_environment(values, home, ports):
@@ -575,6 +712,9 @@ class Packet:
             for item in self.plan['reservationRefs']:
                 need(capture(['git', '-C', str(HARNESS), 'ls-remote', 'origin', item['ref']]).split() == [item['sha'], item['ref']], 'live_reservation_changed')
         same_host(self.host, host_identity(enforce_capacity=not cleanup))
+        if not cleanup and hasattr(self, 'backend_containers'):
+            frame = owned_backend_capacity(self.host, self.plan['projectId'], self.backend_containers)
+            save(self.home / ('backend-capacity-' + str(time.monotonic_ns()) + '.json'), frame)
 
     def execute_command(self, name, argv, env):
         # Private logs only. No shell, retries, borrowed environment or swallowed exit.

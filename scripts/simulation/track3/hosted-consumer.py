@@ -133,9 +133,11 @@ def inspect_backend(prepare, plan):
                  and set(c['NetworkSettings']['Networks']) == {network['name']}
                  and c['NetworkSettings']['Networks'][network['name']]['NetworkID'] == network['id'] for c in observations),
          'unassigned_canonical_resources')
+    births = [{'id': c['Id'], 'name': c['Name'], 'created': c['Created']} for c in observations]
+    capacity_witness = prepare.owned_backend_capacity(plan['_host'], project, births)
     images = json.loads(prepare.capture(['docker', '--host', endpoint, 'image', 'inspect', *sorted({c['Image'] for c in observations})], env=env))
     image_receipts = [{'id': item['Id'], 'repoDigests': item.get('RepoDigests', []), 'architecture': item['Architecture'], 'os': item['Os']} for item in images]
-    resources = {'containers': [{'id': c['Id'], 'name': c['Name'], 'imageId': c['Image'], 'imageRef': c['Config']['Image'],
+    resources = {'capacity': capacity_witness, 'containers': [{'id': c['Id'], 'name': c['Name'], 'created': c['Created'], 'imageId': c['Image'], 'imageRef': c['Config']['Image'],
                  'labels': c['Config']['Labels'], 'ports': c['NetworkSettings']['Ports'], 'running': c['State']['Running']} for c in observations],
                  'images': image_receipts}
     return {'version': 1, 'workerId': 'T3', 'environmentId': plan['environmentId'], 'projectId': project,
@@ -378,6 +380,7 @@ def main(argv=None):
     prepare.same_host(packet.host, admission['host'])
     backend, api, storage, resources = inspect_backend(prepare, {**plan, '_host': packet.host, '_network': owned_network})
     prepare.save(home / 'canonical-resources.json', resources)
+    packet.backend_containers = [{k: c[k] for k in ['id', 'name', 'created']} for c in resources['containers']]
     plan_hash = sha(Path(args.plan).read_bytes())
     dbargs = ['psql', values['T3_DB_URL'], '-XAtq', '-v', 'ON_ERROR_STOP=1']
     actual_ledger = prepare.capture(dbargs + ['-F', '\t', '-c', 'SET default_transaction_read_only=on; SELECT version,coalesce(name,\'\') FROM supabase_migrations.schema_migrations ORDER BY version'])

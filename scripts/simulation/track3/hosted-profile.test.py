@@ -363,7 +363,10 @@ class PostproofTests(unittest.TestCase):
         self.proof = {'purpose': 't3-hosted-postproof-input', 'repository': 'heke99/gridex-ops-platform',
             'runId': '123456789', 'runAttempt': '1', 'job': 'physical-e03', 'head': 'b'*40, 'tree': 'c'*40,
             'host': {'bootId': 'FINITE_BOOT_NOT_NATIVE', 'socket': '/finite/docker.sock', 'capacityStatus': 'QUALIFIED',
-                     'driver': 'overlay2', 'effectiveRamBytes': 8*2**30, 'freeBytes': 15*2**30}, 'inventory': {'containers': [], 'volumes': [], 'networks': []},
+                     'driver': 'overlay2', 'effectiveRamBytes': 8*2**30, 'freeBytes': 15*2**30,
+                     'capacityObservation':{'status':'QUALIFIED'}, 'backendIdentity':{'state':'VERIFIED'},
+                     'backendCapacity':{'schema':'gridex-t2-shared-backend-capacity-v1','state':'VERIFIED','errors':[],
+                                        'backend':{'effectiveRAMBytes':8*2**30}}}, 'inventory': {'containers': [], 'volumes': [], 'networks': []},
             'proofSha256': 'd'*64, 'nonce': 'e'*64, 'inputPublicKey': self.runner['publicPem'],
             'observedAtUtc': now.isoformat(), 'jobDeadlineUtc': (now + timedelta(minutes=80)).isoformat(),
             'runnerTemp': str(self.directory), 'workspaceRoot': str(self.directory / 'workspace')}
@@ -715,7 +718,8 @@ class PostproofTests(unittest.TestCase):
         def unknown(*a,**k):calls.append(a);raise urllib.error.URLError('FINITE_PRIVATE_SERVER_DETAIL')
         api.opener=SimpleNamespace(open=unknown)
         prepare=SimpleNamespace(canonical=lambda p:Path(p).resolve(strict=True),private=lambda p,*_:Path(p),
-            capture=lambda _: 'c'*40,source=lambda *_:None,host_identity=lambda **_:self.proof['host'],capacity=lambda *_:None)
+            capture=lambda _: 'c'*40,source=lambda *_:None,host_identity=lambda **_:self.proof['host'],capacity=lambda *_:None,
+            enforce_host_capacity=self.u.load('prepare').enforce_host_capacity)
         same=SimpleNamespace(docker_resources=lambda *_:self.proof['inventory'])
         with patch.dict(self.u.os.environ,{'RUNNER_TEMP':str(self.directory),'GITHUB_WORKSPACE':str(self.directory)}),\
              patch.object(self.u,'hosted_identity',return_value=identity),patch.object(self.u,'GitHub',return_value=api),\
@@ -814,13 +818,18 @@ class PostproofTests(unittest.TestCase):
                   'GITHUB_SHA':'b'*40,'GITHUB_RUN_ATTEMPT':'1'}
         real_capacity=self.u.load('prepare').capacity
         observations=[];enforcements=[];posts=[]
-        def observe(*,enforce_capacity=True):
+        real_enforce=self.u.load('prepare').enforce_host_capacity
+        def observe(*,enforce_capacity=True,observe_backend=False):
             observations.append(enforce_capacity)
             return host
         def enforce(*values):
             enforcements.append(values);real_capacity(*values)
+        def enforce_host(host):
+            if host['capacityObservation']['status']=='QUALIFIED':
+                enforcements.append((host['driver'],host['effectiveRamBytes'],host['freeBytes']))
+            real_enforce(host)
         prepare=SimpleNamespace(canonical=lambda p:Path(p).resolve(strict=True),private=lambda p,*_:Path(p),
-            capture=lambda _: 'c'*40,source=lambda *_:None,host_identity=observe,capacity=enforce)
+            capture=lambda _: 'c'*40,source=lambda *_:None,host_identity=observe,capacity=enforce,enforce_host_capacity=enforce_host)
         same=SimpleNamespace(docker_resources=lambda *_:self.proof['inventory'])
         api=SimpleNamespace(audit_home=None,call=lambda *args:posts.append(args))
         proofhome=self.directory/'t3-host-proof'
@@ -870,6 +879,20 @@ class PostproofTests(unittest.TestCase):
         failure=next(json.loads(v) for k,v in members.items() if 'transport-failure-' in k)
         self.assertEqual(failure['reason'],'effective_ram_below_8gib')
 
+
+
+    def test_actual_hostproof_worker_qualified_backend_unknown_retains_both_and_stops(self):
+        self.u.REVIEWER_CERT=self.runner['publicPem']
+        host=deepcopy(self.proof['host']);host['capacityStatus']='UNKNOWN'
+        host['backendCapacity']={'schema':'gridex-t2-shared-backend-capacity-v1','state':'UNKNOWN_HOLD',
+            'backend':{'effectiveRAMBytes':2*2**30},'errors':['shared-backend-ram-below-minimum']}
+        members,observed,enforced,posts,home=self.run_capacity_observation_cli(host)
+        self.assertEqual(posts,[])
+        self.assertFalse((home/'ephemeral-input-key.private.pem').exists())
+        self.assertEqual(json.loads(members['transport/capacity-observation.private.json']),host)
+        failure=next(json.loads(v) for k,v in members.items() if 'transport-failure-' in k)
+        self.assertEqual(failure['reason'],'shared_backend_capacity_unqualified')
+        self.assertEqual(failure['stage'],'host-proof:host-capacity')
 
 
 if __name__ == '__main__':

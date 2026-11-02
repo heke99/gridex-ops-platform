@@ -163,7 +163,7 @@ class ActualBackendContractTests(unittest.TestCase):
         containers = []
         for index, (service, inner, port) in enumerate([('db', '5432/tcp', '54322'), ('kong', '8000/tcp', '54321'), ('storage', '5000/tcp', '54329')]):
             label = 'foreign' if variant == 'foreign-project' and service == 'db' else plan['projectId']
-            containers.append({'Id': str(index + 1) * 64, 'Name': '/supabase_' + service + '_' + plan['projectId'], 'Image': 'sha256:' + 'e' * 64,
+            containers.append({'Id': str(index + 1) * 64, 'Name': '/supabase_' + service + '_' + plan['projectId'], 'Image': 'sha256:' + 'e' * 64, 'Created': 'FINITE_BIRTH_' + str(index),
                 'State': {'Running': True}, 'Config': {'Labels': {'com.supabase.cli.project': label}, 'Image': 'synthetic/official-provider:locked-test'},
                 'NetworkSettings': {'Ports': {inner: [{'HostIp': '0.0.0.0' if variant == 'public-binding' and service == 'kong' else '127.0.0.1', 'HostPort': port}]},
                     'Networks': {network['name']: {'NetworkID': 'f' * 64 if variant == 'wrong-network' else network['id']}}}})
@@ -180,7 +180,8 @@ class ActualBackendContractTests(unittest.TestCase):
             if argv[-1].startswith('supabase_'):
                 return json.dumps([c for c in containers if c['Name'] == '/' + argv[-1]])
             return json.dumps(containers)
-        prepare = SimpleNamespace(capture=capture, phase_environment=lambda *_: {})
+        prepare = SimpleNamespace(capture=capture, phase_environment=lambda *_: {},
+            owned_backend_capacity=lambda host, project, births: {'state':'VERIFIED','containers':births})
         return unit.inspect_backend(prepare, plan)
 
     def test_actual_classified_containers_pg_identity_and_image_observations_bind_receipt(self):
@@ -256,6 +257,36 @@ class ActorFoundationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 unit.observe_fixture_actor(packet, prepare)
             self.assertEqual(len(saved), 1)
+
+
+class OwnedBackendParentTests(unittest.TestCase):
+    def test_actual_complete_backend_inspect_must_qualify_parent_before_return(self):
+        unit=load();project='t3-finite-only';network={'id':'f'*64,'name':'finite-owned-network','labels':{}}
+        containers=[]
+        for index,service in enumerate(['db','kong','storage'],1):
+            containers.append({'Id':str(index)*64,'Name':'/supabase_'+service+'_'+project,'Created':'FINITE_ORIGINAL_BIRTH_'+str(index),
+                'Image':'sha256:finite','Config':{'Labels':{'com.supabase.cli.project':project},'Image':'finite-image'},
+                'State':{'Running':True},'NetworkSettings':{'Ports':{'5432/tcp':[{'HostIp':'127.0.0.1','HostPort':'54322'}],
+                    '8000/tcp':[{'HostIp':'127.0.0.1','HostPort':'54321'}]},'Networks':{network['name']:{'NetworkID':network['id']}}}})
+        plan={'projectId':project,'environmentId':'t3-finite-only','nodeBin':'/finite/node','ports':{'db':54322,'api':54321},'_host':{'socket':'/finite/docker.sock'},'_network':network}
+        def capture(argv,**_):
+            if argv[0]=='psql':return json.dumps({'major':17,'database':'postgres','systemIdentifier':'123456'})
+            if 'network' in argv:return json.dumps([{}])
+            if 'container' in argv and 'ls' in argv:return '\n'.join(c['Id'] for c in containers)
+            if 'image' in argv:return json.dumps([{'Id':'sha256:finite','Architecture':'amd64','Os':'linux'}])
+            if argv[-1].startswith('supabase_'):return json.dumps([next(c for c in containers if c['Name']=='/'+argv[-1])])
+            return json.dumps(containers)
+        calls=[]
+        def qualify(host,requested_project,actual):
+            calls.append((host,requested_project,actual))
+            raise ValueError('backend_parent_below_floor')
+        prepare=SimpleNamespace(phase_environment=lambda *_:{},capture=capture,owned_backend_capacity=qualify)
+        with patch.object(unit,'load',return_value=SimpleNamespace(network_binding=lambda *_:None)),self.assertRaises(ValueError):
+            unit.inspect_backend(prepare,plan)
+        self.assertEqual(len(calls),1)
+        self.assertEqual(calls[0][1],project)
+        self.assertEqual(calls[0][2],[{'id':c['Id'],'name':c['Name'],'created':c['Created']} for c in containers])
+
 
 
 if __name__ == '__main__':
