@@ -8,7 +8,18 @@ from pathlib import Path
 import subprocess
 
 GIB = 1024 ** 3
-DRIVERS = {"overlay2": 15 * GIB, "overlayfs": 15 * GIB, "vfs": 40 * GIB}
+import importlib.util
+_HOST_SPEC = importlib.util.spec_from_file_location('t2_host_capacity', Path(__file__).with_name('host-capacity.py'))
+_HOST = importlib.util.module_from_spec(_HOST_SPEC)
+_HOST_SPEC.loader.exec_module(_HOST)
+DRIVERS = _HOST.DRIVERS
+NATIVE_BRANCH = r'codex/t2-native-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}'
+
+
+def qualified_term_event(run):
+    import re
+    return run.get('event') == 'workflow_dispatch' or (run.get('event') == 'push'
+        and isinstance(run.get('head_branch'), str) and re.fullmatch(NATIVE_BRANCH, run['head_branch']) is not None)
 
 
 def positive_integer(value):
@@ -16,29 +27,7 @@ def positive_integer(value):
 
 
 def capacity_errors(observation):
-    """Evaluate measured inputs only. Passing does not authenticate their origin."""
-    errors = []
-    driver = observation.get("driver")
-    if driver not in DRIVERS:
-        errors.append("unknown-driver")
-    ram = observation.get("effectiveRAMBytes")
-    if not positive_integer(ram) or ram < 8 * GIB:
-        errors.append("insufficient-or-unknown-ram")
-    free = observation.get("dockerRootFreeBytes")
-    if not positive_integer(free) or (driver in DRIVERS and free < DRIVERS[driver]):
-        errors.append("insufficient-or-unknown-docker-root-free")
-    if not observation.get("dockerRootDir") or observation.get("rootNamespaceVerified") is not True:
-        errors.append("docker-root-namespace-unverified")
-    if not observation.get("daemonId") or not observation.get("socketIdentity"):
-        errors.append("daemon-or-socket-identity-missing")
-    if not observation.get("cpuQuota"):
-        errors.append("cpu-quota-unrecorded")
-    hierarchy = observation.get('cgroupCapacity',{})
-    ancestors = hierarchy.get('ancestors') if isinstance(hierarchy,dict) else None
-    if not isinstance(hierarchy,dict) or hierarchy.get('state') != 'VERIFIED_INITIAL_GLOBAL_V2' or hierarchy.get('namespace') != {'inode':0xEFFFFFFB,'type':0x02000000} \
-       or hierarchy.get('mountRoot') != '/' or not isinstance(ancestors,list) or not ancestors or not isinstance(ancestors[-1],dict) or ancestors[-1].get('path') != '/sys/fs/cgroup':
-        errors.append('cgroup-capacity-unverified')
-    return errors
+    return _HOST.capacity_errors(observation)
 
 
 def read_text(path):
@@ -48,81 +37,12 @@ def read_text(path):
         return None
 
 
-def cgroup_capacity(physical):
-    """Linux v6.18 UAPI nsfs.h/sched.h; cgroup-v2 root has no quota files."""
-    import fcntl,re
-    root = Path('/sys/fs/cgroup')
-    fd = os.open('/proc/self/ns/cgroup',os.O_RDONLY | os.O_CLOEXEC)
-    try:
-        namespace = {'inode':os.fstat(fd).st_ino,'type':fcntl.ioctl(fd,0xb703)}
-    finally:
-        os.close(fd)
-    require(namespace == {'inode':0xEFFFFFFB,'type':0x02000000},'initial-cgroup-namespace-required')
-    mountinfo = Path('/proc/self/mountinfo').read_text()
-    mounts = [line.split() for line in mountinfo.splitlines()]
-    selected = [m for m in mounts if len(m) > 6 and m[4] == str(root)]
-    require(len(selected) == 1 and selected[0][3] == '/' and selected[0][selected[0].index('-')+1] == 'cgroup2'
-            and not any(m[4].startswith(str(root)+'/') for m in mounts),'global-cgroup2-mount-required')
-    membership = Path('/proc/self/cgroup').read_text().strip()
-    require(re.fullmatch(r'0::/(?:[A-Za-z0-9_.:@-]+(?:/[A-Za-z0-9_.:@-]+)*)?',membership) is not None
-            and not set(membership[4:].split('/')).intersection({'.','..'}),'unified-cgroup-membership-required')
-    current, ancestors, limits, quotas = root / membership[4:], [], [physical], []
-    while True:
-        values = {}
-        for filename in ('memory.max','cpu.max'):
-            try:
-                raw = (current / filename).read_text().strip()
-                require(raw != 'GLOBAL_ROOT_UNLIMITED','ancestor-controller-limit-malformed')
-            except FileNotFoundError:
-                require(current == root,'ancestor-controller-limit-missing')
-                raw = 'GLOBAL_ROOT_UNLIMITED'
-            if raw != 'GLOBAL_ROOT_UNLIMITED':
-                require((filename == 'memory.max' and re.fullmatch(r'(max|[0-9]+)',raw) is not None)
-                        or (filename == 'cpu.max' and re.fullmatch(r'(max|[1-9][0-9]*) [1-9][0-9]*',raw) is not None),
-                        'ancestor-controller-limit-malformed')
-            values[filename] = raw
-        if values['memory.max'].isdigit():limits.append(int(values['memory.max']))
-        ancestors.append({'path':str(current),'limits':values})
-        quotas.append({'cgroup':str(current),'quota':values['cpu.max']})
-        if current == root:break
-        current = current.parent
-    require(Path('/proc/self/cgroup').read_text().strip() == membership
-            and Path('/proc/self/mountinfo').read_text() == mountinfo,'cgroup-hierarchy-changed')
-    return min(limits), quotas, {'state':'VERIFIED_INITIAL_GLOBAL_V2','namespace':namespace,
-                                'mountRoot':'/','membership':membership,'ancestors':ancestors}
+def cgroup_capacity(physical, path_factory=Path):
+    return _HOST.worker_cgroup_capacity(physical, path_factory=path_factory)
 
 
 def observe_host():
-    physical = os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
-    try:
-        effective, cpu_limits, hierarchy = cgroup_capacity(physical)
-    except (OSError,ValueError,IndexError,TypeError):
-        effective, cpu_limits, hierarchy = None, None, {'state':'UNKNOWN_HOLD'}
-    result = {"schema": "gridex-t2-host-observation-v1", "state": "OBSERVED_NOT_ADMITTED",
-              "observedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-              "effectiveRAMBytes": effective, "cpuQuota": cpu_limits, 'cgroupCapacity':hierarchy,
-              "cpuCount": os.cpu_count(), "rootNamespaceVerified": False}
-    # Select only non-secret fields; never emit environment, Docker config or full info.
-    try:
-        info = subprocess.run(["docker", "info", "--format", "{{json .}}"],
-                              capture_output=True, text=True, timeout=15, check=True)
-        data = json.loads(info.stdout)
-        result.update(driver=data.get("Driver"), daemonId=data.get("ID"),
-                      dockerRootDir=data.get("DockerRootDir"), serverVersion=data.get("ServerVersion"))
-        daemon_memory = data.get("MemTotal")
-        if positive_integer(daemon_memory) and positive_integer(result['effectiveRAMBytes']):
-            result["effectiveRAMBytes"] = min(result["effectiveRAMBytes"], daemon_memory)
-        # A daemon can be remote or in another mount namespace: no statvfs guess.
-        result["dockerRootFreeBytes"] = None
-    except (OSError, subprocess.SubprocessError, ValueError):
-        result["dockerObservationError"] = "docker-info-unavailable"
-    try:
-        stat = Path("/var/run/docker.sock").stat()
-        result["socketIdentity"] = {"device": stat.st_dev, "inode": stat.st_ino}
-    except OSError:
-        result["socketIdentity"] = None
-    result["capacityErrors"] = capacity_errors(result)
-    return result
+    return _HOST.observe_host(worker_collector=cgroup_capacity, path_factory=Path)
 
 
 # Operational commands have a fixed subprocess surface. Tests replace this function.
@@ -294,8 +214,12 @@ def authenticate(operation):
         require(os.environ.get('SIM_REQUIRE_ACTOR_RECEIPT') == '1', 'observed-actor-mode-required')
     observed = json.loads(command(['gh', 'api', 'repos/heke99/gridex-ops-platform/actions/runs/' + str(run['runId'])]))
     require(observed['head_sha'] == a['sourceCommit'] and observed['run_attempt'] == 1
-            and observed['event'] == 'workflow_dispatch'
+            and qualified_term_event(observed)
             and observed['path'] == '.github/workflows/t2-term-disposable.yml', 'github-run-not-qualified')
+    if observed['event'] == 'push':
+        require(run.get('headBranch') == observed['head_branch'] == os.environ.get('GITHUB_REF_NAME'), 'native-branch-not-bound')
+        ref = json.loads(command(['gh','api','repos/'+REPOSITORY+'/git/ref/heads/'+observed['head_branch']]))
+        require(ref['object']['type'] == 'commit' and ref['object']['sha'] == a['sourceCommit'], 'native-branch-changed')
     require_pilot_profile(a)
     require(a['budget'] == {'startup': 1, 'scenario': 1}
             and all(type(v) is int for v in a['budget'].values()) and a['inputEpoch'] and a['genSource']
@@ -321,7 +245,7 @@ def authenticate(operation):
                 'scripts/simulation/track2/hosted/imap-mailbox.py'}
     required.add('scripts/simulation/track2/' + a['scenario'])
     required.update('scripts/simulation/track2/' + p for p in ('up.sh','run.sh','down.sh','lib/common.sh','lib/prepare-supabase.py'))
-    required.update('scripts/simulation/track2/hosted/' + p for p in ('prepare.sh','cleanup.sh','qualify-runtime.py','profile.requirements.json'))
+    required.update('scripts/simulation/track2/hosted/' + p for p in ('prepare.sh','cleanup.sh','qualify-runtime.py','host-capacity.py','profile.requirements.json'))
     require(required.issubset(a['sourceFiles']),
             'source-file-vector-missing')
     for relative, expected in a['sourceFiles'].items():
@@ -355,29 +279,49 @@ def authenticate(operation):
 
 
 def daemon_identity(capacity=True):
-    # Operational mode accepts only a local system daemon in this mount namespace.
     require(os.environ.get('DOCKER_HOST', 'unix:///var/run/docker.sock') == 'unix:///var/run/docker.sock'
             and not os.environ.get('DOCKER_CONTEXT'), 'remote-daemon-forbidden')
-    require(command(['docker', 'context', 'show']) == 'default'
+    require(command(['docker','context','show']) == 'default'
             and json.loads(command(['docker','context','inspect','default','--format','{{json .Endpoints.docker.Host}}'])) == 'unix:///var/run/docker.sock', 'local-default-docker-context-required')
-    info = json.loads(command(['docker', 'info', '--format', '{{json .}}']))
-    pid = int(Path('/var/run/docker.pid').read_text().strip())
-    require(Path(f'/proc/{pid}/comm').read_text().strip() == 'dockerd'
-            and command(['sudo', '-n', 'readlink', f'/proc/{pid}/ns/mnt']) == os.readlink('/proc/self/ns/mnt'),
-            'daemon-mount-namespace-unverified')
+    info = json.loads(command(['docker','info','--format','{{json .}}']))
     root = Path(info['DockerRootDir'])
     require(root.is_absolute() and root.is_dir() and not root.is_symlink(), 'docker-root-unavailable')
-    # sudo statvfs runs in this already verified mount namespace, no container/image pull.
-    free = int(command(['sudo', '-n', 'python3', '-c',
-                        'import os,sys;s=os.statvfs(sys.argv[1]);print(s.f_bavail*s.f_frsize)', str(root)]))
+    witness = json.loads(command(['sudo','-n','python3','-B',str(Path(__file__).with_name('host-capacity.py')),'--daemon']))
+    process, docker, socket = witness.get('process') or {}, witness.get('docker') or {}, witness.get('socket') or {}
     sock = Path('/var/run/docker.sock').stat()
+    bound = (docker.get('id') == info['ID'] and docker.get('rootDir') == str(root)
+             and socket.get('activation') in ('direct','systemd') and process.get('effectiveUID') == 0
+             and all(process.get('namespaces',{}).get(k) == os.readlink('/proc/self/ns/'+k) for k in ('mnt','pid','net'))
+             and socket.get('filesystem',{}).get('device') == sock.st_dev and socket.get('filesystem',{}).get('inode') == sock.st_ino)
+    free = int(command(['sudo','-n','python3','-c','import os,sys;s=os.statvfs(sys.argv[1]);print(s.f_bavail*s.f_frsize)',str(root)])) if bound else None
     observation = observe_host()
-    observation.update(driver=info['Driver'], daemonId=info['ID'], dockerRootDir=str(root),
-                       dockerRootFreeBytes=free, rootNamespaceVerified=True,
-                       socketIdentity={'device': sock.st_dev, 'inode': sock.st_ino})
-    if capacity:
-        require(not capacity_errors(observation), 'host-capacity-unqualified')
-    return {k: observation[k] for k in ('driver', 'daemonId', 'dockerRootDir', 'socketIdentity')}, observation
+    observation.update(driver=info['Driver'], daemonId=info['ID'], dockerRootDir=str(root), dockerRootFreeBytes=free,
+                       rootNamespaceVerified=bound, socketIdentity={'device':sock.st_dev,'inode':sock.st_ino}, backendCapacity=witness)
+    observation['workerEffectiveRAMBytes'] = observation['effectiveRAMBytes']
+    ram = (witness.get('backend') or {}).get('effectiveRAMBytes')
+    observation['effectiveRAMBytes'] = min(observation['effectiveRAMBytes'],ram) if positive_integer(ram) and positive_integer(observation['effectiveRAMBytes']) else None
+    if capacity: require(not capacity_errors(observation), 'host-capacity-unqualified')
+    identity = {k:observation[k] for k in ('driver','daemonId','dockerRootDir','socketIdentity')}
+    identity['daemonProcess'] = {k:process.get(k) for k in ('pid','startTicks','namespaces','executable')}
+    return identity, observation
+
+
+def current_backend_capacity(home):
+    identity, observation = daemon_identity()
+    attempt = load_private(home / 'attempt.json')
+    require(identity == attempt['daemon'] and _HOST.stable_mapping(observation['backendCapacity'])
+            == _HOST.stable_mapping(attempt['host']['backendCapacity']), 'backend-capacity-mapping-changed')
+    return observation['backendCapacity']
+
+
+def container_capacity(a, home, resources):
+    expected = current_backend_capacity(home)
+    containers = [{k:r[k] for k in ('id','name','created')} for r in resources if r['kind'] == 'container']
+    request = {'project':a['projectId'],'containers':containers,'expectedDaemon':expected}
+    witness = json.loads(command(['sudo','-n','python3','-B',str(Path(__file__).with_name('host-capacity.py')),'--containers'], stdin=json.dumps(request)))
+    require(witness.get('schema') == 'gridex-t2-owned-container-capacity-v1' and witness.get('state') == 'VERIFIED'
+            and witness.get('errors') == [] and _HOST.stable_mapping(witness['daemon']) == _HOST.stable_mapping(expected), 'owned-container-capacity-unqualified')
+    return witness
 
 
 def docker_resources(project):
@@ -432,7 +376,7 @@ def bootstrap_source():
     head = git(app,'rev-parse','HEAD')
     require(head == os.environ['GITHUB_SHA'] and not git(app,'status','--porcelain'), 'bootstrap-source-dirty-or-wrong-head')
     paths = ['.github/workflows/t2-term-disposable.yml', 'scripts/simulation/track2/hosted/qualify-runtime.py',
-             'scripts/simulation/track2/hosted/profile.requirements.json', 'package-lock.json',
+             'scripts/simulation/track2/hosted/profile.requirements.json', 'scripts/simulation/track2/hosted/host-capacity.py', 'package-lock.json',
              'scripts/gridex-aud-003-clean-replay.sh']
     return {'commit':head, 'tree':git(app,'rev-parse','HEAD^{tree}'),
             'files':{path:digest(app / path) for path in paths}}
@@ -445,7 +389,7 @@ def bootstrap_identity():
             'bootstrap-host-identity-unavailable')
     require(os.uname().machine == 'x86_64' and 'ID=ubuntu' in read_text('/etc/os-release')
             and 'VERSION_ID="24.04"' in read_text('/etc/os-release'),'qualified-ubuntu-amd64-required')
-    return {'bootId':boot,'machineId':machine,'hostname':os.uname().nodename,'architecture':os.uname().machine,
+    return {'bootId':boot,'machineId':machine,'hostname':os.uname().nodename,'architecture':os.uname().machine,'kernelRelease':os.uname().release,
             'mountNamespace':os.readlink('/proc/self/ns/mnt'), 'osReleaseSHA256':digest('/etc/os-release')}
 
 
@@ -454,7 +398,10 @@ def bootstrap_run():
             and os.environ.get('GITHUB_RUN_ATTEMPT') == '1' and os.environ.get('GITHUB_JOB') in ('term','bootstrap-probe'),
             'bootstrap-not-qualified-actions-job')
     event = os.environ['GITHUB_EVENT_NAME']
-    require(event in ('workflow_dispatch','pull_request'), 'bootstrap-event-unsupported')
+    require(event in ('workflow_dispatch','pull_request','push'), 'bootstrap-event-unsupported')
+    if event == 'push':
+        require(qualified_term_event({'event':event,'head_branch':os.environ.get('GITHUB_REF_NAME')})
+                and os.environ.get('SIM_BOOTSTRAP_MODE') == 'admitted' and os.environ['GITHUB_JOB'] == 'term', 'native-push-context-invalid')
     if event == 'pull_request':
         event_data = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
         require(event_data['pull_request']['head']['repo']['full_name'] == REPOSITORY
@@ -465,7 +412,8 @@ def bootstrap_run():
     return {'repository':REPOSITORY,'runId':int(os.environ['GITHUB_RUN_ID']), 'runAttempt':1,
             'job':os.environ['GITHUB_JOB'], 'event':event, 'sourceCommit':os.environ['GITHUB_SHA'],
             'mode':os.environ['SIM_BOOTSTRAP_MODE'],
-            'workflowHeadCommit':event_data['pull_request']['head']['sha'] if event == 'pull_request' else os.environ['GITHUB_SHA']}
+            'workflowHeadCommit':event_data['pull_request']['head']['sha'] if event == 'pull_request' else os.environ['GITHUB_SHA'],
+            **({'headBranch':os.environ['GITHUB_REF_NAME']} if event == 'push' else {})}
 
 
 def encrypt_bootstrap(proof, directory):
@@ -577,11 +525,11 @@ def bootstrap_context(run_id,source,job_name):
     require(type(run_id) is int and run_id > 0 and re.fullmatch('[0-9a-f]{40}',source)
             and job_name in ('term','bootstrap-probe'),'bootstrap-context-arguments-invalid')
     run = delivery_get('actions/runs/' + str(run_id))
-    event = 'pull_request' if job_name == 'bootstrap-probe' else 'workflow_dispatch'
-    require(run['run_attempt'] == 1 and run['event'] == event
+    event = run['event']
+    require(run['run_attempt'] == 1 and (event == 'pull_request' if job_name == 'bootstrap-probe' else qualified_term_event(run))
             and run['path'] == '.github/workflows/t2-term-disposable.yml','bootstrap-api-run-mismatch')
     commit = delivery_get('git/commits/' + source)
-    require(commit['sha'] == source and (run['head_sha'] == source if event == 'workflow_dispatch'
+    require(commit['sha'] == source and (run['head_sha'] == source if event != 'pull_request'
             else run['head_sha'] in [parent['sha'] for parent in commit['parents']]),'bootstrap-checkout-head-mismatch')
     jobs = delivery_get('actions/runs/' + str(run_id) + '/attempts/1/jobs?per_page=100')
     require(jobs['total_count'] == len(jobs['jobs']) <= 100,'bootstrap-job-inventory-incomplete')
@@ -600,7 +548,8 @@ def bootstrap_context(run_id,source,job_name):
             'bootstrap-check-provenance-mismatch')
     return {'runId':run_id,'runAttempt':1,'sourceCommit':source,'jobId':job['id'],'checkId':check_id,
             'annotationsCount':check['output']['annotations_count'],'checkoutTree':commit['tree']['sha'],
-            'workflowHeadCommit':run['head_sha'],'event':event,'job':job_name}
+            'workflowHeadCommit':run['head_sha'],'event':event,'job':job_name,
+            **({'headBranch':run['head_branch']} if event == 'push' else {})}
 
 
 def published_bootstrap(context):
@@ -619,11 +568,15 @@ def published_bootstrap(context):
             and safe['run']['mode'] in (('pr-probe',) if context.get('job') == 'bootstrap-probe' else ('bootstrap','admitted')),
             'bootstrap-public-run-binding-mismatch')
     require(0 < len(base64.b64decode(safe['cmsBase64'],validate=True)) < 24576,'bootstrap-proof-too-large')
+    if context.get('event') == 'push':
+        require(safe['run'].get('headBranch') == context['headBranch'], 'bootstrap-native-branch-mismatch')
     return safe
 
 
 def verify_published_bootstrap(context,a):
     safe = published_bootstrap(context)
+    if context.get('event') == 'push':
+        require(a['github'].get('headBranch') == context['headBranch'], 'delivery-native-branch-not-bound')
     require(safe['run']['mode'] == 'admitted' and not safe['capacityErrors'] and safe['state'] == 'CAPACITY_OBSERVED_NOT_ADMITTED'
             and safe['proofSHA256'] == a.get('bootstrapProofSHA256'), 'delivery-bootstrap-binding-mismatch')
 
@@ -666,7 +619,7 @@ def validate_bootstrap(a, *, reobserve=False):
     require(proof['schema'] == 'gridex-t2-bootstrap-private-v1' and not proof['capacityErrors']
             and not capacity_errors(proof.get('capacity',{}))
             and a.get('bootstrapProofSHA256') == digest(proof_path), 'bootstrap-proof-not-bound-or-unqualified')
-    require(proof['run'] == bootstrap_run() and proof['run']['event'] == 'workflow_dispatch'
+    require(proof['run'] == bootstrap_run() and qualified_term_event({'event':proof['run']['event'],'head_branch':proof['run'].get('headBranch')})
             and proof['run']['job'] == 'term' and proof['run']['mode'] == 'admitted' and proof['source'] == bootstrap_source()
             and proof['source']['commit'] == a['sourceCommit'] and proof['source']['tree'] == a['sourceTree'],
             'bootstrap-run-or-source-changed')
@@ -674,8 +627,8 @@ def validate_bootstrap(a, *, reobserve=False):
     require(datetime.timedelta(0) <= age <= datetime.timedelta(minutes=45), 'bootstrap-proof-stale')
     require(proof['host'] == bootstrap_identity(), 'bootstrap-host-or-boot-changed')
     if reobserve:
-        identity, _ = daemon_identity()
-        require(identity == proof['daemon'], 'bootstrap-daemon-changed')
+        identity, observation = daemon_identity()
+        require(identity == proof['daemon'] and _HOST.stable_mapping(observation['backendCapacity']) == _HOST.stable_mapping(proof['capacity']['backendCapacity']), 'bootstrap-daemon-or-capacity-changed')
     return proof
 
 
@@ -859,6 +812,7 @@ def authorize(operation):
     a, home, app = authenticate(operation)
     validate_attempt(a, home)
     if operation in ('up', 'run'):
+        current_backend_capacity(home)
         path = owned_cgroup(a, home)
         require(read_text('/proc/self/cgroup').splitlines() == ['0::/' + path.name], 'runtime-process-outside-owned-cgroup')
     if a.get('pilotId') == 'TERM02.03':
@@ -872,7 +826,9 @@ def authorize(operation):
                 and evidence['buildManifest'] == digest(app / '.next/build-manifest.json')
                 and evidence['buildLog'] == digest(home / 'logs/build.log')
                 and evidence['replayLog'] == digest(home / 'logs/replay.log'), 'runtime-evidence-changed')
-        require(evidence['resources'] == inventory(a, home), 'runtime-resource-identity-changed')
+        resources = inventory(a, home)
+        require(evidence['resources'] == resources, 'runtime-resource-identity-changed')
+        require(evidence['containerCapacity'] == container_capacity(a, home, resources), 'runtime-container-capacity-changed')
         require(evidence['database'] == database_evidence(a, home), 'database-evidence-changed')
         save_private(home / 'scenario-consumed.json', {'scenario': a['scenario']})
     return a, home, app
@@ -910,6 +866,9 @@ def qualify():
     require((home / 'up-consumed.json').exists() and not (home / 'scenario-consumed.json').exists(), 'startup-not-owned')
     require((home / 'replay-commit').read_text().strip() == a['sourceCommit']
             and (home / 'built-commit').read_text().strip() == a['sourceCommit'], 'replay-build-source-mismatch')
+    current_backend_capacity(home)
+    resources = inventory(a, home)
+    containers = container_capacity(a, home, resources)
     database = database_evidence(a, home)
     ledger = home / 'applied-migrations.tsv'
     with ledger.open('x') as stream:
@@ -932,7 +891,7 @@ def qualify():
         with opener.open(url, timeout=10) as response:
             require(response.status == 200, 'runtime-endpoint-unqualified')
     save_private(home / 'qualified.json', {'assignment': digest(os.environ['SIM_RUNTIME_ASSIGNMENT_FILE']),
-                 'resources': inventory(a, home), 'database': database,
+                 'resources': resources, 'containerCapacity': containers, 'database': database,
                  'sourceRestoration':'PENDING_CANONICAL_EXIT_NOT_YET_RESTORED',
                  'buildId': (app / '.next/BUILD_ID').read_text().strip(),
                  'buildManifest': digest(app / '.next/build-manifest.json'),
@@ -1139,7 +1098,7 @@ def delivery_context(run_id, source):
     require(type(run_id) is int and run_id > 0 and re.fullmatch('[0-9a-f]{40}', source),
             'invalid-delivery-invocation')
     run = delivery_get('actions/runs/' + str(run_id))
-    require(run['head_sha'] == source and run['run_attempt'] == 1 and run['event'] == 'workflow_dispatch'
+    require(run['head_sha'] == source and run['run_attempt'] == 1 and qualified_term_event(run)
             and run['path'] == '.github/workflows/t2-term-disposable.yml'
             and run['status'] == 'in_progress', 'delivery-run-not-current')
     jobs = delivery_get('actions/runs/' + str(run_id) + '/attempts/1/jobs?per_page=100')
@@ -1160,7 +1119,8 @@ def delivery_context(run_id, source):
             and check['details_url'] == 'https://github.com/' + REPOSITORY + '/actions/runs/' + str(run_id) + '/job/' + str(job['id']),
             'delivery-check-provenance-mismatch')
     return {'runId':run_id,'runAttempt':1,'sourceCommit':source,'jobId':job['id'],
-            'checkId':check_id, 'annotationsCount':check['output']['annotations_count']}
+            'checkId':check_id, 'annotationsCount':check['output']['annotations_count'],
+            **({'event':'push','headBranch':run['head_branch']} if run['event'] == 'push' else {})}
 
 
 def delivery_ref(context):

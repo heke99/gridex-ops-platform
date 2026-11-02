@@ -33,6 +33,7 @@ EXPORT_DIRECTORY = 't2-business-evidence-export'
 BINDING_KEYS = ('sourceCommit', 'sourceTree', 'githubRunId', 'githubRunAttempt', 'githubJobId',
                 'githubJob', 'assignmentSha256', 'materialsSha256', 'materialSpecificationSha256',
                 'environmentId', 'billingMonth', 'recipientCertificateSha256')
+NATIVE_BRANCH = r'codex/t2-native-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}'
 
 
 def require(ok, code):
@@ -282,8 +283,11 @@ def github_job(expected, running):
     validate(run_id, 'positive'); validate(attempt, literal(1))
     validate(expected['sourceCommit'], 'sha1'); validate(expected['sourceTree'], 'sha1')
     run = api('actions/runs/'+str(run_id))
+    allowed_event = run.get('event') == 'workflow_dispatch' or (
+        run.get('event') == 'push' and isinstance(run.get('head_branch'), str)
+        and re.fullmatch(NATIVE_BRANCH, run['head_branch']) is not None)
     require(run['id'] == run_id and run['head_sha'] == expected['sourceCommit'] and run['run_attempt'] == attempt
-            and run['event'] == 'workflow_dispatch' and run['path'] == WORKFLOW, 'github-run-binding')
+            and allowed_event and run['path'] == WORKFLOW, 'github-run-binding')
     commit = api('git/commits/'+expected['sourceCommit'])
     require(commit['sha'] == expected['sourceCommit'] and commit['tree']['sha'] == expected['sourceTree'], 'actual-source-tree')
     page, jobs = 1, []

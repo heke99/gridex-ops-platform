@@ -231,6 +231,30 @@ class CryptoAndFiles(unittest.TestCase):
                     module.read_artifact(99, expected, self.key, output)
                 self.assertFalse(output.exists())
 
+    def test_actual_push_metadata_requires_exact_native_uuid_branch(self):
+        raw, expected, archive, metadata = self.artifact_fixture()
+        actual = module.command
+        metadata['actions/runs/1']['event'] = 'push'
+        for branch, allowed in (
+            ('codex/t2-native-00000000-0000-4000-8000-000000000001', True),
+            ('codex/t2-native-not-a-uuid', False), ('main', False),
+            ('codex/t2-native-00000000-0000-4000-8000-000000000001-extra', False),
+        ):
+            with self.subTest(branch=branch), tempfile.TemporaryDirectory() as tmp:
+                metadata['actions/runs/1']['head_branch'] = branch
+                def command(argv, *args, **kwargs):
+                    if argv[:2] == ['gh', 'api']: return archive
+                    return actual(argv, *args, **kwargs)
+                output = Path(tmp)/'recovered.private.json'
+                with mock.patch.object(module, 'api', side_effect=lambda path: metadata[path]), \
+                        mock.patch.object(module, 'command', side_effect=command):
+                    if allowed:
+                        module.read_artifact(99, expected, self.key, output)
+                        self.assertEqual(module.read_private(output), raw)
+                    else:
+                        with self.assertRaises(ValueError): module.read_artifact(99, expected, self.key, output)
+                        self.assertFalse(output.exists())
+
     def test_missing_scenario_is_explicit_hold_and_existing_attempt_not_overwritten(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp); directory.chmod(0o755)  # Real RUNNER_TEMP can be traversable.

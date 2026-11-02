@@ -21,12 +21,17 @@ QUALIFIED_TEST_CAPACITY = {'driver':'overlay2','effectiveRAMBytes':8*module.GIB,
                            'socketIdentity':{'device':1,'inode':2},'cpuQuota':'max 100000','cgroupCapacity':QUALIFIED_CGROUP}
 
 
+MODEL_BACKEND = {'schema':'gridex-t2-shared-backend-capacity-v1','state':'VERIFIED','errors':[],
+                 'backend':{'effectiveRAMBytes':8*module.GIB}}
+QUALIFIED_TEST_CAPACITY['backendCapacity'] = copy.deepcopy(MODEL_BACKEND)
+# Pure boundary fixtures; actual kernel/socket/parent acquisition is tested separately.
+
 class Contracts(unittest.TestCase):
     def setUp(self):
         self.observation = {"driver": "overlay2", "effectiveRAMBytes": 8 * module.GIB,
                             "dockerRootFreeBytes": 15 * module.GIB, "dockerRootDir": "/owned/docker",
                             "rootNamespaceVerified": True, "daemonId": "synthetic-test-daemon",
-                            "socketIdentity": {"device": 1, "inode": 2}, "cpuQuota": "400000 100000",'cgroupCapacity':copy.deepcopy(QUALIFIED_CGROUP)}
+                            "socketIdentity": {"device": 1, "inode": 2}, "cpuQuota": "400000 100000",'cgroupCapacity':copy.deepcopy(QUALIFIED_CGROUP),'backendCapacity':copy.deepcopy(MODEL_BACKEND)}
 
     def test_exact_capacity_boundaries(self):
         for driver, minimum in module.DRIVERS.items():
@@ -81,13 +86,13 @@ class CgroupCapacityContracts(unittest.TestCase):
             return value
         def sysconf(name):return 16*module.GIB//4096 if name=='SC_PHYS_PAGES' else 4096
         docker=types.SimpleNamespace(stdout=json.dumps({'Driver':'overlay2','ID':'unit','DockerRootDir':'/owned/docker','MemTotal':16*module.GIB}))
-        with mock.patch.object(Path,'read_text',read),mock.patch.object(module.os,'sysconf',side_effect=sysconf), \
+        with mock.patch.object(Path,'read_text',read),mock.patch.object(Path,'read_bytes',lambda path:read(path).encode()),mock.patch.object(module.os,'sysconf',side_effect=sysconf), \
              mock.patch.object(module.subprocess,'run',return_value=docker),mock.patch.object(module.os,'open',return_value=555), \
              mock.patch.object(module.os,'close'),mock.patch.object(module.os,'fstat',return_value=types.SimpleNamespace(st_ino=inode,st_dev=4)), \
              mock.patch.object(fcntl,'ioctl',return_value=namespace_type), \
-             mock.patch.object(Path,'stat',return_value=types.SimpleNamespace(st_dev=1,st_ino=2)):
+             mock.patch.object(Path,'stat',return_value=types.SimpleNamespace(st_dev=1,st_ino=2,st_mode=0o40755)):
             observation=module.observe_host()
-        observation.update(dockerRootFreeBytes=50*module.GIB,rootNamespaceVerified=True)
+        observation.update(dockerRootFreeBytes=50*module.GIB,rootNamespaceVerified=True,backendCapacity=copy.deepcopy(MODEL_BACKEND))
         return observation
 
     def test_hidden_namespace_never_reports_physical_ram_as_effective(self):
@@ -145,6 +150,10 @@ class OperationalContracts(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.home = self.root / 'private'
         self.home.mkdir(mode=0o700)
+        # Budget/lifecycle tests use declared ports; acquisition has its own suite.
+        for name in ('current_backend_capacity','container_capacity'):
+            port = mock.patch.object(module,name,return_value={'finiteBudgetControl':True})
+            port.start(); self.addCleanup(port.stop)
         self.assignment = self.root / 'admission.json'
         module.save_private(self.assignment, {'synthetic': 'SECRET-MUST-NOT-ESCAPE'})
         self.environment = mock.patch.dict(os.environ, {'SIM_RUNTIME_ASSIGNMENT_FILE': str(self.assignment),
@@ -512,7 +521,7 @@ class OperationalContracts(unittest.TestCase):
         proof = {'assignment':module.digest(self.assignment), 'buildId':'synthetic-build',
                  'buildManifest':module.digest(app / '.next/build-manifest.json'),
                  'buildLog':module.digest(self.home / 'logs/build.log'),
-                 'replayLog':module.digest(self.home / 'logs/replay.log'), 'resources':[], 'database':{}}
+                 'replayLog':module.digest(self.home / 'logs/replay.log'), 'resources':[], 'containerCapacity':{'finiteBudgetControl':True}, 'database':{}}
         module.save_private(self.home / 'qualified.json', proof)
         with mock.patch.object(module, 'authenticate', return_value=({'scenario':'scenarios/term01.test.ts'},self.home,app)), \
                 mock.patch.object(module,'validate_attempt'), mock.patch.object(module,'owned_cgroup', return_value=Path('/sys/fs/cgroup/synthetic')), \
@@ -1361,7 +1370,7 @@ class BootstrapContracts(unittest.TestCase):
         self.host={'bootId':'PRIVATE-BOOT-SENTINEL','machineId':'PRIVATE-MACHINE-SENTINEL','hostname':'PRIVATE-HOST-SENTINEL'}
         self.daemon={'driver':'overlay2','daemonId':'PRIVATE-DAEMON-SENTINEL','dockerRootDir':'/private-root',
                      'socketIdentity':{'device':1,'inode':2}}
-        self.observation={**self.daemon,'effectiveRAMBytes':16*module.GIB,'dockerRootFreeBytes':50*module.GIB,'cgroupCapacity':copy.deepcopy(QUALIFIED_CGROUP),
+        self.observation={**self.daemon,'effectiveRAMBytes':16*module.GIB,'dockerRootFreeBytes':50*module.GIB,'cgroupCapacity':copy.deepcopy(QUALIFIED_CGROUP),'backendCapacity':copy.deepcopy(MODEL_BACKEND),
                           'rootNamespaceVerified':True,'cpuQuota':[{'quota':'max 100000'}]}
         self.context={'runId':777,'runAttempt':1,'sourceCommit':'a'*40,'jobId':888,'checkId':'888','annotationsCount':1}
         self.requirements={'bootstrapRecipientCertificate':self.cert.read_text(),
@@ -1456,7 +1465,7 @@ class BootstrapContracts(unittest.TestCase):
                 self.validate({'bootstrapProofSHA256':digest})
         with self.assertRaisesRegex(ValueError,'bootstrap-host-or-boot-changed'):
             self.validate(host=dict(self.host,bootId='another-boot'))
-        with self.assertRaisesRegex(ValueError,'bootstrap-daemon-changed'):
+        with self.assertRaisesRegex(ValueError,'bootstrap-daemon-or-capacity-changed'):
             self.validate(daemon=dict(self.daemon,daemonId='another-daemon'))
         with self.assertRaisesRegex(ValueError,'bootstrap-run-or-source-changed'):
             self.validate(source=dict(self.source,tree='e'*40))
@@ -1840,6 +1849,102 @@ class WorkflowRunnerContextContracts(unittest.TestCase):
                     failed=subprocess.run(['bash','-c',script],env=bad,capture_output=True,text=True)
                     self.assertNotEqual(failed.returncode,0)
                     self.assertEqual(envfile.read_text(),'')
+
+
+class BackendBridgeContracts(unittest.TestCase):
+    def fixture(self):
+        witness = {'schema':'gridex-t2-shared-backend-capacity-v1','state':'VERIFIED','errors':[],
+                   'docker':{'id':'unit-daemon','rootDir':'/unit/docker'},
+                   'socket':{'activation':'direct','filesystem':{'device':1,'inode':2}},
+                   'process':{'pid':42,'startTicks':123,'effectiveUID':0,'executable':'/usr/bin/dockerd',
+                              'namespaces':{'mnt':'mnt:[1]','pid':'pid:[2]','net':'net:[3]'}},
+                   'backend':{'effectiveRAMBytes':8*module.GIB}}
+        info = {'ID':'unit-daemon','Driver':'overlay2','DockerRootDir':'/unit/docker'}
+        calls = []
+        def command(argv, **kwargs):
+            calls.append(argv)
+            if argv == ['docker','context','show']: return 'default'
+            if argv[:3] == ['docker','context','inspect']: return json.dumps('unix:///var/run/docker.sock')
+            if argv[:2] == ['docker','info']: return json.dumps(info)
+            if argv[-1] == '--daemon': return json.dumps(witness)
+            if argv[:4] == ['sudo','-n','python3','-c']: return str(50*module.GIB)
+            raise AssertionError('undeclared external port')
+        return witness, info, command, calls
+
+    def observe(self, witness, command, admit):
+        import types
+        with mock.patch.dict(os.environ, DOCKER_HOST='unix:///var/run/docker.sock', DOCKER_CONTEXT=''), \
+                mock.patch.object(module,'command',side_effect=command), \
+                mock.patch.object(module,'observe_host',return_value=dict(QUALIFIED_TEST_CAPACITY,effectiveRAMBytes=16*module.GIB)), \
+                mock.patch.object(Path,'is_dir',return_value=True), mock.patch.object(Path,'is_symlink',return_value=False), \
+                mock.patch.object(Path,'stat',return_value=types.SimpleNamespace(st_dev=1,st_ino=2)), \
+                mock.patch.object(module.os,'readlink',side_effect=lambda path:witness['process']['namespaces'][path.rsplit('/',1)[1]]):
+            return module.daemon_identity(capacity=admit)
+
+    def test_measured_backend_witness_is_used_in_actual_admission_bridge(self):
+        witness, info, command, calls = self.fixture()
+        identity, observation = self.observe(witness, command, True)
+        self.assertEqual(observation['effectiveRAMBytes'],8*module.GIB)
+        self.assertEqual(identity['daemonProcess']['pid'],42)
+        self.assertEqual(observation['backendCapacity'],witness)
+        self.assertTrue(any(argv[-1] == '--daemon' for argv in calls))
+
+    def test_low_shared_budget_rejects_admission_but_passive_diagnostics_survive(self):
+        witness, info, command, calls = self.fixture()
+        witness['backend']['effectiveRAMBytes'] = 2*module.GIB
+        witness.update(state='UNKNOWN_HOLD',errors=['shared-backend-ram-below-minimum'])
+        with self.assertRaisesRegex(ValueError,'host-capacity-unqualified'):
+            self.observe(witness, command, True)
+        identity, observation = self.observe(witness, command, False)
+        self.assertEqual(observation['effectiveRAMBytes'],2*module.GIB)
+        self.assertEqual(observation['backendCapacity']['errors'],['shared-backend-ram-below-minimum'])
+
+    def test_other_daemon_api_identity_cannot_qualify_filesystem_namespace(self):
+        witness, info, command, calls = self.fixture()
+        witness['docker']['id'] = 'alternate-daemon'
+        with self.assertRaisesRegex(ValueError,'host-capacity-unqualified'):
+            self.observe(witness, command, True)
+        self.assertFalse(any(argv[:4] == ['sudo','-n','python3','-c'] for argv in calls))
+
+
+    def test_current_backend_rejects_process_or_shared_parent_drift(self):
+        import copy
+        witness, _, _, _ = self.fixture()
+        identity = {'daemonId':'unit-daemon','daemonProcess':{'pid':42,'startTicks':123}}
+        attempt = {'daemon':identity,'host':{'backendCapacity':witness}}
+        with mock.patch.object(module,'load_private',return_value=attempt):
+            with mock.patch.object(module,'daemon_identity',return_value=(identity,{'backendCapacity':witness})):
+                self.assertEqual(module.current_backend_capacity(Path('/unit')),witness)
+            changed = copy.deepcopy(witness); changed['backend']['globalParent'] = '/different'
+            for current_identity, current in ((identity,changed), ({'daemonId':'replacement'},witness)):
+                with self.subTest(current=current), mock.patch.object(module,'daemon_identity',return_value=(current_identity,{'backendCapacity':current})):
+                    with self.assertRaisesRegex(ValueError,'backend-capacity-mapping-changed'):
+                        module.current_backend_capacity(Path('/unit'))
+
+
+class NativePushContracts(unittest.TestCase):
+    branch = 'codex/t2-native-00000000-0000-4000-8000-000000000001'
+
+    def environment(self, branch):
+        return {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': module.REPOSITORY,
+                'GITHUB_RUN_ID': '123', 'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_JOB': 'term',
+                'GITHUB_EVENT_NAME': 'push', 'GITHUB_SHA': 'a'*40,
+                'GITHUB_REF_NAME': branch, 'SIM_BOOTSTRAP_MODE': 'admitted'}
+
+    def test_native_push_observation_binds_actual_uuid_branch_without_grant(self):
+        with mock.patch.dict(os.environ, self.environment(self.branch)):
+            context = module.bootstrap_run()
+        self.assertEqual(context['event'], 'push')
+        self.assertEqual(context['headBranch'], self.branch)
+        self.assertEqual(context['mode'], 'admitted')
+        self.assertNotIn('state', context)  # Invocation identity is not an ACTIVE assignment.
+
+    def test_other_push_branches_or_modes_never_enter_native_context(self):
+        for branch in ('main', 'codex/t2-native-not-uuid', self.branch+'-extra'):
+            with self.subTest(branch=branch), mock.patch.dict(os.environ, self.environment(branch)):
+                with self.assertRaises(ValueError): module.bootstrap_run()
+        env = self.environment(self.branch); env['SIM_BOOTSTRAP_MODE'] = 'bootstrap'
+        with mock.patch.dict(os.environ, env), self.assertRaises(ValueError): module.bootstrap_run()
 
 
 if __name__ == '__main__':

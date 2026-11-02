@@ -163,5 +163,23 @@
     "pg_dump": "a656502909efe19336fc411e89abba2a32b5bfaecdb959a7acb4b4523ed5a15d",
     "npm": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7"
   },
-  "qualifiedToolArtifactProofSHA256": "44c66d9603dbf54cda6928d0eada4c16c5136b5bffcc796383c2ad0500679930"
+  "qualifiedToolArtifactProofSHA256": "44c66d9603dbf54cda6928d0eada4c16c5136b5bffcc796383c2ad0500679930",
+  "supportedDockerServerVersions": [
+    "28.0.4",
+    "28.5.2"
+  ],
+  "hostCapacityCoverage": {
+    "worker": "verified initial/global-v2 complete ancestry",
+    "backend": "measured actual socket-serving daemon and effective shared container-parent complete ancestry",
+    "minimumSharedBackendRAMBytes": 8589934592,
+    "individualDaemonOrContainerMinimum": "NONE; record actual limits separately",
+    "unknownOrChangedMapping": "HOLD",
+    "historicalWorkerOnlyProof": "not sufficient for native admission"
+  },
+  "runtimeInvocation": {
+    "manual": "workflow_dispatch when workflow exists on default branch",
+    "nativePush": "exact codex/t2-native-UUIDv4; actual API run/head/branch plus signed assignment/role binding required",
+    "publicationGrantsAuthority": false,
+    "retry": "none; actual future event needs its own qualified budget"
+  }
 }

@@ -4,6 +4,8 @@ on:
     paths:
       - '.github/workflows/t2-term-disposable.yml'
       - 'scripts/simulation/track2/**'
+  push:
+    branches: [codex/t2-native-*]
   workflow_dispatch:
     inputs:
       mode:
@@ -24,6 +26,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - run: python3 -B scripts/simulation/track2/hosted/qualification.test.py
+      - run: python3 -B scripts/simulation/track2/hosted/host-capacity.test.py
       - run: python3 -B scripts/simulation/track2/hosted/business-evidence.test.py
       - run: bash -n scripts/simulation/track2/{up,run,down}.sh scripts/simulation/track2/lib/common.sh scripts/simulation/track2/hosted/{prepare,cleanup}.sh
   bootstrap-probe:
@@ -41,7 +44,7 @@ jobs:
       - name: Observe this PR host without installation or backend allocation
         run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation bootstrap-observe
   allocation:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 1
     outputs:
@@ -54,13 +57,13 @@ jobs:
           SOURCE_HEAD: ${{ github.sha }}
         run: printf 'T2 invocation %s source %s; backend not provisioned\n' "$RUN_ID" "$SOURCE_HEAD"
   term:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     needs: [source-contracts, allocation]
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     env:
       PYTHONDONTWRITEBYTECODE: '1'
-      SIM_BOOTSTRAP_MODE: ${{ inputs.mode }}
+      SIM_BOOTSTRAP_MODE: ${{ github.event_name == 'push' && 'admitted' || inputs.mode }}
       SIM_REQUIRE_ACTOR_RECEIPT: '1'
       NODE_OPTIONS: --max-old-space-size=6144
       GH_TOKEN: ${{ github.token }}
@@ -79,25 +82,25 @@ jobs:
       - name: Observe actual same-host boot, daemon, capacity and source before heavy work
         run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation bootstrap-observe
       - name: Receive encrypted private run-bound admission on this same host
-        if: inputs.mode == 'admitted'
+        if: env.SIM_BOOTSTRAP_MODE == 'admitted'
         run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation receive-admission
       - name: Validate assignment-bound private materials before backend allocation
-        if: inputs.mode == 'admitted'
+        if: env.SIM_BOOTSTRAP_MODE == 'admitted'
         run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation check-materials
       - name: Authenticate source before dependency scripts
-        if: inputs.mode == 'admitted'
+        if: env.SIM_BOOTSTRAP_MODE == 'admitted'
         run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation check-source
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        if: inputs.mode == 'admitted'
+        if: env.SIM_BOOTSTRAP_MODE == 'admitted'
         with:
           node-version: 22.22.0
           cache: npm
       - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb
-        if: inputs.mode == 'admitted'
+        if: env.SIM_BOOTSTRAP_MODE == 'admitted'
         with:
           version: 2.101.0
       - name: Install source-pinned npm without lifecycle scripts
-        if: inputs.mode == 'admitted'
+        if: env.SIM_BOOTSTRAP_MODE == 'admitted'
         shell: bash
         run: |
           set -euo pipefail
@@ -105,7 +108,7 @@ jobs:
           echo '5cd1e5ab971ea6333f910bc2d50700167c5ef4e66da279b2a3efc874c6b116e4  '"$RUNNER_TEMP/npm-10.9.2.tgz" | sha256sum --check --status
           npm install --global --ignore-scripts --no-audit --no-fund "$RUNNER_TEMP/npm-10.9.2.tgz"
       - name: Install verified PostgreSQL17 client and ABI dependency packages
-        if: inputs.mode == 'admitted'
+        if: env.SIM_BOOTSTRAP_MODE == 'admitted'
         shell: bash
         run: |
           set -euo pipefail
@@ -117,13 +120,13 @@ jobs:
           sudo apt-get install -y -qq "$RUNNER_TEMP/libpq5.deb" "$RUNNER_TEMP/postgresql-client-17.deb"
           echo '/usr/lib/postgresql/17/bin' >> "$GITHUB_PATH"
       - name: Verify signed install policy and install exact lock dependencies privately
-        if: inputs.mode == 'admitted'
+        if: env.SIM_BOOTSTRAP_MODE == 'admitted'
         run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation install-dependencies
       - name: Prime only signed immutable image inventory on this admitted host
-        if: inputs.mode == 'admitted'
+        if: env.SIM_BOOTSTRAP_MODE == 'admitted'
         run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation prime-images
       - name: Replay, consume and restore within one owned canonical shell
-        if: inputs.mode == 'admitted'
+        if: env.SIM_BOOTSTRAP_MODE == 'admitted'
         shell: bash
         run: |
           # No raw replay/build/assignment output enters Actions logs/artifacts.
@@ -133,10 +136,10 @@ jobs:
             exit 1
           fi
       - name: Seal observed business effects before cleanup
-        if: always() && inputs.mode == 'admitted'
+        if: always() && env.SIM_BOOTSTRAP_MODE == 'admitted'
         run: python3 -B scripts/simulation/track2/hosted/business-evidence.py --seal
       - name: Always clean exact owned resources on this host
-        if: always() && inputs.mode == 'admitted'
+        if: always() && env.SIM_BOOTSTRAP_MODE == 'admitted'
         shell: bash
         run: |
           umask 077
@@ -147,10 +150,10 @@ jobs:
             fi
           fi
       - name: Create strictly allowlisted safe summary
-        if: always() && inputs.mode == 'admitted'
+        if: always() && env.SIM_BOOTSTRAP_MODE == 'admitted'
         run: python3 -B scripts/simulation/track2/hosted/qualify-runtime.py --operation safe-summary
       - name: Export only safe review receipt
-        if: always() && inputs.mode == 'admitted'
+        if: always() && env.SIM_BOOTSTRAP_MODE == 'admitted'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: t2-safe-receipt-${{ github.run_id }}

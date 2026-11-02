@@ -408,7 +408,11 @@ container inventory subsequently refuses image IDs outside the signed lock.
 Actual delivery sequence under T2's standing mandate: finish independent source
 reviews; publish the reviewed PR through the serial delivery owner; execute its
 read-only PR probe and retain exact source/run/check/notice digest; merge the
-reviewed workflow so manual dispatch exists; execute `mode=bootstrap` to observe
+reviewed workflow if using manual dispatch; alternatively use the strictly bound
+`codex/t2-native-UUIDv4` push entry point only after actual source/GEN, event budget,
+producer and backend qualification. A source tag or ordinary source branch is
+not a native invocation. No authority follows from publication. For manual
+dispatch, execute `mode=bootstrap` to observe
 an actual term host without issuer materials; then use a **new** `mode=admitted`
 invocation only once genuine business/input/native/tool/image qualification is
 available, and sign that invocation's fresh proof. Root handles publication and
@@ -422,7 +426,8 @@ actual run event/attempt/workflow path, unique job, GitHub Actions check provena
 actual head as a parent of the checked-out merge commit, and commit tree readback.
 It never confuses API PR head with checkout merge SHA. Private/public run, mode,
 proof digest and checkout tree must match. Term uses `--bootstrap-job term` and
-requires dispatch head equality. PR proof and bootstrap-only mode cannot satisfy
+requires actual invocation head equality; a native push also binds its exact
+UUID branch through the actual API and signed role/assignment input. PR proof and bootstrap-only mode cannot satisfy
 admitted delivery, regardless of passing capacity.
 
 ### GitHub annotation framing
@@ -451,3 +456,20 @@ private proof digest and exact source/tree/run checks remain unchanged. No priva
 payload, host identity or key is put in these public notices. Actual corrected
 source must still be independently reviewed, published once and probed on GitHub;
 local truncation controls are not a replacement for consuming that real proof.
+
+
+The native push entry point does not require this workflow on default main. It
+uses the actual pushed workflow source, admitted mode, one actual run/attempt,
+and an exact UUID branch bound in the signed assignment and role proofs. Both
+the host-proof and business-evidence consumers verify actual GitHub provenance;
+ordinary push branches are refused. Prior budgets stay closed.
+
+Capacity qualification covers the worker and the actual shared Docker container
+parent. The existing 8 GiB floor applies to those aggregate budgets, not every
+individual daemon or container leaf. Socket activation must identify the real
+dockerd through its listener descriptor; PID1 is not a daemon-memory proxy.
+Unknown configuration, process or parent mappings HOLD before heavy work.
+Individual limits are recorded; owned process and parent bindings are checked
+again before backend qualification and scenario execution. Safe exact cleanup
+remains available when capacity is lost. Older worker-only observations retain
+their historical meaning and do not admit a new backend.
