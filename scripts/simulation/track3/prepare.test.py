@@ -509,7 +509,7 @@ class QualifiedKernelFamilyTests(unittest.TestCase):
 
 
     def test_outside_qualified_families_or_malformed_release_remains_unknown(self):
-        for release in ['7.0.0', '99.0.0', '6.19.0', '6.7.0', '6.18', '6.18.garbage', '06.18.57', '6.018.57', '6.18.57trailing', 'not-a-kernel-release']:
+        for release in ['7.1.0', '7.99.0', '8.0.0', '7.0', '7.0.garbage', '07.0.0', '99.0.0', '6.19.0', '6.7.0', '6.18', '6.18.garbage', '06.18.57', '6.018.57', '6.18.57trailing', 'not-a-kernel-release']:
             with self.subTest(release=release):
                 self.release=release
                 host=self.host(self.positive_files())
@@ -526,6 +526,17 @@ class QualifiedKernelFamilyTests(unittest.TestCase):
                 self.assertEqual(host['capacityStatus'],'QUALIFIED')
                 self.assertEqual(host['effectiveRamBytes'],12*2**30)
                 self.assertEqual(host['capacityObservation']['kernelRelease'],self.release)
+
+
+    def test_actual_observed_700_azure_label_has_positive_real_fd_contract_path(self):
+        # Exact observed family/label is a finite test input, not host/RAM proof.
+        self.release='7.0.0-1017-azure'
+        self.test_qualified_61857_with_actual_fd_contract_and_complete_hierarchy_qualifies()
+
+    def test_same_700_azure_label_wrong_fd_and_ancestry_still_hold(self):
+        self.release='7.0.0-1017-azure'
+        self.test_qualified_61857_wrong_fd_contract_remains_unknown()
+        self.test_qualified_61857_hidden_mount_missing_ancestor_and_race_remain_unknown()
 
 
 if __name__ == '__main__':

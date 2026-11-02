@@ -98,7 +98,9 @@ def phase_environment(host, node):
 # Actual release must match; this is not a nominal VM/provider-size assertion.
 # proc_ns.h reserves the initial inode; cgroup.c initializes init_cgroup_ns with
 # it; nsfs.c exposes ns->inum and NS_GET_NSTYPE. Unknown kernels stay UNKNOWN.
-CGROUP_KERNEL_FAMILIES = {(6, minor) for minor in range(8, 19)}
+# Linux7.0 additionally qualified on official immutable commit
+# 028ef9c96e96197026887c0f092424679298aae8, including dynamic namespace allocation.
+CGROUP_KERNEL_FAMILIES = {(6, minor) for minor in range(8, 19)} | {(7, 0)}
 PROC_CGROUP_INIT_INO = 0xEFFFFFFB
 NSFS_MAGIC, PROCFS_MAGIC = 0x6e736673, 0x9fa0
 CGROUP_MAGIC, CGROUP2_MAGIC = 0x27e0eb, 0x63677270
