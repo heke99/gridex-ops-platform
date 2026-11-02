@@ -1,3 +1,4 @@
+import {loadContractCommercialSegments,type ContractCommercialAssignment} from '@/lib/customer-contracts/amendment'
 import { supabaseService } from '@/lib/supabase/service'
 import type { MeteringValueRow } from '@/lib/cis/types'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
@@ -129,8 +130,26 @@ export async function updateMeterValueBillingReadiness(params: {
   const periods = (periodsResponse.data ?? []) as Array<Record<string, unknown>>
   const period = periods.length === 1 ? periods[0] : null
 
-  const contractId = typeof period?.contract_id === 'string' ? period.contract_id : null
+  let contractId = typeof period?.contract_id === 'string' ? period.contract_id : null
   const customerId = typeof period?.customer_id === 'string' ? period.customer_id : null
+  let commercialAssignment:ContractCommercialAssignment|null=null
+  let commercialSourceBlocked=false
+  if(contractId&&customerId&&typeof period?.id==='string') {
+    try {
+      commercialAssignment=await loadContractCommercialSegments({companyId,customerId,meteringPointId,
+        supplyPeriodId:period.id,physicalContractId:contractId,
+        start:new Date(periodStartRaw).toISOString(),end:new Date(periodEndRaw).toISOString()})
+      if(commercialAssignment.segments.length!==1) throw new Error('signed_amendment_single_commercial_segment_required')
+      contractId=commercialAssignment.segments[0].contractId
+    } catch(error) {
+      // A genuinely unqualified physical supply is a normal blocked ingestion
+      // outcome. Unknown/missing authority and malformed assignments still fail
+      // closed; never substitute the physical root as a commercial fallback.
+      const refusal=error as {code?:unknown;message?:unknown}|null
+      if(refusal?.code!=='23514'||refusal.message!=='signed_amendment_physical_source_unqualified') throw error
+      commercialSourceBlocked=true;contractId=null
+    }
+  }
   let contracts: Array<Record<string, unknown>> = []
   if (contractId && customerId) {
     const contractResponse = await supabaseService
@@ -158,6 +177,15 @@ export async function updateMeterValueBillingReadiness(params: {
     allowEstimatedValues: params.allowEstimatedValues,
   })
   let gate: Pick<typeof evaluated, 'status' | 'eligible' | 'reasons' | 'snapshot'> = evaluated
+  if(commercialAssignment&&commercialAssignment.segments[0].contractId!==commercialAssignment.physicalContractId) {
+    gate={...gate,snapshot:{...gate.snapshot,commercial_assignment:commercialAssignment}}
+  }
+  if(commercialSourceBlocked) {
+    gate={status:'blocked',eligible:false,
+      reasons:[...gate.reasons,{code:'supply_source_unqualified',message:'Leveransperioden saknar kvalificerat Ediel-underlag.'}],
+      snapshot:{...gate.snapshot,supply_source_qualified:false}}
+  }
+
   const persist = () => persistBillingGate({
     meterValueId: params.meterValue.id,
     normalizedValueId,

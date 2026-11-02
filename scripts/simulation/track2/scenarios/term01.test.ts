@@ -5,6 +5,7 @@
 // med riktig admin-cookie-session, och DB-raden i customer_contracts.
 // Ingen webbläsare (Playwright) används: ren HTTP + psql. Auth/JWT = real tid; affärsdatum = explicita parametrar.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import {runPreparedSignedAmendmentScenario} from '../lib/term-amendment'
 import { Buffer } from 'node:buffer'
 import { loginSession, psql, psqlRows, removeAdminFixtureUser, type AppSession } from '../lib'
 import { assertContractEditFeedback, callServerAction, type ServerActionResult } from '../lib/server-action'
@@ -646,12 +647,12 @@ describe('TERM01 bindningstid och slutdatum', () => {
       expect(psql(`select count(*) from public.contract_price_snapshots where id='${c.priceSnapshotId}'`)).toBe('1')
     })
 
-    it('TERM01.05 ändringsflöde måste verifiera ny version och bevarad historik', () => {
-      // Object names cannot prove an executed customer-contract amendment.
-      // Keep the preceding immutability assertions, but require the normal
-      // amendment, effective date, new version and preserved predecessor before
-      // this scenario can pass. No such qualified step is implemented here yet.
-      throw new Error('TERM01.05 HOLD: ordinarie ändringsflöde med ny avtalsversion och bevarad föregångare är inte verifierat')
+    it('TERM01.05 vanlig signerad ändring får ny version och korrekt ikraftträdande med bevarad historik', async () => {
+      // Existing immutable negative controls above remain required. The positive
+      // path needs T4's genuinely qualified physical fixture, never SQL supply
+      // seeds, an unsigned edit or a component-only acceptance substitute.
+      const evidence=await runPreparedSignedAmendmentScenario()
+      console.info('[TERM01.05 signed amendment]',JSON.stringify(evidence))
     })
   })
 

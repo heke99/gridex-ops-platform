@@ -1,3 +1,4 @@
+import {currentStockholmCalendarDate} from '@/lib/time/stockholm'
 import { supabaseService } from '@/lib/supabase/service'
 
 /**
@@ -165,6 +166,36 @@ function preferContract(a: ContractRow, b: ContractRow): ContractRow {
   return String(a.created_at ?? '') >= String(b.created_at ?? '') ? a : b
 }
 
+type AmendmentMeteringChoice={meteringPointId:string;rootContractId:string;contractId:string;priceSnapshotId:string|null;priceSHA256:string|null}
+async function amendmentMeteringChoices(companyId:string,ids:string[],onDate:string) {
+  const excluded=new Set<string>(),choices:AmendmentMeteringChoice[]=[]
+  const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+  const validId=(value:unknown):value is string=>typeof value==='string'&&uuid.test(value)&&value!=='00000000-0000-0000-0000-000000000000'
+  for(let offset=0;offset<ids.length;offset+=500) {
+    const batch=ids.slice(offset,offset+500)
+    const {data,error}=await supabaseService.rpc('gridex_read_contract_amendment_choices_v1',{
+      p_company_id:companyId,p_metering_point_ids:batch,p_on_date:onDate,
+    })
+    if(error) throw error
+    const result=record(data)
+    if(result.schema!=='gridex-contract-amendment-metering-choices-v1'||result.companyId!==companyId||result.onDate!==onDate
+      ||!Array.isArray(result.excludedAmendmentContractIds)||!Array.isArray(result.choices)
+      ||result.excludedAmendmentContractIds.some(x=>!validId(x))) throw new Error('amendment_metering_choice_invalid')
+    for(const id of result.excludedAmendmentContractIds) excluded.add(id as string)
+    for(const value of result.choices) {
+      const choice=record(value)
+      if(!validId(choice.meteringPointId)||!batch.includes(choice.meteringPointId)||!validId(choice.rootContractId)||!validId(choice.contractId)
+        ||choices.some(x=>x.meteringPointId===choice.meteringPointId)
+        ||(choice.contractId===choice.rootContractId?(choice.priceSnapshotId!==null||choice.priceSHA256!==null):
+          (!validId(choice.priceSnapshotId)||typeof choice.priceSHA256!=='string'||!/^[0-9a-f]{64}$/.test(choice.priceSHA256)))) {
+        throw new Error('amendment_metering_choice_invalid')
+      }
+      choices.push(choice as AmendmentMeteringChoice)
+    }
+  }
+  return {excluded,choices}
+}
+
 /**
  * Batched, tenant-scoped lookup of the resolution each metering point's current
  * contract requires. `onDate` (YYYY-MM-DD) picks the contract in force then.
@@ -178,7 +209,8 @@ export async function loadMeteringResolutionRequirements(input: {
   const result = new Map<string, MeteringResolutionRequirement>()
   if (ids.length === 0) return result
 
-  const [pointsResult, contractsResult] = await Promise.all([
+  const onDate=input.onDate??currentStockholmCalendarDate()
+  const [pointsResult, contractsResult,amendments] = await Promise.all([
     supabaseService
       .from('metering_points')
       .select('id, reading_frequency')
@@ -190,6 +222,7 @@ export async function loadMeteringResolutionRequirements(input: {
       .eq('company_id', input.companyId)
       .in('metering_point_id', ids)
       .in('status', CURRENT_CONTRACT_STATUSES),
+    amendmentMeteringChoices(input.companyId,ids,onDate),
   ])
   if (pointsResult.error) throw pointsResult.error
   if (contractsResult.error) throw contractsResult.error
@@ -200,9 +233,43 @@ export async function loadMeteringResolutionRequirements(input: {
   }
   const contractByPoint = new Map<string, ContractRow>()
   for (const row of (contractsResult.data ?? []) as ContractRow[]) {
-    if (!row.metering_point_id || !contractCoversDate(row, input.onDate ?? null)) continue
+    if (!row.metering_point_id || amendments.excluded.has(row.id) || !contractCoversDate(row,input.onDate??null)) continue
     const current = contractByPoint.get(row.metering_point_id)
     contractByPoint.set(row.metering_point_id, current ? preferContract(current, row) : row)
+  }
+
+  const allContracts=(contractsResult.data??[]) as ContractRow[]
+  const missing=amendments.choices.filter(x=>!allContracts.some(c=>c.id===x.contractId)).map(x=>x.contractId)
+  if(missing.length) {
+    const {data,error}=await supabaseService.from('customer_contracts')
+      .select('id, metering_point_id, contract_type, price_snapshot, status, starts_at, ends_at, created_at')
+      .eq('company_id',input.companyId).in('metering_point_id',ids).in('id',missing)
+    if(error) throw error
+    allContracts.push(...(data??[]) as ContractRow[])
+  }
+  const priceIds=amendments.choices.flatMap(x=>x.priceSnapshotId?[x.priceSnapshotId]:[])
+  let prices:Array<{id:string;contract_id:string;company_id:string;snapshot_hash:string;snapshot_json:unknown}>=[]
+  if(priceIds.length) {
+    const {data,error}=await supabaseService.from('contract_price_snapshots').select('id,contract_id,company_id,snapshot_hash,snapshot_json')
+      .eq('company_id',input.companyId).in('id',priceIds)
+    if(error) throw error
+    prices=(data??[]) as typeof prices
+  }
+  for(const choice of amendments.choices) {
+    const rows=allContracts.filter(c=>c.id===choice.contractId&&c.metering_point_id===choice.meteringPointId)
+    if(rows.length!==1||allContracts.some(c=>c.metering_point_id===choice.meteringPointId
+      &&CURRENT_CONTRACT_STATUSES.includes(c.status)&&c.id!==choice.rootContractId&&!amendments.excluded.has(c.id))) {
+      throw new Error('amendment_metering_contract_scope_conflict')
+    }
+    const selected={...rows[0]}
+    if(choice.priceSnapshotId) {
+      const snapshots=prices.filter(p=>p.id===choice.priceSnapshotId&&p.contract_id===choice.contractId
+        &&p.company_id===input.companyId&&p.snapshot_hash===choice.priceSHA256)
+      if(snapshots.length!==1) throw new Error('amendment_metering_price_snapshot_mismatch')
+      selected.price_snapshot=snapshots[0].snapshot_json
+    }
+    contractByPoint.delete(choice.meteringPointId)
+    if(contractCoversDate(selected,onDate)) contractByPoint.set(choice.meteringPointId,selected)
   }
 
   for (const id of ids) {

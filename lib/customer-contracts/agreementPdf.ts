@@ -1,3 +1,4 @@
+import type {AmendmentSigningDisplay} from './amendmentInput'
 import type { EmailAttachment } from '@/lib/email/providers/types'
 
 export type AgreementPdfLegalVersion = {
@@ -44,6 +45,7 @@ export type AgreementPdfInput = {
   noticeMonths?: number | null
   legalVersions: AgreementPdfLegalVersion[]
   signatureSnapshotSha256?: string | null
+  amendment?: AmendmentSigningDisplay | null
 }
 
 export type PdfLine = {
@@ -198,6 +200,10 @@ function agreementLines(input: AgreementPdfInput): PdfLine[] {
   addWrapped(lines, `${input.contractName}${input.contractDescription ? ` - ${plainText(input.contractDescription)}` : ''}`)
   lines.push({ text: `Kundnummer: ${input.customerNumber}` })
   lines.push({ text: `Avtalsnummer: ${input.contractNumber}` })
+  if(input.amendment) {
+    addWrapped(lines,`Tidigare avtal: ${input.amendment.context.predecessorReference}`)
+    addWrapped(lines,`De nya villkoren gäller från ${formatDate(input.amendment.context.effectiveFrom)}. Tidigare signerade villkor och historik bevaras.`)
+  }
   if (contractTypeLabel) lines.push({ text: `Avtalstyp: ${contractTypeLabel}` })
   lines.push({ text: `Önskat startdatum: ${formatDate(input.startsAt)}` })
   lines.push({ text: `Bindningstid: ${monthLabel(input.bindingMonths)}` })

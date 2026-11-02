@@ -1,3 +1,4 @@
+import {readAmendmentSigningContext,type AmendmentSigningContext} from './amendmentInput';
 import { tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery';
 import { tenantDb } from '@/lib/supabase/tenantDb';
 import "server-only";
@@ -31,6 +32,8 @@ export type OnlineSignatureChannel =
   | "customer_portal";
 
 export type OnlineSignatureReceipt = {
+  amendment_context?: AmendmentSigningContext | null;
+  amendment_context_sha256?: string | null;
   request_id: string;
   company_id: string;
   customer_id: string;
@@ -225,10 +228,15 @@ function parseSignatureRequestResult(data: unknown): SignatureRequestRpcResult {
 
 function parseReceipt(data: unknown): OnlineSignatureReceipt {
   const row = asObject(data);
+  const amendment=row.amendment_context!=null||row.amendment_context_sha256!=null?readAmendmentSigningContext(row.amendment_context,row.amendment_context_sha256,{
+    contractId:requiredString(row.contract_id,'signature_receipt_contract_missing'),
+    pricingSnapshotSHA256:requiredString(row.pricing_snapshot_sha256,'signature_receipt_price_hash_missing'),
+  }):null;
   const legalVersions = Array.isArray(row.legal_versions)
     ? row.legal_versions.map((value) => asObject(value))
     : [];
   return {
+    ...(amendment?{amendment_context:amendment.context,amendment_context_sha256:amendment.sha256}:{}),
     request_id: requiredString(row.request_id, "signature_receipt_request_id_missing"),
     company_id: requiredString(row.company_id, "signature_receipt_company_id_missing"),
     customer_id: requiredString(row.customer_id, "signature_receipt_customer_id_missing"),
@@ -591,6 +599,9 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
     noticeMonths: price.noticeMonths,
     legalVersions,
     signatureSnapshotSha256: receipt.signature_snapshot_sha256,
+    amendment:readAmendmentSigningContext(receipt.amendment_context,receipt.amendment_context_sha256,{
+      contractId:receipt.contract_id,pricingSnapshotSHA256:receipt.pricing_snapshot_sha256,
+    }),
   });
   let pdfBuffer: Buffer;
   if (contractState.document_sha256) {
@@ -739,11 +750,18 @@ export async function finalizeOnlineContractSignature(input: {
   userAgent?: string | null;
   powerOfAttorneyAccepted?: boolean;
   powerOfAttorneyTermsVersion?: string | null;
+  amendmentContextSHA256?: string | null;
+  amendmentAccepted?: boolean;
 }) {
+  const amendment=Boolean(input.amendmentContextSHA256)||input.amendmentAccepted===true;
+  if(amendment&&(input.amendmentAccepted!==true||!input.amendmentContextSHA256||!/^[0-9a-f]{64}$/.test(input.amendmentContextSHA256))) {
+    throw new Error('amendment_customer_acknowledgement_required');
+  }
   const { data, error } = await supabaseService.rpc(
-    "gridex_finalize_customer_contract_signature_v2",
+    amendment?'gridex_finalize_customer_contract_amendment_signature_v1':'gridex_finalize_customer_contract_signature_v2',
     {
       p_token_hash: hashOnlineSignatureToken(input.token),
+      ...(amendment?{p_amendment_context_sha256:input.amendmentContextSHA256,p_amendment_accepted:true}:{}),
       p_signed_ip_hash: evidenceIpHash(input.ipAddress),
       p_signed_user_agent: input.userAgent?.slice(0, 1000) ?? null,
       p_signer_ip: input.ipAddress ?? null,

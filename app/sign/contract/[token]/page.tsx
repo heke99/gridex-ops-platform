@@ -195,6 +195,14 @@ export default async function ContractSigningPage({
           </div>
         </section>
 
+        {receipt.amendment_context ? (
+          <section className="rounded-3xl border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold">Ändring av tidigare avtal</h2>
+            <p className="mt-2">Tidigare avtal: {receipt.amendment_context.predecessorReference}.</p>
+            <p>De nya villkoren gäller från {dateOnly(receipt.amendment_context.effectiveFrom)}. Tidigare signerade villkor och historik bevaras. Denna ändring beställer inget nytt leverantörsbyte.</p>
+          </section>
+        ) : null}
+
         {signed ? (
           <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6">
             <h2 className="text-lg font-semibold text-emerald-950">Signeringen är registrerad</h2>
@@ -219,6 +227,15 @@ export default async function ContractSigningPage({
             ) : null}
             <form action={signContractAction} className="mt-5">
               <input type="hidden" name="token" value={token} />
+              {receipt.amendment_context ? (
+                <>
+                  <input type="hidden" name="amendment_context_sha256" value={receipt.amendment_context_sha256 ?? ''} />
+                  <label className="mb-5 flex items-start gap-3 text-sm leading-6">
+                    <input type="checkbox" name="amendment_accepted" value="yes" required className="mt-1 size-4 shrink-0" />
+                    <span>Jag godkänner att de nya villkoren ersätter villkoren i avtal {receipt.amendment_context.predecessorReference} från {dateOnly(receipt.amendment_context.effectiveFrom)}.</span>
+                  </label>
+                </>
+              ) : null}
               <input type="hidden" name="power_of_attorney_terms_version" value={ONLINE_POA_TERMS_VERSION} />
               {poaTerms?.siteAddress ? (
                 <p className="mb-4 text-sm leading-6">Anläggning: {poaTerms.siteAddress}. {poaTerms.facilityId ? `Anläggnings-ID: ${poaTerms.facilityId}.` : 'Anläggnings-ID hämtas från nätägaren med din fullmakt.'}</p>

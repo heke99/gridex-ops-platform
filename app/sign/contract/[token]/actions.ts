@@ -26,6 +26,8 @@ export async function signContractAction(formData: FormData) {
       userAgent,
       powerOfAttorneyAccepted: formData.get('power_of_attorney_accepted') === 'yes',
       powerOfAttorneyTermsVersion: String(formData.get('power_of_attorney_terms_version') ?? ''),
+      amendmentContextSHA256: String(formData.get('amendment_context_sha256') ?? '').trim() || null,
+      amendmentAccepted: formData.get('amendment_accepted') === 'yes',
     })
   } catch (error) {
     unstable_rethrow(error)
