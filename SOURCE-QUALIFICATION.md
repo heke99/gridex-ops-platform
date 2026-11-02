@@ -1,0 +1,15 @@
+# Bounded source qualification
+
+The previous worker-only proof did not exclude worker16GiB/sharedbackend2GiB. Two genuine existing reviewers independently verified that source gap; new tests failed on unchanged source because Blocked/ValueError were not raised for a low shared parent, changed daemon birth and missing actual canonical-container parent qualification.
+
+This8delta reuses immutable T2 helper/test originals byte-for-byte and adds only the existing T3 gate connection. A fixed hash-pinned sudo -n python3 -I -B read-only observer binds actual listener FD/root dockerd PID/start/peer/API/namespace/configuration to the worker's selected endpoint and mount/PID/network namespace view. Shared container-parent mapping and every ancestor memory budget are measured independently of the worker. Each requires>=8GiB; daemon/service/container individual leaves have no new8GiB floor. Original worker PROCFS/NSFS/current-process/held-FD/ioctl/initial-inode/global-root/fullEOF/stability, bounded6.8–6.18+7.0 policy and15GiB overlay/40GiBvfs floors remain mandatory. Unknown/unsupported stays HOLD.
+
+Actual canonical container full IDs, names and Created births are taken from complete owned project/network inventory, then re-inspected against actual running PIDs/global parent membership and ancestor budgets. Existing Packet.fresh repeats those originals before effects. A final source/identity/capacity gate immediately precedes canonical spawn. Hostproof preserves full actual diagnostics before rejection. Cleanup uses a separate same-authority identity observation, with no memory/controller health read/floor; changed listener/process/birth/config/parent identity preserves resources/HOLD.
+
+The .03oracle, default17, original canonical replay, full-v1 permissions/source/event/role/capsule checks, one-attempt locks, private plaintext boundaries and ordinary cleanup remain unchanged. All actual obligations still apply to a fresh job and genuine allocation. This code source approval alone is not any of them.
+
+Two actual independent delta finals and committed rebinds are included verbatim; /root/review_t3_admission retains E01/full63coauthor exclusion. T2's genuine authors/prior normative review-original delivery and current full63non-author rebind remain explicit external dependencies. Actual private producer ciphertext destination approval after automatic rejection remains separately pending. No alternative transport or operator is introduced.
+
+Prior12 official Linux7source originals are preserved at metadata5d96d87002e2d846f1d9679cab102c582c436c3d/OFFICIAL-LINUX7-SOURCE/manifest.private.json. Two additional official immutable028ef9c96e96197026887c0f092424679298aae8 PID namespace source originals close the helper's initialPID inode chain; their bytes/SHA256/Gitblobs and qualification are included. Tag provider GPGstatus remains unknown_key; no verified signature or Azure vendor binary attestation is claimed.
+
+Only source code, source-safe reviews/public originals and inert templates are published. Actual host/backend/native result is NOT_RUN, prior actual HOLD reviews remain preserved and no new whole scenario PASS is counted.

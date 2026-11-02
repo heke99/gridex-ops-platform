@@ -1,0 +1,19 @@
+{
+  "commit": "028ef9c96e96197026887c0f092424679298aae8",
+  "kernelTree": "564741c88daae5a588a1f82c9705a75539ef2f50",
+  "files": [
+    {
+      "path": "kernel/pid.c",
+      "bytes": 24117,
+      "sha256": "c1af8cc923eb205334e3fcdfdfb4d1e441ad81e659fa2d5aadb7fb4474e06840",
+      "gitBlob": "3b96571d0fe652bbcc22fc80895c4e21df89f16c"
+    },
+    {
+      "path": "kernel/pid_namespace.c",
+      "bytes": 11984,
+      "sha256": "1658cbd93fea367cdba608c2179a75f8918c3d4c05b39cdf80c8722effe1c72f",
+      "gitBlob": "e48f5de4136138dc61512d3a4c5dcf58f3a43273"
+    }
+  ],
+  "scope": "Exact Linux7.0 PID initial namespace applicability supplement for unchanged T2 donor; no policy/source/host admission"
+}
