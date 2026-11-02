@@ -1,0 +1,99 @@
+{
+  "scope": "GENUINE_OFFICIAL_LINUX7_SOURCE_ONLY_NOT_HOST_OR_RAM_ADMISSION",
+  "repository": "torvalds/linux",
+  "tag": "v7.0",
+  "tagObject": "3131ff5a117498bb4b9db3a238bb311cbf8383ce",
+  "commit": "028ef9c96e96197026887c0f092424679298aae8",
+  "providerTagSignatureVerification": {
+    "verified": false,
+    "reason": "unknown_key",
+    "claim": "No independent GPGverificationclaimed; officialrepo/ref/immutableGitobjects/sourcebytesqualifyprovenance"
+  },
+  "files": [
+    {
+      "path": "Documentation/admin-guide/cgroup-v2.rst",
+      "bytes": 130001,
+      "sha256": "e42ff6aaf6277c94e12e0a1a2fd5b8a97ad8fa408d137a84e81fd3d00c616acd",
+      "gitBlob": "91beaa6798ce02817546fdde8dfa6659bc9415ab",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/028ef9c96e96197026887c0f092424679298aae8/Documentation/admin-guide/cgroup-v2.rst"
+    },
+    {
+      "path": "fs/nsfs.c",
+      "bytes": 17574,
+      "sha256": "a33cbabdadd2e37b3b5393f7cfd1bc277e32f651e3e2c8bea4274a05c53495a8",
+      "gitBlob": "c215878d55e8798775c38b1d4c0eea96e20f71cd",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/028ef9c96e96197026887c0f092424679298aae8/fs/nsfs.c"
+    },
+    {
+      "path": "fs/proc/generic.c",
+      "bytes": 20001,
+      "sha256": "89cb3704808e2f83c6c20e3bd8c3b3f01310c8c636abe60279534138913bec9d",
+      "gitBlob": "501889856461b544deb18f81c68fcfb23feece7e",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/028ef9c96e96197026887c0f092424679298aae8/fs/proc/generic.c"
+    },
+    {
+      "path": "include/linux/ns_common.h",
+      "bytes": 4651,
+      "sha256": "b844817d3473a9a05ff548748e7ad9785284814f7c5c9b6cd75921c9cfa93a94",
+      "gitBlob": "c8e227a3f9e22b14d83cc90fd433ad3c15544ac9",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/028ef9c96e96197026887c0f092424679298aae8/include/linux/ns_common.h"
+    },
+    {
+      "path": "include/linux/proc_ns.h",
+      "bytes": 2004,
+      "sha256": "63376480b58e72b13c36b69daf536a089a2af558544863e9e2f1fe37e7ffd537",
+      "gitBlob": "e81b8e596e4f194fde4a60843fb95b228d4898d1",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/028ef9c96e96197026887c0f092424679298aae8/include/linux/proc_ns.h"
+    },
+    {
+      "path": "include/uapi/linux/magic.h",
+      "bytes": 4043,
+      "sha256": "fc7cf0a4a624ce9908431e8ea9fe97db341c499fa8007594a54d8ed622e3f16c",
+      "gitBlob": "4f2da935a76ccae6e1c3310b2fae5379186548b8",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/028ef9c96e96197026887c0f092424679298aae8/include/uapi/linux/magic.h"
+    },
+    {
+      "path": "include/uapi/linux/nsfs.h",
+      "bytes": 3843,
+      "sha256": "da2a23c34182dec8b65bf8be116e169d0970f68907024e00c6ada4c846c04d65",
+      "gitBlob": "a25e38d1c8747da2fa4124668e2fa0f7a4fb4022",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/028ef9c96e96197026887c0f092424679298aae8/include/uapi/linux/nsfs.h"
+    },
+    {
+      "path": "include/uapi/linux/sched.h",
+      "bytes": 6302,
+      "sha256": "2081b07cee6adab443e4ba320d0ccb13db4c97bed64f3eefafbfde2f25c833a4",
+      "gitBlob": "359a14cc76a4038aeacef14b2915d5ce60d0cf44",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/028ef9c96e96197026887c0f092424679298aae8/include/uapi/linux/sched.h"
+    },
+    {
+      "path": "kernel/cgroup/cgroup.c",
+      "bytes": 203911,
+      "sha256": "b40c3181443e3b323b71d2b89230d36534b4ba51896f28e16d1d0f0436c0fa23",
+      "gitBlob": "4ca3cb993da299aa10174cc619268840b7984049",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/028ef9c96e96197026887c0f092424679298aae8/kernel/cgroup/cgroup.c"
+    },
+    {
+      "path": "kernel/cgroup/namespace.c",
+      "bytes": 3263,
+      "sha256": "b3da685cf612176d1172d6f3b136411db68d201cb2e631bd09e2931ad31aeff7",
+      "gitBlob": "ea4ee13936be9cac8956f3223be092c3075af508",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/028ef9c96e96197026887c0f092424679298aae8/kernel/cgroup/namespace.c"
+    },
+    {
+      "path": "include/linux/ns/ns_common_types.h",
+      "bytes": 8650,
+      "sha256": "ca2166a80f9907f6ca69fae53cf6cd61f43960afc7d0ed8d4643f8f977e19837",
+      "gitBlob": "0014fbc1c62692069820c10d772c7b4b6a6605d6",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/028ef9c96e96197026887c0f092424679298aae8/include/linux/ns/ns_common_types.h"
+    },
+    {
+      "path": "kernel/nscommon.c",
+      "bytes": 9194,
+      "sha256": "9a8a916567d67501e89b7e4744369f57f7f556196016b0832feb98c2b97a5137",
+      "gitBlob": "3166c1fd844afd6141f0042e1455604693872da5",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/028ef9c96e96197026887c0f092424679298aae8/kernel/nscommon.c"
+    }
+  ],
+  "allImmutableRemoteBlobsVerified": true
+}
