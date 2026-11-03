@@ -335,6 +335,7 @@ describe('#8 inbound-mail cron returns codes only', () => {
     vi.doMock('@/lib/inbound-mail/edielMailboxPoller', () => ({
       runInboundEdielMailEngine: async () => { throw new Error('relation "ediel_private_table" does not exist at host db.internal') },
     }))
+    vi.doMock('@/lib/ediel/automationActor', () => ({ resolveConfiguredEdielAutomationActorId: async () => '7c9e6679-7425-40de-944b-e07fc1f90ae7' }))
     const { POST } = await import('@/app/api/internal/inbound-mail/cron/route')
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const { NextRequest } = await import('next/server')

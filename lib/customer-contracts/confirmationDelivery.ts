@@ -17,105 +17,93 @@ export function confirmationRetryDelayMs(attempts: number): number {
   return Math.min(5 * 60_000 * 2 ** Math.max(0, attempts - 1), 6 * 60 * 60_000);
 }
 
-const LEASE_MS = 10 * 60_000;
+type ConfirmationRef = Pick<OnlineSignatureReceipt, "company_id" | "contract_id" | "request_id">;
+type AdvanceResult = {
+  state: ContractConfirmationState;
+  attempts: number;
+  claimed: boolean;
+  advanced: boolean;
+  leaseUntil: string | null;
+};
 
-/**
- * Takes a time-bound lease on a pending row so the signing request and the
- * retry worker never deliver concurrently. Returns null when the row is
- * queued, failed or leased by someone else.
- */
-async function claimDelivery(receipt: OnlineSignatureReceipt): Promise<{ attempts: number } | null> {
-  const now = new Date();
-  const claimed = await supabaseService
-    .from(TABLE)
-    .update({ next_attempt_at: new Date(now.getTime() + LEASE_MS).toISOString(), updated_at: now.toISOString() })
-    .eq("company_id", receipt.company_id)
-    .eq("signature_request_id", receipt.request_id)
-    .eq("state", "pending")
-    .lte("next_attempt_at", now.toISOString())
-    .select("attempts")
-    .maybeSingle();
-  if (claimed.error) throw claimed.error;
-  return claimed.data ? { attempts: Number(claimed.data.attempts ?? 0) } : null;
+/** All writes use the versioned DB protocol. Never fall back to legacy writes:
+ * old runtime workers are denied by the V2 receipt's database version fence. */
+async function advanceDelivery(
+  receipt: ConfirmationRef,
+  action: "claim" | "queued" | "failed",
+  leaseUntil: string | null = null,
+  documentSha256: string | null = null,
+  message: string | null = null,
+): Promise<AdvanceResult> {
+  const { data, error } = await supabaseService.rpc("gridex_advance_contract_confirmation_v2", {
+    p_company_id: receipt.company_id,
+    p_contract_id: receipt.contract_id,
+    p_request_id: receipt.request_id,
+    p_action: action,
+    p_expected_lease_until: leaseUntil,
+    p_document_sha256: documentSha256,
+    p_error: message,
+  });
+  if (error) throw error;
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("confirmation_protocol_invalid");
+  const row = data as Record<string, unknown>;
+  const state = row.state;
+  if ((state !== "pending" && state !== "queued" && state !== "failed")
+    || typeof row.attempts !== "number" || !Number.isInteger(row.attempts) || row.attempts < 0
+    || (action === "claim" ? typeof row.claimed !== "boolean" : typeof row.advanced !== "boolean")
+    || (row.claimed === true && (typeof row.lease_until !== "string" || !row.lease_until))) {
+    throw new Error("confirmation_protocol_invalid");
+  }
+  return { state, attempts: row.attempts, claimed: row.claimed === true, advanced: row.advanced === true,
+    // Do not round PostgreSQL microseconds through a JavaScript Date.
+    leaseUntil: typeof row.lease_until === "string" ? row.lease_until : null };
 }
 
 export async function attemptContractConfirmationDelivery(
   receipt: OnlineSignatureReceipt,
   deliver: Deliver,
 ): Promise<{ state: ContractConfirmationState; error: string | null }> {
-  let claim = await claimDelivery(receipt);
-  if (!claim) {
-    const current = await loadContractConfirmationState({
-      companyId: receipt.company_id,
-      signatureRequestId: receipt.request_id,
-    });
-    if (current !== null) return { state: current, error: null };
-    // Signed before the continuation existed: create it, then claim.
-    const created = await supabaseService.from(TABLE).upsert(
-      {
-        company_id: receipt.company_id,
-        customer_contract_id: receipt.contract_id,
-        signature_request_id: receipt.request_id,
-      },
-      { onConflict: "company_id,signature_request_id", ignoreDuplicates: true },
-    );
-    if (created.error) throw created.error;
-    claim = await claimDelivery(receipt);
-    if (!claim) return { state: "pending", error: null };
-  }
-
+  const claim = await advanceDelivery(receipt, "claim");
+  if (!claim.claimed) return { state: claim.state, error: null };
   let documentSha256: string;
   try {
     documentSha256 = (await deliver(receipt)).documentSha256;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    await recordContractConfirmationFailure(receipt, claim.attempts, message);
-    return { state: claim.attempts + 1 >= CONFIRMATION_MAX_ATTEMPTS ? "failed" : "pending", error: message };
+    try {
+      const marked = await advanceDelivery(receipt, "failed", claim.leaseUntil, null, message);
+      return { state: marked.state, error: marked.advanced ? message : `confirmation_lease_lost: ${message}` };
+    } catch {
+      return { state: "pending", error: `confirmation_failure_not_recorded: ${message}` };
+    }
   }
-
-  // Delivery succeeded. A failure to record it keeps the lease; the next run
-  // re-delivers with the same idempotency keys, so no duplicate mail.
-  const now = new Date().toISOString();
-  const marked = await supabaseService
-    .from(TABLE)
-    .update({
-      state: "queued",
-      queued_at: now,
-      last_error: null,
-      document_sha256: documentSha256,
-      attempts: claim.attempts + 1,
-      updated_at: now,
-    })
-    .eq("company_id", receipt.company_id)
-    .eq("signature_request_id", receipt.request_id)
-    .eq("state", "pending");
-  if (marked.error) {
-    return { state: "pending", error: `confirmation_queued_but_state_not_recorded: ${String(marked.error.message ?? marked.error)}` };
+  // Unknown provider outcomes retain the same existing idempotency key. A
+  // stale worker cannot complete or reschedule a newer worker's lease.
+  try {
+    const marked = await advanceDelivery(receipt, "queued", claim.leaseUntil, documentSha256);
+    return { state: marked.state, error: marked.advanced ? null : "confirmation_lease_lost" };
+  } catch (error) {
+    return { state: "pending", error: `confirmation_queued_but_state_not_recorded: ${error instanceof Error ? error.message : String(error)}` };
   }
-  return { state: "queued", error: null };
 }
 
-/** Records a failed attempt with backoff; after the maximum the row is failed. */
+/** Preclaim worker failures may record only after acquiring their own lease.
+ * Caller-supplied attempt counts never override the authoritative locked row. */
 export async function recordContractConfirmationFailure(
   receipt: Pick<OnlineSignatureReceipt, "company_id" | "request_id">,
-  previousAttempts: number,
+  _previousAttempts: number,
   message: string,
 ): Promise<void> {
-  const attempts = previousAttempts + 1;
-  const now = Date.now();
-  await supabaseService
-    .from(TABLE)
-    .update({
-      state: attempts >= CONFIRMATION_MAX_ATTEMPTS ? "failed" : "pending",
-      attempts,
-      last_error: message.slice(0, 500),
-      next_attempt_at: new Date(now + confirmationRetryDelayMs(attempts)).toISOString(),
-      updated_at: new Date(now).toISOString(),
-    })
-    .eq("company_id", receipt.company_id)
-    .eq("signature_request_id", receipt.request_id)
-    .eq("state", "pending")
-    .then(() => undefined, () => undefined);
+  try {
+    const { data, error } = await supabaseService.from(TABLE).select("customer_contract_id")
+      .eq("company_id", receipt.company_id).eq("signature_request_id", receipt.request_id).maybeSingle();
+    if (error || !data?.customer_contract_id) return;
+    const ref = { ...receipt, contract_id: String(data.customer_contract_id) };
+    const claim = await advanceDelivery(ref, "claim");
+    if (claim.claimed) await advanceDelivery(ref, "failed", claim.leaseUntil, null, message);
+  } catch {
+    // Isolate this row without a direct write, unowned retry or provider call.
+  }
 }
 
 export async function loadContractConfirmationState(input: {

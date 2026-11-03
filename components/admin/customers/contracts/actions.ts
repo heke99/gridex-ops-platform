@@ -19,7 +19,10 @@ import {
   createCustomerContract,
   getContractOfferById,
   getCustomerContractById,
+  SEALED_CONTRACT_LIFECYCLE_TRANSITIONS,
+  SEALED_CONTRACT_TRANSITION_REFUSED_MESSAGE,
   updateCustomerContract,
+  updateSealedCustomerContractLifecycle,
 } from '@/lib/customer-contracts/db'
 import type {
   ContractOfferRow,
@@ -267,9 +270,6 @@ function parseCreateSigningChoice(
     signedDate: getString(formData, 'signed_date'),
     uploadedCreateStatus,
   })
-  if (!choice.ok) {
-    throw new Error(Object.values(choice.errors)[0] ?? 'Välj hur avtalet ska signeras.')
-  }
   return { choice, file }
 }
 
@@ -415,6 +415,12 @@ export async function createContractFromOfferAction(formData: FormData) {
   }
 
   const { choice: signingChoice, file: signedAgreementFile } = parseCreateSigningChoice(formData, 'pending_signature')
+  if (!signingChoice.ok) {
+    const fields = {signingMethod:'signing_method', signedAgreementFile:'signed_agreement_file', signedDate:'signed_date'}
+    const entry = Object.entries(signingChoice.errors).find(([,message]) => message)
+    return {status:'invalid' as const, message: entry?.[1] ?? 'Välj hur avtalet ska signeras.',
+      field: entry ? fields[entry[0] as keyof typeof fields] : 'signing_method'}
+  }
   const status: CustomerContractRow['status'] = signingChoice.createStatus
   const siteId = parseStringOrNull(formData.get('site_id'))
   const meteringPointId = parseStringOrNull(formData.get('metering_point_id'))
@@ -764,6 +770,7 @@ export async function createContractFromOfferAction(formData: FormData) {
     choice: signingChoice,
     file: signedAgreementFile,
   })
+  redirect(`/admin/customers/${customerId}/contracts/${contract.id}/signature`)
 }
 
 export async function createContractAction(formData: FormData) {
@@ -791,6 +798,12 @@ export async function createContractAction(formData: FormData) {
   }
 
   const { choice: signingChoice, file: signedAgreementFile } = parseCreateSigningChoice(formData, 'draft')
+  if (!signingChoice.ok) {
+    const fields = {signingMethod:'signing_method', signedAgreementFile:'signed_agreement_file', signedDate:'signed_date'}
+    const entry = Object.entries(signingChoice.errors).find(([,message]) => message)
+    return {status:'invalid' as const, message: entry?.[1] ?? 'Välj hur avtalet ska signeras.',
+      field: entry ? fields[entry[0] as keyof typeof fields] : 'signing_method'}
+  }
   const status: CustomerContractRow['status'] = signingChoice.createStatus
   const siteId = parseStringOrNull(formData.get('site_id'))
   const meteringPointId = parseStringOrNull(formData.get('metering_point_id'))
@@ -951,6 +964,162 @@ export async function createContractAction(formData: FormData) {
     choice: signingChoice,
     file: signedAgreementFile,
   })
+  redirect(`/admin/customers/${customerId}/contracts/${contract.id}/signature`)
+}
+
+const SEALED_CONTRACT_STATUSES = new Set<string>(['signed', 'active', 'terminated', 'cancelled', 'expired'])
+const SIGNED_CONTRACT_EDIT_REFUSED_MESSAGE = 'Signerat avtal kan inte ändras – använd avtalsåtgärder.'
+
+/** Map known database refusals from the customer-card writer to controlled
+ * Swedish validation errors; unknown errors are returned unchanged. */
+function controlledContractUpdateError(error: unknown): unknown {
+  const problem = error && typeof error === 'object' ? error as { code?: unknown; message?: unknown } : null
+  const message = typeof problem?.message === 'string' ? problem.message : ''
+  if (problem?.code === '55000' && message.startsWith('signed_customer_contract_immutable')) {
+    return new Error(SIGNED_CONTRACT_EDIT_REFUSED_MESSAGE)
+  }
+  if (message.includes('termination_notice_already_recorded')) {
+    return new Error('Uppsägningsdatum är redan registrerat och kan inte ändras här – använd avtalsåtgärder.')
+  }
+  if (message.includes('termination_notice_before_contract_start')) {
+    return new Error('Uppsägningsdatum kan inte vara före avtalets startdatum.')
+  }
+  if (message === 'customer_contract_activation_requires_supply_graph') {
+    return new Error('Avtalet kan bara aktiveras när leveransstarten är registrerad – använd avtalsåtgärder.')
+  }
+  if (message === 'customer_contract_terminal_evidence_required') {
+    return new Error('Avslut kräver slutdatum och orsakskod – använd avtalsåtgärder.')
+  }
+  if (message.startsWith('customer_contract_transition_not_allowed:')) {
+    return new Error(SEALED_CONTRACT_TRANSITION_REFUSED_MESSAGE)
+  }
+  return error
+}
+
+const SEALED_TEXT_FIELDS = ['site_id', 'metering_point_id', 'contract_name', 'contract_type', 'green_fee_mode', 'discount_unit', 'terms_version'] as const
+const SEALED_NUMBER_FIELDS = ['fixed_price_ore_per_kwh', 'spot_markup_ore_per_kwh', 'variable_fee_ore_per_kwh', 'monthly_fee_sek', 'invoice_fee_sek', 'green_fee_value', 'discount_value', 'start_fee_sek', 'admin_fee_sek', 'break_fee_sek', 'binding_months', 'notice_months', 'auto_renew_term_months'] as const
+const SEALED_DATE_FIELDS = ['starts_at', 'ends_at', 'signed_at'] as const
+
+/** True when a submitted value differs from a column the database seals once
+ * a contract is signed or locked. Absent form fields are not changes. */
+function sealedFieldChanged(formData: FormData, before: CustomerContractRow): string | null {
+  const row = before as unknown as Record<string, unknown>
+  const text = (value: unknown) => (value === null || value === undefined ? '' : String(value).trim())
+  for (const field of SEALED_TEXT_FIELDS) {
+    if (!formData.has(field)) continue
+    const fallback = field === 'green_fee_mode' ? 'none' : ''
+    if ((text(formData.get(field)) || fallback) !== (text(row[field]) || fallback)) return field
+  }
+  for (const field of [...SEALED_NUMBER_FIELDS, 'vat_rate'] as const) {
+    if (!formData.has(field)) continue
+    const raw = text(formData.get(field)).replace(',', '.')
+    const parsed = raw === '' ? null : Number(raw)
+    if (parsed !== null && !Number.isFinite(parsed)) return field
+    const next = field === 'vat_rate' && parsed !== null ? parsed / 100 : parsed
+    const current = row[field] === null || row[field] === undefined ? null : Number(row[field])
+    if (next === null || current === null ? next !== current : Math.abs(next - current) > 1e-9) return field
+  }
+  for (const field of SEALED_DATE_FIELDS) {
+    if (!formData.has(field)) continue
+    if (text(formData.get(field)).slice(0, 10) !== text(row[field]).slice(0, 10)) return field
+  }
+  if (formData.has('auto_renew_present') || formData.has('auto_renew_enabled')) {
+    if (parseBoolean(formData.get('auto_renew_enabled')) !== Boolean(before.auto_renew_enabled)) return 'auto_renew_enabled'
+  }
+  return null
+}
+
+async function updateSealedContractFromCustomerCard(params: {
+  formData: FormData
+  before: CustomerContractRow
+  companyId: string
+  customerId: string
+  contractId: string
+  actorUserId: string
+}) {
+  const { formData, before, companyId, customerId, contractId, actorUserId } = params
+  if (sealedFieldChanged(formData, before)) throw new Error(SIGNED_CONTRACT_EDIT_REFUSED_MESSAGE)
+
+  const nextStatus = (getString(formData, 'status') || before.status) as CustomerContractRow['status']
+  const terminationReason = formData.has('termination_reason')
+    ? parseTerminationReason(formData.get('termination_reason'))
+    : before.termination_reason ?? null
+  const submittedNotice = formData.has('termination_notice_date')
+    ? parseStringOrNull(formData.get('termination_notice_date'))
+    : before.termination_notice_date ?? null
+  const previousNotice = before.termination_notice_date ? before.termination_notice_date.slice(0, 10) : null
+  const nextNotice = submittedNotice ? submittedNotice.slice(0, 10) : null
+  if (previousNotice && nextNotice !== previousNotice) {
+    // Clearing or replacing a recorded notice is not a customer-card edit (#938).
+    throw new Error('Uppsägningsdatum är redan registrerat och kan inte ändras här – använd avtalsåtgärder.')
+  }
+  const statusChanged = nextStatus !== before.status
+  const reasonChanged = terminationReason !== (before.termination_reason ?? null)
+  // Validate every transition before any write, so a refused status change
+  // never leaves a termination notice behind.
+  if (statusChanged && !(SEALED_CONTRACT_LIFECYCLE_TRANSITIONS[before.status] ?? []).includes(nextStatus)) {
+    throw new Error(SEALED_CONTRACT_TRANSITION_REFUSED_MESSAGE)
+  }
+  const terminalEvent = statusChanged && (nextStatus === 'terminated' || nextStatus === 'cancelled') ? nextStatus : null
+
+  try {
+    if (nextNotice && !previousNotice) {
+      // The canonical event command applies the notice and its database rules.
+      await addCustomerContractEvent({
+        companyId,
+        customerContractId: contractId,
+        customerId,
+        eventType: 'termination_notice_received',
+        happenedAt: nextNotice,
+        note: 'Uppsägning registrerad från kundkortet',
+        metadata: { terminationReason },
+        actorUserId,
+      })
+    }
+    if (terminalEvent) {
+      // The event RPC sets status, ended_at and status_reason_code atomically
+      // (20260727165000:200-243), satisfying the terminal state invariant.
+      await addCustomerContractEvent({
+        companyId,
+        customerContractId: contractId,
+        customerId,
+        eventType: terminalEvent,
+        note: terminalEvent === 'terminated' ? 'Avtal avslutat från kundkortet' : 'Avtal avbrutet från kundkortet',
+        metadata: {
+          previousStatus: before.status,
+          ...(terminationReason ? { termination_reason: terminationReason, reason_code: terminationReason } : {}),
+        },
+        actorUserId,
+      })
+    } else if (statusChanged || reasonChanged) {
+      const updated = await updateSealedCustomerContractLifecycle({
+        id: contractId,
+        customerId,
+        companyId,
+        currentStatus: before.status,
+        ...(statusChanged ? { status: nextStatus } : {}),
+        ...(reasonChanged ? { terminationReason } : {}),
+        actorUserId,
+      })
+      await addCustomerContractEvent({
+        companyId,
+        customerContractId: contractId,
+        customerId,
+        eventType: 'updated',
+        note: 'Signerat avtals livscykel uppdaterad från kundkortet',
+        metadata: {
+          previousStatus: before.status,
+          nextStatus: updated.status,
+          previousTerminationReason: before.termination_reason ?? null,
+          nextTerminationReason: updated.termination_reason ?? null,
+        },
+        actorUserId,
+      })
+    }
+  } catch (error) {
+    throw controlledContractUpdateError(error)
+  }
+  revalidatePath(`/admin/customers/${customerId}`)
 }
 
 export async function updateContractAction(formData: FormData) {
@@ -978,6 +1147,13 @@ export async function updateContractAction(formData: FormData) {
   const before = await getCustomerContractById(contractId, { companyId })
   if (!before || before.customer_id !== customerId || before.company_id !== companyId) {
     throw new Error('Kundavtalet kunde inte hittas')
+  }
+
+  // Signed/locked agreements are sealed by the database. Only lifecycle
+  // fields may change; never send the full row or a rebuilt price snapshot.
+  if (before.signed_at || before.locked_at || SEALED_CONTRACT_STATUSES.has(before.status)) {
+    await updateSealedContractFromCustomerCard({ formData, before, companyId, customerId, contractId, actorUserId: user.id })
+    return
   }
 
   const nextStatus = (getString(formData, 'status') || before.status) as CustomerContractRow['status']
@@ -1026,72 +1202,77 @@ export async function updateContractAction(formData: FormData) {
   }))
   if (updatePricingError) throw new Error(updatePricingError)
 
-  const updated = await updateCustomerContract({
-    id: contractId,
-    customerId,
-    siteId,
-    meteringPointId,
-    companyId,
-    status: nextStatus,
-    energyDirection: before.energy_direction,
-    contractName: getString(formData, 'contract_name') || before.contract_name,
-    contractType: parseContractType(formData.get('contract_type')),
-    campaignName,
-    campaignCode,
-    campaignVersion,
-    priceVersion,
-    termsVersion,
-    discountValue,
-    discountUnit,
-    startFeeSek,
-    adminFeeSek,
-    breakFeeSek,
-    vatRate,
-    priceSnapshot: {
-      ...manualProductionConfiguration(before),
-      ...buildPriceSnapshot({
-        fixedPriceOrePerKwh,
-        spotMarkupOrePerKwh,
-        variableFeeOrePerKwh,
-        monthlyFeeSek,
-        invoiceFeeSek,
-        greenFeeMode,
-        greenFeeValue,
-        discountValue,
-        discountUnit,
-        startFeeSek,
-        adminFeeSek,
-        breakFeeSek,
-        vatRate,
-      }),
-    },
-    campaignSnapshot: buildCampaignSnapshot({
+  let updated: Awaited<ReturnType<typeof updateCustomerContract>>
+  try {
+    updated = await updateCustomerContract({
+      id: contractId,
+      customerId,
+      siteId,
+      meteringPointId,
+      companyId,
+      status: nextStatus,
+      energyDirection: before.energy_direction,
+      contractName: getString(formData, 'contract_name') || before.contract_name,
+      contractType: parseContractType(formData.get('contract_type')),
       campaignName,
       campaignCode,
       campaignVersion,
       priceVersion,
       termsVersion,
-      meteringPointId,
-    }),
-    fixedPriceOrePerKwh,
-    spotMarkupOrePerKwh,
-    variableFeeOrePerKwh,
-    monthlyFeeSek,
-    invoiceFeeSek,
-    greenFeeMode,
-    greenFeeValue,
-    bindingMonths: parseIntOrNull(formData.get('binding_months')),
-    noticeMonths: parseIntOrNull(formData.get('notice_months')),
-    startsAt,
-    endsAt,
-    signedAt,
-    terminationNoticeDate,
-    terminationReason,
-    autoRenewEnabled,
-    autoRenewTermMonths,
-    overrideReason: getString(formData, 'override_reason') || null,
-    actorUserId: user.id,
-  })
+      discountValue,
+      discountUnit,
+      startFeeSek,
+      adminFeeSek,
+      breakFeeSek,
+      vatRate,
+      priceSnapshot: {
+        ...manualProductionConfiguration(before),
+        ...buildPriceSnapshot({
+          fixedPriceOrePerKwh,
+          spotMarkupOrePerKwh,
+          variableFeeOrePerKwh,
+          monthlyFeeSek,
+          invoiceFeeSek,
+          greenFeeMode,
+          greenFeeValue,
+          discountValue,
+          discountUnit,
+          startFeeSek,
+          adminFeeSek,
+          breakFeeSek,
+          vatRate,
+        }),
+      },
+      campaignSnapshot: buildCampaignSnapshot({
+        campaignName,
+        campaignCode,
+        campaignVersion,
+        priceVersion,
+        termsVersion,
+        meteringPointId,
+      }),
+      fixedPriceOrePerKwh,
+      spotMarkupOrePerKwh,
+      variableFeeOrePerKwh,
+      monthlyFeeSek,
+      invoiceFeeSek,
+      greenFeeMode,
+      greenFeeValue,
+      bindingMonths: parseIntOrNull(formData.get('binding_months')),
+      noticeMonths: parseIntOrNull(formData.get('notice_months')),
+      startsAt,
+      endsAt,
+      signedAt,
+      terminationNoticeDate,
+      terminationReason,
+      autoRenewEnabled,
+      autoRenewTermMonths,
+      overrideReason: getString(formData, 'override_reason') || null,
+      actorUserId: user.id,
+    })
+  } catch (error) {
+    throw controlledContractUpdateError(error)
+  }
 
   await addCustomerContractEvent({
     companyId,

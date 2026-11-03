@@ -6,6 +6,7 @@ import {
   loadCustomerTenantContext,
 } from '@/lib/tenant/entityGuards'
 import { sendContractSignatureLinkAction } from './actions'
+import { contractHasValidSigningSite, SIGNING_LINK_SITE_REQUIRED_MESSAGE } from '@/lib/customer-contracts/autoSendSigningLink'
 import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
@@ -26,7 +27,7 @@ export default async function ContractSignatureAdminPage({
   searchParams,
 }: {
   params: Promise<{ id: string; contractId: string }>
-  searchParams: Promise<{ sent?: string; error?: string; notice?: string; warning?: string }>
+  searchParams: Promise<{ sent?: string; delivery?: string; error?: string; notice?: string; warning?: string }>
 }) {
   const { id: customerId, contractId } = await params
   const query = await searchParams
@@ -61,8 +62,16 @@ export default async function ContractSignatureAdminPage({
   if (contractError) throw contractError
   if (requestError) throw requestError
 
-  const canSend = ['draft', 'pending_signature', 'signature_failed'].includes(contract.status) && !contract.signed_at
+  const canAttemptSend = ['draft', 'pending_signature', 'signature_failed'].includes(contract.status) && !contract.signed_at
+  const siteReady = canAttemptSend ? await contractHasValidSigningSite({ companyId, customerId, contractId }) : true
+  const canSend = canAttemptSend && siteReady
   const customerName = customer.full_name ?? customer.company_name ?? customer.email ?? customer.customer_number
+  const deliveryWarning = ['delivery_uncertain', 'unknown', 'failed', 'cancelled', 'not_found', 'blocked_tenant_state'].includes(query.delivery ?? '')
+  const deliveryMessage = query.delivery === 'sent'
+    ? 'Signeringsmejlet har skickats. Tidigare oanvända signeringslänkar är återkallade.'
+    : deliveryWarning
+      ? 'Signeringsmejlet kunde inte bekräftas som skickat. Kontrollera utskicket innan du skapar en ny länk.'
+      : 'Signeringsmejlet ligger i kön och skickas automatiskt. Vänta på mejlet innan du skapar en ny länk.'
 
   return (
     <main className="mx-auto max-w-4xl space-y-5 px-4 py-8">
@@ -86,8 +95,8 @@ export default async function ContractSignatureAdminPage({
       </section>
 
       {query.sent === '1' ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-          Signeringslänken har köats via tenantens e-postflöde. En tidigare oanvänd länk har samtidigt återkallats.
+        <div className={`rounded-2xl border p-4 text-sm ${deliveryWarning ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}>
+          {deliveryMessage}
         </div>
       ) : null}
       {query.notice ? (
@@ -106,6 +115,11 @@ export default async function ContractSignatureAdminPage({
         </div>
       ) : null}
 
+      {!siteReady ? (
+        <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          {SIGNING_LINK_SITE_REQUIRED_MESSAGE}
+        </div>
+      ) : null}
       {canSend ? (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold">Skicka signeringslänk</h2>
@@ -136,7 +150,9 @@ export default async function ContractSignatureAdminPage({
           <p className="mt-2 text-sm text-slate-700">
             {contract.signed_at
               ? 'Avtalet är redan signerat och signeringsbeviset är låst.'
-              : 'Avtalet kan inte skickas för signering i nuvarande livscykelstatus.'}
+              : !siteReady
+                ? 'Välj och spara rätt anläggning på kundkortets avtal för att kunna skicka signeringslänken.'
+                : 'Avtalet kan inte skickas för signering i nuvarande livscykelstatus.'}
           </p>
         </section>
       )}
@@ -159,7 +175,7 @@ export default async function ContractSignatureAdminPage({
                     : request.revoked_at
                       ? `Återkallad ${formatDateTime(request.revoked_at)}`
                       : request.sent_at
-                        ? `Skickad ${formatDateTime(request.sent_at)}`
+                        ? `Utskick begärt ${formatDateTime(request.sent_at)}`
                         : 'Skapad men ännu inte markerad som skickad'}
                 </div>
               </div>

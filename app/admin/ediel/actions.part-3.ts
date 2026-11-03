@@ -39,6 +39,7 @@ import { attachAperakErrorDetailsToMessage, resolveAndStoreProdatAperakErrors } 
 
 
 import { processEdielOperationalMessage } from "@/lib/ediel/operationalBridge"
+import { readUtiltsReplyFailedAfterStore } from "@/lib/ediel/utilts/utiltsReplyAfterStore"
 
 
 
@@ -56,7 +57,17 @@ import { collectAperakApplicationErrors, formString, isPostgresUniqueViolation, 
 import { isActiveEdielAckMessage, isOperationalAckMessage, isUtiltsErrAckMessage } from './actions.part-2'
 import { removeReplaceableAckMessagesForSource } from './actions.part-4'
 
-export async function processEdielOperationalMessageAction(formData: FormData) {
+export type EdielOperationalMessageActionResult =
+  | { status: "processed" }
+  | { status: "application_reply_exists"; existingAckMessageIds: string[] }
+  | { status: "reply_failed_after_store"; reason: string; storedMeterValueCount: number; billingUnderlayId: string | null };
+
+// Form entry point: the result is for callers and tests; a form action resolves to void.
+export async function processEdielOperationalMessageAction(formData: FormData): Promise<void> {
+  await runEdielOperationalMessageAction(formData);
+}
+
+export async function runEdielOperationalMessageAction(formData: FormData): Promise<EdielOperationalMessageActionResult> {
   const context = await requireEdielWriteActionAccess();
   const edielMessageId = formString(formData.get("edielMessageId"));
 
@@ -111,7 +122,7 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
 
     await revalidateRelatedMessage(edielMessageId);
     revalidateEdiel(edielMessageId);
-    return;
+    return { status: "application_reply_exists", existingAckMessageIds: activeApplicationResponses.map((message) => message.id) };
   }
 
   if (
@@ -133,13 +144,30 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
     });
   }
 
-  await processEdielOperationalMessage({
-    actorUserId: context.userId,
-    edielMessageId,
-  });
+  try {
+    await processEdielOperationalMessage({
+      actorUserId: context.userId,
+      edielMessageId,
+    });
+  } catch (error) {
+    // F107: the flow stored values and only the application reply failed. The
+    // flow already recorded that durably on the source; report it instead of an
+    // opaque 500. A failure before any store still throws unchanged.
+    const storedWithoutReply = readUtiltsReplyFailedAfterStore(error);
+    if (!storedWithoutReply) throw error;
+    await revalidateRelatedMessage(edielMessageId);
+    revalidateEdiel(edielMessageId);
+    return {
+      status: "reply_failed_after_store",
+      reason: storedWithoutReply.error,
+      storedMeterValueCount: storedWithoutReply.storedMeterValueIds.length,
+      billingUnderlayId: storedWithoutReply.billingUnderlayId,
+    };
+  }
 
   await revalidateRelatedMessage(edielMessageId);
   revalidateEdiel(edielMessageId);
+  return { status: "processed" };
 }
 
 export type BackendProdatAperakDecision = {

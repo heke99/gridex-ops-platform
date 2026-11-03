@@ -74,10 +74,12 @@ You MUST complete each phase before proceeding to the next.
    **BEFORE proposing fixes, add diagnostic instrumentation:**
    ```
    For EACH component boundary:
-     - Log what data enters component
-     - Log what data exits component
-     - Verify environment/config propagation
+     - Record safe types, counts, status codes and correlation IDs at entry/exit
+     - Verify environment/config propagation by presence only
      - Check state at each layer
+
+   Never print credentials, signing identities, tokens or raw sensitive payloads.
+   Do not dump `env` or `printenv`; filtering their output can still expose values.
 
    Run once to gather evidence showing WHERE it breaks
    THEN analyze evidence to identify failing component
@@ -88,19 +90,21 @@ You MUST complete each phase before proceeding to the next.
    ```bash
    # Layer 1: Workflow
    echo "=== Secrets available in workflow: ==="
-   echo "IDENTITY: ${IDENTITY:+SET}${IDENTITY:-UNSET}"
+   # skill-safety-presence: IDENTITY
+   if [ -n "${IDENTITY:-}" ]; then printf '%s\n' 'IDENTITY=SET'; else printf '%s\n' 'IDENTITY=UNSET'; fi
 
    # Layer 2: Build script
-   echo "=== Env vars in build script: ==="
-   env | grep IDENTITY || echo "IDENTITY not in environment"
+   echo "=== Required configuration present in build script: ==="
+   # skill-safety-presence: IDENTITY
+   if [ -n "${IDENTITY:-}" ]; then printf '%s\n' 'IDENTITY=SET'; else printf '%s\n' 'IDENTITY=UNSET'; fi
 
    # Layer 3: Signing script
    echo "=== Keychain state: ==="
    security list-keychains
-   security find-identity -v
+   # Inspect only the required local keychain metadata; redact identities in evidence.
 
-   # Layer 4: Actual signing
-   codesign --sign "$IDENTITY" --verbose=4 "$APP"
+   # Layer 4: Inspect the existing authorized signing result/status.
+   # Do not start a signing operation merely to collect diagnostic evidence.
    ```
 
    **This reveals:** Which layer fails (secrets → workflow ✓, workflow → build ✗)

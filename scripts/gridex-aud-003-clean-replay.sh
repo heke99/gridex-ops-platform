@@ -62,7 +62,37 @@ if [[ -z "$EXTERNAL_DB" ]]; then
 fi
 
 cleanup(){
+  local gridex_replay_exit=$?
   set +e
+  # Opt-in fixed metadata only; preserve the original EXIT cleanup and status.
+  if [[ "${GRIDEX_CAPTURE_ERROR_BOUNDARY:-0}" == 1 && "$gridex_replay_exit" != 0 && -n "${RUNNER_TEMP:-}" ]]; then
+    local gridex_replay_source=unknown gridex_replay_line=0
+    local gridex_replay_context="${GRIDEX_CAPTURE_REPLAY_SOURCE:-${BASH_SOURCE[1]:-}}"
+    if [[ "$gridex_replay_context" == "$ROOT/scripts/gridex-aud-003-clean-replay.sh" || "$gridex_replay_context" == scripts/gridex-aud-003-clean-replay.sh ]]; then
+      gridex_replay_source=scripts/gridex-aud-003-clean-replay.sh
+      gridex_replay_line="${GRIDEX_CAPTURE_REPLAY_LINE:-${BASH_LINENO[0]:-0}}"
+    fi
+    python3 - "$gridex_replay_exit" "$gridex_replay_line" "$gridex_replay_source" <<'PY_CAPTURE_ERROR_BOUNDARY'
+import json, os, sys
+try:
+    code, line = int(sys.argv[1]), int(sys.argv[2])
+    source = sys.argv[3] if sys.argv[3] == 'scripts/gridex-aud-003-clean-replay.sh' else 'unknown'
+    if not 1 <= code <= 255:
+        raise ValueError('invalid exit')
+    if not 0 <= line <= 1000000:
+        line = 0
+    directory = os.open(os.environ['RUNNER_TEMP'], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        descriptor = os.open('staff-schema-capture-error-boundary.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600, dir_fd=directory)
+        with os.fdopen(descriptor, 'w') as stream:
+            json.dump({'exit_code': code, 'source': source, 'source_line': line}, stream, separators=(',', ':'))
+            stream.write('\n')
+    finally:
+        os.close(directory)
+except (OSError, ValueError, KeyError):
+    pass  # Diagnostics never prevent the existing cleanup.
+PY_CAPTURE_ERROR_BOUNDARY
+  fi
   if [[ -z "${EXTERNAL_DB:-}" && "$LOCAL_STACK_START_ATTEMPTED" == 1 ]]; then
     supabase stop --no-backup >/dev/null 2>&1 || true
   fi
@@ -80,6 +110,12 @@ cleanup(){
   fi
   rm -rf "$HOLD" "$LEDGER_MARKERS" "$SEED_BACKUP" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC"
 }
+if [[ "${GRIDEX_CAPTURE_ERROR_BOUNDARY:-0}" == 1 ]]; then
+  unset GRIDEX_CAPTURE_REPLAY_SOURCE GRIDEX_CAPTURE_REPLAY_LINE
+  set -E
+  # Retain only the first failure's location, never the command or its data.
+  trap 'if [[ -z "${GRIDEX_CAPTURE_REPLAY_SOURCE:-}" ]]; then GRIDEX_CAPTURE_REPLAY_SOURCE="${BASH_SOURCE[0]:-}"; GRIDEX_CAPTURE_REPLAY_LINE="$LINENO"; fi' ERR
+fi
 trap cleanup EXIT
 
 if [[ -z "$EXTERNAL_DB" ]]; then command -v supabase >/dev/null; else test -f "$SUPABASE_BOOTSTRAP"; fi

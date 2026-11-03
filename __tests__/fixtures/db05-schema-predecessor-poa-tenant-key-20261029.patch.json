@@ -1,0 +1,49 @@
+{
+  "format": "exact-generated-schema-inverse-v1",
+  "origin": {
+    "source": "03e5eac47a87a9065fbefdf965536522eefdf131",
+    "tree": "989596f7ae5ee3c784727182fb6a7a2379470ce9",
+    "run": 40798577553,
+    "attempt": 1,
+    "job": 123200908515,
+    "artifact": 12864584609,
+    "ZIPsha256": "c4ed228050e77c712694147e708c6549f12479e502287c89a04f0cf0feeacc35",
+    "candidateSQLSHA256": "83b072dfedbe98813b848caebdd2578231934b893169b5ae77f8cc97d4702e8d",
+    "preimageSource": "genuineC12 capture12862355503; unchanged4a linked inverse retained",
+    "nativeCredit": false,
+    "wholeBusinessCredit": false
+  },
+  "preSha256": "4a0a481dd5b6af7323f45dd78b5f03f37d08cc3ae244fbd9ea1074f3803d0746",
+  "postSha256": "aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6",
+  "hunks": [
+    {
+      "preStart": 55372,
+      "preCount": 1,
+      "postStart": 55372,
+      "postCount": 1,
+      "preLines": [
+        "      values(p_company_id,p_contract_id,p_request_id) on conflict(signature_request_id) do nothing;"
+      ],
+      "postLines": [
+        "      values(p_company_id,p_contract_id,p_request_id) on conflict(company_id,signature_request_id) do nothing;"
+      ],
+      "preSha256": "23b9bcf77f911fb67a669782f931c9deda2010fadc9c50114b118502667031a1",
+      "postSha256": "d0114183cf4eb500afcf0619ef86ee05ca4d38ded6bf73207ecab283d80e3f37"
+    },
+    {
+      "preStart": 55374,
+      "preCount": 1,
+      "postStart": 55374,
+      "postCount": 2,
+      "preLines": [
+        "  select * into d from public.customer_contract_confirmation_deliveries where signature_request_id=p_request_id for update;"
+      ],
+      "postLines": [
+        "  select * into d from public.customer_contract_confirmation_deliveries",
+        "    where company_id=p_company_id and signature_request_id=p_request_id for update;"
+      ],
+      "preSha256": "96b15bc9bdf7fe250747ea4f6907c2229a5a1859b5aeb027dc68474766fd7e04",
+      "postSha256": "16db97a22ea2f0a6e49a5378183d6aa869bcd743f54f311a609294d84b919dd7"
+    }
+  ]
+}

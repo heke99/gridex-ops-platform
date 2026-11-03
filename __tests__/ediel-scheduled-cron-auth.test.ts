@@ -16,6 +16,9 @@ vi.mock('@/lib/ediel/operations/actorAutoReadiness', () => ({
   applyActorAutoSendReadiness: engines.apply,
   refreshRouteProfileProductionReadiness: engines.routes,
 }))
+const automationActor = vi.hoisted(() => ({ resolve: vi.fn() }))
+vi.mock('@/lib/ediel/automationActor', () => ({ resolveConfiguredEdielAutomationActorId: automationActor.resolve }))
+const syntheticActorId = '7c9e6679-7425-40de-944b-e07fc1f90ae7'
 vi.mock('@/lib/ediel/certificates/scheduledRefreshRecovery', () => ({ runScheduledCertificateRefreshRecovery: engines.recovery }))
 
 import * as inbound from '@/app/api/internal/inbound-mail/cron/route'
@@ -50,6 +53,7 @@ async function expectAccepted(route: Route, method: Method, headers: Record<stri
 beforeEach(() => {
   for (const name of ['CRON_SECRET', 'EDIEL_INBOUND_CRON_SECRET', 'EDIEL_ACTOR_READINESS_CRON_SECRET']) vi.stubEnv(name, undefined)
   for (const engine of Object.values(engines)) engine.mockReset().mockResolvedValue({ synthetic: true })
+  automationActor.resolve.mockReset().mockResolvedValue(syntheticActorId)
 })
 afterEach(() => vi.unstubAllEnvs())
 
@@ -161,7 +165,7 @@ describe('authenticated request boundaries', () => {
       vi.stubEnv('CRON_SECRET', schedulerSecret)
       const response = await call(routes[0], method, { authorization: `Bearer ${schedulerSecret}` }, `environment=${environment}`)
       expect(response.status).toBe(200)
-      expect(engines.inbound).toHaveBeenCalledExactlyOnceWith({ environment, mailboxId: null, force: false, sharedOnly: true, allowMissingMailboxConfig: true })
+      expect(engines.inbound).toHaveBeenCalledExactlyOnceWith({ environment, mailboxId: null, force: false, sharedOnly: true, allowMissingMailboxConfig: true, actorUserId: syntheticActorId })
     })
   }
 
@@ -202,4 +206,34 @@ describe('authenticated request boundaries', () => {
       else expect(engines.recovery).not.toHaveBeenCalled()
     })
   }
+})
+
+describe('inbound cron automation actor', () => {
+  it.each(methods)('inbound %s passes the resolved configured automation actor to the engine', async method => {
+    vi.stubEnv('CRON_SECRET', schedulerSecret)
+    const response = await call(routes[0], method, { authorization: `Bearer ${schedulerSecret}` })
+    expect(response.status).toBe(200)
+    expect(automationActor.resolve).toHaveBeenCalledOnce()
+    expect(engines.inbound).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ actorUserId: syntheticActorId }))
+  })
+
+  for (const reason of ['ediel_actor_invalid_uuid', 'ediel_actor_missing_auth_user', 'ediel_actor_missing_profile_or_membership']) {
+    it.each(methods)(`inbound %s fails closed without engine work on ${reason}`, async method => {
+      vi.stubEnv('CRON_SECRET', schedulerSecret)
+      vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      automationActor.resolve.mockRejectedValue(new Error(`${reason}: synthetic`))
+      const response = await call(routes[0], method, { authorization: `Bearer ${schedulerSecret}` })
+      expect(response.status).toBe(503)
+      expect(await response.json()).toEqual({ ok: false, error: 'Ediel-automation saknar giltig systemaktör.', code: 'ediel_automation_actor_missing' })
+      expectNoWork()
+    })
+  }
+
+  it.each(methods)('inbound %s does not resolve the actor before authentication', async method => {
+    vi.stubEnv('CRON_SECRET', schedulerSecret)
+    const response = await call(routes[0], method, { authorization: 'Bearer wrong' })
+    expect(response.status).toBe(401)
+    expect(automationActor.resolve).not.toHaveBeenCalled()
+    expectNoWork()
+  })
 })

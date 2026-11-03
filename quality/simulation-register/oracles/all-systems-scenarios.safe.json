@@ -1,0 +1,922 @@
+{
+  "kind": "GRIDEX_ALL_SYSTEMS_SCENARIO_CATALOG_V5_DESIGN_ONLY",
+  "preparedAtUtc": "2026-10-23T08:10:00Z",
+  "userScope": "Samtliga system och flöden i projektet; verklig isolerad simulering med syntetiska kunder.",
+  "verdict": "DESIGN_ONLY_NOT_EXECUTED; project manifest coverage not reverified in this lane",
+  "base": {
+    "path": "next-step-20261023/e2e-matrix/remaining-after-main-v4",
+    "catalogSha256": "148eca78c2f74e9701b421052565233fb7b0e405ef0c34b4dfaa2c65f3a2cc00",
+    "markdownSha256": "9a749fb6320a644dca5e5654ac975d84647219abc61dee411cb72729dd542c2f",
+    "manifestSha256": "a6f3524fc8accd8250d5c7601a0f2d229b65046d25e41333f2fed4fbf31b4f4b",
+    "statedConfiguredFlows": 16,
+    "statedReleaseGates": 13,
+    "statedRemainingGroups": 20,
+    "provenance": "Inherited root handoff; v4 directory/file bytes/hash independently matched. Scenario content not reread after auto-review denial."
+  },
+  "limits": [
+    "Ingen ny affärssimulering körd av denna lane.",
+    "Scenarier är specifikationer och fixtures, inget nytt exekveringsramverk.",
+    "Varken full projektmanifestparitet eller alla stödda enum/API/regler är verifierade här.",
+    "Historiska PASS får inte räknas som aktuell runtime/branch-PASS.",
+    "En officiell extern mottagares acceptans kräver extern faktisk evidens."
+  ],
+  "runtimeRules": [
+    "Bevara samtliga främmande processer/containrar och befintliga kund-/kördata.",
+    "Endast nya isolerade scopes och syntetiska kunder; native UI/API/queue/RPC för affärshändelser, ingen direkt SQL som ersätter affärssteg.",
+    "Ingen stor test/DB-/Auth-/browserlast samtidigt med huvud-UNDERLAY.",
+    "För varje nytt skrivförsök: exakt stage/scope/source/auth/runtime-bindning och Root-GO, inga blinda repriser efter okänt utfall.",
+    "Logga kommando, commit, REAL- och domäntid, exit/HTTP, faktiska ID/hashar, counts, påverkan, blockerare och ersättningssteg utan hemligheter.",
+    "Varje lokal externsystemsmodell märks som lokal ersättning; ingen provideracceptans-PASS från egen server."
+  ],
+  "executionOrder": [
+    "MAIN03 endast efter Root-GO och aktuell540/600/900-konfiguration; håll övriga lane read-only.",
+    "MAIN04 först efter faktisk full evidens-/pengagranskning; lås faktiskt utkast före godkännande.",
+    "MAIN05 file/repeat/två positiva GET; därefter fyra negativa GET utan samtidiga Ediel-skrivningar.",
+    "EDIEL01 exakt28 retained enqueue och56 individuella SMTP-sändningar med verklig DSO-MIME-verifiering.",
+    "Bevara huvudkvitton; skapa separat kopia/scopes för SITE01,TERM01/02/03,DELIVERY01.",
+    "Separata lätta lane: AUTH01/API01/EVENT01/EDIEL02/03/CUSTODY01/UI01 efter Root-lugn-GO.",
+    "BILLNEG01 i egen scope med avgränsad samtidighet; QA01/02 när native är lugn.",
+    "MAIN06 kvar HOLD tills officiellt schema/extern mottagare finns."
+  ],
+  "groups": [
+    {
+      "id": "MAIN03",
+      "title": "Fakturaunderlag",
+      "current": "Två tidigare verkliga försök utan verifierat sparande; senaste observerade huvudgrafen tom.",
+      "prior": "2688 native-kvalificerade mätvärden från28 källor och2688 låsta priser verifierade.",
+      "fixture": "Befintlig syntetisk b5/9f4-kund, en anläggning, februari2027, giltig naturlig UI-session; produkt24a ovanpå017f.",
+      "boundary": "Worker → PostgREST → PostgreSQL",
+      "action": "Ordinarie native UNDERLAY en gång med granskad bindning.",
+      "receipt": "Durabel exitkod, underlags-/rad-/pricingRun-ID, faktiskt2688 evidens-ID, lås- och transaktionskontroll, källhashar.",
+      "blocker": "Root-GO, >42min äkta Auth, ≥3GiB effektiv minnesmarginal; inga samtidiga tunga tester.",
+      "cases": [
+        {
+          "id": "MAIN03.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Full februari med2688 intervall"
+        },
+        {
+          "id": "MAIN03.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Omsorgsfull kontroll av alla28 källors koppling"
+        },
+        {
+          "id": "MAIN03.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Tre vanliga native-källäsningar före sparande"
+        },
+        {
+          "id": "MAIN03.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Sparat underlag med förväntat käll- och pristotal"
+        },
+        {
+          "id": "MAIN03.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Timeout/okänt utfall: läs faktisk graf och lås före nytt försök"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "MAIN04",
+      "title": "Utkast och fakturagodkännande",
+      "current": "Ingen faktisk huvudfaktura eller utkast verifierat.",
+      "prior": "Två oberoende indataorakel ger netto1447,61/moms361,90/brutto1809,51 SEK; inget faktiskt godkännande.",
+      "fixture": "Framgångsrikt MAIN03, exakt dess ID; färsk låst utkastläsning.",
+      "boundary": "Native prepare/approve → låst fakturasnapshot",
+      "action": "Prepare, prepare-repeat, faktiskt pengar-/lineage-orakel, approve, approve-repeat.",
+      "receipt": "Faktiska radbelopp/VAT/2688 intervalEvidence-ID, snapshot-SHA, faktura-ID/status och oförändrade repriser.",
+      "blocker": "MAIN03 PASS och oberoende adoption av exakt faktiskt utkast före approve.",
+      "cases": [
+        {
+          "id": "MAIN04.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Prepare från exakt underlag"
+        },
+        {
+          "id": "MAIN04.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Prepare-repeat utan dubblett"
+        },
+        {
+          "id": "MAIN04.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Faktiskt utkast matchar1809,51 SEK och källor"
+        },
+        {
+          "id": "MAIN04.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Approve efter låst oberoende kvitto"
+        },
+        {
+          "id": "MAIN04.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Approve-repeat utan ändrad snapshot eller nytt nummer"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "MAIN05",
+      "title": "Fakturafil och hämtning",
+      "current": "Ingen ny huvudfil skapad.",
+      "prior": "Native fil-/XML-kod och separata tester granskade; faktisk huvudfil återstår.",
+      "fixture": "Godkänd faktisk MAIN04-faktura med fryst2027-03-01 som datum och förfall2027-03-21.",
+      "boundary": "Native file stage → invoice_export_files → skyddad HTTP GET → XML",
+      "action": "File, file-repeat, två verkliga skyddade GET; därefter fyra negativa GET före ACK-skrivningar.",
+      "receipt": "Filrad-ID, rows_sha256 separat från bodySHA, två HTTP200/identiska byte, välformad XML och exakta fakturafält.",
+      "blocker": "MAIN04 PASS, färsk verklig Auth, ingen samtidig Ediel-skrivning under negativa GET.",
+      "cases": [
+        {
+          "id": "MAIN05.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Native fil från godkänd snapshot"
+        },
+        {
+          "id": "MAIN05.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "File-repeat behåller rad och bytes"
+        },
+        {
+          "id": "MAIN05.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Två skyddade GET ger identiska korrekta XML-bytes"
+        },
+        {
+          "id": "MAIN05.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Anonym faktisk fil kräver inloggning"
+        },
+        {
+          "id": "MAIN05.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Saknat och felaktigt fil-ID ger kontrollerat svar"
+        },
+        {
+          "id": "MAIN05.06",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "36 bindestreck klassas faktiskt; möjlig22P02/500 är fel, inte auth-PASS"
+        }
+      ],
+      "scenarioCount": 6
+    },
+    {
+      "id": "MAIN06",
+      "title": "Extern Nordfin-acceptans",
+      "current": "HOLD; officiell XSD eller verkligt mottagarkvitto saknas.",
+      "prior": "14 sökningar/fyra officiella webbplatser/tio sitemaps gav inget verifierat schema.",
+      "fixture": "MAIN05 faktiska frysta XML-byte; officiellt leverantörsschema eller avtalad testmottagare krävs.",
+      "boundary": "Exporterad XML → extern specifikation/testmottagare",
+      "action": "Validera mot faktiskt officiellt schema och mottagarkvitto när sådant finns.",
+      "receipt": "Schemakälla/version/hash, valideringsresultat och externt kvitto bundet till bodySHA.",
+      "blocker": "Ingen extern acceptans får ersättas med egenpåhittat schema eller lokal200.",
+      "cases": [
+        {
+          "id": "MAIN06.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Officiell schema-/formatversion fastställs"
+        },
+        {
+          "id": "MAIN06.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Exakt verklig XML valideras mot officiellt schema"
+        },
+        {
+          "id": "MAIN06.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Mottagarkvitto binds till fakturanummer och bodySHA"
+        }
+      ],
+      "scenarioCount": 3
+    },
+    {
+      "id": "SITE01",
+      "title": "Flera anläggningar på samma kund",
+      "current": "FEATURE_GAP: huvudkoden har en faktura per underlag och singleton facility; samlingsfaktura ej bevisad.",
+      "prior": "Historisk partnerkedja med två sites/två POA är inte en samlingsfaktura.",
+      "fixture": "En ny syntetisk kund med två separata anläggningar, egen förbrukning och överlappande respektive olika avtalsperioder.",
+      "boundary": "Kund/site/avtal → underlag → faktura/export",
+      "action": "Ordinarie kund-/site-/avtalsflöde och fakturering per faktiskt stödd modell.",
+      "receipt": "Båda facility-ID/perioder/mängder/radbelopp förekommer under exakt ett fakturanummer om funktionen stöds; annars dokumenterat gap.",
+      "blocker": "Separat isolerad fixture; projektstöd måste bekräftas. Två fakturor i en fil räknas inte som samlingsfaktura.",
+      "cases": [
+        {
+          "id": "SITE01.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Två aktiva sites med samma kund och månad"
+        },
+        {
+          "id": "SITE01.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Två sites med olika avtalsstart och prisvillkor"
+        },
+        {
+          "id": "SITE01.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "En avslutad och en aktiv site"
+        },
+        {
+          "id": "SITE01.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Olika prisområden eller nätägare hålls åtskilda"
+        },
+        {
+          "id": "SITE01.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "En faktura med båda sites kontra två fakturor i samma fil"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "TERM01",
+      "title": "Bindningstider och avtalstyper",
+      "current": "NOT_RUN_CURRENT_SCOPE; huvudavtalet har binding=NULL/notice=NULL.",
+      "prior": "variable_quarterly betyder15-minuterspris, inte tre månaders bindning.",
+      "fixture": "Separata syntetiska avtal med verifierat stödda typer: tillsvidare,12/24 kalendermånader samt ändringsversion.",
+      "boundary": "Kundavtal → CPS/supply → billing",
+      "action": "Ordinarie tecknande/ändring/upphörande med processlokal kontrollerad klocka.",
+      "receipt": "Avtalets verkliga start/slut/bindning/uppsägning, CPS-version och rätt fakturaperiod.",
+      "blocker": "Stöd/affärsregel läses i implementation/avtal före förväntat utfall; inga påhittade enum eller regler.",
+      "cases": [
+        {
+          "id": "TERM01.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Tillsvidareavtal utan bindningsdatum"
+        },
+        {
+          "id": "TERM01.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "12 kalendermånaders bindning"
+        },
+        {
+          "id": "TERM01.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "24 kalendermånaders bindning"
+        },
+        {
+          "id": "TERM01.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Kalendermånadsskifte och skottårsdatum"
+        },
+        {
+          "id": "TERM01.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Avtalsändring får korrekt version utan retroaktiv tyst ändring"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "TERM02",
+      "title": "Prisvariation, mängd och tidsomställning",
+      "current": "NOT_RUN_CURRENT_SCOPE; huvudfallet är enhetligt1kWh per kvart.",
+      "prior": "Huvudfallet verifierar2688 februariintervall, ingen DST eller viktad ickeuniform profil.",
+      "fixture": "Separata syntetiska serier med varierad mängd0/0,25/1,5/2 kWh och priser -0,50/0/0,75/1,20 SEK/kWh; Stockholm DST-månader.",
+      "boundary": "E66/intervall → kvalificering → låst pris → fakturarad/VAT",
+      "action": "Native import/lock/billing för de prisupplösningar implementationen faktiskt stöder.",
+      "receipt": "Exakta UTC-intervall, fysiska kvart-ID, viktad summa(q×p), radavrundning/VAT, inga förlorade eller dubbla DST-intervall.",
+      "blocker": "Ny separat processlokal klocka/fixture; pristyper måste verifieras. Syntetiska priser är testdata, ej marknadsutfall.",
+      "cases": [
+        {
+          "id": "TERM02.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Ickeuniform förbrukning ger viktat pris, inte enkelt snitt"
+        },
+        {
+          "id": "TERM02.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Negativa och nollpriser med positiv mängd"
+        },
+        {
+          "id": "TERM02.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Nollförbrukning med avtalad månadsavgift"
+        },
+        {
+          "id": "TERM02.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Tim-/månads-/kvartsvarianter endast när faktiskt stödda"
+        },
+        {
+          "id": "TERM02.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Stockholm2027-03-28:23 timmar/92 fysiska kvartar"
+        },
+        {
+          "id": "TERM02.06",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Stockholm2027-10-31:25 timmar/100 fysiska kvartar"
+        },
+        {
+          "id": "TERM02.07",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Överlappad lokal hösttimme skiljs med UTC-offset"
+        },
+        {
+          "id": "TERM02.08",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Rad-/VAT-avrundning kontrolleras med oberoende decimalorakel"
+        }
+      ],
+      "scenarioCount": 8
+    },
+    {
+      "id": "TERM03",
+      "title": "Start, avslut, uppsägning och byte",
+      "current": "NOT_RUN_CURRENT_SCOPE efter huvudfallets supply-start2026-10-21.",
+      "prior": "Huvudavtalet aktivt och end=NULL; inga varierade slutdatum verifierade där.",
+      "fixture": "Nya syntetiska kunder med mittmånadsstart, mittmånadsavslut, månadsskifte och leverantörsbyte.",
+      "boundary": "Kund/avtal → Ediel/supply → periodiserad faktura",
+      "action": "Ordinarie start/avslut/byte samt klocksteg inom separata processer.",
+      "receipt": "Supply-CPS-perioder utan otillåtet överlapp/gap och endast giltig fysisk förbrukning fakturerad.",
+      "blocker": "Beror på stödda livscykelregler och egna isolerade fixtures.",
+      "cases": [
+        {
+          "id": "TERM03.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Start mitt i månaden"
+        },
+        {
+          "id": "TERM03.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Avslut mitt i månaden"
+        },
+        {
+          "id": "TERM03.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Start/slut vid månadsskifte"
+        },
+        {
+          "id": "TERM03.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Uppsägning precis före/efter verklig frist"
+        },
+        {
+          "id": "TERM03.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Leverantörsbyte utan dubbeldebitering"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "DELIVERY01",
+      "title": "Leveranssätt och adresser",
+      "current": "PARTIAL; huvudkunden legacyEMAIL bekräftad men CPS deliverymethod=NULL.",
+      "prior": "Tidigare lokalt site-/adresskydd skapade37 fixturefel i testsviten.",
+      "fixture": "Syntetisk kund med verifierad e-post, separat fakturaadress, pappersval och saknad/ogiltig adress.",
+      "boundary": "Kunduppgift → avtalssnapshot → faktura/export/leverans",
+      "action": "Ordinarie UI/API för stödda leveransval och native export.",
+      "receipt": "Rätt fryst mottagaradress/leveransmetod, eller förväntad tydlig valideringsblockering.",
+      "blocker": "Externa leveranser ersätts med lokala mottagare; stött enum/regel måste verifieras.",
+      "cases": [
+        {
+          "id": "DELIVERY01.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "E-postadress i fakturafil matchar fryst kunddata"
+        },
+        {
+          "id": "DELIVERY01.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Separat fakturaadress skiljs från anläggningsadress"
+        },
+        {
+          "id": "DELIVERY01.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Pappersfaktura om faktiskt stödd"
+        },
+        {
+          "id": "DELIVERY01.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Saknad obligatorisk adress stoppar tydligt"
+        },
+        {
+          "id": "DELIVERY01.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Sen kundändring ändrar inte redan godkänd snapshot"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "EDIEL01",
+      "title": "Ediel-protokoll och utgående kvittenser",
+      "current": "28 E66 inkomna;28 CONTRL queued+28 APERAK draft/outboxNULL väntar.",
+      "prior": "68 dokumentinventory:66 exakta wire+två dokumenterade lossless varianter;105 äldre MIME bevarade.",
+      "fixture": "Exakt befintlig28-källcohort och två lokala TLS-postsystem med syntetiska parter70007/16700.",
+      "boundary": "Lokal SMTP → IMAP → MIME → parser → DB/outbox → SMTP → DSO",
+      "action": "Efter faktura/GET: native enqueue av befintliga28 positiva APERAK; exakt56 kontrollerade sändningar.",
+      "receipt": "Exakta outbox-ID, försökstal, RFC/wirehashar, matchande kontrareferenser och56 faktiska DSO-MIME; inga blindresends.",
+      "blocker": "MAIN05/negativa GET färdiga och lugna; ny färsk bindning; DSO:s gamla minneshistorik förlorad och får ej användas som frånvarobevis.",
+      "cases": [
+        {
+          "id": "EDIEL01.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "28 CONTRL sänds och tas emot med rätt referenser"
+        },
+        {
+          "id": "EDIEL01.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "28 befintliga positiva APERAK köas native utan nya svarskopior"
+        },
+        {
+          "id": "EDIEL01.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "28 APERAK sänds och tas emot"
+        },
+        {
+          "id": "EDIEL01.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "SMTP/IMAP med strikt lokal CA/TLS"
+        },
+        {
+          "id": "EDIEL01.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Syntaktiskt wire-, MIME- och affärsreferens-ID skiljs åt"
+        },
+        {
+          "id": "EDIEL01.06",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Äldre105 MIME och äldre köposter förblir oförändrade"
+        }
+      ],
+      "scenarioCount": 6
+    },
+    {
+      "id": "EDIEL02",
+      "title": "Dubbletter, rättelser och felordning",
+      "current": "NOT_RUN_CURRENT_SCOPE för nya rättelsevarianter.",
+      "prior": "31 äldre authority-NULL/rå0/norm0-rader låsta och oförändrade; tidigare guardfall är komponenttester.",
+      "fixture": "Separata syntetiska Ediel-källor: exakt dubblett, ändrat innehåll med samma referens, rättelse, omkastad sekvens, okänd part.",
+      "boundary": "SMTP/MIME → parsing → authority/attribution → native metering/billing gate",
+      "action": "Ordinarie inläsning med verkliga syntetiska wire/MIME och native guards.",
+      "receipt": "Faktiska ack/reject/hold-statusar, rätt current/basis-ID, inga dubbletter i fysisk mängd eller retroaktivt ändrad faktura.",
+      "blocker": "Nya isolerade part-/källfixtures; inga gamla köer får behandlas.",
+      "cases": [
+        {
+          "id": "EDIEL02.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Byteidentisk dubblett är idempotent"
+        },
+        {
+          "id": "EDIEL02.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Samma referens med ändrat innehåll ger synligt skydd"
+        },
+        {
+          "id": "EDIEL02.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Rättelse ersätter endast giltigt källunderlag"
+        },
+        {
+          "id": "EDIEL02.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Senare meddelande före tidigare hanteras enligt implementation"
+        },
+        {
+          "id": "EDIEL02.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Fel part/mandat förblir nekad"
+        },
+        {
+          "id": "EDIEL02.06",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Felaktig MIME/segment/UNOC ger faktiskt felkvitto"
+        }
+      ],
+      "scenarioCount": 6
+    },
+    {
+      "id": "EDIEL03",
+      "title": "Deadlines, retry och återhämtning",
+      "current": "NOT_RUN_CURRENT_SCOPE; gamla deadlines=NULL ger inget SLA-PASS.",
+      "prior": "Tidigare retry/deadletter/signerade varianter körda historiskt, ej ny cohort-PASS.",
+      "fixture": "Separat lokal mottagare med kontrollerad SMTP4xx/5xx, avbrutet svar och processstopp; eget outbox-ID.",
+      "boundary": "Native outbox claim/send/retry/deadletter → lokal mottagare",
+      "action": "Avgränsat native försök per ID, observera okänt utfall före tillåten återhämtning.",
+      "receipt": "Försökstid/status/nextAttempt/deadline, exakt mottagen MIME-count, deadletter/recovery-logg.",
+      "blocker": "Ingen global pending-worker eller blind retry; verifiera faktisk deadline och policy först.",
+      "cases": [
+        {
+          "id": "EDIEL03.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Övergående4xx ger föreskriven väntan"
+        },
+        {
+          "id": "EDIEL03.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Permanent5xx blir synligt misslyckande"
+        },
+        {
+          "id": "EDIEL03.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Timeout efter okänt SMTP-utfall duplicerar inte blint"
+        },
+        {
+          "id": "EDIEL03.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Processstopp under claim kan återhämtas enligt policy"
+        },
+        {
+          "id": "EDIEL03.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "SLA över faktisk deadline provas med kontrollerad klocka"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "CUSTODY01",
+      "title": "Historik, retention och källkopior",
+      "current": "PARTIAL;48 funktionskroppar jämförda, full negativ historikkedja återstår.",
+      "prior": "47+en invoice-copy-hjälpare matchar trusted baseline; gamla31 rader hashbevarade.",
+      "fixture": "Egen lyckad huvudfaktura plus separata syntetiska retention-/hold-objekt; inga gamla riktiga kunddata.",
+      "boundary": "Källa → native source_basis → underlag → låst faktura → arkiv/retention",
+      "action": "Native läs-/bevarandeflöden och avgränsade negativa retentionfall när stödda.",
+      "receipt": "Kedja av verkliga ID/hashar, återläsningsbar källa och dokumenterat nekad otillåten radering.",
+      "blocker": "MAIN04/05 för positiv kedja; nya negativa fixtures och exakt retentionregel krävs.",
+      "cases": [
+        {
+          "id": "CUSTODY01.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Alla28 fakturakällor återfinns via frysta referenser"
+        },
+        {
+          "id": "CUSTODY01.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Fysisk originaldata bevaras trots utelämnade två diagnostikkopior"
+        },
+        {
+          "id": "CUSTODY01.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Otillåten radering av låst källa nekas"
+        },
+        {
+          "id": "CUSTODY01.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Legitimt rensningsbart separat testobjekt följer policy"
+        },
+        {
+          "id": "CUSTODY01.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Backup/återläsning verifieras utan att stoppa främmande körningar"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "API01",
+      "title": "Partner, fullmakt och API",
+      "current": "NOT_RUN_CURRENT_SCOPE för ny partnerkedja.",
+      "prior": "Historisk partnerkedja med två sites och två POA verkligt körd; inte automatiskt aktuell branch/runtime-PASS.",
+      "fixture": "Ny syntetisk partner/kund, två sites, giltig/utgången/återkallad fullmakt och avgränsad nyckel.",
+      "boundary": "Partner-API → auth/POA → kund/avtal/site",
+      "action": "Ordinarie dokumenterade partner-endpoints med nya request-ID och isolerad part.",
+      "receipt": "HTTP-status/bodySHA, request-/kund-/site-/POA-ID, faktiskt DB-readback och roll-/tenantgränser.",
+      "blocker": "Verifiera aktuellt API-kontrakt och säker nyckellagring; ingen extern partnerproduktion.",
+      "cases": [
+        {
+          "id": "API01.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Giltig partner skapar kund/site/avtal"
+        },
+        {
+          "id": "API01.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Två sites kopplas till rätt kund och respektive POA"
+        },
+        {
+          "id": "API01.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Utgången/återkallad POA nekas"
+        },
+        {
+          "id": "API01.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Återspelat request-ID skapar inte dubblett"
+        },
+        {
+          "id": "API01.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Fel tenant eller för bred scope nekas"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "AUTH01",
+      "title": "Behörigheter, roller och företagsgränser",
+      "current": "PARTIAL; två verkliga UI-sessioner/native real/+129 och naturligt b5-val verifierade.",
+      "prior": "Anonym-/kundroller behöll nekade parserrättigheter i äldre11 skyddskontroller.",
+      "fixture": "Två nya syntetiska företag och stödda roller; separata äkta UI-inloggningar, aldrig handredigerad cookie/JWT.",
+      "boundary": "Browser/UI → server action/API → RLS/PostgreSQL",
+      "action": "Ordinarie login/company-select/rollflöde och minsta läs-/skrivförsök mot egna fixtures.",
+      "receipt": "Faktisk HTTP/DB-nekning eller tillåtelse, oförändrad främmande rad, roll-/tenantmatris.",
+      "blocker": "Nya isolerade företag/aktörer får inte blandas med huvudcohort; färsk äkta Auth krävs.",
+      "cases": [
+        {
+          "id": "AUTH01.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Tillåten egen företagsläsning och tillåten handling"
+        },
+        {
+          "id": "AUTH01.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Egen kundroll nekas administrativ handling"
+        },
+        {
+          "id": "AUTH01.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Annat företag nekas läsa/ändra fixtures"
+        },
+        {
+          "id": "AUTH01.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Företagsbyte använder naturlig UI-session"
+        },
+        {
+          "id": "AUTH01.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Utgången/utloggad session nekas"
+        },
+        {
+          "id": "AUTH01.06",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Service-role nyckel exponeras inte i klient/kvittoutdata"
+        }
+      ],
+      "scenarioCount": 6
+    },
+    {
+      "id": "EVENT01",
+      "title": "Webhooks och händelser",
+      "current": "NOT_RUN_CURRENT_SCOPE; faktiskt händelseslutkvitto saknas.",
+      "prior": "Ingen aktuell end-to-end webhook-PASS hävdas.",
+      "fixture": "Lokal fångstmottagare, syntetisk prenumeration, giltig/fel signatur och replay-ID; endast faktiskt stödda händelser.",
+      "boundary": "Native business event → outbox/webhook → lokal mottagare",
+      "action": "Utlös verklig stödd affärshändelse och native leverans till lokal mottagare.",
+      "receipt": "Event-ID, payloadSHA/signaturresultat, leverans-/retry-ID och exakt mottagencount.",
+      "blocker": "Implementationens eventmodell, signatur och retry-policy måste inventeras före utfall.",
+      "cases": [
+        {
+          "id": "EVENT01.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Verklig stödd händelse ger ett korrekt lokalt kvitto"
+        },
+        {
+          "id": "EVENT01.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Fel signatur nekas hos tillämplig verifierare"
+        },
+        {
+          "id": "EVENT01.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Återspelat event behandlas idempotent"
+        },
+        {
+          "id": "EVENT01.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "4xx/5xx/timeout ger faktisk föreskriven status"
+        },
+        {
+          "id": "EVENT01.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Tenantfilter och hemligheter hålls korrekta"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "BILLNEG01",
+      "title": "Faktureringens samtidighet och rättelser",
+      "current": "NOT_RUN_CURRENT_SCOPE; huvudfaktura ej skapad ännu.",
+      "prior": "Native lås/guardregressioner är inte verklig samtidighets-/kreditkedja.",
+      "fixture": "Separat syntetiskt underlag/faktura efter MAIN05; två avgränsade aktörer och stödd rättelsemodell.",
+      "boundary": "Native prepare/approve/export + PostgreSQL transaction/lock",
+      "action": "Ordinarie stage-repriser och kontrollerade samtidiga anrop endast i egen fixture.",
+      "receipt": "Exakt en godkänd faktura/nummer/snapshot, tydligt loser-svar, inga kvarvarande lås, rätt kredit-/rättelsereferens om stödd.",
+      "blocker": "Root lugn-GO och separat scope; bevarad huvudfaktura får inte experimenteras med.",
+      "cases": [
+        {
+          "id": "BILLNEG01.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Samtidig prepare ger högst ett kanoniskt resultat"
+        },
+        {
+          "id": "BILLNEG01.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Samtidig approve återanvänder korrekt faktura"
+        },
+        {
+          "id": "BILLNEG01.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Fil-replay ändrar inte frozen rows/body"
+        },
+        {
+          "id": "BILLNEG01.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Nya mätvärden efter lås ändrar inte godkänd snapshot"
+        },
+        {
+          "id": "BILLNEG01.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Stödd kredit/rättelse behåller spårbar originalreferens"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "UI01",
+      "title": "UI och operatörsflöden",
+      "current": "PARTIAL; appbuild och verklig login/företagsval verifierade, komplett dashboardkedja återstår.",
+      "prior": "127→localhost canonical redirect krävde dokumenterad same-origin återinträde.",
+      "fixture": "Äkta testoperatör, huvudkunds-/faktura-ID och stödda nya kundfixtures.",
+      "boundary": "Browser → Next UI → API/server action → data → synligt svar",
+      "action": "Ordinarie UI-navigering och användarhandlingar genom faktiskt stödda vyer.",
+      "receipt": "Browsersteg/skärmbild vid behov, begäran/status, synliga frysta värden och kopplad DB/API-evidens.",
+      "blocker": "Ingen global framtids-SSR hävdas; UI och worker har skilda dokumenterade klockmodeller.",
+      "cases": [
+        {
+          "id": "UI01.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Kund/site/avtal visas med samma verkliga ID"
+        },
+        {
+          "id": "UI01.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Mätstatus/Ediel-status leder till rätt källa"
+        },
+        {
+          "id": "UI01.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Faktura-/filstatus och belopp matchar DB/snapshot"
+        },
+        {
+          "id": "UI01.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Fel/håll visas tydligt med korrekt återhämtning"
+        },
+        {
+          "id": "UI01.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Företagsbyte och canonical origin fungerar genom verklig navigation"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "QA01",
+      "title": "Manifest, typer och releasegates",
+      "current": "RED/PARTIAL;97 static fyra PASS/två FAIL;24a riktad TS blockerad vid192MiB.",
+      "prior": "App-only Typecheck/lint/build PASS; migrationmanifest/generatedtypes FAIL, äldre baseline types redan FAIL.",
+      "fixture": "Frysta källcommits7fa/7bee/977/017f/24a och deras egna oförändrade beroenden.",
+      "boundary": "Källa/migrationer/generated types → projektets verkliga statiska gates",
+      "action": "Efter native lugn: projektets föreskrivna gates med ändlig resurstilldelning och exakt sourcepin.",
+      "receipt": "Gatekommando/exit/logg/commit, orsak baseline kontra ny ändring, faktisk resursgräns.",
+      "blocker": "Ingen stor QA samtidigt med native; memoryblock är inte TypeScript-PASS.",
+      "cases": [
+        {
+          "id": "QA01.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Migrationmanifest verifieras mot verkliga migrationer"
+        },
+        {
+          "id": "QA01.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Generated-types differens klassas mot rätt baseline"
+        },
+        {
+          "id": "QA01.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Adapter/engine riktad typkontroll slutförs med rimlig egen budget"
+        },
+        {
+          "id": "QA01.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "APIkompat/runtimeparity/productionreadiness återknyts till slutcommit"
+        },
+        {
+          "id": "QA01.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Lintvarningar skiljs från fel och baseline"
+        }
+      ],
+      "scenarioCount": 5
+    },
+    {
+      "id": "QA02",
+      "title": "Enhetstester och full release",
+      "current": "RED/PARTIAL;1247-filssvit ej slutförd och39 kända fixture-/mockfel kvar.",
+      "prior": "52 hela filer/2825PASS plus partiella42PASS/41FAIL; senare två SQL-pass;37 av39 från tidigare lokalt adress/site-skydd, två äldre mockAPI-fel.",
+      "fixture": "Fryst testkälla och isolerade testberoenden; separat egen PG endast där nödvändigt, inga livecohortwrites.",
+      "boundary": "Projektets test-/releasekommandon → riktade regressioner → full suite",
+      "action": "Rätta endast verifierade test-/produktfel i separat gren; kör meningsfull riktad verifiering och därefter projektets krav.",
+      "receipt": "Fulla kommandon/exit/counts/commit och tydlig lista för ej körda/avbrutna filer; ingen summering av överlappande tester.",
+      "blocker": "Efter native lugn; full release får ej kallas grön innan samtliga verkliga gates passerat.",
+      "cases": [
+        {
+          "id": "QA02.01",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "37 adress/site-fixtures får orsak och korrekt uppdatering utan guardförsvagning"
+        },
+        {
+          "id": "QA02.02",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Två returns-mockfel jämförs med originalanrop"
+        },
+        {
+          "id": "QA02.03",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Alla1247 filer får faktiskt slutresultat eller tydlig blockerare"
+        },
+        {
+          "id": "QA02.04",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Minnesfix18 tester inklusive nya sex redovisas utan dubbelräkning"
+        },
+        {
+          "id": "QA02.05",
+          "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+          "description": "Prisfix59 tester och fullrelease binds till rätt slutcommit"
+        }
+      ],
+      "scenarioCount": 5
+    }
+  ],
+  "groupCount": 20,
+  "scenarioCount": 105,
+  "oraclesDesignOnly": {
+    "dst": {
+      "timezone": "Europe/Stockholm",
+      "springDate": "2027-03-28",
+      "springUtcStart": "2027-03-27T23:00:00Z",
+      "springUtcEndExclusive": "2027-03-28T22:00:00Z",
+      "springDayQuarterCount": 92,
+      "springMonthQuarterCount": 2972,
+      "autumnDate": "2027-10-31",
+      "autumnUtcStart": "2027-10-30T22:00:00Z",
+      "autumnUtcEndExclusive": "2027-10-31T23:00:00Z",
+      "autumnDayQuarterCount": 100,
+      "autumnMonthQuarterCount": 2980,
+      "assertions": [
+        "Sort/dedup by UTC physical instants.",
+        "Repeated autumn local02:xx retained as distinct offsets.",
+        "Use separate fixture clock; never change shared runtime clock."
+      ]
+    },
+    "weightedPrice": {
+      "quantitiesKwh": [
+        "0.5",
+        "0.25",
+        "1.5",
+        "2",
+        "0"
+      ],
+      "pricesSekPerKwh": [
+        "-0.50",
+        "0.10",
+        "0.20",
+        "0.30",
+        "9.00"
+      ],
+      "quantityTotalKwh": "4.25",
+      "spotBeforeRounding": "0.675",
+      "spotLine": "0.68",
+      "markupOrePerKwh": "4",
+      "markupLine": "0.17",
+      "monthlyFee": "49.00",
+      "invoiceFee": "0.00",
+      "vatPercent": "25",
+      "net": "49.85",
+      "vat": "12.46",
+      "gross": "62.31",
+      "assumption": "DESIGN ONLY: period-line half-up to cents, VAT per rounded line. Check actual native policy before treating as executable oracle; negative-total signed rounding separately."
+    },
+    "termBoundaries": {
+      "examples": [
+        "2027-01-31 +12 calendar months =2028-01-31; +24=2029-01-31.",
+        "Calendar-clamp model:2028-02-29 +12→2029-02-28; +24→2030-02-28."
+      ],
+      "assumptions": [
+        "Inclusive/exclusive supply end and actual month-clamp policy require verification.",
+        "Test one instant before/at/after exact boundary; independently test actual notice cutoff."
+      ]
+    },
+    "consolidation": {
+      "passRequires": "Exactly one invoice identity/customer header; frozen lines and interval evidence preserve both distinct facility associations and reconcile combined sums.",
+      "notEquivalent": "Two invoice nodes in one file are batch export only.",
+      "currentFinding": "FEATURE_GAP based on inherited source evidence; not implementation proof in this lane."
+    }
+  },
+  "latestRootObserved": {
+    "atUtc": "2026-10-23T08:12:00Z",
+    "stage": "V9 prelaunch",
+    "exitCode": 1,
+    "reason": "actual_loaded_rest_upstream_mismatch",
+    "nativeBusinessIntent": false,
+    "newInvoiceOrFile": false,
+    "provenance": "Root message, actual route/zero-graph readback still pending."
+  }
+}

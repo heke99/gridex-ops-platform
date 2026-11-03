@@ -629,7 +629,12 @@ jobs:
           # Do not upload replay/status output: startup output can contain local
           # credentials. Source the exact owner script so its EXIT trap keeps
           # the database alive until capture finishes, then stops/restores it.
+          # BEGIN fixed capture failure boundary
+          GRIDEX_CAPTURE_ERROR_BOUNDARY=1
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/staff-schema-capture-replay.log" 2>&1
+          trap - ERR
+          set +E
+          # END fixed capture failure boundary
           CAPTURE_DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           CAPTURE_DB_URL="$CAPTURE_DB_URL" python3 - <<'PY_EMPTY'
           import json, os, pathlib, subprocess
@@ -1069,6 +1074,22 @@ jobs:
               'source_line': 0,
               'category': 'replay_log_unavailable',
           }
+          try:
+              boundary_path = os.path.join(os.environ['RUNNER_TEMP'], 'staff-schema-capture-error-boundary.json')
+              fd = os.open(boundary_path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+              with os.fdopen(fd, 'rb') as stream:
+                  meta = os.fstat(stream.fileno())
+                  if not stat.S_ISREG(meta.st_mode) or meta.st_size > 4096:
+                      raise ValueError('invalid boundary')
+                  boundary = json.loads(stream.read(4096))
+              if (set(boundary) != {'exit_code', 'source', 'source_line'}
+                  or type(boundary['exit_code']) is not int or not 1 <= boundary['exit_code'] <= 255
+                  or boundary['source'] not in ('unknown', 'scripts/gridex-aud-003-clean-replay.sh')
+                  or type(boundary['source_line']) is not int or not 0 <= boundary['source_line'] <= 1000000):
+                  raise ValueError('invalid boundary')
+              result.update(boundary)
+          except Exception:
+              pass
           try:
               path = os.path.join(os.environ['RUNNER_TEMP'], 'staff-schema-capture-replay.log')
               try:

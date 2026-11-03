@@ -1,4 +1,5 @@
 import { supabaseService } from "@/lib/supabase/service";
+import { tenantDb } from "@/lib/supabase/tenantDb";
 import { isPriceArea } from "@/lib/pricing/types";
 import { assertBillingPeriodOpen, getBillingPeriodLock } from "@/lib/billing/invoiceReadiness";
 import { assertPlatformSchemaReady } from "@/lib/platform/schemaReadiness";
@@ -233,7 +234,9 @@ async function loadNormalizedValues(
       error: response.error,
     };
   });
-  const qualified = await loadQualifiedBillingValues(companyId, rows.map(row => String(row.id)));
+  // Keep values of one source together without changing the returned row order.
+  const sourceOf = new Map(rows.map(row => [String(row.id), String(row.source_message_id ?? "")]));
+  const qualified = await loadQualifiedBillingValues(companyId, rows.map(row => String(row.id)), sourceOf);
   return rows.map(row => qualified.get(String(row.id))!);
 }
 
@@ -282,9 +285,61 @@ async function loadSnapshot(
   companyId: string,
   contractId: string | null,
   segmentStart: string,
+  segmentEnd: string,
+  contract: JsonRecord | null,
+  expectedCustomerId: string | null,
 ): Promise<JsonRecord | null> {
   if (!contractId) return null;
   const date = stockholmCivilDate(segmentStart);
+  // Only controlled unsigned proposal revisions extend the original timeline.
+  // These have a private, insert-time provenance guard; after real signing,
+  // the current contract and receipt bind the authoritative immutable CPS.
+  // tenantDb adds the company_id filter itself (service-role ratchet).
+  const revisionLookup = await (tenantDb(companyId).from("contract_price_snapshots").select("id") as ReturnType<ReturnType<typeof supabaseService.from>["select"]>)
+    .eq("contract_id", contractId)
+    .eq("source", "customer_contract_unsigned_edit").limit(1);
+  if (revisionLookup.error) throw revisionLookup.error;
+  const hasRevision = (revisionLookup.data ?? []).length > 0;
+  const revisionMarker = text(object(contract?.price_snapshot).source) === "customer_contract_unsigned_edit";
+  if (hasRevision || revisionMarker) {
+    const snapshotId = text(contract?.contract_price_snapshot_id);
+    const versionId = text(contract?.price_plan_version_id);
+    const customerId = text(contract?.customer_id);
+    const hash = text(contract?.snapshot_hash);
+    const productId = text(contract?.contract_product_id);
+    const productVersionId = text(contract?.contract_product_version_id);
+    const publicationId = text(contract?.contract_publication_version_id);
+    const legalId = text(contract?.legal_bundle_version_id);
+    const planId = text(contract?.price_plan_id), bookId = text(contract?.price_book_id);
+    if (!hasRevision || !revisionMarker || !snapshotId || !versionId || !customerId || customerId !== expectedCustomerId
+        || !productId || !productVersionId || !publicationId || !legalId || !planId || !bookId
+        || !hash || !/^[0-9a-f]{64}$/.test(hash)
+        || text(contract?.id) !== contractId || text(contract?.company_id) !== companyId
+        || !text(contract?.signed_at) || !text(contract?.locked_at)
+        || text(object(contract?.signature_snapshot).pricing_snapshot_sha256) !== hash) {
+      throw new Error("billing_unsigned_revision_snapshot_binding_invalid");
+    }
+    const exact = await supabaseService.from("contract_price_snapshots").select("*")
+      .eq("company_id", companyId).eq("customer_id", customerId).eq("contract_id", contractId)
+      .eq("id", snapshotId).eq("price_plan_version_id", versionId)
+      .eq("source", "customer_contract_unsigned_edit")
+      .lte("valid_from", date).or(`valid_to.is.null,valid_to.gte.${date}`).maybeSingle();
+    if (exact.error) throw exact.error;
+    const row = exact.data as JsonRecord | null;
+    const frozen = object(row?.snapshot_json);
+    const lastDate = stockholmCivilDate(new Date(Date.parse(segmentEnd) - 1).toISOString());
+    const validFrom = text(row?.valid_from), validTo = text(row?.valid_to);
+    if (!row || text(row.snapshot_hash) !== hash || text(row.snapshot_quality) !== "canonical"
+        || text(frozen.price_plan_version_id) !== versionId
+        || text(row.price_plan_id) !== planId || text(row.price_book_id) !== bookId
+        || text(frozen.contract_product_version_id) !== productVersionId
+        || text(frozen.contract_publication_version_id) !== publicationId
+        || text(frozen.legal_bundle_version_id) !== legalId
+        || !validFrom || validFrom > date || (validTo !== null && validTo < lastDate)) {
+      throw new Error("billing_unsigned_revision_snapshot_binding_invalid");
+    }
+    return row;
+  }
   const response = await supabaseService
     .from("contract_price_snapshots")
     .select("*")
@@ -851,6 +906,9 @@ export async function generateBillingUnderlaysForMonth(input: {
         input.companyId,
         contractId,
         entry.start,
+        entry.end,
+        contract,
+        customerId,
       );
       const snapshotJson = snapshotPayload(snapshot);
       const contractAreaContext = resolveBillingUnderlayPriceArea({
@@ -1319,7 +1377,9 @@ export async function generateBillingUnderlaysForMonth(input: {
             })),
             timezone: "Europe/Stockholm",
           },
-          pricing_snapshot: snapshotJson,
+          // gridex_store_billing_underlay binds a ready underlay to the contract price snapshot's own JSON
+          // (FINDINGS F8-B1); the enriched pricing payload is derived and would be refused.
+          pricing_snapshot: object(snapshot?.snapshot_json),
           received_at: now,
           validated_at: ready ? now : null,
         };

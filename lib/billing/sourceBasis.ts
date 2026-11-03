@@ -17,19 +17,25 @@ export type BillingSourceBasis = {
   observationOrdinal: number | null
 }
 
+/** Bound each RPC while allowing values from one source to share qualification. */
+export const BILLING_SOURCE_READ_CHUNK = 250
+
 /** The database qualifies the immutable contract, original and exact numeric
- * row together. A cached billing gate or mutable parsed metadata grants nothing. */
-export async function loadQualifiedBillingValues(companyId: string, valueIds: readonly string[]): Promise<Map<string, Record<string, unknown>>> {
+ * row together. A cached billing gate or mutable parsed metadata grants nothing.
+ * Source hints only order requests; they do not grant or replace qualification. */
+export async function loadQualifiedBillingValues(companyId: string, valueIds: readonly string[], sourceOf?: ReadonlyMap<string, string>): Promise<Map<string, Record<string, unknown>>> {
   const result = new Map<string, Record<string, unknown>>()
   const ids = [...new Set(valueIds)]
-  for (let offset = 0; offset < ids.length; offset += 1000) {
-    const { data, error } = await supabaseService.rpc('gridex_read_billing_source_values_v1', { p_company_id: companyId, p_value_ids: ids.slice(offset, offset + 1000) })
+  const requested = new Set(ids)
+  const ordered = sourceOf ? [...ids].sort((a, b) => (sourceOf.get(a) ?? '').localeCompare(sourceOf.get(b) ?? '') || a.localeCompare(b)) : ids
+  for (let offset = 0; offset < ordered.length; offset += BILLING_SOURCE_READ_CHUNK) {
+    const { data, error } = await supabaseService.rpc('gridex_read_billing_source_values_v1', { p_company_id: companyId, p_value_ids: ordered.slice(offset, offset + BILLING_SOURCE_READ_CHUNK) })
     if (error) throw error
     if (!Array.isArray(data)) throw new Error('billing_source_basis_result_invalid')
     for (const row of data as Array<Record<string, unknown>>) {
       const id = row.id
       const basis = row.billing_source_basis as BillingSourceBasis | undefined
-      if (typeof id !== 'string' || result.has(id) || !ids.includes(id) || !basis || basis.version !== 1 || basis.normalizedValueId !== id || !isCanonicalUtiltsDecimal(basis.quantityKwh) || row.quantity_kwh !== basis.quantityKwh) throw new Error('billing_source_basis_result_invalid')
+      if (typeof id !== 'string' || result.has(id) || !requested.has(id) || !basis || basis.version !== 1 || basis.normalizedValueId !== id || !isCanonicalUtiltsDecimal(basis.quantityKwh) || row.quantity_kwh !== basis.quantityKwh) throw new Error('billing_source_basis_result_invalid')
       result.set(id, row)
     }
   }

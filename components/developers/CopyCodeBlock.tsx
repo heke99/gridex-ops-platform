@@ -33,15 +33,18 @@ export function CopyCodeBlock({ children, code, label: regionLabel = 'Code examp
         : 'Copy'
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={copy}
-        className="absolute right-3 top-3 rounded-lg border border-slate-600 bg-slate-900 px-3 py-1 text-xs font-semibold text-slate-100 outline-none transition hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-emerald-400"
-        aria-label="Copy code example"
-      >
-        {label}
-      </button>
+    <div className="min-w-0 max-w-full rounded-2xl bg-slate-950">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-700 px-4 py-3">
+        <span className="text-sm font-medium text-slate-300">{regionLabel}</span>
+        <button
+          type="button"
+          onClick={copy}
+          className="shrink-0 rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-100 outline-none transition hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-emerald-400"
+          aria-label="Copy code example"
+        >
+          {label}
+        </button>
+      </div>
       <span className="sr-only" aria-live="polite">
         {state === 'copied'
           ? 'The code example has been copied.'
@@ -49,7 +52,7 @@ export function CopyCodeBlock({ children, code, label: regionLabel = 'Code examp
             ? 'The code example could not be copied.'
             : ''}
       </span>
-      <pre role="region" aria-label={regionLabel} tabIndex={0} className="overflow-x-auto rounded-2xl bg-slate-950 p-4 pr-32 text-xs leading-6 text-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+      <pre role="region" aria-label={regionLabel} tabIndex={0} className="min-w-0 max-w-full overflow-x-auto rounded-b-2xl bg-slate-950 p-4 text-base leading-7 [overflow-wrap:normal] [word-break:normal] text-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
         <code>{value}</code>
       </pre>
     </div>

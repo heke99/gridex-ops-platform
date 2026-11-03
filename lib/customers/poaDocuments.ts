@@ -11,6 +11,25 @@ type Row = Record<string, unknown>
 export type PoaDocumentScope = { companyId: string; customerId: string; powerOfAttorneyId: string }
 const clean = (value: unknown): string | null => typeof value === 'string' && value.trim() ? value.trim() : null
 const record = (value: unknown): Row => value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}
+/** Use the immutable producer's format, never whichever hash happens to match. */
+function acceptedDocumentHash(bundle: Row, document: Row): string | null {
+  if (!bundle.locked_at || document.module_key !== 'power_of_attorney' || typeof document.rendered_body !== 'string') return null
+  const snapshot = record(bundle.rendered_snapshot), body = document.rendered_body
+  if (snapshot.schema === 'gridex_legal_bundle_v5') {
+    return typeof document.title === 'string' ? createHash('sha256').update(`${document.title}\n${body}`, 'utf8').digest('hex') : null
+  }
+  if (snapshot.schema === 'gridex_legal_bundle_v4') return createHash('sha256').update(body, 'utf8').digest('hex')
+  // The earliest actual producer had no schema key. Its exact frozen legacy
+  // references and document tuple distinguish it from an unknown/null format.
+  if (Object.prototype.hasOwnProperty.call(snapshot, 'schema') || !bundle.legacy_legal_bundle_id
+    || !document.legacy_legal_text_version_id || !Array.isArray(snapshot.documents)
+    || snapshot.documents.some(item => !item || typeof item !== 'object' || Array.isArray(item)
+      || typeof record(item).module_key !== 'string' || !record(item).module_key)) return null
+  const matching = snapshot.documents.map(record).filter(item => item.module_key === document.module_key)
+  if (matching.length !== 1 || matching[0].legacy_id !== document.legacy_legal_text_version_id
+    || matching[0].body_sha256 !== document.content_sha256 || matching[0].title !== document.title) return null
+  return createHash('sha256').update(body, 'utf8').digest('hex')
+}
 const BUCKET = 'customer-documents'
 const evidenceFingerprint = poaMailEvidenceFingerprint
 
@@ -159,15 +178,15 @@ export async function ensurePoaPdfArchive(scope: PoaDocumentScope) {
     const documentId = clean(snapshot.legal_bundle_version_document_id) ?? clean(evidence.legal_bundle_version_document_id)
     const hash = clean(snapshot.document_hash) ?? clean(evidence.legal_document_sha256)
     if (bundleId && documentId && hash) {
-      const bundle = await tenantSelect(scope.companyId, 'legal_bundle_versions', 'id').eq('id', bundleId).maybeSingle()
+      const bundle = await tenantSelect(scope.companyId, 'legal_bundle_versions', 'id,rendered_snapshot,legacy_legal_bundle_id,locked_at').eq('id', bundleId).maybeSingle()
       if (bundle.error) throw bundle.error
       if (!bundle.data) throw new Error('Det godkända juridikpaketet tillhör inte fullmaktens tenant.')
       // Documents have no company_id; the exact parent bundle was tenant-verified above.
-      const document = await tenantDb(scope.companyId).unscoped().from('legal_bundle_version_documents').select('id,title,template_version,rendered_body,content_sha256')
+      const document = await tenantDb(scope.companyId).unscoped().from('legal_bundle_version_documents').select('id,title,template_version,rendered_body,content_sha256,module_key,legacy_legal_text_version_id')
         .eq('id', documentId).eq('legal_bundle_version_id', bundleId).eq('content_sha256', hash).maybeSingle()
       if (document.error) throw document.error
       const body = document.data?.rendered_body
-      if (!document.data || typeof body !== 'string' || createHash('sha256').update(body, 'utf8').digest('hex') !== hash.toLowerCase()) throw new Error('Den godkända fullmaktstextens kontrollsumma kunde inte verifieras.')
+      if (!document.data || typeof body !== 'string' || acceptedDocumentHash(record(bundle.data), record(document.data)) !== hash.toLowerCase()) throw new Error('Den godkända fullmaktstextens dokumentformat eller kontrollsumma kunde inte verifieras.')
       proof = { ...proof, legalText: body, legalTextTitle: document.data.title, legalTextVersion: document.data.template_version }
     }
   }

@@ -73,7 +73,20 @@ const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).di
 // historical Git port. Its restored bytes retain all previous producer pins;
 // current-head native qualification still comes from actual CI originals.
 const reviewedImageCachePrelude = "      - name: Prime content-verified Supabase bootstrap image caches\n        shell: bash\n        env:\n          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io\n          PYTHONDONTWRITEBYTECODE: '1'\n        run: |\n          python3 scripts/gridex-prime-verified-postgres-cache-selftest.py\n          python3 scripts/gridex-prime-verified-postgres-cache.py\n"
+// Invert only the exact reviewed storage-wrapper pin that admits PR932's
+// opt-in replay error boundary. Restored bytes retain every earlier pin.
+const reviewedReplayPinCurrent = 'test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d \' \' -f 1)" = "2902fdd232d21f0f84dd2ffcd1b5d9b94417213f3e0fd25557c3faf91a27668e"'
+const reviewedReplayPinPrevious = 'test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d \' \' -f 1)" = "330b6d405869a12b7c57bc04da75e5f685ccebdbdb0478e03a02fbcd780292cd"'
+function reviewedReplayPinWorkflow(bytes: Buffer) {
+  if (sha256(bytes) !== '56aa98815126df6e08e4d1e3891e1fd1135aeecb221b382f2934a349efbc7727') return bytes
+  const source = bytes.toString('utf8')
+  if (source.split(reviewedReplayPinCurrent).length !== 3) throw Error('fixture_reviewed_replay_pin_inverse_count')
+  const restored = Buffer.from(source.split(reviewedReplayPinCurrent).join(reviewedReplayPinPrevious))
+  if (sha256(restored) !== 'feb5067725b6e539f87e37d521d7148ba5ecb2fff40eafcfd307db2fd52b3eac') throw Error('fixture_reviewed_replay_pin_inverse_digest_mismatch')
+  return restored
+}
 function reviewedImageCacheWorkflow(bytes: Buffer) {
+  bytes = reviewedReplayPinWorkflow(bytes)
   if (sha256(bytes) !== 'feb5067725b6e539f87e37d521d7148ba5ecb2fff40eafcfd307db2fd52b3eac') return bytes
   const source = bytes.toString('utf8')
   if (source.split(reviewedImageCachePrelude).length !== 3) throw Error('fixture_reviewed_image_cache_inverse_count')
@@ -148,7 +161,19 @@ function reviewedStorageLifecycleWorkflow(bytes: Buffer) {
   if (sha256(restored) !== 'f1c03e2be5a38d2b41d96c2cfcb53259c6a2dd9af99f5a17311c693c91237d9d') throw Error('fixture_reviewed_storage_workflow_inverse_digest_mismatch')
   return restored
 }
+// This finite Git port recognizes only the exact reviewed POA registration.
+// Neither reader admits that new case or changed current producer as proof.
+function reviewedPoaConfig(bytes: Buffer) {
+  if (sha256(bytes) !== 'bdc56285237a27fa526c3038510e5480c42cf7883e86e30e86fb972bbe9c42b7') return bytes
+  const addition = "    'scripts/ediel-online-poa-capture-native.test.ts',\n"
+  const current = bytes.toString('utf8')
+  if (current.split(addition).length !== 2) throw Error('fixture_reviewed_poa_include_not_unique')
+  const restored = Buffer.from(current.replace(addition, ''))
+  if (sha256(restored) !== 'd9bd80bf7038f9232362ecba4deaa29b3ae264ef3c89000873fc91ad740fd0db') throw Error('fixture_reviewed_poa_config_inverse_digest_mismatch')
+  return restored
+}
 function reviewedProducerFixture(file: string, bytes: Buffer) {
+  if (file === 'scripts/ediel-source-owner-native.config.ts') bytes = reviewedPoaConfig(bytes)
   if (file === '.github/workflows/ops-hardening.yml') bytes = reviewedStorageLifecycleWorkflow(bytes)
   // Model the exact reviewed default helper only. The optional public case
   // creator and its new native assertions confer no historical/current proof.
@@ -753,8 +778,12 @@ it.each(['foreign_rule_status', 'foreign_at_status', 'foreign_evidence', 'spec',
 // Exercise the actual finite port, including its whole-byte admission guards.
 // The historical DDQ port restores known bytes only; it does not run native cases.
 it('historical workflow port restores the exact reviewed producer after bounded key-download retries and bootstrap cache preparation', () => {
-  const file = '.github/workflows/ops-hardening.yml', rawCurrent = readFileSync(file)
+  const file = '.github/workflows/ops-hardening.yml', rawPinned = readFileSync(file)
+  expect(sha256(rawPinned)).toBe('56aa98815126df6e08e4d1e3891e1fd1135aeecb221b382f2934a349efbc7727')
+  const rawCurrent = reviewedReplayPinWorkflow(rawPinned)
   expect(sha256(rawCurrent)).toBe('feb5067725b6e539f87e37d521d7148ba5ecb2fff40eafcfd307db2fd52b3eac')
+  expect(reviewedReplayPinWorkflow(rawCurrent)).toEqual(rawCurrent)
+  expect(reviewedProducerFixture(file, rawPinned)).toEqual(reviewedProducerFixture(file, rawCurrent))
   const current = reviewedImageCacheWorkflow(rawCurrent)
   expect(reviewedImageCacheWorkflow(current)).toEqual(current)
   expect(reviewedProducerFixture(file, rawCurrent)).toEqual(reviewedProducerFixture(file, current))
@@ -780,6 +809,8 @@ it.each([
   ['changed key anchor', (source: string) => source.replace('media/keys/ACCC4CF8.asc', 'media/keys/unreviewed.asc')],
   ['missing download', (source: string) => source.replace(source.match(/          # Retry transient DNS\/transfer faults;[^\n]*\n(?:[^\n]*\n){4}/)![0], '')],
   ['duplicate download', (source: string) => source + source.match(/          # Retry transient DNS\/transfer faults;[^\n]*\n(?:[^\n]*\n){4}/)![0]],
+  ['foreign storage wrapper pin', (source: string) => source.replaceAll('2902fdd232d21f0f84dd2ffcd1b5d9b94417213f3e0fd25557c3faf91a27668e', 'c'.repeat(64))],
+  ['only one storage wrapper pin', (source: string) => source.replace('2902fdd232d21f0f84dd2ffcd1b5d9b94417213f3e0fd25557c3faf91a27668e', '330b6d405869a12b7c57bc04da75e5f685ccebdbdb0478e03a02fbcd780292cd')],
 ])('historical workflow port refuses %s without admitting current native proof', (_name, mutate) => {
   const file = '.github/workflows/ops-hardening.yml', source = readFileSync(file, 'utf8'), changed = mutate(source)
   expect(changed).not.toBe(source)
@@ -843,7 +874,7 @@ it.each([
 // never imported, changed or qualified as current producer proof by this port.
 const billingNativeInclude = "    'scripts/ediel-canonical-signature-billing-projection-native.test.ts',\n"
 function prospectiveBillingConfig(input?: Buffer) {
-  const current = (input ?? readFileSync('scripts/ediel-source-owner-native.config.ts')).toString('utf8')
+  const current = reviewedPoaConfig(input ?? readFileSync('scripts/ediel-source-owner-native.config.ts')).toString('utf8')
   const digest = sha256(current)
   expect(['7461db28b3fbd1546bd45e9b5fe4a470bba786460731d215a675828d0903fedf',
     'd9bd80bf7038f9232362ecba4deaa29b3ae264ef3c89000873fc91ad740fd0db']).toContain(digest)

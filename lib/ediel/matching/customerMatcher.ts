@@ -24,7 +24,8 @@ export async function matchCustomerForAutomation(input: EdielMatchInput): Promis
   const data = await findCustomersByIdentifierValues({
     companyId,
     values,
-    columns: ['id', 'customer_number', 'personal_number', 'org_number', 'email'],
+    columns: ['customer_number', 'personal_number', 'org_number', 'email'],
+    uuidColumns: ['id'],
     select: 'id, company_id, customer_number, personal_number, org_number, email, full_name, company_name, status',
     limit: 20,
   })

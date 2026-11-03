@@ -2,8 +2,11 @@ import type { Metadata } from 'next'
 import {
   frozenPriceSummary,
   loadOnlineSignatureReceipt,
+  loadOnlineSignaturePoaTerms,
+  ONLINE_POA_TERMS_VERSION,
 } from '@/lib/customer-contracts/onlineSigning'
 import { loadContractConfirmationState } from '@/lib/customer-contracts/confirmationDelivery'
+import { isRejectedSignatureLink } from '@/lib/customer-contracts/signatureReceiptReadError'
 import { signContractAction } from './actions'
 import SignSubmitButton from './SignSubmitButton'
 
@@ -69,14 +72,24 @@ export default async function ContractSigningPage({
   let receipt: Awaited<ReturnType<typeof loadOnlineSignatureReceipt>> | null = null
   try {
     receipt = await loadOnlineSignatureReceipt(token)
-  } catch {
+  } catch (error) {
+    const rejectedLink = isRejectedSignatureLink(error)
     return (
       <main className="min-h-screen bg-slate-50 px-4 py-12 text-slate-950">
         <div className="mx-auto max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-semibold">Signeringslänken kan inte användas</h1>
+          <h1 className="text-2xl font-semibold">
+            {rejectedLink ? 'Signeringslänken kan inte användas' : 'Avtalet kunde inte hämtas just nu'}
+          </h1>
           <p className="mt-3 text-sm leading-6 text-slate-700">
-            Länken är ogiltig, har löpt ut eller har ersatts av en ny signeringslänk. Kontakta din elhandlare om du behöver en ny länk.
+            {rejectedLink
+              ? 'Länken är ogiltig, har löpt ut eller har ersatts av en ny signeringslänk. Kontakta din elhandlare om du behöver en ny länk.'
+              : 'Vi kunde inte kontrollera avtalet. Försök igen med samma länk. Kontakta din elhandlare om problemet kvarstår.'}
           </p>
+          {!rejectedLink && (
+            <a className="mt-5 inline-block font-semibold text-slate-900 underline" href={`/sign/contract/${encodeURIComponent(token)}`}>
+              Försök igen med samma länk
+            </a>
+          )}
         </div>
       </main>
     )
@@ -90,6 +103,7 @@ export default async function ContractSigningPage({
       }).catch(() => null)
     : null
   const legalVersions = receipt.legal_versions
+  const poaTerms = signed ? null : await loadOnlineSignaturePoaTerms(receipt).catch(() => null)
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 sm:py-12">
@@ -196,16 +210,29 @@ export default async function ContractSigningPage({
         ) : (
           <section className="rounded-3xl border border-slate-900 bg-slate-950 p-6 text-white shadow-sm">
             <p className="text-sm leading-6 text-slate-200">
-              När du trycker på knappen godkänner du avtalet med det pris och de villkor som visas ovan. Vi sparar tidpunkten för din signering som bevis.
+              När du trycker på knappen godkänner du avtalet med det pris och de villkor som visas ovan. Vi sparar signeringens tidpunkt, IP-adress, webbläsaruppgifter och kontrollkoder som bevis.
             </p>
             {signError ? (
               <p role="alert" className="mt-4 rounded-2xl bg-red-100 p-3 text-sm text-red-900">
-                Avtalet kunde inte signeras och ingenting har sparats. Länken kan ha gått ut eller avtalet kan ha ändrats. Försök igen, eller kontakta din elhandlare för en ny länk.
+                Avtalet kunde inte signeras. Försök igen, eller kontakta din elhandlare om felet kvarstår. Du behöver inte begära en ny länk för ett tillfälligt fel.
               </p>
             ) : null}
             <form action={signContractAction} className="mt-5">
               <input type="hidden" name="token" value={token} />
-              <SignSubmitButton />
+              <input type="hidden" name="power_of_attorney_terms_version" value={ONLINE_POA_TERMS_VERSION} />
+              {poaTerms?.siteAddress ? (
+                <p className="mb-4 text-sm leading-6">Anläggning: {poaTerms.siteAddress}. {poaTerms.facilityId ? `Anläggnings-ID: ${poaTerms.facilityId}.` : 'Anläggnings-ID hämtas från nätägaren med din fullmakt.'}</p>
+              ) : null}
+              {poaTerms?.available ? (
+                <label className="mb-5 flex items-start gap-3 text-sm leading-6">
+                  <input type="checkbox" name="power_of_attorney_accepted" value="yes" required={poaTerms.required}
+                    className="mt-1 size-4 shrink-0" />
+                  <span>Jag ger {receipt.company_name} fullmakt för anläggningen som hör till detta avtal att hämta anläggnings-, mät- och avtalsuppgifter från nätägare och nuvarande elhandlare samt genomföra leverantörsbytet enligt avtalet och fullmaktstexten ovan. Fullmakten gäller från signeringsdagen till och med dagen före motsvarande datum om tolv månader och kan återkallas. {poaTerms.required ? 'Fullmakt krävs för detta avtal.' : 'Fullmakten är valfri; du kan signera avtalet utan att markera rutan.'}</span>
+                </label>
+              ) : null}
+              {!poaTerms || (poaTerms.required && !poaTerms.available) ? (
+                <p role="alert">Fullmaktsvillkoren kunde inte verifieras. Försök ladda om sidan eller kontakta din elhandlare.</p>
+              ) : <SignSubmitButton />}
             </form>
           </section>
         )}

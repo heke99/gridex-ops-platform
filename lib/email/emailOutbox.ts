@@ -1,3 +1,4 @@
+import { tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery';
 import { randomUUID } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import {
@@ -69,6 +70,65 @@ type ProcessTenantEmailOutboxInput = {
   companyId?: string | null;
   limit?: number;
 };
+
+type ContractSignatureEmailScope = {
+  companyId: string;
+  customerId: string;
+  contractId: string;
+  signatureRequestId: string;
+  communicationLogId: string;
+};
+
+class CancelledSignatureEmail extends Error {}
+class UncertainSignatureEmail extends Error {}
+
+const SIGNATURE_EMAIL_TYPE = 'contract.signature_requested';
+
+async function signatureEmailLog(row: TenantEmailOutboxRow) {
+  if (!row.communication_log_id || !row.customer_id) return null;
+  const { data, error } = await tenantSelect(row.company_id, 'communication_logs', 'id,company_id,customer_id,contract_id,metadata')
+    .eq('id', row.communication_log_id).eq('company_id', row.company_id)
+    .eq('customer_id', row.customer_id).eq('event_key', SIGNATURE_EMAIL_TYPE).maybeSingle();
+  if (error) throw error;
+  return data as { id: string; company_id: string; customer_id: string; contract_id: string | null; metadata: Record<string, unknown> | null } | null;
+}
+
+async function requireCurrentSignatureEmail(row: TenantEmailOutboxRow) {
+  const log = await signatureEmailLog(row);
+  const requestId = typeof log?.metadata?.signature_request_id === 'string'
+    ? log.metadata.signature_request_id : null;
+  let current = false;
+  if (requestId && log?.contract_id) {
+    const { data: request, error } = await tenantSelect(row.company_id, 'customer_contract_signature_requests', 'id').eq('id', requestId).eq('company_id', row.company_id)
+      .eq('customer_id', row.customer_id!).eq('customer_contract_id', log.contract_id)
+      .eq('recipient_email', row.to_email).is('revoked_at', null).is('used_at', null)
+      .gt('expires_at', new Date().toISOString()).maybeSingle();
+    if (error) throw error;
+    if (request) {
+      const contract = await tenantSelect(row.company_id, 'customer_contracts', 'id')
+        .eq('id', log.contract_id).eq('company_id', row.company_id).eq('customer_id', row.customer_id!)
+        .eq('status', 'pending_signature').is('signed_at', null).maybeSingle();
+      if (contract.error) throw contract.error;
+      current = Boolean(contract.data);
+    }
+  }
+  if (current) return;
+  const now = new Date().toISOString();
+  const cancelled = await tenantUpdate(row.company_id, 'tenant_email_outbox', {
+    status: 'cancelled', failure_reason: 'signature_request_no_longer_current',
+    last_error: null, next_attempt_at: null, locked_at: null, locked_by: null, lock_token: null, updated_at: now,
+  }).eq('id', row.id).eq('company_id', row.company_id).eq('status', 'processing')
+    .eq('lock_token', row.lock_token ?? '').select('id').maybeSingle();
+  if (cancelled.error) throw cancelled.error;
+  if (cancelled.data && row.communication_log_id) {
+    const update = await tenantUpdate(row.company_id, 'communication_logs', { status: 'cancelled' })
+      .eq('id', row.communication_log_id).eq('company_id', row.company_id)
+      .eq('customer_id', row.customer_id!).eq('status', 'queued');
+    if (update.error) throw update.error;
+  }
+  // A lost cancellation CAS also cannot authorize a provider call.
+  throw new CancelledSignatureEmail('Signeringslänken har ersatts, använts eller löpt ut.');
+}
 
 function clean(value: string | null | undefined) {
   const trimmed = String(value ?? "").trim();
@@ -429,7 +489,11 @@ export async function sendTenantEmailOutboxRow(row: TenantEmailOutboxRow) {
   if (!clean(row.html_body))
     throw new Error("Mallinnehåll saknas för e-postutskicket.");
 
-  const result = await getEmailProvider().sendEmail({
+  if (row.email_type === SIGNATURE_EMAIL_TYPE) await requireCurrentSignatureEmail(row);
+
+  let result;
+  try {
+    result = await getEmailProvider().sendEmail({
     from: row.from_email!,
     to: row.to_email,
     replyTo: row.reply_to_email ?? undefined,
@@ -438,7 +502,14 @@ export async function sendTenantEmailOutboxRow(row: TenantEmailOutboxRow) {
     text: row.text_body ?? undefined,
     idempotencyKey: row.provider_idempotency_key ?? `tenant-email:${row.id}`,
     attachments: safeAttachments(row.attachments),
-  });
+    });
+  } catch (error) {
+    if (row.email_type !== SIGNATURE_EMAIL_TYPE) throw error;
+    // The provider may have accepted the message before the connection failed.
+    // Preserve the same durable intent/key and never retry it automatically.
+    try { await markOutboxDeliveryUncertain(row, null, safeError(error)); } catch { /* stale processing is reconciled to uncertain */ }
+    throw new UncertainSignatureEmail('Signeringsmejlets leverans är osäker och behöver granskas innan omsändning.');
+  }
 
   return result.providerMessageId;
 }
@@ -478,6 +549,10 @@ export async function processTenantEmailOutbox(
         continue;
       }
     } catch (error) {
+      if (error instanceof CancelledSignatureEmail || error instanceof UncertainSignatureEmail) {
+        result.skipped += 1;
+        continue;
+      }
       const message = safeError(error);
       if (message.startsWith('blocked_tenant_state:')) {
         result.skipped += 1;
@@ -494,6 +569,46 @@ export async function processTenantEmailOutbox(
   }
 
   return result;
+}
+
+/** Target one newly persisted signature intent; the normal cron remains recovery. */
+export async function sendContractSignatureEmailNow(input: ContractSignatureEmailScope) {
+  const { data, error } = await tenantSelect(input.companyId, 'tenant_email_outbox', '*')
+    .eq('company_id', input.companyId).eq('customer_id', input.customerId)
+    .eq('communication_log_id', input.communicationLogId).eq('email_type', SIGNATURE_EMAIL_TYPE).maybeSingle();
+  if (error) throw error;
+  if (!data) return { status: 'not_found' as const };
+  const row = data as TenantEmailOutboxRow;
+  const log = await signatureEmailLog(row);
+  if (log?.contract_id !== input.contractId || log?.metadata?.signature_request_id !== input.signatureRequestId) {
+    return { status: 'not_found' as const };
+  }
+  if (row.status !== 'queued') return { status: row.status };
+  const currentStatus = async () => {
+    const current = await tenantSelect(input.companyId, 'tenant_email_outbox', 'status')
+      .eq('id', row.id).eq('company_id', input.companyId).eq('customer_id', input.customerId)
+      .eq('communication_log_id', input.communicationLogId).eq('email_type', SIGNATURE_EMAIL_TYPE).maybeSingle();
+    if (current.error) throw current.error;
+    const currentRow = current.data as { status: TenantEmailOutboxRow['status'] } | null;
+    return { status: currentRow?.status ?? 'unknown' };
+  };
+  const claimed = await claimRow(row);
+  if (!claimed) return currentStatus();
+  try {
+    const providerMessageId = await sendTenantEmailOutboxRow(claimed);
+    try { await markOutboxSent(claimed, providerMessageId); }
+    catch (error) {
+      await markOutboxDeliveryUncertain(claimed, providerMessageId, safeError(error));
+      return { status: 'delivery_uncertain' as const };
+    }
+    return { status: 'sent' as const };
+  } catch (error) {
+    if (error instanceof CancelledSignatureEmail) return { status: 'cancelled' as const };
+    if (error instanceof UncertainSignatureEmail) return { status: 'delivery_uncertain' as const };
+    if (safeError(error).startsWith('blocked_tenant_state:')) return currentStatus();
+    await markOutboxFailed(claimed, safeError(error));
+    return { status: Number(claimed.attempts ?? 0) + 1 >= Number(claimed.max_attempts ?? 5) ? 'failed' as const : 'queued' as const };
+  }
 }
 
 /**
@@ -566,6 +681,9 @@ export async function sendTenantEmailNow(outboxId: string) {
       return { ok: false, error: `Leveransen är osäker efter lyckad provider-sändning: ${message}` };
     }
   } catch (error) {
+    if (error instanceof CancelledSignatureEmail || error instanceof UncertainSignatureEmail) {
+      return { ok: false, error: error.message };
+    }
     const message = safeError(error);
     await markOutboxFailed(claimed, message);
     return { ok: false, error: message };

@@ -115,7 +115,10 @@ describe('supported client release matrix', () => {
 
   it('every developer entry page and the migration guide state the compatibility policy', () => {
     for (const file of ['app/developers/page.tsx', 'app/developers/customer-portal-api/page.tsx', 'app/developers/staff-api/page.tsx', 'docs/api-migration-guide.md', 'docs/api-compatibility-policy.md']) {
-      expect(readFileSync(file, 'utf8'), file).toContain(POLICY)
+      const policy = file === 'app/developers/page.tsx'
+        ? 'Du kan fortsätta använda en API-version som stöds även när dokumentationen uppdateras.'
+        : POLICY
+      expect(readFileSync(file, 'utf8'), file).toContain(policy)
     }
     const guide = readFileSync('docs/api-migration-guide.md', 'utf8')
     expect(guide).toContain('this does not certify every frozen strict validator')

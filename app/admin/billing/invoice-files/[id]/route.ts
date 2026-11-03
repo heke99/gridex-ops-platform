@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
   if (!scope?.companyId) return new NextResponse('Bolag saknas.', { status: 403 })
 
   const { id } = await params
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return new NextResponse('Fakturafilen hittades inte.', { status: 404 })
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return new NextResponse('Fakturafilen hittades inte.', { status: 404 })
   const file = await loadInvoiceFile(scope.companyId, id)
   if (!file) return new NextResponse('Fakturafilen hittades inte.', { status: 404 })
 

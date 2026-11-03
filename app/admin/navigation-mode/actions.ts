@@ -1,29 +1,13 @@
 'use server'
 
-import { cookies, headers } from 'next/headers'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { requireAdminAccess } from '@/lib/admin/guards'
 import {
-  ADMIN_NAVIGATION_MODE_COOKIE,
-  ADMIN_SELECTED_COMPANY_COOKIE,
   navigationModeParam,
   normalizeAdminNavigationMode,
 } from '@/lib/admin/navigationPreferences'
 import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
-
-const ADMIN_COOKIE_MAX_AGE = 60 * 60 * 24 * 180
-
-const ADMIN_COOKIE_OPTIONS = {
-  httpOnly: true,
-  sameSite: 'lax' as const,
-  path: '/admin',
-  maxAge: ADMIN_COOKIE_MAX_AGE,
-}
-
-const ADMIN_CLEAR_COOKIE_OPTIONS = {
-  ...ADMIN_COOKIE_OPTIONS,
-  maxAge: 0,
-}
 
 function formStringValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -43,16 +27,6 @@ export async function updateAdminNavigationPreference(formData: FormData) {
       : memberships[0]?.companyId ?? null
   }
 
-  const cookieStore = await cookies()
-  cookieStore.set(ADMIN_NAVIGATION_MODE_COOKIE, navigationModeParam(mode), ADMIN_COOKIE_OPTIONS)
-
-  if (selectedCompanyId) {
-    cookieStore.set(ADMIN_SELECTED_COMPANY_COOKIE, selectedCompanyId, ADMIN_COOKIE_OPTIONS)
-  } else {
-    cookieStore.set(ADMIN_SELECTED_COMPANY_COOKIE, '', ADMIN_CLEAR_COOKIE_OPTIONS)
-  }
-
-
   const headerStore = await headers()
   const referer = headerStore.get('referer')
   let returnTo = '/admin'
@@ -68,6 +42,11 @@ export async function updateAdminNavigationPreference(formData: FormData) {
     }
   }
 
-  redirect(returnTo)
+  const params = new URLSearchParams({ mode: navigationModeParam(mode), next: returnTo })
+  if (selectedCompanyId) params.set('company_id', selectedCompanyId)
+
+  // One Route Handler writes both cookie paths; same-name Server Action cookie
+  // mutations cannot represent the root value and legacy /admin expiry together.
+  redirect(`/admin/navigation-mode?${params}`)
 }
 

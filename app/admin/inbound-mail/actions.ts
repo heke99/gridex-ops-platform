@@ -9,6 +9,7 @@ import {
   syncActiveInboundProcessingJobForMessage,
 } from "@/lib/inbound-mail/edielMailboxPoller";
 import { supabaseService } from "@/lib/supabase/service";
+import { resolveImapSecureForSave } from "@/lib/inbound-mail/imapTls";
 
 function text(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -109,7 +110,14 @@ export async function saveSharedMailboxProfileAction(formData: FormData) {
   );
   const imapPort = optionalNumber(text(formData, "imap_port"), 993);
   const imapFolder = text(formData, "imap_folder") ?? "INBOX";
-  const imapSecure = checkboxValue(formData, "imap_secure", imapPort === 993);
+  // true = IMAPS, false = mandatory STARTTLS; cleartext cannot be saved.
+  const imapSecure = resolveImapSecureForSave({
+    formData,
+    host: imapHost,
+    port: imapPort,
+    secure: checkboxValue(formData, "imap_secure", imapPort === 993),
+    environment,
+  });
 
   const smtpHost = text(formData, "smtp_host") ?? "smtp.strato.de";
   const smtpPort = optionalNumber(text(formData, "smtp_port"), 465);

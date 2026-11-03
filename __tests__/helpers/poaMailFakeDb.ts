@@ -41,6 +41,8 @@ function compare(a: unknown, b: unknown): number {
 }
 
 function parseValue(raw: string): unknown {
+  // PostgREST double-quoted value: `eq."a,b"` compares with a,b (\" and \\ unescaped).
+  if (/^"(?:\\.|[^"\\])*"$/.test(raw)) return raw.slice(1, -1).replace(/\\(.)/g, '$1')
   if (raw === 'null') return null
   if (raw === 'true') return true
   if (raw === 'false') return false

@@ -351,7 +351,7 @@ export async function buildEdielControlTowerOperationsSummary(params: {
       { column: 'status', value: 'failed' },
       { column: 'failure_reason', op: 'ilike', value: '%preflight%' },
     ]),
-    safeCount('ediel_message_events', null, [
+    safeCount('ediel_message_events', companyId, [
       { column: 'event_type', value: 'failed' },
       { column: 'created_at', op: 'gte', value: last24h },
     ]),
@@ -374,6 +374,7 @@ export async function buildEdielControlTowerOperationsSummary(params: {
     }),
     safeRows<RawEdielEvent>({
       table: 'ediel_message_events',
+      companyId,
       select: 'id, ediel_message_id, event_type, event_status, message, created_at',
       filters: [{ column: 'event_status', op: 'in', value: ['warning', 'error'] }],
       limit: 8,

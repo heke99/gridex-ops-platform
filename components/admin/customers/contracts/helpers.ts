@@ -218,6 +218,11 @@ export function getCurrentContract(
 export function getLifecycleSummary(contract: CustomerContractRow) {
   return getContractLifecycleSummary({
     startsAt: contract.starts_at,
+    actualStartDate: contract.actual_start_date,
+    confirmedStartDate: contract.confirmed_start_date,
+    actualStartAt: contract.actual_start_at,
+    confirmedStartAt: contract.confirmed_start_at,
+    expectedStartAt: contract.expected_start_at,
     endsAt: contract.ends_at,
     bindingMonths: contract.binding_months,
     noticeMonths: contract.notice_months,

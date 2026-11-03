@@ -5,7 +5,7 @@ import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 import type { DomainEventRow } from '@/lib/events/domainEvents'
 import { loadExternalTenantReference } from '@/lib/integrations/tenantContext'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
-import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
+import { assertPublicResponsePayload, PublicPayloadSafetyError } from '@/lib/api/publicPayloadSafety'
 import { postPublicWebhook } from '@/lib/integrations/publicWebhookTransport'
 import { PARTNER_API_VERSION } from '@/lib/partner-api/openApi'
 import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
@@ -418,7 +418,13 @@ function partnerWebhookPayload(publicPayload: Record<string, unknown>): Record<s
       : publicPayload.data ?? {},
     api_version: PARTNER_API_VERSION,
   }
-  assertPublicResponsePayload(payload)
+  // Partner webhooks document this exact opaque root field. Keep its exception
+  // local to this publisher; every other projected field retains public safety.
+  const { event_id: eventId, ...publicFields } = payload
+  if (typeof eventId !== 'string' || !/^event_[a-f0-9]{32}$/.test(eventId)) {
+    throw new PublicPayloadSafetyError('$.event_id')
+  }
+  assertPublicResponsePayload(publicFields)
   return payload
 }
 

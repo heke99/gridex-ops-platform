@@ -1,8 +1,14 @@
 import { currentStockholmCalendarDate } from '@/lib/time/stockholm'
 import type { CustomerContractRow, CustomerContractTerminationReason } from './types'
+import { resolveContractStartDate } from './operationalDates'
 
 type ContractLifecycleInput = {
   startsAt?: string | null
+  actualStartDate?: string | null
+  confirmedStartDate?: string | null
+  actualStartAt?: string | null
+  confirmedStartAt?: string | null
+  expectedStartAt?: string | null
   endsAt?: string | null
   bindingMonths?: number | null
   noticeMonths?: number | null
@@ -29,6 +35,14 @@ export type ContractLifecycleSummary = {
   currentTermEnd: string | null
   nextRenewalDate: string | null
   terminationReason: CustomerContractTerminationReason | null
+}
+
+function operationalStart(input: ContractLifecycleInput): string | null {
+  return resolveContractStartDate({
+    actual_start_date: input.actualStartDate, actual_start_at: input.actualStartAt,
+    confirmed_start_date: input.confirmedStartDate, confirmed_start_at: input.confirmedStartAt,
+    starts_at: input.startsAt, expected_start_at: input.expectedStartAt,
+  }, 'planning')
 }
 
 function normalizeDate(value: string | null | undefined): string | null {
@@ -146,7 +160,7 @@ export function deriveContractEndsAt(input: ContractLifecycleInput): string | nu
   const explicitEndsAt = normalizeDate(input.endsAt)
   if (explicitEndsAt) return explicitEndsAt
 
-  const startsAt = normalizeDate(input.startsAt)
+  const startsAt = operationalStart(input)
   const terminationNoticeDate = normalizeDate(input.terminationNoticeDate)
 
   const bindingMonths =
@@ -156,6 +170,8 @@ export function deriveContractEndsAt(input: ContractLifecycleInput): string | nu
   const boundUntil = startsAt && bindingMonths
     ? addMonths(startsAt, bindingMonths)
     : null
+
+  if (bindingMonths && !startsAt) return null
 
   const noticeEffectiveEndDate = terminationNoticeDate
     ? addMonths(terminationNoticeDate, input.noticeMonths ?? 0)
@@ -168,7 +184,7 @@ export function getContractLifecycleSummary(
   input: ContractLifecycleInput,
   referenceDate = todayIso()
 ): ContractLifecycleSummary {
-  const startsAt = normalizeDate(input.startsAt)
+  const startsAt = operationalStart(input)
   const explicitEndsAt = normalizeDate(input.endsAt)
   const terminationNoticeDate = normalizeDate(input.terminationNoticeDate)
   const bindingMonths =
@@ -179,8 +195,10 @@ export function getContractLifecycleSummary(
   const noticeEffectiveEndDate = terminationNoticeDate
     ? addMonths(terminationNoticeDate, input.noticeMonths ?? 0)
     : null
-  const effectiveEndDate = explicitEndsAt ?? maxDate(boundUntil, noticeEffectiveEndDate)
-  const bindingActive = Boolean(boundUntil && boundUntil > referenceDate)
+  const effectiveEndDate = explicitEndsAt ?? (bindingMonths && !startsAt ? null : maxDate(boundUntil, noticeEffectiveEndDate))
+  const unknownCommittingStart = !startsAt && bindingMonths !== null &&
+    ['pending_signature', 'signed', 'active'].includes(input.status ?? '')
+  const bindingActive = unknownCommittingStart || Boolean(boundUntil && boundUntil > referenceDate)
   const autoRenewEnabled = Boolean(input.autoRenewEnabled)
   const autoRenewTermMonths = getRenewalTermMonths(input)
   const autoRenewCandidate =

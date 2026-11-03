@@ -1,3 +1,5 @@
+import { resolveContractStartDate } from '@/lib/customer-contracts/operationalDates'
+
 export type CustomerReadinessInput = {
   customer: Record<string, unknown>
   sites?: Array<Record<string, unknown>>
@@ -73,7 +75,7 @@ export function calculateCustomerReadinessScore(input: CustomerReadinessInput): 
   const contractScore = score([
     activeContracts.length > 0,
     activeContracts.some((contract) => hasAny(contract, ['contract_name'])),
-    activeContracts.some((contract) => hasAny(contract, ['starts_at', 'expected_start_at', 'confirmed_start_at', 'actual_start_at'])),
+    activeContracts.some((contract) => resolveContractStartDate(contract, 'planning') !== null),
     activeContracts.some((contract) => hasAny(contract, ['campaign_version', 'price_version', 'terms_version'])),
   ])
   if (activeContracts.length === 0) blockers.push({ area: 'contract', code: 'missing_contract', title: 'Avtal saknas', severity: 'blocked' })

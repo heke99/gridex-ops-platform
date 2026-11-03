@@ -161,8 +161,14 @@ const loadBaseAdminContext = cache(async function loadBaseAdminContext(): Promis
     .map((row) => roleFromRpcRow(row as UserRoleRpcRow))
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
 
+  // F-7: authoritative, from the database. Never re-derived from role names,
+  // JWT claims, user metadata or the request.
+  const isPlatformAdmin = context.is_platform_admin === true
+
+  // A platform admin granted only through admin_users has no user_roles rows, so
+  // roles and permissions are empty; the server-validated flag still admits it.
   const isAdmin =
-    (permissions.length > 0 || roles.some(isPlatformAdminRole)) &&
+    (isPlatformAdmin || permissions.length > 0 || roles.some(isPlatformAdminRole)) &&
     !(roles.length === 1 && roles[0] === 'customer')
 
   return {
@@ -171,8 +177,7 @@ const loadBaseAdminContext = cache(async function loadBaseAdminContext(): Promis
     permissions,
     roles,
     isAdmin,
-    // F-7: authoritative, from the database. Never re-derived from role names.
-    isPlatformAdmin: Boolean(context.is_platform_admin),
+    isPlatformAdmin,
     companyId:
       typeof context.selected_company_id === 'string' && context.selected_company_id
         ? context.selected_company_id

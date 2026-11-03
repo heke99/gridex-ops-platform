@@ -151,7 +151,7 @@ export default function LandingPage() {
                   ['Kunder under onboarding', '24', 'Fullmakt, avtal och anläggning'],
                   ['Switchärenden', '12', 'Pågående leverantörsbyten'],
                   ['Åtgärder i kö', '7', 'Meddelanden och avvikelser'],
-                  ['Klara för handoff', '18', 'Underlag till partner'],
+                  ['Klara för överlämning', '18', 'Underlag till partner'],
                 ].map(([label, value, hint]) => (
                   <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
                     <div className="flex items-center justify-between gap-4">
@@ -237,13 +237,13 @@ export default function LandingPage() {
                 Plattform för flera elhandelsbolag, med tydlig bolagsseparation.
               </h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-emerald-50/80">
-                Superadmin kan skapa och bjuda in nya bolag. Varje bolag kan därefter
-                hantera sina användare, roller och dagliga processer inom sin egen bolagsmiljö.
+                Varje bolag får en egen arbetsyta med sina kunder, avtal och processer.
+                Bjud in teamet och anpassa behörigheter efter varje medarbetares ansvar.
               </p>
             </div>
 
             <div className="grid gap-3">
-              {['Superadmin skapar bolag', 'Bolagsansvarig bjuder in team', 'Roller styr arbetsytor', 'Kunddata hålls bolagsseparerad'].map((item) => (
+              {['Egen arbetsyta för varje bolag', 'Bjud in och hantera teamet', 'Behörigheter efter ansvar', 'Kunddata hålls inom rätt bolag'].map((item) => (
                 <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-3 text-sm font-semibold text-white">
                   {item}
                 </div>

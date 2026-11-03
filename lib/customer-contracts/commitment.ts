@@ -14,6 +14,8 @@
  * - Notice period: notice_months > 0, or a registered termination whose end date has not passed.
  */
 
+import { resolveContractStartDate } from './operationalDates'
+
 export type CommitmentContract = {
   id: string
   status: string | null
@@ -23,7 +25,9 @@ export type CommitmentContract = {
   ends_at?: string | null
   termination_notice_date?: string | null
   actual_start_at?: string | null
+  actual_start_date?: string | null
   confirmed_start_at?: string | null
+  confirmed_start_date?: string | null
   starts_at?: string | null
   expected_start_at?: string | null
 }
@@ -63,7 +67,7 @@ export function todayInStockholm(now = new Date()): string {
 
 export function contractCommitment(contract: CommitmentContract, today = todayInStockholm()): ContractCommitment {
   const committing = COMMITTING_STATUSES.has(String(contract.status ?? ''))
-  const start = isoDay(contract.actual_start_at) ?? isoDay(contract.confirmed_start_at) ?? isoDay(contract.starts_at) ?? isoDay(contract.expected_start_at)
+  const start = resolveContractStartDate(contract, 'planning')
   const bindingMonths = Number(contract.binding_months ?? 0)
   const endsOn = isoDay(contract.ends_at)
 

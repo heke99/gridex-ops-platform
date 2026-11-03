@@ -49,7 +49,7 @@ function permissionKeys(context: CanonicalTenantContext, requirement: Permission
     !active.every((key) => typeof key === 'string') || !denied.every((key) => typeof key === 'string')) return null
   const available = new Set(active)
   const blocked = new Set(denied)
-  const granted = context.is_platform_admin ? active : (Array.isArray(context.permissions) ? context.permissions : [])
+  const granted = context.is_platform_admin === true ? active : (Array.isArray(context.permissions) ? context.permissions : [])
   return granted.filter((key): key is string => typeof key === 'string' && available.has(key) && !blocked.has(key))
 }
 
@@ -167,16 +167,18 @@ export async function requireAdminApiAccess(
     .map((row) => roleFromRpcRow(row as UserRoleRpcRow))
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
 
+  // Same policy as the page guards: the flag counts only as a server-validated
+  // boolean, and a customer-only identity is never an admin.
+  const isPlatformAdmin = context.is_platform_admin === true
   const guard: GuardResult = {
     userId: user.id,
     email: context.user_email ?? user.email ?? null,
     permissions,
     roles,
     isAdmin:
-      Boolean(context.is_platform_admin) || (
-      (permissions.length > 0 || roles.some((role) => role === 'super_admin' || role === 'platform_admin')) &&
-      !(roles.length === 1 && roles[0] === 'customer')),
-    isPlatformAdmin: Boolean(context.is_platform_admin),
+      (isPlatformAdmin || permissions.length > 0 || roles.some((role) => role === 'super_admin' || role === 'platform_admin')) &&
+      !(roles.length === 1 && roles[0] === 'customer'),
+    isPlatformAdmin,
     companyId:
       typeof context.selected_company_id === 'string' && context.selected_company_id
         ? context.selected_company_id

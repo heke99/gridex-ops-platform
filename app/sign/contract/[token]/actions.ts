@@ -2,7 +2,7 @@
 
 import { headers } from 'next/headers'
 import { redirect, unstable_rethrow } from 'next/navigation'
-import { finalizeOnlineContractSignature, loadOnlineSignatureReceipt } from '@/lib/customer-contracts/onlineSigning'
+import { finalizeOnlineContractSignature, loadOnlineSignatureReceipt, onlineSignatureFailureCode } from '@/lib/customer-contracts/onlineSigning'
 
 function firstForwardedIp(value: string | null): string | null {
   if (!value) return null
@@ -24,6 +24,8 @@ export async function signContractAction(formData: FormData) {
       token,
       ipAddress,
       userAgent,
+      powerOfAttorneyAccepted: formData.get('power_of_attorney_accepted') === 'yes',
+      powerOfAttorneyTermsVersion: String(formData.get('power_of_attorney_terms_version') ?? ''),
     })
   } catch (error) {
     unstable_rethrow(error)
@@ -32,7 +34,7 @@ export async function signContractAction(formData: FormData) {
     const receipt = await loadOnlineSignatureReceipt(token).catch(() => null)
     if (!receipt?.signed_at) {
       console.error('[contract-signing] finalize_failed', {
-        message: error instanceof Error ? error.message : String(error),
+        code: onlineSignatureFailureCode(error),
       })
       redirect(`/sign/contract/${token}?error=not_signed`)
     }

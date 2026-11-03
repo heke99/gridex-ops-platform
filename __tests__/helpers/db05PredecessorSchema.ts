@@ -16,6 +16,44 @@ function reversePatch(schema:string,patch:Patch):string{
  return rebuilt
 }
 
+/** Restore only the exact genuine PR949 capture to the unchanged PR973 bytes.
+ * Source3e8a830c/artifact13063971334 changes the bounded CONTRL function only;
+ * this inverse grants no native, performance or whole-business credit. */
+function prePr949ContrlSchema(schema:string):string{
+ const pr949:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-pr949-contrl-20261101.patch.json',import.meta.url),'utf8'))
+ if(pr949.preSha256!=='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b'||pr949.postSha256!=='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')throw Error('db05_schema_predecessor_rebuild_mismatch')
+ return reversePatch(schema,pr949)
+}
+
+/** Exact pre-PR973 PR932 capture. The genuine PR973 capture is reversed by
+ * its generated patch; the PR932 capture itself is returned unchanged. Any
+ * other capture fails closed. */
+export function prePr973Audit19Schema(schema:string):string{
+ const actual=sha(schema)
+ if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return prePr973Audit19Schema(prePr949ContrlSchema(schema))
+ if(actual==='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b')return schema
+ if(actual!=='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b')throw Error('db05_schema_predecessor_unknown:'+actual)
+ // Genuine ordinary PR973 capture 4551eff2/artifact13019755967; the audit19
+ // hash requalification is its only hunk.
+ const pr973:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-pr973-audit19-20261030.patch.json',import.meta.url),'utf8'))
+ if(pr973.preSha256!=='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b'||pr973.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+ return reversePatch(schema,pr973)
+}
+
+/** Exact pre-PR932 C14 capture. The genuine PR932 capture is reversed by its
+ * generated patch; the C14 capture itself is returned unchanged. Any other
+ * capture fails closed. */
+export function prePr932UnsignedEditSchema(schema:string):string{
+ const actual=sha(schema)
+ if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return prePr932UnsignedEditSchema(prePr949ContrlSchema(schema))
+ if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6')return schema
+ if(actual==='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b')return prePr932UnsignedEditSchema(prePr973Audit19Schema(schema))
+ if(actual!=='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b')throw Error('db05_schema_predecessor_unknown:'+actual)
+ const pr932:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-pr932-unsigned-edit-20261029.patch.json',import.meta.url),'utf8'))
+ if(pr932.preSha256!=='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6'||pr932.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+ return reversePatch(schema,pr932)
+}
+
 /** Exact pre-DB-05 schema.sql capture. The checked-in capture is either that
  * predecessor or an authenticated post-DB-05 GEN; each is reversed by
  * the generated patch and the result must hash to the pinned predecessor.
@@ -23,6 +61,34 @@ function reversePatch(schema:string,patch:Patch):string{
 export function db05PredecessorSchema(schema:string):string{
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
+ if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return db05PredecessorSchema(prePr949ContrlSchema(schema))
+ if(actual==='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b'||actual==='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b'){
+  // Genuine ordinary PR973 4551eff2/artifact13019755967 or PR932 capture
+  // 9c39bd60/artifact12981765531. Restore the exact C14 bytes before every unchanged older inverse; no native credit.
+  return db05PredecessorSchema(prePr932UnsignedEditSchema(schema))
+ }
+ if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6'){
+  // Genuine ordinary C14 capture03e5eac4/artifact12864584609. Restore exact
+  // C12 bytes before every unchanged older inverse; no native/runtime credit.
+  const tenantKey:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-poa-tenant-key-20261029.patch.json',import.meta.url),'utf8'))
+  if(tenantKey.preSha256!=='4a0a481dd5b6af7323f45dd78b5f03f37d08cc3ae244fbd9ea1074f3803d0746'||tenantKey.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  return db05PredecessorSchema(reversePatch(schema,tenantKey))
+ }
+ if(actual==='4a0a481dd5b6af7323f45dd78b5f03f37d08cc3ae244fbd9ea1074f3803d0746'){
+  // Genuine ordinary C12 capture011c1c44/artifact12862355503. Restore the
+  // unchanged3132 POA capture before every historical DB05 inverse/oracle.
+  // This finite inverse grants no confirmation/POA native or business proof.
+  const successor:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-poa-20261029.patch.json',import.meta.url),'utf8'))
+  if(successor.preSha256!=='313208382efbca3f87375e054352f96d4dfc33e4e48fcf1d1d21bf64698e6e9b'||successor.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  return db05PredecessorSchema(reversePatch(schema,successor))
+ }
+ if(actual==='313208382efbca3f87375e054352f96d4dfc33e4e48fcf1d1d21bf64698e6e9b'){
+  // Genuine ordinary POA capture23491/artifact12845430969. This inverse only
+  // preserves historical DB05 fixtures; it grants no proof for the new POA SQL.
+  const poaPatch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-poa-20261028.patch.json',import.meta.url),'utf8'))
+  if(poaPatch.preSha256!=='4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca'||poaPatch.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  return db05PredecessorSchema(reversePatch(schema,poaPatch))
+ }
  if(actual==='4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca'){
   // Genuine ordinary G3 capture012cc8bf/artifact12561956311. Rebuild exact
   // MAIN3d08 capture before its unchanged audit28 -> audit27 -> audit26 chain.

@@ -77,6 +77,28 @@ async function createProcessingRun(params: { actorUserId: string; message: Ediel
   return typeof data?.id === 'string' ? data.id : null
 }
 
+async function updateProcessingRun(params: {
+  runId: string
+  status: 'completed' | 'manual_review' | 'blocked' | 'failed'
+  payload: Record<string, unknown>
+  actorUserId: string
+  onlyWhileRunning?: boolean
+}) {
+  const now = new Date().toISOString()
+  const update = supabaseService
+    .from('ediel_processing_runs')
+    .update({
+      status: params.status,
+      payload: params.payload,
+      completed_at: now,
+      updated_by: params.actorUserId,
+      updated_at: now,
+    })
+    .eq('id', params.runId)
+  const { error } = params.onlyWhileRunning ? await update.eq('status', 'running') : await update
+  if (error) throw error
+}
+
 async function completeProcessingRun(params: {
   runId: string | null
   status: 'completed' | 'manual_review' | 'blocked' | 'failed'
@@ -84,17 +106,46 @@ async function completeProcessingRun(params: {
   actorUserId: string
 }) {
   if (!params.runId) return
-  const { error } = await supabaseService
-    .from('ediel_processing_runs')
-    .update({
-      status: params.status,
-      payload: params.payload,
-      completed_at: new Date().toISOString(),
-      updated_by: params.actorUserId,
-      updated_at: new Date().toISOString(),
+  await updateProcessingRun({ ...params, runId: params.runId })
+}
+
+function describeProcessingRunError(error: unknown): { code: string | null; message: string } {
+  const record = error && typeof error === 'object' ? error as { code?: unknown; message?: unknown } : null
+  const code = typeof record?.code === 'string' && record.code ? record.code : null
+  const message = error instanceof Error ? error.message : typeof record?.message === 'string' ? record.message : String(error)
+  return { code, message: message.slice(0, 500) }
+}
+
+/**
+ * Closes a run whose pipeline threw (simulation finding track4/10). Best
+ * effort: it only moves a still-running row to 'failed' and never replaces the
+ * original error, which the caller rethrows.
+ */
+async function failProcessingRun(params: {
+  runId: string | null
+  actorUserId: string
+  sourceMessageId: string
+  failedStep: string
+  steps: EdielPipelineStep[]
+  error: unknown
+}) {
+  if (!params.runId) return
+  try {
+    await updateProcessingRun({
+      runId: params.runId,
+      status: 'failed',
+      actorUserId: params.actorUserId,
+      onlyWhileRunning: true,
+      payload: {
+        sourceMessageId: params.sourceMessageId,
+        failedStep: params.failedStep,
+        error: describeProcessingRunError(params.error),
+        steps: params.steps,
+      },
     })
-    .eq('id', params.runId)
-  if (error) throw error
+  } catch {
+    /* the original pipeline error stays authoritative */
+  }
 }
 
 export async function recordDecisionTrace(params: {
@@ -169,121 +220,140 @@ export async function analyzeEdielProcessingPipeline(params: {
 }): Promise<EdielProcessingPipelineResult> {
   const steps: EdielPipelineStep[] = []
   const runId = await createProcessingRun({ actorUserId: params.actorUserId, message: params.message })
-  const canonical = parseCanonicalMessageRow(params.message)
-  steps.push({ key: 'parse_canonical', status: 'completed', details: { family: canonical.family, messageCode: canonical.messageCode } })
+  let currentStep = 'parse_canonical'
+  try {
+    const canonical = parseCanonicalMessageRow(params.message)
+    steps.push({ key: 'parse_canonical', status: 'completed', details: { family: canonical.family, messageCode: canonical.messageCode } })
 
-  let sla: EdielAckTimerPlan | null = null
-  if (params.createSlaTimers !== false) {
-    sla = await createAckTimersForMessage({ actorUserId: params.actorUserId, message: params.message })
-    steps.push({ key: 'sla_timers', status: sla ? 'completed' : 'skipped', details: sla ?? undefined })
-  }
+    let sla: EdielAckTimerPlan | null = null
+    if (params.createSlaTimers !== false) {
+      currentStep = 'sla_timers'
+      sla = await createAckTimersForMessage({ actorUserId: params.actorUserId, message: params.message })
+      steps.push({ key: 'sla_timers', status: sla ? 'completed' : 'skipped', details: sla ?? undefined })
+    }
 
-  const tenantResolved = Boolean(params.message.company_id)
-  steps.push({
-    key: 'tenant_resolution',
-    status: tenantResolved ? 'completed' : 'blocked',
-    reason: tenantResolved ? null : 'unknown_tenant',
-    details: { companyId: params.message.company_id ?? null, tenantResolutionStatus: params.message.tenant_resolution_status ?? null },
-  })
-
-  let businessMatch: EdielBusinessMatchResult | null = null
-  if (tenantResolved) {
-    businessMatch = await resolveEdielBusinessMatch({ message: params.message })
+    const tenantResolved = Boolean(params.message.company_id)
     steps.push({
-      key: 'business_match',
-      status: businessMatch.confidence === 'high' ? 'completed' : 'manual_review',
-      reason: businessMatch.manualReviewReason,
-      details: {
-        confidence: businessMatch.confidence,
-        customerId: businessMatch.customerId,
-        siteId: businessMatch.siteId,
-        meteringPointId: businessMatch.meteringPointId,
-        processId: businessMatch.processId,
-        permissionId: businessMatch.permissionId,
-        candidateCount: businessMatch.candidates.length,
-      },
+      key: 'tenant_resolution',
+      status: tenantResolved ? 'completed' : 'blocked',
+      reason: tenantResolved ? null : 'unknown_tenant',
+      details: { companyId: params.message.company_id ?? null, tenantResolutionStatus: params.message.tenant_resolution_status ?? null },
     })
-  }
 
-  const decision = decideForMessage(params.message)
-  if (decision) {
-    steps.push({
-      key: 'decision_engine',
-      status: decision.kind === 'manual_review' ? 'manual_review' : decision.kind === 'ack' ? 'completed' : 'skipped',
-      reason: decision.reason,
-      details: {
-        kind: decision.kind,
-        ackFamily: decision.ackFamily,
-        outcome: decision.outcome,
-        ruleKeys: decision.ruleKeys,
-      },
-    })
-  }
+    let businessMatch: EdielBusinessMatchResult | null = null
+    if (tenantResolved) {
+      currentStep = 'business_match'
+      businessMatch = await resolveEdielBusinessMatch({ message: params.message })
+      steps.push({
+        key: 'business_match',
+        status: businessMatch.confidence === 'high' ? 'completed' : 'manual_review',
+        reason: businessMatch.manualReviewReason,
+        details: {
+          confidence: businessMatch.confidence,
+          customerId: businessMatch.customerId,
+          siteId: businessMatch.siteId,
+          meteringPointId: businessMatch.meteringPointId,
+          processId: businessMatch.processId,
+          permissionId: businessMatch.permissionId,
+          candidateCount: businessMatch.candidates.length,
+        },
+      })
+    }
 
-  const canAutoSendBusinessAck = Boolean(decision?.kind === 'ack' && tenantResolved && businessMatch?.confidence === 'high')
-  const manualReviewReason =
-    !tenantResolved ? 'unknown_tenant' :
-    businessMatch?.manualReviewReason ??
-    (decision?.kind === 'manual_review' ? 'backend_decision_manual_review' : null)
+    currentStep = 'decision_engine'
+    const decision = decideForMessage(params.message)
+    if (decision) {
+      steps.push({
+        key: 'decision_engine',
+        status: decision.kind === 'manual_review' ? 'manual_review' : decision.kind === 'ack' ? 'completed' : 'skipped',
+        reason: decision.reason,
+        details: {
+          kind: decision.kind,
+          ackFamily: decision.ackFamily,
+          outcome: decision.outcome,
+          ruleKeys: decision.ruleKeys,
+        },
+      })
+    }
 
-  if (params.createDecisionTrace !== false) {
-    await recordDecisionTrace({
+    const canAutoSendBusinessAck = Boolean(decision?.kind === 'ack' && tenantResolved && businessMatch?.confidence === 'high')
+    const manualReviewReason =
+      !tenantResolved ? 'unknown_tenant' :
+      businessMatch?.manualReviewReason ??
+      (decision?.kind === 'manual_review' ? 'backend_decision_manual_review' : null)
+
+    if (params.createDecisionTrace !== false) {
+      currentStep = 'decision_trace'
+      await recordDecisionTrace({
+        actorUserId: params.actorUserId,
+        message: params.message,
+        runId,
+        decision,
+        businessMatch,
+        steps,
+      })
+    }
+
+    const finalStatus = manualReviewReason ? 'manual_review' : 'completed'
+    currentStep = 'complete_run'
+    await completeProcessingRun({
+      runId,
+      status: finalStatus,
       actorUserId: params.actorUserId,
-      message: params.message,
-      runId,
-      decision,
-      businessMatch,
-      steps,
+      payload: {
+        sourceMessageId: params.message.id,
+        canAutoSendBusinessAck,
+        manualReviewReason,
+        steps,
+        decision: decision
+          ? { kind: decision.kind, ackFamily: decision.ackFamily, outcome: decision.outcome, ruleKeys: decision.ruleKeys, reason: decision.reason }
+          : null,
+        businessMatch,
+      },
     })
-  }
 
-  const finalStatus = manualReviewReason ? 'manual_review' : 'completed'
-  await completeProcessingRun({
-    runId,
-    status: finalStatus,
-    actorUserId: params.actorUserId,
-    payload: {
-      sourceMessageId: params.message.id,
-      canAutoSendBusinessAck,
-      manualReviewReason,
-      steps,
-      decision: decision
-        ? { kind: decision.kind, ackFamily: decision.ackFamily, outcome: decision.outcome, ruleKeys: decision.ruleKeys, reason: decision.reason }
-        : null,
-      businessMatch,
-    },
-  })
+    currentStep = 'validated_event'
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.message.id,
+      eventType: 'validated',
+      eventStatus: manualReviewReason ? 'warning' : 'success',
+      message: manualReviewReason
+        ? 'Backend automation pipeline prepared trace and requires manual review before business ACK autosend.'
+        : 'Backend automation pipeline prepared trace and marked message safe for backend-controlled ACK flow.',
+      payload: {
+        runId,
+        canAutoSendBusinessAck,
+        manualReviewReason,
+        decision: decision
+          ? { kind: decision.kind, ackFamily: decision.ackFamily, outcome: decision.outcome, ruleKeys: decision.ruleKeys, reason: decision.reason }
+          : null,
+        businessMatch,
+        steps,
+      },
+    })
 
-  await createEdielMessageEvent({
-    actorUserId: params.actorUserId,
-    edielMessageId: params.message.id,
-    eventType: 'validated',
-    eventStatus: manualReviewReason ? 'warning' : 'success',
-    message: manualReviewReason
-      ? 'Backend automation pipeline prepared trace and requires manual review before business ACK autosend.'
-      : 'Backend automation pipeline prepared trace and marked message safe for backend-controlled ACK flow.',
-    payload: {
+    return {
       runId,
+      sourceMessageId: params.message.id,
+      companyId: params.message.company_id ?? null,
+      canonical,
+      businessMatch,
+      decision,
+      sla,
+      steps,
       canAutoSendBusinessAck,
       manualReviewReason,
-      decision: decision
-        ? { kind: decision.kind, ackFamily: decision.ackFamily, outcome: decision.outcome, ruleKeys: decision.ruleKeys, reason: decision.reason }
-        : null,
-      businessMatch,
+    }
+  } catch (error) {
+    await failProcessingRun({
+      runId,
+      actorUserId: params.actorUserId,
+      sourceMessageId: params.message.id,
+      failedStep: currentStep,
       steps,
-    },
-  })
-
-  return {
-    runId,
-    sourceMessageId: params.message.id,
-    companyId: params.message.company_id ?? null,
-    canonical,
-    businessMatch,
-    decision,
-    sla,
-    steps,
-    canAutoSendBusinessAck,
-    manualReviewReason,
+      error,
+    })
+    throw error
   }
 }

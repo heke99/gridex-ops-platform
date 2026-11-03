@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 
 /**
  * Shared tenant-scoped customer matching service.
@@ -307,18 +308,19 @@ export async function matchCustomerIdentity(input: CustomerMatchInput): Promise<
 export async function findCustomersByIdentifierValues(input: {
   companyId?: string | null
   values: string[]
+  /** Text columns; every value is compared with them. */
   columns: string[]
+  /** uuid columns; only UUID-shaped values are compared with them (anything else is 22P02). */
+  uuidColumns?: string[]
   select?: string
   limit?: number
 }): Promise<MatchedCustomerRow[]> {
   const values = input.values.map((value) => value.trim()).filter(Boolean)
   if (values.length === 0) return []
 
-  const orParts: string[] = []
-  for (const value of values) {
-    const escaped = value.replace(/"/g, '\\"')
-    for (const column of input.columns) orParts.push(`${column}.eq.${escaped}`)
-  }
+  const orFilter = postgrestEqAny(input.columns, input.uuidColumns ?? [], values)
+  // Nothing comparable must not widen into an unfiltered tenant read.
+  if (!orFilter) return []
 
   let query = supabaseService
     .from('customers')
@@ -326,7 +328,7 @@ export async function findCustomersByIdentifierValues(input: {
     .limit(input.limit ?? 20)
 
   if (input.companyId) query = query.eq('company_id', input.companyId)
-  if (orParts.length > 0) query = query.or(orParts.join(','))
+  query = query.or(orFilter)
 
   const { data, error } = await query
   if (error) {

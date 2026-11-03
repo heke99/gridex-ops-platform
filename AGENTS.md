@@ -12,6 +12,30 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 This is a long-lived production project.
 
+## Local skill safety and runtime overrides
+
+User instructions and existing task authorization take precedence over imported
+skill defaults. Reuse that mandate for routine reversible work and scoped
+baseline troubleshooting; skill checkpoints are progress records, not repeated
+generic permission requests. Preserve exact file custody, tenant isolation,
+one writer/producer, required quality gates and two independent final reviews.
+Production, destructive operations, external payload processing and shared
+producer transitions still require their applicable authorization.
+
+Keep credential diagnostics presence-only. Secret scanning defaults to offline;
+GitGuardian/other external source or secret processing needs explicit provider
+and payload authorization. Do not install hooks automatically or bypass an
+approval rejection with another tool, endpoint or flag.
+
+Discover actual host tools and installed skill-relative paths before using a
+runner or fallback. Report unavailable modes honestly. Do not follow broad
+stash/reset/checkout cleanup instructions over unrelated or foreign work; use
+owned paths or separate isolation. Worktrees do not isolate shared services.
+
+`.agents/skill-overrides.json` records local corrections and exact before/after
+file hashes. `skills-lock.json` retains upstream provenance unchanged. Validate
+executable examples offline with `python3 .agents/tools/check-skill-safety.py`.
+
 ## Ediel — aktuell start och samarbete
 
 Läs [.agent-memory/masterplan-current-start.md](.agent-memory/masterplan-current-start.md), faktisk main och [coverage.json](quality/audits/ediel-masterplan-v2/coverage.json), sedan senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766). Daterade baslinjer och tidigare rollprompter är historik; deras antal och ägaruppgifter är inga aktuella uppdrag.

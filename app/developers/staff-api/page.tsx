@@ -55,7 +55,7 @@ const errors = [
 export default function StaffApiGuide() {
   const endpoints = PUBLIC_API_ENDPOINT_ROWS.filter(([, path]) => path.startsWith('/api/v1/staff/'))
   return (
-    <main lang="en" className="mx-auto max-w-6xl space-y-10 px-6 py-12 text-slate-800">
+    <main lang="en" className="mx-auto w-full min-w-0 max-w-6xl space-y-10 px-6 py-12 text-base leading-7 text-slate-800 wrap-anywhere">
       <header className="space-y-4">
         <a className="underline" href="/developers/customer-portal-api">Gridex API documentation</a>
         <h1 className="text-4xl font-semibold text-slate-950">Gridex Staff API</h1>
@@ -83,7 +83,7 @@ export default function StaffApiGuide() {
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Scopes and permissions</h2>
         <p>The credential scope and the person&apos;s permission are both required.</p>
-        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{['Scope', 'Operation', 'Permission'].map(h => <th key={h} className="border-b p-3">{h}</th>)}</tr></thead><tbody>{scopes.map(([scope, operation, permission]) => <tr key={`${scope}:${permission}`}><td className="border-b p-3 font-mono">{scope}</td><td className="border-b p-3">{operation}</td><td className="border-b p-3 font-mono">{permission}</td></tr>)}</tbody></table></div>
+        <div role="region" aria-label="Staff scopes and permissions" tabIndex={0} className="max-w-full overflow-x-auto rounded-xl border border-slate-200 bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"><table className="w-full min-w-[48rem] text-left text-base leading-7 [overflow-wrap:normal] [word-break:normal]"><thead><tr>{['Scope', 'Operation', 'Permission'].map(h => <th scope="col" key={h} className="border-b p-3 align-top">{h}</th>)}</tr></thead><tbody>{scopes.map(([scope, operation, permission]) => <tr key={`${scope}:${permission}`}><td className="border-b p-3 align-top font-mono whitespace-nowrap">{scope}</td><td className="border-b p-3 align-top">{operation}</td><td className="border-b p-3 align-top font-mono whitespace-nowrap">{permission}</td></tr>)}</tbody></table></div>
         <p>Staff cannot grant a role exceeding their own permissions or disable themselves. The final active administrator cannot be disabled or demoted. Assignees must be active staff in the same organization.</p>
       </section>
       <section className="space-y-4">
@@ -101,7 +101,7 @@ export default function StaffApiGuide() {
       </section>
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Endpoints</h2>
-        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{['Method', 'Path', 'Scope', 'Operation'].map(h => <th key={h} className="border-b p-3">{h}</th>)}</tr></thead><tbody>{endpoints.map(([method, path, scope, description]) => <tr key={`${method}:${path}`}><td className="border-b p-3 font-mono">{method}</td><td className="border-b p-3 font-mono">{path}</td><td className="border-b p-3 font-mono">{scope}</td><td className="border-b p-3">{description}</td></tr>)}</tbody></table></div>
+        <div role="region" aria-label="Staff API endpoints" tabIndex={0} className="max-w-full overflow-x-auto rounded-xl border border-slate-200 bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"><table className="w-full min-w-[48rem] text-left text-base leading-7 [overflow-wrap:normal] [word-break:normal]"><thead><tr>{['Method', 'Path', 'Scope', 'Operation'].map(h => <th scope="col" key={h} className="border-b p-3 align-top">{h}</th>)}</tr></thead><tbody>{endpoints.map(([method, path, scope, description]) => <tr key={`${method}:${path}`}><td className="border-b p-3 align-top font-mono whitespace-nowrap">{method}</td><td className="border-b p-3 align-top font-mono whitespace-nowrap">{path}</td><td className="border-b p-3 align-top font-mono whitespace-nowrap">{scope}</td><td className="border-b p-3 align-top">{description}</td></tr>)}</tbody></table></div>
       </section>
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Read complete case history</h2>
@@ -111,7 +111,7 @@ export default function StaffApiGuide() {
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Errors</h2>
         <p>JSON errors contain error.code, error.message, error.retryable, error.field and error.blockers, plus request_id, correlation_id and contract_schema_version. Success and error responses carry X-Request-ID and X-Gridex-Contract-Version. X-Gridex-Documentation-Version identifies the associated documentation revision. When fetching OpenAPI itself, X-Gridex-Contract-Version identifies that document&apos;s revision.</p>
-        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{['HTTP', 'Reason or code', 'Action'].map(h => <th key={h} className="border-b p-3">{h}</th>)}</tr></thead><tbody>{errors.map(([status, reason, action]) => <tr key={status}><td className="border-b p-3">{status}</td><td className="border-b p-3">{reason}</td><td className="border-b p-3">{action}</td></tr>)}</tbody></table></div>
+        <div role="region" aria-label="Staff API errors" tabIndex={0} className="max-w-full overflow-x-auto rounded-xl border border-slate-200 bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"><table className="w-full min-w-[48rem] text-left text-base leading-7 [overflow-wrap:normal] [word-break:normal]"><thead><tr>{['HTTP', 'Reason or code', 'Action'].map(h => <th scope="col" key={h} className="border-b p-3 align-top">{h}</th>)}</tr></thead><tbody>{errors.map(([status, reason, action]) => <tr key={status}><td className="border-b p-3 align-top">{status}</td><td className="border-b p-3 align-top">{reason}</td><td className="border-b p-3 align-top">{action}</td></tr>)}</tbody></table></div>
       </section>
     </main>
   )

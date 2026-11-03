@@ -29,7 +29,7 @@ import type { CustomerImportPreviewRowStatus, IntakeActionState } from "./action
 import type { ContractStatus, CreateCustomerGraphParams, PriceAreaCode, SiteType } from './actions.part-1'
 import { buildCreateCustomerParams, getActorUserId, getFormValues, getString, insertAuditLog, normalizeBillingLevel, normalizeCustomerType, normalizeDuplicateResolution, normalizeIntakeFlowType, parseContractType, parseGreenFeeMode, parseIntOrNull, parseNumber, parseOptionalFeeLines, resolveOrCreateCurrentSupplierForIntake, resolveOrCreateGridOwnerForIntake } from './actions.part-1'
 import type { CustomerGraphResult } from './actions.part-2'
-import { ADMIN_INTAKE_IN_PROGRESS_STALE_MS, ADMIN_INTAKE_ROUTE, createCustomerGraph, databaseObjectMissing, mapUnknownErrorToIntakeState } from './actions.part-2'
+import { CustomerGraphCommittedReviewError, ADMIN_INTAKE_IN_PROGRESS_STALE_MS, ADMIN_INTAKE_ROUTE, createCustomerGraph, databaseObjectMissing, mapUnknownErrorToIntakeState } from './actions.part-2'
 import { rowValue } from './actions.part-4'
 
 export function buildAdminIntakeIdempotencyKey(
@@ -96,7 +96,7 @@ export async function createCustomerAction(
     let params = buildCreateCustomerParams(formData, actorUserId, companyId);
 
     const idempotencyKey = buildAdminIntakeIdempotencyKey(params);
-    const { intake } = await getOrCreateCustomerApplicationIntake({
+    const { intake, created: intakeCreated } = await getOrCreateCustomerApplicationIntake({
       companyId,
       apiClientId: null,
       route: ADMIN_INTAKE_ROUTE,
@@ -110,6 +110,15 @@ export async function createCustomerAction(
         intake.result && typeof intake.result === "object"
           ? (intake.result as Record<string, unknown>)
           : {};
+      if (storedResult.review_required === true) {
+        return {status:'committed_review', message:'Kunden är redan registrerad. Dokument- eller signeringssteget behöver granskas på befintligt kundkort. Skapa inte kunden igen.',
+          fieldErrors:{}, values:getFormValues(formData),
+          createdCustomerId:typeof storedResult.customer_id === 'string' ? storedResult.customer_id : intake.customer_id ?? null,
+          createdSiteId:typeof storedResult.created_site_id === 'string' ? storedResult.created_site_id : null,
+          createdMeteringPointId:typeof storedResult.created_metering_point_id === 'string' ? storedResult.created_metering_point_id : null,
+          createdContractId:typeof storedResult.created_contract_id === 'string' ? storedResult.created_contract_id : null,
+          correlationId:typeof storedResult.correlation_id === 'string' ? storedResult.correlation_id : null}
+      }
       return {
         status: "success",
         message:
@@ -135,7 +144,7 @@ export async function createCustomerAction(
     }
 
     if (
-      intake &&
+      !intakeCreated && intake &&
       intake.status !== "failed" &&
       intake.status !== "completed" &&
       Date.now() - new Date(intake.updated_at).getTime() <
@@ -180,8 +189,38 @@ export async function createCustomerAction(
     try {
       customer = await createCustomerGraph(params, {
         autoSendSigningLink: { actorCanWriteContracts: canWriteContracts(guard) },
+        onCoreCommitted: async (receipt) => {
+          if (!intake) throw new Error('intake_receipt_unavailable')
+          const result = {review_required:true,customer_id:receipt.customer_id,created_site_id:receipt.site_id,
+            created_metering_point_id:receipt.metering_point_id,created_contract_id:receipt.contract_id,
+            correlation_id:receipt.correlation_id}
+          // Strict, exact tenant-scoped receipt. The generic compatibility helper
+          // can discard result columns or match zero rows, so it is not a fence.
+          let marker = supabaseService.from('customer_application_intakes')
+            .update({stage:'completed',status:'completed',customer_id:receipt.customer_id,result,updated_at:new Date().toISOString()})
+            .eq('id',intake.id).eq('company_id',companyId)
+            // Raw PostgreSQL timestamp is preserved; no JS millisecond rewrite.
+            .eq('updated_at',intake.updated_at)
+          marker = intake.status === null ? marker.is('status',null) : marker.eq('status',intake.status)
+          const saved = await marker.select('id,company_id,status,customer_id,result').single()
+          const row=saved.data
+          const recorded=row?.result && typeof row.result === 'object' && !Array.isArray(row.result)
+            ? row.result as Record<string,unknown> : null
+          if(saved.error || !row || row.id!==intake.id || row.company_id!==companyId || row.status!=='completed'
+            || row.customer_id!==receipt.customer_id || !recorded
+            || Object.entries(result).some(([key,value])=>recorded[key]!==value)) {
+            throw new Error('core_commit_review_receipt_unconfirmed')
+          }
+        },
       });
     } catch (graphError) {
+      if (graphError instanceof CustomerGraphCommittedReviewError) {
+        const receipt=graphError.receipt
+        return {status:'committed_review',message:graphError.message,fieldErrors:{},values:getFormValues(formData),
+          createdCustomerId:receipt.customer_id,createdSiteId:receipt.site_id,
+          createdMeteringPointId:receipt.metering_point_id,createdContractId:receipt.contract_id,
+          correlationId:receipt.correlation_id}
+      }
       if (intake) {
         await failCustomerApplicationIntake({
           intakeId: intake.id,
