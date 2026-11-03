@@ -760,6 +760,78 @@ def read_host_carrier(proof, github, now=None):
     return select_host_carrier(second, proof), {'requestCost': cost, 'remainingAfter': remaining - cost, 'reset': reset}
 
 
+def publish_host_proof(body, proof, github, proof_home):
+    # Anchor the sole expected input append to the actual preceding bot POST.
+    count = github.call('/issues/930').get('comments')
+    need(type(count) is int and 0 <= count <= 998, 'bounded_full_assignment_snapshot_required')
+    raw = json.dumps(body)
+    posted = github.call('/issues/930/comments', 'POST', {'body': raw})
+    need(type(posted.get('id')) is int and posted['id'] > 0 and posted.get('body') == raw
+         and posted.get('user', {}).get('login') == 'github-actions[bot]'
+         and posted.get('user', {}).get('type') == 'Bot'
+         and posted.get('issue_url') == 'https://api.github.com/repos/heke99/gridex-ops-platform/issues/930',
+         'host_proof_publication_anchor_required')
+    save(proof_home / 'host-proof-publication.json', {'schema': 't3-host-proof-publication-v1',
+         'proofSha256': proof['proofSha256'], 'proofCommentId': posted['id'], 'proofBody': raw,
+         'proofBodySha256': hash_bytes(raw.encode()), 'commentsBeforePublication': count,
+         'expectedAssignmentCount': count + 2})
+
+
+def load_proof_publication(proof_home, proof, prepare):
+    publication = strict_json(prepare.private(proof_home / 'host-proof-publication.json').read_bytes())
+    need(set(publication) == {'schema', 'proofSha256', 'proofCommentId', 'proofBody', 'proofBodySha256',
+                             'commentsBeforePublication', 'expectedAssignmentCount'}
+         and publication['schema'] == 't3-host-proof-publication-v1'
+         and publication['proofSha256'] == proof['proofSha256']
+         and type(publication['proofCommentId']) is int and publication['proofCommentId'] > 0
+         and isinstance(publication['proofBody'], str) and len(publication['proofBody'].encode()) <= 60000
+         and hash_bytes(publication['proofBody'].encode()) == publication['proofBodySha256'],
+         'host_proof_publication_anchor_required')
+    body = strict_json(publication['proofBody'])
+    need(set(body) == {'kind', 'envelope'} and body['kind'] == 't3-host-proof-envelope-v1'
+         and body == strict_json(prepare.private(proof_home / 'host-proof.enc.json').read_bytes()),
+         'host_proof_publication_anchor_required')
+    return publication
+
+
+def read_assignment_arrival(proof, publication, github, now=None):
+    # Count-only discovery waits for the one necessary input. Once any tail/full
+    # snapshot begins, every inconsistency remains a terminal HOLD, never retry.
+    now = now or time.time()
+    before, expected = publication['commentsBeforePublication'], publication['expectedAssignmentCount']
+    need(type(before) is int and 0 <= before <= 998 and type(expected) is int and expected == before + 2
+         and publication['proofSha256'] == proof['proofSha256'], 'host_proof_publication_anchor_required')
+    first_page, last_page = before // 100 + 1, (expected - 1) // 100 + 1
+    cost = 3 + last_page - first_page + 1
+    full_cost = 2 * ((expected + 99) // 100) + 4
+    core = github.call('/rate_limit').get('resources', {}).get('core', {})
+    remaining, limit, reset = (core.get(k) for k in ['remaining', 'limit', 'reset'])
+    need(all(type(v) is int for v in [remaining, limit, reset]) and 0 <= remaining <= limit
+         and remaining >= cost + full_cost + 64 and reset > now, 'assignment_api_budget_hold')
+    count = github.call('/issues/930').get('comments')
+    need(type(count) is int and before <= count <= expected, 'assignment_arrival_count_drift')
+    if count < expected:
+        return None, {'requestCost': 2, 'remainingAfter': remaining - 2}
+    rows, previous = [], 0
+    for page in range(first_page, last_page + 1):
+        current = github.call(f'/issues/930/comments?per_page=100&page={page}')
+        need(isinstance(current, list) and len(current) == min(100, expected - (page - 1) * 100),
+             'assignment_snapshot_page_incomplete')
+        for row in current:
+            need(type(row.get('id')) is int and row['id'] > previous and isinstance(row.get('body'), str),
+                 'assignment_snapshot_ids_invalid')
+            previous = row['id']; rows.append(row)
+    tail = rows[before - (first_page - 1) * 100:]
+    need(len(tail) == 2 and tail[0]['id'] == publication['proofCommentId']
+         and tail[0]['body'] == publication['proofBody']
+         and hash_bytes(tail[0]['body'].encode()) == publication['proofBodySha256'],
+         'host_proof_publication_anchor_required')
+    envelope = select_host_carrier([tail[1]], proof)
+    need(envelope is not None, 'assignment_arrival_binding_refused')
+    need(github.call('/issues/930').get('comments') == expected, 'assignment_arrival_count_drift')
+    return envelope, {'requestCost': cost, 'remainingAfter': remaining - cost}
+
+
 def receive_host_assignment(proof_home, identity, prepare, same, github, sleep=time.sleep, clock=time.time):
     transport_stage('receive-input:proof-binding')
     raw = prepare.private(proof_home / 'host-proof.private.json').read_bytes()
@@ -769,6 +841,7 @@ def receive_host_assignment(proof_home, identity, prepare, same, github, sleep=t
     private_key = prepare.private(proof_home / 'ephemeral-input-key.private.pem').read_text()
     # One intent per actual proof; never retry after failed/partial import.
     save(proof_home / 'receive-intent.json', {'proofSha256': proof['proofSha256']})
+    publication = load_proof_publication(proof_home, proof, prepare)
     deadline = min(datetime.fromisoformat(proof['observedAtUtc']).timestamp() + 1200,
                    datetime.fromisoformat(proof['jobDeadlineUtc']).timestamp())
     while clock() < deadline:
@@ -776,9 +849,18 @@ def receive_host_assignment(proof_home, identity, prepare, same, github, sleep=t
         current = prepare.host_identity(); prepare.same_host(proof['host'], current)
         inventory = same.docker_resources(prepare, SimpleNamespace(host=current, node=shutil.which('node')))
         need(inventory == proof['inventory'], 'postproof_docker_inventory_changed')
-        transport_stage('receive-input:full-snapshot')
-        envelope, stats = read_host_carrier(proof, github, clock())
-        if envelope is not None:
+        transport_stage('receive-input:arrival')
+        candidate, stats = read_assignment_arrival(proof, publication, github, clock())
+        if candidate is not None:
+            class AtArrival:
+                def call(self, path):
+                    value = github.call(path)
+                    if path == '/issues/930':
+                        need(value.get('comments') == publication['expectedAssignmentCount'], 'assignment_arrival_count_drift')
+                    return value
+            transport_stage('receive-input:full-snapshot')
+            envelope, _ = read_host_carrier(proof, AtArrival(), clock())
+            need(envelope == candidate, 'assignment_arrival_binding_refused')
             transport_stage('receive-input:decrypt-bind')
             payload = crypto_port('decrypt', envelope=envelope, privatePem=private_key, publicPem=proof['inputPublicKey'],
                                   rootPublicPem=ROOT_SIGNING_PUBLIC_PEM, rootSha256=ROOT_SIGNING_PUBLIC_SHA256)
@@ -797,6 +879,9 @@ def receive_host_assignment(proof_home, identity, prepare, same, github, sleep=t
 
 TRANSPORT_STAGE = 'entry'
 TRANSPORT_SAFE_CODES = frozenset(['absolute_path_required', 'actual_branch_actor_required', 'actual_cms_authenticated_aes256gcm_required_no_downgrade', 'actual_github_identity_required', 'actual_hosted_run_source_mismatch', 'actual_mail_digest_differs', 'actual_running_hosted_job_required', 'actual_t3_host_proof_required', 'actual_timezone_bound_authority_birth_required', 'actual_unique_runtime_session_required', 'actual_workflow_ref_mismatch', 'adapter_source_changed', 'all_seventeen_scenario_ids_required', 'ambiguous_evidence_path', 'assigned_database_required', 'assigned_endpoints_required', 'assigned_locked_node_path_differs', 'assigned_mail_chain_required', 'assigned_mail_port_required', 'assignment_api_budget_hold', 'assignment_carrier_ambiguous', 'assignment_carrier_fields_refused', 'assignment_comment_too_large', 'assignment_poll_budget_hold', 'assignment_publication_proof_expired', 'assignment_snapshot_content_drift', 'assignment_snapshot_count_drift', 'assignment_snapshot_count_mismatch', 'assignment_snapshot_ids_invalid', 'assignment_snapshot_page_incomplete', 'attempt_create_unknown', 'attempt_profile_changed_before_archive', 'attempt_readback_unknown', 'authenticated_repository_required', 'backend_assignment_mismatch', 'backend_identity_unqualified', 'shared_backend_capacity_unqualified', 'backend_identity_changed', 'backend_cleanup_not_verified', 'bootstrap_expired_before_heavy_operation', 'bootstrap_tools_changed_docker_resources', 'both_actual_native_roles_required', 'bounded_assignment_carrier_required', 'bounded_ciphertext_hostproof_required', 'bounded_expiring_timeout_required', 'bounded_full_assignment_snapshot_required', 'bounded_github_operation_required', 'bounded_github_response_required', 'bounded_phase_timeouts_required', 'bounded_private_assignment_files_required', 'bounded_timeout_required', 'canonical_db_port_and_overall_timeout_required', 'canonical_path_required', 'canonical_replay_provenance_required', 'capacity_hierarchy_unknown', 'cgroup_constraint_changed_during_observation', 'cgroup_directory_mount_changed', 'cgroup_membership_ambiguous', 'cgroup_membership_malformed', 'cgroup_membership_missing', 'cgroup_membership_path_unqualified', 'cgroup_namespace_path_not_proc_link', 'cgroup_symlink_or_hidden_directory', 'cgroup_view_changed_during_observation', 'cleanup_source_changed', 'committed_backend_config_overlay_required', 'complete_controlled_underlay_contract_required', 'complete_native_resource_set_required', 'conflicting_docker_context_not_supported', 'controlled_test_only_underlay_input_required', 'controller_inventory_inconsistent', 'controller_parent_inventory_changed', 'cpu_ancestor_control_missing', 'cpu_limit_malformed', 'cpu_limit_not_positive', 'cpu_max_malformed', 'current_host_proof_required', 'current_independent_source_approval_required', 'daemon_identity_missing', 'dedicated_project_required', 'derived_capsule_ref_must_not_create_hash_cycle', 'disabled_controller_interface_unexpected', 'docker_root_free_space_below_floor', 'docker_socket_required', 'duplicate_private_json_key', 'effective_ram_below_8gib', 'effective_ram_not_qualified', 'empty_evidence_manifest', 'environment_id_invalid', 'evidence_bytes_changed', 'evidence_outside_assigned_home', 'exact_actions_required', 'exact_allocated_ports_image_recipient_and_consumer_required', 'exact_attempt_inputs_required', 'exact_ciphertext_hostproof_required', 'exact_host_assignment_carrier_required', 'exact_imported_caller_paths_and_budget_required', 'exact_network_inspection_required', 'exact_overlay_commits_required', 'exact_producer_role_ref_required', 'exact_qualified_forward_migration_required', 'exact_reservation_ref_required', 'exact_runtime_role_scope_required', 'exact_source_custody_required', 'exact_source_event_and_authenticated_publisher_required', 'exact_source_schema_epoch_required', 'exact_tracked_canonical_replay_required', 'exact_unique_native_event_branch_required', 'exclusive_empty_docker_before_hostproof_required', 'exclusive_empty_docker_required', 'expiry_must_leave_owned_cleanup_before_hosted_job_deadline', 'explicit_adapter_sources_required', 'explicit_allocation_required', 'explicit_authorized_environment_required', 'explicit_environment_project_required', 'explicit_environment_required', 'explicit_hosted_profile_required', 'explicit_original_recipient_required', 'explicit_python_consumer_required', 'explicit_single_use_producer_plan_required', 'explicit_user_native_mandate_required', 'explicit_whitelisted_execution_purpose_required', 'fixed_docker_endpoint_required', 'fixed_physical_pilot_descriptor_required', 'fixed_purpose_scenario_required', 'fixed_reviewed_hosted_consumer_required', 'fixed_transport_proof_home_required', 'fresh_build_id_missing', 'fresh_clean_app_required', 'fresh_github_hosted_dispatch_required', 'fresh_host_assignment_binding_required', 'fresh_host_proof_required', 'fresh_offhost_proof_home_required', 'frozen_ordered_tests_and_evidence_matrix_required', 'frozen_underlay_parameter_object_required', 'full_ediel_cohort_28_required', 'full_source_identity_required', 'full_v1_runtime_authority_required', 'future_utc_expiry_required', 'genuine_current_forward_source_qualification_required', 'gitdata_unknown_no_retry', 'gitdata_unknown_or_refused_no_retry', 'github_redirect_forbidden', 'global_cgroup_mount_unproven', 'global_current_proc_view_unproven', 'hash_bound_private_native_authority_ref_required', 'hidden_cgroup_overmount', 'host_assignment_expired_or_unbounded', 'hosted_builtin_crypto_node_required', 'hosted_postgres17_client_missing', 'hostproof_must_leave_import_and_cleanup_time', 'identity_command_failed', 'initial_cgroup_namespace_unproven', 'installed_next_differs_from_lock', 'invalid_docker_inventory', 'invalid_evidence_manifest', 'kernel_filesystem_identity_unreadable', 'kernel_interface_mount_changed', 'kernel_interface_too_large', 'kernel_path_mount_ambiguous', 'kernel_path_mount_missing', 'live_reservation_changed', 'live_reservation_differs', 'live_role_authority_changed', 'local_unix_docker_required', 'locked_dependencies_and_fresh_build_required', 'locked_mail_image_required', 'locked_node_path_and_hosted_pg17_client_required', 'locked_tool_version_differs', 'mail_password_file_differs', 'memory_hierarchy_missing', 'memory_limit_malformed', 'mount_device_malformed', 'mount_inventory_empty', 'mount_inventory_malformed', 'mount_inventory_not_absolute', 'namespace_directory_not_procfs', 'narrow_native_event_branch_required', 'native_role_ref_required', 'network_create_unknown_no_retry', 'neutral_private_native_capsule_binding_required', 'neutral_receipt_tree_required', 'new_network_already_attached', 'node22_required', 'nonfinite_private_json', 'not_expected_kernel_interface', 'official_ledger_differs', 'official_tool_archive_hash_differs', 'ordinary_packet_must_recheck_runtime_role_refs', 'original_host_proof_bytes_changed', 'original_recipient_changed', 'outer_docker_inventory_not_restored', 'overlay_not_in_app_ancestry', 'own_host_proof_required', 'own_t3_repository_required', 'owned_loopback_network_changed', 'owned_network_name_already_exists', 'owned_network_still_attached', 'packet_expired_before_spawn', 'partial_materialization_root_symlink', 'partial_or_changed_native_authority_set', 'partial_schema_fingerprint_invalid', 'partial_startup_requires_exact_recovery', 'phase_failed', 'phase_timed_out_or_interrupted', 'physical_memory_unreadable', 'pinned_mail_image_required', 'plan_changed', 'plan_expired', 'plan_must_bind_actual_role_receipts', 'postimport_inventory_changed', 'postproof_docker_inventory_changed', 'postproof_input_deadline_hold', 'preserve_unknown_remaining_backend_resources', 'private_assignment_bytes_refused', 'private_assignment_duplicate_or_hash_refused', 'private_assignment_path_refused', 'private_crypto_hold', 'private_crypto_output_too_large', 'private_environment_changed_before_fixture', 'private_environment_invalid', 'private_home_outside_checkouts_required', 'private_home_outside_git_required', 'private_inputs_outside_git_required', 'private_original_bytes_changed', 'private_original_name_and_hash_required', 'private_path_required', 'proc_view_changed_before_ancestor_read', 'proc_view_not_current_process', 'producer_receipt_source_mismatch', 'profile_changed', 'psql17_required', 'public_exact_source_paths_only', 'qualified_builtin_crypto_node_required', 'qualified_committed_config_overlay_required', 'qualified_dependency_locks_differ', 'regular_official_cli_members_required', 'required_ancestor_control_missing', 'required_local_credential_missing', 'reservation_epoch_model_required', 'retained_t4_qualification_originals_required', 'reviewed_dependency_lock_required', 'reviewed_scenario_source_required', 'reviewed_workflow_source_required', 'runner_or_daemon_changed', 'runtime_authority_expired', 'same_qualified_harness_dependency_lock_required', 'same_shell_source_changed', 'scenario_evidence_incomplete', 'scenario_report_missing_or_failed', 'scenario_step_not_passed', 'separate_canonical_proof_home_required', 'separate_nonoverlapping_replay_checkout_required', 'separate_producer_backend_authority_required', 'separate_qualification_originals_required', 'seven_distinct_ports_required', 'seven_unique_ports_required', 'shell_or_replay_override_forbidden', 'single_create_only_native_push_required', 'source_bound_exclusive_bootstrap_required', 'source_custody_changed', 'source_not_exact_clean_commit', 'source_pinned_transport_recipient_required', 'stale_build_not_reusable', 'supabase_pin_required', 'threaded_cgroup_not_qualified', 'tracked_reviewed_adapter_required', 'tracked_reviewed_python_adapter_required', 'tracked_reviewed_same_shell_consumer_required', 'transport_evidence_size_hold', 'two_genuine_t4_output_reviews_required', 'two_independent_source_reviews_required', 'ubuntu_24_04_required', 'unassigned_active_outbox_before_fixture', 'unassigned_dotenv_file', 'unknown_docker_driver', 'unknown_environment_key', 'unqualified_kernel_namespace_contract', 'unsafe_node_archive', 'unsupported_kernel_fd_abi', 'utc_plan_expiry_required', 'v1_memory_hierarchy_not_enabled', 'verified_producer_and_backend_reservations_required'])
+
+TRANSPORT_SAFE_CODES |= frozenset(['host_proof_publication_anchor_required',
+                                  'assignment_arrival_count_drift', 'assignment_arrival_binding_refused'])
 
 def transport_stage(stage):
     global TRANSPORT_STAGE
@@ -995,7 +1080,7 @@ def postproof_main(argv):
     # One publication attempt; unknown result is HOLD, never post again.
     save(proof_home / 'publish-intent.json', {'ciphertextSha256': hash_bytes(json.dumps(body).encode())})
     transport_stage('host-proof:ciphertext-post')
-    github.call('/issues/930/comments', 'POST', {'body': json.dumps(body)})
+    publish_host_proof(body, dict(proof, proofSha256=hash_bytes(raw)), github, proof_home)
     return 0
 
 

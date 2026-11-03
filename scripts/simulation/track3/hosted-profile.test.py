@@ -543,7 +543,7 @@ class PostproofTests(unittest.TestCase):
         return {'kind':'t3-host-assignment-envelope-v1','runId':self.proof['runId'],'proofSha256':self.proof['proofSha256'],
                 'recipientSha256':self.u.hash_bytes(self.runner['publicPem'].encode()),'envelope':self.seal()}
 
-    def snapshot_api(self,count=375,drift=None,budget=1000):
+    def snapshot_api(self,count=375,drift=None,budget=1000,publication=None):
         carrier=self.carrier(); calls=[]; passes=[0]; issue=[0]
         def call(path):
             calls.append(path)
@@ -554,6 +554,9 @@ class PostproofTests(unittest.TestCase):
             page=int(path.split('page=')[-1]);passes[0]+=int(page==1)
             start=(page-1)*100; stop=min(count,start+100)
             rows=[{'id':i+1,'body':'public ordinary comment','updated_at':'finite'} for i in range(start,stop)]
+            if publication:
+                for row in rows:
+                    if row['id']==publication['proofCommentId']:row['body']=publication['proofBody']
             if rows and page==4:rows[-1]['body']=json.dumps(carrier)
             if drift=='short' and page==2:rows=rows[:-1]
             if drift=='prefix' and page==4 and passes[0]==1:rows=[]
@@ -568,6 +571,151 @@ class PostproofTests(unittest.TestCase):
         self.assertEqual(stats['requestCost'],12)
         self.assertEqual(len(calls),12)
         for page in range(1,5):self.assertEqual(calls.count(f'/issues/930/comments?per_page=100&page={page}'),2)
+
+    def arrival_fixture(self, before=659, count=None, change=None, budget=2000):
+        body=json.dumps({'kind':'t3-host-proof-envelope-v1','envelope':{'finiteProofOnly':True}})
+        publication={'schema':'t3-host-proof-publication-v1','proofSha256':self.proof['proofSha256'],
+            'proofCommentId':before+1,'proofBodySha256':self.u.hash_bytes(body.encode()),
+            'proofBody':body,'commentsBeforePublication':before,'expectedAssignmentCount':before+2}
+        carrier=self.carrier(); calls=[]
+        def call(path):
+            calls.append(path)
+            if path=='/rate_limit':return {'resources':{'core':{'remaining':budget,'limit':5000,'reset':int(self.u.time.time()+3600)}}}
+            current=before+2 if count is None else count
+            if path=='/issues/930':return {'comments':current}
+            page=int(path.split('page=')[-1]);start=(page-1)*100;stop=min(current,start+100)
+            rows=[{'id':i+1,'body':'finite ordinary comment','updated_at':'finite'} for i in range(start,stop)]
+            for row in rows:
+                if row['id']==before+1:row['body']=body
+                if row['id']==before+2:row['body']=json.dumps(carrier)
+            if change:change(rows,page)
+            return rows
+        return publication,SimpleNamespace(call=call),calls,body
+
+    def test_actual660_to661_assignment_race_waits_before_full_scan_then_imports(self):
+        proofhome=self.directory/'proof';proofhome.mkdir(mode=0o700)
+        identity={'GITHUB_RUN_ID':self.proof['runId'],'GITHUB_JOB':self.proof['job'],'GITHUB_SHA':self.proof['head']}
+        self.proof['identity']=identity;original=deepcopy(self.proof);original.pop('proofSha256')
+        self.u.save(proofhome/'host-proof.private.json',original)
+        self.proof['proofSha256']=self.u.hash_bytes((proofhome/'host-proof.private.json').read_bytes())
+        self.payload=self.u.proof_payload(self.proof,self.profile,self.files,self.profile['plan']['expiresAtUtc'])
+        publication,_,_,body=self.arrival_fixture()
+        self.u.save(proofhome/'host-proof-publication.json',publication)
+        self.u.fresh_private_bytes(proofhome/'host-proof.enc.json',body.encode())
+        self.u.fresh_private_bytes(proofhome/'ephemeral-input-key.private.pem',self.runner['privatePem'].encode())
+        state={'arrived':False,'sleeps':0};calls=[]
+        _,stable,_,_=self.arrival_fixture(count=661)
+        def call(path):
+            calls.append(path)
+            if path=='/issues/930':return {'comments':661 if state['arrived'] else 660}
+            if path=='/rate_limit':return {'resources':{'core':{'remaining':2000,'limit':5000,'reset':int(self.u.time.time()+3600)}}}
+            # Reproduce the actual missing boundary: the necessary input arrives
+            # during page7 if a full snapshot starts before arrival readiness.
+            if path.endswith('page=7') and not state['arrived']:state['arrived']=True
+            return stable.call(path)
+        def sleep(_seconds):state.update(arrived=True,sleeps=state['sleeps']+1)
+        prepare=SimpleNamespace(private=lambda p,*_:p,host_identity=lambda **_:self.proof['host'],same_host=lambda *_:None)
+        same=SimpleNamespace(docker_resources=lambda *_:self.proof['inventory'])
+        home=self.u.receive_host_assignment(proofhome,identity,prepare,same,SimpleNamespace(call=call),sleep=sleep)
+        self.assertEqual(json.loads((home/'profile.json').read_bytes()),self.profile)
+        self.assertEqual(state['sleeps'],1)
+        self.assertEqual(calls.count('/issues/930/comments?per_page=100&page=1'),2)
+        self.assertEqual(calls.count('/issues/930/comments?per_page=100&page=7'),3)
+
+    def test_arrival_only_reads_count_until_input_and_checks_exact_tail_across_page_boundary(self):
+        for before in [99,100,659]:
+            publication,api,calls,_=self.arrival_fixture(before,count=before+1)
+            envelope,_=self.u.read_assignment_arrival(self.proof,publication,api)
+            self.assertIsNone(envelope);self.assertFalse(any('/comments?' in p for p in calls))
+            publication,api,calls,_=self.arrival_fixture(before)
+            envelope,_=self.u.read_assignment_arrival(self.proof,publication,api)
+            self.assertEqual(self.decrypt(envelope),self.payload)
+            self.assertLessEqual(sum('/comments?' in p for p in calls),2)
+
+    def test_arrival_extra_append_partial_tail_edited_proof_wrong_binding_and_quota_failstop(self):
+        def edited(rows,_page):
+            for r in rows:
+                if r['id']==660:r['body']='edited proof'
+        def foreign(rows,_page):
+            for r in rows:
+                if r['id']==661:r['body']=json.dumps(dict(self.carrier(),runId='foreign'))
+        for opts in [{'count':662},{'count':658},{'change':lambda rows,_:rows.pop()},
+                     {'change':edited},{'change':foreign},{'budget':75}]:
+            publication,api,calls,_=self.arrival_fixture(**opts)
+            with self.subTest(opts=opts),self.assertRaises(ValueError):
+                self.u.read_assignment_arrival(self.proof,publication,api)
+            self.assertNotIn('/issues/930/comments?per_page=100&page=1',calls)
+
+    def test_proof_publication_retains_actual_bot_post_count_and_body_anchor_once(self):
+        publication,_,_,body=self.arrival_fixture();calls=[]
+        def call(path,method='GET',value=None):
+            calls.append((path,method))
+            if method=='GET':return {'comments':659}
+            self.assertEqual(value,{'body':body})
+            return {'id':660,'body':body,'user':{'login':'github-actions[bot]','type':'Bot'},
+                    'issue_url':'https://api.github.com/repos/heke99/gridex-ops-platform/issues/930'}
+        self.u.publish_host_proof(json.loads(body),self.proof,SimpleNamespace(call=call),self.directory)
+        self.assertEqual(json.loads((self.directory/'host-proof-publication.json').read_bytes()),publication)
+        self.assertEqual(calls,[('/issues/930','GET'),('/issues/930/comments','POST')])
+
+    def prepare_arrival_receiver(self):
+        home=self.directory/'proof';home.mkdir(mode=0o700)
+        identity={'GITHUB_RUN_ID':self.proof['runId'],'GITHUB_JOB':self.proof['job'],'GITHUB_SHA':self.proof['head']}
+        self.proof['identity']=identity;original=deepcopy(self.proof);original.pop('proofSha256')
+        self.u.save(home/'host-proof.private.json',original)
+        self.proof['proofSha256']=self.u.hash_bytes((home/'host-proof.private.json').read_bytes())
+        self.payload=self.u.proof_payload(self.proof,self.profile,self.files,self.profile['plan']['expiresAtUtc'])
+        publication,_,_,body=self.arrival_fixture(before=373)
+        self.u.save(home/'host-proof-publication.json',publication)
+        self.u.fresh_private_bytes(home/'host-proof.enc.json',body.encode())
+        self.u.fresh_private_bytes(home/'ephemeral-input-key.private.pem',self.runner['privatePem'].encode())
+        prepare=SimpleNamespace(private=lambda p,*_:p,host_identity=lambda **_:self.proof['host'],same_host=lambda *_:None)
+        same=SimpleNamespace(docker_resources=lambda *_:self.proof['inventory'])
+        return home,identity,publication,prepare,same
+
+    def test_no_arrival_hits_existing_deadline_without_any_fullscan_or_plaintext(self):
+        home,identity,publication,prepare,same=self.prepare_arrival_receiver()
+        _,api,calls,_=self.arrival_fixture(before=373,count=374)
+        now=[datetime.now(timezone.utc).timestamp()]
+        def sleep(_seconds):now[0]+=1201
+        with patch.object(self.u,'read_host_carrier') as scan, self.assertRaisesRegex(ValueError,'postproof_input_deadline_hold'):
+            self.u.receive_host_assignment(home,identity,prepare,same,api,sleep=sleep,clock=lambda:now[0])
+        scan.assert_not_called();self.assertFalse(any('/comments?' in p for p in calls))
+        self.assertFalse(Path(self.profile['plan']['simHome']).exists())
+        self.assertTrue((home/'receive-intent.json').exists())
+
+    def test_full_snapshot_content_drift_after_ready_remains_one_failstop_without_decrypt(self):
+        home,identity,publication,prepare,same=self.prepare_arrival_receiver()
+        api,calls=self.snapshot_api(drift='body',publication=publication)
+        with patch.object(self.u,'crypto_port') as decrypt, self.assertRaisesRegex(ValueError,'assignment_snapshot_content_drift'):
+            self.u.receive_host_assignment(home,identity,prepare,same,api,sleep=lambda _:self.fail('no retry after snapshot drift'))
+        decrypt.assert_not_called();self.assertEqual(calls.count('/issues/930/comments?per_page=100&page=1'),2)
+        self.assertFalse(Path(self.profile['plan']['simHome']).exists())
+
+    def test_full_snapshot_extra_append_after_readiness_is_not_accepted_as_new_snapshot(self):
+        home,identity,publication,prepare,same=self.prepare_arrival_receiver()
+        api,calls=self.snapshot_api(publication=publication);real=api.call;reads=[0]
+        def call(path):
+            value=real(path)
+            if path=='/issues/930':
+                reads[0]+=1
+                if reads[0]==3:value={'comments':376}
+            return value
+        with patch.object(self.u,'crypto_port') as decrypt, self.assertRaisesRegex(ValueError,'assignment_arrival_count_drift'):
+            self.u.receive_host_assignment(home,identity,prepare,same,SimpleNamespace(call=call),sleep=lambda _:self.fail('no retry'))
+        decrypt.assert_not_called();self.assertNotIn('/issues/930/comments?per_page=100&page=1',calls)
+        self.assertFalse(Path(self.profile['plan']['simHome']).exists())
+
+    def test_wrong_bot_publication_response_has_one_post_and_no_anchor(self):
+        _,_,_,body=self.arrival_fixture();posts=[]
+        def call(path,method='GET',value=None):
+            if method=='GET':return {'comments':659}
+            posts.append(value)
+            return {'id':660,'body':body,'user':{'login':'foreign','type':'Bot'},
+                    'issue_url':'https://api.github.com/repos/heke99/gridex-ops-platform/issues/930'}
+        with self.assertRaisesRegex(ValueError,'host_proof_publication_anchor_required'):
+            self.u.publish_host_proof(json.loads(body),self.proof,SimpleNamespace(call=call),self.directory)
+        self.assertEqual(len(posts),1);self.assertFalse((self.directory/'host-proof-publication.json').exists())
 
     def test_full_snapshot_partial_duplicate_id_count_and_content_drift_hold(self):
         for drift in ['short','prefix','body','ids','count']:
@@ -589,10 +737,15 @@ class PostproofTests(unittest.TestCase):
         proofhome=self.directory/'proof';proofhome.mkdir(mode=0o700)
         self.proof['identity']={'GITHUB_RUN_ID':self.proof['runId'],'GITHUB_JOB':self.proof['job'],'GITHUB_SHA':self.proof['head']}
         self.u.save(proofhome/'host-proof.private.json',self.proof)
+        self.proof['proofSha256']=self.u.hash_bytes((proofhome/'host-proof.private.json').read_bytes())
+        publication,_,_,body=self.arrival_fixture()
+        self.u.save(proofhome/'host-proof-publication.json',publication)
+        self.u.fresh_private_bytes(proofhome/'host-proof.enc.json',body.encode())
         self.u.fresh_private_bytes(proofhome/'ephemeral-input-key.private.pem',self.runner['privatePem'].encode())
         prepare=SimpleNamespace(private=lambda p,*_:p,host_identity=lambda **_:self.proof['host'],same_host=lambda *_:None)
         same=SimpleNamespace(docker_resources=lambda *_:self.proof['inventory'])
-        with patch.object(self.u,'read_host_carrier',return_value=({'format':'bad'},{})):
+        with patch.object(self.u,'read_assignment_arrival',return_value=({'format':'bad'},{})), \
+             patch.object(self.u,'read_host_carrier',return_value=({'format':'bad'},{})):
             with self.assertRaises(ValueError):self.u.receive_host_assignment(proofhome,self.proof['identity'],prepare,same,None)
             with self.assertRaises(FileExistsError):self.u.receive_host_assignment(proofhome,self.proof['identity'],prepare,same,None)
         self.assertFalse(Path(self.profile['plan']['simHome']).exists())
@@ -709,13 +862,16 @@ class PostproofTests(unittest.TestCase):
         self.proof['proofSha256']=self.u.hash_bytes((proofhome/'host-proof.private.json').read_bytes())
         self.u.fresh_private_bytes(proofhome/'ephemeral-input-key.private.pem',self.runner['privatePem'].encode())
         self.payload,_=self.realistic_full_assignment(86)
-        api,calls=self.snapshot_api()
+        publication,_,_,body=self.arrival_fixture(before=373)
+        self.u.save(proofhome/'host-proof-publication.json',publication)
+        self.u.fresh_private_bytes(proofhome/'host-proof.enc.json',body.encode())
+        api,calls=self.snapshot_api(publication=publication)
         prepare=SimpleNamespace(private=lambda p,*_:p,host_identity=lambda **_:self.proof['host'],same_host=lambda *_:None)
         same=SimpleNamespace(docker_resources=lambda *_:self.proof['inventory'])
         home=self.u.receive_host_assignment(proofhome,identity,prepare,same,api)
         imported=json.loads((home/'profile.json').read_bytes())
         self.assertEqual(imported,self.payload['profile'])
-        self.assertEqual(len(calls),12)
+        self.assertEqual(len(calls),16)
         self.assertEqual(len(list((home/'authority').iterdir())),5)
         self.assertFalse((home/'ephemeral-input-key.private.pem').exists())
 
@@ -921,7 +1077,12 @@ class PostproofTests(unittest.TestCase):
         prepare=SimpleNamespace(canonical=lambda p:Path(p).resolve(strict=True),private=lambda p,*_:Path(p),
             capture=lambda _: 'c'*40,source=lambda *_:None,host_identity=observe,capacity=enforce,enforce_host_capacity=enforce_host)
         same=SimpleNamespace(docker_resources=lambda *_:self.proof['inventory'])
-        api=SimpleNamespace(audit_home=None,call=lambda *args:posts.append(args))
+        def call(path,method='GET',value=None):
+            if method=='GET':return {'comments':659}
+            posts.append((path,method,value))
+            return {'id':660,'body':value['body'],'user':{'login':'github-actions[bot]','type':'Bot'},
+                    'issue_url':'https://api.github.com/repos/heke99/gridex-ops-platform/issues/930'}
+        api=SimpleNamespace(audit_home=None,call=call)
         proofhome=self.directory/'t3-host-proof'
         with patch.dict(self.u.os.environ,{'RUNNER_TEMP':str(self.directory),'GITHUB_WORKSPACE':str(self.directory)}),\
              patch.object(self.u,'hosted_identity',return_value=identity),patch.object(self.u,'GitHub',return_value=api),\
