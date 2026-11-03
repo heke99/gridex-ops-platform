@@ -730,5 +730,55 @@ class OwnedBackendFreshTests(unittest.TestCase):
 
 
 
+class NsfsRootTests(unittest.TestCase):
+    def view(self):
+        files = CgroupCapacityTests.fixture(self)
+        files['/sys/fs/cgroup/jobs/memory.max'] = str(12 * 2**30)
+        return files
+
+    def observe(self, files, enforce=False):
+        return CgroupCapacityTests.host(self, files, enforce=enforce)
+
+    def test_real_capacity_reader_accepts_unrelated_kernel_netns_mount(self):
+        files = self.view()
+        files['/proc/self/mountinfo'] += '30 1 0:30 net:[4026533001] /run/docker/netns/finite rw - nsfs nsfs rw\n'
+        host = self.observe(files, enforce=True)
+        self.assertEqual(host['capacityObservation']['status'], 'QUALIFIED')
+        self.assertEqual(host['effectiveRamBytes'], 12 * 2**30)
+        self.assertEqual(host['capacityObservation']['mounts'][-1]['root'], 'net:[4026533001]')
+
+    def test_nsfs_root_requires_known_namespace_and_canonical_uint64_inode(self):
+        for kind in ['net', 'mnt', 'uts', 'ipc', 'user', 'pid', 'cgroup', 'time']:
+            rows = runner._mount_inventory('30 1 0:30 ' + kind + ':[4026533001] /run/finite rw - nsfs nsfs rw\n')
+            self.assertEqual(rows[0]['root'], kind + ':[4026533001]')
+        for root in ['unknown:[1]', 'net:[0]', 'net:[01]', 'net:[-1]', 'net:[18446744073709551616]', 'net:[text]', 'relative']:
+            with self.subTest(root=root), self.assertRaisesRegex(runner.Blocked, 'mount_inventory_not_absolute'):
+                runner._mount_inventory('30 1 0:30 ' + root + ' /run/finite rw - nsfs nsfs rw\n')
+
+    def test_proc_cgroup_and_all_mount_points_remain_strict_paths(self):
+        for fs in ['proc', 'cgroup', 'cgroup2', 'overlay']:
+            with self.subTest(fs=fs), self.assertRaisesRegex(runner.Blocked, 'mount_inventory_not_absolute'):
+                runner._mount_inventory('30 1 0:30 net:[4026533001] /finite rw - ' + fs + ' finite rw\n')
+        for point in ['relative', '/a/../b', '/a//b', 'net:[4026533001]']:
+            with self.subTest(point=point), self.assertRaisesRegex(runner.Blocked, 'mount_inventory_not_absolute'):
+                runner._mount_inventory('30 1 0:30 net:[4026533001] ' + point + ' rw - nsfs nsfs rw\n')
+
+    def test_nsfs_is_not_ignored_when_overmounting_capacity_interface(self):
+        files = self.view()
+        files['/proc/self/mountinfo'] += '30 29 0:30 net:[4026533001] /sys/fs/cgroup/jobs/memory.max rw - nsfs nsfs rw\n'
+        host = self.observe(files)
+        self.assertEqual(host['capacityObservation']['status'], 'UNKNOWN')
+        self.assertEqual(host['capacityObservation']['reason'], 'hidden_cgroup_overmount')
+        with self.assertRaisesRegex(runner.Blocked, 'capacity_hierarchy_unknown'):
+            self.observe(files, enforce=True)
+
+    def test_nsfs_cannot_hide_the_current_global_proc_view(self):
+        files = self.view()
+        files['/proc/self/mountinfo'] += '30 22 0:30 net:[4026533001] /proc/' + str(os.getpid()) + '/cgroup rw - nsfs nsfs rw\n'
+        host = self.observe(files)
+        self.assertEqual(host['capacityObservation']['status'], 'UNKNOWN')
+        self.assertEqual(host['capacityObservation']['reason'], 'global_current_proc_view_unproven')
+
+
 if __name__ == '__main__':
     unittest.main()

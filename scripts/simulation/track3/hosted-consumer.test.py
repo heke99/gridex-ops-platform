@@ -348,5 +348,45 @@ class EarlyPrivateDiagnosticTests(unittest.TestCase):
             self.assertFalse((home/'consumer-preflight-failure.json').exists())
 
 
+class CurrentHostObservationTests(unittest.TestCase):
+    def current(self):
+        return {'capacityObservation': {'status': 'QUALIFIED'}, 'driver': 'overlay2',
+            'effectiveRamBytes': 12*2**30, 'freeBytes': 50*2**30,
+            'backendIdentity': {'state': 'VERIFIED', 'binding': {'finite': True}},
+            'backendCapacity': {'schema': 'gridex-t2-shared-backend-capacity-v1', 'state': 'VERIFIED',
+                'backend': {'effectiveRAMBytes': 12*2**30}, 'errors': []},
+            'bootId': 'finite-boot', 'daemonId': 'finite-daemon', 'dockerRootDir': '/finite/docker',
+            'socket': '/finite/socket', 'socketDev': 1, 'socketInode': 2}
+
+    def test_current_unknown_reason_is_retained_and_original_capacity_gate_still_rejects(self):
+        unit = load(); prepare = unit.load('prepare'); actual = self.current()
+        actual['capacityObservation'] = {'status': 'UNKNOWN', 'reason': 'mount_inventory_not_absolute'}
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory); home.chmod(0o700)
+            with patch.object(prepare, 'host_identity', return_value=actual) as probe:
+                with self.assertRaisesRegex(prepare.Blocked, 'capacity_hierarchy_unknown'):
+                    unit.observe_current_host(home, self.current(), prepare)
+                probe.assert_called_once_with(enforce_capacity=False, observe_backend=True)
+            file = home/'consumer-current-host.json'; data = json.loads(file.read_bytes())
+            self.assertEqual(file.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(data['host']['capacityObservation'], actual['capacityObservation'])
+            self.assertEqual(data['acceptance'], 'NOT_CLAIMED_BEFORE_GATES')
+
+    def test_qualified_current_observation_keeps_same_host_gate_and_rejects_actual_drift(self):
+        unit = load(); prepare = unit.load('prepare')
+        for changed in [False, True]:
+            before = self.current(); actual = deepcopy(before)
+            if changed: actual['daemonId'] = 'actual-other-daemon'
+            with tempfile.TemporaryDirectory() as directory:
+                home = Path(directory); home.chmod(0o700)
+                with patch.object(prepare, 'host_identity', return_value=actual):
+                    if changed:
+                        with self.assertRaisesRegex(prepare.Blocked, 'runner_or_daemon_changed'):
+                            unit.observe_current_host(home, before, prepare)
+                    else:
+                        self.assertEqual(unit.observe_current_host(home, before, prepare), actual)
+                self.assertEqual(json.loads((home/'consumer-current-host.json').read_bytes())['host'], actual)
+
+
 if __name__ == '__main__':
     unittest.main()

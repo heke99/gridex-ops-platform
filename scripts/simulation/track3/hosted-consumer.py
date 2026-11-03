@@ -418,6 +418,18 @@ def retain_early_failure(error):
             os.close(directory)
 
 
+def observe_current_host(home, admission_host, prepare):
+    """Retain the fresh observation before the unchanged capacity/identity gates."""
+    home = prepare.private(home, True)
+    observed = prepare.host_identity(enforce_capacity=False, observe_backend=True)
+    prepare.save(home / 'consumer-current-host.json', {
+        'schema': 'track3-consumer-current-host-v1', 'observedAtUtc': datetime.now(timezone.utc).isoformat(),
+        'host': observed, 'acceptance': 'NOT_CLAIMED_BEFORE_GATES'})
+    prepare.enforce_host_capacity(observed)
+    prepare.same_host(admission_host, observed)
+    return observed
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--plan', required=True)
@@ -436,7 +448,7 @@ def main(argv=None):
          and admission['profileSha256'] == sha(Path(os.environ['T3_HOSTED_PROFILE']).read_bytes())
          and os.environ.get('GRIDEX_NATIVE_DATABASE_PHASE') == 'clean', 'real_same_shell_bootstrap_required')
     consumer_stage('host')
-    prepare.same_host(admission['host'], prepare.host_identity())
+    observe_current_host(home, admission['host'], prepare)
     consumer_stage('network')
     owned_network = admission['ownedNetwork']
     need(os.environ.get('SUPABASE_NETWORK_ID') == owned_network['name'], 'same_shell_owned_network_selector_required')

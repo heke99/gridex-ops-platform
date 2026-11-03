@@ -185,8 +185,13 @@ def _mount_inventory(text):
         left, right = before.split(), after.split()
         need(separator and len(left) >= 6 and len(right) >= 3, 'mount_inventory_malformed')
         root, point = decode(left[3]), decode(left[4])
-        need(all(value.startswith('/') and str(PurePosixPath(value)) == value and '..' not in PurePosixPath(value).parts
-                 for value in [root, point]), 'mount_inventory_not_absolute')
+        def absolute_path(value):
+            return value.startswith('/') and str(PurePosixPath(value)) == value and '..' not in PurePosixPath(value).parts
+        # nsfs_show_path prints a typed namespace inode, not a filesystem path.
+        # Keep the record: its POINT must still expose any proc/cgroup overmount.
+        namespace = re.fullmatch(r'(net|mnt|uts|ipc|user|pid|cgroup|time):\[([1-9][0-9]{0,19})\]', root) if right[0] == 'nsfs' else None
+        namespace_root = namespace is not None and int(namespace[2]) <= 2**64 - 1
+        need(absolute_path(point) and (absolute_path(root) or namespace_root), 'mount_inventory_not_absolute')
         device = tuple(map(int, left[2].split(':')))
         need(len(device) == 2, 'mount_device_malformed')
         found.append({'id': left[0], 'root': root, 'point': point, 'device': device,
