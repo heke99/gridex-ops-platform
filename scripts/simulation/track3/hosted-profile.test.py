@@ -1244,5 +1244,69 @@ class HostedPG17ProvisioningTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'official_pgdg_signing_key_required'):
             self._provision(False, key_fingerprint='0' * 40)
 
+class BatchedCustodyTests(unittest.TestCase):
+    def setUp(self):
+        self.unit = load()
+        self.refs = [{'ref': 'refs/tags/agent-claims/masterplan/finite-' + str(n), 'sha': str(n) * 40} for n in range(1, 4)]
+
+    def observe(self, rows, refs=None):
+        calls = []
+        prepare = SimpleNamespace(HARNESS=Path('/finite/harness'), capture=lambda argv: calls.append(argv) or rows)
+        self.unit.verify_source_custody(prepare, self.refs if refs is None else refs)
+        return calls
+
+    def test_actual_custody_batch_has_one_git_call_and_literal_complete_set(self):
+        calls = self.observe('\n'.join(r['sha'] + '\t' + r['ref'] for r in reversed(self.refs)))
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0], ['git', '-C', '/finite/harness', 'ls-remote', 'origin', *[r['ref'] for r in self.refs]])
+
+    def test_batch_rejects_missing_duplicate_unknown_peeled_or_malformed_rows(self):
+        valid = [r['sha'] + '\t' + r['ref'] for r in self.refs]
+        for rows in [valid[:-1], valid + valid[:1], valid + ['a'*40 + '\trefs/tags/unassigned'],
+                     valid + [valid[0] + '^{}'], [valid[0].replace('1'*40, 'f'*40), *valid[1:]],
+                     [valid[0] + '\textra', *valid[1:]]]:
+            with self.subTest(rows=rows), self.assertRaisesRegex(ValueError, 'source_custody_changed'):
+                self.observe('\n'.join(rows))
+
+    def test_duplicate_input_rejected_before_git(self):
+        with self.assertRaisesRegex(ValueError, 'source_custody_changed'):
+            self.observe('', self.refs + self.refs[:1])
+
+
+class ArchiveSelectionTests(unittest.TestCase):
+    def test_real_tar_excludes_only_install_tools_preserves_all_evidence(self):
+        import hashlib
+        import tarfile
+        unit = load()
+        actual_run = subprocess.run
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory) / 't3-hosted-private'; home.mkdir(mode=0o700)
+            evidence = ['toolchain.json', 'profile.json', 'plan.json', 'hosted-terminal.json',
+                        'same-shell.log', 'cleanup.json', 'authority/original.json', 'inputs/value.json',
+                        'reports/scenario.json', 'reports/tools.log']
+            expected = {}
+            for name in evidence:
+                file = home / name; file.parent.mkdir(parents=True, exist_ok=True)
+                file.write_bytes(('FINITE_HOLD_ORIGINAL:' + name).encode()); expected['t3-hosted-private/' + name] = file.read_bytes()
+            (home/'tools').mkdir(); (home/'tools'/'vendor.bin').write_bytes(b'INSTALL_ONLY_NOT_EVIDENCE'*2000)
+            cert = b'FINITE_RECIPIENT_NOT_CRYPTO'; (home/'reviewer.pem').write_bytes(cert)
+            expected['t3-hosted-private/reviewer.pem'] = cert
+            pin = hashlib.sha256(cert).hexdigest(); selected = {}
+            def run(argv, **kwargs):
+                if argv[0] == 'tar': return actual_run(argv, **kwargs)
+                self.assertEqual(argv[:2], ['openssl', 'cms'])
+                with tarfile.open(argv[argv.index('-in')+1]) as archive:
+                    for entry in archive.getmembers():
+                        if entry.isfile(): selected[entry.name] = archive.extractfile(entry).read()
+                kwargs['stdout'].write(b'FINITE_NOT_REAL_CMS')
+                return SimpleNamespace(returncode=0)
+            prepare = SimpleNamespace(private=lambda p, *a: Path(p))
+            profile = {'plan': {'simHome': str(home), 'reviewerCertificateSha256': pin}, 'reviewerCertificateSha256': pin}
+            with patch.object(unit, 'qualify_transport'), patch.object(unit.subprocess, 'run', side_effect=run):
+                unit.archive_originals(profile, prepare, 'f'*64)
+            self.assertEqual(selected, expected)
+            self.assertFalse((home.parent/'t3-hosted-originals.tar').exists())
+
+
 if __name__ == '__main__':
     unittest.main()

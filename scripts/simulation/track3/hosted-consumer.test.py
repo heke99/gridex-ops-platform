@@ -289,5 +289,64 @@ class OwnedBackendParentTests(unittest.TestCase):
 
 
 
+class EarlyPrivateDiagnosticTests(unittest.TestCase):
+    def fixture(self, root):
+        home = root / 't3-hosted-private'; home.mkdir(mode=0o700)
+        profile = home/'profile.json'; profile.write_text(json.dumps({'plan': {'simHome': str(home)}, 'private': 'FINITE_PRIVATE_SENTINEL'})); profile.chmod(0o600)
+        plan = home/'plan.json'; plan.write_text(json.dumps({'simHome': str(home)})); plan.chmod(0o600)
+        admission = home/'bootstrap-admission.json'; admission.write_text(json.dumps({'schema': 'finite-invalid'})); admission.chmod(0o600)
+        return home, profile, plan
+
+    def test_real_early_cli_exception_retains_private_static_reason_before_producer_write(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home, profile, plan = self.fixture(Path(directory))
+            result = subprocess.run([sys.executable, '-B', str(Path(__file__).with_name('hosted-consumer.py')), '--plan', str(plan)],
+                env={'PATH': os.environ['PATH'], 'PYTHONDONTWRITEBYTECODE': '1', 'T3_HOSTED_PROFILE': str(profile)}, capture_output=True)
+            self.assertEqual(result.returncode, 1)
+            record = home/'consumer-preflight-failure.json'; raw = record.read_bytes(); data = json.loads(raw)
+            self.assertEqual(data['stage'], 'consumer-preflight:admission-contract')
+            self.assertEqual(data['reason'], 'real_same_shell_bootstrap_required')
+            self.assertEqual(data['errorType'], 'ValueError')
+            self.assertEqual(record.stat().st_mode & 0o777, 0o600)
+            self.assertNotIn(b'FINITE_PRIVATE_SENTINEL', raw + result.stderr)
+            self.assertFalse((home/'producer-replay.log').exists())
+            self.assertFalse(data['retryAuthorized'])
+
+    def test_unknown_error_payload_not_serialized_and_existing_original_not_overwritten(self):
+        unit = load()
+        with tempfile.TemporaryDirectory() as directory:
+            home, profile, _ = self.fixture(Path(directory))
+            with patch.dict(os.environ, {'T3_HOSTED_PROFILE': str(profile)}):
+                unit.consumer_stage('network')
+                self.assertTrue(unit.retain_early_failure(ValueError('FINITE_PRIVATE_SENTINEL')))
+                path = home/'consumer-preflight-failure.json'; raw = path.read_bytes()
+                self.assertNotIn(b'FINITE_PRIVATE_SENTINEL', raw)
+                self.assertEqual(json.loads(raw)['reason'], 'non_allowlisted_exception')
+                self.assertFalse(unit.retain_early_failure(ValueError('real_same_shell_bootstrap_required')))
+                self.assertEqual(path.read_bytes(), raw)
+
+    def test_insecure_home_and_partial_write_never_publish_failure_original(self):
+        unit = load()
+        with tempfile.TemporaryDirectory() as directory:
+            home, profile, _ = self.fixture(Path(directory))
+            with patch.dict(os.environ, {'T3_HOSTED_PROFILE': str(profile)}):
+                unit.consumer_stage('host'); home.chmod(0o755)
+                self.assertFalse(unit.retain_early_failure(ValueError('backend_identity_changed')))
+                home.chmod(0o700)
+                with patch.object(unit.os, 'write', side_effect=OSError('FINITE_PRIVATE_SENTINEL')):
+                    self.assertFalse(unit.retain_early_failure(ValueError('backend_identity_changed')))
+                self.assertFalse((home/'consumer-preflight-failure.json').exists())
+                self.assertFalse(list(home.glob('.consumer-preflight-failure.*.tmp')))
+
+    def test_after_replay_capture_is_outside_early_diagnostic_scope(self):
+        unit = load()
+        with tempfile.TemporaryDirectory() as directory:
+            home, profile, _ = self.fixture(Path(directory))
+            with patch.dict(os.environ, {'T3_HOSTED_PROFILE': str(profile)}):
+                unit.consumer_stage('after-replay-capture')
+                self.assertFalse(unit.retain_early_failure(ValueError('PRIVATE')))
+            self.assertFalse((home/'consumer-preflight-failure.json').exists())
+
+
 if __name__ == '__main__':
     unittest.main()

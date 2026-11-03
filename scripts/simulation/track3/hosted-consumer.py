@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import secrets
 import signal
+import stat
 import subprocess
 import sys
 import time
@@ -345,30 +346,112 @@ def consume_phases(packet, prepare):
     return result
 
 
+EARLY_STAGES = frozenset(['entry', 'profile', 'plan', 'admission', 'admission-contract',
+                          'host', 'network', 'cwd', 'replay-log', 'replay-capture'])
+EARLY_REASONS = frozenset(['real_same_shell_bootstrap_required', 'same_shell_owned_network_selector_required',
+    'original_replay_shell_directory_required', 'canonical_replay_completion_evidence_required',
+    'private_path_required', 'absolute_path_required', 'canonical_path_required', 'runner_or_daemon_changed',
+    'backend_identity_changed', 'capacity_hierarchy_unknown', 'effective_ram_below_8gib',
+    'docker_root_free_space_below_floor', 'shared_backend_capacity_unqualified', 'backend_identity_unqualified',
+    'local_unix_docker_required'])
+EARLY_ERROR_TYPES = frozenset(['ValueError', 'KeyError', 'FileNotFoundError', 'PermissionError',
+    'JSONDecodeError', 'CalledProcessError', 'TimeoutExpired', 'OSError', 'Cancelled', 'KeyboardInterrupt'])
+CONSUMER_STAGE = 'entry'
+
+
+def consumer_stage(stage):
+    global CONSUMER_STAGE
+    CONSUMER_STAGE = stage
+
+
+def retain_early_failure(error):
+    """Best-effort private static diagnostic; never serialize exception text or input."""
+    if CONSUMER_STAGE not in EARLY_STAGES:
+        return False
+    directory = descriptor = None
+    temporary_created = False
+    temporary = '.consumer-preflight-failure.' + str(os.getpid()) + '.tmp'
+    try:
+        prepare = load('prepare')
+        supplied = Path(os.environ['T3_HOSTED_PROFILE'])
+        profile_path = prepare.private(supplied)
+        home = prepare.private(profile_path.parent, True)
+        need(supplied == profile_path and supplied.is_absolute() and profile_path.name == 'profile.json'
+             and home.name == 't3-hosted-private', 'fixed_consumer_failure_home_required')
+        profile = json.loads(profile_path.read_bytes())
+        need(profile.get('plan', {}).get('simHome') == str(home), 'fixed_consumer_failure_home_required')
+        error_type = type(error).__name__
+        error_type = error_type if error_type in EARLY_ERROR_TYPES else 'Other'
+        argument = error.args[0] if error.args and type(error.args[0]) is str else None
+        reason = argument if argument in EARLY_REASONS else 'non_allowlisted_exception'
+        record = {'state': 'HOLD', 'stage': 'consumer-preflight:' + CONSUMER_STAGE,
+            'errorType': error_type, 'reason': reason, 'scenarioExecuted': False,
+            'wholeSuiteAcceptance': 'NOT_CLAIMED', 'retryAuthorized': False}
+        raw = json.dumps(record, sort_keys=True, separators=(',', ':')).encode() + b'\n'
+        directory = os.open(home, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        meta = os.fstat(directory)
+        need(meta.st_uid == os.getuid() and stat.S_IMODE(meta.st_mode) == 0o700, 'private_path_required')
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=directory)
+        temporary_created = True
+        view = memoryview(raw)
+        while view:
+            count = os.write(descriptor, view)
+            if count <= 0:
+                raise OSError('diagnostic_write_failed')
+            view = view[count:]
+        os.fsync(descriptor)
+        os.close(descriptor); descriptor = None
+        # Publish only the complete original, without replacing any prior original.
+        os.link(temporary, 'consumer-preflight-failure.json', src_dir_fd=directory, dst_dir_fd=directory, follow_symlinks=False)
+        return True
+    except Exception:
+        return False
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        if temporary_created:
+            try:
+                os.unlink(temporary, dir_fd=directory)
+            except OSError:
+                pass
+        if directory is not None:
+            os.close(directory)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--plan', required=True)
     args = parser.parse_args(argv)
     prepare = load('prepare')
+    consumer_stage('profile')
     profile = json.loads(prepare.private(os.environ['T3_HOSTED_PROFILE']).read_bytes())
+    consumer_stage('plan')
     plan = prepare.read_json(args.plan)
     home = prepare.private(plan['simHome'], True)
+    consumer_stage('admission')
     admission = prepare.read_json(home / 'bootstrap-admission.json')
+    consumer_stage('admission-contract')
     need(admission['schema'] == 'track3-hosted-bootstrap-admitted-v1'
          and admission['planSha256'] == sha(Path(args.plan).read_bytes())
          and admission['profileSha256'] == sha(Path(os.environ['T3_HOSTED_PROFILE']).read_bytes())
          and os.environ.get('GRIDEX_NATIVE_DATABASE_PHASE') == 'clean', 'real_same_shell_bootstrap_required')
+    consumer_stage('host')
     prepare.same_host(admission['host'], prepare.host_identity())
+    consumer_stage('network')
     owned_network = admission['ownedNetwork']
     need(os.environ.get('SUPABASE_NETWORK_ID') == owned_network['name'], 'same_shell_owned_network_selector_required')
+    consumer_stage('cwd')
     replay = prepare.canonical(plan['replayDir'])
     need(Path.cwd() == replay, 'original_replay_shell_directory_required')
     # Capture actual completed replay bytes before the consumer emits output.
+    consumer_stage('replay-log')
     replay_log = prepare.private(home / 'same-shell.log').read_bytes()
     need(b'Supabase CLI ledger verified:' in replay_log and b'schema fingerprint verified:' in replay_log
          and b'PASS: empty local Supabase' in replay_log, 'canonical_replay_completion_evidence_required')
+    consumer_stage('replay-capture')
     with open(home / 'producer-replay.log', 'xb', opener=lambda n, f: os.open(n, f | os.O_NOFOLLOW, 0o600)) as stream:
         stream.write(replay_log)
+    consumer_stage('after-replay-capture')
     cli_env = {**prepare.phase_environment(admission['host'], plan['nodeBin']), 'DO_NOT_TRACK': '1',
                'SUPABASE_TELEMETRY_DISABLED': '1', 'SUPABASE_HOME': str(home / 'supabase-home'), 'SUPABASE_NETWORK_ID': owned_network['name']}
     status = json.loads(prepare.capture(['supabase', 'status', '-o', 'json'], cwd=replay, env=cli_env))
@@ -403,6 +486,7 @@ def main(argv=None):
 if __name__ == '__main__':
     try:
         sys.exit(main())
-    except (Exception, Cancelled, KeyboardInterrupt):
+    except (Exception, Cancelled, KeyboardInterrupt) as error:
+        retain_early_failure(error)
         print('T3_HOSTED_CONSUMER_HOLD_PRIVATE_EVIDENCE', file=sys.stderr)
         sys.exit(1)

@@ -527,12 +527,32 @@ def archive_originals(profile, prepare, profile_hash):
     encrypted = home.parent / 't3-hosted-originals.cms'
     try:
         with open(archive, 'xb', opener=lambda n, f: os.open(n, f | os.O_NOFOLLOW, 0o600)) as output:
-            subprocess.run(['tar', '-cf', '-', '-C', str(home.parent), home.name], stdout=output, stderr=subprocess.PIPE, check=True, timeout=120)
+            subprocess.run(['tar', '--exclude=t3-hosted-private/tools', '-cf', '-', '-C', str(home.parent), home.name], stdout=output, stderr=subprocess.PIPE, check=True, timeout=120)
         with open(encrypted, 'xb', opener=lambda n, f: os.open(n, f | os.O_NOFOLLOW, 0o600)) as output:
             subprocess.run(['openssl', 'cms', '-encrypt', '-binary', '-aes-256-gcm', '-in', str(archive), '-outform', 'DER',
                             str(recipient)], stdout=output, stderr=subprocess.PIPE, check=True, timeout=120)
     finally:
         archive.unlink(missing_ok=True)
+
+
+def verify_source_custody(prepare, refs):
+    """One exact advertisement; reject omissions, duplicates and peeled/unknown refs."""
+    need(isinstance(refs, list) and 0 < len(refs) <= 256, 'source_custody_changed')
+    expected = {}
+    for row in refs:
+        need(isinstance(row, dict) and isinstance(row.get('ref'), str)
+             and re.fullmatch('refs/tags/agent-claims/masterplan/[A-Za-z0-9_-]+', row['ref'])
+             and isinstance(row.get('sha'), str) and SHA.fullmatch(row['sha'])
+             and row['ref'] not in expected, 'source_custody_changed')
+        expected[row['ref']] = row['sha']
+    raw = prepare.capture(['git', '-C', str(prepare.HARNESS), 'ls-remote', 'origin', *expected])
+    observed = {}
+    for line in raw.splitlines():
+        fields = line.split('\t')
+        need(len(fields) == 2 and SHA.fullmatch(fields[0]) and fields[1] in expected
+             and fields[1] not in observed, 'source_custody_changed')
+        observed[fields[1]] = fields[0]
+    need(observed == expected, 'source_custody_changed')
 
 
 def preflight(profile, identity, prepare, same):
@@ -559,10 +579,8 @@ def preflight(profile, identity, prepare, same):
         need(isinstance(p.get(key), str) and p[key].strip(), 'explicit_allocation_required')
     need(p.get('reservationRefs') and all(re.fullmatch('refs/tags/agent-claims/masterplan/[A-Za-z0-9_-]+', x['ref'])
          and SHA.fullmatch(x['sha']) for x in p['reservationRefs']), 'exact_source_custody_required')
-    for index, item in enumerate(p['reservationRefs']):
-        transport_stage('bootstrap-preflight:custody-' + str(index))
-        need(prepare.capture(['git', '-C', str(prepare.HARNESS), 'ls-remote', 'origin', item['ref']]).split() == [item['sha'], item['ref']],
-             'source_custody_changed')
+    transport_stage('bootstrap-preflight:custody-batch')
+    verify_source_custody(prepare, p['reservationRefs'])
     transport_stage('bootstrap-preflight:contracts')
     need(isinstance(p.get('overlayRefs'), list) and all(SHA.fullmatch(value) for value in p['overlayRefs']), 'exact_overlay_commits_required')
     for ref in p['overlayRefs']:
