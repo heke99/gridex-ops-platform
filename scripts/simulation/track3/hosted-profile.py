@@ -503,6 +503,7 @@ def archive_originals(profile, prepare, profile_hash):
 
 
 def preflight(profile, identity, prepare, same):
+    transport_stage('bootstrap-preflight:entry')
     need(profile.get('schema') == 'track3-hosted-bootstrap-v1', 'explicit_hosted_profile_required')
     p = profile['plan']
     need(p.get('environment') in ['test', 'production'] and p['environment'] == profile['environment'], 'explicit_authorized_environment_required')
@@ -510,6 +511,7 @@ def preflight(profile, identity, prepare, same):
          and p['attemptBudget'] == 1 and type(p['attemptBudget']) is int and p['exclusiveHost'] is True,
          'source_bound_exclusive_bootstrap_required')
     need(set(p.get('allowedActions', [])) == {'backend', 'replay', 'build', 'up', 'run', 'down', 'cleanup'}, 'exact_actions_required')
+    transport_stage('bootstrap-preflight:source')
     home = prepare.private(p['simHome'], True)
     app = prepare.canonical(p['appDir'])
     prepare.source(app, p['appCommit'], p['appTree'])
@@ -524,9 +526,11 @@ def preflight(profile, identity, prepare, same):
         need(isinstance(p.get(key), str) and p[key].strip(), 'explicit_allocation_required')
     need(p.get('reservationRefs') and all(re.fullmatch('refs/tags/agent-claims/masterplan/[A-Za-z0-9_-]+', x['ref'])
          and SHA.fullmatch(x['sha']) for x in p['reservationRefs']), 'exact_source_custody_required')
-    for item in p['reservationRefs']:
+    for index, item in enumerate(p['reservationRefs']):
+        transport_stage('bootstrap-preflight:custody-' + str(index))
         need(prepare.capture(['git', '-C', str(prepare.HARNESS), 'ls-remote', 'origin', item['ref']]).split() == [item['sha'], item['ref']],
              'source_custody_changed')
+    transport_stage('bootstrap-preflight:contracts')
     need(isinstance(p.get('overlayRefs'), list) and all(SHA.fullmatch(value) for value in p['overlayRefs']), 'exact_overlay_commits_required')
     for ref in p['overlayRefs']:
         need(subprocess.run(['git', '-C', str(app), 'merge-base', '--is-ancestor', ref, p['appCommit']], capture_output=True, timeout=20).returncode == 0,
@@ -561,6 +565,7 @@ def preflight(profile, identity, prepare, same):
     need(hash_bytes((app / 'package-lock.json').read_bytes()) == p['dependencyLockSha256'], 'reviewed_dependency_lock_required')
     need(hash_bytes((prepare.HARNESS / 'package-lock.json').read_bytes()) == p['dependencyLockSha256'], 'same_qualified_harness_dependency_lock_required')
     execution_contract(p, prepare)
+    transport_stage('bootstrap-preflight:recipient')
     recipient = prepare.private(home / 'reviewer.pem')
     need(hash_bytes(recipient.read_bytes()) == profile['reviewerCertificateSha256'] == p['reviewerCertificateSha256'], 'explicit_original_recipient_required')
     prepare.capture(['openssl', 'x509', '-in', str(recipient), '-noout', '-checkend', '21600'])
@@ -568,10 +573,13 @@ def preflight(profile, identity, prepare, same):
     expiry = datetime.fromisoformat(p['expiresAtUtc'].replace('Z', '+00:00'))
     need(expiry.utcoffset() is not None and expiry.utcoffset().total_seconds() == 0, 'utc_plan_expiry_required')
     same.bounded_timeout(p['sameShellTimeoutSeconds'], expiry)
+    transport_stage('bootstrap-preflight:host')
     host = prepare.host_identity()  # Actual DockerRootDir capacity before heavy operations.
     packet = SimpleNamespace(plan=p, app=app, home=home, expires=expiry, host=host, node=p['nodeBin'])
     packet.transport = transport
+    transport_stage('bootstrap-preflight:same-shell')
     replay, script, consumer = same.check_packet(packet, prepare)
+    transport_stage('bootstrap-preflight:inventory')
     inventory = same.docker_resources(prepare, packet)
     need(not inventory['containers'] and not inventory['volumes'], 'exclusive_empty_docker_required')
     return packet, (replay, script, consumer), inventory
@@ -796,7 +804,8 @@ def transport_stage(stage):
 
 
 def record_transport_failure(error):
-    # Called only by actual host-proof/receive CLI. No raw exception detail,
+    # Called by host-proof/receive CLI or preflight before native admission.
+    # No raw exception detail,
     # payload, key, environment dump or public logging.
     root = Path(os.environ['RUNNER_TEMP']).resolve(strict=True)
     proof = root / 't3-host-proof'
@@ -809,6 +818,18 @@ def record_transport_failure(error):
     save(proof / ('transport-failure-' + str(os.getpid()) + '.json'),
          {'state': 'HOLD', 'stage': TRANSPORT_STAGE, 'errorType': type(error).__name__, 'reason': code,
           'nativeExecuted': False, 'retryAuthorized': False})
+
+
+def retain_preflight_failure(profile_path, profile, error, prepare):
+    # Bind the archive input to the actual imported private home, never a
+    # caller-selected destination. Keep the existing fallback original too.
+    root = prepare.canonical(os.environ['RUNNER_TEMP'])
+    home = prepare.private(root / 't3-hosted-private', True)
+    need(profile.get('plan', {}).get('simHome') == str(home)
+         and prepare.private(profile_path) == home / 'profile.json', 'fixed_bootstrap_failure_home_required')
+    record_transport_failure(error)
+    original = prepare.private(root / 't3-host-proof' / ('transport-failure-' + str(os.getpid()) + '.json'))
+    fresh_private_bytes(home / 'bootstrap-preflight-failure.json', original.read_bytes())
 
 
 def archive_transport_hold(proof_home, prepare):
@@ -998,7 +1019,15 @@ def main(argv=None):
         archive_originals(profile, prepare, hash_bytes(original))
         return 0
     identity = hosted_identity(os.environ)
-    packet, inputs, before = preflight(profile, identity, prepare, same)
+    try:
+        packet, inputs, before = preflight(profile, identity, prepare, same)
+    except Exception as error:
+        try:
+            retain_preflight_failure(args.profile, profile, error, prepare)
+        except Exception:
+            # A missing diagnostic must never heal or replace the original HOLD.
+            pass
+        raise
     github = GitHub(identity['GITHUB_REPOSITORY'], os.environ.get('GH_TOKEN'))
     try:
         job = observed_job(identity, github)

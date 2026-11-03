@@ -3,7 +3,9 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 import importlib.util
 import json
+import os
 from pathlib import Path
+import stat
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -194,6 +196,94 @@ class PrivateNativeCapsuleTests(unittest.TestCase):
 
 
 class BootstrapFailStopTests(unittest.TestCase):
+    def _capture_real_preflight_failure(self, missing_app=False):
+        unit = load()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home = root / 't3-hosted-private'
+            home.mkdir(mode=0o700)
+            profile = home / 'profile.json'
+            identity = {'GITHUB_REPOSITORY': 'finite/not-runtime', 'GITHUB_SHA': 'a' * 40,
+                'GITHUB_RUN_ID': '1', 'GITHUB_RUN_ATTEMPT': '1',
+                'GITHUB_WORKFLOW_REF': 'finite/not-runtime/finite.yml@refs/heads/finite',
+                'GITHUB_JOB': 'finite', 'RUNNER_NAME': 'finite', 'GITHUB_EVENT_NAME': 'workflow_dispatch',
+                'GITHUB_REF': 'refs/heads/finite', 'GITHUB_ACTOR': 'finite',
+                'event': {'name': 'workflow_dispatch', 'ref': 'refs/heads/finite', 'sourceSha': 'a' * 40,
+                          'createOnly': False, 'triggerActor': 'finite'}}
+            fixture = {'schema': 'track3-hosted-bootstrap-v1' if missing_app else 'finite-invalid-schema',
+                'environment': 'test', 'finitePrivateSentinel': 'FINITE_PROFILE_MUST_NOT_EXPORT',
+                'plan': {'schema': 'track3-runner-plan-v1', 'environment': 'test', 'harnessCommit': 'a' * 40,
+                         'workerId': 'codex-track3', 'attemptBudget': 1, 'exclusiveHost': True,
+                         'allowedActions': ['backend', 'replay', 'build', 'up', 'run', 'down', 'cleanup'],
+                         'simHome': str(home), 'appDir': str(root / 'FINITE_PRIVATE_APP_MUST_NOT_EXPORT')}}
+            profile.write_text(json.dumps(fixture)); profile.chmod(0o600)
+            with patch.dict(os.environ, {'RUNNER_TEMP': str(root)}), \
+                 patch.object(unit, 'hosted_identity', return_value=identity), \
+                 patch.object(unit, 'GitHub', side_effect=AssertionError('preflight must not enter native admission')), \
+                 patch.object(unit, 'locked_tools', side_effect=AssertionError('preflight must not install tools')):
+                with self.assertRaises(FileNotFoundError if missing_app else ValueError) as caught:
+                    unit.main(['execute', '--profile', str(profile)])
+            if missing_app:
+                self.assertIn('FINITE_PRIVATE_APP_MUST_NOT_EXPORT', str(caught.exception))
+            else:
+                self.assertEqual(str(caught.exception), 'explicit_hosted_profile_required')
+            retained = home / 'bootstrap-preflight-failure.json'
+            self.assertTrue(retained.is_file(), 'actual preflight HOLD must retain a safe error original for the existing encrypted archive')
+            raw = retained.read_bytes()
+            self.assertEqual(stat.S_IMODE(retained.stat().st_mode), 0o600)
+            fallback = root / 't3-host-proof' / ('transport-failure-' + str(os.getpid()) + '.json')
+            self.assertEqual(fallback.read_bytes(), raw)
+            self.assertFalse((home / 'execution-intent.json').exists())
+            self.assertFalse((home / 'tools').exists())
+            self.assertNotIn(b'FINITE_PROFILE_MUST_NOT_EXPORT', raw)
+            return json.loads(raw), raw
+
+    def test_real_preflight_hold_retains_safe_predicate_before_native_admission(self):
+        record, _ = self._capture_real_preflight_failure()
+        self.assertEqual(record['reason'], 'explicit_hosted_profile_required')
+        self.assertEqual(record['stage'], 'bootstrap-preflight:entry')
+        self.assertEqual(record['state'], 'HOLD')
+        self.assertIs(record['nativeExecuted'], False)
+        self.assertIs(record['retryAuthorized'], False)
+
+    def test_real_private_filesystem_failure_is_retained_without_private_error_text(self):
+        record, raw = self._capture_real_preflight_failure(missing_app=True)
+        self.assertEqual(record['reason'], 'transport_observation_or_import_failed')
+        self.assertEqual(record['stage'], 'bootstrap-preflight:source')
+        self.assertNotIn(b'FINITE_PRIVATE_APP_MUST_NOT_EXPORT', raw)
+        self.assertIs(record['nativeExecuted'], False)
+        self.assertIs(record['retryAuthorized'], False)
+
+    def test_failure_record_cannot_follow_profile_to_another_private_home(self):
+        unit = load()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home, other = root / 't3-hosted-private', root / 'finite-other-home'
+            home.mkdir(mode=0o700); other.mkdir(mode=0o700)
+            profile = other / 'profile.json'
+            profile.write_text('{}'); profile.chmod(0o600)
+            with patch.dict(os.environ, {'RUNNER_TEMP': str(root)}):
+                with self.assertRaisesRegex(ValueError, 'fixed_bootstrap_failure_home_required'):
+                    unit.retain_preflight_failure(profile, {'plan': {'simHome': str(other)}},
+                        ValueError('source_custody_changed'), unit.load('prepare'))
+            self.assertFalse((root / 't3-host-proof').exists())
+            self.assertEqual(list(home.iterdir()), [])
+            self.assertFalse((other / 'bootstrap-preflight-failure.json').exists())
+
+    def test_failure_record_never_clobbers_an_earlier_archive_original(self):
+        unit = load()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home = root / 't3-hosted-private'; home.mkdir(mode=0o700)
+            profile = home / 'profile.json'; profile.write_text('{}'); profile.chmod(0o600)
+            original = home / 'bootstrap-preflight-failure.json'
+            original.write_bytes(b'FINITE_EARLIER_ORIGINAL'); original.chmod(0o600)
+            with patch.dict(os.environ, {'RUNNER_TEMP': str(root)}):
+                with self.assertRaises(FileExistsError):
+                    unit.retain_preflight_failure(profile, {'plan': {'simHome': str(home)}},
+                        ValueError('source_custody_changed'), unit.load('prepare'))
+            self.assertEqual(original.read_bytes(), b'FINITE_EARLIER_ORIGINAL')
+
     def test_failed_capacity_admission_cannot_reach_budget_tools_or_shell(self):
         unit = load()
         with tempfile.TemporaryDirectory() as directory:
