@@ -7,28 +7,37 @@
 // gammal worker fencad (outbox_item_not_claimed_by_worker / ediel_transport_worker_fence_lost) om den återupptas.
 import { randomUUID } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { receivedMail, setSmtpMode } from '../lib/counterparty'
+import { receivedMail } from '../lib/counterparty'
 import { Evidence } from '../lib/evidence'
 import { newRunContext } from '../lib/seed.mjs'
-import { actor, attemptsFor, eventsFor, outboxRow, seedInboundSource, type E03Source } from '../lib/e03-fixture'
-import { drain, flushQueuedInAcceptMode, maxReceivedN, operatorVisibility, seedWithRetry, sql, Timing } from '../lib/e03-steps'
+import { actor, attemptsFor, eventsFor, outboxRow, seedE03Tenant, companyId, mode, E03_OWN_ID, type E03Source } from '../lib/e03-fixture'
+import { maxReceivedN, operatorVisibility, Timing, type DrainOutcome } from '../lib/e03-steps'
+import { triggerOutbox } from '../lib/app'
+import { buildUtiltsE66 } from '../lib/edifact'
+import { receiveE03LeaseRecoveryPair } from '../lib/e03-lease-recovery'
 
 const run = newRunContext('ediel03-04')
 const evidence = new Evidence()
 const timing = new Timing()
-const seedLog: Array<Record<string, unknown>> = []
+let pair: Awaited<ReturnType<typeof receiveE03LeaseRecoveryPair>> | undefined
+let phaseHeld = false, intakeAttempted = false
+function requirePair() {
+  if (phaseHeld || !pair) throw new Error('T3_HARNESS_PRECONDITION: physical pair not available or phase held')
+  return pair
+}
+async function drain(kind: 'live' | 'stale' | 'final', label: string): Promise<DrainOutcome> {
+  const owned = requirePair()
+  const response = await timing.time('drain', label, () => owned.drain(kind, () => triggerOutbox(mode(), 25)))
+  return { status: response.status, ms: response.ms, result: (response.body as { result: Record<string, unknown> }).result, raw: response.body, foreignClaimableBefore: 0 }
+}
 const A = () => actor()
 
-beforeAll(async () => { await setSmtpMode('accept'); evidence.observe('run', { ...run, id: 'EDIEL03.04' }); evidence.observe('flush_before', await flushQueuedInAcceptMode(timing)) })
-afterEach(async () => { await setSmtpMode('accept').catch(() => undefined) })
+beforeAll(() => { evidence.observe('run', { ...run, id: 'EDIEL03.04' }) })
+afterEach(context => { if (context.task.result?.state === 'fail') { phaseHeld = true; pair?.hold() } })
 afterAll(async () => {
-  await setSmtpMode('accept').catch(() => undefined)
-  evidence.observe('seed_retries', seedLog)
   evidence.observe('timing', { totalsMs: timing.totals, log: timing.log })
   evidence.finalize()
 })
-
-const expireLease = (id: string) => sql(`UPDATE public.ediel_outbox SET locked_at=now()-interval '11 minutes' WHERE id='${id}' AND status='sending'`)
 
 describe('EDIEL03 deadlines, retry och återhämtning', () => {
   let a: E03Source, b: E03Source
@@ -38,14 +47,20 @@ describe('EDIEL03 deadlines, retry och återhämtning', () => {
   let claimA: Record<string, unknown> | null, claimB: Record<string, unknown> | null
 
   it('EDIEL03.04 fixture + claim som aldrig slutförs (status sending, ingen SMTP, inga attempts)', async () => {
-    await setSmtpMode('accept')
-    a = await seedWithRetry(timing, 'seed-a', (x) => seedInboundSource({ prefix: run.prefix, seq: 1 + x * 100 }), seedLog)
-    b = await seedWithRetry(timing, 'seed-b', (x) => seedInboundSource({ prefix: run.prefix, seq: 2 + x * 100 }), seedLog)
+    if (phaseHeld || intakeAttempted) throw new Error('T3_HARNESS_PRECONDITION: physical pair intake already attempted or held')
+    intakeAttempted = true
+    seedE03Tenant()
+    const cid = companyId(), environment = mode()
+    const input = (seq: number) => ({ prefix: run.prefix, seq, companyId: cid, environment,
+      raw: buildUtiltsE66({ prefix: run.prefix, seq, receiver: E03_OWN_ID,
+        mutate: environment === 'test' ? segs => segs.map(s => s.startsWith('UNB+') && !/\+\+1\+\+1$/.test(s) ? `${s}++1` : s) : undefined }).raw })
+    pair = await timing.time('harness', 'physical-pair-intake', () => receiveE03LeaseRecoveryPair([input(1), input(2)]))
+    ;[a, b] = requirePair().sources
     // Båda ligger köade; claima A och B med varsin worker via den riktiga claim-RPC:n.
     const { claimEdielOutboxItem } = await import('@/lib/ediel/outbox/claimOutboxItems')
     n0 = await maxReceivedN()
-    claimA = (await claimEdielOutboxItem({ outboxItemId: a.outboxId!, workerId: workerA, actorUserId: A() })) as never
-    claimB = (await claimEdielOutboxItem({ outboxItemId: b.outboxId!, workerId: workerB, actorUserId: A() })) as never
+    claimA = await requirePair().claim(0, workerA, () => claimEdielOutboxItem({ outboxItemId: a.outboxId!, workerId: workerA, actorUserId: A() }))
+    claimB = await requirePair().claim(1, workerB, () => claimEdielOutboxItem({ outboxItemId: b.outboxId!, workerId: workerB, actorUserId: A() }))
     evidence.save('claim-a.json', claimA); evidence.save('claim-b.json', claimB)
     expect(claimA).toMatchObject({ id: a.outboxId, status: 'sending', locked_by: workerA, current_send_attempt_id: expect.any(String) })
     expect(claimB).toMatchObject({ id: b.outboxId, status: 'sending', locked_by: workerB, current_send_attempt_id: expect.any(String) })
@@ -55,7 +70,8 @@ describe('EDIEL03 deadlines, retry och återhämtning', () => {
   })
 
   it('EDIEL03.04 drain medan leasen är giltig rör inte raderna (processed:0, status kvar sending)', async () => {
-    const d = await drain(a.outboxId!, timing, 'drain-lease-active', [a.outboxId!, b.outboxId!])
+    requirePair()
+    const d = await drain('live', 'drain-lease-active')
     evidence.save('drain-lease-active.json', d)
     evidence.observe('drain_lease_active', d.result)
     expect(d.result).toMatchObject({ claimed: 0, processed: 0 })
@@ -63,9 +79,9 @@ describe('EDIEL03 deadlines, retry och återhämtning', () => {
   })
 
   it('EDIEL03.04 B: utgången lease innan svepet -> gammal worker kan inte nå SMTP (ediel_outbox_worker_lease_expired)', async () => {
-    expireLease(b.outboxId!)
+    await requirePair().expireLease(1)
     const { sendOutboxItem } = await import('@/lib/ediel/outbox/sendOutboxItem')
-    const r = await sendOutboxItem({ actorUserId: A(), outboxItemId: b.outboxId!, workerId: workerB, sendAttemptId: String(claimB!.current_send_attempt_id), alreadyClaimed: true })
+    const r = await requirePair().probe(1, 'expired-worker', () => sendOutboxItem({ actorUserId: A(), outboxItemId: b.outboxId!, workerId: workerB, sendAttemptId: String(claimB!.current_send_attempt_id), alreadyClaimed: true }))
     evidence.observe('b_old_worker_resumes_unswept', r)
     expect(r).toMatchObject({ status: 'blocked', error: 'ediel_outbox_worker_lease_expired' })
     expect(attemptsFor(b.ackMessageId!)).toHaveLength(0)
@@ -73,10 +89,10 @@ describe('EDIEL03 deadlines, retry och återhämtning', () => {
   })
 
   it('EDIEL03.04 A: lease > 10 min + ny drain -> delivery_uncertain stale_sending_lock_requires_transport_reconciliation, ingen återsändning', async () => {
-    expireLease(a.outboxId!)
+    await requirePair().expireLease(0)
     evidence.save('outbox-a-expired.json', outboxRow(a.outboxId!))
     const before = (await receivedMail()).length
-    const d = await drain(a.outboxId!, timing, 'drain-after-lease-expiry', [a.outboxId!, b.outboxId!])
+    const d = await drain('stale', 'drain-after-lease-expiry')
     evidence.save('drain-after-expiry.json', d)
     evidence.observe('drain_after_expiry', { http: d.status, result: d.result, foreignClaimableBefore: d.foreignClaimableBefore })
     const rowA = outboxRow(a.outboxId!), rowB = outboxRow(b.outboxId!)
@@ -94,26 +110,26 @@ describe('EDIEL03 deadlines, retry och återhämtning', () => {
   })
 
   it('EDIEL03.04 gammal worker återupptas -> fencad (outbox_item_not_claimed_by_worker, ediel_transport_worker_fence_lost), 0 attempts, 0 SMTP', async () => {
+    requirePair()
     const before = (await receivedMail()).length
     const { sendOutboxItem } = await import('@/lib/ediel/outbox/sendOutboxItem')
     const { getEdielMessageById } = await import('@/lib/ediel/db')
     const { sendEdielMessageViaSmtp } = await import('@/lib/ediel/transport')
-    const resumed = await sendOutboxItem({ actorUserId: A(), outboxItemId: a.outboxId!, workerId: workerA, sendAttemptId: String(claimA!.current_send_attempt_id), alreadyClaimed: true })
+    const resumed = await requirePair().probe(0, 'resumed-worker', () => sendOutboxItem({ actorUserId: A(), outboxItemId: a.outboxId!, workerId: workerA, sendAttemptId: String(claimA!.current_send_attempt_id), alreadyClaimed: true }))
     evidence.observe('a_old_worker_resumes_sendOutboxItem', resumed)
     expect(resumed).toMatchObject({ status: 'blocked', error: 'outbox_item_not_claimed_by_worker' })
     // SQL-fencen i sig (utan att förlita sig på workerns tidiga radkontroll): samma mönster som tr-05 rad ~452.
     const msg = (await getEdielMessageById(a.ackMessageId!))!
-    let fence: unknown
-    try { fence = { returned: await sendEdielMessageViaSmtp(msg, { actorUserId: A(), smtpMimeMode: null, dispatchOwner: { kind: 'worker', outboxId: a.outboxId!, sendAttemptId: String(claimA!.current_send_attempt_id), workerId: workerA } } as never) } }
-    catch (e) { fence = { threw: (e as Error).message } }
+    const fence = await requirePair().probe(0, 'transport-fence', () => sendEdielMessageViaSmtp(msg, { actorUserId: A(), smtpMimeMode: null, dispatchOwner: { kind: 'worker', outboxId: a.outboxId!, sendAttemptId: String(claimA!.current_send_attempt_id), workerId: workerA } } as never))
     evidence.observe('a_old_worker_resumes_transport_fence', fence)
     expect(JSON.stringify(fence)).toContain('ediel_transport_worker_fence_lost')
     expect(attemptsFor(a.ackMessageId!)).toHaveLength(0)
     expect((await receivedMail()).length).toBe(before)
     // B: ny drain återsänder inte heller.
-    const d = await drain(b.outboxId!, timing, 'drain-final', [a.outboxId!, b.outboxId!])
+    const d = await drain('final', 'drain-final')
     expect(d.result).toMatchObject({ processed: 0 })
     expect(outboxRow(b.outboxId!).status).toBe('delivery_uncertain')
     expect((await receivedMail()).length).toBe(before)
+    await requirePair().restoreSmtp()
   })
 })

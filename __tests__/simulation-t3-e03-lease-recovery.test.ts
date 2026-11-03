@@ -235,3 +235,78 @@ describe('E03.04 global and transport effect boundaries', () => {
     expect(c.counts()).toEqual({ appends: 2, http: 1, smtp: 1 })
   })
 })
+
+function scenarioHarness(failure: 'ok' | 'http' = 'ok') {
+  const c = harness(failure)
+  const cases: Array<{ name: string; action: () => Promise<void> }> = []
+  const before: Array<() => unknown> = [], after: Array<() => unknown> = [], each: Array<(ctx: any) => unknown> = []
+  let claims = 0, drains = 0, finalized = 0, legacy = 0
+  const forbidden = () => { legacy++; throw new Error('unscoped legacy operation prohibited') }
+  load('../scenarios/ediel03-04.test.ts', {
+    'node:crypto': crypto,
+    vitest: { describe: (_: string, action: () => void) => action(), it: (name: string, action: () => Promise<void>) => cases.push({ name, action }),
+      expect, beforeAll: (fn: () => unknown) => before.push(fn), afterAll: (fn: () => unknown) => after.push(fn), afterEach: (fn: (ctx: any) => unknown) => each.push(fn) },
+    '../lib/counterparty': { receivedMail: async () => [], setSmtpMode: forbidden },
+    '../lib/e03-lease-recovery': c.unit,
+    '../lib/edifact': load('edifact.ts', { './seed.mjs': { COUNTERPARTY_EDIEL_ID: '70007', OWN_EDIEL_ID: '16703' } }),
+    '../lib/evidence': { Evidence: class { save() {} observe() {} finalize() { finalized++ } } },
+    '../lib/seed.mjs': { newRunContext: () => ({ prefix: 'synthetic' }) },
+    '../lib/e03-fixture': { actor: () => 'actor', companyId: () => 'company', mode: () => 'test', E03_OWN_ID: '16703',
+      seedE03Tenant: () => 'company', seedInboundSource: forbidden, attemptsFor: () => [], eventsFor: async () => [],
+      outboxRow: (id: string) => ({ ...c.states[Number(id.slice(-1))] }) },
+    '../lib/e03-steps': { maxReceivedN: async () => 0, operatorVisibility: () => ({}),
+      Timing: class { totals = {}; log: unknown[] = []; async time(_category: string, _label: string, action: () => unknown) { return action() } },
+      seedWithRetry: forbidden, flushQueuedInAcceptMode: forbidden, sql: forbidden, drain: forbidden },
+    '../lib/app': { triggerOutbox: async (environment: string, limit: number) => {
+      expect([environment, limit]).toEqual(['test', 25]); drains++
+      if (c.states.every(x => x.status === 'sending' && Date.parse(x.locked_at!) < Date.now() - 10 * 60_000))
+        c.states.forEach(x => Object.assign(x, { status: 'delivery_uncertain', locked_by: null, locked_at: null, last_error: 'stale_sending_lock_requires_transport_reconciliation' }))
+      return { ok: true, status: 200, ms: 1, text: '', body: { ok: true, result: { claimed: 0, processed: 0, results: [] } } }
+    } },
+    '@/lib/ediel/outbox/claimOutboxItems': { claimEdielOutboxItem: async ({ outboxItemId, workerId, actorUserId }: any) => {
+      expect(actorUserId).toBe('actor'); claims++; const index = Number(outboxItemId.slice(-1))
+      Object.assign(c.states[index], { status: 'sending', locked_by: workerId, locked_at: new Date().toISOString(), current_send_attempt_id: `attempt${index}` })
+      return { ...c.states[index] }
+    } },
+    '@/lib/ediel/outbox/sendOutboxItem': { sendOutboxItem: async ({ outboxItemId }: any) => ({ status: 'blocked', error: c.states[Number(outboxItemId.slice(-1))].status === 'sending' ? 'ediel_outbox_worker_lease_expired' : 'outbox_item_not_claimed_by_worker' }) },
+    '@/lib/ediel/db': { getEdielMessageById: async (id: string) => ({ id }) },
+    '@/lib/ediel/transport': { sendEdielMessageViaSmtp: async () => { throw { code: 'P0001', message: 'ediel_transport_worker_fence_lost' } } },
+  }, { String, process: { env: {} } })
+  return { c, cases, before, after, each, counts: () => ({ claims, drains, finalized, legacy }) }
+}
+describe('actual five original scenario callbacks with admitted pair', () => {
+  it('preserves the five frozen names and executes their real callbacks through actual pair admission', async () => {
+    const s = scenarioHarness()
+    expect(s.cases.map(x => x.name)).toEqual(["EDIEL03.04 fixture + claim som aldrig slutförs (status sending, ingen SMTP, inga attempts)", "EDIEL03.04 drain medan leasen är giltig rör inte raderna (processed:0, status kvar sending)", "EDIEL03.04 B: utgången lease innan svepet -> gammal worker kan inte nå SMTP (ediel_outbox_worker_lease_expired)", "EDIEL03.04 A: lease > 10 min + ny drain -> delivery_uncertain stale_sending_lock_requires_transport_reconciliation, ingen återsändning", "EDIEL03.04 gammal worker återupptas -> fencad (outbox_item_not_claimed_by_worker, ediel_transport_worker_fence_lost), 0 attempts, 0 SMTP"])
+    for (const hook of s.before) await hook()
+    for (const test of s.cases) {
+      await test.action()
+      for (const hook of s.each) await hook({ task: { result: { state: 'pass' } } })
+    }
+    for (const hook of s.after) await hook()
+    expect(s.counts()).toEqual({ claims: 2, drains: 3, finalized: 1, legacy: 0 })
+    expect(s.c.counts()).toEqual({ appends: 2, http: 1, smtp: 2 })
+    expect(s.c.states.map(x => x.status)).toEqual(['delivery_uncertain', 'delivery_uncertain'])
+  })
+  it('an assertion failure after successful claims makes subsequent actual case callbacks and final hooks inert', async () => {
+    const s = scenarioHarness()
+    for (const hook of s.before) await hook()
+    await s.cases[0].action()
+    for (const hook of s.each) await hook({ task: { result: { state: 'fail' } } })
+    for (const test of s.cases.slice(1)) await expect(test.action()).rejects.toThrow()
+    for (const hook of s.after) await hook()
+    expect(s.counts()).toEqual({ claims: 2, drains: 0, finalized: 1, legacy: 0 })
+    expect(s.c.counts()).toEqual({ appends: 2, http: 1, smtp: 1 })
+  })
+  it('first-case unknown intake keeps all later actual case callbacks and hooks from retrying or resetting SMTP', async () => {
+    const s = scenarioHarness('http')
+    for (const hook of s.before) await hook()
+    for (const test of s.cases) {
+      await expect(test.action()).rejects.toThrow()
+      for (const hook of s.each) await hook({ task: { result: { state: 'fail' } } })
+    }
+    for (const hook of s.after) await hook()
+    expect(s.counts()).toEqual({ claims: 0, drains: 0, finalized: 1, legacy: 0 })
+    expect(s.c.counts()).toEqual({ appends: 2, http: 1, smtp: 1 })
+  })
+})
