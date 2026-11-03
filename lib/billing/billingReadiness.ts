@@ -475,6 +475,9 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
       periodsOverlap({ billingStart, billingEnd, supplyStart, supplyEnd }),
     )
   })
+  if (commercialValid && !activeSupplyPeriods.some(period => period.id === commercial!.assignment.supplyPeriodId)) {
+    blockers.push({ code: 'commercial_supply_assignment_invalid', message: 'Den exakt kvalificerade fysiska leveransperioden uppfyller inte leveransgrindarna.' })
+  }
   if (activeSupplyPeriods.length === 0) {
     blockers.push({
       code: 'delivery_not_started',

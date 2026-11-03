@@ -592,6 +592,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       const end = payload.billing_period_end_instant
       const instantPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/
       if (!root || !sourceQualifiedUnderlayIds.has(underlayId)
+        || (!underlay.contract_price_snapshot_id && !underlay.pricing_snapshot_id)
         || typeof start !== 'string' || typeof end !== 'string' || !instantPattern.test(start) || !instantPattern.test(end)
         || !Number.isFinite(Date.parse(start)) || !Number.isFinite(Date.parse(end)) || Date.parse(end) <= Date.parse(start)
         || payload.billing_period_timezone !== 'Europe/Stockholm' || payload.billing_period_end_exclusive !== true

@@ -173,7 +173,7 @@ it('ordinary active readiness retains legacy evidence shape without invented ame
 })
 
 vi.mock('@/lib/metering/validation',()=>({companyAllowsEstimatedMeteringValues:vi.fn().mockResolvedValue(false),evaluateMeteringCompletenessForMonth:vi.fn().mockResolvedValue({issues:[]})}))
-async function invoiceFixture(options:{legacy?:boolean;sourceHeld?:boolean;badInstants?:boolean;badAliases?:boolean;wrongPrice?:boolean;missingRpc?:boolean;split?:boolean;range?:{month:string;start:string;end:string;startDate:string;endDate:string}}={}) {
+async function invoiceFixture(options:{legacy?:boolean;sourceHeld?:boolean;badInstants?:boolean;badAliases?:boolean;wrongPrice?:boolean;missingPrice?:boolean;missingRpc?:boolean;split?:boolean;range?:{month:string;start:string;end:string;startDate:string;endDate:string}}={}) {
  // Explicit finite DB/native/meter-resolution ports. The actual invoice adapter,
  // frozen assignment parser and pure core run; no source authority is claimed.
  vi.doMock('@/lib/metering/contractMeteringResolution',()=>({loadMeteringResolutionRequirements:vi.fn().mockResolvedValue(new Map())}))
@@ -184,6 +184,7 @@ async function invoiceFixture(options:{legacy?:boolean;sourceHeld?:boolean;badIn
   contract_price_snapshot_id:options.legacy?id(9):id(7),pricing_snapshot_id:options.wrongPrice?id(99):options.legacy?id(9):id(7),
   status:'validated',readiness_status:'ready',total_kwh:'1',missing_values_count:0,price_area:'SE3',calculated_total_sek_inc_vat:100,
   billing_period_start:'2026-12-01',billing_period_end:'2027-01-01',payload:options.badInstants?{}:{billing_period_start_instant:'2026-12-01T00:00:00+01:00',billing_period_end_instant:'2027-01-01T00:00:00+01:00',billing_period_timezone:'Europe/Stockholm',billing_period_end_exclusive:true}}
+ if(options.missingPrice)Object.assign(underlay,{contract_price_snapshot_id:null,pricing_snapshot_id:null})
  if(options.range)Object.assign(underlay,{billing_period_start:options.range.startDate,billing_period_end:options.range.endDate,payload:{billing_period_start_instant:options.range.start,billing_period_end_instant:options.range.end,billing_period_timezone:'Europe/Stockholm',billing_period_end_exclusive:true}})
  const updates:Array<Record<string,unknown>>=[];const columns:Array<{table:string;select:string}>=[]
  from.mockImplementation((table:string)=>{
@@ -217,7 +218,7 @@ it('the actual invoice adapter qualifies exact persisted underlay instants, chil
  expect(columns.find(c=>c.table==='billing_underlays')?.select.split(',')).toContain('supply_period_id')
  expect(updates.find(u=>u.billing_configuration_snapshot)?.billing_configuration_snapshot).toMatchObject({contract_id:id(6),commercial_supply:{physical_contract_id:id(5),supply_period_id:id(4),assignment_sha256:'a'.repeat(64),contract_price_snapshot_id:id(7)}})
 })
-it.each([{sourceHeld:true},{badInstants:true},{badAliases:true},{wrongPrice:true},{missingRpc:true},{split:true}])('the invoice adapter fails closed before configuration snapshot on unusable commercial authority %j',async options=>{
+it.each([{sourceHeld:true},{badInstants:true},{badAliases:true},{wrongPrice:true},{missingPrice:true},{missingRpc:true},{split:true}])('the invoice adapter fails closed before configuration snapshot on unusable commercial authority %j',async options=>{
  const {run,updates}=await invoiceFixture(options)
  let result:Awaited<ReturnType<typeof run>>|undefined
  try{result=await run()}catch(error){expect((error as Error).message).toMatch(/^(native unavailable|amendment_commercial_assignment_invalid|invoice_commercial_)/)}
@@ -237,4 +238,10 @@ it.each([
 ])('invoice readiness uses actual DST/partial-period instants rather than a whole-month substitute %j',async range=>{
  const {run}=await invoiceFixture({range});expect((await run()).status).toBe('ready')
  expect(rpc).toHaveBeenCalledWith('gridex_read_contract_commercial_segments_v1',{p_company_id:id(1),p_supply_period_id:id(4),p_start:new Date(range.start).toISOString(),p_end:new Date(range.end).toISOString()})
+})
+
+it('the exact physical SP must itself pass normal delivery gates even when another root SP is active',()=>{
+ const value=amendmentReadiness();value.supplyPeriods[0].status='pending'
+ value.supplyPeriods.push({...value.supplyPeriods[0],id:id(99),status:'active'})
+ expect(evaluateBillingReadinessCore(value).billable).toBe(false)
 })
