@@ -9,6 +9,7 @@ import stat
 import tempfile
 from types import SimpleNamespace
 import unittest
+import subprocess
 import urllib.error
 from unittest.mock import patch
 
@@ -1144,6 +1145,43 @@ class PostproofTests(unittest.TestCase):
         failure=next(json.loads(v) for k,v in members.items() if 'transport-failure-' in k)
         self.assertEqual(failure['reason'],'shared_backend_capacity_unqualified')
         self.assertEqual(failure['stage'],'host-proof:host-capacity')
+
+
+class RootOwnedFixedPinTests(unittest.TestCase):
+    """Fixed ROOT test custody only; no runtime key override or native proof."""
+    def test_new_fixed_public_pins_match_exact_owned_distinct_rsa3072_keys(self):
+        u = load()
+        self.assertEqual(u.ROOT_SIGNING_PUBLIC_SHA256, 'e314cb3ebfc1e0ac74a5be1fafc4f6ce9ea95140458a5741f420980b8675f165')
+        self.assertEqual(u.REVIEWER_CERT_SHA256, '711c6b153b258c454195bfef3247b61ddc854b5502bd9adc67c476b1cf9c0c19')
+        self.assertEqual(u.hash_bytes(u.ROOT_SIGNING_PUBLIC_PEM.encode()), u.ROOT_SIGNING_PUBLIC_SHA256)
+        self.assertEqual(u.hash_bytes(u.REVIEWER_CERT.encode()), u.REVIEWER_CERT_SHA256)
+        script = """const c=require('node:crypto'),f=require('node:fs');const x=JSON.parse(f.readFileSync(0,'utf8'));
+const a=c.createPublicKey(x.signer),b=new c.X509Certificate(x.cert).publicKey;
+const d=k=>c.createHash('sha256').update(k.export({type:'spki',format:'der'})).digest('hex');
+process.stdout.write(JSON.stringify({a:d(a),b:d(b),ab:a.asymmetricKeyDetails.modulusLength,bb:b.asymmetricKeyDetails.modulusLength}));"""
+        observed = json.loads(subprocess.run(['node', '-e', script], input=json.dumps({'signer': u.ROOT_SIGNING_PUBLIC_PEM, 'cert': u.REVIEWER_CERT}).encode(), capture_output=True, check=True, timeout=10).stdout)
+        self.assertEqual(observed, {'a':'28b72c47a64f88e79bf2f73db5fb7bbfb88f47c13e641d54a376c347c8812692', 'b':'c82a568fd4a6d63e526f6bbb5f9a257cdf0ecba232cc3ed5240dfe053d0e10c4', 'ab':3072, 'bb':3072})
+        self.assertNotEqual(observed['a'], observed['b'])
+
+    def test_wrong_generated_signer_cannot_authorize_current_fixed_root_pin(self):
+        u = load()
+        receiver = u.crypto_port('keygen')
+        wrong = u.crypto_port('keygen')
+        payload = {'finite': 'wrong-signing-key-denied-not-a-native-assignment'}
+        envelope = u.crypto_port('seal', payload=payload, privatePem=wrong['privatePem'], publicPem=receiver['publicPem'], rootPublicPem=wrong['publicPem'], rootSha256=u.hash_bytes(wrong['publicPem'].encode()))
+        self.assertEqual(u.crypto_port('decrypt', envelope=envelope, privatePem=receiver['privatePem'], publicPem=receiver['publicPem'], rootPublicPem=wrong['publicPem'], rootSha256=u.hash_bytes(wrong['publicPem'].encode())), payload)
+        with self.assertRaises(ValueError):
+            u.crypto_port('decrypt', envelope=envelope, privatePem=receiver['privatePem'], publicPem=receiver['publicPem'], rootPublicPem=u.ROOT_SIGNING_PUBLIC_PEM, rootSha256=u.ROOT_SIGNING_PUBLIC_SHA256)
+        self.assertNotEqual(u.ROOT_SIGNING_PUBLIC_SHA256, 'd9be7792c4a381476bcb0b58646cb86caf01736d2264cc355333ee0c7ea41704')
+
+    def test_new_fixed_recipient_encrypts_and_retired_or_wrong_recipient_is_denied(self):
+        u = load()
+        envelope = u.crypto_port('encrypt', value={'finite': 'public-recipient-pin-only'}, publicPem=u.REVIEWER_CERT)
+        self.assertEqual(envelope['recipientSha256'], '711c6b153b258c454195bfef3247b61ddc854b5502bd9adc67c476b1cf9c0c19')
+        self.assertNotEqual(envelope['recipientSha256'], 'e1755b953fd31cec33f21a9ecc0b8b991ea711d25116032d5b3681b5109e1e58')
+        wrong = u.crypto_port('keygen')
+        with self.assertRaises(ValueError):
+            u.crypto_port('open-proof', envelope=envelope, privatePem=wrong['privatePem'], publicPem=wrong['publicPem'])
 
 
 if __name__ == '__main__':
