@@ -1184,5 +1184,65 @@ process.stdout.write(JSON.stringify({a:d(a),b:d(b),ab:a.asymmetricKeyDetails.mod
             u.crypto_port('open-proof', envelope=envelope, privatePem=wrong['privatePem'], publicPem=wrong['publicPem'])
 
 
+
+
+class HostedPG17ProvisioningTests(unittest.TestCase):
+    def test_real_preflight_node_contract_allows_not_yet_installed_pg17(self):
+        import ast
+        unit = load()
+        tree = ast.parse(Path(unit.__file__).read_text())
+        preflight = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'preflight')
+        predicate = next(n.args[0] for n in ast.walk(preflight) if isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Name) and n.func.id == 'need' and n.args
+            and "p['nodeBin']" in ast.unparse(n.args[0]))
+        home = Path('/finite/t3-hosted-private')
+        with patch.object(Path, 'is_file', return_value=False):
+            self.assertTrue(eval(compile(ast.Expression(predicate), '<actual-preflight-node-predicate>', 'eval'),
+                {'Path': Path, 'str': str, 'home': home,
+                 'p': {'nodeBin': str(home / 'tools/node-v22.16.0-linux-x64/bin/node')}}))
+
+    def _provision(self, present, version='17.11', key_fingerprint='B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8'):
+        import io
+        unit = load()
+        calls = []
+        state = {'present': present}
+        def capture(argv):
+            if argv[0] == 'gpg':
+                return 'fpr:::::::::' + key_fingerprint + ':'
+            self.assertEqual(argv, ['/usr/lib/postgresql/17/bin/psql', '--version'])
+            return 'psql (PostgreSQL) ' + version
+        def run(argv, **kwargs):
+            calls.append(argv)
+            self.assertNotIn('--allow-unauthenticated', argv)
+            if 'postgresql-client-17' in argv:
+                state['present'] = True
+            return SimpleNamespace(returncode=0)
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(Path, 'is_file', side_effect=lambda: state['present']), \
+             patch.object(unit.urllib.request, 'urlopen', return_value=io.BytesIO(b'finite-public-pgdg-key')), \
+             patch.object(unit.subprocess, 'run', side_effect=run):
+            packet = SimpleNamespace(home=Path(directory))
+            result = unit.provision_pg17(packet, SimpleNamespace(capture=capture), lambda: None)
+        return result, calls
+
+    def test_missing_client_is_provisioned_then_actual_pg17_version_required(self):
+        psql, calls = self._provision(False)
+        self.assertEqual(str(psql), '/usr/lib/postgresql/17/bin/psql')
+        self.assertTrue(any('postgresql-client-17' in c for c in calls))
+        self.assertTrue(any('update' in c for c in calls))
+        self.assertTrue(all(c[:2] == ['sudo', '-n'] for c in calls))
+
+    def test_existing_pg17_reused_without_installation(self):
+        _, calls = self._provision(True)
+        self.assertEqual(calls, [])
+
+    def test_existing_wrong_major_is_rejected_without_reinstall(self):
+        with self.assertRaisesRegex(ValueError, 'locked_postgres17_client_version_required'):
+            self._provision(True, version='18.1')
+
+    def test_untrusted_pgdg_key_rejected_before_any_sudo(self):
+        with self.assertRaisesRegex(ValueError, 'official_pgdg_signing_key_required'):
+            self._provision(False, key_fingerprint='0' * 40)
+
 if __name__ == '__main__':
     unittest.main()
