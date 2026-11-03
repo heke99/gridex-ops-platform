@@ -514,8 +514,8 @@ jobs:
           def current_write_api_install_spec():
               return {'before_catalog_sha256':'709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
                   'preimage_artifact_id':12655280424,'preimage_source':'c6a02ec1edfbf72d81a2c3755e004781da8bc5d6',
-                  'schema_sha256':'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc','function_count':251,
-                  # Exact949 changes only a reader outside this unchanged251 writer closure.
+                  'schema_sha256':'032ec47d9f7215e28518eb2afa0fb7ee309be89f4fee19ea05a39f70ad679e5f','function_count':251,
+                  # Genuine T4 P1 adds only the approval RPC/comment/ACL outside this unchanged251 writer closure.
                   # Preserve the genuine preimage, canonical definitions and all metadata gates.
                   'canonical_definitions_sha256':'23866bb938ea1230a1f623073c436ae3d6583b5518378d0ee8eabd403eeb383d',
                   'projection_old_body':'01a18718d1d55c93238f2f9a8cfcb44da7cd5b35dbee96af964066a1848b7379',
@@ -658,7 +658,7 @@ jobs:
               return {'donor':{'path':'supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sql',
                 'mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d',
                 'sha256':'118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'},
-                'schema_sha256':'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc',
+                'schema_sha256':'032ec47d9f7215e28518eb2afa0fb7ee309be89f4fee19ea05a39f70ad679e5f',
                 'preimage':'142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e',
                 'postimage':'e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa',
                 'definition_sha256':'72f56c36a939142fd80ea0630a90c002fcec206437238010634530e46f34927d'}
@@ -1356,7 +1356,7 @@ jobs:
               donor={'path':'supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sql',
                 'mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d',
                 'sha256':'118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'}
-              schema='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
+              schema='032ec47d9f7215e28518eb2afa0fb7ee309be89f4fee19ea05a39f70ad679e5f'
               pre='142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e'
               post='e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa'
               item=receipt.get('current_contrl_source_install',{});before=item.get('catalog_before',{});after=item.get('catalog_after',{})

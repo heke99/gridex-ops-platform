@@ -97955,6 +97955,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      gridex_approve_invoice_export_item_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_expected_context: Json
+          p_export_item_id: string
+          p_review_hash: string
+        }
+        Returns: Json
+      }
       gridex_approve_invoice_test_item_v1: {
         Args: {
           p_approval: Json
