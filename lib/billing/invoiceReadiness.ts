@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { parseBillingMonth } from '@/lib/time/stockholm'
+import { loadContractCommercialSegments } from '@/lib/customer-contracts/amendment'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { isCanonicalUtiltsDecimal, sumUtiltsDecimals } from '@/lib/ediel/utilts/exactDecimal'
 import { loadMeteringResolutionRequirements } from '@/lib/metering/contractMeteringResolution'
@@ -12,6 +13,7 @@ import {
   evaluateBillingReadinessCore,
   type BillingReadinessContract,
   type BillingReadinessCustomer,
+  type BillingReadinessInput,
 } from '@/lib/billing/billingReadiness'
 
 export type InvoiceReadinessStatus = 'ready' | 'blocked'
@@ -303,6 +305,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   const { billingMonth, year, month } = monthParts(input.billingMonth)
   const issues: InvoiceReadinessIssue[] = []
   const blockedUnderlayIds = new Set<string>()
+  const sourceQualifiedUnderlayIds = new Set<string>()
 
   const periodLock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth })
   if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
@@ -315,7 +318,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   for (let from = 0; ; from += pageSize) {
     const underlayResult = await supabaseService
       .from('billing_underlays')
-      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at,payload')
+      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,supply_period_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at,payload')
       .eq('company_id', input.companyId)
       .eq('underlay_year', year)
       .eq('underlay_month', month)
@@ -340,7 +343,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       if (basis.qualified !== true || basis.correctionRequired === true) {
         blockedUnderlayIds.add(String(row.id))
         issues.push({ code: basis.correctionRequired === true ? 'billing_source_correction_required' : 'billing_source_basis_unavailable', message: `Underlag ${String(row.id)} saknar aktuellt låst källunderlag eller kräver rättelseprövning.`, severity: 'blocked' })
-      }
+      } else sourceQualifiedUnderlayIds.add(String(row.id))
     }
   }
 
@@ -463,10 +466,11 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     : []
 
   const contractsById = new Map<string, BillingReadinessContract & { id: string; customer_id?: string | null; customer_site_id?: string | null; site_id?: string | null; price_area_used?: string | null; metadata?: Record<string, unknown> | null }>()
+  const contractColumns = 'id,company_id,customer_id,metering_point_id,status,customer_site_id,site_id,contract_price_snapshot_id,price_area_used,price_snapshot,metadata,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons'
   if (contractIds.length > 0) {
     const contractResult = await supabaseService
       .from('customer_contracts')
-      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,price_area_used,price_snapshot,metadata,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons')
+      .select(contractColumns)
       .eq('company_id', input.companyId)
       .in('id', contractIds)
     if (contractResult.error) throw contractResult.error
@@ -542,6 +546,21 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     }
   }
 
+  // Load physical roots separately; never rewrite supply rows or substitute
+  // their status onto a commercial contract. Only the exact persisted SP counts.
+  const physicalRoots = new Map<string, BillingReadinessContract>()
+  const rootIds = [...new Set(underlays.flatMap(underlay => {
+    const period = (supplyPeriodsByMeter.get(String(underlay.metering_point_id)) ?? [])
+      .find(p => p.id === underlay.supply_period_id)
+    const rootId = period?.contract_id ?? period?.customer_contract_id
+    return typeof rootId === 'string' && rootId !== underlay.contract_id ? [rootId] : []
+  }))]
+  if (rootIds.length) {
+    const roots = await supabaseService.from('customer_contracts').select(contractColumns).eq('company_id', input.companyId).in('id', rootIds)
+    if (roots.error) throw roots.error
+    for (const root of (roots.data ?? []) as BillingReadinessContract[]) if (root.id) physicalRoots.set(root.id, root)
+  }
+
   for (const underlay of underlays) {
     const underlayId = String(underlay.id ?? 'okänt')
     const contractId = typeof underlay.contract_id === 'string' ? underlay.contract_id : ''
@@ -560,6 +579,31 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       '',
     )
     const snapshot = snapshotId ? snapshotsById.get(snapshotId) ?? null : null
+    let commercialSupply: BillingReadinessInput['commercialSupply']
+    const commercialBlockers: Array<{code: string; message: string}> = []
+    const actualSupply = (supplyPeriodsByMeter.get(meterId) ?? []).find(period => period.id === underlay.supply_period_id)
+    const physicalIds = [actualSupply?.contract_id, actualSupply?.customer_contract_id].filter((value): value is string => typeof value === 'string' && value.length > 0)
+    if (new Set(physicalIds).size > 1) {
+      commercialBlockers.push({ code: 'commercial_supply_assignment_invalid', message: 'Leveransperiodens fysiska avtalsreferenser motsäger varandra.' })
+    } else if (physicalIds.length && physicalIds[0] !== contractId) {
+      const root = physicalRoots.get(physicalIds[0])
+      const payload = object(underlay.payload)
+      const start = payload.billing_period_start_instant
+      const end = payload.billing_period_end_instant
+      const instantPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/
+      if (!root || !sourceQualifiedUnderlayIds.has(underlayId)
+        || typeof start !== 'string' || typeof end !== 'string' || !instantPattern.test(start) || !instantPattern.test(end)
+        || !Number.isFinite(Date.parse(start)) || !Number.isFinite(Date.parse(end)) || Date.parse(end) <= Date.parse(start)
+        || payload.billing_period_timezone !== 'Europe/Stockholm' || payload.billing_period_end_exclusive !== true
+        || (underlay.contract_price_snapshot_id && underlay.pricing_snapshot_id && underlay.contract_price_snapshot_id !== underlay.pricing_snapshot_id)) {
+        commercialBlockers.push({ code: 'commercial_supply_assignment_invalid', message: 'Underlaget saknar exakt kvalificerad källa, fysisk rot, prisreferens eller verkliga periodinstants.' })
+      } else {
+        const billingInstants = { start: new Date(start).toISOString(), end: new Date(end).toISOString() }
+        const assignment = await loadContractCommercialSegments({ companyId: input.companyId, customerId, meteringPointId: meterId,
+          supplyPeriodId: String(actualSupply!.id), physicalContractId: physicalIds[0], ...billingInstants })
+        commercialSupply = { assignment, physicalContract: root, priceSnapshotId: snapshotId, billingInstants }
+      }
+    }
     const canonicalArea = resolveCanonicalBillingPriceArea({
       underlayPriceArea: underlay.price_area,
       contract: contract as JsonRecord | null,
@@ -587,6 +631,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       customerId,
       customer,
       contract,
+      commercialSupply,
       issuer: { legalName: company?.legal_name ?? company?.name ?? null, orgNumber: company?.org_number ?? null },
       site: site ? { id: String(site.id), company_id: String(site.company_id ?? ''), customer_id: String(site.customer_id ?? '') } : null,
       meteringPoint: meter ? {
@@ -635,7 +680,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
           city: typeof site.city === 'string' ? site.city : null,
         } : null,
       },
-      externalBlockers: [...providerBlockers, ...snapshotBlockers, ...areaBlockers],
+      externalBlockers: [...providerBlockers, ...snapshotBlockers, ...areaBlockers, ...commercialBlockers],
     })
     for (const blocker of readiness.blockers) {
       blockedUnderlayIds.add(underlayId)
@@ -650,6 +695,14 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       company_id: input.companyId,
       customer_id: customerId || null,
       contract_id: contractId || null,
+      ...(commercialSupply ? { commercial_supply: {
+        physical_contract_id: commercialSupply.physicalContract.id,
+        supply_period_id: commercialSupply.assignment.supplyPeriodId,
+        assignment_sha256: commercialSupply.assignment.assignmentSHA256,
+        contract_price_snapshot_id: commercialSupply.priceSnapshotId,
+        start: commercialSupply.assignment.start,
+        end: commercialSupply.assignment.end,
+      } } : {}),
       payment_terms: paymentTerms,
       invoice_profile: billingProfileBase,
       provider: paymentProvider ? {

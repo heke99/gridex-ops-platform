@@ -22,6 +22,8 @@
 // persist a readiness flag must derive it from this function.
 
 import { resolveInvoiceDeliveryFor } from '@/lib/billing/effectiveInvoiceDelivery'
+import type { ContractCommercialAssignment } from '@/lib/customer-contracts/amendment'
+import { stockholmDateForInstant } from '@/lib/time/stockholm'
 
 export type BillingBlocker = {
   code: string
@@ -72,6 +74,7 @@ export type BillingReadinessContract = {
   id?: string | null
   company_id?: string | null
   customer_id?: string | null
+  metering_point_id?: string | null
   status?: string | null
   customer_site_id?: string | null
   site_id?: string | null
@@ -109,6 +112,14 @@ export type BillingReadinessInput = {
   customerId: string
   customer?: BillingReadinessCustomer | null
   contract: BillingReadinessContract | null
+  /** Native-qualified commercial selection, separate from physical delivery.
+   * Pure-core data is not a replacement for the independent native store/lock gates. */
+  commercialSupply?: {
+    assignment: ContractCommercialAssignment
+    physicalContract: BillingReadinessContract
+    priceSnapshotId: string
+    billingInstants: { start: string; end: string }
+  } | null
   /** The legal invoice issuer (tenant legal profile). */
   issuer?: { legalName?: string | null; orgNumber?: string | null } | null
   site?: { id?: string | null; company_id?: string | null; customer_id?: string | null } | null
@@ -358,18 +369,52 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
   const blockers: BillingBlocker[] = []
   const warnings: BillingWarning[] = []
   const contract = input.contract
+  const commercial = input.commercialSupply
+  let commercialValid = false
+  if (commercial) {
+    const { assignment: a, physicalContract: root, billingInstants: instants } = commercial
+    const segment = a.segments.length === 1 ? a.segments[0] : null
+    const period = (input.supplyPeriods ?? []).find(p => p.id === a.supplyPeriodId)
+    const aliases = [clean(period?.contract_id), clean(period?.customer_contract_id)].filter(Boolean)
+    const sameInstant = (left: string, right: string) => Number.isFinite(Date.parse(left)) && Date.parse(left) === Date.parse(right)
+    try {
+      commercialValid = a.schema === 'gridex-contract-commercial-segments-v1'
+        && /^[a-f0-9]{64}$/.test(a.assignmentSHA256) && segment !== null
+        && a.companyId === input.companyId && a.customerId === input.customerId
+        && a.meteringPointId === input.meteringPoint?.id && a.physicalContractId === root.id
+        && root.company_id === input.companyId && root.customer_id === input.customerId
+        && root.metering_point_id === a.meteringPointId && root.id !== contract?.id
+        && root.status === 'active' && ['signed', 'active'].includes(contract?.status ?? '')
+        && contract?.company_id === input.companyId && contract.customer_id === input.customerId
+        && contract.metering_point_id === a.meteringPointId
+        && (clean(root.customer_site_id) ?? clean(root.site_id)) === input.site?.id
+        && (clean(contract.customer_site_id) ?? clean(contract.site_id)) === input.site?.id
+        && period?.company_id === input.companyId && period.customer_id === input.customerId
+        && period.metering_point_id === a.meteringPointId && aliases.length > 0 && aliases.every(id => id === root.id)
+        && segment?.contractId === contract.id && segment.priceSnapshotId === commercial.priceSnapshotId
+        && contract.contract_price_snapshot_id === commercial.priceSnapshotId
+        && (!clean(contract.pricing_snapshot_id) || contract.pricing_snapshot_id === commercial.priceSnapshotId)
+        && /^[a-f0-9]{64}$/.test(segment.acceptanceSHA256 ?? '')
+        && Date.parse(instants.end) > Date.parse(instants.start)
+        && sameInstant(a.start, instants.start) && sameInstant(a.end, instants.end)
+        && sameInstant(segment.start, instants.start) && sameInstant(segment.end, instants.end)
+        && stockholmDateForInstant(instants.start) === input.billingPeriod?.start
+        && stockholmDateForInstant(instants.end) === input.billingPeriod?.end
+    } catch { commercialValid = false }
+    if (!commercialValid) blockers.push({ code: 'commercial_supply_assignment_invalid', message: 'Avtalsversionen saknar exakt kvalificerad koppling till den fysiska leveransen.' })
+  }
 
   // 1 + 2: contract, tenant and issuer -----------------------------------
   if (!contract) {
     blockers.push({ code: 'contract_missing', message: 'Inget avtal är kopplat till kunden.' })
   } else {
     const status = clean(contract.status)?.toLowerCase() ?? ''
-    if (status === 'signed') {
+    if (status === 'signed' && !commercialValid) {
       blockers.push({
         code: 'delivery_not_started',
         message: 'Avtalet är signerat men ännu inte aktiverat för leverans och fakturering.',
       })
-    } else if (!BILLABLE_CONTRACT_STATUSES.has(status)) {
+    } else if (!BILLABLE_CONTRACT_STATUSES.has(status) && !commercialValid) {
       blockers.push({
         code: 'contract_not_approved',
         message: `Avtalet har status "${status || 'okänd'}" och är inte aktivt för fakturering.`,
@@ -411,10 +456,10 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
       clean(period.customer_id) !== input.customerId
     ) return false
     if (
-      clean(input.contract?.id) &&
+      clean(commercialValid ? commercial?.physicalContract.id : input.contract?.id) &&
       (clean(period.customer_contract_id) ?? clean(period.contract_id)) &&
       (clean(period.customer_contract_id) ?? clean(period.contract_id)) !==
-        clean(input.contract?.id)
+        clean(commercialValid ? commercial?.physicalContract.id : input.contract?.id)
     ) return false
     if (
       clean(input.meteringPoint?.id) &&
@@ -548,16 +593,18 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
   }
 
   // 14: external blockers -----------------------------------------------------------
-  if (contract?.export_blocked === true) {
-    blockers.push({
-      code: 'billing_blocked',
-      message: clean(contract.export_block_reason) ?? 'Avtalet är exportblockerat.',
-    })
-  }
-  for (const reason of contract?.billing_blocker_reasons ?? []) {
-    const code = clean(reason.code) ?? 'billing_blocked'
-    const message = clean(reason.message) ?? 'Avtalet har en faktureringsblockerare.'
-    blockers.push({ code, message })
+  for (const operationalContract of commercialValid ? [contract, commercial!.physicalContract] : [contract]) {
+    if (operationalContract?.export_blocked === true) {
+      blockers.push({
+        code: 'billing_blocked',
+        message: clean(operationalContract.export_block_reason) ?? 'Avtalet är exportblockerat.',
+      })
+    }
+    for (const reason of operationalContract?.billing_blocker_reasons ?? []) {
+      const code = clean(reason.code) ?? 'billing_blocked'
+      const message = clean(reason.message) ?? 'Avtalet har en faktureringsblockerare.'
+      blockers.push({ code, message })
+    }
   }
   for (const blocker of input.externalBlockers ?? []) {
     blockers.push(blocker)
@@ -583,6 +630,7 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
       company_id: input.companyId,
       customer_id: input.customerId,
       contract_id: clean(contract?.id),
+      ...(commercialValid ? { physical_contract_id: commercial!.physicalContract.id, commercial_assignment_sha256: commercial!.assignment.assignmentSHA256 } : {}),
       billing_period_start: billingStart,
       billing_period_end: billingEnd,
       overlapping_supply_period_ids: activeSupplyPeriods.map((period) => clean(period.id)).filter(Boolean),
