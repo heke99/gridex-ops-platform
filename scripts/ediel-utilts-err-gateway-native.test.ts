@@ -423,13 +423,23 @@ it('SC-045 actual header rejection emits one message-scope U-APERAK without inve
   const first = snapshot(missingTimezone.id)
   await f.consume(missingTimezone)
   expect(snapshot(missingTimezone.id)).toEqual(first)
-  expect(first).toMatchObject({ series: [], contracts: [], outbox: [] })
+  expect(first).toMatchObject({ series: [], contracts: [] })
   expect(first.reservations.filter(row => row.disposition === 'accepted')).toEqual([])
   expect(first.acks.filter(row => row.family === 'UTILTS_ERR')).toEqual([])
   const application = first.acks.filter(row => row.family === 'APERAK')
   expect(application, 'one header outcome must not become per-IDE negative APERAKs').toHaveLength(1)
   expect(application[0]).toMatchObject({ outcome: 'negative', scope: null, reference: null, company: f.ids.company,
     policy: { authority: 'resolveCanonicalEdielPolicy', inheritedFromSourceMessage: true, sourceMessageId: missingTimezone.id } })
+  const technical = first.acks.filter(row => row.family === 'CONTRL')
+  expect(technical).toHaveLength(1)
+  expect(first.acks).toHaveLength(2)
+  const queueScope = { company_id: f.ids.company, environment: 'test', source_message_id: missingTimezone.id,
+    status: 'queued', attempts: 0, sent_at: null }
+  expect(first.outbox).toHaveLength(2)
+  expect(first.outbox).toEqual(expect.arrayContaining([
+    expect.objectContaining({ ...queueScope, ediel_message_id: application[0].id, message_family: 'APERAK', ack_outcome: 'negative' }),
+    expect.objectContaining({ ...queueScope, ediel_message_id: technical[0].id, message_family: 'CONTRL', ack_outcome: 'positive' }),
+  ]))
   expect(application[0].wire).toContain('BGM+313'); expect(application[0].wire).toContain('ERC+41::260')
   expect(application[0].wire).toContain('FTX+AAO++206::260'); expect(application[0].wire).not.toContain('RFF+ACW:')
   expect(application[0].wire).toContain('APERAK:D:04A:UN:E5SE5A')
