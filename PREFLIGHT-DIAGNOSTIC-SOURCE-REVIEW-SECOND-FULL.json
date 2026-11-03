@@ -1,0 +1,131 @@
+{
+  "schema": "t3-independent-preflight-diagnostic-source-only-final-v1",
+  "reviewer": {
+    "identity": "/root/ediel03_output_final_two",
+    "independent": true,
+    "nonAuthor": true,
+    "authorship": "I authored none of the candidate implementation, tests, oracle or inherited source. Root is the new delta author. This is my own independent review; I did not read the other new source reviewer final.",
+    "role": "Second independent source-only delta reviewer, separate from my preserved c9ec output review"
+  },
+  "decision": "APPROVE_SOURCE_ONLY_EXACT_TWO_FILE_DIAGNOSTIC_DELTA",
+  "source": {
+    "appCommit": "0dc353c6dfc2308c99f3aacd8df5de6c67ffd345",
+    "appTree": "186ad77080e9792634fb73f34a159d2ba978c55a",
+    "harnessCommit": "0dc353c6dfc2308c99f3aacd8df5de6c67ffd345",
+    "harnessTree": "186ad77080e9792634fb73f34a159d2ba978c55a"
+  },
+  "parent": "160ed2e5799a11431ab3942257f012320be8db66",
+  "executionSha256": "1d6b725c388c02e4269a16d51db0b10393c81e192bebaeb8aa441eca61b691cf",
+  "canonicalCompositionSha256": "2681279876bcbda06525abb46c475166f5d0e5bf9a65ab2c0cc89c076d971b00",
+  "scope": {
+    "newDeltaPaths": [
+      "scripts/simulation/track3/hosted-profile.py",
+      "scripts/simulation/track3/hosted-profile.test.py"
+    ],
+    "unchangedFilesReused": 61,
+    "basis": "Reuse the explicitly supplied existing full63/permission applicability for byte-identical 61; no renewed donor or whole-source review. Independently read full relevant preflight, failure writer, fixed path validators, native admission, CMS archive, transport archive and workflow archive selection.",
+    "unchangedOracleSha256": "af6b5433bbadaa490e0ec25ccb2cbce738e17ec651ccddcefd921fbe01debb16"
+  },
+  "verification": {
+    "exactHeadTreeSoleParentAndCleanWorktree": true,
+    "all63WorkingAndCommittedBytesVerifiedAgainstManifest": true,
+    "all63ParentBytesVerifiedAgainstPreviousHandoff": true,
+    "exactTwoPathsChangedInWholeCommit": true,
+    "unchangedCount": 61,
+    "canonicalCompositionIndependentlyRecomputed": true,
+    "manifestSha256": "b8961f9b501abd359e7009075a8ed371d7083fddf793af9af2e29b3e2a18be78",
+    "changedFiles": [
+      {
+        "path": "scripts/simulation/track3/hosted-profile.py",
+        "preSha256": "6a1bc712454f5f9f5f8f207bd20aa4693911e77c1ced4f9a92d28a9ddf69e575",
+        "postSha256": "44ecf5215ea2a8de49d4217815f0a8119f962d1108093a685494f5174d550016"
+      },
+      {
+        "path": "scripts/simulation/track3/hosted-profile.test.py",
+        "preSha256": "76d958980e4a93ea9ca5c9ac94f20acd41651a364a7f29a8168cad29a76bb405",
+        "postSha256": "284c4bfdc53710d1ef2d224a1d3b67f01dff3fec2689099c808806534b2295c8"
+      }
+    ],
+    "oldScopeBasis": {
+      "CODE-ONLY-HANDOFF.json": "cbc6cac9d6ffcfb9b6ae5be8e88b176ca9740f6930f34d5fa550336e173d9f65",
+      "FULL63-SOURCE-REVIEW-HARNESS.json": "1be5b38776e0a78cb71575587d4d0de83a2ee22e3dfd4837ef2582baddc64feb",
+      "PERMISSION-DELTA-SOURCE-REVIEW-ISSUER.json": "5aa0a8c96d27375347b1e583d235eeda201d18aff39eee01d9a61e48f2f7c3dd"
+    }
+  },
+  "authors": [
+    [
+      "T3",
+      "/root"
+    ],
+    [
+      "T3",
+      "/root/review_ediel03"
+    ],
+    [
+      "T3",
+      "/root/review_t3_receiving"
+    ],
+    [
+      "T3",
+      "/root/review_ediel02"
+    ],
+    [
+      "T3",
+      "/root/review_t3_admission"
+    ],
+    [
+      "T2:01a196e2-0739-7242-8546-b98884303064",
+      "/root/t2_end_date_review"
+    ],
+    [
+      "T2:01a196e2-0739-7242-8546-b98884303064",
+      "/root"
+    ]
+  ],
+  "authorAliases": "Existing seven-entry author union and six conservative aliases reused unchanged; I am not a member of that source author union.",
+  "assessment": [
+    "Added stage values are fixed source literals plus an integer custody index. They do not include refs, path values, profiles, environment dumps or raw error text.",
+    "Only preflight is wrapped. The diagnostic attempt is inside a nested Exception handler, followed by bare raise of the original exception. Failure to retain evidence cannot resume native admission, replace original HOLD or reach API/budget/tool/native work.",
+    "Retention destination is fixed RUNNER_TEMP/t3-hosted-private. Existing canonical/private validators require canonical non-symlink path, current ownership, 0700 directory and 0600 profile. Imported plan simHome and profile path must equal that fixed home/profile.json.",
+    "Existing record_transport_failure writes fixed private t3-host-proof/transport-failure-PID.json using exclusive no-follow save. Existing allowlist and reason pattern preserve recognized safe predicate codes; other errors use generic transport_observation_or_import_failed. No raw exception message is serialized.",
+    "Copied CMS-home record is exact bytes read through private validator. fresh_private_bytes uses exclusive create plus O_NOFOLLOW and 0600; previous originals and symlink destinations are not overwritten.",
+    "Unchanged normal CMS archive includes the copied bootstrap-preflight-failure.json with imported private home. Original safe record remains in proofhome, whose unchanged transport archive selection accepts transport-failure-PID.json and excludes ephemeral PEM. This is preservation on two paths, not a newly added automatic fallback when post-import CMS archival itself fails.",
+    "No source, authority, backend capacity, host identity, clock/expiry, allowed-action, attempt budget, one-shot mutation, no-retry or native acceptance gate was weakened. Archive command ordering and public generic HOLD stay unchanged."
+  ],
+  "tests": {
+    "independentlyRun": [
+      {
+        "command": "python3 -B scripts/simulation/track3/hosted-profile.test.py",
+        "result": "PASS",
+        "tests": 50,
+        "elapsedSeconds": 6.486
+      },
+      {
+        "description": "Five independent finite adversarial checks against candidate without source edits",
+        "result": "PASS",
+        "checks": [
+          "fixed-home symlink refused",
+          "proofhome symlink refused",
+          "destination symlink refused without modifying target",
+          "OSError in diagnostic preserves identical original exception object and does not admit GitHub",
+          "ValueError in diagnostic preserves identical original exception object and does not admit GitHub"
+        ]
+      }
+    ],
+    "reportedHistory": "Root reported two real RED observations before implementation and nine failstop passes; I did not witness or independently reproduce that historical RED sequence. The 50-test PASS above is my own run.",
+    "runtimeEffects": "No GitHub writes, Docker/backend/native execution, real profiles or keys used."
+  },
+  "findings": [],
+  "limits": {
+    "sourceOnly": true,
+    "actualHostRootCauseIdentified": false,
+    "actualRuntimeFixVerified": false,
+    "nativePass": false,
+    "physicalScenarioPass": false,
+    "newJobOrGrantAuthorized": false,
+    "oldOutputFinalModified": false,
+    "privateKeysProfilesEnvAuthorityOriginalsRead": false,
+    "custody": "Parent reports own fresh ALL16/4b9c custody. I performed no independent live custody mutation or claim."
+  },
+  "remaining": "Any fresh execution still requires separate exact-source allocation/event/signing/host qualification and actual output reviews plus owned-resource terminal cleanup. This diagnostic delta does not repair or diagnose the previous host failure."
+}

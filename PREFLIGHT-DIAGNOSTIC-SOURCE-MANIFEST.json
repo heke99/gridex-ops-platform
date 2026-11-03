@@ -1,0 +1,341 @@
+{
+  "sourceHead": "0dc353c6dfc2308c99f3aacd8df5de6c67ffd345",
+  "sourceTree": "186ad77080e9792634fb73f34a159d2ba978c55a",
+  "parent": "160ed2e5799a11431ab3942257f012320be8db66",
+  "canonicalCompositionSha256": "2681279876bcbda06525abb46c475166f5d0e5bf9a65ab2c0cc89c076d971b00",
+  "canonicalAlgorithm": "compact UTF8 JSON [{path,sha256}] sorted path, sorted object keys, no LF",
+  "sourceFiles": [
+    {
+      "path": ".github/workflows/t3-e03-hosted.yml",
+      "bytes": 4890,
+      "sha256": "65dff559bca1aade784c8c690cc1aa5735cac3e47565fccdf56cfbde9560c151"
+    },
+    {
+      "path": "__tests__/simulation-t3-business-oracle.test.ts",
+      "bytes": 34421,
+      "sha256": "51c11c24d0b68275c7a0850a7419b6b72006bbb4367d23b2d4831c94d034de73"
+    },
+    {
+      "path": "__tests__/simulation-t3-correction-safety.test.ts",
+      "bytes": 15670,
+      "sha256": "a019e0c78124f14ee45ffc931ea775b2621c45f8ac0fe83f41640939f8b2b9e5"
+    },
+    {
+      "path": "__tests__/simulation-t3-e01-drain-safety.test.ts",
+      "bytes": 20555,
+      "sha256": "ebfdbb4c6cddc0711c78b010b5ebd15c055b9f23761cf5cd5be79e6494ec15b2"
+    },
+    {
+      "path": "__tests__/simulation-t3-e01-physical-count.test.ts",
+      "bytes": 9695,
+      "sha256": "60a19c379f93d5d47df0019922316d19d6a5b59fdd461e58c48e1572ba584ee3"
+    },
+    {
+      "path": "__tests__/simulation-t3-e02-outbox-count.test.ts",
+      "bytes": 4553,
+      "sha256": "904a3373f4ec668613ae440a330ebef7f9667fb410ecbdd67053700f0ab75114"
+    },
+    {
+      "path": "__tests__/simulation-t3-e03-reception.test.ts",
+      "bytes": 14848,
+      "sha256": "cd339fc66024968f1035405775770678f3d5e99a67efd8a671dc47a4b1ddfca7"
+    },
+    {
+      "path": "__tests__/simulation-t3-outbox-admission.test.ts",
+      "bytes": 27161,
+      "sha256": "e3048494e5bdc88416a24d8bf9795370bdda476db878266ac04f8ea5fc8b333b"
+    },
+    {
+      "path": "scripts/simulation/track3/PREPARATION.md",
+      "bytes": 15396,
+      "sha256": "470bd8d9ecdca7f5a68d7338d2a42efeaef68fa7b22546ec314bb4b916c5d230"
+    },
+    {
+      "path": "scripts/simulation/track3/README.md",
+      "bytes": 17982,
+      "sha256": "e80f16d28b52043489dcea5ed21fb890a4dadcfd03c809b8ecc8a505169fefd5"
+    },
+    {
+      "path": "scripts/simulation/track3/counterparty/mail-counterparty.mjs",
+      "bytes": 13811,
+      "sha256": "1e94e466b876c0f5e2565759c1e6349d0419b40148c023fa45629ab2a9ad069c"
+    },
+    {
+      "path": "scripts/simulation/track3/down.sh",
+      "bytes": 11313,
+      "sha256": "a3b70c581a2a229a2f68e9a893720307e771a86f259475484a7bf422c0f215a0"
+    },
+    {
+      "path": "scripts/simulation/track3/host-capacity.py",
+      "bytes": 29001,
+      "sha256": "8af60428be31289ce381e89b9c6fdee19d0cfd367b551b99ddffae6e867dab7a"
+    },
+    {
+      "path": "scripts/simulation/track3/host-capacity.test.py",
+      "bytes": 20594,
+      "sha256": "81d47d26590d6ad86bf4d72a27cc69751eff35203b3afc7808e1673015b2541f"
+    },
+    {
+      "path": "scripts/simulation/track3/hosted-consumer.py",
+      "bytes": 27726,
+      "sha256": "e1bd411643f7cf29f7dbfd1c293db17afb8d738b8a70a7ab158df790cc0feacd"
+    },
+    {
+      "path": "scripts/simulation/track3/hosted-consumer.test.py",
+      "bytes": 19040,
+      "sha256": "f87aede19e3e2d71ebe57d39d3a45fe76eb1995ea90d32c6964bf6f366ad0e85"
+    },
+    {
+      "path": "scripts/simulation/track3/hosted-profile.py",
+      "bytes": 89270,
+      "sha256": "44ecf5215ea2a8de49d4217815f0a8119f962d1108093a685494f5174d550016"
+    },
+    {
+      "path": "scripts/simulation/track3/hosted-profile.test.py",
+      "bytes": 69614,
+      "sha256": "284c4bfdc53710d1ef2d224a1d3b67f01dff3fec2689099c808806534b2295c8"
+    },
+    {
+      "path": "scripts/simulation/track3/hosted-supabase.toml",
+      "bytes": 14153,
+      "sha256": "38faa949363ec32f0d58fdd7652f4bd3370ef25628629951c185702bb5644b48"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/app.ts",
+      "bytes": 1657,
+      "sha256": "1d6d2d6b587fa306a26a5ae6ed8aef8f29e4c59bd0c5ae922be41e41a6f5bfe1"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/common.sh",
+      "bytes": 2028,
+      "sha256": "7ee0c97ccfe85a700cc40374311c8797f594d8db581dc24b34617efe495c8184"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/counterparty.ts",
+      "bytes": 6344,
+      "sha256": "3751c733f545e6bd5b596f2265a2c50fda09aea1eb201fb048a242deb7e8e25f"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/db.ts",
+      "bytes": 2126,
+      "sha256": "6440afd46890901396bdfc4b75172d71bb30c97c5b52542fb0900dc66452d099"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e01-chain.ts",
+      "bytes": 12378,
+      "sha256": "ab998b5d4c9ef2ec1d8de3bb5795ca4d8fd8654390170087854164c5faf4f733"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e01-fixture.ts",
+      "bytes": 16617,
+      "sha256": "c7c4ea568603e8e18b3ee747d5e1b6fb6214cefd33607ada893d25cc280f7417"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e01-tls.ts",
+      "bytes": 4805,
+      "sha256": "c78357930494540d0bede091d31c004f76bb3b5d05064c8dc38a3bb9a1639ddc"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-edifact.ts",
+      "bytes": 4353,
+      "sha256": "7f605afde606194567f9503d1242111f3cad15fa9568ac13466a2565b801690e"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-flow.ts",
+      "bytes": 11669,
+      "sha256": "dab88094e67ab230ba9c29333fe7e20af522a92c0f99ed4e594f35cfcdc8972e"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-outbox.ts",
+      "bytes": 20504,
+      "sha256": "c606af01aa873a1410b97a55104757abc34beb4b1eb4966c23a16f6eb0a69ebb"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-rpc.ts",
+      "bytes": 1053,
+      "sha256": "189ca7d2f44778492ae102b2c2bc744b1f1d0803980a54aad98a138ed4b77678"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-seed.ts",
+      "bytes": 15342,
+      "sha256": "64cbae12ba0d4d1329b84a3d37b833d46bb8bd760ccc9ad0d2138d3924bf3d19"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-setup.ts",
+      "bytes": 2680,
+      "sha256": "7407d79f39f42e11ad7f7f2eb2c7bc494030796216ec005d5f2a1b049e010263"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-state.ts",
+      "bytes": 6439,
+      "sha256": "14b5f5e9797b9c9f77de9767cf4aca009bb4491732a352ce7ff7820af648ee9e"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e02-tenant.ts",
+      "bytes": 9131,
+      "sha256": "7042c3cd6006242eb7a8d949ab657f0b90d873ea2cab45e051a533552d73eff5"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e03-fixture.ts",
+      "bytes": 13991,
+      "sha256": "1661c32a99c40af6305924ef1f5418e480cba57134472cd91c7e8a0d2788cdf6"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e03-reception.ts",
+      "bytes": 13816,
+      "sha256": "61af222f431463a561b05fab1547528472a8d538c03dbcb48dd5c0a216ba9f2d"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/e03-steps.ts",
+      "bytes": 12434,
+      "sha256": "ab5d2913dfdd85f3d6ccdd9c5421c0d0bbd2d22c060109f9d0c8645d6e20778e"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/edifact.ts",
+      "bytes": 3792,
+      "sha256": "182c620d29b22764f903b6a70f915aaad5dd27fe4a89a07738717811e84bd6f2"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/evidence.ts",
+      "bytes": 1866,
+      "sha256": "07d5bd23c9d121219ddd2a5274da7aa020f01acb5aa507b41ebb145ca83817c7"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/inprocess.ts",
+      "bytes": 1824,
+      "sha256": "0ded70fbfa66730cd087985a01f4d871342406fb6841c9a2fabcf3788e57378f"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/make-report.mjs",
+      "bytes": 3272,
+      "sha256": "d469f0b9d12b6a1f71456b41ccf358e245ba22ac29519c5e839acee9440a41cc"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/mime.ts",
+      "bytes": 1722,
+      "sha256": "17230bc073375f0164ef8b5b4d0faf73a2cc1076cf3e282190a711e357dc7db7"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/seed-cli.mjs",
+      "bytes": 27501,
+      "sha256": "6e0874f00dceedef58d6cb9e24e4ae6da005cfe45c722667a0fb2e7afdbfa7f5"
+    },
+    {
+      "path": "scripts/simulation/track3/lib/seed.mjs",
+      "bytes": 14096,
+      "sha256": "734c4aa4f2f543231f6cd4f61fd16f345d5f59a8016d0bacd45d90eb3c0f932e"
+    },
+    {
+      "path": "scripts/simulation/track3/prepare.py",
+      "bytes": 54700,
+      "sha256": "2905b0a267b43601cd55bc64ce7ddbe32f623f96813bd233b28a1fdd813f945e"
+    },
+    {
+      "path": "scripts/simulation/track3/prepare.test.py",
+      "bytes": 48846,
+      "sha256": "1e1c26764cd11d385e8035bdbd43d8c5ab656fc2aaa2f7a4130f98b3e8cd1014"
+    },
+    {
+      "path": "scripts/simulation/track3/run.sh",
+      "bytes": 4732,
+      "sha256": "efd1b9022921cf23f4bb522ee422b24cdad75607ae87bcd43a4a4fd5dc6ef3a6"
+    },
+    {
+      "path": "scripts/simulation/track3/same-shell.py",
+      "bytes": 12094,
+      "sha256": "5e7f9f842ed021c59e677d9d5894cf910692a23eb07dd578ec1d460f43dbaa5d"
+    },
+    {
+      "path": "scripts/simulation/track3/same-shell.test.py",
+      "bytes": 18447,
+      "sha256": "685d34733ff3d43159b59da1ccd650e894f8ab48be5b204a2ff7dca694186c89"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel01.test.ts",
+      "bytes": 55288,
+      "sha256": "ea2dc154a1008365649f696e6890727b477e702834850ec6b82b854747d9d2c8"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel02-auth.test.ts",
+      "bytes": 11495,
+      "sha256": "88ba7d45bebb7a574f108224cb5aa683cad4c941e39032b0ce3c8c2868e1e98f"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel02-corr.test.ts",
+      "bytes": 8393,
+      "sha256": "4535c4818c5e91a18b8b6e0599f0256300d952488e918cd6174e38b3b247dfbc"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel02-dup.test.ts",
+      "bytes": 10283,
+      "sha256": "0dbafd6a213ca906aa1dff143d0525fd5d10ef547d420ed9b0f7ecfae51eafef"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel02-syntax.test.ts",
+      "bytes": 10518,
+      "sha256": "ec2522be9e3cefdb9be1cb8bcd85a2f50bcd40ef37087a5e84c706875dd1b6fa"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel03-01.test.ts",
+      "bytes": 7148,
+      "sha256": "ef941484d363de34aaea3414224c8eb2704fe0f721f38a07022d6ec7cb364777"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel03-02.test.ts",
+      "bytes": 6784,
+      "sha256": "45a4fba6c913f1aa7ae89e7d0d934f40325d4bd570cb8e45c504bc1cfa95baad"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel03-03.test.ts",
+      "bytes": 8936,
+      "sha256": "af6b5433bbadaa490e0ec25ccb2cbce738e17ec651ccddcefd921fbe01debb16"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel03-04.test.ts",
+      "bytes": 8875,
+      "sha256": "24b26f7cd1c0a69cad0c850d790c45af9d9123fb4d2753e94c2b2b0135f62cae"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/ediel03-05.test.ts",
+      "bytes": 6624,
+      "sha256": "58003b2a36ff86c1c169f4bac62eecb77e7f86839acdcbb2c33ddf74dc6877c1"
+    },
+    {
+      "path": "scripts/simulation/track3/scenarios/smoke.test.ts",
+      "bytes": 15738,
+      "sha256": "bae14c7ad99697867b0f402bee5ed64a0ce12c123de0bc6bbf228d82ebf38b96"
+    },
+    {
+      "path": "scripts/simulation/track3/up.sh",
+      "bytes": 3426,
+      "sha256": "11b96ec449c538ec8483d50a3f4dde7efb1beb31faec894f508d72ccd47b7d01"
+    },
+    {
+      "path": "scripts/simulation/track3/vitest.config.ts",
+      "bytes": 1063,
+      "sha256": "ddc36a468d6a207f880c3067edfb3393f9d69ef4ce605a4dce6097232592442e"
+    },
+    {
+      "path": "supabase/config.toml",
+      "bytes": 14153,
+      "sha256": "38faa949363ec32f0d58fdd7652f4bd3370ef25628629951c185702bb5644b48"
+    }
+  ],
+  "changedPaths": [
+    {
+      "path": "scripts/simulation/track3/hosted-profile.py",
+      "preSha256": "6a1bc712454f5f9f5f8f207bd20aa4693911e77c1ced4f9a92d28a9ddf69e575",
+      "postSha256": "44ecf5215ea2a8de49d4217815f0a8119f962d1108093a685494f5174d550016"
+    },
+    {
+      "path": "scripts/simulation/track3/hosted-profile.test.py",
+      "preSha256": "76d958980e4a93ea9ca5c9ac94f20acd41651a364a7f29a8168cad29a76bb405",
+      "postSha256": "284c4bfdc53710d1ef2d224a1d3b67f01dff3fec2689099c808806534b2295c8"
+    }
+  ],
+  "unchangedFiles": 61,
+  "unchangedSourceReviewBasisDirectory": "/workspace/t3-handoff-20261101/pr-comment-permission-codeonly-final",
+  "executionSha256": "1d6b725c388c02e4269a16d51db0b10393c81e192bebaeb8aa441eca61b691cf",
+  "completeAuthorsAndAliasesUnchanged": true,
+  "runtimeQualification": "NOT_RUN_NEW_SOURCE_ONLY"
+}

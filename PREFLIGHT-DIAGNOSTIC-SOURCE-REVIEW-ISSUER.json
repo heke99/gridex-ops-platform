@@ -1,0 +1,60 @@
+{
+  "schema": "t3-independent-source-delta-review-v1",
+  "agent": "/root/issuer_final_review",
+  "authorship": {
+    "acceptedSourceAuthor": false,
+    "newDeltaAuthor": "Root; already in unchanged author union",
+    "independentReview": true
+  },
+  "decision": "APPROVE_SOURCE_ONLY_BOUNDED_DELTA",
+  "source": {
+    "appCommit": "0dc353c6dfc2308c99f3aacd8df5de6c67ffd345",
+    "appTree": "186ad77080e9792634fb73f34a159d2ba978c55a",
+    "harnessCommit": "0dc353c6dfc2308c99f3aacd8df5de6c67ffd345",
+    "harnessTree": "186ad77080e9792634fb73f34a159d2ba978c55a"
+  },
+  "parent": "160ed2e5799a11431ab3942257f012320be8db66",
+  "executionSha256": "1d6b725c388c02e4269a16d51db0b10393c81e192bebaeb8aa441eca61b691cf",
+  "compositionSha256": "2681279876bcbda06525abb46c475166f5d0e5bf9a65ab2c0cc89c076d971b00",
+  "manifestSha256": "b8961f9b501abd359e7009075a8ed371d7083fddf793af9af2e29b3e2a18be78",
+  "scope": {
+    "newReviewedDelta": [
+      "scripts/simulation/track3/hosted-profile.py",
+      "scripts/simulation/track3/hosted-profile.test.py"
+    ],
+    "postimagesSha256": [
+      "44ecf5215ea2a8de49d4217815f0a8119f962d1108093a685494f5174d550016",
+      "284c4bfdc53710d1ef2d224a1d3b67f01dff3fec2689099c808806534b2295c8"
+    ],
+    "unchangedFiles": 61,
+    "reuse": "Previously qualified full63/source/donor applicability retained for the 61 byte-identical files; no new donor audit or output review. Author union unchanged."
+  },
+  "checks": {
+    "actualGitHeadTreeParent": true,
+    "cleanWorktree": true,
+    "exactlyTwoTreePathsChanged": true,
+    "all63ManifestHashesVerified": true,
+    "other61ComparedWithParentBytes": true,
+    "canonicalCompositionRecomputed": true,
+    "diffCheck": "PASS",
+    "independentFiniteCommand": "python3 -B scripts/simulation/track3/hosted-profile.test.py",
+    "independentFiniteResult": "50 tests PASS; 6.121s; no native services or network mutations"
+  },
+  "findings": [],
+  "assessment": [
+    "Inspected relevant execute/preflight, safe failure recording, fixed private paths, exclusive writes and existing encrypted normal/fallback archive paths. New stage markers do not alter validation predicates or effect ordering.",
+    "Actual preflight exception is re-raised unchanged even if evidence retention fails. Safe allowlisted reason or generic reason is recorded; raw exception text is excluded. Fixed canonical private runtime home/profile checks and exclusive no-clobber writes preserve symlink/path and prior-evidence protections.",
+    "Finite cases cover genuine preflight failures with safe and unsafe exception text, retained identical private evidence, wrong-home rejection and no-clobber behavior. No execution-intent or tools admission occurs on those failures.",
+    "Existing source/host/backend/budget/oracle gates, one-attempt/no-retry behavior and workflow are unchanged. This is diagnostic retention only."
+  ],
+  "existingReviewReferences": {
+    "full63ExistingApplicabilitySha256": "ca21d5651f7106bb91c227a7aed88431efeec1f68b9a457393a518a30abddfc5",
+    "permissionDeltaSourceReviewSha256": "5aa0a8c96d27375347b1e583d235eeda201d18aff39eee01d9a61e48f2f7c3dd",
+    "deliveredFull63HarnessReviewSha256": "1be5b38776e0a78cb71575587d4d0de83a2ee22e3dfd4837ef2582baddc64feb"
+  },
+  "limits": [
+    "No claim that the actual prior runtime failure cause is identified or fixed. Prior output review remains immutable.",
+    "No actual host/backend/native/pilot PASS, runtime authorization, new event, retry or cleanup certification. T4 applicable independent current-source and runtime qualification remain required."
+  ],
+  "attestation": "Genuine independent source assessment by /root/issuer_final_review; identity-labelled, not a cryptographic signature."
+}
