@@ -73,6 +73,33 @@ def capture(argv, cwd=None, env=None):
     return result.stdout.rstrip('\n')
 
 
+def live_reservations(refs, mismatch):
+    """Read the complete expected set afresh, with one fail-closed transport call."""
+    need(isinstance(refs, list), 'exact_reservation_ref_required')
+    expected = {}
+    for item in refs:
+        need(isinstance(item, dict), 'exact_reservation_ref_required')
+        ref, value = item.get('ref'), item.get('sha')
+        need(isinstance(ref, str) and re.fullmatch(r'refs/tags/agent-claims/[A-Za-z0-9_./-]+', ref)
+             and isinstance(value, str) and re.fullmatch('[a-f0-9]{40}', value)
+             and ref not in expected, 'exact_reservation_ref_required')
+        expected[ref] = value
+    # Construction independently enforces the required role count. Checking an
+    # empty set retains the previous no-I/O behavior.
+    if not expected:
+        return
+    observed = {}
+    for line in capture(['git', '-C', str(HARNESS), 'ls-remote', 'origin', *expected]).splitlines():
+        fields = line.split()
+        need(len(fields) == 2, mismatch)
+        value, ref = fields
+        need(re.fullmatch('[a-f0-9]{40}', value) and ref in expected and ref not in observed, mismatch)
+        observed[ref] = value
+    # Do not use --refs: peeled annotated-tag rows must remain visible and refused,
+    # just as the original per-ref exact-pair comparison refused them.
+    need(observed == expected, mismatch)
+
+
 def capacity(driver, effective_ram, free_bytes):
     need(driver in ('vfs', 'overlay2', 'overlayfs'), 'unknown_docker_driver')
     need(type(effective_ram) is int and effective_ram >= 0, 'effective_ram_not_qualified')
@@ -638,11 +665,7 @@ class Packet:
             need(isinstance(p.get(key), str) and p[key].strip(), 'reservation_epoch_model_required')
         refs = p.get('reservationRefs')
         need(isinstance(refs, list) and len(refs) >= 2, 'verified_producer_and_backend_reservations_required')
-        for item in refs:
-            need(re.fullmatch(r'refs/tags/agent-claims/[A-Za-z0-9_./-]+', item.get('ref', ''))
-                 and re.fullmatch('[a-f0-9]{40}', item.get('sha', '')), 'exact_reservation_ref_required')
-            observed = capture(['git', '-C', str(HARNESS), 'ls-remote', 'origin', item['ref']]).split()
-            need(observed == [item['sha'], item['ref']], 'live_reservation_differs')
+        live_reservations(refs, 'live_reservation_differs')
         self.expires = datetime.fromisoformat(p['expiresAtUtc'].replace('Z', '+00:00'))
         need(self.expires.utcoffset().total_seconds() == 0 and self.expires > datetime.now(timezone.utc), 'future_utc_expiry_required')
         self.home = private(p['simHome'], True)
@@ -714,8 +737,7 @@ class Packet:
             source(HARNESS, self.plan['harnessCommit'], self.plan['harnessTree'])
             dependencies(self.app, self.plan)
             need(sha((self.home / 'env/track3.json').read_bytes()) == self.env_hash, 'private_environment_changed_before_fixture')
-            for item in self.plan['reservationRefs']:
-                need(capture(['git', '-C', str(HARNESS), 'ls-remote', 'origin', item['ref']]).split() == [item['sha'], item['ref']], 'live_reservation_changed')
+            live_reservations(self.plan['reservationRefs'], 'live_reservation_changed')
         same_host(self.host, host_identity(enforce_capacity=not cleanup))
         if not cleanup and hasattr(self, 'backend_containers'):
             frame = owned_backend_capacity(self.host, self.plan['projectId'], self.backend_containers)

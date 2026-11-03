@@ -780,5 +780,92 @@ class NsfsRootTests(unittest.TestCase):
         self.assertEqual(host['capacityObservation']['reason'], 'global_current_proc_view_unproven')
 
 
+class LiveReservationBatchTests(unittest.TestCase):
+    """Real reference checks through finite transport ports, never native admission."""
+
+    def refs(self, count=2):
+        return [{'ref': 'refs/tags/agent-claims/masterplan/file-' + format(i + 1, '064x'),
+                 'sha': format(i + 1, '040x')} for i in range(count)]
+
+    def rows(self, refs):
+        return '\n'.join(item['sha'] + '\t' + item['ref'] for item in refs)
+
+    def test_all_93_live_references_are_checked_in_one_order_independent_read(self):
+        refs = self.refs(93)
+        with patch.object(runner, 'capture', return_value=self.rows(list(reversed(refs)))) as capture:
+            runner.live_reservations(refs, 'live_reservation_differs')
+        capture.assert_called_once_with(['git', '-C', str(runner.HARNESS), 'ls-remote', 'origin',
+                                         *[item['ref'] for item in refs]])
+
+    def test_missing_extra_wrong_duplicate_malformed_and_peeled_rows_are_rejected(self):
+        refs = self.refs()
+        valid = self.rows(refs)
+        invalid = [self.rows(refs[:1]), valid + '\n' + self.rows(self.refs(3)[2:]),
+                   valid.replace(refs[1]['sha'], 'f' * 40), valid + '\n' + self.rows(refs[:1]),
+                   valid + '\nmalformed', valid + '\n' + refs[0]['sha'] + '\t' + refs[0]['ref'] + '^{}']
+        for reply in invalid:
+            with self.subTest(reply=reply), patch.object(runner, 'capture', return_value=reply), \
+                 self.assertRaisesRegex(runner.Blocked, 'live_reservation_differs'):
+                runner.live_reservations(refs, 'live_reservation_differs')
+
+    def test_ambiguous_or_invalid_expected_refs_stop_before_network(self):
+        refs = self.refs()
+        invalid = [refs + refs[:1], [{'ref': '--upload-pack=untrusted', 'sha': 'a' * 40}],
+                   [{'ref': refs[0]['ref'], 'sha': 'not-a-sha'}], [None]]
+        for expected in invalid:
+            with self.subTest(expected=expected), patch.object(runner, 'capture') as capture:
+                with self.assertRaises(runner.Blocked):
+                    runner.live_reservations(expected, 'live_reservation_differs')
+                capture.assert_not_called()
+
+    def test_transport_timeout_and_failure_propagate_without_retry(self):
+        for error in [subprocess.TimeoutExpired('git', 20), runner.Blocked('command_failed')]:
+            with self.subTest(error=type(error).__name__), patch.object(runner, 'capture', side_effect=error) as capture:
+                with self.assertRaises(type(error)):
+                    runner.live_reservations(self.refs(), 'live_reservation_changed')
+                self.assertEqual(capture.call_count, 1)
+
+    def test_constructor_checks_complete_live_set_before_expiry_guard(self):
+        with tempfile.TemporaryDirectory() as directory:
+            file = Path(directory) / 'plan.json'
+            refs = self.refs(93)
+            plan = {'schema': 'track3-runner-plan-v1', 'workerId': 'codex-track3',
+                    'exclusiveHost': True, 'attemptBudget': 1,
+                    'allowedActions': ['backend', 'replay', 'build', 'up', 'run', 'down', 'cleanup'],
+                    'producerReservation': 'a' * 40, 'backendReservation': 'b' * 40,
+                    'inputEpoch': 'finite', 'model': 'finite', 'reservationRefs': refs,
+                    'expiresAtUtc': 'invalid-finite-expiry'}
+            file.write_text(json.dumps(plan)); file.chmod(0o600)
+            with patch.object(runner, 'capture', return_value=self.rows(refs)) as capture:
+                with self.assertRaisesRegex(ValueError, 'Invalid isoformat string'):
+                    runner.Packet(str(file))
+            self.assertEqual(capture.call_count, 1)
+            plan['reservationRefs'] = []
+            file.write_text(json.dumps(plan))
+            with patch.object(runner, 'capture') as capture:
+                with self.assertRaisesRegex(runner.Blocked, 'verified_producer_and_backend_reservations_required'):
+                    runner.Packet(str(file))
+                capture.assert_not_called()
+
+    def test_every_fresh_check_rereads_all_refs_and_detects_new_ownership_change(self):
+        with tempfile.TemporaryDirectory() as directory:
+            packet = OwnedBackendFreshTests.packet(self, Path(directory))
+            refs = self.refs(93)
+            packet.plan['reservationRefs'] = refs
+            packet.original = json.dumps(packet.plan).encode()
+            packet.file.write_bytes(packet.original)
+            changed = copy.deepcopy(refs); changed[-1]['sha'] = 'f' * 40
+            with patch.object(runner, 'source'), patch.object(runner, 'dependencies'), \
+                 patch.object(runner, 'host_identity', return_value=packet.host), \
+                 patch.object(runner, 'owned_backend_capacity', return_value={'finite': True}), \
+                 patch.object(runner, 'capture', side_effect=[self.rows(refs), self.rows(changed)]) as capture:
+                packet.fresh()
+                with self.assertRaisesRegex(runner.Blocked, 'live_reservation_changed'):
+                    packet.fresh()
+            self.assertEqual(capture.call_count, 2)
+            for call in capture.call_args_list:
+                self.assertEqual(call.args[0][5:], [item['ref'] for item in refs])
+
+
 if __name__ == '__main__':
     unittest.main()
