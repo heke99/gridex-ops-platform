@@ -1,0 +1,14 @@
+{
+  "state":"IN_PROGRESS",
+  "baseline":"f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
+  "reportBranch":"reports/local-verification-20261105-a71c",
+  "sourceCustodyReceipt":"097dd80eb990f5865f4e5469393eb9fd5067cf1c",
+  "sourceCustody":"ALL exact report-file refs verified by official atomic claim tool; no producer/GEN role acquired",
+  "privateEvidence":"Mac private packet 20261105-local, retained separately; raw logs not published",
+  "nextAction":"App/scripts/tests typechecks passed; continue serial lint/migration/build gates; qualify separate synthetic DB/Auth/Storage/build before browser customer chain",
+  "coverageMapping":"32-flow source unavailable in this session; mapping pending. Existing105 IDs unchanged; no new official IDs or PASS inferred",
+  "publication":"Only these three sanitized report files; offline scan required before push; no PR or main merge",
+  "workflowInspection":"All push triggers in52 checked-in workflows target main or agent/release-certification-hardening-20260817, not this report branch. Branch creation integrations and remote settings not independently established.",
+  "systemComplete":false,
+  "productionUsed":false
+}
