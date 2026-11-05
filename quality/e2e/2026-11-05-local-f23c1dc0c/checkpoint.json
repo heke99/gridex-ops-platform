@@ -1,14 +1,32 @@
 {
-  "state":"IN_PROGRESS",
-  "baseline":"f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
-  "reportBranch":"reports/local-verification-20261105-a71c",
-  "sourceCustodyReceipt":"097dd80eb990f5865f4e5469393eb9fd5067cf1c",
-  "sourceCustody":"ALL exact report-file refs verified by official atomic claim tool; no producer/GEN role acquired",
-  "privateEvidence":"Mac private packet 20261105-local, retained separately; raw logs not published",
-  "nextAction":"App/scripts/tests typechecks passed; continue serial lint/migration/build gates; qualify separate synthetic DB/Auth/Storage/build before browser customer chain",
-  "coverageMapping":"32-flow source unavailable in this session; mapping pending. Existing105 IDs unchanged; no new official IDs or PASS inferred",
-  "publication":"Only these three sanitized report files; offline scan required before push; no PR or main merge",
-  "workflowInspection":"All push triggers in52 checked-in workflows target main or agent/release-certification-hardening-20260817, not this report branch. Branch creation integrations and remote settings not independently established.",
-  "systemComplete":false,
-  "productionUsed":false
+  "state": "BUSINESS_CHAIN_BLOCKED_SMTP_QUALIFICATION_AND_ACCEPTANCE_POSTCONDITION",
+  "baseline": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
+  "reportBranch": "reports/local-verification-20261105-a71c",
+  "sourceCustodyReceipt": "097dd80eb990f5865f4e5469393eb9fd5067cf1c",
+  "sourceCustody": "ALL exact report-file refs verified by official atomic claim tool; no producer/GEN role acquired",
+  "privateEvidence": "~/Library/Application Support/Gridex/private-evidence/20261105-local;full originals retained privately",
+  "nextAction": "Qualify own app SMTP with explicit exact config/resource approval;repair or apply reviewed donor for invalid acceptance relationship only after source custody;then ordinary user session/customer UI. Preserve7jobfindings andENV08defect;no main merge.",
+  "coverageMapping": "32-flow source unavailable in this session; mapping pending. Existing105 IDs unchanged; no new official IDs or PASS inferred",
+  "publication": "Only these three sanitized report files; offline scan required before push; no PR or main merge",
+  "workflowInspection": "All push triggers in52 checked-in workflows target main or agent/release-certification-hardening-20260817, not this report branch. Branch creation integrations and remote settings not independently established.",
+  "systemComplete": false,
+  "productionUsed": false,
+  "currentAppPid": 69036,
+  "currentAuthId": "2ad237edf62bc",
+  "activeVerification": "No finite test command running;own app launcher remains active;no duplicate server",
+  "rbacOverlay": "Approved/applied/versioned42+35 profile rows;only3intended tables changed;schema unchanged;negative ordinary actor denied;missing original catalog finding remainsOPEN",
+  "invitation": "Real delivered SSR link verified and ordinary accept clicked;DB accepted+active correct-company membership;UI failed PGRST200 after business commit",
+  "customer": "NOT_RUN: ordinary password recovery blocked auth_smtp_not_ready;no member/customer/session injection",
+  "triageCounts": {
+    "originalFailed38": {
+      "PASS": 17,
+      "FAIL": 2,
+      "BLOCKED": 19
+    },
+    "originalPending6": {
+      "NOT_APPLICABLE": 3,
+      "PASS": 3
+    }
+  },
+  "onlineState": "Prepared exact three owned sanitized report files;publication requires exact-file offline scan and ordinary approval"
 }
