@@ -1,0 +1,48 @@
+name: T5 manually admitted disposable native producer
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: t5-admitted-native
+  cancel-in-progress: false
+
+jobs:
+  admitted:
+    # An externally provisioned EPHEMERAL Ubuntu24.04 root runner is required.
+    # This label is routing only: actual host/capacity/refs/grant gates run below.
+    # No runner, input grant, image archive or dependencies are created by YAML.
+    runs-on: [self-hosted, linux, x64, gridex-t5-disposable-ubuntu24]
+    timeout-minutes: 120
+    environment: t5-native
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          clean: false
+      - name: Execute only the preprovisioned independently admitted private profile
+        env:
+          GH_TOKEN: ${{ github.token }}
+          T5_PRIVATE_BUNDLE: ${{ secrets.T5_PRIVATE_BUNDLE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          if [[ -z "${T5_PRIVATE_BUNDLE:-}" ]]; then
+            printf '%s\n' '{"state":"HOLD","error":"qualified_private_bundle_missing","wholeScenarioPASS":0}'
+            exit 1
+          fi
+          # Dedicated host must preinstall project pins, lock-preserving deps,
+          # root-owned private grant/images, and Linux namespace capabilities.
+          # Admission is issued by the external qualified provisioning phase AFTER
+          # observing this actual runId/attempt/SHA/host boot identity. A static
+          # bundle prepared for another job/boot is rejected; this job does not
+          # invent future identifiers or provision its own authorization.
+          # Never echo the bundle path or upload raw logs, allocations or keys.
+          bash scripts/simulation/track5/native-producer.sh --supervise "$T5_PRIVATE_BUNDLE"
