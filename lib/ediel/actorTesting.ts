@@ -304,6 +304,23 @@ const COMPANY_SELECT_COLUMNS = [
   'updated_at',
 ].join(',')
 
+// Canonical replay intentionally omits white-label schema, while legacy
+// installations still display this field. Retry only that optional projection;
+// rebuilding the same query preserves every company/white-label predicate.
+async function queryActorTestingCompanies(query: (columns: string) => PromiseLike<{
+  data: unknown
+  error: { code?: string; message?: string } | null
+}>) {
+  const result = await query(COMPANY_SELECT_COLUMNS)
+  if (result.error?.code !== '42703'
+    || !/column (?:companies\.)?"?white_label_platform_id"? does not exist/.test(result.error.message ?? '')) {
+    return result
+  }
+  const canonicalColumns = COMPANY_SELECT_COLUMNS.split(',')
+    .filter((column) => column !== 'white_label_platform_id').join(',')
+  return query(canonicalColumns)
+}
+
 function normalizeStatus(status: string | null | undefined): ActorTestStatus {
   if (
     status === 'running' ||
@@ -639,6 +656,7 @@ async function buildSummary(company: ActorTestingCompanyRow, results: ActorTestR
   const productionBrp = await getProductionBrpSetting(company.id)
   const companyForSummary: ActorTestingCompanyRow = {
     ...company,
+    white_label_platform_id: company.white_label_platform_id ?? null,
     brp_ediel_id: productionBrp?.brpEdielId ?? null,
     brp_name: productionBrp?.brpName ?? null,
     brp_status: productionBrp?.brpEdielId ? 'active' : null,
@@ -789,23 +807,25 @@ export async function listActorTestingSummaries(options: {
   companyIds?: string[]
   whiteLabelPlatformId?: string | null
 }): Promise<ActorTestingSummary[]> {
-  let query = supabaseService
-    .from('companies')
-    .select(COMPANY_SELECT_COLUMNS)
-    .neq('status', 'deleted_test_only')
-    .order('created_at', { ascending: false })
-    // Bounded list: each summary fans out into several count queries per company.
-    .limit(200)
+  const { data, error } = await queryActorTestingCompanies((columns) => {
+    let query = supabaseService
+      .from('companies')
+      .select(columns)
+      .neq('status', 'deleted_test_only')
+      .order('created_at', { ascending: false })
+      // Bounded list: each summary fans out into several count queries per company.
+      .limit(200)
 
-  if (options.companyIds && options.companyIds.length > 0) {
-    query = query.in('id', options.companyIds)
-  }
+    if (options.companyIds && options.companyIds.length > 0) {
+      query = query.in('id', options.companyIds)
+    }
 
-  if (options.scope === 'whitelabel' && options.whiteLabelPlatformId) {
-    query = query.eq('white_label_platform_id', options.whiteLabelPlatformId)
-  }
+    if (options.scope === 'whitelabel' && options.whiteLabelPlatformId) {
+      query = query.eq('white_label_platform_id', options.whiteLabelPlatformId)
+    }
 
-  const { data, error } = await query
+    return query
+  })
   if (error) throw error
 
   const companies = (data ?? []) as unknown as ActorTestingCompanyRow[]
@@ -824,11 +844,11 @@ export async function listActorTestingSummaries(options: {
 }
 
 export async function getActorTestingSummary(companyId: string): Promise<ActorTestingSummary | null> {
-  const { data, error } = await supabaseService
+  const { data, error } = await queryActorTestingCompanies((columns) => supabaseService
     .from('companies')
-    .select(COMPANY_SELECT_COLUMNS)
+    .select(columns)
     .eq('id', companyId)
-    .maybeSingle()
+    .maybeSingle())
 
   if (error) throw error
   if (!data) return null
