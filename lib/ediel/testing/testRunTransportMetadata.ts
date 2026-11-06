@@ -192,8 +192,8 @@ async function acquireAgtRunLock(input: {
   messageFamily: string
   environmentType: EdielEnvironmentType
   actorUserId: string
-}): Promise<void> {
-  if (input.environmentType !== 'agt_test') return
+}): Promise<string | null> {
+  if (input.environmentType !== 'agt_test') return null
 
   const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
   const lockKey = {
@@ -217,15 +217,13 @@ async function acquireAgtRunLock(input: {
     .limit(1)
     .maybeSingle()
 
-  if (existingError && !['42P01', '42703', 'PGRST204', 'PGRST205'].includes(existingError.code ?? '')) {
-    throw existingError
-  }
+  if (existingError) throw existingError
 
   if (existing?.id) {
     throw new Error('Ett AGT-test är redan aktivt. Avsluta eller markera det som misslyckat innan du startar ett nytt.')
   }
 
-  const { error } = await supabaseService
+  const { data: acquiredLock, error } = await supabaseService
     .from('ediel_test_run_locks')
     .insert({
       ...lockKey,
@@ -234,10 +232,13 @@ async function acquireAgtRunLock(input: {
         source: 'test_center',
       },
     })
+    .select('id')
+    .single()
 
-  if (error && !['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')) {
-    throw error
-  }
+  if (error) throw error
+  const lockId = typeof acquiredLock?.id === 'string' ? acquiredLock.id.trim() : ''
+  if (!lockId) throw new Error('AGT-låsningen saknar verifierad identitet efter sparning.')
+  return lockId
 }
 
 function expectedFlowFromSteps(steps: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
@@ -322,7 +323,7 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     environmentType,
   })
 
-  await acquireAgtRunLock({
+  const agtLockId = await acquireAgtRunLock({
     companyId: input.companyId,
     actorRole: roleCode,
     messageFamily,
@@ -357,6 +358,27 @@ export async function prepareEdielTestRunTransportMetadata(input: {
     actualFlow: [],
     productionLike: input.productionLike ?? false,
   })
+
+  // Bind the exact acquired lease before preparing payloads. A rejected bind
+  // can leave the created run/snapshot behind; this is not transaction rollback.
+  if (agtLockId !== null) {
+    const { data: boundLock, error: bindError } = await supabaseService
+      .from('ediel_test_run_locks')
+      .update({ active_test_run_id: run.id, updated_at: new Date().toISOString() })
+      .eq('id', agtLockId)
+      .eq('company_id', input.companyId)
+      .eq('actor_role', roleCode)
+      .eq('message_family', messageFamily)
+      .eq('environment_type', environmentType)
+      .is('released_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .select('id')
+      .single()
+    if (bindError) throw bindError
+    if (boundLock?.id !== agtLockId) {
+      throw new Error('AGT-låsningen kunde inte verifieras för den skapade testkörningen.')
+    }
+  }
 
   let rawEdifact: string | null = null
   let encryptedPayloadRef: string | null = null
@@ -439,22 +461,6 @@ export async function prepareEdielTestRunTransportMetadata(input: {
   }
 
   if (updateResult.error) throw updateResult.error
-
-  if (environmentType === 'agt_test') {
-    await supabaseService
-      .from('ediel_test_run_locks')
-      .update({ active_test_run_id: run.id, updated_at: new Date().toISOString() })
-      .eq('company_id', input.companyId)
-      .eq('actor_role', roleCode)
-      .eq('message_family', messageFamily)
-      .eq('environment_type', environmentType)
-      .is('released_at', null)
-      .then(({ error }) => {
-        if (error && !['42P01', '42703', 'PGRST204', 'PGRST205'].includes(error.code ?? '')) {
-          throw error
-        }
-      })
-  }
 
   return updateResult.data
 }
