@@ -360,6 +360,10 @@ export function contractDatabaseErrorMessage(error: unknown): string | null {
   const details = typeof record.details === 'string' ? record.details : ''
   const combined = `${message} ${details}`
 
+  if (Object.prototype.hasOwnProperty.call(CONTRACT_LIFECYCLE_REASON_MESSAGES, code)) {
+    return CONTRACT_LIFECYCLE_REASON_MESSAGES[code]
+  }
+
   for (const [reason, userMessage] of Object.entries(CONTRACT_LIFECYCLE_REASON_MESSAGES)) {
     if (combined.includes(reason)) return userMessage
   }
