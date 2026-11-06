@@ -210,7 +210,12 @@ function expectedResponseText(testCase: EdielTgtTestCaseDefinition): string {
   return "Förväntat svar följer stegen nedan.";
 }
 
-function StartRunForm({ testCase, companyId }: { testCase: EdielTgtTestCaseDefinition; companyId: string | null }) {
+function diagnosticCount(value: string | undefined): number {
+  const number = Number(value ?? 0);
+  return Number.isSafeInteger(number) && number >= 0 ? Math.min(number, 100000) : 0;
+}
+
+function StartRunForm({ testCase, companyId, hasTestProfile }: { testCase: EdielTgtTestCaseDefinition; companyId: string | null; hasTestProfile: boolean }) {
   const isAgt = isAgtSystemTestCase({
     testCaseCode: testCase.testCaseCode,
     roleCode: testCase.roleCode,
@@ -247,6 +252,7 @@ function StartRunForm({ testCase, companyId }: { testCase: EdielTgtTestCaseDefin
       </select>
       <button
         type="submit"
+        disabled={!companyId || !hasTestProfile}
         className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
       >
         Starta ny testkörning
@@ -775,6 +781,10 @@ export default async function SystemTestCasePage({
   params: Promise<{ id: string }>;
   searchParams?: Promise<{
     companyId?: string;
+    startStatus?: string;
+    validationStatus?: string;
+    validationErrors?: string;
+    validationWarnings?: string;
     imapStatus?: string;
     fetched?: string;
     stored?: string;
@@ -832,7 +842,7 @@ export default async function SystemTestCasePage({
     companyId: selectedCompanyId,
     testSuite: runtimeSuiteForCase,
     actorRole: testCase.roleCode,
-  }).catch(() => null);
+  });
 
   const [runs, messages] = await Promise.all([
     selectedCompanyId
@@ -932,6 +942,25 @@ export default async function SystemTestCasePage({
         workspaceMode="platform"
       />
 
+      {["blocked", "diagnostic", "recorded"].includes(query.validationStatus ?? "") ? (
+        <section role="status" className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-900">
+          <h2 className="font-semibold">Payload-diagnostik</h2>
+          <p>{query.validationStatus === "recorded"
+            ? "Körningsbunden diagnostik: kontrollera artefakten på den valda körningen nedan."
+            : "Fristående diagnostik. Ingen testkörning skapas, startas eller ändras av denna validering."}</p>
+          {query.validationStatus === "blocked" ? <p>Payloaden har blockerande valideringsfel.</p> : null}
+          <p>Fel: {diagnosticCount(query.validationErrors)} · Varningar: {diagnosticCount(query.validationWarnings)}</p>
+          <p>Parserdiagnostik är inte ett godkännande av TGT/AGT eller produktion.</p>
+        </section>
+      ) : null}
+
+      {query.startStatus === "missing_test_profile" || !systemTestRuntime ? (
+        <section role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+          <p className="font-semibold">Ingen testkörning startades.</p>
+          <p>Systemtest kräver en aktiv, tenant- och rollscopad testprofil med explicit testpaket, Ediel-aktör och systemtestportal. Konfigurera profilen under Ediel &amp; Go-live innan testet körs.</p>
+        </section>
+      ) : null}
+
       {hasImapSyncResult ? (
         <section
           className={`rounded-2xl border p-4 text-sm leading-6 ${
@@ -1027,7 +1056,7 @@ export default async function SystemTestCasePage({
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <StartRunForm testCase={testCase} companyId={selectedCompanyId} />
+            <StartRunForm testCase={testCase} companyId={selectedCompanyId} hasTestProfile={Boolean(systemTestRuntime)} />
             <Link
               href={`/admin/ediel/system-tests${selectedCompanyId ? `?companyId=${encodeURIComponent(selectedCompanyId)}` : ""}`}
               className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
@@ -1171,8 +1200,9 @@ export default async function SystemTestCasePage({
             <p className="mt-1 max-w-4xl text-sm leading-6 text-slate-700">
               Använd denna innan du skickar eller efter IMAP-import för att se
               parsed family/code, fältfel, fel Application Reference och
-              förväntad ACK. Resultatet sparas som artifact på aktiv testkörning
-              om en finns.
+              förväntad ACK. Utan pågående körning är detta fristående diagnostik
+              utan skrivningar. Artefakter sparas bara när formuläret uttryckligen
+              avser rätt pågående körning.
             </p>
           </div>
           <Badge>2.5A</Badge>
@@ -1181,12 +1211,13 @@ export default async function SystemTestCasePage({
           action={validateSystemTestPayloadAction}
           className="mt-4 grid gap-3"
         >
+          <input type="hidden" name="companyId" value={selectedCompanyId ?? ""} />
           <input
             type="hidden"
             name="testCaseCode"
             value={testCase.testCaseCode}
           />
-          {latest?.testRun.id ? (
+          {latest?.testRun.status === "running" ? (
             <input type="hidden" name="testRunId" value={latest.testRun.id} />
           ) : null}
           <textarea

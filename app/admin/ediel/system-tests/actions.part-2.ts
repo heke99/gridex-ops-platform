@@ -1,3 +1,4 @@
+import { tenantDb } from "@/lib/supabase/tenantDb";
 import { listAckMessagesForSource } from '@/lib/ediel/db'
 import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
 import { unstable_rethrow } from 'next/navigation'
@@ -19,7 +20,6 @@ import { parseRulebookListPayload, parseRulebookMessage } from "@/lib/ediel/rule
 
 import { validateRulebookMessage } from "@/lib/ediel/rulebook/validator"
 
-import { attachRulebookArtifact } from "@/lib/ediel/rulebook/testRunner"
 import { attachEdielMessageToTestRun, createEdielMessageEvent, createEdielTestRun, getEdielMessageById, listEdielTestRuns, updateEdielMessageStatus, updateEdielTestRunStatus } from "@/lib/ediel/db"
 import { createAckDraftForMessage, sendQueuedEdielMessage } from "@/lib/ediel/orchestrator"
 import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from "@/lib/ediel/utiltsEngine"
@@ -993,99 +993,64 @@ export async function deleteSystemTestArtifactAction(formData: FormData) {
 
 export async function validateSystemTestPayloadAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess();
-  const testRunId = formString(formData.get("testRunId"));
-  const testCaseCode = formString(formData.get("testCaseCode"));
-  const title =
-    formString(formData.get("title")) ??
-    `Payload-validering ${testCaseCode ?? ""}`.trim();
-  const pasted = formString(formData.get("rawPayload")) ?? "";
-  const uploaded = await formFileText(formData.get("payloadFile"));
-  const rawPayload = uploaded.text ?? pasted;
-
-  if (!rawPayload.trim())
-    throw new Error("Klistra in eller ladda upp payload först");
-
-  const parsed = rawPayload.includes("'")
-    ? parseRulebookMessage(rawPayload)
-    : parseRulebookListPayload(rawPayload);
-  const definition = testCaseCode
-    ? getEdielTgtTestCases().find(
-        (testCase) =>
-          normalizeCode(testCase.testCaseCode) === normalizeCode(testCaseCode),
-      )
-    : null;
-  const validation = validateRulebookMessage({
-    family: definition?.expectedSteps[0]?.family ?? parsed.family,
-    code: definition?.expectedSteps[0]?.code ?? parsed.code,
-    parsed,
-    rawPayload,
-    mode: "parse",
-  });
-
-  let targetRunId = testRunId;
-  let companyId = formString(formData.get("companyId"));
-  if (targetRunId) {
-    const existingRun = await requireSystemTestRun(targetRunId);
-    companyId = existingRun.company_id;
-  }
+  const companyId = formString(formData.get("companyId"));
   if (!companyId) throw new Error("Välj bolag innan payload valideras mot ett systemtest");
-  if (!targetRunId && definition) {
-    targetRunId = await findBestActiveRunForMessage({
-      companyId,
-      testCaseCode: definition.testCaseCode,
-    });
+  const testCaseCode = formString(formData.get("testCaseCode"));
+  const definition = getEdielTgtTestCases().find(
+    (testCase) => normalizeCode(testCase.testCaseCode) === normalizeCode(testCaseCode),
+  );
+  if (!definition) throw new Error("Okänt systemtestfall för payload-validering");
+  const targetRunId = formString(formData.get("testRunId"));
+  if (targetRunId) {
+    const run = await requireSystemTestRun(targetRunId);
+    if (run.company_id !== companyId) throw new Error("Systemtestkörningen tillhör inte valt bolag");
+    if (run.test_case_code !== definition.testCaseCode || run.test_suite !== definition.suite || run.role_code !== definition.roleCode) {
+      throw new Error("Systemtestkörningen tillhör inte valt testfall");
+    }
+    if (run.status !== "running") throw new Error("Välj en pågående testkörning för att spara en diagnostikartefakt");
   }
-
-  if (!targetRunId && definition) {
-    const run = await createEdielTestRun({
-      actorUserId: context.userId,
-      companyId,
-      testSuite: definition.suite,
-      roleCode: definition.roleCode,
-      testCaseCode: definition.testCaseCode,
-      title: definition.title,
-      approvalVersion: definition.approvalVersion,
-      status: validation.blocking ? "failed" : "running",
-      startedAt: new Date().toISOString(),
-      failureReason: validation.blocking
-        ? validation.issues
-            .filter((issue) => issue.severity === "error")
-            .map((issue) => issue.description)
-            .join(" | ")
-        : null,
-      notes: "Skapad av Payload-validator i Systemtest.",
+  const title = formString(formData.get("title")) ?? `Payload-validering ${definition.testCaseCode}`;
+  const uploaded = await formFileText(formData.get("payloadFile"));
+  const rawPayload = uploaded.text ?? formString(formData.get("rawPayload")) ?? "";
+  if (!rawPayload.trim()) throw new Error("Klistra in eller ladda upp payload först");
+  const parsed = rawPayload.includes("'") ? parseRulebookMessage(rawPayload) : parseRulebookListPayload(rawPayload);
+  const validation = validateRulebookMessage({
+    family: definition.expectedSteps[0]?.family ?? parsed.family,
+    code: definition.expectedSteps[0]?.code ?? parsed.code,
+    parsed, rawPayload, mode: "parse",
+  });
+  // Diagnostics never creates, starts or chooses a run implicitly. Existing
+  // artifacts require an explicit same-company, same-case running record.
+  if (targetRunId) {
+    const artifactPayload = { companyId, testCaseCode: definition.testCaseCode,
+      fileName: uploaded.fileName, parsed, validation,
+      rawPayload: rawPayload.slice(0, 25000), createdAt: new Date().toISOString() };
+    // The legacy helper swallows insert errors and omits canonical company_id.
+    // A recorded result requires a successful tenant-bound canonical insert.
+    const artifactTable = tenantDb(companyId).from("ediel_test_artifacts") as ReturnType<typeof supabaseService.from>;
+    const { error: artifactError } = await artifactTable.insert({
+      company_id: companyId, test_run_id: targetRunId, ediel_message_id: null,
+      artifact_type: "system_test_payload_validation", title,
+      payload: artifactPayload, parsed_payload: parsed, validation_report: validation,
     });
-    targetRunId = run.id;
+    if (artifactError) throw artifactError;
+    const auditTable = tenantDb(companyId).from("audit_logs") as ReturnType<typeof supabaseService.from>;
+    const { error } = await auditTable.insert({
+      company_id: companyId, actor_user_id: context.userId,
+      action: "ediel.system_test.payload_validate", entity_type: "ediel_system_test", entity_id: targetRunId,
+      metadata: { testRunId: targetRunId, testCaseCode: definition.testCaseCode,
+        blocking: validation.blocking, issueCount: validation.issues.length },
+    });
+    if (error) throw error;
+    revalidateSystemTests(definition.testCaseCode);
   }
-
-  await attachRulebookArtifact({
-    actorUserId: context.userId,
-    testRunId: targetRunId,
-    artifactType: "system_test_payload_validation",
-    title,
-    payload: {
-      testCaseCode: testCaseCode ?? null,
-      fileName: uploaded.fileName,
-      parsed,
-      validation,
-      rawPayload: rawPayload.slice(0, 25000),
-      createdAt: new Date().toISOString(),
-    },
+  // Only bounded counts/status enter the URL, never payloads, file names or
+  // parser descriptions that may contain customer information.
+  const query = new URLSearchParams({
+    companyId,
+    validationStatus: targetRunId ? "recorded" : validation.blocking ? "blocked" : "diagnostic",
+    validationErrors: String(validation.issues.filter((issue) => issue.severity === "error").length),
+    validationWarnings: String(validation.issues.filter((issue) => issue.severity === "warning").length),
   });
-
-  await auditSystemTestMaintenance({
-    actorUserId: context.userId,
-    action: "ediel.system_test.payload_validate",
-    testRunId: targetRunId,
-    reason: validation.blocking
-      ? "Payload-validering hittade blockerare."
-      : "Payload-validering kördes utan blockerare.",
-    payload: {
-      testCaseCode: testCaseCode ?? null,
-      blocking: validation.blocking,
-      issueCount: validation.issues.length,
-    },
-  });
-
-  revalidateSystemTests(testCaseCode);
+  redirect(`/admin/ediel/system-tests/cases/${encodeURIComponent(definition.testCaseCode)}?${query}`);
 }
