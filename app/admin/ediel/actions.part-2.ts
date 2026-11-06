@@ -58,7 +58,7 @@ import { assertCompanyLiveEdielForOutbound } from "@/lib/tenant/liveAccess"
 import { autoAttachImportedMessageToActiveAgtRun, createEdielSupplierAgtOutboundCommand, createEdielSupplierAgtResponsesForInbound, createEdielSupplierAgtRun } from "@/lib/ediel/testing/agtEngine"
 
 import { getEdielAgtSupplierRuntime } from "@/lib/ediel/testing/agtRuntime"
-import { getEdielSystemTestSettings, requireEdielSystemTestRuntimeContext } from "@/lib/ediel/systemTestSettings"
+import { getEdielSystemTestSettings, getEdielSystemTestRuntimeContext, requireEdielSystemTestRuntimeContext } from "@/lib/ediel/systemTestSettings"
 import { isAgtSystemTestCase } from "@/lib/ediel/systemTestPackages"
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine"
 
@@ -589,7 +589,11 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
 
   await requireCompanyOperationalForWrites(companyId);
   const systemTestSettings = await getEdielSystemTestSettings({ companyId, testSuite: runtimeSuite });
-  await requireEdielSystemTestRuntimeContext({ companyId, testSuite: runtimeSuite, actorRole: roleCode });
+  const runtimeContext = await getEdielSystemTestRuntimeContext({ companyId, testSuite: runtimeSuite, actorRole: roleCode });
+  if (!runtimeContext) {
+    const query = new URLSearchParams({ companyId, startStatus: "missing_test_profile" });
+    redirect(`/admin/ediel/system-tests/cases/${encodeURIComponent(testCaseCode)}?${query}`);
+  }
 
   if (!definition) {
     throw new Error(
