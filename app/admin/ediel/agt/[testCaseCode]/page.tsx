@@ -10,6 +10,7 @@ import {
   listEdielTestRuns,
 } from "@/lib/ediel/db";
 import { getEdielAgtSupplierRuntime } from "@/lib/ediel/testing/agtRuntime";
+import { evaluateEdielEnvironmentGate } from "@/lib/ediel/testing/environmentGate";
 import {
   getEdielAgtSupplier2026ACase,
   type EdielAgtTestCaseDefinition,
@@ -361,11 +362,20 @@ export default async function AgtCasePage({
     );
   }
 
-  const [runtime, runs, recentInbound] = await Promise.all([
+  const [runtime, runs, recentInbound, environmentGate] = await Promise.all([
     getEdielAgtSupplierRuntime(companyId),
     companyId ? listEdielTestRuns({ scope: 'tenant', companyId }) : Promise.resolve([]),
     listEdielMessages({ direction: "inbound", companyId, limit: 80 }),
+    companyId
+      ? evaluateEdielEnvironmentGate({
+          companyId,
+          actorRole: testCase.roleCode,
+          messageFamily: testCase.messageFamily,
+          environmentType: "agt_test",
+        })
+      : Promise.resolve(null),
   ]);
+  const canCreateRun = Boolean(companyId && runtime.isReady && environmentGate?.ok);
 
   const run =
     runs.find(
@@ -549,6 +559,22 @@ export default async function AgtCasePage({
             {testCase.agtInstruction}
           </p>
 
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
+            <p className="font-semibold">
+              Miljögrind för {testCase.messageFamily}: {environmentGate?.ok ? "villkor uppfyllda" : "blockerad"}
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {(environmentGate?.blockingIssues ?? ["Välj bolag för att utvärdera miljögrinden."]).map((issue) => <li key={issue}>{issue}</li>)}
+              {(environmentGate?.warnings ?? []).map((warning) => <li key={warning}>{warning}</li>)}
+              {!runtime.isReady ? <li>Runtimekonfigurationen är ofullständig.</li> : null}
+              {runtime.issues.map((issue) => <li key={issue.code}><span className="font-semibold">{issue.title}</span>: {issue.description}</li>)}
+            </ul>
+            <p className="mt-2">
+              Detta är miljögrindens resultat, inte certifiering eller ett genomfört test.
+              Serverns profil-, transport- och låskontroller gäller fortfarande vid start.
+            </p>
+          </div>
+
           {testCase.prodatOutboundTemplate ? (
             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm leading-6 text-emerald-900">
               <div className="font-semibold text-emerald-950">
@@ -588,7 +614,7 @@ export default async function AgtCasePage({
                 <option value="none">Okrypterat test</option>
                 <option value="smime">Krypterat test</option>
               </select>
-              <button className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+              <button disabled={!canCreateRun} className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300">
                 {run ? "Skapa ny run" : "Skapa run"}
               </button>
             </form>
@@ -605,7 +631,7 @@ export default async function AgtCasePage({
                 ) : null}
                 <input type="hidden" name="test_run_id" value={run?.id ?? ""} />
                 <button
-                  disabled={!run}
+                  disabled={!run || !canCreateRun}
                   className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
                   Generera draft / öppna payload

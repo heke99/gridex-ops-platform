@@ -1,0 +1,25 @@
+// local/063: actual server page; runtime/DB/guard ports replaced. No AGT start performed.
+import React from 'react'
+import {beforeEach,expect,it,vi} from 'vitest'
+const io=vi.hoisted(()=>({guard:vi.fn(),runtime:vi.fn(),gate:vi.fn(),runs:vi.fn(),settings:vi.fn(),start:vi.fn(),outbound:vi.fn()}))
+vi.mock('@/lib/admin/guards',()=>({requirePlatformAdminAccess:io.guard}))
+vi.mock('@/lib/ediel/testing/agtRuntime',()=>({getEdielAgtSupplierRuntime:io.runtime}))
+vi.mock('@/lib/ediel/testing/environmentGate',()=>({evaluateEdielEnvironmentGate:io.gate}))
+vi.mock('@/lib/ediel/db',()=>({listEdielTestRuns:io.runs}))
+vi.mock('@/lib/ediel/systemTestSettings',()=>({getEdielSystemTestSettings:io.settings}))
+vi.mock('@/app/admin/ediel/agt/actions',()=>({createAgtSupplierTestRunAction:io.start,createAgtSupplierOutboundCommandAction:io.outbound,saveAgtSupplierRuntimeAction:vi.fn()}))
+import Page from '@/app/admin/ediel/agt/page'
+import {EDIEL_AGT_SUPPLIER_2026A_CASES as cases} from '@/lib/ediel/testing/agtRegistry'
+type Props={children?:React.ReactNode;action?:unknown;name?:string;value?:unknown;disabled?:boolean}
+function nodes(node:React.ReactNode):React.ReactElement<Props>[]{if(!React.isValidElement<Props>(node))return [];return [node,...React.Children.toArray(node.props.children).flatMap(nodes)]}
+function treeText(node:React.ReactNode):string{if(typeof node==='string'||typeof node==='number')return String(node);return React.isValidElement<Props>(node)?React.Children.toArray(node.props.children).map(treeText).join(' '):''}
+const page=(companyId:string|null='selected-company')=>Page({searchParams:Promise.resolve({companyId:companyId??undefined})})
+const startForms=(tree:React.ReactNode)=>nodes(tree).filter(n=>n.type==='form'&&n.props.action===io.start)
+beforeEach(()=>{vi.stubGlobal('React',React);vi.clearAllMocks();io.guard.mockResolvedValue({userId:'actor-fixture',email:'actor@example.invalid'});io.runs.mockResolvedValue([]);io.settings.mockResolvedValue(null);io.runtime.mockResolvedValue({actor:{actor_name:'Synthetic'},isReady:true,issues:[],prodat:{route:null,profile:null},utilts:{route:null,profile:null}});io.gate.mockImplementation(async(input)=>({ok:false,environmentType:input.environmentType,blockingIssues:['synthetic actual gate blocker '+input.messageFamily],warnings:[]}))})
+it('does not equate complete runtime inputs with approval or successful start eligibility',async()=>{const tree=await page();const text=treeText(tree);expect(text).not.toContain('godkännande redo');expect(text).not.toContain('Readiness är grön');expect(text).toContain('synthetic actual gate blocker PRODAT');expect(io.gate).toHaveBeenCalledWith({companyId:'selected-company',actorRole:'supplier',messageFamily:'PRODAT',environmentType:'agt_test'});for(const f of startForms(tree))expect(nodes(f).find(n=>n.type==='button')?.props.disabled).toBe(true);expect(io.start).not.toHaveBeenCalled()})
+it('binds every run/draft form to the selected company without injecting membership',async()=>{const tree=await page();for(const f of nodes(tree).filter(n=>n.type==='form'&&(n.props.action===io.start||n.props.action===io.outbound))){expect(nodes(f).filter(n=>n.type==='input'&&n.props.name==='company_id').map(n=>n.props.value)).toEqual(['selected-company'])}expect(io.runs).toHaveBeenCalledWith({scope:'tenant',companyId:'selected-company'})})
+it('shows only the relevant family gate as satisfied, not global certification',async()=>{io.gate.mockImplementation(async input=>({ok:input.messageFamily==='PRODAT',environmentType:'agt_test',blockingIssues:input.messageFamily==='UTILTS'?['synthetic UTILTS blocker']:[],warnings:[]}));const tree=await page();for(const f of startForms(tree)){const id=nodes(f).find(n=>n.props.name==='test_case_code')?.props.value;const family=cases.find(c=>c.testCaseCode===id)?.messageFamily;expect(nodes(f).find(n=>n.type==='button')?.props.disabled).toBe(family!=='PRODAT')}expect(treeText(tree)).not.toContain('godkännande redo')})
+it('keeps start available when runtime and actual family gates permit it, without performing start',async()=>{io.gate.mockResolvedValue({ok:true,environmentType:'agt_test',blockingIssues:[],warnings:[]});const tree=await page();for(const f of startForms(tree))expect(nodes(f).find(n=>n.type==='button')?.props.disabled).not.toBe(true);expect(io.start).not.toHaveBeenCalled()})
+it('does not conceal unexpected gate read failures',async()=>{const e=new Error('synthetic unexpected read failure');io.gate.mockRejectedValue(e);await expect(page()).rejects.toBe(e)})
+it('retains platform authorization before data reads',async()=>{io.guard.mockRejectedValue(new Error('synthetic forbidden'));await expect(page()).rejects.toThrow('synthetic forbidden');expect(io.gate).not.toHaveBeenCalled();expect(io.runtime).not.toHaveBeenCalled()})
+it('does not evaluate an unscoped gate without selected company',async()=>{const tree=await page(null);expect(io.gate).not.toHaveBeenCalled();for(const f of startForms(tree))expect(nodes(f).find(n=>n.type==='button')?.props.disabled).toBe(true)})
