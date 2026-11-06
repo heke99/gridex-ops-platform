@@ -9,7 +9,11 @@ DECLARE
   rel text;
   obj record;
   known_seed boolean;
+  caller_search_path text := pg_catalog.current_setting('search_path');
 BEGIN
+  -- Deparse the same trusted function identities regardless of the operator's
+  -- visibility settings; never accept an arbitrary unqualified role() name.
+  PERFORM pg_catalog.set_config('search_path', 'pg_catalog, public, pg_temp', true);
   IF to_regtype('public.ediel_environment_type') IS NULL
      OR to_regclass('public.companies') IS NULL THEN
     RAISE EXCEPTION 'ediel_operations_reconstruction_prerequisite_missing';
@@ -359,5 +363,8 @@ create index if not exists ediel_unlinked_test_messages_open_idx
       EXECUTE format('CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.%I FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1()',rel);
     END IF;
   END LOOP;
+  -- Keep the caller's transaction settings unchanged on success. A failed DO
+  -- rolls back its local setting together with all repair effects.
+  PERFORM pg_catalog.set_config('search_path', caller_search_path, true);
 END
 $repair$;

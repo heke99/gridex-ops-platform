@@ -55,6 +55,8 @@ generate_upgrade_artifacts() {
 assert_ediel047_contract() {
  psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 <<'SQL_EDIEL047'
 BEGIN READ ONLY;
+-- Match the canonical policy identity independently of the operator's path.
+SET LOCAL search_path = pg_catalog, public, pg_temp;
 DO $assert$
 DECLARE rel text; expected_columns integer;
 BEGIN
@@ -66,8 +68,9 @@ BEGIN
   END IF;
   IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid=to_regclass('public.' || rel)) OR
      NOT EXISTS (SELECT FROM pg_policies WHERE schemaname='public' AND tablename=rel AND policyname=rel || '_service_role_all' AND cmd='ALL'
-                 AND regexp_replace(qual,'[[:space:]()]','','g')='auth.role=''service_role''::text'
-                 AND regexp_replace(with_check,'[[:space:]()]','','g')='auth.role=''service_role''::text') THEN
+                 AND permissive='PERMISSIVE' AND roles=ARRAY['public']::name[]
+                 AND regexp_replace(qual,'[[:space:]]','','g')='((SELECTauth.role()ASrole)=''service_role''::text)'
+                 AND regexp_replace(with_check,'[[:space:]]','','g')='((SELECTauth.role()ASrole)=''service_role''::text)') THEN
    RAISE EXCEPTION 'ediel047_service_rls_missing: %', rel;
   END IF;
   IF EXISTS (SELECT FROM unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE']) AS privilege(name)

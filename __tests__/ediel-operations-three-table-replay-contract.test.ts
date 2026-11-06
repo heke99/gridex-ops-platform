@@ -728,3 +728,62 @@ it('epoch3 rejects actual August13 index name with wrong locks key without chang
   expect(await state()).toEqual(before);expect(await fullTargetCatalog()).toEqual(catalog)
   expect(await registryRows()).toEqual(registry);expect(await registryRows(false)).toEqual(unrelated)
 },30_000)
+
+it.each(['direct','scalar SELECT'] as const)('native auth-visible search_path accepts genuine auth.role %s policy object',async form=>{
+  await fullSourceFixture(true,true)
+  if(form==='direct')for(const table of tables)await db.exec(`alter policy ${table}_service_role_all on public.${table}
+    using(auth.role()='service_role') with check(auth.role()='service_role')`)
+  const before=await state(),registry=await registryRows()
+  const callerPath=(await db.query<{path:string}>("select current_setting('search_path') path")).rows[0].path
+  await db.exec('set search_path=auth,public,pg_catalog')
+  try {
+    const visible=(await db.query<{qual:string}>(`select qual from pg_policies where schemaname='public' and tablename='ediel_test_run_locks' and policyname='ediel_test_run_locks_service_role_all'`)).rows[0].qual
+    expect(visible).not.toContain('auth.role')
+    expect(visible).toContain('role()')
+    await upgrade()
+  }finally{await db.query("select set_config('search_path',$1,false)",[callerPath])}
+  const after=await state()
+  expect(after.locks).toEqual(before.locks);expect(after.readiness).toEqual(before.readiness);expect(after.unlinked).toEqual(before.unlinked)
+  expect((await registryRows()).map(row=>row.classified_at)).toEqual(registry.map(row=>row.classified_at))
+  await assertFinalClosure()
+  const catalog=await fullTargetCatalog();await upgrade();expect(await fullTargetCatalog()).toEqual(catalog)
+},30_000)
+
+it('native auth-visible search_path refuses a different role function despite the same deparsed basename',async()=>{
+  await fullSourceFixture(true,true)
+  await db.exec(`create schema fixture_other_auth;
+    create function fixture_other_auth.role() returns text language sql stable as $$select current_user::text$$;
+    alter policy ediel_test_run_locks_service_role_all on public.ediel_test_run_locks
+    using(fixture_other_auth.role()='service_role') with check(fixture_other_auth.role()='service_role')`)
+  const before=await state(),catalog=await fullTargetCatalog(),registry=await registryRows()
+  const callerPath=(await db.query<{path:string}>("select current_setting('search_path') path")).rows[0].path
+  await db.exec('set search_path=fixture_other_auth,auth,public,pg_catalog')
+  try {
+    const visible=(await db.query<{qual:string}>(`select qual from pg_policies where schemaname='public' and tablename='ediel_test_run_locks' and policyname='ediel_test_run_locks_service_role_all'`)).rows[0].qual
+    expect(visible).toBe("(role() = 'service_role'::text)")
+    await expect(upgrade()).rejects.toThrow('ediel_operations_unknown_policy')
+  }finally{await db.query("select set_config('search_path',$1,false)",[callerPath])}
+  expect(await state()).toEqual(before);expect(await fullTargetCatalog()).toEqual(catalog);expect(await registryRows()).toEqual(registry)
+},30_000)
+
+async function actualUpgradeScriptValidator() {
+  const script=readFileSync('scripts/gridex-ediel-upgrade-replay.sh','utf8')
+  const sql=between(script,'BEGIN READ ONLY;','\nSQL_EDIEL047')
+  try {await db.exec(sql)}catch(error){await db.exec('rollback');throw error}
+}
+it.each(['public','auth,public,pg_catalog'] as const)('actual upgrade-script validator accepts canonical repaired catalog under %s',async path=>{
+  await upgrade();await seed()
+  const before=await state(),catalog=await fullTargetCatalog(),registry=await registryRows()
+  const caller=(await db.query<{path:string}>("select current_setting('search_path') path")).rows[0].path
+  await db.query("select set_config('search_path',$1,false)",[path])
+  try{await actualUpgradeScriptValidator()}finally{await db.query("select set_config('search_path',$1,false)",[caller])}
+  expect(await state()).toEqual(before);expect(await fullTargetCatalog()).toEqual(catalog);expect(await registryRows()).toEqual(registry)
+},30_000)
+it('actual upgrade-script validator rejects broadened canonical service policy without side effects',async()=>{
+  await upgrade();await seed()
+  await db.exec(`alter policy ediel_test_run_locks_service_role_all on public.ediel_test_run_locks
+    using((select auth.role())='service_role' or true) with check((select auth.role())='service_role')`)
+  const before=await state(),catalog=await fullTargetCatalog(),registry=await registryRows()
+  await expect(actualUpgradeScriptValidator()).rejects.toThrow('ediel047_service_rls_missing')
+  expect(await state()).toEqual(before);expect(await fullTargetCatalog()).toEqual(catalog);expect(await registryRows()).toEqual(registry)
+},30_000)
