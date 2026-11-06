@@ -13,6 +13,24 @@ BEGIN
      OR to_regclass('public.companies') IS NULL THEN
     RAISE EXCEPTION 'ediel_operations_reconstruction_prerequisite_missing';
   END IF;
+  -- Canonical downstream dependencies must already exist on f23 and clean replay.
+  -- Do not synthesize or replace a shared retention function to accept unknown state.
+  IF to_regclass('public.platform_table_classification') IS NULL OR NOT EXISTS (
+    SELECT FROM pg_proc p JOIN pg_language l ON l.oid=p.prolang
+    WHERE p.oid=to_regprocedure('public.gridex_guard_history_truncate_v1()')
+      AND p.prorettype='trigger'::regtype AND p.prokind='f' AND l.lanname='plpgsql'
+      AND NOT p.prosecdef AND p.provolatile='v' AND NOT p.proisstrict AND NOT p.proleakproof
+      AND p.proconfig=ARRAY['search_path=public, pg_temp']::text[]
+      AND encode(sha256(convert_to(p.prosrc,'UTF8')),'hex')=
+          '332134e44d786ed24ae616494aabd79ec8f4e4f34dababb07d060f5a67bbc3bb'
+      AND NOT EXISTS (SELECT FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+                      WHERE acl.grantee<>p.proowner)
+  ) THEN RAISE EXCEPTION 'ediel_operations_downstream_prerequisite_missing_or_unknown'; END IF;
+  IF EXISTS (SELECT FROM public.platform_table_classification
+    WHERE table_name IN ('ediel_test_run_locks','ediel_agt_readiness','ediel_unlinked_test_messages')
+      AND (kind IS DISTINCT FROM 'system' OR null_company_meaning IS NOT NULL)
+  ) THEN RAISE EXCEPTION 'ediel_operations_unknown_classification'; END IF;
+
   FOR expected IN SELECT * FROM (VALUES
       ('ediel_test_run_locks', 'id', 'uuid', false, 'gen_random_uuid()', true),
       ('ediel_test_run_locks', 'company_id', 'uuid', false, NULL, true),
@@ -121,18 +139,37 @@ BEGIN
       SELECT FROM pg_constraint c WHERE c.conrelid=to_regclass('public.' || rel)
       AND c.contype='u' AND pg_get_constraintdef(c.oid)='UNIQUE (company_id, actor_role, message_family)'
     ) THEN RAISE EXCEPTION 'ediel_operations_readiness_unique_missing'; END IF;
-    IF EXISTS (SELECT FROM pg_trigger WHERE tgrelid=to_regclass('public.' || rel) AND NOT tgisinternal) THEN
+    FOR obj IN SELECT * FROM pg_trigger
+      WHERE tgrelid=to_regclass('public.' || rel) AND NOT tgisinternal LOOP
+      IF rel IN ('ediel_test_run_locks','ediel_agt_readiness')
+         AND obj.tgname='gridex_history_truncate_guard' AND obj.tgenabled='O' AND obj.tgtype=34
+         AND obj.tgfoid=to_regprocedure('public.gridex_guard_history_truncate_v1()')
+         AND obj.tgnargs=0 AND octet_length(obj.tgargs)=0 AND obj.tgattr=''::int2vector
+         AND obj.tgqual IS NULL AND obj.tgconstraint=0 AND obj.tgconstrrelid=0
+         AND obj.tgconstrindid=0 AND obj.tgparentid=0
+         AND NOT obj.tgdeferrable AND NOT obj.tginitdeferred THEN CONTINUE; END IF;
       RAISE EXCEPTION 'ediel_operations_unknown_trigger: %', rel;
-    END IF;
-    -- Policies in the two immutable sources are service-only. Never retain or
-    -- create an additional permissive client policy as a reconstruction shortcut.
+    END LOOP;
+    -- Accept only the original service policy and exact August intermediate guards.
+    -- September's grant-aware cleanup below removes obsolete role-specific policies.
     FOR obj IN SELECT * FROM pg_policies WHERE schemaname='public' AND tablename=rel LOOP
-      IF obj.policyname<>rel || '_service_role_all' OR obj.cmd<>'ALL'
-         OR obj.permissive<>'PERMISSIVE' OR obj.roles<>ARRAY['public']::name[]
-         OR regexp_replace(obj.qual, '[[:space:]()]', '', 'g') IS DISTINCT FROM 'auth.role=''service_role''::text'
-         OR regexp_replace(obj.with_check, '[[:space:]()]', '', 'g') IS DISTINCT FROM 'auth.role=''service_role''::text' THEN
-        RAISE EXCEPTION 'ediel_operations_unknown_policy: %', rel;
-      END IF;
+      IF obj.policyname=rel || '_service_role_all' AND obj.cmd='ALL'
+         AND obj.permissive='PERMISSIVE' AND obj.roles=ARRAY['public']::name[]
+         AND regexp_replace(obj.qual, '[[:space:]()]', '', 'g')='auth.role=''service_role''::text'
+         AND regexp_replace(obj.with_check, '[[:space:]()]', '', 'g')='auth.role=''service_role''::text' THEN CONTINUE; END IF;
+      IF obj.permissive='RESTRICTIVE' AND EXISTS (
+        SELECT FROM (VALUES
+          ('tenant_lifecycle_select_guard','SELECT',ARRAY['authenticated']::name[],'gridex_can_read_companycompany_id',NULL),
+          ('tenant_lifecycle_insert_guard','INSERT',ARRAY['authenticated']::name[],NULL,'gridex_can_write_companycompany_id'),
+          ('tenant_lifecycle_update_guard','UPDATE',ARRAY['authenticated']::name[],'gridex_can_write_companycompany_id','gridex_can_write_companycompany_id'),
+          ('tenant_lifecycle_delete_guard','DELETE',ARRAY['authenticated']::name[],'gridex_can_write_companycompany_id',NULL),
+          ('tenant_lifecycle_anon_deny_guard','ALL',ARRAY['anon']::name[],'false','false')
+        ) AS known(policy_name,command,roles,using_expr,check_expr)
+        WHERE obj.policyname=known.policy_name AND obj.cmd=known.command AND obj.roles=known.roles
+          AND regexp_replace(replace(obj.qual,'public.',''), '[[:space:]()]', '', 'g') IS NOT DISTINCT FROM known.using_expr
+          AND regexp_replace(replace(obj.with_check,'public.',''), '[[:space:]()]', '', 'g') IS NOT DISTINCT FROM known.check_expr
+      ) THEN CONTINUE; END IF;
+      RAISE EXCEPTION 'ediel_operations_unknown_policy: %', rel;
     END LOOP;
   END LOOP;
 
@@ -250,6 +287,28 @@ create index if not exists ediel_unlinked_test_messages_open_idx
     -- remove inherited public/client table privileges; never broaden policies.
     EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated', rel);
     EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO service_role', rel);
+    -- Source: 20260902094000. Scope the same grant-aware cleanup to these3 only;
+    -- do not reinstall inert August policies or touch unrelated policy metadata.
+    FOR obj IN SELECT pol.polname FROM pg_policy pol
+      WHERE pol.polrelid=to_regclass('public.' || rel) AND pol.polroles<>'{0}'::oid[]
+        AND NOT EXISTS (
+          SELECT FROM unnest(pol.polroles) AS role_oid JOIN pg_roles r ON r.oid=role_oid
+          WHERE has_table_privilege(r.rolname,pol.polrelid,'SELECT, INSERT, UPDATE, DELETE')
+        ) LOOP
+      EXECUTE format('DROP POLICY %I ON public.%I',obj.polname,rel);
+    END LOOP;
+    INSERT INTO public.platform_table_classification(table_name,kind,rationale,classified_by)
+    VALUES(rel,'system',
+      'Service-role only: no client role holds any privilege, so the table is closed by grants rather than by policy.',
+      'migration:platform_table_classification')
+    ON CONFLICT(table_name) DO NOTHING;
+    -- Source: 20261005130000's company-FK sweep. Unlinked has no such FK.
+    IF rel IN ('ediel_test_run_locks','ediel_agt_readiness') AND NOT EXISTS (
+      SELECT FROM pg_trigger WHERE tgrelid=to_regclass('public.' || rel)
+        AND tgname='gridex_history_truncate_guard'
+    ) THEN
+      EXECUTE format('CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.%I FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1()',rel);
+    END IF;
   END LOOP;
 END
 $repair$;
