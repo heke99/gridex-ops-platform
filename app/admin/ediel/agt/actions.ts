@@ -1,5 +1,7 @@
 "use server";
 
+import { tenantDb } from "@/lib/supabase/tenantDb";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -10,7 +12,6 @@ import { requireEdielSendActionAccess, requireEdielWriteActionAccess } from "@/l
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseService } from "@/lib/supabase/service";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
-import { saveCommunicationRoute } from "@/lib/cis/db";
 import {
   attachEdielMessageToTestRun,
   createEdielMessageEvent,
@@ -457,18 +458,22 @@ async function upsertRouteProfile(input: {
     const { error } = await supabaseService
       .from("ediel_route_profiles")
       .update(payload)
-      .eq("id", existingId);
+      .eq("id", existingId)
+      .eq("company_id", input.companyId);
 
     if (error) throw error;
-    return;
+    return existingId;
   }
 
-  const { error } = await supabaseService.from("ediel_route_profiles").insert({
+  const { data: inserted, error } = await supabaseService.from("ediel_route_profiles").insert({
     ...payload,
     created_by: input.actorUserId,
-  });
+  }).select("id").single();
 
   if (error) throw error;
+  const profileId = String((inserted as { id?: string | null } | null)?.id ?? "").trim();
+  if (!profileId) throw new Error("AGT-routeprofilen saknar id efter sparning.");
+  return profileId;
 }
 
 async function upsertAgtRoute(input: {
@@ -489,37 +494,56 @@ async function upsertAgtRoute(input: {
   const routeName = getEdielAgtRouteName(input.family);
   const existing = await supabaseService
     .from("communication_routes")
-    .select("id")
+    .select("id,environment_type")
     .eq("route_name", routeName)
     .eq("company_id", input.companyId)
     .order("id", { ascending: true })
     .limit(2);
 
   if (existing.error) throw existing.error;
-  const existingRows = (existing.data ?? []) as Array<{ id?: string | null }>;
+  const existingRows = (existing.data ?? []) as Array<{ id?: string | null; environment_type?: string | null }>;
   if (existingRows.length > 1) throw new Error("Flera kommunikationsrutter har samma canonical tenantnamn.");
+  const previousEnvironment = existingRows[0]?.environment_type;
+  if (previousEnvironment != null && previousEnvironment !== "agt_test") {
+    throw new Error("AGT-konfiguration får inte ändra en kommunikationsrutt som tillhör en annan miljö.");
+  }
   const existingId = String(existingRows[0]?.id ?? "").trim() || null;
 
-  const route = await saveCommunicationRoute({
-    actorUserId: input.actorUserId,
-    companyId: input.companyId,
-    id: existingId ?? undefined,
-    routeName,
-    isActive: true,
-    routeScope: input.family === "PRODAT" ? "supplier_switch" : "meter_values",
-    routeType: "ediel_partner",
-    gridOwnerId: null,
-    targetSystem: "ediel",
+  // Qualify the environment in the same conditional write as route data.
+  // A separate pre-read cannot protect a route changed by another transaction.
+  const payload = {
+    company_id: input.companyId,
+    route_name: routeName,
+    is_active: true,
+    route_scope: input.family === "PRODAT" ? "supplier_switch" : "meter_values",
+    route_type: "ediel_partner",
+    grid_owner_id: null,
+    target_system: "ediel",
     endpoint: null,
-    targetEmail: input.targetEmail,
-    supportedPayloadVersion: EDIEL_AGT_APPROVAL_VERSION_2026A,
+    target_email: input.targetEmail,
+    supported_payload_version: EDIEL_AGT_APPROVAL_VERSION_2026A,
     notes: `${input.family} AGT 2026A mot DB-konfigurerad testportal ${input.receiverEdielId}.`,
-  });
+    updated_by: input.actorUserId,
+    environment_type: "agt_test",
+  };
+  const communicationTable = tenantDb(input.companyId).from("communication_routes") as ReturnType<typeof supabaseService.from>;
+  const mutation = existingId
+    ? communicationTable.update(payload).eq("id", existingId)
+        .or("environment_type.is.null,environment_type.eq.agt_test")
+    : communicationTable.insert({ ...payload, created_by: input.actorUserId });
+  const { data: qualifiedRoute, error: environmentError } = await mutation
+    .select("id")
+    .single();
+  if (environmentError) throw environmentError;
+  const routeId = String((qualifiedRoute as { id?: string } | null)?.id ?? "").trim();
+  if (!routeId || (existingId && routeId !== existingId)) {
+    throw new Error("AGT-kommunikationsruttens testmiljö kunde inte verifieras.");
+  }
 
-  await upsertRouteProfile({
+  return upsertRouteProfile({
     actorUserId: input.actorUserId,
     companyId: input.companyId,
-    routeId: route.id,
+    routeId,
     family: input.family,
     senderEdielId: input.actorEdielId,
     senderName: input.senderName,
@@ -598,25 +622,7 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
     notes: emptyToNull(agtActorNotes({ balanceResponsibleEdielId })),
   });
 
-  await saveEdielSystemTestSettings({
-    companyId,
-    actorUserId,
-    testSuite: "AGT",
-    testPortalEdielId: receiverEdielId,
-    testPortalName: receiverName,
-    testPortalEmail: targetEmail,
-    testBrpEdielId: balanceResponsibleEdielId,
-    testBrpName: balanceResponsibleEdielId ? "AGT test-BRP" : null,
-    defaultReceiverSubaddress: receiverSubAddress,
-    defaultSenderSubaddress: prodatSenderSubAddress,
-    actorRole: "supplier",
-    messageFamily: "PRODAT",
-    setupPackage: "agt_ddq_prodat_l",
-    environmentType: "agt_test",
-    isActive: true,
-  });
-
-  await upsertAgtRoute({
+  const prodatRouteProfileId = await upsertAgtRoute({
     actorUserId,
     companyId,
     family: "PRODAT",
@@ -646,6 +652,25 @@ export async function saveAgtSupplierRuntimeAction(formData: FormData) {
     applicationReference: null,
     defaultMessageVersion: utiltsDefaultVersion,
     mailbox,
+  });
+
+  await saveEdielSystemTestSettings({
+    companyId,
+    routeProfileId: prodatRouteProfileId,
+    actorUserId,
+    testSuite: "AGT",
+    testPortalEdielId: receiverEdielId,
+    testPortalName: receiverName,
+    testPortalEmail: targetEmail,
+    testBrpEdielId: balanceResponsibleEdielId,
+    testBrpName: balanceResponsibleEdielId ? "AGT test-BRP" : null,
+    defaultReceiverSubaddress: receiverSubAddress,
+    defaultSenderSubaddress: prodatSenderSubAddress,
+    actorRole: "supplier",
+    messageFamily: "PRODAT",
+    setupPackage: "agt_ddq_prodat_l",
+    environmentType: "agt_test",
+    isActive: true,
   });
 
   revalidateAgt();

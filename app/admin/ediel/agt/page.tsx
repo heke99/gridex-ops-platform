@@ -4,6 +4,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { requirePlatformAdminAccess } from "@/lib/admin/guards";
 import { listEdielTestRuns } from "@/lib/ediel/db";
 import { getEdielAgtSupplierRuntime } from "@/lib/ediel/testing/agtRuntime";
+import { evaluateEdielEnvironmentGate } from "@/lib/ediel/testing/environmentGate";
 import { getEdielSystemTestSettings } from "@/lib/ediel/systemTestSettings";
 import { EDIEL_AGT_SUPPLIER_2026A_CASES } from "@/lib/ediel/testing/agtRegistry";
 import {
@@ -189,6 +190,15 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
     }),
   ]);
 
+  // The same read-only environment gate used by run preparation. Runtime
+  // completeness alone is neither approval nor permission to start a run.
+  const [prodatGate, utiltsGate] = await Promise.all(
+    (["PRODAT", "UTILTS"] as const).map((messageFamily) => companyId
+      ? evaluateEdielEnvironmentGate({ companyId, actorRole: "supplier", messageFamily, environmentType: "agt_test" })
+      : Promise.resolve(null)),
+  );
+  const familyGates = { PRODAT: prodatGate, UTILTS: utiltsGate };
+
   const supplierAgtRuns = testRuns.filter(
     (run) =>
       run.role_code === "supplier" &&
@@ -244,7 +254,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               Låst godkännandeyta
             </div>
             <h1 className="mt-1 text-2xl font-semibold text-slate-950">
-              Först ska godkännandeytan vara redo
+              Först ska testkonfigurationen vara komplett
             </h1>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">
               Värdena i formuläret sparas i aktörskort, communication_routes och
@@ -256,13 +266,13 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge tone={runtime.isReady ? "emerald" : "red"}>
-              {runtime.isReady ? "godkännande redo" : "godkännande blockerat"}
+              {runtime.isReady ? "runtimekonfiguration komplett" : "runtimekonfiguration ofullständig"}
             </Badge>
             <Badge tone={errorCount > 0 ? "red" : "emerald"}>
-              fel {errorCount}
+              konfigurationsfel {errorCount}
             </Badge>
             <Badge tone={warningCount > 0 ? "amber" : "emerald"}>
-              varningar {warningCount}
+              konfigurationsvarningar {warningCount}
             </Badge>
             <Link
               href="/admin/ediel"
@@ -314,10 +324,24 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
         </section>
       ) : (
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
-          Readiness är grön. Du kan starta ett AGT-test i Edielportalen och
-          skapa motsvarande run här som bevislogg.
+          Runtimekonfigurationen saknar konfigurationsfel. Detta är inte ett
+          AGT-godkännande eller ett besked att samtliga startkontroller är uppfyllda.
         </section>
       )}
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5" aria-label="AGT-miljögrindar">
+        <h2 className="text-lg font-semibold text-slate-950">AGT-miljögrind per meddelandefamilj</h2>
+        <p className="mt-2 text-sm">En uppfylld miljögrind är inte certifiering. Profil-, transport- och låskontroller gäller fortfarande vid start.</p>
+        {(["PRODAT", "UTILTS"] as const).map((family) => (
+          <div key={family} className="mt-3 text-sm">
+            <strong>{family}: {familyGates[family]?.ok ? "miljögrind uppfylld" : "start blockerad"}</strong>
+            <ul className="mt-1 list-disc pl-5">
+              {(familyGates[family]?.blockingIssues ?? ["Välj bolag för att utvärdera miljögrinden."]).map((issue) => <li key={issue}>{issue}</li>)}
+              {(familyGates[family]?.warnings ?? []).map((warning) => <li key={warning}>{warning}</li>)}
+            </ul>
+          </div>
+        ))}
+      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="mb-5">
@@ -616,13 +640,14 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link
-                    href={`/admin/ediel/agt/${testCase.testCaseCode}`}
+                    href={`/admin/ediel/agt/${testCase.testCaseCode}${companyId ? `?companyId=${encodeURIComponent(companyId)}` : ""}`}
                     className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
                   >
                     Öppna testmotor
                   </Link>
 
                   <form action={createAgtSupplierTestRunAction} className="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="company_id" value={companyId ?? ""} />
                     <input
                       type="hidden"
                       name="test_case_code"
@@ -637,13 +662,14 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
                       <option value="none">Okrypterat test</option>
                       <option value="smime">Krypterat test</option>
                     </select>
-                    <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    <button disabled={!companyId || !runtime.isReady || !familyGates[testCase.messageFamily]?.ok} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-200">
                       Skapa run {testCase.testCaseCode}
                     </button>
                   </form>
 
                   {actorToPortal ? (
                     <form action={createAgtSupplierOutboundCommandAction}>
+                      <input type="hidden" name="company_id" value={companyId ?? ""} />
                       <input
                         type="hidden"
                         name="test_case_code"
@@ -656,7 +682,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
                       />
                       <button
                         disabled={
-                          !hasRun ||
+                          !hasRun || !companyId || !familyGates[testCase.messageFamily]?.ok ||
                           runtime.issues.some(
                             (issue) => issue.severity === "error",
                           )
@@ -670,7 +696,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
                     </form>
                   ) : (
                     <Link
-                      href={`/admin/ediel/agt/${testCase.testCaseCode}`}
+                      href={`/admin/ediel/agt/${testCase.testCaseCode}${companyId ? `?companyId=${encodeURIComponent(companyId)}` : ""}`}
                       className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
                     >
                       Importera/koppla inbound
