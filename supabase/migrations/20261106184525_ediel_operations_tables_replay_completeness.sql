@@ -8,6 +8,7 @@ DECLARE
   actual record;
   rel text;
   obj record;
+  known_seed boolean;
 BEGIN
   IF to_regtype('public.ediel_environment_type') IS NULL
      OR to_regclass('public.companies') IS NULL THEN
@@ -26,10 +27,21 @@ BEGIN
       AND NOT EXISTS (SELECT FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
                       WHERE acl.grantee<>p.proowner)
   ) THEN RAISE EXCEPTION 'ediel_operations_downstream_prerequisite_missing_or_unknown'; END IF;
-  IF EXISTS (SELECT FROM public.platform_table_classification
-    WHERE table_name IN ('ediel_test_run_locks','ediel_agt_readiness','ediel_unlinked_test_messages')
-      AND (kind IS DISTINCT FROM 'system' OR null_company_meaning IS NOT NULL)
-  ) THEN RAISE EXCEPTION 'ediel_operations_unknown_classification'; END IF;
+  FOREACH rel IN ARRAY ARRAY['ediel_test_run_locks','ediel_agt_readiness','ediel_unlinked_test_messages'] LOOP
+    -- Only the literal September seed is an additional supported predecessor.
+    SELECT EXISTS (SELECT FROM public.platform_table_classification
+      WHERE table_name=rel AND kind='tenant' AND null_company_meaning IS NULL
+        AND rationale='Seeded from observed schema shape during the 2026-09-02 tenant isolation remediation.'
+        AND classified_by='migration:platform_table_classification') INTO known_seed;
+    -- Fixed table names and booleans only; capture the pre-REVOKE profile safely.
+    RAISE NOTICE 'ediel_operations_classification_preprofile: table=% knownCanonicalSeed=% anonCRUDpresent=% authenticatedCRUDpresent=%',
+      rel,known_seed,
+      coalesce(has_table_privilege('anon',to_regclass('public.'||rel),'SELECT, INSERT, UPDATE, DELETE'),false),
+      coalesce(has_table_privilege('authenticated',to_regclass('public.'||rel),'SELECT, INSERT, UPDATE, DELETE'),false);
+    IF EXISTS (SELECT FROM public.platform_table_classification WHERE table_name=rel
+      AND (null_company_meaning IS NOT NULL OR (kind IS DISTINCT FROM 'system' AND NOT known_seed))
+    ) THEN RAISE EXCEPTION 'ediel_operations_unknown_classification'; END IF;
+  END LOOP;
 
   FOR expected IN SELECT * FROM (VALUES
       ('ediel_test_run_locks', 'id', 'uuid', false, 'gen_random_uuid()', true),
@@ -287,6 +299,20 @@ create index if not exists ediel_unlinked_test_messages_open_idx
     -- remove inherited public/client table privileges; never broaden policies.
     EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated', rel);
     EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO service_role', rel);
+    -- Original September reclassification, after this target's client REVOKE.
+    -- Preserve classified_at and every compatible custom system/unrelated row.
+    UPDATE public.platform_table_classification t
+    SET kind='system',
+        rationale='Service-role only: no client role holds any privilege, so the table is closed by grants rather than by policy.',
+        null_company_meaning=NULL,
+        classified_by='migration:platform_table_classification'
+    FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace AND n.nspname='public'
+    WHERE t.table_name=rel AND c.relname=t.table_name AND c.relkind='r'
+      AND t.kind='tenant' AND t.null_company_meaning IS NULL
+      AND t.rationale='Seeded from observed schema shape during the 2026-09-02 tenant isolation remediation.'
+      AND t.classified_by='migration:platform_table_classification'
+      AND NOT EXISTS (SELECT FROM pg_roles r WHERE r.rolname IN ('anon','authenticated')
+        AND has_table_privilege(r.rolname,c.oid,'SELECT, INSERT, UPDATE, DELETE'));
     -- Source: 20260902094000. Scope the same grant-aware cleanup to these3 only;
     -- do not reinstall inert August policies or touch unrelated policy metadata.
     FOR obj IN SELECT pol.polname FROM pg_policy pol

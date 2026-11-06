@@ -495,3 +495,70 @@ it('fixture boundary preserves unrelated post-September policies when replaying 
   expect(inert,'F14 boundary rows: '+JSON.stringify(inert)).toEqual([])
   expect(await unrelated()).toEqual(before)
 },30_000)
+
+// Epoch2 clean boundary: native default table ACLs are an explicit component port.
+// Execute the real September classifier; never insert a fabricated target kind.
+// This characterizes the ACL-dependent path, not a native catalog readback.
+it.each(['anon', 'authenticated'] as const)('epoch2 classification evolution with historical %s table grants converges safely', async client => {
+  await augustIntermediateFixture(true, false)
+  // Existing table grants survive the actual August default-privilege revocation.
+  for (const table of tables) await db.exec(`grant all on public.${table} to ${client}`)
+  const lockdown = readFileSync('supabase/migrations/20260802190000_canonical_emergency_access_lockdown.sql', 'utf8')
+  await db.exec(between(lockdown, 'alter default privileges for role postgres in schema public', '-- Supabase owns'))
+  await db.exec(septemberSource)
+  expect((await db.query(`select table_name,kind,null_company_meaning from public.platform_table_classification
+    where table_name=any($1::text[]) order by table_name`, [[...tables]])).rows)
+    .toEqual(tables.map(table_name => ({ table_name,kind:'tenant',null_company_meaning:null })))
+  await db.exec(actualTruncateFunction)
+  await db.exec(actualTruncateLoop)
+  const before = await state(), unrelated = await registryRows(false)
+  await upgrade()
+  const after = await state()
+  expect(after.locks).toEqual(before.locks)
+  expect(after.readiness).toEqual(before.readiness)
+  expect(after.unlinked).toEqual(before.unlinked)
+  expect(await registryRows(false)).toEqual(unrelated)
+  await assertFinalClosure()
+  const finalRows = await state(), finalRegistry = await registryRows()
+  await upgrade()
+  expect(await state()).toEqual(finalRows)
+  expect(await registryRows()).toEqual(finalRegistry)
+}, 30_000)
+
+async function epoch2CanonicalSeedFixture() {
+  await augustIntermediateFixture(true, false)
+  for (const table of tables) await db.exec(`grant all on public.${table} to authenticated`)
+  await db.exec(septemberSource)
+  await db.exec(actualTruncateFunction)
+  await db.exec(actualTruncateLoop)
+}
+
+it.each([
+  ['arbitrary tenant', "kind='tenant',rationale='operator supplied tenant profile',classified_by='fixture'"],
+  ['altered seed rationale', "rationale='Seeded from observed schema shape during a different remediation.'"],
+  ['altered seed provenance', "classified_by='migration:unverified'"],
+  ['altered seed NULL meaning', "null_company_meaning='unverified meaning'"],
+  ['altered seed kind', "kind='platform_shared'"],
+  ['altered seed mixed kind', "kind='mixed',null_company_meaning='unverified mixed scope'"],
+] as const)('epoch2 rejects %s atomically without rewriting rows or registry', async (_label, assignment) => {
+  await epoch2CanonicalSeedFixture()
+  await db.exec(`update public.platform_table_classification set ${assignment} where table_name='ediel_test_run_locks'`)
+  const before = await state(), registry = await registryRows(), unrelated = await registryRows(false), metadata = await laterMetadata()
+  await expect(upgrade()).rejects.toThrow('ediel_operations_unknown_classification')
+  expect(await state()).toEqual(before)
+  expect(await registryRows()).toEqual(registry)
+  expect(await registryRows(false)).toEqual(unrelated)
+  expect(await laterMetadata()).toEqual(metadata)
+}, 30_000)
+
+it('epoch2 exact canonical seed normalization preserves classified_at and converges to actual September system fields', async () => {
+  await epoch2CanonicalSeedFixture()
+  const before = await registryRows(), unrelated = await registryRows(false)
+  await upgrade()
+  const after = await registryRows()
+  expect(after).toEqual(before.map(row => ({ ...row,kind:'system',
+    rationale:'Service-role only: no client role holds any privilege, so the table is closed by grants rather than by policy.',
+    null_company_meaning:null,classified_by:'migration:platform_table_classification' })))
+  expect(await registryRows(false)).toEqual(unrelated)
+  await assertFinalClosure()
+}, 30_000)
