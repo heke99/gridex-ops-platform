@@ -13,6 +13,7 @@ const hardening = readFileSync('supabase/migrations/20260602152000_ediel_operati
 const A = '00000000-0000-4000-8000-000000000001'
 const B = '00000000-0000-4000-8000-000000000002'
 let db: PGlite
+let earlyPolicyHistoryApplied = false
 
 // Extract immutable original statements for historical fixtures, never replacement SQL.
 // Assertions below inspect PostgreSQL effects, not source string matches.
@@ -77,6 +78,7 @@ async function role<T>(name: 'service_role' | 'anon' | 'authenticated', fn: () =
 }
 beforeEach(async () => {
   db = new PGlite()
+  earlyPolicyHistoryApplied = false
   await db.exec(`create role anon nologin; create role authenticated nologin; create role service_role nologin nobypassrls;
     create schema auth; create function auth.role() returns text language sql stable as 'select current_user::text';
     grant usage on schema public,auth to anon,authenticated,service_role;
@@ -227,6 +229,7 @@ async function augustIntermediateFixture(existing: boolean, withRetention = true
     create or replace function public.gridex_user_is_platform_admin() returns boolean language sql stable as $$select false$$;
     insert into public.company_memberships select '${A}','00000000-0000-4000-8000-000000000010','active',true,'owner' where not exists(select from public.company_memberships where company_id='${A}');
     select set_config('fixture.user_id','00000000-0000-4000-8000-000000000010',false);`)
+  if (existing) await applyActualEarlyPolicyEvolution()
   await db.exec(actualLifecycleHelpers)
   await db.exec(lifecycleSource.split('\n').filter(line => /^(revoke all|grant execute) on function public\.gridex_can_(read|write)_company\(/.test(line)).join('\n'))
   // The missing-three-table characterization must not replay August over already
@@ -394,10 +397,15 @@ describe('late source retention privilege boundary', () => {
 // Final canonical closure: August lifecycle -> September classification/F14 cleanup -> October retention.
 // Run the actual September migration, not a hand-built classification substitute.
 const septemberSource = readFileSync('supabase/migrations/20260902094000_platform_table_classification_and_invariant_gate.sql', 'utf8')
-async function fullSourceFixture(existing: boolean) {
+async function fullSourceFixture(existing: boolean, historicalClientACL = false) {
   // Native postgres defaults give service_role ALL, including TRUNCATE; clients receive no grants.
   await db.exec('alter default privileges for role postgres in schema public grant all on tables to service_role')
   await augustIntermediateFixture(existing, false)
+  if (existing) {
+    if (historicalClientACL) for (const table of tables) await db.exec(`grant all on public.${table} to authenticated`)
+    await applyActualAugustPolicyEvolution()
+  }
+  await applyActualSeptemberPolicyCleanup()
   await db.exec(septemberSource)
   await db.exec(actualTruncateFunction)
   await db.exec(retentionSource.split('\n').filter(line => line.startsWith('revoke all on function public.gridex_guard_history_truncate_v1()')).join('\n'))
@@ -562,3 +570,161 @@ it('epoch2 exact canonical seed normalization preserves classified_at and conver
   expect(await registryRows(false)).toEqual(unrelated)
   await assertFinalClosure()
 }, 30_000)
+
+// Epoch3: actual generic catalog-driven evolution, preceding August lifecycle.
+// No replacement policy SQL or relaxed policy assertions are introduced here.
+const juneInitplanSource = readFileSync('supabase/migrations/20260612123000_performance_batches_1_to_3_db_acceleration.sql','utf8')
+const juneConsolidationSource = readFileSync('supabase/migrations/20260612143000_performance_policy_consolidation_and_index_cleanup.sql','utf8')
+const augustNormalizationSource = readFileSync('supabase/migrations/20260812210800_gridex_rls_policy_normalization_v1.sql','utf8')
+const augustDashboardSource = readFileSync('supabase/migrations/20260826093000_platform_dashboard_and_rls_read_performance.sql','utf8')
+async function applyActualEarlyPolicyEvolution() {
+  if (earlyPolicyHistoryApplied) return
+  const juneHardening = readFileSync('supabase/migrations/20260611190000_launch_linter_hardening_security_definer_rls.sql','utf8')
+  await db.exec(between(juneHardening,'do $$\ndeclare\n  r record;\nbegin\n  for r in select schemaname, tablename from pg_tables', '-- Audit marker for operations visibility.'))
+  await db.exec(between(juneInitplanSource,'create or replace function public.gridex_rls_initplan_rewrite(', 'create or replace view public.gridex_rls_policy_inventory_v'))
+  const rewritten = (await db.query<{status:string}>('select * from public.gridex_optimize_rls_auth_initplans()')).rows
+  expect(rewritten.filter(row => row.status.startsWith('skipped'))).toEqual([])
+  await db.exec(between(juneConsolidationSource,'create table if not exists public.gridex_performance_hardening_events (','-- Keep a small before/after inventory'))
+  await db.exec(between(juneConsolidationSource,'do $$','-- Refresh the candidate view after consolidation.'))
+  await db.exec(between(augustNormalizationSource,'DO $$','-- Preserve the exact authorization union for company actor test runs'))
+  const augustIndexSource = readFileSync('supabase/migrations/20260813070046_gridex_review_hardening_v2.sql','utf8')
+  await db.exec(between(augustIndexSource,'DO $$\nDECLARE\n  r record;\n  cols text;', 'DO $$\nDECLARE\n  r record;\n  v_count integer;\n  v_other_user_policies'))
+  earlyPolicyHistoryApplied = true
+}
+async function applyActualAugustPolicyEvolution() {
+  const schemaSource = readFileSync('supabase/schema.sql','utf8')
+  const start = schemaSource.indexOf('CREATE FUNCTION public.gridex_user_company_ids()')
+  if (start < 0) throw new Error('actual company helper fixture boundary changed')
+  const rest = schemaSource.slice(start)
+  const end = rest.indexOf('$$;',rest.indexOf('AS $$')+5)
+  if (end < 0) throw new Error('actual company helper delimiter changed')
+  await db.exec(rest.slice(0,end+3).replace('CREATE FUNCTION','CREATE OR REPLACE FUNCTION'))
+  await db.exec(between(augustDashboardSource,'do $do$\ndeclare\n  policy_row record;','-- Companies uses id rather than company_id.'))
+}
+
+it('epoch3 actual full generic policy evolution accepts canonical early clean and converges with late f23 full catalog',async()=>{
+  await fullSourceFixture(true, true)
+  const retained = await state(), unrelated = await registryRows(false), initialRegistry = await registryRows()
+  const beforePolicies = (await db.query<{ qual: string | null }>(`select tablename,policyname,permissive,roles,cmd,qual,with_check from pg_policies
+    where schemaname='public' and tablename=any($1::text[]) order by tablename,policyname`,[[...tables]])).rows
+  expect(beforePolicies.some(row => String(row.qual).includes('SELECT auth.role()'))).toBe(true)
+  await upgrade()
+  const repaired = await state()
+  expect(repaired.locks).toEqual(retained.locks);expect(repaired.readiness).toEqual(retained.readiness);expect(repaired.unlinked).toEqual(retained.unlinked)
+  expect(await registryRows(false)).toEqual(unrelated)
+  const normalizedRegistry = await registryRows()
+  expect(normalizedRegistry.map(row=>row.classified_at)).toEqual(initialRegistry.map(row=>row.classified_at))
+  const canonical = await fullTargetCatalog()
+  await upgrade();expect(await fullTargetCatalog()).toEqual(canonical)
+  for (const table of tables) await db.exec(`drop table public.${table} cascade`)
+  await db.query('delete from public.platform_table_classification where table_name=any($1::text[])',[[...tables]])
+  await upgrade()
+  expect(await fullTargetCatalog()).toEqual(canonical)
+  expect(await registryRows(false)).toEqual(unrelated)
+  await assertFinalClosure()
+},30_000)
+
+// Structural catalog only: no relation/constraint/index OIDs or data timestamps.
+// Cross-reconstruction classified_at is the sole registry exclusion: a new row
+// has a new creation time. Existing timestamps are asserted unchanged above.
+async function fullTargetCatalog() {
+  return (await db.query(`select
+    (select jsonb_agg(jsonb_build_object('table',c.relname,'kind',c.relkind,'persistence',c.relpersistence,
+      'owner',pg_get_userbyid(c.relowner),'rls',c.relrowsecurity,'force_rls',c.relforcerowsecurity,'options',c.reloptions,
+      'acl',(select jsonb_agg(jsonb_build_array(pg_get_userbyid(x.grantor),coalesce(r.rolname,'PUBLIC'),x.privilege_type,x.is_grantable) order by coalesce(r.rolname,'PUBLIC'),x.privilege_type)
+        from aclexplode(coalesce(c.relacl,acldefault('r',c.relowner))) x left join pg_roles r on r.oid=x.grantee)) order by c.relname)
+      from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=any($1::text[])) relations,
+    (select jsonb_agg(jsonb_build_array(c.relname,a.attnum,a.attname,format_type(a.atttypid,a.atttypmod),a.attnotnull,a.attgenerated,a.attidentity,a.attinhcount,
+      coll.collname,pg_get_expr(d.adbin,d.adrelid)) order by c.relname,a.attnum)
+      from pg_attribute a join pg_class c on c.oid=a.attrelid join pg_namespace n on n.oid=c.relnamespace
+      left join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum left join pg_collation coll on coll.oid=a.attcollation
+      where n.nspname='public' and c.relname=any($1::text[]) and a.attnum>0 and not a.attisdropped) columns,
+    (select jsonb_agg(jsonb_build_array(c.relname,idx.relname,pg_get_indexdef(i.indexrelid),i.indisunique,i.indisprimary,i.indisexclusion,
+      i.indisvalid,i.indisready,i.indislive,i.indisclustered,i.indisreplident,i.indnkeyatts,i.indnatts,i.indkey::text,
+      pg_get_expr(i.indpred,i.indrelid),pg_get_expr(i.indexprs,i.indrelid),idx.reloptions,am.amname) order by c.relname,idx.relname)
+      from pg_index i join pg_class c on c.oid=i.indrelid join pg_class idx on idx.oid=i.indexrelid
+      join pg_namespace n on n.oid=c.relnamespace join pg_am am on am.oid=idx.relam
+      where n.nspname='public' and c.relname=any($1::text[])) indexes,
+    (select jsonb_agg(jsonb_build_array(c.relname,k.conname,k.contype,pg_get_constraintdef(k.oid),k.convalidated,k.condeferrable,k.condeferred,
+      k.conislocal,k.coninhcount,k.connoinherit,k.confupdtype,k.confdeltype,k.confmatchtype) order by c.relname,k.conname)
+      from pg_constraint k join pg_class c on c.oid=k.conrelid join pg_namespace n on n.oid=c.relnamespace
+      where n.nspname='public' and c.relname=any($1::text[])) constraints,
+    (select jsonb_agg(to_jsonb(p) order by p.tablename,p.policyname) from pg_policies p where p.schemaname='public' and p.tablename=any($1::text[])) policies,
+    (select jsonb_agg(jsonb_build_array(c.relname,t.tgname,t.tgenabled,t.tgtype,t.tgnargs,encode(t.tgargs,'hex'),t.tgattr::text,
+      pg_get_expr(t.tgqual,t.tgrelid),t.tgfoid::regprocedure::text,pg_get_triggerdef(t.oid),t.tgdeferrable,t.tginitdeferred,k.conname) order by c.relname,t.tgname)
+      from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace left join pg_constraint k on k.oid=t.tgconstraint
+      where n.nspname='public' and c.relname=any($1::text[]) and not t.tgisinternal) triggers,
+    (select jsonb_agg(to_jsonb(t)-'classified_at' order by table_name) from public.platform_table_classification t where table_name=any($1::text[])) classification`,[[...tables]])).rows[0]
+}
+
+it('epoch3 late f23 reconstructs actual August13 full FK index closure',async()=>{
+  await fullSourceFixture(true, true)
+  const indexRows = async () => (await db.query<{ index_name: string }>(`select c.relname table_name,idx.relname index_name,pg_get_indexdef(i.indexrelid) definition,
+    i.indisvalid,i.indisready,i.indisunique,i.indisprimary,pg_get_expr(i.indpred,i.indrelid) predicate
+    from pg_index i join pg_class c on c.oid=i.indrelid join pg_class idx on idx.oid=i.indexrelid join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname='public' and c.relname=any($1::text[]) order by c.relname,idx.relname`,[[...tables]])).rows
+  const early = await indexRows()
+  expect(early.filter(row=>String(row.index_name).startsWith('idx_fk_ediel_test_run_locks_'))).toHaveLength(1)
+  expect(early.filter(row=>String(row.index_name).startsWith('idx_fk_ediel_agt_readiness_'))).toHaveLength(0)
+  expect(early.filter(row=>String(row.index_name).startsWith('idx_fk_ediel_unlinked_test_messages_'))).toHaveLength(0)
+  for(const table of tables) await db.exec(`drop table public.${table} cascade`)
+  await db.query('delete from public.platform_table_classification where table_name=any($1::text[])',[[...tables]])
+  await upgrade()
+  expect(await indexRows()).toEqual(early)
+},30_000)
+
+async function applyActualSeptemberPolicyCleanup() {
+  const source = readFileSync('supabase/migrations/20260902092000_view_security_invoker_and_dead_policy_cleanup.sql','utf8')
+  await db.exec(between(source,'do $$','commit;'))
+}
+
+it.each(['table','view'] as const)('epoch3 rejects August13 full-FK index-name %s collision atomically',async kind=>{
+  const name = (await db.query<{name:string}>(`select format('idx_fk_%s_%s',left('ediel_test_run_locks',30),
+    substr(md5('public.ediel_test_run_locks.ediel_test_run_locks_company_fkey'),1,16)) name`)).rows[0].name
+  if(!/^idx_fk_ediel_test_run_locks_[a-f0-9]{16}$/.test(name)) throw new Error('actual August index-name fixture changed')
+  await db.exec(`create table public.epoch3_retained(id integer primary key,marker text);insert into public.epoch3_retained values(1,'retained')`)
+  if(kind==='table') await db.exec(`create table public.${name}(id integer primary key,marker text);insert into public.${name} values(1,'unrelated')`)
+  else await db.exec(`create view public.${name} as select * from public.epoch3_retained`)
+  const snapshot = async()=>(await db.query(`select
+    (select jsonb_agg(to_jsonb(t)) from public.${name} t) collision_rows,
+    (select jsonb_agg(to_jsonb(t)) from public.epoch3_retained t) retained,
+    (select jsonb_build_array(oid,relkind,relacl::text) from pg_class where oid=$1::regclass) collision_object,
+    to_regclass('public.ediel_test_run_locks')::text locks,to_regclass('public.ediel_agt_readiness')::text readiness,
+    to_regclass('public.ediel_unlinked_test_messages')::text unlinked`,['public.'+name])).rows[0]
+  const before=await snapshot();let rejected=false
+  try{await upgrade()}catch{rejected=true}
+  expect({rejected,after:await snapshot()}).toEqual({rejected:true,after:before})
+},30_000)
+
+it('epoch3 rejects a broadened scalar-SELECT service policy without catalog or row effects',async()=>{
+  await fullSourceFixture(true,true)
+  await db.exec(`alter policy ediel_test_run_locks_service_role_all on public.ediel_test_run_locks
+    using ((select auth.role())='service_role' or true) with check ((select auth.role())='service_role')`)
+  const before=await state(),catalog=await fullTargetCatalog(),registry=await registryRows()
+  await expect(upgrade()).rejects.toThrow('ediel_operations_unknown_policy')
+  expect(await state()).toEqual(before);expect(await fullTargetCatalog()).toEqual(catalog);expect(await registryRows()).toEqual(registry)
+},30_000)
+
+it('epoch3 rejects actual August13 index name on an unrelated retained table atomically',async()=>{
+  const name='idx_fk_ediel_test_run_locks_a4a5ed47195f49b5'
+  await db.exec(`create table public.epoch3_foreign_index(id integer primary key,company_id uuid,marker text);
+    insert into public.epoch3_foreign_index values(1,'${A}','retained');
+    create index ${name} on public.epoch3_foreign_index(company_id)`)
+  const snapshot=async()=>(await db.query(`select
+    (select jsonb_agg(to_jsonb(t)) from public.epoch3_foreign_index t) retained,
+    (select jsonb_build_array(c.oid,c.relkind,c.relacl::text,pg_get_indexdef(c.oid),i.indrelid::regclass::text,i.indisvalid,i.indisready) from pg_class c join pg_index i on i.indexrelid=c.oid where c.oid=$1::regclass) collision,
+    to_regclass('public.ediel_test_run_locks')::text locks,to_regclass('public.ediel_agt_readiness')::text readiness,
+    to_regclass('public.ediel_unlinked_test_messages')::text unlinked`,['public.'+name])).rows[0]
+  const before=await snapshot();let rejected=false
+  try{await upgrade()}catch{rejected=true}
+  expect({rejected,after:await snapshot()}).toEqual({rejected:true,after:before})
+},30_000)
+
+it('epoch3 rejects actual August13 index name with wrong locks key without changing rows or catalog',async()=>{
+  await db.exec(readFileSync(bootstrap,'utf8'));await db.exec(hardeningSQL);await seed()
+  await db.exec(`create index idx_fk_ediel_test_run_locks_a4a5ed47195f49b5 on public.ediel_test_run_locks(actor_role)`)
+  const before=await state(),catalog=await fullTargetCatalog(),registry=await registryRows(),unrelated=await registryRows(false)
+  await expect(upgrade()).rejects.toThrow('ediel_operations_unknown_index')
+  expect(await state()).toEqual(before);expect(await fullTargetCatalog()).toEqual(catalog)
+  expect(await registryRows()).toEqual(registry);expect(await registryRows(false)).toEqual(unrelated)
+},30_000)

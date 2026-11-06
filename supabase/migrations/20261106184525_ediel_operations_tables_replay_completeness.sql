@@ -162,13 +162,24 @@ BEGIN
          AND NOT obj.tgdeferrable AND NOT obj.tginitdeferred THEN CONTINUE; END IF;
       RAISE EXCEPTION 'ediel_operations_unknown_trigger: %', rel;
     END LOOP;
-    -- Accept only the original service policy and exact August intermediate guards.
+    -- Accept only original/June12 service profiles and exact August intermediate guards.
     -- September's grant-aware cleanup below removes obsolete role-specific policies.
     FOR obj IN SELECT * FROM pg_policies WHERE schemaname='public' AND tablename=rel LOOP
       IF obj.policyname=rel || '_service_role_all' AND obj.cmd='ALL'
          AND obj.permissive='PERMISSIVE' AND obj.roles=ARRAY['public']::name[]
-         AND regexp_replace(obj.qual, '[[:space:]()]', '', 'g')='auth.role=''service_role''::text'
-         AND regexp_replace(obj.with_check, '[[:space:]()]', '', 'g')='auth.role=''service_role''::text' THEN CONTINUE; END IF;
+         AND ((regexp_replace(obj.qual, '[[:space:]()]', '', 'g')='auth.role=''service_role''::text'
+           AND regexp_replace(obj.with_check, '[[:space:]()]', '', 'g')='auth.role=''service_role''::text')
+           -- June12's actual optimizer wraps both predicates in one scalar SELECT.
+           OR (regexp_replace(obj.qual, '[[:space:]]', '', 'g')='((SELECTauth.role()ASrole)=''service_role''::text)'
+           AND regexp_replace(obj.with_check, '[[:space:]]', '', 'g')='((SELECTauth.role()ASrole)=''service_role''::text)')) THEN CONTINUE; END IF;
+      -- August26 rewrites only this exact restrictive SELECT guard. September's
+      -- grant-aware cleanup below removes it after the target client REVOKE.
+      IF obj.policyname='tenant_lifecycle_select_guard' AND obj.cmd='SELECT'
+         AND obj.permissive='RESTRICTIVE' AND obj.roles=ARRAY['authenticated']::name[]
+         AND obj.with_check IS NULL
+         AND regexp_replace(replace(obj.qual,'public.',''), '[[:space:]]', '', 'g')=
+           '((SELECTgridex_is_current_session_allowed()ASgridex_is_current_session_allowed)AND((SELECTgridex_user_is_platform_admin()ASgridex_user_is_platform_admin)OR(company_idIN(SELECTgridex_user_company_ids()ASgridex_user_company_ids))))'
+      THEN CONTINUE; END IF;
       IF obj.permissive='RESTRICTIVE' AND EXISTS (
         SELECT FROM (VALUES
           ('tenant_lifecycle_select_guard','SELECT',ARRAY['authenticated']::name[],'gridex_can_read_companycompany_id',NULL),
@@ -185,18 +196,22 @@ BEGIN
     END LOOP;
   END LOOP;
 
-  FOR obj IN SELECT c.relname, c.relkind, i.indisunique, i.indisvalid,
+  FOR obj IN SELECT c.relname, c.relkind, i.indisunique, i.indisvalid, i.indisready,
                        pg_get_indexdef(i.indexrelid) AS definition
     FROM pg_class c LEFT JOIN pg_index i ON i.indexrelid=c.oid
     WHERE c.relnamespace='public'::regnamespace AND c.relname IN (
-      'ediel_test_run_locks_one_active_agt_uidx','ediel_unlinked_test_messages_open_idx')
+      'ediel_test_run_locks_one_active_agt_uidx','ediel_unlinked_test_messages_open_idx',
+      'idx_fk_ediel_test_run_locks_a4a5ed47195f49b5')
   LOOP
     IF obj.relkind<>'i' OR obj.indisvalid IS DISTINCT FROM true OR (obj.relname='ediel_test_run_locks_one_active_agt_uidx' AND
        (NOT obj.indisunique OR obj.definition NOT IN (
         'CREATE UNIQUE INDEX ediel_test_run_locks_one_active_agt_uidx ON public.ediel_test_run_locks USING btree (company_id, actor_role, message_family, environment_type) WHERE (released_at IS NULL)'))) OR
        (obj.relname='ediel_unlinked_test_messages_open_idx' AND
        (obj.indisunique OR obj.definition NOT IN (
-        'CREATE INDEX ediel_unlinked_test_messages_open_idx ON public.ediel_unlinked_test_messages USING btree (environment_type, message_family, status) WHERE (status = ''unlinked''::text)'))) THEN
+        'CREATE INDEX ediel_unlinked_test_messages_open_idx ON public.ediel_unlinked_test_messages USING btree (environment_type, message_family, status) WHERE (status = ''unlinked''::text)'))) OR
+       (obj.relname='idx_fk_ediel_test_run_locks_a4a5ed47195f49b5' AND
+        (obj.indisunique OR obj.indisready IS DISTINCT FROM true OR obj.definition<>
+         'CREATE INDEX idx_fk_ediel_test_run_locks_a4a5ed47195f49b5 ON public.ediel_test_run_locks USING btree (company_id)')) THEN
       RAISE EXCEPTION 'ediel_operations_unknown_index: %', obj.relname;
     END IF;
   END LOOP;
@@ -290,11 +305,19 @@ create index if not exists ediel_unlinked_test_messages_open_idx
       FOREIGN KEY(company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
   END IF;
 
+  -- August13's full FK-index sweep rejects partial coverage. Readiness already
+  -- has the leading company_id unique constraint; unlinked has no company FK.
+  CREATE INDEX IF NOT EXISTS idx_fk_ediel_test_run_locks_a4a5ed47195f49b5
+    ON public.ediel_test_run_locks USING btree (company_id);
+
   FOREACH rel IN ARRAY ARRAY['ediel_test_run_locks','ediel_agt_readiness','ediel_unlinked_test_messages'] LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', rel);
     IF NOT EXISTS (SELECT FROM pg_policies WHERE schemaname='public' AND tablename=rel AND policyname=rel || '_service_role_all') THEN
-      EXECUTE format('CREATE POLICY %I ON public.%I FOR ALL USING (auth.role() = ''service_role'') WITH CHECK (auth.role() = ''service_role'')', rel || '_service_role_all', rel);
+      EXECUTE format('CREATE POLICY %I ON public.%I FOR ALL USING ((SELECT auth.role()) = ''service_role'') WITH CHECK ((SELECT auth.role()) = ''service_role'')', rel || '_service_role_all', rel);
     END IF;
+    -- Converge late-created and existing original predicates to June12's form;
+    -- ALTER preserves policy identity, command, roles and permissive mode.
+    EXECUTE format('ALTER POLICY %I ON public.%I USING ((SELECT auth.role()) = ''service_role'') WITH CHECK ((SELECT auth.role()) = ''service_role'')', rel || '_service_role_all', rel);
     -- RLS is not a GRANT. Keep server CRUD usable even without BYPASSRLS, and
     -- remove inherited public/client table privileges; never broaden policies.
     EXECUTE format('REVOKE ALL ON public.%I FROM PUBLIC, anon, authenticated', rel);
