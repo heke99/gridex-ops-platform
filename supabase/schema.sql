@@ -121184,6 +121184,38 @@ CREATE VIEW public.ediel_active_actor_settings_v WITH (security_invoker='true') 
   WHERE ((COALESCE(is_active, true) = true) AND ((valid_from IS NULL) OR (valid_from <= CURRENT_DATE)) AND ((valid_to IS NULL) OR (valid_to >= CURRENT_DATE)));
 
 --
+-- Name: ediel_agt_readiness; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ediel_agt_readiness (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    actor_role text NOT NULL,
+    message_family text NOT NULL,
+    test_resource_name text,
+    test_resource_email text,
+    test_resource_confirmed boolean DEFAULT false NOT NULL,
+    ediel_portal_login_confirmed boolean DEFAULT false NOT NULL,
+    application_system_selected boolean DEFAULT false NOT NULL,
+    edi_system_selected boolean DEFAULT false NOT NULL,
+    current_approval_version text,
+    readiness_status text DEFAULT 'not_ready'::text NOT NULL,
+    needs_retest boolean DEFAULT false NOT NULL,
+    retest_reason text,
+    created_by uuid,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    invalidated_at timestamp with time zone,
+    invalidated_by uuid,
+    invalidation_source text,
+    last_checked_at timestamp with time zone,
+    last_checked_by uuid,
+    blocking_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
+    readiness_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+--
 -- Name: ediel_ai_list_discrepancies; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -123836,6 +123868,25 @@ CREATE TABLE public.ediel_test_data_sets (
 );
 
 --
+-- Name: ediel_test_run_locks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ediel_test_run_locks (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    actor_role text NOT NULL,
+    message_family text NOT NULL,
+    environment_type public.ediel_environment_type NOT NULL,
+    active_test_run_id uuid,
+    locked_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    released_at timestamp with time zone,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
 -- Name: ediel_test_run_messages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -124069,6 +124120,32 @@ CREATE TABLE public.ediel_transport_profiles (
     CONSTRAINT ediel_transport_profiles_direction_check CHECK ((direction = ANY (ARRAY['inbound'::text, 'outbound'::text, 'both'::text]))),
     CONSTRAINT ediel_transport_profiles_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
     CONSTRAINT ediel_transport_profiles_no_plaintext_secret_check CHECK (((secret_reference IS NULL) OR (secret_reference !~* '^(pass|password|pwd)=|://[^/]*:[^/@]+@'::text)))
+);
+
+--
+-- Name: ediel_unlinked_test_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ediel_unlinked_test_messages (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    environment_type public.ediel_environment_type DEFAULT 'agt_test'::public.ediel_environment_type NOT NULL,
+    message_family text,
+    business_code text,
+    sender_ediel_id text,
+    receiver_ediel_id text,
+    raw_payload_ref text,
+    parsed_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    candidate_test_run_ids uuid[] DEFAULT ARRAY[]::uuid[] NOT NULL,
+    status text DEFAULT 'unlinked'::text NOT NULL,
+    linked_test_run_id uuid,
+    linked_by uuid,
+    linked_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    ediel_message_id uuid,
+    inbound_mail_item_id uuid,
+    resolution_notes text
 );
 
 --
@@ -139139,6 +139216,20 @@ ALTER TABLE ONLY public.ediel_actor_settings
     ADD CONSTRAINT ediel_actor_settings_pkey PRIMARY KEY (id);
 
 --
+-- Name: ediel_agt_readiness ediel_agt_readiness_company_id_actor_role_message_family_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_agt_readiness
+    ADD CONSTRAINT ediel_agt_readiness_company_id_actor_role_message_family_key UNIQUE (company_id, actor_role, message_family);
+
+--
+-- Name: ediel_agt_readiness ediel_agt_readiness_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_agt_readiness
+    ADD CONSTRAINT ediel_agt_readiness_pkey PRIMARY KEY (id);
+
+--
 -- Name: ediel_ai_list_discrepancies ediel_ai_list_discrepancies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -140084,6 +140175,13 @@ ALTER TABLE ONLY public.ediel_test_data_sets
     ADD CONSTRAINT ediel_test_data_sets_pkey PRIMARY KEY (id);
 
 --
+-- Name: ediel_test_run_locks ediel_test_run_locks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_test_run_locks
+    ADD CONSTRAINT ediel_test_run_locks_pkey PRIMARY KEY (id);
+
+--
 -- Name: ediel_test_run_messages ediel_test_run_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -140166,6 +140264,13 @@ ALTER TABLE ONLY public.ediel_timeseries_products
 
 ALTER TABLE ONLY public.ediel_transport_profiles
     ADD CONSTRAINT ediel_transport_profiles_pkey PRIMARY KEY (id);
+
+--
+-- Name: ediel_unlinked_test_messages ediel_unlinked_test_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_unlinked_test_messages
+    ADD CONSTRAINT ediel_unlinked_test_messages_pkey PRIMARY KEY (id);
 
 --
 -- Name: ediel_unresolved_items ediel_unresolved_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -145594,6 +145699,12 @@ CREATE INDEX ediel_system_test_settings_runtime_lookup_idx ON public.ediel_syste
 CREATE UNIQUE INDEX ediel_test_cases_unique_idx ON public.ediel_test_cases USING btree (suite_key, test_case_code);
 
 --
+-- Name: ediel_test_run_locks_one_active_agt_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX ediel_test_run_locks_one_active_agt_uidx ON public.ediel_test_run_locks USING btree (company_id, actor_role, message_family, environment_type) WHERE (released_at IS NULL);
+
+--
 -- Name: ediel_test_run_messages_unique_step_message_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -145652,6 +145763,12 @@ CREATE UNIQUE INDEX ediel_timeseries_products_511_tuple_version_uidx ON public.e
 --
 
 CREATE INDEX ediel_transport_profiles_company_env_active_idx ON public.ediel_transport_profiles USING btree (company_id, environment, is_active, updated_at DESC);
+
+--
+-- Name: ediel_unlinked_test_messages_open_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ediel_unlinked_test_messages_open_idx ON public.ediel_unlinked_test_messages USING btree (environment_type, message_family, status) WHERE (status = 'unlinked'::text);
 
 --
 -- Name: ediel_unresolved_items_quarantine_idx; Type: INDEX; Schema: public; Owner: -
@@ -148850,6 +148967,12 @@ CREATE INDEX idx_fk_ediel_test_artifacts_ea1a932d1ad5 ON public.ediel_test_artif
 --
 
 CREATE INDEX idx_fk_ediel_test_cases_1e25c2f08377 ON public.ediel_test_cases USING btree (suite_id);
+
+--
+-- Name: idx_fk_ediel_test_run_locks_a4a5ed47195f49b5; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_fk_ediel_test_run_locks_a4a5ed47195f49b5 ON public.ediel_test_run_locks USING btree (company_id);
 
 --
 -- Name: idx_fk_ediel_test_run_messages_2d9fcac86f20; Type: INDEX; Schema: public; Owner: -
@@ -160761,6 +160884,12 @@ CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_act
 CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_actor_settings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
+-- Name: ediel_agt_readiness gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_agt_readiness FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: ediel_ai_list_imports gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -161131,6 +161260,12 @@ CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_sys
 --
 
 CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_test_artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_test_run_locks gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_test_run_locks FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: ediel_test_run_messages gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
@@ -172689,6 +172824,13 @@ ALTER TABLE ONLY public.ediel_actor_settings
     ADD CONSTRAINT ediel_actor_settings_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
 
 --
+-- Name: ediel_agt_readiness ediel_agt_readiness_company_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_agt_readiness
+    ADD CONSTRAINT ediel_agt_readiness_company_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
 -- Name: ediel_ai_list_discrepancies ediel_ai_list_discrepancies_ai_list_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -173975,6 +174117,13 @@ ALTER TABLE ONLY public.ediel_test_artifacts
 
 ALTER TABLE ONLY public.ediel_test_cases
     ADD CONSTRAINT ediel_test_cases_suite_id_fkey FOREIGN KEY (suite_id) REFERENCES public.ediel_test_suites(id) ON DELETE CASCADE;
+
+--
+-- Name: ediel_test_run_locks ediel_test_run_locks_company_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_test_run_locks
+    ADD CONSTRAINT ediel_test_run_locks_company_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
 
 --
 -- Name: ediel_test_run_messages ediel_test_run_messages_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -181599,6 +181748,18 @@ CREATE POLICY ediel_active_test_configurations_tenant_read ON public.ediel_activ
 ALTER TABLE public.ediel_actor_settings ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: ediel_agt_readiness; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.ediel_agt_readiness ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: ediel_agt_readiness ediel_agt_readiness_service_role_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY ediel_agt_readiness_service_role_all ON public.ediel_agt_readiness USING ((( SELECT auth.role() AS role) = 'service_role'::text)) WITH CHECK ((( SELECT auth.role() AS role) = 'service_role'::text));
+
+--
 -- Name: ediel_ai_list_discrepancies; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -182763,6 +182924,18 @@ ALTER TABLE public.ediel_test_cases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ediel_test_data_sets ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: ediel_test_run_locks; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.ediel_test_run_locks ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: ediel_test_run_locks ediel_test_run_locks_service_role_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY ediel_test_run_locks_service_role_all ON public.ediel_test_run_locks USING ((( SELECT auth.role() AS role) = 'service_role'::text)) WITH CHECK ((( SELECT auth.role() AS role) = 'service_role'::text));
+
+--
 -- Name: ediel_test_run_messages; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -182857,6 +183030,18 @@ CREATE POLICY ediel_timeseries_products_authenticated_read ON public.ediel_times
 --
 
 ALTER TABLE public.ediel_transport_profiles ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: ediel_unlinked_test_messages; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.ediel_unlinked_test_messages ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: ediel_unlinked_test_messages ediel_unlinked_test_messages_service_role_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY ediel_unlinked_test_messages_service_role_all ON public.ediel_unlinked_test_messages USING ((( SELECT auth.role() AS role) = 'service_role'::text)) WITH CHECK ((( SELECT auth.role() AS role) = 'service_role'::text));
 
 --
 -- Name: ediel_unresolved_items; Type: ROW SECURITY; Schema: public; Owner: -
@@ -215452,6 +215637,12 @@ GRANT ALL ON TABLE public.ediel_active_actor_settings_v TO authenticated;
 GRANT ALL ON TABLE public.ediel_active_actor_settings_v TO service_role;
 
 --
+-- Name: TABLE ediel_agt_readiness; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.ediel_agt_readiness TO service_role;
+
+--
 -- Name: TABLE ediel_ai_list_discrepancies; Type: ACL; Schema: public; Owner: -
 --
 
@@ -216183,6 +216374,12 @@ GRANT ALL ON TABLE public.ediel_test_data_sets TO authenticated;
 GRANT ALL ON TABLE public.ediel_test_data_sets TO service_role;
 
 --
+-- Name: TABLE ediel_test_run_locks; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.ediel_test_run_locks TO service_role;
+
+--
 -- Name: TABLE ediel_test_run_messages; Type: ACL; Schema: public; Owner: -
 --
 
@@ -216244,6 +216441,12 @@ GRANT SELECT ON TABLE public.ediel_timeseries_products TO authenticated;
 
 GRANT ALL ON TABLE public.ediel_transport_profiles TO authenticated;
 GRANT ALL ON TABLE public.ediel_transport_profiles TO service_role;
+
+--
+-- Name: TABLE ediel_unlinked_test_messages; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.ediel_unlinked_test_messages TO service_role;
 
 --
 -- Name: TABLE ediel_unresolved_items; Type: ACL; Schema: public; Owner: -
