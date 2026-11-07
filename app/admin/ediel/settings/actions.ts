@@ -46,7 +46,7 @@ function normalizeDirection(
   return value === "inbound" || value === "outbound" ? value : "both";
 }
 
-async function getActorContext() {
+async function getActorContext(existingProfile?: { id: string; environment: string }) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -56,7 +56,26 @@ async function getActorContext() {
     throw new Error("Unauthorized");
   }
 
-  const companyId = await requireOperationalCompanyId(user.id);
+  let companyId: string;
+  if (existingProfile) {
+    // The platform page can show cards without a tenant membership. Bind an
+    // existing card to its persisted company, never to a submitted company ID.
+    const { data: profile, error } = await supabase
+      .from("ediel_actor_settings")
+      .select("id,company_id,environment")
+      .eq("id", existingProfile.id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!profile?.company_id || profile.id !== existingProfile.id) {
+      throw new Error("Aktörsprofilens bolag kunde inte fastställas.");
+    }
+    if (profile.environment !== existingProfile.environment) {
+      throw new Error("Aktörsprofilens miljö stämmer inte med det sparade kortet.");
+    }
+    companyId = profile.company_id;
+  } else {
+    companyId = await requireOperationalCompanyId(user.id);
+  }
   await requireCompanyOperationalForWrites(companyId);
 
   return {
@@ -93,12 +112,13 @@ function revalidateEdielPaths() {
 export async function saveEdielActorSettingsAction(formData: FormData) {
   await requirePlatformAdminActionAccess();
 
-  const { userId, companyId } = await getActorContext();
-
   const id = stringValue(formData, "id");
   const environment =
     (stringValue(formData, "environment") as "test" | "production" | null) ??
     "test";
+  const { userId, companyId } = await getActorContext(
+    id ? { id, environment } : undefined,
+  );
   const isActive = boolValue(formData, "is_active");
 
   const actorEdielId =
