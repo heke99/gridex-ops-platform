@@ -1,22 +1,39 @@
 {
-  "state": "BUSINESS_CHAIN_BLOCKED_SMTP_QUALIFICATION_AND_ACCEPTANCE_POSTCONDITION",
+  "state": "LOCAL047_SOURCE_PUBLISHED_1039_ORDINARY_QUALIFICATION_CI_RUNNING",
   "baseline": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
   "reportBranch": "reports/local-verification-20261105-a71c",
   "sourceCustodyReceipt": "097dd80eb990f5865f4e5469393eb9fd5067cf1c",
   "sourceCustody": "ALL exact report-file refs verified by official atomic claim tool; no producer/GEN role acquired",
   "privateEvidence": "~/Library/Application Support/Gridex/private-evidence/20261105-local;full originals retained privately",
-  "nextAction": "Qualify own app SMTP with explicit exact config/resource approval;repair or apply reviewed donor for invalid acceptance relationship only after source custody;then ordinary user session/customer UI. Preserve7jobfindings andENV08defect;no main merge.",
+  "nextAction": "142canonicalSMTPmailboxschema gap sourceunderKantblocksnormalUI;CremainingtypedfilesunderPoincare;EVENTv3inventoryandfailed2fanouttriageNewton. 120/Cdispatch/DB05exactADMINanswerspending, noforeignwrite. Original7jobsretry2/max5.",
   "coverageMapping": "32-flow source unavailable in this session; mapping pending. Existing105 IDs unchanged; no new official IDs or PASS inferred",
-  "publication": "Only these three sanitized report files; offline scan required before push; no PR or main merge",
+  "publication": {
+    "pr": 1035,
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/1035",
+    "head": "bf79a324205f0b7bfba25675fd274e1135c8ec34",
+    "state": "OPEN_NOT_MERGED_NOT_DEPLOYED",
+    "ci": "27SUCCESS1SKIPPED terminal;47checks33SUCCESS13SKIPPED1NEUTRAL",
+    "requiredChecks": "GitHubreportsnone;no mergeapproval"
+  },
   "workflowInspection": "All push triggers in52 checked-in workflows target main or agent/release-certification-hardening-20260817, not this report branch. Branch creation integrations and remote settings not independently established.",
   "systemComplete": false,
   "productionUsed": false,
-  "currentAppPid": 69036,
-  "currentAuthId": "2ad237edf62bc",
-  "activeVerification": "No finite test command running;own app launcher remains active;no duplicate server",
+  "currentAppPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "currentAuthId": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "activeVerification": "All054finiteverificationreceiptscompleted;noheavybuild/typesactive. Existing20fileapp47285+[PRIVATE_PROCESS_REF] retained;no runtimecutover. PR1037terminal18SUCCESSatunchangedhead.",
   "rbacOverlay": "Approved/applied/versioned42+35 profile rows;only3intended tables changed;schema unchanged;negative ordinary actor denied;missing original catalog finding remainsOPEN",
   "invitation": "Real delivered SSR link verified and ordinary accept clicked;DB accepted+active correct-company membership;UI failed PGRST200 after business commit",
-  "customer": "NOT_RUN: ordinary password recovery blocked auth_smtp_not_ready;no member/customer/session injection",
+  "customer": {
+    "id": "ce58b16f-15b1-4635-91e4-1e2e1a472cf1",
+    "number": "A71C-100001",
+    "sites": [
+      "7cb774ea-b8ad-4885-bd7d-c20dd15b921c",
+      "49307bac-cc12-4f8e-b834-9ff8711c350e"
+    ],
+    "siteStatus": "bothdraft",
+    "contracts": 0,
+    "createdThrough": "ActualUIonly;2sitesnotcompletedlifecycle"
+  },
   "triageCounts": {
     "originalFailed38": {
       "PASS": 17,
@@ -28,5 +45,1480 @@
       "PASS": 3
     }
   },
-  "onlineState": "Prepared exact three owned sanitized report files;publication requires exact-file offline scan and ordinary approval"
+  "onlineState": "No commit/push/publication performed;prior remote3acf1765a unchanged;three owned reportfiles locallymodified",
+  "recordedAtUtc": "2026-11-07T03:46:37.172940+00:00",
+  "lastVerifiedOnlineCommit": "3acf1765a14c0942bba3fb1132644a3b02766873",
+  "sourceCustodyReadback": {
+    "lib/auth/companyUserAccess.ts": "No exact ref observed;not own custody",
+    "lib/ediel/utiltsEngine.part-1.ts": "No exact ref observed;not own custody",
+    "__tests__/ediel-env08-fixed-normal-time.test.ts": "Foreign exact reservation f6b99d2624a7bcc5a7f24c7928e8352deb282978;do not modify without bounded handoff"
+  },
+  "appProcessReadback": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "remainingBusinessDecision": "054 exactcustodymetadataapprovalpending;047/canonicalqualifiedproduceridentityandcustodyunverified;no source/DB/businessmutationqualifiedbyprivatehelperresults.",
+  "currentSmtpPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "smtpOverlay": "Pinned Mailpit1.30.2 darwin-arm64 only127.0.0.1:54325/54326;STARTTLS+bcryptauth;example.invalid-only;no relay/forwarding",
+  "smtpPhaseEvidence": "smtp-phase/native-setup-run.safe.json;recovery-customer.safe.json;database-after.safe.json",
+  "originalDockerSmtp": "Owned gridex_app_smtp_a71c stopped/retained;internal network/config retained;ports not reachable in original attempt",
+  "qualifiedRollback": "smtp-phase/native-rollback-qualified.safe.json;original draft retained;not executed",
+  "privateConfigurationExcludedFromReports": "[PRIVATE_EVIDENCE_REF:gridex-smtp-config-a71c] and-native contain actual TLS keys/auth hashes/mailbox database;do not copy orpublish them",
+  "finiteControls": "pgrep exactownfinite-runnerpatterns exit1/no matches;alllocalreceiptscompleted",
+  "productFixBranch": "fix/local033-recovery-ssr-a71c",
+  "productFixWorktree": "[PRIVATE_EVIDENCE_REF:gridex-unit-a71c]",
+  "productSourceChanges": "One uncommitted sourcefile+newregressionfile;local033SSRlink fix and038conditionalno-companytokenmintfix",
+  "standingLocalFixMandate": "Current user explicitly authorizes local bounded product fixes/test continuation;no need to ask again for in-scope product actions;commit/push/merge/deploy/publication still excluded",
+  "custodyBlocker": "Exact original2files owned;other fileclaims not authorized for publication",
+  "currentAppRoot": "[PRIVATE_EVIDENCE_REF:gridex-local114-active-runtime-a71c]",
+  "companyBrowserToolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "companyBrowserState": "64790 read-onlygoto emittedecho but no completed receipt; do not infer validUI/ownpositive; do notduplicate",
+  "sourceCustodyReceiptForFix": "2cd7fdd8601662a324179ae5e76874e10b378699",
+  "regressionState": "R127PASS/R228PASS;originalREDproofs retained",
+  "platformBrowserToolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "latestResourceVerification": {
+    "startedAtUtc": "2026-11-06T08:41:45.113728+00:00",
+    "checks": [
+      {
+        "command": [
+          "ps",
+          "-p",
+          "39373,39374,36671",
+          "-o",
+          "pid=,comm="
+        ],
+        "start": "2026-11-06T08:41:45.113861+00:00",
+        "end": "2026-11-06T08:41:45.134790+00:00",
+        "exitCode": 0,
+        "safeOutput": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+        "safeError": ""
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{.Name}} {{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}} {{json .HostConfig.PortBindings}}",
+          "supabase_auth_gridex-replay-a71c",
+          "supabase_db_gridex-replay-a71c",
+          "supabase_kong_gridex-replay-a71c"
+        ],
+        "start": "2026-11-06T08:41:45.134817+00:00",
+        "end": "2026-11-06T08:41:45.166417+00:00",
+        "exitCode": 0,
+        "safeOutput": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+        "safeError": ""
+      },
+      {
+        "command": [
+          "lsof",
+          "-nP",
+          "-iTCP:3301",
+          "-iTCP:54325",
+          "-iTCP:54326",
+          "-sTCP:LISTEN"
+        ],
+        "start": "2026-11-06T08:41:45.166470+00:00",
+        "end": "2026-11-06T08:41:45.181850+00:00",
+        "exitCode": 0,
+        "safeOutput": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+        "safeError": ""
+      },
+      {
+        "command": [
+          "docker",
+          "exec",
+          "supabase_db_gridex-replay-a71c",
+          "psql",
+          "-U",
+          "postgres",
+          "-d",
+          "postgres",
+          "-X",
+          "-A",
+          "-t",
+          "-q",
+          "-c",
+          "SELECT json_agg(x) FROM (SELECT id,job_key,status,attempt_count,max_attempts,last_error_code FROM public.company_provisioning_jobs WHERE company_id='54dc49cf-6638-4a3b-9f64-d3727f11bac2' ORDER BY job_key)x;"
+        ],
+        "start": "2026-11-06T08:41:45.181904+00:00",
+        "end": "2026-11-06T08:41:45.251549+00:00",
+        "exitCode": 0,
+        "safeOutput": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+        "safeError": ""
+      }
+    ],
+    "scope": "EXACT_OWN_PROCESSES_RESOURCES_AND_SEVEN_JOB_READBACK_ONLY",
+    "mutations": false,
+    "finishedAtUtc": "2026-11-06T08:41:45.251609+00:00"
+  },
+  "independentReviews": "local033/038 and041 each two independent exact-hash NO_FINDINGS",
+  "businessState": "1customer/2draftsites/0contracts;legalverified;partialAGTtestactor+portal+2testprofiles saved viaUI;0runs/messages;3readinessjobs pending0/5;7originalfailuresretry2/5 unchanged",
+  "designScenarioCounts": {
+    "BLOCKED": 87,
+    "PASS": 10,
+    "NOT_RUN": 7,
+    "FAIL": 1
+  },
+  "sourceFixReviews": "Final0410dc57a.../b3570b... twoNO_FINDINGS;no commit/publication",
+  "newCustodyPlan": {
+    "planSHA256": "06adba569959964cb00e9f2551b770c27e35a2189a4cf54f9565b4beb06ca79c",
+    "publicReceipt": {
+      "base": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
+      "files": [
+        "__tests__/actor-testing-canonical-company-projection.test.ts",
+        "lib/ediel/actorTesting.ts"
+      ],
+      "operation": "Reserve source files and rule IDs; resources-sha256=028b0b53c04debf9348fe87ac59c0d8872f7bd14a554ee073b7b84b1db8af3fe"
+    },
+    "resources": [
+      "refs/tags/agent-claims/masterplan/file-6b9feb8a2f82f568d5f987a34561004bab79386d98fa874f1f73c3ccb203e323",
+      "refs/tags/agent-claims/masterplan/file-8c76385cd274e8dca469cc6de7a8cc216ed52575e5a1b9053e1eb1a27ff51b42",
+      "refs/tags/agent-claims/masterplan/slot-session-56414e7e-edcf-4067-804f-bd092d628c90"
+    ],
+    "state": "REGISTERED_ALL3REFS_VERIFIED_9af4d718"
+  },
+  "sevenProvisioning": "All7originalrowsretryattempt2/max5unchanged;separate2completedinvitejobsdonotcloseoriginal7",
+  "platformBrowserState": "62639 actual/login after normalmode action; priorrootAuthsession no longer valid, no blindreauth",
+  "newTestCenterBlockers": [
+    "20261029-3f1a8ab1/local/047",
+    "20261029-3f1a8ab1/local/048"
+  ],
+  "privateManifestFix": "local049REDretained;excludeownpost-generatedreceipt;independent271entryGREEN;nextcopyincludesfinaldocs",
+  "permissionNeeds": {
+    "local120": "Pending user exactroute-onlyboundedADMINsuccession; ordinarytoolapproval+newofficialowncustodyandACK required. No oldrefrelease executed.",
+    "native122": "Newtonqualifyingactualnativefixturecustody; noforeignsourcewrite",
+    "general": "Standinglocal/ordinaryCI/deliverymandate retained; mandatorytoolcontrols remain"
+  },
+  "newCustodyReceipt": "9af4d71815e993b559116c693818cedfe48f4c48",
+  "local041SourceBranch": "fix/local041-actor-projection-a71c",
+  "local041SourceWorktree": "[PRIVATE_HOME_PATH]",
+  "local041RuntimeCandidate": "[PRIVATE_EVIDENCE_REF:gridex-local041-runtime-a71c]",
+  "local051Proposal": {
+    "planSHA256": "099274b8de6e4d98d120b047365a0b9d9b6a854f41c59ace9c520ffad680b49d",
+    "publicReceipt": {
+      "base": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
+      "files": [
+        "__tests__/company-detail-disabled-email-readiness.test.ts",
+        "app/admin/companies/[id]/page.tsx"
+      ],
+      "operation": "Reserve source files and rule IDs; resources-sha256=1ddf79bbdde81f0a1eb96da79d473fc989a2de70efd36ef0bfa23aae8551af14"
+    },
+    "resources": [
+      "refs/tags/agent-claims/masterplan/file-43781df48650ed52d379afb682ef80a1060a5359a4ec80d668300def8d046b12",
+      "refs/tags/agent-claims/masterplan/file-5cd7a2bf23eefc06092b54004f64b53e269a074cbdbc851d6227eee81f0237e9",
+      "refs/tags/agent-claims/masterplan/slot-session-18d27d3d-70b1-4cf3-adc8-0b0ee29ae20a"
+    ],
+    "state": "LOCAL_PLAN_VALIDATED_NO_API_CALLS"
+  },
+  "newCompanyReadFailure": "local051blocksoriginaldetail;separatetestingpageworks;no senderfallback enabled",
+  "privateEvidencePendingSync": true,
+  "lastCompletedPrivatePreservation": {
+    "savedAtUtc": "2026-11-06T19:35:54.686976+00:00",
+    "source": "[PRIVATE_EVIDENCE_REF:gridex-evidence-20261105-local]",
+    "destination": "[PRIVATE_HOME_PATH] Support/Gridex/private-evidence/20261106-local054-published-1038",
+    "filesVerified": 1482,
+    "mismatches": [],
+    "sha256Manifest": "8e240762d4bf84862f1f5136e4a9e62c5998b7f249925d1fad4aa6e1e7d548d4",
+    "scope": "Only existing private evidence packet;no SMTP config/keys/mailbox DB;no external publication",
+    "liveLogs": "Controllers/app still active;manifest is point-in-time snapshot"
+  },
+  "preservationLimitation": "Receipt binds prior point-in-time352filecopy;finalreporteditswillbesyncedonceagain;latestdurablepreservation-receipt.safe.json is authoritative.",
+  "appLauncherToolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "local051CustodyReceipt": "2b552d58f48a8c37c305e82b4940ad928c552f11",
+  "local051FixState": "7regressionsPASS;lint/app/tests types/buildPASS;twoNO_FINDINGS;actualbrowserPASS;uncommitted",
+  "local051SourceBranch": "fix/local051-company-email-readiness-a71c",
+  "local051SourceWorktree": "[PRIVATE_HOME_PATH]",
+  "newEdielCustodyProposal": {
+    "planSHA256": "37a64ce419966b5fa2fb84cc4555cc52982405a89a12b3f4f40e00b35d42b20e",
+    "publicReceipt": {
+      "base": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
+      "files": [
+        "__tests__/ediel-case-payload-company-context.test.ts",
+        "__tests__/ediel-tgt-missing-profile-feedback.test.ts",
+        "app/admin/ediel/actions.part-2.ts",
+        "app/admin/ediel/system-tests/cases/[id]/page.tsx"
+      ],
+      "operation": "Reserve source files and rule IDs; resources-sha256=a8f6bdf584a82a4879227efa650b10e5eeca2fdff206dc9d26f23c3a82a0a525"
+    },
+    "resources": [
+      "refs/tags/agent-claims/masterplan/file-0d727db893cd9a75807b2d478cffcd29f0f182181e46a9530586fd03b097340e",
+      "refs/tags/agent-claims/masterplan/file-29f8661b48fe529ad329af25432023fa1f7b3f65717f48176b56dfdd705de6df",
+      "refs/tags/agent-claims/masterplan/file-8c94491fff6ead6dbee8750f658f79ab7833eade80e88441eddc0f680b5b54e7",
+      "refs/tags/agent-claims/masterplan/file-fb56031b4d350724d25daa9bd065769525b559b6e9724a368d04f350e145f641",
+      "refs/tags/agent-claims/masterplan/slot-session-3f215475-95ec-4085-9f39-4335092b21df"
+    ],
+    "state": "LOCAL_PLAN_VALIDATED_NO_API_CALLS"
+  },
+  "foreignLockCustody": "051ec7e48eb08c14a5a50f6faedc356a99e764d9 exactfile lib/ediel/testing/testRunTransportMetadata.ts;oldC1labelnotnewassignment",
+  "privatePreservationContract": "Authoritative final privatecopy receipt binds point-in-time SHA256SUMS;receipt kept outside ownmanifest;active app/browser logs can append later",
+  "smtpCredentialQualification": {
+    "smtpStarttlsCaVerified": true,
+    "smtpAuthSucceeded": true,
+    "smtpNoopStatus": 250,
+    "mailApiAuthenticatedHttpStatus": 200,
+    "mailDeliveryAttempted": false,
+    "credentialsLogged": false
+  },
+  "local052053CustodyReceipt": "d1f52c4a33f9f117194cb409a8fa9eb07c59599c",
+  "local052053SourceBranch": "fix/local052-053-ediel-ui-context-a71c",
+  "local052053SourceWorktree": "[PRIVATE_HOME_PATH]",
+  "local052053Regression": "12PASS;allREDretained;lint/types/build0;twoexacthashNO_FINDINGS",
+  "runningCandidateManifest": {
+    "preparedAtUtc": "2026-11-06T07:57:28.499611+00:00",
+    "baseline": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
+    "root": "[PRIVATE_EVIDENCE_REF:gridex-local052053-runtime-a71c]",
+    "sourceFiles": {
+      "lib/ediel/actorTesting.ts": "[PRIVATE_HOME_PATH]",
+      "__tests__/actor-testing-canonical-company-projection.test.ts": "[PRIVATE_HOME_PATH]",
+      "lib/tenant/passwordResetEmail.ts": "[PRIVATE_EVIDENCE_REF:gridex-unit-a71c]",
+      "__tests__/tenant-password-reset-ssr.test.ts": "[PRIVATE_EVIDENCE_REF:gridex-unit-a71c]",
+      "app/admin/companies/[id]/page.tsx": "[PRIVATE_HOME_PATH]",
+      "__tests__/company-detail-disabled-email-readiness.test.ts": "[PRIVATE_HOME_PATH]",
+      "app/admin/ediel/actions.part-2.ts": "[PRIVATE_HOME_PATH]",
+      "app/admin/ediel/system-tests/cases/[id]/page.tsx": "[PRIVATE_HOME_PATH]",
+      "__tests__/ediel-tgt-missing-profile-feedback.test.ts": "[PRIVATE_HOME_PATH]",
+      "__tests__/ediel-case-payload-company-context.test.ts": "[PRIVATE_HOME_PATH]"
+    },
+    "codePublished": false,
+    "overlays": "Basef23 + owned033/038 +041 +051 +052/053 exactuncommitted sources;no schema/envfilescopied",
+    "sourceHashes": [
+      {
+        "path": "lib/ediel/actorTesting.ts",
+        "sha256": "0dc57a37ed7823bbd4af63d74898063274f6df3af2f446a0c8d0a57af1a02086"
+      },
+      {
+        "path": "__tests__/actor-testing-canonical-company-projection.test.ts",
+        "sha256": "b3570bba6492709cf3c7cac88dbbb33c942b65ed5da006072361ffa655c434f1"
+      },
+      {
+        "path": "lib/tenant/passwordResetEmail.ts",
+        "sha256": "5fea01c1f13b37a39b0e6f17ace2fcce2629c5c37d46ee80e344ec931543986e"
+      },
+      {
+        "path": "__tests__/tenant-password-reset-ssr.test.ts",
+        "sha256": "6caa146381c8915057dae9c23d6a098caf54c0f4bc70100cd48252cf07f4af84"
+      },
+      {
+        "path": "app/admin/companies/[id]/page.tsx",
+        "sha256": "f1608e1f0475ee624977ef2565ea654b7e5b094887aaf3be2fa716d3876df72b"
+      },
+      {
+        "path": "__tests__/company-detail-disabled-email-readiness.test.ts",
+        "sha256": "126a1ca1352107af5a95b364f9b071558df200ba6119a518877055dbee4730b7"
+      },
+      {
+        "path": "app/admin/ediel/actions.part-2.ts",
+        "sha256": "2fd5679e131b9e858d3514cdfffb0dd3cec7e8c818614072b1b31c804e90d827"
+      },
+      {
+        "path": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+        "sha256": "8a20966ed3194253932c204638acc9b784c76b89cd4aae8ab9817ee4541e4c9a"
+      },
+      {
+        "path": "__tests__/ediel-tgt-missing-profile-feedback.test.ts",
+        "sha256": "966c6ab32b89d6bfc59bb4303e9211c5be4a91e1c2126d54ca05540e24b22726"
+      },
+      {
+        "path": "__tests__/ediel-case-payload-company-context.test.ts",
+        "sha256": "7be6c7f67f98445c8351f4a94b292479f980493dc8af698dbeb9481d00140d98"
+      }
+    ]
+  },
+  "reviewedUncommittedDeliveryPlan": [
+    {
+      "findingGroup": "033/038",
+      "branch": "fix/local033-recovery-ssr-a71c",
+      "files": [
+        {
+          "path": "lib/tenant/passwordResetEmail.ts",
+          "sha256": "5fea01c1f13b37a39b0e6f17ace2fcce2629c5c37d46ee80e344ec931543986e"
+        },
+        {
+          "path": "__tests__/tenant-password-reset-ssr.test.ts",
+          "sha256": "6caa146381c8915057dae9c23d6a098caf54c0f4bc70100cd48252cf07f4af84"
+        }
+      ],
+      "dependencies": [],
+      "independentReviews": "local-followup/recovery-final-reviews.safe.json",
+      "executedEvidence": "28focusedPASS;realordinaryUIemail→password→freshlogin→customer/site",
+      "remainingRisks": "OriginalRBAC/Auth/SMTP/PR948overlaysremain;PGRST200independent",
+      "commitPushPrMergeDeployAuthorized": false,
+      "deliveryState": "LOCAL_REVIEW_COMPLETE_PUBLICATION_NOT_AUTHORIZED",
+      "sharedRuntimeLimitation": "RunningbuildhasexplicitAuth/RBAC/PR948/SMTPandnowpartialsyntheticAGTconfigoverlays;notoriginalmainacceptance"
+    },
+    {
+      "findingGroup": "041",
+      "branch": "fix/local041-actor-projection-a71c",
+      "files": [
+        {
+          "path": "lib/ediel/actorTesting.ts",
+          "sha256": "0dc57a37ed7823bbd4af63d74898063274f6df3af2f446a0c8d0a57af1a02086"
+        },
+        {
+          "path": "__tests__/actor-testing-canonical-company-projection.test.ts",
+          "sha256": "b3570bba6492709cf3c7cac88dbbb33c942b65ed5da006072361ffa655c434f1"
+        }
+      ],
+      "dependencies": [],
+      "independentReviews": "local041-repair/final-independent-reviews.safe.json",
+      "executedEvidence": "8helperPGlitePASS;realcanonicalactorview",
+      "remainingRisks": "LegacycompatibilitySQLproofnotfulllegacybrowser;initialregression050retained",
+      "commitPushPrMergeDeployAuthorized": false,
+      "deliveryState": "LOCAL_REVIEW_COMPLETE_PUBLICATION_NOT_AUTHORIZED",
+      "sharedRuntimeLimitation": "RunningbuildhasexplicitAuth/RBAC/PR948/SMTPandnowpartialsyntheticAGTconfigoverlays;notoriginalmainacceptance"
+    },
+    {
+      "findingGroup": "051",
+      "branch": "fix/local051-company-email-readiness-a71c",
+      "files": [
+        {
+          "path": "app/admin/companies/[id]/page.tsx",
+          "sha256": "f1608e1f0475ee624977ef2565ea654b7e5b094887aaf3be2fa716d3876df72b"
+        },
+        {
+          "path": "__tests__/company-detail-disabled-email-readiness.test.ts",
+          "sha256": "126a1ca1352107af5a95b364f9b071558df200ba6119a518877055dbee4730b7"
+        }
+      ],
+      "dependencies": [
+        "041fororiginalcanonicalcompanyview"
+      ],
+      "independentReviews": "local051-repair/final-reviews.safe.json",
+      "executedEvidence": "7mockedpagePASS;realcompanydetail/normallegalreview",
+      "remainingRisks": "Websiteaggregatereadinessexplicitlynotassessedwhen senderdisabled;no sendpolicychange",
+      "commitPushPrMergeDeployAuthorized": false,
+      "deliveryState": "LOCAL_REVIEW_COMPLETE_PUBLICATION_NOT_AUTHORIZED",
+      "sharedRuntimeLimitation": "RunningbuildhasexplicitAuth/RBAC/PR948/SMTPandnowpartialsyntheticAGTconfigoverlays;notoriginalmainacceptance"
+    },
+    {
+      "findingGroup": "052/053",
+      "branch": "fix/local052-053-ediel-ui-context-a71c",
+      "files": [
+        {
+          "path": "app/admin/ediel/actions.part-2.ts",
+          "sha256": "2fd5679e131b9e858d3514cdfffb0dd3cec7e8c818614072b1b31c804e90d827"
+        },
+        {
+          "path": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+          "sha256": "8a20966ed3194253932c204638acc9b784c76b89cd4aae8ab9817ee4541e4c9a"
+        },
+        {
+          "path": "__tests__/ediel-tgt-missing-profile-feedback.test.ts",
+          "sha256": "966c6ab32b89d6bfc59bb4303e9211c5be4a91e1c2126d54ca05540e24b22726"
+        },
+        {
+          "path": "__tests__/ediel-case-payload-company-context.test.ts",
+          "sha256": "7be6c7f67f98445c8351f4a94b292479f980493dc8af698dbeb9481d00140d98"
+        }
+      ],
+      "dependencies": [],
+      "independentReviews": "local052-053-repair/final-reviews.safe.json",
+      "executedEvidence": "12mockedtestsPASS;realcasepage+companydenial;build",
+      "remainingRisks": "053fullsubmitBLOCKED057;noTGT/AGTchainapproval;054foreigncustody",
+      "commitPushPrMergeDeployAuthorized": false,
+      "deliveryState": "HOLD_FOR_057_AND_REAL_SUBMIT_RETEST",
+      "sharedRuntimeLimitation": "RunningbuildhasexplicitAuth/RBAC/PR948/SMTPandnowpartialsyntheticAGTconfigoverlays;notoriginalmainacceptance"
+    }
+  ],
+  "originalBaselineAndOverlays": "Basef23;explicitpriorPR948/RBAC/Auth/SMTPoverlaysseparate;5sourcefixfiles+5testslistedexactly;notunchangedmainacceptance",
+  "environmentOverlays": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "newReadinessJobs": [
+    {
+      "id": "16a1bcf1-6e74-4674-b022-c1c8bb29aa0f",
+      "status": "pending",
+      "attempt_count": 0,
+      "max_attempts": 5
+    },
+    {
+      "id": "bb80b4e4-8ea1-4d7f-b9d1-e3a455da25bb",
+      "status": "pending",
+      "attempt_count": 0,
+      "max_attempts": 5
+    },
+    {
+      "id": "1ac8a6d2-837d-490d-9d0e-375f3958eacb",
+      "status": "pending",
+      "attempt_count": 0,
+      "max_attempts": 5
+    }
+  ],
+  "currentSinkPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "currentRuntime": "[PRIVATE_EVIDENCE_REF:gridex-auth-chain-runtime-a71c]",
+  "currentCandidateSource": {
+    "recordedAtUtc": "2026-11-06T13:29:28.345027+00:00",
+    "base": "98687136b6131a4554d0c99039cb24551980db40",
+    "sourceHashes": [
+      {
+        "path": "lib/tenant/passwordResetEmail.ts",
+        "sha256": "5fea01c1f13b37a39b0e6f17ace2fcce2629c5c37d46ee80e344ec931543986e"
+      },
+      {
+        "path": "__tests__/tenant-password-reset-ssr.test.ts",
+        "sha256": "6caa146381c8915057dae9c23d6a098caf54c0f4bc70100cd48252cf07f4af84"
+      },
+      {
+        "path": "lib/ediel/actorTesting.ts",
+        "sha256": "0dc57a37ed7823bbd4af63d74898063274f6df3af2f446a0c8d0a57af1a02086"
+      },
+      {
+        "path": "__tests__/actor-testing-canonical-company-projection.test.ts",
+        "sha256": "b3570bba6492709cf3c7cac88dbbb33c942b65ed5da006072361ffa655c434f1"
+      },
+      {
+        "path": "app/admin/companies/[id]/page.tsx",
+        "sha256": "f1608e1f0475ee624977ef2565ea654b7e5b094887aaf3be2fa716d3876df72b"
+      },
+      {
+        "path": "__tests__/company-detail-disabled-email-readiness.test.ts",
+        "sha256": "126a1ca1352107af5a95b364f9b071558df200ba6119a518877055dbee4730b7"
+      },
+      {
+        "path": "app/admin/ediel/actions.part-2.ts",
+        "sha256": "2fd5679e131b9e858d3514cdfffb0dd3cec7e8c818614072b1b31c804e90d827"
+      },
+      {
+        "path": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+        "sha256": "e6839a1994ea4f0c3f513715191c4cb22ca5be8ac2ea398fc1a99401ebc2d990"
+      },
+      {
+        "path": "__tests__/ediel-tgt-missing-profile-feedback.test.ts",
+        "sha256": "966c6ab32b89d6bfc59bb4303e9211c5be4a91e1c2126d54ca05540e24b22726"
+      },
+      {
+        "path": "__tests__/ediel-case-payload-company-context.test.ts",
+        "sha256": "48cef4830f9b3e82496046a8573480e8e7a8e1ad608a49430ef3ac11e5f97001"
+      },
+      {
+        "path": "app/admin/ediel/system-tests/actions.part-2.ts",
+        "sha256": "093e106ee0aaf43c5d7056f2effd13911c1714ac3ffcd15c18e14f51b7532b1c"
+      },
+      {
+        "path": "__tests__/ediel-payload-validation-start-gate.test.ts",
+        "sha256": "1b77d2cd06429f6186bfba2a37e324806ff4b24be2ae83871473781492b4ad68"
+      },
+      {
+        "path": "app/admin/ediel/agt/actions.ts",
+        "sha256": "4879bc23437b668bcd9566d4b1b0e54bea05dd00a16dd4bde185c1483f2bd26c"
+      },
+      {
+        "path": "app/admin/ediel/agt/page.tsx",
+        "sha256": "efbee5cf454a34644464771133ae3621c2886b616960924ad408b614e5e909a1"
+      },
+      {
+        "path": "__tests__/ediel-agt-canonical-route-binding.test.ts",
+        "sha256": "437972df0eb02535f2187e66db06135837f4d408881a86ce32cea69a83d3b5c0"
+      },
+      {
+        "path": "__tests__/ediel-agt-readiness-gate-display.test.ts",
+        "sha256": "235aedb669507ea960cd3a038cca4307fa32a9331686baf067ecfc73df9a73d6"
+      },
+      {
+        "path": "lib/contracts/lifecycleErrors.ts",
+        "sha256": "563ba1d36736019cf3fabd25f3f81c517cdeac19b3758eb56d5840c5ae88b7d4"
+      },
+      {
+        "path": "__tests__/contract-lifecycle-readiness-feedback.test.ts",
+        "sha256": "c0b80b3c07034f168941e5eaacb9d7e85a409e611fe02d87c0caf42a275616aa"
+      },
+      {
+        "path": "app/admin/ediel/agt/[testCaseCode]/page.tsx",
+        "sha256": "1bb22bfa2d7893225e5e46cd7f60962863a7c56f915e4865ce8bf082e5a96d49"
+      },
+      {
+        "path": "__tests__/ediel-agt-case-readiness-gate-display.test.ts",
+        "sha256": "d8c9945f7e5361bd4bd97352ceedd9188d226c7604b0e6d61c2d362b78ab8f1f"
+      }
+    ],
+    "scope": "Published12+062063069075eight,062twofilesrevisedfor083;20filecandidate"
+  },
+  "local057": {
+    "custodyReceipt": "a5eb29164b35379da0882f3a3b91df969d910dd1",
+    "sourceHashes": [
+      {
+        "path": "lib/tenant/passwordResetEmail.ts",
+        "sha256": "5fea01c1f13b37a39b0e6f17ace2fcce2629c5c37d46ee80e344ec931543986e"
+      },
+      {
+        "path": "__tests__/tenant-password-reset-ssr.test.ts",
+        "sha256": "6caa146381c8915057dae9c23d6a098caf54c0f4bc70100cd48252cf07f4af84"
+      },
+      {
+        "path": "lib/ediel/actorTesting.ts",
+        "sha256": "0dc57a37ed7823bbd4af63d74898063274f6df3af2f446a0c8d0a57af1a02086"
+      },
+      {
+        "path": "__tests__/actor-testing-canonical-company-projection.test.ts",
+        "sha256": "b3570bba6492709cf3c7cac88dbbb33c942b65ed5da006072361ffa655c434f1"
+      },
+      {
+        "path": "app/admin/companies/[id]/page.tsx",
+        "sha256": "f1608e1f0475ee624977ef2565ea654b7e5b094887aaf3be2fa716d3876df72b"
+      },
+      {
+        "path": "__tests__/company-detail-disabled-email-readiness.test.ts",
+        "sha256": "126a1ca1352107af5a95b364f9b071558df200ba6119a518877055dbee4730b7"
+      },
+      {
+        "path": "app/admin/ediel/actions.part-2.ts",
+        "sha256": "2fd5679e131b9e858d3514cdfffb0dd3cec7e8c818614072b1b31c804e90d827"
+      },
+      {
+        "path": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+        "sha256": "e6839a1994ea4f0c3f513715191c4cb22ca5be8ac2ea398fc1a99401ebc2d990"
+      },
+      {
+        "path": "__tests__/ediel-tgt-missing-profile-feedback.test.ts",
+        "sha256": "966c6ab32b89d6bfc59bb4303e9211c5be4a91e1c2126d54ca05540e24b22726"
+      },
+      {
+        "path": "__tests__/ediel-case-payload-company-context.test.ts",
+        "sha256": "48cef4830f9b3e82496046a8573480e8e7a8e1ad608a49430ef3ac11e5f97001"
+      },
+      {
+        "path": "app/admin/ediel/system-tests/actions.part-2.ts",
+        "sha256": "093e106ee0aaf43c5d7056f2effd13911c1714ac3ffcd15c18e14f51b7532b1c"
+      },
+      {
+        "path": "__tests__/ediel-payload-validation-start-gate.test.ts",
+        "sha256": "1b77d2cd06429f6186bfba2a37e324806ff4b24be2ae83871473781492b4ad68"
+      }
+    ],
+    "result": "21action/79combinedPASS; lint/types/build/ratchet;2reviews; realUI+DB0runs/0messages",
+    "remaining": "066 explicitrunningartifact integration BLOCKED"
+  },
+  "publicationProposal": "publication-ready/publication-proposal.safe.md",
+  "plannedPublicationCommits": {
+    "state": "OFFLINE_PROPOSAL_NO_GIT_OBJECTS_CREATED_NO_COMMIT_OR_PUBLICATION",
+    "repository": "heke99/gridex-ops-platform",
+    "base": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
+    "sourceBranch": "fix/local-reviewed-auth-company-a71c",
+    "destinationRef": "refs/heads/fix/local-reviewed-auth-company-a71c",
+    "prBase": "main",
+    "plannedHead": "bf79a324205f0b7bfba25675fd274e1135c8ec34",
+    "commits": [
+      {
+        "sha": "433679df82fb6c18181228a84a358b63eadc896c",
+        "tree": "16e57ed9bfc44026eb50a1e1e2b2f52240de3b11",
+        "parent": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
+        "title": "fix(auth): route tenant password recovery through SSR verification",
+        "files": [
+          "lib/tenant/passwordResetEmail.ts",
+          "__tests__/tenant-password-reset-ssr.test.ts"
+        ],
+        "findings": [
+          "local/033",
+          "local/038"
+        ],
+        "payloadFile": "planned-commit-1.txt",
+        "payloadSHA256": "590545e5dd54befb5ba32ae88239bb9439d364f2d04b9733f57742ffd72c97da"
+      },
+      {
+        "sha": "421074ea20073c8e69a6bc3da97c0ae55cd22a77",
+        "tree": "c51db0079a323ac7b9656256a4f02607ecf8786a",
+        "parent": "433679df82fb6c18181228a84a358b63eadc896c",
+        "title": "fix(ediel): preserve company scope across canonical projection retry",
+        "files": [
+          "lib/ediel/actorTesting.ts",
+          "__tests__/actor-testing-canonical-company-projection.test.ts"
+        ],
+        "findings": [
+          "local/041"
+        ],
+        "payloadFile": "planned-commit-2.txt",
+        "payloadSHA256": "5420b1038ebaba116800b66d4fb2e63e653b386df51ecc0e99548274d8e3a73d"
+      },
+      {
+        "sha": "bf79a324205f0b7bfba25675fd274e1135c8ec34",
+        "tree": "c969e8528530e2b268123c5bbcc697313da00a92",
+        "parent": "421074ea20073c8e69a6bc3da97c0ae55cd22a77",
+        "title": "fix(admin): render unconfigured company email readiness safely",
+        "files": [
+          "app/admin/companies/[id]/page.tsx",
+          "__tests__/company-detail-disabled-email-readiness.test.ts"
+        ],
+        "findings": [
+          "local/051"
+        ],
+        "payloadFile": "planned-commit-3.txt",
+        "payloadSHA256": "c60fa516440606be94ffeca12468bef4ef5271a63540d361eb5ec185c5a587eb"
+      }
+    ],
+    "identity": "Gridex verification <[EMAIL_REDACTED]>",
+    "requiresSeparateApproval": true,
+    "excluded": [
+      "Ediel052/053/057",
+      "reports",
+      "local environment overlays",
+      "merge",
+      "deploy"
+    ],
+    "limits": "Commit IDs computed from exact bytes without Git writes; any content/identity/time/parent change invalidates proposal."
+  },
+  "next062063Custody": {
+    "planSHA256": "b0eb5cfb97786e38b9326103c3b4d8a098d8f55916ed6dcb4d2fe385d8ea6733",
+    "proposal": "local057-repair/next062063-custody/proposal.safe.json",
+    "state": "LOCAL_PLAN_VALIDATED_NO_API_CALLS"
+  },
+  "observedAtUtc": "2026-11-06T19:12:18.131324+00:00",
+  "local062063": {
+    "status": "FIXED_LOCAL_REVIEWED_NOT_COMMITTED",
+    "custodyReceipt": "a32b447956a7d3753df7aa7a7fffbcc535db61af",
+    "source": "local062063-repair/candidate-source-final.safe.json",
+    "evidence": "local062063-repair/real-ui-db-retest.safe.json",
+    "tests": "19focused/98combined;lint/types/build/ratchet/scanner;2reviews;normalUI/DBcanonicalbinding"
+  },
+  "separateEdielDeliveryProposal": "ediel-delivery-proposal/proposal.safe.json",
+  "next069Custody": {
+    "state": "REGISTERED_VERIFIED",
+    "planSHA256": "916506be81071666286540d837080edc1be3b4888d7bf7c6d102cf5589c00008",
+    "proposal": "local062063-repair/next069-custody/proposal.safe.json",
+    "receipt": "14e259f9cb906c8c0bba2b5f684e4b561427493f"
+  },
+  "local047HandoffDraft": {
+    "state": "SENT_NO_TRANSFER",
+    "path": "local062063-repair/local047-producer-handoff-draft.safe.md",
+    "sha256": "476b9d6011bff6289e56ccc83a7b2251c3d2e66961021a5a4b400756ceb52e25",
+    "commentUrl": "https://github.com/heke99/gridex-ops-platform/issues/840#issuecomment-6684511760"
+  },
+  "local069": {
+    "status": "FIXED_LOCAL_REVIEWED_NOT_COMMITTED",
+    "evidence": "local069-repair/real-ui-db-retest.safe.json",
+    "source": "local069-repair/candidate-source-final.safe.json",
+    "tests": "32focused130combined;lint/types/build/offline;2reviews"
+  },
+  "edielPublication": {
+    "pr": 1036,
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/1036",
+    "base": "fix/local-reviewed-auth-company-a71c",
+    "head": "98687136b6131a4554d0c99039cb24551980db40",
+    "state": "OPEN_NOT_MERGED_NOT_DEPLOYED",
+    "ci": {
+      "state": "TERMINAL_SUCCESS",
+      "workflows": 9,
+      "success": 9,
+      "evidence": "ediel-delivery-proposal/resume-20261106T1553-remote.safe.json"
+    }
+  },
+  "currentTask": "054boundedrepaircompletedlocally;noactivation/publication;047operatorappointmentdecisionpending;productionhardening/localmodeldecisionbodyshown",
+  "local075": {
+    "custodyReceipt": "73284aa388e027b8baafe632c0f0e893c220f6ae",
+    "planSHA256": "27690090ee268307a74e42d7117ce6f0f6e445974592d3a24e0a3e51a7fc5e61",
+    "state": "FIXED_LOCAL_REVIEWED_NOT_COMMITTED",
+    "source": "local075-repair/candidate-source-final.safe.json",
+    "evidence": "local075-repair/real-ui-db-retest.safe.json"
+  },
+  "ciWatch": {
+    "session": 15316,
+    "script": "[PRIVATE_EVIDENCE_REF:gridex-ediel-ci-watch-a71c.py]",
+    "maxPolls": 80,
+    "intervalSeconds": 45,
+    "artifact": "ediel-delivery-proposal/bounded-ci-watch.safe.json",
+    "mutation": false,
+    "state": "STOPPED_AT80_EXIT124_NOT_RESTARTED",
+    "laterTerminalEvidence": "ediel-delivery-proposal/resume-20261106T1553-remote.safe.json"
+  },
+  "remainingBusinessBoundary": {
+    "customers": 1,
+    "sites": 2,
+    "siteStatus": "draft",
+    "customerContracts": 0,
+    "edielRuns": 0,
+    "edielMessages": 0,
+    "sevenOriginalRetryJobs": "2/5unchanged",
+    "readinessJobs": "4pending0/5unchanged"
+  },
+  "canonicalReviewDraft": {
+    "path": "local075-repair/canonical-production-local-model-handoff-draft.safe.md",
+    "sha256": "f13d26346d42f236496eec3911052b0aab2ba29a56d8ec59b8b91134b756e583",
+    "state": "SENT_EXACT_VERIFIED_NO_TRANSFER",
+    "commentUrl": "https://github.com/heke99/gridex-ops-platform/issues/840#issuecomment-6685595683"
+  },
+  "local083": {
+    "worktree": "[PRIVATE_HOME_PATH]",
+    "custodyReceipt": "a32b447956a7d3753df7aa7a7fffbcc535db61af",
+    "state": "FIXED_LOCAL_VERIFIED_NOT_COMMITTED",
+    "evidence": "local083-repair/saved-payload-readback.safe.json"
+  },
+  "separateReadinessPublicationProposal": "readiness-delivery-proposal-v2/proposal.safe.json",
+  "resumeDatabaseEvidence": "local083-repair/campaign-resume-20261106T1713-db.safe.json",
+  "readinessPublication": {
+    "pr": 1037,
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/1037",
+    "head": "7e34f8578e4f75f7f70027772ef61fa9c856ff69",
+    "commits": [
+      "d642e98c26522782990b7d2667e634a8f001e456",
+      "7e34f8578e4f75f7f70027772ef61fa9c856ff69"
+    ],
+    "base": "98687136b6131a4554d0c99039cb24551980db40",
+    "files": 8,
+    "diffVerified": true,
+    "merged": false,
+    "deployed": false,
+    "ciTerminal": false,
+    "ci": {
+      "state": "TERMINAL_SUCCESS",
+      "success": 18,
+      "inProgress": 0,
+      "terminal": true,
+      "evidence": "readiness-delivery-proposal-v2/published-readback-10.safe.json"
+    }
+  },
+  "supportStatus": {
+    "state": "PASS",
+    "caseId": "6a6bc0f2-1923-4b60-b51d-79ce041711d0",
+    "status": "closed",
+    "evidence": "local083-repair/support-status-result.safe.json"
+  },
+  "bounded054Proposal": "local083-repair/local054-bounded-admin-release-proposal.safe.json",
+  "local054Custody": {
+    "oldRefRelease": "VERIFIED_AUTHENTICATED_ABSENCE",
+    "evidence": "local083-repair/local054-approved-release-execution.safe.json",
+    "newPlan": "local083-repair/local054-new-custody/proposal.safe.json",
+    "planSHA256": "b4fd1495b1ee0f75a4db9dc76a15ae18fd0a03a4156292a2770ab72f0c95a9d4",
+    "state": "VALID_REPAIR_VERIFIED_NOT_COMMITTED",
+    "sourceWrites": true,
+    "receipt": "393e33eaea894859dc861d0ac0ecad4602389a5e",
+    "writerAgent": "01a1b02c-c91d-7a12-af78-826a95420f30",
+    "allTargetAck": "parallel054-kant/054-all-target-ack.safe.json"
+  },
+  "parallelExecution": {
+    "updatedAtUtc": "2026-11-06T17:12:51.678520+00:00",
+    "coordinator": "sole shared runtime/database/browser operator",
+    "heavySlots": {
+      "limit": 1,
+      "active": null
+    },
+    "agents": [
+      {
+        "name": "Kant",
+        "scope": "054isolatedregressionpreparation",
+        "ownedPath": "[PRIVATE_EVIDENCE_REF:parallel054-kant]",
+        "sourceWrite": "BLOCKED until exact metadataapproval+owncustody"
+      },
+      {
+        "name": "Newton",
+        "scope": "105mapping+runnablequeue",
+        "ownedPath": "[PRIVATE_EVIDENCE_REF:parallel-scenarios-newton]"
+      },
+      {
+        "name": "Jason",
+        "scope": "047canonicalproducerhandoffpack",
+        "ownedPath": "[PRIVATE_EVIDENCE_REF:parallel047-jason]",
+        "foreignSourceWrites": false
+      },
+      {
+        "name": "Poincare",
+        "scope": "productionlikeLOCALcontractimplementationproposal",
+        "ownedPath": "[PRIVATE_EVIDENCE_REF:parallel-contract-poincare]",
+        "policyMutation": false
+      }
+    ],
+    "sharedMutations": "None delegated",
+    "preconditionRule": "Every dependent mutation is a separate step after explicitly checked successful precondition result;aftertimeout inspectactualstatus,no blindretry",
+    "completed": {
+      "047": "17/17offlineeachsource,15hashesequal,handoffpackready;qualifiedproducerUNVERIFIED",
+      "054": "V2oracle+minimalplan reviewedR1/R2addressed;41sourcecases27FAIL14PASS,7fidelityPASS;productsourceunchanged;custodymetadataapprovalpending",
+      "scenarios": "105retained/all88challenged/19disjointsurvivingdependencies/noqualifiedoriginalqueue",
+      "orchestration": "V3focused1/final10PASS;coordinator+KantindependentAPPROVEscoped093094closedFIXED_TEST_ONLY;alloriginalfailedrunsretained. Limitedtrustedlocalcommands,no businessmutationusedhelper.",
+      "contractModel": "V3producerwordingfixed+offlineassertionsPASS;exactUIfileproposed;23behavioralregressionsNOT_RUN;canonicaloperatorUNVERIFIED"
+    }
+  },
+  "candidateHashEvidence": "local083-repair/current-candidate-hash-readback.safe.json",
+  "currentQualifiedLocalEnvironment": {
+    "observedAtUtc": "2026-11-06T17:13:21.331272+00:00",
+    "runtimeRoot": "[PRIVATE_EVIDENCE_REF:gridex-local083-runtime-a71c]",
+    "appPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "smtpPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "browserControllers": [
+      34854,
+      36671
+    ],
+    "bindings": "127.0.0.1:3301,54325,54326",
+    "code": "Runtimebase98687136 plus8reviewedfiles;20trackedsource/testhashesmatchsavedmanifest andapprovedPR1035/1036/1037 candidates;notmergedmain",
+    "candidateManifest": "local083-repair/candidate-source-final.safe.json",
+    "currentHashReadback": "local083-repair/current-candidate-hash-readback.safe.json",
+    "originalMainBase": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
+    "databaseContainer": "supabase_db_gridex-replay-a71c",
+    "databaseSystemIdentifier": "7704602478567067687",
+    "actualDbConfigurationEvidence": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "schema": "Existingqualifiedlocalcanonicalreplay atf23 +explicitpriorPR948/RBACoverlays retained;no schemamutations thisphase;047three relations stillabsent",
+    "retainedOverlays": [
+      "PriorAuthSSR",
+      "VersionboundRBAC42/35",
+      "AuthenticatedlocalSMTPtestsink",
+      "SyntheticAGTUIconfiguration"
+    ],
+    "currentActiveConfigurations": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "precedence": "Thisactualreadbacksupersedesolderphaseconfiguration snapshots;older top-level recordsretainedashistory,notcurrentassertions",
+    "businessCounts": {
+      "customers": 1,
+      "sites": 2,
+      "customerContracts": 0,
+      "runs": 0,
+      "messages": 0
+    },
+    "separate054BuiltCandidate": "local054-repair/candidate-sources.safe.json;22filesbuildPASS,notactiveruntime"
+  },
+  "remainingConcreteDecisions": [
+    {
+      "area": "054 delivery",
+      "owner": "User separate exactcommit/push/PRapproval",
+      "state": "No publicationproposalexecuted;source2filesuncommitted",
+      "noFurtherCustodyApprovalNeeded": true
+    },
+    {
+      "area": "047/079/080/canonical-local-contract",
+      "owner": "Currentmainconditionallyappointedbyuser;exactsourcecustodyhandoff+qualification/runapprovals outstanding",
+      "need": "Separateexact4foreignreftransfer+12newsourceclaimsmetadata approval;not anotheroperatornamingdecision",
+      "readyPack": "parallel047-jason/producer-handoff.md",
+      "localContractProposal": "parallel-contract-poincare/proposal.safe.md",
+      "localContractProposalSHA256": "3f8bb15f1d1a6405187102d47cd3394e7a87ef1252cb9aa6f09d4741d3d200ec",
+      "limits": "No newproducer orpolicychange authorized;no fake readiness;purecontract testsnotblanketblockedby047threeEdieltables",
+      "operatorProposalSHA256": "526b93ef77887a5e14b0715fe382334517cd23c480e5662b19e7f0469f101fea",
+      "productionVsLocalDecisionBody": "parallel-contract-poincare/decision-body.safe.md",
+      "productionVsLocalDecisionBodySHA256": "8b1cccf0fb7c3ed02e2a3d40eb0180b72b484ec4a0c8cc0e75c3088f7282fde9",
+      "operatorSelected": true
+    },
+    {
+      "area": "QA02.01–05",
+      "owner": "Originalevidencecustodian",
+      "need": "Originalversionboundcohort/artifact hash79d6...;notreplacewithcurrentsuite",
+      "finding": "local089"
+    }
+  ],
+  "findingSummary": {
+    "findingRecords": 134,
+    "uniqueRootGroupsIncludingExistingT5Finding": 126,
+    "provisioningJobFailureFindings": 7,
+    "provisioningRootGroups": 1,
+    "productFindingRecords": 39,
+    "uniqueConfirmedProductRootCauses": 31,
+    "categories": {
+      "environment": 26,
+      "product": 39,
+      "test": 56,
+      "evidence_gap": 13
+    },
+    "statuses": {
+      "OPEN": 23,
+      "LOCAL_CANDIDATE_VERIFIED_NOT_DELIVERED": 1,
+      "FIXED": 12,
+      "BLOCKED": 9,
+      "RESOLVED_ENVIRONMENT": 2,
+      "FIXED_LOCAL_REAL_BROWSER_VERIFIED": 1,
+      "RESOLVED_IN_TEST_OVERLAY": 4,
+      "PUBLISHED_NOT_MERGED": 4,
+      "RESOLVED_AUTHORITY": 1,
+      "FIXED_TEST_ONLY": 35,
+      "RESOLVED_DIAGNOSTIC": 4,
+      "FIXED_LOCAL_REVIEWED_NOT_COMMITTED": 10,
+      "FIXED_LOCALLY_VERIFIED_PENDING_DELIVERY": 1,
+      "FALSE_POSITIVE": 2,
+      "OVERVIEW_AND_DETAIL_FIXED_LOCAL_NOT_DELIVERED": 1,
+      "FIX_IMPLEMENTED_COMPONENT_VERIFIED_INTEGRATION_BLOCKED": 2,
+      "FIX_IMPLEMENTED_COMPONENT_VERIFIED_REAL_START_BLOCKED": 1,
+      "CONFIRMED_SQL_PREDICATE_FULL_FLOW_UNVERIFIED": 2,
+      "OPEN_ORIGINAL_PHASE_LIMIT": 2,
+      "FIXED_DOCUMENTATION": 1,
+      "RESOLVED_TOOL_PERMISSION": 1,
+      "OPEN_UNVERIFIED_CI_SHARED_GROUP": 1,
+      "FIXED_LOCAL_COMPONENT_VERIFIED": 2,
+      "FIXED_LOCAL_NATIVE_UI_VERIFIED_PENDING_CANONICAL_DELIVERY": 1,
+      "OPEN_VERIFIED_SOURCE_ONLY": 1,
+      "OPEN_LOCAL_SELECTOR_FIX_VERIFIED_DOWNSTREAM_FAIL": 1,
+      "RESOLVED_WITH_INTENDED_PRIVATE_FIXTURE_SOURCE": 1,
+      "OPEN_ROOT_CAUSE_UNDER_INVESTIGATION": 1,
+      "OPEN_UNACTIVATED_CANDIDATE_SECURITY_CLOSURE": 1,
+      "FIX_IMPLEMENTED_COMPONENT_VERIFIED_NATIVE_RETEST_PENDING": 1,
+      "OPEN_ACTUAL_GUARD_REPRODUCED_FIXTURE_CORRECTION_PENDING": 1,
+      "OPEN_VERIFIED_LOCAL_TRANSPORT_QUALIFICATION_BLOCKER": 1,
+      "FIX_IMPLEMENTED_NEXT_QUALIFICATION_PENDING": 1,
+      "OPEN_NONBLOCKING_ENV_HEALTHCHECK_MISMATCH": 1,
+      "FIXED_REAL_ORDINARY_UPGRADE_VALIDATOR_VERIFIED_PENDING_DELIVERY": 1
+    },
+    "productFixesDeliveredToMain": 0,
+    "untriagedLintWarnings": 167,
+    "falsePositiveRootGroups": 2,
+    "campaignFindingRecords": 127,
+    "separateProvisioningJobRecords": 7,
+    "uniqueCampaignRootCauses": 125,
+    "uniqueCampaignProductRootCauses": 30,
+    "countingScope": "Allcampaignrecordsinclude7separateprovisioningchildren;rootgroupsdeduplicatethemunder017and073/075variants. ExistingoutsideT5countedonlyinexplicitincludingT5fields.",
+    "rootCategories": {
+      "environment": 26,
+      "product": 30,
+      "test": 56,
+      "evidence_gap": 13
+    },
+    "countsVerifiedAtUtc": "2026-11-07T02:31:35.281285+00:00"
+  },
+  "local054Candidate": {
+    "root": "[PRIVATE_EVIDENCE_REF:gridex-local054-runtime-a71c]",
+    "sourceManifest": "local054-repair/candidate-sources.safe.json",
+    "sourceFiles": 22,
+    "appTypes": "PASS",
+    "testTypes": "PASS_MEASURED",
+    "independentReviews": [
+      "parallel047-jason/local054-final-review1.md",
+      "parallel-scenarios-newton/integration054/final054-independent-review.safe.json"
+    ],
+    "runtimeCutover": false,
+    "combined": "210/210PASS",
+    "build": "PASS",
+    "tenantRatchet": "PASS",
+    "offlineSecrets": "PASS",
+    "realDbNegative": "PASS_ACTUAL_GET_OTHER_PORTS_MOCKED"
+  },
+  "local047Successor": {
+    "state": "APPOINTED_CONDITIONAL_NOT_QUALIFIED_NOT_ACTIVATED",
+    "operatorSession": "01a1a879-7da7-7771-8fbc-42e83220a95c",
+    "principal": "heke99",
+    "appointment": "local047-successor/conditional-appointment.safe.json",
+    "qualification": "parallel-contract-poincare/qualification047/qualification-record-proposal.safe.md",
+    "custodyPlan": "local047-successor/custody-proposal/proposal.safe.json",
+    "custodyPlanSHA256": "368df0280639bc12facf920f095e2ee45e1d26b839f3a3a1cd7a6fb45380349e",
+    "exactTransferProposal": "parallel047-jason/047-final-four-delete-twelve-claim-proposal.json",
+    "exactTransferProposalSHA256": "1fc5ef273bcc6eae3d9eef81573f33ddd3ef83bb7b6fdd642aa59e6134caf16e",
+    "currentPreflight": "local047-successor/exact-transfer-preflight.safe.json",
+    "foreignRefs": 4,
+    "newTargetRefs": 12,
+    "sourceFiles": 11,
+    "migration": "supabase/migrations/20261106184525_ediel_operations_tables_replay_completeness.sql",
+    "sourceWrites": false,
+    "refsChanged": false,
+    "runsStarted": false
+  },
+  "local054DeliveryProposal": {
+    "state": "PREPARED_NOT_APPROVED_NOT_EXECUTED",
+    "path": "parallel054-kant/delivery-proposal/proposal.safe.json",
+    "plannedCommit": "0ce21104fa9c699e7789f4f58f2dfbbd28b46901",
+    "base": "7e34f8578e4f75f7f70027772ef61fa9c856ff69",
+    "proposedBranch": "fix/local054-safe-agt-lock-a71c",
+    "prBase": "fix/local-reviewed-readiness-feedback-a71c",
+    "prBodySHA256": "a0d3e12e2b45da7c86cf7c9082cc2dc64c3e39ef7324392277c890a6f5f4ec97",
+    "workflowEffects": "Reviewed26openedworkflows,8additionalnativedefinitions(7execute/upto8jobs),Hjobbranchskip/sharedgroupguard;disposableZ03Cclock21dayeffectsdisclosed;no productioncrawler/schema-capture/labels"
+  },
+  "local054Publication": {
+    "pr": 1038,
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/1038",
+    "head": "0ce21104fa9c699e7789f4f58f2dfbbd28b46901",
+    "base": "7e34f8578e4f75f7f70027772ef61fa9c856ff69",
+    "files": [
+      "__tests__/ediel-agt-missing-lock-fail-closed.test.ts",
+      "lib/ediel/testing/testRunTransportMetadata.ts"
+    ],
+    "state": "PUBLISHED_NOT_MERGED_NOT_ACTIVE",
+    "ci": {
+      "in_progress": 4,
+      "skipped": 1,
+      "success": 21
+    },
+    "terminal": false,
+    "evidence": "parallel054-kant/delivery-proposal/published-readback-11.safe.json",
+    "observer": "COMPLETED_BOUNDED_WINDOW; CI still running; not FAIL"
+  },
+  "local047CustodyAfterStatus": {
+    "receipt": "eb66940ab223224975fde6a6eb69ff85e8734c0f",
+    "targets": 12,
+    "ack": "OWN_ALL_TARGET_ACK_CUSTODY_ONLY_NO_FIRSTWRITE_GO",
+    "sourceWrites": false
+  },
+  "local047SourceOnlyDecision": {
+    "recordedAtUtc": "2026-11-06T20:00:42.586151+00:00",
+    "decision": "FIRSTWRITE_GO_047_SOURCE_ONLY_EXPLICIT_PLUS_STANDING_EXECUTION_MANDATE",
+    "proposalSHA256": "8adfe47b52af0ca099b9f7ce05a47f884f6c3911c0e0480efbe18416c766660e",
+    "custodyReceipt": "eb66940ab223224975fde6a6eb69ff85e8734c0f",
+    "liveAck": "local047-successor/firstwrite-live-custody.safe.json",
+    "writers": {
+      "Newton": [
+        "__tests__/ediel-operations-three-table-replay-contract.test.ts"
+      ],
+      "Jason": [
+        "supabase/bootstrap/20260602_ediel_operations_tables_foundation.sql",
+        "scripts/gridex-aud-003-legacy-foundation.additions.json",
+        "scripts/gridex-aud-003-foundation-order.json",
+        "supabase/migrations/20261106184525_ediel_operations_tables_replay_completeness.sql",
+        "scripts/migration-history-manifest.additions.json",
+        "scripts/gridex-ediel-upgrade-replay.sh"
+      ]
+    },
+    "generatedOutputs": "NO_MANUAL_WRITE_QUALIFIED_CHAIN_ONLY",
+    "execution": "Central approval and qualified isolated resources before replay/capture; no shared evidence DB mutation",
+    "runtime": "Unchanged20-sourcefiles; no cutover yet"
+  },
+  "local047SourceCandidate": "parallel047-jason/implementation047-source-candidate.safe.json",
+  "local047ComponentGreen": "parallel-scenarios-newton/replay047/GREEN1-run.safe.json",
+  "authSecondCompany": {
+    "scenarioIds": [
+      "AUTH01.03",
+      "AUTH01.04",
+      "UI01.05"
+    ],
+    "state": "FIXTURE_CREATED_ACTOR_DELIVERY_BLOCKED",
+    "companyId": "59795221-220a-4f4d-bd31-b963c2ec760b",
+    "invitationId": "eb54b5b3-8071-4b90-9800-24ef27ef2207",
+    "evidence": [
+      "local-auth-second-company/planned-ui-mutation.safe.json",
+      "local-auth-second-company/create-after-status.safe.json"
+    ],
+    "limits": "UIcreatebusinessstepverifiedDB+visibleconfirmation; pendingintentnotmembership/session; no scenariopromotion; globalworkerprohibited"
+  },
+  "local047Publication": {
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/1039",
+    "number": 1039,
+    "state": "open",
+    "merged": false,
+    "draft": true,
+    "body": "Canonical replay substitutes the mixed 20260602143000 migration with its enum foundation and omits three operations tables. Restore their source-derived foundation and add a forward repair for already-applied histories, preserving security, lock semantics and retained data.\n\nThe upgrade path retains genuine ancestor/clean parity and adds a separate serial reconstruction of the actual f23 missing-table base. Unknown table, policy, constraint and reserved-index shapes fail before repair effects.\n\nValidation executed locally: 13/13 isolated PGlite SQL cases, scoped strict test types, scoped lint, migration checksum/order checks and two independent final source reviews. Original RED results are retained. Synthetic surrounding tables and auth.role are component fixtures, not Supabase Auth or business-flow acceptance.\n\nThis draft is the source stage for the existing ordinary capture workflow. The four generated outputs are intentionally unchanged until authentic RAW3 adoption. Required clean/ancestor/f23 upgrade, generated-output parity and final CI remain pending; strict comparators remain enabled. No original Ediel scenario PASS, certification, production activation or external delivery is claimed.\n",
+    "title": "fix(ediel): reconstruct missing operations tables",
+    "base": "main",
+    "base_sha": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
+    "head": "fix/local047-three-table-reconstruction-a71c",
+    "head_sha": "6b9a547ea038a531637e386073059c0935950f2a",
+    "created_at": "2026-11-06T20:48:17Z",
+    "commits": 1,
+    "changed_files": 7,
+    "scope": "CREATED_DRAFT_SOURCE_STAGE_NOT_QUALIFIED_NOT_MERGED"
+  },
+  "local047Producer": {
+    "state": "OWN_EPOCH5_QUALIFICATION_RESERVED_NOT_QUALIFIED_NOT_ACTIVATED",
+    "receipt": "7df43604979144b5ca7b5e0465dd232c8e590468",
+    "ref": "refs/tags/agent-claims/masterplan/producer-gen",
+    "evidence": "local047-successor/producer-epoch5-acquire.safe.json"
+  },
+  "local047CI": {
+    "counts": {
+      "in_progress": 17,
+      "success": 2,
+      "queued": 14,
+      "skipped": 2
+    },
+    "terminal": false,
+    "evidence": "local047-successor/published-readback-01.safe.json"
+  },
+  "disposableRestore": {
+    "state": "QUALIFIED_SCHEMA_AND_DOMAIN_COPY_ONLY",
+    "target": "gridex_restore_a71c_20261106",
+    "sourceUnchanged": true,
+    "originalFailurePreserved": true,
+    "nativeChecks": 5,
+    "nativeChecksPassed": 5,
+    "evidence": "local-auth-second-company/restore-check-parser-equivalence.safe.json",
+    "routesChanged": false
+  },
+  "authScopedNative": {
+    "state": "PASS_NATIVE_SCOPED_LEASE_SUBCHAIN_ONLY",
+    "evidence": "local-auth-second-company/D-native-qualification.safe.json",
+    "sourceJobsUnchanged": true,
+    "routingChanges": false,
+    "next": "Real normal invitation accepted; verify role/audit/UI context then customer creation"
+  },
+  "privateEvidenceLatest": {
+    "path": "[PRIVATE_HOME_PATH] Support/Gridex/private-evidence/20261106-native-auth-and-047-failure-qualified",
+    "filesVerified": 1975,
+    "manifestSHA256": "47844eb6bcbabb5df4f4993438f1d31682d5765711cfd0d712ef6a5ce9a95d53",
+    "rawAuthDumpExcluded": true
+  },
+  "authCandidate": {
+    "manifest": "local-auth-second-company/auth-chain-candidate.safe.json",
+    "sourceFiles": 28,
+    "active": true,
+    "combinedComponentTests": "77/77PASS",
+    "scopedSemanticTypes": "PASS",
+    "build": "PASS_4096MiB"
+  },
+  "companyBBrowserToolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "companyBBrowserState": "Qualified fullformdriver afterordinaryBreset/password/login; lastowncustomerBcardread; reuse94372 only forBmutations; initial89881frozenproof",
+  "local047Epoch2": {
+    "head": "20503d49814599d80d956e46b0a77dff1a5d936b",
+    "pr": 1039,
+    "producerReceipt": "5aa849018373cbcd34f958c80abf21b5211cba1b",
+    "producerQualified": false,
+    "originalEpochReleased": true,
+    "component": "28/28PASS",
+    "realOwnCloneForward": "PASS",
+    "canonicalClean": "FAIL unknown_classification",
+    "sourceFrozen": true,
+    "next": "NewtonactualclassificationRED→Jasonminimalfix→finalreviews→newordinaryCIqualifiedepoch; no blindrerun"
+  },
+  "customerB": {
+    "customer": "6cb13e7e-81fa-4382-b10e-86bee6fb675a",
+    "number": "A71CB-100001",
+    "createdThrough": "Actual normal B UI authenticated actor91779a2a...",
+    "savedTenant": "59795221-220a-4f4d-bd31-b963c2ec760b",
+    "sites": 0,
+    "contracts": 0,
+    "readbackUI": "Correctcustomername/number/email/company",
+    "AUTH01.01": "PASS_RETEST",
+    "AUTH01.03": "PASS",
+    "wholeCustomerChain": "NOT_COMPLETE"
+  },
+  "local109VerifiedAfterStatus": {
+    "state": "FIXED_LOCAL_NATIVE_UI_VERIFIED_PENDING_CANONICAL_DELIVERY",
+    "sourceSHA256": "7b30f5749ee7c2d5d14ae5136f4a4e44f7ffbe9798fa3dc023ad92a3ce664aaa",
+    "primaryDatabase": "postgres",
+    "appPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "browserSession": 94372,
+    "customerCount": 2,
+    "siteCount": 3,
+    "meterCount": 3,
+    "contractCount": 0,
+    "evidence": [
+      "parallel047-jason/local109/main-native-clone.safe.json",
+      "parallel047-jason/local109/main-primary-forward.safe.json",
+      "local-auth-second-company/company-b-normal-login/company-browser-qualified.safe.json"
+    ]
+  },
+  "sixFileAdminAfterStatus": {
+    "state": "ALL6_EXACT_ADMIN_RELEASED_ABSENCE_VERIFIED_NO_NEW_CUSTODY",
+    "manifestSHA256": "eb69c672420f87d1d1824f80ce33850b4d4daac0f3a208cba4dd549e72e06e42",
+    "receipt": "parallel-contract-poincare/track-c-canonical/main-sixfile-admin-release.safe.json",
+    "next": "Poincare must verify new own claims and ACK before writes; never repeat release"
+  },
+  "privateEvidenceLatestPreservation": {
+    "path": "[PRIVATE_HOME_PATH] Support/Gridex/private-evidence/20261107-three-path-parity-and-ediel-tls",
+    "filesVerified": 3420,
+    "mismatches": 0,
+    "manifestSHA256": "4b5c62c28b9795425a2e62f62ef54a42ebc51f58dcc6f2c895ef3a86a243188f",
+    "savedAtUtc": "2026-11-07T02:05:22.526787+00:00",
+    "limits": "Later16auth/focused2resultsand017sourceprogress workingpacketuntilnextclosedstagepreservation"
+  },
+  "multicompanyNaturalAfterStatus": {
+    "actor": "47aca555-6513-43bd-933b-09721603dce1",
+    "browserSession": 4087,
+    "invitation": "efd612f0-0446-4d56-9791-2230bf2494d1",
+    "status": "accepted",
+    "memberships": [
+      "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+      "59795221-220a-4f4d-bd31-b963c2ec760b"
+    ],
+    "switchUI": "FAIL_local114",
+    "evidence": [
+      "local-auth-second-company/multicompany-invite-preflight.safe.json",
+      "local-auth-second-company/multicompany-scoped-worker-one-execution.safe.json",
+      "local-auth-second-company/multicompany-A-invite-browser.safe.json",
+      "local-auth-second-company/multicompany-role-reference-overlay.safe.json",
+      "local-auth-second-company/multicompany-invite-after-accept.safe.json"
+    ]
+  },
+  "local047Epoch4": {
+    "sourceHead": "18339ac22b2e86a11a885f34c2bc884f21bf7285",
+    "producerReceipt": "20ea64c64803d0328d3f3ed9f9a7db8cae6ad88f",
+    "state": "TERMINAL_CAPTURE_SUCCESS_OPS_FAIL_PRODUCER_RELEASED_ONCE",
+    "component": "44/44 PASS; TSC/lint0; two nonauthor exacthashreviews",
+    "readback": "local047-successor/epoch4-first-readback.safe.json",
+    "nativeLocalStatus": "FAIL_known_authrole_policy_deparse_depends_on_operator_search_path",
+    "nativeLocalReceipt": "local047-successor/FINAL44-native-existing-clone-rollback.safe.json",
+    "cleanNative": "15FAIL,826executedPASS,7SKIP across repeated JUnit phases; browser31/31 separate",
+    "release": "local047-successor/producer-epoch4-close-release.safe.json"
+  },
+  "currentSmtpSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "local114Runtime": {
+    "state": "ACTIVE34_SELECTOR_VISIBLE_REAL_SWITCH_FAIL_LOCAL120",
+    "candidate": "local-auth-second-company/local114-final-six-candidate.safe.json",
+    "build": "local-auth-second-company/local114-build-run.safe.json",
+    "combined": "233/233PASS",
+    "typesExit": 0,
+    "secretScanExit": 0,
+    "runtime": "local-auth-second-company/local114-qualified-cutover.safe.json",
+    "oldLauncher": {
+      "pid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+      "state": "PAUSED_OWN_HARNESS_TO_PRESERVE_B_BROWSER67133",
+      "resumeOnly": "When deliberately retiring old B browser; old app wait has completed"
+    },
+    "browserBSession": 94372,
+    "browserAOriginalSession": 4087,
+    "browserANewSession": 66068
+  },
+  "processCredentialReadRejection": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "local047NextLocalCommit": {
+    "head": "629c1e207e4b502cdd5acbd982689299a7c9dabc",
+    "tree": "5d166196f8c7f4408722f197605f049fc421b8f3",
+    "state": "LOCAL_ONLY_NOT_PUSHED",
+    "reviews": "Two exact7 final50 READY",
+    "native": "local047-successor/FINAL50-native-existing-clone-rollback.safe.json",
+    "wait": "Hold broad epoch until15nativefixture failures triaged/repaired under custody;629c localonly, no outputsadopted"
+  },
+  "activeTraceBrowser": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "local120RootCause": "Next16loopbacknormalization inNextRequest.url changesorigin whenrouteconstructsabsoluteLocation; genuine127Authcookiecorrectlynotforwardedtolocalhost.",
+  "localRBACProfileOverlay": "Sourceboundcustomer_service_agent15existingedges inown68d role only; original022OPEN, no member/session injection",
+  "local122": {
+    "state": "SOURCE_CLAIM_COMPLETE_AWAIT_OWN_ACK_RED_FIX_GREEN",
+    "receipt": "1c3f300b9590e5e6929e2f0e1b3b4506b221628d",
+    "writer": "Newton",
+    "worktree": "[PRIVATE_HOME_PATH]",
+    "files": [
+      "scripts/ediel-source-owner-native.test.ts",
+      "scripts/helpers/ediel-native-party-addresses.ts",
+      "__tests__/ediel-source-owner-native-address-binding.test.ts"
+    ],
+    "evidence": "parallel-scenarios-newton/native15-triage/local122-source/20c8320d-786e-4600-8099-b64738002bdf.claim-journal.json",
+    "runtimeNativeRun": "NOT_STARTED"
+  },
+  "CcanonicalBoundary": "Entry/sink CLOSED;123indirectlineage actual89RED79PASS10FAIL;124immutablepricefixture sourceconfirmed repro pending. No genuinepositive production/fullC acceptance claim.",
+  "local047Epoch5": {
+    "state": "RAW3_ADOPTED_LOCAL_APP_TYPES_MIGRATION_CHECKS_PASS_DB05_CUSTODY_BLOCKED",
+    "head": "c7713ed2b68bf2886c0d3bda0d5575dc3410affe",
+    "tree": "ead84a16180202058cb412537340dd11f916f485",
+    "producerReceipt": "7df43604979144b5ca7b5e0465dd232c8e590468",
+    "sourceInputDigest": "d367e54fc1129bf1bb4275892973ecd9141be3bafe7b1a789ac8b0dbf228f95d",
+    "sourceInputs": 1515,
+    "combined": "57/57PASS, scopedtypesr2/lint/shell/diff0; initialconfigFAIL125preserved",
+    "next": "Kantcombinedcrossreview then freshremoteclaims/expectedhead pushownbranch normalCI; no outputsadopted",
+    "remoteHead": "c7713ed2b68bf2886c0d3bda0d5575dc3410affe",
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/1039",
+    "readback": "local047-successor/epoch5-pr-readback.safe.json",
+    "ciCounts": {
+      "in_progress": 19,
+      "skipped": 3,
+      "queued": 12,
+      "success": 2
+    },
+    "runs": [
+      {
+        "id": 42324185790,
+        "name": "Staff API schema capture (capture only)",
+        "state": "queued",
+        "conclusion": null
+      },
+      {
+        "id": 42324185879,
+        "name": "OPS hardening",
+        "state": "queued",
+        "conclusion": null
+      }
+    ],
+    "capture": "SUCCESSexactsourceboundoriginalpreserved",
+    "upgrade": "REALclean/ancestor/f23schema/type/contractPARITYanddataPASS_subchains;wholejobFAILcommittedtypescompare",
+    "nativeClean": "841 phasePASS0FAIL7SKIP includes31browser; wholejobFAILcommittedsnapshot",
+    "outputsAdopted": true,
+    "evidence": "local047-successor/epoch5-clean-terminal-original/junit-assessment.safe.json",
+    "manifestSHA256": "5d448785925284bd60e5cdc9bada389ce46b49e302c251fcf9f1346a47d19125",
+    "outputsPublished": false,
+    "appTypes": "PASS4096MiB02:54:28",
+    "compatibility": "134actual0testmoduleRED; foreignbe7751... custodyrequiresboundedhandoff"
+  },
+  "authoritativeAfterStatus": {
+    "observedAtUtc": "2026-11-07T03:46:37.172858+00:00",
+    "appPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "appRoot": "[PRIVATE_EVIDENCE_REF:gridex-local114-active-runtime-a71c]",
+    "buildId": "kHUWivBKxA--7g3FHNoxQ",
+    "sourceFiles": 34,
+    "smtpSinkPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "pausedOldLauncher": 67119,
+    "BbrowserPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "AformBrowserPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "AtraceBrowserPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "CI": [
+      {
+        "id": 42324185790,
+        "name": "Staff API schema capture (capture only)",
+        "head_sha": "c7713ed2b68bf2886c0d3bda0d5575dc3410affe",
+        "status": "queued",
+        "conclusion": null,
+        "run_attempt": 1,
+        "updated_at": "2026-11-07T01:27:45Z",
+        "jobs": [
+          {
+            "id": 128255541174,
+            "name": "Capture disposable clean-replay types and schema",
+            "status": "queued",
+            "conclusion": null,
+            "started_at": "2026-11-07T01:27:46Z",
+            "completed_at": null
+          }
+        ]
+      },
+      {
+        "id": 42324185879,
+        "name": "OPS hardening",
+        "head_sha": "c7713ed2b68bf2886c0d3bda0d5575dc3410affe",
+        "status": "queued",
+        "conclusion": null,
+        "run_attempt": 1,
+        "updated_at": "2026-11-07T01:27:45Z",
+        "jobs": [
+          {
+            "id": 128255540944,
+            "name": "verify",
+            "status": "queued",
+            "conclusion": null,
+            "started_at": "2026-11-07T01:27:46Z",
+            "completed_at": null
+          },
+          {
+            "id": 128255541118,
+            "name": "upgrade-migration-replay",
+            "status": "queued",
+            "conclusion": null,
+            "started_at": "2026-11-07T01:27:46Z",
+            "completed_at": null
+          },
+          {
+            "id": 128255541161,
+            "name": "quality-release-gates",
+            "status": "queued",
+            "conclusion": null,
+            "started_at": "2026-11-07T01:27:46Z",
+            "completed_at": null
+          },
+          {
+            "id": 128255541230,
+            "name": "clean-migration-replay",
+            "status": "queued",
+            "conclusion": null,
+            "started_at": "2026-11-07T01:27:46Z",
+            "completed_at": null
+          }
+        ]
+      }
+    ],
+    "schema047Primary": "LOCAL_TEST_OVERLAY06bCOMMITTED+canonicalSQL+REST3PASS; anon3actual401/42501; no readiness/leases seed",
+    "precedence": "This dated actualreadback supersedes historical top-level earlierphasefields; no olderprocess assumedcurrent.",
+    "runtimeToolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]"
+  },
+  "edielLocalMailResource": {
+    "containerId": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "networkId": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "internal": true,
+    "state": "STRICT_TLS_AUTH16_UNIQUE_LATEST_QUALIFIED_VIA_PRIVATE_TCP_OVERLAY_APP_NOT_BOUND",
+    "image": "greenmail/standalone@sha256:175af0b7d45bc9978ffb28fb87e1d3fe1dee4d5791fcf59fa3fbb184378c90fb",
+    "protocol16": "NOT_RUN_PREREQUISITE_FAILED",
+    "privateConfigurationExcluded": "[PRIVATE_EVIDENCE_REF:gridex-ediel01-greenmail-private-a71c]",
+    "noAppConfigChange": true,
+    "noMailSendPoll": true,
+    "overlayPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "overlayToolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "overlayEvidence": "parallel-scenarios-newton/ediel01-transport/greenmail/main-overlay-launch.safe.json",
+    "protocolQualification": "parallel-scenarios-newton/ediel01-transport/greenmail/main-transport-auth-qualification.safe.json",
+    "initial16": "14PASS2testclassifierFAIL preserved",
+    "targeted2": "PASSaftertestfix129",
+    "noLeftoverExecChildren": true,
+    "delivery": "OneactualSMTPaccepted+readonlyIMAPMIMEbodyverified; originalrawassertionFAIL135preserved; noresend",
+    "productSendPoll": "NOT_RUN",
+    "appBound": false
+  },
+  "local017Handoff": {
+    "state": "WORKER_OWNER_REQUEST_RELEASED_ONCE_JASON_NEWCLAIM_REQUIRED",
+    "receipt": "parallel047-jason/local017-provisioning/main-owner-request-worker-release.safe.json",
+    "oldReceipt": "a4faf36fe805ea0e5e4df047cd051a92d2a270bf",
+    "retainedD3AndSession": "UNCHANGED",
+    "noJobMutation": true
+  },
+  "local017Current": {
+    "state": "TWO_FINAL_REVIEWS_READY_58PASS_NATIVE_CLONE7_EFFECTS_PASS_ROLLEDBACK_PRIMARY_NOT_APPLIED",
+    "manifestSHA256": "df81d1cda249e4e12a862212343f20908ca60196477bd33884ad602f6f2c243f",
+    "evidence": "parallel047-jason/local017-provisioning/main-native-clone-exact7-effects-rollback-r2.safe.json",
+    "nativeResults": "7completedwithpersistedstatus/attempt3max5/leasecleared/resultchecked; legalready,4pending,2not_requested",
+    "rollback": "Exact7jobHash0bb8ff40c87eb82ed3d73565d99d549ebfc6c86c0bfffafff6609746ef945c13 samebeforeafter; resultcolumnabsentbeforeafter",
+    "sevenOriginalPrimaryJobs": "OPEN_RETRY2MAX5_UNCHANGED",
+    "sourceReviewedBy": [
+      "main",
+      "Kant"
+    ]
+  },
+  "CterminalCurrent": {
+    "state": "HOLD137_ACTUAL_FINITE23_20PASS3FAIL",
+    "entry": "CLOSED",
+    "next": "Poincare immutablemailorigin actualSQLRED/minfix/positiveAuthqualification",
+    "foreignDispatch": "ExactADMINproposal6bb76...pendinguser"
+  },
+  "runtimeConfigSource": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "local047LocalOverlayStage": {
+    "state": "COMMITTED_POSTCOMMIT_CANONICAL_VALIDATOR_PASS_LOCAL_OVERLAY_ONLY",
+    "producerReceipt": "7f3fb579eb3df0c65b4d3c5c7117e2d23e80bb00",
+    "planSHA256": "61cb520e5ef2cd9d2144fc8433e1c96e3b5299f5607126fae21820835620cfab",
+    "previous7dfStage": "TERMINAL_ALL36_NOACTIVE_RELEASED_ONCE; originalwholeCI failuresretained",
+    "target": "Ownpostgres/system7704602478567067687",
+    "SQLproposalSHA256": "40535585ac5aaa5e0f685596f8fcf0eb5ca7bc0323fb360066dbf41064854c9c",
+    "backupSHA256": "185114f676ea59797e8864525abe6fd4debb75abe10e28464888f7786b824b5b",
+    "next": "Terminalstagecheckpoint/ownproducerrelease thennormalUIqualifiedtestconfiguration; noGENwholequalification",
+    "sqlSHA256": "32fe993cec9963f04721c73f896470e84f3b50103bd4fef51be73785507dd054",
+    "postcommit": "local047-successor/local-overlay-postcommit-readback.safe.json",
+    "newTables": "3present0rows",
+    "businessData": "11digestsunchanged;7originaljobsretry2max5",
+    "producerState": "TERMINAL_7f3RELEASED_ONCE_AUTHENTICATED_ABSENCE03:29:28; noactiveGENproducerclaimed"
+  },
+  "resumptionAfterStatus": {
+    "observedAtUtc": "2026-11-07T04:54:11.736805+00:00",
+    "branch": "reports/local-verification-20261105-a71c",
+    "head": "3acf1765a14c0942bba3fb1132644a3b02766873",
+    "processCheck": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "latestUserApproval": "eb69 sixrefs already ALL6 released Nov6 22:50; no repetition",
+    "local142": {
+      "state": "LOCAL_OVERLAY_COMMITTED_ACTUAL_DB_AND_BROWSER_READBACK_PASS_CANONICAL_DELIVERY_PENDING",
+      "sql": "67bcfbf96cf9ca2427c08b9cc29477ce639e6e3a64fedca19a124f100219bcba",
+      "test": "a740935d47da1290b7271dfc444a84325ae61795f37968e348ed9fda30c44bfe",
+      "producer": "6c546b7f9c3ab0803abefc5c43741f8df2d1132f",
+      "commitAtUtc": "2026-11-07T04:35:40.859967+00:00",
+      "postcommit": "parallel054-kant/local-mailbox-runtime-columns/local-overlay-primary-postcommit.safe.json",
+      "browser": "Existing root4963 GET/admin/inbound-mail04:36:12 actualmailboxUIrenders; old42703absent",
+      "mailboxRows": 2,
+      "oldRowsSHAmd5": "ea1b2cd3aaac16ef20d3516a8dc877bb",
+      "configSaved": false,
+      "pollInvoked": false,
+      "next": "Terminalcheckpoint+ownproducerrelease; qualify separateownsyntheticmailboxnormalUI; no globalpoll; preserveunknown2mailboxes",
+      "producerState": "TERMINAL_RELEASED_ONCE_AUTHENTICATED_ABSENCE04:37:35"
+    },
+    "producerPlan": "0bc46b611a3c810698f945ce2fbeacd0f6d4588a5c797ba4b89a9003a320da49 PREPARED_ONLY superseded-input review required after test hashchange",
+    "agents": {
+      "Kant": "local142 immutable genuine predecessor regression",
+      "Newton": "local142 independent review then EVENT triage",
+      "Jason": "exact scoped product Ediel poll/processing path",
+      "Poincare": "C typed-file/job ancestry closure; entry CLOSED"
+    },
+    "scenarioCountsUnchanged": {
+      "PASS": 10,
+      "FAIL": 3,
+      "BLOCKED": 85,
+      "NOT_RUN": 7
+    },
+    "next": "Kant149auditfix/custody; Newton150truthfulTGTsetup/readinessfix/custody; Jasonawaitexactroute-onlyADMIN then scopedpolladmission; PoincareownedCjobancestry whilegenuineunderlayblocked. No TGTsave/falseportalconfirmation. No globalengine orworker.",
+    "privateSnapshot": {
+      "path": "[PRIVATE_HOME_PATH] Support/Gridex/private-evidence/20261107-resumed142-review-hold",
+      "files": 3944,
+      "mismatches": 0,
+      "manifestSHA256": "4dd046645862f2b1ff251261ee5079235b93b4a8f8ade4821e7aca3a7d417016",
+      "savedAtUtc": "2026-11-07T04:24:50.687735+00:00"
+    },
+    "PR1038": {
+      "head": "0ce21104fa9c699e7789f4f58f2dfbbd28b46901",
+      "allTerminal": true,
+      "success": 25,
+      "skipped": 1,
+      "merged": false,
+      "mergeableState": "clean",
+      "noRerun": true,
+      "evidence": "resumption-20261107-final142-review/PR1038-terminal-readback.safe.json"
+    },
+    "scopedPollCustody": "Pending exact route-only ADMINdecision2df9cb..., foreign56c22... ref-f8afec...; no write/release/duplicatecomment",
+    "rootBrowser": {
+      "pid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+      "toolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+      "state": "REAL_ROOT_NORMAL_AUTH_VALID_ACTIVE",
+      "old69043": "TERMINAL_EXIT0_AFTER_EOF",
+      "old92066": "TERMINAL_VERIFIED_NO_DUPLICATE",
+      "controllerSHA256": "4853f6a4209f1cbd6951838a37ab0c7d49204201001452515d93f7aa13d3f052",
+      "privateCredentialAccess": "No process/cookie/passwordrecovery; ordinaryUIreset/nativeAuthmail/login; credentials memoryonly"
+    },
+    "ownEdielMailbox": {
+      "id": "fa116f5c-d615-441d-ab06-993400dee09c",
+      "name": "A71C EDIEL local TLS test 97001",
+      "createdThrough": "One normalrootUIclick04:48:34",
+      "localTLSIMAP": "127.0.0.1:55993 true",
+      "localTLSSMTP": "127.0.0.1:55465 true",
+      "actualDBAndUIReadback": "PASS",
+      "old2MailboxHashUnchanged": true,
+      "lastPolledAt": null,
+      "audit": "FAIL0matchingrows local149; partialconfiguration preserved; noresave/backfill",
+      "evidence": "local-auth-second-company/platform-fixed-env-reference-ui/mailbox-after-single-save.safe.json"
+    }
+  },
+  "_sanitizedSnapshot": {
+    "snapshotAtUtc": "2026-11-07T04:58:22.419870+00:00",
+    "sourceRelativePath": "quality/e2e/2026-11-05-local-f23c1dc0c/checkpoint.json",
+    "sourceSHA256": "6ca0c4b297173598fab4e56f695fc2a9248e72b01e263bbb62075ab38b103926",
+    "scope": "Sanitized projection of this existing report only; not a new operating register; no scenario IDs/status/count changes",
+    "sourceChronology": "User identifies closed stage0454 as preserved source plus later main-root changes. This snapshot reads current root files at snapshot time; later root additions are excluded until a new explicit snapshot.",
+    "privateOriginals": "Remain on Mac; user-reported 4051-file snapshot manifest prefix99643; not copied or independently recounted here.",
+    "historicalSummaryLimitation": "Dated historical summaries remain unchanged; current matrix designScenarioAssessment counts are authoritative within this report snapshot; no silent reconciliation."
+  }
 }
