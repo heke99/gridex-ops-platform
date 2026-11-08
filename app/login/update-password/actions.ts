@@ -10,6 +10,7 @@ import {
   UPDATE_PASSWORD_TOO_SHORT_MESSAGE,
 } from '@/lib/auth/loginError'
 import { getSafeNextPath } from '@/lib/auth/urls'
+import { decidePostLoginPath, userHasStaffAccess } from '@/lib/auth/postLoginDestination'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export async function updatePasswordAction(formData: FormData) {
@@ -93,7 +94,10 @@ export async function updatePasswordAction(formData: FormData) {
     // Auth-password is already changed. DB sync can be repaired by admin if optional profile columns are missing.
   }
 
-  const destination = new URL(next, 'http://localhost')
+  const target = next === '/dashboard'
+    ? decidePostLoginPath({ next, hasStaffAccess: await userHasStaffAccess(user.id) })
+    : next
+  const destination = new URL(target, 'http://localhost')
   destination.searchParams.set('message', UPDATE_PASSWORD_SUCCESS_MESSAGE)
   redirect(`${destination.pathname}${destination.search}`)
 }
