@@ -161,10 +161,10 @@ async function seedPublication() {
   await db.query(`insert into public.tenant_contract_channels(assignment_id,channel,status) values ($1,'internal','active')`, [assignment])
   const modules = ['terms', 'privacy_policy', 'withdrawal', 'power_of_attorney', 'price_terms']
   await db.query(`insert into public.legal_requirement_rules(customer_type,contract_type,channel,required_module_keys) values ('private','fixed','website',$1::text[])`, [modules])
-  for (const module of modules) {
-    const template = await db.query<{ id: string }>(`insert into public.legal_templates(module_key,name,mandatory) values ($1,$2,true) returning id`, [module, 'Synthetic ' + module])
+  for (const readinessModule of modules) {
+    const template = await db.query<{ id: string }>(`insert into public.legal_templates(module_key,name,mandatory) values ($1,$2,true) returning id`, [readinessModule, 'Synthetic ' + readinessModule])
     const body = '{{legal_name}} ({{organization_number}}), {{company_address}}. Contact {{customer_service_email}}. Synthetic terms: fixed 1.25 SEK/kWh, zero invoice fee, 25% VAT. {{billing_information}} {{dispute_resolution_information}}'
-    await db.query(`insert into public.legal_template_versions(legal_template_id,version_number,title,body,content_sha256,status,published_at,locked_at) values ($1,1,$2,$3,$4,'published',now(),now())`, [template.rows[0].id, 'Synthetic ' + module, body, createHash('sha256').update(body).digest('hex')])
+    await db.query(`insert into public.legal_template_versions(legal_template_id,version_number,title,body,content_sha256,status,published_at,locked_at) values ($1,1,$2,$3,$4,'published',now(),now())`, [template.rows[0].id, 'Synthetic ' + readinessModule, body, createHash('sha256').update(body).digest('hex')])
   }
   await db.query(`insert into public.contract_offers(id,company_id,name,contract_type,customer_type,contract_product_id,contract_product_version_id,price_plan_id,price_plan_version_id,price_book_id,commercial_snapshot,invoice_fee_sek,vat_rate) values ($1,$2,'Synthetic publication candidate','fixed','private',$3,$4,$5,$6,$7,$8::jsonb,0,0.25)`, [offer, company, product, version, plan, pv.rows[0].id, book, snapshot])
 }

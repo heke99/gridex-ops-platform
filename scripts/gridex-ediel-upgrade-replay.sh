@@ -151,7 +151,8 @@ SQL
  generate_upgrade_artifacts "$UPGRADE_OUT/clean"
 )
 # A third serial, disposable stack proves the precise already-applied f23
-# omission. No business/evidence DB, synthetic DROP or other forward is used.
+# omission and every genuine checksummed candidate forward addition.
+# No business/evidence DB or synthetic DROP is used.
 git merge-base --is-ancestor "$EDIEL047_MISSING_BASE" "$CANDIDATE_SHA"
 python3 - "$CANDIDATE_ROOT" "$EDIEL047_FORWARD" <<'PY_EDIEL047_PIN'
 import hashlib,json,pathlib,sys
@@ -160,6 +161,9 @@ pin=json.loads((root/'scripts/migration-history-manifest.additions.json').read_t
 if hashlib.sha256((root/'supabase/migrations'/name).read_bytes()).hexdigest()!=pin:
  raise SystemExit('ediel047_forward_checksum_mismatch')
 PY_EDIEL047_PIN
+python3 "$CANDIDATE_ROOT/scripts/gridex-ediel-upgrade-inputs.py" \
+ --root "$CANDIDATE_ROOT" --base "$EDIEL047_MISSING_BASE" --out "$UPGRADE_WORK/f23-plan"
+cp "$UPGRADE_WORK/f23-plan/upgrade-inputs.json" "$UPGRADE_OUT/f23-upgrade-inputs.json"
 git worktree add --detach "$UPGRADE_WORK/f23-missing" "$EDIEL047_MISSING_BASE"
 (
  cd "$UPGRADE_WORK/f23-missing"
@@ -177,7 +181,13 @@ END $assert$;
 SQL_EDIEL047_PREIMAGE
  psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/gridex-ediel-upgrade-fixture.sql"
  psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/gridex-ediel-upgrade-fixture-observe.sql" > "$UPGRADE_OUT/f23-repaired/retained-before.json"
- psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/supabase/migrations/$EDIEL047_FORWARD"
+ while IFS= read -r migration; do
+  printf 'F23_UPGRADE_APPLY: %s\n' "${migration##*/}"
+  psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$migration"
+  if [[ "${migration##*/}" == "$EDIEL047_FORWARD" ]]; then
+   assert_ediel047_contract > "$UPGRADE_OUT/f23-repaired/ediel047-original-contract.json"
+  fi
+ done < "$UPGRADE_WORK/f23-plan/upgrade-inputs.list"
  assert_ediel047_contract > "$UPGRADE_OUT/f23-repaired/ediel047-contract.json"
  psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/gridex-ediel-upgrade-fixture-observe.sql" > "$UPGRADE_OUT/f23-repaired/retained-after.json"
  cmp "$UPGRADE_OUT/f23-repaired/retained-before.json" "$UPGRADE_OUT/f23-repaired/retained-after.json"
