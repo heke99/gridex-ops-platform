@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import type { User } from '@supabase/supabase-js'
 import { supabaseService } from '@/lib/supabase/service'
 import { acceptCompanyInvitationAccess } from '@/lib/auth/companyUserAccess'
@@ -356,6 +357,21 @@ export async function getCompanyInvitationByToken(token: string): Promise<Compan
   }
 }
 
+// This delivery receipt is server-written and has no permissive client RLS policies.
+// Only exact persisted delivery provenance can offer initial password setup;
+// user metadata, query/form flags and Auth password-column presence confer none.
+async function isNewCompanyInvitationAccount(invitation: CompanyInvitationRow, user: User): Promise<boolean> {
+  const { data, error } = await tenantSelect(invitation.company_id, 'auth_email_events', 'metadata')
+    .eq('user_id', user.id).eq('email', normalizeEmail(user.email))
+    .eq('event_type', 'invite_sent').eq('status', 'sent')
+    .eq('metadata->>invitationId', invitation.id)
+    .eq('metadata->>existingUser', 'false').eq('metadata->>inviteLinkRequired', 'true')
+    .maybeSingle()
+  if (error) throw error
+  const metadata = (data as { metadata?: Record<string, unknown> } | null)?.metadata
+  return metadata?.existingUser === false && metadata.inviteLinkRequired === true
+}
+
 export async function acceptCompanyInvitationByToken(token: string) {
   const invitation = await getCompanyInvitationByToken(token)
   if (!invitation) throw new Error('Inbjudningslänken är ogiltig eller saknar aktiv token.')
@@ -380,6 +396,7 @@ export async function acceptCompanyInvitationByToken(token: string) {
       email,
       companyId: invitation.company_id,
       companyName: invitation.company_name ?? null,
+      passwordSetupRequired: false,
     }
   }
 
@@ -389,6 +406,7 @@ export async function acceptCompanyInvitationByToken(token: string) {
   if (expiresAt && expiresAt < Date.now()) throw new Error('Inbjudan har gått ut. Be administratören skicka en ny inbjudan.')
 
   const authUser = auth.user
+  const passwordSetupRequired = await isNewCompanyInvitationAccount(invitation, authUser)
 
   await acceptCompanyInvitationAccess({
     companyId: invitation.company_id,
@@ -411,5 +429,6 @@ export async function acceptCompanyInvitationByToken(token: string) {
     email,
     companyId: invitation.company_id,
     companyName: invitation.company_name ?? null,
+    passwordSetupRequired,
   }
 }

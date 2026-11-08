@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { getSafeNextPath } from '@/lib/auth/urls'
+import { CUSTOMER_PORTAL_LANDING, DEFAULT_STAFF_LANDING, decidePostLoginPath, userHasStaffAccess } from '@/lib/auth/postLoginDestination'
 import { getSupabasePublicEnv } from '@/lib/env/supabasePublic'
 
 function isProtectedPath(pathname: string) {
@@ -189,9 +190,25 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Persona routing grants no admin access. Keep the existing session and
+  // password checks above, and the staff/platform authorization below.
+  const redirectWithSession = (path: string) => {
+    const redirected = NextResponse.redirect(new URL(path, request.url))
+    response.cookies.getAll().forEach(cookie => redirected.cookies.set(cookie))
+    return redirected
+  }
+
   if (user && pathname === '/login') {
     const next = getSafeNextPath(request.nextUrl.searchParams.get('next'))
-    return NextResponse.redirect(new URL(next, request.url))
+    const destination = next === DEFAULT_STAFF_LANDING
+      ? decidePostLoginPath({ next, hasStaffAccess: await userHasStaffAccess(user.id) })
+      : next
+    return redirectWithSession(destination)
+  }
+
+  if (user && (pathname.startsWith('/admin') || pathname.startsWith('/dashboard'))
+    && !await userHasStaffAccess(user.id)) {
+    return redirectWithSession(CUSTOMER_PORTAL_LANDING)
   }
 
   if (user && isPlatformAdminPath(pathname)) {
