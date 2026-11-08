@@ -1,0 +1,8 @@
+{
+  "note": "Pekare, inga bytes. T3 kohort B (N=28, tenant 16712) hämtas vid körning med git show och verifieras mot manifestets sha256.",
+  "commit": "01d97c27ec73544f6c303936fadf4cb73a5e25dc",
+  "dir": "quality/simulation-campaign/20261029-3f1a8ab1/runs/r1-track3/claude-track3/originals-for-t6",
+  "manifest": "manifest.json",
+  "run": "B-20261030T144535Z-8b8258",
+  "expectedInboundEml": 28
+}
