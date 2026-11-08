@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { normalizeRoleKey } from '@/lib/rbac/roleKeys'
 import { resolveCanonicalCompanyAccessRole } from '@/lib/tenant/companyUserRoles'
 
@@ -65,7 +66,7 @@ async function readActiveMembership(companyId: string, userId: string): Promise<
 async function readActiveRole(companyId: string, userId: string, roleKey: string): Promise<ActiveUserRole | null> {
   const { data, error } = await supabaseService
     .from('user_roles')
-    .select('id,role_id,role,status,is_active,roles:role_id(id,key,name)')
+    .select('id,role_id,role,status,is_active')
     .eq('company_id', companyId)
     .eq('user_id', userId)
     .eq('status', 'active')
@@ -73,10 +74,24 @@ async function readActiveRole(companyId: string, userId: string, roleKey: string
     .limit(10)
 
   if (error) throw error
-  const matching = ((data ?? []) as Array<ActiveUserRole & {
-    roles?: { id?: string | null; key?: string | null; name?: string | null } | null
-  }>).filter((row) => {
-    const resolved = normalizeRoleKey(row.role ?? row.roles?.key ?? row.roles?.name)
+  const rows = (data ?? []) as ActiveUserRole[]
+  const roleIds = [...new Set(rows.map((row) => row.role_id).filter((id): id is string => Boolean(id)))]
+  // Canonical user_roles has no role_id foreign key. Resolve only the referenced
+  // catalog IDs explicitly instead of relying on a PostgREST relationship.
+  const catalog = new Map<string, { key?: string | null; name?: string | null }>()
+  if (roleIds.length > 0) {
+    // roles is the global canonical catalog (no company_id). Only IDs from
+    // the already tenant/user-scoped active assignments above are resolved.
+    const { data: roles, error: rolesError } = await tenantDb(companyId).unscoped()
+      .from('roles')
+      .select('id,key,name')
+      .in('id', roleIds)
+    if (rolesError) throw rolesError
+    for (const role of roles ?? []) catalog.set(role.id, role)
+  }
+  const matching = rows.filter((row) => {
+    const role = row.role_id ? catalog.get(row.role_id) : undefined
+    const resolved = normalizeRoleKey(row.role ?? role?.key ?? role?.name)
     return resolved === roleKey
   })
   if (matching.length > 1) throw new Error('Flera aktiva systemroller med samma canonical roll hittades.')
