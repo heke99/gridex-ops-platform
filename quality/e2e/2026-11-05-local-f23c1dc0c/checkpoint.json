@@ -1,11 +1,11 @@
 {
-  "state": "LOCAL047_SOURCE_PUBLISHED_1039_ORDINARY_QUALIFICATION_CI_RUNNING",
+  "state": "APP73_PRIMARY143A_NORMAL_UI_SUBJECT_BINDING_VERIFIED_EDIEL_PREREQUISITES_REMAIN",
   "baseline": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
   "reportBranch": "reports/local-verification-20261105-a71c",
   "sourceCustodyReceipt": "097dd80eb990f5865f4e5469393eb9fd5067cf1c",
   "sourceCustody": "ALL exact report-file refs verified by official atomic claim tool; no producer/GEN role acquired",
   "privateEvidence": "~/Library/Application Support/Gridex/private-evidence/20261105-local;full originals retained privately",
-  "nextAction": "142canonicalSMTPmailboxschema gap sourceunderKantblocksnormalUI;CremainingtypedfilesunderPoincare;EVENTv3inventoryandfailed2fanouttriageNewton. 120/Cdispatch/DB05exactADMINanswerspending, noforeignwrite. Original7jobsretry2/max5.",
+  "nextAction": "PoincarequalifyactualnormalLOCALpublication→canonicalonboard firstcontractcaller/source/fences; actor529 exactsourceEXECUTEdecisionpending, independentKantconfigqualificationcontinues; noactualpricerepairdenialexists",
   "coverageMapping": "32-flow source unavailable in this session; mapping pending. Existing105 IDs unchanged; no new official IDs or PASS inferred",
   "publication": {
     "pr": 1035,
@@ -18,9 +18,9 @@
   "workflowInspection": "All push triggers in52 checked-in workflows target main or agent/release-certification-hardening-20260817, not this report branch. Branch creation integrations and remote settings not independently established.",
   "systemComplete": false,
   "productionUsed": false,
-  "currentAppPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
-  "currentAuthId": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
-  "activeVerification": "All054finiteverificationreceiptscompleted;noheavybuild/typesactive. Existing20fileapp47285+[PRIVATE_PROCESS_REF] retained;no runtimecutover. PR1037terminal18SUCCESSatunchangedhead.",
+  "currentAppPid": 54879,
+  "currentAuthId": "2ad237edf62b",
+  "activeVerification": "Realprimarysubjectbinding substepPASS, fullEdielstillBLOCKED; financialselectorRED→Poincareforward; loadernative8awaitfinalharnessreviews",
   "rbacOverlay": "Approved/applied/versioned42+35 profile rows;only3intended tables changed;schema unchanged;negative ordinary actor denied;missing original catalog finding remainsOPEN",
   "invitation": "Real delivered SSR link verified and ordinary accept clicked;DB accepted+active correct-company membership;UI failed PGRST200 after business commit",
   "customer": {
@@ -36,43 +36,44 @@
   },
   "triageCounts": {
     "originalFailed38": {
-      "PASS": 17,
-      "FAIL": 2,
+      "PASS": 19,
+      "FAIL": 0,
       "BLOCKED": 19
     },
     "originalPending6": {
-      "NOT_APPLICABLE": 3,
-      "PASS": 3
-    }
+      "PASS": 3,
+      "NOT_APPLICABLE": 3
+    },
+    "source": "Exact44derivedreceipt, dates/oldfailurespreserved"
   },
-  "onlineState": "No commit/push/publication performed;prior remote3acf1765a unchanged;three owned reportfiles locallymodified",
-  "recordedAtUtc": "2026-11-07T03:46:37.172940+00:00",
-  "lastVerifiedOnlineCommit": "3acf1765a14c0942bba3fb1132644a3b02766873",
+  "onlineState": "Sanitized report snapshot409cbfd published earlier; later local findings/checkpoint beyondsnapshot remain unpublished. Fulloriginals privateMac.",
+  "recordedAtUtc": "2026-11-08T07:36:47.943816+00:00",
+  "lastVerifiedOnlineCommit": "409cbfd0526b2d2c6270befe3cd3aaa34012e610",
   "sourceCustodyReadback": {
     "lib/auth/companyUserAccess.ts": "No exact ref observed;not own custody",
     "lib/ediel/utiltsEngine.part-1.ts": "No exact ref observed;not own custody",
     "__tests__/ediel-env08-fixed-normal-time.test.ts": "Foreign exact reservation f6b99d2624a7bcc5a7f24c7928e8352deb282978;do not modify without bounded handoff"
   },
-  "appProcessReadback": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
-  "remainingBusinessDecision": "054 exactcustodymetadataapprovalpending;047/canonicalqualifiedproduceridentityandcustodyunverified;no source/DB/businessmutationqualifiedbyprivatehelperresults.",
-  "currentSmtpPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "appProcessReadback": "Latestqualifiedownapp35570/1273301 retainedafter65cutover; Mailpit12092/TLS83470 retained. Retiredcustomercontrollers36186/36483 explicitlyCLOSED thenCtrlCexit1; genuineUI/nativePASS recorded beforecleanup. Kantnewcustomercasebrowser actualstatefromownpacket, notassumed.",
+  "remainingBusinessDecision": "No genericchatGO required understandingmandate. Technical204actualcalendarrepro/sourcefix andnative23gates remain; exactcustody/sourceproducer/toolapprovals continue. ExternalLinuxT3/provider/acceptance/HOLD unchanged, no fakepolicyreadiness.",
+  "currentSmtpPid": 12092,
   "smtpOverlay": "Pinned Mailpit1.30.2 darwin-arm64 only127.0.0.1:54325/54326;STARTTLS+bcryptauth;example.invalid-only;no relay/forwarding",
   "smtpPhaseEvidence": "smtp-phase/native-setup-run.safe.json;recovery-customer.safe.json;database-after.safe.json",
   "originalDockerSmtp": "Owned gridex_app_smtp_a71c stopped/retained;internal network/config retained;ports not reachable in original attempt",
   "qualifiedRollback": "smtp-phase/native-rollback-qualified.safe.json;original draft retained;not executed",
-  "privateConfigurationExcludedFromReports": "[PRIVATE_EVIDENCE_REF:gridex-smtp-config-a71c] and-native contain actual TLS keys/auth hashes/mailbox database;do not copy orpublish them",
+  "privateConfigurationExcludedFromReports": "PRIVATE_CREDENTIAL_VAULT-a71c and-native contain actual TLS keys/auth hashes/mailbox database;do not copy orpublish them",
   "finiteControls": "pgrep exactownfinite-runnerpatterns exit1/no matches;alllocalreceiptscompleted",
   "productFixBranch": "fix/local033-recovery-ssr-a71c",
-  "productFixWorktree": "[PRIVATE_EVIDENCE_REF:gridex-unit-a71c]",
+  "productFixWorktree": "/private/tmp/gridex-unit-a71c",
   "productSourceChanges": "One uncommitted sourcefile+newregressionfile;local033SSRlink fix and038conditionalno-companytokenmintfix",
   "standingLocalFixMandate": "Current user explicitly authorizes local bounded product fixes/test continuation;no need to ask again for in-scope product actions;commit/push/merge/deploy/publication still excluded",
   "custodyBlocker": "Exact original2files owned;other fileclaims not authorized for publication",
-  "currentAppRoot": "[PRIVATE_EVIDENCE_REF:gridex-local114-active-runtime-a71c]",
-  "companyBrowserToolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "currentAppRoot": "/private/tmp/gridex-local-subject-binding-runtime-a71c",
+  "companyBrowserToolSession": 66068,
   "companyBrowserState": "64790 read-onlygoto emittedecho but no completed receipt; do not infer validUI/ownpositive; do notduplicate",
   "sourceCustodyReceiptForFix": "2cd7fdd8601662a324179ae5e76874e10b378699",
   "regressionState": "R127PASS/R228PASS;originalREDproofs retained",
-  "platformBrowserToolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "platformBrowserToolSession": 43240,
   "latestResourceVerification": {
     "startedAtUtc": "2026-11-06T08:41:45.113728+00:00",
     "checks": [
@@ -87,7 +88,7 @@
         "start": "2026-11-06T08:41:45.113861+00:00",
         "end": "2026-11-06T08:41:45.134790+00:00",
         "exitCode": 0,
-        "safeOutput": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+        "safeOutput": "36671 node\n39373 /private/tmp/gridex-mailpit-1.30.2-a71c/mailpit\n39374 next-server (v16.4.2)",
         "safeError": ""
       },
       {
@@ -103,7 +104,7 @@
         "start": "2026-11-06T08:41:45.134817+00:00",
         "end": "2026-11-06T08:41:45.166417+00:00",
         "exitCode": 0,
-        "safeOutput": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+        "safeOutput": "/supabase_auth_gridex-replay-a71c running healthy {}\n/supabase_db_gridex-replay-a71c running healthy {\"5432/tcp\":[{\"HostIp\":\"127.0.0.1\",\"HostPort\":\"54322\"}]}\n/supabase_kong_gridex-replay-a71c running healthy {\"8000/tcp\":[{\"HostIp\":\"127.0.0.1\",\"HostPort\":\"54321\"}]}",
         "safeError": ""
       },
       {
@@ -118,7 +119,7 @@
         "start": "2026-11-06T08:41:45.166470+00:00",
         "end": "2026-11-06T08:41:45.181850+00:00",
         "exitCode": 0,
-        "safeOutput": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+        "safeOutput": "COMMAND   PID    USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME\nmailpit 39373 hekmath    9u  IPv4 0xaf4309a7b5cd1710      0t0  TCP 127.0.0.1:54325 (LISTEN)\nmailpit 39373 hekmath   10u  IPv4  0xa83711da677a497      0t0  TCP 127.0.0.1:54326 (LISTEN)\nnode    39374 hekmath   12u  IPv4 0x28af20aeee19adf8      0t0  TCP 127.0.0.1:3301 (LISTEN)",
         "safeError": ""
       },
       {
@@ -141,7 +142,7 @@
         "start": "2026-11-06T08:41:45.181904+00:00",
         "end": "2026-11-06T08:41:45.251549+00:00",
         "exitCode": 0,
-        "safeOutput": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+        "safeOutput": "[{\"id\":\"87dd4ca6-bef0-4fc8-9232-b172af1a82e7\",\"job_key\":\"admin_access\",\"status\":\"retry\",\"attempt_count\":2,\"max_attempts\":5,\"last_error_code\":\"unsupported_provisioning_job\"}, \n {\"id\":\"090e3ebb-f31e-4218-aba3-12cbc96a6f51\",\"job_key\":\"auth_invite\",\"status\":\"retry\",\"attempt_count\":2,\"max_attempts\":5,\"last_error_code\":\"invitation_intent_missing\"}, \n {\"id\":\"d6e6a828-7dc6-4391-b7ca-e2bf628f7cd5\",\"job_key\":\"auth_invite\",\"status\":\"completed\",\"attempt_count\":1,\"max_attempts\":5,\"last_error_code\":null}, \n {\"id\":\"dedf7132-2bb0-41c3-a59c-40023a16cc8d\",\"job_key\":\"auth_invite\",\"status\":\"completed\",\"attempt_count\":1,\"max_attempts\":5,\"last_error_code\":null}, \n {\"id\":\"75adf395-0bb6-490a-89ea-00f866a6b6a7\",\"job_key\":\"capability_review\",\"status\":\"retry\",\"attempt_count\":2,\"max_attempts\":5,\"last_error_code\":\"unsupported_provisioning_job\"}, \n {\"id\":\"3bc24d1b-a76d-4856-93bf-0587c58207fc\",\"job_key\":\"ediel_configuration\",\"status\":\"retry\",\"attempt_count\":2,\"max_attempts\":5,\"last_error_code\":\"unsupported_provisioning_job\"}, \n {\"id\":\"16a1bcf1-6e74-4674-b022-c1c8bb29aa0f\",\"job_key\":\"ediel_readiness_revalidate\",\"status\":\"pending\",\"attempt_count\":0,\"max_attempts\":5,\"last_error_code\":null}, \n {\"id\":\"bb80b4e4-8ea1-4d7f-b9d1-e3a455da25bb\",\"job_key\":\"ediel_readiness_revalidate\",\"status\":\"pending\",\"attempt_count\":0,\"max_attempts\":5,\"last_error_code\":null}, \n {\"id\":\"1ac8a6d2-837d-490d-9d0e-375f3958eacb\",\"job_key\":\"ediel_readiness_revalidate\",\"status\":\"pending\",\"attempt_count\":0,\"max_attempts\":5,\"last_error_code\":null}, \n {\"id\":\"3a38b2c1-585a-46e5-9a39-096c204b719d\",\"job_key\":\"email_configuration\",\"status\":\"retry\",\"attempt_count\":2,\"max_attempts\":5,\"last_error_code\":\"unsupported_provisioning_job\"}, \n {\"id\":\"017d715d-6fb5-4c50-8337-37ce751c8219\",\"job_key\":\"legal_profile\",\"status\":\"retry\",\"attempt_count\":2,\"max_attempts\":5,\"last_error_code\":\"unsupported_provisioning_job\"}, \n {\"id\":\"1c463ea7-1c7f-4dbd-b372-0bdcb8dc6a05\",\"job_key\":\"onboarding_tasks\",\"status\":\"retry\",\"attempt_count\":2,\"max_attempts\":5,\"last_error_code\":\"unsupported_provisioning_job\"}]",
         "safeError": ""
       }
     ],
@@ -150,12 +151,12 @@
     "finishedAtUtc": "2026-11-06T08:41:45.251609+00:00"
   },
   "independentReviews": "local033/038 and041 each two independent exact-hash NO_FINDINGS",
-  "businessState": "1customer/2draftsites/0contracts;legalverified;partialAGTtestactor+portal+2testprofiles saved viaUI;0runs/messages;3readinessjobs pending0/5;7originalfailuresretry2/5 unchanged",
+  "businessState": "3syntheticcustomers/4draftsites/4meterpoints afteronepurpose-scopednormalprivatecustomerintake. NewcustomerA71C-100002has0contracts/Auth0; original43provisionjobs androles/members unchangedhash. ExistingU3rununchanged, no new Edieltraffic.",
   "designScenarioCounts": {
-    "BLOCKED": 87,
-    "PASS": 10,
-    "NOT_RUN": 7,
-    "FAIL": 1
+    "PASS": 15,
+    "FAIL": 0,
+    "BLOCKED": 90,
+    "NOT_RUN": 0
   },
   "sourceFixReviews": "Final0410dc57a.../b3570b... twoNO_FINDINGS;no commit/publication",
   "newCustodyPlan": {
@@ -189,8 +190,8 @@
   },
   "newCustodyReceipt": "9af4d71815e993b559116c693818cedfe48f4c48",
   "local041SourceBranch": "fix/local041-actor-projection-a71c",
-  "local041SourceWorktree": "[PRIVATE_HOME_PATH]",
-  "local041RuntimeCandidate": "[PRIVATE_EVIDENCE_REF:gridex-local041-runtime-a71c]",
+  "local041SourceWorktree": "OWNED_WORKTREE_ROOT/f9c2/gridex-ops-platform",
+  "local041RuntimeCandidate": "/private/tmp/gridex-local041-runtime-a71c",
   "local051Proposal": {
     "planSHA256": "099274b8de6e4d98d120b047365a0b9d9b6a854f41c59ace9c520ffad680b49d",
     "publicReceipt": {
@@ -211,21 +212,19 @@
   "newCompanyReadFailure": "local051blocksoriginaldetail;separatetestingpageworks;no senderfallback enabled",
   "privateEvidencePendingSync": true,
   "lastCompletedPrivatePreservation": {
-    "savedAtUtc": "2026-11-06T19:35:54.686976+00:00",
-    "source": "[PRIVATE_EVIDENCE_REF:gridex-evidence-20261105-local]",
-    "destination": "[PRIVATE_HOME_PATH] Support/Gridex/private-evidence/20261106-local054-published-1038",
-    "filesVerified": 1482,
-    "mismatches": [],
-    "sha256Manifest": "8e240762d4bf84862f1f5136e4a9e62c5998b7f249925d1fad4aa6e1e7d548d4",
-    "scope": "Only existing private evidence packet;no SMTP config/keys/mailbox DB;no external publication",
-    "liveLogs": "Controllers/app still active;manifest is point-in-time snapshot"
+    "UTC": "2026-11-07T23:57:04.080764+00:00",
+    "state": "PASS_EXACT22_ORIGINALS_PLUS3_VALIDATION_FILES_PRIVATE_MAC",
+    "destination": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-evidence/20261108-auth-omtests-final-a71c",
+    "manifestSHA256": "535b28b4e351d328f335ad857179a3b422161dfc1432d0a477470bdaeebf9a8e",
+    "noExternalPublication": true,
+    "rawMailsSeparatePrivateOnly": true
   },
   "preservationLimitation": "Receipt binds prior point-in-time352filecopy;finalreporteditswillbesyncedonceagain;latestdurablepreservation-receipt.safe.json is authoritative.",
-  "appLauncherToolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "appLauncherToolSession": 36860,
   "local051CustodyReceipt": "2b552d58f48a8c37c305e82b4940ad928c552f11",
   "local051FixState": "7regressionsPASS;lint/app/tests types/buildPASS;twoNO_FINDINGS;actualbrowserPASS;uncommitted",
   "local051SourceBranch": "fix/local051-company-email-readiness-a71c",
-  "local051SourceWorktree": "[PRIVATE_HOME_PATH]",
+  "local051SourceWorktree": "OWNED_WORKTREE_ROOT/8d0a/gridex-ops-platform",
   "newEdielCustodyProposal": {
     "planSHA256": "37a64ce419966b5fa2fb84cc4555cc52982405a89a12b3f4f40e00b35d42b20e",
     "publicReceipt": {
@@ -259,23 +258,23 @@
   },
   "local052053CustodyReceipt": "d1f52c4a33f9f117194cb409a8fa9eb07c59599c",
   "local052053SourceBranch": "fix/local052-053-ediel-ui-context-a71c",
-  "local052053SourceWorktree": "[PRIVATE_HOME_PATH]",
+  "local052053SourceWorktree": "OWNED_WORKTREE_ROOT/2573/gridex-ops-platform",
   "local052053Regression": "12PASS;allREDretained;lint/types/build0;twoexacthashNO_FINDINGS",
   "runningCandidateManifest": {
     "preparedAtUtc": "2026-11-06T07:57:28.499611+00:00",
     "baseline": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
-    "root": "[PRIVATE_EVIDENCE_REF:gridex-local052053-runtime-a71c]",
+    "root": "/private/tmp/gridex-local052053-runtime-a71c",
     "sourceFiles": {
-      "lib/ediel/actorTesting.ts": "[PRIVATE_HOME_PATH]",
-      "__tests__/actor-testing-canonical-company-projection.test.ts": "[PRIVATE_HOME_PATH]",
-      "lib/tenant/passwordResetEmail.ts": "[PRIVATE_EVIDENCE_REF:gridex-unit-a71c]",
-      "__tests__/tenant-password-reset-ssr.test.ts": "[PRIVATE_EVIDENCE_REF:gridex-unit-a71c]",
-      "app/admin/companies/[id]/page.tsx": "[PRIVATE_HOME_PATH]",
-      "__tests__/company-detail-disabled-email-readiness.test.ts": "[PRIVATE_HOME_PATH]",
-      "app/admin/ediel/actions.part-2.ts": "[PRIVATE_HOME_PATH]",
-      "app/admin/ediel/system-tests/cases/[id]/page.tsx": "[PRIVATE_HOME_PATH]",
-      "__tests__/ediel-tgt-missing-profile-feedback.test.ts": "[PRIVATE_HOME_PATH]",
-      "__tests__/ediel-case-payload-company-context.test.ts": "[PRIVATE_HOME_PATH]"
+      "lib/ediel/actorTesting.ts": "OWNED_WORKTREE_ROOT/f9c2/gridex-ops-platform",
+      "__tests__/actor-testing-canonical-company-projection.test.ts": "OWNED_WORKTREE_ROOT/f9c2/gridex-ops-platform",
+      "lib/tenant/passwordResetEmail.ts": "/private/tmp/gridex-unit-a71c",
+      "__tests__/tenant-password-reset-ssr.test.ts": "/private/tmp/gridex-unit-a71c",
+      "app/admin/companies/[id]/page.tsx": "OWNED_WORKTREE_ROOT/8d0a/gridex-ops-platform",
+      "__tests__/company-detail-disabled-email-readiness.test.ts": "OWNED_WORKTREE_ROOT/8d0a/gridex-ops-platform",
+      "app/admin/ediel/actions.part-2.ts": "OWNED_WORKTREE_ROOT/2573/gridex-ops-platform",
+      "app/admin/ediel/system-tests/cases/[id]/page.tsx": "OWNED_WORKTREE_ROOT/2573/gridex-ops-platform",
+      "__tests__/ediel-tgt-missing-profile-feedback.test.ts": "OWNED_WORKTREE_ROOT/2573/gridex-ops-platform",
+      "__tests__/ediel-case-payload-company-context.test.ts": "OWNED_WORKTREE_ROOT/2573/gridex-ops-platform"
     },
     "codePublished": false,
     "overlays": "Basef23 + owned033/038 +041 +051 +052/053 exactuncommitted sources;no schema/envfilescopied",
@@ -419,7 +418,116 @@
     }
   ],
   "originalBaselineAndOverlays": "Basef23;explicitpriorPR948/RBAC/Auth/SMTPoverlaysseparate;5sourcefixfiles+5testslistedexactly;notunchangedmainacceptance",
-  "environmentOverlays": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "environmentOverlays": {
+    "preserved": "PriorAuth/RBAC/PR948/SMTPoverlaysunchanged",
+    "newAgtTestConfiguration": {
+      "databaseSystemId": "7704602478567067687",
+      "company": {
+        "status": "onboarding",
+        "lifecycle_status": "onboarding",
+        "operating_environment": "test",
+        "live_ediel_enabled": false,
+        "production_status": "not_ready"
+      },
+      "ediel_actor_settings": [
+        {
+          "id": "68806163-077a-48aa-be5a-8d9182410190",
+          "company_id": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+          "environment": "test",
+          "actor_role": "supplier",
+          "actor_ediel_id": "97001",
+          "is_active": true,
+          "test_status": null,
+          "production_status": null
+        }
+      ],
+      "ediel_system_test_settings": [
+        {
+          "id": "633cd5c6-5b1c-4689-8d5d-df5a19157c68",
+          "company_id": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+          "environment": "test",
+          "test_suite": "AGT",
+          "actor_role": "supplier",
+          "message_family": "PRODAT",
+          "setup_package": "agt_ddq_prodat_l",
+          "route_profile_id": null,
+          "is_active": true
+        }
+      ],
+      "ediel_counterparties": [
+        {
+          "id": "0256d978-bf01-447a-9e62-1153f1d1be84",
+          "company_id": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+          "environment": "test",
+          "counterparty_role": "test_portal",
+          "counterparty_ediel_id": "97002",
+          "email": "e2e-local-a71c-ediel-sink@example.invalid"
+        }
+      ],
+      "communication_routes": [
+        {
+          "id": "41f604fb-73ce-4ee2-9681-18f0b26763c3",
+          "company_id": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+          "route_name": "AGT 2026A PRODAT Edielportalen",
+          "is_active": true,
+          "target_email": "e2e-local-a71c-ediel-sink@example.invalid"
+        },
+        {
+          "id": "aaa6d095-fbdd-4810-a6e1-76933be0e0a2",
+          "company_id": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+          "route_name": "AGT 2026A UTILTS Edielportalen",
+          "is_active": true,
+          "target_email": "e2e-local-a71c-ediel-sink@example.invalid"
+        }
+      ],
+      "ediel_route_profiles": [
+        {
+          "id": "232d579d-64c0-414b-ba9d-ee4313ffc620",
+          "company_id": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+          "environment": "test",
+          "is_active": true,
+          "is_test_route": true,
+          "is_production_route": false,
+          "smtp_host": null,
+          "smtp_to": "e2e-local-a71c-ediel-sink@example.invalid",
+          "mailbox": "INBOX"
+        },
+        {
+          "id": "61954930-174b-42ef-a2c6-153e845076e8",
+          "company_id": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+          "environment": "test",
+          "is_active": true,
+          "is_test_route": true,
+          "is_production_route": false,
+          "smtp_host": null,
+          "smtp_to": "e2e-local-a71c-ediel-sink@example.invalid",
+          "mailbox": "INBOX"
+        }
+      ],
+      "syntheticIdCollisionsOutsideOwnCompany": 0
+    },
+    "canonicalBinding": {
+      "settings": [
+        {
+          "id": "633cd5c6-5b1c-4689-8d5d-df5a19157c68",
+          "route_profile_id": null,
+          "activationState": "pending_route",
+          "test_suite": "AGT"
+        }
+      ],
+      "runs": 0,
+      "messages": 0,
+      "customers": 1,
+      "sites": 2,
+      "customerContracts": 0,
+      "legal": {
+        "completeness": "verified",
+        "review_required": false
+      },
+      "activeConfigurations": 0
+    },
+    "qualification": "PARTIAL_NOT_ACCEPTED;syntheticIDsandtestmailonly;noportalconfirmation/productionactivation"
+  },
   "newReadinessJobs": [
     {
       "id": "16a1bcf1-6e74-4674-b022-c1c8bb29aa0f",
@@ -440,8 +548,8 @@
       "max_attempts": 5
     }
   ],
-  "currentSinkPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
-  "currentRuntime": "[PRIVATE_EVIDENCE_REF:gridex-auth-chain-runtime-a71c]",
+  "currentSinkPid": 67127,
+  "currentRuntime": "/private/tmp/gridex-auth-chain-runtime-a71c",
   "currentCandidateSource": {
     "recordedAtUtc": "2026-11-06T13:29:28.345027+00:00",
     "base": "98687136b6131a4554d0c99039cb24551980db40",
@@ -641,7 +749,7 @@
         "payloadSHA256": "c60fa516440606be94ffeca12468bef4ef5271a63540d361eb5ec185c5a587eb"
       }
     ],
-    "identity": "Gridex verification <[EMAIL_REDACTED]>",
+    "identity": "Gridex verification <gridex-verification@users.noreply.github.com>",
     "requiresSeparateApproval": true,
     "excluded": [
       "Ediel052/053/057",
@@ -707,7 +815,7 @@
   },
   "ciWatch": {
     "session": 15316,
-    "script": "[PRIVATE_EVIDENCE_REF:gridex-ediel-ci-watch-a71c.py]",
+    "script": "/private/tmp/gridex-ediel-ci-watch-a71c.py",
     "maxPolls": 80,
     "intervalSeconds": 45,
     "artifact": "ediel-delivery-proposal/bounded-ci-watch.safe.json",
@@ -732,7 +840,7 @@
     "commentUrl": "https://github.com/heke99/gridex-ops-platform/issues/840#issuecomment-6685595683"
   },
   "local083": {
-    "worktree": "[PRIVATE_HOME_PATH]",
+    "worktree": "OWNED_WORKTREE_ROOT/7761/gridex-ops-platform",
     "custodyReceipt": "a32b447956a7d3753df7aa7a7fffbcc535db61af",
     "state": "FIXED_LOCAL_VERIFIED_NOT_COMMITTED",
     "evidence": "local083-repair/saved-payload-readback.safe.json"
@@ -790,24 +898,24 @@
       {
         "name": "Kant",
         "scope": "054isolatedregressionpreparation",
-        "ownedPath": "[PRIVATE_EVIDENCE_REF:parallel054-kant]",
+        "ownedPath": "PRIVATE_EVIDENCE_ROOT/parallel054-kant",
         "sourceWrite": "BLOCKED until exact metadataapproval+owncustody"
       },
       {
         "name": "Newton",
         "scope": "105mapping+runnablequeue",
-        "ownedPath": "[PRIVATE_EVIDENCE_REF:parallel-scenarios-newton]"
+        "ownedPath": "PRIVATE_EVIDENCE_ROOT/parallel-scenarios-newton"
       },
       {
         "name": "Jason",
         "scope": "047canonicalproducerhandoffpack",
-        "ownedPath": "[PRIVATE_EVIDENCE_REF:parallel047-jason]",
+        "ownedPath": "PRIVATE_EVIDENCE_ROOT/parallel047-jason",
         "foreignSourceWrites": false
       },
       {
         "name": "Poincare",
         "scope": "productionlikeLOCALcontractimplementationproposal",
-        "ownedPath": "[PRIVATE_EVIDENCE_REF:parallel-contract-poincare]",
+        "ownedPath": "PRIVATE_EVIDENCE_ROOT/parallel-contract-poincare",
         "policyMutation": false
       }
     ],
@@ -824,9 +932,9 @@
   "candidateHashEvidence": "local083-repair/current-candidate-hash-readback.safe.json",
   "currentQualifiedLocalEnvironment": {
     "observedAtUtc": "2026-11-06T17:13:21.331272+00:00",
-    "runtimeRoot": "[PRIVATE_EVIDENCE_REF:gridex-local083-runtime-a71c]",
-    "appPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
-    "smtpPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "runtimeRoot": "/private/tmp/gridex-local083-runtime-a71c",
+    "appPid": 47285,
+    "smtpPid": 47284,
     "browserControllers": [
       34854,
       36671
@@ -838,7 +946,7 @@
     "originalMainBase": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
     "databaseContainer": "supabase_db_gridex-replay-a71c",
     "databaseSystemIdentifier": "7704602478567067687",
-    "actualDbConfigurationEvidence": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "actualDbConfigurationEvidence": "local083-repair/campaign-resume-20261106T1713-db.safe.json",
     "schema": "Existingqualifiedlocalcanonicalreplay atf23 +explicitpriorPR948/RBACoverlays retained;no schemamutations thisphase;047three relations stillabsent",
     "retainedOverlays": [
       "PriorAuthSSR",
@@ -846,7 +954,26 @@
       "AuthenticatedlocalSMTPtestsink",
       "SyntheticAGTUIconfiguration"
     ],
-    "currentActiveConfigurations": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "currentActiveConfigurations": [
+      {
+        "id": "d706e71a-c9bc-4a52-be80-1b160e81d297",
+        "status": "inactive",
+        "actor_role": "supplier",
+        "environment_type": "agt_test",
+        "route_profile_id": "232d579d-64c0-414b-ba9d-ee4313ffc620",
+        "configuration_snapshot_id": "f6846ac1-768d-4266-ae76-eb849a9a1812",
+        "system_test_settings_id": "175a1213-041f-430e-9cce-69a57f9b4a65"
+      },
+      {
+        "id": "e409e38b-2494-484a-bcd0-851813108f7b",
+        "status": "active",
+        "actor_role": "supplier",
+        "environment_type": "agt_test",
+        "route_profile_id": "232d579d-64c0-414b-ba9d-ee4313ffc620",
+        "configuration_snapshot_id": "f6846ac1-768d-4266-ae76-eb849a9a1812",
+        "system_test_settings_id": "b0e41b8d-f22d-4abc-81c5-c74da58be2fd"
+      }
+    ],
     "precedence": "Thisactualreadbacksupersedesolderphaseconfiguration snapshots;older top-level recordsretainedashistory,notcurrentassertions",
     "businessCounts": {
       "customers": 1,
@@ -884,74 +1011,9 @@
       "finding": "local089"
     }
   ],
-  "findingSummary": {
-    "findingRecords": 134,
-    "uniqueRootGroupsIncludingExistingT5Finding": 126,
-    "provisioningJobFailureFindings": 7,
-    "provisioningRootGroups": 1,
-    "productFindingRecords": 39,
-    "uniqueConfirmedProductRootCauses": 31,
-    "categories": {
-      "environment": 26,
-      "product": 39,
-      "test": 56,
-      "evidence_gap": 13
-    },
-    "statuses": {
-      "OPEN": 23,
-      "LOCAL_CANDIDATE_VERIFIED_NOT_DELIVERED": 1,
-      "FIXED": 12,
-      "BLOCKED": 9,
-      "RESOLVED_ENVIRONMENT": 2,
-      "FIXED_LOCAL_REAL_BROWSER_VERIFIED": 1,
-      "RESOLVED_IN_TEST_OVERLAY": 4,
-      "PUBLISHED_NOT_MERGED": 4,
-      "RESOLVED_AUTHORITY": 1,
-      "FIXED_TEST_ONLY": 35,
-      "RESOLVED_DIAGNOSTIC": 4,
-      "FIXED_LOCAL_REVIEWED_NOT_COMMITTED": 10,
-      "FIXED_LOCALLY_VERIFIED_PENDING_DELIVERY": 1,
-      "FALSE_POSITIVE": 2,
-      "OVERVIEW_AND_DETAIL_FIXED_LOCAL_NOT_DELIVERED": 1,
-      "FIX_IMPLEMENTED_COMPONENT_VERIFIED_INTEGRATION_BLOCKED": 2,
-      "FIX_IMPLEMENTED_COMPONENT_VERIFIED_REAL_START_BLOCKED": 1,
-      "CONFIRMED_SQL_PREDICATE_FULL_FLOW_UNVERIFIED": 2,
-      "OPEN_ORIGINAL_PHASE_LIMIT": 2,
-      "FIXED_DOCUMENTATION": 1,
-      "RESOLVED_TOOL_PERMISSION": 1,
-      "OPEN_UNVERIFIED_CI_SHARED_GROUP": 1,
-      "FIXED_LOCAL_COMPONENT_VERIFIED": 2,
-      "FIXED_LOCAL_NATIVE_UI_VERIFIED_PENDING_CANONICAL_DELIVERY": 1,
-      "OPEN_VERIFIED_SOURCE_ONLY": 1,
-      "OPEN_LOCAL_SELECTOR_FIX_VERIFIED_DOWNSTREAM_FAIL": 1,
-      "RESOLVED_WITH_INTENDED_PRIVATE_FIXTURE_SOURCE": 1,
-      "OPEN_ROOT_CAUSE_UNDER_INVESTIGATION": 1,
-      "OPEN_UNACTIVATED_CANDIDATE_SECURITY_CLOSURE": 1,
-      "FIX_IMPLEMENTED_COMPONENT_VERIFIED_NATIVE_RETEST_PENDING": 1,
-      "OPEN_ACTUAL_GUARD_REPRODUCED_FIXTURE_CORRECTION_PENDING": 1,
-      "OPEN_VERIFIED_LOCAL_TRANSPORT_QUALIFICATION_BLOCKER": 1,
-      "FIX_IMPLEMENTED_NEXT_QUALIFICATION_PENDING": 1,
-      "OPEN_NONBLOCKING_ENV_HEALTHCHECK_MISMATCH": 1,
-      "FIXED_REAL_ORDINARY_UPGRADE_VALIDATOR_VERIFIED_PENDING_DELIVERY": 1
-    },
-    "productFixesDeliveredToMain": 0,
-    "untriagedLintWarnings": 167,
-    "falsePositiveRootGroups": 2,
-    "campaignFindingRecords": 127,
-    "separateProvisioningJobRecords": 7,
-    "uniqueCampaignRootCauses": 125,
-    "uniqueCampaignProductRootCauses": 30,
-    "countingScope": "Allcampaignrecordsinclude7separateprovisioningchildren;rootgroupsdeduplicatethemunder017and073/075variants. ExistingoutsideT5countedonlyinexplicitincludingT5fields.",
-    "rootCategories": {
-      "environment": 26,
-      "product": 30,
-      "test": 56,
-      "evidence_gap": 13
-    },
-    "countsVerifiedAtUtc": "2026-11-07T02:31:35.281285+00:00"
-  },
+  "findingSummary": "200 records; categories/statuses and7originalprovisioning histories checked",
   "local054Candidate": {
-    "root": "[PRIVATE_EVIDENCE_REF:gridex-local054-runtime-a71c]",
+    "root": "/private/tmp/gridex-local054-runtime-a71c",
     "sourceManifest": "local054-repair/candidate-sources.safe.json",
     "sourceFiles": 22,
     "appTypes": "PASS",
@@ -1052,14 +1114,14 @@
       "AUTH01.04",
       "UI01.05"
     ],
-    "state": "FIXTURE_CREATED_ACTOR_DELIVERY_BLOCKED",
+    "state": "HISTORICAL_INITIAL_CREATION_SNAPSHOT_DO_NOT_TREAT_AS_CURRENT",
     "companyId": "59795221-220a-4f4d-bd31-b963c2ec760b",
     "invitationId": "eb54b5b3-8071-4b90-9800-24ef27ef2207",
     "evidence": [
       "local-auth-second-company/planned-ui-mutation.safe.json",
       "local-auth-second-company/create-after-status.safe.json"
     ],
-    "limits": "UIcreatebusinessstepverifiedDB+visibleconfirmation; pendingintentnotmembership/session; no scenariopromotion; globalworkerprohibited"
+    "limits": "Initial historical create evidence only; later B actor/session verified in existing campaign receipts. No repeatedcreation/enrollment."
   },
   "local047Publication": {
     "url": "https://github.com/heke99/gridex-ops-platform/pull/1039",
@@ -1112,7 +1174,7 @@
     "next": "Real normal invitation accepted; verify role/audit/UI context then customer creation"
   },
   "privateEvidenceLatest": {
-    "path": "[PRIVATE_HOME_PATH] Support/Gridex/private-evidence/20261106-native-auth-and-047-failure-qualified",
+    "path": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-evidence/20261106-native-auth-and-047-failure-qualified",
     "filesVerified": 1975,
     "manifestSHA256": "47844eb6bcbabb5df4f4993438f1d31682d5765711cfd0d712ef6a5ce9a95d53",
     "rawAuthDumpExcluded": true
@@ -1125,7 +1187,7 @@
     "scopedSemanticTypes": "PASS",
     "build": "PASS_4096MiB"
   },
-  "companyBBrowserToolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "companyBBrowserToolSession": 94372,
   "companyBBrowserState": "Qualified fullformdriver afterordinaryBreset/password/login; lastowncustomerBcardread; reuse94372 only forBmutations; initial89881frozenproof",
   "local047Epoch2": {
     "head": "20503d49814599d80d956e46b0a77dff1a5d936b",
@@ -1155,7 +1217,7 @@
     "state": "FIXED_LOCAL_NATIVE_UI_VERIFIED_PENDING_CANONICAL_DELIVERY",
     "sourceSHA256": "7b30f5749ee7c2d5d14ae5136f4a4e44f7ffbe9798fa3dc023ad92a3ce664aaa",
     "primaryDatabase": "postgres",
-    "appPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "appPid": 67128,
     "browserSession": 94372,
     "customerCount": 2,
     "siteCount": 3,
@@ -1174,12 +1236,16 @@
     "next": "Poincare must verify new own claims and ACK before writes; never repeat release"
   },
   "privateEvidenceLatestPreservation": {
-    "path": "[PRIVATE_HOME_PATH] Support/Gridex/private-evidence/20261107-three-path-parity-and-ediel-tls",
-    "filesVerified": 3420,
-    "mismatches": 0,
-    "manifestSHA256": "4b5c62c28b9795425a2e62f62ef54a42ebc51f58dcc6f2c895ef3a86a243188f",
-    "savedAtUtc": "2026-11-07T02:05:22.526787+00:00",
-    "limits": "Later16auth/focused2resultsand017sourceprogress workingpacketuntilnextclosedstagepreservation"
+    "startUTC": "2026-11-07T10:55:32.049822+00:00",
+    "endUTC": "2026-11-07T10:55:34.605253+00:00",
+    "destination": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-evidence/20261107-qualified47-real-poll-and-company-switch",
+    "filesVerified": 4915,
+    "copiedBytesManifestMismatches": 0,
+    "sourceChangedAfterRead": [],
+    "manifestSHA256": "56472ca7fbffd7b9f41ef3bc9b4a47aea2a15691f32481ea7228d3a21de15944",
+    "permissions": "Directories0700/files0600",
+    "scope": "Only existing private evidence; privateSMTPconfig, GreenMailkeys, MailpitDB and rawDBdump outside source excluded; no publication",
+    "snapshotSemantics": "Exact copied bytes per file during capture window, not filesystem-wide atomic; later new files excluded; previous snapshots preserved"
   },
   "multicompanyNaturalAfterStatus": {
     "actor": "47aca555-6513-43bd-933b-09721603dce1",
@@ -1210,7 +1276,7 @@
     "cleanNative": "15FAIL,826executedPASS,7SKIP across repeated JUnit phases; browser31/31 separate",
     "release": "local047-successor/producer-epoch4-close-release.safe.json"
   },
-  "currentSmtpSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "currentSmtpSession": 2258,
   "local114Runtime": {
     "state": "ACTIVE34_SELECTOR_VISIBLE_REAL_SWITCH_FAIL_LOCAL120",
     "candidate": "local-auth-second-company/local114-final-six-candidate.safe.json",
@@ -1220,7 +1286,7 @@
     "secretScanExit": 0,
     "runtime": "local-auth-second-company/local114-qualified-cutover.safe.json",
     "oldLauncher": {
-      "pid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+      "pid": 67119,
       "state": "PAUSED_OWN_HARNESS_TO_PRESERVE_B_BROWSER67133",
       "resumeOnly": "When deliberately retiring old B browser; old app wait has completed"
     },
@@ -1228,7 +1294,14 @@
     "browserAOriginalSession": 4087,
     "browserANewSession": 66068
   },
-  "processCredentialReadRejection": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "processCredentialReadRejection": {
+    "state": "DENIED_COMMAND_NOT_EXECUTED_SAFER_INTENDED_CONFIG_APPROVED",
+    "reason": "Auto-review rejected process-memory SMTP credential probing for new session; no attempt through another process/API/tool permitted",
+    "blockedScript": "/private/tmp/gridex-company-a-switch-normal-login-a71c.py",
+    "newSafeConfiguration": "local-auth-second-company/mailbox-ui-fixture-qualification.safe.json",
+    "credentialConfigPrivacy": "Only own generated0600UIcredentialfile outside evidence; no process secret reads in new launcher",
+    "newLauncher": "/private/tmp/gridex-A-normal-login-intended-mailbox-a71c.py"
+  },
   "local047NextLocalCommit": {
     "head": "629c1e207e4b502cdd5acbd982689299a7c9dabc",
     "tree": "5d166196f8c7f4408722f197605f049fc421b8f3",
@@ -1237,14 +1310,20 @@
     "native": "local047-successor/FINAL50-native-existing-clone-rollback.safe.json",
     "wait": "Hold broad epoch until15nativefixture failures triaged/repaired under custody;629c localonly, no outputsadopted"
   },
-  "activeTraceBrowser": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "activeTraceBrowser": {
+    "session": 34885,
+    "pid": 76911,
+    "state": "ActualAuthOTPsession127cookiepreserved; currentbrowseraliaslocalhost/login afterwrongLocation; no morerepeatselections",
+    "receipt": "local-auth-second-company/company-a-switch-trace/trace.safe.json",
+    "closedFailureSHA256": "92c3d4facd63ba6a05f0ab9543a1a1055502e0ae281b0615a37618e305121daa"
+  },
   "local120RootCause": "Next16loopbacknormalization inNextRequest.url changesorigin whenrouteconstructsabsoluteLocation; genuine127Authcookiecorrectlynotforwardedtolocalhost.",
   "localRBACProfileOverlay": "Sourceboundcustomer_service_agent15existingedges inown68d role only; original022OPEN, no member/session injection",
   "local122": {
     "state": "SOURCE_CLAIM_COMPLETE_AWAIT_OWN_ACK_RED_FIX_GREEN",
     "receipt": "1c3f300b9590e5e6929e2f0e1b3b4506b221628d",
     "writer": "Newton",
-    "worktree": "[PRIVATE_HOME_PATH]",
+    "worktree": "OWNED_WORKTREE_ROOT/5e83/gridex-ops-platform",
     "files": [
       "scripts/ediel-source-owner-native.test.ts",
       "scripts/helpers/ediel-native-party-addresses.ts",
@@ -1297,16 +1376,16 @@
     "compatibility": "134actual0testmoduleRED; foreignbe7751... custodyrequiresboundedhandoff"
   },
   "authoritativeAfterStatus": {
-    "observedAtUtc": "2026-11-07T03:46:37.172858+00:00",
-    "appPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
-    "appRoot": "[PRIVATE_EVIDENCE_REF:gridex-local114-active-runtime-a71c]",
-    "buildId": "kHUWivBKxA--7g3FHNoxQ",
-    "sourceFiles": 34,
-    "smtpSinkPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "observedAtUtc": "2026-11-07T07:54:08.699395+00:00",
+    "appPid": 5547,
+    "appRoot": "/private/tmp/gridex-local166-poll-runtime-a71c",
+    "buildId": "HjjxWiHyGKdvsgQ0MRvD2",
+    "sourceFiles": 47,
+    "smtpSinkPid": 5544,
     "pausedOldLauncher": 67119,
-    "BbrowserPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
-    "AformBrowserPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
-    "AtraceBrowserPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "BbrowserPid": 67133,
+    "AformBrowserPid": 76539,
+    "AtraceBrowserPid": 76911,
     "CI": [
       {
         "id": 42324185790,
@@ -1372,21 +1451,23 @@
       }
     ],
     "schema047Primary": "LOCAL_TEST_OVERLAY06bCOMMITTED+canonicalSQL+REST3PASS; anon3actual401/42501; no readiness/leases seed",
-    "precedence": "This dated actualreadback supersedes historical top-level earlierphasefields; no olderprocess assumedcurrent.",
-    "runtimeToolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]"
+    "precedence": "Current47/V3 afterstatus overrides older42/40/PIDs; retired98797/98794 must not be repeated. Existing U3run preserved.",
+    "runtimeToolSession": 70890,
+    "rootBrowserPid": 92181,
+    "rootBrowserSession": 43240
   },
   "edielLocalMailResource": {
-    "containerId": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
-    "networkId": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "containerId": "5ed1f77ca17560d0fccbcf520d46733f16aae8ccdaf86e0ff4936d437a449682",
+    "networkId": "ac7db86b776ac281a9a019757743364d14dff15c07690ce1357c01e5b5e9ab05",
     "internal": true,
     "state": "STRICT_TLS_AUTH16_UNIQUE_LATEST_QUALIFIED_VIA_PRIVATE_TCP_OVERLAY_APP_NOT_BOUND",
     "image": "greenmail/standalone@sha256:175af0b7d45bc9978ffb28fb87e1d3fe1dee4d5791fcf59fa3fbb184378c90fb",
     "protocol16": "NOT_RUN_PREREQUISITE_FAILED",
-    "privateConfigurationExcluded": "[PRIVATE_EVIDENCE_REF:gridex-ediel01-greenmail-private-a71c]",
+    "privateConfigurationExcluded": "/private/tmp/gridex-ediel01-greenmail-private-a71c",
     "noAppConfigChange": true,
     "noMailSendPoll": true,
-    "overlayPid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
-    "overlayToolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "overlayPid": 83470,
+    "overlayToolSession": 12117,
     "overlayEvidence": "parallel-scenarios-newton/ediel01-transport/greenmail/main-overlay-launch.safe.json",
     "protocolQualification": "parallel-scenarios-newton/ediel01-transport/greenmail/main-transport-auth-qualification.safe.json",
     "initial16": "14PASS2testclassifierFAIL preserved",
@@ -1421,7 +1502,12 @@
     "next": "Poincare immutablemailorigin actualSQLRED/minfix/positiveAuthqualification",
     "foreignDispatch": "ExactADMINproposal6bb76...pendinguser"
   },
-  "runtimeConfigSource": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+  "runtimeConfigSource": {
+    "source": "Known intended private v3 config excluded from evidence/publication",
+    "delta": "Dedicated local inbound secret+existing synthetic root actor only; globalCRONunset, AUTH_SMTPunchanged",
+    "state": "ACTIVE_QUALIFIED_REAL_EMPTY_POLL",
+    "rollback": "Immutable42+v2 after actualprocess/port status"
+  },
   "local047LocalOverlayStage": {
     "state": "COMMITTED_POSTCOMMIT_CANONICAL_VALIDATOR_PASS_LOCAL_OVERLAY_ONLY",
     "producerReceipt": "7f3fb579eb3df0c65b4d3c5c7117e2d23e80bb00",
@@ -1438,10 +1524,10 @@
     "producerState": "TERMINAL_7f3RELEASED_ONCE_AUTHENTICATED_ABSENCE03:29:28; noactiveGENproducerclaimed"
   },
   "resumptionAfterStatus": {
-    "observedAtUtc": "2026-11-07T04:54:11.736805+00:00",
+    "observedAtUtc": "2026-11-07T07:16:59.455113+00:00",
     "branch": "reports/local-verification-20261105-a71c",
     "head": "3acf1765a14c0942bba3fb1132644a3b02766873",
-    "processCheck": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+    "processCheck": "Fresh ps PID/PPID/stat/etime/comm only:95063app/95058sink/92181root/83470TLSbridge/67133B alive;67119paused. B tool94372 Unknown process id; no replacement.",
     "latestUserApproval": "eb69 sixrefs already ALL6 released Nov6 22:50; no repetition",
     "local142": {
       "state": "LOCAL_OVERLAY_COMMITTED_ACTUAL_DB_AND_BROWSER_READBACK_PASS_CANONICAL_DELIVERY_PENDING",
@@ -1460,10 +1546,11 @@
     },
     "producerPlan": "0bc46b611a3c810698f945ce2fbeacd0f6d4588a5c797ba4b89a9003a320da49 PREPARED_ONLY superseded-input review required after test hashchange",
     "agents": {
-      "Kant": "local142 immutable genuine predecessor regression",
-      "Newton": "local142 independent review then EVENT triage",
-      "Jason": "exact scoped product Ediel poll/processing path",
-      "Poincare": "C typed-file/job ancestry closure; entry CLOSED"
+      "Jason": "Scopedpoll-onlyexactroute2 source implementation afterownALL3; no globalengine/runtime",
+      "Newton": "DB05/DB01 authentic047compatibilityexact5 afterownALL6; no GEN/native/runtime",
+      "Kant": "120canonicaloriginexact2 afterownALL3; no Auth/cookiepolicyweakening",
+      "Poincare": "CtypedSQLvariant2048exclusive +newpart2/invoicedispatchclaims/boundsguards; Cclosed",
+      "Averroes": "166company-preservingTGTsuccessredirectexact2 afterownALL3; no duplicateU3start"
     },
     "scenarioCountsUnchanged": {
       "PASS": 10,
@@ -1471,9 +1558,9 @@
       "BLOCKED": 85,
       "NOT_RUN": 7
     },
-    "next": "Kant149auditfix/custody; Newton150truthfulTGTsetup/readinessfix/custody; Jasonawaitexactroute-onlyADMIN then scopedpolladmission; PoincareownedCjobancestry whilegenuineunderlayblocked. No TGTsave/falseportalconfirmation. No globalengine orworker.",
+    "next": "Preservepost42firstU3originals/DBbackup; qualify andintegrateJasonpurepollsource, thenexistingU3incoming/ACKrealbusinesschain. Advance166/120/DB05/C source inparallel; oneheavy slot.",
     "privateSnapshot": {
-      "path": "[PRIVATE_HOME_PATH] Support/Gridex/private-evidence/20261107-resumed142-review-hold",
+      "path": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-evidence/20261107-resumed142-review-hold",
       "files": 3944,
       "mismatches": 0,
       "manifestSHA256": "4dd046645862f2b1ff251261ee5079235b93b4a8f8ade4821e7aca3a7d417016",
@@ -1491,13 +1578,23 @@
     },
     "scopedPollCustody": "Pending exact route-only ADMINdecision2df9cb..., foreign56c22... ref-f8afec...; no write/release/duplicatecomment",
     "rootBrowser": {
-      "pid": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
-      "toolSession": "[PRIVATE_OPERATIONAL_DETAIL_OMITTED]",
+      "pid": 92181,
+      "toolSession": 43240,
       "state": "REAL_ROOT_NORMAL_AUTH_VALID_ACTIVE",
       "old69043": "TERMINAL_EXIT0_AFTER_EOF",
       "old92066": "TERMINAL_VERIFIED_NO_DUPLICATE",
       "controllerSHA256": "4853f6a4209f1cbd6951838a37ab0c7d49204201001452515d93f7aa13d3f052",
-      "privateCredentialAccess": "No process/cookie/passwordrecovery; ordinaryUIreset/nativeAuthmail/login; credentials memoryonly"
+      "privateCredentialAccess": "No process/cookie/passwordrecovery; ordinaryUIreset/nativeAuthmail/login; credentials memoryonly",
+      "lastReadOnlyVerification": {
+        "atUtc": "2026-11-07T06:08:07.066Z",
+        "action": "snapshot",
+        "session": 43240,
+        "actualPath": "/admin/ediel/system-tests",
+        "actor": "e2e-local-a71c-admin@example.invalid",
+        "noMutation": true,
+        "observed": "PGRST116 retained; previewexternaldefault91100 not savedroutingproof; no Start"
+      },
+      "currentPath": "/admin/ediel/system-tests/cases/U3.1.1"
     },
     "ownEdielMailbox": {
       "id": "fa116f5c-d615-441d-ab06-993400dee09c",
@@ -1510,15 +1607,1655 @@
       "lastPolledAt": null,
       "audit": "FAIL0matchingrows local149; partialconfiguration preserved; noresave/backfill",
       "evidence": "local-auth-second-company/platform-fixed-env-reference-ui/mailbox-after-single-save.safe.json"
+    },
+    "publishedReportSnapshot": {
+      "commit": "409cbfd0526b2d2c6270befe3cd3aaa34012e610",
+      "parent": "3acf1765a14c0942bba3fb1132644a3b02766873",
+      "branch": "reports/local-verification-20261105-a71c",
+      "snapshotAtUtc": "2026-11-07T04:58:22.419870+00:00",
+      "verifiedRemoteAtUtc": "2026-11-07T05:07:21.235400+00:00",
+      "exact3ScannedFiles": true,
+      "workflowRuns": 0,
+      "url": "https://github.com/heke99/gridex-ops-platform/tree/409cbfd0526b2d2c6270befe3cd3aaa34012e610/quality/e2e/2026-11-05-local-f23c1dc0c",
+      "privateRootPreserved": "RootHEAD3acf withfulloriginaldirtyreports, detachedpublicationcommit onlyremote/reportworktree; noreset/overwrite",
+      "laterChanges": "Laterlocal149/150reviews/progressnotautomaticallyinsnapshot"
+    },
+    "privateSnapshotAfterMailbox": {
+      "path": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-evidence/20261107-local142-and-mailbox-UI",
+      "filesVerified": 4051,
+      "mismatches": 0,
+      "manifestSHA256": "99643a90ac560c517c7168bdca095828475752eb9d21d6fd34d070860776ef0a",
+      "atUtc": "2026-11-07T04:54:49.391626+00:00"
+    },
+    "current149150": {
+      "149": "Actual new-create audit and UI readback PASS, original missing audit preserved",
+      "150": "Original false-attestation fix active40; actual positive config FAIL PGRST116, partial effects retained",
+      "158159": "82/82 combined PASS, scopedTSCr2PASS, two independent exact-hash reviewsREADY; original67/15listenEPERM preserved",
+      "build": "Inactive40 /private/tmp/gridex-local158159-runtime-a71c prepared; build deferred to integrate local160 once, current app95063 unchanged"
+    },
+    "currentRuntime": {
+      "appPid": 98797,
+      "sinkPid": 98794,
+      "toolSession": 7888,
+      "root": "/private/tmp/gridex-local158159-runtime-a71c",
+      "buildId": "wlWwa1IGhlqPFvMNefM-y",
+      "files": 42,
+      "pipeline": "101/101 combined; scopedTSC/fullappTSC/typegen/build/exact8offlinescan0; allsourcehashesunchanged",
+      "cutoverAtUtc": "2026-11-07T06:27:52.548448+00:00",
+      "AuthHealthyBeforeAfter": true,
+      "mailIdsPreserved": true,
+      "config": "Sameintendedv2/strictTLSlocalhost/privatevaluesexcluded",
+      "rootBrowserPid": 92181,
+      "rootBrowserToolSession": 43240,
+      "old95063and95058": "Retiredonce; NEVERreuseoldPIDstatusfromhistory"
+    },
+    "local149Retest": {
+      "state": "PASS_REAL_NEW_CREATE_AUDIT_AND_UI_READBACK",
+      "probeId": "5b7df638-4d4b-4ab1-bb13-fbd8e33c33de",
+      "auditId": "eed21d91-8825-4019-ab8a-634d93aa369e",
+      "probeInactiveAfterNormalUI": true,
+      "originalFaUnauditedPreserved": true,
+      "old2AndProvisioningUnchanged": true,
+      "evidence": "local149150-candidate/149-real-create-after.safe.json",
+      "limits": "Auditfailurecanstillleavepersistedmailbox; explicitpartialbehavior, notatomicproof. FullEdielnotPASS."
+    },
+    "actualTgtPartialEffects": {
+      "status": "FAIL_PARTIAL_CONFIGURATION_EFFECT_NO_RETRY",
+      "findings": [
+        "local/158",
+        "local/159"
+      ],
+      "evidence": "local149150-candidate/150-real-setup-after.safe.json",
+      "jobsEvidence": "local149150-candidate/150-partial-job-effects.safe.json",
+      "newProfile": "fbee3bde-7a49-4269-8904-9657ae255e3a",
+      "newPendingJob": "f5999f70-316a-49e2-a71e-37774a122b7a",
+      "original7": "retry2/max5 unchanged",
+      "runs": 0,
+      "locks": 0,
+      "readiness": 0,
+      "mailboxMetadata": "Own fa lost transport metadata; no poll or unsafe reactivation",
+      "BAndProduction": "Before/after unchanged"
+    },
+    "privateSnapshotAfterTgtPartial": {
+      "path": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-evidence/20261107-tgt-partial158159-and-regression",
+      "savedAtUtc": "2026-11-07T06:00:54.918746+00:00",
+      "filesVerified": 4325,
+      "mismatches": 0,
+      "manifestSHA256": "70441b84ee09f6cd2abd6f89360dd9ddf71e762326d8e8fb97d99f990246c0b3"
+    },
+    "local160": {
+      "state": "OWN_ALL4_ACK_SOURCE3_CLAIMED_JASON_REGRESSION_FIRST",
+      "receipt": "parallel047-jason/mailbox-visible-transport-edit/MAIN-OWNER-REQUEST-ONE-REF-RELEASE.safe.json",
+      "planSHA256": "dcef7b69d590cffeabb508f8732a5dcfc70ab4f8805b74fb49c8203f192f12d9",
+      "retained149TestAndSession": true,
+      "noBrowserDBMutation": true,
+      "newReceipt": "e332608688c26505d1c3b93842f1b247d1bb37a9",
+      "worktree": "OWNED_WORKTREE_ROOT/0d92/gridex-ops-platform",
+      "evidence": "parallel047-jason/mailbox-visible-transport-edit/OWN-ALL4-PREWRITE-ACK.safe.json"
+    },
+    "CterminalCurrent": {
+      "state": "FROZEN17_REVIEW_HOLD3_SOURCE_GAPS_REPRODUCTION_ASSIGNED",
+      "entry": "CLOSED",
+      "evidence": "parallel054-kant/review-C-typed-freeze17/FINAL-REVIEW.safe.json",
+      "slot": "Poincare max2048 one worker; main noheavy concurrently"
+    },
+    "TGTConfigurationCurrent": {
+      "state": "REAL_UI_AND_DB_PERSISTENCE_PASS_NOT_FULL_SCENARIO",
+      "settingsId": "cb131c7b-4748-4629-b34f-690dd2e231c7",
+      "role": "esco",
+      "family": "UTILTS",
+      "suite": "TGT",
+      "routeProfileId": "edd01f65-f596-4271-b296-ad4db3e29faa",
+      "counterpartyId": "0256d978-bf01-447a-9e62-1153f1d1be84",
+      "receiver": "97002/dso-16700@example.invalid",
+      "mailbox": "fa116f5c-d615-441d-ab06-993400dee09c",
+      "mailboxTLSrestoredAndRetained": true,
+      "auditId": "8bd376f0-988f-476d-bf3a-490a4d6ff42a",
+      "old2AndBAndProdAndOriginal7Unchanged": true,
+      "falseReadinessRows": 0,
+      "runs": 1,
+      "locks": 0,
+      "sourceStartPath": "NormalcreateEdielTgtRunFromTemplateAction→requireCompanyOperationalForWrites(onboardingallowed)→runtimeprofile→createRun→autopilotwaitportal. No AGTclaim fromTGTpath",
+      "next": "Reuse existingU3run6fcfecfa; NEVERrepeatstartbasedonfalsebanner. Finish scopedpollsource/newqualification, thenactualincominglocalfixture andresponsechain."
+    },
+    "existingU3Run": {
+      "id": "6fcfecfa-f0c2-4912-be7f-d01fa794473d",
+      "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+      "case": "U3.1.1",
+      "status": "running",
+      "environment": "test/tgt_test",
+      "productionLike": false,
+      "routeProfileId": "edd01f65-f596-4271-b296-ad4db3e29faa",
+      "snapshotId": "65a34596-3860-4d0c-a5fc-ed6df5b6a6d1",
+      "auditId": "17bdffaf-0437-430d-b9f2-6803ab7aa233",
+      "startedAt": "2026-11-07T06:48:56.29+00:00",
+      "lastActualSQL": "local158159-candidate/U3.1.1-existing-run-audit-r2.safe.json",
+      "messages": 0,
+      "completed": false,
+      "UIBug166": "Successredirectdropscompany andfalseclaimsnostart; actualDB1, ordinaryexistingcompanyAoverviewlinkreadsrun. Do notclose166fromworkaround."
+    },
+    "fiveAdminDecisions": {
+      "state": "ALL5_TERMINAL_EXACT8REFS_RELEASED_ONCE",
+      "evidence": "admin-decisions-20261107-five/all-five-terminal.safe.json",
+      "scopes": [
+        "pollroute→Jason",
+        "DB05/DB01exact4→Newton",
+        "customeropsPart2→Poincare",
+        "invoiceApprovedDispatch→Poincare",
+        "navigationroute120→Kant"
+      ],
+      "notAuthorityForCodeYet": "Eachwriterrequiresnewsourceclaim+ALLtargetACK; no producer/runtime/GENtransitionfromadminmetadata",
+      "legacySixRefReleaseNotRepeated": true
+    },
+    "local166OwnHandoff": {
+      "recipient": "Averroes01a1b4d5-51cc-7d83-aa7b-f978159dfa60",
+      "state": "ONE_OWN_052_ACTION_FILE_RELEASED_ONLY_NEWCLAIMS_REQUIRED",
+      "evidence": "local166-sidecar/MAIN-ONE-FILE-HANDOFF-RELEASE.safe.json",
+      "retained052Other3AndSession": true
+    },
+    "qualified47Preparation": {
+      "atUTC": "2026-11-07T07:46:26.551959+00:00",
+      "state": "ACTIVE47_REAL_EMPTY_POLL_AND_NEGATIVE4_PASS",
+      "candidate": "/private/tmp/gridex-local166-poll-runtime-a71c",
+      "manifest": "local166-poll-candidate/candidate.safe.json",
+      "activeRuntimeUnchanged": "98797/98794/83470/92181 alive; own DB/Auth healthy; listener127only confirmed",
+      "singleHeavyOwner": "Newton DB05 exclusive after mainRETURN, then actualDB05RETURN07:48:31; main noheavy",
+      "newReviews": "poll main+Newton;166 main+Kant;120 main+Jason READY against exact final6 files",
+      "newRuntimeConfig": "Inactive v3, dedicated inbound secret+existing root actor only; global CRON_SECRET unset",
+      "U3": "Existing6fcfecfa preserved; no second Start",
+      "next": "Existing U3.1.1 genuine E66 input/site/authority qualification; no repeatedStart or globalworker",
+      "buildId": "HjjxWiHyGKdvsgQ0MRvD2"
+    },
+    "latestRealBrowser120": {
+      "state": "PASS",
+      "evidence": "local166-poll-candidate/120-real-browser-omtest.safe.json",
+      "currentBrowserSession": 66068,
+      "currentActor": "47aca555-6513-43bd-933b-09721603dce1",
+      "currentCompany": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+      "page": "/admin/customers",
+      "noRecoveryOrNewAuth": true
+    },
+    "nextActualScenarioStep": "Read-only native qualification of genuineESCOgrant/serviceassignment/permission/Z14 for existingU3.1.1; no fakepositivegrant orsendbeforequalification; progressCproducerclosure and047deliveryinparallel",
+    "U3ActualFirstAuthorityBoundary": {
+      "state": "BLOCKED",
+      "finding": "local/168",
+      "tablePresence": "all8present",
+      "companyServiceAndPermissionCounts": "all6zero",
+      "points": "735999000000000001/2,draft",
+      "next": "Genuine local service/legal/evidence chain through intendedAPI/UI, not SQL seed; existingrunpreserved"
+    },
+    "latest066Actual": {
+      "state": "PASS",
+      "artifactId": "e2933eb3-ea13-47d8-a2d7-a0eca4616f3d",
+      "auditId": "4ca3e4ff-d075-4dbf-8a98-9fe89a2a0eea",
+      "run": "6fcfecfa-f0c2-4912-be7f-d01fa794473d",
+      "runStatus": "running unchanged",
+      "messages": 0,
+      "globalWorkerInvoked": false,
+      "toolRejection": "Preserved; actual0afterstatus checked before same original tool operation accepted; no workaround",
+      "evidence": "local166-poll-candidate/066-real-ui-native-omtest.safe.json"
+    },
+    "047IntegratedFinal": {
+      "state": "SOURCE9DELTA_APPLIED_148COMPONENT_PASS_SECURITY45TRIAGE_TWO_FINAL_REVIEWS_PENDING",
+      "head": "c7713ed2b68bf2886c0d3bda0d5575dc3410affe",
+      "filesFromF23": 19,
+      "manifest": "local047-successor/integrated-final/candidate-precommit.safe.json",
+      "newSourceCommitOrPush": false,
+      "next": "Finishoffline45provenanceclassification andKant+Averroes exact19reviews; normalexplicitproducer/commit/pushgates beforeordinaryCI"
+    },
+    "scenario105LatestCounts": {
+      "BLOCKED": 87,
+      "PASS": 12,
+      "NOT_RUN": 5,
+      "FAIL": 1
+    },
+    "original44Triage": {
+      "state": "EXACT44_RECONCILED",
+      "currentDated": "20PASS2FAIL19BLOCKED3NOT_APPLICABLE",
+      "QA02_02_04": "BLOCKEDmissingoriginalnamedcohortnotnewtests",
+      "evidence": "local166-sidecar/qa02-bound-originals/EXACT-44-AND-18-RECONCILIATION.safe.json"
+    },
+    "047Epoch6": {
+      "state": "PUBLISHED_PR1039_EXACT19_REMOTE_VERIFIED_CI_RUNNING",
+      "head": "a9cf57b5644626f6dcb0bafc60299ff21839db61",
+      "tree": "13709456699fd43e091a97edeb9987fb36d88bb0",
+      "base": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6",
+      "pr": 1039,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/1039",
+      "files": 19,
+      "draft": true,
+      "merged": false,
+      "producerRef": "refs/tags/agent-claims/masterplan/producer-gen",
+      "producerReceipt": "ca94f3dca8a618b50378cc9b49b4a103e899e2f7",
+      "producerHold": "Main only through terminal collection/checkpoint; never repeat old releases",
+      "CIfirstCounts": {
+        "queued": 13,
+        "completed": 4,
+        "in_progress": 20
+      },
+      "CIevidence": "local047-successor/epoch6-remote-pr-diff-first-ci.safe.json",
+      "next": "Followexisting37runs againstexacthead; no rerun, actualcaptureresults/genuineupgrade/cleanrequired beforewhole047PASS",
+      "capture": {
+        "state": "SUCCESS_SOURCE_INPUTS_AND_RAW3_IDENTICAL_VERIFIED",
+        "runId": 42368336056,
+        "head": "a9cf57b5644626f6dcb0bafc60299ff21839db61",
+        "archiveSHA256": "755879159dc306d16aad6faf790f2a569efb6669ce9f4cb6c701cc554e97476a",
+        "raw3MatchesCommitted": {
+          "database.types.ts": true,
+          "schema.sql": true,
+          "schema.fingerprint.json": true
+        },
+        "captureFlags": {
+          "native_tests": "NOT_RUN",
+          "browser_tests": "NOT_RUN",
+          "type_schema_comparison": "NOT_RUN",
+          "upgrade_parity": "NOT_RUN"
+        },
+        "evidence": "local047-successor/epoch6-capture-success-original/collection.safe.json",
+        "limit": "GENcaptureonly;native/browser/parity/wholeCIremainseparate"
+      },
+      "watcher": {
+        "pid": 9300,
+        "toolSession": 12143,
+        "state": "WATCHING37",
+        "journal": "local047-successor/epoch6-bounded-ci-watch.safe.json",
+        "maxPolls": 80,
+        "intervalSeconds": 45,
+        "lastObserved": "34terminal31success3skip;3inprogress; no rerun/no newwatcher"
+      }
+    },
+    "latestRealScenarioResults": {
+      "AUTH01.04": "PASS",
+      "UI01.05": "PASS",
+      "evidence": "local166-poll-candidate/UI01-real-origin-trace-omtest.safe.json",
+      "scope": "Candidate47explicitoverlays; oldoriginalFAILhistoryintact",
+      "next": "U3genuineservice/legalZ13Z14authority/localcontractchain; PGRST200independentfixandoriginaltimezone2FAILremainseparate"
+    },
+    "PGRST200Reconciliation": {
+      "state": "ALREADY_FIXED_LOCAL_GENUINE_INVITATION_RETEST_REUSED",
+      "finding": "local/023",
+      "source": "d62c127... unchangedin47",
+      "originalFailure": "Retained",
+      "next": "Do not repeatinvitation/reset or reopen sourcefix;036independentlegalnavigation nowAverroesscope"
     }
   },
-  "_sanitizedSnapshot": {
-    "snapshotAtUtc": "2026-11-07T04:58:22.419870+00:00",
-    "sourceRelativePath": "quality/e2e/2026-11-05-local-f23c1dc0c/checkpoint.json",
-    "sourceSHA256": "6ca0c4b297173598fab4e56f695fc2a9248e72b01e263bbb62075ab38b103926",
-    "scope": "Sanitized projection of this existing report only; not a new operating register; no scenario IDs/status/count changes",
-    "sourceChronology": "User identifies closed stage0454 as preserved source plus later main-root changes. This snapshot reads current root files at snapshot time; later root additions are excluded until a new explicit snapshot.",
-    "privateOriginals": "Remain on Mac; user-reported 4051-file snapshot manifest prefix99643; not copied or independently recounted here.",
-    "historicalSummaryLimitation": "Dated historical summaries remain unchanged; current matrix designScenarioAssessment counts are authoritative within this report snapshot; no silent reconciliation."
+  "historicalOnlineState": {
+    "onlineState": "No commit/push/publication performed;prior remote3acf1765a unchanged;three owned reportfiles locallymodified",
+    "lastVerifiedOnlineCommit": "3acf1765a14c0942bba3fb1132644a3b02766873"
+  },
+  "resume20261107ActualAfterstatus": {
+    "atUTC": "2026-11-07T12:15:00.175950+00:00",
+    "ownProcesses": "5547app5544sink83470TLS76539/76911/92181browsers alive;9300watcherabsent",
+    "lastAdminAnswer": "part2 7e3ec approval already executed07:06:52; not repeated; part1differentapprovalstillpending",
+    "CI": "watcher stopped readfailure12:11; bounded exacttwo reread12:13 bothinprogress atsourcea9cf; no rerun",
+    "newConfirmedFinding": "local169 actualpolicy differential; newtestJason/sourcewriteMain only aftercustody",
+    "scenario105Counts": {
+      "BLOCKED": 88,
+      "PASS": 13,
+      "NOT_RUN": 4,
+      "FAIL": 0
+    },
+    "next": "Part1boundedADMIN→Poincareownclaims; CUSTODY01.05Newtonisolatedrestore/01.04Jasoncleanupeligibility;168Kant;UI01.04oracleAverroes;exact047CI",
+    "047Upgrade": "Four actualisolatedpaths qualified sourcea9cf; wholeCI pending",
+    "privateDelta": {
+      "path": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-evidence/20261107-post066-epoch6-delta",
+      "files": 285,
+      "manifestSHA256": "299c2fed6493525899133d7d863726651b36ee1e7174de585366b031f5d83671"
+    },
+    "candidate51": {
+      "state": "ACTIVE_QUALIFIED_REAL169036_OMTESTS_PASS",
+      "root": "/private/tmp/gridex-local029036169-runtime-a71c",
+      "files": 51,
+      "buildId": "vDOPfZxB2yWakqvCS03fr",
+      "components": "387/387PASS, originalsandbox372/15retained",
+      "scopedTypes": 0,
+      "appTypes": 0,
+      "build": 0,
+      "offlineExact5": 0,
+      "runtimeStill": "51active;old5547/5544retiredonce",
+      "next": "Boundedlocalcutover afterstaticreview+toolapproval then169actualUIand036genuinecompanyUI/native",
+      "appPid": 12095,
+      "sinkPid": 12092,
+      "toolSession": 36060
+    },
+    "currentRunDiagnosticArtifacts": 4,
+    "latestSolvedFindings": [
+      "029component31",
+      "036realUI/native",
+      "169realpositive/negativeUI/native",
+      "170testfixture17"
+    ],
+    "part1AdminApproval": "RELEASEDONCE13:10:06 allotherrefsunchanged;PoincarenewownclaimsACKrequiredbeforewrite",
+    "047terminal": {
+      "head": "a9cf57b5644626f6dcb0bafc60299ff21839db61",
+      "tree": "13709456699fd43e091a97edeb9987fb36d88bb0",
+      "CI": "34SUCCESS3SKIPall37terminal",
+      "sourcePR": "1039DRAFT_NOT_MERGED_NOT_DEPLOYED",
+      "nativePhaseExecutions": "841PASS0FAIL7SKIP includes31browser",
+      "formalEdielApproval": false,
+      "genRAW3": "Byteidenticalactualcaptureandcommitted",
+      "producerGen": "RELEASEDONCE13:27:47 authenticated404ca94;sourceclaimsretained",
+      "nextBusinessDependency": "168genuineservice/legal/permission/Z13Z14andCmodel; notautomaticallyunblocked"
+    },
+    "UI01_04": "PASSrealrecovery+datedrealproofsourceapplicability; originalFAILpreserved",
+    "original44Latest": "22PASS0FAIL19BLOCKED3NA; exact2realtimezoneomtest, sourceoriginal44retained"
+  },
+  "historicalDesignScenarioCountsBefore51": {
+    "BLOCKED": 87,
+    "PASS": 10,
+    "NOT_RUN": 7,
+    "FAIL": 1
+  },
+  "historicalTriageCountsBefore029": {
+    "originalFailed38": {
+      "PASS": 17,
+      "FAIL": 2,
+      "BLOCKED": 19
+    },
+    "originalPending6": {
+      "NOT_APPLICABLE": 3,
+      "PASS": 3
+    }
+  },
+  "latestBoundedSearchAndRestoreAdmission": {
+    "recordedUTC": "2026-11-07T15:47:55.781285+00:00",
+    "originalReport": "NOT_FOUND_AFTER_BOUNDED_READONLY_SEARCH; existinglocal089OPEN; no historicalPASS",
+    "custody0105": "PASS actualboundedDBbackup/restore/fullpreservation15:18:10 UTC; originalsFAILretained. 173ENVprereq and174TESTcomparator fixedindividually.",
+    "evidence": "parallel-scenarios-newton/custody0105/MAIN-R4-failed-admission-afterstatus.safe.json",
+    "next": "171 actualSQLRED→scopedfixGREEN inassignedclone;168 concurrency/expiry candidate RED inassignedclone onnextloan. Main/independentreviews beforeintegration; CENTRYclosed.",
+    "scenarioCounts": {
+      "PASS": 14,
+      "FAIL": 0,
+      "BLOCKED": 91,
+      "NOT_RUN": 0
+    },
+    "restoreRootCause": "Actual serverERROR pg_net is not in shared_preload_libraries, correlated same soleERRORlineSHA15aa3…; originalclientstderrstillmissing. local173ENVOPEN.",
+    "privatePreservation": "LatestdurableMacdelta14:56 da22c…predatesfinalC05proof/results; finaldelta pending.",
+    "integrationClones": {
+      "CID": "2e4ef42224116fc9156784d148b1bcfaa4f8b8b9aa0b8db0b287023fd4e13912",
+      "system": "7705443233999278121",
+      "local168": "gridex_local168_sync_a71c",
+      "local171": "gridex_local171_scoped_jobs_a71c",
+      "qualifiedUTC": "2026-11-07T15:29:00.617193+00:00",
+      "objectSchemaDataRolesParity": true,
+      "databaseACLInherited": false,
+      "scope": "ordinaryARM64SQLintegration only; no browser/Auth/API/T3/GEN equivalence",
+      "protectedBaseline": "postgres, no agent testDDL/DML; primary/source DB770460 untouched"
+    },
+    "heavyOwner": "Poincare171 exclusive; Kant168 source-only/HOLD untilRETURN/mainGO; NewtonC05RETURN"
+  },
+  "resumeAfterRemoteCompact20261107": {
+    "observedUTC": "2026-11-07T17:50:37.029798+00:00",
+    "branch": "reports/local-verification-20261105-a71c",
+    "head": "3acf1765a14c0942bba3fb1132644a3b02766873",
+    "modifiedFiles": [
+      "checkpoint.json",
+      "findings.json",
+      "test-matrix.json"
+    ],
+    "liveOwnedPids": [
+      12095,
+      12092,
+      83470,
+      76539,
+      76911,
+      92181
+    ],
+    "scenarioCounts": {
+      "PASS": 14,
+      "FAIL": 0,
+      "BLOCKED": 91,
+      "NOT_RUN": 0
+    },
+    "PR1040": {
+      "head": "a1bdf5fb1183f73427094014e83b931604324dc4",
+      "state": "OPEN_NOT_MERGED",
+      "checks": {
+        "SUCCESS": 30,
+        "SKIPPED": 13,
+        "FAILURE": 2,
+        "NEUTRAL": 1
+      },
+      "failedRuns": [
+        42390153087,
+        42390153305
+      ],
+      "failedJobs": [
+        "clean-migration-replay",
+        "pr-certificate"
+      ],
+      "rerun": false,
+      "workflowRuns": {
+        "total": 27,
+        "success": 24,
+        "skipped": 1,
+        "failure": 2
+      },
+      "checkRollupUnit": "46job/appcheckrecords:30success13skipped2failure1neutral; not46workflowruns",
+      "firstFailureTriage": {
+        "finding": "local/122 existingtestfixture root",
+        "failedNativeCases": 15,
+        "cause": "Global replacement91100 corrupts UTILTS timestamp fields; same15exacthistoricalcases; fixalreadyinPR1039 notPR1040",
+        "certificate": "DownstreamOPSfailure, missingcertificateartifact; notTLSfailure",
+        "evidence": "parallel-scenarios-newton/pr1040-terminal-triage/PR1040-TERMINAL-FIRST-ROOT.safe.json",
+        "rerun": false
+      }
+    },
+    "168": {
+      "nativePassed": 2,
+      "componentPassed": 2,
+      "componentFailed": 11,
+      "nativeSkippedInComponent": 2,
+      "state": "HOLD_NOT_FULLY_GREEN",
+      "receipt": "parallel054-kant/local168-service-authority/sync-source/FIXED-GREEN-LOAN-RETURN.safe.json",
+      "next": "Diagnose duplicate snapshot company_hash boundary before any repeat; Kant sole heavy owner"
+    },
+    "017": "Reuse frozen4 and positivehandoff; no duplicateimplementation",
+    "089": "Search closed without verifiedoriginalbytes; not repeated",
+    "mutationsRepeated": false,
+    "next": "Exactonejob existingproductchecklistconsumer withfreshpreflight+effectreadback; no globalworker",
+    "preservation": {
+      "path": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-evidence/20261107-reconnected-native168-and-pr1040-terminal",
+      "verifiedFiles": 1116,
+      "manifestSHA256": "f3d906a6a601b7cfaf4183d1b683f6d8a446025565006ad710d65aa7bd003a48",
+      "sourceChangedAfterRead": []
+    },
+    "017coldCandidate": {
+      "root": "/private/tmp/gridex-local017-integrated-runtime-a71c",
+      "files": 54,
+      "state": "ACTIVE54_LOCAL_SCHEMA_OVERLAY_QUALIFIED",
+      "manifest": "local017-integrated-candidate/candidate.safe.json",
+      "appPid": 20804,
+      "build": "a-3YJW7xZb358Nr-Th4Eb",
+      "toolSession": 47697,
+      "combined445PASS": true,
+      "fullTypesExit": 0,
+      "buildExit": 0,
+      "migration": "b38a5dbda2b06baa7ba468e2d4b380142d8fb4a17b20e63e65e5a37272d02972",
+      "all42JobsBeforeAfterUnchanged": true,
+      "original7": "retry2max5 notexecuted",
+      "mailSinkRetained": 12092,
+      "TLSRetained": 83470
+    },
+    "actualHeavyOwner": "Kant ownsnextboundedcomponentportretest; MainRETURN",
+    "171Review": {
+      "state": "MAIN_HOLD_VARIANT_PENDING",
+      "evidence": "parallel-contract-poincare/track-c-targeted-worker171/native24-source-freeze/MAIN-EXACT6-REVIEW-HOLD.safe.json",
+      "native24": "Preserved; no UI acceptance",
+      "next": "Poincare reachability/regression for conflictingnonnullsitealiases before sourcefix"
+    },
+    "latestRecordedUTC": "2026-11-07T17:56:07.046713+00:00",
+    "017actualOriginal7": {
+      "state": "ALL7COMPLETED3MAX5_PRODUCTCONSUMER_NATIVE_VERIFIED",
+      "evidence": "local017-integrated-candidate/original7-actual-retest-summary.safe.json",
+      "sourceReviews": "Main+Kant exact4READY; Jasonactual34evidencereview ac75d6 verifiedscope, authorshipdisclosed",
+      "firstAuditBeforeGap": true,
+      "next": "Ordinarybrowserreadback andindependentactualassessment; continueCcreator/168"
+    }
+  },
+  "currentQualifiedRuntime": {
+    "observedUTC": "2026-11-07T20:22:29.368272+00:00",
+    "root": "/private/tmp/gridex-local180-r2-integrated-runtime-a71c",
+    "buildId": "y-bTLNzLTzsn8jb10L_u0",
+    "appPid": 26487,
+    "appToolSession": 47597,
+    "sinkPid": 12092,
+    "TLSBridgePid": 83470,
+    "source": "Same58source overlays, only180exact2replaced byR2authenticatedRLSread; 1a563/89bc",
+    "schema": "f23canonical +qualified047 +142mailboxruntime +017b38forwardoverlay +168ed49forwardoverlay; new168configurationonlyprojectionfromnormalUI; no handGENoutput",
+    "configuration": "UnchangedprivateV3, localhostonly strictTLS/auth; globalCRON_SECRETunset",
+    "original7": "Eachcompleted3/max5 actualproductconsumer+nativeassessment; no resets; originalfailurespreserved",
+    "businessReadiness": "Legalexistingverified;email13pending/cap10disabled/tasks9pending/adminnotrequested/Ediel6pending, nofalsegoLive",
+    "next": "Await1041exactheadterminalCI soleNewtonwatcher; executeC07c9nativezeroauthoritynegative inowncloneafterpacketreview; pendingexactLOCALpolicyownerdecision",
+    "whole105": {
+      "PASS": 14,
+      "FAIL": 0,
+      "BLOCKED": 91,
+      "NOT_RUN": 0
+    },
+    "heavyOwner": "NONE; MAINRETURN afterbuild20:13:44",
+    "lastPrivateSnapshot": {
+      "path": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-evidence/20261107-original7-real-consumer-complete",
+      "files": 1259,
+      "manifestSHA256": "3f720621f2123de43f5a41ecf0f690b89aaeaaa7c094e3b36326150a15f5bade",
+      "sourceChangedAfterRead": [],
+      "note": "Predates177/178/179laterregisterupdates andEVENTqualification; original7actualproofincluded"
+    },
+    "EVENT01_02": "Resendwrong-signaturecandidateNOTRUN: secretUNSET and familyapplicabilitynotyetproved; no runtimeconfigchangejustforunrelatedsubproof",
+    "latestActualScenario": {
+      "id": "UI01.04",
+      "state": "PASS_R2_REAL_BROWSER_NATIVE_RELOAD",
+      "evidence": "local180-r2-integrated-candidate/REAL-UI-NATIVE-OMTEST.safe.json"
+    },
+    "168ConfigurationOnlyIdentity": {
+      "actor": "71589b84-becc-4806-990c-e26ad4f9ea84",
+      "profile": "b4808be4-21d2-4032-a4a1-b72cca5d8810",
+      "identifier": "aeb31033-498c-4103-870f-7740daaa16dd",
+      "role": "c73df424-ccf9-409d-baf3-6eb5033487d1",
+      "sourceProfile": "fbee3bde-7a49-4269-8904-9657ae255e3a",
+      "snapshot": "8428d014-c111-4733-b9cd-87323272f028",
+      "genuineServiceAuthority": false
+    },
+    "lastActualMutation": "19:13:01 normalUIexistingESCOcardSave, onecommand/audit, sourceprofileupdated_atonly +typedtestprojection; no newU3Start",
+    "source180": {
+      "receipt": "b4f0a3d2f2ece7527ff9c6565b44bd5d43909444",
+      "branch": "fix/local180-existing-ediel-profile-company-context-a71c",
+      "actionSHA256": "1d4d771c440ca0b5845d8a580ec3a38296d2ebfa4087cee0bd85be319b3c9e2f",
+      "testSHA256": "846a2356a4df8c0f5bc94f8bd33a48351aa8d4b4cbf9732a41ccc8afb2d8e9b5",
+      "sourcePublished": false,
+      "reviews": "Main+Averroes finalexact2READY",
+      "actualOmtest": "local168-primary-overlay/180-real-ui-and-native-omtest.safe.json"
+    }
+  },
+  "deliveryReadOnlyStatus1039": {
+    "head": "a9cf57b5644626f6dcb0bafc60299ff21839db61",
+    "draft": true,
+    "mergeable": "MERGEABLE",
+    "mergeState": "CLEAN",
+    "formalGitHubReviews": 0,
+    "localIndependentReviews": "Existing2READY exactboundsource preserved",
+    "CI": "Existing34SUCCESS3SKIP terminal no rerun",
+    "mergeOrReadyMutationPerformed": false,
+    "next": "Normalserialdeliveryowner/reviewrequirements; source0140rebase onlyafteractualmainupdate orseparatelyqualifieddependencydelivery"
+  },
+  "latestMimeNegativeActual": {
+    "atUtc": "2026-11-07T19:52:05.190541+00:00",
+    "scenario": "EDIEL02.06",
+    "subcase": "PASS realMIMEfailclosed only",
+    "wholeScenario": "BLOCKED",
+    "sourceId": "1a403a42-4907-46d1-ae96-86c5a2937138",
+    "jobId": "d8fc0504-ba0f-496c-b50f-11b4ecb940c7",
+    "status": "manual_review / dsn_transport_review, attempts0 unlocked",
+    "doNotRepeat": [
+      "SMTPsend",
+      "poll",
+      "UIProcessaom"
+    ],
+    "next": "Qualify remaining segment/charset negativevariants, explicit ownUID Seen only if needed and safe before further polling",
+    "heavyOwner": "Poincare C financial/source chain, one slot; main no heavy",
+    "matrix105": {
+      "PASS": 14,
+      "FAIL": 0,
+      "BLOCKED": 91,
+      "NOT_RUN": 0
+    },
+    "evidence": "parallel-scenarios-newton/ediel0206-negative-ingress/MIME01-native-after-ui.safe.json",
+    "privatePreservation": {
+      "directory": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-evidence/20261107-mime01-actual-negative-bounded",
+      "manifestSHA256": "f347c70d062edde0479f3ab8f6eb4d7928796c0a9d67e6e42972c0f6daaf860d",
+      "originalFiles": 19,
+      "validationFiles": 2,
+      "offlineScanExit": 0,
+      "checkpointCopyIsSnapshotBeforeThisPathAnnotation": true
+    },
+    "classifierEvidence": "parallel-scenarios-newton/ediel0206-negative-ingress/MIME01-SOURCE-CLASSIFICATION.safe.json",
+    "greenmailActualId": "5ed1f77ca17560d0fccbcf520d46733f16aae8ccdaf86e0ff4936d437a449682",
+    "processAfterstatus": "PID23552 app58, mail12092/TLS83470/root92181/company76539/67133/trace76911 alive; DB running restart0. Mistyped GreenMail ID with extra finald returnednoobject; boundedreadonlyactualinventoryconfirmed ownnamedGreenMail running, no resource action.",
+    "pr1040Afterstatus": "Exacta1bdf5fb OPEN/MERGEABLE, rollup30SUCCESS13SKIP2FAIL1NEUTRAL, no rerun. local029-publication/latest-readonly-1040-1958.safe.json"
+  },
+  "local180DeliveryHold": {
+    "status": "RATCHET_RESOLVED_R2_REAL_UI_NATIVE_VERIFIED_NORMAL_PUBLICATION_PENDING",
+    "currentRuntimeUnchanged": "SupersededbyqualifiedR2app-onlycutover26487; noDB/configchange",
+    "source": "app/admin/ediel/settings/actions.ts +__tests__/ediel-actor-settings-existing-profile-company-context.test.ts",
+    "noPublication": true,
+    "noRlsOrBudgetChange": true,
+    "next": "NewRED/authreadpolicyqualification/fix/GREEN/freeze/two reviews then mainserialbuild/UI"
+  },
+  "activeHeavy180R2": {
+    "state": "ALL_GATES_PASS_RUNTIME_R2_ACTIVE_NO_HEAVY",
+    "session": null,
+    "root": "/private/tmp/gridex-local180-r2-integrated-runtime-a71c",
+    "sourceFiles": 58,
+    "changedOnly": [
+      "app/admin/ediel/settings/actions.ts",
+      "__tests__/ediel-actor-settings-existing-profile-company-context.test.ts"
+    ],
+    "currentRuntimeStill58PID": 23552,
+    "secondIndependentR2Review": "local166-sidecar/review180/AVERROES-R2-FINAL-FROZEN-EXACT2-REVIEW.safe.json",
+    "next": "Readterminalcombined/typeexitbeforebuild",
+    "sourceUnchanged": true,
+    "externalNetworkBoundary": "Existingprojectunitloopbackpreload"
+  },
+  "pendingLocalServiceOwnerDecision": {
+    "sha256": "529aa1b94d21a33dcbd1f3a407a83225d5450d698d1fce1642bdf2bfac610d59",
+    "status": "APPROVED_EXACT_POLICY_APPOINTMENTS_NO_ACTIVATION",
+    "exactScope": "AdditionalU3onepoint/product/month; privatecapabilities+namedsyntheticappointments/enrollment only, noactivation",
+    "source": "parallel047-jason/ediel0101-u311-service-admission/OWNER-LOCAL-SERVICE-MINIMUM-DECISION-v2.md",
+    "approvalEvidence": "parallel047-jason/ediel0101-u311-service-admission/MAIN-OWNER-APPROVAL-529.safe.json",
+    "reviewer": "NOT_CREATED:missingreadonlyrolecatalog, separateexactoverlaydecisionneeded"
+  },
+  "runtimeHistoryBeforeR2": {
+    "observedUTC": "2026-11-07T19:16:41.615172+00:00",
+    "root": "/private/tmp/gridex-local180-integrated-runtime-a71c",
+    "buildId": "DqK9fgqG1FF3ahgMBYUQH",
+    "appPid": 23552,
+    "appToolSession": 13968,
+    "sinkPid": 12092,
+    "TLSBridgePid": 83470,
+    "source": "0ce+previous54+168SQL/test+180action/test=58hashboundsourceoverrides",
+    "schema": "f23canonical +qualified047 +142mailboxruntime +017b38forwardoverlay +168ed49forwardoverlay; new168configurationonlyprojectionfromnormalUI; no handGENoutput",
+    "configuration": "UnchangedprivateV3, localhostonly strictTLS/auth; globalCRON_SECRETunset",
+    "original7": "Eachcompleted3/max5 actualproductconsumer+nativeassessment; no resets; originalfailurespreserved",
+    "businessReadiness": "Legalexistingverified;email13pending/cap10disabled/tasks9pending/adminnotrequested/Ediel6pending, nofalsegoLive",
+    "next": "PoincareCprotectedpublication/onboard exclusiveheavy; NewtonactualEDIEL02.06negativeparserqualification; Jasonlocalissuer/active-testmodeldecision; no newU3Start",
+    "whole105": {
+      "PASS": 14,
+      "FAIL": 0,
+      "BLOCKED": 91,
+      "NOT_RUN": 0
+    },
+    "heavyOwner": "PoincareCnextprotectedchain tests; mainRETURN",
+    "lastPrivateSnapshot": {
+      "path": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-evidence/20261107-original7-real-consumer-complete",
+      "files": 1259,
+      "manifestSHA256": "3f720621f2123de43f5a41ecf0f690b89aaeaaa7c094e3b36326150a15f5bade",
+      "sourceChangedAfterRead": [],
+      "note": "Predates177/178/179laterregisterupdates andEVENTqualification; original7actualproofincluded"
+    },
+    "EVENT01_02": "Resendwrong-signaturecandidateNOTRUN: secretUNSET and familyapplicabilitynotyetproved; no runtimeconfigchangejustforunrelatedsubproof",
+    "latestActualScenario": {
+      "id": "UI01.04",
+      "state": "PASS_AFTER_REAL_FAIL_AND_OWN_ROOT_FIX",
+      "finding": "local/180",
+      "evidence": "local168-primary-overlay/180-real-ui-and-native-omtest.safe.json"
+    },
+    "168ConfigurationOnlyIdentity": {
+      "actor": "71589b84-becc-4806-990c-e26ad4f9ea84",
+      "profile": "b4808be4-21d2-4032-a4a1-b72cca5d8810",
+      "identifier": "aeb31033-498c-4103-870f-7740daaa16dd",
+      "role": "c73df424-ccf9-409d-baf3-6eb5033487d1",
+      "sourceProfile": "fbee3bde-7a49-4269-8904-9657ae255e3a",
+      "snapshot": "8428d014-c111-4733-b9cd-87323272f028",
+      "genuineServiceAuthority": false
+    },
+    "lastActualMutation": "19:13:01 normalUIexistingESCOcardSave, onecommand/audit, sourceprofileupdated_atonly +typedtestprojection; no newU3Start",
+    "source180": {
+      "receipt": "b4f0a3d2f2ece7527ff9c6565b44bd5d43909444",
+      "branch": "fix/local180-existing-ediel-profile-company-context-a71c",
+      "actionSHA256": "1d4d771c440ca0b5845d8a580ec3a38296d2ebfa4087cee0bd85be319b3c9e2f",
+      "testSHA256": "846a2356a4df8c0f5bc94f8bd33a48351aa8d4b4cbf9732a41ccc8afb2d8e9b5",
+      "sourcePublished": false,
+      "reviews": "Main+Averroes finalexact2READY",
+      "actualOmtest": "local168-primary-overlay/180-real-ui-and-native-omtest.safe.json"
+    }
+  },
+  "local180Publication": {
+    "pr": 1041,
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/1041",
+    "commit": "55f45633ea5d6ffbacfb79220b9fb0314cc07df9",
+    "tree": "e32ccd15126f2f542f63589a477cd825e1cb3d4c",
+    "parent": "a9cf57b5644626f6dcb0bafc60299ff21839db61",
+    "branch": "fix/local180-existing-ediel-profile-company-context-delivery-a71c",
+    "base": "fix/local047-three-table-reconstruction-a71c",
+    "files": [
+      "app/admin/ediel/settings/actions.ts",
+      "__tests__/ediel-actor-settings-existing-profile-company-context.test.ts"
+    ],
+    "verifiedExactDiff2": true,
+    "PRbodySHA256": "ac99ce3c4ac233188a6172a8f16ad2c47cff19c570e37728225d3bdb524a9093",
+    "evidence": "local180-r2-delivery/PR1041-created-and-diff-verified.safe.json",
+    "ci": "TERMINAL_9_WORKFLOWS_SUCCESS_ATTEMPT1_CHECKS14SUCCESS12SKIP1NEUTRAL",
+    "notMergedOrDeployed": true,
+    "ciEvidence": "parallel-scenarios-newton/pr1041-terminal-watch/continuation2/RESUME-ONESHOT-20261107T213027Z.safe.json"
+  },
+  "nativeCurrentCNegative": {
+    "state": "PASS_NATIVE_DDL_NEGATIVE_ROLLBACK_C_CLOSED",
+    "database": "gridex_local171_scoped_jobs_a71c",
+    "CID": "2e4ef42224116fc9156784d148b1bcfaa4f8b8b9aa0b8db0b287023fd4e13912",
+    "system": "7705443233999278121",
+    "readOnlyBeforeDigest": "f711b1750208c222aefff10da8d8f07bfc76bf659ed7ee47f2a92be376780f0f",
+    "relations": 911,
+    "sequences": 8,
+    "privateE": "parallel-contract-poincare/track-c-from-first-write-creator/native-current-negative/",
+    "noAuthorityFixtures": true,
+    "noPrimaryMutation": true,
+    "next": "PoincarefreezeexacttestSQL, Main/Avsafetyreview, normaltoolapproval boundedouterROLLBACK, samepreservationafter",
+    "actualEvidence": "parallel-contract-poincare/track-c-from-first-write-creator/native-current-negative/MAIN-native-negative-once.safe.json",
+    "actualStart": "2026-11-07T20:38:19.286769+00:00",
+    "actualEnd": "2026-11-07T20:38:19.489356+00:00",
+    "exitCode": 0,
+    "afterDigest": "f711b1750208c222aefff10da8d8f07bfc76bf659ed7ee47f2a92be376780f0f",
+    "allOriginalDataSecurityPreserved": true
+  },
+  "localReviewerEnrollment": {
+    "recordedAtUTC": "2026-11-07T21:31:47.594224+00:00",
+    "state": "PASS_REAL_UI_ENROLLMENT_PASSWORD_LOGIN_AND_READ_ONLY_CONTROLS",
+    "source": "R2 build y-bTLNzLTzsn8jb10L_u0, sourcebase0ce21104fa9c699e7789f4f58f2dfbbd28b46901 plus58 frozenoverlays",
+    "actor": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+    "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+    "overlayPayloadSHA256": "0e1ac9e8402846b93f03b450686d043e5d03dea9b41cc7cd4f5fa6708495cbd2",
+    "actualCommands": [
+      {
+        "action": "snapshot",
+        "start": "2026-11-07T21:29:29.586Z",
+        "end": "2026-11-07T21:29:30.171Z",
+        "state": "OBSERVED",
+        "path": "/login",
+        "db": {
+          "invitation": {
+            "status": "accepted",
+            "acceptedAt": "2026-11-07T21:20:54.595604+00:00",
+            "user": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "roleKey": "finance_readonly",
+            "membershipRole": "viewer"
+          },
+          "auth": {
+            "id": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "emailConfirmed": true,
+            "passwordSet": true
+          },
+          "memberships": [
+            {
+              "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+              "roleKey": "finance_readonly",
+              "membershipRole": "viewer",
+              "status": "active",
+              "acceptedAt": "2026-11-07T21:20:54.595604+00:00"
+            }
+          ],
+          "canonicalPermissions": [
+            "audit.read",
+            "billing_underlay.read",
+            "contracts.read",
+            "customers.read",
+            "partner_exports.read",
+            "pricing.read",
+            "reports.read"
+          ],
+          "sessionCount": 1
+        }
+      },
+      {
+        "action": "goto",
+        "start": "2026-11-07T21:29:42.145Z",
+        "end": "2026-11-07T21:29:42.719Z",
+        "state": "OBSERVED",
+        "path": "/login/update-password",
+        "db": {
+          "invitation": {
+            "status": "accepted",
+            "acceptedAt": "2026-11-07T21:20:54.595604+00:00",
+            "user": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "roleKey": "finance_readonly",
+            "membershipRole": "viewer"
+          },
+          "auth": {
+            "id": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "emailConfirmed": true,
+            "passwordSet": true
+          },
+          "memberships": [
+            {
+              "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+              "roleKey": "finance_readonly",
+              "membershipRole": "viewer",
+              "status": "active",
+              "acceptedAt": "2026-11-07T21:20:54.595604+00:00"
+            }
+          ],
+          "canonicalPermissions": [
+            "audit.read",
+            "billing_underlay.read",
+            "contracts.read",
+            "customers.read",
+            "partner_exports.read",
+            "pricing.read",
+            "reports.read"
+          ],
+          "sessionCount": 1
+        }
+      },
+      {
+        "action": "setPassword",
+        "start": "2026-11-07T21:29:53.814Z",
+        "end": "2026-11-07T21:29:54.326Z",
+        "state": "OBSERVED",
+        "path": "/login/update-password",
+        "db": {
+          "invitation": {
+            "status": "accepted",
+            "acceptedAt": "2026-11-07T21:20:54.595604+00:00",
+            "user": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "roleKey": "finance_readonly",
+            "membershipRole": "viewer"
+          },
+          "auth": {
+            "id": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "emailConfirmed": true,
+            "passwordSet": true
+          },
+          "memberships": [
+            {
+              "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+              "roleKey": "finance_readonly",
+              "membershipRole": "viewer",
+              "status": "active",
+              "acceptedAt": "2026-11-07T21:20:54.595604+00:00"
+            }
+          ],
+          "canonicalPermissions": [
+            "audit.read",
+            "billing_underlay.read",
+            "contracts.read",
+            "customers.read",
+            "partner_exports.read",
+            "pricing.read",
+            "reports.read"
+          ],
+          "sessionCount": 1
+        }
+      },
+      {
+        "action": "snapshot",
+        "start": "2026-11-07T21:30:04.306Z",
+        "end": "2026-11-07T21:30:04.836Z",
+        "state": "OBSERVED",
+        "path": "/dashboard",
+        "db": {
+          "invitation": {
+            "status": "accepted",
+            "acceptedAt": "2026-11-07T21:20:54.595604+00:00",
+            "user": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "roleKey": "finance_readonly",
+            "membershipRole": "viewer"
+          },
+          "auth": {
+            "id": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "emailConfirmed": true,
+            "passwordSet": true
+          },
+          "memberships": [
+            {
+              "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+              "roleKey": "finance_readonly",
+              "membershipRole": "viewer",
+              "status": "active",
+              "acceptedAt": "2026-11-07T21:20:54.595604+00:00"
+            }
+          ],
+          "canonicalPermissions": [
+            "audit.read",
+            "billing_underlay.read",
+            "contracts.read",
+            "customers.read",
+            "partner_exports.read",
+            "pricing.read",
+            "reports.read"
+          ],
+          "sessionCount": 1
+        }
+      },
+      {
+        "action": "click",
+        "start": "2026-11-07T21:30:15.379Z",
+        "end": "2026-11-07T21:30:15.939Z",
+        "state": "OBSERVED",
+        "path": "/login",
+        "db": {
+          "invitation": {
+            "status": "accepted",
+            "acceptedAt": "2026-11-07T21:20:54.595604+00:00",
+            "user": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "roleKey": "finance_readonly",
+            "membershipRole": "viewer"
+          },
+          "auth": {
+            "id": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "emailConfirmed": true,
+            "passwordSet": true
+          },
+          "memberships": [
+            {
+              "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+              "roleKey": "finance_readonly",
+              "membershipRole": "viewer",
+              "status": "active",
+              "acceptedAt": "2026-11-07T21:20:54.595604+00:00"
+            }
+          ],
+          "canonicalPermissions": [
+            "audit.read",
+            "billing_underlay.read",
+            "contracts.read",
+            "customers.read",
+            "partner_exports.read",
+            "pricing.read",
+            "reports.read"
+          ],
+          "sessionCount": 0
+        }
+      },
+      {
+        "action": "login",
+        "start": "2026-11-07T21:30:32.642Z",
+        "end": "2026-11-07T21:30:33.177Z",
+        "state": "OBSERVED",
+        "path": "/dashboard",
+        "db": {
+          "invitation": {
+            "status": "accepted",
+            "acceptedAt": "2026-11-07T21:20:54.595604+00:00",
+            "user": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "roleKey": "finance_readonly",
+            "membershipRole": "viewer"
+          },
+          "auth": {
+            "id": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "emailConfirmed": true,
+            "passwordSet": true
+          },
+          "memberships": [
+            {
+              "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+              "roleKey": "finance_readonly",
+              "membershipRole": "viewer",
+              "status": "active",
+              "acceptedAt": "2026-11-07T21:20:54.595604+00:00"
+            }
+          ],
+          "canonicalPermissions": [
+            "audit.read",
+            "billing_underlay.read",
+            "contracts.read",
+            "customers.read",
+            "partner_exports.read",
+            "pricing.read",
+            "reports.read"
+          ],
+          "sessionCount": 1
+        }
+      },
+      {
+        "action": "goto",
+        "start": "2026-11-07T21:30:48.919Z",
+        "end": "2026-11-07T21:30:49.645Z",
+        "state": "OBSERVED",
+        "path": "/admin",
+        "db": {
+          "invitation": {
+            "status": "accepted",
+            "acceptedAt": "2026-11-07T21:20:54.595604+00:00",
+            "user": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "roleKey": "finance_readonly",
+            "membershipRole": "viewer"
+          },
+          "auth": {
+            "id": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "emailConfirmed": true,
+            "passwordSet": true
+          },
+          "memberships": [
+            {
+              "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+              "roleKey": "finance_readonly",
+              "membershipRole": "viewer",
+              "status": "active",
+              "acceptedAt": "2026-11-07T21:20:54.595604+00:00"
+            }
+          ],
+          "canonicalPermissions": [
+            "audit.read",
+            "billing_underlay.read",
+            "contracts.read",
+            "customers.read",
+            "partner_exports.read",
+            "pricing.read",
+            "reports.read"
+          ],
+          "sessionCount": 1
+        }
+      },
+      {
+        "action": "goto",
+        "start": "2026-11-07T21:30:57.297Z",
+        "end": "2026-11-07T21:30:57.949Z",
+        "state": "OBSERVED",
+        "path": "/admin/customers",
+        "db": {
+          "invitation": {
+            "status": "accepted",
+            "acceptedAt": "2026-11-07T21:20:54.595604+00:00",
+            "user": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "roleKey": "finance_readonly",
+            "membershipRole": "viewer"
+          },
+          "auth": {
+            "id": "f8d7b108-b622-4d67-b5c2-bf33c815399c",
+            "emailConfirmed": true,
+            "passwordSet": true
+          },
+          "memberships": [
+            {
+              "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+              "roleKey": "finance_readonly",
+              "membershipRole": "viewer",
+              "status": "active",
+              "acceptedAt": "2026-11-07T21:20:54.595604+00:00"
+            }
+          ],
+          "canonicalPermissions": [
+            "audit.read",
+            "billing_underlay.read",
+            "contracts.read",
+            "customers.read",
+            "partner_exports.read",
+            "pricing.read",
+            "reports.read"
+          ],
+          "sessionCount": 1
+        }
+      }
+    ],
+    "observed": [
+      "Real delivered invitation accepted through browser; native accepted invitation and active A-only viewer/finance_readonly membership",
+      "Normal authenticated own-account password form submitted once; settled dashboard",
+      "Normal UI logout verified native sessionCount0; normal UI password login verified sessionCount1",
+      "GET /admin/users actual307 redirects /admin without users listing",
+      "GET /admin/customers renders sole existing synthetic A customer"
+    ],
+    "notProved": [
+      "Not customer-role AUTH01.02",
+      "No LOCAL service authority activation or full Ediel scenario",
+      "Password form separate from original invitation redirect; invitation UX classification pending",
+      "No cross-company detail attempt yet"
+    ],
+    "exitCode": null,
+    "exitCodeReason": "Persistent browser controller remains running; command timestamps/native readback recorded, not a completed shelltest",
+    "journalSHA256": "476a6817cde7b96ec451f3a083f2d004345352ae29a019cb1915e345900853c8",
+    "evidence": "local-u3-reviewer-enrollment/reviewer-invite-browser-r2.safe.json",
+    "secretsExcluded": true,
+    "additionalNegative": "GET /admin/customers/intake21:34:24 settles /admin21:34:37; no customer form/action; native canonical7 unchanged"
+  },
+  "CcurrentFull2": {
+    "state": "FAIL_ORIGINAL_PRESERVED_C_CLOSED",
+    "pass": 134,
+    "fail": 2,
+    "notRun": 16,
+    "evidence": "parallel-contract-poincare/track-c-from-first-write-creator/current-full2-regression/EXPLICIT-HEAVY-RETURN-FULL2.safe.json",
+    "next": "Poincare isolates guardedpreimage setupfault andfinancialsourceprerequisites; no expectationweakening/fakeauthority",
+    "latestRetest": {
+      "pass": 150,
+      "fail": 2,
+      "notRun": 0,
+      "exitCode": 1,
+      "sourceSQLUnchanged": "8e4f26239d32f0091732fef32e458fadc9f8217740d757463bee8405974b3d37",
+      "lineageTargetedPass": 16,
+      "freeze3Manifest": "480abf06d724bfe5a7492312cc6f0a6b891a9bc2080040df88c3b52f8e125277",
+      "evidence": "parallel-contract-poincare/track-c-from-first-write-creator/current-full2-regression/lineage-setup-fix/EXPLICIT-HEAVY-RETURN.safe.json",
+      "limits": "Actual financialpositive sources notqualified; no newproductregression proved; Cclosed"
+    }
+  },
+  "scenarioCountsUnchangedAfterReviewer": {
+    "PASS": 15,
+    "FAIL": 0,
+    "BLOCKED": 90,
+    "NOT_RUN": 0
+  },
+  "agentDistributionCurrent": {
+    "Main": "Runtime68/schema/nativeproducer/SQLsinkqualification/Q3",
+    "Jason": "ExistingC1 OLDparent afterwait exactfinite native repro preparation; no nativeexecution",
+    "Poincare": "Normalfinancial canonical archive immutable boundary RCA; noheavy untilGO",
+    "Kant": "Typed observations222 minimalSQLfix underexact4filecustody",
+    "Newton": "Independent typedsource review + terminal1042read-onlyno rerun",
+    "Averroes": "Subjectbinding source/effectclassification andnormalpre-admissionbinder; native/R4independentreviewer"
+  },
+  "lastVerifiedOwnProcesses": {
+    "atUTC": null,
+    "timestampLimit": "Exact ps walltime was not captured; actual successful currenttoolresult authoritative",
+    "app": 26487,
+    "reviewerBrowser": 28646,
+    "smtpSink": 12092,
+    "allPresent": true
+  },
+  "local190": {
+    "status": "OPEN_REAL_INVITE_NEW_USER_PASSWORD_CONTINUATION_MISSING",
+    "evidence": "local166-sidecar/review-invite-password-onboarding/AVERROES-INVITE-PASSWORD-PATH-CLASSIFICATION.safe.json",
+    "owner": "Kant pending exactcustody",
+    "fallback": "Normal ownpasswordform/passwordlogout/login PASS separately, originalflow unfixed",
+    "runtime9SourceApplicability": "ALL9 actualR2 sourcefiles match independentreviewhashes; local-u3-reviewer-enrollment/LOCAL190-RUNNING-SOURCE-APPLICABILITY.safe.json"
+  },
+  "businessStateHistoricalOriginal": "1customer/2draftsites/0contracts;existingU3rununchanged4diagnosticartifacts4audits0Edielmessages;7jobsretry2/max5.",
+  "serviceAuthorityStage1": {
+    "manifestSHA256": "805f0fa7fa1fe1478d93b5aa4116045b32d7e5bfea053b68b758784c4880b109",
+    "actualComponentPass": 38,
+    "entry": "CLOSED",
+    "reviews": [
+      "parallel054-kant/review-local-service-authority-stage1/FINAL-EXACT2-REVIEW.safe.json",
+      "local166-sidecar/review-service-authority-stage1/AVERROES-FINAL-EXACT2-805F-REVIEW.safe.json"
+    ],
+    "next": "Jason finite native C8e4+294c source ROLLBACK harness then Main qualification; no qualification/dataactivation implicit",
+    "actualNative": {
+      "state": "PASS_NATIVE_STAGE1_DDL_ACL_NEGATIVE_ROLLBACK_ENTRY_CLOSED",
+      "evidence": "parallel047-jason/local-service-authority-stage1/native-integration-preparation/case-parenthesis-r2/MAIN-native-stage1-once.safe.json",
+      "beforeAfterDigest": "f711b1750208c222aefff10da8d8f07bfc76bf659ed7ee47f2a92be376780f0f",
+      "exitCode": 0,
+      "negativeCalls": 13,
+      "entry": "CLOSED",
+      "sourceC8e4andStage1294cUnchanged": true,
+      "next": "Nexttypedpersistence/releasefences then actualqualifiedrealm/config/issuer/originals/reviewer; no automaticactivation"
+    }
+  },
+  "UI0101ReadOnlyEdit": "UI0101-B-existing-site-readonly-edit-preflight.safe.json; actualprefillededitwithnosave; fullscenarioBLOCKED",
+  "AUTH0102NormalCustomer": {
+    "state": "PASS_AUTH0102_DOCUMENTED_ADMIN_COMMAND_DENIAL_UI196_OPEN",
+    "customer": {
+      "id": "e37fd17a-fdc9-4559-a01d-e7993423e940",
+      "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+      "type": "private",
+      "status": "active",
+      "number": "A71C-100002",
+      "personalMatches": true,
+      "nameMatches": true
+    },
+    "sites": [
+      {
+        "id": "6156fd68-825f-410d-831d-47869ce05d38",
+        "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+        "customer": "e37fd17a-fdc9-4559-a01d-e7993423e940",
+        "facility": "735999000000000051",
+        "status": "draft"
+      }
+    ],
+    "points": [
+      {
+        "id": "02e68f55-64a4-494d-b314-bf6bbeaa8372",
+        "company": "54dc49cf-6638-4a3b-9f64-d3727f11bac2",
+        "customer": "e37fd17a-fdc9-4559-a01d-e7993423e940",
+        "site": "6156fd68-825f-410d-831d-47869ce05d38",
+        "meter": "735999000000000068",
+        "status": "draft"
+      }
+    ],
+    "evidence": "auth0102-normal-customer-fixture/AUTH0102-API403-EXECUTED-RECEIPT.safe.json",
+    "customerCompanyActorSession": 66068,
+    "customerRoleNotYetQualified": false,
+    "next": "Independentportal/businessscenarios; correct190/196 withreviews/type/build; no duplicateAuth/invite/selfclaim",
+    "existingBIdentityUnchanged": true,
+    "authUser": "6571f530-23fc-41ea-85db-fe885b54700e",
+    "portalAccount": "bcd8e3b8-44a3-41b0-949e-501bca5c7989",
+    "claim": "d0fef060-9822-4a21-9525-7e1347831f36",
+    "claimAll4Match": true,
+    "customerBrowserToolSession": null,
+    "customerBrowserPID": null,
+    "previousBrowserRetired": {
+      "pid": 32601,
+      "session": 9695,
+      "normalLogoutSessions": 0,
+      "intentionalExitCode": 130
+    },
+    "nextPhaseOwner": "Kant exclusivecase96/customer e37 normalUI; verifyactualnativeAuthsessions beforefreshbrowser, no injectedstate"
+  },
+  "designScenarioCountsHistoricalBeforeAuth02": {
+    "BLOCKED": 88,
+    "PASS": 13,
+    "NOT_RUN": 4,
+    "FAIL": 0
+  },
+  "ingressBoundedAdminAfterStatus": {
+    "startUTC": "2026-11-07T23:21:00.339339+00:00",
+    "state": "PASS_EXACT_TWO_REFS_RELEASED_ABSENCE_VERIFIED_NO_SOURCEWRITE",
+    "planSHA256": "5ea1463ee6a28ac98a213d2051988069c49f09304984292bec21060f785b74fa",
+    "repo": "heke99/gridex-ops-platform",
+    "actions": [
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-d6225a560c0abb442413be61f99fe51330f40b495d5d270c3f1656992e7afc3b",
+        "expectedReceipt": "af6380707794dc16b4a878bda2f7546842030d89",
+        "startUTC": "2026-11-07T23:21:00.341228+00:00",
+        "state": "VERIFIED_ABSENT",
+        "deleteExit": 0,
+        "deleteOutputSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "afterGETExit": 1,
+        "absence404": true,
+        "endUTC": "2026-11-07T23:21:02.276137+00:00"
+      },
+      {
+        "ref": "refs/tags/agent-claims/masterplan/file-f8c74404e54849eb9dd60bfc7e0fc2938e864cc34c29af8a8556f34c626bb76a",
+        "expectedReceipt": "a6707eada5ea2d65bc3e8c9f58d2ceff34008e11",
+        "startUTC": "2026-11-07T23:21:02.277109+00:00",
+        "state": "VERIFIED_ABSENT",
+        "deleteExit": 0,
+        "deleteOutputSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "afterGETExit": 1,
+        "absence404": true,
+        "endUTC": "2026-11-07T23:21:04.369476+00:00"
+      }
+    ],
+    "sourceWrites": 0,
+    "otherRefsTouched": 0,
+    "endUTC": "2026-11-07T23:21:04.369873+00:00"
+  },
+  "local190196ColdCandidate": {
+    "manifest": "local190-196-integrated-candidate/candidate.safe.json",
+    "frozenFiles": 65,
+    "newFiles": 7,
+    "combinedComponentsPass": 105,
+    "scopedTestTypesExit": 0,
+    "runtimeApplied": true,
+    "schemaChanged": false,
+    "limits": "Original190/196OPEN pending genuinebrowseromtest; no newfullbusinessscenarioPASS",
+    "buildId": "btmHN7KowHmFjGEgbLjME",
+    "appTypesExit": 0,
+    "buildExit": 0,
+    "lintNew7Exit": 0,
+    "twoIndependentSourceReviews": [
+      "Main",
+      "Averroes"
+    ],
+    "cutoverEvidence": "local190-196-integrated-candidate/app-only-cutover.safe.json",
+    "businessBeforeAfterSHA256": "f1200072b6a052a5ce8f6c300caadeb4c648ae63c3802a49616b1b9a7ff291f2",
+    "supersededRuntimeBy": "local207-integrated-candidate; exact65sourcebytes inheritedunchanged"
+  },
+  "currentAppBuild": "WBP1QBikIHINS7Rfu5x-a",
+  "currentRuntimeRoot": "/private/tmp/gridex-local207-integrated-runtime-a71c",
+  "local196RealOmtest": {
+    "state": "PASS_LOCAL_FIXED_ORIGINAL_PRESERVED",
+    "evidence": "parallel-scenarios-newton/local196-recovery-phase/FINAL-REAL-OMTEST.safe.json",
+    "browserPID": 36186,
+    "browserToolSession": 70144,
+    "nativeSessions": 1,
+    "nativeStaffRoles": 0,
+    "nativeMemberships": 0,
+    "businessU3PreservedSHA256": "f1200072b6a052a5ce8f6c300caadeb4c648ae63c3802a49616b1b9a7ff291f2",
+    "controllerRetired": {
+      "state": "BrowserCLOSED thenCtrlC",
+      "finalControllerExit": 1,
+      "proof": "parallel-scenarios-newton/local196-recovery-phase/FINAL-CONTROLLER-CLEANUP.safe.json"
+    }
+  },
+  "local190RealOmtest": {
+    "state": "PASS_NEW_USER_NORMAL_INVITATION_PASSWORD_CONTINUATION_AND_LOGIN_NATIVE",
+    "evidence": "parallel054-kant/local190-new-user-browser/FINAL-REAL-OMTEST.safe.json",
+    "browserPID": 36483,
+    "browserToolSession": 22035,
+    "authUser": "f177c924-a2b2-46ca-9448-be89a4faf628",
+    "invitation": "7498efae-8388-4fd7-93c5-dec9dddc90ad",
+    "nativePermissionsA": 7,
+    "nativePermissionsB": 0,
+    "originalReviewerF8Retained": true
+  },
+  "serviceAuthorityStage2Current": {
+    "source": "43d72b085d7548c3be67400121d8fb2f2e9d8638dbd0dbcbc9af20803976c543",
+    "test": "7812a356345856fcbf94b97ffd2b4e7b0cc4fa7c79207985eb2c1e06c100a7d4",
+    "originalRepro": "45P9F/54",
+    "retest": "54P0F/54SQLcomponent",
+    "native": "PREPARED_NOT_EXECUTED",
+    "nativePlan": "local201-native-ddl-negative/PREPARED-NATIVE-DDL-PLAN.safe.json",
+    "nativeSQLSHA256": "9ef5d315a412e155f81b05443ae5af7ce537c4d2924cf66f425d333713567e93",
+    "reviews": "Main/Avcurrentcalendarboundaryquestion; no apply orclosedentryopening"
+  },
+  "orchestrationSafety": "Every prerequisite exec_command result MUST have exit_code==0 before any dependent mutation/toolstdin; nonzero/missing exit stops that branch. Separate model/tool boundary or explicit conditional exit(), never unconditional nextcall after assertion subprocess. No timeout retry before actualafterstatus.",
+  "case96StaffReply": {
+    "state": "PASS_ACTUAL_UI_SINGLE_REPLY_NATIVE_TYPED_EVENT_CUSTOMER_READBACK_PENDING",
+    "event": "588efbf3-829b-44bf-b864-81d83634130f",
+    "actor": "47aca555-6513-43bd-933b-09721603dce1",
+    "evidence": "parallel054-kant/customer-case-96ee-business-chain/MAIN-STAFF-REPLY-AFTER.safe.json",
+    "exclusiveScenarioOwner": "Kant; Mainrelayonlyasrequested",
+    "noFurtherReplyMutation": true
+  },
+  "historicalSupersededTopFields": {
+    "state": "RUNTIME51_REAL_OMTESTS_PASS_105_13P87B5N_047_QUALIFIED_PRODUCER_RELEASED",
+    "activeVerification": "51qualified387PASS/types/build/offline0;real169pos+negative/036genuineUI+nativePASS. No mainheavy. 047twoexistingCIpending last12:44, no rerun.",
+    "appProcessReadback": "Resumeactualps/lsof:47285app127.0.0.1:3301;47284Mailpit127.0.0.1:54325/54326;original2controllers;no duplication",
+    "remainingBusinessDecision": "054 exactcustodymetadataapprovalpending;047/canonicalqualifiedproduceridentityandcustodyunverified;no source/DB/businessmutationqualifiedbyprivatehelperresults."
+  },
+  "lastLocal190ControllerCleanup": "parallel054-kant/local190-new-user-browser/FINAL-CONTROLLER-CLEANUP.safe.json",
+  "local207IntegratedCandidate": {
+    "state": "LIVE_QUALIFIED_150_COMPONENT_TYPES_BUILD_TWO_REVIEWS_PASS_BROWSER_READBACK_PENDING",
+    "manifest": "local207-integrated-candidate/candidate.safe.json",
+    "cutover": "local207-integrated-candidate/app-only-cutover.safe.json",
+    "files": 68,
+    "newFiles": 3,
+    "sourceCustody": "80214c1a3283c7e31434d658d0a8ff475637698d",
+    "businessBeforeAfter": "5e1554b94ad8041882ff5ce3934f4c7ef56c614168a3726ac8ad096b1f411580",
+    "configDelta": "ZERO sameprivateV3/localTLS/Auth",
+    "schemaDelta": "ZERO; primary remains047+142+017+168 abovef23, no C/stage1/stage2authority applied",
+    "caseEvents": "Oneactualpublicreply588 andprivateNote0c939; user/case/tenantverified",
+    "customerBrowserOwner": "Kant; R3normalLoginreplacement onlyafteractualclose qualification",
+    "systemComplete": false
+  },
+  "local207ActualOmtest": {
+    "evidence": "parallel054-kant/customer-case-96ee-business-chain/ACTUAL207-BUSINESS-READBACK-AND-NEGATIVES.safe.json",
+    "sha256": "1bd01efef8a89de5d82c991d7f0bf2b61256edcf9abd6f67a5574538e18ab994",
+    "state": "FIXED_LOCAL_REAL_BROWSER_DB_READBACK_PENDING_DELIVERY",
+    "officialScenarioCountsUnchanged": true,
+    "browserCleanup": "R3 CLOSED/PIDabsent/controllerexit1 no logoutclaim"
+  },
+  "local023DeliveryGate": {
+    "state": "PUBLISHED_PR_OPEN_EXACT_HEAD_AND_TWO_FILES_VERIFIED_NOT_MERGED",
+    "head": "aa439fca3e12c457813cb658359a813e0fa6dbeb",
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/1042",
+    "base": "fix/local180-existing-ediel-profile-company-context-delivery-a71c",
+    "evidence": "parallel-scenarios-newton/local023-delivery-dependency/PR1042-ACTUAL-AFTER.safe.json",
+    "merged": false,
+    "deployed": false,
+    "CI": "TERMINAL17WORKFLOW_SUCCESS_22CHECKSUCCESS12SKIP1NEUTRAL",
+    "CIReceipt": "parallel-scenarios-newton/pr1042-watch/ONESHOT-20261108T025733Z.safe.json"
+  },
+  "serviceAuthorityStage2NativeDDL": {
+    "state": "PASS_NATIVE_STAGE2_DDL_ACL_NEGATIVE_ROLLBACK_ENTRY_CLOSED",
+    "evidence": "local201-native-ddl-negative/v4-ab9-prepared/MAIN-native-stage2-V4-once.safe.json",
+    "beforeAfter": "f711b1750208c222aefff10da8d8f07bfc76bf659ed7ee47f2a92be376780f0f",
+    "primaryApplied": false,
+    "next": "Real-clock209>=10UTC plus qualified model authority/originals/transport/canonicalnative projection/ingress gate; source-only integration continues"
+  },
+  "local023RealReadonlyIntegration": {
+    "state": "PASS",
+    "evidence": "parallel-scenarios-newton/local023-delivery-dependency/REAL-POSTGREST-R2-run.safe.json",
+    "head": "aa439fca3e12c457813cb658359a813e0fa6dbeb",
+    "noRuntimeCutover": true,
+    "noSessionOrBusinessMutation": true
+  },
+  "ingressActualNativeClone": {
+    "state": "COMMITTED_SOURCE_CANDIDATE_208B_NO_FIXTURES",
+    "evidence": "parallel047-jason/local-service-ingress/native-two-connection-preparation/MAIN-COMMITTED-CLONE-INSTALL-ONCE.safe.json",
+    "database": "gridex_ingress_native_c1_a71c",
+    "installer": "208b4cb0181468a5878aefd33aebce50a40a525c4a3ecefd74f48b11a3de2800",
+    "installerGate": "Twoindependentnewhashreviews pending afteroriginal217preexecutionHOLD",
+    "fixtures": "NONE",
+    "primaryOrTemplateMutation": false,
+    "originalSourceDigest": "f711b1750208c222aefff10da8d8f07bfc76bf659ed7ee47f2a92be376780f0f",
+    "fixtureReadback": "parallel047-jason/local-service-ingress/native-two-connection-preparation/MAIN-ACTUAL-CLONE-FK-ANCHORS-R2.safe.json",
+    "next": "Jasonbounded8casecontroller; twoindependentreviews and normaltoolapproval beforeanynegativefixture DML",
+    "readOnly8": "parallel047-jason/local-service-ingress/native-two-connection-preparation/MAIN-NATIVE-ORDINARY-CLASSIFIER-READONLY8-run.safe.json",
+    "fixtureState": {
+      "state": "R3PREFLIGHT42601_NO_NEW_DML_SAME_R2STATE",
+      "evidence": "parallel047-jason/local-service-ingress/native-two-connection-preparation/MAIN-FIRSTSTOP-ACTUAL-AFTERSTATUS.safe.json",
+      "partialEffects": "2inactiveMB/2inertparents/revokedinvalidinstall+realm1/probeschema/trigger1; attachment/config/authority0",
+      "sessions": "20405/20406absent/nootherclients",
+      "original171": "f711unchanged",
+      "next": "MinimumSQLsyntaxrepair +actualreadonlyPGpreflight, R4exactnewreviews/toolapproval; samecase1setup no repeat",
+      "latestAfterstate": "parallel047-jason/local-service-ingress/native-two-connection-preparation/MAIN-R3-STOP-AFTERSTATUS.safe.json"
+    }
+  },
+  "local529CurrentPrimaryPresence": {
+    "evidence": "local166-sidecar/u3-authority-next-binding/MAIN-CURRENT-U3-PRESENCE-run.safe.json",
+    "runContext": "customer/site/pointNULL runningexisting6fc",
+    "authorityRelations": "ABSENT",
+    "ordinaryActors": "A47/f8 activeconfirmedacceptedA",
+    "next": "Qualifiednormalcontextbinding, privateexactappointments+fiveactualinstruments aftersourceentry/transport qualification; no newrun or directbindingSQL"
+  },
+  "latestPrivateEvidencePreservation": {
+    "target": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-evidence/20261108-native-production-gates-and-signature-owner-a71c",
+    "manifestSHA256": "db9f23b9f75d728b37714de5667546ff2b471d5599fa7243aca4f9031289d3d2",
+    "exactOriginalCount": 93,
+    "limitation": "Includesnative7/prepare8/combined27-existing+source6/correction/Q3/PNG; laterprimaryC8prerequisites07:16awaitnextcohort"
+  },
+  "currentHeavyLease": {
+    "owner": "Main",
+    "state": "FREE allnative terminal;App73supervisor41540alivebydesign"
+  },
+  "ingressR4Actual": {
+    "state": "EIGHT_CASES_OBSERVED_REQUIRES_INDEPENDENT_ASSESSMENT_NOT_CASE_PASS",
+    "exitCode": 0,
+    "evidence": "parallel047-jason/local-service-ingress/native-two-connection-preparation/controller-r4-continuation/execution-r4-continuation-once/result.safe.json",
+    "afterstatus": "parallel047-jason/local-service-ingress/native-two-connection-preparation/MAIN-R4-ACTUAL-AFTERSTATUS.safe.json",
+    "original171SHA256": "f711b1750208c222aefff10da8d8f07bfc76bf659ed7ee47f2a92be376780f0f",
+    "noRemainingClients": true,
+    "authorityRows": 0,
+    "officialCountsUnchanged": true,
+    "next": "Jason/Averroes independentsemantics; Newtoncase8 custodyreceiptpredicate; no retry"
+  },
+  "local529EffectsPhase2": {
+    "state": "READONLY_COMPLETE_NEEDS_SOURCE_CLASSIFICATION_NOT_BINDING_GO",
+    "evidence": "local166-sidecar/u3-authority-next-binding/MAIN-U3-EFFECTS-PHASE2-run.safe.json",
+    "observed": "4 prior system_test_payload_validation artifacts with embeddedraw;1nonblocking3blocking; exact4payloadvalidate+1startaudit; no correlatedordinarymessage/outbox/intent/outbound; pendingstep1",
+    "preserve": "No artifact deletion/relabel; normal once-only pre-admission binding must protectexistinghistoricalsnapshot and serializeeffects"
+  },
+  "typedObservationSink": {
+    "sourceWorktree": "OWNED_WORKTREE_ROOT/03fd/gridex-ops-platform",
+    "custody": "bc5f4c45d7a07f9ef549d401da87143b023cf24b",
+    "actualRED": "20PASS16FAIL0pending",
+    "source": "51f37727197892f8470252b877f50933fd714118cc9ae24a95989827cf541a28",
+    "evidence": "parallel054-kant/local-service-wire-observations/review-r2/MAIN-ACTUAL-SQL-RED-run.safe.json",
+    "finding": "local/222",
+    "next": "KantminimalSQLfix thenMainGREEN/twofinalreviews/actualstage2integration; no primaryapply",
+    "actualGREEN": "38SQL/15canonicalParser/strictTSC0/nativeDDL-ab9DenialACL-RLS-ROLLBACKPASS",
+    "parserSHA256": "9db65d81607388eaaf33412e19da794d82f08933bd1eaf5aee0e0f280df3403b",
+    "sourceSQLSHA256": "15927ae1de288bbee717da4c5428b594c4d00de9b41f62b344c3922dcb5cd3ab",
+    "remaining": "SOURCE_READYexact4; positivequalifiedauthority/wire→ownerproducer→persist notyetexecuted; no liveintegration/privateactivation",
+    "finalReviews": [
+      "parallel-scenarios-newton/local-service-wire-observations-review/NEWTON-TYPEFIX-R3-EXACT4-FINAL-SOURCE-REVIEW.safe.json",
+      "local166-sidecar/review-local-service-wire-observations/AVERROES-FINAL-15927-9DB65-EXACT4-REVIEW.safe.json"
+    ]
+  },
+  "historicalBeforeCurrentTopFieldReconciliation20261108": {
+    "state": "RUNTIME68_AUTH190196_FIXED_PORTAL207_REAL_OMTEST_RUNNING_EDIEL209_CLOCK_BLOCKED",
+    "currentAppRoot": "/private/tmp/gridex-local029036169-runtime-a71c",
+    "activeVerification": "Actual190/196normalUI/auth/localmail/nativePASS on65buildbtmHN7KowHmFjGEgbLjME;201original9RED→54SQLcomponentGREEN butcrosspathcalendar204HOLD; nativeV3preparedNOTRUN; caller52P23NOTRUN. No fullEdielacceptance."
+  },
+  "nextDelivery190196": {
+    "base": "aa439fca3e12c457813cb658359a813e0fa6dbeb",
+    "branch": "fix/local190196-invitation-customer-routing-delivery-a71c",
+    "reuseWorktree": "/private/tmp/gridex-local023-delivery-candidate-a71c",
+    "plan": "parallel-scenarios-newton/local190196-delivery/EXACT7-DELIVERY-PLAN.safe.json",
+    "state": "PUBLISHED_PR1043_EXACT_HEAD_DIFF_BODY_VERIFIED_NOT_MERGED",
+    "published023Preserved": true,
+    "noAuthBusinessMutationPlanned": true,
+    "build": "parallel-scenarios-newton/local190196-delivery/MAIN-COLD-NEXT-BUILD-run.safe.json",
+    "maxRSSBytesDarwin": 4337287168,
+    "source7Unchanged": true,
+    "runtimeOrDBChanged": false,
+    "commit": "961a504758a2a427c8696353846cffc2b7c89bdb",
+    "PR": "https://github.com/heke99/gridex-ops-platform/pull/1043",
+    "receipt": "parallel-scenarios-newton/local190196-delivery/MAIN-PR-ACTUAL-AFTER.safe.json",
+    "scanner": "actualexit1/1verifiedsyntheticFP; rawpreserved, noignore/sourcechange",
+    "runtimeUnchanged": true,
+    "CI": "TERMINAL22SUCCESS12SKIP1NEUTRAL_EXACT961",
+    "CIReceipt": "parallel-scenarios-newton/local190196-delivery/PR1043-CI-READONLY-RESUME.safe.json"
+  },
+  "subjectBindingCurrent": {
+    "sourceSQL": "143a79d064a93f456ad22c056bd1920c96b3acd5033ab7cfb23c3c93c0a9f2ff",
+    "actualSQL": "12PASS0FAIL24unselected, original11P1Fpreserved",
+    "strictTSC": "exit0 peak408289280Bytes",
+    "deps": "Owned124bytecachepreserved+rootlockeddepslink, noinstall/deletes",
+    "primaryApplied": true,
+    "nativeSource171Limitation": "Oldsnapshot0diagnostics/f8absent, not current4diagnostics/f8present; newcurrent-sourceconsumerqualificationneeded withoutpatchingrows",
+    "next": "Existingactualbinding16752918 normalUI+nativePASS, nofakeEdielacceptance; qualify529newmodel/privatecap/instruments/provider/entry",
+    "nativePreflight": {
+      "actual": "PASSreadonly05:02:22 genuineroot673=true/A47,f8=false/4originaldiagnostics/realancestry",
+      "evidence": "local166-sidecar/u3-authority-next-binding/MAIN-C06-BINDER-PREFLIGHT.safe.json",
+      "roleTest": "FIXED_TEST_ONLY local230 via actualR3canonicalpostgres owner+CREATE+BYPASS, no rolechanges",
+      "sourceInstalled": true,
+      "next": "Actualprimary143a/app73/rootUIbindingdone, next529qualifiedmodel/actualoriginalsandtrustedactorentry",
+      "actualNative": "PASS R3realpositive/twoactualdenials/rebind/artifact/oldcanonicalsnapshot withactual4originals 05:12:30",
+      "fullAfter": "PASS05:13:25–28 all909/5132/7/18577+security unchanged/0clients"
+    },
+    "C06DDL": {
+      "state": "PASS_COMMITTED_EXACT143A_DDL_C06_NO_BUSINESS_BINDING",
+      "timeUTC": "2026-11-08T05:21:17.499181+00:00",
+      "receipt": "local166-sidecar/u3-authority-next-binding/c06-native-binder-prepared/committed143a-concurrency-r1/MAIN-DDL-INSTALL-RESULT.safe.json",
+      "fullPostBaseline": "PASS05:22:23; allold18577blocks+24new/910tables5132rows/7seq/securitysame",
+      "bodySHA256": "4947fa80006b9e799d07169daf69e0884c1bdf8be5ffcf5a3d61903621313dbf",
+      "primaryApplied": false,
+      "next": "Native4casesCOMPLETED preserved; no repeatedinstall/race; prefencesimultaneityremainslimitation"
+    },
+    "nativeCompleted": {
+      "state": "PASS_ROOT_POSITIVE_ACTUAL_DENIALS_WRITER_ROW_TIMEOUT_WAIT_RELEASE_AND_COMMITTED_OVERLAP",
+      "C06": "Onlynativeclone143a;1durablebindingb78b9d90/audit245477c9/run6fc updated;fullafterintended3tablesonly,910tables5134rows7seq18601blocks/securitypreserved",
+      "evidence": "local166-sidecar/u3-authority-next-binding/c06-native-binder-prepared/committed143a-concurrency-r1/positive-race-r1/controller-r1/execution-double_rpc_committed_winner-once/MAIN-FULL-INTENDED-AFTER-R2.safe.json",
+      "remaining": "Simultaneousprefence interleavings notcovered; normalprimaryUI stillNOTRUN, no fakeEdielPASS",
+      "next": "Preserve exactproofs then fresh ownprimarypreflight/sourceclaims/env/servicechecks→boundedforward143a→app-only73cutover→normalrootUIbind/reload/native+f8denial"
+    }
+  },
+  "resumeAfterCompaction20261108": {
+    "observedUTC": "2026-11-08T04:40:54.824813+00:00",
+    "branch": "reports/local-verification-20261105-a71c",
+    "HEAD": "3acf1765a14c0942bba3fb1132644a3b02766873",
+    "ownKnownProcessPIDsAlive": [
+      39200,
+      12092,
+      83470,
+      92181,
+      76539,
+      28646
+    ],
+    "noDuplicateProcessOrMutation": true,
+    "ingressApprovedReleaseAlreadyComplete": "existing ingressBoundedAdminAfterStatus receipt; no repeat",
+    "currentPrimaryArchive": "parallel-scenarios-newton/current-primary-c06-plan/MAIN-CURRENT-PRIMARY-CAPTURE.safe.json",
+    "archiveSHA256": "43d2981bbd55cc5152922a5d4edd21face0ed854f26ae85912d64a14ffbc1de5",
+    "C06": {
+      "state": "BOOTSTRAP_NATIVE_ADMISSION_PASS_NOT_RESTORE",
+      "containerId": "5ea65468d82750110d75e401ecc29666c3800611434fbdd6e17d0e05e8e294b7",
+      "native": {
+        "hba_errors": 0,
+        "hba_trust_rules": 0,
+        "business_workers": 0,
+        "listen_addresses": "",
+        "system_identifier": "7705656210563690536",
+        "server_version_num": "170006",
+        "max_worker_processes": "0",
+        "cron_launch_active_jobs": "off",
+        "shared_preload_libraries": "pg_stat_statements,pgsodium,supabase_vault,pg_net",
+        "max_logical_replication_workers": "0"
+      },
+      "startUTC": "2026-11-08T04:41:34.622734+00:00",
+      "endUTC": "2026-11-08T04:41:37.448667+00:00",
+      "exit": 0,
+      "receipt": "parallel-scenarios-newton/current-primary-c06-plan/C06-CREATE-START-RESULT.safe.json",
+      "archiveRestored": true,
+      "globalsApplied": true,
+      "next": "Correctexactactual3pairframing; read-onlyverifyonly. NEVER repeat globals/restore. Then nativebinder ifqualified.",
+      "globalsResult": "PASS_EXACT_CURRENT_ROLE_CATALOG",
+      "restoreResult": "RESTORE_EXIT_ZERO_UNVERIFIED",
+      "verification": {
+        "state": "PASS_BOUNDED_DATABASE_RESTORE_PROOF",
+        "exit": 0,
+        "startUTC": "2026-11-08T05:00:36.749379+00:00",
+        "endUTC": "2026-11-08T05:00:40.575645+00:00",
+        "receipt": "parallel-scenarios-newton/current-primary-c06-plan/C06-VERIFY-EXACT-FIVE-RESULT.safe.json",
+        "sourceArchive": "43d2981bbd55cc5152922a5d4edd21face0ed854f26ae85912d64a14ffbc1de5",
+        "data": "909tables/5132rows/7seqexact",
+        "security": "35roles/28memberships+DBownerACL/ICUexact",
+        "schema": "18572rawstrictblocks+exact5wholeblock/hash/PG17.6constraintproof mappings, rawstrictfalseoriginalretained",
+        "noAuthStorageBrowserQualification": true,
+        "next": "Actual existingrun subject nativepreflight→migration/atomicbinding/denials/concurrency via frozen143a; no primaryapply yet"
+      }
+    },
+    "C06PlanSHA256": "73900b417a0f500fcd1c767621a7a495c8bcc689690400c5ba4db950f6bba8fb",
+    "CI": "parallel-scenarios-newton/local190196-delivery/PR1043-CI-READONLY-20261108T044028Z.safe.json",
+    "CIHead": "961a504758a2a427c8696353846cffc2b7c89bdb",
+    "CIResults": {
+      "SUCCESS": 20,
+      "SKIPPED": 12,
+      "IN_PROGRESS": 2,
+      "NEUTRAL": 1
+    },
+    "newOfficialScenariosExecuted": [],
+    "next": "Review-bound C06 create/start only, then separate globals/restore and current data qualification before binder native/UI. No repeat capture.",
+    "latestActualResume": {
+      "UTC": "2026-11-08T06:37:17.932644+00:00",
+      "ownPIDs": [
+        54879,
+        12092,
+        83470,
+        92181,
+        76539,
+        28646
+      ],
+      "newOfficialScenarios": [],
+      "officialAssessment": "15PASS0FAIL90BLOCKED0NOTRUN unchanged",
+      "noDuplicateReleaseOrPublication": true,
+      "ingressDeniedAction": "BLOCKED no retry throughotheragent/tool",
+      "runtimeLease": "Main41540app running; noheavytest atcheckpoint"
+    }
+  },
+  "localSignatureActualNative937": {
+    "state": "PASS_NATIVE11_NEGATIVE_ROLLBACK_FULL_PRESERVATION",
+    "receipt": "parallel-contract-poincare/track-c-local-signature/MAIN-ACTUAL-NATIVE-11-NEGATIVE-ROLLBACK.safe.json",
+    "actual": "05:26:11exit0,939tables/5038rows/7seq/18974schema/securityunchanged",
+    "loaderRED": "Actual05:27:07exit3 C_LLOAD01;remaining3NOTRUN;sourceimplementationPoincareown761f/b207a7",
+    "positive": "HOLD normalprepare privatewriteintent selector P2 plus genuine6571 consent/PDF/qualifiedCmodel. No false529reuse."
+  },
+  "subjectBindingCold73": {
+    "root": "/private/tmp/gridex-local-subject-binding-runtime-a71c",
+    "base": "0ce21104fa9c699e7789f4f58f2dfbbd28b46901",
+    "overlayFiles": 73,
+    "newSource5Receipt": "317b84598c91a1083373490456f1f449e25ccf62",
+    "candidate": "local-subject-binding-integrated-candidate/candidate.safe.json",
+    "actualGates": "36components/lint4/typegen/fullappTSC/build/offlineexact5 all0",
+    "buildID": "nJyPht42u0xPLUctKhpIG",
+    "maxChildRSSBytesDarwin": 4376608768,
+    "running": true,
+    "primaryMigrationApplied": true,
+    "currentAppPID": 54879,
+    "UIBinding": "16752918-2681-4f03-aa04-43f6a89fc3fd",
+    "audit": "768c0e90-1440-4279-9ccc-fa3c00bfd695",
+    "actualReadback": "PRIMARY-UI-BIND-INVARIANTS all8true/settledUI+reload/reviewerGETdenial/fullafteronlyintended+Authrotation",
+    "limitation": "Simultaneousprefence notexecuted;529qualifiedmodelinstruments/transport/authority stillrequired"
+  },
+  "local529PostBindingPresence": {
+    "state": "ACTUAL_ABSENT_LOCAL_MODEL_TABLES_AND_ENTRIES",
+    "UTC": "2026-11-08T06:38:17.363306+00:00",
+    "receipt": "local166-sidecar/u3-authority-next-binding/MAIN-ACTUAL-POSTBIND-529-PRESENCE.safe.json",
+    "next": "QualifiedCfoundation/localinstallation/runtime/authority andtrustedprovenanceentry. No automaticallyacceptedfiveunsigneddrafts/capability/activation."
+  },
+  "loaderNativeCurrent": {
+    "state": "PASS_LOADER8_NATIVE_NEGATIVE_ROLLBACK_FULL_PRESERVATION",
+    "wrapperSHA256": "b95c3caa73f3f7def0a46d9ffbf0399426d0f5f023b77c85806e6efaed8771e7",
+    "SQL": "401b74d5b0ecb648033f310f3ab6b910ea9dce9d34e0b14bac4e5fd2c98fa982",
+    "tests": "8PASS actualnegative/0clients/fullpreservation",
+    "findings": [
+      "local/228",
+      "local/229",
+      "local/231",
+      "local/232",
+      "local/233"
+    ],
+    "primaryBusinessUnchangedAfterBinding": true,
+    "receipt": "parallel-contract-poincare/track-c-local-signature/customer-loader/MAIN-ACTUAL-LOADER8-NATIVE-R4.safe.json",
+    "next": "PoincareP2signaturewriteadmission thenreal6571consent/PDF/qualifiedCclosure"
+  },
+  "latestPrivateDatabaseOriginals": {
+    "target": "PRIVATE_GRIDEX_ARCHIVE_ROOT/private-database-backups/20261108-primary143a-before-after-a71c",
+    "count": 12,
+    "manifestSHA256": "8a54fd7b1e675bf828fd6391ef6d77233779bd7feb38b9780fa218cd23de49e5"
+  },
+  "production079080ActualNative": {
+    "state": "PASS_079080_FULL7_NATIVE_NEGATIVE_ROLLBACK_FULL_PRESERVATION",
+    "receipt": "parallel054-kant/review079080/native-negative-qualification/MAIN-ACTUAL-FULL7-NATIVE-ONCE.safe.json",
+    "source": "68e69c2e79d2d4b71f6ff2b0b4bef5dee2534562dad5f6f8497191f878705d4b",
+    "actual": "7PASSexit0/allclonepreserved/0clients",
+    "primaryApplied": false,
+    "genuinePositive": "BLOCKED externalgenuineproductionqualification notmodeled",
+    "officialScenariosPromoted": []
+  },
+  "financialSigningPrepareProof": {
+    "state": "PASS_PURE8_AND_CANONICAL_POSTGRES_OWNER_COMBINED27_EXISTING_NEGATIVE_COHORTS",
+    "prepare8": "parallel-contract-poincare/track-c-local-signature/signature-write-admission/MAIN-ACTUAL-PREPARE8-NATIVE-ONCE.safe.json",
+    "combined": "parallel-contract-poincare/track-c-local-signature/canonical-owner-combination/MAIN-ACTUAL-COMBINED-OWNER-NATIVE-ONCE.safe.json",
+    "sourceForward": "08e5802bc727e68ef589f156f83f9c9c279f557b27cdace51aa08b4c0c0ef8c6",
+    "normalDDLowner": "ActualpostgresnonSuper/BYPASS;11newfunctions6FORCERLStablescheckedinsideactualrollbacktransaction",
+    "genuinePrepare": "NOT_RUN/Cclosed,0intendedcustomercontractsactualprimary07:07; normalLOCALpublication→canonicalonboardfirstrequired",
+    "wrongToolDenial": "CORRECTEDlocal234, noobservedrepairattemptorapprovalrejection",
+    "primaryApplied": false
+  },
+  "529ActorEntryDecision": {
+    "state": "EXACT_SERVICE_EXECUTE_DELEGATION_PENDING; INDEPENDENT_OWNER_ONLY_SOURCE_AUTHORIZED",
+    "proposalSHA256": "9a21699ea4aba3cb8753d5fe5e7b89196bc96b863ded3dcee8d1c938387f7f36",
+    "function": "public.gridex_local_service_original_command_v1(uuid,uuid,uuid,text,jsonb)",
+    "grantee": "service_role",
+    "scope": "Sourceimplementation/regression5files only; no DBinstall/cap/activation/signing/transport",
+    "proposal": "local166-sidecar/u3-authority-next-binding/trusted-actor-entry/MINIMUM-SERVICE-ONLY-ACTOR-ENTRY-DECISION.safe.json",
+    "sourceBoundary": "Freshcustody/REDfirstAuth+validation+owner-onlynewfunction allowed; REVOKEALLinclservice/noGRANT/DB/caps/activation untildecision"
+  },
+  "actualCurrentC8Prerequisites": {
+    "receipt": "parallel-contract-poincare/track-c-local-signature/MAIN-ACTUAL-PRIMARY-C8-EXISTING-DEPENDENCIES.safe.json",
+    "observed": "2testactors/prodat1/utilts2;BRP0;privateC8namespace0;HTTPsinknotstarted/notbusinessqualified",
+    "next": "Qualifiedrealownedlocalcounterparty andnormaltestBRPconfigurationbeforeC8bootstrap; nohealth-onlyreceiptasbusinessqualification"
+  },
+  "sourceResponsibilitiesCurrent": {
+    "Main": "Sharedprimary/runtime/schema/native/browser/reportdelivery; oneheavyfree",
+    "Poincare": "NormalLOCALcreate/publish→canonicalonboard/source6frozen signinginput integration; actuale37customer0contracts",
+    "Averroes": "New529Auth/strictvalidation+owner-onlyarchive/reviewentryafterfreshownclaims; actualserviceEXECUTEpending",
+    "Kant": "RealDdiagnosticprojection/receipt/receiverprotocolowner-onlycandidateaftercustody; no health-onlypretendqualification",
+    "Newton": "Independentexactsource/privacyreviews, noheavynativemutation",
+    "Jason": "PriorcyberflaggedingressactionBLOCKED/no retry/redelegation"
+  },
+  "reportOnlinePreparation": {
+    "state": "SANITIZER_V2_AND_FINAL_EXACT3_REVIEW_REQUIRED",
+    "remoteParent": "409cbfd0526b2d2c6270befe3cd3aaa34012e610",
+    "ownReceipt": "097dd80eb990f5865f4e5469393eb9fd5067cf1c",
+    "scanner": "defaultofflineexit1/2independentlyconfirmedUUIDFP, no suppression",
+    "publication": "NONE thisphase; noPRonreportbranch/matchingpushworkflow"
   }
 }
