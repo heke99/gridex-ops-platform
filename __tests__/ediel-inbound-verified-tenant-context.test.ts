@@ -58,3 +58,21 @@ it('reads source recipient roles using actual UNA and never falls back to sender
   expect(extractMarketActorEdielIdFromRawPayload("UNA;*.! ~UNH*1*PRODAT;D;97A;UN;E2SE6A~NAD*DO*54321;;9~")).toBe('54321')
   expect(extractMarketActorEdielIdFromRawPayload("UNH+1+UTILTS:D:04A:UN:E5SE5A'NAD+MR+54321::9'NAD+MR+22222::9'" )).toBeNull()
 })
+
+it('accepts canonical ESCO role for UTILTS E66 at verified own legal and transport receiver', async () => {
+  io.identity.mockResolvedValue({ identity: { ...identity('tenant-b'), roleCodes: ['energy_service_company'] }, evidence: { completeness: 'exact_count' } })
+  expect(await resolveInboundTenantFromIdentifiers({ ...input, messageFamily: 'UTILTS', messageCode: 'E66' })).toMatchObject({ status: 'resolved', companyId: 'tenant-b', source: 'verified_legal_identity' })
+})
+it('keeps an ESCO E66 wrong legal receiver denied even with matching transport receiver', async () => {
+  io.identity.mockResolvedValue({ identity: { ...identity('tenant-b'), roleCodes: ['energy_service_company'] }, evidence: { completeness: 'exact_count' } })
+  expect(await resolveInboundTenantFromIdentifiers({ ...input, messageFamily: 'UTILTS', messageCode: 'E66', marketActorEdielId: '99999' })).toMatchObject({ status: 'unresolved', companyId: null })
+  expect(io.identity).not.toHaveBeenCalled()
+})
+
+it.each(['E66', 'S02'])('accepts canonical supplier identity for UTILTS %s', async (messageCode) => {
+  expect(await resolveInboundTenantFromIdentifiers({ ...input, messageFamily: 'UTILTS', messageCode })).toMatchObject({ status: 'resolved', companyId: 'tenant-b', source: 'verified_legal_identity' })
+})
+it('denies ESCO identity for supplier-only UTILTS S02', async () => {
+  io.identity.mockResolvedValue({ identity: { ...identity('tenant-b'), roleCodes: ['energy_service_company'] }, evidence: { completeness: 'exact_count' } })
+  expect(await resolveInboundTenantFromIdentifiers({ ...input, messageFamily: 'UTILTS', messageCode: 'S02' })).toMatchObject({ status: 'unresolved', companyId: null })
+})
