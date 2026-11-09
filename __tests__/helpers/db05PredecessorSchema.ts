@@ -16,8 +16,13 @@ function reversePatch(schema:string,patch:Patch):string{
  return rebuilt
 }
 
+// Exact gitdiff of genuine a9cf RAW3 -> 9e RAW3 (079 view only).
+// Reverse only these two pinned hunks; historical047 fixture/provenance stays unchanged.
+const local079Patch:Patch={"preSha256":"f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed","postSha256":"a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136","hunks":[{"postStart":131178,"postCount":1,"postSha256":"a5598aee47243c2f5192f9332b2fe27b29638fcf5cbe5b7e9efab5f993c001c4","preLines":["          WHERE ((brp.company_id = c.id) AND (brp.environment = 'production'::text)))) AS has_brp,"]},{"postStart":131208,"postCount":1,"postSha256":"8c5d668fc415b233755ef14025ca9f9c5d22f0b0725d5e4e830502fa9698ad5e","preLines":["          WHERE ((s.company_id = c.id) AND (lower(COALESCE(s.verification_status, ''::text)) = ANY (ARRAY['verified'::text, 'completed'::text, 'active'::text]))))) AS has_sender_identity,"]}]}
+
 /** Reverse only authentic local047 RAW3, then retain the unchanged historical chain. */
 export function preLocal047Schema(schema:string):string{
+ if(sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136')return preLocal047Schema(reversePatch(schema,local079Patch))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return schema
  if(actual!=='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')throw Error('db05_schema_predecessor_unknown:'+actual)
@@ -39,7 +44,7 @@ function prePr949ContrlSchema(schema:string):string{
  * its generated patch; the PR932 capture itself is returned unchanged. Any
  * other capture fails closed. */
 export function prePr973Audit19Schema(schema:string):string{
- if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')return prePr973Audit19Schema(preLocal047Schema(schema))
+ if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136')return prePr973Audit19Schema(preLocal047Schema(schema))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return prePr973Audit19Schema(prePr949ContrlSchema(schema))
  if(actual==='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b')return schema
@@ -55,7 +60,7 @@ export function prePr973Audit19Schema(schema:string):string{
  * generated patch; the C14 capture itself is returned unchanged. Any other
  * capture fails closed. */
 export function prePr932UnsignedEditSchema(schema:string):string{
- if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')return prePr932UnsignedEditSchema(preLocal047Schema(schema))
+ if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136')return prePr932UnsignedEditSchema(preLocal047Schema(schema))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return prePr932UnsignedEditSchema(prePr949ContrlSchema(schema))
  if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6')return schema
@@ -71,7 +76,7 @@ export function prePr932UnsignedEditSchema(schema:string):string{
  * the generated patch and the result must hash to the pinned predecessor.
  * Any other capture fails closed. */
 export function db05PredecessorSchema(schema:string):string{
- if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')return db05PredecessorSchema(preLocal047Schema(schema))
+ if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136')return db05PredecessorSchema(preLocal047Schema(schema))
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return db05PredecessorSchema(prePr949ContrlSchema(schema))

@@ -1,3 +1,4 @@
+import {execFileSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
 import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
@@ -55,7 +56,7 @@ vi.mock('node:fs',async original=>{
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
 type CapturePatch={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
 const rawCapture=readFileSync('supabase/schema.sql','utf8')
-const historicalCapture=sha(rawCapture)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'?preLocal047Schema(rawCapture):rawCapture
+const historicalCapture=[ 'f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed', 'a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136' ].includes(sha(rawCapture))?preLocal047Schema(rawCapture):rawCapture
 const pr973Sha='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b'
 const pr949Sha='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
 const pr949PatchBytes=readFileSync('__tests__/fixtures/db05-schema-predecessor-pr949-contrl-20261101.patch.json','utf8')
@@ -542,4 +543,14 @@ it('older genuine PR949 never consults new local047 fixture',()=>{
  injected.patchLocal047='{}'
  expect(db05PredecessorSchema(pr949Capture)).toBe(db05PredecessorSchema(pr973Capture))
  expect(injected.reads).not.toContain('local047')
+})
+
+// Genuine ordinary captures, no generated canonical fixture or database execution.
+it.each([preLocal047Schema,prePr973Audit19Schema,prePr932UnsignedEditSchema,db05PredecessorSchema])('reverses genuine079 capture to unchanged historical predecessor target: %s',restore=>{
+ const prior=execFileSync('git',['show','a9cf57b5644626f6dcb0bafc60299ff21839db61:supabase/schema.sql'],{encoding:'utf8',timeout:10000,maxBuffer:32*1024*1024})
+ const current=execFileSync('git',['show','9e0ae5e2d257cd657d5394b551ed0497ef53382e:supabase/schema.sql'],{encoding:'utf8',timeout:10000,maxBuffer:32*1024*1024})
+ expect(sha(prior)).toBe('f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')
+ expect(sha(current)).toBe('a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136')
+ expect(restore(current)).toBe(restore(prior))
+ expect(()=>restore(current+'\n-- unknown capture\n')).toThrow(/db05_schema_predecessor_unknown/)
 })
