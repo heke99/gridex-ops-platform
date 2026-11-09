@@ -545,12 +545,26 @@ it('older genuine PR949 never consults new local047 fixture',()=>{
  expect(injected.reads).not.toContain('local047')
 })
 
-// Genuine ordinary captures, no generated canonical fixture or database execution.
-it.each([preLocal047Schema,prePr973Audit19Schema,prePr932UnsignedEditSchema,db05PredecessorSchema])('reverses genuine079 capture to unchanged historical predecessor target: %s',restore=>{
- const prior=execFileSync('git',['show','a9cf57b5644626f6dcb0bafc60299ff21839db61:supabase/schema.sql'],{encoding:'utf8',timeout:10000,maxBuffer:32*1024*1024})
- const current=execFileSync('git',['show','9e0ae5e2d257cd657d5394b551ed0497ef53382e:supabase/schema.sql'],{encoding:'utf8',timeout:10000,maxBuffer:32*1024*1024})
- expect(sha(prior)).toBe('f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')
- expect(sha(current)).toBe('a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136')
- expect(restore(current)).toBe(restore(prior))
- expect(()=>restore(current+'\n-- unknown capture\n')).toThrow(/db05_schema_predecessor_unknown/)
+// Genuine ordinary captures: load and qualify once, without DB or generated fixtures.
+// Keep prior conversions out of each five-second case; each case still compares
+// the complete restored bytes and checks unknown-input rejection.
+const genuine079Prior=execFileSync('git',['show','a9cf57b5644626f6dcb0bafc60299ff21839db61:supabase/schema.sql'],{encoding:'utf8',timeout:10000,maxBuffer:32*1024*1024})
+const genuine079Current=execFileSync('git',['show','9e0ae5e2d257cd657d5394b551ed0497ef53382e:supabase/schema.sql'],{encoding:'utf8',timeout:10000,maxBuffer:32*1024*1024})
+const genuine079PriorSha=sha(genuine079Prior),genuine079CurrentSha=sha(genuine079Current)
+if(genuine079PriorSha!=='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||genuine079CurrentSha!=='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136')throw Error('genuine079_capture_unqualified')
+const genuine079Restorers=[preLocal047Schema,prePr973Audit19Schema,prePr932UnsignedEditSchema,db05PredecessorSchema]
+const genuine079PriorOracles=new Map(genuine079Restorers.map(restore=>[restore,restore(genuine079Prior)]))
+it('qualifies shared genuine079 prior oracles against exact capture and historical target hashes',()=>{
+ expect(genuine079PriorSha).toBe('f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')
+ expect(genuine079CurrentSha).toBe('a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136')
+ expect(genuine079Restorers.map(restore=>sha(genuine079PriorOracles.get(restore)!))).toEqual([
+  'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc',
+  '20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b',
+  'aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6',
+  'c4e86b3bda8dc8579df1b3bfa9bdc8994b9ca0085c07710c36a15e1259069823',
+ ])
+})
+it.each(genuine079Restorers)('reverses genuine079 capture to unchanged historical predecessor target: %s',restore=>{
+ expect(restore(genuine079Current)).toBe(genuine079PriorOracles.get(restore))
+ expect(()=>restore(genuine079Current+'\n-- unknown capture\n')).toThrow(/db05_schema_predecessor_unknown/)
 })
