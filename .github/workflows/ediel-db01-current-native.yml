@@ -581,6 +581,9 @@ jobs:
 
           def install_current_write_api_projection():
               spec=current_write_api_install_spec();before=receipt.get('current_write_api_observation',{})
+              # Genuine079 capture changes only platform_go_live_readiness_v; all body/catalog pins remain exact.
+              if receipt['root_source']['blobs']['supabase/schema.sql']['sha256']=='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136':
+                  spec={**spec,'schema_sha256':'a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136'}
               entry='public.gridex_enqueue_normal_supplier_switch_v1'
               rows=before.get('observed_functions',[]);names=before.get('planned_function_names',[])
               if before.get('schema')!='db01_current_write_api_observation_v1' or before.get('status')!='OBSERVED_ONLY' or before.get('native_or_approval_credit') is not False \
@@ -672,6 +675,9 @@ jobs:
 
           def apply_current_contrl_source():
               spec=current_contrl_source_spec();donor=spec['donor'];path=root/donor['path']
+              # Genuine079 capture changes only platform_go_live_readiness_v; all body/catalog pins remain exact.
+              if receipt['root_source']['blobs']['supabase/schema.sql']['sha256']=='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136':
+                  spec={**spec,'schema_sha256':'a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136'}
               if receipt['root_source']['blobs'].get(donor['path'])!={k:donor[k] for k in ['mode','git_blob_oid','sha256']} \
                 or receipt['root_source']['blobs']['supabase/schema.sql']['sha256']!=spec['schema_sha256'] \
                 or hashlib.sha256(path.read_bytes()).hexdigest()!=donor['sha256'] \
@@ -1356,7 +1362,9 @@ jobs:
               donor={'path':'supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sql',
                 'mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d',
                 'sha256':'118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'}
-              schema='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'
+              schema=receipt['root_source']['blobs']['supabase/schema.sql']['sha256']
+              if schema not in ('f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed','a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136'):
+                  raise RuntimeError('db01_current_contrl_execution_required')
               pre='142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e'
               post='e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa'
               item=receipt.get('current_contrl_source_install',{});before=item.get('catalog_before',{});after=item.get('catalog_after',{})

@@ -131176,7 +131176,7 @@ CREATE VIEW public.platform_go_live_readiness_v WITH (security_invoker='true') A
           WHERE ((a.company_id = c.id) AND (a.environment = 'production'::text) AND (COALESCE(a.is_active, true) = true) AND (COALESCE(a.ediel_id, a.actor_ediel_id) IS NOT NULL)))) AS has_actor_setting,
     (EXISTS ( SELECT 1
            FROM public.ediel_brp_settings brp
-          WHERE ((brp.company_id = c.id) AND (brp.environment = 'production'::text)))) AS has_brp,
+          WHERE ((brp.company_id = c.id) AND (brp.environment = 'production'::text) AND (btrim(brp.brp_ediel_id) <> ''::text)))) AS has_brp,
     (EXISTS ( SELECT 1
            FROM public.ediel_route_profiles r
           WHERE ((r.company_id = c.id) AND (r.environment = 'production'::text) AND (COALESCE(r.is_enabled, true) = true) AND (COALESCE(r.is_active, true) = true) AND (upper(COALESCE(r.message_family, r.application_reference, ''::text)) = 'PRODAT'::text)))) AS has_prodat_route,
@@ -131206,7 +131206,7 @@ CREATE VIEW public.platform_go_live_readiness_v WITH (security_invoker='true') A
           WHERE ((ppv.company_id = c.id) AND (ppv.status = ANY (ARRAY['active'::text, 'published'::text]))))) AS has_published_contracts,
     (EXISTS ( SELECT 1
            FROM public.company_email_settings s
-          WHERE ((s.company_id = c.id) AND (lower(COALESCE(s.verification_status, ''::text)) = ANY (ARRAY['verified'::text, 'completed'::text, 'active'::text]))))) AS has_sender_identity,
+          WHERE ((s.company_id = c.id) AND (s.is_active = true) AND (s.sender_mode <> 'disabled'::text) AND (lower(COALESCE(s.verification_status, ''::text)) = ANY (ARRAY['verified'::text, 'completed'::text, 'active'::text]))))) AS has_sender_identity,
     public.gridex_resolve_ediel_route_for_process(c.id, 'PRODAT'::text, 'supplier_switch'::text, NULL::text, NULL::text) AS prodat_route_decision,
     now() AS evaluated_at
    FROM ((public.companies c
