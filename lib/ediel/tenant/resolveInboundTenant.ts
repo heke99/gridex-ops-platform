@@ -481,7 +481,8 @@ export async function resolveInboundTenantFromIdentifiers(input: ResolveInboundT
   const expectedRoles: readonly string[] = normalized.messageFamily === 'PRODAT'
     ? [canonicalProdatProfileForMessage(normalized.messageCode)?.receiverRole].filter(role => role !== undefined)
     : canonicalBusinessSemanticsProjection({ family: normalized.messageFamily ?? '', code: normalized.messageCode ?? '' })?.receiverRoles ?? []
-  const roleName = (role: string) => role === 'electricity_supplier' ? 'supplier' : role === 'energy_service_company' ? 'esco' : role
+  const roleName = (role: string) => role === 'electricity_supplier' ? 'supplier'
+    : normalized.messageFamily === 'PRODAT' && role === 'energy_service_company' ? 'esco' : role
   const verified: InboundTenantEvidence[] = []
   for (const companyId of candidates) {
     try {
