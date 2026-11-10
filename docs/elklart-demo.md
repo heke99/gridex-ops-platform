@@ -30,3 +30,34 @@ Ingången är `https://demo.gridex.se`. Kundportalen använder `https://mina-sid
 4. Visa Bergdalas avvikelse. Använd genvägarna för övriga kundscenarier. **Återställ övningen** återställer portföljens vyval. För en helt ny huvudgenomgång återställs även demodatabasernas startläge och de tillhörande tjänsterna.
 
 Portföljövningen använder ett simulerat dygn. Scenariovalet påverkar endast exempelvolymerna på den sidan. Den ordinarie portföljen hämtar månadsprognosen från OPS och visar medeleffekt för hela den svenska kalendermånaden. För att verifiera en automatisk koppling från en OPS-leveranshändelse till kvartprognosen krävs en faktisk intervallserie kopplad till leveransperioderna och en separat verifiering av detta flöde.
+
+## Portfölj kopplad till OPS-data (fortsättning 2026-11-10)
+
+Öppna `/admin/elklart-demo/ops-portfolio` från demostarten. Denna vy läser de kopplade kundernas ordinarie leveransperioder och aktuella förbrukningsvärden genom den inloggade användarens RLS-klient. Bolag, kund, mätpunkt och elområde måste stämma. Ingen service-role används och inga data skrivs. Vid läsfel visas ett stoppmeddelande, aldrig exempelvärden som ersättning.
+
+Koppla exakta fiktiva OPS-kunder och mätpunkter i servervariabeln `ELKLART_DEMO_BINDINGS`. Följande är formatet, inte färdiga kund-ID:n:
+
+```json
+[
+  {"profile":"anna","customerId":"00000000-0000-0000-0000-000000000002","meteringPointId":"00000000-0000-0000-0000-000000000003"}
+]
+```
+
+Tillåtna profiler: `anna`, `workshop`, `warehouse`, `jonas` och `bergdala`. Använd riktiga ID:n från **den isolerade demodatabasen** efter ordinarie kundintag. `workshop` och `warehouse` binds till samma företagskund men två olika mätpunkter. Inga värden ska kopieras från produktionskunder. Profilerna har förberedda kWh-antaganden per kvart; inköpt volym är fortfarande den förberedda demoprofilen (SE4: 450 kWh/kvart). Dessa är inte OPS:s ordinarie månadsprognos eller inköpsbok.
+
+Leveransens `market_start_at`/`market_end_at` har företräde. Annars används `actual_start_date`/`actual_end_date` och därefter planerade datum vid svensk midnatt. Slutgränsen är exklusiv. Utan bekräftad start är volymen planerad; en avbruten period räknas inte. Bekräftelse i ordinarie OPS-flöde följd av **Uppdatera från OPS** flyttar volymen från planerad till bekräftad i denna vy. Perioder räknas som union så att överlappande registreringar inte dubblerar volymen.
+
+Endast aktuella mätvärden för förbrukning används. Historiska ägares värden ingår inte. Ett överlapp mellan två aktuella mätvärden stoppar beräkningen. Saknad täckning visas som **Saknas**, medan en verifierad nollserie visas som noll. Timvärden delas inte upp i påhittade kvartsvärden. En korrigering ändrar utfall och avvikelse men inte profilprognosen. Sommartidsdygn har 92 kvartar och vintertidsdygn 100; upprepad klocktid skiljs åt med UTC-offset.
+
+### Kontroll av första kedjan i den isolerade miljön
+
+1. Publicera demoerbjudandet och teckna Anna genom portalens vanliga formulär. Behåll ansökningsreferensen och öppna samma kund i OPS.
+2. Bind hennes exakta kund- och mätpunkts-ID till `anna`. Förbered nätägarens planerade start med ordinarie testflöde. Välj startdagen i portföljvyn och kontrollera planerad volym före bekräftelse.
+3. Ta emot det förberedda nätägarsvaret vid integrationsgränsen. Kontrollera den ordinarie leveransperioden i OPS och leveransstatusen i kundportalen.
+4. Uppdatera portföljvyn. Annas bidrag är 3 kWh per hel kvart från bekräftad start och noll före start. Med Sjöviks båda profiler och Jonas aktiva hela den valda kvarten är summan 600 kWh = 0,600 MWh = 2,4 MW.
+5. Importera en kvartserie och en senare korrigering via ordinarie testimport. Kontrollera ändrat utfall och oförändrad prognos. Följ samma mätpunkt till fakturaunderlaget.
+6. Återställ **hela** dedikerade miljön inklusive Auth, dokument och köer från det verifierade startläget och upprepa steg 1–5. Ingen återställningsknapp för databasen har byggts; länken på exempelsidan återställer endast dess vyval.
+
+### Kvar innan hela systemdemot är klart
+
+Separata OPS-/portalprojekt, testkonton och testmottagare måste identifieras eller provisioneras. Kundernas start- och slutlägen, publicerat erbjudande, de ordinarie simulerade nätägarhändelserna, fakturapartnerns demofakturor och en verifierad komplett återställning måste därefter förberedas. Kör huvudvisningen två gånger med återställning emellan och kontrollera alla roller samt valbara flöden. Den nya dataläsningen och testerna ersätter inte denna acceptans.

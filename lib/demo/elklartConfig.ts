@@ -2,7 +2,7 @@ const demoHost = 'demo.gridex.se'
 const portalHost = 'mina-sidor-demo.gridex.se'
 
 export function resolveElklartDemoConfig(
-  environment: NodeJS.ProcessEnv,
+  environment: { ELKLART_DEMO_ENABLED?: string; ELKLART_DEMO_COMPANY_ID?: string; NODE_ENV?: string },
   host: string | null,
 ) {
   const companyId = environment.ELKLART_DEMO_COMPANY_ID

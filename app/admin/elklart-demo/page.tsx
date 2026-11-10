@@ -76,6 +76,7 @@ export default async function ElklartDemoPage({ searchParams }: Props) {
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <nav aria-label="Demovyer" className="flex flex-wrap gap-3">
           <Link className={linkStyle} href="/admin">Öppna OPS</Link>
+          <Link className={linkStyle} href="/admin/elklart-demo/ops-portfolio">Portfölj från OPS</Link>
           <a className={linkStyle} href={`${config.portalOrigin}/mina-sidor`} target="_blank" rel="noreferrer">Öppna Mina sidor</a>
           <a className={linkStyle} href={`${config.portalOrigin}/teckna-avtal`} target="_blank" rel="noreferrer">Teckna avtal</a>
           <Link className={linkStyle} href="/admin/analytics/portfolio">Öppna OPS ordinarie kundportfölj</Link>
