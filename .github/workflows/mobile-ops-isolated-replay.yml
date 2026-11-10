@@ -44,3 +44,23 @@ jobs:
         run: |
           npm run test:portal
           node --experimental-strip-types --experimental-loader ./tests/mobile-read-loader.mjs --test tests/mobile-contracts-handler.test.mjs tests/mobile-customer-data.test.mjs tests/mobile-customer-resources.test.mjs tests/mobile-detail-routes.test.mjs
+      - name: Install OPS dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Start isolated OPS and verify HTTPS transport
+        shell: bash
+        run: |
+          set -eo pipefail
+          unset GRIDEX_REPLAY_DB_URL
+          source scripts/gridex-aud-003-clean-replay.sh
+          status="$(supabase status -o json)"
+          export NEXT_PUBLIC_SUPABASE_URL="$(jq -er .API_URL <<< "$status")"
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(jq -er .ANON_KEY <<< "$status")"
+          export SUPABASE_SERVICE_ROLE_KEY="$(jq -er .SERVICE_ROLE_KEY <<< "$status")"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=localhost \
+            -addext subjectAltName=IP:127.0.0.1 -keyout "$RUNNER_TEMP/ops.key" -out "$RUNNER_TEMP/ops.crt" 2>/dev/null
+          npm exec -- next dev --hostname 127.0.0.1 --port 3101 > "$RUNNER_TEMP/ops-runtime.log" 2>&1 &
+          node scripts/mobile-e2e-ops-https.mjs "$RUNNER_TEMP/ops.key" "$RUNNER_TEMP/ops.crt" &
+          curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 3 --max-time 30 \
+            --cacert "$RUNNER_TEMP/ops.crt" https://127.0.0.1:3443/api/v1/openapi/customer-portal-v1.json \
+            --output "$RUNNER_TEMP/ops-portal-openapi.json"
+          jq -e '.paths | type == "object"' "$RUNNER_TEMP/ops-portal-openapi.json" >/dev/null
