@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal API",
-    "version": "2026-10-12.1",
+    "version": "2026-11-10.1",
     "description": "Production API for customer portals. Access is organization-scoped by the server-side API credential and customer data is limited to the verified linked customer identity."
   },
   "servers": [
@@ -1836,8 +1836,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid"
-            }
+              "pattern": "^invoice_[A-Za-z0-9_-]{32}$"
+            },
+            "description": "Canonical public invoice_reference returned by the invoice list. Internal invoice UUIDs are not part of the public request contract."
           },
           {
             "$ref": "#/components/parameters/ExternalCustomerId"
@@ -12781,6 +12782,90 @@
                 "schema": {
                   "type": "string",
                   "const": "2026-10-12.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            }
+          }
+        },
+        "x-required-scopes": [],
+        "operationId": "getApiV1Openapi202610121CustomerPortalV1Json",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none"
+      }
+    },
+    "/api/v1/openapi/2026-11-10.1/customer-portal-v1.json": {
+      "get": {
+        "summary": "Immutable Customer Portal OpenAPI release 2026-11-10.1",
+        "description": "Immutable Customer Portal OpenAPI release 2026-11-10.1.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-10.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-10.1"
                 }
               },
               "X-Request-ID": {

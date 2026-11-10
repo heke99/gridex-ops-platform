@@ -2,17 +2,17 @@ name: Mobile OPS isolated replay
 on:
   pull_request:
     branches: [codex/mobile-ops-replay-baseline]
-    paths: [.github/workflows/mobile-ops-isolated-replay.yml, 'scripts/mobile-*.mjs']
+    paths: [.github/workflows/mobile-ops-isolated-replay.yml, 'scripts/mobile-*']
 permissions:
   contents: read
 jobs:
   replay:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 75
     env:
       SUPABASE_TELEMETRY_DISABLED: 'true'
       SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
-      GRIDEX_WEB_COMMIT: 7e0600552c947895706d89b191f00ecec0c71cc6
+      GRIDEX_WEB_COMMIT: 81c0c417081c576c749bf3c0c31a7bd09640b7f5
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,73 +37,46 @@ jobs:
         run: |
           npm run test:portal
           node --experimental-strip-types --experimental-loader ./tests/mobile-read-loader.mjs --test tests/mobile-contracts-handler.test.mjs tests/mobile-customer-data.test.mjs tests/mobile-customer-resources.test.mjs tests/mobile-detail-routes.test.mjs
+          node --experimental-strip-types --experimental-loader ./tests/typescript-alias-loader.mjs --test tests/mobile-invoice-openapi.test.mjs
       - name: Install OPS dependencies
         run: npm ci --no-audit --no-fund
-      - name: Verify OPS replay, customer binding and mobile HTTP on one stack
-        shell: bash
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install and verify pinned native app
+        working-directory: gridex-web/apps/mobile
         run: |
-          set -eo pipefail
-          unset GRIDEX_REPLAY_DB_URL
-          source scripts/gridex-aud-003-clean-replay.sh
-          owned_pids=()
-          mobile_cleanup() {
-            local result=$?
-            trap - EXIT
-            for pid in "${owned_pids[@]}"; do kill "$pid" 2>/dev/null || true; done
-            rm -rf "$RUNNER_TEMP/mobile-fixtures"
-            set +e
-            (exit "$result"); cleanup
-            exit "$result"
-          }
-          trap mobile_cleanup EXIT
-          export DB_URL
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/portal-claim-atomic-regression.sql
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/staff-api-integration-auth-regression.sql
-          status="$(supabase status -o json)"
-          export NEXT_PUBLIC_SUPABASE_URL="$(jq -er .API_URL <<< "$status")"
-          export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(jq -er .ANON_KEY <<< "$status")"
-          export SUPABASE_SERVICE_ROLE_KEY="$(jq -er .SERVICE_ROLE_KEY <<< "$status")"
-          node scripts/mobile-ops-fixtures.mjs "$RUNNER_TEMP/mobile-fixtures"
-          export GRIDEX_PORTAL_IDENTITY_ENFORCEMENT=enforce
-          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=localhost \
-            -addext subjectAltName=IP:127.0.0.1 -keyout "$RUNNER_TEMP/ops.key" -out "$RUNNER_TEMP/ops.crt" 2>/dev/null
-          npm exec -- next dev --hostname 127.0.0.1 --port 3101 > "$RUNNER_TEMP/ops-runtime.log" 2>&1 &
-          owned_pids+=("$!")
-          node scripts/mobile-e2e-ops-https.mjs "$RUNNER_TEMP/ops.key" "$RUNNER_TEMP/ops.crt" &
-          bridge_pid=$!
-          owned_pids+=("$bridge_pid")
-          curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 3 --max-time 30 \
-            --cacert "$RUNNER_TEMP/ops.crt" https://127.0.0.1:3443/api/v1/openapi/customer-portal-v1.json \
-            --output "$RUNNER_TEMP/ops-portal-openapi.json"
-          jq -e '.paths | type == "object"' "$RUNNER_TEMP/ops-portal-openapi.json" >/dev/null
-          (
-            cd gridex-web
-            source "$RUNNER_TEMP/mobile-fixtures/web.env"
-            export NODE_EXTRA_CA_CERTS="$RUNNER_TEMP/ops.crt"
-            export GRIDEX_OPS_API_URL=https://127.0.0.1:3443/api/v1
-            export GRIDEX_OPS_STAGING_ALLOWED_ORIGINS=https://127.0.0.1:3443
-            export GRIDEX_MOBILE_API_ENABLED=true
-            exec npm exec -- next dev --hostname 127.0.0.1 --port 3100
-          ) > "$RUNNER_TEMP/web-runtime.log" 2>&1 &
-          owned_pids+=("$!")
-          curl --silent --show-error --retry 20 --retry-connrefused --retry-delay 3 --max-time 60 \
-            http://127.0.0.1:3100/api/mobile/customer/contracts --output /dev/null
-          node gridex-web/scripts/check-mobile-http.mjs http://127.0.0.1:3100 "$RUNNER_TEMP/mobile-http.json"
-          (
-            source "$RUNNER_TEMP/mobile-fixtures/web.env"
-            export NODE_EXTRA_CA_CERTS="$RUNNER_TEMP/ops.crt"
-            export GRIDEX_OPS_API_URL=https://127.0.0.1:3443/api/v1
-            export GRIDEX_OPS_STAGING_ALLOWED_ORIGINS=https://127.0.0.1:3443
-            node --experimental-strip-types --experimental-loader ./gridex-web/tests/typescript-alias-loader.mjs scripts/mobile-ops-diagnose.mjs "$RUNNER_TEMP/mobile-fixtures/customers.json"
-          )
-          node scripts/mobile-ops-customer-acceptance.mjs "$RUNNER_TEMP/mobile-fixtures/customers.json" "$RUNNER_TEMP/mobile-acceptance.json"
-          kill "$bridge_pid"
-          wait "$bridge_pid" || true
-          node scripts/mobile-ops-customer-acceptance.mjs "$RUNNER_TEMP/mobile-fixtures/customers.json" --outage
+          npm ci --workspaces=false --no-audit --no-fund
+          npm run typecheck
+          node --experimental-strip-types --experimental-loader ../../tests/mobile-account-loader.mjs --test ../../tests/mobile-account-lifecycle.test.mjs ../../tests/mobile-account-adapter.test.mjs ../../tests/mobile-account-writes.test.mjs
+      - name: Enable Android KVM on disposable runner
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify isolated HTTP and Android customer flow on one stack
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot
+          script: bash scripts/mobile-ops-stack.sh
       - name: Upload sanitized acceptance receipt
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: mobile-customer-acceptance
           path: ${{ runner.temp }}/mobile-acceptance.json
+          retention-days: 7
+      - name: Upload isolated Android test APK and sanitized receipt
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-android-isolated-acceptance
+          path: ${{ runner.temp }}/mobile-android/
+          if-no-files-found: error
           retention-days: 7

@@ -47,6 +47,9 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/openapi/2026-10-04.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-10-04.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-04.1/staff-v1.json', scopes: [], description: 'Immutable Staff OpenAPI release 2026-10-04.1.', rateLimitClass: 'read' },
 
+  { method: 'GET', path: '/api/v1/openapi/2026-11-10.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI documentation release 2026-11-10.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-11-10.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI documentation release 2026-11-10.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-11-10.1/staff-v1.json', scopes: [], description: 'Immutable Staff OpenAPI documentation release 2026-11-10.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-12.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI documentation release 2026-10-12.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-12.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI documentation release 2026-10-12.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-12.1/staff-v1.json', scopes: [], description: 'Immutable Staff OpenAPI documentation release 2026-10-12.1.', rateLimitClass: 'read' },

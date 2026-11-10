@@ -8,7 +8,7 @@
  */
 export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-09.1' as const
 // Documentation revisions are independent of the stable business response schema.
-export const API_DOCUMENTATION_VERSION = '2026-10-12.1' as const
+export const API_DOCUMENTATION_VERSION = '2026-11-10.1' as const
 // Documentation-only releases never raise the minimum supported wire revision.
 export const MINIMUM_TENANT_INTEGRATION_VERSION = '2026-10-02.3' as const
 
