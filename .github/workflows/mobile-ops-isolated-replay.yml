@@ -26,6 +26,7 @@ jobs:
           set -eo pipefail
           source scripts/gridex-aud-003-clean-replay.sh
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/portal-claim-atomic-regression.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/staff-api-integration-auth-regression.sql
       - uses: actions/checkout@v4
         with:
           repository: heke99/gridex-web
