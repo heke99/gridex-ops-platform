@@ -1,7 +1,7 @@
 name: Mobile OPS isolated replay
 on:
-  push:
-    branches: [codex/mobile-ops-isolated-replay]
+  pull_request:
+    branches: [codex/mobile-ops-replay-baseline]
     paths: [.github/workflows/mobile-ops-isolated-replay.yml]
 permissions:
   contents: read
@@ -18,7 +18,7 @@ jobs:
           persist-credentials: false
       - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb
         with:
-          version: 2.109.0
+          version: 2.101.0
       - name: Replay canonical OPS schema on the runner
         shell: bash
         run: |
