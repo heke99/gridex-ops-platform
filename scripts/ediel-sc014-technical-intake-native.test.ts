@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { createHash, randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { storeMailboxFetchMessage } from '@/lib/inbound-mail/edielMailboxPoller.part-2'
@@ -175,9 +176,9 @@ function custodySnapshot(mailId: string): Json {
       JOIN gridex_unattributed_intake.technical_births b ON b.source_message_id=c.protected_source_id WHERE b.inbound_email_message_id=${literal(mailId)}),
     'sources',(SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY id),'[]') FROM public.ediel_messages m WHERE inbound_email_message_id=${literal(mailId)}))`)
 }
-// The actual SQL row also contains this custody field; the application row
-// type intentionally does not expose it as application authority.
-type NativeSourceRow = EdielMessageRow & { immutable_payload_hash: string | null }
+// The actual SQL row also contains these custody fields; the application row
+// type intentionally does not expose them as application authority.
+type NativeSourceRow = EdielMessageRow & { immutable_payload_hash: string | null; resolved_company_id: string | null }
 function sourceRow(id: string) { return sql<NativeSourceRow>(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(id)}`) }
 function repeatableReadSession() {
   if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('SC014_owned_local_session_required')
@@ -556,8 +557,37 @@ describe('SC014 actual native protected technical source birth', () => {
       VALUES(${literal(ordinaryId)},${literal(f.companyId)},'production','inbound','edifact','SC014_DIAGNOSTIC','SC014_DIAGNOSTIC','draft');
       DELETE FROM public.ediel_messages WHERE id=${literal(ordinaryId)}`)
     expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE id=${literal(ordinaryId)}`)).toBe(0)
+    const protectedBefore = sourceRow(p.source.id), custodyBefore = custodySnapshot(p.mailId), businessBefore = businessSnapshot(f)
+    const executionRole = sql<{ currentUser: string; sessionUser: string }>(`SELECT jsonb_build_object('currentUser',current_user,'sessionUser',session_user)`)
+    expect(executionRole).toEqual({ currentUser: 'postgres', sessionUser: 'postgres' })
     expect(() => sql(`DELETE FROM public.ediel_messages WHERE id=${literal(p.source.id)}`)).toThrow(/original_immutable|foreign key/)
+    const protectedAfter = sourceRow(p.source.id), custodyAfter = custodySnapshot(p.mailId), businessAfter = businessSnapshot(f)
+    expect(protectedAfter).toEqual(protectedBefore)
+    expect(custodyAfter).toEqual(custodyBefore)
+    expect(businessAfter).toEqual(businessBefore)
     assertNoBusinessOriginal(p.source.id, f)
+    expect(attemptedDelivery).not.toHaveBeenCalled()
+    // Export only after the real assertions. This is privileged SQL protection
+    // evidence for a synthetic technical original, never legal/billing authority.
+    const receipt = {
+      schema: 'custody0103_locked_technical_source_denial_v1',
+      testName: 'allows later diagnostic UPDATE of the permanently protected original and does not intercept ordinary DELETE',
+      sourcePreimageSHA256: '7388fe22df96a46ba580ef3a399995924f8f0da4fa2dc61390bd2a966410d824',
+      executedTestSHA256: digest(readFileSync(new URL(import.meta.url), 'utf8')),
+      recordedAt: new Date().toISOString(), assertionBlockCompleted: true, wholeRunQualified: false,
+      technicalCompanyId: f.companyId, fixtureActorUserId: f.actor.id,
+      sourceMessageId: p.source.id, inboundEmailMessageId: p.mailId, ordinaryControlId: ordinaryId,
+      legalCompanyId: protectedAfter.company_id, resolvedCompanyId: protectedAfter.resolved_company_id,
+      executionRole, operation: 'DELETE public.ediel_messages',
+      protection: 'permanently_protected_technical_original', denialAssertion: 'original_immutable|foreign key',
+      sourcePayloadSHA256: digest(protectedAfter.raw_payload!), sourceByteLength: Buffer.byteLength(protectedAfter.raw_payload!, 'utf8'),
+      ordinaryDeleteRemaining: 0,
+      before: { sourceRowSHA256: digest(JSON.stringify(protectedBefore)), custodySHA256: digest(JSON.stringify(custodyBefore)), businessSHA256: digest(JSON.stringify(businessBefore)) },
+      after: { sourceRowSHA256: digest(JSON.stringify(protectedAfter)), custodySHA256: digest(JSON.stringify(custodyAfter)), businessSHA256: digest(JSON.stringify(businessAfter)) },
+      syntheticFixture: true, businessAuthority: false, scope: 'technical-source-negative-only',
+    }
+    mkdirSync('e2e-artifacts/native', { recursive: true })
+    writeFileSync('e2e-artifacts/native/custody0103-locked-source-denial.safe.json', JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
   })
 
   it('holds the same technical original after genuine current resolver success and reprocesses the exact retained CONTRL without legal reassignment or duplicate wire', async () => {

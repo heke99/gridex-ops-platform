@@ -522,9 +522,13 @@ it('keeps older PR973 entrypoints independent of the new PR949 fixture',()=>{
 const local047Sha='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'
 const local047Patch=JSON.parse(readFileSync(new URL('./fixtures/db05-schema-predecessor-local047-20261107.patch.json',import.meta.url),'utf8')) as CapturePatch
 const local047Capture=exactPatchFixture(local047Patch,pr949Sha,local047Sha,pr949Capture,true)
-it.each([db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema])('authentic local047 retains exact historical predecessor through %s',convert=>{
+it.each([
+ ['DB05/local047',db05PredecessorSchema,local047Capture],['DB05/PR949',db05PredecessorSchema,pr949Capture],
+ ['pre-PR973/local047',prePr973Audit19Schema,local047Capture],['pre-PR973/PR949',prePr973Audit19Schema,pr949Capture],
+ ['pre-PR932/local047',prePr932UnsignedEditSchema,local047Capture],['pre-PR932/PR949',prePr932UnsignedEditSchema,pr949Capture],
+] as const)('authentic local047 retains exact historical predecessor: %s',(_name,convert,input)=>{
  expect(local047Patch.hunks).toHaveLength(19)
- expect(convert(local047Capture)).toBe(convert(pr949Capture))
+ expect(convert(input)).toBe(genuine079PriorOracles.get(convert))
 })
 it('authentic local047 unknown bytes stay closed before inverse reads',()=>{
  for(const convert of [db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema])expect(()=>convert(local047Capture+'\n-- drift')).toThrow('db05_schema_predecessor_unknown:')
@@ -539,9 +543,12 @@ it.each(['preHash','postHash','hunkHash','hunkBytes'] as const)('authentic local
  injected.patchLocal047=JSON.stringify(patch)
  for(const convert of [db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema])expect(()=>convert(local047Capture)).toThrow(/db05_schema_predecessor_(rebuild_mismatch|hunk_changed)/)
 })
-it('older genuine PR949 never consults new local047 fixture',()=>{
+// Both old inputs independently retain the corrupt-fixture/nonconsultation property.
+// Reuse the qualified immutable oracle below rather than run two full chains in one deadline.
+it.each([['PR949',pr949Capture],['PR973',pr973Capture]])('older genuine %s never consults new local047 fixture',(_name,input)=>{
+ injected.reads=[] // Measure only this conversion, not earlier shared-oracle setup reads.
  injected.patchLocal047='{}'
- expect(db05PredecessorSchema(pr949Capture)).toBe(db05PredecessorSchema(pr973Capture))
+ expect(db05PredecessorSchema(input)).toBe(genuine079PriorOracles.get(db05PredecessorSchema))
  expect(injected.reads).not.toContain('local047')
 })
 
