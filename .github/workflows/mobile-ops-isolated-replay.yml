@@ -2,7 +2,7 @@ name: Mobile OPS isolated replay
 on:
   pull_request:
     branches: [codex/mobile-ops-replay-baseline]
-    paths: [.github/workflows/mobile-ops-isolated-replay.yml]
+    paths: [.github/workflows/mobile-ops-isolated-replay.yml, 'scripts/mobile-*.mjs']
 permissions:
   contents: read
 jobs:
@@ -12,6 +12,7 @@ jobs:
     env:
       SUPABASE_TELEMETRY_DISABLED: 'true'
       SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+      GRIDEX_WEB_COMMIT: 7e0600552c947895706d89b191f00ecec0c71cc6
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: heke99/gridex-web
-          ref: 81e1323ca271ec330498e3f1d8757cbfdeb0cae1
+          ref: ${{ env.GRIDEX_WEB_COMMIT }}
           path: gridex-web
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -44,57 +45,57 @@ jobs:
           set -eo pipefail
           unset GRIDEX_REPLAY_DB_URL
           source scripts/gridex-aud-003-clean-replay.sh
+          owned_pids=()
+          mobile_cleanup() {
+            local result=$?
+            trap - EXIT
+            for pid in "${owned_pids[@]}"; do kill "$pid" 2>/dev/null || true; done
+            rm -rf "$RUNNER_TEMP/mobile-fixtures"
+            (exit "$result"); cleanup
+            exit "$result"
+          }
+          trap mobile_cleanup EXIT
+          export DB_URL
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/portal-claim-atomic-regression.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/staff-api-integration-auth-regression.sql
           status="$(supabase status -o json)"
           export NEXT_PUBLIC_SUPABASE_URL="$(jq -er .API_URL <<< "$status")"
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(jq -er .ANON_KEY <<< "$status")"
           export SUPABASE_SERVICE_ROLE_KEY="$(jq -er .SERVICE_ROLE_KEY <<< "$status")"
+          node scripts/mobile-ops-fixtures.mjs "$RUNNER_TEMP/mobile-fixtures"
+          export GRIDEX_PORTAL_IDENTITY_ENFORCEMENT=enforce
           openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=localhost \
             -addext subjectAltName=IP:127.0.0.1 -keyout "$RUNNER_TEMP/ops.key" -out "$RUNNER_TEMP/ops.crt" 2>/dev/null
           npm exec -- next dev --hostname 127.0.0.1 --port 3101 > "$RUNNER_TEMP/ops-runtime.log" 2>&1 &
+          owned_pids+=("$!")
           node scripts/mobile-e2e-ops-https.mjs "$RUNNER_TEMP/ops.key" "$RUNNER_TEMP/ops.crt" &
+          bridge_pid=$!
+          owned_pids+=("$bridge_pid")
           curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 3 --max-time 30 \
             --cacert "$RUNNER_TEMP/ops.crt" https://127.0.0.1:3443/api/v1/openapi/customer-portal-v1.json \
             --output "$RUNNER_TEMP/ops-portal-openapi.json"
           jq -e '.paths | type == "object"' "$RUNNER_TEMP/ops-portal-openapi.json" >/dev/null
           (
             cd gridex-web
+            source "$RUNNER_TEMP/mobile-fixtures/web.env"
             export NODE_EXTRA_CA_CERTS="$RUNNER_TEMP/ops.crt"
             export GRIDEX_OPS_API_URL=https://127.0.0.1:3443/api/v1
             export GRIDEX_OPS_STAGING_ALLOWED_ORIGINS=https://127.0.0.1:3443
             export GRIDEX_MOBILE_API_ENABLED=true
             exec npm exec -- next dev --hostname 127.0.0.1 --port 3100
           ) > "$RUNNER_TEMP/web-runtime.log" 2>&1 &
+          owned_pids+=("$!")
           curl --silent --show-error --retry 20 --retry-connrefused --retry-delay 3 --max-time 60 \
             http://127.0.0.1:3100/api/mobile/customer/contracts --output /dev/null
           node gridex-web/scripts/check-mobile-http.mjs http://127.0.0.1:3100 "$RUNNER_TEMP/mobile-http.json"
-          node --input-type=module <<'JS'
-          import assert from 'node:assert/strict'
-          import { randomUUID } from 'node:crypto'
-          const origin = process.env.NEXT_PUBLIC_SUPABASE_URL
-          assert.equal(new URL(origin).hostname, '127.0.0.1')
-          const login = { email: 'unlinked-mobile@example.invalid', password: randomUUID() }
-          const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-          const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-          async function post(path, key, body) {
-            const response = await fetch(origin + '/auth/v1/' + path, {
-              method: 'POST',
-              headers: { apikey: key, authorization: 'Bearer ' + key, 'content-type': 'application/json' },
-              body: JSON.stringify(body),
-            })
-            assert.ok(response.ok, path + ' returned ' + response.status)
-            return response.json()
-          }
-          await post('admin/users', adminKey, { ...login, email_confirm: true })
-          const session = await post('token?grant_type=password', anonKey, login)
-          assert.ok(session.access_token)
-          const endpoint = 'http://127.0.0.1:3100/api/mobile/customer/contracts'
-          const headers = { authorization: 'Bearer ' + session.access_token }
-          const response = await fetch(endpoint, { headers })
-          assert.equal(response.status, 503, 'unlinked verified user must receive no customer data')
-          assert.equal(response.headers.get('cache-control'), 'private, no-store')
-          assert.ok(!('data' in await response.json()))
-          assert.equal((await fetch(endpoint + '?customerId=foreign', { headers })).status, 400)
-          console.log('Verified unlinked customer session receives no customer data')
-          JS
+          node scripts/mobile-ops-customer-acceptance.mjs "$RUNNER_TEMP/mobile-fixtures/customers.json" "$RUNNER_TEMP/mobile-acceptance.json"
+          kill "$bridge_pid"
+          wait "$bridge_pid" || true
+          node scripts/mobile-ops-customer-acceptance.mjs "$RUNNER_TEMP/mobile-fixtures/customers.json" --outage
+      - name: Upload sanitized acceptance receipt
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-customer-acceptance
+          path: ${{ runner.temp }}/mobile-acceptance.json
+          retention-days: 7
