@@ -6,7 +6,7 @@ The structured `power_of_attorney` consent in organization customer sync uses `i
 
 BankID is optional. A form click and a client-supplied `method`/metadata value do not prove BankID verification. No live BankID integration is enabled. API intake remains compatible with older payloads; external email is held when signer IP or verification evidence is missing. Completing evidence for an existing acceptance cannot change its signer, original timestamp, legal document or scopes. Existing uploaded PDFs are copied byte-for-byte into the private archive. See the [manual POA mail runbook](manual-poa-mail-runbook.md) for routing, rejections and follow-up behavior.
 
-Current documentation: **2026-10-12.1**. Default response contract: **2026-10-09.1**.
+Current documentation: **2026-11-10.1**. Default response contract: **2026-10-09.1**.
 
 Documentation-only revisions leave the default wire contract unchanged. Business requests need no documentation-version header. An older supported representation can be pinned on the credential in OPS; the tenant does not need to copy the latest documentation to keep using the API.
 
@@ -15,6 +15,8 @@ You do not need to match the latest documentation revision exactly to use a supp
 Release 2026-10-09.1 is documentation-only: the OpenAPI document now describes support message and attachment continuation (`X-Gridex-Next-Cursor` / `cursor`), closure-versus-replay precedence, `503 idempotency_completion_uncertain`, `409 idempotency_reconciliation_required` and that metering values are a bounded detail list rather than complete-month totals. Request requirements and response fields are unchanged.
 
 Release 2026-10-02.4 corrected the contradictory closed support-case detail schema so its existing `messages` field validates, and aligned the closed release-manifest schema with its response. Release 2026-10-04.1 adds the separate Staff API family and its manifest metadata. Integrations using 2026-10-02.3 keep their V1 business requests; credential pinning projects closed object fields where the historical schema is coherent. The contradictory support-detail validator requires its specific schema correction, as described in the compatibility policy. Earlier immutable specifications retain their original bytes and document-version headers.
+
+The 2026-11-10.1 documentation corrects invoice detail path parameters to use the canonical public `invoice_reference` returned by invoice lists. The business response revision remains unchanged.
 
 The 2026-10-12.1 documentation records pagination on resource envelopes and the existing `submitted_at` field on move-out results. `authenticated_user_reference` is your tenant login account/user subject. It resolves an existing active same-organization portal account; it is not a central database resource UUID and never creates an implicit email-based grant. Customer support always requires that active account binding, including on reads. Customer assertions require integer `iat`, a short permitted lifetime and a fresh `jti`.
 
