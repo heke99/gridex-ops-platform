@@ -19,8 +19,10 @@ jobs:
       - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb
         with:
           version: 2.101.0
-      - name: Replay canonical OPS schema on the runner
+      - name: Replay OPS schema and verify customer claim isolation
         shell: bash
         run: |
           unset GRIDEX_REPLAY_DB_URL
-          bash scripts/gridex-aud-003-clean-replay.sh
+          set -eo pipefail
+          source scripts/gridex-aud-003-clean-replay.sh
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/portal-claim-atomic-regression.sql
