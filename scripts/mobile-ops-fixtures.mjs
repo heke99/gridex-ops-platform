@@ -62,12 +62,12 @@ const customers = []
 for (const user of users.slice(0, 2)) {
   const customer = randomUUID(), contract = randomUUID(), site = randomUUID(), invoice = randomUUID()
   const number = run + '-' + user.label
-  const references = { contracts: 'contract_' + randomBytes(24).toString('base64url'), sites: 'facility_' + randomBytes(24).toString('base64url'), invoices: 'invoice_' + randomBytes(24).toString('base64url') }
+  const references = { contracts: 'contract_' + randomBytes(24).toString('base64url'), sites: 'facility_' + randomBytes(24).toString('base64url'), invoices: 'invoice_' + createHash('sha256').update(`gridex-public-reference:v1:${company}:invoice:${invoice}`).digest('base64url').slice(0,32) }
   sql += `
 INSERT INTO public.customers(id,company_id,customer_number,name,customer_type) VALUES(${quote(customer)},${quote(company)},${quote(number)},${quote(number)},'private');
 INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,street,facility_reference) VALUES(${quote(site)},${quote(company)},${quote(customer)},${quote(number)},${quote(number)},${quote(references.sites)});
 INSERT INTO public.customer_contracts(id,company_id,customer_id,customer_site_id,contract_name,customer_contract_reference) VALUES(${quote(contract)},${quote(company)},${quote(customer)},${quote(site)},${quote(number)},${quote(references.contracts)});
-INSERT INTO public.customer_invoices(id,company_id,customer_id,invoice_reference,invoice_number,amount_inc_vat) VALUES(${quote(invoice)},${quote(company)},${quote(customer)},${quote(references.invoices)},${quote(number)},${user.label === 'A' ? 111 : 222});
+INSERT INTO public.customer_invoices(id,company_id,customer_id,invoice_reference,invoice_number,amount_inc_vat,status) VALUES(${quote(invoice)},${quote(company)},${quote(customer)},${quote(references.invoices)},${quote(number)},${user.label === 'A' ? 111 : 222},'issued');
 SELECT public.gridex_approve_portal_claim_v1(${quote(company)},${quote(customer)},${quote(user.userId)},'{}','{}','{}');
 INSERT INTO public.customer_portal_identities(company_id,customer_id,api_client_id,external_customer_id,customer_number,auth_user_id,customer_portal_user_id,status,match_strength)
 VALUES(${quote(company)},${quote(customer)},${quote(client)},${quote(number)},${quote(number)},${quote(user.userId)},${quote(user.userId)},'active','strong');
@@ -78,8 +78,8 @@ INSERT INTO public.customer_profiles(user_id,customer_number,external_customer_i
 sql += 'COMMIT;\nNOTIFY pgrst, \'reload schema\';\n'
 const sqlPath = join(directory, 'fixtures.sql')
 await writeFile(sqlPath, sql, { mode: 0o600 })
-try { execFileSync('psql', [process.env.DB_URL, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', sqlPath], { stdio: ['ignore', 'ignore', 'pipe'] }) }
-catch { throw new Error('Isolated SQL fixture setup failed; inspect schema constraints locally (payload suppressed)') }
+try { execFileSync('psql', [process.env.DB_URL, '-X', '-q', '-v', 'VERBOSITY=sqlstate', '-v', 'ON_ERROR_STOP=1', '-f', sqlPath], { stdio: ['ignore', 'ignore', 'pipe'] }) }
+catch (error) { throw new Error('Isolated SQL fixture setup failed: SQLSTATE ' + (String(error.stderr).match(/ERROR:\s+(\w{5})/)?.[1] ?? 'unknown')) }
 const env = { GRIDEX_API_KEY: apiKey, GRIDEX_CUSTOMER_ASSERTION_PRIVATE_KEY: privateKey.export({ type: 'pkcs8', format: 'pem' }), GRIDEX_CUSTOMER_ASSERTION_KEY_ID: kid, GRIDEX_CUSTOMER_ASSERTION_ISSUER: issuer, GRIDEX_CUSTOMER_ASSERTION_AUDIENCE: audience, GRIDEX_CUSTOMER_ASSERTION_REQUIRED: 'true' }
 await writeFile(join(directory, 'web.env'), Object.entries(env).map(([k,v]) => `export ${k}=${quote(v)}`).join('\n') + '\n', { mode: 0o600 })
 await writeFile(join(directory, 'customers.json'), JSON.stringify({ customers, unlinked: users[2], secrets: [apiKey, process.env.SUPABASE_SERVICE_ROLE_KEY, ...users.map(u => u.accessToken)] }), { mode: 0o600 })

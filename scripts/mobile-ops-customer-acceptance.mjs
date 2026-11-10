@@ -47,7 +47,7 @@ if (process.argv.includes('--outage')) {
     const own = await read('/invoices/' + encodeURIComponent(customer.references.invoices), customer.accessToken)
     assert.equal(own.status, 200)
     assert.equal(own.body.data.invoiceDetail[0].reference, customer.references.invoices)
-    assert.equal(own.body.data.invoiceDetail[0].amountIncVat, customer.label === 'A' ? 111 : 222)
+    assert.equal(own.body.data.invoiceDetail[0].amount, customer.label === 'A' ? 111 : 222)
     denied(await read('/invoices/' + encodeURIComponent(customers[1-index].references.invoices), customer.accessToken), [403, 404])
     for (const resource of resources) denied(await read('/' + resource + '?customerId=' + customers[1-index].number, customer.accessToken), [400])
     results.push({ scenario: customer.label + ':own-and-foreign-invoice', status: 'PASS' })
