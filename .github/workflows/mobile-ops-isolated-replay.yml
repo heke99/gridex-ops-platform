@@ -64,3 +64,14 @@ jobs:
             --cacert "$RUNNER_TEMP/ops.crt" https://127.0.0.1:3443/api/v1/openapi/customer-portal-v1.json \
             --output "$RUNNER_TEMP/ops-portal-openapi.json"
           jq -e '.paths | type == "object"' "$RUNNER_TEMP/ops-portal-openapi.json" >/dev/null
+          (
+            cd gridex-web
+            export NODE_EXTRA_CA_CERTS="$RUNNER_TEMP/ops.crt"
+            export GRIDEX_OPS_API_URL=https://127.0.0.1:3443/api/v1
+            export GRIDEX_OPS_STAGING_ALLOWED_ORIGINS=https://127.0.0.1:3443
+            export GRIDEX_MOBILE_API_ENABLED=true
+            exec npm exec -- next dev --hostname 127.0.0.1 --port 3100
+          ) > "$RUNNER_TEMP/web-runtime.log" 2>&1 &
+          curl --silent --show-error --retry 20 --retry-connrefused --retry-delay 3 --max-time 60 \
+            http://127.0.0.1:3100/api/mobile/customer/contracts --output /dev/null
+          node gridex-web/scripts/check-mobile-http.mjs http://127.0.0.1:3100 "$RUNNER_TEMP/mobile-http.json"
