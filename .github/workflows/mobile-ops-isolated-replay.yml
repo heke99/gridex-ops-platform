@@ -35,6 +35,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install pinned Gridex Web dependencies
+        working-directory: gridex-web
+        run: npm ci --no-audit --no-fund
       - name: Verify pinned Gridex Web portal and mobile boundaries
         working-directory: gridex-web
         run: |
