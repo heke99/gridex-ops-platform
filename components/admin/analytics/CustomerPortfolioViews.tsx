@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { churnReasonLabel, type PortfolioForecastMonth, type PortfolioHorizon, type PortfolioInsights, type PortfolioMonthRow } from '@/lib/analytics/customerPortfolio'
 import { formatMwh, formatNumber } from '@/lib/analytics/utils'
+import { formatAverageMw } from '@/lib/analytics/power'
+import { stockholmMonthBounds } from '@/lib/time/stockholm'
 
 function formatPercent(value: number | null) {
   return value === null ? '–' : `${(value * 100).toLocaleString('sv-SE', { maximumFractionDigits: 1 })} %`
@@ -64,16 +66,26 @@ export function ForecastCurve({ rows }: { rows: PortfolioForecastMonth[] }) {
           {formatPercent(coverage)} av anläggningarna har egen mätvärdeshistorik; övriga skattas med portföljens snitt och säsongsprofil. Kända avslut är borträknade.
         </p>
       ) : null}
-      {rows.map((row) => (
-        <div key={row.month} className="grid grid-cols-[80px_1fr_90px] items-center gap-3 text-sm">
-          <span className="font-bold text-slate-700 tabular-nums">{row.month.slice(0, 7)}</span>
-          <div className="relative h-3 overflow-hidden rounded-full bg-slate-100">
-            <div className="absolute h-full rounded-full bg-emerald-200" style={{ left: `${(row.lowKwh / max) * 100}%`, width: `${((row.highKwh - row.lowKwh) / max) * 100}%` }} />
-            <div className="absolute h-full rounded-full bg-emerald-700" style={{ width: `${Math.max(1, (row.forecastKwh / max) * 100)}%`, opacity: 0.85 }} />
+      <p className="text-xs font-semibold text-slate-500">MW visar medeleffekten över månadens samtliga leveranstimmar.</p>
+      {rows.map((row) => {
+        const month = row.month.slice(0, 7)
+        const year = Number(month.slice(0, 4))
+        const bounds = year >= 2000 && year <= 2200 ? stockholmMonthBounds(month) : null
+        const hours = bounds ? (Date.parse(bounds.end) - Date.parse(bounds.start)) / 3_600_000 : null
+        return (
+          <div key={row.month} className="grid grid-cols-[80px_1fr_auto] items-center gap-3 text-sm">
+            <span className="font-bold text-slate-700 tabular-nums">{row.month.slice(0, 7)}</span>
+            <div className="relative h-3 overflow-hidden rounded-full bg-slate-100">
+              <div className="absolute h-full rounded-full bg-emerald-200" style={{ left: `${(row.lowKwh / max) * 100}%`, width: `${((row.highKwh - row.lowKwh) / max) * 100}%` }} />
+              <div className="absolute h-full rounded-full bg-emerald-700" style={{ width: `${Math.max(1, (row.forecastKwh / max) * 100)}%`, opacity: 0.85 }} />
+            </div>
+            <span className="min-w-24 text-right font-black text-slate-900 tabular-nums">
+              {formatMwh(row.forecastKwh)}
+              {hours && <span className="block text-xs font-semibold text-slate-500">{formatAverageMw(row.forecastKwh, hours)}</span>}
+            </span>
           </div>
-          <span className="text-right font-black text-slate-900 tabular-nums">{formatMwh(row.forecastKwh)}</span>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
