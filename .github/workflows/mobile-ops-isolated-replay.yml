@@ -75,3 +75,32 @@ jobs:
           curl --silent --show-error --retry 20 --retry-connrefused --retry-delay 3 --max-time 60 \
             http://127.0.0.1:3100/api/mobile/customer/contracts --output /dev/null
           node gridex-web/scripts/check-mobile-http.mjs http://127.0.0.1:3100 "$RUNNER_TEMP/mobile-http.json"
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict'
+          import { randomUUID } from 'node:crypto'
+          const origin = process.env.NEXT_PUBLIC_SUPABASE_URL
+          assert.equal(new URL(origin).hostname, '127.0.0.1')
+          const login = { email: 'unlinked-mobile@example.invalid', password: randomUUID() }
+          const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+          const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+          async function post(path, key, body) {
+            const response = await fetch(origin + '/auth/v1/' + path, {
+              method: 'POST',
+              headers: { apikey: key, authorization: 'Bearer ' + key, 'content-type': 'application/json' },
+              body: JSON.stringify(body),
+            })
+            assert.ok(response.ok, path + ' returned ' + response.status)
+            return response.json()
+          }
+          await post('admin/users', adminKey, { ...login, email_confirm: true })
+          const session = await post('token?grant_type=password', anonKey, login)
+          assert.ok(session.access_token)
+          const endpoint = 'http://127.0.0.1:3100/api/mobile/customer/contracts'
+          const headers = { authorization: 'Bearer ' + session.access_token }
+          const response = await fetch(endpoint, { headers })
+          assert.equal(response.status, 503, 'unlinked verified user must receive no customer data')
+          assert.equal(response.headers.get('cache-control'), 'private, no-store')
+          assert.ok(!('data' in await response.json()))
+          assert.equal((await fetch(endpoint + '?customerId=foreign', { headers })).status, 400)
+          console.log('Verified unlinked customer session receives no customer data')
+          JS
