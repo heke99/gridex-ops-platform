@@ -20,4 +20,12 @@ describe('public invoice detail reference contract', () => {
     const oldParameter = previous.paths['/api/v1/customer/invoices/{id}'].get.parameters.find((p: { in?: string; name?: string }) => p.in === 'path' && p.name === 'id')
     expect(oldParameter.schema.format).toBe('uuid')
   })
+  it('publishes unique operation IDs in every current document', () => {
+    for (const name of ['website-integration-v1', 'customer-portal-v1', 'staff-v1']) {
+      const doc = JSON.parse(readFileSync(`docs/openapi/${name}.json`, 'utf8'))
+      const ids = Object.values(doc.paths).flatMap(item => Object.values(item as Record<string, { operationId?: string }>).map(op => op.operationId).filter(Boolean))
+      expect(new Set(ids).size).toBe(ids.length)
+    }
+  })
+
 })

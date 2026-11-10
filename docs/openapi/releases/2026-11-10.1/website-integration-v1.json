@@ -9568,7 +9568,7 @@
           }
         },
         "x-required-scopes": [],
-        "operationId": "getApiV1Openapi202610121WebsiteIntegrationV1Json",
+        "operationId": "getApiV1Openapi202611101WebsiteIntegrationV1Json",
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
@@ -9652,7 +9652,7 @@
           }
         },
         "x-required-scopes": [],
-        "operationId": "getApiV1Openapi202610121CustomerPortalV1Json",
+        "operationId": "getApiV1Openapi202611101CustomerPortalV1Json",
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
@@ -16661,7 +16661,7 @@
     "website_openapi_url": "https://app.gridex.se/api/v1/openapi/website-integration-v1.json",
     "customer_portal_openapi_url": "https://app.gridex.se/api/v1/openapi/customer-portal-v1.json"
   },
-  "x-gridex-release-version": "2026-10-12.1",
+  "x-gridex-release-version": "2026-11-10.1",
   "x-error-codes": [
     "missing_api_token",
     "invalid_api_token",

@@ -12,7 +12,7 @@ jobs:
     env:
       SUPABASE_TELEMETRY_DISABLED: 'true'
       SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
-      GRIDEX_WEB_COMMIT: 81c0c417081c576c749bf3c0c31a7bd09640b7f5
+      GRIDEX_WEB_COMMIT: 24957034ad7d61f49baee5885b55a836dcc353c1
     steps:
       - uses: actions/checkout@v4
         with:

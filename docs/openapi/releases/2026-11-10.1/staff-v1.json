@@ -11,7 +11,7 @@
     }
   ],
   "x-contract-schema-version": "2026-10-09.1",
-  "x-gridex-release-version": "2026-10-12.1",
+  "x-gridex-release-version": "2026-11-10.1",
   "paths": {
     "/api/v1/staff/users": {
       "get": {
@@ -12346,7 +12346,7 @@
           }
         },
         "x-required-scopes": [],
-        "operationId": "getApiV1Openapi202610121StaffV1Json",
+        "operationId": "getApiV1Openapi202611101StaffV1Json",
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
