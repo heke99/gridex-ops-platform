@@ -418,7 +418,7 @@ async function activateCanonicalTestConfiguration(params: {
     throw deactivate.error;
   }
 
-  const { error } = await supabaseService
+  const { data, error } = await supabaseService
     .from("ediel_active_test_configurations")
     .insert({
       company_id: params.companyId,
@@ -434,8 +434,13 @@ async function activateCanonicalTestConfiguration(params: {
       system_test_settings_id: params.systemTestSettingsId,
       status: "active",
       created_by: params.actorUserId,
-    });
+    })
+    .select("id")
+    .single();
   if (error) throw error;
+  const configurationId = clean((data as { id?: string } | null)?.id);
+  if (!configurationId) throw new Error("Aktiv testkonfiguration saknar id.");
+  return configurationId;
 }
 
 export async function saveEdielSystemTestSettings(
@@ -581,7 +586,7 @@ export async function saveEdielSystemTestSettings(
       reason: `system_test_profile:${suite}:${actorRole}:${messageFamily}:${setupPackage}`,
     });
 
-    await activateCanonicalTestConfiguration({
+    const activeConfigurationId = await activateCanonicalTestConfiguration({
       companyId,
       actorUserId: input.actorUserId,
       actorRole,
@@ -593,6 +598,19 @@ export async function saveEdielSystemTestSettings(
       routeProfileId,
       systemTestSettingsId,
     });
+    // SQL derives admission from current bindings; this is not an attestation.
+    // AGT still uses its existing portal/TGT gates; only TGT can publish this basis.
+    if (environmentType === "tgt_test") {
+      const { data: reconciliation, error: reconciliationError } = await supabaseService.rpc(
+        "canonical_reconcile_ediel_test_capability_v1",
+        { p_company_id: companyId, p_actor_user_id: input.actorUserId, p_configuration_id: activeConfigurationId },
+      );
+      if (reconciliationError) throw reconciliationError;
+      const decision = Array.isArray(reconciliation) ? reconciliation[0] : reconciliation;
+      if (decision?.allowed !== true || decision?.companyId !== companyId || decision?.configurationId !== activeConfigurationId) {
+        throw new Error("Aktuell TGT-konfiguration kunde inte kvalificeras för testoperationer.");
+      }
+    }
   }
 
   await supabaseService

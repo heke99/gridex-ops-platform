@@ -27,6 +27,7 @@ import { fetchReceiverCertificatesFromExpisoft } from "@/lib/ediel/security/expi
 
 import type { AckFamily, AckOutcome } from "@/lib/ediel/core/ackPolicy"
 import { saveEdielSystemTestSettings } from "@/lib/ediel/systemTestSettings"
+import { invalidateEdielAgtReadiness } from "@/lib/ediel/testing/retestInvalidation"
 import { getEdielSystemTestPackage, type EdielSystemTestSetupPackage } from "@/lib/ediel/systemTestPackages"
 import { formatErrorMessage } from "@/lib/errors"
 
@@ -359,20 +360,24 @@ export async function upsertSystemTestMailbox(params: {
 
   const existing = await supabaseService
     .from("ediel_mailboxes")
-    .select("id")
+    .select("id, metadata")
     .is("company_id", null)
     .eq("environment", "test")
     .ilike("email_address", params.email)
     .limit(1)
     .maybeSingle();
 
-  if (
-    existing.error &&
-    !["42P01", "42703", "PGRST204"].includes(existing.error.code ?? "")
-  )
-    throw existing.error;
+  if (existing.error) throw existing.error;
 
   if (existing.data?.id) {
+    const existingMetadata = existing.data.metadata;
+    if (existingMetadata != null && (
+      typeof existingMetadata !== "object" || Array.isArray(existingMetadata)
+    )) {
+      throw new Error("Befintlig mailbox metadata måste vara ett objekt.");
+    }
+    // Retain the qualified transport configuration; only setup-owned flags win.
+    payload.metadata = { ...(existingMetadata ?? {}), ...payload.metadata };
     await updateWithFallback({
       table: "ediel_mailboxes",
       id: String(existing.data.id),
@@ -443,6 +448,7 @@ export async function upsertSimpleActorSetting(params: {
     .select("profile_id")
     .eq("company_id", params.companyId)
     .eq("environment", "test")
+    .eq("actor_role", actorRole)
     .maybeSingle();
   if (identity.error) throw identity.error;
   if (!identity.data?.profile_id) throw new Error("Canonical testprofil kunde inte verifieras efter sparning.");
@@ -859,6 +865,18 @@ export async function saveSimpleSystemTestCompanySetupAction(
   try {
     if (!companyId) throw new Error("Välj bolag.");
     if (!edielId) throw new Error("Fyll i Div3rsa/bolagets Ediel-ID.");
+    // Configuration is not evidence of portal access or external qualification.
+    // Invalidate before any config write so a partial failure cannot leave old
+    // qualification current. Preserve genuine confirmation fields and snapshots.
+    // The canonical test actor identity/mailbox is shared by both families.
+    await invalidateEdielAgtReadiness({
+      companyId,
+      actorRole,
+      sourceType: "actor_change",
+      sourceId: companyId,
+      reason: "Gemensam testaktörskonfiguration sparas; båda familjernas underlag måste verifieras på nytt.",
+      actorUserId: context.userId,
+    });
     const effectiveProdatSubaddress =
       messageFamily === "PRODAT"
         ? (prodatSubaddress ??
@@ -999,45 +1017,7 @@ export async function saveSimpleSystemTestCompanySetupAction(
       isActive: true,
     });
 
-    for (const messageFamily of ["PRODAT", "UTILTS"] as const) {
-      const { error } = await supabaseService
-        .from("ediel_agt_readiness")
-        .upsert(
-          {
-            company_id: companyId,
-            actor_role: actorRole,
-            message_family: messageFamily,
-            test_resource_name: "Edielportalen",
-            test_resource_email: portalEmail,
-            test_resource_confirmed: true,
-            ediel_portal_login_confirmed: true,
-            application_system_selected: true,
-            edi_system_selected: true,
-            readiness_status: "portal_ready",
-            needs_retest: false,
-            retest_reason: null,
-            updated_by: context.userId,
-            updated_at: new Date().toISOString(),
-            readiness_snapshot: {
-              source: "admin_ediel_system_tests_simple_setup",
-              actorRole,
-              edielId,
-              mailbox,
-              portalEdielId,
-              portalEmail,
-              encryptionMode,
-              effectiveCertificateId,
-              certificateAutoResolved: Boolean(
-                effectiveCertificateId &&
-                effectiveCertificateId !== certificateId,
-              ),
-            },
-          },
-          { onConflict: "company_id,actor_role,message_family" },
-        );
-      if (error && !["42P01", "42703", "PGRST204"].includes(error.code ?? ""))
-        throw error;
-    }
+
 
     await supabaseService
       .from("audit_logs")
@@ -1068,7 +1048,7 @@ export async function saveSimpleSystemTestCompanySetupAction(
     revalidatePath("/admin/ediel/system-tests");
     revalidatePath("/admin/ediel/routes");
     revalidatePath("/admin/ediel/control-tower");
-    redirectUrl = `${baseRedirect}&setupStatus=success&setupMessage=${encodeURIComponent("Sparat. Tester är redo att köras från denna sida.")}`;
+    redirectUrl = `${baseRedirect}&setupStatus=success&setupMessage=${encodeURIComponent("Konfiguration sparad. Portalunderlag och testberedskap verifieras separat.")}`;
   } catch (error) {
     unstable_rethrow(error)
     redirectUrl = `${baseRedirect}&setupStatus=error&setupMessage=${encodeURIComponent(errorMessage(error))}`;
