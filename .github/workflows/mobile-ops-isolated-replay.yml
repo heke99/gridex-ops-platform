@@ -19,14 +19,6 @@ jobs:
       - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb
         with:
           version: 2.101.0
-      - name: Replay OPS schema and verify customer claim isolation
-        shell: bash
-        run: |
-          unset GRIDEX_REPLAY_DB_URL
-          set -eo pipefail
-          source scripts/gridex-aud-003-clean-replay.sh
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/portal-claim-atomic-regression.sql
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/staff-api-integration-auth-regression.sql
       - uses: actions/checkout@v4
         with:
           repository: heke99/gridex-web
@@ -46,12 +38,14 @@ jobs:
           node --experimental-strip-types --experimental-loader ./tests/mobile-read-loader.mjs --test tests/mobile-contracts-handler.test.mjs tests/mobile-customer-data.test.mjs tests/mobile-customer-resources.test.mjs tests/mobile-detail-routes.test.mjs
       - name: Install OPS dependencies
         run: npm ci --no-audit --no-fund
-      - name: Start isolated OPS and verify HTTPS transport
+      - name: Verify OPS replay, customer binding and mobile HTTP on one stack
         shell: bash
         run: |
           set -eo pipefail
           unset GRIDEX_REPLAY_DB_URL
           source scripts/gridex-aud-003-clean-replay.sh
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/portal-claim-atomic-regression.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/staff-api-integration-auth-regression.sql
           status="$(supabase status -o json)"
           export NEXT_PUBLIC_SUPABASE_URL="$(jq -er .API_URL <<< "$status")"
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(jq -er .ANON_KEY <<< "$status")"
