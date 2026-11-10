@@ -11495,7 +11495,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-04.1"
@@ -11533,7 +11533,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-04.1"
@@ -12112,7 +12112,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-09.1"
@@ -12150,7 +12150,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-09.1"
@@ -12196,7 +12196,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-12.1"
@@ -12234,7 +12234,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-12.1"
@@ -12280,7 +12280,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-11-10.1"
@@ -12318,7 +12318,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-11-10.1"
@@ -12522,19 +12522,19 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-11-10.1"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-11-10.1"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-11-10.1"
           },
           "staff_openapi_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-11-10.1"
           },
           "runtime_contract_version": {
             "type": "string",
@@ -12542,7 +12542,7 @@
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-11-10.1"
           },
           "released_at": {
             "type": "string",
@@ -12630,7 +12630,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-11-10.1"
           },
           "url": {
             "type": "string",

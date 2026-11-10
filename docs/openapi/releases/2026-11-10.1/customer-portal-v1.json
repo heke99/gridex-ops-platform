@@ -7501,7 +7501,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-02.1"
@@ -7539,7 +7539,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-02.1"
@@ -7585,7 +7585,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-03.1"
@@ -7623,7 +7623,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-03.1"
@@ -7669,7 +7669,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-04.1"
@@ -7716,7 +7716,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-04.1"
@@ -7771,7 +7771,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-04.3"
@@ -7809,7 +7809,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-04.3"
@@ -7855,7 +7855,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-04.2"
@@ -7902,7 +7902,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-04.2"
@@ -7957,7 +7957,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-05.1"
@@ -7995,7 +7995,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-05.1"
@@ -8041,7 +8041,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-05.2"
@@ -8079,7 +8079,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-05.2"
@@ -8125,7 +8125,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-10.1"
@@ -8163,7 +8163,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-10.1"
@@ -8209,7 +8209,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-14.1"
@@ -8256,7 +8256,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-14.1"
@@ -8311,7 +8311,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-19.1"
@@ -8358,7 +8358,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-19.1"
@@ -8413,7 +8413,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-19.2"
@@ -8460,7 +8460,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-19.2"
@@ -8515,7 +8515,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-20.1"
@@ -8562,7 +8562,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-20.1"
@@ -8617,7 +8617,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-20.2"
@@ -8655,7 +8655,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-20.2"
@@ -8701,7 +8701,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-22.2"
@@ -8739,7 +8739,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-22.2"
@@ -8785,7 +8785,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-01.1"
@@ -8823,7 +8823,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-01.1"
@@ -8869,7 +8869,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.1"
@@ -8907,7 +8907,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.1"
@@ -8953,7 +8953,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.2"
@@ -8991,7 +8991,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.2"
@@ -9037,7 +9037,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.3"
@@ -9075,7 +9075,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.3"
@@ -12488,7 +12488,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.4"
@@ -12526,7 +12526,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.4"
@@ -12572,7 +12572,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-04.1"
@@ -12610,7 +12610,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-04.1"
@@ -12656,7 +12656,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-09.1"
@@ -12694,7 +12694,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-09.1"
@@ -12740,7 +12740,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-12.1"
@@ -12778,7 +12778,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-12.1"
@@ -12824,7 +12824,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-11-10.1"
@@ -12862,7 +12862,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "description": "Contract version of this immutable OpenAPI document.",
                 "schema": {
                   "type": "string",
                   "const": "2026-11-10.1"
@@ -16165,19 +16165,19 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-11-10.1"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-11-10.1"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-11-10.1"
           },
           "staff_openapi_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-11-10.1"
           },
           "runtime_contract_version": {
             "type": "string",
@@ -16185,7 +16185,7 @@
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-11-10.1"
           },
           "released_at": {
             "type": "string",
@@ -16273,7 +16273,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-11-10.1"
           },
           "url": {
             "type": "string",

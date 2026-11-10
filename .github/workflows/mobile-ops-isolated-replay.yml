@@ -1,7 +1,7 @@
 name: Mobile OPS isolated replay
 on:
   pull_request:
-    branches: [codex/mobile-ops-replay-baseline]
+    branches: [main, codex/mobile-ops-replay-baseline]
     paths: [.github/workflows/mobile-ops-isolated-replay.yml, 'scripts/mobile-*']
 permissions:
   contents: read
