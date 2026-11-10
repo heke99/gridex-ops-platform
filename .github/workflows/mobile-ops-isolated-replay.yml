@@ -26,3 +26,17 @@ jobs:
           set -eo pipefail
           source scripts/gridex-aud-003-clean-replay.sh
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f scripts/portal-claim-atomic-regression.sql
+      - uses: actions/checkout@v4
+        with:
+          repository: heke99/gridex-web
+          ref: 81e1323ca271ec330498e3f1d8757cbfdeb0cae1
+          path: gridex-web
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify pinned Gridex Web portal and mobile boundaries
+        working-directory: gridex-web
+        run: |
+          npm run test:portal
+          node --experimental-strip-types --experimental-loader ./tests/mobile-read-loader.mjs --test tests/mobile-contracts-handler.test.mjs tests/mobile-customer-data.test.mjs tests/mobile-customer-resources.test.mjs tests/mobile-detail-routes.test.mjs
