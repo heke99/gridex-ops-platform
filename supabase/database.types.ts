@@ -39155,6 +39155,7 @@ export type Database = {
           clock_skew_ms: number | null
           company_id: string | null
           created_at: string
+          created_by: string | null
           email_address: string | null
           encryption_mode: string
           environment: string
@@ -39165,6 +39166,7 @@ export type Database = {
           is_shared_platform_mailbox: boolean
           last_error: string | null
           last_polled_at: string | null
+          last_successful_poll_at: string | null
           last_time_sync_check_at: string | null
           locked_at: string | null
           locked_by: string | null
@@ -39177,10 +39179,13 @@ export type Database = {
           security_status: string
           signing_mode: string
           smtp_from: string | null
+          smtp_host: string | null
+          smtp_port: number | null
           smtp_to: string | null
           tls_required: boolean
           transport_mode: string
           updated_at: string
+          updated_by: string | null
           username: string | null
         }
         Insert: {
@@ -39188,6 +39193,7 @@ export type Database = {
           clock_skew_ms?: number | null
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           email_address?: string | null
           encryption_mode?: string
           environment?: string
@@ -39198,6 +39204,7 @@ export type Database = {
           is_shared_platform_mailbox?: boolean
           last_error?: string | null
           last_polled_at?: string | null
+          last_successful_poll_at?: string | null
           last_time_sync_check_at?: string | null
           locked_at?: string | null
           locked_by?: string | null
@@ -39210,10 +39217,13 @@ export type Database = {
           security_status?: string
           signing_mode?: string
           smtp_from?: string | null
+          smtp_host?: string | null
+          smtp_port?: number | null
           smtp_to?: string | null
           tls_required?: boolean
           transport_mode?: string
           updated_at?: string
+          updated_by?: string | null
           username?: string | null
         }
         Update: {
@@ -39221,6 +39231,7 @@ export type Database = {
           clock_skew_ms?: number | null
           company_id?: string | null
           created_at?: string
+          created_by?: string | null
           email_address?: string | null
           encryption_mode?: string
           environment?: string
@@ -39231,6 +39242,7 @@ export type Database = {
           is_shared_platform_mailbox?: boolean
           last_error?: string | null
           last_polled_at?: string | null
+          last_successful_poll_at?: string | null
           last_time_sync_check_at?: string | null
           locked_at?: string | null
           locked_by?: string | null
@@ -39243,10 +39255,13 @@ export type Database = {
           security_status?: string
           signing_mode?: string
           smtp_from?: string | null
+          smtp_host?: string | null
+          smtp_port?: number | null
           smtp_to?: string | null
           tls_required?: boolean
           transport_mode?: string
           updated_at?: string
+          updated_by?: string | null
           username?: string | null
         }
         Relationships: [
@@ -95038,6 +95053,14 @@ export type Database = {
       }
       canonical_queue_customer_application_repair: {
         Args: { p_actor_user_id: string; p_application_id: string }
+        Returns: Json
+      }
+      canonical_reconcile_ediel_test_capability_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_configuration_id: string
+        }
         Returns: Json
       }
       canonical_record_actor_test_evidence: {
