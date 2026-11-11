@@ -148,12 +148,13 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
         <CustomerIntakeWorkspace
           mode={mode}
           manual={<CustomerIntakeForm
+            companyId={companyId}
             gridOwners={gridOwners.map((owner) => ({ id: owner.id, name: owner.name }))}
             electricitySuppliers={electricitySuppliers.map((supplier) => ({ id: supplier.id, name: supplier.name, org_number: supplier.org_number, ediel_id: supplier.ediel_id, email: supplier.email }))}
             priceAreas={priceAreas.map((area) => ({ code: area.code, name: area.name }))}
             contractOffers={serializedOffers}
           />}
-          bulk={<CustomerBulkImportPanel example={bulkExample} contractOffers={serializedOffers.map((offer) => ({ id: offer.id, name: offer.name, campaign_name: offer.campaign_name }))} />}
+          bulk={<CustomerBulkImportPanel companyId={companyId} example={bulkExample} contractOffers={serializedOffers.map((offer) => ({ id: offer.id, name: offer.name, campaign_name: offer.campaign_name }))} />}
         />
       </div>
     </div>

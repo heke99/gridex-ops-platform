@@ -46,3 +46,10 @@ describe('Elklart demo', () => {
     expect(() => kwhToAverageMw(600, 0)).toThrow(RangeError)
   })
 })
+
+it('uses the paired local TLS portal only in development', () => {
+  const environment = { NODE_ENV: 'development', ELKLART_DEMO_ENABLED: 'true', ELKLART_DEMO_COMPANY_ID: '00000000-0000-0000-0000-000000000001', ELKLART_DEMO_PORTAL_ORIGIN: 'https://localhost:3001' }
+  expect(resolveElklartDemoConfig(environment, 'localhost:3000')?.portalOrigin).toBe('https://localhost:3001')
+  expect(resolveElklartDemoConfig({ ...environment, ELKLART_DEMO_PORTAL_ORIGIN: 'https://evil.example' }, 'localhost:3000')).toBeNull()
+  expect(resolveElklartDemoConfig({ ...environment, NODE_ENV: 'production' }, 'localhost:3000')).toBeNull()
+})

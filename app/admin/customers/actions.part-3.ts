@@ -10,7 +10,7 @@ function canWriteContracts(guard: GuardResult): boolean {
   return isPlatformAdminContext(guard) || hasPermissionRequirement(guard.permissions, { allOf: ["contracts.write"] })
 }
 import { supabaseService } from "@/lib/supabase/service"
-import { requireOperationalCompanyId } from "@/lib/tenant/scope"
+import { requireBoundCustomerIntakeCompany } from "@/lib/customers/intakeCompanyScope"
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance"
 import { parseCustomerImportFormData } from "@/lib/customers/importParser"
 
@@ -91,7 +91,7 @@ export async function createCustomerAction(
   try {
     const guard = await requireAdminActionAccess({ allOf: ["customers.write"] });
     const actorUserId = await getActorUserId();
-    const companyId = await requireOperationalCompanyId(actorUserId);
+    const companyId = await requireBoundCustomerIntakeCompany(formData, guard, actorUserId);
     await requireCompanyOperationalForWrites(companyId);
     let params = buildCreateCustomerParams(formData, actorUserId, companyId);
 
