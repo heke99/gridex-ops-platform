@@ -16,6 +16,16 @@ function reversePatch(schema:string,patch:Patch):string{
  return rebuilt
 }
 
+/** Reverse only authentic local047 RAW3, then retain the unchanged historical chain. */
+export function preLocal047Schema(schema:string):string{
+ const actual=sha(schema)
+ if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return schema
+ if(actual!=='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')throw Error('db05_schema_predecessor_unknown:'+actual)
+ const patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-local047-20261107.patch.json',import.meta.url),'utf8'))
+ if(patch.preSha256!=='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'||patch.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+ return reversePatch(schema,patch)
+}
+
 /** Restore only the exact genuine PR949 capture to the unchanged PR973 bytes.
  * Source3e8a830c/artifact13063971334 changes the bounded CONTRL function only;
  * this inverse grants no native, performance or whole-business credit. */
@@ -29,6 +39,7 @@ function prePr949ContrlSchema(schema:string):string{
  * its generated patch; the PR932 capture itself is returned unchanged. Any
  * other capture fails closed. */
 export function prePr973Audit19Schema(schema:string):string{
+ if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')return prePr973Audit19Schema(preLocal047Schema(schema))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return prePr973Audit19Schema(prePr949ContrlSchema(schema))
  if(actual==='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b')return schema
@@ -44,6 +55,7 @@ export function prePr973Audit19Schema(schema:string):string{
  * generated patch; the C14 capture itself is returned unchanged. Any other
  * capture fails closed. */
 export function prePr932UnsignedEditSchema(schema:string):string{
+ if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')return prePr932UnsignedEditSchema(preLocal047Schema(schema))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return prePr932UnsignedEditSchema(prePr949ContrlSchema(schema))
  if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6')return schema
@@ -59,6 +71,7 @@ export function prePr932UnsignedEditSchema(schema:string):string{
  * the generated patch and the result must hash to the pinned predecessor.
  * Any other capture fails closed. */
 export function db05PredecessorSchema(schema:string):string{
+ if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')return db05PredecessorSchema(preLocal047Schema(schema))
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return db05PredecessorSchema(prePr949ContrlSchema(schema))

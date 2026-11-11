@@ -32588,6 +32588,203 @@ export type Database = {
           },
         ]
       }
+      ediel_agt_readiness: {
+        Row: {
+          actor_role: string
+          application_system_selected: boolean
+          blocking_issues: Json
+          company_id: string
+          created_at: string
+          created_by: string | null
+          current_approval_version: string | null
+          edi_system_selected: boolean
+          ediel_portal_login_confirmed: boolean
+          id: string
+          invalidated_at: string | null
+          invalidated_by: string | null
+          invalidation_source: string | null
+          last_checked_at: string | null
+          last_checked_by: string | null
+          message_family: string
+          needs_retest: boolean
+          readiness_snapshot: Json
+          readiness_status: string
+          retest_reason: string | null
+          test_resource_confirmed: boolean
+          test_resource_email: string | null
+          test_resource_name: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          actor_role: string
+          application_system_selected?: boolean
+          blocking_issues?: Json
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          current_approval_version?: string | null
+          edi_system_selected?: boolean
+          ediel_portal_login_confirmed?: boolean
+          id?: string
+          invalidated_at?: string | null
+          invalidated_by?: string | null
+          invalidation_source?: string | null
+          last_checked_at?: string | null
+          last_checked_by?: string | null
+          message_family: string
+          needs_retest?: boolean
+          readiness_snapshot?: Json
+          readiness_status?: string
+          retest_reason?: string | null
+          test_resource_confirmed?: boolean
+          test_resource_email?: string | null
+          test_resource_name?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          actor_role?: string
+          application_system_selected?: boolean
+          blocking_issues?: Json
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          current_approval_version?: string | null
+          edi_system_selected?: boolean
+          ediel_portal_login_confirmed?: boolean
+          id?: string
+          invalidated_at?: string | null
+          invalidated_by?: string | null
+          invalidation_source?: string | null
+          last_checked_at?: string | null
+          last_checked_by?: string | null
+          message_family?: string
+          needs_retest?: boolean
+          readiness_snapshot?: Json
+          readiness_status?: string
+          retest_reason?: string | null
+          test_resource_confirmed?: boolean
+          test_resource_email?: string | null
+          test_resource_name?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_agt_readiness_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       ediel_ai_list_discrepancies: {
         Row: {
           actual_value: string | null
@@ -48108,6 +48305,164 @@ export type Database = {
         }
         Relationships: []
       }
+      ediel_test_run_locks: {
+        Row: {
+          active_test_run_id: string | null
+          actor_role: string
+          company_id: string
+          created_at: string
+          environment_type: Database["public"]["Enums"]["ediel_environment_type"]
+          expires_at: string
+          id: string
+          locked_at: string
+          message_family: string
+          metadata: Json
+          released_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          active_test_run_id?: string | null
+          actor_role: string
+          company_id: string
+          created_at?: string
+          environment_type: Database["public"]["Enums"]["ediel_environment_type"]
+          expires_at: string
+          id?: string
+          locked_at?: string
+          message_family: string
+          metadata?: Json
+          released_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active_test_run_id?: string | null
+          actor_role?: string
+          company_id?: string
+          created_at?: string
+          environment_type?: Database["public"]["Enums"]["ediel_environment_type"]
+          expires_at?: string
+          id?: string
+          locked_at?: string
+          message_family?: string
+          metadata?: Json
+          released_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_test_run_locks_company_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       ediel_test_run_messages: {
         Row: {
           company_id: string
@@ -49391,6 +49746,72 @@ export type Database = {
             referencedColumns: ["company_id"]
           },
         ]
+      }
+      ediel_unlinked_test_messages: {
+        Row: {
+          business_code: string | null
+          candidate_test_run_ids: string[]
+          company_id: string | null
+          created_at: string
+          ediel_message_id: string | null
+          environment_type: Database["public"]["Enums"]["ediel_environment_type"]
+          id: string
+          inbound_mail_item_id: string | null
+          linked_at: string | null
+          linked_by: string | null
+          linked_test_run_id: string | null
+          message_family: string | null
+          parsed_payload: Json
+          raw_payload_ref: string | null
+          receiver_ediel_id: string | null
+          resolution_notes: string | null
+          sender_ediel_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          business_code?: string | null
+          candidate_test_run_ids?: string[]
+          company_id?: string | null
+          created_at?: string
+          ediel_message_id?: string | null
+          environment_type?: Database["public"]["Enums"]["ediel_environment_type"]
+          id?: string
+          inbound_mail_item_id?: string | null
+          linked_at?: string | null
+          linked_by?: string | null
+          linked_test_run_id?: string | null
+          message_family?: string | null
+          parsed_payload?: Json
+          raw_payload_ref?: string | null
+          receiver_ediel_id?: string | null
+          resolution_notes?: string | null
+          sender_ediel_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          business_code?: string | null
+          candidate_test_run_ids?: string[]
+          company_id?: string | null
+          created_at?: string
+          ediel_message_id?: string | null
+          environment_type?: Database["public"]["Enums"]["ediel_environment_type"]
+          id?: string
+          inbound_mail_item_id?: string | null
+          linked_at?: string | null
+          linked_by?: string | null
+          linked_test_run_id?: string | null
+          message_family?: string | null
+          parsed_payload?: Json
+          raw_payload_ref?: string | null
+          receiver_ediel_id?: string | null
+          resolution_notes?: string | null
+          sender_ediel_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       ediel_unresolved_items: {
         Row: {
