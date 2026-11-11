@@ -16,6 +16,8 @@ import {prepareAndQueueEdielZ03} from '@/lib/ediel/flows/prodatSwitch'
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {getEdielMessageById} from '@/lib/ediel/db'
+import {saveEdielSystemTestSettings} from '@/lib/ediel/systemTestSettings'
+import {getEdielSystemTestPackage} from '@/lib/ediel/systemTestPackages'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {syntheticSwedishOrganizationNumber} from '../../e2e/production/helpers/swedish-organization-number.mjs'
 import {nativeFixtureCompanyIdentitySql} from './native-fixture-company-identity'
@@ -37,6 +39,32 @@ function fixtureGsrn(){
  const first17=`735123456789${String(Math.floor(Math.random()*100000)).padStart(5,'0')}`
  const weighted=[...first17].reduce((sum,digit,index)=>sum+Number(digit)*(index%2===0?3:1),0)
  return `${first17}${(10-weighted%10)%10}`
+}
+/** Prospective file-ready configuration only: no SMTP, portal or certification claim.
+ * Keep the business bilateral route and its actual supplier identity unchanged.
+ * Main composes this fixture with the qualified B4 save/reconcile implementation. */
+async function qualifyNormalSwitchNativeTestConfiguration(companyId:string,actorUserId:string,sender:string,brpEdielId:string){
+ const supplier=sql<{id:string;company_id:string;actor_ediel_id:string;environment:string;is_active:boolean;actor_role:string}>(`SELECT to_jsonb(a) FROM public.ediel_actor_settings a
+  WHERE a.company_id=${literal(companyId)} AND a.environment='test' AND a.is_active
+   AND (a.actor_role IN('supplier','electricity_supplier') OR a.role IN('supplier','electricity_supplier'))`)
+ if(!supplier?.id||supplier.company_id!==companyId||supplier.actor_ediel_id!==sender||supplier.environment!=='test'||supplier.is_active!==true)throw Error('native_supplier_test_actor_required')
+ const setup=getEdielSystemTestPackage('tgt_ddq_prodat_utilts')
+ if(setup.actorRole!=='supplier'||setup.environmentType!=='tgt_test'||setup.messageFamily!=='PRODAT')throw Error('native_supplier_test_package_required')
+ const communicationId=randomUUID(),testRouteId=randomUUID()
+ // A new local file-only route, never the original bilateral route/SMTP receiver.
+ // No mailbox row, certificate, delivery result or portal attestation is fabricated.
+ sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_system)
+  VALUES(${literal(communicationId)},${literal(companyId)},'Synthetic prospective TGT file-only','supplier_switch',${literal(setup.environmentType)},true,${literal(setup.targetSystem)});
+  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,actor_setting_id,route_name,environment,message_standard,message_family,sender_ediel_id,receiver_ediel_id,receiver_sub_address,application_reference,is_enabled,is_active,mailbox,transport_type,encryption_mode)
+  VALUES(${literal(testRouteId)},${literal(companyId)},${literal(communicationId)},${literal(supplier.id)},'Synthetic prospective TGT file-only','test','edifact',${literal(setup.messageFamily)},${literal(sender)},${literal(setup.portalEdielId)},${literal(setup.receiverSubaddress)},${literal(setup.applicationReference)},true,true,'tgt-file-engine','manual_upload',${literal(setup.encryptionMode)});`)
+ await saveEdielSystemTestSettings({companyId,actorUserId,testSuite:setup.testSuiteType,
+  actorRole:setup.actorRole,messageFamily:setup.messageFamily,setupPackage:setup.value,environmentType:setup.environmentType,
+  testPortalEdielId:setup.portalEdielId,testPortalName:'Prospective TGT file-only configuration; no portal acceptance',
+  testBrpEdielId:brpEdielId,testBrpName:'Synthetic native BRP',defaultReceiverSubaddress:setup.receiverSubaddress,
+  routeProfileId:testRouteId,applicationReference:setup.applicationReference,
+  certificateEnvironment:setup.certificateEnvironment,transportEnvironment:setup.transportEnvironment,isActive:true})
+ const decision=sql<{allowed:boolean}>(`SELECT to_jsonb(d) FROM public.canonical_tenant_operation_decision(${literal(companyId)},'ediel.test.process') d`)
+ if(decision?.allowed!==true)throw Error('native_test_configuration_not_qualified')
 }
 const networkRegistries=new Map<string,{artifact:{artifactId:string;sourceHash:string;claimsHash:string};reviewerId:string}>()
 /** The qualified network registry version this fixture created for a company. */
@@ -77,8 +105,7 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  p AS(INSERT INTO public.user_profiles(id,email,full_name,user_status) SELECT id,id||'@example.invalid','Synthetic guardian tenant admin','active' FROM u RETURNING id)
  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) SELECT ${literal(companyId)},id,'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin' FROM p;
   ${nativeActorRoleSql(companyId,actorUserId)}
- INSERT INTO public.admin_users(user_id,role,is_active) VALUES(${literal(actorUserId)},'platform_admin',true);
- UPDATE public.company_capabilities SET enabled=true,readiness_status='ready' WHERE company_id=${literal(companyId)} AND capability_code='ediel_test';`)
+ INSERT INTO public.admin_users(user_id,role,is_active) VALUES(${literal(actorUserId)},'platform_admin',true);`)
  const sender=sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_outbound_legal_actor_identifier',0));
  WITH available AS (SELECT candidate::text value FROM generate_series(40000,49999) candidate WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=candidate::text) AND NOT EXISTS(SELECT FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=candidate::text) ORDER BY candidate LIMIT 1), allocated AS (INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from) SELECT ${literal(companyId)},'test',${literal(actorUserId)},'EdielId',value,clock_timestamp()-interval '1 day' FROM available RETURNING identifier_value) SELECT to_jsonb(identifier_value) FROM allocated;COMMIT;`)
  const receiver=sql<string>(`BEGIN;SELECT pg_advisory_xact_lock(hashtextextended('native_outbound_dispatch_actor_identifier',0));WITH actor AS (INSERT INTO public.platform_market_actors(id,name,status,match_status,visible_to_tenants) VALUES(${literal(marketActor)},${literal(`Synthetic normal grid ${marketActor}`)},'active','verified',true) RETURNING id),available AS (SELECT candidate::text value FROM generate_series(60000,89999) candidate WHERE NOT EXISTS(SELECT FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=candidate::text) ORDER BY candidate LIMIT 1),allocated AS (INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified) SELECT actor.id,'EdielId',available.value,true FROM actor CROSS JOIN available RETURNING identifier_value) SELECT to_jsonb(identifier_value) FROM allocated;COMMIT;`)
@@ -300,6 +327,9 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
   endUser:{identity:{id:customerIdentity,qualifier:'SE2',agency:'260'},address:invoiceeAddress},
   invoicee:{identity:{id:customerIdentity,qualifier:'SE2',agency:'260'},nameLines:[customerName],address:invoiceeAddress,availability:'available'},
   event:{state:'none',reference:`fixture-invoicee:${switchId}`},source:{kind:'caller_selection',companyId,reference:`fixture-invoicee:${switchId}`}}]}}}
+ // All configuration dependencies now exist; reconcile before callbacks/prepare/send/defer.
+ // Later real configuration mutations must invalidate admission normally.
+ await qualifyNormalSwitchNativeTestConfiguration(companyId,actorUserId,sender,brpEdielId)
  // An opt-in caller may exercise its public request creator before any case
  // exists. Existing callers retain their exact prospective SQL input below.
  let createdSwitchId:string=switchId
