@@ -43,11 +43,27 @@ function fixtureGsrn(){
 /** Prospective file-ready configuration only: no SMTP, portal or certification claim.
  * Keep the business bilateral route and its actual supplier identity unchanged.
  * Main composes this fixture with the qualified B4 save/reconcile implementation. */
-async function qualifyNormalSwitchNativeTestConfiguration(companyId:string,actorUserId:string,sender:string,brpEdielId:string){
+async function qualifyNormalSwitchNativeTestConfiguration(companyId:string,actorUserId:string,sender:string,brpEdielId:string,correction?:{routeId:string;profileId:string;sourceRouteId:string;sourceProfileId:string}){
  const supplier=sql<{id:string;company_id:string;actor_ediel_id:string;environment:string;is_active:boolean;actor_role:string}>(`SELECT to_jsonb(a) FROM public.ediel_actor_settings a
   WHERE a.company_id=${literal(companyId)} AND a.environment='test' AND a.is_active
    AND (a.actor_role IN('supplier','electricity_supplier') OR a.role IN('supplier','electricity_supplier'))`)
  if(!supplier?.id||supplier.company_id!==companyId||supplier.actor_ediel_id!==sender||supplier.environment!=='test'||supplier.is_active!==true)throw Error('native_supplier_test_actor_required')
+ // Configure a distinct Z08 lane before this existing owner's normal save.
+ // Keep the Z03 lane unchanged; no late rights or reconciliation fallback.
+ if(correction){
+  const created=sql<{routeCount:number;profileCount:number}>(`WITH route AS (
+   INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
+   SELECT ${literal(correction.routeId)},company_id,'Synthetic prospective correction route',route_scope,grid_owner_id,environment_type,is_active,target_email
+   FROM public.communication_routes WHERE id=${literal(correction.sourceRouteId)} AND company_id=${literal(companyId)} AND environment_type='bilateral_test' AND is_active
+   RETURNING id
+  ),profile AS (
+   INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,transport_security_mode,smtp_to,receiver_email,message_family,business_code)
+   SELECT ${literal(correction.profileId)},p.company_id,route.id,'Synthetic prospective correction profile',p.environment,p.message_standard,p.sender_ediel_id,p.receiver_ediel_id,p.application_reference,p.is_enabled,p.transport_security_mode,p.smtp_to,p.receiver_email,p.message_family,'Z08'
+   FROM public.ediel_route_profiles p CROSS JOIN route WHERE p.id=${literal(correction.sourceProfileId)} AND p.company_id=${literal(companyId)} AND p.communication_route_id=${literal(correction.sourceRouteId)} AND p.environment='test' AND p.message_family='PRODAT' AND p.business_code='Z03' AND p.sender_ediel_id=${literal(sender)} AND p.is_enabled
+   RETURNING id
+  ) SELECT jsonb_build_object('routeCount',(SELECT count(*) FROM route),'profileCount',(SELECT count(*) FROM profile))`)
+  if(created?.routeCount!==1||created.profileCount!==1)throw Error('native_correction_route_source_required')
+ }
  const setup=getEdielSystemTestPackage('tgt_ddq_prodat_utilts')
  if(setup.actorRole!=='supplier'||setup.environmentType!=='tgt_test'||setup.messageFamily!=='PRODAT')throw Error('native_supplier_test_package_required')
  // Prepare the exact explicitly configured incoming fixture mailbox BEFORE
@@ -71,6 +87,7 @@ async function qualifyNormalSwitchNativeTestConfiguration(companyId:string,actor
   certificateEnvironment:setup.certificateEnvironment,transportEnvironment:setup.transportEnvironment,isActive:true})
  const decision=sql<{allowed:boolean}>(`SELECT to_jsonb(d) FROM public.canonical_tenant_operation_decision(${literal(companyId)},'ediel.test.process') d`)
  if(decision?.allowed!==true)throw Error('native_test_configuration_not_qualified')
+ return correction?.routeId
 }
 const networkRegistries=new Map<string,{artifact:{artifactId:string;sourceHash:string;claimsHash:string};reviewerId:string}>()
 /** The qualified network registry version this fixture created for a company. */
@@ -89,9 +106,9 @@ export function futureNativeSupplyDate(days=14){
  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Stockholm',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
  const date=new Date(`${today}T00:00:00Z`);date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)
 }
-export type NormalSwitchStageNativeFixture={companyId:string;actorUserId:string;customerId:string;siteId:string;pointId:string;contractId:string;switchId:string;external:string;sender:string;receiver:string;gridId:string;routeId:string;routeProfileId:string;marketActorId:string;customerIdentity:{id:string;qualifier:'SE2';agency:'260'};requestedStartDate:string;brpEdielId:string;gridAreaCode:string;documentSha256:string;authorizationDocumentId:string;powerOfAttorneyId:string}
+export type NormalSwitchStageNativeFixture={companyId:string;actorUserId:string;customerId:string;siteId:string;pointId:string;contractId:string;switchId:string;external:string;sender:string;receiver:string;gridId:string;routeId:string;routeProfileId:string;correctionRouteId?:string;marketActorId:string;customerIdentity:{id:string;qualifier:'SE2';agency:'260'};requestedStartDate:string;brpEdielId:string;gridAreaCode:string;documentSha256:string;authorizationDocumentId:string;powerOfAttorneyId:string}
 export type NormalSwitchNativeRequestInput=Omit<NormalSwitchStageNativeFixture,'switchId'>&{invoiceeSnapshot:Record<string,unknown>}
-type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string;createSwitchRequest?:(input:NormalSwitchNativeRequestInput)=>Promise<string>}
+type NormalSwitchFixtureInput={prospectiveCorrectionDispatch?:boolean;requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string;createSwitchRequest?:(input:NormalSwitchNativeRequestInput)=>Promise<string>}
 export function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInput&{deferOriginal:true}):Promise<NormalSwitchStageNativeFixture>
 export function seedNormalSwitchNativeFixture(input?:NormalSwitchFixtureInput&{deferOriginal?:false}):Promise<NormalSwitchStageNativeFixture&{caseReference:string;originalZ03:EdielMessageRow}>
 export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInput&{deferOriginal?:boolean}={}){
@@ -335,7 +352,7 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
   event:{state:'none',reference:`fixture-invoicee:${switchId}`},source:{kind:'caller_selection',companyId,reference:`fixture-invoicee:${switchId}`}}]}}}
  // All configuration dependencies now exist; reconcile before callbacks/prepare/send/defer.
  // Later real configuration mutations must invalidate admission normally.
- await qualifyNormalSwitchNativeTestConfiguration(companyId,actorUserId,sender,brpEdielId)
+ const correctionRouteId=await qualifyNormalSwitchNativeTestConfiguration(companyId,actorUserId,sender,brpEdielId,input.prospectiveCorrectionDispatch?{routeId:randomUUID(),profileId:randomUUID(),sourceRouteId:routeId,sourceProfileId:routeProfileId}:undefined)
  // An opt-in caller may exercise its public request creator before any case
  // exists. Existing callers retain their exact prospective SQL input below.
  let createdSwitchId:string=switchId
@@ -349,7 +366,7 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  WHERE key IN('communication.read','communication.write','communication.send','metering.read','metering.write','operations.read','operations.write','contracts.read','contracts.write','customers.read','customers.write');
  DELETE FROM public.admin_users WHERE user_id=${literal(actorUserId)};`)
  for(const permission of ['communication.read','communication.write','communication.send','metering.read','metering.write'])expect(sql(`SELECT to_jsonb(public.gridex_actor_has_company_permission(${literal(actorUserId)},${literal(companyId)},${literal(permission)}))`)).toBe(true)
- const stage:NormalSwitchStageNativeFixture={companyId,actorUserId,customerId,siteId,pointId,contractId,switchId:createdSwitchId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id}
+ const stage:NormalSwitchStageNativeFixture={...(correctionRouteId?{correctionRouteId}:{}),companyId,actorUserId,customerId,siteId,pointId,contractId,switchId:createdSwitchId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id}
  if(input.deferOriginal){expect(sql(`SELECT jsonb_build_object('messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(companyId)}),'originals',(SELECT count(*) FROM gridex_received_sources.switch_originals WHERE company_id=${literal(companyId)}),'periods',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(companyId)}))`)).toEqual({messages:0,originals:0,periods:0});return stage}
  const queued=await prepareAndQueueEdielZ03({actorUserId,switchRequestId:createdSwitchId,communicationRouteId:routeId,environment:'test'})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.switch_originals WHERE message_id=${literal(queued.id)}`)).toBe(1)

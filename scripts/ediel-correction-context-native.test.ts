@@ -378,7 +378,7 @@ vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:provider})}})
 const sourceSession=vi.hoisted(()=>({client:null as SupabaseClient|null}))
 vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>{if(!sourceSession.client)throw Error('native_actual_source_session_required');return sourceSession.client}}))
 // A non-ASCII own customer name exercises the latin1 wire encoding.
-const rescission=nationalRescissionNativeChain({provider,sourceSession,customerName:'Ångström Own Customer'})
+const rescission=nationalRescissionNativeChain({provider,sourceSession,customerName:'Ångström Own Customer',prospectiveCorrectionDispatch:true})
 it.each(['raw','attachment'] as const)('outbound helper callback denial prevents %s provider entry',async mode=>{
  vi.stubEnv('EDIEL_SMTP_FROM','synthetic@example.invalid');vi.stubEnv('EDIEL_SMTP_USER','synthetic@example.invalid')
  vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato')
@@ -413,16 +413,17 @@ async function outboundSeed(){
  const marketActor=n.marketActorId,marketActorName=sql<string>(`SELECT to_jsonb(name) FROM public.platform_market_actors WHERE id=${literal(marketActor)}`)
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_outbound_owner.consumptions WHERE source_message_id=${literal(n.original.id)}`)).toBe(1)
  expect(sql(`SELECT to_jsonb(can_use_for_prodat) FROM public.actor_readiness_status WHERE platform_market_actor_id=${literal(marketActor)}`)).toBe(true)
- // The chain's route served the Z03 start; this route is now the Z08 dispatch
- // route (the outbox worker requires the profile's own message code).
- sql(`UPDATE public.ediel_route_profiles SET business_code='Z08' WHERE company_id=${literal(n.companyId)} AND communication_route_id=${literal(n.routeId)}`)
+ // The producer selected the separately configured prospective Z08 lane.
+ // Preserve the Z03 route and the computed configuration witness.
+ const dispatchRouteId=n.original.communication_route_id
+ if(!dispatchRouteId)throw Error('native_correction_produced_route_required')
  // Fixture replies to the received H start are outside these dispatch tests.
  sql(`UPDATE public.ediel_outbox SET status='superseded' WHERE company_id=${literal(n.companyId)} AND status='queued' AND ediel_message_id<>${literal(n.original.id)}`)
  // The producer queued exactly one outbox item for its original.
  const outboxId=sql<string>(`SELECT to_jsonb(id) FROM public.ediel_outbox WHERE company_id=${literal(n.companyId)} AND ediel_message_id=${literal(n.original.id)} AND status='queued'`)
  expect(outboxId).toMatch(/^[0-9a-f-]{36}$/)
  sourceSession.client=null;provider.mockReset()
- return {...concern,outboxId,messageId:n.original.id,routeId:n.routeId,wire,point,marketActor,marketActorName,receiver:n.receiver,sender:n.sender}
+ return {...concern,outboxId,messageId:n.original.id,routeId:dispatchRouteId,wire,point,marketActor,marketActorName,receiver:n.receiver,sender:n.sender}
 }
 function smtpFixture(){
  vi.stubEnv('EDIEL_SHARED_MAILBOX_ADDRESS','synthetic@example.invalid');vi.stubEnv('EDIEL_APP_DKIM_ENABLED','false');vi.stubEnv('EMAIL_PROVIDER','resend')

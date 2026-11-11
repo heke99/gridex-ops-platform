@@ -180,6 +180,47 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
   if (file === 'scripts/helpers/ediel-normal-switch-native-fixture.ts') {
     const originalDigest = 'b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc'
     if (sha256(bytes) === originalDigest) return bytes
+    // Restore only the exact reviewed prospective Z08 configuration delta
+    // for this historical Git port, never current route/readiness authority.
+    if (sha256(bytes) === 'e22778eb3fead8d1368690b58125ba985373deaf49c3e3e856c28cd90162130f') {
+      const correctionRouteInverse: [string, string][] = [
+      [
+            "async function qualifyNormalSwitchNativeTestConfiguration(companyId:string,actorUserId:string,sender:string,brpEdielId:string,correction?:{routeId:string;profileId:string;sourceRouteId:string;sourceProfileId:string}){\n",
+            "async function qualifyNormalSwitchNativeTestConfiguration(companyId:string,actorUserId:string,sender:string,brpEdielId:string){\n"
+      ],
+      [
+            " // Configure a distinct Z08 lane before this existing owner's normal save.\n // Keep the Z03 lane unchanged; no late rights or reconciliation fallback.\n if(correction){\n  const created=sql<{routeCount:number;profileCount:number}>(`WITH route AS (\n   INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)\n   SELECT ${literal(correction.routeId)},company_id,'Synthetic prospective correction route',route_scope,grid_owner_id,environment_type,is_active,target_email\n   FROM public.communication_routes WHERE id=${literal(correction.sourceRouteId)} AND company_id=${literal(companyId)} AND environment_type='bilateral_test' AND is_active\n   RETURNING id\n  ),profile AS (\n   INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,transport_security_mode,smtp_to,receiver_email,message_family,business_code)\n   SELECT ${literal(correction.profileId)},p.company_id,route.id,'Synthetic prospective correction profile',p.environment,p.message_standard,p.sender_ediel_id,p.receiver_ediel_id,p.application_reference,p.is_enabled,p.transport_security_mode,p.smtp_to,p.receiver_email,p.message_family,'Z08'\n   FROM public.ediel_route_profiles p CROSS JOIN route WHERE p.id=${literal(correction.sourceProfileId)} AND p.company_id=${literal(companyId)} AND p.communication_route_id=${literal(correction.sourceRouteId)} AND p.environment='test' AND p.message_family='PRODAT' AND p.business_code='Z03' AND p.sender_ediel_id=${literal(sender)} AND p.is_enabled\n   RETURNING id\n  ) SELECT jsonb_build_object('routeCount',(SELECT count(*) FROM route),'profileCount',(SELECT count(*) FROM profile))`)\n  if(created?.routeCount!==1||created.profileCount!==1)throw Error('native_correction_route_source_required')\n }\n",
+            ""
+      ],
+      [
+            " return correction?.routeId\n",
+            ""
+      ],
+      [
+            "export type NormalSwitchStageNativeFixture={companyId:string;actorUserId:string;customerId:string;siteId:string;pointId:string;contractId:string;switchId:string;external:string;sender:string;receiver:string;gridId:string;routeId:string;routeProfileId:string;correctionRouteId?:string;marketActorId:string;customerIdentity:{id:string;qualifier:'SE2';agency:'260'};requestedStartDate:string;brpEdielId:string;gridAreaCode:string;documentSha256:string;authorizationDocumentId:string;powerOfAttorneyId:string}\n",
+            "export type NormalSwitchStageNativeFixture={companyId:string;actorUserId:string;customerId:string;siteId:string;pointId:string;contractId:string;switchId:string;external:string;sender:string;receiver:string;gridId:string;routeId:string;routeProfileId:string;marketActorId:string;customerIdentity:{id:string;qualifier:'SE2';agency:'260'};requestedStartDate:string;brpEdielId:string;gridAreaCode:string;documentSha256:string;authorizationDocumentId:string;powerOfAttorneyId:string}\n"
+      ],
+      [
+            "type NormalSwitchFixtureInput={prospectiveCorrectionDispatch?:boolean;requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string;createSwitchRequest?:(input:NormalSwitchNativeRequestInput)=>Promise<string>}\n",
+            "type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string;createSwitchRequest?:(input:NormalSwitchNativeRequestInput)=>Promise<string>}\n"
+      ],
+      [
+            " const correctionRouteId=await qualifyNormalSwitchNativeTestConfiguration(companyId,actorUserId,sender,brpEdielId,input.prospectiveCorrectionDispatch?{routeId:randomUUID(),profileId:randomUUID(),sourceRouteId:routeId,sourceProfileId:routeProfileId}:undefined)\n",
+            " await qualifyNormalSwitchNativeTestConfiguration(companyId,actorUserId,sender,brpEdielId)\n"
+      ],
+      [
+            " const stage:NormalSwitchStageNativeFixture={...(correctionRouteId?{correctionRouteId}:{}),companyId,actorUserId,customerId,siteId,pointId,contractId,switchId:createdSwitchId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id}\n",
+            " const stage:NormalSwitchStageNativeFixture={companyId,actorUserId,customerId,siteId,pointId,contractId,switchId:createdSwitchId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id}\n"
+      ]
+]
+      let previous = bytes.toString('utf8')
+      for (const [current, historical] of correctionRouteInverse) {
+        if (previous.split(current).length !== 2) throw Error('fixture_reviewed_normal_correction_route_inverse_not_unique')
+        previous = previous.replace(current, historical)
+      }
+      bytes = Buffer.from(previous)
+      if (sha256(bytes) !== 'e1ebf16b4fa81350b5b3e0274e8fe5248b8b0c5f05b122bf8685d8084dc6d93c') throw Error('fixture_reviewed_normal_correction_route_inverse_digest_mismatch')
+    }
     // Undo only the exact reviewed prospective-mailbox ordering delta in this
     // historical Git port; current mailbox/source guards are never executed here.
     if (sha256(bytes) === 'e1ebf16b4fa81350b5b3e0274e8fe5248b8b0c5f05b122bf8685d8084dc6d93c') {
