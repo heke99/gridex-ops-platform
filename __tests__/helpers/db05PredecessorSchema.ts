@@ -16,8 +16,18 @@ function reversePatch(schema:string,patch:Patch):string{
  return rebuilt
 }
 
+// Exact gitdiff of genuine a9cf RAW3 -> 9e RAW3 (079 view only).
+// Reverse only these two pinned hunks; historical047 fixture/provenance stays unchanged.
+const local079Patch:Patch={"preSha256":"f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed","postSha256":"a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136","hunks":[{"postStart":131178,"postCount":1,"postSha256":"a5598aee47243c2f5192f9332b2fe27b29638fcf5cbe5b7e9efab5f993c001c4","preLines":["          WHERE ((brp.company_id = c.id) AND (brp.environment = 'production'::text)))) AS has_brp,"]},{"postStart":131208,"postCount":1,"postSha256":"8c5d668fc415b233755ef14025ca9f9c5d22f0b0725d5e4e830502fa9698ad5e","preLines":["          WHERE ((s.company_id = c.id) AND (lower(COALESCE(s.verification_status, ''::text)) = ANY (ARRAY['verified'::text, 'completed'::text, 'active'::text]))))) AS has_sender_identity,"]}]}
+
+// Authentic capture-only run42920177040, source19c177, receipt417e8338.
+// Exact8hunk genuine f8 -> f25d diff; never replace the original047 inverse.
+const local1049Patch:Patch={"preSha256":"f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed","postSha256":"f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137","hunks":[{"postStart":210,"postCount":6,"postSha256":"6389ab94d13bbc44c4b24169c0ed51b17ec300a29be547973afe67de0865c938","preLines":[]},{"postStart":19027,"postCount":313,"postSha256":"e859414efd5b5d35b115c142e4b98cc41690d2b7d34aed808fd8cc40a2c9e7a7","preLines":[]},{"postStart":42510,"postCount":29,"postSha256":"340dfbb003a539a03cce437ea8d2dac0de2d0ee378a70c286f5065e75b242a2f","preLines":[]},{"postStart":44824,"postCount":9,"postSha256":"4765b4992a54f56125fd05f4fde69532dab425ad5c269317e65c475431ced4ff","preLines":[]},{"postStart":122836,"postCount":5,"postSha256":"431e9a2c804504a0b338284bd7474979274962b0db60c144ff8cce33993811dd","preLines":[]},{"postStart":159085,"postCount":78,"postSha256":"de460f35db528d69660e11162b2d93847a2b4e6a334aae080445407f76fdd299","preLines":[]},{"postStart":202695,"postCount":24,"postSha256":"32eb1ffc4bfbd2010395391fd70e8518059261dde239933387854e57d68c5731","preLines":[]},{"postStart":206367,"postCount":7,"postSha256":"847fe7a01452c16bc16c09a68f5048216da28784a538e143a1b559a720aabc06","preLines":[]}]}
+
 /** Reverse only authentic local047 RAW3, then retain the unchanged historical chain. */
 export function preLocal047Schema(schema:string):string{
+ if(sha(schema)==='f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137')return preLocal047Schema(reversePatch(schema,local1049Patch))
+ if(sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136')return preLocal047Schema(reversePatch(schema,local079Patch))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return schema
  if(actual!=='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')throw Error('db05_schema_predecessor_unknown:'+actual)
@@ -39,7 +49,7 @@ function prePr949ContrlSchema(schema:string):string{
  * its generated patch; the PR932 capture itself is returned unchanged. Any
  * other capture fails closed. */
 export function prePr973Audit19Schema(schema:string):string{
- if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')return prePr973Audit19Schema(preLocal047Schema(schema))
+ if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136'||sha(schema)==='f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137')return prePr973Audit19Schema(preLocal047Schema(schema))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return prePr973Audit19Schema(prePr949ContrlSchema(schema))
  if(actual==='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b')return schema
@@ -55,7 +65,7 @@ export function prePr973Audit19Schema(schema:string):string{
  * generated patch; the C14 capture itself is returned unchanged. Any other
  * capture fails closed. */
 export function prePr932UnsignedEditSchema(schema:string):string{
- if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')return prePr932UnsignedEditSchema(preLocal047Schema(schema))
+ if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136'||sha(schema)==='f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137')return prePr932UnsignedEditSchema(preLocal047Schema(schema))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return prePr932UnsignedEditSchema(prePr949ContrlSchema(schema))
  if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6')return schema
@@ -71,7 +81,7 @@ export function prePr932UnsignedEditSchema(schema:string):string{
  * the generated patch and the result must hash to the pinned predecessor.
  * Any other capture fails closed. */
 export function db05PredecessorSchema(schema:string):string{
- if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')return db05PredecessorSchema(preLocal047Schema(schema))
+ if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136'||sha(schema)==='f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137')return db05PredecessorSchema(preLocal047Schema(schema))
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return db05PredecessorSchema(prePr949ContrlSchema(schema))
