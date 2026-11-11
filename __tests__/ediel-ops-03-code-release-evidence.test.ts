@@ -180,6 +180,36 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
   if (file === 'scripts/helpers/ediel-normal-switch-native-fixture.ts') {
     const originalDigest = 'b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc'
     if (sha256(bytes) === originalDigest) return bytes
+    // In this finite historical Git port only, undo exactly the reviewed312
+    // prospective TGT configuration delta; never execute these historical bytes
+    // or qualify the current helper as native/source authority.
+    if (sha256(bytes) === '004e01957380dd48bbb11316ff533ac35e84e6580ce2bfd994420d3c15a0970e') {
+      const readinessInverse: [string, string][] = [
+      [
+            "import {saveEdielSystemTestSettings} from '@/lib/ediel/systemTestSettings'\nimport {getEdielSystemTestPackage} from '@/lib/ediel/systemTestPackages'\n",
+            ""
+      ],
+      [
+            "}\n/** Prospective file-ready configuration only: no SMTP, portal or certification claim.\n * Keep the business bilateral route and its actual supplier identity unchanged.\n * Main composes this fixture with the qualified B4 save/reconcile implementation. */\nasync function qualifyNormalSwitchNativeTestConfiguration(companyId:string,actorUserId:string,sender:string,brpEdielId:string){\n const supplier=sql<{id:string;company_id:string;actor_ediel_id:string;environment:string;is_active:boolean;actor_role:string}>(`SELECT to_jsonb(a) FROM public.ediel_actor_settings a\n  WHERE a.company_id=${literal(companyId)} AND a.environment='test' AND a.is_active\n   AND (a.actor_role IN('supplier','electricity_supplier') OR a.role IN('supplier','electricity_supplier'))`)\n if(!supplier?.id||supplier.company_id!==companyId||supplier.actor_ediel_id!==sender||supplier.environment!=='test'||supplier.is_active!==true)throw Error('native_supplier_test_actor_required')\n const setup=getEdielSystemTestPackage('tgt_ddq_prodat_utilts')\n if(setup.actorRole!=='supplier'||setup.environmentType!=='tgt_test'||setup.messageFamily!=='PRODAT')throw Error('native_supplier_test_package_required')\n const communicationId=randomUUID(),testRouteId=randomUUID()\n // A new local file-only route, never the original bilateral route/SMTP receiver.\n // No mailbox row, certificate, delivery result or portal attestation is fabricated.\n sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_system)\n  VALUES(${literal(communicationId)},${literal(companyId)},'Synthetic prospective TGT file-only','supplier_switch',${literal(setup.environmentType)},true,${literal(setup.targetSystem)});\n  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,actor_setting_id,route_name,environment,message_standard,message_family,sender_ediel_id,receiver_ediel_id,receiver_sub_address,application_reference,is_enabled,is_active,mailbox,transport_type,encryption_mode)\n  VALUES(${literal(testRouteId)},${literal(companyId)},${literal(communicationId)},${literal(supplier.id)},'Synthetic prospective TGT file-only','test','edifact',${literal(setup.messageFamily)},${literal(sender)},${literal(setup.portalEdielId)},${literal(setup.receiverSubaddress)},${literal(setup.applicationReference)},true,true,'tgt-file-engine','manual_upload',${literal(setup.encryptionMode)});`)\n await saveEdielSystemTestSettings({companyId,actorUserId,testSuite:setup.testSuiteType,\n  actorRole:setup.actorRole,messageFamily:setup.messageFamily,setupPackage:setup.value,environmentType:setup.environmentType,\n  testPortalEdielId:setup.portalEdielId,testPortalName:'Prospective TGT file-only configuration; no portal acceptance',\n  testBrpEdielId:brpEdielId,testBrpName:'Synthetic native BRP',defaultReceiverSubaddress:setup.receiverSubaddress,\n  routeProfileId:testRouteId,applicationReference:setup.applicationReference,\n  certificateEnvironment:setup.certificateEnvironment,transportEnvironment:setup.transportEnvironment,isActive:true})\n const decision=sql<{allowed:boolean}>(`SELECT to_jsonb(d) FROM public.canonical_tenant_operation_decision(${literal(companyId)},'ediel.test.process') d`)\n if(decision?.allowed!==true)throw Error('native_test_configuration_not_qualified')\n",
+            ""
+      ],
+      [
+            " INSERT INTO public.admin_users(user_id,role,is_active) VALUES(${literal(actorUserId)},'platform_admin',true);`)\n",
+            " INSERT INTO public.admin_users(user_id,role,is_active) VALUES(${literal(actorUserId)},'platform_admin',true);\n UPDATE public.company_capabilities SET enabled=true,readiness_status='ready' WHERE company_id=${literal(companyId)} AND capability_code='ediel_test';`)\n"
+      ],
+      [
+            " // All configuration dependencies now exist; reconcile before callbacks/prepare/send/defer.\n // Later real configuration mutations must invalidate admission normally.\n await qualifyNormalSwitchNativeTestConfiguration(companyId,actorUserId,sender,brpEdielId)\n",
+            ""
+      ]
+]
+      let previous = bytes.toString('utf8')
+      for (const [current, historical] of readinessInverse) {
+        if (previous.split(current).length !== 2) throw Error('fixture_reviewed_normal_readiness_inverse_not_unique')
+        previous = previous.replace(current, historical)
+      }
+      bytes = Buffer.from(previous)
+      if (sha256(bytes) !== '72f50e5a064f5416ef707daa06d567ede4bcb8d7a11e9ad70fc4fffc4751f28c') throw Error('fixture_reviewed_normal_readiness_inverse_digest_mismatch')
+    }
     if (sha256(bytes) !== '72f50e5a064f5416ef707daa06d567ede4bcb8d7a11e9ad70fc4fffc4751f28c') throw Error('fixture_reviewed_normal_source_unavailable')
     const corrections: [string, string][] = [
       ["export type NormalSwitchNativeRequestInput=Omit<NormalSwitchStageNativeFixture,'switchId'>&{invoiceeSnapshot:Record<string,unknown>}\n", ""],
