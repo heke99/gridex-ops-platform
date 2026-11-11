@@ -685,6 +685,15 @@ module.exports = function finalizeCustomerPortalRelease({
   }, ['completion_reference', 'status', 'created_at', 'profile_updated', 'facility_updated', 'address_result'])
   setRequest(portal, '/api/v1/customer/profile-update', { $ref: '#/components/schemas/CustomerProfileUpdateRequest' })
   setResponse(portal, '/api/v1/customer/profile-update', envelope({ $ref: '#/components/schemas/CustomerProfileUpdateData' }), 'post')
+  // Invoice detail consumes the canonical reference returned by invoice lists.
+  const invoiceDetailOperation = portal.paths['/api/v1/customer/invoices/{id}']?.get
+  if (invoiceDetailOperation) {
+    invoiceDetailOperation.parameters = invoiceDetailOperation.parameters.map(parameter =>
+      parameter.in === 'path' && parameter.name === 'id'
+        ? { ...parameter, schema: { type: 'string', pattern: '^invoice_[A-Za-z0-9_-]{32}$' }, description: 'Canonical public invoice_reference returned by the invoice list. Internal invoice UUIDs are not part of the public request contract.' }
+        : parameter)
+  }
+
   const profileOperation = portal.paths['/api/v1/customer/profile-update']?.post
   if (profileOperation) {
     profileOperation.security = [

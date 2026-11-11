@@ -1,0 +1,82 @@
+name: Mobile OPS isolated replay
+on:
+  pull_request:
+    branches: [main, codex/mobile-ops-replay-baseline]
+    paths: [.github/workflows/mobile-ops-isolated-replay.yml, 'scripts/mobile-*']
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      SUPABASE_TELEMETRY_DISABLED: 'true'
+      SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+      GRIDEX_WEB_COMMIT: 24957034ad7d61f49baee5885b55a836dcc353c1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb
+        with:
+          version: 2.101.0
+      - uses: actions/checkout@v4
+        with:
+          repository: heke99/gridex-web
+          ref: ${{ env.GRIDEX_WEB_COMMIT }}
+          path: gridex-web
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install pinned Gridex Web dependencies
+        working-directory: gridex-web
+        run: npm ci --no-audit --no-fund
+      - name: Verify pinned Gridex Web portal and mobile boundaries
+        working-directory: gridex-web
+        run: |
+          npm run test:portal
+          node --experimental-strip-types --experimental-loader ./tests/mobile-read-loader.mjs --test tests/mobile-contracts-handler.test.mjs tests/mobile-customer-data.test.mjs tests/mobile-customer-resources.test.mjs tests/mobile-detail-routes.test.mjs
+          node --experimental-strip-types --experimental-loader ./tests/typescript-alias-loader.mjs --test tests/mobile-invoice-openapi.test.mjs
+      - name: Install OPS dependencies
+        run: npm ci --no-audit --no-fund
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install and verify pinned native app
+        working-directory: gridex-web/apps/mobile
+        run: |
+          npm ci --workspaces=false --no-audit --no-fund
+          npm run typecheck
+          node --experimental-strip-types --experimental-loader ../../tests/mobile-account-loader.mjs --test ../../tests/mobile-account-lifecycle.test.mjs ../../tests/mobile-account-adapter.test.mjs ../../tests/mobile-account-writes.test.mjs
+      - name: Enable Android KVM on disposable runner
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify isolated HTTP and Android customer flow on one stack
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot
+          script: bash scripts/mobile-ops-stack.sh
+      - name: Upload sanitized acceptance receipt
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-customer-acceptance
+          path: ${{ runner.temp }}/mobile-acceptance.json
+          retention-days: 7
+      - name: Upload isolated Android test APK and sanitized receipt
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-android-isolated-acceptance
+          path: ${{ runner.temp }}/mobile-android/
+          if-no-files-found: error
+          retention-days: 7

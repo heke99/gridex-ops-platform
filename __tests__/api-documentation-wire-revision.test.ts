@@ -9,7 +9,7 @@ import customer from '@/docs/openapi/customer-portal-v1.json'
 import staff from '@/docs/openapi/staff-v1.json'
 import onboarding from '@/docs/openapi/staff-onboarding-v1.json'
 import { buildOpenApiReleaseManifest } from '@/lib/integrations/openApiReleaseManifest'
-import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { API_DOCUMENTATION_VERSION, WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 const { releaseManifestSchemas } = createRequire(import.meta.url)('../scripts/lib/openapi-release-schemas.cjs') as {
   releaseManifestSchemas: (documentationVersion: string, minimumVersion: string, options: { runtimeVersion: string; includeStaff: boolean }) => { OpenApiReleaseManifest: unknown }
@@ -59,24 +59,24 @@ describe('documentation releases preserve the business wire revision', () => {
   })
 
   it('generates a closed manifest schema with independent documentation and runtime revisions', () => {
-    const schemas = releaseManifestSchemas('2026-10-12.1', '2026-10-02.3', { runtimeVersion: '2026-10-09.1', includeStaff: true })
+    const schemas = releaseManifestSchemas(API_DOCUMENTATION_VERSION, '2026-10-02.3', { runtimeVersion: '2026-10-09.1', includeStaff: true })
     const manifest = buildOpenApiReleaseManifest()
     expect(validateSchema(website, manifest, schemas.OpenApiReleaseManifest)).toEqual([])
     expect(validateSchema(website, { ...manifest, runtime_contract_version: '2026-10-12.1' }, schemas.OpenApiReleaseManifest)).not.toEqual([])
   })
   it('publishes new document revisions and immutable URLs while retaining the supported wire revision', () => {
     const manifest = buildOpenApiReleaseManifest()
-    expect(manifest.release_version).toBe('2026-10-12.1')
-    expect(manifest.guide_version).toBe('2026-10-12.1')
+    expect(manifest.release_version).toBe(API_DOCUMENTATION_VERSION)
+    expect(manifest.guide_version).toBe(API_DOCUMENTATION_VERSION)
     expect(manifest.runtime_contract_version).toBe('2026-10-09.1')
     expect(manifest.minimum_tenant_integration_version).toBe('2026-10-02.3')
     expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-10-09.1')
     for (const item of Object.values(manifest.specifications)) {
-      expect(item.contract_version).toBe('2026-10-12.1')
-      expect(item.immutable_url).toContain('/openapi/2026-10-12.1/')
+      expect(item.contract_version).toBe(API_DOCUMENTATION_VERSION)
+      expect(item.immutable_url).toContain(`/openapi/${API_DOCUMENTATION_VERSION}/`)
     }
     for (const document of [website, customer, staff]) {
-      expect(document.info.version).toBe('2026-10-12.1')
+      expect(document.info.version).toBe(API_DOCUMENTATION_VERSION)
       expect(document['x-contract-schema-version']).toBe('2026-10-09.1')
       expect(validateSchema(document, manifest, { $ref: '#/components/schemas/OpenApiReleaseManifest' })).toEqual([])
       expect(validateSchema(document, error('organization_paused'), { $ref: '#/components/schemas/ErrorEnvelope' })).toEqual([])
