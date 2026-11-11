@@ -31,13 +31,21 @@ export async function seedOriginalMailboxNative(sql: Sql, literal: Literal, inpu
   if (parsed.rawPayload !== input.raw || (input.parsed && JSON.stringify(input.parsed) !== JSON.stringify(parsed))) {
     throw new Error('native_original_mailbox_actual_parse_required')
   }
-  const mailboxId = randomUUID(), inboundEmailMessageId = randomUUID()
+  // Only explicitly prospective native TEST custody may be reused. No global or
+ // arbitrary first mailbox, production selection, config mutation or late actor fallback.
+ const candidates = input.environment === 'test' ? sql<Array<{id:string}>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id) ORDER BY id),'[]')
+   FROM public.ediel_mailboxes WHERE company_id=${literal(input.companyId)} AND environment='test'
+    AND email_address=${literal(input.smtpFrom)} AND is_active AND is_shared_platform_mailbox IS FALSE
+    AND metadata->>'native_fixture_purpose'='prospective_original_ingress_v1'`) : []
+ if(!Array.isArray(candidates)||candidates.length>1||candidates.some(row=>typeof row?.id!=='string'||!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(row.id)))throw new Error('native_original_prospective_mailbox_ambiguous')
+ const prospectiveMailboxId=candidates[0]?.id
+ const mailboxId = prospectiveMailboxId ?? randomUUID(), inboundEmailMessageId = randomUUID()
   const senderEmail = input.senderEmail ?? 'recipient@example.invalid'
   const receivedAt = input.receivedAt ?? new Date().toISOString()
   const rawEmail = `From: ${senderEmail}\r\nTo: ${input.smtpFrom}\r\nMessage-ID: <${inboundEmailMessageId}@example.invalid>\r\nContent-Type: application/edifact\r\n\r\n${input.raw}`
-  sql(`INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,email_address,environment,is_active,is_shared_platform_mailbox)
-    VALUES(${literal(mailboxId)},${literal(input.companyId)},'Synthetic original native mailbox',${literal(input.smtpFrom)},${literal(input.environment)},true,false);
-    INSERT INTO public.inbound_email_messages(id,company_id,environment,mailbox_id,internet_message_id,received_at,from_address,to_address,raw_email,raw_edifact_payload,body_text,processing_status,match_status)
+  if(!prospectiveMailboxId)sql(`INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,email_address,environment,is_active,is_shared_platform_mailbox)
+    VALUES(${literal(mailboxId)},${literal(input.companyId)},'Synthetic original native mailbox',${literal(input.smtpFrom)},${literal(input.environment)},true,false);`)
+  sql(`INSERT INTO public.inbound_email_messages(id,company_id,environment,mailbox_id,internet_message_id,received_at,from_address,to_address,raw_email,raw_edifact_payload,body_text,processing_status,match_status)
     VALUES(${literal(inboundEmailMessageId)},${literal(input.companyId)},${literal(input.environment)},${literal(mailboxId)},${literal(`${inboundEmailMessageId}@example.invalid`)},${literal(receivedAt)}::timestamptz,${literal(senderEmail)},${literal(input.smtpFrom)},${literal(rawEmail)},${literal(input.raw)},${literal(input.raw)},'received','not_checked');`)
   const parseResultId = await createParseResult({ inboundEmailMessageId, companyId: input.companyId, parsed })
   return { mailboxId, inboundEmailMessageId, parseResultId, parsed, sourcePayloadHash: createHash('sha256').update(input.raw, 'utf8').digest('hex') }

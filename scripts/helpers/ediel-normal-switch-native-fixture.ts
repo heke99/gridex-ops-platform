@@ -50,6 +50,12 @@ async function qualifyNormalSwitchNativeTestConfiguration(companyId:string,actor
  if(!supplier?.id||supplier.company_id!==companyId||supplier.actor_ediel_id!==sender||supplier.environment!=='test'||supplier.is_active!==true)throw Error('native_supplier_test_actor_required')
  const setup=getEdielSystemTestPackage('tgt_ddq_prodat_utilts')
  if(setup.actorRole!=='supplier'||setup.environmentType!=='tgt_test'||setup.messageFamily!=='PRODAT')throw Error('native_supplier_test_package_required')
+ // Prepare the exact explicitly configured incoming fixture mailbox BEFORE
+ // snapshot/reconciliation. A later physical mail birth can reuse it without
+ // changing configuration. This grants no SMTP/poll/portal/production proof.
+ const ingressFrom=process.env.EDIEL_SMTP_FROM?.trim()
+ if(ingressFrom)sql(`INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,email_address,environment,is_active,is_shared_platform_mailbox,metadata)
+  VALUES(${literal(randomUUID())},${literal(companyId)},'Synthetic prospective original native mailbox',${literal(ingressFrom)},'test',true,false,'{"native_fixture_purpose":"prospective_original_ingress_v1"}'::jsonb);`)
  const communicationId=randomUUID(),testRouteId=randomUUID()
  // A new local file-only route, never the original bilateral route/SMTP receiver.
  // No mailbox row, certificate, delivery result or portal attestation is fabricated.

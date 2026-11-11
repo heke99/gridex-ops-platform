@@ -180,6 +180,15 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
   if (file === 'scripts/helpers/ediel-normal-switch-native-fixture.ts') {
     const originalDigest = 'b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc'
     if (sha256(bytes) === originalDigest) return bytes
+    // Undo only the exact reviewed prospective-mailbox ordering delta in this
+    // historical Git port; current mailbox/source guards are never executed here.
+    if (sha256(bytes) === 'e1ebf16b4fa81350b5b3e0274e8fe5248b8b0c5f05b122bf8685d8084dc6d93c') {
+      const prospectiveMailboxAddition = " // Prepare the exact explicitly configured incoming fixture mailbox BEFORE\n // snapshot/reconciliation. A later physical mail birth can reuse it without\n // changing configuration. This grants no SMTP/poll/portal/production proof.\n const ingressFrom=process.env.EDIEL_SMTP_FROM?.trim()\n if(ingressFrom)sql(`INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,email_address,environment,is_active,is_shared_platform_mailbox,metadata)\n  VALUES(${literal(randomUUID())},${literal(companyId)},'Synthetic prospective original native mailbox',${literal(ingressFrom)},'test',true,false,'{\"native_fixture_purpose\":\"prospective_original_ingress_v1\"}'::jsonb);`)\n"
+      const current = bytes.toString('utf8')
+      if (current.split(prospectiveMailboxAddition).length !== 2) throw Error('fixture_reviewed_normal_mailbox_inverse_not_unique')
+      bytes = Buffer.from(current.replace(prospectiveMailboxAddition, ''))
+      if (sha256(bytes) !== '004e01957380dd48bbb11316ff533ac35e84e6580ce2bfd994420d3c15a0970e') throw Error('fixture_reviewed_normal_mailbox_inverse_digest_mismatch')
+    }
     // In this finite historical Git port only, undo exactly the reviewed312
     // prospective TGT configuration delta; never execute these historical bytes
     // or qualify the current helper as native/source authority.
