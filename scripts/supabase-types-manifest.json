@@ -5,7 +5,7 @@
   "sha256": "2070dcb596f8505a0864a6fcec7d1affc4336eedc5f661189f10968a4e6ff184",
   "latest_migration": "20261110120000_canonical_ediel_test_capability_reconciliation_v1.sql",
   "latest_migration_schema_effect": "Restores version-bound mailbox runtime columns and adds derived Ediel test capability reconciliation with tenant/current actor checks and semantic configuration invalidation. Capture only; final replay, upgrade parity and scenario verification remain required.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-15T01:56:39.362659+00:00",
@@ -1536,8 +1536,8 @@
     "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892"
   },
   "source_latest_migration": {
-    "name": "20261110120000_canonical_ediel_test_capability_reconciliation_v1.sql",
-    "sha256": "764ba1e5f6206ceb6a789a88716b77792a000fbcfd170ed1161789a66dd2d56e"
+    "name": "20261111121000_ediel_local_test_transport_wait_v1.sql",
+    "sha256": "6cd373d8dcfa5d532f6dfad50e931a299e4407356abadc87978b4441fd7f89f1"
   },
   "main_f88_composition_history": {
     "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
@@ -101081,5 +101081,19 @@
       "whole_approval": false
     },
     "scope": "Ordinary capture adoption only. App95/C07 evidence is separate local candidate evidence, not final replay or original-scenario approval."
+  },
+  "local0301_source_capture_pending_20261111": {
+    "previous_source_latest_migration": {
+      "name": "20261110120000_canonical_ediel_test_capability_reconciliation_v1.sql",
+      "sha256": "764ba1e5f6206ceb6a789a88716b77792a000fbcfd170ed1161789a66dd2d56e"
+    },
+    "previous_composition_capture_pending": false,
+    "source_latest_migration": {
+      "name": "20261111121000_ediel_local_test_transport_wait_v1.sql",
+      "sha256": "6cd373d8dcfa5d532f6dfad50e931a299e4407356abadc87978b4441fd7f89f1"
+    },
+    "scope": "Source-only LOCALwait delta; existing authenticated RAW3 unchanged. New canonical capture/clean+upgrade/native integration pending; owner-only TEMP serial component is not publicclaim/Auth/source/concurrency/originalacceptance.",
+    "prior_unpublished_wait_source_sha256": "d987fdf6f932c1f81fee48b8f29a01b55a2f2abf200046b9793774f5c7bb4e5c",
+    "SMTP_endpoint_source_freeze_sha256": "79de85a92f41dcec677f4fd7ce4bf0360e9669e26290b6b5f5d1417327e844a1"
   }
 }

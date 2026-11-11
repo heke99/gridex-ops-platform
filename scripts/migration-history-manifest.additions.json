@@ -276,6 +276,7 @@
     "20261019170000_ediel_z04c_executed_start_compensation_receipt.sql": "0753d3e52ebec6778239b3d046df48ed008d3e4be947960d3e7f819e94cc79fe",
     "20261106184525_ediel_operations_tables_replay_completeness.sql": "06b796e5e521fba393ce394c501adb88678d1d06b4e504d6098e3088265955d9",
     "20261107034000_ediel_mailbox_runtime_columns_reconstruction.sql": "67bcfbf96cf9ca2427c08b9cc29477ce639e6e3a64fedca19a124f100219bcba",
-    "20261110120000_canonical_ediel_test_capability_reconciliation_v1.sql": "764ba1e5f6206ceb6a789a88716b77792a000fbcfd170ed1161789a66dd2d56e"
+    "20261110120000_canonical_ediel_test_capability_reconciliation_v1.sql": "764ba1e5f6206ceb6a789a88716b77792a000fbcfd170ed1161789a66dd2d56e",
+    "20261111121000_ediel_local_test_transport_wait_v1.sql": "6cd373d8dcfa5d532f6dfad50e931a299e4407356abadc87978b4441fd7f89f1"
   }
 }
