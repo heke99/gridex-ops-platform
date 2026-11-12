@@ -446,7 +446,10 @@ it.each(['accepted','partial','empty','malformed','all_rejected','connect_negati
  if(outcome==='connect_negative')provider.mockRejectedValue(Object.assign(Error('connect refused'),{code:'ECONNECTION',syscall:'connect'}))
  if(outcome==='data_ambiguous')provider.mockRejectedValue(Object.assign(Error('lost DATA result'),{code:'ESOCKET',command:'DATA'}))
  try{
-  await directOutbound(f).catch(()=>null)
+  // Accepted must succeed: preserve its original denial instead of masking it.
+  // Other cases intentionally exercise provider exceptions.
+  if(outcome==='accepted')await directOutbound(f)
+  else await directOutbound(f).catch(()=>null)
   expect(provider).toHaveBeenCalledTimes(1)
   expect(outboundFacts(f)).toEqual(expect.arrayContaining([expect.objectContaining({kind:'provider_call_entered',witnessed:true}),expect.objectContaining({kind:'provider_result',witnessed:true})]))
   // A result naming an address other than the bound recipient is uncertain

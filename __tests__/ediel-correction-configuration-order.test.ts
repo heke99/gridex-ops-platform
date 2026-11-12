@@ -93,3 +93,27 @@ describe('first correction prospective Z08 configuration phase',()=>{
   const f=await fn();expect(f.routeId).toBe(newRoute)
  })
 })
+
+// Execute the actual native it.each callback; finite provider/RPC ports only.
+function firstOutboundCase(ports:Record<string,unknown>){
+ const file=path.join(root,'scripts/ediel-correction-context-native.test.ts'),text=readFileSync(file,'utf8'),ast=ts.createSourceFile(file,text,ts.ScriptTarget.Latest,true)
+ let callback:ts.Expression|undefined
+ function visit(node:ts.Node){
+  if(ts.isCallExpression(node)&&node.arguments.length>=2&&ts.isStringLiteral(node.arguments[0])&&node.arguments[0].text==='outbound direct %s cannot resend after mutable reset')callback=node.arguments[1]
+  ts.forEachChild(node,visit)
+ }
+ visit(ast);if(!callback)throw Error('existing_outbound_case_missing')
+ return load(`const actualCase=${callback.getText(ast)}`,'actualCase',ports)
+}
+it('accepted native case exposes the exact original pre-provider denial',async()=>{
+ const denial={code:'42501',message:'diagnostic-sentinel-original-denial',details:null},provider=vi.fn()
+ const actual=firstOutboundCase({outboundSeed:async()=>({messageId:'message'}),smtpFixture:()=>{},provider,directOutbound:async()=>{throw denial},expect,vi})
+ await expect(actual('accepted')).rejects.toBe(denial)
+ expect(provider).not.toHaveBeenCalled()
+})
+it.each(['accepted','connect_negative'] as const)('diagnostic retains %s provider and no-resend assertions',async outcome=>{
+ const provider=vi.fn(async()=>({accepted:['recipient@example.invalid']}));let calls=0
+ const facts=[{kind:'provider_call_entered',witnessed:true},{kind:'provider_result',witnessed:true,facts:{classification:outcome==='accepted'?'accepted':'pre_connect_negative'}}]
+ const actual=firstOutboundCase({outboundSeed:async()=>({messageId:'message'}),smtpFixture:()=>{},provider,directOutbound:async()=>{if(++calls===1)return provider();return null},outboundFacts:()=>facts,sql:()=>{},literal,expect,vi})
+ await actual(outcome);expect(provider).toHaveBeenCalledTimes(1);expect(calls).toBe(2)
+})
