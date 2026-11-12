@@ -26,6 +26,14 @@ const local1049Patch:Patch={"preSha256":"f8e0964d0f3a51d37ef85a0e0febb21a78b7e91
 
 /** Reverse only authentic local047 RAW3, then retain the unchanged historical chain. */
 export function preLocal047Schema(schema:string):string{
+ // Genuine Main0ac capture: reverse only exact LOCAL317 hunks to authentic82bd.
+ if(sha(schema)==='8b7d84b657a1ebcbe2591107524ebeb74afb6dceac2cad49bec39a6ea9d1b26a'){
+  const bytes=readFileSync(new URL('../fixtures/db05-schema-predecessor-local317-20261112.patch.json',import.meta.url),'utf8')
+  if(sha(bytes)!=='f2392cbea86ed9eba5703f996726f37f5437b5d0b5204be30a63a29c64bacf64')throw Error('db05_schema_predecessor_fixture_changed:local317')
+  const patch:Patch=JSON.parse(bytes)
+  if(patch.preSha256!=='f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137'||patch.postSha256!=='8b7d84b657a1ebcbe2591107524ebeb74afb6dceac2cad49bec39a6ea9d1b26a')throw Error('db05_schema_predecessor_rebuild_mismatch')
+  return preLocal047Schema(reversePatch(schema,patch))
+ }
  if(sha(schema)==='f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137')return preLocal047Schema(reversePatch(schema,local1049Patch))
  if(sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136')return preLocal047Schema(reversePatch(schema,local079Patch))
  const actual=sha(schema)
@@ -49,7 +57,7 @@ function prePr949ContrlSchema(schema:string):string{
  * its generated patch; the PR932 capture itself is returned unchanged. Any
  * other capture fails closed. */
 export function prePr973Audit19Schema(schema:string):string{
- if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136'||sha(schema)==='f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137')return prePr973Audit19Schema(preLocal047Schema(schema))
+ if(sha(schema)==='8b7d84b657a1ebcbe2591107524ebeb74afb6dceac2cad49bec39a6ea9d1b26a'||sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136'||sha(schema)==='f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137')return prePr973Audit19Schema(preLocal047Schema(schema))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return prePr973Audit19Schema(prePr949ContrlSchema(schema))
  if(actual==='20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b')return schema
@@ -65,7 +73,7 @@ export function prePr973Audit19Schema(schema:string):string{
  * generated patch; the C14 capture itself is returned unchanged. Any other
  * capture fails closed. */
 export function prePr932UnsignedEditSchema(schema:string):string{
- if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136'||sha(schema)==='f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137')return prePr932UnsignedEditSchema(preLocal047Schema(schema))
+ if(sha(schema)==='8b7d84b657a1ebcbe2591107524ebeb74afb6dceac2cad49bec39a6ea9d1b26a'||sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136'||sha(schema)==='f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137')return prePr932UnsignedEditSchema(preLocal047Schema(schema))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return prePr932UnsignedEditSchema(prePr949ContrlSchema(schema))
  if(actual==='aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6')return schema
@@ -81,7 +89,7 @@ export function prePr932UnsignedEditSchema(schema:string):string{
  * the generated patch and the result must hash to the pinned predecessor.
  * Any other capture fails closed. */
 export function db05PredecessorSchema(schema:string):string{
- if(sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136'||sha(schema)==='f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137')return db05PredecessorSchema(preLocal047Schema(schema))
+ if(sha(schema)==='8b7d84b657a1ebcbe2591107524ebeb74afb6dceac2cad49bec39a6ea9d1b26a'||sha(schema)==='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'||sha(schema)==='a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136'||sha(schema)==='f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137')return db05PredecessorSchema(preLocal047Schema(schema))
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
  if(actual==='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')return db05PredecessorSchema(prePr949ContrlSchema(schema))

@@ -4,11 +4,15 @@ import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
 import {db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema,preLocal047Schema} from './helpers/db05PredecessorSchema'
 
-const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,patchPoa:null as string|null,patchPoaNext:null as string|null,patchTenantKey:null as string|null,patchPr932:null as string|null,patchPr973:null as string|null,patchPr949:null as string|null,patchLocal047:null as string|null,reads:[] as string[]}))
+const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,patchPoa:null as string|null,patchPoaNext:null as string|null,patchTenantKey:null as string|null,patchPr932:null as string|null,patchPr973:null as string|null,patchPr949:null as string|null,patchLocal047:null as string|null,patchLocal317:null as string|null,reads:[] as string[]}))
 vi.mock('node:fs',async original=>{
  const actual=await original<typeof import('node:fs')>()
  return {...actual,readFileSync:(path:Parameters<typeof actual.readFileSync>[0],options?:Parameters<typeof actual.readFileSync>[1])=>{
   const name=String(path)
+  if(name.endsWith('db05-schema-predecessor-local317-20261112.patch.json')){
+   injected.reads.push('local317')
+   if(injected.patchLocal317!==null)return injected.patchLocal317
+  }
   if(name.endsWith('db05-schema-predecessor-local047-20261107.patch.json')){
    injected.reads.push('local047')
    if(injected.patchLocal047!==null)return injected.patchLocal047
@@ -56,7 +60,7 @@ vi.mock('node:fs',async original=>{
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
 type CapturePatch={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
 const rawCapture=readFileSync('supabase/schema.sql','utf8')
-const historicalCapture=[ 'f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed', 'a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136', 'f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137' ].includes(sha(rawCapture))?preLocal047Schema(rawCapture):rawCapture
+const historicalCapture=[ '8b7d84b657a1ebcbe2591107524ebeb74afb6dceac2cad49bec39a6ea9d1b26a', 'f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed', 'a825c79079b1fad25bc1396d241a19f097020c7567134da40729648c74ec4136', 'f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137' ].includes(sha(rawCapture))?preLocal047Schema(rawCapture):rawCapture
 const pr973Sha='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b'
 const pr949Sha='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
 const pr949PatchBytes=readFileSync('__tests__/fixtures/db05-schema-predecessor-pr949-contrl-20261101.patch.json','utf8')
@@ -141,7 +145,7 @@ const capture=sha(actualCapture)===successorSha?exactSuccessorFixture(actualCapt
 const audit27=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit27.patch.json','utf8')) as {
  preSha256:string;postSha256:string;hunks:{postStart:number;postCount:number;postSha256:string;preLines:string[]}[]}
 const audit26=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit26.patch.json','utf8')) as {preSha256:string;postSha256:string}
-afterEach(()=>{injected.patchLocal047=null;injected.patchPr949=null;injected.patchPr973=null;injected.patch=null;injected.patch28=null;injected.patch29=null;injected.patchPoa=null;injected.patchPoaNext=null;injected.patchTenantKey=null;injected.patchPr932=null;injected.reads=[]})
+afterEach(()=>{injected.patchLocal317=null;injected.patchLocal047=null;injected.patchPr949=null;injected.patchPr973=null;injected.patch=null;injected.patch28=null;injected.patch29=null;injected.patchPoa=null;injected.patchPoaNext=null;injected.patchTenantKey=null;injected.patchPr932=null;injected.reads=[]})
 // Both immutable genuine captures are covered even when the checked-in context
 // is the older one. The fixture stores only the exact changed line ranges.
 type Audit28={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
@@ -587,4 +591,28 @@ it.each(['prefix','suffix','truncated'] as const)('authentic1049 refuses unknown
  const changed=mutation==='prefix'?'-- unknown\n'+genuine1049Capture:mutation==='suffix'?genuine1049Capture+'\n':genuine1049Capture.slice(1)
  for(const restore of genuine079Restorers)expect(()=>restore(changed)).toThrow('db05_schema_predecessor_unknown:')
  expect(injected.reads).not.toContain('local047')
+})
+
+// Genuine committed Main0ac capture and unchanged authentic82bd predecessor.
+const genuine317Current=execFileSync('git',['show','0ac52c670f0e0c58a530dd649b08dc09460ea934:supabase/schema.sql'],{encoding:'utf8',maxBuffer:30_000_000})
+const genuine317Prior=execFileSync('git',['show','82bd94f406c1299ed9f9329e4332051ca20fce70:supabase/schema.sql'],{encoding:'utf8',maxBuffer:30_000_000})
+const genuine317Patch=JSON.parse(readFileSync(new URL('./fixtures/db05-schema-predecessor-local317-20261112.patch.json',import.meta.url),'utf8')) as CapturePatch
+it.each(genuine079Restorers)('local317 authentic successor preserves exact historical oracle: %s',restore=>{
+ expect(sha(genuine317Current)).toBe('8b7d84b657a1ebcbe2591107524ebeb74afb6dceac2cad49bec39a6ea9d1b26a')
+ expect(sha(genuine317Prior)).toBe('f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137')
+ expect(restore(genuine317Current)).toBe(genuine079PriorOracles.get(restore))
+})
+it('local317 exact inverse reconstructs authentic82bd bytes and refuses moved/changed hunks',()=>{
+ expect(exactPatchFixture(genuine317Patch,'f25d892e78532bb5fc02c9470c8a7a2c0b6216b65f756918636730eb94c20137','8b7d84b657a1ebcbe2591107524ebeb74afb6dceac2cad49bec39a6ea9d1b26a',genuine317Current,false)).toBe(genuine317Prior)
+ const changed=structuredClone(genuine317Patch);changed.hunks[0].postSha256='0'.repeat(64);injected.patchLocal317=JSON.stringify(changed)
+ expect(()=>preLocal047Schema(genuine317Current)).toThrow('db05_schema_predecessor_fixture_changed:local317')
+ const moved=structuredClone(genuine317Patch);moved.hunks[0].postStart++;injected.patchLocal317=JSON.stringify(moved)
+ expect(()=>preLocal047Schema(genuine317Current)).toThrow('db05_schema_predecessor_fixture_changed:local317')
+})
+it('local317 rejects unknown bytes before inverse read and leaves older captures independent',()=>{
+ for(const restore of genuine079Restorers)expect(()=>restore('-- unknown\n'+genuine317Current)).toThrow('db05_schema_predecessor_unknown:')
+ expect(injected.reads).not.toContain('local317')
+ injected.patchLocal317='{}'
+ expect(preLocal047Schema(genuine317Prior)).toBe(preLocal047Schema(genuine1049Capture))
+ expect(injected.reads).not.toContain('local317')
 })
