@@ -167,6 +167,12 @@ CREATE SCHEMA gridex_ediel_inbound_receptions;
 CREATE SCHEMA gridex_ediel_legacy_archive;
 
 --
+-- Name: gridex_ediel_local_wait; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA gridex_ediel_local_wait;
+
+--
 -- Name: gridex_ediel_ops04; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -207,6 +213,12 @@ CREATE SCHEMA gridex_ediel_source_rules;
 --
 
 CREATE SCHEMA gridex_ediel_technical_ack;
+
+--
+-- Name: gridex_ediel_test_capability; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA gridex_ediel_test_capability;
 
 --
 -- Name: gridex_ediel_transport; Type: SCHEMA; Schema: -; Owner: -
@@ -12814,6 +12826,268 @@ END
 $$;
 
 --
+-- Name: bind_outbox_v1(uuid, uuid, uuid, uuid, timestamp with time zone, integer); Type: FUNCTION; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_local_wait.bind_outbox_v1(p_runtime_id uuid, p_outbox_id uuid, p_snapshot_id uuid, p_actor uuid, p_deadline timestamp with time zone, p_delay integer DEFAULT 60) RETURNS uuid
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE r gridex_ediel_local_wait.runtimes_v1%rowtype;o public.ediel_outbox%rowtype;
+ m public.ediel_messages%rowtype;s public.ediel_messages%rowtype;snap public.ediel_configuration_snapshots%rowtype;
+ basis jsonb;pid uuid;p gridex_ediel_local_wait.policies_v1%rowtype;
+BEGIN
+ IF current_user<>'postgres' THEN RAISE EXCEPTION 'local_wait_owner_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_bilateral_prodat.lock_source_receipts_v1();
+ SELECT * INTO STRICT r FROM gridex_ediel_local_wait.runtimes_v1 WHERE id=p_runtime_id FOR SHARE;
+ SELECT * INTO STRICT o FROM public.ediel_outbox WHERE id=p_outbox_id FOR UPDATE;
+ SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=o.ediel_message_id FOR SHARE;
+ basis:=gridex_ediel_technical_ack.read_persisted_contrl_v2(o.company_id,'test',m.id,p_actor,'send');
+ SELECT * INTO STRICT s FROM public.ediel_messages WHERE id=(basis#>>'{technicalSyntaxAckEvidence,sourceMessageId}')::uuid FOR SHARE;
+ SELECT * INTO STRICT snap FROM public.ediel_configuration_snapshots WHERE id=p_snapshot_id AND company_id=o.company_id FOR SHARE;
+ PERFORM gridex_ediel_local_wait.policy_due_v1(clock_timestamp(),p_delay,p_deadline);
+ IF o.environment IS DISTINCT FROM 'test' OR m.environment IS DISTINCT FROM 'test' OR m.message_family IS DISTINCT FROM 'CONTRL'
+ OR o.status NOT IN('prepared','queued') OR o.source_message_id IS DISTINCT FROM s.id
+ OR o.attempts<>0 OR o.send_attempt_count<>0 OR o.current_send_attempt_id IS NOT NULL OR o.locked_at IS NOT NULL
+ OR EXISTS(SELECT FROM gridex_ediel_transport.attempts WHERE message_id=m.id)
+ OR p_deadline>r.valid_until OR m.communication_route_id IS NULL
+ THEN RAISE EXCEPTION 'local_wait_fresh_owned_outbox_required' USING ERRCODE='55000';END IF;
+ INSERT INTO gridex_ediel_local_wait.policies_v1(installation_id,runtime_id,company_id,snapshot_id,snapshot_hash,outbox_id,message_id,source_message_id,source_hash,original_hash,route_id,delay_seconds,deadline)
+ VALUES(r.installation_id,r.id,o.company_id,snap.id,snap.configuration_hash,o.id,m.id,s.id,encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex'),m.immutable_payload_hash,m.communication_route_id,p_delay,p_deadline) RETURNING id INTO pid;
+ p:=gridex_ediel_local_wait.require_policy_v1(m.id,p_actor);
+ RETURN pid;
+END $$;
+
+--
+-- Name: database_identity_v1(); Type: FUNCTION; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_local_wait.database_identity_v1() RETURNS text
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT s.system_identifier::text||':'||d.oid::text||':'||d.datname
+ FROM pg_catalog.pg_control_system() s CROSS JOIN pg_catalog.pg_database d WHERE d.datname=current_database()
+$$;
+
+--
+-- Name: delegate_transport_v1(jsonb); Type: FUNCTION; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_local_wait.delegate_transport_v1(p_input jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$DECLARE r jsonb;BEGIN PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_bilateral_prodat.lock_source_receipts_v1();r:=gridex_ediel_transport.mutate_before_duplicate_protocol_v1(p_input);IF p_input->>'action' IN('prepare','enter') AND r->>'proceed'='true' THEN PERFORM gridex_ediel_duplicate_responses.require_transport_v1((p_input->>'companyId')::uuid,(p_input->>'messageId')::uuid,(p_input->>'actorUserId')::uuid);END IF;RETURN r;END$$;
+
+--
+-- Name: immutable_v1(); Type: FUNCTION; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_local_wait.immutable_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF TG_OP='DELETE' THEN RAISE EXCEPTION 'local_wait_history_delete_denied' USING ERRCODE='55000';END IF;
+ IF TG_TABLE_NAME='waits_v1' THEN
+  IF (to_jsonb(NEW)-'consumed_at') IS DISTINCT FROM (to_jsonb(OLD)-'consumed_at')
+   OR OLD.consumed_at IS NOT NULL OR NEW.consumed_at IS NULL THEN
+   RAISE EXCEPTION 'local_wait_observation_immutable' USING ERRCODE='55000';END IF;
+ ELSE
+  IF (to_jsonb(NEW)-'revoked_at') IS DISTINCT FROM (to_jsonb(OLD)-'revoked_at')
+   OR OLD.revoked_at IS NOT NULL OR NEW.revoked_at IS NULL THEN
+   RAISE EXCEPTION 'local_wait_origin_immutable' USING ERRCODE='55000';END IF;
+ END IF;
+ RETURN NEW;
+END $$;
+
+--
+-- Name: outbox_fence_v1(); Type: FUNCTION; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_local_wait.outbox_fence_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE p gridex_ediel_local_wait.policies_v1%rowtype;w gridex_ediel_local_wait.waits_v1%rowtype;t timestamptz;
+BEGIN
+ SELECT * INTO p FROM gridex_ediel_local_wait.policies_v1 WHERE outbox_id=OLD.id;
+ IF NOT FOUND THEN RETURN NEW;END IF;
+ IF NEW.id IS DISTINCT FROM OLD.id OR NEW.company_id IS DISTINCT FROM OLD.company_id
+ OR NEW.environment IS DISTINCT FROM OLD.environment OR NEW.ediel_message_id IS DISTINCT FROM OLD.ediel_message_id
+ OR NEW.source_message_id IS DISTINCT FROM OLD.source_message_id
+ OR NEW.attempts<OLD.attempts OR NEW.send_attempt_count<OLD.send_attempt_count
+ THEN RAISE EXCEPTION 'local_wait_outbox_lineage_or_counter_change' USING ERRCODE='55000';END IF;
+ IF NEW.status='sending' THEN
+  -- Broad actorless worker claims are not a LOCAL retry entry.
+  IF NEW.updated_by IS NULL OR NEW.locked_by IS DISTINCT FROM 'ediel-outbox-direct-'||NEW.updated_by::text
+  THEN RETURN NULL;END IF;
+  SELECT * INTO w FROM gridex_ediel_local_wait.waits_v1 WHERE policy_id=p.id AND consumed_at IS NULL ORDER BY observed_at DESC LIMIT 1;
+  -- Before due: suppress the row update itself, including lease and counters.
+  t:=clock_timestamp();IF FOUND AND t<w.not_before THEN RETURN NULL;END IF;
+  p:=gridex_ediel_local_wait.require_policy_v1(OLD.ediel_message_id,NEW.updated_by);
+  IF NEW.attempts>p.attempt_limit OR NEW.send_attempt_count>p.attempt_limit THEN RAISE EXCEPTION 'local_wait_attempt_budget_exhausted' USING ERRCODE='55000';END IF;
+  IF OLD.status<>'sending' AND (OLD.status NOT IN('prepared','queued') OR NEW.attempts<>OLD.attempts+1 OR NEW.send_attempt_count<>OLD.send_attempt_count+1)
+  THEN RAISE EXCEPTION 'local_wait_claim_increment_invalid' USING ERRCODE='55000';END IF;
+  IF OLD.status='sending' AND (NEW.attempts IS DISTINCT FROM OLD.attempts OR NEW.send_attempt_count IS DISTINCT FROM OLD.send_attempt_count
+   OR NEW.current_send_attempt_id IS DISTINCT FROM OLD.current_send_attempt_id OR NEW.locked_by IS DISTINCT FROM OLD.locked_by
+   OR NEW.locked_at IS DISTINCT FROM OLD.locked_at) THEN
+   RAISE EXCEPTION 'local_wait_claim_lease_immutable' USING ERRCODE='55000';END IF;
+ ELSIF NEW.attempts<>OLD.attempts OR NEW.send_attempt_count<>OLD.send_attempt_count THEN
+  RAISE EXCEPTION 'local_wait_unclaimed_attempt_increment' USING ERRCODE='55000';
+ END IF;
+ RETURN NEW;
+END $$;
+
+--
+-- Name: policy_due_v1(timestamp with time zone, integer, timestamp with time zone); Type: FUNCTION; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_local_wait.policy_due_v1(p_observed timestamp with time zone, p_delay integer, p_deadline timestamp with time zone) RETURNS timestamp with time zone
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE due timestamptz;
+BEGIN
+ IF p_observed IS NULL OR NOT isfinite(p_observed) OR p_delay IS NULL OR p_delay NOT BETWEEN 1 AND 3600
+ OR p_deadline IS NULL OR NOT isfinite(p_deadline) THEN RAISE EXCEPTION 'local_wait_policy_invalid' USING ERRCODE='22023';END IF;
+ due:=p_observed+make_interval(secs=>p_delay);
+ IF due>=p_deadline THEN RAISE EXCEPTION 'local_wait_deadline_exhausted' USING ERRCODE='22023';END IF;
+ RETURN due;
+END $$;
+
+--
+-- Name: qualify_installation_v1(text, timestamp with time zone, text, text, timestamp with time zone, jsonb); Type: FUNCTION; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_local_wait.qualify_installation_v1(p_database_identity text, p_postmaster timestamp with time zone, p_qualification_hash text, p_build_hash text, p_until timestamp with time zone, p_smtp_endpoint jsonb DEFAULT NULL::jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE iid uuid;rid uuid;t timestamptz:=clock_timestamp();
+BEGIN
+ IF current_user<>'postgres' THEN RAISE EXCEPTION 'local_wait_owner_required' USING ERRCODE='42501';END IF;
+ IF p_database_identity IS DISTINCT FROM gridex_ediel_local_wait.database_identity_v1()
+ OR p_postmaster IS DISTINCT FROM pg_postmaster_start_time()
+ OR p_qualification_hash IS NULL OR p_qualification_hash !~ '^[0-9a-f]{64}$'
+ OR p_build_hash IS NULL OR p_build_hash !~ '^[0-9a-f]{64}$'
+ OR gridex_ediel_local_wait.smtp_endpoint_sha256_v1(p_smtp_endpoint) IS NULL
+ OR p_until IS NULL OR NOT isfinite(p_until) OR p_until<=t OR p_until>t+interval '2 hours'
+ THEN RAISE EXCEPTION 'local_wait_installation_qualification_mismatch' USING ERRCODE='23514';END IF;
+ INSERT INTO gridex_ediel_local_wait.installations_v1(database_identity,qualification_sha256) VALUES(p_database_identity,p_qualification_hash) RETURNING id INTO iid;
+ INSERT INTO gridex_ediel_local_wait.runtimes_v1(installation_id,database_identity,postmaster_started_at,build_sha256,smtp_endpoint,smtp_endpoint_sha256,valid_from,valid_until)
+ VALUES(iid,p_database_identity,p_postmaster,p_build_hash,p_smtp_endpoint,gridex_ediel_local_wait.smtp_endpoint_sha256_v1(p_smtp_endpoint),t,p_until) RETURNING id INTO rid;
+ RETURN jsonb_build_object('installationId',iid,'runtimeId',rid,'expiresAt',p_until);
+END $_$;
+
+--
+-- Name: policies_v1; Type: TABLE; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE TABLE gridex_ediel_local_wait.policies_v1 (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    installation_id uuid NOT NULL,
+    runtime_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    snapshot_id uuid NOT NULL,
+    snapshot_hash text NOT NULL,
+    outbox_id uuid NOT NULL,
+    message_id uuid NOT NULL,
+    source_message_id uuid NOT NULL,
+    source_hash text NOT NULL,
+    original_hash text NOT NULL,
+    route_id uuid NOT NULL,
+    policy_version text DEFAULT 'local-test-4xx-v1'::text NOT NULL,
+    delay_seconds integer DEFAULT 60 NOT NULL,
+    attempt_limit integer DEFAULT 2 NOT NULL,
+    deadline timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    revoked_at timestamp with time zone,
+    CONSTRAINT policies_v1_attempt_limit_check CHECK ((attempt_limit = 2)),
+    CONSTRAINT policies_v1_delay_seconds_check CHECK (((delay_seconds >= 1) AND (delay_seconds <= 3600))),
+    CONSTRAINT policies_v1_original_hash_check CHECK ((original_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT policies_v1_policy_version_check CHECK ((policy_version = 'local-test-4xx-v1'::text)),
+    CONSTRAINT policies_v1_snapshot_hash_check CHECK ((snapshot_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT policies_v1_source_hash_check CHECK ((source_hash ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: require_policy_v1(uuid, uuid, text, boolean, jsonb); Type: FUNCTION; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_local_wait.require_policy_v1(p_message_id uuid, p_actor uuid, p_server_build_sha256 text DEFAULT NULL::text, p_require_build boolean DEFAULT false, p_server_smtp_endpoint jsonb DEFAULT NULL::jsonb) RETURNS gridex_ediel_local_wait.policies_v1
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE p gridex_ediel_local_wait.policies_v1%rowtype;i gridex_ediel_local_wait.installations_v1%rowtype;
+ r gridex_ediel_local_wait.runtimes_v1%rowtype;m public.ediel_messages%rowtype;s public.ediel_messages%rowtype;
+ o public.ediel_outbox%rowtype;snap public.ediel_configuration_snapshots%rowtype;t timestamptz;
+BEGIN
+ SELECT * INTO STRICT p FROM gridex_ediel_local_wait.policies_v1 WHERE message_id=p_message_id FOR SHARE;
+ SELECT * INTO STRICT i FROM gridex_ediel_local_wait.installations_v1 WHERE id=p.installation_id FOR SHARE;
+ SELECT * INTO STRICT r FROM gridex_ediel_local_wait.runtimes_v1 WHERE id=p.runtime_id AND installation_id=p.installation_id FOR SHARE;
+ IF p_require_build IS TRUE AND (p_server_build_sha256 IS NULL OR p_server_build_sha256 !~ '^[0-9a-f]{64}$'
+ OR p_server_build_sha256 IS DISTINCT FROM r.build_sha256) THEN
+  RAISE EXCEPTION 'local_wait_build_identity_mismatch' USING ERRCODE='55000';END IF;
+ IF p_require_build IS TRUE AND (p_server_smtp_endpoint IS DISTINCT FROM r.smtp_endpoint
+ OR gridex_ediel_local_wait.smtp_endpoint_sha256_v1(p_server_smtp_endpoint) IS DISTINCT FROM r.smtp_endpoint_sha256) THEN
+  RAISE EXCEPTION 'local_wait_smtp_endpoint_mismatch' USING ERRCODE='55000';END IF;
+ SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=p.message_id FOR SHARE;
+ SELECT * INTO STRICT s FROM public.ediel_messages WHERE id=p.source_message_id FOR SHARE;
+ SELECT * INTO STRICT o FROM public.ediel_outbox WHERE id=p.outbox_id FOR SHARE;
+ SELECT * INTO STRICT snap FROM public.ediel_configuration_snapshots WHERE id=p.snapshot_id AND company_id=p.company_id FOR SHARE;
+ PERFORM 1 FROM public.companies c WHERE c.id=p.company_id AND c.status='active' AND c.is_active AND c.is_paused IS FALSE FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'local_wait_company_ineligible' USING ERRCODE='42501';END IF;
+ -- The existing reader owns current source/actor/endpoint authority, not this policy.
+ PERFORM gridex_ediel_technical_ack.read_persisted_contrl_v2(p.company_id,'test',p.message_id,p_actor,'send');
+ IF NOT EXISTS(SELECT FROM public.canonical_tenant_operation_decision(p.company_id,'ediel.test.process') d WHERE d.allowed)
+ THEN RAISE EXCEPTION 'local_wait_canonical_denied' USING ERRCODE='42501';END IF;
+ t:=clock_timestamp();
+ IF p.revoked_at IS NOT NULL OR i.revoked_at IS NOT NULL OR r.revoked_at IS NOT NULL
+ OR i.database_identity IS DISTINCT FROM gridex_ediel_local_wait.database_identity_v1()
+ OR r.database_identity IS DISTINCT FROM i.database_identity OR r.postmaster_started_at IS DISTINCT FROM pg_postmaster_start_time()
+ OR t<r.valid_from OR t>=r.valid_until OR t>=p.deadline
+ OR snap.configuration_hash IS DISTINCT FROM p.snapshot_hash
+ OR EXISTS(SELECT FROM public.ediel_configuration_snapshots x WHERE x.company_id=p.company_id AND x.snapshot_version>snap.snapshot_version)
+ OR m.company_id IS DISTINCT FROM p.company_id OR m.environment IS DISTINCT FROM 'test' OR m.direction IS DISTINCT FROM 'outbound'
+ OR m.message_family IS DISTINCT FROM 'CONTRL' OR m.immutable_rendered_at IS NULL OR m.immutable_payload_hash IS DISTINCT FROM p.original_hash
+ OR encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') IS DISTINCT FROM p.original_hash OR m.communication_route_id IS DISTINCT FROM p.route_id
+ OR s.direction IS DISTINCT FROM 'inbound' OR s.environment IS DISTINCT FROM 'test'
+ OR (s.company_id IS NOT NULL AND s.company_id IS DISTINCT FROM p.company_id)
+ OR encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex') IS DISTINCT FROM p.source_hash
+ OR o.company_id IS DISTINCT FROM p.company_id OR o.environment IS DISTINCT FROM 'test' OR o.ediel_message_id IS DISTINCT FROM p.message_id
+ OR o.source_message_id IS DISTINCT FROM p.source_message_id
+ THEN RAISE EXCEPTION 'local_wait_binding_not_current' USING ERRCODE='55000';END IF;
+ RETURN p;
+END $_$;
+
+--
+-- Name: smtp_endpoint_sha256_v1(jsonb); Type: FUNCTION; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_local_wait.smtp_endpoint_sha256_v1(e jsonb) RETURNS text
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE fingerprint text;
+BEGIN
+ IF e IS NULL OR jsonb_typeof(e) IS DISTINCT FROM 'object' THEN RETURN NULL;END IF;
+ IF (SELECT count(*) FROM jsonb_object_keys(e))<>11
+ OR EXISTS(SELECT FROM jsonb_object_keys(e) k WHERE k NOT IN('version','provider','host','port','secure','requireTLS','rejectUnauthorized','minVersion','servername','caTrustSha256','fingerprint'))
+ OR e->'version' IS DISTINCT FROM '1'::jsonb OR e->>'provider' IS DISTINCT FROM 'strato'
+ OR (e->>'host' IN('127.0.0.1','::1')) IS NOT TRUE OR jsonb_typeof(e->'port') IS DISTINCT FROM 'number'
+ OR (e->>'port' ~ '^[1-9][0-9]{0,4}$') IS NOT TRUE
+ OR (e->'secure' IN('true'::jsonb,'false'::jsonb)) IS NOT TRUE
+ OR e->'requireTLS' IS DISTINCT FROM 'true'::jsonb OR e->'rejectUnauthorized' IS DISTINCT FROM 'true'::jsonb
+ OR e->>'minVersion' IS DISTINCT FROM 'TLSv1.2' OR e->'servername' IS DISTINCT FROM 'null'::jsonb
+ OR (e->>'caTrustSha256' ~ '^[0-9a-f]{64}$') IS NOT TRUE
+ OR (e->>'fingerprint' ~ '^[0-9a-f]{64}$') IS NOT TRUE THEN RETURN NULL;END IF;
+ IF (e->>'port')::integer NOT BETWEEN 1 AND 65535 THEN RETURN NULL;END IF;
+ fingerprint:=encode(sha256(convert_to(concat_ws(E'\n','local-smtp-endpoint-v1',e->>'provider',e->>'host',e->>'port',e->>'secure',e->>'requireTLS',e->>'rejectUnauthorized',e->>'minVersion','no-servername',e->>'caTrustSha256'),'UTF8')),'hex');
+ RETURN CASE WHEN fingerprint=e->>'fingerprint' THEN fingerprint ELSE NULL END;
+END $_$;
+
+--
 -- Name: authorized_v1(uuid, uuid, text); Type: FUNCTION; Schema: gridex_ediel_ops04; Owner: -
 --
 
@@ -19020,6 +19294,319 @@ BEGIN
 END $_$;
 
 --
+-- Name: current_snapshot_payload_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_test_capability; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_test_capability.current_snapshot_payload_v1(p_company_id uuid, p_actor_profile_id uuid, p_route_profile_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_temp'
+    AS $$
+declare
+  v_company public.companies%rowtype;
+  v_actor public.ediel_actor_settings%rowtype;
+  v_route public.ediel_route_profiles%rowtype;
+  v_communication_route public.communication_routes%rowtype;
+  v_payload jsonb;
+  v_actor_role text;
+  v_actor_ediel_id text;
+  v_route_sender text;
+  v_route_receiver text;
+begin
+  if p_company_id is null or p_actor_profile_id is null or p_route_profile_id is null then
+    raise exception 'company_actor_profile_and_route_required';
+  end if;
+
+  select * into v_company
+  from public.companies
+  where id=p_company_id;
+  if not found then raise exception 'tenant_not_found'; end if;
+
+  select * into v_actor
+  from public.ediel_actor_settings
+  where id=p_actor_profile_id and company_id=p_company_id;
+  if not found then raise exception 'tenant_scoped_test_actor_profile_not_found'; end if;
+  if lower(coalesce(v_actor.environment,'')) <> 'test' or coalesce(v_actor.is_active,false) <> true then
+    raise exception 'test_actor_profile_must_be_active_test_profile';
+  end if;
+
+  v_actor_role := case lower(coalesce(nullif(v_actor.actor_role,''),v_actor.role))
+    when 'supplier' then 'supplier'
+    when 'electricity_supplier' then 'supplier'
+    when 'esco' then 'energy_service_company'
+    when 'energy_service_company' then 'energy_service_company'
+    else lower(coalesce(nullif(v_actor.actor_role,''),v_actor.role))
+  end;
+  v_actor_ediel_id := nullif(btrim(coalesce(v_actor.actor_ediel_id,v_actor.ediel_id)), '');
+  if v_actor_role is null or v_actor_ediel_id is null then
+    raise exception 'test_actor_profile_identity_incomplete';
+  end if;
+
+  select * into v_route
+  from public.ediel_route_profiles
+  where id=p_route_profile_id and company_id=p_company_id;
+  if not found then raise exception 'tenant_scoped_test_route_profile_not_found'; end if;
+  if lower(coalesce(v_route.environment,'')) <> 'test'
+     or coalesce(v_route.is_active,true) <> true
+     or coalesce(v_route.is_enabled,true) <> true then
+    raise exception 'test_route_profile_must_be_active_test_route';
+  end if;
+
+  v_route_sender := nullif(btrim(coalesce(v_route.sender_ediel_id,v_route.own_ediel_id)), '');
+  v_route_receiver := nullif(btrim(coalesce(v_route.receiver_ediel_id,v_route.counterparty_ediel_id)), '');
+  if v_route_sender is null or upper(v_route_sender) <> upper(v_actor_ediel_id) then
+    raise exception 'test_route_sender_must_match_actor_profile';
+  end if;
+  if v_route_receiver is null then
+    raise exception 'test_route_receiver_required';
+  end if;
+  if v_route.actor_setting_id is not null and v_route.actor_setting_id <> v_actor.id then
+    raise exception 'test_route_actor_binding_mismatch';
+  end if;
+
+  select * into v_communication_route
+  from public.communication_routes
+  where id=v_route.communication_route_id and company_id=p_company_id;
+  if not found or v_communication_route.is_active is distinct from true
+     or v_communication_route.environment_type is null
+     or v_communication_route.environment_type not in ('agt_test','tgt_test','bilateral_test') then
+    raise exception 'test_route_communication_source_required';
+  end if;
+
+  v_payload := jsonb_build_object(
+    'test_context', jsonb_build_object(
+      'actor_profile_id', v_actor.id,
+      'route_profile_id', v_route.id,
+      'actor_role', v_actor_role,
+      'test_ediel_id', v_actor_ediel_id,
+      'counterparty_ediel_id', v_route_receiver,
+      'message_family', upper(coalesce(v_route.message_family,'')),
+      'application_reference', v_route.application_reference,
+      'environment_type', v_communication_route.environment_type
+    ),
+    'company', jsonb_build_object(
+      'id', v_company.id,
+      'actor_role', v_actor_role,
+      'test_ediel_id', v_actor_ediel_id,
+      'production_ediel_id', v_company.production_ediel_id,
+      'brp_ediel_id', coalesce(v_actor.brp_ediel_id,v_company.brp_ediel_id),
+      'test_application_reference', v_route.application_reference,
+      'production_application_reference', v_company.production_application_reference,
+      'primary_test_route_id', v_route.id,
+      'primary_production_route_id', v_company.ediel_primary_production_route_profile_id
+    ),
+    'actor_profiles', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',a.id,'environment',a.environment,'actor_role',coalesce(a.actor_role,a.role),
+        'ediel_id',coalesce(a.actor_ediel_id,a.ediel_id),
+        'sender_subaddress',coalesce(a.sender_sub_address,a.sender_subaddress),
+        'receiver_subaddress',coalesce(a.receiver_sub_address,a.receiver_subaddress),
+        'application_reference',coalesce(a.application_reference,a.default_application_reference),
+        'mailbox',a.mailbox,'brp_ediel_id',a.brp_ediel_id,'is_active',a.is_active
+      ) order by a.environment,a.id)
+      from public.ediel_actor_settings a
+      where a.company_id=p_company_id
+    ),'[]'::jsonb),
+    'routes', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',r.id,'environment',r.environment,'route_type',r.route_type,
+        'actor_setting_id',r.actor_setting_id,
+        'sender_ediel_id',r.sender_ediel_id,
+        'sender_subaddress',coalesce(r.sender_sub_address,r.sender_subaddress),
+        'receiver_ediel_id',r.receiver_ediel_id,
+        'receiver_subaddress',coalesce(r.receiver_sub_address,r.receiver_subaddress),
+        'application_reference',r.application_reference,
+        'message_family',r.message_family,
+        'environment_type',cr.environment_type,
+        'mailbox_id',r.mailbox_id,'transport_profile_id',r.transport_profile_id,
+        'certificate_id',r.certificate_id,'receiver_certificate_id',r.receiver_certificate_id,
+        'transport_security_mode',r.transport_security_mode,
+        'is_active',r.is_active,'is_enabled',r.is_enabled
+      ) order by r.environment,r.id)
+      from public.ediel_route_profiles r
+      left join public.communication_routes cr
+        on cr.id=r.communication_route_id and cr.company_id=r.company_id
+      where r.company_id=p_company_id
+    ),'[]'::jsonb),
+    'mailboxes', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',m.id,'environment',m.environment,'mailbox_name',m.mailbox_name,
+        'email_address',m.email_address,'provider',m.provider,'mailbox_type',m.mailbox_type,
+        'transport_mode',m.transport_mode,'tls_required',m.tls_required,
+        'signing_mode',m.signing_mode,'encryption_mode',m.encryption_mode,
+        'is_active',m.is_active,'is_shared_platform_mailbox',m.is_shared_platform_mailbox
+      ) order by m.environment,m.id)
+      from public.ediel_mailboxes m
+      where m.company_id=p_company_id or m.id=v_route.mailbox_id
+    ),'[]'::jsonb),
+    'certificates', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',c.id,'fingerprint',coalesce(c.fingerprint_sha256,c.certificate_fingerprint),
+        'owner_ediel_id',c.owner_ediel_id,'owner_subaddress',c.owner_subaddress,
+        'message_family',c.message_family,'purpose',c.purpose,'usage',c.usage,
+        'valid_from',coalesce(c.valid_from,c.certificate_valid_from),
+        'valid_to',coalesce(c.valid_to,c.certificate_valid_to),
+        'encryption_status',c.encryption_status,'status',c.status
+      ) order by c.id)
+      from public.ediel_certificates c
+      where c.id in (v_route.certificate_id,v_route.receiver_certificate_id)
+    ),'[]'::jsonb),
+    'active_rule_versions', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'rule_key',rv.rule_key,'version_code',rv.version_code,'schema_version',rv.schema_version,
+        'environment',rv.environment,'status',rv.status,'is_active',rv.is_active
+      ) order by rv.rule_key,rv.version_code)
+      from public.ediel_rule_versions rv
+      where coalesce(rv.is_active,false)=true and coalesce(rv.status,'active')='active'
+    ),'[]'::jsonb),
+    'engine_version','canonical-evidence-v3-role-scoped'
+  );
+
+  return v_payload;
+exception when raise_exception then return null;
+end;
+$$;
+
+--
+-- Name: invalidate_v1(); Type: FUNCTION; Schema: gridex_ediel_test_capability; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_test_capability.invalidate_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare old_company uuid; new_company uuid; row_company uuid; global_change boolean;
+begin
+ if TG_TABLE_NAME='ediel_mailboxes' and TG_OP='UPDATE' then
+  if gridex_ediel_test_capability.mailbox_configuration_v1(to_jsonb(OLD))
+     is not distinct from gridex_ediel_test_capability.mailbox_configuration_v1(to_jsonb(NEW)) then
+   return NEW;
+  end if;
+ end if;
+ if TG_OP<>'INSERT' then old_company:=nullif(to_jsonb(OLD)->>'company_id','')::uuid; end if;
+ if TG_OP<>'DELETE' then new_company:=nullif(to_jsonb(NEW)->>'company_id','')::uuid; end if;
+ -- Null-company shared dependencies and global rule tables invalidate all.
+ global_change:=(TG_OP<>'INSERT' and old_company is null) or (TG_OP<>'DELETE' and new_company is null);
+ for row_company in select company_id from public.company_capabilities
+  where capability_code='ediel_test' and (company_id=old_company or company_id=new_company
+   or (global_change and (TG_TABLE_NAME<>'ediel_mailboxes' or exists(
+     select 1 from public.ediel_active_test_configurations selected
+     join public.ediel_route_profiles route on route.id=selected.route_profile_id and route.company_id=selected.company_id
+     where selected.company_id=public.company_capabilities.company_id
+       and selected.id::text=public.company_capabilities.configuration->>'configurationId'
+       and (route.mailbox_id::text=to_jsonb(OLD)->>'id' or route.mailbox_id::text=to_jsonb(NEW)->>'id')
+   ))))
+  order by company_id
+ loop
+  update public.company_capabilities set enabled=false,readiness_status='blocked',configuration='{}'::jsonb,
+   blockers=array['test_configuration_changed_requires_reconciliation']::text[],updated_at=clock_timestamp()
+  where company_id=row_company and capability_code='ediel_test';
+ end loop;
+ if TG_OP='DELETE' then return OLD; end if; return NEW;
+end;
+$$;
+
+--
+-- Name: mailbox_configuration_v1(jsonb); Type: FUNCTION; Schema: gridex_ediel_test_capability; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_test_capability.mailbox_configuration_v1(p_row jsonb) RETURNS jsonb
+    LANGUAGE sql IMMUTABLE STRICT
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT p_row - ARRAY['last_polled_at','last_successful_poll_at','locked_at','locked_by','last_error','updated_at']::text[];
+$$;
+
+--
+-- Name: witness_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_test_capability; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_test_capability.witness_v1(p_company uuid, p_configuration uuid) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_temp'
+    AS $$
+declare
+ c public.ediel_active_test_configurations%rowtype;
+ s public.ediel_system_test_settings%rowtype;
+ a public.ediel_actor_settings%rowtype;
+ r public.ediel_route_profiles%rowtype;
+ cr public.communication_routes%rowtype;
+ snap public.ediel_configuration_snapshots%rowtype;
+ portal public.ediel_counterparties%rowtype; brp public.ediel_counterparties%rowtype;
+ live_payload jsonb; fingerprint text; mailbox_json jsonb; rules_json jsonb;
+begin
+ select * into c from public.ediel_active_test_configurations
+ where id=p_configuration and company_id=p_company and status='active'
+ and environment='test' and environment_type='tgt_test';
+ if not found then return null; end if;
+ select * into s from public.ediel_system_test_settings where id=c.system_test_settings_id
+ and company_id=p_company and is_active and environment='test' and environment_type='tgt_test'
+ and route_profile_id=c.route_profile_id and sender_actor_setting_id=c.actor_profile_id
+ and actor_role=(case c.actor_role when 'energy_service_company' then 'esco' when 'electricity_supplier' then 'supplier' else c.actor_role end)
+ and message_family=c.message_family and setup_package=c.setup_package;
+ if not found or nullif(btrim(s.setup_package),'') is null then return null; end if;
+ select * into a from public.ediel_actor_settings where id=c.actor_profile_id and company_id=p_company;
+ if not found then return null; end if;
+ select * into r from public.ediel_route_profiles where id=c.route_profile_id and company_id=p_company;
+ if not found or nullif(btrim(r.mailbox),'') is null
+ or (r.valid_from is not null and r.valid_from>statement_timestamp())
+ or (r.valid_to is not null and r.valid_to<=statement_timestamp())
+ or r.message_family is distinct from c.message_family then return null; end if;
+ select * into cr from public.communication_routes where id=r.communication_route_id and company_id=p_company;
+ if not found or cr.environment_type is distinct from c.environment_type then return null; end if;
+ select * into portal from public.ediel_counterparties where id=s.test_portal_counterparty_id
+ and company_id=p_company and environment='test' and is_active and counterparty_role='test_portal';
+ if not found or upper(coalesce(portal.counterparty_ediel_id,portal.ediel_id,''))
+ <> upper(coalesce(r.receiver_ediel_id,r.counterparty_ediel_id,'')) then return null; end if;
+ if s.test_brp_counterparty_id is not null then
+  select * into brp from public.ediel_counterparties where id=s.test_brp_counterparty_id
+   and company_id=p_company and environment='test' and is_active and counterparty_role='brp';
+  if not found then return null; end if;
+ end if;
+ select * into snap from public.ediel_configuration_snapshots where id=c.configuration_snapshot_id and company_id=p_company;
+ if not found then return null; end if;
+ live_payload:=gridex_ediel_test_capability.current_snapshot_payload_v1(p_company,c.actor_profile_id,c.route_profile_id);
+ -- Match the actual runtime selector's OR over both legacy/current role columns.
+ if (select count(*) from public.ediel_actor_settings other where other.company_id=p_company
+  and other.environment='test' and other.is_active and
+  (case when c.actor_role in ('supplier','electricity_supplier') then
+    other.role in ('supplier','electricity_supplier') or other.actor_role in ('supplier','electricity_supplier')
+   when c.actor_role in ('esco','energy_service_company') then
+    other.role in ('esco','energy_service_company') or other.actor_role in ('esco','energy_service_company')
+   else false end))<>1 then return null; end if;
+ if (select count(*) from public.ediel_system_test_settings other where other.company_id=p_company
+  and other.is_active and other.environment='test' and other.environment_type=s.environment_type
+  and other.test_suite=s.test_suite and other.actor_role=s.actor_role and other.message_family=s.message_family
+  and other.setup_package=s.setup_package)<>1 then return null; end if;
+ if (live_payload#>>'{test_context,actor_role}') is distinct from (case c.actor_role when 'esco' then 'energy_service_company' when 'electricity_supplier' then 'supplier' else c.actor_role end) then return null; end if;
+ if live_payload is null or live_payload is distinct from snap.payload
+ or snap.configuration_hash is distinct from encode(digest(convert_to(snap.payload::text,'utf8'),'sha256'),'hex') then return null; end if;
+ if r.mailbox_id is not null then
+  select gridex_ediel_test_capability.mailbox_configuration_v1(to_jsonb(m)) into mailbox_json
+  from public.ediel_mailboxes m where m.id=r.mailbox_id and m.is_active and m.environment='test'
+  and (m.company_id=p_company or (m.company_id is null and m.is_shared_platform_mailbox));
+  if mailbox_json is null then return null; end if;
+ end if;
+ -- Time validity must be checked on read even when no writer fires a trigger.
+ if exists(select 1 from public.ediel_certificates cert
+   where cert.id in(r.certificate_id,r.receiver_certificate_id)
+   and ((coalesce(cert.valid_from,cert.certificate_valid_from) is not null
+         and coalesce(cert.valid_from,cert.certificate_valid_from)>statement_timestamp())
+     or (coalesce(cert.valid_to,cert.certificate_valid_to) is not null
+         and coalesce(cert.valid_to,cert.certificate_valid_to)<=statement_timestamp()))) then return null; end if;
+ select jsonb_build_object(
+  'packs',(select coalesce(jsonb_agg(to_jsonb(t) order by id),'[]'::jsonb) from public.ediel_rule_packs t where status='active'),
+  'profiles',(select coalesce(jsonb_agg(to_jsonb(t) order by id),'[]'::jsonb) from public.ediel_message_profiles t where is_enabled),
+  'tenantProfiles',(select coalesce(jsonb_agg(to_jsonb(t) order by id),'[]'::jsonb) from public.ediel_rule_profile_versions t where company_id=p_company and status='active')
+ ) into rules_json;
+ fingerprint:=encode(digest(convert_to(jsonb_build_object(
+  'configuration',to_jsonb(c),'settings',to_jsonb(s),'actor',to_jsonb(a),
+  'route',to_jsonb(r),'communicationRoute',to_jsonb(cr),'portal',to_jsonb(portal),
+  'brp',to_jsonb(brp),'mailbox',mailbox_json,'rules',rules_json,'snapshot',snap.payload,'snapshotHash',snap.configuration_hash)::text,'utf8'),'sha256'),'hex');
+ return jsonb_build_object('configurationId',c.id,'snapshotId',snap.id,'fingerprint',fingerprint,'basis','canonical_tgt_configuration_v1');
+end;
+$$;
+
+--
 -- Name: accepted_source_basis_v1(public.ediel_messages); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
 --
 
@@ -20007,7 +20594,110 @@ END $$;
 CREATE FUNCTION gridex_ediel_transport.mutate_v1(p_input jsonb) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
-    AS $$DECLARE r jsonb;BEGIN PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_bilateral_prodat.lock_source_receipts_v1();r:=gridex_ediel_transport.mutate_before_duplicate_protocol_v1(p_input);IF p_input->>'action' IN('prepare','enter') AND r->>'proceed'='true' THEN PERFORM gridex_ediel_duplicate_responses.require_transport_v1((p_input->>'companyId')::uuid,(p_input->>'messageId')::uuid,(p_input->>'actorUserId')::uuid);END IF;RETURN r;END$$;
+    AS $_$
+DECLARE p gridex_ediel_local_wait.policies_v1%rowtype;w gridex_ediel_local_wait.waits_v1%rowtype;
+ a gridex_ediel_transport.attempts%rowtype;r gridex_ediel_transport.reservations%rowtype;
+ o public.ediel_outbox%rowtype;result jsonb;action text:=p_input->>'action';mid uuid:=(p_input->>'messageId')::uuid;
+ actor uuid:=(p_input->>'actorUserId')::uuid;aid uuid:=(p_input->>'attemptId')::uuid;
+ code integer;due timestamptz;resume boolean:=false;
+BEGIN
+ -- Absence never opts production or an unconfigured test source into this policy.
+ IF NOT EXISTS(SELECT FROM gridex_ediel_local_wait.policies_v1 WHERE message_id=mid) THEN
+  RETURN gridex_ediel_local_wait.delegate_transport_v1(p_input);
+ END IF;
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_bilateral_prodat.lock_source_receipts_v1();
+ IF action='observe' THEN
+  -- New LOCAL qualification expiring during SMTP must not erase the old
+  -- journal's actual observation. Only new retry eligibility is withheld.
+  result:=gridex_ediel_local_wait.delegate_transport_v1(p_input);
+  BEGIN
+   p:=gridex_ediel_local_wait.require_policy_v1(mid,actor,p_input->>'serverBuildSha256',action IN('prepare','enter'),p_input->'serverSmtpEndpoint');
+  EXCEPTION WHEN OTHERS THEN
+   RETURN result||jsonb_build_object('localTestWaitDenied',SQLSTATE);
+  END;
+ ELSE
+  p:=gridex_ediel_local_wait.require_policy_v1(mid,actor,p_input->>'serverBuildSha256',action IN('prepare','enter'),p_input->'serverSmtpEndpoint');
+ END IF;
+ IF p_input->>'companyId' IS DISTINCT FROM p.company_id::text OR p_input->>'environment' IS DISTINCT FROM 'test'
+ THEN RAISE EXCEPTION 'local_wait_transport_scope_mismatch' USING ERRCODE='42501';END IF;
+ SELECT * INTO STRICT o FROM public.ediel_outbox WHERE id=p.outbox_id FOR UPDATE;
+ IF action='prepare' THEN
+  IF p_input#>>'{owner,kind}' IS DISTINCT FROM 'worker' OR p_input#>>'{owner,outboxId}' IS DISTINCT FROM o.id::text
+   OR p_input#>>'{owner,sendAttemptId}' IS DISTINCT FROM o.current_send_attempt_id::text
+   OR p_input#>>'{owner,workerId}' IS DISTINCT FROM o.locked_by
+   OR o.status<>'sending' OR o.attempts>p.attempt_limit OR o.send_attempt_count>p.attempt_limit
+  THEN RAISE EXCEPTION 'local_wait_claim_owner_mismatch' USING ERRCODE='55000';END IF;
+  IF p_input#>'{binding,localSmtpEndpoint}' IS DISTINCT FROM p_input->'serverSmtpEndpoint' THEN
+   RAISE EXCEPTION 'local_wait_smtp_audit_binding_mismatch' USING ERRCODE='55000';END IF;
+  SELECT * INTO r FROM gridex_ediel_transport.reservations WHERE message_id=mid FOR UPDATE;
+  IF FOUND AND r.state='observed' THEN
+   SELECT * INTO w FROM gridex_ediel_local_wait.waits_v1 WHERE attempt_id=r.attempt_id AND policy_id=p.id FOR UPDATE;
+   IF FOUND AND w.consumed_at IS NULL THEN
+    SELECT * INTO STRICT a FROM gridex_ediel_transport.attempts WHERE id=w.attempt_id FOR SHARE;
+    IF clock_timestamp()<w.not_before OR clock_timestamp()>=w.deadline OR w.deadline IS DISTINCT FROM p.deadline
+     OR a.classification IS DISTINCT FROM 'explicit_negative' OR a.entered_at IS NULL
+     OR a.provider_result#>>'{error,responseCode}' IS DISTINCT FROM w.smtp_code::text
+     OR a.message_id IS DISTINCT FROM mid OR a.company_id IS DISTINCT FROM p.company_id OR a.environment IS DISTINCT FROM 'test'
+     OR a.observed_at IS DISTINCT FROM w.observed_at
+     OR (SELECT jsonb_object_agg(k,a.binding->k) FROM unnest(ARRAY['originalHash','payloadHash','payloadLength','routeId','from','to','encoding','mimeMode','sourceRulePackEvidence','technicalSyntaxAckEvidence','localSmtpEndpoint']) k)
+        IS DISTINCT FROM
+        (SELECT jsonb_object_agg(k,(p_input->'binding')->k) FROM unnest(ARRAY['originalHash','payloadHash','payloadLength','routeId','from','to','encoding','mimeMode','sourceRulePackEvidence','technicalSyntaxAckEvidence','localSmtpEndpoint']) k)
+    THEN RAISE EXCEPTION 'local_wait_retry_not_authorized' USING ERRCODE='55000';END IF;
+    -- Releasing only this proven definite-refusal cursor and creating the new
+    -- attempt are ONE transaction. Any old source/route guard denial rolls back.
+    UPDATE gridex_ediel_transport.reservations SET state='released' WHERE message_id=mid AND attempt_id=w.attempt_id AND state='observed';
+    resume:=true;
+   END IF;
+  END IF;
+ END IF;
+ IF action='enter' THEN
+  SELECT * INTO STRICT a FROM gridex_ediel_transport.attempts WHERE id=aid AND message_id=mid AND company_id=p.company_id FOR SHARE;
+  IF a.binding->'localSmtpEndpoint' IS DISTINCT FROM p_input->'serverSmtpEndpoint' THEN
+   RAISE EXCEPTION 'local_wait_smtp_audit_binding_mismatch' USING ERRCODE='55000';END IF;
+ END IF;
+ IF action IS DISTINCT FROM 'observe' THEN
+  result:=gridex_ediel_local_wait.delegate_transport_v1(p_input);
+  -- Recheck after all waits inside the unmodified canonical/source owner.
+  p:=gridex_ediel_local_wait.require_policy_v1(mid,actor,p_input->>'serverBuildSha256',action IN('prepare','enter'),p_input->'serverSmtpEndpoint');
+ END IF;
+ IF resume THEN
+  IF result->>'proceed' IS DISTINCT FROM 'true' THEN RAISE EXCEPTION 'local_wait_retry_prepare_denied' USING ERRCODE='55000';END IF;
+  UPDATE gridex_ediel_local_wait.waits_v1 SET consumed_at=clock_timestamp() WHERE attempt_id=w.attempt_id AND consumed_at IS NULL;
+  IF NOT FOUND THEN RAISE EXCEPTION 'local_wait_retry_already_consumed' USING ERRCODE='55000';END IF;
+ END IF;
+ IF action='observe' AND result->>'classification'='explicit_negative' THEN
+  SELECT * INTO STRICT a FROM gridex_ediel_transport.attempts WHERE id=aid AND message_id=mid AND company_id=p.company_id AND environment='test' FOR SHARE;
+  -- The journal is the authority: never infer a 4xx from an Error.message.
+  IF jsonb_typeof(a.provider_result#>'{error,responseCode}')='number'
+    AND a.provider_result#>>'{error,responseCode}' ~ '^4[0-9][0-9]$'
+    AND NOT (a.provider_result ? 'accepted') AND NOT (a.provider_result ? 'rejected')
+    AND a.entered_at IS NOT NULL AND a.observed_at IS NOT NULL
+    AND a.observed_at+make_interval(secs=>p.delay_seconds)<p.deadline AND o.attempts<p.attempt_limit AND o.send_attempt_count<p.attempt_limit
+    AND a.owner->>'kind'='worker' AND a.owner->>'outboxId'=o.id::text
+    AND a.owner->>'sendAttemptId'=o.current_send_attempt_id::text AND a.owner->>'workerId'=o.locked_by THEN
+   code:=(a.provider_result#>>'{error,responseCode}')::integer;
+   due:=gridex_ediel_local_wait.policy_due_v1(a.observed_at,p.delay_seconds,p.deadline);
+   INSERT INTO gridex_ediel_local_wait.waits_v1(attempt_id,policy_id,smtp_code,observed_at,not_before,deadline)
+   VALUES(a.id,p.id,code,a.observed_at,due,p.deadline) ON CONFLICT(attempt_id) DO NOTHING;
+   SELECT * INTO STRICT w FROM gridex_ediel_local_wait.waits_v1 WHERE attempt_id=a.id FOR SHARE;
+   IF w.policy_id<>p.id OR w.smtp_code<>code OR w.observed_at IS DISTINCT FROM a.observed_at
+    OR w.not_before IS DISTINCT FROM due OR w.deadline IS DISTINCT FROM p.deadline OR w.consumed_at IS NOT NULL
+   THEN RAISE EXCEPTION 'local_wait_observation_changed' USING ERRCODE='55000';END IF;
+   IF o.status='sending' THEN
+    UPDATE public.ediel_outbox SET status='queued',locked_at=NULL,locked_by=NULL,
+      last_error='ediel_local_test_retry_wait',updated_at=clock_timestamp()
+    WHERE id=o.id AND status='sending' AND current_send_attempt_id=o.current_send_attempt_id AND locked_by=o.locked_by;
+    IF NOT FOUND THEN RAISE EXCEPTION 'local_wait_observation_lease_lost' USING ERRCODE='55000';END IF;
+   ELSIF o.status<>'queued' OR o.last_error IS DISTINCT FROM 'ediel_local_test_retry_wait' THEN
+    RAISE EXCEPTION 'local_wait_observation_projection_changed' USING ERRCODE='55000';
+   END IF;
+   result:=result||jsonb_build_object('localTestWait',jsonb_build_object(
+    'version',1,'policyVersion',p.policy_version,'companyId',p.company_id,'messageId',mid,'attemptId',aid,'outboxId',o.id,
+    'environment','test','smtpCode',code,'observedAt',w.observed_at,'notBefore',w.not_before,'deadline',w.deadline,'delaySeconds',p.delay_seconds));
+  END IF;
+ END IF;
+ RETURN result;
+END $_$;
 
 --
 -- Name: open_reconciliation_case_v1(text, uuid, text, text, uuid); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
@@ -42190,6 +42880,35 @@ end
 $$;
 
 --
+-- Name: canonical_reconcile_ediel_test_capability_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.canonical_reconcile_ediel_test_capability_v1(p_company_id uuid, p_actor_user_id uuid, p_configuration_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_temp'
+    AS $$
+declare witness jsonb; allowed boolean;
+begin
+ if public.canonical_actor_is_authorized(p_company_id,p_actor_user_id,'ediel.profile.write',false) is not true then
+  raise exception 'ediel_test_capability_actor_denied' using errcode='42501';
+ end if;
+ -- Serialize publication with invalidators. Dependencies are read, not locked:
+ -- a concurrent dependency writer publishes invalidation after this lock releases.
+ perform 1 from public.company_capabilities where company_id=p_company_id and capability_code='ediel_test' for update;
+ if not found then raise exception 'ediel_test_capability_seed_missing'; end if;
+ witness:=gridex_ediel_test_capability.witness_v1(p_company_id,p_configuration_id);
+ allowed:=witness is not null;
+ update public.company_capabilities set enabled=allowed,
+  readiness_status=case when allowed then 'ready' else 'blocked' end,
+  configuration=coalesce(witness,'{}'::jsonb),
+  blockers=case when allowed then '{}'::text[] else array['current_canonical_tgt_configuration_required']::text[] end,
+  last_verified_at=clock_timestamp(),last_verified_by=p_actor_user_id,updated_by=p_actor_user_id,updated_at=clock_timestamp()
+ where company_id=p_company_id and capability_code='ediel_test';
+ return jsonb_build_object('allowed',allowed,'companyId',p_company_id,'configurationId',p_configuration_id);
+end;
+$$;
+
+--
 -- Name: canonical_record_actor_test_evidence(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -44472,6 +45191,15 @@ begin
     v_capability_ready :=
       coalesce(v_capability_row.enabled, false)
       and coalesce(v_capability_row.readiness_status, 'missing') = 'ready';
+  end if;
+
+  -- B4 currentness: historical/manual capability flags cannot grant test admission.
+  if p_operation='ediel.test.process' and v_capability_ready then
+    v_capability_ready := exists (
+      select 1 from public.ediel_active_test_configurations test_configuration
+      where test_configuration.company_id=p_company_id
+        and v_capability_row.configuration = gridex_ediel_test_capability.witness_v1(p_company_id,test_configuration.id)
+    );
   end if;
 
   if p_operation in (
@@ -108526,6 +109254,56 @@ CREATE TABLE gridex_ediel_legacy_archive.ediel_party_addresses (
 );
 
 --
+-- Name: installations_v1; Type: TABLE; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE TABLE gridex_ediel_local_wait.installations_v1 (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    database_identity text NOT NULL,
+    qualification_sha256 text NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    revoked_at timestamp with time zone,
+    CONSTRAINT installations_v1_qualification_sha256_check CHECK ((qualification_sha256 ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: runtimes_v1; Type: TABLE; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE UNLOGGED TABLE gridex_ediel_local_wait.runtimes_v1 (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    installation_id uuid NOT NULL,
+    database_identity text NOT NULL,
+    postmaster_started_at timestamp with time zone NOT NULL,
+    build_sha256 text NOT NULL,
+    smtp_endpoint jsonb NOT NULL,
+    smtp_endpoint_sha256 text NOT NULL,
+    valid_from timestamp with time zone NOT NULL,
+    valid_until timestamp with time zone NOT NULL,
+    revoked_at timestamp with time zone,
+    CONSTRAINT runtimes_v1_build_sha256_check CHECK ((build_sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT runtimes_v1_check CHECK ((valid_until > valid_from)),
+    CONSTRAINT runtimes_v1_smtp_endpoint_check CHECK ((jsonb_typeof(smtp_endpoint) = 'object'::text)),
+    CONSTRAINT runtimes_v1_smtp_endpoint_sha256_check CHECK ((smtp_endpoint_sha256 ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: waits_v1; Type: TABLE; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE TABLE gridex_ediel_local_wait.waits_v1 (
+    attempt_id uuid NOT NULL,
+    policy_id uuid NOT NULL,
+    smtp_code integer NOT NULL,
+    observed_at timestamp with time zone NOT NULL,
+    not_before timestamp with time zone NOT NULL,
+    deadline timestamp with time zone NOT NULL,
+    consumed_at timestamp with time zone,
+    CONSTRAINT waits_v1_check CHECK (((not_before > observed_at) AND (deadline > not_before))),
+    CONSTRAINT waits_v1_smtp_code_check CHECK (((smtp_code >= 400) AND (smtp_code <= 499)))
+);
+
+--
 -- Name: consumptions; Type: TABLE; Schema: gridex_ediel_ops04; Owner: -
 --
 
@@ -122477,6 +123255,11 @@ CREATE TABLE public.ediel_mailboxes (
     last_time_sync_check_at timestamp with time zone,
     provider text,
     is_shared_platform_mailbox boolean DEFAULT false NOT NULL,
+    smtp_host text,
+    smtp_port integer,
+    last_successful_poll_at timestamp with time zone,
+    created_by uuid,
+    updated_by uuid,
     CONSTRAINT ediel_mailboxes_secret_reference_check CHECK (((secret_reference IS NULL) OR (secret_reference !~* '^(pass|password|pwd)=|://[^/]*:[^/@]+@'::text)))
 );
 
@@ -134835,6 +135618,48 @@ ALTER TABLE ONLY gridex_ediel_inbound_receptions.technical_mailbox_births
 
 ALTER TABLE ONLY gridex_ediel_legacy_archive.ediel_party_addresses
     ADD CONSTRAINT ediel_party_addresses_pkey PRIMARY KEY (id);
+
+--
+-- Name: installations_v1 installations_v1_pkey; Type: CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.installations_v1
+    ADD CONSTRAINT installations_v1_pkey PRIMARY KEY (id);
+
+--
+-- Name: policies_v1 policies_v1_message_id_key; Type: CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.policies_v1
+    ADD CONSTRAINT policies_v1_message_id_key UNIQUE (message_id);
+
+--
+-- Name: policies_v1 policies_v1_outbox_id_key; Type: CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.policies_v1
+    ADD CONSTRAINT policies_v1_outbox_id_key UNIQUE (outbox_id);
+
+--
+-- Name: policies_v1 policies_v1_pkey; Type: CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.policies_v1
+    ADD CONSTRAINT policies_v1_pkey PRIMARY KEY (id);
+
+--
+-- Name: runtimes_v1 runtimes_v1_pkey; Type: CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.runtimes_v1
+    ADD CONSTRAINT runtimes_v1_pkey PRIMARY KEY (id);
+
+--
+-- Name: waits_v1 waits_v1_pkey; Type: CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.waits_v1
+    ADD CONSTRAINT waits_v1_pkey PRIMARY KEY (attempt_id);
 
 --
 -- Name: consumptions consumptions_agreement_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
@@ -154840,6 +155665,30 @@ CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_inbound_recept
 CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_inbound_receptions.technical_mailbox_births FOR EACH STATEMENT EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
 
 --
+-- Name: installations_v1 immutable_origin; Type: TRIGGER; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE TRIGGER immutable_origin BEFORE DELETE OR UPDATE ON gridex_ediel_local_wait.installations_v1 FOR EACH ROW EXECUTE FUNCTION gridex_ediel_local_wait.immutable_v1();
+
+--
+-- Name: policies_v1 immutable_origin; Type: TRIGGER; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE TRIGGER immutable_origin BEFORE DELETE OR UPDATE ON gridex_ediel_local_wait.policies_v1 FOR EACH ROW EXECUTE FUNCTION gridex_ediel_local_wait.immutable_v1();
+
+--
+-- Name: runtimes_v1 immutable_origin; Type: TRIGGER; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE TRIGGER immutable_origin BEFORE DELETE OR UPDATE ON gridex_ediel_local_wait.runtimes_v1 FOR EACH ROW EXECUTE FUNCTION gridex_ediel_local_wait.immutable_v1();
+
+--
+-- Name: waits_v1 immutable_origin; Type: TRIGGER; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+CREATE TRIGGER immutable_origin BEFORE DELETE OR UPDATE ON gridex_ediel_local_wait.waits_v1 FOR EACH ROW EXECUTE FUNCTION gridex_ediel_local_wait.immutable_v1();
+
+--
 -- Name: consumptions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
 --
 
@@ -158722,6 +159571,84 @@ CREATE TRIGGER audit_logs_normalize_context_v1 BEFORE INSERT OR UPDATE ON public
 CREATE TRIGGER authorization_scopes_no_widen_tg BEFORE UPDATE OF covers_grid_owner_data, covers_current_supplier_contract, covers_metering_data, signed_scope_snapshot ON public.authorization_scopes FOR EACH ROW EXECUTE FUNCTION public.gridex_protect_authorization_scope_coverage();
 
 --
+-- Name: communication_routes b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.communication_routes FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
+-- Name: ediel_active_test_configurations b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.ediel_active_test_configurations FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
+-- Name: ediel_actor_settings b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.ediel_actor_settings FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
+-- Name: ediel_certificates b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.ediel_certificates FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
+-- Name: ediel_configuration_snapshots b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.ediel_configuration_snapshots FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
+-- Name: ediel_counterparties b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.ediel_counterparties FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
+-- Name: ediel_mailboxes b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.ediel_mailboxes FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
+-- Name: ediel_message_profiles b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.ediel_message_profiles FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
+-- Name: ediel_route_profiles b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.ediel_route_profiles FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
+-- Name: ediel_rule_packs b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.ediel_rule_packs FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
+-- Name: ediel_rule_profile_versions b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.ediel_rule_profile_versions FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
+-- Name: ediel_rule_versions b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.ediel_rule_versions FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
+-- Name: ediel_system_test_settings b4_test_capability_invalidate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER b4_test_capability_invalidate AFTER INSERT OR DELETE OR UPDATE ON public.ediel_system_test_settings FOR EACH ROW EXECUTE FUNCTION gridex_ediel_test_capability.invalidate_v1();
+
+--
 -- Name: base_price_components base_price_components_locked_immutable; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -159784,6 +160711,12 @@ CREATE TRIGGER ediel_legacy_address_insert_only BEFORE INSERT ON public.ediel_me
 --
 
 CREATE TRIGGER ediel_legacy_address_insert_only BEFORE INSERT ON public.ediel_route_profiles FOR EACH ROW EXECUTE FUNCTION gridex_ediel_legacy_archive.refuse_new_address_reference_v1();
+
+--
+-- Name: ediel_outbox ediel_local_wait_outbox_fence; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER ediel_local_wait_outbox_fence BEFORE UPDATE ON public.ediel_outbox FOR EACH ROW EXECUTE FUNCTION gridex_ediel_local_wait.outbox_fence_v1();
 
 --
 -- Name: ediel_messages ediel_messages_canonical_contract_biu; Type: TRIGGER; Schema: public; Owner: -
@@ -165150,6 +166083,69 @@ ALTER TABLE ONLY gridex_ediel_legacy_archive.ediel_party_addresses
 
 ALTER TABLE ONLY gridex_ediel_legacy_archive.ediel_party_addresses
     ADD CONSTRAINT ediel_party_addresses_receiver_certificate_id_fkey FOREIGN KEY (receiver_certificate_id) REFERENCES public.ediel_certificates(id) ON DELETE SET NULL;
+
+--
+-- Name: policies_v1 policies_v1_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.policies_v1
+    ADD CONSTRAINT policies_v1_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: policies_v1 policies_v1_installation_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.policies_v1
+    ADD CONSTRAINT policies_v1_installation_id_fkey FOREIGN KEY (installation_id) REFERENCES gridex_ediel_local_wait.installations_v1(id);
+
+--
+-- Name: policies_v1 policies_v1_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.policies_v1
+    ADD CONSTRAINT policies_v1_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: policies_v1 policies_v1_outbox_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.policies_v1
+    ADD CONSTRAINT policies_v1_outbox_id_fkey FOREIGN KEY (outbox_id) REFERENCES public.ediel_outbox(id);
+
+--
+-- Name: policies_v1 policies_v1_snapshot_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.policies_v1
+    ADD CONSTRAINT policies_v1_snapshot_id_fkey FOREIGN KEY (snapshot_id) REFERENCES public.ediel_configuration_snapshots(id);
+
+--
+-- Name: policies_v1 policies_v1_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.policies_v1
+    ADD CONSTRAINT policies_v1_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: runtimes_v1 runtimes_v1_installation_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.runtimes_v1
+    ADD CONSTRAINT runtimes_v1_installation_id_fkey FOREIGN KEY (installation_id) REFERENCES gridex_ediel_local_wait.installations_v1(id);
+
+--
+-- Name: waits_v1 waits_v1_attempt_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.waits_v1
+    ADD CONSTRAINT waits_v1_attempt_id_fkey FOREIGN KEY (attempt_id) REFERENCES gridex_ediel_transport.attempts(id);
+
+--
+-- Name: waits_v1 waits_v1_policy_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_local_wait.waits_v1
+    ADD CONSTRAINT waits_v1_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES gridex_ediel_local_wait.policies_v1(id);
 
 --
 -- Name: consumptions consumptions_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
@@ -178084,6 +179080,30 @@ CREATE POLICY gridex_launch_platform_only_select_restored ON gridex_ediel_legacy
 --
 
 CREATE POLICY gridex_launch_platform_only_update ON gridex_ediel_legacy_archive.ediel_party_addresses FOR UPDATE TO authenticated USING (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)) WITH CHECK (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
+
+--
+-- Name: installations_v1; Type: ROW SECURITY; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE gridex_ediel_local_wait.installations_v1 ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: policies_v1; Type: ROW SECURITY; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE gridex_ediel_local_wait.policies_v1 ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: runtimes_v1; Type: ROW SECURITY; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE gridex_ediel_local_wait.runtimes_v1 ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: waits_v1; Type: ROW SECURITY; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+ALTER TABLE gridex_ediel_local_wait.waits_v1 ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: consumptions; Type: ROW SECURITY; Schema: gridex_ediel_ops04; Owner: -
@@ -200605,6 +201625,60 @@ REVOKE ALL ON FUNCTION gridex_ediel_inbound_receptions.result_v1(r gridex_ediel_
 REVOKE ALL ON FUNCTION gridex_ediel_legacy_archive.refuse_new_address_reference_v1() FROM PUBLIC;
 
 --
+-- Name: FUNCTION bind_outbox_v1(p_runtime_id uuid, p_outbox_id uuid, p_snapshot_id uuid, p_actor uuid, p_deadline timestamp with time zone, p_delay integer); Type: ACL; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_local_wait.bind_outbox_v1(p_runtime_id uuid, p_outbox_id uuid, p_snapshot_id uuid, p_actor uuid, p_deadline timestamp with time zone, p_delay integer) FROM PUBLIC;
+
+--
+-- Name: FUNCTION database_identity_v1(); Type: ACL; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_local_wait.database_identity_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION delegate_transport_v1(p_input jsonb); Type: ACL; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_local_wait.delegate_transport_v1(p_input jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION immutable_v1(); Type: ACL; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_local_wait.immutable_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION outbox_fence_v1(); Type: ACL; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_local_wait.outbox_fence_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION policy_due_v1(p_observed timestamp with time zone, p_delay integer, p_deadline timestamp with time zone); Type: ACL; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_local_wait.policy_due_v1(p_observed timestamp with time zone, p_delay integer, p_deadline timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION qualify_installation_v1(p_database_identity text, p_postmaster timestamp with time zone, p_qualification_hash text, p_build_hash text, p_until timestamp with time zone, p_smtp_endpoint jsonb); Type: ACL; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_local_wait.qualify_installation_v1(p_database_identity text, p_postmaster timestamp with time zone, p_qualification_hash text, p_build_hash text, p_until timestamp with time zone, p_smtp_endpoint jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_policy_v1(p_message_id uuid, p_actor uuid, p_server_build_sha256 text, p_require_build boolean, p_server_smtp_endpoint jsonb); Type: ACL; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_local_wait.require_policy_v1(p_message_id uuid, p_actor uuid, p_server_build_sha256 text, p_require_build boolean, p_server_smtp_endpoint jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION smtp_endpoint_sha256_v1(e jsonb); Type: ACL; Schema: gridex_ediel_local_wait; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_local_wait.smtp_endpoint_sha256_v1(e jsonb) FROM PUBLIC;
+
+--
 -- Name: FUNCTION authorized_v1(c uuid, actor uuid, phase text); Type: ACL; Schema: gridex_ediel_ops04; Owner: -
 --
 
@@ -202252,6 +203326,30 @@ REVOKE ALL ON FUNCTION gridex_ediel_technical_ack.retained_source_v1(m public.ed
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_technical_ack.select_configured_reply_route_v2(c uuid, e jsonb, reply_family text, current_smtp_from text, current_smtp_host text, current_smtp_port integer) FROM PUBLIC;
+
+--
+-- Name: FUNCTION current_snapshot_payload_v1(p_company_id uuid, p_actor_profile_id uuid, p_route_profile_id uuid); Type: ACL; Schema: gridex_ediel_test_capability; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_test_capability.current_snapshot_payload_v1(p_company_id uuid, p_actor_profile_id uuid, p_route_profile_id uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION invalidate_v1(); Type: ACL; Schema: gridex_ediel_test_capability; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_test_capability.invalidate_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION mailbox_configuration_v1(p_row jsonb); Type: ACL; Schema: gridex_ediel_test_capability; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_test_capability.mailbox_configuration_v1(p_row jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION witness_v1(p_company uuid, p_configuration uuid); Type: ACL; Schema: gridex_ediel_test_capability; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_test_capability.witness_v1(p_company uuid, p_configuration uuid) FROM PUBLIC;
 
 --
 -- Name: FUNCTION accepted_source_basis_v1(p_message public.ediel_messages); Type: ACL; Schema: gridex_ediel_transport; Owner: -
@@ -205900,6 +206998,13 @@ REVOKE ALL ON FUNCTION public.canonical_provision_company_v3_pre_invitation_inte
 
 REVOKE ALL ON FUNCTION public.canonical_queue_customer_application_repair(p_application_id uuid, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.canonical_queue_customer_application_repair(p_application_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION canonical_reconcile_ediel_test_capability_v1(p_company_id uuid, p_actor_user_id uuid, p_configuration_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.canonical_reconcile_ediel_test_capability_v1(p_company_id uuid, p_actor_user_id uuid, p_configuration_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.canonical_reconcile_ediel_test_capability_v1(p_company_id uuid, p_actor_user_id uuid, p_configuration_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION canonical_record_actor_test_evidence(p_command jsonb); Type: ACL; Schema: public; Owner: -

@@ -1,6 +1,8 @@
 // masterplan: GOV-04, AT-GOV-04
 import {stockholmBusinessDate} from '@/lib/ediel/core/executionContext'
 import { createHash, randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielBusinessExpectationPlan, EdielTechnicalExpectationPlan } from '@/lib/ediel/businessExpectations'
 import type {EdielMeteringMethodExpectationPlan} from '@/lib/ediel/meteringMethodExpectationPolicy'
@@ -16,7 +18,13 @@ import type { OutboundDispatchOwner } from '@/lib/ediel/sources/correctionOutbou
 import {transportExceptionBinding,type TransportExceptionAuthorization} from './exception/source'
 
 type ProviderResult = Awaited<ReturnType<typeof sendEdielEmail>> & { dispatchReplay?: boolean; dispatchObservedAt?: string }
-type Receipt = { proceed?: boolean; classification?: string; providerReceipt?: ProviderResult; observedAt?: string }
+type Receipt = { proceed?: boolean; classification?: string; state?: string; providerReceipt?: ProviderResult; observedAt?: string; localTestWait?: unknown }
+/** A committed native refusal/wait is not permission to resend. */
+export class LocalTestTransportWaitError extends Error {
+  readonly code = 'ediel_local_test_retry_wait'
+  constructor(readonly notBefore: string, readonly deadline: string) { super('ediel_local_test_retry_wait') }
+}
+
 class AcceptedProjection extends Error { constructor(readonly result: ProviderResult) { super('ediel_transport_projection_only') } }
 
 export type GenericEdielDispatchContext = {
@@ -46,17 +54,41 @@ export function createGenericEdielAttemptGate(input: SendEdielEmailInput, contex
   if (!message.company_id) throw new Error('ediel_transport_company_required')
   const identity = { companyId: message.company_id, environment: message.environment, messageId: message.id, actorUserId: context.actorUserId, attemptId: randomUUID() }
   let prepared = false, entered = false, observed = false, callbackUsed = false
+  let capturedSmtpEndpoint: unknown = null
   const call = async (action: string, extra: Record<string, unknown> = {}): Promise<Receipt> => {
-    const { data, error } = await supabaseService.rpc('gridex_ediel_transport_attempt_v1', { p_input: { ...identity, action, ...extra } })
+    // This host uses Next's default .next directory. Match Next getBuildId's
+    // trimmed UTF-8 identity, never a request field or environment opt-in.
+    // Re-read at BOTH boundaries; no cached identity survives a build switch.
+    const needsBuild = message.environment === 'test' && (action === 'prepare' || action === 'enter')
+    let serverBuildSha256: string | null = null
+    if (needsBuild) {
+      try {
+        const bytes = await readFile(join(process.cwd(), '.next', 'BUILD_ID'), 'utf8')
+        const buildId = bytes.trim()
+        if (buildId && Buffer.byteLength(bytes, 'utf8') <= 1024 && !/[\u0000-\u001f\u007f]/.test(buildId)) {
+          serverBuildSha256 = createHash('sha256').update(buildId, 'utf8').digest('hex')
+        }
+      } catch { /* A registered LOCAL policy rejects missing identity in SQL. */ }
+    }
+    const { data, error } = await supabaseService.rpc('gridex_ediel_transport_attempt_v1', {
+      p_input: { ...identity, action, ...extra, ...(needsBuild ? { serverBuildSha256, serverSmtpEndpoint: capturedSmtpEndpoint } : {}) },
+    })
     if (error) throw error
     if (!data || typeof data !== 'object') throw new Error('ediel_transport_receipt_invalid')
     return data as Receipt
   }
   const entry = {
     archiveContext: { companyId: message.company_id, messageId: message.id },
+    ...(message.environment === 'test' ? { captureLocalTransportEndpoint: true as const } : {}),
     beforeProviderCall: async (actual: Record<string, unknown>) => {
       if (callbackUsed) throw new Error('ediel_transport_callback_reused')
       callbackUsed = true
+      // The email helper supplies this from the SAME captured transporter
+      // options. Never re-read server SMTP config after archive awaits.
+      if (message.environment === 'test') {
+        capturedSmtpEndpoint = actual.localSmtpEndpoint && typeof actual.localSmtpEndpoint === 'object'
+          ? Object.freeze(structuredClone(actual.localSmtpEndpoint)) : null
+      }
       assertEdielAdmissionDateCurrent(context.admissionDecision)
       const binding = {
         ...actual, originalHash: createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex'), routeId: message.communication_route_id,
@@ -100,7 +132,26 @@ export function createGenericEdielAttemptGate(input: SendEdielEmailInput, contex
     if (error instanceof AcceptedProjection) return error.result
     if (entered) {
       if (!observed) {
-        try { await call('observe', { result: smtpErrorEvidence(error) }) } catch { /* committed entry remains no-resend authority */ }
+        let receipt: Receipt | null = null
+        try { receipt = await call('observe', { result: smtpErrorEvidence(error) }) } catch { /* lost commit response remains reconciliation-only */ }
+        const wait = receipt?.localTestWait as Record<string, unknown> | undefined
+        const provider = error as { responseCode?: unknown } | null
+        const started = typeof wait?.observedAt === 'string' ? Date.parse(wait.observedAt) : NaN
+        const due = typeof wait?.notBefore === 'string' ? Date.parse(wait.notBefore) : NaN
+        const end = typeof wait?.deadline === 'string' ? Date.parse(wait.deadline) : NaN
+        if (message.environment === 'test' && context.owner?.kind === 'worker'
+          && receipt?.classification === 'explicit_negative' && receipt.state === 'observed' && wait?.version === 1
+          && wait.policyVersion === 'local-test-4xx-v1' && wait.environment === 'test'
+          && wait.companyId === identity.companyId && wait.messageId === identity.messageId
+          && wait.attemptId === identity.attemptId && wait.outboxId === context.owner.outboxId
+          && typeof provider?.responseCode === 'number' && Number.isInteger(provider.responseCode)
+          && provider.responseCode >= 400 && provider.responseCode <= 499 && wait.smtpCode === provider.responseCode
+          && typeof wait.delaySeconds === 'number' && Number.isInteger(wait.delaySeconds)
+          && wait.delaySeconds >= 1 && wait.delaySeconds <= 3600
+          && Number.isFinite(started) && Number.isFinite(due) && Number.isFinite(end)
+          && receipt.observedAt === wait.observedAt && due - started === wait.delaySeconds * 1000 && end > due) {
+          throw new LocalTestTransportWaitError(wait.notBefore as string, wait.deadline as string)
+        }
       }
       throw error instanceof SmtpDeliveryUncertainError ? error : new SmtpDeliveryUncertainError(error)
     }

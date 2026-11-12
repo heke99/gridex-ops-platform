@@ -10,6 +10,7 @@ import {
 } from "@/lib/inbound-mail/edielMailboxPoller";
 import { supabaseService } from "@/lib/supabase/service";
 import { resolveImapSecureForSave } from "@/lib/inbound-mail/imapTls";
+import { logAdminActionAndUsage } from "@/lib/audit/actionLogger";
 
 function text(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -100,6 +101,7 @@ export async function processInboundMailQueueAction() {
 export async function saveSharedMailboxProfileAction(formData: FormData) {
   const admin = await requirePlatformAdminActionAccess();
   const mailboxId = text(formData, "mailbox_id");
+  if (mailboxId) requireMailboxId(formData);
   const environment = normalizeEnvironment(text(formData, "environment"));
   const mailboxName = requiredText(formData, "mailbox_name", "Mailboxnamn");
   const emailAddress = requiredText(formData, "email_address", "E-postadress");
@@ -134,6 +136,8 @@ export async function saveSharedMailboxProfileAction(formData: FormData) {
         .from("ediel_mailboxes")
         .select("id, metadata")
         .eq("id", mailboxId)
+        .is("company_id", null)
+        .eq("environment", environment)
         .maybeSingle()
     : await supabaseService
         .from("ediel_mailboxes")
@@ -145,14 +149,19 @@ export async function saveSharedMailboxProfileAction(formData: FormData) {
         .maybeSingle();
 
   if (existing.error) throw existing.error;
+  if (mailboxId && !existing.data) {
+    throw new Error("Delad mailbox hittades inte.");
+  }
 
-  const existingMetadata =
-    existing.data && typeof existing.data.metadata === "object" && existing.data.metadata
-      ? (existing.data.metadata as Record<string, unknown>)
-      : {};
+  const metadata = existing.data?.metadata;
+  if (metadata != null && (typeof metadata !== "object" || Array.isArray(metadata))) {
+    throw new Error("Befintlig mailbox metadata måste vara ett objekt.");
+  }
+  const existingMetadata = (metadata ?? {}) as Record<string, unknown>;
 
   const payload = {
     company_id: null,
+    is_shared_platform_mailbox: true,
     environment,
     mailbox_name: mailboxName,
     email_address: emailAddress,
@@ -187,38 +196,40 @@ export async function saveSharedMailboxProfileAction(formData: FormData) {
         .from("ediel_mailboxes")
         .update(payload)
         .eq("id", existing.data.id)
+        .is("company_id", null)
+        .eq("environment", environment)
     : supabaseService.from("ediel_mailboxes").insert({
         ...payload,
         created_by: admin.userId,
       });
 
-  const { error } = await query;
+  const { data: savedMailbox, error } = await query.select("id").single();
   if (error) throw error;
+  if (!savedMailbox?.id) throw new Error("Mailboxsparandet saknar bekräftat ID.");
 
-  await supabaseService
-    .from("audit_logs")
-    .insert({
-      company_id: null,
-      actor_user_id: admin.userId,
-      action: "SUPERADMIN_SHARED_EDIEL_MAILBOX_SAVED",
-      entity_type: "ediel_mailboxes",
-      entity_id: existing.data?.id ?? null,
-      new_values: {
-        environment,
-        mailbox_name: mailboxName,
-        email_address: emailAddress,
-        imap_host: imapHost,
-        imap_port: imapPort,
-        smtp_host: smtpHost,
-        smtp_port: smtpPort,
-        smtp_from: smtpFrom,
-        smtp_to: smtpTo,
-        username,
-        secret_reference: secretReference,
-        metadata: payload.metadata,
-      },
-    })
-    .then(() => null);
+  // The mailbox is already persisted; an audit failure must deny success,
+  // but cannot roll back that earlier write. Do not silently retry it here.
+  await logAdminActionAndUsage({
+    companyId: null,
+    actorUserId: admin.userId,
+    action: "SUPERADMIN_SHARED_EDIEL_MAILBOX_SAVED",
+    entityType: "ediel_mailboxes",
+    entityId: savedMailbox.id,
+    newValues: {
+      environment,
+      mailbox_name: mailboxName,
+      email_address: emailAddress,
+      imap_host: imapHost,
+      imap_port: imapPort,
+      smtp_host: smtpHost,
+      smtp_port: smtpPort,
+      smtp_from: smtpFrom,
+      smtp_to: smtpTo,
+      username,
+      secret_reference: secretReference,
+      metadata: payload.metadata,
+    },
+  });
 
   revalidatePath("/admin/inbound-mail");
   revalidatePath("/admin/ediel/mailboxes");

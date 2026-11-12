@@ -1,7 +1,10 @@
 // local/047 component regression for EDIEL01.01–06 / EDIEL02.01–06 / EDIEL03.01–05 prerequisites.
 // Executes actual reconstruction SQL in private in-memory PostgreSQL/PGlite, not native replay,
 // PostgREST, managed Supabase, full trigger graph, readiness or original business acceptance.
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
@@ -787,3 +790,61 @@ it('actual upgrade-script validator rejects broadened canonical service policy w
   await expect(actualUpgradeScriptValidator()).rejects.toThrow('ediel047_service_rls_missing')
   expect(await state()).toEqual(before);expect(await fullTargetCatalog()).toEqual(catalog);expect(await registryRows()).toEqual(registry)
 },30_000)
+
+// Executes only the exact f23 apply subchain against a finite command port.
+// This is orchestration regression, not native replay or data-preservation proof.
+describe('f23 replay command ordering (finite psql port only)', () => {
+  const migrations = [
+    '20261106184525_ediel_operations_tables_replay_completeness.sql',
+    '20261107034000_ediel_mailbox_runtime_columns_reconstruction.sql',
+    '20261110120000_canonical_ediel_test_capability_reconciliation_v1.sql',
+  ]
+  it.each([null, migrations[1], migrations[2]])('applies committed forwards in order and stops on failure %s', fail => {
+    const root = mkdtempSync(join(tmpdir(), 'gridex-f23-command-port-'))
+    try {
+      mkdirSync(join(root, 'f23-plan', 'inputs'), { recursive: true })
+      mkdirSync(join(root, 'f23-repaired'), { recursive: true })
+      writeFileSync(join(root, 'f23-plan', 'upgrade-inputs.list'), migrations.map(n => join(root, 'f23-plan', 'inputs', n)).join('\n') + '\n')
+      const source = readFileSync('scripts/gridex-ediel-upgrade-replay.sh', 'utf8')
+      const start = source.indexOf(' psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/gridex-ediel-upgrade-fixture-observe.sql" > "$UPGRADE_OUT/f23-repaired/retained-before.json"')
+      const endMarker = ' generate_upgrade_artifacts "$UPGRADE_OUT/f23-repaired"'
+      const end = source.indexOf(endMarker, start)
+      expect(start).toBeGreaterThan(0)
+      expect(end).toBeGreaterThan(start)
+      const program = `set -euo pipefail
+CANDIDATE_ROOT="$1"; UPGRADE_OUT="$1"; UPGRADE_WORK="$1"; DB_URL='finite-command-port'; EDIEL047_FORWARD="$2"; FAIL_MIGRATION="$3"
+psql() {
+  local previous='' argument
+  for argument in "$@"; do
+    if [[ "$previous" == '-f' && "$argument" == *.sql ]]; then
+      case "$argument" in
+        *ediel_operations_tables_replay_completeness.sql|*ediel_mailbox_runtime_columns_reconstruction.sql|*canonical_ediel_test_capability_reconciliation_v1.sql)
+          printf '%s\n' "$(basename "$argument")" >> "$CANDIDATE_ROOT/calls"
+          if [[ -n "$FAIL_MIGRATION" && "$(basename "$argument")" == "$FAIL_MIGRATION" ]]; then return 9; fi ;;
+      esac
+    fi
+    previous="$argument"
+  done
+  printf '%s\n' 'retained-fixture-port'
+}
+assert_ediel047_contract() { printf '%s\n' catalog >> "$CANDIDATE_ROOT/calls"; }
+generate_upgrade_artifacts() { printf '%s\n' generated >> "$CANDIDATE_ROOT/calls"; }
+${source.slice(start, end + endMarker.length)}
+`
+      const result = spawnSync('/bin/bash', ['-c', program, 'f23-component', root, migrations[0], fail ?? ''], { encoding: 'utf8', timeout: 5_000 })
+      const calls = readFileSync(join(root, 'calls'), 'utf8').trim().split('\n')
+      expect(result.error).toBeUndefined()
+      if (fail) {
+        expect(result.status, result.stderr).toBe(9)
+        expect(calls.filter(n => n.endsWith('.sql'))).toEqual(migrations.slice(0, migrations.indexOf(fail) + 1))
+        expect(calls).not.toContain('generated')
+      } else {
+        expect(result.status, result.stderr).toBe(0)
+        expect(calls.filter(n => n.endsWith('.sql'))).toEqual(migrations)
+        expect(calls.indexOf('catalog')).toBeGreaterThan(calls.indexOf(migrations[0]))
+        expect(calls.indexOf('catalog')).toBeLessThan(calls.indexOf(migrations[1]))
+        expect(calls.at(-1)).toBe('generated')
+      }
+    } finally { rmSync(root, { recursive: true, force: true }) }
+  })
+})

@@ -8,6 +8,7 @@ import { claimEdielOutboxItem } from '@/lib/ediel/outbox/claimOutboxItems'
 import { projectSentEdielSourceState } from '@/lib/ediel/outbox/projectSentSources'
 import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 import { isSmtpDeliveryUncertain, SmtpDeliveryUncertainError } from '@/lib/ediel/transport/smtpOutcome'
+import { LocalTestTransportWaitError } from '@/lib/ediel/transport/outboundAttempt'
 import { readAcceptedEdielTransportProjection } from '@/lib/ediel/transport/acceptedProjection'
 import { repairAcceptedEdielMessageProjection } from '@/lib/ediel/transport/acceptedProjectionRepair'
 
@@ -334,6 +335,11 @@ export async function sendOutboxItem(params: {
     })
     return { status: 'sent', messageId: providerMessageId }
   } catch (error) {
+    // Native observation already persisted queued + due and released this claim.
+    // Do not overwrite that atomic result with failed/uncertain or a client clock.
+    if (!providerAccepted && error instanceof LocalTestTransportWaitError) {
+      return { status: 'blocked', messageId: null, error: error.code }
+    }
     const errorMessage = describeOutboxError(error)
 
     if (providerAccepted || isSmtpDeliveryUncertain(error)) {

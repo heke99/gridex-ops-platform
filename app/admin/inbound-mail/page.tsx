@@ -475,6 +475,7 @@ export default async function InboundMailPage() {
                     </span>
                   </div>
 
+                  <p id={`mailbox-${mailbox.id}-identity`} className="mt-2 break-all text-xs text-slate-600">Mailbox-ID: {mailbox.id} · {mailbox.email_address ?? "E-postadress saknas"}</p>
                   <div className="mt-3 rounded-xl bg-white p-3 text-xs text-slate-700">
                     <p className="font-bold text-slate-900">IMAP inbound</p>
                     <p>Host: {mailbox.imap_host ?? "saknas"}:{mailbox.imap_port ?? 993} · {imapSecure ? "SSL/TLS" : "utan SSL"}</p>
@@ -511,6 +512,7 @@ export default async function InboundMailPage() {
                   ) : null}
 
                   <div className="mt-4 grid gap-2">
+                    {mailbox.company_id === null ? (
                     <form action={saveSharedMailboxProfileAction} className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3">
                       <input type="hidden" name="mailbox_id" value={mailbox.id} />
                       <input type="hidden" name="environment" value={mailbox.environment ?? "production"} />
@@ -519,19 +521,28 @@ export default async function InboundMailPage() {
                       <input type="hidden" name="imap_host" value={mailbox.imap_host ?? "imap.strato.de"} />
                       <input type="hidden" name="imap_port" value={mailbox.imap_port ?? 993} />
                       <input type="hidden" name="imap_folder" value={imapFolder} />
-                      <input type="hidden" name="imap_secure" value={imapSecure ? "true" : "false"} />
+                      <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                        <input type="checkbox" name="imap_secure" defaultChecked={imapSecure} aria-labelledby={`mailbox-${mailbox.id}-imap-label mailbox-${mailbox.id}-identity`} />
+                        <span id={`mailbox-${mailbox.id}-imap-label`}>IMAP SSL/TLS</span>
+                      </label>
+                      <p className="text-xs text-slate-600">Avmarkerad IMAP använder obligatorisk STARTTLS. Certifikat verifieras alltid.</p>
                       <input type="hidden" name="username" value={mailbox.username ?? mailbox.email_address ?? ""} />
                       <input type="hidden" name="secret_reference" value={mailbox.secret_reference ?? "env:EDIEL_IMAP_PASS"} />
                       <input type="hidden" name="smtp_host" value={mailbox.smtp_host ?? "smtp.strato.de"} />
                       <input type="hidden" name="smtp_port" value={mailbox.smtp_port ?? 465} />
-                      <input type="hidden" name="smtp_secure" value={smtpSecure ? "true" : "false"} />
+                      <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                        <input type="checkbox" name="smtp_secure" defaultChecked={smtpSecure} aria-labelledby={`mailbox-${mailbox.id}-smtp-label mailbox-${mailbox.id}-identity`} />
+                        <span id={`mailbox-${mailbox.id}-smtp-label`}>SMTP SSL/TLS</span>
+                      </label>
                       <input type="hidden" name="smtp_from" value={mailbox.smtp_from ?? mailbox.email_address ?? ""} />
+                      <input type="hidden" name="smtp_to" value={mailbox.smtp_to ?? ""} />
                       <input type="hidden" name="smtp_username" value={smtpUsername ?? ""} />
                       <input type="hidden" name="smtp_secret_reference" value={smtpSecretReference ?? "env:EDIEL_SMTP_PASS"} />
-                      <button className="rounded-xl border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50">
-                        Återaktivera/spara om
+                      <button aria-labelledby={`mailbox-${mailbox.id}-save-label mailbox-${mailbox.id}-identity`} className="rounded-xl border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50">
+                        <span id={`mailbox-${mailbox.id}-save-label`}>Spara och återaktivera</span>
                       </button>
                     </form>
+                    ) : null}
                     <form action={deactivateSharedMailboxProfileAction}>
                       <input type="hidden" name="mailbox_id" value={mailbox.id} />
                       <button className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50">

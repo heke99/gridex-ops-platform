@@ -51,9 +51,9 @@ export function nationalRescissionFixturePlan(databaseClock:string):NationalResc
   endWireMinute:market.slice(0,16).replace(/[-T:]/g,''),endDate:market.slice(0,10)})
 }
 
-export function nationalRescissionNativeChain(deps:{provider:Mock;sourceSession:{client:SupabaseClient|null};customerName?:string}){
+export function nationalRescissionNativeChain(deps:{provider:Mock;sourceSession:{client:SupabaseClient|null};customerName?:string;prospectiveCorrectionDispatch?:boolean}){
  const {provider,sourceSession}=deps
-async function stage(requestedStartDate='2026-10-15'){const f=await seedNormalSwitchNativeFixture({requestedStartDate,deferOriginal:true,initialSubtype:'H',customerName:deps.customerName});sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,is_active,status) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key,'allow',true,'active' FROM public.permissions WHERE key IN('communication.read','communication.write','communication.send','contracts.read','metering.read','metering.write');`);return f}
+async function stage(requestedStartDate='2026-10-15'){const f=await seedNormalSwitchNativeFixture({requestedStartDate,deferOriginal:true,initialSubtype:'H',customerName:deps.customerName,...(deps.prospectiveCorrectionDispatch?{prospectiveCorrectionDispatch:true}:{})});sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,is_active,status) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key,'allow',true,'active' FROM public.permissions WHERE key IN('communication.read','communication.write','communication.send','contracts.read','metering.read','metering.write');`);return f}
 async function authorized(){
  const f=await createBilateralProdatGroundNativeFixture(await stage()),artifact=await archiveBilateralProdatGround({companyId:f.companyId,actorUserId:f.actorUserId,...f.signed()}),review=await reviewBilateralProdatGround({companyId:f.companyId,actorUserId:f.reviewer,artifactId:String(artifact.artifactId),sourceHash:String(artifact.sourceHash),scopeHash:String(artifact.scopeHash),decision:'approve',reason:'Independent review of synthetic original; mechanism only'})
  expect(review.status,JSON.stringify(review)).toBe('authorized');return {...f,profileVersionId:String(review.profileVersionId)}
@@ -219,7 +219,8 @@ function nationalNativeOperator(companyId:string,permissions:string[]){
 async function nationalRescissionOperation(separatePrincipals=false){
  const f=await nationalRescissionArtifact(),approved=await reviewSupplyRescission({companyId:f.companyId,actorUserId:f.reviewer,artifactId:f.artifactId,...f.review})
  expect(approved.status,JSON.stringify(approved)).toBe('authorized')
- const creator=separatePrincipals?nationalNativeOperator(f.companyId,['communication.write','metering.write','contracts.read']):f.actorUserId,currentExecutor=separatePrincipals?nationalNativeOperator(f.companyId,['communication.send','communication.write','metering.write','contracts.read']):f.actorUserId,mandateId=String(approved.mandateId),result=await prepareAndQueueSupplyRescissionZ08({companyId:f.companyId,actorUserId:creator,mandateId,preferredRouteId:f.routeId})
+ if(deps.prospectiveCorrectionDispatch&&!f.correctionRouteId)throw Error('native_correction_route_required')
+ const creator=separatePrincipals?nationalNativeOperator(f.companyId,['communication.write','metering.write','contracts.read']):f.actorUserId,currentExecutor=separatePrincipals?nationalNativeOperator(f.companyId,['communication.send','communication.write','metering.write','contracts.read']):f.actorUserId,mandateId=String(approved.mandateId),result=await prepareAndQueueSupplyRescissionZ08({companyId:f.companyId,actorUserId:creator,mandateId,preferredRouteId:deps.prospectiveCorrectionDispatch?f.correctionRouteId:f.routeId})
  expect(result.status,JSON.stringify(result)).toBe('queued');if(!('message'in result))throw Error('native national H original held')
  const own=sql<{objects:{li:string;reason:string}[]}>(`SELECT gridex_bilateral_prodat.draft_wire_v1(${literal(result.message.raw_payload)})`).objects[0]
  expect(own).toMatchObject({li:'H'+mandateId.replaceAll('-',''),reason:'Z25'})
