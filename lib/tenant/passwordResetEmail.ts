@@ -89,8 +89,15 @@ async function generateRecoveryActionLink(email: string): Promise<string | null>
   if (error) throw error
 
   const properties = data?.properties && typeof data.properties === 'object' ? data.properties as Record<string, unknown> : {}
-  const actionLink = properties.action_link ?? properties.actionLink ?? data?.action_link
-  return typeof actionLink === 'string' && actionLink.trim() ? actionLink : null
+  const tokenHash = typeof properties.hashed_token === 'string' ? properties.hashed_token.trim() : ''
+  if (!tokenHash) throw new Error('Auth recovery response is missing its verification hash.')
+
+  // The provider action_link returns a fragment session that the server callback
+  // cannot consume. Keep verification on the existing explicit SSR action path.
+  const actionLink = new URL(authCallbackRedirect())
+  actionLink.searchParams.set('token_hash', tokenHash)
+  actionLink.searchParams.set('type', 'recovery')
+  return actionLink.toString()
 }
 
 async function recordPasswordResetEvent(input: {
@@ -126,7 +133,7 @@ export async function sendTenantBrandedPasswordResetEmail(input: {
   if (!user) throw new Error('Den här e-postadressen finns inte som användare.')
 
   const companyId = await getPreferredCompanyIdForUser(user.id)
-  const actionLink = await generateRecoveryActionLink(email)
+  const actionLink = companyId ? await generateRecoveryActionLink(email) : null
 
   if (companyId && actionLink) {
     const branding = await getTenantEmailBranding(companyId)
