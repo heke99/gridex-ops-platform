@@ -1,0 +1,712 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gridex Customer Consumption additive contract",
+    "version": "2026-11-13.1",
+    "description": "Independent supplement; existing Customer Portal/Website releases remain immutable. Confirmed supply starts require both actual_start_date and canonical market_start_at; missing authority fails closed. Inclusive actual_end_date is converted to next local midnight; market instants and planned end may only restrict it. Each authority read is complete up to 1000 rows or fails closed. Meter pages preserve scanned cursors after supply-window filtering. Requests are limited to 32 physical days. Clients must follow all has_more cursors, discard non-current revisions, and reject overlapping current series."
+  },
+  "servers": [
+    {
+      "url": "https://app.gridex.se"
+    }
+  ],
+  "paths": {
+    "/api/v1/customer/consumption/sites": {
+      "get": {
+        "operationId": "getApiV1CustomerConsumptionSites",
+        "description": "Requires the ordinary installed service API client, both customer_sites.read and customer_metering.read, and a strictly linked portal identity. No request parameter can select a customer.",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Complete bounded page; UTC intervals are half-open.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SitesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or repeated parameter/cursor.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid service credentials.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Scope, installation or verified customer binding denied.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Facility does not belong to the resolved customer.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority or canonical data unavailable/incomplete; no customer data.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            }
+          }
+        },
+        "x-required-scopes": [
+          "customer_sites.read",
+          "customer_metering.read"
+        ],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "no-store",
+        "x-public-id-policy": "opaque-references"
+      }
+    },
+    "/api/v1/customer/consumption/metering-values": {
+      "get": {
+        "operationId": "getApiV1CustomerConsumptionMeteringValues",
+        "description": "Requires the ordinary installed service API client, both customer_sites.read and customer_metering.read, and a strictly linked portal identity. No request parameter can select a customer.",
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "facility_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Complete bounded page; UTC intervals are half-open.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValuesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or repeated parameter/cursor.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid service credentials.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Scope, installation or verified customer binding denied.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Facility does not belong to the resolved customer.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority or canonical data unavailable/incomplete; no customer data.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "X-Gridex-Consumption-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            }
+          }
+        },
+        "x-required-scopes": [
+          "customer_sites.read",
+          "customer_metering.read"
+        ],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "no-store",
+        "x-public-id-policy": "opaque-references"
+      }
+    },
+    "/api/v1/openapi/customer-consumption-v1.json": {
+      "get": {
+        "operationId": "getApiV1OpenapiCustomerConsumptionV1Json",
+        "summary": "Current customer consumption OpenAPI document",
+        "security": [],
+        "x-required-scopes": [],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "private-revalidate",
+        "x-public-id-policy": "none",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "If-None-Match",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Independent OpenAPI contract document.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "SHA-256 of actual serialized bytes."
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "An OpenAPI 3.1 document with paths and reusable components."
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The supplied ETag matches this exact serialized document; empty response body."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+      }
+    },
+    "schemas": {
+      "Page": {
+        "type": "object",
+        "properties": {
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "offset": {
+            "type": "integer",
+            "const": 0
+          },
+          "returned": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "has_more",
+          "next_cursor"
+        ],
+        "additionalProperties": false
+      },
+      "DeliveryWindow": {
+        "type": "object",
+        "properties": {
+          "facility_reference": {
+            "type": "string"
+          },
+          "metering_point_reference": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "facility_reference",
+          "metering_point_reference",
+          "from",
+          "to"
+        ],
+        "additionalProperties": false
+      },
+      "Site": {
+        "type": "object",
+        "required": [
+          "facility_reference",
+          "facility_id"
+        ],
+        "properties": {
+          "facility_reference": {
+            "type": "string"
+          },
+          "facility_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true
+      },
+      "MeteringPoint": {
+        "type": "object",
+        "required": [
+          "metering_point_reference",
+          "facility_reference"
+        ],
+        "properties": {
+          "metering_point_reference": {
+            "type": "string"
+          },
+          "facility_reference": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "MeteringValue": {
+        "type": "object",
+        "properties": {
+          "metering_value_reference": {
+            "type": "string"
+          },
+          "metering_point_reference": {
+            "type": "string"
+          },
+          "period_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "period_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolution": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quantity_kwh": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "quality_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "revision_status": {
+            "type": "string",
+            "enum": [
+              "current",
+              "replaced",
+              "superseded",
+              "void"
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "consumption"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "kWh"
+            ]
+          }
+        },
+        "required": [
+          "metering_value_reference",
+          "metering_point_reference",
+          "period_start",
+          "period_end",
+          "resolution",
+          "quantity_kwh",
+          "quality_status",
+          "status",
+          "created_at",
+          "revision_status",
+          "direction",
+          "unit"
+        ],
+        "additionalProperties": false
+      },
+      "SitesResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "page"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "sites": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Site"
+                }
+              },
+              "metering_points": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MeteringPoint"
+                }
+              },
+              "delivery_access": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "string",
+                    "const": "customer-supply-periods-v1"
+                  },
+                  "complete": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "windows": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/DeliveryWindow"
+                    }
+                  }
+                },
+                "required": [
+                  "version",
+                  "complete",
+                  "windows"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "sites",
+              "metering_points",
+              "delivery_access"
+            ],
+            "additionalProperties": false
+          },
+          "page": {
+            "type": "object",
+            "properties": {
+              "sites": {
+                "$ref": "#/components/schemas/Page"
+              }
+            },
+            "required": [
+              "sites"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "ValuesResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "page"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeteringValue"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/Page"
+          }
+        }
+      }
+    }
+  }
+}
