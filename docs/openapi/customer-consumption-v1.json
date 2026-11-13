@@ -13,7 +13,7 @@
   "paths": {
     "/api/v1/customer/consumption/sites": {
       "get": {
-        "operationId": "customerConsumptionSites",
+        "operationId": "getApiV1CustomerConsumptionSites",
         "description": "Requires the ordinary installed service API client, both customer_sites.read and customer_metering.read, and a strictly linked portal identity. No request parameter can select a customer.",
         "security": [
           {
@@ -167,12 +167,21 @@
               }
             }
           }
-        }
+        },
+        "x-required-scopes": [
+          "customer_sites.read",
+          "customer_metering.read"
+        ],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "no-store",
+        "x-public-id-policy": "opaque-references"
       }
     },
     "/api/v1/customer/consumption/metering-values": {
       "get": {
-        "operationId": "customerConsumptionMeteringValues",
+        "operationId": "getApiV1CustomerConsumptionMeteringValues",
         "description": "Requires the ordinary installed service API client, both customer_sites.read and customer_metering.read, and a strictly linked portal identity. No request parameter can select a customer.",
         "security": [
           {
@@ -352,6 +361,68 @@
                 }
               }
             }
+          }
+        },
+        "x-required-scopes": [
+          "customer_sites.read",
+          "customer_metering.read"
+        ],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "no-store",
+        "x-public-id-policy": "opaque-references"
+      }
+    },
+    "/api/v1/openapi/customer-consumption-v1.json": {
+      "get": {
+        "operationId": "getApiV1OpenapiCustomerConsumptionV1Json",
+        "summary": "Current customer consumption OpenAPI document",
+        "security": [],
+        "x-required-scopes": [],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "private-revalidate",
+        "x-public-id-policy": "none",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "If-None-Match",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Independent OpenAPI contract document.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "SHA-256 of actual serialized bytes."
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-11-13.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "An OpenAPI 3.1 document with paths and reusable components."
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The supplied ETag matches this exact serialized document; empty response body."
           }
         }
       }

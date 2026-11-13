@@ -103,3 +103,12 @@ describe('customer consumption supplement routes', () => {
     expect(JSON.stringify(await response.json())).not.toContain('SECRET')
   })
 })
+
+it('registers the independent consumption surface with its exact ordinary read scopes', async () => {
+  const { publicRouteContract } = await import('@/lib/api/publicRouteRegistry')
+  for (const path of ['/api/v1/customer/consumption/sites', '/api/v1/customer/consumption/metering-values']) {
+    expect(publicRouteContract('GET', path)?.scopes).toEqual(['customer_sites.read', 'customer_metering.read'])
+    expect(publicRouteContract('GET', path)?.rateLimitClass).toBe('read')
+  }
+  expect(publicRouteContract('GET', '/api/v1/openapi/customer-consumption-v1.json')?.scopes).toEqual([])
+})
