@@ -377,6 +377,20 @@
               "string",
               "null"
             ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "offset": {
+            "type": "integer",
+            "const": 0
+          },
+          "returned": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
           }
         },
         "required": [

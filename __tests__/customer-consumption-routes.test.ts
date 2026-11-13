@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { writeFileSync } from 'node:fs'
+import contract from '@/docs/openapi/customer-consumption-v1.json'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
 const state = vi.hoisted(() => ({ result: [] as Array<Record<string, unknown>>, calls: [] as Array<{ table: string; filters: Array<[string, unknown]> }>, authenticated: true, customer: 'customer-a' }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => {
@@ -19,6 +21,13 @@ const point = { id: 'point-a', company_id: 'company-a', customer_site_id: site.i
 const period = { id: 'period-a', company_id: 'company-a', customer_id: 'customer-a', metering_point_id: point.id, status: 'active', market_start_at: '2026-10-31T23:00:00Z', actual_start_date: '2026-11-01' }
 const value = { id: '00000000-0000-4000-8000-000000000001', company_id: 'company-a', customer_id: 'customer-a', metering_point_id: point.id, period_start: '2026-11-02T00:00:00Z', period_end: '2026-11-02T01:00:00Z', quantity_kwh: 7.5, revision_status: 'current', direction: 'consumption', unit: 'kWh', status: 'stored' }
 const ok = (data: unknown[], count = data.length) => ({ data, count, error: null })
+const captured: Array<{ path: string; body: unknown }> = []
+afterAll(() => { if (process.env.GRIDEX_CONSUMPTION_COMPONENT_CAPTURE) writeFileSync(process.env.GRIDEX_CONSUMPTION_COMPONENT_CAPTURE, JSON.stringify(captured), { mode: 0o600 }) })
+function assertPageContract(page: Record<string, unknown>) {
+  const schema = contract.components.schemas.Page
+  expect(Object.keys(page).filter(key => !(key in schema.properties))).toEqual([])
+  for (const key of schema.required) expect(page).toHaveProperty(key)
+}
 const request = (path: string) => new NextRequest(`https://ops.example/api/v1/customer/consumption/${path}`)
 const meterPath = 'metering-values?facility_id=FAC-A&from=2026-11-01T00:00:00Z&to=2026-11-08T00:00:00Z'
 beforeEach(() => { state.result = []; state.calls = []; state.authenticated = true; state.customer = 'customer-a'; vi.clearAllMocks() })
@@ -26,7 +35,7 @@ describe('customer consumption supplement routes', () => {
   it('returns confirmed windows and only public references, with both read scopes and strict binding', async () => {
     state.result = [ok([site]), ok([point]), ok([period])]
     const response = await customerConsumptionSites(request('sites')); expect(response.status).toBe(200)
-    const body = await response.json(); expect(body.data.delivery_access.complete).toBe(true); expect(body.data.delivery_access.windows).toHaveLength(1)
+    const body = await response.json(); captured.push({ path: '/api/v1/customer/consumption/sites', body }); assertPageContract(body.page.sites); expect(body.data.delivery_access.complete).toBe(true); expect(body.data.delivery_access.windows).toHaveLength(1)
     expect(body.data.delivery_access.windows[0].facility_reference).toBe(body.data.sites[0].facility_reference)
     expect(body.data.delivery_access.windows[0].metering_point_reference).toBe(body.data.metering_points[0].metering_point_reference)
     expect(JSON.stringify(body)).not.toContain('customer-a'); expect(JSON.stringify(body)).not.toContain('company-a')
@@ -48,14 +57,14 @@ describe('customer consumption supplement routes', () => {
   it('returns actual revision fields and quantity only inside confirmed supply', async () => {
     state.result = [ok([site]), ok([point]), ok([period]), ok([value])]
     const response = await customerConsumptionMeteringValues(request(meterPath)); expect(response.status).toBe(200)
-    const body = await response.json(); expect(body.data[0]).toMatchObject({ quantity_kwh: 7.5, revision_status: 'current', direction: 'consumption', unit: 'kWh' })
+    const body = await response.json(); captured.push({ path: '/api/v1/customer/consumption/metering-values', body }); assertPageContract(body.page); expect(body.data[0]).toMatchObject({ quantity_kwh: 7.5, revision_status: 'current', direction: 'consumption', unit: 'kWh' })
     expect(state.calls[3].filters).toContainEqual(['eq', ['customer_id', 'customer-a']])
     expect(state.calls[3].filters).toContainEqual(['eq', ['direction', 'consumption']])
   })
   it('drops out-of-supply values without incorrectly marking a scanned page complete', async () => {
     state.result = [ok([site]), ok([point]), ok([{ ...period, actual_start_date: '2026-11-05' }]), ok([value, { ...value, id: '00000000-0000-4000-8000-000000000002' }])]
     const body = await (await customerConsumptionMeteringValues(request(`${meterPath}&limit=1`))).json()
-    expect(body.data).toEqual([]); expect(body.page.has_more).toBe(true); expect(body.page.next_cursor).toBeTypeOf('string')
+    expect(body.data).toEqual([]); expect(body.page.returned).toBe(0); expect(body.page.has_more).toBe(true); expect(body.page.next_cursor).toBeTypeOf('string')
   })
   it('never returns foreign tenant/customer rows even after a malformed database result', async () => {
     state.result = [ok([site]), ok([point]), ok([period]), ok([{ ...value, customer_id: 'customer-b' }])]

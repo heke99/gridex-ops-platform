@@ -87,7 +87,7 @@ async function valuesHandler(request: NextRequest) {
     // Keep the cursor of the scanned page, even when every row is outside actual supply.
     const data = page.items.filter(row => meterValueWithinSupply(scope, row, access.windows)).map(row => ({ ...publicPortalMeteringValue(scope.companyId, row), revision_status: row.revision_status, direction: row.direction, unit: row.unit }))
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: data.length })
-    return respond({ data, page: page.page })
+    return respond({ data, page: { ...page.page, returned: data.length } })
   } catch (error) { return consumptionError(request, context.client, context.startedAt, error) }
 }
 
