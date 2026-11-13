@@ -50,6 +50,8 @@ const specs = [
   JSON.parse(fs.readFileSync('docs/openapi/staff-v1.json', 'utf8')),
   // Independent additive onboarding contract: never part of the frozen staff release.
   JSON.parse(fs.readFileSync('docs/openapi/staff-onboarding-v1.json', 'utf8')),
+  // Independent consumption supplement; retain every existing release and metadata check.
+  JSON.parse(fs.readFileSync('docs/openapi/customer-consumption-v1.json', 'utf8')),
   // Independent additive POA archive contract; existing releases remain unchanged.
   JSON.parse(fs.readFileSync('docs/openapi/poa-archive-v1.json', 'utf8')),
 ]
