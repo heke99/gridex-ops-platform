@@ -34,6 +34,9 @@ const CUSTOMER_PORTAL_READ_SCOPES = [
 
 /** Canonical source for the public V1 endpoint catalogue and developer documentation. */
 const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
+  { method: 'GET', path: '/api/v1/openapi/customer-consumption-v1.json', scopes: [], description: 'Independent customer consumption authority and metering contract.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/customer/consumption/sites', scopes: ['customer_sites.read', 'customer_metering.read'], description: 'List linked customer sites and complete confirmed meter supply windows.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/customer/consumption/metering-values', scopes: ['customer_sites.read', 'customer_metering.read'], description: 'Read linked customer consumption intervals inside confirmed meter supply windows.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/poa-archive-v1.json', scopes: [], description: 'Independent additive customer POA archive and verification contract.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-19.1/poa-archive-v1.json', scopes: [], description: 'Immutable customer POA archive OpenAPI release 2026-10-19.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/staff-onboarding-v1.json', scopes: [], description: 'Independent additive staff onboarding contract; separate from the frozen Staff API release.', rateLimitClass: 'read' },
