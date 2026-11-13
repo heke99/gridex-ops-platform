@@ -1,12 +1,18 @@
 import type { NextRequest } from 'next/server'
 import { ApiInputError } from '@/lib/api/strictRequest'
-import { supabaseService } from '@/lib/supabase/service'
+import type { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { customerPortalJson, handleCustomerPortalRouteError, logCustomerPortalSuccess, requireCustomerPortalApiContext } from '@/lib/customer-portal/externalApi'
 import { publicPageInput, publicPortalMeteringPoint, publicPortalMeteringValue, publicPortalSite } from '@/lib/customer-portal/publicDto'
 import { buildPortalDatabasePage, decodePortalCursor, portalPageLimit, PortalCursorError } from '@/lib/customer-portal/keysetPagination'
 import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
 import { strictIsoDate } from '@/lib/time/stockholm'
 import { CONSUMPTION_VERSION, consumptionWindows, meterValueWithinSupply, type ConsumptionRow, type ConsumptionScope } from './consumptionAccess'
+
+type ScopedSelect = ReturnType<ReturnType<typeof supabaseService.from>['select']>
+function select(scope: ConsumptionScope, table: string, columns: string, options?: { count: 'exact' }): ScopedSelect {
+  return tenantDb(scope.companyId).from(table).select(columns, options) as ScopedSelect
+}
 
 const POINT_SELECT = 'id,company_id,customer_id,site_id,customer_site_id,metering_point_id,site_facility_id,status'
 const PERIOD_SELECT = 'id,company_id,customer_id,metering_point_id,status,actual_start_date,actual_end_date,end_date,market_start_at,market_end_at'
@@ -24,9 +30,9 @@ function rows(result: { data: unknown; error: unknown; count: number | null }): 
 async function authority(scope: ConsumptionScope, sites: ConsumptionRow[]) {
   if (!sites.length) return { points: [], windows: [] }
   const ids = sites.map(site => String(site.id))
-  const points = rows(await supabaseService.from('metering_points').select(POINT_SELECT, { count: 'exact' }).eq('company_id', scope.companyId).or(`site_id.in.(${ids.join(',')}),customer_site_id.in.(${ids.join(',')})`).limit(1001))
+  const points = rows(await select(scope, 'metering_points', POINT_SELECT, { count: 'exact' }).or(`site_id.in.(${ids.join(',')}),customer_site_id.in.(${ids.join(',')})`).limit(1001))
   if (!points.length) return { points, windows: [] }
-  const periods = rows(await supabaseService.from('customer_supply_periods').select(PERIOD_SELECT, { count: 'exact' }).eq('company_id', scope.companyId).eq('customer_id', scope.customerId).in('metering_point_id', points.map(point => String(point.id))).limit(1001))
+  const periods = rows(await select(scope, 'customer_supply_periods', PERIOD_SELECT, { count: 'exact' }).eq('customer_id', scope.customerId).in('metering_point_id', points.map(point => String(point.id))).limit(1001))
   return { points, windows: consumptionWindows(scope, sites, points, periods) }
 }
 function respond(body: Record<string, unknown>) {
@@ -41,7 +47,7 @@ async function sitesHandler(request: NextRequest) {
     const pageInput = publicPageInput(request.nextUrl.searchParams), limit = portalPageLimit(pageInput.limit)
     const resource = 'consumption-sites-v1'
     const cursor = decodePortalCursor({ ...scope, resource, cursor: pageInput.cursor })
-    let query = supabaseService.from('customer_sites').select('id,company_id,customer_id,facility_reference,facility_id,status,site_name,site_type,street,postal_code,city,country,price_area_code,grid_area_code,created_at').eq('company_id', scope.companyId).eq('customer_id', scope.customerId).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit + 1)
+    let query = select(scope, 'customer_sites', 'id,company_id,customer_id,facility_reference,facility_id,status,site_name,site_type,street,postal_code,city,country,price_area_code,grid_area_code,created_at').eq('customer_id', scope.customerId).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit + 1)
     if (cursor) query = query.or(`created_at.lt.${cursor.orderValue},and(created_at.eq.${cursor.orderValue},id.lt.${cursor.id})`)
     const result = await query
     if (result.error || !Array.isArray(result.data)) throw new PlatformSchemaNotReadyError('Consumption sites are unavailable.')
@@ -72,14 +78,14 @@ async function valuesHandler(request: NextRequest) {
     const facility = request.nextUrl.searchParams.get('facility_id')
     if (!facility || !/^[A-Za-z0-9_-]{1,64}$/.test(facility)) throw new ApiInputError('Ogiltigt anläggnings-ID.', 'invalid_facility', 400)
     const scope = { companyId: context.client.company_id, customerId: context.identity.customer_id }
-    const siteResult = await supabaseService.from('customer_sites').select('id,company_id,customer_id,facility_id,facility_reference', { count: 'exact' }).eq('company_id', scope.companyId).eq('customer_id', scope.customerId).eq('facility_id', facility).limit(2)
+    const siteResult = await select(scope, 'customer_sites', 'id,company_id,customer_id,facility_id,facility_reference', { count: 'exact' }).eq('customer_id', scope.customerId).eq('facility_id', facility).limit(2)
     if (siteResult.error) throw new PlatformSchemaNotReadyError('Consumption facility is unavailable.')
     if (siteResult.count !== 1 || !siteResult.data || siteResult.data.length !== 1) throw new ApiInputError('Anläggningen saknas.', 'facility_not_found', 404)
     const access = await authority(scope, siteResult.data as ConsumptionRow[])
     const pageInput = publicPageInput(request.nextUrl.searchParams), limit = portalPageLimit(pageInput.limit)
     const resource = `consumption-v1:${facility}:${from}:${to}`
     const cursor = decodePortalCursor({ ...scope, resource, cursor: pageInput.cursor })
-    let query = supabaseService.from('normalized_metering_values').select('id,company_id,customer_id,metering_point_id,period_start,period_end,resolution,quantity_kwh,quality_status,status,created_at,revision_status,direction,unit').eq('company_id', scope.companyId).eq('customer_id', scope.customerId).eq('facility_id', facility).eq('direction', 'consumption').eq('unit', 'kWh').gte('period_start', from).lte('period_end', to).order('period_start', { ascending: false }).order('id', { ascending: false }).limit(limit + 1)
+    let query = select(scope, 'normalized_metering_values', 'id,company_id,customer_id,metering_point_id,period_start,period_end,resolution,quantity_kwh,quality_status,status,created_at,revision_status,direction,unit').eq('customer_id', scope.customerId).eq('facility_id', facility).eq('direction', 'consumption').eq('unit', 'kWh').gte('period_start', from).lte('period_end', to).order('period_start', { ascending: false }).order('id', { ascending: false }).limit(limit + 1)
     if (cursor) query = query.or(`period_start.lt.${cursor.orderValue},and(period_start.eq.${cursor.orderValue},id.lt.${cursor.id})`)
     const result = await query
     if (result.error || !Array.isArray(result.data)) throw new PlatformSchemaNotReadyError('Consumption values are unavailable.')
