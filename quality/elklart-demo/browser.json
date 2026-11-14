@@ -1,0 +1,24 @@
+{
+  "boundary": "Actual server-page HTML with stubbed authenticated loader; not a live tenant/API test",
+  "errors": [],
+  "checks": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "selected": "2026-11-10T11:15:00.000Z",
+      "overflow": false,
+      "violations": []
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "selected": "2026-11-10T11:15:00.000Z",
+      "overflow": false,
+      "violations": []
+    }
+  ]
+}

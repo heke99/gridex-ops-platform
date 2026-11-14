@@ -61,6 +61,7 @@ type SupplierOption = {
 };
 
 type Props = {
+  companyId: string;
   gridOwners: GridOwnerOption[];
   electricitySuppliers: SupplierOption[];
   priceAreas: PriceAreaOption[];
@@ -341,6 +342,7 @@ function Section({
 }
 
 export default function CustomerIntakeForm({
+  companyId,
   gridOwners,
   electricitySuppliers,
   priceAreas,
@@ -426,6 +428,8 @@ export default function CustomerIntakeForm({
             <p className="mt-1">{state.message}</p>
           </div>
         ) : null}
+
+        <input type="hidden" name="expected_company_id" value={companyId} />
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <p className="font-semibold">Operativt intag</p>

@@ -20,6 +20,7 @@ type ContractOfferOption = {
 }
 
 type CustomerBulkImportPanelProps = {
+ companyId: string
  example: string
  contractOffers: ContractOfferOption[]
 }
@@ -78,7 +79,7 @@ function statusTone(status: CustomerImportPreviewRowStatus): string {
  }
 }
 
-export default function CustomerBulkImportPanel({ example, contractOffers }: CustomerBulkImportPanelProps) {
+export default function CustomerBulkImportPanel({ companyId, example, contractOffers }: CustomerBulkImportPanelProps) {
  const [previewState, previewAction, previewPending] = useActionState(
  previewCustomerImportAction,
  initialCustomerImportActionState
@@ -105,6 +106,7 @@ export default function CustomerBulkImportPanel({ example, contractOffers }: Cus
  </div>
 
  <form className="mt-4 space-y-4" encType="multipart/form-data">
+ <input type="hidden" name="expected_company_id" value={companyId} />
  <label className="grid gap-2 text-sm text-slate-700 ">
  <span className="font-medium">Importfil</span>
  <input
