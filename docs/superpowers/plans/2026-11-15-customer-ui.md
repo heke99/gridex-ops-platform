@@ -20,3 +20,12 @@ Egen worktree `/workspace/gridex-customer-ui-20261115`, gren `codex/customer-ui-
 ## Skill routing
 
 using-superpowers: arbetsrouting; using-git-worktrees: isolering; writing-plans/executing-plans: genomförande; web-design-guidelines: tillgängliga disclosures och kompakta kort; browser-e2e: vid tillgänglig browser; requesting-code-review: två oberoende slutgranskare; verification-before-completion: färska resultat. React-checklistan tillämpas efter TSX-ändringarna. Ingen databas/schema/prestanda/AI-funktion byggs; motsvarande skillkampanjer behövs inte.
+
+## Fortsatt granskning efter ägarens begäran
+
+- [x] Rätta arbetsköns länkar till data-requests som är spärrad för bolagsanvändare; behåll superadminlänkar och använd översiktens befintliga nästa steg för bolag.
+- [x] Förenkla leverantörsbytesdetaljen på servern. Behåll status/datum/nätägare/åtgärder men visa endast verkligt tillåtna affärsåtgärder. Saknad kontroll får inte visas som godkänd.
+- [x] Förenkla uppgiftsbegärans rubriker/status och begränsa tekniska process-/meddelandeverktyg till plattformsadmin; bevara serverfält och behörigheter.
+- [x] Granska motsvarande layout och länk-/rollbeteenden med riktade tester, browser och två oberoende slutgranskare. Följ upp faktiskt CI-fel utan blind omkörning.
+
+Filcustody: samma isolerade gren. Nya huvudfiler operations/switches/[id]/page.tsx, customer-info-requests/page.tsx, work-queue/page.tsx och nya presentations-/testfiler. Inga delade producenter, databasscheman, API- eller Ediel-runtimefiler ändras.

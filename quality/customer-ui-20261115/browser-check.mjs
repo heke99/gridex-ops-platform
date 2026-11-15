@@ -6,7 +6,7 @@ const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless
 const results=[];
 try {
  for(const width of [390,1280]) {
-  for(const fixture of ['application-company','application-platform','grid-owner-company','grid-owner-platform']) {
+  for(const fixture of ['application-company','application-platform','grid-owner-company','grid-owner-platform','supplier-switch-company','info-requests-company','info-requests-long-company']) {
    const context=await browser.newContext({viewport:{width,height:900}});
    const page=await context.newPage();
    await page.goto(`http://127.0.0.1:4187/?fixture=${fixture}`);
@@ -31,6 +31,24 @@ try {
     await page.getByText('Uppdatera status',{exact:true}).click();
     assert.equal(await page.getByRole('button',{name:'Spara status'}).isVisible(),true);
     await page.getByText('Uppdatera status',{exact:true}).click();
+   }
+   if(fixture==='info-requests-company') {
+    assert.equal(await page.locator('[name=source_message_id]').count(),0);
+    const summary=page.locator('#create-info-request > summary');
+    await summary.click();assert.equal(await page.getByRole('button',{name:'Skapa uppgiftsbegäran',exact:true}).isVisible(),true);
+    await summary.click();assert.equal(await page.getByRole('button',{name:'Skapa uppgiftsbegäran',exact:true}).isVisible(),false);
+   }
+   if(fixture==='info-requests-long-company') {
+    const region=page.getByRole('region',{name:'Uppgiftsbegäranden',exact:true});
+    await region.focus();
+    assert.equal(await region.evaluate(e=>e.scrollHeight>e.clientHeight),true);
+    await page.keyboard.press('End');
+    await page.waitForTimeout(150);
+    assert.equal(await region.evaluate(e=>e.scrollTop>0),true);
+   }
+   if(fixture==='supplier-switch-company') {
+    assert.equal(await page.getByText('Bekräftad leveransstart',{exact:true}).isVisible(),true);
+    assert.equal(await page.getByText('Väntar på nätägarens bekräftelse',{exact:true}).isVisible(),true);
    }
    if(width===390&&fixture.endsWith('company'))await page.screenshot({path:`quality/customer-ui-20261115/${fixture}-390.png`,fullPage:true});
    let violations=[];

@@ -1,3 +1,4 @@
+import { workQueueCustomerHref } from './customerHref'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -665,7 +666,7 @@ export default async function AdminWorkQueuePage() {
                         <span className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{formatStatusLabel(item.priority)}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <Link href={item.href} className="inline-flex max-w-full items-center rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">
+                        <Link href={workQueueCustomerHref(item.href, isPlatformAdmin, context.permissions.includes('contracts.read'))} className="inline-flex max-w-full items-center rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">
                           {item.actionLabel}
                         </Link>
                       </td>

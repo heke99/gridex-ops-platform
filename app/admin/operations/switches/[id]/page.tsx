@@ -1,3 +1,5 @@
+import SupplierSwitchBusinessView from '@/components/admin/customers/SupplierSwitchBusinessView'
+import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -357,6 +359,10 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
 
  const validationSummary = readValidationSnapshot(request.validation_snapshot)
 
+ if (!tenantScope.isPlatformAdmin) {
+   return <SupplierSwitchBusinessView request={request} site={site} gridOwner={gridOwner} readiness={readiness} outboundRequest={outboundRequest} stage={lifecycle.stage} canManage={access.permissions.includes(MASTERDATA_PERMISSIONS.WRITE)} canQueue={access.permissions.includes('switching.write')} />
+ }
+
  const z03Messages = edielMessages.filter((row) => row.message_code === 'Z03')
  const z05Messages = edielMessages.filter((row) => row.message_code === 'Z05')
  const z09Messages = edielMessages.filter((row) => row.message_code === 'Z09')
@@ -613,7 +619,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  Valideringsresultat
  </div>
  <div className="mt-3 text-sm text-slate-700 ">
- {readiness && !readiness.isReady ? (
+ {!readiness ? <p className="rounded-xl bg-amber-50 px-3 py-2 text-amber-900">Anläggningen saknas eller kunde inte läsas. Uppgifterna behöver kontrolleras.</p> : !readiness.isReady ? (
  <div className="space-y-2">
  {readiness.issues.map((issue) => (
  <div key={issue.code} className="rounded-2xl bg-red-50 px-3 py-2 text-red-700 ">

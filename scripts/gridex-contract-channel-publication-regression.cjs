@@ -164,7 +164,7 @@ check(
   "all admin surfaces route channel publication through the canonical action and service",
 );
 check(
-  /Kontrollera readiness och gör internt/.test(adminPage) &&
+  /Kontrollera och aktivera för kundregistrering/.test(adminPage) &&
     /Publicera på hemsidan/.test(channelControl) &&
     /name="channel" value="website"/.test(channelControl) &&
     !/name="channel" value="internal"/.test(channelControl) &&

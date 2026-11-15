@@ -24,6 +24,24 @@
     "violations": []
   },
   {
+    "fixture": "supplier-switch-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "info-requests-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "info-requests-long-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
     "fixture": "application-company",
     "width": 1280,
     "overflow": false,
@@ -43,6 +61,24 @@
   },
   {
     "fixture": "grid-owner-platform",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "supplier-switch-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "info-requests-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "info-requests-long-company",
     "width": 1280,
     "overflow": false,
     "violations": []
