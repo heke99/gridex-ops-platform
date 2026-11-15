@@ -18,4 +18,3 @@
   27:10  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
 
 ✖ 12 problems (0 errors, 12 warnings)
-

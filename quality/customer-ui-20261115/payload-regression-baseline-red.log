@@ -34,4 +34,3 @@ AssertionError: expected '<div class="min-h-screen"><header>Gri…' to contain '
       Tests  1 failed | 3 skipped (4)
    Start at  09:10:41
    Duration  252ms (transform 68ms, setup 15ms, import 99ms, tests 17ms, environment 0ms)
-
