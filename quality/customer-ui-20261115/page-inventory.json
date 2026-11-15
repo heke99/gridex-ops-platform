@@ -1,0 +1,1062 @@
+{
+  "scope": "Static source inventory; not authenticated browser certification",
+  "pageFiles": 176,
+  "pages": [
+    {
+      "file": "app/admin/manual-mailboxes/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/audit/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/roles/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customer-login/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/analytics/portfolio/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/analytics/reports/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/analytics/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/analytics/deviations/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/analytics/forecast/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/electricity-suppliers/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/powers-of-attorney/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/integrations/routes/page.tsx",
+      "platformGuard": true,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/controltower/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customer-applications/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customers/segments/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customers/page.part-2.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customers/intake/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/customers/[id]/page.part-4.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/customers/[id]/page.part-2.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/customers/[id]/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customers/[id]/page.part-3.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customers/[id]/contracts/[contractId]/signature/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customers/[id]/page.part-1.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/customers/imports/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customers/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customers/duplicates/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customers/tenant-test/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customers/page.part-1.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/work-queue/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/network-owners/[id]/contact-channels/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/network-owners/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/facility-requests/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/partner-exports/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/pricing/campaigns/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/pricing/period-locks/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/pricing/spot-prices/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/pricing/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/pricing/portfolio-settlements/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/pricing/components/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/pricing/market-sources/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/pricing/portfolio-prices/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/pricing/price-plans/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/price-area-localities/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/system-health/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customer-info-requests/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/platform/go-live/[companyId]/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/go-live/[companyId]/route-wizard/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/go-live/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/white-labels/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/analytics/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/events/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/customers/archived/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/work-queue/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/legal-templates/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/api-clients/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/messages/[id]/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/messages/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customer-cases/[caseId]/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/actor-testing/[companyId]/evidence/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/actor-testing/[companyId]/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/actor-testing/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/contract-trace/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/data-cleanup/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/customer-cases/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/platform/ediel/versions/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/ediel/runtime/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/users/[id]/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/users/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/ediel/rules/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/ediel/messages/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/system/auth-diagnostics/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/ediel/routes/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/system/tenant-integrity/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/legal-readiness/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/usage/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/security/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/whitelabel/go-live/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/whitelabel/portfolio/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/companies/[companyId]/analytics/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/platform/companies/[companyId]/testing/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/customer-source-agreements/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/certification/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/mailboxes/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/whitelabel/actor-testing/[companyId]/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/whitelabel/actor-testing/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/message-content-retention/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/whitelabel/companies/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/actors/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/regulated-supply/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/contracts/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/ediel/masterdata-reconciliation/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/company-settings/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/prodat-recovery/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/ai-purpose-sources/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/control-tower/page.tsx",
+      "platformGuard": true,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/company-actor-status/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/external-contract-intakes/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/bilateral-prodat-sources/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/transport-exception-alarms/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/agreements/grid-owners/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/business-incidents/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/anvisningar/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/ai-list/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/test-center/invoice-test/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/test-center/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/inbound-mail/diagnostics/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/test-center/metering-to-invoice/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/inbound-mail/[id]/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/test-center/metering-to-invoice/trace/[edielMessageId]/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/inbound-mail/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/website-applications/[id]/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/ediel/network-registry-sources/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/unresolved/page.tsx",
+      "platformGuard": true,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/website-applications/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/rule-profiles/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/system-tests/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/auto-readiness/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/companies/[id]/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/route-readiness/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/companies/[id]/users/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/companies/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/customer-record-retention/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/outbound/unresolved/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/ediel/process-watches/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/operations/perioder/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/outbound/ready-switches/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/requested-changes/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/outbound/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/outbound/missing-meter-values/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/supply-rescission-sources/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/messages/[id]/page.tsx",
+      "platformGuard": true,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/operations/switches/[id]/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/ediel/messages/page.tsx",
+      "platformGuard": true,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/outbound/missing-billing-underlays/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/operations/switches/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/operations/sync/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/metering/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": true
+    },
+    {
+      "file": "app/admin/ediel/portal-feedback/page.tsx",
+      "platformGuard": true,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/operations/tasks/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/mail-review/[id]/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/mail-readiness/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/operations/ready-to-execute/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/operations/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/mail-review/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/signed-brp-declarations/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/routes/legacy/page.tsx",
+      "platformGuard": true,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/routes/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/readiness/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/billing/invoices/[id]/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/automation/page.tsx",
+      "platformGuard": true,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/operational-cases/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/outbox/page.tsx",
+      "platformGuard": true,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/operations/integrity/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/ediel/certificates/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/billing/underlays/[id]/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/requested-customer-changes/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/billing/underlays/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/operations/automation/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/ediel/settings/page.tsx",
+      "platformGuard": true,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/billing/quality/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/billing/integrations/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/ediel/contract-originals/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/agt/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/billing/ai-parser/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/data-quality/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    },
+    {
+      "file": "app/admin/ediel/agt/[testCaseCode]/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/billing/import/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/billing/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": true
+    },
+    {
+      "file": "app/admin/manual-requests/page.tsx",
+      "platformGuard": true,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/billing/export-center/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/billing/partner-invoices/page.tsx",
+      "platformGuard": false,
+      "roleAware": false,
+      "changed": false
+    },
+    {
+      "file": "app/admin/webhooks/deliveries/page.tsx",
+      "platformGuard": false,
+      "roleAware": true,
+      "changed": false
+    }
+  ]
+}

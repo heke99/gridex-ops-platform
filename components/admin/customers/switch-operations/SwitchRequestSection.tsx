@@ -253,12 +253,12 @@ export default function SwitchRequestSection({
  </div>
  <div>
  <span className="font-medium text-slate-900 ">
- Senaste switch-event:
+ Senaste händelse:
  </span>{' '}
  {latestEvent?.message ??
  (latestEvent
  ? `${latestEvent.event_type} · ${latestEvent.event_status}`
- : 'Inga switch-events ännu')}
+ : "Inga händelser ännu")}
  </div>
  </div>
 

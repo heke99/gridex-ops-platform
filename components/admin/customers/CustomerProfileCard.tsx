@@ -62,7 +62,7 @@ type CustomerProfile = {
 }
 
 function inputClassName() {
- return 'h-11 rounded-2xl border border-slate-300 bg-white px-4 '
+ return 'min-w-0 w-full h-11 rounded-2xl border border-slate-300 bg-white px-4 '
 }
 
 export default function CustomerProfileCard({
@@ -72,7 +72,7 @@ export default function CustomerProfileCard({
  customer: CustomerProfile
  showLifecycleTools?: boolean
 }) {
- const [customerType, setCustomerType] = useState(customer.customer_type ?? 'private')
+ const [customerType, setCustomerType] = useState(['private', 'business', 'association'].includes(customer.customer_type ?? '') ? customer.customer_type! : '')
 
  const [saveState, saveAction] = useActionState(
  saveCustomerProfileAction,
@@ -108,18 +108,18 @@ export default function CustomerProfileCard({
  return 'Förening sparas med föreningsnamn och organisationsnummer. För- och efternamn används som kontaktperson.'
  }
 
- return 'Privatkund sparas med personuppgifter som huvudidentitet. Företags- och organisationsfält döljs.'
+ return 'Namn och personnummer gäller kunden. E-post och telefon används som kontaktuppgifter.'
  }, [customerType])
 
  return (
- <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm ">
  <div className="flex items-start justify-between gap-3">
  <div>
  <h2 className="text-lg font-semibold text-slate-950 ">
  Kundprofil
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Uppdatera kundtyp, identitet och kontaktuppgifter. Primär kontakt synkas automatiskt när du sparar.
+ Uppdatera kundtyp, identitet och kontaktuppgifter. Huvudkontaktens uppgifter uppdateras när du sparar.
  </p>
  </div>
  </div>
@@ -135,41 +135,45 @@ export default function CustomerProfileCard({
  ) : null}
  {(customer.is_test_data || customer.archived_at) ? (
  <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
- {customer.is_test_data ? <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">Testdata – exkludera från drift</span> : null}
+ {customer.is_test_data ? <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">Testkund</span> : null}
  {customer.archived_at ? <span className="rounded-full border border-slate-300 bg-slate-100 px-3 py-1 text-slate-700">Arkiverad {customer.archived_at.slice(0, 10)}</span> : null}
  </div>
  ) : null}
 
- <form action={saveAction} className="mt-6 grid gap-4 md:grid-cols-2">
+ <form action={saveAction} className="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
  <input type="hidden" name="customer_id" value={customer.id} />
  {customer.updated_at ? <input type="hidden" name="expected_updated_at" value={customer.updated_at} /> : null}
  <div className="md:col-span-2">
  <ActionBanner state={saveState} />
  </div>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Kundtyp</span>
  <select
  name="customer_type"
+ required
  value={customerType}
  onChange={(event) => setCustomerType(event.target.value)}
  className={archivedInputClassName}
  {...archivedFieldProps}
  >
+ <option value="" disabled>Välj kundtyp</option>
  <option value="private">Privat</option>
  <option value="business">Företag</option>
  <option value="association">Förening</option>
  </select>
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Status</span>
  <select
  name="status"
- defaultValue={customer.status ?? 'draft'}
+ required
+ defaultValue={['draft', 'pending_verification', 'active', 'inactive', 'moved', 'terminated', 'blocked', 'archived'].includes(customer.status ?? '') ? customer.status! : ''}
  className={archivedInputClassName}
  {...archivedFieldProps}
  >
+ <option value="" disabled>Välj status</option>
  <option value="draft">Förbereds</option>
  <option value="pending_verification">Väntar verifiering</option>
  <option value="active">Aktiv</option>
@@ -181,7 +185,7 @@ export default function CustomerProfileCard({
  </select>
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">
  {customerType === 'private' ? 'Förnamn' : 'Kontaktperson förnamn'}
  </span>
@@ -194,7 +198,7 @@ export default function CustomerProfileCard({
  />
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">
  {customerType === 'private' ? 'Efternamn' : 'Kontaktperson efternamn'}
  </span>
@@ -208,7 +212,7 @@ export default function CustomerProfileCard({
  </label>
 
  {customerType !== 'private' ? (
- <label className="grid gap-1 text-sm md:col-span-2">
+ <label className="grid min-w-0 gap-1 text-sm md:col-span-2">
  <span className="text-slate-700 ">
  {customerType === 'association' ? 'Föreningsnamn' : 'Företagsnamn'}
  </span>
@@ -225,7 +229,7 @@ export default function CustomerProfileCard({
  )}
 
  {customerType === 'private' ? (
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Personnummer</span>
  <input
  name="personal_number"
@@ -241,7 +245,7 @@ export default function CustomerProfileCard({
  )}
 
  {customerType !== 'private' ? (
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Organisationsnummer</span>
  <input
  name="org_number"
@@ -259,7 +263,7 @@ export default function CustomerProfileCard({
  <p id="identity-change-hint" className="text-xs text-slate-600 md:col-span-2">
  Personnummer och organisationsnummer ändras under &quot;Ändra personnummer/organisationsnummer&quot;. Ändringen loggas, och har kunden avtal måste kunden godkänna den via mejl.
  </p>
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">E-post</span>
  <input
  name="email"
@@ -270,7 +274,7 @@ export default function CustomerProfileCard({
  />
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Telefon</span>
  <input
  name="phone"
@@ -280,7 +284,7 @@ export default function CustomerProfileCard({
  />
  </label>
 
- <label className="grid gap-1 text-sm md:col-span-2">
+ <label className="grid min-w-0 gap-1 text-sm md:col-span-2">
  <span className="text-slate-700 ">Lägenhetsnummer</span>
  <input
  name="apartment_number"
@@ -336,7 +340,7 @@ export default function CustomerProfileCard({
  <ActionBanner state={lifecycleState} />
  </div>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-emerald-900 ">Åtgärd</span>
  <select name="lifecycle_mode" disabled={isArchived} className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 ">
  <option value="move_out">Kunden flyttar / leveransen upphör</option>
@@ -344,7 +348,7 @@ export default function CustomerProfileCard({
  </select>
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-emerald-900 ">Utflytts-/avslutsdatum</span>
  <input
  name="move_out_date"
@@ -355,7 +359,7 @@ export default function CustomerProfileCard({
  />
  </label>
 
- <label className="grid gap-1 text-sm md:col-span-2">
+ <label className="grid min-w-0 gap-1 text-sm md:col-span-2">
  <span className="text-emerald-900 ">Orsak / intern notering</span>
  <textarea
  name="reason"
@@ -373,7 +377,7 @@ export default function CustomerProfileCard({
  </span>
  </label>
 
- <label className="grid gap-1 text-sm md:col-span-2">
+ <label className="grid min-w-0 gap-1 text-sm md:col-span-2">
  <span className="text-emerald-900 ">Skriv AVSLUTA för att bekräfta</span>
  <input
  name="confirm_close"
@@ -403,7 +407,7 @@ export default function CustomerProfileCard({
  <form action={testDataAction} className="mt-4 grid gap-3">
  <input type="hidden" name="customer_id" value={customer.id} />
  <ActionBanner state={testDataState} />
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-amber-950 ">Intern orsak</span>
  <input
  name="reason"
@@ -437,7 +441,7 @@ export default function CustomerProfileCard({
  >
  <input type="hidden" name="customer_id" value={customer.id} />
  <ActionBanner state={archiveState} />
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Orsak</span>
  <input
  name="archive_reason"
@@ -447,7 +451,7 @@ export default function CustomerProfileCard({
  className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
  />
  </label>
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Skriv ARKIVERA för att bekräfta</span>
  <input
  name="confirm_archive"
@@ -483,7 +487,7 @@ export default function CustomerProfileCard({
  <div className="md:col-span-2">
  <ActionBanner state={deleteState} />
  </div>
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-red-700 ">Skriv RADERA för att bekräfta</span>
  <input
  name="confirm_delete"

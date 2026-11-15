@@ -3,6 +3,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { listCustomerOperationTimeline, type CustomerOperationTimelineRow } from '@/lib/customers/customerOperationTimeline'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { formatAdminDateTime } from '@/lib/ui/format'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 
 export const dynamic = 'force-dynamic'
@@ -38,11 +39,11 @@ const GROUP_OPTIONS = [
   ['customer_data', 'Uppgiftsbegäran'],
   ['facility', 'Anläggning'],
   ['supplier_switch', 'Leverantörsbyte'],
-  ['operation', 'Automationsjobb'],
+  ['operation', 'Övriga ärenden'],
 ] as const
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+  return formatAdminDateTime(value)
 }
 
 function statusLabel(status: string) {
@@ -58,7 +59,7 @@ function statusLabel(status: string) {
     skipped: 'Hoppad över',
     cancelled: 'Avbrutet',
   }
-  return labels[status] ?? status.replaceAll('_', ' ')
+  return labels[status] ?? 'Status behöver granskas'
 }
 
 function statusTone(status: string) {
@@ -75,16 +76,48 @@ function eventLocation(row: CustomerOperationTimelineRow) {
   return [address, ...identifiers].filter(Boolean).join(' · ') || 'Kundnivå'
 }
 
-function nextStep(row: CustomerOperationTimelineRow) {
-  if (row.actionRequired) return 'Öppna kundkortet och följ rekommenderad åtgärd'
-  if (row.status === 'waiting_response') return 'Systemet inväntar svar och fortsätter automatiskt'
-  if (row.status === 'response_received') return 'Systemet uppdaterar kundens anläggningsuppgifter'
-  if (row.status === 'completed') return 'Ingen manuell åtgärd behövs'
-  return row.message
+function businessStatus(row: CustomerOperationTimelineRow) {
+  if (row.eventCode === 'supplier_switch.scheduled') return 'Väntar på planerat utskick'
+  if (row.eventCode === 'facility_lookup.edifact_queued') return 'Väntar på utskick'
+  if (['z01.preparing', 'z01.prepared', 'customer_data.z01_prepared'].includes(row.eventCode)) return 'Förbereds för utskick'
+  return statusLabel(row.status)
 }
 
-function safeActionHref(value: string | null, customerId: string) {
-  return value?.startsWith('/admin/') ? value : `/admin/customers/${customerId}`
+function businessEvent(row: CustomerOperationTimelineRow) {
+  const code = row.eventCode ?? ''
+  const titles: Record<string, string> = {
+    'facility.address_incomplete': 'Adressen behöver kompletteras',
+    'facility.grid_owner_suggested': 'Förslag på nätägare behöver bekräftas',
+    'facility.grid_owner_needs_review': 'Nätägaren behöver kontrolleras',
+    'facility.grid_owner_verified': 'Nätägaren har kontrollerats',
+    'supplier_switch.blocked_missing_facility': 'Leverantörsbytet saknar anläggningsuppgifter',
+    'supplier_switch.scheduled': 'Leverantörsbyte planerat',
+    'customer_data.z01_prepared': 'Uppgiftsbegäran förberedd',
+    'facility_lookup.edifact_queued': 'Uppgiftsbegäran väntar på utskick',
+    'z01.preparing': 'Uppgiftsbegäran förbereds',
+    'z01.prepared': 'Uppgiftsbegäran förberedd',
+  }
+  const domain = code.startsWith('supplier_switch.') ? 'Leverantörsbyte'
+    : /^(customer_data|facility_lookup|z01|manual_facility_request)\./.test(code) ? 'Uppgiftsbegäran'
+      : /^(facility|facility_response)\./.test(code) ? 'Anläggningsuppgifter' : 'Kundärende'
+  const scheduledDate = row.eventCode === 'supplier_switch.scheduled' && typeof row.payload?.send_not_before === 'string'
+    ? formatAdminDateTime(row.payload.send_not_before, '') : ''
+  return { title: titles[code] ?? domain, message: scheduledDate ? `Tidigast utskick: ${scheduledDate}` : businessStatus(row) }
+}
+
+function nextStep(row: CustomerOperationTimelineRow) {
+  if (row.actionRequired) return 'Öppna kundkortet och följ rekommenderad åtgärd'
+  if (['supplier_switch.scheduled', 'facility_lookup.edifact_queued', 'z01.preparing', 'z01.prepared', 'customer_data.z01_prepared'].includes(row.eventCode)) return 'Inväntar utskick. Följ ärendet på kundkortet.'
+  if (row.status === 'waiting_response') return 'Väntar på svar. Följ ärendet på kundkortet.'
+  if (row.status === 'response_received') return 'Svar har kommit. Se kundkortet för nästa steg.'
+  if (row.status === 'completed') return 'Det här steget är avslutat.'
+  if (row.status === 'cancelled') return 'Det här steget har avbrutits.'
+  if (row.status === 'skipped') return 'Det här steget hoppades över.'
+  return 'Se kundkortet för mer information.'
+}
+
+function safeActionHref(value: string | null, customerId: string, isPlatformAdmin: boolean) {
+  return isPlatformAdmin && value?.startsWith('/admin/') ? value : `/admin/customers/${customerId}`
 }
 
 function endOfDateExclusive(value: string | undefined) {
@@ -115,7 +148,7 @@ export default async function CustomerOperationEventsPage({ searchParams }: Page
   if (!companyId) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <AdminHeader title="Händelser" subtitle="Välj ett bolag för att se den operativa historiken." userEmail={context.email} workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'} />
+        <AdminHeader title="Händelser" subtitle="Välj ett bolag för att se historiken." userEmail={context.email} workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'} />
         <main className="p-6 lg:p-8"><div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-950">Välj ett bolag för att se händelser.</div></main>
       </div>
     )
@@ -134,7 +167,7 @@ export default async function CustomerOperationEventsPage({ searchParams }: Page
     limit: 50,
   })
   const actionCount = rows.filter((row) => row.actionRequired).length
-  const waitingCount = rows.filter((row) => row.status === 'waiting_response').length
+  const waitingCount = rows.filter((row) => row.status === 'waiting_response' && businessStatus(row) === 'Väntar på svar').length
   const receivedCount = rows.filter((row) => row.status === 'response_received').length
   const last = rows.at(-1) ?? null
 
@@ -150,7 +183,7 @@ export default async function CustomerOperationEventsPage({ searchParams }: Page
 
       <main className="space-y-4 p-4 lg:p-6">
         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm leading-6 text-emerald-950 shadow-sm">
-          En rad beskriver ett faktiskt steg i kundens operativa kedja. Arbetskön visar bara sådant som kräver åtgärd; den här vyn visar även pågående och klara steg.
+          Här ser du vad som har hänt i kundernas ärenden. Arbetskön visar bara sådant som kräver åtgärd; den här vyn visar även pågående och klara steg.
         </section>
 
         <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -189,9 +222,9 @@ export default async function CustomerOperationEventsPage({ searchParams }: Page
                       <td className="whitespace-nowrap px-5 py-4 text-slate-600">{formatDate(row.occurredAt)}</td>
                       <td className="px-5 py-4"><Link href={`/admin/customers/${row.customerId}`} className="font-semibold text-slate-950 hover:text-emerald-800">{row.customerName}</Link><div className="mt-1 font-mono text-xs text-slate-500">{row.customerNumber ?? row.customerEmail ?? '—'}</div></td>
                       <td className="max-w-xs px-5 py-4 text-slate-700">{eventLocation(row)}{row.gridOwnerName ? <div className="mt-1 text-xs text-slate-500">Nätägare: {row.gridOwnerName}</div> : null}</td>
-                      <td className="max-w-md px-5 py-4"><div className="font-semibold text-slate-950">{row.title}</div><div className="mt-1 leading-5 text-slate-600">{row.message}</div>{isPlatformAdmin ? <details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer font-semibold">Tekniska uppgifter</summary><div className="mt-2 space-y-1 rounded-xl bg-slate-50 p-3 font-mono text-[11px] text-slate-700"><div>operation: {row.operationId ?? '—'}</div><div>jobb: {row.customerOperationJobId ?? '—'} {row.jobType ? `(${row.jobType}/${row.jobStatus ?? '—'})` : ''}</div><div>källa: {row.source} · {row.eventCode}</div><pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap border-t border-slate-700 pt-2 text-[10px]">{JSON.stringify(row.payload, null, 2)}</pre></div></details> : null}</td>
-                      <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${statusTone(row.status)}`}>{statusLabel(row.status)}</span></td>
-                      <td className="px-5 py-4 text-slate-700"><div>{nextStep(row)}</div><Link href={safeActionHref(row.actionUrl, row.customerId)} className="mt-2 inline-flex text-xs font-bold text-emerald-800 hover:text-emerald-950">Öppna kundkort →</Link></td>
+                      <td className="max-w-md px-5 py-4"><div className="font-semibold text-slate-950">{isPlatformAdmin ? row.title : businessEvent(row).title}</div><div className="mt-1 leading-5 text-slate-600">{isPlatformAdmin ? row.message : businessEvent(row).message}</div>{isPlatformAdmin ? <details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer font-semibold">Tekniska uppgifter</summary><div className="mt-2 space-y-1 rounded-xl bg-slate-50 p-3 font-mono text-[11px] text-slate-700"><div>operation: {row.operationId ?? '—'}</div><div>jobb: {row.customerOperationJobId ?? '—'} {row.jobType ? `(${row.jobType}/${row.jobStatus ?? '—'})` : ''}</div><div>källa: {row.source} · {row.eventCode}</div><pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap border-t border-slate-700 pt-2 text-[10px]">{JSON.stringify(row.payload, null, 2)}</pre></div></details> : null}</td>
+                      <td className="px-5 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${statusTone(row.status)}`}>{isPlatformAdmin ? statusLabel(row.status) : businessStatus(row)}</span></td>
+                      <td className="px-5 py-4 text-slate-700"><div>{nextStep(row)}</div><Link href={safeActionHref(row.actionUrl, row.customerId, isPlatformAdmin)} className="mt-2 inline-flex text-xs font-bold text-emerald-800 hover:text-emerald-950">{isPlatformAdmin && row.actionUrl?.startsWith('/admin/') ? 'Öppna ärende →' : 'Öppna kundkort →'}</Link></td>
                     </tr>
                   ))}
                 </tbody>

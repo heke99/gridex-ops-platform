@@ -80,7 +80,7 @@ export default async function PricingPage() {
 
         {readinessIssues.length > 0 ? (
           <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">Prismotor readiness</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Prisberäkningens status</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {readinessIssues.map((issue) => (
                 <div key={issue.code} className="rounded-2xl border border-amber-200 bg-white p-4 text-sm text-amber-900">

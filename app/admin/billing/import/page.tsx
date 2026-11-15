@@ -49,7 +49,7 @@ export default async function BillingImportPage({ searchParams }: { searchParams
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
           <form action={importBillingUnderlayFileAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Ny import</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-700">Filen ska innehålla customer_id och period. UUID för site_id/metering_point_id används när det finns, annars sparas externa referenser i payload för manuell matchning.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">Filen behöver identifiera kund och period. Använd anläggningens eller mätpunktens referens när den finns. Saknade kopplingar behöver granskas efter importen.</p>
             <div className="mt-5 space-y-4">
               <input name="billing_file" type="file" accept=".csv,.txt" className="block w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" disabled={!companyId} />
               <textarea name="billing_text" rows={8} placeholder={example} className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" disabled={!companyId} />

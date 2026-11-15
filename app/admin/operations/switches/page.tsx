@@ -527,7 +527,7 @@ export default async function AdminOperationsSwitchesPage({
      <details className="min-w-0 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
        <summary className="cursor-pointer font-semibold">Ärendedetaljer</summary>
        <dl className="mt-3 space-y-2 break-words [&_dt]:text-xs [&_dt]:font-medium [&_dt]:text-slate-600">
-         <div><dt>Switchärende</dt><dd>{request.id}</dd></div>
+         <div><dt>Leverantörsbyte</dt><dd>{request.id}</dd></div>
          <div><dt>Anläggning</dt><dd>{request.site_id}</dd></div>
          <div><dt>Mätpunkt</dt><dd>{request.metering_point_id}</dd></div>
          <div><dt>Nuvarande leverantör</dt><dd>{request.current_supplier_name ?? '—'}</dd></div>

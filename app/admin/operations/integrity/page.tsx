@@ -267,7 +267,7 @@ function FeedbackBanner({
  href="/admin/outbound"
  className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"
  >
- Öppna outbound
+ Visa utskick
  </Link>
  <Link
  href="/admin/operations"
@@ -310,7 +310,7 @@ function FeedbackBanner({
  href="/admin/outbound"
  className="rounded-2xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800"
  >
- Öppna outbound
+ Visa utskick
  </Link>
  </div>
  </div>
@@ -770,7 +770,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  if (readinessIssues.length > 0) {
  mismatchRows.push({
  ...baseRow,
- reason: 'Kunden har blockerande readiness-problem i switchflödet.',
+ reason: "Kundens uppgifter behöver kompletteras innan leverantörsbytet kan fortsätta.",
  hint: readinessIssues
  .slice(0, 3)
  .map((issue) => `${issue.siteName}: ${issue.title}`)
@@ -813,7 +813,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  .map((request) => `${request.request_type} • ${request.status}`)
  .join(' • '),
  workspaceHref: `/admin/operations/switches/${firstMoveRequest.id}`,
- workspaceLabel: 'Öppna switch',
+ workspaceLabel: "Visa leverantörsbyte",
  detailHref: customerHref,
  detailLabel: 'Öppna kundkort',
  })
@@ -833,7 +833,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  .map((request) => `${request.status}`)
  .join(' • '),
  workspaceHref: `/admin/operations/switches/${firstSwitchRequest.id}`,
- workspaceLabel: 'Öppna switch',
+ workspaceLabel: "Visa leverantörsbyte",
  detailHref: customerHref,
  detailLabel: 'Öppna kundkort',
  })
@@ -878,7 +878,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  ? `/admin/operations/grid-owner-requests/${firstMeterRequest.id}`
  : `/admin/outbound/missing-meter-values?period=${period.label}`,
  workspaceLabel: firstMeterRequest
- ? 'Öppna första request'
+ ? "Visa första begäran"
  : 'Öppna mätvärdeskö',
  detailHref: firstMeterRequest ? customerHref : undefined,
  detailLabel: firstMeterRequest ? 'Öppna kundkort' : undefined,
@@ -916,7 +916,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  ? `/admin/operations/grid-owner-requests/${firstFailedDataRequest.id}`
  : customerHref,
  workspaceLabel: firstFailedDataRequest
- ? 'Öppna failed request'
+ ? "Visa misslyckad begäran"
  : 'Felsök kundkort',
  detailHref: firstFailedDataRequest ? customerHref : undefined,
  detailLabel: firstFailedDataRequest ? 'Öppna kundkort' : undefined,
@@ -955,7 +955,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  ? `/admin/operations/grid-owner-requests/${firstReadyUnderlay.source_request_id}`
  : '/admin/partner-exports',
  workspaceLabel: firstReadyUnderlay?.source_request_id
- ? 'Öppna source request'
+ ? "Visa ursprunglig begäran"
  : 'Öppna exportkö',
  detailHref: firstReadyUnderlay?.source_request_id ? customerHref : undefined,
  detailLabel: firstReadyUnderlay?.source_request_id ? 'Öppna kundkort' : undefined,
@@ -989,7 +989,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  <QueueCard
  title="Kunder med mismatch"
  count={mismatchRows.length}
- description="Kunder där kärndata, site/mätpunkt eller readiness inte hänger ihop."
+ description="Kunder med ofullständiga uppgifter eller anläggningskopplingar."
  href="#mismatch"
  tone="danger"
  />
@@ -1047,14 +1047,14 @@ for (const powerOfAttorney of powersOfAttorney) {
  <QueueSection
  id="mismatch"
  title="Kunder med mismatch"
- subtitle="Visar kunder där avtal, site, mätpunkt eller readiness inte är logiskt synkade."
+ subtitle="Kunder vars avtal och anläggningsuppgifter behöver granskas."
  rows={mismatchRows}
  emptyText="Inga mismatch-kunder hittades."
  workspaceHref="/admin/operations/switches?stage=blocked"
  workspaceLabel="Öppna blockerad kö"
  workspaceDescription="Bästa första arbetsytan här är blockerade switchar eller kundkortet om site/mätpunkt saknas."
  bulkAction={{
- label: 'Massåtgärd för switch-ready ärenden',
+ label: "Hantera klara leverantörsbyten",
  description:
  'Köar alla redan redo supplier switches i ett svep utan att du behöver öppna varje kund för sig.',
  form: (
@@ -1086,7 +1086,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  emptyText="Inga öppna flyttärenden hittades."
  workspaceHref="/admin/operations/switches?requestType=move_in"
  workspaceLabel="Öppna flyttkö"
- workspaceDescription="När konkret switch-id finns ska switch-detail vara primär väg in. Kundkortet är sekundärt här."
+ workspaceDescription="Öppna leverantörsbytet för att följa ärendet. Kundens övriga uppgifter finns på kundkortet."
  />
 
  <QueueSection
@@ -1097,11 +1097,11 @@ for (const powerOfAttorney of powersOfAttorney) {
  emptyText="Inga öppna leverantörsbyten hittades."
  workspaceHref="/admin/operations/switches?requestType=switch"
  workspaceLabel="Öppna bytekö"
- workspaceDescription="När konkret switch-id finns går raden direkt till switch-detail. Kundkortet används som sekundär arbetsyta."
+ workspaceDescription="Öppna raden för att följa leverantörsbytet."
  bulkAction={{
  label: 'Masskö för redo byten',
  description:
- 'Kör en massåtgärd som lägger redo switchar i outbound-kön direkt från kontrolltornet.',
+ "Förbered utskick för leverantörsbyten som är klara att gå vidare.",
  form: (
  <form action={runBulkQueueReadySupplierSwitchesFromIntegrityAction}>
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ">
@@ -1120,7 +1120,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  emptyText="Alla kunder med mätpunkter har mätvärden för perioden."
  workspaceHref={`/admin/outbound/missing-meter-values?period=${period.label}`}
  workspaceLabel="Öppna mätvärdeskö"
- workspaceDescription="När konkret request redan finns ska raden öppna request-detail. Bulk-kön används först när något request-id ännu inte finns."
+ workspaceDescription="Öppna begäran från raden. Ärenden utan en begäran kan hanteras från kön."
  bulkAction={{
  label: `Köa saknade mätvärden för ${period.label}`,
  description:
@@ -1144,7 +1144,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  emptyText="Inga importfel hittades."
  workspaceHref="/admin/operations/integrity#import-errors"
  workspaceLabel="Stanna i importfel-kön"
- workspaceDescription="Öppna i första hand failed request direkt från raden. Gå vidare till billing, metering eller partner exports först när felet inte är knutet till ett enskilt request-id."
+ workspaceDescription="Öppna den misslyckade begäran för att granska orsaken."
  />
 
  <QueueSection
@@ -1155,7 +1155,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  emptyText="Inga kunder är redo för export just nu."
  workspaceHref="/admin/partner-exports"
  workspaceLabel="Öppna exportkö"
- workspaceDescription="När source request redan finns ska raden öppna request-detail. Exportkön är sekundär när ett konkret ärende redan finns."
+ workspaceDescription="Öppna den ursprungliga begäran för att följa ärendet."
  bulkAction={{
  label: `Skapa exportkörning för ${period.label}`,
  description:

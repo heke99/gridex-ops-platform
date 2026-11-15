@@ -1,0 +1,138 @@
+[
+  {
+    "fixture": "application-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "application-platform",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "grid-owner-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "grid-owner-platform",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "supplier-switch-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "info-requests-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "info-requests-long-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "login-status-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "billing-settings-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "billing-settings-writer-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "metering-business-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "application-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "application-platform",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "grid-owner-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "grid-owner-platform",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "supplier-switch-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "info-requests-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "info-requests-long-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "login-status-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "billing-settings-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "billing-settings-writer-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "metering-business-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "scenario": "new-contract repeat click with existing hash",
+    "passed": true
+  }
+]

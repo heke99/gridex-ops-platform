@@ -66,7 +66,7 @@ describe('authenticated shell performance invariants', () => {
     expect(page).toContain('const companyScope = await resolveAdminSelectedCompanyReadScope(context)')
     expect(page).toContain('const companyId = companyScope.companyId')
     expect(page).toMatch(
-      /const \[requests, values\] = await Promise\.all\(\[\s*listAllGridOwnerDataRequests\(\{\s*status: 'all',\s*scope: 'meter_values',\s*query,\s*companyId,\s*\}\),\s*listAllMeteringValues\(\{\s*query,\s*companyId,\s*\}\),\s*\]\)/,
+      /const \[requests, values\] = await Promise\.all\(\[\s*listAllGridOwnerDataRequests\(\{\s*status: 'all',\s*scope: 'meter_values',\s*query: isPlatformAdmin \? query : '',\s*companyId,\s*\}\),\s*listAllMeteringValues\(\{\s*query: isPlatformAdmin \? query : '',\s*companyId,\s*\}\),\s*\]\)/,
     )
     expect(page).not.toContain('getOperationalCompanyScope')
     expect(page).toContain('userEmail={context.email}')

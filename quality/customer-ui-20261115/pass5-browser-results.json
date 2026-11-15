@@ -1,0 +1,74 @@
+[
+  {
+    "fixture": "support-list-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "support-writer-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "support-detail-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "support-detail-writer-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "support-long-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "billing-summary-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "support-list-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "support-writer-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "support-detail-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "support-detail-writer-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "support-long-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "billing-summary-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  }
+]

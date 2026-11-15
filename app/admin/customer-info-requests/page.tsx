@@ -1,9 +1,10 @@
+import InfoRequestProcessDetails from '@/components/admin/customers/InfoRequestProcessDetails'
 import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 import Link from 'next/link'
 import { readManualServicePermissionOptions, type ManualServicePermissionOption } from '@/lib/ediel/services/manualPermissionOptions'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
@@ -43,18 +44,18 @@ function statusLabel(status: string): string {
   const labels: Record<string, string> = {
     draft: 'Utkast',
     pending: 'Väntar',
-    z01_prepared: 'Z01 förberedd',
-    route_missing: 'Saknar route',
+    z01_prepared: 'Begäran förberedd',
+    route_missing: 'Anslutning saknas',
     missing_authorization: 'Saknar fullmakt',
     manual_review_required: 'Manuell kontroll',
-    waiting_for_z02: 'Väntar på Z02',
-    z02_received: 'Z02 mottagen',
-    negative_aperak: 'Negativ APERAK',
+    waiting_for_z02: 'Väntar på nätägarens svar',
+    z02_received: 'Nätägarens svar mottaget',
+    negative_aperak: 'Mottagaren avvisade begäran',
     blocked: 'Blockerad',
     ready_to_send: 'Redo att skicka',
     sent_to_grid_owner: 'Skickad till nätägare',
-    waiting_for_contrl: 'Väntar på CONTRL',
-    waiting_for_aperak: 'Väntar på APERAK',
+    waiting_for_contrl: 'Inväntar leveransbekräftelse',
+    waiting_for_aperak: 'Inväntar mottagarens bekräftelse',
     missing_binding_info: 'Saknar bindningsuppgifter',
     missing_termination_info: 'Saknar uppsägningsuppgifter',
     ready_for_switch: 'Redo för leverantörsbyte',
@@ -66,7 +67,7 @@ function statusLabel(status: string): string {
     revoked: 'Återkallad',
     sent: 'Skickad',
   }
-  return labels[status] ?? status
+  return labels[status] ?? formatStatusLabel(status, 'Status saknas', 'Behöver granskning')
 }
 
 function requestTypeLabel(type: string): string {
@@ -81,7 +82,7 @@ function requestTypeLabel(type: string): string {
 
 function scopeTypeLabel(type: string): string {
   const labels: Record<string, string> = {
-    customer_onboarding: 'Kundonboarding',
+    customer_onboarding: 'Kundregistrering',
     metering_data_access: 'Mätvärdesåtkomst',
     supplier_contract_check: 'Kontroll hos nuvarande elhandlare',
   }
@@ -97,21 +98,6 @@ function targetPartyLabel(type: string): string {
   return labels[type] ?? type
 }
 
-function ProcessNextActionDetails({ decision }: { decision: EdielProcessNextAction }) {
-  const waitingLabels: Record<string,string> = { Z02_or_negative_APERAK:'Z02 eller negativ APERAK',CONTRL:'Teknisk CONTRL',APERAK:'APERAK' }
-  const blockerLabels:Record<string,string>={source_owned_process_context_required:'Källbeslut eller tidsgrund måste kontrolleras',business_response_rejected:'Kvalificerat negativt affärssvar',technical_response_rejected:'Teknisk avvisning',business_sender_watch_overdue:'Den egna affärsbevakningen har löpt ut',technical_sender_watch_overdue:'Den egna tekniska bevakningen har löpt ut'}
-  return <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs" aria-label="Nästa processåtgärd">
-    <p className="font-semibold">Nästa åtgärd</p><p className="mt-1">{decision.summary}</p>
-    <dl className="mt-2 space-y-1"><div><dt className="font-semibold">Väntar på</dt><dd>{decision.waitingFor.length?decision.waitingFor.map(value=>waitingLabels[value]??value).join(', '):'Inget automatiskt externt steg'}</dd></div>
-      <div><dt className="font-semibold">Ansvar</dt><dd>{decision.responsibility==='counterparty'?'Motpartens svar; eget bolag bevakar':'Eget bolag granskar'}</dd></div>
-      <div><dt className="font-semibold">Hinder</dt><dd>{decision.blockers.length?decision.blockers.map(value=>blockerLabels[value]??'Källbeslutet kräver granskning').join(', '):'Inget hinder just nu'}</dd></div>
-      <div><dt className="font-semibold">Tidsgrund</dt><dd>{decision.timeBasis.anchor==='z09_validity_day'?`Originalets giltighetsdag ${decision.timeBasis.validityDay??'saknas'}, bevakningsdag ${decision.timeBasis.dueDay??'saknas'}. Faktisk SMTP-acceptans ${decision.timeBasis.actualAcceptedAt??'saknas'} prövas separat.`:`Egen uppföljning från SMTP-acceptans ${decision.timeBasis.anchorAt??'saknar kvalificerad tidsgrund'}.`} Motpartens mottagningstid är inte känd.</dd></div>
-      <div><dt className="font-semibold">Affärsbevakning till</dt><dd>{decision.timeBasis.businessDueAt??'Ingen numerisk tidsgräns i källbeslutet'}</dd></div>
-      <div><dt className="font-semibold">Teknisk bevakning till</dt><dd>{decision.timeBasis.technicalDueAt??'Ingen aktiv teknisk tidsgräns'}</dd></div>
-      <div><dt className="font-semibold">Tillåtna åtgärder</dt><dd>{decision.allowedActions.map(action=>action==='read_source'?'Läsa källbeslut':'Granska manuellt').join(', ')||'Läsbehörighet krävs'}. Ingen automatisk omsändning.</dd></div>
-    </dl>
-  </div>
-}
 
 function SelectCustomer({ customers, name = 'customer_id' }: { customers: Array<{ id: string; label: string; sublabel: string | null }>; name?: string }) {
   return (
@@ -161,6 +147,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
   const successNotice = typeof resolvedSearch.success === 'string' ? resolvedSearch.success.slice(0, 300) : null
   const errorNotice = typeof resolvedSearch.error === 'string' ? resolvedSearch.error.slice(0, 300) : null
   const admin = await requireAdminPageKeyAccess('customer.info_requests')
+  const isPlatformAdmin = isPlatformAdminContext(admin)
   const { companyId } = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
   const supabase = await createSupabaseServerClient()
   const {
@@ -225,7 +212,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
     <div className="min-h-screen">
       <AdminHeader
         title="Uppgiftsbegäran och fullmakter"
-        subtitle="Skapa kontroller mot nätägare, dokumentera fullmaktens omfattning och förbered mätvärdestillstånd utan att blanda ihop Z01/Z02 med Z13/Z14."
+        subtitle="Begär kund- och anläggningsuppgifter, dokumentera fullmakter och följ mätvärdestillstånd."
         userEmail={admin.email}
       />
 
@@ -243,7 +230,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
           <div className="min-w-0 break-words rounded-3xl border border-slate-200 bg-white p-3">
             <div className="min-w-0 break-words text-sm font-medium text-slate-700">Uppgiftsbegäran</div>
             <div className="mt-1 text-2xl font-semibold text-slate-950">{requests.length}</div>
-            <p className="mt-2 text-xs text-slate-600">Z01/Z02, manuell bindningskontroll och kund-/anläggningsdata.</p>
+            <p className="mt-2 text-xs text-slate-600">Kunduppgifter, anläggning och avtalsvillkor.</p>
           </div>
           <div className="min-w-0 break-words rounded-3xl border border-emerald-200 bg-emerald-50 p-3">
             <div className="min-w-0 break-words text-sm font-medium text-emerald-800">Aktiva fullmaktsomfattningar</div>
@@ -253,7 +240,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
           <div className="min-w-0 break-words rounded-3xl border border-emerald-200 bg-emerald-50 p-3">
             <div className="min-w-0 break-words text-sm font-medium text-emerald-800">Aktiva mätvärdestillstånd</div>
             <div className="mt-1 text-2xl font-semibold text-slate-950">{activePermissions.length}</div>
-            <p className="mt-2 text-xs text-emerald-900">Z14-godkända anläggningar.</p>
+            <p className="mt-2 text-xs text-emerald-900">Anläggningar med godkänt tillstånd.</p>
           </div>
           <div className="min-w-0 break-words rounded-3xl border border-red-200 bg-red-50 p-3">
             <div className="min-w-0 break-words text-sm font-medium text-red-800">Ärenden som väntar på åtgärd</div>
@@ -262,19 +249,19 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-3">
+        <section className="grid min-w-0 items-start gap-3 xl:grid-cols-3">
           <AdminDisclosurePanel id="create-info-request" title="Skapa uppgiftsbegäran" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
           <form action={createCustomerInfoRequestAction} className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Z01/Z02 och avtalsdata</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Anläggnings- och avtalsuppgifter</p>
             <p className="mt-2 text-sm leading-6 text-slate-700">Använd för anläggningsuppgifter, nätområde, årsenergi och separat manuell kontroll av bindningstid/uppsägningstid.</p>
             <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
               <CustomerResourceSelects customers={customers} sites={resourceOptions.sites} meteringPoints={resourceOptions.meteringPoints} />
               <SelectGridOwner gridOwners={resourceOptions.gridOwners} />
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-900">
-                För Z01/Z02 ska anläggning, mätpunkt och nätägare vara valda eller kunna härledas från kundens data. Annars blockeras begäran med tydlig åtgärd.
+                Kontrollera kundens anläggning, mätpunkt och nätägare. Saknade uppgifter behöver kompletteras innan begäran kan skickas.
               </div>
               <select name="request_type" aria-label="Begärans typ" defaultValue="z01_customer_masterdata" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
-                <option value="z01_customer_masterdata">Z01/Z02 - kund och anläggningskontroll</option>
+                <option value="z01_customer_masterdata">Kund- och anläggningskontroll</option>
                 <option value="current_supplier_contract_check">Bindning/uppsägning hos nuvarande elhandlare</option>
                 <option value="manual_customer_document_check">Manuell kunddokumentation</option>
               </select>
@@ -313,12 +300,12 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
 
           <AdminDisclosurePanel id="create-authorization-scope" title="Dokumentera fullmaktsomfattning" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
           <form action={createAuthorizationScopeAction} className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Fullmaktsmotor</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Fullmakt</p>
             <p className="mt-2 text-sm leading-6 text-slate-700">Fullmakten ska visa vad bolaget får begära och mot vem. Fullmakten måste vara klar innan uppgifter kan begäras från nätägaren.</p>
             <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
               <SelectCustomer customers={customers} />
               <select name="scope_type" aria-label="Fullmaktsomfattning" defaultValue="customer_onboarding" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
-                <option value="customer_onboarding">Kundonboarding</option>
+                <option value="customer_onboarding">Kundregistrering</option>
                 <option value="metering_data_access">Mätvärdesåtkomst</option>
                 <option value="supplier_contract_check">Kontroll hos nuvarande elhandlare</option>
               </select>
@@ -327,7 +314,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
                 <div className="mt-3 grid gap-2">
                   <label className="flex items-center gap-2"><input type="checkbox" name="covers_grid_owner_data" /> Nätägarens anläggnings-/kunddata</label>
                   <label className="flex items-center gap-2"><input type="checkbox" name="covers_current_supplier_contract" /> Bindning/uppsägning hos nuvarande elhandlare</label>
-                  <label className="flex items-center gap-2"><input type="checkbox" name="covers_metering_data" /> Mätvärden via Z13/Z14</label>
+                  <label className="flex items-center gap-2"><input type="checkbox" name="covers_metering_data" /> Mätvärden</label>
                 </div>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
@@ -342,8 +329,8 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
 
           <AdminDisclosurePanel id="create-metering-permission" title="Förbered mätvärdestillstånd" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
           <form action={createMeteringPermissionDraftAction} className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Z13/Z14</p>
-            <p className="mt-2 text-sm leading-6 text-slate-700">Skapar ett kontrollerat tillståndsutkast. Mätvärden ska bara kopplas till anläggningar som senare godkänns i Z14.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Mätvärdestillstånd</p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">Förbered ett tillstånd för den valda anläggningen. Tillståndet behöver godkännas innan mätvärden kan hämtas.</p>
             <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
               <SelectCustomer customers={customers} />
               <input name="site_id" aria-label="Anläggning" placeholder="Anläggning/site-id, om känd" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
@@ -363,13 +350,13 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
           </AdminDisclosurePanel>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-6 py-5">
+        <section className="grid min-w-0 items-start gap-3 xl:grid-cols-3">
+          <div className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-4 py-3">
               <h2 className="text-lg font-semibold text-slate-950">Senaste uppgiftsbegäran</h2>
               <p className="mt-1 text-sm text-slate-700">Separera nätägaruppgifter från bindning/uppsägning hos befintlig leverantör.</p>
             </div>
-            <div className="space-y-3 p-6">
+            <div tabIndex={0} role="region" aria-label="Uppgiftsbegäranden" className="max-h-[40rem] space-y-3 overflow-auto p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
               {requests.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Inga uppgiftsbegäran ännu.</div> : requests.slice(0, 12).map((request) => (
                 <div key={request.id} className="rounded-2xl border border-slate-200 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -379,11 +366,11 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
                   <div className="mt-3 text-sm font-semibold text-slate-950">{requestTypeLabel(request.request_type)}</div>
                   <div className="mt-1 text-xs leading-5 text-slate-600">{targetPartyLabel(request.target_party_type)}{request.target_party_name ? ` · ${request.target_party_name}` : ''}</div>
                   {request.blocker_reason ? <div className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-800">{request.blocker_reason}</div> : null}
-                  {request.ediel_message_id&&processDecisions.has(request.ediel_message_id)?<ProcessNextActionDetails decision={processDecisions.get(request.ediel_message_id)!}/>:request.sent_at?<p className="mt-3 text-xs text-amber-900" role="status">{!canReadProcess?'Läsbehörighet till kommunikation krävs för aktuellt processbeslut.':processReadUnavailable?'Processbeslutet kunde inte hämtas. Granska innan fortsatt åtgärd.':'Källkvalificerat processbeslut saknas. Granska innan fortsatt åtgärd.'} Ingen automatisk omsändning.</p>:null}
+                  {request.ediel_message_id&&processDecisions.has(request.ediel_message_id)?<InfoRequestProcessDetails showTechnicalDetails={isPlatformAdmin} decision={processDecisions.get(request.ediel_message_id)!}/>:request.sent_at?<p className="mt-3 text-xs text-amber-900" role="status">{!canReadProcess?'Läsbehörighet till kommunikation krävs för aktuellt processbeslut.':processReadUnavailable?'Processbeslutet kunde inte hämtas. Granska innan fortsatt åtgärd.':'Källkvalificerat processbeslut saknas. Granska innan fortsatt åtgärd.'} Ingen automatisk omsändning.</p>:null}
                   {canPrepareRequest&&!processReadUnavailable&&!request.sent_at&&!['waiting_for_contrl','waiting_for_aperak','waiting_for_z02','z02_received','ready_for_switch','completed','negative_aperak','failed','cancelled','rejected'].includes(request.status)&&!(request.ediel_message_id&&processDecisions.has(request.ediel_message_id))?<form action={queueCustomerInfoRequestAction} className="mt-3">
                     <input type="hidden" name="request_id" value={request.id} />
                     <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
-                      Kontrollera fullmakt och förbered Z01
+                      Kontrollera fullmakt och förbered begäran
                     </button>
                   </form>:null}
                   {(portalReplies.get(request.id) ?? []).length ? (
@@ -419,12 +406,12 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-6 py-5">
+          <div className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-4 py-3">
               <h2 className="text-lg font-semibold text-slate-950">Fullmaktsomfattning</h2>
-              <p className="mt-1 text-sm text-slate-700">Aktiva scope-poster som blockerar eller tillåter dataflöden.</p>
+              <p className="mt-1 text-sm text-slate-700">Aktiva fullmakter och vilka uppgifter de omfattar.</p>
             </div>
-            <div className="space-y-3 p-6">
+            <div tabIndex={0} role="region" aria-label="Fullmakternas omfattning" className="max-h-[40rem] space-y-3 overflow-auto p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
               {authorizationScopes.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Ingen omfattning sparad ännu.</div> : authorizationScopes.slice(0, 12).map((scopeRow) => (
                 <div key={scopeRow.id} className="rounded-2xl border border-slate-200 p-4">
                   <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(scopeRow.status)}`}>{formatStatusLabel(scopeRow.status)}</span>
@@ -439,12 +426,12 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-6 py-5">
+          <div className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-4 py-3">
               <h2 className="text-lg font-semibold text-slate-950">Mätvärdestillstånd</h2>
-              <p className="mt-1 text-sm text-slate-700">Z13/Z14-spårning per kund/anläggning.</p>
+              <p className="mt-1 text-sm text-slate-700">Tillstånd att hämta mätvärden per kund och anläggning.</p>
             </div>
-            <div className="space-y-3 p-6">
+            <div tabIndex={0} role="region" aria-label="Mätvärdestillstånd" className="max-h-[40rem] space-y-3 overflow-auto p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
               {permissions.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Inga mätvärdestillstånd ännu.</div> : permissions.slice(0, 12).map((permission) => (
                 <div key={permission.id} className="rounded-2xl border border-slate-200 p-4">
                   <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(permission.status)}`}>{formatStatusLabel(permission.status)}</span>
@@ -464,10 +451,10 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
                       {permissionAssignmentReadFailed ? <p className="text-xs text-amber-900">Uppdragen kunde inte läsas. Begäran kräver kontroll innan den kan förberedas.</p> : null}
                       {!permissionAssignmentOptions.some((option) => option.permissionId === permission.id) ? <p className="text-xs text-slate-600">Saknas ett aktuellt källbelagt uppdrag skapas en uppgift för manuell kontroll.</p> : null}
                       <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
-                        Kontrollera uppdrag och förbered Z13
+                        Kontrollera och förbered begäran
                       </button>
                     </form>:null}
-                    {canPreparePermission?<details className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    {isPlatformAdmin && canPreparePermission?<details className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                       <summary className="cursor-pointer text-xs font-semibold text-slate-700">Koppla mottaget Z14-svar</summary>
                       <form action={applyZ14SnapshotAction} className="mt-3 grid gap-2">
                         <input type="hidden" name="permission_id" value={permission.id} />

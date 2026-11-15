@@ -1,0 +1,8 @@
+
+ RUN  v4.1.9 /workspace/gridex-customer-ui-20261115
+
+
+ Test Files  6 passed (6)
+      Tests  86 passed (86)
+   Start at  13:36:09
+   Duration  1.30s (transform 1.07s, setup 111ms, import 1.72s, tests 284ms, environment 0ms)

@@ -5,6 +5,7 @@ import { requireAdminPageKeyAccess, isPlatformAdminContext } from '@/lib/admin/g
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { supabaseService } from '@/lib/supabase/service'
 import { gridexBusinessMessageLabel } from '@/lib/ediel/businessLabels'
+import { formatAdminDateTime } from '@/lib/ui/format'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 export const dynamic = 'force-dynamic'
@@ -54,21 +55,9 @@ type PendingGodrRow = {
   created_at: string | null
 }
 
-type UnifiedRow =
-  | (EdielMessageRow & { _rowKind: 'ediel' })
-  | PendingOutboundRow
-  | PendingGodrRow
-
 function firstParam(v: string | string[] | undefined): string | null {
   if (Array.isArray(v)) return v[0] ?? null
   return v ?? null
-}
-
-function formatDate(v: string | null | undefined): string {
-  if (!v) return '—'
-  const d = new Date(v)
-  if (Number.isNaN(d.getTime())) return v
-  return d.toLocaleString('sv-SE')
 }
 
 function statusLabel(status: string | null | undefined): string {
@@ -79,14 +68,14 @@ function statusLabel(status: string | null | undefined): string {
     sent: 'Skickat',
     received: 'Mottaget',
     awaiting_contrl: 'Väntar kvittens',
-    awaiting_aperak: 'Väntar godkännande',
-    acknowledged: 'Kvitterat',
+    awaiting_aperak: 'Väntar på mottagningsbesked',
+    acknowledged: 'Mottagandet bekräftat',
     failed: 'Misslyckat',
     cancelled: 'Avbrutet',
     parsed: 'Inläst',
-    validated: 'Validerat',
+    validated: 'Kontrollerat',
   }
-  return labels[String(status ?? '')] ?? String(status ?? '—')
+  return labels[String(status ?? '')] ?? 'Status behöver granskas'
 }
 
 function statusTone(status: string | null | undefined): string {
@@ -125,7 +114,7 @@ function Pill({ text, tone }: { text: string; tone?: string }) {
   )
 }
 
-type CustomerRow = { id: string; first_name?: string | null; last_name?: string | null; company_name?: string | null }
+type CustomerRow = { id: string; full_name?: string | null; customer_number?: string | null; first_name?: string | null; last_name?: string | null; company_name?: string | null }
 type GridOwnerRow = { id: string; name?: string | null }
 
 export default async function MessagesPage({ searchParams }: PageProps) {
@@ -221,25 +210,6 @@ export default async function MessagesPage({ searchParams }: PageProps) {
 
   let messages = ((rawMessages ?? []) as EdielMessageRow[])
 
-  // Client-side search filter (applies only to ediel_messages)
-  if (q) {
-    messages = messages.filter((m) => {
-      const haystack = [
-        m.external_reference,
-        m.transaction_reference,
-        m.sender_ediel_id,
-        m.receiver_ediel_id,
-        m.message_family,
-        m.message_code,
-        m.id,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-      return haystack.includes(q)
-    })
-  }
-
   // Collect all customer IDs across all row kinds for name lookup
   const allCustomerIds = new Set<string>()
   messages.forEach((m) => { if (m.customer_id) allCustomerIds.add(m.customer_id) })
@@ -248,10 +218,12 @@ export default async function MessagesPage({ searchParams }: PageProps) {
 
   const customerMap = new Map<string, CustomerRow>()
   if (allCustomerIds.size > 0) {
-    const { data: customers } = await supabaseService
+    let customerQuery = supabaseService
       .from('customers')
-      .select('id,first_name,last_name,company_name')
-      .in('id', [...allCustomerIds].slice(0, 100))
+      .select('id,full_name,first_name,last_name,company_name,customer_number')
+      .in('id', [...allCustomerIds])
+    if (scope.companyId) customerQuery = customerQuery.eq('company_id', scope.companyId)
+    const { data: customers } = await customerQuery
     for (const c of (customers ?? []) as CustomerRow[]) {
       customerMap.set(c.id, c)
     }
@@ -268,7 +240,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
     const { data: gos } = await supabaseService
       .from('grid_owners')
       .select('id,name')
-      .in('id', [...allGridOwnerIds].slice(0, 50))
+      .in('id', [...allGridOwnerIds])
     for (const g of (gos ?? []) as GridOwnerRow[]) {
       gridOwnerMap.set(g.id, g)
     }
@@ -277,14 +249,26 @@ export default async function MessagesPage({ searchParams }: PageProps) {
   function customerLabel(customerId: string | null): string {
     if (!customerId) return '—'
     const c = customerMap.get(customerId)
-    if (!c) return customerId.slice(0, 8)
-    return [c.first_name, c.last_name].filter(Boolean).join(' ') || c.company_name || customerId.slice(0, 8)
+    if (!c) return 'Kunduppgifter saknas'
+    return c.company_name || c.full_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || c.customer_number || 'Kunduppgifter saknas'
   }
 
   function gridOwnerLabel(id: string | null): string {
     if (!id) return '—'
     const g = gridOwnerMap.get(id)
-    return g?.name ?? id.slice(0, 8)
+    return g?.name ?? 'Nätägaruppgifter saknas'
+  }
+
+  // Search the same bounded, company-scoped records shown in this view.
+  if (q) {
+    const matches = (row: { customer_id: string | null; grid_owner_id: string | null; created_at: string | null }, extra: unknown[] = []) => {
+      const customer = row.customer_id ? customerMap.get(row.customer_id) : null
+      return [customerLabel(row.customer_id), customer?.customer_number, gridOwnerLabel(row.grid_owner_id), row.created_at, formatAdminDateTime(row.created_at), ...extra]
+        .filter(Boolean).join(' ').toLocaleLowerCase('sv-SE').includes(q)
+    }
+    messages = messages.filter(m => matches(m, [m.external_reference, m.transaction_reference, m.sender_ediel_id, m.receiver_ediel_id, m.message_family, m.message_code, m.id, gridexBusinessMessageLabel({ family: m.message_family, code: m.message_code })]))
+    pendingOutboundRows = pendingOutboundRows.filter(row => matches(row))
+    pendingGodrRows = pendingGodrRows.filter(row => matches(row))
   }
 
   const filterUrl = (overrides: Record<string, string | null>) => {
@@ -315,7 +299,8 @@ export default async function MessagesPage({ searchParams }: PageProps) {
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
         title="Meddelanden"
-        subtitle="EDIEL-meddelanden, utskick och kommunikationshistorik"
+        subtitle={isPlatformAdmin ? 'EDIEL-meddelanden, utskick och kommunikationshistorik' : 'Meddelanden och utskick i kundernas ärenden'}
+        workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
       />
 
       <main className="mx-auto min-w-0 max-w-7xl p-4 lg:p-6 [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full">
@@ -324,7 +309,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
           <input
             name="q" aria-label="Sök meddelanden"
             defaultValue={q ?? ''}
-            placeholder="Sök referens, Ediel-ID…"
+            placeholder={isPlatformAdmin ? "Sök referens, Ediel-ID…" : "Sök kund, kundnummer eller nätägare…"}
             className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
           />
           <select
@@ -352,7 +337,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
           >
             <option value="">Alla typer</option>
             {MESSAGE_FAMILIES.map((f) => (
-              <option key={f} value={f}>{f}</option>
+              <option key={f} value={f}>{isPlatformAdmin ? f : ({ PRODAT: 'Kund- och anläggningsärenden', UTILTS: 'Mätvärden', CONTRL: 'Mottagningsbekräftelser', APERAK: 'Mottagningsbesked' } as Record<string, string>)[f] ?? 'Övriga meddelanden'}</option>
             ))}
           </select><input
             name="from" aria-label="Från datum"
@@ -367,7 +352,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
           /></div></details>
           <button
             type="submit"
-            className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
           >
             Filtrera
           </button>
@@ -383,16 +368,16 @@ export default async function MessagesPage({ searchParams }: PageProps) {
 
         {/* Message count */}
         <p className="mb-4 text-sm text-slate-500">
-          {messages.length} EDIEL-meddelande{messages.length !== 1 ? 'n' : ''}
+          {messages.length} meddelande{messages.length !== 1 ? 'n' : ''}
           {pendingOutboundRows.length > 0 || pendingGodrRows.length > 0
-            ? ` · ${pendingOutboundRows.length + pendingGodrRows.length} operativa rader utan meddelande`
+            ? ` · ${pendingOutboundRows.length + pendingGodrRows.length} utskick under förberedelse`
             : ''}
         </p>
 
         {/* Operational pre-message rows: outbound_requests and grid_owner_data_requests */}
         {showOperationalRows && (pendingOutboundRows.length > 0 || pendingGodrRows.length > 0) ? (
           <div className="mb-6 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Operativa rader utan EDIEL-meddelande</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Förberedelser och utskicksproblem</p>
             {pendingOutboundRows.map((row) => {
               const customerLink = row.customer_id ? `/admin/customers/${row.customer_id}` : null
               const isFailed = row.status === 'failed'
@@ -415,11 +400,11 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                       <Pill text="Utgående" tone="border-blue-200 bg-blue-50 text-blue-700" />
                       <Pill text={typeLabel} tone={isZ01 ? 'border-orange-200 bg-orange-100 text-orange-800' : undefined} />
                       <Pill
-                        text={isFailed ? 'Misslyckad – route/profil-problem' : 'Meddelande ej skapat'}
+                        text={isFailed ? 'Kunde inte skickas' : 'Förbereds för utskick'}
                         tone={isFailed ? 'border-red-200 bg-red-100 text-red-800' : 'border-amber-200 bg-amber-100 text-amber-800'}
                       />
                     </div>
-                    <span className="text-xs text-slate-600">{formatDate(row.created_at)}</span>
+                    <span className="text-xs text-slate-600">{formatAdminDateTime(row.created_at)}</span>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-slate-700">
                     <span>
@@ -432,9 +417,9 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                     </span>
                     {row.grid_owner_id ? <span><span className="font-medium">Nätägare:</span> {gridOwnerLabel(row.grid_owner_id)}</span> : null}
                     {row.status ? <span><span className="font-medium">Status:</span> {statusLabel(row.status)}</span> : null}
-                    <span><span className="font-medium">Route profile:</span> {row.ediel_route_profile_id ? 'kopplad' : 'saknas'}</span>
+                    {isPlatformAdmin ? <span><span className="font-medium">Route profile:</span> {row.ediel_route_profile_id ? 'kopplad' : 'saknas'}</span> : null}
                   </div>
-                  {row.failure_reason ? (
+                  {isPlatformAdmin && row.failure_reason ? (
                     <p className="mt-2 text-sm text-red-700">{row.failure_reason}</p>
                   ) : null}
                   {customerLink ? (
@@ -460,9 +445,9 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                     <div className="flex flex-wrap items-center gap-2">
                       <Pill text="Uppgiftsbegäran" tone="border-orange-200 bg-orange-100 text-orange-800" />
                       {isPlatformAdmin ? <Pill text={row.request_scope ?? 'PRODAT Z01'} /> : null}
-                      <Pill text={row.status === 'pending' ? 'Väntar på finalisering' : row.status === 'draft' ? 'Förbereds' : 'I kö'} tone="border-amber-200 bg-amber-100 text-amber-800" />
+                      <Pill text={row.status === 'pending' ? 'Förbereds' : row.status === 'draft' ? 'Förbereds' : 'I kö'} tone="border-amber-200 bg-amber-100 text-amber-800" />
                     </div>
-                    <span className="text-xs text-slate-600">{formatDate(row.created_at)}</span>
+                    <span className="text-xs text-slate-600">{formatAdminDateTime(row.created_at)}</span>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-slate-700">
                     <span>
@@ -494,7 +479,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
         ) : (
           <div className="space-y-2">
             {messages.map((message) => {
-              const dateStr = formatDate(message.message_sent_at ?? message.message_received_at ?? message.created_at)
+              const dateStr = formatAdminDateTime(message.message_sent_at ?? message.message_received_at ?? message.created_at)
               const customerLink = message.customer_id
                 ? `/admin/customers/${message.customer_id}`
                 : null
@@ -548,12 +533,12 @@ export default async function MessagesPage({ searchParams }: PageProps) {
                       <span className="font-medium">Motpart:</span>{' '}
                       {gridOwnerLabel(message.grid_owner_id)}
                     </span>
-                    {message.external_reference ? (
+                    {isPlatformAdmin && message.external_reference ? (
                       <span className="font-mono text-xs text-slate-500">
                         {message.external_reference}
                       </span>
                     ) : null}
-                    {message.failure_reason && message.status === 'failed' ? (
+                    {isPlatformAdmin && message.failure_reason && message.status === 'failed' ? (
                       <span className="rounded-lg bg-red-50 px-2 py-0.5 text-xs text-red-700">
                         {message.failure_reason}
                       </span>
@@ -594,7 +579,7 @@ export default async function MessagesPage({ searchParams }: PageProps) {
           <Link href={filterUrl({ direction: 'inbound', status: null })} className="rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-100">Inkommande</Link>
           <Link href={filterUrl({ status: 'failed', direction: null })} className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100">Misslyckade</Link>
           <Link href={filterUrl({ status: 'sent', direction: null })} className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">Skickade</Link>
-          <Link href={filterUrl({ family: 'PRODAT', status: null, direction: null })} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100">PRODAT</Link>
+          <Link href={filterUrl({ family: 'PRODAT', status: null, direction: null })} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100">{isPlatformAdmin ? 'PRODAT' : 'Kund- och anläggningsärenden'}</Link>
           </AdminActionsMenu>
         </div>
       </main>

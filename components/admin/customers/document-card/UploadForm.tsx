@@ -163,7 +163,7 @@ export default function UploadForm({
  </label>
 
  <label className="space-y-1 text-sm text-slate-700 ">
- <span className="font-medium">Switch startdatum</span>
+ <span className="font-medium">Startdatum för leverantörsbyte</span>
  <input
  name="requested_start_date"
  type="date"
@@ -321,7 +321,7 @@ export default function UploadForm({
  defaultChecked
  className="mt-1"
  />
- <span>Arkivera äldre aktiva standarddokument för samma scope/typ.</span>
+ <span>Arkivera äldre aktiva dokument av samma typ och omfattning.</span>
  </label>
  </div>
 
@@ -397,7 +397,7 @@ export default function UploadForm({
  defaultChecked
  className="mt-1"
  />
- <span>Skapa supplier switch request direkt om readiness är OK.</span>
+ <span>Starta leverantörsbytet direkt om alla uppgifter är klara.</span>
  </label>
 
  <label className="flex items-start gap-3">

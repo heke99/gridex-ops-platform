@@ -328,7 +328,7 @@ export default function DocumentHistoryList({
  href={`/admin/operations/switches/${matchingSwitchRequests[0].id}`}
  className="inline-flex items-center rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 "
  >
- Gå till switch-request
+ Visa leverantörsbyte
  </Link>
  ) : null}
 
@@ -342,8 +342,8 @@ export default function DocumentHistoryList({
  className="inline-flex items-center rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-100 "
  >
  {matchingOutbounds.some((row) => row.channel_type === 'unresolved')
- ? 'Gå till outbound unresolved'
- : 'Gå till outbound'}
+ ? "Granska utskicket"
+ : "Visa utskick"}
  </Link>
  ) : null}
 
@@ -352,7 +352,7 @@ export default function DocumentHistoryList({
  href={buildGridOwnerRequestHref(customerId, matchingGridOwnerRequests[0]?.id)}
  className="inline-flex items-center rounded-2xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 hover:bg-amber-100 "
  >
- Gå till grid owner request
+ Visa nätägarbegäran
  </Link>
  ) : null}
  </div>
@@ -388,7 +388,7 @@ export default function DocumentHistoryList({
 
  <div className="rounded-2xl bg-slate-50 p-3 ">
  <h5 className="text-xs font-semibold uppercase tracking-wide text-slate-700 ">
- Switch requests
+ Leverantörsbyten
  </h5>
  <div className="mt-2 space-y-2">
  {matchingSwitchRequests.length === 0 ? (

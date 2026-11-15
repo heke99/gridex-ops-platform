@@ -324,10 +324,10 @@ export default async function AdminDashboardPage() {
  <div>
  <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-900">Gridex Operations</p>
  <h1 className="mt-1 break-words text-2xl font-semibold tracking-tight text-slate-950">
-{isPlatformAdmin ? 'Plattformsöversikt' : `Dagens driftläge för ${companyScope.companyName ?? 'ditt bolag'}`}
+{isPlatformAdmin ? 'Plattformsöversikt' : `Dagens översikt för ${companyScope.companyName ?? 'ditt bolag'}`}
  </h1>
  <p className="mt-3 max-w-4xl text-sm font-bold leading-6 text-slate-700">
- Följ dagens kundflöden, driftuppgifter och fakturering. Öppna arbetskön för nästa åtgärd.
+ Följ dagens kundärenden och fakturering. Öppna arbetskön för nästa åtgärd.
  </p>
  {companyScope.message ? (
  <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-100 px-4 py-3 text-sm font-black text-amber-950">
@@ -340,10 +340,10 @@ export default async function AdminDashboardPage() {
  {isPlatformAdmin ? (
  <Pill tone="emerald">Platform admin</Pill>
  ) : (
- <Pill tone={tenantReady ? 'emerald' : 'red'}>{tenantReady ? 'Tenantprofil aktiv' : 'Tenantprofil behöver åtgärd'}</Pill>
+ <Pill tone={tenantReady ? 'emerald' : 'red'}>{tenantReady ? 'Bolagsprofil aktiv' : 'Bolagsprofil behöver åtgärd'}</Pill>
  )}
  <Pill tone={liveWarnings === null || liveWarnings > 0 ? 'amber' : 'emerald'}>
- {liveWarnings === null ? 'Driftantal kunde inte hämtas' : liveWarnings > 0 ? `${liveWarnings} driftuppgifter` : 'Inga akuta blockeringar'}
+ {liveWarnings === null ? 'Driftantal kunde inte hämtas' : liveWarnings > 0 ? `${liveWarnings} ärenden` : 'Inga akuta blockeringar'}
  </Pill>
  </div>
  </div>

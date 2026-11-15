@@ -71,7 +71,8 @@ it.each(['needs_review', 'future_review_status'])('shows an explicitly actionabl
   }]
   const html = renderToStaticMarkup(await WorkQueuePage())
   expect(html).toContain('Kontrollera kundens startdatum')
-  expect(html).toContain(`href="/admin/customers/${customer.id}?tab=supplier-switch"`)
+  expect(html).toContain(`href="/admin/customers/${customer.id}"`)
+  expect(html).not.toContain('?tab=supplier-switch')
   expect(html).not.toContain('Inga aktiva driftuppgifter hittades')
 })
 
@@ -99,7 +100,8 @@ it.each([
   const html = renderToStaticMarkup(await WorkQueuePage())
   expect(html).toContain(label)
   expect(html).not.toContain(status)
-  expect(html).toContain(`href="/admin/customers/${customer.id}?tab=data-requests"`)
+  expect(html).toContain(`href="/admin/customers/${customer.id}"`)
+  expect(html).not.toContain('?tab=data-requests')
 })
 
 it.each(['future_manual_review', null])('reads a manual request with unclassified status %s before deciding whether it needs action', async status => {

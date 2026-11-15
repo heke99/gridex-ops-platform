@@ -119,7 +119,7 @@ function buildPrimaryDetailLink(
  if (request.source_type === 'supplier_switch_request' && request.source_id) {
  return {
  href: `/admin/operations/switches/${request.source_id}`,
- label: 'Öppna switch-detail',
+ label: "Visa leverantörsbyte",
  }
  }
 
@@ -863,7 +863,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  href={`/admin/operations/grid-owner-requests/${underlay.source_request_id}`}
  className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 "
  >
- Öppna source request
+ Visa ursprunglig begäran
  </Link>
  ) : null}
 

@@ -1,6 +1,7 @@
+import BillingIntegrationBusinessView from '@/components/admin/billing/BillingIntegrationBusinessView'
 import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'
 import {
@@ -68,10 +69,11 @@ export default async function BillingIntegrationsPage({
       200,
     )
   ).filter((row) => String(row.status ?? '') === 'needs_review')
+  let settingsUnavailable = false
   const [catalog, selection] = scope?.companyId
     ? await Promise.all([
-        listInvoiceProviderCatalog(scope.companyId).catch(() => []),
-        loadTenantInvoiceProviderSelection(scope.companyId).catch(() => null),
+        listInvoiceProviderCatalog(scope.companyId).catch(() => { settingsUnavailable = true; return [] }),
+        loadTenantInvoiceProviderSelection(scope.companyId).catch(() => { settingsUnavailable = true; return null }),
       ])
     : [[], null]
   const selectedConnection = selection?.invoice_export_target_system
@@ -93,6 +95,10 @@ export default async function BillingIntegrationsPage({
   const capwayIssues = Array.isArray(capwayTest?.readiness_issues)
     ? capwayTest.readiness_issues
     : []
+
+  if (!isPlatformAdminContext(admin)) {
+    return <div className="min-h-screen"><AdminHeader title="Fakturainställningar" subtitle="Fakturaleverantör, anslutning och automatiska utskick." userEmail={admin.email} workspaceName={scope?.companyName} /><BillingIntegrationBusinessView catalog={catalog} selection={selection} connection={selectedConnection} runs={runs} canManage={admin.permissions.some(permission => ['billing_underlay.export', 'pricing.write'].includes(permission))} unavailable={settingsUnavailable} reviewCount={reviewEvents.length} failedCount={deadLetters.filter(row => row.status === 'open').length} notice={notice} /></div>
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -229,7 +235,7 @@ export default async function BillingIntegrationsPage({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">
-                Capway/Aptic readiness
+                Anslutningsstatus för Capway/Aptic
               </h2>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-amber-950">
                 Export är blockerad tills tenantens auth och Aptic API faktiskt är
@@ -300,7 +306,7 @@ export default async function BillingIntegrationsPage({
                     const row = isObject(issue) ? issue : {}
                     return (
                       <div key={`${String(row.code ?? 'issue')}-${index}`}>
-                        • {String(row.message ?? row.code ?? 'Readiness blocker')}
+                        • {String(row.message ?? row.code ?? "Behöver åtgärdas")}
                       </div>
                     )
                   })}
@@ -309,7 +315,7 @@ export default async function BillingIntegrationsPage({
             </div>
           ) : (
             <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
-              Ingen tenant-specifik Capway/Aptic testkoppling finns för valt bolag.
+              Ingen testanslutning till Capway/Aptic finns för valt bolag.
             </div>
           )}
         </section>
@@ -319,8 +325,7 @@ export default async function BillingIntegrationsPage({
             <div className="border-b px-6 py-5">
               <h2 className="text-lg font-semibold">Providerkopplingar</h2>
               <p className="mt-1 text-sm text-slate-700">
-                Tekniska credentials ligger i env/secret manager. Databasen sparar
-                bara koppling, readiness och provider-koder.
+                Anslutningsuppgifter hanteras säkert av plattformen. Här visas anslutningens status.
               </p>
             </div>
             <div className="divide-y">

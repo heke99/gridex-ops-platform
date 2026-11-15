@@ -67,7 +67,8 @@ describe('customer card for tenant staff (P5b)', () => {
     const page = readFileSync('app/admin/customers/[id]/page.part-4.tsx', 'utf8')
     expect(page).toContain('sticky top-0')
     expect(page).toContain('>\n                Registrera kontakt')
-    expect(page).toContain('Ändra uppgifter')
+    expect(page).toContain('<CustomerProfileEditLink')
+    expect(readFileSync('components/admin/customers/CustomerProfileEditLink.tsx', 'utf8')).toContain('Ändra uppgifter')
     // The tab bar is the navigation; a header menu repeating the tabs was removed.
     expect(page).not.toContain('Fler åtgärder')
     expect(page).toContain('anyOf: ["cases.write"]')

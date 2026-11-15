@@ -1,6 +1,7 @@
+import CustomerLoginStatus from "@/components/admin/customer-login/CustomerLoginStatus";
 import AdminHeader from "@/components/admin/AdminHeader";
 import CustomerLoginSetup, { type CustomerLoginProviderView } from "@/components/admin/customer-login/CustomerLoginSetup";
-import { requireAdminPageKeyAccess } from "@/lib/admin/guards";
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from "@/lib/admin/guards";
 import { resolveAdminSelectedCompanyReadScope } from "@/lib/tenant/adminScope";
 import { tenantSelect } from "@/lib/supabase/tenantQuery";
 import { tenantKeyAudience, tenantKeyIssuer } from "@/lib/customer-portal/identityProviderSetup";
@@ -32,24 +33,31 @@ export default async function CustomerLoginPage() {
         subtitle="Kontrollera kundernas och personalens identitet från ert eget system."
         userEmail={context.email}
       />
-      <div className="space-y-6 p-8">
+      <main className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
         {!companyId ? (
           <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800 shadow-sm">
             Kontot saknar aktiv bolagskoppling. Koppla användaren till ett bolag först.
           </section>
         ) : unavailable ? (
           <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800 shadow-sm">
-            Kundinloggning är inte aktiverad i den här miljön än.
+            Inloggningens status kunde inte läsas. Försök igen eller kontakta support.
           </section>
+        ) : !isPlatformAdminContext(context) ? (
+          <CustomerLoginStatus providers={providers} />
         ) : (
+          <details className="rounded-2xl border border-slate-200 bg-white p-4">
+          <summary className="cursor-pointer text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Teknisk inloggningskonfiguration · superadmin</summary>
+          <div className="mt-3">
           <CustomerLoginSetup
             companyId={companyId}
             providers={providers}
             tenantKeyIssuer={tenantKeyIssuer(companyId)}
             tenantKeyAudience={tenantKeyAudience(companyId)}
           />
+          </div>
+          </details>
         )}
-      </div>
+      </main>
     </div>
   );
 }

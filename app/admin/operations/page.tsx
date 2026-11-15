@@ -338,7 +338,7 @@ function SwitchEventItem({ event }: { event: SupplierSwitchEventRow }) {
  </div>
  <div className="rounded-2xl bg-slate-50 px-4 py-3 ">
  <div className="text-xs uppercase tracking-[0.14em] text-slate-700 ">
- Switchärende
+ Leverantörsbyte
  </div>
  <div className="mt-1 font-mono text-xs text-slate-900 ">
  {event.switch_request_id}
@@ -351,7 +351,7 @@ function SwitchEventItem({ event }: { event: SupplierSwitchEventRow }) {
  href={`/admin/operations/switches/${event.switch_request_id}`}
  className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 "
  >
- Öppna switchärende
+ Visa leverantörsbyte
  </Link>
 
  <form action={archiveSupplierSwitchEventFromAdminAction}>
@@ -595,7 +595,7 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  title: 'Blockerade leverantörsbyten',
  count: blockedSwitches.length,
  description:
- 'Readiness stoppar nästa steg. Börja här när ett leverantörsbyte inte kan gå vidare.',
+ "Uppgifter saknas för nästa steg. Börja här om ett leverantörsbyte har stannat.",
  href: '/admin/operations/switches?stage=blocked',
  cta: 'Granska blockerare',
  tone: 'danger' as const,
@@ -943,7 +943,7 @@ powersOfAttorney: powersOfAttorneyByCustomerId.get(site.customer_id) ?? [],
  <td className="px-6 py-4 text-slate-700 ">
  {row.readiness
  ? summarizeReadinessIssues(row.readiness)
- : 'Ingen readiness-data'}
+ : "Kontrollstatus saknas"}
  </td>
  <td className="px-6 py-4 text-right">
  <Link

@@ -1,3 +1,4 @@
+import { operationTypeLabel } from '@/lib/operations/actionableStatus'
 import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
 import { updateOutboundRequestStatusAction } from '@/app/admin/cis/actions'
@@ -32,7 +33,9 @@ export default function UnresolvedRequestsList({
  dataRequests,
  sites,
  meteringPoints,
+ showTechnicalDetails = false,
 }: {
+ showTechnicalDetails?: boolean
  requests: OutboundRequestRow[]
  routes: CommunicationRouteRow[]
  switchRequests: SupplierSwitchRequestRow[]
@@ -40,6 +43,22 @@ export default function UnresolvedRequestsList({
  sites: CustomerSiteRow[]
  meteringPoints: MeteringPointRow[]
 }) {
+ if (!showTechnicalDetails) {
+   return <section className="space-y-3" aria-label="Utskick som behöver åtgärdas">
+     {requests.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Inga utskick behöver åtgärdas.</p> : null}
+     {requests.map((request) => {
+       const site = sites.find((item) => item.id === request.site_id)
+       const primaryLink = getPrimaryLink({ request, switchRequests, dataRequests })
+       return <article key={request.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+         <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-semibold text-slate-950">{operationTypeLabel(request.request_type, 'Utskick')}</h2><span className="text-sm font-medium text-amber-900">Behöver åtgärdas</span></div>
+         <p className="mt-2 text-sm text-slate-700"><CustomerName id={request.customer_id} /></p>
+         <p className="mt-1 text-sm text-slate-600">{site?.site_name ?? site?.facility_id ?? 'Anläggningsuppgifter saknas'} · {formatDateTime(request.created_at)}</p>
+         <p className="mt-2 text-sm text-slate-700">{!request.grid_owner_id ? 'Kontrollera att rätt nätägare är vald på kundkortet.' : 'Utskicket saknar en aktiv anslutning. Kontakta support för att få anslutningen kontrollerad.'}</p>
+         <a href={primaryLink.href} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-emerald-800 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">{primaryLink.href.includes('/operations/') ? 'Öppna ärende' : 'Öppna kundkort'}</a>
+       </article>
+     })}
+   </section>
+ }
  return (
  <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
  <div className="border-b border-slate-200 px-6 py-5 ">
@@ -97,7 +116,7 @@ export default function UnresolvedRequestsList({
  <div className="space-y-4">
  <div>
  <h3 className="text-base font-semibold text-slate-950 ">
- Outbound request {request.id}
+ Utskick {request.id}
  </h3>
  <p className="mt-1 text-sm text-slate-700 ">
  Skapad {formatDateTime(request.created_at)} · Senast uppdaterad {formatDateTime(request.updated_at)}

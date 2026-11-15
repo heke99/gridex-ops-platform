@@ -94,7 +94,7 @@ export default function SwitchRecommendationPanel({
  <div className="grid gap-4 p-6 md:grid-cols-5">
  <div className="rounded-2xl border border-white/80 bg-white p-4 ">
  <div className="text-xs font-medium uppercase tracking-wide text-slate-700 ">
- Vald switch
+ Valt leverantörsbyte
  </div>
  <div className="mt-2 text-sm font-semibold text-slate-950 ">
  {edielRecommendation.selectedSwitchId || recommendation.latestRequest?.id || '—'}

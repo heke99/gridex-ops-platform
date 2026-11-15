@@ -190,7 +190,7 @@ export default function GridOwnersTable({ gridOwners }: GridOwnersTableProps) {
                   </div>
                   <div className="mt-2 text-xs text-slate-600">{owner.communication_email ?? owner.email ?? owner.phone ?? "Ingen kontaktinfo"}</div>
                   {owner.manual_review_required ? <div className="mt-1 text-xs font-semibold text-amber-800">Manuell review: {owner.manual_review_reason ?? "krävs"}</div> : null}
-                  {owner.supplier_switch_readiness_status ? <div className="mt-1 text-xs text-slate-500">Switch-status: {owner.supplier_switch_readiness_status}</div> : null}
+                  {owner.supplier_switch_readiness_status ? <div className="mt-1 text-xs text-slate-500">Bytesstatus: {owner.supplier_switch_readiness_status}</div> : null}
                 </td>
                 <td className="px-6 py-4">
                   <VerificationBadge status={owner.verification_status} />

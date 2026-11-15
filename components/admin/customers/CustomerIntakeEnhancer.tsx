@@ -206,7 +206,6 @@ function syncDynamicForm(customerType: string, flowType: string) {
 export default function CustomerIntakeEnhancer({ offers, values = {} }: Props) {
   const [selectedOfferId, setSelectedOfferId] = useState("");
   const [flowType, setFlowType] = useState("switch");
-  const [customerType, setCustomerType] = useState("private");
 
   useEffect(() => {
     if (Object.keys(values).length === 0) return;
@@ -235,7 +234,6 @@ export default function CustomerIntakeEnhancer({ offers, values = {} }: Props) {
     const syncState = () => {
       setSelectedOfferId(contractSelect.value);
       setFlowType(flowSelect.value);
-      setCustomerType(customerTypeSelect.value);
       syncDynamicForm(customerTypeSelect.value, flowSelect.value);
     };
 
@@ -375,52 +373,15 @@ export default function CustomerIntakeEnhancer({ offers, values = {} }: Props) {
     }
   }, [selectedOfferId, values]);
 
-  const intakeSummary = useMemo(() => {
-    if (customerType === "private") {
-      if (flowType === "move_in") {
-        return "Privatkund som flyttar in. För- och efternamn används som kundnamn och adress/inflyttningsdatum ska följa med.";
-      }
-
-      if (flowType === "move_out_takeover") {
-        return "Privatkund som tar över anläggning vid utflytt. Kundnamnet byggs från personuppgifterna och övertagsdatum styr switchunderlaget.";
-      }
-
-      return "Privatkund. Personfält används som kundens huvudidentitet och företags-/föreningsfält döljs.";
-    }
-
-    if (customerType === "association") {
-      return "Förening. Föreningsnamn och organisationsnummer sparas på kunden, medan kontaktperson sparas som primär kontakt.";
-    }
-
-    return "Företag. Företagsnamn och organisationsnummer sparas på kunden, medan kontaktperson sparas som primär kontakt.";
-  }, [customerType, flowType]);
+  const intakeSummary = flowType === "move_in"
+    ? "Ange den nya adressen och inflyttningsdatum."
+    : flowType === "move_out_takeover"
+      ? "Ange anläggningen och datumet då kunden tar över."
+      : "Ange anläggningen och önskat startdatum för leverantörsbytet.";
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 ">
-        <div className="font-semibold text-slate-900 ">Intake-logik</div>
-        <div className="mt-1">
-          Kundtyp:{" "}
-          <span className="font-medium">
-            {customerType === "association"
-              ? "Förening"
-              : customerType === "business"
-                ? "Företag"
-                : "Privat"}
-          </span>
-        </div>
-        <div className="mt-1">
-          Flöde:{" "}
-          <span className="font-medium">
-            {flowType === "move_in"
-              ? "Inflytt / flytt"
-              : flowType === "move_out_takeover"
-                ? "Övertag vid utflytt"
-                : "Leverantörsbyte"}
-          </span>
-        </div>
-        <div className="mt-2 text-xs text-slate-700 ">{intakeSummary}</div>
-      </div>
+    <div className="space-y-3">
+      <p className="text-sm text-slate-600">{intakeSummary}</p>
 
       {selectedOffer ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ">

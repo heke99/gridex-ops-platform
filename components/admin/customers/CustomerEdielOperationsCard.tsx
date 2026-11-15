@@ -1116,7 +1116,7 @@ aperak_status: normalizeRecommendationAckStatus(
 
  <div className="mt-3 grid gap-3 md:grid-cols-2">
  <Grid
- label="Request"
+ label="Begäran"
  value={request.id}
  href={`/admin/operations/grid-owner-requests/${request.id}`}
  />

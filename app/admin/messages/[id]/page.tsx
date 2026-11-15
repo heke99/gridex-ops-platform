@@ -5,26 +5,22 @@ import { requireAdminPageKeyAccess, isPlatformAdminContext } from '@/lib/admin/g
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { supabaseService } from '@/lib/supabase/service'
-import type { EdielMessageRow } from '@/lib/ediel/types'
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
+import { gridexBusinessMessageLabel } from '@/lib/ediel/businessLabels'
+import { formatAdminDateTime } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ id: string }> }
 
-function formatDate(v: string | null | undefined): string {
-  if (!v) return '—'
-  const d = new Date(v)
-  return Number.isNaN(d.getTime()) ? v : d.toLocaleString('sv-SE')
-}
-
 function statusLabel(status: string | null | undefined): string {
   const labels: Record<string, string> = {
     draft: 'Utkast', queued: 'I kö', prepared: 'Förberett', sent: 'Skickat',
-    received: 'Mottaget', awaiting_contrl: 'Väntar kvittens', awaiting_aperak: 'Väntar godkännande',
-    acknowledged: 'Kvitterat', failed: 'Misslyckat', cancelled: 'Avbrutet',
-    parsed: 'Inläst', validated: 'Validerat',
+    received: 'Mottaget', awaiting_contrl: 'Väntar kvittens', awaiting_aperak: 'Väntar på mottagningsbesked',
+    acknowledged: 'Mottagandet bekräftat', failed: 'Misslyckat', cancelled: 'Avbrutet',
+    parsed: 'Inläst', validated: 'Kontrollerat',
   }
-  return labels[String(status ?? '')] ?? String(status ?? '—')
+  return labels[String(status ?? '')] ?? 'Status behöver granskas'
 }
 
 function statusTone(status: string | null | undefined): string {
@@ -45,9 +41,9 @@ function Pill({ text, tone }: { text: string; tone?: string }) {
 
 function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div className="flex flex-wrap gap-2 py-2 border-b border-slate-100 last:border-0">
-      <span className="w-48 shrink-0 text-xs font-semibold text-slate-500">{label}</span>
-      <span className="text-sm text-slate-800">{value ?? '—'}</span>
+    <div className="grid min-w-0 gap-1 py-2 border-b border-slate-100 last:border-0 sm:grid-cols-[12rem_minmax(0,1fr)]">
+      <span className="text-xs font-semibold text-slate-500">{label}</span>
+      <span className="min-w-0 break-words text-sm text-slate-800">{value ?? '—'}</span>
     </div>
   )
 }
@@ -59,15 +55,13 @@ export default async function MessageDetailPage({ params }: Props) {
   const scope = await resolveAdminTenantReadScope(access)
 
   const message = await getEdielMessageById(id, { companyId: scope.companyId ?? undefined })
-  if (!message) notFound()
+  if (!message || (!isPlatformAdmin && message.company_id !== scope.companyId)) notFound()
 
   // Fetch related customer if available
-  type CustomerRow = { id: string; first_name?: string | null; last_name?: string | null; company_name?: string | null }
+  type CustomerRow = { id: string; full_name?: string | null; customer_number?: string | null; first_name?: string | null; last_name?: string | null; company_name?: string | null }
   let customer: CustomerRow | null = null
-  if (message.customer_id) {
-    const { data } = await supabaseService
-      .from('customers')
-      .select('id,first_name,last_name,company_name')
+  if (message.customer_id && message.company_id) {
+    const { data } = await tenantSelect(message.company_id, 'customers', 'id,full_name,first_name,last_name,company_name,customer_number')
       .eq('id', message.customer_id)
       .maybeSingle()
     customer = data as CustomerRow | null
@@ -86,8 +80,9 @@ export default async function MessageDetailPage({ params }: Props) {
   }
 
   const customerLabel = customer
-    ? ([customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company_name || message.customer_id)
-    : message.customer_id
+    ? (customer.company_name || customer.full_name || [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.customer_number || 'Kunduppgifter saknas')
+    : 'Kunduppgifter saknas'
+  const messageLabel = gridexBusinessMessageLabel({ family: message.message_family, code: message.message_code }, isPlatformAdmin ? 'superadmin' : 'tenant')
 
   // Compute a plain-language status description for normal admins
   const nextAction = (() => {
@@ -97,18 +92,21 @@ export default async function MessageDetailPage({ params }: Props) {
     if (s === 'prepared') return 'Meddelandet är förberett. Väntar på godkänt utskick.'
     if (s === 'sent') return 'Meddelandet har skickats. Väntar på kvittens från mottagaren.'
     if (['awaiting_contrl', 'awaiting_aperak'].includes(s)) return 'Väntar på kvittens från nätägaren.'
-    if (s === 'acknowledged') return 'Meddelandet är kvitterat. Inget ytterligare krävs.'
-    if (s === 'received') return 'Meddelandet mottaget och bearbetat.'
-    if (s === 'failed') return `Meddelandet misslyckades. ${message.failure_reason ?? 'Kontrollera loggar.'}`
+    if (s === 'acknowledged') return 'Mottagandet har bekräftats. Kontrollera kundens ärende för att se om ett affärssvar återstår.'
+    if (s === 'received') return 'Meddelandet har tagits emot.'
+    if (s === 'failed') return 'Meddelandet kunde inte hanteras. Kontakta support om du behöver hjälp.'
     if (s === 'cancelled') return 'Meddelandet är avbrutet.'
-    return null
+    if (s === 'parsed') return 'Meddelandet har lästs in.'
+    if (s === 'validated') return 'Meddelandets innehåll har kontrollerats.'
+    return 'Meddelandets status behöver granskas.'
   })()
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
-        title={`${message.message_family ?? '—'} ${message.message_code ?? ''}`.trim()}
-        subtitle="Meddelandedetalj"
+        title={messageLabel}
+        subtitle="Meddelande"
+        workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
       />
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
@@ -128,7 +126,7 @@ export default async function MessageDetailPage({ params }: Props) {
               text={message.direction === 'outbound' ? 'Utgående' : 'Inkommande'}
               tone={message.direction === 'outbound' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-purple-200 bg-purple-50 text-purple-700'}
             />
-            <Pill text={`${message.message_family ?? '—'} ${message.message_code ?? ''}`.trim()} />
+            {isPlatformAdmin ? <Pill text={messageLabel} /> : null}
           </div>
 
           {nextAction ? (
@@ -141,13 +139,10 @@ export default async function MessageDetailPage({ params }: Props) {
         {/* Key information — visible to all admins */}
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold text-slate-900">Information</h2>
-          <InfoRow label="Datum" value={formatDate(message.message_sent_at ?? message.message_received_at ?? message.created_at)} />
+          <InfoRow label="Datum" value={formatAdminDateTime(message.message_sent_at ?? message.message_received_at ?? message.created_at)} />
           <InfoRow label="Kund" value={customerLabel ?? '—'} />
-          <InfoRow label="Motpart (nätägare)" value={gridOwner?.name ?? message.grid_owner_id ?? '—'} />
-          <InfoRow label="Avsändare Ediel-ID" value={message.sender_ediel_id} />
-          <InfoRow label="Mottagare Ediel-ID" value={message.receiver_ediel_id} />
-          <InfoRow label="Referens" value={message.external_reference ?? message.transaction_reference} />
-          {message.failure_reason ? (
+          <InfoRow label="Motpart (nätägare)" value={gridOwner?.name ?? 'Nätägaruppgifter saknas'} />
+          {isPlatformAdmin && message.failure_reason ? (
             <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
               <span className="font-semibold">Felorsak: </span>{message.failure_reason}
             </div>
@@ -155,7 +150,7 @@ export default async function MessageDetailPage({ params }: Props) {
         </section>
 
         {/* Customer link */}
-        {message.customer_id ? (
+        {customer ? (
           <Link
             href={`/admin/customers/${message.customer_id}`}
             className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
@@ -168,11 +163,11 @@ export default async function MessageDetailPage({ params }: Props) {
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold text-slate-900">Tidslinje</h2>
           <div className="space-y-3">
-            {message.created_at ? <div className="flex gap-3 text-sm"><span className="w-48 shrink-0 text-slate-500">Skapat</span><span>{formatDate(message.created_at)}</span></div> : null}
-            {message.message_sent_at ? <div className="flex gap-3 text-sm"><span className="w-48 shrink-0 text-slate-500">Skickat</span><span>{formatDate(message.message_sent_at)}</span></div> : null}
-            {message.message_received_at ? <div className="flex gap-3 text-sm"><span className="w-48 shrink-0 text-slate-500">Mottaget</span><span>{formatDate(message.message_received_at)}</span></div> : null}
-            {message.acknowledged_at ? <div className="flex gap-3 text-sm"><span className="w-48 shrink-0 text-slate-500">Kvitterat</span><span>{formatDate(message.acknowledged_at)}</span></div> : null}
-            {message.failed_at ? <div className="flex gap-3 text-sm"><span className="w-48 shrink-0 text-slate-500">Misslyckades</span><span>{formatDate(message.failed_at)}</span></div> : null}
+            {message.created_at ? <div className="grid min-w-0 gap-1 text-sm sm:grid-cols-[12rem_minmax(0,1fr)]"><span className="text-slate-500">Skapat</span><span>{formatAdminDateTime(message.created_at)}</span></div> : null}
+            {message.message_sent_at ? <div className="grid min-w-0 gap-1 text-sm sm:grid-cols-[12rem_minmax(0,1fr)]"><span className="text-slate-500">Skickat</span><span>{formatAdminDateTime(message.message_sent_at)}</span></div> : null}
+            {message.message_received_at ? <div className="grid min-w-0 gap-1 text-sm sm:grid-cols-[12rem_minmax(0,1fr)]"><span className="text-slate-500">Mottaget</span><span>{formatAdminDateTime(message.message_received_at)}</span></div> : null}
+            {message.acknowledged_at ? <div className="grid min-w-0 gap-1 text-sm sm:grid-cols-[12rem_minmax(0,1fr)]"><span className="text-slate-500">Mottagandet bekräftat</span><span>{formatAdminDateTime(message.acknowledged_at)}</span></div> : null}
+            {message.failed_at ? <div className="grid min-w-0 gap-1 text-sm sm:grid-cols-[12rem_minmax(0,1fr)]"><span className="text-slate-500">Misslyckades</span><span>{formatAdminDateTime(message.failed_at)}</span></div> : null}
           </div>
         </section>
 
@@ -183,6 +178,10 @@ export default async function MessageDetailPage({ params }: Props) {
               Tekniska detaljer (plattformsadministratör)
             </summary>
             <div className="mt-4 space-y-4">
+              <InfoRow label="Avsändare Ediel-ID" value={message.sender_ediel_id} />
+              <InfoRow label="Mottagare Ediel-ID" value={message.receiver_ediel_id} />
+              <InfoRow label="Referens" value={message.external_reference ?? message.transaction_reference} />
+
               <div className="space-y-0 divide-y divide-slate-100">
                 <InfoRow label="message_id" value={message.id} />
                 <InfoRow label="outbound_request_id" value={message.outbound_request_id} />

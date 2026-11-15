@@ -20,10 +20,10 @@ export default function CustomerOperationsReadinessStrip({
  <div className="flex flex-wrap items-center justify-between gap-3">
  <div>
  <h2 className="text-base font-semibold text-slate-900 ">
- Samlad readiness
+ Vad återstår?
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Snabb kontroll av det som oftast blockerar kundens operativa flöden.
+ Se vad som behöver kompletteras för kunden.
  </p>
  </div>
  </div>

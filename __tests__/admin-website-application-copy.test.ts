@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -10,7 +11,7 @@ vi.mock('@/lib/admin/guards', () => ({
 }))
 vi.mock('@/lib/tenant/adminScope', () => ({ resolveAdminTenantReadScope: async () => ({ companyId: 'synthetic-company', isPlatformAdmin: io.platform }) }))
 vi.mock('@/lib/admin/websiteIntegrationOps', () => ({ listWebsiteApplications: async () => io.rows, getWebsiteApplicationAdminRow: async () => io.item }))
-vi.mock('@/lib/masterdata/db', () => ({ listGridOwners: async () => [] }))
+vi.mock('@/lib/masterdata/db', () => ({ listGridOwners: async () => [{ id: 'synthetic-grid-owner', name: 'Nätexempel AB' }] }))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => ({}) }))
 vi.mock('@/lib/supabase/service', () => ({
   supabaseService: {
@@ -175,4 +176,28 @@ it('does not display a typed external reference belonging to another company', a
   io.tables.customer_info_requests = [{ id: 'synthetic-info-alias', company_id: 'synthetic-other-company', status: 'missing_authorization', blocker_reason: 'FOREIGN-REFERENCE-MUST-NOT-RENDER' }]
   const text = visibleText(renderToStaticMarkup(await ApplicationDetailPage({ params: Promise.resolve({ id: io.item.id }) })))
   expect(text).not.toContain('FOREIGN-REFERENCE-MUST-NOT-RENDER')
+})
+
+
+it.each([false, true])('keeps raw application payloads restricted to platform=%s', async platform => {
+  io.platform = platform
+  io.item = application({ customer_id: 'internal-customer-id', customer_site_id: 'internal-site-id', contract_id: 'internal-contract-id', response_payload: { marker: 'RAW-APPLICATION-RESPONSE' } })
+  io.tables.customers = [{ id: 'internal-customer-id', company_id: 'synthetic-company', customer_number: 'KUND-1001', status: 'active' }]
+  io.tables.customer_sites = [{ id: 'internal-site-id', company_id: 'synthetic-company', facility_id: '735999111111111111', street: 'Exempelvägen 1', grid_owner_id: 'synthetic-grid-owner', status: 'active' }]
+  io.tables.customer_contracts = [{ id: 'internal-contract-id', company_id: 'synthetic-company', contract_name: 'Rörligt månadspris', status: 'active' }]
+  const html = renderToStaticMarkup(await ApplicationDetailPage({ params: Promise.resolve({ id: io.item.id }) }))
+  if (process.env.GRIDEX_UI_FIXTURE_DIR) fs.writeFileSync(`${process.env.GRIDEX_UI_FIXTURE_DIR}/application-${platform ? 'platform' : 'company'}.html`, html)
+  const text = visibleText(html)
+  expect(text).toContain('KUND-1001')
+  expect(text).toContain('Nätexempel AB')
+  expect(text).not.toContain('synthetic-grid-owner')
+  expect(text.includes('RAW-APPLICATION-RESPONSE')).toBe(platform)
+  expect(text.includes('internal_fixture_marker')).toBe(platform)
+  expect(text.includes('Automationsworkflow')).toBe(platform)
+  if (platform) expect(html).toMatch(/<details[^>]*><summary[^>]*>Tekniska detaljer · superadmin/)
+  else {
+    expect(text).not.toContain('internal-customer-id')
+    expect(text).not.toContain('internal-site-id')
+    expect(text).not.toContain('internal-contract-id')
+  }
 })

@@ -1,0 +1,84 @@
+[
+  {
+    "fixture": "profile-reader-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "profile-writer-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "contacts-reader-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "contacts-writer-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "contacts-long-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "profile-hash-company",
+    "width": 390,
+    "directHash": true,
+    "repeatedOpen": true,
+    "wrongCustomerNotOpened": true,
+    "violations": []
+  },
+  {
+    "fixture": "profile-reader-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "profile-writer-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "contacts-reader-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "contacts-writer-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "contacts-long-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "profile-hash-company",
+    "width": 1280,
+    "directHash": true,
+    "repeatedOpen": true,
+    "wrongCustomerNotOpened": true,
+    "violations": []
+  },
+  {
+    "fixture": "existing-contract-link",
+    "width": 1280,
+    "repeatedOpen": true,
+    "violations": []
+  }
+]

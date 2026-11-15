@@ -1,0 +1,42 @@
+OK: atomic commit creates the canonical continuation job
+OK: migration drops the prior OUT-row signature before changing the return type
+OK: provisioning saga records commit and queued continuation
+OK: canonical job claim is atomic
+OK: workflow transitions have a unique idempotency identity
+OK: repeated workflow transitions do not increment state twice
+OK: Z01/Z02 wait has a non-replayable workflow state
+OK: continuation commit validates the canonical POA validity columns
+OK: API commits before handing off to continuation
+OK: initial e-mail dispatch lives in the durable continuation worker
+OK: API fails closed when the continuation migration is missing
+OK: old inline grid-owner continuation path is removed
+OK: old inline supplier-switch continuation path is removed
+OK: initial legal e-mails are queued sequentially
+OK: initial legal e-mails are not queued in parallel
+OK: customer-operation worker executes continuation jobs
+OK: continuation and notification jobs bypass stale site-snapshot rejection until the selected downstream step
+OK: TypeScript workflow contract matches SQL wait state
+OK: reconciliation scans stalled active transitions
+OK: reconciliation does not replay legitimate Z02/ACK waiting
+OK: customer-operation cron runs continuation reconciliation
+OK: event-rule seeding preserves existing tenant configuration
+OK: template seeding preserves existing tenant customization
+OK: supplier-switch start is mapped to customer notification
+OK: supplier-switch confirmation is mapped to customer notification
+OK: active supply is mapped to the welcome notification
+OK: lifecycle notification jobs have permanent idempotency
+OK: lifecycle mail creation is protected by a durable queue job
+OK: customer-operation worker dispatches lifecycle notifications durably
+OK: customer operation events enqueue lifecycle notifications
+OK: Ediel business outcomes enqueue lifecycle notifications behind the canonical inbound facade
+OK: missing POA notification creation fails the continuation job for retry
+OK: admin application view exposes workflow transitions and jobs
+OK: admin can safely requeue the canonical continuation row
+OK: canonical developer guide documents structured externally-sendable POA
+OK: canonical developer guide documents the application status endpoint
+OK: legacy website guide delegates details to the canonical public guide without internal queue terminology
+OK: OpenAPI exposes the organization-scoped status endpoint
+OK: status endpoint route exists
+OK: downstream facility/Ediel outcomes correlate back to the original workflow
+
+Customer application continuation regression passed.

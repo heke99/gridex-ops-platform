@@ -210,7 +210,7 @@ function FacilityLookupRequestCard({ request, showTechnicalLinks = false }: { re
             <div className="mt-3 flex flex-wrap gap-2">
               <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800">Spara uppgifter</button>
               {/* Route readiness är en plattformsteknisk vy — visas aldrig för tenantoperatörer. */}
-              {showTechnicalLinks ? <Link href="/admin/ediel/route-readiness" className="rounded-xl border border-emerald-300 px-4 py-2 text-sm font-bold text-emerald-900 hover:bg-white">Route readiness</Link> : null}
+              {showTechnicalLinks ? <Link href="/admin/ediel/route-readiness" className="rounded-xl border border-emerald-300 px-4 py-2 text-sm font-bold text-emerald-900 hover:bg-white">Anslutningsstatus</Link> : null}
             </div>
           </form></AdminDisclosurePanel>
         </div>

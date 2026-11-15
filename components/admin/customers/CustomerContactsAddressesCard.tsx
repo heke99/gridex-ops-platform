@@ -1,3 +1,4 @@
+import { formatAdminDate, formatAdminDateTime } from '@/lib/ui/format'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
@@ -9,15 +10,6 @@ import type {
  CustomerType,
 } from '@/types/customers'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
-
-function formatDateTime(value: string | null | undefined): string {
- if (!value) return '—'
-
- return new Intl.DateTimeFormat('sv-SE', {
- dateStyle: 'medium',
- timeStyle: 'short',
- }).format(new Date(value))
-}
 
 function getString(formData: FormData, key: string): string {
  return String(formData.get(key) ?? '').trim()
@@ -282,14 +274,14 @@ function badgeTone(active: boolean): string {
 
 function contactIntro(customerType: CustomerType): string {
  if (customerType === 'private') {
- return 'Privatkundens huvudkontakt är normalt kunden själv. Primär kontakt bör därför spegla den person som faktiskt ska nås.'
+ return 'Huvudkontakten är normalt kunden själv. Huvudkontakten är den person som ska nås.'
  }
 
  if (customerType === 'association') {
- return 'Förening bör ha en tydlig primär kontaktperson, till exempel ordförande, administratör eller styrelsekontakt.'
+ return 'Förening bör ha en tydlig huvudkontakt, till exempel ordförande, administratör eller styrelsekontakt.'
  }
 
- return 'Företag bör ha en tydlig primär kontaktperson, till exempel VD, ekonomiansvarig eller driftkontakt.'
+ return 'Företag bör ha en tydlig huvudkontakt, till exempel VD, ekonomiansvarig eller driftkontakt.'
 }
 
 function addressIntro(customerType: CustomerType): string {
@@ -322,29 +314,30 @@ function ContactForm({
  return (
  <form
  action={saveCustomerContactAction}
- className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 "
+ className="min-w-0 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 "
  >
  <input type="hidden" name="customer_id" value={customerId} />
  <input type="hidden" name="customer_type" value={customerType} />
  <input type="hidden" name="id" value={contact?.id ?? ''} />
 
- <div className="grid gap-4 md:grid-cols-2">
- <label className="grid gap-1 text-sm">
+ <div className="grid min-w-0 gap-3 md:grid-cols-2 [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Typ</span>
  <select
  name="type"
  defaultValue={contact?.type ?? (isPrimaryContact ? 'primary' : 'other')}
  className="rounded-2xl border border-slate-300 px-4 py-3 "
  >
- <option value="primary">Primary</option>
- <option value="billing">Billing</option>
- <option value="operations">Operations</option>
- <option value="technical">Technical</option>
- <option value="other">Other</option>
+ {contact?.type && !['primary', 'billing', 'operations', 'technical', 'other'].includes(contact.type) ? <option value={contact.type}>Befintlig kontaktroll</option> : null}
+ <option value="primary">Huvudkontakt</option>
+ <option value="billing">Faktura</option>
+ <option value="operations">Kundärenden</option>
+ <option value="technical">Anläggningsfrågor</option>
+ <option value="other">Övrigt</option>
  </select>
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Titel / roll</span>
  <input
  name="title"
@@ -360,7 +353,7 @@ function ContactForm({
  />
  </label>
 
- <label className="grid gap-1 text-sm md:col-span-2">
+ <label className="grid min-w-0 gap-1 text-sm md:col-span-2">
  <span className="text-slate-700 ">
  {customerType === 'private' ? 'Namn' : 'Kontaktperson namn'}
  </span>
@@ -376,7 +369,7 @@ function ContactForm({
  />
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">E-post</span>
  <input
  type="email"
@@ -386,7 +379,7 @@ function ContactForm({
  />
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Telefon</span>
  <input
  name="phone"
@@ -407,7 +400,7 @@ function ContactForm({
  </label>
 
  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-700 ">
- Primär kontakt synkar kundens huvuduppgifter för e-post och telefon när du sparar.
+ Huvudkontakten uppdaterar kundens e-post och telefon när du sparar.
  </div>
 
  <div className="flex justify-end">
@@ -431,27 +424,29 @@ function AddressForm({
  return (
  <form
  action={saveCustomerAddressAction}
- className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 "
+ className="min-w-0 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 "
  >
  <input type="hidden" name="customer_id" value={customerId} />
  <input type="hidden" name="customer_type" value={customerType} />
  <input type="hidden" name="id" value={address?.id ?? ''} />
 
- <div className="grid gap-4 md:grid-cols-2">
- <label className="grid gap-1 text-sm">
+ <div className="grid min-w-0 gap-3 md:grid-cols-2 [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Typ</span>
  <select
  name="type"
- defaultValue={address?.type ?? defaultAddressType(customerType)}
+ required
+ defaultValue={address?.type ? ['registered', 'billing', 'other'].includes(address.type) ? address.type : '' : defaultAddressType(customerType)}
  className="rounded-2xl border border-slate-300 px-4 py-3 "
  >
- <option value="registered">Registered</option>
- <option value="billing">Billing</option>
- <option value="other">Other</option>
+ <option value="" disabled>Välj adresstyp</option>
+ <option value="registered">Registrerad adress</option>
+ <option value="billing">Faktura</option>
+ <option value="other">Övrigt</option>
  </select>
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Land</span>
  <input
  name="country"
@@ -460,7 +455,7 @@ function AddressForm({
  />
  </label>
 
- <label className="grid gap-1 text-sm md:col-span-2">
+ <label className="grid min-w-0 gap-1 text-sm md:col-span-2">
  <span className="text-slate-700 ">Gatuadress</span>
  <input
  name="street_1"
@@ -469,7 +464,7 @@ function AddressForm({
  />
  </label>
 
- <label className="grid gap-1 text-sm md:col-span-2">
+ <label className="grid min-w-0 gap-1 text-sm md:col-span-2">
  <span className="text-slate-700 ">Adressrad 2 / c/o</span>
  <input
  name="street_2"
@@ -478,7 +473,7 @@ function AddressForm({
  />
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Postnummer</span>
  <input
  name="postal_code"
@@ -487,7 +482,7 @@ function AddressForm({
  />
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Stad</span>
  <input
  name="city"
@@ -496,7 +491,7 @@ function AddressForm({
  />
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Kommun</span>
  <input
  name="municipality"
@@ -505,7 +500,7 @@ function AddressForm({
  />
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Inflyttad</span>
  <input
  type="date"
@@ -515,7 +510,7 @@ function AddressForm({
  />
  </label>
 
- <label className="grid gap-1 text-sm">
+ <label className="grid min-w-0 gap-1 text-sm">
  <span className="text-slate-700 ">Utflyttad</span>
  <input
  type="date"
@@ -545,185 +540,56 @@ function AddressForm({
  )
 }
 
-export default function CustomerContactsAddressesCard({
- customerId,
- customerType,
- contacts,
- addresses,
- sites,
-}: {
- customerId: string
- customerType: CustomerType
- contacts: CustomerContactRow[]
- addresses: CustomerAddressRow[]
- sites: CustomerSiteRow[]
+const CONTACT_LABELS: Record<string, string> = { primary: 'Huvudkontakt', billing: 'Fakturakontakt', operations: 'Kundärenden', technical: 'Anläggningsfrågor', other: 'Övrig kontakt' }
+const ADDRESS_LABELS: Record<string, string> = { registered: 'Registrerad adress', billing: 'Fakturaadress', facility: 'Anläggningsadress', other: 'Övrig adress' }
+
+export default function CustomerContactsAddressesCard({ customerId, companyId, customerType, contacts, addresses, sites, canWrite = false }: {
+  customerId: string
+  companyId: string | null
+  customerType: CustomerType
+  contacts: CustomerContactRow[]
+  addresses: CustomerAddressRow[]
+  sites: CustomerSiteRow[]
+  canWrite?: boolean
 }) {
- const contactAddresses = addresses.filter((address) => address.type !== 'facility')
- return (
- <section className="grid gap-6 xl:grid-cols-2">
- <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
- <div className="border-b border-slate-200 px-6 py-5 ">
- <h2 className="text-lg font-semibold text-slate-900 ">
- Kontakter
- </h2>
- <p className="mt-1 text-sm text-slate-700 ">
- {contactIntro(customerType)}
- </p>
- </div>
-
- <div className="space-y-4 p-6">
- {contacts.length === 0 ? (
- <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-700 ">
- Inga kontaktposter ännu.
- </div>
- ) : (
- contacts.map((contact) => (
- <article
- key={contact.id}
- className="rounded-2xl border border-slate-200 bg-slate-50 p-4 "
- >
- <div className="flex flex-wrap items-start justify-between gap-3">
- <div>
- <div className="font-medium text-slate-900 ">
- {contact.name ?? 'Namnlös kontakt'}
- </div>
- <div className="mt-1 text-xs text-slate-700 ">
- {contact.type}
- {contact.title ? ` • ${contact.title}` : ''}
- </div>
- </div>
-
- <span
- className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeTone(
- contact.is_primary
- )}`}
- >
- {contact.is_primary ? 'Primär' : 'Sekundär'}
- </span>
- </div>
-
- <div className="mt-3 space-y-1 text-sm text-slate-700 ">
- <div>E-post: {contact.email ?? '—'}</div>
- <div>Telefon: {contact.phone ?? '—'}</div>
- <div>Skapad: {formatDateTime(contact.created_at)}</div>
- </div>
-
- <details className="mt-4">
- <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
- Redigera kontakt
- </summary>
- <div className="mt-4">
- <ContactForm
- customerId={customerId}
- customerType={customerType}
- contact={contact}
- />
- </div>
- </details>
- </article>
- ))
- )}
-
- <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
- <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
- Lägg till ny kontakt
- </summary>
- <div className="mt-4">
- <ContactForm customerId={customerId} customerType={customerType} />
- </div>
- </details>
- </div>
- </div>
-
- <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
- <div className="border-b border-slate-200 px-6 py-5 ">
- <h2 className="text-lg font-semibold text-slate-900 ">
- Adresser
- </h2>
- <p className="mt-1 text-sm text-slate-700 ">
- {addressIntro(customerType)}
- </p>
- </div>
-
- <div className="space-y-4 p-6">
- <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-800">
- <div className="font-semibold text-slate-950">Anläggningsadress</div>
- <p className="mt-1 text-xs leading-5 text-slate-700">Används för nätägarmatchning, Z01 och leverantörsbyte. Ändras under anläggningsuppgifter.</p>
- <div className="mt-3 space-y-2">
- {sites.length === 0 ? <div className="text-slate-600">Ingen anläggning registrerad ännu.</div> : sites.map((site) => (
- <div key={site.id} className="rounded-xl border border-sky-100 bg-white px-3 py-2">
- <div className="font-medium text-slate-950">{site.site_name}</div>
- <div className="mt-1 text-slate-700">{[site.care_of, site.street, [site.postal_code, site.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || 'Adress saknas'}</div>
- <div className="mt-1 text-xs text-slate-500">Anläggnings-ID: {site.facility_id ?? 'saknas'}</div>
- </div>
- ))}
- </div>
- </div>
-
- {contactAddresses.length === 0 ? (
- <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-700 ">
- Inga kontakt- eller fakturaadresser ännu.
- </div>
- ) : (
- contactAddresses.map((address) => (
- <article
- key={address.id}
- className="rounded-2xl border border-slate-200 bg-slate-50 p-4 "
- >
- <div className="flex flex-wrap items-start justify-between gap-3">
- <div>
- <div className="font-medium text-slate-900 ">
- {address.street_1}
- </div>
- <div className="mt-1 text-xs text-slate-700 ">
- {address.type}
- {address.street_2 ? ` • ${address.street_2}` : ''}
- </div>
- </div>
-
- <span
- className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeTone(
- address.is_active
- )}`}
- >
- {address.is_active ? 'Aktiv' : 'Inaktiv'}
- </span>
- </div>
-
- <div className="mt-3 space-y-1 text-sm text-slate-700 ">
- <div>
- {address.postal_code ?? '—'} {address.city ?? ''}
- </div>
- <div>Land: {address.country}</div>
- <div>Inflyttad: {formatDateTime(address.moved_in_at)}</div>
- </div>
-
- <details className="mt-4">
- <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
- Redigera adress
- </summary>
- <div className="mt-4">
- <AddressForm
- customerId={customerId}
- customerType={customerType}
- address={address}
- />
- </div>
- </details>
- </article>
- ))
- )}
-
- <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
- <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
- Lägg till ny adress
- </summary>
- <div className="mt-4">
- <AddressForm customerId={customerId} customerType={customerType} />
- </div>
- </details>
- </div>
- </div>
- </section>
- )
+  if (!companyId) return <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Kontakt- och adressuppgifter kunde inte visas för valt bolag.</p>
+  const ownContacts = contacts.filter(row => row.customer_id === customerId && row.company_id === companyId)
+  const ownSites = sites.filter(row => row.customer_id === customerId && row.company_id === companyId)
+  const contactAddresses = addresses.filter(row => row.customer_id === customerId && row.company_id === companyId && row.type !== 'facility')
+  const activeAddresses = contactAddresses.filter(row => row.is_active)
+  const formerAddresses = contactAddresses.filter(row => !row.is_active)
+  const renderAddress = (address: CustomerAddressRow) => <article key={address.id} className="min-w-0 break-words rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="min-w-0"><p className="font-semibold text-slate-950">{address.street_1 || 'Gatuadress saknas'}</p><p className="mt-1 text-xs text-slate-600">{ADDRESS_LABELS[address.type] ?? 'Adresstyp behöver kontrolleras'}{address.street_2 ? ` · ${address.street_2}` : ''}</p></div>
+      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeTone(address.is_active)}`}>{address.is_active ? 'Aktiv' : 'Tidigare adress'}</span>
+    </div>
+    <p className="mt-2 text-sm text-slate-700">{[address.postal_code, address.city, address.country].filter(Boolean).join(' ')}</p>
+    {address.moved_in_at || address.moved_out_at ? <p className="mt-1 text-xs text-slate-600">Inflytt: {formatAdminDate(address.moved_in_at)} · Utflytt: {formatAdminDate(address.moved_out_at)}</p> : null}
+    {canWrite ? <details className="mt-3"><summary className="cursor-pointer text-sm font-semibold text-slate-800">Redigera adress</summary><div className="mt-3"><AddressForm customerId={customerId} customerType={customerType} address={address} /></div></details> : null}
+  </article>
+  return <section className="grid min-w-0 items-start gap-4 xl:grid-cols-2">
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="text-lg font-semibold text-slate-950">Kontakter</h2>
+      <p className="mt-1 text-sm text-slate-600">{contactIntro(customerType)}</p>
+      {ownContacts.length === 0 ? <p className="mt-3 text-sm text-slate-600">Inga kontakter registrerade ännu.</p> : <div role="region" aria-label="Kundens kontakter" tabIndex={0} className="mt-3 max-h-[32rem] space-y-3 overflow-y-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
+        {ownContacts.map(contact => <article key={contact.id} className="min-w-0 break-words rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><p className="font-semibold text-slate-950">{contact.name || 'Namn saknas'}</p><p className="mt-1 text-xs text-slate-600">{CONTACT_LABELS[contact.type] ?? 'Kontaktroll behöver kontrolleras'}{contact.title ? ` · ${contact.title}` : ''}</p></div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeTone(contact.is_primary)}`}>{contact.is_primary ? 'Huvudkontakt' : 'Övrig kontakt'}</span></div>
+          <p className="mt-2 text-sm text-slate-700">E-post: {contact.email || 'Inte angiven'}</p><p className="mt-1 text-sm text-slate-700">Telefon: {contact.phone || 'Inte angiven'}</p>
+          <details className="mt-2 text-xs text-slate-600"><summary className="cursor-pointer">Fler uppgifter</summary><p className="mt-2">Registrerad {formatAdminDateTime(contact.created_at)}</p></details>
+          {canWrite ? <details className="mt-3"><summary className="cursor-pointer text-sm font-semibold text-slate-800">Redigera kontakt</summary><div className="mt-3"><ContactForm customerId={customerId} customerType={customerType} contact={contact} /></div></details> : null}
+        </article>)}
+      </div>}
+      {canWrite ? <details className="mt-3 rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer text-sm font-semibold text-slate-800">Lägg till kontakt</summary><div className="mt-3"><ContactForm customerId={customerId} customerType={customerType} /></div></details> : null}
+    </div>
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="text-lg font-semibold text-slate-950">Adresser</h2>
+      <p className="mt-1 text-sm text-slate-600">{addressIntro(customerType)}</p>
+      <details className="mt-3 rounded-xl border border-sky-200 bg-sky-50 p-3"><summary className="cursor-pointer text-sm font-semibold text-slate-950">Anläggningsadresser ({ownSites.length})</summary><p className="mt-2 text-xs text-slate-600">Används för nätägare och leverantörsbyte. Se anläggningsfliken för fler uppgifter.</p>
+        {ownSites.length === 0 ? <p className="mt-2 text-sm text-slate-600">Ingen anläggning registrerad ännu.</p> : <div role="region" aria-label="Kundens anläggningsadresser" tabIndex={0} className="mt-3 max-h-64 space-y-2 overflow-y-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">{ownSites.map(site => <div key={site.id} className="min-w-0 break-words rounded-lg border border-sky-100 bg-white p-3"><p className="text-sm font-semibold text-slate-950">{site.site_name || 'Anläggning'}</p><p className="mt-1 text-sm text-slate-700">{[site.care_of, site.street, [site.postal_code, site.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || 'Adress saknas'}</p><p className="mt-1 text-xs text-slate-600">Anläggningsnummer: {site.facility_id || 'saknas'}</p></div>)}</div>}
+      </details>
+      {activeAddresses.length === 0 ? <p className="mt-3 text-sm text-slate-600">Inga aktuella kontakt- eller fakturaadresser.</p> : <div role="region" aria-label="Aktuella kontakt- och fakturaadresser" tabIndex={0} className="mt-3 max-h-[28rem] space-y-3 overflow-y-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">{activeAddresses.map(renderAddress)}</div>}
+      {formerAddresses.length > 0 ? <details id="former-customer-addresses" className="mt-3 rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer text-sm font-semibold text-slate-800">Tidigare adresser ({formerAddresses.length})</summary><div role="region" aria-label="Tidigare kontakt- och fakturaadresser" tabIndex={0} className="mt-3 max-h-80 space-y-3 overflow-y-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">{formerAddresses.map(renderAddress)}</div></details> : null}
+      {canWrite ? <details className="mt-3 rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer text-sm font-semibold text-slate-800">Lägg till adress</summary><div className="mt-3"><AddressForm customerId={customerId} customerType={customerType} /></div></details> : null}
+    </div>
+  </section>
 }

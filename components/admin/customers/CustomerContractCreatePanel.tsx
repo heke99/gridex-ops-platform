@@ -12,6 +12,17 @@ export default function CustomerContractCreatePanel({ offers, manual }: {
   const effectiveMethod = offers.length ? method : "manual";
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    function revealCreatePanel() {
+      if (window.location.hash === "#new-contract") {
+        const panel = root.current?.closest("details");
+        if (panel) panel.open = true;
+      }
+    }
+    revealCreatePanel();
+    window.addEventListener("hashchange", revealCreatePanel);
+    return () => window.removeEventListener("hashchange", revealCreatePanel);
+  }, []);
+  useEffect(() => {
     for (const wrapper of root.current?.querySelectorAll<HTMLElement>("[data-offer-panel]") ?? []) {
       if (wrapper.dataset.offerPanel === selectedOfferId) {
         const details = wrapper.querySelector("details");
@@ -24,8 +35,8 @@ export default function CustomerContractCreatePanel({ offers, manual }: {
     <div ref={root} className="space-y-4">
       <div className="grid max-w-2xl gap-3 sm:grid-cols-2">
         <label className="grid gap-1 text-xs font-semibold text-slate-600">
-          Avtalskälla
-          <select aria-label="Avtalskälla" value={effectiveMethod} onChange={(event) => setMethod(event.target.value)} className={selectClass}>
+          Välj avtal
+          <select aria-label="Välj avtal" value={effectiveMethod} onChange={(event) => setMethod(event.target.value)} className={selectClass}>
             {offers.length ? <option value="offer">Från aktiv avtalsmall</option> : null}
             <option value="manual">Manuellt avtal</option>
           </select>
@@ -40,5 +51,21 @@ export default function CustomerContractCreatePanel({ offers, manual }: {
       {offers.map((offer) => <div key={offer.id} data-offer-panel={offer.id} hidden={effectiveMethod !== "offer" || selectedOfferId !== offer.id}>{offer.form}</div>)}
       <div hidden={effectiveMethod !== "manual"}>{manual}</div>
     </div>
+  );
+}
+
+
+export function CustomerNewContractLink({ customerId }: { customerId: string }) {
+  return (
+    <a
+      href={`/admin/customers/${customerId}?tab=contracts#new-contract`}
+      onClick={() => {
+        const panel = document.getElementById("new-contract");
+        if (panel instanceof HTMLDetailsElement) panel.open = true;
+      }}
+      className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
+    >
+      Nytt avtal
+    </a>
   );
 }

@@ -1,0 +1,74 @@
+[
+  {
+    "fixture": "legal-readiness-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "legal-readiness-platform",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "legal-long-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "communication-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "communication-writer-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "communication-long-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "legal-readiness-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "legal-readiness-platform",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "legal-long-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "communication-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "communication-writer-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "communication-long-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  }
+]
