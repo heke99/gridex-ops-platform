@@ -1,0 +1,62 @@
+[
+  {
+    "fixture": "customer-sites-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "customer-sites-long-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "duplicates-reader-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "duplicates-writer-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "duplicates-long-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "customer-sites-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "customer-sites-long-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "duplicates-reader-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "duplicates-writer-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "duplicates-long-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  }
+]

@@ -16,6 +16,7 @@ import CustomerEdielOperationsCard from "@/components/admin/customers/CustomerEd
 import { getCustomerSiteById, getMeteringPointById, listCustomerInternalNotesByCustomerId, listCustomerSitesByCustomerId, listGridOwners, listMasterdataAuditLogsForCustomer, listMeteringPointsBySiteIds, listPriceAreas } from "@/lib/masterdata/db"
 import { listContractOffers, listCustomerContractsByCustomerId } from "@/lib/customer-contracts/db"
 import CustomerSiteForm from "@/components/admin/masterdata/CustomerSiteForm"
+import CustomerSitesBusinessView from "@/components/admin/customers/CustomerSitesBusinessView"
 import CustomerSitesTable from "@/components/admin/masterdata/CustomerSitesTable"
 import MeteringPointForm from "@/components/admin/masterdata/MeteringPointForm"
 import MeteringPointsTable from "@/components/admin/masterdata/MeteringPointsTable"
@@ -79,7 +80,7 @@ export async function CustomerAdminDetailPage({
   });
   const isPlatformAdmin = isPlatformAdminContext(access);
   const canReadContracts = isPlatformAdmin || access.permissions.includes("contracts.read");
-  const canResendCustomerEmail = hasPermissionRequirement(access.permissions, { anyOf: ["customers.read", "customers.write"] });
+  const canResendCustomerEmail = isPlatformAdmin || hasPermissionRequirement(access.permissions, { anyOf: ["customers.read", "customers.write"] });
   const canWriteContracts = isPlatformAdmin || access.permissions.includes("contracts.write");
 
   const { id } = await params;
@@ -1206,6 +1207,14 @@ export async function CustomerAdminDetailPage({
           title="Anläggning och nätägare"
           description="Kundens anläggning, mätpunkt, nätägare och vad som eventuellt saknas."
         >
+          {!isPlatformAdmin ? <CustomerSitesBusinessView
+            companyId={customerCompanyId}
+            customerId={id}
+            primarySiteId={customerCardSnapshot.primarySite?.id ?? null}
+            sites={sites}
+            meteringPoints={meteringPoints}
+            gridOwners={gridOwners}
+          /> : (
           <section className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -1267,6 +1276,7 @@ export async function CustomerAdminDetailPage({
               </details>
             ) : null}
           </section>
+          )}
         </SectionAnchor>
       ) : null}
 

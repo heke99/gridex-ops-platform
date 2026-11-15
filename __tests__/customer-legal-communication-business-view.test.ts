@@ -84,7 +84,7 @@ it('omits resend for an incomplete log even when the operator has permission', (
 })
 it('server caller passes resend permission matching the unchanged server action', () => {
   const page = fs.readFileSync('app/admin/customers/[id]/page.part-4.tsx', 'utf8')
-  expect(page).toContain('hasPermissionRequirement(access.permissions, { anyOf: ["customers.read", "customers.write"] })')
+  expect(page).toContain('isPlatformAdmin || hasPermissionRequirement(access.permissions, { anyOf: ["customers.read", "customers.write"] })')
   expect(page.match(/canResend={canResendCustomerEmail}/g)).toHaveLength(2)
   expect(page).toContain('isPlatformAdmin={isPlatformAdmin}\n            customerIdentity=')
 })
