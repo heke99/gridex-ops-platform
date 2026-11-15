@@ -372,7 +372,7 @@ function TerminationFields({
         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-700 ">
           <div className="font-semibold">Kund byter leverantör</div>
           <div className="mt-1">
-            Switch = kunden lämnar er för annan elleverantör.
+            Leverantörsbyte: kunden lämnar er för en annan elleverantör.
           </div>
         </div>
 
@@ -439,7 +439,7 @@ function OpsStatusRow({
   return (
     <SectionCard
       title="Operationsstatus kopplad till avtalet"
-      description="Detta visar om avtalet redan har ett relevant switchärende eller outbound kopplat till sig på samma anläggning."
+      description="Visar pågående leverantörsbyte och utskick för avtalets anläggning."
     >
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm ">

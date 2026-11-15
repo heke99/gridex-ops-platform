@@ -382,7 +382,7 @@ export default function CustomerSwitchOperationsCard({
  {blockedByValidation.length}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- Leverantörsbyten där readiness eller validering fortfarande stoppar flödet.
+ Leverantörsbyten där uppgifter behöver kompletteras.
  </div>
  </div>
 
@@ -542,7 +542,7 @@ export default function CustomerSwitchOperationsCard({
 
  <SwitchRequestSection
  title="Tidslinje"
- description="Senaste switch-, händelse- och utskickshistorik i samma lista."
+ description="Senaste händelser och utskick för leverantörsbytet."
  >
  <div className="space-y-3">
  {switchTimeline.length === 0 ? (

@@ -538,7 +538,7 @@ export default async function CustomerContractsCard({
 
  <div className="space-y-4">
  {canEdit ? (
- <details open={contracts.length === 0} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+ <details id="new-contract" open={contracts.length === 0} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
  <summary className="cursor-pointer text-sm font-semibold text-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Skapa avtal</summary>
  <div className="mt-4">
  <CustomerContractCreatePanel

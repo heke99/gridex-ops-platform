@@ -178,7 +178,7 @@ function buildTimeline(params: {
  params.request.submitted_at ??
  params.request.created_at,
  source: 'switch_request',
- title: 'Leverantörsbyte request',
+ title: "Begäran om leverantörsbyte",
  description: `${params.request.request_type} · ${params.request.status}`,
  status: params.request.status,
  })
@@ -205,7 +205,7 @@ function buildTimeline(params: {
  params.outboundRequest.queued_at ??
  params.outboundRequest.created_at,
  source: 'outbound',
- title: 'Outbound request',
+ title: "Utskick",
  description: `${params.outboundRequest.request_type} · ${params.outboundRequest.channel_type}`,
  status: params.outboundRequest.status,
  })
@@ -673,9 +673,9 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  </div>
 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Outbound status</div>
+ <div className="text-slate-700 ">Utskicksstatus</div>
  <div className="mt-1 font-medium text-slate-900 ">
- {outboundRequest?.status ?? 'Ingen outbound'}
+ {outboundRequest?.status ?? "Inget utskick"}
  </div>
  </div>
 
@@ -691,7 +691,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="flex items-center justify-between gap-4">
  <h2 className="text-lg font-semibold text-slate-950 ">
- Outbound & utskick
+ Utskick
  </h2>
 
  <Link
@@ -789,7 +789,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  <input type="hidden" name="outbound_request_id" value={outboundRequest.id} />
  <input type="hidden" name="customer_id" value={request.customer_id} />
  <button className="w-full rounded-2xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 ">
- Retry outbound
+ Försök skicka igen
  </button>
  </form>
  ) : null}

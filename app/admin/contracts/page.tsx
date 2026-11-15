@@ -968,7 +968,7 @@ export default async function AdminContractsPage({
             href="#contract-offers"
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
           >
-            3. Befintliga avtal (tenant och webb)
+            3. Befintliga avtal
           </a>
           <Link
             href="/admin/platform/contract-trace"
@@ -1140,9 +1140,7 @@ export default async function AdminContractsPage({
             {scope.companyName ?? "Bolagskoppling saknas"}
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-700 ">
-            Avtal och kampanjer publiceras av platform admin för valt operativt
-            bolag. Tenant-admin ska inte skapa egna avtalsmallar från sin
-            driftvy.
+            Plattformsadmin publicerar avtal och kampanjer. Välj en publicerad avtalsmall när du tecknar avtal med en kund.
           </p>
           {scope.message ? (
             <p className="mt-3 text-sm font-semibold text-amber-700 ">
@@ -1400,8 +1398,8 @@ export default async function AdminContractsPage({
                               <input type="hidden" name="id" value={offer.id} />
                               <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
                                 {offer.lifecycle_status === "paused"
-                                  ? "Kontrollera readiness och återaktivera internt"
-                                  : "Kontrollera readiness och gör internt"}
+                                  ? "Kontrollera och återaktivera för kundregistrering"
+                                  : "Kontrollera och aktivera för kundregistrering"}
                               </button>
                             </form>
                           ) : null}
@@ -1458,7 +1456,7 @@ export default async function AdminContractsPage({
                                    </p>
                                  )}
                                 <p className="mt-2 leading-5 text-slate-500">
-                                   Readiness godkänns när avtalsversionen görs intern. Därefter styrs hemsida och API separat mot samma låsta version.
+                                   Avtalet kontrolleras innan det kan användas vid kundregistrering. Publicering på hemsidan hanteras separat.
                                 </p>
                               </div>
                               <ContractChannelControl

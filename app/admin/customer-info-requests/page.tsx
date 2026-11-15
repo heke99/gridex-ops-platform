@@ -422,7 +422,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
           <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-6 py-5">
               <h2 className="text-lg font-semibold text-slate-950">Fullmaktsomfattning</h2>
-              <p className="mt-1 text-sm text-slate-700">Aktiva scope-poster som blockerar eller tillåter dataflöden.</p>
+              <p className="mt-1 text-sm text-slate-700">Aktiva fullmakter och vilka uppgifter de omfattar.</p>
             </div>
             <div className="space-y-3 p-6">
               {authorizationScopes.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Ingen omfattning sparad ännu.</div> : authorizationScopes.slice(0, 12).map((scopeRow) => (

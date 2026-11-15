@@ -143,7 +143,7 @@ export default async function AuditPage({
  </p>
  </div>
  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">
- {isPlatformAdmin ? 'Global vy' : 'Tenant-skopad'}
+ {isPlatformAdmin ? 'Global vy' : "Valt bolag"}
  </span>
  </div>
 
@@ -162,7 +162,7 @@ export default async function AuditPage({
  {rows.length === 0 ? (
  <tr>
  <td colSpan={isPlatformAdmin ? 5 : 4} className="px-6 py-10 text-center text-slate-700">
- Inga audit-händelser hittades för aktuellt scope.
+ Inga ändringar hittades för valt bolag.
  </td>
  </tr>
  ) : rows.map((row) => (

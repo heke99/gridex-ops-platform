@@ -371,7 +371,7 @@ export function PowerOfAttorneyScopesSection({
           </select>
         </label>
         <label className="grid gap-1 text-sm">
-          <span className="text-slate-700 ">Scope-typ</span>
+          <span className="text-slate-700 ">Fullmaktens omfattning</span>
           <select
             name="scope_type"
             defaultValue="site"

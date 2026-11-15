@@ -244,7 +244,7 @@ function chainFieldLabel(key: string, value: unknown): string {
 
 function ChainCard({ title, row, fields, href }: { title: string; row: JsonRecord | null; fields: Array<[string, string]>; href?: string }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-base font-semibold text-slate-950">{title}</h2>
         {href ? (
@@ -256,9 +256,9 @@ function ChainCard({ title, row, fields, href }: { title: string; row: JsonRecor
       {!row ? (
         <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">Saknas eller ej skapad ännu.</p>
       ) : (
-        <dl className="mt-4 grid gap-3 text-sm">
+        <dl className="mt-3 grid gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
           {fields.map(([label, key]) => (
-            <div key={key} className="rounded-2xl bg-slate-50 px-4 py-3">
+            <div key={key} className="min-w-0 border-b border-slate-100 py-2">
               <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</dt>
               <dd className="mt-1 break-words font-semibold text-slate-900">{chainFieldLabel(key, row[key])}</dd>
             </div>
@@ -271,7 +271,7 @@ function ChainCard({ title, row, fields, href }: { title: string; row: JsonRecor
 
 function JsonPanel({ title, value }: { title: string; value: unknown }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <h2 className="text-base font-semibold text-slate-950">{title}</h2>
       <pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
         {JSON.stringify(value ?? {}, null, 2)}
@@ -283,11 +283,11 @@ function JsonPanel({ title, value }: { title: string; value: unknown }) {
 function Timeline({ item, chain, showTechnicalDetails }: { item: WebsiteApplicationAdminRow; chain: Awaited<ReturnType<typeof loadOperationalChain>>; showTechnicalDetails: boolean }) {
   const events = [
     { title: 'Ansökan mottagen', status: item.status, date: item.created_at, detail: item.next_step ?? 'Kontrollera ansökan.' },
-    item.customer_id ? { title: 'Kund kopplad', status: String(chain.customer?.status ?? 'created'), date: String(chain.customer?.created_at ?? item.updated_at ?? item.created_at), detail: item.customer_id } : null,
-    item.customer_site_id ? { title: 'Anläggning kopplad', status: String(chain.site?.status ?? 'created'), date: String(chain.site?.created_at ?? item.updated_at ?? item.created_at), detail: item.customer_site_id } : null,
-    item.metering_point_id ? { title: 'Mätpunkt kopplad', status: String(chain.meter?.status ?? 'created'), date: String(chain.meter?.created_at ?? item.updated_at ?? item.created_at), detail: item.metering_point_id } : null,
-    item.contract_id ? { title: 'Avtal kopplat', status: String(chain.contract?.status ?? 'created'), date: String(chain.contract?.created_at ?? item.updated_at ?? item.created_at), detail: item.contract_id } : null,
-    item.grid_owner_information_request_id ? { title: 'Uppgiftsbegäran/nätägare', status: String(chain.gridOwnerRequest?.status ?? 'created'), date: String(chain.gridOwnerRequest?.created_at ?? item.updated_at ?? item.created_at), detail: item.grid_owner_information_request_id } : null,
+    item.customer_id ? { title: 'Kund kopplad', status: String(chain.customer?.status ?? 'created'), date: String(chain.customer?.created_at ?? item.updated_at ?? item.created_at), detail: showTechnicalDetails ? item.customer_id : '' } : null,
+    item.customer_site_id ? { title: 'Anläggning kopplad', status: String(chain.site?.status ?? 'created'), date: String(chain.site?.created_at ?? item.updated_at ?? item.created_at), detail: showTechnicalDetails ? item.customer_site_id : '' } : null,
+    item.metering_point_id ? { title: 'Mätpunkt kopplad', status: String(chain.meter?.status ?? 'created'), date: String(chain.meter?.created_at ?? item.updated_at ?? item.created_at), detail: showTechnicalDetails ? item.metering_point_id : '' } : null,
+    item.contract_id ? { title: 'Avtal kopplat', status: String(chain.contract?.status ?? 'created'), date: String(chain.contract?.created_at ?? item.updated_at ?? item.created_at), detail: showTechnicalDetails ? item.contract_id : '' } : null,
+    item.grid_owner_information_request_id ? { title: 'Uppgiftsbegäran/nätägare', status: String(chain.gridOwnerRequest?.status ?? 'created'), date: String(chain.gridOwnerRequest?.created_at ?? item.updated_at ?? item.created_at), detail: showTechnicalDetails ? item.grid_owner_information_request_id : '' } : null,
     ...(Array.isArray(item.timeline) ? item.timeline.map((entry) => isRecord(entry) ? {
       title: String(entry.label ?? 'Händelse'),
       status: String(entry.status ?? item.status),
@@ -297,7 +297,7 @@ function Timeline({ item, chain, showTechnicalDetails }: { item: WebsiteApplicat
   ].filter(Boolean) as Array<{ title: string; status: string; date: string; detail: string }>
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <h2 className="text-base font-semibold text-slate-950">Tidslinje</h2>
       <div className="mt-4 space-y-3">
         {events.map((event, index) => (
@@ -331,7 +331,7 @@ function ReviewForm({ item, isPlatformAdmin, canWrite, gridOwners }: { item: Web
   }
 
   return (
-    <form action={updateWebsiteApplicationReviewAction} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <form action={updateWebsiteApplicationReviewAction} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       {!canWrite ? (
         <p className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">Du har läsbehörighet. Åtgärder kräver skrivbehörighet för kunder.</p>
       ) : null}
@@ -396,11 +396,16 @@ function ReviewForm({ item, isPlatformAdmin, canWrite, gridOwners }: { item: Web
       </div>
       <fieldset disabled={!canWrite} className="mt-4 flex flex-wrap gap-3 disabled:opacity-60">
         <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Spara komplettering</button>
+        <details className="relative">
+          <summary className="cursor-pointer rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Fler åtgärder</summary>
+          <div className="mt-2 flex flex-wrap gap-2">
         <button formAction={resolveWebsiteApplicationEnergyAction} className="rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-50">Kör adressmatchning</button>
         <button formAction={requestWebsiteApplicationGridOwnerInfoAction} className="rounded-2xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-50">Begär uppgifter från nätägare</button>
         <button formAction={markWebsiteApplicationFacilityDataReceivedAction} className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">Markera mottaget</button>
         <button formAction={checkWebsiteApplicationReadinessAction} className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Kontrollera om redo</button>
         {isPlatformAdmin ? <button formAction={requeueWebsiteApplicationContinuationAction} className="rounded-2xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-800 hover:bg-violet-50">Återkö automation</button> : null}
+          </div>
+        </details>
       </fieldset>
     </form>
   )
@@ -408,10 +413,10 @@ function ReviewForm({ item, isPlatformAdmin, canWrite, gridOwners }: { item: Web
 
 function RelatedRows({ title, rows, showTechnicalDetails = false }: { title: string; rows: JsonRecord[]; showTechnicalDetails?: boolean }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-base font-semibold text-slate-950">{title}</h2>
+    <details className="min-w-0 self-start rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <summary className="cursor-pointer text-sm font-semibold text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">{title} ({rows.length})</summary>
       {rows.length === 0 ? <p className="mt-4 text-sm text-slate-600">Inga rader hittades.</p> : null}
-      <div className="mt-4 space-y-3">
+      <div className="mt-3 max-h-80 space-y-2 overflow-auto">
         {rows.map((row) => (
           <div key={String(row.id)} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -424,7 +429,7 @@ function RelatedRows({ title, rows, showTechnicalDetails = false }: { title: str
           </div>
         ))}
       </div>
-    </div>
+    </details>
   )
 }
 
@@ -490,13 +495,13 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
         <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{errorMessage}</div>
       ) : null}
 
-      <section className="rounded-[36px] border border-emerald-100 bg-white p-8 shadow-sm shadow-emerald-950/5">
+      <section className="rounded-2xl border border-emerald-100 bg-white p-4 sm:p-5 shadow-sm shadow-emerald-950/5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Webbansökan / intagskedja</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Kundansökan</p>
             <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">{customerName(item)}</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              Den här sidan visar hela kedjan från ansökan till kund, anläggning, avtal, fullmakt och uppgiftsbegäran.
+              Kontrollera kundens uppgifter, startdatum, avtal och fullmakt.
             </p>
           </div>
           <div className="space-y-2 text-right">
@@ -506,25 +511,25 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
           </div>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-4">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <p className="text-sm text-slate-600">Kund</p>
-            <p className="mt-2 font-semibold text-slate-950">{item.customer_id ?? 'Ej skapad/kopplad'}</p>
+            <p className="mt-2 font-semibold text-slate-950">{chain.customer?.customer_number ? `Kundnummer ${chain.customer.customer_number}` : item.customer_id ? customerName(item) : 'Kund ej skapad'}</p>
             <p className="mt-1 text-xs text-slate-500">{customerEmail(item)} · {customerPhone(item)}</p>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <p className="text-sm text-slate-600">Anläggning/mätpunkt</p>
-            <p className="mt-2 font-semibold text-slate-950">{item.customer_site_id ?? '—'}</p>
-            <p className="mt-1 text-xs text-slate-500">{item.metering_point_id ?? 'Mätpunkt saknas'}</p>
+            <p className="mt-2 font-semibold text-slate-950">{String(chain.site?.facility_id ?? chain.site?.street ?? 'Uppgifter saknas')}</p>
+            <p className="mt-1 text-xs text-slate-500">{String(chain.site?.street ?? 'Adress saknas')}</p>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <p className="text-sm text-slate-600">Avtal</p>
-            <p className="mt-2 font-semibold text-slate-950">{item.contract_id ?? 'Ej skapat'}</p>
+            <p className="mt-2 font-semibold text-slate-950">{String(chain.contract?.contract_name ?? (item.contract_id ? 'Avtal registrerat' : 'Ej skapat'))}</p>
             <p className="mt-1 text-xs text-slate-500">Start: {item.requested_start_date ?? item.confirmed_start_date ?? '—'}</p>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <p className="text-sm text-slate-600">Uppgiftsbegäran</p>
-            <p className="mt-2 font-semibold text-slate-950">{item.grid_owner_information_request_id ?? item.customer_info_request_id ?? 'Ej skapad'}</p>
+            <p className="mt-2 font-semibold text-slate-950">{item.grid_owner_information_request_id || item.customer_info_request_id ? 'Begäran registrerad' : 'Ej skapad'}</p>
             <p className="mt-1 text-xs text-slate-500">{energyResolutionStatusLabel(item.resolution_status ?? null)}</p>
           </div>
         </div>
@@ -534,15 +539,15 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
 
       <section className="grid gap-5 lg:grid-cols-2">
         <Timeline item={item} chain={chain} showTechnicalDetails={isPlatformAdmin} />
-        {isPlatformAdmin ? <JsonPanel title="Källstatus och idempotency" value={sourceFacts} /> : null}
+
       </section>
 
       <section className="grid gap-5 lg:grid-cols-2">
         <ChainCard title="Kund" row={chain.customer} href={item.customer_id ? `/admin/customers/${item.customer_id}` : undefined} fields={[
           ['Status', 'status'], ['Kundnummer', 'customer_number'], ['Källa', 'source'], ['Registreringsstatus', 'intake_status'], ['Skapad', 'created_at'], ['Uppdaterad', 'updated_at'],
         ]} />
-        <ChainCard title="Anläggning" row={chain.site} fields={[
-          ['Status', 'status'], ['Anläggnings-ID', 'facility_id'], ['Adress', 'street'], ['Nätområde', 'grid_area_code'], ['Elområde', 'price_area_code'], ['Nätägare', 'grid_owner_id'],
+        <ChainCard title="Anläggning" row={chain.site ? { ...chain.site, grid_owner_name: gridOwners.find((owner) => owner.id === chain.site?.grid_owner_id)?.name ?? 'Nätägare saknas' } : null} fields={[
+          ['Status', 'status'], ['Anläggnings-ID', 'facility_id'], ['Adress', 'street'], ['Nätområde', 'grid_area_code'], ['Elområde', 'price_area_code'], ['Nätägare', 'grid_owner_name'],
         ]} />
         <ChainCard title="Mätpunkt" row={chain.meter} fields={[
           ['Status', 'status'], ['Mätpunkt', 'metering_point_id'], ['Mätpunkts-ID (alternativt)', 'meter_point_id'], ['Anläggnings-ID', 'site_facility_id'], ['Verifiering', 'verification_status'], ['Uppstart', 'onboarding_status'],
@@ -550,9 +555,7 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
         <ChainCard title="Avtal" row={chain.contract} href={item.customer_id && item.contract_id ? `/admin/customers/${item.customer_id}?tab=contracts` : undefined} fields={[
           ['Status', 'status'], ['Avtalsnamn', 'contract_name'], ['Typ', 'contract_type'], ['Källa', 'source_type'], ['Start', 'starts_at'], ['Önskad start', 'requested_start_date'],
         ]} />
-        {isPlatformAdmin ? <ChainCard title="Automationsworkflow" row={chain.workflow} fields={[
-          ['Status', 'state'], ['Nästa åtgärd', 'next_action'], ['Version', 'workflow_version'], ['Senaste övergång', 'last_transition_at'], ['Continuation-jobb', 'last_job_id'], ['Operation', 'operation_id'],
-        ]} /> : null}
+
         <ChainCard title="Nätägarbegäran" row={chain.gridOwnerRequest} fields={[
           ['Status', 'status'], ['Utskick', 'dispatch_status'], ['Typ', 'request_type'], ['Kanal', 'channel'], ['Nätområde', 'grid_area_code'], ['Elområde', 'price_area'],
         ]} />
@@ -568,16 +571,24 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
         <RelatedRows title="Uppgiftsbegäranden" rows={chain.customerInfoRequests} />
         <RelatedRows title="Fullmakter" rows={chain.powerOfAttorneys} />
         <RelatedRows title="Driftuppgifter" rows={chain.operationTasks} />
-        {isPlatformAdmin ? <RelatedRows title="Workflowhändelser" rows={chain.workflowEvents} showTechnicalDetails /> : null}
-        {isPlatformAdmin ? <RelatedRows title="Workflowjobb" rows={chain.workflowJobs} showTechnicalDetails /> : null}
       </section>
 
       {isPlatformAdmin ? (
-        <section className="grid gap-5 lg:grid-cols-2">
+        <details className="rounded-2xl border border-slate-200 bg-white p-4">
+          <summary className="cursor-pointer text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Tekniska detaljer · superadmin</summary>
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        {isPlatformAdmin ? <JsonPanel title="Källstatus och idempotency" value={sourceFacts} /> : null}
+        {isPlatformAdmin ? <ChainCard title="Automationsworkflow" row={chain.workflow} fields={[
+          ['Status', 'state'], ['Nästa åtgärd', 'next_action'], ['Version', 'workflow_version'], ['Senaste övergång', 'last_transition_at'], ['Continuation-jobb', 'last_job_id'], ['Operation', 'operation_id'],
+        ]} /> : null}
+        {isPlatformAdmin ? <RelatedRows title="Workflowhändelser" rows={chain.workflowEvents} showTechnicalDetails /> : null}
+        {isPlatformAdmin ? <RelatedRows title="Workflowjobb" rows={chain.workflowJobs} showTechnicalDetails /> : null}
+
           <JsonPanel title="Payload" value={item.raw_payload ?? item.payload} />
           <JsonPanel title="Response payload" value={item.response_payload} />
           {mirror ? <JsonPanel title="External intake-spegel" value={mirror} /> : null}
-        </section>
+          </div>
+        </details>
       ) : null}
     </main>
   )

@@ -1,0 +1,7 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import CustomerContractCreatePanel, {CustomerNewContractLink} from '__REPO__/components/admin/customers/CustomerContractCreatePanel';
+import '__REPO__/app/globals.css';
+const query=new URLSearchParams(window.location.search), fixture=query.get('fixture');
+if(fixture){fetch('/'+fixture+'.html').then(r=>r.text()).then(html=>{document.getElementById('root')!.innerHTML=html})}
+else createRoot(document.getElementById('root')!).render(<main className="mx-auto max-w-5xl space-y-4 p-4"><CustomerNewContractLink customerId="synthetic-customer"/><details id="new-contract" className="rounded-2xl border border-slate-200 p-4"><summary>Skapa avtal</summary><CustomerContractCreatePanel offers={[{id:'offer1',name:'Rörligt månadspris',form:<button>Skicka avtal för signering</button>}]} manual={<p>Manuellt avtal</p>}/></details></main>);

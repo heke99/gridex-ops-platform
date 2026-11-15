@@ -59,7 +59,7 @@ export default async function OperationsAutomationPage({ searchParams }: { searc
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">Operativt bolag</p>
           <h2 className="mt-2 text-xl font-semibold text-slate-950">{scope.companyName ?? 'Bolagskoppling saknas'}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-            Automation körs tenant-säkert mot ett bolag. Batch 2C skannar valfria perioder, skapar mätvärdesluckor, köar requests och kopplar alla blockerare till driftuppgifter.
+            Kontrollera saknade mätvärden för valt bolag och begär kompletteringar.
           </p>
           {scope.message ? <p className="mt-3 text-sm font-semibold text-amber-800">{scope.message}</p> : null}
         </section>
@@ -99,7 +99,7 @@ export default async function OperationsAutomationPage({ searchParams }: { searc
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-800">Automatisk periodkontroll</p>
             <h2 className="mt-2 text-lg font-semibold text-slate-950">Kör full periodmotor</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              Skannar alla mätpunkter över valt intervall, skapar en lucka per saknad period, köar outbound request och kopplar blockerare till kundärende.
+              Kontrollerar mätpunkterna för vald period och förbereder begäranden om saknade värden.
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <label className="text-sm font-medium text-slate-700">
@@ -151,7 +151,7 @@ export default async function OperationsAutomationPage({ searchParams }: { searc
 
         {row ? (
           <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-700">
-            Äldre Batch 2B-status: {numberValue(row.open_outbound_count)} öppna outbound, {numberValue(row.open_case_count)} öppna driftuppgifter, {numberValue(row.failed_import_rows)} importfel.
+            Äldre Batch 2B-status: {numberValue(row.open_outbound_count)} väntande utskick, {numberValue(row.open_case_count)} öppna driftuppgifter, {numberValue(row.failed_import_rows)} importfel.
           </section>
         ) : null}
       </div>

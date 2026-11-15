@@ -1,0 +1,2702 @@
+[
+  {
+    "file": "app/admin/audit/page.tsx",
+    "line": 146,
+    "text": "Tenant-skopad"
+  },
+  {
+    "file": "app/admin/audit/page.tsx",
+    "line": 165,
+    "text": "Inga audit-händelser hittades för aktuellt scope."
+  },
+  {
+    "file": "app/admin/billing/import/page.tsx",
+    "line": 52,
+    "text": "Filen ska innehålla customer_id och period. UUID för site_id/metering_point_id används när det finns, annars sparas externa referenser i payload för manuell matchning."
+  },
+  {
+    "file": "app/admin/billing/integrations/page.tsx",
+    "line": 232,
+    "text": "Capway/Aptic readiness"
+  },
+  {
+    "file": "app/admin/billing/integrations/page.tsx",
+    "line": 303,
+    "text": "Readiness blocker"
+  },
+  {
+    "file": "app/admin/billing/integrations/page.tsx",
+    "line": 312,
+    "text": "Ingen tenant-specifik Capway/Aptic testkoppling finns för valt bolag."
+  },
+  {
+    "file": "app/admin/billing/integrations/page.tsx",
+    "line": 322,
+    "text": "Tekniska credentials ligger i env/secret manager. Databasen sparar\n                bara koppling, readiness och provider-koder."
+  },
+  {
+    "file": "app/admin/billing/page.tsx",
+    "line": 112,
+    "text": "Välj en tenant innan fakturor granskas eller skickas. Fakturering får aldrig köras över flera tenants samtidigt."
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 619,
+    "text": "tenant-platform-controls"
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 725,
+    "text": "tenant-internal-contracts"
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 734,
+    "text": "Dessa avtal används när admin lägger in kund manuellt i OPS. De\n              kräver prisversion, juridik och tenant-koppling, men de ska inte\n              blockeras av hemside-API, allowed origins eller publicering på\n              webb."
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 891,
+    "text": "Readiness + delete preview"
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 912,
+    "text": "tenant-avtal"
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 920,
+    "text": "Skapa och redigera avtalet på den gemensamma Avtalssidan. Här\n            aktiveras endast webbkanalen för en redan readiness-godkänd och\n            publicerad version. Ingen separat pris-, juridik- eller produktkopia\n            skapas."
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 958,
+    "text": "Det finns ingen publicerad canonical avtalsversion att aktivera\n                på hemsidan. Slutför readiness och publicera först under\n                Avtal."
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 1068,
+    "text": "Readiness:"
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 1111,
+    "text": "Readiness och raderingspreview:"
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 1133,
+    "text": "Kör om readiness och delete preview"
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 1134,
+    "text": "Kör readiness och delete preview"
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 1210,
+    "text": "tenant-api"
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 1271,
+    "text": "Scope:"
+  },
+  {
+    "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+    "line": 1354,
+    "text": "tenant-mail"
+  },
+  {
+    "file": "app/admin/companies/[id]/layout.tsx",
+    "line": 40,
+    "text": "Tenant ·"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 214,
+    "text": "Eventmail-readiness kunde inte hämtas."
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 217,
+    "text": "Eventmail-readiness kunde inte hämtas."
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 553,
+    "text": "När uppgifterna sparas uppdateras bolaget, juridikprofilen och readiness atomiskt. Historiska signerade avtal, juridikversioner, PDF:er och e-postbevis ändras aldrig retroaktivt."
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 766,
+    "text": "Juridiska texter, fullmakt och hemside-readiness"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 773,
+    "text": "Canonical readiness: redo"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 775,
+    "text": "Canonical readiness: okänd"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 776,
+    "text": "Canonical readiness: blockerad"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 794,
+    "text": " · har tenant-egna publicerade texter"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 836,
+    "text": "OPS-master används automatiskt. En publicerad tenant-override ersätter standarden eller läggs till som ett versionslåst tillägg för endast den valda modulen."
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 906,
+    "text": "Inga tenant-egna overrides finns. Bolaget använder OPS-standardmallarna automatiskt."
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1040,
+    "text": "Senaste outbound"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1091,
+    "text": "switch.started"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1092,
+    "text": "switch.confirmed"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1093,
+    "text": "switch.action_required"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1189,
+    "text": "Kundmail för elhandel hanteras här: ansökan mottagen, leverantörsbyte och välkomstmail. Kundsupport ligger utanför Ops scope och hanteras av elbolaget i egna kanaler."
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1439,
+    "text": "Tenant ID:"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1501,
+    "text": "Outbound requests"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1535,
+    "text": "tenant-intake-tracking"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1539,
+    "text": "Ansökningar, automatisk pipeline och tenant-spårning"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1540,
+    "text": "Kedjan ska vara spårbar per tenant: ansökan → kund → avtal/prisversion → juridik/fullmakt → nätägare → Ediel-readiness → mail. Mismatch ska bli åtgärd, inte krasch eller felaktigt EDIFACT."
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1555,
+    "text": "tenant-event-mail-readiness"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1567,
+    "text": "Mail-readiness ser klar ut."
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1574,
+    "text": "tenant-website-readiness"
+  },
+  {
+    "file": "app/admin/companies/[id]/page.tsx",
+    "line": 1575,
+    "text": "Website readiness"
+  },
+  {
+    "file": "app/admin/companies/page.tsx",
+    "line": 163,
+    "text": "Endast superadmin. En bolagsstatus är plattformens gemensamma source of truth för tenantåtkomst, API, försäljning, automation och outbound."
+  },
+  {
+    "file": "app/admin/companies/page.tsx",
+    "line": 185,
+    "text": "Skapa tenant och skicka en verifierad Auth-inbjudan till första bolagsansvarig."
+  },
+  {
+    "file": "app/admin/contracts/page.tsx",
+    "line": 971,
+    "text": "3. Befintliga avtal (tenant och webb)"
+  },
+  {
+    "file": "app/admin/contracts/page.tsx",
+    "line": 1143,
+    "text": "Avtal och kampanjer publiceras av platform admin för valt operativt\n            bolag. Tenant-admin ska inte skapa egna avtalsmallar från sin\n            driftvy."
+  },
+  {
+    "file": "app/admin/contracts/page.tsx",
+    "line": 1403,
+    "text": "Kontrollera readiness och återaktivera internt"
+  },
+  {
+    "file": "app/admin/contracts/page.tsx",
+    "line": 1404,
+    "text": "Kontrollera readiness och gör internt"
+  },
+  {
+    "file": "app/admin/contracts/page.tsx",
+    "line": 1461,
+    "text": "Readiness godkänns när avtalsversionen görs intern. Därefter styrs hemsida och API separat mot samma låsta version."
+  },
+  {
+    "file": "app/admin/customer-cases/page.tsx",
+    "line": 75,
+    "text": "Inga supportärenden i valt scope."
+  },
+  {
+    "file": "app/admin/customer-info-requests/page.tsx",
+    "line": 266,
+    "text": "create-info-request"
+  },
+  {
+    "file": "app/admin/customer-info-requests/page.tsx",
+    "line": 314,
+    "text": "create-authorization-scope"
+  },
+  {
+    "file": "app/admin/customer-info-requests/page.tsx",
+    "line": 425,
+    "text": "Aktiva scope-poster som blockerar eller tillåter dataflöden."
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-1.tsx",
+    "line": 363,
+    "text": "legal-readiness"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-1.tsx",
+    "line": 364,
+    "text": "switch-operations"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-1.tsx",
+    "line": 391,
+    "text": "legal-readiness"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-1.tsx",
+    "line": 399,
+    "text": "Dokument, signerad fullmakt och scope."
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-1.tsx",
+    "line": 403,
+    "text": "switch-operations"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-1.tsx",
+    "line": 509,
+    "text": "legal-readiness"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-2.tsx",
+    "line": 374,
+    "text": "Scope-typ"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 133,
+    "text": "switch-operations"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 134,
+    "text": "switch-operations"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 140,
+    "text": "switch-operations"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 142,
+    "text": "legal-readiness"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 143,
+    "text": "legal-readiness"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 146,
+    "text": "switch-operations"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 215,
+    "text": "switch-operations"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 223,
+    "text": "switch-operations"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 480,
+    "text": "legal-readiness"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 480,
+    "text": "switch-operations"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 882,
+    "text": "legal-readiness"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 884,
+    "text": "legal-readiness"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 990,
+    "text": "Ladda upp dokument på kundkortet och skapa request-paket mot nätägare och nuvarande leverantör."
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 1013,
+    "text": "switch-operations"
+  },
+  {
+    "file": "app/admin/customers/[id]/page.part-4.tsx",
+    "line": 1015,
+    "text": "switch-operations"
+  },
+  {
+    "file": "app/admin/customers/intake/page.tsx",
+    "line": 20,
+    "text": "customer_type;intake_flow_type;first_name;last_name;contact_title;company_name;email;phone;personal_number;org_number;apartment_number;site_name;facility_id;meter_point_id;grid_owner_id;grid_area_code;price_area_code;move_in_date;annual_consumption_kwh;street;postal_code;city;care_of;country;current_supplier_name;current_supplier_org_number;customer_confirmation_status;authorization_status;authorization_valid_from;authorization_valid_to;expected_start_date;confirmed_start_date;start_date_source;moved_from_street;moved_from_postal_code;moved_from_city;moved_from_supplier_name;contract_offer_id;contract_status;binding_months;notice_months\nprivate;switch;Anna;Svensson;;;anna@example.se;0700000000;199001011234;;1201;Anna Svensson - Lägenhet;735999111111111111;735999000000000001;REPLACE_GRID_OWNER_UUID;STHLM;SE3;2026-06-01;12000;Storgatan 1;11122;Stockholm;;SE;Fortum;5560000000;confirmed;signed;2026-05-21;2027-05-21;2026-06-01;;customer_expected;;;;;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;1\nassociation;move_in;Sara;Ek;Ordförande;Brf Solrosen;sara@solrosen.se;0701111111;;769600-1234;;Brf Solrosen Huvudanläggning;735999111111111112;735999000000000002;REPLACE_GRID_OWNER_UUID;STHLM;SE3;2026-08-01;54000;Föreningsgatan 4;11123;Stockholm;c/o Styrelsen;SE;E.ON;5561000000;confirmed;sent;2026-05-21;2027-05-21;2026-08-01;;customer_expected;Gamla vägen 9;11121;Stockholm;Vattenfall;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;3"
+  },
+  {
+    "file": "app/admin/customers/tenant-test/page.tsx",
+    "line": 87,
+    "text": "Intern tenant- och rolltest"
+  },
+  {
+    "file": "app/admin/customers/tenant-test/page.tsx",
+    "line": 103,
+    "text": "Alla kundintagskritiska tabeller ska ha RLS och minst en policy/service-roll-policy innan systemet räknas tenant-säkert."
+  },
+  {
+    "file": "app/admin/ediel/actors/page.tsx",
+    "line": 348,
+    "text": "Nätägare och elleverantörer från import blir inte automatiskt valbara i kundintaget. Superadmin måste verifiera aktören. Routes kan verifieras, men automatisk sändning förblir av tills separat route-readiness är grön."
+  },
+  {
+    "file": "app/admin/ediel/actors/page.tsx",
+    "line": 434,
+    "text": "Expisoft = publika mottagarcertifikat för outbound PRODAT."
+  },
+  {
+    "file": "app/admin/ediel/agt/[testCaseCode]/page.tsx",
+    "line": 305,
+    "text": "Öppna payload"
+  },
+  {
+    "file": "app/admin/ediel/agt/[testCaseCode]/page.tsx",
+    "line": 496,
+    "text": "Aktiv tenant/leverantör"
+  },
+  {
+    "file": "app/admin/ediel/agt/[testCaseCode]/page.tsx",
+    "line": 555,
+    "text": "2026A outbound-template"
+  },
+  {
+    "file": "app/admin/ediel/agt/[testCaseCode]/page.tsx",
+    "line": 611,
+    "text": "Generera draft / öppna payload"
+  },
+  {
+    "file": "app/admin/ediel/agt/[testCaseCode]/page.tsx",
+    "line": 656,
+    "text": "För Aktör → Portal genererar GridCore nu endast ett\n            prepared/draft-meddelande och öppnar meddelandesidan. Där\n            kontrollerar du raw payload, UNB, BGM, NAD, CCI/CAV och referenser\n            innan du klickar Skicka. För Portal → Aktör skapas kvittensförslag\n            från inbound-raden, men även dessa ska öppnas som payload innan\n            skick. Produktion/live-flöden ska inte gå via den här testvyn."
+  },
+  {
+    "file": "app/admin/ediel/agt/[testCaseCode]/page.tsx",
+    "line": 739,
+    "text": "Öppna payload"
+  },
+  {
+    "file": "app/admin/ediel/agt/[testCaseCode]/page.tsx",
+    "line": 813,
+    "text": "Detta är portalens kvittens/svarsmeddelande för ett\n                        outbound-test och kan kopplas till testkedjan."
+  },
+  {
+    "file": "app/admin/ediel/agt/[testCaseCode]/page.tsx",
+    "line": 874,
+    "text": "Öppna payload"
+  },
+  {
+    "file": "app/admin/ediel/agt/[testCaseCode]/page.tsx",
+    "line": 894,
+    "text": "Testfallet styrs av AGT-registret och aktiv tenant-runtime. Inga\n          tenantnamn ska ligga som specialfall i motorn. För andra leverantörer\n          byts Ediel-id, mailbox, routes, eventuell sender-subadress och BRP i\n          runtime."
+  },
+  {
+    "file": "app/admin/ediel/agt/page.tsx",
+    "line": 292,
+    "text": "Readiness issues"
+  },
+  {
+    "file": "app/admin/ediel/agt/page.tsx",
+    "line": 317,
+    "text": "Readiness är grön. Du kan starta ett AGT-test i Edielportalen och\n          skapa motsvarande run här som bevislogg."
+  },
+  {
+    "file": "app/admin/ediel/agt/page.tsx",
+    "line": 328,
+    "text": "Det är här du lägger in aktiv leverantör/tenant. För framtida\n            SaaS-kunder ändras samma fält till kundens bolagsnamn, Ediel-id och\n            e-post/routing."
+  },
+  {
+    "file": "app/admin/ediel/agt/page.tsx",
+    "line": 544,
+    "text": "Kör ett test åt gången. L1/L7 genererar först\n                draft/prepared-payload som öppnas för kontroll innan du skickar.\n                L2–L5 ska vänta på inbound från Edielportalen."
+  },
+  {
+    "file": "app/admin/ediel/agt/page.tsx",
+    "line": 601,
+    "text": "L1/L7 ska innehålla NAD+Z02 enligt portalens validering.\n                      Fyll i balansansvarig/BRP Ediel-id innan du skickar\n                      outbound."
+  },
+  {
+    "file": "app/admin/ediel/agt/page.tsx",
+    "line": 667,
+    "text": "Generera draft / öppna payload"
+  },
+  {
+    "file": "app/admin/ediel/agt/page.tsx",
+    "line": 691,
+    "text": "Spara AGT-runtime först. Starta L1 i Edielportalen, skapa L1-run här,\n          fyll i balansansvarig/BRP Ediel-id och generera draften. Kontrollera\n          payloaden på meddelandesidan innan du klickar Skicka. L2-L5 är Portal\n          → Aktör: starta testet i portalen, importera inbound PRODAT och skapa\n          CONTRL + APERAK från inbound-raden. Öppna även kvittenspayload innan\n          skick. Kör L7 sist som outbound Z09-draft."
+  },
+  {
+    "file": "app/admin/ediel/anvisningar/page.tsx",
+    "line": 58,
+    "text": "Plattformsintern driftvy över vilka anvisningar som är runtime-scope, delvis klara, parkerade eller senare scope."
+  },
+  {
+    "file": "app/admin/ediel/anvisningar/page.tsx",
+    "line": 162,
+    "text": "Den här tabellen visar vad systemet ska behandla som aktivt runtime-scope\n och vad som medvetet ligger utanför just nu."
+  },
+  {
+    "file": "app/admin/ediel/auto-readiness/page.tsx",
+    "line": 183,
+    "text": "Gas / separat scope"
+  },
+  {
+    "file": "app/admin/ediel/auto-readiness/page.tsx",
+    "line": 411,
+    "text": "Rollbaserad readiness: leverantörsbyte räknar bara elnät, medan gas, systemleverantörer och övriga roller visas separat."
+  },
+  {
+    "file": "app/admin/ediel/auto-readiness/page.tsx",
+    "line": 417,
+    "text": "Sidan kraschar inte längre om certifikat-/readiness-data är ofullständig. Kontrollera dessa fel i serverloggen:"
+  },
+  {
+    "file": "app/admin/ediel/auto-readiness/page.tsx",
+    "line": 428,
+    "text": "Endast elnät i supplier-switch scope."
+  },
+  {
+    "file": "app/admin/ediel/auto-readiness/page.tsx",
+    "line": 470,
+    "text": "Readiness-vyn saknas eller har inga rader. Kör migrationen och importera actor registry först."
+  },
+  {
+    "file": "app/admin/ediel/auto-readiness/page.tsx",
+    "line": 514,
+    "text": "Gas / separat scope"
+  },
+  {
+    "file": "app/admin/ediel/auto-readiness/page.tsx",
+    "line": 517,
+    "text": "Route-scope"
+  },
+  {
+    "file": "app/admin/ediel/auto-readiness/page.tsx",
+    "line": 518,
+    "text": "Route-scope"
+  },
+  {
+    "file": "app/admin/ediel/auto-readiness/page.tsx",
+    "line": 642,
+    "text": "Inga readiness-körningar ännu."
+  },
+  {
+    "file": "app/admin/ediel/certificates/page.tsx",
+    "line": 119,
+    "text": "id, company_id, scope, environment, display_name, subject, issuer, serial_number, fingerprint_sha256, certificate_fingerprint, valid_from, valid_to, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, renewal_window_days, warning_days_before_expiry, critical_days_before_expiry, owner_ediel_id, owner_subaddress, message_type, purpose, usage, p12_secret_reference, p12_secret_ref, p12_password_secret_ref, secret_reference, is_private_material_available, needs_verification, metadata"
+  },
+  {
+    "file": "app/admin/ediel/certificates/page.tsx",
+    "line": 201,
+    "text": "Superadmin kan registrera S/MIME-certifikat. Importera vårt P12/PFX\n            som privat inbound/signering. Importera mottagarens publika PEM/CER\n            som outbound_recipient. Systemet kopplar inte längre\n            P12/mailbox-certifikat till outbound routes automatiskt."
+  },
+  {
+    "file": "app/admin/ediel/certificates/page.tsx",
+    "line": 219,
+    "text": "2. Outbound: mottagarens publika certifikat"
+  },
+  {
+    "file": "app/admin/ediel/certificates/page.tsx",
+    "line": 240,
+    "text": "Nya elbolag/tenants kan använda Div3rsa/Gridex som ombud och\n              transportkanal, men deras eget Ediel-ID ska fortfarande sparas som\n              certifikatets/aktörens owner_ediel_id. Ombuds-/transport-ID anges\n              separat, normalt 21660. Tenant avgörs senare av Ediel-ID,\n              subadress, certifikat/CMS och EDIFACT — aldrig enbart av mailboxen."
+  },
+  {
+    "file": "app/admin/ediel/certificates/page.tsx",
+    "line": 372,
+    "text": "För inbound-dekryptering: lämna\n              fil/certificateText/uniqueIdentifier tomma och spara bara\n              env-referenserna ovan. För outbound: använd publikt PEM/CER som\n              outbound_recipient. Klistra aldrig in P12-base64 eller lösenord i\n              denna UI."
+  },
+  {
+    "file": "app/admin/ediel/certification/page.tsx",
+    "line": 18,
+    "text": "Kör readiness och starta test i portalen"
+  },
+  {
+    "file": "app/admin/ediel/certification/page.tsx",
+    "line": 86,
+    "text": "Godkända tester låses som golden regression. E7 är aktivt fixmål. E4, E8, UE1 och UE2 ligger som readiness."
+  },
+  {
+    "file": "app/admin/ediel/control-tower/page.tsx",
+    "line": 320,
+    "text": "Outbound köad"
+  },
+  {
+    "file": "app/admin/ediel/control-tower/page.tsx",
+    "line": 321,
+    "text": "Outbound saknar route"
+  },
+  {
+    "file": "app/admin/ediel/control-tower/page.tsx",
+    "line": 344,
+    "text": "Visar senaste meddelanden i valt tenant-/platform-scope."
+  },
+  {
+    "file": "app/admin/ediel/control-tower/page.tsx",
+    "line": 385,
+    "text": "Readiness checks"
+  },
+  {
+    "file": "app/admin/ediel/mail-readiness/page.tsx",
+    "line": 72,
+    "text": "Ediel mail readiness"
+  },
+  {
+    "file": "app/admin/ediel/mailboxes/page.tsx",
+    "line": 56,
+    "text": "Shared SMTP/IMAP transport för ediel@gridex.se. Mailboxen är fysisk transport; tenant avgörs av EDIFACT route keys."
+  },
+  {
+    "file": "app/admin/ediel/mailboxes/page.tsx",
+    "line": 64,
+    "text": "ediel@gridex.se är transport, inte tenant-identitet"
+  },
+  {
+    "file": "app/admin/ediel/message-content-retention/workspace.tsx",
+    "line": 42,
+    "text": "Meddelande-ID eller MIME-arkivets payload-ID"
+  },
+  {
+    "file": "app/admin/ediel/message-content-retention/workspace.tsx",
+    "line": 42,
+    "text": "Meddelande-ID eller MIME-arkivets payload-ID"
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 402,
+    "text": "Kunde inte verifiera send readiness."
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 486,
+    "text": "Skick blockerat av okänd send readiness."
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 534,
+    "text": "Markerar gamla ej skickade ACK-utkast som superseded och kör om tenant + runtime."
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 587,
+    "text": "PRODAT portal-readiness"
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 679,
+    "text": "Tenant resolution"
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 694,
+    "text": "Routing unresolved: meddelandet är tekniskt läsbart men kunde inte kopplas säkert till tenant. Ingen negativ CONTRL ska skickas automatiskt för detta routingfel."
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 712,
+    "text": "Outbound request:"
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 713,
+    "text": "Switch request:"
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 714,
+    "text": "Grid owner data request:"
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 789,
+    "text": "Kvittensunderlag kunde inte kvalificeras för aktuell läsbehörighet och tenant. Affärsstatus hålls för granskning."
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 938,
+    "text": "Payload / reports"
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 941,
+    "text": "Raw payload"
+  },
+  {
+    "file": "app/admin/ediel/messages/[id]/page.tsx",
+    "line": 945,
+    "text": "Parsed payload"
+  },
+  {
+    "file": "app/admin/ediel/messages/page.tsx",
+    "line": 211,
+    "text": "Inbox, outbox, payload och ACK-kedjor. Fokus på att svara korrekt utan att röra engine-reglerna."
+  },
+  {
+    "file": "app/admin/ediel/messages/page.tsx",
+    "line": 243,
+    "text": "Outbound drafts"
+  },
+  {
+    "file": "app/admin/ediel/messages/page.tsx",
+    "line": 314,
+    "text": "Kvittensunderlag kunde inte kvalificeras för aktuell läsbehörighet och tenant. Affärsstatus hålls för granskning."
+  },
+  {
+    "file": "app/admin/ediel/outbox/page.tsx",
+    "line": 147,
+    "text": "Produktionsskick är låst tills send-guard passerar (företagsscope, produktions-route, produktions-avsändare, produktionsgodkännande, certifikat). Send-guardens orsak visas i felkolumnen. Produktionsgodkännande sker på route-readiness, inte här."
+  },
+  {
+    "file": "app/admin/ediel/prodat-recovery/workspace.tsx",
+    "line": 29,
+    "text": "Det faktiska ACK:et avgör rättelsens scope. Kund, anläggning, period och andra affärsfält måste behållas enligt källans kriterier. Nya tekniska meddelandeidentiteter krävs. Om fält 226 saknas och ACK:et styrker det, tilldelar servern en ny egen LI-referens."
+  },
+  {
+    "file": "app/admin/ediel/readiness/page.tsx",
+    "line": 76,
+    "text": "Ediel Readiness"
+  },
+  {
+    "file": "app/admin/ediel/readiness/page.tsx",
+    "line": 99,
+    "text": "AGT readiness"
+  },
+  {
+    "file": "app/admin/ediel/readiness/page.tsx",
+    "line": 101,
+    "text": "AGT startar bara när readiness är komplett, TGT är godkänd och ingen aktiv AGT-lock finns."
+  },
+  {
+    "file": "app/admin/ediel/readiness/page.tsx",
+    "line": 131,
+    "text": "Spara readiness"
+  },
+  {
+    "file": "app/admin/ediel/readiness/page.tsx",
+    "line": 139,
+    "text": "Ingen AGT-readiness registrerad ännu."
+  },
+  {
+    "file": "app/admin/ediel/route-readiness/page.tsx",
+    "line": 116,
+    "text": "Migrationen för route-readiness saknas eller är inte körd ännu."
+  },
+  {
+    "file": "app/admin/ediel/route-readiness/page.tsx",
+    "line": 196,
+    "text": "Operativ route eller send-readiness saknas."
+  },
+  {
+    "file": "app/admin/ediel/route-readiness/page.tsx",
+    "line": 213,
+    "text": "Godkänd från route-readiness efter verifierad production readiness."
+  },
+  {
+    "file": "app/admin/ediel/route-readiness/page.tsx",
+    "line": 232,
+    "text": "Raderna skrevs men readiness bekräftades inte. Kontrollera route-profil."
+  },
+  {
+    "file": "app/admin/ediel/route-readiness/page.tsx",
+    "line": 239,
+    "text": "Communication route kunde inte skapas. Kontrollera route-typ, scope och bolagsdata."
+  },
+  {
+    "file": "app/admin/ediel/route-readiness/page.tsx",
+    "line": 254,
+    "text": "Bulk materialisering blockerades av readiness-krav."
+  },
+  {
+    "file": "app/admin/ediel/route-readiness/page.tsx",
+    "line": 262,
+    "text": "Kontrollera att route-typ är ediel_partner och att scope/bolag är giltiga, försök sedan igen."
+  },
+  {
+    "file": "app/admin/ediel/route-readiness/page.tsx",
+    "line": 329,
+    "text": "Route-readiness"
+  },
+  {
+    "file": "app/admin/ediel/route-readiness/page.tsx",
+    "line": 353,
+    "text": "Så fungerar tenant route-readiness"
+  },
+  {
+    "file": "app/admin/ediel/route-readiness/page.tsx",
+    "line": 462,
+    "text": "Bulkhantera route-readiness"
+  },
+  {
+    "file": "app/admin/ediel/route-readiness/page.tsx",
+    "line": 588,
+    "text": "Ingen route-readiness data hittades."
+  },
+  {
+    "file": "app/admin/ediel/routes/legacy/page.tsx",
+    "line": 296,
+    "text": "Global route-governance och runtimekontroll för plattformen. Tenant-vyer visar bara bolagets egna routes."
+  },
+  {
+    "file": "app/admin/ediel/routes/legacy/page.tsx",
+    "line": 320,
+    "text": "Eget bolag / tenant"
+  },
+  {
+    "file": "app/admin/ediel/routes/legacy/page.tsx",
+    "line": 321,
+    "text": "Bolagsnamn, organisationsnummer, Ediel-id, miljö, mailbox, Application Reference och roll ska komma från tenant-konfiguration."
+  },
+  {
+    "file": "app/admin/ediel/routes/legacy/page.tsx",
+    "line": 333,
+    "text": "Route får inte vara aktiv om Ediel-id, mottagare, version, transport, ack-policy eller company/tenant-koppling saknas. Subadress krävs bara när routeprofilen uttryckligen säger det."
+  },
+  {
+    "file": "app/admin/ediel/routes/legacy/page.tsx",
+    "line": 471,
+    "text": "Stödd payload-version"
+  },
+  {
+    "file": "app/admin/ediel/routes/legacy/page.tsx",
+    "line": 614,
+    "text": "Payload-format"
+  },
+  {
+    "file": "app/admin/ediel/routes/legacy/page.tsx",
+    "line": 622,
+    "text": "Stödd payload-version"
+  },
+  {
+    "file": "app/admin/ediel/routes/legacy/page.tsx",
+    "line": 713,
+    "text": "Lämna sender/application reference/mailbox tomt endast om aktiv aktörsidentitet ska vara default i vald miljö. Subadress är optional och används inte för tenant-resolve om routen inte kräver den."
+  },
+  {
+    "file": "app/admin/ediel/routes/page.tsx",
+    "line": 106,
+    "text": "Produktionsvy mot actor registry: platform_market_actors, platform_actor_roles.actor_role, platform_actor_routes och import issues. Tenant-admins ska inte kunna ändra denna masterdata."
+  },
+  {
+    "file": "app/admin/ediel/routes/page.tsx",
+    "line": 113,
+    "text": "Verifiera route utan att slå på autosändning. Använd separat readiness innan auto_send_allowed sätts."
+  },
+  {
+    "file": "app/admin/ediel/routes/page.tsx",
+    "line": 117,
+    "text": "Öppna route-readiness"
+  },
+  {
+    "file": "app/admin/ediel/settings/page.tsx",
+    "line": 360,
+    "text": "Plattformsöversikt för aktörsprofiler samt global regelhantering. Tenant-regler visas inte i vanliga bolagsvyer."
+  },
+  {
+    "file": "app/admin/ediel/settings/page.tsx",
+    "line": 435,
+    "text": "“Version” är den Ediel-anvisningsversion som regeln kommer använda i\n            runtime. “Giltig från” är datumet då just den versionen ska börja\n            användas. Outbound current ska vara den version som gäller nu, medan\n            inbound också kan acceptera närmast föregående giltiga version under\n            övergångsperioden."
+  },
+  {
+    "file": "app/admin/ediel/settings/page.tsx",
+    "line": 452,
+    "text": "Bolagets Ediel-ID sparas per bolag och miljö i databasen. Det\n            används som avsändare för outbound och för att matcha inkommande UNB\n            receiver till rätt bolag. Exempelvis kan Div3rsa använda 21660, men\n            bara om värdet finns på Div3rsa i ediel_actor_settings."
+  },
+  {
+    "file": "app/admin/ediel/settings/page.tsx",
+    "line": 674,
+    "text": "Det här blocket visar samma registrymotor som används i runtime:\n              outbound selected version, current, previous och inbound accepted\n              versions."
+  },
+  {
+    "file": "app/admin/ediel/settings/page.tsx",
+    "line": 706,
+    "text": "Outbound selected"
+  },
+  {
+    "file": "app/admin/ediel/settings/page.tsx",
+    "line": 710,
+    "text": "Outbound current"
+  },
+  {
+    "file": "app/admin/ediel/settings/page.tsx",
+    "line": 714,
+    "text": "Outbound previous"
+  },
+  {
+    "file": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+    "line": 470,
+    "text": "Kunde inte visa payload."
+  },
+  {
+    "file": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+    "line": 642,
+    "text": "Payload-kontroll"
+  },
+  {
+    "file": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+    "line": 703,
+    "text": "Ingen payload ännu"
+  },
+  {
+    "file": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+    "line": 929,
+    "text": "Körbart testfall med synkad run, payload-import och förväntad teknisk kedja."
+  },
+  {
+    "file": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+    "line": 1047,
+    "text": "Den här knappen skapar saknat PRODAT-utkast via autopilot och skickar det kopplat till denna testkörning. Använd den för E8/E4/E3/L1/L7 i stället för separat outbound-sida."
+  },
+  {
+    "file": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+    "line": 1074,
+    "text": "Detta är ett aktör→portal-test. Starta körningen här, låt Gridex skapa outbound-utkastet och använd sedan knappen"
+  },
+  {
+    "file": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+    "line": 1074,
+    "text": "på det kopplade meddelandet. Skicka inte från en separat outbound-sida."
+  },
+  {
+    "file": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+    "line": 1169,
+    "text": "Payload-validator"
+  },
+  {
+    "file": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+    "line": 1211,
+    "text": "Validera payload mot"
+  },
+  {
+    "file": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+    "line": 1472,
+    "text": "Inga artifacts ännu. Kör IMAP-synk eller\n                          Payload-validator."
+  },
+  {
+    "file": "app/admin/ediel/system-tests/page.tsx",
+    "line": 1257,
+    "text": "Körbara TGT-/AGT-testfall med filtrering, aktörsidentitet och tydlig synk mot inbound/outbound-kedjan."
+  },
+  {
+    "file": "app/admin/ediel/system-tests/page.tsx",
+    "line": 1413,
+    "text": "Payload-test"
+  },
+  {
+    "file": "app/admin/ediel/test-center/invoice-test/InvoiceTestCustomerForm.tsx",
+    "line": 32,
+    "text": "Bolag / tenant"
+  },
+  {
+    "file": "app/admin/ediel/test-center/invoice-test/page.tsx",
+    "line": 207,
+    "text": "Canonical parser läser först filen. Parserresultatet materialiserar endast testkundens test-site/mätpunkt. Därefter går samma payload genom ordinarie inbound-matchning, normaliserade mätvärden, billing-underlag, låst pricing och fakturautkast."
+  },
+  {
+    "file": "app/admin/ediel/test-center/invoice-test/page.tsx",
+    "line": 303,
+    "text": "Provider request/response & fel"
+  },
+  {
+    "file": "app/admin/ediel/test-center/invoice-test/page.tsx",
+    "line": 304,
+    "text": "REQUEST\\n"
+  },
+  {
+    "file": "app/admin/ediel/test-center/metering-to-invoice/page.tsx",
+    "line": 28,
+    "text": "Bolag / tenant"
+  },
+  {
+    "file": "app/admin/ediel/test-center/metering-to-invoice/page.tsx",
+    "line": 43,
+    "text": "· tenant"
+  },
+  {
+    "file": "app/admin/ediel/test-center/metering-to-invoice/page.tsx",
+    "line": 99,
+    "text": "Filen går först genom samma canonical EDIFACT-parser som ordinarie inbound. Innan något behandlas verifieras att det är UTILTS,\n            att mätpunktsreferensen tillhör vald testkund och tenant, och att importen kan hållas i testmiljö. Därefter skapas ett test-inbound-envelope,\n            samma inbound-processor körs, och resultatet fortsätter genom canonical mätvärde → billing → fakturautkast. Efter en lyckad körning öppnas en komplett trace-vy."
+  },
+  {
+    "file": "app/admin/ediel/test-center/metering-to-invoice/page.tsx",
+    "line": 164,
+    "text": "· tenant"
+  },
+  {
+    "file": "app/admin/ediel/test-center/metering-to-invoice/page.tsx",
+    "line": 186,
+    "text": "Parsed payload och validation report."
+  },
+  {
+    "file": "app/admin/ediel/test-center/metering-to-invoice/page.tsx",
+    "line": 188,
+    "text": "Underlag, readiness och blockerare."
+  },
+  {
+    "file": "app/admin/ediel/test-center/metering-to-invoice/trace/[edielMessageId]/page.tsx",
+    "line": 89,
+    "text": "Visar det canonical parsed payload och validation report som faktiskt ligger på samma Ediel-meddelande som produktionsflödet använder."
+  },
+  {
+    "file": "app/admin/ediel/test-center/metering-to-invoice/trace/[edielMessageId]/page.tsx",
+    "line": 93,
+    "text": "Raderna hämtas tenant-scopat för den matchade mätpunkten och exakt fakturamånad. Detta är samma normaliserade lager som completeness- och billingmotorerna läser."
+  },
+  {
+    "file": "app/admin/ediel/test-center/metering-to-invoice/trace/[edielMessageId]/page.tsx",
+    "line": 97,
+    "text": "Det faktiska billing_underlay som skapades eller återanvändes för körningen, inklusive readiness, period, total kWh och blockerare."
+  },
+  {
+    "file": "app/admin/ediel/test-center/metering-to-invoice/trace/[edielMessageId]/page.tsx",
+    "line": 109,
+    "text": "Samlad identitetskedja för snabb felsökning och revision. Alla länkar är tenant-scopade och bygger på samma Ediel message ID."
+  },
+  {
+    "file": "app/admin/ediel/test-center/page.tsx",
+    "line": 171,
+    "text": "Välj bolag, roll, testfall och transportläge. Backend hämtar route/certifikat från konfigurationen, lagrar expected flow och använder befintliga builders/parsers när testfallet kan förbereda outbound EDIFACT."
+  },
+  {
+    "file": "app/admin/ediel/test-center/page.tsx",
+    "line": 175,
+    "text": "Välj bolag/tenant"
+  },
+  {
+    "file": "app/admin/ediel/test-center/page.tsx",
+    "line": 259,
+    "text": "Test Center ska köra samma canonical EDIFACT-builder, parser och validator som produktion. Transportläget väljs efter att EDIFACT är byggd och validerad: okrypterat test skickar raw EDIFACT via SMTP/TLS, krypterat test paketerar samma payload med S/MIME och lagrar certifikatfingerprint."
+  },
+  {
+    "file": "app/admin/electricity-suppliers/page.tsx",
+    "line": 92,
+    "text": "Tenant-admins ska välja verifierade aktörer i kundflöden. Tekniska fält som Ediel-id, subadress, certifikat, transportkanal och produktions-/testmiljö ska hanteras centralt så att ett elbolag inte råkar skapa felaktig route eller osäker mottagare."
+  },
+  {
+    "file": "app/admin/facility-requests/page.tsx",
+    "line": 213,
+    "text": "Route readiness"
+  },
+  {
+    "file": "app/admin/inbound-mail/[id]/page.tsx",
+    "line": 149,
+    "text": "Raw EDIFACT payload"
+  },
+  {
+    "file": "app/admin/inbound-mail/page.tsx",
+    "line": 190,
+    "text": "Platform-only yta för Ediel-mailboxar, raw payload, parserresultat och osäkra matchningar. Vanliga elbolag ska inte se denna tekniska vy."
+  },
+  {
+    "file": "app/admin/inbound-mail/page.tsx",
+    "line": 248,
+    "text": "Spara endast `secret_reference`, aldrig lösenord. Tenant routing\n            sker efter EDIFACT-innehåll, inte från e-postadressen."
+  },
+  {
+    "file": "app/admin/inbound-mail/page.tsx",
+    "line": 349,
+    "text": "SMTP outbound"
+  },
+  {
+    "file": "app/admin/inbound-mail/page.tsx",
+    "line": 409,
+    "text": "Osäkra tenant-/kund-/request-matchningar."
+  },
+  {
+    "file": "app/admin/inbound-mail/page.tsx",
+    "line": 487,
+    "text": "SMTP outbound"
+  },
+  {
+    "file": "app/admin/integrations/routes/page.tsx",
+    "line": 135,
+    "text": "Payload-version"
+  },
+  {
+    "file": "app/admin/mail-review/[id]/page.tsx",
+    "line": 32,
+    "text": "Tenant:"
+  },
+  {
+    "file": "app/admin/mail-review/[id]/page.tsx",
+    "line": 41,
+    "text": "Kandidater visar möjliga träffar. De bekräftar inte kund, tenant eller fullmaktsbehörighet."
+  },
+  {
+    "file": "app/admin/mail-review/page.tsx",
+    "line": 34,
+    "text": "Tenant och kund"
+  },
+  {
+    "file": "app/admin/mail-review/page.tsx",
+    "line": 36,
+    "text": "Tenant behöver identifieras"
+  },
+  {
+    "file": "app/admin/manual-mailboxes/page.tsx",
+    "line": 105,
+    "text": "Plattformsstandard (utan bolags-ID) gäller alla tenants tills en tenant-override finns."
+  },
+  {
+    "file": "app/admin/manual-mailboxes/page.tsx",
+    "line": 136,
+    "text": "Tenant-override"
+  },
+  {
+    "file": "app/admin/manual-mailboxes/page.tsx",
+    "line": 173,
+    "text": "Lämna bolags-ID tomt för en plattformsstandard. Ange bolags-ID för en tenant-specifik avsändare."
+  },
+  {
+    "file": "app/admin/manual-requests/ManualMailAiReading.tsx",
+    "line": 80,
+    "text": "Läsunderlag med källcitat. Servern validerar uppgifterna före automatisk tillämpning. AI väljer inte tenant eller kund och utför inga ändringar själv."
+  },
+  {
+    "file": "app/admin/manual-requests/page.tsx",
+    "line": 155,
+    "text": "Teknisk diagnostik för utgående nätägarärenden och inkommande tenant/kund-korrelation. Endast plattformsadmin."
+  },
+  {
+    "file": "app/admin/manual-requests/page.tsx",
+    "line": 189,
+    "text": "Utgående mail, provider-ID och svar som har bundits till respektive canonical request."
+  },
+  {
+    "file": "app/admin/manual-requests/page.tsx",
+    "line": 260,
+    "text": "Alla senaste manuella mail visas här, även svar utan GX-FIR och mail som ännu inte kan bindas säkert till tenant/kund."
+  },
+  {
+    "file": "app/admin/manual-requests/page.tsx",
+    "line": 268,
+    "text": "Tenant / Kund / Site"
+  },
+  {
+    "file": "app/admin/manual-requests/page.tsx",
+    "line": 287,
+    "text": "tenant:"
+  },
+  {
+    "file": "app/admin/messages/page.tsx",
+    "line": 447,
+    "text": "outbound:"
+  },
+  {
+    "file": "app/admin/metering/_components.tsx",
+    "line": 142,
+    "text": "Saknar tenant"
+  },
+  {
+    "file": "app/admin/metering/_components.tsx",
+    "line": 210,
+    "text": "Request:"
+  },
+  {
+    "file": "app/admin/metering/_components.tsx",
+    "line": 321,
+    "text": "rader. Ediel/UTILTS-rader ska ha source request där det går."
+  },
+  {
+    "file": "app/admin/metering/_components.tsx",
+    "line": 382,
+    "text": "Source request"
+  },
+  {
+    "file": "app/admin/network-owners/[id]/contact-channels/page.tsx",
+    "line": 94,
+    "text": "· Plattformsstandard gäller alla tenants tills en tenant-override finns."
+  },
+  {
+    "file": "app/admin/network-owners/[id]/contact-channels/page.tsx",
+    "line": 206,
+    "text": "Lämna bolags-ID tomt för en plattformsstandard som alla tenants kan använda. Ange bolags-ID för en tenant-specifik override."
+  },
+  {
+    "file": "app/admin/network-owners/page.tsx",
+    "line": 190,
+    "text": "Komplettera readiness"
+  },
+  {
+    "file": "app/admin/network-owners/page.tsx",
+    "line": 246,
+    "text": "Tenant-admins ska välja verifierade aktörer i kundflöden. Tekniska fält som Ediel-id, subadress, certifikat, transportkanal och produktions-/testmiljö ska hanteras centralt så att ett elbolag inte råkar skapa felaktig route eller osäker mottagare."
+  },
+  {
+    "file": "app/admin/network-owners/page.tsx",
+    "line": 247,
+    "text": "Batch O6.4 räknar bara elnät i supplier-switch readiness. Gasaktörer exkluderas från elhandel, missing PRODAT-route blir manuell review och certifikatsökning körs bara för blockerade elnät."
+  },
+  {
+    "file": "app/admin/operations/automation/page.tsx",
+    "line": 62,
+    "text": "Automation körs tenant-säkert mot ett bolag. Batch 2C skannar valfria perioder, skapar mätvärdesluckor, köar requests och kopplar alla blockerare till driftuppgifter."
+  },
+  {
+    "file": "app/admin/operations/automation/page.tsx",
+    "line": 102,
+    "text": "Skannar alla mätpunkter över valt intervall, skapar en lucka per saknad period, köar outbound request och kopplar blockerare till kundärende."
+  },
+  {
+    "file": "app/admin/operations/automation/page.tsx",
+    "line": 154,
+    "text": "öppna outbound,"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 124,
+    "text": "Outbound kvitterad"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 126,
+    "text": "Outbound felade"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 127,
+    "text": "Outbound stoppad"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 128,
+    "text": "Request stoppad"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 129,
+    "text": "Request felade"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 159,
+    "text": "Grid owner request"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 176,
+    "text": "Outbound request"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 305,
+    "text": "Grid owner request detail"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 306,
+    "text": "Detailvy för en enskild nätägarbegäran med dokument, outbound, payloads och timeline."
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 326,
+    "text": "Grid owner request"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 572,
+    "text": "Outbound ID:"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 575,
+    "text": "Request type:"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 596,
+    "text": "Öppna outbound-vy"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 613,
+    "text": "Request payload"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 622,
+    "text": "Response payload"
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 717,
+    "text": "Här använder du samma grid owner request som källa. Ingen separat kö eller parallell logik byggs. Actions går via samma Ediel orchestrator."
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 725,
+    "text": "Begär mätvärden utifrån exakt detta data request-id."
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 736,
+    "text": "Skapa E66 med period och kvantitet från samma request. Justera vid behov innan skick."
+  },
+  {
+    "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+    "line": 833,
+    "text": "Uppdatera outbound"
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 270,
+    "text": "Öppna outbound"
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 313,
+    "text": "Öppna outbound"
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 773,
+    "text": "Kunden har blockerande readiness-problem i switchflödet."
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 816,
+    "text": "Öppna switch"
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 836,
+    "text": "Öppna switch"
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 881,
+    "text": "Öppna första request"
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 919,
+    "text": "Öppna failed request"
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 958,
+    "text": "Öppna source request"
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 992,
+    "text": "Kunder där kärndata, site/mätpunkt eller readiness inte hänger ihop."
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 1050,
+    "text": "Visar kunder där avtal, site, mätpunkt eller readiness inte är logiskt synkade."
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 1057,
+    "text": "Massåtgärd för switch-ready ärenden"
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 1089,
+    "text": "När konkret switch-id finns ska switch-detail vara primär väg in. Kundkortet är sekundärt här."
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 1100,
+    "text": "När konkret switch-id finns går raden direkt till switch-detail. Kundkortet används som sekundär arbetsyta."
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 1104,
+    "text": "Kör en massåtgärd som lägger redo switchar i outbound-kön direkt från kontrolltornet."
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 1123,
+    "text": "När konkret request redan finns ska raden öppna request-detail. Bulk-kön används först när något request-id ännu inte finns."
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 1147,
+    "text": "Öppna i första hand failed request direkt från raden. Gå vidare till billing, metering eller partner exports först när felet inte är knutet till ett enskilt request-id."
+  },
+  {
+    "file": "app/admin/operations/integrity/page.tsx",
+    "line": 1158,
+    "text": "När source request redan finns ska raden öppna request-detail. Exportkön är sekundär när ett konkret ärende redan finns."
+  },
+  {
+    "file": "app/admin/operations/page.tsx",
+    "line": 341,
+    "text": "Switchärende"
+  },
+  {
+    "file": "app/admin/operations/page.tsx",
+    "line": 354,
+    "text": "Öppna switchärende"
+  },
+  {
+    "file": "app/admin/operations/page.tsx",
+    "line": 598,
+    "text": "Readiness stoppar nästa steg. Börja här när ett leverantörsbyte inte kan gå vidare."
+  },
+  {
+    "file": "app/admin/operations/page.tsx",
+    "line": 604,
+    "text": "unresolved-outbound"
+  },
+  {
+    "file": "app/admin/operations/page.tsx",
+    "line": 946,
+    "text": "Ingen readiness-data"
+  },
+  {
+    "file": "app/admin/operations/switches/[id]/page.tsx",
+    "line": 181,
+    "text": "Leverantörsbyte request"
+  },
+  {
+    "file": "app/admin/operations/switches/[id]/page.tsx",
+    "line": 208,
+    "text": "Outbound request"
+  },
+  {
+    "file": "app/admin/operations/switches/[id]/page.tsx",
+    "line": 676,
+    "text": "Outbound status"
+  },
+  {
+    "file": "app/admin/operations/switches/[id]/page.tsx",
+    "line": 678,
+    "text": "Ingen outbound"
+  },
+  {
+    "file": "app/admin/operations/switches/[id]/page.tsx",
+    "line": 694,
+    "text": "Outbound & utskick"
+  },
+  {
+    "file": "app/admin/operations/switches/[id]/page.tsx",
+    "line": 792,
+    "text": "Retry outbound"
+  },
+  {
+    "file": "app/admin/operations/switches/[id]/page.tsx",
+    "line": 821,
+    "text": "Skapar outbound PRODAT Z03 från exakt detta switchärende."
+  },
+  {
+    "file": "app/admin/operations/switches/[id]/page.tsx",
+    "line": 835,
+    "text": "Skapar outbound PRODAT Z05 från exakt detta switchärende."
+  },
+  {
+    "file": "app/admin/operations/switches/[id]/page.tsx",
+    "line": 849,
+    "text": "Skapar outbound PRODAT Z09 från exakt detta switchärende."
+  },
+  {
+    "file": "app/admin/operations/switches/[id]/page.tsx",
+    "line": 1025,
+    "text": "Senaste switch-events"
+  },
+  {
+    "file": "app/admin/operations/switches/[id]/page.tsx",
+    "line": 1031,
+    "text": "Inga switch-events ännu."
+  },
+  {
+    "file": "app/admin/operations/switches/page.tsx",
+    "line": 484,
+    "text": "Inga switchärenden matchade filtret."
+  },
+  {
+    "file": "app/admin/operations/switches/page.tsx",
+    "line": 524,
+    "text": "Slutför switch"
+  },
+  {
+    "file": "app/admin/operations/switches/page.tsx",
+    "line": 530,
+    "text": "Switchärende"
+  },
+  {
+    "file": "app/admin/operations/sync/page.tsx",
+    "line": 161,
+    "text": "SaaS-scope"
+  },
+  {
+    "file": "app/admin/operations/sync/page.tsx",
+    "line": 162,
+    "text": "Alla nya operationsobjekt ska ligga i samma company/tenant-scope. Superadmin får överblick, men ett elbolag ska bara se och hantera sina egna kunder, avtal, mätpunkter och Ediel-kedjor."
+  },
+  {
+    "file": "app/admin/outbound/missing-billing-underlays/page.tsx",
+    "line": 54,
+    "text": "outbound.missing_billing_underlays"
+  },
+  {
+    "file": "app/admin/outbound/missing-billing-underlays/page.tsx",
+    "line": 119,
+    "text": "Identifiera mätpunkter som saknar billing-underlag för vald månad och köa outbound utan dubbletter."
+  },
+  {
+    "file": "app/admin/outbound/missing-meter-values/page.tsx",
+    "line": 86,
+    "text": "outbound.missing_meter_values"
+  },
+  {
+    "file": "app/admin/outbound/page.tsx",
+    "line": 115,
+    "text": "Öppna request-detail"
+  },
+  {
+    "file": "app/admin/outbound/page.tsx",
+    "line": 122,
+    "text": "Öppna switch-detail"
+  },
+  {
+    "file": "app/admin/outbound/page.tsx",
+    "line": 156,
+    "text": "outbound.queue"
+  },
+  {
+    "file": "app/admin/outbound/page.tsx",
+    "line": 275,
+    "text": "Outbound queue"
+  },
+  {
+    "file": "app/admin/outbound/page.tsx",
+    "line": 276,
+    "text": "Extern orkestrering för switch, mätvärden, billing-underlag och partner-handoff. Automation sweep kan nu lösa route, återköa efter cooldown, auto-förbereda, auto-skicka och auto-kvittera interna kanaler."
+  },
+  {
+    "file": "app/admin/outbound/page.tsx",
+    "line": 370,
+    "text": "Switch utan outbound"
+  },
+  {
+    "file": "app/admin/outbound/page.tsx",
+    "line": 376,
+    "text": "Supplier-switch requests som borde ha köats men ännu saknar outbound."
+  },
+  {
+    "file": "app/admin/outbound/page.tsx",
+    "line": 390,
+    "text": "Switch-outbounds som är skickade men ännu inte kvitterade."
+  },
+  {
+    "file": "app/admin/outbound/page.tsx",
+    "line": 402,
+    "text": "Switch-outbounds som stoppats och kräver manuell åtgärd."
+  },
+  {
+    "file": "app/admin/outbound/page.tsx",
+    "line": 502,
+    "text": "Saknar route outbound"
+  },
+  {
+    "file": "app/admin/outbound/page.tsx",
+    "line": 521,
+    "text": "Inga outbound requests matchade filtret."
+  },
+  {
+    "file": "app/admin/outbound/page.tsx",
+    "line": 866,
+    "text": "Öppna source request"
+  },
+  {
+    "file": "app/admin/outbound/ready-switches/page.tsx",
+    "line": 24,
+    "text": "outbound.ready_switches"
+  },
+  {
+    "file": "app/admin/outbound/ready-switches/page.tsx",
+    "line": 76,
+    "text": "Köa externa leverantörsbytesrequests i bulk för switchärenden som är klara att skickas vidare. Du kan även köa enskilda ärenden manuellt."
+  },
+  {
+    "file": "app/admin/outbound/ready-switches/page.tsx",
+    "line": 85,
+    "text": "Aktiva switchärenden"
+  },
+  {
+    "file": "app/admin/outbound/ready-switches/page.tsx",
+    "line": 94,
+    "text": "Redan outbound-köade"
+  },
+  {
+    "file": "app/admin/outbound/ready-switches/page.tsx",
+    "line": 103,
+    "text": "Saknar outbound"
+  },
+  {
+    "file": "app/admin/outbound/ready-switches/page.tsx",
+    "line": 124,
+    "text": "Switchärenden som är kandidater för extern dispatch."
+  },
+  {
+    "file": "app/admin/outbound/unresolved/UnresolvedRequestsList.tsx",
+    "line": 50,
+    "text": "Här ser du exakt varför en request är unresolved, vilka routes som finns och vilken sida du bör öppna härnäst."
+  },
+  {
+    "file": "app/admin/outbound/unresolved/UnresolvedRequestsList.tsx",
+    "line": 100,
+    "text": "Outbound request"
+  },
+  {
+    "file": "app/admin/outbound/unresolved/UnresolvedRequestsList.tsx",
+    "line": 174,
+    "text": "Scope-träffar totalt:"
+  },
+  {
+    "file": "app/admin/outbound/unresolved/UnresolvedRequestsList.tsx",
+    "line": 226,
+    "text": "Data request-status:"
+  },
+  {
+    "file": "app/admin/outbound/unresolved/UnresolvedRequestsList.tsx",
+    "line": 245,
+    "text": "Inga aktiva routes att välja för detta scope ännu."
+  },
+  {
+    "file": "app/admin/outbound/unresolved/UnresolvedRequestsList.tsx",
+    "line": 306,
+    "text": "Avbryt request"
+  },
+  {
+    "file": "app/admin/outbound/unresolved/UnresolvedRequestsList.tsx",
+    "line": 323,
+    "text": "Öppna den sida som bäst representerar källärendet bakom outbound-requesten."
+  },
+  {
+    "file": "app/admin/outbound/unresolved/UnresolvedRequestsList.tsx",
+    "line": 336,
+    "text": "3. Outbound queue"
+  },
+  {
+    "file": "app/admin/outbound/unresolved/UnresolvedRequestsList.tsx",
+    "line": 352,
+    "text": "Inga routes finns alls för scope"
+  },
+  {
+    "file": "app/admin/outbound/unresolved/UnresolvedSummaryCards.tsx",
+    "line": 31,
+    "text": "Switch-relaterade"
+  },
+  {
+    "file": "app/admin/outbound/unresolved/page.tsx",
+    "line": 21,
+    "text": "outbound.unresolved"
+  },
+  {
+    "file": "app/admin/outbound/unresolved/page.tsx",
+    "line": 89,
+    "text": "Outbound exceptions: unresolved"
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "line": 315,
+    "text": "Samlad översikt för Ediel, kunder, fullmakter, drift, mätvärden, faktureringsunderlag och tenant-säkerhet."
+  },
+  {
+    "file": "app/admin/platform/actor-testing/[companyId]/evidence/page.tsx",
+    "line": 28,
+    "text": "Underlag för aktörstest, portalstatus, payload och audit. Export kan tas från tabellen eller rå payload per rad."
+  },
+  {
+    "file": "app/admin/platform/actor-testing/[companyId]/evidence/page.tsx",
+    "line": 34,
+    "text": "Rå JSON/payload"
+  },
+  {
+    "file": "app/admin/platform/actor-testing/[companyId]/evidence/page.tsx",
+    "line": 70,
+    "text": "Ingen rå payload sparad."
+  },
+  {
+    "file": "app/admin/platform/actor-testing/page.tsx",
+    "line": 17,
+    "text": "Superadmin-vy för alla bolag. Varje tenant har egen aktörsprofil, egen teststatus, egna bevis och egen go-live spärr."
+  },
+  {
+    "file": "app/admin/platform/analytics/page.tsx",
+    "line": 53,
+    "text": "Klicka in på ett bolag för tenant-scopad analytics."
+  },
+  {
+    "file": "app/admin/platform/api-clients/CreateApiClientForm.tsx",
+    "line": 87,
+    "text": "tenant-go-live"
+  },
+  {
+    "file": "app/admin/platform/api-clients/CreateApiClientForm.tsx",
+    "line": 92,
+    "text": "Normalvägen är enkel: välj bolag, ange Mina sidor och bolagets webbdomäner och tryck på en knapp. OPS återanvänder rätt klient när det är säkert, kör hela readiness-kontrollen och öppnar trafik först när alla blockerare är borta."
+  },
+  {
+    "file": "app/admin/platform/api-clients/CreateApiClientForm.tsx",
+    "line": 163,
+    "text": "https://tenant.example/mina-sidor"
+  },
+  {
+    "file": "app/admin/platform/api-clients/CreateApiClientForm.tsx",
+    "line": 177,
+    "text": "https://tenant.example\nhttps://www.tenant.example"
+  },
+  {
+    "file": "app/admin/platform/api-clients/CreateApiClientForm.tsx",
+    "line": 226,
+    "text": "Valfritt. Använd bara om webbplatsen har stabil outbound-IP."
+  },
+  {
+    "file": "app/admin/platform/api-clients/CreateApiClientForm.tsx",
+    "line": 276,
+    "text": "Knappen provisionerar eller revaliderar, kör smoke/readiness och öppnar trafik endast när allt är godkänt."
+  },
+  {
+    "file": "app/admin/platform/api-clients/page.tsx",
+    "line": 114,
+    "text": "Databasens readiness-vy saknas."
+  },
+  {
+    "file": "app/admin/platform/api-clients/page.tsx",
+    "line": 160,
+    "text": "En readiness-kontroll blockerar live. Öppna go-live-flödet för att se och åtgärda orsaken."
+  },
+  {
+    "file": "app/admin/platform/api-clients/page.tsx",
+    "line": 281,
+    "text": "Ett bolag sätts live från ett enda flöde. Om något saknas visas blockeraren i klartext med länk till rätt område. Du ska inte behöva aktivera klienter, readiness eller capabilities med separata knappar."
+  },
+  {
+    "file": "app/admin/platform/api-clients/page.tsx",
+    "line": 316,
+    "text": "new-tenant"
+  },
+  {
+    "file": "app/admin/platform/api-clients/page.tsx",
+    "line": 328,
+    "text": "Konfiguration, smoke-test och samtliga readiness-regler körs."
+  },
+  {
+    "file": "app/admin/platform/contract-trace/page.tsx",
+    "line": 123,
+    "text": "Tenant:"
+  },
+  {
+    "file": "app/admin/platform/customers/archived/page.tsx",
+    "line": 85,
+    "text": "Arkivering betyder att historik bevaras, men kunden döljs från aktiv tenant-lista. Den här vyn är bara för superadmin och läcker inte tenantdata till andra tenants."
+  },
+  {
+    "file": "app/admin/platform/customers/archived/page.tsx",
+    "line": 117,
+    "text": "Visar tenant, arkivorsak och länk till kundkort i arkivläge."
+  },
+  {
+    "file": "app/admin/platform/customers/archived/page.tsx",
+    "line": 141,
+    "text": "Saknar tenant"
+  },
+  {
+    "file": "app/admin/platform/data-cleanup/page.tsx",
+    "line": 94,
+    "text": "· Switch"
+  },
+  {
+    "file": "app/admin/platform/ediel/messages/page.tsx",
+    "line": 124,
+    "text": "Superadminvy över inbound, outbound, ACK-kedjor och osäkra matchningar över alla tenants. Filtrera per bolag, meddelandetyp, miljö och status."
+  },
+  {
+    "file": "app/admin/platform/ediel/messages/page.tsx",
+    "line": 134,
+    "text": "Alla meddelanden per tenant"
+  },
+  {
+    "file": "app/admin/platform/ediel/messages/page.tsx",
+    "line": 136,
+    "text": "Den här vyn är byggd för drift: mailboxen är bara transport. Kontrollera alltid tenant, sender/receiver Ediel-ID, subadress, route, certifikat och status innan manuell åtgärd."
+  },
+  {
+    "file": "app/admin/platform/ediel/messages/page.tsx",
+    "line": 185,
+    "text": "Outbound drafts"
+  },
+  {
+    "file": "app/admin/platform/ediel/messages/page.tsx",
+    "line": 208,
+    "text": "Ej tenant-matchad"
+  },
+  {
+    "file": "app/admin/platform/ediel/messages/page.tsx",
+    "line": 222,
+    "text": "Tenant:"
+  },
+  {
+    "file": "app/admin/platform/ediel/routes/page.tsx",
+    "line": 31,
+    "text": "Global route-governance för Ediel och kommunikation. Company admins använder sin tenant-scopade route-yta."
+  },
+  {
+    "file": "app/admin/platform/ediel/routes/page.tsx",
+    "line": 36,
+    "text": "scope saknas"
+  },
+  {
+    "file": "app/admin/platform/ediel/runtime/page.tsx",
+    "line": 201,
+    "text": "Den här sidan ska göra det tydligt vilken version runtime väljer outbound, vilka inbound-versioner som accepteras, och om tenants saknar aktörsprofil eller route innan produktion startas."
+  },
+  {
+    "file": "app/admin/platform/ediel/runtime/page.tsx",
+    "line": 224,
+    "text": "Saknar vald outbound"
+  },
+  {
+    "file": "app/admin/platform/ediel/runtime/page.tsx",
+    "line": 224,
+    "text": "Runtime kunde inte välja outbound-version."
+  },
+  {
+    "file": "app/admin/platform/ediel/runtime/page.tsx",
+    "line": 231,
+    "text": "Visar outbound selected/current/previous och inbound accepted per message family och kod."
+  },
+  {
+    "file": "app/admin/platform/go-live/[companyId]/page.tsx",
+    "line": 100,
+    "text": "production readiness"
+  },
+  {
+    "file": "app/admin/platform/go-live/[companyId]/page.tsx",
+    "line": 106,
+    "text": "website readiness"
+  },
+  {
+    "file": "app/admin/platform/go-live/[companyId]/page.tsx",
+    "line": 123,
+    "text": "Normalvägen är en enda superadmin-åtgärd: systemet kör aktuell readiness, production dry run och live-aktivering automatiskt. Detaljstegen finns kvar för felsökning och revision."
+  },
+  {
+    "file": "app/admin/platform/go-live/[companyId]/page.tsx",
+    "line": 136,
+    "text": "Aktiv tenant, rätt production-actor, BRP, routes, mailbox och giltig certifiering/evidens kontrolleras från aktuella masterdata."
+  },
+  {
+    "file": "app/admin/platform/go-live/[companyId]/page.tsx",
+    "line": 195,
+    "text": "Ett klick kör ny readiness, ny production dry run och canonical live-aktivering. Om bolaget aldrig har haft sin första live-send godkänd ingår även det i samma explicita superadmin-godkännande. Vid en blockerare ändras ingen production-state och orsaken visas direkt."
+  },
+  {
+    "file": "app/admin/platform/go-live/[companyId]/page.tsx",
+    "line": 199,
+    "text": "Nuvarande readiness:"
+  },
+  {
+    "file": "app/admin/platform/go-live/[companyId]/page.tsx",
+    "line": 246,
+    "text": "Production readiness kunde inte laddas"
+  },
+  {
+    "file": "app/admin/platform/go-live/[companyId]/page.tsx",
+    "line": 259,
+    "text": "Den normala go-live-processen ska styras av bolagets production\n            actor, BRP, Ediel routes, readiness och dry run. Manuella receivers,\n            testmotparter och evidence-detaljer visas här för felsökning och\n            revision, inte som primär produktionskonfiguration."
+  },
+  {
+    "file": "app/admin/platform/go-live/[companyId]/route-wizard/page.tsx",
+    "line": 240,
+    "text": "Mailboxen är transportkanal, inte tenant-identitet."
+  },
+  {
+    "file": "app/admin/platform/go-live/[companyId]/route-wizard/page.tsx",
+    "line": 270,
+    "text": "Skapar/ersätter production route för mätvärden. Om den saknas\n                  ska readiness visa att mätvärdesflöden inte är aktiva."
+  },
+  {
+    "file": "app/admin/platform/go-live/[companyId]/route-wizard/page.tsx",
+    "line": 303,
+    "text": "Kräver readiness och dry run"
+  },
+  {
+    "file": "app/admin/platform/legal-readiness/page.tsx",
+    "line": 32,
+    "text": "Juridisk readiness per bolag"
+  },
+  {
+    "file": "app/admin/platform/legal-readiness/page.tsx",
+    "line": 41,
+    "text": "Create global templates, render tenant placeholders and bulk-generate missing tenant legal versions."
+  },
+  {
+    "file": "app/admin/platform/legal-templates/page.tsx",
+    "line": 90,
+    "text": "Master templates are rendered directly from the immutable canonical version together with the tenant legal-profile snapshot. Use placeholders like"
+  },
+  {
+    "file": "app/admin/platform/legal-templates/page.tsx",
+    "line": 90,
+    "text": "so OPS can render tenant-specific versions."
+  },
+  {
+    "file": "app/admin/platform/legal-templates/page.tsx",
+    "line": 94,
+    "text": "Legal readiness"
+  },
+  {
+    "file": "app/admin/platform/legal-templates/page.tsx",
+    "line": 133,
+    "text": "Supported tenant placeholders"
+  },
+  {
+    "file": "app/admin/platform/legal-templates/page.tsx",
+    "line": 138,
+    "text": "missing for preview tenant"
+  },
+  {
+    "file": "app/admin/platform/legal-templates/page.tsx",
+    "line": 149,
+    "text": "Tenant coverage validation"
+  },
+  {
+    "file": "app/admin/platform/legal-templates/page.tsx",
+    "line": 152,
+    "text": "This validates that every selected tenant can use the published canonical modules. No duplicate tenant copy is created; exact rendered documents are locked only when a contract version is published."
+  },
+  {
+    "file": "app/admin/platform/legal-templates/page.tsx",
+    "line": 188,
+    "text": "Validate tenant legal coverage"
+  },
+  {
+    "file": "app/admin/platform/legal-templates/page.tsx",
+    "line": 211,
+    "text": "Missing placeholders for preview tenant:"
+  },
+  {
+    "file": "app/admin/platform/legal-templates/page.tsx",
+    "line": 292,
+    "text": "Superadmin UI for global immutable legal templates, tenant placeholder rendering and canonical module coverage."
+  },
+  {
+    "file": "app/admin/platform/security/page.tsx",
+    "line": 18,
+    "text": "Company scope saknas"
+  },
+  {
+    "file": "app/admin/platform/security/page.tsx",
+    "line": 30,
+    "text": "Faktisk RLS-policyrapport för risk-tabeller, tenant-scope och service-role-kontroller."
+  },
+  {
+    "file": "app/admin/platform/usage/page.tsx",
+    "line": 103,
+    "text": "Medlemmar per tenant"
+  },
+  {
+    "file": "app/admin/platform/usage/page.tsx",
+    "line": 109,
+    "text": "Alla switchärenden per tenant"
+  },
+  {
+    "file": "app/admin/platform/usage/page.tsx",
+    "line": 117,
+    "text": "Usage per tenant"
+  },
+  {
+    "file": "app/admin/platform/usage/page.tsx",
+    "line": 119,
+    "text": "Sorterad på blockerare och väntande uppgifter först. Alla räkningar görs tenant-scopat med company_id."
+  },
+  {
+    "file": "app/admin/powers-of-attorney/page.tsx",
+    "line": 33,
+    "text": "Sök fullmakter och originaldokument per tenant och kund."
+  },
+  {
+    "file": "app/admin/pricing/page.tsx",
+    "line": 83,
+    "text": "Prismotor readiness"
+  },
+  {
+    "file": "app/admin/pricing/portfolio-settlements/page.tsx",
+    "line": 165,
+    "text": "Superadmin registrerar månadens portföljpris tenant för tenant och separat för SE1–SE4. Endast final och låst avräkning får användas i fakturering."
+  },
+  {
+    "file": "app/admin/pricing/portfolio-settlements/page.tsx",
+    "line": 260,
+    "text": "Fyll varje relevant elområde i sin egen ruta. Alla angivna\n                    områden sparas atomiskt för samma tenant, portfölj, månad och\n                    prisplansversion. Tomma rutor hoppas över."
+  },
+  {
+    "file": "app/admin/pricing/portfolio-settlements/page.tsx",
+    "line": 457,
+    "text": "Affärsnyckel: tenant + portfölj + elområde + månad + exakt\n                  prisplansversion. Korrigering skapar alltid en ny revision."
+  },
+  {
+    "file": "app/admin/system/tenant-integrity/page.tsx",
+    "line": 65,
+    "text": "Tenant-integritet"
+  },
+  {
+    "file": "app/admin/system/tenant-integrity/page.tsx",
+    "line": 66,
+    "text": "Canonical audit av tenant, användare, RBAC, kundgraf, outbound och Ediel. Auditorn rapporterar avvikelser men skriver aldrig om affärsdata automatiskt."
+  },
+  {
+    "file": "app/admin/system/tenant-integrity/page.tsx",
+    "line": 84,
+    "text": "Global körning kontrollerar alla tenants. Du kan också köra en tenant separat efter en ändring eller korrigering. Resultaten sparas med audit-historik och evidens."
+  },
+  {
+    "file": "app/admin/system/tenant-integrity/page.tsx",
+    "line": 107,
+    "text": "Tenant-status"
+  },
+  {
+    "file": "app/admin/system/tenant-integrity/page.tsx",
+    "line": 108,
+    "text": "Senaste effektiva audit per tenant. En ny tenant-specifik körning supersedar äldre globala resultat för just den tenanten."
+  },
+  {
+    "file": "app/admin/system-health/page.tsx",
+    "line": 182,
+    "text": "Marknadspris och tenant-API"
+  },
+  {
+    "file": "app/admin/system-health/page.tsx",
+    "line": 184,
+    "text": "Canonical readiness för Elpriset Just Nu, SE1–SE4, rolling 30, freshness och tenantens fallback-policy."
+  },
+  {
+    "file": "app/admin/website-applications/[id]/page.tsx",
+    "line": 202,
+    "text": "id,status,scope,source,created_at,signed_at,expires_at"
+  },
+  {
+    "file": "app/admin/website-applications/[id]/page.tsx",
+    "line": 505,
+    "text": "Tenant:"
+  },
+  {
+    "file": "app/admin/website-applications/[id]/page.tsx",
+    "line": 537,
+    "text": "Källstatus och idempotency"
+  },
+  {
+    "file": "app/admin/website-applications/[id]/page.tsx",
+    "line": 578,
+    "text": "Response payload"
+  },
+  {
+    "file": "app/admin/website-applications/[id]/page.tsx",
+    "line": 579,
+    "text": "External intake-spegel"
+  },
+  {
+    "file": "components/admin/agreements/GridOwnerAgreementForm.tsx",
+    "line": 131,
+    "text": "scope saknas"
+  },
+  {
+    "file": "components/admin/contracts/ContractChannelControl.tsx",
+    "line": 23,
+    "text": "Intern försäljning aktiveras genom avtalsversionens readiness-kontroll.\n        Här styrs endast hemsidekanalen mot samma låsta canonical avtalsversion.\n        API-åtkomst och API-klientbehörigheter hanteras separat och exponeras\n        inte som en manuell publiceringskanal i denna adminyta."
+  },
+  {
+    "file": "components/admin/contracts/ContractDeleteControl.tsx",
+    "line": 148,
+    "text": "Tenant:"
+  },
+  {
+    "file": "components/admin/contracts/ContractOfferAdminForm.tsx",
+    "line": 355,
+    "text": "Nya avtal skapas som utkast. Publicering är ett separat, readiness-kontrollerat steg."
+  },
+  {
+    "file": "components/admin/customers/CustomerDataRequestsCard.tsx",
+    "line": 281,
+    "text": "Den primära tenant-knappen finns på översikten. Här kan plattformsadmin starta eller felsöka samma kedja."
+  },
+  {
+    "file": "components/admin/customers/CustomerEdielOperationsCard.tsx",
+    "line": 712,
+    "text": "Senaste switch"
+  },
+  {
+    "file": "components/admin/customers/CustomerEdielOperationsCard.tsx",
+    "line": 734,
+    "text": "Bästa outbound att skicka"
+  },
+  {
+    "file": "components/admin/customers/CustomerEdielOperationsCard.tsx",
+    "line": 825,
+    "text": "Switch → Ediel"
+  },
+  {
+    "file": "components/admin/customers/CustomerEdielOperationsCard.tsx",
+    "line": 828,
+    "text": "Skapa Z03 och Z09 från riktiga switchärenden med rätt route och\n nätägarens Ediel-id."
+  },
+  {
+    "file": "components/admin/customers/CustomerEdielOperationsCard.tsx",
+    "line": 836,
+    "text": "Inga switchärenden finns ännu för kunden."
+  },
+  {
+    "file": "components/admin/customers/CustomerEdielOperationsCard.tsx",
+    "line": 895,
+    "text": "Switch request"
+  },
+  {
+    "file": "components/admin/customers/CustomerEdielOperationsCard.tsx",
+    "line": 1249,
+    "text": "Switch request"
+  },
+  {
+    "file": "components/admin/customers/CustomerEdielOperationsCard.tsx",
+    "line": 1258,
+    "text": "Data request"
+  },
+  {
+    "file": "components/admin/customers/CustomerEdielOperationsCard.tsx",
+    "line": 1422,
+    "text": "Ingen Ediel-signal kopplad till denna switch ännu."
+  },
+  {
+    "file": "components/admin/customers/CustomerFacilityWorkflowCard.tsx",
+    "line": 175,
+    "text": "switch-operations"
+  },
+  {
+    "file": "components/admin/customers/CustomerIntakeEnhancer.tsx",
+    "line": 401,
+    "text": "Intake-logik"
+  },
+  {
+    "file": "components/admin/customers/CustomerIntakeForm.tsx",
+    "line": 616,
+    "text": "switch move_in move_out_takeover"
+  },
+  {
+    "file": "components/admin/customers/CustomerOperationsCard.tsx",
+    "line": 142,
+    "text": "Fullmakt, readiness, operativa tasks och switchärenden per anläggning."
+  },
+  {
+    "file": "components/admin/customers/CustomerOperationsCard.tsx",
+    "line": 200,
+    "text": "Switchärenden"
+  },
+  {
+    "file": "components/admin/customers/CustomerOperationsCard.tsx",
+    "line": 345,
+    "text": "Readiness & switch"
+  },
+  {
+    "file": "components/admin/customers/CustomerOperationsCard.tsx",
+    "line": 353,
+    "text": "Kör readiness"
+  },
+  {
+    "file": "components/admin/customers/CustomerOperationsCard.tsx",
+    "line": 354,
+    "text": "Kör readiness..."
+  },
+  {
+    "file": "components/admin/customers/CustomerOperationsCard.tsx",
+    "line": 393,
+    "text": "Skapa switchärende"
+  },
+  {
+    "file": "components/admin/customers/CustomerOperationsCard.tsx",
+    "line": 394,
+    "text": "Skapar switchärende..."
+  },
+  {
+    "file": "components/admin/customers/CustomerOperationsCard.tsx",
+    "line": 522,
+    "text": "Switchärenden"
+  },
+  {
+    "file": "components/admin/customers/CustomerOperationsCard.tsx",
+    "line": 528,
+    "text": "Inga switchärenden för denna anläggning ännu."
+  },
+  {
+    "file": "components/admin/customers/CustomerOperationsReadinessStrip.tsx",
+    "line": 23,
+    "text": "Samlad readiness"
+  },
+  {
+    "file": "components/admin/customers/CustomerSwitchOperationsCard.tsx",
+    "line": 165,
+    "text": "switch-operations"
+  },
+  {
+    "file": "components/admin/customers/CustomerSwitchOperationsCard.tsx",
+    "line": 348,
+    "text": "switch-operations"
+  },
+  {
+    "file": "components/admin/customers/CustomerSwitchOperationsCard.tsx",
+    "line": 385,
+    "text": "Leverantörsbyten där readiness eller validering fortfarande stoppar flödet."
+  },
+  {
+    "file": "components/admin/customers/CustomerSwitchOperationsCard.tsx",
+    "line": 545,
+    "text": "Senaste switch-, händelse- och utskickshistorik i samma lista."
+  },
+  {
+    "file": "components/admin/customers/billing-metering/panels.tsx",
+    "line": 95,
+    "text": "Outbound mätvärden"
+  },
+  {
+    "file": "components/admin/customers/billing-metering/panels.tsx",
+    "line": 96,
+    "text": "Outbound billingunderlag"
+  },
+  {
+    "file": "components/admin/customers/billing-metering/panels.tsx",
+    "line": 112,
+    "text": "Outbound saknar route"
+  },
+  {
+    "file": "components/admin/customers/billing-metering/panels.tsx",
+    "line": 184,
+    "text": "Outbound historik"
+  },
+  {
+    "file": "components/admin/customers/billing-metering/panels.tsx",
+    "line": 211,
+    "text": "Öppna switch-detail"
+  },
+  {
+    "file": "components/admin/customers/contracts/ContractForms.tsx",
+    "line": 375,
+    "text": "Switch = kunden lämnar er för annan elleverantör."
+  },
+  {
+    "file": "components/admin/customers/contracts/ContractForms.tsx",
+    "line": 442,
+    "text": "Detta visar om avtalet redan har ett relevant switchärende eller outbound kopplat till sig på samma anläggning."
+  },
+  {
+    "file": "components/admin/customers/document-card/DocumentHistoryList.tsx",
+    "line": 331,
+    "text": "Gå till switch-request"
+  },
+  {
+    "file": "components/admin/customers/document-card/DocumentHistoryList.tsx",
+    "line": 345,
+    "text": "Gå till outbound unresolved"
+  },
+  {
+    "file": "components/admin/customers/document-card/DocumentHistoryList.tsx",
+    "line": 346,
+    "text": "Gå till outbound"
+  },
+  {
+    "file": "components/admin/customers/document-card/DocumentHistoryList.tsx",
+    "line": 355,
+    "text": "Gå till grid owner request"
+  },
+  {
+    "file": "components/admin/customers/document-card/DocumentHistoryList.tsx",
+    "line": 391,
+    "text": "Switch requests"
+  },
+  {
+    "file": "components/admin/customers/document-card/UploadForm.tsx",
+    "line": 55,
+    "text": "Signerad eller verifierad fullmakt är nu en operations-trigger: systemet kan skapa\n rätt nätägarbegäran, switchärende och outbound utan att handläggaren behöver hoppa mellan sidor."
+  },
+  {
+    "file": "components/admin/customers/document-card/UploadForm.tsx",
+    "line": 166,
+    "text": "Switch startdatum"
+  },
+  {
+    "file": "components/admin/customers/document-card/UploadForm.tsx",
+    "line": 324,
+    "text": "Arkivera äldre aktiva standarddokument för samma scope/typ."
+  },
+  {
+    "file": "components/admin/customers/document-card/UploadForm.tsx",
+    "line": 400,
+    "text": "Skapa supplier switch request direkt om readiness är OK."
+  },
+  {
+    "file": "components/admin/customers/switch-operations/SiteLifecycleSection.tsx",
+    "line": 73,
+    "text": "Inget switchärende"
+  },
+  {
+    "file": "components/admin/customers/switch-operations/SiteLifecycleSection.tsx",
+    "line": 145,
+    "text": "Inget switchärende finns ännu för denna anläggning."
+  },
+  {
+    "file": "components/admin/customers/switch-operations/SwitchRecommendationPanel.tsx",
+    "line": 97,
+    "text": "Vald switch"
+  },
+  {
+    "file": "components/admin/customers/switch-operations/SwitchRequestSection.tsx",
+    "line": 256,
+    "text": "Senaste switch-event:"
+  },
+  {
+    "file": "components/admin/customers/switch-operations/SwitchRequestSection.tsx",
+    "line": 261,
+    "text": "Inga switch-events ännu"
+  },
+  {
+    "file": "components/admin/ediel/ActorTestingViews.tsx",
+    "line": 119,
+    "text": "Inga bolag hittades i detta scope."
+  },
+  {
+    "file": "components/admin/ediel/ActorTestingViews.tsx",
+    "line": 191,
+    "text": "Läser inbound/outbound, kopplar CONTRL, APERAK och UTILTS_ERR till rätt testfall och uppdaterar bevispaketet. Skick görs inte blint här; öppna testflödet för att förhandsgranska payload innan du skickar."
+  },
+  {
+    "file": "components/admin/ediel/ActorTestingViews.tsx",
+    "line": 202,
+    "text": "Testpaketets status sparas per bolag och får inte ärvas från annan tenant."
+  },
+  {
+    "file": "components/admin/ediel/ActorTestingViews.tsx",
+    "line": 270,
+    "text": "Rå payload / bevisnotering"
+  },
+  {
+    "file": "components/admin/ediel/ActorTestingViews.tsx",
+    "line": 271,
+    "text": "Rå payload / bevisnotering"
+  },
+  {
+    "file": "components/admin/ediel/ActorTestingViews.tsx",
+    "line": 271,
+    "text": "Klistra in payload eller portalnotering vid behov"
+  },
+  {
+    "file": "components/admin/ediel/ActorTestingViews.tsx",
+    "line": 516,
+    "text": "Audit-underlag per testfall med payload, portalstatus och kvittensreferenser där de finns."
+  },
+  {
+    "file": "components/admin/ediel/ActorTestingViews.tsx",
+    "line": 522,
+    "text": "Rå payload/JSON"
+  },
+  {
+    "file": "components/admin/ediel/EdielAgtWorkbenchPanel.tsx",
+    "line": 228,
+    "text": "Generera + skicka outbound AGT"
+  },
+  {
+    "file": "components/admin/ediel/EdielFileEnginePanel.tsx",
+    "line": 100,
+    "text": "Outbound · fil från Gridex"
+  },
+  {
+    "file": "components/admin/ediel/EdielOperationalBridgePanel.tsx",
+    "line": 158,
+    "text": "Här går Ediel från testverktyg till operationsmotor: Z03 skapas från riktiga switchärenden,\n inkommande Z04/Z05/Z06/Z10 uppdaterar switch/masterdata-spår, och UTILTS E66/E30 kopplas till\n mätvärden och faktureringsunderlag. Motorn är fortfarande filbaserad."
+  },
+  {
+    "file": "components/admin/ediel/EdielOperationalBridgePanel.tsx",
+    "line": 178,
+    "text": "Skapa PRODAT Z03 från switchärende"
+  },
+  {
+    "file": "components/admin/ediel/EdielOperationalBridgePanel.tsx",
+    "line": 189,
+    "text": "Inga öppna switchärenden i senaste urvalet."
+  },
+  {
+    "file": "components/admin/ediel/EdielOperationalBridgePanel.tsx",
+    "line": 248,
+    "text": "Switch:"
+  },
+  {
+    "file": "components/admin/ediel/EdielOperationalBridgePanel.tsx",
+    "line": 249,
+    "text": "Data request:"
+  },
+  {
+    "file": "components/admin/ediel/EdielOperationalBridgePanel.tsx",
+    "line": 274,
+    "text": "Punkt 8 · SMTP/ECP readiness, inte aktivering"
+  },
+  {
+    "file": "components/admin/ediel/EdielOperationalBridgePanel.tsx",
+    "line": 276,
+    "text": "Vi kan förbereda readiness och route-kontroll nu, men automatisk SMTP/ECP ska inte slås på förrän filflöden,\n certifikat, mailbox och Edieltester är godkända. Därför är live-transport fortfarande avstängd."
+  },
+  {
+    "file": "components/admin/ediel/EdielOperationalVerificationPanel.tsx",
+    "line": 124,
+    "text": "Switch:"
+  },
+  {
+    "file": "components/admin/ediel/EdielOperationalVerificationPanel.tsx",
+    "line": 125,
+    "text": "Outbound:"
+  },
+  {
+    "file": "components/admin/ediel/EdielOperationalVerificationPanel.tsx",
+    "line": 126,
+    "text": "Data request:"
+  },
+  {
+    "file": "components/admin/ediel/EdielOperationalVerificationPanel.tsx",
+    "line": 233,
+    "text": "Dessa ska kopplas innan de får styra switch/outbound-status."
+  },
+  {
+    "file": "components/admin/ediel/EdielOperationalVerificationPanel.tsx",
+    "line": 250,
+    "text": "PRODAT/UTILTS ska helst länkas till switch, data request, kund, anläggning eller mätpunkt."
+  },
+  {
+    "file": "components/admin/ediel/EdielProductionProdatPanel.tsx",
+    "line": 398,
+    "text": "Här visas alla PRODAT-tester ni bör kunna köra, men i kompakt\n              dropdown-format så sidan inte blir lång. 1.2.x och 2.5.x öppnas\n              som riktiga kundformulär här nedan. Z09-testen är outbound\n              aktör→portal: GridCore skapar och skickar PRODAT Z09, och portalen\n              svarar med CONTRL och APERAK."
+  },
+  {
+    "file": "components/admin/ediel/EdielProductionProdatPanel.tsx",
+    "line": 546,
+    "text": "Här fyller du in kunduppgifterna från Edielportalen manuellt.\n            Testdataregistret kan hjälpa senare, men formuläret är källan till\n            sanningen. När kunden skapas hamnar kund, fakturamottagare,\n            anläggning, mätpunkt, route, fullmakt och switchärende i era riktiga\n            tabeller."
+  },
+  {
+    "file": "components/admin/ediel/EdielProductionProdatPanel.tsx",
+    "line": 648,
+    "text": "Minst en kontaktuppgift krävs eftersom outbound-valideringen\n                  stoppar PRODAT om både kundens e-post och telefon saknas."
+  },
+  {
+    "file": "components/admin/ediel/EdielProductionProdatPanel.tsx",
+    "line": 794,
+    "text": "Dessa fält krävs för att switchärendet ska bli redo och för att rätt referenser ska hamna i PRODAT."
+  },
+  {
+    "file": "components/admin/ediel/EdielProductionProdatPanel.tsx",
+    "line": 949,
+    "text": "Skapa testkund + switchärende"
+  },
+  {
+    "file": "components/admin/ediel/EdielProductionProdatPanel.tsx",
+    "line": 1372,
+    "text": "Välj ett riktigt switchärende. Systemet kontrollerar kund,\n            anläggning, mätpunkt, nätägare, route, startdatum och fullmakt innan\n            Z03/Z04 får skapas. Felaktiga utkast avbryts utan att historiken\n            raderas."
+  },
+  {
+    "file": "components/admin/ediel/EdielProductionProdatPanel.tsx",
+    "line": 1394,
+    "text": "Utgå från ett switchärende så kund, avtal, anläggning och mätpunkt\n            hänger ihop."
+  },
+  {
+    "file": "components/admin/ediel/EdielProductionProdatPanel.tsx",
+    "line": 1417,
+    "text": "Inga switchärenden hittades. Skapa kund, anläggning, mätpunkt,\n            fullmakt och switchärende först."
+  },
+  {
+    "file": "components/admin/ediel/EdielReceiverPresetPicker.tsx",
+    "line": 59,
+    "text": "[data-receiver-scope]"
+  },
+  {
+    "file": "components/admin/ediel/EdielRuleGroups.tsx",
+    "line": 297,
+    "text": "Current = runtime current outbound-version. Previous = närmast föregående giltiga version. History = övriga sparade regler för samma family/code/standard."
+  },
+  {
+    "file": "components/admin/ediel/EdielSafeApplyReviewPanel.tsx",
+    "line": 212,
+    "text": "Data request"
+  },
+  {
+    "file": "components/admin/ediel/EdielTgtWorkbenchPanel.tsx",
+    "line": 361,
+    "text": "Registrerat scope i Edielportalen"
+  },
+  {
+    "file": "components/admin/ediel/EdielTgtWorkbenchPanel.tsx",
+    "line": 415,
+    "text": "Ingen payload sparad på meddelandet."
+  },
+  {
+    "file": "components/admin/ediel/EdielTgtWorkbenchPanel.tsx",
+    "line": 838,
+    "text": "PRODAT Z03/Z04 ska skapas från kundstyrd PRODAT ovan, inte från en separat testgenerator. Skapa först Edielportal-testkund och switchärende, använd sedan Z03/Z04-knapparna i kundstyrda panelen."
+  },
+  {
+    "file": "components/admin/ediel/GoLiveSetupViews.tsx",
+    "line": 214,
+    "text": "Tenant-readiness utan manuell receiver"
+  },
+  {
+    "file": "components/admin/ediel/GoLiveSetupViews.tsx",
+    "line": 339,
+    "text": "Tenant setup"
+  },
+  {
+    "file": "components/admin/ediel/GoLiveSetupViews.tsx",
+    "line": 345,
+    "text": "Här visas det som faktiskt ska sättas per tenant: Ediel-ID, BRP,\n              sender identity, shared transport, route-profiler och juridik.\n              Hemsida/API visas separat och ska inte blockera Ediel production.\n              Subadress visas som route-detalj, inte som obligatorisk tenant-inställning."
+  },
+  {
+    "file": "components/admin/ediel/GoLiveSetupViews.tsx",
+    "line": 382,
+    "text": "Ingen tenant-subadress krävs som standard"
+  },
+  {
+    "file": "components/admin/ediel/ProductionReadinessViews.tsx",
+    "line": 139,
+    "text": "Backend-kontroll av tenant, production actor, BRP, PRODAT/UTILTS,\n              mailbox, aktörstester, dry run, driftläge och send locks."
+  },
+  {
+    "file": "components/admin/ediel/ProductionReadinessViews.tsx",
+    "line": 160,
+    "text": "Readiness score"
+  },
+  {
+    "file": "components/admin/ediel/ProductionReadinessViews.tsx",
+    "line": 193,
+    "text": "Tenant ID"
+  },
+  {
+    "file": "components/admin/ediel/ProductionReadinessViews.tsx",
+    "line": 292,
+    "text": "Latest outbound"
+  },
+  {
+    "file": "components/admin/ediel/ProductionReadinessViews.tsx",
+    "line": 348,
+    "text": "Kör readiness check"
+  },
+  {
+    "file": "components/admin/ediel/ProductionReadinessViews.tsx",
+    "line": 408,
+    "text": "Kräver explicit superadmin-godkännande innan första outbound\n              production-send."
+  },
+  {
+    "file": "components/admin/ediel/ProductionReadinessViews.tsx",
+    "line": 440,
+    "text": "Låser upp production-send när readiness saknar blockerare och\n              senaste dry run är godkänd."
+  },
+  {
+    "file": "components/admin/ediel/ProductionReadinessViews.tsx",
+    "line": 474,
+    "text": "Stoppar nya outbound production-send men behåller inbound logging."
+  },
+  {
+    "file": "components/admin/ediel/ProductionReadinessViews.tsx",
+    "line": 503,
+    "text": "Kör readiness igen och låser upp sending om allt fortfarande\n              passerar."
+  },
+  {
+    "file": "components/admin/ediel/workbench/DispatchPanels.tsx",
+    "line": 130,
+    "text": "Listan prioriterar outbound-meddelanden för vald switch och vald route inom aktivt scope."
+  },
+  {
+    "file": "components/admin/ediel/workbench/DispatchPanels.tsx",
+    "line": 184,
+    "text": "Switch request:"
+  },
+  {
+    "file": "components/admin/ediel/workbench/DispatchPanels.tsx",
+    "line": 272,
+    "text": "Aktivt scope visar bara UTILTS-spår som kan länkas vidare i processen."
+  },
+  {
+    "file": "components/admin/ediel/workbench/DispatchPanels.tsx",
+    "line": 320,
+    "text": "Data request:"
+  },
+  {
+    "file": "components/admin/ediel/workbench/DispatchPanels.tsx",
+    "line": 352,
+    "text": "ACK-typen styrs nu av faktiskt sammanhang i aktivt scope istället för gamla referenskoder."
+  },
+  {
+    "file": "components/admin/ediel/workbench/DispatchPanels.tsx",
+    "line": 452,
+    "text": "Switch request-id"
+  },
+  {
+    "file": "components/admin/ediel/workbench/DispatchPanels.tsx",
+    "line": 588,
+    "text": "Endast koder i aktivt switch-scope visas här."
+  },
+  {
+    "file": "components/admin/ediel/workbench/PrepareSwitchPanels.tsx",
+    "line": 224,
+    "text": "Den här workbenchen är låst till aktivt scope: switch/PRODAT,\n data request/UTILTS och AI-lista. Framtida familjer ska inte förberedas här."
+  },
+  {
+    "file": "components/admin/ediel/workbench/PrepareSwitchPanels.tsx",
+    "line": 335,
+    "text": "Switch → PRODAT"
+  },
+  {
+    "file": "components/admin/ediel/workbench/PrepareSwitchPanels.tsx",
+    "line": 337,
+    "text": "Ett switchärende kan driva flera PRODAT-steg i samma system."
+  },
+  {
+    "file": "components/admin/ediel/workbench/PrepareSwitchPanels.tsx",
+    "line": 342,
+    "text": "Switch request"
+  },
+  {
+    "file": "components/admin/ediel/workbench/PrepareSwitchPanels.tsx",
+    "line": 357,
+    "text": "Inga switch requests"
+  },
+  {
+    "file": "components/admin/ediel/workbench/PrepareSwitchPanels.tsx",
+    "line": 381,
+    "text": "Starta leverantörsbytesflödet från valt switchärende."
+  },
+  {
+    "file": "components/admin/ediel/workbench/PrepareSwitchPanels.tsx",
+    "line": 425,
+    "text": "Alternativt steg i samma PRODAT-scope."
+  },
+  {
+    "file": "components/admin/ediel/workbench/PrepareSwitchPanels.tsx",
+    "line": 436,
+    "text": "PRODAT-steg för senare switch-/statushantering i kedjan."
+  },
+  {
+    "file": "components/admin/ediel/workbench/PrepareSwitchPanels.tsx",
+    "line": 449,
+    "text": "Data request → UTILTS"
+  },
+  {
+    "file": "components/admin/ediel/workbench/PrepareSwitchPanels.tsx",
+    "line": 451,
+    "text": "Data request-flödet hålls separat från switch men i samma Ediel-motor."
+  },
+  {
+    "file": "components/admin/ediel/workbench/PrepareSwitchPanels.tsx",
+    "line": 457,
+    "text": "Grid owner data request-id"
+  },
+  {
+    "file": "components/admin/ediel/workbench/PrepareSwitchPanels.tsx",
+    "line": 514,
+    "text": "Registrering/förberedelse av validerade mätvärden i aktivt UTILTS-scope."
+  },
+  {
+    "file": "components/admin/go-live/TenantWebsiteGoLivePanel.tsx",
+    "line": 90,
+    "text": "Kör provisioning, smoke-test, capability-reconciliation och installationskvitto på nytt. Flödet är idempotent och tenant-separerat."
+  },
+  {
+    "file": "components/admin/masterdata/GridOwnersTable.tsx",
+    "line": 193,
+    "text": "Switch-status:"
+  },
+  {
+    "file": "components/admin/masterdata/MeteringPointForm.tsx",
+    "line": 197,
+    "text": "Detta ändrar Ediel-fält 217 i öppna switch- och kontrollflöden för denna\n            mätpunkt. För TGT 1.2.2 Z03LK kräver portalen normalt Z04. Skapa\n            nytt PRODAT-utkast efter att du sparat."
+  },
+  {
+    "file": "components/admin/operations/CustomerSyncBoard.tsx",
+    "line": 138,
+    "text": "Den här vyn visar om varje kund har rätt kedja: kundidentitet → avtal/kampanj → fullmakt → anläggning → mätpunkt → nätägare → mätvärden/billing. Den är byggd för SaaS: datan ska ligga inom samma tenant/company-scope och matchas via kundnummer, person-/orgnummer, anläggnings-id, mätpunkts-id och Ediel-referenser."
+  },
+  {
+    "file": "components/admin/operations/CustomerSyncBoard.tsx",
+    "line": 152,
+    "text": "Kunder i aktuell tenant/behörighet."
+  },
+  {
+    "file": "components/admin/operations/CustomerSyncBoard.tsx",
+    "line": 154,
+    "text": "Redo för switch"
+  }
+]

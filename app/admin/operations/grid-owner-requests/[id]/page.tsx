@@ -121,12 +121,12 @@ function summarizeResponse(
  })[0] ?? null
 
  if (request.status === 'received') return 'Underlag mottaget från nätägare'
- if (latestOutbound?.status === 'acknowledged') return 'Outbound kvitterad'
+ if (latestOutbound?.status === 'acknowledged') return "Utskick bekräftat"
  if (latestOutbound?.status === 'sent') return 'Skickad, inväntar svar'
- if (latestOutbound?.status === 'failed') return 'Outbound felade'
- if (latestOutbound?.status === 'cancelled') return 'Outbound stoppad'
- if (request.status === 'cancelled') return 'Request stoppad'
- if (request.status === 'failed') return 'Request felade'
+ if (latestOutbound?.status === 'failed') return "Utskicket misslyckades"
+ if (latestOutbound?.status === 'cancelled') return "Utskicket stoppades"
+ if (request.status === 'cancelled') return "Begäran stoppades"
+ if (request.status === 'failed') return "Begäran misslyckades"
  return 'Ingen slutrespons ännu'
 }
 
@@ -156,7 +156,7 @@ function buildTimeline(params: {
  params.request.requested_at ??
  params.request.created_at,
  source: 'request',
- title: 'Grid owner request',
+ title: "Begäran till nätägare",
  description: `${params.request.request_scope} · ${params.request.status}`,
  status: params.request.status,
  },
@@ -173,7 +173,7 @@ function buildTimeline(params: {
  outbound.queued_at ??
  outbound.created_at,
  source: 'outbound',
- title: 'Outbound request',
+ title: "Utskick",
  description: `${outbound.request_type} · ${outbound.status} · ${outbound.channel_type}`,
  status: outbound.status,
  href:
@@ -299,11 +299,71 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
 
  const responseSummary = summarizeResponse(request, relatedOutbounds)
 
+ // Company operators receive business data only. The diagnostic page below
+ // is rendered exclusively for a server-verified platform administrator.
+ if (!tenantScope.isPlatformAdmin) {
+   const canUpdateRequest = access.permissions.includes('metering.write') || access.permissions.includes('billing_underlay.write')
+   return (
+     <div className="min-h-screen">
+       <AdminHeader title="Begäran till nätägare" subtitle="Anläggningsuppgifter, svar och nästa steg." userEmail={user?.email ?? null} />
+       <main className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
+         <Link href={`/admin/customers/${request.customer_id}`} className="text-sm font-semibold text-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">← Kundkort</Link>
+         <section className="rounded-2xl border border-slate-200 bg-white p-4">
+           <div className="flex flex-wrap items-center justify-between gap-2">
+             <h1 className="text-xl font-semibold text-slate-950">Begäran till nätägare</h1>
+             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(request.status)}`}>{formatStatusLabel(request.status)}</span>
+           </div>
+           <p className="mt-2 text-sm text-slate-700">Kund <CustomerName id={request.customer_id} /></p>
+           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+             {[
+               ['Nätägare', gridOwner?.name ?? 'Saknas'],
+               ['Anläggning', site?.facility_id ?? site?.site_name ?? 'Saknas'],
+               ['Adress', site?.street ?? 'Saknas'],
+               ['Begärd', formatDateTime(request.requested_at)],
+               ['Skickad', formatDateTime(request.sent_at)],
+               ['Svar mottaget', formatDateTime(request.received_at)],
+             ].map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-slate-500">{label}</dt><dd className="mt-1 break-words font-medium text-slate-950">{value}</dd></div>)}
+           </dl>
+           <p className="mt-4 text-sm font-medium text-slate-800">{responseSummary}</p>
+           {request.status === 'failed' ? <p role="status" className="mt-2 text-sm text-red-800">Begäran misslyckades. {request.failure_reason ?? 'Kontakta support om orsaken är oklar.'}</p> : null}
+           {request.notes ? <p className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-700">{request.notes}</p> : null}
+           {request.requested_period_start || request.requested_period_end ? <p className="mt-2 text-sm text-slate-600">Period: {request.requested_period_start ?? '—'} – {request.requested_period_end ?? '—'}</p> : null}
+           {document ? <div className="mt-2 text-sm text-slate-600"><p>Fullmakt: {document.title ?? document.file_name ?? 'Dokument registrerat'}</p><a href={`/api/admin/customer-documents/${document.id}?mode=open`} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center font-semibold text-emerald-800 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Öppna dokument</a></div> : null}
+         </section>
+         <details className="rounded-2xl border border-slate-200 bg-white p-4">
+           <summary className="cursor-pointer text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Utskick och svar ({relatedOutbounds.length})</summary>
+           <ul className="mt-3 max-h-80 space-y-2 overflow-auto text-sm">
+             {relatedOutbounds.map((outbound) => <li key={outbound.id} className="flex flex-wrap justify-between gap-2 border-b border-slate-100 py-2"><span>{formatStatusLabel(outbound.status)}</span><span className="text-slate-600">{formatDateTime(outbound.sent_at ?? outbound.created_at)}</span></li>)}
+           </ul>
+           {relatedOutbounds.length === 0 ? <p className="mt-3 text-sm text-slate-600">Inga utskick ännu.</p> : null}
+         </details>
+         {canUpdateRequest ? <details className="rounded-2xl border border-slate-200 bg-white p-4">
+           <summary className="cursor-pointer text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Uppdatera status</summary>
+           <form action={updateGridOwnerDataRequestStatusAction} className="mt-3 grid gap-3 sm:grid-cols-2">
+             <input type="hidden" name="request_id" value={request.id} />
+             <input type="hidden" name="customer_id" value={request.customer_id} />
+             <label className="grid gap-1 text-sm">Status
+               <select name="status" defaultValue={request.status} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2">
+                 <option value="pending">Väntar</option><option value="sent">Skickad</option><option value="received">Mottagen</option><option value="failed">Misslyckad</option><option value="cancelled">Avbruten</option>
+               </select>
+             </label>
+             <label className="grid gap-1 text-sm">Anteckning<input name="notes" defaultValue={request.notes ?? ''} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2" /></label>
+             <label className="grid gap-1 text-sm">Referens<input name="external_reference" defaultValue={request.external_reference ?? ''} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2" /></label>
+             <label className="grid gap-1 text-sm">Orsak vid misslyckad begäran<input name="failure_reason" defaultValue={request.failure_reason ?? ''} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2" /></label>
+             <label className="grid gap-1 text-sm">Svar eller intern notering<input name="response_payload_note" defaultValue={getString(request.response_payload, 'admin_note') ?? ''} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2" /></label>
+             <button className="min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Spara status</button>
+           </form>
+         </details> : null}
+       </main>
+     </div>
+   )
+ }
+
  return (
  <div className="min-h-screen">
  <AdminHeader
- title="Grid owner request detail"
- subtitle="Detailvy för en enskild nätägarbegäran med dokument, outbound, payloads och timeline."
+ title="Begäran till nätägare"
+ subtitle="Följ begäran till nätägaren, dokument, svar och historik."
  userEmail={user?.email ?? null}
  />
 
@@ -323,7 +383,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  </div>
 
  <h1 className="mt-3 text-2xl font-semibold text-slate-950 ">
- Grid owner request {request.id}
+ Begäran till nätägare {request.id}
  </h1>
 
  <p className="mt-2 text-sm text-slate-700 ">
@@ -572,7 +632,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  Outbound ID: <span className="font-medium">{outbound.id}</span>
  </div>
  <div>
- Request type: <span className="font-medium">{outbound.request_type}</span>
+ Typ av begäran: <span className="font-medium">{outbound.request_type}</span>
  </div>
  <div>
  Extern referens:{' '}
@@ -593,7 +653,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  }
  className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 "
  >
- Öppna outbound-vy
+ Visa utskick
  </Link>
  </div>
  </div>
@@ -602,6 +662,9 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  </div>
  </div>
 
+ {tenantScope.isPlatformAdmin ? (
+ <details className="rounded-2xl border border-slate-200 bg-white p-4">
+ <summary className="cursor-pointer text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Tekniska uppgifter · superadmin</summary>
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <h2 className="text-lg font-semibold text-slate-950 ">
  Payloads
@@ -627,6 +690,10 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  </div>
  </div>
  </div>
+ </details>
+ ) : null}
+
+ {tenantScope.isPlatformAdmin ? (
 
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="flex items-center justify-between gap-4">
@@ -706,9 +773,12 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  )}
  </div>
  </div>
+ ) : null}
+
  </div>
 
  <div className="space-y-6">
+ {tenantScope.isPlatformAdmin ? (
  <div className="rounded-3xl border border-emerald-200 bg-emerald-50/70 p-6 shadow-sm ">
  <h2 className="text-lg font-semibold text-slate-950 ">
  Ediel direkt från requestdetaljen
@@ -741,25 +811,25 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  name="quantity"
  defaultValue="0"
  placeholder="Kvantitet, t.ex. 1250"
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
  <input
  name="periodStart"
  type="date"
  defaultValue={request.requested_period_start ?? ''}
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
  <input
  name="periodEnd"
  type="date"
  defaultValue={request.requested_period_end ?? ''}
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
  <input
  name="registrationTime"
  type="datetime-local"
  defaultValue=""
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
  </div>
 
@@ -769,10 +839,11 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  </form>
  </div>
  </div>
+ ) : null}
 
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <h2 className="text-lg font-semibold text-slate-950 ">
- Uppdatera requeststatus
+ Uppdatera status
  </h2>
 
  <form action={updateGridOwnerDataRequestStatusAction} className="mt-5 grid gap-3">
@@ -782,7 +853,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  <select
  name="status"
  defaultValue={request.status}
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
  <option value="pending">Pending</option>
  <option value="sent">Sent</option>
@@ -795,31 +866,31 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  name="external_reference"
  defaultValue={request.external_reference ?? ''}
  placeholder="Extern referens"
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <input
  name="response_payload_note"
  placeholder="Svar / intern notering"
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <input
  name="failure_reason"
  defaultValue={request.failure_reason ?? ''}
  placeholder="Felorsak"
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <input
  name="notes"
  defaultValue={request.notes ?? ''}
  placeholder="Notering"
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white ">
- Uppdatera requeststatus
+ Uppdatera status
  </button>
  </form>
  </div>
@@ -840,7 +911,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  <select
  name="status"
  defaultValue={outbound.status}
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
  <option value="queued">Queued</option>
  <option value="prepared">Prepared</option>
@@ -854,26 +925,26 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  name="external_reference"
  defaultValue={outbound.external_reference ?? ''}
  placeholder="Extern referens"
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <input
  name="response_payload_note"
  placeholder="Svar / intern notering"
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <input
  name="dispatch_step"
  placeholder="Dispatch step"
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <input
  name="failure_reason"
  defaultValue={outbound.failure_reason ?? ''}
  placeholder="Felorsak"
- className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
+ className="min-w-0 w-full h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  />
 
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white ">

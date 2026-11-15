@@ -41,23 +41,23 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
   {
     key: 'overview',
     title: 'Översikt',
-    description: 'Daglig drift och att göra',
+    description: 'Dagens uppgifter och kundärenden',
     items: [
       { key: 'dashboard', label: 'Översikt', href: '/admin', description: 'Status, arbetskö och nästa åtgärd', pageKey: 'dashboard' },
-      { key: 'work_queue', label: 'Arbetskö', href: '/admin/work-queue', description: 'Kunder och driftuppgifter som kräver åtgärd', pageKey: 'operations.tasks' },
-      { key: 'events', label: 'Händelser', href: '/admin/events', description: 'Samlad kund-, anläggnings- och automationshistorik', pageKey: 'operations.tasks' },
+      { key: 'work_queue', label: 'Arbetskö', href: '/admin/work-queue', description: 'Kundärenden som kräver åtgärd', pageKey: 'operations.tasks' },
+      { key: 'events', label: 'Händelser', href: '/admin/events', description: 'Historik för kunder, anläggningar och avtal', pageKey: 'operations.tasks' },
       { key: 'customer_portfolio', label: 'Portföljöversikt', href: '/admin/analytics/portfolio', description: 'Kunder, fullmakter och förbrukningsprognos för ert bolag', pageKey: 'analytics.workspace' },
     ],
   },
   {
     key: 'customers',
     title: 'Kunder',
-    description: 'Kund, intag och avtal',
+    description: 'Kundregistrering, uppgifter och avtal',
     items: [
       { key: 'customers.list', label: 'Kunder', href: '/admin/customers', description: 'Sök kunder och öppna kundkort', pageKey: 'customers.list' },
       { key: 'powers_of_attorney', label: 'Fullmakter', href: '/admin/powers-of-attorney', description: 'Sök fullmakter, verifikatsnummer och originaldokument', pageKey: 'customer.powers_of_attorney' },
-      { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/website-applications', description: 'Externa kundansökningar från hemsida/API', pageKey: 'customers.list' },
-      { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, avtal och anläggning', pageKey: 'customers.intake' },
+      { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/website-applications', description: 'Nya kundansökningar att granska', pageKey: 'customers.list' },
+      { key: 'customers.intake', label: 'Registrera kund', href: '/admin/customers/intake', description: 'Skapa kund, avtal och anläggning', pageKey: 'customers.intake' },
       { key: 'info_requests', label: 'Uppgiftsbegäran', href: '/admin/customer-info-requests', description: 'Kund-/anläggningsuppgifter och kompletteringar', pageKey: 'customer.info_requests' },
       { key: 'facility_requests', label: 'Anläggningsuppgifter', href: '/admin/facility-requests', description: 'Saknade anläggnings-ID, mätpunkter och nätägaruppgifter', pageKey: 'operations.tasks' },
     ],
@@ -65,7 +65,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
   {
     key: 'cases',
     title: 'Ärenden',
-    description: 'Kundsupport via webb, telefon och OPS',
+    description: 'Kundkontakt och support',
     items: [
       { key: 'customer_cases', label: 'Supportärenden', href: '/admin/customer-cases', description: 'Kundärenden, svar, interna anteckningar och samtal', pageKey: 'support.cases' },
       { key: 'messages', label: 'Meddelanden', href: '/admin/messages', description: 'Meddelanden till och från nätägare, utskick och historik', pageKey: 'operations.tasks' },
@@ -82,21 +82,21 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
   },
   {
     key: 'operations',
-    title: 'Drift',
+    title: 'Leveranser',
     description: 'Byten, mätvärden och underlag',
     items: [
       { key: 'switches', label: 'Leverantörsbyten', href: '/admin/operations/switches', description: 'Start, status och slutförande', pageKey: 'operations.switches' },
-      { key: 'metering', label: 'Mätvärden', href: '/admin/metering', description: 'Mätvärdesrequests och inkomna värden', pageKey: 'metering.workspace' },
+      { key: 'metering', label: 'Mätvärden', href: '/admin/metering', description: 'Begärda och mottagna mätvärden', pageKey: 'metering.workspace' },
       { key: 'analytics', label: 'Analys', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
-      { key: 'outbound', label: 'Utskick', href: '/admin/outbound', description: 'Extern kommunikation i affärsspråk', pageKey: 'outbound.queue' },
-      { key: 'data_quality', label: 'Datakvalitet', href: '/admin/data-quality', description: 'Datakvalitet, fullmakter, webhooks och e-postdomäner', pageKey: 'operations.integrity' },
+      { key: 'outbound', label: 'Utskick', href: '/admin/outbound', description: 'Följ utskick och svar', pageKey: 'outbound.queue' },
+      { key: 'data_quality', label: 'Datakvalitet', href: '/admin/data-quality', description: 'Saknade uppgifter och kompletteringar', pageKey: 'operations.integrity' },
       { key: 'transport_exception_alarms', label: 'Larm vid överföring', href: '/admin/ediel/transport-exception-alarms', description: 'Reservförfarande vid saknat certifikat eller spärrlista', requiredPermissions: ['communication.write'] },
     ],
   },
   {
     key: 'pricing',
     title: 'Avtal & pris',
-    description: 'Tenantens publicering och marknadsdatapolicy',
+    description: 'Avtalsmallar, priser och publicering',
     items: [
       { key: 'contracts', label: 'Avtal', href: '/admin/contracts', description: 'Avtalskatalog, publicering och teckningsbarhet', pageKey: 'contracts.catalog' },
       { key: 'market_sources', label: 'Marknadsdatapolicy', href: '/admin/pricing/market-sources', description: 'Vilka marknadspriser som används vid fakturering och avräkning', pageKey: 'pricing.engine' },
@@ -109,7 +109,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     items: [
       { key: 'company_settings', label: 'Inställningar', href: '/admin/company-settings', description: 'Kontaktuppgifter och bolagsprofil', pageKey: 'company.settings' },
       { key: 'customer_login', label: 'Kundinloggning', href: '/admin/customer-login', description: 'Verifiera att era kunder verkligen är inloggade', pageKey: 'company.settings' },
-      { key: 'audit', label: 'Revisionslogg', href: '/admin/audit', description: 'Spårbarhet för behörigt scope', pageKey: 'audit.log' },
+      { key: 'audit', label: 'Revisionslogg', href: '/admin/audit', description: 'Ändringar och historik för ert bolag', pageKey: 'audit.log' },
     ],
   },
   {

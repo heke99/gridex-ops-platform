@@ -396,7 +396,7 @@ export const CUSTOMER_WORKSPACE_TABS: Array<{
   {
     id: "authorization-documents",
     label: "Dokument",
-    description: "Dokument, signerad fullmakt och scope.",
+    description: "Dokument och vad fullmakten omfattar.",
     group: "Drift",
   },
   {
@@ -425,7 +425,7 @@ export const CUSTOMER_WORKSPACE_TABS: Array<{
   },
   {
     id: "data-requests",
-    label: "Uppgiftsbegäran",
+    label: "Kompletteringar",
     description:
       "Begär uppgifter från kund, nätägare eller nuvarande leverantör.",
     group: "Drift",
@@ -463,7 +463,7 @@ export const CUSTOMER_WORKSPACE_TABS: Array<{
   {
     id: "portal-access",
     label: "Kundportal",
-    description: "Portalaccess och kundkoppling.",
+    description: "Kundens åtkomst till Mina sidor.",
     group: "Kunddata",
   },
   {
@@ -492,7 +492,7 @@ export const CUSTOMER_WORKSPACE_TABS: Array<{
   },
   {
     id: "audit",
-    label: "Audit",
+    label: "Ändringshistorik",
     description: "Senaste ändringar och spårbarhet.",
     group: "Historik",
   },

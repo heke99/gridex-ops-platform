@@ -129,13 +129,13 @@ export default function CustomerSyncBoard({ result, limit = 10 }: Props) {
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>
  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 ">
- Operations Core · SaaS-synk
+ Kundöversikt
  </p>
  <h2 className="mt-2 text-xl font-semibold text-slate-950 ">
- Kundsynk, onboarding och datakoppling
+ Kunder att granska
  </h2>
  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700 ">
- Den här vyn visar om varje kund har rätt kedja: kundidentitet → avtal/kampanj → fullmakt → anläggning → mätpunkt → nätägare → mätvärden/billing. Den är byggd för SaaS: datan ska ligga inom samma tenant/company-scope och matchas via kundnummer, person-/orgnummer, anläggnings-id, mätpunkts-id och Ediel-referenser.
+ Kontrollera kundens uppgifter, avtal, fullmakt, anläggning och fakturering.
  </p>
  </div>
 
@@ -149,9 +149,9 @@ export default function CustomerSyncBoard({ result, limit = 10 }: Props) {
  </div>
 
  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
- <Kpi label="Kunder" value={summary.totalCustomers} hint="Kunder i aktuell tenant/behörighet." />
+ <Kpi label="Kunder" value={summary.totalCustomers} hint="Kunder för valt bolag." />
  <Kpi label="Blockerade" value={summary.blocked} hint="Saknar kritisk data eller route." />
- <Kpi label="Redo för switch" value={summary.readyForSwitch} hint="Basdata, avtal och fullmakt finns." />
+ <Kpi label="Redo för leverantörsbyte" value={summary.readyForSwitch} hint="Basdata, avtal och fullmakt finns." />
  <Kpi label="Aktiv men saknar mätvärden" value={summary.activeMissingMeterValues} hint="Behöver mätvärdes- eller billingflöde." />
  </div>
 

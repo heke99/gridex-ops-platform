@@ -133,13 +133,13 @@ export default function CustomerOperationsCard({
  readinessResults,
 }: CustomerOperationsCardProps) {
  return (
- <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm ">
  <div className="mb-6">
  <h2 className="text-lg font-semibold text-slate-900 ">
- Leverantörsbyte & operations
+ Leverantörsbyte
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Fullmakt, readiness, operativa tasks och switchärenden per anläggning.
+ Fullmakter, uppgifter att komplettera och leverantörsbyten per anläggning.
  </p>
  </div>
 
@@ -197,7 +197,7 @@ export default function CustomerOperationsCard({
  </div>
  </div>
  <div className="rounded-2xl bg-slate-50 px-4 py-3 ">
- <div className="text-slate-700 ">Switchärenden</div>
+ <div className="text-slate-700 ">Leverantörsbyten</div>
  <div className="mt-1 text-lg font-semibold text-slate-950 ">
  {siteRequests.length}
  </div>
@@ -342,7 +342,7 @@ export default function CustomerOperationsCard({
 
  <div className="rounded-2xl border border-slate-200 p-4 ">
  <h4 className="text-sm font-semibold text-slate-900 ">
- Readiness & switch
+ Kontroll och leverantörsbyte
  </h4>
 
  <div className="mt-3 space-y-3">
@@ -350,8 +350,8 @@ export default function CustomerOperationsCard({
  <input type="hidden" name="customer_id" value={customerId} />
  <input type="hidden" name="site_id" value={site.id} />
  <SubmitButton
- idleLabel="Kör readiness"
- pendingLabel="Kör readiness..."
+ idleLabel="Kontrollera uppgifter"
+ pendingLabel="Kontrollerar uppgifter..."
  />
  </form>
 
@@ -390,8 +390,8 @@ export default function CustomerOperationsCard({
  </label>
 
  <SubmitButton
- idleLabel="Skapa switchärende"
- pendingLabel="Skapar switchärende..."
+ idleLabel="Starta leverantörsbyte"
+ pendingLabel="Startar leverantörsbyte..."
  />
  </form>
  </div>
@@ -427,7 +427,7 @@ export default function CustomerOperationsCard({
 
  {!readiness || readiness.issues.length === 0 ? (
  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-700 ">
- Inget readinessresultat ännu.
+ Uppgifterna har inte kontrollerats ännu.
  </div>
  ) : null}
  </div>
@@ -435,15 +435,13 @@ export default function CustomerOperationsCard({
  </div>
  </div>
 
- <div className="rounded-2xl border border-slate-200 p-4 ">
- <h4 className="text-sm font-semibold text-slate-900 ">
- Operativa tasks
- </h4>
+ <details open={siteTasks.some((task) => task.status === 'blocked')} className="self-start rounded-2xl border border-slate-200 p-4">
+ <summary className="cursor-pointer text-sm font-semibold text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Uppgifter ({siteTasks.length})</summary>
 
- <div className="mt-3 space-y-3">
+ <div className="mt-3 max-h-80 space-y-2 overflow-auto">
  {siteTasks.length === 0 ? (
  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-700 ">
- Inga tasks för denna anläggning.
+ Inga uppgifter för denna anläggning.
  </div>
  ) : (
  siteTasks.map((task) => (
@@ -515,17 +513,17 @@ export default function CustomerOperationsCard({
  ))
  )}
  </div>
- </div>
+ </details>
 
  <div className="rounded-2xl border border-slate-200 p-4 ">
  <h4 className="text-sm font-semibold text-slate-900 ">
- Switchärenden
+ Leverantörsbyten
  </h4>
 
  <div className="mt-3 space-y-4">
  {siteRequests.length === 0 ? (
  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-700 ">
- Inga switchärenden för denna anläggning ännu.
+ Inga leverantörsbyten för denna anläggning ännu.
  </div>
  ) : (
  siteRequests.map((request) => {

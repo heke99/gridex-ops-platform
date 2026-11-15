@@ -92,8 +92,8 @@ export function CustomerOperationalSignalPanel({
  <SignalStat title="Öppna mätvärdesrequests" value={openMeterValueRequests.length} tone="amber" />
  <SignalStat title="Öppna billingrequests" value={openBillingRequests.length} tone="amber" />
  <SignalStat title="Öppna masterdatarequests" value={openMasterdataRequests.length} tone="amber" />
- <SignalStat title="Outbound mätvärden" value={queuedMeterValueOutbound.length} tone="emerald" />
- <SignalStat title="Outbound billingunderlag" value={queuedBillingOutbound.length} tone="emerald" />
+ <SignalStat title="Mätvärdesbegäranden i kö" value={queuedMeterValueOutbound.length} tone="emerald" />
+ <SignalStat title="Fakturaunderlag i kö" value={queuedBillingOutbound.length} tone="emerald" />
  <SignalStat title="Billingexporter" value={billingExports.length} tone="emerald" />
  <SignalStat title="Mätvärdesexporter" value={meteringExports.length} tone="emerald" />
  <SignalStat title="Kundsnapshot-exporter" value={customerSnapshotExports.length} tone="emerald" />
@@ -109,7 +109,7 @@ export function CustomerOperationalSignalPanel({
  className="rounded-2xl border border-red-200 bg-red-50 p-4 "
  >
  <div className="text-sm font-semibold text-red-700 ">
- Outbound saknar route
+ Utskicket saknar mottagare
  </div>
  <div className="mt-1 text-sm text-slate-700 ">
  {request.request_type} · {siteLabel(request.site_id, sites)} ·{' '}
@@ -181,7 +181,7 @@ export function CustomerOutboundHistoryPanel({
  <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
  <div className="border-b border-slate-200 px-6 py-4 ">
  <h2 className="text-lg font-semibold text-slate-900 ">
- Outbound historik
+ Utskickshistorik
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
  Senaste externa dispatch-requests för kunden.
@@ -208,7 +208,7 @@ export function CustomerOutboundHistoryPanel({
  ? 'Öppna begäran'
  : request.source_type === 'supplier_switch_request' &&
  request.source_id
- ? 'Öppna switch-detail'
+ ? "Visa leverantörsbyte"
  : null
 
  return (

@@ -86,24 +86,25 @@ export default async function UnresolvedOutboundPage() {
  return (
  <div className="min-h-screen">
  <AdminHeader
- title="Outbound exceptions: unresolved"
- subtitle="Undantagskö för requests utan aktiv route. Här ser du varför något fastnat, vilken data eller route som saknas och vad nästa steg är."
+ title="Utskick som behöver åtgärdas"
+ subtitle="Granska kunduppgifter och följ upp utskick som har stannat."
  userEmail={context.email}
  />
 
- <div className="space-y-6 p-8">
- <UnresolvedSummaryCards
+ <div className="space-y-4 p-4 sm:p-6">
+ {tenantScope.isPlatformAdmin ? <UnresolvedSummaryCards
  requestsCount={requests.length}
  switchRelatedCount={switchRelatedCount}
  meteringAndBillingCount={meteringRelatedCount + billingRelatedCount}
  requestsMissingGridOwner={requestsMissingGridOwner}
  requestsWithInactiveRouteMatch={requestsWithInactiveRouteMatch}
  requestsWithManualChoiceAvailable={requestsWithManualChoiceAvailable}
- />
+ /> : <p className="text-sm text-slate-700">{requests.length} utskick behöver åtgärdas.</p>}
 
- <UnresolvedQuickActions />
+ {tenantScope.isPlatformAdmin ? <UnresolvedQuickActions /> : null}
 
  <UnresolvedRequestsList
+ showTechnicalDetails={tenantScope.isPlatformAdmin}
  requests={requests}
  routes={routes}
  switchRequests={switchRequests}

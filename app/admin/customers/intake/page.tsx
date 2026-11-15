@@ -28,10 +28,10 @@ async function safeLoad<T>(
   try {
     return { rows: await loader(), warning: null };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Okänt databasfel";
+    console.error("Customer registration options failed", { label, error });
     return {
       rows: [],
-      warning: `${label} kunde inte läsas in. Kundintag visas ändå så att sidan inte kraschar: ${message}`,
+      warning: `${label} kunde inte läsas in. Försök igen eller kontakta support.`,
     };
   }
 }
@@ -50,7 +50,7 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
   const companyId = companyScope.isPlatformAdmin ? access.companyId : companyScope.companyId;
   if (!companyId) {
     return <div className="min-h-screen">
-      <AdminHeader title="Kundintag" subtitle="Registrera en kund eller importera flera kunder." userEmail={user?.email ?? null} />
+      <AdminHeader title="Registrera kund" subtitle="Registrera en kund eller importera flera kunder." userEmail={user?.email ?? null} />
       <main className="p-4 sm:p-6"><p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Välj ett bolag innan du registrerar eller importerar kunder.</p></main>
     </div>;
   }
@@ -118,11 +118,11 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
 
   return (
     <div className="min-h-screen">
-      <AdminHeader title="Kundintag" subtitle="Registrera en kund eller importera flera kunder." userEmail={user?.email ?? null} />
+      <AdminHeader title="Registrera kund" subtitle="Registrera en kund eller importera flera kunder." userEmail={user?.email ?? null} />
       <div className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/admin/customers" className="text-sm font-semibold text-slate-700 hover:text-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">← Kundregister</Link>
-          <CustomerActionsMenu ariaLabel="Fler vyer från kundintag"><Link href="/admin/contracts">Hantera avtalskatalog</Link></CustomerActionsMenu>
+          <CustomerActionsMenu ariaLabel="Fler alternativ"><Link href="/admin/contracts">Avtalsmallar</Link></CustomerActionsMenu>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
           Registrerar i <span className="font-semibold text-slate-950">{companyScope.companyName ?? "Valt bolag"}</span>
@@ -138,7 +138,7 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
             Automatiska utskick: {goLiveSummary?.status === "ready" ? "Redo" : goLiveSummary?.status === "manual_review_required" ? "Kräver granskning" : "Blockerade / inställningar saknas"}
           </summary>
           <p className="mt-3 leading-6">Kunden sparas även om uppgifter saknas. Saknade uppgifter stoppar senare uppgiftsbegäran, leverantörsbyte eller export tills uppgifterna är kompletta.</p>
-          {goLiveSummary ? <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-4">
+          {companyScope.isPlatformAdmin && goLiveSummary ? <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-4">
             <div><dt>Ediel-ID</dt><dd className="mt-1 font-semibold">{goLiveSummary.edielId ?? "–"}</dd></div>
             <div><dt>Mottagare</dt><dd className="mt-1 font-semibold">{goLiveSummary.routeResolutionMode === "automatic" ? "Automatiskt" : "Granska"}</dd></div>
             <div><dt>PRODAT produktion</dt><dd className="mt-1 font-semibold">{goLiveSummary.hasProdatRoute ? "Klar" : "Inte aktiverad"}</dd></div>

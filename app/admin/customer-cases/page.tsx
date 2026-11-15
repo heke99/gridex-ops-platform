@@ -72,7 +72,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div><h2 className="text-lg font-semibold text-slate-950">Supportkö</h2><p className="mt-1 text-sm text-slate-600">Normal drift visas inte här. Endast uttryckliga supportärenden från tenantens kanaler.</p></div>
           <div className="mt-4 space-y-3">
-            {cases.length === 0 ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Inga supportärenden i valt scope.</p> : null}
+            {cases.length === 0 ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Inga supportärenden för valt bolag.</p> : null}
             {cases.map((row) => (
               <article key={row.id} className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">

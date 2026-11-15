@@ -139,7 +139,7 @@ export function MeteringOperationalSummary({
  </div>
 
  <div className="rounded-3xl border border-red-200 bg-red-50 p-3">
- <div className="text-sm font-medium text-red-900">Saknar tenant</div>
+ <div className="text-sm font-medium text-red-900">Bolag saknas</div>
  <div className="mt-1 text-2xl font-semibold text-slate-950">{missingTenantValues.length}</div>
  </div>
  </section>
@@ -207,7 +207,7 @@ export function MeteringRequestsSection({
  <p className="mt-3 break-words text-sm text-slate-700">Period: {request.requested_period_start ?? '—'} → {request.requested_period_end ?? '—'} · Mätpunkt: {shortId(request.metering_point_id)}</p>
  <details className="mt-2 text-sm text-slate-700"><summary className="cursor-pointer font-medium">Ärendedetaljer</summary><div className="mt-2 grid min-w-0 grid-cols-1 gap-2 break-words md:grid-cols-2">
  <div>Kund: <span className="font-medium">{shortId(request.customer_id)}</span></div>
- <div>Request: <span className="font-medium">{shortId(request.id)}</span></div>
+ <div>Begäran: <span className="font-medium">{shortId(request.id)}</span></div>
  <div>Site: <span className="font-medium">{shortId(request.site_id)}</span></div>
  <div>Mätpunkt: <span className="font-medium">{shortId(request.metering_point_id)}</span></div>
  <div>Period: <span className="font-medium">{request.requested_period_start ?? '—'} → {request.requested_period_end ?? '—'}</span></div>
@@ -318,7 +318,7 @@ export function MeteringValuesTable({ values }: { values: MeteringValueRow[] }) 
  <div className="border-b border-slate-200 px-6 py-5">
  <h2 className="text-lg font-semibold text-slate-950">Senaste mätvärden</h2>
  <p className="mt-1 text-sm text-slate-700">
- {values.length} rader. Ediel/UTILTS-rader ska ha source request där det går.
+ {values.length} rader. Koppla värdena till den ursprungliga begäran när den finns.
  </p>
  </div>
 
@@ -379,7 +379,7 @@ export function MeteringValuesTable({ values }: { values: MeteringValueRow[] }) 
  href={`/admin/operations/grid-owner-requests/${value.source_request_id}`}
  className="inline-flex items-center rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
  >
- Source request
+ Ursprunglig begäran
  </Link>
  ) : (
  <span className="text-xs text-slate-700">—</span>

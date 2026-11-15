@@ -109,7 +109,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
       <main className="space-y-4 p-4 lg:p-6">
         {!companyId ? (
           <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-            Välj en tenant innan fakturor granskas eller skickas. Fakturering får aldrig köras över flera tenants samtidigt.
+            Välj ett bolag innan du granskar eller skickar fakturor.
           </section>
         ) : null}
 

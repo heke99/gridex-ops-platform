@@ -1,0 +1,54 @@
+[
+  {
+    "fixture": "application-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "application-platform",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "grid-owner-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "grid-owner-platform",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "application-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "application-platform",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "grid-owner-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "grid-owner-platform",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "scenario": "new-contract repeat click with existing hash",
+    "passed": true
+  }
+]

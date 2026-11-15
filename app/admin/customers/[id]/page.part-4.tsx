@@ -1,3 +1,4 @@
+import { CustomerNewContractLink } from "@/components/admin/customers/CustomerContractCreatePanel";
 // Extracted from page.tsx; keep public imports on the facade module.
 import { platformWorkspaceGroups, tenantWorkspaceGroups } from "./workspaceGroups";
 import CustomerWorkspaceNav from "@/components/admin/customers/CustomerWorkspaceNav";
@@ -766,6 +767,7 @@ export async function CustomerAdminDetailPage({
                 Registrera kontakt
               </Link>
             ) : null}
+            {canWriteContracts && canReadContracts ? <CustomerNewContractLink customerId={id} /> : null}
             {canEditCustomer ? (
               <Link
                 href={customerTabHref(id, "profile")}
@@ -820,7 +822,7 @@ export async function CustomerAdminDetailPage({
         <SectionAnchor
           id="overview"
           title="Översikt"
-          description="Enkel översikt med process, status och ett tydligt nästa steg."
+          description="Kundens status och nästa steg."
         >
           <section
             data-testid="customer-overview-contact-summary"
@@ -987,7 +989,7 @@ export async function CustomerAdminDetailPage({
         <SectionAnchor
           id="authorization-documents"
           title="Fullmakt och komplett avtal"
-          description="Ladda upp dokument på kundkortet och skapa request-paket mot nätägare och nuvarande leverantör."
+          description="Ladda upp dokument och begär uppgifter från nätägaren och nuvarande leverantör."
         >
           <CustomerAuthorizationDocumentsCard
             customerId={id}
@@ -1297,7 +1299,7 @@ export async function CustomerAdminDetailPage({
         <SectionAnchor
           id="notes"
           title="Anteckningar"
-          description="Intern drift- och kundhistorik."
+          description="Anteckningar om kunden."
         >
           <NotesSection customerId={id} notes={notes} />
         </SectionAnchor>

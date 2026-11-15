@@ -70,7 +70,7 @@ export default function SiteLifecycleSection({
  </span>
  ) : (
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
- Inget switchärende
+ Inget pågående byte
  </span>
  )}
 
@@ -121,7 +121,7 @@ export default function SiteLifecycleSection({
  </div>
 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Requests</div>
+ <div className="text-slate-700 ">Begäranden</div>
  <div className="mt-1 font-medium text-slate-900 ">
  {summary.requests.length}
  </div>
@@ -142,7 +142,7 @@ export default function SiteLifecycleSection({
  </div>
  <p className="mt-2 text-sm text-slate-700 ">
  {summary.lifecycle?.reason ??
- 'Inget switchärende finns ännu för denna anläggning.'}
+ "Inget leverantörsbyte finns ännu för denna anläggning."}
  </p>
  </div>
 
