@@ -1,0 +1,8 @@
+{
+  "baseline_head": "82addb627561797c71fd5e60c13c2515ea434c2b",
+  "lint_errors": 0,
+  "lint_warnings": 10,
+  "warnings_identical_to_parent_file_baseline": true,
+  "embedded_action_block_sha256": "bf9501bfc746a7914656554e0cc7682d8e48cef24b9bff0a830b1671b94e0415",
+  "embedded_actions_identical_to_baseline": true
+}

@@ -29,7 +29,8 @@ import CustomerBillingMeteringCard from "@/components/admin/customers/CustomerBi
 import CustomerSwitchOperationsCard from "@/components/admin/customers/CustomerSwitchOperationsCard"
 import CustomerContractsCard from "@/components/admin/customers/CustomerContractsCard"
 import CustomerContactsAddressesCard from "@/components/admin/customers/CustomerContactsAddressesCard"
-import CustomerProfileCard from "@/components/admin/customers/CustomerProfileCard"
+import CustomerProfileEditLink from "@/components/admin/customers/CustomerProfileEditLink"
+import CustomerProfileSummary from "@/components/admin/customers/CustomerProfileSummary"
 import CustomerIdentityChangePanel from "@/components/admin/customers/CustomerIdentityChangePanel"
 import CustomerBillingProfileHistory from "@/components/admin/customers/CustomerBillingProfileHistory"
 import { listBillingProfileRevisions } from "@/lib/customer-service/billingProfileRevisions"
@@ -771,12 +772,10 @@ export async function CustomerAdminDetailPage({
             ) : null}
             {canWriteContracts && canReadContracts ? <CustomerNewContractLink customerId={id} /> : null}
             {canEditCustomer ? (
-              <Link
-                href={customerTabHref(id, "profile")}
+              <CustomerProfileEditLink
+                customerId={id}
                 className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600"
-              >
-                Ändra uppgifter
-              </Link>
+              />
             ) : null}
           </div>
         ) : null}
@@ -911,7 +910,7 @@ export async function CustomerAdminDetailPage({
         >
           <section className="grid gap-6">
             <div className={isPlatformAdmin ? "grid gap-6 xl:grid-cols-2" : "grid gap-6"}>
-              <CustomerProfileCard customer={customer} showLifecycleTools={isPlatformAdmin} />
+              <CustomerProfileSummary customer={customer} canWrite={isPlatformAdmin || canEditCustomer} isPlatformAdmin={isPlatformAdmin} />
               {identityChanges && customerCompanyId ? (
                 <CustomerIdentityChangePanel
                   customerId={id}
@@ -922,7 +921,7 @@ export async function CustomerAdminDetailPage({
                   canWrite={canEditCustomer}
                 />
               ) : (
-                <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Ändring av personnummer/organisationsnummer är inte aktiverad i den här miljön än.</p>
+                <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Uppgifter om ändringar av personnummer och organisationsnummer kunde inte hämtas. Försök igen.</p>
               )}
               {billingRevisions ? <CustomerBillingProfileHistory revisions={billingRevisions} /> : null}
               {isPlatformAdmin ? (
@@ -934,6 +933,8 @@ export async function CustomerAdminDetailPage({
               ) : null}
             </div>
             <CustomerContactsAddressesCard
+            companyId={customerCompanyId}
+            canWrite={isPlatformAdmin || canEditCustomer}
               customerId={id}
               customerType={normalizedCustomerType}
               contacts={contacts}
@@ -1191,6 +1192,8 @@ export async function CustomerAdminDetailPage({
           description="Primära kontaktpersoner, adresser och kundens kontaktstruktur."
         >
           <CustomerContactsAddressesCard
+            companyId={customerCompanyId}
+            canWrite={isPlatformAdmin || canEditCustomer}
             customerId={id}
             customerType={normalizedCustomerType}
             contacts={contacts}
