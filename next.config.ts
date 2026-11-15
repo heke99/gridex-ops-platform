@@ -59,6 +59,12 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: '/',
+        has: [{ type: 'host', value: 'demo[.]gridex[.]se' }],
+        destination: '/admin/elklart-demo',
+        permanent: false,
+      },
+      {
         source: '/admin/admin/:path*',
         destination: '/admin/:path*',
         permanent: false,

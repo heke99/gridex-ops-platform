@@ -264,7 +264,7 @@ export const INTEGRATION_API_SCOPE_OPTIONS = INTEGRATION_API_PERMISSION_GROUPS.f
 export type IntegrationApiScope = typeof INTEGRATION_API_SCOPE_OPTIONS[number]['value']
 
 export const ALLOWED_INTEGRATION_API_SCOPE_VALUES = new Set<string>(
-  INTEGRATION_API_SCOPE_OPTIONS.map((scope) => scope.value)
+  [...INTEGRATION_API_SCOPE_OPTIONS.map((scope) => scope.value), ...CUSTOMER_PORTAL_SCOPES]
 )
 
 export const ALLOWED_INTEGRATION_API_PERMISSION_GROUPS = new Set<string>(

@@ -1,0 +1,57 @@
+{
+  "schema": "elklart.runtime-verification.v1",
+  "recordedAt": "2026-11-11T00:18:27.727610+00:00",
+  "runtime": {
+    "ops": "https://localhost:3000",
+    "portal": "https://localhost:3001",
+    "publicDeployment": false
+  },
+  "reset": {
+    "status": "PASS",
+    "baseline": "foundation-qualified-v3-20261111",
+    "manifestSha256": "b1b17dfca65d87b261da487f542619b193a36bda1d6f1a58154a17dccc01f395",
+    "containers": 12,
+    "persistentVolumes": 4,
+    "snapshotFormat": 3,
+    "helperImage": "sha256:9ea400ad51fad4ec9866e3e1b26ba3929c131ef3bc136200b34f8c6e252e8bfd",
+    "restoredOriginalAuthIdentityBothProjects": true,
+    "restoredOriginalDocumentBytesBothProjects": true,
+    "postBaselineDocumentRemovedBothProjects": true,
+    "hostStateExactScopeVerified": true,
+    "failedPrecedingAttempts": [
+      "foundation-20261110: Storage user xattrs lost, Auth restored but document GET500",
+      "foundation-v3-20261110: BusyBox tar lacks xattrs, save refused",
+      "Earlier mechanically verified baselines retired: private helper search_path list quoting differed from capture; fixed v3 raw GUC transfer and final baseline requalified"
+    ],
+    "helperMetadataAfterRestore": {
+      "status": "PASS",
+      "functions": 23,
+      "capturedFieldsPerFunction": 17,
+      "normalizedAclGrants": true
+    },
+    "controlledInboxesBaselineEmpty": true,
+    "nonemptyMailpitSaveRefused": true
+  },
+  "checks": {
+    "opsVitestTests": 180,
+    "pythonTests": 53,
+    "smtpAndDsoNodeTests": 6,
+    "webNodeTests": 17,
+    "opsProductionBuild": "PASS",
+    "webProductionBuild": "PASS",
+    "opsApplicationTypecheck": "PASS",
+    "opsTestTypecheck": "PASS",
+    "scopedEslint": "PASS",
+    "independentFinalReviews": 2
+  },
+  "scenarioClaims": {
+    "karinStaffSupport": "PASS generic case/call/internal note/public reply; no invoice relation",
+    "karinPortalRegistration": "PASS; projection BLOCKED organization_onboarding",
+    "capwayTestSelectionAndRealPing": "PASS; no invoice export",
+    "presentationRehearsalsCompleted": 0,
+    "completeSystemDemo": false,
+    "roleTenantIsolation": "PASS actual four staff Auth sessions, own reads/writable-role positive UPDATE controls, foreign read/write/context denied, support own UPDATE denied, anonymous denied; portal API isolation unverified",
+    "intakeTenantBinding": "PASS actual old membership fallback refused before write; then canonical membership and ordinary exact-company intake; manual/bulk/preview/commit guard regression tests",
+    "networkDirectory": "PASS ordinary tenant-owned fictional test draft; source authority and market verification remain false"
+  }
+}

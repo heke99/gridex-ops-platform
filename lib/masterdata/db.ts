@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseService } from "@/lib/supabase/service";
+import { requireOperationalCompanyId } from "@/lib/tenant/scope";
 import type {
   AuditLogRow,
   CustomerInternalNoteRow,
@@ -258,8 +259,24 @@ export async function saveGridOwner(
   input: GridOwnerInput,
 ): Promise<GridOwnerRow> {
   const actorId = await getActorId(supabase);
+  if (!actorId) throw new Error("Inloggad användare krävs för att spara nätägare.");
+  const companyId = await requireOperationalCompanyId(actorId);
+
+  // Tenant-owned writes must never adopt a shared or another tenant's record.
+  // The authenticated client still enforces RLS for both the read and write.
+  if (input.id) {
+    const existing = await supabase
+      .from("grid_owners")
+      .select("id")
+      .eq("id", input.id)
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (existing.error) throw existing.error;
+    if (!existing.data) throw new Error("Nätägaren saknas för aktuell organisation.");
+  }
 
   const payload = {
+    company_id: companyId,
     name: input.name,
     owner_code: input.owner_code,
     ediel_id: input.ediel_id,
@@ -288,6 +305,7 @@ export async function saveGridOwner(
       .from("grid_owners")
       .update(payload)
       .eq("id", input.id)
+      .eq("company_id", companyId)
       .select("*")
       .single();
 

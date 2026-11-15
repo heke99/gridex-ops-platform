@@ -6,12 +6,12 @@ const io=vi.hoisted(()=>({created:true,status:'received',graph:vi.fn(),complete:
 vi.mock('server-only',()=>({}))
 vi.mock('react',async(importOriginal)=>({...await importOriginal<typeof import('react')>(),useActionState:()=>[io.ui,vi.fn(),false]}))
 vi.mock('next/link',()=>({default:'a'}))
-vi.mock('@/app/admin/customers/actions',()=>({createCustomerAction:vi.fn()}))
+vi.mock('@/app/admin/customers/actions',()=>({createCustomerAction:vi.fn(),previewCustomerImportAction:vi.fn(),commitCustomerImportAction:vi.fn()}))
 vi.mock('@/app/admin/customers/[id]/actions',()=>({createCustomerDataRequestPackageAction:vi.fn()}))
 vi.mock('@/components/admin/customers/CustomerIntakeEnhancer',()=>({default:()=>null}))
 vi.mock('@/components/admin/customers/CustomerActionsMenu',()=>({default:({children}:{children:React.ReactNode})=>children}))
 vi.mock('next/cache',()=>({revalidatePath:vi.fn()}))
-vi.mock('@/lib/admin/guards',()=>({requireAdminActionAccess:async()=>{if(io.denied)throw Error('denied');return {permissions:[]}},isPlatformAdminContext:()=>false}))
+vi.mock('@/lib/admin/guards',()=>({requireAdminActionAccess:async()=>{if(io.denied)throw Error('denied');return {permissions:[],companyId:'company-a'}},isPlatformAdminContext:()=>false}))
 vi.mock('@/lib/admin/accessModel',()=>({hasPermissionRequirement:()=>false}))
 vi.mock('@/lib/customers/matchingService',()=>({matchCustomerIdentity:async()=>({candidates:[]})}))
 vi.mock('@/lib/grid-owners/platformGridOwnerResolver',()=>({normalizeGridOwnerIdToOps:async()=>({opsGridOwnerId:null})}))
@@ -50,25 +50,26 @@ vi.mock('@/app/admin/customers/actions.part-2',()=>({
 vi.mock('@/app/admin/customers/actions.part-4',()=>({rowValue:vi.fn()}))
 import {CustomerGraphCommittedReviewError} from '@/app/admin/customers/actions.part-2'
 import {createCustomerAction} from '@/app/admin/customers/actions.part-3'
-import {initialIntakeActionState} from '@/app/admin/customers/actionState'
+import {initialCustomerImportActionState,initialIntakeActionState} from '@/app/admin/customers/actionState'
+function boundForm(){const form=new FormData();form.set('expected_company_id','company-a');return form}
 beforeEach(()=>{
  io.shared.mockReset();io.send.mockReset();io.tail.mockReset();io.casRow=null;io.intakeUpdatedAt='';io.created=true;io.status='received';io.denied=false;io.result={};io.markerMode='exact';io.marker.mockReset();io.graph.mockReset();io.complete.mockReset().mockResolvedValue(undefined);io.fail.mockReset().mockResolvedValue(undefined)
  io.graph.mockResolvedValue({id:'customer-a',customer_number:'SYNTHETIC',__createdNewCustomer:true,__createdSiteId:'site-a',__duplicateWarnings:[]})
 })
 describe('staff intake admission',()=>{
  it('processes a newly created received ledger row exactly once',async()=>{
-  const result=await createCustomerAction(initialIntakeActionState,new FormData())
+  const result=await createCustomerAction(initialIntakeActionState,boundForm())
   expect(result).toMatchObject({status:'success',createdCustomerId:'customer-a'})
   expect(io.graph).toHaveBeenCalledOnce();expect(io.complete).toHaveBeenCalledWith(expect.objectContaining({companyId:'company-a',customerId:'customer-a'}));expect(io.fail).not.toHaveBeenCalled()
  })
  it('holds a pre-existing fresh received row without another graph write',async()=>{
   io.created=false
-  expect(await createCustomerAction(initialIntakeActionState,new FormData())).toMatchObject({status:'error',createdCustomerId:null})
+  expect(await createCustomerAction(initialIntakeActionState,boundForm())).toMatchObject({status:'error',createdCustomerId:null})
   expect(io.graph).not.toHaveBeenCalled();expect(io.complete).not.toHaveBeenCalled()
  })
  it('preserves staff authorization before intake processing',async()=>{
   io.denied=true
-  expect(await createCustomerAction(initialIntakeActionState,new FormData())).toMatchObject({status:'error',message:'denied'})
+  expect(await createCustomerAction(initialIntakeActionState,boundForm())).toMatchObject({status:'error',message:'denied'})
   expect(io.graph).not.toHaveBeenCalled()
  })
 })
@@ -76,13 +77,13 @@ describe('staff intake admission',()=>{
 describe('durable committed customer review boundary',()=>{
  it('returns known committed IDs without making the intake retryable',async()=>{
   io.graph.mockRejectedValue(new CustomerGraphCommittedReviewError({company_id:'company-a',customer_id:'customer-a',site_id:'site-a',metering_point_id:'point-a',contract_id:'contract-a',correlation_id:'correlation-a'} as never))
-  const result=await createCustomerAction(initialIntakeActionState,new FormData())
+  const result=await createCustomerAction(initialIntakeActionState,boundForm())
   expect(result).toMatchObject({status:'committed_review',createdCustomerId:'customer-a',createdSiteId:'site-a',createdContractId:'contract-a'})
   expect(io.fail).not.toHaveBeenCalled()
  })
  it('replays a durable pending-review result without graph, upload or send work',async()=>{
   io.created=false;io.status='completed';io.result={review_required:true,customer_id:'customer-a',created_site_id:'site-a',created_contract_id:'contract-a',correlation_id:'correlation-a'}
-  expect(await createCustomerAction(initialIntakeActionState,new FormData())).toMatchObject({status:'committed_review',createdCustomerId:'customer-a',createdContractId:'contract-a'})
+  expect(await createCustomerAction(initialIntakeActionState,boundForm())).toMatchObject({status:'committed_review',createdCustomerId:'customer-a',createdContractId:'contract-a'})
   expect(io.graph).not.toHaveBeenCalled();expect(io.fail).not.toHaveBeenCalled();expect(io.complete).not.toHaveBeenCalled()
  })
  it('records pending review before the graph may start postcommit side effects',async()=>{
@@ -92,7 +93,7 @@ describe('durable committed customer review boundary',()=>{
    expect(io.marker).toHaveBeenCalledWith(expect.objectContaining({result:expect.objectContaining({review_required:true,customer_id:'customer-a'})}))
    throw new CustomerGraphCommittedReviewError({company_id:'company-a',customer_id:'customer-a',site_id:'site-a',contract_id:'contract-a',correlation_id:'correlation-a'} as never)
   })
-  expect(await createCustomerAction(initialIntakeActionState,new FormData())).toMatchObject({status:'committed_review',createdCustomerId:'customer-a'})
+  expect(await createCustomerAction(initialIntakeActionState,boundForm())).toMatchObject({status:'committed_review',createdCustomerId:'customer-a'})
   expect(io.fail).not.toHaveBeenCalled();expect(io.marker).toHaveBeenCalledOnce()
  })
 })
@@ -101,8 +102,8 @@ describe('committed review presentation',()=>{
  it('shows the known customer and disables create without offering business continuation',async()=>{
   io.ui={...initialIntakeActionState,status:'committed_review',message:'Review documents',createdCustomerId:'customer-a',createdContractId:'contract-a',correlationId:'correlation-a',postCreateAction:'request_data'}
   const {default:Form}=await import('@/components/admin/customers/CustomerIntakeForm')
-  const html=renderToStaticMarkup(React.createElement(Form,{gridOwners:[],electricitySuppliers:[],priceAreas:[],contractOffers:[]}))
-  expect(html).toContain('role="alert"');expect(html).toContain('/admin/customers/customer-a?tab=contracts');expect(html).toContain('correlation-a')
+  const html=renderToStaticMarkup(React.createElement(Form,{companyId:'company-a',gridOwners:[],electricitySuppliers:[],priceAreas:[],contractOffers:[]}))
+  expect(html).toContain('name="expected_company_id" value="company-a"');expect(html).toContain('role="alert"');expect(html).toContain('/admin/customers/customer-a?tab=contracts');expect(html).toContain('correlation-a')
   expect(html).not.toContain('name="redirect_after_submit"');expect(html).not.toContain('Begär uppgifter direkt')
   expect(html.match(/<button[^>]*name="intakeCreateMode"[^>]*>/)?.[0]).toContain('disabled=""')
  })
@@ -135,7 +136,7 @@ describe('strict core receipt persistence before side effects',()=>{
    try {await options.onCoreCommitted(receipt)} catch {throw new CustomerGraphCommittedReviewError(receipt as never)}
    throw Error('unsafe_side_effect_reached')
   })
-  expect(await createCustomerAction(initialIntakeActionState,new FormData())).toMatchObject({status:'committed_review',createdCustomerId:'customer-a'})
+  expect(await createCustomerAction(initialIntakeActionState,boundForm())).toMatchObject({status:'committed_review',createdCustomerId:'customer-a'})
   expect(io.marker).toHaveBeenCalledOnce();expect(io.fail).not.toHaveBeenCalled();expect(io.complete).not.toHaveBeenCalled()
  })
 })
@@ -163,8 +164,15 @@ describe('one durable tail owner for competing failed-intake retries',()=>{
    try {await options.onCoreCommitted(receipt)} catch {throw new CustomerGraphCommittedReviewError(receipt as never)}
    io.tail();return {id:'customer-a',customer_number:'SYNTHETIC',__createdNewCustomer:true,__duplicateWarnings:[]}
   })
-  const results=await Promise.all([createCustomerAction(initialIntakeActionState,new FormData()),createCustomerAction(initialIntakeActionState,new FormData())])
+  const results=await Promise.all([createCustomerAction(initialIntakeActionState,boundForm()),createCustomerAction(initialIntakeActionState,boundForm())])
   expect(results.map(r=>r.status).sort()).toEqual(['committed_review','success'])
   expect(io.graph).toHaveBeenCalledTimes(2);expect(io.tail).toHaveBeenCalledOnce();expect(io.fail).not.toHaveBeenCalled()
  })
+})
+
+it('binds the bulk preview/commit browser form to its rendered company',async()=>{
+ io.ui={...initialCustomerImportActionState}
+ const {default:Bulk}=await import('@/components/admin/customers/CustomerBulkImportPanel')
+ const html=renderToStaticMarkup(React.createElement(Bulk,{companyId:'company-a',example:'',contractOffers:[]}))
+ expect(html).toContain('name="expected_company_id" value="company-a"')
 })

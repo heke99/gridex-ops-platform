@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { requireAdminActionAccess } from "@/lib/admin/guards"
 import { supabaseService } from "@/lib/supabase/service"
-import { requireOperationalCompanyId } from "@/lib/tenant/scope"
+import { requireBoundCustomerIntakeCompany } from "@/lib/customers/intakeCompanyScope"
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance"
 import { parseCustomerImportFormData } from "@/lib/customers/importParser"
 
@@ -25,9 +25,9 @@ import { createCustomerGraph, databaseObjectMissing, findIntakeDuplicates, mapUn
 import { buildAdminIntakeIdempotencyKey, buildCustomerParamsFromImportRow, insertImportRow, recordDocumentAiExtractionForImport, resolveContractOfferIdForImport } from './actions.part-3'
 
 export async function bulkCreateCustomersAction(formData: FormData) {
-  await requireAdminActionAccess({ allOf: ["customers.write"] });
+  const guard = await requireAdminActionAccess({ allOf: ["customers.write"] });
   const actorUserId = await getActorUserId();
-  const companyId = await requireOperationalCompanyId(actorUserId);
+  const companyId = await requireBoundCustomerIntakeCompany(formData, guard, actorUserId);
   await requireCompanyOperationalForWrites(companyId);
 
   const parsedImport = await parseCustomerImportFormData(formData);
@@ -505,9 +505,9 @@ export async function previewCustomerImportAction(
   formData: FormData,
 ): Promise<CustomerImportActionState> {
   try {
-    await requireAdminActionAccess({ allOf: ["customers.write"] });
+    const guard = await requireAdminActionAccess({ allOf: ["customers.write"] });
     const actorUserId = await getActorUserId();
-    const companyId = await requireOperationalCompanyId(actorUserId);
+    const companyId = await requireBoundCustomerIntakeCompany(formData, guard, actorUserId);
     const parsedImport = await parseCustomerImportFormData(formData);
     const previewFile = formData.get("bulkFile");
     const previewFileName =
