@@ -1,5 +1,4 @@
 // components/admin/customers/CustomerBillingMeteringCard.tsx
-'use client'
 
 import Link from 'next/link'
 import type {
@@ -47,6 +46,7 @@ export default function CustomerBillingMeteringCard({
   meteringValues,
   billingUnderlays,
   outboundRequests,
+  isPlatformAdmin = false,
 }: Props) {
   const meterValueRequests = dataRequests.filter((request) => request.request_scope === 'meter_values')
   const latestMeterRequest = [...meterValueRequests].sort((a, b) => rowTime(b) - rowTime(a))[0] ?? null
@@ -137,7 +137,8 @@ export default function CustomerBillingMeteringCard({
           {hasBlocker ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
               <div className="font-semibold">Kräver åtgärd</div>
-              <p className="mt-1 leading-6">{blockerReason}</p>
+              <p className="mt-1 leading-6">Kontrollera fakturaunderlaget i Fakturor innan nästa steg.</p>
+              {isPlatformAdmin ? <details className="mt-2"><summary className="cursor-pointer font-semibold">Tekniska uppgifter</summary><p className="mt-2 break-words">{blockerReason}</p></details> : null}
             </div>
           ) : null}
 
