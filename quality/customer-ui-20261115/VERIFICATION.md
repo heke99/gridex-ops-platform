@@ -49,3 +49,5 @@ node quality/customer-ui-20261115/browser-check.mjs
 ## Isolering och leverans
 
 Egen gren codex/customer-ui-20261115 i /workspace/gridex-customer-ui-20261115. Originalarbetsytan är orörd. Ursprunglig bas f23c1dc0c; aktuell main ce8045558 har 44 ändrade sökvägar utan överlapp med denna ändring. Ingen main-merge eller driftsättning har utförts.
+
+Komposition med main ce8045558: alla 67 egna filer var byteidentiska efter rebase. Därefter kördes 107 tester och appens typkontroll på nytt och godkändes. Browser- och granskningsunderlaget återanvänds för samma oförändrade UI-källor. Separat draft-PR: https://github.com/heke99/gridex-ops-platform/pull/1051. CI och seriell leverans återstår; ingen main-merge eller driftsättning utförd.
