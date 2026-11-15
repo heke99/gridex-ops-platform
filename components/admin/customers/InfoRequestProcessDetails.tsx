@@ -25,4 +25,3 @@ export default function InfoRequestProcessDetails({ decision, showTechnicalDetai
     </dl>
   </div>
 }
-
