@@ -15,6 +15,7 @@ try {
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${fixture} ${width}: page overflow`);
    assert.equal(await page.getByText(/tenant_support_|RAW_TECHNICAL_BLOCKER/).count(),0);
    if(fixture==='support-list-company') {
+    assert.equal(await page.getByRole('heading',{name:'Supportkö',exact:true}).isVisible(),true);
     const closed=page.getByRole('link',{name:'Ärende closed',exact:true});
     assert.equal(await closed.isVisible(),false);
     await page.locator('#closed-support-cases > summary').click();assert.equal(await closed.isVisible(),true);

@@ -107,7 +107,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
         ) : null}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 id="support-queue-heading" className="text-lg font-semibold text-slate-950">Öppna supportärenden</h2>
+          <h2 id="support-queue-heading" className="text-lg font-semibold text-slate-950">Supportkö</h2>
           <p className="mt-1 text-sm text-slate-600">Ärenden som väntar på svar eller behöver följas upp.</p>
           {allCases.length === 200 ? <p className="mt-2 text-sm text-slate-600">Här visas de senaste inlästa ärendena. Äldre ärenden kan saknas.</p> : null}
           {open.length === 0 ? <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">Inga öppna supportärenden för valt bolag.</p> : (

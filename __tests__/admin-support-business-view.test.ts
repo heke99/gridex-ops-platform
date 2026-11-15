@@ -42,6 +42,7 @@ const detail = async () => renderToStaticMarkup(await DetailPage({ params: Promi
 it('keeps active cases visible and closed history collapsed without technical source names', async () => {
   const html = await list()
   expect(io.list).toHaveBeenCalledWith({ companyId: 'company-a', limit: 200 })
+  expect(html).toContain('>Supportkö</h2>')
   expect(html).toContain('Telefon')
   expect(html).not.toContain('tenant_support_phone')
   expect(html).not.toContain('tenantens')
