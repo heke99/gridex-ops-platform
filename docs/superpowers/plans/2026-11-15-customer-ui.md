@@ -38,3 +38,9 @@ Filcustody: samma isolerade gren. Nya huvudfiler operations/switches/[id]/page.t
 - [x] Verifiera roller, läsfel, formulärfält och mobil-/tangentbordslayout. Två oberoende slutgranskningar och uppdatering av samma PR; inga verkliga konfigurationsändringar eller utskick.
 
 Filcustody: tre ovanstående sidfiler, nya serverkomponenter/tester och eget quality/checkpoint-underlag. Serveråtgärder och databasstruktur behålls. Avgränsad felhantering uppdateras vid verifierad tyst fallback; mätvärdesvyn kompletteras med bolagsfiltrerade etikettläsningar för kund, anläggning och mätpunkt.
+
+## Fortsatt granskning 4: meddelanden och händelser
+
+Verifierade fynd: meddelandedetaljen visar protokoll-ID/referenser för bolag och lovar att kvittens innebär färdigt ärende; händelselänken heter kundkort men kan gå till tekniska sidor. Mobilradens fasta etikettbredd granskas samtidigt. Filcustody i egen worktree: app/admin/messages/[id]/page.tsx, app/admin/messages/page.tsx, app/admin/events/page.tsx samt eget test-/qualityunderlag. Inga protokollregler, serveråtgärder eller producentresurser ändras. Befintliga färdigheter för plan, UI, Supabase, React och verifiering fortsätter gälla. Två oberoende slutgranskningar före leverans.
+
+Resultat: 46 tester/4 filer, 8 syntetiska browserlägen utan overflow/axe-fel, app-/test-/route-typer, lint0/0, RBAC24 och ratchet godkända. Två oberoende granskare godkänner. Se quality/customer-ui-20261115/PASS4.md. Leverans i samma draft-PR; ingen main-merge/driftsättning.

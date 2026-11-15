@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -138,4 +139,60 @@ it('intake fails closed for a missing canonical tenant company before loading of
   await expect(IntakePage({ searchParams: Promise.resolve({}) })).rejects.toThrow('saknar ett aktivt bolag')
   expect(io.offers).not.toHaveBeenCalled()
   expect(io.goLive).not.toHaveBeenCalled()
+})
+
+it('events gives company users an actual customer link and avoids promising unverified downstream work', async () => {
+  io.timeline.mockResolvedValue([{
+    id: 'event', customerId: 'customer', customerName: 'Syntetisk kund', occurredAt: '2026-11-15T10:00:00Z',
+    title: 'Svar', message: 'Svar mottaget', status: 'response_received', actionRequired: false,
+    actionUrl: '/admin/ediel/messages/internal', payload: { secret: 'RAW-PAYLOAD' },
+  }])
+  const html = renderToStaticMarkup(await EventsPage({ searchParams: Promise.resolve({}) }))
+  if (process.env.GRIDEX_UI_FIXTURE_DIR) fs.writeFileSync(`${process.env.GRIDEX_UI_FIXTURE_DIR}/events-company.html`, html)
+  expect(html).toContain('Se kundkortet för nästa steg')
+  expect(html).toContain('Öppna kundkort')
+  expect(html).toContain('href="/admin/customers/customer"')
+  expect(html).not.toContain('/admin/ediel/messages/internal')
+  expect(html).not.toContain('Systemet uppdaterar')
+  expect(html).not.toContain('RAW-PAYLOAD')
+})
+
+it('events preserves platform diagnostic links with an accurate label', async () => {
+  io.platform = true
+  io.timeline.mockResolvedValue([{
+    id: 'event', customerId: 'customer', customerName: 'Syntetisk kund', occurredAt: '2026-11-15T10:00:00Z',
+    title: 'Svar', message: 'Svar mottaget', status: 'completed', actionRequired: false,
+    actionUrl: '/admin/ediel/messages/internal', payload: { proof: 'RAW-PAYLOAD' },
+  }])
+  const html = renderToStaticMarkup(await EventsPage({ searchParams: Promise.resolve({}) }))
+  expect(html).toContain('href="/admin/ediel/messages/internal"')
+  expect(html).toContain('Öppna ärende')
+  expect(html).toContain('RAW-PAYLOAD')
+})
+
+it.each(['facility_lookup.edifact_queued', 'z01.preparing', 'future.internal_event'])('events keeps producer protocol text out of company rendering for %s', async eventCode => {
+  io.timeline.mockResolvedValue([{
+    id: 'event', eventCode, customerId: 'customer', customerName: 'Syntetisk kund', occurredAt: '2026-11-15T10:00:00Z',
+    title: 'Z01 förbereds', message: 'Systemet har skapat PRODAT Z01 via Ediel-routen', status: 'queued', actionRequired: false,
+    actionUrl: null, payload: {},
+  }])
+  const html = renderToStaticMarkup(await EventsPage({ searchParams: Promise.resolve({}) }))
+  for (const technical of ['Z01', 'PRODAT', 'Ediel', 'future.internal_event']) expect(html).not.toContain(technical)
+  expect(html).toContain(eventCode === 'future.internal_event' ? 'Se kundkortet för mer information' : 'Inväntar utskick')
+  expect(html).toContain(eventCode === 'future.internal_event' ? 'Kundärende' : 'Uppgiftsbegäran')
+})
+
+it.each(['supplier_switch.scheduled', 'facility_lookup.edifact_queued'])('events distinguishes a pending dispatch from a pending answer for %s', async eventCode => {
+  io.timeline.mockResolvedValue([{
+    id: 'event', eventCode, customerId: 'customer', customerName: 'Syntetisk kund', occurredAt: '2026-11-15T10:00:00Z',
+    title: 'Technical title', message: 'Technical message', status: 'waiting_response', actionRequired: false,
+    actionUrl: null, payload: { send_not_before: '2026-11-17T12:00:00Z' },
+  }])
+  const html = renderToStaticMarkup(await EventsPage({ searchParams: Promise.resolve({}) }))
+  expect(html).toContain('Inväntar utskick')
+  expect(html).not.toContain('Väntar på svar. Följ ärendet')
+  if (eventCode === 'supplier_switch.scheduled') {
+    expect(html).toContain('Tidigast utskick: 2026-11-17 13:00')
+    expect(html).toContain('Väntar på planerat utskick')
+  } else expect(html).toContain('Väntar på utskick')
 })
