@@ -109,7 +109,7 @@ it('server callers pass scoped write permissions and a working direct edit targe
   expect(page).toContain('<CustomerProfileEditLink')
   expect(page).toContain('href={customerTabHref(id, "profile")}')
   expect(page).not.toContain('#profile#edit-customer-profile')
-  expect(page.match(/canWrite={isPlatformAdmin \|\| canEditCustomer}/g)).toHaveLength(3)
+  expect(page.match(/canWrite={isPlatformAdmin \|\| canEditCustomer}/g)).toHaveLength(5)
   expect(page.match(/companyId={customerCompanyId}/g)?.length).toBeGreaterThanOrEqual(2)
 })
 

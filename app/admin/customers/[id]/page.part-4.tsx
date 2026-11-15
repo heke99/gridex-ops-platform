@@ -1316,7 +1316,7 @@ export async function CustomerAdminDetailPage({
           title="Anteckningar"
           description="Anteckningar om kunden."
         >
-          <NotesSection customerId={id} notes={notes} />
+          <NotesSection customerId={id} notes={notes} canWrite={isPlatformAdmin || canEditCustomer} isPlatformAdmin={isPlatformAdmin} />
         </SectionAnchor>
       ) : null}
 
@@ -1342,6 +1342,7 @@ export async function CustomerAdminDetailPage({
           description="Stoppa leverantörsbyte och fakturering på kund-, avtals-, anläggnings- eller mätpunktsnivå."
         >
           <LifecycleDecisionSection
+            canWrite={isPlatformAdmin || canEditCustomer}
             customerId={id}
             sites={sites}
             meteringPoints={meteringPoints}

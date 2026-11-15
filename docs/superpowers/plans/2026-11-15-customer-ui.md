@@ -74,3 +74,7 @@ Resultat: 38 tester/4 filer, 13 syntetiska browserkontroller (tolv nya lägen ut
 ## Fortsatt granskning 9: importhistorik
 
 Filcustody: imports/page.tsx och eget minne/plan. Normaliserad payload och parsersiffra serverbegränsas till plattformsadmin. Osäker tolkning ersätter tekniskt parser-confidence-språk. Scope/actions behålls. App-typer, lint och 64 befintliga scope-tester godkända; två oberoende granskare godkänner. Ingen ny browser/livekontroll. Antecknings-/livscykelflikens kvarvarande kandidater dokumenterade i eget minne.
+
+## Fortsatt granskning 10: anteckningar och livscykelformulär
+
+Filcustody: customer page.part-2/4, befintligt source-test och eget minne/plan. Skrivformulär matchas mot masterdata.write/plattform; interna användar-ID endast platform details. Avgränsad anteckningslista med tangentbordsfokus. Actions/datumvärden orörda. 69 tester/3 filer, app-typer och lint utan fel; tio äldre parentvarningar kvar. Två oberoende granskare godkänner. Ingen browser/liveverifiering eller driftsättning.

@@ -102,15 +102,18 @@ export function CustomerBlockersBanner({
 
 export function LifecycleDecisionSection({
   customerId,
+  canWrite = false,
   sites,
   meteringPoints,
   contracts,
 }: {
   customerId: string;
+  canWrite?: boolean;
   sites: CustomerSiteRow[];
   meteringPoints: MeteringPointRow[];
   contracts: CustomerContractRow[];
 }) {
+  if (!canWrite) return <p className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">En behörig handläggare kan registrera ånger, avslut eller avvisning för kunden.</p>;
   const activeContract =
     contracts.find((contract) => ["active", "signed", "pending_signature"].includes(contract.status)) ??
     contracts[0] ??
@@ -242,7 +245,7 @@ export function LifecycleDecisionSection({
         <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
           Ånger, operativt avbrott och avvisning är separata beslut. Systemet
           behåller historiken, stoppar relevanta flöden och skapar ett tydligt
-          kundärende. Vid ånger köas även tenantens bekräftelsemejl.
+          kundärende. Vid ånger förbereds även bolagets bekräftelsemejl.
         </p>
       </div>
       <div className="mt-5 grid gap-4 xl:grid-cols-3">
@@ -269,7 +272,7 @@ export function LifecycleDecisionSection({
         {form({
           decisionType: "rejected",
           title: "Avvisa ansökan",
-          description: "Använd när Gridex eller tenantbolaget fattar ett avslagsbeslut.",
+          description: "Använd när ert bolag fattar ett avslagsbeslut.",
           reasonPlaceholder: "Exempel: Avtalet kan inte levereras för vald anläggning.",
           buttonLabel: "Registrera avvisning",
           confirmationLabel: "Jag bekräftar att detta är ett avslagsbeslut och att vald process ska blockeras.",
@@ -456,24 +459,27 @@ export function PowerOfAttorneyScopesSection({
 
 export function NotesSection({
   customerId,
+  canWrite = false,
+  isPlatformAdmin = false,
   notes,
 }: {
   customerId: string;
+  canWrite?: boolean;
+  isPlatformAdmin?: boolean;
   notes: CustomerInternalNoteRow[];
 }) {
   return (
-    <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-      <form
+    <section className={canWrite ? "grid min-w-0 items-start gap-4 xl:grid-cols-[360px_minmax(0,1fr)]" : "min-w-0"}>
+      {canWrite ? <form
         action={createCustomerInternalNoteAction}
-        className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm "
+        className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm "
       >
         <div className="mb-5">
           <h2 className="text-lg font-semibold text-slate-900 ">
             Intern anteckning
           </h2>
           <p className="mt-1 text-sm text-slate-700 ">
-            Logga intern drift- och handläggningsinformation som inte hör hemma
-            i kundens avtal eller adressfält.
+            Skriv information som hjälper er att handlägga kundens ärenden.
           </p>
         </div>
 
@@ -485,9 +491,9 @@ export function NotesSection({
           </span>
           <textarea
             name="body"
-            rows={8}
+            rows={4}
             className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 "
-            placeholder="Skriv intern notering för drift eller handläggning..."
+            placeholder="Skriv en anteckning om kunden..."
           />
         </label>
 
@@ -496,7 +502,7 @@ export function NotesSection({
             Spara anteckning
           </button>
         </div>
-      </form>
+      </form> : null}
 
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
         <div className="border-b border-slate-200 px-6 py-4 ">
@@ -513,9 +519,9 @@ export function NotesSection({
             Inga interna anteckningar ännu.
           </div>
         ) : (
-          <div className="divide-y divide-slate-200 ">
+          <div role="region" aria-label="Kundens anteckningar" tabIndex={0} className="max-h-[36rem] divide-y divide-slate-200 overflow-y-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
             {notes.map((note) => (
-              <article key={note.id} className="p-6">
+              <article key={note.id} className="min-w-0 break-words p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm font-medium text-slate-900 ">
                     Intern notering
@@ -530,7 +536,7 @@ export function NotesSection({
                 </p>
 
                 <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-700 ">
-                  <span>Skapad av: {note.created_by ?? "System"}</span>
+                  {isPlatformAdmin ? <details><summary className="cursor-pointer">Tekniska uppgifter</summary><span>Skapad av: {note.created_by ?? "System"}</span></details> : null}
                   <span>Uppdaterad: {formatDateTime(note.updated_at)}</span>
                 </div>
               </article>
