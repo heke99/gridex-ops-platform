@@ -1,0 +1,23 @@
+{
+  "success": false,
+  "numTotalTests": 25154,
+  "numPassedTests": 25147,
+  "numFailedTests": 3,
+  "numPendingTests": 4,
+  "failures": [
+    {
+      "file": "__tests__/dashboard-render-performance.test.ts",
+      "test": "authenticated shell performance invariants reuses the verified permission context on the metering page"
+    },
+    {
+      "file": "__tests__/ediel-process-next-action-view.test.ts",
+      "test": "OPS02 actual customer-info server view renders independently qualified business wait after CONTRL and suppresses repeated Z01 preparation"
+    },
+    {
+      "file": "__tests__/ediel-process-next-action-view.test.ts",
+      "test": "OPS02 actual customer-info server view actual fulfilled/rejected outcome changes displayed next action without following the old waiting status"
+    }
+  ],
+  "runtime": "Node 22.23.5; same loopback network boundary as CI; 2 workers",
+  "source_applicability": "Only the two failing test files were updated afterward; production source unchanged."
+}

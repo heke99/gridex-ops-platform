@@ -6,7 +6,7 @@ const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless
 const results=[];
 try {
  for(const width of [390,1280]) {
-  for(const fixture of ['application-company','application-platform','grid-owner-company','grid-owner-platform','supplier-switch-company','info-requests-company','info-requests-long-company']) {
+  for(const fixture of ['application-company','application-platform','grid-owner-company','grid-owner-platform','supplier-switch-company','info-requests-company','info-requests-long-company','login-status-company','billing-settings-company','billing-settings-writer-company','metering-business-company']) {
    const context=await browser.newContext({viewport:{width,height:900}});
    const page=await context.newPage();
    await page.goto(`http://127.0.0.1:4187/?fixture=${fixture}`);
@@ -45,6 +45,17 @@ try {
     await page.keyboard.press('End');
     await page.waitForTimeout(150);
     assert.equal(await region.evaluate(e=>e.scrollTop>0),true);
+   }
+   if(fixture==='billing-settings-writer-company') {
+    const summary=page.locator('#billing-select-provider > summary');await summary.click();
+    assert.equal(await page.getByRole('button',{name:'Spara leverantör',exact:true}).isVisible(),true);
+    await page.getByRole('combobox',{name:'Leverantör',exact:true}).selectOption('nordfin');
+    assert.equal(await page.locator('[name=provider]').inputValue(),'nordfin');
+    await summary.click();
+   }
+   if(fixture==='metering-business-company') {
+    assert.equal(await page.getByText(/Sommarstugan/).last().isVisible(),true);
+    assert.equal(await page.getByText(/Rättat mätvärde/).isVisible(),true);
    }
    if(fixture==='supplier-switch-company') {
     assert.equal(await page.getByText('Bekräftad leveransstart',{exact:true}).isVisible(),true);

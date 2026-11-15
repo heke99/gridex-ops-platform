@@ -42,6 +42,30 @@
     "violations": []
   },
   {
+    "fixture": "login-status-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "billing-settings-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "billing-settings-writer-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "metering-business-company",
+    "width": 390,
+    "overflow": false,
+    "violations": []
+  },
+  {
     "fixture": "application-company",
     "width": 1280,
     "overflow": false,
@@ -79,6 +103,30 @@
   },
   {
     "fixture": "info-requests-long-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "login-status-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "billing-settings-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "billing-settings-writer-company",
+    "width": 1280,
+    "overflow": false,
+    "violations": []
+  },
+  {
+    "fixture": "metering-business-company",
     "width": 1280,
     "overflow": false,
     "violations": []

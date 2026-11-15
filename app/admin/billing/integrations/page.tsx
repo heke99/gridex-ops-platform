@@ -1,6 +1,7 @@
+import BillingIntegrationBusinessView from '@/components/admin/billing/BillingIntegrationBusinessView'
 import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'
 import {
@@ -68,10 +69,11 @@ export default async function BillingIntegrationsPage({
       200,
     )
   ).filter((row) => String(row.status ?? '') === 'needs_review')
+  let settingsUnavailable = false
   const [catalog, selection] = scope?.companyId
     ? await Promise.all([
-        listInvoiceProviderCatalog(scope.companyId).catch(() => []),
-        loadTenantInvoiceProviderSelection(scope.companyId).catch(() => null),
+        listInvoiceProviderCatalog(scope.companyId).catch(() => { settingsUnavailable = true; return [] }),
+        loadTenantInvoiceProviderSelection(scope.companyId).catch(() => { settingsUnavailable = true; return null }),
       ])
     : [[], null]
   const selectedConnection = selection?.invoice_export_target_system
@@ -93,6 +95,10 @@ export default async function BillingIntegrationsPage({
   const capwayIssues = Array.isArray(capwayTest?.readiness_issues)
     ? capwayTest.readiness_issues
     : []
+
+  if (!isPlatformAdminContext(admin)) {
+    return <div className="min-h-screen"><AdminHeader title="Fakturainställningar" subtitle="Fakturaleverantör, anslutning och automatiska utskick." userEmail={admin.email} workspaceName={scope?.companyName} /><BillingIntegrationBusinessView catalog={catalog} selection={selection} connection={selectedConnection} runs={runs} canManage={admin.permissions.some(permission => ['billing_underlay.export', 'pricing.write'].includes(permission))} unavailable={settingsUnavailable} reviewCount={reviewEvents.length} failedCount={deadLetters.filter(row => row.status === 'open').length} notice={notice} /></div>
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">

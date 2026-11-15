@@ -29,3 +29,12 @@ using-superpowers: arbetsrouting; using-git-worktrees: isolering; writing-plans/
 - [x] Granska motsvarande layout och länk-/rollbeteenden med riktade tester, browser och två oberoende slutgranskare. Följ upp faktiskt CI-fel utan blind omkörning.
 
 Filcustody: samma isolerade gren. Nya huvudfiler operations/switches/[id]/page.tsx, customer-info-requests/page.tsx, work-queue/page.tsx och nya presentations-/testfiler. Inga delade producenter, databasscheman, API- eller Ediel-runtimefiler ändras.
+
+## Fortsatt sökning: inloggning, fakturainställningar och mätvärden
+
+- [x] Separera kundinloggningens affärsstatus från teknisk leverantörs-/nyckelkonfiguration på servern. Läsfel får inte visas som avstängd funktion.
+- [x] Ge fakturainställningar en kompakt bolagsvy med befintliga, behörighetsmatchade leverantörsval/utskicksinställningar. Miljövariabler, tekniska testdetaljer och systemhändelser endast superadmin. Visa okänd status vid läsfel.
+- [x] Ge mätvärden en bolagsvy med kundnamn, period, energi, rättelser och ärendelänkar; tekniska ID:n och manuella integrationsverktyg endast superadmin.
+- [x] Verifiera roller, läsfel, formulärfält och mobil-/tangentbordslayout. Två oberoende slutgranskningar och uppdatering av samma PR; inga verkliga konfigurationsändringar eller utskick.
+
+Filcustody: tre ovanstående sidfiler, nya serverkomponenter/tester och eget quality/checkpoint-underlag. Serveråtgärder och databasstruktur behålls. Avgränsad felhantering uppdateras vid verifierad tyst fallback; mätvärdesvyn kompletteras med bolagsfiltrerade etikettläsningar för kund, anläggning och mätpunkt.
