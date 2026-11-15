@@ -79,6 +79,7 @@ export async function CustomerAdminDetailPage({
   });
   const isPlatformAdmin = isPlatformAdminContext(access);
   const canReadContracts = isPlatformAdmin || access.permissions.includes("contracts.read");
+  const canResendCustomerEmail = hasPermissionRequirement(access.permissions, { anyOf: ["customers.read", "customers.write"] });
   const canWriteContracts = isPlatformAdmin || access.permissions.includes("contracts.write");
 
   const { id } = await params;
@@ -895,6 +896,7 @@ export async function CustomerAdminDetailPage({
             timeline={customerOpsTimeline}
             snapshot={customerCardSnapshot}
             powersOfAttorney={poaRows as unknown as Array<Record<string, unknown>>}
+            isPlatformAdmin={isPlatformAdmin}
             customerIdentity={customer.personal_number ?? customer.org_number ?? null}
           />
         </SectionAnchor>
@@ -1314,6 +1316,7 @@ export async function CustomerAdminDetailPage({
         >
           <CustomerCommunicationSection
             logs={communicationLogs as CommunicationLog[]}
+            canResend={canResendCustomerEmail}
             isPlatformAdmin={isPlatformAdmin}
           />
         </SectionAnchor>
@@ -1407,6 +1410,7 @@ export async function CustomerAdminDetailPage({
               />
               <CustomerCommunicationSection
                 logs={communicationLogs as CommunicationLog[]}
+                canResend={canResendCustomerEmail}
                 isPlatformAdmin
               />
               <AuditSection

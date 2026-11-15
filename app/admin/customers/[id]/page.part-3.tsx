@@ -51,59 +51,41 @@ import { resendCustomerEmailAction } from "./email-actions"
 
 
 
-import { formatDateTime } from './page.part-1'
+import { formatAdminDateTime } from "@/lib/ui/format"
+import { customerEmailStatus } from "@/lib/admin/customerCommunicationLabels"
 import { formatStatusLabel } from '@/lib/ui/format'
 
 export function CustomerCommunicationSection({
   logs,
   isPlatformAdmin = false,
+  canResend = false,
 }: {
   logs: CommunicationLog[];
   isPlatformAdmin?: boolean;
+  canResend?: boolean;
 }) {
   if (!isPlatformAdmin) {
-    return (
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-950">Kommunikation</h2>
-        <p className="mt-1 text-sm text-slate-700">Skickade, köade och misslyckade kundmeddelanden i ett enkelt flöde.</p>
-        <div className="mt-5 space-y-3">
-          {logs.length === 0 ? (
-            <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Ingen kommunikation loggad ännu.</p>
-          ) : null}
-          {logs.slice(0, 25).map((log) => (
-            <article key={log.id} className="rounded-2xl border border-slate-200 p-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="font-semibold text-slate-950">{log.subject ?? log.event_key ?? log.template_key ?? "Kundmeddelande"}</p>
-                  <p className="mt-1 text-sm text-slate-600">Till {log.recipient_email} · {formatDateTime(log.created_at)}</p>
-                </div>
-                <span className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
-                  log.status === "sent" || log.status === "delivered"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : log.status === "failed"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-amber-100 text-amber-900"
-                }`}>
-                  {log.status === "sent" || log.status === "delivered"
-                    ? "Skickad"
-                    : log.status === "failed"
-                      ? "Misslyckades"
-                      : log.status === "queued"
-                        ? "Köad"
-                        : log.status}
-                </span>
-              </div>
-              {log.error_message ? <p className="mt-2 text-sm text-red-700">{log.error_message}</p> : null}
-              <form action={resendCustomerEmailAction} className="mt-3">
-                <input type="hidden" name="customer_id" value={log.customer_id ?? ""} />
-                <input type="hidden" name="log_id" value={log.id} />
-                <button className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Skicka igen</button>
-              </form>
-            </article>
-          ))}
+    const renderLog = (log: CommunicationLog) => <article key={log.id} className="min-w-0 break-words rounded-xl border border-slate-200 p-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="font-semibold text-slate-950">{log.subject || 'Kundmeddelande'}</p>
+          <p className="mt-1 text-sm text-slate-600">Till {log.recipient_email} · {formatAdminDateTime(log.created_at)}</p>
         </div>
-      </section>
-    );
+        <span className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${['sent', 'delivered'].includes(log.status) ? 'bg-emerald-100 text-emerald-800' : ['failed', 'bounced', 'complained'].includes(log.status) ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-900'}`}>{customerEmailStatus(log.status)}</span>
+      </div>
+      {['failed', 'bounced'].includes(log.status) ? <p className="mt-2 text-sm text-red-800">Utskicket kunde inte levereras. Kontrollera mottagaradressen eller kontakta support.</p> : null}
+      {canResend && log.customer_id && log.template_key && log.recipient_email ? <details className="mt-3 text-xs text-slate-700"><summary className="cursor-pointer font-semibold">Fler åtgärder</summary><form action={resendCustomerEmailAction} className="mt-2">
+        <input type="hidden" name="customer_id" value={log.customer_id} />
+        <input type="hidden" name="log_id" value={log.id} />
+        <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Skicka igen</button>
+      </form></details> : null}
+    </article>;
+    return <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="text-lg font-semibold text-slate-950">Kommunikation</h2>
+      <p className="mt-1 text-sm text-slate-700">Kundens senaste meddelanden och leveransstatus.</p>
+      <div className="mt-4 space-y-3">{logs.length === 0 ? <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">Ingen kommunikation loggad ännu.</p> : logs.slice(0, 10).map(renderLog)}</div>
+      {logs.length > 10 ? <details id="earlier-customer-messages" className="mt-3 rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer text-sm font-semibold text-slate-800">Tidigare meddelanden ({logs.length - 10})</summary><div role="region" aria-label="Tidigare kundmeddelanden" tabIndex={0} className="mt-3 max-h-96 space-y-3 overflow-y-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">{logs.slice(10).map(renderLog)}</div></details> : null}
+    </section>;
   }
 
   return (
@@ -146,7 +128,7 @@ export function CustomerCommunicationSection({
             {logs.map((log) => (
               <tr key={log.id}>
                 <td className="px-4 py-3 text-slate-700 ">
-                  {formatDateTime(log.created_at)}
+                  {formatAdminDateTime(log.created_at)}
                 </td>
                 <td className="px-4 py-3 text-slate-700 ">
                   {log.event_key ?? log.template_key ?? "E-post"}
@@ -182,7 +164,7 @@ export function CustomerCommunicationSection({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-2">
-                    <form action={resendCustomerEmailAction}>
+                    {canResend && log.customer_id && log.template_key && log.recipient_email ? <form action={resendCustomerEmailAction}>
                       <input
                         type="hidden"
                         name="customer_id"
@@ -192,7 +174,7 @@ export function CustomerCommunicationSection({
                       <button className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
                         Skicka om
                       </button>
-                    </form>
+                    </form> : null}
                     <details className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">
                       <summary className="cursor-pointer">
                         Visa innehåll

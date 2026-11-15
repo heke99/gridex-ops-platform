@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { formatAdminDateTime } from "@/lib/ui/format";
+import { customerEmailStatus } from "@/lib/admin/customerCommunicationLabels";
 import type {
   CustomerDocument,
   CustomerLegalAcceptance,
@@ -14,6 +16,7 @@ type PoaLike = Record<string, unknown>;
 
 type Props = {
   customerId: string;
+  isPlatformAdmin?: boolean;
   readiness: CustomerOpsReadiness;
   acceptances: CustomerLegalAcceptance[];
   documents: CustomerDocument[];
@@ -39,7 +42,9 @@ const POA_SCOPE_LABELS: Record<string, string> = {
   supplier_switch: "Leverantörsbyte",
   facility_information_lookup: "Anläggningsuppgifter",
   meter_data: "Mätvärden",
+  meter_values: "Mätvärden",
   billing_handoff: "Faktureringsunderlag",
+  billing_underlay: "Faktureringsunderlag",
 };
 
 const POA_METHOD_LABELS: Record<string, string> = {
@@ -61,16 +66,33 @@ const ACCEPTANCE_LABELS: Record<string, string> = {
   terms: "Allmänna villkor",
   privacy_policy: "Integritetspolicy",
   withdrawal_info: "Ångerrättsinformation",
-  price_snapshot: "Prisbild / prissnapshot",
+  price_snapshot: "Prisbild",
   power_of_attorney: "Fullmakt",
 };
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return "–";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("sv-SE");
-}
+const BLOCKER_COPY: Record<string, { label: string; action: string }> = {
+  terms_missing: { label: 'Villkor saknas', action: 'Be kunden godkänna de allmänna villkoren.' },
+  privacy_missing: { label: 'Integritetspolicy saknas', action: 'Kontrollera kundens godkännande av integritetspolicyn.' },
+  withdrawal_missing: { label: 'Ångerrättsinformation saknas', action: 'Se till att kunden får ångerrättsinformation och spara bekräftelsen.' },
+  price_snapshot_missing: { label: 'Prisuppgifter saknas', action: 'Kontrollera vilket pris och vilka villkor som gäller för avtalet.' },
+  poa_acceptance_missing: { label: 'Fullmaktens godkännande saknas', action: 'Be kunden godkänna fullmakten.' },
+  poa_missing: { label: 'Giltig fullmakt saknas', action: 'Kontrollera att fullmakten gäller rätt anläggning och ärende.' },
+  contract_snapshot_missing: { label: 'Avtalsunderlag saknas', action: 'Kontrollera att rätt avtal finns för kunden.' },
+  facility_missing: { label: 'Anläggning saknas', action: 'Komplettera kundens anläggning eller begär uppgifter från nätägaren.' },
+  metering_point_missing: { label: 'Mätpunktsnummer saknas', action: 'Kontrollera anläggningsuppgifterna med nätägaren.' },
+  grid_owner_missing: { label: 'Nätägare saknas', action: 'Kontrollera vilken nätägare som hör till anläggningen.' },
+  grid_area_missing: { label: 'Nätområde saknas', action: 'Kontrollera anläggningens nätområde med nätägaren.' },
+};
+const EVENT_LABELS: Record<string, string> = {
+  'customer.created': 'Ansökan mottagen',
+  'customer_number.assigned': 'Kundnummer skapat',
+  'contract.application_received': 'Ansökan mottagen',
+  'contract.confirmation_sent': 'Avtalsbekräftelse skickad',
+  'contract.cooling_off_sent': 'Ångerrättsinformation skickad',
+  'invoice.sent': 'Faktura skickad',
+  'metering_values.updated': 'Mätvärden uppdaterade',
+};
+const DOCUMENT_LABELS: Record<string, string> = { contract_confirmation: 'Avtalsbekräftelse', withdrawal: 'Ångerrätt', power_of_attorney: 'Fullmakt', price_terms: 'Prisvillkor', invoice: 'Faktura', customer_document: 'Kunddokument' };
 
 function Pill({ ok, children, falseLabel = "saknas" }: { ok: boolean | null; children: React.ReactNode; falseLabel?: string }) {
   return (
@@ -93,14 +115,14 @@ function ReadinessBox({
 }) {
   return (
     <div
-      className={`rounded-3xl border p-5 ${ok ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}
+      className={`rounded-2xl border p-3 ${ok ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}
     >
       <p
         className={`text-sm font-black ${ok ? "text-emerald-900" : "text-amber-950"}`}
       >
         {title}
       </p>
-      <p className="mt-2 text-2xl font-black text-slate-950">
+      <p className="mt-2 text-lg font-semibold text-slate-950">
         {ok === null ? "Behöver kontrolleras" : ok ? "Ja" : "Inte ännu"}
       </p>
       <div className="mt-3 text-sm font-semibold leading-6 text-slate-700">
@@ -112,6 +134,7 @@ function ReadinessBox({
 
 export default function CustomerLegalReadinessCard({
   customerId,
+  isPlatformAdmin = false,
   readiness,
   acceptances,
   documents,
@@ -120,6 +143,18 @@ export default function CustomerLegalReadinessCard({
   powersOfAttorney = [],
 }: Props) {
   const latestTimeline = timeline.slice(0, 10);
+  const display = (labels: Record<string, string>, value: string, fallback: string) => labels[value] ?? (isPlatformAdmin ? value || fallback : fallback);
+  const renderTimeline = (event: CustomerOpsTimelineEvent) => {
+    const eventLabel = event.source === 'communication_log'
+      ? `E-post · ${customerEmailStatus(typeof event.metadata?.status === 'string' ? event.metadata.status : null)}`
+      : event.source === 'customer_legal_acceptance'
+        ? `${ACCEPTANCE_LABELS[event.event_type ?? ''] ?? 'Juridiskt godkännande'} registrerat`
+        : EVENT_LABELS[event.event_type ?? ''] ?? 'Kundhändelse';
+    return <div key={`${event.source}-${event.source_id}-${event.created_at}`} className="min-w-0 break-words py-3">
+      <p className="text-sm font-semibold text-slate-950">{isPlatformAdmin ? event.title ?? event.event_type ?? 'Händelse' : eventLabel}</p>
+      <p className="mt-1 text-xs text-slate-600">{formatAdminDateTime(event.created_at)}{isPlatformAdmin ? ` · ${event.source ?? 'händelse'}` : ''}</p>
+    </div>;
+  };
   const legalDocuments = documents.filter((doc) =>
     [
       "contract_confirmation",
@@ -177,17 +212,13 @@ export default function CustomerLegalReadinessCard({
         "Juridik och fullmakt ser klara ut. Fortsätt med anläggningsuppgifter, mätpunkt och nätägare.");
 
   return (
-    <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-          Kundens juridiska status
-        </p>
         <h2 className="mt-2 text-xl font-black text-slate-950">
-          Juridik, fullmakt, dokument och nästa åtgärd
+          Fullmakt och godkännanden
         </h2>
         <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
-          Systemet kontrollerar godkännanden, fullmakt och dokument. Tekniska
-          detaljer ligger i avancerade vyer.
+          Här ser du kundens godkännanden, fullmakter och dokument.
         </p>
       </div>
 
@@ -196,15 +227,15 @@ export default function CustomerLegalReadinessCard({
           title="Fullmakt för leverantörsbyte"
           ok={switchUsable}
         >
-          {switchPoa?.explanation ?? "Fullmakt för vald anläggning behöver kontrolleras. Övriga startvillkor verifieras när åtgärden körs."}
+          {(sameCustomer(switchPoa) ? switchPoa?.explanation : null) ?? "Kontrollera att fullmakten gäller för vald anläggning och detta ärende."}
         </ReadinessBox>
         <ReadinessBox
           title="Fullmakt för anläggningsuppgifter"
           ok={facilityUsable}
         >
-          {facilityPoa?.explanation ?? "Fullmakt för vald anläggning behöver kontrolleras. Historiskt godkännande är inte ett aktuellt sändningstillstånd."}
+          {(sameCustomer(facilityPoa) ? facilityPoa?.explanation : null) ?? "Kontrollera att fullmakten gäller för vald anläggning och detta ärende."}
         </ReadinessBox>
-        <ReadinessBox title="Kan skicka kundmail" ok={legalLooksAccepted}>
+        <ReadinessBox title="Juridiska godkännanden" ok={legalLooksAccepted}>
           {legalLooksAccepted
             ? "Juridiska godkännanden finns."
             : "Juridiska godkännanden behöver kontrolleras."}
@@ -216,19 +247,19 @@ export default function CustomerLegalReadinessCard({
           <div>
             <p className="text-sm font-black text-slate-950">Nästa åtgärd</p>
             <p className="mt-1 text-sm font-semibold text-slate-700">
-              {nextDescription}
+              {isPlatformAdmin ? nextDescription : !legalLooksAccepted ? 'Kontrollera kundens juridiska godkännanden.' : !hasPowerOfAttorney ? 'Kontrollera att rätt fullmakt finns för ärendet.' : 'Se kundöversikten för nästa steg i ärendet.'}
             </p>
           </div>
           <Link
-            href={`/admin/customers/${customerId}?tab=data-requests`}
+            href={isPlatformAdmin ? `/admin/customers/${customerId}?tab=data-requests` : `/admin/customers/${customerId}`}
             className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800"
           >
-            {nextLabel}
+            {isPlatformAdmin ? nextLabel : "Visa kundöversikt"}
           </Link>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <details className="rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer text-sm font-semibold text-slate-800">Övriga uppgifter</summary><div className="mt-3 flex flex-wrap gap-2">
         <Pill ok={legalLooksAccepted}>Juridiska godkännanden</Pill>
         <Pill ok={readiness.hasPriceSnapshot}>Prisbild</Pill>
         <Pill ok={hasPowerOfAttorney ? true : facilityPoa?.parentCoverage !== "complete" || facilityPoa.kind === "unknown" ? null : false}>Godkännande av fullmakt</Pill>
@@ -236,25 +267,25 @@ export default function CustomerLegalReadinessCard({
         <Pill ok={readiness.hasMeteringPoint}>Mätpunkt</Pill>
         <Pill ok={readiness.hasGridOwner}>Nätägare</Pill>
         <Pill ok={readiness.hasGridArea}>Nätområde</Pill>
-      </div>
+      </div></details>
 
-      <section className="rounded-3xl border border-slate-200 p-5">
+      <section className="min-w-0 rounded-2xl border border-slate-200 p-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-base font-black text-slate-950">Fullmakt</h3>
-          <Link
-            href={`/admin/customers/${customerId}?tab=documents`}
+          {isPlatformAdmin ? <Link
+            href={`/admin/customers/${customerId}?tab=authorization-documents`}
             className="rounded-2xl border border-slate-300 px-3 py-1.5 text-xs font-black text-slate-800 hover:bg-slate-50"
           >
             Ladda upp signerad PDF
-          </Link>
+          </Link> : null}
         </div>
         {powersOfAttorney.length === 0 ? (
           <p className="mt-3 text-sm font-semibold text-slate-600">
-            Fullmakt saknas – begär signering eller ladda upp signerad PDF.
+            Fullmakt saknas. Be en behörig handläggare registrera kundens fullmakt.
           </p>
         ) : (
-          <div className="mt-4 grid gap-3">
-            {powersOfAttorney.slice(0, 4).map((poa, index) => {
+          <div role="region" aria-label="Fullmakter" tabIndex={0} className="mt-4 grid max-h-96 gap-3 overflow-y-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
+            {powersOfAttorney.map((poa, index) => {
               const status = String(poa.status ?? "").toLowerCase();
               const scopes = poaScopeList(poa);
               const usableForSwitch = sameCustomer(switchPoa) ? switchPoa?.rows.find(row => row.poaId === poa.id)?.usableNow ?? null : null;
@@ -265,12 +296,12 @@ export default function CustomerLegalReadinessCard({
               return (
                 <div key={String(poa.id ?? index)} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-black text-slate-950">{POA_STATUS_LABELS[status] ?? status ?? "Okänd status"}</span>
-                    {method ? <span className="text-xs font-semibold text-slate-600">· {POA_METHOD_LABELS[method] ?? method}</span> : null}
-                    <span className="text-xs font-semibold text-slate-600">· signerad {formatDate(signedAt)}</span>
+                    <span className="font-black text-slate-950">{display(POA_STATUS_LABELS, status, "Status behöver kontrolleras")}</span>
+                    {method ? <span className="text-xs font-semibold text-slate-600">· {display(POA_METHOD_LABELS, method, "Godkännandesätt behöver kontrolleras")}</span> : null}
+                    <span className="text-xs font-semibold text-slate-600">· signerad {formatAdminDateTime(signedAt)}</span>
                   </div>
                   <div className="mt-2 text-xs font-semibold text-slate-600">
-                    Omfattning: {scopes.length > 0 ? scopes.map((scope) => POA_SCOPE_LABELS[scope] ?? scope).join(", ") : "–"}
+                    Omfattning: {scopes.length > 0 ? scopes.map((scope) => display(POA_SCOPE_LABELS, scope, "Omfattning behöver kontrolleras")).join(", ") : "–"}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Pill ok={usableForSwitch} falseLabel="inte användbar">Leverantörsbyte</Pill>
@@ -298,10 +329,10 @@ export default function CustomerLegalReadinessCard({
                 className="rounded-2xl border border-red-100 bg-white p-4"
               >
                 <p className="text-sm font-black text-slate-950">
-                  {blocker.label}
+                  {isPlatformAdmin ? blocker.label : BLOCKER_COPY[blocker.code]?.label ?? "Uppgifter behöver kontrolleras"}
                 </p>
                 <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-                  Åtgärd: {blocker.action}
+                  Åtgärd: {isPlatformAdmin ? blocker.action : BLOCKER_COPY[blocker.code]?.action ?? "Kontrollera kundöversikten för nästa steg."}
                 </p>
               </div>
             ))}
@@ -309,26 +340,23 @@ export default function CustomerLegalReadinessCard({
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <section className="rounded-3xl border border-slate-200 p-5">
-          <h3 className="text-base font-black text-slate-950">
-            Kundens juridiska godkännanden
-          </h3>
-          <div className="mt-4 divide-y divide-slate-100">
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <details id="saved-legal-acceptances" className="min-w-0 rounded-2xl border border-slate-200 p-4">
+          <summary className="cursor-pointer text-base font-semibold text-slate-950">Sparade godkännanden ({acceptances.length})</summary>
+          <div role="region" aria-label="Juridiska godkännanden" tabIndex={0} className="mt-4 max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
             {acceptances.length === 0 ? (
               <p className="text-sm font-semibold text-slate-600">
                 Inga juridiska godkännanden sparade ännu.
               </p>
             ) : null}
             {acceptances.map((acceptance) => (
-              <div key={acceptance.id} className="py-3">
+              <div key={acceptance.id} className="min-w-0 break-words py-3">
                 <p className="text-sm font-black text-slate-950">
-                  {ACCEPTANCE_LABELS[acceptance.acceptance_type] ??
-                    acceptance.acceptance_type}
+                  {display(ACCEPTANCE_LABELS, acceptance.acceptance_type, "Juridiskt godkännande")}
                 </p>
                 <p className="mt-1 text-xs font-semibold text-slate-600">
-                  {formatDate(acceptance.accepted_at)} · källa:{" "}
-                  {acceptance.source}
+                  {formatAdminDateTime(acceptance.accepted_at)}
+                  {isPlatformAdmin ? ` · källa: ${acceptance.source}` : null}
                 </p>
                 {acceptance.reason ? (
                   <p className="mt-1 text-xs font-semibold text-slate-600">
@@ -338,27 +366,26 @@ export default function CustomerLegalReadinessCard({
               </div>
             ))}
           </div>
-        </section>
+        </details>
 
-        <section className="rounded-3xl border border-slate-200 p-5">
+        <section className="min-w-0 rounded-2xl border border-slate-200 p-4">
           <h3 className="text-base font-black text-slate-950">Dokument</h3>
-          <div className="mt-4 divide-y divide-slate-100">
+          <div role="region" aria-label="Kunddokument" tabIndex={0} className="mt-4 max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
             {legalDocuments.length === 0 ? (
               <p className="text-sm font-semibold text-slate-600">
                 Inga dokument sparade på kundkortet ännu.
               </p>
             ) : null}
-            {legalDocuments.slice(0, 8).map((doc) => (
-              <div key={doc.id} className="py-3">
+            {legalDocuments.map((doc) => (
+              <div key={doc.id} className="min-w-0 break-words py-3">
                 <p className="text-sm font-black text-slate-950">
                   {doc.title ??
                     doc.file_name ??
-                    doc.document_type ??
-                    "Dokument"}
+                    DOCUMENT_LABELS[doc.document_type ?? ""] ?? "Dokument"}
                 </p>
                 <p className="mt-1 text-xs font-semibold text-slate-600">
-                  {doc.document_type ?? "kunddokument"} ·{" "}
-                  {formatDate(doc.created_at)}
+                  {display(DOCUMENT_LABELS, doc.document_type ?? "", "Kunddokument")} ·{" "}
+                  {formatAdminDateTime(doc.created_at)}
                 </p>
               </div>
             ))}
@@ -366,31 +393,18 @@ export default function CustomerLegalReadinessCard({
         </section>
       </div>
 
-      <section className="rounded-3xl border border-slate-200 p-5">
-        <h3 className="text-base font-black text-slate-950">
-          Eventkedja per kund
-        </h3>
+      <details id="customer-legal-history" className="min-w-0 rounded-2xl border border-slate-200 p-4">
+        <summary className="cursor-pointer text-base font-semibold text-slate-950">Kundhistorik ({timeline.length})</summary>
         <div className="mt-4 divide-y divide-slate-100">
           {latestTimeline.length === 0 ? (
             <p className="text-sm font-semibold text-slate-600">
               Ingen tidslinje hittades ännu.
             </p>
           ) : null}
-          {latestTimeline.map((event) => (
-            <div
-              key={`${event.source}-${event.source_id}-${event.created_at}`}
-              className="py-3"
-            >
-              <p className="text-sm font-black text-slate-950">
-                {event.title ?? event.event_type ?? "Händelse"}
-              </p>
-              <p className="mt-1 text-xs font-semibold text-slate-600">
-                {formatDate(event.created_at)} · {event.source ?? "händelse"}
-              </p>
-            </div>
-          ))}
+          {latestTimeline.map(renderTimeline)}
         </div>
-      </section>
+        {timeline.length > 10 ? <details className="mt-3 rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer text-sm font-semibold text-slate-800">Tidigare händelser ({timeline.length - 10})</summary><div role="region" aria-label="Tidigare kundhändelser" tabIndex={0} className="mt-2 max-h-80 overflow-y-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">{timeline.slice(10).map(renderTimeline)}</div></details> : null}
+      </details>
     </section>
   );
 }
