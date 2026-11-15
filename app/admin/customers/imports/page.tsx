@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AdminHeader from "@/components/admin/AdminHeader";
-import { requireAdminPageAccess } from "@/lib/admin/guards";
+import { requireAdminPageAccess, isPlatformAdminContext } from "@/lib/admin/guards";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveAdminSelectedCompanyReadScope } from "@/lib/tenant/adminScope";
 import {
@@ -135,6 +135,7 @@ export default async function CustomerImportQueuePage() {
   const access = await requireAdminPageAccess({
     anyOf: ["customers.write", "customers.read", "masterdata.read"],
   });
+  const isPlatformAdmin = isPlatformAdminContext(access);
   const companyScope = await resolveAdminSelectedCompanyReadScope(access);
   const supabase = await createSupabaseServerClient();
   const { data: authResult } = await supabase.auth.getUser();
@@ -219,7 +220,7 @@ export default async function CustomerImportQueuePage() {
             Manuell granskningskö
           </h2>
           <p className="mt-1 text-sm text-slate-700 ">
-            Rader med låg parser-confidence, saknade fält eller
+            Rader med osäker tolkning, saknade fält eller
             dubblettmisstanke skapas inte automatiskt. De ligger kvar här som
             spårbar importkö.
           </p>
@@ -322,12 +323,12 @@ export default async function CustomerImportQueuePage() {
                               {rowStatusLabel(row.status)}
                             </span>
                           </div>
-                          <div className="text-slate-700">
+                          {isPlatformAdmin ? <div className="text-slate-700">
                             Confidence: {row.parser_confidence ?? "—"}%
-                          </div>
+                          </div> : null}
                           <div className="space-y-2 text-slate-700">
                             <div>{issueText(row)}</div>
-                            {row.normalized_payload ? (
+                            {isPlatformAdmin && row.normalized_payload ? (
                               <details className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
                                 <summary className="cursor-pointer font-semibold text-slate-700">
                                   Visa normaliserad rad

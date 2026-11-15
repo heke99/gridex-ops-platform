@@ -70,3 +70,7 @@ Verifierat: profil-/kontakt-/adressformulär visas utan motsvarande masterdata.w
 Verifierat granskningsfynd: customerTabHref innehåller redan hash; redigeringslänken får en separat testad URL-helper och en liten klientlänk som återöppnar panelen även när Next behåller samma profil monterad. Läslänken behåller vanlig profillänk. Utökad filcustody: CustomerProfileEditLink.tsx och lib/admin/customerProfileLinks.ts samt egen browserfixture. Övriga AdminDisclosurePanel-användare och dess implementation ändras inte.
 
 Resultat: 38 tester/4 filer, 13 syntetiska browserkontroller (tolv nya lägen utan overflow/axe-fel plus befintligt avtalsflöde), app-/test-/route-typer, RBAC24 och ratchet godkända. Actions byteidentiska. Lint0 fel, 10 bevisat oförändrade parentfilvarningar. Två oberoende granskare godkänner. Se quality/customer-ui-20261115/PASS8.md. Samma draft-PR utan main-merge/driftsättning.
+
+## Fortsatt granskning 9: importhistorik
+
+Filcustody: imports/page.tsx och eget minne/plan. Normaliserad payload och parsersiffra serverbegränsas till plattformsadmin. Osäker tolkning ersätter tekniskt parser-confidence-språk. Scope/actions behålls. App-typer, lint och 64 befintliga scope-tester godkända; två oberoende granskare godkänner. Ingen ny browser/livekontroll. Antecknings-/livscykelflikens kvarvarande kandidater dokumenterade i eget minne.
