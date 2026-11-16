@@ -68,6 +68,55 @@ CONFIG_TYPES = {'application/vnd.oci.image.config.v1+json',
 class ContentUnavailable(RuntimeError):
     """Safe local-reader failure; never includes subprocess output or content."""
 
+STDERR_FEATURE_PATTERNS = {
+    'permission_denied': rb'\bpermission denied\b',
+    'connect_permission_denied': rb': connect: permission denied\b',
+    'error_while_dialing': rb'transport: error while dialing:',
+    'quoted_connection_error': rb'connection error: desc = "',
+    'failed_to_dial': rb'failed to dial ',
+    'deadline_exceeded': rb'\bdeadline(?: exceeded|exceeded)\b',
+    'connection_refused': rb'\bconnection refused\b',
+    'cannot_access_socket': rb'cannot access socket ',
+    'no_such_file': rb'\bno such file or directory\b',
+    'content_word': rb'\bcontent\b',
+    'not_found': rb'\bnot found\b',
+    'namespace_required': rb'namespace is required:',
+    'failed_precondition': rb'\bfailed precondition\b',
+    'flag_not_defined': rb'flag provided but not defined:',
+    'no_help_topic': rb'no help topic for ',
+    'unknown_command': rb'\bunknown command\b',
+    'unknown_flag': rb'\bunknown flag\b',
+    'grpc_unavailable': rb'rpc error: code = unavailable desc = ',
+    'grpc_deadline_exceeded': rb'rpc error: code = deadlineexceeded desc = ',
+    'not_implemented': rb'\bnot implemented\b',
+    'unknown_service': rb'\bunknown service\b',
+    'invalid_argument': rb'\binvalid argument\b',
+    'eof': rb'\beof\b',
+    'resource_exhausted': rb'\bresource(?: exhausted|exhausted)\b',
+    'broken_pipe': rb'\bbroken pipe\b',
+    'unavailable': rb'\bunavailable\b',
+    'timeout': rb'\b(?:i/o timeout|timed out|timeout)\b',
+    'canceled': rb'\b(?:canceled|cancelled)\b',
+    'unauthenticated': rb'\b(?:unauthenticated|unauthorized)\b',
+    'transport_closing': rb'transport is closing',
+}
+
+
+def stderr_output_features(raw):
+    """Fixed syntax features only, never an authority or root-cause decision."""
+    lowered = raw.lower()
+    return {'byte_count': len(raw), 'ascii': raw.isascii(),
+            **{key: bool(re.search(pattern, lowered)) for key, pattern in STDERR_FEATURE_PATTERNS.items()}}
+
+
+def normalized_stderr_features(value):
+    fields = set(STDERR_FEATURE_PATTERNS) | {'ascii'}
+    if (not isinstance(value, dict) or type(value.get('byte_count')) is not int
+            or not 0 <= value['byte_count'] <= 4096
+            or not all(type(value.get(k)) is bool for k in fields)):
+        return None
+    return {key: value[key] for key in sorted(fields | {'byte_count'})}
+
 
 def stderr_failure_class(raw):
     # These describe recognized error syntax, not an authorization/root-cause verdict.
@@ -75,8 +124,10 @@ def stderr_failure_class(raw):
         return 'grpc_permission_denied'
     if b'rpc error: code = NotFound desc = ' in raw:
         return 'grpc_not_found'
-    if raw.strip().endswith(b': connect: permission denied'):
+    if re.search(rb': connect: permission denied\b', raw):
         return 'socket_permission_denied'
+    if b'rpc error: code = Unavailable desc = ' in raw:
+        return 'grpc_unavailable'
     return 'unclassified'
 
 
@@ -89,7 +140,7 @@ def normalized_command_failure(value, stage=None):
             'version', 'global_help', 'content_help', 'daemon_info', 'content_get'}
             or not (code is None or type(code) is int and -127 <= code <= 255)
             or type(value.get('stderr_class')) is not str or value['stderr_class'] not in {
-                'unclassified', 'grpc_permission_denied', 'grpc_not_found', 'socket_permission_denied'}
+                'unclassified', 'grpc_permission_denied', 'grpc_not_found', 'socket_permission_denied', 'grpc_unavailable'}
             or type(value.get('failure_kind')) is not str or value['failure_kind'] not in {
                 'command_exit', 'os_error', 'wait_timeout', 'deadline_exhausted', 'bounded_reader_refusal'}):
         return None
@@ -138,6 +189,7 @@ def bounded_command(args, limit, timeout):
                 error.command_failure = {
                     'exit_code': exit_code if type(exit_code) is int and -127 <= exit_code <= 255 else None,
                     'stderr_class': stderr_failure_class(stderr_bytes), 'failure_kind': 'command_exit'}
+                error.stderr_features = stderr_output_features(stderr_bytes)
                 raise error
         return bytes(output)
     except (OSError, subprocess.TimeoutExpired) as failure:
@@ -295,6 +347,7 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
     qualified = False
     version_shape = None
     command_failure = None
+    stderr_features = None
     try:
         descriptor = image.get('Descriptor')
         if (not isinstance(descriptor, dict) or descriptor.get('digest') != pin.manifest
@@ -352,6 +405,7 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
     except Exception as error:
         if isinstance(error, ContentUnavailable):
             command_failure = normalized_command_failure(getattr(error, 'command_failure', None))
+            stderr_features = normalized_stderr_features(getattr(error, 'stderr_features', None))
         # Normalize only fixed internal codes. Arbitrary exception messages,
         # JSON content, subprocess output and stderr never reach diagnostics.
         reason = 'local_reader_failed'
@@ -376,6 +430,8 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
                 diagnostic['version_shape'] = version_shape
             if command_failure is not None:
                 diagnostic['command_failure'] = command_failure
+            if stderr_features is not None:
+                diagnostic['stderr_features'] = stderr_features
 
 
 def verify(image, pin, stage="unspecified", reference=None, run=None, reader=None):
@@ -407,6 +463,7 @@ def verify(image, pin, stage="unspecified", reference=None, run=None, reader=Non
             repo_matches = False
         version_shape = proof_diagnostic.pop('version_shape', None)
         command_failure = proof_diagnostic.pop('command_failure', None)
+        stderr_features = proof_diagnostic.pop('stderr_features', None)
         error = Refused('image_identity_mismatch')
         error.diagnostic = {
             'image': pin.name if pin in PINS else 'unknown',
@@ -429,6 +486,8 @@ def verify(image, pin, stage="unspecified", reference=None, run=None, reader=Non
             error.diagnostic['local_reader_version_shape'] = version_shape
         if command_failure is not None:
             error.diagnostic['local_reader_command_failure'] = command_failure
+        if stderr_features is not None:
+            error.diagnostic['local_reader_stderr_features'] = stderr_features
         if pin in PINS:
             error.diagnostic['expected'] = {
                 'config': pin.config, 'index': pin.index, 'manifest': pin.manifest}

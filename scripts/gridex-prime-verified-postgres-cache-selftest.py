@@ -731,6 +731,76 @@ class ReaderCommandFailureTests(unittest.TestCase):
         self.assertEqual(detail, {'exit_code': None, 'stderr_class': 'unclassified', 'failure_kind': 'os_error'})
         self.assertNotIn('SECRET', json.dumps(detail))
 
+class WrappedReaderErrorTests(unittest.TestCase):
+    def test_known_wrapped_and_rebased_forms_expose_only_fixed_features(self):
+        self.assertTrue(callable(getattr(cache, 'stderr_output_features', None)), 'stderr features missing')
+        fixtures = [
+            (b'ctr: connection error: desc = "transport: Error while dialing: dial unix /SECRET: connect: permission denied"',
+             ['permission_denied', 'connect_permission_denied', 'error_while_dialing', 'quoted_connection_error']),
+            (b'ctr: failed to dial "/SECRET": context deadline exceeded', ['failed_to_dial', 'deadline_exceeded']),
+            (b'ctr: dial unix /SECRET: connect: connection refused', ['connection_refused']),
+            (b'ctr: cannot access socket /SECRET: stat /SECRET: no such file or directory',
+             ['cannot_access_socket', 'no_such_file']),
+            (b'ctr: content sha256:' + b'a' * 64 + b': not found', ['content_word', 'not_found']),
+            (b'ctr: namespace is required: failed precondition', ['namespace_required', 'failed_precondition']),
+            (b'flag provided but not defined: -SECRET', ['flag_not_defined']),
+            (b'No help topic for SECRET', ['no_help_topic']),
+            (b'rpc error: code = Unavailable desc = SECRET', ['grpc_unavailable']),
+            (b'rpc error: code = DeadlineExceeded desc = SECRET', ['grpc_deadline_exceeded']),
+            (b'ctr: not implemented: unknown service SECRET', ['not_implemented', 'unknown_service']),
+            (b'ctr: invalid argument: unexpected EOF', ['invalid_argument', 'eof']),
+            (b'unknown command SECRET; unknown flag SECRET', ['unknown_command', 'unknown_flag']),
+            (b'ctr: resource exhausted: write SECRET: broken pipe', ['resource_exhausted', 'broken_pipe']),
+            (b'ctr: unavailable: operation timed out', ['unavailable', 'timeout']),
+            (b'ctr: context canceled: transport is closing', ['canceled', 'transport_closing']),
+            (b'ctr: unauthorized: unauthenticated', ['unauthenticated'])]
+        for raw, expected_true in fixtures:
+            with self.subTest(features=expected_true):
+                features = cache.stderr_output_features(raw)
+                for key in expected_true: self.assertIs(features.get(key), True)
+                self.assertEqual(features['byte_count'], len(raw))
+                self.assertTrue(all(type(v) is bool for k, v in features.items() if k != 'byte_count'))
+                self.assertNotIn('SECRET', json.dumps(features))
+                self.assertNotIn('sha256:', json.dumps(features))
+                self.assertLess(len(json.dumps(features)), 1200)
+        unknown = cache.stderr_output_features(b'SECRET\xff arbitrary')
+        self.assertFalse(unknown['ascii'])
+        self.assertTrue(all(v is False for k, v in unknown.items() if k not in ['byte_count', 'ascii']))
+
+    def test_wrapped_connect_and_grpc_unavailable_have_known_safe_classes(self):
+        self.assertEqual(cache.stderr_failure_class(
+            b'ctr: connection error: desc = "dial unix /SECRET: connect: permission denied"'),
+            'socket_permission_denied')
+        self.assertEqual(cache.stderr_failure_class(b'rpc error: code = Unavailable desc = SECRET'), 'grpc_unavailable')
+        self.assertEqual(cache.stderr_failure_class(b'ctr: connect: permission deniedness'), 'unclassified')
+
+    def test_native_manifest_error_features_propagate_without_raw_content(self):
+        import sys
+        pin, image, reader, run = LocalContentTests().fixture()
+        raw = b'ctr: connection error: desc = "transport: Error while dialing: dial unix /SECRET: connect: permission denied"'
+        real = cache.LocalContentReader(command=lambda *args: cache.bounded_command(
+            [sys.executable, '-c', 'import sys;sys.stderr.buffer.write(' + repr(raw) + ');sys.exit(1)'], 64, 2))
+        real.executable = '/usr/bin/ctr'; reader.read = real.read
+        with self.assertRaises(cache.Refused) as caught:
+            cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+        self.assertEqual(caught.exception.diagnostic['local_config_proof'], {'stage': 'manifest', 'reason': 'local_reader_failed'})
+        features = caught.exception.diagnostic.get('local_reader_stderr_features')
+        self.assertIsInstance(features, dict)
+        self.assertTrue(features['connect_permission_denied']); self.assertTrue(features['quoted_connection_error'])
+        self.assertEqual(caught.exception.diagnostic['local_reader_command_failure']['exit_code'], 1)
+        self.assertNotIn('SECRET', json.dumps(caught.exception.diagnostic))
+        self.assertEqual(str(caught.exception), 'image_identity_mismatch'); run.assert_not_called()
+
+    def test_arbitrary_feature_values_and_oversize_counts_are_not_logged(self):
+        pin, image, reader, run = LocalContentTests().fixture()
+        error = cache.ContentUnavailable('local_reader_failed')
+        error.stderr_features = {'SECRET': 'SECRET', 'byte_count': 999999, 'ascii': 'SECRET'}
+        reader.read = Mock(side_effect=error)
+        with self.assertRaises(cache.Refused) as caught:
+            cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+        self.assertNotIn('local_reader_stderr_features', caught.exception.diagnostic)
+        self.assertNotIn('SECRET', json.dumps(caught.exception.diagnostic))
+
 
 if __name__ == '__main__':
     unittest.main()
