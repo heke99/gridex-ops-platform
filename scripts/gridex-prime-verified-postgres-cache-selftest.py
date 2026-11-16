@@ -476,6 +476,69 @@ class LocalContentTests(unittest.TestCase):
             self.assertIn(diagnostic['reason'], ['validation_failed', 'local_reader_failed'])
             self.assertLess(len(json.dumps(diagnostic)), 150)
 
+class CtrCapabilityTests(unittest.TestCase):
+    def command_for(self, banner, global_help=None, content_help=None):
+        def command(args, limit, timeout):
+            if args[-1] == '--version':
+                return banner
+            if args[-2:] == ['get', '--help']:
+                return content_help if content_help is not None else b'ctr content get [command options] <digest>'
+            if args[-1] == '--help':
+                return global_help if global_help is not None else b'--address --namespace --timeout --connect-timeout'
+            raise AssertionError('capability check must not read content or invoke Docker')
+        return command
+
+    def test_official_docker_package_and_upstream_banners_qualify(self):
+        from unittest.mock import patch
+        for banner in [b'ctr containerd.io 1.7.24 88bf19b2105c8b17560993bee28a01ddc2f97182\n',
+                       b'ctr containerd.io v2.1.0 abc\n',
+                       b'ctr github.com/containerd/containerd v1.7.24 abc\n',
+                       b'ctr github.com/containerd/containerd/v2 v2.1.0 abc\n']:
+            with self.subTest(banner=banner), patch.object(cache.shutil, 'which', return_value='/usr/bin/ctr'):
+                cache.LocalContentReader(command=self.command_for(banner)).qualify()
+
+    def test_lookalike_unsupported_and_malformed_banners_fail_with_safe_version_code(self):
+        from unittest.mock import patch
+        for banner in [b'ctr containerd.io.evil 2.1.0 abc\n', b'ctr evilcontainerd.io 2.1.0 abc\n',
+                       b'ctr containerd.io 3.0.0 abc\n', b'ctr containerd.io 2.1 abc\n',
+                       b'ctr containerd.io 2.1.0oops abc\n', b'ctr containerd.io 2.1.0 abc\nSECRET\n',
+                       b'ctr containerd.io 0.1.0 abc\n', b'ctr containerd.io SECRET\n']:
+            with self.subTest(banner=banner), patch.object(cache.shutil, 'which', return_value='/usr/bin/ctr'):
+                with self.assertRaises(cache.ContentUnavailable) as caught:
+                    cache.LocalContentReader(command=self.command_for(banner)).qualify()
+                self.assertEqual(str(caught.exception), 'local_reader_version_unsupported')
+
+    def test_each_required_flag_and_content_help_have_precise_safe_failure_codes(self):
+        from unittest.mock import patch
+        flags = [b'--address', b'--namespace', b'--timeout', b'--connect-timeout']
+        with patch.object(cache.shutil, 'which', return_value='/usr/bin/ctr'):
+            for missing in flags:
+                help_text = b' '.join(f for f in flags if f != missing) + b' SECRET'
+                with self.assertRaises(cache.ContentUnavailable) as caught:
+                    cache.LocalContentReader(command=self.command_for(
+                        b'ctr containerd.io 2.1.0 abc\n', global_help=help_text)).qualify()
+                self.assertEqual(str(caught.exception), 'local_reader_flags_missing')
+            with self.assertRaises(cache.ContentUnavailable) as caught:
+                cache.LocalContentReader(command=self.command_for(
+                    b'ctr containerd.io 2.1.0 abc\n', content_help=b'SECRET unsupported')).qualify()
+            self.assertEqual(str(caught.exception), 'local_reader_content_get_unsupported')
+
+    def test_precise_capability_codes_reach_safe_refusal_diagnostic(self):
+        from unittest.mock import patch
+        for banner, global_help, content_help, reason in [
+                (b'SECRET', None, None, 'local_reader_version_unsupported'),
+                (b'ctr containerd.io 2.1.0 abc\n', b'SECRET', None, 'local_reader_flags_missing'),
+                (b'ctr containerd.io 2.1.0 abc\n', None, b'SECRET', 'local_reader_content_get_unsupported')]:
+            pin, image, _, run = LocalContentTests().fixture()
+            reader = cache.LocalContentReader(command=self.command_for(banner, global_help, content_help))
+            with patch.object(cache.shutil, 'which', return_value='/usr/bin/ctr'):
+                with self.assertRaises(cache.Refused) as caught:
+                    cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+            self.assertEqual(caught.exception.diagnostic['local_config_proof'], {
+                'stage': 'capability', 'reason': reason})
+            self.assertNotIn('SECRET', json.dumps(caught.exception.diagnostic))
+            run.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()

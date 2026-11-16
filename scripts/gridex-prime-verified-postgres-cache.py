@@ -143,15 +143,17 @@ class LocalContentReader:
         version = self.command([self.executable, '--version'], 4096, 5)
         # ctr is an unstable administrative CLI: require known major versions
         # plus the actual installed global flags and content-get capability.
-        if not re.fullmatch(rb'ctr github\.com/containerd/containerd(?:/v2)? v?[12]\.[0-9]+\.[0-9]+[^\r\n]*\n?', version):
-            raise ContentUnavailable('local_reader_unsupported')
+        if not re.fullmatch(rb'ctr (?:github\.com/containerd/containerd(?:/v2)?|containerd\.io) '
+                            rb'v?[12]\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z][0-9A-Za-z.+-]*)?'
+                            rb'(?: [0-9A-Za-z._+-]*)?\n?', version):
+            raise ContentUnavailable('local_reader_version_unsupported')
         help_text = self.command([self.executable, '--help'], 65536, 5)
         if not all(re.search(rb'(?<![\w-])' + flag + rb'(?![\w-])', help_text)
                    for flag in [b'--address', b'--namespace', b'--timeout', b'--connect-timeout']):
-            raise ContentUnavailable('local_reader_unsupported')
+            raise ContentUnavailable('local_reader_flags_missing')
         get_help = self.command([self.executable, 'content', 'get', '--help'], 16384, 5)
         if not re.search(rb'\bcontent\s+get\b', get_help):
-            raise ContentUnavailable('local_reader_unsupported')
+            raise ContentUnavailable('local_reader_content_get_unsupported')
 
     def info(self):
         return strict_json(self.command(DOCKER + ['info', '--format', '{"ID":{{json .ID}},"Containerd":{{json .Containerd}}}'], 262144, 10))
@@ -254,7 +256,9 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
         reason = 'local_reader_failed'
         codes = {'local_reader_timeout', 'local_reader_overflow', 'local_reader_failed',
                  'local_reader_cleanup_timeout', 'local_reader_missing',
-                 'local_reader_unsupported', 'local_reader_invalid_digest',
+                 'local_reader_unsupported', 'local_reader_version_unsupported',
+                 'local_reader_flags_missing', 'local_reader_content_get_unsupported',
+                 'local_reader_invalid_digest',
                  'local_daemon_binding_invalid'}
         if (isinstance(error, ContentUnavailable) and len(error.args) == 1
                 and type(error.args[0]) is str and error.args[0] in codes):
