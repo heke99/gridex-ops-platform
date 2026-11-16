@@ -646,6 +646,91 @@ class CtrContainerdPackageTests(unittest.TestCase):
         self.assertNotIn('3.0.0', json.dumps(caught.exception.diagnostic))
         run.assert_not_called()
 
+class ReaderCommandFailureTests(unittest.TestCase):
+    def test_bounded_nonzero_exit_classifies_known_stderr_without_exposing_it(self):
+        import sys
+        for stderr, expected in [
+                ('ctr: rpc error: code = PermissionDenied desc = SECRET', 'grpc_permission_denied'),
+                ('ctr: rpc error: code = NotFound desc = SECRET', 'grpc_not_found'),
+                ('ctr: failed to dial SECRET: connect: permission denied\n', 'socket_permission_denied'),
+                ('SECRET generic not found or permission denied', 'unclassified')]:
+            with self.subTest(expected=expected):
+                with self.assertRaises(cache.ContentUnavailable) as caught:
+                    cache.bounded_command([sys.executable, '-c',
+                        'import sys; sys.stderr.write(' + repr(stderr) + '); sys.exit(7)'], 64, 2)
+                self.assertEqual(str(caught.exception), 'local_reader_failed')
+                detail = getattr(caught.exception, 'command_failure', None)
+                self.assertIsInstance(detail, dict)
+                self.assertEqual(detail, {'exit_code': 7, 'stderr_class': expected,
+                                          'failure_kind': 'command_exit'})
+                self.assertNotIn('SECRET', json.dumps(detail))
+
+    def test_command_stage_is_local_constant_and_argv_budgets_are_unchanged(self):
+        from unittest.mock import patch
+        for stage in ['version', 'global_help', 'content_help', 'daemon_info', 'content_get']:
+            calls = []
+            def command(args, limit, timeout):
+                calls.append((args, limit, timeout))
+                if stage != 'version' and args[-1] == '--version':
+                    return b'ctr containerd 2.2.0\n'
+                if stage == 'content_help' and args == ['/usr/bin/ctr', '--help']:
+                    return b'--address --namespace --timeout --connect-timeout'
+                raise cache.ContentUnavailable('local_reader_failed')
+            reader = cache.LocalContentReader(command=command)
+            with patch.object(cache.shutil, 'which', return_value='/usr/bin/ctr'):
+                with self.assertRaises(cache.ContentUnavailable) as caught:
+                    if stage == 'daemon_info': reader.info()
+                    elif stage == 'content_get':
+                        reader.executable = '/usr/bin/ctr'
+                        reader.read('sha256:' + 'a' * 64, ('daemon', '/run/test.sock', 'moby'), 99)
+                    else: reader.qualify()
+            detail = getattr(caught.exception, 'command_failure', None)
+            self.assertIsInstance(detail, dict)
+            self.assertEqual(detail, {'command_stage': stage, 'exit_code': None,
+                                      'stderr_class': 'unclassified', 'failure_kind': 'bounded_reader_refusal'})
+            expected_budget = {'version': (4096, 5), 'global_help': (65536, 5),
+                               'content_help': (16384, 5), 'daemon_info': (262144, 10), 'content_get': (99, 12)}
+            self.assertEqual(calls[-1][1:], expected_budget[stage])
+
+    def test_manifest_reader_failure_propagates_only_safe_command_metadata(self):
+        import sys
+        pin, image, reader, run = LocalContentTests().fixture()
+        real_reader = cache.LocalContentReader(command=lambda *args: cache.bounded_command(
+            [sys.executable, '-c', 'import sys;sys.stderr.write("ctr: rpc error: code = NotFound desc = SECRET");sys.exit(9)'], 64, 2))
+        real_reader.executable = '/usr/bin/ctr'; reader.read = real_reader.read
+        with self.assertRaises(cache.Refused) as caught:
+            cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+        detail = caught.exception.diagnostic
+        self.assertEqual(detail['local_config_proof'], {'stage': 'manifest', 'reason': 'local_reader_failed'})
+        self.assertEqual(detail.get('local_reader_command_failure'), {
+            'command_stage': 'content_get', 'exit_code': 9, 'stderr_class': 'grpc_not_found',
+            'failure_kind': 'command_exit'})
+        self.assertEqual(str(caught.exception), 'image_identity_mismatch')
+        self.assertNotIn('SECRET', json.dumps(detail)); run.assert_not_called()
+
+    def test_arbitrary_exception_metadata_cannot_escape(self):
+        pin, image, reader, run = LocalContentTests().fixture()
+        error = cache.ContentUnavailable('local_reader_failed')
+        error.command_failure = {'command_stage': 'SECRET', 'exit_code': 999999,
+                                 'stderr_class': 'SECRET', 'failure_kind': 'SECRET', 'SECRET': 'SECRET'}
+        reader.read = Mock(side_effect=error)
+        with self.assertRaises(cache.Refused) as caught:
+            cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+        self.assertNotIn('local_reader_command_failure', caught.exception.diagnostic)
+        self.assertNotIn('SECRET', json.dumps(caught.exception.diagnostic))
+
+    def test_spawn_oserror_reports_no_path_or_exception_text(self):
+        from unittest.mock import patch
+        import errno
+        with patch.object(cache.subprocess, 'Popen', side_effect=PermissionError(errno.EACCES, 'SECRET', '/SECRET')):
+            with self.assertRaises(cache.ContentUnavailable) as caught:
+                cache.bounded_command(['fixture'], 64, 2)
+        self.assertEqual(str(caught.exception), 'local_reader_failed')
+        detail = getattr(caught.exception, 'command_failure', None)
+        self.assertIsInstance(detail, dict)
+        self.assertEqual(detail, {'exit_code': None, 'stderr_class': 'unclassified', 'failure_kind': 'os_error'})
+        self.assertNotIn('SECRET', json.dumps(detail))
+
 
 if __name__ == '__main__':
     unittest.main()

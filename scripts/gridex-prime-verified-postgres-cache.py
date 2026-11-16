@@ -69,12 +69,41 @@ class ContentUnavailable(RuntimeError):
     """Safe local-reader failure; never includes subprocess output or content."""
 
 
+def stderr_failure_class(raw):
+    # These describe recognized error syntax, not an authorization/root-cause verdict.
+    if b'rpc error: code = PermissionDenied desc = ' in raw:
+        return 'grpc_permission_denied'
+    if b'rpc error: code = NotFound desc = ' in raw:
+        return 'grpc_not_found'
+    if raw.strip().endswith(b': connect: permission denied'):
+        return 'socket_permission_denied'
+    return 'unclassified'
+
+
+def normalized_command_failure(value, stage=None):
+    if not isinstance(value, dict):
+        return None
+    stage = stage if stage is not None else value.get('command_stage')
+    code = value.get('exit_code')
+    if (type(stage) is not str or stage not in {
+            'version', 'global_help', 'content_help', 'daemon_info', 'content_get'}
+            or not (code is None or type(code) is int and -127 <= code <= 255)
+            or type(value.get('stderr_class')) is not str or value['stderr_class'] not in {
+                'unclassified', 'grpc_permission_denied', 'grpc_not_found', 'socket_permission_denied'}
+            or type(value.get('failure_kind')) is not str or value['failure_kind'] not in {
+                'command_exit', 'os_error', 'wait_timeout', 'deadline_exhausted', 'bounded_reader_refusal'}):
+        return None
+    return {'command_stage': stage, 'exit_code': code,
+            'stderr_class': value['stderr_class'], 'failure_kind': value['failure_kind']}
+
+
 def bounded_command(args, limit, timeout):
     """Read bounded local command streams and always reap our own child."""
     deadline = time.monotonic() + timeout
     child = None
     output = bytearray()
     stderr_size = 0
+    stderr_bytes = bytearray()
     try:
         child = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  stdin=subprocess.DEVNULL)
@@ -96,12 +125,26 @@ def bounded_command(args, limit, timeout):
                         output.extend(chunk)
                     else:
                         stderr_size += len(chunk)
+                        stderr_bytes.extend(chunk)
             remaining = deadline - time.monotonic()
-            if remaining <= 0 or child.wait(timeout=remaining) != 0:
-                raise ContentUnavailable('local_reader_failed')
+            if remaining <= 0:
+                error = ContentUnavailable('local_reader_failed')
+                error.command_failure = {'exit_code': None, 'stderr_class': 'unclassified',
+                                         'failure_kind': 'deadline_exhausted'}
+                raise error
+            exit_code = child.wait(timeout=remaining)
+            if exit_code != 0:
+                error = ContentUnavailable('local_reader_failed')
+                error.command_failure = {
+                    'exit_code': exit_code if type(exit_code) is int and -127 <= exit_code <= 255 else None,
+                    'stderr_class': stderr_failure_class(stderr_bytes), 'failure_kind': 'command_exit'}
+                raise error
         return bytes(output)
-    except (OSError, subprocess.TimeoutExpired):
-        raise ContentUnavailable('local_reader_failed') from None
+    except (OSError, subprocess.TimeoutExpired) as failure:
+        error = ContentUnavailable('local_reader_failed')
+        error.command_failure = {'exit_code': None, 'stderr_class': 'unclassified',
+                                 'failure_kind': 'os_error' if isinstance(failure, OSError) else 'wait_timeout'}
+        raise error from None
     finally:
         if child is not None:
             try:
@@ -178,11 +221,21 @@ class LocalContentReader:
         self.command = command
         self.executable = None
 
+    def _command(self, stage, args, limit, timeout):
+        try:
+            return self.command(args, limit, timeout)
+        except ContentUnavailable as error:
+            detail = normalized_command_failure(getattr(error, 'command_failure', None), stage)
+            error.command_failure = detail if detail is not None else {
+                'command_stage': stage, 'exit_code': None, 'stderr_class': 'unclassified',
+                'failure_kind': 'bounded_reader_refusal'}
+            raise
+
     def qualify(self):
         self.executable = shutil.which('ctr')
         if not self.executable or not os.path.isabs(self.executable):
             raise ContentUnavailable('local_reader_missing')
-        version = self.command([self.executable, '--version'], 4096, 5)
+        version = self._command('version', [self.executable, '--version'], 4096, 5)
         # ctr is an unstable administrative CLI: require known major versions
         # plus the actual installed global flags and content-get capability.
         if not re.fullmatch(rb'ctr (?:github\.com/containerd/containerd(?:/v2)?|containerd\.io|containerd) '
@@ -191,16 +244,16 @@ class LocalContentReader:
             error = ContentUnavailable('local_reader_version_unsupported')
             error.version_shape = version_output_shape(version)
             raise error
-        help_text = self.command([self.executable, '--help'], 65536, 5)
+        help_text = self._command('global_help', [self.executable, '--help'], 65536, 5)
         if not all(re.search(rb'(?<![\w-])' + flag + rb'(?![\w-])', help_text)
                    for flag in [b'--address', b'--namespace', b'--timeout', b'--connect-timeout']):
             raise ContentUnavailable('local_reader_flags_missing')
-        get_help = self.command([self.executable, 'content', 'get', '--help'], 16384, 5)
+        get_help = self._command('content_help', [self.executable, 'content', 'get', '--help'], 16384, 5)
         if not re.search(rb'\bcontent\s+get\b', get_help):
             raise ContentUnavailable('local_reader_content_get_unsupported')
 
     def info(self):
-        return strict_json(self.command(DOCKER + ['info', '--format', '{"ID":{{json .ID}},"Containerd":{{json .Containerd}}}'], 262144, 10))
+        return strict_json(self._command('daemon_info', DOCKER + ['info', '--format', '{"ID":{{json .ID}},"Containerd":{{json .Containerd}}}'], 262144, 10))
 
     def is_socket(self, address):
         return stat.S_ISSOCK(os.stat(address).st_mode)
@@ -209,7 +262,7 @@ class LocalContentReader:
         if not self.executable or not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
             raise ContentUnavailable('local_reader_invalid_digest')
         _, address, namespace = binding
-        return self.command([self.executable, '--address', address, '--namespace', namespace,
+        return self._command('content_get', [self.executable, '--address', address, '--namespace', namespace,
                              '--timeout', '10s', '--connect-timeout', '3s',
                              'content', 'get', digest], limit, 12)
 
@@ -241,6 +294,7 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
     reason = 'validation_failed'
     qualified = False
     version_shape = None
+    command_failure = None
     try:
         descriptor = image.get('Descriptor')
         if (not isinstance(descriptor, dict) or descriptor.get('digest') != pin.manifest
@@ -296,6 +350,8 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
         qualified = daemon_binding(reader.info(), reader) == binding
         return qualified
     except Exception as error:
+        if isinstance(error, ContentUnavailable):
+            command_failure = normalized_command_failure(getattr(error, 'command_failure', None))
         # Normalize only fixed internal codes. Arbitrary exception messages,
         # JSON content, subprocess output and stderr never reach diagnostics.
         reason = 'local_reader_failed'
@@ -318,6 +374,8 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
             diagnostic.update({'stage': stage, 'reason': reason})
             if version_shape is not None:
                 diagnostic['version_shape'] = version_shape
+            if command_failure is not None:
+                diagnostic['command_failure'] = command_failure
 
 
 def verify(image, pin, stage="unspecified", reference=None, run=None, reader=None):
@@ -348,6 +406,7 @@ def verify(image, pin, stage="unspecified", reference=None, run=None, reader=Non
         except (TypeError, ValueError):
             repo_matches = False
         version_shape = proof_diagnostic.pop('version_shape', None)
+        command_failure = proof_diagnostic.pop('command_failure', None)
         error = Refused('image_identity_mismatch')
         error.diagnostic = {
             'image': pin.name if pin in PINS else 'unknown',
@@ -368,6 +427,8 @@ def verify(image, pin, stage="unspecified", reference=None, run=None, reader=Non
                 error.diagnostic['local_config_proof'] = proof_diagnostic
         if version_shape is not None:
             error.diagnostic['local_reader_version_shape'] = version_shape
+        if command_failure is not None:
+            error.diagnostic['local_reader_command_failure'] = command_failure
         if pin in PINS:
             error.diagnostic['expected'] = {
                 'config': pin.config, 'index': pin.index, 'manifest': pin.manifest}
