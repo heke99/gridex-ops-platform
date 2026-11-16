@@ -91,7 +91,7 @@ it('offers invoice navigation only with the destination read permission', () => 
   expect(renderToStaticMarkup(React.createElement(BillingCard, { ...props, canReadBilling: true }))).toContain('href="/admin/billing?customer=synthetic-customer"')
 })
 it('keeps readings visible but hides an unauthorized customer-site destination', () => {
-  const values = [{ id: 'synthetic-value', customer_id: 'synthetic-customer', site_id: null, metering_point_id: null, value_kwh: 12, reading_type: 'consumption', read_at: '2026-11-15T12:00:00Z' }] as MeteringValueRow[]
+  const values: MeteringValueRow[] = [{ id: 'synthetic-value', customer_id: 'synthetic-customer', site_id: null, metering_point_id: 'synthetic-point', source_request_id: null, grid_owner_id: null, value_kwh: 12, reading_type: 'consumption', quality_code: null, read_at: '2026-11-15T12:00:00Z', period_start: null, period_end: null, source_system: 'synthetic', raw_payload: {}, created_at: '2026-11-15T12:00:00Z', created_by: null }]
   const props = { requests: [], values, query: '', businessData: { customers: [], sites: [], meters: [] } }
   const reader = renderToStaticMarkup(React.createElement(MeteringView, { ...props, canReadCustomer: false }))
   expect(reader).toContain('12 kWh')

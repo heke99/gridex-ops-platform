@@ -25,7 +25,7 @@ const readerPermissions: Record<string, string> = {
   'operations/tasks': 'metering.read', outbound: 'switching.read', billing: 'billing_underlay.read',
   'webhooks/deliveries': 'integrations.read', 'website-applications': 'customers.read',
 }
-const context = () => ({ userId: 'staff-a', companyId: selectedCompanyId, permissions, roles: [], isPlatformAdmin: platform })
+const context = () => ({ userId: 'staff-a', companyId: selectedCompanyId, permissions, roles: [] as string[], isPlatformAdmin: platform })
 const isPlatform = (value: { isPlatformAdmin?: boolean }) => value.isPlatformAdmin === true
 const guard = async (requirement: Requirement) => {
   guardCalls.push({ requirement })
