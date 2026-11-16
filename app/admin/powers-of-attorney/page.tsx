@@ -30,12 +30,12 @@ export default async function PowersOfAttorneyPage({ searchParams }: { searchPar
     return `/admin/powers-of-attorney?${next}`
   }
   return <div className="min-h-screen bg-slate-50">
-    <AdminHeader title="Fullmakter" subtitle={admin.isPlatformAdmin ? 'Sök fullmakter och originaldokument per tenant och kund.' : 'Era kunders fullmakter, godkännanden och originaldokument.'} userEmail={admin.email} />
+    <AdminHeader title="Fullmakter" subtitle={admin.isPlatformAdmin ? 'Sök fullmakter och originaldokument per bolag och kund.' : 'Era kunders fullmakter, godkännanden och originaldokument.'} userEmail={admin.email} />
     <main className="space-y-6 p-6 lg:p-8">
       <form method="get" className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 md:grid-cols-4">
-        {admin.isPlatformAdmin && <label className="text-sm font-semibold text-slate-700">Tenant
+        {admin.isPlatformAdmin && <label className="text-sm font-semibold text-slate-700">Bolag
           <select name="company" defaultValue={filters.company ?? ''} className="mt-2 block w-full rounded-xl border border-slate-300 p-3">
-            <option value="">Alla tenants</option>{result.companies.map((company) => <option key={text(company.id)} value={text(company.id)}>{text(company.legal_name) || text(company.name)} {text(company.org_number)}</option>)}
+            <option value="">Alla bolag</option>{result.companies.map((company) => <option key={text(company.id)} value={text(company.id)}>{text(company.legal_name) || text(company.name)} {text(company.org_number)}</option>)}
           </select>
         </label>}
         <label className="text-sm font-semibold text-slate-700">Kundnamn eller kundnummer
@@ -47,15 +47,15 @@ export default async function PowersOfAttorneyPage({ searchParams }: { searchPar
         <div className="flex items-end gap-3"><button className="rounded-xl bg-slate-950 px-5 py-3 font-semibold text-white" type="submit">Sök fullmakter</button><Link href="/admin/powers-of-attorney" className="py-3 text-sm underline">Rensa</Link></div>
       </form>
       <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-        <table className="min-w-full text-left text-sm"><caption className="sr-only">Fullmakter för valda tenants och kunder</caption>
-          <thead className="bg-slate-100 text-slate-700"><tr>{['Tenant', 'Kund', 'Fullmakt och verifikatsnummer', 'Status och godkännande', 'Dokument'].map((heading) => <th scope="col" className="px-5 py-4" key={heading}>{heading}</th>)}</tr></thead>
-          <tbody className="divide-y divide-slate-200">{result.powers.length === 0 && <tr><td colSpan={5} className="px-5 py-8 text-slate-600">Inga fullmakter matchar sökningen.</td></tr>}
+        <table className="min-w-full text-left text-sm"><caption className="sr-only">Fullmakter för valda kunder</caption>
+          <thead className="bg-slate-100 text-slate-700"><tr>{[...(admin.isPlatformAdmin ? ['Bolag'] : []), 'Kund', 'Fullmakt och verifikatsnummer', 'Status och godkännande', 'Dokument'].map((heading) => <th scope="col" className="px-5 py-4" key={heading}>{heading}</th>)}</tr></thead>
+          <tbody className="divide-y divide-slate-200">{result.powers.length === 0 && <tr><td colSpan={admin.isPlatformAdmin ? 5 : 4} className="px-5 py-8 text-slate-600">Inga fullmakter matchar sökningen.</td></tr>}
             {result.powers.map((power) => {
               const poa = power as Record<string, unknown>, customer = object(power.customer), company = object(power.company)
               const proof = poaMailEvidence(poa), status = derivePowerOfAttorneyLifecycleStatus(poa)
               const id = text(poa.id), documentUrl = `/api/admin/powers-of-attorney/${encodeURIComponent(id)}/document`
               return <tr key={id} className="align-top">
-                <td className="px-5 py-4">{text(company.legal_name) || text(company.name) || '—'}</td>
+                {admin.isPlatformAdmin ? <td className="px-5 py-4">{text(company.legal_name) || text(company.name) || '—'}</td> : null}
                 <td className="px-5 py-4"><Link className="font-semibold underline" href={`/admin/customers/${encodeURIComponent(text(poa.customer_id))}`}>{text(customer.company_name) || text(customer.full_name) || 'Öppna kund'}</Link><div className="mt-1 text-slate-600">{text(customer.customer_number)}</div></td>
                 <td className="max-w-md px-5 py-4"><div>{text(poa.reference) || 'Fullmakt'}</div><div className="mt-1 break-all text-slate-600">Verifikatsnummer: {proof.verificationReference ?? 'Behöver kompletteras'}</div>
                   {power.reviewRequests.map((review) => {

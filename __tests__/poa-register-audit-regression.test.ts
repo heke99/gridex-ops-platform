@@ -81,7 +81,7 @@ it.each([
   const db = database(powers)
   const result = await readPoaRegister(db.client, admin, {})
   expect(result.powers).toHaveLength(1)
-  expect(result.powers[0].id).toBe('poa-a')
+  expect(result.powers[0]).toMatchObject({ id: 'poa-a' })
   expect(hasLegalPoaAcceptance(result.powers[0])).toBe(true)
   expect(derivePowerOfAttorneyLifecycleStatus(result.powers[0])).toBe('valid')
   expect(db.reads.find(read => read.table === 'powers_of_attorney')?.filters).toContainEqual(['company_id', companyId])
@@ -115,4 +115,15 @@ it('does not infer acceptance from accepted status without evidence or a stored 
   expect(html).not.toContain('Registrerat godkännande')
   // A stored document remains available under its separate authorized endpoint.
   expect(html).toContain('/api/admin/powers-of-attorney/poa-a/document')
+})
+
+it('keeps company columns and matching empty-state span specific to the platform register', async () => {
+  const company = await render([])
+  expect(company).not.toContain('>Tenant</th>')
+  expect(company).not.toContain('>Bolag</th>')
+  expect(company).toMatch(/colspan="4"/i)
+  io.platform = true
+  const platform = await render([])
+  expect(platform).toContain('>Bolag</th>')
+  expect(platform).toMatch(/colspan="5"/i)
 })

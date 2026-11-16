@@ -77,7 +77,7 @@ export default async function CompanySettingsPage() {
               <div id="legal-profile" className="scroll-mt-48 rounded-2xl border border-slate-200 bg-white p-4 lg:scroll-mt-32">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Juridisk status</p>
                 <h2 className="mt-1 text-base font-semibold text-slate-950">
-                  {(legalProfile?.missing_fields ?? []).length > 0 || legalProfile?.completeness_status === "incomplete"
+                  {!legalProfile ? "Juridikprofil saknas" : (legalProfile.missing_fields ?? []).length > 0 || legalProfile.completeness_status === "incomplete"
                     ? "Juridikprofilen behöver kompletteras"
                     : legalProfile?.review_required || !(legalProfile?.reviewed_at ?? legalProfile?.verified_at)
                       ? "Juridikprofilen är komplett men väntar granskning"
@@ -85,7 +85,7 @@ export default async function CompanySettingsPage() {
                 </h2>
                 <p className="mt-2 text-sm text-slate-700">Profilen genereras automatiskt från bolagsuppgifterna. Det finns inget separat juridikformulär.</p>
                 <details className="mt-3 text-sm text-slate-700"><summary className="cursor-pointer font-medium">Granskningsuppgifter</summary><div className="mt-2 grid gap-2 md:grid-cols-3">
-                  <p><strong>Granskning krävs:</strong> {legalProfile?.review_required ? "Ja" : "Nej"}</p>
+                  <p><strong>Granskning krävs:</strong> {!legalProfile ? "Underlag saknas" : legalProfile.review_required ? "Ja" : "Nej"}</p>
                   <p><strong>Senast synkroniserad:</strong> {legalProfile?.last_synced_at ? new Date(legalProfile.last_synced_at).toLocaleString("sv-SE") : "–"}</p>
                   <p><strong>Tvistlösning:</strong> OPS-standard</p>
                 </div></details>

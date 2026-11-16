@@ -17,7 +17,12 @@ export async function GET(request: NextRequest) {
   const allowed = ANALYTICS_REPORTS.some((item) => item.key === report)
   if (!allowed) return new NextResponse('Okänd rapport.', { status: 400 })
 
-  const rows = await getReportRows(companyId, report, month)
+  let rows: Array<Record<string, unknown>>
+  try {
+  rows = await getReportRows(companyId, report, month, { month, biddingZoneCode: request.nextUrl.searchParams.get('biddingZoneCode'), gridOwnerId: request.nextUrl.searchParams.get('gridOwnerId'), customerType: request.nextUrl.searchParams.get('customerType'), meteringMethod: request.nextUrl.searchParams.get('meteringMethod'), status: request.nextUrl.searchParams.get('status') })
+  } catch {
+    return new NextResponse('Rapportunderlaget kunde inte läsas. Försök igen.', { status: 503 })
+  }
   const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))))
   const body = buildCsv(headers.length ? headers : ['status'], headers.length ? rows : [{ status: 'Inga rader' }])
 
