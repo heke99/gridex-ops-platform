@@ -577,9 +577,13 @@ export async function createAuthorizationRequestPackageAction(
   revalidatePath("/admin/outbound/unresolved");
 }
 
+export type CustomerDataRequestPackageResult = {
+  status: "blocked_missing_poa" | "blocked_reference" | "blocked_scope" | "queued" | "prepared" | "needs_review";
+};
+
 export async function createCustomerDataRequestPackageAction(
   formData: FormData,
-): Promise<void> {
+): Promise<CustomerDataRequestPackageResult> {
   const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
   const actor = { id: guard.userId };
   const customerId = normalizeUuidOrNull(formValue(formData, "customer_id"), "customer_id");
@@ -695,7 +699,7 @@ export async function createCustomerDataRequestPackageAction(
 
     revalidatePath(`/admin/customers/${customerId}`);
     revalidatePath("/admin/customer-info-requests");
-    return;
+    return { status: "blocked_missing_poa" };
   }
 
   const signedPowerOfAttorneyRecord = signedPowerOfAttorney as Record<string, unknown>;
@@ -715,7 +719,7 @@ export async function createCustomerDataRequestPackageAction(
 
     revalidatePath(`/admin/customers/${customerId}`);
     revalidatePath("/admin/customer-info-requests");
-    return;
+    return { status: "blocked_reference" };
   }
 
   const signedCoverage = await getSignedPowerOfAttorneyCoverage({
@@ -736,7 +740,7 @@ export async function createCustomerDataRequestPackageAction(
     });
     revalidatePath(`/admin/customers/${customerId}`);
     revalidatePath("/admin/customer-info-requests");
-    return;
+    return { status: "blocked_scope" };
   }
 
   const requiredGridOwnerData = target === "grid_owner" || target === "both";
@@ -759,7 +763,7 @@ export async function createCustomerDataRequestPackageAction(
     });
     revalidatePath(`/admin/customers/${customerId}`);
     revalidatePath("/admin/customer-info-requests");
-    return;
+    return { status: "blocked_scope" };
   }
 
   const authorizationScopeId =
@@ -792,6 +796,7 @@ export async function createCustomerDataRequestPackageAction(
   );
 
   const createdRequestIds: string[] = [];
+  const dispatchStatuses: string[] = [];
   const dispatchResults: Array<{
     requestId: string;
     status: string;
@@ -827,6 +832,7 @@ export async function createCustomerDataRequestPackageAction(
       actorUserId: actor.id,
       requestId: request.id,
     });
+    dispatchStatuses.push(dispatch.status);
     dispatchResults.push({
       requestId: request.id,
       status: normalizeSimpleRequestStatus(dispatch.status),
@@ -865,6 +871,7 @@ export async function createCustomerDataRequestPackageAction(
       actorUserId: actor.id,
       requestId: request.id,
     });
+    dispatchStatuses.push(dispatch.status);
     dispatchResults.push({
       requestId: request.id,
       status: normalizeSimpleRequestStatus(dispatch.status),
@@ -899,6 +906,11 @@ export async function createCustomerDataRequestPackageAction(
   revalidatePath("/admin/operations");
   revalidatePath("/admin/outbound");
   revalidatePath("/admin/ediel");
+  return { status: dispatchStatuses.length > 0 && dispatchStatuses.every(status => status === "ready_to_send")
+    ? "queued"
+    : dispatchStatuses.length > 0 && dispatchStatuses.every(status => ["ready_to_send", "z01_prepared"].includes(status))
+      ? "prepared"
+      : "needs_review" };
 }
 
 export async function registerCurrentSupplierResponseAction(
