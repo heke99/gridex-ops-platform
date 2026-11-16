@@ -52,7 +52,6 @@ import { getSwitchLifecycle } from "@/lib/operations/controlTower"
 
 
 
-export const dynamic = "force-dynamic";
 
 export type CustomerRow = {
   id: string;
@@ -250,14 +249,6 @@ export function statusTone(status: string | null): string {
     default:
       return "bg-slate-100 text-slate-700 ";
   }
-}
-
-export function normalizeJsonList(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item)).filter(Boolean);
-  }
-  if (typeof value === "string" && value.trim()) return [value.trim()];
-  return [];
 }
 
 export function intakeStatusLabel(value: string | null | undefined): string {

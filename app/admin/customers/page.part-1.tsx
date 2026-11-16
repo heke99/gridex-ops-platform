@@ -15,7 +15,6 @@ import type { OutboundRequestRow } from '@/lib/cis/types'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import type { OperationsSummaryReadKind } from '@/lib/customers/operationsSummaryRead'
 
-export const dynamic = 'force-dynamic'
 
 export type CustomersPageProps = {
  searchParams: Promise<{
