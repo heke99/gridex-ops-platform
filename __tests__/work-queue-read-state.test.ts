@@ -56,6 +56,7 @@ function client(): SupabaseClient {
     from: (table: string) => {
       const filters: Array<(row: Row) => boolean> = []
       let limit = Infinity
+      let start = 0, end = Infinity
       const query = {
         select: () => query,
         eq: (key: string, value: unknown) => { filters.push(row => row[key] === value); return query },
@@ -64,10 +65,13 @@ function client(): SupabaseClient {
         or: () => query,
         order: () => query,
         limit: (value: number) => { limit = value; return query },
+        range: (from: number, to: number) => { start = from; end = to; return query },
         then: (resolve: (value: unknown) => unknown, reject: (error: unknown) => unknown) => {
           if (io.tableRejections[table]) return Promise.reject(io.tableRejections[table]).then(resolve, reject)
+          const rows = io.tableErrors[table] ? null : Object.hasOwn(io.tableData, table) ? io.tableData[table] : (io.tables[table] ?? []).filter(row => filters.every(filter => filter(row)))
           return Promise.resolve({
-            data: io.tableErrors[table] ? null : Object.hasOwn(io.tableData, table) ? io.tableData[table] : (io.tables[table] ?? []).filter(row => filters.every(filter => filter(row))).slice(0, limit),
+            data: Array.isArray(rows) ? rows.slice(start, Math.min(end + 1, limit)) : rows,
+            count: Array.isArray(rows) ? rows.length : null,
             error: io.tableErrors[table] ?? null,
           }).then(resolve, reject)
         },

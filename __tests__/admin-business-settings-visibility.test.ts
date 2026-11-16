@@ -85,6 +85,7 @@ it('retains technical billing diagnostics for superadmin', async () => {
   expect(html).toContain('CAPWAY_APTIC_TEST_CLIENT_SECRET')
 })
 it('shows metering customer names, energy, period, corrections and business links', async () => {
+  io.permissions = ['metering.read', 'customers.read']
   const html = renderToStaticMarkup(await MeteringPage({ searchParams: Promise.resolve({ q: 'Syntetisk' }) }))
   expect(html).toContain('Syntetisk kund')
   expect(html).toContain('145,5 kWh')
@@ -108,4 +109,11 @@ it('retains failed invoice-post warnings even without provider review events', a
   const html = renderToStaticMarkup(await BillingPage({ searchParams: Promise.resolve({}) }))
   expect(html).toContain('Misslyckade fakturaposter: 1')
   expect(html).not.toContain('RAW-FAILED-INVOICE')
+})
+
+it('keeps metering information without offering a customer destination to a metering-only reader', async () => {
+  io.permissions = ['metering.read']
+  const html = renderToStaticMarkup(await MeteringPage({ searchParams: Promise.resolve({ q: 'Syntetisk' }) }))
+  expect(html).toContain('145,5 kWh')
+  expect(html).not.toContain('/admin/customers/customer?tab=sites')
 })

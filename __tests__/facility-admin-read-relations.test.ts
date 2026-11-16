@@ -6,7 +6,9 @@ import { beforeEach, expect, it, vi } from 'vitest'
 // reproduced against the actual PostgREST endpoint with limit=0. This adapter
 // returns those observed schema errors and synthetic rows, never live data.
 const state = vi.hoisted(() => ({ calls: [] as Array<{ table: string; select?: string; filters: Array<[string, unknown]> }>, failOwners: false }))
-vi.mock('@/lib/admin/guards', () => ({ requireAdminPageKeyAccess: async () => ({ userId: 'actor-a', email: 'admin@example.test' }), isPlatformAdminContext: () => false }))
+vi.mock('@/lib/admin/guards', () => ({ requireAdminPageKeyAccess: async () => ({ userId: 'actor-a', email: 'admin@example.test', permissions: ['customers.write', 'metering.read'] }), isPlatformAdminContext: () => false }))
+// Positive manual-form fixtures have the actual command permission.
+vi.mock('@/lib/admin/actionPresentation', () => ({ canPresentAdminAction: async (required: string[]) => required.every(permission => permission === 'customers.write'), canPresentOperationalAction: async (required: string[]) => required.every(permission => permission === 'customers.write'), canPresentAdminLink: () => false }))
 vi.mock('@/lib/tenant/scope', () => ({ getOperationalCompanyScope: async () => ({ companyId: 'company-a' }) }))
 vi.mock('@/lib/tenant/adminScope', () => ({ resolveAdminTenantReadScope: async () => ({ companyId: 'company-a', companyName: null, isPlatformAdmin: false }) }))
 vi.mock('@/lib/facility/workQueue', () => ({ listFacilityWorkQueue: async () => [], facilityMissingFieldLabel: (value: string) => value, facilityStatusLabel: (value: string) => value }))
