@@ -7,6 +7,7 @@ import {
   getAdminNavigationGroups,
   type AdminNavigationMode,
 } from '@/lib/admin/navigation'
+import { groupBusinessNavigation } from '@/lib/admin/businessNavigation'
 import { findActiveAdminNavigationHref } from '@/lib/admin/navigationMatch'
 import { updateAdminNavigationPreference } from '@/app/admin/navigation-mode/actions'
 
@@ -40,7 +41,7 @@ export default function AdminSidebar({
   const displaySubtitle = workspaceSubtitle?.trim() || (isPlatformAdmin ? 'SaaS-plattform' : 'Bolagsyta')
   const initial = displayName.charAt(0).toUpperCase()
 
-  const visibleGroups = getAdminNavigationGroups({
+  const authorizedGroups = getAdminNavigationGroups({
     permissions,
     roles,
     isPlatformAdmin,
@@ -48,6 +49,7 @@ export default function AdminSidebar({
     mode,
   })
 
+  const visibleGroups = groupBusinessNavigation(authorizedGroups, mode)
   const activeHref = findActiveAdminNavigationHref(pathname, visibleGroups)
 
   const prefetchOnIntent = (href: string) => {
@@ -74,7 +76,7 @@ export default function AdminSidebar({
         </Link>
 
         {!isPlatformAdmin && !isCompanyLiveEnabled ? (
-          <p className="mt-2 text-xs leading-5 text-amber-800">Live Ediel är inte aktiverat. Kundintag, avtal och go-live är tillgängliga.</p>
+          <p className="mt-2 text-xs leading-5 text-amber-800">Anslutningen till elmarknaden är ännu inte aktiverad. Ni kan förbereda kunder och avtal.</p>
         ) : null}
 
         {isPlatformAdmin ? (
