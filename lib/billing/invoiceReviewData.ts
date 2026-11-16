@@ -1,3 +1,4 @@
+import { readBillingRows } from '@/lib/pricing/adminData'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type InvoiceReviewStatus =
@@ -237,7 +238,7 @@ export async function getInvoiceReviewDetail(input: {
   const customerId = text(item.customer_id)
   const contractId = text(item.customer_contract_id)
   const pricingRunId = text(item.pricing_run_id)
-  if (!underlayId || !customerId || !contractId || !pricingRunId) throw new Error('Fakturan saknar canonical identitet.')
+  if (!underlayId || !customerId || !contractId || !pricingRunId) throw new Error('Fakturan saknar uppgifter som behövs för att granska underlag, kund, avtal och pris.')
 
   const [underlay, customer, contract, invoice, pricingRun, pricingLines] = await Promise.all([
     supabaseService.from('billing_underlays').select('*').eq('company_id', input.companyId).eq('id', underlayId).single(),
@@ -245,7 +246,7 @@ export async function getInvoiceReviewDetail(input: {
     supabaseService.from('customer_contracts').select('*').eq('company_id', input.companyId).eq('id', contractId).single(),
     supabaseService.from('customer_invoices').select('*').eq('company_id', input.companyId).eq('invoice_export_item_id', input.invoiceExportItemId).maybeSingle(),
     supabaseService.from('pricing_runs').select('*').eq('company_id', input.companyId).eq('id', pricingRunId).single(),
-    supabaseService.from('pricing_preview_lines').select('*').eq('company_id', input.companyId).eq('pricing_run_id', pricingRunId).order('sort_order', { ascending: true }),
+    readBillingRows('pricing_preview_lines', input.companyId, { pricing_run_id: pricingRunId }, 'sort_order').then(data => ({ data, error: null })),
   ])
   for (const result of [underlay, customer, contract, invoice, pricingRun, pricingLines]) if (result.error) throw result.error
   const underlayRow = underlay.data as Row
@@ -272,9 +273,18 @@ export async function getInvoiceReviewDetail(input: {
     contract: contract.data as Row,
     invoice: invoiceRow,
     lifecycleStage,
+    exportStatus: invoiceExportStatus(item.status),
     pricingRun: pricingRun.data as Row,
     pricingLines: (pricingLines.data ?? []) as Row[],
     priceSnapshot,
     approval,
   }
+}
+
+/** Transfer is a separate axis from the human approval recorded in metadata. */
+export function invoiceExportStatus(status: unknown): { label: string; needsAction: boolean } {
+  if (status === 'sent') return { label: 'Överförd till fakturapartner', needsAction: false }
+  if (['failed', 'rejected', 'configuration_error', 'needs_review', 'failed_retryable'].includes(String(status))) return { label: 'Överföringen kräver åtgärd', needsAction: true }
+  if (['pending', 'queued', 'ready', 'approved', 'draft', 'prepared', 'exporting', 'processing'].includes(String(status))) return { label: 'Väntar på överföring', needsAction: false }
+  return { label: 'Överföringsstatus behöver kontrolleras', needsAction: false }
 }

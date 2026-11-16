@@ -52,15 +52,18 @@ function from(table: string) {
   const rows = () => (io.tables[table] ?? []).filter(row => read.filters.every(([key, value]) =>
     Array.isArray(value) ? value.includes(row[key]) : row[key] === value,
   ))
+  let start = 0
+  let end = Number.POSITIVE_INFINITY
   const query = {
     select: () => query, order: () => query, limit: () => query,
+    range: (from: number, to: number) => { start = from; end = to; return query },
     eq: (key: string, value: unknown) => { read.filters.push([key, value]); return query },
     in: (key: string, value: unknown[]) => { read.filters.push([key, value]); return query },
     neq: () => query, is: () => query, not: () => query, or: () => query, ilike: () => query,
     gte: () => query, lte: () => query, gt: () => query, lt: () => query,
     maybeSingle: async () => ({ data: rows()[0] ?? null, error: null }),
     single: async () => ({ data: rows()[0] ?? null, error: null }),
-    then: (resolve: (result: unknown) => unknown) => Promise.resolve({ data: rows(), count: rows().length, error: null }).then(resolve),
+    then: (resolve: (result: unknown) => unknown) => Promise.resolve({ data: rows().slice(start, end + 1), count: rows().length, error: null }).then(resolve),
   }
   return query
 }
@@ -105,7 +108,7 @@ vi.mock('@/lib/billing/invoiceReviewData', () => ({
   listInvoiceReviewRows: async (input: unknown) => { load('invoiceReview', input); return [] },
   getInvoiceReviewDetail: async (input: unknown) => {
     load('invoiceDetail', input)
-    return { invoice: {}, approval: {}, item: {}, underlay: {}, contract: {}, customer: {}, pricingRun: {}, pricingLines: [], priceSnapshot: null, lifecycleStage: 'awaiting_invoice_projection' }
+    return { invoice: {}, approval: {}, item: {}, underlay: {}, contract: {}, customer: {}, pricingRun: {}, pricingLines: [], priceSnapshot: null, exportStatus: { label: 'Överföringsstatus behöver kontrolleras', needsAction: false }, lifecycleStage: 'awaiting_invoice_projection' }
   },
 }))
 vi.mock('@/lib/billing/providers/registry', () => ({

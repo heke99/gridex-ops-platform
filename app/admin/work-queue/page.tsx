@@ -174,15 +174,27 @@ async function loadOperationJobActions(supabase: SupabaseClient, companyId: stri
 
 async function loadCustomersByIds(supabase: SupabaseClient, companyId: string | null, customerIds: string[]): Promise<ActiveCustomer[]> {
   if (customerIds.length === 0) return []
-  const requestedIds = customerIds.slice(0, 100)
-  let query = supabase
-    .from('customers')
-    .select('id, company_id, customer_number, full_name, first_name, last_name, company_name, email, status, source, created_at')
-    .in('id', requestedIds)
-  if (companyId) query = query.eq('company_id', companyId)
-  const { data, error } = await query
-  if (error) throw error
-  return customerRows(data, companyId, requestedIds)
+  const ids = [...new Set(customerIds)]
+  const rows: ActiveCustomer[] = []
+  for (let batch = 0; batch < ids.length; batch += 100) {
+    const requestedIds = ids.slice(batch, batch + 100)
+    let read = 0
+    while (read < requestedIds.length) {
+      let query = supabase.from('customers')
+        .select('id, company_id, customer_number, full_name, first_name, last_name, company_name, email, status, source, created_at', { count: 'exact' })
+        .in('id', requestedIds).order('id', { ascending: true }).range(read, requestedIds.length - 1)
+      if (companyId) query = query.eq('company_id', companyId)
+      const { data, error, count } = await query
+      if (error) throw error
+      if (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0 || count > requestedIds.length) throw new InvalidReadModelResponseError()
+      const page = customerRows(data, companyId, requestedIds)
+      rows.push(...page)
+      read += page.length
+      if (read >= count) break
+      if (!page.length) throw new InvalidReadModelResponseError()
+    }
+  }
+  return rows
 }
 
 function consolidateActionItems(items: QueueItem[]): QueueItem[] {
@@ -316,7 +328,7 @@ export default async function AdminWorkQueuePage() {
     items.push({
       id: event.id,
       operationId: event.operation_id,
-      source: 'Automation',
+      source: isPlatformAdmin ? 'Automation' : 'Uppföljning',
       customerId: customer.id,
       customerLabel: customerLabel(customer),
       title: event.title,
@@ -338,11 +350,11 @@ export default async function AdminWorkQueuePage() {
     items.push({
       id: job.id,
       operationId: job.operation_id,
-      source: 'Automation',
+      source: isPlatformAdmin ? 'Automation' : 'Uppföljning',
       customerId: customer.id,
       customerLabel: customerLabel(customer),
       title: taskTypeLabel(job.job_type),
-      description: job.last_error ?? 'Automationssteget behöver granskas innan kedjan kan fortsätta.',
+      description: isPlatformAdmin ? job.last_error ?? 'Automationssteget behöver granskas innan kedjan kan fortsätta.' : job.status === 'failed' ? 'Åtgärden kunde inte slutföras. Öppna kundkortet för att kontrollera nästa steg.' : 'Ärendet behöver granskas innan nästa steg kan fortsätta.',
       status: job.status,
       priority: job.status === 'failed' ? 'high' : 'normal',
       createdAt: job.created_at,
@@ -654,7 +666,7 @@ export default async function AdminWorkQueuePage() {
                       <td className="px-4 py-3">
                         <div className="font-bold text-slate-950">{item.customerLabel}</div>
                         <p className="mt-1 text-xs text-slate-600">{formatDate(item.createdAt)}</p>
-                        <details className="mt-1 text-xs text-slate-600"><summary className="cursor-pointer">Kund-id</summary><p className="mt-1 break-all">{item.customerId}</p></details>
+                        {isPlatformAdmin ? <details className="mt-1 text-xs text-slate-600"><summary className="cursor-pointer">Kund-id</summary><p className="mt-1 break-all">{item.customerId}</p></details> : null}
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-xs font-bold uppercase tracking-[0.14em] text-emerald-800">{item.source}</div>

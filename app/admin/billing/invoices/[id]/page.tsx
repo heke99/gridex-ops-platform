@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { isPlatformAdminContext } from '@/lib/admin/guards'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
@@ -43,6 +44,7 @@ function customerName(row: Row) {
 
 export default async function InvoiceReviewDetailPage({ params }: Props) {
   const admin = await requirePermissionServer('billing_underlay.read')
+  const isPlatformAdmin = isPlatformAdminContext(admin)
   const { id } = await params
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -72,19 +74,25 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
             ← Till fakturor
           </Link>
           <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
-            {awaitingProjection ? 'Faktura projiceras' : detail.lifecycleStage === 'dispatched' ? 'Skickad' : approvalStatus === 'approved' ? 'Godkänd' : 'Väntar på granskning'}
+            {awaitingProjection ? 'Faktura förbereds' : detail.lifecycleStage === 'dispatched' ? 'Skickad' : approvalStatus === 'approved' ? 'Godkänd' : 'Väntar på granskning'}
           </span>
         </div>
 
         {awaitingProjection ? (
           <section className="rounded-2xl border border-sky-200 bg-sky-50 p-5 text-sm text-sky-950 shadow-sm">
-            <h2 className="font-semibold">Fakturaprojektion pågår</h2>
+            <h2 className="font-semibold">Fakturan förbereds</h2>
             <p className="mt-1 text-sky-800">
-              Faktureringsunderlaget och exportposten finns, men den kanoniska fakturaraden har ännu inte skapats. Du kan granska underlaget nedan; utskicks- och fakturafält visas när projektionen är klar.
+              Faktureringsunderlaget finns, men fakturan är ännu inte färdig. Du kan granska underlaget nedan. Fakturans uppgifter visas när den har skapats.
             </p>
           </section>
         ) : null}
 
+        <section className={`rounded-2xl border p-5 text-sm ${detail.exportStatus.needsAction ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white'}`}>
+          <h2 className="font-semibold">Överföring till fakturapartner</h2>
+          <p className="mt-1">{detail.exportStatus.label}</p>
+          {detail.exportStatus.needsAction ? <p className="mt-1">Kontrollera överföringen innan fakturan skickas vidare. Ett registrerat godkännande gäller fortfarande själva fakturaunderlaget.</p> : null}
+          {isPlatformAdmin ? <details className="mt-3"><summary>Tekniska uppgifter</summary><pre className="overflow-auto whitespace-pre-wrap">{JSON.stringify({ status: detail.item.status, error: detail.item.error_payload }, null, 2)}</pre></details> : null}
+        </section>
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[
             ['Kund', customerName(detail.customer)],
@@ -102,9 +110,9 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
         <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-5 py-4">
             <h2 className="font-semibold text-slate-950">Prisberäkning</h2>
-            <p className="mt-1 text-xs text-slate-500">Raderna kommer från den låsta pricing run som fakturan är bunden till.</p>
+            <p className="mt-1 text-xs text-slate-500">Raderna kommer från den låsta prisberäkningen för den här fakturan.</p>
           </div>
-          <div className="overflow-x-auto">
+          <div role="region" tabIndex={0} aria-label="Fakturans prisrader" className="overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
@@ -120,8 +128,8 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
                 {detail.pricingLines.map((line, index) => (
                   <tr key={text(line.id) ?? String(index)}>
                     <td className="px-5 py-4">
-                      <p className="font-medium text-slate-950">{text(line.description) ?? text(line.line_type) ?? 'Prisrad'}</p>
-                      <p className="mt-1 text-xs text-slate-500">{text(line.line_type) ?? '—'} · {text(line.unit) ?? '—'}</p>
+                      <p className="font-medium text-slate-950">{text(line.description) ?? (isPlatformAdmin ? text(line.line_type) : null) ?? 'Prisrad'}</p>
+                      {isPlatformAdmin ? <p className="mt-1 text-xs text-slate-500">{text(line.line_type) ?? '—'} · {text(line.unit) ?? '—'}</p> : null}
                     </td>
                     <td className="px-4 py-4 text-right tabular-nums">{quantity(line.quantity, line.unit)}</td>
                     <td className="px-4 py-4 text-right tabular-nums">{money(line.unit_price_ex_vat)}</td>
@@ -151,11 +159,13 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
                 ['Period', `${text(detail.underlay.billing_period_start) ?? '—'} – ${text(detail.underlay.billing_period_end) ?? '—'}`],
                 ['Avtalstyp', text(calculation.contract_type) ?? text(detail.contract.contract_type) ?? '—'],
                 ['Elområde', priceArea ?? '—'],
+                ...(isPlatformAdmin ? [
                 ['Pricing run', text(detail.pricingRun.id) ?? '—'],
                 ['Prissnapshot', text(calculation.contract_price_snapshot_id) ?? text(detail.priceSnapshot?.id) ?? '—'],
                 ['Snapshot-hash', text(calculation.contract_price_snapshot_hash) ?? '—'],
                 ['Beräkningshash', text(invoice.calculation_snapshot_sha256) ?? (awaitingProjection ? 'Skapas vid projektion' : '—')],
                 ['Status pricing', text(detail.pricingRun.status) ?? '—'],
+                ] : []),
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt className="text-xs font-medium text-slate-500">{label}</dt>
@@ -168,16 +178,16 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="font-semibold text-slate-950">Utskick</h2>
             {awaitingProjection ? (
-              <p className="mt-3 text-sm text-slate-600">Utskicksfält aktiveras först när den kanoniska fakturaraden har projicerats.</p>
+              <p className="mt-3 text-sm text-slate-600">Fakturans uppgifter visas när fakturan har skapats.</p>
             ) : null}
             <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
               {[
-                ['Fakturareferens', text(invoice.invoice_reference) ?? (awaitingProjection ? 'Inväntar projektion' : '—')],
-                ['Partner-ID', text(detail.item.provider_invoice_guid) ?? text(invoice.partner_invoice_reference) ?? 'Ej skickad'],
+                ['Fakturareferens', text(invoice.invoice_reference) ?? (awaitingProjection ? 'Inväntar faktura' : '—')],
+                ...(isPlatformAdmin ? [['Partner-ID', text(detail.item.provider_invoice_guid) ?? text(invoice.partner_invoice_reference) ?? 'Ej skickad']] : []),
                 ['Förfallodatum', text(invoice.due_date) ?? 'Skapas vid utskick'],
-                ['Godkänd av', text(detail.approval.approved_by) ?? 'Ej godkänd'],
+                ['Godkänd av', isPlatformAdmin ? text(detail.approval.approved_by) ?? 'Ej godkänd' : approvalStatus === 'approved' ? 'Registrerad handläggare' : 'Ej godkänd'],
                 ['Godkänd', text(detail.approval.approved_at) ?? '—'],
-                ['Review-hash', text(detail.approval.review_hash) ?? '—'],
+                ...(isPlatformAdmin ? [['Review-hash', text(detail.approval.review_hash) ?? '—']] : []),
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt className="text-xs font-medium text-slate-500">{label}</dt>
