@@ -1,0 +1,116 @@
+{
+  "state": "SOURCE_FIXED_LOCAL_GATES_PASSED_FINAL_COMMIT_REVIEW_PENDING",
+  "observed_at": "2026-11-16T15:05:15.946574+00:00",
+  "base": "c94f9cb2fd9a6aa66bc3b66ccb18ed4ac16dd2bb",
+  "branch": "codex/simulation-customer-list",
+  "custody_receipt": "39e46e0ff885ee4f4126940cf3b98c0a382ec1bd",
+  "source_writer": "root",
+  "source_files_sha256": {
+    "lib/customers/getCustomers.ts": "95b0ddc28c27877baab6a06e30ff12fda33c4e71717725e62bf189b60624ca28",
+    "lib/customers/contractBillingSummary.ts": "764af48471c6ba31087bb93e69b438c6a12f9d0fe9f7e67c7e54d0450b01c328",
+    "app/admin/customers/page.part-2.tsx": "aa94408dcc43ff7181a29deb45f4498c8053934a64197b8156890c8277949937",
+    "__tests__/customer-list-contract-summary.test.ts": "c88592e2775cb359b790774a933a6feef9ba039cb64b9ae4781ddc4bcc04f53c",
+    "__tests__/customer-list-schema-contract.test.ts": "fb988afdff87271cdbdddac5ab4d50f6c361b211674dfce8377542cadbbeb321"
+  },
+  "finding": {
+    "category": "CONFIRMED_APPLICATION_SCHEMA_CONTRACT_DEFECT",
+    "symptom": "Paged andstaffreads request absent customercolumns42703; filteredreadswallows asmissingrelationandreturnsfalseempty",
+    "root_cause": "billing_level/consolidated_invoice belongtocustomer_contracts,notcustomers",
+    "impact": "Customerregistrycanerrororsilentlyhidecustomers",
+    "normal_path": "Admincustomerlistpermission+tenantreadscope→listCustomersPage;staffpermission→companyRPC→tenantselectedcustomerrows→sharedhydration",
+    "fix": "Contract-ownedallstoredpreferencesummarywithcompletecompany/customerboundedreadsandexplicitunavailablefilters",
+    "not_current_staging_reproduction": true
+  },
+  "reused_sources": [
+    "a9b5f3f35d652d968eb45a54d5096c326909543e",
+    "1d2bc476b5d73f08704fc7dfddc6faf6f66bc70b"
+  ],
+  "tests": {
+    "runtime": "/Users/hekmath/.nvm/versions/node/v22.23.5/bin/node",
+    "red_before_product_change": {
+      "tests": 5,
+      "failed": 5,
+      "basis": "Actual list loader +realtenantwrappers; externalSDKfixturevalidatescommittedschema"
+    },
+    "green_final": {
+      "files": 8,
+      "passed": 131,
+      "failed": 0,
+      "skipped": 0
+    },
+    "app_types": "exit0 tsconfig.app.json noEmit incrementalfalse maxheap6144",
+    "test_types": "exit0 tsconfig.tests.json noEmit incrementalfalse maxheap6144",
+    "scoped_lint": "0errors0warnings afterrenamingtestharnessmodulebinding",
+    "rbac": "24/24pass",
+    "service_role_ratchet": "2342<=2349pass",
+    "next_build": "exit0 Node22 webpack maxheap6144 configuredsingleworker; phaseproductionbuildusesexistingplaceholderconfigonly",
+    "diff_check": "exit0"
+  },
+  "evidence": {
+    "/private/tmp/gridex-customer-list-schema-red-node22.json": {
+      "sha256": "23915b90331f2b74968df02aeb4df87e63a9ae5c3d656b6b5615cbd79ef625d3",
+      "bytes": 5650
+    },
+    "/private/tmp/gridex-customer-list-green-node22.json": {
+      "sha256": "9e23cb7daba5185fffaea27123b0d9b82f24a39816d2d4914e740e822e7e2f78",
+      "bytes": 13100
+    },
+    "/private/tmp/gridex-customer-list-regressions-node22.json": {
+      "sha256": "5d9319f82bc61b483413bbcab38813ec5e22039a4b3a63968b4061f1991e26b1",
+      "bytes": 52519
+    },
+    "/private/tmp/gridex-customer-list-app-typecheck.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "/private/tmp/gridex-customer-list-tests-typecheck.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "/private/tmp/gridex-customer-list-eslint-final.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "/private/tmp/gridex-customer-list-rbac.log": {
+      "sha256": "5edd14a1cc66a11ffc0aa127eb47dc7c3f848b288b63a934c6685b451cbdddc8",
+      "bytes": 44
+    },
+    "/private/tmp/gridex-customer-list-tenant-ratchet.log": {
+      "sha256": "d65371bd440b5ebccca61eebd16424e161af8b8b281eccd299c8d192b821de92",
+      "bytes": 101
+    },
+    "/private/tmp/gridex-customer-list-build.log": {
+      "sha256": "60aba467192d0a21bcdb694ed82e55407d01601302f20b56665f6081631f6dd2",
+      "bytes": 21791
+    }
+  },
+  "review_status": {
+    "reviewA": "source review no actionable defects; final commit readback pending",
+    "reviewB": "source review no actionable defects; final commit readback pending"
+  },
+  "limits": [
+    "No liveDB/browser/originalscenarioPASS from componenttests",
+    "Storedpreferencesarenoteffectivebillingpolicy",
+    "No migration/generatedschema/typechange",
+    "No deployment/Mainmerge",
+    "Historical Node26initialred is superseded bycorrectNode22red;no productclaim basedonNode26"
+  ],
+  "resources": {
+    "owned_logs": [
+      "/private/tmp/gridex-customer-list-schema-red-node22.json",
+      "/private/tmp/gridex-customer-list-green-node22.json",
+      "/private/tmp/gridex-customer-list-regressions-node22.json",
+      "/private/tmp/gridex-customer-list-app-typecheck.log",
+      "/private/tmp/gridex-customer-list-tests-typecheck.log",
+      "/private/tmp/gridex-customer-list-eslint-final.log",
+      "/private/tmp/gridex-customer-list-rbac.log",
+      "/private/tmp/gridex-customer-list-tenant-ratchet.log",
+      "/private/tmp/gridex-customer-list-build.log"
+    ],
+    "dependency_reuse": "Sameexactpackage-lock; symlinktoownsimulationinstallation; no dependency upgrade",
+    "no_services_started": true,
+    "no_staging_auth_or_business_calls": true,
+    "claims_retained_for_serial_delivery": true
+  },
+  "dead_code": "None removed; historical33/187categories unchanged"
+}

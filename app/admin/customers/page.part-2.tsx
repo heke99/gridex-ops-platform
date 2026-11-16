@@ -6,6 +6,7 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listCustomersPage } from '@/lib/customers/getCustomers'
+import { contractBillingSummaryLabel } from '@/lib/customers/contractBillingSummary'
 import { supabaseService } from '@/lib/supabase/service'
 import { customerOperationsReadKind, readCustomerOperationsRows } from '@/lib/customers/operationsSummaryRead'
 
@@ -283,7 +284,7 @@ export async function AdminCustomersPage({
              </label>
              <label className="grid gap-1 text-xs font-medium text-slate-600">Kundflagga
                <select aria-label="Kundflagga" name="flag" defaultValue={flagFilter} className={filterClass}>
-                 <option value="all">Alla kundflaggor</option><option value="possible_duplicate">Möjlig dubblett</option><option value="multi_site">Flera anläggningar</option><option value="multi_contract">Flera avtal</option><option value="consolidated_invoice">Samlingsfaktura</option><option value="missing_authorization">Saknar fullmakt</option><option value="missing_grid_owner">Saknar nätägare</option><option value="ready_for_switch">Redo för leverantörsbyte</option><option value="billing_ready">Faktureringsklar</option>{tenantScope.isPlatformAdmin ? <option value="test_customers">Testkunder</option> : null}
+                 <option value="all">Alla kundflaggor</option><option value="possible_duplicate">Möjlig dubblett</option><option value="multi_site">Flera anläggningar</option><option value="multi_contract">Flera avtal</option><option value="consolidated_invoice">Samlingsfaktura på alla avtal</option><option value="missing_authorization">Saknar fullmakt</option><option value="missing_grid_owner">Saknar nätägare</option><option value="ready_for_switch">Redo för leverantörsbyte</option><option value="billing_ready">Faktureringsklar</option>{tenantScope.isPlatformAdmin ? <option value="test_customers">Testkunder</option> : null}
                </select>
              </label>
            </div>
@@ -309,7 +310,7 @@ export async function AdminCustomersPage({
                  </div>
                  <p className="mt-1 text-xs text-slate-600">{customer.customer_number ?? 'Kundnummer saknas'} · {customerTypeLabel(customer.customer_type)}</p>
                  {customer.possible_duplicate ? <p className="mt-1 text-xs font-medium text-amber-800">Möjlig dubblett · {customer.duplicate_review_status ?? 'granskning krävs'}</p> : null}
-                 {customer.consolidated_invoice ? <p className="mt-1 text-xs text-emerald-800">Samlingsfaktura</p> : null}
+                 <p className="mt-1 text-xs text-slate-600">{contractBillingSummaryLabel(customer.contract_billing_summary)}</p>
                  <details className="mt-2 text-xs text-slate-600">
                    <summary className="cursor-pointer font-medium hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Kontakt och identitet</summary>
                    <dl className="mt-2 space-y-1 break-words"><div><dt className="inline font-medium">E-post: </dt><dd className="inline">{customer.email || '—'}</dd></div><div><dt className="inline font-medium">Telefon: </dt><dd className="inline">{customer.phone || '—'}</dd></div><div><dt className="inline font-medium">Personnummer: </dt><dd className="inline">{customer.personal_number || '—'}</dd></div><div><dt className="inline font-medium">Kund-ID: </dt><dd className="inline break-all">{customer.id}</dd></div></dl>

@@ -3,6 +3,11 @@ import type { LatestContractBucketFilter } from '@/lib/customer-contracts/db'
 import { tenantDb } from '@/lib/supabase/tenantDb'
 import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { isMissingRelationError } from '@/lib/tenant/scope'
+import {
+  CONTRACT_BILLING_SELECTION, hasUniformConsolidatedInvoice, readCompletePages,
+  summarizeSelectedContractBillingPreferences,
+  type ContractBillingPreferenceRow, type ContractBillingSummary,
+} from '@/lib/customers/contractBillingSummary'
 
 export type CustomerListRow = {
   id: string
@@ -11,8 +16,7 @@ export type CustomerListRow = {
   status: string | null
   possible_duplicate?: boolean | null
   duplicate_review_status?: string | null
-  consolidated_invoice?: boolean | null
-  billing_level?: string | null
+  contract_billing_summary?: ContractBillingSummary
   intake_status?: string | null
   intake_missing_fields?: unknown
   has_missing_grid_owner?: boolean
@@ -32,7 +36,7 @@ export type CustomerListRow = {
   active_site_count: number
   metering_point_count: number
   active_metering_point_count: number
-  contract_count: number
+  contract_count: number | null
   source: string | null
   is_test_data?: boolean | null
 }
@@ -56,8 +60,6 @@ const CUSTOMER_LIST_SELECT = [
   'status',
   'possible_duplicate',
   'duplicate_review_status',
-  'consolidated_invoice',
-  'billing_level',
   'intake_status',
   'intake_missing_fields',
   'first_name',
@@ -189,8 +191,6 @@ function normalizeCustomerRow(row: RawCustomerRow): CustomerListRow {
     status: stringOrNull(row.status) ?? 'draft',
     possible_duplicate: booleanOrFalse(row.possible_duplicate),
     duplicate_review_status: stringOrNull(row.duplicate_review_status),
-    consolidated_invoice: booleanOrFalse(row.consolidated_invoice),
-    billing_level: stringOrNull(row.billing_level),
     intake_status: stringOrNull(row.intake_status),
     intake_missing_fields: row.intake_missing_fields ?? null,
     has_missing_grid_owner: false,
@@ -212,7 +212,7 @@ function normalizeCustomerRow(row: RawCustomerRow): CustomerListRow {
     active_site_count: 0,
     metering_point_count: 0,
     active_metering_point_count: 0,
-    contract_count: 0,
+    contract_count: null,
   }
 }
 
@@ -246,23 +246,25 @@ function matchesStatus(row: CustomerListRow, status: CustomerStatusFilter): bool
 
 function matchesContract(row: CustomerListRow, filter: LatestContractBucketFilter): boolean {
   if (filter === 'all') return true
-  if (filter === 'none') return row.contract_count === 0
-  return row.contract_count > 0
+  const count = row.contract_billing_summary?.contractCount
+  if (count == null) return false
+  if (filter === 'none') return count === 0
+  return count > 0
 }
 
 function matchesFlag(row: CustomerListRow, flag: CustomerFlagFilter): boolean {
   if (flag === 'all') return true
   if (flag === 'possible_duplicate') return Boolean(row.possible_duplicate)
   if (flag === 'multi_site') return row.site_count > 1
-  if (flag === 'multi_contract') return row.contract_count > 1
-  if (flag === 'consolidated_invoice') return Boolean(row.consolidated_invoice)
+  if (flag === 'multi_contract') return (row.contract_billing_summary?.contractCount ?? 0) > 1
+  if (flag === 'consolidated_invoice') return hasUniformConsolidatedInvoice(row.contract_billing_summary)
   if (flag === 'missing_grid_owner') return Boolean(row.has_missing_grid_owner)
   if (flag === 'missing_authorization') return !row.has_signed_power_of_attorney
   if (flag === 'ready_for_switch') {
     return row.site_count > 0 && row.metering_point_count > 0 && Boolean(row.has_signed_power_of_attorney) && !row.has_missing_grid_owner
   }
   if (flag === 'billing_ready') {
-    return row.site_count > 0 && row.metering_point_count > 0 && row.contract_count > 0 && !row.has_missing_grid_owner
+    return row.site_count > 0 && row.metering_point_count > 0 && (row.contract_count ?? 0) > 0 && !row.has_missing_grid_owner
   }
   if (flag === 'test_customers') return row.is_test_data === true || String(row.source ?? '').toLowerCase().includes('test')
   return true
@@ -393,35 +395,69 @@ async function loadPagedCustomerRows(params: {
 
 async function loadCustomerRows(
   companyId: string | null,
-  status: CustomerStatusFilter,
   includeHidden = false
 ): Promise<CustomerListRow[]> {
-  try {
-    let query = supabaseService
-      .from('customers')
-      .select(CUSTOMER_LIST_SELECT)
-      .not('company_id', 'is', null)
-      .or('source.is.null,source.neq.ediel_portal_test')
-      .order('created_at', { ascending: false })
-      .limit(1000)
-
-    if (companyId) query = query.eq('company_id', companyId)
-    if (!includeHidden) query = query.or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
-
-    const { data, error } = await query
-    if (error) throw error
-
-    return ((data ?? []) as unknown as RawCustomerRow[])
-      .filter((row) => typeof row.id === 'string')
-      .map(normalizeCustomerRow)
-  } catch (error) {
-    if (isMissingRelationError(error)) return []
-    throw error
+  const read = await readCompletePages<RawCustomerRow & { id: string }>(async (from, to) => {
+    const query = applyBaseCustomerFilters(
+      supabaseService.from('customers').select(CUSTOMER_LIST_SELECT, { count: 'exact' }) as unknown as CustomerQuery,
+      companyId, includeHidden
+    ).order('created_at', { ascending: false }).order('id', { ascending: true }).range(from, to)
+    const result = await query
+    return { data: result.data as Array<RawCustomerRow & { id: string }> | null, error: result.error, count: result.count ?? null }
+  })
+  if (read.kind !== 'complete') throw new Error(`customer_list_complete_read_required:${read.reason}`)
+  if (read.rows.some(row => !row.company_id || (companyId && row.company_id !== companyId))) {
+    throw new Error('customer_list_company_scope_mismatch')
   }
+  return read.rows.map(normalizeCustomerRow)
+}
+
+async function loadContractBillingSummaries(rows: CustomerListRow[], companyId: string | null): Promise<Map<string, ContractBillingSummary>> {
+  const groups = new Map<string, string[]>()
+  for (const row of rows) {
+    const company = row.company_id
+    if (!company || company.trim() !== company || (companyId && company !== companyId)) {
+      throw new Error('contract_billing_summary_customer_scope_required')
+    }
+    groups.set(company, [...(groups.get(company) ?? []), row.id])
+  }
+  const summaries = new Map<string, ContractBillingSummary>()
+  for (const [company, ids] of groups) {
+    // Bounded .in() URLs; never combine tenants in a service-role contract read.
+    for (let offset = 0; offset < ids.length; offset += 100) {
+      const customerIds = ids.slice(offset, offset + 100)
+      const read = await readCompletePages<ContractBillingPreferenceRow>(async (from, to) => {
+        const result = await tenantSelect(company, 'customer_contracts',
+          'id,company_id,customer_id,consolidated_invoice,billing_level', { count: 'exact' })
+          .in('customer_id', customerIds).order('id', { ascending: true }).range(from, to)
+        return { data: result.data as unknown as ContractBillingPreferenceRow[] | null, error: result.error, count: result.count }
+      })
+      if (read.kind === 'complete' && read.rows.some(contract =>
+        contract.company_id !== company || !contract.customer_id || !customerIds.includes(contract.customer_id))) {
+        throw new Error('contract_billing_summary_ownership_mismatch')
+      }
+      for (const customerId of customerIds) {
+        summaries.set(customerId, summarizeSelectedContractBillingPreferences({
+          companyId: company, customerId,
+          read: read.kind === 'complete'
+            ? { kind: 'complete', selection: CONTRACT_BILLING_SELECTION, rows: read.rows.filter(contract => contract.customer_id === customerId) }
+            : { kind: 'unavailable', selection: CONTRACT_BILLING_SELECTION },
+        }))
+      }
+    }
+  }
+  return summaries
 }
 
 async function hydrateDerivedCustomerData(rows: CustomerListRow[], companyId: string | null): Promise<CustomerListRow[]> {
   if (rows.length === 0) return rows
+  if (rows.length > 100) {
+    const hydrated: CustomerListRow[] = []
+    for (let offset = 0; offset < rows.length; offset += 100) {
+      hydrated.push(...await hydrateDerivedCustomerData(rows.slice(offset, offset + 100), companyId))
+    }
+    return hydrated
+  }
 
   const customerIds = rows.map((row) => row.id)
   const byCustomerId = new Map(rows.map((row) => [row.id, row]))
@@ -461,20 +497,7 @@ async function hydrateDerivedCustomerData(rows: CustomerListRow[], companyId: st
     }
   })()
 
-  const contractsPromise = (async () => {
-    try {
-      const { data, error } = await supabaseService
-        .from('customer_contracts')
-        .select('id, customer_id')
-        .in('customer_id', customerIds)
-
-      if (error) throw error
-      return (data ?? []) as Array<{ customer_id: string | null }>
-    } catch (error) {
-      if (isMissingRelationError(error)) return [] as Array<{ customer_id: string | null }>
-      throw error
-    }
-  })()
+  const contractsPromise = loadContractBillingSummaries(rows, companyId)
 
   const powersOfAttorneyPromise = (async () => {
     try {
@@ -536,11 +559,10 @@ async function hydrateDerivedCustomerData(rows: CustomerListRow[], companyId: st
     if (point.status === 'active') customer.active_metering_point_count += 1
   }
 
-  for (const contract of contracts) {
-    if (!contract.customer_id) continue
-    const customer = byCustomerId.get(contract.customer_id)
-    if (!customer) continue
-    customer.contract_count += 1
+  for (const customer of rows) {
+    customer.contract_billing_summary = contracts.get(customer.id)
+    // Unknown is distinct from a complete empty contract set.
+    customer.contract_count = customer.contract_billing_summary?.contractCount ?? null
   }
 
   for (const poa of powersOfAttorney) {
@@ -628,7 +650,7 @@ export async function listCustomersPage(options: {
   }
 
   const includeHiddenRows = status === 'archived'
-  const baseRows = await loadCustomerRows(companyId, status, includeHiddenRows)
+  const baseRows = await loadCustomerRows(companyId, includeHiddenRows)
   const visibleRows = excludeTestData
     ? baseRows.filter((row) => !matchesFlag(row, 'test_customers'))
     : baseRows
@@ -636,6 +658,11 @@ export async function listCustomersPage(options: {
     (row) => matchesText(row, query) && matchesCustomerType(row, customerType)
   )
   const hydratedRows = await hydrateDerivedCustomerData(hydrationCandidates, companyId)
+  if (contractFilter !== 'all' || ['multi_contract', 'consolidated_invoice', 'billing_ready'].includes(flag)) {
+    if (hydratedRows.some(row => row.contract_billing_summary?.contractCount == null)) {
+      throw new Error('customer_list_contract_filter_complete_read_required')
+    }
+  }
   const counts = buildCounts(
     hydratedRows.filter((row) => matchesCustomerType(row, customerType) && matchesFlag(row, flag))
   )
