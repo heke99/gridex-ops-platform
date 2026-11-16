@@ -101,7 +101,7 @@ describe('committed review presentation',()=>{
  it('shows the known customer and disables create without offering business continuation',async()=>{
   io.ui={...initialIntakeActionState,status:'committed_review',message:'Review documents',createdCustomerId:'customer-a',createdContractId:'contract-a',correlationId:'correlation-a',postCreateAction:'request_data'}
   const {default:Form}=await import('@/components/admin/customers/CustomerIntakeForm')
-  const html=renderToStaticMarkup(React.createElement(Form,{gridOwners:[],electricitySuppliers:[],priceAreas:[],contractOffers:[]}))
+  const html=renderToStaticMarkup(React.createElement(Form,{gridOwners:[],electricitySuppliers:[],priceAreas:[],contractOffers:[],nextStepAccess:{canReadCustomer:true,canReadContracts:true,canReadInfoRequests:false,canRequestData:false}}))
   expect(html).toContain('role="alert"');expect(html).toContain('/admin/customers/customer-a?tab=contracts');expect(html).toContain('correlation-a')
   expect(html).not.toContain('name="redirect_after_submit"');expect(html).not.toContain('Begär uppgifter direkt')
   expect(html.match(/<button[^>]*name="intakeCreateMode"[^>]*>/)?.[0]).toContain('disabled=""')
