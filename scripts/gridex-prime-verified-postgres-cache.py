@@ -142,6 +142,7 @@ def version_output_shape(raw):
         'token_count': min(len(tokens), 5),
         'app_is_ctr': bool(tokens) and tokens[0] == b'ctr',
         'package_is_docker': len(tokens) > 1 and tokens[1] == b'containerd.io',
+        'package_is_containerd': len(tokens) > 1 and tokens[1] == b'containerd',
         'package_is_upstream': len(tokens) > 1 and tokens[1] in {
             b'github.com/containerd/containerd', b'github.com/containerd/containerd/v2'},
         'numeric_major_shape': major is not None,
@@ -161,6 +162,7 @@ def version_output_shape(raw):
 def normalized_version_shape(value):
     """Allow only complete fixed boolean/count fields from reader exceptions."""
     bool_fields = {'output_ascii', 'app_is_ctr', 'package_is_docker', 'package_is_upstream',
+                   'package_is_containerd',
                    'numeric_major_shape', 'supported_numeric_major', 'version_grammar',
                    'trailing_token_grammar', 'single_space_separators', 'has_non_lf_control',
                    'has_tabs', 'has_carriage_return', 'has_repeated_ascii_spaces'}
@@ -183,7 +185,7 @@ class LocalContentReader:
         version = self.command([self.executable, '--version'], 4096, 5)
         # ctr is an unstable administrative CLI: require known major versions
         # plus the actual installed global flags and content-get capability.
-        if not re.fullmatch(rb'ctr (?:github\.com/containerd/containerd(?:/v2)?|containerd\.io) '
+        if not re.fullmatch(rb'ctr (?:github\.com/containerd/containerd(?:/v2)?|containerd\.io|containerd) '
                             rb'v?[12]\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z][0-9A-Za-z.+-]*)?'
                             rb'(?: [0-9A-Za-z._+-]*)?\n?', version):
             error = ContentUnavailable('local_reader_version_unsupported')

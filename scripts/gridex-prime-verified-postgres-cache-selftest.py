@@ -545,21 +545,21 @@ class CtrVersionShapeTests(unittest.TestCase):
         cases = [
             (b'ctr containerd.io v2.1.0 abc\n', {'output_ascii': True, 'line_count': 1,
                 'token_count': 4, 'app_is_ctr': True, 'package_is_docker': True,
-                'package_is_upstream': False, 'numeric_major_shape': True,
+                'package_is_upstream': False, 'package_is_containerd': False, 'numeric_major_shape': True,
                 'supported_numeric_major': True, 'version_grammar': True,
                 'trailing_token_grammar': True, 'single_space_separators': True,
                 'has_non_lf_control': False, 'has_tabs': False,
                 'has_carriage_return': False, 'has_repeated_ascii_spaces': False}),
             (b'ctr containerd.io v3.1.0 vendor/revision\n', {'output_ascii': True, 'line_count': 1,
                 'token_count': 4, 'app_is_ctr': True, 'package_is_docker': True,
-                'package_is_upstream': False, 'numeric_major_shape': True,
+                'package_is_upstream': False, 'package_is_containerd': False, 'numeric_major_shape': True,
                 'supported_numeric_major': False, 'version_grammar': True,
                 'trailing_token_grammar': False, 'single_space_separators': True,
                 'has_non_lf_control': False, 'has_tabs': False,
                 'has_carriage_return': False, 'has_repeated_ascii_spaces': False}),
             (b'SECRET\xff\nSECRET\nSECRET\nSECRET', {'output_ascii': False, 'line_count': 3,
                 'token_count': 4, 'app_is_ctr': False, 'package_is_docker': False,
-                'package_is_upstream': False, 'numeric_major_shape': False,
+                'package_is_upstream': False, 'package_is_containerd': False, 'numeric_major_shape': False,
                 'supported_numeric_major': False, 'version_grammar': False,
                 'trailing_token_grammar': True, 'single_space_separators': False,
                 'has_non_lf_control': False, 'has_tabs': False,
@@ -608,6 +608,43 @@ class CtrVersionShapeTests(unittest.TestCase):
         proof = caught.exception.diagnostic['local_config_proof']
         self.assertNotIn('version_shape', proof)
         self.assertNotIn('SECRET', json.dumps(caught.exception.diagnostic))
+
+class CtrContainerdPackageTests(unittest.TestCase):
+    def test_official_containerd_package_qualifies_and_has_exact_safe_match(self):
+        from unittest.mock import patch
+        for banner in [b'ctr containerd 1.7.24\n', b'ctr containerd v2.2.0\n']:
+            with self.subTest(banner=banner), patch.object(cache.shutil, 'which', return_value='/usr/bin/ctr'):
+                cache.LocalContentReader(command=CtrCapabilityTests().command_for(banner)).qualify()
+                shape = cache.version_output_shape(banner)
+                self.assertTrue(shape.get('package_is_containerd'))
+                self.assertFalse(shape['package_is_docker'])
+                self.assertFalse(shape['package_is_upstream'])
+                self.assertNotIn('1.7.24', json.dumps(shape))
+
+    def test_containerd_package_lookalikes_and_unsupported_versions_stay_refused(self):
+        from unittest.mock import patch
+        for banner in [b'ctr containerd.evil 2.2.0\n', b'ctr evilcontainerd 2.2.0\n',
+                       b'ctr containerd/evil 2.2.0\n', b'ctr Containerd 2.2.0\n',
+                       b'ctr containerd 3.0.0\n', b'ctr containerd 2.2.0SECRET\n']:
+            with self.subTest(banner=banner), patch.object(cache.shutil, 'which', return_value='/usr/bin/ctr'):
+                with self.assertRaises(cache.ContentUnavailable) as caught:
+                    cache.LocalContentReader(command=CtrCapabilityTests().command_for(banner)).qualify()
+                self.assertEqual(str(caught.exception), 'local_reader_version_unsupported')
+                shape = cache.version_output_shape(banner)
+                self.assertEqual(shape.get('package_is_containerd'), banner.split()[1] == b'containerd')
+                self.assertNotIn('SECRET', json.dumps(shape))
+
+    def test_known_containerd_shape_survives_normalization_without_raw_version(self):
+        from unittest.mock import patch
+        pin, image, _, run = LocalContentTests().fixture()
+        reader = cache.LocalContentReader(command=CtrCapabilityTests().command_for(b'ctr containerd 3.0.0\n'))
+        with patch.object(cache.shutil, 'which', return_value='/usr/bin/ctr'):
+            with self.assertRaises(cache.Refused) as caught:
+                cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+        self.assertTrue(caught.exception.diagnostic.get('local_reader_version_shape', {}).get('package_is_containerd'))
+        self.assertEqual(str(caught.exception), 'image_identity_mismatch')
+        self.assertNotIn('3.0.0', json.dumps(caught.exception.diagnostic))
+        run.assert_not_called()
 
 
 if __name__ == '__main__':
