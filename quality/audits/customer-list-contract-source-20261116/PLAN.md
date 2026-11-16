@@ -13,3 +13,5 @@ Design: removing two invalid customer columns alone would incorrectly erase sema
 - [ ] Freeze exact source hashes/commit, obtain two independent final reviewers, publish scoped branch/PR and track mandatory checks. Serial owner retains main merge.
 
 Skills: systematic-debugging (source/schema rootcause), brainstorming (design above under existing autonomous mandate), writing-plans (bounded sequence), test-driven-development (actual listREDbeforefix), code-security/supabase (company-bound queries), verification-before-completion/requesting-code-review (exact results and two final reviews). Installed Next16 docs fetching-data guide read; no new NextAPI/caching behavior.
+
+Follow-up: CI exposed two stale source-text assertions in the previously omitted hydration-performance file. Exact file custody f20098a6 acquired and receiver preimage verified. Six real SDK/event-driven tests now preserve concurrency/site dependencies and distinguish optional fallbacks from unavailable contract summaries. Sequential mutation rejected; original product hashes unchanged. No gate weakened.

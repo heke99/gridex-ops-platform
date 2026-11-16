@@ -1,5 +1,5 @@
 {
-  "state": "SOURCE_FIXED_LOCAL_GATES_PASSED_FINAL_COMMIT_REVIEW_PENDING",
+  "state": "FOLLOWUP_TEST_QUALIFIED_PRODUCT_HASHES_UNCHANGED_FINAL_REVIEW_PENDING",
   "observed_at": "2026-11-16T15:05:15.946574+00:00",
   "base": "c94f9cb2fd9a6aa66bc3b66ccb18ed4ac16dd2bb",
   "branch": "codex/simulation-customer-list",
@@ -112,5 +112,47 @@
     "no_staging_auth_or_business_calls": true,
     "claims_retained_for_serial_delivery": true
   },
-  "dead_code": "None removed; historical33/187categories unchanged"
+  "dead_code": "None removed; historical33/187categories unchanged",
+  "followup": {
+    "cause": "CI25,479pass/2fail: oneomittedrelevanthydrationtestfilecontainedobsoleteimplementationtextassertions",
+    "test_custody": "f20098a6be1ff2b6ac7a74c114e5aec9b90d2b9a exactnewtestfile;customerproduct5hashesunchanged",
+    "change": "ReplacetextmatcheswithrealSDKfixtureevent-basedparallelism/site-dependency/optionalrelationfallbackandtruthfulcontractunavailableoracles",
+    "new_tests": 6,
+    "new_tests_result": "PASS",
+    "sequential_mutation": "Actualtemporaryawaitbeforecontracthydrationwasrejectedbyparalleloracletimeout;productrestoredbyteexact",
+    "scoped_types": "exit0inheritsprojecttsconfig.tests",
+    "scoped_lint": "exit0noerrors/warnings",
+    "reused_checks": "131/131prior8files/app+fulltesttypes/build/RBAC/ratchetremainapplicable:all5originalsource/testhashesunchanged;no rerunneeded",
+    "qualified_disjoint_union": "137passingtests/9filesacrossprior131plusnew6;notonecombinedexecution",
+    "extra_source_sha256": {
+      "__tests__/customer-registry-hydration-performance.test.ts": "e1469c1488526b53917d0ee2b83879266dd8d6b587e7fa49d59e6159490ffc4d"
+    },
+    "evidence": {
+      "/private/tmp/gridex-customer-list-additional-performance.json": {
+        "sha256": "adb5f3bbe368ca57428ed03d8f5a073d3dbbc6bc90c24da4681700b9495f6600",
+        "bytes": 8778
+      },
+      "/private/tmp/gridex-customer-list-hydration-behavior-green.json": {
+        "sha256": "ab5c136561fe3bc4328ad203948ab36d8e6ac70b20a1907754f2e16d03f5626e",
+        "bytes": 15840
+      },
+      "/private/tmp/gridex-hydration-final-green.json": {
+        "sha256": "3287eb7e2fb0880a4378162203433f926f293ba08d6e3485ad6da46ae5952a44",
+        "bytes": 3224
+      },
+      "/private/tmp/gridex-hydration-sequential-mutation-readable.log": {
+        "sha256": "bf5c49a5e50ea84fbe1e68976ad7521f6e3f4621d55a0eea559bffbf58b591e4",
+        "bytes": 1854
+      },
+      "/private/tmp/gridex-hydration-final-scoped-types.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "/private/tmp/gridex-hydration-final-lint.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    "first_mutation_wrapper_note": "InitialJSONreporterpreservedgenericSTACK_TRACE_ERRORratherthantimeouttext;wrapperassertionfailedandtypingconfigcreationwasskipped.No productsourceleftmodified.Subsequentnormalreporterverifiedactualtimeoutandscopedtypes/lint/greenpassed."
+  }
 }
