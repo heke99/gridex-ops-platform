@@ -137,5 +137,81 @@ class CacheIdentityTests(unittest.TestCase):
                 docker.assert_not_called()
 
 
+class DiagnosticTests(unittest.TestCase):
+    # Missing/wrong diagnostic context must fail without changing refusal or commands.
+    def test_each_failure_stage_reports_predicates_without_more_commands(self):
+        pin = ORACLES[0]
+        for stage, expected_commands in [
+                ('existing_target', ['image', 'inspect']),
+                ('immutable_source', ['image', 'inspect', 'image', 'inspect']),
+                ('post_alias', ['image', 'inspect', 'image', 'inspect', 'tag', 'image', 'inspect'])]:
+            with self.subTest(stage=stage):
+                docker = DockerFixture()
+                bad = good(pin); bad['Id'] = 'sha256:' + '0' * 64
+                if stage == 'existing_target':
+                    docker.images[target(pin)] = bad
+                else:
+                    docker.images[source(pin)] = bad if stage == 'immutable_source' else good(pin)
+                    if stage == 'post_alias':
+                        docker.after_tag = bad
+                with self.assertRaises(cache.Refused) as caught:
+                    cache.prepare(ENV, docker)
+                self.assertEqual(str(caught.exception), 'image_identity_mismatch')
+                detail = getattr(caught.exception, 'diagnostic', None)
+                self.assertIsInstance(detail, dict)
+                self.assertEqual(detail['image'], 'postgres')
+                self.assertEqual(detail['stage'], stage)
+                self.assertEqual(detail['predicates'], {
+                    'is_object': True, 'config_matches': False, 'id_matches_pinned_manifest': False,
+                    'id_matches_pinned_index': False, 'os_matches': True,
+                    'architecture_matches': True, 'repo_digest_matches': True})
+                self.assertEqual(detail['expected'], {k: pin[k] for k in ['config', 'index', 'manifest']})
+                flattened = [part for call in docker.calls for part in (call[2:4] if call[2] == 'image' else call[2:3])]
+                self.assertEqual(flattened, expected_commands)
+
+    # Arbitrary inspect values must never escape through diagnostic fields.
+    def test_diagnostic_does_not_expose_inspect_payload_or_secrets(self):
+        pin = ORACLES[0]
+        bad = {'Id': 'SECRET-' * 10000, 'Os': {'token': 'SECRET'},
+               'Architecture': ['SECRET'], 'Variant': 'SECRET',
+               'RepoDigests': ['https://SECRET.invalid/repo@sha256:SECRET'],
+               'Config': {'Env': ['TOKEN=SECRET']},
+               'Descriptor': {'digest': 'SECRET', 'platform': {'os': 'SECRET'}}}
+        docker = DockerFixture(); docker.images[target(pin)] = bad
+        with self.assertRaises(cache.Refused) as caught:
+            cache.prepare(ENV, docker)
+        detail = getattr(caught.exception, 'diagnostic', None)
+        self.assertIsInstance(detail, dict)
+        self.assertEqual(detail['predicates'], {
+            'is_object': True, 'config_matches': False, 'id_matches_pinned_manifest': False,
+            'id_matches_pinned_index': False, 'os_matches': False,
+            'architecture_matches': False, 'repo_digest_matches': False})
+        serialized = json.dumps(detail)
+        self.assertNotIn('SECRET', serialized)
+        self.assertLess(len(serialized), 800)
+
+    def test_manifest_or_index_id_still_refused_with_diagnostic_match(self):
+        for field in ['manifest', 'index']:
+            pin = ORACLES[0]; bad = good(pin); bad['Id'] = pin[field]
+            docker = DockerFixture(); docker.images[target(pin)] = bad
+            with self.assertRaises(cache.Refused) as caught:
+                cache.prepare(ENV, docker)
+            self.assertEqual(str(caught.exception), 'image_identity_mismatch')
+            detail = getattr(caught.exception, 'diagnostic', None)
+            self.assertIsInstance(detail, dict)
+            self.assertFalse(detail['predicates']['config_matches'])
+            self.assertEqual(detail['predicates']['id_matches_pinned_manifest'], field == 'manifest')
+            self.assertEqual(detail['predicates']['id_matches_pinned_index'], field == 'index')
+            self.assertEqual(len(docker.calls), 1)
+
+    def test_non_object_rejection_stays_generic_and_diagnostic_is_bounded(self):
+        with self.assertRaises(cache.Refused) as caught:
+            cache.verify(None, cache.PINS[0])
+        self.assertEqual(str(caught.exception), 'image_identity_mismatch')
+        detail = getattr(caught.exception, 'diagnostic', None)
+        self.assertIsInstance(detail, dict)
+        self.assertEqual(set(detail['predicates'].values()), {False})
+
+
 if __name__ == '__main__':
     unittest.main()

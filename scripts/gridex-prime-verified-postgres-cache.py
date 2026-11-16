@@ -53,7 +53,7 @@ def inspect(reference, run):
         raise Refused('image_inspection_invalid') from None
 
 
-def verify(image, pin):
+def verify(image, pin, stage="unspecified"):
     repos = {pin.source_repo, 'docker.io/' + pin.source_repo, 'ghcr.io/supabase/' + pin.name}
     # Docker canonicalizes official library images (library/kong -> kong).
     if pin.source_repo.startswith('library/'):
@@ -62,7 +62,30 @@ def verify(image, pin):
     if (not isinstance(image, dict) or image.get('Id') != pin.config
             or image.get('Os') != 'linux' or image.get('Architecture') != 'amd64'
             or not set(image.get('RepoDigests') or []).intersection(allowed)):
-        raise Refused('image_identity_mismatch')
+        # Diagnostic only: never serialize inspect payloads or change acceptance.
+        fields = image if isinstance(image, dict) else {}
+        try:
+            repo_matches = bool(set(fields.get('RepoDigests') or []).intersection(allowed))
+        except (TypeError, ValueError):
+            repo_matches = False
+        error = Refused('image_identity_mismatch')
+        error.diagnostic = {
+            'image': pin.name if pin in PINS else 'unknown',
+            'stage': stage if stage in {'existing_target', 'immutable_source', 'post_alias'} else 'unspecified',
+            'predicates': {
+                'is_object': isinstance(image, dict),
+                'config_matches': fields.get('Id') == pin.config,
+                'id_matches_pinned_manifest': fields.get('Id') == pin.manifest,
+                'id_matches_pinned_index': fields.get('Id') == pin.index,
+                'os_matches': fields.get('Os') == 'linux',
+                'architecture_matches': fields.get('Architecture') == 'amd64',
+                'repo_digest_matches': repo_matches,
+            },
+        }
+        if pin in PINS:
+            error.diagnostic['expected'] = {
+                'config': pin.config, 'index': pin.index, 'manifest': pin.manifest}
+        raise error
 
 
 def prepare_image(pin, run, pause):
@@ -70,7 +93,7 @@ def prepare_image(pin, run, pause):
     target = 'ghcr.io/supabase/' + pin.name + ':' + pin.tag
     existing = inspect(target, run)
     if existing is not None:
-        verify(existing, pin)
+        verify(existing, pin, 'existing_target')
         return {'status': 'verified_existing_cache', 'target': target,
                 'manifest': pin.manifest, 'config': pin.config, 'origin': 'existing_verified_cache'}
     image = inspect(source, run)
@@ -86,11 +109,11 @@ def prepare_image(pin, run, pause):
                 raise Refused('pinned_public_image_pull_failed')
             pause(15)
         image = inspect(source, run)
-    verify(image, pin)
+    verify(image, pin, 'immutable_source')
     tagged = run(DOCKER + ['tag', source, target], capture_output=True, text=True, timeout=30)
     if tagged.returncode:
         raise Refused('cache_alias_failed')
-    verify(inspect(target, run), pin)
+    verify(inspect(target, run), pin, 'post_alias')
     return {'status': 'verified_public_mirror_cache', 'source': source, 'target': target,
             'index': pin.index, 'manifest': pin.manifest, 'config': pin.config,
             'origin': 'official_dockerhub_content_identical_copy'}
@@ -113,5 +136,8 @@ if __name__ == '__main__':
         print(json.dumps(prepare(), sort_keys=True))
     except (Refused, subprocess.TimeoutExpired) as error:
         print(json.dumps({'status': 'failed', 'reason': str(error) if isinstance(error, Refused)
-                          else 'docker_command_timeout'}), file=sys.stderr)
+                          else 'docker_command_timeout',
+                          **({'diagnostic': error.diagnostic}
+                             if isinstance(error, Refused) and hasattr(error, 'diagnostic') else {})}),
+              file=sys.stderr)
         raise SystemExit(1)
