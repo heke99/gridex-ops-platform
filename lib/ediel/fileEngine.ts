@@ -1,4 +1,4 @@
-import {parseAiBiTechnicalFile} from '@/lib/ediel/aiListFormat'
+import {AI_LIST_FORMAT_VERSION, parseAiBiTechnicalFile} from '@/lib/ediel/aiListFormat'
 // lib/ediel/fileEngine.ts
 
 import type {
@@ -650,11 +650,15 @@ async function withVersionValidation(params: {
       );
     }
   } else {
-    const acceptedVersionRows = await resolveInboundAcceptedVersions({
-      family: params.parsed.messageFamily,
-      code: params.parsed.messageCode,
-      standard: params.parsed.messageStandard,
-    });
+    // The shared parser already validates technical AI/BI against its source
+    // profile. Registry rows are not version authority for this inbound format.
+    const acceptedVersionRows = params.parsed.messageStandard === "ai_list"
+      ? [{ version_code: AI_LIST_FORMAT_VERSION }]
+      : await resolveInboundAcceptedVersions({
+          family: params.parsed.messageFamily,
+          code: params.parsed.messageCode,
+          standard: params.parsed.messageStandard,
+        });
 
     acceptedVersions = acceptedVersionRows
       .map((row) => row.version_code)
