@@ -137,7 +137,7 @@ def normalized_command_failure(value, stage=None):
     stage = stage if stage is not None else value.get('command_stage')
     code = value.get('exit_code')
     if (type(stage) is not str or stage not in {
-            'version', 'global_help', 'content_help', 'daemon_info', 'content_get'}
+            'version', 'global_help', 'content_help', 'daemon_info', 'content_get', 'watchdog_version', 'watchdog_help', 'sudo_version'}
             or not (code is None or type(code) is int and -127 <= code <= 255)
             or type(value.get('stderr_class')) is not str or value['stderr_class'] not in {
                 'unclassified', 'grpc_permission_denied', 'grpc_not_found', 'socket_permission_denied', 'grpc_unavailable'}
@@ -148,7 +148,7 @@ def normalized_command_failure(value, stage=None):
             'stderr_class': value['stderr_class'], 'failure_kind': value['failure_kind']}
 
 
-def bounded_command(args, limit, timeout):
+def bounded_command(args, limit, timeout, *, env=None):
     """Read bounded local command streams and always reap our own child."""
     deadline = time.monotonic() + timeout
     child = None
@@ -157,7 +157,7 @@ def bounded_command(args, limit, timeout):
     stderr_bytes = bytearray()
     try:
         child = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                 stdin=subprocess.DEVNULL)
+                                 stdin=subprocess.DEVNULL, env=env)
         with selectors.DefaultSelector() as selector:
             selector.register(child.stdout, selectors.EVENT_READ, 'stdout')
             selector.register(child.stderr, selectors.EVENT_READ, 'stderr')
@@ -318,6 +318,341 @@ class LocalContentReader:
                              '--timeout', '10s', '--connect-timeout', '3s',
                              'content', 'get', digest], limit, 12)
 
+class _TrustFS:
+    lstat = staticmethod(os.lstat)
+    readlink = staticmethod(os.readlink)
+    open = staticmethod(os.open)
+    fstat = staticmethod(os.fstat)
+    read = staticmethod(os.read)
+    close = staticmethod(os.close)
+
+
+class _TrustedFiles:
+    """Local, root-protected ELF/package/socket custody. Never logs file data."""
+    def __init__(self, fs=None):
+        self.fs = fs if fs is not None else _TrustFS()
+
+    @staticmethod
+    def _identity(row):
+        return tuple(getattr(row, key) for key in ('st_dev', 'st_ino', 'st_mode', 'st_uid', 'st_gid',
+                                                   'st_size', 'st_mtime_ns', 'st_ctime_ns'))
+
+    def _chain(self, path, kind):
+        if (not isinstance(path, str) or len(path) > 256 or path != os.path.normpath(path)
+                or not re.fullmatch(r'/[A-Za-z0-9_./+-]*', path)):
+            raise ContentUnavailable('local_reader_trusted_path_required')
+        # Resolve one raw readlink at a time. realpath() would hide writable
+        # intermediate targets that later link back to a protected final file.
+        pending = path.split('/'); resolved = []; rows = []; links = 0; steps = 0
+        root = self.fs.lstat('/')
+        if root.st_uid != 0 or not stat.S_ISDIR(root.st_mode) or root.st_mode & 0o022:
+            raise ContentUnavailable('local_reader_trusted_path_required')
+        rows.append(('/', self._identity(root), None))
+        while pending:
+            token = pending.pop(0); steps += 1
+            if steps > 1024:
+                raise ContentUnavailable('local_reader_trusted_path_required')
+            if token in {'', '.'}:
+                continue
+            if token == '..':
+                if resolved:
+                    resolved.pop()
+                continue
+            component = '/' + '/'.join(resolved + [token])
+            if len(component) > 256:
+                raise ContentUnavailable('local_reader_trusted_path_required')
+            row = self.fs.lstat(component)
+            if row.st_uid != 0:
+                raise ContentUnavailable('local_reader_trusted_path_required')
+            if stat.S_ISLNK(row.st_mode):
+                links += 1
+                if links > 32:
+                    raise ContentUnavailable('local_reader_trusted_path_required')
+                target = self.fs.readlink(component)
+                if (not isinstance(target, str) or not 0 < len(target) <= 256
+                        or not re.fullmatch(r'[A-Za-z0-9_./+-]+', target)):
+                    raise ContentUnavailable('local_reader_trusted_path_required')
+                rows.append((component, self._identity(row), target))
+                if target.startswith('/'):
+                    resolved = []
+                # For a relative target, resolved already names its fully checked
+                # canonical parent. Preserve '..' until preceding hops are checked.
+                pending = target.split('/') + pending
+                continue
+            leaf = not pending
+            if not leaf or kind == 'dir':
+                if not stat.S_ISDIR(row.st_mode) or row.st_mode & 0o022:
+                    raise ContentUnavailable('local_reader_trusted_path_required')
+            elif kind == 'socket':
+                if not stat.S_ISSOCK(row.st_mode):
+                    raise ContentUnavailable('local_reader_trusted_path_required')
+            elif (not stat.S_ISREG(row.st_mode) or row.st_mode & 0o022
+                    or kind == 'executable' and not row.st_mode & 0o111):
+                raise ContentUnavailable('local_reader_trusted_path_required')
+            rows.append((component, self._identity(row), None)); resolved.append(token)
+        canonical = '/' + '/'.join(resolved)
+        final = self.fs.lstat(canonical)
+        if (final.st_uid != 0
+                or kind == 'socket' and not stat.S_ISSOCK(final.st_mode)
+                or kind == 'dir' and (not stat.S_ISDIR(final.st_mode) or final.st_mode & 0o022)
+                or kind not in {'socket', 'dir'} and (not stat.S_ISREG(final.st_mode)
+                    or final.st_mode & 0o022 or kind == 'executable' and not final.st_mode & 0o111)):
+            raise ContentUnavailable('local_reader_trusted_path_required')
+        rows.append((canonical, self._identity(final), None))
+        return canonical, tuple(rows)
+
+    def _file(self, path, executable=False):
+        canonical, chain = self._chain(path, 'executable' if executable else 'file')
+        fd = self.fs.open(canonical, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK)
+        try:
+            before = self._identity(self.fs.fstat(fd))
+            if (not stat.S_ISREG(before[2]) or before[3] != 0 or before[2] & 0o022
+                    or before != self._identity(self.fs.lstat(canonical))):
+                raise ContentUnavailable('local_reader_trusted_context_changed')
+            maximum = 256 * 1024 * 1024 if executable else 2 * 1024 * 1024
+            if not 0 < before[5] <= maximum:
+                raise ContentUnavailable('local_reader_trusted_binary_required')
+            sha = hashlib.sha256(); md5 = hashlib.md5(); size = 0; prefix = b''; data = bytearray()
+            deadline = time.monotonic() + 5
+            while True:
+                if time.monotonic() > deadline:
+                    raise ContentUnavailable('local_reader_trusted_binary_required')
+                chunk = self.fs.read(fd, min(65536, maximum - size + 1))
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > maximum:
+                    raise ContentUnavailable('local_reader_trusted_binary_required')
+                prefix = (prefix + chunk[:4])[:4]
+                sha.update(chunk); md5.update(chunk)
+                if not executable:
+                    data.extend(chunk)
+            if (size != before[5] or self._identity(self.fs.fstat(fd)) != before
+                    or self._chain(path, 'executable' if executable else 'file') != (canonical, chain)):
+                raise ContentUnavailable('local_reader_trusted_context_changed')
+            if executable and prefix != b'\x7fELF':
+                raise ContentUnavailable('local_reader_trusted_binary_required')
+            return (canonical, chain, before, sha.hexdigest()), md5.hexdigest(), bytes(data)
+        finally:
+            self.fs.close(fd)
+
+    def tool(self, path, package):
+        identity, md5, _ = self._file(path, executable=True)
+        try:
+            provenance, _, raw = self._file('/var/lib/dpkg/info/' + package + '.md5sums')
+            target = identity[0].removeprefix('/').encode('ascii')
+            entries = [line.split(None, 1) for line in raw.splitlines() if line.strip()]
+            matches = [digest for digest, name in entries if name == target]
+            if len(matches) != 1 or matches[0] != md5.encode('ascii'):
+                raise ValueError()
+        except Exception:
+            raise ContentUnavailable('local_reader_package_provenance_required') from None
+        return identity, provenance
+
+    def socket(self, address):
+        try:
+            return self._chain(address, 'socket')
+        except OSError:
+            raise ContentUnavailable('local_reader_trusted_path_required') from None
+
+
+class _PinnedRootReader:
+    """Private two-read authority; no arbitrary privileged command interface."""
+    def __init__(self, pin, env=None, platform=None, fs=None, command=None, spawn=None):
+        if type(pin) is not ImagePin or not any(pin is configured for configured in PINS):
+            raise ContentUnavailable('local_reader_pinned_scope_required')
+        self.pin = next(configured for configured in PINS if pin is configured)
+        self.env = os.environ if env is None else env
+        self.platform = sys.platform if platform is None else platform
+        self.trust = _TrustedFiles(fs)
+        self.clean_env = {'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LANG': 'C', 'LC_ALL': 'C'}
+        self.command = command if command is not None else (
+            lambda args, limit, timeout: bounded_command(args, limit, timeout, env=self.clean_env))
+        self.spawn = subprocess.Popen if spawn is None else spawn
+        self.basic = LocalContentReader(command=self.command)
+        self.paths = {}; self.exec_paths = {}; self.tools = None; self.binding = None; self.lookup = None
+        self.index = 0; self.stopped = False; self.qualified = False
+
+    def _host(self):
+        if (self.platform != 'linux' or self.env.get('GITHUB_ACTIONS') != 'true'
+                or self.env.get('RUNNER_OS') != 'Linux' or self.env.get('RUNNER_ENVIRONMENT') != 'github-hosted'
+                or not self.env.get('RUNNER_TEMP') or self.env.get('SUPABASE_INTERNAL_IMAGE_REGISTRY') != 'ghcr.io'
+                or any(self.env.get(k) for k in ['DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_TLS',
+                    'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH', 'LD_PRELOAD', 'LD_LIBRARY_PATH',
+                    'GCONV_PATH', 'SUDO_ASKPASS'])):
+            raise ContentUnavailable('local_reader_hosted_linux_required')
+
+    def _sudo_path(self):
+        # Ubuntu may make sudo-rs the default while keeping the C provider here.
+        # Presence of this candidate commits selection: unsafe/malformed means
+        # refusal, never a fallback to another executable.
+        try:
+            self.trust.fs.lstat('/usr/bin/sudo.ws')
+        except FileNotFoundError:
+            return '/usr/bin/sudo'
+        return '/usr/bin/sudo.ws'
+
+    def _tools(self):
+        self._host()
+        if self.lookup is None or any(self.lookup(name) != self.paths[name] for name in ['ctr', 'docker']):
+            raise ContentUnavailable('local_reader_trusted_context_changed')
+        if self._sudo_path() != self.paths['sudo']:
+            raise ContentUnavailable('local_reader_trusted_context_changed')
+        packages = {'ctr': 'containerd.io', 'docker': 'docker-ce-cli', 'sudo': 'sudo', 'timeout': 'coreutils'}
+        return {name: self.trust.tool(self.paths[name], package) for name, package in packages.items()}
+
+    def qualify(self):
+        try:
+            self._host()
+            if type(self.pin) is not ImagePin or not any(self.pin is configured for configured in PINS):
+                raise ContentUnavailable('local_reader_pinned_scope_required')
+            self.lookup = shutil.which
+            self.paths = {'ctr': self.lookup('ctr'), 'docker': self.lookup(DOCKER[0]),
+                          'sudo': self._sudo_path(), 'timeout': '/usr/bin/timeout'}
+            self.tools = self._tools()
+            canonical = {name: proof[0][0] for name, proof in self.tools.items()}
+            if canonical['sudo'] != self.paths['sudo'] or canonical['timeout'] != '/usr/bin/timeout':
+                raise ContentUnavailable('local_reader_trusted_path_required')
+            self.basic.qualify()
+            if self.trust.tool(self.basic.executable, 'containerd.io') != self.tools['ctr']:
+                raise ContentUnavailable('local_reader_trusted_context_changed')
+            self.exec_paths = {name: proof[0][0] for name, proof in self.tools.items()}
+            sudo_version = self.basic._command('sudo_version', [self.exec_paths['sudo'], '--version'], 4096, 5)
+            first_line = sudo_version.split(b'\n', 1)[0]
+            if not re.fullmatch(rb'Sudo version 1\.9\.[0-9]+(?:p[0-9]+)?', first_line):
+                raise ContentUnavailable('local_reader_trusted_binary_required')
+            version = self.basic._command('watchdog_version', [self.exec_paths['timeout'], '--version'], 4096, 5)
+            help_text = self.basic._command('watchdog_help', [self.exec_paths['timeout'], '--help'], 16384, 5)
+            if (not re.match(rb'timeout \(GNU coreutils\) [0-9]+\.[0-9]+', version)
+                    or not all(flag in help_text for flag in [b'--signal', b'--kill-after'])):
+                raise ContentUnavailable('local_reader_watchdog_unsupported')
+            # Canonical paths and original discoveries must identify the same bytes.
+            if self._tools() != self.tools:
+                raise ContentUnavailable('local_reader_trusted_context_changed')
+            self.qualified = True
+        except ContentUnavailable:
+            raise
+        except Exception:
+            raise ContentUnavailable('local_reader_trusted_path_required') from None
+
+    def info(self):
+        try:
+            if not self.qualified or self.stopped:
+                raise ContentUnavailable('local_reader_scope_stopped')
+            if self._tools() != self.tools:
+                raise ContentUnavailable('local_reader_trusted_context_changed')
+            value = strict_json(self.basic._command('daemon_info', [self.exec_paths['docker']] + DOCKER[1:] +
+                ['info', '--format', '{"ID":{{json .ID}},"Containerd":{{json .Containerd}}}'], 262144, 10))
+            binding = daemon_binding(value, self)
+            if self.binding is not None and binding != self.binding:
+                raise ContentUnavailable('local_reader_trusted_context_changed')
+            self.binding = binding
+            return value
+        except ContentUnavailable:
+            self.stopped = True
+            raise
+        except Exception:
+            self.stopped = True
+            raise ContentUnavailable('local_reader_trusted_path_required') from None
+
+    def is_socket(self, address):
+        self.trust.socket(address)
+        return True
+
+    def _scope(self, digest, binding, limit):
+        if type(self.pin) is not ImagePin or not any(self.pin is configured for configured in PINS):
+            raise ContentUnavailable('local_reader_pinned_scope_required')
+        self._host()
+        if (not self.qualified or self.stopped or self.index > 1
+                or type(binding) is not tuple or len(binding) != 3 or not all(type(value) is str for value in binding)
+                or binding != self.binding or type(digest) is not str
+                or digest != (self.pin.manifest, self.pin.config)[self.index]
+                or type(limit) is not int or limit != (MANIFEST_LIMIT, CONFIG_LIMIT)[self.index]):
+            raise ContentUnavailable('local_reader_pinned_scope_required')
+
+    def _argv(self, digest, binding, limit):
+        self._scope(digest, binding, limit)
+        return [self.exec_paths['sudo'], '-n', '--', self.exec_paths['timeout'], '--signal=TERM', '--kill-after=1s',
+                '10s', self.exec_paths['ctr'], '--address', binding[1], '--namespace', binding[2],
+                '--timeout', '10s', '--connect-timeout', '3s', 'content', 'get',
+                (self.pin.manifest, self.pin.config)[self.index]]
+
+    def _capture(self, digest, binding, limit):
+        # Only this fixed content-read argv crosses the existing privilege boundary.
+        args = self._argv(digest, binding, limit)
+        started = time.monotonic(); deadline = started + 12; terminal_deadline = started + 27
+        child = None; output = bytearray(); stderr = bytearray()
+        try:
+            child = self.spawn(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               stdin=subprocess.DEVNULL, env=self.clean_env)
+            with selectors.DefaultSelector() as selector:
+                selector.register(child.stdout, selectors.EVENT_READ, 'stdout')
+                selector.register(child.stderr, selectors.EVENT_READ, 'stderr')
+                while selector.get_map():
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise ContentUnavailable('local_reader_timeout')
+                    for key, _ in selector.select(remaining):
+                        available = limit - len(output) if key.data == 'stdout' else 4096 - len(stderr)
+                        chunk = os.read(key.fileobj.fileno(), min(4096, available + 1))
+                        if not chunk:
+                            selector.unregister(key.fileobj)
+                        elif len(chunk) > available:
+                            raise ContentUnavailable('local_reader_overflow')
+                        elif key.data == 'stdout':
+                            output.extend(chunk)
+                        else:
+                            stderr.extend(chunk)
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise ContentUnavailable('local_reader_timeout')
+                code = child.wait(timeout=remaining)
+                if code != 0:
+                    error = ContentUnavailable('local_reader_failed')
+                    error.command_failure = {'command_stage': 'content_get',
+                        'exit_code': code if type(code) is int and -127 <= code <= 255 else None,
+                        'stderr_class': stderr_failure_class(stderr), 'failure_kind': 'command_exit'}
+                    error.stderr_features = stderr_output_features(stderr)
+                    raise error
+            return bytes(output)
+        except (OSError, subprocess.TimeoutExpired):
+            raise ContentUnavailable('local_reader_failed') from None
+        finally:
+            if child is not None:
+                try:
+                    if child.poll() is None:
+                        try:
+                            # sudo documents forwarding catchable TERM; KILL does not relay.
+                            child.terminate()
+                        except OSError:
+                            pass
+                    remaining = min(15, terminal_deadline - time.monotonic())
+                    if remaining <= 0:
+                        raise subprocess.TimeoutExpired('owned_reader', 15)
+                    child.wait(timeout=remaining)
+                except (subprocess.TimeoutExpired, OSError):
+                    raise ContentUnavailable('local_reader_cleanup_unconfirmed') from None
+                finally:
+                    child.stdout.close(); child.stderr.close()
+
+    def read(self, digest, binding, limit):
+        try:
+            self._scope(digest, binding, limit)
+            before = (self._tools(), self.trust.socket(binding[1]))
+            if before[0] != self.tools:
+                raise ContentUnavailable('local_reader_trusted_context_changed')
+            raw = self._capture(digest, binding, limit)
+            if (self._tools(), self.trust.socket(binding[1])) != before:
+                raise ContentUnavailable('local_reader_trusted_context_changed')
+            self.index += 1
+            return raw
+        except ContentUnavailable:
+            self.stopped = True
+            raise
+        except Exception:
+            self.stopped = True
+            raise ContentUnavailable('local_reader_trusted_path_required') from None
+
 
 def daemon_binding(info, reader):
     daemon = info['ID']
@@ -361,7 +696,7 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
                 or platform.get('os', 'linux') != 'linux'
                 or platform.get('architecture', 'amd64') != 'amd64'):
             return False
-        reader = reader if reader is not None else LocalContentReader()
+        reader = reader if reader is not None else _PinnedRootReader(pin)
         stage = 'capability'
         reader.qualify()
         stage = 'binding'
@@ -414,7 +749,11 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
                  'local_reader_unsupported', 'local_reader_version_unsupported',
                  'local_reader_flags_missing', 'local_reader_content_get_unsupported',
                  'local_reader_invalid_digest',
-                 'local_daemon_binding_invalid'}
+                 'local_daemon_binding_invalid', 'local_reader_trusted_path_required',
+                 'local_reader_trusted_context_changed', 'local_reader_trusted_binary_required',
+                 'local_reader_package_provenance_required', 'local_reader_hosted_linux_required',
+                 'local_reader_pinned_scope_required', 'local_reader_watchdog_unsupported',
+                 'local_reader_scope_stopped', 'local_reader_cleanup_unconfirmed'}
         if (isinstance(error, ContentUnavailable) and len(error.args) == 1
                 and type(error.args[0]) is str and error.args[0] in codes):
             reason = error.args[0]

@@ -399,7 +399,7 @@ class LocalContentTests(unittest.TestCase):
         readers = []
         def factory():
             reader = self.fixture()[2]; readers.append(reader); return reader
-        with patch.object(cache, 'LocalContentReader', side_effect=factory):
+        with patch.object(cache, '_PinnedRootReader', side_effect=lambda pinned: factory()):
             result = cache.prepare_image(pin, docker, Mock())
         self.assertEqual(result['config'], pin.config)
         self.assertEqual(len(readers), 2)
@@ -800,6 +800,385 @@ class WrappedReaderErrorTests(unittest.TestCase):
             cache.verify(image, pin, reference='fixture', run=run, reader=reader)
         self.assertNotIn('local_reader_stderr_features', caught.exception.diagnostic)
         self.assertNotIn('SECRET', json.dumps(caught.exception.diagnostic))
+
+class SyntheticTrustFS:
+    """Declared root-owned metadata/ELF bytes; no real root filesystem or tools."""
+    def __init__(self):
+        import hashlib, stat
+        from types import SimpleNamespace
+        self.nodes = {}; self.fds = {}; self.next_fd = 1
+        def add(path, mode, data=b'', uid=0):
+            self.nodes[path] = [SimpleNamespace(st_mode=mode, st_uid=uid, st_gid=0,
+                st_dev=1, st_ino=len(self.nodes) + 1, st_size=len(data), st_mtime_ns=1, st_ctime_ns=1), data]
+        self.add = add
+        for path in ['/', '/usr', '/usr/bin', '/var', '/var/lib', '/var/lib/dpkg', '/var/lib/dpkg/info',
+                     '/run', '/run/docker', '/run/docker/containerd']:
+            add(path, stat.S_IFDIR | 0o755)
+        for name, package in [('ctr', 'containerd.io'), ('docker', 'docker-ce-cli'), ('sudo', 'sudo'), ('timeout', 'coreutils')]:
+            data = b'\x7fELFdeclared-synthetic-' + name.encode()
+            add('/usr/bin/' + name, stat.S_IFREG | 0o755, data)
+            entry = hashlib.md5(data).hexdigest() + '  usr/bin/' + name + '\n'
+            add('/var/lib/dpkg/info/' + package + '.md5sums', stat.S_IFREG | 0o644, entry.encode())
+        add('/run/docker/containerd/containerd.sock', stat.S_IFSOCK | 0o660)
+    def realpath(self, path): return path
+    def lstat(self, path):
+        if path not in self.nodes: raise FileNotFoundError('synthetic missing file')
+        return self.nodes[path][0]
+    def open(self, path, flags):
+        self.lstat(path); fd = self.next_fd; self.next_fd += 1; self.fds[fd] = [path, 0]; return fd
+    def fstat(self, fd): return self.lstat(self.fds[fd][0])
+    def read(self, fd, count):
+        path, position = self.fds[fd]; chunk = self.nodes[path][1][position:position + count]
+        self.fds[fd][1] += len(chunk); return chunk
+    def close(self, fd): del self.fds[fd]
+    def readlink(self, path): return self.nodes[path][1].decode('ascii')
+
+
+class PinnedRootReaderTests(unittest.TestCase):
+    def fixture(self, spawn=None):
+        self.assertTrue(callable(getattr(cache, '_PinnedRootReader', None)), 'scoped root reader missing')
+        import sys
+        env = {**ENV, 'RUNNER_OS': 'Linux', 'RUNNER_ENVIRONMENT': 'github-hosted'}
+        fs = SyntheticTrustFS(); calls = []; privileged_calls = []
+        def command(args, limit, timeout):
+            calls.append((args, limit, timeout))
+            if args[0].endswith(('/sudo', '/sudo.ws')): return b'Sudo version 1.9.17p2\n'
+            if args[0].endswith('/timeout'):
+                return b'timeout (GNU coreutils) 9.5\n' if args[-1] == '--version' else b'--signal --kill-after'
+            if args[-1] == '--version': return b'ctr containerd 2.2.0\n'
+            if args[-1] == '--help': return b'--address --namespace --timeout --connect-timeout content get'
+            if 'info' in args:
+                return json.dumps({'ID': 'synthetic-daemon', 'Containerd': {
+                    'Address': '/run/docker/containerd/containerd.sock',
+                    'Namespaces': {'Containers': 'moby', 'Plugins': 'plugins.moby'}}}).encode()
+            raise AssertionError('unexpected unprivileged operation')
+        def owned_spawn(args, **kwargs):
+            privileged_calls.append((args, kwargs))
+            # Owned nonprivileged Python models pipes/process only; never runs sudo/timeout/ctr.
+            return subprocess.Popen([sys.executable, '-c', 'import sys;sys.stdout.buffer.write(b"declared-blob")'], **kwargs)
+        reader = cache._PinnedRootReader(cache.PINS[0], env=env, platform='linux', fs=fs,
+                                         command=command, spawn=spawn or owned_spawn)
+        return reader, fs, env, calls, privileged_calls
+
+    def qualify(self, reader):
+        from unittest.mock import patch
+        with patch.object(cache.shutil, 'which', side_effect=lambda name: '/usr/bin/' + name):
+            reader.qualify()
+        return cache.daemon_binding(reader.info(), reader)
+
+
+    def add_c_sudo_ws(self, fs):
+        import hashlib, stat
+        data = b'\x7fELFdeclared-synthetic-sudo-ws'
+        fs.add('/usr/bin/sudo.ws', stat.S_IFREG | 0o755, data)
+        fs.nodes['/var/lib/dpkg/info/sudo.md5sums'][1] += (hashlib.md5(data).hexdigest() + '  usr/bin/sudo.ws\n').encode()
+        fs.nodes['/var/lib/dpkg/info/sudo.md5sums'][0].st_size = len(fs.nodes['/var/lib/dpkg/info/sudo.md5sums'][1])
+
+    def test_existing_c_sudo_ws_preferred_and_qualified(self):
+        reader, fs, env, calls, privileged = self.fixture(); self.add_c_sudo_ws(fs)
+        binding = self.qualify(reader)
+        reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT)
+        self.assertEqual(privileged[0][0][0], '/usr/bin/sudo.ws')
+        self.assertTrue(any(args == ['/usr/bin/sudo.ws', '--version'] for args, _, _ in calls))
+
+    def test_missing_ws_uses_version_qualified_legacy_c_sudo(self):
+        reader, fs, env, calls, privileged = self.fixture(); self.qualify(reader)
+        self.assertTrue(any(args == ['/usr/bin/sudo', '--version'] for args, _, _ in calls))
+
+    def test_rust_unknown_and_malformed_sudo_versions_fail_without_privilege(self):
+        for version in [b'sudo-rs 0.2.8\n', b'Sudo version 1.8.31\n', b'Sudo version 2.0.1\n',
+                        b'Sudo version 1.9.17p2 SECRET\n', b'Sudo version 1.9.\n', b'UNKNOWN\n']:
+            reader, fs, env, calls, privileged = self.fixture(); command = reader.basic.command
+            reader.basic.command = lambda args, limit, timeout: version if args[0].endswith('/sudo') else command(args, limit, timeout)
+            with self.assertRaises(cache.ContentUnavailable): self.qualify(reader)
+            self.assertEqual(privileged, [])
+
+    def test_present_malformed_ws_does_not_try_legacy_version(self):
+        reader, fs, env, calls, privileged = self.fixture(); self.add_c_sudo_ws(fs)
+        command = reader.basic.command
+        reader.basic.command = lambda args, limit, timeout: b'sudo-rs 0.2.8\n' if args[0].endswith('/sudo.ws') else command(args, limit, timeout)
+        with self.assertRaises(cache.ContentUnavailable): self.qualify(reader)
+        self.assertFalse(any(args[0] == '/usr/bin/sudo' for args, _, _ in calls))
+        self.assertEqual(privileged, [])
+
+    def test_present_unsafe_ws_does_not_fallback_to_legacy(self):
+        reader, fs, env, calls, privileged = self.fixture(); self.add_c_sudo_ws(fs)
+        fs.nodes['/usr/bin/sudo.ws'][0].st_uid = 1001
+        with self.assertRaises(cache.ContentUnavailable): self.qualify(reader)
+        self.assertEqual(privileged, []); self.assertEqual(calls, [])
+
+    def test_present_ws_redirect_to_other_allowed_prefix_is_refused(self):
+        import stat
+        reader, fs, env, calls, privileged = self.fixture(); self.add_c_sudo_ws(fs)
+        fs.add('/usr/bin/sudo.ws', stat.S_IFLNK | 0o777, b'sudo')
+        with self.assertRaises(cache.ContentUnavailable): self.qualify(reader)
+        self.assertEqual(privileged, [])
+
+    def test_selected_sudo_path_drift_stops_before_read(self):
+        reader, fs, env, calls, privileged = self.fixture(); binding = self.qualify(reader)
+        self.add_c_sudo_ws(fs)
+        with self.assertRaises(cache.ContentUnavailable): reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT)
+        self.assertEqual(privileged, [])
+
+    def test_fixed_scoped_argv_pair_and_clean_environment(self):
+        reader, fs, env, calls, privileged = self.fixture()
+        binding = self.qualify(reader)
+        self.assertEqual(reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT), b'declared-blob')
+        self.assertEqual(reader.read(cache.PINS[0].config, binding, cache.CONFIG_LIMIT), b'declared-blob')
+        self.assertEqual(len(privileged), 2)
+        for index, (args, kwargs) in enumerate(privileged):
+            self.assertEqual(args, ['/usr/bin/sudo', '-n', '--', '/usr/bin/timeout', '--signal=TERM',
+                '--kill-after=1s', '10s', '/usr/bin/ctr', '--address', '/run/docker/containerd/containerd.sock',
+                '--namespace', 'moby', '--timeout', '10s', '--connect-timeout', '3s', 'content', 'get',
+                [cache.PINS[0].manifest, cache.PINS[0].config][index]])
+            self.assertEqual(kwargs['stdin'], subprocess.DEVNULL)
+            self.assertEqual(kwargs['env'], {'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LANG': 'C', 'LC_ALL': 'C'})
+        self.assertTrue(all(args[0] == '/usr/bin/docker' for args, _, _ in calls if 'info' in args))
+        with self.assertRaises(cache.ContentUnavailable):
+            reader.read(cache.PINS[0].config, binding, cache.CONFIG_LIMIT)
+
+    def test_hostile_context_and_endpoint_refused_before_any_command(self):
+        for change in [{'RUNNER_ENVIRONMENT': 'self-hosted'}, {'RUNNER_OS': 'macOS'},
+                       {'GITHUB_ACTIONS': 'false'}, {'DOCKER_HOST': 'tcp://SECRET'},
+                       {'LD_PRELOAD': '/SECRET'}, {'SUDO_ASKPASS': '/SECRET'}]:
+            reader, fs, env, calls, privileged = self.fixture(); env.update(change)
+            with self.assertRaises(cache.ContentUnavailable): self.qualify(reader)
+            self.assertEqual(calls, []); self.assertEqual(privileged, [])
+
+    def test_untrusted_tools_ancestors_metadata_and_elf_refused(self):
+        import stat
+        for mode in ['tool_owner', 'tool_write', 'ancestor_write', 'not_elf', 'missing_package', 'wrong_md5', 'docker_owner']:
+            reader, fs, env, calls, privileged = self.fixture()
+            if mode == 'tool_owner': fs.nodes['/usr/bin/ctr'][0].st_uid = 1000
+            if mode == 'tool_write': fs.nodes['/usr/bin/ctr'][0].st_mode |= 0o002
+            if mode == 'ancestor_write': fs.nodes['/usr/bin'][0].st_mode |= 0o020
+            if mode == 'not_elf': fs.nodes['/usr/bin/ctr'][1] = b'#!/bin/sh\n'; fs.nodes['/usr/bin/ctr'][0].st_size = 10
+            if mode == 'missing_package': del fs.nodes['/var/lib/dpkg/info/containerd.io.md5sums']
+            if mode == 'wrong_md5': fs.nodes['/var/lib/dpkg/info/containerd.io.md5sums'][1] = b'0' * 32 + b'  usr/bin/ctr\n'
+            if mode == 'docker_owner': fs.nodes['/usr/bin/docker'][0].st_uid = 1000
+            with self.assertRaises(cache.ContentUnavailable): self.qualify(reader)
+            self.assertEqual(privileged, [])
+
+    def test_wrong_pin_digest_order_binding_and_socket_are_refused(self):
+        for kind in ['other_pin', 'config_first', 'namespace', 'socket_owner', 'socket_parent_write']:
+            reader, fs, env, calls, privileged = self.fixture(); binding = self.qualify(reader)
+            digest = cache.PINS[0].manifest
+            if kind == 'other_pin': digest = cache.PINS[1].manifest
+            if kind == 'config_first': digest = cache.PINS[0].config
+            if kind == 'namespace': binding = (binding[0], binding[1], 'plugins.moby')
+            if kind == 'socket_owner': fs.nodes[binding[1]][0].st_uid = 1000
+            if kind == 'socket_parent_write': fs.nodes['/run/docker/containerd'][0].st_mode |= 0o002
+            with self.assertRaises(cache.ContentUnavailable): reader.read(digest, binding, cache.MANIFEST_LIMIT)
+            self.assertEqual(privileged, [])
+
+    def test_binary_drift_after_read_stops_scope(self):
+        reader, fs, env, calls, privileged = self.fixture(); binding = self.qualify(reader)
+        original_spawn = reader.spawn
+        def changed_spawn(*args, **kwargs):
+            child = original_spawn(*args, **kwargs)
+            fs.nodes['/usr/bin/ctr'][0].st_mtime_ns += 1
+            return child
+        reader.spawn = changed_spawn
+        with self.assertRaises(cache.ContentUnavailable): reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT)
+        with self.assertRaises(cache.ContentUnavailable): reader.read(cache.PINS[0].config, binding, cache.CONFIG_LIMIT)
+        self.assertEqual(len(privileged), 1)
+
+    def test_cleanup_unconfirmed_is_terminal_and_bounded(self):
+        from unittest.mock import patch
+        process = Mock(); process.stdout = Mock(); process.stderr = Mock()
+        process.poll.return_value = None
+        process.wait.side_effect = subprocess.TimeoutExpired('synthetic', 15)
+        selector = Mock(); selector.get_map.return_value = {}
+        manager = Mock(); manager.__enter__ = Mock(return_value=selector); manager.__exit__ = Mock(return_value=False)
+        reader, fs, env, calls, privileged = self.fixture(spawn=Mock(return_value=process)); binding = self.qualify(reader)
+        with patch.object(cache.selectors, 'DefaultSelector', return_value=manager):
+            with self.assertRaises(cache.ContentUnavailable) as caught:
+                reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT)
+        self.assertEqual(str(caught.exception), 'local_reader_cleanup_unconfirmed')
+        self.assertTrue(all(0 < call.kwargs['timeout'] <= 15 for call in process.wait.call_args_list))
+        process.kill.assert_not_called(); process.terminate.assert_called_once()
+        before = reader.spawn.call_count
+        with self.assertRaises(cache.ContentUnavailable): reader.read(cache.PINS[0].config, binding, cache.CONFIG_LIMIT)
+        self.assertEqual(reader.spawn.call_count, before)
+
+    def test_root_owned_alias_keeps_original_and_canonical_custody(self):
+        from unittest.mock import patch
+        import stat
+        reader, fs, env, calls, privileged = self.fixture()
+        fs.add('/usr/local', stat.S_IFDIR | 0o755); fs.add('/usr/local/bin', stat.S_IFDIR | 0o755)
+        fs.add('/usr/local/bin/ctr', stat.S_IFLNK | 0o777, b'/usr/bin/ctr')
+        fs.realpath = lambda path: '/usr/bin/ctr' if path == '/usr/local/bin/ctr' else path
+        with patch.object(cache.shutil, 'which', side_effect=lambda name:
+                          '/usr/local/bin/ctr' if name == 'ctr' else '/usr/bin/' + name):
+            reader.qualify()
+        binding = cache.daemon_binding(reader.info(), reader)
+        self.assertEqual(reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT), b'declared-blob')
+        self.assertEqual(privileged[0][0][7], '/usr/bin/ctr')
+        fs.nodes['/usr/local/bin/ctr'][0].st_uid = 1000
+        with self.assertRaises(cache.ContentUnavailable): reader.read(cache.PINS[0].config, binding, cache.CONFIG_LIMIT)
+        self.assertEqual(len(privileged), 1)
+
+    def test_missing_watchdog_capability_and_socket_are_fail_closed(self):
+        for kind in ['watchdog', 'socket']:
+            reader, fs, env, calls, privileged = self.fixture()
+            original = reader.basic.command
+            if kind == 'watchdog':
+                reader.basic.command = lambda args, limit, timeout: (b'unsupported' if args[0].endswith('/timeout')
+                                                                    else original(args, limit, timeout))
+            if kind == 'socket': del fs.nodes['/run/docker/containerd/containerd.sock']
+            with self.assertRaises(cache.ContentUnavailable): self.qualify(reader)
+            self.assertEqual(privileged, [])
+
+    def test_overflow_discards_content_terminates_owned_model_and_stops_pair(self):
+        import sys
+        seen = []
+        def spawn(args, **kwargs):
+            child = subprocess.Popen([sys.executable, '-c', 'import sys;sys.stdout.buffer.write(b"x"*(1024*1024+1))'], **kwargs)
+            seen.append(child); return child
+        reader, fs, env, calls, privileged = self.fixture(spawn=spawn); binding = self.qualify(reader)
+        with self.assertRaises(cache.ContentUnavailable) as caught:
+            reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT)
+        self.assertEqual(str(caught.exception), 'local_reader_overflow')
+        self.assertIsNotNone(seen[0].poll())
+        with self.assertRaises(cache.ContentUnavailable): reader.read(cache.PINS[0].config, binding, cache.CONFIG_LIMIT)
+        self.assertEqual(len(seen), 1)
+
+    def test_content_deadline_uses_term_then_bounded_reap_without_kill(self):
+        from unittest.mock import patch
+        now = {'value': 0}
+        process = Mock(); process.poll.return_value = None; process.wait.return_value = 0
+        selector = Mock(); selector.get_map.return_value = True
+        selector.select.side_effect = lambda timeout: now.update(value=13) or []
+        manager = Mock(); manager.__enter__ = Mock(return_value=selector); manager.__exit__ = Mock(return_value=False)
+        reader, fs, env, calls, privileged = self.fixture(spawn=Mock(return_value=process)); binding = self.qualify(reader)
+        with patch.object(cache.selectors, 'DefaultSelector', return_value=manager), \
+                patch.object(cache.time, 'monotonic', side_effect=lambda: now['value']):
+            with self.assertRaises(cache.ContentUnavailable) as caught:
+                reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT)
+        self.assertEqual(str(caught.exception), 'local_reader_timeout')
+        process.terminate.assert_called_once(); process.kill.assert_not_called()
+        self.assertTrue(reader.stopped)
+        self.assertTrue(all(0 < call.kwargs['timeout'] <= 15 for call in process.wait.call_args_list))
+
+    def test_changed_path_lookup_daemon_and_elf_bytes_are_terminal(self):
+        import hashlib
+        for kind in ['lookup', 'daemon', 'bytes']:
+            reader, fs, env, calls, privileged = self.fixture(); binding = self.qualify(reader)
+            if kind == 'lookup': reader.lookup = lambda name: '/tmp/hostile-' + name
+            if kind == 'daemon':
+                original = reader.basic.command
+                reader.basic.command = lambda args, limit, timeout: (json.dumps({'ID': 'changed', 'Containerd': {
+                    'Address': binding[1], 'Namespaces': {'Containers': 'moby', 'Plugins': 'plugins.moby'}}}).encode()
+                    if 'info' in args else original(args, limit, timeout))
+                with self.assertRaises(cache.ContentUnavailable): reader.info()
+            if kind == 'bytes':
+                fs.nodes['/usr/bin/ctr'][1] = fs.nodes['/usr/bin/ctr'][1][:-1] + b'X'
+                digest = hashlib.md5(fs.nodes['/usr/bin/ctr'][1]).hexdigest()
+                fs.nodes['/var/lib/dpkg/info/containerd.io.md5sums'][1] = (digest + '  usr/bin/ctr\n').encode()
+            with self.assertRaises(cache.ContentUnavailable): reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT)
+            self.assertTrue(reader.stopped); self.assertEqual(privileged, [])
+
+    def test_intermediate_symlink_targets_cannot_hide_writable_ancestors(self):
+        from unittest.mock import patch
+        import stat
+        reader, fs, env, calls, privileged = self.fixture()
+        fs.add('/usr/local', stat.S_IFLNK | 0o777, b'/tmp/hidden/usr'); fs.add('/usr/local/bin', stat.S_IFDIR | 0o755)
+        fs.add('/usr/local/bin/ctr', stat.S_IFLNK | 0o777, b'/usr/bin/ctr')
+        fs.add('/tmp', stat.S_IFDIR | 0o1777); fs.add('/tmp/hidden', stat.S_IFDIR | 0o755, uid=1000)
+        fs.add('/tmp/hidden/usr', stat.S_IFDIR | 0o755)
+        fs.realpath = lambda path: {'/usr/local': '/tmp/hidden/usr',
+                                   '/usr/local/bin/ctr': '/usr/bin/ctr'}.get(path, path)
+        with patch.object(cache.shutil, 'which', side_effect=lambda name:
+                          '/usr/local/bin/ctr' if name == 'ctr' else '/usr/bin/' + name):
+            with self.assertRaises(cache.ContentUnavailable): reader.qualify()
+        self.assertEqual(calls, []); self.assertEqual(privileged, [])
+
+    def test_hidden_raw_two_hop_target_is_not_collapsed_to_trusted_final(self):
+        import stat, hashlib
+        fs = SyntheticTrustFS(); original = fs.nodes['/usr/bin/timeout'][1]
+        fs.add('/usr/bin/real-timeout', stat.S_IFREG | 0o755, original)
+        fs.add('/usr/bin/timeout', stat.S_IFLNK | 0o777, b'/home/runner/writable-hop/link')
+        fs.add('/home', stat.S_IFDIR | 0o755); fs.add('/home/runner', stat.S_IFDIR | 0o755, uid=1000)
+        fs.add('/home/runner/writable-hop', stat.S_IFDIR | 0o777, uid=1000)
+        fs.add('/home/runner/writable-hop/link', stat.S_IFLNK | 0o777, b'/usr/bin/real-timeout')
+        fs.nodes['/var/lib/dpkg/info/coreutils.md5sums'][1] = (hashlib.md5(original).hexdigest() + '  usr/bin/real-timeout\n').encode()
+        fs.nodes['/var/lib/dpkg/info/coreutils.md5sums'][0].st_size = len(fs.nodes['/var/lib/dpkg/info/coreutils.md5sums'][1])
+        fs.realpath = lambda path: '/usr/bin/real-timeout' if path in {
+            '/usr/bin/timeout', '/home/runner/writable-hop/link'} else path
+        with self.assertRaises(cache.ContentUnavailable): cache._TrustedFiles(fs).tool('/usr/bin/timeout', 'coreutils')
+
+    def test_fixed_privileged_prefixes_cannot_redirect_even_to_root_protected_elf(self):
+        from unittest.mock import patch
+        import stat, hashlib
+        for name, package in [('sudo', 'sudo'), ('timeout', 'coreutils')]:
+            reader, fs, env, calls, privileged = self.fixture()
+            data = fs.nodes['/usr/bin/' + name][1]; target = '/usr/bin/real-' + name
+            fs.add(target, stat.S_IFREG | 0o755, data)
+            fs.add('/usr/bin/' + name, stat.S_IFLNK | 0o777, target.encode())
+            metadata = (hashlib.md5(data).hexdigest() + '  ' + target[1:] + '\n').encode()
+            fs.nodes['/var/lib/dpkg/info/' + package + '.md5sums'][1] = metadata
+            fs.nodes['/var/lib/dpkg/info/' + package + '.md5sums'][0].st_size = len(metadata)
+            fs.realpath = lambda path: target if path == '/usr/bin/' + name else path
+            original = reader.basic.command
+            reader.basic.command = lambda args, limit, timeout: ((b'timeout (GNU coreutils) 9.5\n'
+                if args[-1] == '--version' else b'--signal --kill-after') if args[0] == '/usr/bin/real-timeout'
+                else original(args, limit, timeout))
+            with patch.object(cache.shutil, 'which', side_effect=lambda tool: '/usr/bin/' + tool):
+                with self.assertRaises(cache.ContentUnavailable): reader.qualify()
+            self.assertEqual(privileged, [])
+
+    def test_safe_usr_merge_and_relative_raw_targets_qualify(self):
+        from unittest.mock import patch
+        import stat
+        for alias, target in [('/bin', b'usr/bin'), ('/usr/local/bin/ctr', b'../../bin/ctr')]:
+            reader, fs, env, calls, privileged = self.fixture()
+            if alias == '/bin':
+                fs.add('/bin', stat.S_IFLNK | 0o777, target)
+                lookup = lambda name: '/bin/' + name
+            else:
+                fs.add('/usr/local', stat.S_IFDIR | 0o755); fs.add('/usr/local/bin', stat.S_IFDIR | 0o755)
+                fs.add(alias, stat.S_IFLNK | 0o777, target)
+                lookup = lambda name: alias if name == 'ctr' else '/usr/bin/' + name
+            with patch.object(cache.shutil, 'which', side_effect=lookup): reader.qualify()
+            binding = cache.daemon_binding(reader.info(), reader)
+            self.assertEqual(reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT), b'declared-blob')
+            self.assertEqual(privileged[0][0][0], '/usr/bin/sudo')
+            self.assertEqual(privileged[0][0][3], '/usr/bin/timeout')
+            self.assertEqual(privileged[0][0][7], '/usr/bin/ctr')
+
+    def test_pin_identity_gate_never_invokes_caller_equality_or_properties(self):
+        from unittest.mock import patch
+        class Lookalike:
+            def __eq__(self, other): raise AssertionError('caller equality must not run')
+            @property
+            def manifest(self): raise AssertionError('caller property must not run')
+        class Derived(cache.ImagePin):
+            def __eq__(self, other): raise AssertionError('subclass equality must not run')
+        command = Mock(); spawn = Mock()
+        for pin in [Lookalike(), Derived(*cache.PINS[0]), cache.ImagePin(*cache.PINS[0])]:
+            with self.assertRaises(cache.ContentUnavailable):
+                cache._PinnedRootReader(pin, command=command, spawn=spawn)
+        command.assert_not_called(); spawn.assert_not_called()
+
+    def test_raw_target_dotdot_is_not_a_socket_and_link_cycles_are_bounded(self):
+        import stat
+        for target in [b'..', b'containerd.sock']:
+            fs = SyntheticTrustFS()
+            fs.add('/run/docker/containerd/containerd.sock', stat.S_IFLNK | 0o777, target)
+            with self.assertRaises(cache.ContentUnavailable):
+                cache._TrustedFiles(fs).socket('/run/docker/containerd/containerd.sock')
+
+    def test_digest_and_binding_values_cannot_spoof_equality(self):
+        class TextLookalike(str):
+            def __eq__(self, other): return True
+            def __ne__(self, other): return False
+        for kind in ['digest', 'namespace']:
+            reader, fs, env, calls, privileged = self.fixture(); binding = self.qualify(reader)
+            digest = cache.PINS[0].manifest
+            if kind == 'digest': digest = TextLookalike('sha256:' + 'f' * 64)
+            else: binding = (binding[0], binding[1], TextLookalike('other-namespace'))
+            with self.assertRaises(cache.ContentUnavailable): reader.read(digest, binding, cache.MANIFEST_LIMIT)
+            self.assertEqual(privileged, [])
 
 
 if __name__ == '__main__':
