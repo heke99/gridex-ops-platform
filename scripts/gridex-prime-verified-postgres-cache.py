@@ -5,6 +5,11 @@ The alternate cache origin is explicit. No services are started and the
 Supabase registry override, native tests and existing gates are unchanged.
 """
 import json
+import hashlib
+import re
+import selectors
+import shutil
+import stat
 import os
 import subprocess
 import sys
@@ -52,14 +57,235 @@ def inspect(reference, run):
     except (ValueError, TypeError):
         raise Refused('image_inspection_invalid') from None
 
+MANIFEST_LIMIT = 1024 * 1024
+CONFIG_LIMIT = 4 * 1024 * 1024
+MANIFEST_TYPES = {'application/vnd.oci.image.manifest.v1+json',
+                  'application/vnd.docker.distribution.manifest.v2+json'}
+CONFIG_TYPES = {'application/vnd.oci.image.config.v1+json',
+                'application/vnd.docker.container.image.v1+json'}
 
-def verify(image, pin, stage="unspecified"):
+
+class ContentUnavailable(RuntimeError):
+    """Safe local-reader failure; never includes subprocess output or content."""
+
+
+def bounded_command(args, limit, timeout):
+    """Read bounded local command streams and always reap our own child."""
+    deadline = time.monotonic() + timeout
+    child = None
+    output = bytearray()
+    stderr_size = 0
+    try:
+        child = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 stdin=subprocess.DEVNULL)
+        with selectors.DefaultSelector() as selector:
+            selector.register(child.stdout, selectors.EVENT_READ, 'stdout')
+            selector.register(child.stderr, selectors.EVENT_READ, 'stderr')
+            while selector.get_map():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise ContentUnavailable('local_reader_timeout')
+                for key, _ in selector.select(remaining):
+                    stream_limit = limit - len(output) if key.data == 'stdout' else 4096 - stderr_size
+                    chunk = os.read(key.fileobj.fileno(), min(4096, stream_limit + 1))
+                    if not chunk:
+                        selector.unregister(key.fileobj)
+                    elif len(chunk) > stream_limit:
+                        raise ContentUnavailable('local_reader_overflow')
+                    elif key.data == 'stdout':
+                        output.extend(chunk)
+                    else:
+                        stderr_size += len(chunk)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or child.wait(timeout=remaining) != 0:
+                raise ContentUnavailable('local_reader_failed')
+        return bytes(output)
+    except (OSError, subprocess.TimeoutExpired):
+        raise ContentUnavailable('local_reader_failed') from None
+    finally:
+        if child is not None:
+            try:
+                if child.poll() is None:
+                    try:
+                        child.kill()
+                    except ProcessLookupError:
+                        pass
+                child.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                raise ContentUnavailable('local_reader_cleanup_timeout') from None
+            finally:
+                child.stdout.close()
+                child.stderr.close()
+
+
+def strict_json(raw):
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result:
+                raise ValueError('duplicate_key')
+            result[key] = value
+        return result
+    def invalid_constant(value):
+        raise ValueError('invalid_constant')
+    return json.loads(raw, object_pairs_hook=pairs, parse_constant=invalid_constant)
+
+
+class LocalContentReader:
+    def __init__(self, command=bounded_command):
+        self.command = command
+        self.executable = None
+
+    def qualify(self):
+        self.executable = shutil.which('ctr')
+        if not self.executable or not os.path.isabs(self.executable):
+            raise ContentUnavailable('local_reader_missing')
+        version = self.command([self.executable, '--version'], 4096, 5)
+        # ctr is an unstable administrative CLI: require known major versions
+        # plus the actual installed global flags and content-get capability.
+        if not re.fullmatch(rb'ctr github\.com/containerd/containerd(?:/v2)? v?[12]\.[0-9]+\.[0-9]+[^\r\n]*\n?', version):
+            raise ContentUnavailable('local_reader_unsupported')
+        help_text = self.command([self.executable, '--help'], 65536, 5)
+        if not all(re.search(rb'(?<![\w-])' + flag + rb'(?![\w-])', help_text)
+                   for flag in [b'--address', b'--namespace', b'--timeout', b'--connect-timeout']):
+            raise ContentUnavailable('local_reader_unsupported')
+        get_help = self.command([self.executable, 'content', 'get', '--help'], 16384, 5)
+        if not re.search(rb'\bcontent\s+get\b', get_help):
+            raise ContentUnavailable('local_reader_unsupported')
+
+    def info(self):
+        return strict_json(self.command(DOCKER + ['info', '--format', '{"ID":{{json .ID}},"Containerd":{{json .Containerd}}}'], 262144, 10))
+
+    def is_socket(self, address):
+        return stat.S_ISSOCK(os.stat(address).st_mode)
+
+    def read(self, digest, binding, limit):
+        if not self.executable or not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
+            raise ContentUnavailable('local_reader_invalid_digest')
+        _, address, namespace = binding
+        return self.command([self.executable, '--address', address, '--namespace', namespace,
+                             '--timeout', '10s', '--connect-timeout', '3s',
+                             'content', 'get', digest], limit, 12)
+
+
+def daemon_binding(info, reader):
+    daemon = info['ID']
+    address = info['Containerd']['Address']
+    namespaces = info['Containerd']['Namespaces']
+    namespace = namespaces['Containers']
+    if (not isinstance(daemon, str) or not re.fullmatch(r'[A-Za-z0-9:_.-]{1,128}', daemon)
+            or not isinstance(address, str) or len(address) > 256
+            or not address.startswith('/') or '\x00' in address
+            or any(ord(c) < 32 or ord(c) == 127 for c in address)
+            or any(c in {'.', '..'} for c in address.split('/'))
+            or not isinstance(namespace, str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,128}', namespace)
+            or namespace in {'.', '..'} or namespace == namespaces.get('Plugins')
+            or not reader.is_socket(address)):
+        raise ContentUnavailable('local_daemon_binding_invalid')
+    return daemon, address, namespace
+
+
+def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=None):
+    """Prove the original config fingerprint from two same-daemon local blobs.
+
+    No content fetch, cache mutation, fallback pull, or content logging is used.
+    The optional reader is an internal read-only dependency for offline testing.
+    """
+    stage = 'descriptor'
+    reason = 'validation_failed'
+    qualified = False
+    try:
+        descriptor = image.get('Descriptor')
+        if (not isinstance(descriptor, dict) or descriptor.get('digest') != pin.manifest
+                or descriptor.get('mediaType') not in MANIFEST_TYPES
+                or type(descriptor.get('size')) is not int
+                or not 0 < descriptor['size'] <= MANIFEST_LIMIT
+                or image.get('Id') != pin.manifest or not reference or run is None):
+            return False
+        platform = descriptor.get('platform')
+        if platform is not None and (not isinstance(platform, dict)
+                or platform.get('os', 'linux') != 'linux'
+                or platform.get('architecture', 'amd64') != 'amd64'):
+            return False
+        reader = reader if reader is not None else LocalContentReader()
+        stage = 'capability'
+        reader.qualify()
+        stage = 'binding'
+        binding = daemon_binding(reader.info(), reader)
+        stage = 'manifest'
+        raw_manifest = reader.read(pin.manifest, binding, MANIFEST_LIMIT)
+        if (not isinstance(raw_manifest, bytes) or len(raw_manifest) != descriptor['size']
+                or len(raw_manifest) > MANIFEST_LIMIT
+                or 'sha256:' + hashlib.sha256(raw_manifest).hexdigest() != pin.manifest):
+            return False
+        manifest = strict_json(raw_manifest)
+        if (not isinstance(manifest, dict) or type(manifest.get('schemaVersion')) is not int
+                or manifest['schemaVersion'] != 2
+                or manifest.get('mediaType') != descriptor['mediaType']):
+            return False
+        stage = 'config'
+        config_descriptor = manifest.get('config')
+        if (not isinstance(config_descriptor, dict) or config_descriptor.get('digest') != pin.config
+                or config_descriptor.get('mediaType') not in CONFIG_TYPES
+                or type(config_descriptor.get('size')) is not int
+                or not 0 < config_descriptor['size'] <= CONFIG_LIMIT):
+            return False
+        raw_config = reader.read(pin.config, binding, CONFIG_LIMIT)
+        if (not isinstance(raw_config, bytes) or len(raw_config) != config_descriptor['size']
+                or len(raw_config) > CONFIG_LIMIT
+                or 'sha256:' + hashlib.sha256(raw_config).hexdigest() != pin.config):
+            return False
+        config = strict_json(raw_config)
+        if not isinstance(config, dict) or config.get('os') != 'linux' or config.get('architecture') != 'amd64':
+            return False
+        # Reinspect the exact reference, then bracket that observation with fresh
+        # daemon/socket/namespace identity. Never compare or expose Config/Env.
+        stage = 'reinspect'
+        observed = inspect(reference, run)
+        keys = ('Id', 'Os', 'Architecture', 'Variant', 'RepoDigests', 'Descriptor')
+        if not isinstance(observed, dict) or any(observed.get(k) != image.get(k) for k in keys):
+            return False
+        stage = 'binding'
+        qualified = daemon_binding(reader.info(), reader) == binding
+        return qualified
+    except Exception as error:
+        # Normalize only fixed internal codes. Arbitrary exception messages,
+        # JSON content, subprocess output and stderr never reach diagnostics.
+        reason = 'local_reader_failed'
+        codes = {'local_reader_timeout', 'local_reader_overflow', 'local_reader_failed',
+                 'local_reader_cleanup_timeout', 'local_reader_missing',
+                 'local_reader_unsupported', 'local_reader_invalid_digest',
+                 'local_daemon_binding_invalid'}
+        if (isinstance(error, ContentUnavailable) and len(error.args) == 1
+                and type(error.args[0]) is str and error.args[0] in codes):
+            reason = error.args[0]
+        elif isinstance(error, (ValueError, TypeError, KeyError)):
+            reason = 'validation_failed'
+        return False
+    finally:
+        if diagnostic is not None and not qualified:
+            diagnostic.update({'stage': stage, 'reason': reason})
+
+
+def verify(image, pin, stage="unspecified", reference=None, run=None, reader=None):
     repos = {pin.source_repo, 'docker.io/' + pin.source_repo, 'ghcr.io/supabase/' + pin.name}
     # Docker canonicalizes official library images (library/kong -> kong).
     if pin.source_repo.startswith('library/'):
         repos.add(pin.source_repo.removeprefix('library/'))
     allowed = {repo + '@' + digest for repo in repos for digest in [pin.manifest, pin.index]}
-    if (not isinstance(image, dict) or image.get('Id') != pin.config
+    locally_qualified = False
+    proof_diagnostic = {}
+    fallback_repo_matches = False
+    if isinstance(image, dict) and image.get('Id') == pin.manifest:
+        try:
+            fallback_repo_matches = bool(set(image.get('RepoDigests') or []).intersection(allowed))
+        except (TypeError, ValueError):
+            pass
+    if (isinstance(image, dict) and image.get('Id') == pin.manifest
+            and image.get('Os') == 'linux' and image.get('Architecture') == 'amd64'
+            and fallback_repo_matches):
+        locally_qualified = qualify_local_config(image, pin, reference, run, reader, proof_diagnostic)
+    if (not isinstance(image, dict) or (image.get('Id') != pin.config and not locally_qualified)
             or image.get('Os') != 'linux' or image.get('Architecture') != 'amd64'
             or not set(image.get('RepoDigests') or []).intersection(allowed)):
         # Diagnostic only: never serialize inspect payloads or change acceptance.
@@ -82,6 +308,10 @@ def verify(image, pin, stage="unspecified"):
                 'repo_digest_matches': repo_matches,
             },
         }
+        if isinstance(image, dict) and image.get('Id') == pin.manifest:
+            error.diagnostic['local_config_provenance'] = 'not_qualified'
+            if proof_diagnostic:
+                error.diagnostic['local_config_proof'] = proof_diagnostic
         if pin in PINS:
             error.diagnostic['expected'] = {
                 'config': pin.config, 'index': pin.index, 'manifest': pin.manifest}
@@ -93,7 +323,7 @@ def prepare_image(pin, run, pause):
     target = 'ghcr.io/supabase/' + pin.name + ':' + pin.tag
     existing = inspect(target, run)
     if existing is not None:
-        verify(existing, pin, 'existing_target')
+        verify(existing, pin, 'existing_target', reference=target, run=run)
         return {'status': 'verified_existing_cache', 'target': target,
                 'manifest': pin.manifest, 'config': pin.config, 'origin': 'existing_verified_cache'}
     image = inspect(source, run)
@@ -109,11 +339,11 @@ def prepare_image(pin, run, pause):
                 raise Refused('pinned_public_image_pull_failed')
             pause(15)
         image = inspect(source, run)
-    verify(image, pin, 'immutable_source')
+    verify(image, pin, 'immutable_source', reference=source, run=run)
     tagged = run(DOCKER + ['tag', source, target], capture_output=True, text=True, timeout=30)
     if tagged.returncode:
         raise Refused('cache_alias_failed')
-    verify(inspect(target, run), pin, 'post_alias')
+    verify(inspect(target, run), pin, 'post_alias', reference=target, run=run)
     return {'status': 'verified_public_mirror_cache', 'source': source, 'target': target,
             'index': pin.index, 'manifest': pin.manifest, 'config': pin.config,
             'origin': 'official_dockerhub_content_identical_copy'}

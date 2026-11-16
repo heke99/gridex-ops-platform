@@ -212,6 +212,270 @@ class DiagnosticTests(unittest.TestCase):
         self.assertIsInstance(detail, dict)
         self.assertEqual(set(detail['predicates'].values()), {False})
 
+# Declared synthetic content only; never substitutes for registry provenance.
+class LocalContentTests(unittest.TestCase):
+    def fixture(self, config=None, manifest_change=None):
+        import hashlib
+        raw_config = config or b'{"os":"linux","architecture":"amd64","config":{"Env":["SECRET=synthetic"]}}'
+        config_digest = 'sha256:' + hashlib.sha256(raw_config).hexdigest()
+        manifest = {'schemaVersion': 2, 'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                    'config': {'mediaType': 'application/vnd.oci.image.config.v1+json',
+                               'digest': config_digest, 'size': len(raw_config)}, 'layers': []}
+        if manifest_change:
+            manifest_change(manifest)
+        raw_manifest = json.dumps(manifest).encode()
+        manifest_digest = 'sha256:' + hashlib.sha256(raw_manifest).hexdigest()
+        pin = cache.ImagePin('synthetic', 'test', 'sha256:' + '1' * 64,
+                             manifest_digest, config_digest, 'fixture/synthetic')
+        image = {'Id': manifest_digest, 'Os': 'linux', 'Architecture': 'amd64',
+                 'RepoDigests': ['fixture/synthetic@' + manifest_digest],
+                 'Descriptor': {'digest': manifest_digest, 'mediaType': manifest['mediaType'],
+                                'size': len(raw_manifest)}}
+        class Reader:
+            def __init__(self):
+                self.infos = [{'ID': 'synthetic-daemon', 'Containerd': {
+                    'Address': '/run/synthetic.sock',
+                    'Namespaces': {'Containers': 'moby', 'Plugins': 'plugins.moby'}}}] * 2
+                self.blobs = {manifest_digest: raw_manifest, config_digest: raw_config}
+                self.reads = []
+            def qualify(self):
+                pass
+            def info(self):
+                return self.infos.pop(0)
+            def is_socket(self, address):
+                return address == '/run/synthetic.sock'
+            def read(self, digest, binding, limit):
+                self.reads.append(digest)
+                return self.blobs[digest]
+        reader = Reader()
+        run = Mock(return_value=subprocess.CompletedProcess([], 0, json.dumps([image]), ''))
+        return pin, image, reader, run
+
+    def check_feature(self):
+        self.assertTrue(callable(getattr(cache, 'qualify_local_config', None)),
+                        'strict local config qualification is missing')
+
+    def test_valid_local_chain_hashes_both_blobs_and_reinspects(self):
+        self.check_feature()
+        pin, image, reader, run = self.fixture()
+        self.assertTrue(cache.qualify_local_config(image, pin, 'fixture', run, reader))
+        self.assertEqual(reader.reads, [pin.manifest, pin.config])
+        self.assertEqual(run.call_args.args[0], cache.DOCKER + ['image', 'inspect', 'fixture'])
+
+    def test_corrupt_truncated_missing_oversize_blobs_fail_closed(self):
+        self.check_feature()
+        for kind in ['hash', 'truncated', 'missing', 'oversize']:
+            for blob in ['manifest', 'config']:
+                with self.subTest(kind=kind, blob=blob):
+                    pin, image, reader, run = self.fixture()
+                    digest = getattr(pin, blob)
+                    if kind == 'missing':
+                        del reader.blobs[digest]
+                    else:
+                        reader.blobs[digest] = {'hash': b'{}', 'truncated': reader.blobs[digest][:-1],
+                                               'oversize': b'x' * (4 * 1024 * 1024 + 1)}[kind]
+                    self.assertFalse(cache.qualify_local_config(image, pin, 'fixture', run, reader))
+
+    def test_manifest_config_contract_errors_are_refused_even_when_hashes_match(self):
+        self.check_feature()
+        changes = [lambda m: m.update(mediaType='text/plain'),
+                   lambda m: m.update(schemaVersion=1),
+                   lambda m: m['config'].update(digest='sha256:' + '2' * 64),
+                   lambda m: m['config'].update(size=1),
+                   lambda m: m['config'].update(size=True),
+                   lambda m: m['config'].update(mediaType='text/plain')]
+        for change in changes:
+            pin, image, reader, run = self.fixture(manifest_change=change)
+            self.assertFalse(cache.qualify_local_config(image, pin, 'fixture', run, reader))
+        for config in [b'{"os":"windows","architecture":"amd64"}',
+                       b'{"os":"linux","architecture":"arm64"}',
+                       b'{"os":"linux","os":"linux","architecture":"amd64"}', b'null', b'{']:
+            pin, image, reader, run = self.fixture(config=config)
+            self.assertFalse(cache.qualify_local_config(image, pin, 'fixture', run, reader))
+
+    def test_duplicate_manifest_json_is_rejected_with_real_hash(self):
+        self.check_feature()
+        import hashlib
+        pin, image, reader, run = self.fixture()
+        raw = reader.blobs[pin.manifest].replace(b'"schemaVersion": 2', b'"schemaVersion": 2, "schemaVersion": 2')
+        digest = 'sha256:' + hashlib.sha256(raw).hexdigest()
+        pin = pin._replace(manifest=digest)
+        image['Id'] = digest; image['Descriptor']['digest'] = digest; image['Descriptor']['size'] = len(raw)
+        reader.blobs[digest] = raw
+        self.assertFalse(cache.qualify_local_config(image, pin, 'fixture', run, reader))
+
+    def test_descriptor_and_platform_must_bind_exact_manifest(self):
+        self.check_feature()
+        for field, value in [('digest', 'sha256:' + '0' * 64), ('mediaType', 'text/plain'),
+                             ('size', 0), ('size', True), ('size', 999),
+                             ('platform', {'os': 'windows', 'architecture': 'amd64'}),
+                             ('platform', {'os': 'linux', 'architecture': 'arm64'}), ('platform', [])]:
+            pin, image, reader, run = self.fixture(); image['Descriptor'][field] = value
+            self.assertFalse(cache.qualify_local_config(image, pin, 'fixture', run, reader))
+        pin, image, reader, run = self.fixture(); del image['Descriptor']
+        self.assertFalse(cache.qualify_local_config(image, pin, 'fixture', run, reader))
+
+    def test_daemon_namespace_socket_and_inspect_drift_fail_closed(self):
+        self.check_feature()
+        for kind in ['daemon', 'address', 'namespace', 'plugins_only', 'remote', 'missing_id', 'inspect']:
+            pin, image, reader, run = self.fixture()
+            first = json.loads(json.dumps(reader.infos[0])); second = json.loads(json.dumps(first))
+            if kind == 'daemon': second['ID'] = 'other'
+            if kind == 'address': second['Containerd']['Address'] = '/run/other.sock'
+            if kind == 'namespace': second['Containerd']['Namespaces']['Containers'] = 'other'
+            if kind == 'plugins_only': del first['Containerd']['Namespaces']['Containers']
+            if kind == 'remote': first['Containerd']['Address'] = 'tcp://remote:2375'
+            if kind == 'missing_id': del first['ID']
+            if kind == 'inspect': run.return_value.stdout = json.dumps([{'Id': 'changed'}])
+            reader.infos = [first, second]
+            self.assertFalse(cache.qualify_local_config(image, pin, 'fixture', run, reader))
+
+    def test_reader_errors_and_timeouts_do_not_leak(self):
+        self.check_feature()
+        for error in [RuntimeError('SECRET'), TimeoutError('SECRET'), OSError('SECRET')]:
+            pin, image, reader, run = self.fixture(); reader.read = Mock(side_effect=error)
+            self.assertFalse(cache.qualify_local_config(image, pin, 'fixture', run, reader))
+
+    def test_manifest_or_index_alone_cannot_qualify(self):
+        self.check_feature()
+        for field in ['manifest', 'index']:
+            pin, image, reader, run = self.fixture(); image['Id'] = getattr(pin, field)
+            if field == 'manifest': del image['Descriptor']
+            with self.assertRaisesRegex(cache.Refused, '^image_identity_mismatch$'):
+                cache.verify(image, pin, 'immutable_source', reference='fixture', run=run,
+                             reader=reader)
+            self.assertEqual(reader.reads, [])
+
+    def test_verify_uses_config_provenance_and_classic_needs_no_reader(self):
+        self.check_feature()
+        pin, image, reader, run = self.fixture()
+        cache.verify(image, pin, 'immutable_source', reference='fixture', run=run, reader=reader)
+        self.assertEqual(len(reader.reads), 2)
+        image['Id'] = pin.config; reader.read = Mock(side_effect=AssertionError('must not read'))
+        cache.verify(image, pin, 'immutable_source', reference='fixture', run=run, reader=reader)
+        reader.read.assert_not_called()
+
+    def test_bounded_stream_success_overflow_stderr_and_timeout(self):
+        self.assertTrue(callable(getattr(cache, 'bounded_command', None)), 'bounded reader is missing')
+        import sys
+        self.assertEqual(cache.bounded_command([sys.executable, '-c', 'print("ok")'], 8, 2), b'ok\n')
+        for script, limit, deadline in [('print("x" * 100000)', 8, 2),
+                                        ('import sys; sys.stderr.write("x" * 100000)', 8, 2),
+                                        ('import time; time.sleep(5)', 8, 0.05),
+                                        ('raise SystemExit(1)', 8, 2)]:
+            with self.assertRaises(cache.ContentUnavailable):
+                cache.bounded_command([sys.executable, '-c', script], limit, deadline)
+
+    def test_reader_qualifies_capabilities_and_global_flags_without_docker(self):
+        self.assertTrue(callable(getattr(cache, 'LocalContentReader', None)), 'local reader is missing')
+        from unittest.mock import patch
+        calls = []
+        def command(args, limit, timeout):
+            calls.append(args)
+            if args[-1] == '--version': return b'ctr github.com/containerd/containerd/v2 v2.1.0 abc\n'
+            if args[-1] == '--help':
+                return b'--address --namespace --timeout --connect-timeout content get'
+            return b'blob'
+        with patch.object(cache.shutil, 'which', return_value='/usr/bin/ctr'):
+            reader = cache.LocalContentReader(command=command); reader.qualify()
+            self.assertEqual(reader.read('sha256:' + 'a' * 64,
+                                        ('daemon', '/run/test.sock', 'moby'), 99), b'blob')
+        self.assertEqual(calls[-1], ['/usr/bin/ctr', '--address', '/run/test.sock', '--namespace', 'moby',
+                                    '--timeout', '10s', '--connect-timeout', '3s',
+                                    'content', 'get', 'sha256:' + 'a' * 64])
+        with patch.object(cache.shutil, 'which', return_value=None):
+            with self.assertRaises(cache.ContentUnavailable): cache.LocalContentReader(command=command).qualify()
+        with patch.object(cache.shutil, 'which', return_value='/usr/bin/ctr'):
+            with self.assertRaises(cache.ContentUnavailable):
+                cache.LocalContentReader(command=lambda *args: b'unsupported').qualify()
+
+    def test_source_and_post_alias_each_qualify_same_config_content(self):
+        self.check_feature()
+        from unittest.mock import patch
+        pin, image, _, _ = self.fixture(); docker = DockerFixture()
+        source_ref = 'docker.io/fixture/synthetic@' + pin.manifest
+        target_ref = 'ghcr.io/supabase/synthetic:test'
+        docker.images[source_ref] = image
+        readers = []
+        def factory():
+            reader = self.fixture()[2]; readers.append(reader); return reader
+        with patch.object(cache, 'LocalContentReader', side_effect=factory):
+            result = cache.prepare_image(pin, docker, Mock())
+        self.assertEqual(result['config'], pin.config)
+        self.assertEqual(len(readers), 2)
+        self.assertTrue(all(r.reads == [pin.manifest, pin.config] for r in readers))
+        self.assertEqual([call[2:] for call in docker.calls], [
+            ['image', 'inspect', target_ref], ['image', 'inspect', source_ref],
+            ['image', 'inspect', source_ref], ['tag', source_ref, target_ref],
+            ['image', 'inspect', target_ref], ['image', 'inspect', target_ref]])
+
+    def test_reader_cleanup_waits_are_always_bounded(self):
+        self.assertTrue(callable(getattr(cache, 'bounded_command', None)), 'bounded reader is missing')
+        from unittest.mock import patch
+        process = Mock(); process.wait.return_value = 0; process.poll.return_value = 0
+        selector = Mock(); selector.get_map.return_value = {}
+        manager = Mock(); manager.__enter__ = Mock(return_value=selector); manager.__exit__ = Mock()
+        with patch.object(cache.subprocess, 'Popen', return_value=process), \
+                patch.object(cache.selectors, 'DefaultSelector', return_value=manager):
+            self.assertEqual(cache.bounded_command(['fixture'], 8, 1), b'')
+        self.assertTrue(all(call.kwargs.get('timeout', 0) > 0 for call in process.wait.call_args_list),
+                        'unbounded child wait violates parent deadline')
+
+    def test_no_reader_on_failed_original_os_arch_or_repo_predicate(self):
+        self.check_feature()
+        for field, value in [('Os', 'windows'), ('Architecture', 'arm64'), ('RepoDigests', [])]:
+            pin, image, reader, run = self.fixture(); image[field] = value
+            with self.assertRaises(cache.Refused):
+                cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+            self.assertEqual(reader.reads, [])
+
+    def test_malformed_repo_digest_on_manifest_id_remains_identity_refusal(self):
+        self.check_feature()
+        for value in [[{}], {'unknown': []}, 1]:
+            pin, image, reader, run = self.fixture(); image['RepoDigests'] = value
+            with self.assertRaisesRegex(cache.Refused, '^image_identity_mismatch$'):
+                cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+            self.assertEqual(reader.reads, [])
+
+    def test_info_requests_only_identity_fields(self):
+        command = Mock(return_value=b'{"ID":"fixture","Containerd":{}}')
+        reader = cache.LocalContentReader(command=command)
+        self.assertEqual(reader.info()['ID'], 'fixture')
+        self.assertEqual(command.call_args.args[0], cache.DOCKER + [
+            'info', '--format', '{"ID":{{json .ID}},"Containerd":{{json .Containerd}}}'])
+
+    def test_safe_proof_diagnostic_identifies_capability_failure_without_secret(self):
+        self.check_feature()
+        pin, image, reader, run = self.fixture()
+        reader.qualify = Mock(side_effect=cache.ContentUnavailable('local_reader_unsupported'))
+        with self.assertRaises(cache.Refused) as caught:
+            cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+        self.assertEqual(caught.exception.diagnostic.get('local_config_proof'), {
+            'stage': 'capability', 'reason': 'local_reader_unsupported'})
+        for error in [RuntimeError('SECRET'), cache.ContentUnavailable('SECRET')]:
+            pin, image, reader, run = self.fixture(); reader.read = Mock(side_effect=error)
+            with self.assertRaises(cache.Refused) as caught:
+                cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+            detail = caught.exception.diagnostic
+            self.assertEqual(detail.get('local_config_proof'), {
+                'stage': 'manifest', 'reason': 'local_reader_failed'})
+            self.assertNotIn('SECRET', json.dumps(detail))
+
+    def test_validation_failure_reports_safe_proof_stage_and_boolean_false(self):
+        self.check_feature()
+        for stage in ['descriptor', 'binding', 'manifest', 'config', 'reinspect']:
+            pin, image, reader, run = self.fixture(); diagnostic = {}
+            if stage == 'descriptor': image['Descriptor']['size'] = 0
+            if stage == 'binding': reader.infos = [{}]
+            if stage == 'manifest': reader.blobs[pin.manifest] = b'{}'
+            if stage == 'config': reader.blobs[pin.config] = b'{}'
+            if stage == 'reinspect': run.return_value.stdout = json.dumps([{}])
+            result = cache.qualify_local_config(image, pin, 'fixture', run, reader, diagnostic)
+            self.assertIs(result, False)
+            self.assertEqual(diagnostic['stage'], stage)
+            self.assertIn(diagnostic['reason'], ['validation_failed', 'local_reader_failed'])
+            self.assertLess(len(json.dumps(diagnostic)), 150)
+
 
 if __name__ == '__main__':
     unittest.main()
