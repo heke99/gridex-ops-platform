@@ -14,13 +14,15 @@ export default function CustomerResourceSelects({
   sites,
   meteringPoints,
   showSiteAndMeter = true,
+  initialCustomerId = '',
 }: {
   customers: CustomerOption[]
   sites: SiteOption[]
   meteringPoints: MeteringPointOption[]
   showSiteAndMeter?: boolean
+  initialCustomerId?: string
 }) {
-  const [customerId, setCustomerId] = useState('')
+  const [customerId, setCustomerId] = useState(() => customers.some(customer => customer.id === initialCustomerId) ? initialCustomerId : '')
   const [siteId, setSiteId] = useState('')
   const [meteringPointId, setMeteringPointId] = useState('')
 
@@ -63,7 +65,7 @@ export default function CustomerResourceSelects({
             }}
             className={`${selectClass} disabled:opacity-60`}
           >
-            <option value="">{!customerId ? 'Välj kund först' : visibleSites.length === 0 ? 'Kunden har inga anläggningar' : 'Välj anläggning för Z01/Z02'}</option>
+            <option value="">{!customerId ? 'Välj kund först' : visibleSites.length === 0 ? 'Kunden har inga anläggningar' : 'Välj anläggning'}</option>
             {visibleSites.map((site) => (
               <option key={site.id} value={site.id}>
                 {site.label}{site.sublabel ? ` — ${site.sublabel}` : ''}
@@ -78,7 +80,7 @@ export default function CustomerResourceSelects({
             onChange={(event) => setMeteringPointId(event.target.value)}
             className={`${selectClass} disabled:opacity-60`}
           >
-            <option value="">{!customerId ? 'Välj kund först' : visibleMeteringPoints.length === 0 ? 'Inga mätpunkter för valet' : 'Välj mätpunkt för Z01/Z02'}</option>
+            <option value="">{!customerId ? 'Välj kund först' : visibleMeteringPoints.length === 0 ? 'Inga mätpunkter för valet' : 'Välj mätpunkt'}</option>
             {visibleMeteringPoints.map((point) => (
               <option key={point.id} value={point.id}>
                 {point.label}{point.sublabel ? ` — ${point.sublabel}` : ''}

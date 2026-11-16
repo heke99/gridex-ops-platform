@@ -99,9 +99,9 @@ function targetPartyLabel(type: string): string {
 }
 
 
-function SelectCustomer({ customers, name = 'customer_id', defaultValue = '' }: { customers: Array<{ id: string; label: string; sublabel: string | null }>; name?: string; defaultValue?: string }) {
+function SelectCustomer({ customers, name = 'customer_id' }: { customers: Array<{ id: string; label: string; sublabel: string | null }>; name?: string }) {
   return (
-    <select name={name} defaultValue={defaultValue} aria-label="Kund" required className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
+    <select name={name} aria-label="Kund" required className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
       <option value="">Välj kund</option>
       {customers.map((customer) => (
         <option key={customer.id} value={customer.id}>
@@ -286,7 +286,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Anläggnings- och avtalsuppgifter</p>
             <p className="mt-2 text-sm leading-6 text-slate-700">Använd för anläggningsuppgifter, nätområde, årsenergi och separat manuell kontroll av bindningstid/uppsägningstid.</p>
             <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
-              <CustomerResourceSelects customers={customers} sites={resourceOptions.sites} meteringPoints={resourceOptions.meteringPoints} />
+              <CustomerResourceSelects key={`${companyId}:${selectedCustomerId}`} initialCustomerId={selectedCustomerId} customers={customers} sites={resourceOptions.sites} meteringPoints={resourceOptions.meteringPoints} />
               <SelectGridOwner gridOwners={resourceOptions.gridOwners} />
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-900">
                 Kontrollera kundens anläggning, mätpunkt och nätägare. Saknade uppgifter behöver kompletteras innan begäran kan skickas.
@@ -334,7 +334,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Fullmakt</p>
             <p className="mt-2 text-sm leading-6 text-slate-700">Fullmakten ska visa vad bolaget får begära och mot vem. Fullmakten måste vara klar innan uppgifter kan begäras från nätägaren.</p>
             <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
-              <SelectCustomer customers={customers} defaultValue={selectedCustomerId} />
+              <SelectCustomer customers={customers} />
               <select name="scope_type" aria-label="Fullmaktsomfattning" defaultValue="customer_onboarding" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
                 <option value="customer_onboarding">Kundregistrering</option>
                 <option value="metering_data_access">Mätvärdesåtkomst</option>

@@ -200,15 +200,19 @@ it('preselects the created customer only when it is in the scoped selector', asy
     io.customers = [{ id: 'own-customer', label: 'Egen kund', sublabel: null }];
     const { default: Page } = await import('@/app/admin/customer-info-requests/page');
     const html = captureRender(await Page({ searchParams: Promise.resolve({ customer_id: 'own-customer' }) }));
-    expect(html).toMatch(/<option value="own-customer" selected="">Egen kund<\/option>/);
+    const requestForm = html.match(/<details[^>]*id="create-info-request"[\s\S]*?<\/form>/)?.[0];
+    expect(requestForm).toBeDefined();
+    expect(requestForm).toMatch(/<option value="own-customer" selected="">Egen kund<\/option>/);
 });
 it('does not preselect foreign or non-scalar customer parameters', async () => {
     io.customers = [{ id: 'own-customer', label: 'Egen kund', sublabel: null }];
     const { default: Page } = await import('@/app/admin/customer-info-requests/page');
     for (const customer_id of ['foreign-customer', ['own-customer', 'foreign-customer']]) {
         const html = captureRender(await Page({ searchParams: Promise.resolve({ customer_id }) }));
-        expect(html).not.toMatch(/<option value="own-customer" selected="">/);
-        expect(html).not.toContain('<option value="foreign-customer"');
+        const requestForm = html.match(/<details[^>]*id="create-info-request"[\s\S]*?<\/form>/)?.[0];
+        expect(requestForm).toBeDefined();
+        expect(requestForm).not.toMatch(/<option value="own-customer" selected="">/);
+        expect(requestForm).not.toContain('<option value="foreign-customer"');
     }
 });
 
@@ -247,4 +251,22 @@ it('filters exact company audit action and entity contracts without mixing custo
     expect(customerHtml).toMatch(/<td[^>]*>Kund registrerad från import<\/td>/);
     expect(customerHtml).not.toMatch(/<td[^>]*>Kundärende registrerat<\/td>/);
     expect(customerHtml).not.toMatch(/<td[^>]*>Ånger registrerad<\/td>/);
+});
+
+it('keys the actual request selector by company and validated route customer for same-page navigation', async () => {
+    io.customers = [{ id: 'own-customer', label: 'Egen kund', sublabel: null }, { id: 'other-customer', label: 'Annan kund', sublabel: null }];
+    const { default: Page } = await import('@/app/admin/customer-info-requests/page');
+    const { default: ResourceSelects } = await import('@/app/admin/customer-info-requests/CustomerResourceSelects');
+    function find(node: React.ReactNode): Array<React.ReactElement<{ children?: React.ReactNode; initialCustomerId?: string }>> {
+        if (Array.isArray(node)) return node.flatMap(find);
+        if (!React.isValidElement(node)) return [];
+        const element = node as React.ReactElement<{ children?: React.ReactNode; initialCustomerId?: string }>;
+        return [element, ...find(element.props.children)];
+    }
+    for (const [customerId, expected] of [['own-customer', 'own-customer'], ['other-customer', 'other-customer'], ['foreign-customer', '']]) {
+        const page = await Page({ searchParams: Promise.resolve({ customer_id: customerId }) });
+        const selector = find(page).find(element => element.type === ResourceSelects);
+        expect(selector?.props.initialCustomerId).toBe(expected);
+        expect(selector?.key).toBe(`A:${expected}`);
+    }
 });
