@@ -90,6 +90,8 @@ jobs:
           git fetch --no-tags --depth=1 origin e17dd04e209123edacb5e6a4193a64426317ee1f
           # Exact reviewed Undici pair, the predecessor of the forge/joi repair.
           git fetch --no-tags --depth=1 origin 3244da112d35ca2b8660e920cde849fce6b17732
+          # Exact frozen forge/joi predecessor for the separate Playwright successor.
+          git fetch --no-tags --depth=1 origin c94f9cb2fd9a6aa66bc3b66ccb18ed4ac16dd2bb
           git worktree add --detach "$SC071_BASE_ROOT" "$feedback_base"
           python3 - <<'PY'
           import hashlib,json,os,pathlib,subprocess
@@ -109,6 +111,7 @@ jobs:
           zod_security_fix=('52af42e9b40c440622dd09ad15126968278ad121f9fa66451c2fac68783f0f38', 'd0501a03422daaa93721fc7813751eb5eee12a85ae85a6ff6902d48546d2edc4')
           zod_git_blobs=('7f0baef1da8ff1aa410a40d0835346749281a506', 'a6e86ff9b2dff932b18afcd0963c3d3fae12de58')
           undici_security_fix = ('5e4efe56665e72e90c5ff5a300b9bf5e0dfa7f18871df7bae5983833f18a445c', '92c0e55a7775b8e87e5a6eb02bbf908a9d6ddf7061cfad4b477d7f9f768e5a10')
+          playwright_successor_fix = ('107c57005aef7d16ddda5b1c8af979ee60780a396ba6c2742f05166985f6c88b', 'a8f30afe485b73844129489b6a7b52574b5d79eec20c9327dac02604571d48db')
           def qualify_mailauth_undici(root):
               # Only the reviewed scoped override and official undici tuple may compose
               # with the immutable, exact Zod dependency pair. No BASE file is modified.
@@ -130,6 +133,31 @@ jobs:
               for k in exact:node[k]=prior[1]['packages']['node_modules/undici'][k]
               if declared!=prior[0] or locked!=prior[1]:raise RuntimeError('mailauth_undici_other_dependency_changed')
           forge_joi_security_fix = ('360f2511a66f0d60fb697228b36cb7fead17e7872e9a5532894691ff7271f5fa', 'e025dae372c71bf915c0d707c28e70648be2900f219936751ad4dba96100a933')
+          def qualify_playwright_successor(root):
+              # Separate exact successor; frozen forge/joi approvals remain unchanged.
+              frozen=[]
+              for oid,expected in zip(('f7bb37021b03a953e86e09bd57551f95d3bd1d77','625ec084c3761d1faa348a43210024222320681c'),
+                                      ('360f2511a66f0d60fb697228b36cb7fead17e7872e9a5532894691ff7271f5fa','e025dae372c71bf915c0d707c28e70648be2900f219936751ad4dba96100a933')):
+                  data=subprocess.check_output(['git','cat-file','blob',oid],cwd=root)
+                  if hashlib.sha256(data).hexdigest()!=expected:raise RuntimeError('playwright_successor_predecessor_unqualified')
+                  frozen.append(json.loads(data))
+              declared=json.loads((root/'package.json').read_text());locked=json.loads((root/'package-lock.json').read_text())
+              if declared['devDependencies'].get('@playwright/test')!='1.62.1' or locked['packages']['']['devDependencies'].get('@playwright/test')!='1.62.1':raise RuntimeError('playwright_successor_manifest_unqualified')
+              exact=json.loads('{"node_modules/@playwright/test":{"version":"1.62.1","resolved":"https://registry.npmjs.org/@playwright/test/-/test-1.62.1.tgz","integrity":"sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ==","devOptional":true,"license":"Apache-2.0","dependencies":{"playwright":"1.62.1"},"bin":{"playwright":"cli.js"},"engines":{"node":">=20"}},"node_modules/playwright":{"version":"1.62.1","resolved":"https://registry.npmjs.org/playwright/-/playwright-1.62.1.tgz","integrity":"sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg==","devOptional":true,"license":"Apache-2.0","dependencies":{"playwright-core":"1.62.1"},"bin":{"playwright":"cli.js"},"engines":{"node":">=20"},"optionalDependencies":{"fsevents":"2.3.2"}},"node_modules/playwright-core":{"version":"1.62.1","resolved":"https://registry.npmjs.org/playwright-core/-/playwright-core-1.62.1.tgz","integrity":"sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==","devOptional":true,"license":"Apache-2.0","bin":{"playwright-core":"cli.js"},"engines":{"node":">=20"}}}')
+              for name,node in exact.items():
+                  if locked['packages'].get(name)!=node:raise RuntimeError('playwright_successor_lock_tuple_unqualified:'+name)
+              nested='node_modules/playwright/node_modules/playwright-core'
+              if nested in locked['packages']:raise RuntimeError('playwright_successor_nested_core_unqualified')
+              declared['devDependencies']['@playwright/test']=frozen[0]['devDependencies']['@playwright/test']
+              locked['packages']['']['devDependencies']['@playwright/test']=frozen[1]['packages']['']['devDependencies']['@playwright/test']
+              for name in exact:locked['packages'][name]=frozen[1]['packages'][name]
+              locked['packages'][nested]=frozen[1]['packages'][nested]
+              if declared!=frozen[0] or locked!=frozen[1]:raise RuntimeError('playwright_successor_other_dependency_changed')
+              for name,version in (('@playwright/test','1.62.1'),('playwright','1.62.1'),('playwright-core','1.62.1'),('node-forge','1.4.2'),('joi','18.3.1'),('undici','8.12.2')):
+                  if json.loads((root/'node_modules'/name/'package.json').read_text())['version']!=version:raise RuntimeError('playwright_successor_installed_version_mismatch:'+name)
+              metadata=hashlib.sha256((root/'node_modules/playwright-core/browsers.json').read_bytes()).hexdigest()
+              if metadata!='f306eed529599b1eaf2f8a85db9de2b23e1a3fe36c2b66434b7c9434fb627a99':raise RuntimeError('playwright_successor_browser_metadata_unqualified')
+              return {'package_version':'1.62.1','browsers_metadata_sha256':metadata,'predecessor':'EXACT_FROZEN_FORGE_JOI_SECURITY_PAIR'}
           def qualify_forge_joi(root):
               # Only node-forge 1.4.2 (GHSA-86w9-cpqp-85rv, GHSA-4642-5mcj-2rqw,
               # GHSA-6wvx-3r32-xmcg) and the scoped mailauth joi 18.3.1 override
@@ -164,21 +192,22 @@ jobs:
           # Mixed pairs and every other dependency change remain fail-closed.
           base_pair,candidate_pair=hashes(base),hashes(candidate)
           assert base_pair==original,'sc071_base_dependency_inputs_changed'
+          if candidate_pair==playwright_successor_fix:playwright_successor_receipt=qualify_playwright_successor(candidate)
           if candidate_pair==forge_joi_security_fix:
               qualify_forge_joi(candidate)
           if candidate_pair==undici_security_fix:
               qualify_mailauth_undici(candidate)
               if json.loads((candidate/'node_modules/undici/package.json').read_text())['version']!='8.12.2':raise RuntimeError('mailauth_undici_installed_version_mismatch')
-          assert candidate_pair in (original,source_map_fix,sharp_fix,mail_ops_fix,next_security_fix,zod_security_fix,undici_security_fix,forge_joi_security_fix),'sc071_candidate_dependency_inputs_unqualified'
+          assert candidate_pair in (original,source_map_fix,sharp_fix,mail_ops_fix,next_security_fix,zod_security_fix,undici_security_fix,forge_joi_security_fix,playwright_successor_fix),'sc071_candidate_dependency_inputs_unqualified'
           expected='1.2.1' if candidate_pair==original else '1.2.2'
           installed=subprocess.check_output(['node','-p',"require('source-map-js/package.json').version"],cwd=candidate,text=True).strip()
           assert installed==expected,'sc071_installed_source_map_version_mismatch'
           sharp_installed=None
-          if candidate_pair in (sharp_fix,mail_ops_fix,next_security_fix,zod_security_fix,undici_security_fix,forge_joi_security_fix):
+          if candidate_pair in (sharp_fix,mail_ops_fix,next_security_fix,zod_security_fix,undici_security_fix,forge_joi_security_fix,playwright_successor_fix):
               sharp_installed=subprocess.check_output(['node','-p',"require('sharp').versions.sharp"],cwd=candidate,text=True).strip()
               assert sharp_installed=='0.35.5','sc071_installed_sharp_version_mismatch'
           mail_dependencies=None
-          if candidate_pair in (mail_ops_fix,next_security_fix,zod_security_fix,undici_security_fix,forge_joi_security_fix):
+          if candidate_pair in (mail_ops_fix,next_security_fix,zod_security_fix,undici_security_fix,forge_joi_security_fix,playwright_successor_fix):
               direct={'mailauth':'7.3.1','pdf-lib':'1.17.1','xlsx':'0.20.3'}
               locked=json.loads((candidate/'package-lock.json').read_text())['packages']
               mail_dependencies={}
@@ -189,8 +218,8 @@ jobs:
                   assert actual==version,'sc071_installed_mail_dependency_version_mismatch'
                   mail_dependencies[name]={'locked':package['version'],'installed':actual,'resolved':package['resolved']}
           zod_dependency=None
-          if candidate_pair in (zod_security_fix,undici_security_fix,forge_joi_security_fix):
-              for p,oid in ([] if candidate_pair in (undici_security_fix,forge_joi_security_fix) else zip(paths,zod_git_blobs)):
+          if candidate_pair in (zod_security_fix,undici_security_fix,forge_joi_security_fix,playwright_successor_fix):
+              for p,oid in ([] if candidate_pair in (undici_security_fix,forge_joi_security_fix,playwright_successor_fix) else zip(paths,zod_git_blobs)):
                   data=(candidate/p).read_bytes()
                   assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()==oid,'sc071_zod_git_blob_mismatch'
               locked=json.loads((candidate/'package-lock.json').read_text())
@@ -198,17 +227,19 @@ jobs:
               actual=json.loads((candidate/'node_modules/zod/package.json').read_text())['version']
               assert declared['dependencies']['zod']==locked['packages']['']['dependencies']['zod']==locked['packages']['node_modules/zod']['version']==actual=='4.6.7','sc071_zod_dependency_version_mismatch'
               zod_dependency={'locked':locked['packages']['node_modules/zod']['version'],'installed':actual,'git_blobs':{p:hashlib.sha1(b'blob '+str(len((candidate/p).read_bytes())).encode()+b'\0'+(candidate/p).read_bytes()).hexdigest() for p in paths}}
-          compatibility=('EXACT_ZOD_4_6_7_WITH_NEXT_16_4_2_MAIL_AND_SECURITY_FIXES' if candidate_pair in (zod_security_fix,undici_security_fix,forge_joi_security_fix) else
+          compatibility=('EXACT_ZOD_4_6_7_WITH_NEXT_16_4_2_MAIL_AND_SECURITY_FIXES' if candidate_pair in (zod_security_fix,undici_security_fix,forge_joi_security_fix,playwright_successor_fix) else
                          'EXACT_NEXT_16_4_2_WITH_MAIL_AND_SECURITY_FIXES' if candidate_pair==next_security_fix else
                          'EXACT_MANUAL_MAIL_DEPENDENCIES_AND_6144_HEAP_WITH_SECURITY_FIXES' if candidate_pair==mail_ops_fix else
                          'SHARP_0_35_5_AND_SOURCE_MAP_JS_1_2_2_SECURITY_FIX' if candidate_pair==sharp_fix else
                          'SOURCE_MAP_JS_1_2_2_SECURITY_FIX' if candidate_pair==source_map_fix else 'BYTE_IDENTICAL_ORIGINAL')
+          if candidate_pair==playwright_successor_fix:compatibility='EXACT_PLAYWRIGHT_1_62_1_WITH_FORGE_JOI_MAIL_AND_SECURITY_FIXES'
           receipt={'dependency_install':'candidate npm ci; immutable BASE package pair plus exact reviewed security compatibility',
                    'base_package_sha256':dict(zip(paths,base_pair)),
                    'candidate_package_sha256':dict(zip(paths,candidate_pair)),
                    'compatibility':compatibility,
                    'actual_installed_source_map_js':installed,'actual_installed_sharp':sharp_installed,'base_packages_modified':False}
-          if candidate_pair==forge_joi_security_fix:receipt['qualified_forge_joi']={'override':{'mailauth':{'undici':'8.12.2','joi':'18.3.1'}},'locked_versions':{'node-forge':'1.4.2','joi':'18.3.1'},'predecessor':'EXACT_MAILAUTH_UNDICI_8_12_2'}
+          if candidate_pair in (forge_joi_security_fix,playwright_successor_fix):receipt['qualified_forge_joi']={'override':{'mailauth':{'undici':'8.12.2','joi':'18.3.1'}},'locked_versions':{'node-forge':'1.4.2','joi':'18.3.1'},'predecessor':'EXACT_MAILAUTH_UNDICI_8_12_2'}
+          if candidate_pair==playwright_successor_fix:receipt['qualified_playwright_successor']=playwright_successor_receipt
           if candidate_pair==undici_security_fix:receipt['qualified_mailauth_undici']={'override':{'mailauth':{'undici':'8.12.2'}},'locked_version':'8.12.2','predecessor':'EXACT_ZOD_4_6_7_WITH_NEXT_16_4_2_MAIL_AND_SECURITY_FIXES'}
           if zod_dependency is not None:receipt['actual_zod_dependency']=zod_dependency
           if mail_dependencies is not None:
