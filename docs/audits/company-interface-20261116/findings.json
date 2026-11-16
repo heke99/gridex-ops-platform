@@ -1,0 +1,2944 @@
+{
+  "schema_version": "company-interface-remediation-v1",
+  "date": "2026-11-16",
+  "baseline_main": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+  "implementation_branch": "codex/fix-final-audit-20261116",
+  "implementation_source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+  "delivery_status": "LOKALT_VERIFIERAT_ÄNDRINGSFÖRSLAG",
+  "deployment_status": "INTE_MERGAD_ELLER_DRIFTSATT",
+  "findings": [
+    {
+      "id": "GUI-001",
+      "title": "Partnerexporter visar skrivformulär för läsare",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/partner-exports/page.tsx:166",
+        "app/admin/cis/actions.ts:548"
+      ],
+      "proposed_fix": "Matcha synliga åtgärder mot partner_exports.write.",
+      "verification": "Läsare saknar formulär; behörig skrivare kan använda oförändrad serveraction.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Icke-plattform med partner_exports.read men utan partner_exports.write; det finns exportrader att visa.",
+      "related_findings": [
+        "GUI-037"
+      ],
+      "architecture_workstreams": [
+        "ARK-02"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-002",
+      "title": "Periodkontroll visas utan rätt åtgärdsbehörighet",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/operations/perioder/page.tsx:49",
+        "lib/admin/accessModel.ts:148"
+      ],
+      "proposed_fix": "Använd samma rättighetsuppsättning som periodkontrollens action.",
+      "verification": "customers.write/switching.write ensamt ger ingen körknapp.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Icke-plattform med customers.write eller switching.write men utan metering.write, billing_underlay.export och cases.write; bolag valt.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-02"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-003",
+      "title": "Driftuppgifter visar statusknappar för läsare",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/operations/tasks/page.tsx:590",
+        "app/admin/operations/actions.ts:170"
+      ],
+      "proposed_fix": "Matcha kontrollerna mot masterdata.write.",
+      "verification": "Läsare kan läsa uppgifter utan oanvändbara skrivknappar.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Icke-plattform med tillåten läsbehörighet till uppgifter men utan masterdata.write; relevant uppgift finns.",
+      "related_findings": [
+        "GUI-009"
+      ],
+      "architecture_workstreams": [
+        "ARK-02"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-004",
+      "title": "Utskick visar flera åtgärder utan respektive skrivbehörighet",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/outbound/page.tsx:486",
+        "app/admin/outbound/page.tsx:706"
+      ],
+      "proposed_fix": "Bedöm rättigheter per action, inte en gemensam flagga.",
+      "verification": "Pröva läsare utan något tillåtet skrivalternativ samt varje enskilt accepterat alternativ separat. Sidans och actionens övriga bolags-/statusvillkor och plattformsundantag ska bestå.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Icke-plattform får öppna sidan men saknar samtliga alternativa rättigheter som just den aktuella actionens anyOf accepterar. Att sakna ett alternativ men ha ett annat innebär inte denna behörighetsbrist. AnyOf får inte göras till allOf.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-02"
+      ],
+      "final_review_note": "Preciserat mot faktisk main vid slutrevision 2026-11-16; se SLUTGRANSKNING.md. Huvudklassificeringen kvarstår.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-005",
+      "title": "Anläggningsbegäran visar manuella skrivformulär för läsare",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/facility-requests/page.tsx:181",
+        "app/admin/facility-requests/page.tsx:195"
+      ],
+      "proposed_fix": "Matcha Markera skickad/Registrera svar mot customers.write.",
+      "verification": "Läsare ser status men inte muterande formulär.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Läsbehörig icke-plattform utan customers.write; relevant anläggningsbegäran finns.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-02"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-006",
+      "title": "Fakturering erbjuder export/godkännande för fakturaläsare",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/billing/page.tsx:134",
+        "app/admin/billing/page.tsx:202"
+      ],
+      "proposed_fix": "Kräv billing_underlay.export för motsvarande kontroller.",
+      "verification": "Ren fakturaläsare får inga aktiva export- eller sändknappar.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Icke-plattform med billing_underlay.read utan billing_underlay.export. Filkandidater/exportinställning eller klara fakturor måste dessutom göra respektive knapp aktiv/synlig.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-02"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-007",
+      "title": "Partnerexporter visar interna ID:n, råa koder och engelska statusar",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Interna ID:n och rå export_kind visas i bolagsnåbar partnerexportvy. Radens statuspiller använder redan svensk formatStatusLabel; engelska statusord finns i filter och redigeringsval. Fyndet gäller inte att alla statusytor är oöversatta.",
+      "locations": [
+        "app/admin/partner-exports/page.tsx:64",
+        "app/admin/partner-exports/page.tsx:153"
+      ],
+      "proposed_fix": "Visa kundnamn/nummer, anläggning och svenska affärsstatusar; teknisk diagnostik endast plattform.",
+      "verification": "Bolagsvy innehåller inte interna UUID/tekniska felkoder; affärsreferenser bevaras.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-01",
+        "ARK-06"
+      ],
+      "prerequisites": "Bolagsanvändare har sidans läsrätt; råa raddetaljer kräver exportrader. Detta är ett förbättringsförslag för presentation, inte dataförlust eller åtkomstbypass.",
+      "final_review_note": "Preciserat mot faktisk main vid slutrevision 2026-11-16; se SLUTGRANSKNING.md. Huvudklassificeringen kvarstår.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-008",
+      "title": "Periodkontroll använder periodmotor/requests/cases och interna ID:n",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/operations/perioder/page.tsx:35",
+        "app/admin/operations/perioder/page.tsx:45"
+      ],
+      "proposed_fix": "Byt till begriplig svensk text och kund-/mätpunktsidentitet.",
+      "verification": "Vanligt elbolag kan förstå kontrollen utan tekniska termer.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-01",
+        "ARK-06"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-009",
+      "title": "Driftuppgifter har engelska rubriker och många statusknappar",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/operations/tasks/page.tsx:237",
+        "app/admin/operations/tasks/page.tsx:596"
+      ],
+      "proposed_fix": "Svenska etiketter och kompakt åtgärdsmeny.",
+      "verification": "Open/In progress/Blocked/Done ersätts och alla tillåtna åtgärder förblir åtkomliga.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [
+        "GUI-003"
+      ],
+      "architecture_workstreams": [
+        "ARK-01"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-010",
+      "title": "Nollvärden ritas som positiva diagramstaplar",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "SimpleBars/SimpleChart använder Math.max(4, beräknadProcent), så numeriskt noll får 4 procents positiv stapelbredd. Taletiketten visar fortfarande noll. Det är en visuellt missvisande proportion, inte ett belagt fel i det visade siffervärdet.",
+      "locations": [
+        "app/admin/analytics/_components.tsx:134",
+        "app/admin/analytics/_components.tsx:152"
+      ],
+      "proposed_fix": "Ge nollvärden noll bredd; skilj noll från saknat värde.",
+      "verification": "0 och positiva värden återges proportionellt.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "prerequisites": "En diagramrad har det numeriska värdet0. Faktisk produktionsförekomst eller browserlayout är inte verifierad.",
+      "final_review_note": "Preciserat mot faktisk main vid slutrevision 2026-11-16; se SLUTGRANSKNING.md. Huvudklassificeringen kvarstår.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-011",
+      "title": "Säkerhet på 0 procent visas som saknad",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "UI använder truthiness för confidenceScore/confidence och döljer ett känt numeriskt0. Men db.ts:163 sätter också confidenceScore0 utan säkerhetsunderlag i reservvägen, som används på rad229; asNumber(null) kan dessutom bli0 före aggregering. UI måste därför få en läsmodell som skiljer känt0 från okänt, inte bara skriva ut alla nollor som beräknad säkerhet.",
+      "locations": [
+        "app/admin/analytics/_components.tsx:184",
+        "app/admin/analytics/forecast/page.tsx:48",
+        "lib/analytics/db.ts:163",
+        "lib/analytics/db.ts:229",
+        "lib/analytics/db.ts:282"
+      ],
+      "proposed_fix": "Bevara känt/okänt genom läsmodellen med nullable värde eller uttrycklig bevisstatus, och formattera sedan känt0 som0 %. Byt inte bara UI:s truthinessvillkor så att saknat underlag blir påstådd0 %.",
+      "verification": "Pröva känt positivt värde, känt beräknat0, null/saknat confidencefält och reservväg utan färdig prognoskörning. Endast ett känt0 ska visas som0 %; okänt ska fortsatt vara okänt.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "prerequisites": "Fyndet om dolt0 gäller verkligt känt/beräknat0. Reservvärde0 utan underlag är inte en uppmätt säkerhet och måste fortsatt visas som okänt. Ingen sådan produktionsfördelning har granskats.",
+      "final_review_note": "Preciserat mot faktisk main vid slutrevision 2026-11-16; se SLUTGRANSKNING.md. Huvudklassificeringen kvarstår.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-012",
+      "title": "Avvikelsekort säger totalt men räknar högst 50 poster",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/analytics/deviations/page.tsx:27",
+        "lib/analytics/db.ts:384"
+      ],
+      "proposed_fix": "Separera totalräkning från paginerad lista eller märk begränsat urval.",
+      "verification": "51+ avvikelser ger rätt total och korrekta kategorier.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Mer än50 öppna poster behövs för att räknarens begränsning ska ge för låg total; ett sådant produktionsbestånd har inte granskats.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-013",
+      "title": "Prognosexport tappar sidans filter",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/analytics/forecast/page.tsx:70",
+        "app/admin/analytics/export/route.ts:20"
+      ],
+      "proposed_fix": "För vidare och tillämpa valda filter, alternativt märk exportens omfattning uttryckligt.",
+      "verification": "Jämför export och visat urval med en färdig prognoskörning och aktivt avgränsande nätägare/elområde/kundtyp/mätmetod/status. Pröva reservvägen separat och tillskriv inte redan saknade sidfilter själva exportklicket.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "prerequisites": "Ett aktivt dimensionsfilter måste faktiskt avgränsa prognossidans underlag för att skillnaden ska bli det beskrivna urvalsbortfallet. Den normala vägen med färdig prognoskörning tillämpar filtren; reservvägen utan sådan körning kan redan sakna samma filtrering före exportklicket. Inget produktionsurval har jämförts.",
+      "final_review_note": "Preciserat mot faktisk main vid slutrevision 2026-11-16; se SLUTGRANSKNING.md. Huvudklassificeringen kvarstår.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-014",
+      "title": "Visa detaljer saknar länk för många avvikelseobjekt",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "När actionHref saknas visar åtgärdskolumnen den inaktiva reservtexten Visa detaljer. Det är inte en klickbar trasig knapp. Förbättringen gäller begriplig nästa väg för stödda objekttyper.",
+      "locations": [
+        "app/admin/analytics/_components.tsx:247",
+        "lib/analytics/db.ts:531"
+      ],
+      "proposed_fix": "Länka endast befintliga stödda och behöriga mål. Använd begriplig reservtext eller annan tillåten väg där detaljsida saknas; lova inte nya fungerande mål för varje okänd entity_type.",
+      "verification": "Verifiera stödda kund-/anläggnings-/mätpunktsmål och en okänd objekttyp. Länkar ska vara behörighetsanpassade; text utan mål får inte antyda en fungerande klickhandling.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-03"
+      ],
+      "final_review_note": "Preciserat mot faktisk main vid slutrevision 2026-11-16; se SLUTGRANSKNING.md. Huvudklassificeringen kvarstår.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-015",
+      "title": "Analystabeller kan klippa kolumner på mobil",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/analytics/_components.tsx:165",
+        "app/admin/analytics/_components.tsx:197",
+        "app/admin/analytics/_components.tsx:229"
+      ],
+      "proposed_fix": "Verifiera i browser och använd åtkomlig scroll eller responsiv radlayout.",
+      "verification": "Alla kolumner kan nås vid 390 och 320 px med tangentbord och pekskärm.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "BROWSERRISK",
+      "verification_level": "BEHÖVER_BROWSERKONTROLL",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [
+        "GUI-016"
+      ],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "BEHÖVER_BROWSERKONTROLL",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-016",
+      "title": "Analysflikar saknar aria-current",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/analytics/_components.tsx:5"
+      ],
+      "proposed_fix": "Ange aktuell sida programmässigt och namnge navigationen.",
+      "verification": "Skärmläsare kan identifiera aktiv flik.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "aria-current saknas i koden. Ingen överträdelse av en viss WCAG-nivå är fastställd; registreras som förbättring.",
+      "related_findings": [
+        "GUI-015"
+      ],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-017",
+      "title": "Revisionsloggen visar tekniska kolumner och koder för bolag",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/audit/page.tsx:155",
+        "app/admin/audit/page.tsx:174"
+      ],
+      "proposed_fix": "Visa svensk affärshändelse/objekt och reservera interna ID:n för plattform.",
+      "verification": "Action/Entity/Entity ID och råa händelsekoder ersätts i bolagsvy.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-01",
+        "ARK-06"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-018",
+      "title": "Fullmaktsregistret har Tenant-kolumn även för bolag",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/powers-of-attorney/page.tsx:52"
+      ],
+      "proposed_fix": "Dölj redundant bolagskolumn i bolagsvy eller använd Bolag.",
+      "verification": "Bolagsvy utan onödig tenantterminologi; plattform behåller bolagsöversikt.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-01"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "poa",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-019",
+      "title": "Kundtypsfilter i analys saknar Förening",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/analytics/_components.tsx:75"
+      ],
+      "proposed_fix": "Lägg till stödd kundtyp i filtret.",
+      "verification": "Föreningskunder kan väljas och ger rätt resultat.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-020",
+      "title": "Saknad analysrelation behandlas som noll/inga ärenden",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "lib/analytics/db.ts:14",
+        "lib/analytics/db.ts:25"
+      ],
+      "proposed_fix": "Skilj otillgängligt underlag från genuint tomt resultat.",
+      "verification": "Saknad relation/schemafel får inte visas som grön nollstatus.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "En efterfrågad relation eller kolumn saknas. Andra typer av läsfel kastas vidare; dessa får inte beskrivas som generellt tystade.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-021",
+      "title": "Avtalskatalogens återkoppling använder readiness/canonical/immutable",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "De angivna actions returnerar tekniska ord vid versionsskapande och publicering av avtalskatalog/försäljningskanal. Detta är administratörens återkoppling, inte innehållet i en avtalsbekräftelse till slutkunden.",
+      "locations": [
+        "app/admin/contracts/actions.ts:458",
+        "app/admin/contracts/actions.ts:779",
+        "app/admin/contracts/actions.ts:859",
+        "app/admin/contracts/actions.ts:905"
+      ],
+      "proposed_fix": "Förenkla katalogadministratörens återkoppling utan ändrad versionslåsning, prisidentitet, kanalstyrning, publiceringssemantik eller behörighet.",
+      "verification": "Samma actions/guards, svenska begripliga bekräftelser.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-01",
+        "ARK-06"
+      ],
+      "prerequisites": "Behörig delegerad avtals-/prisadministratör utför relevant katalog-/publiceringsaction med dess exakta rättigheter. Tekniska ord på en specialistyta är ett språkförbättringsförslag, inte bevis på felaktig publicering.",
+      "final_review_note": "Preciserat mot faktisk main vid slutrevision 2026-11-16; se SLUTGRANSKNING.md. Huvudklassificeringen kvarstår.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-022",
+      "title": "Avbrutna flyttar och byten räknas som pågående",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/customers/segments/page.tsx:101",
+        "lib/operations/switchLifecycleBlocks.ts:66"
+      ],
+      "proposed_fix": "Hantera cancelled och cancelled_before_start som avslutade i segmentlogiken.",
+      "verification": "Båda terminalvärdena exkluderas för move_in/move_out_takeover/switch.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "LOKAL_AVGRÄNSAD_REPRODUKTION_OCH_KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-05"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "business",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-023",
+      "title": "Arbetsköns kunduppslag kapas till 100 och kan utelämna jobb",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/work-queue/page.tsx:177",
+        "app/admin/work-queue/page.tsx:293",
+        "app/admin/work-queue/page.tsx:336"
+      ],
+      "proposed_fix": "Läs samtliga efterfrågade kund-ID:n i begränsade batcher.",
+      "verification": "101–200 distinkta kunder behålls; tenantfilter och resurskoppling bevaras.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "LOKAL_AVGRÄNSAD_REPRODUKTION_OCH_KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Över100 distinkta kund-ID:n i event-/jobbunionen. Bortfall gäller denna källa; samma operation kan finnas i andra kökällor.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-024",
+      "title": "Läsfel för portalsvar blir tyst inga svar",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/customer-info-requests/page.tsx:178"
+      ],
+      "proposed_fix": "Visa tydligt otillgängligt tillstånd utan att påstå att svar saknas.",
+      "verification": "Simulerat läsfel visar varning och kan skiljas från tom svarlista.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Läsningen av portalsvar misslyckas. Inget sådant produktionsfel har observerats i granskningen.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-025",
+      "title": "Begärandelistor visar högst tolv poster utan vidarevisning på sidan",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/customer-info-requests/page.tsx:360",
+        "app/admin/customer-info-requests/page.tsx:415",
+        "app/admin/customer-info-requests/page.tsx:435"
+      ],
+      "proposed_fix": "Inför sidindelning/visa fler med tillhörande svar och processunderlag.",
+      "verification": "Fastställ behov av komplett lista på denna sida. Om fortsatt åtkomst behövs: poster13–80 ska nås med samma behörighet och rätt svar/processunderlag. Undersök även alternativa befintliga vägar.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Mer än12 poster. Begränsningen gäller dessa listor på denna sida; första listan heter uttryckligen Senaste uppgiftsbegäran. Äldre poster kan finnas på andra systemvägar.",
+      "related_findings": [
+        "GUI-028"
+      ],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-026",
+      "title": "Saknad juridikprofil beskrivs som komplett",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/company-settings/page.tsx:80",
+        "lib/contracts/canonical.ts:197"
+      ],
+      "proposed_fix": "Inför separat saknad/okänd profil innan komplettbedömning.",
+      "verification": "null ger inte komplett eller granskning krävs Nej.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "LOKAL_AVGRÄNSAD_REPRODUKTION_OCH_KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "getTenantLegalProfile returnerar null. Ett faktiskt bolag med saknad profil har inte granskats.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "company",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-027",
+      "title": "Arbetskön visar råa tekniska fel för bolag",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/work-queue/page.tsx:345",
+        "app/admin/work-queue/page.tsx:662"
+      ],
+      "proposed_fix": "Visa kontrollerad affärstext; behåll diagnostik i plattformsgräns.",
+      "verification": "Tekniskt last_error visas inte för bolag; affärens blockeringsorsak finns kvar.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "job.last_error innehåller teknisk diagnostik. Inte alla sparade felmeddelanden är tekniska.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-06"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-028",
+      "title": "Svarssammanfattning visar tekniska nycklar när fri text saknas",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/customer-info-requests/page.tsx:124"
+      ],
+      "proposed_fix": "Presentera tillåtna svarsfält med etiketter och inskickade värden.",
+      "verification": "facility_id/grid_owner_name/annual_consumption_kwh återges som begriplig affärsinformation.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "LOKAL_AVGRÄNSAD_REPRODUKTION_OCH_KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Ingen fri text finns i de fyra sökta fälten. Fyndet gäller sammanfattningen; uppgifterna kan finnas i andra vyer.",
+      "related_findings": [
+        "GUI-025"
+      ],
+      "architecture_workstreams": [
+        "ARK-04",
+        "ARK-06"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-029",
+      "title": "Senaste faktureringsunderlag är 80 osorterade poster",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/billing/underlays/page.tsx:14",
+        "lib/pricing/adminData.ts:12"
+      ],
+      "proposed_fix": "Sortera och paginera underlag; räkna totaler separat eller märk urval.",
+      "verification": "Nyaste poster visas och kortens omfattning är sanningsenlig.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Ingen ordning garanteras av frågan. Det är inte visat att nuvarande produktionsresultat faktiskt är felordnat.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-030",
+      "title": "Prisberäkning väljs ur högst 200 osorterade körningar",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/billing/underlays/[id]/page.tsx:19"
+      ],
+      "proposed_fix": "Välj rätt prioriterad/senaste körning i ordnad dataläsning.",
+      "verification": "Avsedd körning väljs även vid över 200 historiska körningar.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Över200 körningar och önskad körning ligger utanför urvalet. Den uttryckliga statusprioriteten locked>success är inte i sig ett fel.",
+      "related_findings": [
+        "GUI-031"
+      ],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-031",
+      "title": "Prisrader kapas före körningsfilter men totalsumman är fullständig",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/billing/underlays/[id]/page.tsx:20",
+        "app/admin/billing/underlays/[id]/page.tsx:124"
+      ],
+      "proposed_fix": "Läs rader för vald pricing_run_id och hantera fullständighet explicit.",
+      "verification": "5000+ historikrader ger kompletta valda rader eller tydlig begränsning; summan går att förklara.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Över5000 rader över underlagets körningar, och vald körnings rader hamnar helt eller delvis utanför urvalet.",
+      "related_findings": [
+        "GUI-030"
+      ],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-032",
+      "title": "Fakturadetaljer visar tekniska ID:n, typkoder och hashvärden",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/billing/underlays/[id]/page.tsx:84",
+        "app/admin/billing/invoices/[id]/page.tsx:150"
+      ],
+      "proposed_fix": "Behåll affärsberäkningen och lägg tekniskt underlag bakom plattformsgräns.",
+      "verification": "Bolag ser belopp, period och begripliga prisgrunder utan interna hash-/tabellnamn.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-01",
+        "ARK-06"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-033",
+      "title": "Förbättring av precision för små energivolymer i MWh",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "lib/analytics/utils.ts:22"
+      ],
+      "proposed_fix": "Använd lämpliga decimaler eller kWh för små mängder.",
+      "verification": "Fastställ önskad precision. Om små volymer ska kunna särskiljas:300 och499kWh ska återges med lämpliga decimaler eller kWh.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "LOKAL_AVGRÄNSAD_REPRODUKTION_OCH_KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Små positiva värden visas med heltalsavrundning i MWh. Avrundningen är reproducerad; önskad precision är ett presentationsbeslut.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-034",
+      "title": "Analysens standardmånad blir fel vid svenskt månadsskifte",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "lib/analytics/utils.ts:1"
+      ],
+      "proposed_fix": "Beräkna affärsmånad i Europe/Stockholm.",
+      "verification": "2026-11-01 00:30 svensk tid väljer november, inte oktober; sommartid provas.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "LOKAL_AVGRÄNSAD_REPRODUKTION_OCH_KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Svensk lokal månad har bytts men UTC-månaden har ännu inte bytts; förutsätter svensk affärsmånad som önskad standard.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-035",
+      "title": "Fakturadetaljen saknar separat exportfel/leveransstatus",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Godkänd fakturaberäkning och misslyckad export är två olika axlar och kan båda vara korrekta. Listan prioriterar exportfel i sin status medan detaljen visar godkännande och inte återger exportpostens felstatus/error_payload. Ingen felaktig godkännandemutation är belagd.",
+      "locations": [
+        "lib/billing/invoiceReviewData.ts:85",
+        "lib/billing/invoiceReviewData.ts:254",
+        "app/admin/billing/invoices/[id]/page.tsx:75"
+      ],
+      "proposed_fix": "Skilj godkänd beräkning från leveransstatus och visa exportfel.",
+      "verification": "Godkänd faktura med failed/rejected export ska kunna visa både korrekt godkännande och separat åtgärdsbehov för leveransen; återkalla inte ett korrekt godkännande enbart för att presentationen ska matcha listan.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "En faktura är godkänd och dess exportpost har en felstatus. Godkännandet kan fortfarande vara korrekt; det saknade är synlig separat leverans-/felstatus.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-05"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-036",
+      "title": "Faktureringskontrollen döljer blockerare efter de tre första",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/billing/quality/page.tsx:173"
+      ],
+      "proposed_fix": "Lägg till åtkomlig fortsättning/alla orsaker.",
+      "verification": "Fjärde och senare blockerare kan läsas och åtgärdas.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Fler än3 blockerare för en kund. Fyndet gäller fortsättning i denna vy; inga påståenden om att orsakerna är borta ur systemet.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-037",
+      "title": "Partnerexporter har stort redigeringsformulär på varje rad",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/partner-exports/page.tsx:166"
+      ],
+      "proposed_fix": "Gör listan kompakt och öppna tillåtna åtgärder vid behov.",
+      "verification": "Lång lista går att överblicka och alla behöriga formulär förblir åtkomliga.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [
+        "GUI-001"
+      ],
+      "architecture_workstreams": [
+        "ARK-01"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-038",
+      "title": "Partnerexporters filter saknar tydliga programmässiga etiketter",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "evidence": "Kodgranskning; se bevarade originalunderlag och lokal reproduktion där angivet.",
+      "locations": [
+        "app/admin/partner-exports/page.tsx:67"
+      ],
+      "proposed_fix": "Namnge sökfält och filter med kopplade etiketter.",
+      "verification": "Tillgänglighetskontroll identifierar varje filters syfte utan placeholder.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-01"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-039",
+      "title": "Prognoskorten tappar vald månad och nästa-månad-länken går till aktuell månad",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "locations": [
+        "app/admin/analytics/page.tsx:101",
+        "app/admin/analytics/forecast/page.tsx:21"
+      ],
+      "proposed_fix": "Skicka vald månad respektive addMonths(vald månad,1) i respektive länk.",
+      "verification": "Välj historisk månad; båda länkarna ska öppna rätt period.",
+      "evidence": "Faktisk kortbyggarfunktion körd lokalt: båda href är /admin/analytics/forecast utan month.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "LOKAL_AVGRÄNSAD_REPRODUKTION_OCH_KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-03"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-040",
+      "title": "Historisk analys kan visa dagens bestånd när månadsunderlag saknas",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "locations": [
+        "app/admin/analytics/page.tsx:33",
+        "lib/analytics/db.ts:94"
+      ],
+      "proposed_fix": "Använd historiskt giltig reservberäkning eller markera historik saknas; skilj från aktuell beståndsöversikt.",
+      "verification": "Välj historisk månad utan lagrad månadsrad: dagens kunder/anläggningar får inte anges som verifierat historiskt bestånd.",
+      "evidence": "Kodgranskning: fallback används för valfri månad, men safeCount för kund/anläggning/mätpunkt saknar datumvillkor; forecast/actual sätts till0.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Vald månads lagrade månadsrad saknas. Endast vissa beståndstal är nutida; mottagna mätvärden och portfoliodelar har egna periodläsningar.",
+      "related_findings": [
+        "GUI-043"
+      ],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-041",
+      "title": "Elområdesdiagram blandar antal mätpunkter och kWh",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "locations": [
+        "lib/analytics/db.ts:179"
+      ],
+      "proposed_fix": "Använd en tydligt angiven enhet för samtliga områden och bevara talet noll.",
+      "verification": "Område med0punkter/12000kWh får inte jämföras som12000 mot område med2punkter.",
+      "evidence": "Uttrycket metering_points_count || forecast_kwh reproducerat; oberoende granskare bekräftar blandade enheter.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "LOKAL_AVGRÄNSAD_REPRODUKTION_OCH_KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Ett område har0 eller saknat metering_points_count och positiv forecast_kwh. Villkoret är reproducerat med syntetiska data; produktionsförekomst ej granskad.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-042",
+      "title": "Datakvalitetskortets definition och förklaring är oklara",
+      "priority": "P3",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "locations": [
+        "app/admin/analytics/page.tsx:93",
+        "app/admin/analytics/page.tsx:104"
+      ],
+      "proposed_fix": "Fastställ vad kortet ska betyda och vilka mått som ska styra det. Anpassa beräkning eller etikett/förklaring till den beslutade definitionen.",
+      "verification": "Verifiera den överenskomna definitionen med saknade värden, misslyckade periodbegäranden, lösta problem och andra öppna kvalitetsärenden. Kräv inte automatiskt röd kvalitetsstatus enbart från failed_metering_requests.",
+      "evidence": "Kortet visar Stabil utifrån enbart metering_values_missing men förklaringen säger Baserat på öppna datakvalitetsärenden. failed_metering_requests är ett annat periodmått och bevisar inte öppna kvalitetsärenden eller att verklig datakvalitet är instabil. Tidigare starkare slutsats återtas.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "BEHÖVER_VERKSAMHETSDEFINITION",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Produktdefinitionen av Datakvalitet/Stabil behöver fastställas. Misslyckade periodbegäranden är inte bevis på ett separat öppet kvalitetsärende.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-05"
+      ],
+      "baseline_status": "BEHÖVER_VERKSAMHETSDEFINITION",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-043",
+      "title": "Saknad månadsprognos ersätts med beräkningslös nolla",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "locations": [
+        "lib/analytics/db.ts:133",
+        "app/admin/analytics/page.tsx:101"
+      ],
+      "evidence": "Oberoende kodgranskning: buildLiveMonthlyFallback sätter prognos, utfall och requestutfall ovillkorligt till0 utan att läsa respektive underlag; översikten presenterar forecast_kwh som faktisk prognos. Mottagna mätvärden och portfoliodelen har däremot egna periodläsningar.",
+      "proposed_fix": "Skilj saknat/inte beräknat från verkligt nollvärde och hämta prognos från dess auktoritativa källa.",
+      "verification": "Saknad månadsrad och befintlig positiv prognos får inte ge ett obetingat 0 MWh. Saknat prognosunderlag visas som okänt, verkligt noll som noll.",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Månadsraden saknas och fallback används. Det är frånvaron av läst prognosunderlag före0 som är belagd, inte att en positiv verklig prognos finns för ett granskat produktionsbolag.",
+      "related_findings": [
+        "GUI-040"
+      ],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "analytics",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-044",
+      "title": "Kundintag erbjuder registrering/import för en läsbehörighet",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "locations": [
+        "app/admin/customers/intake/page.tsx:41",
+        "app/admin/customers/intake/page.tsx:148",
+        "app/admin/customers/actions.part-3.ts:92",
+        "app/admin/customers/actions.part-4.ts:508"
+      ],
+      "evidence": "Sidans masterdata.read räcker för att se fulla formulär, men manuell registrering, importförhandsgranskning och import kräver customers.write. Oberoende kodspårning bekräftar nekande före registrering.",
+      "proposed_fix": "Dölj eller förklara skrivfunktioner om customers.write saknas; bevara plattformsundantaget.",
+      "verification": "masterdata.read utan customers.write ger inga användbara skriv-/importformulär. Behörig skrivare och plattform kan fortfarande använda originalkommandona.",
+      "review_date": "2026-11-16",
+      "flow_document": "KUNDFLODEN.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Icke-plattform med masterdata.read utan customers.write. Inga verkliga kontons aktuella rättigheter granskades.",
+      "related_findings": [
+        "GUI-048",
+        "GUI-049"
+      ],
+      "architecture_workstreams": [
+        "ARK-02"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "onboarding",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-045",
+      "title": "Signeringssidan visar skicka-formulär för avtalsläsare",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "locations": [
+        "app/admin/customers/[id]/contracts/[contractId]/signature/page.tsx:34",
+        "app/admin/customers/[id]/contracts/[contractId]/signature/page.tsx:65",
+        "app/admin/customers/[id]/contracts/[contractId]/signature/actions.ts:154"
+      ],
+      "evidence": "Sidan tillåter contracts.read. canSend testar status/signering/anläggning men inte contracts.write. Action nekar före sändning. Bolags-/kund-/avtals-/anläggningskontroller finns kvar.",
+      "proposed_fix": "Matcha synliga sändkontroller mot contracts.write eller uttryckligt plattformsundantag, utöver befintliga data-/statuskrav.",
+      "verification": "Ren avtalsläsare kan se historik men inte skicka. Behörig skrivare kan skicka endast med giltigt eget underlag; manipulerade kund-/avtals-ID:n nekas.",
+      "review_date": "2026-11-16",
+      "flow_document": "KUNDFLODEN.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Icke-plattform med contracts.read utan contracts.write, osignerat avtal i tillåten status och giltig egen anläggning.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-02"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "onboarding",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-046",
+      "title": "Nästa-steg-länk efter registrering leder till dold uppgiftsflik",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "locations": [
+        "components/admin/customers/CustomerIntakeForm.tsx:184",
+        "components/admin/customers/CustomerIntakeForm.tsx:216",
+        "app/admin/customers/[id]/page.part-4.tsx:96",
+        "app/admin/customers/[id]/page.part-4.tsx:972"
+      ],
+      "evidence": "Gå till uppgiftsbegäran pekar på data-requests-flik/hash. Faktisk synlighetsfunktion ger false för bolag och true för plattform. När bolagsanvändaren får öppna kundkortet blir aktiv flik overview och den avsedda målsektionen renderas bara för plattform; utan sidrätt nås inte denna normalisering.",
+      "proposed_fix": "Länka till tillåten bolagsvy med faktiskt stödd kundförvalsmodell. Befintlig customer-info-requests#create-info-request har ännu inget URL-kundförval; det måste implementeras/valideras innan parametern kan användas.",
+      "verification": "Efter registrering når bolagsanvändaren rätt begärandevy för samma skapade kund och behöriga resurser. Ingen död hash eller ignorerad kundparameter.",
+      "review_date": "2026-11-16",
+      "flow_document": "KUNDFLODEN.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "LOKAL_AVGRÄNSAD_REPRODUKTION_OCH_KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Icke-plattform följer intake-länken och har även customers.read eller masterdata.read för att få öppna kundkortet. Då normaliseras den otillåtna data-requests-fliken till overview. Utan kundkortsrätt stoppar sidguarden tidigare med redirect till/admin. Lokal fliksynlighet och målsektionens plattformsgräns är kontrollerade.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-03"
+      ],
+      "final_review_note": "Preciserat mot faktisk main vid slutrevision 2026-11-16; se SLUTGRANSKNING.md. Huvudklassificeringen kvarstår.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "onboarding",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-047",
+      "title": "Skapa ny kund använder ett oanvänt återställningsargument",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "locations": [
+        "components/admin/customers/CustomerIntakeForm.tsx:210",
+        "app/admin/customers/intake/page.tsx:39",
+        "components/admin/customers/CustomerIntakeForm.tsx:349"
+      ],
+      "evidence": "Länken har new=1 men sidan läser bara mode; formuläret har useActionState utan URL-styrd reset/key. Att gammal state faktiskt kvarstår efter RSC-navigation är inte browserbekräftat.",
+      "proposed_fix": "Verifiera ny-kund-navigation först; inför vid behov explicit säker återställning av state/nyckel utan att tappa ett delvis genomfört kundskapande.",
+      "verification": "Efter lyckad registrering och Skapa ny kund: nytt tomt formulär, inga gamla filval/successmeddelanden. Delvis genomförd registrering får inte förväxlas med nytt försök.",
+      "review_date": "2026-11-16",
+      "flow_document": "KUNDFLODEN.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "BROWSERRISK",
+      "verification_level": "BEHÖVER_BROWSERKONTROLL",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "related_findings": [],
+      "architecture_workstreams": [
+        "ARK-03"
+      ],
+      "baseline_status": "BEHÖVER_BROWSERKONTROLL",
+      "implementation": {
+        "packet": "onboarding",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-048",
+      "title": "Direkt uppgiftsbegäran efter kundskapande kräver en annan rättighet än UI visar",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "locations": [
+        "components/admin/customers/CustomerIntakeForm.tsx:233",
+        "app/admin/customers/[id]/actions.ts:56",
+        "app/admin/customers/[id]/actions.part-3.ts:583"
+      ],
+      "evidence": "Kundskapande kräver customers.write. Nästa-steg-formuläret visas bara utifrån createdCustomerId men dess action kräver masterdata.write både i fasad och implementation. Separata sidan har en annan kommandoväg med egna rättigheter; dessa får inte likställas.",
+      "proposed_fix": "Pröva den direkta actionens exakta behörighet eller led användaren till en faktiskt tillåten alternativväg. Behåll fullmaktens omfattning och alla kund-/bolags-/anläggningskontroller.",
+      "verification": "customers.write utan masterdata.write kan registrera men erbjuds inte den otillåtna direktåtgärden. Tillåtet kommando använder rätt skapad kund och underlag.",
+      "review_date": "2026-11-16",
+      "flow_document": "KUNDFLODEN.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Registrering lyckas med customers.write men användaren saknar masterdata.write; plattformens undantag gäller.",
+      "related_findings": [
+        "GUI-044",
+        "GUI-049"
+      ],
+      "architecture_workstreams": [
+        "ARK-02",
+        "ARK-03"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "onboarding",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-049",
+      "title": "Skapa begäran efter registrering saknar synlig resultatåterkoppling",
+      "priority": "P2",
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "locations": [
+        "components/admin/customers/CustomerIntakeForm.tsx:233",
+        "components/admin/customers/CustomerIntakeForm.tsx:244",
+        "app/admin/customers/[id]/actions.ts:49",
+        "app/admin/customers/[id]/actions.part-3.ts:654",
+        "app/admin/customers/[id]/actions.part-3.ts:897"
+      ],
+      "evidence": "Plain form-action saknar eget actionstate. redirect_after_submit definieras i formuläret men läses ingenstans. Blockergrenar och lyckad hantering returnerar void och revaliderar andra sidor. Intake visar endast tidigare kundskapanderesultat; omklicksrisk, men dubblett är inte belagd.",
+      "proposed_fix": "Ge strukturerat bekräftat/blockerat/okänt resultat eller säker redirect med rätt kund- och ärendekontext. Skilj skapad/köad/skickad från stoppad/osäker; bevara idempotens och undvik blind omsändning.",
+      "verification": "Prova saknad fullmakt, otillräcklig omfattning, lyckad köning och osäker leverans med syntetiska underlag. Användaren ser respektive faktiska utfall och kan öppna rätt ärende utan nytt kundskapande.",
+      "review_date": "2026-11-16",
+      "flow_document": "KUNDFLODEN.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "confidence_note": "Inte verifierat som produktionsincident. Kodbelagt beteende ska skiljas från faktisk förekomst och verksamhetens önskade presentation.",
+      "prerequisites": "Behörig användare anropar direktbegäran från intake. Avsaknad av uttrycklig feedback/redirect är kodbelagd; exakt browserupplevelse och eventuell dubbelåtgärd är inte verifierade.",
+      "related_findings": [
+        "GUI-044",
+        "GUI-048"
+      ],
+      "architecture_workstreams": [
+        "ARK-03",
+        "ARK-05"
+      ],
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "onboarding",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-050",
+      "title": "Datakvalitet visar tekniska termer och råfel i bolagsvyn",
+      "priority": "P3",
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "locations": [
+        "app/admin/data-quality/page.tsx:73",
+        "app/admin/data-quality/page.tsx:117",
+        "app/admin/data-quality/page.tsx:127",
+        "app/admin/data-quality/page.tsx:144",
+        "app/admin/data-quality/page.tsx:152",
+        "app/admin/data-quality/page.tsx:170",
+        "app/admin/data-quality/page.tsx:184",
+        "lib/admin/navigation.ts:92",
+        "lib/admin/accessModel.ts:135"
+      ],
+      "evidence": "Sidan finns i bolagsnavigationen och kräver operations.integrity, som bland annat tillåter poa.read eller metering.read. Samma innehåll visas för bolag och plattform: Severity/Entity, critical/warning, entity_type/issue_key, Webhook-fel och dead-letter-leveranser. failure_reason och SPF/DKIM/DMARC visas utan affärsförklaring eller rollstyrd teknisk fördjupning.",
+      "prerequisites": "Bolagsanvändare har någon av sidans tillåtna läsrättigheter. Tabellrubriker och förklaringar visas alltid; råkoder och felorsaker kräver motsvarande rader. Faktiska råfels innehåll är inte granskat i produktion.",
+      "root_cause": "Teknisk kontrollmodell renderas direkt som bolagets fel- och åtgärdslista.",
+      "business_impact": "Handläggaren behöver förstå vad som är fel för kunden, vem som ansvarar och nästa steg, men möts av interna begrepp och anslutningsdiagnostik.",
+      "false_positive_check": "Sidan är inte plattformsbegränsad. Tenantfiltrering finns och safeRows kastar läsfel; inget påstående om dataläckage eller att denna sida tyst visar läsfel som noll. E-postdomänens status kan vara relevant för bolaget, så en begriplig sammanfattning ska behållas.",
+      "proposed_fix": "Använd exempelvis Allvarlighetsgrad och Berörd uppgift, svenska statusord och ett tydligt nästa steg. Visa affärseffekt och ansvarig för misslyckad överföring/avsändarinställning; lägg råkoder, DNS-kontroller och teknisk feltext i en separat behörig diagnostikvy.",
+      "verification": "Granska vanlig bolagsläsare, bolagsadministratör och superadmin med syntetiska kund-, överförings- och domänfel. Bolaget kan förstå och hantera problemet; behörig diagnostik behåller full teknisk information.",
+      "related_findings": [
+        "GUI-007",
+        "GUI-017",
+        "GUI-056"
+      ],
+      "architecture_workstreams": [
+        "ARK-01",
+        "ARK-06"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ORD-LANKAR-OCH-KNAPPAR-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Avgränsad käll-/funktionskontroll enligt angiven nivå. Ingen produktionsförekomst eller fullständig browser-/affärsflödesverifiering påstås.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "registers",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-051",
+      "title": "Kundansökningar erbjuder en logglänk till en målvy användaren kan nekas",
+      "priority": "P2",
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "locations": [
+        "app/admin/website-applications/page.tsx:942",
+        "app/admin/website-applications/page.tsx:984",
+        "app/admin/webhooks/deliveries/page.tsx:33",
+        "lib/admin/guards.ts:225"
+      ],
+      "evidence": "Kundansökningar från hemsida tillåter customers.read, customers.write eller billing_underlay.read och visar alltid Resurser → Webhook-loggar. Målsidan kräver integrations.read eller integrations.write; requireAdminPageAccess redirectar icke-plattform utan dessa till /admin.",
+      "prerequisites": "Icke-plattform kan läsa kundansökningar men saknar båda integrationsrättigheterna och väljer Webhook-loggar. Kräver inga särskilda ansökningsrader. Kontots verkliga produktionsrättigheter är inte kontrollerade.",
+      "root_cause": "Länkens synlighet följer källsidans behörighet i stället för målsidans exakta policy.",
+      "business_impact": "Användaren erbjuds en väg för uppföljning men hamnar på översikten utan loggar eller förklaring.",
+      "false_positive_check": "Båda URL:erna finns; detta är ingen 404. Målsidans serverguard fungerar och plattformsundantaget finns kvar. Användare med integrationsrätt träffas inte av just nekandefallet.",
+      "proposed_fix": "Visa logglänken endast när målsidans policy tillåter den. Ge övriga en begriplig ansökningsstatus och en tillåten väg till ärendet eller ansvarig för anslutningen.",
+      "verification": "Prova kundläsare utan integration, integrationsläsare med kundåtkomst samt superadmin. Ingen erbjuden länk ska leda till behörighetsredirect; servernekanden ska fortfarande gälla vid direkt URL.",
+      "related_findings": [
+        "GUI-046",
+        "GUI-052",
+        "GUI-056"
+      ],
+      "architecture_workstreams": [
+        "ARK-02",
+        "ARK-03"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ORD-LANKAR-OCH-KNAPPAR-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Avgränsad käll-/funktionskontroll enligt angiven nivå. Ingen produktionsförekomst eller fullständig browser-/affärsflödesverifiering påstås.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-052",
+      "title": "Integrationsläsare erbjuds testutskick, omsändning och ignorerande",
+      "priority": "P2",
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "locations": [
+        "app/admin/webhooks/deliveries/page.tsx:33",
+        "app/admin/webhooks/deliveries/page.tsx:94",
+        "app/admin/webhooks/deliveries/page.tsx:123",
+        "app/admin/webhooks/deliveries/page.tsx:128",
+        "app/admin/webhooks/actions.ts:21",
+        "app/admin/webhooks/actions.ts:64",
+        "app/admin/webhooks/actions.ts:110",
+        "lib/admin/guards.ts:304"
+      ],
+      "evidence": "Sidans anyOf tillåter integrations.read utan integrations.write. Alla visade prenumerationer får Skicka testevent och alla leveransrader Resend/Ignorera utan skrivkontroll. De tre serveråtgärderna kräver integrations.write genom requireCompanyScopedActionAccess, som dessutom kontrollerar bolagsstatus och tillåten medlemsroll.",
+      "prerequisites": "Icke-plattform med integrations.read men utan integrations.write och minst en prenumeration eller leveransrad. Produktionsförekomst av rättighetskombinationen är inte verifierad.",
+      "root_cause": "Läsbehörighet på listan används för att erbjuda åtgärder utan att projicera den fullständiga åtgärdspolicyn.",
+      "business_impact": "Läsaren kan försöka skicka eller ändra en leverans och får först då ett servernekande.",
+      "false_positive_check": "Servern stoppar otillåten skrivning; ingen eskalering eller extern sändning har genomförts i granskningen. Enbart integrations.write räcker inte alltid: bolagsstatus och medlemsroll i den befintliga guarden ska också bevaras.",
+      "proposed_fix": "Matcha synliga åtgärder mot actionens exakta rättighet, bolag, medlemsroll och statuskrav samt plattformsundantag. Behåll läsbar status och förklaring för läsaren och omvalidera allt på servern vid klick.",
+      "verification": "Verifiera syntetiskt read-only, behörig skrivare, pausat bolag och superadmin. Otillåtna konton får ingen skrivknapp; direkta otillåtna anrop nekas fortsatt. Inga riktiga testevent behövs för denna kontroll.",
+      "related_findings": [
+        "GUI-001",
+        "GUI-004",
+        "GUI-051",
+        "GUI-053"
+      ],
+      "architecture_workstreams": [
+        "ARK-02"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ORD-LANKAR-OCH-KNAPPAR-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Avgränsad käll-/funktionskontroll enligt angiven nivå. Ingen produktionsförekomst eller fullständig browser-/affärsflödesverifiering påstås.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-053",
+      "title": "Resultat efter webhookåtgärder skickas i URL men visas inte",
+      "priority": "P2",
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "locations": [
+        "app/admin/webhooks/actions.ts:15",
+        "app/admin/webhooks/actions.ts:43",
+        "app/admin/webhooks/actions.ts:58",
+        "app/admin/webhooks/actions.ts:103",
+        "app/admin/webhooks/actions.ts:137",
+        "app/admin/webhooks/deliveries/page.tsx:35",
+        "app/admin/layout.tsx:18",
+        "lib/events/domainEvents.ts:109",
+        "lib/integrations/webhooks.ts:479",
+        "lib/integrations/webhooks.ts:494"
+      ],
+      "evidence": "redirectBack överför resultat med ?success= till leveranssidan, men målsidan läser endast status och adminlayouten visar ingen success-notis. Detta gäller även grenen där den riktade köningen för vald prenumeration returnerar0. emitDomainEvent skapar samtidigt separat durable fanout och en snabbväg;0 från den riktade köningen bevisar därför inte att hela händelsen saknar leveransrader.",
+      "prerequisites": "Behörig skrivare når en granskad redirectgren. I nollgrenen returnerar just den efterföljande riktade köningen0; tidigare eller senare fanout och andra prenumerationer kan ha egna utfall. Ingen produktionskörning är gjord.",
+      "root_cause": "Åtgärdernas resultattransport saknar motsvarande läsning och presentation på målsidan.",
+      "business_impact": "Användaren ser inte den avsedda bekräftelsen eller det specifika utfallet för vald prenumeration och kan behöva gissa nästa steg.",
+      "false_positive_check": "Leveranslistan kan visa ändrad status och separat fanout kan skapa rader före eller efter den riktade köningen. Huvudfyndet är saknad uttrycklig återkoppling, inte globalt noll leveranser, förlorad data eller bevisad dubbelsändning.",
+      "proposed_fix": "Använd typade resultatkoder och visa bekräftat, blockerat eller okänt resultat på målsidan, med begriplig nästa handling. Skilj event skapat, leverans köad och leverans faktiskt skickad. Bevara relevant filter och undvik en blind ny sändning.",
+      "verification": "Med stubbad händelse-/leveranshantering: pröva riktad köning0 trots separat fanout, riktad lyckad köning, omsändning köad och ignorerad rad. Visa respektive bekräftat utfall utan att hävda mer om hela leveransmotorn än vad som är styrkt.",
+      "related_findings": [
+        "GUI-049",
+        "GUI-052"
+      ],
+      "architecture_workstreams": [
+        "ARK-03",
+        "ARK-05"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ORD-LANKAR-OCH-KNAPPAR-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Avgränsad käll-/funktionskontroll enligt angiven nivå. Ingen produktionsförekomst eller fullständig browser-/affärsflödesverifiering påstås.",
+      "final_review_note": "Preciserat mot faktisk main vid slutrevision 2026-11-16; se SLUTGRANSKNING.md. Huvudklassificeringen kvarstår.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-054",
+      "title": "Osignerad fullmakt kan samtidigt visas som registrerat godkännande",
+      "priority": "P2",
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING_OCH_LOKAL_FUNKTIONSREPRODUKTION",
+      "locations": [
+        "app/admin/powers-of-attorney/page.tsx:55",
+        "app/admin/powers-of-attorney/page.tsx:74",
+        "lib/customers/poaRegister.ts:25",
+        "lib/customers/poaReadiness.ts:103",
+        "lib/customers/poaReadiness.ts:241",
+        "lib/email/poaMailEvidence.ts:14"
+      ],
+      "evidence": "Godkännanderaden väljer endast mellan BankID verifierat och Registrerat godkännande med proof.bankidVerified. Registret hämtar även väntande fullmakter. Faktiska hasLegalPoaAcceptance/derivePowerOfAttorneyLifecycleStatus och poaMailEvidence körda på en syntetisk pendingrad utan bevis ger false/awaiting_signature/BankIDfalse. Sidans labeluttryck ger då ändå Registrerat godkännande.",
+      "prerequisites": "En visad fullmakt saknar juridiskt acceptansbevis och verifierad BankID-signatur. Det avgränsade helper- och labelbeteendet är reproducerat; en sådan produktionsrad och hela browserflödet är inte verifierade.",
+      "root_cause": "Avsaknad av BankID används som positivt bevis för ett annat slags godkännande.",
+      "business_impact": "Handläggaren får motsägande besked om kundens godkännande, vilket försvårar bedömningen av vad som återstår innan fullmakten kan användas.",
+      "false_positive_check": "Manuellt accepterad fullmakt utan BankID är ett giltigt kontrollfall och ska kunna visas som registrerat godkännande. Kräv därför faktiskt acceptansbevis, inte BankID generellt. Fyndet ändrar inte serverns juridiska eller externa sändningskontroller.",
+      "proposed_fix": "Visa godkännandeform först när befintlig juridisk acceptansmodell kan styrka acceptans. Visa annars inväntar/saknas/kan inte verifieras. Håll godkännande, giltighet och extern användbarhet skilda.",
+      "verification": "Kontrollera pending utan bevis, manuell accepterad fullmakt utan BankID, verifierad BankID samt utgången/återkallad fullmakt. Beskeden ska stämma utan att antyda extern sändningsklarhet enbart från acceptans.",
+      "verification_artifact": "underlag/fortsatt-ui-reproduktion-20261116.json",
+      "related_findings": [
+        "GUI-018",
+        "GUI-055"
+      ],
+      "architecture_workstreams": [
+        "ARK-05"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ORD-LANKAR-OCH-KNAPPAR-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Avgränsad käll-/funktionskontroll enligt angiven nivå. Ingen produktionsförekomst eller fullständig browser-/affärsflödesverifiering påstås.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "poa",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-055",
+      "title": "Fullmaktsregistrets dataläsning kan tappa acceptansbevis och visa fel status",
+      "priority": "P2",
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING_OCH_LOKAL_FUNKTIONSREPRODUKTION",
+      "locations": [
+        "lib/customers/poaRegister.ts:25",
+        "lib/customers/poaReadiness.ts:103",
+        "lib/customers/poaReadiness.ts:255",
+        "app/admin/powers-of-attorney/page.tsx:55",
+        "app/admin/powers-of-attorney/page.tsx:75"
+      ],
+      "evidence": "Registrets select saknar legal_text_version_id och fullmakt_snapshot, men hasLegalPoaAcceptance accepterar båda som alternativa bevis. En faktisk accepterad syntetisk rad med enbart juridisk version respektive snapshot får lifecycle valid. Samma rad projicerad genom de exakt valda registerfälten får awaiting_signature. Kontrollrad med accepted_at behåller valid. När document_path också saknas kan detta dessutom dölja PDF-länkarna.",
+      "prerequisites": "Accepterad status och juridisk version eller icke-tomt snapshot finns, medan accepted_at/signed_at och annat acceptansbevis är tomma. Produktionsförekomst är inte kontrollerad. Ingen slutsats dras om att en PDF alltid kan genereras.",
+      "root_cause": "Läsmodellens fältkontrakt täcker inte fälten som den gemensamma statusfunktionen behöver.",
+      "business_impact": "En accepterad fullmakt kan se osignerad ut i registret och handläggaren kan tro att kunden måste godkänna på nytt.",
+      "false_positive_check": "Normala rader med accepted_at eller signed_at berörs inte av just denna lucka. Hjälparens beteende och motsvarande juridiska bevisalternativ i readiness-SQL stödjer att version/snapshot inte kan antas irrelevanta. Ingen felaktig serveracceptans eller verklig ny signeringsbegäran har observerats.",
+      "proposed_fix": "Ge statusberäkningen en komplett auktoriserad läsmodell med de acceptansfält den kräver, eller beräkna en korrekt statusprojektion på servern. Kontrollera även övriga status- och dokumentberoenden utan att skicka onödigt originalunderlag till klienten.",
+      "verification": "Verifiera syntetiska accepterade rader med vart och ett av de stödda bevisalternativen samt pending, återkallat och tidsbegränsat. Register och samma domänfunktion över fullständig rad ska ge samma besked; dokumentåtkomst ska fortfarande auktoriseras separat.",
+      "verification_artifact": "underlag/fortsatt-ui-reproduktion-20261116.json",
+      "related_findings": [
+        "GUI-054"
+      ],
+      "architecture_workstreams": [
+        "ARK-04",
+        "ARK-05"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ORD-LANKAR-OCH-KNAPPAR-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Avgränsad käll-/funktionskontroll enligt angiven nivå. Ingen produktionsförekomst eller fullständig browser-/affärsflödesverifiering påstås.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "poa",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-056",
+      "title": "Anslutningsloggen blandar engelska, råpayload och användaråtgärder för bolag",
+      "priority": "P3",
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "locations": [
+        "app/admin/webhooks/deliveries/page.tsx:33",
+        "app/admin/webhooks/deliveries/page.tsx:53",
+        "app/admin/webhooks/deliveries/page.tsx:57",
+        "app/admin/webhooks/deliveries/page.tsx:72",
+        "app/admin/webhooks/deliveries/page.tsx:93",
+        "app/admin/webhooks/deliveries/page.tsx:104",
+        "app/admin/webhooks/deliveries/page.tsx:120",
+        "app/admin/webhooks/deliveries/page.tsx:126",
+        "app/admin/webhooks/deliveries/page.tsx:134"
+      ],
+      "evidence": "Sidan är tillgänglig även för icke-plattform med integrations.read/write. isPlatformAdmin används för bolagsnamn men inte för Payload. Rubriker/länkar/knappar innehåller Webhook delivery logs, Website applications, Webhook docs, Webhook subscriptions, Delivery log och Resend; dessutom visas råa eventnamn, HTTP/failure_reason och expanderbar JSON-payload för alla sidläsare.",
+      "prerequisites": "Bolagsanvändare har integrationsläs- eller skrivrätt; råpayload/leveransfel kräver leveransrader. Detta gäller inte alla vanliga kundläsare, eftersom sidans integrationsguard begränsar åtkomst.",
+      "root_cause": "Specialistdiagnostik och bolagets uppföljning använder samma presentation utan separat rådiagnostikpolicy.",
+      "business_impact": "Även bolagets ansvariga för en anslutning möter osvenska och interna ord. Råpayload uppfyller inte användarens önskemål om tekniska uppgifter endast för superadmin.",
+      "false_positive_check": "Det är en avsiktlig integrationsyta, så tekniska ord är inte automatiskt funktionsfel och rollen kan behöva specialistinformation. Tenantavgränsning finns och ingen obehörig åtkomst eller exponering mellan bolag påstås. En expanderbar ruta är däremot inte en separat rollgräns.",
+      "proposed_fix": "Ge bolaget en kort svensk vy för anslutningens leveranser, status och nästa steg. Använd exempelvis Skicka igen och förklara om något är köat eller levererat. Lägg råpayload och teknisk diagnostik bakom en separat serverkontrollerad superadminvy enligt önskad målbild, med bevarad spårbarhet och exakta åtgärdsrättigheter.",
+      "verification": "Granska bolagsansvarig med integrationsrätt, vanlig kundläsare och superadmin. Kontrollera svenska rubriker/knappar, nyttiga fel- och nästa-steg-texter samt att rådiagnostik bara levereras till avsedd behörighet. Server- och bolagskontroller ska bestå.",
+      "related_findings": [
+        "GUI-050",
+        "GUI-051",
+        "GUI-052",
+        "GUI-053"
+      ],
+      "architecture_workstreams": [
+        "ARK-01",
+        "ARK-06"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ORD-LANKAR-OCH-KNAPPAR-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Avgränsad käll-/funktionskontroll enligt angiven nivå. Ingen produktionsförekomst eller fullständig browser-/affärsflödesverifiering påstås.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "actions",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-057",
+      "title": "Genvägar mellan mätvärden, support, kundkort och fakturor saknar målbehörighet",
+      "priority": "P2",
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "locations": [
+        "app/admin/metering/page.tsx:31",
+        "components/admin/customers/MeteringBusinessView.tsx:30",
+        "app/admin/customer-cases/[caseId]/page.tsx:24",
+        "app/admin/customer-cases/[caseId]/page.tsx:62",
+        "lib/admin/accessModel.ts:94",
+        "app/admin/customers/[id]/page.part-4.tsx:79",
+        "app/admin/customers/[id]/page.part-4.tsx:1069",
+        "components/admin/customers/CustomerBillingMeteringCard.tsx:145",
+        "app/admin/billing/page.tsx:69",
+        "lib/auth/requirePermissionServer.ts:21",
+        "lib/admin/guards.ts:225"
+      ],
+      "evidence": "Tre spårade vägar har samma presentationslucka. Mätvärden tillåter metering.read men Visa anläggning går till kundkort, som kräver customers.read eller masterdata.read. Support tillåter cases.read men visar alltid Öppna kundkort med samma målkrav. Kundkortets bolagstillåtna faktureringsflik visar alltid Öppna fakturor, vars mål kräver billing_underlay.read. Målvyerna redirectar användare utan respektive rätt till /admin.",
+      "prerequisites": "Icke-plattform har rätt att läsa källvyn men saknar målets rättigheter. Mätvärdesvägen kräver en visad rad; supportvägen ett ärende; fakturalänken kräver inga fakturarader. Faktiska produktionsgrants eller klick är inte kontrollerade.",
+      "root_cause": "Genvägar bär kundreferens men saknar presentation av målets separata läspolicy.",
+      "business_impact": "Elbolagets handläggare erbjuds att fortsätta till kundens sammanhang men kommer till översikten i stället för utlovad anläggning, kund eller faktura.",
+      "false_positive_check": "URL:erna finns och serverguards fungerar; inget åtkomstbypass eller data mellan bolag påstås. För behöriga behåller fakturavyn kundfiltret och anläggningsfliken är tillåten i bolagsvyn. Mätvärdeslänken Ursprunglig begäran har ett mål som också tillåter metering.read och omfattas inte av detta fynd.",
+      "proposed_fix": "Projektera respektive målsidas exakta policy till länkkomponenten. Visa tillåten genväg eller en tydlig förklaring och relevant arbetsväg; utvidga inte serverrättigheter enbart för att få länken att fungera. Behåll kund-, anläggnings- och periodkontext.",
+      "verification": "Pröva separat metering.read utan kundläsning, cases.read utan kundläsning och kundläsning utan fakturaläsning, samt kombinerade rättigheter och superadmin. Alla erbjudna länkar ska ge det utlovade sammanhanget och direkta otillåtna URL:er ska fortfarande nekas.",
+      "related_findings": [
+        "GUI-046",
+        "GUI-051"
+      ],
+      "architecture_workstreams": [
+        "ARK-02",
+        "ARK-03"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Angivna villkor och motkontroller gäller. Syntetiskt funktions-/komponentprov är inte produktionsförekomst, inloggad browserkontroll eller genomfört domänkommando.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "business",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-058",
+      "title": "Byteslistan och aktiveringskön erbjuder skrivåtgärder till bytesläsare",
+      "priority": "P2",
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "locations": [
+        "lib/admin/accessModel.ts:150",
+        "app/admin/operations/switches/page.tsx:501",
+        "app/admin/operations/switches/page.tsx:506",
+        "app/admin/operations/switches/page.tsx:524",
+        "app/admin/operations/switches/page.tsx:540",
+        "app/admin/operations/ready-to-execute/page.tsx:205",
+        "app/admin/operations/ready-to-execute/page.tsx:339",
+        "app/admin/operations/actions.ts:209",
+        "app/admin/operations/actions.ts:266",
+        "app/admin/operations/actions.ts:400",
+        "app/admin/operations/actions.ts:429",
+        "app/admin/cis/actions.ts:750"
+      ],
+      "evidence": "Båda sidorna kräver endast switching.read. Byteslistan visar validering och statusformulär för varje rad, köning vid vissa statusar samt slutföring vid ready_to_execute. Aktiveringskön visar Starta aktivering utan skrivgate och individuell aktivering per rad. Serveråtgärderna kräver masterdata.write, förutom köningen som kräver switching.write; befintliga bolags- och domänkontroller tillkommer.",
+      "prerequisites": "Icke-plattform har switching.read men saknar respektive actions skrivrätt. Radåtgärder kräver relevanta rader/statusar. Bulkknappen finns även utan sådana rader. Ingen verklig rollkombination i produktion har verifierats.",
+      "root_cause": "List- och kövyer projicerar läsbehörighet men inte sina olika kommando-/skrivvillkor.",
+      "business_impact": "En läsare erbjuds att ändra eller aktivera leveransen och får först vid försök veta att det inte är tillåtet.",
+      "false_positive_check": "Servern nekar otillåten skrivning; ingen aktivering eller sändning har utförts. Den separata bolagsdetaljen använder redan canManage/canQueue med skilda rättigheter. Bulkflödets verifierade urval och återkontroll av aktiveringsvillkor ska behållas.",
+      "proposed_fix": "Använd samma exakta policy för UI och serverkommando, inklusive skilda masterdata.write/switching.write, bolagsstatus, plattformsundantag och domänvillkor. Behåll läsbar affärsstatus och förklaring för läsaren.",
+      "verification": "Kontrollera bytesläsare, vardera skrivrätt separat, behörig kombination, pausat bolag och superadmin med syntetiska underlag. Testa negativ serveråtkomst och fortsatt krav på nätägarbekräftelse samt uppnått startdatum utan riktiga aktiveringar.",
+      "related_findings": [
+        "GUI-004",
+        "GUI-052",
+        "GUI-059",
+        "GUI-063"
+      ],
+      "architecture_workstreams": [
+        "ARK-02"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Angivna villkor och motkontroller gäller. Syntetiskt funktions-/komponentprov är inte produktionsförekomst, inloggad browserkontroll eller genomfört domänkommando.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "business",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-059",
+      "title": "Manuellt statusval erbjuder marknadsstyrda tillstånd som servern alltid nekar",
+      "priority": "P2",
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "locations": [
+        "app/admin/operations/switches/page.tsx:539",
+        "app/admin/operations/switches/page.tsx:544",
+        "app/admin/operations/actions.ts:215",
+        "app/admin/operations/actions.ts:225",
+        "app/admin/operations/actions.ts:228",
+        "app/admin/operations/actions.ts:397"
+      ],
+      "evidence": "Uppdatera switchstatus erbjuder Accepterad (accepted) och Slutförd (completed). Den anropade actionen normaliserar dessa värden men kastar sedan alltid fel för båda: acceptans ska komma från korrelerad nätägarbekräftelse och slutföring från den särskilda aktiveringsvägen. Redan accepterade/slutförda ärenden visas också med formuläret trots att generell statusändring för dem nekas.",
+      "prerequisites": "En användare med erforderlig skrivrätt öppnar ett visat bytesärende, väljer accepted/completed och sparar, eller försöker generellt ändra ett redan accepterat/slutfört ärende. Avvisningsgrenarna är källbelagda; ingen action eller browserkörning utfördes.",
+      "root_cause": "Dropdownen listar databasstatusar i stället för de affärshandlingar och övergångar som är tillåtna från aktuellt tillstånd.",
+      "business_impact": "En behörig handläggare får en utlovad sparhandling som inte kan lyckas och möter ett tekniskt domänfel. Det försvårar förståelsen av vem som faktiskt bekräftar bytet och när leveransen får starta.",
+      "false_positive_check": "Detta är inte ett bevis på att marknadsstatus kan förfalskas; servern stoppar försöket korrekt. Den särskilda aktiveringsactionen finns och ska fortsätta kontrollera nätägarbekräftelse/startdatum. Fyndet är skilt från saknad skrivrätt i GUI-058.",
+      "proposed_fix": "Visa bara tillåtna domänhandlingar för aktuellt ärende. Bekräftad av nätägaren är ett läsbart faktum och aktivera leverans ett separat villkorat kommando. Ta bort manuella val som aldrig accepteras och förklara vad som inväntas.",
+      "verification": "Kontrollera utkast, skickat, accepterat före/efter startdatum och slutfört. UI ska inte erbjuda en förbjuden övergång; direkta försök till accepted/completed via generell statusaction ska fortfarande nekas.",
+      "related_findings": [
+        "GUI-058",
+        "GUI-060",
+        "GUI-063"
+      ],
+      "architecture_workstreams": [
+        "ARK-02",
+        "ARK-05"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Angivna villkor och motkontroller gäller. Syntetiskt funktions-/komponentprov är inte produktionsförekomst, inloggad browserkontroll eller genomfört domänkommando.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "business",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-060",
+      "title": "Avbrutet före leveransstart tolkas som fortsatt handläggning i bytesvyer",
+      "priority": "P2",
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING_OCH_SYNTETISK_FUNKTIONS_OCH_KOMPONENTREPRODUKTION",
+      "locations": [
+        "lib/operations/types.ts:159",
+        "lib/operations/switchLifecycleBlocks.ts:66",
+        "lib/operations/switchLifecycleBlocks.ts:97",
+        "lib/operations/switchLifecycleBlocks.ts:334",
+        "lib/operations/controlTower.ts:44",
+        "lib/operations/controlTower.ts:68",
+        "app/admin/operations/switches/page.tsx:240",
+        "components/admin/customers/SupplierSwitchBusinessView.tsx:40",
+        "components/admin/customers/SupplierSwitchBusinessView.tsx:51",
+        "components/admin/customers/SupplierSwitchBusinessView.tsx:76"
+      ],
+      "evidence": "cancelled_before_start är en faktisk typad terminalstatus som lifecycleblock kan producera med paused_at och lifecycle_blocked. getSwitchLifecycle saknar en gren för den. En syntetisk sådan rad, med komplett readiness och utan utskick, ger queued_for_outbound/Redo att köa Z03. Den faktiska bolagskomponenten känner bara cancelled som avbrutet/closed; med de producerade pausfälten visar den Pausat och erbjuder Kontrollera uppgifter för canManage.",
+      "prerequisites": "Ett visat ärende har cancelled_before_start. Den särskilda queued-klassningen kräver readiness.isReady och saknat utskick; andra underlag kan ge annan icke-terminal klassning. Produktionsförekomst är inte verifierad. Funktionen och bolagskomponenten har körts med syntetisk, producentförenlig rad.",
+      "root_cause": "Statusprojektion och UI använder egna ofullständiga terminalmängder som avviker från den befintliga lifecycle-domänen.",
+      "business_impact": "Ett faktiskt avbrutet ärende kan framstå som pausat eller redo för vidare handläggning. Handläggaren får otydligt besked om processen är avslutad och varför den inte ska gå vidare.",
+      "false_positive_check": "Reproduktionen med paused_at/lifecycle_blocked visar INGEN Förbered utskick eller Slutför leverantörsbyte: pausvillkoren skyddar dessa knappar. Ingen återaktivering, omsändning eller kringgång av serverns lifecycleblock påstås. Detta är ett annat kodställe än segmentfyndet GUI-022 och kan ingå i samma samlade terminalitetsrättning.",
+      "proposed_fix": "Återanvänd domänens verkliga terminalstatusar vid affärsprojektion, filter och handlingsval. Visa exempelvis Avbrutet före leveransstart med historisk orsak; erbjud endast uttryckligen tillåtna historik-/uppföljningshandlingar. Behåll serverblock och separat hantering av pågående återkallelse.",
+      "verification": "Kontrollera cancelled_before_start med/utan readiness och med de verkliga pausfälten, completed samt cancellation_requested/cancellation_sent som ännu inte avslutade. Lista, detalj och segment ska vara konsekventa och inget test får anta att teknisk kvittens innebär bekräftad leveransstart.",
+      "verification_artifact": "underlag/leverans-support-reproduktion-20261116.json",
+      "related_findings": [
+        "GUI-022",
+        "GUI-059",
+        "GUI-063"
+      ],
+      "architecture_workstreams": [
+        "ARK-05"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Angivna villkor och motkontroller gäller. Syntetiskt funktions-/komponentprov är inte produktionsförekomst, inloggad browserkontroll eller genomfört domänkommando.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "business",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-061",
+      "title": "Supportdetaljen saknar den ursprungliga ärendebeskrivningen",
+      "priority": "P2",
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING",
+      "locations": [
+        "app/admin/customer-cases/page.tsx:52",
+        "app/admin/customer-cases/page.tsx:103",
+        "app/admin/customer-cases/actions.ts:72",
+        "lib/customer-cases/support.ts:113",
+        "lib/customer-cases/support.ts:149",
+        "lib/customer-cases/db.ts:290",
+        "lib/customer-cases/db.ts:331",
+        "app/admin/customer-cases/[caseId]/page.tsx:28",
+        "app/admin/customer-cases/[caseId]/page.tsx:68"
+      ],
+      "evidence": "OPS-formulärets description går via createTenantSupportCase till customer_cases.description och visas i listans Beskrivning. Detaljsidan hämtar supportCase men renderar inte beskrivningen. Den normala OPS-skapandets created-händelse innehåller endast generisk registreringstext/next_action och assessment, så historiken återger inte automatiskt den inskrivna frågan.",
+      "prerequisites": "Ett ärende har skapats via vanliga OPS-formuläret med en beskrivning som inte senare kopierats till en separat händelse. Handläggaren öppnar detaljsidan. Ingen produktionsrad eller inloggad browser är verifierad.",
+      "root_cause": "Ärendets sparade grunduppgifter och samtalshistorik saknar en sammanhållen läsprojektion på den sida där ärendet ska handläggas.",
+      "business_impact": "Handläggaren kan behöva lämna detaljsidan och återfinna listposten för att förstå ursprungsfrågan innan svaret skrivs eller ärendet lämnas över.",
+      "false_positive_check": "Beskrivningen är sparad och synlig i listan; ingen dataförlust eller att texten är oåtkomlig överallt påstås. Andra kanaler kan ha ett första kundmeddelande i historiken. Interna anteckningars och kundsvars olika synlighet ska inte ändras av rättningen.",
+      "proposed_fix": "Visa ursprunglig beskrivning, relevant kund-/anläggningsreferens och den tidsordnade historiken i samma ärendedetalj. Ange källan/synligheten; publicera inte en intern grundtext till kunden bara för att den visas för handläggaren.",
+      "verification": "Skapa syntetiska OPS-ärenden med och utan beskrivning samt separat kundmeddelande, intern anteckning och svar. Handläggaren ska se originalunderlaget direkt och kundvyn ska fortsatt bara få uttryckligen kundsynligt innehåll.",
+      "related_findings": [
+        "GUI-057",
+        "GUI-062"
+      ],
+      "architecture_workstreams": [
+        "ARK-03",
+        "ARK-04"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Angivna villkor och motkontroller gäller. Syntetiskt funktions-/komponentprov är inte produktionsförekomst, inloggad browserkontroll eller genomfört domänkommando.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "business",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-062",
+      "title": "Supportens svenska kundstatusförklaring skriver ut engelska API-statusar",
+      "priority": "P3",
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING_OCH_LOKAL_FUNKTIONSREPRODUKTION",
+      "locations": [
+        "app/admin/customer-cases/[caseId]/page.tsx:63",
+        "app/admin/customer-cases/[caseId]/page.tsx:64",
+        "lib/customer-service/supportConversation.ts:94",
+        "lib/ui/format.ts:34",
+        "lib/ui/format.ts:42"
+      ],
+      "evidence": "Efter Kunden ser: skrivs publicSupportStatus ut direkt. Faktiska hjälparen returnerar received, in_progress, resolved eller closed, medan intilliggande intern status använder svensk formatStatusLabel. Hjälparens fyra resultat har körts lokalt; den är en API-/domänprojektion och ingen svensk etikettfunktion.",
+      "prerequisites": "En användare öppnar ett supportärende. Ingen specifik feldata krävs. Texten beskriver den projicerade kundstatusen, men bevisar inte exakt ordalydelse i varje externt kundgränssnitt.",
+      "root_cause": "En maskinläsbar publik status används direkt som användartext.",
+      "business_impact": "Handläggaren behöver översätta en teknisk status mitt i en svensk förklaring om vad kunden ser.",
+      "false_positive_check": "Statusprojektionen kan vara semantiskt korrekt. Detta är en språkförbättring och inte ett bevis på fel status, offentliggjord intern anteckning eller fel i kundportalens egen ordalydelse.",
+      "proposed_fix": "Behåll API-värdena men visa svenska etiketter, exempelvis Mottaget, Pågår, Löst och Avslutat. Gör klart att detta är kundens förenklade ärendestatus och håll den skild från intern arbetsstatus.",
+      "verification": "Granska samtliga fyra publika statusar, interna väntelägen och okänt statusvärde. Inga API-kontrakt eller synlighetsgränser ska ändras av översättningen.",
+      "verification_artifact": "underlag/leverans-support-reproduktion-20261116.json",
+      "related_findings": [
+        "GUI-017",
+        "GUI-061"
+      ],
+      "architecture_workstreams": [
+        "ARK-05",
+        "ARK-06"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Angivna villkor och motkontroller gäller. Syntetiskt funktions-/komponentprov är inte produktionsförekomst, inloggad browserkontroll eller genomfört domänkommando.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "business",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-063",
+      "title": "Byteslistan använder teknisk arbetsmodell trots en affärsanpassad detaljvy",
+      "priority": "P3",
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING",
+      "locations": [
+        "app/admin/operations/switches/page.tsx:281",
+        "app/admin/operations/switches/page.tsx:419",
+        "app/admin/operations/switches/page.tsx:495",
+        "app/admin/operations/switches/page.tsx:515",
+        "app/admin/operations/switches/page.tsx:519",
+        "app/admin/operations/switches/page.tsx:530",
+        "lib/operations/controlTower.ts:73",
+        "lib/operations/controlTower.ts:94",
+        "components/admin/customers/SupplierSwitchBusinessView.tsx:12",
+        "app/admin/operations/switches/[id]/page.tsx:362",
+        "lib/operations/db.part-2.ts:95"
+      ],
+      "evidence": "Bolagets byteslista heter Switchar och beskriver validering, outboundkoppling och intern slutföring. Ärendetyper visas som Switch/Move in/Move out takeover och rå request_type, livscykelförklaringar innehåller Z03/PRODAT/dispatch/Z04 och ärendedetaljer visar interna UUID:er. Den bolagsspecifika detaljsidan använder däremot Leverantörsbyte, nätägarens bekräftelse, önskad/bekräftad leveransstart och skilda tillåtna handlingar. Funktionen som söker i listan använder interna ärende-/kund-/anläggningsfält samt leverantör/referens/feltext, men inte kundnamn eller kundnummer som egna sökfält. Detta preciserar behovet av en verksamhetsanpassad sökmodell; sammanträffande text kan ändå ge träff.",
+      "prerequisites": "Icke-plattform kan läsa leverantörsbyten. Vissa råkoder/identifierare kräver motsvarande rader och handläggningsläge. En visuell höjd-/överlappsdefekt eller exakt browserlayout är inte verifierad.",
+      "root_cause": "Lista och detalj använder skilda presentationsmodeller över samma domän; den tekniska domänförklaringen renderas direkt i den kundnära listan.",
+      "business_impact": "Elbolaget behöver lära sig tekniska ord i listan och sedan tolka samma ärende i affärstermer i detaljen. Det försvårar daglig prioritering av leveransstarter, väntande svar och blockerade ärenden.",
+      "false_positive_check": "Listan är inte plattformsbegränsad. Detaljvyn är redan ett positivt exempel och behöver inte byggas om från grunden. Uppfällbara detaljer minskar initial mängd men ersätter inte roll- och språkgränser. Detta är en förbättring, skild från de specifika funktionsbristerna GUI-058–060.",
+      "proposed_fix": "Ge listan samma affärsbegrepp och statusprojektion som detaljen. Visa kundnummer/namn, identifierbar anläggning, önskad och bekräftad start, nästa händelse/ansvarig och tillåten åtgärd. Lägg tekniska koder och råidentifierare i separat behörig diagnostik. Använd svensk ärendetyp och en tydlig sök-/filtermodell för handläggningen.",
+      "verification": "Följ samma syntetiska ärende från kundkort till lista, vänteläge, detalj, startdatum och historik. Begrepp och faktastatus ska stämma hela vägen, med rätt rollhandling och utan att kvittens förväxlas med marknadsbekräftelse.",
+      "related_findings": [
+        "GUI-008",
+        "GUI-058",
+        "GUI-059",
+        "GUI-060"
+      ],
+      "architecture_workstreams": [
+        "ARK-01",
+        "ARK-05",
+        "ARK-06"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Angivna villkor och motkontroller gäller. Syntetiskt funktions-/komponentprov är inte produktionsförekomst, inloggad browserkontroll eller genomfört domänkommando.",
+      "final_review_note": "Preciserat mot faktisk main vid slutrevision 2026-11-16; se SLUTGRANSKNING.md. Huvudklassificeringen kvarstår.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "business",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-064",
+      "title": "Aktiveringskön visar önskat datum som startdatum trots ändrad bekräftad start",
+      "priority": "P2",
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING_OCH_LOKAL_FUNKTIONSREPRODUKTION",
+      "locations": [
+        "app/admin/operations/ready-to-execute/page.tsx:294",
+        "app/admin/operations/ready-to-execute/page.tsx:296",
+        "lib/operations/supplierSwitchActivation.ts:42",
+        "lib/operations/supplierSwitchActivation.ts:55",
+        "components/admin/customers/SupplierSwitchBusinessView.tsx:63"
+      ],
+      "evidence": "Kön för nätägarbekräftade aktiveringar märker request.requested_start_date som Startdatum och renderar inte confirmed_start_date i datumfältet. Domänens supplierSwitchEffectiveStartDate föredrar däremot confirmed_start_date. En syntetisk accepterad/bekräftad rad med önskat 10 november och bekräftat 12 november ger aktiveringsdatum 12 november i den faktiska hjälparen, medan köfältets uttryck ger 10 november. Ärendedetaljen visar redan båda datumen med skilda etiketter.",
+      "prerequisites": "Ett ärende visas i aktiveringskön och önskat respektive bekräftat startdatum skiljer sig. Startdatumen i provet var båda uppnådda vid syntetiskt referensdatum. Ingen sådan produktionsrad eller browserkörning har verifierats.",
+      "root_cause": "Köns datumetikett och fältprojektion stämmer inte med det domändatum som styr aktiveringen.",
+      "business_impact": "Handläggaren kan läsa ett annat leveransstartdatum än det datum som faktiskt ligger till grund för den tillåtna aktiveringen. En teknisk förklaring kan samtidigt nämna rätt datum, vilket gör beskedet motsägande.",
+      "false_positive_check": "Aktiveringshjälparen använder det bekräftade datumet korrekt; ingen felaktig aktivering eller fakturaperiod påstås. Om datumen är lika uppstår inte just denna skillnad. Existerande fallback när bekräftat datum saknas är en separat domänregel och ändras inte av etikettfyndet.",
+      "proposed_fix": "Visa Bekräftad leveransstart från samma affärsprojektion som aktiveringsvillkoret och eventuellt Önskad leveransstart separat. Om källan är en tillåten fallback ska det framgå; använd inte en tvetydig etikett över ett annat datum.",
+      "verification": "Kontrollera lika och olika önskade/bekräftade datum samt saknat bekräftat datum enligt befintlig domänregel. Lista, kö, detalj och aktiveringsbesked ska visa samma beslutande datum utan att serverns datumsäkring försvagas.",
+      "verification_artifact": "underlag/leverans-support-reproduktion-20261116.json",
+      "related_findings": [
+        "GUI-058",
+        "GUI-063"
+      ],
+      "architecture_workstreams": [
+        "ARK-04",
+        "ARK-05"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Angivna villkor och motkontroller gäller. Syntetiskt funktions-/komponentprov är inte produktionsförekomst, inloggad browserkontroll eller genomfört domänkommando.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "business",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-065",
+      "title": "Bytessökning och handläggningsfilter arbetar först efter ett urval på 200 ärenden",
+      "priority": "P2",
+      "category": "KODBELAGD_FUNKTIONS_ELLER_NAVIGATIONSBRIST",
+      "verification_level": "KODGRANSKNING_OCH_ISOLERAD_FUNKTIONSREPRODUKTION",
+      "locations": [
+        "lib/operations/db.part-2.ts:69",
+        "lib/operations/db.part-2.ts:83",
+        "lib/operations/db.part-2.ts:88",
+        "lib/operations/db.part-2.ts:95",
+        "app/admin/operations/switches/page.tsx:165",
+        "app/admin/operations/switches/page.tsx:277",
+        "app/admin/operations/switches/page.tsx:466"
+      ],
+      "evidence": "listAllSupplierSwitchRequests läser högst 200 skapandetidssorterade ärenden efter bolag/status/ärendetyp, och söker därefter q lokalt. Sidan beräknar livscykel och handläggningsfilter efter samma urval och visar resultat som träffar. Ingen fortsatt paginering exponeras på sidan. Den faktiska sökfunktionen över ett syntetiskt ordnat bestånd på 201 ger 0 för en unik äldre referens; med explicit limit201 får samma funktion 1. Ett framtida startärende på plats201 faller också bort före handläggningsfiltret.",
+      "prerequisites": "Fler än 200 ärenden matchar sidans SQL-filter för aktuellt bolag/status/ärendetyp, och sök- eller handläggningsträffen ligger utanför de senaste 200. Den isolerade funktionen är reproducerad med en in-memory-ersättning för Supabasefrågan; verkligt databasbestånd och browser är inte kontrollerade.",
+      "root_cause": "Begränsning tillämpas före de urvalskriterier som användaren uppfattar som sökning och filtrering över byteslistan.",
+      "business_impact": "Ett befintligt bytesärende kan ge noll träffar i denna lista och en väntande leveransstart kan saknas i valt handläggningsläge. Det försvårar uppföljningen även när användaren känner ärendets referens.",
+      "false_positive_check": "Bolag/status/ärendetyp filtreras redan i frågan och deras skydd ska bevaras. Direkt detalj-URL och den separata paginerade aktiveringskön kan fortfarande nå sina ärenden; fyndet betyder inte att data försvinner eller att samtliga sidor saknar paginering. Det syntetiska kontrollfallet hittar en referens som ligger inom första200.",
+      "proposed_fix": "Tillämpa sökning och relevant affärsurval innan slutlig sidbegränsning, eller använd en stabil fullständighetsmedveten paginering som kan fortsätta över beståndet. Visa vad träffantalet avser. Återanvänd befintliga bolags- och kandidatskanningsgränser där de passar i stället för obegränsad hämtning.",
+      "verification": "Verifiera minst201 syntetiska ärenden med unik referens respektive relevant vänteläge på båda sidor om sidgränsen. Variera SQL-status/ärendetyp och två bolag; inga träffar ska tappas av gränsen eller hämtas från annat bolag. Server- och domänkontroller ska bestå.",
+      "verification_artifact": "underlag/slutgranskning-sokresultat-20261116.json",
+      "related_findings": [
+        "GUI-023",
+        "GUI-030",
+        "GUI-063",
+        "GUI-066"
+      ],
+      "architecture_workstreams": [
+        "ARK-04"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "SLUTGRANSKNING.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Avgränsat faktiskt funktionsbeteende över syntetisk frågeersättning; ingen verklig DB, browser eller produktionsförekomst är verifierad.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "business",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    },
+    {
+      "id": "GUI-066",
+      "title": "Byteslistans handläggningsfilter saknar väntan på nätägarbekräftelse och startdatum",
+      "priority": "P3",
+      "category": "FÖRBÄTTRINGSFÖRSLAG",
+      "verification_level": "KODGRANSKNING_OCH_ISOLERAD_FUNKTIONSREPRODUKTION",
+      "locations": [
+        "lib/operations/controlTower.ts:18",
+        "lib/operations/controlTower.ts:19",
+        "lib/operations/controlTower.ts:64",
+        "lib/operations/controlTower.ts:91",
+        "app/admin/operations/switches/page.tsx:112",
+        "app/admin/operations/switches/page.tsx:432"
+      ],
+      "evidence": "Den befintliga livscykeln har awaiting_market_confirmation och awaiting_effective_date. Båda saknas som val i select name=stage och har inga egna KPI-filterlänkar på byteslistan. Faktiska matchesStageFilter accepterar ändå dessa värden när en motsvarande URL anges manuellt. Kontroll av JSX-valen och de verkliga funktionerna bekräftar skillnaden.",
+      "prerequisites": "Handläggaren vill avgränsa ärenden som är tekniskt kvitterade men inte nätägarbekräftade, eller bekräftade men ännu inte startklara. Att det finns sådana produktionsärenden är inte verifierat.",
+      "root_cause": "Filterkontrollen har en separat ofullständig lista som inte täcker de befintliga affärsväntelägesprojektionerna.",
+      "business_impact": "Elbolaget kan inte välja två relevanta väntelägen direkt i den vanliga kontrollen och får svårare att planera kommande leveransstarter och bevaka nätägarens svar.",
+      "false_positive_check": "Ärendena kan visas i Alla och med manuellt angiven stage-URL inom det inlästa urvalet. Detta är en förbättring av valbarhet och överblick, inte bevis på globalt dolda ärenden. Urvalsbortfallet före filter i GUI-065 är ett separat villkorat kodfynd.",
+      "proposed_fix": "Låt filterkontrollen använda samma fullständiga svenska affärslägen som lista/detalj, inklusive Väntar på nätägarens bekräftelse och Väntar på leveransstart. Håll teknisk kvittens, nätägarbekräftelse och uppnått startdatum skilda och bevara URL-kontext.",
+      "verification": "Pröva samtliga definierade handläggningslägen via kontroll och delbar URL. Rätt rader och förklaringar ska visas; kvittens får inte ge marknadsbekräftelse och framtida startdatum får inte ge omedelbar aktivering.",
+      "verification_artifact": "underlag/slutgranskning-sokresultat-20261116.json",
+      "related_findings": [
+        "GUI-063",
+        "GUI-064",
+        "GUI-065"
+      ],
+      "architecture_workstreams": [
+        "ARK-01",
+        "ARK-04",
+        "ARK-05"
+      ],
+      "status": "RÄTTAD_PÅ_ARBETSGREN",
+      "review_date": "2026-11-16",
+      "source_commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "review_document": "SLUTGRANSKNING.md",
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "verification_result": null,
+      "production_incident_observed": false,
+      "confidence_note": "Avgränsat faktiskt funktionsbeteende över syntetisk frågeersättning; ingen verklig DB, browser eller produktionsförekomst är verifierad.",
+      "baseline_status": "ÖPPEN",
+      "implementation": {
+        "packet": "business",
+        "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
+        "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
+      }
+    }
+  ],
+  "architecture_targets": [
+    {
+      "id": "ARK-01",
+      "title": "Sammanhängande arbetsyta",
+      "classification": "DESIGNFÖRSLAG_MED_BEFINTLIGA_FÖRBÄTTRINGSUNDERLAG",
+      "related_findings": [
+        "GUI-007",
+        "GUI-008",
+        "GUI-009",
+        "GUI-017",
+        "GUI-018",
+        "GUI-021",
+        "GUI-032",
+        "GUI-037",
+        "GUI-038",
+        "GUI-050",
+        "GUI-056",
+        "GUI-063",
+        "GUI-066"
+      ],
+      "target": "Behåll kundkortet som sammanhang och arbetskön som prioriterad att-göra-vy; gruppera huvudnavigationen efter uppgift och gör specialistvägar rollstyrda.",
+      "implementation_status": "MÅLBILD_OMSATT_PÅ_ARBETSGREN",
+      "business_impact": "Ett elbolag behöver veta vilken ingång som svarar på dess arbetsuppgift, snarare än känna systemets interna indelning. Detta är en målbildsbedömning, inte bevis på att varje befintlig ingång är fel.",
+      "acceptance": "De överenskomna uppgifterna kan nås från en begriplig ingång; samma kund/anläggning följer med. Ingen befintlig behörig funktion eller URL tappas.",
+      "record_type": "MÅLBILDSOMRÅDE_INTE_NYTT_VERIFIERAT_FEL",
+      "evidence_note": "Exakta källfiler och deras SHA256 finns i source_files_sha256; varje relaterad GUI-post behåller sitt individuella bevisläge.",
+      "source_basis": "OPS_MAIN_ONLY",
+      "preserve": [
+        "Serverbestämt bolag och befintlig kund-/anläggnings-/avtalsägarkedja",
+        "Exakta behörighetskrav inklusive any/all och plattformsundantag",
+        "Befintliga domänkommandon/RPC, juridiska prisversioner och publiceringsgränser",
+        "Idempotens, spårbarhet, separat transport-/exportstatus och säker återhämtning",
+        "Befintligt producent-/filägarskap och oförändrade produktionsskydd"
+      ],
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "review_supplements": [
+        {
+          "document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+          "related_findings": [
+            "GUI-063"
+          ],
+          "source_main": "bf32b7e01fbd0511972ba8977c61d412a018e416"
+        }
+      ],
+      "baseline_implementation_status": "FÖRESLAGEN_INTE_IMPLEMENTERAD",
+      "baseline_current_state": "Befintlig main har skild bolags-/plattformsnavigation och fem huvudgrupper på kundkortet. Kundarbete är samtidigt fördelat över arbetskö, ansökningar, begäranden, utskick, kundärenden och specialistvyer.",
+      "verification_scope": "Källspårning och relevanta inerta regressioner/komponentprov. Fullt autentiserad körning av hela arbetsflödet är inte utförd."
+    },
+    {
+      "id": "ARK-02",
+      "title": "Åtgärdspolicy i presentationen",
+      "classification": "VILLKORADE_KODFYND",
+      "related_findings": [
+        "GUI-001",
+        "GUI-002",
+        "GUI-003",
+        "GUI-004",
+        "GUI-005",
+        "GUI-006",
+        "GUI-044",
+        "GUI-045",
+        "GUI-048",
+        "GUI-051",
+        "GUI-052",
+        "GUI-057",
+        "GUI-058",
+        "GUI-059"
+      ],
+      "target": "Återanvänd actionens exakta any/all-villkor, plattformsundantag, bolagsstatus och domänkrav vid presentation; omvalidera vid klick.",
+      "implementation_status": "MÅLBILD_OMSATT_PÅ_ARBETSGREN",
+      "business_impact": "Användaren kan erbjudas ett formulär, fylla i det och först sedan få veta att rättighet saknas.",
+      "acceptance": "Tillåtna roller kan arbeta; övriga får läsvy/förklaring. Negativa serverfall och plattformsundantag kvarstår.",
+      "record_type": "MÅLBILDSOMRÅDE_INTE_NYTT_VERIFIERAT_FEL",
+      "evidence_note": "Exakta källfiler och deras SHA256 finns i source_files_sha256; varje relaterad GUI-post behåller sitt individuella bevisläge.",
+      "source_basis": "OPS_MAIN_ONLY",
+      "preserve": [
+        "Serverbestämt bolag och befintlig kund-/anläggnings-/avtalsägarkedja",
+        "Exakta behörighetskrav inklusive any/all och plattformsundantag",
+        "Befintliga domänkommandon/RPC, juridiska prisversioner och publiceringsgränser",
+        "Idempotens, spårbarhet, separat transport-/exportstatus och säker återhämtning",
+        "Befintligt producent-/filägarskap och oförändrade produktionsskydd"
+      ],
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "review_supplements": [
+        {
+          "document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+          "related_findings": [
+            "GUI-057",
+            "GUI-058",
+            "GUI-059"
+          ],
+          "source_main": "bf32b7e01fbd0511972ba8977c61d412a018e416"
+        }
+      ],
+      "baseline_implementation_status": "FÖRESLAGEN_INTE_IMPLEMENTERAD",
+      "baseline_current_state": "Sidor och deras åtgärder använder i rapporterade fall olika rättighetsvillkor. Befintliga serverkontroller nekar otillåtna anrop.",
+      "verification_scope": "Källspårning och relevanta inerta regressioner/komponentprov. Fullt autentiserad körning av hela arbetsflödet är inte utförd."
+    },
+    {
+      "id": "ARK-03",
+      "title": "Kontinuitet mellan arbetssteg",
+      "classification": "KODFYND_OCH_BROWSERFRÅGA",
+      "related_findings": [
+        "GUI-014",
+        "GUI-039",
+        "GUI-046",
+        "GUI-047",
+        "GUI-048",
+        "GUI-049",
+        "GUI-051",
+        "GUI-053",
+        "GUI-057",
+        "GUI-061"
+      ],
+      "target": "Gör nästa steg till ett faktiskt tillåtet länkmål med kund-/anläggnings-/avtals-/periodkontext och tydligt kommandoresultat.",
+      "implementation_status": "MÅLBILD_OMSATT_PÅ_ARBETSGREN",
+      "business_impact": "Handläggaren vet inte säkert om den kom till rätt arbetssteg eller om en begäran skapades, blockerades eller behöver kontrolleras.",
+      "acceptance": "P-01–P-03 och P-08 följer samma identiteter till rätt vy; väntan och osäkert utfall ger en säker väg vidare.",
+      "record_type": "MÅLBILDSOMRÅDE_INTE_NYTT_VERIFIERAT_FEL",
+      "evidence_note": "Exakta källfiler och deras SHA256 finns i source_files_sha256; varje relaterad GUI-post behåller sitt individuella bevisläge.",
+      "source_basis": "OPS_MAIN_ONLY",
+      "preserve": [
+        "Serverbestämt bolag och befintlig kund-/anläggnings-/avtalsägarkedja",
+        "Exakta behörighetskrav inklusive any/all och plattformsundantag",
+        "Befintliga domänkommandon/RPC, juridiska prisversioner och publiceringsgränser",
+        "Idempotens, spårbarhet, separat transport-/exportstatus och säker återhämtning",
+        "Befintligt producent-/filägarskap och oförändrade produktionsskydd"
+      ],
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "review_supplements": [
+        {
+          "document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+          "related_findings": [
+            "GUI-057",
+            "GUI-061"
+          ],
+          "source_main": "bf32b7e01fbd0511972ba8977c61d412a018e416"
+        }
+      ],
+      "baseline_implementation_status": "FÖRESLAGEN_INTE_IMPLEMENTERAD",
+      "baseline_current_state": "Rapporterade länkar och återkopplingsvägar tappar kundens avsedda flik, period eller resultat. Nollställning efter Skapa ny kund återstår att browserkontrollera.",
+      "verification_scope": "Källspårning och relevanta inerta regressioner/komponentprov. Fullt autentiserad körning av hela arbetsflödet är inte utförd."
+    },
+    {
+      "id": "ARK-04",
+      "title": "Sanningsenligt läsunderlag",
+      "classification": "KODFYND_OCH_PRESENTATIONSFÖRSLAG",
+      "related_findings": [
+        "GUI-010",
+        "GUI-011",
+        "GUI-012",
+        "GUI-013",
+        "GUI-015",
+        "GUI-016",
+        "GUI-019",
+        "GUI-020",
+        "GUI-023",
+        "GUI-024",
+        "GUI-025",
+        "GUI-026",
+        "GUI-028",
+        "GUI-029",
+        "GUI-030",
+        "GUI-031",
+        "GUI-033",
+        "GUI-034",
+        "GUI-036",
+        "GUI-040",
+        "GUI-041",
+        "GUI-043",
+        "GUI-055",
+        "GUI-061",
+        "GUI-064",
+        "GUI-065",
+        "GUI-066"
+      ],
+      "target": "Inför konsekvent läsunderlag med faktisk period, fullständighet, aktualitet, enhet, källa och ordnad sidindelning.",
+      "implementation_status": "MÅLBILD_OMSATT_PÅ_ARBETSGREN",
+      "business_impact": "Siffror och prisunderlag kan bli svåra att förklara; olika sidor kan visa skilda urval utan att omfattningen framgår.",
+      "acceptance": "Stora urval, äldre månad, null/0, deldata och läsfel ger sanningsenliga besked. Exporten följer utlovat urval och vald prisberäknings rader förklarar dess summa.",
+      "record_type": "MÅLBILDSOMRÅDE_INTE_NYTT_VERIFIERAT_FEL",
+      "evidence_note": "Exakta källfiler och deras SHA256 finns i source_files_sha256; varje relaterad GUI-post behåller sitt individuella bevisläge.",
+      "source_basis": "OPS_MAIN_ONLY",
+      "preserve": [
+        "Serverbestämt bolag och befintlig kund-/anläggnings-/avtalsägarkedja",
+        "Exakta behörighetskrav inklusive any/all och plattformsundantag",
+        "Befintliga domänkommandon/RPC, juridiska prisversioner och publiceringsgränser",
+        "Idempotens, spårbarhet, separat transport-/exportstatus och säker återhämtning",
+        "Befintligt producent-/filägarskap och oförändrade produktionsskydd"
+      ],
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "review_supplements": [
+        {
+          "document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+          "related_findings": [
+            "GUI-061",
+            "GUI-064"
+          ],
+          "source_main": "bf32b7e01fbd0511972ba8977c61d412a018e416"
+        }
+      ],
+      "baseline_implementation_status": "FÖRESLAGEN_INTE_IMPLEMENTERAD",
+      "baseline_current_state": "I rapporterade fall begränsas data före urval, historik ersätts med nutida reservdata eller saknat underlag blir0. Individuella förutsättningar och förbättringar framgår i GUI-posterna.",
+      "verification_scope": "Källspårning och relevanta inerta regressioner/komponentprov. Fullt autentiserad körning av hela arbetsflödet är inte utförd."
+    },
+    {
+      "id": "ARK-05",
+      "title": "Status och säker återhämtning",
+      "classification": "KODFYND_OCH_VERKSAMHETSDEFINITION",
+      "related_findings": [
+        "GUI-022",
+        "GUI-035",
+        "GUI-042",
+        "GUI-049",
+        "GUI-053",
+        "GUI-054",
+        "GUI-055",
+        "GUI-059",
+        "GUI-060",
+        "GUI-062",
+        "GUI-063",
+        "GUI-064",
+        "GUI-066"
+      ],
+      "target": "Återanvänd gemensam affärstolkning och visa skilda statusaxlar. Definiera kvalitetsbesked och bevara historik och kontrollerad återhämtning.",
+      "implementation_status": "MÅLBILD_OMSATT_PÅ_ARBETSGREN",
+      "business_impact": "Ett korrekt Godkänd kan misstolkas som lyckad leverans, och en avbruten process kan fortfarande räknas i en pågående vy.",
+      "acceptance": "Godkänd faktura med exportfel visar båda aspekter. Terminala ärenden räknas rätt. Stabil prövas mot beslutad definition, inte en antagen koppling till ett annat mått.",
+      "record_type": "MÅLBILDSOMRÅDE_INTE_NYTT_VERIFIERAT_FEL",
+      "evidence_note": "Exakta källfiler och deras SHA256 finns i source_files_sha256; varje relaterad GUI-post behåller sitt individuella bevisläge.",
+      "source_basis": "OPS_MAIN_ONLY",
+      "preserve": [
+        "Serverbestämt bolag och befintlig kund-/anläggnings-/avtalsägarkedja",
+        "Exakta behörighetskrav inklusive any/all och plattformsundantag",
+        "Befintliga domänkommandon/RPC, juridiska prisversioner och publiceringsgränser",
+        "Idempotens, spårbarhet, separat transport-/exportstatus och säker återhämtning",
+        "Befintligt producent-/filägarskap och oförändrade produktionsskydd"
+      ],
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "review_supplements": [
+        {
+          "document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+          "related_findings": [
+            "GUI-059",
+            "GUI-060",
+            "GUI-062",
+            "GUI-063",
+            "GUI-064"
+          ],
+          "source_main": "bf32b7e01fbd0511972ba8977c61d412a018e416"
+        }
+      ],
+      "baseline_implementation_status": "FÖRESLAGEN_INTE_IMPLEMENTERAD",
+      "baseline_current_state": "Domändata innehåller skilda statusar för avtal, begäran, transport, fakturagodkännande och export. De tolkas eller exponeras inte konsekvent i rapporterade vyer. Kvalitetskortets produktdefinition är inte fastställd här.",
+      "verification_scope": "Källspårning och relevanta inerta regressioner/komponentprov. Fullt autentiserad körning av hela arbetsflödet är inte utförd."
+    },
+    {
+      "id": "ARK-06",
+      "title": "Affärsinformation och separat diagnostik",
+      "classification": "DESIGNFÖRSLAG_MED_KODUNDERLAG",
+      "related_findings": [
+        "GUI-007",
+        "GUI-008",
+        "GUI-017",
+        "GUI-021",
+        "GUI-027",
+        "GUI-028",
+        "GUI-032",
+        "GUI-050",
+        "GUI-056",
+        "GUI-062",
+        "GUI-063"
+      ],
+      "target": "Välj uttryckliga affärsfält på servern och ge plattformen separat auktoriserad teknisk fördjupning.",
+      "implementation_status": "MÅLBILD_OMSATT_PÅ_ARBETSGREN",
+      "business_impact": "Användaren behöver förstå faktiska affärsproblem men får tekniska detaljer som inte hjälper beslutet.",
+      "acceptance": "Bolag kan förklara underlag, datum och blockerare utan interna nycklar; behörig plattform kan fortfarande utreda samma händelse.",
+      "record_type": "MÅLBILDSOMRÅDE_INTE_NYTT_VERIFIERAT_FEL",
+      "evidence_note": "Exakta källfiler och deras SHA256 finns i source_files_sha256; varje relaterad GUI-post behåller sitt individuella bevisläge.",
+      "source_basis": "OPS_MAIN_ONLY",
+      "preserve": [
+        "Serverbestämt bolag och befintlig kund-/anläggnings-/avtalsägarkedja",
+        "Exakta behörighetskrav inklusive any/all och plattformsundantag",
+        "Befintliga domänkommandon/RPC, juridiska prisversioner och publiceringsgränser",
+        "Idempotens, spårbarhet, separat transport-/exportstatus och säker återhämtning",
+        "Befintligt producent-/filägarskap och oförändrade produktionsskydd"
+      ],
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "review_supplements": [
+        {
+          "document": "ARBETSFLODEN-OCH-MALBILD-20261116.md",
+          "related_findings": [
+            "GUI-062",
+            "GUI-063"
+          ],
+          "source_main": "bf32b7e01fbd0511972ba8977c61d412a018e416"
+        }
+      ],
+      "baseline_implementation_status": "FÖRESLAGEN_INTE_IMPLEMENTERAD",
+      "baseline_current_state": "Main innehåller redan serverrenderade affärsvyer och plattformsgränser, men rapporterade sidor visar fortfarande råa typnycklar, diagnosmeddelanden, UUID:n eller hashvärden i bolagsvyn.",
+      "verification_scope": "Källspårning och relevanta inerta regressioner/komponentprov. Fullt autentiserad körning av hela arbetsflödet är inte utförd."
+    },
+    {
+      "id": "ARK-07",
+      "title": "Sammanhängande verifiering av projektets arbetsflöden",
+      "classification": "VERIFIERINGSPLAN_INTE_PRODUKTIONSFEL",
+      "related_findings": [],
+      "target": "Använd projektets egna arbetsuppgifter P-01–P-08 som avgränsade acceptansfall och dokumentera befintlig respektive återstående verifiering.",
+      "implementation_status": "MÅLBILD_OMSATT_PÅ_ARBETSGREN",
+      "business_impact": "Vi behöver skilja en bra målbild och läst kod från verifierad användbarhet för rätt roll och verkliga tillstånd.",
+      "acceptance": "Varje valt fall har rätt roll/bolag/objekt, vanliga kommandon, faktisk resultatkontroll och negativa gränsfall. Ingen ny körning påstås av dokumentationen.",
+      "record_type": "MÅLBILDSOMRÅDE_INTE_NYTT_VERIFIERAT_FEL",
+      "evidence_note": "Exakta källfiler och deras SHA256 finns i source_files_sha256; varje relaterad GUI-post behåller sitt individuella bevisläge.",
+      "source_basis": "OPS_MAIN_ONLY",
+      "preserve": [
+        "Serverbestämt bolag och befintlig kund-/anläggnings-/avtalsägarkedja",
+        "Exakta behörighetskrav inklusive any/all och plattformsundantag",
+        "Befintliga domänkommandon/RPC, juridiska prisversioner och publiceringsgränser",
+        "Idempotens, spårbarhet, separat transport-/exportstatus och säker återhämtning",
+        "Befintligt producent-/filägarskap och oförändrade produktionsskydd"
+      ],
+      "owner": null,
+      "fix_pr": null,
+      "verified_commit": null,
+      "baseline_implementation_status": "FÖRESLAGEN_INTE_IMPLEMENTERAD",
+      "baseline_current_state": "Projektets main-ingångar har kartlagts, men denna arkitekturgranskning har inte gjort en ny komplett användarflödeskörning. Befintliga tester finns; full täckning av målbildens P-01–P-08 är inte fastställd här.",
+      "verification_scope": "Källspårning och relevanta inerta regressioner/komponentprov. Fullt autentiserad körning av hela arbetsflödet är inte utförd."
+    }
+  ],
+  "workflows": [
+    {
+      "id": "P-01",
+      "name": "Registrera kund",
+      "status": "FÖRESLAGEN_ACCEPTANS_FRÅN_MAIN_KOD_INTE_KÖRD_I_DENNA_GRANSKNING"
+    },
+    {
+      "id": "P-02",
+      "name": "Teckna och signera kundavtal",
+      "status": "FÖRESLAGEN_ACCEPTANS_FRÅN_MAIN_KOD_INTE_KÖRD_I_DENNA_GRANSKNING"
+    },
+    {
+      "id": "P-03",
+      "name": "Begära kund-/anläggningsuppgifter",
+      "status": "FÖRESLAGEN_ACCEPTANS_FRÅN_MAIN_KOD_INTE_KÖRD_I_DENNA_GRANSKNING"
+    },
+    {
+      "id": "P-04",
+      "name": "Följa leverantörsbyte eller inflytt",
+      "status": "FÖRESLAGEN_ACCEPTANS_FRÅN_MAIN_KOD_INTE_KÖRD_I_DENNA_GRANSKNING"
+    },
+    {
+      "id": "P-05",
+      "name": "Förklara och hantera faktura",
+      "status": "FÖRESLAGEN_ACCEPTANS_FRÅN_MAIN_KOD_INTE_KÖRD_I_DENNA_GRANSKNING"
+    },
+    {
+      "id": "P-06",
+      "name": "Hantera kundkontakt",
+      "status": "FÖRESLAGEN_ACCEPTANS_FRÅN_MAIN_KOD_INTE_KÖRD_I_DENNA_GRANSKNING"
+    },
+    {
+      "id": "P-07",
+      "name": "Anmäla utflytt och förstå historik",
+      "status": "FÖRESLAGEN_ACCEPTANS_FRÅN_MAIN_KOD_INTE_KÖRD_I_DENNA_GRANSKNING"
+    },
+    {
+      "id": "P-08",
+      "name": "Analysera och följa upp",
+      "status": "FÖRESLAGEN_ACCEPTANS_FRÅN_MAIN_KOD_INTE_KÖRD_I_DENNA_GRANSKNING"
+    }
+  ],
+  "preserved_invariants": [
+    "Serverbestämt bolag och befintlig kund-/anläggnings-/avtalsägarkedja",
+    "Exakta behörighetskrav inklusive any/all och plattformsundantag",
+    "Befintliga domänkommandon/RPC, juridiska prisversioner och publiceringsgränser",
+    "Idempotens, spårbarhet, separat transport-/exportstatus och säker återhämtning",
+    "Befintligt producent-/filägarskap och oförändrade produktionsskydd"
+  ],
+  "verification_limits": [
+    "Ingen ändring i scenario-/demofiler eller delade producenter.",
+    "Ingen databasändring, verkligt mejl, extern kundbegäran eller produktionsaktivering.",
+    "Isolerad webbläsare använder faktiska komponenter och inerta Next-/åtgärdsportar; den är inte en autentiserad helsystemskörning.",
+    "Slutkontroller och sammansatt slutgranskning redovisas separat innan leveransen räknas klar."
+  ],
+  "validation": {
+    "runtime": "Node22.23.5 for final tests/test types/production build",
+    "targeted_tests": {
+      "files": 23,
+      "passed": 440,
+      "failed": 0
+    },
+    "app_typecheck": "PASS",
+    "test_typecheck": "PASS, full tsconfig.tests.json with 6GB heap",
+    "script_typecheck": "PASS",
+    "lint": "PASS, 0 errors and 164 warnings; corrected test fixtures separately linted",
+    "static_rbac": "24 checks PASS, 0 warnings",
+    "production_build": "PASS, Next16.4.2 webpack, Node22.23.5",
+    "offline_secret_pattern_check": "Changed source and audit records, no matches",
+    "database_or_external_send_verification": "Not performed; no schema/runtime/producer or production mutation"
+  }
+}

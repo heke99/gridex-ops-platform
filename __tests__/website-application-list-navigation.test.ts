@@ -1,3 +1,4 @@
+import { hasPermissionRequirement, type PermissionRequirement } from '@/lib/admin/accessModel'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -5,11 +6,17 @@ import type { WebsiteApplicationAdminRow } from '@/lib/admin/websiteIntegrationO
 
 const io = vi.hoisted(() => ({ list: vi.fn() }))
 vi.mock('@/lib/admin/guards', () => ({
-  requireAdminPageAccess: async () => ({ userId: 'synthetic-admin' }),
+  requireAdminPageAccess: async () => ({ userId: 'synthetic-admin', roles: [], permissions: ['customers.read', 'customers.write'], isPlatformAdmin: false, companyId: 'synthetic-company' }),
   isPlatformAdminContext: () => false,
 }))
 vi.mock('@/lib/tenant/adminScope', () => ({
   resolveAdminTenantReadScope: async () => ({ companyId: 'synthetic-company', isPlatformAdmin: false }),
+}))
+// This navigation fixture is an authorized company writer. Keep the original
+// form/source assertions; read-only and membership denials have their own tests.
+vi.mock('@/lib/admin/actionPresentation', () => ({
+  canPresentAdminAction: async (requirement: string[] | PermissionRequirement) => hasPermissionRequirement(['customers.read', 'customers.write'], Array.isArray(requirement) ? { anyOf: requirement } : requirement),
+  canPresentAdminLink: (access: { permissions: string[] }, requirement: PermissionRequirement) => hasPermissionRequirement(access.permissions, requirement),
 }))
 vi.mock('@/lib/admin/websiteIntegrationOps', () => ({ listWebsiteApplications: io.list }))
 vi.mock('next/link', () => ({

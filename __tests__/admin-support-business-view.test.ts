@@ -111,7 +111,7 @@ it('provides keyboard accessible bounded lists for a long support queue', async 
 it('calculates billing summary on the server and keeps raw blocker evidence out of company HTML', () => {
   const source = fs.readFileSync('components/admin/customers/CustomerBillingMeteringCard.tsx', 'utf8')
   expect(source).not.toMatch(/['"]use client['"]/)
-  const html = renderToStaticMarkup(React.createElement(BillingCard, { customerId: 'customer', sites: [], meteringPoints: [], gridOwners: [], dataRequests: [], meteringValues: [], outboundRequests: [], partnerExports: [], billingUnderlays: [{ id: 'underlay', readiness_status: 'blocked', billing_block_reason: 'RAW_TECHNICAL_BLOCKER' } as unknown as BillingUnderlayRow] }))
+  const html = renderToStaticMarkup(React.createElement(BillingCard, { customerId: 'customer', canReadBilling: true, sites: [], meteringPoints: [], gridOwners: [], dataRequests: [], meteringValues: [], outboundRequests: [], partnerExports: [], billingUnderlays: [{ id: 'underlay', readiness_status: 'blocked', billing_block_reason: 'RAW_TECHNICAL_BLOCKER' } as unknown as BillingUnderlayRow] }))
   expect(html).toContain('Kräver åtgärd')
   expect(html).not.toContain('RAW_TECHNICAL_BLOCKER')
   expect(html).toContain('href="/admin/billing?customer=customer"')

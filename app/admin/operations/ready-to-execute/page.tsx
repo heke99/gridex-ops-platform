@@ -1,3 +1,4 @@
+import { canPresentAdminAction, canPresentAdminLink } from '@/lib/admin/actionPresentation'
 import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -11,6 +12,7 @@ import {
 import { listReadySupplierSwitchCandidatePage } from '@/lib/operations/db'
 import type { OutboundRequestRow } from '@/lib/cis/types'
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
+import { supplierSwitchEffectiveStartDate } from '@/lib/operations/supplierSwitchActivation'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import { formatStatusLabel } from '@/lib/ui/format'
 import { InvalidReadModelResponseError, readResult } from '@/lib/read-models/readResult'
@@ -43,7 +45,7 @@ function badgeTone(status: string): string {
 }
 
 function siteLabel(siteId: string, sites: CustomerSiteRow[]): string {
- return sites.find((site) => site.id === siteId)?.site_name ?? siteId
+ return sites.find((site) => site.id === siteId)?.site_name ?? 'Anläggningsnamn saknas'
 }
 
 export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
@@ -52,6 +54,8 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  const context = await requireAdminPageKeyAccess('operations.ready_to_execute')
  const tenantScope = await resolveAdminTenantReadScope(context)
  const companyId = tenantScope.companyId
+ const canActivate = await canPresentAdminAction(['masterdata.write'])
+ const canReadCustomer = canPresentAdminLink(context, { anyOf: ['customers.read', 'masterdata.read'] })
 
  const supabase = await createSupabaseServerClient()
  const params = await searchParams
@@ -165,7 +169,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  {page.notReady}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
- Väntar normalt på bekräftat startdatum eller kräver granskning av Z04-kopplingen.
+ Väntar normalt på bekräftat startdatum eller behöver granskas.
  </div>
  </div>
 
@@ -190,7 +194,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  Åtgärden hämtar klara byten och kontrollerar villkoren igen inför varje aktivering.
  </p>
  <p className="mt-2 text-sm text-slate-700">
- Bulk-aktivering kräver ett helt verifierat urval på högst 1 000 bekräftade byten. Om urvalet är större eller inte kan läsas avbryts åtgärden innan något byte aktiveras. Använd då individuell aktivering på respektive ärende.
+ Du kan aktivera högst 1 000 kontrollerade byten åt gången. Om urvalet är större behöver varje ärende aktiveras separat.
  </p>
  </div>
 
@@ -202,11 +206,11 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  Öppna byteslistan
  </Link>
 
- <form action={bulkFinalizeReadySupplierSwitchesAction}>
+ {canActivate ? <form action={bulkFinalizeReadySupplierSwitchesAction}>
  <button className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
  Starta aktivering
  </button>
- </form>
+ </form> : null}
  </div>
  </div>
  </section>
@@ -265,7 +269,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  </div>
 
  <h3 className="mt-3 text-base font-semibold text-slate-950 ">
- Bytesärende {request.id}
+ {tenantScope.isPlatformAdmin ? `Bytesärende ${request.id}` : 'Bekräftat leverantörsbyte'}
  </h3>
 
  <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -284,16 +288,16 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  </div>
 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Mätpunkt</div>
+ <div className="text-slate-700 ">{tenantScope.isPlatformAdmin ? 'Mätpunkt' : 'Anläggnings-ID'}</div>
  <div className="mt-1 font-medium text-slate-900 ">
- {request.metering_point_id}
+ {tenantScope.isPlatformAdmin ? request.metering_point_id : sites.find(site => site.id === request.site_id)?.facility_id ?? 'Uppgift saknas'}
  </div>
  </div>
 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Startdatum</div>
+ <div className="text-slate-700 ">{request.confirmed_start_date ? 'Bekräftad leveransstart' : 'Leveransstart (önskat datum)'}</div>
  <div className="mt-1 font-medium text-slate-900 ">
- {request.requested_start_date ?? '—'}
+ {supplierSwitchEffectiveStartDate(request) ?? '—'}
  </div>
  </div>
  </div>
@@ -304,7 +308,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  Aktiveringsvillkor
  </div>
  <div className="mt-2 text-slate-700 ">
- {lifecycle.reason}
+ {tenantScope.isPlatformAdmin ? lifecycle.reason : 'Nätägaren har bekräftat bytet och leveransens startdatum är uppnått.'}
  </div>
  </div>
 
@@ -336,12 +340,12 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  </h4>
 
  <div className="mt-4 space-y-3">
- <form action={finalizeSupplierSwitchExecutionAction}>
+ {canActivate ? <form action={finalizeSupplierSwitchExecutionAction}>
  <input type="hidden" name="request_id" value={request.id} />
  <button className="w-full rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
  Aktivera leverans nu
  </button>
- </form>
+ </form> : null}
 
  <Link
  href={`/admin/operations/switches/${request.id}`}
@@ -350,12 +354,12 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  Öppna bytesärendet
  </Link>
 
- <Link
+ {canReadCustomer ? <Link
  href={`/admin/customers/${request.customer_id}`}
  className="block rounded-2xl border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 "
  >
  Öppna kundkort
- </Link>
+ </Link> : null}
 
  <Link
  href="/admin/outbound"

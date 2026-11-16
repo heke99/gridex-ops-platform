@@ -10,6 +10,7 @@ import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { supabaseService } from '@/lib/supabase/service'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
+import { redirect } from 'next/navigation'
 
 export type { CustomerOperationActionState } from './actions.part-2'
 
@@ -135,10 +136,16 @@ export async function createAuthorizationRequestPackageAction(...args: Parameter
 
 export async function createCustomerDataRequestPackageAction(...args: Parameters<typeof implementation3.createCustomerDataRequestPackageAction>) {
   const [formData] = args
-  return runCustomerActionWithMeterValuePreparation({
+  const result = await runCustomerActionWithMeterValuePreparation({
     formData,
     operation: () => implementation3.createCustomerDataRequestPackageAction(...args),
   })
+  if (formText(formData, 'redirect_after_submit') === 'customer_data_requests') {
+    const allowed = ['blocked_missing_poa', 'blocked_reference', 'blocked_scope', 'queued', 'prepared', 'needs_review']
+    const status = allowed.includes(result?.status) ? result.status : 'needs_review'
+    const query = new URLSearchParams({ request_result: status, customer_id: formText(formData, 'customer_id') ?? '' })
+    redirect(`/admin/customers/intake?${query.toString()}`)
+  }
 }
 
 export async function registerCurrentSupplierResponseAction(...args: Parameters<typeof implementation3.registerCurrentSupplierResponseAction>) {

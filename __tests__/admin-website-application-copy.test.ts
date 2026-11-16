@@ -1,3 +1,4 @@
+import { hasPermissionRequirement, type PermissionRequirement } from '@/lib/admin/accessModel'
 import fs from 'node:fs'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -10,6 +11,12 @@ vi.mock('@/lib/admin/guards', () => ({
   isPlatformAdminContext: () => io.platform,
 }))
 vi.mock('@/lib/tenant/adminScope', () => ({ resolveAdminTenantReadScope: async () => ({ companyId: 'synthetic-company', isPlatformAdmin: io.platform }) }))
+// Preserve this fixture's declared customers.write and explicit platform cases.
+// The real action policy and its negative cases are tested at the presentation port.
+vi.mock('@/lib/admin/actionPresentation', () => ({
+  canPresentAdminAction: async (requirement: string[] | PermissionRequirement) => io.platform || hasPermissionRequirement(['customers.write'], Array.isArray(requirement) ? { anyOf: requirement } : requirement),
+  canPresentAdminLink: (access: { permissions: string[] }, requirement: PermissionRequirement) => io.platform || hasPermissionRequirement(access.permissions, requirement),
+}))
 vi.mock('@/lib/admin/websiteIntegrationOps', () => ({ listWebsiteApplications: async () => io.rows, getWebsiteApplicationAdminRow: async () => io.item }))
 vi.mock('@/lib/masterdata/db', () => ({ listGridOwners: async () => [{ id: 'synthetic-grid-owner', name: 'Nätexempel AB' }] }))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => ({}) }))

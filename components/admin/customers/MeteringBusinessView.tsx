@@ -4,7 +4,7 @@ import type { GridOwnerDataRequestRow, MeteringValueRow } from '@/lib/cis/types'
 
 const readingLabels: Record<string, string> = { consumption: 'Förbrukning', production: 'Produktion', estimated: 'Uppskattat värde', adjustment: 'Rättelse' }
 const linkStyle = 'inline-flex min-h-11 items-center text-sm font-semibold text-emerald-800 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700'
-export default function MeteringBusinessView({ requests, values, query, businessData }: { businessData: MeteringBusinessData; requests: GridOwnerDataRequestRow[]; values: MeteringValueRow[]; query: string }) {
+export default function MeteringBusinessView({ requests, values, query, businessData, canReadCustomer = false }: { businessData: MeteringBusinessData; requests: GridOwnerDataRequestRow[]; values: MeteringValueRow[]; query: string; canReadCustomer?: boolean }) {
   const displayed = values.slice(0, 80)
   const waiting = requests.filter(request => request.status === 'pending' || request.status === 'sent').length
   return <main className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
@@ -27,7 +27,7 @@ export default function MeteringBusinessView({ requests, values, query, business
         <p className="mt-1 break-words text-slate-600">Period: {formatAdminDateTime(value.period_start, 'Saknas')} – {formatAdminDateTime(value.period_end, 'Saknas')}</p>
         {(value.revision_number ?? 1) > 1 || value.previous_value_id || /correct|korr|rätt/i.test(String(value.quality_code ?? '')) ? <p className="mt-1 font-medium text-amber-900">Rättat mätvärde</p> : null}
         {value.is_current === false ? <p className="mt-1 font-medium text-amber-900">Ersatt av ett senare mätvärde</p> : null}
-        <div className="mt-2 flex flex-wrap gap-x-4"><a href={`/admin/customers/${value.customer_id}?tab=sites`} className={linkStyle}>Visa anläggning</a>{value.source_request_id ? <a href={`/admin/operations/grid-owner-requests/${value.source_request_id}`} className={linkStyle}>Ursprunglig begäran</a> : null}</div>
+        <div className="mt-2 flex flex-wrap gap-x-4">{canReadCustomer ? <a href={`/admin/customers/${value.customer_id}?tab=sites`} className={linkStyle}>Visa anläggning</a> : null}{value.source_request_id ? <a href={`/admin/operations/grid-owner-requests/${value.source_request_id}`} className={linkStyle}>Ursprunglig begäran</a> : null}</div>
       </article>)}</div>}
       {values.length > displayed.length ? <p className="mt-3 text-xs text-slate-600">Visar {displayed.length} av {values.length} inlästa mätvärden. Sökningen gäller de senaste inlästa värdena.</p> : null}
     </section>

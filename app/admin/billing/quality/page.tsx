@@ -131,7 +131,7 @@ export default async function BillingQualityPage() {
   return (
     <div className="min-h-screen">
       <AdminHeader title="Datakvalitet och fakturaberedskap" subtitle="Kundredo-score för avtal, leverantörsbyte, fakturering och export per bolag." userEmail={admin.email} />
-      <div className="space-y-6 p-8">
+      <div className="min-w-0 space-y-6 p-4 lg:p-8">
         {loadError ? <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-900">Alla uppgifter kunde inte hämtas just nu. Försök igen senare.</section> : null}
         <section className="grid gap-4 md:grid-cols-4">
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className="text-sm font-medium text-slate-700">Kunder</div><div className="mt-2 text-3xl font-semibold text-slate-950">{rows.length}</div></div>
@@ -145,7 +145,7 @@ export default async function BillingQualityPage() {
             <h2 className="text-lg font-semibold text-slate-950">Kundredo-score</h2>
             <p className="mt-1 text-sm text-slate-700">Visar om kunden är redo för avtal, leverantörsbyte, fakturering och export. Poängen sparas inte automatiskt; den beräknas från ert bolags aktuella uppgifter.</p>
           </div>
-          <div className="overflow-x-auto">
+          <div role="region" tabIndex={0} aria-label="Kontroll av faktureringsuppgifter" className="overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
             <table className="min-w-full text-sm">
               <thead className="bg-slate-50 text-left text-slate-700">
                 <tr>
@@ -170,7 +170,7 @@ export default async function BillingQualityPage() {
                       <div>Faktura: {score.readyForBilling ? 'Ja' : 'Nej'}</div>
                       <div>Export: {score.readyForExport ? 'Ja' : 'Nej'}</div>
                     </td>
-                    <td className="px-6 py-4 text-xs text-slate-700">{score.blockers.length === 0 ? '—' : score.blockers.slice(0, 3).map((blocker) => <div key={blocker.code} className="mb-1 rounded-xl bg-amber-50 px-2 py-1 text-amber-900">{blocker.title}</div>)}</td>
+                    <td className="px-6 py-4 text-xs text-slate-700">{score.blockers.length === 0 ? '—' : <><div>{score.blockers.slice(0, 3).map((blocker) => <div key={blocker.code} className="mb-1 rounded-xl bg-amber-50 px-2 py-1 text-amber-900">{blocker.title}</div>)}</div>{score.blockers.length > 3 ? <details><summary className="cursor-pointer font-semibold">Fler orsaker ({score.blockers.length - 3})</summary><ul className="mt-2 space-y-2">{score.blockers.slice(3).map(blocker => <li key={blocker.code}>{blocker.title}</li>)}</ul></details> : null}</>}</td>
                   </tr>
                 ))}
               </tbody>

@@ -18,6 +18,7 @@ export type MetricCard = {
 
 export type MonthlyMetricRow = {
   month: string
+  updated_at?: string | null
   total_customers?: number | null
   active_customers?: number | null
   new_customers?: number | null
@@ -46,14 +47,18 @@ export type ForecastSummaryRow = {
   actualKwh: number
   diffKwh: number
   diffPercent: number | null
-  confidenceScore: number
+  confidenceScore: number | null
+  sourceCreatedAt?: string | null
+  forecastAvailable?: boolean
+  actualAvailable?: boolean
+  missingDataAvailable?: boolean
   missingDataCount: number
 }
 
 export type SimpleChartRow = {
   key: string
   label: string
-  value: number
+  value: number | null
   hint?: string
 }
 

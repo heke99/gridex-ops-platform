@@ -61,7 +61,7 @@ describe('billing review lifecycle', () => {
   it('renders an explicit intermediate state instead of dereferencing a missing invoice', () => {
     const source = read('app/admin/billing/invoices/[id]/page.tsx')
     expect(source).toContain("detail.lifecycleStage === 'awaiting_invoice_projection'")
-    expect(source).toContain('Fakturaprojektion pågår')
+    expect(source).toContain('Fakturan förbereds')
     expect(source).toContain('const invoice: Row = detail.invoice ?? {}')
     expect(source).not.toContain('detail.invoice.calculation_snapshot')
   })

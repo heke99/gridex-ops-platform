@@ -3,18 +3,23 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { getDeviationRows } from '@/lib/analytics/db'
-import { AnalyticsTabs, DeviationsTable, MetricCards } from '../_components'
+import { AnalyticsUnavailable, AnalyticsTabs, DeviationsTable, MetricCards } from '../_components'
 import type { MetricCard } from '@/lib/analytics/types'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AnalyticsDeviationsPage() {
+export default async function AnalyticsDeviationsPage({ searchParams }: { searchParams?: Promise<{ page?: string }> } = {}) {
   const admin = await requireAdminPageKeyAccess('analytics.workspace')
   const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
   const companyId = scope.companyId
   if (!companyId) return <div className="p-8">Bolag saknas.</div>
 
-  const rows = await getDeviationRows(companyId)
+  const rows = await getDeviationRows(companyId).catch(() => null)
+  if (!rows) return <AnalyticsUnavailable />
+  const requestedPage = Number.parseInt((await searchParams)?.page ?? '1', 10) || 1
+  const page = Math.min(Math.max(1, requestedPage), Math.max(1, Math.ceil(rows.length / 50)))
+  const displayed = rows.slice((page - 1) * 50, page * 50)
+  const canReadCustomers = scope.isPlatformAdmin || admin.permissions.some(permission => ['customers.read', 'masterdata.read'].includes(permission))
   const count = (type: string) => rows.filter((row) => row.type === type).length
   const cards: MetricCard[] = [
     { key: 'missing_values', label: 'Saknade mätvärden', value: String(count('Saknade mätvärden')), hint: 'Mätvärden saknas för perioden', status: count('Saknade mätvärden') ? 'critical' : 'ok' },
@@ -38,7 +43,9 @@ export default async function AnalyticsDeviationsPage() {
             Exportera CSV
           </Link>
         </div>
-        <DeviationsTable rows={rows} />
+        <p className="text-sm text-slate-600">{rows.length} öppna avvikelser i det fullständigt inlästa aktuella underlaget. Visar {displayed.length} på sida {page}. Historisk månadsstatistik är ett separat underlag.</p>
+        <DeviationsTable rows={displayed} canReadCustomers={canReadCustomers} />
+        <nav aria-label="Sidor med avvikelser" className="flex gap-4">{page > 1 ? <Link href={`?page=${page - 1}`} className="underline">Föregående</Link> : null}{page * 50 < rows.length ? <Link href={`?page=${page + 1}`} className="underline">Nästa</Link> : null}</nav>
       </div>
     </div>
   )

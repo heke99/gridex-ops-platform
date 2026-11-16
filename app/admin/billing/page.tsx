@@ -1,3 +1,4 @@
+import { canPresentOperationalAction } from '@/lib/admin/actionPresentation'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -77,6 +78,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
   const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
   const companyId = scope.companyId
+  const canExport = await canPresentOperationalAction(['billing_underlay.export'], companyId)
 
   const allRows = companyId ? await listInvoiceReviewRows({ companyId, billingMonth: selectedMonth }) : []
   const customerFilter = params.customer?.trim() || null
@@ -131,7 +133,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                 </p>
                 {fileEnvironment === 'test' ? <p className="mt-2 text-xs font-semibold text-amber-700">Testmiljö: filen är märkt för test.</p> : null}
               </div>
-              <form action={createInvoiceFileAction}>
+              {canExport ? <form action={createInvoiceFileAction}>
                 <input type="hidden" name="billing_month" value={selectedMonth} />
                 <button
                   disabled={fileCandidates.length === 0 || providerSelection?.invoice_export_enabled !== true}
@@ -139,7 +141,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                 >
                   Skapa fakturafil ({fileCandidates.length} godkända)
                 </button>
-              </form>
+              </form> : <p className="text-sm text-slate-600">Läsbehörighet. En behörig handläggare behöver skapa fakturafilen.</p>}
             </div>
             {providerSelection?.invoice_export_enabled !== true ? (
               <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Aktivera utskick under <Link href="/admin/billing/integrations" className="underline">Fakturering → Integrationer</Link> innan filer kan skapas.</p>
@@ -198,7 +200,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
             ) : null}
           </div>
 
-          {companyId && !customerFilter && sendableCount > 0 ? (
+          {canExport && companyId && !customerFilter && sendableCount > 0 ? (
             <form action={approveAndSendReadyInvoicesAction}>
               <input type="hidden" name="billing_month" value={selectedMonth} />
               <button className="h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">

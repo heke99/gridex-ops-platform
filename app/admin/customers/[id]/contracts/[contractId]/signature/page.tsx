@@ -8,6 +8,7 @@ import {
 import { sendContractSignatureLinkAction } from './actions'
 import { contractHasValidSigningSite, SIGNING_LINK_SITE_REQUIRED_MESSAGE } from '@/lib/customer-contracts/autoSendSigningLink'
 import { formatStatusLabel } from '@/lib/ui/format'
+import { canPresentAdminAction } from '@/lib/admin/actionPresentation'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,7 @@ export default async function ContractSignatureAdminPage({
   const access = await requireAdminPageAccess({ anyOf: ['contracts.write', 'contracts.read'] })
   const { companyId } = await loadCustomerTenantContext(customerId, access)
   await assertContractTenant({ companyId, customerId, contractId })
+  const canWrite = await canPresentAdminAction(['contracts.write'])
 
   const [{ data: customer, error: customerError }, { data: contract, error: contractError }, { data: requests, error: requestError }] =
     await Promise.all([
@@ -64,7 +66,7 @@ export default async function ContractSignatureAdminPage({
 
   const canAttemptSend = ['draft', 'pending_signature', 'signature_failed'].includes(contract.status) && !contract.signed_at
   const siteReady = canAttemptSend ? await contractHasValidSigningSite({ companyId, customerId, contractId }) : true
-  const canSend = canAttemptSend && siteReady
+  const canSend = canWrite && canAttemptSend && siteReady
   const customerName = customer.full_name ?? customer.company_name ?? customer.email ?? customer.customer_number
   const deliveryWarning = ['delivery_uncertain', 'unknown', 'failed', 'cancelled', 'not_found', 'blocked_tenant_state'].includes(query.delivery ?? '')
   const deliveryMessage = query.delivery === 'sent'
@@ -148,7 +150,9 @@ export default async function ContractSignatureAdminPage({
         <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
           <h2 className="font-semibold">Ingen manuell signering är möjlig</h2>
           <p className="mt-2 text-sm text-slate-700">
-            {contract.signed_at
+            {!canWrite
+              ? 'En behörig handläggare behöver skicka signeringslänken. Du kan följa avtalet och signeringshistoriken här.'
+              : contract.signed_at
               ? 'Avtalet är redan signerat och signeringsbeviset är låst.'
               : !siteReady
                 ? 'Välj och spara rätt anläggning på kundkortets avtal för att kunna skicka signeringslänken.'

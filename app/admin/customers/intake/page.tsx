@@ -14,6 +14,7 @@ import {
 import { listContractOffers } from "@/lib/customer-contracts/db";
 import { resolveAdminTenantReadScope } from "@/lib/tenant/adminScope";
 import { getCompanyGoLiveSetupSummary } from "@/lib/ediel/platformGoLive";
+import { canPresentAdminAction, canPresentAdminLink, canPresentOperationalAction } from "@/lib/admin/actionPresentation";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +37,9 @@ async function safeLoad<T>(
   }
 }
 
-export default async function CustomerIntakePage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
-  const mode = (await searchParams).mode === "bulk" ? "bulk" : "manual";
+export default async function CustomerIntakePage({ searchParams }: { searchParams: Promise<{ mode?: string; new?: string; request_result?: string; customer_id?: string }> }) {
+  const query = await searchParams;
+  const mode = query.mode === "bulk" ? "bulk" : "manual";
   const access = await requireAdminPageAccess({
     anyOf: ["customers.write", "masterdata.read"],
   });
@@ -54,6 +56,23 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
       <main className="p-4 sm:p-6"><p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Välj ett bolag innan du registrerar eller importerar kunder.</p></main>
     </div>;
   }
+  const canRegister = await canPresentOperationalAction({ allOf: ["customers.write"] }, companyId);
+  const canReadCustomers = canPresentAdminLink(access, { anyOf: ["customers.read", "masterdata.read"] });
+  const nextStepAccess = {
+    canReadCustomer: canReadCustomers,
+    canReadContracts: canReadCustomers && canPresentAdminLink(access, { anyOf: ["contracts.read"] }),
+    canReadInfoRequests: canPresentAdminLink(access, { anyOf: ["customers.read", "poa.read", "metering.read"] }),
+    canRequestData: await canPresentAdminAction(["masterdata.write"]),
+  };
+  const notices: Record<string, string> = {
+    blocked_missing_poa: "Begäran stoppades eftersom signerad fullmakt saknas.",
+    blocked_scope: "Fullmaktens omfattning behöver kontrolleras innan uppgifter kan begäras.",
+    blocked_reference: "Fullmakten behöver granskas innan uppgifter kan begäras.",
+    queued: "Begäran har lagts i kö. Följ ärendet för bekräftad leverans och svar.",
+    prepared: "Begäran är förberedd. Följ ärendet för utskick och svar.",
+    needs_review: "Begäran behöver granskas. Kontrollera ärendet innan du försöker igen.",
+  };
+  const requestNotice = query.request_result && Object.hasOwn(notices, query.request_result) ? notices[query.request_result] : null;
 
   const [
     gridOwnersResult,
@@ -127,6 +146,15 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
           Registrerar i <span className="font-semibold text-slate-950">{companyScope.companyName ?? "Valt bolag"}</span>
         </div>
+        {requestNotice ? <section role="status" className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-800">
+          <h2 className="font-semibold">Uppgiftsbegäran</h2>
+          <p>{requestNotice}</p>
+          <p>Kunden är redan registrerad. Fortsätt handläggningen med den befintliga kunden.</p>
+          <div className="flex flex-wrap gap-3">
+            {canReadCustomers && query.customer_id ? <Link href={`/admin/customers/${encodeURIComponent(query.customer_id)}`} className="font-semibold underline">Öppna kundkort</Link> : null}
+            {canRegister ? <Link href="/admin/customers/intake?new=1" className="font-semibold underline">Registrera en annan kund</Link> : null}
+          </div>
+        </section> : null}
         {loadWarnings.length > 0 ? (
           <section role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
             <h2 className="font-semibold">Vissa grunduppgifter (till exempel nätägare) kunde inte laddas</h2>
@@ -145,16 +173,18 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
             <div><dt>Juridik</dt><dd className="mt-1 font-semibold">{goLiveSummary.legal.terms && goLiveSummary.legal.privacy_policy && goLiveSummary.legal.withdrawal && goLiveSummary.legal.power_of_attorney ? "Klar" : "Inte aktiverad"}</dd></div>
           </dl> : null}
         </details>
-        <CustomerIntakeWorkspace
+        {requestNotice ? null : canRegister ? <CustomerIntakeWorkspace
           mode={mode}
+          resetKey={query.new === "1" ? "new" : "current"}
           manual={<CustomerIntakeForm
+            nextStepAccess={nextStepAccess}
             gridOwners={gridOwners.map((owner) => ({ id: owner.id, name: owner.name }))}
             electricitySuppliers={electricitySuppliers.map((supplier) => ({ id: supplier.id, name: supplier.name, org_number: supplier.org_number, ediel_id: supplier.ediel_id, email: supplier.email }))}
             priceAreas={priceAreas.map((area) => ({ code: area.code, name: area.name }))}
             contractOffers={serializedOffers}
           />}
           bulk={<CustomerBulkImportPanel example={bulkExample} contractOffers={serializedOffers.map((offer) => ({ id: offer.id, name: offer.name, campaign_name: offer.campaign_name }))} />}
-        />
+        /> : <p className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">En behörig handläggare behöver registrera eller importera kunden. Bolaget behöver också vara aktivt.</p>}
       </div>
     </div>
   );

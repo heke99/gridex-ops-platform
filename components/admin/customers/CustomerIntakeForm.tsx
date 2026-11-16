@@ -60,7 +60,18 @@ type SupplierOption = {
   email: string | null;
 };
 
+type NextStepAccess = {
+  canReadCustomer: boolean;
+  canReadContracts: boolean;
+  canReadInfoRequests: boolean;
+  canRequestData: boolean;
+};
+const noNextStepAccess: NextStepAccess = {
+  canReadCustomer: false, canReadContracts: false, canReadInfoRequests: false, canRequestData: false,
+};
+
 type Props = {
+  nextStepAccess?: NextStepAccess;
   gridOwners: GridOwnerOption[];
   electricitySuppliers: SupplierOption[];
   priceAreas: PriceAreaOption[];
@@ -177,11 +188,11 @@ function requestTargetLabel(
   }
 }
 
-function CreatedCustomerNextSteps({ state }: { state: IntakeActionState }) {
+function CreatedCustomerNextSteps({ state, access }: { state: IntakeActionState; access: NextStepAccess }) {
   if (!state.createdCustomerId) return null;
 
-  const customerHref = `/admin/customers/${state.createdCustomerId}`;
-  const dataRequestsHref = `${customerHref}?tab=data-requests#data-requests`;
+  const customerHref = `/admin/customers/${encodeURIComponent(state.createdCustomerId)}`;
+  const dataRequestsHref = `/admin/customer-info-requests?customer_id=${encodeURIComponent(state.createdCustomerId)}#create-info-request`;
   const defaultRequestTarget = state.postCreateRequestTarget ?? "both";
   const showRequestFirst = state.postCreateAction === "request_data";
 
@@ -200,27 +211,27 @@ function CreatedCustomerNextSteps({ state }: { state: IntakeActionState }) {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link
+        {access.canReadCustomer ? <Link
           href={customerHref}
           className="inline-flex rounded-xl border border-emerald-300 px-3 py-2 font-semibold text-emerald-900 hover:bg-emerald-50"
         >
           Öppna kundkort
-        </Link>
+        </Link> : null}
         <Link
           href="/admin/customers/intake?new=1"
           className="inline-flex rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-800 hover:bg-slate-50"
         >
           Skapa ny kund
         </Link>
-        <Link
+        {access.canReadInfoRequests ? <Link
           href={dataRequestsHref}
           className="inline-flex rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-800 hover:bg-slate-50"
         >
           Gå till uppgiftsbegäran
-        </Link>
+        </Link> : null}
       </div>
 
-      <div
+      {access.canRequestData ? <div
         className={`mt-4 rounded-2xl border p-4 ${showRequestFirst ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}
       >
         <p className="font-semibold text-slate-950">Begär uppgifter direkt</p>
@@ -305,7 +316,7 @@ function CreatedCustomerNextSteps({ state }: { state: IntakeActionState }) {
             Skapa begäran
           </button>
         </form>
-      </div>
+      </div> : <p className="mt-4 text-sm text-slate-700">En behörig handläggare behöver begära uppgifterna. Kunden är sparad.</p>}
     </div>
   );
 }
@@ -345,6 +356,7 @@ export default function CustomerIntakeForm({
   electricitySuppliers,
   priceAreas,
   contractOffers,
+  nextStepAccess = noNextStepAccess,
 }: Props) {
   const [state, formAction, isPending] = useActionState(
     createCustomerAction,
@@ -395,7 +407,7 @@ export default function CustomerIntakeForm({
               </ul>
             </div>
           ) : null}
-          <CreatedCustomerNextSteps state={state} />
+          <CreatedCustomerNextSteps state={state} access={nextStepAccess} />
         </div>
       ) : null}
 
@@ -404,7 +416,7 @@ export default function CustomerIntakeForm({
           <p className="font-semibold">Kunden är registrerad – efterföljande steg behöver granskas.</p>
           <p className="mt-1">{state.message}</p>
           {state.correlationId ? <p className="mt-2">Referens: {state.correlationId}</p> : null}
-          {state.createdCustomerId ? <Link className="mt-3 inline-flex underline" href={`/admin/customers/${encodeURIComponent(state.createdCustomerId)}?tab=contracts`}>Öppna befintligt kundkort och kontrollera avtal och dokument</Link> : null}
+          {state.createdCustomerId && nextStepAccess.canReadCustomer ? <Link className="mt-3 inline-flex underline" href={`/admin/customers/${encodeURIComponent(state.createdCustomerId)}${nextStepAccess.canReadContracts ? '?tab=contracts#contracts' : ''}`}>Öppna befintligt kundkort och kontrollera uppgifterna</Link> : null}
         </div>
       ) : null}
 
@@ -1431,13 +1443,13 @@ export default function CustomerIntakeForm({
             <span className="text-slate-700">Efter kundskapande</span>
             <select
               name="postCreateAction"
-              defaultValue={state.values.postCreateAction ?? "open_customer"}
+              defaultValue={state.values.postCreateAction === 'request_data' && nextStepAccess.canRequestData ? 'request_data' : state.values.postCreateAction === 'open_customer' && nextStepAccess.canReadCustomer ? 'open_customer' : 'create_new'}
               className={inputClassName(state, "postCreateAction")}
             >
-              <option value="open_customer">Öppna kundkort</option>
-              <option value="request_data">
+              {nextStepAccess.canReadCustomer ? <option value="open_customer">Öppna kundkort</option> : null}
+              {nextStepAccess.canRequestData ? <option value="request_data">
                 Skapa kund och begär uppgifter direkt
-              </option>
+              </option> : null}
               <option value="create_new">
                 Skapa kund och registrera ny kund
               </option>
@@ -1480,7 +1492,7 @@ export default function CustomerIntakeForm({
               {isPending ? "Skapar…" : "Skapa kund"}
             </button>
             <CustomerActionsMenu label="Alternativ" disabled={isPending || needsCommittedReview} placement="top">
-              <button type="submit" name="postCreateActionOverride" value="request_data" disabled={isPending || needsCommittedReview}>Skapa och begär uppgifter</button>
+              {nextStepAccess.canRequestData ? <button type="submit" name="postCreateActionOverride" value="request_data" disabled={isPending || needsCommittedReview}>Skapa och begär uppgifter</button> : null}
               <button type="submit" name="intakeCreateMode" value="create_blocked" disabled={isPending || needsCommittedReview}>Skapa och markera som blockerad</button>
             </CustomerActionsMenu>
           </div>

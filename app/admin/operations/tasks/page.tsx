@@ -1,3 +1,4 @@
+import { canPresentAdminAction, canPresentAdminLink } from '@/lib/admin/actionPresentation'
 import CustomerName from '@/components/admin/CustomerName'
 //app/admin/operations/tasks/page.tsx
 import Link from 'next/link'
@@ -32,6 +33,16 @@ type TasksPageProps = {
  }>
 }
 
+function taskTypeLabel(value: string): string {
+ const labels: Record<string, string> = {
+   power_of_attorney_missing: 'Fullmakt saknas', power_of_attorney_not_signed: 'Fullmakt behöver signeras',
+   metering_point_missing: 'Mätpunkt saknas', meter_point_id_missing: 'Mätpunktsnummer saknas',
+   grid_owner_missing: 'Nätägare saknas', grid_area_missing: 'Nätområde saknas', price_area_missing: 'Elområde saknas',
+   current_supplier_missing: 'Nuvarande elhandlare saknas', move_in_date_missing: 'Inflyttningsdatum saknas',
+ }
+ return labels[value] ?? 'Uppgift att följa upp'
+}
+
 function statusStyle(status: string): string {
  if (status === 'done') {
  return 'bg-emerald-100 text-emerald-700 '
@@ -64,11 +75,14 @@ function ActionButton({
  taskId,
  status,
  label,
+ canWrite = false,
 }: {
  taskId: string
  status: string
  label: string
+ canWrite?: boolean
 }) {
+ if (!canWrite) return null
  return (
  <form action={updateOperationTaskStatusFromAdminAction}>
  <input type="hidden" name="task_id" value={taskId} />
@@ -90,7 +104,7 @@ function KpiCard({
  hint: string
 }) {
  return (
- <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="text-sm font-medium text-slate-700 ">
  {label}
  </div>
@@ -109,7 +123,8 @@ function taskSiteLabel(
  sites: CustomerSiteRow[]
 ): string {
  if (!task.site_id) return '—'
- return sites.find((site) => site.id === task.site_id)?.site_name ?? task.site_id
+ const site = sites.find((site) => site.id === task.site_id && site.customer_id === task.customer_id)
+ return site ? [site.site_name, site.street, site.facility_id].filter(Boolean).join(' · ') || 'Anläggningsuppgifter saknas' : 'Anläggningsuppgifter saknas'
 }
 
 function taskMeteringPointLabel(
@@ -118,8 +133,8 @@ function taskMeteringPointLabel(
 ): string {
  if (!task.metering_point_id) return '—'
  return (
- meteringPoints.find((point) => point.id === task.metering_point_id)?.meter_point_id ??
- task.metering_point_id
+ meteringPoints.find((point) => point.id === task.metering_point_id && point.site_id === task.site_id)?.meter_point_id ??
+ 'Mätpunktsnummer saknas'
  )
 }
 
@@ -129,6 +144,8 @@ export default async function AdminOperationsTasksPage({
  const context = await requireAdminPageKeyAccess('operations.tasks')
  const tenantScope = await resolveAdminTenantReadScope(context)
  const companyId = tenantScope.companyId
+ const canWrite = await canPresentAdminAction(['masterdata.write'])
+ const canReadCustomer = canPresentAdminLink(context, { anyOf: ['customers.read', 'masterdata.read'] })
 
  const resolvedSearchParams = await searchParams
  const supabase = await createSupabaseServerClient()
@@ -234,22 +251,22 @@ export default async function AdminOperationsTasksPage({
  return (
  <div className="min-h-screen">
  <AdminHeader
- title="Operations Tasks"
+ title="Driftuppgifter"
  subtitle="Hantera öppna, blockerade, prioriterade och sannolikt lösta uppgifter i driftkön."
  userEmail={user?.email ?? null}
  />
 
- <div className="space-y-6 p-8">
+ <div className="min-w-0 space-y-4 p-4 lg:p-6">
  <section className="grid gap-4 xl:grid-cols-4">
  <KpiCard
- label="Öppna tasks"
+ label="Öppna uppgifter"
  value={openTasks.length}
- hint="Alla tasks som fortfarande kräver handläggning."
+ hint="Alla inlästa uppgifter som fortfarande kräver handläggning."
  />
  <KpiCard
  label="Blockerade"
  value={blockedTasks.length}
- hint="Tasks som stoppar nästa steg."
+ hint="Uppgifter som stoppar nästa steg."
  />
  <KpiCard
  label="Kritiska"
@@ -263,29 +280,29 @@ export default async function AdminOperationsTasksPage({
  />
  </section>
 
- <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
+ <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
  <div>
  <h2 className="text-lg font-semibold text-slate-950 ">
  Filter och synk
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Kör en tasksync för att auto-resolva blockers efter att masterdata, fullmakter eller CIS-data uppdaterats.
+ Kontrollera om uppgifter kan avslutas efter att kunduppgifter, fullmakter eller fakturaunderlag har uppdaterats.
  </p>
  </div>
 
- <form action={runOperationsTaskAutoResolutionSweepAction}>
+ {canWrite ? <form action={runOperationsTaskAutoResolutionSweepAction}>
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ">
- Kör auto-resolution sweep
+ Kör automatisk uppföljning
  </button>
- </form>
+ </form> : null}
  </div>
 
  <form className="grid gap-4 xl:grid-cols-[1.3fr_220px_220px_auto]">
  <input
  name="q"
  defaultValue={query}
- placeholder="Sök på task, typ, kund eller site"
+ placeholder="Sök på uppgift, typ, kund eller anläggning"
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm outline-none focus:border-emerald-700 "
  />
 
@@ -295,11 +312,11 @@ export default async function AdminOperationsTasksPage({
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
  <option value="all">Alla statusar</option>
- <option value="open">Open</option>
- <option value="in_progress">In progress</option>
- <option value="blocked">Blocked</option>
- <option value="done">Done</option>
- <option value="cancelled">Cancelled</option>
+ <option value="open">Öppen</option>
+ <option value="in_progress">Pågår</option>
+ <option value="blocked">Blockerad</option>
+ <option value="done">Klar</option>
+ <option value="cancelled">Avbruten</option>
  </select>
 
  <select
@@ -308,10 +325,10 @@ export default async function AdminOperationsTasksPage({
  className="h-11 rounded-2xl border border-slate-300 px-4 text-sm "
  >
  <option value="all">Alla prioriteter</option>
- <option value="low">Low</option>
+ <option value="low">Låg</option>
  <option value="normal">Normal</option>
- <option value="high">High</option>
- <option value="critical">Critical</option>
+ <option value="high">Hög</option>
+ <option value="critical">Akut</option>
  </select>
 
  <div className="flex gap-3">
@@ -328,11 +345,11 @@ export default async function AdminOperationsTasksPage({
  </form>
  </section>
 
- <section className="grid gap-6 xl:grid-cols-2">
- <div className="rounded-3xl border border-slate-200 bg-white shadow-sm ">
+ <details className="rounded-2xl border border-slate-200 bg-white p-4"><summary className="cursor-pointer font-semibold text-slate-900">Prioritering och förslag</summary><section className="mt-3 grid items-start gap-4 xl:grid-cols-2">
+ <div className="rounded-2xl border border-slate-200 bg-white shadow-sm ">
  <div className="border-b border-slate-200 px-6 py-5 ">
  <h2 className="text-lg font-semibold text-slate-950 ">
- Blocker-first
+ Behöver hanteras först
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
  Sorterad vy för det som bör hanteras först.
@@ -353,7 +370,7 @@ export default async function AdminOperationsTasksPage({
  {formatStatusLabel(task.priority)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
- {task.task_type}
+ {taskTypeLabel(task.task_type)}
  </span>
  </div>
 
@@ -366,30 +383,30 @@ export default async function AdminOperationsTasksPage({
 
  <div className="mt-3 grid gap-2 text-xs text-slate-700 sm:grid-cols-3">
  <div>Kund: <CustomerName id={task.customer_id} /></div>
- <div>Site: {taskSiteLabel(task, sites)}</div>
+ <div>Anläggning: {taskSiteLabel(task, sites)}</div>
  <div>Mätpunkt: {taskMeteringPointLabel(task, meteringPoints)}</div>
  </div>
 
  <div className="mt-4 flex flex-wrap gap-2">
  {task.status !== 'open' ? (
- <ActionButton taskId={task.id} status="open" label="Open" />
+ <ActionButton canWrite={canWrite} taskId={task.id} status="open" label="Öppen" />
  ) : null}
  {task.status !== 'in_progress' ? (
- <ActionButton
+ <ActionButton canWrite={canWrite}
  taskId={task.id}
  status="in_progress"
- label="In progress"
+ label="Pågår"
  />
  ) : null}
  {task.status !== 'blocked' ? (
- <ActionButton
+ <ActionButton canWrite={canWrite}
  taskId={task.id}
  status="blocked"
- label="Blocked"
+ label="Blockerad"
  />
  ) : null}
  {task.status !== 'done' ? (
- <ActionButton taskId={task.id} status="done" label="Done" />
+ <ActionButton canWrite={canWrite} taskId={task.id} status="done" label="Klar" />
  ) : null}
  </div>
  </div>
@@ -397,26 +414,26 @@ export default async function AdminOperationsTasksPage({
 
  {blockerFirst.length === 0 ? (
  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-700 ">
- Inga tasks matchade filtret.
+ Inga uppgifter matchade filtret.
  </div>
  ) : null}
  </div>
  </div>
 
- <div className="rounded-3xl border border-slate-200 bg-white shadow-sm ">
+ <div className="rounded-2xl border border-slate-200 bg-white shadow-sm ">
  <div className="border-b border-slate-200 px-6 py-5 ">
  <h2 className="text-lg font-semibold text-slate-950 ">
  Kan sannolikt stängas
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Dessa tasks ser ut att redan vara lösta i datat och kan ofta markeras som done.
+ Underlaget tyder på att dessa uppgifter kan vara färdiga. Kontrollera innan de avslutas.
  </p>
  </div>
 
  <div className="space-y-3 p-6">
  {likelyResolvedTasks.length === 0 ? (
  <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-700 ">
- Inga tydliga auto-resolve-kandidater just nu.
+ Inga uppgifter föreslås avslutade just nu.
  </div>
  ) : (
  likelyResolvedTasks.slice(0, 10).map((task) => (
@@ -432,7 +449,7 @@ export default async function AdminOperationsTasksPage({
  {formatStatusLabel(task.priority)}
  </span>
  <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-800 ">
- auto-resolve kandidat
+ Kan vara färdig
  </span>
  </div>
 
@@ -445,17 +462,17 @@ export default async function AdminOperationsTasksPage({
 
  <div className="mt-3 grid gap-2 text-xs text-slate-700 sm:grid-cols-3">
  <div>Kund: <CustomerName id={task.customer_id} /></div>
- <div>Site: {taskSiteLabel(task, sites)}</div>
+ <div>Anläggning: {taskSiteLabel(task, sites)}</div>
  <div>Mätpunkt: {taskMeteringPointLabel(task, meteringPoints)}</div>
  </div>
 
  <div className="mt-4 flex flex-wrap gap-2">
- <ActionButton taskId={task.id} status="done" label="Markera done" />
+ <ActionButton canWrite={canWrite} taskId={task.id} status="done" label="Markera klar" />
  {task.status !== 'in_progress' ? (
- <ActionButton
+ <ActionButton canWrite={canWrite}
  taskId={task.id}
  status="in_progress"
- label="In progress"
+ label="Pågår"
  />
  ) : null}
  </div>
@@ -464,12 +481,12 @@ export default async function AdminOperationsTasksPage({
  )}
  </div>
  </div>
- </section>
+ </section></details>
 
- <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
+ <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ">
  <div className="border-b border-slate-200 px-6 py-5 ">
  <h2 className="text-lg font-semibold text-slate-950 ">
- Tasklista
+ Uppgiftslista
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
  {tasks.length} träffar.
@@ -481,7 +498,7 @@ export default async function AdminOperationsTasksPage({
  <thead className="bg-slate-50 ">
  <tr className="border-b border-slate-200 text-left ">
  <th className="px-6 py-4 font-semibold text-slate-700 ">
- Task
+ Uppgift
  </th>
  <th className="px-6 py-4 font-semibold text-slate-700 ">
  Status
@@ -493,7 +510,7 @@ export default async function AdminOperationsTasksPage({
  Kund
  </th>
  <th className="px-6 py-4 font-semibold text-slate-700 ">
- Site
+ Anläggning
  </th>
  <th className="px-6 py-4 font-semibold text-slate-700 ">
  Skapad
@@ -511,7 +528,7 @@ export default async function AdminOperationsTasksPage({
  colSpan={7}
  className="px-6 py-12 text-center text-sm text-slate-700 "
  >
- Inga tasks matchade filtret.
+ Inga uppgifter matchade filtret.
  </td>
  </tr>
  ) : (
@@ -534,7 +551,7 @@ export default async function AdminOperationsTasksPage({
  </div>
  <div className="mt-1 flex flex-wrap items-center gap-2">
  <span className="text-xs text-slate-700 ">
- {task.task_type}
+ {taskTypeLabel(task.task_type)}
  </span>
  {likelyResolved ? (
  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ">
@@ -545,6 +562,7 @@ export default async function AdminOperationsTasksPage({
  <div className="mt-2 text-sm text-slate-700 ">
  {task.description ?? '—'}
  </div>
+ {tenantScope.isPlatformAdmin ? <details className="mt-2 text-xs text-slate-600"><summary className="cursor-pointer font-semibold">Tekniska uppgifter</summary><p className="mt-1 break-all">Uppgift: {task.id} · Typ: {task.task_type} · Anläggning: {task.site_id} · Mätpunkt: {task.metering_point_id}</p></details> : null}
  </td>
 
  <td className="px-6 py-4">
@@ -568,12 +586,12 @@ export default async function AdminOperationsTasksPage({
  </td>
 
  <td className="px-6 py-4">
- <Link
+ {canReadCustomer ? <Link
  href={`/admin/customers/${task.customer_id}`}
  className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline "
  >
  Öppna kundkort
- </Link>
+ </Link> : <span className="text-xs text-slate-600">Kundkortet kräver kundläsbehörighet.</span>}
  </td>
 
  <td className="px-6 py-4 text-xs text-slate-700 ">
@@ -588,36 +606,36 @@ export default async function AdminOperationsTasksPage({
  </td>
 
  <td className="px-6 py-4">
- <div className="flex flex-wrap gap-2">
+ {canWrite ? <details><summary className="cursor-pointer text-sm font-semibold text-slate-700">Hantera uppgift</summary><div className="mt-2 flex flex-wrap gap-2">
  {task.status !== 'open' ? (
- <ActionButton
+ <ActionButton canWrite={canWrite}
  taskId={task.id}
  status="open"
- label="Open"
+ label="Öppen"
  />
  ) : null}
  {task.status !== 'in_progress' ? (
- <ActionButton
+ <ActionButton canWrite={canWrite}
  taskId={task.id}
  status="in_progress"
- label="In progress"
+ label="Pågår"
  />
  ) : null}
  {task.status !== 'blocked' ? (
- <ActionButton
+ <ActionButton canWrite={canWrite}
  taskId={task.id}
  status="blocked"
- label="Blocked"
+ label="Blockerad"
  />
  ) : null}
  {task.status !== 'done' ? (
- <ActionButton
+ <ActionButton canWrite={canWrite}
  taskId={task.id}
  status="done"
- label={likelyResolved ? 'Stäng som löst' : 'Done'}
+ label={likelyResolved ? 'Stäng som löst' : 'Klar'}
  />
  ) : null}
- </div>
+ </div></details> : <span className="text-xs text-slate-600">Läsbehörighet</span>}
  </td>
  </tr>
  )

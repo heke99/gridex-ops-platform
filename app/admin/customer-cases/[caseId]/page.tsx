@@ -30,6 +30,7 @@ export default async function SupportCaseDetailPage({ params }: { params: Promis
   if (!supportCase) notFound()
   const events = (await listCustomerCaseEvents(supportCase.id, scope.companyId)).slice().reverse()
   const canWrite = !scope.isPlatformAdmin && hasPermissionRequirement(context.permissions, { anyOf: ['cases.write'] })
+  const canReadCustomer = scope.isPlatformAdmin || hasPermissionRequirement(context.permissions, { anyOf: ['customers.read', 'masterdata.read'] })
   const closed = ['resolved', 'closed', 'cancelled'].includes(supportCase.status)
   const attachments = await listSupportAttachments({ companyId: scope.companyId, customerId: supportCase.customer_id, caseId: supportCase.id, audience: 'staff' })
     .catch(() => null)
@@ -59,11 +60,16 @@ export default async function SupportCaseDetailPage({ params }: { params: Promis
           <Link href="/admin/customer-cases" className="text-sky-700 underline-offset-2 hover:underline">← Alla supportärenden</Link>
         </nav>
         <section className="flex flex-wrap items-center gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <Link href={`/admin/customers/${supportCase.customer_id}`} className="font-semibold text-sky-700 hover:underline">Öppna kundkort</Link>
+          {canReadCustomer ? <Link href={`/admin/customers/${supportCase.customer_id}`} className="font-semibold text-sky-700 hover:underline">Öppna kundkort</Link> : null}
           <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">Internt: {formatStatusLabel(supportCase.status, 'Status behöver granskas', 'Status behöver granskas')}</span>
-          <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">Kunden ser: {publicSupportStatus(supportCase.status)}</span>
+          <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">Kunden ser: {formatStatusLabel(publicSupportStatus(supportCase.status), 'Status saknas', 'Behöver granskning')}</span>
           <span className="text-xs text-slate-500">Skapat {formatAdminDateTime(supportCase.created_at)}</span>
         </section>
+
+        {supportCase.description ? <section aria-labelledby="description-heading" className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 id="description-heading" className="text-lg font-semibold text-slate-950">Beskrivning</h2>
+          <p className="mt-3 break-words whitespace-pre-wrap text-sm text-slate-800">{supportCase.description}</p>
+        </section> : null}
 
         <section aria-labelledby="history-heading" className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 id="history-heading" className="text-lg font-semibold text-slate-950">Historik</h2>
