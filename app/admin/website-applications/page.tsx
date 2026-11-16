@@ -1,3 +1,4 @@
+import { canPresentAdminAction, canPresentAdminLink } from '@/lib/admin/actionPresentation'
 import AdminActionsMenu from "@/components/admin/ui/AdminActionsMenu";
 import Link from "next/link";
 import {
@@ -384,7 +385,8 @@ function defaultChecked(
   });
 }
 
-function ReviewForm({ item, showTechnicalDetails }: { item: WebsiteApplicationAdminRow; showTechnicalDetails: boolean }) {
+function ReviewForm({ item, showTechnicalDetails, canWrite }: { item: WebsiteApplicationAdminRow; showTechnicalDetails: boolean; canWrite: boolean }) {
+  if (!canWrite) return <p className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">Läsbehörighet. En behörig handläggare behöver komplettera ansökan.</p>;
   const payload = item.payload ?? {};
   if (!isCanonicalWebsiteApplication(item)) {
     return (
@@ -752,7 +754,7 @@ function ReviewForm({ item, showTechnicalDetails }: { item: WebsiteApplicationAd
   );
 }
 
-function ApplicationDetails({ item, showTechnicalDetails }: { item: WebsiteApplicationAdminRow; showTechnicalDetails: boolean }) {
+function ApplicationDetails({ item, showTechnicalDetails, canWrite }: { item: WebsiteApplicationAdminRow; showTechnicalDetails: boolean; canWrite: boolean }) {
   const issues = reviewIssues(item);
   const rows = timelineRows(item);
   const hasExternalMirror = Boolean(
@@ -761,7 +763,7 @@ function ApplicationDetails({ item, showTechnicalDetails }: { item: WebsiteAppli
   );
   return (
     <details className="mt-3 min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 [&_input]:min-w-0 [&_select]:min-w-0 [&_textarea]:min-w-0 [&_label]:min-w-0 [&_label]:grid-cols-1">
-      <summary className="cursor-pointer font-semibold">Komplettera i listan</summary>
+      <summary className="cursor-pointer font-semibold">Uppgifter och historik</summary>
       <div className="mt-4 min-w-0 space-y-4 break-words text-sm font-normal text-slate-700">
         <div className="grid gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -896,7 +898,7 @@ function ApplicationDetails({ item, showTechnicalDetails }: { item: WebsiteAppli
             </div>
           </div>
         ) : null}
-        <ReviewForm item={item} showTechnicalDetails={showTechnicalDetails} />
+        <ReviewForm item={item} showTechnicalDetails={showTechnicalDetails} canWrite={canWrite} />
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <p className="font-semibold text-slate-950">Ansökningshistorik</p>
@@ -956,6 +958,13 @@ export default async function WebsiteApplicationsAdminPage({
   const waiting = applications.filter((item) => applicationWorkState(item) === "waiting").length;
   const completed = applications.filter((item) => applicationWorkState(item) === "completed").length;
   const isPlatformAdmin = isPlatformAdminContext(access);
+  const canReadWebhookLogs = canPresentAdminLink(access, { anyOf: ['integrations.read', 'integrations.write'] });
+  const canReadCustomer = canPresentAdminLink(access, { anyOf: ['customers.read', 'masterdata.read'] });
+  const canReadContracts = canReadCustomer && canPresentAdminLink(access, { anyOf: ['contracts.read'] });
+  const companyWrites = new Map(await Promise.all([...new Set(applications.map(item => item.company_id))].map(async companyId => [companyId,
+    isPlatformAdmin || await canPresentAdminAction({ anyOf: ['customers.write', 'switching.write', 'metering.write', 'poa.write'] }, { companyId }),
+  ] as const)));
+
 
   return (
     <main className="mx-auto min-w-0 max-w-7xl space-y-4 p-4 lg:p-6">
@@ -974,20 +983,20 @@ export default async function WebsiteApplicationsAdminPage({
               avtalsbekräftelse eller aktiv kundstatus kan fortsätta.
             </p>
           </div>
-          <AdminActionsMenu label="Resurser">
-            <Link
+          {isPlatformAdmin || canReadWebhookLogs ? <AdminActionsMenu label="Resurser">
+            {isPlatformAdmin ? <Link
               href="/developers/customer-portal-api"
               className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
             >
               API-dokumentation
-            </Link>
-            <Link
+            </Link> : null}
+            {canReadWebhookLogs ? <Link
               href="/admin/webhooks/deliveries"
               className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
-              Webhook-loggar
-            </Link>
-          </AdminActionsMenu>
+              Anslutningens leveranser
+            </Link> : null}
+          </AdminActionsMenu> : null}
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-6">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
@@ -1059,10 +1068,10 @@ export default async function WebsiteApplicationsAdminPage({
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(item.status)}`}>{intakeStatusLabel(item.status)}</span>
                     <Link href={detailHref} className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Öppna ansökan</Link>
-                    {item.customer_id ? (
+                    {item.customer_id && canReadCustomer ? (
                       <AdminActionsMenu ariaLabel={`Fler länkar för ${customerName(item)}`}>
                         <Link href={`/admin/customers/${item.customer_id}`}>Kundkort</Link>
-                        {item.contract_id ? <Link href={`/admin/customers/${item.customer_id}?tab=contracts`}>Avtal</Link> : null}
+                        {item.contract_id && canReadContracts ? <Link href={`/admin/customers/${item.customer_id}?tab=contracts`}>Avtal</Link> : null}
                       </AdminActionsMenu>
                     ) : null}
                   </div>
@@ -1075,7 +1084,7 @@ export default async function WebsiteApplicationsAdminPage({
                   </div>
                   <p className="min-w-0 break-words text-slate-700"><span className="font-semibold">Nästa steg: </span>{item.next_step ?? "Kontrollera ansökan."}</p>
                 </div>
-                <ApplicationDetails item={item} showTechnicalDetails={isPlatformAdmin} />
+                <ApplicationDetails item={item} showTechnicalDetails={isPlatformAdmin} canWrite={companyWrites.get(item.company_id) === true} />
               </article>
             );
           })}

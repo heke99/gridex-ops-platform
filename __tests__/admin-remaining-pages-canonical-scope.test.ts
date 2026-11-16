@@ -1,3 +1,4 @@
+import { hasPermissionRequirement, type PermissionRequirement } from '@/lib/admin/accessModel'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { NextRequest } from 'next/server'
@@ -19,6 +20,13 @@ const load = (name: string, input: unknown) => {
   io.loaders.push({ name, companyId })
 }
 
+// These cases prove read scope. Mutation eligibility is a separate, read-only
+// presentation port, behavior-tested in admin-action-presentation-audit.test.ts.
+vi.mock('@/lib/admin/actionPresentation', () => ({
+  canPresentAdminAction: async () => false,
+  canPresentOperationalAction: async () => false,
+  canPresentAdminLink: (access: { permissions: string[] }, requirement: PermissionRequirement) => io.platform || hasPermissionRequirement(access.permissions, requirement),
+}))
 vi.mock('@/lib/admin/guards', () => ({
   requireAdminAccess: async () => ({
     userId: 'operator', email: 'operator@example.invalid', roles: [], isAdmin: true,

@@ -2,6 +2,14 @@ import fs from 'node:fs'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, expect, it, vi } from 'vitest'
+import { hasPermissionRequirement } from '@/lib/admin/accessModel'
+
+// These fixtures qualify read scope only; mutation controls are intentionally read-only.
+vi.mock('@/lib/admin/actionPresentation', () => ({
+  canPresentAdminAction: async () => false,
+  canPresentOperationalAction: async () => false,
+  canPresentAdminLink: (context: { permissions: string[] }, requirement: Parameters<typeof hasPermissionRequirement>[1]) => io.platform || hasPermissionRequirement(context.permissions, requirement),
+}))
 
 const io = vi.hoisted(() => ({
   companyId: 'guard-A' as string | null,

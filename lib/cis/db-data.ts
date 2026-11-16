@@ -643,6 +643,7 @@ export async function updatePartnerExportStatus(input: {
   status: 'queued' | 'sent' | 'acknowledged' | 'failed' | 'cancelled'
   externalReference?: string | null
   failureReason?: string | null
+  preserveFailureReason?: boolean
   responsePayload?: Record<string, unknown>
 }): Promise<PartnerExportRow> {
   const now = new Date().toISOString()
@@ -650,9 +651,12 @@ export async function updatePartnerExportStatus(input: {
   const payload: Record<string, unknown> = {
     status: input.status,
     external_reference: input.externalReference ?? null,
-    failure_reason: input.failureReason ?? null,
     updated_by: input.actorUserId,
     last_partner_response_at: now,
+  }
+
+  if (!input.preserveFailureReason) {
+    payload.failure_reason = input.failureReason ?? null
   }
 
   if (input.responsePayload !== undefined) {

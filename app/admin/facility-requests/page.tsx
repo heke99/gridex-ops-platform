@@ -1,3 +1,4 @@
+import { canPresentAdminAction, canPresentAdminLink, canPresentOperationalAction } from '@/lib/admin/actionPresentation'
 import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import Link from 'next/link'
@@ -123,23 +124,23 @@ function StatCard({ label, value, description }: { label: string; value: number;
   )
 }
 
-function EmptyState() {
+function EmptyState({ canReadCustomers = false, canCreateCustomer = false }: { canReadCustomers?: boolean; canCreateCustomer?: boolean }) {
   return (
     <div className="px-6 py-12 text-center">
       <h3 className="text-lg font-bold text-slate-950">Ingen anläggningskö hittades</h3>
       <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-        Det betyder att synliga kunder antingen saknar anläggningar helt eller att anläggningsuppgifterna inte har några aktiva blockerare. Skapa kund/anläggning via kundintag eller öppna kundregistret för manuell kontroll.
+        Inga anläggningsärenden hittades i denna lista. Kontakta ansvarig handläggare om en kund behöver följas upp.
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <Link href="/admin/customers" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">Öppna kundregister</Link>
-        <Link href="/admin/customers/intake" className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800">Skapa kund</Link>
+        {canReadCustomers ? <Link href="/admin/customers" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">Öppna kundregister</Link> : null}
+        {canCreateCustomer ? <Link href="/admin/customers/intake" className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800">Skapa kund</Link> : null}
       </div>
     </div>
   )
 }
 
 
-function FacilityLookupRequestCard({ request, showTechnicalLinks = false }: { request: FacilityLookupRequestRow; showTechnicalLinks?: boolean }) {
+function FacilityLookupRequestCard({ request, showTechnicalLinks = false, canWrite = false, canReadCustomer = false }: { request: FacilityLookupRequestRow; showTechnicalLinks?: boolean; canWrite?: boolean; canReadCustomer?: boolean }) {
   const missingFields = normalizeRequestedFields(request.requested_fields).filter((field) => {
     if (field === 'facility_id') return !request.facility_id
     if (field === 'metering_point_id') return !request.metering_point_id
@@ -153,7 +154,7 @@ function FacilityLookupRequestCard({ request, showTechnicalLinks = false }: { re
       <div className="min-w-0 space-y-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-black text-slate-950">{request.customer_id ? <Link href={`/admin/customers/${request.customer_id}?tab=data-requests`} className="hover:underline">{customerName(request)}</Link> : customerName(request)}</h3>
+            <h3 className="text-base font-black text-slate-950">{request.customer_id && canReadCustomer ? <Link href={showTechnicalLinks ? `/admin/customers/${request.customer_id}?tab=data-requests` : `/admin/customers/${request.customer_id}`} className="hover:underline">{customerName(request)}</Link> : customerName(request)}</h3>
             <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">{operationalStatusLabel(request.status)}</span>
             <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-800">{channelLabel(request.channel)}</span>
             {request.poa_id
@@ -177,7 +178,7 @@ function FacilityLookupRequestCard({ request, showTechnicalLinks = false }: { re
           <p className="mt-3 text-xs text-slate-500">Uppdaterad {formatDate(request.updated_at ?? request.created_at)}</p>
         </div>
 
-        <div className="grid min-w-0 grid-cols-1 gap-2 lg:grid-cols-2 [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full">
+        {canWrite ? <div className="grid min-w-0 grid-cols-1 gap-2 lg:grid-cols-2 [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full">
           <AdminDisclosurePanel id={`facility-mark-sent-${request.id}`} title="Markera skickad manuellt" className="min-w-0 rounded-xl bg-slate-50 p-3"><form action={markFacilityLookupSentManuallyAction} className="min-w-0">
             <input type="hidden" name="request_id" value={request.id} />
             <div className="mt-3 grid gap-2 sm:grid-cols-[140px_1fr]">
@@ -213,13 +214,13 @@ function FacilityLookupRequestCard({ request, showTechnicalLinks = false }: { re
               {showTechnicalLinks ? <Link href="/admin/ediel/route-readiness" className="rounded-xl border border-emerald-300 px-4 py-2 text-sm font-bold text-emerald-900 hover:bg-white">Anslutningsstatus</Link> : null}
             </div>
           </form></AdminDisclosurePanel>
-        </div>
+        </div> : null}
       </div>
     </article>
   )
 }
 
-function FacilityRow({ item }: { item: FacilityWorkQueueRow }) {
+function FacilityRow({ item, canReadCustomer = false, showTechnicalLinks = false }: { item: FacilityWorkQueueRow; canReadCustomer?: boolean; showTechnicalLinks?: boolean }) {
   return (
     <tr className="hover:bg-slate-50">
       <td className="px-6 py-4 align-top">
@@ -259,9 +260,10 @@ function FacilityRow({ item }: { item: FacilityWorkQueueRow }) {
         <div className="mt-2 text-xs text-slate-500">Uppdaterad {formatDate(item.updatedAt ?? item.createdAt)}</div>
       </td>
       <td className="px-6 py-4 align-top">
-        <Link href={item.href} className="inline-flex rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">
-          {item.nextAction}
-        </Link>
+        <p className="text-sm text-slate-700">{item.nextAction}</p>
+        {canReadCustomer ? <Link href={showTechnicalLinks ? item.href : `/admin/customers/${item.customerId}`} className="mt-2 inline-flex rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">
+          Öppna kundkort
+        </Link> : <p className="mt-2 text-xs text-slate-600">Kundkortet kräver kundläsbehörighet.</p>}
       </td>
     </tr>
   )
@@ -271,6 +273,10 @@ export default async function FacilityRequestsPage() {
   const context = await requireAdminPageKeyAccess('operations.tasks')
   const companyScope = await resolveAdminTenantReadScope(context)
   const { companyId, isPlatformAdmin } = companyScope
+  const canWrite = await canPresentAdminAction(['customers.write'])
+  const canReadCustomer = canPresentAdminLink(context, { anyOf: ['customers.read', 'masterdata.read'] })
+  const canReadCustomers = canPresentAdminLink(context, { anyOf: ['customers.read'] })
+  const canCreateCustomer = await canPresentOperationalAction(['customers.write'], isPlatformAdmin ? context.companyId : companyId)
   const supabase = await createSupabaseServerClient()
   const queue = await listFacilityWorkQueue(supabase, companyId, { limit: 250 })
 
@@ -364,7 +370,7 @@ export default async function FacilityRequestsPage() {
               <p className="mt-1 text-sm text-slate-600">Registrera manuellt skickade begäranden och nätägarens svar.</p>
             </div>
             <div className="grid gap-4">
-              {facilityRequests.map((request) => <FacilityLookupRequestCard key={request.id} request={request} showTechnicalLinks={isPlatformAdmin} />)}
+              {facilityRequests.map((request) => <FacilityLookupRequestCard key={request.id} request={request} showTechnicalLinks={isPlatformAdmin} canWrite={canWrite} canReadCustomer={canReadCustomer} />)}
             </div>
           </section>
         ) : null}
@@ -383,7 +389,7 @@ export default async function FacilityRequestsPage() {
           </div>
 
           {queue.length === 0 ? (
-            <EmptyState />
+            <EmptyState canReadCustomers={canReadCustomers} canCreateCustomer={canCreateCustomer} />
           ) : (
             <div className="min-w-0">
               <table className="w-full table-fixed divide-y divide-slate-200 text-sm [&_td]:min-w-0 [&_td]:break-words max-xl:[&_tbody_tr]:grid max-xl:[&_tbody_tr]:grid-cols-1 max-xl:[&_td]:px-4 max-xl:[&_td]:py-2 max-xl:[&_tbody_tr]:p-2">
@@ -399,7 +405,7 @@ export default async function FacilityRequestsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {queue.map((item) => (
-                    <FacilityRow key={`${item.id}-${item.status}`} item={item} />
+                    <FacilityRow key={`${item.id}-${item.status}`} item={item} canReadCustomer={canReadCustomer} showTechnicalLinks={isPlatformAdmin} />
                   ))}
                 </tbody>
               </table>
