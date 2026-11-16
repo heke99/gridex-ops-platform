@@ -68,6 +68,19 @@ CONFIG_TYPES = {'application/vnd.oci.image.config.v1+json',
 class ContentUnavailable(RuntimeError):
     """Safe local-reader failure; never includes subprocess output or content."""
 
+def trusted_binary_failure(check):
+    error = ContentUnavailable('local_reader_trusted_binary_required')
+    error.trusted_binary_check = check
+    return error
+
+
+def normalized_trusted_binary_check(value):
+    if type(value) is str and value in {
+            'file_size', 'file_read_deadline', 'file_overflow', 'elf_magic', 'sudo_version'}:
+        return value
+    return None
+
+
 STDERR_FEATURE_PATTERNS = {
     'permission_denied': rb'\bpermission denied\b',
     'connect_permission_denied': rb': connect: permission denied\b',
@@ -411,18 +424,18 @@ class _TrustedFiles:
                 raise ContentUnavailable('local_reader_trusted_context_changed')
             maximum = 256 * 1024 * 1024 if executable else 2 * 1024 * 1024
             if not 0 < before[5] <= maximum:
-                raise ContentUnavailable('local_reader_trusted_binary_required')
+                raise trusted_binary_failure('file_size')
             sha = hashlib.sha256(); md5 = hashlib.md5(); size = 0; prefix = b''; data = bytearray()
             deadline = time.monotonic() + 5
             while True:
                 if time.monotonic() > deadline:
-                    raise ContentUnavailable('local_reader_trusted_binary_required')
+                    raise trusted_binary_failure('file_read_deadline')
                 chunk = self.fs.read(fd, min(65536, maximum - size + 1))
                 if not chunk:
                     break
                 size += len(chunk)
                 if size > maximum:
-                    raise ContentUnavailable('local_reader_trusted_binary_required')
+                    raise trusted_binary_failure('file_overflow')
                 prefix = (prefix + chunk[:4])[:4]
                 sha.update(chunk); md5.update(chunk)
                 if not executable:
@@ -431,7 +444,7 @@ class _TrustedFiles:
                     or self._chain(path, 'executable' if executable else 'file') != (canonical, chain)):
                 raise ContentUnavailable('local_reader_trusted_context_changed')
             if executable and prefix != b'\x7fELF':
-                raise ContentUnavailable('local_reader_trusted_binary_required')
+                raise trusted_binary_failure('elf_magic')
             return (canonical, chain, before, sha.hexdigest()), md5.hexdigest(), bytes(data)
         finally:
             self.fs.close(fd)
@@ -532,7 +545,7 @@ class _PinnedRootReader:
             sudo_version = self.basic._command('sudo_version', [self.exec_paths['sudo'], '--version'], 4096, 5)
             first_line = sudo_version.split(b'\n', 1)[0]
             if not re.fullmatch(rb'Sudo version 1\.9\.[0-9]+(?:p[0-9]+)?', first_line):
-                raise ContentUnavailable('local_reader_trusted_binary_required')
+                raise trusted_binary_failure('sudo_version')
             version = self.basic._command('watchdog_version', [self.exec_paths['timeout'], '--version'], 4096, 5)
             help_text = self.basic._command('watchdog_help', [self.exec_paths['timeout'], '--help'], 16384, 5)
             if (not re.fullmatch(rb'(?:timeout|gnutimeout) \(GNU coreutils\) [0-9]+\.[0-9]+(?:\.[0-9]+)?',
@@ -696,6 +709,7 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
     version_shape = None
     command_failure = None
     stderr_features = None
+    trusted_binary_check = None
     try:
         descriptor = image.get('Descriptor')
         if (not isinstance(descriptor, dict) or descriptor.get('digest') != pin.manifest
@@ -770,6 +784,8 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
         if (isinstance(error, ContentUnavailable) and len(error.args) == 1
                 and type(error.args[0]) is str and error.args[0] in codes):
             reason = error.args[0]
+            if reason == 'local_reader_trusted_binary_required' and type(error) is ContentUnavailable:
+                trusted_binary_check = normalized_trusted_binary_check(error.__dict__.get('trusted_binary_check'))
             if reason == 'local_reader_version_unsupported':
                 version_shape = normalized_version_shape(getattr(error, 'version_shape', None))
         elif isinstance(error, (ValueError, TypeError, KeyError)):
@@ -778,6 +794,8 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
     finally:
         if diagnostic is not None and not qualified:
             diagnostic.update({'stage': stage, 'reason': reason})
+            if trusted_binary_check is not None:
+                diagnostic['trusted_binary_check'] = trusted_binary_check
             if version_shape is not None:
                 diagnostic['version_shape'] = version_shape
             if command_failure is not None:

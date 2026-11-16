@@ -1253,5 +1253,74 @@ class PinnedRootReaderTests(unittest.TestCase):
             self.assertEqual(privileged, [])
 
 
+class TrustedBinaryCheckDiagnosticTests(unittest.TestCase):
+    def assert_serialized_refusal(self, error, expected):
+        pin, image, reader, run = LocalContentTests().fixture()
+        reader.qualify = Mock(side_effect=error)
+        with self.assertRaises(cache.Refused) as caught:
+            cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+        detail = caught.exception.diagnostic['local_config_proof']
+        self.assertEqual(detail['reason'], str(error))
+        self.assertEqual(detail['stage'], 'capability')
+        self.assertEqual(detail.get('trusted_binary_check'), expected)
+        self.assertEqual(str(caught.exception), 'image_identity_mismatch')
+        self.assertNotIn('SECRET', json.dumps(caught.exception.diagnostic))
+        run.assert_not_called()
+
+    def actual_file_refusal(self, check):
+        from unittest.mock import patch
+        fs = SyntheticTrustFS(); path = '/usr/bin/ctr'
+        kwargs = {'executable': True}
+        if check == 'file_size': fs.nodes[path][0].st_size = 0
+        elif check == 'file_overflow':
+            fs.nodes[path][1] = b'x' * (2 * 1024 * 1024 + 1)
+            fs.nodes[path][0].st_size = 1; kwargs = {'executable': False}
+        elif check == 'elf_magic':
+            fs.nodes[path][1] = b'TEXT' + fs.nodes[path][1][4:]
+        if check == 'file_read_deadline':
+            with patch.object(cache.time, 'monotonic', side_effect=[0, 6]):
+                with self.assertRaises(cache.ContentUnavailable) as caught:
+                    cache._TrustedFiles(fs)._file(path, **kwargs)
+        else:
+            with self.assertRaises(cache.ContentUnavailable) as caught:
+                cache._TrustedFiles(fs)._file(path, **kwargs)
+        self.assertEqual(fs.fds, {})
+        self.assertEqual(str(caught.exception), 'local_reader_trusted_binary_required')
+        self.assertEqual(getattr(caught.exception, 'trusted_binary_check', None), check)
+        self.assert_serialized_refusal(caught.exception, check)
+
+    def test_actual_file_size_refusal_has_fixed_check(self): self.actual_file_refusal('file_size')
+    def test_actual_file_read_deadline_refusal_has_fixed_check(self): self.actual_file_refusal('file_read_deadline')
+    def test_actual_file_overflow_refusal_has_fixed_check(self): self.actual_file_refusal('file_overflow')
+    def test_actual_elf_magic_refusal_has_fixed_check(self): self.actual_file_refusal('elf_magic')
+
+    def test_actual_sudo_version_refusal_has_fixed_check(self):
+        reader, fs, env, calls, privileged = PinnedRootReaderTests().fixture()
+        command = reader.basic.command
+        reader.basic.command = lambda args, limit, timeout: b'SECRET malformed sudo banner' if args[0] == '/usr/bin/sudo' else command(args, limit, timeout)
+        with self.assertRaises(cache.ContentUnavailable) as caught:
+            PinnedRootReaderTests().qualify(reader)
+        self.assertEqual(privileged, [])
+        self.assertEqual(str(caught.exception), 'local_reader_trusted_binary_required')
+        self.assertEqual(getattr(caught.exception, 'trusted_binary_check', None), 'sudo_version')
+        self.assert_serialized_refusal(caught.exception, 'sudo_version')
+
+    def test_malicious_attribute_values_and_str_subclasses_are_omitted(self):
+        class UntrustedString(str):
+            def __hash__(self): raise AssertionError('SECRET hash called')
+            def __str__(self): raise AssertionError('SECRET str called')
+        for value in ['SECRET', 'elf_magic\nSECRET', {'SECRET': 'SECRET'}, True, None, UntrustedString('elf_magic')]:
+            error = cache.ContentUnavailable('local_reader_trusted_binary_required')
+            error.trusted_binary_check = value
+            self.assert_serialized_refusal(error, None)
+
+    def test_valid_attribute_only_binds_exact_base_reason_and_exception_type(self):
+        error = cache.ContentUnavailable('local_reader_failed'); error.trusted_binary_check = 'elf_magic'
+        self.assert_serialized_refusal(error, None)
+        class UntrustedError(cache.ContentUnavailable):
+            @property
+            def trusted_binary_check(self): raise AssertionError('SECRET property called')
+        self.assert_serialized_refusal(UntrustedError('local_reader_trusted_binary_required'), None)
+
 if __name__ == '__main__':
     unittest.main()
