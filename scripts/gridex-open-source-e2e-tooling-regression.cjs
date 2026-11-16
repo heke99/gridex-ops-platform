@@ -41,8 +41,8 @@ if (issues.length === 0) {
   const k6 = read('e2e/k6/platform-smoke.js')
   const publicContractK6 = read('e2e/k6/public-contract-cache.js')
 
-  if (pkg.devDependencies?.['@playwright/test'] !== '1.60.0') {
-    issues.push('Playwright is not pinned to @playwright/test@1.60.0 in package.json.')
+  if (pkg.devDependencies?.['@playwright/test'] !== '1.62.1') {
+    issues.push('Playwright is not pinned to @playwright/test@1.62.1 in package.json.')
   }
   if (pkg.devDependencies?.['@axe-core/playwright'] !== '4.11.3') {
     issues.push('axe-core Playwright integration is not pinned to @axe-core/playwright@4.11.3 in package.json.')
