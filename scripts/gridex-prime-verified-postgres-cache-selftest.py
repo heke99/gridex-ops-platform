@@ -920,6 +920,78 @@ class PinnedRootReaderTests(unittest.TestCase):
         with self.assertRaises(cache.ContentUnavailable): reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT)
         self.assertEqual(privileged, [])
 
+    def add_gnu_watchdog(self, fs):
+        import hashlib, stat
+        data = b'\x7fELFdeclared-synthetic-gnutimeout'
+        fs.add('/usr/bin/gnutimeout', stat.S_IFREG | 0o755, data)
+        fs.add('/var/lib/dpkg/info/gnu-coreutils.md5sums', stat.S_IFREG | 0o644,
+               (hashlib.md5(data).hexdigest() + '  usr/bin/gnutimeout\n').encode())
+
+    def gnu_command(self, reader, version=b'gnutimeout (GNU coreutils) 9.7\n', help_text=b'--signal --kill-after'):
+        original = reader.basic.command
+        reader.basic.command = lambda args, limit, timeout: ((version if args[-1] == '--version' else help_text)
+            if args[0] == '/usr/bin/gnutimeout' else original(args, limit, timeout))
+
+    def test_existing_gnu_watchdog_preferred_with_exact_package_and_argv(self):
+        reader, fs, env, calls, privileged = self.fixture(); self.add_gnu_watchdog(fs); self.gnu_command(reader)
+        # Ubuntu's generic coreutils package need not own the installed GNU binary.
+        del fs.nodes['/var/lib/dpkg/info/coreutils.md5sums']
+        binding = self.qualify(reader); reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT)
+        self.assertEqual(privileged[0][0][3], '/usr/bin/gnutimeout')
+
+    def test_prefixed_gnu_binary_accepts_upstream_fixed_program_banner(self):
+        reader, fs, env, calls, privileged = self.fixture(); self.add_gnu_watchdog(fs)
+        self.gnu_command(reader, b'timeout (GNU coreutils) 9.7\n')
+        self.qualify(reader)
+
+    def test_gnu_watchdog_requires_selected_canonical_path_and_package(self):
+        import stat
+        for failure in ['redirect', 'missing_package']:
+            reader, fs, env, calls, privileged = self.fixture(); self.add_gnu_watchdog(fs); self.gnu_command(reader)
+            if failure == 'redirect': fs.add('/usr/bin/gnutimeout', stat.S_IFLNK | 0o777, b'timeout')
+            else: del fs.nodes['/var/lib/dpkg/info/gnu-coreutils.md5sums']
+            with self.assertRaises(cache.ContentUnavailable): self.qualify(reader)
+            self.assertEqual(privileged, [])
+
+    def test_missing_gnu_watchdog_retains_existing_legacy_gnu(self):
+        reader, fs, env, calls, privileged = self.fixture(); binding = self.qualify(reader)
+        reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT)
+        self.assertEqual(privileged[0][0][3], '/usr/bin/timeout')
+
+    def test_present_unsafe_gnu_watchdog_never_uses_legacy(self):
+        reader, fs, env, calls, privileged = self.fixture(); self.add_gnu_watchdog(fs); self.gnu_command(reader)
+        fs.nodes['/usr/bin/gnutimeout'][0].st_uid = 1001
+        with self.assertRaises(cache.ContentUnavailable): self.qualify(reader)
+        self.assertEqual(privileged, []); self.assertEqual(calls, [])
+
+    def test_present_bad_gnu_brand_version_or_flags_never_falls_back(self):
+        for version, help_text in [(b'timeout (uutils coreutils) 0.8.0\n', b'--signal --kill-after'),
+                (b'gnutimeout (GNU coreutils) 9.7 SECRET\n', b'--signal --kill-after'),
+                (b'UNKNOWN\n', b'--signal --kill-after'),
+                (b'gnutimeout (GNU coreutils) 9.7\n', b'--signal')]:
+            reader, fs, env, calls, privileged = self.fixture(); self.add_gnu_watchdog(fs)
+            self.gnu_command(reader, version, help_text)
+            with self.assertRaises(cache.ContentUnavailable): self.qualify(reader)
+            self.assertEqual(privileged, [])
+            self.assertFalse(any(args[0] == '/usr/bin/timeout' for args, _, _ in calls))
+
+    def test_gnu_watchdog_choice_drift_refused_before_privilege(self):
+        reader, fs, env, calls, privileged = self.fixture(); binding = self.qualify(reader)
+        self.add_gnu_watchdog(fs)
+        with self.assertRaises(cache.ContentUnavailable): reader.read(cache.PINS[0].manifest, binding, cache.MANIFEST_LIMIT)
+        self.assertEqual(privileged, [])
+
+    def test_missing_all_watchdogs_refuses_before_privilege(self):
+        reader, fs, env, calls, privileged = self.fixture(); del fs.nodes['/usr/bin/timeout']
+        with self.assertRaises(cache.ContentUnavailable): self.qualify(reader)
+        self.assertEqual(privileged, [])
+
+    def test_legacy_rust_timeout_is_not_qualified_as_gnu(self):
+        reader, fs, env, calls, privileged = self.fixture(); command = reader.basic.command
+        reader.basic.command = lambda args, limit, timeout: b'timeout (uutils coreutils) 0.8.0\n' if args[0] == '/usr/bin/timeout' else command(args, limit, timeout)
+        with self.assertRaises(cache.ContentUnavailable): self.qualify(reader)
+        self.assertEqual(privileged, [])
+
     def test_fixed_scoped_argv_pair_and_clean_environment(self):
         reader, fs, env, calls, privileged = self.fixture()
         binding = self.qualify(reader)

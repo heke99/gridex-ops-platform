@@ -492,13 +492,25 @@ class _PinnedRootReader:
             return '/usr/bin/sudo'
         return '/usr/bin/sudo.ws'
 
+    def _watchdog(self):
+        # Ubuntu's GNU provider is independently installed under this fixed name.
+        # Select only by presence; any unsafe/malformed present provider refuses.
+        try:
+            self.trust.fs.lstat('/usr/bin/gnutimeout')
+        except FileNotFoundError:
+            return '/usr/bin/timeout', 'coreutils'
+        return '/usr/bin/gnutimeout', 'gnu-coreutils'
+
     def _tools(self):
         self._host()
         if self.lookup is None or any(self.lookup(name) != self.paths[name] for name in ['ctr', 'docker']):
             raise ContentUnavailable('local_reader_trusted_context_changed')
         if self._sudo_path() != self.paths['sudo']:
             raise ContentUnavailable('local_reader_trusted_context_changed')
-        packages = {'ctr': 'containerd.io', 'docker': 'docker-ce-cli', 'sudo': 'sudo', 'timeout': 'coreutils'}
+        watchdog, package = self._watchdog()
+        if watchdog != self.paths['timeout']:
+            raise ContentUnavailable('local_reader_trusted_context_changed')
+        packages = {'ctr': 'containerd.io', 'docker': 'docker-ce-cli', 'sudo': 'sudo', 'timeout': package}
         return {name: self.trust.tool(self.paths[name], package) for name, package in packages.items()}
 
     def qualify(self):
@@ -508,10 +520,10 @@ class _PinnedRootReader:
                 raise ContentUnavailable('local_reader_pinned_scope_required')
             self.lookup = shutil.which
             self.paths = {'ctr': self.lookup('ctr'), 'docker': self.lookup(DOCKER[0]),
-                          'sudo': self._sudo_path(), 'timeout': '/usr/bin/timeout'}
+                          'sudo': self._sudo_path(), 'timeout': self._watchdog()[0]}
             self.tools = self._tools()
             canonical = {name: proof[0][0] for name, proof in self.tools.items()}
-            if canonical['sudo'] != self.paths['sudo'] or canonical['timeout'] != '/usr/bin/timeout':
+            if canonical['sudo'] != self.paths['sudo'] or canonical['timeout'] != self.paths['timeout']:
                 raise ContentUnavailable('local_reader_trusted_path_required')
             self.basic.qualify()
             if self.trust.tool(self.basic.executable, 'containerd.io') != self.tools['ctr']:
@@ -523,7 +535,8 @@ class _PinnedRootReader:
                 raise ContentUnavailable('local_reader_trusted_binary_required')
             version = self.basic._command('watchdog_version', [self.exec_paths['timeout'], '--version'], 4096, 5)
             help_text = self.basic._command('watchdog_help', [self.exec_paths['timeout'], '--help'], 16384, 5)
-            if (not re.match(rb'timeout \(GNU coreutils\) [0-9]+\.[0-9]+', version)
+            if (not re.fullmatch(rb'(?:timeout|gnutimeout) \(GNU coreutils\) [0-9]+\.[0-9]+(?:\.[0-9]+)?',
+                                 version.split(b'\n', 1)[0])
                     or not all(flag in help_text for flag in [b'--signal', b'--kill-after'])):
                 raise ContentUnavailable('local_reader_watchdog_unsupported')
             # Canonical paths and original discoveries must identify the same bytes.
