@@ -2,7 +2,7 @@
 
 Baslinje: `bf32b7e01fbd0511972ba8977c61d412a018e416`. Implementationsgren: `codex/fix-final-audit-20261116`.
 
-Samtliga 66 granskade poster har en kodrättning eller en uttrycklig förtydligad visning på arbetsgrenen. Paketens exakta källversioner har granskats av två oberoende granskare. Sammansatta lokala slutkontroller passerar; den sista sammanfogade källversionen slutgranskas separat. Ändringen är inte mergad eller driftsatt.
+Samtliga 66 granskade poster har en kodrättning eller en uttrycklig förtydligad visning på arbetsgrenen. Paketens exakta källversioner har granskats av två oberoende granskare. Sammansatta lokala slutkontroller passerar. Den sammansatta slutgranskningens källbindning redovisas i ändringsförslaget. Ändringen är inte mergad eller driftsatt.
 
 ## Så ska elbolaget förstå systemet
 
@@ -26,7 +26,7 @@ Bolagsvyer visar affärsinformation. Payload, interna fel, tekniska nycklar och 
 
 ## Samtliga fynd
 
-Originalbedömning, förutsättningar, belägg, mål och verifieringskrav finns bevarade i [findings.json](findings.json). Källhänvisningarna i originalfynden gäller baslinjen ovan. En rättning på arbetsgrenen är ingen uppgift om driftsatt beteende.
+Underlaget omfattar 41 kodbelagda funktions-/navigationsbrister, 22 förbättringsförslag, två ursprungliga webbläsarrisker och en definitionsfråga. Ingen observerad produktionsincident har lagts till genom kodgranskningen. Originalbedömning, förutsättningar, belägg, mål och verifieringskrav finns bevarade i [findings.json](findings.json). Källhänvisningarna i originalfynden gäller baslinjen ovan. En rättning på arbetsgrenen är ingen uppgift om driftsatt beteende.
 
 | Fynd | Problem eller förbättring | Rättningspaket | Status |
 | --- | --- | --- | --- |

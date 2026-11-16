@@ -4,7 +4,7 @@
   "baseline_main": "bf32b7e01fbd0511972ba8977c61d412a018e416",
   "implementation_branch": "codex/fix-final-audit-20261116",
   "implementation_source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-  "delivery_status": "LOKALT_VERIFIERAD_INVÄNTAR_SAMMANSATT_SLUTGRANSKNING",
+  "delivery_status": "LOKALT_VERIFIERAT_ÄNDRINGSFÖRSLAG",
   "deployment_status": "INTE_MERGAD_ELLER_DRIFTSATT",
   "findings": [
     {
@@ -38,7 +38,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -71,7 +71,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -106,7 +106,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -140,7 +140,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -173,7 +173,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -206,7 +206,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -241,7 +241,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -274,7 +274,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -308,7 +308,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -342,7 +342,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -379,7 +379,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -412,7 +412,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -446,7 +446,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -479,7 +479,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -514,7 +514,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -547,7 +547,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -580,7 +580,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -611,7 +611,7 @@
       "implementation": {
         "packet": "poa",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -642,7 +642,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -675,7 +675,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -712,7 +712,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -744,7 +744,7 @@
       "implementation": {
         "packet": "business",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -778,7 +778,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -810,7 +810,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -846,7 +846,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -879,7 +879,7 @@
       "implementation": {
         "packet": "company",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -912,7 +912,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -947,7 +947,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -980,7 +980,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1014,7 +1014,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1049,7 +1049,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1082,7 +1082,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1114,7 +1114,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1146,7 +1146,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1180,7 +1180,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1212,7 +1212,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1245,7 +1245,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1276,7 +1276,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1308,7 +1308,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1343,7 +1343,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1375,7 +1375,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1408,7 +1408,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1443,7 +1443,7 @@
       "implementation": {
         "packet": "analytics",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1483,7 +1483,7 @@
       "implementation": {
         "packet": "onboarding",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1519,7 +1519,7 @@
       "implementation": {
         "packet": "onboarding",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1557,7 +1557,7 @@
       "implementation": {
         "packet": "onboarding",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1592,7 +1592,7 @@
       "implementation": {
         "packet": "onboarding",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1632,7 +1632,7 @@
       "implementation": {
         "packet": "onboarding",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1674,7 +1674,7 @@
       "implementation": {
         "packet": "onboarding",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1725,7 +1725,7 @@
       "implementation": {
         "packet": "registers",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1771,7 +1771,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1821,7 +1821,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1873,7 +1873,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1920,7 +1920,7 @@
       "implementation": {
         "packet": "poa",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -1966,7 +1966,7 @@
       "implementation": {
         "packet": "poa",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -2018,7 +2018,7 @@
       "implementation": {
         "packet": "actions",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -2070,7 +2070,7 @@
       "implementation": {
         "packet": "business",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -2124,7 +2124,7 @@
       "implementation": {
         "packet": "business",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -2172,7 +2172,7 @@
       "implementation": {
         "packet": "business",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -2224,7 +2224,7 @@
       "implementation": {
         "packet": "business",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -2274,7 +2274,7 @@
       "implementation": {
         "packet": "business",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -2321,7 +2321,7 @@
       "implementation": {
         "packet": "business",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -2377,7 +2377,7 @@
       "implementation": {
         "packet": "business",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -2424,7 +2424,7 @@
       "implementation": {
         "packet": "business",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -2474,7 +2474,7 @@
       "implementation": {
         "packet": "business",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     },
@@ -2524,7 +2524,7 @@
       "implementation": {
         "packet": "business",
         "source_head": "c8ea6ea1249e95649b3a20c06d317c93be3f81a6",
-        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar; sammansatt slutgranskning återstår.",
+        "peer_review": "Två oberoende sakgranskningar av paketens exakta filhashar. Slutkvittot för den sammansatta versionen redovisas i ändringsförslaget.",
         "verification_scope": "Källkod, inerta regressionsportar och där angivet isolerad webbläsare. Ingen ny produktionsincident eller autentiserad DB-/utskickskörning påstås."
       }
     }
