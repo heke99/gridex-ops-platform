@@ -22,7 +22,7 @@ export async function readPoaRegister(client: Pick<SupabaseClient, 'from'>, admi
     if ((result.data ?? []).length > 200) throw new Error('För många kunder matchar. Ange ett mer precist kundnamn eller kundnummer.')
     customerIds = (result.data ?? []).map((row) => String(row.id))
   }
-  let query = client.from('powers_of_attorney').select('id,company_id,customer_id,status,reference,method,source,accepted_at,signed_at,created_at,valid_from,valid_to,valid_until,expires_at,revoked_at,evidence_payload,document_path')
+  let query = client.from('powers_of_attorney').select('id,company_id,customer_id,status,reference,method,source,accepted_at,signed_at,legal_text_version_id,fullmakt_snapshot,created_at,valid_from,valid_to,valid_until,expires_at,revoked_at,evidence_payload,document_path')
   if (companyId) query = query.eq('company_id', companyId)
   if (customerIds) query = query.in('customer_id', customerIds)
   if (filters.verification?.trim()) query = query.ilike('evidence_payload->>verification_reference', `%${filters.verification.trim().slice(0, 120).replace(/([\\%_])/g, '\\$1')}%`)

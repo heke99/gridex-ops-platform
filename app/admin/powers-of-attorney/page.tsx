@@ -3,7 +3,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { readPoaRegister, type PoaRegisterFilters } from '@/lib/customers/poaRegister'
-import { derivePowerOfAttorneyLifecycleStatus } from '@/lib/customers/poaReadiness'
+import { derivePowerOfAttorneyLifecycleStatus, hasLegalPoaAcceptance } from '@/lib/customers/poaReadiness'
 import { poaMailEvidence } from '@/lib/email/poaMailEvidence'
 import { resolvePoaReplyAction } from './actions'
 
@@ -71,7 +71,7 @@ export default async function PowersOfAttorneyPage({ searchParams }: { searchPar
                     </details> : null
                   })}
                 </td>
-                <td className="px-5 py-4"><div className="font-semibold">{labels[status] ?? status}</div><div className="mt-1 text-slate-600">{date(poa.accepted_at || poa.signed_at)}</div><div className="mt-1 text-slate-600">{proof.bankidVerified ? 'BankID verifierat' : 'Registrerat godkännande'}</div></td>
+                <td className="px-5 py-4"><div className="font-semibold">{labels[status] ?? status}</div><div className="mt-1 text-slate-600">{date(poa.accepted_at || poa.signed_at)}</div>{hasLegalPoaAcceptance(poa) ? <div className="mt-1 text-slate-600">{proof.bankidVerified ? 'BankID verifierat' : 'Registrerat godkännande'}</div> : null}</td>
                 <td className="space-y-2 px-5 py-4">{status !== 'awaiting_signature' || text(poa.document_path) ? <><a href={documentUrl} target="_blank" rel="noreferrer" className="block font-semibold underline">Öppna PDF</a><a href={`${documentUrl}?download=1`} className="block underline">Ladda ner</a><span className="block text-xs text-slate-600">{text(poa.document_path) ? 'PDF sparad' : 'Godkännandet sparat; PDF skapas från originalunderlaget'}</span></> : <span className="text-slate-600">Inväntar komplett underlag</span>}</td>
               </tr>
             })}
