@@ -131,6 +131,46 @@ def strict_json(raw):
     return json.loads(raw, object_pairs_hook=pairs, parse_constant=invalid_constant)
 
 
+def version_output_shape(raw):
+    """Classify bounded version output without retaining any output strings."""
+    tokens = raw.split()
+    version = tokens[2] if len(tokens) > 2 else b''
+    major = re.match(rb'v?([0-9]+)\.', version)
+    return {
+        'output_ascii': raw.isascii(),
+        'line_count': min(len(raw.splitlines()), 3),
+        'token_count': min(len(tokens), 5),
+        'app_is_ctr': bool(tokens) and tokens[0] == b'ctr',
+        'package_is_docker': len(tokens) > 1 and tokens[1] == b'containerd.io',
+        'package_is_upstream': len(tokens) > 1 and tokens[1] in {
+            b'github.com/containerd/containerd', b'github.com/containerd/containerd/v2'},
+        'numeric_major_shape': major is not None,
+        'supported_numeric_major': major is not None and major[1] in {b'1', b'2'},
+        'version_grammar': bool(re.fullmatch(
+            rb'v?[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z][0-9A-Za-z.+-]*)?', version)),
+        'trailing_token_grammar': len(tokens) <= 3 or (len(tokens) == 4 and bool(
+            re.fullmatch(rb'[0-9A-Za-z._+-]+', tokens[3]))),
+        'single_space_separators': raw.removesuffix(b'\n') == b' '.join(tokens),
+        'has_non_lf_control': any(b < 32 and b != 10 or b == 127 for b in raw),
+        'has_tabs': b'\t' in raw,
+        'has_carriage_return': b'\r' in raw,
+        'has_repeated_ascii_spaces': b'  ' in raw,
+    }
+
+
+def normalized_version_shape(value):
+    """Allow only complete fixed boolean/count fields from reader exceptions."""
+    bool_fields = {'output_ascii', 'app_is_ctr', 'package_is_docker', 'package_is_upstream',
+                   'numeric_major_shape', 'supported_numeric_major', 'version_grammar',
+                   'trailing_token_grammar', 'single_space_separators', 'has_non_lf_control',
+                   'has_tabs', 'has_carriage_return', 'has_repeated_ascii_spaces'}
+    if (not isinstance(value, dict) or not all(type(value.get(k)) is bool for k in bool_fields)
+            or type(value.get('line_count')) is not int or not 0 <= value['line_count'] <= 3
+            or type(value.get('token_count')) is not int or not 0 <= value['token_count'] <= 5):
+        return None
+    return {k: value[k] for k in sorted(bool_fields | {'line_count', 'token_count'})}
+
+
 class LocalContentReader:
     def __init__(self, command=bounded_command):
         self.command = command
@@ -146,7 +186,9 @@ class LocalContentReader:
         if not re.fullmatch(rb'ctr (?:github\.com/containerd/containerd(?:/v2)?|containerd\.io) '
                             rb'v?[12]\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z][0-9A-Za-z.+-]*)?'
                             rb'(?: [0-9A-Za-z._+-]*)?\n?', version):
-            raise ContentUnavailable('local_reader_version_unsupported')
+            error = ContentUnavailable('local_reader_version_unsupported')
+            error.version_shape = version_output_shape(version)
+            raise error
         help_text = self.command([self.executable, '--help'], 65536, 5)
         if not all(re.search(rb'(?<![\w-])' + flag + rb'(?![\w-])', help_text)
                    for flag in [b'--address', b'--namespace', b'--timeout', b'--connect-timeout']):
@@ -196,6 +238,7 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
     stage = 'descriptor'
     reason = 'validation_failed'
     qualified = False
+    version_shape = None
     try:
         descriptor = image.get('Descriptor')
         if (not isinstance(descriptor, dict) or descriptor.get('digest') != pin.manifest
@@ -263,12 +306,16 @@ def qualify_local_config(image, pin, reference, run, reader=None, diagnostic=Non
         if (isinstance(error, ContentUnavailable) and len(error.args) == 1
                 and type(error.args[0]) is str and error.args[0] in codes):
             reason = error.args[0]
+            if reason == 'local_reader_version_unsupported':
+                version_shape = normalized_version_shape(getattr(error, 'version_shape', None))
         elif isinstance(error, (ValueError, TypeError, KeyError)):
             reason = 'validation_failed'
         return False
     finally:
         if diagnostic is not None and not qualified:
             diagnostic.update({'stage': stage, 'reason': reason})
+            if version_shape is not None:
+                diagnostic['version_shape'] = version_shape
 
 
 def verify(image, pin, stage="unspecified", reference=None, run=None, reader=None):
@@ -298,6 +345,7 @@ def verify(image, pin, stage="unspecified", reference=None, run=None, reader=Non
             repo_matches = bool(set(fields.get('RepoDigests') or []).intersection(allowed))
         except (TypeError, ValueError):
             repo_matches = False
+        version_shape = proof_diagnostic.pop('version_shape', None)
         error = Refused('image_identity_mismatch')
         error.diagnostic = {
             'image': pin.name if pin in PINS else 'unknown',
@@ -316,6 +364,8 @@ def verify(image, pin, stage="unspecified", reference=None, run=None, reader=Non
             error.diagnostic['local_config_provenance'] = 'not_qualified'
             if proof_diagnostic:
                 error.diagnostic['local_config_proof'] = proof_diagnostic
+        if version_shape is not None:
+            error.diagnostic['local_reader_version_shape'] = version_shape
         if pin in PINS:
             error.diagnostic['expected'] = {
                 'config': pin.config, 'index': pin.index, 'manifest': pin.manifest}

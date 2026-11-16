@@ -539,6 +539,76 @@ class CtrCapabilityTests(unittest.TestCase):
             self.assertNotIn('SECRET', json.dumps(caught.exception.diagnostic))
             run.assert_not_called()
 
+class CtrVersionShapeTests(unittest.TestCase):
+    def test_version_shape_reports_only_bounded_structure(self):
+        self.assertTrue(callable(getattr(cache, 'version_output_shape', None)), 'safe version shape missing')
+        cases = [
+            (b'ctr containerd.io v2.1.0 abc\n', {'output_ascii': True, 'line_count': 1,
+                'token_count': 4, 'app_is_ctr': True, 'package_is_docker': True,
+                'package_is_upstream': False, 'numeric_major_shape': True,
+                'supported_numeric_major': True, 'version_grammar': True,
+                'trailing_token_grammar': True, 'single_space_separators': True,
+                'has_non_lf_control': False, 'has_tabs': False,
+                'has_carriage_return': False, 'has_repeated_ascii_spaces': False}),
+            (b'ctr containerd.io v3.1.0 vendor/revision\n', {'output_ascii': True, 'line_count': 1,
+                'token_count': 4, 'app_is_ctr': True, 'package_is_docker': True,
+                'package_is_upstream': False, 'numeric_major_shape': True,
+                'supported_numeric_major': False, 'version_grammar': True,
+                'trailing_token_grammar': False, 'single_space_separators': True,
+                'has_non_lf_control': False, 'has_tabs': False,
+                'has_carriage_return': False, 'has_repeated_ascii_spaces': False}),
+            (b'SECRET\xff\nSECRET\nSECRET\nSECRET', {'output_ascii': False, 'line_count': 3,
+                'token_count': 4, 'app_is_ctr': False, 'package_is_docker': False,
+                'package_is_upstream': False, 'numeric_major_shape': False,
+                'supported_numeric_major': False, 'version_grammar': False,
+                'trailing_token_grammar': True, 'single_space_separators': False,
+                'has_non_lf_control': False, 'has_tabs': False,
+                'has_carriage_return': False, 'has_repeated_ascii_spaces': False})]
+        for raw, expected in cases:
+            self.assertEqual(cache.version_output_shape(raw), expected)
+        detail = cache.version_output_shape(b'SECRET ' * 500)
+        self.assertEqual(detail['token_count'], 5)
+        self.assertNotIn('SECRET', json.dumps(detail))
+        self.assertLess(len(json.dumps(detail)), 500)
+
+    def test_failed_version_diagnostic_reaches_refusal_without_relaxing_acceptance(self):
+        from unittest.mock import patch
+        pin, image, _, run = LocalContentTests().fixture()
+        raw = b'ctr containerd.io v2.1.0 SECRET/revision\n'
+        reader = cache.LocalContentReader(command=CtrCapabilityTests().command_for(raw))
+        with patch.object(cache.shutil, 'which', return_value='/usr/bin/ctr'):
+            with self.assertRaises(cache.Refused) as caught:
+                cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+        proof = caught.exception.diagnostic.get('local_config_proof', {})
+        shape = caught.exception.diagnostic.get('local_reader_version_shape')
+        self.assertIsInstance(shape, dict)
+        self.assertEqual(proof['reason'], 'local_reader_version_unsupported')
+        self.assertTrue(shape['supported_numeric_major'])
+        self.assertFalse(shape['trailing_token_grammar'])
+        self.assertNotIn('SECRET', json.dumps(caught.exception.diagnostic))
+        run.assert_not_called()
+
+    def test_whitespace_shape_separates_tabs_cr_and_repeated_spaces(self):
+        self.assertTrue(callable(getattr(cache, 'version_output_shape', None)), 'safe version shape missing')
+        shape = cache.version_output_shape(b'ctr\tcontainerd.io  v2.1.0\r\n')
+        self.assertTrue(shape.get('has_tabs'))
+        self.assertTrue(shape.get('has_carriage_return'))
+        self.assertTrue(shape.get('has_repeated_ascii_spaces'))
+        self.assertFalse(shape['single_space_separators'])
+        self.assertTrue(shape['has_non_lf_control'])
+
+    def test_unknown_exception_shape_values_cannot_escape(self):
+        pin, image, reader, run = LocalContentTests().fixture()
+        error = cache.ContentUnavailable('local_reader_version_unsupported')
+        error.version_shape = {'SECRET': 'SECRET', 'output_ascii': 'SECRET',
+                               'line_count': 999999, 'token_count': True}
+        reader.qualify = Mock(side_effect=error)
+        with self.assertRaises(cache.Refused) as caught:
+            cache.verify(image, pin, reference='fixture', run=run, reader=reader)
+        proof = caught.exception.diagnostic['local_config_proof']
+        self.assertNotIn('version_shape', proof)
+        self.assertNotIn('SECRET', json.dumps(caught.exception.diagnostic))
+
 
 if __name__ == '__main__':
     unittest.main()
