@@ -8,7 +8,7 @@ import type { SwitchLifecycleStage } from '@/lib/operations/controlTower'
 import { queueSupplierSwitchOutboundAction } from '@/app/admin/cis/actions'
 import { finalizeSupplierSwitchExecutionAction, retryOutboundFromSwitchDetailAction, validateSupplierSwitchBeforeProcessingAction } from '@/app/admin/operations/actions'
 
-const progress: Record<SwitchLifecycleStage, { label: string; description: string }> = {
+export const supplierSwitchBusinessProgress: Record<SwitchLifecycleStage, { label: string; description: string }> = {
   blocked: { label: 'Uppgifter behöver kompletteras', description: 'Kontrollera anläggningsuppgifterna och fullmakten.' },
   queued_for_outbound: { label: 'Utskick förbereds', description: 'Uppgifterna behöver vara klara innan begäran skickas.' },
   awaiting_dispatch: { label: 'Väntar på utskick', description: 'Begäran är förberedd och väntar på att skickas.' },
@@ -17,6 +17,7 @@ const progress: Record<SwitchLifecycleStage, { label: string; description: strin
   awaiting_effective_date: { label: 'Väntar på startdatum', description: 'Bytet är bekräftat och inväntar avtalad leveransstart.' },
   ready_to_execute: { label: 'Redo för leveransstart', description: 'Kontrollera det bekräftade startdatumet innan bytet slutförs.' },
   completed: { label: 'Klart', description: 'Leverantörsbytet är slutfört.' },
+  cancelled: { label: 'Avbrutet före leveransstart', description: 'Ärendet är avbrutet och går inte vidare till leveransstart.' },
   failed: { label: 'Behöver granskas', description: 'Begäran har stoppats eller avvisats. Granska orsaken innan nästa försök.' },
 }
 
@@ -37,7 +38,9 @@ export default function SupplierSwitchBusinessView({ request, site, gridOwner, r
 }) {
   const activation = request.status === 'accepted' ? getSupplierSwitchActivationReadiness(request) : null
   const paused = Boolean(request.paused_at || request.lifecycle_blocked)
-  const current = String(request.status) === 'cancelled'
+  const current = request.status === 'cancelled_before_start'
+    ? supplierSwitchBusinessProgress.cancelled
+    : String(request.status) === 'cancelled'
     ? { label: 'Avbrutet', description: 'Leverantörsbytet är avbrutet och går inte vidare till leveransstart.' }
     : request.status === 'rejected'
       ? { label: 'Avvisat', description: 'Leverantörsbytet har avvisats. Granska orsaken på kundkortet.' }
@@ -47,8 +50,8 @@ export default function SupplierSwitchBusinessView({ request, site, gridOwner, r
           ? { label: 'Nätägarens bekräftelse behöver kontrolleras', description: 'Bekräftelsen saknas i ärendet. Kontakta support innan leveransstart.' }
           : stage === 'blocked' && activation?.code === 'missing_effective_start_date'
             ? { label: 'Startdatum saknas', description: 'Nätägaren har bekräftat bytet. Komplettera och kontrollera startdatumet innan leveransstart.' }
-            : progress[stage]
-  const closed = ['completed', 'cancelled', 'rejected'].includes(request.status)
+            : supplierSwitchBusinessProgress[stage]
+  const closed = ['completed', 'cancelled', 'cancelled_before_start', 'rejected'].includes(request.status)
   return <main className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6">
     <a href={`/admin/customers/${request.customer_id}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-emerald-800 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">← Kundkort</a>
     <section className="rounded-2xl border border-slate-200 bg-white p-4">

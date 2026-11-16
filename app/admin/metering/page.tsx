@@ -1,6 +1,7 @@
 import { loadMeteringBusinessData, filterMeteringBusinessRows } from '@/lib/admin/meteringBusinessData'
 import MeteringBusinessView from '@/components/admin/customers/MeteringBusinessView'
 import { isPlatformAdminContext } from '@/lib/admin/guards'
+import { hasPermissionRequirement } from '@/lib/admin/accessModel'
 import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 // app/admin/metering/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -53,7 +54,7 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
 
  if (!isPlatformAdmin) {
    const businessData = await loadMeteringBusinessData(companyId, requests, values)
-   return <div className="min-h-screen"><AdminHeader title="Mätvärden" subtitle="Förbrukning, rättelser och begärda uppgifter från nätägaren." userEmail={context.email} /><MeteringBusinessView requests={filterMeteringBusinessRows(requests, businessData, query)} values={filterMeteringBusinessRows(values, businessData, query)} query={query} businessData={businessData} /></div>
+   return <div className="min-h-screen"><AdminHeader title="Mätvärden" subtitle="Förbrukning, rättelser och begärda uppgifter från nätägaren." userEmail={context.email} /><MeteringBusinessView canReadCustomer={hasPermissionRequirement(context.permissions, { anyOf: ['customers.read', 'masterdata.read'] })} requests={filterMeteringBusinessRows(requests, businessData, query)} values={filterMeteringBusinessRows(values, businessData, query)} query={query} businessData={businessData} /></div>
  }
 
  return (

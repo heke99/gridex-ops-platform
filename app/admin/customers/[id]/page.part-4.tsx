@@ -1068,6 +1068,7 @@ export async function CustomerAdminDetailPage({
         >
           <CustomerBillingMeteringCard
             customerId={id}
+            canReadBilling={isPlatformAdmin || access.permissions.includes('billing_underlay.read')}
             sites={sites}
             meteringPoints={meteringPoints}
             gridOwners={gridOwners}

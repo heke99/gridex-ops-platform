@@ -10,6 +10,10 @@ import type {
 } from '@/lib/operations/types'
 import { getSupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
 
+export function isCancelledSupplierSwitchStatus(status: string): boolean {
+  return status === 'cancelled_before_start' || status === 'cancelled'
+}
+
 export type SwitchLifecycleStage =
   | 'blocked'
   | 'queued_for_outbound'
@@ -19,6 +23,7 @@ export type SwitchLifecycleStage =
   | 'awaiting_effective_date'
   | 'ready_to_execute'
   | 'completed'
+  | 'cancelled'
   | 'failed'
 
 export function summarizeReadinessIssues(
@@ -41,6 +46,10 @@ export function getSwitchLifecycle(params: {
   reason: string
 } {
   const { request, readiness, outboundRequest } = params
+
+  if (isCancelledSupplierSwitchStatus(request.status)) {
+    return { stage: 'cancelled', label: 'Avbrutet före leveransstart', reason: request.failure_reason ?? 'Ärendet är avbrutet och går inte vidare till leveransstart.' }
+  }
 
   if (['failed', 'rejected'].includes(request.status)) {
     return {

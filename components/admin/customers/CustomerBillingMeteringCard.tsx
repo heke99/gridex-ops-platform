@@ -27,6 +27,7 @@ type Props = {
   partnerExports: PartnerExportRow[]
   outboundRequests: OutboundRequestRow[]
   isPlatformAdmin?: boolean
+  canReadBilling?: boolean
 }
 
 function rowTime(row: { updated_at?: string | null; created_at?: string | null }) {
@@ -47,6 +48,7 @@ export default function CustomerBillingMeteringCard({
   billingUnderlays,
   outboundRequests,
   isPlatformAdmin = false,
+  canReadBilling = false,
 }: Props) {
   const meterValueRequests = dataRequests.filter((request) => request.request_scope === 'meter_values')
   const latestMeterRequest = [...meterValueRequests].sort((a, b) => rowTime(b) - rowTime(a))[0] ?? null
@@ -142,14 +144,14 @@ export default function CustomerBillingMeteringCard({
             </div>
           ) : null}
 
-          <div className="flex justify-end">
+          {canReadBilling ? <div className="flex justify-end">
             <Link
               href={`/admin/billing?customer=${encodeURIComponent(customerId)}`}
               className="inline-flex rounded-xl border border-slate-300 px-3.5 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
             >
               Öppna fakturor
             </Link>
-          </div>
+          </div> : null}
         </div>
       </SectionCard>
     </section>

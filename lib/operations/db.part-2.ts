@@ -53,6 +53,57 @@ export async function listReadySupplierSwitchCandidatePage(
   })
 }
 
+/** Search every candidate within a bounded scan; expose continuation rather than a false global empty result. */
+export async function listSupplierSwitchCandidatePage(
+  supabase: SupabaseClient,
+  input: { companyId: string | null; status?: string; requestType?: string; query?: string; stage?: string; cursor?: string | null; limit?: number },
+): Promise<AdminCandidatePage<SupplierSwitchRequestRow>> {
+  const search = (input.query ?? '').trim().toLocaleLowerCase('sv-SE')
+  const customerLabels = new Map<string, string>()
+  return scanAdminCandidates<SupplierSwitchRequestRow>({
+    context: { companyId: input.companyId, resource: 'supplier_switch_list', predicateVersion: JSON.stringify(['business_search_v1', input.status ?? 'all', input.requestType ?? 'all', search, input.stage ?? 'all']) },
+    cursor: input.cursor,
+    limit: input.limit,
+    eligible: request => !search || [request.id, request.customer_id, request.site_id, request.metering_point_id,
+      request.request_type, request.current_supplier_name, request.incoming_supplier_name, request.external_reference,
+      customerLabels.get(request.customer_id)].filter(Boolean).join(' ').toLocaleLowerCase('sv-SE').includes(search),
+    load: async (after, limit) => {
+      let query = supabase.from('supplier_switch_requests').select('*', { count: 'exact' })
+        .order('created_at', { ascending: false, nullsFirst: false }).order('id', { ascending: false }).limit(limit)
+      if (input.companyId) query = query.eq('company_id', input.companyId)
+      if (input.status && input.status !== 'all') query = query.eq('status', input.status)
+      if (input.requestType && input.requestType !== 'all') query = query.eq('request_type', input.requestType)
+      if (after?.createdAt) query = query.or(`created_at.lt.${after.createdAt},and(created_at.eq.${after.createdAt},id.lt.${after.id}),created_at.is.null`)
+      else if (after) query = query.is('created_at', null).lt('id', after.id)
+      const { data, count, error } = await query
+      if (error) throw error
+      if (!Array.isArray(data) || !Number.isInteger(count)) throw new InvalidReadModelResponseError()
+      for (const row of data) {
+        if (!row || typeof row.company_id !== 'string' || !row.company_id
+          || ['customer_id', 'site_id', 'metering_point_id', 'status', 'request_type'].some(field => typeof row[field] !== 'string' || !row[field])
+          || (input.companyId !== null && row.company_id !== input.companyId)
+          || (input.status && input.status !== 'all' && row.status !== input.status)
+          || (input.requestType && input.requestType !== 'all' && row.request_type !== input.requestType)) throw new InvalidReadModelResponseError()
+      }
+      if (search && data.length) {
+        const customerIds = [...new Set(data.map(row => row.customer_id as string))]
+        let customersQuery = supabase.from('customers').select('id,company_id,full_name,first_name,last_name,company_name,customer_number', { count: 'exact' })
+          .in('id', customerIds).limit(customerIds.length)
+        if (input.companyId) customersQuery = customersQuery.eq('company_id', input.companyId)
+        const customers = await customersQuery
+        if (customers.error) throw customers.error
+        if (!Array.isArray(customers.data) || customers.count !== customers.data.length) throw new InvalidReadModelResponseError()
+        for (const customer of customers.data) {
+          if (!customer || !data.some(row => row.customer_id === customer.id && row.company_id === customer.company_id)) throw new InvalidReadModelResponseError()
+          customerLabels.set(customer.id, [customer.full_name, customer.first_name, customer.last_name, customer.company_name, customer.customer_number].filter(Boolean).join(' '))
+        }
+        if (customerIds.some(id => !customerLabels.has(id))) throw new InvalidReadModelResponseError()
+      }
+      return { rows: data as SupplierSwitchRequestRow[], count: count as number }
+    },
+  })
+}
+
 export async function listAllSupplierSwitchRequests(
   supabase: SupabaseClient,
   options: {

@@ -285,6 +285,9 @@ export function buildCustomerOperationsSummary(params: {
  case 'completed':
  completed += 1
  break
+ case 'cancelled':
+ // An aborted delivery is neither active nor successfully completed.
+ break
  default: {
  const unhandledStage: never = lifecycle.stage
  void unhandledStage
