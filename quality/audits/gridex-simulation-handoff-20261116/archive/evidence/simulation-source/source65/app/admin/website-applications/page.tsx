@@ -1,0 +1,1086 @@
+import AdminActionsMenu from "@/components/admin/ui/AdminActionsMenu";
+import Link from "next/link";
+import {
+  requireAdminPageAccess,
+  isPlatformAdminContext,
+} from "@/lib/admin/guards";
+import { resolveAdminTenantReadScope } from "@/lib/tenant/adminScope";
+import {
+  listWebsiteApplications,
+  type WebsiteApplicationAdminRow,
+} from "@/lib/admin/websiteIntegrationOps";
+import {
+  checkWebsiteApplicationReadinessAction,
+  markWebsiteApplicationFacilityDataReceivedAction,
+  requestWebsiteApplicationGridOwnerInfoAction,
+  resolveWebsiteApplicationEnergyAction,
+  updateWebsiteApplicationReviewAction,
+} from "./actions";
+import {
+  intakeStatusLabel,
+  missingFieldLabel,
+  sourceLabel,
+  energyResolutionStatusLabel,
+} from "@/lib/customers/statusLabels";
+import { applicationWorkState } from "@/lib/website/applicationState";
+
+export const dynamic = "force-dynamic";
+
+type JsonRecord = Record<string, unknown>;
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("sv-SE", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
+const CONTROLLED_FACILITY_STATUSES = new Set([
+  "facility_data_invalid",
+  "customer_information_mismatch",
+  "grid_owner_rejected_request",
+  "negative_aperak_received",
+  "z02_rejected",
+  "needs_customer_correction",
+  "needs_grid_owner_followup",
+  "duplicate_facility_id",
+  "cross_tenant_facility_conflict",
+  "protected_identity",
+]);
+
+const HARD_BLOCK_STATUSES = new Set([
+  "negative_aperak_received",
+  "z02_rejected",
+  "grid_owner_rejected_request",
+  "protected_identity",
+]);
+
+function isControlledFacilityStatus(status: string | null | undefined) {
+  return Boolean(status && CONTROLLED_FACILITY_STATUSES.has(status));
+}
+
+function facilityCorrectionCopy(status: string | null | undefined) {
+  if (status === "cross_tenant_facility_conflict") {
+    return {
+      title: "Anläggnings-ID behöver verifieras",
+      message:
+        "Kundrelationen får skapas separat, men automation ska vänta tills anläggning, startdatum och fullmakt är verifierade. Endast ert bolags ansökningar visas.",
+      steps: [
+        "Verifiera uppgiften med kunden.",
+        "Kontakta nätägaren om uppgiften fortfarande verkar rätt.",
+        "Kontrollera ansökan igen efter granskningen.",
+      ],
+    };
+  }
+  if (status === "protected_identity") {
+    return {
+      title: "Skyddad identitet kräver manuell process",
+      message: "Automatiska utskick och känslig datadelning är stoppade.",
+      steps: [
+        "Flytta ärendet till behörig handläggare.",
+        "Skicka inte känsliga uppgifter via vanlig e-post.",
+        "Kör ny kontroll först när processen är säkert hanterad.",
+      ],
+    };
+  }
+  if (status === "duplicate_facility_id") {
+    return {
+      title: "Anläggnings-ID finns redan",
+      message: "Plattformen skapar inte en dubblett för samma bolag.",
+      steps: [
+        "Öppna befintlig kund/anläggning.",
+        "Länka eller rätta uppgiften.",
+        "Kontrollera ansökan igen innan leverantörsbytet startas.",
+      ],
+    };
+  }
+  return {
+    title: "Anläggningsuppgifter behöver rättas",
+    message:
+      "Leverantörsbyte är stoppat tills anläggnings-ID, mätpunkt, kundidentitet och nätägare är verifierade.",
+    steps: [
+      "Kontrollera anläggnings-ID och mätpunkt med kunden.",
+      "Begär rätt uppgifter från nätägaren eller ladda upp elnätsfaktura.",
+      "Kontrollera ansökan igen innan leverantörsbytet startas.",
+    ],
+  };
+}
+
+function statusTone(status: string) {
+  if (
+    [
+      "ready_for_switch",
+      "switch_confirmed",
+      "active",
+      "completed",
+      "linked_existing_customer",
+      "customer_created",
+      "customer_matched",
+      "facility_data_received",
+    ].includes(status)
+  )
+    return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (
+    [
+      "application_received",
+      "received",
+      "pending_validation",
+      "switch_requested",
+      "address_resolved",
+      "grid_area_resolved",
+    ].includes(status)
+  )
+    return "border-sky-200 bg-sky-50 text-sky-800";
+  if (HARD_BLOCK_STATUSES.has(status))
+    return "border-red-200 bg-red-50 text-red-800";
+  if (isControlledFacilityStatus(status))
+    return "border-amber-200 bg-amber-50 text-amber-900";
+  if (
+    [
+      "needs_information",
+      "needs_address_resolution",
+      "needs_facility_data",
+      "information_request_ready",
+      "information_request_sent",
+      "waiting_grid_owner_response",
+      "manual_review",
+      "pending_review",
+      "confirmation_pending",
+      "webhook_pending",
+    ].includes(status)
+  )
+    return "border-amber-200 bg-amber-50 text-amber-900";
+  if (["failed", "rejected", "cancelled", "switch_rejected"].includes(status))
+    return "border-red-200 bg-red-50 text-red-800";
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+function isRecord(value: unknown): value is JsonRecord {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function nestedValue(
+  payload: JsonRecord | null | undefined,
+  path: string,
+): string | null {
+  let current: unknown = payload;
+  for (const part of path.split(".")) {
+    if (!isRecord(current)) return null;
+    current = current[part];
+  }
+  return typeof current === "string" && current.trim() ? current : null;
+}
+
+function firstPayloadValue(
+  payload: JsonRecord | null | undefined,
+  paths: string[],
+) {
+  for (const path of paths) {
+    const value = nestedValue(payload, path);
+    if (value) return value;
+  }
+  return null;
+}
+
+function energyValue(
+  item: WebsiteApplicationAdminRow,
+  key: string,
+  fallbackPaths: string[] = [],
+) {
+  const response = item.response_payload ?? {};
+  const fromResponse =
+    nestedValue(response, `energy_resolution.${key}`) ??
+    nestedValue(response, key);
+  if (fromResponse) return fromResponse;
+  const direct = (item as unknown as Record<string, unknown>)[key];
+  if (typeof direct === "string" && direct.trim()) return direct;
+  return firstPayloadValue(item.payload, fallbackPaths);
+}
+
+function canShowStartSwitch(item: WebsiteApplicationAdminRow) {
+  return item.status === "ready_for_switch";
+}
+
+function isCanonicalWebsiteApplication(item: WebsiteApplicationAdminRow) {
+  return item.source_table !== "external_contract_intakes";
+}
+
+function sourceBadgeLabel(item: WebsiteApplicationAdminRow) {
+  if (item.source_table === "website_customer_applications")
+    return "Webbansökan";
+  if (item.source_table === "external_contract_intakes") return "Extern ansökan";
+  return sourceLabel(item.source ?? "external_contract_intake");
+}
+
+function safeOperationalMessage(value: string | null | undefined) {
+  const message = value?.trim();
+  if (!message) return null;
+  if (/customers_intake_status_check/i.test(message))
+    return "Kundstatus behöver uppdateras i databasen innan ansökan kan fortsätta.";
+  if (/customer_contracts_status_check/i.test(message))
+    return "Avtal kunde inte skapas eftersom avtalsstatus behöver uppdateras i databasen.";
+  if (/customer_contracts_source_type_check/i.test(message))
+    return "Avtal kunde inte skapas eftersom avtalets källa behöver uppdateras i databasen.";
+  if (
+    /customer_contracts.*metadata|metadata.*customer_contracts|PGRST204/i.test(
+      message,
+    )
+  )
+    return "Kundavtalets databasstruktur behöver uppdateras innan ansökan kan fortsätta.";
+  if (/Failing row contains/i.test(message))
+    return "Databasen stoppade ansökan. Kontrollera loggen och uppdatera databasen innan du kör igen.";
+  if (message.length > 180) return `${message.slice(0, 180)}…`;
+  return message;
+}
+
+function isFailedApplication(item: WebsiteApplicationAdminRow) {
+  return ["failed", "rejected", "cancelled", "switch_rejected"].includes(
+    item.status,
+  );
+}
+
+function hasControlledFacilityIssue(item: WebsiteApplicationAdminRow) {
+  return (
+    isControlledFacilityStatus(item.status) ||
+    isControlledFacilityStatus(nestedValue(item.response_payload, "status")) ||
+    isControlledFacilityStatus(
+      nestedValue(item.response_payload, "facility_data_status"),
+    )
+  );
+}
+
+function controlledFacilityStatus(item: WebsiteApplicationAdminRow) {
+  if (isControlledFacilityStatus(item.status)) return item.status;
+  const responseStatus = nestedValue(item.response_payload, "status");
+  if (isControlledFacilityStatus(responseStatus)) return responseStatus;
+  const facilityStatus = nestedValue(
+    item.response_payload,
+    "facility_data_status",
+  );
+  if (isControlledFacilityStatus(facilityStatus)) return facilityStatus;
+  return null;
+}
+
+function stringList(value: unknown): string[] {
+  if (Array.isArray(value))
+    return value.map((item) => String(item)).filter(Boolean);
+  if (typeof value === "string" && value.trim()) return [value];
+  return [];
+}
+
+function reviewIssues(
+  item: WebsiteApplicationAdminRow,
+): Array<{ field: string; label: string; action: string; severity?: string }> {
+  const fromColumn = Array.isArray(item.blocking_reasons)
+    ? item.blocking_reasons.filter(isRecord).map((issue) => ({
+        field: String(issue.field ?? "unknown"),
+        label: String(
+          issue.label ??
+            missingFieldLabel(String(issue.field ?? "application")) ??
+            "Saknad uppgift",
+        ),
+        action: String(
+          issue.action ?? item.next_step ?? "Komplettera uppgiften.",
+        ),
+        severity:
+          typeof issue.severity === "string" ? issue.severity : undefined,
+      }))
+    : [];
+
+  if (fromColumn.length > 0) return fromColumn;
+
+  const fromMissingFields = stringList(item.missing_fields).map((field) => ({
+    field,
+    label: missingFieldLabel(field),
+    action: item.next_step ?? "Komplettera uppgiften.",
+  }));
+  if (fromMissingFields.length > 0) return fromMissingFields;
+
+  const controlledStatus = controlledFacilityStatus(item);
+  if (controlledStatus) {
+    const copy = facilityCorrectionCopy(controlledStatus);
+    return [
+      {
+        field: controlledStatus,
+        label: copy.title,
+        action: item.next_step ?? copy.steps[0],
+        severity: "blocking",
+      },
+    ];
+  }
+
+  if (isFailedApplication(item)) {
+    return [
+      {
+        field: "application",
+        label: "Ansökan kräver åtgärd",
+        action:
+          safeOperationalMessage(item.error_message ?? item.error_code) ??
+          "Kontrollera uppgifterna i ansökan och försök igen. Kontakta Gridex support om felet kvarstår.",
+        severity: "blocking",
+      },
+    ];
+  }
+
+  return [];
+}
+
+function timelineRows(item: WebsiteApplicationAdminRow) {
+  return Array.isArray(item.timeline)
+    ? item.timeline.filter(isRecord).slice(-8).reverse()
+    : [];
+}
+
+function customerName(row: WebsiteApplicationAdminRow) {
+  return (
+    row.customers?.full_name ??
+    row.customers?.company_name ??
+    row.customers?.email ??
+    firstPayloadValue(row.payload, [
+      "customer.full_name",
+      "customer.company_name",
+      "customer.email",
+      "email",
+    ]) ??
+    "—"
+  );
+}
+
+function customerEmail(row: WebsiteApplicationAdminRow) {
+  return (
+    row.customers?.email ??
+    firstPayloadValue(row.payload, ["customer.email", "email"]) ??
+    "—"
+  );
+}
+
+function customerPhone(row: WebsiteApplicationAdminRow) {
+  return (
+    row.customers?.phone ??
+    firstPayloadValue(row.payload, ["customer.phone", "phone"]) ??
+    "—"
+  );
+}
+
+function defaultChecked(
+  payload: JsonRecord | null | undefined,
+  paths: string[],
+) {
+  return paths.some((path) => {
+    let current: unknown = payload;
+    for (const part of path.split(".")) {
+      if (!isRecord(current)) return false;
+      current = current[part];
+    }
+    return (
+      current === true ||
+      current === "true" ||
+      current === "accepted" ||
+      current === "ja"
+    );
+  });
+}
+
+function ReviewForm({ item, showTechnicalDetails }: { item: WebsiteApplicationAdminRow; showTechnicalDetails: boolean }) {
+  const payload = item.payload ?? {};
+  if (!isCanonicalWebsiteApplication(item)) {
+    return (
+      <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+        Den här ansökan kan inte ändras i listan. Öppna detaljsidan eller
+        kundkortet för fortsatt granskning.
+      </div>
+    );
+  }
+  return (
+    <form
+      className="mt-4 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+      action={updateWebsiteApplicationReviewAction}
+    >
+      <input type="hidden" name="application_id" value={item.id} />
+      <input
+        type="hidden"
+        name="return_to"
+        value={`/admin/website-applications/${item.id}?source=${item.source_table ?? "website_customer_applications"}`}
+      />
+      <div className="grid gap-3 md:grid-cols-4">
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Kundnamn
+          <input
+            name="customer_full_name"
+            defaultValue={
+              firstPayloadValue(payload, [
+                "customer.full_name",
+                "customer.company_name",
+                "name",
+              ]) ?? ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          E-post
+          <input
+            name="customer_email"
+            defaultValue={
+              firstPayloadValue(payload, ["customer.email", "email"]) ?? ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Telefon
+          <input
+            name="customer_phone"
+            defaultValue={
+              firstPayloadValue(payload, ["customer.phone", "phone"]) ?? ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Anläggnings-ID
+          <input
+            name="facility_id"
+            defaultValue={
+              firstPayloadValue(payload, [
+                "site.facility_id",
+                "facility_id",
+                "site_facility_id",
+              ]) ?? ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Mätpunkt
+          <input
+            name="metering_point_id"
+            defaultValue={
+              firstPayloadValue(payload, [
+                "metering_point.metering_point_id",
+                "metering_point.meter_point_id",
+                "metering_point_id",
+              ]) ?? ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        {showTechnicalDetails ? <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Nätägare / verifierad aktör
+          <input
+            name="grid_owner_id"
+            defaultValue={
+              firstPayloadValue(payload, [
+                "grid_owner_id",
+                "network_owner_id",
+                "site.grid_owner_id",
+              ]) ?? ""
+            }
+            placeholder="Välj verifierad aktör eller klistra in verifierat UUID"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label> : <input type="hidden" name="grid_owner_id" value={firstPayloadValue(payload, ["grid_owner_id", "network_owner_id", "site.grid_owner_id"]) ?? item.grid_owner_id ?? ""} />}
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Nätområdeskod
+          <input
+            name="grid_area_code"
+            defaultValue={
+              item.grid_area_code ??
+              firstPayloadValue(payload, [
+                "grid_area_code",
+                "site.grid_area_code",
+              ]) ??
+              ""
+            }
+            placeholder="Ex. STH, MMO, SE4-kod"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Elområde
+          <input
+            name="price_area_code"
+            defaultValue={
+              item.price_area_code ??
+              firstPayloadValue(payload, [
+                "price_area_code",
+                "price_area",
+                "site.price_area_code",
+              ]) ??
+              ""
+            }
+            placeholder="SE1-SE4"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        {showTechnicalDetails ? <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Teknisk matchningsstatus
+          <input
+            name="resolution_status"
+            defaultValue={
+              item.resolution_status ??
+              firstPayloadValue(payload, ["resolution_status"]) ??
+              ""
+            }
+            placeholder="grid_area_master_validated"
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label> : <input type="hidden" name="resolution_status" value={item.resolution_status ?? firstPayloadValue(payload, ["resolution_status"]) ?? ""} />}
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 md:col-span-2">
+          Anläggningsadress
+          <input
+            name="site_street"
+            defaultValue={
+              firstPayloadValue(payload, [
+                "site.street",
+                "address",
+                "street",
+              ]) ?? ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Postnummer
+          <input
+            name="site_postal_code"
+            defaultValue={
+              firstPayloadValue(payload, ["site.postal_code", "postal_code"]) ??
+              ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Ort
+          <input
+            name="site_city"
+            defaultValue={
+              firstPayloadValue(payload, ["site.city", "city"]) ?? ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Prisplan / avtalsform
+          <input
+            name="price_plan_id"
+            defaultValue={
+              firstPayloadValue(payload, [
+                "price_plan_id",
+                "contract.price_plan_id",
+                "contract.contract_type",
+              ]) ?? ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Avtalsnamn
+          <input
+            name="contract_name"
+            defaultValue={
+              firstPayloadValue(payload, ["contract.contract_name"]) ?? ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Startläge
+          <select
+            name="requested_start_mode"
+            defaultValue={
+              item.requested_start_mode ??
+              firstPayloadValue(payload, [
+                "requested_start_mode",
+                "contract.requested_start_mode",
+              ]) ??
+              "earliest_possible"
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          >
+            <option value="earliest_possible">Snarast möjligt</option>
+            <option value="specific_date">Specifikt datum</option>
+          </select>
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Önskat startdatum
+          <input
+            type="date"
+            name="requested_start_date"
+            defaultValue={
+              item.requested_start_date ??
+              firstPayloadValue(payload, [
+                "requested_start_date",
+                "contract.requested_start_date",
+                "contract.starts_at",
+              ]) ??
+              ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Beräknad tidigaste start
+          <input
+            type="date"
+            name="calculated_earliest_start_date"
+            defaultValue={
+              item.calculated_earliest_start_date ??
+              firstPayloadValue(payload, [
+                "calculated_earliest_start_date",
+                "contract.calculated_earliest_start_date",
+              ]) ??
+              ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Bekräftat startdatum
+          <input
+            type="date"
+            name="confirmed_start_date"
+            defaultValue={
+              item.confirmed_start_date ??
+              firstPayloadValue(payload, [
+                "confirmed_start_date",
+                "contract.confirmed_start_date",
+              ]) ??
+              ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Faktiskt startdatum
+          <input
+            type="date"
+            name="actual_start_date"
+            defaultValue={
+              item.actual_start_date ??
+              firstPayloadValue(payload, [
+                "actual_start_date",
+                "contract.actual_start_date",
+              ]) ??
+              ""
+            }
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+          <input
+            type="checkbox"
+            name="power_of_attorney_accepted"
+            defaultChecked={defaultChecked(payload, [
+              "consents.power_of_attorney",
+              "consents.fullmakt_accepted",
+              "power_of_attorney_accepted",
+            ])}
+          />
+          Fullmakt finns
+        </label>
+        <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+          <input
+            type="checkbox"
+            name="terms_accepted"
+            defaultChecked={defaultChecked(payload, [
+              "consents.terms_accepted",
+              "consents.terms",
+              "terms_accepted",
+            ])}
+          />
+          Villkor accepterade
+        </label>
+        <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+          <input
+            type="checkbox"
+            name="facility_data_verified"
+            defaultChecked={
+              Boolean(item.facility_data_verified_at) ||
+              defaultChecked(payload, ["facility_data_verified"])
+            }
+          />
+          Anläggningsuppgifter mottagna/verifierade
+        </label>
+        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+          Intern anteckning
+          <input
+            name="admin_note"
+            defaultValue={item.admin_note ?? ""}
+            className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
+          />
+        </label>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
+          Spara komplettering
+        </button>
+        <AdminActionsMenu label="Fler åtgärder">
+        <button
+          formAction={resolveWebsiteApplicationEnergyAction}
+          className="rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-50"
+        >
+          Kör adressmatchning
+        </button>
+        <button
+          formAction={requestWebsiteApplicationGridOwnerInfoAction}
+          className="rounded-2xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-50"
+        >
+          Begär uppgifter från nätägare
+        </button>
+        <button
+          formAction={markWebsiteApplicationFacilityDataReceivedAction}
+          className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+        >
+          Markera uppgifter mottagna
+        </button>
+        <button
+          formAction={checkWebsiteApplicationReadinessAction}
+          className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50"
+        >
+          Kontrollera om redo
+        </button>
+        </AdminActionsMenu>
+      </div>
+    </form>
+  );
+}
+
+function ApplicationDetails({ item, showTechnicalDetails }: { item: WebsiteApplicationAdminRow; showTechnicalDetails: boolean }) {
+  const issues = reviewIssues(item);
+  const rows = timelineRows(item);
+  const hasExternalMirror = Boolean(
+    item.linked_external_intake_id &&
+    item.source_table === "website_customer_applications",
+  );
+  return (
+    <details className="mt-3 min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 [&_input]:min-w-0 [&_select]:min-w-0 [&_textarea]:min-w-0 [&_label]:min-w-0 [&_label]:grid-cols-1">
+      <summary className="cursor-pointer font-semibold">Komplettera i listan</summary>
+      <div className="mt-4 min-w-0 space-y-4 break-words text-sm font-normal text-slate-700">
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs uppercase tracking-[0.14em] text-slate-600">
+              Nästa steg
+            </p>
+            <p className="mt-1 font-semibold text-slate-950">
+              {item.next_step ?? "Kontrollera ansökan."}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs uppercase tracking-[0.14em] text-slate-600">
+              Källa
+            </p>
+            <p className="mt-1 font-semibold text-slate-950">
+              {sourceBadgeLabel(item)}
+              {hasExternalMirror ? " · extern ansökan kopplad" : ""}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs uppercase tracking-[0.14em] text-slate-600">
+              Startdatum
+            </p>
+            <p className="mt-1 font-semibold text-slate-950">
+              Önskat: {item.requested_start_date ?? "—"} · Bekräftat:{" "}
+              {item.confirmed_start_date ?? "—"}
+            </p>
+          </div>
+          {showTechnicalDetails ? <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs uppercase tracking-[0.14em] text-slate-600">
+              Länkar
+            </p>
+            <p className="mt-1">
+              Anläggning: {item.customer_site_id ?? "—"} · Mätpunkt:{" "}
+              {item.metering_point_id ?? "—"} · Avtal: {item.contract_id ?? "—"}
+            </p>
+          </div> : null}
+        </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+            <p className="text-xs uppercase tracking-[0.14em] text-sky-700">
+              Nätområde
+            </p>
+            <p className="mt-1 font-semibold text-sky-950">
+              {energyValue(item, "gridAreaCode", [
+                "grid_area_code",
+                "site.grid_area_code",
+              ]) ?? "—"}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+            <p className="text-xs uppercase tracking-[0.14em] text-sky-700">
+              Elområde
+            </p>
+            <p className="mt-1 font-semibold text-sky-950">
+              {energyValue(item, "priceArea", [
+                "price_area_code",
+                "site.price_area_code",
+              ]) ?? "—"}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+            <p className="text-xs uppercase tracking-[0.14em] text-sky-700">
+              Matchning
+            </p>
+            <p className="mt-1 font-semibold text-sky-950">
+              {energyResolutionStatusLabel(
+                energyValue(item, "resolutionStatus", ["resolution_status"]) ??
+                  item.resolution_status,
+              )}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+            <p className="text-xs uppercase tracking-[0.14em] text-sky-700">
+              Nätägare
+            </p>
+            <p className="mt-1 font-semibold text-sky-950">
+              {energyValue(item, "gridOwnerName", []) ??
+                (showTechnicalDetails ? item.grid_owner_id : null) ??
+                "Öppna ansökan för att välja eller granska nätägare"}
+            </p>
+          </div>
+        </div>
+        {!canShowStartSwitch(item) ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+            <strong>Leverantörsbyte är blockerat.</strong> Nästa säkra steg är
+            adressmatchning eller begäran om anläggningsuppgifter från nätägare
+            tills anläggning/mätpunkt är verifierad.
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">
+            Ansökan är redo för leverantörsbyte. Starta leverantörsbytet i arbetsflödet.
+          </div>
+        )}
+        {hasControlledFacilityIssue(item)
+          ? (() => {
+              const copy = facilityCorrectionCopy(
+                controlledFacilityStatus(item),
+              );
+              return (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-950">
+                  <p className="font-semibold">{copy.title}</p>
+                  <p className="mt-1">{copy.message}</p>
+                  <ol className="mt-3 list-decimal space-y-1 pl-5 text-xs">
+                    {copy.steps.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                  <p className="mt-3 text-xs font-semibold">
+                    Detaljer finns i granskningsloggen. Fortsätt inte
+                    automatiskt efter rättning utan ny redo-kontroll.
+                  </p>
+                </div>
+              );
+            })()
+          : null}
+        {issues.length > 0 ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="font-semibold text-amber-950">Saknas/blockerar</p>
+            <div className="mt-2 grid gap-2 md:grid-cols-2">
+              {issues.map((issue) => (
+                <div
+                  key={`${issue.field}-${issue.label}`}
+                  className="rounded-xl border border-amber-200 bg-white px-3 py-2"
+                >
+                  <div className="font-semibold text-amber-950">
+                    {issue.label}
+                  </div>
+                  <div className="text-xs text-amber-900">{issue.action}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        <ReviewForm item={item} showTechnicalDetails={showTechnicalDetails} />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="font-semibold text-slate-950">Ansökningshistorik</p>
+            <div className="mt-2 space-y-2">
+              {rows.length === 0 ? (
+                <p className="text-xs text-slate-600">
+                  Ingen historik finns ännu.
+                </p>
+              ) : null}
+              {rows.map((row, index) => (
+                <div
+                  key={index}
+                  className="rounded-xl bg-white px-3 py-2 text-xs"
+                >
+                  <div className="font-semibold text-slate-900">
+                    {String(row.label ?? "Händelse")}
+                  </div>
+                  <div className="text-slate-500">
+                    {formatDate(String(row.occurred_at ?? ""))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {showTechnicalDetails ? <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <summary className="cursor-pointer font-semibold text-slate-950">Tekniska uppgifter</summary>
+            <p className="mt-2 text-xs text-slate-600">Källtabell: {item.source_table ?? "—"}</p>
+            <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded-xl bg-white p-3 text-[11px] text-slate-600">
+              {JSON.stringify(item.raw_payload ?? item.payload, null, 2)}
+            </pre>
+          </details> : null}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+export default async function WebsiteApplicationsAdminPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const access = await requireAdminPageAccess({
+    anyOf: ["customers.read", "customers.write", "billing_underlay.read"],
+  });
+  const tenantScope = await resolveAdminTenantReadScope(access);
+  const resolved = searchParams ? await searchParams : {};
+  const status = typeof resolved.status === "string" ? resolved.status : null;
+  const applications = await listWebsiteApplications({
+    companyId: tenantScope.isPlatformAdmin ? null : tenantScope.companyId,
+    status,
+    limit: 150,
+  });
+  const failed = applications.filter((item) => applicationWorkState(item) === "failed").length;
+  const manualReview = applications.filter((item) => applicationWorkState(item) === "action_required").length;
+  const ready = applications.filter((item) => applicationWorkState(item) === "ready").length;
+  const waiting = applications.filter((item) => applicationWorkState(item) === "waiting").length;
+  const completed = applications.filter((item) => applicationWorkState(item) === "completed").length;
+  const isPlatformAdmin = isPlatformAdminContext(access);
+
+  return (
+    <main className="mx-auto min-w-0 max-w-7xl space-y-4 p-4 lg:p-6">
+      <section className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+              Nya kunder
+            </p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+              Kundansökningar från hemsida
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+              Här hamnar hemsideansökningar innan de blir aktiva kunder.
+              Ofullständiga uppgifter ska kompletteras här innan leverantörsbyte,
+              avtalsbekräftelse eller aktiv kundstatus kan fortsätta.
+            </p>
+          </div>
+          <AdminActionsMenu label="Resurser">
+            <Link
+              href="/developers/customer-portal-api"
+              className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
+            >
+              API-dokumentation
+            </Link>
+            <Link
+              href="/admin/webhooks/deliveries"
+              className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Webhook-loggar
+            </Link>
+          </AdminActionsMenu>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-6">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-sm text-slate-700">Totalt</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-950">
+              {applications.length}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+            <p className="text-sm text-amber-900">Behöver kompletteras</p>
+            <p className="mt-1 text-2xl font-semibold text-amber-950">
+              {manualReview}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3">
+            <p className="text-sm text-sky-800">Redo/kontroll</p>
+            <p className="mt-1 text-2xl font-semibold text-sky-950">{ready}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-sm text-slate-700">Väntar på svar</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-950">{waiting}</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+            <p className="text-sm text-emerald-800">Bekräftade/aktiva</p>
+            <p className="mt-1 text-2xl font-semibold text-emerald-950">
+              {completed}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-3">
+            <p className="text-sm text-red-800">Stoppade fel</p>
+            <p className="mt-1 text-2xl font-semibold text-red-950">
+              {failed}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4">
+        <form method="get" className="mb-4 flex flex-wrap items-end gap-2">
+          <label className="grid min-w-0 gap-1 text-sm font-medium text-slate-700">
+            Status
+            <select name="status" aria-label="Status" defaultValue={status ?? ""} className="min-h-10 min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+              <option value="">Alla ansökningar</option>
+              <option value="needs_information">Saknar uppgifter</option>
+              <option value="needs_facility_data">Begär nätägare</option>
+              <option value="ready_for_switch">Redo för byte</option>
+              <option value="facility_data_invalid">Anläggningsfel</option>
+              <option value="failed">Fel kräver åtgärd</option>
+              {status && !["needs_information", "needs_facility_data", "ready_for_switch", "facility_data_invalid", "failed"].includes(status) ? <option value={status}>{intakeStatusLabel(status)}</option> : null}
+            </select>
+          </label>
+          <button className="min-h-10 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">Visa</button>
+          {status ? <Link href="/admin/website-applications" className="px-3 py-2 text-sm font-medium text-slate-600 underline">Rensa filter</Link> : null}
+        </form>
+        <div className="space-y-3">
+          {applications.length === 0 ? <p className="py-8 text-center text-sm text-slate-600">Inga nya webbansökningar hittades.</p> : null}
+          {applications.map((item) => {
+            const issues = reviewIssues(item);
+            const detailHref = `/admin/website-applications/${item.id}?source=${item.source_table ?? "website_customer_applications"}`;
+            return (
+              <article key={item.id} className="min-w-0 rounded-2xl border border-slate-200 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1 break-words">
+                    <Link href={detailHref} className="font-semibold text-slate-950 hover:underline">{customerName(item)}</Link>
+                    <p className="mt-1 text-sm text-slate-600">{customerEmail(item)} · {customerPhone(item)}</p>
+                    <p className="mt-1 text-xs text-slate-600">{item.customer_number ?? item.external_customer_id} · {formatDate(item.created_at)} · {sourceBadgeLabel(item)}{item.integration_api_clients?.name ? ` · ${item.integration_api_clients.name}` : ""}</p>
+                    {isPlatformAdmin ? <p className="mt-1 text-xs text-slate-600">{item.companies?.name ?? item.company_id}</p> : null}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(item.status)}`}>{intakeStatusLabel(item.status)}</span>
+                    <Link href={detailHref} className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Öppna ansökan</Link>
+                    {item.customer_id ? (
+                      <AdminActionsMenu ariaLabel={`Fler länkar för ${customerName(item)}`}>
+                        <Link href={`/admin/customers/${item.customer_id}`}>Kundkort</Link>
+                        {item.contract_id ? <Link href={`/admin/customers/${item.customer_id}?tab=contracts`}>Avtal</Link> : null}
+                      </AdminActionsMenu>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 text-sm lg:grid-cols-2">
+                  <div className="min-w-0 break-words">
+                    {item.error_stage ? <p className="font-medium text-red-700">{safeOperationalMessage(item.error_message ?? item.error_code) ?? "Tekniskt fel kräver åtgärd"}</p> : null}
+                    {issues.length === 0 ? applicationWorkState(item) === "action_required" || applicationWorkState(item) === "failed" ? <p className="text-amber-900">Ansökan behöver granskas.</p> : <p className="text-emerald-700">Inga saknade uppgifter har registrerats.</p> : <div className="space-y-1 text-amber-900"><p className="font-semibold">Behöver kompletteras</p>{issues.map((issue) => <p key={`${item.id}-${issue.field}`}>{issue.label}</p>)}</div>}
+                    {item.external_intake_status ? <p className="mt-1 text-xs text-slate-600">Extern ansökan: {intakeStatusLabel(item.external_intake_status)}</p> : null}
+                  </div>
+                  <p className="min-w-0 break-words text-slate-700"><span className="font-semibold">Nästa steg: </span>{item.next_step ?? "Kontrollera ansökan."}</p>
+                </div>
+                <ApplicationDetails item={item} showTechnicalDetails={isPlatformAdmin} />
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    </main>
+  );
+}

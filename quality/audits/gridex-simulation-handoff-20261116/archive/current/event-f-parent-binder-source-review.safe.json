@@ -1,0 +1,14 @@
+{
+  "state": "ROOT_EVENT_F_PARENT_BINDER_NARROW_SOURCE_APPROVE",
+  "observedAt": "2026-11-14T16:06:39.521124+00:00",
+  "freezePath": "/workspace/gridex-event-publication-positive-parent-f-prep-20261114/FROZEN-EVENT-F.safe.json",
+  "freezeSHA256": "9924fe78ae3f85e8ad8f5ae4bdd289a4485836efe8173e1feb71d43a0f514242",
+  "parentSHA256": "4a58c7133c6bb28f4d3554e582f81a810d4109aa95f9ffd4045211367d7d366f",
+  "binderSHA256": "a8e94a235d77d6ad2adcf2f1f03c5abb755b7ebf3999ab50a59660cb556284b1",
+  "allDeclared16PinsChecked": true,
+  "wholeParentOneLiteralInverse": true,
+  "templateOnlyTwoMetadataKeysChanged": true,
+  "scope": "Source only. Actual F genuine context/seal/PID/deadline/source67/runtime tuple, host forwarders and live budgets still require current producer bindings. No backend/Auth calls or unconditional execution approval.",
+  "backendCalls": 0,
+  "wholeBinderInverseAfterExactFOnlySourceGuardsAndLiterals": true
+}

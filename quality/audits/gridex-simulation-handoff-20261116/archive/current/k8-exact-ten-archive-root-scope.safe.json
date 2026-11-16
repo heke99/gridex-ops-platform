@@ -1,0 +1,38 @@
+{
+  "at": "2026-11-15T02:34:47.147076+00:00",
+  "scope": "SOLE_PRODUCER_EXACT_TEN_CLOSED_RAW_ARCHIVE_V2",
+  "proposalPath": "/workspace/gridex-k8-held-resource-exact-ten-v2-proposal-20261115/PROPOSAL.safe.json",
+  "proposalSHA256": "926d474130c9f77ba136d67f6c1831c4ae4e00ad98c2f952b7de1b2e0c603fd9",
+  "dependencyProof": {
+    "path": "/workspace/gridex-k8-held-resource-exact-ten-v2-proposal-20261115/DEPENDENCY-PROOF.safe.json",
+    "sha256": "9a59458a0d0afb07bd7aa4957574674b6143a7222f953832e8359126858ab5ae"
+  },
+  "helperSHA256": "2443a11b1f64d147d2d232509008294a1a1db46010f83e6321e71864c86a2171",
+  "aliasCount": 10,
+  "groupCount": 7,
+  "approvedAliases": [
+    "/workspace/gridex-k8-preauth-native-seed-qualification-actual-20261115-b/Main-before.private.json",
+    "/workspace/gridex-k8-preauth-native-seed-qualification-actual-20261115-b/Main-after.private.json",
+    "/workspace/gridex-k8-preauth-native-seed-qualification-actual-20261115-b/clone3370-before-bootstrap.private.json",
+    "/workspace/gridex-k8-preauth-native-seed-qualification-actual-20261115-b/fresh-foundation3420.private.json",
+    "/workspace/gridex-k8-preauth-native-seed-qualification-actual-20261115-b/fresh-api3443-before-four-body-patches.private.json",
+    "/workspace/gridex-decimal-donor-native-actual-20261114-c/clone-after.private.json",
+    "/tmp/gridex-decimal-b-postlogout-main-baseline-20261114/fresh-current-main.private.json",
+    "/tmp/gridex-decimal-b-postlogout-main-baseline-20261114/post-dump-main.private.json",
+    "/workspace/gridex-site0104-main-actual-20261114-b/main-before.private.json",
+    "/workspace/gridex-site0104-main-actual-20261114-b/main-after.private.json"
+  ],
+  "review": [
+    "Rootreadexactexistinghelper/proposal/dependencyproof and independentlyhashedall10regularnlink1rawfiles",
+    "NativeBclosedactualreview802315/ea7b andDomainactualreadsetconfirmation nooperationalreads; reusecompletedPREAUTH notforensicrerun",
+    "SITE0104closedRootreview60da exists; DomainexplicitactualK8readsetintersection0 forselectedpair",
+    "HistoricaldecimalCclone andBpostlogoutbaseline superseded; originalCcandidate/Ecandidate/currentK8Fc/0509/seedfullafter remainphysicalprotected"
+  ],
+  "conditions": [
+    "Executeunchangedhelperoncebysoleproducer; eachgzipdurablyverifiedbeforealiasunlink",
+    "Existingexactmetadata/currentroot/FDmountchecks andcaveats retained",
+    "RecordactualWS/TMPfree separately; estimatedsavingsnotresourcePASS; strict805/TMP128requiredafterward",
+    "Preservearchive+custody; exclusiveSHAverifiedrestorebeforeforensicphysicalread"
+  ],
+  "resourcePass": false
+}

@@ -1,0 +1,99 @@
+{
+  "state": "CLOSED_S_HMR_METADATA_GUARD_STOP_ZERO_UI_API_AUTH0_NOT_EVENT_PASS",
+  "atEpoch": 1794748011.3188052,
+  "actualConstructorError": "FIXED_HMR_CONFIG_MODE640_GID1000_REQUIRED",
+  "actualHMRMode": "0600",
+  "requiredHMRMode": "0640",
+  "actualHMRUidGid": [
+    1000,
+    1000
+  ],
+  "childStarted": true,
+  "childExitedStaticBeforeRuntimeResources": true,
+  "ownRESTCreated": true,
+  "transportStarted": false,
+  "sidecarStarted": false,
+  "TLSDelivery": false,
+  "UIBusinessCommands": 0,
+  "normalUIlogout": false,
+  "browserClosedByActualProcessAbsence": true,
+  "historicalHelperBrowserCloseFailed": true,
+  "helperControlCommands": 1,
+  "ownNativeAuthAllZero": true,
+  "MainBeforeLogoutByteEqualAndAll7Exact": true,
+  "MainAfterLogoutOnlyFourAuthScopesChanged": true,
+  "factory1AllReceiverSubscriptionBindingDelivery0": true,
+  "factoryNativeLeaseActuallyCoveredLatePlan": true,
+  "noBusinessRetry": true,
+  "runtimeTerminalAbsentStaticStopPreserved": true,
+  "refs": {
+    "parentIntent": {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261115-s/intent.safe.json",
+      "sha256": "5969d9817276e60fd3d6c687a6df94b95fad41ca8682b2e7cb1a2b764275bf08"
+    },
+    "failureNative": {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261115-s/owned-event-failure.native.private.json",
+      "sha256": "c770d2fa8f90bdf60abcb75e09bcdc3efaedd014fcd4c69649b863abcd1037f0"
+    },
+    "failureReceipt": {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261115-s/owned-event-failure.receipt.safe.json",
+      "sha256": "fb0b2264f1d8799f5825f035c7d955a856d8636ccfb9af9bb2dc0e4de3e879ba"
+    },
+    "failureFc": {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261115-s/failure-clone-current.dump.private",
+      "sha256": "7661e9fcfb0a0f4afe26bef54b71ccd0d5ec6d41de909e2d17f39b177c2e366d"
+    },
+    "childError": {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261115-s/child.stderr.private.log",
+      "sha256": "c62b71e5aae9f64e8379e809beac558126ebc581efd25dab369af5b619b1db72"
+    },
+    "MainBefore": {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261115-s/main-before.private.json",
+      "sha256": "18fe00bdbbca3709912f46cb063d6c24f92047f2d520bb17230b8746dd2881f5"
+    },
+    "MainAfter": {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261115-s/main-after.private.json",
+      "sha256": "18fe00bdbbca3709912f46cb063d6c24f92047f2d520bb17230b8746dd2881f5"
+    },
+    "all7Before": {
+      "path": "/tmp/gridex-event-main-baseline-20261115-s/Main-sequences-before-private.private.json",
+      "sha256": "bfcac97bf3b4290a635e7296de6a247599c3f1f5ef8e20badf5c284e4c371bdc"
+    },
+    "all7AfterBeforeLogout": {
+      "path": "/workspace/gridex-event-S-zero-business-closure-20261115-a/Main-sequences-after-private-before-logout.private.json",
+      "sha256": "bfcac97bf3b4290a635e7296de6a247599c3f1f5ef8e20badf5c284e4c371bdc"
+    },
+    "apiResume": {
+      "path": "/tmp/gridex-normal-api-resume-actual-20261115-event-s/receipt.safe.json",
+      "sha256": "9a52feb53c95ac78577bb617cf3d3e2c8608940cdd40462a697d5ad0680b7519"
+    },
+    "ownAPIlogout": {
+      "path": "/workspace/gridex-event-S-zero-business-closure-20261115-a/own-auth-api-logout.safe.json",
+      "sha256": "a31559d30efdbfaf65565c8882025ed3853b23636dbe92496313336e100f8cb6"
+    },
+    "nativeAll0": {
+      "path": "/workspace/gridex-event-S-zero-business-closure-20261115-a/AFTER-OWN-API-LOGOUT-AUTH0.safe.json",
+      "sha256": "220babd56bbef4dddbc9a8f3b62a2cc68787d273f6c0b07b50232fdd962c1071"
+    },
+    "helperTerminal": {
+      "path": "/tmp/gridex-ee-browser-hold-actual-event-publication-20261115-s/state.safe.json",
+      "sha256": "228e16de62513cbfa7d3fdabab829fe36f1de4534e69ddd70cba21696426957e"
+    },
+    "helperStopControl": {
+      "path": "/workspace/gridex-event-S-zero-business-closure-20261115-a/helper-stop-control-receipt.safe.json",
+      "sha256": "9c79ad14bdc5f88a00790505ca6f858766b135fb78b88d57cfcb32cc742bd901"
+    },
+    "MainAuthResidual": {
+      "path": "/workspace/gridex-event-S-zero-business-closure-20261115-a/MAIN-AUTH-ONLY-LOGOUT-RESIDUAL.safe.json",
+      "sha256": "f507cdcc3f5059e494af0e06717e8e05f4c4ae3884b83112273255cad902a196"
+    },
+    "browserProcessClosure": {
+      "path": "/workspace/gridex-event-S-zero-business-closure-20261115-a/OWN-BROWSER-PROCESS-CLOSURE.safe.json",
+      "sha256": "c0171179c48827f7f88b33f4b0a96b4af05bc84df2962861f2f5eb5f1fa344da"
+    },
+    "latePlan": {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/LEASE-PLAN.BOUND.safe.json",
+      "sha256": "e7ef06d24c0527371676b0a53ea36d4e5e24763e85ec4d1dcad337d94d061523"
+    }
+  }
+}

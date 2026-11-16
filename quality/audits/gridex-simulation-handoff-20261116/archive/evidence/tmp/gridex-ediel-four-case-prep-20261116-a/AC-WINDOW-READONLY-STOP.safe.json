@@ -1,0 +1,13 @@
+{
+  "state": "READONLY_PRELAUNCH_WINDOW_STOP_NO_BACKEND_STARTED",
+  "observedAtUTC": "2026-11-16 07:21:05 UTC",
+  "actualEpoch": "AC",
+  "actualExp": 1794816689,
+  "observedRemainingSeconds": 3024,
+  "unchangedMinimumEntryRemainingSeconds": 3120,
+  "latestQualifiedEntryUTC": "2026-11-16 07:19:29 UTC",
+  "outerLaunched": false,
+  "userAuthAttempted": false,
+  "classification": "HARNESS_SCHEDULING_NO_PRODUCT_VERDICT",
+  "nextAction": "QUALIFIED_NORMAL_AD_MAINTENANCE_SAME_GUARDS"
+}

@@ -1,0 +1,35 @@
+{
+  "state": "ORIGINAL_CREATE_OBSERVED_LATE_COMPLETED_NEVER_STARTED_AND_EXACT_OWN_CID_REMOVED",
+  "observedAtEpoch": 1794820816.3480837,
+  "originalCLITimeoutPreserved": true,
+  "lateCID": "6234dff16228da951d73d91ca0e8d304c620a49585ac1d4ceafc4bee13b54723",
+  "createdButNeverStarted": true,
+  "sourceLabelVerified": true,
+  "ownCIDRemovedNoForce": true,
+  "exactNameAbsentAfterRemove": true,
+  "privateEnvRemovedAfterResolvedCompletion": true,
+  "objectRootEmpty": true,
+  "spaceBeforeRemove": {
+    "/workspace": {
+      "availableBytes": 0,
+      "rawFreeBytes": 718573568
+    },
+    "/tmp": {
+      "availableBytes": 387096576,
+      "rawFreeBytes": 387096576
+    }
+  },
+  "spaceAfterRemove": {
+    "/workspace": {
+      "availableBytes": 1228201984,
+      "rawFreeBytes": 2962964480
+    },
+    "/tmp": {
+      "availableBytes": 387092480,
+      "rawFreeBytes": 387092480
+    }
+  },
+  "observedWorkspaceRawReclaimBytes": 2244390912,
+  "noExclusiveFilesystemDeltaClaim": true,
+  "noDBAuthSDKOrCaseCredit": true
+}

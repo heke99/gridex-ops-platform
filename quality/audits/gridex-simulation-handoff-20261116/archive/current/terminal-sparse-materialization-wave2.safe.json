@@ -1,0 +1,45 @@
+{
+  "kind": "REVERSIBLE_TERMINAL_DUPLICATE_MATERIALIZATION_ONLY",
+  "beforeFree": 1130848256,
+  "excluded": [
+    "quality/audits/ediel-masterplan-v2",
+    "quality/audits/2026-10-12-ops-api-contracts"
+  ],
+  "worktrees": [
+    {
+      "path": "/workspace/gridex-site-draft-contract-20261112",
+      "head": "8dfd25a9567e7cd7d0eea552ec73b40e081bd379",
+      "tree": "e707fa7c816c1fe867b44bf88989b26aa2af94ab",
+      "clean": true,
+      "ownReportFilesPreserved": 27,
+      "recovery": "git sparse-checkout disable with sufficient diskbudget"
+    },
+    {
+      "path": "/workspace/gridex-site-validation-20261112",
+      "head": "7600a148b251aa09e4e43225bc6b08283267a3fd",
+      "tree": "0058d8f3332bab99724eb988cdec531212805eca",
+      "clean": true,
+      "ownReportFilesPreserved": 27,
+      "recovery": "git sparse-checkout disable with sufficient diskbudget"
+    },
+    {
+      "path": "/workspace/gridex-company-role-readback-donor-20261112",
+      "head": "27787a62daa95d796a85a1153d265584e8452216",
+      "tree": "6a86d4b240488f816915107dfb45c7fc2c829f2d",
+      "clean": true,
+      "ownReportFilesPreserved": 27,
+      "recovery": "git sparse-checkout disable with sufficient diskbudget"
+    },
+    {
+      "path": "/workspace/gridex-delivery-contract-20261112",
+      "head": "3a6891083de05cd3da82c0a62df481aed197157a",
+      "tree": "3e24f07f70f8e2923fe34cd8bb3f98f872b001db",
+      "clean": true,
+      "ownReportFilesPreserved": 27,
+      "recovery": "git sparse-checkout disable with sufficient diskbudget"
+    }
+  ],
+  "afterFree": 1841872896,
+  "freed": 711024640,
+  "fullOriginalAndIntegrationUnchanged": true
+}

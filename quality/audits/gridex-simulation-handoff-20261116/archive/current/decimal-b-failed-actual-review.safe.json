@@ -1,0 +1,13 @@
+{
+  "state": "ACTUAL_B_STOP_VERIFIED_NOT_QUALIFIED",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T09:27:04.002580+00:00",
+  "terminalSHA256": "616c80392200f832d4764f159482dcaa426909f37b0ef1dce46a2be55f8f8f95",
+  "checks": [
+    "OLD22 explicitC exact sourceexpected equality .120967s",
+    "Patch42601 syntaxerror at DOpost: missing externalstatementsemicolon afterdollarquotedCREATEFUNCTION, SOURCEreviewmiss acknowledged",
+    "NEW22/full2688 absent NOTRUN; no successfuldonorinstallation claimed; no postfailureclonecatalogsnapshot invented",
+    "OwncloneAbsent/MainbeforeafterBYTEequal; noAuth/REST/business",
+    "Kthird actualqualificationgate remainsDENIED; sourceCsemicolonfix outsideimmutablebody+newnamespace pending"
+  ]
+}

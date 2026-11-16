@@ -1,0 +1,88 @@
+{
+  "state": "CLOSED_THREE_NATIVE_ACKS_BEFORE_ATTEST_IMPORT_ORIGINAL_WINDOW_STOP",
+  "closedAt": "2026-11-15T17:11:27.159589+00:00",
+  "refs": [
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/THREE-ACKS-PARENT-CLOSED.safe.json",
+      "sha256": "110961b867dbf1458c6bd691a50626cf1cc8b3b317efebdb873b9f31aaab9a84"
+    },
+    {
+      "path": "/tmp/gridex-k13-U-actual-parent-prep-20261115/PHASE-WINDOW-STOP.safe.json",
+      "sha256": "a101f5ea241f9cbc3773afc52d925c648780caf94bfb7a26d358e1415bf23d0e"
+    },
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/root-own-api-cleanup-scope.safe.json",
+      "sha256": "2e743ee9bb85517bc046019854cfe470f5729de875ea84023f9f9251cc3681cc"
+    },
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/producer-own-api-cleanup-scope.safe.json",
+      "sha256": "fdb16abe659a1275b0237a5761bc5c45ea0195ff0a3dd9666a6d3f8e484d892c"
+    },
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/NORMAL-U-API-RESUMED.safe.json",
+      "sha256": "a783eb25e1b7bb82f1540c792b50c8e2dd84d4735adc4930a6d5d675d706a2bb"
+    },
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/Main-sequences-after-private-before-logout.private.json",
+      "sha256": "bfdb756fe23ab84ec96bc6173b13e6872b0f116793515522e896a889c9ad7d66"
+    },
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/own-auth-api-logout.safe.json",
+      "sha256": "8555abcdffa1a8b4f647a689717aa5f8c6cc5ce1368a462f04360440977b2738"
+    },
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/AFTER-OWN-API-LOGOUT-AUTH0.safe.json",
+      "sha256": "2a094005fb0523c6bea736a434d04f6fe92a11fab5dce0efcecfbf6d7c5428ae"
+    },
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/helper-stop-control-receipt.safe.json",
+      "sha256": "69f4297c1d8f64acea5cd7d51d0579473916e0773c66ccdcc51f262e3a76c0a0"
+    },
+    {
+      "path": "/tmp/gridex-ee-browser-hold-actual-local-20261115-k13-u/state.safe.json",
+      "sha256": "7b422011be730379b71d35d7673c536102e2751f05756f517e4d6a4b17ee5427"
+    },
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/MAIN-AFTER-OWN-API-LOGOUT.safe.json",
+      "sha256": "8a6ce8c841f6b9fd13c69a2c80fad3801dde56e49801404bc6b7da68b81e2911"
+    },
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/MAIN-AUTH-ONLY-LOGOUT-RESIDUAL.safe.json",
+      "sha256": "944a624191cc03c9c60132b4249163e486946459c8c88f46b92503f41fc925c1"
+    },
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/DISPATCH-TIMELINE.safe.json",
+      "sha256": "0ae277eb8fa8ea5a4157ba981c21e53f51aa4203145ed5b102607c05e55acf40"
+    },
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/FINANCIAL-CAPTURE-NOT-EXECUTED.safe.json",
+      "sha256": "558cf7eee4a230897b670b0f37693935eec86256683a091da7099ed3c95b76da"
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k13-u/summary.safe.json",
+      "sha256": "a7a689f1b739dfd41316b209395f968d2ec4d865ee569371aed041fd3c26cdd2"
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k13-u/function-profile/normal-rest-exit-boundary.safe.json",
+      "sha256": "0f063215adf96590aa7370528c739764a8375a917546608c3ed65854876806b2"
+    }
+  ],
+  "nativeAll6AuthCountsZero": true,
+  "browserClosed": true,
+  "helperProcessGroupLiveMembers": [],
+  "normalUIlogout": false,
+  "onlyFourAuthResidualScopes": [
+    "auth.sessions",
+    "auth.mfa_amr_claims",
+    "auth.refresh_tokens",
+    "auth.audit_log_entries"
+  ],
+  "parentRESTCloneRuntimeForwarderClosed": true,
+  "RESTExit255NormalQualificationFalse": true,
+  "profilingCountersPartialNoImportDelta": true,
+  "ATTESTDispatched": false,
+  "normalImportDispatched": false,
+  "financialCaptureExecuted": false,
+  "wholeCasePass": false,
+  "newAuthOrBusinessRetry": false
+}

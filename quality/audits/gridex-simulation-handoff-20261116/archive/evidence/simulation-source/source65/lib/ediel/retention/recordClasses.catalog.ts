@@ -1,0 +1,3 @@
+/** Exact existing owners, not retention periods or a policy authority. */
+export const CUSTOMER_RECORD_RETENTION_CLASSES = ['contract_signed_pdf_bytes','contract_signature_personal_snapshot','contract_signature_request_personal','contract_acceptance_personal_snapshot','contract_evidence_personal_snapshot','customer_address_history','portal_event_history','portal_access_log_history','portal_customer_event_history','portal_domain_event_history','legal_acceptance_personal_snapshot','onboarding_legal_personal_snapshot'] as const
+export type CustomerRecordRetentionClass=typeof CUSTOMER_RECORD_RETENTION_CLASSES[number]

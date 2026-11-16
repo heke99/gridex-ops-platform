@@ -1,0 +1,24 @@
+{
+  "state": "ROOT_K6_DEEP_PROFILE_PARENT_ORCHESTRATOR_SOURCE_APPROVED_UNARMED",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T18:40:29.374677+00:00",
+  "preparedPath": "/tmp/gridex-k6-profile-contract-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "2c795182463ebff8b19303d9a6f743cb748edc1bb73fc5ace631f8217d84a3ef",
+  "unarmedFilesystemValidation": {
+    "state": "DEEP_K6_PROFILE_CONTRACT_MATCHED_NO_AUTH_EXECUTED",
+    "mode": "UNARMED",
+    "allNestedValuesChecked": true,
+    "allDerivedRunPathsChecked": true,
+    "businessRpcInvocations": 0,
+    "authCalls": 0
+  },
+  "review": "Full K5-to-K6 diffs read. Factory namespace/futureJ expiry labels only; parent one root literal, orchestrator roots/parentSHA/newbundle only. All frozen files, parent/orch/bundle pins and deepUNARMED values verified. Helper/core/contracts/issue/observability exact originals; only approved import readinessdriverV2eaa450. Existing3000/JWT120/900entry/native8s/read15s/oneattempt/source/privateguards retained.",
+  "notActualAuthOrNativeProof": true,
+  "futureJCarrierPidMainSealRuntime": null,
+  "conditions": [
+    "Actual legitimateJ afterIexpiry, source/env/PID/RAW/closure recursivePREAUTH before genuineAuth",
+    "Actual freshMainbackup/seal/runtime bindings and independentactualscope/liveguards",
+    "Root reads actualnewPREPARE UTF8document beforeATTEST; no oldK5reviewreuse"
+  ],
+  "rootReviewNote": "Initial manifest walker stopped before validation/reviewwrite because bundlefiles is a mapping; corrected list/mapping reader verified allpins."
+}

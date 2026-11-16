@@ -1,0 +1,257 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7fbf8;
+  --foreground: #0f172a;
+  --gridex-surface: #ffffff;
+  --gridex-soft: #f0fdf4;
+  --gridex-line: #d1fae5;
+  --gridex-brand: #047857;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+  background: var(--background);
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(16, 185, 129, 0.08), transparent 32rem),
+    linear-gradient(180deg, #f7fbf8 0%, #ffffff 46%, #f7fbf8 100%);
+  color: var(--foreground);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  accent-color: var(--gridex-brand);
+}
+
+:where(input, select, textarea):focus-visible,
+:where(button, a):focus-visible {
+  outline: 3px solid rgba(16, 185, 129, 0.22);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(5, 150, 105, 0.18);
+}
+
+/* Admin SaaS unifier: all admin routes follow one white/emerald/slate product language. */
+.admin-saas-shell {
+  --admin-brand: #047857;
+  --admin-brand-strong: #065f46;
+  --admin-brand-soft: #ecfdf5;
+  --admin-brand-line: #a7f3d0;
+  --admin-surface: #ffffff;
+  --admin-muted: #f8fafc;
+}
+
+.admin-saas-shell :where(table) {
+  border-color: #e2e8f0;
+}
+
+.admin-saas-shell :where(input, select, textarea) {
+  border-color: #cbd5e1;
+}
+
+.admin-saas-shell :where(input, select, textarea):focus {
+  border-color: var(--admin-brand) !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+/* Long Swedish compounds, hashes and e-mail addresses must wrap instead of
+   widening the page at mobile width and 200 % zoom (WCAG 1.4.10 reflow). */
+.admin-saas-content :where(h1, h2, h3, p, dd, dt, label, li) {
+  overflow-wrap: anywhere;
+}
+
+.admin-saas-content > :where(div) {
+  animation: adminFadeIn 160ms ease-out;
+}
+
+@keyframes adminFadeIn {
+  from { opacity: 0.72; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Admin product polish: make legacy admin pages feel like the same SaaS surface even when older pages use local markup. */
+.admin-saas-content :where(.rounded-2xl, .rounded-3xl, .rounded-\[2rem\]) {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.admin-saas-content :where(table) {
+  background: #ffffff;
+}
+
+.admin-saas-content :where(thead) {
+  background: #f8fafc;
+  color: #475569;
+}
+
+.admin-saas-content :where(th) {
+  font-weight: 650;
+}
+
+.admin-saas-content :where(button, a) {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: 150ms;
+}
+
+.admin-saas-content :where(.bg-gradient-to-br.from-emerald-50.via-white.to-emerald-50) {
+  background-image: linear-gradient(135deg, #ecfdf5 0%, #ffffff 48%, #f8fafc 100%) !important;
+}
+
+
+/* Shared internal admin surfaces: cards, tables, forms and badges should feel consistent on every admin page. */
+.admin-saas-content :where(.rounded-xl.border, .rounded-2xl.border, .rounded-3xl.border, .rounded-\[2rem\].border) {
+  border-color: #e2e8f0;
+}
+
+.admin-saas-content :where(.rounded-xl.bg-white, .rounded-2xl.bg-white, .rounded-3xl.bg-white) {
+  background-color: rgba(255, 255, 255, 0.96);
+}
+
+.admin-saas-content :where(input, select, textarea) {
+  background-color: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.admin-saas-content :where(input::placeholder, textarea::placeholder) {
+  color: #94a3b8;
+}
+
+.admin-saas-content :where(button) {
+  border-radius: 0.9rem;
+}
+
+.admin-saas-content :where(table) {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-saas-content :where(tbody tr:hover) {
+  background-color: #f8fafc;
+}
+
+.admin-saas-content :where(.bg-emerald-50) {
+  background-color: #ecfdf5;
+}
+
+.admin-saas-content :where(.border-emerald-100, .border-emerald-200, .border-emerald-300) {
+  border-color: #a7f3d0;
+}
+
+.admin-saas-content :where(.text-emerald-700, .text-emerald-800, .text-emerald-900) {
+  color: #047857;
+}
+
+.admin-saas-content :where(.bg-amber-50) {
+  background-color: #fffbeb;
+}
+
+.admin-saas-content :where(.border-amber-100, .border-amber-200, .border-amber-300) {
+  border-color: #fde68a;
+}
+
+.admin-saas-content :where(.text-amber-700, .text-amber-800, .text-amber-900) {
+  color: #92400e;
+}
+
+.admin-saas-content :where(.bg-red-50) {
+  background-color: #fef2f2;
+}
+
+.admin-saas-content :where(.border-red-100, .border-red-200, .border-red-300) {
+  border-color: #fecaca;
+}
+
+.admin-saas-content :where(.text-red-700, .text-red-800, .text-red-900) {
+  color: #b91c1c;
+}
+
+/* Strict admin contrast guard. This prevents hidden/light text and secondary buttons in all admin subsections. */
+.admin-saas-content :where(.text-slate-400, .text-slate-500, .text-slate-600) {
+  color: #334155 !important;
+}
+
+.admin-saas-content :where(.text-slate-300, .text-slate-200, .text-slate-100) {
+  color: #475569 !important;
+}
+
+.admin-saas-content :where(button[class*="bg-slate-50"][class*="text-white"], a[class*="bg-slate-50"][class*="text-white"]) {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.admin-saas-content :where(button[class*="bg-emerald-700"], a[class*="bg-emerald-700"], input[type="submit"][class*="bg-emerald-700"]) {
+  background-color: #047857 !important;
+  color: #ffffff !important;
+}
+
+.admin-saas-content :where(button[class*="bg-emerald-700"]:hover, a[class*="bg-emerald-700"]:hover, input[type="submit"][class*="bg-emerald-700"]:hover) {
+  background-color: #065f46 !important;
+}
+
+.admin-saas-content :where([class*="rounded-"][class*="border"]) {
+  border-color: #e2e8f0;
+}
+
+.admin-saas-content :where([class*="rounded-"][class*="bg-white"], [class*="rounded-"][class*="bg-slate-50"], [class*="rounded-"][class*="bg-emerald-50"], [class*="rounded-"][class*="bg-amber-50"], [class*="rounded-"][class*="bg-red-50"]) {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.admin-saas-content :where(input, select, textarea) {
+  min-height: 2.5rem;
+  border-radius: 1rem;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.admin-saas-content :where(input::placeholder, textarea::placeholder) {
+  color: #64748b !important;
+}
+
+/* Standalone retention workspace: long Swedish labels and IDs wrap at 375px and 200% zoom. */
+.retention-workspace,
+.retention-workspace :where(main, section, form, div) {
+  min-width: 0;
+}
+.retention-workspace :where(h1, h2, h3, p, dd, dt, label, li, a, button, legend) {
+  overflow-wrap: anywhere;
+}
+.retention-workspace :where(select, input, textarea) {
+  max-width: 100%;
+  min-width: 0;
+}
+.retention-workspace :where(.grid) {
+  grid-template-columns: minmax(0, 1fr);
+}

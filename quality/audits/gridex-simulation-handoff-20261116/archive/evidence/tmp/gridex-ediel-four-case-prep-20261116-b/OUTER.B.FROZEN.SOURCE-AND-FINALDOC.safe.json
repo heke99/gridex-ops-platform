@@ -1,0 +1,226 @@
+{
+  "state": "FROZEN_SOURCE_AND_FINALDOC_UNARMED_FOUR_ORIGINAL_B",
+  "controller": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/run-four-original-cases.ad.v2.py",
+    "sha256": "19cd204501fb802dd2d7c801bd713c6c065831978de6e5f846f5b52767cd957e"
+  },
+  "template": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/TARGET.FOUR-COHORT.FINAL.UNARMED.safe.json",
+    "sha256": "7508657a6fea52bee2b33186f9fb70e7b40460296041cf3d0478d6e99d261748"
+  },
+  "finalDocumentation": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/README.FOUR.B.md",
+    "sha256": "42cc9f5b1250b7a2af29cea7a351f765349f56bff229403e161bebb52e16be7e"
+  },
+  "sourceRefs": [
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/owned-four-runtime.v2.py",
+      "sha256": "a7f473f0975ef7db182a053ec475fc2d7cc4137eec8ba531c5158d057abc9aab",
+      "bytes": 32145
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-a/TRUSTED3443-RESTORE-TOC.private.txt",
+      "sha256": "3a5f47578b8be9d9f4f8553d33a24124085de415f3bba4d50e840c5a4c29e034",
+      "bytes": 1998711
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-prep-20261116-a/owned-ediel-runtime.v2.py",
+      "sha256": "9606592ed6b2833c2130c03b2aedfd211afae0a0f8abb600526294ccf3f45d5b",
+      "bytes": 24770
+    },
+    {
+      "path": "/tmp/gridex-event05-headless-prep-20261116-a/owned-event05-runtime.v3.py",
+      "sha256": "45fbfd2cea24183d60fc52324b8c42f8d0d93789ac297cc072b842c242af128c",
+      "bytes": 20802
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-prep-20261116-a/qa-RUNTIME-V2-COUNT-REBIND.safe.json",
+      "sha256": "2587ec2ace1bdb957532da7b1cf4b753f0fdba1a07c6f27195dcc6454ee79c6c",
+      "bytes": 1111
+    },
+    {
+      "path": "/tmp/gridex-event05-headless-prep-20261116-a/qa-RUNTIME-V3-FAILURE-FENCES-SOURCE-REVIEW.safe.json",
+      "sha256": "7ee09840146678c2e6af9d4d222af4a86aa39de8676b1b53bfc28e1d62179940",
+      "bytes": 1649
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-a/PREPARED.SOURCE-AND-DOC.safe.json",
+      "sha256": "2949c582e4721b8812edf2856ffc30eda1f8b95c4c6ee3b2cb8f883b269f5664",
+      "bytes": 5247
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-a/root-INTEGRATION-SOURCE-AND-DOC-REVIEW.safe.json",
+      "sha256": "4c4fc30ab28d47559d3f91acc1346433e5846aefef1790299c1b5b51ff2e66c9",
+      "bytes": 1574
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-a/qa-INTEGRATION-SOURCE-FINALDOC-REVIEW.safe.json",
+      "sha256": "669e9792537fc0cbd2da6b385a8a267a6e53ccd3faba16bb8a41bcf26f7c2ddf",
+      "bytes": 2065
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/storage_integration.py",
+      "sha256": "84d0f7d83501e6c919dba060c6836f8c79eb1166e214acfbfde3e1825977518b",
+      "bytes": 10688
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/trusted3443-before-event.private.json",
+      "sha256": "ca0a7051994afd7142845cfe697654273cfea9c3d637de869cdef4de7e9e2dcf",
+      "bytes": 22899459
+    },
+    {
+      "path": "/workspace/gridex-event-next-W-prep-20261115/parent.W.py",
+      "sha256": "11f18b12b2f3bb958b05f66c7336f0897f3e3b609b676194117152bf67d89115",
+      "bytes": 42309
+    },
+    {
+      "path": "/workspace/gridex-event-next-W-prep-20261115/target.EVENT.W.parent.EXECUTION.BOUND.safe.json",
+      "sha256": "f7eaa9f40e1e76881a2f7e80bd822e18bfadd349fa87cf9accca79a787566804",
+      "bytes": 26667
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/owned_storage.py",
+      "sha256": "4aef2122e019acb141c4abd0986b99e2ba56f6a56a935635d3d827a881f1b711",
+      "bytes": 16111
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/storage_route_policy.py",
+      "sha256": "3ad8825bd3199e60c9c0b7eda34ee15cf42e58d36bd2dd1e7711393cab84fa06",
+      "bytes": 2500
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/ensure-own-archive-bucket.cjs",
+      "sha256": "abb8eaae94ed23fc34567e618db0d79a8330b6e59840fe1802ff1e4186860b9c",
+      "bytes": 992
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/READ-OWN-STORAGE-PREREQUISITES.READONLY.sql",
+      "sha256": "fd334e6b380d81db0999f4d478380814a2a96971510ce7d5170bab9d2655f5e7",
+      "bytes": 536
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/storage_constructor_budget.py",
+      "sha256": "7752c8d34552759528772fb731650d7d6b626c7bb35becc7ee5dd5686bce4ab6",
+      "bytes": 2265
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/DOCKER-STORAGE-DRIVER.safe.json",
+      "sha256": "05e5dae8040f30b69b335bf7794cc73037a094117628daee2ed94a3a31cc8dc5",
+      "bytes": 152
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/storage-image-inspect.process.private.json",
+      "sha256": "0f0816e33e72e205ca9d1ffb50fa278580949b2c75439d66a62845b3d05a17df",
+      "bytes": 3043
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/run-four-original-cases.ad.v2.py",
+      "sha256": "19cd204501fb802dd2d7c801bd713c6c065831978de6e5f846f5b52767cd957e"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/four-mail-transports.py",
+      "sha256": "b82e8038880b8ee831c6013e98570914680db9254f283481d305ec91176f8813"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/four-rest-bridge.py",
+      "sha256": "b48bbbfd0d9903d0cbe4e52dec3c4069d2a7182199933aaf0448319cde3d69cf"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/initialize-own-storage-bucket.cjs",
+      "sha256": "de5d6c7dcd330c408c0ca35aba2c07766d97ea6f27d7a7558a5a9a5e1abbb41f"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/mail-physical.four.cjs",
+      "sha256": "e861dddc78168b589823f91edcaa0ec3dadf1aebf89a28f3b382dc94b4f38f70"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/mail-physical-cli.four.cjs",
+      "sha256": "037f05afe2813fcd8bbcb0f38c68a179b97153c75030fea4b32d3c6c72b71b35"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/normal-auth-topology.four-case.ad.py",
+      "sha256": "4fae2f6714511a7e1472628f85c1f439cd34f2cc8ab02d35c53f9b7b4de07681"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/reapply-current-AD-config.BOUND.py",
+      "sha256": "2b6e9d9d7a0004b7730e6747953490261eac841c4ea0a3c2273cda5a74108f8e"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/AD-OUTCOME.REVIEWED.BOUND.safe.json",
+      "sha256": "b33059db918eb52c9b09ad623ac63e3973cd6380cf6059dbad20127c8bf49202"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/four-case-native.v3.py",
+      "sha256": "71f78c9405ad51da6d24a22fa1a9484f088ff0f0cda09e5df3d1d60186382595"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/qa-FOUR-NATIVE-CORE-V3-SOURCE-REVIEW.safe.json",
+      "sha256": "4da2fb26c6529a58d6e2a29a8c3795f74ea08c06b460588eb20922419fd78e42"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/four-case-semantic-native.py",
+      "sha256": "d36ff7ca62793b1efc99414bdfd4184ca00c9bd49238ffe7ad417e29fe37d100"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/SEMANTIC-NATIVE.B-NAMESPACE.SOURCE-ONLY.safe.json",
+      "sha256": "75c044d46b7657313cf58b4c51e1f53df4cc189692e0e86660e6d43162b15026"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/qa-B-WORKER-SEMANTIC-NAMESPACE-SOURCE-REVIEW.safe.json",
+      "sha256": "7bda70882508b25dce493d58df64e04ac784e6c5dbf1390409e403ab4a0f967f"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/PRODUCER-B-PORTS.FROZEN.SOURCE-ONLY.safe.json",
+      "sha256": "c182c7249ca75d89b7fe17561adc10fe15de793418aa81f9507a1d33fb8305da"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/root-PRODUCER-B-PORTS-SOURCE-REVIEW.safe.json",
+      "sha256": "00b7ebb743fb0258a70dcfc287eeb766c399561d028e453c7e7ec0693de8e9b1"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/RUNTIME-STORAGE.v2.FROZEN.SOURCE-ONLY.safe.json",
+      "sha256": "49f3b4770c79eb2ccb1b4b41280c88f5ace3a95781890920ee0a178cef93dcba"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/root-RUNTIME-STORAGE-V2-AND-OUTER-LOAD-SOURCE-REVIEW.safe.json",
+      "sha256": "ec1c4e1511e8b8d87ccd9e3a2b37d2ec2c93562175c4b0302ed1ec95a0d25417"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/cohort.SOURCE-BOUND.private.json",
+      "sha256": "c0538bc54ff9dd2f90c3f4b96b86a2d757d539d3a2c779d205adc6180039a030"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/FROZEN.B-NAMESPACE.SOURCE-ONLY.safe.json",
+      "sha256": "9f59f5a0de7030bd091f6a124185c7b85fd2dab25de997d9547f9572fc1ed76e"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/WORKER-TARGET.UNARMED.safe.json",
+      "sha256": "bdbbbedad1729e275000efa7e69f3f48f59bfd5d2a9f28a2efda1b3b07b9d2ce"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/validate-byte-refs.v3.cjs",
+      "sha256": "31c9c03d0178446a7da45a53eec46b54bcc145894e5969f3f7d81cc0388915dc"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/FETCH-ROUTES.SOURCE-ONLY.safe.json",
+      "sha256": "3c7cfa51b78bb065999309e89c648ccf4bfc9a6e1bd8f2e6ce6f0b8f050789fe"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-fixture-prep-20261116-a/all-four-CA.pem",
+      "sha256": "7503eccd8060d5779df2855b247819357b72dd7ff84f09e6f22f940de8fee9cc",
+      "bytes": 4756
+    },
+    {
+      "path": "/tmp/gridex-one-site-api-X-actual-prep-20261115-a/actor.API-X.private.json",
+      "sha256": "965efd6094ed8d5f3c0626bcb4d3f722fe7f3eed09c3de4cfbd5ec73a457c919"
+    }
+  ],
+  "qualifiedOriginalAcceptance": {
+    "path": "/workspace/gridex-ediel05-06-acceptance-20261116/FOUR-ORIGINAL-COHORT-EXACT-ACCEPTANCE.safe.json",
+    "sha256": "14576b4d9b0db32c9c66390fca07bc59b598b7447054b065546abfdaf654dec8"
+  },
+  "wholeBusinessAlgorithmUnchanged": true,
+  "resourceCorrection": "Explicit VFS image constructor cost; no SQL/business timeout waiver",
+  "actualRootExists": false,
+  "actualActorSessionGO": null
+}

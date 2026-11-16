@@ -1,0 +1,28 @@
+{
+  "state": "MISSING_CUSTOMER_LIST_PATCH_PREREQUISITE_PRESERVED_NOT_APPLIED",
+  "generatedAtUTC": "2026-11-16T10:54:53.156032+00:00",
+  "sourceRepository": "/tmp/gridex-customer-contract-preferences-fix-20261115",
+  "sourceCommit": "a9b5f3f35d652d968eb45a54d5096c326909543e",
+  "sourceParents": [
+    "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+  ],
+  "sourceTree": "9e1cec61bd636fdc4736567dbb10100459b3dab1",
+  "file": "customer-list-foundation-a9b5f3f3.patch",
+  "bytes": 47808,
+  "sha256": "69520dae6cb053ae6e7e2d5f8e89adf869e169ab0d77be0b70ba4fdeca37a93c",
+  "sourceFiles": [
+    "__tests__/customer-list-contract-summary.test.ts",
+    "app/admin/customers/page.part-2.tsx",
+    "lib/customers/contractBillingSummary.ts",
+    "lib/customers/getCustomers.ts",
+    "quality/audits/customer-contract-preferences-fix-20261115/REPORT.sv.md",
+    "quality/audits/customer-contract-preferences-fix-20261115/results.safe.json"
+  ],
+  "followingRefinementCommit": "1d2bc476b5d73f08704fc7dfddc6faf6f66bc70b",
+  "reason": "Exported1d2 is a completeness refinement. Main lacks foundation helper/contract_billing_summary, so1d2 alone does not preserve the full42703 correction. This artifact preserves the missing source dependency without applying it.",
+  "offlineCommonTokenPatternsMatched": [],
+  "limits": "No product adoption or test execution. Fresh Main/UI composition and relevant checks required after other workflow task. Do not overwrite local branches or automatically apply patches.",
+  "privateRuntimeOrDBIncluded": false,
+  "frozenOriginalPackageChanged": false,
+  "gitRefIndexOrCheckoutMutated": false
+}

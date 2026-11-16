@@ -1,0 +1,18 @@
+{
+  "state": "APPROVE_EXPLICIT_EXPANDED_THREE_HISTORICAL_MAIN_ARCHIVES",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T10:44:46.570472+00:00",
+  "proposalSHA256": "de86da9f9e0d13686c19e3b041a64d5ac0c3aa6077b4d269b0e40b03ac1343e2",
+  "paths": [
+    "/workspace/gridex-classified-b03-main-evidence-20261113/stage2-after.private.json",
+    "/workspace/gridex-three-forward-main-evidence-20261113/stage-3-term03-after.private.json",
+    "/workspace/gridex-local-simulation-initial-native-evidence-20261113/fresh-current-main.private.json"
+  ],
+  "checks": [
+    "ExplicitNEWscope includes previouslyexcludedstage2/stage3 historicalMAINforward JSON; previousexclusion remains historical, thisisnewpositiveauthorization",
+    "All3currentSHA/size/inode/nlink1/uidgidverified; solewriter mustbindoldclosedexit/ownership andnoconcurrentownusage beforemutation",
+    "OnlyclosedhistoricalJSON; currentbaseline/C6/Kwire/D_Erawcandidate/Fc0d24/source/env/actor/deps untouched",
+    "Samebyte-restorablegzipinTMP0600/fsync/streamSHAbytes/durableARCHIVEDmanifestbeforeunlink/safeexclusive restore; no falseoldphysicalclaim",
+    "ProducerexplicitInventorywriterhandoff; actual805workspace/130TMPguard remainsbeforeAuth+beforeclone"
+  ]
+}

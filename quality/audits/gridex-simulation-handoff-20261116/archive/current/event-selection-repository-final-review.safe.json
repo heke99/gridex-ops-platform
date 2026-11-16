@@ -1,0 +1,14 @@
+{
+  "state": "APPROVE_EXACT_SOURCE_REPOSITORY_ADOPTION",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T10:46:11.986963+00:00",
+  "head": "55adfc5136503804e3a1abfd4e51a18b4dc2aad1",
+  "tree": "c90333089d97de181ede23807e9144fdefe0938a",
+  "handoffSHA256": "5df299d54d643816617551b0c3ced125a79764cd9214d362d7b2793ca8524c98",
+  "checks": [
+    "Onlypagechanged/currentheadclean/exactreviewed0f6dbytes preserved",
+    "Root458b/Ediel85f fullSOURCEapplies; allguards/native/actions/64profile unchanged",
+    "18isolatedfixtures/scopedTS651/lint0 evidence bounded; no browser/nativecasecredit",
+    "Runtime18b onepageoverlay independentadoption receipt; no push/merge claimed"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "verdict": "INDEPENDENT_PROPER_CLOSURE_PREAUTH_STOP_APPROVE_NO_CASE_CREDIT",
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "reviewedAt": "2026-11-16T07:50:24.980714+00:00",
+  "closure": {
+    "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/CLOSED.safe.json",
+    "sha256": "3c3d48a1e759598f5a6ae498a154641edf0c8ff5848efbdc599514c823922fa4"
+  },
+  "all20DirectRefsVerified": true,
+  "savedBeforeRuntimeAndProtectedMainWhole5223370IndependentlyCompared": true,
+  "savedAll7AndAuthBeforeRuntimeExact": true,
+  "settingsBytesExact": true,
+  "freshPostTopologyNativeProof": {
+    "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/native-complete/PROPER-CLOSURE-NATIVE.safe.json",
+    "sha256": "27e11deafd3c2ac2f0e69b9cb1e4de03aef8849ff930c2635c46df8233946b7d"
+  },
+  "freshPostTopologyEvidenceGrade": "Qualified producer READONLY whole-object comparison in memory against pinned protected fullMain plus saved all7/Auth0/settings/DB absence; no separate fresh fullRAW or reviewer DB recomputation.",
+  "earlierUnknownBoundaryPreservedAndResolvedByLaterFreshProof": true,
+  "ownRESTDBStorageAbsentCleanupErrorsEmpty": true,
+  "storageEnvRemovedEmptyObjectCustodyRetained": true,
+  "freshExactNamesAndDaemonWindowNoLateOwnedContainersAndPortsEmpty": true,
+  "normalTrioStoppedTypedFreshForwarderVerified": true,
+  "noWorkerTargetPasswordOrBusinessAttempted": true,
+  "primaryTimeoutAndDisk0OCI128ProofsRetained": true,
+  "originalCaseVerdict": null,
+  "rawHoldReleased": false,
+  "newAttemptResourceAdmission": false,
+  "noReviewerBackendAuthNetworkOrSignals": true
+}

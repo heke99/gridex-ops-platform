@@ -1,0 +1,194 @@
+{
+  "schema": "gridex-term0208-private-observations-v1",
+  "id": "TERM02.08",
+  "sourceHead": "d93f361c51e81bc49cd48e817bd0b0fbe65e3d5b",
+  "worktreeHead": "4b6460f18ab069ef9da8bb5d710a70d2c06ff1f4",
+  "scope": "PRIVATE_PURE_COMPONENT_OBSERVATIONS_ONLY",
+  "fullScenarioPasses": 0,
+  "newProductDefects": 0,
+  "normativeVerdict": "POLICY_GAP_NOT_QUALIFIED",
+  "sourceHashes": {
+    "quality/simulation-register/oracles/all-systems-scenarios.safe.json": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+    "docs/release/2026-07-18-canonical-portfolio-pricing-completion.md": "de3f5b2b6e2451daa9c35ed28764f7dcad6d92ac718668f9d070a54ef388f434",
+    "lib/pricing/engine.ts": "8e5fe2416be55f9a21c5efa51f6529f1bb9f99880c051ab7d519e25591426076",
+    "lib/pricing/basePriceCalculator.ts": "0e401af39243a036298dc0876e03845028506daa8cd0f1ae91218f921de9b295",
+    "lib/pricing/intervalPricing.ts": "607637445737beaa7ba2701ebed227df148b821157a2ecae6ae5be20571181bd",
+    "lib/pricing/priceComponentCalculator.ts": "3422e948fff79e209311f7f4db5a5f51c84cdb46ac5ea17c7950152ea66d9a9d",
+    "lib/pricing/pricePreviewBuilder.ts": "90553f54069c7a08317c606536335e7a4f16791d3f5996f4bd31ad4f24b99c82",
+    "lib/billing/invoiceFileExport.ts": "18079fe838152ece73513c6fa4de17359de876fdd7b76c7c6ff796b32a0f852a"
+  },
+  "originalOracle": {
+    "location": "all-systems-scenarios.safe.json weightedPrice.assumption",
+    "text": "DESIGN ONLY: period-line half-up to cents, VAT per rounded line. Check actual native policy before treating as executable oracle; negative-total signed rounding separately.",
+    "expectedDesignOnly": {
+      "spotLine": "0.68",
+      "markupLine": "0.17",
+      "net": "49.85",
+      "vat": "12.46",
+      "gross": "62.31"
+    },
+    "actualEngineObserved": {
+      "net": 49.85,
+      "vat": 12.46,
+      "gross": 62.31
+    }
+  },
+  "policyEvidence": [
+    {
+      "path": "docs/release/2026-07-18-canonical-portfolio-pricing-completion.md",
+      "text": "Monetary invoice output is rounded only by the existing pricing-preview/invoice finalization rules.",
+      "limit": "Delegates to implementation; no independent signed half-cent rule identified in scoped documentation search."
+    }
+  ],
+  "actualImplementation": "Math.round(Number*100)/100; component net rounded before VAT; finalizer sums rounded lines and VAT; file row independently normalizes cents; CSV/JSON render stored rows. Observed binary/signed asymmetries are not independently qualified defects.",
+  "runs": [
+    {
+      "tests": 14,
+      "passed": 14,
+      "scope": "signed near-half-cent direct component/finalizer/file helper observations; replay and net+VAT invariant only"
+    },
+    {
+      "tests": 1,
+      "passed": 1,
+      "scope": "original weighted fixture through real engine and interval pricing with declared finite mocked I/O; no actual DB snapshot"
+    }
+  ],
+  "observations": [
+    {
+      "inputDecimal": "0.005",
+      "binaryTimes100": 0.5,
+      "net": 0.01,
+      "vat": 0,
+      "gross": 0.01,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "-0.005",
+      "binaryTimes100": -0.5,
+      "net": 0,
+      "vat": 0,
+      "gross": 0,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "0.015",
+      "binaryTimes100": 1.5,
+      "net": 0.02,
+      "vat": 0.01,
+      "gross": 0.03,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "-0.015",
+      "binaryTimes100": -1.5,
+      "net": -0.01,
+      "vat": 0,
+      "gross": -0.01,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "1.005",
+      "binaryTimes100": 100.49999999999999,
+      "net": 1,
+      "vat": 0.25,
+      "gross": 1.25,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "-1.005",
+      "binaryTimes100": -100.49999999999999,
+      "net": -1,
+      "vat": -0.25,
+      "gross": -1.25,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "1.015",
+      "binaryTimes100": 101.49999999999999,
+      "net": 1.01,
+      "vat": 0.25,
+      "gross": 1.26,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "-1.015",
+      "binaryTimes100": -101.49999999999999,
+      "net": -1.01,
+      "vat": -0.25,
+      "gross": -1.26,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "2.675",
+      "binaryTimes100": 267.5,
+      "net": 2.68,
+      "vat": 0.67,
+      "gross": 3.35,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "-2.675",
+      "binaryTimes100": -267.5,
+      "net": -2.67,
+      "vat": -0.67,
+      "gross": -3.34,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "0.02",
+      "binaryTimes100": 2,
+      "net": 0.02,
+      "vat": 0.01,
+      "gross": 0.03,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "-0.02",
+      "binaryTimes100": -2,
+      "net": -0.02,
+      "vat": 0,
+      "gross": -0.02,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "0.06",
+      "binaryTimes100": 6,
+      "net": 0.06,
+      "vat": 0.02,
+      "gross": 0.08,
+      "negativeZeroNet": false
+    },
+    {
+      "inputDecimal": "-0.06",
+      "binaryTimes100": -6,
+      "net": -0.06,
+      "vat": -0.01,
+      "gross": -0.07,
+      "negativeZeroNet": false
+    }
+  ],
+  "commands": {
+    "cwd": "/workspace/gridex-pricing-period-20261112",
+    "argvTemplate": [
+      "/workspace/gridex-setup01-evidence-20261112/npm-cache/_npx/34bebeba9c1ab179/node_modules/node/bin/node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--config",
+      "PRIVATE_CONFIG",
+      "--reporter=json",
+      "--outputFile=PRIVATE_JSON"
+    ],
+    "configs": [
+      "vitest.config.mjs",
+      "engine.config.mjs"
+    ],
+    "runtime": "Node22.22.0;existingVitest4.1.9cache;noinstall"
+  },
+  "limits": [
+    "Finite mocked configuration/Supabase ports; persist:false; no genuine authorized source snapshot, signed contract, accepted underlay, invoice or DB/provider write.",
+    "File helper invoked with pure synthetic rows assembled from actual pricing output; this is not frozen-file/native export proof.",
+    "Independent decimal half-up mode and negative-total rule are not normatively established. Observations cannot close full TERM02.08 or prove legal/accounting compliance.",
+    "No 65/17 historical suite rerun;15new narrow observations only.",
+    "Previous4b6460two docs remain byte-unchanged; worktree clean."
+  ]
+}

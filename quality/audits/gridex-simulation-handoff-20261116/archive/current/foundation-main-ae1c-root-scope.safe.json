@@ -1,0 +1,12 @@
+{
+  "decision": "APPROVE_EXACT_MAIN_FOUNDATION_SCOPE",
+  "wrapperSHA256": "ae1c69bce27c72b1a74dbc8ae74ee8caa8025218f754cdc23638cb7c7ffdee6e",
+  "targetSHA256": "516751ee1eea510e8ff1e61e46be1cfa28404fbac0b85e413bf666109d2cf457",
+  "boundFilesVerified": 10,
+  "oneAttemptOnly": true,
+  "migrationSHA256": "4c76103c85c97ad2750dc5c89e7c0503d858292f113fd528cfece3165240dcb8",
+  "permittedChange": "Missing35 intended persisted company_admin allow mappings only; old mappings preserved; no user grants, fixtures or Auth changes",
+  "guardsReviewed": "All other521 rows and3368 functions exact; raw role_permissions recomputed from captured actual rows with same PostgreSQL jsonb ordering; old raw guard false rejection corrected before dispatch",
+  "actualNativeRootReview": "0ba89f531c2a44dea8cdfd5c3b567f3e1763d5f85de42c7b91d5928752c92c39",
+  "delegation": "Producer may arm on behalf ROOT and dispatch ONCE after independent Domain exactscope approval; no further ROOT roundtrip required"
+}

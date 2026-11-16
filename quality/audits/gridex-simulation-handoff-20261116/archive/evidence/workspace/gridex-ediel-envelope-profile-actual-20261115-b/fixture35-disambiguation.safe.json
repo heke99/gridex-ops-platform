@@ -1,0 +1,60 @@
+{
+  "observed": {
+    "case": "fixture35_sender36_disambiguation_only",
+    "newResult": {
+      "sender": [
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+        "ZZZ"
+      ],
+      "receiver": [
+        "RECEIVER",
+        "ZZZ"
+      ],
+      "environment": "test",
+      "uciReference": "REF001",
+      "testIndicator": "1",
+      "applicationReference": "APP",
+      "interchangeReference": "REF001"
+    },
+    "oldResult": {
+      "sender": [
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+        "ZZZ"
+      ],
+      "receiver": [
+        "RECEIVER",
+        "ZZZ"
+      ],
+      "environment": "test",
+      "uciReference": "REF001",
+      "testIndicator": "1",
+      "applicationReference": "APP",
+      "interchangeReference": "REF001"
+    },
+    "oldEqualsNew": true,
+    "decodedSender": [
+      "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+      "ZZZ"
+    ],
+    "leftGroupedOperand": [
+      "UNOC",
+      "3"
+    ],
+    "decodedSenderLength": 36,
+    "intendedGroupedOperand": [
+      "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+      "ZZZ",
+      "RECEIVER",
+      "ZZZ"
+    ],
+    "unparenthesizedOperand": [
+      "UNOC",
+      "3"
+    ],
+    "oldMatchesOriginalNullExpected": false,
+    "observedSourceExpressionEqualsLeftGrouped": true
+  },
+  "native41Passed": false,
+  "expectedFixtureChanged": false,
+  "diagnosticOnlyNoAdoption": true
+}

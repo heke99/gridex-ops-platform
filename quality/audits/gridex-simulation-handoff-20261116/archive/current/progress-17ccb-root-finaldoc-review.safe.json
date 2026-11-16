@@ -1,0 +1,23 @@
+{
+  "state": "FINAL_CHANGED_DOC_APPROVE",
+  "head": "17ccb4e9ee1df0fdc8f9f0e870e24f34f0278910",
+  "comparedTo": "2640522f0e028f11c91d6625e0b920660fab3381",
+  "changedScenarioRows": [
+    "MAIN05.05",
+    "MAIN05.06",
+    "AUTH01.06"
+  ],
+  "all105NormativeOraclesUnchanged": true,
+  "newActualSourceRefsVerified": 11,
+  "latestSource38PhysicalFilesVerified": 38,
+  "counts": {
+    "pass": 29,
+    "documentedGap": 1,
+    "completed": 30,
+    "outstanding": 75,
+    "compatNotPass": 76,
+    "nativeAttemptIDs": 27,
+    "predicateUnion": 44
+  },
+  "review": "FullMDdelta/JSONstructuraldelta read. TwofilecasesrealEE/Aexport/404/522same; AUTHcomposite37+7entities/67headers/36RECEIVEDWS0knownsecret. OriginalHOLD/exit1 preserved, source34actual/later38physical/templateENVnotactive/historicalAuth29 explicit."
+}

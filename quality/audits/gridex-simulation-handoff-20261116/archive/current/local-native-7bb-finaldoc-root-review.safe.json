@@ -1,0 +1,10 @@
+{
+  "state": "FINALDOC_DELTA_APPROVE",
+  "head": "7bb0eeaf399c06f5db2313a5c2f0488c7b611ad1",
+  "changedAuditFiles": 2,
+  "SQLAndThreeTestsUnchanged": true,
+  "actualOriginalsVerified": 37,
+  "boundedActualResult": "DDL/V6/fixturefreeAuthACL only; initial historicalseedclone/mainpreserve/drop proved",
+  "deferred": "Genuinepositivefixture/signedJWT/races/MAINapply/GEN/all105",
+  "handoff": "May hand unchanged ad594 SQL to GENmetadataowner for genuine registration; no newruntimeauthority"
+}

@@ -1,0 +1,28 @@
+{
+  "state": "POSITIVE_SOURCE_AND_FINALDOC_FOUR_B_NO_ACTUAL_AUTHORITY",
+  "outerFreeze": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/OUTER.B.FROZEN.SOURCE-AND-FINALDOC.safe.json",
+    "sha256": "97260d9b9aeae8197a9b44fbafee7b9978562dc69f8e8345f214fde2c26dcd2c"
+  },
+  "sourcePeers": [
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/root-PRODUCER-B-PORTS-SOURCE-REVIEW.safe.json",
+      "sha256": "00b7ebb743fb0258a70dcfc287eeb766c399561d028e453c7e7ec0693de8e9b1"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/root-RUNTIME-STORAGE-V2-AND-OUTER-LOAD-SOURCE-REVIEW.safe.json",
+      "sha256": "ec1c4e1511e8b8d87ccd9e3a2b37d2ec2c93562175c4b0302ed1ec95a0d25417"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/qa-B-RUNTIME-STORAGE-V2-SOURCE-FINALDOC-REVIEW.safe.json",
+      "sha256": "c6fb2c689675ef065dfbddf2dcd728a92bec0aecfb01b7041a08a1bc8926b819"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/qa-B-WORKER-SEMANTIC-NAMESPACE-SOURCE-REVIEW.safe.json",
+      "sha256": "7bda70882508b25dce493d58df64e04ac784e6c5dbf1390409e403ab4a0f967f"
+    }
+  ],
+  "actualActorSessionGO": null,
+  "resourceAdmission": null,
+  "noOriginalCredit": true
+}

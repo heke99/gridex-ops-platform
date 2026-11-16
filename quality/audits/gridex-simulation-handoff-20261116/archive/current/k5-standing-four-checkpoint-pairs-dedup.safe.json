@@ -1,0 +1,30 @@
+{
+  "state": "ROOT_STANDING_EXACT_FOUR_K5_CLOSED_CHECKPOINT_PAIR_DEDUP_SCOPE",
+  "atUtc": "2026-11-14T17:47:18.807071+00:00",
+  "root": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5",
+  "phases": [
+    "LOCAL_ISSUE",
+    "LOCAL_RECEIVE",
+    "LOCAL_PREPARE",
+    "LOCAL_ATTEST"
+  ],
+  "canonicalName": "full-after-rpc.private.json",
+  "replaceName": "full-after-dump.private.json",
+  "conditions": [
+    "OnlyafterthisphaseCLIexited andSEALEDactualcoreACK+fullstateequal acrossdump, statecompletedcontainsphase, noopenwriter/FD/mount.",
+    "FreshsameSHA/bytes/device/mode0600/uidgid andcanonicalregular/nosymlink; anymismatchSTOPbeforemutation.",
+    "ProduceraloneorONEexplicitfilesystemwriter; atomicexclusive siblinghardlink verifythenreplace; postbothhashes/metadata/inodejournal+actualspace.",
+    "Preserveallrawpaths/content; no futurewrites tosealedpairs, no otherfiles/fullFc/nativeACK/input/source/schema edits.",
+    "Maximumfourpairs, onlyliteralphasepaths; no pendingdedupbytescountedavailable; existing134217728failureDumpReserve/memory/native/timeguards unchanged."
+  ],
+  "inheritedProtocol": {
+    "path": "/workspace/gridex-root-session-20261112/k4-standing-four-checkpoint-pairs-dedup.safe.json",
+    "sha256": "ccb51f3132233bcbcf97f6424c715f345c505c95006db092953c9b68bfc4b713"
+  },
+  "notActual": "All future pairs conditional on actual phase closure/committed ACK/full equality; no byte saving or native execution claimed by this scope.",
+  "rootAuthorizationPending": false,
+  "currentActualPairOrSaving": null,
+  "priorClosureBinding": null,
+  "authority": "User autonomoussimulation mandate and existinglosslessclosedproofdedupprotocol; no per-phaseextraRootgate.",
+  "proposalSHA256": "a1e594c04c37e3c860ca0abd698fd88fd1ca8ab1bf377e98b1b9fc2b551401fd"
+}

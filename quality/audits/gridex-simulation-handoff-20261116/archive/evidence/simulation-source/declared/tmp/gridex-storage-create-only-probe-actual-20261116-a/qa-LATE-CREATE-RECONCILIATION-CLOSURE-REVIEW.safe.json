@@ -1,0 +1,54 @@
+{
+  "verdict": "INDEPENDENT_LATE_OWN_CREATE_RECONCILIATION_CLEANUP_APPROVE_TIME_BUDGET_FAILED",
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "reviewedAt": "2026-11-16T09:29:49.834339+00:00",
+  "refs": [
+    {
+      "path": "/tmp/gridex-storage-create-only-probe-actual-20261116-a/LATE-CREATE-RECONCILED-CLOSED.safe.json",
+      "sha256": "a480718799e1fb14e2324161a771ec9930d438a2613766ec35f7b22dd7cbbc37"
+    },
+    {
+      "path": "/tmp/gridex-storage-create-only-probe-actual-20261116-a/LATE-OWN-CID-INSPECT.private.json",
+      "sha256": "2f81b0e1ab50a72fef045924307d9653a294e5b5ec16b119d8335dc85f7ac92e"
+    },
+    {
+      "path": "/tmp/gridex-storage-create-only-probe-actual-20261116-a/LATE-CREATED-SPACE-BEFORE-REMOVE.safe.json",
+      "sha256": "7321f84705d6490fcfcba9018525600cb68e83bc5d79d9aea39e67fb7b88f8c7"
+    },
+    {
+      "path": "/tmp/gridex-storage-create-only-probe-actual-20261116-a/LATE-CREATE-EVENTS.private.json",
+      "sha256": "d418e0a8403556951f0bfb49b221fd290a103acc5d4d77d377c66c4ed42dad26"
+    },
+    {
+      "path": "/tmp/gridex-storage-create-only-probe-actual-20261116-a/POST-TIMEOUT-OBSERVATION-1.safe.json",
+      "sha256": "546ed2d4e5d8fcb1cd96155f9f05dabfa31b23c413409c2b4269f9f227d46957"
+    },
+    {
+      "path": "/tmp/gridex-storage-create-only-probe-actual-20261116-a/create-once.process.safe.json",
+      "sha256": "6b42f3ccb7c12c884594cfc2c1c4d4a23ad0e2a30113c873cf8d45cd92772d99"
+    },
+    {
+      "path": "/tmp/gridex-storage-create-only-probe-actual-20261116-a/terminal.safe.json",
+      "sha256": "b5e65fd43a876fbeac3cb3dca1d961fc925b1301be607e7ab90ad01cebe97617"
+    },
+    {
+      "path": "/tmp/gridex-storage-create-only-probe-actual-20261116-a/OLD-A-LATE-CREATE-RECONCILIATION.safe.json",
+      "sha256": "906ec9c27aafe11f5165febad7326a9b125f77723eb13af62e6bce4831e4ac9e"
+    }
+  ],
+  "originalCreateCLI30TimeoutMinus9AndHistoricalUnknownPreserved": true,
+  "exactLateOwnedCIDImageSourceLabelsNeverStartedNetworkNoneVerified": true,
+  "lateFirstObservationSecondsAfterDispatch": 194.74669456481934,
+  "actualDaemonCompletionTimeUnknownEventsEmpty": true,
+  "no90SecondCompletionOrOriginalTimedProbeSuccessClaim": true,
+  "ownNormalRmExactNameAbsenceFromProducerClosureReceipt": true,
+  "privateEnvRemovedEmptyObjectsAndOwnedCLIPIDAbsentFSVerified": true,
+  "observedRawWorkspaceReclaimBytes": 2244390912,
+  "noExclusiveAllocationAttributionOrGuaranteedPeakBound": true,
+  "virtualImageSizeDoesNotQualify784MiBConstructorAllowance": true,
+  "fullBResourceEnvelopeAndFreshAdmissionStillRequireSeparateQualification": true,
+  "noNewCreateOrServiceStartMigrationDBSDKAuthBusinessOrOriginalCaseCredit": true,
+  "oldAExactNameEmptyNoActionReceiptRetained": true,
+  "reviewerDockerBackendAuthNodeSignals": 0,
+  "findings": []
+}

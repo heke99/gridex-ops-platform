@@ -1,0 +1,40 @@
+{
+  "state": "APPROVE_EXACT_FOUR_CLOSED_PATHS_TWO_INODES_CROSS_DEDUP",
+  "canonical": "/workspace/gridex-event-publication-positive-actual-20261114-d/main-before.private.json",
+  "files": [
+    {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261114-d/main-before.private.json",
+      "sha256": "9f77b85103c2d3e4a084562c7619d3e6bd55926f059b4003f2466a66387f1a3c",
+      "inode": 527365,
+      "dev": 27,
+      "mode": 384,
+      "bytes": 22280424
+    },
+    {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261114-d/main-after.private.json",
+      "sha256": "9f77b85103c2d3e4a084562c7619d3e6bd55926f059b4003f2466a66387f1a3c",
+      "inode": 527365,
+      "dev": 27,
+      "mode": 384,
+      "bytes": 22280424
+    },
+    {
+      "path": "/workspace/gridex-decimal-quality-window-native-actual-20261114-e/main-before.private.json",
+      "sha256": "9f77b85103c2d3e4a084562c7619d3e6bd55926f059b4003f2466a66387f1a3c",
+      "inode": 527407,
+      "dev": 27,
+      "mode": 384,
+      "bytes": 22280424
+    },
+    {
+      "path": "/workspace/gridex-decimal-quality-window-native-actual-20261114-e/main-after.private.json",
+      "sha256": "9f77b85103c2d3e4a084562c7619d3e6bd55926f059b4003f2466a66387f1a3c",
+      "inode": 527407,
+      "dev": 27,
+      "mode": 384,
+      "bytes": 22280424
+    }
+  ],
+  "scope": "ReplaceonlyEpairlinks withDcanonical afterfreshclosedidentity/noactiveownFD; atomicreplacement/postall4H+metadata/journal. All4pathsretainedRAW, forbidfuturewrites, no source/currentbaseline/Fcchanges. Actual805+RAM checkedlater, no waiver.",
+  "observedAt": "2026-11-14T11:18:49.150737+00:00"
+}

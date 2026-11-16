@@ -1,0 +1,8 @@
+{
+  "verdict": "READONLY_SOURCE_SCOPE_APPROVE",
+  "reviewerAgent": "/root",
+  "observedAt": "2026-11-14T08:25:25.155013+00:00",
+  "sqlSHA256": "8c28fded4d29caf8820493615fc0741850da25e2a9aceada43e6190babed71c1",
+  "review": "Fullqueryread. ExactownAPIhttpclone, fixedactualfactory/companyA/event IDs; readonly8s/ROLLBACK; capturesprivatefactory/receivers/bindings anddedicatedpublicsubs/deliveries evenunknownUIgeneratedid. ScopeMismatchCounts exposesforeignreferencefaults, >100rows explicitNOT_FULL, noAuth/Vaultplaintext/DML/fabrication.",
+  "next": "Soleproducer mayrunwith matchingactualfactorybinding beforeANY teardown, includingunknownoutcome; actualrowsnotcommitassumed. Noadditionalquerygate."
+}

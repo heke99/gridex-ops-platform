@@ -1,0 +1,5 @@
+import {NextRequest,NextResponse} from 'next/server'
+import {readSupplyRescissionBytes} from '@/lib/ediel/production/supplyRescissionIntake'
+import {supplyRescissionHttp,supplyRescissionHeaders,supplyRescissionArtifactId} from '@/lib/ediel/production/supplyRescissionHttp'
+export const runtime='nodejs';export const dynamic='force-dynamic'
+export async function GET(_request:NextRequest,{params}:{params:Promise<{artifactId:string}>}){return supplyRescissionHttp(['communication.read','contracts.read','metering.read'],async guard=>{const artifactId=supplyRescissionArtifactId.parse((await params).artifactId),result=await readSupplyRescissionBytes({companyId:guard.companyId!,actorUserId:guard.userId,artifactId});return new NextResponse(new Uint8Array(result.bytes),{headers:{...supplyRescissionHeaders,'Content-Type':result.mimeType,'Content-Disposition':`attachment; filename="underlag-${artifactId}.${result.mimeType==='application/pdf'?'pdf':'txt'}"`,'Content-Length':String(result.bytes.byteLength),ETag:`"${result.sourceHash}"`}})})}

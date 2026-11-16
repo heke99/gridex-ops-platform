@@ -1,0 +1,9 @@
+{
+  "state": "ROOT_EXACT_CONFIG_SCOPE_APPROVE",
+  "wrapperSHA256": "aac68f36fba20d7c6c06e587ebf89b81915cc125b22616128834f371f19d037e",
+  "planSHA256": "90f10689a6c3ad60593616dbe3e4e05a5e490acf25a22a04b8274034204fd279",
+  "createOnly": true,
+  "scope": "Additive STOPPED sameimage/signer/DB/config Auth; only CONFIRMATION and RECOVERY path overrides to qualified local/auth/v1/verify. Originalab65 retainedstopped. NoSTART/users/signup/tokenreplay.",
+  "proofInputsVerified": 4,
+  "afterSecondAck": "Soleproducer may persistarmingONBEHALFROOT and executeONCE withoutanotherrootroundtrip"
+}

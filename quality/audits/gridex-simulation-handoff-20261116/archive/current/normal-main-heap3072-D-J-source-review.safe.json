@@ -1,0 +1,14 @@
+{
+  "state": "ROOT_NORMAL_MAIN3072_D_J_LITERAL_ONLY_SOURCE_REBIND_APPROVED_NOT_LAUNCH",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T19:50:05.630411+00:00",
+  "preparedPath": "/tmp/gridex-normal-main-heap3072-D-J-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "0f39d95d6769087c86e4dc499e27f4448b7cf04b0505b2888e3c937e04195ae3",
+  "wholeLeafAndLoaderInverseVerified": true,
+  "review": "FullC-to-D diff and exactinverse verified; only exclusiveDroot/log andnewleafpath/hash. SameactualJrenewal/3072/source40/webpack/ports90s/no retries.",
+  "conditions": [
+    "Produceronly afteractualK6Mainpostcapture/APIresume and existingMainabsence/currentJ/source/resource/identity guards",
+    "No currentK6runtime edits/newAuthauthority fromthissourcepair"
+  ],
+  "futureActualDPid": null
+}

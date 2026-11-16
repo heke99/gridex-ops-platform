@@ -1,0 +1,10 @@
+{
+  "state": "ROOT_EXACT_STARTUP_HEALTH_RESUME_SCOPE_APPROVE",
+  "wrapperSHA256": "6b2ccb5559c733bee82ce93a0ebd4e21628a1d19dc102783daaf9dcc2302c102",
+  "planSHA256": "39fb03c298eb1d5b717d5628dcef39e95a995979742e4c23e275dc4eba592a18",
+  "actualBoundFilesVerified": 11,
+  "actualSource34Verified": 34,
+  "scope": "Existingb27START internalnetworkhealth200; retainedREST/KongSTART+samecurrentstandardkeysnormalrenderreload; exactownheld862134SIGCONT/loginGET200; full522rowsbeforeafterequal; oldAuthretainedstopped/StorageOFF.",
+  "noUserOrAuthorityActions": "NoSignup/verify/email/AuthAdmin/keyrenew/templateactivation/businesswrites.",
+  "afterSecondAck": "ProducerarmONBEHALFROOTandexecuteONCEwithoutanotherrootroundtrip"
+}

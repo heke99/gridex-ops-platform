@@ -1,0 +1,321 @@
+{
+  "version": 1,
+  "state": "DATED_LOCAL_DOC_ADDENDUM_ONLY",
+  "preparedAtUtc": "2026-11-15T02:31:12.563005+00:00",
+  "scope": "Closed component evidence below; active K8/M business execution excluded. No source/runtime/backend/Node/current-input writes or scenarioledger change.",
+  "counts": {
+    "total": 105,
+    "fullPass": 38,
+    "documentedGap": 1,
+    "outstanding": 66,
+    "sourceAsOfUtc": "2026-11-15T02:17:57.195018+00:00"
+  },
+  "observationsAreNotGlobalDefectOrScenarioTotals": true,
+  "observations": [
+    {
+      "id": "OBS-RECEIVER",
+      "category": "CONFIRMED_HARNESS_ORACLE_ERROR",
+      "severity": "LOCAL_COMPONENT_FALSE_NEGATIVE",
+      "actual": "One normal POST303 issued99002 registration0a92 plus three dependencies, expiry2026-11-16T00:00Z; product native receipt and preservation/normalUILogout/Auth0 qualified.",
+      "cause": "Locator required middle dot inside strong; actual page places the dot in a sibling.",
+      "remediation": "Reviewed truthful native-committed/UI-oracle-failed provenance; correct only future receipt locator. Never reissue or fabricate original UI ACK.",
+      "status": "NATIVE_COMPONENT_QUALIFIED_UI_ORACLE_FAILED",
+      "fullScenarioPass": false,
+      "refs": [
+        "receiver",
+        "receiverRoot",
+        "receiverPeer",
+        "receiverProvenance"
+      ]
+    },
+    {
+      "id": "OBS-SITE",
+      "category": "CONFIRMED_HARNESS_DERIVED_FIELD_OMISSION",
+      "severity": "LOCAL_COMPONENT_FALSE_NEGATIVE",
+      "actual": "S2active and S1closed each one POST200. S2 nativeACK/visible passed; S1 ACK409 remains despite committed native statusclosed/is_activefalse.",
+      "cause": "Selected-site allowlist omitted stored generated is_active = coalesce(status,draft) not in(inactive,closed).",
+      "remediation": "New source verifies exact generated bool before/after, unchanged summary/other-site/point guards;20 saved controls. No old ACK rewrite or action replay.",
+      "status": "TWO_NATIVE_COMMITS_QUALIFIED_SOURCE_FIX_NOT_LIVE_REPLAY",
+      "fullScenarioPass": false,
+      "limits": "UIlogoutfalse/helperEXIT1 retained; proper ownAuthAPI204/native0/browserclosed. Full dated supply/invoice periods/quantities/amounts oracle still missing.",
+      "refs": [
+        "site",
+        "sitePeer",
+        "siteRoot",
+        "siteGeneratedSource",
+        "siteGeneratedControls"
+      ]
+    },
+    {
+      "id": "OBS-CUSTOMER-42703",
+      "category": "CONFIRMED_LOCAL_PRODUCT_CODE_SCHEMA_MISMATCH",
+      "severity": "LOCAL_CUSTOMER_READ_BLOCKER_PRODUCTION_IMPACT_NOT_VERIFIED",
+      "actual": "Shared customer select requests both customers.consolidated_invoice and customers.billing_level; captured local catalog lacks both, causing42703.",
+      "affectedFiles": [
+        "lib/customers/getCustomers.ts",
+        "app/admin/customers/page.part-1.tsx",
+        "app/admin/customers/page.part-2.tsx"
+      ],
+      "cause": "Customer-level read projection and current captured schema disagree; live filter/badge still use the fields.",
+      "remediation": "Repair both unsupported raw selections and define tenant-owned contract-derived summary semantics; retain explicit unknown/no-contract/mixed states and pagination. No false defaults, arbitrary latest-contract inference or wholesale historical migration replay.",
+      "status": "SOURCE_REMEDIATION_DIRECTION_ONLY_NOT_IMPLEMENTED",
+      "fullScenarioPass": false,
+      "refs": [
+        "customerColumns",
+        "customerNativeCatalog"
+      ]
+    },
+    {
+      "id": "OBS-HMR",
+      "category": "CONFIRMED_LOCAL_DEV_ORIGIN_CONFIGURATION_CAUSE",
+      "severity": "LOCAL_BROWSER_HYDRATION_BLOCKER",
+      "actual": "A7:11 socket errors/0 frames and no React props/fiber; B7 exact127 overlay:10 frames/0 errors and React props/fiber on public login/unauthenticated redirect.",
+      "remediation": "Source-qualified readonly single-file config overlay allowedDevOrigins127 only, hash742e/mode0640GID1000; private modulea06d/binder3e03 preservesAPI/firewall/Auth/3000guards.",
+      "status": "PUBLIC_CAUSAL_COMPARISON_AND_PRIVATE_SOURCE_QUALIFIED_NOT_AUTHENTICATED_IMPORT",
+      "fullScenarioPass": false,
+      "limits": "Server form onSubmitfalse in both is expected; no clientIMPORT hydration, business or provider outcome inferred.",
+      "refs": [
+        "hmr",
+        "hmrPeer",
+        "hmrRoot",
+        "hmrRuntimeSource"
+      ]
+    },
+    {
+      "id": "OBS-NATIVE-B",
+      "category": "ACTUAL_NATIVE_QUALIFICATION_COMPONENT",
+      "severity": "NOT_A_DEFECT",
+      "actual": "Fresh currentMain native bootstrap3370→3420→3443, exact14empty private tables/catalog, receiver0a92 retained; Main fullsnapshot/sequences/Auth0 unchanged; ownedclone cleaned.",
+      "status": "ACTUAL_PREAUTH_NATIVE_SEED_QUALIFIED",
+      "fullScenarioPass": false,
+      "limits": "No userAuth/businessRPC/financial case. PreAuth Auth0 source proof cannot substitute NEW aftergenuineMREADY Main baseline. Fixed table names are not copied authority keys; fullparent re-reads actual state.",
+      "refs": [
+        "nativeB",
+        "nativeBProducer",
+        "nativeBPeer",
+        "nativeBOutput",
+        "private14Source"
+      ]
+    },
+    {
+      "id": "OBS-BINDING",
+      "category": "HARNESS_UNARMED_METADATA_OMISSION_CAUGHT_PREEXECUTION",
+      "severity": "PREEXECUTION_STOP_NO_BACKEND_EFFECT",
+      "actual": "Unarmed decimalNativeQualificationNULL caused existingguard refusal before target output/runtime.",
+      "remediation": "Routine actual binding supplied original qualified E terminal/candidate/two reviews; source and guards unchanged.",
+      "status": "METADATA_CORRECTED_NOT_NEW_DECIMAL_QUALIFICATION",
+      "fullScenarioPass": false,
+      "refs": [
+        "bindingDiagnostic"
+      ]
+    }
+  ],
+  "correctRoutes": [
+    "Normal receiver UI→issueControlledTestReceiverIdentityAction→issueControlledTestReceiverIdentity→public.issue_controlled_test_receiver_identity_v1; native issued receipt, lease/revocation/tenant guards remain.",
+    "Normal customer site form→saveCustomerSiteAction→saveCustomerSite(status); stored generatedis_active and native customer summary/address side effects are qualified, not additional fabricated writes.",
+    "LOCAL public ISSUE→RECEIVE→PREPARE→ATTEST use genuine principal/nativeadmission and checkpointACKs. Normal File import→localSimulationImportAction→bindLocalSimulation(realNextcookies/nativebasis/WeakMap)→importRawEdifactAndRunTestCenterChain; RPC receipts alone do not mintopaque context.",
+    "Invoice review uses invoiceReviewPrepare→gridex_create_invoice_review_draft_v1→gridex_create_invoice_export_graph_v1. Canonical download /admin/billing/invoice-files/[fileId] requires actual authorized locked file; runId is not fileId."
+  ],
+  "remaining": {
+    "financial": "Actual normalFileIMPORT/underlay/invoice lineage and totals still incomplete at report cutoff; K5/K6 fourRPC commits do not prove import/approve/file/provider authority. New2688/3242 reference is separate from unavailable28/1809.51.",
+    "Ediel": "Source/compile evidence and Storage/MIME/negativeSMTP plan do not prove actual end-to-end archive/transport/provider receipt. No fake Storage archive or external acceptance.",
+    "Nordfin": "User-confirmed unavailable original officialXML/XSD/rounding artifact; no fabricated compliance or provider acceptance.",
+    "QA02": [
+      {
+        "id": "QA02.01",
+        "recommendedDisposition": "UNAVAILABLE_IN_AVAILABLE_CARRIERS_SEARCH_TERMINAL_NONPASS",
+        "missing": "Original exact37 test names, old source and local guard diff; cause/correction/guard preservation per member.",
+        "fullPass": false
+      },
+      {
+        "id": "QA02.02",
+        "recommendedDisposition": "UNAVAILABLE_IN_AVAILABLE_CARRIERS_SEARCH_TERMINAL_NONPASS",
+        "missing": "Original two returns failure names/stacks and old caller/mock chains; comparison to actual original calls.",
+        "fullPass": false
+      },
+      {
+        "id": "QA02.03",
+        "recommendedDisposition": "UNAVAILABLE_IN_AVAILABLE_CARRIERS_SEARCH_TERMINAL_NONPASS",
+        "missing": "Original1247 exact file membership/source+effective config and per-file terminal or concrete blocker. Current1385 and404 historical names do not establish that set.",
+        "fullPass": false
+      },
+      {
+        "id": "QA02.04",
+        "recommendedDisposition": "UNAVAILABLE_IN_AVAILABLE_CARRIERS_SEARCH_TERMINAL_NONPASS",
+        "missing": "Original memory-fix diff, exact18 names/terminal receipts and12baseline+6new identity/overlap map.",
+        "fullPass": false
+      },
+      {
+        "id": "QA02.05",
+        "recommendedDisposition": "UNAVAILABLE_IN_AVAILABLE_CARRIERS_SEARCH_TERMINAL_NONPASS",
+        "missing": "Original pricing-fix59 names/source/terminal and correct final commit/full-release command receipts.",
+        "fullPass": false
+      }
+    ]
+  },
+  "deadcode": {
+    "sourceCompositionRemoved": 24,
+    "sourceCompositionRetained": 9,
+    "sameRegistryRuntimeRemoved": 2,
+    "sameRegistryRuntimeOther": 31,
+    "isolatedE6WriterSeparateNotSummed": true,
+    "rootUnreached187IsNotProvenDead": true,
+    "customerConsolidationFilterAndBadgeLiveNotDead": true,
+    "noNewDeadCodeVerdict": true
+  },
+  "laterDeletionContext": "Prior datedd04a blocker was superseded by explicit remaining-application guard, H2all21 and localTESTMain adoption plus normalDELETEF. Preserve DELETEF missingforeign-before evidence limit; do not infer wholecase or production/MainGitdeployment.",
+  "verification": {
+    "onlyDocsAndReferenceSHAValidation": true,
+    "functionalReruns": 0,
+    "backendCalls": 0,
+    "nodeCalls": 0,
+    "centralLedgerWrites": 0
+  },
+  "references": {
+    "counts": {
+      "path": "/tmp/gridex-progress-addendum-evidence-20261115/canonical-count.SNAPSHOT.safe.json",
+      "sha256": "91a300f3a0abe996c10c8fda7360e8b4d32d7a56fa6be45fb565da3d3fad8930",
+      "bytes": 5445
+    },
+    "receiver": {
+      "path": "/workspace/gridex-k7-receiver-main-actual-20261114-l/CLOSED-NATIVE-COMMITTED.safe.json",
+      "sha256": "496d8392a092d9061b9c3439f122f36ca93695fab58a26f588cfd763a4f2fb4a",
+      "bytes": 3263
+    },
+    "receiverRoot": {
+      "path": "/workspace/gridex-k7-receiver-main-actual-20261114-l/root-native-commit-closure-review.safe.json",
+      "sha256": "6ba99ed0d5cea4a3272bbed01ded9868fd02f589c952aa12eb29b349a30bc03b",
+      "bytes": 630
+    },
+    "receiverPeer": {
+      "path": "/workspace/gridex-k7-receiver-main-actual-20261114-l/ediel-actual-native-receiver-closure-review.safe.json",
+      "sha256": "55e6fe8ea99511b2764eb59d789a061545e7c87ff94cc586a834841614b5a1f5",
+      "bytes": 1785
+    },
+    "receiverProvenance": {
+      "path": "/tmp/gridex-current-receiver-provenance-prep-20261115/PREPARED.SOURCE-ONLY.safe.json",
+      "sha256": "401d1deb0e7cc4e3a3c80a7b6e92e59c02317b1733fe1d5f4f35058b884b3c6c",
+      "bytes": 2093
+    },
+    "site": {
+      "path": "/workspace/gridex-site0103-main-actual-20261115-c/CLOSED-TWO-COMMITS-API-CLEANUP.safe.json",
+      "sha256": "ec22c61fa09e9aa5949b0a3685856254c69f6bb068a78f9cf3ebd12be034b2ab",
+      "bytes": 5552
+    },
+    "sitePeer": {
+      "path": "/workspace/gridex-site0103-main-actual-20261115-c/ediel-two-site-commits-closure-review.safe.json",
+      "sha256": "3f691244273a615524a1314ce531cc33c276294793e9d210eabc8be3fe96b113",
+      "bytes": 1784
+    },
+    "siteRoot": {
+      "path": "/workspace/gridex-site0103-main-actual-20261115-c/root-two-site-native-closure-review.safe.json",
+      "sha256": "68731f61d9125174580a5151377b1c035540e9308a4339f3c76eab34036b91c1",
+      "bytes": 957
+    },
+    "siteGeneratedSource": {
+      "path": "/tmp/gridex-site0103-generated-active-qualification-prep-20261115/PREPARED.SOURCE-ONLY.safe.json",
+      "sha256": "995f63abb80aa01d2d002f26b26ef517f4fb4f856a9a95b35e9ef97efff17108",
+      "bytes": 4768
+    },
+    "siteGeneratedControls": {
+      "path": "/tmp/gridex-site0103-generated-active-qualification-prep-20261115/SAVED-CONTROLS.safe.json",
+      "sha256": "7554d9b7ff2e3ec37147d16fe9823852fdb470d8b13e45cbb5b94c1e3e4cb65a",
+      "bytes": 5525
+    },
+    "customerColumns": {
+      "path": "/tmp/gridex-customer-list-column-remediation-20261115/FINDINGS.safe.json",
+      "sha256": "ef8a06c9b88ddf1e74ec83d7ecec6f882fd0d10c72e20de90d3202ccb86a2df8",
+      "bytes": 6700
+    },
+    "customerNativeCatalog": {
+      "path": "/workspace/gridex-customer-list-schema-epoch-diagnostic-20261114/schema-epoch.native.private.json",
+      "sha256": "0c5288cc8de78d0e4ec163c1bc648134532996809486a3a47f758e00df298565",
+      "bytes": 6745
+    },
+    "hmr": {
+      "path": "/tmp/gridex-client-hmr-B7-actual-prep-20261115/CLOSED-A7-B7-COMPARISON.safe.json",
+      "sha256": "76ca791ff65f4508b3e2b638e933c032f60856d6352ffc3858a4137c19f2a06d",
+      "bytes": 2111
+    },
+    "hmrPeer": {
+      "path": "/tmp/gridex-client-hmr-B7-actual-prep-20261115/ediel-A7-B7-HMR-comparison-review.safe.json",
+      "sha256": "ca1720f0e11e5d91bf57062e5fe7bdd7b760c8d70c425eb5c38b230353963236",
+      "bytes": 1631
+    },
+    "hmrRoot": {
+      "path": "/tmp/gridex-client-hmr-B7-actual-prep-20261115/root-A7-B7-public-hydration-review.safe.json",
+      "sha256": "7f12ec64d4f08a46547b2b5d33f08eb8c9394d91878b367f24a6c0ef56c7e340",
+      "bytes": 903
+    },
+    "hmrRuntimeSource": {
+      "path": "/tmp/gridex-runtime64-3000-k8-M-hmr127-prep-20261115/PREPARED.SOURCE-ONLY.safe.json",
+      "sha256": "ee8d78b4ed28954521610b24cbd5c05da6a1d26131f3520ff60843cb06c6d1f7",
+      "bytes": 3872
+    },
+    "nativeB": {
+      "path": "/workspace/gridex-k8-preauth-native-seed-qualification-actual-20261115-b/terminal.safe.json",
+      "sha256": "1ffcbbbd8e0f0274c9146d8d11a5473af58e7ec14f25e1e425522a272dd6c833",
+      "bytes": 783
+    },
+    "nativeBProducer": {
+      "path": "/workspace/gridex-k8-preauth-native-seed-qualification-actual-20261115-b/producer-actual-preauth-native-seed-review.safe.json",
+      "sha256": "f2ec76d013d1e66655563bf59de8356cabe79d4479cce8aa54d4432915c399fa",
+      "bytes": 3557
+    },
+    "nativeBPeer": {
+      "path": "/workspace/gridex-k8-preauth-native-seed-qualification-actual-20261115-b/ediel-actual-preauth-native-seed-review.safe.json",
+      "sha256": "ea7bdd20742c142412c7663b0afeeb824adf2cdc97c3d90ef15309e622f60736",
+      "bytes": 2529
+    },
+    "nativeBOutput": {
+      "path": "/workspace/gridex-k8-preauth-native-seed-qualification-actual-20261115-b/OUTPUT.safe.json",
+      "sha256": "aa1afb3a091167c9db8913425814fb2e006dc3796579ede77bb9aedac7d8eaa5",
+      "bytes": 1021
+    },
+    "private14Source": {
+      "path": "/tmp/gridex-k8-private14-stability-source-prep-20261115/SOURCE-CLASSIFICATION.safe.json",
+      "sha256": "8c883346adb9d16135071471b58f0d00478f26b7c3758992c164c97e69c41e00",
+      "bytes": 44601
+    },
+    "bindingDiagnostic": {
+      "path": "/tmp/gridex-k8-M-actual-parent-prep-20261115/INITIAL-METADATA-DIAGNOSTIC.safe.json",
+      "sha256": "4cb61ed6368c348801405e226f294b6ed028d69ae8aa2eb95f98d77689204bd7",
+      "bytes": 380
+    },
+    "mainDeleteAdoption": {
+      "path": "/workspace/gridex-test-customer-delete-main-adoption-actual-20261114-a/terminal.safe.json",
+      "sha256": "99c31e85cb0b7e27fa09f8c31e98b793dcd117f67cdb61b4e829a8cf5dd6d46e",
+      "bytes": 455
+    },
+    "deleteF": {
+      "path": "/workspace/gridex-custody-delete-post-fix-main-actual-proof-20261114-f/CLOSED-COMMITTED.safe.json",
+      "sha256": "6be39f70e7cbf3659540d62b54fdab1b578a7ada1bf1e7c5ea4a14ef3c8a44de",
+      "bytes": 4380
+    },
+    "deleteFPeer": {
+      "path": "/workspace/gridex-custody-delete-post-fix-main-actual-proof-20261114-f/ediel-actual-delete-component-closure-review.safe.json",
+      "sha256": "c558e9fc1e5e9e88c4280bca7a0fe0a8c27d179627103291f824850101a3fb4b",
+      "bytes": 1679
+    },
+    "QA02": {
+      "path": "/tmp/gridex-qa02-terminal-assessment-20261115/PER_ID_TERMINAL.safe.json",
+      "sha256": "c78d9eb25dd93f970f8ff376f29aa0847addbac822249b43175fd09f64a1f661",
+      "bytes": 7250
+    },
+    "missingOriginals": {
+      "path": "/workspace/gridex-root-session-20261112/user-confirmed-missing-inputs.safe.json",
+      "sha256": "63340710f6d4def5fada093917911bf449cd551a76ea219507fdd041b0a6e9b4",
+      "bytes": 941
+    },
+    "storageSource": {
+      "path": "/tmp/gridex-storage-runtime-source-review-20261114/FROZEN_SOURCE_REVIEW.safe.json",
+      "sha256": "5f4b9f5f68657d9c4715f44d29283ddadef1e32ae707a2e1102d9b01d7da4f3c",
+      "bytes": 10367
+    },
+    "deadcodeRoutes": {
+      "path": "/tmp/gridex-correct-routes-deadcode-repo-20261114/quality/audits/gridex-correct-routes-deadcode-20261114/results.safe.json",
+      "sha256": "67a8e7739a6f340f979199f009f9043e881337100ed071f52bd91db1c387fca0",
+      "bytes": 27359
+    }
+  }
+}

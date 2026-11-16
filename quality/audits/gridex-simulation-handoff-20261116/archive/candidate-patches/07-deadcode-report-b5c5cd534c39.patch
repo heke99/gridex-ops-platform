@@ -1,0 +1,670 @@
+From b5c5cd534c39e016e6e18978490c4cc4d6a83bb3 Mon Sep 17 00:00:00 2001
+From: Heke  Hourani <heke99@live.se>
+Date: Sat, 14 Nov 2026 21:14:41 +0000
+Subject: [PATCH] docs: record verified routes and separate dead-code evidence
+ layers
+
+---
+ .../REPORT.sv.md                              |  27 +
+ .../results.safe.json                         | 615 ++++++++++++++++++
+ 2 files changed, 642 insertions(+)
+ create mode 100644 quality/audits/gridex-correct-routes-deadcode-20261114/REPORT.sv.md
+ create mode 100644 quality/audits/gridex-correct-routes-deadcode-20261114/results.safe.json
+
+diff --git a/quality/audits/gridex-correct-routes-deadcode-20261114/REPORT.sv.md b/quality/audits/gridex-correct-routes-deadcode-20261114/REPORT.sv.md
+new file mode 100644
+index 000000000..977a8a24e
+--- /dev/null
++++ b/quality/audits/gridex-correct-routes-deadcode-20261114/REPORT.sv.md
+@@ -0,0 +1,27 @@
++Daterad hänvisningslista: korrekta vägar och dead code
++
++Upprättad 2026-11-14T21:14:27.833731+00:00. Källor och exakta SHA finns i [results.safe.json](results.safe.json). Detta är en hänvisningslista; endast dessa två daterade auditdokument ändras i en isolerad lokal gren; ingen produktkod eller central rapport ändras. Matrisen är fortsatt 38 PASS, 1 dokumenterat gap och 66 återstående.
++
++| Underlag | Kvalificerad slutsats | Avgränsning |
++| --- | --- | --- |
++| [Granskad komposition](/tmp/gridex-correct-routes-deadcode-pointers-20261114/reviewed-composition.at8a514.safe.json) | 33 deklarationer; 22 nya källborttagningar + 2 historiskt redan borta = 24 borttagna/9 behållna i källkompositionen. Tre hela moduler ingår redan. | Senast kvalificerad runtime: 2 borttagna/31 övriga. Ingen ny adoption. Kompositionens äldre scenariotal används inte som dagens tal. |
++| [e6b269: dashboard-skrivare](/tmp/gridex-correct-routes-deadcode-pointers-20261114/isolated-dashboard-writer.ate6b269.safe.json) | Separat borttagning av refreshCompanyDashboardSnapshot, ett tidigare osäkert symbolfall. Reader, vy, RPC och byggare behålls. | Källändring med egen granskad handoff. Inte komponerad till 25/8 och inte runtime-adopterad. Beteendetester/type/lint/build NOT_RUN i den separata grenen. |
++| [Statisk inventering](/tmp/gridex-main-static-import-rpc-inventory-v2-20261113/POSITIVE_INVENTORY_HANDOFF.safe.json) | 187 root-unreached kandidater vid ce804; 6408 Git-blobs/4656 moduler/1696 SQL-filer. | 0 nya bekräftat döda. Dynamiska RPC-vägar, ramverksrutter och externa anrop kan saknas i importgrafen. |
++| [Aktuell riktad reachability](/tmp/gridex-deadcode-current-reachability-20261114/FINDINGS.safe.json) | 28 källfiler, 5 sparade katalogfunktioner och 33 exakta ankare kvalificerar vägarna nedan. | Ingen ny nativekörning, global dead-dom eller faktisk download-bypass. |
++
++Korrekta vägar som slutrapporten bör länka till:
++
++- [Fyra publika LOCAL-kontrakt](/tmp/gridex-local-fresh-four-rpc-domain-prep-20261114/fixed-four-contracts.safe.json): ISSUE, RECEIVE och PREPARE tar exakt p_command. ATTEST tar exakt p_admission_id, p_contract_id och p_document_sha256; inget idempotencyargument. Genuin användare/standard anon-nyckel och befintliga nativeguider gäller.
++- Normal import går via /admin/ediel/test-center/metering-to-invoice → localSimulationImportAction → original receive/färsk nativepolicy → bindLocalSimulation med riktiga Next-cookies/nativebasis/WeakMap → importRawEdifactAndRunTestCenterChain. Fyra RPC-kvitton skapar inte den opaka importförmågan. rawEdifact är en riktig File med originalbytes.
++- Kanonisk download är /admin/billing/invoice-files/[fileId] med exportbehörighet, aktuell tenant och befintlig låst fil. Legacy /admin/billing/export-center/[runId]/download är fortfarande en levande barnrutt trots indexredirect; runId får inte antas vara fileId.
++- Normal fakturagraf: invoiceReviewPrepare → gridex_create_invoice_review_draft_v1 → gridex_create_invoice_export_graph_v1. Oanropad äldre TS-wrapper gör inte native-RPC:n död. Aktuell grafkontroll är chain-local verifyInvoiceGraph; separat InvoiceGraphCoverage har endast en källtextreferens i testet.
++- Dashboard: /admin → getCompanyDashboardSummary → gridex_admin_dashboard_summary → company_dashboard_summary_v. CompanyNULL använder getVerifiedPlatformDashboardSummary; konfigurerad cron använder monthly metrics/rollup/alerts. Den isolerade snapshot-skrivaren är en annan väg.
++- Retention har riktiga UI/API-anrop genom customerRecordClasses.call till ediel_submit_customer_record_retention_v1, ediel_review_customer_record_retention_v1 och ediel_begin_customer_record_retention_v1. Behåll tenant-/tombstone-/nativeguider.
++- [SITE01.03-källhandoff](/tmp/gridex-site0103-normal-status-prep-20261114/POSITIVE_SOURCE_HANDOFF.safe.json): normal /admin/customers/<customer>?editSite=<site> → CustomerSiteForm/saveCustomerSiteAction. Platform-EE använder entity-resolved B-scope utan påhittat B-medlemskap eller preferensskrivning. SOURCE2 är klar; faktisk körning/fixture/orakelbedömning återstår.
++- [TERM01.05-källplan](/tmp/gridex-term0105-normal-port-qualification-20261114/PLAN.safe.json): normal /admin/contracts?company_id=<own>&edit_offer=<actual> → saveContractOfferAction → native v3/v2/base. Faktisk livscykel, låst CPV eller kundavtalsreferens avgör ny version; inga fabricerade predecessor-/signaturflaggor.
++
++De fem exakta kompositionsoperationerna och samtliga referenser finns i JSON-filen. De två ersatta pageparts är redan overlaynycklar; tre base-filborttagningar kräver explicita negativa manifestposter. Anta inte att fem Git-filer innebär profil 40→45. Separata grenar, källändringar och runtimekörningar summeras inte till ett nytt globalt dead-code-tal.
++
++Senaste kundraderingskandidat d04a är BLOCKED_FOR_MAIN_ADOPTION. [G-granskningen](/workspace/gridex-test-customer-delete-native-qualification-actual-20261114-g/ediel-actual-G-closure-review.safe.json) visar att clone-apply/replay och målbegränsad metadatapreservation gick igenom, men kontrollen non_admin gav inte förväntad 23503; [HTTP-kvittot](/workspace/gridex-test-customer-delete-native-qualification-actual-20261114-g/HTTP-response.private.json) är P0001 från harnessens oväntade utfall. [Faktisk FK-/triggerkatalog](/workspace/gridex-test-customer-delete-native-qualification-prep-20261114/actual-onboarding-FK-trigger.READONLY.private.json) visar både enkel RESTRICT och sammansatt CASCADE för kundkopplingen, utan normal INSERT/UPDATE-normaliseringstrigger. RESTRICT är därför inte tillräckligt bevis för kvarvarande application-policy. En separat explicit remaining-application-guard är under författande; ingen ersättningskandidat eller senare PASS påstås här. Detta avser kundradering, inte decimalvalidatorns E-optimering.
++
++Alla 33 manuella identiteter finns med separat käll-/runtime-disposition i results.safe.json, härledda från den [exakta medlemskapsavstämningen](/tmp/gridex-deadcode-highrisk-five-20261113/correction/EXACT_MEMBERSHIP_RECONCILIATION.safe.json). Referensbytes återverifieras; funktionella tester, backend och Auth körs inte om. Ursprunglig privat pointer-freeze behålls oförändrad.
+diff --git a/quality/audits/gridex-correct-routes-deadcode-20261114/results.safe.json b/quality/audits/gridex-correct-routes-deadcode-20261114/results.safe.json
+new file mode 100644
+index 000000000..23552dce7
+--- /dev/null
++++ b/quality/audits/gridex-correct-routes-deadcode-20261114/results.safe.json
+@@ -0,0 +1,615 @@
++{
++  "state": "LOCAL_REPOSITORY_DATED_AUDIT_DOCS_NO_RUNTIME_ADOPTION_PENDING_TWO_FINAL_DOC_REVIEWS",
++  "asOfUtc": "2026-11-14T21:14:27.833731+00:00",
++  "purpose": "Crosslink existing exact evidence in the current dated final report; keep source composition, isolated removals, runtime adoption and static candidates separate.",
++  "scenarioCountsAtReferencedMatrix": {
++    "total": 105,
++    "pass": 38,
++    "documentedUnsupportedGap": 1,
++    "outstanding": 66,
++    "newCreditHere": 0
++  },
++  "deadCodeLayers": {
++    "manualRegistry": {
++      "distinctDeclarations": 33,
++      "unit": "declaration, not files/modules or graph candidates"
++    },
++    "lastQualifiedRuntime": {
++      "removed": 2,
++      "other": 31,
++      "newRuntimeAdoptionHere": false
++    },
++    "reviewedSourceComposition": {
++      "sourceHead": "a16846f7fd77e838cef5c991f7eea0650f6afaf8",
++      "docHead": "8a514b890afe30f78f49f6c172c221bb5a848130",
++      "newDistinctRemovals": 22,
++      "historicalAlreadyAbsent": 2,
++      "sourceRemovedIncludingHistorical2": 24,
++      "retained": 9,
++      "retainedAtThatCutoff": {
++        "live": 4,
++        "legacy": 4,
++        "uncertain": 1
++      },
++      "wholeModulesDeleted": 3,
++      "modulesNotAddedAgainToDeclarationCount": true,
++      "exactProductOperations": [
++        {
++          "path": "app/admin/customers/[id]/page.part-1.tsx",
++          "operation": "REPLACE"
++        },
++        {
++          "path": "app/admin/customers/page.part-1.tsx",
++          "operation": "REPLACE"
++        },
++        {
++          "path": "app/admin/electricity-suppliers/ElectricitySuppliersTable.tsx",
++          "operation": "DELETE"
++        },
++        {
++          "path": "components/admin/customers/billing-metering/forms.tsx",
++          "operation": "DELETE"
++        },
++        {
++          "path": "lib/auth/userSync.ts",
++          "operation": "DELETE"
++        }
++      ],
++      "profileRule": "Two replacement paths already overlay keys; three base-file deletions need explicit negative records. No guessed 40-to-45 profile or whole-head adoption.",
++      "evidence": "composition",
++      "runtimeAdopted": false,
++      "historicalScenarioCountsInCarrierNotCurrent": true
++    },
++    "separateDashboardWriter": {
++      "commit": "e6b269e63aaab86cf73c7234052d9f5c684a530e",
++      "path": "lib/analytics/companyDashboardSummary.ts",
++      "symbol": "refreshCompanyDashboardSnapshot",
++      "sourceRemoval": "One bounded unused legacy writer; current reader/builders/types/shared imports retained.",
++      "sourceOnly": true,
++      "runtimeAdopted": false,
++      "notComposedWith24": true,
++      "no25Removed8RetainedClaim": true,
++      "behaviorTestsTypeLintBuild": "NOT_RUN in that standalone packet",
++      "nativeTableViewRpcUntouched": true,
++      "evidence": [
++        "isolatedWriter",
++        "isolatedWriterReviewedHandoff"
++      ]
++    },
++    "staticRootUnreached": {
++      "baseHead": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba",
++      "gitBlobs": 6408,
++      "modules": 4656,
++      "sqlFiles": 1696,
++      "candidates": 187,
++      "newConfirmedDead": 0,
++      "limits": "Static graph non-reachability does not exclude dynamic RPC, framework routes, configuration, tests or external callers.",
++      "evidence": [
++        "staticGraphInterpretation",
++        "staticGraphDetailedInterpretation"
++      ]
++    },
++    "exactRegistry33": [
++      {
++        "path": "lib/billing/exportCenter.ts",
++        "symbol": "createBillingExportRun",
++        "compositionDisposition": "RETAINED_LEGACY_SYMBOL_IN_LIVE_MODULE",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "lib/billing/exportCenter.ts",
++        "symbol": "getBillingExportCenterData",
++        "compositionDisposition": "RETAINED_LEGACY_SYMBOL_IN_LIVE_MODULE",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "lib/billing/exportCenter.ts",
++        "symbol": "sendBillingExportRunToPartnerApi",
++        "compositionDisposition": "RETAINED_LEGACY_SYMBOL_IN_LIVE_MODULE",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "lib/billing/exportCenter.ts",
++        "symbol": "retryFailedBillingExportRunItems",
++        "compositionDisposition": "RETAINED_LEGACY_SYMBOL_IN_LIVE_MODULE",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "lib/billing/underlayEngine.ts",
++        "symbol": "estimatedItems",
++        "compositionDisposition": "RETAINED_LIVE_TEST_OR_PRODUCT_PATH",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "lib/billing/underlayEngine.ts",
++        "symbol": "estimatePayload",
++        "compositionDisposition": "RETAINED_LIVE_TEST_OR_PRODUCT_PATH",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "lib/analytics/biddingZoneResolver.ts",
++        "symbol": "resolveBiddingZone",
++        "compositionDisposition": "RETAINED_LIVE_TEST_OR_PRODUCT_PATH",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "lib/analytics/companyDashboardSummary.ts",
++        "symbol": "refreshCompanyDashboardSnapshot",
++        "compositionDisposition": "RETAINED_UNCERTAIN_AT_COMPOSITION_CUTOFF_LATER_SEPARATE_E6B269_SOURCE_REMOVAL",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": true
++      },
++      {
++        "path": "lib/auth/userSync.ts",
++        "symbol": "syncAuthUserToProfile",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "lib/auth/userSync.ts",
++        "symbol": "recordAuthEmailEvent",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/[id]/page.part-1.tsx",
++        "symbol": "dynamic",
++        "compositionDisposition": "HISTORICAL_REMOVAL_ALREADY_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/[id]/page.part-1.tsx",
++        "symbol": "customerTypeDescription",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/[id]/page.part-1.tsx",
++        "symbol": "primaryContactHeading",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/[id]/page.part-1.tsx",
++        "symbol": "activeAddressHeading",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/[id]/page.part-1.tsx",
++        "symbol": "contractStatusUiLabel",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/[id]/page.part-1.tsx",
++        "symbol": "normalizeJsonList",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/[id]/page.part-1.tsx",
++        "symbol": "intakeStatusLabel",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/[id]/page.part-1.tsx",
++        "symbol": "intakeStatusTone",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/[id]/page.part-1.tsx",
++        "symbol": "lifecycleTone",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/[id]/workspaceGroups.ts",
++        "symbol": "activeTenantGroup",
++        "compositionDisposition": "RETAINED_LIVE_TEST_OR_PRODUCT_PATH",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/page.part-1.tsx",
++        "symbol": "dynamic",
++        "compositionDisposition": "HISTORICAL_REMOVAL_ALREADY_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/page.part-1.tsx",
++        "symbol": "safeQueryRows",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/page.part-1.tsx",
++        "symbol": "StatusBadge",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/page.part-1.tsx",
++        "symbol": "priorityTone",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/page.part-1.tsx",
++        "symbol": "FilterChip",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/page.part-1.tsx",
++        "symbol": "filterLabel",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/page.part-1.tsx",
++        "symbol": "contractFilterLabel",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/page.part-1.tsx",
++        "symbol": "customerTypeFilterLabel",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/customers/page.part-1.tsx",
++        "symbol": "customerFlagFilterLabel",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "app/admin/electricity-suppliers/ElectricitySuppliersTable.tsx",
++        "symbol": "ElectricitySuppliersTable",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "components/admin/customers/billing-metering/forms.tsx",
++        "symbol": "SmartOutboundForm",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "components/admin/customers/billing-metering/forms.tsx",
++        "symbol": "SmartDataRequestForm",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      },
++      {
++        "path": "components/admin/customers/billing-metering/forms.tsx",
++        "symbol": "SmartPartnerExportForm",
++        "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
++        "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
++        "separateE6b269SourceRemoval": false
++      }
++    ]
++  },
++  "correctRoutes": {
++    "localPublicRpc": {
++      "contractsEvidence": "fourRpcContracts",
++      "methods": [
++        {
++          "name": "gridex_issue_local_simulation_run_v1",
++          "exactTopLevelArguments": [
++            "p_command"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "name": "gridex_receive_local_simulation_source_v1",
++          "exactTopLevelArguments": [
++            "p_command"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "name": "gridex_prepare_local_simulation_contract_v1",
++          "exactTopLevelArguments": [
++            "p_command"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "name": "gridex_attest_local_simulation_contract_v1",
++          "exactTopLevelArguments": [
++            "p_admission_id",
++            "p_contract_id",
++            "p_document_sha256"
++          ],
++          "additionalProperties": false
++        }
++      ],
++      "authority": "Genuine current signed user and standard anon key; no service-key or SQL-claims bypass.",
++      "attestHasNoIdempotencyArgument": true
++    },
++    "normalLocalImport": {
++      "page": "/admin/ediel/test-center/metering-to-invoice",
++      "chain": [
++        "localSimulationImportAction",
++        "original receive plus fresh native policy",
++        "bindLocalSimulation using real Next request cookies/native basis/WeakMap brand",
++        "importRawEdifactAndRunTestCenterChain",
++        "normal six-stage JavaScript pipeline"
++      ],
++      "rawInput": "Actual rawEdifact File containing exact original bytes.",
++      "limits": "Four RPC receipts alone do not mint the opaque import capability. Native command success is not UI/import/financial PASS."
++    },
++    "invoiceDownload": {
++      "canonical": "/admin/billing/invoice-files/[fileId] -> export permission/current tenant -> load existing immutable file -> render stored file rows",
++      "legacyLive": "/admin/billing/export-center/[runId]/download",
++      "limits": "Legacy child GET is live despite index redirect. A run ID is not a file ID; do not delete the module or claim an authenticated bypass from source divergence.",
++      "evidence": "reachability"
++    },
++    "invoiceDraftNativeDependency": {
++      "chain": [
++        "invoiceReviewPrepare",
++        "gridex_create_invoice_review_draft_v1",
++        "gridex_create_invoice_export_graph_v1"
++      ],
++      "limits": "An unused legacy TypeScript wrapper does not make its native graph RPC dead.",
++      "evidence": "reachability"
++    },
++    "invoiceGraphVerification": {
++      "current": "testCenterRuntimeChain.verifyInvoiceGraph after actual draft writer",
++      "separateHelper": "InvoiceGraphCoverage has a source-string test reference; it is not invoked there.",
++      "limits": "No global dead verdict or functional test credit from token-presence checks.",
++      "evidence": "reachability"
++    },
++    "dashboard": {
++      "tenant": [
++        "/admin",
++        "getCompanyDashboardSummary",
++        "gridex_admin_dashboard_summary",
++        "company_dashboard_summary_v"
++      ],
++      "platform": "CompanyNULL -> getVerifiedPlatformDashboardSummary",
++      "cron": "Configured analytics cron -> monthly metrics/metering rollup/alerts",
++      "legacyWriter": "refreshCompanyDashboardSnapshot writes separate company_dashboard_snapshots; retain live readers/view/RPC.",
++      "evidence": [
++        "reachability",
++        "isolatedWriter"
++      ]
++    },
++    "dynamicRetention": {
++      "normal": "UI/API submit/review/purge -> customerRecordClasses.call(name, ...)",
++      "resolvedNames": [
++        "ediel_submit_customer_record_retention_v1",
++        "ediel_review_customer_record_retention_v1",
++        "ediel_begin_customer_record_retention_v1"
++      ],
++      "reader": "Tenant-scoped getCustomerForCompany plus tombstone checks",
++      "limits": "Old getCustomerById orphan does not make shared native retention guards dead; these are source-live paths, not executed retention operations.",
++      "evidence": "reachability"
++    },
++    "platformCustomerSite": {
++      "normalGet": "/admin/customers/<actualCustomerId>?editSite=<actualSiteId>",
++      "normalAction": "CustomerSiteForm -> saveCustomerSiteAction",
++      "scope": "Entity-resolved company is checked separately from natural canonical default; no invented second membership, selected-company cookie or preference POST.",
++      "nextSourceQualifiedDriver": "site0103SourceHandoff",
++      "limits": "SOURCE2 only; fresh native fixture/authority/readiness and independent actual scopes still required. Visible closed status is not dated supply-end or invoice proof."
++    },
++    "contractVersion": {
++      "normalGet": "/admin/contracts?company_id=<ownCompany>&edit_offer=<actualOfferId>",
++      "normalAction": "saveContractOfferAction -> native v3 -> v2 -> base",
++      "limits": "New version depends on actual lifecycle/locked CPV/customer-contract reference. Unused unlocked draft updates same ID; no fabricated published predecessor or customer signature.",
++      "evidence": "term0105SourceQualification"
++    }
++  },
++  "references": {
++    "composition": {
++      "path": "/tmp/gridex-correct-routes-deadcode-pointers-20261114/reviewed-composition.at8a514.safe.json",
++      "sha256": "4113aeeaf865baa3bddbb5ab44f207900c4602c6644095a9f1e35a2f7b2c3ef4",
++      "bytes": 749452
++    },
++    "isolatedWriter": {
++      "path": "/tmp/gridex-correct-routes-deadcode-pointers-20261114/isolated-dashboard-writer.ate6b269.safe.json",
++      "sha256": "52092282c58ea6a3a42dfea734c54c881a47c356ec78402bc5a29d6401fe6ca9",
++      "bytes": 5487
++    },
++    "isolatedWriterReviewedHandoff": {
++      "path": "/tmp/gridex-dashboard-writer-removal-evidence-20261114/POSITIVE_EXACT_THREE_SOURCE_HANDOFF.safe.json",
++      "sha256": "588a69963703699a584fe8db311486ba1bbf653c8211293cdb58e9a36ea555a0",
++      "bytes": 2870
++    },
++    "reachability": {
++      "path": "/tmp/gridex-deadcode-current-reachability-20261114/FINDINGS.safe.json",
++      "sha256": "6a948db7e0b2aa887c8e15ae9b2c50e5e047a6bf1a8608ce7388d1165352f70e",
++      "bytes": 24182
++    },
++    "reachabilitySourceIndex": {
++      "path": "/tmp/gridex-deadcode-current-reachability-20261114/SOURCE_INDEX.safe.json",
++      "sha256": "fc534fecbb1173499c33fd4e09a63fba0a767f1429a0bc8081ee3d9520bf4098",
++      "bytes": 36669
++    },
++    "reachabilityNamedReferences": {
++      "path": "/tmp/gridex-deadcode-current-reachability-20261114/BOUNDED_NAMED_REFERENCE_EVIDENCE.safe.json",
++      "sha256": "18f77866c747403083c40de1dd864a4a59d5dfeff74018668971c768913d3494",
++      "bytes": 15573
++    },
++    "staticGraphInterpretation": {
++      "path": "/tmp/gridex-main-static-import-rpc-inventory-v2-20261113/POSITIVE_INVENTORY_HANDOFF.safe.json",
++      "sha256": "e6411431ab5de809b8d3525e70c0fbcab28f3aecda6b6e25e53721cf7cba4eea",
++      "bytes": 964
++    },
++    "staticGraphDetailedInterpretation": {
++      "path": "/tmp/gridex-main-static-import-rpc-inventory-v2-20261113/INTERPRETATION.safe.json",
++      "sha256": "605346a19fbe3947ee76f6bf2483f499ac16470f78d850c659e6d98a94414265",
++      "bytes": 109816
++    },
++    "fourRpcContracts": {
++      "path": "/tmp/gridex-local-fresh-four-rpc-domain-prep-20261114/fixed-four-contracts.safe.json",
++      "sha256": "8c60d20fe1316920cb484d817932020b91174051775ad53c005da86d9e6df1e2",
++      "bytes": 76002
++    },
++    "coverageAtRead": {
++      "path": "/workspace/gridex-scenario-progress-20261112/quality/audits/gridex-scenario-progress-20261112/coverage.safe.json",
++      "sha256": "67385a9c034a08d532babfd590ad2ce04f418ed3f2e6dba60ccb05e6c380783c",
++      "bytes": 1041047
++    },
++    "site0103SourceHandoff": {
++      "path": "/tmp/gridex-site0103-normal-status-prep-20261114/POSITIVE_SOURCE_HANDOFF.safe.json",
++      "sha256": "9a66b679aba96e1a23a9dace00f2ce8c6cb34794acd2413ce2a7bf95a6e40f4c",
++      "bytes": 3985
++    },
++    "site0103SourceQualification": {
++      "path": "/tmp/gridex-site0103-normal-port-qualification-20261114/SOURCE_QUALIFICATION.safe.json",
++      "sha256": "b71ec804b40e2e305192c9900629a1b5e34363932c57b2a2fd1e20ba0ab3fd44",
++      "bytes": 9147
++    },
++    "term0105SourceQualification": {
++      "path": "/tmp/gridex-term0105-normal-port-qualification-20261114/PLAN.safe.json",
++      "sha256": "a58ed940a7c7b25c9c1b8382da4b676a1cfb83c5be7d4388f7b28e215b46772e",
++      "bytes": 4761
++    },
++    "exactRegistryMembership": {
++      "path": "/tmp/gridex-deadcode-highrisk-five-20261113/correction/EXACT_MEMBERSHIP_RECONCILIATION.safe.json",
++      "sha256": "ab8ae23afebdd300e024a0a96b248b2ff3b15828bc8b99fb04ffdab628c8c3d2",
++      "bytes": 15046
++    },
++    "latestDeleteGReview": {
++      "path": "/workspace/gridex-test-customer-delete-native-qualification-actual-20261114-g/ediel-actual-G-closure-review.safe.json",
++      "sha256": "ce4079caba0ce588955367f0cd68755e31c0ea588ed2a21a569c7c249de45300",
++      "bytes": 6326
++    },
++    "latestDeleteGHttp": {
++      "path": "/workspace/gridex-test-customer-delete-native-qualification-actual-20261114-g/HTTP-response.private.json",
++      "sha256": "6c20ac5eb3114bc7878d4ff9a7449050e611d81d5b157a35edc4dcc18067fc13",
++      "bytes": 125
++    },
++    "latestDeleteFkCatalog": {
++      "path": "/workspace/gridex-test-customer-delete-native-qualification-prep-20261114/actual-onboarding-FK-trigger.READONLY.private.json",
++      "sha256": "20318df12387ba246943b9d9c5f6ed13384c024b642e4d02aeb7315d69ed31a1",
++      "bytes": 2141
++    }
++  },
++  "verification": {
++    "allReferencedFileHashesMatched": true,
++    "rpcArgumentKeysDerivedFromFrozenSchemas": true,
++    "matrixCountsReadDirectly": true,
++    "functionalTestsRerun": 0,
++    "referencedFilesChecked": 17,
++    "registry33SourceCountsChecked": true
++  },
++  "limits": [
++    "No new confirmed dead-code, product-defect, scenario or financial PASS count.",
++    "This ledger is a dated pointer companion; historical source audit counts do not overwrite the canonical current matrix.",
++    "Only the exact two owned audit documents are authored; no product-source/runtime/Main/backend/Auth mutation.",
++    "Older deletion candidate d04a is BLOCKED_FOR_MAIN_ADOPTION after actual G control failure; clone apply/replay is not behavior qualification."
++  ],
++  "originalCompanion": {
++    "ledger": {
++      "path": "/tmp/gridex-correct-routes-deadcode-pointers-20261114/results.safe.json",
++      "sha256": "c6051b3ff601f52c29db70b6f0d1b838126fa723f60bfa29a9e278022b359272",
++      "bytes": 12243
++    },
++    "report": {
++      "path": "/tmp/gridex-correct-routes-deadcode-pointers-20261114/REPORT.sv.md",
++      "sha256": "d8ee47532a77017226a55e9dfec6478b53bbfe66aefaf0536160768980246f4c",
++      "bytes": 4834
++    },
++    "freeze": {
++      "path": "/tmp/gridex-correct-routes-deadcode-pointers-20261114/FROZEN.safe.json",
++      "sha256": "125cdde5ca5938fc8362bc714d6795df73af13d9e781d1bd6c5509ef6705d9b7",
++      "bytes": 1315
++    }
++  },
++  "latestTestCustomerDeletionCandidate": {
++    "candidateShortHead": "d04a",
++    "status": "BLOCKED_FOR_MAIN_ADOPTION",
++    "actualApplyReplay": "The G closure review records target-only migration apply/replay and metadata preservation in a disposable clone; this does not qualify the behavior matrix.",
++    "actualNegativeControl": {
++      "case": "non_admin",
++      "expectedSqlstate": "23503",
++      "observedSqlstateInsideControl": null,
++      "harnessSqlstate": "P0001",
++      "result": "UNEXPECTED_SUCCESS_OF_TESTED_DELETE_CALL_CONTROL_FAILED"
++    },
++    "actualCatalog": "customer_onboarding_applications has both simple customer_id ON DELETE RESTRICT and composite (customer_id,company_id) ON DELETE CASCADE. No ordinary INSERT/UPDATE normalization trigger was found in this captured table trigger catalog; only truncate guard is listed.",
++    "sourceConclusion": "Do not rely on the RESTRICT FK as the remaining-application policy when the composite cascade coexists. A separate explicit remaining-application guard is being authored; no approved replacement or subsequent success is asserted here.",
++    "limits": [
++      "No completed matrix/pass count inferred.",
++      "No Main apply, normal UI or production-fixed claim.",
++      "No after-HTTP clone sequence rollback claim.",
++      "This deletion candidate status is distinct from the decimal-validator E optimization."
++    ],
++    "evidence": [
++      "latestDeleteGReview",
++      "latestDeleteGHttp",
++      "latestDeleteFkCatalog"
++    ]
++  },
++  "repositoryScope": {
++    "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba",
++    "branch": "codex/correct-routes-deadcode-20261114",
++    "exactFiles": [
++      "quality/audits/gridex-correct-routes-deadcode-20261114/REPORT.sv.md",
++      "quality/audits/gridex-correct-routes-deadcode-20261114/results.safe.json"
++    ],
++    "sourceOnlyDocumentation": true,
++    "noPushMainMergeOrBackend": true
++  },
++  "custody": {
++    "receipt": "25eb90fff1518a557fd4dd82b2850e3a9f76359f",
++    "resources": [
++      "refs/tags/agent-claims/masterplan/file-40273603138152b11fd8c856c4c348044ec234126eca5a797f9857f65310d9d2",
++      "refs/tags/agent-claims/masterplan/file-b4765afc042c4681b04db1ec38308bda7c7b27750b3f9675a2b551ad3218a931",
++      "refs/tags/agent-claims/masterplan/slot-session-ba4377c3-ce87-4507-81a1-c432ea340dd0"
++    ],
++    "officialClaimSha256": "c1610a7e94a838d92c75bf050658570bbd9db97a312798671c2c828df3264086",
++    "journalPrivateNotCommitted": true,
++    "prewriteFreshAllMatched": true
++  },
++  "skillRouting": {
++    "applied": [
++      "using-git-worktrees for isolated local docs",
++      "verification-before-completion for actual source/ref/Git checks"
++    ],
++    "alreadyQualifiedEvidenceReused": [
++      "Supabase/native source contracts and saved catalog evidence"
++    ],
++    "skipped": [
++      "functional/database/browser/performance/security-scan reruns: documentation-only exact two files, explicitly outside current scope",
++      "Next/React editing: no application source changes",
++      "hook installation/external source scanning: not requested"
++    ]
++  }
++}
+-- 
+2.52.0
+

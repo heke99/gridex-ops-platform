@@ -1,0 +1,36 @@
+{
+  "state": "SOURCE_AND_CONDITIONAL_ACTUAL_SCOPE_APPROVE_EXACT_CURRENT_CID_OWN_API_CLEANUP",
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "createdAt": "2026-11-15T21:33:57.714972+00:00",
+  "refs": [
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/run-own-api-cleanup.v4-current-cid.py",
+      "sha256": "641f6294c9059ce044cc69048285bd1b8e714f820b14341e9178216a8b82aed9"
+    },
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/logout-own-auth-session.EVENT-W.CURRENT-CID.py",
+      "sha256": "5e8a1c642079a7a4374e8c8ee18e12a0cc5107df6fd3d1a9705163f43dbb8bec"
+    },
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/qa-own-api-cleanup-v3-direct-source-actual-scope.safe.json",
+      "sha256": "b7b6b49d14555b84fb122de0343ba4631ce59084df30f8f50fc5414d24c63f5b"
+    },
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/auth-cleanup-direct-restored-stopped.safe.json",
+      "sha256": "62ae4d1a6334ec569febae0ddfaf03bb47cf219597fd537d42746fd011112a86"
+    },
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/cleanup-direct.stderr.private.log",
+      "sha256": "06a01c59461eae7af700a8befc0efd68c8bb543487f737ccd9cde0dac03ee582"
+    }
+  ],
+  "review": "Whole V4 lifecycle/subscript read. V3 traceback asserts stale IP before health or any user GET/POST; stopped restoration retained. V4 derives address only from freshly inspected fixed existing Auth CID after unchanged Config/Image/HostConfig check; exact parent network names and NetworkIDs checked before health. Only that verified IPv4 is passed as closed argv to fixed user/local-logout paths. No arbitrary URL/path or redirect/proxy accepted.",
+  "authorizedProducerOnly": "Exact existing 148f start from stopped, fresh verified CID/network-derived IP health GET then genuine same EE/SID GET user and one local logout POST; unconditional exact stop10 and original stopped/config/image/HostConfig verification in finally.",
+  "conditions": [
+    "Pinned source bytes unchanged; no new login/session/admin/DML/business",
+    "No retry after unknown POST outcome; all prior attempts proved before POST",
+    "Final native six-zero, all7, full postbusiness-to-postlogout four Auth residual and exact stopped restoration independently reviewed afterward"
+  ],
+  "reviewerExecutedBackendOrAuth": false,
+  "casePass": false
+}

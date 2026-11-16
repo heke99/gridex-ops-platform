@@ -1,0 +1,142 @@
+{
+  "state": "FROZEN_RECEIVER_REAL_FS_AND_THREE_REVIEWER_ENUM_FIX_SOURCE_ONLY_UNARMED",
+  "files": [
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/controller.receiver-fs.py",
+      "sha256": "1106c5f607db1a2279ffe8672a183bc7c398f25a63057ab63ed5ef8be62188b5",
+      "bytes": 16696
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/parent.reviewers.py",
+      "sha256": "d4e8f4499da6a2795b9742a11c28da0aa4f5d074843463b3cffeced8030335d8",
+      "bytes": 42680
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/fixed-host-forwarders.reviewers.py",
+      "sha256": "f3d03a8a79d38da6b8292a9a2388b24e83fee23fff49e8672bc9bc39064137df",
+      "bytes": 9109
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/sidecar-launcher.receiver-fs-reviewers.py",
+      "sha256": "0adadc69a2f1796b4835c6ffbd6f5dddf2a428a7d3b4cf22e4fb0723fe9f550a",
+      "bytes": 11827
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/check-preauth-source-filesystem.receiver.py",
+      "sha256": "22e1ee0e6cdbbd8076fcbd6b267d6f748051b00f9eda67402b90e8b9c2547144",
+      "bytes": 4972
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/prepare-output-parent.py",
+      "sha256": "6ef382998c3c822a435c6c7794b00607d15f1d9d6b1299edd4c84a3d68ae78f4",
+      "bytes": 2963
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/qualify-real-filesystem.py",
+      "sha256": "cffd2ad6c7c3d866b6d0c8c3f23e89a3a569ea12ef994a425e812f96210e9f10",
+      "bytes": 6911
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/qualify-reviewer-routing.py",
+      "sha256": "dbcc697e8bd18aae953677479bc1fa745cbccc9585ee4485becb04b2f8015c08",
+      "bytes": 3235
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/QUALIFICATION.safe.json",
+      "sha256": "fa88bdaa2ebda4da3896f9856b1559ed080199d611bc3b0019f21091057dc008",
+      "bytes": 4983
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/PREAUTH-ORDER.UNARMED.safe.json",
+      "sha256": "1ba3ca92bef34aa63c86e47a97e1b66811dd58732f0b6a7fd3496d097837b390",
+      "bytes": 1522
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/README.md",
+      "sha256": "5499d28dce17586d55905827e8edad2434dcfc547195952d7c470cfdf89ee88c",
+      "bytes": 2945
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/qualify-real-filesystem.py.ACTUAL.safe.json",
+      "sha256": "7f0272e3a433aa1f693a8b6c3ab09d846d44c970000b98293e1a723c8c404406",
+      "bytes": 1459
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/qualify-reviewer-routing.py.ACTUAL.safe.json",
+      "sha256": "1225a7f1d8dc3f2a736deadd058d91c3817af841761b60a918417cb6dbabc0bb",
+      "bytes": 2145
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/controller.receiver-fs.py.FINAL.diff",
+      "sha256": "ad39e48f1fd3a74a817b6d46ba6f6bb19dc2b55d5e24dbf055dd81ab40b914fd",
+      "bytes": 5462
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/parent.reviewers.py.FINAL.diff",
+      "sha256": "7053939560bde314190b0177650715d23fec7630c28bd5524a96fe790ca20246",
+      "bytes": 1341
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/fixed-host-forwarders.reviewers.py.FINAL.diff",
+      "sha256": "5467c2db9015e70c3e7049ab81bb401412e5942dbb3a33cf544b1be803f6d286",
+      "bytes": 2471
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/sidecar-launcher.receiver-fs-reviewers.py.FINAL.diff",
+      "sha256": "2425f35bf3400b8948cf22d600b5a827e7763be472c2247f04d0acc86fb09fed",
+      "bytes": 2248
+    },
+    {
+      "path": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/check-preauth-source-filesystem.receiver.py.FINAL.diff",
+      "sha256": "3a89c8eb5fa9a3f7726ceca75d601c240f52bf7c41c5a5e2d96edb3b5ef03a35",
+      "bytes": 5210
+    }
+  ],
+  "donorRefs": [
+    {
+      "path": "/workspace/gridex-event-next-W-prep-20261115/controller.EVENT-W.py",
+      "sha256": "bda81c6a4b45c958cc213867202abfed8da5e12de327576d2312de8b28c106b9"
+    },
+    {
+      "path": "/workspace/gridex-event-next-W-prep-20261115/parent.W.py",
+      "sha256": "11f18b12b2f3bb958b05f66c7336f0897f3e3b609b676194117152bf67d89115"
+    },
+    {
+      "path": "/workspace/gridex-event-next-W-prep-20261115/fixed-host-forwarders.EVENT-W.py",
+      "sha256": "e322905f66926ee48ef908eb2702db6d9fcb623fbbf1c1b64357c3934b5477b9"
+    },
+    {
+      "path": "/workspace/gridex-event-next-W-prep-20261115/sidecar-launcher.EVENT-W.py",
+      "sha256": "aaef7613eb9cc03c35ceeed5dd569dcad15b68a7248783c9899af9931a4875da"
+    },
+    {
+      "path": "/workspace/gridex-event-next-W-prep-20261115/check-preauth-source-filesystem.py",
+      "sha256": "56ff3e80e2ab49ef91be0dfd17e9da8082bcd35d0f5374e5eff099888c00c964"
+    },
+    {
+      "path": "/workspace/gridex-event-next-W-prep-20261115/SIDECAR.CONFIG.BOUND.safe.json",
+      "sha256": "e517fd83ae27cf06085a10354ec0bc0ebb6873008b955e0db99dc6f3fda8da9b"
+    },
+    {
+      "path": "/workspace/gridex-event-next-W-prep-20261115/ACTUAL-PREAUTH-FILESYSTEM.safe.json",
+      "sha256": "2107f28b0a96a6d3914921ca291f4a056bf8abb1346151ae4261784ecc10e186"
+    },
+    {
+      "path": "/workspace/gridex-event-next-W-prep-20261115/ALL-INERT-TRANSPORT-CONTROLS.ACTUAL.safe.json",
+      "sha256": "93b7ef2f703d7fbeeb1b17c1ee0f417a710b81e5983d66309c778fce82e716da"
+    }
+  ],
+  "controls": 41,
+  "wholeControllerAfterCIDExact": true,
+  "oldWSourcePreserved": true,
+  "actualOutputPreparation": null,
+  "actualNewEpochPreAuthFS": null,
+  "actualRuntimeOrAuthAuthority": null,
+  "independentSourcePeer": "PENDING_QA",
+  "scope": "Source-only harness fix; producer-only actual mutations after proper old closure and all original gates. No new EVENT Auth until actual full receiver FS prerequisite qualification passes. API V3 retains next actual priority.",
+  "unselectedDrafts": [
+    "build-successors.py",
+    "SOURCE-LINEAGE.safe.json",
+    "non-FINAL diff drafts: initial generation only, not operational inputs."
+  ]
+}

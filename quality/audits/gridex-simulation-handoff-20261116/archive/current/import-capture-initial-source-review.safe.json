@@ -1,0 +1,22 @@
+{
+  "state": "ROOT_SOURCE_REVIEW_PENDING_PEER_SEMANTIC_CHECK",
+  "atUtc": "2026-11-14T11:47:17.615701+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-local-import-capture-prep-20261114/PREPARED.safe.json",
+    "sha256": "7789d2504cda8f25d86741f0e0d2e690e291babb6cd8ad948446a6212ac69576"
+  },
+  "verifiedOriginals": 16,
+  "reviewed": [
+    "capture-import.py",
+    "financial.sql",
+    "native14.sql",
+    "lineage.sql"
+  ],
+  "findings": [
+    "All SQL read-only with 8s statement timeout, host invocation 15s; actual scoped clone and current column check present.",
+    "Raw financial bytes retained; component ACK explicitly not financial approval.",
+    "Peer asked to check journal outcome semantics and beforeNative admission validation before approval."
+  ],
+  "backendCalls": 0,
+  "authorization": "NOT_EXECUTION_APPROVAL"
+}

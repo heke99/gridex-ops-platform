@@ -1,0 +1,19 @@
+{
+  "state": "ACTUAL_CREATE_ONLY_PROOF_APPROVE",
+  "newAuthId": "b27a5ff0217b2a1f17f15295d86e5d6492242d0d96c0751eb1fc44598986015e",
+  "oldAuthId": "ab65c01e26008485b26377bb7645f79d7e9f33ee4837844f1daeaf9a7f43981e",
+  "newStoppedPid0": true,
+  "sameImageAndAllConfigExceptNaturalHostnameAndTwoEnv": true,
+  "exactEnvDelta": {
+    "GOTRUE_MAILER_URLPATHS_CONFIRMATION": "/auth/v1/verify",
+    "GOTRUE_MAILER_URLPATHS_RECOVERY": "/auth/v1/verify"
+  },
+  "hostConfigOnlyDelta": {
+    "OomKillDisable": {
+      "before": null,
+      "after": false
+    }
+  },
+  "semantics": "Both create commands omit oom-kill-disable; null/false are enabled-default representation. No rawHostConfigequalityclaimed.",
+  "limits": "Notstarted/no activehealth/mailCTAsuccess; originalAuthretainedstopped"
+}

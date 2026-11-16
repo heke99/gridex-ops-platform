@@ -1,0 +1,10 @@
+{
+  "state": "ROOT_FACT_REVIEW",
+  "inputSha256": "3818d018f558aba500d569187fccfe405710ebc92012ff1235a5ef206ef96424",
+  "candidateCount": 20,
+  "actualSourceBytesVerified": 20,
+  "boundedReferences": 68,
+  "confirmedDead": 0,
+  "removed": 0,
+  "conclusion": "Twenty additional manual candidates; absence in bounded static references is not proof of dead code. Total manual30, confirmed0."
+}

@@ -1,0 +1,10 @@
+{
+  "state": "FULL_PRIVATE_MACRO_CODE_APPROVE_TINY_TRANSPORT_FIX_REBIND_NOT_ACTUAL_GO",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T07:42:19.028968+00:00",
+  "preparedSHA256": "21abf0bd2338f2a85dc1f7de7878ff37808c8586b4a3c220e5e6cd89fe2ec96d",
+  "importDriverSHA256": "b4b1d96e4c4aa3d657af6eee01a4f2802903a5a032b382fb98d7905df7fcaa96",
+  "priorFullCodeReview": "9e8acf5d865741d5b6e2bea2a233ebd7dbbfe4b03f91b45b7155fda23590ac67",
+  "wholeSingleGuardLineInverseExact": true,
+  "review": "Unqualified SSRfallback removed and errorname clarified; actual ReactonSubmit observation mandatory before one normalFilePOST. Allother driverbytes unchanged, helper/core remain reviewed. No native/Auth/expiry/resourceguard changes. Actualsource/session/parentbinding stillrequired."
+}

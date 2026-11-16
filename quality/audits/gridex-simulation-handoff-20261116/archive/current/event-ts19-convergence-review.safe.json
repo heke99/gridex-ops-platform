@@ -1,0 +1,20 @@
+{
+  "verdict": "EXACT_OFFLINE_SOURCE_CONVERGENCE_APPROVE_NOT_RUNTIME_ADOPTION_OR_NEW_GATE_PASS",
+  "reviewerAgent": "/root",
+  "qualificationPath": "/tmp/gridex-event-targeted-plan-20261113/convergence/QUALIFICATION.safe.json",
+  "qualificationSHA256": "857833cc39edd7acdfd4be44286e2ce8be7932959f3159a5175ab568e56f3707",
+  "composedSHA256": "833172760786af43f018f6b7495dbb7474571a4695337fdbb312ed92280a1f3b",
+  "approvedEventSource": "31a3a518e28a5186e17d8afc177bbdd8acbdef2e",
+  "baseActualPrivate57SHA256": "e6b8b6704714b607cac61017e544f74013467822fee3674a1199af6b77d4f2c4",
+  "exactAddedDispatcherMatchesApprovedSource": true,
+  "inverseRestoresWholePrivate57Bytes": true,
+  "allTS19FencesAndExistingBodiesPreserved": true,
+  "delta": "one exact import, only3 ordinary dispatcher viewports, exactapproved appended targeted dispatcher",
+  "limits": [
+    "no compositeGithead",
+    "no new tests/native/runtime executed",
+    "normal adoption needs exactpreimage/source and newnativeview installed onprivateclone",
+    "no whole oldEVENT webhooks replacement allowed"
+  ],
+  "asOfUTC": "2026-11-13T20:08:18.767781+00:00"
+}

@@ -1,0 +1,9 @@
+{
+  "verdict": "EXECUTION_SCOPE_APPROVE",
+  "reviewerAgent": "/root",
+  "observedAt": "2026-11-14T08:57:27.881883+00:00",
+  "wrapperSHA256": "ca0440d8c32761e31dfabc45cc03595d008ee7d6b75c3b18d80346446d28cbf0",
+  "targetSHA256": "6b06edd87f9cfa484a5b83d8f5cb8862d7a280364e774a9d63211ed46a5e9800",
+  "scope": "ONE current EVENT3457 genuineEE/nativefactory/source67runtime;09:02 deadline. Source/code already qualified. All bound hashes and sealed original backup bytes verified. Actual extended heldprefix genuine1921070/business0. TLS sidecar needs producer+Ediel actual scopes; fixednativefailure capture before teardown; no C6/APIwire gates.",
+  "findings": []
+}

@@ -1,0 +1,26 @@
+{
+  "state": "INDEPENDENT_ROOT_TEST_CATALOG_EVENT_LINEAGE_SOURCE_FINDING",
+  "atUtc": "2026-11-15T20:49:14.853006+00:00",
+  "candidateFreezeSHA256": "dcd58b40a52110fe0c7edbf94565785300ea6134fc183cc76ee85ca3b5902959",
+  "actualMainSnapshot": {
+    "path": "/tmp/gridex-customer-bundle-W-actual-prep-20261115-e/MAIN-AFTER-OWN-API-LOGOUT.private.json",
+    "sha256": "800236255e6842dd51e5098ae9c95693e5fdb05e70995c0b3b1740827a4674bb"
+  },
+  "actualInstalledFunctions": [
+    {
+      "signature": "public.gridex_public_catalog_dependency_revision_trigger_v1()",
+      "bodyMD5": "e0913e88b6f54883c61654b9ee56102b",
+      "bodySHA256": "013815be471448ea3baaa73b4826d0d393de353cb35141484ad2d3244fea0b3c"
+    },
+    {
+      "signature": "public.gridex_bump_contract_publication_revision(uuid,text,text,text)",
+      "bodyMD5": "ab7061426162dfff59a4a0bc58798d2e",
+      "bodySHA256": "b7b593f9cff320b02ef70d553e4f362f36fc91993129abc7f69649abab07fe3b"
+    }
+  ],
+  "severity": "high_candidate_not_deployed",
+  "problem": "Publication can enqueue webhooks before TEST object registration; revision events for unbound parent product/plan IDs lack persistent TEST event lineage, so later queue claim may see no TEST scope.",
+  "correction": "Capture immutable event lineage during the exact native transaction/backend/actor/company/offer witness before automatic enqueue. Resolve queue lineage by bound event ID; prove truthful suppression and unchanged ordinary unbound traffic.",
+  "runtimeEgressOrExploitTested": false,
+  "nativeMigrationOrMainMutation": false
+}

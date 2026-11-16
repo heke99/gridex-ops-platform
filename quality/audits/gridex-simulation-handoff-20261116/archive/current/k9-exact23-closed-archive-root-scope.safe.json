@@ -1,0 +1,24 @@
+{
+  "at": "2026-11-15T04:52:41.264918+00:00",
+  "scope": "SOLE_PRODUCER_EXACT23_CLOSED_K9_COMPARISON_RAW_ONLY",
+  "proposalPath": "/workspace/gridex-k9-closed-raw-resource-proposal-20261115/PROPOSAL.safe.json",
+  "proposalSHA256": "cb8914ea80c123ccbfe1bc77cdda03c684a5b85dddb643c9ffeec36706b1fa68",
+  "dependencyProof": {
+    "path": "/workspace/gridex-k9-closed-raw-resource-proposal-20261115/DEPENDENCY-PROOF.safe.json",
+    "sha256": "b9cfcd6d6c26356def9867f0cbdf5fd31e78cbacc0b9d43a29ff2000f04f2612"
+  },
+  "helperSHA256": "f1c5266245a135a5e6a10a111dadec2e2b1476aa6452be79316384edc11a1437",
+  "aliasCount": 23,
+  "groupCount": 11,
+  "review": [
+    "Rootrecomputedwholecodevsqualified43helper:onlypins/counts/nlink1strongercheck/statelabel changed",
+    "All23regularnlink1rawindependentlyhashed;6closurepinsand3operationalfixturepins matched",
+    "Protected210paths includeallFc/dumps/IMPORTfullafterdump/currentMainpostlogoutRAW/everytinynative/UI/financial/lineage/doc/all7seq/Source64/roles/0509/B/E/C"
+  ],
+  "conditions": [
+    "Soleproducerunchangedhelperonce; allfreshmetadata/FDmount/inode/root/closure guards mandatory",
+    "NativecomponentmayreadONLYpreservedfixturepaths; addanyselectedhistoricalRAWreadrequiresqualifiedrestorefirst",
+    "Gzipdurable+decodedSHAverifiedbeforeanyaliasunlink; keepallarchives+newcustody",
+    "Actualfreemeasuredafternoestimated805PASS/noAuthauthority"
+  ]
+}

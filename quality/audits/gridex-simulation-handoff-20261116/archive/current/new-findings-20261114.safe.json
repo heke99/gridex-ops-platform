@@ -1,0 +1,229 @@
+{
+  "state": "LATE_FINDINGS_REGISTER_NOT_GLOBAL_DEDUP_ERROR_TOTAL",
+  "asOfUTC": "2026-11-14T14:17:53.905527+00:00",
+  "counts": {
+    "localPass": 38,
+    "unsupportedGap": 1,
+    "outstanding": 66
+  },
+  "limit": "Separateidentifiedlatefindings; doNOTaddthislistlengthtooriginal26orotherrecoverytopiccounts. Eachsamecauseoneentry; theseareNOTallproductdefects. Originalreports/ledgersremainauthoritativefortheirscope.",
+  "findings": [
+    {
+      "id": "PERF-DECIMAL-2688",
+      "layer": "native_function_performance",
+      "trigger": "Full2688 sourceprojection exceeds8s",
+      "actual": "C/D finiteequal butfulltimeouts; EOLD29/NEW29equal andfull2688true .649618639s same8s; allotherfunctions/private/Main preserved/drop",
+      "correctiveAction": "EtypedSEQ/invalidMEA/lazySTSmonotonecursors+duplicateQTYwindowcache; unchangedmissingqualityhelper meansno fullylinearclaim",
+      "status": "NATIVE_E_QUALIFIED_29_FULL_SOURCE_UNDER8S_NO_BUSINESS_ADOPTION",
+      "evidencePath": "/workspace/gridex-root-session-20261112/decimal-e-actual-qualification.safe.json"
+    },
+    {
+      "id": "HARNESS-DECIMAL-ORDER",
+      "layer": "test_harness",
+      "trigger": "Python byteorder vs DBdefaultcollation changes controlarrayorder",
+      "actual": "OLD22 SQLmatchestrue but outertargetmismatch; stoppedBEFOREpatch",
+      "correctiveAction": "ExplicitC onboth SQLaggregates, expectations fromoriginal22sourcecontrols",
+      "status": "FIX_VERIFIED_OLD22_NATIVE_B",
+      "evidencePath": "/workspace/gridex-decimal-donor-native-actual-20261114-b/terminal.safe.json"
+    },
+    {
+      "id": "HARNESS-DECIMAL-SEPARATOR",
+      "layer": "test_harness_sql",
+      "trigger": "MissingSQLsemicolon afterCREATEFUNCTION beforeDOpost",
+      "actual": "PRIMARY42601 atDOline99; NEW22/fullNOTRUN",
+      "correctiveAction": "ExternalsemicolonCnativeinstalled, OLD22/NEW22equal; performanceissue separate",
+      "status": "FIX_NATIVE_INSTALLED_FINITE22_PASS",
+      "evidencePath": "/workspace/gridex-root-session-20261112/decimal-b-failed-actual-review.safe.json"
+    },
+    {
+      "id": "HARNESS-EVENT-PERMISSION",
+      "layer": "runtime_packaging",
+      "trigger": "One source routeleaf0700 blocks appUID10001/GID1000",
+      "actual": "ActualNextEACCES scandirpublication-test-receivers",
+      "correctiveAction": "Exactclosedleaf0770; all67filebytes unchanged; BNextReady1281ms/stderrempty",
+      "status": "STARTUP_FIX_VERIFIED_NO_DELIVERY_PROOF",
+      "evidencePath": "/workspace/gridex-event-source-traversal-qualification-20261114/ACTUAL-LEAF-FIX.safe.json"
+    },
+    {
+      "id": "HARNESS-EVENT-WINDOW",
+      "layer": "orchestration",
+      "trigger": "Insufficientremainingwallclock aftermetadata/resource/native setup",
+      "actual": "Old266a preintentSTOP; BReadyafter09:10:30 cutoff; noTLS/UIattempt",
+      "correctiveAction": "AllprepBEFOREgenuine1800Auth; parent~12min+same900runtime/native15min",
+      "status": "CORRECTED_PLAN_NOT_YET_FULL_EXECUTED",
+      "evidencePath": "/workspace/gridex-event-publication-positive-actual-20261114-b/intent.safe.json"
+    },
+    {
+      "id": "SOURCE-EVENT-PROJECTION",
+      "layer": "source_pre_actual",
+      "trigger": "TESTpublication used ordinaryactive-onlytenantloader",
+      "actual": "Real-loader regression12RED/45PASS exposedonboardingDENY beforeHTTP",
+      "correctiveAction": "NarrowprivateprojectionafterexactnativeTESTclaim; normalactivegate unchanged;57PASS",
+      "status": "SOURCE_FIXED_NO_ACTUAL_DELIVERY_PROOF",
+      "evidencePath": "/workspace/gridex-root-session-20261112/publication-661f-projection-source-doc-review.safe.json"
+    },
+    {
+      "id": "HARNESS-EVENT-PREFIX",
+      "layer": "test_harness",
+      "trigger": "WrapperrequiredREADY butrealheldstate different",
+      "actual": "Literalpredicate mismatch foundbeforeactual",
+      "correctiveAction": "Parentv2 exactrealGENUINE_EE_CONTEXT_HELD_READY_BEFORE_FRESH_BACKUP",
+      "status": "FIXED_ACTUAL_FACTORY_AND_RUNTIME_SETUP",
+      "evidencePath": "/workspace/gridex-root-session-20261112/publication-positive-parent-v2-code-review.safe.json"
+    },
+    {
+      "id": "HARNESS-TLS-NNP-INSPECT",
+      "layer": "test_harness",
+      "trigger": "DockerinspectNNP string differs fromCLIflagstring",
+      "actual": "ActualCsidecarinspect singleton:true differedfromapp-derivedbareonlyguard; blockedstart+cleanup. OldcreatedneverstartedCIDownedreconciled; V3allows2exacttrueforms,falseDENY",
+      "correctiveAction": "Controllerfc1c+launcher86b51 onepredicate/onebasename qualified; actualC2strictTLSGET404 appUID10001/sameNETNS/CA+leaf/caps0/NNP1 passed",
+      "status": "ACTUAL_TLS_PROBE_PASS_NO_BUSINESS_DELIVERY",
+      "evidencePath": "/tmp/gridex-ediel-publication-read-review-20261114/C_SIDECAR_FINDING.safe.json"
+    },
+    {
+      "id": "OPS-ARCHIVE-RESTORE",
+      "layer": "operations_documentation",
+      "trigger": "Baregziprestorecommand omittedsafe metadata/nooverwritechecks",
+      "actual": "Bytes-onlyillustration insufficientasqualifiedrestoreprocedure",
+      "correctiveAction": "Separateexclusive0600temp/hash+bytes/metadata/fsync/atomicnooverwrite script",
+      "status": "COMPANION_PREPARED_NOT_RESTORED",
+      "evidencePath": "/workspace/gridex-event-resource-survey-20261114/RESTORE-INSTRUCTIONS.safe.json"
+    },
+    {
+      "id": "OPS-AGENT-WAKEUP",
+      "layer": "orchestration",
+      "trigger": "send_message tocompletedagent queuesmessage butdoesnotstartturn",
+      "actual": "Resourcewriterhandoff stalleduntilfollowup_task; produceracknowledgeddeliverymistake",
+      "correctiveAction": "Usefollowup_task forcompleted/idleagentnewtask; checkliveagents beforecriticalhandoff",
+      "status": "DELIVERY_CORRECTED_FOURTEEN_ARCHIVES_DONE",
+      "evidencePath": "/workspace/gridex-root-session-20261112/CHECKPOINT.md"
+    },
+    {
+      "id": "HARNESS-EVENT-FAILURE-CAPTURE-RACE",
+      "layer": "orchestration",
+      "trigger": "External8c28 read scheduled afterparentautomaticdrop",
+      "actual": "CafterqueryFATALdatabaseabsent; fullFc17301237B savedbeforeDROP, preintent0POST journal retained",
+      "correctiveAction": "Read-only FullFc reconciliation completed with native graph and Main preservation; later parent embeds capture before Fc/drop.",
+      "status": "C_READONLY_RECONCILED_D_EMBEDDED_CAPTURE_VERIFIED",
+      "evidencePath": "/workspace/gridex-root-session-20261112/event-c-reconcile-actual-review.safe.json"
+    },
+    {
+      "id": "EVENT-BOUND-ID-NOT-LISTED",
+      "layer": "unclassified_actual_ui_preintent",
+      "trigger": "ExpectedAevent0a776 absent fromnormalUIselectoptions",
+      "actual": "Readonly reconciliation:48eligible,22strictlynewer,22tiesincludingtarget; observedtop30 target absent. No deterministic tie ordering or RLS failure claimed.",
+      "correctiveAction": "Normal GET exact UUID lookup within existing filters; local page commit55adfc51; pending real browser+delivery verification.",
+      "status": "CAUSE_QUALIFIED_EXACT_UUID_PAGE_SOURCE_FIXED_BROWSER_RETEST_PENDING",
+      "evidencePath": "/workspace/gridex-root-session-20261112/event-c-reconcile-actual-review.safe.json"
+    },
+    {
+      "id": "HARNESS-CANARY-SOCKET-RESET",
+      "layer": "runtime_harness",
+      "trigger": "Controlled exact old witness reproduction saw unhandled ECONNRESET",
+      "actual": "One controlled run exited1; historical EVENT D underlying cause remains UNKNOWN. OWN2V2C actual three connections/counter3/alive/teardown passed.",
+      "correctiveAction": "Handle only EPIPE/ECONNRESET nonfatally; retain unknown errors; capture owned actual stdout/stderr before remove.",
+      "status": "COMPONENT_ACTUAL_QUALIFIED_FULL_FIREWALL_RUNTIME_PENDING",
+      "evidencePath": "/workspace/gridex-root-session-20261112/canary-own2-c-actual-review.safe.json"
+    },
+    {
+      "id": "HARNESS-OWN2-UMASK",
+      "layer": "runtime_packaging",
+      "trigger": "mkdir requested0750 became0700 under umask077",
+      "actual": "First OWN2 app could not load module; no probe; owned cleanup.",
+      "correctiveAction": "Explicit chmod0750; finite actual filesystem check and OWN2V2C passed.",
+      "status": "FIX_COMPONENT_ACTUAL_VERIFIED",
+      "evidencePath": "/workspace/gridex-root-session-20261112/canary-own2-c-actual-review.safe.json"
+    },
+    {
+      "id": "OPS-GATEWAY-CURRENT-KEY-CONFIG",
+      "layer": "local_environment_orchestration",
+      "trigger": "Normal API resume restarted Kong with configuration excluding current still-valid keys",
+      "actual": "EVENT E pre-ready login unavailable, 0commands; current anon/service Authhealth401 before render, Auth+REST200 after current-carrier restoration. No product defect or isolated Main unchanged claim.",
+      "correctiveAction": "Corrected normal resume453b always renders actual still-valid carrier; actual validation40501 AuthREST200. No key renewal or UserAuth in validation.",
+      "status": "NORMAL_RESUME_SOURCE2_AND_ACTUAL_VALIDATION_PASS_NO_NEW_AUTH",
+      "evidencePath": "/tmp/gridex-event-e-auth-failure-diagnosis-20261114/CURRENT-KEY-ROUTING-RESTORED.safe.json"
+    },
+    {
+      "id": "HARNESS-IMPORT-CAPTURE-IDENTITY",
+      "layer": "verification_harness_source",
+      "trigger": "Original unexecuted capture classifier did not fully pair BEFORE scope, CommandReceipt identity, invoice graph/result IDs",
+      "actual": "Three source review findings in7789/51bc before any execution; correctedV2 8bbbe57/5429,18isolatedchecks and two independent source reviews.",
+      "correctiveAction": "Bind before+intent admission/company/manifest/time, actual native receipt schema and materialized objects, invoice canonical/legacy result identities/customer/contract. Preserve raw financial bytes and independent amount review.",
+      "status": "SOURCE_V2_QUALIFIED_NOT_ACTUAL_FINANCIAL_PASS",
+      "evidencePath": "/workspace/gridex-root-session-20261112/import-capture-v2-source-review.safe.json"
+    },
+    {
+      "id": "HARNESS-K-PHASE-CAPTURE-BUDGET",
+      "layer": "orchestration_source",
+      "trigger": "Frozen orchestrator allowed phase with90s remaining despite IPC100s and multi-call native read/checkpoint budgets",
+      "actual": "Found by Root before K execution; imported SQL helper actually defaults90s per call, making simple600s entry guard insufficient without bounded reads. No runtime data loss claimed.",
+      "correctiveAction": "Immutablecf17 caps imported read waits15s and checks900s reserve after pre-reads before intent; bound realruntime/JWT/helper/C6/admission deadlines; countedmax680s plus220localIO reserve, not universal hard bound.",
+      "status": "NEW_BUDGET900_SOURCE2_QUALIFIED_NOT_ACTUAL",
+      "evidencePath": "/workspace/gridex-root-session-20261112/k-four-rpc-budget900-source-review.safe.json",
+      "peerReceipt": "1d77ff68db041c86c08dd54e967c43a57fef8fc9523b361651b12fe007408a11"
+    },
+    {
+      "id": "HARNESS-K-PRE-READY-MEMORY",
+      "layer": "local_runtime_resource_orchestration",
+      "trigger": "K constructor passed initial liveheadroom but child actual memory guard failed after restore/qualification",
+      "actual": "Parent78041/childexit1 beforeREADY, all14privateempty/0RPC/0UI, strictMainpreserved, ownedREST+cloneabsent, fullFc saved. At-assertion value not recorded, no OOM or exact underlying attribution claimed.",
+      "correctiveAction": "ImmutableK2parent releases five proven-unused comparison locals via selfdel/gc/trim, retainingbefore forMain finalcheck; runtime26928 persists actualmemorybefore unchangedguard. Closedproof cache advisoryactualcb97 observed~295MB decrease, no guaranteed or isolated reclaim. FreshgenuineK2context afteroldproperlogout, no stalepathreuse.",
+      "status": "K2_RUNTIME_READY_ACTUAL_GUARD_PASS_3836542976_GE3489660928_NO_BUSINESS_CREDIT",
+      "evidencePath": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k/CLOSED-PRE-READY-RESOURCE-STOP.safe.json"
+    },
+    {
+      "id": "HARNESS-K2-RUNTIME-TEMPLATE-MODE",
+      "layer": "verification_harness_integration",
+      "trigger": "6bc3 generic privatefile0600 check rejected legitimate runtimecontrol template0640 beforeactualGO",
+      "actual": "Producerfilesystemscope precheck caught mismatch; no mutator/GO/orchestratorstate created. Earlier source reviews missed actual mode integration.",
+      "correctiveAction": "Immutable904b dedicated exactruntimeK2 template regular/noSymlink/resolve/0640/1MiB/SHA validator; generic600 stays. Author+Ediel actualruntime_deadline(current files) passed; Rootnarrow4f9d49 +Ediel21a1 Source2.",
+      "status": "SOURCE_AND_ACTUAL_FILESYSTEM_FIX_QUALIFIED_RPC_PENDING",
+      "evidencePath": "/workspace/gridex-root-session-20261112/k2-runtime-template-mode-source-review.safe.json"
+    },
+    {
+      "id": "HARNESS-K2-HOST-INGRESS",
+      "layer": "local_transport_integration",
+      "trigger": "Docker requested HostConfig ports existed but effective NetworkSettings.Ports empty; host could not reach app/gateway",
+      "actual": "First Core principal failed before nativeintent/RPC. HostGET+readonlySDKdiagnostic ECONNREFUSED; samegenuineJWT appnamespacegetUser200. Later originalhelperstderr excerpt also records fetchfailed/ECONNREFUSED (not rawu.errorobject). Qualifiedforwarder actual2HTTP200 componentproof andnormalclose, no naturalcookieprivateSDKbusinessproof.",
+      "correctiveAction": "Use pinned owned-CID/IP loopbackforwarders withrealhostHTTP/genuineSDKpreflight, actualdeadline clamping andowncleanup. FutureK3 closed natural-cookie principal probe beforephase state/intent; no Auth/firewall/genuineguard loosening.",
+      "status": "ACTUAL_HOST_TRANSPORT_QUALIFIED_NATURAL_COOKIE_K3_PREFLIGHT_PENDING",
+      "evidencePath": "/workspace/gridex-local-k2-actual-proof-20261114/actual-original-index.v2.safe.json"
+    },
+    {
+      "id": "HARNESS-K3-PREFLIGHT-EVIDENCE-RETRY",
+      "layer": "verification_harness_source",
+      "trigger": "Initial preflight preceded durableHALT exclusion and used fixed outputfilename; failedreadonlyprobe could block latermanualdiagnostic viaO_EXCL",
+      "actual": "Rootsourcefindings before K3execution, original4b4/d3cf retained.",
+      "correctiveAction": "New54d1 earlyreadonlyphase guard before anyprincipalport, uniqueUUID diagnosticfile perexplicitinvocation, existingunderlockguard retained. Per-probe0business isnotglobalRPCtotal.",
+      "status": "SOURCE_PEER_APPROVED_ROOT_REVIEW_PENDING_NOT_ACTUAL",
+      "evidencePath": "/tmp/gridex-k3-principal-retry-safe-orchestrator-budget900-prep-20261114/PREPARED.safe.json"
+    }
+  ],
+  "supplementalAudits": [
+    {
+      "path": "/tmp/gridex-deadcode-current-reachability-20261114/FROZEN.safe.json",
+      "sha256": "16d89085b1d628209caca5d77e7610abdf7524d7c09a34aea943807f14723763",
+      "scope": "Four bounded source reachability facts; no new dead-code verdict/deletion/bypass."
+    },
+    {
+      "path": "/tmp/gridex-official-norm-qualification-20261114/QUALIFICATION.safe.json",
+      "sha256": "0b96451b09220228dfd4533e37aab97ad41b51589d0ededcd1804ecaaa5256fd",
+      "scope": "Public official norm sources; no vendorXSD/rowrounding/receiver acceptance."
+    },
+    {
+      "path": "/workspace/gridex-offline-negative-cases-20261114/CASE-RESULTS.safe.json",
+      "sha256": "b11b0f4d01fd04cd4e4cb51dcc95f067cec9a76d8c6b8e3f07ae05f28db6934c",
+      "scope": "Four EDIEL IDs component tested; no fullcase closure."
+    },
+    {
+      "path": "/tmp/gridex-downstream-authority-proposal-20261114/FROZEN.safe.json",
+      "sha256": "5a10f3120ef35b6b1779025f66dbb37d280d012b30e70ab7f12a25595232f430",
+      "scope": "All32 downstream blockers mapped; proposal only."
+    },
+    {
+      "path": "/workspace/gridex-root-session-20261112/user-confirmed-missing-inputs.safe.json",
+      "sha256": "63340710f6d4def5fada093917911bf449cd551a76ea219507fdd041b0a6e9b4",
+      "scope": "User confirmed requested originals unavailable; stopsearch/no substitution."
+    }
+  ]
+}

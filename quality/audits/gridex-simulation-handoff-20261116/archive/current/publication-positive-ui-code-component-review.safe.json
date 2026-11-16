@@ -1,0 +1,24 @@
+{
+  "state": "PRIVATE_PUBLICATION_POSITIVE_AND_REPLAY_CODE_COMPONENT_APPROVE_NOT_RUNTIME_GO",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T07:38:08.394814+00:00",
+  "preparedSHA256": "b7ca890e093d468287ad7a958547f35e7faeb8a48f0dd71ce996e5866a4e349f",
+  "filesVerified": 16,
+  "source67AllPhysicalVerified": true,
+  "review": [
+    "FullgenericEEhold/receiver/driver and finitechecker read; genuine login/getUser/canonical/samecookie context, noC6/admission AND or keyfabrication",
+    "Closed publication-only normalUIissue\u2192nativeACK\u2192send\u2192native+receiverbodyACK\u2192already_sent replay; maxonePOST perstep/no unknownretry",
+    "Actual existing event/payload+currenttenant pinned; exactpublicorganization/event/aggregate identities and native-deriveddelivery/bodySHA; normalHMAC+TLS127-only/leafpin/finiteTTL",
+    "ReplayURL must actually reach already_sent for samecompany/delivery; oldsentURL cannot falselysatisfy predicate; PUBLICATION_READ precedesGET",
+    "19finitepurechecks and4syntax only; separate67profile retainsupdated64 intact, realfactory/TLS/browser/budget bindingpending"
+  ],
+  "findingsResolvedBeforeFreeze": [
+    "Exacttenant/referenceverification replacedregexonly",
+    "ReplayoldURLpredicate and missingREADphase corrected"
+  ],
+  "limits": [
+    "Firstchain ispositive+replay; negativeHTTPplans needfresh separatelyboundcase, noallfourcredit",
+    "Noactualfactory/JWT/UI/TLS/HTTP proof in sourcecheck",
+    "Actualscope must verifyrealrole/JWT/factory/receiverexpiry and ownednetworklistener reachability; preserveMain/cleanup"
+  ]
+}

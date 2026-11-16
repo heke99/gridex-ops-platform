@@ -1,0 +1,78 @@
+{
+  "state": "CLOSED_TWO_PROFILE_COMMITS_CATALOG_ZERO_POST_NATIVE_AUTH0_BROWSER_RECORDED",
+  "closedAt": "2026-11-15T18:13:39.292572+00:00",
+  "refs": [
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/TWO-PROFILE-COMMITS-NATIVE-COMPONENT.safe.json",
+      "sha256": "ee38edcf735a0070284a00841d60721fc7eaa0543083cc2e67b126a4f3e78bf6"
+    },
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/CATALOG-PREINTENT-STOP.safe.json",
+      "sha256": "dc19b9be497579766d52b0993a9d39935126371f7d09e1c8fcba361e934513b5"
+    },
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/qa-normal600-profile-catalog-actual-scope.safe.json",
+      "sha256": "dde09058a48c6b7c3cb2092a46d986badf63e6a2999117f8d7cb2194aa5bde02"
+    },
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/qa-own-api-cleanup-source-actual-scope.safe.json",
+      "sha256": "6b564bf437e7b62c98be4b3ab18d1e7dab16a1b85a5638850d740ebeae85bea4"
+    },
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/own-auth-api-logout.safe.json",
+      "sha256": "10e9769b9e11b53af297280a669e291ce8e973bc64fff49e0918e3649e088acd"
+    },
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/AFTER-OWN-API-LOGOUT-AUTH0.safe.json",
+      "sha256": "1b250455ab643c2c0c240e35face2f3aa99dfcd29d8b75718bd128961f43837a"
+    },
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/NORMAL-V-API-HEALTH.safe.json",
+      "sha256": "054fdddc5d0fbd0d78e1b60748ae3754f9587bc8606e0467b386639a74152d7b"
+    },
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/Main-sequences-afterREADY-before-business.private.json",
+      "sha256": "5800a1d53d1a1cbe635d82f893d7f0c342ff0d8a4a426a8a4575019e9c8fb392"
+    },
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/Main-sequences-after-business-before-logout.private.json",
+      "sha256": "5800a1d53d1a1cbe635d82f893d7f0c342ff0d8a4a426a8a4575019e9c8fb392"
+    },
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/MAIN-AFTER-OWN-API-LOGOUT.safe.json",
+      "sha256": "788eb3a4b52d0e5a711fbd206986bd699634952ac59d41c75c8936200dbb583a"
+    },
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/POSTBUSINESS-AUTH-ONLY-LOGOUT-RESIDUAL.safe.json",
+      "sha256": "93c3f910e9bedbe9a94d69730d33410749ee6a058e758ce50f4f38ad55bd5666"
+    },
+    {
+      "path": "/tmp/gridex-ee-browser-hold-actual-customer-bundle-20261115-a/state.safe.json",
+      "sha256": "c56bbee0b970d95867aace0ff40e83acd2fe7d488f33d2bd2f4bbaa3c91da76f"
+    },
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/qa-two-profile-component-business-readback.safe.json",
+      "sha256": "837df2335dc60ba84c3ebba22befa74a2235fa79ead12ed4ff0eb777ebe7caca"
+    }
+  ],
+  "nativeAllSixAuthCountsZero": true,
+  "browserClosed": true,
+  "normalUILogout": false,
+  "twoProfilePOST200NativeACKs": true,
+  "catalogPublicationPOSTs": 0,
+  "catalogGraphUnchanged": true,
+  "originalGenericUnknownFlagPreservedNoRetry": true,
+  "profileAndDerivedPublicChangesPreserved": true,
+  "postbusinessToLogoutOnly4AuthScopes": true,
+  "normalMainVStillRunningForNextIndependentCase": true,
+  "wholeCasePass": false,
+  "supersedesProcessClaimOnly": {
+    "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/CLOSED-TWO-PROFILE-COMMITS-CATALOG-ZERO-POST-AUTH0.safe.json",
+    "sha256": "b353252248e3fe29d2104399f3da5361f0a5ea7dbc20593d57ec21a795884fb3"
+  },
+  "helperPIDAbsent": true,
+  "browserClosedRecorded": true,
+  "actualHelperPGIDNotRecordedBeforeExit": true,
+  "noIndependentGlobalDescendantAbsenceClaim": true,
+  "processEvidenceLimit": "PrevioushelperGroupLiveMembers[]wasanexactnumericgroup3514474scan, notproofofactualoriginalPGID; definitivefactsarehelperPIDabsent, toolsession59990exit1, sourcebrowserClosedtrue/nativeAuth0."
+}

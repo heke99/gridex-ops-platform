@@ -1,0 +1,24 @@
+{
+  "state": "AUTHORIZED_EXACT159_CLOSED_MAIN_E_GENERATED_DESCENDANTS_ONLY",
+  "at": "2026-11-14T21:45:46.306129+00:00",
+  "proposalPath": "/tmp/gridex-main-E-closed-cache-proposal-20261114/PROPOSAL.safe.json",
+  "proposalSHA256": "51f057e529eb2d7e54393d6718cc9c6ea6bd14468c2e999359231a0c0b2bd851",
+  "scriptPath": "/tmp/reclaim-closed-main-E-cache.py",
+  "scriptSHA256": "6d1a896b4c7dcb04bb52d16a54f86cf87ca9398ccfa80b4b670f4d2088f50f36",
+  "terminationPath": "/tmp/gridex-main-E-stop-before-native-20261114/own-app-termination.safe.json",
+  "terminationSHA256": "27c59fd35f8af9738e96d0c87e2f3d69443c9b8a601bed669bf5a330d98ec945",
+  "root": "/workspace/gridex-source40-next-cache-20261114",
+  "rootDevice": 27,
+  "rootInode": 526321,
+  "preserve": [
+    "root700uid1000gid1000",
+    "source.nextalias533115",
+    "node_modulesalias526518andtarget",
+    "allsource40files",
+    "allproofs/realdata/Fc/dumps"
+  ],
+  "scope": "Exact159inventoriednonfollowinggenerateddescendants after freshidentity/noFD/port/children guards only. Script full read approved; no expansion or node_modules target traversal. Root/source/aliases preserved.",
+  "soleWriter": "qa_remaining_checks",
+  "producerContingentHandoffReceived": true,
+  "noFutureBytesOr805PassClaim": true
+}

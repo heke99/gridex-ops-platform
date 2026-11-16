@@ -1,0 +1,169 @@
+{
+  "state": "SAME_EXISTING_STAGING_TARGET_CONTINUITY_FS_ONLY_CONNECTIVITY_UNKNOWN_NOT_READY_FOR_WRITES",
+  "generatedAtUTC": "2026-11-16T10:23:34.691243+00:00",
+  "authoritativeUserClarification": {
+    "targetType": "EXISTING SIMULATION/STAGING DATABASE",
+    "notRealProduction": true,
+    "desiredChange": "Move computation to the user Mac while retaining this same existing staging target and current test isolation.",
+    "defaultDatabaseMigration": false,
+    "defaultNewLocalDatabase": false,
+    "automaticDatabaseDumpExportOrRestore": false
+  },
+  "operationPerformed": "Read only previously saved inspect/config/metadata files and write this nonsecret manifest. No Docker, SQL, dump, connection attempt, tunnel, endpoint, network change, data transfer or service stop.",
+  "savedTargetIdentity": {
+    "deploymentLocation": "Existing Docker PostgreSQL in the managed cloud execution environment; not the Mac Docker daemon",
+    "databaseName": "postgres",
+    "cloudDockerContainerID": "fed79f32f9c12bb4cd52c2824366dd0edb62c8bae881d27df6ea6fb5ccecaa9a",
+    "savedContainerName": "/gridex-kryp2-db",
+    "pinnedImageID": "sha256:4c81aefa21ede5db91df2282d30c27bbdb05ea24a30cbf02b5c8dab2a53ce1e2",
+    "savedImageReference": "gridex-kryp2-postgres:upstream-17.6.1.155-rootfs",
+    "containerPostgresPort": 5432,
+    "savedHostBindings": [
+      {
+        "HostIp": "127.0.0.1",
+        "HostPort": "55323"
+      }
+    ],
+    "savedDockerNetworks": {
+      "gridex-kryp2-real_default": {
+        "networkID": "f7e0277599220d9c66e9d00858c621990ae52202e34a397e6ee70ba5995793bb",
+        "containerIPAddress": "172.18.0.2",
+        "aliases": [
+          "gridex-kryp2-db",
+          "db"
+        ]
+      }
+    },
+    "runtimeExpectedDBHost": "db",
+    "runtimeExpectedDBInternalIP": "172.18.0.2",
+    "runtimeExpectedNetworkID": "f7e0277599220d9c66e9d00858c621990ae52202e34a397e6ee70ba5995793bb",
+    "runtimeExpectedNetworkName": "gridex-kryp2-real_default",
+    "nameInterpretation": "The legacy network name contains real; this is only its saved identifier, not a production classification. User clarification defines this as simulation/staging.",
+    "identityEvidenceIsSavedNotFreshMacVerification": true,
+    "currentFromMacReachability": "UNKNOWN",
+    "currentFromMacLiveTargetIdentity": "UNKNOWN",
+    "clusterSystemIdentifier": "NOT_AVAILABLE_IN_SELECTED_SAVED_IDENTITY_EVIDENCE; not queried now"
+  },
+  "savedAuthEndpoint": {
+    "origin": "http://127.0.0.1:55321",
+    "scheme": "http",
+    "host": "127.0.0.1",
+    "port": 55321,
+    "path": "",
+    "meaning": "Cloud execution namespace loopback endpoint used for genuine Main password/GetUser authentication.",
+    "macLocalhostIsNotCloudLocalhost": true,
+    "protocolPrecision": "Saved worker origin is HTTP on cloud loopback, not a verified remote HTTPS endpoint. Do not expose it publicly or send credentials over a public plaintext connection. Any approved remote use requires a separately verified authenticated private transport protecting this loopback service.",
+    "noCredentialsOrSIDIncluded": true
+  },
+  "sourceAttribution": [
+    {
+      "path": "/tmp/gridex-local-server-role-window-maintenance-20261116-aa/before-maintenance-inspect.private.json",
+      "classification": "PRIVATE_SAVED_INSPECT_NOT_INCLUDED",
+      "fieldsUsed": [
+        "Id",
+        "Name",
+        "Image",
+        "Config.Image",
+        "HostConfig.PortBindings[5432/tcp]",
+        "NetworkSettings.Networks network ID/IP/aliases"
+      ],
+      "privateConfigEnvCredentialsNotReadIntoOutput": true
+    },
+    {
+      "path": "/workspace/gridex-event-next-W-prep-20261115/target.EVENT.W.parent.EXECUTION.BOUND.safe.json",
+      "classification": "PRIVATE_RUNTIME_CONFIG_NOT_INCLUDED",
+      "fieldsUsed": [
+        "dbURIHost",
+        "dbInternalIP",
+        "networkId",
+        "networkName"
+      ],
+      "credentialsNotIncluded": true
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/WORKER-TARGET.UNARMED.safe.json",
+      "sha256": "bdbbbedad1729e275000efa7e69f3f48f59bfd5d2a9f28a2efda1b3b07b9d2ce",
+      "fieldUsed": "authOrigin"
+    },
+    {
+      "path": "/workspace/gridex-site-validation-runtime-evidence-20261112/endpoints.safe.json",
+      "sha256": "6d9c19a5e3f1b786ef1310f83bf7caab235fc54e38cda7ee20fc71d8204225a7",
+      "role": "Saved endpoint-map provenance only; no claim of Mac ingress"
+    }
+  ],
+  "existingIsolationToPreserve": {
+    "mainRole": "The authoritative existing staging Main remains the baseline and genuine Auth/canonical authority target.",
+    "businessIsolation": "Current four-case harness uses an owned isolated clone/REST/Storage context under the existing controlled staging setup. Moving compute must preserve that isolation; it must not redirect isolated business writes into Main.",
+    "notACloudDatabaseReplacement": "An owned test-isolation clone is not permission to replace the existing staging target or create an unrelated local staging database.",
+    "controlPlaneSeparation": "Current source invokes a cloud-local Docker socket/CIDs, Linux processes and private filesystem paths. Pointing those commands at Mac Docker does NOT reach the same cloud target. A reviewed secure DB/control-plane and compute topology is still required; no adapter or endpoint was created now.",
+    "noImplicitWholeDBExport": "Case-required bounded normal readbacks are separate from a database migration/export. No broad backup, dump or restore is authorized by this continuity index."
+  },
+  "secureReachabilityStatus": {
+    "verifiedPrivateIngress": "UNKNOWN / NONE VERIFIED BY CURRENT TOOLS",
+    "verifiedAuthenticatedTunnel": "UNKNOWN / NONE VERIFIED",
+    "verifiedVPN": "UNKNOWN / NONE VERIFIED",
+    "verifiedMacExecutionAccess": "NOT_ESTABLISHED_BY_THIS_CLOUD_MANIFEST",
+    "publicExposureCreated": false,
+    "newNetworkCreated": false,
+    "newEndpointCreated": false,
+    "credentialsTransferred": false,
+    "doNotInferAccessFrom": [
+      "Mac has internet",
+      "Mac has Docker",
+      "a Mac localhost port responds",
+      "the database name is postgres",
+      "a local Docker container has a similar name",
+      "old cloud approvals or container IDs exist"
+    ]
+  },
+  "beforeAnyWrites": [
+    "Verify Codex execution is actually on the Mac/intended Linux executor and local CPU/RAM/disk/Docker context separately.",
+    "Establish and verify an approved secure authenticated private route to this existing staging target; do not provision public database/Auth exposure or silently change endpoints.",
+    "Verify endpoint/server identity and expected staging dataset through that authenticated route using non-mutating checks before accepting credentials or writes. Match the intended target, not merely a port/name.",
+    "Verify genuine normal authentication/GetUser/canonical authority against the same existing staging target; never transplant cloud SID or fake native claims.",
+    "Obtain fresh native Main/Auth/all7/settings and intended isolation/resource bindings under the reviewed local-compute/same-target topology.",
+    "Reissue actual scopes/deadlines/PIDs/CIDs/network and source bindings for that topology. Historical cloud GOs grant no Mac execution authority.",
+    "Only then perform originally authorized writes in the intended owned test isolation; no database replacement, direct SQL TTL/status patch or blanket Main write redirection."
+  ],
+  "supersedesEarlierMigrationDefault": {
+    "document": "PRODUCER-DEPENDENCIES.v2.safe.json",
+    "documentSHA256": "0e6c413254d829dafc1718f928c2699bed86a934dce1386a52a9794a87b07cfd",
+    "affectedStatements": [
+      "privateBoundary.missingCurrentMainBackup",
+      "nextLocalSequence statements assuming Main dump/restore/local DB"
+    ],
+    "clarification": "A private complete Main backup/bootstrap and restore are requirements ONLY if the user later explicitly chooses a separate database migration. They are NOT prerequisites or default actions for the present Mac-compute + SAME-existing-staging-target plan.",
+    "unchangedRequirements": "Source/dependency portability, Linux/proc/UID/path assumptions, secure access, genuine authentication, native baseline and preserved test isolation remain to be qualified."
+  },
+  "lastRecordedStateNotFreshCertification": {
+    "originalCounts": {
+      "FULL": 43,
+      "GAP": 1,
+      "INCOMPLETE": 61,
+      "total": 105
+    },
+    "nextFour": "NOT_RUN; no password/business reached",
+    "lastNativeClosure": {
+      "path": "/tmp/gridex-local-server-role-window-maintenance-20261116-ae/POST-MAINTENANCE/PROPER-CLOSURE-NATIVE.safe.json",
+      "sha256": "fffeafd5ec1c6144f53a0341cfa7a9ce5d3f87150c97fbc9804f3aac32eab052",
+      "summary": "Last saved AE wholeMain522/3370, all7/Auth0/settings proof. No new SQL for this manifest."
+    },
+    "probeClosure": {
+      "path": "/tmp/gridex-storage-create-only-probe-actual-20261116-a/LATE-CREATE-RECONCILED-CLOSED.safe.json",
+      "sha256": "a480718799e1fb14e2324161a771ec9930d438a2613766ec35f7b22dd7cbbc37",
+      "summary": "Same late created/no-start own probe CID inspected and removed; original 30s CLI timeout preserved. No DB/Auth/business credit."
+    },
+    "cloudDatabaseStoppedByThisWork": false,
+    "cloudDatabaseChangedByThisWork": false,
+    "macConnectionAttempted": false
+  },
+  "readiness": {
+    "targetIdentityFromSavedEvidence": "RECORDED_NONSECRET",
+    "liveSecureMacReachability": "UNKNOWN",
+    "liveSameTargetAuthentication": "UNKNOWN",
+    "freshNativeBaselineFromMacPath": "UNKNOWN",
+    "newTopologyIsolationQualification": "PENDING",
+    "readyForWrites": false
+  },
+  "privateBoundary": "No passwords, DSN credentials, JWTs, signing keys, private config contents, rows or PII are included. Referenced private inspect/runtime files are not bundled or transferred."
+}

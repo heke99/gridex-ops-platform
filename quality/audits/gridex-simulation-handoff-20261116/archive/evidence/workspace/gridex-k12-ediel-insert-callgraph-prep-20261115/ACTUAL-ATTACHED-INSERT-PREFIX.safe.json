@@ -1,0 +1,899 @@
+{
+  "state": "SOURCE_ONLY_ACTUAL_ATTACHMENTS_AND_OBSERVED_CANCELLATION_PREFIX",
+  "sources": [
+    {
+      "path": "/workspace/gridex-local-four-rpc-checkpoints-20261115-k12/LOCAL_IMPORT/unknown-outcome.full.private.json",
+      "sha256": "ab1406cc7a5ec96663eaf3b4f04303355a6018771a1f4de534b58db9cbb25a21",
+      "bytes": 22907459
+    },
+    {
+      "path": "/workspace/gridex-k12-ediel-message-trigger-ddl-20261115/EDIEL-MESSAGES-ATTACHMENTS.schema.sql",
+      "sha256": "2d437135183aed2c531338a0baa15ecd410c80522703d128b199f703c2a9e1ec",
+      "bytes": 26358
+    },
+    {
+      "path": "/tmp/gridex-k12-S-actual-parent-prep-20261115/OWN-REQUEST-57014-PG-CONTEXT.CONTINUATIONS.private.json",
+      "sha256": "5343faf5ff8f1f1a0a59ecae2f40d667b5526868fb5821bd3fa4a5ce6ebb3cde",
+      "bytes": 857
+    }
+  ],
+  "insertTriggerCounts": {
+    "BEFORE": 27,
+    "AFTER": 25
+  },
+  "orderedInsertTriggers": [
+    {
+      "trigger": "a_gridex_bind_received_err_application_response",
+      "timing": "BEFORE",
+      "events": "INSERT",
+      "function": "gridex_received_err_response.bind_final_v1",
+      "ddl": "CREATE TRIGGER a_gridex_bind_received_err_application_response BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_err_response.bind_final_v1();",
+      "orderWithinTiming": 1,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "ad9a89839c952eed80e5bcee9479e3c175437cf2f0b96986da0a9a57a093a656",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "aaaa_local_test_source_before",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE",
+      "function": "gridex_local_test.source_before_v1",
+      "ddl": "CREATE TRIGGER aaaa_local_test_source_before BEFORE INSERT OR UPDATE ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_local_test.source_before_v1();",
+      "orderWithinTiming": 2,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "834d599e196f30aa1da3bce5f85e92b1ac34af1aeb9e0c7d30637f60c3e9e284",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ai_a_outbound_requires_export_purpose",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE OF raw_payload, company_id, created_by, direction, environment",
+      "function": "gridex_ai_processing.guard_outbound_purpose_storage_v1",
+      "ddl": "CREATE TRIGGER ai_a_outbound_requires_export_purpose BEFORE INSERT OR UPDATE OF raw_payload, company_id, created_by, direction, environment ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ai_processing.guard_outbound_purpose_storage_v1();",
+      "orderWithinTiming": 3,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "3e4850a832b47d8a058f61eb34776de48ad8eb26b706417a6fd9881146599bdd",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ai_bi_message_requires_legal_decision",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE OF raw_payload, company_id, environment, direction, created_by, sender_ediel_id, receiver_ediel_id, message_standard, message_family, message_code, immutable_payload_hash, immutable_rendered_at",
+      "function": "gridex_ai_processing.guard_message_storage_v1",
+      "ddl": "CREATE TRIGGER ai_bi_message_requires_legal_decision BEFORE INSERT OR UPDATE OF raw_payload, company_id, environment, direction, created_by, sender_ediel_id, receiver_ediel_id, message_standard, message_family, message_code, immutable_payload_hash, immutable_rendered_at ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ai_processing.guard_message_storage_v1();",
+      "orderWithinTiming": 4,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "d23c927817ae6d3f6d534042743257f634c690f15ecb65c9296f117c18065023",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "domain_response_birth",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE OF raw_payload",
+      "function": "gridex_received_sources.require_domain_response_at_birth_v1",
+      "ddl": "CREATE TRIGGER domain_response_birth BEFORE INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.require_domain_response_at_birth_v1();",
+      "orderWithinTiming": 5,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "e0892dd2280c68e9968eef2d9f2b867b802331932a5fbf9714934a765977d825",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_00_lock_prodat_ack_scope",
+      "timing": "BEFORE",
+      "events": "INSERT",
+      "function": "gridex_ediel_ack_guide.lock_prodat_scope_before_insert",
+      "ddl": "CREATE TRIGGER ediel_00_lock_prodat_ack_scope BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ack_guide.lock_prodat_scope_before_insert();",
+      "orderWithinTiming": 6,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "8f2e21390f7dc784d92d9d5cce1086450abdab4f23f83f3c217c01416d7bbee3",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_00_reference_profile_bounds",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE OF raw_payload",
+      "function": "gridex_ediel_ack_guide.require_reference_profile_before_birth_v1",
+      "ddl": "CREATE TRIGGER ediel_00_reference_profile_bounds BEFORE INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ack_guide.require_reference_profile_before_birth_v1();",
+      "orderWithinTiming": 7,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "08004ee5a8fdb979c27b57de0ef527070b48adecbc4dfb5ee15f13c956d01234",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_00_unused_unh_guide",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE OF raw_payload",
+      "function": "gridex_ediel_ack_guide.require_unused_unh_before_birth_v1",
+      "ddl": "CREATE TRIGGER ediel_00_unused_unh_guide BEFORE INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ack_guide.require_unused_unh_before_birth_v1();",
+      "orderWithinTiming": 8,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "aae5f80f8f75229b0dbdfcafcf7eb95ebb92e9d14316c50ef496a9fe606329e3",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_01_require_fresh_ack_envelope",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE OF raw_payload",
+      "function": "gridex_ediel_ack_guide.require_fresh_ack_envelope_before_storage_v1",
+      "ddl": "CREATE TRIGGER ediel_01_require_fresh_ack_envelope BEFORE INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ack_guide.require_fresh_ack_envelope_before_storage_v1();",
+      "orderWithinTiming": 9,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "9f73230ef9151afb2ff423657ecd2ff3abe2a62438aefea1319a6559937f8fb0",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_02_require_prodat_unused_document",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE OF raw_payload",
+      "function": "gridex_ediel_ack_guide.prodat_unused_document_before_storage_v1",
+      "ddl": "CREATE TRIGGER ediel_02_require_prodat_unused_document BEFORE INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ack_guide.prodat_unused_document_before_storage_v1();",
+      "orderWithinTiming": 10,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "1a465c1da2bfaa6f72fa4f2963a866ca4242da1d074182757236783557dc04c1",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_bilateral_prodat_original_owner",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE OF raw_payload",
+      "function": "gridex_bilateral_prodat.guard_original_v1",
+      "ddl": "CREATE TRIGGER ediel_bilateral_prodat_original_owner BEFORE INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_bilateral_prodat.guard_original_v1();",
+      "orderWithinTiming": 11,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "99c022f6efbfa30fedc85d53ff0f19075ec73d4a35a03ded0498ace0abc2a995",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_customer_masterdata_prelock",
+      "timing": "BEFORE",
+      "events": "INSERT",
+      "function": "gridex_customer_masterdata.prelock_new_v1",
+      "ddl": "CREATE TRIGGER ediel_customer_masterdata_prelock BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_customer_masterdata.prelock_new_v1();",
+      "orderWithinTiming": 12,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "48a69fbf042ebb8734c7ffc7b42887486223f2b026038a4344fd42c9265dd673",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_legacy_address_insert_only",
+      "timing": "BEFORE",
+      "events": "INSERT",
+      "function": "gridex_ediel_legacy_archive.refuse_new_address_reference_v1",
+      "ddl": "CREATE TRIGGER ediel_legacy_address_insert_only BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_legacy_archive.refuse_new_address_reference_v1();",
+      "orderWithinTiming": 13,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "0b1dbe9add09bc49a15e956e418e1c400edb9868313a00bbc4e0d52672fb10e5",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_messages_canonical_contract_biu",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE",
+      "function": "public.gridex_validate_ediel_message_contract",
+      "ddl": "CREATE TRIGGER ediel_messages_canonical_contract_biu BEFORE INSERT OR UPDATE ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION public.gridex_validate_ediel_message_contract();",
+      "orderWithinTiming": 14,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "cb4d6aa9100614d29f0dc8862e94762e36fdc698508c8e01639baef3e86ad4a4",
+      "functionLocalConfig": [
+        "search_path=public, extensions, pg_temp"
+      ]
+    },
+    {
+      "trigger": "ediel_national_supply_rescission_original",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE OF raw_payload",
+      "function": "gridex_supply_rescission.guard_original_v1",
+      "ddl": "CREATE TRIGGER ediel_national_supply_rescission_original BEFORE INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_supply_rescission.guard_original_v1();",
+      "orderWithinTiming": 15,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "f16c8bd894bf621c618878856c402d7114eff373d3bc481a0cf1bd8164f19ea4",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_service_permission_agreement_source",
+      "timing": "BEFORE",
+      "events": "INSERT",
+      "function": "gridex_service_permission.bind_agreement_reference_v1",
+      "ddl": "CREATE TRIGGER ediel_service_permission_agreement_source BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_service_permission.bind_agreement_reference_v1();",
+      "orderWithinTiming": 16,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "e8a45234fc02da1f54dab20bcc66fa5844eb6eb83dd7c97df4930e84263953e5",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_service_permission_requested_method_source",
+      "timing": "BEFORE",
+      "events": "INSERT",
+      "function": "gridex_service_permission.bind_requested_method_v1",
+      "ddl": "CREATE TRIGGER ediel_service_permission_requested_method_source BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_service_permission.bind_requested_method_v1();",
+      "orderWithinTiming": 17,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "ec7908eaca6068548233ba0aca569afad2ee2d87b64159b55b3da3b700e40ba8",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_wire_reference_namespace_before_write",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE OF raw_payload, company_id, environment, direction",
+      "function": "gridex_ediel_wire_namespace.before_message_write",
+      "ddl": "CREATE TRIGGER ediel_wire_reference_namespace_before_write BEFORE INSERT OR UPDATE OF raw_payload, company_id, environment, direction ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_wire_namespace.before_message_write();",
+      "orderWithinTiming": 18,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "6950c9e195fa188212c6425e55ef0d6415bd6402f402dfad32ee5366d6009d9a",
+      "functionLocalConfig": [
+        "search_path=pg_catalog, public"
+      ]
+    },
+    {
+      "trigger": "gridex_seal_received_ack_source",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE",
+      "function": "gridex_ack_authority.seal_received_ack_v1",
+      "ddl": "CREATE TRIGGER gridex_seal_received_ack_source BEFORE INSERT OR UPDATE ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ack_authority.seal_received_ack_v1();",
+      "orderWithinTiming": 19,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "6ef841670997ac8710ac32fcb09c5ace4c3188e8f0c53e845d43a27dd2d4d4b0",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "gridex_seal_received_utilts_source",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE",
+      "function": "gridex_received_sources.seal_utilts_insert_v1",
+      "ddl": "CREATE TRIGGER gridex_seal_received_utilts_source BEFORE INSERT OR UPDATE ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.seal_utilts_insert_v1();",
+      "orderWithinTiming": 20,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "f0d8ffb7b0625ed18d7c488f0008d5cab4d84e54181a6b5b0209b311b79612e5",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "gridex_technical_protected_physical_original",
+      "timing": "BEFORE",
+      "events": "INSERT",
+      "function": "gridex_unattributed_intake.guard_physical_original_v1",
+      "ddl": "CREATE TRIGGER gridex_technical_protected_physical_original BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_unattributed_intake.guard_physical_original_v1();",
+      "orderWithinTiming": 21,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "48ca73583e82d1e9992467fdaf3229b7d6d975dac2df07ba1c5f1fbd2dc3a16d",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "metering_method_own_brp_source",
+      "timing": "BEFORE",
+      "events": "INSERT",
+      "function": "gridex_metering_method_changes.guard_brp_wire_v1",
+      "ddl": "CREATE TRIGGER metering_method_own_brp_source BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_metering_method_changes.guard_brp_wire_v1();",
+      "orderWithinTiming": 22,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "3353d4c5989632deb3bc647c71771c7d23082e8264174d3fed3948830a0c95fc",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "method_source_required_before_insert",
+      "timing": "BEFORE",
+      "events": "INSERT",
+      "function": "gridex_metering_method_changes.require_origin_before_insert_v1",
+      "ddl": "CREATE TRIGGER method_source_required_before_insert BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_metering_method_changes.require_origin_before_insert_v1();",
+      "orderWithinTiming": 23,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "3327442aca13cc7779f455127eeab1bc468651b9a344a3bfbc06072b5f0b39cb",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "prodat_recovery_insert_origin",
+      "timing": "BEFORE",
+      "events": "INSERT",
+      "function": "gridex_received_sources.require_recovery_insert_origin_v1",
+      "ddl": "CREATE TRIGGER prodat_recovery_insert_origin BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.require_recovery_insert_origin_v1();",
+      "orderWithinTiming": 24,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "c0c914e74ff25711ee8e6f15444966271d9e2a9e10ec4c87dd38e176013a0b5b",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "trg_ediel_message_inbound_email_tenant_guard",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE OF inbound_email_message_id, company_id",
+      "function": "public.gridex_ediel_message_inbound_email_tenant_guard",
+      "ddl": "CREATE TRIGGER trg_ediel_message_inbound_email_tenant_guard BEFORE INSERT OR UPDATE OF inbound_email_message_id, company_id ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION public.gridex_ediel_message_inbound_email_tenant_guard();",
+      "orderWithinTiming": 25,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "736e9c043d9b9ae88303a005d01c14aa5c236b284aa098b8fab63a93ac23c71f",
+      "functionLocalConfig": [
+        "search_path=\"\""
+      ]
+    },
+    {
+      "trigger": "trg_gridex_bind_inbound_ediel_rule_pack_evidence",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE OF company_id, message_family, message_code, direction, message_received_at",
+      "function": "public.gridex_bind_inbound_ediel_rule_pack_evidence",
+      "ddl": "CREATE TRIGGER trg_gridex_bind_inbound_ediel_rule_pack_evidence BEFORE INSERT OR UPDATE OF company_id, message_family, message_code, direction, message_received_at ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION public.gridex_bind_inbound_ediel_rule_pack_evidence();",
+      "orderWithinTiming": 26,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "dc9335075c4e9f622f84c89d693d347f91c93768a9c8807fcc7ab499f18f75dd",
+      "functionLocalConfig": [
+        "search_path=public"
+      ]
+    },
+    {
+      "trigger": "trg_gridex_enforce_supplier_utilts_outbound_v1",
+      "timing": "BEFORE",
+      "events": "INSERT OR UPDATE",
+      "function": "public.gridex_enforce_supplier_utilts_outbound_v1",
+      "ddl": "CREATE TRIGGER trg_gridex_enforce_supplier_utilts_outbound_v1 BEFORE INSERT OR UPDATE ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION public.gridex_enforce_supplier_utilts_outbound_v1();",
+      "orderWithinTiming": 27,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "5f0ef899fd6b3e0fdf78efc29b312119bcb468aeb0599cf5ea60a741b527554f",
+      "functionLocalConfig": [
+        "search_path=public"
+      ]
+    },
+    {
+      "trigger": "ai_original_message_binding",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_ai_processing.bind_original_message_v1",
+      "ddl": "CREATE TRIGGER ai_original_message_binding AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ai_processing.bind_original_message_v1();",
+      "orderWithinTiming": 1,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "313937b951e034f203a5424e196da3ba652d9ba90c10be3b7f8c70edcaba5832",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "bind_customer_life_event_original",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_customer_life_events.bind_original_v1",
+      "ddl": "CREATE TRIGGER bind_customer_life_event_original AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_customer_life_events.bind_original_v1();",
+      "orderWithinTiming": 2,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "4b8549887f5e7e555d73b9b81cccccd7f71a3fe3b42e57a5f5233493ea9c79d3",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "bind_production_contract_origin",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_received_sources.bind_production_contract_origin_v1",
+      "ddl": "CREATE TRIGGER bind_production_contract_origin AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.bind_production_contract_origin_v1();",
+      "orderWithinTiming": 3,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "e0cd9b7d93883c8f504474bd941809ddbb53611e9d9c0a42ea4de868bafeeea5",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "bind_requested_change_original",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_requested_changes.bind_message_v1",
+      "ddl": "CREATE TRIGGER bind_requested_change_original AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_requested_changes.bind_message_v1();",
+      "orderWithinTiming": 4,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "bd92e4b228220ca7e75cd06c13253d013cc0581d06fe843eeb1fdef5bf5ba12d",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "brp_bind_message",
+      "timing": "AFTER",
+      "events": "INSERT OR UPDATE OF intent_id, raw_payload, company_id, environment, direction, message_family, message_code, source_operation_id, outbound_request_id, customer_id, site_id, metering_point_id, communication_route_id, route_profile_id, sender_ediel_id, receiver_ediel_id, interchange_reference, transaction_reference",
+      "function": "gridex_brp_changes.bind_message_v1",
+      "ddl": "CREATE TRIGGER brp_bind_message AFTER INSERT OR UPDATE OF intent_id, raw_payload, company_id, environment, direction, message_family, message_code, source_operation_id, outbound_request_id, customer_id, site_id, metering_point_id, communication_route_id, route_profile_id, sender_ediel_id, receiver_ediel_id, interchange_reference, transaction_reference ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_brp_changes.bind_message_v1();",
+      "orderWithinTiming": 5,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "f34ff0b839ecffcc600c89de95ad85cdfa93fff1273c42cfbcbbb4749ab78ba8",
+      "functionLocalConfig": [
+        "search_path=\"\"",
+        "TimeZone=UTC"
+      ]
+    },
+    {
+      "trigger": "ediel_capture_common_prodat_header",
+      "timing": "AFTER",
+      "events": "INSERT OR UPDATE OF raw_payload",
+      "function": "gridex_ediel_common_header.capture_source",
+      "ddl": "CREATE TRIGGER ediel_capture_common_prodat_header AFTER INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_common_header.capture_source();",
+      "orderWithinTiming": 6,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "2122ea50ee16ba1b18f3fc50aca084ff59434fdb359dbf11974eead0c6d6fa5e",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_capture_technical_source",
+      "timing": "AFTER",
+      "events": "INSERT OR UPDATE OF raw_payload",
+      "function": "gridex_ediel_technical_ack.capture_source",
+      "ddl": "CREATE TRIGGER ediel_capture_technical_source AFTER INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_technical_ack.capture_source();",
+      "orderWithinTiming": 7,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "dd1ab6027b359c6334d2431349d6954f8187f5426b3bc60643985083630381f3",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_consume_outbound_owner_witness",
+      "timing": "AFTER",
+      "events": "INSERT OR UPDATE OF raw_payload",
+      "function": "gridex_ediel_outbound_owner.consume",
+      "ddl": "CREATE TRIGGER ediel_consume_outbound_owner_witness AFTER INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_outbound_owner.consume();",
+      "orderWithinTiming": 8,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "45b626c1a4bd6f46edca96d0eda68415cc752d6106704b4ab0fe6abc7ee76443",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_customer_masterdata_bind",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_customer_masterdata.bind_original_v1",
+      "ddl": "CREATE TRIGGER ediel_customer_masterdata_bind AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_customer_masterdata.bind_original_v1();",
+      "orderWithinTiming": 9,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "b49e086aee9f0e58106c0bf16c76a9546416a94b4ad44321e70e67151772da84",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_messages_rule_pack_snapshot_trg",
+      "timing": "AFTER",
+      "events": "INSERT OR UPDATE OF rule_profile_key, rule_profile_version_id, rule_profile_version, rule_pack_checksum, rule_pack_snapshot",
+      "function": "public.gridex_capture_ediel_rule_pack_snapshot",
+      "ddl": "CREATE TRIGGER ediel_messages_rule_pack_snapshot_trg AFTER INSERT OR UPDATE OF rule_profile_key, rule_profile_version_id, rule_profile_version, rule_pack_checksum, rule_pack_snapshot ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION public.gridex_capture_ediel_rule_pack_snapshot();",
+      "orderWithinTiming": 10,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "0ab343b74fe4322e9815c4a812ca751fe135638da4f24c44eb6e060bf6d75a89",
+      "functionLocalConfig": [
+        "search_path=public"
+      ]
+    },
+    {
+      "trigger": "ediel_negative_fixture_origin",
+      "timing": "AFTER",
+      "events": "INSERT OR UPDATE OF raw_payload, execution_context_snapshot",
+      "function": "gridex_negative_fixtures.consume_negative_v1",
+      "ddl": "CREATE TRIGGER ediel_negative_fixture_origin AFTER INSERT OR UPDATE OF raw_payload, execution_context_snapshot ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_negative_fixtures.consume_negative_v1();",
+      "orderWithinTiming": 11,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "f4fbedc0cc3d8ec3771cc2b9260b7a29c0c855956e24e9acf183a16a9c0126a4",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_original_identity_basis_capture",
+      "timing": "AFTER",
+      "events": "INSERT OR UPDATE OF raw_payload",
+      "function": "gridex_ediel_inbound_context.capture",
+      "ddl": "CREATE TRIGGER ediel_original_identity_basis_capture AFTER INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_inbound_context.capture();",
+      "orderWithinTiming": 12,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "1974840b990f4d6424b34e52b057a845fc41123ea8b8b13ae9b506579644cdec",
+      "functionLocalConfig": [
+        "search_path=pg_catalog, public, extensions"
+      ]
+    },
+    {
+      "trigger": "ediel_positive_fixture_origin",
+      "timing": "AFTER",
+      "events": "INSERT OR UPDATE OF raw_payload, execution_context_snapshot",
+      "function": "gridex_negative_fixtures.consume_positive_v1",
+      "ddl": "CREATE TRIGGER ediel_positive_fixture_origin AFTER INSERT OR UPDATE OF raw_payload, execution_context_snapshot ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_negative_fixtures.consume_positive_v1();",
+      "orderWithinTiming": 13,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "d4b480f06b2afd717ccc934222f8fde7df1cfca6120482e21b9933c8819b5e8a",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "ediel_service_permission_message_bind",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_service_permission.bind_message_v1",
+      "ddl": "CREATE TRIGGER ediel_service_permission_message_bind AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_service_permission.bind_message_v1();",
+      "orderWithinTiming": 14,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "2f93d9653207029c7ce16eef8247af1160bb866ce61fe6f950dfad7769d2cd85",
+      "functionLocalConfig": [
+        "search_path=\"\""
+      ]
+    },
+    {
+      "trigger": "ediel_switch_cancellation_bind",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_switch_cancellations.bind_message_v1",
+      "ddl": "CREATE TRIGGER ediel_switch_cancellation_bind AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_switch_cancellations.bind_message_v1();",
+      "orderWithinTiming": 15,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "7c5a100fd278f000a69e7de54bbee46a8c74de93bb085bb31ec4d8912c515282",
+      "functionLocalConfig": [
+        "search_path=\"\""
+      ]
+    },
+    {
+      "trigger": "ediel_z_reserve_prodat_ack_scope",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_ediel_ack_guide.reserve_prodat_scope_after_insert",
+      "ddl": "CREATE TRIGGER ediel_z_reserve_prodat_ack_scope AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ack_guide.reserve_prodat_scope_after_insert();",
+      "orderWithinTiming": 16,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "a092236de2727f088a321b8bf4f301aa1675d7e4efad1f8f0bacc7628feb0821",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "gridex_capture_received_ack_source",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_ack_authority.capture_received_ack_v1",
+      "ddl": "CREATE TRIGGER gridex_capture_received_ack_source AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ack_authority.capture_received_ack_v1();",
+      "orderWithinTiming": 17,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "e21b4987240f2ae0b6b3dbcc80be0d044d7fb12d9331ca21748187bbddc8bf02",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "gridex_capture_received_prodat_source",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_received_sources.capture_insert",
+      "ddl": "CREATE TRIGGER gridex_capture_received_prodat_source AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.capture_insert();",
+      "orderWithinTiming": 18,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "e676171d6cec47d7c3e0c3573c6299f70aeb26bc8fcabd147c03d9248adc4795",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "gridex_capture_received_utilts_source",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_received_sources.capture_utilts_insert_v1",
+      "ddl": "CREATE TRIGGER gridex_capture_received_utilts_source AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.capture_utilts_insert_v1();",
+      "orderWithinTiming": 19,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "1c4df7aa8d41d2376a7460800f7da85dfb99fdd83359edf3c55b384617ffe5d5",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "gridex_utilts_issuer_capture",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_utilts_issuer.capture_insert_v1",
+      "ddl": "CREATE TRIGGER gridex_utilts_issuer_capture AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_utilts_issuer.capture_insert_v1();",
+      "orderWithinTiming": 20,
+      "positionRelativeToActualCancellation": "BEFORE_OR_CURRENT_TRIGGER_BODY_BRANCHES_REQUIRE_SOURCE_CHECK",
+      "bodySha256": "1c761197991a867c94a530a30dda414733ad0bfc87cc084cc03aa808683e001c",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "method_bind_message",
+      "timing": "AFTER",
+      "events": "INSERT OR UPDATE OF created_by, intent_id, raw_payload, company_id, environment, direction, message_family, message_code, source_operation_id, outbound_request_id, customer_id, site_id, metering_point_id, communication_route_id, route_profile_id, sender_ediel_id, receiver_ediel_id, interchange_reference, transaction_reference",
+      "function": "gridex_metering_method_changes.bind_message_v1",
+      "ddl": "CREATE TRIGGER method_bind_message AFTER INSERT OR UPDATE OF created_by, intent_id, raw_payload, company_id, environment, direction, message_family, message_code, source_operation_id, outbound_request_id, customer_id, site_id, metering_point_id, communication_route_id, route_profile_id, sender_ediel_id, receiver_ediel_id, interchange_reference, transaction_reference ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_metering_method_changes.bind_message_v1();",
+      "orderWithinTiming": 21,
+      "positionRelativeToActualCancellation": "LATER_AFTER_TRIGGER_NOT_REACHED",
+      "bodySha256": "39af3505d1687207595efffe7225891a0c2f5e4006a1e313d842119e974f22ad",
+      "functionLocalConfig": [
+        "search_path=\"\"",
+        "TimeZone=UTC"
+      ]
+    },
+    {
+      "trigger": "method_recovery_bind_message",
+      "timing": "AFTER",
+      "events": "INSERT OR UPDATE OF created_by, intent_id, raw_payload, company_id, environment, direction, message_family, message_code, message_standard, source_operation_id, outbound_request_id, customer_id, site_id, metering_point_id, communication_route_id, route_profile_id, sender_ediel_id, receiver_ediel_id, sender_sub_address, receiver_sub_address, application_reference, interchange_reference, transaction_reference, immutable_payload_hash, immutable_rendered_at, original_message_id",
+      "function": "gridex_metering_method_changes.bind_recovery_message_v1",
+      "ddl": "CREATE TRIGGER method_recovery_bind_message AFTER INSERT OR UPDATE OF created_by, intent_id, raw_payload, company_id, environment, direction, message_family, message_code, message_standard, source_operation_id, outbound_request_id, customer_id, site_id, metering_point_id, communication_route_id, route_profile_id, sender_ediel_id, receiver_ediel_id, sender_sub_address, receiver_sub_address, application_reference, interchange_reference, transaction_reference, immutable_payload_hash, immutable_rendered_at, original_message_id ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_metering_method_changes.bind_recovery_message_v1();",
+      "orderWithinTiming": 22,
+      "positionRelativeToActualCancellation": "LATER_AFTER_TRIGGER_NOT_REACHED",
+      "bodySha256": "c2a18d377a89f0d7e466469bf1f7ee5ae658c098aeed2fb55e63e6c7bf90debc",
+      "functionLocalConfig": [
+        "search_path=pg_catalog",
+        "TimeZone=UTC"
+      ]
+    },
+    {
+      "trigger": "prodat_recovery_message_bind",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_received_sources.bind_prodat_recovery_message_v1",
+      "ddl": "CREATE TRIGGER prodat_recovery_message_bind AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.bind_prodat_recovery_message_v1();",
+      "orderWithinTiming": 23,
+      "positionRelativeToActualCancellation": "LATER_AFTER_TRIGGER_NOT_REACHED",
+      "bodySha256": "2a10150c992ee3117a35cc16912c6c80d57d1ad87f3068e361f1f874d50bc59b",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "production_contract_source_brp_after_bind",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_received_sources.production_contract_brp_wire_guard_v1",
+      "ddl": "CREATE TRIGGER production_contract_source_brp_after_bind AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.production_contract_brp_wire_guard_v1();",
+      "orderWithinTiming": 24,
+      "positionRelativeToActualCancellation": "LATER_AFTER_TRIGGER_NOT_REACHED",
+      "bodySha256": "27ed9fb8e43cca70013a075666f1098263465ed73bc24281ff11897e2495e388",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "trigger": "zzzz_local_test_source_after",
+      "timing": "AFTER",
+      "events": "INSERT",
+      "function": "gridex_local_test.source_after_v1",
+      "ddl": "CREATE TRIGGER zzzz_local_test_source_after AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_local_test.source_after_v1();",
+      "orderWithinTiming": 25,
+      "positionRelativeToActualCancellation": "LATER_AFTER_TRIGGER_NOT_REACHED",
+      "bodySha256": "3c68925249a4644820ace6c38fd85f9a3e178de468a1bb5d1610c832107df387",
+      "functionLocalConfig": [
+        "search_path=pg_catalog"
+      ]
+    }
+  ],
+  "selectedFunctionBodies": [
+    {
+      "function": "gridex_utilts_issuer.capture_insert_v1",
+      "body": {
+        "path": "/workspace/gridex-k12-ediel-insert-callgraph-prep-20261115/gridex_utilts_issuer.capture_insert_v1.EXACT-BODY.sql",
+        "sha256": "1c761197991a867c94a530a30dda414733ad0bfc87cc084cc03aa808683e001c",
+        "bytes": 6591
+      },
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "lexerOrEnvelopeCallsites": [
+        {
+          "bodyLine": 9,
+          "text": "wire:=gridex_ack_authority.wire_v1(NEW.raw_payload);tokens:=gridex_utilts_binding.wire_tokens_v1(NEW.raw_payload);"
+        }
+      ]
+    },
+    {
+      "function": "gridex_ack_authority.wire_v1",
+      "body": {
+        "path": "/workspace/gridex-k12-ediel-insert-callgraph-prep-20261115/gridex_ack_authority.wire_v1.EXACT-BODY.sql",
+        "sha256": "5ea2f7b5e8cc03c088c7facb8fdbdc331cd0abaac1c1bf2c51c9115569584a70",
+        "bytes": 4470
+      },
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "lexerOrEnvelopeCallsites": [
+        {
+          "bodyLine": 2,
+          "text": "DECLARE tokens jsonb:=gridex_utilts_binding.wire_tokens_v1(p_raw);t jsonb;e jsonb;out jsonb:=jsonb_build_object('refs','{}'::jsonb);first_detail integer;family text;legal_sender text;legal_receiver text;erc text;group_index integer:=-1;group_key text;"
+        }
+      ]
+    },
+    {
+      "function": "gridex_utilts_binding.wire_tokens_v1",
+      "body": {
+        "path": "/workspace/gridex-k12-ediel-insert-callgraph-prep-20261115/gridex_utilts_binding.wire_tokens_v1.EXACT-BODY.sql",
+        "sha256": "41821a488c2086917ce6b73319720d13215f623983a8a4ba52b405a9177a3f4f",
+        "bytes": 3657
+      },
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "lexerOrEnvelopeCallsites": []
+    },
+    {
+      "function": "gridex_ediel_common_header.capture_source",
+      "body": {
+        "path": "/workspace/gridex-k12-ediel-insert-callgraph-prep-20261115/gridex_ediel_common_header.capture_source.EXACT-BODY.sql",
+        "sha256": "2122ea50ee16ba1b18f3fc50aca084ff59434fdb359dbf11974eead0c6d6fa5e",
+        "bytes": 8204
+      },
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "lexerOrEnvelopeCallsites": [
+        {
+          "bodyLine": 12,
+          "text": "tokens:=gridex_utilts_binding.wire_tokens_v1(NEW.raw_payload);"
+        },
+        {
+          "bodyLine": 28,
+          "text": "u:=gridex_ediel_technical_ack.envelope(NEW.raw_payload);"
+        }
+      ]
+    },
+    {
+      "function": "gridex_ediel_inbound_context.capture",
+      "body": {
+        "path": "/workspace/gridex-k12-ediel-insert-callgraph-prep-20261115/gridex_ediel_inbound_context.capture.EXACT-BODY.sql",
+        "sha256": "1974840b990f4d6424b34e52b057a845fc41123ea8b8b13ae9b506579644cdec",
+        "bytes": 1024
+      },
+      "proconfig": [
+        "search_path=pg_catalog, public, extensions"
+      ],
+      "lexerOrEnvelopeCallsites": []
+    },
+    {
+      "function": "gridex_ediel_inbound_context.derive",
+      "body": {
+        "path": "/workspace/gridex-k12-ediel-insert-callgraph-prep-20261115/gridex_ediel_inbound_context.derive.EXACT-BODY.sql",
+        "sha256": "2cec2eb8da8da50341eff100e9486de7bc50cf59f932da2e89353b826d86bbc4",
+        "bytes": 1093
+      },
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "lexerOrEnvelopeCallsites": [
+        {
+          "bodyLine": 7,
+          "text": "basis:=gridex_received_err_response.require_v1(m.company_id,m.environment,source.id);a:=gridex_ack_authority.wire_v1(m.raw_payload);s:=gridex_ack_authority.wire_v1(source.raw_payload);"
+        }
+      ]
+    },
+    {
+      "function": "gridex_ediel_inbound_context.derive_before_received_err_response_v1",
+      "body": {
+        "path": "/workspace/gridex-k12-ediel-insert-callgraph-prep-20261115/gridex_ediel_inbound_context.derive_before_received_err_response_v1.EXACT-BODY.sql",
+        "sha256": "0e10cee1995e253786966552bca70e2b95f33974c0bca61136a2254600fecd7a",
+        "bytes": 11926
+      },
+      "proconfig": [
+        "search_path=pg_catalog, public, extensions"
+      ],
+      "lexerOrEnvelopeCallsites": [
+        {
+          "bodyLine": 9,
+          "text": "tokens:=gridex_utilts_binding.wire_tokens_v1(m.raw_payload);"
+        }
+      ]
+    },
+    {
+      "function": "gridex_ediel_technical_ack.envelope",
+      "body": {
+        "path": "/workspace/gridex-k12-ediel-insert-callgraph-prep-20261115/gridex_ediel_technical_ack.envelope.EXACT-BODY.sql",
+        "sha256": "0a22a963e241b69581ee1dca06d72685cc9de2b29ea7f24d54f43149341fd0eb",
+        "bytes": 3210
+      },
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "lexerOrEnvelopeCallsites": [
+        {
+          "bodyLine": 23,
+          "text": "header:=advice||segment_raw||terminator;tokens:=gridex_utilts_binding.wire_tokens_v1(header);"
+        },
+        {
+          "bodyLine": 28,
+          "text": "tokens:=gridex_utilts_binding.wire_tokens_v1(advice||segment_raw||terminator);"
+        }
+      ]
+    },
+    {
+      "function": "gridex_received_sources.capture_utilts_insert_v1",
+      "body": {
+        "path": "/workspace/gridex-k12-ediel-insert-callgraph-prep-20261115/gridex_received_sources.capture_utilts_insert_v1.EXACT-BODY.sql",
+        "sha256": "1c4df7aa8d41d2376a7460800f7da85dfb99fdd83359edf3c55b384617ffe5d5",
+        "bytes": 680
+      },
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "lexerOrEnvelopeCallsites": []
+    },
+    {
+      "function": "gridex_received_sources.seal_utilts_insert_v1",
+      "body": {
+        "path": "/workspace/gridex-k12-ediel-insert-callgraph-prep-20261115/gridex_received_sources.seal_utilts_insert_v1.EXACT-BODY.sql",
+        "sha256": "f0d8ffb7b0625ed18d7c488f0008d5cab4d84e54181a6b5b0209b311b79612e5",
+        "bytes": 2302
+      },
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "lexerOrEnvelopeCallsites": []
+    }
+  ],
+  "observedStack": [
+    "gridex_utilts_issuer.capture_insert_v1 body line9 assignment",
+    "gridex_ack_authority.wire_v1 DECLARE initializer line2",
+    "gridex_utilts_binding.wire_tokens_v1 line51 assignment"
+  ],
+  "reachedFacts": [
+    "Issuer inbound UTILTS/source-context guards passed before observed assignment.",
+    "Issuer first whole-raw parse is active; second direct v1 call has not executed.",
+    "Issuer later token scans/IDE loop/legal identity and namespace locks are not reached at cancellation."
+  ],
+  "earlierPotentialWholeRawParses": [
+    {
+      "trigger": "ediel_capture_common_prodat_header",
+      "call": "capture_source -> wire_tokens_v1(NEW.raw_payload)",
+      "condition": "inbound nonempty raw and no existing captured header; full parse precedes PRODAT family rejection; actual branch count not instrumented"
+    },
+    {
+      "trigger": "ediel_original_identity_basis_capture",
+      "call": "capture -> derive -> derive_before_received_err_response_v1 -> wire_tokens_v1(m.raw_payload)",
+      "condition": "capture raw/presence/existing-receipt guards; attribution derives after parse; actual branch count not instrumented"
+    }
+  ],
+  "multiplicityConclusion": "One issuer full-raw invocation positively observed; up to two specifically identified earlier full-raw callsites are conditionally reachable. This is not an exhaustive numerical dynamic call count. No 2688-fold/per-QTY invocation proved. Later second issuer parse is source-only potential, not executed in this attempt.",
+  "headerOnlyDistinction": "technical_ack.envelope scans full framing but invokes v1 on short UNB/UNH header strings, not whole raw per segment. Outbound-only wire_namespace.reserve returns for actual inbound.",
+  "limitations": [
+    "No wait-event or per-function elapsed-time trace: stack locates cancellation, not sole accumulated timeout cause.",
+    "Prior lexer pure timing does not measure full INSERT or earlier row/trigger work.",
+    "Selected TOC trigger/constraint DDL does not prove inline TABLE CHECK/default catalog completeness.",
+    "Same-kind trigger alphabetical order is source catalog order; body branches and nested writes are not all dynamically traced."
+  ],
+  "nextFiniteMeasurement": "In a separately authorized own DB, SELECT-only exact v1 and ack.wire_v1 on the same raw plus paired first/second-call timing; then instrument only identified reached trigger prefix under an explicitly reviewed clone fixture. No INSERT/JWT/admission fabricated here.",
+  "backendCalls": 0,
+  "nodeCalls": 0,
+  "canonicalCountsChanged": false
+}

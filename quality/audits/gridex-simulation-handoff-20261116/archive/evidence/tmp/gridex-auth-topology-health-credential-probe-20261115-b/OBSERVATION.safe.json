@@ -1,0 +1,33 @@
+{
+  "state": "ACTUAL_PRE_RENEWAL_KONG_CREDENTIAL_BOOTSTRAP_PROOF",
+  "directGoTrueHealth200": true,
+  "samples": [
+    {
+      "label": "currentWAnon",
+      "status": 401,
+      "bodyBytes": 81,
+      "bodySHA256": "9227798a054e6dc4e7fbae484926bb41bc2e6d1e8187ed7e6e5d4d83baade2e6",
+      "attempt": 8
+    },
+    {
+      "label": "configuredKongAnon",
+      "status": 200,
+      "bodyBytes": 107,
+      "bodySHA256": "5fcaa7e5416f1041374b9161f47966e4c68670cdb1aa5b3ef7799b9ff0eeb54d",
+      "attempt": 0
+    },
+    {
+      "label": "noKey",
+      "status": 401,
+      "bodyBytes": 96,
+      "bodySHA256": "58b3fb986cf8830e56ce462124ec93cf2cc01d2ec65ccdfebcee061e87be6f87",
+      "attempt": 0
+    }
+  ],
+  "runtimeAnonPresent": false,
+  "runtimeServicePresent": false,
+  "configuredAnonPresent": true,
+  "configuredServicePresent": true,
+  "renderedConfigSHA256": "602cac3af08053757aec4432bb75f8f87a46dc17d8de62134bd382ac673c1b1f",
+  "noPasswordGetUserRenewalOrBusiness": true
+}

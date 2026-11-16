@@ -1,0 +1,31 @@
+{
+  "verdict": "FINAL_CHANGED_DOC_APPROVE",
+  "reviewerAgent": "/root",
+  "head": "da9127e2d0be88dbeacef7ce1819ed7b0d807085",
+  "tree": "0d2fa0690b22f8e010cc184a3e32284965a2315c",
+  "freezeSHA256": "e099729f3184d42a55c9f3ae88fecd0e4bcb23b2f581dd5f10cb1b3dc1a2b119",
+  "onlyChangedScenario": "QA01.02",
+  "other104DeepEqual": true,
+  "all105OraclesAndCampaignFlagsUnchanged": true,
+  "old128SourcesUnchanged": true,
+  "newSourceRefs": 11,
+  "counts": {
+    "pass": 32,
+    "gap": 1,
+    "complete": 33,
+    "outstanding": 72,
+    "notPassCompat": 73,
+    "nativeAttempts": 27,
+    "componentPredicates": 24,
+    "unionPredicates": 45,
+    "noCaseAction": 48
+  },
+  "actualCheckerExits": [
+    1,
+    1
+  ],
+  "actualGateFAILRetained": true,
+  "reportChangedProseRead": true,
+  "noSourceOrRuntimeChanges": true,
+  "asOfUTC": "2026-11-13T19:55:04.820398+00:00"
+}

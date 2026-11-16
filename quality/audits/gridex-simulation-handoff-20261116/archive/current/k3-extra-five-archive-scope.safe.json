@@ -1,0 +1,98 @@
+{
+  "state": "ROOT_EXACT_FIVE_CLOSED_K_K2_INODE_GROUPS_ARCHIVE_APPROVE",
+  "atUtc": "2026-11-14T14:46:26.888955+00:00",
+  "proposal": {
+    "path": "/workspace/gridex-k3-extra-closed-k-resource-proposal-20261114/PROPOSAL.safe.json",
+    "sha256": "4b03d332ba0bbbc4e752183ab52dd8d9e461b5a7ac46bf84f425f144682b0b88"
+  },
+  "selected": [
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k/main-before.private.json",
+      "aliases": [
+        "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k/main-before.private.json",
+        "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k/main-after.private.json"
+      ],
+      "sha256": "7b06763843735160c4a5d18caef0b8429e13e58d85b8520754929c38186448c0",
+      "bytes": 22280424,
+      "device": 27,
+      "inode": 527609,
+      "nlink": 2,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2181730
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k/candidate3443-before-child.private.json",
+      "aliases": [
+        "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k/candidate3443-before-child.private.json"
+      ],
+      "sha256": "9bacc87f6edfc7ceacbbd723ca2471e6fbfdc7c4d4ee3882982989c0929abee0",
+      "bytes": 22905651,
+      "device": 27,
+      "inode": 527528,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2250099
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k2/main-before.private.json",
+      "aliases": [
+        "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k2/main-before.private.json",
+        "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k2/main-after.private.json"
+      ],
+      "sha256": "a75b9ecc4f5658dd3ff47e435bf41a8e4e26567f716428acc84fcbabfa946601",
+      "bytes": 22280424,
+      "device": 27,
+      "inode": 527689,
+      "nlink": 2,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2181727
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k2/candidate3443-before-child.private.json",
+      "aliases": [
+        "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k2/candidate3443-before-child.private.json"
+      ],
+      "sha256": "571ea15afd970801f84374266c6046dcd18345fd30dbb59beb473f9305dd072c",
+      "bytes": 22905651,
+      "device": 27,
+      "inode": 529106,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2250663
+    },
+    {
+      "path": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k/LOCAL_ISSUE/unknown-outcome.full.private.json",
+      "aliases": [
+        "/workspace/gridex-local-four-rpc-checkpoints-20261114-k/LOCAL_ISSUE/unknown-outcome.full.private.json",
+        "/workspace/gridex-local-four-rpc-checkpoints-20261114-k/LOCAL_ISSUE/full-before-rpc.private.json",
+        "/workspace/gridex-local-four-rpc-checkpoints-20261114-k/LOCAL_ISSUE/full-after-dump.private.json"
+      ],
+      "sha256": "a67f1485fa40c93fbc73d226b3c2589551479d1d523c46c4bacd9491d045750e",
+      "bytes": 22898551,
+      "device": 27,
+      "inode": 528005,
+      "nlink": 3,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2250849
+    }
+  ],
+  "conditions": [
+    "ProducerInventorysolewriter/freshclosedFDmountproof withdenials disclosed; independentimmutablelist inputs.",
+    "Exclusivegzip600/fsync/streamdecompressoriginalSHAbytes beforeunlinkALL9aliases; durableARCHIVEDmapping/safeexclusive restore.",
+    "OnlyoldclosedK/K2snapshots. ProtectoriginalE96/C6/APIwire/currentK3/H/sources/inputs/env/deps/fullFcs; currentcandidateK3 notoldcandidateK2.",
+    "RepeatfilesystemK3staticafteractualarchivesbeforeAuth; restoreexactunexpecteddependencyifneededandremeasure.",
+    "ExistingfailureDumpReserve134217728 andallnative/memoryguardsunchanged; no pendingbytesPASS/globalprune/backend."
+  ],
+  "expectedNetBytes": 102155633,
+  "backendCalls": 0
+}

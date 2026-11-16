@@ -1,0 +1,15 @@
+{
+  "state": "APPROVE_TWO_EXACT_RESOURCE_PACKETS",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T10:38:54.050929+00:00",
+  "decimalProposalSHA256": "49f90a0aa738854854aef8e795631f4d42d8276f296d42ac99cb90238932a6cc",
+  "tmpProposalSHA256": "3332e9068ebefef711b6c5a0b83de16b2bca1727ee901af5f51c2dee73151dc1",
+  "checks": [
+    "D96originalhashes+actualterminalclosure verifiedBEFOREarchival",
+    "Dexact2samebytegroups hardlink onlysameSHA/modeownerdev, 2uniquehistoricalrestored/wire-onlygzip, newD7928candidate remainsRAW forE",
+    "TMPexact8historicalAPIa/c/d nlink1files/currentSHA/inodes/closuresverified; currentbaseline/C6/Fc0d24/source/env/crypto/actorinputs excluded",
+    "FreshOWNclosure+mountchecks/accessibleFDpermissioncaveathonest; no globalabsenceclaim",
+    "Samequalifiedfsync/streamdecompressSHAbytes/durableARCHIVEDmanifest/safeexclusive restore; rawbytecustody preserved, future reuse restore+H",
+    "ProducerexplicitsolewriterhandoffInventory; actualworkspace805+TMP130preAuthguardnotwaived"
+  ]
+}

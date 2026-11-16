@@ -1,0 +1,27 @@
+{
+  "state": "ROOT_EXACT_CLOSED_K5_GENERATED_CACHE_138_DESCENDANT_RECLAIM_SCOPE",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T18:25:41.243835+00:00",
+  "proposalPath": "/tmp/gridex-k5-cache-readonly-proposal-20261114/PROPOSAL.safe.json",
+  "proposalSHA256": "9f826d9fe7af24f3241c88a5765d0d65d99bf89bcbfb6f2734f780aa077291a8",
+  "inventoryPath": "/tmp/gridex-k5-cache-readonly-proposal-20261114/inventory.safe.json",
+  "inventorySHA256": "29ce4979a57dcc5c7627a59f12aabfe871469e00431223e38d01c3913eac167a",
+  "root": "/workspace/gridex-local-cache-20261114-k5",
+  "preserveRoot": {
+    "dev": 27,
+    "inode": 530049,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o770"
+  },
+  "exactDescendants": 138,
+  "rootFreshStatEveryInventoryEntryMatch": true,
+  "conditions": [
+    "Producer explicit sole writer handoff, runtime/containers/browser closed proofs and fresh accessibleFD/mount qualification",
+    "Only138 enumerated descendants; preserve root device/inode/0770/gid1000 and all original evidence/source/deps/current MainB cache",
+    "Use previously qualified pinned463254 image networknone ROroot NNP capdropALL plus onlyDAC_OVERRIDE and single exact cache RWbind; no extra mount/network/privilege",
+    "Fresh exact no symlink/samedev/stat before each deletion, children before directories; append actual reclaimedbyte receipt and emptyroot/rootidentity proof"
+  ],
+  "noBackendBusinessAuthority": true,
+  "noGlobalFDabsenceClaim": true
+}

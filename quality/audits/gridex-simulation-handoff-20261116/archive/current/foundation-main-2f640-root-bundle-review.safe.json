@@ -1,0 +1,33 @@
+{
+  "decision": "APPROVE_ACTUAL_MAIN_CATALOG_RECOVERY_NOT_JWT",
+  "originals": [
+    {
+      "path": "/workspace/gridex-company-admin-foundation-main-evidence-20261113/before.private.json",
+      "sha256": "afa26664910a6bdea95dfcbb44ea22aca823fc1579816b855d41fe52731bf689"
+    },
+    {
+      "path": "/workspace/gridex-company-admin-foundation-main-evidence-20261113/after.private.json",
+      "sha256": "6a9cfd178b5222f150935ecff58f093efa0b9a0dddc14a36b54aeefd102e98cb"
+    },
+    {
+      "path": "/workspace/gridex-company-admin-foundation-main-evidence-20261113/intent.safe.json",
+      "sha256": "5563191985f799aceb0ec91eec8ec5972b5a8e8b005c00be41d2583b83fe685c"
+    },
+    {
+      "path": "/workspace/gridex-company-admin-foundation-main-evidence-20261113/main-foundation-driver.py",
+      "sha256": "ae1c69bce27c72b1a74dbc8ae74ee8caa8025218f754cdc23638cb7c7ffdee6e"
+    },
+    {
+      "path": "/workspace/gridex-company-admin-foundation-main-evidence-20261113/execution-target.safe.json",
+      "sha256": "516751ee1eea510e8ff1e61e46be1cfa28404fbac0b85e413bf666109d2cf457"
+    }
+  ],
+  "actualNewAllowMappings": 35,
+  "other521RowsAnd3368RawFunctionsUnchanged": true,
+  "rolesAndPermissionCatalogUnchanged": true,
+  "profileExact": true,
+  "limits": "No actor login, runtime authorization, full scenario or GEN credit",
+  "frozenBundleSHA256": "2f640d5d28458e9f083aea86cf369a11114224c0767ff86f40dda9af66764763",
+  "all12OriginalsVerified": true,
+  "sqlNoticeExpected35Active35Inserted35OmissionsEmpty": true
+}

@@ -1,0 +1,19 @@
+{
+  "state": "FACT_REVIEW_APPROVE_AS_OF_PINNED_CUTOFF_NOT_105_CREDIT",
+  "inventorySHA256": "1b2f02a0e40e5571185b5919d781c346e00db0759781ad8e9d4a3d6b01f44727",
+  "confirmedBaselineDeviations": 26,
+  "classes": {
+    "implementation": 22,
+    "referenceCatalogSchema": 4
+  },
+  "patchedAtDeclaredEvidenceLayer": 25,
+  "sourceQualifiedUnpatchedAtCutoff": "B26",
+  "actualPathSHAReferencesVerified": 86,
+  "exactLineCitationsVerified": 44,
+  "continuity": "Original23 unchanged except qualifiedB03/B23 status/patch evidence. Three newsourcefindings independently reviewed; NAVnormalhops+HEADERnormalformread actualverified, downloadrawpolicy sourcequalified notgenuineHTTP403 claim. Candidatefindings/deadcode/simulationcasecounts keptseparate.",
+  "limits": [
+    "Notall25 fullE2E/prodverified",
+    "B26patchinprogress aftercutoff",
+    "No105matrixcredit,461deadcodecandidates0confirmed"
+  ]
+}

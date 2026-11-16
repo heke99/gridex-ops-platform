@@ -1,0 +1,21 @@
+{
+  "reviewerAgent": "/root/ediel_test_identity",
+  "verdict": "ACTUAL_CANONICAL_FORMAL_WRAPPER_REPLAY_ROLLBACK41_AND_CLEANUP_COMPONENT_APPROVE",
+  "atUtc": "2026-11-15T12:02:13.585112+00:00",
+  "terminalSHA256": "fafd7c3b2e319a295cccafa5c1a9cace8350c9f992e29b5b2b64ceff386d2867",
+  "migrationSHA256": "1db0467502ee51869a7074768da1c43d5fdfedb7b74f839cbe96c07043b91096",
+  "regressionSHA256": "0e345be0380ac7abb863ed8d825e4a4e76ea0c0804590d6fbdd4375361a2da3c",
+  "canonicalMetadata": {
+    "canonical-before.private.json": "bc4c47710140f489055604e21d5fdb538682d343c3c7e16b70120b6f2c036daf",
+    "canonical-after.private.json": "325c852d89147033407c4567407dbc722a8a4cbb3fd41bed423698d86c816088",
+    "canonical-replay.private.json": "325c852d89147033407c4567407dbc722a8a4cbb3fd41bed423698d86c816088",
+    "canonical-after-regression.private.json": "325c852d89147033407c4567407dbc722a8a4cbb3fd41bed423698d86c816088"
+  },
+  "checks": [
+    "ActualcanonicalOID3785854/postgresowner/raw+expandedACL preserved; onlyprosrcoldb4de->33bb/newSHA0a22 changes. Allotherpg_proc/OID/owner/ACL/functionCount3332/allOtherFunctionsSHA equal.",
+    "Exactformalwrapperapply0/replayedf and replay0/replayedt/wholemetadataequal; exactformalregression0/41strictmarkers and wholemetadataequalafterrollback.",
+    "MainfullbeforeafterSHAexact522/3370, ALL7byteexact/Auth0both/currentR046d unchanged; drop-ownEXIT0 and terminalqualifiedreadonlyabsence assertion true (no separatelysavedrawcountclaim)."
+  ],
+  "limits": "Own tinyDB3332functioncatalog fixture qualification, NOTfull3444privatecatalog/Mainadoption. No rawtimingrepeat/fullINSERTcause/normalFile/Auth/browser/business/scenarioPASS. Legacyprecedence unchanged. ONE executioncompleted; Rootwrongdirectoryabsence doesnotjustifyrepeat.",
+  "rawReadHold": "RELEASED after physicalMain/metadata/log review; retain foursmallcanonicalmetadata/process/terminal for futurecomposition; finiteRAWarchive stillneeds exactreadset/custodyscope."
+}

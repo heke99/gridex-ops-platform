@@ -1,0 +1,20 @@
+{
+  "state": "VERIFIED_FILTERED_SOURCE_PRESERVATION_PARTIAL_NOT_EXECUTABLE",
+  "manifestSHA256": "f9fe31f5e64facd570be3646cb530da23dabac2063b940a20f583a9966d3c048",
+  "includedFiles": 2237,
+  "includedSource65": 2190,
+  "includedDeclaredMetadataOrSources": 47,
+  "includedBytes": 28964382,
+  "bundleBytesBeforeThisReceipt": 29787931,
+  "missing": 0,
+  "exclusions": {
+    "symlink_or_dependency_generated_tree": 2,
+    "offline_secret_pattern_match": 13,
+    "dependency_or_generated_tree": 6,
+    "binary_nul": 1,
+    "PRIVATE_REQUIRED_NOT_BUNDLED": 25
+  },
+  "allIncludedDestinationSHA256Matched": true,
+  "symlinks": 0,
+  "secretValuesPrinted": false
+}

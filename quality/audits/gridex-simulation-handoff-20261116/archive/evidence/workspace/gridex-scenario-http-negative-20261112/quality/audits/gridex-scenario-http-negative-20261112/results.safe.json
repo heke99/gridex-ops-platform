@@ -1,0 +1,2399 @@
+{
+  "status": "TERMINAL_ELEVEN_SCENARIO_SUBBOUNDARIES_LOCAL_NOTFOUND_FIXED_NO_FROZEN_CAMPAIGN_PASS",
+  "runtimeSourceHeadRequested": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+  "reportBranchBase": "d93f361c51e81bc49cd48e817bd0b0fbe65e3d5b",
+  "scenarioIds": [
+    "MAIN05.04",
+    "MAIN05.05",
+    "MAIN05.06",
+    "AUTH01.02",
+    "AUTH01.03",
+    "AUTH01.05",
+    "AUTH01.06",
+    "EDIEL02.01",
+    "EDIEL02.02",
+    "EDIEL02.06",
+    "EDIEL01.05"
+  ],
+  "scenarioResults": [
+    {
+      "id": "MAIN05.04",
+      "description": "Anonym faktisk fil kräver inloggning",
+      "previousEvidence": "DEPENDENCY_TRACE_WITH_GROUP_ATTEMPT",
+      "currentVerdict": "PARTIAL_CURRENT_HTTP",
+      "newEvidence": [
+        {
+          "attempt": "boundedRetry",
+          "requestIndexes": [
+            3
+          ]
+        }
+      ],
+      "remainingAction": "Qualified actual approved file and anonymous request against that exact persisted ID; current unknown placeholder is not a real-file test.",
+      "evidenceClass": "PARTIAL_CURRENT_HTTP",
+      "observed": "Anonymous unknown-file-placeholder GET307→/login; no actual invoice file existed.",
+      "oracleAssessment": "Actual-file oracle NOT_TESTED; preceding auth gate observed.",
+      "localOracleSatisfied": false,
+      "frozenCampaignOracleSatisfied": false,
+      "centralApprovalChanged": false
+    },
+    {
+      "id": "MAIN05.05",
+      "description": "Saknat och felaktigt fil-ID ger kontrollerat svar",
+      "previousEvidence": "ISOLATED_NATIVE_OR_BROWSER_SUBBOUNDARY",
+      "currentVerdict": "NOT_REACHED_UUID",
+      "newEvidence": [
+        {
+          "attempt": "boundedRetry",
+          "requestIndexes": [
+            0,
+            1,
+            5,
+            6,
+            13,
+            14
+          ]
+        }
+      ],
+      "remainingAction": "Legitimate explicit billing export permission and selected company via qualified normal contract; then malformed404 and nonexistent validUUID404 without backendfabrication.",
+      "evidenceClass": "NOT_REACHED_UUID",
+      "observed": "Anon malformed/unknown UUID307/login; bootstrap403EXPLICIT_PERMISSION_DENY; logged-in owner307/login.",
+      "oracleAssessment": "UUIDregex and missing-row filelookup NOT_REACHED.",
+      "localOracleSatisfied": false,
+      "frozenCampaignOracleSatisfied": false,
+      "centralApprovalChanged": false
+    },
+    {
+      "id": "MAIN05.06",
+      "description": "36 bindestreck klassas faktiskt; möjlig22P02/500 är fel, inte auth-PASS",
+      "previousEvidence": "ISOLATED_NATIVE_OR_BROWSER_SUBBOUNDARY",
+      "currentVerdict": "NOT_REACHED_UUID",
+      "newEvidence": [
+        {
+          "attempt": "boundedRetry",
+          "requestIndexes": [
+            2,
+            7,
+            15
+          ]
+        }
+      ],
+      "remainingAction": "Admit legitimate permission/company scope before retesting36hyphens; preserve strict400/404 and reject500/22P02.",
+      "evidenceClass": "NOT_REACHED_UUID",
+      "observed": "Actual36hyphen path yielded anon307/login,bootstrap403,owner307/login.",
+      "oracleAssessment": "Not a UUID404PASS and not an observed22P02; upstream gates prevented UUIDclassification.",
+      "localOracleSatisfied": false,
+      "frozenCampaignOracleSatisfied": false,
+      "centralApprovalChanged": false
+    },
+    {
+      "id": "AUTH01.02",
+      "description": "Egen kundroll nekas administrativ handling",
+      "previousEvidence": "DEPENDENCY_TRACE_WITH_GROUP_ATTEMPT",
+      "currentVerdict": "BLOCKED_REQUIRED_CUSTOMER_ROLE_WITH_OTHER_ROLE_HTTP_SUPPORT",
+      "newEvidence": [
+        {
+          "attempt": "boundedRetry",
+          "requestIndexes": [
+            8,
+            16
+          ]
+        }
+      ],
+      "remainingAction": "Qualify actual customer-only identity through supported flow, then negative administrative action and unchanged data.",
+      "evidenceClass": "PARTIAL_CURRENT_HTTP",
+      "observed": "Actual bootstrap admincompanies200; ordinaryowner307→/admin/company-settings.",
+      "oracleAssessment": "No customer-only actor used; administrative GET is not a prohibited mutation test.",
+      "localOracleSatisfied": false,
+      "frozenCampaignOracleSatisfied": false,
+      "centralApprovalChanged": false
+    },
+    {
+      "id": "AUTH01.03",
+      "description": "Annat företag nekas läsa/ändra fixtures",
+      "previousEvidence": "ISOLATED_NATIVE_OR_BROWSER_SUBBOUNDARY",
+      "currentVerdict": "PARTIAL_CURRENT_HTTP_WITH_SEPARATELY_FIXED_NOT_FOUND",
+      "newEvidence": [
+        {
+          "attempt": "boundedRetry",
+          "requestIndexes": [
+            9,
+            10,
+            17,
+            18
+          ]
+        }
+      ],
+      "remainingAction": "Legitimate own allowedread vs foreigndenial and prohibitedmutation/datainvariants require complete qualifiedscenariofixtures; no permissionseed orfakepositiverun.",
+      "evidenceClass": "PARTIAL_CURRENT_HTTP",
+      "observed": "Ordinary owner own/foreign export-run GET403; globalbootstrap own/foreign nonexistent-runGET500. Separateafterreviewedpatch: bootstrapown/foreignmissingrun404exactinvoice_export_not_found;ownerown/foreignstill403.",
+      "oracleAssessment": "Owner permissiondenial observed before/after; globalbootstrapmissingRUNhandling fixed500→404. No foreignauthorizedread/writecampaignoracle or MAIN05FILEUUIDclaim.",
+      "localOracleSatisfied": false,
+      "frozenCampaignOracleSatisfied": false,
+      "centralApprovalChanged": false
+    },
+    {
+      "id": "AUTH01.05",
+      "description": "Utgången/utloggad session nekas",
+      "previousEvidence": "ISOLATED_NATIVE_OR_BROWSER_SUBBOUNDARY",
+      "currentVerdict": "LOCAL_ORACLE_MET",
+      "newEvidence": [
+        {
+          "attempt": "boundedRetry",
+          "requestIndexes": [
+            4,
+            11,
+            12,
+            19,
+            20
+          ]
+        }
+      ],
+      "remainingAction": "Preserve current-source/actor/logoutreceipt; test expiry separately only if required, complete remaining frozen campaign prerequisites before central105approval.",
+      "evidenceClass": "PARTIAL_CURRENT_HTTP",
+      "observed": "Both actual actors normal UIlogin→dashboard then normal UI POSTlogout; postlogoutadmincompanies307/login and API401. AnonymousAPI401also observed.",
+      "oracleAssessment": "Current local logged-out denial oracle SATISFIED for both actors. No expiryfabrication; frozen fullcampaign fixture/entireAUTHgroup not attested.",
+      "localOracleSatisfied": true,
+      "frozenCampaignOracleSatisfied": false,
+      "centralApprovalChanged": false
+    },
+    {
+      "id": "AUTH01.06",
+      "description": "Service-role nyckel exponeras inte i klient/kvittoutdata",
+      "previousEvidence": "ISOLATED_NATIVE_OR_BROWSER_SUBBOUNDARY",
+      "currentVerdict": "PARTIAL_CURRENT_BROWSER_NO_SECRET_FOUND_IN_OBSERVED_SCOPE",
+      "newEvidence": [
+        {
+          "attempt": "boundedRetry",
+          "requestIndexes": []
+        }
+      ],
+      "remainingAction": "Broaden only to genuinely required client/build/output scopes and qualified exact service credential source; never publish values or infer all-client absence from boundedscan.",
+      "evidenceClass": "PARTIAL_CURRENT_HTTP",
+      "observed": "Known currentsecret presencechecks33responses including10clientscriptfetches on retry:0knownsecret occurrences,0privatekeymarkers; firstattempt4also0.",
+      "oracleAssessment": "Observed response/clientasset safe receipt scope clean; not a global build/client/source inventory or proof about unvisited assets.",
+      "localOracleSatisfied": false,
+      "frozenCampaignOracleSatisfied": false,
+      "centralApprovalChanged": false
+    },
+    {
+      "id": "EDIEL02.01",
+      "description": "Byteidentisk dubblett är idempotent",
+      "previousEvidence": "ISOLATED_NATIVE_OR_BROWSER_SUBBOUNDARY",
+      "currentVerdict": "PARTIAL_CURRENT_NATIVE_RAW_STORE_ORACLE_MET",
+      "evidenceClass": "PARTIAL_CURRENT_NATIVE",
+      "observed": "Exactexistingraworiginal store returns SAMEemailID1f48ec92 with dedupedtrue. Subsequent explicitprocess created NEWparseResultID2010cfe4; parsed, unresolvedtenant,manual_review/companynull.",
+      "oracleAssessment": "Rawmail/store idempotency MET; wholeparse/processing/queue idempotency NOT_ATTESTED.",
+      "remainingAction": "Qualify genuine receiveridentity/source and full processing/ACK/quantity/invoice no-duplicate oracles; no rawstore-only fullpass.",
+      "newEvidence": [
+        {
+          "file": "ediel-native.safe.json",
+          "scenarioId": "EDIEL02.01"
+        },
+        {
+          "file": "ediel-readback.safe.json"
+        },
+        {
+          "file": "ediel-parse-readback.safe.json"
+        }
+      ],
+      "localOracleSatisfied": false,
+      "frozenCampaignOracleSatisfied": false,
+      "centralApprovalChanged": false,
+      "captureScopeCaveat": "authorizesBusinessEffect:false inproducerrecord is harnessscope declaration, not RPCreturn. Verifiedmanual_review/companynull/tenantunresolved and8snapshotfields only, not everybusiness/source/eventtable or no-side-effects assertion."
+    },
+    {
+      "id": "EDIEL02.02",
+      "description": "Samma referens med ändrat innehåll ger synligt skydd",
+      "previousEvidence": "DEPENDENCY_TRACE_WITH_GROUP_ATTEMPT",
+      "currentVerdict": "PARTIAL_CURRENT_NATIVE_UPSTREAM_IDENTITY_HOLD",
+      "evidenceClass": "PARTIAL_CURRENT_NATIVE",
+      "observed": "Samewire reference with changedquantity produced newemailID83811def, newrawEdifactSHA3071554e vsoriginalac6ef4d6. ParsedE66, tenantunresolved/manual_review/companynull.",
+      "oracleAssessment": "Newphysicaloriginal and visiblehold observed; content-conflict-specific reject/ACK/businessdedupe NOT_REACHED.",
+      "remainingAction": "Genuine legalidentity/source and actualduplicateconflict owner response, quantity and billingunchanged oracles remain.",
+      "newEvidence": [
+        {
+          "file": "ediel-native.safe.json",
+          "scenarioId": "EDIEL02.02"
+        },
+        {
+          "file": "ediel-readback.safe.json"
+        },
+        {
+          "file": "ediel-parse-readback.safe.json"
+        }
+      ],
+      "localOracleSatisfied": false,
+      "frozenCampaignOracleSatisfied": false,
+      "centralApprovalChanged": false,
+      "captureScopeCaveat": "authorizesBusinessEffect:false inproducerrecord is harnessscope declaration, not RPCreturn. Verifiedmanual_review/companynull/tenantunresolved and8snapshotfields only, not everybusiness/source/eventtable or no-side-effects assertion."
+    },
+    {
+      "id": "EDIEL02.06",
+      "description": "Felaktig MIME/segment/UNOC ger faktiskt felkvitto",
+      "previousEvidence": "DEPENDENCY_TRACE_WITH_GROUP_ATTEMPT",
+      "currentVerdict": "NOT_REACHED_SYNTAX_ORACLE_UPSTREAM_IDENTITY_HOLD",
+      "evidenceClass": "PARTIAL_CURRENT_NATIVE",
+      "observed": "Malformedsegment original stored newb619e362; parse_statusparsed/messageUTILTS_UNKNOWN then tenantunresolved/manual_review/companynull.",
+      "oracleAssessment": "No strictsyntaxreject, MIME/UNOCerrorreceipt or negativeCONTRL evidenced. Identityhold is not syntaxPASS.",
+      "remainingAction": "Qualify normaladmission/source then demonstrate actualsyntaxerrorreceipt without inventingauthority or attributing localidentityfailure to senderprotocol.",
+      "newEvidence": [
+        {
+          "file": "ediel-native.safe.json",
+          "scenarioId": "EDIEL02.06"
+        },
+        {
+          "file": "ediel-readback.safe.json"
+        },
+        {
+          "file": "ediel-parse-readback.safe.json"
+        }
+      ],
+      "localOracleSatisfied": false,
+      "frozenCampaignOracleSatisfied": false,
+      "centralApprovalChanged": false,
+      "captureScopeCaveat": "authorizesBusinessEffect:false inproducerrecord is harnessscope declaration, not RPCreturn. Verifiedmanual_review/companynull/tenantunresolved and8snapshotfields only, not everybusiness/source/eventtable or no-side-effects assertion."
+    },
+    {
+      "id": "EDIEL01.05",
+      "description": "Syntaktiskt wire-, MIME- och affärsreferens-ID skiljs åt",
+      "previousEvidence": "ISOLATED_NATIVE_OR_BROWSER_SUBBOUNDARY",
+      "currentVerdict": "PARTIAL_CURRENT_NATIVE_MIME_WIRE_ID_DISTINCTION",
+      "evidenceClass": "PARTIAL_CURRENT_NATIVE",
+      "observed": "MIMEID-onlychanged source stores distinctemailIDb3e872b4 andrawMIMESHA772a149b while rawEdifactSHAac6ef4d6 equals original; processnewparse/manualholdcompanynull.",
+      "oracleAssessment": "MIME/raw-wire distinction MET in actual DBreadback; businessreference correlation and outbox/DSOreceipt NOT_ATTESTED.",
+      "remainingAction": "Complete genuine businessreference/ACK/outbox/DSOphysical receipt oracle; no external sends performed.",
+      "newEvidence": [
+        {
+          "file": "ediel-native.safe.json",
+          "scenarioId": "EDIEL01.05"
+        },
+        {
+          "file": "ediel-readback.safe.json"
+        },
+        {
+          "file": "ediel-parse-readback.safe.json"
+        }
+      ],
+      "localOracleSatisfied": false,
+      "frozenCampaignOracleSatisfied": false,
+      "centralApprovalChanged": false,
+      "captureScopeCaveat": "authorizesBusinessEffect:false inproducerrecord is harnessscope declaration, not RPCreturn. Verifiedmanual_review/companynull/tenantunresolved and8snapshotfields only, not everybusiness/source/eventtable or no-side-effects assertion."
+    }
+  ],
+  "routeOrder": [
+    "requireAdminPageKeyAccess billing.workspace",
+    "explicit billing_underlay.export permission",
+    "actual selected company scope",
+    "UUIDregex",
+    "loadInvoiceFile(company,id)",
+    "render qualified existing file"
+  ],
+  "harness": {
+    "path": "/workspace/gridex-scenario-http-evidence-20261112/http-browser-harness.cjs",
+    "sha256": "ae8dc754ba24b01f357a9b9da7d6f95c003a6a12d64dc019192dfde14365459f",
+    "syntaxCheck": "node --check exit0; this is not a runtime test",
+    "limits": "Loopbackonly; normal UIlogin/logout; GETonly otherwise; no forgedsession/provider/fixture/permissionwrites; safe responsehash/status only"
+  },
+  "sourceHashes": {
+    "app/admin/billing/invoice-files/[id]/route.ts": "fbd654d1156b2c71a79a98b4f38b3221a13b02f36d79ef4af480cf2166eaeb78",
+    "lib/admin/guards.ts": "a64ad4ce53e414fb34f17d246fe6c93697f5c5739888607b236857f48a72dc44",
+    "lib/admin/apiGuards.ts": "0fed09d4ef0ccbefd14cad101286ffb86403f0d608bb87ebed48ec18524c4e50",
+    "lib/tenant/adminScope.ts": "73b480401faaaa1c7204648c91dae4f3d2b4ea392357c784a57e6327edac15a2",
+    "app/logout/route.ts": "1ae83b91a7c17b5698ada05e6591e6facbcce15fd8241a10e2a1f67a70b6323c",
+    "proxy.ts": "fa0ea870803f604d2405da40078235c3c6fd5e23ab739de2deee8eb59a588378",
+    "quality/audits/gridex-krypkorning-next-20261111/coverage.safe.json": "e4697a155829f2bc4f417d351b2d97d77169c53680a1185ea315924c3d08035f",
+    "quality/simulation-register/oracles/all-systems-scenarios.safe.json": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+    "app/api/internal/invoice-exports/[id]/route.ts": "a1b502ad15361f5b7fbe1134c758e0fe79745dd6897428115992d93482d5642e",
+    "lib/integrations/billing/invoiceExportCore.ts": "f67d108276fd9c3b630867f2e6f8f678336a0583531943d9a22462f50e2db298"
+  },
+  "custody": {
+    "receipt": "0a6ba901c6c02c9037b76174837ac8f2b493c1db",
+    "journal": "/workspace/gridex-scenario-http-evidence-20261112/1b7c1c7d-7149-4ee6-a639-f81713ed8558.claim-journal.json"
+  },
+  "runtimeEvidence": [
+    {
+      "path": "/workspace/gridex-scenario-native-evidence-20261112/results.safe.json",
+      "sha256": "1f23ce7578215a363fcae983315589884c512eea33eff42565b3eabd892c1867",
+      "bytes": 68340,
+      "safeReceipt": {
+        "kind": "SOLE_PRODUCER_LOCAL_HTTP_EDIEL_SCENARIO_CAPTURE_AND_REVIEWED_P2_RETEST",
+        "state": "TERMINAL_CAPTURE_CLEANUP_COMPLETE",
+        "generatedAt": "2026-11-12T19:05:52.665803+00:00",
+        "beforeFrozenOriginalHashesStillMatch": true,
+        "safeFilesKnownSecretHits": 0,
+        "runtimeProfile": "OWN_RETAINED_FLATTENED_OFFICIAL_SUPABASE_SELFHOST_NO_CLI_NATIVE_CERTIFICATION",
+        "appAndHttpRuntime": "Node22.22.0 npm10.9.2",
+        "nativeRuntime": "Node24.19.0 tsx4.21.0",
+        "sourceBeforeHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+        "afterSource": "Private442base plus exactly2reviewed90a72productbytes; no compositeGithead",
+        "facts": {
+          "firstBrowserAttempt": "4anonymous307/login then compiletimeout retained",
+          "boundedBrowserRetry": "21actualrequests normal2login/logout;2actualPGRST116500 bootstrap missingrun",
+          "afterReviewedFix": "bootstrap2missingrun404 exactcode;ordinaryowner2permission403;bothlogout",
+          "native": "4ordinarymailstore/processvariants;1existingrawdeduped+3newraw;parsed/tenantunresolved/manual_review;no directauthority/custodywrites",
+          "db": "8authority/lifecycle/businesscountfields equal;rawmail3to6",
+          "cleanup": "5exactowncontainers stopped;app/forwarderlistenersgone;data/privatecredentialsretained"
+        },
+        "limitations": [
+          "No actualinvoicefile/customeronlyactor;UUIDfilegateupstreamblocked",
+          "No verifiedtechnical/legalreceiver;no authoritativebusinessintake/billing/provideracceptance",
+          "Firstprivateapprawlogwastruncatedbysupervisorpreconditionerror;frozenHTTPoriginalandsafePGRST116excerptpreserved",
+          "No full105campaignacceptance",
+          "No sourceworktree/GEN/migration/permissionpolicywritebycaptureproducer"
+        ],
+        "files": [
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/actor-authority.safe.json",
+            "sha256": "35126a4060aaf5839e868f2d1f2ce26b44660195636f75c04cb150e215f857ef",
+            "json": {
+              "operatorRole": "owner",
+              "rolePermissions": 0,
+              "operatorPlatformAdmin": false,
+              "bootstrapPlatformAdmin": true
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/after-process-source-preflight.safe.json",
+            "sha256": "6de77110ecd0949ec35c5c4ba7af7b8c455e6055441090cbfe8a259241fc6267",
+            "json": {
+              "newNextProcesses": [
+                {
+                  "pid": 54659,
+                  "parentPid": 54648
+                }
+              ],
+              "reviewedOverlayHashesMatch": true,
+              "sourceReceipt": "invoice-after-source.safe.json",
+              "loopback3108ListenerPresent": true,
+              "pidSocketFdAssociation": "NOT_READABLE_PROC_FD_PERMISSION",
+              "newNextCwdSourceValidatedByLauncher": "start-scenario-app.py fixed private source path"
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/app-ready-preflight.safe.json",
+            "sha256": "46e82dac57a47e9d6323cd25acdf4f34e2c474e2e3188bcf3f85ea16b20eb224",
+            "json": [
+              {
+                "path": "/api/internal/invoice-exports/00000000-0000-4000-8000-000000000099",
+                "status": 401,
+                "errorClass": "HTTPError",
+                "elapsed": 2.15
+              },
+              {
+                "path": "/login",
+                "status": 200,
+                "elapsed": 9.11
+              }
+            ]
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/app-source.safe.json",
+            "sha256": "099f296131b4c1711fd6f66878d7a2364b4c1a35dcf71e76a0852f647a6a5bf3",
+            "json": {
+              "sourceHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+              "sourceTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+              "archiveSha256": "a492df1b4833f221df81317dfd7af91c574778ec7501f4a192e70fe272946920",
+              "archiveBytes": 356618240,
+              "privateMaterialization": "/tmp/gridex-scenario-source-442256",
+              "sourceWorktreeUnmodified": true
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/auth-notification-preflight.safe.json",
+            "sha256": "1d0f38080a9e256ce311a7314ea5bf96b843ab28a98f7ced58f26a990aa54876",
+            "json": {
+              "notificationFlags": {
+                "GOTRUE_MAILER_AUTOCONFIRM": "true"
+              },
+              "smtpHostConfigured": false,
+              "smtpRelayCouldBeExternal": false,
+              "networkIsOwnInternal": true
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/auth-password-rotation.safe.json",
+            "sha256": "bb54c02f270cc0a854ed4800e7a2c3dd22983a3aff59dcb8fbd41827076a3ece",
+            "json": {
+              "scope": "NORMAL_AUTH_ADMIN_PASSWORD_ONLY_EXISTING_OWN_SYNTHETIC_USERS_NO_GRANT_OR_EMAIL",
+              "notificationDefaultFalseVerifiedAuthVersion": "v2.188.1",
+              "authConfigSourceSha256": "b56b2a26287bf315476b237bdcb686dc2331480d8551188be6973c8fbd256353",
+              "noSmtpHost": true,
+              "actors": [
+                {
+                  "id": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+                  "label": "bootstrap_platform_admin",
+                  "adminPutHttpStatus": 200,
+                  "onlyPasswordFieldSent": true,
+                  "authRoleMetadataUnchanged": true,
+                  "emailConfirmed": true
+                },
+                {
+                  "id": "87491a3b-4450-41d8-b8f1-d5a6b840a203",
+                  "label": "ordinary_tenant_owner",
+                  "adminPutHttpStatus": 200,
+                  "onlyPasswordFieldSent": true,
+                  "authRoleMetadataUnchanged": true,
+                  "emailConfirmed": true
+                }
+              ]
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/before-originals-frozen.safe.json",
+            "sha256": "11fbed38e9fdcc3cf2c3be5158ab96c16558765366ae7c7a27182e7a168364e2",
+            "json": {
+              "state": "BEFORE_ORIGINALS_FROZEN_AWAITING_REVIEWED_P2_SOURCE",
+              "sourceHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+              "frozenAt": "2026-11-12T18:58:01.945722+00:00",
+              "files": [
+                {
+                  "path": "/workspace/gridex-scenario-native-evidence-20261112/http-browser-original.safe.json",
+                  "sha256": "155ee572fc06e4c216f50f6d70462d4c4ee8a7857b9f3aa0ce136dce42382b6f"
+                },
+                {
+                  "path": "/workspace/gridex-scenario-native-evidence-20261112/http-browser-retry.safe.json",
+                  "sha256": "e76787da70d5fa2c2d8e96a98a306a381caa2ec14bfbb6a52a6e2d651ca60b41"
+                },
+                {
+                  "path": "/workspace/gridex-scenario-native-evidence-20261112/ediel-native.safe.json",
+                  "sha256": "ec016aec29d8abc682f1f6dde796c7a88b1ad38704d2aa241c0f60c556b2e5f1"
+                },
+                {
+                  "path": "/workspace/gridex-scenario-native-evidence-20261112/ediel-readback.safe.json",
+                  "sha256": "088ed2a9eff1d2f36a38f7afc69e8ad533a270d3b17dca4e5c06b62ab495f47f"
+                },
+                {
+                  "path": "/workspace/gridex-scenario-native-evidence-20261112/ediel-parse-readback.safe.json",
+                  "sha256": "f6304d73c1ce9cbd7dfbbc7bd96f1ec9c15a159ef63d51e1c0e99d5f4e00e272"
+                },
+                {
+                  "path": "/workspace/gridex-scenario-native-evidence-20261112/db-after-native.safe.json",
+                  "sha256": "6228a772bfea4f3b868d378829bd9aec68da16e049143fbfccf548867d9224d9"
+                },
+                {
+                  "path": "/workspace/gridex-scenario-native-evidence-20261112/http-input-scope.safe.json",
+                  "sha256": "d50e860e6bc581e788c22ae7922c1011d28ef2938c3f089ec9eb20d68f921bfd"
+                },
+                {
+                  "path": "/workspace/gridex-scenario-native-evidence-20261112/capture-diagnostic.safe.json",
+                  "sha256": "32b753a323793d48e8462dec71f69f56d853fa488653dbccf5746f3332f8f212"
+                }
+              ],
+              "noMoreScenarioProbes": true
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/capture-diagnostic.safe.json",
+            "sha256": "32b753a323793d48e8462dec71f69f56d853fa488653dbccf5746f3332f8f212",
+            "json": {
+              "firstAttempt": "http-browser-original.safe.json",
+              "firstAttemptState": "CAPTURE_ERROR_NO_AUTOMATIC_RETRY",
+              "readyReceipt": "app-ready-preflight.safe.json",
+              "boundedRetry": "http-browser-retry.safe.json",
+              "boundedRetryCount": 1,
+              "startupTimeoutIsNotProductFailure": true,
+              "actualServerErrors": [
+                {
+                  "traceId": "eb6bedd2-47f1-4603-b49c-3fe938785252",
+                  "code": "PGRST116",
+                  "message": "Cannot coerce the result to a single JSON object"
+                },
+                {
+                  "traceId": "51719e0c-e790-450d-8483-9b32bef66242",
+                  "code": "PGRST116",
+                  "message": "Cannot coerce the result to a single JSON object"
+                }
+              ],
+              "causeScope": "Actual invoice-export API read unknown run; not invoice-file UUID path or tenant leak",
+              "appRuntime": "Node22.22.0 npm10.9.2",
+              "nativeRuntime": "tsx4.21.0 Node24.19.0",
+              "normalNativeStoreMayWriteAutomaticProvenance": true
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/cleanup.safe.json",
+            "sha256": "000c3330860c0c48c01a789f84d8bd4d07ce78b46076e397a77449cc6d3d424a",
+            "json": {
+              "scope": "ONLY_VERIFIED_OWN_APP_FORWARDER_FIVE_CONTAINERS_STOP_RETAIN_DATA_AND_PRIVATE_CREDENTIALS",
+              "normalUiLogoutProof": "invoice-after-http.safe.json",
+              "ownProcesses": [
+                {
+                  "rootPid": 54600,
+                  "verifiedLauncher": "start-scenario-app.py",
+                  "signalledPids": [
+                    54600,
+                    54603,
+                    54635,
+                    54636,
+                    54647,
+                    54648,
+                    54659
+                  ]
+                },
+                {
+                  "rootPid": 40701,
+                  "verifiedLauncher": "local-api-forwarder.py",
+                  "signalledPids": [
+                    40701
+                  ]
+                }
+              ],
+              "containers": [
+                {
+                  "name": "gridex-kryp2-db",
+                  "id": "fed79f32f9c12bb4cd52c2824366dd0edb62c8bae881d27df6ea6fb5ccecaa9a",
+                  "image": "sha256:4c81aefa21ede5db91df2282d30c27bbdb05ea24a30cbf02b5c8dab2a53ce1e2",
+                  "running": false,
+                  "volumesRetained": true
+                },
+                {
+                  "name": "gridex-kryp2-auth",
+                  "id": "942765605ce678195dda2ff480b47cd745922a03d65a5dc39882c744d3062e65",
+                  "image": "sha256:b061f1fa636f31bc01de0a791986352e82772760cce8e1d55bbec6f552930a1e",
+                  "running": false,
+                  "volumesRetained": true
+                },
+                {
+                  "name": "gridex-kryp2-rest",
+                  "id": "a80807ea605c1d8eba11922091dfbed4c5b5aabbaf390ee78ed5ab4140e26de3",
+                  "image": "sha256:fe5428d51d9805147859ed38db0a26e9e424c4639dc851733e99a86829e1d5aa",
+                  "running": false,
+                  "volumesRetained": true
+                },
+                {
+                  "name": "gridex-kryp2-storage",
+                  "id": "ebba619f50cd24d2e3156bbdb6e474a65dfab115299611fe25907d0789b94feb",
+                  "image": "sha256:da6409e5fd135ab8895f0c344f82066d99c107ca1031ed4a1ab1d33f0b775572",
+                  "running": false,
+                  "volumesRetained": true
+                },
+                {
+                  "name": "gridex-kryp2-kong",
+                  "id": "c2b2e3d0b3f03077912d0178a90743c22c2ff8ea17ab1c21795c9ce43ed71990",
+                  "image": "sha256:6d4c2325ad063b075cc10b36cef0d6660cba17e171111f148936daec82bc5c78",
+                  "running": false,
+                  "volumesRetained": true
+                }
+              ],
+              "dockerStopExit": 0,
+              "loopback3108And55321ListenersGone": true,
+              "runtimeConfigRetiredNoRunningConsumer": true,
+              "privateCredentialsRetainedMode0600": true,
+              "passwordRotationNotReverted": true,
+              "noVolumesImagesDataAdminRowsDeleted": true,
+              "noLiveNetworkIngress": true,
+              "serverApiKeysExpiryPolicy": "Local2hour keys retained privately/rendered only in stopped own Kong; no fake revocation asserted"
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/db-after-native.safe.json",
+            "sha256": "6228a772bfea4f3b868d378829bd9aec68da16e049143fbfccf548867d9224d9",
+            "json": {
+              "before": {
+                "sites": 3,
+                "contracts": 4,
+                "customers": 3,
+                "rolesHash": "03dc450f95e3471b849573aa99252283",
+                "inboundMails": 3,
+                "companiesState": [
+                  {
+                    "id": "2d50ff27-7e67-4641-bf26-042ca586225b",
+                    "status": "onboarding",
+                    "lifecycle": "onboarding"
+                  },
+                  {
+                    "id": "60575561-5184-44ec-8a14-a50f37f4c2c1",
+                    "status": "active",
+                    "lifecycle": "active"
+                  },
+                  {
+                    "id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                    "status": "onboarding",
+                    "lifecycle": "onboarding"
+                  }
+                ],
+                "membershipsHash": "fdf3daf59cb417e74a8bf2cd9516b2a5",
+                "rolePermissionsHash": "d751713988987e9331980363e24189ce",
+                "userPermissionsHash": "d751713988987e9331980363e24189ce"
+              },
+              "after": {
+                "sites": 3,
+                "contracts": 4,
+                "customers": 3,
+                "rolesHash": "03dc450f95e3471b849573aa99252283",
+                "inboundMails": 6,
+                "companiesState": [
+                  {
+                    "id": "2d50ff27-7e67-4641-bf26-042ca586225b",
+                    "status": "onboarding",
+                    "lifecycle": "onboarding"
+                  },
+                  {
+                    "id": "60575561-5184-44ec-8a14-a50f37f4c2c1",
+                    "status": "active",
+                    "lifecycle": "active"
+                  },
+                  {
+                    "id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                    "status": "onboarding",
+                    "lifecycle": "onboarding"
+                  }
+                ],
+                "membershipsHash": "fdf3daf59cb417e74a8bf2cd9516b2a5",
+                "rolePermissionsHash": "d751713988987e9331980363e24189ce",
+                "userPermissionsHash": "d751713988987e9331980363e24189ce"
+              },
+              "equalFields": {
+                "sites": true,
+                "contracts": true,
+                "customers": true,
+                "rolesHash": true,
+                "companiesState": true,
+                "membershipsHash": true,
+                "rolePermissionsHash": true,
+                "userPermissionsHash": true
+              },
+              "rawOriginalCountDelta": 3
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/db-before.safe.json",
+            "sha256": "7c6b23ec645d2d8f88677c0c8a28bb51c97f17dc7d6d3521b27a515ae684618c",
+            "json": {
+              "sites": 3,
+              "contracts": 4,
+              "customers": 3,
+              "rolesHash": "03dc450f95e3471b849573aa99252283",
+              "inboundMails": 3,
+              "companiesState": [
+                {
+                  "id": "2d50ff27-7e67-4641-bf26-042ca586225b",
+                  "status": "onboarding",
+                  "lifecycle": "onboarding"
+                },
+                {
+                  "id": "60575561-5184-44ec-8a14-a50f37f4c2c1",
+                  "status": "active",
+                  "lifecycle": "active"
+                },
+                {
+                  "id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                  "status": "onboarding",
+                  "lifecycle": "onboarding"
+                }
+              ],
+              "membershipsHash": "fdf3daf59cb417e74a8bf2cd9516b2a5",
+              "rolePermissionsHash": "d751713988987e9331980363e24189ce",
+              "userPermissionsHash": "d751713988987e9331980363e24189ce"
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/ediel-native.safe.json",
+            "sha256": "ec016aec29d8abc682f1f6dde796c7a88b1ad38704d2aa241c0f60c556b2e5f1",
+            "json": {
+              "sourceHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+              "scope": "REAL_NORMAL_STORE_PROCESS_NO_PROVIDER_NO_RAW_CUSTODY_OR_AUTHORITY_WRITE",
+              "results": [
+                {
+                  "scenarioId": "EDIEL02.01",
+                  "kind": "EXACT_EXISTING_ORIGINAL_REPLAY",
+                  "inputSha256": "59de46932dbea8eac15236f6e72c8dbf2e9c72a6e64d8616f2a6d59d28e7fb7d",
+                  "inputBytes": 1012,
+                  "authorizesBusinessEffect": false,
+                  "store": {
+                    "id": "1f48ec92-32b4-457c-9f3e-51b8947fcbf4",
+                    "deduped": true
+                  },
+                  "process": {
+                    "status": "manual_review",
+                    "companyId": null,
+                    "parseResultId": "2010cfe4-f940-4bce-bdb3-1cfb111a5546"
+                  }
+                },
+                {
+                  "scenarioId": "EDIEL02.02",
+                  "kind": "SAME_WIRE_REFERENCES_CHANGED_QUANTITY_NEW_MIME_ID",
+                  "inputSha256": "d1b0998959fe898e11a21a59a15051c1ae92aeda83a38291e2eb0d9d90f8ef18",
+                  "inputBytes": 982,
+                  "authorizesBusinessEffect": false,
+                  "store": {
+                    "id": "83811def-2100-43e0-bbd8-082632701a9a",
+                    "deduped": false
+                  },
+                  "process": {
+                    "status": "manual_review",
+                    "companyId": null,
+                    "parseResultId": "2ae20ffb-ba4d-44d7-8417-62ec8493f9d0"
+                  }
+                },
+                {
+                  "scenarioId": "EDIEL02.06",
+                  "kind": "NEW_MALFORMED_SEGMENT_ORIGINAL",
+                  "inputSha256": "2c0fbc07544dc48f2c33b152c4dd1cbf03b50173d68187e36e38d74a8b9b4c9c",
+                  "inputBytes": 248,
+                  "authorizesBusinessEffect": false,
+                  "store": {
+                    "id": "b619e362-83d2-4ce6-9326-56a4b6e5d603",
+                    "deduped": false
+                  },
+                  "process": {
+                    "status": "manual_review",
+                    "companyId": null,
+                    "parseResultId": "41724c68-be81-4920-b504-adf9e8a363ca"
+                  }
+                },
+                {
+                  "scenarioId": "EDIEL01.05",
+                  "kind": "MIME_ID_ONLY_CHANGED_SAME_WIRE_BODY",
+                  "inputSha256": "772a149bedd32b27f4e2822c705dc2cd1f8387098ea5c6bded75cab4c8ce4e4c",
+                  "inputBytes": 983,
+                  "authorizesBusinessEffect": false,
+                  "store": {
+                    "id": "b3e872b4-4779-44ea-b09d-781c1167aa5d",
+                    "deduped": false
+                  },
+                  "process": {
+                    "status": "manual_review",
+                    "companyId": null,
+                    "parseResultId": "a5874335-b447-4228-a8bb-0a9daff93f80"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/ediel-parse-readback.safe.json",
+            "sha256": "f6304d73c1ce9cbd7dfbbc7bd96f1ec9c15a159ef63d51e1c0e99d5f4e00e272",
+            "json": [
+              {
+                "id": "2010cfe4-f940-4bce-bdb3-1cfb111a5546",
+                "company_id": null,
+                "message_code": "E66",
+                "parse_status": "parsed",
+                "message_family": "UTILTS",
+                "validation_report": {
+                  "status": "parsed_by_batch_7a1_engine",
+                  "tenantResolution": {
+                    "source": null,
+                    "status": "unresolved",
+                    "reasons": [
+                      "Juridisk mottagare, teknisk transportidentitet och tenantkontext är inte entydigt verifierade; inga lokala objektfel skapas."
+                    ],
+                    "evidence": [],
+                    "warnings": [],
+                    "companyId": null,
+                    "confidence": 0,
+                    "receiverEdielId": "99992",
+                    "transportEdielId": "99992",
+                    "marketActorEdielId": "99992",
+                    "receiverSubaddress": null,
+                    "candidateCompanyIds": []
+                  }
+                }
+              },
+              {
+                "id": "2ae20ffb-ba4d-44d7-8417-62ec8493f9d0",
+                "company_id": null,
+                "message_code": "E66",
+                "parse_status": "parsed",
+                "message_family": "UTILTS",
+                "validation_report": {
+                  "status": "parsed_by_batch_7a1_engine",
+                  "tenantResolution": {
+                    "source": null,
+                    "status": "unresolved",
+                    "reasons": [
+                      "Juridisk mottagare, teknisk transportidentitet och tenantkontext är inte entydigt verifierade; inga lokala objektfel skapas."
+                    ],
+                    "evidence": [],
+                    "warnings": [],
+                    "companyId": null,
+                    "confidence": 0,
+                    "receiverEdielId": "99992",
+                    "transportEdielId": "99992",
+                    "marketActorEdielId": "99992",
+                    "receiverSubaddress": null,
+                    "candidateCompanyIds": []
+                  }
+                }
+              },
+              {
+                "id": "41724c68-be81-4920-b504-adf9e8a363ca",
+                "company_id": null,
+                "message_code": "UTILTS_UNKNOWN",
+                "parse_status": "parsed",
+                "message_family": "UTILTS",
+                "validation_report": {
+                  "status": "parsed_by_batch_7a1_engine",
+                  "tenantResolution": {
+                    "source": null,
+                    "status": "unresolved",
+                    "reasons": [
+                      "UNB receiver 99992 kunde inte matchas säkert till tenant i test."
+                    ],
+                    "evidence": [
+                      {
+                        "score": 100,
+                        "source": "ediel_actor_settings",
+                        "details": {
+                          "actorSettingId": "9b697f97-472d-4fc7-9942-d5aa0f73c383",
+                          "receiverEdielId": "99992",
+                          "matchedTransport": true,
+                          "transportEdielId": "99992",
+                          "marketActorEdielId": null,
+                          "matchedMarketActor": false,
+                          "receiverSubaddress": null,
+                          "subaddressRequired": false,
+                          "applicationReference": null
+                        },
+                        "companyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64"
+                      }
+                    ],
+                    "warnings": [],
+                    "companyId": null,
+                    "confidence": 0,
+                    "receiverEdielId": "99992",
+                    "transportEdielId": "99992",
+                    "marketActorEdielId": null,
+                    "receiverSubaddress": null,
+                    "candidateCompanyIds": []
+                  }
+                }
+              },
+              {
+                "id": "a5874335-b447-4228-a8bb-0a9daff93f80",
+                "company_id": null,
+                "message_code": "E66",
+                "parse_status": "parsed",
+                "message_family": "UTILTS",
+                "validation_report": {
+                  "status": "parsed_by_batch_7a1_engine",
+                  "tenantResolution": {
+                    "source": null,
+                    "status": "unresolved",
+                    "reasons": [
+                      "Juridisk mottagare, teknisk transportidentitet och tenantkontext är inte entydigt verifierade; inga lokala objektfel skapas."
+                    ],
+                    "evidence": [],
+                    "warnings": [],
+                    "companyId": null,
+                    "confidence": 0,
+                    "receiverEdielId": "99992",
+                    "transportEdielId": "99992",
+                    "marketActorEdielId": "99992",
+                    "receiverSubaddress": null,
+                    "candidateCompanyIds": []
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/ediel-readback.safe.json",
+            "sha256": "088ed2a9eff1d2f36a38f7afc69e8ad533a270d3b17dca4e5c06b62ab495f47f",
+            "json": {
+              "rows": [
+                {
+                  "id": "1f48ec92-32b4-457c-9f3e-51b8947fcbf4",
+                  "company_id": null,
+                  "processing_status": "manual_review",
+                  "match_status": "unassigned",
+                  "error_message": null,
+                  "rawEmailSHA256": "59de46932dbea8eac15236f6e72c8dbf2e9c72a6e64d8616f2a6d59d28e7fb7d",
+                  "rawEdifactSHA256": "ac6ef4d66317bdb3d5e3dc9ff14ca1ecfb492cf7136d81c3fe3ed88b6b7139af"
+                },
+                {
+                  "id": "83811def-2100-43e0-bbd8-082632701a9a",
+                  "company_id": null,
+                  "processing_status": "manual_review",
+                  "match_status": "unassigned",
+                  "error_message": null,
+                  "rawEmailSHA256": "d1b0998959fe898e11a21a59a15051c1ae92aeda83a38291e2eb0d9d90f8ef18",
+                  "rawEdifactSHA256": "3071554e4d46bab5a3826192e5811449bdf6d74467960ab47ebe650f580e6562"
+                },
+                {
+                  "id": "b619e362-83d2-4ce6-9326-56a4b6e5d603",
+                  "company_id": null,
+                  "processing_status": "manual_review",
+                  "match_status": "unassigned",
+                  "error_message": null,
+                  "rawEmailSHA256": "2c0fbc07544dc48f2c33b152c4dd1cbf03b50173d68187e36e38d74a8b9b4c9c",
+                  "rawEdifactSHA256": "0b975c72bb023237160fa95206e7525892844fe3f9b32679f8de499d34d57bed"
+                },
+                {
+                  "id": "b3e872b4-4779-44ea-b09d-781c1167aa5d",
+                  "company_id": null,
+                  "processing_status": "manual_review",
+                  "match_status": "unassigned",
+                  "error_message": null,
+                  "rawEmailSHA256": "772a149bedd32b27f4e2822c705dc2cd1f8387098ea5c6bded75cab4c8ce4e4c",
+                  "rawEdifactSHA256": "ac6ef4d66317bdb3d5e3dc9ff14ca1ecfb492cf7136d81c3fe3ed88b6b7139af"
+                }
+              ],
+              "directAuthorityOrCustodyWrites": false,
+              "normalStoreMayProduceAutomaticCustody": true
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/first-health-diagnostic.safe.json",
+            "sha256": "9380aafa4a0133e23080b8644c3ee2a0b96546edc1312964ebea19e985952d72",
+            "json": {
+              "health": [
+                {
+                  "label": "gatewayAuth",
+                  "status": 200,
+                  "safeBody": "{\"version\":\"v2.188.1\",\"name\":\"GoTrue\",\"description\":\"GoTrue is a user registration and authentication API\"}"
+                },
+                {
+                  "label": "directAuth",
+                  "status": 200,
+                  "safeBody": "{\"version\":\"v2.188.1\",\"name\":\"GoTrue\",\"description\":\"GoTrue is a user registration and authentication API\"}"
+                },
+                {
+                  "label": "gatewayRest",
+                  "status": 401,
+                  "safeBody": "{\"code\":\"PGRST303\",\"details\":null,\"hint\":null,\"message\":\"JWT expired\"}"
+                }
+              ],
+              "jwtExpired": true
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/http-browser-original.safe.json",
+            "sha256": "155ee572fc06e4c216f50f6d70462d4c4ee8a7857b9f3aa0ce136dce42382b6f",
+            "json": {
+              "kind": "FRESH_LOCAL_BROWSER_HTTP_NEGATIVE_SUBBOUNDARIES",
+              "sourceHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+              "sourceTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+              "producerSourceReceipt": {
+                "path": "/workspace/gridex-scenario-native-evidence-20261112/app-source.safe.json",
+                "sha256": "099f296131b4c1711fd6f66878d7a2364b4c1a35dcf71e76a0852f647a6a5bf3"
+              },
+              "startedAt": "2026-11-12T18:43:37.429Z",
+              "requests": [
+                {
+                  "actor": "anonymous",
+                  "label": "unknown-uuid",
+                  "scenarioIds": [
+                    "MAIN05.05"
+                  ],
+                  "path": "/admin/billing/invoice-files/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 85,
+                  "bodySHA256": "6378497cafbbd6cba89078706fddf7586e9a66614e4dd198e30ee9472308f3d5",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "anonymous",
+                  "label": "malformed-id",
+                  "scenarioIds": [
+                    "MAIN05.05"
+                  ],
+                  "path": "/admin/billing/invoice-files/not-a-uuid",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 59,
+                  "bodySHA256": "bf8d26aa0af241ee85d0c30adfc392ef53032b3ec97d33097f3d7d929f58e25a",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "anonymous",
+                  "label": "36-hyphens",
+                  "scenarioIds": [
+                    "MAIN05.06"
+                  ],
+                  "path": "/admin/billing/invoice-files/------------------------------------",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 85,
+                  "bodySHA256": "7385ce2915a2856bcd02ddeef3436e25e3b282480170cbfd9a0b2876f2f226a2",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "anonymous",
+                  "label": "login-gate-file",
+                  "scenarioIds": [
+                    "MAIN05.04"
+                  ],
+                  "path": "/admin/billing/invoice-files/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 85,
+                  "bodySHA256": "6378497cafbbd6cba89078706fddf7586e9a66614e4dd198e30ee9472308f3d5",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                }
+              ],
+              "actors": [],
+              "secretChecks": {
+                "knownSecretValuesProvided": true,
+                "checkedResponses": 4,
+                "knownSecretOccurrences": 0,
+                "privateKeyMarkers": 0,
+                "checkedClientScripts": 0
+              },
+              "limits": [
+                "No business/fixture/permission writes; normal UI login/logout sessions only.",
+                "Request result is actual reached guard, never automatic full105scenario acceptance.",
+                "No real invoice file exists unless producer config supplies a qualified actualFileId.",
+                "No cookie/JWT/header credential is saved in this safe receipt."
+              ],
+              "finishedAt": "2026-11-12T18:44:36.669Z",
+              "state": "CAPTURE_ERROR_NO_AUTOMATIC_RETRY",
+              "safeErrorCode": "BROWSER_OR_REQUEST_TIMEOUT"
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/http-browser-retry.safe.json",
+            "sha256": "e76787da70d5fa2c2d8e96a98a306a381caa2ec14bfbb6a52a6e2d651ca60b41",
+            "json": {
+              "kind": "FRESH_LOCAL_BROWSER_HTTP_NEGATIVE_SUBBOUNDARIES",
+              "sourceHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+              "sourceTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+              "producerSourceReceipt": {
+                "path": "/workspace/gridex-scenario-native-evidence-20261112/app-source.safe.json",
+                "sha256": "099f296131b4c1711fd6f66878d7a2364b4c1a35dcf71e76a0852f647a6a5bf3"
+              },
+              "startedAt": "2026-11-12T18:47:31.799Z",
+              "requests": [
+                {
+                  "actor": "anonymous",
+                  "label": "unknown-uuid",
+                  "scenarioIds": [
+                    "MAIN05.05"
+                  ],
+                  "path": "/admin/billing/invoice-files/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 85,
+                  "bodySHA256": "6378497cafbbd6cba89078706fddf7586e9a66614e4dd198e30ee9472308f3d5",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "anonymous",
+                  "label": "malformed-id",
+                  "scenarioIds": [
+                    "MAIN05.05"
+                  ],
+                  "path": "/admin/billing/invoice-files/not-a-uuid",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 59,
+                  "bodySHA256": "bf8d26aa0af241ee85d0c30adfc392ef53032b3ec97d33097f3d7d929f58e25a",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "anonymous",
+                  "label": "36-hyphens",
+                  "scenarioIds": [
+                    "MAIN05.06"
+                  ],
+                  "path": "/admin/billing/invoice-files/------------------------------------",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 85,
+                  "bodySHA256": "7385ce2915a2856bcd02ddeef3436e25e3b282480170cbfd9a0b2876f2f226a2",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "anonymous",
+                  "label": "login-gate-file",
+                  "scenarioIds": [
+                    "MAIN05.04"
+                  ],
+                  "path": "/admin/billing/invoice-files/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 85,
+                  "bodySHA256": "6378497cafbbd6cba89078706fddf7586e9a66614e4dd198e30ee9472308f3d5",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "anonymous",
+                  "label": "api-no-session",
+                  "scenarioIds": [
+                    "AUTH01.05"
+                  ],
+                  "path": "/api/internal/invoice-exports/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 401,
+                  "redirectPath": null,
+                  "contentType": "application/json",
+                  "bodyBytes": 23,
+                  "bodySHA256": "d193a41481aa8920359b348fa36724a406db258ca3edcbd77208b05491346b1b",
+                  "attachment": false,
+                  "safeBodyClassification": "API_UNAUTHENTICATED"
+                },
+                {
+                  "actor": "bootstrap_platform_admin",
+                  "label": "unknown-uuid",
+                  "scenarioIds": [
+                    "MAIN05.05"
+                  ],
+                  "path": "/admin/billing/invoice-files/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 403,
+                  "redirectPath": null,
+                  "contentType": "text/plain;charset=UTF-8",
+                  "bodyBytes": 19,
+                  "bodySHA256": "10adcce89363b4190f135ae86633990e631eb180b302b6f788a5f43cffa9a97d",
+                  "attachment": false,
+                  "safeBodyClassification": "EXPLICIT_PERMISSION_DENY"
+                },
+                {
+                  "actor": "bootstrap_platform_admin",
+                  "label": "malformed-id",
+                  "scenarioIds": [
+                    "MAIN05.05"
+                  ],
+                  "path": "/admin/billing/invoice-files/not-a-uuid",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 403,
+                  "redirectPath": null,
+                  "contentType": "text/plain;charset=UTF-8",
+                  "bodyBytes": 19,
+                  "bodySHA256": "10adcce89363b4190f135ae86633990e631eb180b302b6f788a5f43cffa9a97d",
+                  "attachment": false,
+                  "safeBodyClassification": "EXPLICIT_PERMISSION_DENY"
+                },
+                {
+                  "actor": "bootstrap_platform_admin",
+                  "label": "36-hyphens",
+                  "scenarioIds": [
+                    "MAIN05.06"
+                  ],
+                  "path": "/admin/billing/invoice-files/------------------------------------",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 403,
+                  "redirectPath": null,
+                  "contentType": "text/plain;charset=UTF-8",
+                  "bodyBytes": 19,
+                  "bodySHA256": "10adcce89363b4190f135ae86633990e631eb180b302b6f788a5f43cffa9a97d",
+                  "attachment": false,
+                  "safeBodyClassification": "EXPLICIT_PERMISSION_DENY"
+                },
+                {
+                  "actor": "bootstrap_platform_admin",
+                  "label": "protected-admin-companies",
+                  "scenarioIds": [
+                    "AUTH01.02"
+                  ],
+                  "path": "/admin/companies",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 200,
+                  "redirectPath": null,
+                  "contentType": "text/html; charset=utf-8",
+                  "bodyBytes": 145799,
+                  "bodySHA256": "9289f6d05218ed947fc2247d978c9b22e451823277e48f90310b6553f0a3f16d",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "bootstrap_platform_admin",
+                  "label": "own-company-read",
+                  "scenarioIds": [
+                    "AUTH01.03"
+                  ],
+                  "path": "/api/internal/invoice-exports/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [
+                    "companyId"
+                  ],
+                  "requestedCompany": "EXPLICIT_FIXTURE_COMPANY",
+                  "status": 500,
+                  "redirectPath": null,
+                  "contentType": "application/json",
+                  "bodyBytes": 133,
+                  "bodySHA256": "c11eb630e11dedfc9bb1a582d30a005f356c1accb2686569f7a1d89fb467ef13",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "bootstrap_platform_admin",
+                  "label": "foreign-company-read",
+                  "scenarioIds": [
+                    "AUTH01.03"
+                  ],
+                  "path": "/api/internal/invoice-exports/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [
+                    "companyId"
+                  ],
+                  "requestedCompany": "EXPLICIT_FIXTURE_COMPANY",
+                  "status": 500,
+                  "redirectPath": null,
+                  "contentType": "application/json",
+                  "bodyBytes": 133,
+                  "bodySHA256": "292907d4e43248e5bbb99b481ff460c6e9259c4264068a38665a7acb6d4f448d",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "bootstrap_platform_admin",
+                  "label": "postlogout-protected",
+                  "scenarioIds": [
+                    "AUTH01.05"
+                  ],
+                  "path": "/admin/companies",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 32,
+                  "bodySHA256": "0fe94555a06c3ca1c55c2da104e6d4c94a30a54af6e687cf54883e629a28b0be",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "bootstrap_platform_admin",
+                  "label": "postlogout-api",
+                  "scenarioIds": [
+                    "AUTH01.05"
+                  ],
+                  "path": "/api/internal/invoice-exports/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 401,
+                  "redirectPath": null,
+                  "contentType": "application/json",
+                  "bodyBytes": 23,
+                  "bodySHA256": "d193a41481aa8920359b348fa36724a406db258ca3edcbd77208b05491346b1b",
+                  "attachment": false,
+                  "safeBodyClassification": "API_UNAUTHENTICATED"
+                },
+                {
+                  "actor": "ordinary_tenant_owner",
+                  "label": "unknown-uuid",
+                  "scenarioIds": [
+                    "MAIN05.05"
+                  ],
+                  "path": "/admin/billing/invoice-files/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 0,
+                  "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "ordinary_tenant_owner",
+                  "label": "malformed-id",
+                  "scenarioIds": [
+                    "MAIN05.05"
+                  ],
+                  "path": "/admin/billing/invoice-files/not-a-uuid",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 0,
+                  "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "ordinary_tenant_owner",
+                  "label": "36-hyphens",
+                  "scenarioIds": [
+                    "MAIN05.06"
+                  ],
+                  "path": "/admin/billing/invoice-files/------------------------------------",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 0,
+                  "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "ordinary_tenant_owner",
+                  "label": "protected-admin-companies",
+                  "scenarioIds": [
+                    "AUTH01.02"
+                  ],
+                  "path": "/admin/companies",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/admin/company-settings",
+                  "contentType": null,
+                  "bodyBytes": 23,
+                  "bodySHA256": "8f34c30f848a0cade2d3531a6cae5a9808e705a22e19c0ddd73fd785c0db710a",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "ordinary_tenant_owner",
+                  "label": "own-company-read",
+                  "scenarioIds": [
+                    "AUTH01.03"
+                  ],
+                  "path": "/api/internal/invoice-exports/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [
+                    "companyId"
+                  ],
+                  "requestedCompany": "EXPLICIT_FIXTURE_COMPANY",
+                  "status": 403,
+                  "redirectPath": null,
+                  "contentType": "application/json",
+                  "bodyBytes": 23,
+                  "bodySHA256": "0845fcabcdcabf33c7b5ce3b244c9934ddf274a6b70862842c7fbee41319897c",
+                  "attachment": false,
+                  "safeBodyClassification": "API_FORBIDDEN"
+                },
+                {
+                  "actor": "ordinary_tenant_owner",
+                  "label": "foreign-company-read",
+                  "scenarioIds": [
+                    "AUTH01.03"
+                  ],
+                  "path": "/api/internal/invoice-exports/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [
+                    "companyId"
+                  ],
+                  "requestedCompany": "EXPLICIT_FIXTURE_COMPANY",
+                  "status": 403,
+                  "redirectPath": null,
+                  "contentType": "application/json",
+                  "bodyBytes": 39,
+                  "bodySHA256": "12b7ff58bc9323ccb0247f1047eb06f276d87a163e930d623da48c2381868eb5",
+                  "attachment": false,
+                  "safeBodyClassification": "API_FORBIDDEN"
+                },
+                {
+                  "actor": "ordinary_tenant_owner",
+                  "label": "postlogout-protected",
+                  "scenarioIds": [
+                    "AUTH01.05"
+                  ],
+                  "path": "/admin/companies",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 307,
+                  "redirectPath": "/login",
+                  "contentType": null,
+                  "bodyBytes": 32,
+                  "bodySHA256": "0fe94555a06c3ca1c55c2da104e6d4c94a30a54af6e687cf54883e629a28b0be",
+                  "attachment": false,
+                  "safeBodyClassification": null
+                },
+                {
+                  "actor": "ordinary_tenant_owner",
+                  "label": "postlogout-api",
+                  "scenarioIds": [
+                    "AUTH01.05"
+                  ],
+                  "path": "/api/internal/invoice-exports/00000000-0000-4000-8000-000000000099",
+                  "queryKeys": [],
+                  "requestedCompany": null,
+                  "status": 401,
+                  "redirectPath": null,
+                  "contentType": "application/json",
+                  "bodyBytes": 23,
+                  "bodySHA256": "d193a41481aa8920359b348fa36724a406db258ca3edcbd77208b05491346b1b",
+                  "attachment": false,
+                  "safeBodyClassification": "API_UNAUTHENTICATED"
+                }
+              ],
+              "actors": [
+                {
+                  "label": "bootstrap_platform_admin",
+                  "declaredRole": "EXISTING_VERIFIED_LOCAL_PLATFORM_ADMIN_FIXTURE",
+                  "sourceAuthorityReceipt": {
+                    "path": "/workspace/gridex-scenario-native-evidence-20261112/actor-authority.safe.json",
+                    "sha256": "35126a4060aaf5839e868f2d1f2ce26b44660195636f75c04cb150e215f857ef",
+                    "scope": "Existing own DB canonical actor flags and membership, no new permission/rolegrant"
+                  },
+                  "login": "NORMAL_UI_LOGIN",
+                  "normalLogout": "NORMAL_UI_POST_LOGOUT",
+                  "landingPath": "/dashboard"
+                },
+                {
+                  "label": "ordinary_tenant_owner",
+                  "declaredRole": "EXISTING_OWN_COMPANY_OWNER_NOT_PLATFORM_ADMIN",
+                  "sourceAuthorityReceipt": {
+                    "path": "/workspace/gridex-scenario-native-evidence-20261112/actor-authority.safe.json",
+                    "sha256": "35126a4060aaf5839e868f2d1f2ce26b44660195636f75c04cb150e215f857ef",
+                    "scope": "Existing own DB canonical actor flags and membership, no new permission/rolegrant"
+                  },
+                  "login": "NORMAL_UI_LOGIN",
+                  "normalLogout": "NORMAL_UI_POST_LOGOUT",
+                  "landingPath": "/dashboard"
+                }
+              ],
+              "secretChecks": {
+                "knownSecretValuesProvided": true,
+                "checkedResponses": 33,
+                "knownSecretOccurrences": 0,
+                "privateKeyMarkers": 0,
+                "checkedClientScripts": 10
+              },
+              "limits": [
+                "No business/fixture/permission writes; normal UI login/logout sessions only.",
+                "Request result is actual reached guard, never automatic full105scenario acceptance.",
+                "No real invoice file exists unless producer config supplies a qualified actualFileId.",
+                "No cookie/JWT/header credential is saved in this safe receipt."
+              ],
+              "finishedAt": "2026-11-12T18:47:57.204Z",
+              "unexpected5xxCount": 2,
+              "state": "CAPTURE_COMPLETE_WITH_UNEXPECTED_SERVER_ERRORS"
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/http-input-scope.safe.json",
+            "sha256": "d50e860e6bc581e788c22ae7922c1011d28ef2938c3f089ec9eb20d68f921bfd",
+            "json": {
+              "sourceHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+              "sourceTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+              "actualFileIdPresent": false,
+              "qualifiedCustomerOnlyActorPresent": false,
+              "actors": [
+                {
+                  "label": "bootstrap_platform_admin",
+                  "role": "EXISTING_VERIFIED_LOCAL_PLATFORM_ADMIN_FIXTURE",
+                  "ownCompanyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                  "foreignCompanyId": "2d50ff27-7e67-4641-bf26-042ca586225b"
+                },
+                {
+                  "label": "ordinary_tenant_owner",
+                  "role": "EXISTING_OWN_COMPANY_OWNER_NOT_PLATFORM_ADMIN",
+                  "ownCompanyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                  "foreignCompanyId": "2d50ff27-7e67-4641-bf26-042ca586225b"
+                }
+              ]
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/invoice-after-bodycode.safe.json",
+            "sha256": "5a0d184cb56e3568f606e1eaf3669463ccf5ad5da11c3acf984e7b23749ded15",
+            "json": {
+              "expectedBody": {
+                "error": "Fakturaexporten hittades inte.",
+                "code": "invoice_export_not_found"
+              },
+              "expectedBodySha256": "10a26a44f8ad01144a1156737c2eba0cb5d25c0c9ad145b7db8828d1be88731f",
+              "actualResponseHashComparisons": [
+                {
+                  "actor": "bootstrap_platform_admin",
+                  "companyKind": "own",
+                  "expectedExact404JsonHashMatches": true,
+                  "actualStatus": 404
+                },
+                {
+                  "actor": "bootstrap_platform_admin",
+                  "companyKind": "foreign",
+                  "expectedExact404JsonHashMatches": true,
+                  "actualStatus": 404
+                }
+              ]
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/invoice-after-http.safe.json",
+            "sha256": "284bc6dfa83680c230370b424f1b1dd1a31b3de331b9254f11c4e44d4e369862",
+            "json": {
+              "kind": "BOUNDED_REAL_UI_AUTH_INVOICE_EXPORT_NOTFOUND_RETEST",
+              "source": {
+                "kind": "PRIVATE_COMPOSITE_NO_FABRICATED_GIT_HEAD",
+                "baseHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+                "baseTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+                "donorHead": "90a72f30da0309eedba6640142aa81631214304b",
+                "donorTree": "7e759c202144b9e93d01feb6fac8023eddd9e281",
+                "overlay": [
+                  {
+                    "path": "app/api/internal/invoice-exports/[id]/route.ts",
+                    "beforeSha256": "a1b502ad15361f5b7fbe1134c758e0fe79745dd6897428115992d93482d5642e",
+                    "afterSha256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb"
+                  },
+                  {
+                    "path": "lib/integrations/billing/invoiceExportCore.ts",
+                    "beforeSha256": "f67d108276fd9c3b630867f2e6f8f678336a0583531943d9a22462f50e2db298",
+                    "afterSha256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94"
+                  }
+                ],
+                "twoSourceApprovals": true,
+                "positiveOutputHandoff": true,
+                "stoppedOwnAppPids": [
+                  54127,
+                  54179,
+                  54228,
+                  54229,
+                  54240,
+                  54241,
+                  54271
+                ],
+                "noDatabaseMigrationOrAuthorityWrite": true
+              },
+              "actors": [
+                {
+                  "label": "bootstrap_platform_admin",
+                  "normalUiLogin": true,
+                  "normalUiPostLogout": true
+                },
+                {
+                  "label": "ordinary_tenant_owner",
+                  "normalUiLogin": true,
+                  "normalUiPostLogout": true
+                }
+              ],
+              "requests": [
+                {
+                  "actor": "bootstrap_platform_admin",
+                  "companyKind": "own",
+                  "companyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                  "unknownRunId": "00000000-0000-4000-8000-000000000099",
+                  "status": 404,
+                  "bodySha256": "10a26a44f8ad01144a1156737c2eba0cb5d25c0c9ad145b7db8828d1be88731f",
+                  "bodyBytes": 76,
+                  "errorKeys": [
+                    "code",
+                    "error"
+                  ]
+                },
+                {
+                  "actor": "bootstrap_platform_admin",
+                  "companyKind": "foreign",
+                  "companyId": "2d50ff27-7e67-4641-bf26-042ca586225b",
+                  "unknownRunId": "00000000-0000-4000-8000-000000000099",
+                  "status": 404,
+                  "bodySha256": "10a26a44f8ad01144a1156737c2eba0cb5d25c0c9ad145b7db8828d1be88731f",
+                  "bodyBytes": 76,
+                  "errorKeys": [
+                    "code",
+                    "error"
+                  ]
+                },
+                {
+                  "actor": "ordinary_tenant_owner",
+                  "companyKind": "own",
+                  "companyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                  "unknownRunId": "00000000-0000-4000-8000-000000000099",
+                  "status": 403,
+                  "bodySha256": "0845fcabcdcabf33c7b5ce3b244c9934ddf274a6b70862842c7fbee41319897c",
+                  "bodyBytes": 23,
+                  "errorKeys": [
+                    "error"
+                  ]
+                },
+                {
+                  "actor": "ordinary_tenant_owner",
+                  "companyKind": "foreign",
+                  "companyId": "2d50ff27-7e67-4641-bf26-042ca586225b",
+                  "unknownRunId": "00000000-0000-4000-8000-000000000099",
+                  "status": 403,
+                  "bodySha256": "12b7ff58bc9323ccb0247f1047eb06f276d87a163e930d623da48c2381868eb5",
+                  "bodyBytes": 39,
+                  "errorKeys": [
+                    "error"
+                  ]
+                }
+              ],
+              "secretHits": 0,
+              "state": "TERMINAL",
+              "oracle": true
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/invoice-after-source.safe.json",
+            "sha256": "accd358e4ba90bf02ea05756c194d6a63d454973e109d2152e6d523f0404a463",
+            "json": {
+              "kind": "PRIVATE_COMPOSITE_NO_FABRICATED_GIT_HEAD",
+              "baseHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+              "baseTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+              "donorHead": "90a72f30da0309eedba6640142aa81631214304b",
+              "donorTree": "7e759c202144b9e93d01feb6fac8023eddd9e281",
+              "overlay": [
+                {
+                  "path": "app/api/internal/invoice-exports/[id]/route.ts",
+                  "beforeSha256": "a1b502ad15361f5b7fbe1134c758e0fe79745dd6897428115992d93482d5642e",
+                  "afterSha256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb"
+                },
+                {
+                  "path": "lib/integrations/billing/invoiceExportCore.ts",
+                  "beforeSha256": "f67d108276fd9c3b630867f2e6f8f678336a0583531943d9a22462f50e2db298",
+                  "afterSha256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94"
+                }
+              ],
+              "twoSourceApprovals": true,
+              "positiveOutputHandoff": true,
+              "stoppedOwnAppPids": [
+                54127,
+                54179,
+                54228,
+                54229,
+                54240,
+                54241,
+                54271
+              ],
+              "noDatabaseMigrationOrAuthorityWrite": true
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/invoice-source-review.safe.json",
+            "sha256": "6c4178f15b8fda3d37f01a2f5d96c279abca0ce96b15f3c5de665153784b275d",
+            "json": {
+              "reviewer": "execute_eight_parts",
+              "verdict": "APPROVE_SOURCE_ONLY",
+              "head": "90a72f30da0309eedba6640142aa81631214304b",
+              "tree": "7e759c202144b9e93d01feb6fac8023eddd9e281",
+              "files": [
+                {
+                  "path": "lib/integrations/billing/invoiceExportCore.ts",
+                  "sha256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94"
+                },
+                {
+                  "path": "app/api/internal/invoice-exports/[id]/route.ts",
+                  "sha256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb"
+                },
+                {
+                  "path": "__tests__/invoice-export-run-read-not-found.test.ts",
+                  "sha256": "0ead7171b60935ce45f42f6597f7cd08e24d50cbeaea0bdbe3387d5d43e66c6e"
+                }
+              ],
+              "newRuntimeAcceptance": false,
+              "findings": [],
+              "checked": [
+                "complete3filepatch",
+                "onlygetInvoiceExportRunconsumer",
+                "actualfailfirst2FAIL8PASS",
+                "actualgreen10PASS",
+                "tenantfiltersandguardordering",
+                "realDBerrorsremain500"
+              ]
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/overlay-precondition-error.safe.json",
+            "sha256": "ec40bdd6ef64a3be371f635a1e676e3ec2f1d660ee57c0212771b7b40a6a77aa",
+            "json": {
+              "kind": "OWN_RUNTIME_SUPERVISOR_PRECONDITION_ERROR",
+              "firstOverlayAttempt": "ASSERTION_FAILED_OLD_NEXT_PID_WAS_TRANSIENT_ZOMBIE",
+              "effect": "Shell newline invoked launcher after failed overlay preparation; old source started temporarily, no after HTTP probes executed",
+              "recovery": "Stopped second exact-own launcher tree, verified reviewed2filebytes and old preimages, applied overlay, then launched correct composite",
+              "beforeSafeOriginalsPreserved": true,
+              "beforePrivateAppLogTruncated": true,
+              "preserved500Evidence": [
+                "http-browser-retry.safe.json",
+                "capture-diagnostic.safe.json"
+              ],
+              "productFailure": false
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/platform-key-renewal.safe.json",
+            "sha256": "6c9d6e02099e0f19d925bdea273f4cde8a0b0d3067ad891c3c71dc9ac8d530e2",
+            "json": {
+              "scope": "NORMAL_LOCAL_PLATFORM_API_KEY_RENEWAL_NOT_USER_AUTH_TOKEN_ISSUANCE",
+              "officialSourceCommit": "873b42c84d8a84089a6258995f4045e0c162167f",
+              "officialGenerateKeysSha256": "6299efc24ce94d771ca4abb8ac96b67624cc4ac9a4b13ee0c2a8f0071aa3d619",
+              "verbatimLegacyGenTokenHelperReused": true,
+              "retainedJwtSecretUnchanged": true,
+              "claimsOnly": [
+                "role",
+                "iss",
+                "iat",
+                "exp"
+              ],
+              "rolesUnchanged": [
+                "anon",
+                "service_role"
+              ],
+              "noUserSubMetadataOrAdminUserClaims": true,
+              "issuedAtUnix": 1794508806,
+              "expiryUnix": 1794516006,
+              "validitySeconds": 7200,
+              "normalKongReloadExitCode": 0,
+              "privateReloadLogSha256": "190b245f5a0e41d47a7e585ae0eaeeb8709790ef139bc017bfb9add02c8bc822",
+              "oldRuntimeKeysExpired": true,
+              "newKeyHashesOnly": {
+                "anonKey": "26d0c0dd72997880f0d467e5f0e5d3eed327c6b28c166ca507842768a3c0b390",
+                "serviceRoleKey": "d42d81d5d6782079c9f2fa67d41c51f5ce72642cc65f042377002484ee665da5"
+              }
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/preflight.safe.json",
+            "sha256": "d16cca0b74d9411ab5f4dd97569cf407f4384d4bf7df5ceff5d69b4f39b2c393",
+            "json": {
+              "scope": "READ_ONLY_RETAINED_RUNTIME_PREFLIGHT_NO_START",
+              "allFiveExactIdsMatch": true,
+              "containers": [
+                {
+                  "name": "/gridex-kryp2-db",
+                  "id": "fed79f32f9c12bb4cd52c2824366dd0edb62c8bae881d27df6ea6fb5ccecaa9a",
+                  "image": "sha256:4c81aefa21ede5db91df2282d30c27bbdb05ea24a30cbf02b5c8dab2a53ce1e2",
+                  "running": false,
+                  "envNamesOnly": [
+                    "https_proxy",
+                    "no_proxy",
+                    "HTTP_PROXY",
+                    "HTTPS_PROXY",
+                    "PGPASSWORD",
+                    "POSTGRES_PASSWORD",
+                    "POSTGRES_HOST",
+                    "POSTGRES_DB",
+                    "http_proxy",
+                    "NO_PROXY",
+                    "PGDATABASE",
+                    "POSTGRES_PORT",
+                    "PGPORT",
+                    "JWT_SECRET",
+                    "JWT_EXP",
+                    "PATH",
+                    "PGDATA",
+                    "POSTGRES_USER",
+                    "POSTGRES_INITDB_ARGS",
+                    "--locale-provider",
+                    "--encoding",
+                    "--icu-locale",
+                    "LANG",
+                    "LANGUAGE",
+                    "LC_ALL",
+                    "GRN_PLUGINS_DIR",
+                    "LOCALE_ARCHIVE"
+                  ],
+                  "mounts": [
+                    {
+                      "type": "volume",
+                      "source": "/var/lib/docker/volumes/gridex-kryp2-db/_data",
+                      "target": "/var/lib/postgresql/data",
+                      "exists": null
+                    },
+                    {
+                      "type": "bind",
+                      "source": "/tmp/gridex-kryp-next-20261111/official-compose/volumes/db/webhooks.sql",
+                      "target": "/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql",
+                      "exists": true
+                    },
+                    {
+                      "type": "bind",
+                      "source": "/tmp/gridex-kryp-next-20261111/real-profile/99-empty-migration-metadata.sql",
+                      "target": "/docker-entrypoint-initdb.d/init-scripts/99-empty-migration-metadata.sql",
+                      "exists": true
+                    },
+                    {
+                      "type": "bind",
+                      "source": "/tmp/gridex-kryp-next-20261111/official-compose/volumes/db/jwt.sql",
+                      "target": "/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql",
+                      "exists": true
+                    },
+                    {
+                      "type": "bind",
+                      "source": "/tmp/gridex-kryp-next-20261111/official-compose/volumes/db/roles.sql",
+                      "target": "/docker-entrypoint-initdb.d/init-scripts/99-roles.sql",
+                      "exists": true
+                    },
+                    {
+                      "type": "volume",
+                      "source": "/var/lib/docker/volumes/gridex-kryp2-dbconfig/_data",
+                      "target": "/etc/postgresql-custom",
+                      "exists": null
+                    }
+                  ]
+                },
+                {
+                  "name": "/gridex-kryp2-auth",
+                  "id": "942765605ce678195dda2ff480b47cd745922a03d65a5dc39882c744d3062e65",
+                  "image": "sha256:b061f1fa636f31bc01de0a791986352e82772760cce8e1d55bbec6f552930a1e",
+                  "running": false,
+                  "envNamesOnly": [
+                    "GOTRUE_MAILER_AUTOCONFIRM",
+                    "GOTRUE_DB_DATABASE_URL",
+                    "HTTP_PROXY",
+                    "http_proxy",
+                    "no_proxy",
+                    "GOTRUE_API_PORT",
+                    "GOTRUE_SITE_URL",
+                    "GOTRUE_JWT_EXP",
+                    "GOTRUE_EXTERNAL_EMAIL_ENABLED",
+                    "https_proxy",
+                    "NO_PROXY",
+                    "GOTRUE_DB_DRIVER",
+                    "GOTRUE_JWT_ADMIN_ROLES",
+                    "GOTRUE_JWT_DEFAULT_GROUP_NAME",
+                    "GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED",
+                    "GOTRUE_JWT_AUD",
+                    "GOTRUE_API_HOST",
+                    "GOTRUE_URI_ALLOW_LIST",
+                    "API_EXTERNAL_URL",
+                    "GOTRUE_EXTERNAL_PHONE_ENABLED",
+                    "HTTPS_PROXY",
+                    "GOTRUE_DISABLE_SIGNUP",
+                    "GOTRUE_JWT_SECRET",
+                    "GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED",
+                    "PATH",
+                    "GOTRUE_DB_MIGRATIONS_PATH"
+                  ],
+                  "mounts": []
+                },
+                {
+                  "name": "/gridex-kryp2-rest",
+                  "id": "a80807ea605c1d8eba11922091dfbed4c5b5aabbaf390ee78ed5ab4140e26de3",
+                  "image": "sha256:fe5428d51d9805147859ed38db0a26e9e424c4639dc851733e99a86829e1d5aa",
+                  "running": false,
+                  "envNamesOnly": [
+                    "PGRST_JWT_SECRET",
+                    "http_proxy",
+                    "NO_PROXY",
+                    "PGRST_DB_USE_LEGACY_GUCS",
+                    "PGRST_DB_URI",
+                    "PGRST_DB_SCHEMAS",
+                    "PGRST_DB_EXTRA_SEARCH_PATH",
+                    "PGRST_DB_ANON_ROLE",
+                    "HTTP_PROXY",
+                    "HTTPS_PROXY",
+                    "https_proxy",
+                    "no_proxy"
+                  ],
+                  "mounts": []
+                },
+                {
+                  "name": "/gridex-kryp2-storage",
+                  "id": "ebba619f50cd24d2e3156bbdb6e474a65dfab115299611fe25907d0789b94feb",
+                  "image": "sha256:da6409e5fd135ab8895f0c344f82066d99c107ca1031ed4a1ab1d33f0b775572",
+                  "running": false,
+                  "envNamesOnly": [
+                    "NO_PROXY",
+                    "POSTGREST_URL",
+                    "FILE_SIZE_LIMIT",
+                    "ANON_KEY",
+                    "https_proxy",
+                    "ENABLE_IMAGE_TRANSFORMATION",
+                    "HTTP_PROXY",
+                    "HTTPS_PROXY",
+                    "REGION",
+                    "DATABASE_URL",
+                    "GLOBAL_S3_BUCKET",
+                    "TENANT_ID",
+                    "SERVICE_KEY",
+                    "no_proxy",
+                    "http_proxy",
+                    "AUTH_JWT_SECRET",
+                    "STORAGE_BACKEND",
+                    "FILE_STORAGE_BACKEND_PATH",
+                    "PATH",
+                    "NODE_VERSION",
+                    "YARN_VERSION",
+                    "VERSION"
+                  ],
+                  "mounts": [
+                    {
+                      "type": "volume",
+                      "source": "/var/lib/docker/volumes/gridex-kryp2-storage/_data",
+                      "target": "/var/lib/storage",
+                      "exists": null
+                    }
+                  ]
+                },
+                {
+                  "name": "/gridex-kryp2-kong",
+                  "id": "c2b2e3d0b3f03077912d0178a90743c22c2ff8ea17ab1c21795c9ce43ed71990",
+                  "image": "sha256:6d4c2325ad063b075cc10b36cef0d6660cba17e171111f148936daec82bc5c78",
+                  "running": false,
+                  "envNamesOnly": [
+                    "http_proxy",
+                    "NO_PROXY",
+                    "SUPABASE_ANON_KEY",
+                    "DASHBOARD_USERNAME",
+                    "DASHBOARD_PASSWORD",
+                    "KONG_NGINX_PROXY_PROXY_BUFFERS",
+                    "KONG_DNS_ORDER",
+                    "KONG_ROUTER_FLAVOR",
+                    "SUPABASE_SERVICE_KEY",
+                    "HTTP_PROXY",
+                    "HTTPS_PROXY",
+                    "KONG_PLUGINS",
+                    "KONG_DATABASE",
+                    "KONG_DECLARATIVE_CONFIG",
+                    "https_proxy",
+                    "no_proxy",
+                    "KONG_NGINX_PROXY_PROXY_BUFFER_SIZE",
+                    "PATH",
+                    "KONG_VERSION",
+                    "KONG_PREFIX"
+                  ],
+                  "mounts": [
+                    {
+                      "type": "bind",
+                      "source": "/tmp/gridex-kryp-next-20261111/official-compose/volumes/api/kong-entrypoint.sh",
+                      "target": "/home/kong/kong-entrypoint.sh",
+                      "exists": false
+                    },
+                    {
+                      "type": "bind",
+                      "source": "/tmp/gridex-kryp-next-20261111/official-compose/volumes/api/kong.yml",
+                      "target": "/home/kong/temp.yml",
+                      "exists": false
+                    }
+                  ]
+                }
+              ],
+              "privateCredentialFilesPresence": {
+                "/tmp/gridex-kryp-next-20261111/bootstrap-operator.private.json": false,
+                "/tmp/gridex-kryp-next-20261111/regular-operator.private.json": false
+              }
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/private-retention-preflight.safe.json",
+            "sha256": "5fc8f870f99a532a376027701e3940fdaa73e768419dab232d9d303202c8ca7e",
+            "json": {
+              "directoryMode": "0o700",
+              "privateFiles": [
+                {
+                  "name": "runtime.private.json",
+                  "mode": "0o600"
+                },
+                {
+                  "name": "runtime-renewed.private.json",
+                  "mode": "0o600"
+                },
+                {
+                  "name": "actors.private.json",
+                  "mode": "0o600"
+                },
+                {
+                  "name": "http-input.private.json",
+                  "mode": "0o600"
+                },
+                {
+                  "name": "ediel-input.private.json",
+                  "mode": "0o600"
+                }
+              ],
+              "credentialValuesNeverIncluded": true
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/renewed-health.safe.json",
+            "sha256": "49e29b44d66b34d3edc2f3f775feaebcfffbd48ec605ea0a45342cbb9955bb8c",
+            "json": {
+              "health": [
+                {
+                  "path": "/auth/v1/health",
+                  "status": 200
+                },
+                {
+                  "path": "/rest/v1/",
+                  "status": 200
+                }
+              ]
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/resume.safe.json",
+            "sha256": "082454b0a6827ad2787fed0d90cdb84e5483091314b1b534581db42b7d263522",
+            "json": {
+              "scope": "RESUME_ONLY_FOUR_EXACT_OWN_CONTAINERS_RESTORE_TWO_PUBLIC_KONG_BINDS_NO_SEEDS_OR_AUTHORITY_WRITES",
+              "startedUtc": "2026-11-12T18:32:56.611704+00:00",
+              "publicFiles": [
+                {
+                  "file": "kong-entrypoint.sh",
+                  "url": "https://raw.githubusercontent.com/supabase/supabase/873b42c84d8a84089a6258995f4045e0c162167f/docker/volumes/api/kong-entrypoint.sh",
+                  "sha256": "aacdadade6adde6284163ea79e0d88decce0276796ae4749a15f018d56eda933"
+                },
+                {
+                  "file": "kong.yml",
+                  "url": "https://raw.githubusercontent.com/supabase/supabase/873b42c84d8a84089a6258995f4045e0c162167f/docker/volumes/api/kong.yml",
+                  "sha256": "7f0b8e8a285edcbecf95bd7fbb3231909b0d786e9126a347d2be2ac13164aab4"
+                }
+              ],
+              "publicBindRestoreExitCode": 0,
+              "dbStartExitCode": 0
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/safe-original-secret-scan.safe.json",
+            "sha256": "c4314a58736520d7f1b92029f952dfee995f222598c236c8236a0d7b7d9ed932",
+            "json": {
+              "scannedSafeJsonFiles": 20,
+              "knownSecretHits": 0,
+              "scope": "Current service keys/JWTsecret/password literals only; not universal DLP"
+            }
+          },
+          {
+            "path": "/workspace/gridex-scenario-native-evidence-20261112/service-start.safe.json",
+            "sha256": "ef28db512e422d447683090abace439969114e42445d38740982d100ec5cb73b",
+            "json": {
+              "dbReadyBeforeOtherStarts": true,
+              "startExitCode": 0,
+              "endpoints": {
+                "gridex-kryp2-auth": "172.18.0.3",
+                "gridex-kryp2-rest": "172.18.0.4",
+                "gridex-kryp2-kong": "172.18.0.5"
+              },
+              "storageNotStarted": true
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "central105StatusModified": false,
+  "fullCampaignPasses": 0,
+  "actualRuntimeSource": {
+    "head": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+    "tree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df"
+  },
+  "originalAttempt": {
+    "state": "CAPTURE_ERROR_NO_AUTOMATIC_RETRY",
+    "recordedGetProbes": 4,
+    "safeErrorCode": "BROWSER_OR_REQUEST_TIMEOUT",
+    "preserved": true
+  },
+  "boundedRetry": {
+    "state": "CAPTURE_COMPLETE_WITH_UNEXPECTED_SERVER_ERRORS",
+    "recordedGetProbes": 21,
+    "unexpected5xxCount": 2,
+    "notSilentOverwrite": true
+  },
+  "harnessPreflightNotScenarioProof": true,
+  "confirmedNewFindings": [
+    {
+      "id": "HTTP02",
+      "severity": "P2",
+      "status": "FIXED_LOCAL_SOURCE_COMPONENT_AND_BOUNDED_HTTP",
+      "title": "Missing invoice export run becomes500 instead of controlled notfound",
+      "route": "GET /api/internal/invoice-exports/<missing-validUUID>?companyId=<qualified-company>",
+      "affectedFiles": [
+        "app/api/internal/invoice-exports/[id]/route.ts",
+        "lib/integrations/billing/invoiceExportCore.ts"
+      ],
+      "sourceCause": "getInvoiceExportRun lines904-911 uses scoped.single then throws run.error; GETcatch maps all nonApiInputError to500. Missing row gives producerdiagnosedPGRST116.",
+      "actualStatuses": [
+        500,
+        500
+      ],
+      "not": "Not invoice-fileUUID22P02, not unauthorized foreigndataread, not compiletimeout.",
+      "next": "Separate TS-only sourcepacket after this report terminal: exactcaller/inputcontract inventory, failfirst zero→404/one→200/realDBerror+multirecord notfalse404/tenantfilters, ownclaims+two independentreviews; no blanketPGRST116catch.",
+      "beforeStatusesRetained": [
+        500,
+        500
+      ],
+      "afterStatuses": [
+        404,
+        404
+      ],
+      "originalFailureRetained": true,
+      "limitations": "One scopedrecord200/multirow/DBerrors are meaningfulcomponentcases only; runtimeafter used genuine absent-runIDs, not fabricatedpositiveinvoiceexports."
+    }
+  ],
+  "captureLimits": [
+    "25recordedGETprobes before(first4+boundedretry21), plus4specificafterGET; not allbrowsernetworkrequests.",
+    "Two actualbefore500 remainembedded; fixedafter404hasseparateprecisesourcecomposite.",
+    "Oneboundedretryafteractualready; firsttimeout/environmentkeys/supervisorrestarterror not productfailures.",
+    "Privatebeforeapplogwastruncatedbyproducerlaunchpreconditionerror; original21HTTPand2PGRST116safeexcerpts remainhashbound. No completeprivateapplogclaim.",
+    "Sourceprocesslaunchercwd+2overlayhashesverified; /procPIDsocketFDassociation notreadable, explicitly retainedproducerlimit.",
+    "NativeauthorizesBusinessEffectfalse is declaredharnessscope, notRPCreceipt; actualDBobservationonly8controlledfields+rawmailcount+readbackstatuses, automaticprovenancemaybewritten.",
+    "CurrentAPIkeys/passwordsretainedprivately0600; passwordsnotreverted,2hourserverkeyexpiryretained,nofakekeyrevocationclaim.",
+    "Fullfrozen105campaignnotaccepted; no externalSMTP/provider/certifiedidentity/metering/billingacceptance; no globalpermissionpolicyorGEN/migrationwrites."
+  ],
+  "selectedScenarioCount": 11,
+  "runtimeDifferences": {
+    "appBrowser": "Node22.22.0/npm10.9.2/Chromium",
+    "nativeEdiel": "tsx4.21.0/Node24.19.0",
+    "source": "Same442256source; explicit runtime difference, no extra nativequalification inferred"
+  },
+  "sourceRepair": {
+    "head": "90a72f30da0309eedba6640142aa81631214304b",
+    "tree": "7e759c202144b9e93d01feb6fac8023eddd9e281",
+    "base": "d93f361c51e81bc49cd48e817bd0b0fbe65e3d5b",
+    "preimageMatchesRuntime442": {
+      "app/api/internal/invoice-exports/[id]/route.ts": true,
+      "lib/integrations/billing/invoiceExportCore.ts": true
+    },
+    "sourceHashes": {
+      "app/api/internal/invoice-exports/[id]/route.ts": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb",
+      "lib/integrations/billing/invoiceExportCore.ts": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94",
+      "__tests__/invoice-export-run-read-not-found.test.ts": "0ead7171b60935ce45f42f6597f7cd08e24d50cbeaea0bdbe3387d5d43e66c6e"
+    },
+    "checks": {
+      "red.log": {
+        "sha256": "3f718a4023cf256afe83c754c34c6b11866591deeea670027ad380e47d943399",
+        "output": "\n RUN  v4.1.9 /workspace/gridex-invoice-run-notfound-20261112\n\n ❯ __tests__/invoice-export-run-read-not-found.test.ts (10 tests | 2 failed) 30ms\n     × returns controlled404 for an absent scoped run instead of a zero-row SDK500 14ms\n     × does not return another company run under the same ID 2ms\n\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  __tests__/invoice-export-run-read-not-found.test.ts > invoice export run actual public read boundary > returns controlled404 for an absent scoped run instead of a zero-row SDK500\nAssertionError: expected 500 to be 404 // Object.is equality\n\n- Expected\n+ Received\n\n- 404\n+ 500\n\n ❯ __tests__/invoice-export-run-read-not-found.test.ts:34:29\n     32|   it('returns controlled404 for an absent scoped run instead of a zero…\n     33|     const response=await get()\n     34|     expect(response.status).toBe(404)\n       |                             ^\n     35|     expect(await response.json()).toEqual({error:'Fakturaexporten hitt…\n     36|   })\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯\n\n FAIL  __tests__/invoice-export-run-read-not-found.test.ts > invoice export run actual public read boundary > does not return another company run under the same ID\nAssertionError: expected 500 to be 404 // Object.is equality\n\n- Expected\n+ Received\n\n- 404\n+ 500\n\n ❯ __tests__/invoice-export-run-read-not-found.test.ts:46:56\n     44|   it('does not return another company run under the same ID',async()=>{\n     45|     io.runs=[{id:RUN,company_id:FOREIGN}]\n     46|     const response=await get();expect(response.status).toBe(404)\n       |                                                        ^\n     47|     expect(await response.text()).not.toContain(FOREIGN)\n     48|   })\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯\n\n\n Test Files  1 failed (1)\n      Tests  2 failed | 8 passed (10)\n   Start at  18:58:50\n   Duration  2.15s (transform 1.29s, setup 32ms, import 1.85s, tests 30ms, environment 0ms)\n\n"
+      },
+      "green.log": {
+        "sha256": "b446c2cd691347337e1a9d3a35493216c7ae499251439ff062e9b1be67bee9a7",
+        "output": "\n RUN  v4.1.9 /workspace/gridex-invoice-run-notfound-20261112\n\n\n Test Files  1 passed (1)\n      Tests  10 passed (10)\n   Start at  18:59:08\n   Duration  3.53s (transform 2.43s, setup 44ms, import 3.17s, tests 29ms, environment 0ms)\n\n"
+      },
+      "lint.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output": ""
+      },
+      "test-types.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output": ""
+      },
+      "app-types.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output": "",
+        "exitCode": 0,
+        "command": "Node22.22.0 tsc --noEmit --incremental false -p tsconfig.app.json"
+      }
+    },
+    "reviews": [
+      "/workspace/gridex-root-reviews-20261112/invoice-notfound-source-review.safe.json",
+      "/workspace/gridex-scenario-native-evidence-20261112/invoice-source-review.safe.json"
+    ],
+    "status": "TWO_SOURCE_APPROVE_CHECKS_PASS_BOUNDED_HTTP_RETEST_PASS",
+    "runtimeBoundary": "Actual442256baseprivateapp plus2reviewedfrozenproductbytes from90a72; not a whole-appGithead90a72",
+    "ownSourceCleanup": {
+      "path": "/workspace/gridex-invoice-notfound-evidence-20261112/own-source-cleanup.safe.json",
+      "sha256": "6599d75c926419de448fa7c546c0338dc81067dd5ab25a8ac1c7896a5b4ff505",
+      "safeReceipt": {
+        "state": "OWN_ALL4_RELEASED_NO_FOREIGN_RESOURCES_TOUCHED",
+        "sourceHead": "90a72f30da0309eedba6640142aa81631214304b",
+        "receipt": "6b6b6723da0cd2d9977bc2a3b81d28b62dfee002",
+        "operations": [
+          {
+            "ref": "refs/tags/agent-claims/masterplan/file-07fa463ad4f1a38451b9139155ec5c219a7ffda8b075a9ed31597450877f5981",
+            "expectedReceipt": "6b6b6723da0cd2d9977bc2a3b81d28b62dfee002",
+            "before": "GET_MATCH",
+            "delete": "INTENT_DURABLY_RECORDED",
+            "atUtc": "2026-11-12T19:05:42.199827+00:00",
+            "deleteHttpStatus": 204,
+            "afterHttpStatus": 404,
+            "after": "AUTHENTICATED_404"
+          },
+          {
+            "ref": "refs/tags/agent-claims/masterplan/file-1bc05b2f119f5129526c212f3378fe853a5b7347f7b0edc6e13f05b2a997c04c",
+            "expectedReceipt": "6b6b6723da0cd2d9977bc2a3b81d28b62dfee002",
+            "before": "GET_MATCH",
+            "delete": "INTENT_DURABLY_RECORDED",
+            "atUtc": "2026-11-12T19:05:44.124402+00:00",
+            "deleteHttpStatus": 204,
+            "afterHttpStatus": 404,
+            "after": "AUTHENTICATED_404"
+          },
+          {
+            "ref": "refs/tags/agent-claims/masterplan/file-b7868f3d8ed7dcdad8f1de0e1c6c2b3407588222351061e76074bf26e3f6939f",
+            "expectedReceipt": "6b6b6723da0cd2d9977bc2a3b81d28b62dfee002",
+            "before": "GET_MATCH",
+            "delete": "INTENT_DURABLY_RECORDED",
+            "atUtc": "2026-11-12T19:05:45.906970+00:00",
+            "deleteHttpStatus": 204,
+            "afterHttpStatus": 404,
+            "after": "AUTHENTICATED_404"
+          },
+          {
+            "ref": "refs/tags/agent-claims/masterplan/slot-session-f5233713-37cf-448e-b14d-b4c473695730",
+            "expectedReceipt": "6b6b6723da0cd2d9977bc2a3b81d28b62dfee002",
+            "before": "GET_MATCH",
+            "delete": "INTENT_DURABLY_RECORDED",
+            "atUtc": "2026-11-12T19:05:47.655034+00:00",
+            "deleteHttpStatus": 204,
+            "afterHttpStatus": 404,
+            "after": "AUTHENTICATED_404"
+          }
+        ]
+      }
+    },
+    "reviewReceipts": [
+      {
+        "path": "/workspace/gridex-root-reviews-20261112/invoice-notfound-source-review.safe.json",
+        "sha256": "face4185db8bc1d9a008f3631ae587d98b4741614b7c32a15da86c473759345a",
+        "safeReceipt": {
+          "reviewer": "root",
+          "head": "90a72f30da0309eedba6640142aa81631214304b",
+          "decision": "APPROVE_SOURCE",
+          "findings": [],
+          "sourceHashes": {
+            "app/api/internal/invoice-exports/[id]/route.ts": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb",
+            "lib/integrations/billing/invoiceExportCore.ts": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94",
+            "__tests__/invoice-export-run-read-not-found.test.ts": "0ead7171b60935ce45f42f6597f7cd08e24d50cbeaea0bdbe3387d5d43e66c6e"
+          },
+          "logHashes": {
+            "red": "3f718a4023cf256afe83c754c34c6b11866591deeea670027ad380e47d943399",
+            "green": "b446c2cd691347337e1a9d3a35493216c7ae499251439ff062e9b1be67bee9a7",
+            "lint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "test-types": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "scope": "Read-only source/test review. Actual GET and sole core caller checked; maybeSingle nullable data, run/items errors propagated before null, null route404, tenant/permission order unchanged, multiple-row PGRST116 preserved. Base product preimages identical to442256; finite SDK/guard testports not Auth/native proof. App TS pending and required before runtime GO."
+        }
+      },
+      {
+        "path": "/workspace/gridex-scenario-native-evidence-20261112/invoice-source-review.safe.json",
+        "sha256": "6c4178f15b8fda3d37f01a2f5d96c279abca0ce96b15f3c5de665153784b275d",
+        "safeReceipt": {
+          "reviewer": "execute_eight_parts",
+          "verdict": "APPROVE_SOURCE_ONLY",
+          "head": "90a72f30da0309eedba6640142aa81631214304b",
+          "tree": "7e759c202144b9e93d01feb6fac8023eddd9e281",
+          "files": [
+            {
+              "path": "lib/integrations/billing/invoiceExportCore.ts",
+              "sha256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94"
+            },
+            {
+              "path": "app/api/internal/invoice-exports/[id]/route.ts",
+              "sha256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb"
+            },
+            {
+              "path": "__tests__/invoice-export-run-read-not-found.test.ts",
+              "sha256": "0ead7171b60935ce45f42f6597f7cd08e24d50cbeaea0bdbe3387d5d43e66c6e"
+            }
+          ],
+          "newRuntimeAcceptance": false,
+          "findings": [],
+          "checked": [
+            "complete3filepatch",
+            "onlygetInvoiceExportRunconsumer",
+            "actualfailfirst2FAIL8PASS",
+            "actualgreen10PASS",
+            "tenantfiltersandguardordering",
+            "realDBerrorsremain500"
+          ]
+        }
+      }
+    ]
+  },
+  "afterRepair": {
+    "sourceKind": "PRIVATE_COMPOSITE_NO_FABRICATED_GIT_HEAD",
+    "source": {
+      "kind": "PRIVATE_COMPOSITE_NO_FABRICATED_GIT_HEAD",
+      "baseHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+      "baseTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+      "donorHead": "90a72f30da0309eedba6640142aa81631214304b",
+      "donorTree": "7e759c202144b9e93d01feb6fac8023eddd9e281",
+      "overlay": [
+        {
+          "path": "app/api/internal/invoice-exports/[id]/route.ts",
+          "beforeSha256": "a1b502ad15361f5b7fbe1134c758e0fe79745dd6897428115992d93482d5642e",
+          "afterSha256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb"
+        },
+        {
+          "path": "lib/integrations/billing/invoiceExportCore.ts",
+          "beforeSha256": "f67d108276fd9c3b630867f2e6f8f678336a0583531943d9a22462f50e2db298",
+          "afterSha256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94"
+        }
+      ],
+      "twoSourceApprovals": true,
+      "positiveOutputHandoff": true,
+      "stoppedOwnAppPids": [
+        54127,
+        54179,
+        54228,
+        54229,
+        54240,
+        54241,
+        54271
+      ],
+      "noDatabaseMigrationOrAuthorityWrite": true
+    },
+    "requests": [
+      {
+        "actor": "bootstrap_platform_admin",
+        "companyKind": "own",
+        "companyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+        "unknownRunId": "00000000-0000-4000-8000-000000000099",
+        "status": 404,
+        "bodySha256": "10a26a44f8ad01144a1156737c2eba0cb5d25c0c9ad145b7db8828d1be88731f",
+        "bodyBytes": 76,
+        "errorKeys": [
+          "code",
+          "error"
+        ]
+      },
+      {
+        "actor": "bootstrap_platform_admin",
+        "companyKind": "foreign",
+        "companyId": "2d50ff27-7e67-4641-bf26-042ca586225b",
+        "unknownRunId": "00000000-0000-4000-8000-000000000099",
+        "status": 404,
+        "bodySha256": "10a26a44f8ad01144a1156737c2eba0cb5d25c0c9ad145b7db8828d1be88731f",
+        "bodyBytes": 76,
+        "errorKeys": [
+          "code",
+          "error"
+        ]
+      },
+      {
+        "actor": "ordinary_tenant_owner",
+        "companyKind": "own",
+        "companyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+        "unknownRunId": "00000000-0000-4000-8000-000000000099",
+        "status": 403,
+        "bodySha256": "0845fcabcdcabf33c7b5ce3b244c9934ddf274a6b70862842c7fbee41319897c",
+        "bodyBytes": 23,
+        "errorKeys": [
+          "error"
+        ]
+      },
+      {
+        "actor": "ordinary_tenant_owner",
+        "companyKind": "foreign",
+        "companyId": "2d50ff27-7e67-4641-bf26-042ca586225b",
+        "unknownRunId": "00000000-0000-4000-8000-000000000099",
+        "status": 403,
+        "bodySha256": "12b7ff58bc9323ccb0247f1047eb06f276d87a163e930d623da48c2381868eb5",
+        "bodyBytes": 39,
+        "errorKeys": [
+          "error"
+        ]
+      }
+    ],
+    "normalLoginLogoutActors": [
+      {
+        "label": "bootstrap_platform_admin",
+        "normalUiLogin": true,
+        "normalUiPostLogout": true
+      },
+      {
+        "label": "ordinary_tenant_owner",
+        "normalUiLogin": true,
+        "normalUiPostLogout": true
+      }
+    ],
+    "oracle": true,
+    "scope": "MissingRUNnotfound4GETonly; never marks MAIN05FILEUUIDaspassed"
+  },
+  "runtimeCleanup": {
+    "path": "/workspace/gridex-scenario-native-evidence-20261112/cleanup.safe.json",
+    "sha256": "000c3330860c0c48c01a789f84d8bd4d07ce78b46076e397a77449cc6d3d424a",
+    "summary": "All5exactowncontainersSTOP;app/forwarderlisteners3108/55321gone;data/imagecache/bootstrapfixture/private0600credentialsretained;nootherresourcesstopped."
+  }
+}

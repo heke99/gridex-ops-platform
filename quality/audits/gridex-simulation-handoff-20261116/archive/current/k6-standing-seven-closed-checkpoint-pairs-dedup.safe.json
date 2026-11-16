@@ -1,0 +1,54 @@
+{
+  "state": "ROOT_STANDING_EXACT_SEVEN_K6_CLOSED_CHECKPOINT_PAIRS_LOSSLESS_DEDUP_SCOPE",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T19:15:00.036248+00:00",
+  "checkpointRoot": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6",
+  "pairs": [
+    {
+      "canonical": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_ISSUE/full-after-rpc.private.json",
+      "replace": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_ISSUE/full-after-dump.private.json",
+      "kind": "closed_same_phase_dump_equality"
+    },
+    {
+      "canonical": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_RECEIVE/full-after-rpc.private.json",
+      "replace": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_RECEIVE/full-after-dump.private.json",
+      "kind": "closed_same_phase_dump_equality"
+    },
+    {
+      "canonical": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_PREPARE/full-after-rpc.private.json",
+      "replace": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_PREPARE/full-after-dump.private.json",
+      "kind": "closed_same_phase_dump_equality"
+    },
+    {
+      "canonical": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_ATTEST/full-after-rpc.private.json",
+      "replace": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_ATTEST/full-after-dump.private.json",
+      "kind": "closed_same_phase_dump_equality"
+    },
+    {
+      "canonical": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_ISSUE/full-after-rpc.private.json",
+      "replace": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_RECEIVE/full-before-rpc.private.json",
+      "kind": "closed_cross_phase_exact_byte_equality"
+    },
+    {
+      "canonical": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_RECEIVE/full-after-rpc.private.json",
+      "replace": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_PREPARE/full-before-rpc.private.json",
+      "kind": "closed_cross_phase_exact_byte_equality"
+    },
+    {
+      "canonical": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_PREPARE/full-after-rpc.private.json",
+      "replace": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_ATTEST/full-before-rpc.private.json",
+      "kind": "closed_cross_phase_exact_byte_equality"
+    }
+  ],
+  "helperSHA256": "25be3ae50d29881bdd0771a74f37198f9b5c36fd297e408f7f431757772e57dc",
+  "sourceProfileManifestSHA256": "761abc8a2a6b091a25c794083ab666956f3328341e85a3c42a2a769bd897b00a",
+  "conditions": [
+    "Producer sole filesystemwriter after actual involvedphase CLIexit and nativeCoreACK/completed/nonhalted/SEALEDallStateEqual proofs, no activephasewriter",
+    "Fresh everycandidatefullSHA/byteequal/stat/dev/uidgid/mode600/root/noSymlink/closedownedFD before each operation; ifnotbyteequal preserveboth andskip",
+    "Exact7listedpairs only, atomichardlinkreplacement+parentdirectoryfsync, preservealllogicalRAWpaths/bytes/archives/seals and aliases",
+    "Append actual old/new stat/inode/nlink/aliases/scope/canonicalSHA custodyjournal; savings only actual releasedinodeallocation",
+    "No replay/native/SDK/Auth/business/settings/deadline changes; no futurebytescredit orresourcePASS fromthisscope"
+  ],
+  "noBusinessAuthority": true,
+  "noActualFutureCheckpointClaims": true
+}

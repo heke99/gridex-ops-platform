@@ -1,0 +1,18 @@
+{
+  "state": "IMMUTABLE_NORMAL_MAIN_NATIVE_QUERY_SCOPE_BINDING_CORRECTION",
+  "originalPacketSHA256": "2571391c5d8a3269aa31279bdb80a01620063dbfe578e0e33197deb684218fa4",
+  "files": {
+    "/workspace/gridex-ediel-ingress-main-prep-20261115/hold-ee-ingress-normal600.v2.cjs": "9d259422c8df7b9720ab4e6260e2253fb68564a51f37a21c81c45cc96fdfb2b6",
+    "/workspace/gridex-ediel-ingress-main-prep-20261115/ingress-host-adapter.v2.cjs": "99d718c2279625ad29768ceb87826bd86d7f45a4019793339112dbf7608bfb9f",
+    "/workspace/gridex-ediel-ingress-main-prep-20261115/ingress-ui-driver.HOST.v2.cjs": "97424180b038c835dc6c909c9c8a87ad02341093a2740fbf7c5336adf19ed406",
+    "/workspace/gridex-ediel-ingress-main-prep-20261115/bind-ingress-step.v2.py": "6a230027949f66143a3c63e532d1149eb25dc7150da40f3b49c31e5ad7c09751",
+    "/workspace/gridex-ediel-ingress-main-prep-20261115/read-own-ingress.MAIN.v2.READONLY.sql": "06b828cbeac8e2752453dff85c7136a962fde45b7203adcdfec0f82b28c823d1",
+    "/workspace/gridex-ediel-ingress-main-prep-20261115/test-main-host-redaction.v2.cjs": "2bffb6cb0ecebdd4fc59c420bc170cb6544db074434ff025301fc8b0cf2ea215",
+    "/workspace/gridex-ediel-ingress-main-prep-20261115/HOST-TARGET.v2.UNARMED.safe.json": "db2bc5749c5df7f0b2be9668d5c127bce4e6b227a9b11d4120689d2408017e25"
+  },
+  "change": "SQL echoes exact requested mailbox name/id/email id/MIME hash; normal driver binds all to fixed step input; initial Main gate requires same intended name and NULL IDs. File siblings only to bind exact immutable sources.",
+  "newNodeSyntax": "NOT_RUN",
+  "sql": "NOT_RUN",
+  "materializerAndStartupUnchanged": true,
+  "noActualAuthority": true
+}

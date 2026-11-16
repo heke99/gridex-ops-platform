@@ -1,0 +1,170 @@
+{
+  "state": "READONLY_EXACT15_ARCHIVES_22_ORIGINAL_ABSENCES_FINAL_CUSTODY",
+  "actual": {
+    "path": "/workspace/gridex-event05-c-nextbatch-resource-prep-20261116/ACTUAL.safe.json",
+    "sha256": "57b605c91f2d85839c875ba1e6fab60d1f6cf775bcc68d576acf599b0c052c16"
+  },
+  "all15ArchiveWholeSHABytesVerified": [
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/main-before-setup.private.json.closed-next4-batch.gz",
+      "sha256": "a87d36f00a3b7ac1806bb84ed286d828140d4fe1ce2d8b03619769ac98257de1",
+      "bytes": 2151798
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/trusted3443-before-event.private.json.closed-next4-batch.gz",
+      "sha256": "e1ddc54af01f9a43d4e4e1f73d8213eb3d1936645ef7021ddc6e2387cd87c562",
+      "bytes": 2217759
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/predecessor-after.private.json.closed-next4-batch.gz",
+      "sha256": "3cab15f4e856b863116ef21fe575b724871722e023b3bd5aac08f94e41343bdf",
+      "bytes": 2224044
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/publication-after.private.json.closed-next4-batch.gz",
+      "sha256": "6a51fd71bb433df6bbc548df32cc0d95e2fb31d2e84d4aa51441bd0a39ee0375",
+      "bytes": 2229833
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/candidate3457-before-factory.private.json.closed-next4-batch.gz",
+      "sha256": "6a51fd71bb433df6bbc548df32cc0d95e2fb31d2e84d4aa51441bd0a39ee0375",
+      "bytes": 2229833
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/after-auth.main.private.json.closed-next4-batch.gz",
+      "sha256": "80d8f561269523e970ba8400e28a25740243a418fd7bd4c48bf84fff02017f69",
+      "bytes": 2151844
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/clone-before-second-tenant.private.json.closed-next4-batch.gz",
+      "sha256": "6a51fd71bb433df6bbc548df32cc0d95e2fb31d2e84d4aa51441bd0a39ee0375",
+      "bytes": 2229833
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/clone-after-second-tenant.private.json.closed-next4-batch.gz",
+      "sha256": "4672b209e1b64f9b152a3a66d843b359765c16ef9c72d3ed2bfbdf944b9c3913",
+      "bytes": 2229916
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/owned-failure-full.private.json.closed-next4-batch.gz",
+      "sha256": "bfbaff4803ec7aaa38f6e192f854d2c594de202c53b9509fdf3a8d947854105f",
+      "bytes": 2229957
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/main-before-setup.private.json.closed-next4-batch.gz",
+      "sha256": "eeb98140c3700e61ceb40d9de796104835fc13643c1cf2499135b1f16f825dd1",
+      "bytes": 2151787
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/after-auth.main.private.json.closed-next4-batch.gz",
+      "sha256": "ee64987c82c70562f083f15ead589a216e488de23ca90997fa19ac6f560e4140",
+      "bytes": 2151844
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/postlogout.main.private.json.closed-next4-batch.gz",
+      "sha256": "96497e25a2391d4d74a74e7120e0ebd1342232f77d2a4578100d6e412f22f4cf",
+      "bytes": 2151798
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/predecessor-after.private.json.closed-next4-batch.gz",
+      "sha256": "b105b60f7679eec84d5743a1a51da189058e59d302928786d2c07066363030aa",
+      "bytes": 2224081
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/publication-after.private.json.closed-next4-batch.gz",
+      "sha256": "7c5a3ce0ce4d936ceaf3bd927d193062df5d39177871f2b3a6ea0c6cb80dfc08",
+      "bytes": 2229878
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/owned-clone-after-business.private.json.closed-next4-batch.gz",
+      "sha256": "c8d9ce26812448edb8c42fbcc307f70b4f031665a422b47cb6ea761ee74217b0",
+      "bytes": 2229938
+    }
+  ],
+  "all22OriginalPathsAbsent": [
+    "/tmp/gridex-event-headless-actual-20261116-event05-a/main-before-setup.private.json",
+    "/tmp/gridex-event-headless-actual-20261116-event05-a/trusted3443-before-event.private.json",
+    "/tmp/gridex-event-headless-actual-20261116-event05-a/predecessor-after.private.json",
+    "/tmp/gridex-event-headless-actual-20261116-event05-a/publication-after.private.json",
+    "/tmp/gridex-event-headless-actual-20261116-event05-a/candidate3457-before-factory.private.json",
+    "/tmp/gridex-event-headless-actual-20261116-event05-a/after-auth.main.private.json",
+    "/tmp/gridex-event-headless-actual-20261116-event05-a/emergency-postbusiness.main.private.json",
+    "/tmp/gridex-event-headless-actual-20261116-event05-a/clone-before-second-tenant.private.json",
+    "/tmp/gridex-event-headless-actual-20261116-event05-a/clone-after-second-tenant.private.json",
+    "/tmp/gridex-event-headless-actual-20261116-event05-a/owned-failure-full.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-c/main-before-setup.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-c/before-auth.main.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-c/after-auth.main.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-c/postbusiness.main.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-c/postlogout.main.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-c/final-cleanup-check.main.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-c/main-after-runtime.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-c/post-topology-restoration.main.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-c/predecessor-after.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-c/publication-after.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-c/candidate3457-before-factory.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-c/owned-clone-after-business.private.json"
+  ],
+  "all6ProtectedPhysicalStatsPreserved": [
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/post-topology-restoration.main.private.json",
+      "device": 34,
+      "inode": 1015993,
+      "bytes": 22284318,
+      "nlink": 3
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/final-cleanup-check.main.private.json",
+      "device": 34,
+      "inode": 1015993,
+      "bytes": 22284318,
+      "nlink": 3
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/main-after-runtime.private.json",
+      "device": 34,
+      "inode": 1015993,
+      "bytes": 22284318,
+      "nlink": 3
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/owned-failure.dump.private",
+      "device": 34,
+      "inode": 1016011,
+      "bytes": 17309010,
+      "nlink": 1
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/trusted3443-before-event.private.json",
+      "device": 34,
+      "inode": 995072,
+      "bytes": 22899459,
+      "nlink": 1
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/post-topology-restoration.main.private.json",
+      "device": 34,
+      "inode": 1005950,
+      "bytes": 22284318,
+      "nlink": 1
+    }
+  ],
+  "activeUnchangedExclusiveRestorer": {
+    "path": "/workspace/gridex-event05-c-nextbatch-resource-prep-20261116/restore-exact-fifteen.group-or-final.py",
+    "sha256": "fba8aa3c8bbf7f033ece94bb6a9b644df5b63f6322bb70a21af8d8e9f8cce18f"
+  },
+  "measuredTmpNetFreedBytes": 308310016,
+  "freshReceiptFreeBytes": {
+    "/workspace": 363376640,
+    "/tmp": 416641024
+  },
+  "budgetPrecision": {
+    "workspaceBase336MiB": 352321536,
+    "tmpBase336MiBPlus32MiBStorage": 385875968,
+    "storageExtraIsTmpOnly": true,
+    "noNewWS385Gate": true,
+    "futureAdmissionRequiresFreshActualMeasurement": true
+  },
+  "noDecodeRestoreRecompressionSourceForkOrBackendByReviewer": true,
+  "originalCapturedAliasesAndTimestampsRemainHistorical": true
+}

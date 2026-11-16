@@ -1,0 +1,409 @@
+{
+  "status": "LOCAL_SOURCE_COMPONENT_AND_REAL_BROWSER_PERSONA_VERIFIED_NOT_MAIN_OR_HOSTED",
+  "actualRemoteMain": "d93f361c51e81bc49cd48e817bd0b0fbe65e3d5b",
+  "sourceDependencyBase": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+  "sourceDependencyTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+  "codePath": [
+    {
+      "path": "app/dashboard/page.tsx",
+      "step": "getVerifiedAuthUser verifies request user; anonymous redirects before persona; independent persona/company reads remain parallel.",
+      "line": 63
+    },
+    {
+      "path": "app/dashboard/page.tsx",
+      "step": "private userHasPlatformRole receives only that verified UID and creates request server client.",
+      "line": 51
+    },
+    {
+      "path": "lib/auth/authenticatedTenantContext.ts",
+      "step": "unchanged420f adapter calls canonical_authenticated_tenant_context, binds authorized user_id and fullcontext shape, boolean flag, platform access invariant.",
+      "line": 25
+    },
+    {
+      "path": "app/dashboard/page.tsx",
+      "step": "serverflagtrue renders platform overview even empty roles/permissions; false/errors render company persona. No role-name/metadata inference or new API/permissiongrant.",
+      "line": 56
+    }
+  ],
+  "sourceHashes": {
+    "app/dashboard/page.tsx": "0b6bc59f9659956fd0990ce80e2520858d13ca01ab9f20f3d9b0c10567640b02",
+    "__tests__/dashboard-canonical-persona.test.ts": "a4a02df508963dccff35a2c8ef8e48e30db8db93de4a44d946818680a96ea3b1"
+  },
+  "dependencyApplicability": {
+    "actualMain": "d93f361c51e81bc49cd48e817bd0b0fbe65e3d5b",
+    "dependencyBase": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+    "dependencyTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+    "officialClaimInitiallyOnMain": true,
+    "rootExplicitFrozenBaseMaterialization": true,
+    "unchangedAdapter": {
+      "path": "lib/auth/authenticatedTenantContext.ts",
+      "originalDonor": "420f6102d597194f3af7fc6b8c5fb95ad0c1f1c2",
+      "sha256": "92f71f95f82bb6e9dd7e8dea9a9a3383b253bd2578f27451faf35c3a8ce2b600",
+      "byteIdenticalAllThree": true
+    },
+    "preservedSeparateFix": "90a72f30da0309eedba6640142aa81631214304b",
+    "preservedSeparateScenarioReport": "7ff5431a0d6fc4e4622c3bc5e16b0bb6fe71d2d8",
+    "nativeAdoption": "Only frozen dashboard page bytes may overlay existing442+90runtime; do not replace other reviewed outputs with this branch wholesale."
+  },
+  "verification": {
+    "red": "Actualdefaultcomponent standardVitest3FAIL/10PASS before productfix",
+    "green": "48/48 in3namedfiles;13newactualdefaultcomponentcases included",
+    "files": [
+      "__tests__/dashboard-canonical-persona.test.ts",
+      "__tests__/dashboard-render-performance.test.ts",
+      "__tests__/canonical-auth-context-callers.test.ts"
+    ],
+    "testStyle": "Actual default async server component rendered with ReactDOM; actual context adapter, finite verifiedAuth/requestSDK/companyscope ports. No exported test helper/route or mirrored persona implementation.",
+    "lint": "2changedTSfiles exit0",
+    "testTypes": "scoped testTypeScript exit0",
+    "appTypes": "Fullapp TypeScript Node22.22.0 maxheap6144 noEmit incrementalfalse exit0",
+    "diff": "git diff --check0"
+  },
+  "checks": {
+    "red.log": {
+      "path": "/workspace/gridex-dashboard-persona-evidence-20261112/red.log",
+      "sha256": "e17e0814fd2f597f6b1ca0d4c44433cfa30103409875ea85a5c67e1c3e5a9510",
+      "output": "\n RUN  v4.1.9 /workspace/gridex-dashboard-persona-20261112\n\n ❯ __tests__/dashboard-canonical-persona.test.ts (13 tests | 3 failed) 57ms\n     × shows platform overview for canonical flagtrue with empty roles/permissions and no retired RPC 23ms\n     × never treats a platform-looking role label as platform authority when canonical flagfalse 8ms\n     × fails closed when request client construction fails 2ms\n\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  __tests__/dashboard-canonical-persona.test.ts > actual dashboard default component uses verified canonical persona > shows platform overview for canonical flagtrue with empty roles/permissions and no retired RPC\nAssertionError: expected '<div class=\"space-y-8\"><section class…' to contain 'Plattformsöversikt'\n\nExpected: \"Plattformsöversikt\"\nReceived: \"<div class=\"space-y-8\"><section class=\"rounded-[2.25rem] border border-emerald-100 bg-gradient-to-br from-white to-emerald-50 p-8 shadow-sm shadow-emerald-950/5\"><div class=\"flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between\"><div><div class=\"inline-flex items-center rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800\">Bolagsyta</div><h1 class=\"mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl\">Välkommen till Synthetic own company</h1><p class=\"mt-4 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg\">Härifrån hanterar ditt team kunder, avtal, anläggningar, mätpunkter, leverantörsbyten, mätdata och operativa uppföljningar för ert eget bolag.</p></div><div class=\"rounded-3xl border border-white bg-white/80 px-5 py-4 shadow-sm\"><p class=\"text-xs font-semibold uppercase tracking-[0.16em] text-slate-500\">Inloggad</p><p class=\"mt-2 text-sm font-semibold text-slate-900\">synthetic@example.invalid</p></div></div></section><section class=\"grid gap-5 md:grid-cols-2 xl:grid-cols-4\"><div class=\"rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5\"><p class=\"text-sm font-semibold text-emerald-700\">Kunddrift</p><p class=\"mt-3 text-sm leading-6 text-slate-600\">Kunder, avtal, anläggningar och dokument för ditt bolag.</p></div><div class=\"rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5\"><p class=\"text-sm font-semibold text-emerald-700\">Operations</p><p class=\"mt-3 text-sm leading-6 text-slate-600\">Fullmakter, leverantörsbyten, mätdata och avvikelser.</p></div><div class=\"rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5\"><p class=\"text-sm font-semibold text-emerald-700\">Ediel och routing</p><p class=\"mt-3 text-sm leading-6 text-slate-600\">Bolagets egna Edielflöden, kvittenser och aktörsprofil.</p></div><div class=\"rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5\"><p class=\"text-sm font-semibold text-emerald-700\">Fakturaunderlag</p><p class=\"mt-3 text-sm leading-6 text-slate-600\">Mätvärden, underlag och exportstatus för ditt bolag.</p></div></section><section class=\"grid gap-6 xl:grid-cols-2\"><div class=\"rounded-[2rem] border p-6 shadow-sm border-emerald-200 bg-emerald-700 text-white shadow-emerald-700/15\"><h2 class=\"text-lg font-semibold\">Öppna bolagets arbetsyta</h2><p class=\"mt-3 text-sm leading-6 text-emerald-50/85\">Öppna arbetsytan för kunddrift, operations, Ediel, mätvärden och faktureringsunderlag inom ditt eget bolag.</p><div class=\"mt-6\"><a href=\"/admin\">Öppna arbetsyta</a></div></div><div class=\"rounded-[2rem] border p-6 shadow-sm border-emerald-100 bg-white shadow-emerald-950/5\"><h2 class=\"text-lg font-semibold\">Bolagsinställningar</h2><p class=\"mt-3 text-sm leading-6 text-slate-600\">Hantera ert eget bolags kontaktuppgifter, Ediel-profil och interna användare.</p><div class=\"mt-6\"><a href=\"/admin/company-settings\">Öppna inställningar</a></div></div><div class=\"rounded-[2rem] border p-6 shadow-sm border-emerald-100 bg-white shadow-emerald-950/5\"><h2 class=\"text-lg font-semibold\">Operations</h2><p class=\"mt-3 text-sm leading-6 text-slate-600\">Följ kundintag, fullmakter, leverantörsbyten, mätdata och operativa avvikelser.</p><div class=\"mt-6\"><a href=\"/admin/operations\">Öppna operations</a></div></div><div class=\"rounded-[2rem] border p-6 shadow-sm border-emerald-100 bg-white shadow-emerald-950/5\"><h2 class=\"text-lg font-semibold\">Kundregister</h2><p class=\"mt-3 text-sm leading-6 text-slate-600\">Sök kund, öppna kundkort och följ anläggningar, mätpunkter, avtal och intern historik.</p><div class=\"mt-6\"><a href=\"/admin/customers\">Öppna kunder</a></div></div></section></div>\"\n\n ❯ __tests__/dashboard-canonical-persona.test.ts:26:44\n     24| describe('actual dashboard default component uses verified canonical p…\n     25|   it('shows platform overview for canonical flagtrue with empty roles/…\n     26|     const value=await html();expect(value).toContain('Plattformsöversi…\n       |                                            ^\n     27|     expect(io.rpc).toHaveBeenCalledExactlyOnceWith('canonical_authenti…\n     28|   })\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯\n\n FAIL  __tests__/dashboard-canonical-persona.test.ts > actual dashboard default component uses verified canonical persona > never treats a platform-looking role label as platform authority when canonical flagfalse\nAssertionError: expected '<div class=\"space-y-8\"><section class…' to contain 'Bolagsyta'\n\nExpected: \"Bolagsyta\"\nReceived: \"<div class=\"space-y-8\"><section class=\"rounded-[2.25rem] border border-emerald-100 bg-gradient-to-br from-white to-emerald-50 p-8 shadow-sm shadow-emerald-950/5\"><div class=\"flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between\"><div><div class=\"inline-flex items-center rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800\">Plattformsöversikt</div><h1 class=\"mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl\">Gridex Platform Operations</h1><p class=\"mt-4 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg\">Härifrån hanteras plattformens bolag, globala användare, roller, Ediel-regler och driftuppföljning.</p></div><div class=\"rounded-3xl border border-white bg-white/80 px-5 py-4 shadow-sm\"><p class=\"text-xs font-semibold uppercase tracking-[0.16em] text-slate-500\">Inloggad</p><p class=\"mt-2 text-sm font-semibold text-slate-900\">synthetic@example.invalid</p></div></div></section><section class=\"grid gap-5 md:grid-cols-2 xl:grid-cols-4\"><div class=\"rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5\"><p class=\"text-sm font-semibold text-emerald-700\">Kunddrift</p><p class=\"mt-3 text-sm leading-6 text-slate-600\">Samlad kundbild med avtal, anläggningar och dokument.</p></div><div class=\"rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5\"><p class=\"text-sm font-semibold text-emerald-700\">Operations</p><p class=\"mt-3 text-sm leading-6 text-slate-600\">Prioriterade ärenden, switchar och avvikelser.</p></div><div class=\"rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5\"><p class=\"text-sm font-semibold text-emerald-700\">Plattformsstyrning</p><p class=\"mt-3 text-sm leading-6 text-slate-600\">Bolag, globala användare och rollstyrning.</p></div><div class=\"rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm shadow-emerald-950/5\"><p class=\"text-sm font-semibold text-emerald-700\">Handoff</p><p class=\"mt-3 text-sm leading-6 text-slate-600\">Underlag och externa flöden med spårbarhet.</p></div></section><section class=\"grid gap-6 xl:grid-cols-2\"><div class=\"rounded-[2rem] border p-6 shadow-sm border-emerald-200 bg-emerald-700 text-white shadow-emerald-700/15\"><h2 class=\"text-lg font-semibold\">Plattformens kontrollcenter</h2><p class=\"mt-3 text-sm leading-6 text-emerald-50/85\">Öppna superadminytan för plattformens bolag, användare, roller, kunddrift, operations och systemkontroll.</p><div class=\"mt-6\"><a href=\"/admin\">Öppna plattform</a></div></div><div class=\"rounded-[2rem] border p-6 shadow-sm border-emerald-100 bg-white shadow-emerald-950/5\"><h2 class=\"text-lg font-semibold\">Bolag på plattformen</h2><p class=\"mt-3 text-sm leading-6 text-slate-600\">Skapa, pausa och granska elhandelsbolag. Den här vägen är endast för superadmin/platform admin.</p><div class=\"mt-6\"><a href=\"/admin/companies\">Öppna bolag</a></div></div><div class=\"rounded-[2rem] border p-6 shadow-sm border-emerald-100 bg-white shadow-emerald-950/5\"><h2 class=\"text-lg font-semibold\">Operations</h2><p class=\"mt-3 text-sm leading-6 text-slate-600\">Följ kundintag, fullmakter, leverantörsbyten, mätdata och operativa avvikelser.</p><div class=\"mt-6\"><a href=\"/admin/operations\">Öppna operations</a></div></div><div class=\"rounded-[2rem] border p-6 shadow-sm border-emerald-100 bg-white shadow-emerald-950/5\"><h2 class=\"text-lg font-semibold\">Kundregister</h2><p class=\"mt-3 text-sm leading-6 text-slate-600\">Sök kund, öppna kundkort och följ anläggningar, mätpunkter, avtal och intern historik.</p><div class=\"mt-6\"><a href=\"/admin/customers\">Öppna kunder</a></div></div></section></div>\"\n\n ❯ expectCompany __tests__/dashboard-canonical-persona.test.ts:23:56\n\n ❯ __tests__/dashboard-canonical-persona.test.ts:35:5\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯\n\n FAIL  __tests__/dashboard-canonical-persona.test.ts > actual dashboard default component uses verified canonical persona > fails closed when request client construction fails\nError: Synthetic client failure\n ❯ createSupabaseServerClient __tests__/dashboard-canonical-persona.test.ts:12:27\n     10| vi.mock('next/link', () => ({default: ({href,children}: {href:string;c…\n     11| vi.mock('@/lib/supabase/server', () => ({createSupabaseServerClient: a…\n     12|   if(io.clientError)throw Error('Synthetic client failure')\n       |                           ^\n     13|   return {rpc:(...args:unknown[])=>io.rpc(...args)}\n     14| }}))\n ❯ userHasPlatformRole app/dashboard/page.tsx:54:26\n ❯ Module.DashboardPage app/dashboard/page.tsx:78:5\n ❯ html __tests__/dashboard-canonical-persona.test.ts:17:47\n ❯ __tests__/dashboard-canonical-persona.test.ts:55:39\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯\n\n\n Test Files  1 failed (1)\n      Tests  3 failed | 10 passed (13)\n   Start at  19:52:56\n   Duration  618ms (transform 128ms, setup 39ms, import 196ms, tests 57ms, environment 0ms)\n\n"
+    },
+    "green-targeted.log": {
+      "path": "/workspace/gridex-dashboard-persona-evidence-20261112/green-targeted.log",
+      "sha256": "3b619dc38c28c06c93309d305edee73c78a2b16fdf8ebd55b5d19b64d6262ced",
+      "output": "\n RUN  v4.1.9 /workspace/gridex-dashboard-persona-20261112\n\n\n Test Files  3 passed (3)\n      Tests  48 passed (48)\n   Start at  19:53:14\n   Duration  1.75s (transform 446ms, setup 55ms, import 698ms, tests 126ms, environment 1ms)\n\n"
+    },
+    "lint.log": {
+      "path": "/workspace/gridex-dashboard-persona-evidence-20261112/lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output": ""
+    },
+    "test-types.log": {
+      "path": "/workspace/gridex-dashboard-persona-evidence-20261112/test-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output": ""
+    },
+    "app-types.log": {
+      "path": "/workspace/gridex-dashboard-persona-evidence-20261112/app-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output": "",
+      "exitCode": 0
+    }
+  },
+  "oracles": [
+    {
+      "predicate": "verified canonical is_platform_admintrue, emptyroles/permissions",
+      "expected": "Platform overview and Gridex Platform Operations",
+      "evidence": "newactualrendercasePASS"
+    },
+    {
+      "predicate": "ordinaryownerflagfalse",
+      "expected": "Bolagsyta; owncompanypresentation",
+      "evidence": "newactualrendercasePASS"
+    },
+    {
+      "predicate": "platform-lookingrolelabel or editableusermetadata",
+      "expected": "No platformpersona without canonicalflag",
+      "evidence": "newactualrendercasesPASS"
+    },
+    {
+      "predicate": "wrongUID,unauthorizedcontext,stringflag,brokenaccessinvariant,malformedpermissions,missingcontext",
+      "expected": "Failclosedcompanypersona",
+      "evidence": "6tablecasesPASS"
+    },
+    {
+      "predicate": "RPCerror or requestclientconstructionfailure",
+      "expected": "Failclosedcompanypersona, no legacyrolefallback",
+      "evidence": "newactualrendercasesPASS"
+    },
+    {
+      "predicate": "missingverifiedAuthuser",
+      "expected": "loginredirect,no personaRPC",
+      "evidence": "newactualrendercasePASS"
+    }
+  ],
+  "custody": {
+    "currentReceipt": "7474864289162f53a0eb0d4bf35fd103c093eff6",
+    "currentJournal": "/workspace/gridex-dashboard-persona-evidence-20261112/corrected-scope/f6700537-1c79-4b7b-b98d-0b4dfdb77242.claim-journal.json",
+    "oldOwnScopeCleanup": {
+      "state": "OWN_ALL5_SUPERSEDED_FOR_DEFAULT_TEST_DISCOVERY_NO_FOREIGN_TOUCHED",
+      "sourceHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+      "receipt": "b9d7d081a250db5f099060d32887fc2772746d19",
+      "operations": [
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-6c990a64f33e9f3f7fa73aa082c7bc94abf2459b5081d77bd51910ac6d687b6f",
+          "expectedReceipt": "b9d7d081a250db5f099060d32887fc2772746d19",
+          "before": "GET_MATCH",
+          "delete": "INTENT_DURABLY_RECORDED",
+          "atUtc": "2026-11-12T19:52:07.460650+00:00",
+          "deleteHttpStatus": 204,
+          "afterHttpStatus": 404,
+          "after": "AUTHENTICATED_404"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-794f4f751a357a03ccd65db9bc2693c2957d40aa095c431432a58010ffadaf87",
+          "expectedReceipt": "b9d7d081a250db5f099060d32887fc2772746d19",
+          "before": "GET_MATCH",
+          "delete": "INTENT_DURABLY_RECORDED",
+          "atUtc": "2026-11-12T19:52:09.443199+00:00",
+          "deleteHttpStatus": 204,
+          "afterHttpStatus": 404,
+          "after": "AUTHENTICATED_404"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-7a97236fd97d81fed78592324e4a6533001357c3eebbaac93a56afad0911efaf",
+          "expectedReceipt": "b9d7d081a250db5f099060d32887fc2772746d19",
+          "before": "GET_MATCH",
+          "delete": "INTENT_DURABLY_RECORDED",
+          "atUtc": "2026-11-12T19:52:11.131375+00:00",
+          "deleteHttpStatus": 204,
+          "afterHttpStatus": 404,
+          "after": "AUTHENTICATED_404"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-e16c1c1133d5d72341ada507f3e06fa37dd79de574403f158159ff934f9b5013",
+          "expectedReceipt": "b9d7d081a250db5f099060d32887fc2772746d19",
+          "before": "GET_MATCH",
+          "delete": "INTENT_DURABLY_RECORDED",
+          "atUtc": "2026-11-12T19:52:13.128675+00:00",
+          "deleteHttpStatus": 204,
+          "afterHttpStatus": 404,
+          "after": "AUTHENTICATED_404"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/slot-session-1c37390b-dc29-47e3-a4e7-1c9aca401669",
+          "expectedReceipt": "b9d7d081a250db5f099060d32887fc2772746d19",
+          "before": "GET_MATCH",
+          "delete": "INTENT_DURABLY_RECORDED",
+          "atUtc": "2026-11-12T19:52:15.280208+00:00",
+          "deleteHttpStatus": 204,
+          "afterHttpStatus": 404,
+          "after": "AUTHENTICATED_404"
+        }
+      ]
+    },
+    "testDiscoveryCorrection": "Initial.tsx not in officialVitestinclude; rawprivateconfigred retainedhistorically. Ownold5claimsreceiptmatchedreleased, corrected.test.tsfreshclaimALL5, samebranch442materialization. OfficialVitestconfigunchanged;final13case red/green uses standardrunner."
+  },
+  "limits": [
+    "Remote main remainsd93; no push/merge/hostedCIattestation or full105approval.",
+    "Browser source is exactprivate3overlaycomposite, not wholeGithead6f466.",
+    "Actualpersona/login/logout only; no billing/customerCRUD/permissionpolicy/sourceidentity/provider acceptance.",
+    "No author DB/Auth/provider/schema/type/GENwrites; captureproducer separately owns legitimate retainedlocalruntime.",
+    "Companyscope lookup remains separate and can independently fail; privatepersonacatch is not blanket all-dashboarderror recovery.",
+    "Runtime remains held for separate rootapprovedSITE/catalog task; cleanup is not falsely asserted here."
+  ],
+  "reviews": [
+    {
+      "reviewer": "root",
+      "decision": "SOURCE_DOC_APPROVE",
+      "head": "6f4664f1f2722208821823a87db76e59cd3553de",
+      "receipt": "/workspace/gridex-root-reviews-20261112/dashboard-source-review.safe.json"
+    },
+    {
+      "reviewer": "execute_eight_parts",
+      "decision": "SOURCE_DOC_APPROVE",
+      "head": "6f4664f1f2722208821823a87db76e59cd3553de",
+      "scope": "Actualsource/componentproof before own nativecapture; not counted as independent reviewer of own UIoriginal."
+    }
+  ],
+  "sourceFixCommit": "6f4664f1f2722208821823a87db76e59cd3553de",
+  "sourceFixTree": "e3e408c23cb0262dcb3e96c174ccc3e2096ee963",
+  "runtimeEvidence": [
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/dashboard-persona-ui.safe.json",
+      "sha256": "a282926350e66e733320f5fc140d9ddd3cfc908d4b2a694ba67d22444fe46dfb",
+      "safeReceipt": {
+        "kind": "ACTUAL_NORMAL_UI_DASHBOARD_PERSONA_2ACTOR",
+        "source": {
+          "kind": "PRIVATE_COMPOSITE_BASE442_PLUS_EXACT90_TWOFILES_PLUS_6f466_ONEFILE",
+          "baseAndFirstTwoOverlays": {
+            "profile": "PRIVATE442_PLUS_2_REVIEWED90a72_PRODUCT_BYTES",
+            "binding": {
+              "kind": "PRIVATE_COMPOSITE_NO_FABRICATED_GIT_HEAD",
+              "baseHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+              "baseTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+              "donorHead": "90a72f30da0309eedba6640142aa81631214304b",
+              "donorTree": "7e759c202144b9e93d01feb6fac8023eddd9e281",
+              "overlay": [
+                {
+                  "path": "app/api/internal/invoice-exports/[id]/route.ts",
+                  "beforeSha256": "a1b502ad15361f5b7fbe1134c758e0fe79745dd6897428115992d93482d5642e",
+                  "afterSha256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb"
+                },
+                {
+                  "path": "lib/integrations/billing/invoiceExportCore.ts",
+                  "beforeSha256": "f67d108276fd9c3b630867f2e6f8f678336a0583531943d9a22462f50e2db298",
+                  "afterSha256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94"
+                }
+              ],
+              "twoSourceApprovals": true,
+              "positiveOutputHandoff": true,
+              "stoppedOwnAppPids": [
+                54127,
+                54179,
+                54228,
+                54229,
+                54240,
+                54241,
+                54271
+              ],
+              "noDatabaseMigrationOrAuthorityWrite": true
+            },
+            "noFabricatedCompositeGitHead": true,
+            "siteSourcesIdenticalTo442": true
+          },
+          "dashboardDonorHead": "6f4664f1f2722208821823a87db76e59cd3553de",
+          "dashboardDonorTree": "e3e408c23cb0262dcb3e96c174ccc3e2096ee963",
+          "newOverlay": {
+            "path": "app/dashboard/page.tsx",
+            "sha256": "0b6bc59f9659956fd0990ce80e2520858d13ca01ab9f20f3d9b0c10567640b02"
+          },
+          "ownAppStoppedForSourceChange": true,
+          "noFabricatedGitHead": true,
+          "twoReviewsAndPositiveHandoff": true
+        },
+        "sourceCapture": {
+          "path": "/workspace/gridex-site-price-evidence-20261112/site-ui-original.safe.json",
+          "sha256": "23811732256555f11a5d115f43d5dd26d470bb0f40cd57429d88a212615fe40e"
+        },
+        "actors": [
+          {
+            "label": "bootstrap_platform_admin",
+            "normalUiLogin": true,
+            "path": "/dashboard",
+            "platformHeadingPresent": true,
+            "companyHeadingPresent": false,
+            "normalUiPostLogout": true
+          },
+          {
+            "label": "ordinary_tenant_owner",
+            "normalUiLogin": true,
+            "path": "/dashboard",
+            "platformHeadingPresent": false,
+            "companyHeadingPresent": true,
+            "normalUiPostLogout": true
+          }
+        ],
+        "dashboardPersonaOracle": true,
+        "siteOutcomeSeparate": "BLOCKED_NORMAL_PRICEAREA_OPTIONS_NO_SITE_WRITES",
+        "noRoleMetadataPermissionWrites": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/site-ui-original.safe.json",
+      "sha256": "23811732256555f11a5d115f43d5dd26d470bb0f40cd57429d88a212615fe40e",
+      "safeReceipt": {
+        "scenarioId": "SITE01.04",
+        "scope": "NORMAL_MANUAL_UI_UNVERIFIED_PRICE_HINT_ISOLATION_NOT_MARKET_AREA_OR_INVOICE_ACCEPTANCE",
+        "sourceReceipt": "source-with-dashboard.safe.json",
+        "actors": [
+          {
+            "label": "bootstrap_platform_admin",
+            "normalUiLogin": true,
+            "path": "/dashboard",
+            "platformHeadingPresent": true,
+            "companyHeadingPresent": false,
+            "normalUiPostLogout": true
+          },
+          {
+            "label": "ordinary_tenant_owner",
+            "normalUiLogin": true,
+            "path": "/dashboard",
+            "platformHeadingPresent": false,
+            "companyHeadingPresent": true,
+            "normalUiPostLogout": true
+          }
+        ],
+        "steps": [
+          {
+            "kind": "NORMAL_CUSTOMER_PAGE",
+            "editId": null,
+            "status": 200,
+            "path": "/admin/customers/33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+            "siteForms": 1,
+            "bodySha256": "b9915c53749640c9917590222f21b6492ef921808de72cf0e49831fead02e7db"
+          }
+        ],
+        "newSites": [],
+        "noProviderWorkerStarted": true,
+        "beforeSites": [
+          {
+            "id": "fe40fab9-4348-41ec-b068-b00e6249d024",
+            "rowSha256": "a0c5114b4637de36b044759c4ca4701301658ee761159496f16b33d124560fb1"
+          },
+          {
+            "id": "8e28c727-aff8-46ae-a463-9a40c6316086",
+            "rowSha256": "a74885e8970f72bf5675c27273baa410e5cf0645b6d1e0b58d0b967a5f48a3fb"
+          }
+        ],
+        "state": "CAPTURE_STOPPED_AT_REAL_BOUNDARY",
+        "safeErrorCode": "BLOCKED_NORMAL_PRICEAREA_OPTIONS",
+        "dashboardPersonaOracle": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/source-with-dashboard.safe.json",
+      "sha256": "b3a41ce534818420c74731cd732f9dd788fe5f2c558edc98a92117e7c45b2307",
+      "safeReceipt": {
+        "kind": "PRIVATE_COMPOSITE_BASE442_PLUS_EXACT90_TWOFILES_PLUS_6f466_ONEFILE",
+        "baseAndFirstTwoOverlays": {
+          "profile": "PRIVATE442_PLUS_2_REVIEWED90a72_PRODUCT_BYTES",
+          "binding": {
+            "kind": "PRIVATE_COMPOSITE_NO_FABRICATED_GIT_HEAD",
+            "baseHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+            "baseTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+            "donorHead": "90a72f30da0309eedba6640142aa81631214304b",
+            "donorTree": "7e759c202144b9e93d01feb6fac8023eddd9e281",
+            "overlay": [
+              {
+                "path": "app/api/internal/invoice-exports/[id]/route.ts",
+                "beforeSha256": "a1b502ad15361f5b7fbe1134c758e0fe79745dd6897428115992d93482d5642e",
+                "afterSha256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb"
+              },
+              {
+                "path": "lib/integrations/billing/invoiceExportCore.ts",
+                "beforeSha256": "f67d108276fd9c3b630867f2e6f8f678336a0583531943d9a22462f50e2db298",
+                "afterSha256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94"
+              }
+            ],
+            "twoSourceApprovals": true,
+            "positiveOutputHandoff": true,
+            "stoppedOwnAppPids": [
+              54127,
+              54179,
+              54228,
+              54229,
+              54240,
+              54241,
+              54271
+            ],
+            "noDatabaseMigrationOrAuthorityWrite": true
+          },
+          "noFabricatedCompositeGitHead": true,
+          "siteSourcesIdenticalTo442": true
+        },
+        "dashboardDonorHead": "6f4664f1f2722208821823a87db76e59cd3553de",
+        "dashboardDonorTree": "e3e408c23cb0262dcb3e96c174ccc3e2096ee963",
+        "newOverlay": {
+          "path": "app/dashboard/page.tsx",
+          "sha256": "0b6bc59f9659956fd0990ce80e2520858d13ca01ab9f20f3d9b0c10567640b02"
+        },
+        "ownAppStoppedForSourceChange": true,
+        "noFabricatedGitHead": true,
+        "twoReviewsAndPositiveHandoff": true
+      }
+    }
+  ],
+  "runtimeOracle": {
+    "bootstrap": "Normal verified UIlogin /dashboard has platformheadingtrue/companyheadingfalse; normalPOSTlogout",
+    "ordinaryOwner": "Normal verified UIlogin /dashboard has platformheadingfalse/companyheadingtrue; normalPOSTlogout",
+    "bothPersonaPredicatesMet": true,
+    "source": "Private442base+90exact2productfiles+6f466exact1dashboardpage; no compositeGithead",
+    "noRoleMetadataPermissionWrites": true,
+    "siteOutcomeSeparate": "OriginalSITEattemptstopped0newsitesbecauseunavailablepriceareaoptions; not a dashboardpersona failure or SITEPASS"
+  },
+  "runtimeDisposition": {
+    "state": "HELD_FOR_SEPARATE_APPROVED_SITE_AND_CATALOG_TASK",
+    "producer": "execute_eight_parts solebackend/browsercaptureproducer",
+    "dashboardSessions": "Both normalUIlogout, originalactorsproof; no extra dashboardprobe pending",
+    "cleanupReceiptInThisPacket": null,
+    "notClaimed": "No allcontainersstopped/credentialrevocation claim. SeparateSITEpacket owns eventual cleanup/retention receipt; no need to block frozen dashboarddelivery on that sourcefix."
+  }
+}

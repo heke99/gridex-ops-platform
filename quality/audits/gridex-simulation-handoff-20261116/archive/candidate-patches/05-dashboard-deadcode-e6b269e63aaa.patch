@@ -1,0 +1,181 @@
+From e6b269e63aaab86cf73c7234052d9f5c684a530e Mon Sep 17 00:00:00 2001
+From: Heke  Hourani <heke99@live.se>
+Date: Sat, 14 Nov 2026 15:47:56 +0000
+Subject: [PATCH] Remove unused dashboard snapshot writer
+
+---
+ lib/analytics/companyDashboardSummary.ts      |  20 ---
+ .../REPORT.sv.md                              |  11 ++
+ .../results.safe.json                         | 114 ++++++++++++++++++
+ 3 files changed, 125 insertions(+), 20 deletions(-)
+ create mode 100644 quality/audits/gridex-dashboard-writer-removal-20261114/REPORT.sv.md
+ create mode 100644 quality/audits/gridex-dashboard-writer-removal-20261114/results.safe.json
+
+diff --git a/lib/analytics/companyDashboardSummary.ts b/lib/analytics/companyDashboardSummary.ts
+index 94fd96b51..d728994c1 100644
+--- a/lib/analytics/companyDashboardSummary.ts
++++ b/lib/analytics/companyDashboardSummary.ts
+@@ -72,23 +72,3 @@ export async function buildCompanyDashboardMetrics(companyId: string, billingMon
+     edielPendingMessages,
+   }
+ }
+-
+-export async function refreshCompanyDashboardSnapshot(input: { companyId: string; billingMonth?: string | null; actorUserId?: string | null }) {
+-  const metrics = await buildCompanyDashboardMetrics(input.companyId, input.billingMonth)
+-  const { data, error } = await supabaseService
+-    .from('company_dashboard_snapshots')
+-    .upsert({
+-      company_id: input.companyId,
+-      period_month: input.billingMonth ?? null,
+-      snapshot_date: new Date().toISOString().slice(0, 10),
+-      scope: 'company',
+-      metrics,
+-      generated_at: new Date().toISOString(),
+-      generated_by: input.actorUserId ?? null,
+-    }, { onConflict: 'company_id,period_month,snapshot_date,scope' })
+-    .select('*')
+-    .single()
+-
+-  if (error && error.code !== '42P01' && error.code !== 'PGRST205') throw error
+-  return { metrics, row: data ?? null }
+-}
+diff --git a/quality/audits/gridex-dashboard-writer-removal-20261114/REPORT.sv.md b/quality/audits/gridex-dashboard-writer-removal-20261114/REPORT.sv.md
+new file mode 100644
+index 000000000..e2c2463d2
+--- /dev/null
++++ b/quality/audits/gridex-dashboard-writer-removal-20261114/REPORT.sv.md
+@@ -0,0 +1,11 @@
++# Ta bort dashboardens oanropade snapshot-writer
++
++Endast `refreshCompanyDashboardSnapshot` och dess upsert-block tas bort. Funktionen har ingen produktanropare i den avgränsade repo-/loadergranskningen. Normal dashboard läser `getCompanyDashboardSummary` via tenant-RPC/vyn `gridex_admin_dashboard_summary`/`company_dashboard_summary_v`; plattformsläsningen har en separat verifierad väg. Daily/monthly analytics-cron använder månadsmetrics, mätvärdesrollup och alerts.
++
++`buildCompanyDashboardMetrics`, typ, delade imports och det befintliga kundportföljtestet bevaras. Testet läser builderns källtext och anropar inte den borttagna writern. Databastabell, migrationer, RLS/ACL, RPC/vy och genererade typer ändras inte. Ingen aktiv Main40-,64- eller67-kopia har skrivits.
++
++Färsk `git diff --check` passerar. Återstående modul är byteexakt originalprefix med den gamla separatorns sista tomrad borttagen för korrekt filslut. Första tomradsfelet och rättat verifieringskvitto bevaras. Det befintliga `customer-portfolio.test.ts` är förberett men har **inte körts** under producentens kritiska K4-fönster. Typkontroll, lint och build är också **NOT_RUN**, inte gröna kontroller. Inget nytt spegeltest läggs till.
++
++Ändringen tar bort **en symbol i denna källbranch**. Tidigare granskade cleanup-artefaktens24 borttagna/9 bevarade räknas inte om till en otestad sammansatt25/8-version. Senast kvalificerad runtime är fortsatt2 borttagna/31 övriga av33; ingen runtime-adoption eller ny scenario-PASS sker. De187 övriga kandidaterna får ingen ny dom.
++
++Exakt bas, före-/efterhash, egen custody, underlag och begränsningar finns i `results.safe.json`. Två oberoende slutgranskningar och återstående kvalificerade kontroller krävs inför senare leverans. Ingen push, merge eller deploy ingår.
+diff --git a/quality/audits/gridex-dashboard-writer-removal-20261114/results.safe.json b/quality/audits/gridex-dashboard-writer-removal-20261114/results.safe.json
+new file mode 100644
+index 000000000..5c0291a0d
+--- /dev/null
++++ b/quality/audits/gridex-dashboard-writer-removal-20261114/results.safe.json
+@@ -0,0 +1,114 @@
++{
++  "state": "LOCAL_SOURCE_SYMBOL_REMOVAL_PREPARED_FOR_REVIEW_NOT_RUNTIME_ADOPTION",
++  "asOfUtc": "2026-11-14T15:43:32.872228+00:00",
++  "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba",
++  "baseTree": "45bc2c61f6e8265c5c262a1abe5d9fee858aa571",
++  "scope": {
++    "sourceFile": "lib/analytics/companyDashboardSummary.ts",
++    "removedSymbol": "refreshCompanyDashboardSnapshot",
++    "sourceBeforeSHA256": "48c4f872c22b839c7569354c3e03d63ec07f6a05ac97d68b6b789247a21e74a2",
++    "sourceAfterSHA256": "78b7d8362d24bf099ea8bd0f59392f745e220286d7658ec9d057dd9a40f4f2ef",
++    "removedBytes": 838,
++    "preserved": "Exact original module prefix through metrics builder/types/shared imports; only old writer/upsert and separator blank line removed",
++    "unchangedExistingTestSHA256": "22eeb9c334d5362db93d14356dae65ef8c6808748cebe6e079759c7b41108853",
++    "noSQLTableViewRPCMigrationGeneratedTypeChange": true,
++    "activeMain40Private64Private67Untouched": true
++  },
++  "reason": "No bounded repository product caller/configured loader reaches this internal writer. Normal dashboard uses canonical RPC/view; configured analytics cron uses monthly metrics/rollup/alerts. Existing source-test reads retained builder text, not writer execution.",
++  "normalPaths": [
++    "/admin -> getCompanyDashboardSummary -> tenant gridex_admin_dashboard_summary -> company_dashboard_summary_v",
++    "CompanyNULL -> getVerifiedPlatformDashboardSummary",
++    "Configured daily/monthly analytics cron -> monthly metrics/metering rollup/alerts"
++  ],
++  "verification": {
++    "gitDiffCheckExit": 0,
++    "exactPrefixRemovalInverseVerified": true,
++    "unchangedPhysicalTrackedInputs": 24,
++    "existingRegression": {
++      "command": [
++        "/tmp/gridex-lean-actual-qualification-20261113/node22.selected",
++        "--max-old-space-size=768",
++        "--require=./scripts/lib/unit-loopback-network-boundary.cjs",
++        "node_modules/vitest/vitest.mjs",
++        "run",
++        "__tests__/customer-portfolio.test.ts",
++        "--maxWorkers=1",
++        "--no-file-parallelism"
++      ],
++      "timeoutSeconds": 180,
++      "state": "PREPARED_NOT_RUN_PRODUCER_K4_CRITICAL_WINDOW_NO_NODE_PROCESSES_AUTHORIZED",
++      "notANewMirrorTest": true
++    },
++    "fullTypecheckLintBuild": "NOT_RUN_RESOURCE_PRODUCER_LIMIT_NOT_PASS",
++    "noNewMirrorTest": true,
++    "noNodeTestsBackendAuthExecuted": true,
++    "firstFailurePreserved": "First diff check found a new blank line at EOF. Initial verification record incorrectly hardcoded exit0 and was explicitly superseded before commit. Removed separator LF and captured actual fresh diff-check exit0. No passing-test claim."
++  },
++  "counts": {
++    "manualRegistryTotal": 33,
++    "previousReviewedCleanupArtifactRemoved": 24,
++    "previousReviewedCleanupArtifactRetained": 9,
++    "thisBranchNewSourceRemovedSymbols": 1,
++    "thisSymbolPreviouslyUncertainRetained": true,
++    "combined25Removed8Retained": "NOT_COMPOSED_OR_CLAIMED",
++    "lastQualifiedRuntimeRemoved": 2,
++    "lastQualifiedRuntimeOther": 31,
++    "runtimeAdoption": false,
++    "unreached187NewVerdicts": 0,
++    "canonicalLedgerWritten": false,
++    "scenarioPASSAdded": 0
++  },
++  "evidence": [
++    {
++      "path": "/tmp/gridex-dashboard-writer-removal-evidence-20261114/FIRSTWRITE-OWN4-ACK.safe.json",
++      "sha256": "d3bc7fcc376b06a05dbe86dfb350970d4710ffba0b4f6d53f6f03c587f72e0e0",
++      "bytes": 918
++    },
++    {
++      "path": "/tmp/gridex-dashboard-writer-removal-evidence-20261114/SOURCE-VERIFICATION.safe.json",
++      "sha256": "bd12d4cd7ef3297af831e91853080ad30cc6836979b56903ac167d1daea179da",
++      "bytes": 2554
++    },
++    {
++      "path": "/tmp/gridex-dashboard-writer-removal-evidence-20261114/FIRST-SOURCE-VERIFICATION-CORRECTION.safe.json",
++      "sha256": "6307b780fe9004cd7f10e254332df4a3b7008e29e29f283ee3a10e9f8e419854",
++      "bytes": 2620
++    },
++    {
++      "path": "/tmp/gridex-deadcode-dashboard-writer-followup-20261114/FROZEN.safe.json",
++      "sha256": "437a4a2efe475a71241e348e2b4907a3993456b50ae15147d168482042c0053f",
++      "bytes": 1162
++    },
++    {
++      "path": "/tmp/gridex-deadcode-dashboard-writer-followup-20261114/SOURCE_FACTS_AND_REMOVAL_PROPOSAL.safe.json",
++      "sha256": "9709fe770bc7c5ea6493140479124e4b9daeeeffe5b43dbf599b0f207efec51a",
++      "bytes": 15576
++    },
++    {
++      "path": "/workspace/gridex-root-session-20261112/dashboard-writer-symbol-removal-source-review.safe.json",
++      "sha256": "5be18c8fbcfa5f8624e32ff2ddf6d4476c4f84fedd94c4100cf9e4b44b565b09",
++      "bytes": 1077
++    }
++  ],
++  "custody": {
++    "receipt": "7cd860eb0d26aea3284c286f82d63de3dfb73190",
++    "exactSourceAndTwoNewAuditPathsOnly": true,
++    "originalAcquisitionJournalPreserved": true
++  },
++  "skillRouting": {
++    "activated": [
++      "using-git-worktrees",
++      "refactor",
++      "verification-before-completion",
++      "requesting-code-review"
++    ],
++    "qualityPlaybook": "Bounded finding recheck/evidence reuse; no whole-baseline regeneration",
++    "skipped": "No schema/provider/UI/e2e/GEN/performance/build/new mirror test or broad repository scan"
++  },
++  "limits": [
++    "Existing customer-portfolio Vitest/type/lint/build NOT_RUN at cutoff, not PASS; producer-qualified safe quiet window required",
++    "Saved3370/3443 function-name/body scans are not universal view/trigger/DB-cron/external absence; SQL objects retained",
++    "No composition/adoption of prior24 cleanup or active runtime change",
++    "Two independent final SOURCE/DOC reviews pending; no push/merge/deploy"
++  ]
++}
+-- 
+2.52.0
+

@@ -1,0 +1,14 @@
+{
+  "state": "APPROVE_EXACT_EVENT_D_TWO_GROUP_DEDUP_TWO_GZIP",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T10:58:14.022707+00:00",
+  "proposalSHA256": "aaeb4965f8ca09375d20a8855be1014124286250a52cbda9a4bdcf9769d2e90a",
+  "checks": [
+    "All107closedDoriginalhashesandclosure/Mainunchanged verified beforeFSchange",
+    "All7currentSHA/inode/nlink/modeowner verified; exactsamebytegroups onlyatomiclink/postverify, 2uniquehistoricalgzip only",
+    "Canonical3457candidateRAW/FullFc24bea/currentbaseline/C6/source/crypto/actorinputs excluded",
+    "Qualifiedarchivefsync/streamHbytes/durableARCHIVEDmanifestBEFOREunlink/safeexclusive restore; honestaccessibleFD+ownclosure check",
+    "ProducerexplicitInventorywriterhandoff; heldDactivebutRcaseclosedno ownruntime, no touchbrowser/currentseal",
+    "Actual805guardbeforeEpure remains; normalheldlogoutstartreserve11:13"
+  ]
+}

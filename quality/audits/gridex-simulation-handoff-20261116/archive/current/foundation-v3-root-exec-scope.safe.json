@@ -1,0 +1,12 @@
+{
+  "state": "ROOT_EXACT_V3_EXECUTION_SCOPE_APPROVE",
+  "wrapperSHA256": "fd92bd240248e0e2ebe9801cd9911d2d4f48c334577fb21e2e81062e38949df0",
+  "targetSHA256": "6e0d8e515bfc4df386a04b0434f4d35641f5466d334bca6ee194c437b6d9e377",
+  "actualBindingsVerified": 37,
+  "review": "Priorfull6scope reused. Exactdelta V2recordpshadow55000/predecessorknowncleanup, source38physicalguard, freshcurrent522+3368postlegitAuthbaseline, newown6names, helperONLYapproved4cSQLhashupdate/test637same. Same6catalogoracles/seed931d+2forwards/noad594/Authactor/JWT/MAIN/GEN.",
+  "sourceTwoApprovals": [
+    "4700b9b8aa74e3f3853c6484c56089b3644099beec104e507974ec545d0f2520",
+    "badba3a22d255279ce850a26ace548854835f13ea79044eb895acca9c050308b"
+  ],
+  "arming": "AfterDomainV3scopeACK producer maypersistROOTarmingONBEHALFROOTandexecuteONCEimmediatelywithoutnewrootroundtrip. Preservebotholdstops, allownclonesdrop/mainfullpreserve."
+}

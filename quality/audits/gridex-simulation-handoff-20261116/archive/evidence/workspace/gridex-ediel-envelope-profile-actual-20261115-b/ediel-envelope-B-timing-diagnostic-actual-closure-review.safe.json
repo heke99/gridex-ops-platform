@@ -1,0 +1,32 @@
+{
+  "reviewerAgent": "/root/ediel_test_identity",
+  "verdict": "ACTUAL_TIMING_DIAGNOSTIC_AND_OWNED_DB_CLOSURE_APPROVE",
+  "atUtc": "2026-11-15T10:49:48.274153+00:00",
+  "terminal": {
+    "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/terminal.safe.json",
+    "sha256": "e8fcc63126bd5bff4fd9c1b5ee4d8669df36efa99593b712016219fad5ff2c88"
+  },
+  "actualRaw": {
+    "bytes": 171462,
+    "sha256": "7c0239018ce701d2223f07a109b1b683605ae9ccc3877564df116c31f771adc9",
+    "encoding": "UTF8"
+  },
+  "observedSingleCallerElapsedSeconds": {
+    "installed": 6.7056440860033035,
+    "candidate": 0.27107988999341615
+  },
+  "resultMD5": "50c501ac3162861874cf45de86cd93d2",
+  "checks": [
+    "All saved process output/error SHA refs verified, both rawcalls exit0 and full resultJSON equal",
+    "Same fixed8s SQL/15s caller, no timeout/func/expectedfixture edit",
+    "Fixture35 directnative old=new nonNULL senderlength36; originalNULLexpectation false; unparenthesized operand equals leftgrouped UNOC3",
+    "Main fullsnapshot/all7 exact/Auth0 beforeafter/currentRcarrierunchanged and ownDBdrop0/absence verified",
+    "Exact rawcount/id/bytes/SHA and serverUTF8 verified"
+  ],
+  "limits": [
+    "Single caller measurements include Docker/psql overhead, not a distribution/general complexity guarantee",
+    "This distinguishes fixture35expectedmistake from candidate mismatch; native41 suite remains NOT COMPLETE and unchanged",
+    "No full INSERT causal proof or Main/productadoption/import/scenarioPASS",
+    "No reviewer SQL/Node/backend or repetition; all actual evidence preserved, rawreadhold released"
+  ]
+}

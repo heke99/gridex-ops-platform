@@ -1,0 +1,1663 @@
+{
+  "status": "CATALOG_FIX_SOURCE_AND_LOCAL_UI_READ_VERIFIED_SITE_WRITE_BLOCKED",
+  "actualRemoteMain": "d93f361c51e81bc49cd48e817bd0b0fbe65e3d5b",
+  "fixSourceHead": "4ea29be08fb2d7a24324cb7244a05520854e1728",
+  "fixSourceTree": "5f42ab17e6774ff405dd6cb3328c9dd354e627ab",
+  "generatedAt": "2026-11-12T20:31:23.601548+00:00",
+  "scenario": {
+    "id": "SITE01.04",
+    "verdict": "DEPENDENCY_BLOCKED_AFTER_NEW_NATIVE_READ_ORACLE",
+    "catalogOptionsOracle": "MET_LOCAL_NORMAL_UI",
+    "manualCandidateIsolationOracle": "NOT_REACHED_FIRST_INSERT_42501",
+    "newSiteCommitCount": 0,
+    "editReplayAndSingleSiteChange": "NOT_RUN_PREDECESSOR_INSERT_FAILED",
+    "fullCampaignPass": false
+  },
+  "findings": [
+    {
+      "id": "SITE-CATALOG01",
+      "severity": "P2",
+      "state": "FIXED_SOURCE_AND_LOCAL_UI_READ_VERIFIED",
+      "rootCause": "Customerpage used authenticated request reader against deliberately service-only price reference catalogue;200empty despitefourrows",
+      "fix": "VerifiedplatformGuardResult->server-onlystrictflagfacade->existinglistPriceAreas(service); alltenantreadsrequestunchanged",
+      "aclChanges": false
+    },
+    {
+      "id": "SITE-WRITE01",
+      "severity": "P2",
+      "state": "CONFIRMED_OPEN",
+      "rootCause": "NormalauthenticatedsiteINSERT invokes facility_reference DEFAULT with service-only gridex_new_public_resource_reference(text), raising42501/HTTP500",
+      "firstPostReceipt": "Not retained by browserharness; realappPOST500+safeSQLstateexcerpt+catalogACL/default+unchangedDB/readback preserved",
+      "noCreateRetry": true
+    },
+    {
+      "id": "TEST-AUTHORITY01",
+      "state": "BOUNDED_SOURCE_GAP_REMAINS",
+      "detail": "Currentrequirements/openPR1030/1049/1041/1045 did not establish our ordinaryreceiveridentifierassignment or scopedallowgrant path; no donorimport/fakeapproval/rawseed"
+    },
+    {
+      "id": "SITE-CATALOG-V01",
+      "state": "SOURCE_CANDIDATE_NOT_RUNTIME_VERIFIED",
+      "detail": "Other listPriceAreas(request) caller app/admin/customers/intake/page.tsx remains outside thisfix; not deadcode or globallyfixed"
+    }
+  ],
+  "sourceChecks": {
+    "sourceHead": "4ea29be08fb2d7a24324cb7244a05520854e1728",
+    "checks": {
+      "unit-first-green-attempt.log": {
+        "exitCode": 0,
+        "actualTests": 11,
+        "path": "/workspace/gridex-site-price-evidence-20261112/unit-first-green-attempt.log",
+        "sha256": "3bd182f14438eda2d6759f85da4708a3a31009662bd693e459d27c686839446c",
+        "output": "\n RUN  v4.1.9 /workspace/gridex-site-price-intake-20261112\n\n\n Test Files  1 passed (1)\n      Tests  11 passed (11)\n   Start at  20:09:39\n   Duration  1.10s (transform 363ms, setup 57ms, import 478ms, tests 73ms, environment 0ms)\n\n"
+      },
+      "targeted-tests.log": {
+        "exitCode": 0,
+        "actualTests": 30,
+        "files": 4,
+        "scope": "Includes actualbehaviour and preexisting SOURCE assertions; not30nativecases",
+        "path": "/workspace/gridex-site-price-evidence-20261112/targeted-tests.log",
+        "sha256": "daa8d6c49e265ce73d5b1b5938305e8c5c2b5d0e403af82a88402976938ebafb",
+        "output": "\n RUN  v4.1.9 /workspace/gridex-site-price-intake-20261112\n\n ✓ __tests__/tenantservice-ui-workspace.test.ts (8 tests) 44ms\n ✓ __tests__/customer-site-price-areas.test.ts (11 tests) 73ms\n ✓ __tests__/customer-card-lookup-not-found.test.ts (10 tests) 257ms\n ✓ __tests__/customer-overview-contact-summary.test.ts (1 test) 6ms\n\n Test Files  4 passed (4)\n      Tests  30 passed (30)\n   Start at  20:10:41\n   Duration  1.16s (transform 692ms, setup 138ms, import 887ms, tests 379ms, environment 9ms)\n\nJSON report written to /workspace/gridex-site-price-evidence-20261112/targeted-tests.safe.json\n"
+      },
+      "lint.log": {
+        "exitCode": 0,
+        "errors": 0,
+        "preexistingWarnings": 10,
+        "path": "/workspace/gridex-site-price-evidence-20261112/lint.log",
+        "sha256": "81f02e252e796ed6b7fb717b391105b4236a88a00eaa556d6a5e63c4aa745dd8",
+        "output": "\n/workspace/gridex-site-price-intake-20261112/app/admin/customers/[id]/page.part-4.tsx\n  391:9  warning  'activeSites' is assigned a value but never used                  @typescript-eslint/no-unused-vars\n  392:9  warning  'activeMeteringPoints' is assigned a value but never used         @typescript-eslint/no-unused-vars\n  396:9  warning  'lifecycleSummary' is assigned a value but never used             @typescript-eslint/no-unused-vars\n  478:9  warning  'hasUsablePowerOfAttorney' is assigned a value but never used     @typescript-eslint/no-unused-vars\n  514:9  warning  'legalLooksAccepted' is assigned a value but never used           @typescript-eslint/no-unused-vars\n  582:9  warning  'tenantCustomerView' is assigned a value but never used           @typescript-eslint/no-unused-vars\n  593:9  warning  'hasSwitchData' is assigned a value but never used                @typescript-eslint/no-unused-vars\n  630:9  warning  'primaryContact' is assigned a value but never used               @typescript-eslint/no-unused-vars\n  684:9  warning  'openCustomerBlockers' is assigned a value but never used         @typescript-eslint/no-unused-vars\n  698:9  warning  'pendingCustomerInfoRequests' is assigned a value but never used  @typescript-eslint/no-unused-vars\n\n✖ 10 problems (0 errors, 10 warnings)\n\n"
+      },
+      "service-ratchet.log": {
+        "exitCode": 0,
+        "callSites": 2349,
+        "files": 494,
+        "baselineUnchanged": true,
+        "path": "/workspace/gridex-site-price-evidence-20261112/service-ratchet.log",
+        "sha256": "23be832b42d1a994b1bd817e0679e100f9c0dc6c599e2e84e05b1afd7a4b2300",
+        "output": "Service-role ratchet: 2349 call sites across 494 files, unchanged.\n"
+      },
+      "test-types.log": {
+        "exitCode": 0,
+        "path": "/workspace/gridex-site-price-evidence-20261112/test-types.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output": ""
+      },
+      "app-types.log": {
+        "exitCode": 0,
+        "path": "/workspace/gridex-site-price-evidence-20261112/app-types.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output": ""
+      }
+    },
+    "primaryFailFirst": "ActualnormalUIbefore+realAuthrequest0/service4catalogread",
+    "initialUnitCollectionMissingFacade": "No behavioural test ran; not counted as behaviouralRED",
+    "firstAppTSAttemptTerminalUnknownPreserved": true,
+    "requiredAppTSVerifiedByDurableBoundedRerun": true
+  },
+  "sourceReviewers": [
+    {
+      "reviewer": "root",
+      "head": "4ea29be08fb2d7a24324cb7244a05520854e1728",
+      "verdict": "APPROVE",
+      "receiptPath": "/workspace/gridex-root-reviews-20261112/price-catalog-source-review.safe.json"
+    },
+    {
+      "reviewer": "remaining_coverage_inventory",
+      "head": "4ea29be08fb2d7a24324cb7244a05520854e1728",
+      "verdict": "APPROVE",
+      "receiptPath": "/workspace/gridex-dashboard-persona-evidence-20261112/catalog-source-review.safe.json"
+    }
+  ],
+  "safeOriginals": [
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/after-harness-preflight.safe.json",
+      "sha256": "037f2b206277916d9f3b2eadf4eeee3ab28c53fb9dc13ed42b51be7af632c7d1",
+      "json": {
+        "plusUnsubmittedSyntheticFacilityCheckDigitsCorrected": true,
+        "syntheticFacilityInputs": [
+          "735999999990000038",
+          "735999999990000045"
+        ],
+        "noMarketAuthorityFromChecksum": true,
+        "beforeHarnessSha256": "a55a4928970bc2bb1fe0b7d76af7895aa5234e16294d99c5799c2f8d0dde87ad",
+        "afterHarnessSha256": "12a1e995f3012a5d76bb0a656ac1a8acb1df6acdb245b993a0c7332c7ef993d5",
+        "boundedDriverChanges": [
+          "new output/source receipt paths",
+          "persist actual normal UI catalogue options before first POST",
+          "correct checksum digits of synthetic IDs never previously posted"
+        ]
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/app-types-first-attempt.safe.json",
+      "sha256": "83fd1a4ca7b48ea1d8aaa9578c325cb96c6e688b64aa927b64f88dfbb892d6c5",
+      "json": {
+        "sourceHead": "4ea29be08fb2d7a24324cb7244a05520854e1728",
+        "terminalExit": "UNKNOWN_AFTER_ENV_RECONNECT",
+        "oldCompilerPidAbsent": 74564,
+        "toolSessionUnavailable": 31473,
+        "logEmptyIsNotPass": true,
+        "boundedVerificationRerunReason": "Required source check lost terminal receipt"
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/app-types-terminal.safe.json",
+      "sha256": "c8e6719ecca1b3f1988ecd8468829af65dd85c8a6fd1132dca65dac35f6af062",
+      "json": {
+        "sourceHead": "4ea29be08fb2d7a24324cb7244a05520854e1728",
+        "command": [
+          "npm",
+          "exec",
+          "--yes",
+          "--cache",
+          "/workspace/gridex-setup01-evidence-20261112/npm-cache",
+          "--package=node@22.22.0",
+          "--package=npm@10.9.2",
+          "--",
+          "node",
+          "--max-old-space-size=6144",
+          "node_modules/typescript/bin/tsc",
+          "--noEmit",
+          "--incremental",
+          "false",
+          "-p",
+          "tsconfig.app.json"
+        ],
+        "exitCode": 0,
+        "elapsedSeconds": 156.46,
+        "noDiagnosticsRequiredForPass": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/catalog-db-boundary.safe.json",
+      "sha256": "c2a1efc221a89d52af7e7a0fb6448f56d00144487a1c77ce006bc2cde48a2440",
+      "json": {
+        "rls": true,
+        "codes": [
+          "SE1",
+          "SE2",
+          "SE3",
+          "SE4"
+        ],
+        "policies": [],
+        "serviceBypassRls": true,
+        "authenticatedSelectGrant": true,
+        "normativeServiceOnlyMigration": {
+          "path": "supabase/migrations/20260904120000_canonical_tenant_invariant_convergence.sql",
+          "sha256": "3e40f894ec109a45e4dd7842edd819509caadac1e8d5e89a45d244224d0c77e1"
+        },
+        "actualPageSourceQuery": "needsPriceAreas ? listPriceAreas(requestSupabaseClient), select(*), order(sort_order,ascending:true), no active/companyfilter"
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/catalog-request-read.safe.json",
+      "sha256": "5b15463608b759deeae4406f3903f6af980bbc73029fac8e23422f2f97644b40",
+      "json": {
+        "scope": "NORMAL_AUTH_PASSWORD_ISSUED_REQUEST_JWT_READONLY_CATALOG_DIAGNOSTIC_NO_PERMISSION_WRITE",
+        "realAuthUserVerified": true,
+        "authActorId": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+        "normalAuthLoginStatus": 200,
+        "authenticatedRequest": {
+          "status": 200,
+          "rowCount": 0,
+          "codes": [],
+          "columns": []
+        },
+        "serviceReferenceComparison": {
+          "status": 200,
+          "rowCount": 4,
+          "codes": [
+            "SE1",
+            "SE2",
+            "SE3",
+            "SE4"
+          ],
+          "columns": [
+            "code",
+            "created_at",
+            "name",
+            "sort_order"
+          ]
+        },
+        "normalAuthLogoutStatus": 204
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/cleanup.safe.json",
+      "sha256": "116c841e6141b3b2e95d0ff1a8da89a59927fdc92569f06cb0c1b7a4673ec42f",
+      "json": {
+        "scope": "ONLY_EXACT_OWN_APP_FORWARDER_FIVE_CONTAINERS_STOP_RETAIN_TESTDATA_PRIVATE_CREDENTIALS",
+        "businessAuthorityBaselineAllFieldsEqual": true,
+        "siteWritesCommitted": 0,
+        "knownBrowserContextsClosedAndNormalLogoutReceipts": [
+          "site-ui-original.safe.json",
+          "site-ui-after.safe.json",
+          "ui-driver-diagnostic.safe.json"
+        ],
+        "normalExtraAuthDiagnosticLogout": "catalog-request-read.safe.json",
+        "processes": [
+          {
+            "verifiedScript": "/workspace/gridex-site-price-evidence-20261112/site-local-forwarder.py",
+            "rootPid": 62861,
+            "signalledPids": [
+              62861
+            ]
+          },
+          {
+            "verifiedScript": "/workspace/gridex-site-price-evidence-20261112/start-site-app.py",
+            "rootPid": 80097,
+            "signalledPids": [
+              80097,
+              80100,
+              80133,
+              80134,
+              80145,
+              80146,
+              80157
+            ]
+          }
+        ],
+        "dockerStopExit": 0,
+        "containers": [
+          {
+            "id": "fed79f32f9c12bb4cd52c2824366dd0edb62c8bae881d27df6ea6fb5ccecaa9a",
+            "name": "gridex-kryp2-db",
+            "image": "sha256:4c81aefa21ede5db91df2282d30c27bbdb05ea24a30cbf02b5c8dab2a53ce1e2",
+            "running": false,
+            "label": "gridex-kryp-next-20261111"
+          },
+          {
+            "id": "942765605ce678195dda2ff480b47cd745922a03d65a5dc39882c744d3062e65",
+            "name": "gridex-kryp2-auth",
+            "image": "sha256:b061f1fa636f31bc01de0a791986352e82772760cce8e1d55bbec6f552930a1e",
+            "running": false,
+            "label": "gridex-kryp-next-20261111"
+          },
+          {
+            "id": "a80807ea605c1d8eba11922091dfbed4c5b5aabbaf390ee78ed5ab4140e26de3",
+            "name": "gridex-kryp2-rest",
+            "image": "sha256:fe5428d51d9805147859ed38db0a26e9e424c4639dc851733e99a86829e1d5aa",
+            "running": false,
+            "label": "gridex-kryp-next-20261111"
+          },
+          {
+            "id": "ebba619f50cd24d2e3156bbdb6e474a65dfab115299611fe25907d0789b94feb",
+            "name": "gridex-kryp2-storage",
+            "image": "sha256:da6409e5fd135ab8895f0c344f82066d99c107ca1031ed4a1ab1d33f0b775572",
+            "running": false,
+            "label": "gridex-kryp-next-20261111"
+          },
+          {
+            "id": "c2b2e3d0b3f03077912d0178a90743c22c2ff8ea17ab1c21795c9ce43ed71990",
+            "name": "gridex-kryp2-kong",
+            "image": "sha256:6d4c2325ad063b075cc10b36cef0d6660cba17e171111f148936daec82bc5c78",
+            "running": false,
+            "label": "gridex-kryp-next-20261111"
+          }
+        ],
+        "loopback3108And55321ListenersAbsent": true,
+        "privateCredentialsRetained0600": true,
+        "allVolumesImagesDataBootstrapRowRetained": true,
+        "noNewCredentialRotationOrGrants": true,
+        "noLiveIngress": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/dashboard-persona-ui.safe.json",
+      "sha256": "a282926350e66e733320f5fc140d9ddd3cfc908d4b2a694ba67d22444fe46dfb",
+      "json": {
+        "kind": "ACTUAL_NORMAL_UI_DASHBOARD_PERSONA_2ACTOR",
+        "source": {
+          "kind": "PRIVATE_COMPOSITE_BASE442_PLUS_EXACT90_TWOFILES_PLUS_6f466_ONEFILE",
+          "baseAndFirstTwoOverlays": {
+            "profile": "PRIVATE442_PLUS_2_REVIEWED90a72_PRODUCT_BYTES",
+            "binding": {
+              "kind": "PRIVATE_COMPOSITE_NO_FABRICATED_GIT_HEAD",
+              "baseHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+              "baseTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+              "donorHead": "90a72f30da0309eedba6640142aa81631214304b",
+              "donorTree": "7e759c202144b9e93d01feb6fac8023eddd9e281",
+              "overlay": [
+                {
+                  "path": "app/api/internal/invoice-exports/[id]/route.ts",
+                  "beforeSha256": "a1b502ad15361f5b7fbe1134c758e0fe79745dd6897428115992d93482d5642e",
+                  "afterSha256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb"
+                },
+                {
+                  "path": "lib/integrations/billing/invoiceExportCore.ts",
+                  "beforeSha256": "f67d108276fd9c3b630867f2e6f8f678336a0583531943d9a22462f50e2db298",
+                  "afterSha256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94"
+                }
+              ],
+              "twoSourceApprovals": true,
+              "positiveOutputHandoff": true,
+              "stoppedOwnAppPids": [
+                54127,
+                54179,
+                54228,
+                54229,
+                54240,
+                54241,
+                54271
+              ],
+              "noDatabaseMigrationOrAuthorityWrite": true
+            },
+            "noFabricatedCompositeGitHead": true,
+            "siteSourcesIdenticalTo442": true
+          },
+          "dashboardDonorHead": "6f4664f1f2722208821823a87db76e59cd3553de",
+          "dashboardDonorTree": "e3e408c23cb0262dcb3e96c174ccc3e2096ee963",
+          "newOverlay": {
+            "path": "app/dashboard/page.tsx",
+            "sha256": "0b6bc59f9659956fd0990ce80e2520858d13ca01ab9f20f3d9b0c10567640b02"
+          },
+          "ownAppStoppedForSourceChange": true,
+          "noFabricatedGitHead": true,
+          "twoReviewsAndPositiveHandoff": true
+        },
+        "sourceCapture": {
+          "path": "/workspace/gridex-site-price-evidence-20261112/site-ui-original.safe.json",
+          "sha256": "23811732256555f11a5d115f43d5dd26d470bb0f40cd57429d88a212615fe40e"
+        },
+        "actors": [
+          {
+            "label": "bootstrap_platform_admin",
+            "normalUiLogin": true,
+            "path": "/dashboard",
+            "platformHeadingPresent": true,
+            "companyHeadingPresent": false,
+            "normalUiPostLogout": true
+          },
+          {
+            "label": "ordinary_tenant_owner",
+            "normalUiLogin": true,
+            "path": "/dashboard",
+            "platformHeadingPresent": false,
+            "companyHeadingPresent": true,
+            "normalUiPostLogout": true
+          }
+        ],
+        "dashboardPersonaOracle": true,
+        "siteOutcomeSeparate": "BLOCKED_NORMAL_PRICEAREA_OPTIONS_NO_SITE_WRITES",
+        "noRoleMetadataPermissionWrites": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/db-after-first-fixed-attempt.safe.json",
+      "sha256": "8e1683b3337f692d4b817fd4b6d6fc557dcd4dd77cee2dd461be55f8421a7fe5",
+      "json": {
+        "roles": {
+          "hash": "03dc450f95e3471b849573aa99252283",
+          "count": 15
+        },
+        "company_memberships": {
+          "hash": "fdf3daf59cb417e74a8bf2cd9516b2a5",
+          "count": 2
+        },
+        "role_permissions": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "user_permissions": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "companies": {
+          "hash": "7b4573c3f46b2b9f6e7a2eed37e1c6d8",
+          "count": 3
+        },
+        "customers": {
+          "hash": "9bc7186640d08f1296595983507c9fb2",
+          "count": 3
+        },
+        "customer_sites": {
+          "hash": "dda02f6ccf2c21709b5e529c0562c661",
+          "count": 3
+        },
+        "customer_contracts": {
+          "hash": "44ef2bcc180ad81efa446a0de65ae957",
+          "count": 4
+        },
+        "customer_operation_jobs": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "manual_email_outbox": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "ediel_messages": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "existingSiteRows": [
+          {
+            "id": "fe40fab9-4348-41ec-b068-b00e6249d024",
+            "hash": "a030f9d3fa5460d48abadd438fc10127c2bb6af220ddc38696237887fa685c94"
+          },
+          {
+            "id": "8e28c727-aff8-46ae-a463-9a40c6316086",
+            "hash": "8aeb70dc51f1b5f0e5a627b8e3f7c7b6a821663beae1d797cac4e3f635b8b308"
+          }
+        ],
+        "selectedOwnSyntheticCustomer": {
+          "id": "33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+          "status": "active",
+          "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64"
+        }
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/db-before.safe.json",
+      "sha256": "8e1683b3337f692d4b817fd4b6d6fc557dcd4dd77cee2dd461be55f8421a7fe5",
+      "json": {
+        "roles": {
+          "hash": "03dc450f95e3471b849573aa99252283",
+          "count": 15
+        },
+        "company_memberships": {
+          "hash": "fdf3daf59cb417e74a8bf2cd9516b2a5",
+          "count": 2
+        },
+        "role_permissions": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "user_permissions": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "companies": {
+          "hash": "7b4573c3f46b2b9f6e7a2eed37e1c6d8",
+          "count": 3
+        },
+        "customers": {
+          "hash": "9bc7186640d08f1296595983507c9fb2",
+          "count": 3
+        },
+        "customer_sites": {
+          "hash": "dda02f6ccf2c21709b5e529c0562c661",
+          "count": 3
+        },
+        "customer_contracts": {
+          "hash": "44ef2bcc180ad81efa446a0de65ae957",
+          "count": 4
+        },
+        "customer_operation_jobs": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "manual_email_outbox": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "ediel_messages": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "existingSiteRows": [
+          {
+            "id": "fe40fab9-4348-41ec-b068-b00e6249d024",
+            "hash": "a030f9d3fa5460d48abadd438fc10127c2bb6af220ddc38696237887fa685c94"
+          },
+          {
+            "id": "8e28c727-aff8-46ae-a463-9a40c6316086",
+            "hash": "8aeb70dc51f1b5f0e5a627b8e3f7c7b6a821663beae1d797cac4e3f635b8b308"
+          }
+        ],
+        "selectedOwnSyntheticCustomer": {
+          "id": "33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+          "status": "active",
+          "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64"
+        }
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/db-final-before-cleanup.safe.json",
+      "sha256": "8e1683b3337f692d4b817fd4b6d6fc557dcd4dd77cee2dd461be55f8421a7fe5",
+      "json": {
+        "roles": {
+          "hash": "03dc450f95e3471b849573aa99252283",
+          "count": 15
+        },
+        "company_memberships": {
+          "hash": "fdf3daf59cb417e74a8bf2cd9516b2a5",
+          "count": 2
+        },
+        "role_permissions": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "user_permissions": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "companies": {
+          "hash": "7b4573c3f46b2b9f6e7a2eed37e1c6d8",
+          "count": 3
+        },
+        "customers": {
+          "hash": "9bc7186640d08f1296595983507c9fb2",
+          "count": 3
+        },
+        "customer_sites": {
+          "hash": "dda02f6ccf2c21709b5e529c0562c661",
+          "count": 3
+        },
+        "customer_contracts": {
+          "hash": "44ef2bcc180ad81efa446a0de65ae957",
+          "count": 4
+        },
+        "customer_operation_jobs": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "manual_email_outbox": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "ediel_messages": {
+          "hash": "d751713988987e9331980363e24189ce",
+          "count": 0
+        },
+        "existingSiteRows": [
+          {
+            "id": "fe40fab9-4348-41ec-b068-b00e6249d024",
+            "hash": "a030f9d3fa5460d48abadd438fc10127c2bb6af220ddc38696237887fa685c94"
+          },
+          {
+            "id": "8e28c727-aff8-46ae-a463-9a40c6316086",
+            "hash": "8aeb70dc51f1b5f0e5a627b8e3f7c7b6a821663beae1d797cac4e3f635b8b308"
+          }
+        ],
+        "selectedOwnSyntheticCustomer": {
+          "id": "33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+          "status": "active",
+          "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64"
+        }
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/health-first.safe.json",
+      "sha256": "803e9ef0423dbe1f88f439ceb9836e8e7df539fe7e97721fddb125db5db10e71",
+      "json": [
+        {
+          "path": "/auth/v1/health",
+          "status": 200
+        },
+        {
+          "path": "/rest/v1/companies",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/identity-permission-followup.safe.json",
+      "sha256": "f53e2c13f98d142389c326dbe2da33ba4b34a685b6f0a5c6a2447dcea7431677",
+      "json": {
+        "actualMain": "d93f361c51e81bc49cd48e817bd0b0fbe65e3d5b",
+        "mode": "BOUNDED_READ_ONLY_REQUIREMENT_AND_OPEN_DONOR_FOLLOWUP",
+        "sources": [
+          {
+            "path": "docs/ediel/utilts-issuer-source-intake.md",
+            "head": "dfb375a8fda5b7316678f853d17f061b43f30c6e",
+            "sha256": "8477ae25afde7a373f2f66f7348018633c0a0e8e46e86ad453ad434c6d1c4f8e",
+            "local": "/workspace/gridex-identity-plan-evidence-20261112/issuer-intake.md"
+          },
+          {
+            "path": "supabase/migrations/20261110120000_canonical_ediel_test_capability_reconciliation_v1.sql",
+            "head": "5bc02eb73a0d07753fbbbaa7a86592afcfcc5256",
+            "sha256": "764ba1e5f6206ceb6a789a88716b77792a000fbcfd170ed1161789a66dd2d56e",
+            "local": "/workspace/gridex-identity-plan-evidence-20261112/test-capability.sql"
+          },
+          {
+            "path": "supabase/migrations/20261101182158_ediel_utilts_issuer_source_intake.sql",
+            "head": "dfb375a8fda5b7316678f853d17f061b43f30c6e",
+            "sha256": "63a14b9e00d5846475c0fcfd907244752ea9fbee96674613f1554545b5004bc5"
+          }
+        ],
+        "donors": [
+          {
+            "pr": 1030,
+            "head": "dfb375a8fda5b7316678f853d17f061b43f30c6e",
+            "contract": "Closed synthetic TEST issuer source archive/independent review/issued MIME journal; requires ACTIVE company+accepted membership+explicit grant+independent controlled originals/private key custody",
+            "doesNotProvide": [
+              "tenant receiver identifier assignment",
+              "default RBAC grants",
+              "production or market authority"
+            ],
+            "currentOwnBlockers": [
+              "company onboarding",
+              "no explicit policy grants",
+              "no independent issuer originals/approval",
+              "not installed/admitted donor"
+            ],
+            "adopted": false
+          },
+          {
+            "pr": 1049,
+            "head": "5bc02eb73a0d07753fbbbaa7a86592afcfcc5256",
+            "contract": "TGT ediel_test capability reconciliation from qualified canonical configuration",
+            "doesNotProvide": [
+              "receiver identifier assignment",
+              "RBAC grant writer"
+            ],
+            "adopted": false
+          },
+          {
+            "pr": 1041,
+            "head": "55f45633ea5d6ffbacfb79220b9fb0314cc07df9",
+            "contract": "Authenticated existing profile company resolution and lifecycle checks; mentions separate local identity work outside diff",
+            "adopted": false,
+            "unreviewed": "Unpublished separate local identity migration/private ownership was not supplied and is not assumed authoritative"
+          },
+          {
+            "pr": 1045,
+            "head": "9bce2322cd990bc421fa81f5eb9954cf908db2e0",
+            "contract": "UTILTS ESCO/supplier role resolver correction; full wrong-party scenario still lacks qualified LOCAL DGI authority",
+            "adopted": false
+          }
+        ],
+        "conclusion": "No ordinary authoritative TEST receiver assignment or scoped billing-allow grant path established in reviewed requirement/current-main/open-donor scope; do not invent one",
+        "notGlobalAbsenceProof": true,
+        "alternativeExecuted": "SITE01.04 normal UI manual price-hint intake, stopped at real reference read-path before writes; scoped source fix follows"
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/resume-startup-failure.safe.json",
+      "sha256": "cd5ca7bac4e080e24ff9d9726700292e086d505e28827490a501708935428784",
+      "json": {
+        "authRunning": false,
+        "exit": 1,
+        "postgresConnectionRefusedAtStartup": true,
+        "ipAssignmentChanged": true,
+        "noScenarioAttemptYet": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/runtime-endpoint.safe.json",
+      "sha256": "a0b5e60697bacc024b9b7f04677290b053573d1de4387a52c73ac882a66aed5c",
+      "json": {
+        "kongIp": "172.18.0.3"
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/runtime-log-facts.safe.json",
+      "sha256": "f04b0e0c964ae1065a909d74c69a227d43d72ec3aa525685f7dc5440706143cd",
+      "json": {
+        "rawPrivateAppLogPath": "/workspace/gridex-site-price-evidence-20261112/app-final.raw.private.log",
+        "rawPrivateAppLogSha256": "7b87c5e583e304d78b6467eaa5c739e11f54379588631be78a9bb29884c74a56",
+        "actualSitePost500Count": 1,
+        "hydrationMismatchDevWarningObserved": false,
+        "hydrationWarningStatus": "UNTRIAGED_DEV_OBSERVATION_NOT_NEW_CONFIRMED_ROOT_CAUSE"
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/runtime-resume.safe.json",
+      "sha256": "d3f6f0aab496db2b9a6fdd066c36360e1225200855850acfc934ccc0fba4ae45",
+      "json": {
+        "sameFiveOwnedContainerIds": true,
+        "exactLabel": "gridex-kryp-next-20261111",
+        "allRelevantBindSourcesPresent": true,
+        "keysExpiryOnly": {
+          "anonKey": {
+            "exp": 1794516006,
+            "secondsRemaining": 2853
+          },
+          "serviceRoleKey": {
+            "exp": 1794516006,
+            "secondsRemaining": 2853
+          }
+        },
+        "renewedOrChangedCredentials": false,
+        "startExit": 0,
+        "storageNotStarted": true,
+        "noSeedsReplaysOrDbWrites": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/site-ui-after.safe.json",
+      "sha256": "8ab539c2cb27137f7358703472e224274ebefd22a7841c6bb8500388a54fb90b",
+      "json": {
+        "scenarioId": "SITE01.04",
+        "scope": "NORMAL_MANUAL_UI_UNVERIFIED_PRICE_HINT_ISOLATION_NOT_MARKET_AREA_OR_INVOICE_ACCEPTANCE",
+        "sourceReceipt": "source-after-catalog.safe.json",
+        "actors": [
+          {
+            "label": "bootstrap_platform_admin",
+            "normalUiLogin": true,
+            "path": "/dashboard",
+            "platformHeadingPresent": true,
+            "companyHeadingPresent": false,
+            "normalUiPostLogout": true
+          },
+          {
+            "label": "ordinary_tenant_owner",
+            "normalUiLogin": true,
+            "path": "/dashboard",
+            "platformHeadingPresent": false,
+            "companyHeadingPresent": true,
+            "normalUiPostLogout": true
+          }
+        ],
+        "steps": [
+          {
+            "kind": "NORMAL_CUSTOMER_PAGE",
+            "editId": null,
+            "status": 200,
+            "path": "/admin/customers/33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+            "siteForms": 1,
+            "bodySha256": "22aee9d74e53cbf2d4236ec1ce091de2ada6d2f064af3216c24ebd8394d1d7d4"
+          }
+        ],
+        "newSites": [],
+        "noProviderWorkerStarted": true,
+        "beforeSites": [
+          {
+            "id": "fe40fab9-4348-41ec-b068-b00e6249d024",
+            "rowSha256": "a0c5114b4637de36b044759c4ca4701301658ee761159496f16b33d124560fb1"
+          },
+          {
+            "id": "8e28c727-aff8-46ae-a463-9a40c6316086",
+            "rowSha256": "a74885e8970f72bf5675c27273baa410e5cf0645b6d1e0b58d0b967a5f48a3fb"
+          }
+        ],
+        "availablePriceAreaOptions": [
+          "",
+          "SE1",
+          "SE2",
+          "SE3",
+          "SE4"
+        ],
+        "state": "CAPTURE_STOPPED_AT_REAL_BOUNDARY",
+        "safeErrorCode": "Error",
+        "dashboardPersonaOracle": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/site-ui-original.safe.json",
+      "sha256": "23811732256555f11a5d115f43d5dd26d470bb0f40cd57429d88a212615fe40e",
+      "json": {
+        "scenarioId": "SITE01.04",
+        "scope": "NORMAL_MANUAL_UI_UNVERIFIED_PRICE_HINT_ISOLATION_NOT_MARKET_AREA_OR_INVOICE_ACCEPTANCE",
+        "sourceReceipt": "source-with-dashboard.safe.json",
+        "actors": [
+          {
+            "label": "bootstrap_platform_admin",
+            "normalUiLogin": true,
+            "path": "/dashboard",
+            "platformHeadingPresent": true,
+            "companyHeadingPresent": false,
+            "normalUiPostLogout": true
+          },
+          {
+            "label": "ordinary_tenant_owner",
+            "normalUiLogin": true,
+            "path": "/dashboard",
+            "platformHeadingPresent": false,
+            "companyHeadingPresent": true,
+            "normalUiPostLogout": true
+          }
+        ],
+        "steps": [
+          {
+            "kind": "NORMAL_CUSTOMER_PAGE",
+            "editId": null,
+            "status": 200,
+            "path": "/admin/customers/33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+            "siteForms": 1,
+            "bodySha256": "b9915c53749640c9917590222f21b6492ef921808de72cf0e49831fead02e7db"
+          }
+        ],
+        "newSites": [],
+        "noProviderWorkerStarted": true,
+        "beforeSites": [
+          {
+            "id": "fe40fab9-4348-41ec-b068-b00e6249d024",
+            "rowSha256": "a0c5114b4637de36b044759c4ca4701301658ee761159496f16b33d124560fb1"
+          },
+          {
+            "id": "8e28c727-aff8-46ae-a463-9a40c6316086",
+            "rowSha256": "a74885e8970f72bf5675c27273baa410e5cf0645b6d1e0b58d0b967a5f48a3fb"
+          }
+        ],
+        "state": "CAPTURE_STOPPED_AT_REAL_BOUNDARY",
+        "safeErrorCode": "BLOCKED_NORMAL_PRICEAREA_OPTIONS",
+        "dashboardPersonaOracle": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/site-write-failure.safe.json",
+      "sha256": "a7896dda721299353f56c39743cb5dfa9fd611b91b3534d9f2857f5747836b99",
+      "json": {
+        "newSyntheticSiteRows": [],
+        "siteReferenceDefault": "gridex_new_public_resource_reference('facility'::text)",
+        "siteAuditSinceAdoption": [],
+        "serviceCanExecuteGenerator": true,
+        "authenticatedCanExecuteGenerator": false,
+        "actualAppPostLogEvidence": [
+          "⨯ Error: {\"code\":\"42501\",\"details\":null,\"hint\":null,\"message\":\"permission denied for function gridex_new_public_resource_reference\"}",
+          " POST /admin/customers/33fd349e-a3c9-4647-8ce3-b32eec9099a0?tab=sites 500 in 1921ms (next.js: 84ms, proxy.ts: 182ms, application-code: 1656ms)"
+        ],
+        "privateAppLogSha256": "7b87c5e583e304d78b6467eaa5c739e11f54379588631be78a9bb29884c74a56",
+        "failureCode": "42501",
+        "actualHttpStatus": 500,
+        "rootCausePath": "NormalUIaction -> authenticated saveCustomerSite INSERT -> facility_reference DEFAULT -> service-only generator EXECUTE refused",
+        "noCreateRetryPerformed": true,
+        "baselineEquality": {
+          "roles": true,
+          "company_memberships": true,
+          "role_permissions": true,
+          "user_permissions": true,
+          "companies": true,
+          "customers": true,
+          "customer_sites": true,
+          "customer_contracts": true,
+          "customer_operation_jobs": true,
+          "manual_email_outbox": true,
+          "ediel_messages": true,
+          "existingSiteRows": true,
+          "selectedOwnSyntheticCustomer": true
+        },
+        "readOnlyDomDiagnosticNoSubmit": "ui-driver-diagnostic.safe.json",
+        "firstAfterHarnessDidNotRetainPostReceipt": true,
+        "specificOriginalPlaywrightErrorMessageNotRetained": true,
+        "actualOutcomeQualifiedByAppLogAndDbReadback": true,
+        "privateAppLogPath": "/workspace/gridex-site-price-evidence-20261112/app-final.raw.private.log",
+        "privateLogSnapshotAfterTerminalCleanup": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/site-write-path-followup.safe.json",
+      "sha256": "b9dc9643fe7d4fddd8bba1eda437ba2d6ca215a491580d381cd58985658fbd24",
+      "json": {
+        "kind": "SOURCE_ONLY_WRITE_PATH_FOLLOWUP_NOT_IMPLEMENTED",
+        "sourceBase": "d93f361c51e81bc49cd48e817bd0b0fbe65e3d5b",
+        "sources": [
+          {
+            "path": "app/admin/customers/[id]/actions.part-1.ts",
+            "sha256": "8304822425fe7a99c745b4c5e72cd227c8fc6ea86bcc19ce534d42d726e51682"
+          },
+          {
+            "path": "lib/masterdata/db.ts",
+            "sha256": "3d226006b66fe4c4b2567ed11e21ce1646976d1b517e0b38182bc76a1647bfcc"
+          },
+          {
+            "path": "lib/customers/canonicalOnboarding.ts",
+            "sha256": "51798b8944403df65441a5eba794a8d0514c6ef9eecbf6f16b5761dc9aa84e02"
+          },
+          {
+            "path": "lib/customer-sites/addressIntake.ts",
+            "sha256": "b7f70edf49236539f297adf756188c52bbba788b194d76cd31f48b3242aa4049"
+          },
+          {
+            "path": "supabase/migrations/20260730153000_customer_portal_api_production_completion.sql",
+            "sha256": "b5a9f323400a4e3592f3e392bf94695161969c1d5b0ba8d99cace9821338d740"
+          }
+        ],
+        "currentNormalUi": "Verified action/tenant guard -> saveCustomerSite(requestClient,parsed) -> authenticated table INSERT/UPDATE; single app/lib caller is customer action",
+        "observedFailure": "INSERT facility_reference DEFAULT invokes gridex_new_public_resource_reference(text); function explicitly revoked PUBLIC/anon/authenticated, granted service_role, SQL invoker function",
+        "ordinaryCanonicalAlternatives": [
+          {
+            "facade": "lib/customers/canonicalOnboarding.ts onboardCustomerGraph",
+            "rpc": "canonical_onboard_customer_graph(jsonb)",
+            "scope": "TrustedTenantContext company and actor mismatch checks -> validatedcommand -> existing service-only RPC; complete selectedsite command compatibility not qualified here"
+          },
+          {
+            "facade": "lib/customer-sites/addressIntake.ts createOrUpdateCustomerSiteFromAddress",
+            "rpc": "gridex_create_customer_site_with_address(...) / gridex_commit_customer_site_address(...)",
+            "scope": "Internal service-only intake, upstream tenant portal/integration actor checks; not direct public platform action replacement; manual hint/unverified and creator/audit semantics need qualification"
+          }
+        ],
+        "nextScopedPlan": "Qualify minimum existing canonical server writer adapter for normal site action with verified actor/company/customer, exact create/update semantics and explicit audit. Fail-first replay existing42501 then two reviews and actual normal UI. Never grant authenticated EXECUTE just to bypass contract",
+        "noGeneratorAclOrSiteWriterChangeMade": true,
+        "noFurtherCreatePost": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/source-after-catalog.safe.json",
+      "sha256": "cdc15f96da9e6146784bf479317a66f737136924745c50be3990098ecaa54d4f",
+      "json": {
+        "kind": "PRIVATE442_PLUS_FIVE_REVIEWED_PRODUCT_FILE_OVERLAYS_NO_COMPOSITE_GIT_HEAD",
+        "priorThreeFileSource": {
+          "kind": "PRIVATE_COMPOSITE_BASE442_PLUS_EXACT90_TWOFILES_PLUS_6f466_ONEFILE",
+          "baseAndFirstTwoOverlays": {
+            "profile": "PRIVATE442_PLUS_2_REVIEWED90a72_PRODUCT_BYTES",
+            "binding": {
+              "kind": "PRIVATE_COMPOSITE_NO_FABRICATED_GIT_HEAD",
+              "baseHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+              "baseTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+              "donorHead": "90a72f30da0309eedba6640142aa81631214304b",
+              "donorTree": "7e759c202144b9e93d01feb6fac8023eddd9e281",
+              "overlay": [
+                {
+                  "path": "app/api/internal/invoice-exports/[id]/route.ts",
+                  "beforeSha256": "a1b502ad15361f5b7fbe1134c758e0fe79745dd6897428115992d93482d5642e",
+                  "afterSha256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb"
+                },
+                {
+                  "path": "lib/integrations/billing/invoiceExportCore.ts",
+                  "beforeSha256": "f67d108276fd9c3b630867f2e6f8f678336a0583531943d9a22462f50e2db298",
+                  "afterSha256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94"
+                }
+              ],
+              "twoSourceApprovals": true,
+              "positiveOutputHandoff": true,
+              "stoppedOwnAppPids": [
+                54127,
+                54179,
+                54228,
+                54229,
+                54240,
+                54241,
+                54271
+              ],
+              "noDatabaseMigrationOrAuthorityWrite": true
+            },
+            "noFabricatedCompositeGitHead": true,
+            "siteSourcesIdenticalTo442": true
+          },
+          "dashboardDonorHead": "6f4664f1f2722208821823a87db76e59cd3553de",
+          "dashboardDonorTree": "e3e408c23cb0262dcb3e96c174ccc3e2096ee963",
+          "newOverlay": {
+            "path": "app/dashboard/page.tsx",
+            "sha256": "0b6bc59f9659956fd0990ce80e2520858d13ca01ab9f20f3d9b0c10567640b02"
+          },
+          "ownAppStoppedForSourceChange": true,
+          "noFabricatedGitHead": true,
+          "twoReviewsAndPositiveHandoff": true
+        },
+        "catalogSourceHead": "4ea29be08fb2d7a24324cb7244a05520854e1728",
+        "catalogSourceTree": "5f42ab17e6774ff405dd6cb3328c9dd354e627ab",
+        "catalogProductOutputHandoff": "Same exact source writer hands off immutable two reviewed product outputs to its sole private runtime producer under rootGO",
+        "twoIndependentSourceApprovals": true,
+        "appTypesTerminalExit": 0,
+        "newOverlays": [
+          {
+            "path": "app/admin/customers/[id]/page.part-4.tsx",
+            "sha256": "d381c2f09fdd1bd91eed8cfbcecd2ae6a9e588952f3f53a916d4049f07e15d9d"
+          },
+          {
+            "path": "lib/masterdata/customerSitePriceAreas.ts",
+            "sha256": "0a3dcf1da1875da33d8b1584b1a4fae307593ff42e046d7b784a825f1354d29f"
+          }
+        ],
+        "noRlsAclSchemaPermissionWrites": true,
+        "stoppedOnlyOwnAppForSourceChange": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/source-checks.safe.json",
+      "sha256": "51937ce4f8e14ee0c22ad55387b0bff364983d64b8499324800fa2dea8d4b2ce",
+      "json": {
+        "sourceHead": "4ea29be08fb2d7a24324cb7244a05520854e1728",
+        "checks": {
+          "unit-first-green-attempt.log": {
+            "exitCode": 0,
+            "actualTests": 11,
+            "path": "/workspace/gridex-site-price-evidence-20261112/unit-first-green-attempt.log",
+            "sha256": "3bd182f14438eda2d6759f85da4708a3a31009662bd693e459d27c686839446c",
+            "output": "\n RUN  v4.1.9 /workspace/gridex-site-price-intake-20261112\n\n\n Test Files  1 passed (1)\n      Tests  11 passed (11)\n   Start at  20:09:39\n   Duration  1.10s (transform 363ms, setup 57ms, import 478ms, tests 73ms, environment 0ms)\n\n"
+          },
+          "targeted-tests.log": {
+            "exitCode": 0,
+            "actualTests": 30,
+            "files": 4,
+            "scope": "Includes actualbehaviour and preexisting SOURCE assertions; not30nativecases",
+            "path": "/workspace/gridex-site-price-evidence-20261112/targeted-tests.log",
+            "sha256": "daa8d6c49e265ce73d5b1b5938305e8c5c2b5d0e403af82a88402976938ebafb",
+            "output": "\n RUN  v4.1.9 /workspace/gridex-site-price-intake-20261112\n\n ✓ __tests__/tenantservice-ui-workspace.test.ts (8 tests) 44ms\n ✓ __tests__/customer-site-price-areas.test.ts (11 tests) 73ms\n ✓ __tests__/customer-card-lookup-not-found.test.ts (10 tests) 257ms\n ✓ __tests__/customer-overview-contact-summary.test.ts (1 test) 6ms\n\n Test Files  4 passed (4)\n      Tests  30 passed (30)\n   Start at  20:10:41\n   Duration  1.16s (transform 692ms, setup 138ms, import 887ms, tests 379ms, environment 9ms)\n\nJSON report written to /workspace/gridex-site-price-evidence-20261112/targeted-tests.safe.json\n"
+          },
+          "lint.log": {
+            "exitCode": 0,
+            "errors": 0,
+            "preexistingWarnings": 10,
+            "path": "/workspace/gridex-site-price-evidence-20261112/lint.log",
+            "sha256": "81f02e252e796ed6b7fb717b391105b4236a88a00eaa556d6a5e63c4aa745dd8",
+            "output": "\n/workspace/gridex-site-price-intake-20261112/app/admin/customers/[id]/page.part-4.tsx\n  391:9  warning  'activeSites' is assigned a value but never used                  @typescript-eslint/no-unused-vars\n  392:9  warning  'activeMeteringPoints' is assigned a value but never used         @typescript-eslint/no-unused-vars\n  396:9  warning  'lifecycleSummary' is assigned a value but never used             @typescript-eslint/no-unused-vars\n  478:9  warning  'hasUsablePowerOfAttorney' is assigned a value but never used     @typescript-eslint/no-unused-vars\n  514:9  warning  'legalLooksAccepted' is assigned a value but never used           @typescript-eslint/no-unused-vars\n  582:9  warning  'tenantCustomerView' is assigned a value but never used           @typescript-eslint/no-unused-vars\n  593:9  warning  'hasSwitchData' is assigned a value but never used                @typescript-eslint/no-unused-vars\n  630:9  warning  'primaryContact' is assigned a value but never used               @typescript-eslint/no-unused-vars\n  684:9  warning  'openCustomerBlockers' is assigned a value but never used         @typescript-eslint/no-unused-vars\n  698:9  warning  'pendingCustomerInfoRequests' is assigned a value but never used  @typescript-eslint/no-unused-vars\n\n✖ 10 problems (0 errors, 10 warnings)\n\n"
+          },
+          "service-ratchet.log": {
+            "exitCode": 0,
+            "callSites": 2349,
+            "files": 494,
+            "baselineUnchanged": true,
+            "path": "/workspace/gridex-site-price-evidence-20261112/service-ratchet.log",
+            "sha256": "23be832b42d1a994b1bd817e0679e100f9c0dc6c599e2e84e05b1afd7a4b2300",
+            "output": "Service-role ratchet: 2349 call sites across 494 files, unchanged.\n"
+          },
+          "test-types.log": {
+            "exitCode": 0,
+            "path": "/workspace/gridex-site-price-evidence-20261112/test-types.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "output": ""
+          },
+          "app-types.log": {
+            "exitCode": 0,
+            "path": "/workspace/gridex-site-price-evidence-20261112/app-types.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "output": ""
+          }
+        },
+        "primaryFailFirst": "ActualnormalUIbefore+realAuthrequest0/service4catalogread",
+        "initialUnitCollectionMissingFacade": "No behavioural test ran; not counted as behaviouralRED",
+        "firstAppTSAttemptTerminalUnknownPreserved": true,
+        "requiredAppTSVerifiedByDurableBoundedRerun": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/source-with-dashboard.safe.json",
+      "sha256": "b3a41ce534818420c74731cd732f9dd788fe5f2c558edc98a92117e7c45b2307",
+      "json": {
+        "kind": "PRIVATE_COMPOSITE_BASE442_PLUS_EXACT90_TWOFILES_PLUS_6f466_ONEFILE",
+        "baseAndFirstTwoOverlays": {
+          "profile": "PRIVATE442_PLUS_2_REVIEWED90a72_PRODUCT_BYTES",
+          "binding": {
+            "kind": "PRIVATE_COMPOSITE_NO_FABRICATED_GIT_HEAD",
+            "baseHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+            "baseTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+            "donorHead": "90a72f30da0309eedba6640142aa81631214304b",
+            "donorTree": "7e759c202144b9e93d01feb6fac8023eddd9e281",
+            "overlay": [
+              {
+                "path": "app/api/internal/invoice-exports/[id]/route.ts",
+                "beforeSha256": "a1b502ad15361f5b7fbe1134c758e0fe79745dd6897428115992d93482d5642e",
+                "afterSha256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb"
+              },
+              {
+                "path": "lib/integrations/billing/invoiceExportCore.ts",
+                "beforeSha256": "f67d108276fd9c3b630867f2e6f8f678336a0583531943d9a22462f50e2db298",
+                "afterSha256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94"
+              }
+            ],
+            "twoSourceApprovals": true,
+            "positiveOutputHandoff": true,
+            "stoppedOwnAppPids": [
+              54127,
+              54179,
+              54228,
+              54229,
+              54240,
+              54241,
+              54271
+            ],
+            "noDatabaseMigrationOrAuthorityWrite": true
+          },
+          "noFabricatedCompositeGitHead": true,
+          "siteSourcesIdenticalTo442": true
+        },
+        "dashboardDonorHead": "6f4664f1f2722208821823a87db76e59cd3553de",
+        "dashboardDonorTree": "e3e408c23cb0262dcb3e96c174ccc3e2096ee963",
+        "newOverlay": {
+          "path": "app/dashboard/page.tsx",
+          "sha256": "0b6bc59f9659956fd0990ce80e2520858d13ca01ab9f20f3d9b0c10567640b02"
+        },
+        "ownAppStoppedForSourceChange": true,
+        "noFabricatedGitHead": true,
+        "twoReviewsAndPositiveHandoff": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/source.safe.json",
+      "sha256": "f59fc2b33c929179004b3aa900dc85be9398a6061f1a2a748a65fc4793a5c7e2",
+      "json": {
+        "profile": "PRIVATE442_PLUS_2_REVIEWED90a72_PRODUCT_BYTES",
+        "binding": {
+          "kind": "PRIVATE_COMPOSITE_NO_FABRICATED_GIT_HEAD",
+          "baseHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+          "baseTree": "898aef7ce2c2d1afc3968043bb786bd59ae6a7df",
+          "donorHead": "90a72f30da0309eedba6640142aa81631214304b",
+          "donorTree": "7e759c202144b9e93d01feb6fac8023eddd9e281",
+          "overlay": [
+            {
+              "path": "app/api/internal/invoice-exports/[id]/route.ts",
+              "beforeSha256": "a1b502ad15361f5b7fbe1134c758e0fe79745dd6897428115992d93482d5642e",
+              "afterSha256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb"
+            },
+            {
+              "path": "lib/integrations/billing/invoiceExportCore.ts",
+              "beforeSha256": "f67d108276fd9c3b630867f2e6f8f678336a0583531943d9a22462f50e2db298",
+              "afterSha256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94"
+            }
+          ],
+          "twoSourceApprovals": true,
+          "positiveOutputHandoff": true,
+          "stoppedOwnAppPids": [
+            54127,
+            54179,
+            54228,
+            54229,
+            54240,
+            54241,
+            54271
+          ],
+          "noDatabaseMigrationOrAuthorityWrite": true
+        },
+        "noFabricatedCompositeGitHead": true,
+        "siteSourcesIdenticalTo442": true
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/targeted-tests.safe.json",
+      "sha256": "f699eac67ac4f91d7fa01b0dd93ce612ff3951886c2730797d51648c66e06947",
+      "json": {
+        "numTotalTestSuites": 10,
+        "numPassedTestSuites": 10,
+        "numFailedTestSuites": 0,
+        "numPendingTestSuites": 0,
+        "numTotalTests": 30,
+        "numPassedTests": 30,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "numTodoTests": 0,
+        "snapshot": {
+          "added": 0,
+          "failure": false,
+          "filesAdded": 0,
+          "filesRemoved": 0,
+          "filesRemovedList": [],
+          "filesUnmatched": 0,
+          "filesUpdated": 0,
+          "matched": 0,
+          "total": 0,
+          "unchecked": 0,
+          "uncheckedKeysByFile": [],
+          "unmatched": 0,
+          "updated": 0,
+          "didUpdate": false
+        },
+        "startTime": 1794514241092,
+        "success": true,
+        "testResults": [
+          {
+            "assertionResults": [
+              {
+                "ancestorTitles": [
+                  "customer card lookup outcome (finding 003)"
+                ],
+                "fullName": "customer card lookup outcome (finding 003) answers a customer of another company exactly like a missing id",
+                "status": "passed",
+                "title": "answers a customer of another company exactly like a missing id",
+                "duration": 20.059365999999955,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "customer card lookup outcome (finding 003)"
+                ],
+                "fullName": "customer card lookup outcome (finding 003) answers a customer without company link as not found",
+                "status": "passed",
+                "title": "answers a customer without company link as not found",
+                "duration": 0.6155410000000074,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "customer card lookup outcome (finding 003)"
+                ],
+                "fullName": "customer card lookup outcome (finding 003) keeps the explanatory states that do not reveal another tenant",
+                "status": "passed",
+                "title": "keeps the explanatory states that do not reveal another tenant",
+                "duration": 4.779832000000056,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "customer card lookup outcome (finding 003)"
+                ],
+                "fullName": "customer card lookup outcome (finding 003) does not hint at an Ediel control customer of another company",
+                "status": "passed",
+                "title": "does not hint at an Ediel control customer of another company",
+                "duration": 0.37715499999990243,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "customer card lookup outcome (finding 003)"
+                ],
+                "fullName": "customer card lookup outcome (finding 003) opens own and platform-visible customers",
+                "status": "passed",
+                "title": "opens own and platform-visible customers",
+                "duration": 1.1007540000000517,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "customer workspace layout answers 404 before any tenant-specific error (finding 003)"
+                ],
+                "fullName": "customer workspace layout answers 404 before any tenant-specific error (finding 003) gives the same notFound for a missing id and another tenant's customer",
+                "status": "passed",
+                "title": "gives the same notFound for a missing id and another tenant's customer",
+                "duration": 224.12059999999997,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "customer workspace layout answers 404 before any tenant-specific error (finding 003)"
+                ],
+                "fullName": "customer workspace layout answers 404 before any tenant-specific error (finding 003) answers a malformed id with the same notFound and never queries the database",
+                "status": "passed",
+                "title": "answers a malformed id with the same notFound and never queries the database",
+                "duration": 0.39713399999993726,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "customer workspace layout answers 404 before any tenant-specific error (finding 003)"
+                ],
+                "fullName": "customer workspace layout answers 404 before any tenant-specific error (finding 003) treats a customer without company link as not found",
+                "status": "passed",
+                "title": "treats a customer without company link as not found",
+                "duration": 0.1884780000000319,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "customer workspace layout answers 404 before any tenant-specific error (finding 003)"
+                ],
+                "fullName": "customer workspace layout answers 404 before any tenant-specific error (finding 003) still runs the full tenant guard for the actor's own customer",
+                "status": "passed",
+                "title": "still runs the full tenant guard for the actor's own customer",
+                "duration": 1.2785629999999628,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "customer workspace layout answers 404 before any tenant-specific error (finding 003)"
+                ],
+                "fullName": "customer workspace layout answers 404 before any tenant-specific error (finding 003) answers an actor without active company the same for every customer id",
+                "status": "passed",
+                "title": "answers an actor without active company the same for every customer id",
+                "duration": 0.48928300000000036,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              }
+            ],
+            "startTime": 1794514241977,
+            "endTime": 1794514242231.4893,
+            "status": "passed",
+            "message": "",
+            "name": "/workspace/gridex-site-price-intake-20261112/__tests__/customer-card-lookup-not-found.test.ts"
+          },
+          {
+            "assertionResults": [
+              {
+                "ancestorTitles": [
+                  "customer overview contact summary"
+                ],
+                "fullName": "customer overview contact summary renders the resolved customer identity, contact details and address on overview",
+                "status": "passed",
+                "title": "renders the resolved customer identity, contact details and address on overview",
+                "duration": 3.3751609999999914,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              }
+            ],
+            "startTime": 1794514242379,
+            "endTime": 1794514242382.3752,
+            "status": "passed",
+            "message": "",
+            "name": "/workspace/gridex-site-price-intake-20261112/__tests__/customer-overview-contact-summary.test.ts"
+          },
+          {
+            "assertionResults": [
+              {
+                "ancestorTitles": [
+                  "guarded platform customer-site global reference catalogue"
+                ],
+                "fullName": "guarded platform customer-site global reference catalogue reads four real reference rows for a verified platform flag with empty roles and permissions",
+                "status": "passed",
+                "title": "reads four real reference rows for a verified platform flag with empty roles and permissions",
+                "duration": 8.845794000000069,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "guarded platform customer-site global reference catalogue"
+                ],
+                "fullName": "guarded platform customer-site global reference catalogue preserves the observed authenticated-RLS-empty precondition without changing that client",
+                "status": "passed",
+                "title": "preserves the observed authenticated-RLS-empty precondition without changing that client",
+                "duration": 2.2217050000000427,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "guarded platform customer-site global reference catalogue"
+                ],
+                "fullName": "guarded platform customer-site global reference catalogue denies anonymous before any privileged catalogue read",
+                "status": "passed",
+                "title": "denies anonymous before any privileged catalogue read",
+                "duration": 1.9383090000000038,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "guarded platform customer-site global reference catalogue"
+                ],
+                "fullName": "guarded platform customer-site global reference catalogue denies ordinary owner before any privileged catalogue read",
+                "status": "passed",
+                "title": "denies ordinary owner before any privileged catalogue read",
+                "duration": 0.6817710000000261,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "guarded platform customer-site global reference catalogue"
+                ],
+                "fullName": "guarded platform customer-site global reference catalogue denies platform-looking role label before any privileged catalogue read",
+                "status": "passed",
+                "title": "denies platform-looking role label before any privileged catalogue read",
+                "duration": 3.126751000000013,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "guarded platform customer-site global reference catalogue"
+                ],
+                "fullName": "guarded platform customer-site global reference catalogue denies user metadata claim before any privileged catalogue read",
+                "status": "passed",
+                "title": "denies user metadata claim before any privileged catalogue read",
+                "duration": 0.16197699999997894,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "guarded platform customer-site global reference catalogue"
+                ],
+                "fullName": "guarded platform customer-site global reference catalogue denies missing canonical flag before any privileged catalogue read",
+                "status": "passed",
+                "title": "denies missing canonical flag before any privileged catalogue read",
+                "duration": 0.21671099999991839,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "guarded platform customer-site global reference catalogue"
+                ],
+                "fullName": "guarded platform customer-site global reference catalogue denies string flag before any privileged catalogue read",
+                "status": "passed",
+                "title": "denies string flag before any privileged catalogue read",
+                "duration": 0.3457050000000663,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "guarded platform customer-site global reference catalogue"
+                ],
+                "fullName": "guarded platform customer-site global reference catalogue renders the actual normal CustomerSiteForm with the returned four selectable options",
+                "status": "passed",
+                "title": "renders the actual normal CustomerSiteForm with the returned four selectable options",
+                "duration": 45.575732000000016,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "guarded platform customer-site global reference catalogue"
+                ],
+                "fullName": "guarded platform customer-site global reference catalogue propagates actual SDK errors rather than manufacturing a catalogue or silently approving readiness",
+                "status": "passed",
+                "title": "propagates actual SDK errors rather than manufacturing a catalogue or silently approving readiness",
+                "duration": 1.1016799999999876,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "guarded platform customer-site global reference catalogue"
+                ],
+                "fullName": "guarded platform customer-site global reference catalogue preserves an actually empty service catalogue without seeding reference or permission rows",
+                "status": "passed",
+                "title": "preserves an actually empty service catalogue without seeding reference or permission rows",
+                "duration": 1.5820449999999937,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              }
+            ],
+            "startTime": 1794514242059,
+            "endTime": 1794514242125.582,
+            "status": "passed",
+            "message": "",
+            "name": "/workspace/gridex-site-price-intake-20261112/__tests__/customer-site-price-areas.test.ts"
+          },
+          {
+            "assertionResults": [
+              {
+                "ancestorTitles": [
+                  "tenant workspace UI (P5)"
+                ],
+                "fullName": "tenant workspace UI (P5) tenant navigation leads with Översikt, Kunder, Ärenden, Fakturering and keeps Inställningar",
+                "status": "passed",
+                "title": "tenant navigation leads with Översikt, Kunder, Ärenden, Fakturering and keeps Inställningar",
+                "duration": 5.730176999999912,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "tenant workspace UI (P5)"
+                ],
+                "fullName": "tenant workspace UI (P5) composer keeps reply, internal note and phone log as clearly separate modes and blocks double submit",
+                "status": "passed",
+                "title": "composer keeps reply, internal note and phone log as clearly separate modes and blocks double submit",
+                "duration": 4.086092000000008,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "tenant workspace UI (P5)"
+                ],
+                "fullName": "tenant workspace UI (P5) case detail page is tenant-scoped, labels visibility and only offers writes with cases.write",
+                "status": "passed",
+                "title": "case detail page is tenant-scoped, labels visibility and only offers writes with cases.write",
+                "duration": 0.6988250000000562,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "tenant workspace UI (P5)"
+                ],
+                "fullName": "tenant workspace UI (P5) customer card loads updated_at so the optimistic version check is active",
+                "status": "passed",
+                "title": "customer card loads updated_at so the optimistic version check is active",
+                "duration": 0.38681899999994585,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "tenant workspace UI (P5)"
+                ],
+                "fullName": "tenant workspace UI (P5) support case creation form carries a per-render idempotency key and tenant guard",
+                "status": "passed",
+                "title": "support case creation form carries a per-render idempotency key and tenant guard",
+                "duration": 0.4198279999999386,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "customer card for tenant staff (P5b)"
+                ],
+                "fullName": "customer card for tenant staff (P5b) groups tenant tabs into five primary sections",
+                "status": "passed",
+                "title": "groups tenant tabs into five primary sections",
+                "duration": 27.117321999999945,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "customer card for tenant staff (P5b)"
+                ],
+                "fullName": "customer card for tenant staff (P5b) header has one primary and at most two secondary actions, permission-gated and hidden when archived",
+                "status": "passed",
+                "title": "header has one primary and at most two secondary actions, permission-gated and hidden when archived",
+                "duration": 1.2110660000000735,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              },
+              {
+                "ancestorTitles": [
+                  "customer card for tenant staff (P5b)"
+                ],
+                "fullName": "customer card for tenant staff (P5b) \"Registrera kontakt\" preselects the customer and phone channel on the case form",
+                "status": "passed",
+                "title": "\"Registrera kontakt\" preselects the customer and phone channel on the case form",
+                "duration": 0.4081380000000081,
+                "failureMessages": [],
+                "meta": {},
+                "tags": []
+              }
+            ],
+            "startTime": 1794514242006,
+            "endTime": 1794514242047.4082,
+            "status": "passed",
+            "message": "",
+            "name": "/workspace/gridex-site-price-intake-20261112/__tests__/tenantservice-ui-workspace.test.ts"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/ui-driver-diagnostic.safe.json",
+      "sha256": "81af3f63396fe980672c4eaa1cc5218951c965123d18af7c500a70fc0112e968",
+      "json": {
+        "kind": "READ_ONLY_UI_DRIVER_DIAGNOSTIC_NO_SUBMIT",
+        "stages": [
+          {
+            "operation": "fill",
+            "name": "site_name",
+            "count": 1
+          },
+          {
+            "operation": "fill",
+            "name": "facility_id",
+            "count": 1
+          },
+          {
+            "operation": "fill",
+            "name": "street",
+            "count": 1
+          },
+          {
+            "operation": "fill",
+            "name": "postal_code",
+            "count": 1
+          },
+          {
+            "operation": "fill",
+            "name": "city",
+            "count": 1
+          },
+          {
+            "operation": "fill",
+            "name": "country",
+            "count": 1
+          },
+          {
+            "operation": "selectOption",
+            "name": "status",
+            "count": 1
+          },
+          {
+            "operation": "selectOption",
+            "name": "site_flow_type",
+            "count": 1
+          },
+          {
+            "operation": "selectOption",
+            "name": "price_area_code",
+            "count": 1
+          }
+        ],
+        "submitButtons": 1,
+        "state": "FIELD_DIAGNOSTIC_COMPLETE_NO_SUBMIT",
+        "normalLogout": true
+      }
+    }
+  ],
+  "privateRawPostLog": {
+    "rawPrivateAppLogPath": "/workspace/gridex-site-price-evidence-20261112/app-final.raw.private.log",
+    "rawPrivateAppLogSha256": "7b87c5e583e304d78b6467eaa5c739e11f54379588631be78a9bb29884c74a56",
+    "actualSitePost500Count": 1,
+    "hydrationMismatchDevWarningObserved": false,
+    "hydrationWarningStatus": "UNTRIAGED_DEV_OBSERVATION_NOT_NEW_CONFIRMED_ROOT_CAUSE"
+  },
+  "harnesses": [
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/site-ui-harness.cjs",
+      "sha256": "a55a4928970bc2bb1fe0b7d76af7895aa5234e16294d99c5799c2f8d0dde87ad",
+      "source": "'use strict';const fs=require('fs'),crypto=require('crypto');const {chromium}=require('/workspace/gridex-krypkorning-run-20261111/node_modules/playwright');const root='/workspace/gridex-site-price-evidence-20261112',prev='/workspace/gridex-scenario-native-evidence-20261112';const actors=JSON.parse(fs.readFileSync(prev+'/actors.private.json','utf8')),keys=JSON.parse(fs.readFileSync(prev+'/runtime-renewed.private.json','utf8'));const base='http://127.0.0.1:3108',api='http://127.0.0.1:55321',company='b36f6a30-18cd-4a70-8652-5b2da9b4eb64',customer='33fd349e-a3c9-4647-8ce3-b32eec9099a0';const tag=crypto.randomBytes(4).toString('hex'),sha=x=>crypto.createHash('sha256').update(x).digest('hex');const stable=x=>JSON.stringify(x,Object.keys(x).sort());const result={scenarioId:'SITE01.04',scope:'NORMAL_MANUAL_UI_UNVERIFIED_PRICE_HINT_ISOLATION_NOT_MARKET_AREA_OR_INVOICE_ACCEPTANCE',sourceReceipt:'source-with-dashboard.safe.json',actors:[],steps:[],newSites:[],noProviderWorkerStarted:true};const save=()=>fs.writeFileSync(root+'/site-ui-original.safe.json',JSON.stringify(result,null,2),{mode:0o600});\nasync function rows(){const r=await fetch(api+'/rest/v1/customer_sites?company_id=eq.'+company+'&customer_id=eq.'+customer+'&select=*',{headers:{apikey:keys.serviceRoleKey,Authorization:'Bearer '+keys.serviceRoleKey}});if(!r.ok)throw Error('READ_ONLY_SITE_READBACK_FAILED');return await r.json()}\nfunction project(s){return{id:s.id,company_id:s.company_id,customer_id:s.customer_id,site_name:s.site_name,facility_id:s.facility_id,status:s.status,is_active:s.is_active,address_hash:s.address_hash,address_status:s.address_status,facility_data_status:s.facility_data_status,resolution_status:s.resolution_status,grid_owner_id:s.grid_owner_id,price_area_code:s.price_area_code,metadata:s.metadata}}\nfunction checkSecrets(body){const values=[keys.serviceRoleKey,keys.jwtSecret,...actors.map(a=>a.password)];if(values.some(s=>body.includes(s)))throw Error('KNOWN_SECRET_PRESENT_IN_RESPONSE')}\nlet browser;let currentContext,currentPage;\nasync function logout(a){if(!currentPage)return;await currentPage.goto(base+'/logout',{waitUntil:'domcontentloaded',timeout:60000});await Promise.all([currentPage.waitForURL(u=>u.pathname==='/login',{timeout:60000}),currentPage.locator('form[action=\"/logout\"] button[type=submit]').click()]);a.normalUiPostLogout=true;await currentContext.close();currentContext=currentPage=null;save()}\nasync function login(a){currentContext=await browser.newContext();currentPage=await currentContext.newPage();await currentPage.goto(base+'/login',{waitUntil:'domcontentloaded',timeout:180000});await currentPage.locator('input[name=email]').fill(a.email);await currentPage.locator('input[name=password]').fill(a.password);await Promise.all([currentPage.waitForURL(u=>u.pathname!='/login',{timeout:120000}),currentPage.locator('button[type=submit]').click()]);const body=await currentPage.content();checkSecrets(body);const p={label:a.label,normalUiLogin:true,path:new URL(currentPage.url()).pathname,platformHeadingPresent:body.includes('Plattformsöversikt')&&body.includes('Gridex Platform Operations'),companyHeadingPresent:body.includes('Bolagsyta')};result.actors.push(p);save();return p}\nasync function openForm(editId){const url=base+'/admin/customers/'+customer+(editId?'?editSite='+editId:'?tab=sites');const r=await currentPage.goto(url,{waitUntil:'domcontentloaded',timeout:180000});const body=await currentPage.content();checkSecrets(body);const form=currentPage.locator('form').filter({has:currentPage.locator('input[name=site_name]')});result.steps.push({kind:'NORMAL_CUSTOMER_PAGE',editId:editId??null,status:r.status(),path:new URL(currentPage.url()).pathname,siteForms:await form.count(),bodySha256:sha(body)});save();if(r.status()!==200||await form.count()!==1)throw Error('BLOCKED_NORMAL_UI_SITE_FORM');const details=form.locator('xpath=ancestor::details[1]');if(await details.count()&&!await details.getAttribute('open'))await details.locator('summary').click();const options=await form.locator('select[name=price_area_code] option').evaluateAll(ns=>ns.map(n=>n.value));if(!['SE3','SE4'].every(v=>options.includes(v)))throw Error('BLOCKED_NORMAL_PRICEAREA_OPTIONS');result.availablePriceAreaOptions=options;return form}\nasync function fill(form,v){for(const[k,value]of Object.entries({site_name:v.name,facility_id:v.facility,street:v.street,postal_code:v.postal,city:v.city,country:'SE'}))await form.locator('[name='+k+']').fill(value);await form.locator('[name=status]').selectOption('draft');await form.locator('[name=site_flow_type]').selectOption('switch');await form.locator('[name=price_area_code]').selectOption(v.area)}\nasync function submit(form,label){const [r]=await Promise.all([currentPage.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/admin/customers/'+customer,{timeout:120000}),form.locator('button[type=submit]').click()]);const body=await r.text();checkSecrets(body);result.steps.push({kind:'NORMAL_SERVER_ACTION_POST',label,status:r.status(),bodySha256:sha(body),bodyBytes:Buffer.byteLength(body)});save();await form.locator('button[type=submit]').waitFor({state:'visible',timeout:30000});return r.status()}\n(async()=>{try{browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});const before=await rows();const beforeHashes=Object.fromEntries(before.map(r=>[r.id,sha(stable(r))]));result.beforeSites=before.map(s=>({id:s.id,rowSha256:beforeHashes[s.id]}));const admin=await login(actors.find(a=>a.label==='bootstrap_platform_admin'));if(!admin.platformHeadingPresent)throw Error('DASHBOARD_PLATFORM_PERSONA_NOT_REACHED');const cases=[{name:'Kryp SITE01.04 SE3 '+tag,area:'SE3',facility:'735999999990000031',street:'Simuleringsgatan 31',postal:'11122',city:'Stockholm'},{name:'Kryp SITE01.04 SE4 '+tag,area:'SE4',facility:'735999999990000048',street:'Simuleringsgatan 41',postal:'21122',city:'Malmö'}];for(const v of cases){const f=await openForm();await fill(f,v);await submit(f,'CREATE_'+v.area);const after=await rows();const own=after.filter(s=>s.site_name===v.name);if(own.length!==1)throw Error('CREATE_NOT_CONFIRMED_EXACTLY_ONE_SITE');const s=project(own[0]);result.newSites.push(s);save();if(s.price_area_code!==null||s.grid_owner_id!==null)throw Error('MANUAL_HINT_BECAME_OPERATIONAL_FIELDS');const hint=s.metadata?.address_candidate_metadata?.manual_price_area_hint;if(hint!==v.area)throw Error('MANUAL_HINT_NOT_PRESERVED');if(s.address_status==='verified'||s.facility_data_status==='verified')throw Error('UNTRUSTED_HINT_VERIFIED');if(!before.every(r=>after.find(s=>s.id===r.id)&&sha(stable(after.find(s=>s.id===r.id)))===beforeHashes[r.id]))throw Error('PREEXISTING_SITE_CHANGED')}\nconst [one,two]=result.newSites;result.distinctSiteAndAddressHashes=one.id!==two.id&&one.address_hash!==two.address_hash;const preEdit=await rows();const secondHash=sha(stable(preEdit.find(s=>s.id===two.id)));let f=await openForm(one.id);await fill(f,cases[0]);await submit(f,'EDIT_ID_BOUND_SAME_INPUT_REPLAY');let after=await rows();result.editReplay={sameSiteId:after.some(s=>s.id===one.id),countBefore:preEdit.length,countAfter:after.length,secondSiteUnchanged:sha(stable(after.find(s=>s.id===two.id)))===secondHash};save();if(result.availablePriceAreaOptions.includes('SE1')){f=await openForm(one.id);await fill(f,{...cases[0],area:'SE1'});await submit(f,'EDIT_ONLY_FIRST_HINT_TO_SE1');after=await rows();result.singleSiteChange={first:project(after.find(s=>s.id===one.id)),secondUnchanged:sha(stable(after.find(s=>s.id===two.id)))===secondHash}}result.finalSiteRows=after.map(project);result.state='SITE_UI_TERMINAL';await logout(admin);const owner=await login(actors.find(a=>a.label==='ordinary_tenant_owner'));await logout(owner);result.dashboardPersonaOracle=admin.platformHeadingPresent&&!owner.platformHeadingPresent&&owner.companyHeadingPresent;result.state='TERMINAL';save()}catch(e){result.state='CAPTURE_STOPPED_AT_REAL_BOUNDARY';result.safeErrorCode=String(e.message||e.name).startsWith('BLOCKED_')||String(e.message).match(/^[A-Z_]+$/)?e.message:e.name;save();if(currentPage){try{await logout(result.actors.at(-1))}catch{result.normalLogoutCleanupFailed=true;save()}}process.exitCode=1}finally{if(browser&&!result.actors.some(a=>a.label==='ordinary_tenant_owner')){try{const o=await login(actors.find(a=>a.label==='ordinary_tenant_owner'));await logout(o);result.dashboardPersonaOracle=Boolean(result.actors.find(a=>a.label==='bootstrap_platform_admin')?.platformHeadingPresent)&&!o.platformHeadingPresent&&o.companyHeadingPresent;save()}catch(e){result.ownerPersonaCaptureError=e.name;save()}}await browser?.close()}})();\n"
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/site-ui-after-harness.cjs",
+      "sha256": "12a1e995f3012a5d76bb0a656ac1a8acb1df6acdb245b993a0c7332c7ef993d5",
+      "source": "'use strict';const fs=require('fs'),crypto=require('crypto');const {chromium}=require('/workspace/gridex-krypkorning-run-20261111/node_modules/playwright');const root='/workspace/gridex-site-price-evidence-20261112',prev='/workspace/gridex-scenario-native-evidence-20261112';const actors=JSON.parse(fs.readFileSync(prev+'/actors.private.json','utf8')),keys=JSON.parse(fs.readFileSync(prev+'/runtime-renewed.private.json','utf8'));const base='http://127.0.0.1:3108',api='http://127.0.0.1:55321',company='b36f6a30-18cd-4a70-8652-5b2da9b4eb64',customer='33fd349e-a3c9-4647-8ce3-b32eec9099a0';const tag=crypto.randomBytes(4).toString('hex'),sha=x=>crypto.createHash('sha256').update(x).digest('hex');const stable=x=>JSON.stringify(x,Object.keys(x).sort());const result={scenarioId:'SITE01.04',scope:'NORMAL_MANUAL_UI_UNVERIFIED_PRICE_HINT_ISOLATION_NOT_MARKET_AREA_OR_INVOICE_ACCEPTANCE',sourceReceipt:'source-after-catalog.safe.json',actors:[],steps:[],newSites:[],noProviderWorkerStarted:true};const save=()=>fs.writeFileSync(root+'/site-ui-after.safe.json',JSON.stringify(result,null,2),{mode:0o600});\nasync function rows(){const r=await fetch(api+'/rest/v1/customer_sites?company_id=eq.'+company+'&customer_id=eq.'+customer+'&select=*',{headers:{apikey:keys.serviceRoleKey,Authorization:'Bearer '+keys.serviceRoleKey}});if(!r.ok)throw Error('READ_ONLY_SITE_READBACK_FAILED');return await r.json()}\nfunction project(s){return{id:s.id,company_id:s.company_id,customer_id:s.customer_id,site_name:s.site_name,facility_id:s.facility_id,status:s.status,is_active:s.is_active,address_hash:s.address_hash,address_status:s.address_status,facility_data_status:s.facility_data_status,resolution_status:s.resolution_status,grid_owner_id:s.grid_owner_id,price_area_code:s.price_area_code,metadata:s.metadata}}\nfunction checkSecrets(body){const values=[keys.serviceRoleKey,keys.jwtSecret,...actors.map(a=>a.password)];if(values.some(s=>body.includes(s)))throw Error('KNOWN_SECRET_PRESENT_IN_RESPONSE')}\nlet browser;let currentContext,currentPage;\nasync function logout(a){if(!currentPage)return;await currentPage.goto(base+'/logout',{waitUntil:'domcontentloaded',timeout:60000});await Promise.all([currentPage.waitForURL(u=>u.pathname==='/login',{timeout:60000}),currentPage.locator('form[action=\"/logout\"] button[type=submit]').click()]);a.normalUiPostLogout=true;await currentContext.close();currentContext=currentPage=null;save()}\nasync function login(a){currentContext=await browser.newContext();currentPage=await currentContext.newPage();await currentPage.goto(base+'/login',{waitUntil:'domcontentloaded',timeout:180000});await currentPage.locator('input[name=email]').fill(a.email);await currentPage.locator('input[name=password]').fill(a.password);await Promise.all([currentPage.waitForURL(u=>u.pathname!='/login',{timeout:120000}),currentPage.locator('button[type=submit]').click()]);const body=await currentPage.content();checkSecrets(body);const p={label:a.label,normalUiLogin:true,path:new URL(currentPage.url()).pathname,platformHeadingPresent:body.includes('Plattformsöversikt')&&body.includes('Gridex Platform Operations'),companyHeadingPresent:body.includes('Bolagsyta')};result.actors.push(p);save();return p}\nasync function openForm(editId){const url=base+'/admin/customers/'+customer+(editId?'?editSite='+editId:'?tab=sites');const r=await currentPage.goto(url,{waitUntil:'domcontentloaded',timeout:180000});const body=await currentPage.content();checkSecrets(body);const form=currentPage.locator('form').filter({has:currentPage.locator('input[name=site_name]')});result.steps.push({kind:'NORMAL_CUSTOMER_PAGE',editId:editId??null,status:r.status(),path:new URL(currentPage.url()).pathname,siteForms:await form.count(),bodySha256:sha(body)});save();if(r.status()!==200||await form.count()!==1)throw Error('BLOCKED_NORMAL_UI_SITE_FORM');const details=form.locator('xpath=ancestor::details[1]');if(await details.count()&&!await details.getAttribute('open'))await details.locator('summary').click();const options=await form.locator('select[name=price_area_code] option').evaluateAll(ns=>ns.map(n=>n.value));if(!['SE3','SE4'].every(v=>options.includes(v)))throw Error('BLOCKED_NORMAL_PRICEAREA_OPTIONS');result.availablePriceAreaOptions=options;save();return form}\nasync function fill(form,v){for(const[k,value]of Object.entries({site_name:v.name,facility_id:v.facility,street:v.street,postal_code:v.postal,city:v.city,country:'SE'}))await form.locator('[name='+k+']').fill(value);await form.locator('[name=status]').selectOption('draft');await form.locator('[name=site_flow_type]').selectOption('switch');await form.locator('[name=price_area_code]').selectOption(v.area)}\nasync function submit(form,label){const [r]=await Promise.all([currentPage.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/admin/customers/'+customer,{timeout:120000}),form.locator('button[type=submit]').click()]);const body=await r.text();checkSecrets(body);result.steps.push({kind:'NORMAL_SERVER_ACTION_POST',label,status:r.status(),bodySha256:sha(body),bodyBytes:Buffer.byteLength(body)});save();await form.locator('button[type=submit]').waitFor({state:'visible',timeout:30000});return r.status()}\n(async()=>{try{browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});const before=await rows();const beforeHashes=Object.fromEntries(before.map(r=>[r.id,sha(stable(r))]));result.beforeSites=before.map(s=>({id:s.id,rowSha256:beforeHashes[s.id]}));const admin=await login(actors.find(a=>a.label==='bootstrap_platform_admin'));if(!admin.platformHeadingPresent)throw Error('DASHBOARD_PLATFORM_PERSONA_NOT_REACHED');const cases=[{name:'Kryp SITE01.04 SE3 '+tag,area:'SE3',facility:'735999999990000038',street:'Simuleringsgatan 31',postal:'11122',city:'Stockholm'},{name:'Kryp SITE01.04 SE4 '+tag,area:'SE4',facility:'735999999990000045',street:'Simuleringsgatan 41',postal:'21122',city:'Malmö'}];for(const v of cases){const f=await openForm();await fill(f,v);await submit(f,'CREATE_'+v.area);const after=await rows();const own=after.filter(s=>s.site_name===v.name);if(own.length!==1)throw Error('CREATE_NOT_CONFIRMED_EXACTLY_ONE_SITE');const s=project(own[0]);result.newSites.push(s);save();if(s.price_area_code!==null||s.grid_owner_id!==null)throw Error('MANUAL_HINT_BECAME_OPERATIONAL_FIELDS');const hint=s.metadata?.address_candidate_metadata?.manual_price_area_hint;if(hint!==v.area)throw Error('MANUAL_HINT_NOT_PRESERVED');if(s.address_status==='verified'||s.facility_data_status==='verified')throw Error('UNTRUSTED_HINT_VERIFIED');if(!before.every(r=>after.find(s=>s.id===r.id)&&sha(stable(after.find(s=>s.id===r.id)))===beforeHashes[r.id]))throw Error('PREEXISTING_SITE_CHANGED')}\nconst [one,two]=result.newSites;result.distinctSiteAndAddressHashes=one.id!==two.id&&one.address_hash!==two.address_hash;const preEdit=await rows();const secondHash=sha(stable(preEdit.find(s=>s.id===two.id)));let f=await openForm(one.id);await fill(f,cases[0]);await submit(f,'EDIT_ID_BOUND_SAME_INPUT_REPLAY');let after=await rows();result.editReplay={sameSiteId:after.some(s=>s.id===one.id),countBefore:preEdit.length,countAfter:after.length,secondSiteUnchanged:sha(stable(after.find(s=>s.id===two.id)))===secondHash};save();if(result.availablePriceAreaOptions.includes('SE1')){f=await openForm(one.id);await fill(f,{...cases[0],area:'SE1'});await submit(f,'EDIT_ONLY_FIRST_HINT_TO_SE1');after=await rows();result.singleSiteChange={first:project(after.find(s=>s.id===one.id)),secondUnchanged:sha(stable(after.find(s=>s.id===two.id)))===secondHash}}result.finalSiteRows=after.map(project);result.state='SITE_UI_TERMINAL';await logout(admin);const owner=await login(actors.find(a=>a.label==='ordinary_tenant_owner'));await logout(owner);result.dashboardPersonaOracle=admin.platformHeadingPresent&&!owner.platformHeadingPresent&&owner.companyHeadingPresent;result.state='TERMINAL';save()}catch(e){result.state='CAPTURE_STOPPED_AT_REAL_BOUNDARY';result.safeErrorCode=String(e.message||e.name).startsWith('BLOCKED_')||String(e.message).match(/^[A-Z_]+$/)?e.message:e.name;save();if(currentPage){try{await logout(result.actors.at(-1))}catch{result.normalLogoutCleanupFailed=true;save()}}process.exitCode=1}finally{if(browser&&!result.actors.some(a=>a.label==='ordinary_tenant_owner')){try{const o=await login(actors.find(a=>a.label==='ordinary_tenant_owner'));await logout(o);result.dashboardPersonaOracle=Boolean(result.actors.find(a=>a.label==='bootstrap_platform_admin')?.platformHeadingPresent)&&!o.platformHeadingPresent&&o.companyHeadingPresent;save()}catch(e){result.ownerPersonaCaptureError=e.name;save()}}await browser?.close()}})();\n"
+    },
+    {
+      "path": "/workspace/gridex-site-price-evidence-20261112/diagnose-ui-driver.cjs",
+      "sha256": "e76022207d5ca205ce3875127e65dd421ab2e44fead085f0651af805303f64b0",
+      "source": "const fs=require('fs');const {chromium}=require('/workspace/gridex-krypkorning-run-20261111/node_modules/playwright');const root='/workspace/gridex-site-price-evidence-20261112',a=JSON.parse(fs.readFileSync('/workspace/gridex-scenario-native-evidence-20261112/actors.private.json','utf8')).find(x=>x.label==='bootstrap_platform_admin'),base='http://127.0.0.1:3108';const proof={kind:'READ_ONLY_UI_DRIVER_DIAGNOSTIC_NO_SUBMIT',stages:[]};const save=()=>fs.writeFileSync(root+'/ui-driver-diagnostic.safe.json',JSON.stringify(proof,null,2),{mode:0o600});(async()=>{let b,c,p;try{b=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});c=await b.newContext();p=await c.newPage();await p.goto(base+'/login');await p.locator('input[name=email]').fill(a.email);await p.locator('input[name=password]').fill(a.password);await Promise.all([p.waitForURL(u=>u.pathname!='/login'),p.locator('button[type=submit]').click()]);await p.goto(base+'/admin/customers/33fd349e-a3c9-4647-8ce3-b32eec9099a0?tab=sites');const f=p.locator('form').filter({has:p.locator('input[name=site_name]')});const d=f.locator('xpath=ancestor::details[1]');if(await d.count()&&!await d.getAttribute('open'))await d.locator('summary').click();for(const[name,value]of Object.entries({site_name:'DIAGNOSTIC NOT SAVED',facility_id:'735999999990000038',street:'Simuleringsgatan 31',postal_code:'11122',city:'Stockholm',country:'SE'})){proof.stages.push({operation:'fill',name,count:await f.locator('[name='+name+']').count()});save();await f.locator('[name='+name+']').fill(value)}for(const[name,value]of[['status','draft'],['site_flow_type','switch'],['price_area_code','SE3']]){proof.stages.push({operation:'selectOption',name,count:await f.locator('[name='+name+']').count()});save();await f.locator('[name='+name+']').selectOption(value)}proof.submitButtons=await f.locator('button[type=submit]').count();proof.state='FIELD_DIAGNOSTIC_COMPLETE_NO_SUBMIT';save()}catch(e){let msg=String(e.message);for(const s of[a.email,a.password])msg=msg.split(s).join('[PRIVATE]');proof.state='DRIVER_ERROR_IDENTIFIED';proof.errorName=e.name;proof.safeErrorMessage=msg.slice(0,1400);save()}finally{if(p){try{await p.goto(base+'/logout');await Promise.all([p.waitForURL(u=>u.pathname==='/login'),p.locator('form[action=\"/logout\"] button[type=submit]').click()]);proof.normalLogout=true;save()}catch{proof.logoutFailed=true;save()}}await c?.close();await b?.close()}})();\n"
+    }
+  ],
+  "limits": [
+    "Sourcefixbranchbased93; runtimeexactprivate442+5reviewedproductoverlays,no compositeGithead",
+    "ActualdefaultUIread verified; no newsite/pricearea-isolation/invoice/provideracceptance",
+    "No RLS/ACL/generator/permission/schema/types/GEN changes",
+    "No confirmeddeadcode deletion; existinglivewrongreader remainscandidate",
+    "All13DBsnapshotfields equal;0newsites/0newsiteaudit; own5containers/apps/forwarderpaused; privatecredentials/data/bootstrapretained",
+    "Initialunitmissingfacadecollectionerror is not behaviouralRED; actualUI/RLSprobe is RED",
+    "FirstappTSterminal lost afterreconnect; durableboundedrerun156.46s exit0",
+    "No push/merge/deploy/staging/production/externaldelivery"
+  ]
+}

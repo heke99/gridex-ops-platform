@@ -1,0 +1,13 @@
+{
+  "state": "ROOT_K4B_METADATA_ONLY_RUNTIME_BINDER_SOURCE_APPROVE",
+  "observedAt": "2026-11-14T15:44:50.812167+00:00",
+  "preparedPath": "/tmp/gridex-runtime64-3000-k4b-H-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "cd9bceb0693209c3363d1fe4f915411509771dff3ff6a083a6a27e8555c89245",
+  "binderSHA256": "cc434a0c3c989d489be36e9a6063c9a7ef24cc40f9ddd6d862b300f504d141f8",
+  "exactWholeInverseFourMetadataLiterals": true,
+  "heldRootK4IntentionallyPreserved": true,
+  "all11PhysicalFilePinsAstAndCacheModesChecked": true,
+  "scope": "New unused runtime/cache only; same still-valid genuine K4 principal is not refreshed or synthesized. Existing16:21:45 absolute deadline must remain unchanged; actual fresh bindings and all source/live/baseline guards still mandatory. No old runtime/target mutation.",
+  "backendCalls": 0,
+  "actualRuntimeOrBusinessCredit": false
+}

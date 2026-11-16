@@ -1,0 +1,23 @@
+{
+  "state": "ORIGINAL_EDIEL02_06_EVIDENCE_PENDING_INDEPENDENT_VERDICT",
+  "physicalSource": {
+    "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/before-poll-imap.physical-return.safe.json",
+    "sha256": "57d3fa370eda3bf3b0fa641252713e4b80093aa9f6cc07ac685ae3ea5669ed6a"
+  },
+  "nativeError": {
+    "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/durable-error-native.private.json",
+    "sha256": "2d7d2e5bd953010a9ad8bcb0c7652a9a78ef975a9c3315a0491d3c7b6356dd1b"
+  },
+  "cloneDelta": {
+    "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/clone-business-delta.safe.json",
+    "sha256": "bff85180d5d1cf7ef5952a138f355a84f46dcb55c2179c4a5d015f7ee9b7d34f"
+  },
+  "MainLogoutOnlyAuthScopes": [
+    "auth.audit_log_entries",
+    "auth.mfa_amr_claims",
+    "auth.refresh_tokens",
+    "auth.sessions"
+  ],
+  "fullOriginalCaseCredit": false,
+  "noAutomaticCounterChange": true
+}

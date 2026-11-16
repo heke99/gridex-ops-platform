@@ -1,0 +1,38 @@
+{
+  "state": "SOURCE_COMPONENT_AND_FINALDOC_POSITIVE_HANDOFF_OWN_CLAIMS_RELEASED_NATIVE_PENDING",
+  "at": "2026-11-15T20:16:26.266807+00:00",
+  "sourceFreeze": {
+    "path": "/workspace/gridex-two-site-test-factory-evidence-20261115/v2/FROZEN.SOURCE-ONLY.safe.json",
+    "sha256": "87a22036b14882236302ec9b98b32f0adaa181529bf3f39582241b659081b767"
+  },
+  "head": "59a6ddf4e6f74346a59eb0e0e2ca93894b55fb4b",
+  "tree": "d496486c118a717ef54e8638471ae7e535ef3938",
+  "independentFinalReviews": [
+    {
+      "path": "/workspace/gridex-two-site-test-factory-independent-review-20261115/SOURCE-V2-FINALDOC-APPROVE.safe.json",
+      "sha256": "5fefbb82891c6289992bb79d3a221aa50291bbe7b823d3747a812f6c49b20034"
+    },
+    {
+      "path": "/workspace/gridex-two-site-test-factory-evidence-20261115/v2/ROOT-SECOND-INDEPENDENT-SOURCE-FINALDOC-APPROVE.safe.json",
+      "sha256": "abcc8c0b1d9d8c08ee5e218a40e0a77a3403ad3c444ab02a6dbbf71f4372d787"
+    }
+  ],
+  "ownRelease": {
+    "path": "/workspace/gridex-two-site-test-factory-evidence-20261115/v2/OWN-RELEASE.safe.json",
+    "sha256": "cd7072c621b90bb640e4808cf305c12f87b7ffed4868bf3d70e6bf18d85d60b5"
+  },
+  "actualPortableControls": 29,
+  "native": null,
+  "actualFixtures": null,
+  "compiledSameModuleCaller": null,
+  "fullPipelineOrScenarios": null,
+  "adoption": false,
+  "push": false,
+  "nextOwner": "sole qualified producer for actual scoped native qualification; Ediel independently owns TEST catalog prerequisite source",
+  "nextSmallNativeComponent": "install/body-only metadata qualification on isolated schema-only ownedDB is a candidate, not a current approved execution; complete genuine fixture/RPC qualification later",
+  "limits": [
+    "retained fixed-price complete-month/fee/line/invoice checks",
+    "existing2688underlayitemcap",
+    "partial-period and cross-version pricing still refuse; fullSITEclose/TERM/consolidation not implemented"
+  ]
+}

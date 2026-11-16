@@ -1,0 +1,244 @@
+{
+  "state": "ACTUAL_K12_SCOPED_BEFORE_AFTER_GRAPH_REVIEW_NO_CASE_PASS",
+  "observedAtUtc": "2026-11-15T14:01:09.313636+00:00",
+  "reviewer": "/root/qa_remaining_checks",
+  "refs": [
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261115-k12/capture-before_import/financial.stdout.private.json",
+      "sha256": "059fe78992578c51aeb685ac7ed22f4a3e52d786dd2115613044210aa27467e1",
+      "bytes": 35637
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261115-k12/capture-after_import/financial.stdout.private.json",
+      "sha256": "3e08183bffbca88ed5df36eb506962ec01fe332109aa69ed371ea8490d5b84b7",
+      "bytes": 35637
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261115-k12/capture-before_import/lineage.stdout.private.json",
+      "sha256": "de8179204c882b6c31604286e3a42f8dd818e6409466cf6582539137fe7443f5",
+      "bytes": 12187
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261115-k12/capture-after_import/lineage.stdout.private.json",
+      "sha256": "9e236a20b112c95684d184e47f06e712af347a03a21367d836069035cd640cf5",
+      "bytes": 12187
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261115-k12/capture-before_import/native14.stdout.private.json",
+      "sha256": "13daf3b9b10267bda898a1b3e871391d803c39fddac92c96009b14db79ce971e",
+      "bytes": 199480
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261115-k12/capture-after_import/native14.stdout.private.json",
+      "sha256": "d694d26ec8292f6fe1bf535b59a6ec2d3e868764f750824ee869ee2971146b99",
+      "bytes": 199481
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261115-k12/capture-before_import/columns.stdout.private.json",
+      "sha256": "86dfed62e9fb245a49ff7341346f0d257e5377b2f59aa36e0fc6db8b7d74a668",
+      "bytes": 129064
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261115-k12/capture-after_import/columns.stdout.private.json",
+      "sha256": "ce3c565528db6511d448014b70d4720cf53128e01a5dff29dde505ea33afc83c",
+      "bytes": 129064
+    }
+  ],
+  "comparisons": {
+    "financial": {
+      "pricing_runs": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "ediel_messages": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "metering_values": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "billing_underlays": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "customer_invoices": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "customer_contracts": {
+        "beforeCount": 1,
+        "afterCount": 1,
+        "wholeRowsEqual": true
+      },
+      "billing_export_runs": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "invoice_export_runs": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "invoice_export_items": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "pricing_preview_lines": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "billing_underlay_items": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "customer_supply_periods": {
+        "beforeCount": 1,
+        "afterCount": 1,
+        "wholeRowsEqual": true
+      },
+      "billing_export_run_items": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "contract_price_snapshots": {
+        "beforeCount": 1,
+        "afterCount": 1,
+        "wholeRowsEqual": true
+      },
+      "pricing_interval_evidence": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "normalized_metering_values": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      }
+    },
+    "lineage": {
+      "customers": {
+        "beforeCount": 1,
+        "afterCount": 1,
+        "wholeRowsEqual": true
+      },
+      "customer_sites": {
+        "beforeCount": 1,
+        "afterCount": 1,
+        "wholeRowsEqual": true
+      },
+      "metering_points": {
+        "beforeCount": 1,
+        "afterCount": 1,
+        "wholeRowsEqual": true
+      },
+      "price_plan_versions": {
+        "beforeCount": 1,
+        "afterCount": 1,
+        "wholeRowsEqual": true
+      },
+      "contract_product_versions": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "contract_publication_versions": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      }
+    },
+    "native14": {
+      "revocations": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "ack_captures": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "attestations": {
+        "beforeCount": 1,
+        "afterCount": 1,
+        "wholeRowsEqual": true
+      },
+      "period_locks": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "run_admissions": {
+        "beforeCount": 1,
+        "afterCount": 1,
+        "wholeRowsEqual": true
+      },
+      "command_journal": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "object_bindings": {
+        "beforeCount": 14,
+        "afterCount": 14,
+        "wholeRowsEqual": true
+      },
+      "materializations": {
+        "beforeCount": 1,
+        "afterCount": 1,
+        "wholeRowsEqual": true
+      },
+      "execution_witnesses": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "partner_credentials": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "source_declarations": {
+        "beforeCount": 1,
+        "afterCount": 1,
+        "wholeRowsEqual": true
+      },
+      "source_observations": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "partner_rate_windows": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      },
+      "partner_request_idempotency": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "wholeRowsEqual": true
+      }
+    },
+    "columns": {
+      "columnsExactEqual": true
+    }
+  },
+  "limits": [
+    "Read-only saved actual captures; no backend query or retry.",
+    "Single POST denial/unknown is not a successful normal import.",
+    "No historical 1809.51 SEK oracle or normative rounding claim.",
+    "No second underlay/pricing/draft action authorized by this review."
+  ]
+}

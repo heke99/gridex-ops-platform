@@ -1,0 +1,21 @@
+{
+  "state": "APPROVE_EXACT_SIX_CLOSED_HISTORICAL_TMP_ARCHIVES",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T09:40:50.410069+00:00",
+  "proposalSHA256": "7f6a116e3aedd0ef8eeaa4125794676257a949cf4fdfd969c0e704fa7844d43d",
+  "paths": [
+    "/tmp/gridex-event-n0-main-baseline-20261113/fresh-current-main.private.json",
+    "/tmp/gridex-event-n0-main-baseline-20261113/post-dump-main.private.json",
+    "/tmp/gridex-event-n0-main-baseline-20261113/current-postdraft-main.dump.private",
+    "/tmp/gridex-wire-tokens-perf-main-baseline-20261114/fresh-current-main.private.json",
+    "/tmp/gridex-wire-tokens-perf-main-baseline-20261114/post-dump-main.private.json",
+    "/tmp/gridex-wire-tokens-perf-main-baseline-20261114/current-postdraft-main.dump.private"
+  ],
+  "checks": [
+    "All6 actualhashes/size/inode/nlink1/uidgid andclosurehashes verified",
+    "Twohistoricalbaselines only; notcurrentpostlogout/C6dbd35/Kfutureinputs/source/env/crypto/actor",
+    "Samequalifiedgzipprotocol/streamdecompressSHAbytes/fsyncmanifestBEFOREunlink/freshnoFD/0600",
+    "Alloldpaths explicitARCHIVED; future reuse restore+hash throughsafecompanion; preservearchives",
+    "Producerexplicitexactwriterhandoff toInventory required; actualTMPheadroom recheckBEFOREAUTH"
+  ]
+}

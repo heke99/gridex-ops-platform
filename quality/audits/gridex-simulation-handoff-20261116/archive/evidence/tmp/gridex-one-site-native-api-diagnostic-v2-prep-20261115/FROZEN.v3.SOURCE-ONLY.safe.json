@@ -1,0 +1,203 @@
+{
+  "state": "FROZEN_RUNNABLE_ONE_SITE_NATIVE_API_DIAGNOSTIC_V3_SOURCE_ONLY_UNARMED",
+  "files": [
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/native-api-diagnostic.ts",
+      "sha256": "0fa488ab31b2421c3c6c985848d17a94a358d5cfbd20d28707b477d263cb4e71",
+      "bytes": 8522
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/candidate/lib/ediel/testing/localSimulationContractAdmission.ts",
+      "sha256": "df98a32dd4b725cd8f5f57e677e10d5d35e28e5b9a05e22adec0c24ed7a670c6",
+      "bytes": 72095
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/load-closed-runtime.cjs",
+      "sha256": "03182429892f58f7af7cf4a883ab4fd57773ab9c1a1bc1d50fad4bb7ed12752d",
+      "bytes": 4319
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/fixed-rest-gateway.py",
+      "sha256": "4f6ebe388be76033fd9e0e5155c0cd0a32325846a5d957c770bfd436061222a9",
+      "bytes": 2875
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/function-profile.py",
+      "sha256": "9a58f1f494dc73fffc4ed0e69557b97274f7d7fedc0b6e7a281bf209662fc8a1",
+      "bytes": 16495
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/owned_rest_exit_observer.py",
+      "sha256": "9fe018a2184234de1903d5656308b517d0f20ab337eb42c3ab556035eb8cdcf7",
+      "bytes": 6783
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/qualified-native-constructor-ports.py",
+      "sha256": "5f16a8229b4192554d29001763e3046aedcae8a87b66de8642bdb63aa14b6fed",
+      "bytes": 34208
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/qualify-runtime-offline.cjs",
+      "sha256": "45eaab6e36fa152ef5a889ffd4897adbdf39d70408a0510b48c41bf9857b766f",
+      "bytes": 6734
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/qualify-lifecycle-offline.py",
+      "sha256": "cf820b7ed65499813630adfee0589409bf69dc18a63ea4a69c98935db28a3d52",
+      "bytes": 4225
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/target.UNARMED.safe.json",
+      "sha256": "9596cc0913ac2a7c91e202f1f57828ce5c3ac212b4565bbdff4f3696eb826bd1",
+      "bytes": 12629
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/GO.UNARMED.safe.json",
+      "sha256": "d171b6e35c11c36b69a735f9fb1d150820c885958326985781bcab5779331397",
+      "bytes": 237
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/DIAGNOSTIC-BUDGET.v2.UNARMED.safe.json",
+      "sha256": "10b1558d99428d30af5c23e5b51b14b5bf811c1d4e349c6fed23d7486ae412ad",
+      "bytes": 777
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/CONSTRUCTOR-DECLARATION-EXTRACTION.safe.json",
+      "sha256": "10e1dbe7913081d5fbb31703d2eb28c8494375b955762c51843bd12599f41290",
+      "bytes": 1459
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/PROFILE-NAMESPACE-DELTA.safe.json",
+      "sha256": "78dd73d8871a642949e4f46afd7aa28f7f3a79debcafd59dc5b363925ca6a6c8",
+      "bytes": 319
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/TEMPLATE-STATIC-LINEAGE.safe.json",
+      "sha256": "b4df3cea0dbccccfeaebd25e4bad8ea66d9e03968ebf7798070a92f291b11f3a",
+      "bytes": 1324
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/REAL-NEXT-SERVER-ALIAS-PROOF.safe.json",
+      "sha256": "07f4a01da3c0e0e4ef3e3d8bd5d2a6e6f1ec3273a76d04ac1d3127755ac5802a",
+      "bytes": 1220
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/SINGLE-WEAKMAP-SCOPE-ERRATUM.v2.safe.json",
+      "sha256": "c4dd5c48584d1f88f0cfab76f710e908c5214e237e47b275193fc69139fc26b6",
+      "bytes": 1233
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/EXACT-SINGLETON-ACTUAL-QUALIFICATION.safe.json",
+      "sha256": "a16e4702d8fc0f43ee18da6c45a9697a79af880ad475cbb2323c928b966e7d91",
+      "bytes": 2112
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/EXACT-SINGLETON-OFFLINE.stdout.private.json",
+      "sha256": "196bba60b0f9630cbafe9a83d79c7dfbd7dd27a34c8d2fbe5db15d3a912f13ca",
+      "bytes": 137931
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/EXACT-SINGLETON-OFFLINE.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/FINAL-LIFECYCLE-OFFLINE.v2.actual.safe.json",
+      "sha256": "c216475ffd27925bdc0b3e9ba66d861f2aeb5ae55a3c183212ff6d9f34ffd1d9",
+      "bytes": 709
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/PYTHON-SOURCE-QUALIFICATION.v2.safe.json",
+      "sha256": "4cf8a9530e459e31ac6ebc687bb9341f9570d2e30041e721a3b8323435311e14",
+      "bytes": 1193
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/SUPABASE-DOC-READ.safe.json",
+      "sha256": "5dac8a833ecc0d000e77373281c74c1c8db03b0649eb2690ce9f2192d5bbf82e",
+      "bytes": 754
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/SUPABASE-GUIDE-READ.safe.json",
+      "sha256": "7d92eae2d1ed8979f72c907d813c0b00743b0a0e49fb5fff79d1ef472cc3d40c",
+      "bytes": 573
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/native-producer-worker.v3.cjs",
+      "sha256": "d0cbc8c8a22fb18df3fa19acc6f5757b74f422f4fb1798e1f0fdab4c20bb1b67",
+      "bytes": 7990
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/owned-native-lifecycle.v3.py",
+      "sha256": "483b7d17e5860f746ae73ef7a4f921900ef4dc8c26613504dff65a15253e009b",
+      "bytes": 13776
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/main-lifecycle-fences.v3.py",
+      "sha256": "45888c1b9a177ebdbe3d0441f18c3ce823fccdb5c27144447a2668919499a4e9",
+      "bytes": 3887
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/run-producer.v3.py",
+      "sha256": "b60f797984e94b934e8d65b4d92748e2a401a0beab5215d009653da3e38e2f5b",
+      "bytes": 8597
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/README.v3.md",
+      "sha256": "3277d7044dd9f5d4dcef975060754376d663f3bec260413c131a5d0702fa39c9",
+      "bytes": 7602
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/V3-EXACT-OWNED-DELTA.diff",
+      "sha256": "c76ee0a2690acfbff4fbc2a459f9d7087b5451ef9e2b01552dd8cbecf95b6d29",
+      "bytes": 9874
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/V3-CORRECTIONS.safe.json",
+      "sha256": "413648b68448a3aa6bfe40d480c65657311e9c01d8980f00d9bdab84757afc35",
+      "bytes": 3162
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/qualify-v3-scope-reader.cjs",
+      "sha256": "b598ca2f3c40a28eee35cc3523f86c03f0e7fdeda75cd55cf352f79e6ac7de80",
+      "bytes": 2154
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/V3-SCOPE-READER.actual.safe.json",
+      "sha256": "4e5f4d2007fd4ada064e9ea307f42cce1ffcc54416d4ea558e4620b5f6d0102d",
+      "bytes": 406
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/V3-SCOPE-READER.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/qualify-v3-sequence-anchor.py",
+      "sha256": "261450fc21c140bf4f31daf6010632f759ecf199a2627342a60ef2fca35e8e53",
+      "bytes": 1296
+    },
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/V3-SEQUENCE-ANCHOR.actual.safe.json",
+      "sha256": "b8006c7fc69c7486b76e8b95edaa450c8fa0b3afb391e075b5e9e7ca4b53b6bb",
+      "bytes": 306
+    }
+  ],
+  "previousFreeze": {
+    "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/FROZEN.SOURCE-ONLY.safe.json",
+    "sha256": "fa7394ffb05166db9b9a57aca23551886c801a2d6b652667c612b3885922bafd"
+  },
+  "productionEntry": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/run-producer.v3.py",
+  "actualOffline": {
+    "originalK11TSModules": 736,
+    "candidateTSModules": 2,
+    "totalTSModules": 738,
+    "NodeNegativeControlsReused": 10,
+    "PythonGatewayMainFenceCleanupControlsReused": 9,
+    "newNodeScopeReaderControls": 5,
+    "afterGenuineAuthSequenceAnchorSourceControl": "PASS",
+    "networkAuthDBBusinessCalls": 0,
+    "fullTypecheck": "NOT_RUN"
+  },
+  "futureActualRoleBaselineDBRESTBudgetFixtureNativeACKsRootDocumentFinancialBeforeAfterGO": "NULL_NOT_RUN",
+  "sourceReview": "PENDING_NARROW_INDEPENDENT_REBIND"
+}

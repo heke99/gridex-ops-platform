@@ -1,0 +1,560 @@
+import AdminHeader from "@/components/admin/AdminHeader";
+import { requirePlatformAdminAccess } from "@/lib/admin/guards";
+import { supabaseService } from "@/lib/supabase/service";
+import { getOperationalCompanyScope } from "@/lib/tenant/scope";
+import { formatAdminDate } from "@/lib/ui/format";
+import {
+  archiveEdielCertificateAction,
+  deleteEdielCertificateAction,
+  importEdielP12CertificateAction,
+  validateEdielP12EnvCertificateAction,
+} from "@/app/admin/ediel/certificates/actions";
+import { evaluateCertificateStatus } from "@/lib/ediel/security/certificateStatus";
+
+export const dynamic = "force-dynamic";
+
+type CertificatesPageProps = {
+  searchParams?: Promise<{
+    certStatus?: string;
+    certMessage?: string;
+  }>;
+};
+
+type CertificateDisplayRow = {
+  id: string;
+  company_id?: string | null;
+  scope?: string | null;
+  environment?: string | null;
+  display_name?: string | null;
+  subject?: string | null;
+  issuer?: string | null;
+  serial_number?: string | null;
+  fingerprint_sha256?: string | null;
+  certificate_fingerprint?: string | null;
+  valid_from?: string | null;
+  valid_to?: string | null;
+  certificate_valid_from?: string | null;
+  certificate_valid_to?: string | null;
+  encryption_status?: string | null;
+  last_validation_at?: string | null;
+  status?: string | null;
+  renewal_window_days?: number | null;
+  warning_days_before_expiry?: number | null;
+  critical_days_before_expiry?: number | null;
+  owner_ediel_id?: string | null;
+  owner_subaddress?: string | null;
+  message_type?: string | null;
+  purpose?: string | null;
+  usage?: string | null;
+  p12_secret_reference?: string | null;
+  p12_secret_ref?: string | null;
+  p12_password_secret_ref?: string | null;
+  secret_reference?: string | null;
+  is_private_material_available?: boolean | null;
+  needs_verification?: boolean | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+function textFromMetadata(
+  row: CertificateDisplayRow,
+  key: string,
+): string | null {
+  const value = row.metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function uniqueIdentifierFromMetadata(
+  row: CertificateDisplayRow,
+): string | null {
+  return (
+    textFromMetadata(row, "uniqueIdentifier") ??
+    textFromMetadata(row, "certificateUniqueIdentifier") ??
+    textFromMetadata(row, "expisoftUniqueIdentifier")
+  );
+}
+function p12SecretReference(row: CertificateDisplayRow): string | null {
+  return (
+    row.p12_secret_reference ??
+    row.p12_secret_ref ??
+    row.secret_reference ??
+    textFromMetadata(row, "p12SecretReference") ??
+    textFromMetadata(row, "p12_secret_reference") ??
+    textFromMetadata(row, "p12SecretRef") ??
+    textFromMetadata(row, "p12_secret_ref")
+  );
+}
+
+function p12PasswordSecretReference(row: CertificateDisplayRow): string | null {
+  return (
+    row.p12_password_secret_ref ??
+    textFromMetadata(row, "passwordSecretReference") ??
+    textFromMetadata(row, "p12PasswordSecretReference") ??
+    textFromMetadata(row, "p12_password_secret_ref")
+  );
+}
+
+function isInboundPrivateEnvReference(row: CertificateDisplayRow): boolean {
+  return (
+    String(row.usage ?? textFromMetadata(row, "usage") ?? "").toLowerCase() ===
+      "inbound_private" &&
+    String(p12SecretReference(row) ?? "").startsWith("env:")
+  );
+}
+
+function maskedEnvReference(value: string | null): string {
+  if (!value) return "saknas";
+  if (!value.startsWith("env:")) return "icke-env";
+  return value;
+}
+
+
+async function listCertificateRows(companyId: string | null): Promise<{
+  rows: CertificateDisplayRow[];
+  companyNames: Map<string, string>;
+  warning: string | null;
+}> {
+  let query = supabaseService
+    .from("ediel_certificates")
+    .select(
+      "id, company_id, scope, environment, display_name, subject, issuer, serial_number, fingerprint_sha256, certificate_fingerprint, valid_from, valid_to, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, renewal_window_days, warning_days_before_expiry, critical_days_before_expiry, owner_ediel_id, owner_subaddress, message_type, purpose, usage, p12_secret_reference, p12_secret_ref, p12_password_secret_ref, secret_reference, is_private_material_available, needs_verification, metadata",
+    )
+    .not("status", "in", "(archived,deleted)")
+    .order("updated_at", { ascending: false })
+    .limit(100);
+  // With a selected company: its own certificates plus platform-wide ones.
+  if (companyId) query = query.or(`company_id.eq.${companyId},company_id.is.null`);
+
+  const [certificates, companies] = await Promise.all([
+    query,
+    supabaseService.from("companies").select("id, name"),
+  ]);
+
+  const companyNames = new Map(
+    ((companies.data ?? []) as Array<{ id: string; name: string | null }>).map(
+      (company) => [company.id, company.name ?? company.id],
+    ),
+  );
+
+  if (certificates.error) {
+    return {
+      rows: [],
+      companyNames,
+      warning: `Kunde inte läsa certifikat: ${certificates.error.message}`,
+    };
+  }
+
+  return {
+    rows: (certificates.data ?? []) as CertificateDisplayRow[],
+    companyNames,
+    warning: null,
+  };
+}
+
+export default async function EdielCertificatesPage({
+  searchParams,
+}: CertificatesPageProps) {
+  const context = await requirePlatformAdminAccess();
+  const resolvedSearchParams = await searchParams;
+  const certStatus =
+    resolvedSearchParams?.certStatus === "success"
+      ? "success"
+      : resolvedSearchParams?.certStatus === "error"
+        ? "error"
+        : null;
+  const certMessage = resolvedSearchParams?.certMessage ?? null;
+  const companyScope = await getOperationalCompanyScope(context.userId);
+  const { rows, companyNames, warning } = await listCertificateRows(
+    companyScope.companyId,
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <AdminHeader
+        title="Ediel certifikat"
+        subtitle="S/MIME-certifikatmetadata. Nycklar lagras bara via secret_reference."
+        userEmail={context.email}
+        workspaceName="Platform"
+        workspaceMode="platform"
+      />
+      <main className="space-y-6 p-8">
+        {certStatus && certMessage ? (
+          <section
+            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+              certStatus === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-red-200 bg-red-50 text-red-800"
+            }`}
+          >
+            {certMessage}
+          </section>
+        ) : null}
+        {warning ? (
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+            {warning}
+          </section>
+        ) : null}
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h1 className="text-xl font-black text-slate-950">
+            Lägg till certifikat
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
+            Superadmin kan registrera S/MIME-certifikat. Importera vårt P12/PFX
+            som privat inbound/signering. Importera mottagarens publika PEM/CER
+            som outbound_recipient. Systemet kopplar inte längre
+            P12/mailbox-certifikat till outbound routes automatiskt.
+          </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-sm font-black text-slate-950">
+                1. Inbound: vårt privata P12/PFX
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-700">
+                För live ska själva base64 och lösenord ligga i Vercel env. I
+                detta formulär skriver du bara env-referenserna, inte
+                hemligheterna.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <div className="text-sm font-black text-emerald-950">
+                2. Outbound: mottagarens publika certifikat
+              </div>
+              <p className="mt-2 text-xs leading-5 text-emerald-900">
+                För PRODAT ut ska mottagarens publika PEM/CER sparas som
+                outbound_recipient och kopplas till rätt route/part.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+              <div className="text-sm font-black text-blue-950">
+                3. Rensa dubbletter säkert
+              </div>
+              <p className="mt-2 text-xs leading-5 text-blue-900">
+                Arkivera gamla certifikat först. Radera används bara när du
+                säkert vill ta bort raden och systemet kan avlänka
+                routes/mailboxar.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+            <div className="font-black">Ombudsmodell för SaaS-tenants</div>
+            <p className="mt-1">
+              Nya elbolag/tenants kan använda Div3rsa/Gridex som ombud och
+              transportkanal, men deras eget Ediel-ID ska fortfarande sparas som
+              certifikatets/aktörens owner_ediel_id. Ombuds-/transport-ID anges
+              separat, normalt 21660. Tenant avgörs senare av Ediel-ID,
+              subadress, certifikat/CMS och EDIFACT — aldrig enbart av mailboxen.
+            </p>
+          </div>
+
+          <form
+            action={importEdielP12CertificateAction}
+            className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
+          >
+            <input
+              name="displayName"
+              placeholder="Certificate name"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            />
+            <input
+              name="mailboxEmail"
+              placeholder="Mailbox/e-post"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            />
+            <select
+              name="scope"
+              defaultValue="platform_shared"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="platform_shared">platform_shared</option>
+              <option value="tenant_owned">tenant_owned</option>
+              <option value="route_specific">route_specific</option>
+            </select>
+            <select
+              name="environment"
+              defaultValue="test"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="test">test</option>
+              <option value="production">production</option>
+            </select>
+            <select
+              name="certificateUsage"
+              defaultValue="inbound_private"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="inbound_private">
+                Vårt privata certifikat: inbound_private
+              </option>
+              <option value="sender_signing">
+                Vårt signeringscertifikat: sender_signing
+              </option>
+              <option value="outbound_recipient">
+                Mottagarens publika certifikat: outbound_recipient
+              </option>
+            </select>
+            <select
+              name="certificatePurpose"
+              defaultValue="both"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="both">both</option>
+              <option value="encryption">encryption</option>
+              <option value="signing">signing</option>
+            </select>
+            <input
+              name="ownerEdielId"
+              placeholder="Certifikatets ägare Ediel-ID, t.ex. 21660 eller 91100"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            />
+            <input
+              name="ownerSubaddress"
+              placeholder="Ägarens subadress, t.ex. PRODAT"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            />
+            <input
+              name="ombudEdielId"
+              defaultValue="21660"
+              placeholder="Ombud/transport Ediel-ID, t.ex. 21660"
+              className="rounded-xl border border-blue-300 bg-blue-50 px-3 py-2 text-sm"
+            />
+            <select
+              name="messageType"
+              defaultValue="PRODAT"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="PRODAT">PRODAT</option>
+              <option value="UTILTS">UTILTS</option>
+              <option value="APERAK">APERAK</option>
+              <option value="CONTRL">CONTRL</option>
+              <option value="">Generellt</option>
+            </select>
+            <input
+              name="password"
+              type="password"
+              placeholder="PIN/lösenord endast om du laddar upp/klistrar in P12"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+            />
+            <input
+              name="p12SecretReference"
+              defaultValue="env:EDIEL_PRODUCTION_SMIME_P12_BASE64"
+              placeholder="P12 secret reference, t.ex. env:EDIEL_PRODUCTION_SMIME_P12_BASE64"
+              className="rounded-xl border border-blue-300 bg-blue-50 px-3 py-2 text-sm"
+            />
+            <input
+              name="passwordSecretReference"
+              defaultValue="env:EDIEL_PRODUCTION_SMIME_P12_PASSWORD"
+              placeholder="Password secret reference, t.ex. env:EDIEL_PRODUCTION_SMIME_P12_PASSWORD"
+              className="rounded-xl border border-blue-300 bg-blue-50 px-3 py-2 text-sm"
+            />
+            <input
+              name="privateKeySecretReference"
+              placeholder="Valfritt private key env-ref om separat nyckel används"
+              className="rounded-xl border border-blue-200 px-3 py-2 text-sm"
+            />
+            <input
+              name="certificateFile"
+              type="file"
+              accept=".p12,.pfx,.pem,.cer,.crt"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2"
+            />
+            <textarea
+              name="certificateText"
+              rows={8}
+              placeholder="Klistra in PEM-certifikat (-----BEGIN CERTIFICATE-----...) eller base64-kodad .p12/.pfx"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2 xl:col-span-4"
+            />
+            <textarea
+              name="uniqueIdentifier"
+              rows={3}
+              placeholder="Eller klistra bara in Unika identifieraren här (ingen PDF behövs). Den sparas som väntande identifierare tills certifikatet finns."
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2 xl:col-span-4"
+            />
+            <p className="text-xs leading-5 text-slate-600 md:col-span-2 xl:col-span-4">
+              För inbound-dekryptering: lämna
+              fil/certificateText/uniqueIdentifier tomma och spara bara
+              env-referenserna ovan. För outbound: använd publikt PEM/CER som
+              outbound_recipient. Klistra aldrig in P12-base64 eller lösenord i
+              denna UI.
+            </p>
+            <button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">
+              Spara certifikat
+            </button>
+          </form>
+        </section>
+
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-100 text-left text-xs uppercase tracking-[0.14em] text-slate-600">
+              <tr>
+                <th className="p-4">Certifikat</th>
+                <th className="p-4">Scope</th>
+                <th className="p-4">Bolag</th>
+                <th className="p-4">Giltigt</th>
+                <th className="p-4">Förnyelse</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Åtgärder</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center text-sm text-slate-600">
+                    Inga certifikat registrerade.
+                  </td>
+                </tr>
+              ) : null}
+              {rows.map((row) => {
+                const certStatus = evaluateCertificateStatus(row);
+                const inboundEnvReference = isInboundPrivateEnvReference(row);
+                const envValidationStatus = textFromMetadata(row, "envP12ValidationStatus");
+                const ombudEdielId =
+                  textFromMetadata(row, "ombudEdielId") ??
+                  textFromMetadata(row, "delegatedByEdielId") ??
+                  textFromMetadata(row, "representativeEdielId");
+                const displayName =
+                  row.display_name ??
+                  textFromMetadata(row, "displayName") ??
+                  "Ediel certifikat";
+                const fingerprint =
+                  row.fingerprint_sha256 ??
+                  row.certificate_fingerprint ??
+                  textFromMetadata(row, "fingerprintSha256");
+                const subject =
+                  row.subject ??
+                  textFromMetadata(row, "subject") ??
+                  "Subject saknas";
+                const scope =
+                  row.scope ??
+                  textFromMetadata(row, "scope") ??
+                  "platform_shared";
+                const environment =
+                  row.environment ??
+                  textFromMetadata(row, "environment") ??
+                  "test";
+                const usage =
+                  row.usage ?? textFromMetadata(row, "usage") ?? "usage saknas";
+                const purpose =
+                  row.purpose ??
+                  textFromMetadata(row, "purpose") ??
+                  "purpose saknas";
+                const ownerEdielId =
+                  row.owner_ediel_id ??
+                  textFromMetadata(row, "ownerEdielId") ??
+                  textFromMetadata(row, "owner_ediel_id");
+                const ownerSubaddress =
+                  row.owner_subaddress ??
+                  textFromMetadata(row, "ownerSubaddress") ??
+                  textFromMetadata(row, "owner_subaddress");
+                const messageType =
+                  row.message_type ??
+                  textFromMetadata(row, "messageType") ??
+                  textFromMetadata(row, "message_type");
+                const uniqueIdentifier = uniqueIdentifierFromMetadata(row);
+                return (
+                  <tr key={row.id} className="border-t border-slate-100">
+                    <td className="p-4">
+                      <div className="font-semibold text-slate-950">
+                        {displayName}
+                      </div>
+                      <div className="mt-1 font-mono text-xs text-slate-600">
+                        {fingerprint ?? "Fingerprint saknas"}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-600">
+                        {subject}
+                      </div>
+                      <div className="mt-1 text-xs font-semibold text-slate-700">
+                        {usage} · {purpose} · owner {ownerEdielId ?? "saknas"}
+                        {ownerSubaddress ? `:${ownerSubaddress}` : ""}
+                        {messageType ? ` · ${messageType}` : ""}
+                      </div>
+                      {ombudEdielId ? (
+                        <div className="mt-1 text-xs font-semibold text-blue-700">
+                          Ombud/transport: Div3rsa/Gridex Ediel-ID {ombudEdielId}
+                        </div>
+                      ) : null}
+                      {inboundEnvReference ? (
+                        <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 p-2 text-xs leading-5 text-blue-900">
+                          <div className="font-bold">Inbound P12 via env</div>
+                          <div>P12: {maskedEnvReference(p12SecretReference(row))}</div>
+                          <div>Password: {maskedEnvReference(p12PasswordSecretReference(row))}</div>
+                          <div>Validering: {envValidationStatus ?? "ej körd"}</div>
+                        </div>
+                      ) : null}
+                      {uniqueIdentifier ? (
+                        <div className="mt-1 text-xs font-semibold text-amber-700">
+                          Unik identifierare: {uniqueIdentifier}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="p-4">
+                      {scope} · {environment}
+                    </td>
+                    <td className="p-4">
+                      {row.company_id
+                        ? (companyNames.get(row.company_id) ?? "Okänt bolag")
+                        : "Plattform"}
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      {formatAdminDate(row.valid_from ?? row.certificate_valid_from)} –{" "}
+                      {formatAdminDate(row.valid_to ?? row.certificate_valid_to)}
+                    </td>
+                    <td className="p-4 text-xs text-slate-700">
+                      Förnyelse från {formatAdminDate(certStatus.renewalAvailableFrom)} ·{" "}
+                      {certStatus.daysUntilExpiry ?? "—"} dagar kvar
+                    </td>
+                    <td className="p-4">
+                      <div className="font-semibold text-slate-950">
+                        {certStatus.status}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-600">
+                        {certStatus.message}
+                      </div>
+                    </td>
+                    <td className="space-y-2 p-4">
+                      {inboundEnvReference ? (
+                        <form action={validateEdielP12EnvCertificateAction}>
+                          <input
+                            type="hidden"
+                            name="certificateId"
+                            value={row.id}
+                          />
+                          <button className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-800">
+                            Validera P12 från env
+                          </button>
+                        </form>
+                      ) : null}
+                      <form action={archiveEdielCertificateAction}>
+                        <input
+                          type="hidden"
+                          name="certificateId"
+                          value={row.id}
+                        />
+                        <button className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
+                          Arkivera
+                        </button>
+                      </form>
+                      <details>
+                        <summary className="cursor-pointer text-xs font-bold text-slate-600">
+                          Mer
+                        </summary>
+                        <form action={deleteEdielCertificateAction} className="mt-2">
+                          <input
+                            type="hidden"
+                            name="certificateId"
+                            value={row.id}
+                          />
+                          <button className="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700">
+                            Radera permanent
+                          </button>
+                        </form>
+                      </details>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  );
+}

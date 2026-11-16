@@ -1,0 +1,16 @@
+{
+  "state": "ROOT_SOURCE_AND_FINALDOC_APPROVED_WITH_EXPLICIT_UNRUN_VALIDATION",
+  "observedAt": "2026-11-14T15:49:44.434015+00:00",
+  "head": "e6b269e63aaab86cf73c7234052d9f5c684a530e",
+  "tree": "e04a8e85dc73ecc8e85a7aea79aeb4734eb2574b",
+  "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba",
+  "freezePath": "/tmp/gridex-dashboard-writer-removal-evidence-20261114/SOURCE_FROZEN.safe.json",
+  "freezeSHA256": "a09284cc6150e665423ce674d649c5269e97388390b6a60802457aca0fa6ded3",
+  "exactThreeFilesAndAllSixReportEvidencePinsVerified": true,
+  "exactOnlyUnusedWriterAndSeparatorRemoval": true,
+  "cleanWorktreeDiffCheckExit0": true,
+  "proposalReviewReused": "5be18c8fbcfa5f8624e32ff2ddf6d4476c4f84fedd94c4100cf9e4b44b565b09",
+  "findings": [],
+  "limit": "SOURCE/DOC review only. Existing relevant regression/type/lint/build remain NOT_RUN, accurately disclosed. No active source40/64/67, runtime, composed cleanup25/8, new scenario PASS or push/merge/deploy approval.",
+  "backendOrNodeCalls": 0
+}

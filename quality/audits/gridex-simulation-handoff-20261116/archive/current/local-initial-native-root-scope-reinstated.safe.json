@@ -1,0 +1,8 @@
+{
+  "state": "ROOT_EXACT_EXECUTION_SCOPE_REINSTATED",
+  "originalApproval": "c18a947ac9adaca20cf0d689f360d14468dd7ee35a93f8e89f127ad19359ed8b",
+  "wrapperSHA256": "745434ba35bbdb320a34c3806d50b04ff8ea60f0d264fec263271eb87d9b4578",
+  "targetSHA256": "84bf97a6cb433ff1d6f51ff39b983c70581584ebbbd6337193d6bcdefc4e43b9",
+  "correction": "Root stale earlier draft read caused mistaken HOLD. Fresh actual frozen line140 already passes expected_database=db; no postfreeze change needed. Warning withdrawn, not a harness or product defect.",
+  "arming": "After independent Domain fulltuple ACK soleproducer may arm on behalf of ROOT and execute exactlyonce without another rootroundtrip."
+}

@@ -1,0 +1,11 @@
+{
+  "state": "ROOT_EXACT_EXECUTION_SCOPE_APPROVE",
+  "wrapperSHA256": "7ddea477440fd0fb4a25c69de8f7f22f0a51613a6993c20ca67603f9798a724d",
+  "planSHA256": "a27814e603b4f27cb4386d5e76f36589a414686d856568b133a3d6d18b0abf2f",
+  "nodeSHA256": "60fbc23c5c66cbe19b8644f9c722fb4182e1396cef3303817d27091f489231f8",
+  "captureSHA256": "c461fc3bd2159475727a5554e83aff5d885fd2d0db43a3853c4ce62567931877",
+  "actualBindingsVerified": 17,
+  "review": "Fullwrapper/Node/capture/planread. Captureattachedbeforefirstpage. GenuineEE/A activeexport/noDENY, fourcontrolledGETs, full522GETwindowequal, normallogout. No businesswrites.",
+  "captureScope": "Allobserveddefinedjourneyeligibletextbodies/allresponseheaders/receivedWSframes/URLs/safeoutputs knownCURRENTserversecret scan; explicitredirectheader/nontextlimit; anymissing/hit/budgetHOLD. Notunvisitedbuild/unknownsecret/unobservedoutgoingframeclaim.",
+  "arming": "Domainb899secondACKalreadyreceived; producer maypersistROOTarmingONBEHALFROOTandexecuteONCEIMMEDIATELYwithoutnewroundtrip"
+}

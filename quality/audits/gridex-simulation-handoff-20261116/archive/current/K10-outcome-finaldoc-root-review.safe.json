@@ -1,0 +1,10 @@
+{
+  "state": "ROOT_K10_FINALDOC_FACT_SCOPE_APPROVE",
+  "atUtc": "2026-11-15T07:43:08.176629+00:00",
+  "head": "806e64de1ad9c68a476f406ac8a075ca418ebae5",
+  "tree": "8d4e10d3151368e252fd8e1ed21ce788f95d25f4",
+  "freezeSHA256": "76981a12c36dc90b5e3c61f167000a96e347428e8afb277cf47ce7a825aa7056",
+  "checks": "FullREPORTread+allJSONfactsections read; all29directrefsSHAbytes, exact2Gitdocs/blobphysical/cleanheadtree/diffcheck0. Unit-only successor usesexactbyteguards768MiB/128MiB; no codechanged.",
+  "scope": "4nativeACKs versusoneunknownUI/partial3inbound/financialunchanged/POSTfixpassed/new43clockguard; separateofflineNULLpostclosure strengthenssourceomission butdoesnotbackdatelivequeryorPASS. Fullsource/private/resource/session/Main4Authlimits precise.",
+  "noBackendNodeOrAuthByReview": true
+}

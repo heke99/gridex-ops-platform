@@ -1,0 +1,33 @@
+{
+  "state": "APPROVE_EXACT_THIRTEEN_OF_SIXTEEN_PLUS_THREE_DEDUP_GROUPS",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T11:15:46.784449+00:00",
+  "proposalSHA256": "1ee6d5fd17b5a3db29a52edbdd9bab2491f2379d3cfc330bc815ec1fd5acc2c4",
+  "selectedPaths": [
+    "/workspace/gridex-decimal-quality-window-native-actual-20261114-e/restored3443-before.private.json",
+    "/workspace/gridex-decimal-quality-window-native-actual-20261114-e/candidate3443-wire-only.private.json",
+    "/workspace/gridex-site0104-main-actual-20261114-c/main-before.private.json",
+    "/workspace/gridex-site0104-main-actual-20261114-c/main-after.private.json",
+    "/workspace/gridex-company-admin-foundation-native-v3-evidence-20261113/fresh-current-main.private.json",
+    "/workspace/gridex-company-admin-foundation-native-v3-evidence-20261113/main-before.private.json",
+    "/workspace/gridex-company-admin-foundation-native-v3-evidence-20261113/main-after.private.json",
+    "/workspace/gridex-wlabel-native-evidence-20261112/main-upgrade-before-schema.private.json",
+    "/tmp/gridex-api5-http-actual-20261113-d/candidate3443-before-child.private.json",
+    "/tmp/gridex-pilot57-current-actual-20261113-d/candidate3420-before-child.private.json",
+    "/tmp/gridex-pilot57-current-actual-20261113-d/clone-current3370-before-ad594.private.json",
+    "/tmp/gridex-pilot57-current-actual-20261113-e/restored-trusted3420-before-child.private.json",
+    "/tmp/gridex-pilot57-current-actual-20261113-f/restored-trusted3420-before-child.private.json"
+  ],
+  "excludedPaths": [
+    "/workspace/gridex-site0104-main-actual-20261114-a/main-after.private.json",
+    "/workspace/gridex-site0104-main-actual-20261114-b/main-before.private.json",
+    "/workspace/gridex-site0104-main-actual-20261114-b/main-after.private.json"
+  ],
+  "checks": [
+    "Selected13currenthash/inode/owner/closurehash verified; oldSiteCclosedbrowser/globalcleanup, foundation/component/schemahistoricals eligible",
+    "SiteA/B3excludedpendingtheirOWNwriterclosureproof; laterCclosurealone notassertedforthosefiles",
+    "All3exactdupgroupcurrentH/inode/owner verified; preserveE/CcanonicalRAW references andmetadata",
+    "Qualifiedgzipfsync/decompHbytes/ARCHIVEDcustody/safeexclusivefuture restore/explicitsoleFSwriterhandoff; protectedinputs unchanged",
+    "Actual805workspace/runtimeRAM/TMPpreAuthguards authoritative;1GBcomforttargetnotnewgate; measureaftercleanup"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "state": "AUTHORIZED_EXACT_SIX_CLOSED_F_JSON_ARCHIVE_VERIFIED_BEFORE_UNLINK",
+  "at": "2026-11-14T20:57:08.619559+00:00",
+  "proposalPath": "/workspace/gridex-closed-F-six-json-resource-proposal-20261114/PROPOSAL.v2.safe.json",
+  "proposalSHA256": "cbd91885ac51c83a4c1b5170123155b6cdfcb45e27c226cdc4ea8256fdf7be6c",
+  "dependencyProof": {
+    "path": "/workspace/gridex-closed-F-six-json-resource-proposal-20261114/CURRENT-G-DEPENDENCY-PROOF.safe.json",
+    "sha256": "2aee7275ab6a565d2879a6c62716c985011d0d0ced1c83500885cc71ff035309"
+  },
+  "scriptPath": "/workspace/gridex-closed-F-six-json-resource-proposal-20261114/execute-exact-six.py",
+  "scriptSHA256": "c2811a0c9ab29d1ac2a134815671d1eca2a389f672eac44d7e33d1bc09a00fe8",
+  "review": "Fullproposal/exact6paths and delta9602 qualifiedprotocol read; onlyproposal/name/count/terminalnamespace changes. 33currentG roots rehashed; no operationalconflicts; EdielFrawreview d78a completed.",
+  "limits": [
+    "Exact6inodes/6aliases only",
+    "Durablearchive verifieddecompression SHA/size beforeunlink",
+    "AllFc/dumps/K6baseline/currentGsources/actorproof protected",
+    "Rawlogicalpaths explicitlyARCHIVED/restore-required before physicalreuse",
+    "Solewriterhandoff and currentRootdrift checks mandatory",
+    "No futurebytecredit"
+  ],
+  "authorizedWriter": "qa_remaining_checks"
+}

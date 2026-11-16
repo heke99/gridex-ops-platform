@@ -1,0 +1,15 @@
+{
+  "state": "ACTUAL_HEALTH_AND_KNOWN_RECOVERY_PROOF_APPROVE",
+  "resultSha256": "95bf189024cecd38aeddd96d9706251661c7d1facbcb0ed7cec728ca0abdf45e",
+  "priorOriginalExit": 1,
+  "priorKnownSetupError": "Kong reload before nginxready; originalpreserved",
+  "actualHealth": [
+    200,
+    200
+  ],
+  "appLoginGETStatus": 200,
+  "source34Manifest": "c4562b832fc71e40127bdd809e5f8d669a4fbfac62f41a21ea8703bf382f5680",
+  "all522RowsRecomputedEqualBeforeAfterStartAndResume": true,
+  "recovery": "Readiness/currentrender/healthalreadyqualified; reloadnotneeded; exactownheld862SIGCONT only. No restart/keyrenew/useractions.",
+  "limits": "No signup/mailCTAcookies/templaterealrender/fullcase fromhealth. FinalStorage/oldAuthstate notindependentlyreinspectedbyROOT; no operationsaddressedthem."
+}

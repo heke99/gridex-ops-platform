@@ -1,0 +1,19 @@
+{
+  "state": "ACTUAL_AND_LOCAL_LITERAL_AUTH0106_APPROVE_DEFINED_JOURNEY",
+  "inputSha256": "ffd0d4e4b1c956ab77b8dd9d582a3acb8145b80748b3f8f4b2a611774f432ffa",
+  "actualRecoveryOriginalsVerified": 18,
+  "recoveredBodiesRecomputedAndKnownSecretScanned": 7,
+  "sameOriginalEntityValidatorsIndependentMatch": [
+    "ETag",
+    "LastModified",
+    "ContentType"
+  ],
+  "originalEligibleText": 44,
+  "originalDirectCapturedText": 37,
+  "recoveredOriginalEntityText": 7,
+  "all67ResponseHeadersAnd36ReceivedWSFramesZeroHits": true,
+  "remainingMissingText": 0,
+  "knownSecretHitCount": 0,
+  "originalHOLDPreserved": true,
+  "limits": "Explicitderived37+7 composite, originalgzipJSvsidentitylengthdifference. SameHTTPentityvalidators notunobservedcompressedwirebyteproof. Knownconfiguredcapturewindowsecrets/definedjourney only; no globalunvisited/outgoingWS/unknowncredentialclaim. No Auth/filecase/loginreplay."
+}

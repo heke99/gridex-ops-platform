@@ -1,0 +1,45 @@
+{
+  "state": "ACTUAL_NATIVE_SIX_CATALOG_COMPONENT_CASES_APPROVE_NOT_JWT",
+  "inputSHA256": "296d4918acd8e1bc3053b8eb725141834e2e0b88bcfefa42063acf32408bb1e6",
+  "actualOriginalsHashBytesVerified": 145,
+  "mainFull522And3368ByteIdentical": true,
+  "casesIndependentlyRecomputed": [
+    {
+      "case": "normal",
+      "exactReplayAndPostTestState": true,
+      "mappingCount": 35,
+      "denyCount": 0
+    },
+    {
+      "case": "deny",
+      "exactReplayAndPostTestState": true,
+      "mappingCount": 35,
+      "denyCount": 1
+    },
+    {
+      "case": "inactive",
+      "exactReplayAndPostTestState": true,
+      "mappingCount": 34,
+      "denyCount": 0
+    },
+    {
+      "case": "null_alias",
+      "exactReplayAndPostTestState": true,
+      "mappingCount": 35,
+      "denyCount": 0
+    },
+    {
+      "case": "duplicate",
+      "fullPrestateEqual": true,
+      "mappingCount": 2
+    },
+    {
+      "case": "wrong_alias",
+      "fullPrestateEqual": true,
+      "mappingCount": 1
+    }
+  ],
+  "ownSixClonesAbsent": true,
+  "historicalSeedNotCurrentBackup": true,
+  "limits": "No Authactor/JWT/HTTP/ad594/MAINapply/GEN/105case credit. Declared disposable negativecatalogpreimages only, twooldSTOPspreserved."
+}

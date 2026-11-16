@@ -1,0 +1,28 @@
+{
+  "state": "ROOT_K_FOUR_RPC_ORCHESTRATOR_SOURCE_APPROVE",
+  "atUtc": "2026-11-14T12:19:17.049819+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-k-four-rpc-orchestrator-prep-20261114/PREPARED.safe.json",
+    "sha256": "71058b5fd860566e3a583419d8cf63db1166bb23a44a41a8f73e0ecb2ec7e48e"
+  },
+  "script": {
+    "path": "/tmp/gridex-k-four-rpc-orchestrator-prep-20261114/orchestrator.py",
+    "sha256": "f97295d360951caab3df2b70514978bde39b8cd01371b1de2a42ed42324553f0",
+    "bytes": 21638
+  },
+  "verifiedRefs": 19,
+  "review": [
+    "Full orchestrator, builder, closed contract and13isolated fixture methods read.",
+    "One explicit phase, durable intent and halted/started retry exclusion; native ACK via existing qualified core before next phase.",
+    "Fixed owned clone readonly captures/Fc checkpoints; unknown transport preserved as unknown with no next-phase execution.",
+    "PREPARE actual native UTF8 document preserved, unarmed review rejected; separate actual semantic review needed before ATTEST.",
+    "IMPORT only generates input/command; financial runner remains separate qualifiedV2."
+  ],
+  "limits": [
+    "Full execute unknown-to-Fc/checkpoint failure path inspected in source; not dynamically exercised by13isolated tests.",
+    "Source only; actual parent/helper tuple and current actor/deadline/scopes remain unbound.",
+    "No actual financial/scenario PASS.",
+    "Producer warned four phases require snapshot/Fc disk headroom, beyond initialcloneguard."
+  ],
+  "backendCalls": 0
+}

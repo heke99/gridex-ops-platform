@@ -1,0 +1,72 @@
+{
+  "state": "INDEPENDENT_EVENT_C_PROPER_FINAL_CLOSURE_AND_RESIDUAL_APPROVE",
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "reviewedAt": "2026-11-16T02:20:13.416803+00:00",
+  "producerIndex": {
+    "path": "/tmp/gridex-event-headless-actual-20261115-c/PRODUCER-CLOSURE-REFERENCES.safe.json",
+    "sha256": "f2229ef27d83c0c01f0fab380b3f752537366fe8a4ae8e04d391c9a24667d5ca"
+  },
+  "all16IndexRefsFreshWholeSHA": true,
+  "controllerAndWorkerExit0": true,
+  "beforeAuthToAfterAuth": "Only five Auth scopes change; refreshsequence legitimately142to143 on genuinepassword grant",
+  "afterAuthToPostbusinessWholeMainUnchanged": true,
+  "postbusinessToPostlogoutExact4AuthRowsOnly": [
+    "auth.audit_log_entries",
+    "auth.mfa_amr_claims",
+    "auth.refresh_tokens",
+    "auth.sessions"
+  ],
+  "other518RowsAndAll3370FunctionMetadataAndOtherNonRowObjectsExact": true,
+  "postlogoutFinalAndPostTopologyFullSnapshotsWholeEqual": true,
+  "freshAfterGetUserAll7AnchorPreservedIncludingFourNulls": true,
+  "nativePostlogoutFinalAndPostTopologyAll6AuthZero": true,
+  "globalDatabaseRoleSettingsExactRestored": true,
+  "ownRESTAndDBAbsentNoCleanupErrors": true,
+  "fixedCloneBridgeClosed33RequestsZeroDeniedThreadAbsent": true,
+  "workerRecordedPIDAndPGID": {
+    "pid": 3885333,
+    "PGID": 3885333,
+    "exactPIDAbsent": true
+  },
+  "all4TLSClosedTerminalsAndExactPIDsAbsentFixedListenerPortsEmpty": [
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-success/terminal.safe.json",
+      "sha256": "a99b15b5a857cdaaa439064303bd491fff7fb5debf4260e02a57c30a1162688f",
+      "pidAbsent": 3885917
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-http400/terminal.safe.json",
+      "sha256": "14e13054e90e69fb57527becc9dcd8af3f9cd35b6be55bd627b6684fd99537f7",
+      "pidAbsent": 3886208
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-http500/terminal.safe.json",
+      "sha256": "a0bff470becde4b3e2504dda575ce6e14a6d0349c70a4e778c8ae042a17511f3",
+      "pidAbsent": 3886448
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-timeout/terminal.safe.json",
+      "sha256": "a2bcac4dbd6a98b57e79b3bc8298dc8760fb074173f26c91a42c31845da6eef9",
+      "pidAbsent": 3886690
+    }
+  ],
+  "original3ServicesRestoredStopped": true,
+  "typedOriginalForwarderRestored": {
+    "pid": 3889508,
+    "uid": 1000,
+    "startTime": 29486691,
+    "cmdSHA256": "674a07324e416a055bbe1256f242112b8988d4e7cf8679ccd939240a3a035d58",
+    "state": "S",
+    "originalSourceAndEndpointsUnchanged": true,
+    "noClaimHistoricalRouteHealthy": true
+  },
+  "noGlobalProcessOrFDAbsenceClaim": true,
+  "actualBusinessEvidence": {
+    "path": "/tmp/gridex-event-headless-actual-20261115-c/original-three-case-evidence.safe.json",
+    "sha256": "74a949758718680cf06ec85b1bee1e2f1ba62c5be598d873514e9d7ffcac0f96"
+  },
+  "originalFullScenarioVerdict": "E independently reconciles .01/.03/.04 oracle532c and Rootper-IDdecisions. Closure/source/runtime success alone does not grant scenarioPASS or .05; no counterschangedbyreviewer.",
+  "noResourceMutationOrRawHoldReleaseInThisReceipt": true,
+  "allActualEvidencePreserved": true,
+  "reviewerBackendAuthNodeOrReplay": false
+}

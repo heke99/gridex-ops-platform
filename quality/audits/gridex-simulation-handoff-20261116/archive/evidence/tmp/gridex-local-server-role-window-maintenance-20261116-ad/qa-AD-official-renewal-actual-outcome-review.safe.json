@@ -1,0 +1,65 @@
+{
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "verdict": "ACTUAL_STANDARD_AD_RENEWAL_COMPONENT_APPROVE",
+  "reviewedAt": "2026-11-16T07:30:05.520211+00:00",
+  "receipt": {
+    "path": "/tmp/gridex-local-server-role-window-maintenance-20261116-ad/key-renewal.safe.json",
+    "sha256": "be4abbd962baa76182b54a435ae741bed753d2d603894ed85ec3079ddb6ae652"
+  },
+  "renewal": {
+    "path": "/tmp/gridex-local-server-role-window-maintenance-20261116-ad/key-renewal.safe.json",
+    "sha256": "be4abbd962baa76182b54a435ae741bed753d2d603894ed85ec3079ddb6ae652"
+  },
+  "carrier": {
+    "path": "/tmp/gridex-local-server-role-window-maintenance-20261116-ad/renewed-serverkeys.private.json",
+    "sha256": "e8778f30625c16f873511f128312b9c938bac4dbeb8b6b1fd7077140966619ad"
+  },
+  "immutableAndGlobalCarrierSHA256": "e8778f30625c16f873511f128312b9c938bac4dbeb8b6b1fd7077140966619ad",
+  "actualClaims": {
+    "iat": 1794814130,
+    "exp": 1794821330,
+    "seconds": 7200,
+    "roles": [
+      "anon",
+      "service_role"
+    ]
+  },
+  "sameSecretOnlyTwoFieldsChangedPrivatelyVerified": true,
+  "all8ContainerIDsImagesConfigEnvHostConfigExact": true,
+  "beforeInspect": {
+    "path": "/tmp/gridex-local-server-role-window-maintenance-20261116-ad/before-maintenance-inspect.private.json",
+    "sha256": "eb998a45e592059981fc0474db218276351fb7f13979ec61cec3355cc75e988d"
+  },
+  "afterInspect": {
+    "path": "/tmp/gridex-local-server-role-window-maintenance-20261116-ad/after-api-resume-inspect.private.json",
+    "sha256": "83661ed5cde1b81c79424e36ac6ae397bb3641cf1ce61fb106cea644b2d8c78d"
+  },
+  "priorCarrier": {
+    "path": "/tmp/gridex-local-server-role-window-maintenance-20261116-ad/prior-serverkeys.private.json",
+    "sha256": "d41188bc5926c294a6a91c266e247e5c88375b6263524393fa2283082d5d0d6c"
+  },
+  "normalReload0Health200200": true,
+  "oldACBothLacked3120AtNewIssue": true,
+  "originalACCarrierPreserved": true,
+  "normalProcess": {
+    "path": "/tmp/gridex-local-server-role-window-maintenance-20261116-ad/NORMAL-AD-PROCESS.safe.json",
+    "sha256": "ee5215ab3f041721e149a0fe59c8b3817c75037767074440f9fc50a42d97004a"
+  },
+  "contextClosure": {
+    "path": "/tmp/gridex-local-server-role-window-maintenance-20261116-ad/NORMAL-AD-CONTEXT-CLOSED.safe.json",
+    "sha256": "03f58e5352869345fe22e5213bc71039a6da927db1a49e77708f586160b4849d"
+  },
+  "topologyRestored": {
+    "path": "/tmp/gridex-one-site-auth-topology-actual-20261116-ad/RESTORED.safe.json",
+    "sha256": "b2e8e12200d1084e1ae8e92457604ab2d98a1dd374b30bfe782e0783e00a9785"
+  },
+  "typedForwarderRestored": {
+    "path": "/tmp/gridex-one-site-auth-topology-actual-20261116-ad/ORIGINAL-FORWARDER-RESTORED.safe.json",
+    "sha256": "bed0f03307010614f142182ddb1c6b4535b88e3486b16a320704f80783747828"
+  },
+  "original3ServicesStoppedNoErrors": true,
+  "noUserAuthBusinessOrOwnedCloneObservedInThisMaintenance": true,
+  "nativeAuth0Limit": "Producer fresh native closure separate; reviewer performs no SQL/Docker.",
+  "noFreshActorOrBusinessAuthorityFromRoleReview": true,
+  "reviewerNodeBackendAuthCalls": 0
+}

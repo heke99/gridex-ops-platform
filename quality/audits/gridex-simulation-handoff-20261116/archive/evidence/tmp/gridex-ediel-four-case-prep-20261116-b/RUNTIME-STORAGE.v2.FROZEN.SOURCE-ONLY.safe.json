@@ -1,0 +1,187 @@
+{
+  "state": "UNARMED_FOUR_B_RUNTIME_V2_STORAGE_SOURCE_AND_DOC_FROZEN",
+  "authorAgent": "/root/review_plan_execution",
+  "createdAtUTC": "2026-11-16T08:10:48.561221+00:00",
+  "files": [
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/owned-four-runtime.v2.py",
+      "sha256": "a7f473f0975ef7db182a053ec475fc2d7cc4137eec8ba531c5158d057abc9aab",
+      "bytes": 32145
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/check-B-source.py",
+      "sha256": "a068689a724e303f89b90cb470bd7e7aa6056d5fe72aca4d9971db9688b532f2",
+      "bytes": 5936
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/B-CONTROLS.safe.json",
+      "sha256": "59842e8dd763f34585301b646d1ea15a1213ba965078e82450ce966ea3eb3307",
+      "bytes": 2099
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/B-EXACT-OWNED-DELTA.diff",
+      "sha256": "b20635d41f84d706fc2aa94cbed4cc010638977fdb19b814459691d0817441bf",
+      "bytes": 11547
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/RUNTIME-TARGET.UNARMED.safe.json",
+      "sha256": "c43183691bd2f028faf297e9bb111933c33dacdafc57f38543dd1d1307887210",
+      "bytes": 9900
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/README.B-RUNTIME-STORAGE.md",
+      "sha256": "26f9eafa3eadf0a7fc4c04636a832800b9cd279e380221356cd0af604b7404fe",
+      "bytes": 3554
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/storage_integration.py",
+      "sha256": "84d0f7d83501e6c919dba060c6836f8c79eb1166e214acfbfde3e1825977518b",
+      "bytes": 10688
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/owned_storage.py",
+      "sha256": "4aef2122e019acb141c4abd0986b99e2ba56f6a56a935635d3d827a881f1b711",
+      "bytes": 16111
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/storage_route_policy.py",
+      "sha256": "3ad8825bd3199e60c9c0b7eda34ee15cf42e58d36bd2dd1e7711393cab84fa06",
+      "bytes": 2500
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/ensure-own-archive-bucket.cjs",
+      "sha256": "abb8eaae94ed23fc34567e618db0d79a8330b6e59840fe1802ff1e4186860b9c",
+      "bytes": 992
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/READ-OWN-STORAGE-PREREQUISITES.READONLY.sql",
+      "sha256": "fd334e6b380d81db0999f4d478380814a2a96971510ce7d5170bab9d2655f5e7",
+      "bytes": 536
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/storage_constructor_budget.py",
+      "sha256": "7752c8d34552759528772fb731650d7d6b626c7bb35becc7ee5dd5686bce4ab6",
+      "bytes": 2265
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/TARGET.UNARMED.safe.json",
+      "sha256": "2cb407a364f00dc89e2a7ff7441e45bd02268aa27cec693e65a4a3dc4585df1e",
+      "bytes": 4175
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-b/README.B.md",
+      "sha256": "26f9eafa3eadf0a7fc4c04636a832800b9cd279e380221356cd0af604b7404fe",
+      "bytes": 3554
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/check-B-restore-list-v2.py",
+      "sha256": "be022a2903c7ce29e9ff16d5d176ea83309eb7496818bfacd7bb0f8dbbe90f2c",
+      "bytes": 3370
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/B-RESTORE-LIST-V2-CONTROLS.safe.json",
+      "sha256": "47304684f4c2e179104c653cf1aaa7341d07e0cb42a599364f5c8884f026c921",
+      "bytes": 631
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/RUNTIME-TARGET.v2.UNARMED.safe.json",
+      "sha256": "2c0b857096a9f52ac04a40ba562ac642ba1dcb633520098b89ea8ab6c1395e24",
+      "bytes": 9903
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/V2-RESTORE-LIST-CORRECTION.diff",
+      "sha256": "dd2a1cb69696283d719ddd430a9cea6fa20fb313eab72fc44ea8e334f719c597",
+      "bytes": 1628
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/README.RUNTIME-V2.md",
+      "sha256": "0659d33e832b729f53608211ac7f483880ca0e03660a47a04d06af4c1455054d",
+      "bytes": 1090
+    }
+  ],
+  "refs": [
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-a/RUNTIME.FROZEN.SOURCE-ONLY.safe.json",
+      "sha256": "7dd97bb47fcbbaadfdc7b593e11256d3db053d7181aa7c3ded9f6f4348825f61",
+      "bytes": 4553
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-a/qa-FOUR-RUNTIME-SOURCE-FINALDOC-REVIEW.safe.json",
+      "sha256": "21668bd063c7d05003eed5a5d82f7b1877b480226fdf5bc67bf92db6e346d40c",
+      "bytes": 1690
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-a/PREPARED.SOURCE-AND-DOC.safe.json",
+      "sha256": "2949c582e4721b8812edf2856ffc30eda1f8b95c4c6ee3b2cb8f883b269f5664",
+      "bytes": 5247
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-a/qa-INTEGRATION-SOURCE-FINALDOC-REVIEW.safe.json",
+      "sha256": "669e9792537fc0cbd2da6b385a8a267a6e53ccd3faba16bb8a41bcf26f7c2ddf",
+      "bytes": 2065
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-a/root-INTEGRATION-SOURCE-AND-DOC-REVIEW.safe.json",
+      "sha256": "4c4fc30ab28d47559d3f91acc1346433e5846aefef1790299c1b5b51ff2e66c9",
+      "bytes": 1574
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-a/owned-four-runtime.py",
+      "sha256": "74b0af51140a63f6585385d00cdcd52fa79c2c5c3c41494aaa1e3031152b287b",
+      "bytes": 31456
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-integration-prep-20261116-a/owned_storage.py",
+      "sha256": "1a46ad075909fe5fbf27be5d65388299aab9e3ecdaefb5ab53a5c5f089d435ac",
+      "bytes": 14874
+    },
+    {
+      "path": "/tmp/gridex-storage-create-only-probe-prep-20261116-a/FROZEN.SOURCE-ONLY.safe.json",
+      "sha256": "1a77060b107cc0c807f6b29863122a954e4d53a78a66f16de966c849190a6f12",
+      "bytes": 3155
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/DOCKER-STORAGE-DRIVER.safe.json",
+      "sha256": "05e5dae8040f30b69b335bf7794cc73037a094117628daee2ed94a3a31cc8dc5",
+      "bytes": 152
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/storage-image-inspect.process.private.json",
+      "sha256": "0f0816e33e72e205ca9d1ffb50fa278580949b2c75439d66a62845b3d05a17df",
+      "bytes": 3043
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/RUNTIME-STORAGE.FROZEN.SOURCE-ONLY.safe.json",
+      "sha256": "f04564ca9c8a37de56003563dfd7ef258c5b88d6c53b87976cbf314ecc86ba03",
+      "bytes": 5897
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/owned-four-runtime.py",
+      "sha256": "8246be7eda879287c820d80141acd49af22254b84e62db6bc9ae98e035892b1c",
+      "bytes": 32145
+    }
+  ],
+  "workspaceAvailableBytesMin": 1207959552,
+  "tmpAvailableBytesMin": 385875968,
+  "VFSImageCopyCeilingBytes": 822083584,
+  "constructorReserveBytes": 33554432,
+  "StorageCreateTimeoutSecondsUnchanged": 30,
+  "pureDeltaASTInjectedControlsPASS": 22,
+  "inheritedRuntimeFunctionsASTExact": 15,
+  "inheritedStorageHelpersASTExact": 11,
+  "integrationBodyAndThreeSupportsByteExact": true,
+  "allActualAuthorityAndExecution": null,
+  "nativeBackendAuthSDKCallsByAuthor": 0,
+  "runtimeV2OnlyDelta": "Both exact B restore-list admission/cleanup regex literals now match the B mktemp prefix.",
+  "additionalActualGeneratorInjectedControlsPASS": 5,
+  "activeRuntime": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/owned-four-runtime.v2.py",
+    "sha256": "a7f473f0975ef7db182a053ec475fc2d7cc4137eec8ba531c5158d057abc9aab",
+    "bytes": 32145
+  },
+  "activeRuntimeTarget": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/RUNTIME-TARGET.v2.UNARMED.safe.json",
+    "sha256": "2c0b857096a9f52ac04a40ba562ac642ba1dcb633520098b89ea8ab6c1395e24",
+    "bytes": 9903
+  }
+}

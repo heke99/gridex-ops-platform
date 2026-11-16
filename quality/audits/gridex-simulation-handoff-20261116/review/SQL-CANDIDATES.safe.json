@@ -1,0 +1,164 @@
+{
+  "state": "READONLY_SQL_CANDIDATE_REVIEW_NO_ADOPTION_GO",
+  "observedUTC": "2026-11-16T10:51:15.881069+00:00",
+  "main": {
+    "path": "/workspace/gridex-main-transfer-20261116/main",
+    "commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+    "tree": "fe55a53d9ce29e26aa918b3af4a3e1aae87bca06"
+  },
+  "skills": [
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/.agents/skills/code-review/SKILL.md",
+      "sha256": "ec5fc8855cb4648b4f2c79b608f8c8824a2da6a683330524c4d6283e4a3954c4"
+    },
+    "supabase:supabase",
+    "supabase:supabase-postgres-best-practices"
+  ],
+  "scope": "git show and existing frozen/saved files only; no checkout/index/ref changes, tests, SQL, Docker, npm, CI, startup or live DB proposals",
+  "sourceFiles": [
+    {
+      "candidate": "framer",
+      "commit": "e7efeb1b75d17a9f5644ce806a8753e2023435c8",
+      "file": "supabase/migrations/20261115110312_ediel_envelope_linear_framing.sql",
+      "sha256": "1db0467502ee51869a7074768da1c43d5fdfedb7b74f839cbe96c07043b91096"
+    },
+    {
+      "candidate": "header",
+      "commit": "112ea02caa97785f77f5eb412eb66771444c01e0",
+      "file": "supabase/migrations/20261115124654_ediel_header_component_length_precedence.sql",
+      "sha256": "8241f65020d000f007d03b95c77341176e887b0605ca086b12441e623e76dfa9"
+    },
+    {
+      "candidate": "delete-final",
+      "commit": "8af37439f25e16a9bb9f6465c6091c0a85fce409",
+      "file": "supabase/migrations/20261114192010_test_customer_delete_owned_admin_onboarding.sql",
+      "sha256": "a7e4335b690e31fd70f7dfa8a41fe7176d44daded32042c79209db289dfbf25e"
+    }
+  ],
+  "frozenPatchVerification": [
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/01-framer-e7efeb1b75d1.patch",
+      "sha256": "86106b431aee412b11177085b028bc53ebe8efab8cfcb272cc77d98fe3d0ea13",
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/02-header-112ea02caa97.patch",
+      "sha256": "95effeb5b52ef24feb3a025947b55ff25a94400b70c15fc57dd1afca3402f4ae",
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/04-customer-delete-final-8af37439f25e.patch",
+      "sha256": "278b01450b349e98bd9983af919d381b5d846e33557f7c93fbe916615ea20672",
+      "unchanged": true
+    }
+  ],
+  "confirmedNewProductBugs": [],
+  "candidates": [
+    {
+      "name": "framer",
+      "adoptableNow": false,
+      "disposition": "SOURCE_MATCHES_MAIN_BASE_BUT_HOLD_OVERLAPPING_THREAD_AND_COMPOSED_ADOPTION",
+      "mainSource": {
+        "file": "supabase/migrations/20260930221910_ediel_complete_technical_header_observation.sql",
+        "lines": [
+          5,
+          47
+        ],
+        "sha256": "2a10f2e4dbb707537b056046936ff3e16c27c0ab5d1be9ec36d9cf3016229dc8",
+        "bodyMD5": "b4debb471635ff47d9a11ccb795eec7c"
+      },
+      "guardEvidence": {
+        "migrationLines": [
+          11,
+          29,
+          86,
+          87
+        ],
+        "acceptsBodies": [
+          "b4debb471635ff47d9a11ccb795eec7c",
+          "33bb811220fdabda32c9f40505c20ea1"
+        ],
+        "requires": "postgres owner; immutable invoker/non-strict/parallel unsafe/search_path pg_catalog; exact raw and expanded ACL; full pg_proc except prosrc unchanged"
+      },
+      "dependency": "Existing Main technical-ACK schema and gridex_utilts_binding.wire_tokens_v1; no new RPC or grants. Header follows framer, not vice versa.",
+      "validation": "Existing isolated native timing/parity, wrapper/replay/41 regression. One raw171462-byte benchmark showed old6.705644s/new0.271080s equal JSON; not full INSERT cause or broad performance guarantee.",
+      "nextPath": "After other thread finishes, review composed fresh Main SQL source+metadata assumptions and pair with header in correct migration order. Existing regression is pinned to own DB names and optimized33bb target; it cannot be run unchanged after header91fb. No execution is requested here.",
+      "knownLimit": "Preserves original component-length precedence bug intentionally; header candidate corrects it separately. No trigger or hotpath removal."
+    },
+    {
+      "name": "header",
+      "adoptableNow": false,
+      "disposition": "DEPENDENT_ON_FRAMER_AND_FRESH_COMPOSED_MAIN_REVIEW",
+      "dependency": "Requires framer33bb; source guard rejects original Main b4de. Final91fb replay allowed.",
+      "guardEvidence": {
+        "migrationLines": [
+          14,
+          30,
+          70,
+          87,
+          88
+        ],
+        "oldBodyMD5": "33bb811220fdabda32c9f40505c20ea1",
+        "newBodyMD5": "91fbc03c1a22caadfc6eb48f07b03503"
+      },
+      "wholeBodyInverseVerified": "Replacing jsonb_array_elements_text((u->2)||(u->3)) with old unparenthesized expression reconstructs exact framer body; no other predicate/metadata/permissions change.",
+      "validation": "Saved terminal /workspace/gridex-ediel-header-length-actual-20261115-e/terminal.safe.json ec9b91fbbc67c55f7b5aca70a7219137d3423715d5f908845b5f5dd8b14f4433: native apply/replay/body-only metadata and75 cases INCLUDING41 legacy reference cases. No new run.",
+      "nextPath": "Keep source guard and order framer then header. Use header final-body regression for composed final function; old framer replay/regression deliberately refuses91fb. Isolated component qualification does not establish normal full INSERT/billing or Main adoption.",
+      "knownLimit": "Intentional change rejects decoded sender/receiver components longer than35 characters; no backfill or retry of old unknown imports."
+    },
+    {
+      "name": "delete-final",
+      "adoptableNow": false,
+      "disposition": "FINAL_SOURCE_CANDIDATE_NATIVE_NEW_BODY_AND_NORMAL_UI_NOT_QUALIFIED",
+      "mainSource": {
+        "file": "supabase/migrations/20261002211000_atomic_test_customer_delete.sql",
+        "sha256": "a5445d6678eabbb21b719df6d486e1c618fd1864bc3e60fd34657da6420f34fc",
+        "bodyMD5": "b6da43220109e6cd6a14eafc451926af",
+        "aclLines": [
+          145,
+          146
+        ]
+      },
+      "predecessors": {
+        "required": "Existing Main atomic delete RPC plus current onboarding tables/FKs and normal platform-admin service-client call path.",
+        "NOT_required": [
+          "d04a1fd62d06bd2a6a43239313831a564e634624 (underprotected rejected draft)",
+          "78071f850ce8880b4eaf801a59053531bd077f24 (superseded test expectations)"
+        ],
+        "evidence": "8af migration bytes exactly equal78071 migration SHAa7e4335b...;8af carries the whole replacement file directly based on ce804. Removing only inserted purge+remaining guard reconstructs exact Main b6da body. Installing d04a first would fail exact preimage guard."
+      },
+      "guardEvidence": {
+        "migrationLines": [
+          16,
+          19,
+          106,
+          141,
+          146,
+          207,
+          208
+        ],
+        "newBodyMD5": "b9dd0ed9061fede142be556cb4984be3",
+        "behavior": "Only matching own admin committed intake/completed operation capsule is deleted; any remaining application for customer_id across companies raises23503, rolling back prior purge. Existing customer lock/test/history/service-role checks remain byte-identical."
+      },
+      "permissions": "Main revokes PUBLIC/anon/authenticated and grants service_role only. Caller profile-actions.part-2.ts254 gets genuine platform-admin user;269-286 reads tenant from customer then invokes same RPC;Storage cleanup302 occurs after DB success. Candidate adds no grants/actor waiver. Native actor ID nonNULL rule is inherited, not newly strengthened.",
+      "replayPrecision": "Migration16-17 returns immediately for target body and does not recheck metadata/ACL on replay. Fresh apply compares preserved metadata/ACL, but does not independently assert initial service-only ACL. This is an adoption/parity verification limit, not a newly demonstrated privilege vulnerability; final regression81-84 explicitly checks role EXECUTE privileges.",
+      "validation": "13 offline byte/inverse checks only for final source. Committed results new parser/apply/replay/21 cases/UI NOTRUN; previous draft actual G failure is not final-body success. Final regression is20 DELETE RPC cases+1 FK case; contract fixture rejection explicitly yields20 completed/1NOTRUN, not21PASS.",
+      "nextPath": "Keep final8af whole replacement, omit superseded drafts. After overlap resolves, source review exact current base/ACL/FK/caller parity then separately qualify final-body matrix/replay and normal UI before adoption; no run or product edit requested by this report."
+    }
+  ],
+  "findings": [
+    {
+      "kind": "PREVIOUSLY_DOCUMENTED_DEPENDENCY_NOT_NEW_BUG",
+      "detail": "Header requires framer; framer exact33bb replay/test is not compatible with already-installed91fb. Migration-history ordering and final header regression must be kept distinct."
+    },
+    {
+      "kind": "PREVIOUSLY_DOCUMENTED_VALIDATION_GAP",
+      "detail": "Final delete source has no new native/parser/apply/replay/21-case/normal-UI qualification; draft results cannot transfer."
+    },
+    {
+      "kind": "SOURCE_VERIFIED_ADOPTION_LIMIT_NOT_PRODUCT_BUG",
+      "detail": "Delete target-body replay exits before metadata/ACL checks; do not describe replay as current ACL certification."
+    }
+  ],
+  "unchanged": "Frozen candidate staging, all patch bytes, source repositories, Main and foreign workspaces remain untouched. Only own SQL-CANDIDATES.safe.json written. User overlap hold remains active."
+}

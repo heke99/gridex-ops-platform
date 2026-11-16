@@ -1,0 +1,15 @@
+{
+  "state": "SOURCE_COMPONENT_APPROVE_NO_RUNTIME_CREDIT",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T10:34:52.813068+00:00",
+  "freezeSHA256": "8dcd99b183872d1be5d2592cc6cfd812c172d47053cba34f9daa615563409fd5",
+  "rankActualReview": "d4a8cc954a63b468673e82f8e866cb2a8bdcb438f16ddb028920df9eed1939b3",
+  "checks": [
+    "Fullpage/driverdelta read; all11prototypehashes+currentpage/driver/action/nativepreimages verified",
+    "NormalexactUUID GET search addsidfilter INSIDEsamecompany/type/source/aggregate guards; latest30fallback retained; no rowscreated/SQLnativechanges",
+    "DrivernormaltypedGET/reload captures<=31optionUUIDs+failfastbeforeselect/intent; wholeintentPOST/nativeACKsuffix byteexact original",
+    "18isolatedfixturescomponentonly; UUIDv7READlookup doesnotchangeexistingactionv1\u20135UUIDcontract, publication_revision7unrelated",
+    "Actual48eligible/22newer/22ties/observedtargetabsent supportsselectionfix; no deterministic tieordering orsolecauseclaim",
+    "Producerfreshsourcecustody/reviewableapplication+source67manifesthistoricalalias/helperdriverintegration required beforeactualruntimeadoption; original0a776/c79d unchanged"
+  ]
+}

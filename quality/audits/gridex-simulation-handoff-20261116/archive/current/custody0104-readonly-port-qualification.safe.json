@@ -1,0 +1,33 @@
+{
+  "state": "READONLY_CUSTODY0104_PORT_QUALIFICATION_NO_RUNTIME",
+  "observedAt": "2026-11-14T07:02:07.608155+00:00",
+  "scenario": "CUSTODY01.04",
+  "sourceRefs": [
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/lib/ediel/retention/retentionHttp.ts",
+      "sha256": "f5d09a23d68df6e0b69c00e44104c7b4f5fa5c90a2dc9ae851a4d4e75bf670c4",
+      "bytes": 3727
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/app/admin/ediel/message-content-retention/workspace.tsx",
+      "sha256": "b1a1583f5cc67b4fe309517705ba1b4137f93bbf64b1d8e85c9fbfe7e1e010d8",
+      "bytes": 9557
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/app/admin/ediel/messages/page.tsx",
+      "sha256": "e0271128edf879d742ecbdb2a9a39ffaaaf712b0f8cadcca7efeaaf5e0c8a59f",
+      "bytes": 15913
+    }
+  ],
+  "facts": [
+    "Normal retention scope requires genuine authenticated actor, dedicated current retention company selector and actual native class-specific permission receipt. Platform status alone is insufficient.",
+    "Normal message-content retention submits actual document+issuerReceipt, separate review and purge; missing qualified issuer source leaves hold.",
+    "Messages page offers test_only delete-all cleanup. This is broad cleanup and not evidence for a separately eligible object under retention policy; do not substitute this action."
+  ],
+  "next": "Use separately genuine policy-qualified target/issuer/reviewer fixture and exact native policy before any purge. Prior upstream403 is not full case proof.",
+  "notAssumed": [
+    "No fake issuer receipt or accepted flags",
+    "No global test-data cleanup",
+    "No fullcase credit or new product defect"
+  ]
+}

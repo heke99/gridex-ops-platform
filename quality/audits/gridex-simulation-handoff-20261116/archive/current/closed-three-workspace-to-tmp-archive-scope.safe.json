@@ -1,0 +1,18 @@
+{
+  "state": "APPROVE_EXACT_THREE_HISTORICAL_WORKSPACE_TO_TMP_GZIP",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T10:42:01.934002+00:00",
+  "proposalSHA256": "c5bc872aa1b59fe6301cde675ec7363316e604a80b215fff38fe12650abc88df",
+  "paths": [
+    "/workspace/gridex-local-simulation-initial-native-evidence-20261113/clone-historical-seed.private.json",
+    "/workspace/gridex-local-simulation-initial-native-evidence-20261113/clone-before-ad594.private.json",
+    "/workspace/gridex-local-simulation-initial-native-evidence-20261113/clone-after-ad594.private.json"
+  ],
+  "checks": [
+    "All3currentH/inode/nlink1/size/uidgidverified; historicalinitialnative snapshots only",
+    "Actualoldclosure/ownruntimeabsence/future-inputexclusions mustboundbysoleFSwriter beforemutation",
+    "NewTMParchive0600/fsync/decompressHbytes+durableARCHIVEDmanifestBEFORErawunlink; safeexclusivefuture restore, no falseoldphysicalclaim",
+    "Currentbaseline/C6dbd35/Kwireproof/D7928/Esource/Fc0d24/source/deps untouched",
+    "Producerexplicitwriterhandoff toInventory; actualworkspace805/TMP130 guardbeforeAuth notwaived, postpauseguardbeforecloneagain"
+  ]
+}

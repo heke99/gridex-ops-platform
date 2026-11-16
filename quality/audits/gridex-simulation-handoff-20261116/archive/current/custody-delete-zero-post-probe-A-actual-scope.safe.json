@@ -1,0 +1,20 @@
+{
+  "state": "ROOT_ACTUAL_ZERO_BUSINESS_DELETE_PROBE_SCOPE",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T18:28:25.485931+00:00",
+  "targetPath": "/tmp/gridex-custody-delete-probe-actual-prep-20261114-a/target.BOUND.safe.json",
+  "targetSha256": "8c812c8954c3ae0e67ed3d09d6a42534c3eb0018bc658f691c824b6aa418176d",
+  "helperSha256": "dd40c7a41421feb6a609fed9545283e97ed5bcd6098dc025876e1a7e2a4ad2cf",
+  "sourceReviews": [
+    "Domain00ad8117",
+    "Edield56e1aba"
+  ],
+  "onlyScope": "One normal EE login/form inspection/confirm click with ALL business POSTs blocked; no CREATE/MARK/DELETE mutation admitted. Exact known marked customer and fresh INITIAL native.",
+  "conditions": [
+    "Producer plus independent actual review/livefreshness/role600+120/resource guards before one dispatch",
+    "Normal logout/browser closure and postquiescence nativeunchanged/Auth0 proof required",
+    "No actual product/FK/import/financial/fullcase claim from observer"
+  ],
+  "rootArmed": true,
+  "executor": "execute_eight_parts"
+}

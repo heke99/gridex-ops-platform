@@ -1,0 +1,7 @@
+{
+  "reviewer": "root",
+  "verdict": "FINALDOC_APPROVE",
+  "head": "bf65cb1964419eaeb52188cc547d94ea4cd0ab06",
+  "freezeSHA256": "6a9126905f19e4437de49d5be410544684118cdd63143e803997fb596a6c64fa",
+  "scope": "Read narrow2auditreportdelta andboundfiles; source3SQL+portableunchanged, actualc1c97173originals/Roota73c+Ediel48f6 reused. Fullchain+9regressionqualified, oldfailure retained, activecheckpointpatch/business/105case notclaimed. No newruntime."
+}

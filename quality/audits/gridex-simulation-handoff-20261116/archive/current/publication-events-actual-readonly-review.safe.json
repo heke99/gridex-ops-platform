@@ -1,0 +1,35 @@
+{
+  "state": "ACTUAL_READONLY_EVENT_QUALIFICATION_REVIEWED_NOT_DELIVERY",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T07:09:55.256682+00:00",
+  "actualPath": "/tmp/gridex-publication-main-read-actual-20261114-a/query.stdout.private.json",
+  "actualSHA256": "037797f74398109378903d783c4afef2ff82c61d9c77a4551a10156b7db5b167",
+  "events": [
+    {
+      "companyId": "2d50ff27-7e67-4641-bf26-042ca586225b",
+      "eventId": "0fc3a60c-44bd-4d2f-bf0c-f45d78aa14cd",
+      "type": "contracts.publication.changed",
+      "source": "database",
+      "aggregate": "contract_publication",
+      "payloadPgJsonbTextSHA256": "17d828f6d492ad646975258b4371b4429ea791b871a0da49bf414440e7941b44",
+      "existingDeliveryCount": 0,
+      "ordinaryAllowed": false,
+      "ordinaryReason": "operation_not_allowed_during_onboarding"
+    },
+    {
+      "companyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+      "eventId": "0a7762bb-c871-4e81-a9a5-c2138b546f92",
+      "type": "contracts.publication.changed",
+      "source": "database",
+      "aggregate": "contract_publication",
+      "payloadPgJsonbTextSHA256": "c79de3667e5de4c2acc7fe7f60a694e8ba2be19350c9ab0dca2f97789b09b6dc",
+      "existingDeliveryCount": 0,
+      "ordinaryAllowed": false,
+      "ordinaryReason": "operation_not_allowed_during_onboarding"
+    }
+  ],
+  "limits": [
+    "Read-only qualification, no event manufacturing or genuine factory/JWT/TLS delivery proof",
+    "Stored payload hash is PostgreSQL JSONB text UTF8, not original sender wire bytes"
+  ]
+}

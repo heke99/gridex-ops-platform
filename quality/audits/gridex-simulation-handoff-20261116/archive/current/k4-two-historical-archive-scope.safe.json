@@ -1,0 +1,18 @@
+{
+  "state": "ROOT_EXACT_TWO_HISTORICAL_GROUP_ARCHIVE_SCOPE_CONDITIONAL_ON_CURRENT_K4_CONSUMER_CHECK",
+  "observedAt": "2026-11-14T15:24:11.114640+00:00",
+  "proposalPath": "/workspace/gridex-k4-extra-two-historical-proposal-20261114/PROPOSAL.safe.json",
+  "proposalSHA256": "f207d6c2620734bf809906d41999bba531e756a0c27a350ea1087549103f566d",
+  "exactGroups": 2,
+  "exactAliases": 3,
+  "freshPhysicalPinsAndClosureChecked": true,
+  "priorB406RawProtectionExplicitlyRequalified": true,
+  "precondition": "Producer/Domain confirm actual frozen K4 parent/orchestrator/financial inputs do not require these RAW paths; finite historical verifier reruns require exact exclusive restore first. If any current consumer depends on RAW do not archive.",
+  "requiredProtocol": "Exactscope/producerhandoff/freshHstatclosureFDcaveat/immutabletuples/gzipfsync/decompHbytesbeforeALLaliasesunlink/durablemanifest/safeexclusive restore.",
+  "historicalConsumerCaveat": "b406 was explicitly protected earlier. Historicalfinite sourceverifiers directlyreadit and MUSTrestorequalifiedbytes before anyfuture rerun. Currentfinancialactualcapture checks current807columns fromactualclone, nothistorical801 substitute; donotrerun/alterexpectedbasedoncapture. CurrentK4actualconsumerconfirmation required byproducer/Domainbeforeexecution.",
+  "protected": "OriginalE96/C6/APIwire/currentK4/H/source/deps/inputs/currentfuturebaseline/fullFcs remain. b406+NEWRepoEcanonicalonlymaychangeRAWpresence uponNEWexplicitRootscope; allbytesretainedgzip/ARCHIVED+safeRestoremandatory.",
+  "writer": "remaining_coverage_inventory sole filesystem writer or explicitly delegated producer; no concurrent writer",
+  "futureBytesNotActual": true,
+  "indexRequirement": "Append ARCHIVED physical disposition and exact original hash/bytes plus exclusive restore script; prior indexes retained historical.",
+  "backendCallsByRoot": 0
+}

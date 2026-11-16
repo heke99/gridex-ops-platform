@@ -1,0 +1,9 @@
+{
+  "state": "ROOT_SOURCE_REVIEW_ACK_UNARMED",
+  "sourceSHA256": "7df73cdc3c8c982a26c2437901097a0ebc16d5c7bc5f28463bdaeb38dc13d785",
+  "peerSHA256": "34b9bdd2cce21a948dab5345bb0b05ab776991c4de2903c283821ad0dc26ab53",
+  "v2ToV3ExactDiff": "sync(root) immediately after exclusive archive directory mkdir, before unlink",
+  "allFrozenPinsVerified": true,
+  "serializationMatchesOriginal": true,
+  "limits": "Fresh namespace/source/epoch required; source review only, no runtime or admission budget PASS."
+}

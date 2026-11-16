@@ -1,0 +1,5744 @@
+{
+  "version": 1,
+  "syntaxSources": [
+    {
+      "archiveSha256": "4a8fbe74935a140b0982f9b555571831e7b9d90311acdbf195ae481e2fe705a8",
+      "archiveMember": "EDIFACT/D97ADISK/PART4_D.ZIP!D422_D.97A",
+      "sha256": "2577bf074a8f529875d5c89e17ee9d724c73fe700afcb1a0149238dea64fea3f",
+      "pointers": [
+        "8.2 Repetition of data elements",
+        "10. Representation of numeric data element values"
+      ]
+    }
+  ],
+  "grammars": [
+    {
+      "key": "PRODAT:D:97A:UN",
+      "archiveSha256": "4a8fbe74935a140b0982f9b555571831e7b9d90311acdbf195ae481e2fe705a8",
+      "sources": [
+        {
+          "archiveMember": "EDIFACT/D97ADISK/EDMD.ZIP!EDIFACT/DIRECTOR/TRMD/PRODAT_D.97A",
+          "sha256": "f6d6258573235c642889c2d7404774d1fc642db4cb70c46ef7bb93a1c95f6cf9"
+        },
+        {
+          "archiveMember": "EDIFACT/D97ADISK/EDSD.ZIP!EDIFACT/DIRECTOR/TRSD/EDSD.97A",
+          "sha256": "f8e67ec915604e16768b153cd6b837ab47e0fb31265e4cfc154db246bf6d7c11"
+        },
+        {
+          "archiveMember": "EDIFACT/D97ADISK/EDCD.ZIP!EDIFACT/DIRECTOR/TRCD/EDCD.97A",
+          "sha256": "545aba5d4df750784d023633685835385b2fdbb49853769b2c79bbd1b7ccf2c1"
+        }
+      ],
+      "structure": [
+        {
+          "tag": "UNH",
+          "position": "0010",
+          "min": 1,
+          "max": 1
+        },
+        {
+          "tag": "BGM",
+          "position": "0020",
+          "min": 1,
+          "max": 1
+        },
+        {
+          "tag": "DTM",
+          "position": "0030",
+          "min": 1,
+          "max": 10
+        },
+        {
+          "tag": "ALI",
+          "position": "0040",
+          "min": 0,
+          "max": 5
+        },
+        {
+          "tag": "IMD",
+          "position": "0050",
+          "min": 0,
+          "max": 10
+        },
+        {
+          "tag": "FTX",
+          "position": "0060",
+          "min": 0,
+          "max": 5
+        },
+        {
+          "tag": "PGI",
+          "position": "0070",
+          "min": 0,
+          "max": 10
+        },
+        {
+          "group": 1,
+          "position": "0080",
+          "min": 0,
+          "max": 10,
+          "children": [
+            {
+              "tag": "TRU",
+              "position": "0090",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "DTM",
+              "position": "0100",
+              "min": 0,
+              "max": 1
+            }
+          ]
+        },
+        {
+          "group": 2,
+          "position": "0110",
+          "min": 0,
+          "max": 10,
+          "children": [
+            {
+              "tag": "RCS",
+              "position": "0120",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "PIA",
+              "position": "0130",
+              "min": 0,
+              "max": 5
+            }
+          ]
+        },
+        {
+          "group": 3,
+          "position": "0140",
+          "min": 0,
+          "max": 99,
+          "children": [
+            {
+              "tag": "RFF",
+              "position": "0150",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "DTM",
+              "position": "0160",
+              "min": 0,
+              "max": 5
+            }
+          ]
+        },
+        {
+          "group": 4,
+          "position": "0170",
+          "min": 0,
+          "max": 99,
+          "children": [
+            {
+              "tag": "NAD",
+              "position": "0180",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "group": 5,
+              "position": "0190",
+              "min": 0,
+              "max": 5,
+              "children": [
+                {
+                  "tag": "CTA",
+                  "position": "0200",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "COM",
+                  "position": "0210",
+                  "min": 0,
+                  "max": 10
+                }
+              ]
+            },
+            {
+              "group": 6,
+              "position": "0220",
+              "min": 0,
+              "max": 5,
+              "children": [
+                {
+                  "tag": "RFF",
+                  "position": "0230",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "DTM",
+                  "position": "0240",
+                  "min": 0,
+                  "max": 5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": 7,
+          "position": "0250",
+          "min": 0,
+          "max": 999,
+          "children": [
+            {
+              "tag": "CCI",
+              "position": "0260",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "CAV",
+              "position": "0270",
+              "min": 0,
+              "max": 10
+            },
+            {
+              "tag": "MEA",
+              "position": "0280",
+              "min": 0,
+              "max": 10
+            }
+          ]
+        },
+        {
+          "group": 8,
+          "position": "0290",
+          "min": 1,
+          "max": 999,
+          "children": [
+            {
+              "tag": "LIN",
+              "position": "0300",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "PIA",
+              "position": "0310",
+              "min": 0,
+              "max": 10
+            },
+            {
+              "tag": "DTM",
+              "position": "0320",
+              "min": 0,
+              "max": 5
+            },
+            {
+              "tag": "MEA",
+              "position": "0330",
+              "min": 0,
+              "max": 10
+            },
+            {
+              "tag": "HAN",
+              "position": "0340",
+              "min": 0,
+              "max": 5
+            },
+            {
+              "tag": "DOC",
+              "position": "0350",
+              "min": 0,
+              "max": 99
+            },
+            {
+              "tag": "FTX",
+              "position": "0360",
+              "min": 0,
+              "max": 99
+            },
+            {
+              "tag": "PGI",
+              "position": "0370",
+              "min": 0,
+              "max": 10
+            },
+            {
+              "group": 9,
+              "position": "0380",
+              "min": 0,
+              "max": 10,
+              "children": [
+                {
+                  "tag": "IMD",
+                  "position": "0390",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "FTX",
+                  "position": "0400",
+                  "min": 0,
+                  "max": 99
+                }
+              ]
+            },
+            {
+              "group": 10,
+              "position": "0410",
+              "min": 0,
+              "max": 10,
+              "children": [
+                {
+                  "tag": "TRU",
+                  "position": "0420",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "DTM",
+                  "position": "0430",
+                  "min": 0,
+                  "max": 1
+                }
+              ]
+            },
+            {
+              "group": 11,
+              "position": "0440",
+              "min": 0,
+              "max": 10,
+              "children": [
+                {
+                  "tag": "RCS",
+                  "position": "0450",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "PIA",
+                  "position": "0460",
+                  "min": 0,
+                  "max": 5
+                }
+              ]
+            },
+            {
+              "group": 12,
+              "position": "0470",
+              "min": 0,
+              "max": 10,
+              "children": [
+                {
+                  "tag": "QTY",
+                  "position": "0480",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "DTM",
+                  "position": "0490",
+                  "min": 0,
+                  "max": 5
+                }
+              ]
+            },
+            {
+              "group": 13,
+              "position": "0500",
+              "min": 0,
+              "max": 5,
+              "children": [
+                {
+                  "tag": "PRI",
+                  "position": "0510",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "CUX",
+                  "position": "0520",
+                  "min": 0,
+                  "max": 1
+                },
+                {
+                  "tag": "RNG",
+                  "position": "0530",
+                  "min": 0,
+                  "max": 1
+                }
+              ]
+            },
+            {
+              "group": 14,
+              "position": "0540",
+              "min": 0,
+              "max": 999,
+              "children": [
+                {
+                  "tag": "CCI",
+                  "position": "0550",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "CAV",
+                  "position": "0560",
+                  "min": 0,
+                  "max": 10
+                },
+                {
+                  "tag": "MEA",
+                  "position": "0570",
+                  "min": 0,
+                  "max": 10
+                }
+              ]
+            },
+            {
+              "group": 15,
+              "position": "0580",
+              "min": 0,
+              "max": 999,
+              "children": [
+                {
+                  "tag": "ALI",
+                  "position": "0590",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "PCD",
+                  "position": "0600",
+                  "min": 0,
+                  "max": 5
+                }
+              ]
+            },
+            {
+              "group": 16,
+              "position": "0610",
+              "min": 0,
+              "max": 99,
+              "children": [
+                {
+                  "tag": "RFF",
+                  "position": "0620",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "DTM",
+                  "position": "0630",
+                  "min": 0,
+                  "max": 5
+                }
+              ]
+            },
+            {
+              "group": 17,
+              "position": "0640",
+              "min": 0,
+              "max": 99,
+              "children": [
+                {
+                  "tag": "NAD",
+                  "position": "0650",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "RFF",
+                  "position": "0660",
+                  "min": 0,
+                  "max": 99
+                },
+                {
+                  "tag": "QTY",
+                  "position": "0670",
+                  "min": 0,
+                  "max": 5
+                },
+                {
+                  "group": 18,
+                  "position": "0680",
+                  "min": 0,
+                  "max": 5,
+                  "children": [
+                    {
+                      "tag": "CTA",
+                      "position": "0690",
+                      "min": 1,
+                      "max": 1
+                    },
+                    {
+                      "tag": "COM",
+                      "position": "0700",
+                      "min": 0,
+                      "max": 10
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "group": 19,
+              "position": "0710",
+              "min": 0,
+              "max": 10,
+              "children": [
+                {
+                  "tag": "DGS",
+                  "position": "0720",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "QTY",
+                  "position": "0730",
+                  "min": 0,
+                  "max": 1
+                },
+                {
+                  "tag": "FTX",
+                  "position": "0740",
+                  "min": 0,
+                  "max": 5
+                }
+              ]
+            },
+            {
+              "group": 20,
+              "position": "0750",
+              "min": 0,
+              "max": 5,
+              "children": [
+                {
+                  "tag": "PAC",
+                  "position": "0760",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "MEA",
+                  "position": "0770",
+                  "min": 0,
+                  "max": 10
+                },
+                {
+                  "tag": "QTY",
+                  "position": "0780",
+                  "min": 0,
+                  "max": 5
+                },
+                {
+                  "tag": "HAN",
+                  "position": "0790",
+                  "min": 0,
+                  "max": 5
+                },
+                {
+                  "tag": "PCI",
+                  "position": "0800",
+                  "min": 0,
+                  "max": 5
+                }
+              ]
+            },
+            {
+              "group": 21,
+              "position": "0810",
+              "min": 0,
+              "max": 999,
+              "children": [
+                {
+                  "tag": "HYN",
+                  "position": "0820",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "PIA",
+                  "position": "0830",
+                  "min": 0,
+                  "max": 10
+                },
+                {
+                  "tag": "QTY",
+                  "position": "0840",
+                  "min": 0,
+                  "max": 5
+                },
+                {
+                  "tag": "FTX",
+                  "position": "0850",
+                  "min": 0,
+                  "max": 99
+                },
+                {
+                  "group": 22,
+                  "position": "0860",
+                  "min": 0,
+                  "max": 999,
+                  "children": [
+                    {
+                      "tag": "RFF",
+                      "position": "0870",
+                      "min": 1,
+                      "max": 1
+                    },
+                    {
+                      "tag": "DTM",
+                      "position": "0880",
+                      "min": 0,
+                      "max": 5
+                    }
+                  ]
+                },
+                {
+                  "group": 23,
+                  "position": "0890",
+                  "min": 0,
+                  "max": 99,
+                  "children": [
+                    {
+                      "tag": "CCI",
+                      "position": "0900",
+                      "min": 1,
+                      "max": 1
+                    },
+                    {
+                      "tag": "CAV",
+                      "position": "0910",
+                      "min": 0,
+                      "max": 10
+                    },
+                    {
+                      "tag": "MEA",
+                      "position": "0920",
+                      "min": 0,
+                      "max": 10
+                    }
+                  ]
+                },
+                {
+                  "group": 24,
+                  "position": "0930",
+                  "min": 0,
+                  "max": 99,
+                  "children": [
+                    {
+                      "tag": "NAD",
+                      "position": "0940",
+                      "min": 1,
+                      "max": 1
+                    },
+                    {
+                      "tag": "PIA",
+                      "position": "0950",
+                      "min": 0,
+                      "max": 10
+                    },
+                    {
+                      "tag": "QTY",
+                      "position": "0960",
+                      "min": 0,
+                      "max": 5
+                    },
+                    {
+                      "group": 25,
+                      "position": "0970",
+                      "min": 0,
+                      "max": 99,
+                      "children": [
+                        {
+                          "tag": "CCI",
+                          "position": "0980",
+                          "min": 1,
+                          "max": 1
+                        },
+                        {
+                          "tag": "CAV",
+                          "position": "0990",
+                          "min": 0,
+                          "max": 99
+                        },
+                        {
+                          "tag": "MEA",
+                          "position": "1000",
+                          "min": 0,
+                          "max": 10
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "UNT",
+          "position": "1010",
+          "min": 1,
+          "max": 1
+        }
+      ],
+      "segments": {
+        "ALI": [
+          {
+            "id": "3239",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "9213",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4183",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4183",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4183",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4183",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4183",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "BGM": [
+          {
+            "id": "C002",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C106",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "1225",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4343",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "CAV": [
+          {
+            "id": "C889",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "CCI": [
+          {
+            "id": "7059",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C502",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C240",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "4051",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "COM": [
+          {
+            "id": "C076",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "CTA": [
+          {
+            "id": "3139",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C056",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "CUX": [
+          {
+            "id": "C504",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C504",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "5402",
+            "min": 0,
+            "max": 1,
+            "representation": "n..12"
+          },
+          {
+            "id": "6341",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "DGS": [
+          {
+            "id": "8273",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C205",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C234",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C223",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "8339",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "8364",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          },
+          {
+            "id": "8410",
+            "min": 0,
+            "max": 1,
+            "representation": "an..4"
+          },
+          {
+            "id": "8126",
+            "min": 0,
+            "max": 1,
+            "representation": "an..10"
+          },
+          {
+            "id": "C235",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C236",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "8255",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "8325",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "8211",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "DOC": [
+          {
+            "id": "C002",
+            "min": 1,
+            "max": 1
+          },
+          {
+            "id": "C503",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "3153",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1220",
+            "min": 0,
+            "max": 1,
+            "representation": "n..2"
+          },
+          {
+            "id": "1218",
+            "min": 0,
+            "max": 1,
+            "representation": "n..2"
+          }
+        ],
+        "DTM": [
+          {
+            "id": "C507",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "FTX": [
+          {
+            "id": "4451",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4453",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C107",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C108",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "3453",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "HAN": [
+          {
+            "id": "C524",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C218",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "HYN": [
+          {
+            "id": "7173",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7171",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1229",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C212",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "IMD": [
+          {
+            "id": "7077",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7081",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C273",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "7383",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "LIN": [
+          {
+            "id": "1082",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          },
+          {
+            "id": "1229",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C212",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C829",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "1222",
+            "min": 0,
+            "max": 1,
+            "representation": "n..2"
+          },
+          {
+            "id": "7083",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "MEA": [
+          {
+            "id": "6311",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C502",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C174",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "7383",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "NAD": [
+          {
+            "id": "3035",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C082",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C058",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C080",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C059",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "3164",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3229",
+            "min": 0,
+            "max": 1,
+            "representation": "an..9"
+          },
+          {
+            "id": "3251",
+            "min": 0,
+            "max": 1,
+            "representation": "an..9"
+          },
+          {
+            "id": "3207",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "PAC": [
+          {
+            "id": "7224",
+            "min": 0,
+            "max": 1,
+            "representation": "n..8"
+          },
+          {
+            "id": "C531",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C202",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C402",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C532",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "PCD": [
+          {
+            "id": "C501",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "PCI": [
+          {
+            "id": "4233",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C210",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "8275",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C827",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "PGI": [
+          {
+            "id": "5379",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C288",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "PIA": [
+          {
+            "id": "4347",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C212",
+            "min": 1,
+            "max": 1
+          },
+          {
+            "id": "C212",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C212",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C212",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C212",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "PRI": [
+          {
+            "id": "C509",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "5213",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "QTY": [
+          {
+            "id": "C186",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "RCS": [
+          {
+            "id": "7293",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C550",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "1229",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "RFF": [
+          {
+            "id": "C506",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "RNG": [
+          {
+            "id": "6167",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C280",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "TRU": [
+          {
+            "id": "7402",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1056",
+            "min": 0,
+            "max": 1,
+            "representation": "an..9"
+          },
+          {
+            "id": "1058",
+            "min": 0,
+            "max": 1,
+            "representation": "an..9"
+          },
+          {
+            "id": "7175",
+            "min": 0,
+            "max": 1,
+            "representation": "an..7"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ]
+      },
+      "composites": {
+        "C002": [
+          {
+            "id": "1001",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1000",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C056": [
+          {
+            "id": "3413",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3412",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C058": [
+          {
+            "id": "3124",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C059": [
+          {
+            "id": "3042",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3042",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3042",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3042",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C076": [
+          {
+            "id": "3148",
+            "min": 1,
+            "max": 1,
+            "representation": "an..512"
+          },
+          {
+            "id": "3155",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C080": [
+          {
+            "id": "3036",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3045",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C082": [
+          {
+            "id": "3039",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C106": [
+          {
+            "id": "1004",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1056",
+            "min": 0,
+            "max": 1,
+            "representation": "an..9"
+          },
+          {
+            "id": "1060",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          }
+        ],
+        "C107": [
+          {
+            "id": "4441",
+            "min": 1,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C108": [
+          {
+            "id": "4440",
+            "min": 1,
+            "max": 1,
+            "representation": "an..70"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          }
+        ],
+        "C174": [
+          {
+            "id": "6411",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6314",
+            "min": 0,
+            "max": 1,
+            "representation": "an..18"
+          },
+          {
+            "id": "6162",
+            "min": 0,
+            "max": 1,
+            "representation": "n..18"
+          },
+          {
+            "id": "6152",
+            "min": 0,
+            "max": 1,
+            "representation": "n..18"
+          },
+          {
+            "id": "6432",
+            "min": 0,
+            "max": 1,
+            "representation": "n..2"
+          }
+        ],
+        "C186": [
+          {
+            "id": "6063",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6060",
+            "min": 1,
+            "max": 1,
+            "representation": "n..15"
+          },
+          {
+            "id": "6411",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C202": [
+          {
+            "id": "7065",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7064",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C205": [
+          {
+            "id": "8351",
+            "min": 1,
+            "max": 1,
+            "representation": "an..7"
+          },
+          {
+            "id": "8078",
+            "min": 0,
+            "max": 1,
+            "representation": "an..7"
+          },
+          {
+            "id": "8092",
+            "min": 0,
+            "max": 1,
+            "representation": "an..10"
+          }
+        ],
+        "C210": [
+          {
+            "id": "7102",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7102",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7102",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7102",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7102",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7102",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7102",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7102",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7102",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7102",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C212": [
+          {
+            "id": "7140",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7143",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C218": [
+          {
+            "id": "7419",
+            "min": 0,
+            "max": 1,
+            "representation": "an..4"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7418",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C223": [
+          {
+            "id": "7106",
+            "min": 0,
+            "max": 1,
+            "representation": "n3"
+          },
+          {
+            "id": "6411",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C234": [
+          {
+            "id": "7124",
+            "min": 0,
+            "max": 1,
+            "representation": "n4"
+          },
+          {
+            "id": "7088",
+            "min": 0,
+            "max": 1,
+            "representation": "an..8"
+          }
+        ],
+        "C235": [
+          {
+            "id": "8158",
+            "min": 0,
+            "max": 1,
+            "representation": "an..4"
+          },
+          {
+            "id": "8186",
+            "min": 0,
+            "max": 1,
+            "representation": "an4"
+          }
+        ],
+        "C236": [
+          {
+            "id": "8246",
+            "min": 0,
+            "max": 1,
+            "representation": "an..4"
+          },
+          {
+            "id": "8246",
+            "min": 0,
+            "max": 1,
+            "representation": "an..4"
+          },
+          {
+            "id": "8246",
+            "min": 0,
+            "max": 1,
+            "representation": "an..4"
+          }
+        ],
+        "C240": [
+          {
+            "id": "7037",
+            "min": 1,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C273": [
+          {
+            "id": "7009",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7008",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7008",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3453",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C280": [
+          {
+            "id": "6411",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6162",
+            "min": 0,
+            "max": 1,
+            "representation": "n..18"
+          },
+          {
+            "id": "6152",
+            "min": 0,
+            "max": 1,
+            "representation": "n..18"
+          }
+        ],
+        "C288": [
+          {
+            "id": "5389",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "5388",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C402": [
+          {
+            "id": "7077",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7064",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7143",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7064",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7143",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C501": [
+          {
+            "id": "5245",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "5482",
+            "min": 0,
+            "max": 1,
+            "representation": "n..10"
+          },
+          {
+            "id": "5249",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C502": [
+          {
+            "id": "6313",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6321",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6155",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "6154",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          }
+        ],
+        "C503": [
+          {
+            "id": "1004",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1373",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1366",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3453",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C504": [
+          {
+            "id": "6347",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6345",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6343",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6348",
+            "min": 0,
+            "max": 1,
+            "representation": "n..4"
+          }
+        ],
+        "C506": [
+          {
+            "id": "1153",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1154",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1156",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          },
+          {
+            "id": "4000",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C507": [
+          {
+            "id": "2005",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "2380",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "2379",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C509": [
+          {
+            "id": "5125",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "5118",
+            "min": 0,
+            "max": 1,
+            "representation": "n..15"
+          },
+          {
+            "id": "5375",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "5387",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "5284",
+            "min": 0,
+            "max": 1,
+            "representation": "n..9"
+          },
+          {
+            "id": "6411",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C524": [
+          {
+            "id": "4079",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4078",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          }
+        ],
+        "C531": [
+          {
+            "id": "7075",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7233",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7073",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C532": [
+          {
+            "id": "8395",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "8393",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C550": [
+          {
+            "id": "7295",
+            "min": 1,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7294",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C827": [
+          {
+            "id": "7511",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C829": [
+          {
+            "id": "5495",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1082",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          }
+        ],
+        "C889": [
+          {
+            "id": "7111",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7110",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7110",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ]
+      }
+    },
+    {
+      "key": "UTILTS:D:02B:UN",
+      "archiveSha256": "5eee0d255d03ee972be0adbcdc47c4ab5dd1e3160b90a48d5078972198ee8393",
+      "sources": [
+        {
+          "archiveMember": "EDMD.ZIP!UTILTS_D.02B",
+          "sha256": "12c918fe7171ce8c52102dc194c5f32493c40f9c16f7bc3bb2b641de24a0abc0"
+        },
+        {
+          "archiveMember": "EDSD.ZIP!EDSD.02B",
+          "sha256": "cf41d0d9371cfaaf1ba74d990bf727258a027122e34c64a4af688662e412b3b7"
+        },
+        {
+          "archiveMember": "EDCD.ZIP!EDCD.02B",
+          "sha256": "03e742e8a7b9164aa30069e7c9428f8dda60d307435087a2d4d6885ebaaa2dde"
+        }
+      ],
+      "structure": [
+        {
+          "tag": "UNH",
+          "position": "0010",
+          "min": 1,
+          "max": 1
+        },
+        {
+          "tag": "BGM",
+          "position": "0020",
+          "min": 1,
+          "max": 1
+        },
+        {
+          "tag": "DTM",
+          "position": "0030",
+          "min": 1,
+          "max": 9
+        },
+        {
+          "tag": "MKS",
+          "position": "0040",
+          "min": 0,
+          "max": 9
+        },
+        {
+          "tag": "PRC",
+          "position": "0050",
+          "min": 0,
+          "max": 9
+        },
+        {
+          "group": 1,
+          "position": "0060",
+          "min": 0,
+          "max": 9,
+          "children": [
+            {
+              "tag": "RFF",
+              "position": "0070",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "DTM",
+              "position": "0080",
+              "min": 0,
+              "max": 9
+            }
+          ]
+        },
+        {
+          "group": 2,
+          "position": "0090",
+          "min": 0,
+          "max": 99,
+          "children": [
+            {
+              "tag": "NAD",
+              "position": "0100",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "RFF",
+              "position": "0110",
+              "min": 0,
+              "max": 1
+            },
+            {
+              "group": 3,
+              "position": "0120",
+              "min": 0,
+              "max": 9,
+              "children": [
+                {
+                  "tag": "CTA",
+                  "position": "0130",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "COM",
+                  "position": "0140",
+                  "min": 0,
+                  "max": 9
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": 4,
+          "position": "0150",
+          "min": 0,
+          "max": 99,
+          "children": [
+            {
+              "tag": "CUX",
+              "position": "0160",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "DTM",
+              "position": "0170",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "STS",
+              "position": "0180",
+              "min": 0,
+              "max": 9
+            }
+          ]
+        },
+        {
+          "group": 5,
+          "position": "0190",
+          "min": 0,
+          "max": 99999,
+          "children": [
+            {
+              "tag": "IDE",
+              "position": "0200",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "LOC",
+              "position": "0210",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "NAD",
+              "position": "0220",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "ALI",
+              "position": "0230",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "LIN",
+              "position": "0240",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "PIA",
+              "position": "0250",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "IMD",
+              "position": "0260",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "DTM",
+              "position": "0270",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "PRC",
+              "position": "0280",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "STS",
+              "position": "0290",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "AGR",
+              "position": "0300",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "MEA",
+              "position": "0310",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "FTX",
+              "position": "0320",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "group": 6,
+              "position": "0330",
+              "min": 0,
+              "max": 99,
+              "children": [
+                {
+                  "tag": "RFF",
+                  "position": "0340",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "DTM",
+                  "position": "0350",
+                  "min": 0,
+                  "max": 9
+                }
+              ]
+            },
+            {
+              "group": 7,
+              "position": "0360",
+              "min": 0,
+              "max": 99,
+              "children": [
+                {
+                  "tag": "CCI",
+                  "position": "0370",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "CAV",
+                  "position": "0380",
+                  "min": 0,
+                  "max": 99
+                }
+              ]
+            },
+            {
+              "group": 8,
+              "position": "0390",
+              "min": 0,
+              "max": 99999,
+              "children": [
+                {
+                  "tag": "SEQ",
+                  "position": "0400",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "DTM",
+                  "position": "0410",
+                  "min": 0,
+                  "max": 9
+                },
+                {
+                  "tag": "RFF",
+                  "position": "0420",
+                  "min": 0,
+                  "max": 9
+                },
+                {
+                  "tag": "MOA",
+                  "position": "0430",
+                  "min": 0,
+                  "max": 9
+                },
+                {
+                  "tag": "PCD",
+                  "position": "0440",
+                  "min": 0,
+                  "max": 9
+                },
+                {
+                  "group": 9,
+                  "position": "0450",
+                  "min": 0,
+                  "max": 99,
+                  "children": [
+                    {
+                      "tag": "CCI",
+                      "position": "0460",
+                      "min": 1,
+                      "max": 1
+                    },
+                    {
+                      "tag": "CAV",
+                      "position": "0470",
+                      "min": 0,
+                      "max": 99
+                    }
+                  ]
+                },
+                {
+                  "group": 10,
+                  "position": "0480",
+                  "min": 0,
+                  "max": 9,
+                  "children": [
+                    {
+                      "tag": "PRI",
+                      "position": "0490",
+                      "min": 1,
+                      "max": 1
+                    },
+                    {
+                      "tag": "CUX",
+                      "position": "0500",
+                      "min": 0,
+                      "max": 9
+                    }
+                  ]
+                },
+                {
+                  "group": 11,
+                  "position": "0510",
+                  "min": 0,
+                  "max": 99,
+                  "children": [
+                    {
+                      "tag": "QTY",
+                      "position": "0520",
+                      "min": 1,
+                      "max": 1
+                    },
+                    {
+                      "tag": "DTM",
+                      "position": "0530",
+                      "min": 0,
+                      "max": 9
+                    },
+                    {
+                      "tag": "STS",
+                      "position": "0540",
+                      "min": 0,
+                      "max": 9
+                    },
+                    {
+                      "group": 12,
+                      "position": "0550",
+                      "min": 0,
+                      "max": 99,
+                      "children": [
+                        {
+                          "tag": "CCI",
+                          "position": "0560",
+                          "min": 1,
+                          "max": 1
+                        },
+                        {
+                          "tag": "CAV",
+                          "position": "0570",
+                          "min": 0,
+                          "max": 99
+                        }
+                      ]
+                    },
+                    {
+                      "group": 13,
+                      "position": "0580",
+                      "min": 0,
+                      "max": 9,
+                      "children": [
+                        {
+                          "tag": "PRI",
+                          "position": "0590",
+                          "min": 1,
+                          "max": 1
+                        },
+                        {
+                          "tag": "CUX",
+                          "position": "0600",
+                          "min": 0,
+                          "max": 9
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "CNT",
+          "position": "0610",
+          "min": 0,
+          "max": 9
+        },
+        {
+          "tag": "UNT",
+          "position": "0620",
+          "min": 1,
+          "max": 1
+        }
+      ],
+      "segments": {
+        "AGR": [
+          {
+            "id": "C543",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "9419",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "ALI": [
+          {
+            "id": "3239",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "9213",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4183",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4183",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4183",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4183",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4183",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "BGM": [
+          {
+            "id": "C002",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C106",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "1225",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4343",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "CAV": [
+          {
+            "id": "C889",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "CCI": [
+          {
+            "id": "7059",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C502",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C240",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "4051",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "CNT": [
+          {
+            "id": "C270",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "COM": [
+          {
+            "id": "C076",
+            "min": 1,
+            "max": 3
+          }
+        ],
+        "CTA": [
+          {
+            "id": "3139",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C056",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "CUX": [
+          {
+            "id": "C504",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C504",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "5402",
+            "min": 0,
+            "max": 1,
+            "representation": "n..12"
+          },
+          {
+            "id": "6341",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "DTM": [
+          {
+            "id": "C507",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "FTX": [
+          {
+            "id": "4451",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4453",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C107",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C108",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "3453",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4447",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "IDE": [
+          {
+            "id": "7495",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C206",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C082",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "4405",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1222",
+            "min": 0,
+            "max": 1,
+            "representation": "n..2"
+          },
+          {
+            "id": "C778",
+            "min": 0,
+            "max": 99
+          },
+          {
+            "id": "C240",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "IMD": [
+          {
+            "id": "7077",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C272",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C273",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "7383",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "LIN": [
+          {
+            "id": "1082",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          },
+          {
+            "id": "1229",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C212",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C829",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "1222",
+            "min": 0,
+            "max": 1,
+            "representation": "n..2"
+          },
+          {
+            "id": "7083",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "LOC": [
+          {
+            "id": "3227",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C517",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C519",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C553",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "5479",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "MEA": [
+          {
+            "id": "6311",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C502",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C174",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "7383",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "MKS": [
+          {
+            "id": "7293",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C332",
+            "min": 1,
+            "max": 1
+          },
+          {
+            "id": "1229",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "MOA": [
+          {
+            "id": "C516",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "NAD": [
+          {
+            "id": "3035",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C082",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C058",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C080",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C059",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "3164",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "C819",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "3251",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3207",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "PCD": [
+          {
+            "id": "C501",
+            "min": 1,
+            "max": 1
+          },
+          {
+            "id": "4405",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "PIA": [
+          {
+            "id": "4347",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C212",
+            "min": 1,
+            "max": 1
+          },
+          {
+            "id": "C212",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C212",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C212",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C212",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "PRC": [
+          {
+            "id": "C242",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C830",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "PRI": [
+          {
+            "id": "C509",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "5213",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "QTY": [
+          {
+            "id": "C186",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "RFF": [
+          {
+            "id": "C506",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "SEQ": [
+          {
+            "id": "1229",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C286",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "STS": [
+          {
+            "id": "C601",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C555",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C556",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C556",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C556",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C556",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C556",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      },
+      "composites": {
+        "C002": [
+          {
+            "id": "1001",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1000",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C056": [
+          {
+            "id": "3413",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3412",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C058": [
+          {
+            "id": "3124",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C059": [
+          {
+            "id": "3042",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3042",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3042",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3042",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C076": [
+          {
+            "id": "3148",
+            "min": 1,
+            "max": 1,
+            "representation": "an..512"
+          },
+          {
+            "id": "3155",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C080": [
+          {
+            "id": "3036",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3045",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C082": [
+          {
+            "id": "3039",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C106": [
+          {
+            "id": "1004",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1056",
+            "min": 0,
+            "max": 1,
+            "representation": "an..9"
+          },
+          {
+            "id": "1060",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          }
+        ],
+        "C107": [
+          {
+            "id": "4441",
+            "min": 1,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C108": [
+          {
+            "id": "4440",
+            "min": 1,
+            "max": 1,
+            "representation": "an..512"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..512"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..512"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..512"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..512"
+          }
+        ],
+        "C174": [
+          {
+            "id": "6411",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6314",
+            "min": 0,
+            "max": 1,
+            "representation": "an..18"
+          },
+          {
+            "id": "6162",
+            "min": 0,
+            "max": 1,
+            "representation": "n..18"
+          },
+          {
+            "id": "6152",
+            "min": 0,
+            "max": 1,
+            "representation": "n..18"
+          },
+          {
+            "id": "6432",
+            "min": 0,
+            "max": 1,
+            "representation": "n..2"
+          }
+        ],
+        "C186": [
+          {
+            "id": "6063",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6060",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "6411",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C206": [
+          {
+            "id": "7402",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7405",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4405",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C212": [
+          {
+            "id": "7140",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7143",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C240": [
+          {
+            "id": "7037",
+            "min": 1,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C242": [
+          {
+            "id": "7187",
+            "min": 1,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7186",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7186",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C270": [
+          {
+            "id": "6069",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6066",
+            "min": 1,
+            "max": 1,
+            "representation": "n..18"
+          },
+          {
+            "id": "6411",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C272": [
+          {
+            "id": "7081",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C273": [
+          {
+            "id": "7009",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7008",
+            "min": 0,
+            "max": 1,
+            "representation": "an..256"
+          },
+          {
+            "id": "7008",
+            "min": 0,
+            "max": 1,
+            "representation": "an..256"
+          },
+          {
+            "id": "3453",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C286": [
+          {
+            "id": "1050",
+            "min": 1,
+            "max": 1,
+            "representation": "an..10"
+          },
+          {
+            "id": "1159",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C332": [
+          {
+            "id": "3496",
+            "min": 1,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C501": [
+          {
+            "id": "5245",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "5482",
+            "min": 0,
+            "max": 1,
+            "representation": "n..10"
+          },
+          {
+            "id": "5249",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C502": [
+          {
+            "id": "6313",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6321",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6155",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "6154",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          }
+        ],
+        "C504": [
+          {
+            "id": "6347",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6345",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6343",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6348",
+            "min": 0,
+            "max": 1,
+            "representation": "n..4"
+          }
+        ],
+        "C506": [
+          {
+            "id": "1153",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1154",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          },
+          {
+            "id": "1156",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          },
+          {
+            "id": "4000",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1060",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          }
+        ],
+        "C507": [
+          {
+            "id": "2005",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "2380",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "2379",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C509": [
+          {
+            "id": "5125",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "5118",
+            "min": 0,
+            "max": 1,
+            "representation": "n..15"
+          },
+          {
+            "id": "5375",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "5387",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "5284",
+            "min": 0,
+            "max": 1,
+            "representation": "n..9"
+          },
+          {
+            "id": "6411",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C516": [
+          {
+            "id": "5025",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "5004",
+            "min": 0,
+            "max": 1,
+            "representation": "n..35"
+          },
+          {
+            "id": "6345",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6343",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4405",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C517": [
+          {
+            "id": "3225",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3224",
+            "min": 0,
+            "max": 1,
+            "representation": "an..256"
+          }
+        ],
+        "C519": [
+          {
+            "id": "3223",
+            "min": 0,
+            "max": 1,
+            "representation": "an..25"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3222",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          }
+        ],
+        "C543": [
+          {
+            "id": "7431",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7433",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7434",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          }
+        ],
+        "C553": [
+          {
+            "id": "3233",
+            "min": 0,
+            "max": 1,
+            "representation": "an..25"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3232",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          }
+        ],
+        "C555": [
+          {
+            "id": "4405",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4404",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C556": [
+          {
+            "id": "9013",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "9012",
+            "min": 0,
+            "max": 1,
+            "representation": "an..256"
+          }
+        ],
+        "C601": [
+          {
+            "id": "9015",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C778": [
+          {
+            "id": "7164",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1050",
+            "min": 0,
+            "max": 1,
+            "representation": "an..10"
+          }
+        ],
+        "C819": [
+          {
+            "id": "3229",
+            "min": 0,
+            "max": 1,
+            "representation": "an..9"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3228",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          }
+        ],
+        "C829": [
+          {
+            "id": "5495",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1082",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          }
+        ],
+        "C830": [
+          {
+            "id": "7191",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7190",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          }
+        ],
+        "C889": [
+          {
+            "id": "7111",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "7110",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "7110",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ]
+      }
+    },
+    {
+      "key": "APERAK:D:96A:UN",
+      "archiveSha256": "1f94c7663a48bbc99d48e93bab16ed2ee127fda73682e6f4c80363256cbcdcd2",
+      "sources": [
+        {
+          "archiveMember": "TRMD.ZIP!APERAK_D.96A",
+          "sha256": "6d3b4705dcb8b10833278f1aa662717d17c2cca6e4450f6be7bc29abb8741561"
+        },
+        {
+          "archiveMember": "TRSD.ZIP!TRSD.96A",
+          "sha256": "5c00de1c06bd988e40333e606274e3e0455a2d9ac7410ec38d8e17e097c5383b"
+        },
+        {
+          "archiveMember": "TRCD.ZIP!TRCD.96A",
+          "sha256": "0770a0222be494be838d7390c02f1844c48990c56a2f06039528b2c763b40487"
+        }
+      ],
+      "structure": [
+        {
+          "tag": "UNH",
+          "position": "0010",
+          "min": 1,
+          "max": 1
+        },
+        {
+          "tag": "BGM",
+          "position": "0020",
+          "min": 1,
+          "max": 1
+        },
+        {
+          "tag": "DTM",
+          "position": "0030",
+          "min": 0,
+          "max": 9
+        },
+        {
+          "tag": "FTX",
+          "position": "0040",
+          "min": 0,
+          "max": 9
+        },
+        {
+          "tag": "CNT",
+          "position": "0050",
+          "min": 0,
+          "max": 9
+        },
+        {
+          "group": 1,
+          "position": "0060",
+          "min": 0,
+          "max": 9,
+          "children": [
+            {
+              "tag": "RFF",
+              "position": "0070",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "DTM",
+              "position": "0080",
+              "min": 0,
+              "max": 9
+            }
+          ]
+        },
+        {
+          "group": 2,
+          "position": "0090",
+          "min": 0,
+          "max": 9,
+          "children": [
+            {
+              "tag": "NAD",
+              "position": "0100",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "CTA",
+              "position": "0110",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "COM",
+              "position": "0120",
+              "min": 0,
+              "max": 9
+            }
+          ]
+        },
+        {
+          "group": 3,
+          "position": "0130",
+          "min": 0,
+          "max": 999,
+          "children": [
+            {
+              "tag": "ERC",
+              "position": "0140",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "FTX",
+              "position": "0150",
+              "min": 0,
+              "max": 1
+            },
+            {
+              "group": 4,
+              "position": "0160",
+              "min": 0,
+              "max": 1,
+              "children": [
+                {
+                  "tag": "RFF",
+                  "position": "0170",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "FTX",
+                  "position": "0180",
+                  "min": 0,
+                  "max": 9
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "UNT",
+          "position": "0190",
+          "min": 1,
+          "max": 1
+        }
+      ],
+      "segments": {
+        "BGM": [
+          {
+            "id": "C002",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "1004",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1225",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4343",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "CNT": [
+          {
+            "id": "C270",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "COM": [
+          {
+            "id": "C076",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "CTA": [
+          {
+            "id": "3139",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C056",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "DTM": [
+          {
+            "id": "C507",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "ERC": [
+          {
+            "id": "C901",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "FTX": [
+          {
+            "id": "4451",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4453",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C107",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C108",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "3453",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "NAD": [
+          {
+            "id": "3035",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C082",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C058",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C080",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C059",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "3164",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3229",
+            "min": 0,
+            "max": 1,
+            "representation": "an..9"
+          },
+          {
+            "id": "3251",
+            "min": 0,
+            "max": 1,
+            "representation": "an..9"
+          },
+          {
+            "id": "3207",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "RFF": [
+          {
+            "id": "C506",
+            "min": 1,
+            "max": 1
+          }
+        ]
+      },
+      "composites": {
+        "C002": [
+          {
+            "id": "1001",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1000",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C056": [
+          {
+            "id": "3413",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3412",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C058": [
+          {
+            "id": "3124",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C059": [
+          {
+            "id": "3042",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3042",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3042",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3042",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C076": [
+          {
+            "id": "3148",
+            "min": 1,
+            "max": 1,
+            "representation": "an..512"
+          },
+          {
+            "id": "3155",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C080": [
+          {
+            "id": "3036",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3045",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C082": [
+          {
+            "id": "3039",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C107": [
+          {
+            "id": "4441",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C108": [
+          {
+            "id": "4440",
+            "min": 1,
+            "max": 1,
+            "representation": "an..70"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          }
+        ],
+        "C270": [
+          {
+            "id": "6069",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6066",
+            "min": 1,
+            "max": 1,
+            "representation": "n..18"
+          },
+          {
+            "id": "6411",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C506": [
+          {
+            "id": "1153",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1154",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1156",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          },
+          {
+            "id": "4000",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C507": [
+          {
+            "id": "2005",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "2380",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "2379",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C901": [
+          {
+            "id": "9321",
+            "min": 1,
+            "max": 1,
+            "representation": "an..8"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ]
+      }
+    },
+    {
+      "key": "APERAK:D:04A:UN",
+      "archiveSha256": "7a907cf82f9de32a913e8c8500398fdd6d965536c17389adcb5a40d4b7bcba28",
+      "sources": [
+        {
+          "archiveMember": "EDMD.ZIP!APERAK_D.04A",
+          "sha256": "9b4e5dc0d908045b26034ae6a5783c2e5d7984ff2c99d03ec3ed49d2c9a4f415"
+        },
+        {
+          "archiveMember": "EDSD.ZIP!EDSD.04A",
+          "sha256": "8b253caeec00f10470f673aa0bc6bab64dad1ccd0c18d2e537b71d9baac4a5b2"
+        },
+        {
+          "archiveMember": "EDCD.ZIP!EDCD.04A",
+          "sha256": "dbc68e0d0f9e36874b4b90782e6a232b83046aaaaf9846462fe95a85d93add12"
+        }
+      ],
+      "structure": [
+        {
+          "tag": "UNH",
+          "position": "0010",
+          "min": 1,
+          "max": 1
+        },
+        {
+          "tag": "BGM",
+          "position": "0020",
+          "min": 1,
+          "max": 1
+        },
+        {
+          "tag": "DTM",
+          "position": "0030",
+          "min": 0,
+          "max": 9
+        },
+        {
+          "tag": "FTX",
+          "position": "0040",
+          "min": 0,
+          "max": 9
+        },
+        {
+          "tag": "CNT",
+          "position": "0050",
+          "min": 0,
+          "max": 9
+        },
+        {
+          "group": 1,
+          "position": "0060",
+          "min": 0,
+          "max": 99,
+          "children": [
+            {
+              "tag": "DOC",
+              "position": "0070",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "DTM",
+              "position": "0080",
+              "min": 0,
+              "max": 99
+            }
+          ]
+        },
+        {
+          "group": 2,
+          "position": "0090",
+          "min": 0,
+          "max": 9,
+          "children": [
+            {
+              "tag": "RFF",
+              "position": "0100",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "DTM",
+              "position": "0110",
+              "min": 0,
+              "max": 9
+            }
+          ]
+        },
+        {
+          "group": 3,
+          "position": "0120",
+          "min": 0,
+          "max": 9,
+          "children": [
+            {
+              "tag": "NAD",
+              "position": "0130",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "CTA",
+              "position": "0140",
+              "min": 0,
+              "max": 9
+            },
+            {
+              "tag": "COM",
+              "position": "0150",
+              "min": 0,
+              "max": 9
+            }
+          ]
+        },
+        {
+          "group": 4,
+          "position": "0160",
+          "min": 0,
+          "max": 99999,
+          "children": [
+            {
+              "tag": "ERC",
+              "position": "0170",
+              "min": 1,
+              "max": 1
+            },
+            {
+              "tag": "FTX",
+              "position": "0180",
+              "min": 0,
+              "max": 1
+            },
+            {
+              "group": 5,
+              "position": "0190",
+              "min": 0,
+              "max": 9,
+              "children": [
+                {
+                  "tag": "RFF",
+                  "position": "0200",
+                  "min": 1,
+                  "max": 1
+                },
+                {
+                  "tag": "FTX",
+                  "position": "0210",
+                  "min": 0,
+                  "max": 9
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "UNT",
+          "position": "0220",
+          "min": 1,
+          "max": 1
+        }
+      ],
+      "segments": {
+        "BGM": [
+          {
+            "id": "C002",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C106",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "1225",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4343",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "CNT": [
+          {
+            "id": "C270",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "COM": [
+          {
+            "id": "C076",
+            "min": 1,
+            "max": 3
+          }
+        ],
+        "CTA": [
+          {
+            "id": "3139",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C056",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "DOC": [
+          {
+            "id": "C002",
+            "min": 1,
+            "max": 1
+          },
+          {
+            "id": "C503",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "3153",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1220",
+            "min": 0,
+            "max": 1,
+            "representation": "n..2"
+          },
+          {
+            "id": "1218",
+            "min": 0,
+            "max": 1,
+            "representation": "n..2"
+          }
+        ],
+        "DTM": [
+          {
+            "id": "C507",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "ERC": [
+          {
+            "id": "C901",
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "FTX": [
+          {
+            "id": "4451",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4453",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C107",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C108",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "3453",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "4447",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "NAD": [
+          {
+            "id": "3035",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "C082",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C058",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C080",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "C059",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "3164",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "C819",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "id": "3251",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3207",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "RFF": [
+          {
+            "id": "C506",
+            "min": 1,
+            "max": 1
+          }
+        ]
+      },
+      "composites": {
+        "C002": [
+          {
+            "id": "1001",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1000",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C056": [
+          {
+            "id": "3413",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3412",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C058": [
+          {
+            "id": "3124",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3124",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C059": [
+          {
+            "id": "3042",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3042",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3042",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3042",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          }
+        ],
+        "C076": [
+          {
+            "id": "3148",
+            "min": 1,
+            "max": 1,
+            "representation": "an..512"
+          },
+          {
+            "id": "3155",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C080": [
+          {
+            "id": "3036",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3036",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "3045",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C082": [
+          {
+            "id": "3039",
+            "min": 1,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C106": [
+          {
+            "id": "1004",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1056",
+            "min": 0,
+            "max": 1,
+            "representation": "an..9"
+          },
+          {
+            "id": "1060",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          }
+        ],
+        "C107": [
+          {
+            "id": "4441",
+            "min": 1,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C108": [
+          {
+            "id": "4440",
+            "min": 1,
+            "max": 1,
+            "representation": "an..512"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..512"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..512"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..512"
+          },
+          {
+            "id": "4440",
+            "min": 0,
+            "max": 1,
+            "representation": "an..512"
+          }
+        ],
+        "C270": [
+          {
+            "id": "6069",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "6066",
+            "min": 1,
+            "max": 1,
+            "representation": "n..18"
+          },
+          {
+            "id": "6411",
+            "min": 0,
+            "max": 1,
+            "representation": "an..8"
+          }
+        ],
+        "C503": [
+          {
+            "id": "1004",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1373",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1366",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          },
+          {
+            "id": "3453",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1056",
+            "min": 0,
+            "max": 1,
+            "representation": "an..9"
+          },
+          {
+            "id": "1060",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          }
+        ],
+        "C506": [
+          {
+            "id": "1153",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "1154",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          },
+          {
+            "id": "1156",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          },
+          {
+            "id": "4000",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "1060",
+            "min": 0,
+            "max": 1,
+            "representation": "an..6"
+          }
+        ],
+        "C507": [
+          {
+            "id": "2005",
+            "min": 1,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "2380",
+            "min": 0,
+            "max": 1,
+            "representation": "an..35"
+          },
+          {
+            "id": "2379",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ],
+        "C819": [
+          {
+            "id": "3229",
+            "min": 0,
+            "max": 1,
+            "representation": "an..9"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          },
+          {
+            "id": "3228",
+            "min": 0,
+            "max": 1,
+            "representation": "an..70"
+          }
+        ],
+        "C901": [
+          {
+            "id": "9321",
+            "min": 1,
+            "max": 1,
+            "representation": "an..8"
+          },
+          {
+            "id": "1131",
+            "min": 0,
+            "max": 1,
+            "representation": "an..17"
+          },
+          {
+            "id": "3055",
+            "min": 0,
+            "max": 1,
+            "representation": "an..3"
+          }
+        ]
+      }
+    }
+  ]
+}

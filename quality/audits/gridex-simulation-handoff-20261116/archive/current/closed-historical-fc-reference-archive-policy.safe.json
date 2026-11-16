@@ -1,0 +1,25 @@
+{
+  "state": "ROOT_FINITE_REFERENCE_ARCHIVE_POLICY_SOURCE_PREPARATION_NOT_UNLINK_SCOPE",
+  "atUtc": "2026-11-15T07:36:50.574567+00:00",
+  "reason": "ActualclosedK10 source+CP RAW/cache archival alone cannotrecover original805MBWS/220MBTMP. ReadonlyoneFc trial6d036 proved17,254,268originalbytes\u219227,318patchbytes and streameddecompression exactwholeOriginalSHA. Preserve complete backup data whilechangingonly closedhistorical storage representation.",
+  "supersedesOnly": "PriorRootcleanupselection blanketallFcphysical-protection ONLYforfutureEXACTlistedclosedhistoricalFc AFTERseparateRootactualscope/Source2/guards; no existing helper selection expanded and no original unlink bythispolicy.",
+  "nonnegotiable": [
+    "All ACTIVErun/fullrollback/latestunknown617ec Fc remain physicallystandalone andunchanged",
+    "Reference current617ec fullFc SHA77e2a3f7204521b859a341651d62e9331514fcdb312b60650a0e0034c3816520 +independentphysicalreplica onWS sameSHA areimmutabledependency-protected; neverdelete/rebasewhileanypatchdepends",
+    "SelectedFc mustbeproperclosed+independentlyreviewed andNOT currentoperational/transitivelyrequiredrawpath; exactreadsetproof/no broadselection",
+    "Originalbytes/fullcheckpointmeaning retained: boundedpatchencode+STREAMDECODE originalwholebytecount+SHA, durablepatch/reference/replica/custodyBEFOREanyunlink; independentactualpeerchecks",
+    "AlloriginalFcstayrawuntilthatfile fullyverified andspecificRootscope permits itsalias transition; anyfailureSTOPkeeporiginal",
+    "Private600/artifactdirs700/noexternaltransfer/credentialvaluesinlogs; codec/hash/version/argv/reference/patch/originalmetadata fixed",
+    "ExclusiveboundedSHArestoreadapter restoresoriginalrawlogicalpathwithoutoverwrite/symlink withmode/uidgid/mtime+newinode/custodyjournaling BEFOREanyfuturephysicalnativeproofreuse",
+    "Fullbackup/native805/TMP134/failure134/Main/Auth/tenant/3000/900/120 gates unchanged; no retention ofpartial/backsolved/faileddecode asfullbackup"
+  ],
+  "allowedPreparation": "Smallfinitecandidateinventory+currentdependencyreadset+exactzstdcodec/source/restoretests usingexistingclosedFcdata andNEWprivateoutputs. No additional originalunlink/archive authorizeduntilconcreteSource2+Rootscope.",
+  "suggestedFiniteFamilies": "NonoperationalclosedK10/K9/K8/K6/K5 ownmacro Fc files and theirclosedTMPsessionbaselineFc ONLY afteractualreadsetproof; do not touchMaincurrentAuth0snapshot/nativeLookup5/original0509/B/current617ec.",
+  "targetEvidence": "Concreteactualencodedbytes/allocatedsavings/properclosure/readset and restoretest; no estimatedfree credit beforeactualscope receipt",
+  "notAuthorized": [
+    "Anyunlistedbackup/source/PII export",
+    "Deletingorrewritingreference/rawprotected617ec",
+    "Operationalrawpath disappearance without restorationplan",
+    "Reusingoldsession orcapturedhistoricalclock"
+  ]
+}

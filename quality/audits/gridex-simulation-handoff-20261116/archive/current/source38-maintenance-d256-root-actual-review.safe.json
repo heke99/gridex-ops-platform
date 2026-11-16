@@ -1,0 +1,7 @@
+{
+  "decision": "APPROVE_ACTUAL_EXPIRED_ONLY_KEYS_AND_SOURCE38_RESUME",
+  "bundleSHA256": "d25642b28e65e40a752f38c525594d80823669bb88f282a9d82cfec4663e15a1",
+  "all23OriginalHashBytesVerified": true,
+  "fullMain522And3368DeepComparedToFoundationAfter": true,
+  "limits": "No new user Auth, template ENV, business flow or scenario credit"
+}

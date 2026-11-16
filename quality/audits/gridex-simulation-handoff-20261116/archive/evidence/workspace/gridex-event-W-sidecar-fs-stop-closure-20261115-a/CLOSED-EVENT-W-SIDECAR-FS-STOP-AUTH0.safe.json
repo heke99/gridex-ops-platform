@@ -1,0 +1,74 @@
+{
+  "state": "CLOSED_EVENT_W_SIDECAR_PRELISTENER_FS_STOP_ZERO_BUSINESS_AUTH0",
+  "createdAt": "2026-11-15T21:34:51.183179+00:00",
+  "boundFiles": [
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/MAIN-AUTH-ONLY-LOGOUT-RESIDUAL.safe.json",
+      "sha256": "3cbf3db16c1243a707e10ee5c62b3cd7decf63c226413d5fe3bfa56b67e55be0"
+    },
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/AFTER-OWN-API-LOGOUT-AUTH0.safe.json",
+      "sha256": "d0e8c6f4551abbd2e1320f9fe66525b6ff4dfdbe42bb6a1fa884144ed60c6ada"
+    },
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/own-auth-api-logout.safe.json",
+      "sha256": "8fc10196025b87a5b4ebfebc7e4fc6377cef5c11b0b74f2934bb7bd4aa5d5eaa"
+    },
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/auth-cleanup-current-cid-restored-stopped.safe.json",
+      "sha256": "62ae4d1a6334ec569febae0ddfaf03bb47cf219597fd537d42746fd011112a86"
+    },
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/OWN-BROWSER-PROCESS-CLOSURE.safe.json",
+      "sha256": "2c19dcb517c0b00a904665f948ff5fe64b4b5d122e2293d2f9929e2e95232545"
+    },
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/Main-sequences-after-logout.private.json",
+      "sha256": "67606f2b4a3eaa6a1a166450b8c68e18b076dc02ec0c2731468f8b383913886c"
+    },
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/CLEANUP-PREREQUISITES.safe.json",
+      "sha256": "3643de3ca3e9f6b5a83afa25b02740c1de1d805ad1c616b5a198093d63dc0d20"
+    },
+    {
+      "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/qa-own-api-cleanup-v4-current-cid-source-actual-scope.safe.json",
+      "sha256": "08804cc185e6bdcc6c73a255fb17a442745bc4264a648b2b66cfce9180b18526"
+    },
+    {
+      "path": "/tmp/gridex-event-runtime-20261115-w/launcher-terminal.safe.json",
+      "sha256": "5ca6e05caf0d7bcb9b2da6c20be42690c15859b6a7946965557b91379d934c4a"
+    },
+    {
+      "path": "/tmp/gridex-event-sidecar-launcher-20261115-w/launcher-terminal.safe.json",
+      "sha256": "f451a307202f075cf649a02893a079ccf1ee6a2fc45609691d40859dd7daff4b"
+    },
+    {
+      "path": "/tmp/gridex-event-runtime-20261115-w/producer-stop-sidecar-fs.safe.json",
+      "sha256": "d141da44334a345b744b0762aeb92889d3b4cd1013564564131b9cdbc70fe31b"
+    },
+    {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261115-w/summary.safe.json",
+      "sha256": "9dc1a7522d7081af828b13301533388be7d3d3cbc0c23ccd5cd624d687280858"
+    },
+    {
+      "path": "/tmp/gridex-ee-browser-hold-actual-event-publication-20261115-w/state.safe.json",
+      "sha256": "ea5ebbc098eae6e5c8b80407c477ff69821972cc571d4af78e7592efbd4661b4"
+    }
+  ],
+  "parentExited0": true,
+  "ownCloneRestAppGatewayCanaryNetworksClosed": true,
+  "authOriginalStoppedRestored": true,
+  "browserClosed": true,
+  "nativeSixZeros": true,
+  "all7Exact": true,
+  "postPrivateLogoutOnlyFourAuthScopes": true,
+  "sidecarAttemptedOnceStoppedBeforeCandidateReceiver": true,
+  "missingReceiverOutputParent": true,
+  "forwarderNotLaunched": true,
+  "businessCommands": 0,
+  "noRetry": true,
+  "noCasePass": true,
+  "firstCleanupGetFailedBeforePost": true,
+  "secondCleanupStaleIPStoppedBeforeGetOrPost": true,
+  "actualOwnLocalLogoutGet200Post204": true
+}

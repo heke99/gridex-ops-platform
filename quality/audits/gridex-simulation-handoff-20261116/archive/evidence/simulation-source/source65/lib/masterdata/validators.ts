@@ -1,0 +1,216 @@
+import { z } from "zod";
+
+const requiredTrimmedString = z
+  .string()
+  .trim()
+  .min(1, "Fältet är obligatoriskt");
+
+const nullableTrimmedString = z
+  .union([z.string(), z.null(), z.undefined()])
+  .optional()
+  .transform((value) => {
+    if (value === null || value === undefined) return null;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  });
+
+const priceAreaCodeSchema = z.enum(["SE1", "SE2", "SE3", "SE4"]);
+
+const siteTypeSchema = z.enum(["consumption", "production", "mixed"]);
+
+const siteStatusSchema = z.enum([
+  "draft",
+  "active",
+  "pending_move",
+  "inactive",
+  "closed",
+]);
+
+const meteringPointStatusSchema = z.enum([
+  "draft",
+  "active",
+  "pending_validation",
+  "inactive",
+  "closed",
+]);
+
+const measurementTypeSchema = z.enum(["consumption", "production", "mixed"]);
+
+const readingFrequencySchema = z.enum(["hourly", "daily", "monthly", "manual"]);
+
+export const gridOwnerInputSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: requiredTrimmedString,
+  owner_code: requiredTrimmedString,
+  ediel_id: nullableTrimmedString,
+  org_number: nullableTrimmedString,
+  environment: z.enum(["test", "production"]).default("production"),
+  lifecycle_status: z
+    .enum(["draft", "verified", "active", "deprecated", "blocked"])
+    .default("active"),
+  default_prodat_subaddress: nullableTrimmedString,
+  default_utilts_subaddress: nullableTrimmedString,
+  transport_channel: nullableTrimmedString,
+  communication_email: nullableTrimmedString,
+  contact_name: nullableTrimmedString,
+  email: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => {
+      if (!value) return null;
+      return value.toLowerCase();
+    })
+    .refine(
+      (value) => value === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+      {
+        message: "Ogiltig e-postadress",
+      },
+    ),
+  phone: nullableTrimmedString,
+  address_line_1: nullableTrimmedString,
+  address_line_2: nullableTrimmedString,
+  postal_code: nullableTrimmedString,
+  city: nullableTrimmedString,
+  country: z.string().trim().default("SE"),
+  notes: nullableTrimmedString,
+  is_active: z.boolean().default(true),
+});
+
+export type GridOwnerInput = z.infer<typeof gridOwnerInputSchema>;
+
+export const electricitySupplierInputSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: requiredTrimmedString,
+  org_number: nullableTrimmedString,
+  market_actor_code: nullableTrimmedString,
+  ediel_id: nullableTrimmedString,
+  contact_name: nullableTrimmedString,
+  email: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => {
+      if (!value) return null;
+      return value.toLowerCase();
+    })
+    .refine(
+      (value) => value === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+      {
+        message: "Ogiltig e-postadress",
+      },
+    ),
+  customer_service_email: nullableTrimmedString,
+  switching_email: nullableTrimmedString,
+  contract_email: nullableTrimmedString,
+  website: nullableTrimmedString,
+  phone: nullableTrimmedString,
+  notes: nullableTrimmedString,
+  is_active: z.boolean().default(true),
+  is_own_supplier: z.boolean().optional(),
+});
+
+export type ElectricitySupplierInput = z.infer<
+  typeof electricitySupplierInputSchema
+>;
+
+export const priceAreaLocalityInputSchema = z.object({
+  id: z.string().uuid().optional(),
+  price_area_code: priceAreaCodeSchema,
+  locality_name: requiredTrimmedString,
+  municipality: nullableTrimmedString,
+  postal_code: nullableTrimmedString,
+  is_active: z.boolean().default(true),
+});
+
+export type PriceAreaLocalityInput = z.infer<
+  typeof priceAreaLocalityInputSchema
+>;
+
+export const customerSiteInputSchema = z.object({
+  id: z.string().uuid().optional(),
+  company_id: z.string().uuid(),
+  customer_id: z.string().uuid(),
+  site_name: requiredTrimmedString,
+  facility_id: nullableTrimmedString,
+  site_type: siteTypeSchema,
+  status: siteStatusSchema.default("draft"),
+  grid_owner_id: z
+    .string()
+    .uuid()
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
+  price_area_code: priceAreaCodeSchema
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
+  move_in_date: nullableTrimmedString,
+  annual_consumption_kwh: z
+    .union([z.number(), z.string(), z.null(), z.undefined()])
+    .optional()
+    .transform((value) => {
+      if (value === null || value === undefined || value === "") return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : NaN;
+    })
+    .refine((value) => value === null || !Number.isNaN(value), {
+      message: "Årsförbrukning måste vara ett giltigt nummer",
+    }),
+  current_supplier_name: nullableTrimmedString,
+  current_supplier_org_number: nullableTrimmedString,
+  street: nullableTrimmedString,
+  care_of: nullableTrimmedString,
+  postal_code: nullableTrimmedString,
+  city: nullableTrimmedString,
+  country: z.string().trim().default("SE"),
+  moved_from_street: nullableTrimmedString,
+  moved_from_postal_code: nullableTrimmedString,
+  moved_from_city: nullableTrimmedString,
+  moved_from_supplier_name: nullableTrimmedString,
+  internal_notes: nullableTrimmedString,
+});
+
+export type CustomerSiteInput = z.infer<typeof customerSiteInputSchema>;
+
+export const meteringPointInputSchema = z.object({
+  id: z.string().uuid().optional(),
+  company_id: z.string().uuid(),
+  customer_id: z.string().uuid(),
+  site_id: z.string().uuid(),
+  meter_point_id: nullableTrimmedString,
+  site_facility_id: nullableTrimmedString,
+  ediel_reference: nullableTrimmedString,
+  status: meteringPointStatusSchema.default("draft"),
+  measurement_type: measurementTypeSchema,
+  reading_frequency: readingFrequencySchema,
+  grid_owner_id: z
+    .string()
+    .uuid()
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
+  price_area_code: priceAreaCodeSchema
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
+  start_date: nullableTrimmedString,
+  end_date: nullableTrimmedString,
+  is_settlement_relevant: z.boolean().default(true),
+});
+
+export type MeteringPointInput = z.infer<typeof meteringPointInputSchema>;
+
+export const customerInternalNoteInputSchema = z.object({
+  company_id: z.string().uuid(),
+  customer_id: z.string().uuid(),
+  body: requiredTrimmedString,
+});
+
+export type CustomerInternalNoteInput = z.infer<
+  typeof customerInternalNoteInputSchema
+>;
+
+export function parseCheckbox(value: FormDataEntryValue | null): boolean {
+  return value === "on" || value === "true" || value === "1";
+}

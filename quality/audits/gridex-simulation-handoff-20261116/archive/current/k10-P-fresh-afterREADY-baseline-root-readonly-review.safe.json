@@ -1,0 +1,8 @@
+{
+  "state": "ROOT_AFTER_GENUINE_P_READY_BASELINE_READONLY_REVIEW_PASS",
+  "atUtc": "2026-11-15T06:47:20.587487+00:00",
+  "sealSHA256": "5bbe4c133bb6588cb9ac472c0395d8161c35451e50e70f668609609b04c45620",
+  "orderingSHA256": "4dc87385813749894c86a25ab45846cdeaed56ac3a4dafd810641fe05523a98a",
+  "checks": "ActualFcSHA+size/beforeafterfullSHA equality; immutableverifiedsession/producertarget/bindings/ALL7filehashes exact; nativeall1own1sessionrefresh1; actualverifiedGetUser06:33:26.905 precedes recordedfreshsnapshot epoch+physicalfirstsnapshotmtime. Null-time draft UNADOPTED preserved, notused.",
+  "scope": "Newsessionbaselineonly; no private/runtime/businessPASS; originalprivate805/TMP134/failure134 andactualpair/sourceguards stillrequired. No previousK9/Ocontext/operatorreview reused."
+}

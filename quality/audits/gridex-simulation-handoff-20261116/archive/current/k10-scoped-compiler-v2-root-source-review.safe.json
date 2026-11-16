@@ -1,0 +1,9 @@
+{
+  "state": "ROOT_SOURCE_ACK_SCOPED_READONLY_COMPILER_V2",
+  "atUtc": "2026-11-15T05:54:25.978737+00:00",
+  "freezeSHA256": "7b275a3b8792a637cb0c4a47fd018aff51bbea77ca3c3ab3bb5665f1037ad6ab",
+  "phaseBudgetSHA256": "f7f1fa18e32086f1a56af12fba6500b7fd1ebc24624c5de4ba8aec2bd4e65b7a",
+  "review": "WholeCJS+Python preread, exact6roots/actual2193RO+deps/noAuthEnv/UIDGID/DAC/noEmit/1536heap2048cap/90s/2MiB/output/StateExitOOM/ownedfinally. IndependentV2wholeinverse replaces two750000000 literals backto805306368 andrecoversentireV1. All6V2filepins exact, currentmaterialization9e9515 command bound.",
+  "execution": "Soleproducer mayexecute exactscopedcompiler once after independentV2ACK/live750MWS+3.25GiBheadroom/quietMainnoadditionalrequests. No newUserAuth orfullproject/scenarioauthority.",
+  "privateGuards": "Original805306368/TMP134217728/failure134217728/3000/900/120 unchanged."
+}

@@ -1,0 +1,18 @@
+{
+  "task": "Read-only review of frozen simulation candidates, remaining-case evidence and local continuation while another UI task finishes",
+  "userRequestedHold": "Wait for Förenkla kundkort och workflow before overlapping implementation/resume; review and document in the meantime",
+  "activated": [
+    "code-review: bounded review of all preserved product candidates and required dependencies",
+    "verification-before-completion: verify canonical counts, source hashes and claims before reporting",
+    "dispatching-parallel-agents: three independent bounded reviews under existing user mandate and repository rules",
+    "supabase and supabase-postgres-best-practices: SQL/RPC source-only reviewer, no live database changes"
+  ],
+  "conditional": [
+    "full-e2e-verification only after runtime and same-staging connectivity qualification when scenarios resume",
+    "using-git-worktrees and finishing-a-development-branch only when delivery or implementation resumes"
+  ],
+  "notTriggered": "No new repository-wide product audit, implementation, refactor, performance benchmark, deployment, browser execution or external secret scan. Broad audit-only tool groups are not launched by this source/evidence continuation review.",
+  "writes": "Only own reports and explicitly preserved candidate dependency artifacts under /workspace/gridex-waiting-review-20261116",
+  "frozenPackageChanged": false,
+  "productOrDatabaseWrites": false
+}

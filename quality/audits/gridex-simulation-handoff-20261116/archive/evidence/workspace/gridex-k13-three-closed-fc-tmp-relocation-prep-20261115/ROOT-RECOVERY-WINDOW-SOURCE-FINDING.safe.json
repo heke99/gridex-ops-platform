@@ -1,0 +1,14 @@
+{
+  "state": "INDEPENDENT_SOURCE_FINDING_RECOVERY_ADAPTER_REQUIRES_FUTURE_FINAL_RECEIPT",
+  "atUtc": "2026-11-15T20:09:26.987731+00:00",
+  "refs": {
+    "/workspace/gridex-k13-three-closed-fc-tmp-relocation-prep-20261115/PREPARED.SOURCE-ONLY.safe.json": "5db45cdef43ccb328709358c609bd0809baca985f36f168229779816bb5e5195",
+    "/workspace/gridex-k13-three-closed-fc-tmp-relocation-prep-20261115/relocate-exact-three.py": "2b0a4504d19594a978ef2be29b89256d62532f7517cf662de11379dde4dd381b",
+    "/workspace/gridex-k13-three-closed-fc-tmp-relocation-prep-20261115/restore-exact-three.template.py": "bbd9d15ae74bfce7a6e3a9ecb6a587f0ebf25f6b5187b77bfdb0c38eed86f03d",
+    "/workspace/gridex-k13-three-closed-fc-tmp-relocation-prep-20261115/CANDIDATES.safe.json": "1fb39713efc01f121b84c2664e2645f1e939980939686a8eeb7136268db415db"
+  },
+  "problem": "Originals are unlinked after VERIFIED-BEFORE-UNLINK but before ACTUAL. The supplied restore adapter requires ACTUAL and final state, so it cannot recover during that crash/failure window.",
+  "severity": "high_custody_candidate_not_executed",
+  "correction": "Accept an explicitly hash-bound real preunlink custody receipt or final receipt, requiring exact state/manifest/adapter hashes. Preserve existing signed ACKs and do not manufacture final success.",
+  "actualMutation": false
+}

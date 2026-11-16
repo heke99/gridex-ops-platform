@@ -1,0 +1,10 @@
+{
+  "verdict": "SOURCE_FINDING_PREINTENT_BLOCKER",
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "packetSHA256": "57b8704f7cc5232447608f04c637e2d2aabf74248e6d1a7f5ee152cfe3c9a6a8",
+  "driverSHA256": "c4739c5229420d958bcd8e7e160c965ebb5720a7e448fb5882df152514f333c5",
+  "finding": "New verified-profile guard refers to undefined n.profile; local parsed native object is before. ReferenceError precedes genuine user check, navigation, intent and POST. Node syntax checking alone cannot detect this runtime identifier mismatch.",
+  "minimalCorrection": "Immutable sibling changing only new guard n.profile references to before.profile; preserve original packet/source.",
+  "otherChecks": "Host whole declared inverse reconstructed; native SQL profile projection and draft view diagnosis read.",
+  "noExecutionOrBackend": true
+}

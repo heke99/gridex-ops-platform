@@ -1,0 +1,41 @@
+{
+  "state": "ACTUAL_NORMAL_INTERNAL_PUBLICATION_SOFT_DENIAL_SOURCE_MATCHED",
+  "reviewerAgent": "/root/ediel_test_identity",
+  "actualLog": {
+    "path": "/tmp/gridex-customer-bundle-W-actual-prep-20261115-e/MAIN-BOUNDED-PUBLICATION-LOG-TAIL.private.log",
+    "sha256": "71b36c70c5a75e3b000df8a391ff5ba5f571049e5a36e33ef32a80f3a0a5ce6d"
+  },
+  "sourceRefs": [
+    {
+      "path": "/tmp/gridex-scenario-source-442256/supabase/migrations/20260727030000_contract_operation_readiness_completion.sql",
+      "sha256": "29b9b451cb20bdd13906c7260dfa918b1d83c3d69072e4c739b938ce04da3abb"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/app/admin/contracts/actions.ts",
+      "sha256": "818e6e0258f9c8c6ffa36e600ddd799c9152d82facb9dcb41f102ab2e1e5073e"
+    }
+  ],
+  "actualAction": "publish_contract_version",
+  "actualSafeErrorCode": "contract_version_not_publishable",
+  "actualErrorReference": "C3AF799EC462",
+  "sourceBlockerCode": "tenant_go_live_not_ready",
+  "sourceRequiredFlags": [
+    "has_actor_setting",
+    "has_brp",
+    "has_prodat_route",
+    "has_utilts_route",
+    "has_sender_identity"
+  ],
+  "actualNormalPOSTHTTP200": true,
+  "actualNativePublicationAbsent": true,
+  "classification": "Caught normal server-action structured denial redirected to an error page; HTTP200 is not a business commit. Production routing readiness is required by this installed normal publication source even for own TEST company.",
+  "prohibitedInferences": {
+    "runtimeTimeout": false,
+    "profileLegalStillMissing": false,
+    "oldCDCauseRetrospectivelyProven": false,
+    "retryAuthorized": false,
+    "fakeGoLiveFlagsOrRoutingAuthorized": false,
+    "fullTERMOrSITEPASS": false
+  },
+  "nextLegitimatePrerequisite": "A qualified normal TEST publication policy/capability or genuinely complete TEST routing/readiness graph, without spoofing production status, external routing, BRP or signatures."
+}

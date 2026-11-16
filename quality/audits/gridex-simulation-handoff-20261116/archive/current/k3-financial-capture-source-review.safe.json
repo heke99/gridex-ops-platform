@@ -1,0 +1,17 @@
+{
+  "state": "ROOT_K3_FINANCIAL_CAPTURE_NARROW_SOURCE_APPROVE",
+  "atUtc": "2026-11-14T14:03:52.426002+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-local-import-capture-k3-prep-20261114/PREPARED.safe.json",
+    "sha256": "a8547d8d5fe30212fe4b5d335ac2b2f522bd571f369bca94199d2fdcd7d88506"
+  },
+  "script": {
+    "path": "/tmp/gridex-local-import-capture-k3-prep-20261114/capture-import.k3.py",
+    "sha256": "97b58ba8da4ea2154cc900afd48b9df6abca7555818df7443063d9eadfeb3cd2",
+    "bytes": 11701
+  },
+  "review": "Exact single inputRootK toK3 literal inverse; all SQL/current807/receipt identity/unknown/raw financial and no-money-approval behavior byteidentical to approved5429.",
+  "peerReceipt": "4f69a61d0fda56b4eab06f9ee9f29e644f8c5b04b38c4ae62913c59479cd7945",
+  "limits": "Sourceonly; futureactualIDs/capture/financialresult unbound.",
+  "backendCalls": 0
+}

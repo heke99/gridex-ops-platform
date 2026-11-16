@@ -1,0 +1,27 @@
+{
+  "state": "ROOT_CORRECTED_V2_SOURCE_COMPONENT_APPROVE",
+  "atUtc": "2026-11-14T12:12:15.361186+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-local-import-capture-prep-20261114/PREPARED.v2.safe.json",
+    "sha256": "8bbbe57be439077c634e621a00b2e4c48a3529de2b7d40e14ef02ba90330b7fa"
+  },
+  "script": {
+    "path": "/tmp/gridex-local-import-capture-prep-20261114/capture-import.v2.py",
+    "sha256": "5429b4c15fe21e8284cafcc2e42221980fb28837dbf53f535176de491f1fb47b",
+    "bytes": 11700
+  },
+  "verifiedRefs": 13,
+  "review": [
+    "Full V2 capture code read, scoped native and intent identity checks reviewed.",
+    "Actual CommandReceipt row/receipt equality and materialized bindings reviewed; invoice result IDs tied to canonical and legacy graph/customer/contract.",
+    "Read-only four SQL preserved from prior Root full review; current807 columns checked before capture, raw financial bytes preserved.",
+    "18 saved finite checks and fixture code reviewed; no rerun needed."
+  ],
+  "peerReceipt": "93a83e5ade147386dfbd72c486e946dd6cb4d068da6048aa413fef4539ee7c13",
+  "limits": [
+    "Source/component only; not bound actual execution approval or financial PASS.",
+    "Independent actual raw 2688 interval/lineage/amount validation required.",
+    "Old7789/51bc remains unexecuted, not adopted."
+  ],
+  "backendCalls": 0
+}

@@ -1,0 +1,49 @@
+{
+  "state": "INDEPENDENT_FULL_ORIGINAL_ORACLE_VERDICT",
+  "caseId": "EVENT01.05",
+  "verdict": "PASS",
+  "reviewedAt": "2026-11-16T05:13:02.637390+00:00",
+  "originalLiteral": "Tenantfilter och hemligheter h\u00e5lls korrekta",
+  "originalOracleSHA256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+  "checks": {
+    "nonvacuousActiveSameEventTypeCSubscription": true,
+    "fullPostSetupCBaselineUnchanged": true,
+    "selectedFreshAEventHasNoCNativeFanoutOrDelivery": true,
+    "actualATLS200SignedPOSTCount": 1,
+    "completeRawHeadersAndBodyCMarkerExclusions": 56,
+    "additionalASecretAndInternalIDExclusions": 8,
+    "independentActualHMACAndPayloadSHA": true,
+    "properClosureAllQAReferencesRehashed": 24,
+    "nativeAuthZeroAll7SettingsAndMainResidualVerified": true
+  },
+  "honestStop": "Outer caller EXIT1 and final worker ACK stopped on envelope-versus-array guard. Actual complete envelope.rawHeaders, physical body, native fanout and HMAC were independently reconciled; no final worker ACK invented and no retry.",
+  "scope": "C baseline frozen after full normal setup; no absolute-C-zero or commerce activation requirement added. Proper closure approved by ordinary independent QA.",
+  "references": [
+    {
+      "path": "/workspace/gridex-event-original-acceptance-20261115/EVENT05-C-EXACT-ACCEPTANCE.safe.json",
+      "sha256": "3dc16a7dd09775a29a9ee15b47bbadf0a80beec37aa0b01edc9d54cfb8d59f04"
+    },
+    {
+      "path": "/workspace/gridex-event-original-acceptance-20261115/EVENT05-ACTUAL-INDEPENDENT-STAGE.safe.json",
+      "sha256": "2f0d82d898de0b777b8f7cad2bd8c3c6fd91bb5aa60b321d05c42ef83614f122"
+    },
+    {
+      "path": "/workspace/gridex-event-original-acceptance-20261115/EVENT05-ACTUAL-INDEPENDENT-STAGE.v2.safe.json",
+      "sha256": "cbeddb2439f09c9d2cdea4d4f0a9b6b9c94af86e9907ab6c23078dc6738a80d5"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/qa-INDEPENDENT-FINAL-CLOSURE-RESIDUAL.safe.json",
+      "sha256": "767b63c401c13cbe39ceb13bd9b568eed3c703145657c44ad957b57ae7d822ba"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/proper-closure/FINAL-INDEX.safe.json",
+      "sha256": "18feb622bbde895f8d59553a5c1618c999905a2f13fcb82128ab2da6433d929c"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/proper-closure/qa-FINAL-INDEX-REBIND.safe.json",
+      "sha256": "0b7a753010c68ccb3d7c50bb6f2dc4179ed2c72a3991977a32accfaf7801c176"
+    }
+  ],
+  "ledgerMutation": false,
+  "backendOrAuthByReviewer": false
+}

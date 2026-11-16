@@ -1,0 +1,10 @@
+{
+  "reviewer": "root",
+  "scope": "Actual API5 native logs and before/after Main bytes; SQLcomponent only, not JWT/HTTP/fullcase",
+  "summarySHA256": "310067944e7215c302959e376cc1b759bcca6dcb1e246c2cdb958968c844b91d",
+  "allStepLogHashesMatch": true,
+  "mainBeforeAfterByteEqual": true,
+  "nativeUnitExit": 0,
+  "replayExit": 3,
+  "noCaseCredit": true
+}

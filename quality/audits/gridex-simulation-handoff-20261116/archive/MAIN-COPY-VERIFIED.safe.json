@@ -1,0 +1,26 @@
+{
+  "state": "PINNED_CLEAN_SHALLOW_MAIN_COPY_GIT_FSCK_EXIT0",
+  "repository": "https://github.com/heke99/gridex-ops-platform",
+  "commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+  "tree": "fe55a53d9ce29e26aa918b3af4a3e1aae87bca06",
+  "branch": "main",
+  "trackedFileCount": 11367,
+  "shallow": true,
+  "fullHistoryIncluded": false,
+  "selfContainedObjectDatabase": true,
+  "alternates": false,
+  "promisor": false,
+  "submodules": [],
+  "symlinks": [],
+  "gitFsckExitCode": 0,
+  "gitFsckLogBytes": 0,
+  "worktreeClean": true,
+  "githubCredentialsCopied": false,
+  "candidatePatchesApplied": false,
+  "notAnApplicationTest": true,
+  "offlineCredentialReview": {
+    "report": "reviews/MAIN-OFFLINE-SCAN-REVIEW.safe.json",
+    "sha256": "68076fd4dbf88de82abe176ee2b9d317335157ebb561204ee64bc515b2fd9d6a",
+    "result": "84 pattern records reviewed; no suspected real runtime secret identified. One tracked synthetic detectorfixture secrets.env is part of exact Main; no runtime .env added. Offline heuristics are not comprehensive security certification."
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "state": "ROOT_EVENT_F_RUNTIME_BINDER_NAMESPACE_SOURCE_APPROVE",
+  "observedAt": "2026-11-14T16:02:14.451655+00:00",
+  "freezePath": "/tmp/gridex-event-f-runtime-prep-20261114/FROZEN.safe.json",
+  "freezeSHA256": "bfe8a17385157a02bc293e39ac5ae7e1a51a681e260c03e24d8597355dffcb32",
+  "binderSHA256": "44d2f190dead5317a566198e7bc5545c8018b70cfe984b76d341c9736a02b35a",
+  "exactFiveLiteralInverseToQualifiedE": true,
+  "allNinePinsAndEnvCustodyChecked": true,
+  "actualHKeysCopiedOnlyTwoLinesFactoryPreserved": true,
+  "astAndCacheModesChecked": true,
+  "scope": "Source/metadata only. Actual genuine F context/baseline/PID/deadline and live resource/expiry guards remain mandatory; no Auth or backend dispatch by Root. Runtime900/parent12min/helper1800 preserved.",
+  "backendCalls": 0
+}

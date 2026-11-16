@@ -1,0 +1,84 @@
+{
+  "state": "CANONICAL_OWN_DB_HEADER_LENGTH_WRAPPER_REPLAY_NORMATIVE75_REFERENCE41_CLOSED",
+  "errorType": null,
+  "ownDBAbsent": true,
+  "MainFullRolesAll7Auth0CarrierUnchanged": true,
+  "results": {
+    "prerequisiteNegative": {
+      "exitCode": 3,
+      "elapsedSeconds": 0.1760602709837258,
+      "stdout": {
+        "path": "/workspace/gridex-ediel-header-length-actual-20261115-e/expected-missing-perf-prerequisite.stdout.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-ediel-header-length-actual-20261115-e/expected-missing-perf-prerequisite.stderr.private.log",
+        "sha256": "4136a38aaeffd0add598326bfc30004e29242ff2fa7923d8b98ca56ece76df9c"
+      }
+    },
+    "prerequisiteNegativeCatalogExact": true,
+    "performancePrerequisite": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.12138204401708208,
+      "stdout": {
+        "path": "/workspace/gridex-ediel-header-length-actual-20261115-e/exact-performance-prerequisite.stdout.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-ediel-header-length-actual-20261115-e/exact-performance-prerequisite.stderr.private.log",
+        "sha256": "d90e6a445c9c4ff8d73f86ce95e5e07b3d8d11db9577f89c3f0962351a1db906"
+      }
+    },
+    "apply": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.24424909299705178,
+      "stdout": {
+        "path": "/workspace/gridex-ediel-header-length-actual-20261115-e/formal-wrapper-apply.stdout.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-ediel-header-length-actual-20261115-e/formal-wrapper-apply.stderr.private.log",
+        "sha256": "2b9443bd241b11277ed67c06aa0ffbe6b7d2557e50836ef6b71916f6f0f49c7d"
+      }
+    },
+    "bodyOnlyDelta": {
+      "oldBodyMD5": "33bb811220fdabda32c9f40505c20ea1",
+      "newBodyMD5": "91fbc03c1a22caadfc6eb48f07b03503",
+      "onlyProsrcChanged": true,
+      "OIDOwnerACLCountAndOtherFunctionsExact": true
+    },
+    "replay": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.11761151300743222,
+      "stdout": {
+        "path": "/workspace/gridex-ediel-header-length-actual-20261115-e/formal-wrapper-replay.stdout.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-ediel-header-length-actual-20261115-e/formal-wrapper-replay.stderr.private.log",
+        "sha256": "10f56a707a61fcf0b7f262f7f73eccc88b6b7b897bea904ed128b692d21f07f0"
+      }
+    },
+    "regression": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.26800723100313917,
+      "stdout": {
+        "path": "/workspace/gridex-ediel-header-length-actual-20261115-e/formal-regression.stdout.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-ediel-header-length-actual-20261115-e/formal-regression.stderr.private.log",
+        "sha256": "32570955515792992a5feaaf2358609c5df74ed29a57be12d79c9e1db1d650ce"
+      }
+    }
+  },
+  "canonicalOnlyProsrcDeltaQualified": true,
+  "canonicalReplayWholeMetadataExact": true,
+  "nativeNormative75Passed": true,
+  "optimizedReferenceLegacy41Passed": true,
+  "postRegressionWholeMetadataExact": true,
+  "full3444CatalogQualification": false,
+  "actualRawTimingExecutedThisRun": false,
+  "fullInsertCauseProven": false,
+  "MainOrProductAdoption": false
+}

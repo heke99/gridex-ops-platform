@@ -1,0 +1,124 @@
+{
+  "state": "QUALIFIED_NATIVE_AND_REAL_HTTP_POST_LOOKUP_COMPONENT_CLOSED",
+  "createAttempted": true,
+  "restId": "8823371bfe11791aafbfca5709c49f5c8d2b634839c095d6ece5224d19eb4b91",
+  "httpAttempts": 15,
+  "scriptSHA256": "cd24747bd4967ecae1688864208edc46cb402213f91695fbe1fc0d3d88225123",
+  "targetSHA256": "abe6ffbcd54938952f9706eed86fd8d7c35f736a8f07c45424935adeec1fd900",
+  "cloneDatabase": "gridex_local_partner_http_20261113_a",
+  "noUserAuth": true,
+  "migrationSHA256": "f08d1a66906acdae941f6e2d1d1232de527885f9ba2d718d8fb7ff216e472a76",
+  "lookupSignature": "public.gridex_find_test_inbound_envelope_v1(uuid,uuid,text)",
+  "beforeSnapshot": {
+    "path": "/workspace/gridex-post-lookup-component-actual-20261115-a/clone-before-apply.private.json",
+    "sha256": "cae99bce23aca8c667ce5167eefca70e08fa01a330c5e33ebb2a62d1fabe66e8"
+  },
+  "afterSnapshot": {
+    "path": "/workspace/gridex-post-lookup-component-actual-20261115-a/clone-after-apply.private.json",
+    "sha256": "37fb41b7611b5dc3b7f27ab8f6326e013fe5c2a66bae450806699434b9c0219f"
+  },
+  "nativeRollbackRegressionPassed": true,
+  "httpCasesPassed": 15,
+  "httpOutcomes": [
+    {
+      "case": "actual_raw_newest_stale_metadata",
+      "status": 200,
+      "expectedCode": null,
+      "value": "69f4ae31-3333-4000-8000-000000000003"
+    },
+    {
+      "case": "customer_scope",
+      "status": 200,
+      "expectedCode": null,
+      "value": "69f4ae31-3333-4000-8000-000000000005"
+    },
+    {
+      "case": "company_scope",
+      "status": 200,
+      "expectedCode": null,
+      "value": "69f4ae31-3333-4000-8000-000000000006"
+    },
+    {
+      "case": "trailing_byte",
+      "status": 200,
+      "expectedCode": null,
+      "value": "69f4ae31-3333-4000-8000-000000000004"
+    },
+    {
+      "case": "bom_crlf",
+      "status": 200,
+      "expectedCode": null,
+      "value": "69f4ae31-3333-4000-8000-000000000011"
+    },
+    {
+      "case": "lf_distinct",
+      "status": 200,
+      "expectedCode": null,
+      "value": "69f4ae31-3333-4000-8000-000000000009"
+    },
+    {
+      "case": "no_bom_distinct",
+      "status": 200,
+      "expectedCode": null,
+      "value": "69f4ae31-3333-4000-8000-000000000010"
+    },
+    {
+      "case": "no_match",
+      "status": 200,
+      "expectedCode": null,
+      "value": null
+    },
+    {
+      "case": "exact_2MiB",
+      "status": 200,
+      "expectedCode": null,
+      "value": null
+    },
+    {
+      "case": "oversize",
+      "status": 400,
+      "expectedCode": "22023",
+      "value": null
+    },
+    {
+      "case": "null_company",
+      "status": 400,
+      "expectedCode": "22023",
+      "value": null
+    },
+    {
+      "case": "null_customer",
+      "status": 400,
+      "expectedCode": "22023",
+      "value": null
+    },
+    {
+      "case": "null_raw",
+      "status": 400,
+      "expectedCode": "22023",
+      "value": null
+    },
+    {
+      "case": "empty_raw",
+      "status": 400,
+      "expectedCode": "22023",
+      "value": null
+    },
+    {
+      "case": "anon_acl",
+      "status": 401,
+      "expectedCode": "42501",
+      "value": null
+    }
+  ],
+  "cloneFullAndAllSequencesUnchangedAcrossHTTP": true,
+  "exactNewFunctionCount": 3444,
+  "ownRestAbsent": true,
+  "cloneAbsent": true,
+  "mainFullSnapshotUnchanged": true,
+  "mainAll7SequencesUnchanged": true,
+  "globalRolesUnchanged": true,
+  "MainAuth0": true,
+  "serverCarrierUnchanged": true,
+  "noMainApplyOrUserAuthOrBrowserScenarioCredit": true
+}

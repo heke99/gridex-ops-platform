@@ -1,0 +1,329 @@
+{
+  "state": "ROOT_EXACT_ELEVEN_HISTORICAL_GROUPS_ARCHIVE_SCOPE_APPROVED",
+  "atUtc": "2026-11-14T12:57:38.314717+00:00",
+  "proposal": {
+    "path": "/workspace/gridex-k-peak-resource-proposal-20261114/PROPOSAL.safe.json",
+    "sha256": "4a7fb925ade41b6efb567df0a833345e7cb7e55e8a7a337df94ad706fcb045bc"
+  },
+  "selected": [
+    {
+      "path": "/workspace/gridex-receiver-main-evidence-20261113/before.private.json",
+      "aliases": [
+        "/workspace/gridex-receiver-main-evidence-20261113/before.private.json"
+      ],
+      "sha256": "ffed905fbb0b640b6ab5c7ab9359d4415e0dea71c201ed655ab6988efe1d0938",
+      "bytes": 39642353,
+      "gzipEstimateBytes": 2653675,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 621776,
+      "nlink": 1,
+      "closure": [
+        {
+          "path": "/workspace/gridex-receiver-main-evidence-20261113/driver-exit.safe.json",
+          "sha256": "2398362514a8dfdd9fb02e869fc1e5a297b6513dd9a7708c149d1bf19b8fe91a"
+        },
+        {
+          "path": "/workspace/gridex-receiver-main-evidence-20261113/results.safe.json",
+          "sha256": "583a0e2e8043f6747709f337f5afc740ef0518c55d0cec74a3deb21dd0f292e6"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/gridex-receiver-main-evidence-20261113/after.private.json",
+      "aliases": [
+        "/workspace/gridex-receiver-main-evidence-20261113/after.private.json"
+      ],
+      "sha256": "956272d0f99629460bf45b8844d46a9a55aa8a99f1726a77dfcb68d1f1950b4a",
+      "bytes": 39712907,
+      "gzipEstimateBytes": 2658727,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 621780,
+      "nlink": 1,
+      "closure": [
+        {
+          "path": "/workspace/gridex-receiver-main-evidence-20261113/driver-exit.safe.json",
+          "sha256": "2398362514a8dfdd9fb02e869fc1e5a297b6513dd9a7708c149d1bf19b8fe91a"
+        },
+        {
+          "path": "/workspace/gridex-receiver-main-evidence-20261113/results.safe.json",
+          "sha256": "583a0e2e8043f6747709f337f5afc740ef0518c55d0cec74a3deb21dd0f292e6"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/gridex-company-admin-foundation-main-evidence-20261113/before.private.json",
+      "aliases": [
+        "/workspace/gridex-company-admin-foundation-main-evidence-20261113/before.private.json"
+      ],
+      "sha256": "afa26664910a6bdea95dfcbb44ea22aca823fc1579816b855d41fe52731bf689",
+      "bytes": 22908859,
+      "gzipEstimateBytes": 2198788,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 1327911,
+      "nlink": 1,
+      "closure": [
+        {
+          "path": "/workspace/gridex-company-admin-foundation-main-evidence-20261113/driver-exit.safe.json",
+          "sha256": "9e5fca5909ea77622f0362ed8bc8681e5ad10381f9fa1a63839deb016c084fb1"
+        },
+        {
+          "path": "/workspace/gridex-company-admin-foundation-main-evidence-20261113/results.safe.json",
+          "sha256": "2f640d5d28458e9f083aea86cf369a11114224c0767ff86f40dda9af66764763"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/gridex-company-admin-foundation-main-evidence-20261113/after.private.json",
+      "aliases": [
+        "/workspace/gridex-company-admin-foundation-main-evidence-20261113/after.private.json"
+      ],
+      "sha256": "6a9cfd178b5222f150935ecff58f093efa0b9a0dddc14a36b54aeefd102e98cb",
+      "bytes": 22920855,
+      "gzipEstimateBytes": 2200287,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 1327929,
+      "nlink": 1,
+      "closure": [
+        {
+          "path": "/workspace/gridex-company-admin-foundation-main-evidence-20261113/driver-exit.safe.json",
+          "sha256": "9e5fca5909ea77622f0362ed8bc8681e5ad10381f9fa1a63839deb016c084fb1"
+        },
+        {
+          "path": "/workspace/gridex-company-admin-foundation-main-evidence-20261113/results.safe.json",
+          "sha256": "2f640d5d28458e9f083aea86cf369a11114224c0767ff86f40dda9af66764763"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/gridex-partner-ledger-main-evidence-20261113/before.private.json",
+      "aliases": [
+        "/workspace/gridex-partner-ledger-main-evidence-20261113/before.private.json"
+      ],
+      "sha256": "2dec804e885e4a5b4c6a03a8e62d326a9d6ddd9ab224194d0cc8945c6e8619e5",
+      "bytes": 22464517,
+      "gzipEstimateBytes": 2181715,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 622043,
+      "nlink": 1,
+      "closure": [
+        {
+          "path": "/workspace/gridex-partner-ledger-main-evidence-20261113/driver-exit.safe.json",
+          "sha256": "f9d7bdd6085665385fd9e23741e5ca6c9039f5a8054e87cdb0a88de16dba3e7c"
+        },
+        {
+          "path": "/workspace/gridex-partner-ledger-main-evidence-20261113/results.safe.json",
+          "sha256": "62c4c604b3f047e918639c5a4a1f8b4fefe5df4c9626d1dd969cc9f54b2710d9"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/gridex-partner-ledger-main-evidence-20261113/after.private.json",
+      "aliases": [
+        "/workspace/gridex-partner-ledger-main-evidence-20261113/after.private.json"
+      ],
+      "sha256": "a67049caeaba029c049ed3e4a8be49e53d3910ee6240d65ca106b5506fdc6b87",
+      "bytes": 22464518,
+      "gzipEstimateBytes": 2181718,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 622048,
+      "nlink": 1,
+      "closure": [
+        {
+          "path": "/workspace/gridex-partner-ledger-main-evidence-20261113/driver-exit.safe.json",
+          "sha256": "f9d7bdd6085665385fd9e23741e5ca6c9039f5a8054e87cdb0a88de16dba3e7c"
+        },
+        {
+          "path": "/workspace/gridex-partner-ledger-main-evidence-20261113/results.safe.json",
+          "sha256": "62c4c604b3f047e918639c5a4a1f8b4fefe5df4c9626d1dd969cc9f54b2710d9"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/gridex-post-ee-enable-backup-evidence-20261113/current-3368-functions.private.json",
+      "aliases": [
+        "/workspace/gridex-post-ee-enable-backup-evidence-20261113/current-3368-functions.private.json"
+      ],
+      "sha256": "22d0b624a3cde795531c03062d7acfd268ea4b7c193d6cb1c59dd5ad7784bf1a",
+      "bytes": 18971918,
+      "gzipEstimateBytes": 1921534,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 1261756,
+      "nlink": 1,
+      "closure": [
+        {
+          "path": "/workspace/gridex-post-ee-enable-backup-evidence-20261113/backup-intent.safe.json",
+          "sha256": "dee5ac374f6fe2782ec4c340ac07c2067b45ebf31d6d1e3a21371820f9d24e02"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/gridex-post-receiver-ui-backup-evidence-20261113/current-3368-functions.private.json",
+      "aliases": [
+        "/workspace/gridex-post-receiver-ui-backup-evidence-20261113/current-3368-functions.private.json"
+      ],
+      "sha256": "22d0b624a3cde795531c03062d7acfd268ea4b7c193d6cb1c59dd5ad7784bf1a",
+      "bytes": 18971918,
+      "gzipEstimateBytes": 1921534,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 621964,
+      "nlink": 1,
+      "closure": [
+        {
+          "path": "/workspace/gridex-post-receiver-ui-backup-evidence-20261113/backup-intent.safe.json",
+          "sha256": "b4cfe373416b91408bef9558585dee152cc9a2f77cf6d020ae006700f11f12de"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/gridex-three-forward-main-evidence-20261113/stage-1-smtp-before.private.json",
+      "aliases": [
+        "/workspace/gridex-three-forward-main-evidence-20261113/stage-1-smtp-before.private.json",
+        "/workspace/gridex-three-forward-main-evidence-20261113/readonly-fullcapture.private.json",
+        "/workspace/gridex-three-forward-main-evidence-20261113/chain-prechain.private.json"
+      ],
+      "sha256": "ae1580a643bfab3006155283091c98abe4f1bdea124caca4acdfefde79e82cbf",
+      "bytes": 30534415,
+      "gzipEstimateBytes": 2475775,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 1592217,
+      "nlink": 3,
+      "closure": [
+        {
+          "path": "/workspace/gridex-three-forward-main-evidence-20261113/driver-exit.safe.json",
+          "sha256": "ad04ec2097f887210108cc9cb827f63a1642b924d9763dfcba59bcb85112cecf"
+        },
+        {
+          "path": "/workspace/gridex-three-forward-main-evidence-20261113/results.safe.json",
+          "sha256": "8405f11a1d0f62bc2d40d6da4b76c40bf99a93e26e34bf90fee43d8e08349076"
+        },
+        {
+          "path": "/workspace/gridex-three-forward-main-evidence-20261113/chain-summary.safe.json",
+          "sha256": "dccd84f6cc332e4e3350e69fa43712b0bbe21b72994648109902965bd813408f"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/gridex-three-forward-main-evidence-20261113/stage-1-smtp-after.private.json",
+      "aliases": [
+        "/workspace/gridex-three-forward-main-evidence-20261113/stage-1-smtp-after.private.json",
+        "/workspace/gridex-three-forward-main-evidence-20261113/stage-2-alias-before.private.json"
+      ],
+      "sha256": "a02af8362cd05aa9d40f3b8d6361ad45042f440d418c15d8256152a43f07c14c",
+      "bytes": 30535979,
+      "gzipEstimateBytes": 2475808,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 1592227,
+      "nlink": 2,
+      "closure": [
+        {
+          "path": "/workspace/gridex-three-forward-main-evidence-20261113/driver-exit.safe.json",
+          "sha256": "ad04ec2097f887210108cc9cb827f63a1642b924d9763dfcba59bcb85112cecf"
+        },
+        {
+          "path": "/workspace/gridex-three-forward-main-evidence-20261113/results.safe.json",
+          "sha256": "8405f11a1d0f62bc2d40d6da4b76c40bf99a93e26e34bf90fee43d8e08349076"
+        },
+        {
+          "path": "/workspace/gridex-three-forward-main-evidence-20261113/chain-summary.safe.json",
+          "sha256": "dccd84f6cc332e4e3350e69fa43712b0bbe21b72994648109902965bd813408f"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/gridex-three-forward-main-evidence-20261113/stage-2-alias-after.private.json",
+      "aliases": [
+        "/workspace/gridex-three-forward-main-evidence-20261113/stage-2-alias-after.private.json",
+        "/workspace/gridex-three-forward-main-evidence-20261113/stage-3-term03-before.private.json"
+      ],
+      "sha256": "5e0980221f0dd54b2136ec43646d3e4679c235fa6753b680c9307cb37fe9ddda",
+      "bytes": 30537742,
+      "gzipEstimateBytes": 2476067,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 1592234,
+      "nlink": 2,
+      "closure": [
+        {
+          "path": "/workspace/gridex-three-forward-main-evidence-20261113/driver-exit.safe.json",
+          "sha256": "ad04ec2097f887210108cc9cb827f63a1642b924d9763dfcba59bcb85112cecf"
+        },
+        {
+          "path": "/workspace/gridex-three-forward-main-evidence-20261113/results.safe.json",
+          "sha256": "8405f11a1d0f62bc2d40d6da4b76c40bf99a93e26e34bf90fee43d8e08349076"
+        },
+        {
+          "path": "/workspace/gridex-three-forward-main-evidence-20261113/chain-summary.safe.json",
+          "sha256": "dccd84f6cc332e4e3350e69fa43712b0bbe21b72994648109902965bd813408f"
+        }
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "path": "/workspace/gridex-post-ee-enable-backup-evidence-20261113/current-full-schema.private.json",
+      "aliases": [
+        "/workspace/gridex-post-ee-enable-backup-evidence-20261113/current-full-schema.private.json"
+      ],
+      "sha256": "b406fdf9fbb66a44b4d3c603ea6176fffab604e9bc339bd6c241762f62c3d4d6",
+      "bytes": 49573454,
+      "gzipEstimateBytes": 1555918,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 1261721,
+      "nlink": 1,
+      "closure": [
+        {
+          "path": "/workspace/gridex-post-ee-enable-backup-evidence-20261113/backup-intent.safe.json",
+          "sha256": "dee5ac374f6fe2782ec4c340ac07c2067b45ebf31d6d1e3a21371820f9d24e02"
+        }
+      ]
+    }
+  ],
+  "uniqueGroups": 11,
+  "aliases": 15,
+  "estimatedNetBytes": 274320353,
+  "conditions": [
+    "Sole writer explicitly delegated by producer; fresh accessible FD/mount and owned-writer closure survey before mutation, denied probes disclosed.",
+    "Exclude b406 historical fullschema used by financial qualification; retainRAW.",
+    "Compress exclusive private0600 immutable archives, fsync then stream-decompress originalSHA+bytes before unlinking any raw aliases; durable ARCHIVED manifest maps each original alias/metadata.",
+    "Use existing safe no-overwrite restore procedure; no bare gzip restore/no pretend raw current presence.",
+    "Producer must repeat filesystem-only K parent/static qualification after archival before Auth. If an unexpected dependency is absent, restore exact needed raw from qualified archive and remeasure headroom.",
+    "Protect active K/C6/currentG/rawsource/API-wire-decimalE actual96originals/crypto/deps/env; no globalprune or source deletion."
+  ],
+  "rawHistoricalClosureRefsVerified": 11,
+  "backendCallsByRoot": 0
+}

@@ -1,0 +1,14 @@
+{
+  "reviewer": "root",
+  "scope": "Actual fixedEVENTN0 tenlogs andphysicalMainbytes only; fullcatalog independentEdiel separate",
+  "summarySHA256": "9c480f88acd29a54a43e567c0d50a6c6cb85434782084afe0b9f4e41d61e14bb",
+  "all10LogHashesMatch": true,
+  "mainBeforeAfterByteEqual": true,
+  "applyReplayN0Exits": [
+    0,
+    0,
+    0
+  ],
+  "ownerNegativeExit": 3,
+  "noPositiveEventClockRaceTlsOrCaseCredit": true
+}

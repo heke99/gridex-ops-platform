@@ -1,0 +1,28 @@
+{
+  "state": "ROOT_STANDING_EXACT_CUSTODY_600_SECOND_AND_FRESH_NATIVE_ONLY_REBIND_SCOPE",
+  "observedAt": "2026-11-14T16:27:25.714988+00:00",
+  "baseTargetPath": "/tmp/gridex-normal-custody-actual-prep-20261114-a/target.v2.BOUND.safe.json",
+  "baseTargetSHA256": "161708f97257f1dd9d561b0a61346ef37964af078522652ec018d810ca444c18",
+  "fullActualRootReview": "d3ac13997bcadbe236bdd7cc47eca343732614ccf94d99a4205570cf94af7de4",
+  "source2": [
+    "5ed853242b0eea12f31fca7aa439287d70b9d094a754189f27212f76896bca2f",
+    "cfdca11f733cd809373addd48548f4104786c4c7cfdbcc6eb4f711a9f47e2e3e"
+  ],
+  "authorizedContract": "600 seconds is the existing reviewed parameter minimum, independently of local fourRPC900s reserve. Only three normalform actions are authorized, same original case/fixture and actors. No source guard is lowered.",
+  "exactPermittedNewTargetChanges": [
+    "ttlSeconds must be600; all other non-native fields byte/JSON equal to base",
+    "beforeNativePath must be an exclusive new regular0600 INITIAL.before.vN.private.json under the SAME inputRoot, integer N>=3; beforeNativeSha256 actual64hex",
+    "The sole matching old-native entry in boundFiles replaced with the new exact reference; no other ref changes"
+  ],
+  "mandatoryBeforeAnyGo": [
+    "No prior GO/Auth/mutator/session from this CUSTODY profile; original runRoot still absent, all old targets preserved.",
+    "Fresh actual READONLY SQL9241 output, no timestamp edits: same native JSON as Root-reviewed initial baseline EXCEPT real observedAt; actual age>=0<120s at execution. Same testB/unique-name0/sites0/points0/all11protectedHistory0/global fingerprints.",
+    "All original source40/product21/actor original+projection and Hcarrier pins unchanged, currentMain2306915/start/cmd running, privateinput700/credentials600, knownGenuineB+EE inputs validated before first action.",
+    "Actual Hroleexp1794674552 > actual dispatch time+600+120, process hardbound/normalcleanup withinthatwindow. No late/backdated GO.",
+    "Separate fullMainbefore267b preserved; per-action new native ACKs and no replay; unknown outcomes read before cleanup; both genuine logouts and native session readback afterward."
+  ],
+  "writerAndExecutor": "execute_eight_parts sole executor may construct exact new immutable target, verify all conditions and execute ONCE without another Root roundtrip. Record exact targetSHA/actual guard receipt/GO. Stop on any other delta.",
+  "fullScenarioCredit": false,
+  "futureTimestampOrRoleProofNotFabricated": true,
+  "backendCallsByRoot": 0
+}

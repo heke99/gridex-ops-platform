@@ -1,0 +1,24 @@
+{
+  "state": "ROOT_K2_RUNTIME_TEMPLATE_MODE640_NARROW_SOURCE_APPROVE",
+  "atUtc": "2026-11-14T13:33:50.922132+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-k2-runtime-mode-orchestrator-budget900-prep-20261114/PREPARED.safe.json",
+    "sha256": "4e4fa14d0d8ab9ae0515c36f95590b56dbbdb168dbde22ec77e55e547df14d24"
+  },
+  "script": {
+    "path": "/tmp/gridex-k2-runtime-mode-orchestrator-budget900-prep-20261114/orchestrator.py",
+    "sha256": "904b35c150a609478ad3ebc6cc91d9ff8588830813f2eb79930935eeee0f114c"
+  },
+  "review": [
+    "Full narrow diff/wholepatch verified; only exactruntimeK2 template accepts its qualified0640 withregular/noSymlink/canonicalpath/size/SHA guard.",
+    "Generic private-file0600 validator unchanged, as are900/15/JWT/native deadlines.",
+    "Actual filesystemruntime_deadline independentlypassed byauthor+Ediel21a1; valid640/wrong600/wronghash controls savedPASS.",
+    "Root separately statchecked actual parent/helper/issue/raw/C6handoff generic references are0600."
+  ],
+  "peerReceipt": "21a1fad42b057a9f33623d05ce7e4293661fb16c249a97756a43a8c49bc12014",
+  "limits": [
+    "Source+filesystem integration only; no actualRPC/nativebusiness result.",
+    "Previous6bc3 approval missedthisactualmode integration, unusedscopepreserved as history; no executedmutator."
+  ],
+  "backendCalls": 0
+}

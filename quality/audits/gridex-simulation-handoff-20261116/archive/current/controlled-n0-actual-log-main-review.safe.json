@@ -1,0 +1,9 @@
+{
+  "reviewer": "root",
+  "scope": "Actual controlled N0 logs/Main physical byte preservation only; independentfullcatalogreview Ediel separate",
+  "summarySHA256": "1b9fb34e37a74b32582eccf51f48e9953664f4d0dd6cd74bda63647ebe2e71b4",
+  "all6LogHashesMatch": true,
+  "allThreeApplyExits": 0,
+  "mainBeforeAfterByteEqual": true,
+  "noPositiveFixtureOrCaseCredit": true
+}

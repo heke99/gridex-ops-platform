@@ -1,0 +1,12 @@
+{
+  "state": "FROZEN_COMPACT_K11_PERSISTENCE_DIAGNOSIS_ONLY",
+  "files": [
+    {
+      "path": "/workspace/gridex-k11-import-persistence-diagnosis-20261115/DIAGNOSIS.safe.json",
+      "sha256": "43170d3bb1345449ed0cec136ce7e68e90aef683b8cec9843ac4b8d73a821d67",
+      "bytes": 12059
+    }
+  ],
+  "codeOrBackendChanged": false,
+  "noAdditionalRepoAudit": true
+}

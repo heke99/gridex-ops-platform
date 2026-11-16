@@ -1,0 +1,11 @@
+{
+  "state": "CORRECTED_SOURCE_AND_PREPARED_FINALDOC_APPROVE",
+  "head": "1d71f45a8a49c48628e54b947c499e6b62dfe1e2",
+  "migrationSHA256": "f0697ec58016f19c902f98e08e88f0690c37b6b0bfde1ee9f57376021d953574",
+  "testSHA256": "637501ce893d71a83b6b7dad0bb3d146c29b7bee25f512e9c05dc0a903bd034d",
+  "actualSourceEvidenceRefsVerified": 14,
+  "delta": "Exactlyone productline adds Ccollation to DISTINCT/ORDERBY, plusfour-key portable regression and truthful oldnativeSTOPdocs. Same35keys/bodypin/locks/DENY/idempotence.",
+  "actualFailureRequalified": "55000 mismatch; same35set/order17-20 differs; main522/3368equal, owncloneabsent, fiveNOTRUN",
+  "correctedNativeStatus": "NOT_RUN",
+  "noNewBaselineBugOrCaseCredit": true
+}

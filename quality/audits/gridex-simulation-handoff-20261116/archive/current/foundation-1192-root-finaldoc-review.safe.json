@@ -1,0 +1,18 @@
+{
+  "decision": "APPROVE_FINAL_DOC_ONLY",
+  "head": "1192c23b5b1fcaef0ad5973a81a8df5ac404cf13",
+  "files": [
+    {
+      "path": "quality/audits/gridex-company-admin-permission-foundation-20261113/REPORT.sv.md",
+      "sha256": "674803108e5aa918464333eb86c7f26bd3efd88583db40d813e67d38d38972bb"
+    },
+    {
+      "path": "quality/audits/gridex-company-admin-permission-foundation-20261113/results.safe.json",
+      "sha256": "81f53b1c965846e23576c66192ef58caa14d6ba1a84182ccef786e9eaa8d950d"
+    }
+  ],
+  "sourceSQLAndTestUnchanged": true,
+  "actualProofsReviewed": "V3 actual296d sixunits +MAIN2f640 actual35 catalog only",
+  "historicalStopsAndNoJWTGENOr105CreditPreserved": true,
+  "reviewedWholeMarkdownAndJSONDiff": true
+}

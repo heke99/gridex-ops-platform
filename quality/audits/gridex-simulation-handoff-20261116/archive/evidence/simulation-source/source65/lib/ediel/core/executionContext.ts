@@ -1,0 +1,206 @@
+import type { EdielDirection, EdielEnvironment } from '@/lib/ediel/types'
+
+/** Version admission and business timestamps have different source authority. */
+export type EdielMessageTimeAnchors = Readonly<{
+  documentDate: string | null
+  documentTimestamp: Readonly<{ value: string; format: string | null; originalOffset: string | null; timeBasis: 'fixed_UTC_plus_1' | 'source_declared' }> | null
+  localIngressAt: string | null
+  actualSendAt: string | null
+  admissionAt: string
+  admissionDate: string
+  admissionSource: 'local_ingress' | 'message_persisted' | 'pre_send' | 'explicit'
+  businessEffectiveDate: string
+  measurementPeriods: readonly Readonly<{ qualifier: string; value: string; format: string | null; originalOffset: string | null; timeBasis: 'fixed_UTC_plus_1' | 'source_declared' }>[]
+  replayAt: string | null
+}>
+
+export type EdielExecutionFamily = 'PRODAT' | 'UTILTS' | 'APERAK' | 'CONTRL' | 'UTILTS_ERR'
+
+export type EdielExecutionContext = Readonly<{
+  companyId: string
+  environment: EdielEnvironment
+  market: 'electricity'
+  direction: EdielDirection
+  family: EdielExecutionFamily
+  messageCode: string
+  transactionSubtype: string | null
+  businessProcess: string
+  businessDate: string
+  timeAnchors?: EdielMessageTimeAnchors | null
+  senderActorId: string
+  /** Legal market actor; may differ from the transport sender when an ombud transports. */
+  legalActorEdielId: string
+  senderEdielId: string
+  senderRole: string
+  senderSubAddress: string | null
+  receiverActorId: string | null
+  receiverEdielId: string
+  receiverRole: string | null
+  receiverSubAddress: string | null
+  gridAreaCode: string | null
+  rulePackId: string
+  /** Known once routed; a prepared draft (e.g. TGT) may precede routing. Send re-checks the route. */
+  communicationRouteId: string | null
+  routeProfileId: string | null
+  certificateProfileId: string | null
+  applicationReference: string
+  sourceOperationId: string | null
+}>
+
+export type EdielExecutionContextInput = {
+  [K in keyof EdielExecutionContext]: EdielExecutionContext[K] | null | undefined
+}
+
+export type EdielExecutionContextIssue = {
+  field: keyof EdielExecutionContext | 'context'
+  code: string
+  message: string
+}
+
+export class EdielExecutionContextError extends Error {
+  readonly code = 'ediel_execution_context_invalid'
+  readonly issues: readonly EdielExecutionContextIssue[]
+
+  constructor(issues: readonly EdielExecutionContextIssue[]) {
+    super(`Ediel execution context blockerades: ${issues.map((issue) => `${issue.field}:${issue.code}`).join(', ')}`)
+    this.name = 'EdielExecutionContextError'
+    this.issues = issues
+  }
+}
+
+function nonEmpty(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : null
+}
+
+function nullableText(value: unknown): string | null {
+  return nonEmpty(value)
+}
+
+function validBusinessDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+}
+
+const REQUIRED_TEXT_FIELDS = [
+  'companyId',
+  'messageCode',
+  'businessProcess',
+  'senderActorId',
+  'legalActorEdielId',
+  'senderEdielId',
+  'senderRole',
+  'receiverEdielId',
+  'rulePackId',
+  'applicationReference',
+] as const satisfies readonly (keyof EdielExecutionContext)[]
+
+export function validateEdielExecutionContext(
+  input: EdielExecutionContextInput,
+): EdielExecutionContextIssue[] {
+  const issues: EdielExecutionContextIssue[] = []
+
+  for (const field of REQUIRED_TEXT_FIELDS) {
+    if (!nonEmpty(input[field])) {
+      issues.push({ field, code: 'required', message: `${field} måste vara explicit och tenant-scopat.` })
+    }
+  }
+
+  if (input.environment !== 'test' && input.environment !== 'production') {
+    issues.push({ field: 'environment', code: 'invalid_environment', message: 'Miljö måste vara test eller production.' })
+  }
+  if (input.market !== 'electricity') {
+    issues.push({ field: 'market', code: 'invalid_market', message: 'Canonical Ediel-kärnan stödjer endast electricity.' })
+  }
+  if (input.direction !== 'inbound' && input.direction !== 'outbound') {
+    issues.push({ field: 'direction', code: 'invalid_direction', message: 'Riktning måste vara inbound eller outbound.' })
+  }
+  if (!['PRODAT', 'UTILTS', 'APERAK', 'CONTRL', 'UTILTS_ERR'].includes(String(input.family ?? ''))) {
+    issues.push({ field: 'family', code: 'invalid_family', message: 'Meddelandefamiljen ingår inte i canonical Ediel-kärnan.' })
+  }
+
+  const businessDate = nonEmpty(input.businessDate)
+  if (!businessDate || !validBusinessDate(businessDate)) {
+    issues.push({ field: 'businessDate', code: 'invalid_business_date', message: 'Affärsdatum måste vara ett verkligt YYYY-MM-DD-datum.' })
+  }
+
+  if (input.timeAnchors) {
+    const admission = new Date(input.timeAnchors.admissionAt)
+    if (Number.isNaN(admission.getTime()) || !validBusinessDate(input.timeAnchors.admissionDate)
+      || stockholmBusinessDate(admission) !== input.timeAnchors.admissionDate
+      || input.timeAnchors.businessEffectiveDate !== businessDate) {
+      issues.push({ field: 'timeAnchors', code: 'inconsistent_time_anchors', message: 'Admissionstid och affärstid måste vara separata, giltiga och sammanhängande.' })
+    }
+  }
+
+  if (input.environment === 'production') {
+    const applicationReference = nonEmpty(input.applicationReference)?.toUpperCase() ?? ''
+    if (applicationReference.includes('TGT') || applicationReference.includes('AGT') || applicationReference.includes('EDIELPORTAL')) {
+      issues.push({
+        field: 'applicationReference',
+        code: 'test_reference_in_production',
+        message: 'Produktionskontext får inte använda TGT-, AGT- eller Edielportalreferens.',
+      })
+    }
+  }
+
+  const senderEdielId = nonEmpty(input.senderEdielId)
+  const receiverEdielId = nonEmpty(input.receiverEdielId)
+  if (senderEdielId && receiverEdielId && senderEdielId === receiverEdielId) {
+    issues.push({ field: 'context', code: 'sender_receiver_equal', message: 'Avsändare och mottagare får inte vara samma Ediel-id.' })
+  }
+
+  return issues
+}
+
+export function createEdielExecutionContext(input: EdielExecutionContextInput): EdielExecutionContext {
+  const issues = validateEdielExecutionContext(input)
+  if (issues.length > 0) throw new EdielExecutionContextError(issues)
+
+  return Object.freeze({
+    companyId: nonEmpty(input.companyId)!,
+    environment: input.environment as EdielEnvironment,
+    market: 'electricity',
+    direction: input.direction as EdielDirection,
+    family: input.family as EdielExecutionFamily,
+    messageCode: nonEmpty(input.messageCode)!,
+    transactionSubtype: nullableText(input.transactionSubtype),
+    businessProcess: nonEmpty(input.businessProcess)!,
+    businessDate: nonEmpty(input.businessDate)!,
+    ...(input.timeAnchors ? { timeAnchors: Object.freeze({
+      ...input.timeAnchors,
+      documentTimestamp: input.timeAnchors.documentTimestamp ? Object.freeze({ ...input.timeAnchors.documentTimestamp }) : null,
+      measurementPeriods: Object.freeze(input.timeAnchors.measurementPeriods.map(period => Object.freeze({ ...period }))),
+    }) } : {}),
+    senderActorId: nonEmpty(input.senderActorId)!,
+    legalActorEdielId: nonEmpty(input.legalActorEdielId)!,
+    senderEdielId: nonEmpty(input.senderEdielId)!,
+    senderRole: nonEmpty(input.senderRole)!,
+    senderSubAddress: nullableText(input.senderSubAddress),
+    receiverActorId: nullableText(input.receiverActorId),
+    receiverEdielId: nonEmpty(input.receiverEdielId)!,
+    receiverRole: nullableText(input.receiverRole),
+    receiverSubAddress: nullableText(input.receiverSubAddress),
+    gridAreaCode: nullableText(input.gridAreaCode),
+    rulePackId: nonEmpty(input.rulePackId)!,
+    communicationRouteId: nullableText(input.communicationRouteId),
+    routeProfileId: nullableText(input.routeProfileId),
+    certificateProfileId: nullableText(input.certificateProfileId),
+    applicationReference: nonEmpty(input.applicationReference)!,
+    sourceOperationId: nullableText(input.sourceOperationId),
+  })
+}
+
+export function stockholmBusinessDate(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Stockholm',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${values.year}-${values.month}-${values.day}`
+}

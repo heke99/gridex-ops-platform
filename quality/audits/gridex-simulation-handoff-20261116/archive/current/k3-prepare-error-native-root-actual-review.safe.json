@@ -1,0 +1,22 @@
+{
+  "state": "ROOT_DIRECT_ACTUAL_ERROR_AND_NATIVE_EQUALITY_REVIEW",
+  "observedAt": "2026-11-14T15:16:51.912970+00:00",
+  "refs": [
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261114-k3/LOCAL_RECEIVE-after.native.private.json",
+      "sha256": "d43eb5af53e53af1689cec08ba190770e3013b0815f24d5f8941e088e51d962c"
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261114-k3/LOCAL_PREPARE-after.native.private.json",
+      "sha256": "d173f167777433dce605bb9e08d182597e00ba2381b2d2e50937c4ed5c016123"
+    },
+    {
+      "path": "/tmp/gridex-ee-browser-hold-actual-local-20261114-k3/rpc/LOCAL_PREPARE.rpc-result.private.json",
+      "sha256": "f2ea97f677150ae3ae6e27e70f6910a30ffb2c52f19cab26e8d6ba89408b1bd4"
+    }
+  ],
+  "nativeEqualExcludingObservedAt": true,
+  "actualOnePrepareDenied23514": true,
+  "scope": "Direct parsed native equality and actual RPC result only; whole full-dump equality independently established by Ediel40788, not rehashed here. Earlier ISSUE/RECEIVE commits not erased. No new case credit.",
+  "newCaseCredit": 0
+}

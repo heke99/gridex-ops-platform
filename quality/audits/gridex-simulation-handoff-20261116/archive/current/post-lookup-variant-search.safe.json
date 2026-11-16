@@ -1,0 +1,19 @@
+{
+  "state": "BOUNDED_SOURCE_VARIANT_SEARCH_COMPLETE",
+  "at": "2026-11-15T05:07:51.906458+00:00",
+  "sourceRoot": "/tmp/gridex-pilot57-source-20261113",
+  "scope": "lib and app TS/TSX, eq/filter/match calls on same line mentioning raw_edifact/raw_email/body_text/body_html or eq raw_",
+  "matches": [
+    {
+      "path": "lib/ediel/testing/testCenterRawEdifactImport.ts",
+      "line": 194,
+      "classification": "known exact whole raw payload GET defect addressed by candidate declaration"
+    },
+    {
+      "path": "lib/inbound-mail/edielMailboxPoller.part-1.ts",
+      "line": 1069,
+      "classification": "raw_message_sha256 fixed digest comparison; not whole raw payload"
+    }
+  ],
+  "limits": "Bounded regex/source search only. No claim all multiline/dynamic filters or all repositories exhausted; first attempted sparse candidate app path absent then searched preserved full source. No runtime or scenario pass."
+}

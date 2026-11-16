@@ -1,0 +1,13 @@
+{
+  "state": "ROOT_NORMAL_MAIN_ONLY_HEAP3072_SOURCE_APPROVE_AND_OWN_START_AUTHORIZED",
+  "observedAt": "2026-11-14T17:29:28.204082+00:00",
+  "preparedPath": "/tmp/gridex-normal-main-heap3072-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "ad446717111794b87f19d09d1fd3838c5696296f8dd9b14e28813038a5d0c110",
+  "launcherPath": "/tmp/gridex-normal-main-heap3072-prep-20261114/start-source40-main-heap3072.py",
+  "launcherSHA256": "b57992bad2a1b2621c3df2789054c2ca00e681958d414366ff4bbb2e728574a8",
+  "allSourceNodeNextUtilsAndFourControlPinsChecked": true,
+  "wholeInverseOnlyOneMemoryOptionAndNewExclusiveLog": true,
+  "scope": "Sole producer may start exact qualified normal Main launcher in fresh owned logroot after currentIhealth/source40/processabsence/resources checks, sameport3108/realkeys/no other source/env modifications. Capture actual newPID/start/cmd/childinherited3072option/LOGIN200/RSS+cgroup; no RSS guarantee from heapcap. Use newPID for owned CUSTODY continuation.",
+  "limits": "3072MiB is V8oldspace nottotalRSS; no automaticheapcapretryloop, globalcache/prune/source/deps deletion or changes to privateK5runtime26928/2048/time/auth/native guards.",
+  "backendCallsByRoot": 0
+}

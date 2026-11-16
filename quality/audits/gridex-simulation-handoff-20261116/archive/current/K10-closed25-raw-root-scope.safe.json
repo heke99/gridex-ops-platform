@@ -1,0 +1,23 @@
+{
+  "state": "ROOT_EXACT25_CLOSED_JSON_LOSSLESS_ARCHIVE_SCOPE",
+  "atUtc": "2026-11-15T07:46:32.433248+00:00",
+  "soleProducer": "/root/execute_eight_parts",
+  "proposalPath": "/workspace/gridex-k10-closed-raw-resource-proposal-20261115/PROPOSAL.safe.json",
+  "proposalSHA256": "9d78761417202cc10b29bf82fdecb6ea05f79ffdb25c9f5d7ea026044092b0f3",
+  "dependencyProof": {
+    "path": "/workspace/gridex-k10-closed-raw-resource-proposal-20261115/DEPENDENCY-PROOF.safe.json",
+    "sha256": "48ed4701e1c25930010d2a12cbea0c1a73e2426c97ba836fd10d3bd8694dcebd"
+  },
+  "scriptSHA256": "7ef9a020cdfe986e594851a35958801611e64f11b5b5a9486d3b8098c8089043",
+  "authorizedAliasCount": 25,
+  "authorizedContentGroups": 13,
+  "authorizedPhysicalInodes": 15,
+  "authorization": "Only exactdeclaredclosedK10comparisonJSON aliases. Durablegzip+streamdecodedoriginalSHA/size/fsync/journal BEFOREunlink. PreserveallFullFc/dumps/IMPORT/currentMain/0509/B/E/C/source/nativeLookup5 andcurrent246protectedpaths; nobroaderselection.",
+  "review": "Readwholedriver/allclosure/current13roots/dependencyconflicts empty/pins; completehardlinkaliascount exact,nonglobalFD caveat retained. Legacythirteen/K6doclabels cosmetic only; executable25/13 correct.",
+  "executionConditions": [
+    "IndependentexactsourcepeerACK beforeproduceronceexecution",
+    "Allactualinode/mode/mtime/hash/fullnlinkgroup/closedproof/currentroot/protectedinode/accessibleFDmountguards pass",
+    "Postactualcustody+exclusiveSHArestoreadapter requiredbeforefutureforensicphysicalreuse; noarchivedRawphysicalpresenceclaim",
+    "Noactualfree credit beforeactualreceipt; thisdoesNOTauthorizeFc referencearchive/unlink"
+  ]
+}

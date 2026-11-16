@@ -1,0 +1,146 @@
+{
+  "state": "BOUND_READY",
+  "actorId": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+  "companyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+  "ttlSeconds": 600,
+  "bridgePort": 3159,
+  "mainOrigin": "http://127.0.0.1:3108",
+  "businessOrigin": "http://127.0.0.1:3108",
+  "authOrigin": "http://127.0.0.1:55321",
+  "actualRunDir": "/tmp/gridex-ee-browser-hold-actual-customer-bundle-20261115-a",
+  "expectedRoleNotBefore": 1794764138,
+  "appPid": 3506200,
+  "appStartTicks": "26401747",
+  "appCmdlineSha256": "cf6b8c7f54768eddabdb008810707d52ddf71fb330e81ca1da5623413efcdb28",
+  "actorInputPath": "/tmp/gridex-custody-delete-only-actual-20261114-f-inputs/ee.private.json",
+  "runtimeKeysPath": "/tmp/gridex-local-server-role-window-maintenance-20261115-v/renewed-serverkeys.private.json",
+  "sourceManifestPath": "/tmp/gridex-source40-adoption-20261113/source-forty.safe.json",
+  "sourceManifestKey": "currentForty",
+  "sourceManifestCount": 40,
+  "sourceRoot": "/tmp/gridex-scenario-source-442256",
+  "playwrightPath": "/workspace/gridex-krypkorning-run-20261111/node_modules/playwright",
+  "ssrPath": "/workspace/gridex-krypkorning-run-20261111/node_modules/@supabase/ssr",
+  "catalogDriverPath": "/workspace/gridex-customer-site-term-stream-20261115/normal-catalog-publish-driver.v2.cjs",
+  "catalogDriverSha256": "72e1d0e7c483d366dbd8c5571f81ca9f8f86addf598bf3532e9ea0c444ca43b9",
+  "profileDriverPath": "/workspace/gridex-customer-site-term-stream-20261115/normal-company-profile-driver.v3.cjs",
+  "profileDriverSha256": "b6e78dd61ec41ead5da8cb20e2bbd6eee20b64e525a9e02f5f5462d6fcf12f3d",
+  "roleRenewalRef": {
+    "path": "/tmp/gridex-local-server-role-window-maintenance-20261115-v/key-renewal.safe.json",
+    "sha256": "0138d3f26ff58b1b073978fd89e7674c98a5c2a664f88a8e1147f6a56706a35f"
+  },
+  "priorContextClosureRef": {
+    "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/CLOSED-THREE-NATIVE-ACKS-NO-ATTEST-NO-IMPORT-AUTH0.safe.json",
+    "sha256": "22c0212904de5064737970f496d19a55a8684ede7dbfce1552e3c432e9a1a7eb"
+  },
+  "captureVerifiedToken": true,
+  "catalogConfig": {
+    "state": "BOUND_ONE_NORMAL_CATALOG_PUBLICATION",
+    "actorId": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+    "companyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+    "offerId": "7f0c8b16-fd92-4b47-93fc-b2ea19b81e7d",
+    "origin": "http://127.0.0.1:3108",
+    "beforePath": "/tmp/gridex-customer-catalog-inputs-20261115-a/before.private.json"
+  },
+  "profileConfig": {
+    "state": "BOUND_LOCAL_TEST_COMPANY_PROFILE_FOR_SCENARIOS",
+    "actorId": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+    "companyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+    "origin": "http://127.0.0.1:3108",
+    "nativeRoot": "/tmp/gridex-customer-prerequisites-inputs-20261115-a",
+    "localTestOnlyOperatorReviewSHA256": "f54412080f7bad265a0726bcc9a3bf02c5c337e337430293732a3a65e1c0815a"
+  },
+  "boundFiles": [
+    {
+      "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/LOCAL-TEST-PROFILE-OPERATOR-REVIEW.safe.json",
+      "sha256": "f54412080f7bad265a0726bcc9a3bf02c5c337e337430293732a3a65e1c0815a"
+    },
+    {
+      "path": "/tmp/gridex-normal-main-heap3072-actual-20261115-event-v/main-ready.safe.json",
+      "sha256": "1095ae55cba7a11542990e5784e54d7c3e54399086ebe32a5c86585df615e04e"
+    },
+    {
+      "path": "/tmp/gridex-normal-main-heap3072-EVENT-V-V-prep-20261115/start-source40-main-heap3072-EVENT-V-V.py",
+      "sha256": "64c03aeb4c5c22bc9d3da90807711b4d80edacba46d45ca39a55d9ea2900f71e"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/PROFILE-CURRENT-V.SOURCE-ONLY.safe.json",
+      "sha256": "61bc894fe1e3e1afd0d5cf8052a4f15adc9b401843bf2515d114b60921d5d26b"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-source-peer-20261115/QA-CURRENT-V-PROFILE-SEQUENCE-SOURCE-REVIEW.safe.json",
+      "sha256": "3fbc33af6dc03867e13aafcac0697a84685ff447a72117818953d3c4104cc376"
+    },
+    {
+      "path": "/tmp/gridex-local-server-role-window-maintenance-20261115-v/renewed-serverkeys.private.json",
+      "sha256": "e6e7f5ce96a7c834320d9144f73f428b0efd02229b0839df6187becad245ae1a"
+    },
+    {
+      "path": "/tmp/gridex-local-server-role-window-maintenance-20261115-v/key-renewal.safe.json",
+      "sha256": "0138d3f26ff58b1b073978fd89e7674c98a5c2a664f88a8e1147f6a56706a35f"
+    },
+    {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/CLOSED-THREE-NATIVE-ACKS-NO-ATTEST-NO-IMPORT-AUTH0.safe.json",
+      "sha256": "22c0212904de5064737970f496d19a55a8684ede7dbfce1552e3c432e9a1a7eb"
+    },
+    {
+      "path": "/tmp/gridex-source40-adoption-20261113/source-forty.safe.json",
+      "sha256": "926202775515e13ed806c1809f85eb1397c517b9470413145ded6c69f03347ee"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/hold-ee-customer-prerequisites600.V.cjs",
+      "sha256": "5cb1d7413ae5177378cced093c2faea2abaecbf4eadc6e690cfc3ed3bdb82f46"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/normal-company-profile-driver.v3.cjs",
+      "sha256": "b6e78dd61ec41ead5da8cb20e2bbd6eee20b64e525a9e02f5f5462d6fcf12f3d"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/normal-catalog-publish-driver.v2.cjs",
+      "sha256": "72e1d0e7c483d366dbd8c5571f81ca9f8f86addf598bf3532e9ea0c444ca43b9"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/profile-native.READONLY.sql",
+      "sha256": "b812db0be67ca8e0d0f65bebf489040224eca7a53a5c70aa0c5d4e520498a899"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/catalog-eligibility.READONLY.sql",
+      "sha256": "f218e5f249e35d4ec231177828887d663ee1a0aa0a106644b48236b34af9fb53"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bind-current-V-profile-target.v2.py",
+      "sha256": "bc257a6ad78d12bbc29477d36e9641f1dfef0d9cd63058e03607c4e13763094c"
+    },
+    {
+      "path": "/tmp/gridex-custody-delete-only-actual-20261114-f-inputs/ee.private.json",
+      "sha256": "a004e7b777307e299791c8e7850cf72c0af24a07bc534d108d8935e397fa4471"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/app/admin/companies/[id]/page.tsx",
+      "sha256": "0ae384891d06743675eb556c629521be8f1d65e2161b6c7b9afef340a450c3ec"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/app/admin/companies/[id]/company-profile-actions.ts",
+      "sha256": "25f518760a17015d98205e0402ada90d1d90a728d0396bd0e73c4dad189ad4d0"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/app/admin/companies/[id]/legal-actions.ts",
+      "sha256": "62d642cbf7c597f84977c539dfa82f8ecdfaa9cb34d2e77737f7024e089a323e"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/lib/tenant/companyLegalProfile.ts",
+      "sha256": "2dbe6970ef12234f2e1953a34dd509909f5d0758980e730e00cc23eb1285b55f"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/lib/legal/tenantLegalProfile.ts",
+      "sha256": "372eed3cdee77b806975df4d3144afdc957ee420361baf1ba644a5e668fc866c"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/app/admin/contracts/page.tsx",
+      "sha256": "e17ccbefd3035fc1360f9c25696ab4f58fa70c82b136f257e8bc6478940c040b"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/app/admin/contracts/actions.ts",
+      "sha256": "818e6e0258f9c8c6ffa36e600ddd799c9152d82facb9dcb41f102ab2e1e5073e"
+    }
+  ]
+}

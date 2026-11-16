@@ -1,0 +1,61 @@
+{
+  "state": "FROZEN_INGRESS_FIRST_SOURCE_AND_ACTUAL_OFFLINE_CONTROLS_NOT_EXECUTION_GO",
+  "files": [
+    {
+      "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/SOURCE-CONTRACT.safe.json",
+      "sha256": "231354346a56e43a1de713e52f5f0fda6ca3cb600ab5a9eafe4ae6fbb755445b",
+      "bytes": 5447
+    },
+    {
+      "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/ingress-ui-driver.cjs",
+      "sha256": "0b4f37623f9cf616f8fd19d2eb539793bed9c8892abff50988be009111c92d49",
+      "bytes": 13301
+    },
+    {
+      "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/ingress-oracle.cjs",
+      "sha256": "d47d167a0da9bf966226a9a104c671ee9b3985bc2876c1db7bacab672d3657dd",
+      "bytes": 2661
+    },
+    {
+      "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/test-ingress-oracle.cjs",
+      "sha256": "b47853728c1852f44ae76caa06d1f752b1e84b54363e6ed6f9dc27eeae2df2aa",
+      "bytes": 2214
+    },
+    {
+      "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/read-own-ingress.v3.READONLY.sql",
+      "sha256": "0f19d64f34bcc36a86bc6679bcc7ef408790dcc78ad94fe8af47661a3cb49342",
+      "bytes": 5306
+    },
+    {
+      "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/NATIVE-READER.v3.SOURCE-ONLY.safe.json",
+      "sha256": "141b29fb145f52d378f1a29253960b09ea2cda11ea656021fc33b0c2c8aae4b3",
+      "bytes": 787
+    },
+    {
+      "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/RUNNER-CONTRACT.UNARMED.safe.json",
+      "sha256": "da56d512a0ee16794b709c68c538e4a875f0c46523da363206e420f28ced4c08",
+      "bytes": 3402
+    },
+    {
+      "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/NODE64-OFFLINE-ACTUAL.safe.json",
+      "sha256": "50da709d16e0109320dd67617d471ec7d8a7ea075c7e46874e894eeb9340b81e",
+      "bytes": 2156
+    },
+    {
+      "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/README.sv.md",
+      "sha256": "6534794a3971309f026656c757d8db5eeca6c281bfcb0c832f6bf5bdc55bd0b7",
+      "bytes": 1809
+    }
+  ],
+  "sourceParent": {
+    "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/PREPARED.SOURCE-ONLY.safe.json",
+    "sha256": "e2901753ad84668317e8001b3085bee622fdcfb6b4f933ef9a2db5aae59c3858"
+  },
+  "actualSQLOrBrowserProductAttempt": false,
+  "actualOfflineControls": 10,
+  "canonicalCountsUnchanged": [
+    38,
+    1,
+    66
+  ]
+}

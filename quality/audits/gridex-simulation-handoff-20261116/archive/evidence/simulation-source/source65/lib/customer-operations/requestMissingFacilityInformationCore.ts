@@ -1,0 +1,1329 @@
+// lib/customer-operations/requestMissingFacilityInformation.ts
+//
+// Shared orchestrator for the manual (non-Ediel) grid-owner information request
+// pipeline. This is the single entry point used by the website/API customer
+// application, manual customer intake, the customer card button and any future
+// import/intake flow. There must be NO duplicate logic between website and admin.
+//
+// It:
+//   * resolves the tenant from the authenticated context + object ownership
+//     (never trusts a company_id from form input),
+//   * detects a missing facility_id (anläggnings-id),
+//   * blocks PRODAT Z01 before render (Swedish business blocker),
+//   * resolves the grid owner + manual contact channel (tenant override then
+//     platform default),
+//   * verifies a valid power of attorney with the correct scope,
+//   * creates or reuses a manual information request (idempotent),
+//   * queues a manual e-mail (worker sends it, never the UI),
+//   * attaches the POA snapshot,
+//   * writes audit events and sets the customer/site next action.
+//
+// Manual e-mail is NOT Ediel: this never creates an ediel_outbox row.
+
+import { createHash } from 'node:crypto'
+import { supabaseService } from '@/lib/supabase/service'
+import { assertOutboundAllowed } from '@/lib/platform/outboundFreeze'
+import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
+import {
+  renderManualEmailTemplate,
+  type ManualEmailTemplateKey,
+} from '@/lib/email/manualGridOwnerTemplates'
+import {
+  resolveManualOperationsMailbox,
+  resolveManualMailboxEnvironment,
+  type ManualOperationsMailbox,
+} from '@/lib/email/manualOperationsMailbox'
+import { ensurePoaPdfArchive } from '@/lib/customers/poaDocuments'
+import { ensurePoaVerificationReference } from '@/lib/customers/poaEvidenceCompletion'
+import { poaMailEvidence, poaMailEvidenceIssues, poaMailEvidenceFingerprint } from '@/lib/email/poaMailEvidence'
+import {
+  hasExternallySendablePoa,
+  poaMissingExternalFields,
+} from '@/lib/customers/poaReadiness'
+import {
+  MANUAL_POA_SELECT,
+  findGridOwnerManualContact,
+  manualPoaIsCurrentlyValid,
+  poaScopeAllows,
+} from '@/lib/customer-operations/manualGridOwnerSendGuards'
+
+type JsonRecord = Record<string, unknown>
+
+export type ManualInformationChannelType =
+  | 'facility_information_request'
+  | 'supplier_switch_manual'
+  | 'power_of_attorney'
+  | 'ai_list'
+  | 'escalation'
+
+export type ManualInformationRequestStatus =
+  | 'not_needed'
+  | 'manual_email_queued'
+  | 'waiting_manual_response'
+  | 'needs_review'
+  | 'blocked_missing_poa'
+  | 'blocked_missing_grid_owner_contact'
+  | 'blocked_missing_manual_mailbox'
+  | 'blocked'
+
+export type RequestMissingFacilityInformationInput = {
+  // company_id ALWAYS comes from the authenticated context, never from a form.
+  companyId: string
+  customerId: string
+  siteId: string
+  actorUserId?: string | null
+  source?: string | null
+  requestType?: string
+  channelType?: ManualInformationChannelType
+  templateKey?: ManualEmailTemplateKey
+  requiredScope?: string
+}
+
+export type RequestMissingFacilityInformationResult = {
+  status: ManualInformationRequestStatus
+  requestId: string | null
+  caseReference: string | null
+  channel: 'manual_email' | null
+  emailOutboxId: string | null
+  poaId: string | null
+  nextAction: { code: string; message: string }
+  blockers: Array<{ code: string; message: string }>
+}
+
+function clean(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+// Reads the first non-empty value across a set of schema aliases. Numbers and
+// other scalar values are coerced to a trimmed string so a present DB value is
+// never dropped just because the column is not a plain string.
+function firstField(record: JsonRecord | null | undefined, keys: string[]): string | null {
+  if (!record) return null
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if (trimmed) return trimmed
+    } else if (typeof value === 'number' && Number.isFinite(value)) {
+      return String(value)
+    }
+  }
+  return null
+}
+
+function jsonObject(value: unknown): JsonRecord | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : null
+}
+
+function nestedField(record: JsonRecord | null | undefined, keys: string[]): string | null {
+  let cursor: unknown = record
+  for (const key of keys) {
+    const object = jsonObject(cursor)
+    if (!object) return null
+    cursor = object[key]
+  }
+  return clean(cursor)
+}
+
+function normalizePriceArea(value: unknown): string | null {
+  return clean(value)?.toUpperCase() ?? null
+}
+
+function resolveRequestPriceArea(site: JsonRecord | null | undefined): string | null {
+  return normalizePriceArea(firstField(site, ['price_area_code', 'price_area', 'bidding_zone_code']))
+    ?? normalizePriceArea(nestedField(site, ['metadata', 'energy_resolution', 'priceArea']))
+    ?? normalizePriceArea(nestedField(site, ['metadata', 'energy_resolution', 'price_area']))
+    ?? normalizePriceArea(nestedField(site, ['metadata', 'claimed_price_area_code']))
+}
+
+function missingSchema(error: unknown): boolean {
+  const code = String((error as { code?: unknown } | null)?.code ?? '')
+  const message = String((error as { message?: unknown } | null)?.message ?? '')
+  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return String((error as { code?: unknown } | null)?.code ?? '') === '23505'
+}
+
+function caseReferenceFor(requestId: string): string {
+  return `GX-FIR-${requestId.replace(/-/g, '').toUpperCase()}`
+}
+
+// Resolves a human customer name across schema aliases. Critically, the
+// first_name + last_name join is coerced to null when empty so this never
+// returns an empty string (an empty string is NOT caught by `??`).
+function customerName(customer: JsonRecord | null | undefined): string | null {
+  const direct = firstField(customer, ['company_name', 'full_name', 'name', 'display_name'])
+  if (direct) return direct
+  const joined = [
+    firstField(customer, ['first_name', 'firstName', 'given_name']),
+    firstField(customer, ['last_name', 'lastName', 'family_name']),
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(' ')
+    .trim()
+  if (joined) return joined
+  return firstField(customer, ['customer_number', 'customerNumber'])
+}
+
+// Reads every valid identity alias (person- or organisationsnummer).
+function customerIdentity(customer: JsonRecord | null | undefined): string | null {
+  return firstField(customer, [
+    'personal_number',
+    'org_number',
+    'identity_number',
+    'organization_number',
+    'organisation_number',
+    'identityNumber',
+    'organizationNumber',
+    'organisationNumber',
+    'personalNumber',
+    'orgNumber',
+  ])
+}
+
+function customerNumber(customer: JsonRecord | null | undefined): string | null {
+  return firstField(customer, ['customer_number', 'customerNumber', 'external_customer_id', 'externalCustomerId'])
+}
+
+async function readSite(input: { companyId: string; customerId: string; siteId: string }) {
+  const { data, error } = await supabaseService
+    .from('customer_sites')
+    .select('*')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('id', input.siteId)
+    .maybeSingle()
+  if (error) throw error
+  return (data as JsonRecord | null) ?? null
+}
+
+async function readCustomer(companyId: string, customerId: string) {
+  // Select '*' so a single missing optional column (e.g. protected_identity)
+  // can NEVER collapse the whole customer to null and blank out the e-mail.
+  // The previous narrow projection caused production emails to render with
+  // empty Kundnummer/Namn/Person-organisationsnummer fields.
+  const primary = await supabaseService
+    .from('customers')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('id', customerId)
+    .maybeSingle()
+  if (!primary.error) return (primary.data as JsonRecord | null) ?? null
+  if (!missingSchema(primary.error)) throw primary.error
+
+  // Extremely defensive fallback: if even '*' fails (impossible for a real
+  // table, but keeps the orchestrator resilient), fetch the minimal identity
+  // columns one more time before giving up.
+  const fallback = await supabaseService
+    .from('customers')
+    .select('id,company_id,customer_number,full_name')
+    .eq('company_id', companyId)
+    .eq('id', customerId)
+    .maybeSingle()
+  if (fallback.error && !missingSchema(fallback.error)) throw fallback.error
+  return (fallback.data as JsonRecord | null) ?? null
+}
+
+// Signed POA with the correct scope. Scope is matched against scope_summary
+// (jsonb scopes), the scope text column and power_of_attorney_scopes rows.
+async function readTenantCompanyIdentity(companyId: string): Promise<{ name: string; organizationNumber: string | null }> {
+  const { data, error } = await supabaseService.from('companies').select('*').eq('id', companyId).maybeSingle()
+  if (error) throw error
+  const row = (data as JsonRecord | null) ?? null
+  return {
+    name: firstField(row, ['legal_name', 'company_name', 'display_name', 'name']) ?? 'Elhandelsbolaget',
+    organizationNumber: firstField(row, ['org_number', 'organization_number', 'organisation_number']),
+  }
+}
+
+async function findValidPowerOfAttorney(input: {
+  companyId: string
+  customerId: string
+  siteId: string
+  requiredScope: string
+}): Promise<JsonRecord | null> {
+  const { data, error } = await supabaseService
+    .from('powers_of_attorney')
+    .select(MANUAL_POA_SELECT)
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .in('status', ['signed', 'active', 'accepted'])
+    .order('created_at', { ascending: false })
+    .limit(25)
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+  const rows = (data ?? []) as unknown as JsonRecord[]
+  const now = new Date()
+  const match = rows.find((row) => {
+    const rowSite = clean(row.site_id) ?? clean(row.customer_site_id)
+    if (rowSite !== input.siteId) return false
+    // Canonical lifecycle: valid_from/valid_to/valid_until/expires_at,
+    // revoked_at and replacement all count, not only the status text.
+    if (!manualPoaIsCurrentlyValid(row, now)) return false
+    return poaScopeAllows(row, input.requiredScope)
+  })
+  return match ?? null
+}
+
+const findContactChannelEmail = findGridOwnerManualContact
+
+export type ManualRecipientResolutionMode =
+  | 'real_grid_owner_contact'
+  | 'safe_recipient_override'
+  | 'manual_override'
+  | 'missing_contact'
+
+export type ManualRecipientResolution = {
+  resolution_mode: ManualRecipientResolutionMode
+  selected_to_email: string | null
+  actual_grid_owner_contact_email: string | null
+  contact_source_table: string | null
+  contact_source_id: string | null
+  contact_source: string | null
+  contact_verified: boolean
+  environment: 'test' | 'production'
+  reason: string
+  production_safe_override_warning: boolean
+  externally_sendable: boolean
+}
+
+// Explicit recipient resolution: production + real operation uses the actual
+// grid owner contact unless a safe-recipient override is explicitly
+// configured. The chosen recipient and WHY it was chosen is always recorded on
+// the outbox row and the request, so a test/staging safe recipient can never
+// be mistaken for a real grid-owner send (and vice versa).
+export function resolveManualRecipient(contact: {
+  email: string
+  source: string
+  contactChannelId: string | null
+  isVerified: boolean
+}): ManualRecipientResolution {
+  const environment = resolveManualMailboxEnvironment()
+  const safeRecipientOverride = clean(process.env.MANUAL_GRID_OWNER_SAFE_RECIPIENT)
+  if (safeRecipientOverride) {
+    return {
+      resolution_mode: 'safe_recipient_override',
+      selected_to_email: safeRecipientOverride,
+      actual_grid_owner_contact_email: contact.email,
+      contact_source_table: 'grid_owner_contact_channels',
+      contact_source_id: contact.contactChannelId,
+      contact_source: contact.source,
+      contact_verified: contact.isVerified,
+      environment,
+      reason: environment === 'production'
+        ? 'MANUAL_GRID_OWNER_SAFE_RECIPIENT är satt i PRODUKTION: utskicket går till intern säker adress i stället för nätägarens riktiga kontakt.'
+        : 'MANUAL_GRID_OWNER_SAFE_RECIPIENT är satt: test-/staging-utskick går till intern säker adress.',
+      production_safe_override_warning: environment === 'production',
+      externally_sendable: false,
+    }
+  }
+  if (environment !== 'production') {
+    // Fail closed outside an explicit production deployment (previews, local,
+    // tests): never mail the real grid owner without a safe-recipient override.
+    return {
+      resolution_mode: 'missing_contact',
+      selected_to_email: null,
+      actual_grid_owner_contact_email: contact.email,
+      contact_source_table: 'grid_owner_contact_channels',
+      contact_source_id: contact.contactChannelId,
+      contact_source: contact.source,
+      contact_verified: contact.isVerified,
+      environment,
+      reason: 'Miljön är inte produktion och MANUAL_GRID_OWNER_SAFE_RECIPIENT saknas: nätägaren kontaktas inte från test-/förhandsmiljö.',
+      production_safe_override_warning: false,
+      externally_sendable: false,
+    }
+  }
+  return {
+    resolution_mode: 'real_grid_owner_contact',
+    selected_to_email: contact.email,
+    actual_grid_owner_contact_email: contact.email,
+    contact_source_table: 'grid_owner_contact_channels',
+    contact_source_id: contact.contactChannelId,
+    contact_source: contact.source,
+    contact_verified: contact.isVerified,
+    environment,
+    reason: 'Verifierad kontaktväg för nätägaren används.',
+    production_safe_override_warning: false,
+    externally_sendable: true,
+  }
+}
+
+async function findOpenManualRequest(input: { companyId: string; siteId: string; requestType: string; gridOwnerId: string; siteAddressHash: string }) {
+  const { data, error } = await supabaseService
+    .from('grid_owner_information_requests')
+    .select('*')
+    .eq('company_id', input.companyId)
+    .eq('customer_site_id', input.siteId)
+    .eq('request_type', input.requestType)
+    .eq('grid_owner_id', input.gridOwnerId)
+    .eq('site_address_hash', input.siteAddressHash)
+    .in('status', [
+      'draft', 'ready_to_send', 'ready_to_send_manual_email', 'manual_email_queued',
+      'manual_email_sent', 'waiting_manual_response', 'manual_response_received', 'needs_review',
+      // Persisted configuration blockers are open requests too: when the gate
+      // passes later (POA signed, contact added, mailbox configured) the same
+      // request row must be reused and advanced instead of colliding with the
+      // open-request unique index.
+      'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox',
+    ])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+  return (data as JsonRecord | null) ?? null
+}
+
+// Mirror of the Ediel-side guard (lib/energy/gridOwnerRequests.ts): when an
+// Ediel facility lookup is already open for the site, the manual pipeline must
+// not open a second, competing conversation with the grid owner.
+async function findOpenEdielFacilityLookup(input: { companyId: string; siteId: string }) {
+  const { data, error } = await supabaseService
+    .from('grid_owner_information_requests')
+    .select('id,status,request_type,channel')
+    .eq('company_id', input.companyId)
+    .eq('customer_site_id', input.siteId)
+    .eq('request_type', 'facility_lookup')
+    .neq('channel', 'manual_email')
+    .in('status', ['draft', 'ready_to_send', 'sent', 'waiting_response'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+  return (data as JsonRecord | null) ?? null
+}
+
+type ManualEmailAttachment = {
+  filename: string
+  content: string
+  contentType: string
+  kind: string
+  poa_id: string | null
+  poa_document_path?: string | null
+  poa_evidence_fingerprint?: string
+}
+
+// Builds the EXTERNAL fullmakt attachment. Never attaches raw JSON: attaches an
+// uploaded/signed PDF when one exists, otherwise generates a readable PDF from
+// the locked POA/legal snapshot. Emits power_of_attorney_events for audit.
+async function buildPoaAttachment(
+  poa: JsonRecord | null,
+  caseReference: string,
+  context: {
+    companyId: string
+    customerName: string | null
+    customerIdentity: string | null
+    siteAddress: string | null
+    sitePostalCode: string | null
+    siteCity: string | null
+    tenantCompanyName: string | null
+    tenantOrganizationNumber: string | null
+    actorUserId?: string | null
+  },
+): Promise<ManualEmailAttachment[]> {
+  if (!poa) return []
+  const archived = await ensurePoaPdfArchive({ companyId: context.companyId, customerId: String(poa.customer_id), powerOfAttorneyId: String(poa.id) })
+
+  return [
+    {
+      filename: `fullmakt-${caseReference}.pdf`,
+      content: archived.pdf.toString('base64'),
+      contentType: 'application/pdf',
+      kind: 'power_of_attorney_archived_pdf',
+      poa_id: clean(poa.id),
+      poa_document_path: archived.path,
+      poa_evidence_fingerprint: poaMailEvidenceFingerprint(poa),
+    },
+  ]
+}
+
+function poaMissingFields(poa: JsonRecord | null, customerIdentity: string | null): string[] {
+  return poaMissingExternalFields(poa, { customerIdentity })
+}
+
+async function markRequestNeedsReview(input: {
+  companyId: string
+  requestId: string
+  lastErrorCode: string
+  lastErrorMessage: string
+  missingFields: string[]
+  baseMetadata?: JsonRecord | null
+}) {
+  const now = new Date().toISOString()
+  const baseMetadata =
+    input.baseMetadata && typeof input.baseMetadata === 'object' ? input.baseMetadata : {}
+  let update = supabaseService
+    .from('grid_owner_information_requests')
+    .update({
+      status: 'needs_review',
+      last_error_code: input.lastErrorCode,
+      last_error_message: input.lastErrorMessage,
+      metadata: { ...baseMetadata, missing_fields: input.missingFields, blocked_reason: input.lastErrorCode },
+      updated_at: now,
+    })
+    .eq('company_id', input.companyId)
+    .eq('id', input.requestId)
+    .in('status', [
+      'draft', 'ready_to_send', 'ready_to_send_manual_email', 'needs_review', 'manual_email_queued',
+      'manual_email_sent', 'waiting_manual_response', 'manual_response_received',
+      'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox',
+    ])
+    .select('id')
+  // Preserve a reply or other metadata written while this operation awaited IO.
+  update = input.baseMetadata == null
+    ? update.is('metadata', null)
+    : update.eq('metadata', JSON.stringify(input.baseMetadata))
+  const result = await update
+  if (result.error) throw result.error
+  if (!result.data?.length) {
+    const current = await supabaseService.from('grid_owner_information_requests').select('id')
+      .eq('company_id', input.companyId).eq('id', input.requestId).maybeSingle()
+    if (current.error) throw current.error
+    if (!current.data) throw new Error('Nätägarärendet kunde inte uppdateras för rätt tenant.')
+  }
+}
+
+export async function requestMissingFacilityInformation(
+  input: RequestMissingFacilityInformationInput,
+): Promise<RequestMissingFacilityInformationResult> {
+  const requestType = input.requestType ?? 'facility_identifier_lookup'
+  const channelType = input.channelType ?? 'facility_information_request'
+  const templateKey = input.templateKey ?? 'facility_information_request'
+  const requiredScope = input.requiredScope ?? 'facility_information_lookup'
+
+  const blocked = (
+    status: ManualInformationRequestStatus,
+    code: string,
+    message: string,
+  ): RequestMissingFacilityInformationResult => ({
+    status,
+    requestId: null,
+    caseReference: null,
+    channel: null,
+    emailOutboxId: null,
+    poaId: null,
+    nextAction: { code, message },
+    blockers: [{ code, message }],
+  })
+
+  // Configuration blockers (missing POA/contact/mailbox) are persisted as
+  // request rows so the API/UI always receives a request_id and the blocker is
+  // auditable — an ephemeral in-memory blocker leaves "waiting" UIs with
+  // nothing to point at. The row is reused and advanced when the gate passes.
+  const blockedPersisted = async (input2: {
+    status: 'blocked_missing_poa' | 'blocked_missing_grid_owner_contact' | 'blocked_missing_manual_mailbox'
+    code: string
+    message: string
+    gridOwnerId: string
+    gridAreaCode: string | null
+    priceArea?: string | null
+    poaId?: string | null
+    siteAddressHash: string
+  }): Promise<RequestMissingFacilityInformationResult> => {
+    const now2 = new Date().toISOString()
+    let request = await findOpenManualRequest({ companyId: input.companyId, siteId: input.siteId, requestType, gridOwnerId: input2.gridOwnerId, siteAddressHash: input2.siteAddressHash })
+    if (!request) {
+      const inserted = await supabaseService
+        .from('grid_owner_information_requests')
+        .insert({
+          company_id: input.companyId,
+          customer_id: input.customerId,
+          customer_site_id: input.siteId,
+          grid_owner_id: input2.gridOwnerId,
+          grid_area_code: input2.gridAreaCode,
+          price_area: input2.priceArea ?? null,
+          site_address_hash: input2.siteAddressHash,
+          request_type: requestType,
+          channel: 'manual_email',
+          status: input2.status,
+          requires_poa: true,
+          poa_id: clean(input2.poaId),
+          last_error_code: input2.code,
+          last_error_message: input2.message,
+          created_by: clean(input.actorUserId),
+          updated_by: clean(input.actorUserId),
+          metadata: {
+            source: input.source ?? 'manual_information_orchestrator',
+            channel_type: channelType,
+            blocked_reason: input2.code,
+          },
+          created_at: now2,
+          updated_at: now2,
+        })
+        .select('*')
+        .maybeSingle()
+      if (inserted.error) {
+        if (isUniqueViolation(inserted.error)) {
+          request = await findOpenManualRequest({ companyId: input.companyId, siteId: input.siteId, requestType, gridOwnerId: input2.gridOwnerId, siteAddressHash: input2.siteAddressHash })
+        } else {
+          throw inserted.error
+        }
+      } else {
+        request = (inserted.data as JsonRecord | null) ?? null
+      }
+    } else {
+      // Only move pre-send/blocked rows into the (possibly different) blocked
+      // status; never downgrade a queued/waiting conversation.
+      const blockedUpdate = await supabaseService
+        .from('grid_owner_information_requests')
+        .update({
+          status: input2.status,
+          grid_owner_id: input2.gridOwnerId,
+          grid_area_code: input2.gridAreaCode,
+          price_area: input2.priceArea ?? null,
+          site_address_hash: input2.siteAddressHash,
+          last_error_code: input2.code,
+          last_error_message: input2.message,
+          updated_by: clean(input.actorUserId),
+          updated_at: now2,
+        })
+        .eq('company_id', input.companyId)
+        .eq('id', String(request.id))
+        .in('status', ['draft', 'ready_to_send', 'ready_to_send_manual_email', 'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox'])
+        .select('id')
+      if (blockedUpdate.error) throw blockedUpdate.error
+      if (!blockedUpdate.data?.length) throw new Error('Blockerad nätägarbegäran kunde inte uppdateras för rätt tenant.')
+    }
+    const requestId = request ? String(request.id) : null
+    let caseReference = request ? clean(request.case_reference) : null
+    if (requestId && !caseReference) {
+      caseReference = caseReferenceFor(requestId)
+      await supabaseService
+        .from('grid_owner_information_requests')
+        .update({ case_reference: caseReference, updated_at: new Date().toISOString() })
+        .eq('company_id', input.companyId)
+        .eq('id', requestId)
+        .is('case_reference', null)
+    }
+    return {
+      status: input2.status,
+      requestId,
+      caseReference,
+      channel: 'manual_email',
+      emailOutboxId: null,
+      poaId: clean(input2.poaId),
+      nextAction: { code: input2.code, message: input2.message },
+      blockers: [{ code: input2.code, message: input2.message }],
+    }
+  }
+
+  const site = await readSite(input)
+  if (!site) {
+    return blocked('blocked', 'customer_site_missing', 'Anläggning saknas. Komplettera kundkortet innan nätägaruppgifter kan begäras.')
+  }
+
+  // facility_id present -> manual facility request is not needed.
+  const facilityId = clean(site.facility_id) ?? clean(site.normalized_facility_id)
+  if (facilityId) {
+    return {
+      status: 'not_needed',
+      requestId: null,
+      caseReference: null,
+      channel: null,
+      emailOutboxId: null,
+      poaId: null,
+      nextAction: { code: 'facility_identifier_present', message: 'Anläggnings-ID finns. Fortsätt med leverantörsbyte.' },
+      blockers: [],
+    }
+  }
+
+  // Canonical external-send authority is the site-bound grid_owner_id only.
+  // selected_grid_owner_id is a review candidate and must never choose recipient.
+  const gridOwnerId = clean(site.grid_owner_id)
+  const siteAddressHash = clean(site.address_hash)
+  const requestPriceArea = resolveRequestPriceArea(site)
+  if (!gridOwnerId) {
+    return blocked('blocked', 'grid_owner_missing', 'Nätägare saknas. Verifiera nätområde/nätägare innan uppgifter kan begäras.')
+  }
+  if (!siteAddressHash) {
+    return blocked('blocked', 'site_address_hash_missing', 'Anläggningsadressen saknar verifierad adressversion. Spara adressen på nytt innan nätägaren kontaktas.')
+  }
+
+  const customer = await readCustomer(input.companyId, input.customerId)
+  const protectedIdentity = site.protected_identity === true || customer?.protected_identity === true
+
+  // Power of attorney gate.
+  let poa = await findValidPowerOfAttorney({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    siteId: input.siteId,
+    requiredScope,
+  })
+  if (!poa) {
+    return blockedPersisted({
+      status: 'blocked_missing_poa',
+      code: 'power_of_attorney_required',
+      message: 'Fullmakt saknas. Skicka fullmaktsbegäran till kunden innan uppgifter kan begäras.',
+      gridOwnerId,
+      gridAreaCode: clean(site.grid_area_code),
+      priceArea: requestPriceArea,
+      siteAddressHash,
+    })
+  }
+
+  // Grid owner manual contact channel gate (RECIPIENT address per grid owner).
+  const contact = await findContactChannelEmail({ companyId: input.companyId, gridOwnerId, channelType })
+  if (!contact) {
+    return blockedPersisted({
+      status: 'blocked_missing_grid_owner_contact',
+      code: 'grid_owner_contact_required',
+      message: 'Kontaktväg till nätägaren saknas. Lägg till e-postadress innan begäran kan skickas.',
+      gridOwnerId,
+      gridAreaCode: clean(site.grid_area_code),
+      priceArea: requestPriceArea,
+      poaId: clean(poa.id),
+      siteAddressHash,
+    })
+  }
+
+  await assertOutboundAllowed({ companyId: input.companyId, channel: 'manual_email' })
+
+  // Manual operations mailbox gate (Gridex SENDER mailbox). This is a distinct
+  // concept from grid_owner_contact_channels (recipient) and MUST NOT be the
+  // Ediel mailbox. If no manual mailbox is configured we block sending; we never
+  // silently fall back to ediel@gridex.se.
+  const manualMailbox: ManualOperationsMailbox | null = await resolveManualOperationsMailbox({
+    companyId: input.companyId,
+    channelType,
+  })
+  if (!manualMailbox) {
+    return blockedPersisted({
+      status: 'blocked_missing_manual_mailbox',
+      code: 'manual_mailbox_required',
+      message: 'Manuell e-postbrevlåda saknas. Lägg till avsändaradress för leverantörsbyte/fullmakt i superadmin innan begäran kan skickas.',
+      gridOwnerId,
+      gridAreaCode: clean(site.grid_area_code),
+      priceArea: requestPriceArea,
+      poaId: clean(poa.id),
+      siteAddressHash,
+    })
+  }
+  const senderFromEmail = manualMailbox.fromEmail
+  const senderReplyTo = manualMailbox.replyToEmail ?? manualMailbox.fromEmail
+
+  const now = new Date().toISOString()
+  const requestedFields = ['facility_id', 'metering_point_id', 'grid_area_code', 'annual_consumption', 'current_supplier', 'metering_method', 'reporting_frequency']
+
+  // An open Ediel facility lookup owns the grid-owner conversation for this
+  // site: do not open a parallel manual request.
+  const openEdielLookup = await findOpenEdielFacilityLookup({ companyId: input.companyId, siteId: input.siteId })
+  if (openEdielLookup) {
+    return blocked(
+      'blocked',
+      'ediel_facility_lookup_in_progress',
+      'En Ediel-baserad anläggningsförfrågan pågår redan för anläggningen. Invänta svaret i stället för att skicka en manuell begäran.',
+    )
+  }
+
+  // Create or reuse the manual information request (idempotent per open site/type).
+  let request = await findOpenManualRequest({ companyId: input.companyId, siteId: input.siteId, requestType, gridOwnerId, siteAddressHash })
+  const reusedRequest = Boolean(request)
+  const initialRequestMetadata = request?.metadata ?? null
+  const requestMetadata = (request?.metadata as JsonRecord | null) ?? {}
+  const previousReply = (requestMetadata.counterparty_reply as JsonRecord | null) ?? {}
+  if (request && previousReply.requires_review === true) {
+    const replacementPoa = clean(previousReply.poa_id) && clean(previousReply.poa_id) !== clean(poa.id)
+    if (!replacementPoa) {
+      const message = 'Motpartens svar måste åtgärdas innan nytt utskick. Komplettera eller ersätt fullmakten och granska mottagaren.'
+      return {
+        status: 'needs_review', requestId: String(request.id), caseReference: clean(request.case_reference), channel: 'manual_email', emailOutboxId: null,
+        poaId: clean(poa.id), nextAction: { code: 'counterparty_reply_requires_review', message }, blockers: [{ code: 'counterparty_reply_requires_review', message }],
+      }
+    }
+    request = { ...request, metadata: { ...requestMetadata, counterparty_reply: { ...previousReply, requires_review: false, resolved_with_poa_id: poa.id, resolved_at: now } } }
+  }
+  if (request) {
+    const updated = await supabaseService
+      .from('grid_owner_information_requests')
+      .update({
+        grid_owner_id: gridOwnerId,
+        grid_area_code: clean(site.grid_area_code),
+        price_area: requestPriceArea,
+        site_address_hash: siteAddressHash,
+        updated_by: clean(input.actorUserId),
+        updated_at: now,
+      })
+      .eq('company_id', input.companyId)
+      .eq('id', String(request.id))
+      .select('id')
+    if (updated.error) throw updated.error
+    if (!updated.data?.length) throw new Error('Befintligt nätägarärende kunde inte uppdateras för rätt tenant.')
+    request = { ...request, grid_owner_id: gridOwnerId, grid_area_code: clean(site.grid_area_code), price_area: requestPriceArea, site_address_hash: siteAddressHash }
+  }
+  if (!request) {
+    const insert = {
+      company_id: input.companyId,
+      customer_id: input.customerId,
+      customer_site_id: input.siteId,
+      grid_owner_id: gridOwnerId,
+      grid_area_code: clean(site.grid_area_code),
+      price_area: requestPriceArea,
+      site_address_hash: siteAddressHash,
+      request_type: requestType,
+      channel: 'manual_email',
+      status: protectedIdentity ? 'needs_review' : 'ready_to_send_manual_email',
+      requested_fields: requestedFields,
+      requires_poa: true,
+      poa_id: clean(poa.id),
+      recipient_email: contact.email,
+      recipient_contact_channel_id: contact.contactChannelId,
+      from_email: senderFromEmail,
+      reply_to: senderReplyTo,
+      created_by: clean(input.actorUserId),
+      updated_by: clean(input.actorUserId),
+      metadata: {
+        source: input.source ?? 'manual_information_orchestrator',
+        channel_type: channelType,
+        contact_source: contact.source,
+        protected_identity: protectedIdentity,
+        manual_mailbox_id: manualMailbox.id,
+        manual_mailbox_type: manualMailbox.mailboxType,
+      },
+      created_at: now,
+      updated_at: now,
+    }
+    const inserted = await supabaseService
+      .from('grid_owner_information_requests')
+      .insert(insert)
+      .select('*')
+      .maybeSingle()
+    if (inserted.error) {
+      // Lost a concurrent race on the open-request unique index -> reuse winner.
+      if (isUniqueViolation(inserted.error)) {
+        request = await findOpenManualRequest({ companyId: input.companyId, siteId: input.siteId, requestType, gridOwnerId, siteAddressHash })
+      } else {
+        throw inserted.error
+      }
+    } else {
+      request = (inserted.data as JsonRecord | null) ?? null
+    }
+  }
+
+  if (!request) {
+    return blocked('blocked', 'technical_error', 'Begäran kunde inte skapas. Försök igen.')
+  }
+
+  const queueMetadataSnapshot = reusedRequest ? initialRequestMetadata : (request.metadata ?? null)
+  // A concurrent insert winner may already have received a reply after our
+  // original lookup. Never bypass its hold on the uniqueness-recovery path.
+  if (!reusedRequest && ((request.metadata as JsonRecord | null)?.counterparty_reply as JsonRecord | null)?.requires_review === true) {
+    const message = 'Ett nytt motpartssvar behöver granskas innan ärendet kan köas.'
+    return { status: 'needs_review', requestId: String(request.id), caseReference: clean(request.case_reference), channel: 'manual_email',
+      emailOutboxId: null, poaId: clean(poa.id), nextAction: { code: 'counterparty_reply_requires_review', message },
+      blockers: [{ code: 'counterparty_reply_requires_review', message }] }
+  }
+  const requestId = String(request.id)
+  let caseReference = clean(request.case_reference)
+  if (!caseReference) {
+    caseReference = caseReferenceFor(requestId)
+    await supabaseService
+      .from('grid_owner_information_requests')
+      .update({ case_reference: caseReference, updated_at: new Date().toISOString() })
+      .eq('company_id', input.companyId)
+      .eq('id', requestId)
+      .is('case_reference', null)
+  }
+
+  // Protected identity: always manual review, never auto-send a manual e-mail.
+  if (protectedIdentity) {
+    await patchSiteNextAction({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      siteId: input.siteId,
+      status: 'needs_review',
+      nextAction: 'Skyddad identitet. Hantera begäran manuellt.',
+      actorUserId: input.actorUserId,
+    })
+    return {
+      status: 'blocked',
+      requestId,
+      caseReference,
+      channel: 'manual_email',
+      emailOutboxId: null,
+      poaId: clean(poa.id),
+      nextAction: { code: 'protected_identity_manual_review', message: 'Skyddad identitet. Begäran måste hanteras manuellt.' },
+      blockers: [{ code: 'protected_identity', message: 'Skyddad identitet kräver manuell granskning.' }],
+    }
+  }
+
+  // Production guard: never queue an external manual grid-owner e-mail when the
+  // required external customer/site fields are missing. A blank Kundnummer/Namn/
+  // Person-organisationsnummer must never reach the grid owner. We block to
+  // needs_review with an exact error code instead of sending garbage.
+  const resolvedCustomerNumber = customerNumber(customer)
+  const resolvedCustomerName = customerName(customer)
+  const resolvedCustomerIdentity = customerIdentity(customer)
+  const siteAddress = clean(site.street)
+  const sitePostalCode = clean(site.postal_code)
+  const siteCity = clean(site.city)
+
+  const missingCustomerFields: string[] = []
+  if (!resolvedCustomerNumber) missingCustomerFields.push('Kundnummer')
+  if (!resolvedCustomerName) missingCustomerFields.push('Namn')
+  if (!resolvedCustomerIdentity) missingCustomerFields.push('Person-/organisationsnummer')
+  if (!siteAddress) missingCustomerFields.push('Gatuadress')
+  if (!sitePostalCode) missingCustomerFields.push('Postnummer')
+  if (!siteCity) missingCustomerFields.push('Ort')
+
+  if (missingCustomerFields.length > 0) {
+    const identityOnly = !resolvedCustomerIdentity && Boolean(resolvedCustomerNumber) && Boolean(resolvedCustomerName)
+    const lastErrorCode = identityOnly ? 'missing_customer_identity' : 'missing_customer_details'
+    const tenantMessage =
+      'Kunduppgifter saknas för manuell nätägarbegäran. Komplettera kundnummer, namn och person-/organisationsnummer innan e-post skickas.'
+    await markRequestNeedsReview({
+      companyId: input.companyId,
+      requestId,
+      lastErrorCode,
+      lastErrorMessage: tenantMessage,
+      missingFields: missingCustomerFields,
+      baseMetadata: (request.metadata as JsonRecord | null) ?? null,
+    })
+    await patchSiteNextAction({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      siteId: input.siteId,
+      status: 'needs_review',
+      nextAction: tenantMessage,
+      actorUserId: input.actorUserId,
+    })
+    return {
+      status: 'needs_review',
+      requestId,
+      caseReference,
+      channel: 'manual_email',
+      emailOutboxId: null,
+      poaId: clean(poa.id),
+      nextAction: { code: lastErrorCode, message: tenantMessage },
+      // Tenant sees the single Swedish blocker; superadmin can read the exact
+      // missing fields from the per-field blocker entries / request metadata.
+      blockers: [
+        { code: lastErrorCode, message: tenantMessage },
+        ...missingCustomerFields.map((field) => ({
+          code: `missing_field:${field}`,
+          message: `Saknas: ${field}`,
+        })),
+      ],
+    }
+  }
+
+  // Power-of-attorney must be externally sendable before we attach it to an
+  // external e-mail. A legally accepted POA that lacks signer/evidence/identity
+  // is internal-only: block to needs_review rather than mailing a weak fullmakt.
+  if (!hasExternallySendablePoa(poa, { customerIdentity: resolvedCustomerIdentity })) {
+    const tenantMessage =
+      'Fullmaktsunderlag saknar kund- eller signeringsuppgifter. Granska fullmakten innan den skickas till nätägaren.'
+    await markRequestNeedsReview({
+      companyId: input.companyId,
+      requestId,
+      lastErrorCode: 'poa_not_externally_sendable',
+      lastErrorMessage: tenantMessage,
+      missingFields: poaMissingFields(poa, resolvedCustomerIdentity),
+      baseMetadata: (request.metadata as JsonRecord | null) ?? null,
+    })
+    await patchSiteNextAction({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      siteId: input.siteId,
+      status: 'needs_review',
+      nextAction: tenantMessage,
+      actorUserId: input.actorUserId,
+    })
+    return {
+      status: 'needs_review',
+      requestId,
+      caseReference,
+      channel: 'manual_email',
+      emailOutboxId: null,
+      poaId: clean(poa.id),
+      nextAction: { code: 'poa_not_externally_sendable', message: tenantMessage },
+      blockers: [
+        { code: 'poa_not_externally_sendable', message: tenantMessage },
+        ...poaMissingFields(poa, resolvedCustomerIdentity).map((field) => ({
+          code: `missing_field:${field}`,
+          message: `Saknas: ${field}`,
+        })),
+      ],
+    }
+  }
+
+  // Queue the manual e-mail (idempotent). The worker sends it; never the UI.
+  // The key is scoped to the request (type + id): retries of the same open
+  // request are deduplicated, while a different request type for the same
+  // site/grid owner — or a new request after the previous one completed — can
+  // queue its own e-mail.
+  const idempotencyKey = `manual-facility-request:${input.companyId}:${input.siteId}:${gridOwnerId}:${siteAddressHash}:${requestType}:${requestId}`
+  const tenantCompany = await readTenantCompanyIdentity(input.companyId)
+  const tenantCompanyName = tenantCompany.name
+  poa = await ensurePoaVerificationReference({ companyId: input.companyId, customerId: input.customerId, powerOfAttorneyId: String(poa.id) })
+  const issues = [
+    ...(!tenantCompany.organizationNumber ? [{ code: 'tenant_organization_number_missing', message: 'Ombudets organisationsnummer saknas. Komplettera tenantens bolagsuppgifter före utskick av fullmaktsförfrågan.' }] : []),
+    ...poaMailEvidenceIssues(poa),
+  ]
+  if (issues.length) {
+    await markRequestNeedsReview({ companyId: input.companyId, requestId, lastErrorCode: issues[0].code, lastErrorMessage: issues[0].message,
+      missingFields: issues.map((issue) => issue.code), baseMetadata: (request.metadata as JsonRecord | null) ?? null })
+    await patchSiteNextAction({ companyId: input.companyId, customerId: input.customerId, siteId: input.siteId,
+      status: 'needs_review', nextAction: issues[0].message, actorUserId: input.actorUserId })
+    return { status: 'needs_review', requestId, caseReference, channel: 'manual_email', emailOutboxId: null, poaId: clean(poa.id),
+      nextAction: issues[0], blockers: issues }
+  }
+  const rendered = renderManualEmailTemplate(templateKey, {
+    case_reference: caseReference,
+    customer_number: resolvedCustomerNumber,
+    customer_name: resolvedCustomerName,
+    customer_identity: resolvedCustomerIdentity,
+    site_address: siteAddress,
+    postal_code: sitePostalCode,
+    city: siteCity,
+    ops_sender_name: clean(process.env.MANUAL_GRID_OWNER_SENDER_NAME) ?? 'Gridex Operations',
+    tenant_company_name: tenantCompanyName,
+    tenant_organization_number: tenantCompany.organizationNumber,
+    poa_reference: poaMailEvidence(poa).reference,
+    poa_verification_number: poaMailEvidence(poa).verificationReference,
+  })
+  let attachments: ManualEmailAttachment[]
+  try { attachments = await buildPoaAttachment(poa, caseReference, {
+    companyId: input.companyId,
+    customerName: resolvedCustomerName,
+    customerIdentity: resolvedCustomerIdentity,
+    siteAddress,
+    sitePostalCode,
+    siteCity,
+    tenantCompanyName,
+    tenantOrganizationNumber: tenantCompany.organizationNumber,
+    actorUserId: input.actorUserId,
+  }) } catch {
+    const issue = { code: 'poa_document_archive_required', message: 'Fullmaktens originaldokument kunde inte verifieras och arkiveras. Kontrollera sparad godkänd text eller uppladdad PDF före utskick.' }
+    await markRequestNeedsReview({ companyId: input.companyId, requestId, lastErrorCode: issue.code, lastErrorMessage: issue.message,
+      missingFields: ['poa_document'], baseMetadata: (request.metadata as JsonRecord | null) ?? null })
+    return { status: 'needs_review', requestId, caseReference, channel: 'manual_email', emailOutboxId: null,
+      poaId: clean(poa.id), nextAction: issue, blockers: [issue] }
+  }
+
+  let emailOutboxId: string | null = null
+  let alreadyQueued = false
+
+  // Existing outbox rows for this request decide whether a new e-mail may be
+  // queued. Only a queued/sending row means "already queued"; a sent, failed,
+  // blocked or uncertain row never silently masks the review signal.
+  const existingOutbox = await readRequestOutboxRows({ companyId: input.companyId, requestId })
+  let activeOutbox = existingOutbox.find((row) => ACTIVE_OUTBOX_STATUSES.has(String(row.status)))
+  const activeAttachments = Array.isArray(activeOutbox?.attachments) ? activeOutbox.attachments as JsonRecord[] : []
+  const staleAttachment = activeAttachments.some((attachment) => String(attachment.kind ?? '').startsWith('power_of_attorney')
+    && (clean(attachment.poa_id) !== clean(poa.id) || (attachment.poa_evidence_fingerprint && attachment.poa_evidence_fingerprint !== poaMailEvidenceFingerprint(poa))))
+  if (activeOutbox && (staleAttachment || Boolean(clean(request.poa_id) && clean(request.poa_id) !== clean(poa.id)))) {
+    const stop = await supabaseService.from('manual_email_outbox').update({ status: 'failed', last_error_code: 'poa_attachment_superseded',
+      last_error: 'Fullmaktsunderlaget har ersatts. Det gamla utskicket skickas inte.', next_attempt_at: null,
+      attachments: activeAttachments.map((attachment) => { const audit: JsonRecord = { ...attachment }; delete audit.content; return audit }), updated_at: now })
+      .eq('company_id', input.companyId).eq('id', String(activeOutbox.id)).eq('status', 'queued').select('id').maybeSingle()
+    if (stop.error) throw stop.error
+    if (!stop.data) {
+      const message = 'Ett tidigare utskick behandlas redan. Kontrollera leveransstatus innan den ersatta fullmakten köas igen.'
+      return { status: 'needs_review', requestId, caseReference, channel: 'manual_email', emailOutboxId: clean(activeOutbox.id), poaId: clean(poa.id),
+        nextAction: { code: 'poa_attachment_in_flight', message }, blockers: [{ code: 'poa_attachment_in_flight', message }] }
+    }
+    activeOutbox = undefined
+  }
+  const requestStatus = clean(request.status) ?? ''
+  if (!activeOutbox && CONVERSATION_STATUSES.has(requestStatus)) {
+    // The grid owner already has this request; the follow-up watchdog owns
+    // reminders. Never queue a duplicate from a repeated trigger.
+    return {
+      status: requestStatus === 'waiting_manual_response' ? 'waiting_manual_response' : 'manual_email_queued',
+      requestId, caseReference, channel: 'manual_email',
+      emailOutboxId: clean(existingOutbox[0]?.id), poaId: clean(poa.id),
+      nextAction: { code: 'manual_request_in_progress', message: 'Begäran är redan skickad till nätägaren. Invänta svar.' },
+      blockers: [],
+    }
+  }
+  const uncertainOutbox = existingOutbox.find((row) => String(row.status) === 'delivery_uncertain')
+  if (!activeOutbox && uncertainOutbox) {
+    const message = 'Det är oklart om tidigare utskick nådde nätägaren. Kontrollera providerstatus och köa om utskicket manuellt.'
+    await markRequestNeedsReview({
+      companyId: input.companyId, requestId, lastErrorCode: 'manual_email_delivery_uncertain', lastErrorMessage: message,
+      missingFields: [], baseMetadata: (request.metadata as JsonRecord | null) ?? null,
+    })
+    return {
+      status: 'needs_review', requestId, caseReference, channel: 'manual_email', emailOutboxId: clean(uncertainOutbox.id),
+      poaId: clean(poa.id), nextAction: { code: 'manual_email_delivery_uncertain', message },
+      blockers: [{ code: 'manual_email_delivery_uncertain', message }],
+    }
+  }
+
+  const recipientResolution = resolveManualRecipient(contact)
+  if (!activeOutbox && !recipientResolution.externally_sendable && (recipientResolution.environment === 'production' || !recipientResolution.selected_to_email)) {
+    const code = recipientResolution.environment === 'production' ? 'production_safe_recipient_override' : 'manual_ops_environment_not_production'
+    const message = recipientResolution.environment === 'production'
+      ? 'Produktion är konfigurerad med intern säker mottagare. Begäran skickades inte till nätägaren.'
+      : 'Miljön är inte produktion. Begäran skickades inte till nätägaren.'
+    await markRequestNeedsReview({
+      companyId: input.companyId,
+      requestId,
+      lastErrorCode: code,
+      lastErrorMessage: message,
+      missingFields: [],
+      baseMetadata: (request.metadata as JsonRecord | null) ?? null,
+    })
+    return {
+      status: 'needs_review', requestId, caseReference, channel: 'manual_email', emailOutboxId: null,
+      poaId: clean(poa.id), nextAction: { code, message },
+      blockers: [{ code, message }],
+    }
+  }
+  const selectedToEmail = clean(activeOutbox?.to_email) ?? recipientResolution.selected_to_email ?? contact.email
+
+  if (activeOutbox) {
+    alreadyQueued = true
+    emailOutboxId = clean(activeOutbox.id)
+  } else {
+    // First e-mail for the request keeps the historical key; an intentional
+    // resend (after failure/bounce/review with corrected data) gets a new key
+    // bound to the attempt number and recipient so it can actually be inserted.
+    const attempt = existingOutbox.length + 1
+    const outboxIdempotencyKey = attempt === 1
+      ? idempotencyKey
+      : `${idempotencyKey}:attempt:${attempt}:${createHash('sha256').update(selectedToEmail.toLowerCase()).digest('hex').slice(0, 16)}`
+    const outboxInsert: Record<string, unknown> = {
+      company_id: input.companyId,
+      request_id: requestId,
+      to_email: selectedToEmail,
+      from_email: senderFromEmail,
+      reply_to: senderReplyTo,
+      subject: rendered.subject,
+      body_html: rendered.bodyHtml,
+      body_text: rendered.bodyText,
+      attachments,
+      status: 'queued',
+      provider: 'resend',
+      idempotency_key: outboxIdempotencyKey,
+      provider_idempotency_key: outboxIdempotencyKey,
+      actual_recipient_email: selectedToEmail,
+      external_delivery: true,
+      next_attempt_at: now,
+      queued_at: now,
+      recipient_resolution: { ...recipientResolution, recipient_contact_channel_id: contact.contactChannelId, attempt },
+    }
+    const queued = await supabaseService
+      .from('manual_email_outbox')
+      .insert(outboxInsert)
+      .select('id')
+      .maybeSingle()
+    if (queued.error) {
+      if (!isUniqueViolation(queued.error)) throw queued.error
+      const existing = await supabaseService
+        .from('manual_email_outbox')
+        .select('id,status')
+        .eq('company_id', input.companyId)
+        .eq('idempotency_key', outboxIdempotencyKey)
+        .maybeSingle()
+      if (existing.error) throw existing.error
+      const existingStatus = clean(existing.data?.status)
+      if (!existingStatus || !ACTIVE_OUTBOX_STATUSES.has(existingStatus)) {
+        // A concurrent writer won with a row that is not queued: keep the
+        // request where it is so the review signal stays visible.
+        const message = 'Ett tidigare utskick för ärendet är inte längre köat. Granska ärendet innan nytt utskick.'
+        return {
+          status: 'needs_review', requestId, caseReference, channel: 'manual_email',
+          emailOutboxId: clean(existing.data?.id), poaId: clean(poa.id),
+          nextAction: { code: 'manual_email_not_queued', message },
+          blockers: [{ code: 'manual_email_not_queued', message }],
+        }
+      }
+      alreadyQueued = true
+      emailOutboxId = clean(existing.data?.id)
+    } else {
+      emailOutboxId = clean(queued.data?.id)
+    }
+  }
+
+  // Advance the request to manual_email_queued only when a queued/sending
+  // outbox row backs it (fresh insert or an active row). Requests parked in
+  // needs_review or a persisted blocked_missing_* state advance too: all gates
+  // passed and an e-mail row is queued, so leaving the old blocker would lie.
+  let requestUpdateQuery = supabaseService
+    .from('grid_owner_information_requests')
+    .update({
+      channel: 'manual_email',
+      status: 'manual_email_queued',
+      grid_owner_id: clean(request.grid_owner_id) ?? gridOwnerId,
+      grid_area_code: clean(request.grid_area_code) ?? clean(site.grid_area_code),
+      price_area: normalizePriceArea(request.price_area) ?? requestPriceArea,
+      recipient_email: selectedToEmail,
+      recipient_contact_channel_id: contact.contactChannelId,
+      from_email: senderFromEmail,
+      reply_to: senderReplyTo,
+      poa_id: clean(poa.id),
+      last_error_code: null,
+      last_error_message: null,
+      template_id: `${rendered.templateKey}.${rendered.templateVersion}`,
+      metadata: {
+        ...((request.metadata as JsonRecord | null) ?? {}),
+        recipient_resolution: recipientResolution,
+      },
+      updated_by: clean(input.actorUserId),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('company_id', input.companyId)
+    .eq('id', requestId)
+    .in('status', [
+      'draft', 'ready_to_send', 'ready_to_send_manual_email', 'needs_review', 'manual_email_queued',
+      'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox',
+    ])
+    .select('id')
+  requestUpdateQuery = queueMetadataSnapshot === null
+    ? requestUpdateQuery.is('metadata', null)
+    : requestUpdateQuery.eq('metadata', JSON.stringify(queueMetadataSnapshot))
+  const requestUpdate = await requestUpdateQuery
+  if (requestUpdate.error) throw requestUpdate.error
+  if (!requestUpdate.data?.length) {
+    // Only retire this operation's fresh, still-unclaimed queue row. An older
+    // active row remains guarded by the current request and its preserved reply.
+    if (!alreadyQueued && emailOutboxId) {
+      const cancelled = await supabaseService.from('manual_email_outbox').update({
+        status: 'failed', last_error: 'request_changed_before_queue', next_attempt_at: null, updated_at: new Date().toISOString(),
+      }).eq('company_id', input.companyId).eq('request_id', requestId).eq('id', emailOutboxId).eq('status', 'queued')
+      if (cancelled.error) throw cancelled.error
+    }
+    const message = 'Ärendet ändrades medan utskicket förbereddes. Det senaste svaret och eventuella spärrar har bevarats; granska ärendet.'
+    return { status: 'needs_review', requestId, caseReference, channel: 'manual_email', emailOutboxId, poaId: clean(poa.id),
+      nextAction: { code: 'request_changed_before_queue', message }, blockers: [{ code: 'request_changed_before_queue', message }] }
+  }
+
+  // Archive checksums and versions are persisted by the archive service.
+  // Record attachment to this delivery separately, only on a fresh queue.
+  if (!alreadyQueued && clean(poa.id)) {
+    const attachmentKind = attachments[0]?.kind ?? null
+    await supabaseService.from('power_of_attorney_events').insert({
+      company_id: input.companyId,
+      power_of_attorney_id: poa.id,
+      event_type: 'attached_to_email',
+      payload: {
+        case_reference: caseReference,
+        request_id: requestId,
+        channel: 'manual_email',
+        to_email: selectedToEmail,
+        recipient_contact_channel_id: contact.contactChannelId,
+        email_outbox_id: emailOutboxId,
+        attachment_kind: attachmentKind,
+      },
+      created_by: clean(input.actorUserId),
+    }).then(() => undefined, () => undefined)
+  }
+
+  const nextAction = {
+    code: 'facility_identifier_requested',
+    message: 'Anläggnings-ID saknas. Uppgifter har begärts från nätägaren via e-post.',
+  }
+
+  // Truthful status: at this point the e-mail is QUEUED, not sent. The manual
+  // e-mail worker advances site/customer to waiting_manual_response when the
+  // provider confirms the send (advanceLinkedRequest).
+  await patchSiteNextAction({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    siteId: input.siteId,
+    status: 'manual_email_queued',
+    nextAction: 'Begäran är skapad och e-post skickas strax till nätägaren.',
+    actorUserId: input.actorUserId,
+  })
+
+  await emitCustomerOperationEvent({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    customerSiteId: input.siteId,
+    actorUserId: input.actorUserId ?? null,
+    eventType: 'manual_facility_request.queued',
+    title: 'Begäran köad för utskick',
+    message: 'Anläggningsuppgifter begärs från nätägaren via e-post. Utskicket sker strax.',
+    status: 'queued',
+    severity: 'info',
+    source: input.source ?? 'manual_information_orchestrator',
+    payload: {
+      request_id: requestId,
+      case_reference: caseReference,
+      channel: 'manual_email',
+      to_email: selectedToEmail,
+      email_outbox_id: emailOutboxId,
+      poa_id: clean(poa.id),
+      already_queued: alreadyQueued,
+      recipient_resolution: recipientResolution,
+    },
+    idempotencyKey: `manual_facility_request.queued:${input.companyId}:${input.siteId}:${idempotencyKey}:${emailOutboxId ?? "none"}`,
+  }).catch(() => undefined)
+
+  return {
+    status: 'manual_email_queued',
+    requestId,
+    caseReference,
+    channel: 'manual_email',
+    emailOutboxId,
+    poaId: clean(poa.id),
+    nextAction,
+    // A production safe-recipient override is a visible warning, never silent:
+    // the mail did NOT go to the real grid owner.
+    blockers: recipientResolution.production_safe_override_warning
+      ? [{
+          code: 'production_safe_recipient_override',
+          message: 'VARNING: Produktionsutskicket gick till intern säker adress (MANUAL_GRID_OWNER_SAFE_RECIPIENT), inte till nätägarens riktiga kontakt.',
+        }]
+      : [],
+  }
+}
+
+const ACTIVE_OUTBOX_STATUSES: ReadonlySet<string> = new Set(['queued', 'sending'])
+const CONVERSATION_STATUSES: ReadonlySet<string> = new Set(['manual_email_sent', 'waiting_manual_response', 'manual_response_received'])
+
+async function readRequestOutboxRows(input: { companyId: string; requestId: string }): Promise<JsonRecord[]> {
+  const { data, error } = await supabaseService
+    .from('manual_email_outbox')
+    .select('id,status,idempotency_key,to_email,created_at,attachments')
+    .eq('company_id', input.companyId)
+    .eq('request_id', input.requestId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+  if (error) {
+    if (missingSchema(error)) return []
+    throw error
+  }
+  return Array.isArray(data) ? (data as JsonRecord[]) : data ? [data as JsonRecord] : []
+}
+
+async function patchSiteNextAction(input: {
+  companyId: string
+  customerId: string
+  siteId: string
+  status: string
+  nextAction: string
+  actorUserId?: string | null
+}) {
+  const now = new Date().toISOString()
+  const results = await Promise.all([
+    supabaseService
+      .from('customer_sites')
+      .update({ facility_data_status: input.status, next_action: input.nextAction, updated_at: now, updated_by: clean(input.actorUserId) })
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .eq('id', input.siteId)
+      .select('id'),
+    supabaseService
+      .from('customers')
+      .update({ next_action: input.nextAction, updated_at: now })
+      .eq('company_id', input.companyId)
+      .eq('id', input.customerId)
+      .select('id'),
+  ])
+  for (const result of results) {
+    if (result.error) throw result.error
+    if (!result.data?.length) throw new Error('Statusuppdateringen träffade inte rätt tenant/kund/anläggning.')
+  }
+}

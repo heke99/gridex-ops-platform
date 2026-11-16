@@ -1,0 +1,713 @@
+{
+  "filesScanned": 11367,
+  "matchesMetadataOnly": [
+    {
+      "path": "components/admin/customer-login/CustomerLoginSetup.tsx",
+      "rule": "PRIVATE_KEY_PEM",
+      "count": 1,
+      "lines": [
+        67
+      ]
+    },
+    {
+      "path": "scripts/ediel-transport-data-query-plan-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        33
+      ]
+    },
+    {
+      "path": "scripts/staff-user-client-concurrency-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        10
+      ]
+    },
+    {
+      "path": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        743
+      ]
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        70
+      ]
+    },
+    {
+      "path": "scripts/ediel-correction-context-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        1265
+      ]
+    },
+    {
+      "path": "scripts/gridex-db-parity-selftest.sh",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        16
+      ]
+    },
+    {
+      "path": "scripts/ediel-utilts-err-gateway-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        40
+      ]
+    },
+    {
+      "path": "scripts/ediel-document-reference-dispatch-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        21
+      ]
+    },
+    {
+      "path": "scripts/ediel-utilts-s02-required-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        27
+      ]
+    },
+    {
+      "path": "scripts/gridex-aud-003-clean-replay.sh",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        52
+      ]
+    },
+    {
+      "path": "scripts/gridex-ediel-upgrade-replay.sh",
+      "rule": "CREDENTIAL_DSN",
+      "count": 2,
+      "lines": [
+        37,
+        45
+      ]
+    },
+    {
+      "path": "scripts/ediel-prodat-ack-raw-scope-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        111
+      ]
+    },
+    {
+      "path": "scripts/ediel-source-object-concurrency-regression.py",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        35
+      ]
+    },
+    {
+      "path": "scripts/ediel-z04-ack-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        18
+      ]
+    },
+    {
+      "path": "scripts/ediel-source-validation-concurrency-regression.py",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        18
+      ]
+    },
+    {
+      "path": "scripts/ediel-sc014-technical-intake-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        184
+      ]
+    },
+    {
+      "path": "scripts/ediel-retention-grant-native-clock-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        29
+      ]
+    },
+    {
+      "path": "scripts/ediel-received-context-upgrade-regression.py",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        20
+      ]
+    },
+    {
+      "path": "scripts/ediel-db02-profile-periods-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        9
+      ]
+    },
+    {
+      "path": "scripts/ediel-test-original-outcome-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 2,
+      "lines": [
+        142,
+        197
+      ]
+    },
+    {
+      "path": "scripts/ediel-z04-ack-durable-embedded-check.mjs",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        31
+      ]
+    },
+    {
+      "path": "scripts/ediel-outbound-ack-replay-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        15
+      ]
+    },
+    {
+      "path": "scripts/ediel-utilts-consumption-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        44
+      ]
+    },
+    {
+      "path": "scripts/gridex-redact-native-evidence-selftest.py",
+      "rule": "CREDENTIAL_DSN",
+      "count": 4,
+      "lines": [
+        413,
+        588,
+        589,
+        630
+      ]
+    },
+    {
+      "path": "scripts/ediel-db04-current-consumers-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        21
+      ]
+    },
+    {
+      "path": "scripts/ediel-bilateral-prodat-profile-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        45
+      ]
+    },
+    {
+      "path": "scripts/ediel-prodat-object-batch-current-source-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        17
+      ]
+    },
+    {
+      "path": "scripts/ediel-at-z03l-z03lk-supplier-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        134
+      ]
+    },
+    {
+      "path": "scripts/ediel-requested-change-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        5
+      ]
+    },
+    {
+      "path": "scripts/ediel-service-evidence-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        38
+      ]
+    },
+    {
+      "path": "scripts/ediel-contrl-retained-source-scaling-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        15
+      ]
+    },
+    {
+      "path": "scripts/db-05-customer-close-due-purge-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 3,
+      "lines": [
+        17,
+        24,
+        443
+      ]
+    },
+    {
+      "path": "scripts/ediel-case-view-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        20
+      ]
+    },
+    {
+      "path": "scripts/ediel-sc-054-storage-failure-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        39
+      ]
+    },
+    {
+      "path": "scripts/ediel-dsn-source-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        11
+      ]
+    },
+    {
+      "path": "scripts/ediel-online-poa-capture-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 2,
+      "lines": [
+        249,
+        397
+      ]
+    },
+    {
+      "path": "scripts/ediel-tr-05-recovery-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        506
+      ]
+    },
+    {
+      "path": "scripts/staff-identity-provider-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        8
+      ]
+    },
+    {
+      "path": "scripts/staff-user-concurrency-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        10
+      ]
+    },
+    {
+      "path": "scripts/ediel-prodat-mixed-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        135
+      ]
+    },
+    {
+      "path": "scripts/ediel-document-reference-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        13
+      ]
+    },
+    {
+      "path": "scripts/ediel-closure-wire-native.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        10
+      ]
+    },
+    {
+      "path": "scripts/helpers/ediel-z02-supplier-native-diagnostics.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 2,
+      "lines": [
+        272,
+        398
+      ]
+    },
+    {
+      "path": "scripts/helpers/ediel-normal-switch-native-fixture.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        32
+      ]
+    },
+    {
+      "path": "scripts/helpers/ediel-h05h08-normal-switch-native-fixture.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        45
+      ]
+    },
+    {
+      "path": "scripts/helpers/ediel-decision-original-native-fixture.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 2,
+      "lines": [
+        14,
+        99
+      ]
+    },
+    {
+      "path": "scripts/helpers/staff-write-native-fixture.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        27
+      ]
+    },
+    {
+      "path": "scripts/helpers/ediel-native-permission-catalog.setup.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        8
+      ]
+    },
+    {
+      "path": "scripts/helpers/ediel-z03-native-supply-observation.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        117
+      ]
+    },
+    {
+      "path": "scripts/helpers/browserFixture.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        5
+      ]
+    },
+    {
+      "path": "scripts/helpers/correctionContextNative.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        12
+      ]
+    },
+    {
+      "path": "scripts/helpers/ediel-prospective-market-clock-controller.py",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        355
+      ]
+    },
+    {
+      "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        35
+      ]
+    },
+    {
+      "path": "scripts/simulation/runtime/assigned_backend.py",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        42
+      ]
+    },
+    {
+      "path": ".agents/skills/scan-secrets/evals/files/eval-3-ambiguous-project-scan/setup.sh",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        25
+      ]
+    },
+    {
+      "path": ".agents/skills/scan-secrets/evals/files/_shared/secrets.env",
+      "rule": "GITHUB_TOKEN",
+      "count": 1,
+      "lines": [
+        22
+      ]
+    },
+    {
+      "path": ".agents/skills/scan-secrets/evals/files/_shared/secrets.env",
+      "rule": "AWS_ACCESS_KEY_ID",
+      "count": 1,
+      "lines": [
+        18
+      ]
+    },
+    {
+      "path": ".agents/skills/scan-secrets/references/remediation-doctrine.md",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        526
+      ]
+    },
+    {
+      "path": ".agents/skills/scan-secrets/references/interpreting-results.md",
+      "rule": "AWS_ACCESS_KEY_ID",
+      "count": 3,
+      "lines": [
+        101,
+        127,
+        144
+      ]
+    },
+    {
+      "path": ".agents/skills/code-security/AGENTS.md",
+      "rule": "GITHUB_TOKEN",
+      "count": 1,
+      "lines": [
+        1399
+      ]
+    },
+    {
+      "path": ".agents/skills/code-security/rules/secrets.md",
+      "rule": "GITHUB_TOKEN",
+      "count": 1,
+      "lines": [
+        159
+      ]
+    },
+    {
+      "path": "__tests__/ediel-h-native-sql-output-buffer-completeness-c-final.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        29
+      ]
+    },
+    {
+      "path": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        344
+      ]
+    },
+    {
+      "path": "__tests__/ediel-db01-current-write-api-observation.test.ts",
+      "rule": "CREDENTIAL_DSN",
+      "count": 3,
+      "lines": [
+        156,
+        271,
+        286
+      ]
+    },
+    {
+      "path": ".github/workflows/ediel-sc014-z14v-native.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        150
+      ]
+    },
+    {
+      "path": ".github/workflows/ediel-ops04-controlled-send-native.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        147
+      ]
+    },
+    {
+      "path": ".github/workflows/ediel-db05-native.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        218
+      ]
+    },
+    {
+      "path": ".github/workflows/ediel-z06e-z09e-native.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        107
+      ]
+    },
+    {
+      "path": ".github/workflows/simulation-t1-startup-smoke-native.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 2,
+      "lines": [
+        187,
+        342
+      ]
+    },
+    {
+      "path": ".github/workflows/ediel-z10m-supplier-native.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        211
+      ]
+    },
+    {
+      "path": ".github/workflows/staff-api-schema-capture.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        638
+      ]
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 33,
+      "lines": [
+        168,
+        207,
+        210,
+        213,
+        216
+      ]
+    },
+    {
+      "path": ".github/workflows/ediel-esco-z14vh-z15v-native.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 2,
+      "lines": [
+        229,
+        299
+      ]
+    },
+    {
+      "path": ".github/workflows/ediel-z13v-z13vh-esco-native.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 2,
+      "lines": [
+        233,
+        303
+      ]
+    },
+    {
+      "path": ".github/workflows/ediel-db04-current-consumers-native.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        130
+      ]
+    },
+    {
+      "path": ".github/workflows/ediel-db01-current-native.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 3,
+      "lines": [
+        428,
+        1171,
+        1218
+      ]
+    },
+    {
+      "path": ".github/workflows/ediel-z03c-supplier-boundary-native.yml",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        437
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/pr614-675-ops03-minimal-reviewed-producer-fixture-correction.patch",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        18
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/native-owner-proposal/semantic-followup-v3/proposal-v3-candidate.ts.txt",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        39
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/native-owner-proposal/semantic-followup-v3/attempt2-node22/published-v2-candidate.ts.txt",
+      "rule": "CREDENTIAL_DSN",
+      "count": 1,
+      "lines": [
+        39
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-suite-b6401b75.json",
+      "rule": "CREDENTIAL_DSN",
+      "count": 62,
+      "lines": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-suite-297e96ae.json",
+      "rule": "CREDENTIAL_DSN",
+      "count": 64,
+      "lines": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-suite-a16fa76c.json",
+      "rule": "CREDENTIAL_DSN",
+      "count": 13,
+      "lines": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "limits": "Offline common patterns, not comprehensive secret certification; matching values intentionally omitted."
+}

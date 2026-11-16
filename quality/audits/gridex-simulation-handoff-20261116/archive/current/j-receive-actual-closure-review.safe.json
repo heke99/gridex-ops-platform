@@ -1,0 +1,18 @@
+{
+  "state": "ACTUAL_COMPONENT_CLOSURE_APPROVE_NO_FULLCASE_CREDIT",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T06:52:17.291530+00:00",
+  "indexSHA256": "3a672d54b70be48721a29572e95af608bb1ccc80d3654fecbead2026ae39b4d0",
+  "actualOriginalsVerified": 475,
+  "handoffSHA256": "aaf53466c4f671fedbb8df48f4721a0c9abe561ff26f694dfff40bb857b7020e",
+  "verified": [
+    "One genuine authenticated public RECEIVE, no UI POST, no replay; declarationfdcf and exact raw7c",
+    "Native source_declarations+1 and remaining13private/public/client state unchanged",
+    "NativeACK complete, received checkpoint full/private equality and dump custody",
+    "Parent terminal0 clone/REST absent, Main unchanged and normal logout/browserclosed"
+  ],
+  "limits": [
+    "No PREPARE ATTEST IMPORT or fullpilot scenario credit",
+    "Checkpoint does not extend expired admission authority"
+  ]
+}

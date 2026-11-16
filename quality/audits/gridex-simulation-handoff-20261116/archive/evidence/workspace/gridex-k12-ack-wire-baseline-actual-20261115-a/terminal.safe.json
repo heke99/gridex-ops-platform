@@ -1,0 +1,40 @@
+{
+  "state": "PURE_CURRENT_ACK_ONE_CALL_BASELINE_OBSERVED_CLOSED",
+  "errorType": null,
+  "ownDBAbsent": true,
+  "MainFullRolesAll7Auth0CarrierUnchanged": true,
+  "results": {
+    "currentAck": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.5732672890007962,
+      "stdout": {
+        "path": "/workspace/gridex-k12-ack-wire-baseline-actual-20261115-a/current-ack-baseline.stdout.private.log",
+        "sha256": "b56d4736292c0cfa95ca2f8a48357a5ec07faa76deae3bce62d7ecd6e74e9514"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-k12-ack-wire-baseline-actual-20261115-a/current-ack-baseline.stderr.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "statementTimeout57014": false,
+      "observedResult": {
+        "case": "current_ack_wire_one_full_raw_call",
+        "rawBytes": 171462,
+        "rawSHA256": "7c0239018ce701d2223f07a109b1b683605ae9ccc3877564df116c31f771adc9",
+        "resultType": "object",
+        "resultSHA256": "4744c2d149f7cc8d9c036007631b3e959d0cc9226e9caf0310fd88cec88b0462",
+        "resultIsNotNull": true,
+        "sqlClockToMaterializedDigestSeconds": 0.42172
+      }
+    }
+  },
+  "currentAckCompleted": true,
+  "nativeStatementTimeoutObserved": false,
+  "singleAckInvocationByMaterializedSQL": true,
+  "innerLexerInvocationsByExactSource": 1,
+  "SQLStatementTimeoutSeconds": 8,
+  "callerTimeoutSeconds": 15,
+  "candidateExecuted": false,
+  "scalingExecuted": false,
+  "fullInsertCauseProven": false,
+  "MainOrProductAdoption": false
+}

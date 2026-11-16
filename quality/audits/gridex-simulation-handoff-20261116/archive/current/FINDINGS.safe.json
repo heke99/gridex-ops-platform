@@ -1,0 +1,1008 @@
+{
+  "state": "CENTRAL_ACTIVE_FINDINGS_REGISTER_NOT_EXHAUSTIVE_HISTORICAL_RECOUNT",
+  "updatedAt": "2026-11-16T10:33:47.188105+00:00",
+  "canonicalScenarioCounts": {
+    "fullPass": 43,
+    "documentedGap": 1,
+    "incomplete": 61
+  },
+  "perIdLedger": "/workspace/gridex-per-id-execution-ledger-20261115/per-id-execution.v5.safe.json",
+  "entries": [
+    {
+      "id": "IMPORT-GET-SIZE",
+      "kind": "product",
+      "status": "FIX_SOURCE_AND_NATIVE_COMPONENT_VERIFIED_K11_LOOKUP_PASSED",
+      "problem": "Raw EDIFACT sent in lookup GET exceeds Node header limit.",
+      "correction": "Read-only POST lookup RPC preserving scope and raw identity.",
+      "evidence": "/workspace/gridex-post-lookup-component-actual-20261115-a/terminal.safe.json",
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "IMPORT-RECEIPT-CLOCK",
+      "kind": "product",
+      "status": "FIX_ACTUAL_PERSISTED_CLOCK_VERIFIED_K11",
+      "problem": "New Test Center envelope omitted received_at.",
+      "correction": "Use existing server now for new envelope received_at; no legacy backfill.",
+      "localCommit": "13700e6034363a14de9b7ba90d12e66db31d5a2e",
+      "evidence": "/workspace/gridex-local-four-rpc-checkpoints-20261115-k11/LOCAL_IMPORT/ACTUAL-OWN-ENVELOPE-RECEIPT-CLOCK.private.json",
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "IMPORT-EDIEL-INSERT-TIMEOUT",
+      "kind": "product_or_execution_performance_cause_unproven",
+      "status": "REPRODUCED_K12_NORMAL_INSERT57014_AFTER_OPTIMIZED_FRAMER_ACTIVE_WIRE_TOKENS_V1_LINE51",
+      "problem": "ediel_messages INSERT canceled by statement timeout, then original-persistence guard rejects import.",
+      "correction": "Measure installed trigger hot path; proposed segment-buffer optimization must preserve framing output and guards. No timeout increase or unknown retry.",
+      "evidence": "/workspace/gridex-k11-import-persistence-diagnosis-20261115/FROZEN.safe.json",
+      "wholeScenarioPass": false,
+      "timingEvidence": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/terminal.safe.json",
+      "timingIndependentReview": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/ediel-envelope-B-timing-diagnostic-actual-closure-review.safe.json",
+      "singleCallerElapsedSeconds": {
+        "installed": 6.7056440860033035,
+        "candidate": 0.27107988999341615
+      },
+      "sameActualRawJsonResult": true,
+      "fullInsertCauseProven": false,
+      "native41EquivalenceComplete": true,
+      "native41Evidence": "/workspace/gridex-ediel-envelope-profile-actual-20261115-c/terminal.safe.json",
+      "formalWrapperEvidence": "/workspace/gridex-ediel-envelope-wrapper-actual-20261115-d/terminal.safe.json",
+      "formalWrapperIndependentReview": "/workspace/gridex-ediel-envelope-wrapper-actual-20261115-d/ediel-D-wrapper-replay-formal41-actual-closure-review.safe.json",
+      "formalNativeScope": "Own canonical small DB3332 functions, targetOID/nonbody/owner/ACL/otherfunctionSHA unchanged except targetbody; not full3444 application catalog.",
+      "full3444ApplyEvidence": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k12/framing-exact-body-only-guard.safe.json",
+      "full3444ApplyBoundary": "Actual K12 own clone3444 functions. Exact old/new body,OID/nonbody/ACL/rows/settings/roles preserved; no Main adoption. Earlier D replay/regression41 remains separately qualified; no new K12 replay or fullINSERT inferred.",
+      "normalK12Attempt": {
+        "state": "ONE_POST200_NULL_RECEIPT_ACTION_DENIED_UNKNOWN_NO_RETRY",
+        "fourNativeRPCsACKed": true,
+        "newRootOperatorReviewSHA256": "45b4151041e2378f0f2c36bd2cbaaac65a1a3a2bc6bc51f2fdf35264bef28892",
+        "unknownCheckpointSHA256": "ba8caa96694bbd236528688c958b1f0e0c777184c52cfe38a21262c4fbcfd0ba",
+        "scopedFinancialNativeReadback": "/workspace/gridex-k12-independent-financial-readback-20261115/SCOPED-GRAPH-REVIEW.safe.json",
+        "scopedFinancialNativeReadbackSHA256": "b490a025e9cdc515cc4ca82c7161410e8307b8d9c42bd22e29718c744a17d467",
+        "graphState": "All16 financial/6lineage/14private captured whole rows unchanged before/after. No imported metering or money result. Among522captured relation scopes only3inboundpublic scopes differ postATTEST; arbitrary other private-origin schemas are not covered by that comparison.",
+        "actualOwnPGContext": "/tmp/gridex-k12-S-actual-parent-prep-20261115/OWN-REQUEST-57014-PG-CONTEXT.private.json",
+        "actualOwnPGContextSHA256": "b56b674e291c2dc9ab2fbb290937630aaa4b7ed63ab56993eed7a295c5b75a8d",
+        "activeCancellationFrame": "PL/pgSQL gridex_utilts_binding.wire_tokens_v1 line51 atassignment",
+        "causalityLimit": "Locates active function at statement cancellation; not sole cause or full timing proof. Prior framer optimization genuinely qualified but did not fix the full INSERT.",
+        "correctionNext": "Profile exact purelexer current body on same actual raw under original8s cap, review linear candidate/equivalence; inspect actual trigger graph/locks. No unknown retry or timeout increase.",
+        "actualOwnPGContinuationContext": {
+          "path": "/tmp/gridex-k12-S-actual-parent-prep-20261115/OWN-REQUEST-57014-PG-CONTEXT.CONTINUATIONS.private.json",
+          "sha256": "5343faf5ff8f1f1a0a59ecae2f40d667b5526868fb5821bd3fa4a5ce6ebb3cde",
+          "stack": "wire_tokens_v1 line51 → gridex_ack_authority.wire_v1 line2 → gridex_utilts_issuer.capture_insert_v1 line9",
+          "limit": "Identifies actual caller at cancellation, not sole performance cause or all prior call counts."
+        },
+        "properClosureSHA256": "70a70fcca58c1b53135a2520557a790db12cbb6e1686f6800036fd3f14ce753e",
+        "finalIndependentClosureSHA256": "9393fe8659e0c13b9c24c63bba753cc78c442cc3c0aaab09d97338de78dba2de"
+      },
+      "freshPureV1Baseline": {
+        "terminal": "/workspace/gridex-k12-wire-v1-baseline-actual-20261115-a/terminal.safe.json",
+        "terminalSHA256": "014e806c22783eff71b212f46ccf629d3f566ac4141c5ada938421ac3ad1036a",
+        "independentPeer": "79e3df0f",
+        "rawBytes": 171462,
+        "rawSHA256": "7c0239018ce701d2223f07a109b1b683605ae9ccc3877564df116c31f771adc9",
+        "resultTokenCount": 10774,
+        "sqlClockToMaterializedDigestSeconds": 0.321662,
+        "callerWallSeconds": 0.468412,
+        "limits": "One pure invocation on exact current cbde body, original8sSQL/15s process. Main/all7/Auth0/carrier unchanged, own DB absent. No standalone timeout reproduced; cumulative INSERT cause remains unresolved."
+      },
+      "actualAttachedPrefixEvidence": "/workspace/gridex-k12-ediel-insert-callgraph-prep-20261115/ACTUAL-ATTACHED-INSERT-PREFIX.safe.json",
+      "freshPureAckCallerBaseline": {
+        "terminal": "/workspace/gridex-k12-ack-wire-baseline-actual-20261115-a/terminal.safe.json",
+        "terminalSHA256": "900e5c4576bdbfd626466b18aa89504d5feaf8639837170b2173784d9f213458",
+        "independentPeer": "8a2b2566",
+        "currentBodyMD5": "1a3d593ca52700cc0426fa3ecafa120e",
+        "rawSHA256": "7c0239018ce701d2223f07a109b1b683605ae9ccc3877564df116c31f771adc9",
+        "resultKind": "nonNULL_object",
+        "sqlClockToMaterializedDigestSeconds": 0.42172,
+        "callerWallSeconds": 0.573267,
+        "limits": "Single pure actual caller invocation, no new Auth/INSERT/candidate/scaling. Main/all7/Auth0/carrier unchanged, own DB absent. Does not establish cumulative INSERT cost or sole cause."
+      },
+      "qualifiedProfilingMechanism": {
+        "terminal": "/workspace/gridex-own-db-function-stats-mechanism-actual-20261115-a/terminal.safe.json",
+        "terminalSHA256": "d89f618fcdec1506e7960db7515e293664653926364dc011a62ce07fa829b310",
+        "independentPeerSHA256": "2205325e3164614eccfe74747bc33db11aa102a1fdbeec5f1840b62b4c66de01",
+        "completedCalleeAfterOuter57014Retained": true,
+        "interruptedFramesIncomplete": true,
+        "waitSamples": 9,
+        "observedWait": "PgSleep",
+        "limits": "OwnDB-only3controls/normalbackendexit flush. Does not qualify liveRESTpool flush/import-only attribution/overhead/fullINSERTcause. AllMain/all7/Auth0/carrier/allDBsettings restored/ownDBabsent."
+      }
+    },
+    {
+      "id": "LEGACY-EXPORT-AUTHORITY",
+      "kind": "product_authorization",
+      "status": "PRIVATE_FIX_15_COMPONENT_CASES_PASS_FORMAL_WRITE_BLOCKED_BY_FOREIGN_CLAIM",
+      "problem": "Legacy download permits read-or-export and unscoped platform context unlike canonical export guard.",
+      "correction": "Minimal canonical export/company/actor guard parity; preserve run format/rendering.",
+      "evidence": "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/RED-GREEN.COMPONENT.safe.json",
+      "wholeScenarioPass": false,
+      "handoffRegistry": "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/ACTIONABLE-REGISTRY.safe.json",
+      "ownerDisposition": "Bounded neutral metadata has no identifiable active internal owner; no foreign claim release or tracked overwrite."
+    },
+    {
+      "id": "CUSTOMER-LIST-42703",
+      "kind": "product",
+      "status": "LOCAL_FIX_COMPONENT41_PASS_ROOT_FINAL_ACK_NATIVE_UI_PENDING",
+      "problem": "List query references absent customers.consolidated_invoice and billing_level columns.",
+      "correction": "Derive contract preferences with explicit mixed/unknown states; do not infer customer-wide preference.",
+      "evidence": "/tmp/gridex-customer-list-contract-summary-20261115/quality/audits/customer-list-contract-summary-20261115/README.sv.md",
+      "wholeScenarioPass": false,
+      "evidenceCorrection": "QA verified original efd172bf Gitartifact README; previous filename REPORT did not exist.",
+      "candidateWorktree": "/tmp/gridex-customer-contract-preferences-fix-20261115",
+      "note": "Unavailable contract-dependent filtering now rejects before counts, preventing false empty lists. Unfiltered unavailable and complete NULL preferences remain distinct. No native/browser/runtime adoption.",
+      "localCommit": "1d2bc476b5d73f08704fc7dfddc6faf6f66bc70b"
+    },
+    {
+      "id": "CONSOLIDATED-INVOICE-CAPABILITY",
+      "kind": "documented_capability_gap",
+      "status": "SOURCE_UNSUPPORTED_FULL_SCENARIO_PENDING",
+      "problem": "Preparation rejects consolidated underlay contracts; multisite intake does not establish consolidated invoicing.",
+      "correction": "Implement explicit supported consolidation or expose capability limitation; never partial invoice fallback.",
+      "evidence": "/tmp/gridex-multisite-billing-source-paths-prep-20261115/FROZEN.safe.json",
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "DEAD-CODE-QUALIFICATION",
+      "kind": "code_cleanup",
+      "status": "LOCAL_CLEANUP_ARTIFACTS_NOT_RUNTIME_ADOPTED",
+      "problem": "Audit distinguishes unused candidates from proven removals.",
+      "correction": "Review and adopt existing cleanup operations when applicable; preserve live/test callers and financial compatibility.",
+      "counts": {
+        "originalSourceIdentities": 33,
+        "removedInPrimaryLocalArtifact": 24,
+        "retainedInPrimaryArtifact": 9,
+        "rootUnreachedCandidatesNotProvenDead": 187
+      },
+      "evidence": "/tmp/gridex-correct-routes-deadcode-repo-20261114/quality/audits/gridex-correct-routes-deadcode-20261114/REPORT.sv.md",
+      "note": "One dashboard writer has a separate removal artifact; not composed into primary24 or active runtime.",
+      "freshLocalFourOperationCommit": "7d37ea318902626b44999e0be8bcc5be62517bc0",
+      "freshLocalFourOperations": {
+        "deletedModules": 3,
+        "deletedLines": 866,
+        "insertedLines": 6,
+        "remainingOneOperation": "Excluded due open PR1051 overlap",
+        "runtimeAdoption": false
+      },
+      "countsNotAddedAcrossArtifacts": true,
+      "additionalUnadoptedHarnessFamily": {
+        "source": "ingress-ui-driver.cjs",
+        "sha256": "0b4f37623f9cf616f8fd19d2eb539793bed9c8892abff50988be009111c92d49",
+        "lexicalFunctionsUnreachableFromFourClosedExports": [
+          "createRoute",
+          "issueNamespace",
+          "processOne"
+        ],
+        "separateFromOriginal33ProductionIdentities": true,
+        "remediation": "Immutable ingress-only successor removes3 functions/unused markers; no active host rewrite."
+      }
+    },
+    {
+      "id": "EVENT-TRANSPORT-COMPATIBILITY-WINDOW",
+      "kind": "test_harness",
+      "status": "LATE_FACTORY_LEASE_ACTUAL_PASS_HMR_METADATA_FIXED_STATIC148_PASS_ZERO_BUSINESS",
+      "problem": "Inherited sidecar module hash and forwarder held-root prefix rejected the EVENT runtime. Fixed transport targets reached review after the fixed deadline.",
+      "correction": "Validate complete transport/sidecar/helper compatibility against prospective target before genuine Auth; preserve original TTLs and no late business.",
+      "evidence": "/workspace/gridex-event-R-zero-business-closure-20261115-a/CLOSED-FACTORY-ONLY-ZERO-UI-API-AUTH0.safe.json",
+      "noUIOrTLSDelivery": true,
+      "wholeScenarioPass": false,
+      "secondAttempt": "R2 constructor rejected planned deadline outside actual15minute factorylease minus60; zero child/UI/business. Actual clean closure preserved. Native900 ceiling/effective780 planner integrated in S source, not yet actual runtime qualification.",
+      "thirdAttemptPreparation": {
+        "state": "ACTUAL_PARENT_FACTORY_LEASE_PASS_CHILD_STATIC_FS_STOP",
+        "newFinding": "Preauth binder required an actual private lease plan too early; preparation could consume private execution budget before entry. Independent peer additionally rejected untyped cache-prerequisite receipt.",
+        "correction": "Preauth binds immutable policy with privateclockNULL; mint one actual private plan only after genuine READY, new baseline, correct Main stop and typed cache receipt. Preserve original Auth1800, native900-60, runtimeMetadata900, effective780 and all resource guards.",
+        "sourceCorrection": "/workspace/gridex-event-next-S-prep-20261115/PRIVATE-PLAN-AFTER-READY-CORRECTION.safe.json",
+        "actualPrivateExecutionVerified": false
+      },
+      "thirdAttemptActual": {
+        "problem": "Child static qualified_hmr_overlay rejected fixed config mode/GID at runtime-session.py67 before runtimeREADY, transport or UIbusiness.",
+        "guard": "FIXED_HMR_CONFIG_MODE640_GID1000_REQUIRED",
+        "actualFactoryLeaseCoversDeadline": true,
+        "nativeFactoryExpiry": "2026-11-15T13:17:06.507502Z",
+        "privateDeadline": "2026-11-15T13:11:44Z",
+        "correction": "Determine exact actual file metadata and restore qualified0640/GID1000 after readers close; run complete actual runtime.static filesystem predicates off-clock against prospective actual inputs before another Auth. Preserve guard and all failure evidence.",
+        "closure": "/workspace/gridex-event-S-zero-business-closure-20261115-a/CLOSED-HMR-METADATA-STOP-ZERO-UI-API-AUTH0.safe.json",
+        "wholeScenarioPass": false,
+        "closureSHA256": "7a85af43978c05311c87ace5e7ff625e4f25d5ed6c0489f791fdf3d35b056686",
+        "actualMode": "0600",
+        "requiredMode": "0640",
+        "sourceBytesHashAndGidCorrect": true,
+        "filesystemAudit": {
+          "path": "/workspace/gridex-event-runtime-filesystem-preflight-prep-20261115/ACTUAL-S-STATIC-FILESYSTEM.safe.json",
+          "sha256": "283b0944177fb2bc0fc6ac53d0f165c08f1bd66dd0a5ec68aed5d42067911626",
+          "pass": 147,
+          "fail": 1,
+          "unresolved": 0
+        },
+        "closureLimit": "Historical browser close timeout preserved; independent process readback confirms no live own helper/browser groups. UIlogout false; APIlogout204/nativeall0/other518+3370metadata and all7 unchanged.",
+        "closureIndependentReview": "/workspace/gridex-event-S-zero-business-closure-20261115-a/ediel-S-final-closure-physical-residual-review.safe.json",
+        "closureIndependentReviewSHA256": "0010cdd4370cf63bb88a78643e76fbe5c222579127de9e1a9b8865d77a99b9f3",
+        "metadataCorrection": "Exact chmod0640 after independent raw-reader release; bytes/hash/GID unchanged.",
+        "postCorrectionFilesystemAudit": {
+          "path": "/workspace/gridex-event-runtime-filesystem-preflight-prep-20261115/ACTUAL-S-STATIC-FILESYSTEM.POST-MODE-FIX.safe.json",
+          "sha256": "1be0b44a8f0e5c425f229c7a61770de9686684c5ee49bf3c3397ca66a15b06a1",
+          "pass": 148,
+          "fail": 0,
+          "unresolved": 0
+        }
+      }
+    },
+    {
+      "id": "EDIEL-HEADER-LENGTH-PRECEDENCE",
+      "kind": "product_validation",
+      "status": "OWN_CANONICAL_NATIVE75_REFERENCE41_WRAPPER_REPLAY_PASS_MAIN_ADOPTION_PENDING",
+      "problem": "u->2||u->3 groups left-associatively; intended35-character sender/receiver component check inspects wrong elements. Old and optimized functions both accept a36-character sender in actual native probe.",
+      "evidence": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/fixture35-disambiguation.safe.json",
+      "correction": "Separate narrowly tested parentheses/validation correction; performance patch deliberately preserves current behavior. Corrected equivalence expectation records legacy behavior, not protocol conformity.",
+      "wholeScenarioPass": false,
+      "localCommit": "112ea02caa97785f77f5eb412eb66771444c01e0",
+      "sourceEvidence": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/FROZEN.safe.json",
+      "rootSourceFinalDocReview": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/root-SOURCE-FINALDOC-review.safe.json",
+      "nativeCasesDefinedNotExecuted": 0,
+      "optimizedPerformanceArtifactAndActiveK12Unchanged": true,
+      "nativeCasesExecuted": 75,
+      "optimizedReferenceCasesExecuted": 41,
+      "nativeEvidence": "/workspace/gridex-ediel-header-length-actual-20261115-e/terminal.safe.json",
+      "nativeEvidenceSHA256": "ec9b91fbbc67c55f7b5aca70a7219137d3423715d5f908845b5f5dd8b14f4433",
+      "nativeLimit": "Own canonical small DB wrapper/prerequisite-negative/perf→header/body-only/replay/75 total native fixture cases INCLUDING41 legacy reference cases (34 new); not116 distinct cases. Not full3444 application adoption or successful normal INSERT. Main/all7/Auth0/carrier unchanged and ownDB absent.",
+      "caseCountClarification": {
+        "totalDistinctNativeFixtureCases": 75,
+        "includedLegacyReferenceCases": 41,
+        "newCases": 34,
+        "sourcePath": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/HEADER-LENGTH-NATIVE-FIXTURES.safe.json",
+        "sourceSHA256": "5d9c17bfd0c5d6fcb2a58c6451da9f302dedc31458a4623f9254460e94e09b72",
+        "changesScenarioCounts": false
+      }
+    },
+    {
+      "id": "CREDIT-IMMUTABLE-ORIGINAL-REFERENCE",
+      "kind": "source_confirmed_limitation_full_behavior_pending",
+      "status": "CORRECTION_PORT_MAPPED_IMMUTABLE_ORIGINAL_INVOICE_LINK_NOT_CAPTURED_NATIVE_FIXTURE_PENDING",
+      "problem": "Direct invoice credit route is an intentional409 stub. Supported estimated-consumption reconciliation preserves reconciliation_of only in underlay payload; normal review loader omits payload, and immutable calculation/file DTOs do not capture an explicit original invoice link. Existing relational billing_underlay_id chain is distinct from a frozen original-invoice reference.",
+      "correction": "Use normal company-month generate-underlay to store RPC and review/approval/file flow for the supported reconciliation fixture; preserve validated original invoice/source identifiers in immutable snapshots and compatible export DTOs where required. Qualify complete behavior before classifying BILLNEG01.05 as failure or capability gap.",
+      "evidence": "/tmp/gridex-billneg0105-supported-port-20261115/FROZEN.SOURCE-ONLY.safe.json",
+      "evidenceSHA256": "0347d401fcdb6ff43e1646f3efda3455c3a3581145aba7d9a6e6fab9b9bbefef",
+      "wholeScenarioPass": false,
+      "nativeFixtureExecuted": false
+    },
+    {
+      "id": "PREAUTH-BASELINE-SOURCE-COMPLETENESS",
+      "kind": "test_harness_preparation",
+      "status": "CAUGHT_BEFORE_AUTH_FOUR_SCRIPTS_MATERIALIZED_AND_SOURCE_REVIEWED",
+      "problem": "K12 profile/config preparation reported ready while its four post-READY baseline source scripts had not yet been materialized. Final preAuth producer check caught the missing files before starting a held session.",
+      "correction": "Require complete physical baseline/backup/cache/runtime/phase sources and executable command paths in the preAuth checklist; materialize the qualified MainT literal successors before Auth.",
+      "evidence": "/tmp/gridex-k12-main-T-baseline-source-prep-20261115/PREPARED.SOURCE-ONLY.safe.json",
+      "sourceFreezeSHA256": "faa4f0edb51c7133d554d46436394eda9e0329bfb1d9699faab766fcf0ff5775",
+      "rootReview": "0e06ea9d0fd7ffb686b1d63f34fe9925676be6838f0acccde8b77cc5e3951a54",
+      "independentAdditionalReview": "c16930f6a44dfe37d9d3f04a72fc8168a452b4e5ee02aea49546f9d8cb0de6f3",
+      "wholeScenarioPass": false,
+      "productFailureClaim": false
+    },
+    {
+      "id": "CACHE-CONTAINER-UID-EXPECTATION",
+      "kind": "test_harness_resource_preparation",
+      "status": "RO_STOP_PRESERVED_EXACT_NAMESPACE_UID_MAPPING_CORRECTED_NATIVE_CACHE_RECLAIM_VERIFIED",
+      "problem": "Closed private cache inventory had hostUID65534 while owned helper namespace observed UID10001; strict read-only probe rejected mismatch before RWhelper or deletion.",
+      "correction": "Preserve exact host guards, map only actual selected124 containerUID expectations via immutable successor and requalify RO+RW; no rights or data guards weakened.",
+      "evidence": "/workspace/gridex-k13-closed-resource-proposal-20261115/cache-uid-v2/ACTUAL.safe.json",
+      "evidenceSHA256": "4b8404804533abe8e6dd9daf00e4411c3f55b224d42ff5dcc0f78e5e15dd2bef",
+      "independentPeer": "9772c312",
+      "actualWorkspaceBytesRecovered": 248320000,
+      "rootInodePreserved": 548690,
+      "productFailureClaim": false,
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "ORCHESTRATION-APPROVAL-DISPATCH-LATENCY",
+      "kind": "test_harness_orchestration",
+      "status": "K13_THREE_ACKS_NO_ATTEST_NO_IMPORT_CONTEXT_RESTORATION_MISSED_ORIGINAL_ENTRY_WINDOW",
+      "problem": "K13 had ISSUE/RECEIVE/PREPARE native ACKs and sealed checkpoints. Root actual new document review a811 was physical before16:59:42 UTC; independent ATTEST scope5fb9 was saved16:59:46.863980 UTC. Producer did not create ATTEST GO or dispatch before original last900 entry17:01:24. Producer reports context restoration resumed17:02:27, no missing approval/source/review or active ATTEST tool. This establishes orchestration failure, not a new product SQL timeout. No ATTEST or import credit.",
+      "correction": "Preserve original live guards and proper closure. Qualify one prestarted hash-bound approval-to-GO-to-single-dispatch handoff that survives agent context restoration, with independent review, exclusive state and no blind retries. No new Auth until this cause is fixed.",
+      "evidence": {
+        "rootNewReview": {
+          "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261115-k13-u/LOCAL_PREPARE.operator-review.private.json",
+          "sha256": "a811f0dc1646d1bd5035dcfd33c2e6fe9fb0331763285bb1428e2f8449011def"
+        },
+        "issueCheckpointPrefix": "a32dfb08",
+        "receiveCheckpointPrefix": "583788bc",
+        "prepareCheckpointPrefix": "9d1a672d",
+        "phaseStopPrefix": "a101",
+        "producerClosure": "Parent exited0; final stats/rest exit/settings-after-drop physical; complete closure peer still pending."
+      },
+      "wholeScenarioPass": false,
+      "eventWVariant": "Late private plan was minted21:10:08; producer parent scope21:13:50, Root actual scope21:17 and runtimeREADY21:20:10 left a short sidecar window. Missing outputParent, not timeout, caused the actual stop. Three hardcoded reviewer enums and preAuth filesystem coverage are being corrected off-clock; no deadline extension."
+    },
+    {
+      "id": "REST-EXIT-255-OBSERVABILITY",
+      "kind": "test_harness_observability",
+      "status": "ACTUAL_CONTAINER_EXIT255_NON_NORMAL_BOUNDARY_CAUSE_UNKNOWN_PARTIAL_STATS_ONLY",
+      "problem": "K13 parent exited0 but owned PostgREST Docker State.ExitCode was255 (not running, OOMfalse). Direct postgrest entry, not an intermediary launcher code. Parent asserts cleanup/settings/Main equality, not profile.normal_close. Remaining own REST backends0 and stable final arrays do not establish normal flush. Stop result/stderr/poststop full inspect were not retained before removal, so precise255 cause remains unknown. No import occurred.",
+      "correction": "Capture bounded owned REST stop result, wait/exit and poststop inspect before mandatory removal, with safe redacted metadata. Keep255 classified non-normal until independently qualified; do not whitelist or fabricate a cause. Source-only augmentation being authored, no new Auth yet.",
+      "evidence": {
+        "boundaryPath": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k13-u/function-profile/normal-rest-exit-boundary.safe.json",
+        "boundarySha256": "0f063215adf96590aa7370528c739764a8375a917546608c3ed65854876806b2",
+        "parentSource": "/workspace/gridex-local-fresh-main-k13-U-parent-prep-20261115/parent.py",
+        "lineReferences": [
+          526,
+          702,
+          705,
+          728
+        ],
+        "independentComponentReview": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/ediel-K13-three-phase-parent-profile-component-review.safe.json",
+        "independentComponentReviewSha256": "6e1bf0e4747484ebc558de0e67fd6c09a3af5a8edd611d3e7ba10ea6fd1b05e6"
+      },
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "CATALOG-HOST-BUILDER-FILENAME",
+      "kind": "test_harness_source_reproducibility",
+      "status": "CAUGHT_BEFORE_AUTH_IMMUTABLE_BUILDER_V2_RECONSTRUCTS_HOST_EXACT",
+      "problem": "Frozen original catalog host builder generated the old driver filename while actual source host required the v2 filename. Original generator could not reproduce the frozen host.",
+      "correction": "Immutable builder-v2 changes exactly one filename and reproduces host bytes; original builder/freeze preserved. Independent QA source review48ae verified. No actual browser/Auth/business execution.",
+      "evidence": {
+        "originalBuilder": "/workspace/gridex-customer-site-term-stream-20261115/build-catalog-host.py",
+        "originalBuilderSHA256": "46b16c4d1c2c3810ce8ad14fadad41a91f8fce1022c4e55bb61fc917eb1d14e1",
+        "fixReceipt": "/workspace/gridex-customer-site-term-stream-20261115/CATALOG-HOST.BUILDER-V2.SOURCE-ONLY.safe.json",
+        "fixReceiptSHA256": "476ce94db6c6acd342249873ba0cdfbbde8b1bc147a158b5c2ef6e4f83170598",
+        "independentReview": "/workspace/gridex-customer-site-term-source-peer-20261115/QA-PRIOR-CATALOG-BUNDLE-SOURCE-REVIEW.safe.json",
+        "independentReviewSHA256": "48ae4362e41f547b406cd090758ef8b2604d3464ef5d92ea8c149a5178f7e25c"
+      },
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "PROFILE-DRIVER-DUPLICATE-POST-ACK",
+      "kind": "test_harness_verification",
+      "status": "SYNTHETIC_NEGATIVE_FOUND_V2_ACK_GAP_V3_EXACTLY_ONE_OBSERVED_POST_REQUIRED",
+      "problem": "Actual offline negative control showed profile driver v2 accepted native committed ACK despite a duplicate observed POST. This violated the intended one-POST-per-stage verification; no real business POST occurred.",
+      "correction": "Immutable v3 records actual observed POST count and requires exactly1 before committed ACK. Eight synthetic controls and3 syntax checks passed; QA currentV source review3fbc verifies. An initial test-only traversal-negative fixture also used path.join which normalized away the bad alias; corrected fixture/failure logs preserved, no claim of production traversal vulnerability.",
+      "evidence": {
+        "currentVPacket": "/workspace/gridex-customer-site-term-stream-20261115/PROFILE-CURRENT-V.SOURCE-ONLY.safe.json",
+        "currentVPacketSHA256": "61bc894fe1e3e1afd0d5cf8052a4f15adc9b401843bf2515d114b60921d5d26b",
+        "controls": "/workspace/gridex-customer-site-term-stream-20261115/PROFILE-CONTROLS.ACTUAL.safe.json",
+        "controlsSHA256": "4d5044d9d1250f313aa05be6d0fa6a85db5d5d41f8eaadcca15b642ce1809497",
+        "fixedDriver": "/workspace/gridex-customer-site-term-stream-20261115/normal-company-profile-driver.v3.cjs",
+        "fixedDriverSHA256": "b6e78dd61ec41ead5da8cb20e2bbd6eee20b64e525a9e02f5f5462d6fcf12f3d",
+        "independentReview": "/workspace/gridex-customer-site-term-source-peer-20261115/QA-CURRENT-V-PROFILE-SEQUENCE-SOURCE-REVIEW.safe.json",
+        "independentReviewSHA256": "3fbc33af6dc03867e13aafcac0697a84685ff447a72117818953d3c4104cc376"
+      },
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "CATALOG-DRIVER-MISSING-DRAFT-VIEW",
+      "kind": "test_harness_ui_navigation",
+      "status": "ACTUAL_GET200_ZERO_FORM_PRE_INTENT_NO_POST_CAUSE_VIEW_DRAFT_MISSING_FIX_IN_PROGRESS",
+      "problem": "Normal600 completed two legitimate profile form commits with native ACKs. Catalog driver then stopped EXACT_RENDERED_PUBLICATION_FORM_REQUIRED before intent/network/result. Its GET URL omitted view=draft; parseContractAdminView(undefined) selects active/published offers, so the selected draft offer form was correctly absent. No catalog POST occurred; this is a harness navigation defect, not product rejection or SQL timeout.",
+      "correction": "Preserve current attempt and valid two profile commits. Author immutable one-GET-literal view=draft correction and separately qualified continuation using verified profile/warm Main, no repeated profile writes or live source patch. Consider finite later intake/TERM bundle with real native IDs and fresh scope, not widening current600.",
+      "evidence": {
+        "sourcePacket": "/workspace/gridex-customer-site-term-stream-20261115/PROFILE-CURRENT-V.SOURCE-ONLY.safe.json",
+        "sourceDriver": "/workspace/gridex-customer-site-term-stream-20261115/normal-catalog-publish-driver.v2.cjs",
+        "sourceDriverSHA256": "72e1d0e7c483d366dbd8c5571f81ca9f8f86addf598bf3532e9ea0c444ca43b9",
+        "actualTarget": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/target.PROFILE.V.Main.BOUND.safe.json",
+        "actualTargetSHA256": "b32514e7cc015010bb014ae8631ff32ec73d444e5f15c708cd9b941d565bad80",
+        "profileFillNativeACKPrefix": "048ef253",
+        "profileReviewNativeACKPrefix": "a33e0646",
+        "catalogPostCount": 0,
+        "closure": {
+          "path": "/tmp/gridex-customer-profile-V-actual-prep-20261115-a/CLOSED-TWO-PROFILE-COMMITS-CATALOG-ZERO-POST-AUTH0.v2.safe.json",
+          "sha256": "5da7ab817757942608b9024c4b4f3c20411968ff4f8bc40e2072f3a9b898fbfc"
+        }
+      },
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "EDIEL-DUPLICATE-ORACLE-OWN-ROW-DRIFT",
+      "kind": "test_harness_verification",
+      "status": "SOURCE_FIXED_14_COMPONENT_CONTROLS_PASS_NATIVE_NOT_RUN",
+      "problem": "observeDuplicate verifies identity/hash/jobs/foreign-business fences but never compares full existing email. Same ID/stored raw_message_sha256 with altered subject, processing_status or raw_email could be accepted. Actual storeInboundEmail duplicate source returns before INSERT, so duplicate should preserve whole existing email row. No actual product duplicate attempt or new product bug established.",
+      "correction": "Immutable duplicate-only full-row equality (negative processor must still allow its declared status changes), meaningful changed-own-row negative control and actual raw content hash binding where applicable. Preserve original10 results/oldpacket; source2 fixedpacket before ownfixture execution.",
+      "evidence": {
+        "independentFinding": {
+          "path": "/workspace/gridex-root-session-20261112/ediel-ingress-duplicate-oracle-source-finding.safe.json",
+          "sha256": "c31ac2a8c28ab646bfd43ceda35363b3409981710aa2e957b577811ba44276d6"
+        },
+        "sourcePacket": {
+          "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/FROZEN.v2.safe.json",
+          "sha256": "fda1eecbca10824642375875b036c25284d7a0e5579a6265579a2b0adbf2fc0a"
+        }
+      },
+      "wholeScenarioPass": false,
+      "correctionEvidence": "/workspace/gridex-ediel-ingress-first-prep-20261115/HARNESS-CORRECTION.v3.SOURCE-ONLY.safe.json"
+    },
+    {
+      "id": "CATALOG-CONTINUATION-UNDEFINED-NATIVE-VARIABLE",
+      "kind": "test_harness_source_correctness",
+      "status": "INDEPENDENT_PEER_FOUND_PREINTENT_REFERENCE_ERROR_IMMUTABLE_FIX_IN_PROGRESS",
+      "problem": "Catalog continuation v3 verified-profile guard references undefined n.profile; parsed native data is before. Syntax check alone missed the undeclared binding. No actual run/POST occurred.",
+      "correction": "Immutable sibling uses before.profile; preserve original57b/c473/finding96fab. Apply bounded existing ESLint no-undef to actual new helper/driver source offclock before freeze, without importing/executing candidates.",
+      "evidence": {
+        "finding": {
+          "path": "/workspace/gridex-customer-site-term-source-peer-20261115/QA-CATALOG-CONTINUATION-V3-FINDING.safe.json",
+          "sha256": "96fab6d081d1e0b28c416d39c8b436733c8f4c05e649276008aa2814bdcf6c54"
+        },
+        "qualityGate": {
+          "path": "/tmp/gridex-cjs-no-undef-quality-gate-prep-20261115/QUALIFIED.safe.json",
+          "sha256": "1bee8a53719336dddcdf5d73de74eb39c680d917cf29d8d90401164be3faa57d"
+        }
+      },
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "PROFILE-TARGET-OPERATOR-FIELD-KEY-MISMATCH",
+      "kind": "test_harness_source_schema",
+      "status": "PREAUTH_PRECREATION_STOP_IMMUTABLE_BUILDER_V2_ONE_KEY_CORRECTED",
+      "problem": "Saved actual profile target builder checked reviewed operator payload key fields, but payload key is FIELDS. Initial attempt stopped before creating target/Auth/fixture or making business changes.",
+      "correction": "Immutable builder-v2 changes only that key to FIELDS. Correctly bound b325 target subsequently ran two real normal profile form commits. Original builder preserved.",
+      "evidence": {
+        "originalBuilder": {
+          "path": "/workspace/gridex-customer-site-term-stream-20261115/bind-current-V-profile-target.py",
+          "sha256": "0c4117c393136b27a230fbb5961593ab54e03b2febb7c52658b9c73ed3050aac"
+        },
+        "fixedBuilder": {
+          "path": "/workspace/gridex-customer-site-term-stream-20261115/bind-current-V-profile-target.v2.py",
+          "sha256": "bc257a6ad78d12bbc29477d36e9641f1dfef0d9cd63058e03607c4e13763094c"
+        },
+        "actualTargetSHA256": "b32514e7cc015010bb014ae8631ff32ec73d444e5f15c708cd9b941d565bad80"
+      },
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "INGRESS-ABSENCE-QUERY-SCOPE",
+      "kind": "harness",
+      "status": "SOURCE_FIXED_12_COMPONENT_CONTROLS_PASS_NATIVE_NOT_RUN",
+      "problem": "An absence count did not echo the intended mailbox name, so zero rows could refer to a different input.",
+      "correction": "Bind SQL queryScope name/IDs/MIME digest to the exact step input.",
+      "evidence": "/workspace/gridex-ediel-ingress-main-prep-20261115/EXACT-NATIVE-SCOPE.v2.SOURCE-ONLY.safe.json",
+      "wholeScenarioPass": false,
+      "severity": "medium",
+      "businessImpact": "Could accept an absence check for a different intended mailbox.",
+      "reproductionOrProof": "Read own absence using a different mailbox name; prior result did not expose the queried name.",
+      "classificationBoundary": "See kind/status: no candidate or harness issue is automatically a deployed production defect."
+    },
+    {
+      "id": "CATALOG-NATIVE-SCHEMA-EDGE",
+      "kind": "harness",
+      "status": "SOURCE_CORRECTED_ACTUAL_READONLY_DIAGNOSIS",
+      "problem": "Native catalog reader used offer columns absent from the actual schema, producing42703 after case C.",
+      "correction": "Use actual publication/product/version/snapshot/plan/legal edges; never infer commit from HTTP200.",
+      "evidence": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/FROZEN.SOURCE-ONLY.safe.json",
+      "wholeScenarioPass": false,
+      "severity": "medium",
+      "businessImpact": "Catalog observer could fail after a business request and obscure its actual outcome.",
+      "reproductionOrProof": "Case C native read raised42703; corrected read used real installed publication edges.",
+      "classificationBoundary": "See kind/status: no candidate or harness issue is automatically a deployed production defect."
+    },
+    {
+      "id": "CATALOG-READINESS-BEFORE-INTENT",
+      "kind": "harness",
+      "status": "FIX_ACTUAL_E_READY_AND_EXACT_ONE_POST_VERIFIED",
+      "problem": "Case D checked a visible-role selector before waiting for actual readiness; exact earlier C/D cause remains unproven.",
+      "correction": "Observe scoped DOM and actual React action readiness before intent; actual E changed actionfalse to true and sent one POST.",
+      "evidence": "/workspace/gridex-customer-site-term-stream-20261115/ACTUAL-E-READINESS-HTTP-NATIVE-COMPONENT-REVIEW.safe.json",
+      "wholeScenarioPass": false,
+      "severity": "medium",
+      "businessImpact": "A visible form could be rejected prematurely or an unhydrated request could be attempted.",
+      "reproductionOrProof": "Case D raw forms present/visible role zero; E observer captured actionfalse then actiontrue before exactly one admitted POST.",
+      "classificationBoundary": "See kind/status: no candidate or harness issue is automatically a deployed production defect."
+    },
+    {
+      "id": "MAIN-TMP-CACHE-DEPENDENCY-ALIAS",
+      "kind": "harness_composition",
+      "status": "FIX_ACTUAL_BEFORE_STARTUP",
+      "problem": "New TMP cache/server could not resolve dependencies because the cache node_modules alias was missing.",
+      "correction": "Create only the qualified cache dependency alias and verify builtin resolution before startup.",
+      "evidence": "/workspace/gridex-main-v-to-w-maintenance-prep-20261115/W-CACHE-DEPS-ALIAS.SOURCE-ONLY.safe.json",
+      "wholeScenarioPass": false,
+      "severity": "medium",
+      "businessImpact": "A fresh cache can fail generated server dependency resolution.",
+      "reproductionOrProof": "Builtin require.resolve from new cache/server returned MODULE_NOT_FOUND before alias preparation; actual alias correction preceded startup.",
+      "classificationBoundary": "See kind/status: no candidate or harness issue is automatically a deployed production defect."
+    },
+    {
+      "id": "TWO-SITE-FACTORY-ACK-PROJECTION",
+      "kind": "source_candidate",
+      "status": "V2_SOURCE_CORRECTED_TWO_INDEPENDENT_FINAL_REVIEWS_NATIVE_NOT_RUN",
+      "problem": "New ACK rows were stored in the new table but final projection read the legacy ACK table, rejecting fresh bindings.",
+      "correction": "Use a scoped new ACK projection while delegating supported public kinds; do not fabricate legacy aliases.",
+      "evidence": "/workspace/gridex-two-site-test-factory-independent-review-20261115/SOURCE-V1-FINDINGS.safe.json",
+      "wholeScenarioPass": false,
+      "severity": "high_candidate_not_deployed",
+      "businessImpact": "Every fresh factory command would fail final binding and roll back.",
+      "reproductionOrProof": "Independent V1 code trace: new ACK table write followed by old ACK table projection yields NULL binding.",
+      "classificationBoundary": "See kind/status: no candidate or harness issue is automatically a deployed production defect.",
+      "correctionEvidence": "/workspace/gridex-two-site-test-factory-evidence-20261115/v2/POSITIVE-SOURCE-HANDOFF.safe.json",
+      "localCommit": "59a6ddf4e6f74346a59eb0e0e2ca93894b55fb4b"
+    },
+    {
+      "id": "TWO-SITE-FACTORY-FINAL-AUTH-EXPIRY",
+      "kind": "source_candidate",
+      "status": "V2_SOURCE_CORRECTED_TWO_INDEPENDENT_FINAL_REVIEWS_NATIVE_NOT_RUN",
+      "problem": "New final projection omitted the old authenticated JWT expiry check.",
+      "correction": "Restore role-aware final authenticated expiry checks with the trusted service capture path preserved.",
+      "evidence": "/workspace/gridex-two-site-test-factory-independent-review-20261115/SOURCE-V1-FINDINGS.safe.json",
+      "wholeScenarioPass": false,
+      "severity": "high_candidate_not_deployed",
+      "businessImpact": "Expired authenticated tokens could lack the old final native rejection during a long operation.",
+      "reproductionOrProof": "Independent V1 full-callpath review shows lost final expiry guard; no actual exploit or deployed regression claimed.",
+      "classificationBoundary": "See kind/status: no candidate or harness issue is automatically a deployed production defect.",
+      "correctionEvidence": "/workspace/gridex-two-site-test-factory-evidence-20261115/v2/POSITIVE-SOURCE-HANDOFF.safe.json",
+      "localCommit": "59a6ddf4e6f74346a59eb0e0e2ca93894b55fb4b"
+    },
+    {
+      "id": "CATALOG-LOCAL-TEST-PUBLICATION-CAPABILITY",
+      "kind": "capability_blocker",
+      "status": "ACTUAL_E_DENIED_TENANT_GO_LIVE_NOT_READY",
+      "problem": "Actual ready browser sent exactly one publication POST; HTTP200 returned but native offer/product remained draft and publication absent. Server action reported production routing/BRP/sender readiness failure.",
+      "correction": "Provide a legitimate narrowly scoped LOCAL_TEST_ONLY publication capability or canonical TEST prerequisites; preserve production go-live checks and do not fake readiness flags.",
+      "evidence": "/workspace/gridex-customer-site-term-stream-20261115/ACTUAL-E-PUBLICATION-GO-LIVE-BLOCKER.safe.json",
+      "wholeScenarioPass": false,
+      "severity": "blocking_test_capability",
+      "businessImpact": "Prevents legitimate test catalog publication and dependent intake/TERM/site fixtures.",
+      "reproductionOrProof": "Actual E ready form, one admitted Main POST200, no publication native row; action denial code/source readiness guard matched.",
+      "classificationBoundary": "See kind/status: no candidate or harness issue is automatically a deployed production defect."
+    },
+    {
+      "id": "FC-RELOCATION-RECOVERY-FINAL-RECEIPT-CYCLE",
+      "kind": "resource_harness_candidate",
+      "status": "SOURCE_FIXED_EIGHT_TINY_FS_CONTROLS_PASS_NOT_ACTUAL_RELOCATION",
+      "severity": "high_custody_candidate_not_executed",
+      "problem": "Originals are unlinked after VERIFIED-BEFORE-UNLINK but before ACTUAL. The supplied restore adapter requires ACTUAL and final state, so it cannot recover during that crash/failure window.",
+      "correction": "Accept an explicitly hash-bound real preunlink custody receipt or final receipt, requiring exact state/manifest/adapter hashes. Preserve existing signed ACKs and do not manufacture final success.",
+      "evidence": "/workspace/gridex-k13-three-closed-fc-tmp-relocation-prep-20261115/ROOT-RECOVERY-WINDOW-SOURCE-FINDING.safe.json",
+      "wholeScenarioPass": false,
+      "correctionEvidence": "/workspace/gridex-k13-three-closed-fc-tmp-relocation-prep-20261115/ROOT-INDEPENDENT-V4-SOURCE-REVIEW.safe.json"
+    },
+    {
+      "id": "API-DIAGNOSTIC-MODULE-INSTANCE-SPLIT",
+      "kind": "diagnostic_harness_candidate",
+      "status": "COMPONENT_FIXED_NATIVE_UNQUALIFIED",
+      "severity": "blocking_candidate_not_executed",
+      "problem": "An offline API composition loaded both candidate and original context modules through a relative ACK import; the original global singleton claim was too broad.",
+      "correction": "Resolve the exact original context path to the candidate for absolute and relative imports; assert original cache entry absent and real ACK resolution matches.",
+      "evidence": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/FROZEN.v3.SOURCE-ONLY.safe.json",
+      "correctionEvidence": "/tmp/gridex-one-site-native-api-diagnostic-independent-review-20261115/INDEPENDENT-V3-NARROW-SOURCE-APPROVE.safe.json",
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "API-DIAGNOSTIC-EXTERNAL-SCOPE-READER",
+      "kind": "diagnostic_harness_candidate",
+      "status": "V3_SOURCE_FIXED_INDEPENDENT_REVIEW_NATIVE_NOT_RUN",
+      "severity": "blocking_candidate_not_executed",
+      "problem": "The native worker required output-root-contained files for genuine approval receipts stored in preparation directories, rejecting valid reviews before business work.",
+      "correction": "Use a bounded mode600/hash-bound exact approval reader for genuine external scope references; keep business inputs restricted to the output root.",
+      "evidence": "/tmp/gridex-one-site-native-api-diagnostic-independent-review-20261115/INDEPENDENT-V2-SOURCE-FINDINGS.safe.json",
+      "correctionEvidence": "/tmp/gridex-one-site-native-api-diagnostic-independent-review-20261115/INDEPENDENT-V3-NARROW-SOURCE-APPROVE.safe.json",
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "API-DIAGNOSTIC-PREAUTH-SEQUENCE-ANCHOR",
+      "kind": "diagnostic_harness_candidate",
+      "status": "V3_SOURCE_FIXED_INDEPENDENT_REVIEW_NATIVE_NOT_RUN",
+      "severity": "blocking_candidate_not_executed",
+      "problem": "The launcher compared all seven sequences across genuine password login, which legitimately advances auth.refresh_tokens_id_seq.",
+      "correction": "Keep preAuth provenance and explicitly record the login transition, then establish a new after-genuine-GetUser anchor for all seven business/logout comparisons. Never omit or restore the sequence to claim unchanged.",
+      "evidence": "/tmp/gridex-one-site-native-api-diagnostic-independent-review-20261115/INDEPENDENT-V2-SOURCE-FINDINGS.safe.json",
+      "correctionEvidence": "/tmp/gridex-one-site-native-api-diagnostic-independent-review-20261115/INDEPENDENT-V3-NARROW-SOURCE-APPROVE.safe.json",
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "TEST-CATALOG-PUBLICATION-EVENT-LINEAGE-GAP",
+      "kind": "source_candidate",
+      "severity": "high_candidate_not_deployed",
+      "status": "V3_ACTUAL_SYNTHETIC_NATIVE_HOOK23_PASS_FULL_MAIN_ACTOR_COMPOSITION_PENDING",
+      "problem": "Publication can enqueue webhooks before TEST object registration; revision events for unbound parent product/plan IDs lack persistent TEST event lineage, so later queue claim may see no TEST scope.",
+      "correction": "Capture immutable event lineage during the exact native transaction/backend/actor/company/offer witness before automatic enqueue. Resolve queue lineage by bound event ID; prove truthful suppression and unchanged ordinary unbound traffic.",
+      "evidence": "/workspace/gridex-local-test-catalog-publication-evidence-20261115/ROOT-EVENT-LINEAGE-SOURCE-FINDING.safe.json",
+      "wholeScenarioPass": false,
+      "variants": [
+        {
+          "name": "V1_pre_enqueue_lineage_missing",
+          "findingSHA256": "e3f77d688f5d6953120dfdd8bc85cbd978ba5a0f5c679dd537a42159099983c9"
+        },
+        {
+          "name": "V2_positive_payload_erased_by_null_event_seal",
+          "findingSHA256": "75df525eeb29540d8777b15e9f897df6dd89529dd04400ea60310ac4ca058dee",
+          "correction": "V3 retains payload/current/old seals separately and rejects NULL or mismatched carriers; native regression prepared NOT_RUN"
+        }
+      ],
+      "sourceApprovals": [
+        "/workspace/gridex-local-test-catalog-publication-evidence-20261115/ROOT-V3-SOURCE-AND-FINALDOC-APPROVE.safe.json",
+        "/workspace/gridex-local-test-catalog-publication-independent-review-20261115/SOURCE-V3-FINALDOC-APPROVE.safe.json"
+      ],
+      "actualHookFixture": {
+        "terminal": "/workspace/gridex-catalog-egress-component-actual-20261115-a/terminal.safe.json",
+        "terminalSHA256": "b8a4b3822bbe6d37fa426e1f1e7d34486291b3274c57e60362872041a63e0649",
+        "independentClosureSHA256": "70d3750a74c5e67119ee65206c2721da24f6504bbd2e256fd35f3865a094c275",
+        "assertions": 23,
+        "SQLSeconds": 0.3725526590133086,
+        "genuineAuth": false,
+        "normalMain3370Composition": false,
+        "wholeScenarioPass": false
+      }
+    },
+    {
+      "id": "EVENT-RECEIVER-OUTPUT-PARENT-MISSING",
+      "kind": "harness_runtime",
+      "severity": "blocking_test_execution",
+      "status": "SOURCE_CORRECTION_41_CONTROLS_AND_INDEPENDENT_PEER_NO_NEW_ACTUAL",
+      "problem": "Actual EVENT W sidecar controller rejected its missing outputParent directory before candidate/listener/business. PreAuth filesystem subset and launcher-only peer missed the real controller filesystem prerequisite.",
+      "correction": "Prepare only the exact fresh owned outputParent and validate the real controller filesystem contract before Auth; retain no-retry/deadline guards and qualify missing/mode/symlink/path cases.",
+      "evidence": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/CLOSED-EVENT-W-SIDECAR-FS-STOP-AUTH0.safe.json",
+      "wholeScenarioPass": false,
+      "sourceCorrection": "/workspace/gridex-event-receiver-fs-routing-fix-prep-20261115/PREPARED.SOURCE-ONLY.safe.json",
+      "sourcePeer": "/workspace/gridex-event-receiver-fs-routing-independent-review-20261115/SOURCE-APPROVE.safe.json"
+    },
+    {
+      "id": "AUTH-CLEANUP-LIFECYCLE-AND-TOPOLOGY",
+      "kind": "cleanup_harness",
+      "severity": "blocking_cleanup_source_or_route",
+      "status": "W_CLEANUP_CLOSED_TOPOLOGY_FIXES_QUALIFIED_SAME_X_HEALTH_POLL_CORRECTION_PENDING",
+      "problem": "Cleanup source could skip required stop when pre-stop inspect failed; host55321 GET disconnected in paused topology; a later hardcoded old Auth IP failed after Docker reassignment.",
+      "correction": "Always restore the exact original stopped service in finally, derive and validate the fresh IP from the fixed real CID/network, then use the same standard genuine-user GET/local logout API. Prior failed attempts sent no logout POST.",
+      "variants": [
+        {
+          "name": "finally_inspect_before_required_stop",
+          "stage": "source finding",
+          "fixed": "immutable V2 unconditional stop"
+        },
+        {
+          "name": "host_gateway_route_unavailable",
+          "stage": "actual GET disconnected before POST",
+          "fixed": "direct exact own Auth standard API"
+        },
+        {
+          "name": "old_ip_across_container_restart",
+          "stage": "actual IP guard STOP before GET/POST",
+          "fixed": "fresh fixed-CID/network-derived IP V4"
+        },
+        {
+          "name": "temporary_forwarder_socket_time_wait_restore",
+          "stage": "actual ephemeral loopback reproduction only; real55321 untouched",
+          "evidence": "/tmp/gridex-one-site-auth-topology-prep-20261115/root-ephemeral-socket-restoration.safe.json",
+          "problem": "Temporary listener SO_REUSEADDR false makes immediate original listener rebind fail errno98 after server-first close.",
+          "correction": "Immutable V2 SO_REUSEADDR true; both close orders and live second-bind denial qualified; actual topology restoration pending."
+        },
+        {
+          "name": "strict_mount_list_order_false_positive",
+          "stage": "actual bounded metadata probe",
+          "evidence": "/tmp/gridex-rest-kong-running-metadata-probe-20261115-a/MOUNTS-ORDER-ONLY-PROOF.safe.json",
+          "problem": "Docker reorders Mounts list across state transition while every full mount object is unchanged; original failed run running snapshot absent so precise original cause unproven.",
+          "correction": "Compare exact full mount objects by unique Destination, preserve Image/Config/HostConfig/network identity guards."
+        },
+        {
+          "name": "v3_exclusive_snapshot_filename_collision",
+          "stage": "confirmed source control-flow finding BEFORE actual V3 execution",
+          "problem": "Startup and finally both exclusively create running-CID.private.json; cleanup verification necessarily hits FileExistsError.",
+          "correction": "Immutable V4 distinct restored-CID filenames and actual small filesystem lifecycle test requested."
+        },
+        {
+          "name": "pre_renew_health_uses_wrong_carrier_after_kong_restart",
+          "stage": "actual health/config probe no user Auth",
+          "evidence": "/tmp/gridex-auth-topology-health-credential-probe-20261115-b/OBSERVATION.safe.json",
+          "problem": "After exact Kong restart, generated configuration uses unchanged Config.Env keys rather than last runtime-renewed W carrier: direct Auth200/currentconfigured key route200/W key route401. Requiring W success prevents normal next renewal.",
+          "correction": "Health-only bootstrap from fresh verified exactCID current Config.Env; genuine X normal renewal and independent actual outcome still mandatory before user Auth."
+        },
+        {
+          "name": "same_x_reapply_omits_qualified_health_poll",
+          "stage": "actual configreload rc0 followed by immediate HTTP401 before diagnostic/Auth",
+          "problem": "New same-X reapply helper performed immediate health checks whereas the qualified normal renewal source polls GET health up to5 times with1s intervals after reload. Precise original401 cause/transition not yet observed.",
+          "correction": "Restore actual qualified5 readonly health attempts/path with1s intervals and sanitized per-response path/status/body length/hash before assertions, single configreload/no newJWT/globalwrite. Earlier Root20-attempt attribution corrected against actual renewal source range(5).",
+          "source": "/tmp/gridex-one-site-api-X-actual-prep-20261115-a/reapply-current-X-config.py",
+          "noUserAuthOrBusiness": true
+        }
+      ],
+      "evidence": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/CLOSED-EVENT-W-SIDECAR-FS-STOP-AUTH0.safe.json",
+      "independentClosureEvidence": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/qa-final-EVENT-W-closure-residual-review.safe.json",
+      "correctionEvidence": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/qa-own-api-cleanup-v4-current-cid-source-actual-scope.safe.json",
+      "wholeScenarioPass": false,
+      "nextTopologyFix": "/tmp/gridex-one-site-auth-topology-prep-20261115/PREPARED.v2.SOURCE-ONLY.safe.json",
+      "sameXHealthSourceFix": "c7d2 helperV2/QA3bc2 with physicalcaller-path correction beforeexecution; V7Rootactualscope8eb8 boundnewroot/typedPID, no actualreadiness claimed."
+    },
+    {
+      "id": "API-DIAGNOSTIC-CROSS-DATABASE-LABEL-COMPARISON",
+      "kind": "harness_integration",
+      "severity": "blocking_before_user_auth",
+      "status": "V4_SOURCE_FIX_AND_7_SAVED_DATA_CONTROLS_PEER_APPROVED_NATIVE_B_PENDING",
+      "problem": "Constructor compares actual receiver/private14 JSON with retained donor JSON including current_database(). New intended clone namespace differs from donor, so identical rows are rejected as receiver/private drift.",
+      "correction": "Validate both exact intended database namespaces independently, then compare every non-database field exactly. Preserve full same-clone header comparisons, private14 emptiness, receiver actor/scope/expiry and row hashes. Meaningful saved-data positive and namespace/row/hash negatives; new exclusive clone namespace, no business retry.",
+      "evidence": "/tmp/gridex-one-site-api-X-actual-prep-20261115-a/root-preauth-receiver-database-label-only.safe.json",
+      "actualScope": "Own API-A clone installed actual Main3370→foundation3420→API3443, stopped before worker/password/RPC/import. Own DB absent and settings restored; producer full Main/all7/noAuth closure still pending.",
+      "wholeScenarioPass": false,
+      "sourcePeer": "/tmp/gridex-one-site-native-api-diagnostic-v4-prep-20261115/root-V4-SOURCE-AND-FINALDOC-APPROVE.safe.json"
+    },
+    {
+      "id": "EVENT-WORKER-PACKAGE-METADATA-SYMLINK-PATHS",
+      "kind": "harness_metadata",
+      "severity": "blocking_before_user_auth",
+      "status": "FIXED_ACTUAL_C_ENTRY_AND_FULL_THREE_ORIGINAL_EVENT_CASES_VERIFIED",
+      "problem": "B worker entry rejects three package.json metadata paths because they traverse symbolic links; existing static guard requires exact physical real paths. Module-load qualification did not exercise complete worker entry metadata guards.",
+      "businessImpact": "Selected EVENT scenarios did not run; no product defect demonstrated by this stop. Worker exited before login.intent, password, factory and business.",
+      "correction": "Use three verified same-byte physical package paths. Keep unchanged realpath/mode/size/hash guards. Execute exact worker bytes() guard on source refs before topology/clone and full actual dynamic target before login/review clock.",
+      "evidence": "/tmp/gridex-event-headless-actual-20261115-b/proper-closure/EXACT-STATIC-REF-FAILURE.safe.json",
+      "independentClosure": "/tmp/gridex-event-headless-actual-20261115-b/proper-closure/qa-INDEPENDENT-CLOSURE-EXACT12-RAW-HOLD-RELEASE.safe.json",
+      "sourcePeer": "/tmp/gridex-event-headless-worker-independent-review-20261115/C-PHYSICAL-REFS-BYTE-PREFLIGHT-SOURCE-APPROVE.safe.json",
+      "targetedVerification": "Exact worker helper:22 C static refs pass, original B exactly3 symlink failures,10 guard controls; no SDK/API/Auth/network. Full actual C execution pending.",
+      "wholeScenarioPass": false,
+      "actualVerification": "/workspace/gridex-event-original-acceptance-20261115/EVENT-C-INDEPENDENT-FULL-ORIGINAL-VERDICT.safe.json"
+    },
+    {
+      "id": "EDIEL06-UNSUPPORTED-CONJUNCTIVE-VARIANT-GATE",
+      "kind": "audit_oracle_interpretation",
+      "severity": "blocking_case_selection",
+      "status": "CORRECTED_ORIGINAL_ORACLE_RESTORED_NATIVE_CASE_PENDING",
+      "problem": "Audit treated MIME/segment/UNOC alternatives as requiring all three and added a mandatory UNOC prerequisite unsupported by the original literal/nextAction. This unnecessarily gated an executable pretenant segment-error scenario on extra downstream authority.",
+      "impact": "Delayed original EDIEL02.06 execution; no demonstrated application product defect.",
+      "correction": "Preserve original criterion: choose a documented invalid MIME/segment/UNOC case that reaches a genuine syntax-error receipt, plus original preservation and closure fences. Existing dangling-release normalqueued fixture can satisfy full original case if actual receipts pass. No offline/source PASS.",
+      "evidence": "/workspace/gridex-ediel06-queued-fixture-20261116/ORIGINAL-ORACLE-SCOPE-ERRATUM.safe.json",
+      "originalReference": "/workspace/gridex-original-pass-priority-20261115/ORIGINAL-PASS-PRIORITY.safe.json:270",
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "EDIEL06-NORMAL-CUSTODY-APPEND-OVERBROAD-PRIVATE-FENCE",
+      "kind": "harness_preservation_oracle",
+      "severity": "blocking_after_normal_poll_if_not_corrected",
+      "status": "FIXED_ACTUAL_FULL_ORIGINAL_EDIEL02_06_PASS_WITH_DECLARED_COMPLETE_PRIVATE_FENCES",
+      "problem": "EDIEL06 outer required every private table hash unchanged across normal poll. Actual unchanged service storage triggers legitimately append one raw_birth and one technical_mailbox_birth for the new own message, so a correct normal poll would fail this overly broad test fence.",
+      "affectedSource": "/tmp/gridex-ediel06-headless-prep-20261116-a/run-original-ediel06.py and native-ediel06-ports.py",
+      "proof": "Actual captured trigger bodies capture_custody90998 and capture_technical_mailbox_birth69bc, independent Domain confirmation: the two gridex_ private tables are outside522 standard row scopes and are written by normal service transport.",
+      "correction": "Validate exactly one own-email/mailbox-bound append per private custody table, native raw_hash_v1 identity and matching observation time, with every old row preserved. Compare all other private tables exactly; preserve the resulting full private state across queue processing. Do not exempt financial/current/source authority tables or fabricate attribution.",
+      "actualImpact": "Caught by Root whole-composition preread before new Auth/business; no failed actualcase or productdefect inferred.",
+      "wholeScenarioPass": false,
+      "variants": [
+        {
+          "name": "unqualified_private_catalog_128_cap",
+          "actualOutcome": "A stopped BOUNDED_PRIVATE_PRODUCT_TABLES before mailfixture/worker/password/business; setup restorequeue0 succeeded, properclosure d385/QA58684.",
+          "proof": "Actual Main catalog374; exact qualified3443 TOC catalog388 including14 foundation tables;386 outside522 standard scopes.",
+          "correction": "Exact388-table whitelist, full386 missing-table count+canonicalSHA in one boundedSQL perphase,8s/8MiB/collationC, two fullcustody witnesses. Originalnumeric128 was unqualified harness assumption, not product or originalscenario policy."
+        },
+        {
+          "name": "four_case_common_header_source_birth",
+          "status": "CORRECTED_IN_SEMANTIC_SOURCE_BEFORE_ANY_FOUR_CASE_AUTH",
+          "problem": "Selected missing202 native source birth legitimately appends gridex_ediel_common_header.sources, but initial four-case phase exception set omitted it.",
+          "proof": "Current3370 prosrc SHA2122ea50 byteexact to actual attached ediel_capture_common_prodat_header trigger body in K12 graph a4e400; pending same-transaction header_negative_birth receipt branch inserts source row. Domain independently confirmed C3443 body/attachment.",
+          "correction": "Add only this exact table to sources phase/private-extra and source_message_id→actual own sourceIds witness. Preserve full old/foreign rows and all remaining386 private maps; no company/regex exemption.",
+          "actualImpact": "No four-case Auth/business occurred; deterministic harness falseSTOP prevented."
+        }
+      ],
+      "correctionSource": "/tmp/gridex-ediel06-headless-prep-20261116-b/DOMAIN-POSITIVE-SOURCE-HANDOFF.safe.json",
+      "actualVerification": "/workspace/gridex-ediel06-queued-fixture-20261116/ACTUAL-B-FULL-ORIGINAL-VERDICT.safe.json"
+    },
+    {
+      "id": "EVENT05-INHERITED-TARGET-STATE",
+      "kind": "harness_metadata",
+      "severity": "blocking_before_auth",
+      "status": "CORRECTED_BEFORE_AUTH_ACTUAL_TARGET_QA_APPROVED",
+      "problem": "Worker target inherited BOUND_HEADLESS_ORIGINAL_EVENT_BATCH, while the selected worker requires BOUND_HEADLESS_ORIGINAL_EVENT05.",
+      "correction": "Preserve rejected target; change only declared state, rehash complete target and independently verify under original 600-second clock.",
+      "evidence": "/tmp/gridex-event-headless-actual-20261116-event05-a/qa-EVENT05-worker-actual-scope.safe.json",
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "EVENT05-RAW-HEADERS-ENVELOPE-SHAPE",
+      "kind": "harness_integration",
+      "severity": "final_worker_receipt_blocked",
+      "status": "ACTUAL_STOP_PRESERVED_INDEPENDENT_FULL_ORIGINAL_EVENT01_05_PASS",
+      "problem": "Receiver retained complete headers as {rawHeaders:[...]}; final worker guard expected an array. Business, native persistence and physical TLS delivery completed before this artifact-shape stop.",
+      "correction": "Read and validate the actual rawHeaders envelope field with full header/body checks. Preserve original caller exit 1 and worker exit 0; do not repeat delivery or claim a missing CASE_COMPLETE receipt. Future worker version needs targeted envelope/array malformed controls and independent source review.",
+      "evidence": "/workspace/gridex-event-original-acceptance-20261115/EVENT05-ACTUAL-INDEPENDENT-STAGE.safe.json",
+      "closure": "/tmp/gridex-event-headless-actual-20261116-event05-a/qa-INDEPENDENT-FINAL-CLOSURE-RESIDUAL.safe.json",
+      "wholeScenarioPass": false,
+      "originalScenarioVerdict": "/workspace/gridex-event-original-acceptance-20261115/EVENT05-ACTUAL-FULL-ORIGINAL-VERDICT.safe.json"
+    },
+    {
+      "id": "EDIEL-FOUR-CASE-GENERIC-ACK-ROUTE-AMBIGUITY",
+      "kind": "false_positive_source_path",
+      "severity": "not_applicable_to_selected_technical_ack_branch",
+      "status": "FALSE_POSITIVE_CORRECTED_BEFORE_ANY_FIX_OR_ACTUAL_ATTEMPT",
+      "problem": "Root initially applied generic business-ACK route selection to the selected technical CONTRL/common-header-negative branch. The generic selector really rejects multiple generic routes, but this selected normal branch returns earlier and does not call it.",
+      "sourceEvidence": [
+        "/tmp/gridex-ediel-four-case-worker-prep-20261116-a/normal-route-fixture.cjs",
+        "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/core/routeRegistry.ts:116",
+        "/workspace/gridex-pilot65-source-20261115-k11/lib/cis/db-routes.ts:115"
+      ],
+      "correction": "No fixture or product change required for this allegation. Selected CONTRL returns via kernel.ts438–454 and readTechnicalSyntaxAckRoute; common-header-negative APERAK returns at460–488. Actual native select_configured_reply_route_v2 selects exactly one complete reverse-UNB/APP/mailbox/current-SMTP-matched route/profile pair. Keep existing native exact-route readback before send.",
+      "impact": "No actual case failed and no workaround/grid-owner fixture was added. Original source warning and correction retained as audit history.",
+      "wholeScenarioPass": false,
+      "falsePositiveProof": [
+        "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/core/kernel.ts:438",
+        "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/ack/technicalSyntaxRoute.ts:23"
+      ]
+    },
+    {
+      "id": "OFFICIAL-CLAIM-READBACK-VISIBILITY-WINDOW",
+      "kind": "documentation_custody_tooling",
+      "severity": "blocking_repository_report_delivery",
+      "status": "PRIVATE_RUNNER_QUALIFIED_ACTUAL_CUSTODY_LOCAL_REPORT_COMMIT_AND_OWN_RELEASE_COMPLETE",
+      "problem": "Normal exact-file reservation POST returned201, but two immediate authenticated GETs returned404. The same exact own ref later returned the correct receipt approximately58seconds later. Immediate-read verifier stopped without write rights and delayed report delivery.",
+      "causeLimit": "Delayed visibility observed; replica/proxy/cache origin not established. This is not evidence of an application product defect.",
+      "correction": "Use exact-byte separately qualified private runner copy with bounded GET-only404 backoff and90-second acceptance window, exact receipt/ref/type/main checks before rights; never retry creation POST or release foreign refs. Shared official helper remains unchanged.",
+      "evidence": "/workspace/gridex-claim-readback-diagnosis-20261116/FROZEN.PROPOSAL.safe.json",
+      "independentSourcePeers": [
+        "/workspace/gridex-claim-readback-diagnosis-20261116/qa-PRIVATE-READBACK-RUNNER-SOURCE-REVIEW.safe.json",
+        "/workspace/gridex-claim-readback-diagnosis-20261116/root-PRIVATE-RUNNER-SOURCE-AND-OPERATION.safe.json"
+      ],
+      "actualCustody": "/workspace/gridex-current43-doc-evidence-20261116/ACTUAL-ACQUIRE.safe.json",
+      "localDocCommit": "f0d4f30876572d9572d0e23ef78e6262237d1c1d",
+      "wholeScenarioPass": false,
+      "closure": "/workspace/gridex-current43-doc-evidence-20261116/CLOSED-HANDOFF.safe.json",
+      "ownRelease": "/workspace/gridex-current43-doc-evidence-20261116/OWN-RELEASE.safe.json"
+    },
+    {
+      "id": "C6-RECEIPT-MARKET-ACTOR-VS-ISSUING-USER",
+      "kind": "harness_native_semantic_join",
+      "severity": "blocking_after_receiver_issue_if_uncorrected",
+      "status": "FIXED_IN_IMMUTABLE_WORKER_V3_BEFORE_ANY_FOUR_CASE_AUTH_OR_BUSINESS",
+      "problem": "Worker V2 compared controlled receiver receipt.actorId to the human operator user UUID. Native issuer generates a separate product market-actor UUID and stores the human issuer in registration.issued_by, so a legitimate issue would fail its post-issue guard.",
+      "correction": "Compare actual native product actor UUID with the actual normal issue-return actorId, and independently require native registration.issued_by to equal the genuinely authenticated issuing user. Preserve both identities and all tenant/role/source checks.",
+      "sourceEvidence": [
+        "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/testing/controlledTestReceiverIdentity.ts",
+        "/tmp/gridex-ediel-four-case-worker-prep-20261116-a/execution-FOUR-WORKER-V3-ACTOR-SOURCE-REBIND.safe.json"
+      ],
+      "actualImpact": "Caught during native semantic integration before any new four-case login/issue; no product business failure inferred. V1/V2 freezes preserved.",
+      "wholeScenarioPass": false
+    },
+    {
+      "id": "OWN-STORAGE-VFS-CONSTRUCTOR-COST-OMITTED",
+      "kind": "test_harness_resource_preparation",
+      "severity": "blocks_actual_setup_before_user_auth",
+      "status": "LATE_CREATE_RECONCILED_CLOSED_OLD_RESOURCE_ENVELOPE_NOT_QUALIFIED_LOCAL_PREFLIGHT_PENDING",
+      "problem": "Actual Storage docker CREATE exceeded30s before CID/start/health/SDK, and workspace useravailable fell to0. The qualified336MiB workspace budget omitted full Storage image copy for the actual Docker vfs driver. Pinned image size820464664bytes exceeds the old entire workspace floor.",
+      "actualEvidence": [
+        {
+          "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/DOCKER-STORAGE-DRIVER.safe.json",
+          "sha256": "05e5dae8040f30b69b335bf7794cc73037a094117628daee2ed94a3a31cc8dc5"
+        },
+        {
+          "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/CLOSED.safe.json",
+          "sha256": "3c3d48a1e759598f5a6ae498a154641edf0c8ff5848efbdc599514c823922fa4"
+        },
+        {
+          "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/qa-INDEPENDENT-PREAUTH-STOP-PROPER-CLOSURE.safe.json",
+          "sha256": "01b3e1f5a2b7fd67c86b7b00d5440ab070fe3892336a2aa3c0b6888a072e05c6"
+        }
+      ],
+      "correction": "The SAME late-created never-started owned probe CID was inspected and normally removed; no pending outcome remains for that probe. Preserve original30s timeout. Requalify constructor latency and actual workspace/TMP resource envelope before any new heavy start; earlier1152MiB workspace allowance is NOT qualified by the later observation. Do not weaken SQL8s/business/SMTP limits or unknown-outcome reconciliation. Local compute must qualify portability and safe reachability to the SAME existing staging target.",
+      "limits": "Driver/image facts establish omitted resource cost. Exact per-operation disk consumption and strict cause of earlier OCIexec errors are not yet measured. No migrations/server started; no userAuth or scenario business occurred. WAL read134MiB does not support400MiB retainedWAL theory. Original43/1/61 unchanged.",
+      "wholeScenarioPass": false,
+      "fixedSource": {
+        "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/RUNTIME-STORAGE.v2.FROZEN.SOURCE-ONLY.safe.json",
+        "sha256": "49f3b4770c79eb2ccb1b4b41280c88f5ace3a95781890920ee0a178cef93dcba"
+      },
+      "additionalActualObservation": "No-start probeV2 entered withWS1228218368/TMP387MB but CREATE30 still timedout. About645MBWSallocated atterminal; exactnameabsent observation doesnotprove daemoncancellation. NoCIDreturned/noSTART/DB/Auth/SDK. Diskbudget omission is confirmed; correctedspace alone did not resolve constructor duration.",
+      "closureEvidence": [
+        {
+          "path": "/tmp/gridex-storage-create-only-probe-actual-20261116-a/LATE-CREATE-RECONCILED-CLOSED.safe.json",
+          "sha256": "a480718799e1fb14e2324161a771ec9930d438a2613766ec35f7b22dd7cbbc37"
+        },
+        {
+          "path": "/tmp/gridex-storage-create-only-probe-actual-20261116-a/qa-LATE-CREATE-RECONCILIATION-CLOSURE-REVIEW.safe.json",
+          "sha256": "844322062c65119c06496e6d655683d91358194ff61ff006e232ed1c06e9ac58"
+        }
+      ],
+      "laterActualObservation": {
+        "originalCreateCliTimeoutSeconds": 30.027,
+        "sameLateCreatedNeverStartedContainerRemoved": true,
+        "observedRawWorkspaceReclaimedBytes": 2244390912,
+        "notExclusiveAllocationOrPeakBound": true,
+        "completionLatency": "Only bounded after the30s timeout and by first late observation194.747s; exact finish not observed. No90s success claim.",
+        "businessOrAuthReached": false,
+        "canonicalCountsUnchanged": {
+          "FULL_PASS": 43,
+          "GAP": 1,
+          "INCOMPLETE": 61
+        }
+      }
+    },
+    {
+      "id": "B-RESTORE-LIST-PREFIX-REGEX-MISMATCH",
+      "kind": "test_harness_source_correctness",
+      "severity": "guaranteed_pre_restore_stop_if_uncorrected",
+      "status": "FIXED_SOURCE_ONLY_IMMUTABLE_B_RUNTIME_V2_BEFORE_ANY_B_BACKEND",
+      "problem": "B runtime changed Docker mktemp restore-list prefix to -b while exact re.fullmatch predicate still expected -a. It would stop before storing the returned path in cleanup state.",
+      "correction": "Immutable runtimeV2 changes both immediate and emergency-cleanup regex prefixes to-b; five additional injected actual own_restore_list generator/normal/exception cleanup controls passed. Newouter loads exactV2filename. Source peers rebind, no backend retry.",
+      "sourceEvidence": [
+        "/tmp/gridex-ediel-four-case-prep-20261116-b/B-EXACT-OWNED-DELTA.diff",
+        "/tmp/gridex-ediel-four-case-prep-20261116-b/owned-four-runtime.py"
+      ],
+      "actualImpact": "Found in Root peer source review; Bactual/Auth/business never started. No product defect or original-case result.",
+      "wholeScenarioPass": false,
+      "fixedSource": {
+        "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/RUNTIME-STORAGE.v2.FROZEN.SOURCE-ONLY.safe.json",
+        "sha256": "49f3b4770c79eb2ccb1b4b41280c88f5ace3a95781890920ee0a178cef93dcba"
+      },
+      "rootPeerSHA256": "ec1c4e1511e8b8d87ccd9e3a2b37d2ec2c93562175c4b0302ed1ec95a0d25417"
+    },
+    {
+      "id": "NORMAL_AI_BI_FILE_VERSION_LOOKUP_MISSING_NATIVE_REGISTRY_APIS",
+      "kind": "source_candidate",
+      "severity": "medium_applicability_pending",
+      "status": "SOURCE_INTERFACE_DIFFERENCE_CONFIRMED_INTENDED_RUNTIME_PATH_NOT_PROVEN",
+      "problem": "Generic registerEdielFile AI_LIST/ai_list branch invokes legacy ediel_resolve_message_rule / ediel_resolve_inbound_message_rules before later AI technical handling; neither name exists in protected actual3443 catalog. Mounted AGT manual upload can reach this on validAI/BI CSV before expected-family rejection. IntendedAIworkflow applicability remains medium.",
+      "correction": "Establish intended generic-fileAI support. Reject unsupportedAI early or use normal validated AItechnicalversion owner, retaining actor/company/BI/source guards. Do not blindly install/rename obsoleteRPCs. Canonical E66/PRODAT and normalmailboxAI are not proven affected.",
+      "sourceEvidence": {
+        "path": "/tmp/gridex-normal-rpc-readonly-review-20261116/FOCUSED-NORMAL-RPC-AND-REACHABILITY.safe.json",
+        "sha256": "f44aeef9680ceaf4a6989380f50c32750db53b9fa47d79e290dbf7b6e6270c3f"
+      },
+      "limits": "No actual validCSV/UI/RPCfailure run, no generalAIoutage or newwrongbillingRPC claim. Literal scan213sites/199names only, dynamicnames not exhaustive. Native invoice graph and retainedUTILTS refusal ABI remain reachable/intentional. No newdeadcode or casecredit.",
+      "wholeScenarioPass": false
+    }
+  ],
+  "limits": [
+    "This active register links verified current blockers and remediation; older error records remain in their original audit reports.",
+    "Component successes never change the105 full-oracle counts automatically.",
+    "Missing official Nordfin/schema and historical fixtures remain unavailable; no fabricated replacement PASS."
+  ],
+  "centralRepoAudit": {
+    "commit": "21d975b25413af89e710af9b8220fce762ac1092",
+    "entrypoint": "/tmp/gridex-simulation-status-v4-1-claim-20261115/quality/audits/gridex-simulation-status/README.sv.md",
+    "priorCentralCommits": [
+      "55af55b7a1612bfea09f06c09fe4c976269e61c9",
+      "3dcad0e4706ad23c6db9af967b79c3fa1fe033ca"
+    ],
+    "note": "Local reviewed exact105/38-1-66 cutoff snapshot with explicit522+14 rowcoverage erratum. Active Rootfindings and postcutoff ACK baseline may be newer; no push/adoption."
+  },
+  "scopeErratum": {
+    "atUTC": "2026-11-15T14:48:30.369837+00:00",
+    "correctedClaim": "Prior wholeclone-only3scopes wording exceeded captured relation coverage. Historicalimmutablecutoffs retained, currentclaim narrowed.",
+    "captured522BySchema": {
+      "public": 485,
+      "auth": 23,
+      "storage": 10,
+      "gridex_controlled_test_receiver": 2,
+      "vault": 1,
+      "supabase_migrations": 1
+    },
+    "separatePrivate14": "gridex_local_test only",
+    "uncovered": "Other private-origin row states require offline selectedFc data or another explicit capture; absent snapshot keys do not establish empty tables."
+  },
+  "entryCount": 46,
+  "countInterpretation": "Active finding records across product, capability, harness and source candidates; not a count of unresolved production defects or lifetime findings.",
+  "schemaApplicabilityErratum": {
+    "actualTable": "public.event_outbox",
+    "actualColumnCount": 17,
+    "actualHasPayload": true,
+    "priorOvergeneralization": "V3 synthetic hook fixture omitted payload; treating that as actual Main schema was incorrect.",
+    "authoritativeSavedSchemaSHA256": "abf620ab0e8fe7254da1a59bca2cfca24a1f9d94585c2ad05aa041a440ac6f6e",
+    "applicabilityProof": "/workspace/gridex-local-test-catalog-consumer-bridge-evidence-20261115/ACTUAL-EVENT-OUTBOX-COLUMN-APPLICABILITY.safe.json",
+    "localDocumentationCorrectionCommit": "70be844cb4d69debf307775bbc1f83195d4eb470",
+    "noScenarioOrProductCountChange": true
+  },
+  "registerSummary": {
+    "totalEntries": 46,
+    "kindCounts": {
+      "product": 3,
+      "product_or_execution_performance_cause_unproven": 1,
+      "product_authorization": 1,
+      "documented_capability_gap": 1,
+      "code_cleanup": 1,
+      "test_harness": 1,
+      "product_validation": 1,
+      "source_confirmed_limitation_full_behavior_pending": 1,
+      "test_harness_preparation": 1,
+      "test_harness_resource_preparation": 2,
+      "test_harness_orchestration": 1,
+      "test_harness_observability": 1,
+      "test_harness_source_reproducibility": 1,
+      "test_harness_verification": 2,
+      "test_harness_ui_navigation": 1,
+      "test_harness_source_correctness": 2,
+      "test_harness_source_schema": 1,
+      "harness": 3,
+      "harness_composition": 1,
+      "source_candidate": 4,
+      "capability_blocker": 1,
+      "resource_harness_candidate": 1,
+      "diagnostic_harness_candidate": 3,
+      "harness_runtime": 1,
+      "cleanup_harness": 1,
+      "harness_integration": 2,
+      "harness_metadata": 2,
+      "audit_oracle_interpretation": 1,
+      "harness_preservation_oracle": 1,
+      "false_positive_source_path": 1,
+      "documentation_custody_tooling": 1,
+      "harness_native_semantic_join": 1
+    },
+    "productRelatedEntries": 6,
+    "productRelatedCountIncludesOneUnprovenPerformanceCause": true,
+    "documentedCapabilityGapEntries": 1,
+    "openProductBugCountNotEstablished": true,
+    "interpretation": "Mixed historical register; source/component fix, deployed fix, false positive, harness defect and unavailable prerequisite are separate states. Do not equate totalEntries or productRelatedEntries with currently open product defects."
+  }
+}

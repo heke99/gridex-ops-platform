@@ -1,0 +1,11 @@
+{
+  "state": "SIDECAR_CONTROLLER_V2_NARROW_CODE_APPROVE_ACTUAL_DOCKER_INSPECT_CONTRACT",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T08:19:42.487575+00:00",
+  "preparedSHA256": "ecbdfa1bd6938def1083c164f08e5ca3f9f812a5f263c8349fd787234dce8c9e",
+  "controllerSHA256": "1fe88e2a23183ba7ebd745f604b3c3ecad92791c521b30e622dfc75664b4cbb5",
+  "priorFullControllerLauncherReview": "03b06bdc4c03bd5f84dc2f0e9f7f0ac7c8331a0a53521392fe62d3169ab44199",
+  "wholeOneInspectLiteralInverseVerified": true,
+  "review": "Dockerinspect knowncanonical no-new-privileges option differsfromcreateCLI spelling. Onlyinspectguardtoken corrected; createflag unchanged and actual/procNNP1+caps0 stillmandatory. Fullpriorcontroller/launcherreview applies; allnewpins verified.",
+  "actualScope": "StillrequiresactualruntimeCID/netns/TLSprobe andproducer+Ediel EXECscopes; no runtimeorcasecredit."
+}

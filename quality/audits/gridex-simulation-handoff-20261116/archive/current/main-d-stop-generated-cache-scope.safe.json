@@ -1,0 +1,36 @@
+{
+  "state": "AUTHORIZED_EXACT_OWN_MAIN_D_STOP_THEN_GENERATED_CACHE_ONLY",
+  "at": "2026-11-14T20:33:33.840796+00:00",
+  "mainIdentityExpected": {
+    "pid": 2501221,
+    "startTicks": "18630293",
+    "cmdSHA256Prefix": "c7e8eb16",
+    "requiresFreshFullIdentityAndOwnedChildren": true
+  },
+  "surveyPath": "/workspace/gridex-k6-resource-readonly-main-d-cache-20261114/SURVEY.safe.json",
+  "surveySHA256": "e584045d874a110b8d460d2199729b457440673e5ffee2338654cbd541401dd7",
+  "cacheRoot": {
+    "path": "/workspace/gridex-source40-next-cache-20261114",
+    "device": 27,
+    "inode": 526321,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700",
+    "type": "directory"
+  },
+  "sourceSymlink": {
+    "path": "/tmp/gridex-scenario-source-442256/.next",
+    "device": 34,
+    "inode": 533115,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o777",
+    "type": "symlink",
+    "target": "/workspace/gridex-source40-next-cache-20261114"
+  },
+  "scope": "After exact owned MainD graceful stop and port/children closure, fresh nonfollowing inventory may qualify only generated descendants; exclude/preserve node_modules symlink and all targets, root/source/.nextalias/deps/proofs. Stop if source/root identity differs; no broad recursive follow or unqualified inventory expansion.",
+  "requiresIndependentQaOfExactCleanup": true,
+  "noCurrentOrFutureBytesClaimed": true,
+  "soleWriter": "execute_eight_parts or specifically handed-off exact DAC cleanup helper",
+  "reason": "Unblock disposable native clone; current Main UI has no active operator session or business run"
+}

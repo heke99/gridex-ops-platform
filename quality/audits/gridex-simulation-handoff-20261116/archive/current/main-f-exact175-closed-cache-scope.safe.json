@@ -1,0 +1,19 @@
+{
+  "state": "AUTHORIZED_EXACT175_CLOSED_MAIN_F_GENERATED_CACHE_ONLY",
+  "at": "2026-11-14T22:52:05.137972+00:00",
+  "proposalPath": "/tmp/gridex-main-F-closed-cache-proposal-20261114/PROPOSAL.safe.json",
+  "proposalSHA256": "308104b96cff62e04102380d38cc5c505d7ae1ba66cfc11d60d83f3178ce08d5",
+  "scriptPath": "/tmp/reclaim-closed-main-F-cache.py",
+  "scriptSHA256": "896ae6a88741d023142591b14673959f9c8cd0e8774d7408583d954c05806940",
+  "terminationSHA256": "33b211b4e5eae4b3381ac6302bdb69b7012fdf947a41d15ba3b9b76547840df8",
+  "review": "WholequalifiedEalgorithm delta limited Fidentity/receipt/newproposal175/outputnamespace; Rootreadinverse; producercontingentfilehandoffreceived.",
+  "preserve": [
+    "root526321/mode700uid1000gid1000",
+    ".nextalias533115",
+    "node_modulesalias526518andtarget",
+    "source40/allactualproofs/Fc/dumps"
+  ],
+  "required": "Freshexactinventory/lstat/UID/type/FD/source/port/children guards, no linkfollow/expansion",
+  "writer": "qa_remaining_checks",
+  "noFutureBytesOrNative805Claim": true
+}

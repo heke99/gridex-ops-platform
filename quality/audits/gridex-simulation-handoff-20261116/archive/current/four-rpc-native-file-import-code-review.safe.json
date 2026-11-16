@@ -1,0 +1,24 @@
+{
+  "state": "FOUR_RPC_AND_ONE_NORMAL_FILE_IMPORT_CODE_COMPONENT_APPROVE_NOT_ACTUAL_GO",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T07:39:18.658382+00:00",
+  "preparedSHA256": "fa14f3bb178150357be2a5e7d9a785e8a6b87a4292c4b67b31700f4945a38366",
+  "coreSHA256": "50bc119029df6eccb1fd8929e6ad460772eeda174c7da57bca12180c02226942",
+  "helperSHA256": "30e4eafc3b72ddf74d7efb9436f9711eafe2c1e62e3c7986da60250428a58cdf",
+  "importDriverSHA256": "011d5ff47f53a4ed0cd7ccb05faad3729c4b3367bbf8c199fbd6d5f91ca32b2a",
+  "verifiedFilePins": 15,
+  "priorCoreReview": "1afa634c3a041c25a318165310c9c6312b7ab079406968b12086977fcad99e63",
+  "review": [
+    "Fullnewimportdriver and controlledhelper import/ACKdelta read; normalNextrequest/actualgenuinecookies and publicfourRPCauthority only",
+    "ActualnativeFilecontrol/setInputFiles/browserarraybufferSHA, exactnativeIDs/receivekeyreplay, normalformvalidity and freshgetUser/canonical",
+    "Captures actualformmethod/enctype/action+Reactreadiness; noReact/nonmultipart stopsbeforePOST; oneintent/oneUIpost/normalruntimepreparesonly",
+    "Primaryfailure beforependingintentreconciled withoutmasking; unknownoutcome noautoRetry and fullnativefinancialgraphrequired",
+    "ACK expresslycomponent-only, postintentfresh nativebindings+physicalfinancialcapture reference; financialapproval and anyfullcasecredit remain independentreview",
+    "Core50bc unchanged and12finitefakeSDKchecks retained; newUIdriver is sourcequalified/prepared, actualbrowserstillNOTRUN"
+  ],
+  "limits": [
+    "ActualfreshKactor/role/JWT/nativeexpiry/runtimebudget/DBscope binding stillrequired",
+    "No realimport/browser proof from thisCODEreview; independent postimportmoney/lineage beforeanyPASS/approve",
+    "NormalMain untouched; privateNativeFile64a8 required"
+  ]
+}

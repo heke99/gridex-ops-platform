@@ -1,0 +1,50 @@
+{
+  "verdict": "SOURCE_APPROVE_UNARMED_CURRENT_V_PROFILE_SEQUENCE",
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "packets": [
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/PROFILE-CURRENT-V.SOURCE-ONLY.safe.json",
+      "sha256": "61bc894fe1e3e1afd0d5cf8052a4f15adc9b401843bf2515d114b60921d5d26b"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/PROFILE-PREREQUISITES.SOURCE-ONLY.safe.json",
+      "sha256": "405e7a7c3215503a986b80f45ac5dba0186b725f77733d8d446c5dbcfbc0c6a5"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/PROFILE-NATIVE-PATH-V2.SOURCE-ONLY.safe.json",
+      "sha256": "9b0d1b48d47c48aecaabf9691cffb843bee734a6957b76716445e7d68aee6adb"
+    }
+  ],
+  "fullRead": [
+    "Current V host",
+    "Profile driver V3",
+    "Prior profile and native-path companions",
+    "Profile native SQL",
+    "Synthetic qualifier and saved eight controls",
+    "Published-catalog driver",
+    "Draft intake source",
+    "Actual Source40 company forms/actions"
+  ],
+  "findings": [],
+  "checked": [
+    "Exact company-A TEST-only seven declared values covering four observed missing groups; other form values preserved.",
+    "Normal profile save then fresh independent native ACK, normal review then fresh independent native ACK, only then existing-offer catalog publication.",
+    "Native root and absolute realpath guard rejects traversal aliases; V3 observed posts must equal one before ACK.",
+    "V-host six declared substitutions exactly reconstruct complete current host from preserved V2 donor.",
+    "Current V receipt/carrier and iat pinned; all actor/Main/session/GO fields remain unarmed.",
+    "Host caps each rendered Next-Action POST, forbids generic commands and requires same Main identity, real cookie principal and 600-second/JWT reserve."
+  ],
+  "savedControls": {
+    "count": 8,
+    "rerun": false,
+    "realBrowserSDKAuthDBCalls": 0
+  },
+  "limitations": [
+    "Normal profile fields are explicit LOCAL TEST fixture declarations, not external legal/signature validation.",
+    "Actual native readback and producer scope remain required for any execution.",
+    "Intake is draft only and not exposed by current host; no intake runtime or whole-case approval.",
+    "No scenario PASS, actual Auth, business POST or readiness inferred from source review."
+  ],
+  "priorCatalogPeerSHA256": "48ae4362e41f547b406cd090758ef8b2604d3464ef5d92ea8c149a5178f7e25c",
+  "NodeBackendAuthCallsByReviewer": 0
+}

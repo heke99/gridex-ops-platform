@@ -1,0 +1,15 @@
+{
+  "at": "2026-11-15T02:15:55.862396+00:00",
+  "scope": "NEW_AFTER_READY_BASELINE_BYTES_ONLY_NOT_BUSINESS_APPROVAL",
+  "sealPath": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261115-k8/current-full-backup-seal.safe.json",
+  "sealSha256": "541019cf1d58d276025be2bf86d082adb1673903303155f2e00686f3ad5648ce",
+  "checks": {
+    "dump": true,
+    "before": true,
+    "after": true,
+    "beforeAfterByteEqual": true,
+    "newCaptureAfterReady": true
+  },
+  "dumpBytes": 16876218,
+  "requires": "Actual session binding,parent/runtime dynamic scope and native guards remain mandatory"
+}

@@ -1,0 +1,14 @@
+{
+  "state": "ACTUAL_HISTORICAL_RECONCILIATION_VERIFIED_NOT_BUSINESS_PASS",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T10:32:01.585734+00:00",
+  "indexSHA256": "a1d3b6d205a994957ff7fc6f25f5c99b1a6102ead4c86de0aa5227815069f762",
+  "originalCount": 70,
+  "checks": [
+    "All70directoriginalhashes matched; historicalFullFc graph factory1/receiversbindingssubscriptionsdeliveries0",
+    "Actualpublicdelta0/14privateempty/readonlyfull3457snapshotunchanged/MainBYTEequal/owncloneAbsent",
+    "Sourceboundoriginalevent exists;48eligible,22strictlynewer+22tiesincludingtarget, observedtop30 excludesfixedID",
+    "Ties preventdeterministicexclusionclaim; exactUUIDlookup underSAMEscope warranted, notneweventcreation",
+    "NoAuth/REST/business/livefactoryauthority/newscenarioPASS; originaloldpageproperlogoutFALSE withqualifiedfreshglobalcleanup separately"
+  ]
+}

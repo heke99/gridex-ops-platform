@@ -1,0 +1,15 @@
+{
+  "state": "SOURCE_APPROVE_NOT_NATIVE_OR_PERFORMANCE_QUALIFIED",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T09:46:57.935664+00:00",
+  "freezeSHA256": "716475b3501d9b2c5029dc7028c5618e05a8a011c430b8b845f38b40bd26a58b",
+  "wrapperSHA256": "124f5c9c6225b174d4cf3d678f1b4eaa02634e16426518b615b62ce5e28c4757",
+  "review": [
+    "WholeDbody+delta+outerdelta read andallfrozenrefs/AST verified",
+    "Formalstrictsuccessorlemma: DISTINCTintegerLEAD+CASE n<nextSEQ equalsoldMIN(x<i<nextSEQ) coalesce, includingduplicates/NULLlast; normalizedintkeys matcholdcasts/range excludesNULL",
+    "Exactlyoneprecomputemap/twoquality_endquery replacements; otherguard/SEQ/MEA/STS/helper scans remain, no fullylinear claim",
+    "Original22control dictionaries exactlypreserved +3wireboundary +1explicitpuretokenprojection; not26businesscases; sameexpectedbeforebackend",
+    "Directoriginalce58 to new7928/79d8 inownedDclone only; bodynotexactPR956 anymore; externalstatementseparator preserved",
+    "Same8s/15s/full2688 source-onlyprojection; actualthreeMET+nonbody/allotherfunc/public/private/Main/drop/twoactualreviews required beforeKnewD adoption"
+  ]
+}

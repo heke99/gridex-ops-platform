@@ -1,0 +1,31 @@
+{
+  "state": "EXACT_OLD_A_STORAGE_LATE_CREATE_RECONCILIATION",
+  "observedAtEpoch": 1794821103.6504068,
+  "observedExactOwnedIDs": [],
+  "matchingStoppedNeverStartedOwnedCIDRemoved": false,
+  "sourceLabel": "1a46ad075909fe5fbf27be5d65388299aab9e3ecdaefb5ab53a5c5f089d435ac",
+  "expectedNetworkMode": "container:a29c0719d85e1b45466577fd5cfa1838703f92737188f35d6878ed44ea2f7b16",
+  "spaceBefore": {
+    "/workspace": {
+      "availableBytes": 1228201984,
+      "rawFreeBytes": 2962964480
+    },
+    "/tmp": {
+      "availableBytes": 387088384,
+      "rawFreeBytes": 387088384
+    }
+  },
+  "spaceAfter": {
+    "/workspace": {
+      "availableBytes": 1228201984,
+      "rawFreeBytes": 2962964480
+    },
+    "/tmp": {
+      "availableBytes": 387088384,
+      "rawFreeBytes": 387088384
+    }
+  },
+  "observedWorkspaceRawReclaimBytes": 0,
+  "noExclusiveDeltaClaim": true,
+  "noOtherNameOrPruneOrStart": true
+}

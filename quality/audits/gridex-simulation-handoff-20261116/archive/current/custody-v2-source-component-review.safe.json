@@ -1,0 +1,12 @@
+{
+  "state": "ROOT_CUSTODY_V2_SOURCE_COMPONENT_CODE_APPROVED_NOT_FULL_SCENARIO",
+  "observedAt": "2026-11-14T16:17:39.672007+00:00",
+  "preparedPath": "/tmp/gridex-normal-custody-ui-v2-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "6fa36734f431f5208de005252a7519408ba1063219bec9dc9bd3b2a3e9492cd0",
+  "runnerSHA256": "7684f55c7bd0b19a54798d5a3c2e5d2f72856a750436d1019b53390cd610a101",
+  "review": "Full original runner/invariants/read-only SQL and normal action/form source read. One durability finding fixed by exact parentdirectory fsync-only inverse; all original/v2 file pins verified. Genuine actors, fixed origins, one visible POST peraction, readonlySDK endpoints, nativeACK/no-replay and 11 protection/global invariants preserved.",
+  "findings": [],
+  "requiredBeforeActual": "Producer current-schema/actual-native fresh test fixture and current normal Main actor/key/process/source scoped bindings; no forged tenant/session or mutating SDK. Native reads on any unknown result before cleanup.",
+  "scopeLimit": "Three normal actions component only; actual invoice/source retention witness and full literal review still required for full CUSTODY01.04. No full case credit from pure22 controls or source review.",
+  "backendOrNodeCalls": 0
+}

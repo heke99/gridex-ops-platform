@@ -1,0 +1,118 @@
+{
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "verdict": "INDEPENDENT_PROPER_CLOSURE_RESIDUAL_COMPONENT_APPROVE",
+  "reviewedAt": "2026-11-16T05:09:24.635545+00:00",
+  "references": [
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/proper-closure/CLOSED.safe.json",
+      "sha256": "e292bfdae5b23df551c562255e6cc4c081c6c037879a542623dd13e6e069c49e"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/after-auth.main.private.json",
+      "sha256": "f8b6cb59e2861de3b844905253794bf8d30f3784a6c000dfe3cba2f7ff095557"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/emergency-postbusiness.main.private.json",
+      "sha256": "f8b6cb59e2861de3b844905253794bf8d30f3784a6c000dfe3cba2f7ff095557"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/final-cleanup-check.main.private.json",
+      "sha256": "8dd4a027d2db88dcfa67e1d4812b23fa8b903be4d494e6cca8a0fa2290efa824"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/main-after-runtime.private.json",
+      "sha256": "8dd4a027d2db88dcfa67e1d4812b23fa8b903be4d494e6cca8a0fa2290efa824"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/post-topology-restoration.main.private.json",
+      "sha256": "8dd4a027d2db88dcfa67e1d4812b23fa8b903be4d494e6cca8a0fa2290efa824"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/after-auth.all7.safe.json",
+      "sha256": "892a2fd1409a24528cf244d36a46201dc20dd97b77e20bbf728e4fa089e0d22d"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/emergency-postbusiness.all7.safe.json",
+      "sha256": "892a2fd1409a24528cf244d36a46201dc20dd97b77e20bbf728e4fa089e0d22d"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/final-cleanup-check.all7.safe.json",
+      "sha256": "892a2fd1409a24528cf244d36a46201dc20dd97b77e20bbf728e4fa089e0d22d"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/main-after-runtime.all7.safe.json",
+      "sha256": "ddd7b75f60f079b7f7f9fd918dd141545f73f78847b56d1be22cf5fc67ddf05a"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/post-topology-restoration.all7.safe.json",
+      "sha256": "892a2fd1409a24528cf244d36a46201dc20dd97b77e20bbf728e4fa089e0d22d"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/final-cleanup-check.auth.safe.json",
+      "sha256": "4035f8987c6f78277628ba99def9b80d9e33c4d9d578771a8ec841139ddd2477"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/main-after-runtime.auth.safe.json",
+      "sha256": "4035f8987c6f78277628ba99def9b80d9e33c4d9d578771a8ec841139ddd2477"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/post-topology-restoration.auth.safe.json",
+      "sha256": "4035f8987c6f78277628ba99def9b80d9e33c4d9d578771a8ec841139ddd2477"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/global-db-role-settings.before.private.json",
+      "sha256": "a0b9809a10e630b28b73e8eb5b1e65837684497fa7dab119ff76aae031694bb0"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/global-db-role-settings.after.private.json",
+      "sha256": "a0b9809a10e630b28b73e8eb5b1e65837684497fa7dab119ff76aae031694bb0"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/owned-runtime-closure.safe.json",
+      "sha256": "c495a2bdbdcd46ca68edae5bb67a7404e3f1b7f07fa289423e787974accad1f4"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/worker-process-closed.safe.json",
+      "sha256": "848bad0cda83016ac139717d94b17bfa769dfa7362553dd7a97f48324fa87cc4"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/clone-bridge-closed.safe.json",
+      "sha256": "a7a8fccf77efa4a708b0f6c5e0b9dcbf008fdffb2d6fd160e94f54aeb54ef20f"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/tls-success/receiver-process-closed.safe.json",
+      "sha256": "45df47c5e3bc09b9439c6245d036478e2a292392bdad08d4819e5912492eedde"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/receiver-success/terminal.safe.json",
+      "sha256": "5990a0849b6ced2947c85bac6f9ad3793d0efad5866cbd24c816f6fdec23f69d"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/halt.unknown.safe.json",
+      "sha256": "77455379f97820646d04d3dcafc1a7ada37727542a484c1c26de50cb1534b0d0"
+    },
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-actual-20261116-event05/RESTORED.safe.json",
+      "sha256": "b2e8e12200d1084e1ae8e92457604ab2d98a1dd374b30bfe782e0783e00a9785"
+    },
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-actual-20261116-event05/ORIGINAL-FORWARDER-RESTORED.safe.json",
+      "sha256": "0bd75abf1bcf3744157c4737805b29a2b2525d910810407bef2d242835e7aa41"
+    }
+  ],
+  "independentChecks": [
+    "All14producerclosure refs matched; fullMain5223370 afterAuth==emergencybusiness; finalcleanup==runtime==posttopology",
+    "AfterAuth/business\u2192finalexact4Auth/other518+3370nonrowsequal; all7afterGetUserinclNULLexact/nativeAuth6zero",
+    "Settingsbytesexact/ownDBRESTabsent/runtimecleanupErrors[]/bridge78requests0deniedthreadclosed",
+    "Worker4014388exit0 andreceiver4015816exit0/PIDsabsent/recordedPGIDsnoaccessiblelive/ports3168+24861closed",
+    "ReceiverterminalCLOSED/oneactualrequestclosed; normaltriooriginalSTOPPED/restoredtypedforwarder4017738start30496332cmd matched"
+  ],
+  "honestStop": "OutercallerEXIT1/runtimeAssertionError due final workerACTUAL_COMPLETE_RAW_HEADER_ARRAY envelope-vs-array harness guard. Workerexit0/normalcleanup is not full finalACK; no retry. E separately reconciles actual envelope.rawHeaders/body/native originaloracle.",
+  "capturePrecision": "Runtime reuse-intent/complete and raw inode account govern physical reuse; some main-proof existingPhysicalRawReused=false flags do not reflect save-level hardlink reuse. Fresh SQL observations retained; no independent physical capture claim.",
+  "limits": [
+    "No originalcase credit/count or rawhold release by this closure",
+    "No global inaccessibleFD/processabsence claim",
+    "Reviewer executed no Docker/SQL/Node/Auth"
+  ],
+  "reviewerMutation": false
+}

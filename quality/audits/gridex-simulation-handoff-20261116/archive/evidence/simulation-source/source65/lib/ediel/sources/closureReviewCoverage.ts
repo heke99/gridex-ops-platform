@@ -1,0 +1,83 @@
+import {isDeepStrictEqual} from 'node:util'
+import {supabaseService} from '@/lib/supabase/service'
+import {isEvidenceRecord} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {parseSourceReceiptInstant as instant} from '@/lib/ediel/utilts/receivedSourceInventory'
+import type {SourceOwnerSeed,SourceObjectDecision} from './sourceOwnerPersistence'
+import type {ClosureSourceWire} from './closureSourceWire'
+import type {StructuralReadset} from './structuralSourceReadset'
+import {isReviewedStructuralBusiness} from './reviewedStructuralSource'
+import {readStructuralReviewRow} from './structuralReviewReads'
+
+/** Resolve only the latest witnessed reviewed Z04 coverage. Ended mutable rows
+ * corroborate its unchanged identities; they cannot reconstruct missing proof. */
+export async function resolveClosureCoverage(seed:SourceOwnerSeed,wire:ClosureSourceWire,readset:StructuralReadset,point:Record<string,unknown>,reviewerUserId:string){
+ const candidates=[]
+ const epoch=instant(readset.timeline.ledgerStartedAt),cutoff=instant(readset.timeline.cutoffAt),stop=instant(wire.effectiveTo.utc)!
+ if(epoch===null||cutoff===null)throw Error('closure_ledger_unknown')
+ const day=`${wire.effectiveTo.marketMinute.slice(0,4)}-${wire.effectiveTo.marketMinute.slice(4,6)}-${wire.effectiveTo.marketMinute.slice(6,8)}`
+ for(const source of readset.sources){
+  if(!source.asOf)continue
+  for(const entry of source.objects){
+   if(entry.disposition!=='accepted'||entry.object.objectId!==wire.object.objectId||entry.object.identityAgency!==wire.object.identityAgency
+    ||!isReviewedStructuralBusiness(entry.business,source.rawPayload,entry.object))continue
+   const prior=entry.business,coverage=prior.coverageWindow
+   if(prior.companyId!==seed.evidence.companyId||prior.environment!==seed.evidence.environment||prior.sourceMessageId!==source.sourceMessageId
+    ||prior.sourcePayloadHash!==source.payloadHash||prior.wire.messageCode!=='Z04'||prior.wire.functionCode==='5'||prior.replaces!==null
+    ||prior.wire.legalSender!==wire.legalSender||prior.wire.legalReceiver!==wire.legalReceiver
+    ||coverage.baselineSourceMessageId!==source.sourceMessageId||prior.meteringPointId!==point.id||prior.siteId!==point.site_id
+    ||prior.customerId!==point.customer_id||instant(coverage.validFrom)!>=stop||instant(coverage.validFrom)!<epoch
+    ||coverage.validTo!==null&&instant(coverage.validTo)!==stop)continue
+   const revision=readset.timeline.sources.find(item=>item.sourceMessageId===source.sourceMessageId)?.revisions.find(item=>
+    item.assessmentId===coverage.baselineAssessmentId&&item.factsHash===coverage.baselineFactsHash&&item.availability==='witnessed_by_cutoff')
+   const root=source.assessments.find(item=>item.id===coverage.baselineAssessmentId&&item.factsHash===coverage.baselineFactsHash)
+   if(!revision||!root)continue
+   const roots=(JSON.parse(root.factsText) as {objects:SourceObjectDecision[]}).objects.filter(item=>
+    item.object.objectId===wire.object.objectId&&item.object.identityAgency===wire.object.identityAgency)
+   if(roots.length!==1||roots[0].disposition!=='accepted')continue
+   const committed=roots[0].business
+   if(!committed||committed.owner!=='inbound-z04-switch-confirmation-v1'||committed.sourceMessageId!==source.sourceMessageId
+    ||committed.sourcePayloadHash!==source.payloadHash||committed.companyId!==seed.evidence.companyId||committed.environment!==seed.evidence.environment
+    ||['customerId','meteringPointId','siteId','switchRequestId','supplyPeriodId'].some(key=>committed[key]!==prior[key as keyof typeof prior])
+    ||!isEvidenceRecord(committed.effectiveFrom)||!['market_calendar_day','market_minute'].includes(String(committed.effectiveFrom.committedDatePrecision))
+    // The committed proof stores ISO UTC; the coverage row is PostgreSQL
+    // timestamptz text. Same instant, different spelling: compare instants.
+    ||!isDeepStrictEqual(Object.keys(committed.effectiveFrom).sort(),['committedDatePrecision','fieldNumber','marketMinute','utc'])
+    ||committed.effectiveFrom.fieldNumber!=='210'||committed.effectiveFrom.marketMinute!==prior.wire.effectiveFrom.marketMinute
+    ||typeof committed.effectiveFrom.utc!=='string'||instant(committed.effectiveFrom.utc)===null
+    ||instant(committed.effectiveFrom.utc)!==instant(coverage.validFrom))continue
+   // This protected reader rechecks the sole immutable source/current-version
+   // authority. Mutable dates and operational status never recreate its proof.
+   const {data:basis,error}=await supabaseService.rpc('ediel_read_source_supply_basis_v1',{
+    p_company_id:seed.evidence.companyId,p_actor_user_id:reviewerUserId,p_period_id:prior.supplyPeriodId,
+    p_start:coverage.validFrom,p_end:wire.effectiveTo.utc,
+   }).abortSignal(AbortSignal.timeout(2000))
+   if(error||!isEvidenceRecord(basis)||basis.qualified!==true||basis.companyId!==seed.evidence.companyId
+    ||basis.periodId!==prior.supplyPeriodId||basis.switchId!==prior.switchRequestId
+    ||basis.initialSourceMessageId!==source.sourceMessageId||basis.sourceMessageId!==seed.evidence.sourceMessageId
+    ||basis.customerId!==point.customer_id||basis.meteringPointId!==point.id||basis.siteId!==point.site_id
+    ||instant(basis.marketStartAt)!==instant(coverage.validFrom)||instant(basis.marketEndAt)!==stop
+    ||basis.dsoEdielId!==wire.legalSender||basis.originalMessageId!==coverage.outboundSourceMessageId
+    ||!Array.isArray(basis.sourceObjects)||basis.sourceObjects.length!==1||!isEvidenceRecord(basis.sourceObjects[0])
+    ||basis.sourceObjects[0].point!==wire.object.objectId||basis.sourceObjects[0].identityAgency!==wire.object.identityAgency)continue
+   const sw=await readStructuralReviewRow('supplier_switch_requests',seed.evidence.companyId,prior.switchRequestId)
+   const sp=await readStructuralReviewRow('customer_supply_periods',seed.evidence.companyId,prior.supplyPeriodId)
+   if(sw.inbound_z04_message_id!==source.sourceMessageId||sw.rff_li_reference!==prior.wire.caseReference
+    ||sp.source_message_id!==source.sourceMessageId||sp.end_date!==day
+    ||sw.customer_id!==point.customer_id||sp.customer_id!==point.customer_id||sw.metering_point_id!==point.id||sp.metering_point_id!==point.id
+    ||sw.site_id!==point.site_id||sp.source_switch_request_id!==null&&sp.source_switch_request_id!==sw.id
+    ||sw.confirmed_start_date!==sp.start_date||typeof sp.start_date!=='string'
+    ||instant(sw.created_at)!==instant(coverage.switchCreatedAt)||instant(sw.created_at)!<epoch||instant(sw.created_at)!>instant(coverage.validFrom)!
+    ||sw.outbound_z03_message_id!==coverage.outboundSourceMessageId)continue
+   const outbound=await readStructuralReviewRow('ediel_messages',seed.evidence.companyId,coverage.outboundSourceMessageId)
+   const created=instant(outbound.created_at),accepted=instant(basis.originalAcceptedAt)
+   if(outbound.environment!==seed.evidence.environment||outbound.direction!=='outbound'||outbound.message_standard!=='edifact'
+    ||outbound.message_family!=='PRODAT'||outbound.message_code!=='Z03'||outbound.customer_id!==point.customer_id
+    ||outbound.metering_point_id!==point.id||outbound.site_id!==point.site_id||created===null||accepted===null
+    ||created!==instant(coverage.outboundCreatedAt)||created<instant(coverage.switchCreatedAt)!||created>cutoff
+    ||accepted<created||accepted>instant(prior.sourceReceivedAt)!)continue
+   candidates.push({source,coverage:structuredClone(coverage),legacyEndDateProjection:day})
+  }
+ }
+ if(candidates.length!==1)throw Error('closure_baseline_ambiguous')
+ return candidates[0]
+}

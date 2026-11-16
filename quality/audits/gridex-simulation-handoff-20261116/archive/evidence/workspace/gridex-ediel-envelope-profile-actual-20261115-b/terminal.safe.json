@@ -1,0 +1,81 @@
+{
+  "state": "PURE_OWN_DB_TIMING_AND_FIXTURE_DIAGNOSTIC_OBSERVED_CLOSED",
+  "errorType": null,
+  "ownDBAbsent": true,
+  "MainFullRolesAll7Auth0CarrierUnchanged": true,
+  "results": {
+    "installed": {
+      "exitCode": 0,
+      "elapsedSeconds": 6.7056440860033035,
+      "stdout": {
+        "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/timing-installed.stdout.private.log",
+        "sha256": "c79404eb0584956410760f28ab133ffcc081a4012c3dae6488ad6a82f92660bc"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/timing-installed.stderr.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "statementTimeout57014": false,
+      "observedResult": {
+        "case": "actual_raw_single_envelope_installed",
+        "result": {
+          "sender": [
+            "99071",
+            "ZZ"
+          ],
+          "receiver": [
+            "99002",
+            "ZZ"
+          ],
+          "environment": "test",
+          "uciReference": "L2FEB270001",
+          "testIndicator": "1",
+          "applicationReference": "23-DDQ-E66-T",
+          "interchangeReference": "L2FEB270001"
+        },
+        "resultMD5": "50c501ac3162861874cf45de86cd93d2"
+      }
+    },
+    "candidate": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.27107988999341615,
+      "stdout": {
+        "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/timing-candidate.stdout.private.log",
+        "sha256": "678c6746090c21b742b3fe5aa3fbdd7d1fa336e3c130e5c87235724b94c5e2c7"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/timing-candidate.stderr.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "statementTimeout57014": false,
+      "observedResult": {
+        "case": "actual_raw_single_envelope_candidate",
+        "result": {
+          "sender": [
+            "99071",
+            "ZZ"
+          ],
+          "receiver": [
+            "99002",
+            "ZZ"
+          ],
+          "environment": "test",
+          "uciReference": "L2FEB270001",
+          "testIndicator": "1",
+          "applicationReference": "23-DDQ-E66-T",
+          "interchangeReference": "L2FEB270001"
+        },
+        "resultMD5": "50c501ac3162861874cf45de86cd93d2"
+      }
+    }
+  },
+  "native41Passed": false,
+  "fixture35DiagnosticObserved": true,
+  "fixture35Diagnostic": {
+    "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/fixture35-disambiguation.safe.json",
+    "sha256": "54b23bb3de126e7fc11db36c746ed633ae205f82beade8219feb30f944c12ba6"
+  },
+  "actualRawOutputEquivalence": true,
+  "fullInsertCauseProven": false,
+  "MainOrProductAdoption": false
+}

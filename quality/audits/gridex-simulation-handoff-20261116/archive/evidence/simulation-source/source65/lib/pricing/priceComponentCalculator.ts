@@ -1,0 +1,421 @@
+import type {
+  BillingUnderlayInput,
+  PriceComponent,
+  PricingPreviewLine,
+} from "@/lib/pricing/types";
+import {
+  displayPricingUnit,
+  normalizePricingUnitForComponent,
+  sekPerKwhFromComponent,
+} from "@/lib/pricing/unitConversion";
+import { stockholmMonthBounds } from "@/lib/time/stockholm";
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function daysBetween(start: string, end: string): number {
+  const startMs = new Date(start).getTime();
+  const endMs = new Date(end).getTime();
+  if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs)
+    return 0;
+  return Math.ceil((endMs - startMs) / 86_400_000);
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function calendarDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = value.slice(0, 10);
+  return ISO_DATE.test(date) ? date : null;
+}
+
+function nextCalendarDate(date: string): string {
+  const next = new Date(`${date}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  return next.toISOString().slice(0, 10);
+}
+
+function periodizationFactor(
+  underlay: BillingUnderlayInput,
+  component: PriceComponent,
+): number {
+  if (
+    component.periodizationMode !== "active_days" &&
+    component.periodizationMode !== "prorated_by_days"
+  )
+    return 1;
+  const periodStart = calendarDate(underlay.periodStart);
+  const periodEnd = calendarDate(underlay.periodEnd);
+  if (periodStart && periodEnd) {
+    // Rule (owner decision H3d part 1): fixed monthly fee factor =
+    // delivered days / days of the Europe/Stockholm calendar month.
+    // Denominator: calendar days of the Stockholm billing month the period
+    // belongs to (the underlay period is already clipped to delivery).
+    // Numerator: active delivery days within that month. Contract ends_at is
+    // an inclusive calendar date; the underlay period end is exclusive.
+    const month = stockholmMonthBounds(periodStart.slice(0, 7));
+    const monthDays = Math.max(
+      daysBetween(month.startDate, month.endDateExclusive),
+      1,
+    );
+    const activeFrom = calendarDate(underlay.activeFrom);
+    const activeTo = calendarDate(underlay.activeTo);
+    const starts = [month.startDate, periodStart, activeFrom].filter(
+      (value): value is string => Boolean(value),
+    );
+    const ends = [
+      month.endDateExclusive,
+      periodEnd,
+      activeTo ? nextCalendarDate(activeTo) : null,
+    ].filter((value): value is string => Boolean(value));
+    const activeStart = starts.reduce((a, b) => (b > a ? b : a));
+    const activeEnd = ends.reduce((a, b) => (b < a ? b : a));
+    const activeDays = Math.min(
+      Math.max(daysBetween(activeStart, activeEnd), 0),
+      monthDays,
+    );
+    return activeDays / monthDays;
+  }
+  const totalDays = Math.max(
+    daysBetween(underlay.periodStart, underlay.periodEnd),
+    1,
+  );
+  const activeStart =
+    underlay.activeFrom && underlay.activeFrom > underlay.periodStart
+      ? underlay.activeFrom
+      : underlay.periodStart;
+  const activeEnd =
+    underlay.activeTo && underlay.activeTo < underlay.periodEnd
+      ? underlay.activeTo
+      : underlay.periodEnd;
+  const activeDays = Math.min(
+    Math.max(daysBetween(activeStart, activeEnd), 0),
+    totalDays,
+  );
+  return activeDays / totalDays;
+}
+
+function metadataString(
+  metadata: Record<string, unknown> | undefined,
+  key: string,
+): string | null {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function metadataBoolean(
+  metadata: Record<string, unknown> | undefined,
+  key: string,
+): boolean {
+  return metadata?.[key] === true;
+}
+
+function explicitMonthlyProrationEnabled(component: PriceComponent): boolean {
+  // A monthly fee is a full-period customer fee by default. Legacy rows can contain
+  // periodization_mode = prorated_by_days/active_days even when the business rule is
+  // still full month. Only prorate when the price component explicitly carries a
+  // proration policy in metadata, so normal monthly fees never become quantity 0.
+  if (component.periodizationMode !== "prorated_by_days") return false;
+
+  const policy =
+    metadataString(component.metadata, "billing_policy") ??
+    metadataString(component.metadata, "proration_policy") ??
+    metadataString(component.metadata, "monthly_fee_policy");
+
+  return (
+    policy === "prorated_by_days" ||
+    metadataBoolean(component.metadata, "proration_enabled") ||
+    metadataBoolean(component.metadata, "explicit_proration")
+  );
+}
+
+function fixedMonthlyQuantity(
+  underlay: BillingUnderlayInput,
+  component: PriceComponent,
+): number {
+  if (!explicitMonthlyProrationEnabled(component)) return 1;
+  return Math.max(periodizationFactor(underlay, component), 0);
+}
+
+function isPercentOfSpot(component: PriceComponent): boolean {
+  const raw =
+    `${component.calculationType ?? ""} ${component.unit ?? ""}`.toLowerCase();
+  return raw.includes("percent_of_spot");
+}
+
+function normalizedCalculationType(component: PriceComponent): string {
+  if (isPercentOfSpot(component)) return "percent_of_spot";
+
+  const unit = normalizePricingUnitForComponent({
+    unit: component.unit,
+    calculationType: component.calculationType,
+    componentType: component.componentType,
+  });
+
+  if (component.calculationType === "discount_per_kwh")
+    return "discount_per_kwh";
+  if (component.calculationType === "discount_fixed") return "discount_fixed";
+  if (component.calculationType === "rounding") return "rounding";
+  if (unit === "ore_per_kwh" || unit === "sek_per_kwh") return "per_kwh";
+  if (unit === "sek_month" || component.unit === "sek_site_month")
+    return "fixed_monthly";
+  if (component.unit === "sek_year") return "fixed_once";
+  if (component.unit === "sek_event") return "event_only";
+  if (unit === "sek_invoice" || unit === "sek_once") return "fixed_once";
+  if (unit === "percentage") return "percentage";
+  return component.calculationType;
+}
+
+export function calculatePriceComponents(input: {
+  underlay: BillingUnderlayInput;
+  components: PriceComponent[];
+  baseAmountExVat: number;
+  /**
+   * The spot-sourced portion of the base amount (SEK ex VAT). Required for
+   * percent_of_spot components; when null/undefined those components are
+   * blocked with an explicit error instead of being silently skipped.
+   */
+  spotAmountExVat?: number | null;
+  portfolioAmountExVat?: number | null;
+  vatRate: number;
+  startSortOrder?: number;
+}): { lines: PricingPreviewLine[]; warnings: string[]; errors: string[] } {
+  const lines: PricingPreviewLine[] = [];
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  const quantityKwh = input.underlay.quantityKwh;
+  let sortOrder = input.startSortOrder ?? 100;
+  let runningSubtotalExVat = input.baseAmountExVat;
+  let monthlyFixedAmountExVat = 0;
+
+  const activeComponents = [...input.components].sort(
+    (a, b) => (a.priority ?? 100) - (b.priority ?? 100),
+  );
+  for (const component of activeComponents) {
+    if (
+      component.calculationInclusion === "excluded" ||
+      component.selected === false ||
+      component.eligible === false
+    ) {
+      continue;
+    }
+    if (
+      component.lifecycle === "per_invoice" &&
+      input.underlay.invoiceCreated === false
+    ) {
+      continue;
+    }
+    if (
+      component.lifecycle === "once_per_contract" &&
+      input.underlay.isFirstContractPeriod === false
+    ) {
+      continue;
+    }
+    if (
+      component.lifecycle === "once_per_site" &&
+      input.underlay.isFirstSitePeriod === false
+    ) {
+      continue;
+    }
+    if (
+      component.lifecycle === "annual" &&
+      input.underlay.annualChargeDue === false
+    ) {
+      continue;
+    }
+    if (
+      component.lifecycle === "event_only" &&
+      (!input.underlay.contractEvent ||
+        input.underlay.contractEvent !==
+          metadataString(component.metadata, "event"))
+    ) {
+      continue;
+    }
+    const type = normalizedCalculationType(component);
+    let quantity: number | null = 1;
+    let unit = component.unit ?? "st";
+    let unitPriceExVat: number | null = component.amount;
+    let amountExVat = 0;
+
+    if (type === "per_kwh" || type === "per_kwh_ore") {
+      if (quantityKwh === null || !Number.isFinite(quantityKwh)) {
+        errors.push(`${component.name} kräver kWh för perioden.`);
+        continue;
+      }
+      quantity = quantityKwh;
+      unit = "kWh";
+      const sekPerKwh =
+        type === "per_kwh_ore"
+          ? component.amount / 100
+          : sekPerKwhFromComponent(component);
+      unitPriceExVat = sekPerKwh;
+      amountExVat = quantityKwh * sekPerKwh;
+      unit = "kWh";
+    } else if (type === "fixed_monthly") {
+      // Fixed monthly fees are charged once per billing period by default. The unit
+      // conversion layer may normalize legacy `sek` rows to `sek_month`, but the
+      // monetary rule is still: one monthly charge per invoice period.
+      const siteMultiplier =
+        component.unit === "sek_site_month"
+          ? Math.max(input.underlay.siteCount ?? 1, 1)
+          : 1;
+      const monthlyQuantity =
+        fixedMonthlyQuantity(input.underlay, component) * siteMultiplier;
+      quantity = monthlyQuantity;
+      unit =
+        component.unit === "sek_site_month"
+          ? "anläggningsmånad"
+          : "månad";
+      unitPriceExVat = component.amount;
+      amountExVat = component.amount * monthlyQuantity;
+    } else if (type === "fixed_once" || type === "event_only") {
+      const siteMultiplier =
+        component.lifecycle === "once_per_site"
+          ? Math.max(input.underlay.siteCount ?? 1, 1)
+          : 1;
+      quantity = siteMultiplier;
+      amountExVat = component.amount * siteMultiplier;
+      unit =
+        component.lifecycle === "once_per_site" ? "anläggning" : "st";
+    } else if (type === "percentage") {
+      const calculationBase =
+        component.calculationBase ??
+        metadataString(component.metadata, "calculation_base") ??
+        "energy_cost_ex_vat";
+      let baseValue: number | null;
+      if (calculationBase === "spot_cost") {
+        baseValue = input.spotAmountExVat ?? null;
+      } else if (calculationBase === "portfolio_cost") {
+        baseValue = input.portfolioAmountExVat ?? null;
+      } else if (calculationBase === "energy_cost_inc_vat") {
+        baseValue = input.baseAmountExVat * (1 + input.vatRate);
+      } else if (calculationBase === "total_variable_cost") {
+        baseValue = runningSubtotalExVat - monthlyFixedAmountExVat;
+      } else if (calculationBase === "invoice_subtotal") {
+        baseValue = runningSubtotalExVat;
+      } else if (calculationBase === "monthly_fixed_amount") {
+        baseValue = monthlyFixedAmountExVat;
+      } else {
+        baseValue = input.baseAmountExVat;
+      }
+      if (baseValue === null || !Number.isFinite(baseValue)) {
+        errors.push(
+          `${component.name}: beräkningsbasen ${calculationBase} saknas för perioden.`,
+        );
+        continue;
+      }
+      amountExVat = baseValue * (component.amount / 100);
+      unit = "%";
+      quantity = component.amount;
+      unitPriceExVat = baseValue;
+    } else if (type === "percent_of_spot") {
+      const spotAmount = input.spotAmountExVat;
+      if (
+        spotAmount === null ||
+        spotAmount === undefined ||
+        !Number.isFinite(spotAmount)
+      ) {
+        errors.push(
+          `${component.name}: procent av spot kräver spotprisbas för perioden och elområdet.`,
+        );
+        continue;
+      }
+      amountExVat = spotAmount * (component.amount / 100);
+      unit = "% av spot";
+    } else if (type === "discount_per_kwh") {
+      if (quantityKwh === null || !Number.isFinite(quantityKwh)) {
+        errors.push(`${component.name} kräver kWh för perioden.`);
+        continue;
+      }
+      quantity = quantityKwh;
+      unit = "kWh";
+      const sekPerKwh = Math.abs(sekPerKwhFromComponent(component));
+      unitPriceExVat = -sekPerKwh;
+      amountExVat = quantityKwh * unitPriceExVat;
+    } else if (type === "discount_fixed") {
+      unitPriceExVat = -Math.abs(component.amount);
+      amountExVat = unitPriceExVat;
+    } else if (type === "rounding") {
+      const roundedBase = Math.round(input.baseAmountExVat);
+      amountExVat = roundedBase - input.baseAmountExVat;
+      unitPriceExVat = amountExVat;
+    } else {
+      warnings.push(
+        `Okänd beräkningstyp för ${component.name}: ${component.calculationType}`,
+      );
+      continue;
+    }
+
+    if (
+      [
+        "discount_ore_per_kwh",
+        "discount_fixed_amount",
+        "campaign_discount",
+      ].includes(component.componentType) &&
+      amountExVat > 0
+    ) {
+      amountExVat = -Math.abs(amountExVat);
+      if (unitPriceExVat !== null) unitPriceExVat = -Math.abs(unitPriceExVat);
+    }
+
+    const vatRate = component.vatApplicable === false ? 0 : input.vatRate;
+    const roundedExVat = roundMoney(amountExVat);
+    const vatAmount = roundMoney(roundedExVat * vatRate);
+    runningSubtotalExVat += roundedExVat;
+    if (type === "fixed_monthly") monthlyFixedAmountExVat += roundedExVat;
+    lines.push({
+      lineType: component.componentType,
+      description: component.name,
+      quantity,
+      unit,
+      unitPriceExVat,
+      amountExVat: roundedExVat,
+      vatRate,
+      vatAmount,
+      amountIncVat: roundMoney(roundedExVat + vatAmount),
+      sortOrder,
+      metadata: {
+        ...(component.metadata ?? {}),
+        component_reference: component.componentReference ?? null,
+        component_code: component.componentCode ?? null,
+        component_type: component.componentType,
+        calculation_type: component.calculationType,
+        calculation_base:
+          component.calculationBase ??
+          metadataString(component.metadata, "calculation_base"),
+        input_amount: component.amount,
+        input_unit: component.unit ?? component.calculationType ?? null,
+        normalized_pricing_unit: normalizePricingUnitForComponent({
+          unit: component.unit,
+          calculationType: component.calculationType,
+          componentType: component.componentType,
+        }),
+        display_pricing_unit: displayPricingUnit(
+          normalizePricingUnitForComponent({
+            unit: component.unit,
+            calculationType: component.calculationType,
+            componentType: component.componentType,
+          }),
+        ),
+        vat_rate_explicit: true,
+        selection_policy: component.selectionPolicy ?? null,
+        calculation_inclusion:
+          component.calculationInclusion ?? "included",
+        selected: component.selected ?? true,
+        selection_source: component.selectionSource ?? null,
+        // Ineligible components are filtered above and can never become rows.
+        eligibility: "eligible",
+        lifecycle:
+          component.lifecycle ??
+          metadataString(component.metadata, "lifecycle"),
+        periodization_rule: component.periodizationRule ?? null,
+        invoice_delivery_method:
+          component.invoiceDeliveryMethod ?? null,
+      },
+    });
+    sortOrder += 10;
+  }
+
+  return { lines, warnings, errors };
+}

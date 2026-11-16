@@ -1,0 +1,1029 @@
+import { Buffer } from 'node:buffer'
+import { supabaseService } from '@/lib/supabase/service'
+import { projectCanonicalActorTestState } from '@/lib/ediel/actorTestProjection'
+import {
+  attachEdielMessageToTestRun,
+  createEdielMessageEvent,
+  createEdielTestRun,
+  getEdielMessageById,
+  listAckMessagesForSource,
+  listEdielTestRunMessages,
+  listEdielMessagesByIds,
+} from '@/lib/ediel/db'
+import {
+  ACTOR_TEST_CASES,
+  buildActorTestResultEvidence,
+  getActorTestCase,
+  type ActorTestCaseDefinition,
+  type ActorTestResultRow,
+  type ActorTestStatus,
+  type ActorTestingCompanyRow,
+} from '@/lib/ediel/actorTesting'
+import {
+  createEdielSupplierAgtOutboundCommand,
+  createEdielSupplierAgtResponsesForInbound,
+} from '@/lib/ediel/testing/agtEngine'
+import {
+  inferEdielAgtCaseForInboundMessage,
+  type EdielAgtExpectedStep,
+} from '@/lib/ediel/testing/agtRegistry'
+import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
+
+type MaybeString = string | null | undefined
+
+export type ActorTestingAutoRunResult = {
+  testRun: EdielTestRunRow
+  result: ActorTestResultRow | null
+  outboundMessage?: EdielMessageRow | null
+  createdAckMessages: EdielMessageRow[]
+  syncedStatus: ActorTestStatus
+  note: string
+}
+
+export type ActorTestingEvidenceMessage = {
+  id: string
+  direction: string
+  family: string
+  code: string
+  status: string
+  ackOutcome: string | null
+  senderEdielId: string | null
+  receiverEdielId: string | null
+  interchangeReference: string | null
+  externalReference: string | null
+  transactionReference: string | null
+  applicationReference: string | null
+  sentAt: string | null
+  receivedAt: string | null
+  rawPayload: string | null
+}
+
+export type ActorTestingEvidencePackage = {
+  company: {
+    id: string
+    name: string
+    orgNumber: string | null
+    edielId: string | null
+    role: string | null
+    brpName: string | null
+    brpEdielId: string | null
+  }
+  generatedAt: string
+  tests: Array<{
+    testKey: string
+    testName: string
+    testId: string | null
+    packageKey: string | null
+    messageFamily: string | null
+    messageCode: string | null
+    status: string | null
+    portalStatus: string | null
+    failureReason: string | null
+    latestRunAt: string | null
+    passedAt: string | null
+    edielTestRunId: string | null
+    messages: ActorTestingEvidenceMessage[]
+    evidence: Record<string, unknown> | null
+  }>
+}
+
+function trimOrNull(value: MaybeString): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function upper(value: MaybeString): string {
+  return String(value ?? '').trim().toUpperCase()
+}
+
+function nowIso(): string {
+  return new Date().toISOString()
+}
+
+function isTerminalStatus(status: ActorTestStatus): boolean {
+  return status === 'passed' || status === 'manual_verified' || status === 'failed' || status === 'blocked'
+}
+
+function asActorTestStatus(status: string | null | undefined): ActorTestStatus {
+  if (status === 'running' || status === 'passed' || status === 'failed' || status === 'blocked' || status === 'manual_verified') return status
+  return 'not_started'
+}
+
+function isSentLike(message: EdielMessageRow | null | undefined): boolean {
+  if (!message) return false
+  return ['provider_accepted', 'sent', 'delivered', 'acknowledged'].includes(String(message.status ?? ''))
+}
+
+function isPositiveContrl(message: EdielMessageRow | null | undefined): boolean {
+  if (!message || upper(message.message_family) !== 'CONTRL') return false
+  if (message.ack_outcome === 'positive') return true
+  if (message.syntax_check_status === 'ok' || message.syntax_check_status === 'warning') return true
+  return !String(message.raw_payload ?? '').includes("UCI+7") && !String(message.raw_payload ?? '').includes("UCI+4")
+}
+
+function isNegativeAperak(message: EdielMessageRow | null | undefined): boolean {
+  if (!message || upper(message.message_family) !== 'APERAK') return false
+  if (message.ack_outcome === 'negative') return true
+  const raw = String(message.raw_payload ?? '').toUpperCase()
+  return raw.includes('ERC+40') || raw.includes('ERC+41') || raw.includes('ERC+42') || raw.includes('BGM+313')
+}
+
+function isUtiltsErr(message: EdielMessageRow | null | undefined): boolean {
+  return Boolean(message && upper(message.message_family) === 'UTILTS_ERR')
+}
+
+async function getCompany(companyId: string): Promise<ActorTestingCompanyRow> {
+  const { data, error } = await supabaseService
+    .from('companies')
+    .select('*')
+    .eq('id', companyId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) throw new Error('Bolaget hittades inte.')
+  return data as unknown as ActorTestingCompanyRow
+}
+
+async function findCompanyForMessage(message: EdielMessageRow): Promise<ActorTestingCompanyRow | null> {
+  // Tenant resolution must have happened before actor-test processing. Choosing
+  // a company from an Ediel identifier or updated_at can attach evidence to the
+  // wrong tenant. Unresolved/ambiguous inbound messages remain quarantined.
+  if (!message.company_id) return null
+  return getCompany(message.company_id)
+}
+
+function actorIdentityForCompany(company: ActorTestingCompanyRow) {
+  return {
+    actorName: company.name,
+    actorEdielId: trimOrNull(company.test_ediel_id) ?? trimOrNull(company.ediel_id) ?? null,
+    balanceResponsibleEdielId: trimOrNull(company.brp_ediel_id),
+  }
+}
+
+async function getLatestResult(companyId: string, testKey: string): Promise<ActorTestResultRow | null> {
+  const { data, error } = await supabaseService
+    .from('actor_test_results')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('test_key', testKey)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as unknown as ActorTestResultRow | null) ?? null
+}
+
+async function findOrCreateActorTestRun(params: {
+  actorUserId: string
+  companyId: string
+  testCase: ActorTestCaseDefinition
+  status?: 'draft' | 'running'
+}): Promise<EdielTestRunRow> {
+  const { data, error } = await supabaseService
+    .from('ediel_test_runs')
+    .select('*')
+    .eq('company_id', params.companyId)
+    .eq('test_suite', params.testCase.suite)
+    .eq('role_code', 'supplier')
+    .eq('test_case_code', params.testCase.key)
+    .in('status', ['draft', 'running'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  if (data) return data as unknown as EdielTestRunRow
+
+  return createEdielTestRun({
+    actorUserId: params.actorUserId,
+    companyId: params.companyId,
+    approvalVersion: `AGT 2026A · ${params.testCase.label}`,
+    roleCode: 'supplier',
+    testSuite: params.testCase.suite,
+    testCaseCode: params.testCase.key,
+    title: params.testCase.label,
+    status: params.status ?? 'running',
+    startedAt: nowIso(),
+    notes: JSON.stringify({
+      actorTestingModule: true,
+      automatedEngine: true,
+      testId: params.testCase.testId,
+      messageFamily: params.testCase.messageFamily,
+      messageCode: params.testCase.messageCode,
+      direction: params.testCase.direction,
+    }),
+  })
+}
+
+async function upsertActorResult(params: {
+  actorUserId: string
+  companyId: string
+  testCase: ActorTestCaseDefinition
+  status: ActorTestStatus
+  runId?: string | null
+  rawPayload?: string | null
+  failureReason?: string | null
+  portalStatus?: string | null
+  evidence?: Record<string, unknown> | null
+  contrlMessageId?: string | null
+  aperakMessageId?: string | null
+  utiltsErrMessageId?: string | null
+}): Promise<ActorTestResultRow | null> {
+  const timestamp = nowIso()
+  const baseEvidence = buildActorTestResultEvidence({
+    testCase: params.testCase,
+    status: params.status,
+    portalStatus: params.portalStatus ?? null,
+    rawPayload: params.rawPayload ?? null,
+    failureReason: params.failureReason ?? null,
+    actorUserId: params.actorUserId,
+  })
+  const evidence = {
+    ...baseEvidence,
+    ...(params.evidence ?? {}),
+    automatedEngine: true,
+    updatedAt: timestamp,
+  }
+
+  if (params.status === 'passed') {
+    if (!params.runId) throw new Error('machine_pass_requires_test_run')
+    const evidenceMessages = Array.isArray((evidence as { messages?: unknown }).messages)
+      ? ((evidence as unknown as { messages: Array<{ id?: unknown }> }).messages)
+          .map((message) => typeof message.id === 'string' ? message.id : null)
+          .filter((id): id is string => Boolean(id))
+      : []
+    const command = {
+      company_id: params.companyId,
+      test_run_id: params.runId,
+      test_case_code: params.testCase.key,
+      test_name: params.testCase.label,
+      test_id: params.testCase.testId,
+      package_key: params.testCase.packageKey,
+      message_family: params.testCase.messageFamily,
+      message_code: params.testCase.messageCode,
+      direction: params.testCase.direction,
+      portal_status: params.portalStatus ?? null,
+      raw_payload: params.rawPayload ?? null,
+      contrl_message_id: params.contrlMessageId ?? null,
+      aperak_message_id: params.aperakMessageId ?? null,
+      utilts_err_message_id: params.utiltsErrMessageId ?? null,
+      evidence,
+      message_ids: evidenceMessages,
+      actor_user_id: params.actorUserId,
+      idempotency_key: `machine-evidence:${params.runId}:${params.testCase.key}:${evidenceMessages.sort().join(',')}`,
+    }
+    const { error } = await supabaseService.rpc('canonical_record_actor_test_evidence', { p_command: command })
+    if (error) throw error
+    return getLatestResult(params.companyId, params.testCase.key)
+  }
+
+  if (params.status === 'manual_verified') {
+    throw new Error('manual_verified_requires_canonical_attestation_rpc')
+  }
+  if (params.status !== 'running' && params.status !== 'failed' && params.status !== 'blocked') {
+    throw new Error('unsupported_non_authoritative_actor_test_status')
+  }
+
+  await projectCanonicalActorTestState({
+    actorUserId: params.actorUserId,
+    companyId: params.companyId,
+    testCaseCode: params.testCase.key,
+    testName: params.testCase.label,
+    testId: params.testCase.testId,
+    packageKey: params.testCase.packageKey,
+    messageFamily: params.testCase.messageFamily,
+    messageCode: params.testCase.messageCode,
+    direction: params.testCase.direction,
+    status: params.status,
+    testRunId: params.runId ?? null,
+    failureReason: params.failureReason ?? null,
+    portalStatus: params.portalStatus ?? null,
+    rawPayload: params.rawPayload ?? null,
+    evidence,
+    idempotencyKey: `actor-test-projection:${params.companyId}:${params.runId ?? 'none'}:${params.testCase.key}:${params.status}:${timestamp}`,
+  })
+
+  return getLatestResult(params.companyId, params.testCase.key)
+}
+
+function expectedStepForMessage(params: {
+  testCase: ActorTestCaseDefinition
+  message: EdielMessageRow
+  steps?: EdielAgtExpectedStep[] | null
+}): EdielAgtExpectedStep | null {
+  const family = upper(params.message.message_family)
+  const code = upper(String(params.message.message_code ?? ''))
+  return (params.steps ?? []).find((step) =>
+    upper(step.family) === family &&
+    (upper(step.code) === code || upper(step.family) === code) &&
+    step.direction === params.message.direction
+  ) ?? null
+}
+
+async function attachMessage(params: {
+  actorUserId: string
+  companyId: string
+  testRunId: string
+  message: EdielMessageRow
+  testCase: ActorTestCaseDefinition
+  steps?: EdielAgtExpectedStep[] | null
+}) {
+  const step = expectedStepForMessage(params)
+  if (params.message.company_id !== params.companyId) {
+    throw new Error('actor_test_message_company_mismatch')
+  }
+  await attachEdielMessageToTestRun({
+    companyId: params.companyId,
+    testRunId: params.testRunId,
+    edielMessageId: params.message.id,
+    stepNo: step?.stepNo ?? null,
+    expectedDirection: step?.direction ?? params.message.direction,
+    expectedFamily: step?.family ?? String(params.message.message_family ?? ''),
+    expectedCode: step?.code ?? String(params.message.message_code ?? ''),
+  })
+
+  await createEdielMessageEvent({
+    actorUserId: params.actorUserId,
+    edielMessageId: params.message.id,
+    eventType: 'linked',
+    eventStatus: 'success',
+    message: `Meddelandet kopplades till aktörstest ${params.testCase.key}.`,
+    payload: {
+      actorTesting: true,
+      testRunId: params.testRunId,
+      testKey: params.testCase.key,
+      stepNo: step?.stepNo ?? null,
+    },
+  })
+}
+
+async function sendMessageIfNeeded(actorUserId: string, message: EdielMessageRow): Promise<EdielMessageRow> {
+  if (message.direction !== 'outbound') return message
+  if (message.status === 'sent' || message.status === 'acknowledged') return message
+  if (!['draft', 'prepared', 'queued'].includes(message.status)) return message
+  const { sendQueuedEdielMessage } = await import('@/lib/ediel/orchestrator')
+  return sendQueuedEdielMessage({ actorUserId, edielMessageId: message.id })
+}
+
+async function findMessagesForResult(result: ActorTestResultRow): Promise<EdielMessageRow[]> {
+  const ids = [
+    result.contrl_message_id,
+    result.aperak_message_id,
+    result.utilts_err_message_id,
+  ].filter((value): value is string => Boolean(value))
+
+  const runIds: string[] = []
+  if (result.ediel_test_run_id) {
+    const links = await listEdielTestRunMessages({ companyId: result.company_id, testRunId: result.ediel_test_run_id })
+    runIds.push(...links.map((link) => link.ediel_message_id))
+  }
+
+  const uniqueIds = Array.from(new Set([...ids, ...runIds]))
+  if (uniqueIds.length === 0) return []
+  return listEdielMessagesByIds(uniqueIds, { companyId: result.company_id })
+}
+
+function firstMessage(messages: EdielMessageRow[], family: string, predicate?: (message: EdielMessageRow) => boolean): EdielMessageRow | null {
+  return messages.find((message) => upper(message.message_family) === upper(family) && (!predicate || predicate(message))) ?? null
+}
+
+async function buildEvidenceFromMessages(params: {
+  testCase: ActorTestCaseDefinition
+  sourceMessage?: EdielMessageRow | null
+  messages: EdielMessageRow[]
+}) {
+  const refs = params.messages.map((message) => ({
+    id: message.id,
+    direction: message.direction,
+    family: message.message_family,
+    code: message.message_code,
+    status: message.status,
+    ackOutcome: message.ack_outcome,
+    senderEdielId: message.sender_ediel_id,
+    receiverEdielId: message.receiver_ediel_id,
+    interchangeReference: message.interchange_reference,
+    externalReference: message.external_reference,
+    transactionReference: message.transaction_reference,
+    applicationReference: message.application_reference,
+    sentAt: message.message_sent_at,
+    receivedAt: message.message_received_at,
+  }))
+
+  return {
+    evidenceVersion: 'actor-testing-automation-v1',
+    testKey: params.testCase.key,
+    testId: params.testCase.testId,
+    sourceMessageId: params.sourceMessage?.id ?? null,
+    messages: refs,
+    createdFromRealEdielMessages: refs.length > 0,
+  }
+}
+
+function normalizedReferenceSet(message: EdielMessageRow): Set<string> {
+  return new Set([
+    message.id,
+    message.interchange_reference,
+    message.external_reference,
+    message.transaction_reference,
+    message.correlation_reference,
+    message.message_reference,
+    message.bgm_reference,
+  ].map(trimOrNull).filter((value): value is string => Boolean(value)).map((value) => value.toUpperCase()))
+}
+
+function messageReferencesSource(message: EdielMessageRow, source: EdielMessageRow): boolean {
+  const sourceRefs = normalizedReferenceSet(source)
+  const candidateRefs = [
+    message.original_message_id,
+    message.original_transaction_id,
+    message.related_message_id,
+    message.correlation_reference,
+    message.message_reference,
+    message.external_reference,
+    message.transaction_reference,
+    message.bgm_reference,
+  ].map(trimOrNull).filter((value): value is string => Boolean(value)).map((value) => value.toUpperCase())
+  return candidateRefs.some((value) => sourceRefs.has(value))
+}
+
+function isCurrentTestEvidence(message: EdielMessageRow, companyId: string, run: EdielTestRunRow): boolean {
+  if (message.company_id !== companyId || message.environment !== 'test' || message.test_flag !== 1) return false
+  const startedAt = Date.parse(String(run.started_at ?? ''))
+  const createdAt = Date.parse(String(message.created_at ?? ''))
+  return Number.isNaN(startedAt) || Number.isNaN(createdAt) || createdAt >= startedAt
+}
+
+async function findInboundAcksForOutbound(companyId: string, run: EdielTestRunRow, outbound: EdielMessageRow): Promise<EdielMessageRow[]> {
+  const { data, error } = await supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('environment', 'test')
+    .eq('test_flag', 1)
+    .eq('direction', 'inbound')
+    .in('message_family', ['CONTRL', 'APERAK', 'UTILTS_ERR'])
+    .gte('created_at', run.started_at ?? outbound.created_at)
+    .order('created_at', { ascending: true })
+    .limit(100)
+
+  if (error) throw error
+  return ((data ?? []) as unknown as EdielMessageRow[]).filter((row) =>
+    isCurrentTestEvidence(row, companyId, run) && messageReferencesSource(row, outbound)
+  )
+}
+
+async function resolveEvidenceStatus(params: {
+  testCase: ActorTestCaseDefinition
+  companyId: string
+  run: EdielTestRunRow
+  sourceMessage?: EdielMessageRow | null
+  createdAckMessages?: EdielMessageRow[]
+}): Promise<{
+  status: ActorTestStatus
+  portalStatus: string
+  failureReason: string | null
+  messages: EdielMessageRow[]
+  contrl: EdielMessageRow | null
+  aperak: EdielMessageRow | null
+  utiltsErr: EdielMessageRow | null
+}> {
+  const runLinks = await listEdielTestRunMessages({ companyId: params.companyId, testRunId: params.run.id })
+  const linkedMessages = await listEdielMessagesByIds(runLinks.map((link) => link.ediel_message_id), { companyId: params.companyId })
+  const created = params.createdAckMessages ?? []
+  const source = params.sourceMessage ? [params.sourceMessage] : []
+  let messages = Array.from(new Map([...source, ...linkedMessages, ...created].map((message) => [message.id, message])).values())
+
+  if (params.testCase.direction === 'actor_to_portal') {
+    const outbound = messages.find((message) => message.direction === 'outbound' && upper(message.message_family) === 'PRODAT') ?? params.sourceMessage ?? null
+    const inboundAcks = outbound ? await findInboundAcksForOutbound(params.companyId, params.run, outbound) : []
+    messages = Array.from(new Map([...messages, ...inboundAcks].map((message) => [message.id, message])).values())
+
+    const contrl = firstMessage(messages, 'CONTRL', (message) => isPositiveContrl(message) && Boolean(outbound && messageReferencesSource(message, outbound)))
+    const aperak = firstMessage(messages, 'APERAK', (message) => isNegativeAperak(message) && Boolean(outbound && messageReferencesSource(message, outbound)))
+    if (outbound && isSentLike(outbound) && contrl && aperak) {
+      return {
+        status: 'passed',
+        portalStatus: 'Beviskedja komplett: outbound + positiv CONTRL + negativ APERAK från Edielportalen.',
+        failureReason: null,
+        messages,
+        contrl,
+        aperak,
+        utiltsErr: null,
+      }
+    }
+    return {
+      status: 'running',
+      portalStatus: `Skickad. Väntar på ${contrl ? '' : 'positiv CONTRL'}${!contrl && !aperak ? ' och ' : ''}${aperak ? '' : 'negativ APERAK'} från Edielportalen.`,
+      failureReason: null,
+      messages,
+      contrl,
+      aperak,
+      utiltsErr: null,
+    }
+  }
+
+  const sourceBusiness = messages.find((message) =>
+    isCurrentTestEvidence(message, params.companyId, params.run) &&
+    message.direction === 'inbound' &&
+    upper(message.message_family) === upper(params.testCase.messageFamily) &&
+    upper(String(message.message_code ?? '')) === upper(params.testCase.messageCode)
+  ) ?? null
+  const contrl = sourceBusiness
+    ? firstMessage(messages, 'CONTRL', (message) => message.direction === 'outbound' && messageReferencesSource(message, sourceBusiness))
+    : null
+  const aperak = sourceBusiness
+    ? firstMessage(messages, 'APERAK', (message) => messageReferencesSource(message, sourceBusiness))
+    : null
+  const utiltsErr = sourceBusiness
+    ? firstMessage(messages, 'UTILTS_ERR', (message) => message.direction === 'outbound' && messageReferencesSource(message, sourceBusiness))
+    : null
+
+  if (!sourceBusiness) {
+    return {
+      status: 'running',
+      portalStatus: 'Testet är startat. Väntar på inbound från Edielportalen.',
+      failureReason: null,
+      messages,
+      contrl,
+      aperak,
+      utiltsErr,
+    }
+  }
+
+  if (params.testCase.messageFamily === 'PRODAT') {
+    if (contrl && aperak && isSentLike(contrl) && isSentLike(aperak)) {
+      return {
+        status: 'passed',
+        portalStatus: 'Beviskedja komplett: inbound PRODAT + CONTRL + APERAK skapad/skickad.',
+        failureReason: null,
+        messages,
+        contrl,
+        aperak,
+        utiltsErr,
+      }
+    }
+    return {
+      status: 'running',
+      portalStatus: 'Inbound PRODAT mottagen. Väntar på komplett CONTRL/APERAK-kedja.',
+      failureReason: null,
+      messages,
+      contrl,
+      aperak,
+      utiltsErr,
+    }
+  }
+
+  const finalPortalAperak = utiltsErr
+    ? firstMessage(messages, 'APERAK', (message) =>
+        message.direction === 'inbound' &&
+        isCurrentTestEvidence(message, params.companyId, params.run) &&
+        (messageReferencesSource(message, utiltsErr) || Boolean(sourceBusiness && messageReferencesSource(message, sourceBusiness)))
+      )
+    : null
+  if (
+    contrl && utiltsErr && finalPortalAperak &&
+    isSentLike(contrl) && isSentLike(utiltsErr)
+  ) {
+    return {
+      status: 'passed',
+      portalStatus: 'Beviskedja komplett: inbound UTILTS + skickad CONTRL + skickad UTILTS_ERR + avslutande inbound APERAK.',
+      failureReason: null,
+      messages,
+      contrl,
+      aperak: finalPortalAperak,
+      utiltsErr,
+    }
+  }
+
+  return {
+    status: 'running',
+    portalStatus: 'Inbound UTILTS mottagen. Väntar på komplett CONTRL och APERAK/UTILTS_ERR-kedja.',
+    failureReason: null,
+    messages,
+    contrl,
+    aperak,
+    utiltsErr,
+  }
+}
+
+export async function runActorTestAutomation(params: {
+  actorUserId: string
+  companyId: string
+  testKey: string
+  autoSend?: boolean
+}): Promise<ActorTestingAutoRunResult> {
+  const testCase = getActorTestCase(params.testKey)
+  if (!testCase) throw new Error('Okänt aktörstest.')
+  const company = await getCompany(params.companyId)
+  const run = await findOrCreateActorTestRun({
+    actorUserId: params.actorUserId,
+    companyId: params.companyId,
+    testCase,
+  })
+
+  await upsertActorResult({
+    actorUserId: params.actorUserId,
+    companyId: params.companyId,
+    testCase,
+    status: 'running',
+    runId: run.id,
+    portalStatus: testCase.direction === 'actor_to_portal' ? 'Skapar och skickar outbound mot Edielportalen.' : 'Väntar på inbound från Edielportalen.',
+  })
+
+  if (testCase.direction === 'actor_to_portal') {
+    const identity = actorIdentityForCompany(company)
+    const outbound = await createEdielSupplierAgtOutboundCommand({
+      actorUserId: params.actorUserId,
+      testRunId: run.id,
+      testCaseCode: testCase.key,
+      actorName: identity.actorName,
+      actorEdielId: identity.actorEdielId,
+      balanceResponsibleEdielId: identity.balanceResponsibleEdielId,
+      companyId: params.companyId,
+    })
+
+    await attachMessage({
+      actorUserId: params.actorUserId,
+      companyId: params.companyId,
+      testRunId: run.id,
+      message: outbound,
+      testCase,
+    })
+
+    const sent = params.autoSend === false ? outbound : await sendMessageIfNeeded(params.actorUserId, outbound)
+    const status = await resolveEvidenceStatus({
+      testCase,
+      companyId: params.companyId,
+      run,
+      sourceMessage: sent,
+    })
+    const evidence = await buildEvidenceFromMessages({ testCase, sourceMessage: sent, messages: status.messages })
+    const result = await upsertActorResult({
+      actorUserId: params.actorUserId,
+      companyId: params.companyId,
+      testCase,
+      status: status.status,
+      runId: run.id,
+      rawPayload: sent.raw_payload,
+      portalStatus: status.portalStatus,
+      failureReason: status.failureReason,
+      evidence,
+      contrlMessageId: status.contrl?.id ?? null,
+      aperakMessageId: status.aperak?.id ?? null,
+      utiltsErrMessageId: status.utiltsErr?.id ?? null,
+    })
+
+    return {
+      testRun: run,
+      result,
+      outboundMessage: sent,
+      createdAckMessages: [],
+      syncedStatus: status.status,
+      note: status.portalStatus,
+    }
+  }
+
+  const existing = await syncActorTestResultFromExistingMessages({
+    actorUserId: params.actorUserId,
+    companyId: params.companyId,
+    testKey: testCase.key,
+    autoRespond: true,
+    autoSend: params.autoSend !== false,
+  })
+
+  return {
+    testRun: run,
+    result: existing.result,
+    outboundMessage: null,
+    createdAckMessages: existing.createdAckMessages,
+    syncedStatus: existing.status,
+    note: existing.portalStatus,
+  }
+}
+
+export async function syncActorTestingForMessage(params: {
+  actorUserId: string
+  edielMessage: EdielMessageRow
+  explicitTestCaseCode?: string | null
+  autoRespond?: boolean
+  autoSend?: boolean
+}): Promise<{ companyId: string; testKey: string; status: ActorTestStatus; createdAckMessages: EdielMessageRow[] } | null> {
+  const definition = inferEdielAgtCaseForInboundMessage({
+    family: params.edielMessage.message_family,
+    code: String(params.edielMessage.message_code ?? ''),
+    rawPayload: params.edielMessage.raw_payload,
+    applicationReference: params.edielMessage.application_reference,
+    explicitTestCaseCode: params.explicitTestCaseCode ?? null,
+  })
+
+  if (!definition) return null
+  const testCase = getActorTestCase(definition.testCaseCode)
+  if (!testCase) return null
+
+  const company = await findCompanyForMessage(params.edielMessage)
+  if (!company) return null
+
+  const run = await findOrCreateActorTestRun({
+    actorUserId: params.actorUserId,
+    companyId: company.id,
+    testCase,
+  })
+
+  await attachMessage({
+    actorUserId: params.actorUserId,
+    companyId: company.id,
+    testRunId: run.id,
+    message: params.edielMessage,
+    testCase,
+    steps: definition.expectedSteps,
+  })
+
+  let createdAckMessages: EdielMessageRow[] = []
+  const isSourceBusiness =
+    params.edielMessage.direction === 'inbound' &&
+    upper(params.edielMessage.message_family) === upper(testCase.messageFamily) &&
+    upper(String(params.edielMessage.message_code ?? '')) === upper(testCase.messageCode)
+
+  if (params.autoRespond !== false && isSourceBusiness && testCase.direction === 'portal_to_actor') {
+    createdAckMessages = await createEdielSupplierAgtResponsesForInbound({
+      actorUserId: params.actorUserId,
+      companyId: company.id,
+      sourceMessageId: params.edielMessage.id,
+      testCaseCode: testCase.key,
+      testRunId: run.id,
+    })
+
+    if (params.autoSend !== false) {
+      const sent: EdielMessageRow[] = []
+      for (const ack of createdAckMessages) {
+        sent.push(await sendMessageIfNeeded(params.actorUserId, ack))
+      }
+      createdAckMessages = sent
+    }
+  }
+
+  const status = await resolveEvidenceStatus({
+    testCase,
+    companyId: company.id,
+    run,
+    sourceMessage: params.edielMessage,
+    createdAckMessages,
+  })
+  const evidence = await buildEvidenceFromMessages({ testCase, sourceMessage: params.edielMessage, messages: status.messages })
+  await upsertActorResult({
+    actorUserId: params.actorUserId,
+    companyId: company.id,
+    testCase,
+    status: status.status,
+    runId: run.id,
+    rawPayload: params.edielMessage.raw_payload,
+    portalStatus: status.portalStatus,
+    failureReason: status.failureReason,
+    evidence,
+    contrlMessageId: status.contrl?.id ?? null,
+    aperakMessageId: status.aperak?.id ?? null,
+    utiltsErrMessageId: status.utiltsErr?.id ?? null,
+  })
+
+  return { companyId: company.id, testKey: testCase.key, status: status.status, createdAckMessages }
+}
+
+export async function syncActorTestResultFromExistingMessages(params: {
+  actorUserId: string
+  companyId: string
+  testKey: string
+  autoRespond?: boolean
+  autoSend?: boolean
+}): Promise<{ result: ActorTestResultRow | null; status: ActorTestStatus; portalStatus: string; createdAckMessages: EdielMessageRow[] }> {
+  const testCase = getActorTestCase(params.testKey)
+  if (!testCase) throw new Error('Okänt aktörstest.')
+  const run = await findOrCreateActorTestRun({ actorUserId: params.actorUserId, companyId: params.companyId, testCase })
+  const result = await getLatestResult(params.companyId, testCase.key)
+  const runLinks = await listEdielTestRunMessages({ companyId: params.companyId, testRunId: run.id })
+  const linkedMessages = await listEdielMessagesByIds(
+    runLinks.map((link) => link.ediel_message_id),
+    { companyId: params.companyId },
+  )
+  const source = linkedMessages.find((message) =>
+    isCurrentTestEvidence(message, params.companyId, run) &&
+    upper(message.message_family) === upper(testCase.messageFamily) &&
+    upper(String(message.message_code ?? '')) === upper(testCase.messageCode) &&
+    (testCase.direction === 'portal_to_actor' ? message.direction === 'inbound' : message.direction === 'outbound')
+  ) ?? null
+
+  let createdAckMessages: EdielMessageRow[] = []
+  if (source) {
+    await attachMessage({ actorUserId: params.actorUserId, companyId: params.companyId, testRunId: run.id, message: source, testCase })
+    if (params.autoRespond !== false && testCase.direction === 'portal_to_actor' && source.direction === 'inbound') {
+      createdAckMessages = await createEdielSupplierAgtResponsesForInbound({
+        actorUserId: params.actorUserId,
+        companyId: params.companyId,
+        sourceMessageId: source.id,
+        testCaseCode: testCase.key,
+        testRunId: run.id,
+      })
+      if (params.autoSend !== false) {
+        const sent: EdielMessageRow[] = []
+        for (const ack of createdAckMessages) {
+          sent.push(await sendMessageIfNeeded(params.actorUserId, ack))
+        }
+        createdAckMessages = sent
+      }
+    }
+  }
+
+  const resolved = await resolveEvidenceStatus({ testCase, companyId: params.companyId, run, sourceMessage: source, createdAckMessages })
+  const evidence = await buildEvidenceFromMessages({ testCase, sourceMessage: source, messages: resolved.messages })
+  const saved = await upsertActorResult({
+    actorUserId: params.actorUserId,
+    companyId: params.companyId,
+    testCase,
+    status: resolved.status,
+    runId: run.id,
+    rawPayload: source?.raw_payload ?? result?.raw_payload ?? null,
+    portalStatus: resolved.portalStatus,
+    failureReason: resolved.failureReason,
+    evidence,
+    contrlMessageId: resolved.contrl?.id ?? null,
+    aperakMessageId: resolved.aperak?.id ?? null,
+    utiltsErrMessageId: resolved.utiltsErr?.id ?? null,
+  })
+
+  return { result: saved, status: resolved.status, portalStatus: resolved.portalStatus, createdAckMessages }
+}
+
+export async function syncAllActorTestsForCompany(params: {
+  actorUserId: string
+  companyId: string
+  autoRespond?: boolean
+  autoSend?: boolean
+}): Promise<Array<{ testKey: string; status: ActorTestStatus; portalStatus: string }>> {
+  const synced: Array<{ testKey: string; status: ActorTestStatus; portalStatus: string }> = []
+  for (const testCase of ACTOR_TEST_CASES) {
+    const result = await syncActorTestResultFromExistingMessages({
+      actorUserId: params.actorUserId,
+      companyId: params.companyId,
+      testKey: testCase.key,
+      autoRespond: params.autoRespond,
+      autoSend: params.autoSend,
+    })
+    synced.push({ testKey: testCase.key, status: result.status, portalStatus: result.portalStatus })
+  }
+  return synced
+}
+
+export async function buildActorTestingEvidencePackage(companyId: string): Promise<ActorTestingEvidencePackage> {
+  const company = await getCompany(companyId)
+  const { data, error } = await supabaseService
+    .from('actor_test_results')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('test_key', { ascending: true })
+
+  if (error) throw error
+  const results = (data ?? []) as unknown as ActorTestResultRow[]
+
+  const tests = []
+  for (const definition of ACTOR_TEST_CASES) {
+    const result = results.find((row) => row.test_key === definition.key) ?? null
+    const messages = result ? await findMessagesForResult(result) : []
+    tests.push({
+      testKey: definition.key,
+      testName: result?.test_name ?? definition.label,
+      testId: result?.test_id ?? definition.testId,
+      packageKey: result?.package_key ?? definition.packageKey,
+      messageFamily: result?.message_family ?? definition.messageFamily,
+      messageCode: result?.message_code ?? definition.messageCode,
+      status: result?.status ?? 'not_started',
+      portalStatus: result?.portal_status ?? null,
+      failureReason: result?.failure_reason ?? null,
+      latestRunAt: result?.latest_run_at ?? null,
+      passedAt: result?.passed_at ?? null,
+      edielTestRunId: result?.ediel_test_run_id ?? null,
+      messages: messages.map((message) => ({
+        id: message.id,
+        direction: message.direction,
+        family: message.message_family,
+        code: String(message.message_code),
+        status: message.status,
+        ackOutcome: message.ack_outcome,
+        senderEdielId: message.sender_ediel_id,
+        receiverEdielId: message.receiver_ediel_id,
+        interchangeReference: message.interchange_reference,
+        externalReference: message.external_reference,
+        transactionReference: message.transaction_reference,
+        applicationReference: message.application_reference,
+        sentAt: message.message_sent_at,
+        receivedAt: message.message_received_at,
+        rawPayload: message.raw_payload,
+      })),
+      evidence: result?.evidence ?? null,
+    })
+  }
+
+  return {
+    company: {
+      id: company.id,
+      name: company.name,
+      orgNumber: company.org_number,
+      edielId: company.production_ediel_id ?? company.ediel_id ?? company.test_ediel_id,
+      role: company.market_role ?? company.actor_role,
+      brpName: company.brp_name,
+      brpEdielId: company.brp_ediel_id,
+    },
+    generatedAt: nowIso(),
+    tests,
+  }
+}
+
+export function renderActorTestingEvidenceCsv(pkg: ActorTestingEvidencePackage): string {
+  const header = [
+    'Bolag',
+    'Orgnummer',
+    'Ediel-id',
+    'Test',
+    'Test-ID',
+    'Meddelande',
+    'Status',
+    'Portalstatus',
+    'Felorsak',
+    'Senast körd',
+    'Meddelande-ID',
+    'Riktning',
+    'UNB sender',
+    'UNB receiver',
+    'Interchange reference',
+    'Transaction reference',
+  ]
+  const escape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`
+  const rows = pkg.tests.flatMap((test) => {
+    const messages = test.messages.length > 0 ? test.messages : [null]
+    return messages.map((message) => [
+      pkg.company.name,
+      pkg.company.orgNumber,
+      pkg.company.edielId,
+      test.testName,
+      test.testId,
+      `${test.messageFamily ?? ''} ${test.messageCode ?? ''}`.trim(),
+      test.status,
+      test.portalStatus,
+      test.failureReason,
+      test.latestRunAt,
+      message?.id ?? '',
+      message?.direction ?? '',
+      message?.senderEdielId ?? '',
+      message?.receiverEdielId ?? '',
+      message?.interchangeReference ?? '',
+      message?.transactionReference ?? '',
+    ].map(escape).join(','))
+  })
+  return [header.map(escape).join(','), ...rows].join('\n')
+}
+
+function pdfEscape(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/[\r\n]+/g, ' ')
+}
+
+export function renderActorTestingEvidencePdf(pkg: ActorTestingEvidencePackage): Uint8Array {
+  const lines = [
+    `Bevispaket - ${pkg.company.name}`,
+    `Orgnummer: ${pkg.company.orgNumber ?? '-'}`,
+    `Ediel-id: ${pkg.company.edielId ?? '-'}`,
+    `BRP: ${pkg.company.brpName ?? '-'} ${pkg.company.brpEdielId ?? ''}`.trim(),
+    `Skapad: ${pkg.generatedAt}`,
+    '',
+    ...pkg.tests.flatMap((test) => [
+      `${test.testKey} ${test.testName} (${test.testId ?? '-'})`,
+      `Status: ${test.status ?? 'not_started'} · ${test.messageFamily ?? ''} ${test.messageCode ?? ''}`,
+      `Portal: ${test.portalStatus ?? '-'}`,
+      `Fel: ${test.failureReason ?? '-'}`,
+      `Meddelanden: ${test.messages.map((m) => `${m.family}/${m.code}/${m.status}`).join(', ') || '-'}`,
+      '',
+    ]),
+  ].slice(0, 120)
+
+  const content = [
+    'BT',
+    '/F1 10 Tf',
+    '40 800 Td',
+    ...lines.map((line, index) => `${index === 0 ? '' : '0 -14 Td '}(${pdfEscape(line)}) Tj`),
+    'ET',
+  ].join('\n')
+  const objects = [
+    '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
+    '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
+    '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj',
+    '4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj',
+    `5 0 obj << /Length ${Buffer.byteLength(content, 'utf8')} >> stream\n${content}\nendstream endobj`,
+  ]
+  let offset = '%PDF-1.4\n'.length
+  const xref = ['0000000000 65535 f ']
+  const body = objects.map((obj) => {
+    xref.push(String(offset).padStart(10, '0') + ' 00000 n ')
+    offset += Buffer.byteLength(`${obj}\n`, 'utf8')
+    return obj
+  }).join('\n') + '\n'
+  const xrefOffset = offset
+  const pdf = `%PDF-1.4\n${body}xref\n0 ${objects.length + 1}\n${xref.join('\n')}\ntrailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`
+  return new Uint8Array(Buffer.from(pdf, 'utf8'))
+}

@@ -1,0 +1,17 @@
+{
+  "state": "ROOT_K5_RUNTIME_AND_FINANCIAL_SOURCE_NAMESPACE_REBIND_APPROVE",
+  "observedAt": "2026-11-14T16:37:28.034259+00:00",
+  "runtimePreparedPath": "/tmp/gridex-runtime64-3000-k5-I-prep-20261114/PREPARED.safe.json",
+  "runtimePreparedSHA256": "1ca01495c1ee5415ced962bbbf9a2d868d9a6f034f88ad0e771cacd0c491311d",
+  "runtimeBinderSHA256": "9b05ecb0030a341bec1231f7a19c5bb77eef3bc59a6ed2757baa00c74b7a03b4",
+  "financialPreparedPath": "/tmp/gridex-local-import-capture-k5-prep-20261114/PREPARED.safe.json",
+  "financialPreparedSHA256": "09d21f05fa103bc1d26cafd670bca8298b72ba7b37b9d2ef8497b8d72fcc808f",
+  "financialScriptSHA256": "b56b561a9196305d0373b382ac65ccf42b2081d12ab3ce8bb2b9603475b035f7",
+  "allDeclaredPhysicalPinsChecked": true,
+  "wholeRuntimeSixMetadataLiteralsInverse": true,
+  "wholeFinancialOneInputRootInverse": true,
+  "astAndNewEmptyCacheModesVerified": true,
+  "onlyHistoricalHPriorEnvPresentActualIAbsent": true,
+  "scope": "Source only. Real post-H-expiry I renewal/2key env custody/genuine K5 context/Main/PID/backup/deadline must be separately bound. Keep strictnewiat>priorHexp; no source/time/window/authority weakening or financial/case PASS.",
+  "backendCalls": 0
+}

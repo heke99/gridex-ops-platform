@@ -1,0 +1,1259 @@
+// components/admin/customers/contracts/ContractForms.tsx
+import Link from "next/link";
+import type { OutboundRequestRow } from "@/lib/cis/types";
+import type {
+  ContractOfferRow,
+  CustomerContractRow,
+} from "@/lib/customer-contracts/types";
+import type { SupplierSwitchRequestRow } from "@/lib/operations/types";
+import {
+  contractTypeLabel,
+  formatDateOnly,
+  formatNumber,
+  getContractEditQuickActions,
+  getContractMiniGlossary,
+  getContractOpsStatus,
+  getLifecycleSummary,
+  type ContractOpsContext,
+} from "./helpers";
+import { commercialModelFromSnapshot } from "@/lib/pricing/commercialModel";
+import { SWEDISH_STANDARD_VAT_PERCENT } from "@/lib/pricing/vat";
+import {
+  CONTRACT_SIGNING_METHOD_LABELS,
+  CONTRACT_SIGNING_METHODS,
+  SIGNED_AGREEMENT_ACCEPT,
+  todayInStockholm,
+} from "@/lib/customer-contracts/signingMethod";
+import {
+  createContractAction,
+  createContractFromOfferAction,
+  logContractEventAction,
+} from "./actions";
+import { saveContractWithFeedbackAction } from "@/app/admin/customers/[id]/contracts/[contractId]/signature/actions";
+
+import { ContractEditFeedbackForm } from "./ContractEditFeedbackForm";
+import {usesAtomicUnsignedEdit, unsignedRevisionBlocker} from "@/lib/customer-contracts/revision";
+
+function pricingReadOnly(contract: CustomerContractRow) {
+  if (usesAtomicUnsignedEdit(contract) && !unsignedRevisionBlocker(contract)) return false;
+  return Boolean(["signed", "active", "terminated", "cancelled", "expired"].includes(contract.status) || contract.locked_at || contract.signed_at || contract.contract_offer_id || contract.public_contract_offer_id || contract.contract_publication_version_id || contract.price_plan_version_id || ("contract_price_snapshot_id" in contract && contract.contract_price_snapshot_id));
+}
+
+type SiteOption = { id: string; label: string };
+type MeteringPointOption = { id: string; siteId: string | null; label: string };
+
+function SectionCard({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 ">
+      <div className="text-sm font-semibold text-slate-900 ">{title}</div>
+      {description ? (
+        <div className="mt-1 text-xs text-slate-700 ">{description}</div>
+      ) : null}
+      <div className="mt-4">{children}</div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
+      <span className="text-slate-700 ">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function inputClassName() {
+  return "min-w-0 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700";
+}
+
+function quickActionToneClass(
+  tone: "neutral" | "warning" | "danger" | "success",
+) {
+  switch (tone) {
+    case "warning":
+      return "border-amber-200 bg-amber-50 ";
+    case "danger":
+      return "border-red-200 bg-red-50 ";
+    case "success":
+      return "border-emerald-200 bg-emerald-50 ";
+    default:
+      return "border-slate-200 bg-slate-50 ";
+  }
+}
+
+function MiniGlossary() {
+  const items = getContractMiniGlossary();
+
+  return (
+    <SectionCard
+      title="Snabbhjälp / begrepp"
+      description="Små förklaringar så att man snabbt minns vad varje begrepp betyder i avtalsflödet."
+    >
+      <div className="grid gap-3 md:grid-cols-2">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 "
+          >
+            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-700 ">
+              {item.term}
+            </div>
+            <div className="mt-1 text-xs text-slate-700 ">
+              {item.explanation}
+            </div>
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
+function AutoRenewFields({
+  autoRenewEnabled,
+  autoRenewTermMonths,
+}: {
+  autoRenewEnabled?: boolean;
+  autoRenewTermMonths?: number | null;
+}) {
+  return (
+    <SectionCard
+      title="Automatisk förlängning"
+      description="Använd detta när avtalet ska fortsätta löpa vidare om kunden inte säger upp i tid."
+    >
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm ">
+          <input
+            type="checkbox"
+            name="auto_renew_enabled"
+            defaultChecked={autoRenewEnabled}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+          <span className="text-slate-700 ">
+            Förläng automatiskt om kunden inte säger upp i tid
+          </span>
+        </label>
+
+        <Field label="Ny bindningsperiod vid förlängning (mån)">
+          <input
+            name="auto_renew_term_months"
+            defaultValue={autoRenewTermMonths ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+      </div>
+    </SectionCard>
+  );
+}
+
+function CampaignVersionFields({
+  contract,
+}: {
+  contract?: CustomerContractRow;
+}) {
+  const readOnly = Boolean(contract && usesAtomicUnsignedEdit(contract));
+  return (
+    <SectionCard
+      title="Kampanj och prisversion"
+      description={readOnly ? "Kampanj- och versionsuppgifter kommer från avtalsmallen. Byt mall för att ändra dem." : "Här kopplas avtalet till kampanj, prisversion och villkor så att kundkort och fakturering använder rätt underlag."}
+    >
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Kampanjnamn">
+          <input
+            name="campaign_name"
+            readOnly={readOnly}
+            defaultValue={contract?.campaign_name ?? ""}
+            placeholder="Ex. Vårkampanj 2026"
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Kampanjkod">
+          <input
+            name="campaign_code"
+            readOnly={readOnly}
+            defaultValue={contract?.campaign_code ?? ""}
+            placeholder="Ex. VAR-2026"
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Kampanjversion">
+          <input
+            name="campaign_version"
+            readOnly={readOnly}
+            defaultValue={contract?.campaign_version ?? ""}
+            placeholder="Ex. 2026-01"
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Prisversion">
+          <input
+            name="price_version"
+            readOnly={readOnly}
+            defaultValue={contract?.price_version ?? ""}
+            placeholder="Ex. RÖRLIG-2026-01"
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Villkorsversion">
+          <input
+            name="terms_version"
+            readOnly={readOnly}
+            defaultValue={contract?.terms_version ?? ""}
+            placeholder="Ex. AVTAL-2026-A"
+            className={inputClassName()}
+          />
+        </Field>
+      </div>
+    </SectionCard>
+  );
+}
+
+function ExtraPriceFields({ contract }: { contract?: CustomerContractRow }) {
+  const commercialTermsFixed = Boolean(contract && (contract.status !== "draft" || pricingReadOnly(contract)));
+  const futureConsumption = !contract || (!commercialTermsFixed && contract.energy_direction !== "production");
+  const readOnly = Boolean(contract && pricingReadOnly(contract));
+  return (
+    <SectionCard
+      title="Tillägg, rabatter och moms"
+      description="Används när avtalet har grönt el-tillägg, kampanjrabatt, startavgift eller andra avtalsavgifter."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <Field label="Grön avgift">
+          {readOnly || (contract && usesAtomicUnsignedEdit(contract)) ? <input type="hidden" name="green_fee_mode" value={contract?.green_fee_mode ?? "none"} /> : null}
+          <select
+            disabled={readOnly || Boolean(contract && usesAtomicUnsignedEdit(contract))}
+            name="green_fee_mode"
+            defaultValue={contract?.green_fee_mode ?? "none"}
+            className={inputClassName()}
+          >
+            <option value="none">Ingen</option>
+            <option value="sek_month">SEK/mån</option>
+            <option value="ore_per_kwh">öre/kWh</option>
+          </select>
+        </Field>
+
+        <Field label="Grön avgift värde">
+          <input
+            name="green_fee_value"
+            readOnly={readOnly}
+            defaultValue={contract?.green_fee_value ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Rabattvärde">
+          <input
+            name="discount_value"
+            readOnly={readOnly || Boolean(contract && usesAtomicUnsignedEdit(contract))}
+            defaultValue={contract?.discount_value ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Rabattenhet">
+          {readOnly || (contract && usesAtomicUnsignedEdit(contract)) ? <input type="hidden" name="discount_unit" value={contract?.discount_unit ?? ""} /> : null}
+          <select
+            disabled={readOnly || Boolean(contract && usesAtomicUnsignedEdit(contract))}
+            name="discount_unit"
+            defaultValue={contract?.discount_unit ?? ""}
+            className={inputClassName()}
+          >
+            <option value="">Ingen</option>
+            <option value="sek_month">SEK/mån</option>
+            <option value="ore_per_kwh">öre/kWh</option>
+            <option value="percent">Procent</option>
+          </select>
+        </Field>
+
+        <Field label="Startavgift (SEK)">
+          <input
+            name="start_fee_sek"
+            readOnly={readOnly}
+            defaultValue={contract?.start_fee_sek ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Administrationsavgift (SEK)">
+          <input
+            name="admin_fee_sek"
+            readOnly={readOnly}
+            defaultValue={contract?.admin_fee_sek ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Brytavgift (SEK)">
+          <input
+            name="break_fee_sek"
+            readOnly={readOnly}
+            defaultValue={contract?.break_fee_sek ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Moms (%)">
+          <input
+            name="vat_rate"
+            defaultValue={futureConsumption ? SWEDISH_STANDARD_VAT_PERCENT
+              : contract?.vat_rate === null || contract?.vat_rate === undefined
+                ? "" : contract.vat_rate * 100}
+            readOnly={futureConsumption || commercialTermsFixed}
+            placeholder="25"
+            className={inputClassName()}
+          />
+        </Field>
+      </div>
+    </SectionCard>
+  );
+}
+
+function TerminationFields({
+  terminationNoticeDate,
+  terminationReason,
+}: {
+  terminationNoticeDate?: string | null;
+  terminationReason?: CustomerContractRow["termination_reason"];
+}) {
+  return (
+    <SectionCard
+      title="Uppsägning / avslut"
+      description="Registrera när uppsägning kom in och välj den faktiska orsaken så att drift och support ser rätt läge direkt."
+    >
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Uppsägning mottagen">
+          <input
+            type="date"
+            name="termination_notice_date"
+            defaultValue={
+              terminationNoticeDate ? terminationNoticeDate.slice(0, 10) : ""
+            }
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Uppsägningsorsak">
+          <select
+            name="termination_reason"
+            defaultValue={terminationReason ?? ""}
+            className={inputClassName()}
+          >
+            <option value="">Ingen</option>
+            <option value="switch_supplier">Kund byter leverantör</option>
+            <option value="stop_supply">Kund avslutar helt</option>
+            <option value="move_out">Move out / utflytt</option>
+            <option value="manual_override">
+              Manuell override / felregistrering
+            </option>
+            <option value="other">Övrigt</option>
+          </select>
+        </Field>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-700 ">
+          <div className="font-semibold">Kund byter leverantör</div>
+          <div className="mt-1">
+            Switch = kunden lämnar er för annan elleverantör.
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-700 ">
+          <div className="font-semibold">Kund avslutar helt</div>
+          <div className="mt-1">
+            Använd när leveransen ska upphöra helt utan nytt aktivt avtal.
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-700 ">
+          <div className="font-semibold">Move out / utflytt</div>
+          <div className="mt-1">
+            Kunden flyttar från anläggningen eller adressen och avtalet måste
+            följas upp.
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-700 ">
+          <div className="font-semibold">
+            Manuell override / felregistrering
+          </div>
+          <div className="mt-1">
+            Använd när tidigare registrering varit fel eller måste rättas
+            manuellt.
+          </div>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+function LifecycleSummaryBox({ contract }: { contract: CustomerContractRow }) {
+  const lifecycle = getLifecycleSummary(contract);
+
+  return (
+    <div className="rounded-2xl bg-white px-4 py-3 text-xs text-slate-700 ">
+      <div>Bindningstid: {contract.binding_months ?? "—"} mån</div>
+      <div>Uppsägningstid: {contract.notice_months ?? "—"} mån</div>
+      <div>
+        Nuvarande avtalsperiod: {formatDateOnly(lifecycle.currentTermStart)} →{" "}
+        {formatDateOnly(lifecycle.currentTermEnd)}
+      </div>
+      <div>
+        Aktuellt slutdatum: {formatDateOnly(lifecycle.effectiveEndDate)}
+      </div>
+      <div>Nästa förlängning: {formatDateOnly(lifecycle.nextRenewalDate)}</div>
+      <div>
+        Uppsägning mottagen: {formatDateOnly(contract.termination_notice_date)}
+      </div>
+    </div>
+  );
+}
+
+function OpsStatusRow({
+  contract,
+  opsContext,
+}: {
+  contract: CustomerContractRow;
+  opsContext?: ContractOpsContext | null;
+}) {
+  const ops = getContractOpsStatus(contract, opsContext);
+
+  return (
+    <SectionCard
+      title="Operationsstatus kopplad till avtalet"
+      description="Detta visar om avtalet redan har ett relevant switchärende eller outbound kopplat till sig på samma anläggning."
+    >
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm ">
+          <div className="text-xs uppercase tracking-[0.12em] text-slate-700 ">
+            Switchläge
+          </div>
+          <div className="mt-1 font-medium text-slate-900 ">
+            {ops.switchSummary}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm ">
+          <div className="text-xs uppercase tracking-[0.12em] text-slate-700 ">
+            Outboundläge
+          </div>
+          <div className="mt-1 font-medium text-slate-900 ">
+            {ops.outboundSummary}
+          </div>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+function ContractOperationalActions({
+  contract,
+  customerId,
+  opsContext,
+}: {
+  contract: CustomerContractRow;
+  customerId: string;
+  opsContext?: ContractOpsContext | null;
+}) {
+  const quickActions = getContractEditQuickActions(
+    contract,
+    customerId,
+    opsContext,
+  );
+
+  return (
+    <SectionCard
+      title="Operativa snabbval"
+      description="Det här är nästa rekommenderade arbetsyta utifrån nuvarande avtalsläge. Spara först avtalet om du ändrat något."
+    >
+      {quickActions.length === 0 ? (
+        <div className="text-sm text-slate-700 ">
+          Inga särskilda snabbval just nu. Fortsätt i avtalsdelen eller lägg
+          till en händelse nedan vid behov.
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          {quickActions.map((action) => (
+            <div
+              key={action.id}
+              className={`rounded-2xl border px-4 py-4 ${quickActionToneClass(action.tone)}`}
+            >
+              <div className="text-sm font-semibold text-slate-900 ">
+                {action.title}
+              </div>
+              <div className="mt-1 text-sm text-slate-700 ">
+                {action.description}
+              </div>
+              <div className="mt-3">
+                <Link
+                  href={action.href}
+                  className="inline-flex items-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 "
+                >
+                  {action.label}
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function CoreContractFields({
+  contract,
+  siteOptions,
+  meteringPointOptions,
+}: {
+  contract: CustomerContractRow;
+  siteOptions: SiteOption[];
+  meteringPointOptions: MeteringPointOption[];
+}) {
+  return (
+    <SectionCard title="Grunduppgifter">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Avtalsnamn">
+          <input
+            name="contract_name"
+            defaultValue={contract.contract_name}
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Status">
+          {usesAtomicUnsignedEdit(contract) ? <input type="hidden" name="status" value={contract.status} /> : null}
+          <select
+            name="status"
+            disabled={usesAtomicUnsignedEdit(contract)}
+            defaultValue={contract.status}
+            className={inputClassName()}
+          >
+            <option value="draft">Utkast</option>
+            <option value="pending_signature">Väntar signering</option>
+            <option value="signed" disabled={!contract.signed_at}>Signerat</option>
+            <option value="active" disabled={!contract.signed_at}>Aktivt</option>
+            <option value="terminated">Avslutat</option>
+            <option value="cancelled">Avbrutet</option>
+            <option value="expired">Utgånget</option>
+          </select>
+          {!contract.signed_at ? <span className="text-xs text-slate-600">Signering registreras via kundens signeringslänk eller import av ett redan signerat PDF-avtal. Behåll Väntar signering när anläggningen kopplas.</span> : null}
+        </Field>
+
+        <Field label="Anläggning">
+          <select
+            name="site_id"
+            defaultValue={contract.customer_site_id ?? contract.site_id ?? ""}
+            className={inputClassName()}
+          >
+            <option value="">Ingen kopplad anläggning</option>
+            {siteOptions.map((site) => (
+              <option key={site.id} value={site.id}>
+                {site.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Mätpunkt">
+          <select
+            name="metering_point_id"
+            defaultValue={contract.metering_point_id ?? ""}
+            className={inputClassName()}
+          >
+            <option value="">Ingen specifik mätpunkt</option>
+            {meteringPointOptions.map((point) => (
+              <option key={point.id} value={point.id}>
+                {point.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Avtalstyp">
+          {usesAtomicUnsignedEdit(contract) ? <input type="hidden" name="contract_type" value={contract.contract_type} /> : null}
+          <select
+            name="contract_type"
+            disabled={usesAtomicUnsignedEdit(contract)}
+            defaultValue={contract.contract_type}
+            className={inputClassName()}
+          >
+            <option value="fixed">Fast</option>
+            <option value="variable_monthly">Rörlig månad</option>
+            <option value="variable_hourly">Rörlig tim</option>
+            <option value="variable_quarterly">Rörlig kvart</option>
+            <option value="portfolio">Portfölj</option>
+            <option value="mixed">Mix</option>
+          </select>
+        </Field>
+
+        <Field label="Startdatum">
+          <input
+            type="date"
+            name="starts_at"
+            defaultValue={
+              contract.starts_at ? contract.starts_at.slice(0, 10) : ""
+            }
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Slutdatum">
+          <input
+            type="date"
+            name="ends_at"
+            defaultValue={contract.ends_at ? contract.ends_at.slice(0, 10) : ""}
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Signerat datum">
+          <input type="hidden" name="signed_at" value={contract.signed_at ?? ""} />
+          <input
+            type="date"
+            readOnly
+            defaultValue={
+              contract.signed_at ? contract.signed_at.slice(0, 10) : ""
+            }
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Bindningstid (mån)">
+          <input
+            name="binding_months"
+            defaultValue={contract.binding_months ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Uppsägningstid (mån)">
+          <input
+            name="notice_months"
+            defaultValue={contract.notice_months ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+      </div>
+    </SectionCard>
+  );
+}
+
+function PriceFields({ contract }: { contract: CustomerContractRow }) {
+  const readOnly = pricingReadOnly(contract);
+  return (
+    <SectionCard title="Pris och avgifter" description={readOnly ? "Priset används av signering och fakturering. Ändrade priser och avgifter kräver en ny avtalsversion." : undefined}>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Fast pris (öre/kWh)">
+          <input
+            readOnly={readOnly || usesAtomicUnsignedEdit(contract)}
+            name="fixed_price_ore_per_kwh"
+            defaultValue={contract.fixed_price_ore_per_kwh ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Påslag (öre/kWh)">
+          <input
+            readOnly={readOnly}
+            name="spot_markup_ore_per_kwh"
+            defaultValue={contract.spot_markup_ore_per_kwh ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Rörlig avgift (öre/kWh)">
+          <input
+            readOnly={readOnly}
+            name="variable_fee_ore_per_kwh"
+            defaultValue={contract.variable_fee_ore_per_kwh ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Månadsavgift (SEK)">
+          <input
+            readOnly={readOnly}
+            name="monthly_fee_sek"
+            defaultValue={contract.monthly_fee_sek ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+
+        <Field label="Fakturaavgift (SEK/faktura)">
+          <input
+            readOnly={readOnly}
+            name="invoice_fee_sek"
+            defaultValue={contract.invoice_fee_sek ?? ""}
+            className={inputClassName()}
+          />
+        </Field>
+      </div>
+    </SectionCard>
+  );
+}
+
+function ManualCoreFields({
+  siteOptions,
+  meteringPointOptions,
+}: {
+  siteOptions: SiteOption[];
+  meteringPointOptions: MeteringPointOption[];
+}) {
+  return (
+    <SectionCard title="Grunduppgifter">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Avtalsnamn">
+          <input name="contract_name" className={inputClassName()} />
+        </Field>
+
+        <SigningMethodFieldset />
+
+        <Field label="Anläggning">
+          <select name="site_id" defaultValue={siteOptions.length === 1 ? siteOptions[0].id : ""} className={inputClassName()}>
+            <option value="">Välj anläggning före signering</option>
+            {siteOptions.map((site) => (
+              <option key={site.id} value={site.id}>
+                {site.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Mätpunkt">
+          <select
+            name="metering_point_id"
+            defaultValue=""
+            className={inputClassName()}
+          >
+            <option value="">Ingen specifik mätpunkt</option>
+            {meteringPointOptions.map((point) => (
+              <option key={point.id} value={point.id}>
+                {point.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Avtalstyp">
+          <select
+            name="contract_type"
+            defaultValue="variable_hourly"
+            className={inputClassName()}
+          >
+            <option value="fixed">Fast</option>
+            <option value="variable_monthly">Rörlig månad</option>
+            <option value="variable_hourly">Rörlig tim</option>
+            <option value="portfolio">Portfölj</option>
+            <option value="mixed">Mix</option>
+          </select>
+        </Field>
+
+        <Field label="Startdatum">
+          <input type="date" name="starts_at" className={inputClassName()} />
+        </Field>
+
+        <Field label="Slutdatum">
+          <input type="date" name="ends_at" className={inputClassName()} />
+        </Field>
+
+        <Field label="Bindningstid (mån)">
+          <input name="binding_months" className={inputClassName()} />
+        </Field>
+
+        <Field label="Uppsägningstid (mån)">
+          <input name="notice_months" className={inputClassName()} />
+        </Field>
+      </div>
+    </SectionCard>
+  );
+}
+
+function ManualPriceFields() {
+  return (
+    <SectionCard title="Pris och avgifter">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Fast pris (öre/kWh)">
+          <input name="fixed_price_ore_per_kwh" className={inputClassName()} />
+        </Field>
+
+        <Field label="Påslag (öre/kWh)">
+          <input name="spot_markup_ore_per_kwh" className={inputClassName()} />
+        </Field>
+
+        <Field label="Rörlig avgift (öre/kWh)">
+          <input name="variable_fee_ore_per_kwh" className={inputClassName()} />
+        </Field>
+
+        <Field label="Månadsavgift (SEK)">
+          <input name="monthly_fee_sek" className={inputClassName()} />
+        </Field>
+
+        <Field label="Fakturaavgift (SEK/faktura)">
+          <input name="invoice_fee_sek" className={inputClassName()} />
+        </Field>
+      </div>
+    </SectionCard>
+  );
+}
+
+export function EditContractForm({
+  contract,
+  customerId,
+  siteOptions,
+  meteringPointOptions,
+  switchRequests = [],
+  outboundRequests = [],
+}: {
+  contract: CustomerContractRow;
+  customerId: string;
+  siteOptions: SiteOption[];
+  meteringPointOptions: MeteringPointOption[];
+  switchRequests?: SupplierSwitchRequestRow[];
+  outboundRequests?: OutboundRequestRow[];
+}) {
+  const opsContext: ContractOpsContext = {
+    switchRequests,
+    outboundRequests,
+  };
+
+  return (
+    <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
+      <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
+        Redigera detta avtal
+      </summary>
+
+      <div className="mt-4">
+        <LifecycleSummaryBox contract={contract} />
+      </div>
+
+      <div className="mt-4">
+        <OpsStatusRow contract={contract} opsContext={opsContext} />
+      </div>
+
+      <div className="mt-4">
+        <ContractOperationalActions
+          contract={contract}
+          customerId={customerId}
+          opsContext={opsContext}
+        />
+      </div>
+
+      <div className="mt-4">
+        <MiniGlossary />
+      </div>
+
+      {/* Remount only from a saved row. Validation keeps the entered fields. */}
+      <ContractEditFeedbackForm
+        key={JSON.stringify([contract.id, contract.updated_at, contract.customer_site_id, contract.site_id, contract.status])}
+        action={saveContractWithFeedbackAction}
+      >
+        <input type="hidden" name="customer_id" value={customerId} />
+        <input type="hidden" name="customer_contract_id" value={contract.id} />
+        {usesAtomicUnsignedEdit(contract) ? <>
+          <input type="hidden" name="edit_request_id" value={crypto.randomUUID()} />
+          <input type="hidden" name="expected_updated_at" value={contract.updated_at} />
+          <input type="hidden" name="auto_renew_present" value="1" />
+        </> : null}
+
+        <CoreContractFields
+          contract={contract}
+          siteOptions={siteOptions}
+          meteringPointOptions={meteringPointOptions}
+        />
+        <CampaignVersionFields contract={contract} />
+        <PriceFields contract={contract} />
+        <ExtraPriceFields contract={contract} />
+        {usesAtomicUnsignedEdit(contract) ? <p className="text-xs text-slate-600">Status och uppsägning hanteras via avtalets åtgärder. Byte av prismodell, avgiftsenhet eller rabatt görs genom en ny avtalsmall.</p> : <TerminationFields
+          terminationNoticeDate={contract.termination_notice_date}
+          terminationReason={contract.termination_reason}
+        />}
+        <AutoRenewFields
+          autoRenewEnabled={contract.auto_renew_enabled}
+          autoRenewTermMonths={contract.auto_renew_term_months}
+        />
+
+        <SectionCard
+          title="Manuell kommentar / override"
+          description="Ange en tydlig orsak till manuella avvikelser. Signerade avtal behåller alltid sitt ursprungliga underlag."
+        >
+          <textarea
+            name="override_reason"
+            rows={3}
+            defaultValue={contract.override_reason ?? ""}
+            className={inputClassName()}
+          />
+        </SectionCard>
+
+        {usesAtomicUnsignedEdit(contract) ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <p>Ändrade priser eller villkor skapar en ny kundspecifik avtalsversion med aktuella villkor. Det gamla underlaget sparas och tidigare signeringslänkar återkallas. Kunden behöver granska och signera hela den nya versionen.</p>
+          {unsignedRevisionBlocker(contract) ? <p className="mt-2">{unsignedRevisionBlocker(contract)}</p> : <label className="mt-3 flex items-start gap-2">
+            <input type="checkbox" name="acknowledge_current_terms" className="mt-1" />
+            <span>Vid ändrade priser eller villkor godkänner jag att en ny avtalsversion med aktuella villkor skapas. Detta registrerar inte kundens godkännande eller signatur.</span>
+          </label>}
+        </div> : null}
+
+        <div className="flex justify-end">
+          <button className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 ">
+            Spara avtalet
+          </button>
+        </div>
+      </ContractEditFeedbackForm>
+
+      <form
+        action={logContractEventAction}
+        className="mt-4 space-y-3 border-t border-slate-200 pt-4 "
+      >
+        <input type="hidden" name="customer_id" value={customerId} />
+        <input type="hidden" name="customer_contract_id" value={contract.id} />
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Field label="Händelsetyp">
+            <select
+              name="event_type"
+              defaultValue="note"
+              className={inputClassName()}
+            >
+              <option value="note">Notering</option>
+              <option value="signature_requested">Signering skickad</option>
+              <option value="signed">Signerat</option>
+              <option value="activated">Aktiverat</option>
+              <option value="termination_notice_received">
+                Uppsägning mottagen
+              </option>
+              <option value="terminated">Avslutat</option>
+              <option value="cancelled">Avbrutet</option>
+            </select>
+          </Field>
+
+          <Field label="Datum">
+            <input
+              type="date"
+              name="happened_at"
+              defaultValue=""
+              className={inputClassName()}
+            />
+          </Field>
+        </div>
+
+        <Field label="Notering">
+          <textarea
+            name="note"
+            rows={3}
+            placeholder="Skriv en manuell notering på avtalet"
+            className={inputClassName()}
+          />
+        </Field>
+
+        <div className="flex justify-end">
+          <button className="inline-flex items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 ">
+            Lägg till händelse
+          </button>
+        </div>
+      </form>
+    </details>
+  );
+}
+
+export function CreateFromOfferForm({
+  customerId,
+  offer,
+  siteOptions,
+  meteringPointOptions,
+}: {
+  customerId: string;
+  offer: ContractOfferRow;
+  siteOptions: SiteOption[];
+  meteringPointOptions: MeteringPointOption[];
+}) {
+  const commercialModel = commercialModelFromSnapshot(
+    offer.commercial_snapshot,
+  );
+  return (
+    <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
+      <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
+        Skapa från mall: {offer.name}
+      </summary>
+
+      <div className="mt-3 grid gap-2 text-xs text-slate-700 md:grid-cols-2">
+        <div>Typ: {contractTypeLabel(offer.contract_type)}</div>
+        <div>Kampanj: {offer.campaign_name ?? "Ingen kampanj"}</div>
+        <div>Kampanjkod: {offer.campaign_code ?? "—"}</div>
+        <div>Kampanjversion: {offer.campaign_version ?? "—"}</div>
+        <div>Prisversion: {offer.price_version ?? "—"}</div>
+        <div>Villkor: {offer.terms_version ?? "—"}</div>
+        <div>Månadsavgift: {offer.monthly_fee_sek ?? "—"} SEK</div>
+        <div>Fakturaavgift: {offer.invoice_fee_sek ?? "—"} SEK/faktura</div>
+        <div>Fast pris: {offer.fixed_price_ore_per_kwh ?? "—"} öre/kWh</div>
+        <div>Påslag: {offer.spot_markup_ore_per_kwh ?? "—"} öre/kWh</div>
+        <div>
+          Rörlig avgift: {offer.variable_fee_ore_per_kwh ?? "—"} öre/kWh
+        </div>
+        <div>Bindning: {offer.default_binding_months ?? "—"} mån</div>
+        <div>
+          Grön avgift: {formatNumber(offer.green_fee_value)}{" "}
+          {offer.green_fee_value !== null ? offer.green_fee_mode : ""}
+        </div>
+      </div>
+
+      <ContractEditFeedbackForm action={createContractFromOfferAction}>
+        <input type="hidden" name="customer_id" value={customerId} />
+        <input type="hidden" name="contract_offer_id" value={offer.id} />
+
+        {commercialModel && (
+          <SectionCard
+            title="Exakt prisval"
+            description="Valet fryses som kundens kanoniska prisversion. Inga lösa prisfält kopieras från avtalskortet."
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Prisalternativ">
+                <select
+                  name="price_option_reference"
+                  required
+                  defaultValue={
+                    commercialModel.price_options.length === 1
+                      ? commercialModel.price_options[0]
+                          .price_option_reference
+                      : ""
+                  }
+                  className={inputClassName()}
+                >
+                  <option value="">Välj prisalternativ</option>
+                  {commercialModel.price_options
+                    .filter((option) => option.status === "active")
+                    .map((option) => (
+                      <option
+                        key={option.price_option_reference}
+                        value={option.price_option_reference}
+                      >
+                        {option.customer_name} · {option.binding_months} mån
+                      </option>
+                    ))}
+                </select>
+              </Field>
+              <Field label="Faktureringssätt">
+                <select
+                  name="invoice_delivery_method"
+                  required
+                  defaultValue={
+                    commercialModel.invoice_delivery_methods[0]
+                  }
+                  className={inputClassName()}
+                >
+                  {commercialModel.invoice_delivery_methods.map((method) => (
+                    <option key={method} value={method}>
+                      {method}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {commercialModel.components
+                .filter(
+                  (component) =>
+                    component.selection_policy === "customer_optional" ||
+                    component.selection_policy === "admin_optional",
+                )
+                .map((component) => (
+                  <label
+                    key={component.component_reference}
+                    className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      name={
+                        component.selection_policy === "admin_optional"
+                          ? "admin_selected_component_references"
+                          : "selected_component_references"
+                      }
+                      value={component.component_reference}
+                      defaultChecked={component.default_selected}
+                    />
+                    <span>
+                      <strong>{component.customer_name}</strong>
+                      <span className="block text-xs text-slate-600">
+                        {component.amount} {component.unit} ·{" "}
+                        {component.selection_policy}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+            </div>
+          </SectionCard>
+        )}
+
+        <SectionCard title="Grunduppgifter">
+          <div className="grid gap-4 md:grid-cols-2">
+            <SigningMethodFieldset />
+
+            <Field label="Anläggning">
+              <select
+                name="site_id"
+                defaultValue={siteOptions.length === 1 ? siteOptions[0].id : ""}
+                className={inputClassName()}
+              >
+                <option value="">Välj anläggning före signering</option>
+                {siteOptions.map((site) => (
+                  <option key={site.id} value={site.id}>
+                    {site.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Mätpunkt">
+              <select
+                name="metering_point_id"
+                defaultValue=""
+                className={inputClassName()}
+              >
+                <option value="">Ingen specifik mätpunkt</option>
+                {meteringPointOptions.map((point) => (
+                  <option key={point.id} value={point.id}>
+                    {point.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Startdatum">
+              <input
+                type="date"
+                name="starts_at"
+                className={inputClassName()}
+              />
+            </Field>
+
+            <Field label="Slutdatum">
+              <input type="date" name="ends_at" className={inputClassName()} />
+            </Field>
+          </div>
+        </SectionCard>
+
+        <TerminationFields />
+
+        <AutoRenewFields
+          autoRenewEnabled={Boolean((offer.default_binding_months ?? 0) > 0)}
+          autoRenewTermMonths={offer.default_binding_months}
+        />
+
+        <SectionCard
+          title="Kommentar / override"
+          description="Frivillig kommentar om varför denna avtalsmall valdes för kunden."
+        >
+          <textarea
+            name="override_reason"
+            rows={3}
+            placeholder="Frivillig kommentar om varför denna avtalsmall valdes för kunden"
+            className={inputClassName()}
+          />
+        </SectionCard>
+
+        <button className="w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 ">
+          Skapa kundavtal från mall
+        </button>
+      </ContractEditFeedbackForm>
+    </details>
+  );
+}
+
+export function CreateManualContractForm({
+  customerId,
+  siteOptions,
+  meteringPointOptions,
+}: {
+  customerId: string;
+  siteOptions: SiteOption[];
+  meteringPointOptions: MeteringPointOption[];
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm ">
+      <div className="text-sm font-semibold text-slate-900 ">
+        Skapa manuellt kundavtal
+      </div>
+
+      <ContractEditFeedbackForm action={createContractAction}>
+        <input type="hidden" name="customer_id" value={customerId} />
+
+        <ManualCoreFields
+          siteOptions={siteOptions}
+          meteringPointOptions={meteringPointOptions}
+        />
+        <CampaignVersionFields />
+        <ManualPriceFields />
+        <ExtraPriceFields />
+        <TerminationFields />
+        <AutoRenewFields />
+
+        <SectionCard
+          title="Manuell kommentar / override"
+          description="Ange varför avtalet skapas manuellt eller avviker från katalogen."
+        >
+          <textarea
+            name="override_reason"
+            rows={3}
+            placeholder="Ange varför avtalet skapas manuellt eller avviker från katalogen"
+            className={inputClassName()}
+          />
+        </SectionCard>
+
+        <button className="w-full rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 ">
+          Skapa manuellt kundavtal
+        </button>
+      </ContractEditFeedbackForm>
+    </div>
+  );
+}
+
+// Required staff choice of how a new contract is signed. The server validates
+// the choice, the PDF and the date (resolveContractSigningChoice).
+function SigningMethodFieldset() {
+  const today = todayInStockholm();
+  return (
+    <fieldset className="space-y-2 text-sm md:col-span-2">
+      <legend className="font-medium text-slate-700">Hur signeras avtalet?</legend>
+      {CONTRACT_SIGNING_METHODS.map((value) => (
+        <label key={value} className="flex items-start gap-2">
+          <input type="radio" name="signing_method" value={value} required className="mt-1" />
+          <span>{CONTRACT_SIGNING_METHOD_LABELS[value]}</span>
+        </label>
+      ))}
+      <div className="grid gap-3 rounded-2xl border border-slate-200 p-3 md:grid-cols-2">
+        <label className="grid gap-1">
+          <span className="text-slate-700">Signerat avtal (PDF, max 10 MB)</span>
+          <input
+            type="file"
+            name="signed_agreement_file"
+            accept={SIGNED_AGREEMENT_ACCEPT}
+            className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3"
+          />
+        </label>
+        <label className="grid gap-1">
+          <span className="text-slate-700">Signeringsdatum</span>
+          <input type="date" name="signed_date" defaultValue={today} max={today} className={inputClassName()} />
+        </label>
+        <p className="text-xs text-slate-600 md:col-span-2">
+          Fil och datum krävs endast när kunden redan har signerat. &quot;Skicka avtal för signering&quot; skickar signeringslänken automatiskt till kundens e-post.
+        </p>
+      </div>
+    </fieldset>
+  );
+}

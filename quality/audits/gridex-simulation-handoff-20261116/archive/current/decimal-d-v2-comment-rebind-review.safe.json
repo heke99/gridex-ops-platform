@@ -1,0 +1,13 @@
+{
+  "state": "SOURCE_APPROVE_COMMENT_ONLY_REBIND_NOT_EXECUTION",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T09:48:45.278350+00:00",
+  "freezeSHA256": "a9ff0c4eb70ecd679956d02003c384a21df5f9d95aa2be2d793aa1452b79b98a",
+  "wrapperSHA256": "124f5c9c6225b174d4cf3d678f1b4eaa02634e16426518b615b62ce5e28c4757",
+  "fullReviewSHA256": "9e4bcb87389ba0bf76d40122fe41b6dfefe66b9b9fd8f31b4d8cf5410cf24fe7",
+  "checks": [
+    "Allfrozenfilesmatched; wholeSQLexceptfirstcomment byteidentical olde4aa",
+    "Body/outer/26cases/8s unchanged; honestNEWDlabel fixesinheritedcomment, targetSQLpins rebind",
+    "No newnative/performance/adoption claim; actual3MET and2actualreviews stillneeded"
+  ]
+}

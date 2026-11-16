@@ -1,0 +1,22 @@
+{
+  "state": "CORRECTED_PUBLICATION_PROJECTION_SOURCE_COMPONENT_DOC_APPROVE",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T07:46:29.360136+00:00",
+  "head": "661f657484180f0ee8090e64914e4ca4a6756862",
+  "tree": "74c083c33c8cf5f075c41f0f4155db099369a418",
+  "freezeSHA256": "cfb7a6e528a38b9f3a6ac3945d292b978aae2c6efc8acfca703133597d957b06",
+  "verifiedDirectPins": 40,
+  "review": [
+    "Exactnewprivate helper+oneLOCAL_PUBLICATION callsite only; actualevent/companyscoped read follows nativeTESTclaim, normalwebsitebuilder then unchanged exactnativevalidate beforeHTTP",
+    "Ordinary active-company loader and full45019-byte approvedprefix unchanged; no fakeenvironment/readiness/signature/actorfacets",
+    "Actualevent source/type/company/id/aggregate checked; currentcompany externalreference required, actualoriginal immutable/nativebodySHA revalidated beforetransport",
+    "Meaningfulregression removedunconditionaltenantloadermock; actualunchangedordinaryloader onboardingDENY andactiveALLOW tested;12RED45PASS\u219257PASS/lint0old1warning/scopedTS0",
+    "SQL/unit/actions/page byteunchanged, previousactualN0 evidence applies; no needlessnewN0gate",
+    "Read report/results cutoff historical47proof separatedfromnew57 and actualreadonly/nativeN0; no realdelivery claim"
+  ],
+  "limits": [
+    "Newexact67webhookhash adoption and genuinefactory/Auth/UI/TLS/HTTP stillrequired",
+    "Existingharnessb7ca referencesoldf8a asqualifiedhistoricalsource; rebindactualsource beforeexecute",
+    "No newfullcasecredit fromthissourcefix"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "state": "OWN_EXACT2_DOCS_AND_SESSION_RELEASED_AUTHENTICATED_ABSENT",
+  "atUTC": "2026-11-16T05:59:01.272759+00:00",
+  "resources": [
+    {
+      "ref": "refs/tags/agent-claims/masterplan/file-003ba56f1df2c4b0510a559520467a162682a7da6405b644cc6f5fc5a47a4533",
+      "deleteStatus": 204,
+      "freshAuthenticatedAbsent": 404
+    },
+    {
+      "ref": "refs/tags/agent-claims/masterplan/file-03c113c7fab5fd71990a9bf6ab4062b68275260a547b9643bab8095fc43987fb",
+      "deleteStatus": 204,
+      "freshAuthenticatedAbsent": 404
+    },
+    {
+      "ref": "refs/tags/agent-claims/masterplan/slot-session-e0776e24-29c3-4439-96c2-3565b4b0df6d",
+      "deleteStatus": 204,
+      "freshAuthenticatedAbsent": 404
+    }
+  ],
+  "receipt": "51f02d367ed9d322c43ba22fbc8be788899767a4",
+  "originalClaimJournalSHA256Unchanged": "5d06c1f5cacc4f6439214c18e877b6bc412ff50aa63cc0065b3d45d267ecfe19",
+  "foreignResourcesUntouched": true,
+  "noPushPRRuntimeOrAdoption": true
+}

@@ -1,0 +1,29 @@
+{
+  "verdict": "EXECUTION_SCOPE_APPROVE",
+  "reviewerAgent": "/root",
+  "wrapperSHA256": "bf5e003a1410befc267272b6632d02c5659fad4890cb920d9a1558b6899eec8a",
+  "targetSHA256": "e72a91a78a8920f041be67c5f8b3994f582b3a53e8b114c29e8d69b449d67922",
+  "targetPath": "/tmp/gridex-pilot57-current-constructor-prep-20261113/execution-target.current.BOUND.safe.json",
+  "donorASTManifest": {
+    "readDeclarations": "c36069bc67a581ef1c6e938b4e7cfa853a5147e400f8e34d2872f271dc41395f",
+    "fd92Declarations": "ac8cbdcdfa208510380ccec0bff12cbadb8079cf3152b33f5d8f3779c9612349"
+  },
+  "backupSealSHA256": "57c40806fccec227e736cec2cd99ceeba8f30ec15e4b6e3632b179f06831c9e0",
+  "currentFcBytes": 16858388,
+  "currentMainBeforeAfterSHA256": "e0f11aaecec007442dca133ad688084eab55e917e634908566d1cc32adc900de",
+  "runtimeBinding": {
+    "modulePath": "/tmp/gridex-pilot57-runtime-session-prep-20261113/runtime-session.py",
+    "moduleSHA256": "05a9551a348ccf96da8b6d6dbebf8e41911f3f1fe64522422ec5a60f0b711cbf",
+    "launcherPath": "/tmp/gridex-pilot57-runtime-session-prep-20261113/child-launcher.py",
+    "launcherSHA256": "95a7aa5426a1ae0d04cb425507d5d251f98c627de24356689185fac83d9528fc",
+    "targetTemplatePath": "/tmp/gridex-pilot57-runtime-20261113/runtime-input.PRODUCER.v2.safe.json",
+    "targetTemplateSHA256": "40e8fe379a0f816d819ee345974630ba3f2abf4d240ffa41993d6b27ae4ba491"
+  },
+  "deadlineEpochSeconds": 1794600180,
+  "freshFilesystemBoundChecksPassed": true,
+  "noBackendCallsByReviewer": true,
+  "scope": "One currentFc clone\u2192ad5943420\u2192oneprivateREST/current148fGETonly/private57closedbrowserpilot; owncleanup+fullMAIN/source40post. Actualruntimecanary/capchecks mandatory. Unknown outcome captures IDs/locks/Fc and neverreplays.",
+  "delegation": "After soleproducer second exactscopeACK, arm ON_BEHALF_ROOT and execute this exacttuple ONCE without furtherRootpermission/documentgate. Producer manages bounded genuinehold extensions and proper MAINrestart/logout after preservation.",
+  "noScenarioPassOrProductionAuthorityGranted": true,
+  "asOfUTC": "2026-11-13T19:39:25.165510+00:00"
+}

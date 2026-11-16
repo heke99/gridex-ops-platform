@@ -1,0 +1,36 @@
+{
+  "state": "EXPLICIT_SMALL_PREFLIGHT_BUNDLE_ONLY",
+  "files": [
+    {
+      "file": "README-LOCAL-PREFLIGHT.sv.md",
+      "bytes": 4120,
+      "sha256": "f7e9ab9e8c3a09daccc01ce7ae376e91186a5cec698454dfda0ed5c0678c4443"
+    },
+    {
+      "file": "local-preflight.sh",
+      "bytes": 3432,
+      "sha256": "5c820db25d1aa78b9c3557f6f7e20e1ad0acfd69a72170b34066c6f16338fa8f"
+    },
+    {
+      "file": "PORTABILITY-REVIEW.sv.md",
+      "bytes": 7246,
+      "sha256": "a094ae67b2162ac981d4d50a72cddb96720a5eface5a7ad5ff1406339fafe1a2"
+    },
+    {
+      "file": "PRECHECK-REVIEW.safe.json",
+      "bytes": 3448,
+      "sha256": "22296f7758cd3f6a50592604b328b45b414c750860747f17913f20cb3b4047ba"
+    },
+    {
+      "file": "MIGRATION-STATE.safe.json",
+      "bytes": 1145,
+      "sha256": "c1b42251a9300b744c37c0f00f326385c6e8ed37def9b4d63da5fefa8fb70333"
+    },
+    {
+      "file": "VERIFICATION.safe.json",
+      "bytes": 575,
+      "sha256": "f17ec5be580eb9c92ad92f31cb3e07dfa4b655b32d05b020b61556ee28f5db2e"
+    }
+  ],
+  "privateExportIncluded": false
+}

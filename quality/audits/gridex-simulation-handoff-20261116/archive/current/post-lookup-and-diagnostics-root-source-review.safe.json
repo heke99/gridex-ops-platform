@@ -1,0 +1,26 @@
+{
+  "state": "ROOT_SOURCE_REVIEW_ACK_COMPONENT_EXECUTION_PENDING",
+  "observedAtUtc": "2026-11-15T05:04:25.075519+00:00",
+  "productFrozenSourceSha256": "2b52ea2a792af958773258cd492b32d6a633d20d29761bc6461a9ed70ef63263",
+  "diagnosticFrozenSourceSha256": "6c19e6a9d56abdda103ccb84cc2caf4807d3d6bfac51f9cd6d2e8352cc62c92c",
+  "sdkFiveActualSha256": "427e1ea840e0c4dfeadfeb0aef70763e0e41f65bb249a05a5ed47bca1fd1f3b3",
+  "review": [
+    "Read exact raw lookup delta, SQL function, rollback regression, SDK tests and native plan; read unparameterized service client so RPC name is not blocked by generated schema typing.",
+    "Read all diagnostic deltas and logger; gateway emit wrapper delegates original emit without adding clientError listener, changing header limit or authorization.",
+    "SDK actual is custom-fetch-only, not native SQL/real HTTP or full suite.",
+    "POST exact raw comparison retains company/customer/test/status/newest semantics and legacy missing or stale SHA behavior; insert race unchanged."
+  ],
+  "nextRequired": [
+    "Actual owned-clone trigger/egress preflight before committed fixtures",
+    "Native SQL and official service-role real HTTP, anon ACL negative",
+    "Existing function metadata and Main Auth0/global roles/sequences invariance",
+    "Qualified integrated composition and fresh genuine browser run"
+  ],
+  "historicalK9Wire431": "NOT_CAPTURED; isolated reproduction only",
+  "scenarioCounts": {
+    "fullPass": 38,
+    "documentedGap": 1,
+    "incomplete": 66
+  },
+  "authority": "Source review only; no scenario or runtime PASS; no new user Auth authorized before native and integration readiness."
+}

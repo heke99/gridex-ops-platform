@@ -1,0 +1,14 @@
+{
+  "state": "EXACT_ENVELOPE_BODY_ONLY_3444_OID_NONBODY_ACL_ROWS_SETTINGS_ROLES_PRESERVED",
+  "signature": "gridex_ediel_technical_ack.gridex_ediel_technical_ack.envelope(text)",
+  "migrationSHA256": "1db0467502ee51869a7074768da1c43d5fdfedb7b74f839cbe96c07043b91096",
+  "beforeFunctions": 3444,
+  "afterFunctions": 3444,
+  "oldBodyMD5": "b4debb471635ff47d9a11ccb795eec7c",
+  "newBodyMD5": "33bb811220fdabda32c9f40505c20ea1",
+  "actualDQualification": {
+    "path": "/workspace/gridex-ediel-envelope-wrapper-actual-20261115-d/terminal.safe.json",
+    "sha256": "fafd7c3b2e319a295cccafa5c1a9cace8350c9f992e29b5b2b64ceff386d2867"
+  },
+  "noBusinessOrMainWrite": true
+}

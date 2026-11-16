@@ -1,0 +1,110 @@
+{
+  "state": "FROZEN_SOURCE_ONLY_FOUR_WORKER_B_NAMESPACE",
+  "sourceAuthor": "/root/review_plan_domain",
+  "files": [
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/normal-four-case-worker.v3.cjs",
+      "sha256": "fee3bcb13cc05143da713764ba6aa5e09df950bcb5499cac802a83d342e23c5c",
+      "bytes": 10268
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/four-case-commands.v3.cjs",
+      "sha256": "3bea604067755fb4a9caa15d388be103c43310007116fef2ba46f8a561c02f6a",
+      "bytes": 20645
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/four-case-fetch.v2.cjs",
+      "sha256": "ff1a863d4089bd3f4b31fa4eb9b37e3e32a949e451ae3c9dbe12d781a994fa4c",
+      "bytes": 16337
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/normal-route-fixture.cjs",
+      "sha256": "8522a9b10e9b503ff2e5400c2a4257e28541c61e6724d5b6169cab3a867523bc",
+      "bytes": 6124
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/make-four-payloads.cjs",
+      "sha256": "6cec6f6bf8fa7144ca2bac594230585ae7a9b99c5336cb80946b1b5c338d64e7",
+      "bytes": 6067
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/load-normal-ediel-kernels.cjs",
+      "sha256": "2e6462281491e8398a72556f93c7769ff32f29e698c7c44f6f099af80f86a45b",
+      "bytes": 5024
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/validate-byte-refs.v3.cjs",
+      "sha256": "31c9c03d0178446a7da45a53eec46b54bcc145894e5969f3f7d81cc0388915dc",
+      "bytes": 3828
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/WORKER-TARGET.UNARMED.safe.json",
+      "sha256": "bdbbbedad1729e275000efa7e69f3f48f59bfd5d2a9f28a2efda1b3b07b9d2ce",
+      "bytes": 163520
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/IPC.CONTRACT.SOURCE-ONLY.safe.json",
+      "sha256": "dc0c38f9ac33319d4aa0ddd1e5c9f89999c3255fbf2f9abefd969b6437777dda",
+      "bytes": 10522
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-b/FETCH-ROUTES.SOURCE-ONLY.safe.json",
+      "sha256": "3c7cfa51b78bb065999309e89c648ccf4bfc9a6e1bd8f2e6ce6f0b8f050789fe",
+      "bytes": 5612
+    }
+  ],
+  "priorFreeze": {
+    "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-a/FROZEN.v3.SOURCE-AND-FINALDOC.safe.json",
+    "sha256": "37a73c2ce085cf7376ca25a7ea321153bee834070d02cda839e5e5cea6a80cdb",
+    "bytes": 3338
+  },
+  "priorPairedHandoff": {
+    "path": "/tmp/gridex-ediel-four-case-worker-prep-20261116-a/POSITIVE.V3.SOURCE-HANDOFF.safe.json",
+    "sha256": "8b3d9e356597c36c743c40172284eabb0eb5bda1660157e83806d4de35dd13c2",
+    "bytes": 1098
+  },
+  "runtimeFiles": [
+    "normal-four-case-worker.v3.cjs",
+    "four-case-commands.v3.cjs",
+    "four-case-fetch.v2.cjs",
+    "normal-route-fixture.cjs",
+    "make-four-payloads.cjs",
+    "load-normal-ediel-kernels.cjs",
+    "validate-byte-refs.v3.cjs"
+  ],
+  "wholeSourceInverses": {
+    "normal-four-case-worker.v3.cjs": {
+      "rootLiteralCount": 1,
+      "wholeInverseExact": true
+    },
+    "four-case-commands.v3.cjs": {
+      "rootLiteralCount": 0,
+      "wholeInverseExact": true
+    },
+    "four-case-fetch.v2.cjs": {
+      "rootLiteralCount": 0,
+      "wholeInverseExact": true
+    },
+    "normal-route-fixture.cjs": {
+      "rootLiteralCount": 0,
+      "wholeInverseExact": true
+    },
+    "make-four-payloads.cjs": {
+      "rootLiteralCount": 0,
+      "wholeInverseExact": true
+    },
+    "load-normal-ediel-kernels.cjs": {
+      "rootLiteralCount": 0,
+      "wholeInverseExact": true
+    },
+    "validate-byte-refs.v3.cjs": {
+      "rootLiteralCount": 1,
+      "wholeInverseExact": true
+    }
+  },
+  "targetMetadataDelta": "OnlyactualRoot and7runtimepath/hash ports;6futureactualrefs andclockNULL preserved",
+  "businessFixtureIDsAccountsAndWorkerLabelASuffixUnchanged": true,
+  "noNodeRerunNoNativeOrAuth": true,
+  "allActualAuthority": null,
+  "fullOriginalCaseCredit": 0
+}

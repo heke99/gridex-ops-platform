@@ -1,0 +1,303 @@
+[
+  {
+    "path": "/workspace/gridex-decimal-repo-native-actual-20261114-a/main-after.private.json",
+    "bytes": 22280424,
+    "dev": 27,
+    "inode": 529109,
+    "nlink": 2
+  },
+  {
+    "path": "/workspace/gridex-decimal-repo-native-actual-20261114-a/main-before.private.json",
+    "bytes": 22280424,
+    "dev": 27,
+    "inode": 529109,
+    "nlink": 2
+  },
+  {
+    "path": "/workspace/gridex-k8-preauth-native-seed-qualification-actual-20261115-b/seed-full-after.private.json",
+    "bytes": 22903352,
+    "dev": 27,
+    "inode": 537596,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-source38-post-foundation-maintenance-20261113/fresh-current-main.private.json",
+    "bytes": 22264522,
+    "dev": 27,
+    "inode": 1328607,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k3/candidate3443-before-child.private.json",
+    "bytes": 22905651,
+    "dev": 27,
+    "inode": 529402,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-partner-ledger-native-evidence-20261113/main-all-functions-before.private.json",
+    "bytes": 18971918,
+    "dev": 27,
+    "inode": 621989,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-partner-ledger-native-evidence-20261113/positive/main-all-functions-after.private.json",
+    "bytes": 18971918,
+    "dev": 27,
+    "inode": 622007,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-partner-ledger-native-evidence-20261113/missing_partial_index/main-all-functions-after.private.json",
+    "bytes": 18971918,
+    "dev": 27,
+    "inode": 622023,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k4/LOCAL_ISSUE/full-before-rpc.private.json",
+    "bytes": 22898325,
+    "dev": 27,
+    "inode": 529698,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-event-publication-positive-actual-20261114-d/main-after.private.json",
+    "bytes": 22280424,
+    "dev": 27,
+    "inode": 527365,
+    "nlink": 4
+  },
+  {
+    "path": "/workspace/gridex-event-publication-positive-actual-20261114-d/main-before.private.json",
+    "bytes": 22280424,
+    "dev": 27,
+    "inode": 527365,
+    "nlink": 4
+  },
+  {
+    "path": "/workspace/gridex-decimal-donor-native-actual-20261114-c/candidate3443-wire-and-decimal.private.json",
+    "bytes": 22901355,
+    "dev": 27,
+    "inode": 527271,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-downstream-native-input-prep-20261114/normal-full-L2-parser.private.json",
+    "bytes": 28013881,
+    "dev": 27,
+    "inode": 526818,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-decimal-quality-window-native-actual-20261114-e/clone-after.private.json",
+    "bytes": 22905647,
+    "dev": 27,
+    "inode": 527509,
+    "nlink": 2
+  },
+  {
+    "path": "/workspace/gridex-decimal-quality-window-native-actual-20261114-e/main-after.private.json",
+    "bytes": 22280424,
+    "dev": 27,
+    "inode": 527365,
+    "nlink": 4
+  },
+  {
+    "path": "/workspace/gridex-decimal-quality-window-native-actual-20261114-e/main-before.private.json",
+    "bytes": 22280424,
+    "dev": 27,
+    "inode": 527365,
+    "nlink": 4
+  },
+  {
+    "path": "/workspace/gridex-decimal-quality-window-native-actual-20261114-e/candidate3443-wire-and-decimal.private.json",
+    "bytes": 22905647,
+    "dev": 27,
+    "inode": 527509,
+    "nlink": 2
+  },
+  {
+    "path": "/workspace/gridex-k8-issue-only-closure-20261115-a/full-private-after-readonly.private.json",
+    "bytes": 22909317,
+    "dev": 27,
+    "inode": 537844,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-wire-actual-20261114-i/main-after.private.json",
+    "bytes": 22280424,
+    "dev": 27,
+    "inode": 526417,
+    "nlink": 2
+  },
+  {
+    "path": "/workspace/gridex-local-wire-actual-20261114-i/main-before.private.json",
+    "bytes": 22280424,
+    "dev": 27,
+    "inode": 526417,
+    "nlink": 2
+  },
+  {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k8/after-api-wire-decimal-before-prepare.private.json",
+    "bytes": 22909544,
+    "dev": 27,
+    "inode": 537918,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k8/fresh-current-main3370-before-foundation.private.json",
+    "bytes": 22297671,
+    "dev": 27,
+    "inode": 537850,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k8/after-api0558-before-wire.private.json",
+    "bytes": 22903356,
+    "dev": 27,
+    "inode": 537886,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k8/main-after.private.json",
+    "bytes": 22284316,
+    "dev": 27,
+    "inode": 538362,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k8/candidate3443-before-child.private.json",
+    "bytes": 22909318,
+    "dev": 27,
+    "inode": 537924,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k8/main-before.private.json",
+    "bytes": 22284316,
+    "dev": 27,
+    "inode": 535881,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k8/after-permanence-negative.private.json",
+    "bytes": 22909318,
+    "dev": 27,
+    "inode": 537928,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k8/fresh-api3443-before-four-body-patches.private.json",
+    "bytes": 22903352,
+    "dev": 27,
+    "inode": 537861,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k8/after-api0558-wire-cbde-before-decimal.private.json",
+    "bytes": 22903362,
+    "dev": 27,
+    "inode": 537914,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k8/fresh-foundation3420.private.json",
+    "bytes": 22757087,
+    "dev": 27,
+    "inode": 537856,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-post-site-receiver-main-seed-20261115-a/fresh-current-main.private.json",
+    "bytes": 22284316,
+    "dev": 27,
+    "inode": 537968,
+    "nlink": 2
+  },
+  {
+    "path": "/workspace/gridex-post-site-receiver-main-seed-20261115-a/post-dump-main.private.json",
+    "bytes": 22284316,
+    "dev": 27,
+    "inode": 537968,
+    "nlink": 2
+  },
+  {
+    "path": "/workspace/gridex-wire-tokens-candidate-actual-20261114-a/clone-after.private.json",
+    "bytes": 22899469,
+    "dev": 27,
+    "inode": 526267,
+    "nlink": 2
+  },
+  {
+    "path": "/workspace/gridex-wire-tokens-candidate-actual-20261114-a/candidate3443-after-install.private.json",
+    "bytes": 22899469,
+    "dev": 27,
+    "inode": 526267,
+    "nlink": 2
+  },
+  {
+    "path": "/workspace/gridex-wire-tokens-candidate-actual-20261114-a/restored3443-before.private.json",
+    "bytes": 22899463,
+    "dev": 27,
+    "inode": 526262,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-wire-tokens-candidate-actual-20261114-a/main-after.private.json",
+    "bytes": 22280423,
+    "dev": 27,
+    "inode": 526257,
+    "nlink": 2
+  },
+  {
+    "path": "/workspace/gridex-wire-tokens-candidate-actual-20261114-a/main-before.private.json",
+    "bytes": 22280423,
+    "dev": 27,
+    "inode": 526257,
+    "nlink": 2
+  },
+  {
+    "path": "/workspace/gridex-k5-import-preintent-native-capture-20261114/full-before-dump.private.json",
+    "bytes": 22898325,
+    "dev": 27,
+    "inode": 534862,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-k5-import-preintent-native-capture-20261114/full-after-dump.private.json",
+    "bytes": 22898325,
+    "dev": 27,
+    "inode": 534912,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-site0104-main-actual-20261114-a/main-after.private.json",
+    "bytes": 22280423,
+    "dev": 27,
+    "inode": 526308,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-four-rpc-checkpoints-20261115-k8/LOCAL_ISSUE/full-after-dump.private.json",
+    "bytes": 22902218,
+    "dev": 27,
+    "inode": 538371,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-four-rpc-checkpoints-20261115-k8/LOCAL_ISSUE/full-before-rpc.private.json",
+    "bytes": 22902218,
+    "dev": 27,
+    "inode": 537962,
+    "nlink": 1
+  },
+  {
+    "path": "/workspace/gridex-local-four-rpc-checkpoints-20261115-k8/LOCAL_ISSUE/full-after-rpc.private.json",
+    "bytes": 22902218,
+    "dev": 27,
+    "inode": 538365,
+    "nlink": 1
+  }
+]

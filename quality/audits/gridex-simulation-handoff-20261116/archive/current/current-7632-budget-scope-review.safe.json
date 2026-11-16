@@ -1,0 +1,45 @@
+{
+  "verdict": "EXECUTION_SCOPE_APPROVE",
+  "reviewerAgent": "/root",
+  "wrapperSHA256": "bf5e003a1410befc267272b6632d02c5659fad4890cb920d9a1558b6899eec8a",
+  "targetSHA256": "7632f7230eb5bea64c2666a93c0656adc2f957c7559eb9e4ef214b05af2055e8",
+  "targetPath": "/tmp/gridex-pilot57-current-constructor-prep-20261113/execution-target.current-budget.BOUND.safe.json",
+  "donorASTManifest": {
+    "readDeclarations": "c36069bc67a581ef1c6e938b4e7cfa853a5147e400f8e34d2872f271dc41395f",
+    "fd92Declarations": "ac8cbdcdfa208510380ccec0bff12cbadb8079cf3152b33f5d8f3779c9612349"
+  },
+  "backupSealSHA256": "57c40806fccec227e736cec2cd99ceeba8f30ec15e4b6e3632b179f06831c9e0",
+  "currentFcBytes": 16858388,
+  "currentMainBeforeAfterSHA256": "e0f11aaecec007442dca133ad688084eab55e917e634908566d1cc32adc900de",
+  "runtimeBinding": {
+    "modulePath": "/tmp/gridex-pilot57-runtime-session-prep-20261113/runtime-session.py",
+    "moduleSHA256": "05a9551a348ccf96da8b6d6dbebf8e41911f3f1fe64522422ec5a60f0b711cbf",
+    "launcherPath": "/tmp/gridex-pilot57-runtime-session-prep-20261113/child-launcher.py",
+    "launcherSHA256": "95a7aa5426a1ae0d04cb425507d5d251f98c627de24356689185fac83d9528fc",
+    "targetTemplatePath": "/tmp/gridex-pilot57-runtime-20261113/runtime-input.PRODUCER.v2.safe.json",
+    "targetTemplateSHA256": "40e8fe379a0f816d819ee345974630ba3f2abf4d240ffa41993d6b27ae4ba491"
+  },
+  "deadlineEpochSeconds": 1794600180,
+  "freshFilesystemBoundChecksPassed": true,
+  "noBackendCallsByReviewer": true,
+  "scope": "One currentFc clone\u2192ad5943420\u2192oneprivateREST/current148fGETonly/private57closedbrowserpilot; owncleanup+fullMAIN/source40post. Actualruntimecanary/capchecks mandatory. Unknown outcome captures IDs/locks/Fc and neverreplays.",
+  "delegation": "After soleproducer second exact narrow ACK, arm new7632tuple ON_BEHALF_ROOT and execute ONCE. Olde72 preintentSTOP retained; no blindreplay/cleanup or generic re-review.",
+  "noScenarioPassOrProductionAuthorityGranted": true,
+  "asOfUTC": "2026-11-13T19:42:41.421794+00:00",
+  "reviewType": "NARROW_CURRENT_RESOURCE_BUDGET_REBIND_AFTER_KNOWN_ZERO_EFFECT_PREINTENT_STOP",
+  "priorScopeReview": {
+    "path": "/workspace/gridex-root-session-20261112/current-e72-constructor-scope-review.safe.json",
+    "sha256": "c970820d2fc1f5bf0e5bd5d98670592e208942385c7e435988a76af6fffee245"
+  },
+  "newBudgetBytes": 805306368,
+  "actualDerivedBudgetBytes": 699801597,
+  "rootReadonlyFilesystemObservation": {
+    "workspaceFreeBytes": 963485696,
+    "tmpFreeBytes": 2211729408,
+    "nextCacheFilesystem": "separate /tmp tmpfs, not workspace overlay"
+  },
+  "budgetEvidence": {
+    "path": "/tmp/gridex-pilot57-disk-readiness-recovery-20261113/qualified-current-budget.safe.json",
+    "sha256": "5e1ad9973fd971d6860a4e7b7e30f2caa18876684f8a3cde570b2414fa722898"
+  }
+}

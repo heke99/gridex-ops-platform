@@ -1,0 +1,31 @@
+{
+  "state": "IMMUTABLE_HARNESS_ORACLE_AND_DEADHELPER_SOURCE_CORRECTION_NOT_PRODUCT_FAILURE",
+  "previousFrozen": {
+    "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/FROZEN.v2.safe.json",
+    "sha256": "fda1eecbca10824642375875b036c25284d7a0e5579a6265579a2b0adbf2fc0a"
+  },
+  "files": [
+    {
+      "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/ingress-oracle.v2.cjs",
+      "sha256": "5086608a54a81ce55a32b540ec9689d0cea3177b8afb62137e307da364de1090"
+    },
+    {
+      "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/test-ingress-oracle.v2.cjs",
+      "sha256": "a42c93609b361307f075daba692eae2f175ea7658872fb88b294004c5ba9633b"
+    },
+    {
+      "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/ingress-ui-driver.v2.cjs",
+      "sha256": "d2dd43a213017f35b39f9c9322e62d1ccde001c46d203b4df52bee7e656b3bda"
+    }
+  ],
+  "oracleDelta": "Duplicatepath exactdeepEqual entireexistingemailrow. Both paths verifyactualASCIIraw_email UTF8hash and storedraw_message_sha256, while negativeprocessor maylegitimatelychangestatus.",
+  "meaningfulAddedControls": [
+    "ownsubjectchanged",
+    "ownstatuschanged",
+    "rawbyteschangedwithstalehash",
+    "bothnativeobservationshavesameoverwrittenrawbutstalehash"
+  ],
+  "old10ActualResultsPreserved": "50da709d historical component result, notnew14 result",
+  "new14NodeControls": "NOTRUN_requiresproducerquiet",
+  "deadHelperCleanup": "Removeonly3unreachablelexicalfunctions createRoute/issueNamespace/processOne +theirunusedmarkers; separateharnesscleanup notproduction33cohort."
+}

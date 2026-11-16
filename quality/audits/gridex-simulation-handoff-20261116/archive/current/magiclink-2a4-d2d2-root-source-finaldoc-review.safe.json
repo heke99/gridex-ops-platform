@@ -1,0 +1,21 @@
+{
+  "state": "SOURCE_COMPONENT_AND_FINALDOC_APPROVE",
+  "sourceHead": "2a4c401cd73722be940b312c518d1e20ccd11343",
+  "docHead": "d2d2d07f3f3d797539a523a00bef03f6af12c678",
+  "productFiles": 2,
+  "testFiles": 1,
+  "insertedCallbackLines": 25,
+  "allOriginalCallbackBytesOutsideInsertionUnchanged": true,
+  "actualEvidenceAndReferenceFilesVerified": 47,
+  "strictActualInputFilesRehashed": 693,
+  "requiredNode22BinaryVerified": true,
+  "requiredNode22RedFailPass": [
+    3,
+    28
+  ],
+  "greenTests": 31,
+  "lintExit": 0,
+  "strictExit": 0,
+  "security": "Exactnext-onlyquery, parsedtrustedcompanyinvite/oneopaque token, genuinegetUserconfirmednonanonymous; no GETAuthtransition/accept. Errors/throwscontrolledrefusal, PKCE/tokenhashbranchesunchanged. Foreignissuer/claimsunchanged.",
+  "deferred": "ActualGo/provider-templatefetch/render/realmail/cookies/nativeaccept/runtimeadoption/105case. Node24historicalnotfinalgate."
+}

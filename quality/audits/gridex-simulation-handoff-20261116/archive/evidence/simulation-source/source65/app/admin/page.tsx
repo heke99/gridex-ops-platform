@@ -1,0 +1,525 @@
+import AdminActionsMenu from "@/components/admin/ui/AdminActionsMenu"
+// app/admin/page.tsx
+import Link from 'next/link'
+import { Children, isValidElement, type ReactNode } from 'react'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import AdminHeader from '@/components/admin/AdminHeader'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+import { getEdielSummary, type EdielSummary } from '@/lib/ediel/summary'
+import { getActiveEdielActorSettings } from '@/lib/ediel/config'
+import { getCompanyDashboardSummary } from '@/lib/performance/companySummaries'
+
+export const dynamic = 'force-dynamic'
+
+type CountFilter = {
+ column: string
+ value: string | number | boolean | null | Array<string | number | boolean>
+ op?: 'eq' | 'in' | 'gt' | 'gte' | 'lt' | 'lte' | 'is'
+}
+
+const EMPTY_EDIEL_SUMMARY: EdielSummary = {
+ totalMessages: 0,
+ inboundMessages: 0,
+ outboundMessages: 0,
+ draftMessages: 0,
+ failedMessages: 0,
+ queuedMessages: 0,
+ preparedMessages: 0,
+ sentMessages: 0,
+ ackPendingMessages: 0,
+ ackOverdueMessages: 0,
+ activeRoutes: 0,
+ configuredProfiles: 0,
+ activeTestRuns: 0,
+ runningTests: 0,
+}
+
+
+const HIDDEN_CUSTOMER_STATUSES = ['archived', 'deleted', 'deleted_test_only', 'pending_deletion']
+
+function countFailure(error: unknown): string {
+ const code = (error as { code?: string } | null)?.code ?? 'count_failed'
+ return `Kunde inte hämtas (${code})`
+}
+
+function isPositiveCount(value: number | string): boolean {
+ return typeof value === 'number' && value > 0
+}
+
+function isUnavailableCount(value: string | number): boolean {
+ return typeof value === 'string' && value.startsWith('Kunde inte hämtas')
+}
+
+async function safeVisibleCustomerCount(supabase: SupabaseClient, companyId?: string | null) {
+ try {
+ let query = supabase
+ .from('customers')
+ .select('id', { count: 'exact', head: true })
+ .not('company_id', 'is', null)
+ .or('source.is.null,source.neq.ediel_portal_test')
+ .or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
+
+ if (companyId) {
+ query = query.eq('company_id', companyId)
+ }
+
+ const { count, error } = await query
+ if (error) return countFailure(error)
+ return count ?? 0
+ } catch (error) {
+ return countFailure(error)
+ }
+}
+
+async function safeCount(
+ supabase: SupabaseClient,
+ table: string,
+ companyId?: string | null,
+ filters: CountFilter[] = []
+) {
+ try {
+ let query = supabase.from(table).select('id', { count: 'exact', head: true })
+
+ if (companyId) {
+ query = query.eq('company_id', companyId)
+ }
+
+ for (const filter of filters) {
+ if (filter.op === 'in') {
+ query = query.in(filter.column, Array.isArray(filter.value) ? filter.value : [])
+ } else if (filter.op === 'gt') {
+ query = query.gt(filter.column, filter.value as string | number)
+ } else if (filter.op === 'gte') {
+ query = query.gte(filter.column, filter.value as string | number)
+ } else if (filter.op === 'lt') {
+ query = query.lt(filter.column, filter.value as string | number)
+ } else if (filter.op === 'lte') {
+ query = query.lte(filter.column, filter.value as string | number)
+ } else if (filter.op === 'is' || filter.value === null) {
+ query = query.is(filter.column, filter.value as null)
+ } else {
+ query = query.eq(filter.column, filter.value)
+ }
+ }
+
+ const { count, error } = await query
+ if (error) return countFailure(error)
+ return count ?? 0
+ } catch (error) {
+ return countFailure(error)
+ }
+}
+
+async function safePendingWebsiteApplicationCount(supabase: SupabaseClient, companyId?: string | null) {
+ try {
+ const { data, error } = await supabase.rpc('gridex_pending_website_application_count', { p_company_id: companyId ?? null })
+ if (error) return countFailure(error)
+ return Number(data ?? 0)
+ } catch (error) {
+ return countFailure(error)
+ }
+}
+
+function Pill({ tone, children }: { tone: 'emerald' | 'amber' | 'red' | 'slate'; children: ReactNode }) {
+ const classes: Record<typeof tone, string> = {
+ emerald: 'border-emerald-300 bg-emerald-100 text-emerald-900',
+ amber: 'border-amber-300 bg-amber-100 text-amber-950',
+ red: 'border-red-300 bg-red-100 text-red-950',
+ slate: 'border-slate-300 bg-slate-100 text-slate-900',
+ }
+
+ return (
+ <span className={`inline-flex min-w-0 max-w-full items-center break-words rounded-full border px-3 py-1 text-xs font-black ${classes[tone]}`}>
+ {children}
+ </span>
+ )
+}
+
+function MetricCard({
+ label,
+ value,
+ hint,
+ href,
+ tone = 'slate',
+}: {
+ label: string
+ value: string | number
+ hint: string
+ href?: string
+ tone?: 'slate' | 'emerald' | 'amber' | 'red'
+}) {
+ const styles: Record<typeof tone, string> = {
+ slate: 'border-slate-200 bg-white',
+ emerald: 'border-emerald-200 bg-emerald-50/90',
+ amber: 'border-amber-200 bg-amber-50/95',
+ red: 'border-red-200 bg-red-50/95',
+ }
+
+ const content = (
+ <div className={`h-full min-w-0 rounded-2xl border p-3 ${styles[isUnavailableCount(value) ? 'red' : tone]}`}>
+ <div className="text-sm font-black text-slate-700">{label}</div>
+ <div className="mt-1 break-words text-2xl font-semibold tracking-tight text-slate-950">{value}</div>
+ <div className="mt-1 text-xs font-medium leading-5 text-slate-700">{hint}</div>
+ </div>
+ )
+
+ return href ? <Link href={href}>{content}</Link> : content
+}
+
+function WorkAreaCard({
+ eyebrow,
+ title,
+ text,
+ href,
+ cta,
+ children,
+}: {
+ eyebrow: string
+ title: string
+ text: string
+ href: string
+ cta: string
+ children?: ReactNode
+}) {
+ const lines = Children.toArray(children)
+ const needsAttention = (line: ReactNode) => isValidElement<{ tone?: string; value?: string | number }>(line) && (
+   ['amber', 'red'].includes(line.props.tone ?? '') || (line.props.value !== undefined && isUnavailableCount(line.props.value))
+ )
+ const attentionLines = lines.filter(needsAttention)
+ const remainingLines = lines.filter((line) => !needsAttention(line))
+ return (
+ <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
+ <h2 className="text-lg font-semibold text-slate-950">{eyebrow}</h2>
+ {attentionLines.length > 0 ? <div className="mt-3 grid gap-1">{attentionLines}</div> : null}
+ <details className="mt-3 text-sm text-slate-600"><summary className="cursor-pointer font-medium">Fler uppgifter</summary>{remainingLines.length > 0 ? <div className="mt-2 grid gap-1">{remainingLines}</div> : null}<p className="mt-2 font-semibold text-slate-800">{title}</p><p className="mt-1 leading-6">{text}</p></details>
+ <Link
+ href={href}
+ className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+ >
+ {cta}
+ </Link>
+ </section>
+ )
+}
+
+function ActionLine({ label, value, tone = 'slate' }: { label: string; value: string | number; tone?: 'slate' | 'emerald' | 'amber' | 'red' }) {
+ return (
+ <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-0">
+ <span className="text-sm font-bold text-slate-800">{label}</span>
+ <Pill tone={isUnavailableCount(value) ? 'red' : tone}>{value}</Pill>
+ </div>
+ )
+}
+
+export default async function AdminDashboardPage() {
+ const context = await requireAdminPageKeyAccess('dashboard')
+ const isPlatformAdmin = isPlatformAdminContext(context)
+ const supabase = await createSupabaseServerClient()
+ // Tenant metrics and actor reads must use the company whose permissions the
+ // canonical guard resolved. A legacy membership choice can select another one.
+ const companyScope = isPlatformAdmin
+  ? await getOperationalCompanyScope(context.userId)
+  : { ...(await resolveAdminTenantReadScope(context)), message: null }
+ const companyId = companyScope.companyId
+ // Platform admins must use the verified platform aggregate, not a selected tenant membership.
+ // Keep companyId for actor/tenant-profile display; metrics use summaryCompanyId.
+ const summaryCompanyId = isPlatformAdmin ? null : companyId
+ const todayDate = new Date()
+ const inThirtyDaysDate = new Date(todayDate)
+ inThirtyDaysDate.setUTCDate(inThirtyDaysDate.getUTCDate() + 30)
+ const latestMeteringSinceDate = new Date(todayDate)
+ latestMeteringSinceDate.setUTCDate(latestMeteringSinceDate.getUTCDate() - 7)
+ const today = todayDate.toISOString().slice(0, 10)
+ const inThirtyDays = inThirtyDaysDate.toISOString().slice(0, 10)
+ const latestMeteringSince = latestMeteringSinceDate.toISOString()
+ const dashboardSummary = await getCompanyDashboardSummary(supabase, summaryCompanyId)
+
+ const [
+ ediel,
+ productionActor,
+ testActor,
+ customers,
+ contracts,
+ sites,
+ meteringPoints,
+ pendingTasks,
+ openGridOwnerRequests,
+ openSwitches,
+ outboundQueue,
+ meteringValues,
+ billingUnderlays,
+ ongoingSupplierSwitches,
+ waitingForGridOwner,
+ negativeAcknowledgements,
+ missingMeteringValues,
+ customersActionRequired,
+ latestMeteringValues,
+ upcomingTerminations,
+ pendingCustomerApplications,
+ companies,
+ networkOwners,
+ suppliers,
+ ] = await Promise.all([
+ getEdielSummary(supabase, summaryCompanyId).catch(() => EMPTY_EDIEL_SUMMARY),
+ getActiveEdielActorSettings('production', companyId).catch(() => null),
+ getActiveEdielActorSettings('test', companyId).catch(() => null),
+ dashboardSummary ? Promise.resolve(dashboardSummary.customersTotal) : safeVisibleCustomerCount(supabase, summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.contractsTotal) : safeCount(supabase, 'customer_contracts', summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.sitesTotal) : safeCount(supabase, 'customer_sites', summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.meteringPointsTotal) : safeCount(supabase, 'metering_points', summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.openTasks) : safeCount(supabase, 'customer_operation_tasks', summaryCompanyId, [{ column: 'status', value: 'open' }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.openGridOwnerRequests) : safeCount(supabase, 'grid_owner_data_requests', summaryCompanyId, [{ column: 'status', value: 'sent' }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.openSwitches) : safeCount(supabase, 'supplier_switch_requests', summaryCompanyId, [{ column: 'status', value: 'open' }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.outboundRequestsTotal) : safeCount(supabase, 'outbound_requests', summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.meteringValuesTotal) : safeCount(supabase, 'metering_values', summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.billingUnderlaysTotal) : safeCount(supabase, 'billing_underlays', summaryCompanyId),
+ dashboardSummary ? Promise.resolve(dashboardSummary.ongoingSupplierSwitches) : safeCount(supabase, 'supplier_switch_requests', summaryCompanyId, [{ column: 'status', op: 'in', value: ['draft', 'queued', 'submitted', 'accepted', 'cancellation_requested', 'cancellation_sent', 'manual_followup_required'] }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.waitingForGridOwner) : safeCount(supabase, 'grid_owner_data_requests', summaryCompanyId, [{ column: 'status', op: 'in', value: ['sent', 'waiting_response', 'queued'] }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.negativeAcknowledgements) : safeCount(supabase, 'ediel_messages', summaryCompanyId, [{ column: 'ack_outcome', value: 'negative' }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.missingMeteringValues) : safeCount(supabase, 'gridex_actionable_data_quality_issues_v', summaryCompanyId, [{ column: 'issue_type', value: 'missing_metering_values' }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.customersActionRequired) : safeCount(supabase, 'customer_operation_tasks', summaryCompanyId, [{ column: 'status', op: 'in', value: ['open', 'in_progress', 'blocked'] }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.latestMeteringValues) : safeCount(supabase, 'metering_values', summaryCompanyId, [{ column: 'created_at', op: 'gte', value: latestMeteringSince }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.upcomingTerminations) : safeCount(supabase, 'customer_contracts', summaryCompanyId, [{ column: 'ends_at', op: 'gte', value: today }, { column: 'ends_at', op: 'lte', value: inThirtyDays }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.pendingCustomerApplications) : safePendingWebsiteApplicationCount(supabase, summaryCompanyId),
+ isPlatformAdmin
+  ? typeof dashboardSummary?.companiesTotal === 'number'
+   ? Promise.resolve(dashboardSummary.companiesTotal)
+   : safeCount(supabase, 'companies')
+  : Promise.resolve(0),
+ isPlatformAdmin
+  ? typeof dashboardSummary?.gridOwnersTotal === 'number'
+   ? Promise.resolve(dashboardSummary.gridOwnersTotal)
+   : safeCount(supabase, 'grid_owners')
+  : Promise.resolve(0),
+ isPlatformAdmin
+  ? typeof dashboardSummary?.electricitySuppliersTotal === 'number'
+   ? Promise.resolve(dashboardSummary.electricitySuppliersTotal)
+   : safeCount(supabase, 'electricity_suppliers')
+  : Promise.resolve(0),
+ ])
+
+ const actor = productionActor ?? testActor
+ const liveWarnings =
+ typeof pendingTasks === 'number' && typeof openGridOwnerRequests === 'number'
+ ? ediel.failedMessages + ediel.ackPendingMessages + ediel.ackOverdueMessages + pendingTasks + openGridOwnerRequests
+ : null
+ const tenantReady = Boolean(companyId && actor?.actor_ediel_id)
+
+ return (
+ <div className="min-h-screen">
+ <AdminHeader
+ title="Driftöversikt"
+ subtitle={isPlatformAdmin ? 'Samlad översikt för Ediel, kunder, fullmakter, drift, mätvärden, faktureringsunderlag och tenant-säkerhet.' : 'Samlad översikt över kunder, fullmakter, leverantörsbyten, mätvärden och fakturaunderlag.'}
+ userEmail={context.email}
+ workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
+ workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
+ />
+
+ <div className="space-y-4 p-4 lg:p-6">
+ <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+ <div className="flex flex-wrap items-start justify-between gap-6">
+ <div>
+ <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-900">Gridex Operations</p>
+ <h1 className="mt-1 break-words text-2xl font-semibold tracking-tight text-slate-950">
+{isPlatformAdmin ? 'Plattformsöversikt' : `Dagens driftläge för ${companyScope.companyName ?? 'ditt bolag'}`}
+ </h1>
+ <p className="mt-3 max-w-4xl text-sm font-bold leading-6 text-slate-700">
+ Följ dagens kundflöden, driftuppgifter och fakturering. Öppna arbetskön för nästa åtgärd.
+ </p>
+ {companyScope.message ? (
+ <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-100 px-4 py-3 text-sm font-black text-amber-950">
+ {companyScope.message}
+ </div>
+ ) : null}
+ </div>
+
+ <div className="flex flex-wrap gap-2">
+ {isPlatformAdmin ? (
+ <Pill tone="emerald">Platform admin</Pill>
+ ) : (
+ <Pill tone={tenantReady ? 'emerald' : 'red'}>{tenantReady ? 'Tenantprofil aktiv' : 'Tenantprofil behöver åtgärd'}</Pill>
+ )}
+ <Pill tone={liveWarnings === null || liveWarnings > 0 ? 'amber' : 'emerald'}>
+ {liveWarnings === null ? 'Driftantal kunde inte hämtas' : liveWarnings > 0 ? `${liveWarnings} driftuppgifter` : 'Inga akuta blockeringar'}
+ </Pill>
+ </div>
+ </div>
+ </section>
+
+ <section className="grid grid-cols-2 gap-2 xl:grid-cols-6">
+ <MetricCard label="Kunder" value={customers} hint="Aktuellt kundregister" href="/admin/customers" tone="emerald" />
+ <MetricCard label="Avtal" value={contracts} hint="Aktiva och historiska avtal" href="/admin/contracts" />
+ <MetricCard label="Anläggningar" value={sites} hint="Kopplade uttagspunkter" href="/admin/customers" />
+ <MetricCard label="Mätpunkter" value={meteringPoints} hint="Fakturagrundande mätpunkter" href="/admin/metering" />
+<MetricCard label={isPlatformAdmin ? 'Ediel-kvittenser' : 'Tekniska kvittenser'} value={ediel.ackPendingMessages} hint={isPlatformAdmin ? `${ediel.ackOverdueMessages} försenade kvittenser` : 'Visas som åtgärder när något behöver hanteras'} href={isPlatformAdmin ? '/admin/ediel/control-tower' : '/admin/work-queue'} tone={ediel.ackPendingMessages > 0 ? 'amber' : 'emerald'} />
+ <MetricCard label="Kundansökningar" value={pendingCustomerApplications} hint="Nya/ofullständiga från hemsida" href="/admin/website-applications" tone={isPositiveCount(pendingCustomerApplications) ? 'amber' : 'emerald'} />
+ </section>
+
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="flex flex-wrap items-start justify-between gap-4">
+ <div>
+ <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Elbolagets arbetsläge</p>
+ <h2 className="mt-1 text-xl font-semibold text-slate-950">Nästa åtgärder och väntande svar</h2>
+ </div>
+ <Link href="/admin/work-queue" className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800">
+ Öppna åtgärder
+ </Link>
+ </div>
+ <div className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4">
+ <MetricCard label="Pågående leverantörsbyten" value={ongoingSupplierSwitches} hint="Startade eller väntande byten" href="/admin/operations/switches" tone={isPositiveCount(ongoingSupplierSwitches) ? 'amber' : 'emerald'} />
+ <MetricCard label="Väntar på nätägare" value={waitingForGridOwner} hint="Begäran skickad, svar saknas" href="/admin/customer-info-requests" tone={isPositiveCount(waitingForGridOwner) ? 'amber' : 'emerald'} />
+ <MetricCard label="Negativa kvittenser" value={negativeAcknowledgements} hint="Avvisat - åtgärd krävs" href={isPlatformAdmin ? '/admin/ediel/control-tower' : '/admin/work-queue'} tone={isPositiveCount(negativeAcknowledgements) ? 'red' : 'emerald'} />
+ <MetricCard label="Mätvärden saknas" value={missingMeteringValues} hint="Öppna datakvalitetsuppgifter" href="/admin/outbound/missing-meter-values" tone={isPositiveCount(missingMeteringValues) ? 'red' : 'emerald'} />
+ <MetricCard label="Kunder med åtgärd krävs" value={customersActionRequired} hint="Öppna eller blockerade uppgifter" href="/admin/work-queue" tone={isPositiveCount(customersActionRequired) ? 'amber' : 'emerald'} />
+ <MetricCard label="Senaste mottagna mätvärden" value={latestMeteringValues} hint="Mottagna senaste 7 dagarna" href="/admin/metering" tone={isPositiveCount(latestMeteringValues) ? 'emerald' : 'amber'} />
+ <MetricCard label="Kommande avslut" value={upcomingTerminations} hint="Avtal som slutar inom 30 dagar" href="/admin/contracts" tone={isPositiveCount(upcomingTerminations) ? 'amber' : 'emerald'} />
+ </div>
+ </section>
+
+<section className="grid gap-5 xl:grid-cols-3">
+{isPlatformAdmin ? (
+ <WorkAreaCard
+ eyebrow="Ediel Center"
+ title="Liveflöde, kvittenser och route-hälsa"
+ text="Följ PRODAT, UTILTS, CONTRL och APERAK. Ediel är högst prioriterat eftersom leverantörsbyten och mätvärden bygger på korrekt adressering."
+ href="/admin/ediel"
+ cta="Öppna Ediel Live Center"
+ >
+ <ActionLine label="Meddelanden totalt" value={ediel.totalMessages} tone="emerald" />
+ <ActionLine label="Felade meddelanden" value={ediel.failedMessages} tone={ediel.failedMessages > 0 ? 'red' : 'emerald'} />
+ <ActionLine label="Aktiva Ediel-routes" value={ediel.activeRoutes} tone={ediel.activeRoutes > 0 ? 'emerald' : 'amber'} />
+ </WorkAreaCard>
+) : (
+<WorkAreaCard
+eyebrow="Dagens åtgärder"
+title="Det som behöver hanteras"
+text="Kunder som saknar uppgifter, svar från nätägare som kräver åtgärd och mätvärden som saknas."
+href="/admin/work-queue"
+cta="Öppna åtgärder"
+>
+<ActionLine label="Nya kundansökningar" value={pendingCustomerApplications} tone={isPositiveCount(pendingCustomerApplications) ? 'amber' : 'emerald'} />
+<ActionLine label="Åtgärder" value={pendingTasks} tone={isPositiveCount(pendingTasks) ? 'amber' : 'emerald'} />
+<ActionLine label="Negativa kvittenser" value={negativeAcknowledgements} tone={isPositiveCount(negativeAcknowledgements) ? 'red' : 'emerald'} />
+<ActionLine label="Mätvärden saknas" value={missingMeteringValues} tone={isPositiveCount(missingMeteringValues) ? 'red' : 'emerald'} />
+</WorkAreaCard>
+)}
+
+ <WorkAreaCard
+ eyebrow="Kunder & avtal"
+ title="Kunddata som går att lita på"
+ text="Kund, avtal, anläggning, mätpunkt och fullmakt ska hänga ihop innan systemet startar operations- eller Ediel-flöden."
+ href="/admin/customers"
+ cta="Öppna kundregister"
+ >
+ <ActionLine label="Kunder" value={customers} tone="emerald" />
+ <ActionLine label="Kundansökningar behöver kontroll" value={pendingCustomerApplications} tone={isPositiveCount(pendingCustomerApplications) ? 'amber' : 'emerald'} />
+ <ActionLine label="Avtal" value={contracts} tone={isPositiveCount(contracts) ? 'emerald' : 'amber'} />
+ <ActionLine label="Mätpunkter" value={meteringPoints} tone={isPositiveCount(meteringPoints) ? 'emerald' : 'amber'} />
+ </WorkAreaCard>
+
+ <WorkAreaCard
+ eyebrow="Fullmakter & onboarding"
+ title="Från signerad fullmakt till begärda uppgifter"
+ text="Signerad eller verifierad fullmakt ska trigga rätt begäran till nätägare, och blockeringar ska synas tydligt."
+ href="/admin/work-queue"
+ cta="Öppna arbetskö"
+ >
+ <ActionLine label="Öppna uppgifter" value={pendingTasks} tone={isPositiveCount(pendingTasks) ? 'amber' : 'emerald'} />
+ <ActionLine label="Begäran hos nätägare" value={openGridOwnerRequests} tone={isPositiveCount(openGridOwnerRequests) ? 'amber' : 'emerald'} />
+ <ActionLine label="Aktiva switchar" value={openSwitches} tone={isPositiveCount(openSwitches) ? 'amber' : 'emerald'} />
+ </WorkAreaCard>
+ </section>
+
+ <section className="grid gap-5 xl:grid-cols-3">
+ <WorkAreaCard
+ eyebrow="Operations"
+ title="Switchar, utskick och åtgärder"
+ text="Här följer du leverantörsbyten, outboundköer, ej matchade meddelanden och driftuppgifter som är redo att köras."
+ href="/admin/operations"
+ cta="Öppna operations"
+ >
+ <ActionLine label="Aktiva switchar" value={openSwitches} tone={isPositiveCount(openSwitches) ? 'amber' : 'emerald'} />
+ <ActionLine label="Outboundkö" value={outboundQueue} tone={isPositiveCount(outboundQueue) ? 'amber' : 'emerald'} />
+ </WorkAreaCard>
+
+ <WorkAreaCard
+ eyebrow="Mätvärden & fakturaunderlag"
+ title="Underlag som kan exporteras säkert"
+ text="Mätvärden, saknade perioder och faktureringsberedskap ska kontrolleras innan partnerhandoff eller export."
+ href="/admin/billing"
+ cta="Öppna faktureringsunderlag"
+ >
+ <ActionLine label="Mätvärden" value={meteringValues} tone={isPositiveCount(meteringValues) ? 'emerald' : 'amber'} />
+ <ActionLine label="Billingunderlag" value={billingUnderlays} tone={isPositiveCount(billingUnderlays) ? 'emerald' : 'slate'} />
+ </WorkAreaCard>
+
+ {isPlatformAdmin ? (
+ <WorkAreaCard
+ eyebrow="Plattform"
+ title="Bolag, globala användare och styrning"
+ text="Detta är en superadmin-yta. Här hanteras tenants, globala användare, roller och plattformsregler. Vanliga elbolag ser inte den här vägen."
+ href="/admin/companies"
+ cta="Öppna plattformens bolag"
+ >
+ <ActionLine label="Bolag" value={companies} tone={isPositiveCount(companies) ? 'emerald' : 'amber'} />
+ <ActionLine label="Nätägare" value={networkOwners} tone={isPositiveCount(networkOwners) ? 'emerald' : 'amber'} />
+ <ActionLine label="Elleverantörer" value={suppliers} tone={isPositiveCount(suppliers) ? 'emerald' : 'amber'} />
+ </WorkAreaCard>
+ ) : (
+ <WorkAreaCard
+ eyebrow="Bolagsinställningar"
+ title="Ditt elbolags profil och team"
+ text="Här hanterar du bara ditt eget bolags kontaktuppgifter, Ediel-profil och användare. Du kan inte skapa eller se andra elbolag."
+ href="/admin/company-settings"
+ cta="Öppna bolagsinställningar"
+ >
+ <ActionLine label="Bolagskoppling" value={companyScope.companyName ?? 'Saknas'} tone={companyId ? 'emerald' : 'red'} />
+ <ActionLine label="Ediel-id" value={actor?.actor_ediel_id ?? 'Saknas'} tone={actor?.actor_ediel_id ? 'emerald' : 'red'} />
+ </WorkAreaCard>
+ )}
+ </section>
+
+ <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+ <div className="flex flex-wrap items-start justify-between gap-4">
+ <div>
+ <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">{isPlatformAdmin ? 'Tenantprofil' : 'Bolagsprofil'}</p>
+ <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
+ {companyScope.companyName ?? 'Bolagskoppling saknas'} · {actor?.actor_name ?? 'Ediel-profil saknas'}
+ </h2>
+ <p className="mt-2 max-w-4xl text-sm font-bold leading-6 text-slate-700">
+ Kontrollera bolagets aktörsprofil och driftmiljö innan liveflöden skickas.
+ </p>
+ </div>
+
+ <div className="flex flex-wrap gap-2">
+ <Pill tone={companyId ? 'emerald' : 'red'}>{companyId ? 'Bolag kopplat' : 'Bolagskoppling saknas'}</Pill>
+ <Pill tone={actor?.actor_ediel_id ? 'emerald' : 'red'}>{actor?.actor_ediel_id ? 'Marknadsidentitet finns' : 'Marknadsidentitet saknas'}</Pill>
+ <Pill tone={productionActor ? 'emerald' : testActor ? 'amber' : 'red'}>
+ {productionActor ? 'Produktion aktiv' : testActor ? 'Endast testprofil' : 'Ingen aktörsprofil'}
+ </Pill>
+ </div>
+ </div>
+
+ <div className="mt-5 flex flex-wrap gap-3">
+ <Link href={isPlatformAdmin ? '/admin/ediel/settings' : '/admin/company-settings'} className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800">
+ {isPlatformAdmin ? 'Hantera tenantprofil' : 'Hantera bolagsprofil'}
+ </Link>
+ <AdminActionsMenu label="Fler verktyg">
+ {isPlatformAdmin ? (
+ <Link href="/admin/ediel/routes" className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-900 transition hover:bg-slate-50">
+ Kontrollera routes
+ </Link>
+ ) : null}
+ <Link href="/admin/controltower" className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-900 transition hover:bg-slate-50">
+ Öppna Control Tower
+ </Link>
+ </AdminActionsMenu>
+ </div>
+ </section>
+ </div>
+ </div>
+ )
+}

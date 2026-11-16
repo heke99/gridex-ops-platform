@@ -1,0 +1,7 @@
+{
+  "state": "ROOT_K10_P_NARROW_SOURCE_ACK",
+  "freezeSHA256": "eefa63ded2716b1e2a215fb449675135f72635058740c91c468c2a4b9b8f4f5a",
+  "checks": "ReadfullPfactory/orchdeltas+manifestmetadata; allfiles/evidencerefs hashbytes; parent381cc byteidenticalO, orchestratorwholeinverse2paths exact; factorynonliteral tokens unchanged and sole epochnumber Niat\u2192Oiat. NewactualPproof/currentclaims/runtimeRootK10-p preserve oldO/source65/native15/compiler.",
+  "literalTokenDifferencesIncludingComments": 17,
+  "noAuthOrPrivateAuthority": "ActualMainK/preauthnewPID/currentP/time/resources/sourcepair/readiness/afterREADYnewbaseline andactualprivate805 guards remain. Sourceonlymetadata; existingcode tests reused honestly."
+}

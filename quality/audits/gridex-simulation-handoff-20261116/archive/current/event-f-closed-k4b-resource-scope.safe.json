@@ -1,0 +1,17 @@
+{
+  "state": "ROOT_EVENT_F_EXACT_CLOSED_K4B_RESOURCE_SCOPE_APPROVE_WITH_TMP_LOGOUT_PRECONDITION",
+  "observedAt": "2026-11-14T16:07:16.885840+00:00",
+  "proposalPath": "/workspace/gridex-event-f-closed-k4b-resource-proposal-20261114/PROPOSAL.safe.json",
+  "proposalSHA256": "054c4808fdeda13ee8d470614160fa5d6f548e82525674ab35afed6b681370fd",
+  "workspaceArchiveGroups": 6,
+  "closedRawDedupPairs": 2,
+  "conditionalTmpArchiveGroups": 3,
+  "freshAll13PhysicalHashesMetadataAndClosureChecked": true,
+  "requiredProtocol": "FreshH/stat/closure/FDcaveat; independentimmutabletuplelists, rawdedupexclusive siblinglink/atomicreplace/postallH first;6workspacearchives andconditional3TMP exactorigins distinctfromdedupgroupinode list;gzipfsync/decompHbytes BEFORErawunlink/durableARCHIVED/safeRestore. No listsaliasmutation/no futureequalitiesassumed.",
+  "tmpPrecondition": "OnlyafterproduceractualproperK4bLogout/native0 CLOSEDproofexists andconfirmsnewEVENTFbaseline mandatory. PriorK4baseline notfresh afterAuthcleanup. No currentheldinput/crypto selected.",
+  "protected": "CurrentcanonicalK4bcandidate andmanualnativefullbefore remainRAWviahardlinks; fullmanualFc34a8/fullfailedK4Fc2c81/currentE96/C6/APIwire/source/controls/input/H/env preserved. Onlyexactclosedstagesarchived. Nativepermanence negative receipt/log remainsRAW.",
+  "writer": "remaining_coverage_inventory sole writer or explicitly delegated producer",
+  "noFutureBytesCredited": true,
+  "indexRequirement": "Keep canonical candidate and manual before RAW and every dedup alias readable; append exact ARCHIVED/restore mapping for archived files. TMP old K4 baseline is historical only after properlogout/native0; EVENT F needs genuine fresh baseline.",
+  "backendCallsByRoot": 0
+}

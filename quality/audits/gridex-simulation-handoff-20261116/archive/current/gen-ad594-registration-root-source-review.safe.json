@@ -1,0 +1,13 @@
+{
+  "state": "SOURCE_APPROVE_REGISTRATION_ONLY",
+  "head": "1fba7e0db86ec45e165a0ce6d7c13d6cacca6086",
+  "exactSQL": "ad594a0d86c80b16a2aa5137a07544210d39d16bb0a511c98fc4e842130f3e8e",
+  "manifest": "e3c5e47abd77e1fe1f7c78713066656e642eeae87ed4c57ecc4d997fb674c2fc",
+  "oldEntriesBytePreserved": 923,
+  "entriesAfter": 924,
+  "physicalInputsRehashed": 1333,
+  "proofsActualVerified": 7,
+  "otherGEN3FilesUnchanged": true,
+  "noGENOrDBOrProducerRoleInvocation": true,
+  "reviewErrata": "Initial readonlyreview assumed other3materialized in sparsecheckout; corrected to actualGitblob+heldGENworktree bytes; no edits or checks rerun."
+}

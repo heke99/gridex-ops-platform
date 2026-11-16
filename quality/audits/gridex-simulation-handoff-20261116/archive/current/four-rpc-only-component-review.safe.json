@@ -1,0 +1,26 @@
+{
+  "state": "FOUR_RPC_ONLY_CODE_AND_COMPONENT_APPROVE_NO_UI_IMPORT",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T07:27:42.328472+00:00",
+  "coreSHA256": "50bc119029df6eccb1fd8929e6ad460772eeda174c7da57bca12180c02226942",
+  "helperSHA256": "30e4eafc3b72ddf74d7efb9436f9711eafe2c1e62e3c7986da60250428a58cdf",
+  "priorFullCodeReview": "6156fa29876cb4504a7039410d083658dcae6bcbcf16fc721ece7d9a95685d05",
+  "finiteProofSHA256": "cab1d943410e77c08101d6717508372f6dcab696f14bde3be6fc88e87b2f7afa",
+  "fixtureSourceSHA256": "363291c0192033ec39e6be70e20e31ddf9034d78679128955d905f1fc35b615b",
+  "finiteChecks": [
+    "wrong_stage_zero_mutator",
+    "wrong_actor_zero_mutator",
+    "issue_single_rpc_durable_result_not_authority_before_ack",
+    "unacked_issue_cannot_retry",
+    "issue_native_ack_latches_actual_ids",
+    "exact_original_raw_utf8_receive_and_native_ack",
+    "native_prepared_document_ids_period_pricing_selection_purpose_checked",
+    "present_hash_alone_cannot_attest",
+    "wrong_semantic_review_zero_attest_rpc",
+    "four_ordered_single_rpc_calls_each_native_ack",
+    "import_scope_data_only_actual_ids_no_weakmap_capability",
+    "completed_attest_cannot_replay"
+  ],
+  "review": "Read finite SDK/row harness and actual result:12PASS, no network/Auth/DB. Missing basisSha256 was a fake-response fixture defect corrected without changing core/schema; originalfailure retained. Wrongactor/stage/unacked retry/present-only/wrongterms deny beforemutator. Fullsemanticdocument comparison+explicitreview and exactfourACK order covered.",
+  "limit": "No normalUIimportdriver or completeactualmacro authorization in this receipt; actualbindings stillrequired."
+}

@@ -1,0 +1,70 @@
+{
+  "state": "ACTUAL_ORIGINAL_EVENT01_05_FULL_BUSINESS_ORACLE_RECONCILED_CLOSURE_PENDING",
+  "actualAEventId": "08c6ab6b-0592-4694-b44a-b139c8c84d32",
+  "actualADeliveryId": "b4c97a44-c146-4ce2-992b-7bdee9c1ab09",
+  "actualCCompanyId": "60575561-5184-44ec-8a14-a50f37f4c2c1",
+  "actualCSubscriptionId": "6eb9df0a-b715-422f-be43-456fbd3d3943",
+  "CNonvacuousActiveSameEventType": true,
+  "fullCPostSetupBaselineUnchanged": true,
+  "CSetupEventCount": 5,
+  "CSetupDeliveryCount": 0,
+  "AEventToCFanoutAndDeliveries": 0,
+  "actualWireSHA256": "4c220e758be63ee4e40ae81a2a23dfd9b92981c488c5d6baa8be8d5cfde45daa",
+  "actualCompleteRawHeaderEnvelopeSHA256": "3eb6f352980c353fe17eb60ff8e85fe713d2aaaa20bdbb27b796e8def1cb4c25",
+  "independentlyRecomputedHMAC": true,
+  "privateCMarkerValuesChecked": 56,
+  "noCMarkersInActualBodyOrAllRawHeaders": true,
+  "physicalPOSTCount": 1,
+  "workerStopPreserved": "ACTUAL_COMPLETE_RAW_HEADER_ARRAY expected nakedarray but actualcompleteenvelope.rawHeaders; offline read ofactualenvelope proves fulloriginalheaderoracle without replay/sourcehotpatch. Workerstop not hidden.",
+  "refs": [
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/second-tenant.subscription-native.private.json",
+      "sha256": "0e5954241172138205a96777cf2ece724fe23cb869c1d9c77d32dd5d27a8aa5e"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/second-tenant.after-A-event.private.json",
+      "sha256": "c0628ece6cc2d6fbf6ea50e7b12fcfbe2d08f3e5efc962ff20d6674183fe5a91"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/second-tenant.fixture.private.json",
+      "sha256": "d6b993b7821ef44367ef3a3fe565b76127f6be5a5a9afb97492794becde3de9a"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/second-tenant.provision.return.private.json",
+      "sha256": "532b880f3f2469c7da44d073620bfb0f163e1fcac7042f3fb3deae81aaaafeb5"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/success.dispatch-native.private.json",
+      "sha256": "fc54c4527c6e63252e1346a2423af42fc7c81dde94266eede2d3b21ad804f95b"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/success.fresh-event.private.json",
+      "sha256": "fb981485af36ffe50c25d994664b09e250e36b1438b9134e05aec7115491c50e"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/success.before-business.private.json",
+      "sha256": "8f360846c9b03c6fa8906c88406baac2800396ce0b2ae6c737141ba061fe6e04"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/success.after-business.private.json",
+      "sha256": "57611cb198037445aeffc0bdc661f41c4618fa2e22bf972e0fc8f029a5e1070f"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/receiver-success/request-1.safe.json",
+      "sha256": "9c4312187f73bffa574886b3904ccba6c3d8b760a121761a131ac48b5a1ccef4"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/receiver-success/request-1.headers.private.json",
+      "sha256": "3eb6f352980c353fe17eb60ff8e85fe713d2aaaa20bdbb27b796e8def1cb4c25"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/receiver-success/terminal.safe.json",
+      "sha256": "5990a0849b6ced2947c85bac6f9ad3793d0efad5866cbd24c816f6fdec23f69d"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/batch-stop.safe.json",
+      "sha256": "c870b2627fcefe219e370a0b59f6c09bd1f0357eb23c107170e5837f1faf868d"
+    }
+  ],
+  "casePASS": false
+}

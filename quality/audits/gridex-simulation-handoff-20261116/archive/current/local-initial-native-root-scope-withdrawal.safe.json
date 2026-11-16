@@ -1,0 +1,7 @@
+{
+  "state": "WITHDRAWN_BEFORE_RUNTIME",
+  "withdrawnReceipt": "c18a947ac9adaca20cf0d689f360d14468dd7ee35a93f8e89f127ad19359ed8b",
+  "reason": "Wrapper ACL psql_file call omitted required expected_database variable; fix exact call with variables expected_database=db and rebind wrapper+target before any execution.",
+  "classification": "HARNESS_PREEXECUTION_BLOCKER_NOT_PRODUCT_BUG",
+  "originalTuplePreserved": true
+}

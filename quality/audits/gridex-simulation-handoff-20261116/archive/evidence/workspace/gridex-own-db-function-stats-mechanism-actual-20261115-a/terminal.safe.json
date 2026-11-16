@@ -1,0 +1,65 @@
+{
+  "state": "OWN_DB_FUNCTION_STATS_ABORT_AND_NORMAL_EXIT_MECHANISM_CLOSED",
+  "errorType": null,
+  "ownDBAbsent": true,
+  "MainFullRolesAll7Auth0CarrierUnchanged": true,
+  "allDatabaseRoleSettingsRestored": true,
+  "results": {
+    "offWorker": {
+      "exitCode": 0,
+      "elapsedSeconds": 1.139186440006597,
+      "deadlineKilled": false,
+      "stdout": {
+        "path": "/workspace/gridex-own-db-function-stats-mechanism-actual-20261115-a/off-worker.stdout.private.log",
+        "sha256": "b861f542b793c0b9aa0139a4285304183a518e9c3e55f64d8b703da2317f1897"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-own-db-function-stats-mechanism-actual-20261115-a/off-worker.stderr.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "plNormal": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.4688320770219434,
+      "stdout": {
+        "path": "/workspace/gridex-own-db-function-stats-mechanism-actual-20261115-a/pl-normal-worker.stdout.private.log",
+        "sha256": "691da200513e783c45450b01739b38dc48ca6ebf6cff8218fdee274505c6df66"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-own-db-function-stats-mechanism-actual-20261115-a/pl-normal-worker.stderr.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "cancelWorker": {
+      "exitCode": 3,
+      "elapsedSeconds": 2.3662541160010733,
+      "deadlineKilled": false,
+      "stdout": {
+        "path": "/workspace/gridex-own-db-function-stats-mechanism-actual-20261115-a/cancel-worker.stdout.private.log",
+        "sha256": "483a93a4e1a0bc1a3bf06a27f3740c7689022e71e026f6c94d02a17b29cf74e7"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-own-db-function-stats-mechanism-actual-20261115-a/cancel-worker.stderr.private.log",
+        "sha256": "184445022a73d7cbab7086d926a85a27819e8c44558d5de343fe93c4f28ea5ad"
+      }
+    }
+  },
+  "completedCalleeRetentionObserved": true,
+  "interruptedFramesAreIncomplete": true,
+  "normalExitFlushBoundaryOnly": true,
+  "liveRESTPoolFlushQualified": false,
+  "waitSamplingCoverageGuaranteed": false,
+  "waitSamplerPhaseReached": true,
+  "waitSampleCommandsAttempted": 9,
+  "waitSamplesCompleted": 9,
+  "actualPgSleepWaitSeen": true,
+  "v1InvocationsPlanned": 3,
+  "businessInsertExecuted": false,
+  "userAuthExecuted": false,
+  "SQLMaximumSeconds": 8,
+  "syntheticStatementTimeoutSeconds": 2,
+  "callerTimeoutSeconds": 15,
+  "globalRoleGrantResetChanges": false,
+  "fullInsertCauseProven": false,
+  "futureImportAuthorized": false
+}

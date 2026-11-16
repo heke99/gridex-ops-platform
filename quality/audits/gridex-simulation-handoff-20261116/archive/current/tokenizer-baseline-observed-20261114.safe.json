@@ -1,0 +1,73 @@
+{
+  "state": "CLOSED_TWO_INDEPENDENT_ACTUAL_REVIEWS",
+  "asOfUTC": "2026-11-14T04:16:14.124636+00:00",
+  "cases": [
+    {
+      "name": "actual_complete_segment_prefix_1024",
+      "elapsedWallSeconds": 0.5107419529958861,
+      "exit": 0,
+      "outcome": "COMPLETED",
+      "sqlSHA256": "716b846163423312b87714befabb387cd2b88ce203b695556f4adee0741d3796",
+      "stdoutSHA256": "01c045656340313aee5ceaee9f008c592557b1bb70675a25143c794e4ef91bf2",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "actual_complete_segment_prefix_16",
+      "elapsedWallSeconds": 0.10419878500397317,
+      "exit": 0,
+      "outcome": "COMPLETED",
+      "sqlSHA256": "6aa21fab4ebf503fe21016889fc668b28aae7a7405467acdb4669e6aa6fd16bc",
+      "stdoutSHA256": "4e7feaee434f3383aba8925dac1b6477db1641aaa9399eba2f9291df1d5ed3d0",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "actual_complete_segment_prefix_256",
+      "elapsedWallSeconds": 0.13140745399869047,
+      "exit": 0,
+      "outcome": "COMPLETED",
+      "sqlSHA256": "9222de015805a220f4f7472d7175e19b557a0860670a84ab18623ab2775d0831",
+      "stdoutSHA256": "cfd579799fc7152b066ce5e867d5d78b93b40a0e2d5c43169fb409aa0d653ad1",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "actual_complete_segment_prefix_4096",
+      "elapsedWallSeconds": 6.659141587006161,
+      "exit": 0,
+      "outcome": "COMPLETED",
+      "sqlSHA256": "6f4bdca13987cbb4a41528677133c36d472c9e78abfa6d11e0cf5c41839db517",
+      "stdoutSHA256": "539f4e96144aa810bde47686539e90448a58101d1a332dac112b587d760d37f3",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "actual_full_171462",
+      "elapsedWallSeconds": 8.121856436991948,
+      "exit": 3,
+      "outcome": "STATEMENT_TIMEOUT",
+      "sqlSHA256": "3e937e85134d621769029f52cbee15a1c6263c13b70f03739efb79121a871720",
+      "stdoutSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSHA256": "53ee8795cbd76ac28566ad800cd1162558932e01dc2c88778f27ea48e361a169"
+    },
+    {
+      "name": "synthetic_one_segment",
+      "elapsedWallSeconds": 0.11548178999510128,
+      "exit": 0,
+      "outcome": "COMPLETED",
+      "sqlSHA256": "664f9b83b9c61dfca6de566be3a6c774f4398f8a13bd123be2bcfafc14d6c220",
+      "stdoutSHA256": "517d6355971a9e610ad7780758717aa6e3e2e751b3e682a79131934c35cddf3e",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "synthetic_released_terminator",
+      "elapsedWallSeconds": 0.11612565800896846,
+      "exit": 0,
+      "outcome": "COMPLETED",
+      "sqlSHA256": "9d0f95de81197a310f78cdd4da35777f150363c7e69ebe81fde331e00ac3e658",
+      "stdoutSHA256": "5e0b6400cd957fb0f141d14350f187306c83e8face571f5bfc0af301865c47d9",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "limits": "Wall times include psql/container overhead; original8s unchanged. No business/fullscenario credit. Final snapshots/drop/Main preservation verified by Root77f0 and Ediel60b8.",
+  "terminalSHA256": "96dd68416ec040fedaebe7412901262934542b47ad048c0877da547b5a804bdc",
+  "mainUnchanged": true,
+  "cloneDropped": true
+}

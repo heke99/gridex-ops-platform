@@ -1,0 +1,170 @@
+{
+  "state": "SOURCE_COMPONENT_PREPARED_DOC_APPROVE_NOT_NATIVE",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T06:51:17.526139+00:00",
+  "head": "8e85c9f2f5c530851c26a632be7efb070700bd2a",
+  "tree": "f3b445b4e8520f917e0cc4b208af2fe9fbe10879",
+  "freezeSHA256": "e33fb108914665b29205fb01b3d6ef13be3c202115a929c95de9c4c8d5df0207",
+  "verifiedOriginals": [
+    {
+      "path": "/tmp/gridex-local-publication-test-webhook-20261114/__tests__/local-publication-test-webhook.test.ts",
+      "sha256": "699faea3bc286b141f9ac686c607329cbaefc420f5d21d25e0064f671774e9aa",
+      "bytes": 11508
+    },
+    {
+      "path": "/tmp/gridex-local-publication-test-webhook-20261114/app/admin/webhooks/publication-test-receivers/actions.ts",
+      "sha256": "fffc4a9d0700b188105a40f3ad0b491c088f47b3dea84698b1af578f6be1e790",
+      "bytes": 4099
+    },
+    {
+      "path": "/tmp/gridex-local-publication-test-webhook-20261114/app/admin/webhooks/publication-test-receivers/page.tsx",
+      "sha256": "7dd8e9eb0b7067851d8368f5695034a99fa358cc9cf79e453495961dd00987fd",
+      "bytes": 6067
+    },
+    {
+      "path": "/tmp/gridex-local-publication-test-webhook-20261114/lib/integrations/webhooks.ts",
+      "sha256": "f8a6a0b17ca4d339c9b26be154a7a5df4098cb83423cdd3a53c5fc5bf108f1fd",
+      "bytes": 52215
+    },
+    {
+      "path": "/tmp/gridex-local-publication-test-webhook-20261114/quality/audits/gridex-local-publication-test-webhook-20261114/REPORT.sv.md",
+      "sha256": "ce3e39e15c7267c2f71a8c5594fca0a1e94e8b2cf475950a302b2f1e40015271",
+      "bytes": 6476
+    },
+    {
+      "path": "/tmp/gridex-local-publication-test-webhook-20261114/quality/audits/gridex-local-publication-test-webhook-20261114/results.safe.json",
+      "sha256": "a40375a32ff69a453b6d6e08e448a8d97ab9af4a0e1f102f6e11e9702acf39f9",
+      "bytes": 7649
+    },
+    {
+      "path": "/tmp/gridex-local-publication-test-webhook-20261114/supabase/migrations/20261114054350_local_publication_test_webhook_delivery.sql",
+      "sha256": "b2b65fff3367ba9c7ef8403cbe36f2e02e553070472ee080fac2aba79662f1a4",
+      "bytes": 68679
+    },
+    {
+      "path": "/tmp/gridex-local-publication-test-webhook-20261114/supabase/tests/local_publication_test_webhook_delivery.sql",
+      "sha256": "626e9b9c1f4efa662ded7b915e1a71077fac92f78036ed1a6d35684ca3eb1fa8",
+      "bytes": 10764
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/claim-plan.private.json",
+      "sha256": "9ceca5bd1993124f729fb0750d8648fb165e9fcc312793b614c1052b7c4f9da1",
+      "bytes": 1892
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/01bd285a-0d42-4ce0-8e12-648e5b5f7f0d.claim-journal.json",
+      "sha256": "b29671f2d7de83defdcdc1a8c6b42926d5856492527439ac13155cb3c96f6e8d",
+      "bytes": 219322
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/official-prepare-only.safe.json",
+      "sha256": "1652d35cbeeca19f436bf4f181125e45e362620e263247ea061ad618b82de019",
+      "bytes": 1346
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/preimages-before-first-owned-write.safe.json",
+      "sha256": "ab6a9e29dca8bc47badccc48a975a3ac94f41673d75132e2d50219c0b0ff9a6d",
+      "bytes": 3257
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/RED.private.log",
+      "sha256": "7dcc0857df91b44e7adc1f69c7ca71f5be0c4abdea8106fcb36155f56975a33f",
+      "bytes": 3314
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/GREEN-final-private.log",
+      "sha256": "59dbc590ef060ec873709e54e42e1faef819048e4d142c4a5b16c3df7b1bece0",
+      "bytes": 270
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/lint-private.log",
+      "sha256": "babe507548223b9201b00ec5b5840df6cb0ccc9ec4198723c96ceff6fab840fd",
+      "bytes": 268
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/scoped-typecheck-private.safe.json",
+      "sha256": "af65434f5ff3d572047db0eb44b79e9446482224d5c70a41b5ab05d3027c8c43",
+      "bytes": 963
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/scoped-typecheck-private.cjs",
+      "sha256": "3a5f3adb8de1983fc826d2caa00af225078936525dd882ffc22697216e629458",
+      "bytes": 2576
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/official-migration-name.safe.json",
+      "sha256": "1bc515a91b28e8de44efb00c165159c31674b30138a026c56001fbf57abf67a1",
+      "bytes": 906
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/git-diff-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/tmp/gridex-event-catalog-source-qualification-20261114/SOURCE_FACTS_AND_APPROVED_SCOPE.safe.json",
+      "sha256": "43b7da98c5dfcf22194a6d46c8acf24216df12f4143e70798319bf5cf88d4f20",
+      "bytes": 10640
+    },
+    {
+      "path": "/tmp/gridex-claim-curl-transport-prep-20261114/ACQUIRE_EXACT9_RESULT.safe.json",
+      "sha256": "039381e757d53249c3f9bfd1148ac94028335a2cb406a3dff6ac59e2f39b7d4e",
+      "bytes": 1204
+    },
+    {
+      "path": "/tmp/gridex-event-targeted-plan-20261113/convergence/QUALIFICATION.safe.json",
+      "sha256": "857833cc39edd7acdfd4be44286e2ce8be7932959f3159a5175ab568e56f3707",
+      "bytes": 1914
+    },
+    {
+      "path": "/tmp/gridex-event-view-guard-fix-20261113/supabase/migrations/20261113175937_targeted_local_test_webhook_delivery.sql",
+      "sha256": "2442259627a125778b34917ee6666bcff8281f72a28889b71d328ce0d7d15309",
+      "bytes": 70595
+    },
+    {
+      "path": "/tmp/gridex-claim-curl-transport-prep-20261114/PUBLICATION_PRE_ROLEFIX_FRESH9_MATCH.safe.json",
+      "sha256": "8c798aa4b2de4b10688c8131ab920a2308475527b7b7c22a1e0cffde7ee90d56",
+      "bytes": 14431
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/ISSUER_ROLE_CONTRACT_REGRESSION.safe.json",
+      "sha256": "7b9ab39d058e81da5726e18bdcc520d35d63c166598adcefb60e702d25e9b0f4",
+      "bytes": 2605
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/check-issuer-role-contract.py",
+      "sha256": "4cb55c43d8a9e88dd899f68b47b3a12faf1c470e706cbfe6437a815c8220c4e7",
+      "bytes": 4381
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/actual3443-permanent-classifier.private.json",
+      "sha256": "5a9325fa03cc5e062ac4d631ed9c1e605918b3059746bad8b586905a3d1672ff",
+      "bytes": 5839
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/rolefix-diff-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/tmp/gridex-publication-test-webhook-prep-20261114/SOURCE_FROZEN.safe.json",
+      "sha256": "180a5de9d0e6f36492d7e5c49427936a00ef94a73f61abd7f7d3fe1247242c99",
+      "bytes": 7578
+    }
+  ],
+  "review": [
+    "Corrected authenticated issuer calls owner-only actual permanent lineage classifier without service role impersonation; actual metadata pinned and local lineage denied.",
+    "Original event full row/company/type/source/aggregate/payload SHA is bound immutably; no manufactured business events.",
+    "Issuer genuine actor/factory/JWT/expiry and idempotency; claim/validate service lease and external fence; original Partner metadata discriminator remains distinct.",
+    "Normal website projection, HMAC and reviewed local TLS helper; unknown delivery outcome must not retry automatically.",
+    "Read native role probe and fixture-dependent negatives; synthetic SQL claims explicitly component-only.",
+    "Reviewed source guards and reports; 47 finite tests and scoped lint/typecheck are component evidence, no native/fullcase credit."
+  ],
+  "independentReview": "/tmp/gridex-qa-publication-review-20261114/SOURCE_COMPONENT_PREPARED_DOC.safe.json",
+  "limits": [
+    "Native apply/replay/N0 and actual role probe NOT_RUN",
+    "Genuine JWT UI TLS actual event delivery NOT_RUN",
+    "No Main adoption or scenario credit"
+  ],
+  "next": "Sole producer may prepare bounded isolated native N0 with exact predecessor and execution binding; preserve Main."
+}

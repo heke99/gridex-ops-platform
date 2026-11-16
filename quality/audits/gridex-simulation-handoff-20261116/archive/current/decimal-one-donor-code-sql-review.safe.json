@@ -1,0 +1,18 @@
+{
+  "state": "EXACT_ONE_DECIMAL_DONOR_CODE_SQL_APPROVE_NOT_ACTUAL_GO",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T08:36:00.293171+00:00",
+  "freezeSHA256": "677b32dab110d56534d9d72973c530ebb25463adb6f113523e97970f191531b9",
+  "wrapperSHA256": "c932ca25c9c65801efdf2347717fcfaeea821a4b42ad9ffe2216b46e43719948",
+  "candidateMD5": "fe4adb0b92f3e348ff5978aa9fd58a3d",
+  "candidateBodySHA256": "ef375fac0ea02250db91baf4e437bbd3e7a931580710d7cbb814fca13a14d981",
+  "wholeBodyOnlyDefinitionInverseVerified": true,
+  "review": [
+    "Fullouterdelta/atomiconefunctionpatch/donorbodydiff/22finiteprotocol read; candidateexactPR956 body only, oldnativePG17definition otherwise byteexact",
+    "Onlyowntransaction tag subsets replacewhole-token scans; SEQ/MEA/STS/quality/NULL/observation rules retained; not claimedfullylinear",
+    "22OLDfiniteexactexpectedbooleans then same22NEW then NEWfull2688SOURCE under8s/15s; oldfull8s timeout retained notfalseoldbooleanequality",
+    "NativeOID/nonprosrc/ownerACL andallother3442 functions/public/private state guarded; initialwirecbde alreadyqualified, noenvelope/bounded/API/Kadoption change",
+    "NoAuth/REST/business authority/casecredit; freshactualscope producer+Ediel remainsrequired"
+  ],
+  "next": "PairEdield76f thenproducer maybindcontinuousquietactualtarget, twoactualscopes andselfGO ONE native qualification. NoRootroundtrip."
+}

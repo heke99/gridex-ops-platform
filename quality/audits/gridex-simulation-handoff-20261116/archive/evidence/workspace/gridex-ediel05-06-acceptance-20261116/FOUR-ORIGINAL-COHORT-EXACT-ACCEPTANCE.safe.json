@@ -1,0 +1,133 @@
+{
+  "state": "FOUR_ORIGINAL_CASE_ACCEPTANCE_SOURCE_ONLY_UNARMED",
+  "originals": {
+    "EDIEL02.05": {
+      "source": "oracle",
+      "sourceSha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+      "case": {
+        "id": "EDIEL02.05",
+        "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+        "description": "Fel part/mandat f\u00f6rblir nekad"
+      },
+      "fixture": "Separata syntetiska Ediel-k\u00e4llor: exakt dubblett, \u00e4ndrat inneh\u00e5ll med samma referens, r\u00e4ttelse, omkastad sekvens, ok\u00e4nd part.",
+      "boundary": "SMTP/MIME \u2192 parsing \u2192 authority/attribution \u2192 native metering/billing gate",
+      "action": "Ordinarie inl\u00e4sning med verkliga syntetiska wire/MIME och native guards.",
+      "requiredReceipt": "Faktiska ack/reject/hold-statusar, r\u00e4tt current/basis-ID, inga dubbletter i fysisk m\u00e4ngd eller retroaktivt \u00e4ndrad faktura.",
+      "originalBlocker": "Nya isolerade part-/k\u00e4llfixtures; inga gamla k\u00f6er f\u00e5r behandlas."
+    },
+    "EDIEL03.01": {
+      "source": "oracle",
+      "sourceSha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+      "case": {
+        "id": "EDIEL03.01",
+        "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+        "description": "\u00d6verg\u00e5ende4xx ger f\u00f6reskriven v\u00e4ntan"
+      },
+      "fixture": "Separat lokal mottagare med kontrollerad SMTP4xx/5xx, avbrutet svar och processstopp; eget outbox-ID.",
+      "boundary": "Native outbox claim/send/retry/deadletter \u2192 lokal mottagare",
+      "action": "Avgr\u00e4nsat native f\u00f6rs\u00f6k per ID, observera ok\u00e4nt utfall f\u00f6re till\u00e5ten \u00e5terh\u00e4mtning.",
+      "requiredReceipt": "F\u00f6rs\u00f6kstid/status/nextAttempt/deadline, exakt mottagen MIME-count, deadletter/recovery-logg.",
+      "originalBlocker": "Ingen global pending-worker eller blind retry; verifiera faktisk deadline och policy f\u00f6rst."
+    },
+    "EDIEL03.02": {
+      "source": "oracle",
+      "sourceSha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+      "case": {
+        "id": "EDIEL03.02",
+        "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+        "description": "Permanent5xx blir synligt misslyckande"
+      },
+      "fixture": "Separat lokal mottagare med kontrollerad SMTP4xx/5xx, avbrutet svar och processstopp; eget outbox-ID.",
+      "boundary": "Native outbox claim/send/retry/deadletter \u2192 lokal mottagare",
+      "action": "Avgr\u00e4nsat native f\u00f6rs\u00f6k per ID, observera ok\u00e4nt utfall f\u00f6re till\u00e5ten \u00e5terh\u00e4mtning.",
+      "requiredReceipt": "F\u00f6rs\u00f6kstid/status/nextAttempt/deadline, exakt mottagen MIME-count, deadletter/recovery-logg.",
+      "originalBlocker": "Ingen global pending-worker eller blind retry; verifiera faktisk deadline och policy f\u00f6rst."
+    },
+    "EDIEL03.03": {
+      "source": "oracle",
+      "sourceSha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+      "case": {
+        "id": "EDIEL03.03",
+        "status": "DESIGN_NOT_RUN_CURRENT_SCOPE",
+        "description": "Timeout efter ok\u00e4nt SMTP-utfall duplicerar inte blint"
+      },
+      "fixture": "Separat lokal mottagare med kontrollerad SMTP4xx/5xx, avbrutet svar och processstopp; eget outbox-ID.",
+      "boundary": "Native outbox claim/send/retry/deadletter \u2192 lokal mottagare",
+      "action": "Avgr\u00e4nsat native f\u00f6rs\u00f6k per ID, observera ok\u00e4nt utfall f\u00f6re till\u00e5ten \u00e5terh\u00e4mtning.",
+      "requiredReceipt": "F\u00f6rs\u00f6kstid/status/nextAttempt/deadline, exakt mottagen MIME-count, deadletter/recovery-logg.",
+      "originalBlocker": "Ingen global pending-worker eller blind retry; verifiera faktisk deadline och policy f\u00f6rst."
+    }
+  },
+  "cases": {
+    "EDIEL02.05": {
+      "variant": "wrong PARTY; not mandatory wrong mandate/Z14",
+      "required": [
+        "Fresh fully parseable normal UTILTS/E66 MIME/source with actual current product-issued TEST receiver, legitimate company A attribution and real retained raw/source hash.",
+        "Declared syntactically valid unknown NAD MS and UNB sender: actual complete pre-read proves zero current approved issuer/transport-mandate matches.",
+        "Actual native source admission and protected authority readback: held / ediel_utilts_foreign_issuer_basis_unavailable for this source hash and tenant. No generic companyNULL/missing receiver/earlier technical failure substitute.",
+        "Normal processing disposition agrees with targeted denial; no positive quantity/current/basis effects, prior locked invoice and foreign rows unchanged."
+      ],
+      "notRequired": [
+        "Positive counterparty for the deliberately unknown-party negative",
+        "Z14 prior Z13, ESCO or owner PDF solely because another mandate variant needs it",
+        "Outgoing ACK when the relevant native result is a persistent hold"
+      ]
+    },
+    "EDIEL03.01": {
+      "variant": "own normal technical CONTRL outbox -> controlled SMTP451",
+      "required": [
+        "Distinct immutable source and actual normal-created CONTRL/outbox ID; archived MIME hash/readback before send.",
+        "One exact-ID native claim/send, actual 451 transcript, attempt timestamp/count/status and nextAttempt/deadline follow actual qualified policy.",
+        "Exact received MIME count consistent with reject point; no global queue worker, unrelated queue changes or premature retry."
+      ]
+    },
+    "EDIEL03.02": {
+      "variant": "different own normal technical CONTRL outbox -> controlled SMTP550",
+      "required": [
+        "Different fresh source/outbox and same normal source/ACK/Storage/claim chain.",
+        "One native send with physical 550 proof and visible permanent failure/deadletter disposition according to actual policy, recorded attempts/deadline/recovery log; do not invent a mandatory state name.",
+        "Exact physical MIME count consistent with rejection and no blind retry."
+      ]
+    },
+    "EDIEL03.03": {
+      "variant": "third own normal technical CONTRL outbox -> receiver accepts DATA then drops response",
+      "required": [
+        "Third fresh source/outbox, normal immutable MIME and authoritative Storage readback.",
+        "Physical accepted MIME count=1 with actual SHA, missing final SMTP response and actual native uncertain disposition/attempt/deadline.",
+        "Readback before any recovery; no automatic second delivery. Actual recovery/deadletter log or explicit none, not fabricated success."
+      ]
+    }
+  },
+  "common": [
+    "Real authenticated actor/current company membership and current product-issued receiver valid at receive time; no fake JWT/GUC/status/TTL or service-role actor.",
+    "Actual current ediel_ack route/profile reverse source transport identities, APP and mailbox==SMTP_FROM; strict owned TLS endpoints.",
+    "Native persisted technical CONTRL basis is required for its normal claim exemption. Collateral APERAK must remain truthful; null-profile APERAK is not forced into claim.",
+    "Full physical source/ACK/outbox/archive/transport references and native policy receipts, full public and relevant private financial/current/source/quantity/invoice/foreign preservation, Main/Auth/all7/settings/owned process/Storage/DB/REST/topology closure.",
+    "No actual PASS before full receipts plus proper closure. Original SMTP criteria do not require APERAK specifically."
+  ],
+  "beforeOperatorAuth": [
+    "Whole fixed normal worker and owned Storage upload/download/hash lifecycle must be prepared, not REST-only or Main Storage writes.",
+    "Read-only actual native schema/body/attachment and route/sender/receiver applicability; exact unknown-party predicate must not be preempted by an unrelated guard.",
+    "Three separate normal outbox births and immutable legitimate endpoint bindings; do not retarget a spent attempt."
+  ],
+  "references": [
+    {
+      "path": "/workspace/gridex-original-pass-priority-20261115/ORIGINAL-PASS-PRIORITY.safe.json",
+      "sha256": "391633b021d8a8198d0f70ea6f60530c5c45de281524403bea8406d11289068c"
+    },
+    {
+      "path": "/workspace/gridex-ediel05-06-acceptance-20261116/ORIGINAL05-WRONG-PARTY-PREDICATE.safe.json",
+      "sha256": "a41ab46d5c1353278c37a9a655e7d19dd747c0d39134ea6158d1305b614d112e"
+    },
+    {
+      "path": "/workspace/gridex-ediel05-06-acceptance-20261116/HEADER-NEGATIVE-JOIN-FINAL-HANDOFF.safe.json",
+      "sha256": "128e9b0360aec594cab1097803fe263a236f917841c5b2ee75c9de4381e64c3e"
+    },
+    {
+      "path": "/workspace/gridex-ediel05-06-acceptance-20261116/HEADER-NEGATIVE-NATIVE-CHAIN.actual-saved.safe.json",
+      "sha256": "588274dcb8f55c5f86124c9a95c77be10f35a16755ff77d99a0627a307ad247d"
+    }
+  ],
+  "actualBackendOrAuthByAuthor": false,
+  "casePASS": false
+}

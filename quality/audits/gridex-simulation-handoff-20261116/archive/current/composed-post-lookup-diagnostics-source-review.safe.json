@@ -1,0 +1,14 @@
+{
+  "state": "ROOT_SOURCE_COMPOSITION_ACK",
+  "atUtc": "2026-11-15T05:14:15.292359+00:00",
+  "sourceFreezeSha256": "ed00a44adb7499af8998fe74d58ee35ce2e1d2a849b325a33da646d4169fdd4e",
+  "independentActualChecks": [
+    "exact new lookup declaration inverse recovers entire private64 raw import file",
+    "three diagnostic source files equal reviewed original bytes",
+    "gateway remove exact diagnostic knownpath recovers reviewed whole gateway",
+    "65 selected pins /2193 unique manifest entries"
+  ],
+  "reviewedIntegrationPlan": "3370\u21923420\u21923443 preserved then exactlynewfunction3444; oldmetadata/rows/ACL unchanged; generatedtypes provenance preserved; ownloader/sys.path bound; stop202 specific",
+  "actualPureRouteControls": "8 PASS; no sockets/Auth/backend",
+  "limits": "Sparse source composition only. No full actual2193 materialization, compiler, native SQL/HTTP, armed integration target or browser PASS. Next parent/runtime/binder code remains unimplemented and needs exact peer source reviews before runtime."
+}

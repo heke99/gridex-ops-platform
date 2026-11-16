@@ -1,0 +1,219 @@
+From 1d2bc476b5d73f08704fc7dfddc6faf6f66bc70b Mon Sep 17 00:00:00 2001
+From: Heke  Hourani <heke99@live.se>
+Date: Sun, 15 Nov 2026 11:00:24 +0000
+Subject: [PATCH] fix(customers): reject incomplete contract-dependent list
+ filters
+
+---
+ .../customer-list-contract-summary.test.ts    | 52 +++++++++++++++++
+ lib/customers/getCustomers.ts                 |  5 ++
+ .../REPORT.sv.md                              |  6 +-
+ .../results.safe.json                         | 56 +++++++++++++------
+ 4 files changed, 99 insertions(+), 20 deletions(-)
+
+diff --git a/__tests__/customer-list-contract-summary.test.ts b/__tests__/customer-list-contract-summary.test.ts
+index 84cc70a90..5628af1a4 100644
+--- a/__tests__/customer-list-contract-summary.test.ts
++++ b/__tests__/customer-list-contract-summary.test.ts
+@@ -1,5 +1,9 @@
+ import { deepEqual, equal, rejects, throws } from 'node:assert/strict'
+ import { describe, it } from 'vitest'
++import { readFileSync } from 'node:fs'
++import { join } from 'node:path'
++import { transpileModule, ModuleKind, ScriptTarget } from 'typescript'
++import * as billing from '@/lib/customers/contractBillingSummary'
+ import {
+   CONTRACT_BILLING_SELECTION, contractBillingSummaryLabel, hasUniformConsolidatedInvoice,
+   readCompletePages, summarizeSelectedContractBillingPreferences,
+@@ -163,3 +167,51 @@ describe('bounded complete pagination never summarizes a partial prefix', () =>
+     equal(called, false)
+   })
+ })
++
++
++describe('contract-dependent list filters require a complete read', () => {
++  it('keeps unavailable visible without a contract filter, rejects false-empty filtering, and accepts complete unknown', async () => {
++    let unavailable = true
++    type TestQuery = {
++      select: () => TestQuery; eq: () => TestQuery; not: () => TestQuery; or: () => TestQuery
++      order: () => TestQuery; range: () => TestQuery; in: () => TestQuery
++      then: (resolve: (result: unknown) => unknown) => Promise<unknown>
++    }
++    const service = { from: (table: string) => {
++      const query: TestQuery = {
++        select: () => query, eq: () => query, not: () => query, or: () => query,
++        order: () => query, range: () => query, in: () => query,
++        then: (resolve: (result: unknown) => unknown) => Promise.resolve(resolve(
++          table === 'customers'
++            ? { data: [{ id: customerId, company_id: companyId, full_name: 'Customer A', created_at: '2026-11-15T00:00:00Z' }], count: 1, error: null }
++            : table === 'customer_contracts'
++              ? unavailable ? { data: null, count: null, error: { code: '42501' } }
++                : { data: [row('1', null, null)], count: 1, error: null }
++              : { data: [], count: 0, error: null }
++        )),
++      }
++      return query
++    } }
++    const source = readFileSync(join(process.env.GRIDEX_CUSTOMER_SUMMARY_COMPONENT_ROOT ?? process.cwd(), 'lib/customers/getCustomers.ts'), 'utf8')
++    const compiled = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, target: ScriptTarget.ES2022 } }).outputText
++    const module = { exports: {} }
++    new Function('require', 'module', 'exports', compiled)((name: string) => {
++      if (name === '@/lib/customers/contractBillingSummary') return billing
++      if (name === '@/lib/supabase/service') return { supabaseService: service }
++      if (name === '@/lib/supabase/tenantQuery') return { tenantSelect: (_company: string, table: string) => service.from(table) }
++      if (name === '@/lib/supabase/tenantDb') return { tenantDb: () => ({ unscoped: () => service }) }
++      if (name === '@/lib/tenant/scope') return { isMissingRelationError: () => false }
++      throw Error('unexpected_component_dependency')
++    }, module, module.exports)
++    const api = module.exports as { listCustomersPage: (options: Record<string, unknown>) => Promise<{ rows: Array<{ contract_count: number | null }>; total: number }> }
++    const unfiltered = await api.listCustomersPage({ query: 'Customer', companyId })
++    equal(unfiltered.rows.length, 1)
++    equal(unfiltered.rows[0].contract_count, null)
++    for (const flag of ['multi_contract', 'consolidated_invoice', 'billing_ready']) {
++      await rejects(api.listCustomersPage({ query: 'Customer', companyId, flag }), /customer_list_contract_filter_complete_read_required/)
++    }
++    await rejects(api.listCustomersPage({ query: 'Customer', companyId, contractFilter: 'none' }), /customer_list_contract_filter_complete_read_required/)
++    unavailable = false
++    equal((await api.listCustomersPage({ query: 'Customer', companyId, flag: 'consolidated_invoice' })).total, 0)
++  })
++})
+diff --git a/lib/customers/getCustomers.ts b/lib/customers/getCustomers.ts
+index 023075882..e0fee3728 100644
+--- a/lib/customers/getCustomers.ts
++++ b/lib/customers/getCustomers.ts
+@@ -658,6 +658,11 @@ export async function listCustomersPage(options: {
+     (row) => matchesText(row, query) && matchesCustomerType(row, customerType)
+   )
+   const hydratedRows = await hydrateDerivedCustomerData(hydrationCandidates, companyId)
++  if (contractFilter !== 'all' || ['multi_contract', 'consolidated_invoice', 'billing_ready'].includes(flag)) {
++    if (hydratedRows.some(row => row.contract_billing_summary?.contractCount == null)) {
++      throw new Error('customer_list_contract_filter_complete_read_required')
++    }
++  }
+   const counts = buildCounts(
+     hydratedRows.filter((row) => matchesCustomerType(row, customerType) && matchesFlag(row, flag))
+   )
+diff --git a/quality/audits/customer-contract-preferences-fix-20261115/REPORT.sv.md b/quality/audits/customer-contract-preferences-fix-20261115/REPORT.sv.md
+index 6dbcae474..819ed8120 100644
+--- a/quality/audits/customer-contract-preferences-fix-20261115/REPORT.sv.md
++++ b/quality/audits/customer-contract-preferences-fix-20261115/REPORT.sv.md
+@@ -8,17 +8,17 @@ Den explicita mängden är **alla lagrade avtal för exakt bolag och kund**, obe
+ 
+ Varje preferens behåller fem lägen: `no_contract` för en komplett tom mängd, `uniform`, `mixed`, `unknown` och `unavailable`. Kända värden samt antal okända värden bevaras även vid blandat+okänt. NULL/ogiltigt booleskt värde blir inte `false`, och tom/NULL faktureringsnivå blir inte `customer`. Icke-tom okänd textnivå bevaras. Ett otillgängligt avtalsantal är `null`, aldrig ett belagt nolltal.
+ 
+-Den befintliga URL-parametern `flag=consolidated_invoice` behålls, men dess härledda betydelse står uttryckligen i listan: **”Samlingsfaktura på alla avtal”**. Endast en komplett mängd med enhetligt känt `true` matchar. Blandat, true+NULL, okänt, utan avtal och läsfel matchar inte. Det är ett uttalat nytt listkontrakt för lagrade preferenser; den tidigare kundkolumnens värde översätts inte och detta påstår ingen effektiv faktureringspolicy. Listtexten visar även blandat, okänt, utan avtal och otillgängligt.
++Den befintliga URL-parametern `flag=consolidated_invoice` behålls, men dess härledda betydelse står uttryckligen i listan: **”Samlingsfaktura på alla avtal”**. Endast en komplett mängd med enhetligt känt `true` matchar. Blandat, true+NULL, okänt och utan avtal i en komplett mängd matchar inte. Ett läsfel gör ett avtalsberoende filter otillgängligt och stoppar det uttryckligen; det får inte bli en tom lyckad lista. Det är ett uttalat nytt listkontrakt för lagrade preferenser; den tidigare kundkolumnens värde översätts inte och detta påstår ingen effektiv faktureringspolicy. Listtexten visar även blandat, okänt, utan avtal och otillgängligt.
+ 
+ Avtalsläsningen grupperar även plattformsrader efter deras faktiska `row.company_id`. Varje `tenantSelect` har ett exakt bolagspredikat plus högst 100 kund-ID:n och väljer endast ID, bolag, kund och de två preferenserna. Returnerade rader verifieras mot både bolag och kundmängd innan sammanfattning. Främmande ägande stoppar i stället för att filtreras bort. Avtalen har deterministisk ID-sortering. Den filtrerade kundvägen ersätter sitt gamla `.limit(1000)` med stabil sortering (`created_at DESC, id ASC`) och fullständig pagination före sökning, avtalsfilter, total och statusräkning.
+ 
+-Båda fullständiga läsningarna begär exakt antal på varje sida. Sidstorleken är 250, gränsen 20 000 rader per läsning och högst 200 sidförsök. Faktiskt returnerat antal styr nästa offset, så ett lägre PostgREST-sidtak blir inte automatiskt ett komplett prefix. Fel, saknat/ändrat antal, dubbletter, ogiltigt resultat, tom sida före slutet och nådd resursgräns ger inget partiellt lyckat resultat. Otillgängliga avtal ger `unavailable`; ofullständig filtrerad kundmängd stoppar med ett uttryckligt fel och lämnar inga falska totaler. Hydrering delas i högst 100 kunder per omgång för avgränsade ID-listor.
++Båda fullständiga läsningarna begär exakt antal på varje sida. Sidstorleken är 250, gränsen 20 000 rader per läsning och högst 200 sidförsök. Faktiskt returnerat antal styr nästa offset, så ett lägre PostgREST-sidtak blir inte automatiskt ett komplett prefix. Fel, saknat/ändrat antal, dubbletter, ogiltigt resultat, tom sida före slutet och nådd resursgräns ger inget partiellt lyckat resultat. Otillgängliga avtal visas som `unavailable` i en lista utan avtalsberoende filter. Om `contractFilter` skiljer sig från `all`, eller flaggan är `multi_contract`, `consolidated_invoice` eller `billing_ready`, krävs kompletta avtalsantal för alla relevanta hydratiserade kandidater före statusräkning och filtrering. Annars stoppar `customer_list_contract_filter_complete_read_required`; inga falska tomma resultat eller totaler lämnas. Även en ofullständig filtrerad kundmängd stoppar uttryckligen. Kända NULL-preferenser i en komplett mängd förblir legitima okända icke-träffar. Hydrering delas i högst 100 kunder per omgång för avgränsade ID-listor.
+ 
+ Detta är flera deterministiska läsningar i ett läsfönster, inte en gemensam databastransaktion eller en låst historisk fakturasnapshot. Ändrat antal och dubbletter upptäcks; samtidiga ändringar med samma antal kan inte generellt uteslutas utan ett nytt snapshot-/RPC-kontrakt. Därför används sammanfattningen enbart i listan. Befintliga plats-, mätpunkts- och fullmaktsräknares egna historiska sidtak ändras inte av denna avgränsade preferensfix. Större filtrerade register eller avtalsmängder än gränsen kräver en separat kvalificerad sök-/aggregeringsväg och får här inte presenteras som kompletta.
+ 
+ ## Verifiering och leveransgräns
+ 
+-Körning A nådde de 25 rena testdefinitionerna men stannade därefter i en SDK-testfixtur: fixturen tolkade bara det första av två `company_id`-predikat (`not.is.null` och `eq`) som ett likhetspredikat. Originalresultatet och fixturen är bevarade; produktkoden ändrades inte på grund av detta. En rättad fixture-V3 hanterar båda predikaten och använder dessutom de faktiska oförändrade tenant-wrapper-modulerna. Den enda nödvändiga omkörningen passerade därefter samtliga **39 komponentkontroller: 25 exakta rena testdefinitioner och 14 kontroller av den faktiska listmodulen samt oförändrade tenant-wrapper-moduler genom installerad SDK med egen fetch**. Körningen tog **1,340546 sekunder**, Node old-space var 128 MiB och maximal observerad RSS 125 688 KiB. Processen avslutades; inga sockets, backend- eller Auth-anrop gjordes. Kontrollerna omfattar alla preferenslägen, sena olika avtal efter rad 1000, ofullständiga sidor, räkningsdrift, dubbletter, gränser, två bolag och exakta scopes, plus den verkliga listmodulen genom installerad SDK med egen fetch utan sockets. Slutresultatet och exakta käll-/underlagsreferenser är bundna i `results.safe.json`. Ändrade TS/TSX-filer samt tenant-wrappern transpilerades med installerad TypeScript utan syntaxdiagnostik; det är inte en semantisk projektkompilering. Full Vitest, projektkompilering, native databasfråga och normal autentiserad browseradoption är inte körda här.
++Körning A nådde de 25 rena testdefinitionerna men stannade därefter i en SDK-testfixtur: fixturen tolkade bara det första av två `company_id`-predikat (`not.is.null` och `eq`) som ett likhetspredikat. Originalresultatet och fixturen är bevarade; produktkoden ändrades inte på grund av detta. En rättad fixture-V3 hanterar båda predikaten och använder dessutom de faktiska oförändrade tenant-wrapper-modulerna. Den rättade fixturen passerade först 39 kontroller, men slutgranskningen hittade därefter en verklig lucka: de filtrerade grenarna kunde utesluta otillgängliga sammanfattningar och presentera total 0. Den historiska lokala versionen `a9b5f3f35d652d968eb45a54d5096c326909543e`, dess 39 resultat och den supersederade granskningen bevaras. En smal kontroll före filtrering/räkning och en incheckad regression rättar denna lucka. Slutversionen passerade **41 komponentkontroller: 26 exakta portabla testdefinitioner (inklusive den verkliga serverfunktionens ofullständiga filterläsning) och 15 kontroller genom faktisk listmodul, oförändrade tenant-wrapper-moduler och installerad SDK med egen fetch**. Körningen tog **1,148879 sekunder**, Node old-space var 128 MiB och maximal observerad RSS 166 140 KiB. Processen avslutades; inga sockets, backend- eller Auth-anrop gjordes. Kontrollerna omfattar alla preferenslägen, sena olika avtal efter rad 1000, ofullständiga sidor, räkningsdrift, dubbletter, gränser, två bolag och exakta scopes, plus den verkliga listmodulen genom installerad SDK med egen fetch utan sockets. Slutresultatet och exakta käll-/underlagsreferenser är bundna i `results.safe.json`. Ändrade TS/TSX-filer samt tenant-wrappern transpilerades med installerad TypeScript utan syntaxdiagnostik; det är inte en semantisk projektkompilering. Full Vitest, projektkompilering, native databasfråga och normal autentiserad browseradoption är inte körda här.
+ 
+ Arbetet ligger i en isolerad lokal arbetskopia från faktisk main `ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba`, med färska exakta sex filanspråk plus session. Ingen aktiv source40/65/67, aktuella indata, nuvarande runtime, databas eller Main har ändrats. Ingen push, merge, deploy eller scenario-PASS görs av paketet. Historiska katalog-/42703-bevis är daterade, inte en ny nativeavläsning. Kanoniska 38/1/66 ändras inte.
+ 
+diff --git a/quality/audits/customer-contract-preferences-fix-20261115/results.safe.json b/quality/audits/customer-contract-preferences-fix-20261115/results.safe.json
+index 77a9cdaa7..f62829da0 100644
+--- a/quality/audits/customer-contract-preferences-fix-20261115/results.safe.json
++++ b/quality/audits/customer-contract-preferences-fix-20261115/results.safe.json
+@@ -1,5 +1,5 @@
+ {
+-  "state": "LOCAL_PRODUCT_SOURCE_FIX_COMPONENT_39_PASS_NATIVE_BROWSER_PENDING",
++  "state": "LOCAL_PRODUCT_SOURCE_FIX_COMPONENT_41_PASS_COMPLETE_FILTER_READ_REQUIRED_NATIVE_BROWSER_PENDING",
+   "date": "2026-11-15",
+   "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba",
+   "problem": {
+@@ -28,11 +28,12 @@
+     "customerIdBatch": 100,
+     "customerFilteredLimit1000Removed": true,
+     "externalStaffDTOUnchanged": true,
+-    "internalCustomerListRowChanged": true
++    "internalCustomerListRowChanged": true,
++    "contractDependentIncompleteFilter": "EXPLICIT_ERROR_BEFORE_COUNTS_AND_FILTERS"
+   },
+   "validation": {
+-    "portableDefinitions": 25,
+-    "componentExecution": "PASS_25_PORTABLE_AND14_ACTUAL_INSTALLED_SDK_CUSTOM_FETCH_COMPONENT_CASES",
++    "portableDefinitions": 26,
++    "componentExecution": "PASS_26_PORTABLE_AND15_ACTUAL_INSTALLED_SDK_CUSTOM_FETCH_COMPONENT_CASES",
+     "fullVitest": "NOT_RUN",
+     "projectTypecheck": "NOT_RUN",
+     "native": "NOT_RUN",
+@@ -41,27 +42,28 @@
+       "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-EXECUTION.safe.json",
+       "sha256": "73b808609297dfbe85757c6cbb8cf304bb4c6e009a168b3b793ad80350531945"
+     },
+-    "productSourceChangedAfterFailure": false,
+-    "caseCount": 39,
+-    "portableCases": 25,
+-    "sdkCases": 14,
+-    "elapsedSeconds": 1.340546,
++    "productSourceChangedAfterFailure": true,
++    "caseCount": 41,
++    "portableCases": 26,
++    "sdkCases": 15,
++    "elapsedSeconds": 1.148879,
+     "nodeOldSpaceMiB": 128,
+-    "maxRSSKiB": 125688,
++    "maxRSSKiB": 166140,
+     "networkSockets": 0,
+     "backendCalls": 0,
+     "authCalls": 0,
+     "syntaxTranspilation": "PASS_6_CHANGED_OR_TENANT_TS_TSX_FILES_NOT_SEMANTIC_TYPECHECK",
+     "componentResult": {
+-      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-CONTROLS.ACTUAL.safe.json",
+-      "sha256": "6bc8ff9a2ab41e83f4edb8a53656e502fb47878876d2164ecef603e394331cc7",
+-      "bytes": 7884
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-CONTROLS.V5.ACTUAL.safe.json",
++      "sha256": "cb549b23f02e409cc9f2ba97173714518ddd20c394441fadd6d9d237764805fd",
++      "bytes": 8211
+     },
+     "componentExecutionReceipt": {
+-      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-EXECUTION.B.safe.json",
+-      "sha256": "89079d3df98311126753d905289a5ba13bc0a8df2d20fafc465071db6d5d2aee",
+-      "bytes": 675
+-    }
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-EXECUTION.C.safe.json",
++      "sha256": "d96e3276222e8b6b6594e8ee9b794980e4659e45b7af2e1409ce3764ed496819",
++      "bytes": 671
++    },
++    "productChangeReason": "Root final review found false-empty contract-dependent filtering on unavailable summaries; narrow completeness guard plus committed regression and actualSDK expectations corrected; originalA and39passhistorical version preserved"
+   },
+   "canonicalCounts": {
+     "pass": 38,
+@@ -172,6 +174,26 @@
+       "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/STATIC-SOURCE-CHECKS.safe.json",
+       "sha256": "7ed2e55b8dd9b98159f6ea12e9d6b81004698e7e1d9aa798d53fa41e1388a7bf",
+       "bytes": 674
++    },
++    {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/ROOT-FILTER-COMPLETENESS-CORRECTION.safe.json",
++      "sha256": "0b20379ba4e2d79464c2f0f8915aca30086be81d78ece651347dc6c3c32c8e50",
++      "bytes": 1010
++    },
++    {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-CONTROLS.V5.ACTUAL.safe.json",
++      "sha256": "cb549b23f02e409cc9f2ba97173714518ddd20c394441fadd6d9d237764805fd",
++      "bytes": 8211
++    },
++    {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-EXECUTION.C.safe.json",
++      "sha256": "d96e3276222e8b6b6594e8ee9b794980e4659e45b7af2e1409ce3764ed496819",
++      "bytes": 671
++    },
++    {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/ediel-customer-c550-superseding-HOLD.safe.json",
++      "sha256": "93698e2b2986d784ac25a82d184aeb49b2a79c4975da545878a5c4799c137f8a",
++      "bytes": 1340
+     }
+   ]
+ }
+-- 
+2.52.0
+

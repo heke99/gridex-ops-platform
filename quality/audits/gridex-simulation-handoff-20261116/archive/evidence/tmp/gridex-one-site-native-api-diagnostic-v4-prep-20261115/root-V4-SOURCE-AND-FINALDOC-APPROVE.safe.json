@@ -1,0 +1,36 @@
+{
+  "reviewerAgent": "/root",
+  "verdict": "SOURCE_AND_FINALDOC_APPROVE_NATIVE_B_UNARMED",
+  "atUtc": "2026-11-15T22:37:22.247159+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-one-site-native-api-diagnostic-v4-prep-20261115/FROZEN.v4.SOURCE-ONLY.safe.json",
+    "sha256": "3cdd45907745731aa7b50aeee500f18d201bff4e16c93f2ed1f2cad01da881e6"
+  },
+  "checkedNewFileRefs": 45,
+  "oldV3All36PhysicalFilesPreserved": true,
+  "originalConstructorDeclarations16ByteExact": [
+    "sha",
+    "read",
+    "save",
+    "declarations",
+    "readers",
+    "receiver_private_read",
+    "bootstrap_current_native",
+    "patch_and_verify",
+    "lookup_expected",
+    "verify_lookup_delta",
+    "qualified_lookup_actual",
+    "apply_lookup_and_verify",
+    "qualified_framing_actual",
+    "verify_framing_delta",
+    "apply_framing_and_verify",
+    "qualified_decimal_actual"
+  ],
+  "review": "Whole exact V4 diff and final V4 documentation read. Separate fixed actual DBb and retained partner_http DBa checks precede exact all-nonDB equality. Whole retained SHA, receiver actor/company/registration/expiry and same-clone fullheader checks unchanged. Exactly one original validate declaration gains helper; other sixteen original declarations byteexact. Runtime/worker/lifecycle/lock/profile namespace and selected v4 module paths ported; sameTS/loader/provider preserved so old738modules+10negatives remain applicable, not rerun. Seven saved-actual-data controls are scoped metadata tests, not synthetic native B authority.",
+  "sourceEvidence": "Root actual stoppedA saved-data proof d7afe confirms only old-vs-new intended database labels differ; no worker/password/RPC/business ran in A.",
+  "limits": [
+    "No backend/Auth/Node/nativeB by reviewer, no scenario credit or oldA business retry.",
+    "Producer must first complete independent A closure, exact finite resource recovery and new actual B target/GO/scopes; current X reused only with genuine expiry and standard reload/health applicability.",
+    "Root actual new document semantic review remains mandatory before ATTEST."
+  ]
+}

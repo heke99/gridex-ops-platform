@@ -1,0 +1,13 @@
+{
+  "state": "EXECUTION_SCOPE_SAFE_FIRST_PUBLIC_SIGNUP_CAPTURE_ONLY",
+  "wrapperSHA256": "9df269d85d4310b66aea1052e1b10ab7bdeacb92e735af7440fc861b1976a20b",
+  "planSHA256": "ad1d385d46f33c173689a2aa9ad6f6a38e2ff88b6e735f9999dc6c48492c7390",
+  "nodeSHA256": "d08a74967f7579981ad518a6cdcdb7b7d79a385c95ffb77cc2d5a6e7eae56b80",
+  "review": "FullPython/Node/readback + unchangedreviewede219capture;16actualboundinputs+29runtimefilesverified9b63d9;fixedsolelocalrecipient/4message1MiB600s/norelay; genuinepublicanonSDKoneSignup onlyaftercaptureREADY/freshAuth0, realUIDunconfirmed/sessionNULL/staffandportal0, full522effectsdocumented, ownlistenerstop/errorreadback/noreplay. Same29/PID780298;knownCS+properEEcleanupqualified.",
+  "limits": [
+    "Noverify/portalclaim/negativeactioninthisstage",
+    "MIMEformat/tokenroutequalifiedfromactualcapturebeforenextstage",
+    "NoAdminAuth/flags/grants/customercreate/providerrelay",
+    "No105casecredit"
+  ]
+}

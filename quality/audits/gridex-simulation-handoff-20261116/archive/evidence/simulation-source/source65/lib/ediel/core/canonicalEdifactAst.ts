@@ -1,0 +1,294 @@
+import { prodatSemanticMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
+import { prodatRegisterGroups, type ProdatRegisterGroup } from '@/lib/ediel/prodat/prodatRegisterGroups'
+import { prodatDateValuesByQualifier } from '@/lib/ediel/prodat/prodatDateFields'
+import { prodatDocumentSegment, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
+import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
+import { prodatCharacteristicCodes } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { canonicalUtiltsTransactions, type CanonicalUtiltsTransaction } from '@/lib/ediel/utilts/canonicalObservationScope'
+import {
+  segmentComposite,
+  tokenizeEdifact,
+  type EdifactTokenizedSegment,
+} from '@/lib/ediel/core/edifactTokenizer'
+import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+
+export type CanonicalEdifactLineGroup = Partial<Omit<ProdatRegisterGroup, 'lineIndex' | 'lineNumber' | 'itemId' | 'segments'>> & {
+  lineIndex: number
+  lineNumber: string | null
+  itemId: string | null
+  segments: EdifactTokenizedSegment[]
+  references: Record<string, string[]>
+  cciCavCodes: Record<string, string[]>
+}
+
+export type CanonicalEdifactMessage = {
+  messageIndex: number
+  segments: EdifactTokenizedSegment[]
+  family: string | null
+  messageReference: string | null
+  messageCode: string | null
+  documentReference: string | null
+  lineGroups: CanonicalEdifactLineGroup[]
+  /** Actual UTILTS wire occurrences only; no inferred inventory or validity. */
+  utiltsTransactions?: CanonicalUtiltsTransaction[]
+}
+
+export type CanonicalEdifactAst = {
+  una: EdifactServiceStringAdvice
+  segments: EdifactTokenizedSegment[]
+  messages: CanonicalEdifactMessage[]
+  senderEdielId: string | null
+  receiverEdielId: string | null
+  interchangeReference: string | null
+  applicationReference: string | null
+  scalarTokens: Set<string>
+}
+
+function clean(value: string | null | undefined): string | null {
+  const trimmed = String(value ?? '').trim()
+  return trimmed ? trimmed : null
+}
+
+function normalizedMimeText(value: string): string {
+  return value
+    .replace(/=\r?\n/g, '')
+    .replace(/=27/gi, "'")
+    .replace(/=2B/gi, '+')
+    .replace(/=3A/gi, ':')
+    .replace(/=0D=0A/gi, '\n')
+}
+
+/**
+ * Sole EDIFACT payload extractor for text/mail surfaces.
+ * Extraction is UNA-aware and does not assume the default apostrophe terminator.
+ */
+export function extractCanonicalEdifactPayload(input: string | null | undefined): string | null {
+  const raw = clean(input)
+  if (!raw) return null
+
+  for (const candidate of [raw, normalizedMimeText(raw)]) {
+    const upper = candidate.toUpperCase()
+    const unaIndex = upper.indexOf('UNA')
+    const unbIndex = upper.indexOf('UNB')
+    const start = unaIndex >= 0 && unbIndex >= 0
+      ? Math.min(unaIndex, unbIndex)
+      : unaIndex >= 0
+        ? unaIndex
+        : unbIndex
+    if (start < 0) continue
+
+    const payload = candidate.slice(start).trim()
+    const una = parseUna(payload)
+    const unzIndex = payload.toUpperCase().lastIndexOf('UNZ')
+    if (unzIndex < 0) return payload
+    const end = payload.indexOf(una.segmentTerminator, unzIndex)
+    return end < 0 ? payload : payload.slice(0, end + 1).trim()
+  }
+
+  return null
+}
+
+export function canonicalElement(
+  segment: EdifactTokenizedSegment | null | undefined,
+  index: number,
+): string | null {
+  return clean(segment?.elements[index] ?? null)
+}
+
+export function canonicalComposite(
+  segment: EdifactTokenizedSegment | null | undefined,
+  index: number,
+  una: EdifactServiceStringAdvice,
+): string[] {
+  return segmentComposite(segment, index, una)
+}
+
+export function canonicalFirstComponent(
+  segment: EdifactTokenizedSegment | null | undefined,
+  index: number,
+  una: EdifactServiceStringAdvice,
+): string | null {
+  return clean(canonicalComposite(segment, index, una)[0] ?? null)
+}
+
+function referenceMap(
+  segments: readonly EdifactTokenizedSegment[],
+  una: EdifactServiceStringAdvice,
+  family: string | null,
+): Record<string, string[]> {
+  const result: Record<string, string[]> = {}
+  if (family === 'PRODAT') {
+    for (const entry of prodatReferenceEntries(segments, una)) result[entry.qualifier] = [...(result[entry.qualifier] ?? []), entry.value]
+    return result
+  }
+  for (const segment of segments) {
+    if (segment.tag !== 'RFF') continue
+    const parts = canonicalComposite(segment, 1, una)
+    const qualifier = clean(parts[0] ?? null)?.toUpperCase() ?? null
+    const value = clean(parts.slice(1).join(una.componentDataElementSeparator))
+    if (!qualifier || !value) continue
+    result[qualifier] = [...(result[qualifier] ?? []), value]
+  }
+  return result
+}
+
+function cciCavMap(
+  segments: readonly EdifactTokenizedSegment[],
+  una: EdifactServiceStringAdvice,
+): Record<string, string[]> {
+  const result: Record<string, string[]> = {}
+  let current: string | null = null
+
+  for (const segment of segments) {
+    if (segment.tag === 'CCI') {
+      current =
+        canonicalFirstComponent(segment, 2, una)?.toUpperCase() ??
+        canonicalFirstComponent(segment, 3, una)?.toUpperCase() ??
+        null
+      continue
+    }
+    if (segment.tag !== 'CAV' || !current) continue
+    // C889 positions are part of the wire contract. An omitted first value
+    // cannot acquire a later code/list/free-text component's meaning.
+    const value = canonicalFirstComponent(segment, 1, una)?.toUpperCase() ?? null
+    if (value) result[current] = [...(result[current] ?? []), value]
+  }
+
+  return result
+}
+
+function buildLineGroups(
+  segments: readonly EdifactTokenizedSegment[],
+  una: EdifactServiceStringAdvice,
+  family: string | null,
+): CanonicalEdifactLineGroup[] {
+  if (family === 'PRODAT') return prodatRegisterGroups(segments, una).groups.map(group => ({
+    ...group, references: referenceMap(group.effectiveSegments, una, family),
+    cciCavCodes: prodatCharacteristicCodes(group.effectiveSegments, una),
+  }))
+  const starts = segments.filter((segment) => segment.tag === 'LIN')
+  return starts.map((line, index) => {
+    const next = starts[index + 1]
+    const group = segments.filter((segment) =>
+      segment.index >= line.index && segment.index < (next?.index ?? Number.POSITIVE_INFINITY),
+    )
+    return {
+      lineIndex: index,
+      lineNumber: canonicalElement(line, 1),
+      itemId: canonicalFirstComponent(line, 3, una),
+      segments: group,
+      references: referenceMap(group, una, family),
+      cciCavCodes: family === 'PRODAT' ? prodatCharacteristicCodes(group, una) : cciCavMap(group, una),
+    }
+  })
+}
+
+function messageSlices(segments: readonly EdifactTokenizedSegment[]): EdifactTokenizedSegment[][] {
+  const starts = segments.filter((segment) => segment.tag === 'UNH')
+  if (!starts.length) return [segments.slice()]
+  return starts.map((start, index) => {
+    const next = starts[index + 1]
+    return segments.filter((segment) =>
+      segment.index >= start.index && segment.index < (next?.index ?? Number.POSITIVE_INFINITY),
+    )
+  })
+}
+
+function scalarTokenSet(
+  segments: readonly EdifactTokenizedSegment[],
+  una: EdifactServiceStringAdvice,
+): Set<string> {
+  const tokens = new Set<string>()
+  for (const segment of segments) {
+    tokens.add(segment.tag.toUpperCase())
+    for (let index = 1; index < segment.elements.length; index += 1) {
+      for (const component of segmentComposite(segment, index, una)) {
+        const token = clean(component)?.toUpperCase()
+        if (token) tokens.add(token)
+      }
+    }
+  }
+  return tokens
+}
+
+export function parseCanonicalEdifactAst(rawPayload: string | null | undefined): CanonicalEdifactAst {
+  const tokenized = tokenizeEdifact(rawPayload)
+  const unb = tokenized.segments.find((segment) => segment.tag === 'UNB') ?? null
+  const sender = canonicalComposite(unb, 2, tokenized.una)
+  const receiver = canonicalComposite(unb, 3, tokenized.una)
+
+  const messages = messageSlices(tokenized.segments).map((segments, messageIndex) => {
+    const unh = segments.find((segment) => segment.tag === 'UNH') ?? null
+    const family = canonicalFirstComponent(unh, 2, tokenized.una)?.toUpperCase().replace('-', '_') ?? null
+    const bgm = family === 'PRODAT' ? prodatDocumentSegment(segments, tokenized.una) : segments.find(segment => segment.tag === 'BGM') ?? null
+    return {
+      messageIndex,
+      segments,
+      family,
+      messageReference: canonicalElement(unh, 1),
+      messageCode: family === 'PRODAT' ? prodatDocumentValue('202', segments, tokenized.una)?.toUpperCase() ?? null : canonicalFirstComponent(bgm, 1, tokenized.una)?.toUpperCase() ?? null,
+      documentReference: family === 'PRODAT' ? prodatDocumentValue('203', segments, tokenized.una) : canonicalElement(bgm, 2),
+      lineGroups: buildLineGroups(segments, tokenized.una, family),
+      ...(family === 'UTILTS' ? { utiltsTransactions: canonicalUtiltsTransactions(segments, tokenized.una, messageIndex) } : {}),
+    }
+  })
+
+  return {
+    una: tokenized.una,
+    segments: tokenized.segments,
+    messages,
+    senderEdielId: clean(sender[0] ?? null),
+    receiverEdielId: clean(receiver[0] ?? null),
+    interchangeReference: canonicalElement(unb, 5),
+    applicationReference: canonicalElement(unb, 7),
+    scalarTokens: scalarTokenSet(tokenized.segments, tokenized.una),
+  }
+}
+
+export function canonicalMessageFacts(rawPayload: string | null | undefined): {
+  family: string | null
+  messageCode: string | null
+  applicationReference: string | null
+  cciCavCodes: Record<string, string[]>
+  dtmValues: Record<string, string[]>
+  scalarTokens: Set<string>
+} {
+  const ast = parseCanonicalEdifactAst(rawPayload)
+  const message = ast.messages[0] ?? null
+  const semantic = message?.family === 'PRODAT' ? prodatSemanticMessageSegments(message.segments,ast.una) : message?.segments ?? ast.segments
+  const cciCavCodes = message?.family === 'PRODAT'
+    ? prodatCharacteristicCodes(semantic, ast.una)
+    : cciCavMap(message?.segments ?? ast.segments, ast.una)
+  const dtmValues: Record<string, string[]> = {}
+
+  if (message?.family === 'PRODAT') {
+    // P facts include only valid, unambiguous fields in their declared scope.
+    // Other families keep their independent date/resolution semantics.
+    Object.assign(dtmValues, prodatDateValuesByQualifier(semantic, ast.una))
+  } else {
+  for (const segment of message?.segments ?? ast.segments) {
+    if (segment.tag !== 'DTM') continue
+    const parts = canonicalComposite(segment, 1, ast.una)
+    const qualifier = clean(parts[0] ?? null)?.toUpperCase() ?? null
+    const value = clean(parts[1] ?? null)?.toUpperCase() ?? null
+    if (!qualifier || !value) continue
+    dtmValues[qualifier] = [...(dtmValues[qualifier] ?? []), value]
+  }
+  }
+
+  return {
+    family: message?.family ?? null,
+    messageCode: message?.messageCode ?? null,
+    applicationReference: ast.applicationReference,
+    cciCavCodes,
+    dtmValues,
+    scalarTokens: message?.family === 'PRODAT' ? scalarTokenSet([...ast.segments.filter(token => token.tag === 'UNB'),...semantic],ast.una) : ast.scalarTokens,
+  }
+}
+
+export function hasCanonicalScalarToken(
+  facts: Pick<ReturnType<typeof canonicalMessageFacts>, 'scalarTokens'>,
+  token: string,
+): boolean {
+  return facts.scalarTokens.has(String(token).trim().toUpperCase())
+}

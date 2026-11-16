@@ -1,0 +1,129 @@
+{
+  "state": "ROOT_EXACT_NINE_CLOSED_BASELINE_AND_K2_ARCHIVE_SCOPE_APPROVE",
+  "atUtc": "2026-11-14T14:35:10.100109+00:00",
+  "proposal": {
+    "path": "/workspace/gridex-k3-preauth-closed-resource-proposal-20261114/PROPOSAL.safe.json",
+    "sha256": "70ec43d9ec47bd45f1eb2aff9da6c6e90063b702946bbda8e504253797fd8bbe"
+  },
+  "workspaceArchives": [
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k2/trusted3443-before-one-live-patch.private.json",
+      "sha256": "1e5dc626e2c291c177f1e969f9407571424e0b17396579b05747a85c027ad863",
+      "bytes": 22899459,
+      "device": 27,
+      "inode": 528001,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2249627
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k2/after-api0558-before-wire.private.json",
+      "sha256": "561e0fb2e0442628471e9aa3f58124429c6a441a3883d2ffb994c88fd3e324f1",
+      "bytes": 22899463,
+      "device": 27,
+      "inode": 529041,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2249630
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k2/after-api0558-wire-cbde-before-decimal.private.json",
+      "sha256": "ca67b34b2981ad293ffdd5b3070c9ff6ecd46171729abceb1d0e89accf3336cc",
+      "bytes": 22899469,
+      "device": 27,
+      "inode": 529102,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2249644
+    }
+  ],
+  "tmpArchives": [
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261114-k2/fresh-current-main.private.json",
+      "sha256": "47b81beefb53614af80ace2ade23bb83a46f5c82b39d57208d3a0ce5d93a41ae",
+      "bytes": 22280423,
+      "device": 34,
+      "inode": 639925,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2181725
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261114-k2/post-dump-main.private.json",
+      "sha256": "47b81beefb53614af80ace2ade23bb83a46f5c82b39d57208d3a0ce5d93a41ae",
+      "bytes": 22280423,
+      "device": 34,
+      "inode": 640008,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2181725
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261114-k2/current-postdraft-main.dump.private",
+      "sha256": "1ae8e0249d8c332fd0ecc8f3783fe461283bcfb112a671e62781977b70aee225",
+      "bytes": 16864694,
+      "device": 34,
+      "inode": 639991,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2720457
+    },
+    {
+      "path": "/tmp/gridex-decimal-repo-main-baseline-20261114-a/fresh-current-main.private.json",
+      "sha256": "db697c6def542975c25dc804a616e165d850f0b0da1d4e829fc2a11823e67d5b",
+      "bytes": 22280423,
+      "device": 34,
+      "inode": 644497,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2181667
+    },
+    {
+      "path": "/tmp/gridex-decimal-repo-main-baseline-20261114-a/post-dump-main.private.json",
+      "sha256": "db697c6def542975c25dc804a616e165d850f0b0da1d4e829fc2a11823e67d5b",
+      "bytes": 22280423,
+      "device": 34,
+      "inode": 644843,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2181667
+    },
+    {
+      "path": "/tmp/gridex-decimal-repo-main-baseline-20261114-a/current-postdraft-main.dump.private",
+      "sha256": "01bc971aaf4cb878121521058c257229d2dd10561c5f4c96032e97022399e7a9",
+      "bytes": 16864407,
+      "device": 34,
+      "inode": 644820,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2720109
+    }
+  ],
+  "conditions": [
+    "ProducerexplicitInventorysolewriterhandoff; independentimmutabletuple inputlists/freshclosure FDmountchecks/denials disclosed.",
+    "Only9exact closedfiles: exclusivegzip0600/fsync/streamdecompressSHAbytes beforeeachrawunlink, durableARCHIVEDmanifest/safeexclusive restore.",
+    "OldK2/RepoEbaselines historical, neverfreshHauthority; no currentK3/H/OriginalE96/C6/APIwire/candidate/FullFc/checkpoint edits.",
+    "Postactualspace only; no pendingfreebytesPASS, no backend/globalprune."
+  ],
+  "expectedWorkspaceNet": 61949490,
+  "expectedTmpNet": 108683443,
+  "backendCalls": 0
+}

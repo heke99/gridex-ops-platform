@@ -1,0 +1,72 @@
+{
+  "state": "AE_PROPER_NATIVE_CLOSURE_MAIN_ALL7_AUTH0_SETTINGS_AND_TOPOLOGY_EXACT",
+  "observedAtUTC": "2026-11-16T08:52:39.013340+00:00",
+  "priorProtectedMain": {
+    "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/post-topology-restoration.main.private.json",
+    "sha256": "8dd4a027d2db88dcfa67e1d4812b23fa8b903be4d494e6cca8a0fa2290efa824"
+  },
+  "wholeNativeObjectComparedInMemory": true,
+  "newPhysicalFullRawSaved": false,
+  "all522Rows3370FullRawFunctionsAndNonrowsExactlyEqual": true,
+  "auth6": {
+    "sessions": 0,
+    "refresh": 0,
+    "mfaFactors": 0,
+    "mfaChallenges": 0,
+    "mfaClaims": 0,
+    "flowState": 0
+  },
+  "all7": [
+    {
+      "schema": "auth",
+      "sequence": "refresh_tokens_id_seq",
+      "lastValue": 145
+    },
+    {
+      "schema": "gridex_correction_process",
+      "sequence": "facts_id_seq",
+      "lastValue": 84
+    },
+    {
+      "schema": "net",
+      "sequence": "http_request_queue_id_seq",
+      "lastValue": null
+    },
+    {
+      "schema": "public",
+      "sequence": "ediel_service_history_id_seq",
+      "lastValue": null
+    },
+    {
+      "schema": "public",
+      "sequence": "gridex_provisioning_claim_turn_seq",
+      "lastValue": 10
+    },
+    {
+      "schema": "public",
+      "sequence": "portfolio_settlement_audit_log_id_seq",
+      "lastValue": null
+    },
+    {
+      "schema": "supabase_functions",
+      "sequence": "hooks_id_seq",
+      "lastValue": null
+    }
+  ],
+  "settingsExact": true,
+  "workspacePositiveObservedAfterNormalMaintenance": true,
+  "cloneDatabaseAbsent": true,
+  "fixedTrioStoppedSameDonorConfig": true,
+  "typedForwarder": {
+    "pid": 4169096,
+    "uid": 1000,
+    "startTime": 31840654,
+    "cmdSHA256": "674a07324e416a055bbe1256f242112b8988d4e7cf8679ccd939240a3a035d58"
+  },
+  "maintenanceRawMemoryHeadroomBytes": 2670702592,
+  "sourceReader": {
+    "path": "/tmp/gridex-event05-headless-prep-20261116-a/owned-event05-runtime.v3.py",
+    "sha256": "45fbfd2cea24183d60fc52324b8c42f8d0d93789ac297cc072b842c242af128c"
+  },
+  "noUserAuthBusinessOrBackendMutation": true
+}

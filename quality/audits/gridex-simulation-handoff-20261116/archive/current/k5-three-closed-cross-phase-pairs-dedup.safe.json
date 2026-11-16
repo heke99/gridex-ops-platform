@@ -1,0 +1,99 @@
+{
+  "state": "ROOT_EXACT_THREE_CLOSED_K5_CROSS_PHASE_BYTE_IDENTICAL_PAIRS_LOSSLESS_DEDUP_SCOPE",
+  "atUtc": "2026-11-14T18:12:13.976581+00:00",
+  "reviewerAgent": "/root",
+  "proposalPath": "/tmp/gridex-k5-auth-I-prep-20261114/CLOSED-CROSS-PHASE-PAIR-PROPOSAL.safe.json",
+  "proposalSHA256": "4d9fd4f4640fbe517b99c80c3952a6ce96911d2b5db52edfed5a7bfb3ae30462",
+  "pairs": [
+    {
+      "canonical": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5/LOCAL_ISSUE/full-after-rpc.private.json",
+      "replace": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5/LOCAL_RECEIVE/full-before-rpc.private.json",
+      "sha256": "f2cfe8c126c8fe26398b152da5018f9d3c13904ef9d9ac832d5880b192e92f35",
+      "equal": true,
+      "bytes": 22898325,
+      "actualStat": [
+        {
+          "path": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5/LOCAL_ISSUE/full-after-rpc.private.json",
+          "device": 27,
+          "inode": 534458,
+          "nlink": 2,
+          "uid": 1000,
+          "gid": 1000,
+          "mode": "0o600"
+        },
+        {
+          "path": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5/LOCAL_RECEIVE/full-before-rpc.private.json",
+          "device": 27,
+          "inode": 534477,
+          "nlink": 1,
+          "uid": 1000,
+          "gid": 1000,
+          "mode": "0o600"
+        }
+      ]
+    },
+    {
+      "canonical": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5/LOCAL_RECEIVE/full-after-rpc.private.json",
+      "replace": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5/LOCAL_PREPARE/full-before-rpc.private.json",
+      "sha256": "f2cfe8c126c8fe26398b152da5018f9d3c13904ef9d9ac832d5880b192e92f35",
+      "equal": true,
+      "bytes": 22898325,
+      "actualStat": [
+        {
+          "path": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5/LOCAL_RECEIVE/full-after-rpc.private.json",
+          "device": 27,
+          "inode": 534483,
+          "nlink": 2,
+          "uid": 1000,
+          "gid": 1000,
+          "mode": "0o600"
+        },
+        {
+          "path": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5/LOCAL_PREPARE/full-before-rpc.private.json",
+          "device": 27,
+          "inode": 534580,
+          "nlink": 1,
+          "uid": 1000,
+          "gid": 1000,
+          "mode": "0o600"
+        }
+      ]
+    },
+    {
+      "canonical": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5/LOCAL_PREPARE/full-after-rpc.private.json",
+      "replace": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5/LOCAL_ATTEST/full-before-rpc.private.json",
+      "sha256": "2fa30a9bbb765255d8c0179b00ab6fcd7b2645af4864d6cde4679315805d5853",
+      "equal": true,
+      "bytes": 22898325,
+      "actualStat": [
+        {
+          "path": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5/LOCAL_PREPARE/full-after-rpc.private.json",
+          "device": 27,
+          "inode": 534584,
+          "nlink": 2,
+          "uid": 1000,
+          "gid": 1000,
+          "mode": "0o600"
+        },
+        {
+          "path": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k5/LOCAL_ATTEST/full-before-rpc.private.json",
+          "device": 27,
+          "inode": 534602,
+          "nlink": 1,
+          "uid": 1000,
+          "gid": 1000,
+          "mode": "0o600"
+        }
+      ]
+    }
+  ],
+  "conditions": [
+    "Exact three pairs only, preserve all logical RAW paths and byte hashes",
+    "Producer sole filesystem writer handoff after all four actual ACK CLIexit0 SEALED/completed and no active phase writer",
+    "Freshstat/H/byteequal/device/mode600/ownedclosedFD check immediately before atomic hardlink replacement",
+    "No dependency path changes/no archive/no schema/Auth/business action; append actual old/new inode/aliases custody journal",
+    "Existing canonical closedpair aliases remain intact; savings only actual replacement inode release, not nominal bytes"
+  ],
+  "noBackendAuthority": true,
+  "noFutureBytesCredit": true
+}

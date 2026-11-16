@@ -1,0 +1,55 @@
+{
+  "state": "SOURCE_ONLY_CURRENT_AE_BOUND_NO_ACTOR_OR_GO",
+  "parentBFreeze": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/OUTER.B.FROZEN.SOURCE-AND-FINALDOC.safe.json",
+    "sha256": "97260d9b9aeae8197a9b44fbafee7b9978562dc69f8e8345f214fde2c26dcd2c"
+  },
+  "protocolPacket": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/AE-PROTOCOL.UNARMED.SOURCE-ONLY.safe.json",
+    "sha256": "d132dd804f76f8d886fdfc7807413b60ea7c9a704833817728262acf7eaae1af"
+  },
+  "protocolPeers": [
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/qa-AE-PROTOCOL-UNARMED-SOURCE-REVIEW.safe.json",
+      "sha256": "f58d7628231c17483d64970734dafef91c97278ee036420e059a1f475ee01757"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/root-AE-PROTOCOL-UNARMED-SOURCE-REVIEW.safe.json",
+      "sha256": "eabd5bc7e692ac864a6069606f634faa87eacd74ac60ec4fff0a74c64f705d06"
+    }
+  ],
+  "outerAE": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/run-four-original-cases.ae.v2.py",
+    "sha256": "4a8e95ddf4961a0110235b279545501bf823a46701ed7151de766d9e97961470"
+  },
+  "unarmedHelper": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/reapply-current-AE-config.UNARMED.py",
+    "sha256": "cbe8a2829edfd25de87bdd51fdaad5314e4e835c5f7053414740509a8aff4241"
+  },
+  "boundHelper": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/reapply-current-AE-config.BOUND.py",
+    "sha256": "58c60ab137f6f0f577c7549826070e494902936e855267f0da354ea950ad2b45"
+  },
+  "topologyAE": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/normal-auth-topology.four-case.ae.py",
+    "sha256": "b75ec2b7457861c3fd297d250cd9aa32653a34895b177b4789e95639fc226cf6"
+  },
+  "roleBinding": {
+    "path": "/tmp/gridex-ediel-four-case-prep-20261116-b/AE-OUTCOME.REVIEWED.BOUND.safe.json",
+    "sha256": "1354e85cf6302de2d6e07035afa6241b7a88afc744cf040f5daf1880b0134adb"
+  },
+  "actualOutcome": {
+    "path": "/tmp/gridex-local-server-role-window-maintenance-20261116-ae/qa-AE-official-renewal-actual-outcome-review.safe.json",
+    "sha256": "3d4196ed8c80bc40759fc054ddb50b115368c44b4906a4a55c28c4ede622d47d"
+  },
+  "properNativeClosure": {
+    "path": "/tmp/gridex-local-server-role-window-maintenance-20261116-ae/POST-MAINTENANCE/PROPER-CLOSURE-NATIVE.safe.json",
+    "sha256": "fffeafd5ec1c6144f53a0341cfa7a9ce5d3f87150c97fbc9804f3aac32eab052"
+  },
+  "restoredForwarder": {
+    "path": "/tmp/gridex-one-site-auth-topology-actual-20261116-ae/ORIGINAL-FORWARDER-RESTORED.safe.json",
+    "sha256": "791791f0c79ccefe2278f5cb516b9dd0eecbaf0c817adb71d179f05ccd1ca4f9"
+  },
+  "delta": "helperNoneToRealAECarrier plus topologyTwoActualPIDStartLiterals only; outer7labels alreadypaired",
+  "actorSessionGO": null
+}

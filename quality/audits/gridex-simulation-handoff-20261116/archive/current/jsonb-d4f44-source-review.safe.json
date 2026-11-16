@@ -1,0 +1,7 @@
+{
+  "reviewer": "root",
+  "verdict": "SOURCE_AND_PREPARED_DOC_APPROVE",
+  "head": "d4f44bc4c343cbe2b310103c35a1977946e54b45",
+  "freezeSHA256": "4db03b68ae5a12100b0a0f1f7609fb3cbdf1337dc729f6ce49be16caa1d7d216",
+  "scope": "Read full exactthreeSQL deltas versus approvedpriorwholefiles; independently verified exactly4parentheses+2nativequalifiedpreimagepins and nootherbytes. Read portable9SQL+report, all6physicalhashesmatch. Native4hashproof403ed/fullEdielb6e130/logMaina555 accuratelybounded; portable9 andfullcandidatechain explicitlyNOTRUN. No policywidening/business/MAIN/GEN claim."
+}

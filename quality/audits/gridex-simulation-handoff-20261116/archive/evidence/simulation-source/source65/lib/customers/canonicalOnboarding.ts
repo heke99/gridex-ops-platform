@@ -1,0 +1,322 @@
+import { createHash, randomUUID } from 'node:crypto'
+import { supabaseService } from '@/lib/supabase/service'
+import { assertTenantContextCompany, type TenantContext } from '@/lib/tenant/context'
+
+export type CanonicalOnboardingChannel =
+  | 'admin'
+  | 'website'
+  | 'external_contract'
+  | 'ediel_inbound'
+  | 'api'
+  | 'import'
+  | 'repair'
+
+export type CanonicalMatchingPolicy =
+  | 'link_unique'
+  | 'create_only'
+  | 'create_separate'
+  | 'link_selected'
+
+export type CanonicalOnboardingCommand = {
+  company_id: string
+  actor_user_id?: string | null
+  channel: CanonicalOnboardingChannel
+  idempotency_key: string
+  correlation_id?: string
+  matching_policy?: CanonicalMatchingPolicy
+  existing_customer_id?: string | null
+  existing_site_id?: string | null
+  existing_metering_point_id?: string | null
+  update_existing?: boolean
+  /** Opaque canonical PostgreSQL row JSON. Never parse/re-encode these strings. */
+  ediel_existing_graph_snapshot?: {
+    customer: string | null
+    site: string | null
+    metering_point: string | null
+  }
+  /** SQL preserves non-wire values from its locked row, not client JSON copies. */
+  ediel_existing_graph_preservation?: Record<'customer' | 'site' | 'metering_point', {
+    wire_keys: string[]
+    metadata_delta: Record<string, unknown>
+  }>
+  customer: Record<string, unknown>
+  contact?: Record<string, unknown> | null
+  address?: Record<string, unknown> | null
+  site?: Record<string, unknown> | null
+  metering_point?: Record<string, unknown> | null
+  contract?: Record<string, unknown> | null
+  price_snapshot?: Record<string, unknown> | null
+  legal?: Record<string, unknown> | null
+  quote?: Record<string, unknown> | null
+  power_of_attorney?: Record<string, unknown> | null
+  authorization_document?: Record<string, unknown> | null
+  application?: Record<string, unknown> | null
+  task?: Record<string, unknown> | null
+  info_request?: Record<string, unknown> | null
+  /** Integration tests only; DB requires gridex.allow_test_failpoints=on. */
+  test_fail_after?: 'customer' | 'site' | 'complete'
+}
+
+export type CanonicalOnboardingSuccess = {
+  ok: true
+  code: 'customer_onboarding_committed'
+  operation_id: string
+  correlation_id: string
+  customer_id: string
+  customer_number: string
+  created_new_customer: boolean
+  contact_id: string | null
+  address_id: string | null
+  site_id: string | null
+  metering_point_id: string | null
+  contract_id: string | null
+  contract_number: string | null
+  price_snapshot_id: string | null
+  power_of_attorney_id: string | null
+  authorization_document_id: string | null
+  authorization_scope_id: string | null
+  legal_snapshot_id: string | null
+  application_id: string
+  task_id: string | null
+  info_request_id: string | null
+  outbox_event_id: string
+}
+
+export type CanonicalOnboardingAmbiguous = {
+  ok: false
+  code: 'ambiguous_customer_match'
+  operation_id: string
+  correlation_id: string
+  candidate_customer_ids: string[]
+}
+
+export type CanonicalOnboardingResult =
+  | CanonicalOnboardingSuccess
+  | CanonicalOnboardingAmbiguous
+
+export class CanonicalOnboardingError extends Error {
+  readonly code: string
+  readonly correlationId: string
+  readonly causeValue: unknown
+
+  constructor(input: {
+    code: string
+    message: string
+    correlationId: string
+    cause?: unknown
+  }) {
+    super(input.message)
+    this.name = 'CanonicalOnboardingError'
+    this.code = input.code
+    this.correlationId = input.correlationId
+    this.causeValue = input.cause
+  }
+}
+
+function clean(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+/** Match the SQL's nonempty JSON-object branches on the serialized command. */
+function hasJsonObjectMembers(value: unknown): boolean {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0
+}
+
+function dbErrorCode(error: unknown): string {
+  const record = error as { code?: unknown; message?: unknown } | null
+  const message = clean(record?.message)?.toLowerCase() ?? ''
+  const code = String(record?.code ?? '')
+  if (message.includes('customer_number_assignment_failed')) return 'customer_number_assignment_failed'
+  if (message.includes('facility_id_owned_by_another_customer')) return 'facility_identity_conflict'
+  if (message.includes('metering_point_owned_by_another_customer')) return 'metering_point_identity_conflict'
+  if (message.includes('canonical onboarding')) return 'canonical_onboarding_invalid_command'
+  if (
+    code === 'PGRST202' ||
+    (
+      code === '42883' &&
+      message.includes('canonical_onboard_customer_graph') &&
+      (message.includes('does not exist') || message.includes('could not find'))
+    )
+  ) {
+    return 'canonical_onboarding_rpc_missing'
+  }
+  if (code === '42883') return 'canonical_onboarding_dependency_missing'
+  return clean(code) ?? 'canonical_onboarding_failed'
+}
+
+export function canonicalIdempotencyKey(input: {
+  channel: CanonicalOnboardingChannel
+  companyId: string
+  sourceId?: string | null
+  identityParts?: Array<string | null | undefined>
+}): string {
+  const sourceId = clean(input.sourceId)
+  if (sourceId) return `${input.channel}:${sourceId}`
+  const digest = createHash('sha256')
+    .update(
+      [input.channel, input.companyId, ...(input.identityParts ?? [])]
+        .map((part) => clean(part) ?? '')
+        .join('|'),
+    )
+    .digest('hex')
+  return `${input.channel}:${digest}`
+}
+
+function validateCommand(command: CanonicalOnboardingCommand) {
+  if (!clean(command.company_id)) throw new Error('company_id_required')
+  if (!clean(command.idempotency_key)) throw new Error('idempotency_key_required')
+  if (!command.customer || typeof command.customer !== 'object') throw new Error('customer_payload_required')
+}
+
+export async function onboardCustomerGraph(
+  input: CanonicalOnboardingCommand,
+  tenantContext: TenantContext,
+): Promise<CanonicalOnboardingResult> {
+  const companyId = assertTenantContextCompany(tenantContext, input.company_id)
+  if (
+    clean(input.actor_user_id) &&
+    tenantContext.actorType === 'user' &&
+    clean(input.actor_user_id) !== tenantContext.actorId
+  ) {
+    throw new CanonicalOnboardingError({
+      code: 'canonical_onboarding_actor_mismatch',
+      message: 'Kundregistreringens aktör matchar inte den betrodda tenantkontexten.',
+      correlationId: tenantContext.correlationId,
+    })
+  }
+
+  const correlationId = clean(input.correlation_id) ?? tenantContext.correlationId
+  const command: CanonicalOnboardingCommand = {
+    ...input,
+    company_id: companyId,
+    correlation_id: correlationId,
+    matching_policy: input.matching_policy ?? 'link_unique',
+  }
+
+  try {
+    validateCommand(command)
+  } catch (error) {
+    throw new CanonicalOnboardingError({
+      code: error instanceof Error ? error.message : 'canonical_onboarding_invalid_command',
+      message: 'Kundregistreringen saknar obligatoriska uppgifter.',
+      correlationId,
+      cause: error,
+    })
+  }
+
+  const requireEdielReceipt = command.channel === 'ediel_inbound'
+  // Capture the JSON actually sent, once. Undefined-only objects become {}, and
+  // later caller mutation or stateful toJSON cannot change receipt requirements.
+  const rpcCommand: CanonicalOnboardingCommand = requireEdielReceipt
+    ? JSON.parse(JSON.stringify(command)) as CanonicalOnboardingCommand
+    : command
+  const requireSiteId = requireEdielReceipt && hasJsonObjectMembers(rpcCommand.site)
+  const requireMeteringPointId = requireEdielReceipt && hasJsonObjectMembers(rpcCommand.metering_point)
+
+  const { data, error } = await supabaseService.rpc('canonical_onboard_customer_graph', {
+    p_command: rpcCommand,
+  })
+
+  if (error) {
+    const code = dbErrorCode(error)
+    throw new CanonicalOnboardingError({
+      code,
+      message: `${clean((error as { message?: unknown } | null)?.message) ?? 'Kundregistreringen misslyckades.'} Referens: ${correlationId}.`,
+      correlationId,
+      cause: error,
+    })
+  }
+
+  const result = (Array.isArray(data) ? data[0] : data) as CanonicalOnboardingResult | null
+  if (
+    !result || typeof result !== 'object' || !clean(result.code) ||
+    (requireEdielReceipt && (
+      (Array.isArray(data) && data.length !== 1) ||
+      !((result.ok === true && result.code === 'customer_onboarding_committed') ||
+        (result.ok === false && result.code === 'ambiguous_customer_match'))
+    ))
+  ) {
+    throw new CanonicalOnboardingError({
+      code: 'canonical_onboarding_invalid_response',
+      message: `Kundregistreringen returnerade inget verifierbart resultat. Referens: ${correlationId}.`,
+      correlationId,
+      cause: data,
+    })
+  }
+
+  if (result.ok) {
+    if (
+      !clean(result.customer_id) || !clean(result.customer_number) || !clean(result.operation_id) ||
+      (requireEdielReceipt && (
+        !clean(result.application_id) ||
+        (requireSiteId && !clean(result.site_id)) ||
+        (requireMeteringPointId && !clean(result.metering_point_id))
+      ))
+    ) {
+      throw new CanonicalOnboardingError({
+        code: 'canonical_onboarding_incomplete_response',
+        message: `Kundregistreringen saknar permanent kundnummer eller kärnidentitet. Referens: ${correlationId}.`,
+        correlationId,
+        cause: result,
+      })
+    }
+  }
+
+  return result
+}
+
+export function signedAuthorizationScopes(input: {
+  gridOwnerData?: boolean
+  currentSupplierContract?: boolean
+  meteringData?: boolean
+}): string[] {
+  const scopes: string[] = []
+  if (input.gridOwnerData) scopes.push('grid_owner_data')
+  if (input.currentSupplierContract) scopes.push('current_supplier_contract')
+  if (input.meteringData) scopes.push('metering_data')
+  return scopes
+}
+
+
+export type CustomerMatchResolution = {
+  ok: true
+  case_id: string
+  operation_id: string
+  company_id: string
+  resolution_type: 'link_customer' | 'create_separate'
+  resolved_customer_id: string | null
+}
+
+export async function resolveCustomerMatchReviewCase(input: {
+  caseId: string
+  resolutionType: 'link_customer' | 'create_separate'
+  selectedCustomerId?: string | null
+  actorUserId: string
+  resolutionNote?: string | null
+}): Promise<CustomerMatchResolution> {
+  const { data, error } = await supabaseService.rpc('gridex_resolve_customer_match_review_case', {
+    p_case_id: input.caseId,
+    p_resolution_type: input.resolutionType,
+    p_selected_customer_id: input.resolutionType === 'link_customer' ? input.selectedCustomerId ?? null : null,
+    p_actor_user_id: input.actorUserId,
+    p_resolution_note: input.resolutionNote ?? null,
+  })
+  if (error) {
+    throw new CanonicalOnboardingError({
+      code: dbErrorCode(error),
+      message: clean((error as { message?: unknown } | null)?.message) ?? 'Kundmatchningen kunde inte lösas.',
+      correlationId: randomUUID(),
+      cause: error,
+    })
+  }
+  const result = (Array.isArray(data) ? data[0] : data) as CustomerMatchResolution | null
+  if (!result?.ok || !clean(result.case_id) || !clean(result.operation_id)) {
+    throw new CanonicalOnboardingError({
+      code: 'customer_match_resolution_invalid_response',
+      message: 'Kundmatchningen returnerade inget verifierbart beslut.',
+      correlationId: randomUUID(),
+      cause: data,
+    })
+  }
+  return result
+}

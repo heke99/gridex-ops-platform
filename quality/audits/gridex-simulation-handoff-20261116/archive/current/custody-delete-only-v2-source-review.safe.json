@@ -1,0 +1,17 @@
+{
+  "state": "ROOT_DELETE_ONLY_V2_FULL_SOURCE_COMPONENT_APPROVED_NOT_ACTUAL_SCOPE",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T18:58:53.052076+00:00",
+  "preparedPath": "/tmp/gridex-custody-delete-only-v2-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "2f769d629927bec9b92dccca7a3112fcb4b92164069d0f3644496ae051bc9b00",
+  "helperSHA256": "d0b66023c2c5af7683f9d55502d14b40fc621a1a612ee35703f443b32ba29f68",
+  "companionSHA256": "89de83bbd27f42a95de1824ec3c8d0615f601774b80aaec73d7b98ea0249d4f3",
+  "review": "Full helper and knownMARK/closedprobe proof modules read; full companion diff to qualifiedb74 read. No CREATE/MARK port. Liveform readiness precedes automatic120s nativebefore/currentactor. Exactknowncustomer/freshJ600+120, one expectedconfirm-gated hydratedfetch multipart POST. Racefixed by synchronous sameactive/phase/intent/posts0/window recheck+consume after dialogawait, before furtherawait; concurrentdouble fixture actualpolicy43+12FS controls. FixedSQL9241/8s15s; streamed123MBNodequalification incompanion. Unknown/denied nativecapture and normalquiescence/Auth0 closure retained. Secretredaction and file/directoryfsync publication retained.",
+  "independentReview": "a7cbe9124a360c3bdd12d3ef1f158587f71a0665330f4c22c6363ce840e83a13",
+  "conditions": [
+    "Producerbind actualcurrentMainJ/source/roles/native/DB tuple with independentactualscope/liveguard beforeONErun",
+    "Fresh native-before automaticafterformready, no manualrendezvous overwrite",
+    "Postquiescence native/Auth0 required; actualDELETE/FK result unknown untilrun"
+  ],
+  "noNativeProductOrScenarioPass": true
+}

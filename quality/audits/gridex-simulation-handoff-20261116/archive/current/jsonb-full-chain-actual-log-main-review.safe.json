@@ -1,0 +1,8 @@
+{
+  "reviewer": "root",
+  "scope": "Actualfullcorrectedchainallsteploghashes+physicalMainbytepreservation; fullcatalog/SQL Ediel separate",
+  "summarySHA256": "ad177508c84eaa85e84ec90bc0ae8eb0bc3e677f3a7dfdb221c67a5c38b2a60c",
+  "allStepLogHashesMatch": true,
+  "mainBeforeAfterByteEqual": true,
+  "noBusinessAuthorityMainOrGenClaim": true
+}

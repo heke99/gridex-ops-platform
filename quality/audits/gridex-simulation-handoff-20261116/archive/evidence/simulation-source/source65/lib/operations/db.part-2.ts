@@ -1,0 +1,961 @@
+// Extracted from db.ts; keep public imports on the facade module.
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types"
+import { evaluateSiteSwitchReadiness } from "@/lib/operations/readiness"
+import { resolveOwnElectricitySupplier } from "@/lib/masterdata/selfSupplier"
+import { calculateEarliestSwitchStartDate } from "@/lib/operations/switchStartDate"
+import { strictIsoDate } from "@/lib/time/stockholm"
+import { getSupplierSwitchActivationReadiness } from "@/lib/operations/supplierSwitchActivation"
+import { stockholmMarketDate } from "@/lib/operations/supplierSwitchActivation"
+import { scanAdminCandidates, type AdminCandidatePage } from "@/lib/operations/adminPagination"
+import { InvalidReadModelResponseError } from "@/lib/read-models/readResult"
+import { loadSupplierSwitchPolicy } from "@/lib/operations/supplierSwitchScheduler"
+import { resolveAuthorizationDocumentIdForPowerOfAttorney } from "@/lib/legal/authorizationChain"
+import { supabaseService } from "@/lib/supabase/service"
+import { assertNoActiveSwitchLifecycleBlock, OPEN_SUPPLIER_SWITCH_STATUSES } from "@/lib/operations/switchLifecycleBlocks"
+import type { CustomerOperationTaskRow, CustomerOperationTaskStatus, SupplierSwitchEventRow, SupplierSwitchRequestRow, SupplierSwitchRequestStatus, SupplierSwitchRequestType, SwitchReadinessResult } from "@/lib/operations/types"
+import { getActorId, getSupplierSwitchRequestById, listPowersOfAttorneyByCustomerId } from './db.part-1'
+
+export async function listReadySupplierSwitchCandidatePage(
+  supabase: SupabaseClient,
+  input: { companyId: string | null; cursor?: string | null; limit?: number },
+): Promise<AdminCandidatePage<SupplierSwitchRequestRow>> {
+  const now = new Date()
+  return scanAdminCandidates<SupplierSwitchRequestRow>({
+    context: { companyId: input.companyId, resource: 'supplier_switch_ready', predicateVersion: `accepted_activation_v1:${stockholmMarketDate(now)}` },
+    cursor: input.cursor,
+    limit: input.limit,
+    eligible: request => getSupplierSwitchActivationReadiness(request, now).ready,
+    load: async (after, limit) => {
+      let query = supabase.from('supplier_switch_requests').select('*', { count: 'exact' })
+        .eq('status', 'accepted')
+        .order('created_at', { ascending: false, nullsFirst: false }).order('id', { ascending: false })
+        .limit(limit)
+      if (input.companyId) query = query.eq('company_id', input.companyId)
+      if (after?.createdAt) {
+        query = query.or(`created_at.lt.${after.createdAt},and(created_at.eq.${after.createdAt},id.lt.${after.id}),created_at.is.null`)
+      } else if (after) {
+        query = query.is('created_at', null).lt('id', after.id)
+      }
+      const { data, error, count } = await query
+      if (error) throw error
+      if (!Array.isArray(data) || !Number.isInteger(count)) throw new InvalidReadModelResponseError()
+      for (const row of data) {
+        if (!row || typeof row !== 'object' || row.status !== 'accepted'
+          || typeof row.company_id !== 'string' || !row.company_id
+          || ['customer_id', 'site_id', 'metering_point_id'].some(field => typeof row[field] !== 'string' || !row[field])
+          || (input.companyId !== null && row.company_id !== input.companyId)) {
+          throw new InvalidReadModelResponseError()
+        }
+      }
+      return { rows: data as SupplierSwitchRequestRow[], count: count as number }
+    },
+  })
+}
+
+export async function listAllSupplierSwitchRequests(
+  supabase: SupabaseClient,
+  options: {
+    status?: string | null;
+    requestType?: string | null;
+    query?: string | null;
+    companyId?: string | null;
+    limit?: number;
+  } = {},
+): Promise<SupplierSwitchRequestRow[]> {
+  let requestQuery = supabase
+    .from("supplier_switch_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (options.status && options.status !== "all") {
+    requestQuery = requestQuery.eq("status", options.status);
+  }
+
+  if (options.requestType && options.requestType !== "all") {
+    requestQuery = requestQuery.eq("request_type", options.requestType);
+  }
+
+  if (options.companyId) {
+    requestQuery = requestQuery.eq("company_id", options.companyId);
+  }
+
+  const { data, error } = await requestQuery.limit(options.limit ?? 200);
+
+  if (error) throw error;
+
+  let requests = (data ?? []) as SupplierSwitchRequestRow[];
+  const normalizedQuery = (options.query ?? "").trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return requests;
+  }
+
+  requests = requests.filter((request) => {
+    const haystack = [
+      request.id,
+      request.customer_id,
+      request.site_id,
+      request.metering_point_id,
+      request.request_type,
+      request.status,
+      request.current_supplier_name,
+      request.incoming_supplier_name,
+      request.external_reference,
+      request.failure_reason,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return haystack.includes(normalizedQuery);
+  });
+
+  return requests;
+}
+
+export async function listSupplierSwitchEventsByRequestIds(
+  supabase: SupabaseClient,
+  requestIds: string[],
+  options: { companyId?: string | null; limit?: number } = {},
+): Promise<SupplierSwitchEventRow[]> {
+  if (requestIds.length === 0) return [];
+
+  let query = supabase
+    .from("supplier_switch_events")
+    .select("*")
+    .in("switch_request_id", requestIds)
+    .is("archived_at", null);
+
+  if (options.companyId) {
+    query = query.eq("company_id", options.companyId);
+  }
+
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .limit(options.limit ?? 100);
+
+  if (error) throw error;
+  return (data ?? []) as SupplierSwitchEventRow[];
+}
+
+export async function listRecentSupplierSwitchEvents(
+  supabase: SupabaseClient,
+  limit = 50,
+): Promise<SupplierSwitchEventRow[]> {
+  const { data, error } = await supabase
+    .from("supplier_switch_events")
+    .select("*")
+    .is("archived_at", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return (data ?? []) as SupplierSwitchEventRow[];
+}
+
+export async function findExistingOpenTask(
+  supabase: SupabaseClient,
+  params: {
+    customerId: string;
+    siteId: string;
+    taskType: string;
+    companyId?: string;
+  },
+): Promise<CustomerOperationTaskRow | null> {
+  let query = supabase
+    .from("customer_operation_tasks")
+    .select("*")
+    .eq("customer_id", params.customerId)
+    .eq("site_id", params.siteId)
+    .eq("task_type", params.taskType)
+    .in("status", ["open", "in_progress", "blocked"])
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (params.companyId) query = query.eq("company_id", params.companyId);
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  return (data as CustomerOperationTaskRow | null) ?? null;
+}
+
+export async function syncOperationTasksFromReadiness(
+  supabase: SupabaseClient,
+  readiness: SwitchReadinessResult,
+): Promise<void> {
+  const site = await findCustomerSiteById(supabase, readiness.siteId);
+  if (!site?.company_id || site.customer_id !== readiness.customerId) {
+    throw new Error("Anläggningen saknar giltig bolags- och kundkoppling för operations-sync");
+  }
+  const companyId = site.company_id;
+  const { data: customer, error: customerError } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("id", readiness.customerId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (customerError) throw customerError;
+  if (!customer) throw new Error("Kunden tillhör inte anläggningens bolag för operations-sync");
+  const actorId = await getActorId(supabase);
+  const activeTaskTypes = new Set<string>(
+    readiness.issues.map((issue) => issue.taskType),
+  );
+
+  for (const issue of readiness.issues) {
+    const existing = await findExistingOpenTask(supabase, {
+      customerId: readiness.customerId,
+      siteId: readiness.siteId,
+      taskType: issue.taskType,
+      companyId,
+    });
+
+    if (existing) {
+      continue;
+    }
+
+    const { error } = await supabase.from("customer_operation_tasks").insert({
+      company_id: companyId,
+      customer_id: readiness.customerId,
+      site_id: readiness.siteId,
+      metering_point_id: readiness.candidateMeteringPointId,
+      task_type: issue.taskType,
+      status: issue.priority === "critical" ? "blocked" : "open",
+      priority: issue.priority,
+      title: issue.title,
+      description: issue.description,
+      metadata: {
+        readinessCode: issue.code,
+      },
+      created_by: actorId,
+      updated_by: actorId,
+    });
+
+    if (error) throw error;
+  }
+
+  const { data: existingOpenTasks, error: fetchOpenTasksError } = await supabase
+    .from("customer_operation_tasks")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("customer_id", readiness.customerId)
+    .eq("site_id", readiness.siteId)
+    .in("status", ["open", "in_progress", "blocked"]);
+
+  if (fetchOpenTasksError) throw fetchOpenTasksError;
+
+  const tasks = (existingOpenTasks ?? []) as CustomerOperationTaskRow[];
+
+  for (const task of tasks) {
+    if (activeTaskTypes.has(task.task_type)) {
+      continue;
+    }
+
+    const { error } = await supabase
+      .from("customer_operation_tasks")
+      .update({
+        status: "done",
+        resolved_at: new Date().toISOString(),
+        updated_by: actorId,
+      })
+      .eq("id", task.id)
+      .eq("company_id", companyId)
+      .eq("customer_id", readiness.customerId)
+      .eq("site_id", readiness.siteId);
+
+    if (error) throw error;
+  }
+}
+
+export async function syncCustomerOperationsForSite(
+  supabase: SupabaseClient,
+  params: {
+    customerId: string;
+    siteId: string;
+  },
+): Promise<SwitchReadinessResult> {
+  const site = await findCustomerSiteById(supabase, params.siteId);
+
+  if (!site || site.customer_id !== params.customerId) {
+    throw new Error("Kunde inte hitta anläggningen för operations-sync");
+  }
+
+  const [meteringPoints, powersOfAttorney] = await Promise.all([
+    listMeteringPointsForSite(supabase, params.siteId),
+    listPowersOfAttorneyByCustomerId(supabase, params.customerId),
+  ]);
+
+  const readiness = evaluateSiteSwitchReadiness({
+    site,
+    meteringPoints,
+    powersOfAttorney,
+  });
+
+  await syncOperationTasksFromReadiness(supabase, readiness);
+  return readiness;
+}
+
+export async function syncCustomerOperationsForCustomer(
+  supabase: SupabaseClient,
+  customerId: string,
+): Promise<{
+  siteCount: number;
+  readyCount: number;
+  blockedCount: number;
+  results: SwitchReadinessResult[];
+}> {
+  const { data, error } = await supabase
+    .from("customer_sites")
+    .select("*")
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  const sites = (data ?? []) as CustomerSiteRow[];
+  const results: SwitchReadinessResult[] = [];
+
+  for (const site of sites) {
+    const readiness = await syncCustomerOperationsForSite(supabase, {
+      customerId,
+      siteId: site.id,
+    });
+
+    results.push(readiness);
+  }
+
+  return {
+    siteCount: sites.length,
+    readyCount: results.filter((row) => row.isReady).length,
+    blockedCount: results.filter((row) => !row.isReady).length,
+    results,
+  };
+}
+
+export async function updateOperationTaskStatus(
+  supabase: SupabaseClient,
+  params: {
+    taskId: string;
+    status: CustomerOperationTaskStatus;
+  },
+): Promise<CustomerOperationTaskRow> {
+  const actorId = await getActorId(supabase);
+
+  const updatePayload: {
+    status: CustomerOperationTaskStatus;
+    updated_by: string | null;
+    resolved_at?: string | null;
+  } = {
+    status: params.status,
+    updated_by: actorId,
+  };
+
+  if (params.status === "done") {
+    updatePayload.resolved_at = new Date().toISOString();
+  } else {
+    updatePayload.resolved_at = null;
+  }
+
+  const { data, error } = await supabase
+    .from("customer_operation_tasks")
+    .update(updatePayload)
+    .eq("id", params.taskId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as CustomerOperationTaskRow;
+}
+
+export async function findCustomerSiteById(
+  supabase: SupabaseClient,
+  siteId: string,
+): Promise<CustomerSiteRow | null> {
+  const { data, error } = await supabase
+    .from("customer_sites")
+    .select("*")
+    .eq("id", siteId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as CustomerSiteRow | null) ?? null;
+}
+
+export async function listMeteringPointsForSite(
+  supabase: SupabaseClient,
+  siteId: string,
+): Promise<MeteringPointRow[]> {
+  const { data, error } = await supabase
+    .from("metering_points")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as MeteringPointRow[];
+}
+
+export async function findOpenSupplierSwitchRequestForSite(
+  supabase: SupabaseClient,
+  params: {
+    customerId: string;
+    siteId: string;
+    companyId?: string | null;
+  },
+): Promise<SupplierSwitchRequestRow | null> {
+  let query = supabase
+    .from("supplier_switch_requests")
+    .select("*")
+    .eq("customer_id", params.customerId)
+    .eq("site_id", params.siteId)
+    .in("status", OPEN_SUPPLIER_SWITCH_STATUSES)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (params.companyId) {
+    query = query.eq("company_id", params.companyId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) throw error;
+  return (data as SupplierSwitchRequestRow | null) ?? null;
+}
+
+export async function createSupplierSwitchRequest(
+  supabase: SupabaseClient,
+  params: {
+    readiness: SwitchReadinessResult;
+    site: CustomerSiteRow;
+    meteringPoint: MeteringPointRow;
+    requestType: SupplierSwitchRequestType;
+    requestedStartDate: string | null;
+    authorizationDocumentId?: string | null;
+    automationOrigin?: string | null;
+    automationKey?: string | null;
+    companyId?: string | null;
+    contractId?: string | null;
+    externalReference?: string | null;
+    metadata?: Record<string, unknown> | null;
+    initialStatus?: SupplierSwitchRequestStatus;
+    businessBlockers?: Array<{ code: string; message: string }>;
+    lifecycleBlocked?: boolean;
+    lifecycleBlockSource?: string | null;
+  },
+): Promise<SupplierSwitchRequestRow> {
+  const actorId = await getActorId(supabase);
+
+  const switchCompanyId =
+    params.companyId ??
+    params.site.company_id ??
+    params.meteringPoint.company_id ??
+    null;
+
+  await assertNoActiveSwitchLifecycleBlock(supabase, {
+    companyId: switchCompanyId,
+    customerId: params.readiness.customerId,
+    siteId: params.site.id,
+    meteringPointId: params.meteringPoint.id,
+  });
+
+  // F-9: the incoming supplier on a switch to us is the operating tenant, never a
+  // platform-wide default. The previous "Gridex" literal attributed every tenant's
+  // switch to one company.
+  if (!switchCompanyId) {
+    throw new Error(
+      "Bolag saknas för leverantörsbytet och den egna leverantören kan därför inte avgöras.",
+    );
+  }
+
+  const ownSupplierLookup = await resolveOwnElectricitySupplier(
+    supabase,
+    switchCompanyId,
+  );
+  const ownSupplier = ownSupplierLookup.supplier;
+
+  if (!ownSupplier?.name) {
+    throw new Error(
+      "Bolaget saknar en registrerad egen elhandlare. Markera bolagets leverantör som den egna innan ett byte till oss skapas.",
+    );
+  }
+
+  const incomingSupplierName = ownSupplier.name;
+  const incomingSupplierOrgNumber = ownSupplier.org_number ?? null;
+
+  // Compute the earliest legally/market-valid start date from notice period,
+  // contract end and move-in date. We honor a provided requested date but fill
+  // it in when missing, and always record the calculation for audit/review.
+  const resolvedPolicyCompanyId = params.companyId ?? params.site.company_id ?? params.meteringPoint.company_id ?? null;
+  if (!resolvedPolicyCompanyId) throw new Error("supplier_switch_company_missing");
+  const switchPolicy = await loadSupplierSwitchPolicy(resolvedPolicyCompanyId, "production");
+  const isMove = params.requestType === "move_in" || params.requestType === "move_out_takeover";
+  let switchSite = params.site;
+  let supplierStartFloor: string | null = null;
+  let manualSupplierTerms: Record<string, unknown> | null = null;
+  let confirmedEarliestStart = false;
+  if (!isMove) {
+    // A queued job can hold a site snapshot from before the supplier reply.
+    // Reload its exact ownership scope before calculating or recording terms.
+    const { data: currentSite, error: siteError } = await supabase.from("customer_sites")
+      .select("*")
+      .eq("id", params.site.id)
+      .eq("company_id", switchCompanyId)
+      .eq("customer_id", params.readiness.customerId)
+      .maybeSingle();
+    if (siteError) throw siteError;
+    if (!currentSite || currentSite.id !== params.site.id || currentSite.company_id !== switchCompanyId
+      || currentSite.customer_id !== params.readiness.customerId
+      || params.site.customer_id !== params.readiness.customerId || params.readiness.siteId !== params.site.id
+      || (params.site.company_id && params.site.company_id !== switchCompanyId)
+      || (params.meteringPoint.company_id && params.meteringPoint.company_id !== switchCompanyId)
+      || params.meteringPoint.site_id !== params.site.id
+      || (params.meteringPoint.customer_id && params.meteringPoint.customer_id !== params.readiness.customerId)) {
+      throw new Error("supplier_switch_site_scope_mismatch");
+    }
+    switchSite = currentSite as CustomerSiteRow;
+    // The caller's scoped RLS read above must succeed before private server
+    // proofs run. These read-only helpers remain service-only; canonical switch
+    // creation below still uses the caller's client and authorization.
+    const { data: verifiedFloor, error: proofError } = await supabaseService.rpc("gridex_manual_supplier_start_floor_v1", {
+      p_company_id: switchCompanyId,
+      p_customer_id: params.readiness.customerId,
+      p_site_id: params.site.id,
+    });
+    if (proofError) throw proofError;
+    if (verifiedFloor !== null) supplierStartFloor = strictIsoDate(verifiedFloor, "supplier_start_floor");
+
+    const record = (value: unknown): Record<string, unknown> | null =>
+      value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+    const snapshot = record(record(currentSite.metadata)?.manual_supplier_terms);
+    const terms = record(snapshot?.terms);
+    if (supplierStartFloor && snapshot?.version === 1 && terms
+      && snapshot.companyId === switchCompanyId && snapshot.customerId === params.readiness.customerId && snapshot.siteId === params.site.id
+      && typeof snapshot.inboundId === "string" && /^[0-9a-f-]{36}$/i.test(snapshot.inboundId)
+      && typeof snapshot.requestId === "string" && /^[0-9a-f-]{36}$/i.test(snapshot.requestId)
+      && typeof snapshot.sourceHash === "string" && /^[0-9a-f]{64}$/i.test(snapshot.sourceHash)
+      && typeof snapshot.receivedAt === "string" && Number.isFinite(Date.parse(snapshot.receivedAt))) {
+      try {
+        const earliest = terms.earliestStartDate == null ? null : strictIsoDate(terms.earliestStartDate);
+        const effective = terms.effectiveStartDate == null ? null : strictIsoDate(terms.effectiveStartDate);
+        const snapshotFloor = earliest && effective ? (earliest > effective ? earliest : effective) : earliest ?? effective;
+        if (snapshotFloor === supplierStartFloor) {
+          manualSupplierTerms = snapshot;
+          confirmedEarliestStart = earliest !== null && switchSite.current_supplier_response_status === "free_to_switch";
+        }
+      } catch {
+        // Keep the authoritative floor and conservative notice on malformed or
+        // concurrently replaced metadata; never waive a notice by guessing.
+      }
+    }
+    if (confirmedEarliestStart && manualSupplierTerms) {
+      // A date proof does not prove that an editable site snapshot contained an
+      // explicit earliest start. Bind the entire snapshot to the applied reply
+      // before allowing it to remove the otherwise conservative notice floor.
+      const { data: snapshotVerified, error: snapshotError } = await supabaseService.rpc("gridex_manual_supplier_terms_verified_v1", {
+        p_company_id: switchCompanyId,
+        p_customer_id: params.readiness.customerId,
+        p_site_id: params.site.id,
+        p_snapshot: manualSupplierTerms,
+      });
+      if (snapshotError) throw snapshotError;
+      confirmedEarliestStart = snapshotVerified === true;
+      if (!confirmedEarliestStart) manualSupplierTerms = null;
+    }
+  }
+  const startDateCalculation = calculateEarliestSwitchStartDate({
+    requestType: params.requestType,
+    requestedStartDate: params.requestedStartDate,
+    noticePeriod: confirmedEarliestStart ? null : switchSite.current_supplier_notice_period ?? null,
+    contractEndDate: switchSite.current_supplier_contract_end_date ?? null,
+    earliestSupplierStartDate: supplierStartFloor,
+    moveInDate: switchSite.move_in_date ?? null,
+    marketLeadDays: switchPolicy.marketLeadDays,
+  });
+  const effectiveRequestedStartDate = startDateCalculation.effectiveStartDate;
+
+  // The authorization chain must not be dropped at switch creation: when the
+  // caller does not pass an authorization document explicitly, resolve it from
+  // the POA so supplier_switch_requests.authorization_document_id and the
+  // downstream outbound/intent chain always carry the legal reference.
+  const resolvedCompanyId =
+    params.companyId ??
+    params.site.company_id ??
+    params.meteringPoint.company_id ??
+    null;
+  let authorizationDocumentId = params.authorizationDocumentId ?? null;
+  if (!authorizationDocumentId && params.readiness.latestPowerOfAttorneyId && resolvedCompanyId) {
+    authorizationDocumentId = await resolveAuthorizationDocumentIdForPowerOfAttorney({
+      companyId: resolvedCompanyId,
+      powerOfAttorneyId: params.readiness.latestPowerOfAttorneyId,
+    }).catch(() => null);
+  }
+
+  const businessBlockers = params.businessBlockers ?? [];
+  const primaryBusinessBlocker = businessBlockers[0] ?? null;
+  const initialStatus: SupplierSwitchRequestStatus =
+    params.initialStatus ?? (primaryBusinessBlocker ? "manual_followup_required" : "queued");
+
+  const insertPayload = {
+    customer_id: params.readiness.customerId,
+    contract_id: params.contractId ?? null,
+    customer_contract_id: params.contractId ?? null,
+    site_id: params.site.id,
+    // Keep the legacy alias column coherent: several read paths (e.g. the
+    // customer intake orchestrator's open-switch detection) filter on
+    // customer_site_id, which ediel_rules.sql backfilled from site_id.
+    customer_site_id: params.site.id,
+    metering_point_id: params.meteringPoint.id,
+    power_of_attorney_id: params.readiness.latestPowerOfAttorneyId,
+    authorization_document_id: authorizationDocumentId,
+    request_type: params.requestType,
+    status: initialStatus,
+    requested_start_date: effectiveRequestedStartDate,
+    current_supplier_id: switchSite.current_supplier_id ?? null,
+    current_supplier_name: switchSite.current_supplier_name,
+    current_supplier_org_number: switchSite.current_supplier_org_number,
+    current_supplier_ediel_id: switchSite.current_supplier_ediel_id ?? null,
+    current_supplier_unknown: Boolean(switchSite.current_supplier_unknown),
+    current_supplier_contract_status: switchSite.current_supplier_contract_status ?? null,
+    current_supplier_contract_end_date: switchSite.current_supplier_contract_end_date ?? null,
+    current_supplier_notice_period: switchSite.current_supplier_notice_period ?? null,
+    current_supplier_termination_fee: switchSite.current_supplier_termination_fee ?? null,
+    current_supplier_response_status: switchSite.current_supplier_response_status ?? null,
+    incoming_supplier_name: incomingSupplierName,
+    incoming_supplier_org_number: incomingSupplierOrgNumber,
+    grid_owner_id:
+      params.meteringPoint.grid_owner_id ?? params.site.grid_owner_id ?? null,
+    price_area_code:
+      params.meteringPoint.price_area_code ??
+      params.site.price_area_code ??
+      null,
+    validation_snapshot: {
+      isReady: params.readiness.isReady,
+      issues: params.readiness.issues,
+      candidateMeteringPointId: params.readiness.candidateMeteringPointId,
+      latestPowerOfAttorneyId: params.readiness.latestPowerOfAttorneyId,
+      ownSupplierResolution: ownSupplierLookup.resolution,
+      currentSupplier: {
+        id: switchSite.current_supplier_id ?? null,
+        name: switchSite.current_supplier_name ?? null,
+        orgNumber: switchSite.current_supplier_org_number ?? null,
+        edielId: switchSite.current_supplier_ediel_id ?? null,
+        unknown: Boolean(switchSite.current_supplier_unknown),
+        contractStatus: switchSite.current_supplier_contract_status ?? null,
+        contractEndDate: switchSite.current_supplier_contract_end_date ?? null,
+        noticePeriod: switchSite.current_supplier_notice_period ?? null,
+        terminationFee: switchSite.current_supplier_termination_fee ?? null,
+        responseStatus: switchSite.current_supplier_response_status ?? null,
+      },
+      manualSupplierTerms,
+      startDateCalculation,
+      businessBlockers,
+    },
+    lifecycle_blocked: params.lifecycleBlocked ?? Boolean(primaryBusinessBlocker),
+    lifecycle_block_source: params.lifecycleBlockSource ?? primaryBusinessBlocker?.code ?? null,
+    automation_origin: params.automationOrigin ?? null,
+    automation_key: params.automationKey ?? null,
+    external_reference: params.externalReference ?? null,
+    metadata: {
+      ...(params.metadata ?? {}),
+      supplier_switch_blockers: businessBlockers,
+      pending_review_reason: primaryBusinessBlocker?.code ?? null,
+    },
+    created_by: actorId,
+    updated_by: actorId,
+    company_id: params.companyId ?? null,
+  };
+
+  // Request and its "created" event are written in one transaction.
+  const switchRpcCompanyId = params.companyId ?? switchCompanyId;
+  const { data: created, error } = await supabase.rpc("gridex_create_supplier_switch_v1", {
+    p_company_id: switchRpcCompanyId,
+    p_request: insertPayload,
+    p_event: {
+      event_type: "created",
+      event_status: "success",
+      message: primaryBusinessBlocker
+      ? `Switchärende skapat men väntar på komplettering: ${primaryBusinessBlocker.message}.`
+      : "Switchärende skapat och köat för vidare handläggning.",
+      payload: {
+      requestType: params.requestType,
+      requestedStartDate: params.requestedStartDate,
+      incomingSupplierName,
+      incomingSupplierOrgNumber,
+      ownSupplierResolution: ownSupplierLookup.resolution,
+      businessBlockers,
+    },
+      created_by: actorId,
+    },
+  });
+
+  if (error) throw error;
+
+  const request = (created as { request: SupplierSwitchRequestRow }).request;
+
+  return request;
+}
+
+export async function updateSupplierSwitchValidationSnapshot(
+  supabase: SupabaseClient,
+  params: {
+    requestId: string;
+    validationSnapshot: Record<string, unknown>;
+  },
+): Promise<SupplierSwitchRequestRow> {
+  const actorId = await getActorId(supabase);
+
+  const { data, error } = await supabase
+    .from("supplier_switch_requests")
+    .update({
+      validation_snapshot: params.validationSnapshot,
+      updated_by: actorId,
+    })
+    .eq("id", params.requestId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+
+  return data as SupplierSwitchRequestRow;
+}
+
+export type SupplierSwitchEventInput = {
+  eventType: string;
+  eventStatus: string;
+  message?: string | null;
+  payload?: Record<string, unknown>;
+};
+
+export async function updateSupplierSwitchRequestStatus(
+  supabase: SupabaseClient,
+  params: {
+    requestId: string;
+    status: SupplierSwitchRequestStatus;
+    failureReason?: string | null;
+    externalReference?: string | null;
+    // Replaces the default "status_updated" event; written in the same transaction.
+    event?: SupplierSwitchEventInput;
+  },
+): Promise<SupplierSwitchRequestRow> {
+  const actorId = await getActorId(supabase);
+  const nowIso = new Date().toISOString();
+
+  const current = await getSupplierSwitchRequestById(supabase, params.requestId);
+  if (!current?.company_id) {
+    throw new Error("Switchärendet hittades inte för bolaget.");
+  }
+
+  const patch: Record<string, unknown> = {
+    status: params.status,
+    updated_by: actorId,
+    failure_reason: params.failureReason ?? null,
+    external_reference: params.externalReference ?? null,
+  };
+  if (params.status === "submitted") patch.submitted_at = nowIso;
+  if (params.status === "completed") patch.completed_at = nowIso;
+  if (params.status === "failed" || params.status === "rejected") patch.failed_at = nowIso;
+
+  const event = params.event ?? {
+    eventType: "status_updated",
+    eventStatus: params.status,
+    message:
+      params.status === "failed" || params.status === "rejected"
+        ? (params.failureReason ?? "Status uppdaterad med felorsak.")
+        : `Switchärende uppdaterat till status ${params.status}.`,
+    payload: {
+      status: params.status,
+      externalReference: params.externalReference ?? null,
+      failureReason: params.failureReason ?? null,
+    },
+  };
+
+  const { data, error } = await supabase.rpc("gridex_transition_supplier_switch_v1", {
+    p_company_id: current.company_id,
+    p_request_id: params.requestId,
+    p_patch: patch,
+    p_event: {
+      event_type: event.eventType,
+      event_status: event.eventStatus,
+      message: event.message ?? null,
+      payload: event.payload ?? {},
+      created_by: actorId,
+    },
+  });
+
+  if (error) throw error;
+  return (data as { request: SupplierSwitchRequestRow }).request;
+}
+
+export async function archiveSupplierSwitchEvent(
+  supabase: SupabaseClient,
+  params: {
+    eventId: string;
+    actorUserId: string;
+    reason?: string | null;
+  },
+): Promise<SupplierSwitchEventRow> {
+  const { data, error } = await supabase
+    .from("supplier_switch_events")
+    .update({
+      archived_at: new Date().toISOString(),
+      archived_by: params.actorUserId,
+      archive_reason:
+        params.reason?.trim() || "Arkiverad från operationsöversikten.",
+    })
+    .eq("id", params.eventId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as SupplierSwitchEventRow;
+}
+
+export async function createSupplierSwitchEvent(
+  supabase: SupabaseClient,
+  params: {
+    switchRequestId: string;
+    eventType: string;
+    eventStatus: string;
+    message?: string | null;
+    payload?: Record<string, unknown>;
+    companyId?: string | null;
+  },
+): Promise<SupplierSwitchEventRow> {
+  const actorId = await getActorId(supabase);
+
+  const { data, error } = await supabase
+    .from("supplier_switch_events")
+    .insert({
+      switch_request_id: params.switchRequestId,
+      event_type: params.eventType,
+      event_status: params.eventStatus,
+      message: params.message ?? null,
+      payload: params.payload ?? {},
+      company_id: params.companyId ?? null,
+      created_by: actorId,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as SupplierSwitchEventRow;
+}
+
+export async function finalizeSupplierSwitchExecution(
+  supabase: SupabaseClient,
+  params: {
+    requestId: string;
+    actorUserId: string;
+    executionSource:
+      | "manual_admin"
+      | "automation_sweep"
+      | "bulk_admin_ready_queue";
+    executionNotes?: string | null;
+  },
+): Promise<{
+  requestBefore: SupplierSwitchRequestRow;
+  request: SupplierSwitchRequestRow;
+  siteBefore: CustomerSiteRow;
+  siteAfter: CustomerSiteRow;
+  meteringPointBefore: MeteringPointRow | null;
+  meteringPointAfter: MeteringPointRow | null;
+}> {
+  const requestBefore = await getSupplierSwitchRequestById(
+    supabase,
+    params.requestId,
+  );
+
+  if (!requestBefore) {
+    throw new Error("Switchärendet hittades inte");
+  }
+
+  const siteBefore = await findCustomerSiteById(
+    supabase,
+    requestBefore.site_id,
+  );
+
+  if (!siteBefore) {
+    throw new Error("Anläggningen för switchärendet hittades inte");
+  }
+
+  const pointQuery = requestBefore.metering_point_id
+    ? await supabase
+        .from("metering_points")
+        .select("*")
+        .eq("id", requestBefore.metering_point_id)
+        .maybeSingle()
+    : null;
+
+  if (pointQuery?.error) {
+    throw pointQuery.error;
+  }
+
+  const meteringPointBefore =
+    (pointQuery?.data as MeteringPointRow | null | undefined) ?? null;
+
+  if (requestBefore.status === "completed") {
+    return {
+      requestBefore,
+      request: requestBefore,
+      siteBefore,
+      siteAfter: siteBefore,
+      meteringPointBefore,
+      meteringPointAfter: meteringPointBefore,
+    };
+  }
+
+  if (requestBefore.status !== "accepted") {
+    throw new Error(
+      "Switchärendet måste vara accepted efter inbound PRODAT Z04 innan det kan slutföras",
+    );
+  }
+
+  const activationReadiness = getSupplierSwitchActivationReadiness(requestBefore);
+  if (!activationReadiness.ready) {
+    throw new Error(`supplier_switch_activation_blocked:${activationReadiness.code}:${activationReadiness.reason}`);
+  }
+
+  // Site, metering point, completed request and event in one transaction.
+  const { data: finalized, error: finalizeError } = await supabase.rpc(
+    "gridex_finalize_supplier_switch_v1",
+    {
+      p_company_id: requestBefore.company_id,
+      p_request_id: requestBefore.id,
+      p_actor_user_id: params.actorUserId,
+      p_event: {
+        event_type: "execution_completed",
+        event_status: "completed",
+        message:
+          params.executionSource === "automation_sweep"
+            ? "Leveransen aktiverades automatiskt efter inbound PRODAT Z04 och uppnått startdatum."
+            : params.executionSource === "bulk_admin_ready_queue"
+              ? "Switchen slutfördes från bulk-kön för ready-to-execute."
+              : "Switchen slutfördes manuellt från operations.",
+        payload: {
+          executionSource: params.executionSource,
+          executionNotes: params.executionNotes ?? null,
+          previousSupplierName: requestBefore.current_supplier_name,
+          newSupplierName: requestBefore.incoming_supplier_name,
+        },
+      },
+    },
+  );
+  if (finalizeError) throw finalizeError;
+
+  const result = finalized as {
+    request: SupplierSwitchRequestRow;
+    site_after?: CustomerSiteRow;
+    metering_point_after?: MeteringPointRow | null;
+  };
+  const request = result.request;
+  const siteAfter = result.site_after ?? siteBefore;
+  const meteringPointAfter = result.metering_point_after ?? meteringPointBefore;
+
+  return {
+    requestBefore,
+    request,
+    siteBefore,
+    siteAfter,
+    meteringPointBefore,
+    meteringPointAfter,
+  };
+}

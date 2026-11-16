@@ -1,0 +1,28 @@
+{
+  "state": "ROOT_K_BUDGET900_NARROW_SOURCE_APPROVE",
+  "atUtc": "2026-11-14T12:35:28.659015+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-k-four-rpc-orchestrator-budget900-prep-20261114/PREPARED.safe.json",
+    "sha256": "8363a9b3a1c814336e22cf0e68a77a07aa848af7f744b816b59d966ecc0c63c7"
+  },
+  "script": {
+    "path": "/tmp/gridex-k-four-rpc-orchestrator-budget900-prep-20261114/orchestrator.py",
+    "sha256": "cf17ab781148a3d36e26002462760cfc1f1ecbff48f59698fa0fde7407411916",
+    "bytes": 24845
+  },
+  "verifiedRefs": 18,
+  "deltaExact": true,
+  "review": [
+    "Full narrow diff/read-budget proof/nine timing fixtures reviewed; prior unchanged behavior review reused.",
+    "Imported SQL subprocess capped15s; snapshot8reads, countedpost-send max680s and220s localIO reserve.",
+    "900s remaining checked before pre-read and again immediately before durable mutator intent, real runtime nonce/config/deadline bound.",
+    "Minimum includes parent/helper/JWT-120/C6-60/prior and current native admission-60. No lease extension or reduced TTL."
+  ],
+  "limits": [
+    "900 is conservative reserve, not universal hard wall-clock guarantee for local OS/IO.",
+    "Actual runtime-control file/schema tuple still needs fresh bound proof.",
+    "Nine timing checks are isolated; no actual nativeFc/business/money/scenario approval.",
+    "Originalf972 remains held for actual use; preserved as history."
+  ],
+  "backendCalls": 0
+}

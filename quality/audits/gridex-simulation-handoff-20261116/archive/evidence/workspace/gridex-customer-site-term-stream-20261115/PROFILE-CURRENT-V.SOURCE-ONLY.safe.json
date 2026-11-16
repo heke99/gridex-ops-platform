@@ -1,0 +1,64 @@
+{
+  "state": "FINAL_CURRENT_V_NORMAL_PROFILE_REVIEW_PUBLICATION_SOURCE_ONLY_UNARMED",
+  "priorSourcePacketsPreserved": [
+    "405e7a7c3215503a986b80f45ac5dba0186b725f77733d8d446c5dbcfbc0c6a5",
+    "9b0d1b48d47c48aecaabf9691cffb843bee734a6957b76716445e7d68aee6adb"
+  ],
+  "hostChanges": {
+    "normal-company-profile-driver.v2.cjs": "normal-company-profile-driver.v3.cjs",
+    "1794758612": "1794764138",
+    "2a02fbeb38dad9e2552a0f4691e2def6823e3b7f0cc11196b5addc5b7e049b32": "e6e7f5ce96a7c834320d9144f73f428b0efd02229b0839df6187becad245ae1a",
+    "/tmp/gridex-local-server-role-window-maintenance-20261115-u/key-renewal.safe.json": "/tmp/gridex-local-server-role-window-maintenance-20261115-v/key-renewal.safe.json",
+    "50ee9b7abae170360b11a1e7685bcad8e1e6cf97b148d15994923080e5267f39": "0138d3f26ff58b1b073978fd89e7674c98a5c2a664f88a8e1147f6a56706a35f",
+    "EXACT_CURRENT_U_EPOCH_REQUIRED": "EXACT_CURRENT_V_EPOCH_REQUIRED"
+  },
+  "profileChange": "SourceV2 plus actual observed POST count recorded and required1 in ACK; no browser post cap or other guard weakened.",
+  "roleFacts": {
+    "receiptSHA256": "0138d3f26ff58b1b073978fd89e7674c98a5c2a664f88a8e1147f6a56706a35f",
+    "carrierSHA256": "e6e7f5ce96a7c834320d9144f73f428b0efd02229b0839df6187becad245ae1a",
+    "iat": 1794764138,
+    "exp": 1794771338,
+    "rootOutcomePeer": "62cb1cba"
+  },
+  "files": [
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/normal-company-profile-driver.v3.cjs",
+      "sha256": "b6e78dd61ec41ead5da8cb20e2bbd6eee20b64e525a9e02f5f5462d6fcf12f3d",
+      "bytes": 7113
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/hold-ee-customer-prerequisites600.V.cjs",
+      "sha256": "5cb1d7413ae5177378cced093c2faea2abaecbf4eadc6e690cfc3ed3bdb82f46",
+      "bytes": 16331
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/normal-catalog-publish-driver.v2.cjs",
+      "sha256": "72e1d0e7c483d366dbd8c5571f81ca9f8f86addf598bf3532e9ea0c444ca43b9",
+      "bytes": 4475
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/profile-native.READONLY.sql",
+      "sha256": "b812db0be67ca8e0d0f65bebf489040224eca7a53a5c70aa0c5d4e520498a899",
+      "bytes": 1049
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/PROFILE-CONTROLS.ACTUAL.safe.json",
+      "sha256": "4d5044d9d1250f313aa05be6d0fa6a85db5d5d41f8eaadcca15b642ce1809497",
+      "bytes": 1147
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/profile-component-controls.v2.cjs",
+      "sha256": "b795d4631796415e178224585831c49445d4c89530b710de6cfa65375c0b5eae",
+      "bytes": 5336
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/normal-intake-driver.cjs",
+      "sha256": "ffd1d11bb0c9671666c0d1e58ef70be37d9e5700b0ba0d30b045eabc5f1dc47a",
+      "bytes": 7564
+    }
+  ],
+  "allActualMainAuthSessionPIDFixtureIDsGO": null,
+  "catalogIntakeDriver": "Draft preparation only; host does not yet expose intake command.",
+  "actualBusinessPosts": 0,
+  "wholeCasePASS": false
+}

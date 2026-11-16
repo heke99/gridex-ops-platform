@@ -1,0 +1,35 @@
+{
+  "state": "EXACT2_CLI_ARCHIVES_WHOLE_HASH_BYTES_VERIFIED_ORIGINALS_ABSENT",
+  "actual": {
+    "path": "/tmp/gridex-closed-cli-two-resource-prep-20261116/ACTUAL.safe.json",
+    "sha256": "be963f74cc3f8e8a79ccb17393790d3ce1e925a14f1b94b717f846b42cdd9b2a"
+  },
+  "archives": [
+    {
+      "original": "/workspace/gridex-white-label-evidence-20261112/tools/supabase",
+      "absent": true,
+      "archive": "/tmp/gridex-closed-cli-two-resource-prep-20261116/archives/group-1.gz",
+      "sha256": "d8aa341d585fb5016018f59233eaa9ddf7d7c56acf7ca1f3ad7161be3bc69b86",
+      "bytes": 39357334,
+      "originalMode": "0o700"
+    },
+    {
+      "original": "/workspace/gridex-white-label-evidence-20261112/tools/supabase-go",
+      "absent": true,
+      "archive": "/tmp/gridex-closed-cli-two-resource-prep-20261116/archives/group-2.gz",
+      "sha256": "f80b743143ea1711cc95341aaf47960cfb02fa49f36bbea9e60fa15b40562d7f",
+      "bytes": 29778915,
+      "originalMode": "0o700"
+    }
+  ],
+  "restorer": {
+    "path": "/tmp/gridex-closed-cli-two-resource-prep-20261116/restore-exact-two.group-or-final.py",
+    "sha256": "5c0d7f3db483079caab2088a02fd0bc53c42e040b8ba49d01a8443a2627b22a9"
+  },
+  "restoreUsage": "python3 RESTORER --original EXACT_ORIGINAL --custody group1|group2|final --custody-sha EXACT_SELECTED_CUSTODY_SHA",
+  "restoreStates": "Use durable ARCHIVE-GROUP-N receipt even if finalACTUAL absent/corrupt; final requires exactACTUALsha. Exclusive restore refuses overwrite and preserves gzip. Original executable0700/mode/owner/mtime/fullSHA restored.",
+  "measuredWorkspaceUserAvailableAtActual": 0,
+  "measuredTmpAtActual": 275849216,
+  "bootstrapOnlyNoAdmissionClaim": true,
+  "noDecodeRestoreOrAdditionalResourceMutation": true
+}

@@ -1,0 +1,361 @@
+{
+  "state": "FINAL_INDEPENDENT_WAITING_SUMMARY_REVIEW_B_COMPLETE",
+  "reviewerAgent": "/root/review_plan_execution",
+  "verdict": "SCOPED_PASS",
+  "observedAtUTC": "2026-11-16T11:04:11.535524+00:00",
+  "checkpoint": {
+    "path": "/workspace/gridex-waiting-review-20261116/REVIEW-CHECKPOINT.safe.json",
+    "sha256": "50a52aac33284275236f1d6166686681ca2d79395772b25f6fb8b90f5286ddec",
+    "bytes": 3845
+  },
+  "scope": "Independent read-only final summary/provenance/transfer/count precision review; not a fresh product audit, source adoption or execution qualification.",
+  "checkpointSourcesVerified": [
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/LOCAL-CONTINUATION.sv.md",
+      "sha256": "b63713fa25d104728e170642d1f4f8108b702da94f87658fb5a367e8b91e5720",
+      "bytes": 4399,
+      "historyOnly": false
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/PROJECT-CONTINUITY.safe.json",
+      "sha256": "96c3fa828e77d6be332d6fa8ff6afa24e2af20ae4b6ccd782712a063f8899d9e",
+      "bytes": 1783,
+      "historyOnly": false
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/REMAINING-61.safe.json",
+      "sha256": "48e6841e8e0ad5bb9a1721b753274d0e7a9cc896e2665f13941e5e8e644e765a",
+      "bytes": 110555,
+      "historyOnly": false
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/REMAINING-61.safe.sv.md",
+      "sha256": "bd45cbccfe9a6a00bd4198e49f94d1ec0d3c990064d0ada191f78925e9302e4b",
+      "bytes": 2782,
+      "historyOnly": false
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/REVIEW.sv.md",
+      "sha256": "411f8ad053b1b2b08fc9be11e777ae73360b9b92a2c6012265c862310a15f263",
+      "bytes": 6655,
+      "historyOnly": false
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/SKILL-ROUTING.safe.json",
+      "sha256": "6da0fa59afc88c545b39c8232df850fbf4264412bcde98600be0df9c2ecf958c",
+      "bytes": 1444,
+      "historyOnly": false
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/SQL-CANDIDATES.safe.json",
+      "sha256": "9aeb4e9df7de2ac4fe4700bda6c617adface70b183c959efcdb809797410158e",
+      "bytes": 9560,
+      "historyOnly": true
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/SQL-CANDIDATES.v2.safe.json",
+      "sha256": "36a521b7a4ae9217ceb97eb0c66d4225a04d456be9e5fdcbf7baf5f7182aa3bd",
+      "bytes": 14385,
+      "historyOnly": false
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/UI-DEADCODE-CANDIDATES.safe.json",
+      "sha256": "a702bf10508a28f9c5c67e424cd32144f9683b111d3a89fe56cbe7daf318f63d",
+      "bytes": 30927,
+      "historyOnly": false
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/UI-DEADCODE-CANDIDATES.sv.md",
+      "sha256": "d16cd2805324a12b67d4c152b7423d8f671d2ba58ac5249c4b347f0d2bf55eec",
+      "bytes": 2801,
+      "historyOnly": false
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/additional-candidate-patches/DEPENDENCY-ADDENDUM.safe.json",
+      "sha256": "9723966ad7c93e242d4dc39156da6ac30bd8204020f9fcf906bbbb208b58ea5e",
+      "bytes": 1611,
+      "historyOnly": false
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/additional-candidate-patches/customer-list-foundation-a9b5f3f3.patch",
+      "sha256": "69520dae6cb053ae6e7e2d5f8e89adf869e169ab0d77be0b70ba4fdeca37a93c",
+      "bytes": 47808,
+      "historyOnly": false
+    }
+  ],
+  "supportingEvidenceReadOrHashVerified": [
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/current/per-id-execution.v5.safe.json",
+      "sha256": "d29f2f05494b69d4b8dd034515730db239273d9e39d38319b1ed17e14d92a197",
+      "bytes": 273826
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/current/FINDINGS.safe.json",
+      "sha256": "4adce9616e57a734db75932e1c1f79c7734069622a0217c5a52019b663fc8ab9",
+      "bytes": 79538
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/current/ROUTES-AND-DEAD-CODE.sv.md",
+      "sha256": "cdee31405912ad5c6403daf040d714f25fe35f591ae0a78a399cee2a1fd0f256",
+      "bytes": 5010
+    },
+    {
+      "path": "/workspace/gridex-test-customer-delete-cross-operation-evidence-20261114/SOURCE-FROZEN.safe.json",
+      "sha256": "fcc0977289cb1c4b2eeab2c36e4ba61e26b6ae6e38a96c132b41b70848674f62",
+      "bytes": 5950
+    },
+    {
+      "path": "/workspace/gridex-test-customer-delete-native-qualification-actual-20261114-h2/terminal.safe.json",
+      "sha256": "62a43f5de02a860a0cb9df6fb291f1231f9bc5dbdfd3a55d1da79ab3febbc529",
+      "bytes": 1176
+    },
+    {
+      "path": "/workspace/gridex-test-customer-delete-native-qualification-actual-20261114-h2/ediel-actual-H2-native-qualification-review.safe.json",
+      "sha256": "213b4dece61b0e993b5065af69a4b1c0867a72aa25a329e8177caed5e4f248eb",
+      "bytes": 7026
+    },
+    {
+      "path": "/workspace/gridex-test-customer-delete-native-qualification-actual-20261114-h2/APPLY-REPLAY-METADATA.safe.json",
+      "sha256": "b2adcdb50fb35c1450107f44e0a8399685ccedd0a56b476905291bc4d3dbddf2",
+      "bytes": 737
+    },
+    {
+      "path": "/workspace/gridex-test-customer-delete-main-adoption-actual-20261114-a/intent.safe.json",
+      "sha256": "b497561b240105dd9be76464f63db076a5ef80151a34738e9866e435c6fcb00a",
+      "bytes": 896
+    },
+    {
+      "path": "/workspace/gridex-test-customer-delete-main-adoption-actual-20261114-a/terminal.safe.json",
+      "sha256": "99c31e85cb0b7e27fa09f8c31e98b793dcd117f67cdb61b4e829a8cf5dd6d46e",
+      "bytes": 455
+    },
+    {
+      "path": "/workspace/gridex-test-customer-delete-main-adoption-actual-20261114-a/ediel-actual-local-main-adoption-review.safe.json",
+      "sha256": "de96df3c84232c7ab087aad936e13ed1ee786bfec978a422e508b79fde58080b",
+      "bytes": 3401
+    },
+    {
+      "path": "/workspace/gridex-custody-delete-post-fix-main-actual-proof-20261114-f/CLOSED-COMMITTED.safe.json",
+      "sha256": "6be39f70e7cbf3659540d62b54fdab1b578a7ada1bf1e7c5ea4a14ef3c8a44de",
+      "bytes": 4380
+    },
+    {
+      "path": "/workspace/gridex-custody-delete-post-fix-main-actual-proof-20261114-f/ediel-actual-delete-component-closure-review.safe.json",
+      "sha256": "c558e9fc1e5e9e88c4280bca7a0fe0a8c27d179627103291f824850101a3fb4b",
+      "bytes": 1679
+    },
+    {
+      "path": "/tmp/gridex-custody-native-ui-outcomes-20261114/quality/audits/gridex-custody-native-ui-outcomes-20261114/results.safe.json",
+      "sha256": "cb11775f1a96d9314336947a890b8ddc5fd6dd153cacf201559f7fc33c7d63bb",
+      "bytes": 22630
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/01-framer-e7efeb1b75d1.patch",
+      "sha256": "86106b431aee412b11177085b028bc53ebe8efab8cfcb272cc77d98fe3d0ea13",
+      "bytes": 43181
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/02-header-112ea02caa97.patch",
+      "sha256": "95effeb5b52ef24feb3a025947b55ff25a94400b70c15fc57dd1afca3402f4ae",
+      "bytes": 82462
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/04-customer-delete-final-8af37439f25e.patch",
+      "sha256": "278b01450b349e98bd9983af919d381b5d846e33557f7c93fbe916615ea20672",
+      "bytes": 48706
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/03-customer-list-1d2bc476b5d7.patch",
+      "sha256": "00d4732b706008d35fae73f3cd139d1d0fcc71534348965b7155f13921b15ddc",
+      "bytes": 19020
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/05-dashboard-deadcode-e6b269e63aaa.patch",
+      "sha256": "e53f448c14ec985b235147aa10012be1eeef40a533c79c4d301907c2eac12d09",
+      "bytes": 9926
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/07-deadcode-report-b5c5cd534c39.patch",
+      "sha256": "3ef387c4939edf5e26a66af3f9fa80e3e09d08c43f5969a7c79186e9724cbeb1",
+      "bytes": 35513
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/CANDIDATE-PATCHES.safe.json",
+      "sha256": "ef7e99b42516dfd7be73bd063f4d1baa63cc14d31c47c098d50d4146e739b289",
+      "bytes": 9630
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/customers/getCustomers.ts",
+      "sha256": "5d2d0254c0cea0c2e75bbfd8df2a69252586f050ddf04b8ff4bba51226fb083c",
+      "bytes": 22968
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/app/admin/customers/page.part-2.tsx",
+      "sha256": "9555fff0145ed9391152e049c7057456388d3f4bd40fda56b04bdec1c4702027",
+      "bytes": 26398
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/app/admin/customers/page.part-1.tsx",
+      "sha256": "0016fbd01675d0e1bbf7d94db380e0933b59de9dbdef798383b2fbc140dfbbf4",
+      "bytes": 24406
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/app/admin/customers/[id]/page.part-1.tsx",
+      "sha256": "f475e6f95e385b7c1326625a53e9cbf52cc5c0fb3c053cb3a100ebd84ab886b7",
+      "bytes": 24044
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/supabase/tenantDb.ts",
+      "sha256": "ff62081e3bfbf9af2682b09bbe0712a962b1d79d6379e5ce88eb3e2c9d52fe13",
+      "bytes": 3656
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/supabase/tenantQuery.ts",
+      "sha256": "673c453d6cf94f59de09d018c9473d620630afeb600f1deb0bd760486813f859",
+      "bytes": 1268
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/staff-api/customerHandlers.ts",
+      "sha256": "6a002aa20972a7cbde36dd90c99010490bae9626565eac6ac159ad0fcff3233c",
+      "bytes": 8910
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/staff-api/customers.ts",
+      "sha256": "d80b08cc55da002d5cbbd4fbf01b2bd69d72ad6ede92fd70e70d5a251e5ebab8",
+      "bytes": 7243
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/analytics/companyDashboardSummary.ts",
+      "sha256": "48c4f872c22b839c7569354c3e03d63ec07f6a05ac97d68b6b789247a21e74a2",
+      "bytes": 4018
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/performance/companySummaries.ts",
+      "sha256": "cd2f4c0c286a011b7c65017cba813ff7736e6d6ec52a81ac268b4d1c1eb664f4",
+      "bytes": 13285
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/app/api/cron/analytics/daily/route.ts",
+      "sha256": "35a488625ef95e249de73b6dad288d5ba6a4643d57c3e77283be83a45b6f9e98",
+      "bytes": 1455
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/app/api/cron/analytics/monthly/route.ts",
+      "sha256": "8cc5ce54b9bb6b09c28fa13848f8723261bfb7b393b65c2ecbd809f4a383b017",
+      "bytes": 1211
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/__tests__/customer-portfolio.test.ts",
+      "sha256": "22eeb9c334d5362db93d14356dae65ef8c6808748cebe6e079759c7b41108853",
+      "bytes": 10751
+    },
+    {
+      "path": "/tmp/gridex-customer-contract-preferences-fix-20261115/lib/customers/getCustomers.ts",
+      "sha256": "95b0ddc28c27877baab6a06e30ff12fda33c4e71717725e62bf189b60624ca28",
+      "bytes": 25516
+    },
+    {
+      "path": "/tmp/gridex-customer-contract-preferences-fix-20261115/lib/customers/contractBillingSummary.ts",
+      "sha256": "764af48471c6ba31087bb93e69b438c6a12f9d0fe9f7e67c7e54d0450b01c328",
+      "bytes": 7357
+    },
+    {
+      "path": "/tmp/gridex-customer-contract-preferences-fix-20261115/app/admin/customers/page.part-2.tsx",
+      "sha256": "aa94408dcc43ff7181a29deb45f4498c8053934a64197b8156890c8277949937",
+      "bytes": 26504
+    },
+    {
+      "path": "/tmp/gridex-customer-contract-preferences-fix-20261115/__tests__/customer-list-contract-summary.test.ts",
+      "sha256": "df98ff136f4b4216373446e20323d79e8c0ab8385416127c4b2935f9cf3c9a0f",
+      "bytes": 12890
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/additional-candidate-patches/customer-list-foundation-a9b5f3f3.patch",
+      "sha256": "69520dae6cb053ae6e7e2d5f8e89adf869e169ab0d77be0b70ba4fdeca37a93c",
+      "bytes": 47808
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/additional-candidate-patches/DEPENDENCY-ADDENDUM.safe.json",
+      "sha256": "9723966ad7c93e242d4dc39156da6ac30bd8204020f9fcf906bbbb208b58ea5e",
+      "bytes": 1611
+    }
+  ],
+  "checks": [
+    {
+      "id": "HASH_BINDING",
+      "status": "PASS",
+      "detail": "Checkpoint exact SHA and every one of its12 source SHA256/byte counts match. ActiveSQLV2 and historicalV1 are correctly distinguished; final input hashes rechecked immediately before this receipt."
+    },
+    {
+      "id": "CANONICAL_COUNTS_AND_ORACLES",
+      "status": "PASS",
+      "detail": "V5 ledger d29f matches43FULL_PASS/1GAP/61INCOMPLETE across105; all61 IDs/literals/dispositions/oracles/next actions/availability/functional assessments are exact ledger copies.16partial+36unmapped-pending+9unavailable; nine primary groups partition61 exactly once. Overlapping blocker classes are not summed; unmapped does not mean never executed."
+    },
+    {
+      "id": "EXISTING_MAC_CLONE",
+      "status": "PASS",
+      "detail": "Summary preserves /Users/hekmath/Projects/gridex-ops-platform, local commits/worktree/private evidence. Registration is explicitly separated from unverified local filesystem/branch/status. No need for a new full main download is stated conditionally, with exact future Git status/base/merge checks and separate working branch rather than overwriting local files."
+    },
+    {
+      "id": "TRANSFER_AND_PRIVATE_STAGING",
+      "status": "PASS",
+      "detail": "Cloud ZIP existence/hash is not presented as successful download; failed user transfer is retained. A nonsecret Git handoff branch/PR is only proposed and unpublished. Outside-Git sources/reports still need transfer; private artifacts/sessions/DB data stay out of Git. Cloud private paths do not establish Mac accessibility. Same existing staging requires a qualified secure private route, genuine target/Auth/isolation and local OS/architecture/dependencies/resources; no replacement DB or shutdown is assumed."
+    },
+    {
+      "id": "OTHER_UI_TASK_AND_MAIN_RUNTIME_SCOPE",
+      "status": "PASS",
+      "detail": "Other task status is reported at the dated observation cutoff, not as a freshly verified live claim. Its completion is explicitly not proof of merge. Potential overlap is named but actual foreign file conflict is left unknown; implementation/source files untouched. Main source observation is datedbf32, with no GitMain/DB/runtime/production/adoption clearance or new scenario result."
+    },
+    {
+      "id": "LATER_FINAL8AF_NATIVE_AND_UI_EVIDENCE",
+      "status": "PASS",
+      "detail": "Final source fcc097 binds8af/tree53403 and migrationa7e. Hashed laterH2 terminal62a4 and independent213b establish21 actual cases/0NOTRUN,20DELETE_RPC+1FK,16named23503 guards and b6da→b9dd apply/replay/OID/nonbody/owner/ACL preservation. Historical localTEST database adoption uses samea7e; later normalUI closure6be3+c558 establishes onePOST200 and native customer/application absence/audit1. The old source-freeze NOTRUN remains historical, not latest; no needless rerun is inferred."
+    },
+    {
+      "id": "COMPONENT_VERSUS_FULL_SCENARIO_LIMITS",
+      "status": "PASS",
+      "detail": "Summary keeps H2 clone sequence71→75 separate from row/function equality, UIhelper exit1 and landing42703 separate from committedDELETE, and pending row-level foreign residuals within eight changed scopes explicit. It asserts no wholeMain-unchanged/clean fullUI/original billing or custody case/fullscenario/production/Gitmerge credit."
+    },
+    {
+      "id": "CUSTOMER_LIST_DEPENDENCY",
+      "status": "PASS",
+      "detail": "Separate a9b5 foundation patch SHA69520 is correct; format-patch header, six touched paths and actual Git commit tree9e1c/parentce804 match the addendum. It is preserved, not applied or counted as an eighth fix; refinement1d2 alone is correctly described as incomplete for42703."
+    },
+    {
+      "id": "DEADCODE_AND_FINDINGS_PRECISION",
+      "status": "PASS",
+      "detail": "33 declarations remain a historical24source-removals/9retained split, with22 composition removals plus2 historical removals. Separate dashboard removal does not imply25/8;187unreached is not proven dead. Findings46 remains a mixed register, distinct from the otherUI task66 and local20/85 matrix; counts are not merged."
+    }
+  ],
+  "blockingFindings": [],
+  "nonBlockingPrecisionNotes": [
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/SQL-CANDIDATES.v2.safe.json",
+      "field": "unchanged",
+      "detail": "The inherited provenance sentence says only SQL-CANDIDATES.safe.json was written; the active correction file is SQL-CANDIDATES.v2.safe.json. The checkpoint, predecessor/correction fields and summary correctly bind V2 and preserve V1. This filename wording does not alter evidence applicability, status or authority."
+    }
+  ],
+  "existingLimitsPreserved": [
+    "Mac filesystem/Git state, current other-agent completion/merge and secure same-staging connection were not verified live by this reviewer.",
+    "Cloud artifact private paths and prior ZIP hashes do not establish a working download or Mac access; outside-Git/private transfer and safe connection remain future work.",
+    "Later native21/UIcommit evidence is applicable component evidence with explicit sequence/UI/foreign-residual limits; it is not fulloriginalscenario or future Main/production adoption."
+  ],
+  "canonicalCountsUnchanged": {
+    "FULL_PASS": 43,
+    "GAP": 1,
+    "INCOMPLETE": 61,
+    "TOTAL": 105
+  },
+  "incompleteDispositionCountsUnchanged": {
+    "partial": 16,
+    "unmappedPendingPrerequisites": 36,
+    "unavailableOriginal": 9
+  },
+  "sourceHashMismatchCount": 0,
+  "sourceFilesChangedByReviewer": false,
+  "otherUITaskFilesModified": false,
+  "MacFilesAccessedOrModified": false,
+  "testsDockerSQLNpmNetworkCIProductionOrAuthExecuted": false,
+  "gitOperationPerformed": "Read-only git cat-file on exact a9b5 commit to verify tree/parent; no index/ref/checkout/fetch changes.",
+  "onlyWrite": "/workspace/gridex-waiting-review-20261116/FINAL-REVIEW-B.safe.json"
+}

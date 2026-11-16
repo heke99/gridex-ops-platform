@@ -1,0 +1,17 @@
+{
+  "state": "CODE_APPROVE_OWN2_AND_K3000_NOT_EXECUTION",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T11:20:26.734705+00:00",
+  "own2FreezeSHA256": "72fb0452003e1842a1a74a3c8c5d8637670918a5cbd8144f321c46b8b98f7439",
+  "own2ScriptSHA256": "ee2c5582a6e6ebdbca16f5a414282a5bb31f1811fb617c24d76d68fbf5d5eb6d",
+  "kFreezeSHA256": "c4897a749819386faed12ddfea833c389dbe271db8345d57a2c1abbfef33fc39",
+  "kRuntimeSHA256": "edacea228cab4cba392f0ae25dd6d980a65fc2ce7aa628e1b8d68616e49f6010",
+  "checks": [
+    "WholeOWN2ee2c scriptread/config/create/kernel/strict3TCPcounter/ownedcapturecleanup/AST0; fixedCDFNodewitness/runtime pins",
+    "Only2ownedcontainers/internalunique29network/noAuthDBportsNET_ADMINorhostfirewall; actualsourceScope2 verified manuallybyproducer beforeGO (wrapperhashes2reviews)",
+    "Owncreateambiguityrecorded/reconciledonlynonce+image/name; actualallOwnAbsent required; capturehelper236d reused",
+    "Kwholemoduleinverse exact3knownchanges currentSixtySeven67\u2192SixtyFour64/900\u21923000, allotherbytes236d identical",
+    "Sameb438witness/95alauncher/gateway, allrealtimeJWT/role/admission/cleanup fences preserved",
+    "ActualOWN2scopepair+boundedfreshdeadline/resources/kernelproof stillneeded; smokeexcludespostfirewall/businessqualification"
+  ]
+}

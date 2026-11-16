@@ -1,0 +1,36 @@
+{
+  "verdict": "SOURCE_COMPONENT_FINALDOC_APPROVE",
+  "reviewerAgent": "/root",
+  "sourceHead": "c9c8e44767ff45c5ee0164fa3e76215684c3879f",
+  "finalHead": "89fe9d6185850f03869d6cfb2b82c44bbcaed193",
+  "finalTree": "9e1c098cdd25cb2b5901deb497a6e40e7e81e88a",
+  "freezePath": "/tmp/gridex-controlled-test-issuer-evidence-20261113/FINAL_FREEZE.api4da.safe.json",
+  "freezeSHA256": "8dc3d5943abf6166711293229cf3f67b62e84048954b6dc4d5a10e896699385c",
+  "verifiedPhysicalGitFiles": 12,
+  "verifiedEmbeddedOriginals": 19,
+  "verifiedCustodyReferences": 4,
+  "actualSameSocketProofSHA256": "547877cd185da3792b872c596b5b41fc67103651a076f341b0bb95cbd5cec856",
+  "actualSameSocketOriginalsVerified": 17,
+  "reviewScope": [
+    "nativeissue/currentactor/C6/route/testenv/immutableexhaustive ownnewnamespace/rawbytes",
+    "commonpurpose controlled vsLOCAL/API permanentcommercialdeny",
+    "beforebirth bindings/physicalsink transactionPIDwitness/ordinaryrowrebindDENY",
+    "nativeprepare/enter same socket witness and realaccepted classification required forpositive status",
+    "positiveINSERTdenial corrected afterRootfinding",
+    "ownfreshVOLATILE lineage andunmixedguards delta over051b",
+    "minimal actual93dc normalindex hook preservesallordinary/OPS04/admissionguards",
+    "WeakMapnative-issued descriptor, oneconsume, exact127/TLSCAhostname/DERpin/sameSocket/onehandoff",
+    "actualgenericattemptgate/rawMIMEarchive+HMAC typednormalcontrol flow",
+    "54finite/strict8roots1522inputs0/lint0 actualevidence; SQL-onlydelta sourceapplicability",
+    "API4da compatibility already2ACK notanewgate; current4sharedbodies identical",
+    "finaldocs actual/localtest authority and original28/1809.51 missingdata boundary"
+  ],
+  "limits": [
+    "nativeSQL/parser/portable126 NOT_RUN",
+    "wholecontroller/outbox/Storage/JWT/SMTPnativebusiness NOT_RUN",
+    "sameSocket TLS component is not nativeissuer/outboxauthority",
+    "actual451/550/dropDATA normalworkerpolicy needs laterproof",
+    "noGEN/MAIN/sourceadoption/scenarioPASS granted"
+  ],
+  "asOfUTC": "2026-11-13T20:16:49.105467+00:00"
+}

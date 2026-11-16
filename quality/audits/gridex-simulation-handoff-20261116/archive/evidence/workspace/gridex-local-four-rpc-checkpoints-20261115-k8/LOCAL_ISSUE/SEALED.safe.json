@@ -1,0 +1,47 @@
+{
+  "state": "SEALED_ACTUAL_OWN_FOUR_RPC_CHECKPOINT",
+  "classification": "ACTUAL_CORE_ACKED_COMMITTED",
+  "step": "LOCAL_ISSUE",
+  "database": "gridex_local_partner_http_20261113_a",
+  "dump": {
+    "path": "/workspace/gridex-local-four-rpc-checkpoints-20261115-k8/LOCAL_ISSUE/checkpoint.dump.private",
+    "sha256": "1bbd2fc2027ab550d59dd29c5d1ff252ab797d2e844669b038fea53a935bc59c"
+  },
+  "fullBefore": {
+    "path": "/workspace/gridex-local-four-rpc-checkpoints-20261115-k8/LOCAL_ISSUE/full-after-rpc.private.json",
+    "sha256": "228628aa363f8ea8bc1cea4b98c92a707907fce86a4184d428ae1b76adcf37ca"
+  },
+  "fullAfter": {
+    "path": "/workspace/gridex-local-four-rpc-checkpoints-20261115-k8/LOCAL_ISSUE/full-after-dump.private.json",
+    "sha256": "228628aa363f8ea8bc1cea4b98c92a707907fce86a4184d428ae1b76adcf37ca"
+  },
+  "privateBefore": {
+    "path": "/workspace/gridex-local-four-rpc-checkpoints-20261115-k8/LOCAL_ISSUE/private-before-dump.private.json",
+    "sha256": "a5114fbb63b3b3a6743ad998307d8600744690561851f55e8d06a1cb1a0df78c"
+  },
+  "privateAfter": {
+    "path": "/workspace/gridex-local-four-rpc-checkpoints-20261115-k8/LOCAL_ISSUE/private-after-dump.private.json",
+    "sha256": "b4c5c8e52a3b9009dec96987f959509cc9137bad39641a18b17b12f619b989b3"
+  },
+  "rpcArtifacts": {
+    "result": {
+      "path": "/tmp/gridex-ee-browser-hold-actual-local-20261115-k8/rpc/LOCAL_ISSUE.rpc-result.private.json",
+      "sha256": "77474e0fdf7024daebda38768d136da3253a8e2c553d075faec7d1978fb58679"
+    },
+    "intent": {
+      "path": "/tmp/gridex-ee-browser-hold-actual-local-20261115-k8/rpc/LOCAL_ISSUE.intent.private.json",
+      "sha256": "c74a04c798e888c37157429844aee719eb2609da15251433da01b02705b3c4f9"
+    },
+    "ack": {
+      "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261115-k8/LOCAL_ISSUE.ack.private.json",
+      "sha256": "911c5a479b75d1a58f4c0a6fd7fc950d07c585dff2cd19c18560f8892c817132"
+    },
+    "native": {
+      "path": "/tmp/gridex-local-fresh-four-rpc-inputs-20261115-k8/LOCAL_ISSUE-after.native.private.json",
+      "sha256": "47bc303bb92d211b3f89d623266ce697b329e3b10da80e2aa76898c781f7796c"
+    }
+  },
+  "allStateEqualAcrossDump": true,
+  "notMainRowsOrNewAuthority": true,
+  "requiresFreshNativePolicyOnAnyFutureUse": true
+}

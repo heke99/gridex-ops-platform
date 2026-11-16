@@ -1,0 +1,178 @@
+// Extracted from productionReadiness.ts; keep public imports on the facade module.
+import { supabaseService } from "@/lib/supabase/service"
+
+
+import type { EdielMessageRow } from "@/lib/ediel/types"
+
+
+
+import { requireTenantOperationAllowed } from '@/lib/tenant/operationPolicy'
+import type { ProductionDryRunResult } from './productionReadiness.part-1'
+import { assertScopedEdielProductionCapability, getScopedEdielProductionReadiness } from './scopedCapabilityReadiness'
+import { evaluateProductionSendGuardSnapshot, safeCount, upper } from './productionReadiness.part-1'
+import { getCompanyProductionReadiness } from './productionReadiness.part-2'
+
+export async function runProductionDryRun(
+  companyId: string,
+  actorUserId: string,
+  message?: EdielMessageRow,
+): Promise<ProductionDryRunResult> {
+  const readiness = await getCompanyProductionReadiness(companyId, {
+    checkedBy: actorUserId,
+    persist: true,
+  });
+  let scopeEvidence: Awaited<ReturnType<typeof getScopedEdielProductionReadiness>> | null = null
+  if (message?.company_id === companyId && message.environment === 'production' && message.direction === 'outbound') {
+    try { scopeEvidence = await getScopedEdielProductionReadiness(message) } catch { /* explicit held projection below */ }
+  }
+  const scopeReady = scopeEvidence?.ready === true && Boolean(scopeEvidence.evidenceId) &&
+    Number.isFinite(Date.parse(scopeEvidence.expiresAt ?? '')) && Date.parse(scopeEvidence.expiresAt!) > Date.now()
+  const scopeIssue = { code: 'capability_scope_evidence_required', label: 'Kapabilitetsbevis saknas',
+    message: 'Välj ett faktiskt produktionsmeddelande med aktuellt bevis för juridisk aktör, roll och kapabilitet.', severity: 'blocking' as const, area: 'tests' as const }
+  const blockingIssues = scopeReady ? readiness.blockingIssues : [...readiness.blockingIssues, scopeIssue]
+  const allowed = blockingIssues.length === 0;
+  const result: ProductionDryRunResult = {
+    success: allowed,
+    status: allowed
+      ? readiness.warnings.length > 0
+        ? "warning"
+        : "allowed"
+      : "blocked",
+    blockingIssues,
+    warnings: readiness.warnings,
+    previewMetadata: {
+      dryRunOnly: true,
+      capabilityScope: scopeEvidence?.scope ?? null,
+      capabilityEvidenceId: scopeEvidence?.evidenceId ?? null,
+      capabilityDependencyHash: scopeEvidence?.dependencyHash ?? null,
+      capabilityScopeReady: scopeReady,
+      messageId: message?.id ?? null,
+      companyId,
+      environment: "production",
+      edielId: readiness.summary.edielId,
+      senderSubAddress: readiness.summary.senderSubAddress,
+      receiverSubAddress: readiness.summary.receiverSubAddress,
+      productionRouteProfileId:
+        readiness.summary.activeProductionRouteProfileId,
+      productionProdatRouteProfileId:
+        readiness.summary.activeProductionProdatRouteProfileId,
+      productionUtiltsRouteProfileId:
+        readiness.summary.activeProductionUtiltsRouteProfileId,
+      productionMailboxId: readiness.summary.productionMailboxId,
+      receiverResolution: message ? "saved_message_route" : "scope_unavailable",
+      wouldResolveReceiverFrom:
+        "kundprocess -> anläggning/mätpunkt -> verifierad nätägare -> Ediel route/certifikat",
+      wouldSend: false,
+      wouldBeBlocked: !allowed,
+    },
+    edifactPreview: message?.company_id === companyId && message.environment === 'production' && message.direction === 'outbound'
+      ? message.raw_payload : null,
+  };
+
+  const { data: readinessRow, error: readinessRowError } = await supabaseService
+    .from('ediel_production_readiness_checks')
+    .select('configuration_snapshot_id,configuration_hash')
+    .eq('id', readiness.latestCheck.id)
+    .eq('company_id', companyId)
+    .single()
+  if (readinessRowError) throw readinessRowError
+  const { error: dryRunError } = await supabaseService.from("ediel_go_live_events").insert({
+    company_id: companyId,
+    event_type: "production_dry_run",
+    from_status: readiness.summary.productionStatus,
+    to_status: result.status,
+    reason: result.success
+      ? "Production dry run passerade utan blockerare."
+      : "Production dry run blockerades.",
+    actor_user_id: actorUserId,
+    readiness_check_id: readiness.latestCheck.id,
+    configuration_snapshot_id: (readinessRow as Record<string, unknown>).configuration_snapshot_id,
+    configuration_hash: (readinessRow as Record<string, unknown>).configuration_hash,
+    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    is_stale: false,
+    stale_reason: null,
+    metadata: result,
+  });
+  if (dryRunError) throw dryRunError
+
+  return result;
+}
+
+export async function assertCompanyCanSendProductionEdiel(params: {
+  companyId: string;
+  actorUserId?: string | null;
+  message: EdielMessageRow;
+}): Promise<void> {
+  if (params.message.environment !== "production") return;
+  if (params.companyId !== params.message.company_id) throw new Error('ediel_scoped_capability_evidence_required')
+  if (['PRODAT', 'UTILTS', 'CONTRL', 'APERAK', 'UTILTS_ERR', 'AI_LIST'].includes(params.message.message_family)) {
+    await assertScopedEdielProductionCapability(params.message)
+    return
+  }
+  // NBS/other platform tracks retain their separately owned existing contract.
+  await assertExternalTrackProductionSend(params)
+}
+
+async function assertExternalTrackProductionSend(params: {
+  companyId: string;
+  actorUserId?: string | null;
+  message: EdielMessageRow;
+}): Promise<void> {
+  if (params.message.environment !== "production") return;
+  await requireTenantOperationAllowed(params.companyId, 'ediel.production.send')
+  const readiness = await getCompanyProductionReadiness(params.companyId);
+  let routeBelongsToCompany = !params.message.communication_route_id;
+  if (params.message.communication_route_id) {
+    const [profileMatches, routeMatches] = await Promise.all([
+      safeCount("ediel_route_profiles", (query) =>
+        query
+          .eq("company_id", params.companyId)
+          .eq("environment", "production")
+          .eq(
+            "communication_route_id",
+            params.message.communication_route_id as string,
+          ),
+      ),
+      safeCount("communication_routes", (query) =>
+        query
+          .eq("company_id", params.companyId)
+          .eq("id", params.message.communication_route_id as string),
+      ),
+    ]);
+    routeBelongsToCompany = profileMatches > 0 || routeMatches > 0;
+  }
+  const actorBelongsToCompany =
+    readiness.summary.edielId !== null &&
+    upper(readiness.summary.edielId) === upper(params.message.sender_ediel_id);
+  const issues = evaluateProductionSendGuardSnapshot({
+    environment: params.message.environment,
+    productionEnabled: readiness.summary.productionEnabled,
+    productionStatus: readiness.summary.productionStatus,
+    liveApprovedAt: readiness.summary.liveApprovedAt,
+    lockLocked: readiness.summary.productionLockLocked,
+    readinessStatus: readiness.status,
+    readinessCheckedAt: readiness.latestCheck.checkedAt,
+    routeBelongsToCompany,
+    actorBelongsToCompany,
+    firstLiveSendApprovedAt: readiness.summary.firstLiveSendApprovedAt,
+    priorProductionSentCount: readiness.summary.priorProductionSentCount,
+  });
+
+  if (issues.length > 0) {
+    const { error: auditError } = await supabaseService.from("ediel_go_live_events").insert({
+      company_id: params.companyId,
+      event_type: "production_outbound_blocked",
+      from_status: readiness.summary.productionStatus,
+      to_status: "blocked",
+      reason: issues.map((issue) => issue.message).join(" · "),
+      actor_user_id: params.actorUserId ?? null,
+      readiness_check_id: readiness.latestCheck.id,
+      metadata: { edielMessageId: params.message.id, issues },
+    });
+    if (auditError) throw auditError
+
+    throw new Error(
+      `Production send är låst för detta bolag. ${issues.map((issue) => issue.message).join(" ")}`,
+    );
+  }
+}

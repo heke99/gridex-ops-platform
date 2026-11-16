@@ -1,0 +1,29 @@
+{
+  "state": "ROOT_EXACT_FOUR_CLOSED_JSON_LOSSLESS_ARCHIVE_SCOPE",
+  "atUtc": "2026-11-15T05:34:04.181889+00:00",
+  "soleProducer": "/root/execute_eight_parts",
+  "proposalPath": "/workspace/gridex-post-lookup-component-four-closed-json-proposal-20261115/PROPOSAL.safe.json",
+  "proposalSHA256": "d56a792f6021a5a50feb925f25d7e0deaa6cb0d20d4b7241fc5b3152b9a18fbf",
+  "scriptSHA256": "8a611fbd283c1ee7860ef79f02bab25bb3f34534297bc623a6cd4ba6a24ded4e",
+  "dependencyProof": {
+    "path": "/workspace/gridex-post-lookup-component-four-closed-json-proposal-20261115/DEPENDENCY-PROOF.safe.json",
+    "sha256": "caf853ea195733d1d05503f1981c2518509446b3bcc4f8883cf33e71def823ef"
+  },
+  "authorizedLogicalPaths": [
+    "/workspace/gridex-post-lookup-component-actual-20261115-a/Main-before.private.json",
+    "/workspace/gridex-post-lookup-component-actual-20261115-a/Main-after.private.json",
+    "/workspace/gridex-post-lookup-component-actual-20261115-a/clone-post-fixture-before-http.private.json",
+    "/workspace/gridex-post-lookup-component-actual-20261115-a/clone-after-http.private.json"
+  ],
+  "authorizedContentGroups": 2,
+  "authorization": "Lossless gzip in fixed workspace destination, durable decompressed original size/SHA verification and peralias intent before exact original alias unlink. Preserve all archives, protected76paths and physical qualified lookup before/after files. No other RAW or backend changes.",
+  "sourceReview": "Root read whole driver, exact4/2groups, current5input readset/dependency and proper independent native closure. Legacy thirteen/K6 labels are cosmetic; executable count explicitly4/2.",
+  "preconditions": [
+    "Independent exact source peer review",
+    "Sole producer exact script/proposal/dependency/source/current file inode content metadata verified",
+    "Accessible FD/mount no hits and native closed; no global FD absence claimed",
+    "Actual receipt, custody index and exclusive hash restore adapter after archive before later physical reuse",
+    "No resource credit before actual measurements"
+  ],
+  "noOtherDeletionAuthorized": true
+}

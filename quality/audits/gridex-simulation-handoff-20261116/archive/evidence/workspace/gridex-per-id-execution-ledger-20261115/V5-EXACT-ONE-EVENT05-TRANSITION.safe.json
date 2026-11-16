@@ -1,0 +1,62 @@
+{
+  "state": "EXACT_ONE_ORIGINAL_EVENT05_V5_BOOKKEEPING_READY_FOR_QA",
+  "baseV4": {
+    "path": "/workspace/gridex-per-id-execution-ledger-20261115/per-id-execution.v4.safe.json",
+    "sha256": "aa9dfd3c8e2f61369c8373101222663fa0ac082a2348e8ae963eef68ca25d840"
+  },
+  "ledgerV5": {
+    "path": "/workspace/gridex-per-id-execution-ledger-20261115/per-id-execution.v5.safe.json",
+    "sha256": "d29f2f05494b69d4b8dd034515730db239273d9e39d38319b1ed17e14d92a197"
+  },
+  "queue61": {
+    "path": "/workspace/gridex-post-k13-finite-queue-20261115/queue.remaining61.v5.safe.json",
+    "sha256": "8b19d4404c8e7dc47d00adeb0b3b282003730918eda3ea09d5bfe48c9cf4f3bb"
+  },
+  "changedOnlyIds": [
+    "EVENT01.05"
+  ],
+  "other104RowsObjectExact": true,
+  "counts": [
+    43,
+    1,
+    61
+  ],
+  "original105Matrix": {
+    "path": "/tmp/gridex-simulation-status-ew-claim-20261115/quality/audits/gridex-simulation-status/105SCENARIOS.json",
+    "sha256": "9c4077c4ecc420906521e1ad69902497c36b5e34b02996ca793aedeb3ab2cab4"
+  },
+  "refs": [
+    {
+      "path": "/workspace/gridex-event-original-acceptance-20261115/EVENT05-ACTUAL-FULL-ORIGINAL-VERDICT.safe.json",
+      "sha256": "bc030476d46595510ac6eee902c919a3c5bf8d7aeee0a734269a787df38b2fd2"
+    },
+    {
+      "path": "/workspace/gridex-event-original-acceptance-20261115/EVENT05-C-EXACT-ACCEPTANCE.safe.json",
+      "sha256": "3dc16a7dd09775a29a9ee15b47bbadf0a80beec37aa0b01edc9d54cfb8d59f04"
+    },
+    {
+      "path": "/workspace/gridex-event-original-acceptance-20261115/EVENT05-ACTUAL-INDEPENDENT-STAGE.safe.json",
+      "sha256": "2f0d82d898de0b777b8f7cad2bd8c3c6fd91bb5aa60b321d05c42ef83614f122"
+    },
+    {
+      "path": "/workspace/gridex-event-original-acceptance-20261115/EVENT05-ACTUAL-INDEPENDENT-STAGE.v2.safe.json",
+      "sha256": "cbeddb2439f09c9d2cdea4d4f0a9b6b9c94af86e9907ab6c23078dc6738a80d5"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/qa-INDEPENDENT-FINAL-CLOSURE-RESIDUAL.safe.json",
+      "sha256": "767b63c401c13cbe39ceb13bd9b568eed3c703145657c44ad957b57ae7d822ba"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/proper-closure/FINAL-INDEX.safe.json",
+      "sha256": "18feb622bbde895f8d59553a5c1618c999905a2f13fcb82128ab2da6433d929c"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/proper-closure/qa-FINAL-INDEX-REBIND.safe.json",
+      "sha256": "0b7a753010c68ccb3d7c50bb6f2dc4179ed2c72a3991977a32accfaf7801c176"
+    }
+  ],
+  "callerEXIT1AndHeaderEnvelopeGuardPreserved": true,
+  "noInventedFinalWorkerACKRetryOrProductDefect": true,
+  "rootFilesNotMutatedByAuthor": true,
+  "noBackendAuthOrNewRepoClaims": true
+}

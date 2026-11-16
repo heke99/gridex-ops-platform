@@ -1,0 +1,14 @@
+{
+  "state": "ROOT_SOURCE_EXPIRED_ONLY_J_WORKFLOW_REVIEW_APPROVED_NOT_EXECUTED",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T18:36:40.693824+00:00",
+  "preparedPath": "/tmp/gridex-expired-key-maintenance-20261114-j/PREPARED.safe.json",
+  "preparedSHA256": "ee1a48ccf1134f200b72704578eea669540b2e4f0495e630fdb8441299059169",
+  "review": "Full I-to-J renewal and APIresume diffs read. Renewal namespace-only; APIresume exactexpiry1794681917 and closedK5+zeroPOSTprobe projection preserve Main-unchanged parent-only scope. Same JWT secret, only two normal expired anon/service server keys, no user/role changes.",
+  "conditions": [
+    "Both currentI keys actually expired, earliest18:45:17UTC, normalB stopped and allactualcontainers/closure/source/currentcarrier guards fresh",
+    "Producer+independent actualmaintenance tuple beforeONEexecution",
+    "No futureJiat/exp/carrier/PID fabricated or earlykeymint"
+  ],
+  "noBusinessOrScenarioApproval": true
+}

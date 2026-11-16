@@ -1,0 +1,22 @@
+{
+  "state": "APPROVE_CHANGED_FINALDOC",
+  "head": "2640522f0e028f11c91d6625e0b920660fab3381",
+  "changedFiles": 2,
+  "changedScenarioRows": [
+    "AUTH01.02"
+  ],
+  "literalOracle105Unchanged": true,
+  "newActualReferencesVerified": 11,
+  "counts": {
+    "pass": 26,
+    "documentedGap": 1,
+    "completed": 27,
+    "outstanding": 78,
+    "compatNotPass": 79,
+    "attempts": 27,
+    "predicateUnion": 42
+  },
+  "actualProof": "a35c9f2181bca714f30095c8602a1168ff019f07982b0d44ee98f7aab628a9a3",
+  "sourceEpochSeparation": "AUTH source29; later source30 adoption only",
+  "limits": "No original CTA whole-link success or postlogout DB snapshot claimed"
+}

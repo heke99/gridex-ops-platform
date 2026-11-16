@@ -1,0 +1,31 @@
+{
+  "state": "PRIVATE_DATED_REPORT_FACT_SOURCE_APPROVED",
+  "at": "2026-11-14T20:32:56.600326+00:00",
+  "freezePath": "/workspace/gridex-k6-final-outcome-report-20261114/FROZEN.safe.json",
+  "freezeSHA256": "58e4a9cc9666ace68ee8e339e9b414aa2df8678ab72ed80f6e4244c43e1a714c",
+  "files": [
+    {
+      "path": "/workspace/gridex-k6-final-outcome-report-20261114/REPORT.sv.md",
+      "sha256": "79b901a3c66de4385581481a65020e20439dc803010053c63567a889e297e5d5",
+      "bytes": 22045
+    },
+    {
+      "path": "/workspace/gridex-k6-final-outcome-report-20261114/results.safe.json",
+      "sha256": "0b4f6e4fceeffe70079c740ea5ea2deca47b612e0329b36800277bf5184c148c",
+      "bytes": 262342
+    }
+  ],
+  "review": "FullV1 report and actualV4 functional/remaining66/count semantics read; actualK6 closure/index and E23503 limitations consistent. No unsupported scenario credit. Missing originals confined to historical comparisons; newfunctionalcontrols separate. MAIN03.03 current11chunk versus oldliteral3 explicit.",
+  "noNativeCredit": true,
+  "canonicalCounts": [
+    38,
+    1,
+    66
+  ],
+  "expectedRepo": "/tmp/gridex-k6-final-outcome-20261114",
+  "expectedNewPaths": [
+    "quality/audits/gridex-k6-final-outcome-20261114/REPORT.sv.md",
+    "quality/audits/gridex-k6-final-outcome-20261114/results.safe.json"
+  ],
+  "noPushOrMainApply": true
+}

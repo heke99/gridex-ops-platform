@@ -1,0 +1,18 @@
+{
+  "state": "ROOT_EXACT_GENUINE_EE_OWN_SESSION_LOCAL_AUTH_API_LOGOUT_SCOPE",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T20:10:02.777478+00:00",
+  "scriptPath": "/tmp/gridex-k6-normal-closure-prep-20261114/logout-own-auth-session.py",
+  "scriptSHA256": "bbc929909117c0611555e2a2503878d4524f680d3068fa6dc41a55f1ca0d909c",
+  "userId": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+  "sessionId": "ef105ec3-b576-4061-af36-a5ce910c0fc0",
+  "scope": "local",
+  "authorization": "Necessary cleanup of this genuinely issued owned testoperator session after ONE normalUIlogout failed409/heldpage likelyclosed; no oldimportretry/reset/hotpatch.",
+  "conditions": [
+    "UseONLYpreservedgenuineK6verified-session token; decodedsub/session exact, realnormalAuthGET55321/user returns200/exactEE beforeONEPOSTlogout?scope=local",
+    "Currentnormalanonapikey only, no serviceadmin/AuthDML/refresh/setSession/cookieinjection/fakeJWT/otherusersessions",
+    "ActualpostNativeexact/allOwnEE sessionsrefresh0 and ownedbrowser/helperclosure required",
+    "Report authenticatedAPIlogout separately from failednormalUIlogout; never rewritehistoricalhelpernormalLogout:false"
+  ],
+  "noBusinessAuthority": true
+}

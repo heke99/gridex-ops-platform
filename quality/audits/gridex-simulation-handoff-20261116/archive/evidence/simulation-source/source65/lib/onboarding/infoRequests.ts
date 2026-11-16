@@ -1,0 +1,1695 @@
+import { applyPermissionMarketSource } from '@/lib/ediel/permissions/permissionMarketTransition';
+import { queueManualSupplierInformationRequest } from '@/lib/customer-operations/manualSupplierInformationRequest';
+import { validateInfoRequestClosure } from "@/lib/onboarding/infoRequestClosure";
+import { prepareManualServicePermission } from '@/lib/ediel/services/manualPermission';
+import type { EdielMessageRow } from '@/lib/ediel/types';
+import { supabaseService } from "@/lib/supabase/service";
+import { gridOwnerRequestMatchesAuthorization, resolveCurrentInfoRequestAuthorization } from "./infoRequestAuthorization";
+import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
+import { createGridOwnerDataRequest } from "@/lib/cis/db-data";
+import { prepareAndQueueProdatZ01FromDataRequest } from "@/lib/ediel/flows/prodatCustomerMasterdata";
+import { resolveCustomerInfoOperationEnvironment } from "@/lib/ediel/customerInfoEnvironmentResolver";
+import { evaluateSiteFacilityIdentity } from "@/lib/customer-operations/customerIntakeOrchestrator";
+import { normalizeUuidOrNull, requireUuid } from "@/lib/validation/uuid";
+import {
+  makeCustomerOperationBlocker,
+  type CustomerOperationBlocker,
+} from "@/lib/customer-operations/blockers";
+import {
+  Z01_FACILITY_IDENTIFIER_BLOCKER_CODE,
+  Z01_FACILITY_IDENTIFIER_ROUTE_STATUS,
+} from "@/lib/customer-operations/z01Prerequisites";
+
+export type CustomerOption = {
+  id: string;
+  label: string;
+  sublabel: string | null;
+};
+
+export type CustomerInfoSiteOption = {
+  id: string;
+  customerId: string;
+  label: string;
+  sublabel: string | null;
+  gridOwnerId: string | null;
+};
+
+export type CustomerInfoMeteringPointOption = {
+  id: string;
+  siteId: string;
+  customerId: string | null;
+  label: string;
+  sublabel: string | null;
+  gridOwnerId: string | null;
+};
+
+export type CustomerInfoGridOwnerOption = {
+  id: string;
+  label: string;
+  sublabel: string | null;
+};
+
+export type CustomerInfoRequestResourceOptions = {
+  sites: CustomerInfoSiteOption[];
+  meteringPoints: CustomerInfoMeteringPointOption[];
+  gridOwners: CustomerInfoGridOwnerOption[];
+};
+
+export type CustomerInfoRequestRow = {
+  id: string;
+  company_id: string;
+  customer_id: string;
+  site_id: string | null;
+  metering_point_id: string | null;
+  authorization_document_id: string | null;
+  request_type: string;
+  target_party_type: string;
+  target_party_name: string | null;
+  grid_owner_id: string | null;
+  current_supplier_name: string | null;
+  status: string;
+  requested_data_categories: string[];
+  verified_payload: Record<string, unknown>;
+  blocker_reason: string | null;
+  blocker_code?: string | null;
+  blocker_details?: Record<string, unknown> | null;
+  notes: string | null;
+  requested_at: string | null;
+  sent_at: string | null;
+  received_at: string | null;
+  grid_owner_data_request_id?: string | null;
+  outbound_request_id?: string | null;
+  ediel_message_id?: string | null;
+  response_ediel_message_id?: string | null;
+  operation_id?: string | null;
+  interchange_reference?: string | null;
+  transaction_reference?: string | null;
+  correlation_reference?: string | null;
+  external_reference?: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  route_resolution_status?: string | null;
+  route_resolution_reason?: string | null;
+  next_required_action?: string | null;
+};
+
+export type AuthorizationScopeRow = {
+  id: string;
+  company_id: string;
+  customer_id: string;
+  authorization_document_id: string | null;
+  scope_type: string;
+  status: string;
+  covers_grid_owner_data: boolean;
+  covers_current_supplier_contract: boolean;
+  covers_metering_data: boolean;
+  valid_from: string | null;
+  valid_to: string | null;
+  revoked_at: string | null;
+  evidence_note: string | null;
+  created_at: string;
+};
+
+export type MeteringPermissionRow = {
+  id: string;
+  company_id: string;
+  customer_id: string;
+  site_id: string | null;
+  metering_point_id: string | null;
+  grid_owner_id: string | null;
+  authorization_document_id: string | null;
+  permission_reference: string | null;
+  case_reference: string | null;
+  status: string;
+  requested_start_date: string | null;
+  requested_end_date: string | null;
+  approved_start_date: string | null;
+  approved_end_date: string | null;
+  resolution_code: string | null;
+  report_frequency: string | null;
+  last_blocker: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PricingCustomerContext = {
+  customer_id: string;
+  site_id: string | null;
+  metering_point_id: string | null;
+};
+
+function isMissingRelationError(error: unknown): boolean {
+  const maybe = error as { code?: string; message?: string } | null;
+  return Boolean(
+    maybe &&
+    (maybe.code === "42P01" ||
+      maybe.code === "42703" ||
+      maybe.code === "PGRST205" ||
+      /does not exist|schema cache|relation .* does not exist/i.test(
+        maybe.message ?? "",
+      )),
+  );
+}
+
+function customerLabel(row: Record<string, unknown>): string {
+  const companyName = String(row.company_name ?? "").trim();
+  const fullName = String(row.full_name ?? "").trim();
+  const firstName = String(row.first_name ?? "").trim();
+  const lastName = String(row.last_name ?? "").trim();
+  const personal = String(row.personal_number ?? "").trim();
+  const org = String(row.org_number ?? "").trim();
+  const base =
+    companyName ||
+    fullName ||
+    [firstName, lastName].filter(Boolean).join(" ") ||
+    personal ||
+    org ||
+    String(row.id);
+  return base;
+}
+
+export async function listCustomersForInfoRequestSelector(
+  companyId: string,
+): Promise<CustomerOption[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from("customers")
+      .select(
+        "id, customer_number, first_name, last_name, full_name, company_name, email, personal_number, org_number",
+      )
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(80);
+
+    if (error) {
+      if (isMissingRelationError(error)) return [];
+      throw error;
+    }
+
+    return ((data ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      id: String(row.id),
+      label: customerLabel(row as Record<string, unknown>),
+      sublabel:
+        [row.customer_number, row.email, row.personal_number, row.org_number]
+          .filter(Boolean)
+          .join(" · ") || null,
+    }));
+  } catch (error) {
+    if (isMissingRelationError(error)) return [];
+    throw error;
+  }
+}
+
+export type Z01RepairEventRow = {
+  id: string;
+  event_type: string;
+  message: string | null;
+  payload: Record<string, unknown> | null;
+  created_at: string | null;
+};
+
+/**
+ * Latest Z01 repair / dry-run audit events for a customer so the customer card
+ * can show a visible result after the platform admin clicks repair/dry-run.
+ */
+export async function listZ01RepairEventsByCustomerId(params: {
+  companyId: string;
+  customerId: string;
+  limit?: number;
+}): Promise<Z01RepairEventRow[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from("customer_info_request_events")
+      .select("id,event_type,message,payload,created_at")
+      .eq("company_id", params.companyId)
+      .eq("customer_id", params.customerId)
+      .in("event_type", [
+        "z01_dry_run_repair",
+        "z01_grid_owner_data_request_finalized_after_route_ready",
+        "z01_repair_blocked",
+        "z01_repair_failed",
+        "z01_repair_completed",
+      ])
+      .order("created_at", { ascending: false })
+      .limit(params.limit ?? 5);
+
+    if (error) {
+      if (isMissingRelationError(error)) return [];
+      throw error;
+    }
+    return (data ?? []) as Z01RepairEventRow[];
+  } catch (error) {
+    if (isMissingRelationError(error)) return [];
+    return [];
+  }
+}
+
+export async function listCustomerInfoRequests(
+  companyId: string,
+): Promise<CustomerInfoRequestRow[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from("customer_info_requests")
+      .select("*")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(80);
+
+    if (error) {
+      if (isMissingRelationError(error)) return [];
+      throw error;
+    }
+
+    return (data ?? []) as CustomerInfoRequestRow[];
+  } catch (error) {
+    if (isMissingRelationError(error)) return [];
+    throw error;
+  }
+}
+
+export async function listAuthorizationScopes(
+  companyId: string,
+): Promise<AuthorizationScopeRow[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from("authorization_scopes")
+      .select("*")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(80);
+
+    if (error) {
+      if (isMissingRelationError(error)) return [];
+      throw error;
+    }
+
+    return (data ?? []) as AuthorizationScopeRow[];
+  } catch (error) {
+    if (isMissingRelationError(error)) return [];
+    throw error;
+  }
+}
+
+export async function listMeteringPermissions(
+  companyId: string,
+): Promise<MeteringPermissionRow[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from("metering_permissions")
+      .select("*")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(80);
+
+    if (error) {
+      if (isMissingRelationError(error)) return [];
+      throw error;
+    }
+
+    return (data ?? []) as MeteringPermissionRow[];
+  } catch (error) {
+    if (isMissingRelationError(error)) return [];
+    throw error;
+  }
+}
+
+function siteOptionLabel(row: Record<string, unknown>): string {
+  const siteName = String(row.site_name ?? "").trim();
+  const facilityId = String(row.facility_id ?? "").trim();
+  return siteName || facilityId || String(row.id);
+}
+
+function meteringPointOptionLabel(row: Record<string, unknown>): string {
+  const meterPointId = String(row.meter_point_id ?? "").trim();
+  const edielReference = String(row.ediel_reference ?? "").trim();
+  const facilityId = String(row.site_facility_id ?? "").trim();
+  return meterPointId || edielReference || facilityId || String(row.id);
+}
+
+export async function listCustomerInfoRequestResourceOptions(
+  companyId: string,
+): Promise<CustomerInfoRequestResourceOptions> {
+  try {
+    const [sitesResult, meteringPointsResult, gridOwnersResult] =
+      await Promise.all([
+        supabaseService
+          .from("customer_sites")
+          .select(
+            "id, customer_id, site_name, facility_id, status, grid_owner_id, street, postal_code, city",
+          )
+          .eq("company_id", companyId)
+          .order("updated_at", { ascending: false })
+          .limit(250),
+        supabaseService
+          .from("metering_points")
+          .select(
+            "id, site_id, meter_point_id, site_facility_id, ediel_reference, status, grid_owner_id, price_area_code",
+          )
+          .eq("company_id", companyId)
+          .order("updated_at", { ascending: false })
+          .limit(250),
+        supabaseService
+          .from("grid_owners")
+          .select("id, name, owner_code, ediel_id, is_active")
+          .eq("is_active", true)
+          .order("name", { ascending: true })
+          .limit(250),
+      ]);
+
+    if (sitesResult.error) {
+      if (!isMissingRelationError(sitesResult.error)) throw sitesResult.error;
+    }
+    if (meteringPointsResult.error) {
+      if (!isMissingRelationError(meteringPointsResult.error))
+        throw meteringPointsResult.error;
+    }
+    if (gridOwnersResult.error) {
+      if (!isMissingRelationError(gridOwnersResult.error))
+        throw gridOwnersResult.error;
+    }
+
+    const siteRows = (sitesResult.data ?? []) as Array<Record<string, unknown>>;
+    const siteCustomerById = new Map(
+      siteRows.map((row) => [String(row.id), String(row.customer_id ?? "")]),
+    );
+
+    return {
+      sites: siteRows.map((row) => ({
+        id: String(row.id),
+        customerId: String(row.customer_id ?? ""),
+        label: siteOptionLabel(row),
+        sublabel:
+          [row.facility_id, row.status, row.street, row.postal_code, row.city]
+            .filter(Boolean)
+            .join(" · ") || null,
+        gridOwnerId:
+          typeof row.grid_owner_id === "string" ? row.grid_owner_id : null,
+      })),
+      meteringPoints: (
+        (meteringPointsResult.data ?? []) as Array<Record<string, unknown>>
+      ).map((row) => {
+        const siteId = String(row.site_id ?? "");
+        return {
+          id: String(row.id),
+          siteId,
+          customerId: siteCustomerById.get(siteId) || null,
+          label: meteringPointOptionLabel(row),
+          sublabel:
+            [row.status, row.site_facility_id, row.price_area_code]
+              .filter(Boolean)
+              .join(" · ") || null,
+          gridOwnerId:
+            typeof row.grid_owner_id === "string" ? row.grid_owner_id : null,
+        };
+      }),
+      gridOwners: (
+        (gridOwnersResult.data ?? []) as Array<Record<string, unknown>>
+      ).map((row) => ({
+        id: String(row.id),
+        label: String(row.name ?? row.owner_code ?? row.id),
+        sublabel:
+          [row.owner_code, row.ediel_id].filter(Boolean).join(" · ") || null,
+      })),
+    };
+  } catch (error) {
+    if (isMissingRelationError(error))
+      return { sites: [], meteringPoints: [], gridOwners: [] };
+    throw error;
+  }
+}
+
+async function resolveCustomerInfoRequestAnchors(input: {
+  companyId: string;
+  customerId: string;
+  siteId?: string | null;
+  meteringPointId?: string | null;
+  gridOwnerId?: string | null;
+}): Promise<{
+  siteId: string | null;
+  meteringPointId: string | null;
+  gridOwnerId: string | null;
+}> {
+  const companyId = requireUuid(input.companyId, "company_id");
+  const customerId = requireUuid(input.customerId, "customer_id");
+  const requestedSiteId = normalizeUuidOrNull(input.siteId, "customer_site_id");
+  const requestedMeteringPointId = normalizeUuidOrNull(
+    input.meteringPointId,
+    "metering_point_id",
+  );
+  const requestedGridOwnerId = normalizeUuidOrNull(
+    input.gridOwnerId,
+    "grid_owner_id",
+  );
+  let site: Record<string, unknown> | null = null;
+  let meteringPoint: Record<string, unknown> | null = null;
+
+  if (requestedMeteringPointId) {
+    const { data, error } = await supabaseService
+      .from("metering_points")
+      .select("id, site_id, grid_owner_id")
+      .eq("company_id", companyId)
+      .eq("id", requestedMeteringPointId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data?.id) throw new Error("Mätpunkten hittades inte för valt bolag.");
+    meteringPoint = data as Record<string, unknown>;
+  }
+
+  const effectiveSiteId =
+    requestedSiteId ??
+    (typeof meteringPoint?.site_id === "string" ? meteringPoint.site_id : null);
+
+  if (effectiveSiteId) {
+    const { data, error } = await supabaseService
+      .from("customer_sites")
+      .select("id, customer_id, grid_owner_id")
+      .eq("company_id", companyId)
+      .eq("customer_id", customerId)
+      .eq("id", effectiveSiteId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data?.id)
+      throw new Error(
+        "Anläggningen hittades inte på vald kund och valt bolag.",
+      );
+    site = data as Record<string, unknown>;
+  }
+
+  if (
+    meteringPoint &&
+    effectiveSiteId &&
+    meteringPoint.site_id !== effectiveSiteId
+  ) {
+    throw new Error("Vald mätpunkt tillhör inte vald anläggning.");
+  }
+
+  const inferredGridOwnerId =
+    (typeof meteringPoint?.grid_owner_id === "string"
+      ? meteringPoint.grid_owner_id
+      : null) ??
+    (typeof site?.grid_owner_id === "string" ? site.grid_owner_id : null);
+
+  if (
+    requestedGridOwnerId &&
+    inferredGridOwnerId &&
+    requestedGridOwnerId !== inferredGridOwnerId
+  ) {
+    throw new Error(
+      "Vald nätägare matchar inte anläggningens eller mätpunktens nätägare.",
+    );
+  }
+
+  return {
+    siteId: effectiveSiteId,
+    meteringPointId: requestedMeteringPointId,
+    gridOwnerId: requestedGridOwnerId ?? inferredGridOwnerId ?? null,
+  };
+}
+
+async function assertCustomerBelongsToCompany(
+  customerId: string,
+  companyId: string,
+) {
+  const { data, error } = await supabaseService
+    .from("customers")
+    .select("id, company_id")
+    .eq("id", customerId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.id)
+    throw new Error("Kunden tillhör inte valt bolag eller saknas.");
+}
+
+export async function createCustomerInfoRequest(input: {
+  companyId: string;
+  actorUserId: string;
+  customerId: string;
+  requestType: string;
+  targetPartyType: string;
+  targetPartyName?: string | null;
+  gridOwnerId?: string | null;
+  currentSupplierName?: string | null;
+  siteId?: string | null;
+  meteringPointId?: string | null;
+  requestedDataCategories: string[];
+  notes?: string | null;
+  externalReference?: string | null;
+  operationId?: string | null;
+  /** Idempotency for automated callers: one request per key and company. */
+  automationKey?: string | null;
+  automationOrigin?: string | null;
+}) {
+  const companyId = requireUuid(input.companyId, "company_id");
+  const actorUserId = requireUuid(input.actorUserId, "actor_user_id");
+  const customerId = requireUuid(input.customerId, "customer_id");
+  const operationId = normalizeUuidOrNull(input.operationId, "operation_id");
+
+  await requireCompanyOperationalForWrites(companyId);
+  await assertCustomerBelongsToCompany(customerId, companyId);
+  const anchors = await resolveCustomerInfoRequestAnchors({
+    companyId,
+    customerId,
+    siteId: input.siteId ?? null,
+    meteringPointId: input.meteringPointId ?? null,
+    gridOwnerId: input.gridOwnerId ?? null,
+  });
+
+  const normalizedCategories = Array.from(
+    new Set(
+      input.requestedDataCategories
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  );
+  if (normalizedCategories.length === 0) {
+    throw new Error(
+      "Välj minst en uppgift som ska begäras eller kontrolleras.",
+    );
+  }
+
+  // Request and its "created" event are written in one tenant-checked
+  // transaction; an automation key returns the existing request instead.
+  const { data, error } = await supabaseService.rpc("gridex_create_customer_info_request_v1", {
+    p_company_id: companyId,
+    p_actor_user_id: actorUserId,
+    p_request: {
+      customer_id: customerId,
+      request_type: input.requestType,
+      target_party_type: input.targetPartyType,
+      target_party_name: input.targetPartyName ?? null,
+      site_id: anchors.siteId,
+      metering_point_id: anchors.meteringPointId,
+      grid_owner_id: anchors.gridOwnerId,
+      operation_id: operationId,
+      current_supplier_name: input.currentSupplierName ?? null,
+      requested_data_categories: normalizedCategories,
+      verified_payload: input.externalReference ? { externalReference: input.externalReference } : {},
+      notes: input.notes ?? null,
+      automation_key: input.automationKey ?? null,
+      automation_origin: input.automationOrigin ?? null,
+    },
+  });
+  if (error) throw error;
+  const result = data as { created?: boolean; request?: CustomerInfoRequestRow } | null;
+  if (!result?.request) throw new Error("customer_info_request_not_created");
+  return result.request;
+}
+
+export async function createAuthorizationScope(input: {
+  companyId: string;
+  actorUserId: string;
+  customerId: string;
+  scopeType: string;
+  coversGridOwnerData: boolean;
+  coversCurrentSupplierContract: boolean;
+  coversMeteringData: boolean;
+  validFrom?: string | null;
+  validTo?: string | null;
+  evidenceNote?: string | null;
+}) {
+  await requireCompanyOperationalForWrites(input.companyId);
+  await assertCustomerBelongsToCompany(input.customerId, input.companyId);
+
+  const { data, error } = await supabaseService
+    .from("authorization_scopes")
+    .insert({
+      company_id: input.companyId,
+      customer_id: input.customerId,
+      scope_type: input.scopeType,
+      status: "active",
+      covers_grid_owner_data: input.coversGridOwnerData,
+      covers_current_supplier_contract: input.coversCurrentSupplierContract,
+      covers_metering_data: input.coversMeteringData,
+      valid_from: input.validFrom ?? null,
+      valid_to: input.validTo ?? null,
+      evidence_note: input.evidenceNote ?? null,
+      created_by: input.actorUserId,
+      updated_by: input.actorUserId,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as AuthorizationScopeRow;
+}
+
+export async function createMeteringPermissionDraft(input: {
+  companyId: string;
+  /** Null for system runs (e.g. the billing cron). */
+  actorUserId: string | null;
+  customerId: string;
+  siteId?: string | null;
+  meteringPointId?: string | null;
+  gridOwnerId?: string | null;
+  requestedStartDate?: string | null;
+  requestedEndDate?: string | null;
+  caseReference?: string | null;
+  lastBlocker?: string | null;
+}) {
+  await requireCompanyOperationalForWrites(input.companyId);
+  await assertCustomerBelongsToCompany(input.customerId, input.companyId);
+  const anchors = await resolveCustomerInfoRequestAnchors({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    siteId: input.siteId ?? null,
+    meteringPointId: input.meteringPointId ?? null,
+    gridOwnerId: input.gridOwnerId ?? null,
+  });
+
+  const { data, error } = await supabaseService
+    .from("metering_permissions")
+    .insert({
+      company_id: input.companyId,
+      customer_id: input.customerId,
+      site_id: anchors.siteId,
+      metering_point_id: anchors.meteringPointId,
+      grid_owner_id: anchors.gridOwnerId,
+      status: input.lastBlocker ? "blocked" : "draft",
+      requested_start_date: input.requestedStartDate ?? null,
+      requested_end_date: input.requestedEndDate ?? null,
+      case_reference: input.caseReference ?? null,
+      last_blocker: input.lastBlocker ?? null,
+      created_by: input.actorUserId,
+      updated_by: input.actorUserId,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as MeteringPermissionRow;
+}
+
+export type InfoRequestDispatchResult = {
+  customerInfoRequest: CustomerInfoRequestRow;
+  gridOwnerDataRequestId: string | null;
+  outboundRequestId: string | null;
+  routeProfileId: string | null;
+  status: string;
+  blockerReason: string | null;
+  blockerCode: string | null;
+  blockerDetails: (CustomerOperationBlocker & Record<string, unknown>) | null;
+};
+
+function requestNeedsGridOwnerAuthorization(
+  request: Pick<
+    CustomerInfoRequestRow,
+    "target_party_type" | "request_type" | "requested_data_categories"
+  >,
+): boolean {
+  return (
+    request.target_party_type === "grid_owner" ||
+    request.request_type === "z01_customer_masterdata" ||
+    request.requested_data_categories.includes("facility_id") ||
+    request.requested_data_categories.includes("grid_area") ||
+    request.requested_data_categories.includes("annual_consumption") ||
+    request.requested_data_categories.includes("customer_masterdata")
+  );
+}
+
+function requestNeedsSupplierContractAuthorization(
+  request: Pick<
+    CustomerInfoRequestRow,
+    "target_party_type" | "requested_data_categories"
+  >,
+): boolean {
+  return (
+    request.target_party_type === "current_supplier" ||
+    request.requested_data_categories.includes("binding_period") ||
+    request.requested_data_categories.includes("termination_notice") ||
+    request.requested_data_categories.includes("contract_end_date") ||
+    request.requested_data_categories.includes("break_fee")
+  );
+}
+
+function hasAuthorizationForRequest(
+  request: CustomerInfoRequestRow,
+  scopes: AuthorizationScopeRow[],
+): { ok: boolean; reason: string | null } {
+  const needsGridOwner = requestNeedsGridOwnerAuthorization(request);
+  const needsSupplier = requestNeedsSupplierContractAuthorization(request);
+
+  if (!needsGridOwner && !needsSupplier) return { ok: true, reason: null };
+
+  if (
+    needsGridOwner &&
+    !scopes.some((scopeRow) => scopeRow.covers_grid_owner_data)
+  ) {
+    return {
+      ok: false,
+      reason:
+        "Fullmakt/avtal måste täcka nätägarens anläggnings- och kunduppgifter innan begäran kan skickas.",
+    };
+  }
+
+  if (
+    needsSupplier &&
+    !scopes.some((scopeRow) => scopeRow.covers_current_supplier_contract)
+  ) {
+    return {
+      ok: false,
+      reason:
+        "Fullmakt/avtal måste täcka bindning, uppsägning och uppgifter från nuvarande elhandlare.",
+    };
+  }
+
+  return { ok: true, reason: null };
+}
+
+async function getCustomerInfoRequestById(params: {
+  companyId: string;
+  requestId: string;
+}): Promise<CustomerInfoRequestRow | null> {
+  const { data, error } = await supabaseService
+    .from("customer_info_requests")
+    .select("*")
+    .eq("company_id", params.companyId)
+    .eq("id", params.requestId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as CustomerInfoRequestRow | null) ?? null;
+}
+
+export async function listCustomerInfoRequestsByCustomerId(params: {
+  companyId: string;
+  customerId: string;
+}): Promise<CustomerInfoRequestRow[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from("customer_info_requests")
+      .select("*")
+      .eq("company_id", params.companyId)
+      .eq("customer_id", params.customerId)
+      .order("created_at", { ascending: false })
+      .limit(80);
+
+    if (error) {
+      if (isMissingRelationError(error)) return [];
+      throw error;
+    }
+
+    return (data ?? []) as CustomerInfoRequestRow[];
+  } catch (error) {
+    if (isMissingRelationError(error)) return [];
+    throw error;
+  }
+}
+
+export async function listAuthorizationScopesByCustomerId(params: {
+  companyId: string;
+  customerId: string;
+}): Promise<AuthorizationScopeRow[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from("authorization_scopes")
+      .select("*")
+      .eq("company_id", params.companyId)
+      .eq("customer_id", params.customerId)
+      .order("created_at", { ascending: false })
+      .limit(80);
+
+    if (error) {
+      if (isMissingRelationError(error)) return [];
+      throw error;
+    }
+
+    return (data ?? []) as AuthorizationScopeRow[];
+  } catch (error) {
+    if (isMissingRelationError(error)) return [];
+    throw error;
+  }
+}
+
+export async function listMeteringPermissionsByCustomerId(params: {
+  companyId: string;
+  customerId: string;
+}): Promise<MeteringPermissionRow[]> {
+  try {
+    const { data, error } = await supabaseService
+      .from("metering_permissions")
+      .select("*")
+      .eq("company_id", params.companyId)
+      .eq("customer_id", params.customerId)
+      .order("created_at", { ascending: false })
+      .limit(80);
+
+    if (error) {
+      if (isMissingRelationError(error)) return [];
+      throw error;
+    }
+
+    return (data ?? []) as MeteringPermissionRow[];
+  } catch (error) {
+    if (isMissingRelationError(error)) return [];
+    throw error;
+  }
+}
+
+async function addCustomerInfoRequestEvent(input: {
+  companyId: string;
+  requestId: string;
+  customerId: string;
+  actorUserId: string;
+  eventType: string;
+  message: string;
+  payload?: Record<string, unknown>;
+}) {
+  const { error } = await supabaseService
+    .from("customer_info_request_events")
+    .insert({
+      company_id: input.companyId,
+      customer_info_request_id: input.requestId,
+      customer_id: input.customerId,
+      event_type: input.eventType,
+      message: input.message,
+      payload: input.payload ?? {},
+      created_by: input.actorUserId,
+    });
+
+  if (error && !isMissingRelationError(error)) throw error;
+}
+
+async function blockCustomerInfoRequest(params: {
+  request: CustomerInfoRequestRow;
+  companyId: string;
+  actorUserId: string;
+  status?: string;
+  blockerReason: string;
+  blockerCode?: string | null;
+  blockerDetails?: (CustomerOperationBlocker & Record<string, unknown>) | null;
+  gridOwnerDataRequestId?: string | null;
+  outboundRequestId?: string | null;
+  edielMessageId?: string | null;
+  eventType: string;
+}): Promise<InfoRequestDispatchResult> {
+  const blockerDetails =
+    params.blockerDetails ??
+    (params.blockerCode
+      ? makeCustomerOperationBlocker(params.blockerCode, {
+          blocker_reason: params.blockerReason,
+        })
+      : null);
+  const blockerExtra = (blockerDetails ?? {}) as Record<string, unknown>;
+  const routeResolutionStatus = String(
+    blockerExtra.route_resolution_status ??
+      blockerDetails?.reason_code ??
+      blockerDetails?.blocker_code ??
+      params.blockerCode ??
+      "blocked",
+  );
+  const { data, error } = await supabaseService
+    .from("customer_info_requests")
+    .update({
+      status: params.status ?? "blocked",
+      blocker_reason: params.blockerReason,
+      blocker_code: blockerDetails?.blocker_code ?? params.blockerCode ?? null,
+      blocker_details: blockerDetails ?? null,
+      grid_owner_data_request_id:
+        params.gridOwnerDataRequestId ??
+        params.request.grid_owner_data_request_id ??
+        null,
+      outbound_request_id:
+        params.outboundRequestId ?? params.request.outbound_request_id ?? null,
+      ediel_message_id:
+        params.edielMessageId ?? params.request.ediel_message_id ?? null,
+      verified_payload: {
+        ...(params.request.verified_payload ?? {}),
+        blocker_code:
+          blockerDetails?.blocker_code ?? params.blockerCode ?? null,
+        blocker_reason: params.blockerReason,
+        next_required_action: blockerDetails?.next_required_action ?? null,
+        blocker_details: blockerDetails ?? null,
+        gridOwnerDataRequestId:
+          params.gridOwnerDataRequestId ??
+          params.request.grid_owner_data_request_id ??
+          null,
+        outboundRequestId:
+          params.outboundRequestId ??
+          params.request.outbound_request_id ??
+          null,
+        edielMessageId:
+          params.edielMessageId ?? params.request.ediel_message_id ?? null,
+      },
+      route_resolution_status: routeResolutionStatus,
+      route_resolution_reason: params.blockerReason,
+      next_required_action: blockerDetails?.next_required_action ?? null,
+      updated_by: params.actorUserId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("company_id", params.companyId)
+    .eq("id", params.request.id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+
+  await addCustomerInfoRequestEvent({
+    companyId: params.companyId,
+    requestId: params.request.id,
+    customerId: params.request.customer_id,
+    actorUserId: params.actorUserId,
+    eventType: params.eventType,
+    message: params.blockerReason,
+    payload: {
+      blocker_code: blockerDetails?.blocker_code ?? params.blockerCode ?? null,
+      blocker_details: blockerDetails ?? null,
+      gridOwnerDataRequestId:
+        params.gridOwnerDataRequestId ??
+        params.request.grid_owner_data_request_id ??
+        null,
+      outboundRequestId:
+        params.outboundRequestId ?? params.request.outbound_request_id ?? null,
+      edielMessageId:
+        params.edielMessageId ?? params.request.ediel_message_id ?? null,
+    },
+  });
+
+  return {
+    customerInfoRequest: data as CustomerInfoRequestRow,
+    gridOwnerDataRequestId:
+      params.gridOwnerDataRequestId ??
+      params.request.grid_owner_data_request_id ??
+      null,
+    outboundRequestId:
+      params.outboundRequestId ?? params.request.outbound_request_id ?? null,
+    routeProfileId: null,
+    status: params.status ?? "blocked",
+    blockerReason: params.blockerReason,
+    blockerCode: blockerDetails?.blocker_code ?? params.blockerCode ?? null,
+    blockerDetails,
+  };
+}
+
+function customerDataDispatchEnvironmentOverride():
+  | "test"
+  | "production"
+  | null {
+  const raw =
+    process.env.GRIDEX_CUSTOMER_DATA_EDIEL_ENVIRONMENT ??
+    process.env.GRIDEX_EDIEL_ENVIRONMENT ??
+    null;
+  return raw === "test" || raw === "production" ? raw : null;
+}
+
+function customerMasterdataAnchorsAreMissing(
+  request: CustomerInfoRequestRow,
+): string | null {
+  if (!requestNeedsGridOwnerAuthorization(request)) return null;
+  if (!request.site_id && !request.metering_point_id) {
+    return "Anläggning och mätpunkt behöver väljas eller kompletteras innan begäran kan skickas.";
+  }
+  if (!request.grid_owner_id) {
+    return "Nätägare behöver verifieras innan begäran kan skickas.";
+  }
+  return null;
+}
+
+function customerInfoStatusFromZ01Result(
+  z01: Awaited<ReturnType<typeof prepareAndQueueProdatZ01FromDataRequest>>,
+): string {
+  if (z01.prepared) return "z01_prepared";
+  const code = String(
+    z01.blockerCode ?? z01.blockerDetails?.blocker_code ?? "",
+  ).toLowerCase();
+  if (code === "missing_power_of_attorney") return "missing_authorization";
+  if (code === "operational_route_missing" || code === "missing_route")
+    return "route_missing";
+  return "blocked";
+}
+
+function routeResolutionStatusFromZ01Result(
+  z01: Awaited<ReturnType<typeof prepareAndQueueProdatZ01FromDataRequest>>,
+): string {
+  if (z01.prepared) return "prepared";
+  const code = String(
+    z01.blockerCode ?? z01.blockerDetails?.blocker_code ?? "",
+  ).toLowerCase();
+  if (code === "production_route_profile_not_ready")
+    return "route_profile_found_but_not_production_ready";
+  if (code === "route_profile_disabled") return "route_profile_disabled";
+  if (code === "production_send_locked") return "production_send_locked";
+  if (code === "route_profile_missing") return "route_profile_missing";
+  if (code === "route_profile_ambiguous") return "route_profile_ambiguous";
+  if (
+    code === "actor_settings_ambiguous" ||
+    code === "ambiguous_sender_settings"
+  )
+    return "actor_settings_ambiguous";
+  if (code === "sender_ediel_id_missing") return "sender_ediel_id_missing";
+  if (code === "environment_missing") return "environment_missing";
+  if (code === "environment_not_resolved") return "environment_not_resolved";
+  if (code === Z01_FACILITY_IDENTIFIER_BLOCKER_CODE)
+    return Z01_FACILITY_IDENTIFIER_ROUTE_STATUS;
+  return String(
+    z01.blockerDetails?.route_resolution_status ??
+      z01.blockerCode ??
+      "z01_prepare_failed",
+  );
+}
+
+function dispatchBlockerFromError(
+  error: unknown,
+): (CustomerOperationBlocker & Record<string, unknown>) | null {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  const normalized = message.toLowerCase();
+  if (
+    /facility_or_metering_point_missing|anläggnings-id|mätpunkt/i.test(message)
+  ) {
+    return makeCustomerOperationBlocker(Z01_FACILITY_IDENTIFIER_BLOCKER_CODE);
+  }
+  if (/snapshot|site|facility/.test(message)) {
+    return makeCustomerOperationBlocker("invalid_customer_site_snapshot", {
+      blocker_reason:
+        message ||
+        "PRODAT Z01 kunde inte förberedas eftersom anläggningsunderlaget är ofullständigt.",
+    });
+  }
+  const known: Array<[string, string]> = [
+    ["production_send_locked", "production_send_locked"],
+    [
+      "platform_route_exists_but_not_materialized",
+      "platform_route_exists_but_not_materialized",
+    ],
+    ["operational_route_missing", "operational_route_missing"],
+    ["missing_route", "operational_route_missing"],
+    ["sender_settings_missing", "sender_settings_missing"],
+    ["environment_not_resolved", "environment_not_resolved"],
+    ["certificate", "certificate_missing"],
+    ["routing blockerades", "operational_route_missing"],
+    ["saknar aktiv route", "operational_route_missing"],
+    ["saknar mottagande ediel-id", "operational_route_missing"],
+    ["saknar ediel-id", "sender_settings_missing"],
+  ];
+  const hit = known.find(([needle]) => normalized.includes(needle));
+  if (!hit) return null;
+  return makeCustomerOperationBlocker(hit[1], {
+    blocker_reason: message || undefined,
+  });
+}
+
+/** Qualify current bound authority and persist its exact refusal. This method
+ * cannot create or queue a GODR, outbound request or message. */
+export async function closeCustomerInfoRequest(input: {
+  companyId: string;
+  actorUserId: string;
+  requestId: string;
+  targetStatus: string;
+  reason: string;
+}): Promise<CustomerInfoRequestRow> {
+  const companyId = requireUuid(input.companyId, "company_id");
+  const actorUserId = requireUuid(input.actorUserId, "actor_user_id");
+  const requestId = requireUuid(input.requestId, "customer_info_request_id");
+
+  await requireCompanyOperationalForWrites(companyId);
+  const request = await getCustomerInfoRequestById({ companyId, requestId });
+  if (!request) throw new Error("Uppgiftsbegäran hittades inte för valt bolag.");
+
+  const validationError = validateInfoRequestClosure({
+    currentStatus: request.status,
+    targetStatus: input.targetStatus,
+    reason: input.reason,
+  });
+  if (validationError) throw new Error(validationError);
+
+  const reason = input.reason.trim();
+  const now = new Date().toISOString();
+  const { data, error } = await supabaseService
+    .from("customer_info_requests")
+    .update({
+      status: input.targetStatus,
+      next_required_action: null,
+      verified_payload: {
+        ...(request.verified_payload ?? {}),
+        manual_closure: {
+          status: input.targetStatus,
+          reason,
+          closed_by: actorUserId,
+          closed_at: now,
+          previous_status: request.status,
+        },
+      },
+      updated_by: actorUserId,
+      updated_at: now,
+    })
+    .eq("company_id", companyId)
+    .eq("id", request.id)
+    // Optimistic concurrency: only close from the status that was validated.
+    .eq("status", request.status)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Ärendet ändrades samtidigt av någon annan. Ladda om sidan och försök igen.");
+
+  await addCustomerInfoRequestEvent({
+    companyId,
+    requestId: request.id,
+    customerId: request.customer_id,
+    actorUserId,
+    eventType: input.targetStatus === "cancelled" ? "manually_cancelled" : "manually_completed",
+    message: input.targetStatus === "cancelled" ? `Ärendet avbröts: ${reason}` : `Ärendet markerades som slutfört: ${reason}`,
+    payload: { previous_status: request.status, status: input.targetStatus, reason },
+  });
+
+  return data as CustomerInfoRequestRow;
+}
+
+export async function checkCustomerInfoRequestAuthorization(input: {
+  companyId: string;
+  actorUserId: string;
+  requestId: string;
+}) {
+  const companyId = requireUuid(input.companyId, "company_id");
+  const actorUserId = requireUuid(input.actorUserId, "actor_user_id");
+  const requestId = requireUuid(input.requestId, "customer_info_request_id");
+
+  await requireCompanyOperationalForWrites(companyId);
+
+  const request = await getCustomerInfoRequestById({
+    companyId,
+    requestId,
+  });
+
+  if (!request)
+    throw new Error("Uppgiftsbegäran hittades inte för valt bolag.");
+  await assertCustomerBelongsToCompany(request.customer_id, companyId);
+
+  const currentAuthorization = await resolveCurrentInfoRequestAuthorization(request, {
+    gridOwnerRequired: requestNeedsGridOwnerAuthorization(request),
+  });
+  const authorization = hasAuthorizationForRequest(request, currentAuthorization.scopes);
+
+  if (!authorization.ok) {
+    const blocker = makeCustomerOperationBlocker("missing_power_of_attorney", {
+      blocker_reason:
+        authorization.reason ?? "Begäran blockerades av fullmaktskontroll.",
+    });
+    const { data, error } = await supabaseService
+      .from("customer_info_requests")
+      .update({
+        status: "missing_authorization",
+        blocker_reason: blocker.blocker_reason,
+        blocker_code: blocker.blocker_code,
+        blocker_details: blocker,
+        verified_payload: {
+          ...(request.verified_payload ?? {}),
+          blocker_code: blocker.blocker_code,
+          blocker_reason: blocker.blocker_reason,
+          next_required_action: blocker.next_required_action,
+          blocker_details: blocker,
+        },
+        updated_by: actorUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("company_id", companyId)
+      .eq("id", request.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+
+    await addCustomerInfoRequestEvent({
+      companyId,
+      requestId: request.id,
+      customerId: request.customer_id,
+      actorUserId,
+      eventType: "blocked_missing_authorization",
+      message: blocker.blocker_reason,
+      payload: { blocker_code: blocker.blocker_code, blocker_details: blocker },
+    });
+
+    const refusal: InfoRequestDispatchResult = {
+      customerInfoRequest: data as CustomerInfoRequestRow,
+      gridOwnerDataRequestId: request.grid_owner_data_request_id ?? null,
+      outboundRequestId: request.outbound_request_id ?? null,
+      routeProfileId: null,
+      status: "missing_authorization",
+      blockerReason: blocker.blocker_reason,
+      blockerCode: blocker.blocker_code,
+      blockerDetails: blocker,
+    };
+    return {request, currentAuthorization, refusal};
+  }
+  return {request, currentAuthorization, refusal: null};
+}
+
+export async function queueCustomerInfoRequestForDispatch(input: {
+  companyId: string;
+  actorUserId: string;
+  requestId: string;
+}): Promise<InfoRequestDispatchResult> {
+  const companyId = requireUuid(input.companyId, "company_id");
+  const actorUserId = requireUuid(input.actorUserId, "actor_user_id");
+  const {request, currentAuthorization, refusal} = await checkCustomerInfoRequestAuthorization(input);
+  if (refusal) return refusal;
+
+  if (
+    requestNeedsSupplierContractAuthorization(request) &&
+    !requestNeedsGridOwnerAuthorization(request)
+  ) {
+    const dispatch = await queueManualSupplierInformationRequest({ companyId, customerId: request.customer_id,
+      siteId: request.site_id ?? '', customerInfoRequestId: request.id, actorUserId });
+    const { data, error } = await supabaseService
+      .from("customer_info_requests")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("id", request.id)
+      .single();
+
+    if (error) throw error;
+
+    await addCustomerInfoRequestEvent({
+      companyId,
+      requestId: request.id,
+      customerId: request.customer_id,
+      actorUserId,
+      eventType: dispatch.status === 'needs_review' ? 'manual_supplier_contract_review_required' : 'manual_supplier_contract_queued',
+      message: dispatch.blockerReason ?? 'Separat handelsförfrågan har köats till nuvarande elhandlares verifierade fullmaktskontakt.',
+    });
+
+    return {
+      customerInfoRequest: data as CustomerInfoRequestRow,
+      gridOwnerDataRequestId: null,
+      outboundRequestId: null,
+      routeProfileId: null,
+      status: dispatch.status === 'needs_review' ? 'manual_review_required' : dispatch.status === 'queued' ? 'ready_to_send' : 'waiting_response',
+      blockerReason: dispatch.blockerReason,
+      blockerCode: dispatch.blockerCode,
+      blockerDetails: null,
+    };
+  }
+
+  const anchorBlockerReason = customerMasterdataAnchorsAreMissing(request);
+  if (anchorBlockerReason) {
+    return blockCustomerInfoRequest({
+      request,
+      companyId,
+      actorUserId,
+      blockerReason: anchorBlockerReason,
+      blockerCode: "grid_area_not_verified",
+      eventType: "blocked_missing_z01_anchors",
+    });
+  }
+
+  // HARD FACILITY GUARD (layer 1 of the Z01 chain): a site/metering point UUID
+  // is not enough — the external facility id or metering identity must exist
+  // before ANY grid_owner_data_request/outbound row is created for
+  // customer_masterdata. Missing identity must go through the manual
+  // grid-owner information path, never a queued/prepared Z01.
+  if (requestNeedsGridOwnerAuthorization(request) && request.site_id) {
+    const facilityIdentity = await evaluateSiteFacilityIdentity({
+      companyId,
+      customerId: request.customer_id,
+      siteId: request.site_id,
+    });
+    if (facilityIdentity.siteExists && !facilityIdentity.facilityReady) {
+      return blockCustomerInfoRequest({
+        request,
+        companyId,
+        actorUserId,
+        blockerReason:
+          "Anläggnings-ID/mätpunkts-ID saknas. PRODAT Z01 får inte förberedas — uppgifterna begärs från nätägaren via den manuella vägen först.",
+        blockerCode: "facility_or_metering_point_missing",
+        eventType: "blocked_missing_facility_identity",
+      });
+    }
+  }
+
+  const environmentResolution = await resolveCustomerInfoOperationEnvironment({
+    companyId,
+    explicitEnvironment: customerDataDispatchEnvironmentOverride(),
+    messageFamily: "PRODAT",
+    messageCode: "Z01",
+  });
+  if (environmentResolution.status === "blocked") {
+    return blockCustomerInfoRequest({
+      request,
+      companyId,
+      actorUserId,
+      blockerReason: environmentResolution.blocker.blocker_reason,
+      blockerCode: environmentResolution.blocker.blocker_code,
+      blockerDetails: {
+        ...environmentResolution.blocker,
+        environment_evidence: environmentResolution.evidence,
+        sender_settings_id: environmentResolution.actorSettingId,
+        ediel_route_profile_id: environmentResolution.routeProfileId,
+        production_send_lock_status:
+          environmentResolution.productionSendLockStatus,
+      },
+      eventType: "blocked_environment_resolution",
+    });
+  }
+  const dispatchEnvironment = environmentResolution.environment;
+  const operationId = normalizeUuidOrNull(request.operation_id, "operation_id");
+
+  // Idempotency: if this customer_info_request already points to a pending GODR
+  // that has no linked outbound (stuck from a previous throw), reuse it rather
+  // than creating yet another pending row. createGridOwnerDataRequest handles
+  // dedup by automationKey, so the same GODR is returned when retrying the
+  // same customer_info_request.
+  const automationKey = `customer-info-request:${request.id}:z01`;
+  const gridOwnerDataRequest = await createGridOwnerDataRequest({
+    actorUserId,
+    customerId: request.customer_id,
+    siteId: request.site_id,
+    meteringPointId: request.metering_point_id,
+    gridOwnerId: request.grid_owner_id,
+    requestScope: "customer_masterdata",
+    externalReference:
+      (request.verified_payload?.externalReference as string | null) ??
+      `Z01-${request.id.slice(0, 8).toUpperCase()}`,
+    notes: request.notes,
+    automationOrigin: "customer_info_request",
+    automationKey,
+    operationId,
+    authorizationDocumentId: currentAuthorization.gridOwnerDocumentId,
+    requestPayload: {
+      authorization_document_id: currentAuthorization.gridOwnerDocumentId,
+      customer_info_request_id: request.id,
+      verified_payload: request.verified_payload ?? {},
+      requested_data_categories: request.requested_data_categories ?? [],
+    },
+  });
+
+  if (!gridOwnerRequestMatchesAuthorization(gridOwnerDataRequest, request, currentAuthorization.gridOwnerDocumentId)) {
+    return blockCustomerInfoRequest({
+      request, companyId, actorUserId, status: "missing_authorization",
+      blockerCode: "missing_power_of_attorney",
+      blockerReason: "Nätägarbegärans bundna fullmakt och anläggning måste motsvara den aktuella behörigheten. Skapa en ny uppgiftsbegäran om underlaget har ändrats.",
+      eventType: "blocked_missing_authorization",
+    });
+  }
+
+  const linkNow = await supabaseService
+    .from("customer_info_requests")
+    .update({
+      authorization_document_id: currentAuthorization.gridOwnerDocumentId,
+      grid_owner_data_request_id: gridOwnerDataRequest.id,
+      operation_id: operationId ?? request.operation_id ?? null,
+      route_resolution_status: "grid_owner_request_created",
+      route_resolution_reason: null,
+      next_required_action: "Förbereder PRODAT Z01 mot nätägaren.",
+      updated_by: actorUserId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("company_id", companyId)
+    .eq("id", request.id);
+  if (linkNow.error) throw linkNow.error;
+
+  // Supersede only this CIR's pending duplicates on the exact source tuple.
+  // Preserve known preparation/original links; pending alone is not orphan proof.
+  if (request.customer_id && request.grid_owner_id) {
+    let supersededRequests = supabaseService
+      .from("grid_owner_data_requests")
+      .update({
+        status: "failed",
+        failure_reason: "Begäran ersattes av en ny uppgiftsbegäran.",
+        failed_at: new Date().toISOString(),
+        updated_by: actorUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("company_id", companyId)
+      .eq("customer_id", request.customer_id)
+      .eq("grid_owner_id", request.grid_owner_id)
+      .eq("request_scope", "customer_masterdata")
+      .eq("request_payload->>customer_info_request_id", request.id)
+      .eq("status", "pending")
+      .neq("id", gridOwnerDataRequest.id)
+      .is("response_payload->>outboundRequestId", null)
+      .is("response_payload->>edielMessageId", null)
+      .is("response_payload->>ediel_message_id", null)
+      .is("response_payload->>intentId", null);
+
+    for (const [column, value] of [
+      ["site_id", request.site_id],
+      ["metering_point_id", request.metering_point_id],
+      ["operation_id", operationId],
+    ] as const) {
+      supersededRequests = value === null
+        ? supersededRequests.is(column, null)
+        : supersededRequests.eq(column, value);
+    }
+
+    supersededRequests.then(({ error: supersededError }) => {
+      if (supersededError) {
+        console.warn(
+          "[infoRequests] kunde inte markera gamla pending GODR som avslutade",
+          supersededError?.message,
+        );
+      }
+    });
+  }
+
+  const linkedRequest: CustomerInfoRequestRow = {
+    ...request,
+    authorization_document_id: currentAuthorization.gridOwnerDocumentId,
+    grid_owner_data_request_id: gridOwnerDataRequest.id,
+    operation_id: operationId ?? request.operation_id ?? null,
+    route_resolution_status: "grid_owner_request_created",
+    route_resolution_reason: null,
+    next_required_action: "Förbereder PRODAT Z01 mot nätägaren.",
+  };
+
+  let z01: Awaited<ReturnType<typeof prepareAndQueueProdatZ01FromDataRequest>>;
+  try {
+    z01 = await prepareAndQueueProdatZ01FromDataRequest({
+      actorUserId,
+      gridOwnerDataRequestId: gridOwnerDataRequest.id,
+      environment: dispatchEnvironment,
+      operationId,
+    });
+  } catch (error) {
+    const blocker = dispatchBlockerFromError(error);
+    if (!blocker) throw error;
+    const status =
+      blocker.blocker_code === "operational_route_missing"
+        ? "route_missing"
+        : "blocked";
+    return blockCustomerInfoRequest({
+      request: linkedRequest,
+      companyId,
+      actorUserId,
+      status,
+      blockerReason: blocker.blocker_reason,
+      blockerCode: blocker.blocker_code,
+      blockerDetails: {
+        ...blocker,
+        route_resolution_status: blocker.blocker_code,
+      },
+      gridOwnerDataRequestId: gridOwnerDataRequest.id,
+      eventType: "blocked_z01_prepare_failed",
+    });
+  }
+
+  const nextStatus = customerInfoStatusFromZ01Result(z01);
+  const blockerReason = z01.blockerReason;
+  const blockerCode = z01.blockerCode;
+  const blockerDetails = z01.blockerDetails;
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabaseService
+    .from("customer_info_requests")
+    .update({
+      status: nextStatus,
+      requested_at: now,
+      sent_at: null,
+      blocker_reason: blockerReason,
+      blocker_code: blockerCode,
+      blocker_details: blockerDetails,
+      grid_owner_data_request_id: gridOwnerDataRequest.id,
+      outbound_request_id: z01.outbound.id,
+      operation_id: operationId ?? request.operation_id ?? null,
+      ediel_message_id: z01.message?.id ?? null,
+      interchange_reference: z01.message?.interchange_reference ?? null,
+      transaction_reference: z01.message?.transaction_reference ?? null,
+      correlation_reference:
+        z01.message?.correlation_reference ??
+        z01.message?.external_reference ??
+        null,
+      external_reference:
+        z01.message?.external_reference ??
+        (request.verified_payload?.externalReference as string | null) ??
+        null,
+      route_resolution_status: routeResolutionStatusFromZ01Result(z01),
+      route_resolution_reason:
+        blockerReason ??
+        (z01.prepared
+          ? "PRODAT Z01 förberedd."
+          : "PRODAT Z01 kunde inte förberedas automatiskt."),
+      next_required_action:
+        blockerDetails?.next_required_action ??
+        (z01.prepared
+          ? "Kontrollera outbox/send guard innan meddelandet räknas som skickat."
+          : null),
+      verified_payload: {
+        ...(request.verified_payload ?? {}),
+        dispatchEnvironment,
+        environmentResolution: environmentResolution.evidence,
+        operationId: operationId ?? request.operation_id ?? null,
+        gridOwnerDataRequestId: gridOwnerDataRequest.id,
+        outboundRequestId: z01.outbound.id,
+        edielMessageId: z01.message?.id ?? null,
+        expectedResponse: "Svar från nätägare",
+        prodatCode: "Z01",
+        routeReady: z01.prepared,
+        blocker_code: blockerCode,
+        blocker_reason: blockerReason,
+        next_required_action: blockerDetails?.next_required_action ?? null,
+        route_resolution_status: routeResolutionStatusFromZ01Result(z01),
+        platform_actor_route_id:
+          blockerDetails?.platform_actor_route_id ?? null,
+        communication_route_id:
+          blockerDetails?.communication_route_id ??
+          z01.outbound.communication_route_id ??
+          null,
+        ediel_route_profile_id:
+          blockerDetails?.ediel_route_profile_id ??
+          z01.outbound.ediel_route_profile_id ??
+          null,
+        company_market_party_route_id:
+          blockerDetails?.company_market_party_route_id ?? null,
+        sender_settings_id: blockerDetails?.sender_settings_id ?? null,
+        production_send_lock_status:
+          blockerDetails?.production_send_lock_status ?? null,
+        blocker_details: blockerDetails,
+      },
+      updated_by: actorUserId,
+      updated_at: now,
+    })
+    .eq("company_id", companyId)
+    .eq("id", request.id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+
+  await addCustomerInfoRequestEvent({
+    companyId,
+    requestId: request.id,
+    customerId: request.customer_id,
+    actorUserId,
+    eventType: z01.prepared
+      ? "z01_prepared_for_dispatch"
+      : nextStatus === "route_missing"
+        ? "z01_route_missing"
+        : "z01_blocked",
+    message: z01.prepared
+      ? "PRODAT Z01 är förberedd. Utskick räknas först när outbox/send guard har skickat eller köat meddelandet."
+      : (blockerReason ??
+        "Kontaktväg till nätägare behöver verifieras innan utskick."),
+    payload: {
+      gridOwnerDataRequestId: gridOwnerDataRequest.id,
+      outboundRequestId: z01.outbound.id,
+      edielMessageId: z01.message?.id ?? null,
+      operationId: operationId ?? request.operation_id ?? null,
+      prodatCode: "Z01",
+      blocker_code: blockerCode,
+      blocker_details: blockerDetails,
+    },
+  });
+
+  return {
+    customerInfoRequest: data as CustomerInfoRequestRow,
+    gridOwnerDataRequestId: gridOwnerDataRequest.id,
+    outboundRequestId: z01.outbound.id,
+    routeProfileId: normalizeUuidOrNull(
+      z01.outbound.ediel_route_profile_id,
+      "route_profile_id",
+    ),
+    status: nextStatus,
+    blockerReason,
+    blockerCode,
+    blockerDetails,
+  };
+}
+
+async function getMeteringPermissionById(params: {
+  companyId: string;
+  permissionId: string;
+}): Promise<MeteringPermissionRow | null> {
+  const { data, error } = await supabaseService
+    .from("metering_permissions")
+    .select("*")
+    .eq("company_id", params.companyId)
+    .eq("id", params.permissionId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as MeteringPermissionRow | null) ?? null;
+}
+
+export async function queueMeteringPermissionForZ13(input: {
+  companyId: string;
+  actorUserId: string;
+  permissionId: string;
+  assignmentId?: string;
+  expectedVersion?: number;
+}): Promise<{
+  permission: MeteringPermissionRow;
+  gridOwnerDataRequestId: string | null;
+  outboundRequestId: string | null;
+}> {
+  await requireCompanyOperationalForWrites(input.companyId);
+
+  const permission = await getMeteringPermissionById({
+    companyId: input.companyId,
+    permissionId: input.permissionId,
+  });
+
+  if (!permission)
+    throw new Error("Mätvärdestillstånd hittades inte för valt bolag.");
+  await assertCustomerBelongsToCompany(permission.customer_id, input.companyId);
+
+  const result = await prepareManualServicePermission({
+    companyId: input.companyId,
+    actorUserId: input.actorUserId,
+    customerId: permission.customer_id,
+    selection: { permissionId: permission.id, assignmentId: input.assignmentId, expectedVersion: input.expectedVersion, code: 'Z13' },
+  });
+  // The source owner and ordinary intent/outbox service own all market state.
+  // Missing legal/source basis is a durable review task, never a status reset.
+  const current = await getMeteringPermissionById({
+    companyId: input.companyId,
+    permissionId: permission.id,
+  });
+  if (!current) throw new Error('ediel_service_manual_permission_not_owned');
+  return {
+    permission: current,
+    gridOwnerDataRequestId: null,
+    outboundRequestId: 'outboundRequestId' in result && typeof result.outboundRequestId === 'string' ? result.outboundRequestId
+      : 'message' in result && result.message && typeof result.message.outbound_request_id === 'string' ? result.message.outbound_request_id : null,
+  };
+}
+
+export async function applyZ14SnapshotToMeteringPermission(input: {
+  companyId: string;
+  actorUserId: string;
+  permissionId: string;
+  sourceMessageId?: string | null;
+  permissionReference?: string | null;
+  approvedStartDate?: string | null;
+  approvedEndDate?: string | null;
+  resolutionCode?: string | null;
+  reportFrequency?: string | null;
+  approvedSites?: Array<{ siteId?: string | null; meteringPointId?: string | null; facilityId?: string | null; gridAreaCode?: string | null; status?: string | null }>;
+}) {
+  await requireCompanyOperationalForWrites(input.companyId);
+  if (!input.sourceMessageId) throw new Error('z14_received_source_required');
+  const { data: source, error: sourceError } = await supabaseService.from('ediel_messages')
+    .select('*').eq('company_id', input.companyId).eq('id', input.sourceMessageId).maybeSingle();
+  if (sourceError) throw sourceError;
+  if (!source || String(source.message_code ?? '').toUpperCase().slice(0, 3) !== 'Z14') throw new Error('z14_received_source_required');
+  const result = await applyPermissionMarketSource({ actorUserId: input.actorUserId,
+    message: source as EdielMessageRow, expectedPermissionId: input.permissionId });
+  const ownResult = result.permissionResults?.find(row => row.permissionId === input.permissionId);
+  const ownApplied = result.permissionResults ? ownResult?.applied === true
+    : result.applied && result.permissionId === input.permissionId;
+  if (!ownApplied) throw new Error(ownResult?.reason ?? result.reason ?? 'z14_source_apply_not_confirmed');
+  const permission = await getMeteringPermissionById({ companyId: input.companyId, permissionId: input.permissionId });
+  if (!permission) throw new Error('z14_permission_unavailable_after_apply');
+  return permission;
+}

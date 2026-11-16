@@ -1,0 +1,119 @@
+{
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "verdict": "INDEPENDENT_PROPER_CLOSURE_RESIDUAL_COMPONENT_APPROVE",
+  "reviewedAt": "2026-11-16T03:40:05.431380+00:00",
+  "references": [
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/after-auth.main.private.json",
+      "sha256": "e453fb955ff91cd0dc2497ee44b97db9b232a31acdc26d228be42390956107b7"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/postbusiness.main.private.json",
+      "sha256": "e453fb955ff91cd0dc2497ee44b97db9b232a31acdc26d228be42390956107b7"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/postlogout.main.private.json",
+      "sha256": "57d354a257e838757ed2d74625fa651cef627f069bb4cba2dce0aea490440676"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/main-after-runtime.private.json",
+      "sha256": "57d354a257e838757ed2d74625fa651cef627f069bb4cba2dce0aea490440676"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/post-topology-restoration.main.private.json",
+      "sha256": "57d354a257e838757ed2d74625fa651cef627f069bb4cba2dce0aea490440676"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/after-auth.all7.safe.json",
+      "sha256": "e577363c7ab72ac29ededb556a156fd63149a6fde0d688e92ad8b209f20fb7c5"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/postbusiness.all7.safe.json",
+      "sha256": "e577363c7ab72ac29ededb556a156fd63149a6fde0d688e92ad8b209f20fb7c5"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/postlogout.all7.safe.json",
+      "sha256": "e577363c7ab72ac29ededb556a156fd63149a6fde0d688e92ad8b209f20fb7c5"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/main-after-runtime.all7.safe.json",
+      "sha256": "7cec278c61c173bb881564424d9e6726f9912c2fd3ddbc73e625fc36d853adaa"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/post-topology-restoration.all7.safe.json",
+      "sha256": "e577363c7ab72ac29ededb556a156fd63149a6fde0d688e92ad8b209f20fb7c5"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/postlogout.auth.safe.json",
+      "sha256": "4035f8987c6f78277628ba99def9b80d9e33c4d9d578771a8ec841139ddd2477"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/main-after-runtime.auth.safe.json",
+      "sha256": "4035f8987c6f78277628ba99def9b80d9e33c4d9d578771a8ec841139ddd2477"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/post-topology-restoration.auth.safe.json",
+      "sha256": "4035f8987c6f78277628ba99def9b80d9e33c4d9d578771a8ec841139ddd2477"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/global-db-role-settings.before.private.json",
+      "sha256": "a0b9809a10e630b28b73e8eb5b1e65837684497fa7dab119ff76aae031694bb0"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/global-db-role-settings.after.private.json",
+      "sha256": "a0b9809a10e630b28b73e8eb5b1e65837684497fa7dab119ff76aae031694bb0"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/owned-runtime-closure.safe.json",
+      "sha256": "3fccee178be0fc685e2429c00d32a43ee136bf33f86ea0ad4c158b1545608ab6"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/worker-process-closed.safe.json",
+      "sha256": "cafdda3940c5412341a26646c64ec83706f1a8c2d5ea0568bcb3ee4d78716c2b"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/mail-fixture-closed.safe.json",
+      "sha256": "9c7e21b070e03135b9c937f44b9c8e5d1be7c08fb6ffd4168e8c72fc31c57296"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/clone-bridge-closed.safe.json",
+      "sha256": "1edbb0cd9151de9337f1003f2ace7106a04309ef966913bd8851139ff7a5ce8c"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/logout.return.safe.json",
+      "sha256": "f65fa60e00d5bb78a50fb012e0e1087af8a32eddf3a99597963c3698b835e9a8"
+    },
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-actual-20261116-k/RESTORED.safe.json",
+      "sha256": "b2e8e12200d1084e1ae8e92457604ab2d98a1dd374b30bfe782e0783e00a9785"
+    },
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-actual-20261116-k/ORIGINAL-FORWARDER-RESTORED.safe.json",
+      "sha256": "1927acb071d88b7a3df3259152333a89d326b7aad7abd26b84dd4a7d78186ba3"
+    }
+  ],
+  "independentChecks": {
+    "fullMain522Rows3370Functions": true,
+    "afterAuthToBusinessWholeMainEqual": true,
+    "businessToLogoutExactly4AuthOther518AndNonrowsExact": true,
+    "logoutRuntimePostTopologyWholeEqual": true,
+    "all7AfterGetUserIncludingNullsExact": true,
+    "postlogoutRuntimePostTopologyNativeAuth6Zero": true,
+    "globalSettingsBytesEqual": true,
+    "ownRESTDBRestoreListAbsentNoErrors": true,
+    "workerAndMailPIDsAbsent": true,
+    "accessibleRecordedWorkerPGIDLiveMembers": [],
+    "processReadDeniedOrRaced": 0,
+    "ports3168_25276_21996NoListen": true,
+    "bridgeThreadAbsent16Requests0Denied": true,
+    "normal3ServicesRestoredStoppedNoErrors": true,
+    "freshTypedForwarderPIDStartCmdMatched": true
+  },
+  "limits": [
+    "No global FD/process absence claim",
+    "Own DB/REST/container temp absence checked from exact runtime closure evidence; no reviewer Docker/SQL",
+    "Original EDIEL02.06 full verdict remains independent E oracle; no count or credit assigned here",
+    "No raw-hold release or resource mutation authorized by this closure"
+  ],
+  "reviewerBackendNodeAuthCalls": 0
+}

@@ -1,0 +1,31 @@
+{
+  "state": "KNOWN_COMMIT_ONE_CUSTOMER_ONE_DRAFT_SITE_NOT_COMPLETED_HTTP_OR_UI_CASE",
+  "customerId": "5a140863-089c-493b-9e5a-24a7170d3fc2",
+  "siteId": "dfc3fe8a-f5e0-438b-9cfc-f59e605fd9c6",
+  "sourceProfile": "source29 e1456059",
+  "recovery522SHA256": "542bbefff57c90043ebe59e90a46f958cd7990f70023b4f4c88fb2327af72da4",
+  "fixtureSHA256": "9ae47ba6ae24381aaeb3eac027debda586cc5afe8a0a06b4260c0c2936a48db0",
+  "sameScopes": 512,
+  "changedScopes": [
+    "public.customers",
+    "public.audit_logs",
+    "public.domain_events",
+    "public.customer_sites",
+    "public.customer_contacts",
+    "public.customer_application_intakes",
+    "public.customer_onboarding_operations",
+    "public.customer_onboarding_applications",
+    "public.company_customer_number_sequences",
+    "public.customer_billing_profile_revisions"
+  ],
+  "oldCustomersSitesPreserved": true,
+  "all13ProtectedScopesPresentSame": true,
+  "newContractAuthCount": 0,
+  "noCreateReplay": true,
+  "limits": [
+    "Originaldriver1 afterboundedownbrowsertermination",
+    "HTTP200headers only, response.finished/successUI not captured",
+    "SeparateordinaryEEAuthcleanup authorized",
+    "No105casecredit"
+  ]
+}

@@ -1,0 +1,208 @@
+{
+  "schema": "gridex-site-validation-source-proof-v1",
+  "id": "UI01.04",
+  "claimReceipt": "aa014445c687073e8948e48699d2d11c76a7b92d",
+  "claimBase": "d93f361c51e81bc49cd48e817bd0b0fbe65e3d5b",
+  "reviewedDonorBaseline": "69630546de773f0cd1aa26c4642b8e504799e202",
+  "sourceHead": "5ea041fd04fab7c7539901bd7298296c9361d6a7",
+  "sourceTree": "e6f84d304ab8bacac000a24260ca3e35fc8952bf",
+  "sourceHashes": {
+    "app/admin/customers/[id]/actions.part-1.ts": "633dec029b858da530bc9e3640d6363dedca1a95bf5dc38def0f22c51395bdd0",
+    "components/admin/masterdata/CustomerSiteForm.tsx": "3e771bbb2acd1febbcf3b2ff19cda259ee3894a9a7dd5bb833344f12e9205497",
+    "__tests__/customer-site-guarded-save.test.ts": "3f69b18ede9fd5d6921580e53b56ba022e6c1a33f60a1feb97c757d7dbe149d3",
+    "__tests__/customer-site-form-validation.test.ts": "8048c8635f45c886e3de20f1ee5f9380e0605811b20f7b66a1a73114b49bd824"
+  },
+  "confirmedKnownDefectsAddressed": 1,
+  "full105NativePasses": 0,
+  "actualPriorFailure": {
+    "kind": "Whitespace site_name passes HTMLrequired but schema.trim.min throws uncaught ZodError; actual normalPOST500 beforeDML",
+    "receipt": "/workspace/gridex-ui-draft-batch-runtime-evidence-20261112/validation-server-error.safe.json",
+    "sha256": "d10ff0058230af8e1f34227ca4816964c24eeda8e0f4906ab99787885f25b2f0"
+  },
+  "change": "Only schema failures become serialized validation feedback after existing authorization/company/customer/site guards. Client dispatch preserves inputs on errors; create success resets form and flow; ID-bound edit stays; pending fields/button use action pending. No broad catch; DB/address/audit failures still reject.",
+  "productFileCount": 2,
+  "facadeUnchanged": true,
+  "writerAndTaskPreservation": {
+    "writerServiceAndVerifiedContext": "unchanged from696305",
+    "task289b": "not touched; retains hash8a96f33e133758eb56e46cc75cf50aecb4ce67a62cadad959fe595657c71fb54 in private runtime",
+    "eightPriorRuntimeOverlaysUnchanged": true,
+    "runtimePreimageReceipt": "b37fbae4cbac06ab24aaee4dfa9e819115673c028501ffc58176efcf0db1e97f"
+  },
+  "red": {
+    "privateWhitespaceTests": {
+      "failed": 3,
+      "reason": "expected uncaughtZodError on unmodified writer donor"
+    },
+    "repoRegressionCases": {
+      "failed": 4,
+      "passed": 2,
+      "reason": "schemafeedback/recovery fail while authorization/foreignsite refusal already pass"
+    }
+  },
+  "green": {
+    "uniqueTests": 28,
+    "guardAndWriterTests": 25,
+    "uiHookRenderTests": 3,
+    "vitestSuccess": true,
+    "limits": "Finite mocked I/O ports and SSR/effect/ref hooks; no real authenticated browser/backend or physical DB writes."
+  },
+  "gates": {
+    "lint": "EXIT0_EMPTY_LOG",
+    "serviceRoleRatchet": "EXIT0;2349callsites/494files unchanged",
+    "exactFrozenAppTypecheck": {
+      "exitCode": 0,
+      "elapsedSeconds": 150.7660216059994,
+      "source": "5ea041fd04fab7c7539901bd7298296c9361d6a7",
+      "beforeProductHashes": {
+        "app/admin/customers/[id]/actions.part-1.ts": "633dec029b858da530bc9e3640d6363dedca1a95bf5dc38def0f22c51395bdd0",
+        "components/admin/masterdata/CustomerSiteForm.tsx": "3e771bbb2acd1febbcf3b2ff19cda259ee3894a9a7dd5bb833344f12e9205497"
+      },
+      "afterProductHashes": {
+        "app/admin/customers/[id]/actions.part-1.ts": "633dec029b858da530bc9e3640d6363dedca1a95bf5dc38def0f22c51395bdd0",
+        "components/admin/masterdata/CustomerSiteForm.tsx": "3e771bbb2acd1febbcf3b2ff19cda259ee3894a9a7dd5bb833344f12e9205497"
+      },
+      "frozenProductsUnchanged": true
+    }
+  },
+  "reviews": {
+    "sourceHead": "5ea041fd04fab7c7539901bd7298296c9361d6a7",
+    "sourceTree": "e6f84d304ab8bacac000a24260ca3e35fc8952bf",
+    "reviews": [
+      {
+        "agent": "review_plan_domain",
+        "verdict": "APPROVE",
+        "scope": "4frozenfiles+696delta+facade/callers;guards/servicewriter/narrowvalidationstate/explicitdispatch/aria/creatorreset verified; native timing/retention remains pending."
+      },
+      {
+        "agent": "qa_remaining_checks",
+        "verdict": "APPROVE",
+        "scope": "4files against696, facade/callers,28finaltests/lint0;create-successreset/onReset andexplicitpendingreviewed;exact5eafrozenTS andnativebrowserrequired."
+      }
+    ]
+  },
+  "nativeRetest": {
+    "state": "MET_LOCAL_UI01_04_EMPTY_WHITESPACE_CONTROLLED_RETENTION_PENDING_AND_ID_RECOVERY",
+    "producer": "execute_eight_parts",
+    "source": "PRIVATE_BASE442_PLUS_NINE_REVIEWED_OVERLAYS_NO_COMPOSITE_GITHEAD",
+    "producerExitCode": 0,
+    "receiptPath": "/workspace/gridex-site-validation-runtime-evidence-20261112/ui-phase-results.safe.json",
+    "receiptSHA256": "4733d8978014f36348b4e814512b0ce11655d4cb2be806d9312b6bc4ab46782b",
+    "originalHashes": {
+      "endpoints.safe.json": "6d9c19a5e3f1b786ef1310f83bf7caab235fc54e38cda7ee20fc71d8204225a7",
+      "health.safe.json": "0c6bf08025e1b69dc417ae5c24197f3767d3e0ea90b8f8bb870362a99cb93297",
+      "after-controlled-invalid.safe.json": "11f1b0fd3bf86d007a995a53106802330866716615cdea9c5b41180c500b2935",
+      "key-reuse.safe.json": "c1f1abf95c217ba45e6f04dd945ff6283a8f1e80ea7dee1eff26ac34251a4632",
+      "before.safe.json": "11f1b0fd3bf86d007a995a53106802330866716615cdea9c5b41180c500b2935",
+      "validation-after.safe.json": "7a0b1edbd717cf431d48e833f8e05c005d0cc51345684ee7cd7e67287f7899cd",
+      "source-nine.safe.json": "6e271beafe24e81fc2b7dd1e3c1b0004292e81907aae221b1e7d2876545a041f",
+      "phase-retention.safe.json": "4dd07eb80ba3dc10cda7b07f1aa61d4b4ebb58b44c3ba63e02dadf633dfb6aac",
+      "row-field-diff.safe.json": "a5943f0125346584fc90842962027ee0d145f99b69e361d25c3f9212bd596ae7",
+      "invalid-zero-dml.safe.json": "6fde9a1a2ddd331f3dd33616dac0526d4c1a8f8fd6f313120e819afa15b0662e",
+      "preflight.safe.json": "79b947b4032c92476a6513a889458e4329377bedd6391d7eaa5d9e830a52f1ee",
+      "after-ui.safe.json": "7a63c457b0a629d00f297f0c7158ed81b5e753296b4bb24a9548aa01ee2f0042"
+    },
+    "allTwelveOriginalsIndependentlyHashVerified": true,
+    "steps": [
+      {
+        "phase": "EMPTY_REQUIRED",
+        "valid": false,
+        "message": "Please fill out this field.",
+        "siteActionPosts": 0,
+        "sitesUnchanged": true
+      },
+      {
+        "phase": "WHITESPACE_CONTROLLED",
+        "status": 200,
+        "alert": "Kontrollera formuläret. Anläggningsnamn: Fältet är obligatoriskt",
+        "retainedInput": "   ",
+        "ariaInvalid": "true",
+        "ariaDescribedBy": "_R_rlklrl5ritml5rlb_",
+        "pendingTransitions": [
+          {
+            "busy": "true",
+            "disabled": true,
+            "status": "Sparar anläggningen…"
+          },
+          {
+            "busy": "false",
+            "disabled": false,
+            "status": ""
+          }
+        ],
+        "sitesUnchanged": true
+      }
+    ],
+    "corrected": {
+      "status": 200,
+      "siteId": "1721d723-ca20-44e1-b9ce-1afc71a1ac2e",
+      "name": "Kryp SITE01.04 SE4 da6bda649c (UI01.04 corrected d8cdf3)",
+      "successText": "Anläggningen har sparats.",
+      "alertCount": 0,
+      "fieldErrorCleared": true,
+      "sameCount": true,
+      "allOtherSitesUnchanged": true,
+      "actor": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+      "hint": "SE4"
+    },
+    "normalLogout": true,
+    "invalidZeroDml": {
+      "allScopedCoreTablesEqual": true,
+      "allGlobalAuthorityEqual": true,
+      "negativePortTablesEqual": true
+    },
+    "rowFieldDeltaSummary": {
+      "siteB": [
+        "site_name",
+        "address_received_at",
+        "updated_at"
+      ],
+      "targetCustomer": [
+        "latest_customer_action",
+        "process_summary",
+        "updated_at"
+      ],
+      "auditRowsAdded": 1,
+      "neighbors": {
+        "allExistingSitesExceptBExactlyUnchanged": true,
+        "allExistingCustomersExceptTargetExactlyUnchanged": true,
+        "noNewSites": true,
+        "recoveryAWasAlreadyPresent": true,
+        "noRowsRemovedInAnyScopedTable": true
+      },
+      "otherScopedTablesUnchanged": true
+    },
+    "phaseRetention": {
+      "uiProducerBrowserContextClosed": true,
+      "normalUiLogout": true,
+      "sameOwnBackendAppRetainedForSeparatelyRootAuthorizedMembershipPacket": true,
+      "newProductWritesFrozen": true,
+      "noClaimAllContainersStoppedAtThisPhase": true,
+      "dataCredentialsCacheRetained": true
+    },
+    "notProved": [
+      "Successful CREATE reset not exercised in actualbrowser because this batch reused existingB;hook/refunitpredicate only",
+      "Entire UI01.04 original fullscenario acceptance and other invalidfieldtypes not blanketqualified",
+      "No frozenfiscalinvoice/signedcontract/market/readiness qualification"
+    ]
+  },
+  "deadCode": "No dead-code deletion or repository-wide reachability conclusion. Existing facade and legacy FormData-only call shape preserved.",
+  "privateEvidenceDirectory": "/workspace/gridex-site-validation-evidence-20261112",
+  "evidenceHashes": {
+    "donor-baseline.safe.json": "5920fa5eb431c61f89e6807f1dc2f78ffa6d03bd11ce162272f8585123909f15",
+    "runtime-eight-preimage-check.safe.json": "b37fbae4cbac06ab24aaee4dfa9e819115673c028501ffc58176efcf0db1e97f",
+    "red-validation.test.ts": "89aa2350e023571a6d98fc6646e84159ff00874d521e44de46c6c39136030121",
+    "red-vitest.safe.json": "48c7b2fb13bcea0811eb694f25dc405116a0ebc7680525b4cc2653ef2bee48ec",
+    "repo-red.safe.json": "9fc096b87246941bccfb03f3ca95224c60eda82f3e7628d8965a373a6509ef45",
+    "green-guard.safe.json": "5220850b3c95b660b76531726ef579270130502feb41455a33a5a3a10aa66a33",
+    "final-vitest.safe.json": "f11621c24942e94864fc4b83bc4c79cca0d0231d62a3b92456f8f9dddb1c0a5d",
+    "final-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ratchet.log": "23be832b42d1a994b1bd817e0679e100f9c0dc6c599e2e84e05b1afd7a4b2300",
+    "source-reviews.safe.json": "1158b64b8ae22ce71f9af4f2f20a92c39e64a14db8b9a33b3bc3b4ba1f836256",
+    "two-product-handoff.safe.json": "be41dacdef84468a48b38a7e1e14a509b8b287a9e88773661e45769ab84486d8",
+    "final-lint.exit.json": "80d971ccfda406966d623d7b7c918cb453cb1d53cab88f5307b17955b0d0c0a0",
+    "frozen-app-typecheck.exit.json": "bb0b7611618f4f3ed4db0cfd9253f3f2a36be100f8d4cf6ae564a60e148f7fe2",
+    "frozen-app-typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "runtime": "PinnedNode22.22.0/sharedVitest4.1.9;noinstall",
+  "sourceAssembly": "Official exact claims acquired on clean actuald93, then fast-forward to alreadyreviewed descendant696305 per root mandate preserving writer. No eight-file copy or mutation; only two owned product files changed."
+}

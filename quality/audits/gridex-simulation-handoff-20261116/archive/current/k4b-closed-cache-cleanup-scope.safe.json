@@ -1,0 +1,28 @@
+{
+  "state": "ROOT_EXACT_CLOSED_K4B_GENERATED_CACHE_DESCENDANTS_CLEANUP_SCOPE_APPROVE",
+  "observedAt": "2026-11-14T16:03:21.098458+00:00",
+  "proposal": {
+    "path": "/tmp/gridex-k4b-cache-readonly-proposal-20261114/PROPOSAL.safe.json",
+    "sha256": "63a0aa46f7267ab4db28f9593d56a3ef2cc499b3a408f45805e9e0fd9a910bb1"
+  },
+  "root": "/workspace/gridex-local-cache-20261114-k4b",
+  "rootIdentity": {
+    "dev": 27,
+    "inode": 529049,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o770"
+  },
+  "inventorySHA256": "e238db2219dab83a928adb90c5043183609f5a0c27455beb87004124e888d64d",
+  "closedAppCID": "eea195af9e263b741c664f92683d7fbe551d10bf489cfe1627a9e16a0c34cfe8",
+  "mountProvenanceSHA256": "511f2617073786b10a8c2f2277ec962be53fde05d4998bc186277477198b23ea",
+  "scope": [
+    "Only78 inventoried closed generatedK4b descendants; fresh exact inventory/root/CID/mount/accessibleFD closure checks before delete, permission caveats explicit.",
+    "Previously qualified pinnedDocker463254/image/helper provenance, networknone/read-only root/NNP/capdropALL plus ONLYDAC_OVERRIDE, singleRWmount exactcache; no API/env/otherwrite authority.",
+    "Inspect exacthelper/capability beforestart; mismatchSTOP. Retainoriginalroot inode/0770gid1000; no rootdelete/recreate.",
+    "Postempty/rootmetadata/helpercleanup andactualspace receipt. Mainactivecache/EVENTF/source/deps/proofs/C6/E/H untouched."
+  ],
+  "writer": "qa_remaining_checks sole writer or explicitly delegated producer",
+  "expectedMaxAllocatedReclaimBytes": 77533184,
+  "backendCallsByRoot": 0
+}

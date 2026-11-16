@@ -1,0 +1,220 @@
+{
+  "state": "GENUINE_CUSTOMER_ONLY_VALID_REGISTERED_OWN_SITE_ACTION_FIRST_GUARD_DENIAL_MET",
+  "actual": {
+    "state": "ONE_VALID_REGISTERED_OWN_SITE_ACTION_DENIED_UNAUTHORIZED_WITH_522_UNCHANGED",
+    "actionRequests": 1,
+    "events": [
+      {
+        "path": "/login",
+        "status": 303
+      },
+      {
+        "path": "/admin/customers/intake",
+        "status": 500
+      },
+      {
+        "path": "/logout",
+        "status": 303
+      }
+    ],
+    "actualCustomerUID": "96236ce3-e271-4c95-8e29-50adb5e404e0",
+    "canonicalPlatformFalse": true,
+    "actualActionStatus": 500,
+    "actualResponseUnauthorized": true,
+    "changed522Scopes": [],
+    "normalLogout": true,
+    "browserClosed": true
+  },
+  "qualification": {
+    "actualRegisteredActionReached": true,
+    "actualFirstGuard": "requireAdminActionAccess",
+    "sourceLocation": "lib/admin/guards.ts:259",
+    "calledFrom": "saveCustomerSiteAction actions.part-1.ts:630",
+    "actualError": "Unauthorized",
+    "all522ActionWindowSnapshotsEqual": true,
+    "snapshotWindow": "AFTER_LOGIN_BEFORE_NEGATIVE_ACTION_TO_AFTER_ACTION_BEFORE_LOGOUT",
+    "normalLogout303AndBrowserClosed": true,
+    "noPostLogoutDBSnapshotClaim": true
+  },
+  "driverExit": {
+    "exit": 0,
+    "noRetry": true
+  },
+  "originals": [
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/actual-action-response.private.json",
+      "bytes": 813,
+      "sha256": "e06babfe9de50789682ecd26239ca3743b68817245d20079d42600e182565220"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/after-claim-persona-query.private.sql",
+      "bytes": 1381,
+      "sha256": "1a02aadaf3b10642e96d532f326a97b5afbd0e6332f212555f6303d73c7294a1"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/after-claim-persona.private.json",
+      "bytes": 3680,
+      "sha256": "64d8ce2eda51bb6de0d263aa8d6be286cc20708707901518bce75ac3ea5eb07b"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/after-claim-persona.safe.json",
+      "bytes": 403,
+      "sha256": "e6d431d617260f50b40d76072298ca64a157ab9d879f40bd5ad06cc1b7f7411e"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/after-claim-persona.stderr.private.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/after-read-522.safe.json",
+      "bytes": 55513,
+      "sha256": "35a8bb6750708bdb6bf29ab45329cdc2a3460c0aae119c5b0324800dbba9c018"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/app-log-window.private.log",
+      "bytes": 1106,
+      "sha256": "7fe0c4cf04be90a247f24ac95d524e816a603b7563c34cf7199efab6ac8ad227"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/before-persona-query.private.sql",
+      "bytes": 1381,
+      "sha256": "1a02aadaf3b10642e96d532f326a97b5afbd0e6332f212555f6303d73c7294a1"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/before-persona.private.json",
+      "bytes": 3680,
+      "sha256": "6bb67529aedf9e0769a331d9e635ccc65d752815cf1ec48dfa0b042280fb4572"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/before-persona.safe.json",
+      "bytes": 398,
+      "sha256": "f21ce2bec9e20e4531667e667f0a49bc440a896a4eb103b9a67f0c1f3b81e67c"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/before-persona.stderr.private.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/before-read-522.safe.json",
+      "bytes": 55513,
+      "sha256": "35a8bb6750708bdb6bf29ab45329cdc2a3460c0aae119c5b0324800dbba9c018"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/driver-exit.safe.json",
+      "bytes": 29,
+      "sha256": "31018df5202112d43e5a27e69ab3fefec8fad57cbd1c48f742c434e1c0c0c764"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/driver.stderr.private.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/driver.stdout.private.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/encoded-reply.private.json",
+      "bytes": 733,
+      "sha256": "b785063c94b602da46aacad82ec6c8870aa829f15f968c8330a9e6163f09cb3e"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/execution-plan.safe.json",
+      "bytes": 4537,
+      "sha256": "e90a93660f681769f5047d950009b4171c8440d60118ea06d1f4a8787d3b995c"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/execution-plan.v1-pre-maintenance.safe.json",
+      "bytes": 4157,
+      "sha256": "0542190332c27b3638a7c0b1ea7cb5d542b4c67c67cde1980fbd78e142307328"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/guard-qualification.safe.json",
+      "bytes": 451,
+      "sha256": "4375887f30b7b922bcb15a9f98b75cf37b10f350a2b718f95d4d882d8338865e"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/intent.safe.json",
+      "bytes": 149,
+      "sha256": "bbd556acd9d003a1450b50365926f6e90a2f9bbe5ff4bb2d09400447cd789572"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/negative-intent.safe.json",
+      "bytes": 291,
+      "sha256": "eff55d494046c155412433ec25b0349e6f4bbe4db467d80314f0cbb3ac62dbbd"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/negative-once.cjs",
+      "bytes": 5740,
+      "sha256": "0a93c13390eac3cabc7855d00a7933d2c6c5d5edc9db144b52c7d087009d2551"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/negative.safe.json",
+      "bytes": 561,
+      "sha256": "deca719cdbe374f21708fc5da691f861ac95c1039aa681c8f9d07382bd04fec8"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/published-action.private.json",
+      "bytes": 6158,
+      "sha256": "3c895d553efd2c708e87ca7b0a93f537a33b7c203f811a7d8364977c651a1f65"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/published-action.v1-pre-maintenance.private.json",
+      "bytes": 6158,
+      "sha256": "af05f26fdd2a567ec8b56e9acf431a689574b7172f942741639ce5079ec49969"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/readback.py",
+      "bytes": 2463,
+      "sha256": "9fc9558484bdeeb60c35cd3521fb1578879b89d2369928a88db2484fd574fe14"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/root-negative-go.safe.json",
+      "bytes": 485,
+      "sha256": "b7ded48ac8b73fd42ee1f201ec7f3d227506382e4a46fc5820cd3a0be0557acf"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/rows-reader.py",
+      "bytes": 1086,
+      "sha256": "ebb9cc38fcd644c8418f3fedaf14300761df7f33cc8edb911945dfc1ef0ea55b"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/run-negative-once.py",
+      "bytes": 1976,
+      "sha256": "8b6a736c8e33ee7b1e443692935c52e9e53c6edab3c2cef198e7566228ada4b3"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/schema-validation.safe.json",
+      "bytes": 107,
+      "sha256": "780f9d6237bc1ad66268826ea4b804741129ec142f969785aa8859c59c7d5875"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/snapshot-522.py",
+      "bytes": 888,
+      "sha256": "e171d4caa9b675dccd1590f1ce74240e6ebed38f982c4dfc927e0b4798352868"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/token-free-compile-body.private.bin",
+      "bytes": 41,
+      "sha256": "42c81255da115bcbd18fe557cb8a4ebf44fef08119416e4eeae46b5cbd3d66a7"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/token-free-compile.safe.json",
+      "bytes": 382,
+      "sha256": "0d3421412248ee4ed3778f2686f5ab2dfa5e18d843509077e6238aa196788c1d"
+    },
+    {
+      "path": "/workspace/gridex-auth0102-customer-only-site-negative-20261113/valid-own-site-form.private.json",
+      "bytes": 697,
+      "sha256": "b2243e1cac02342ff68e56159d635f594ee13accd8a8a9441951b255512c194a"
+    }
+  ],
+  "limits": [
+    "No original email CTA whole-link success claim",
+    "522 action-window equality excludes final logout phase",
+    "No site mutation was accepted or retried"
+  ]
+}

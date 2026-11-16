@@ -1,0 +1,13 @@
+{
+  "state": "ACTUAL_OWN2_CANARY_COMPONENT_APPROVE_NOT_POSTFIREWALL_BUSINESS",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T11:34:08.373799+00:00",
+  "intentSHA256": "d0ab35a34fb70e2ce013ad8a23dea922ef882def442d232f16f654466a960058",
+  "checks": [
+    "All73raworiginalhashesindependentlyverified",
+    "Actualconnected3/counter3/listening3/owncanaryrunning; exactUID10001/10004 kernelcaps0/NNP1",
+    "BothactualPID1streams+inspect capturedBEFOREremove; emptylogs honest no naturalresetclaimed",
+    "AllDockerops0/owned2containers+networkabsent/no uncertaincreate",
+    "Qualifiesboundedownnetworkcomponent/newwitnesscapture, NOTpostfirewall/fullruntime/business/scenario105 proof; actualDcause remainsunknown"
+  ]
+}

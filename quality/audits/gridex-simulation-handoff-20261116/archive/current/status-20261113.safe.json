@@ -1,0 +1,387 @@
+{
+  "state": "ONGOING_AUTONOMOUS_INTERNAL_BLOCKER_RECOVERY",
+  "matrixHead": "bd423f76435754d63a91826ef8f24e0118f8ac7f",
+  "counts": {
+    "total": 105,
+    "localPass": 38,
+    "documentedUnsupportedGap": 1,
+    "completedDispositions": 39,
+    "outstanding": 66
+  },
+  "runtimeSourceManifest": "926202775515e13ed806c1809f85eb1397c517b9470413145ded6c69f03347ee",
+  "actualCurrentServices": "Quiet Mainpaused after successfulN0; ownN0clone absent, no activeEE/JWTbrowsercontext. Await fullyready4RPC/normalimport or publicationTLSpositive scope.",
+  "currentExecution": "OWN2_CANARY_V2_SOURCE_FIX_THEN_K_E_FRESH_ACTUAL_CHAIN",
+  "next": "Qualify own2canary afterchmodV2, freshK50mAuth onlyafteractualdisk/RAM/window checks, normal4RPC+fileimport/nativefinancialgraph",
+  "noClaims": [
+    "All105complete",
+    "Production deployment",
+    "Wholeappdeadcode proven",
+    "Realmarket/provideracceptance"
+  ],
+  "asOfUTC": "2026-11-14T11:27:22.456011+00:00",
+  "completedBlockerProofs": {
+    "foundationNativeSix": "296d4918acd8e1bc3053b8eb725141834e2e0b88bcfefa42063acf32408bb1e6",
+    "foundationMain35": "2f640d5d28458e9f083aea86cf369a11114224c0767ff86f40dda9af66764763",
+    "expiredOnlyAPIKeysAndSource38Resume": "d25642b28e65e40a752f38c525594d80823669bb88f282a9d82cfec4663e15a1",
+    "registration925Head": "92a9f18685342d35e25094645ea2b086cdda0b3e",
+    "authStartupAndTwoHTTPTemplateBodiesRootReview": "d5be5d148b488360bbddd1955ca418addf15465a731bb269ca40ac06aca63300",
+    "customSignupMIMEAndVisibleConfirmation": "6eb3c338f18a303c67cfc9e3122bfe90073c863c13df0df433115b9ec15a7196",
+    "normalBStaffInviteAndVisibleAcceptance": "5a74152252b59844232afbd1e3e6fb953f191a2182e03f181ab2153d3bb7d26b",
+    "fullOwnAndForeignAuthCases": "3d68e2111da0319a2b71af453c0dd36b68256c7c1c2922f7f3a5e59c2a907ad2",
+    "targetedNative": "c908c8244a8bd31d9cb15e2ec3751cbc2afe359e3e74b0271a162bd5778eb8ef",
+    "targetedMAIN": "839bf03531be97003608c7de1a967812411e59de32d6508073bc95be710a6d57",
+    "realMagicLinkAndAccept": "b16bf02a3744209c911214827e57b3bd24d9334cd8a1bd6607b00eb2ec7787c5",
+    "registration926Head": "5812881977cd1ccb4336ad2d9d9fe8f19e48be74",
+    "GEN926ActualBundle": "ac350377711901ca99fafa2d41c32c6bea2f399aa486eef2b24112a911d9df33"
+  },
+  "remainingInternalBlockers": [
+    "I UI receive denial cause unknown; publicRPC receive now works with exact source bytes",
+    "Normalimport pending; actualSOURCE-only validate_decimal_source_v2 full2688 timeout57014 line65 confirmed. ExactONEdonor qualification677b/22OLD+22NEW+full2688 under8s beingreviewed.",
+    "Positive publication TEST webhook genuine TLS delivery pending native qualification",
+    "Original28 physical E66 inputs/1809.51 oracle and vendor external receipts unqualified"
+  ],
+  "sourceReadyAwaitingRuntime": {
+    "targetedNormalInvitationWorker": "ff2ff00eeb66f7a5682ee8fb22e78dd9ccde06fe",
+    "intakeGlobalPriceAreaCatalog": "2a12b6820259f254a723879b8569f74c10476e51",
+    "localRawFileTransport": {
+      "head": "5d92f4bb72d317d45269ab74a1224276c5d82c1d",
+      "freeze": "ef2bf2aaed4f5392ec043b073443eefd85a93b01d005d9fc1f5c166dea517035",
+      "componentTests": 17,
+      "lintExit": 0,
+      "scopedOwnedFilesTypeDiagnostics": 0,
+      "rootReview": "7a98c950e11d1585bb374f966129538cdd781c73d4005a82c5491c6bd1055085",
+      "secondReviewPending": false,
+      "runtimeAdopted": true,
+      "prospectiveOverlayCount": 64,
+      "secondReview": "a0a7d115feb18809b5ea6c2646c3c4cf17040633ca5839108385ab72789b97ec",
+      "actualOverlayCount": 64,
+      "actualManifestSHA256": "27f93eb683afe1392a93faa38b3f57724843f7388bb298286f84c032c67e466d",
+      "actualUIReceiveVerified": false,
+      "nativeFileInput": {
+        "head": "74ce14f426595e49174af88e09d90a18f801066c",
+        "positiveHandoff": "8d9b419499ae14b044b61bf0ec0b4798af2cb3830c27b264f74448d4a86ed3f8",
+        "adoption": "84352fa163efd980d3211cbe0b05cfc60e49bd59ad4b442cf161cc6c178f845d",
+        "actualPrivate64Manifest": "a8fc7469f3c272ea1e4837d4c4d004aa914fed2179d3e25f73f0f511a90cff76",
+        "actualBrowserVerified": false,
+        "oldPageBytesRetained": true
+      }
+    },
+    "wireTokenizerOneFunctionForward": {
+      "head": "50004af0d7ccaf12c7a2c2e284297fbe4e416d06",
+      "positiveHandoff": "3ac326330a722a0e8e6b09472ae0ca7b62bb936d31127515271d9deacd4045a9",
+      "rootSourceReview": "68421c643fd5cd07296c9a35861d8a00e39ccf02b953f2889fa3b67abbcf9e1e",
+      "secondSourceReview": "adc00f7b4425c4647ac4842edbe9576e300e63b04bcf0510ece33186bba381c4",
+      "formalForwardAndPortable": "PREPARED_NOT_RUN",
+      "all5OwnClaimsReleased": true,
+      "runtimeMainApplied": false
+    }
+  },
+  "parallelStreams": {
+    "backendProducer": "execute_eight_parts",
+    "fourRPCController": "review_plan_domain",
+    "publicationN0OuterAndScenarioQueue": "remaining_coverage_inventory",
+    "normalImportPipelineQualification": "review_plan_execution",
+    "UIDenialObservability": "qa_remaining_checks",
+    "independentReview": "ediel_test_identity"
+  },
+  "centralMatrixCountsAtRecordedHead": {
+    "total": 105,
+    "localPass": 38,
+    "documentedUnsupportedGap": 1,
+    "completedDispositions": 39,
+    "outstanding": 66
+  },
+  "matrixUpdatePending": false,
+  "latestOperationalReportHead": "dcaf4bdbc3fe626d824b08b2988172a0b4e9535f",
+  "realMagicLinkIndependentReview": "5fdecfa3bf6b87e6f13c840fdd95cae24c74db7486072a8acc0a2df51cf3d1ce",
+  "deadCodeCurrent": {
+    "manuallyReviewedDistinct": 33,
+    "bindingsRemoved": 2,
+    "notConfirmedGloballyDead": 31,
+    "historicalCutoff": {
+      "manuallyReviewedDistinct": 30,
+      "bindingsRemoved": 2,
+      "notConfirmedGloballyDead": 28
+    },
+    "correctedDocHead": "145df69a825153eec5c7b1ccd294212f8d1ec1b3",
+    "membershipCorrectionRootReview": "d347cb1ede908f989ed245a6387dd9faefce46e6e20e8422e6f472d9628440d3",
+    "reviewedSourceLayer": {
+      "totalTracked": 33,
+      "removedDeclarations": 24,
+      "retainedTracked": 9,
+      "retainedClassification": {
+        "live": 4,
+        "legacy": 4,
+        "uncertain": 1
+      },
+      "head": "a16846f7fd77e838cef5c991f7eea0650f6afaf8",
+      "docHead": "8a514b890afe30f78f49f6c172c221bb5a848130",
+      "rootReview": "ea0fe7c84f6999944fba6b5820171832fa22fbc0ce0a007b9c21eac171a8af0b",
+      "secondReview": "fa40d69c293a0674622f109da30561998b4b3f3282c19dd9675f62a60e4cdd4a"
+    },
+    "actualRuntimeLayer": {
+      "totalTracked": 33,
+      "removedDeclarations": 2,
+      "notRemoved": 31,
+      "newCleanupAdopted": false
+    }
+  },
+  "sourceCleanupPending": {
+    "head": "a16846f7fd77e838cef5c991f7eea0650f6afaf8",
+    "deletedModules": [
+      "lib/auth/userSync.ts",
+      "components/admin/customers/billing-metering/forms.tsx",
+      "app/admin/electricity-suppliers/ElectricitySuppliersTable.tsx"
+    ],
+    "sourceReviewsPending": false,
+    "runtimeAdopted": false
+  },
+  "normalBillingProvider": {
+    "provider": "nordfin",
+    "environment": "test",
+    "dispatchEnabled": false,
+    "actualProofBundle": "1c83b6bc09d1714af2d1432136526eacec7a22c4c86a07cce85468a73813542b"
+  },
+  "qa0102MatrixFinalReviews": {
+    "root": "c1e84c90a0fffd4b88bd79321d0d9de2c80cbbb8a243fb6e21ae33961f3c7b7e",
+    "inventory": "572186a0468ef9ae1b5ce7c5cfd95f9bd794c987de285d83b3c3284afc4d654b",
+    "actualCheckerExits": [
+      1,
+      1
+    ],
+    "classificationComplete": true,
+    "checkerGateGreen": false
+  },
+  "staticInventory": {
+    "handoff": "e6411431ab5de809b8d3525e70c0fbcab28f3aecda6b6e25e53721cf7cba4eea",
+    "actualGitBlobs": 6408,
+    "modules": 4656,
+    "sqlFiles": 1696,
+    "unreachedCandidates": 187,
+    "newDeadVerdicts": 0,
+    "independentReview": "a9987297279546d32565f3da1e5d58f5e33cf3cacb5e2f1193b695d65c0f865c",
+    "unresolvedImportDisposition": "All8 test/VM/source-string false brokenmodule leads;0confirmedbroken/0newdead"
+  },
+  "consolidatedRepoRegister": {
+    "head": "9aabd04e923d3f3dfce3576bf3fc10078d9995b0",
+    "path": "/tmp/gridex-campaign-harness-register-report-20261113/quality/audits/gridex-campaign-harness-findings-20261113",
+    "twoIndependentFinalReviews": true
+  },
+  "tokenizerBaseline": {
+    "terminal": "96dd68416ec040fedaebe7412901262934542b47ad048c0877da547b5a804bdc",
+    "rootActualReview": "77f0e1ab0a52cd38a50c2bd7f3b70580e68b9d4a82e125449578ef358c3b17d9",
+    "secondActualReview": "60b8bd3513df06fd2b4c26797123bf90a6e76d893a3b518cebdc6224f0d117ac",
+    "mainAndCloneUnchanged": true,
+    "cloneDropped": true,
+    "timeoutUnchangedMs": 8000
+  },
+  "tokenizerOptimization": {
+    "candidateTerminal": "cc566f9a90d9e7cfbeffeeee8c9c4d7ab5c26d04bbe7202ea73a2f8309e25f60",
+    "finiteFullJSONBEquality": 42,
+    "full10774TokensWallSeconds": 0.469319697,
+    "sameStatementTimeoutMs": 8000,
+    "rootActualReview": "c9f0cc78db2ecaf16b1e946e536e54651fc49d978ed6f82aee4e6d56f326c730",
+    "secondActualReview": "fb4ea05ffa643d0c21ad82cdc25336f567ed81b04d2942157dea299f0a4477fd",
+    "currentMainAdopted": false,
+    "nativeReceiveVerified": true
+  },
+  "latestRecoveryReport": {
+    "head": "bd621eedda082559f2ba216f879d88f22fff4c8b",
+    "path": "/tmp/gridex-simulation-recovery-report-20261114/quality/audits/gridex-simulation-recovery-20261114/REPORT.sv.md",
+    "topics": 10,
+    "directRefs": 26,
+    "rootFinalReview": "61a46ca6c5d3eb82dc446e219283ba1e6af130a4f4421ffd734ab85cb7153bf5",
+    "secondFinalReview": "8a1d0ec0df26b1497c4a04ef8f07e5eff95fe5dc804d1036203d905abcc5184a",
+    "countsUnchanged": true,
+    "positiveHandoff": "ca50fca8f0f9ba115e4ca8504bd9b29bc33eb2a674811995ac9342bedef6e102",
+    "all3OwnClaimsReleased": true
+  },
+  "site0104Final": {
+    "index": "e12c5b449d244b1642e5e09badc4b6325a8f2671285836a1ec8cb12ab6a68240",
+    "rootActual": "b03ac6bef36133ebea3df0b919cc64b5a5a9d5a5132a769f5db1af7c941624a9",
+    "secondActual": "841c72886b5f06e0149b11dd61635f6ab03f733db9058f8e39dd55ce533bd903",
+    "rootFinalDoc": "997bedfc96108bde473a5c5cebc85e4a99ec86605444cc207dbba8e5aedf8d2f",
+    "secondFinalDoc": "9aecb3f5004c68a80d4580eb63c5afe60b374644fe381a287e85b23b02e5b708",
+    "positiveHandoff": "c9cf324a593d58fda645e75f2a8fd354fcb8b3a919f1f2a0345db1678d0bb1d4",
+    "ownThreeClaimsReleased": true,
+    "cleanup": "ae70de982159b542d2a7bb9ee717f81531acf74e14fa93cdff007b92afe5eb19"
+  },
+  "githubTransportRecovery": {
+    "cliGH_TOKEN": "expired401",
+    "proxyNoExplicitAuthorizationProfile": "200heke99",
+    "officialPinnedClaimModule": "c1610a7e94a838d92c75bf050658570bbd9db97a312798671c2c828df3264086",
+    "qualifiedCurlAdapter": "6c223a0b13c99b0d5e9914f80b11fed4ae05ae6688bb01d9049a821691573260",
+    "rootSourceReview": "18385a123d6c616d75791925d95a9d45851da7f35b519fbae448ba55c2769b68",
+    "secondSourceReview": "30d84321b45b2e9c9ac3da8f4a5249bc21272b38b6ad8216a740e46b207afba7",
+    "publicationExact8PlusSessionActualAll9": "302674e230fdf9864d65d37ee8195bd1731a2106",
+    "mutations": "Onlyown3release+exactnew9sourceclaim; noforeignrefs/tokenexport/officialfilechange"
+  },
+  "jReceive": {
+    "handoff": "aaf53466c4f671fedbb8df48f4721a0c9abe561ff26f694dfff40bb857b7020e",
+    "index": "3a672d54b70be48721a29572e95af608bb1ccc80d3654fecbead2026ae39b4d0",
+    "checkpoint": "eae281842e9c992f2a409e51aba6ff555c05ae5fc2bedf1fbef8a5495211d619",
+    "independentActualReview": "5393076553d5f25e4988e66b35bd49775f73914e9607111538349d4e871a8034",
+    "fullCaseCredit": false,
+    "rootActualReview": "dba580d96f6db44562e280d7dbeb6901637b8019d5be79e5040a9ba4e1c6ba83"
+  },
+  "remaining66Queue": {
+    "path": "/tmp/gridex-remaining66-queue-20261114/QUEUE66.safe.json",
+    "sha256": "ebbb54d71215de55adedfe662992d9d2933f1c52773ac37d12671fc271931f08",
+    "uniqueIds": 66,
+    "groups": {
+      "BILLING_PHYSICAL_AND_FROZEN_GRAPH": 32,
+      "OFFICIAL_NORM_AND_EXTERNAL_RECEIPT": 4,
+      "NORMAL_INDEPENDENT_PORT": 3,
+      "ORIGINAL_28_SOURCE_ACK_CHAIN": 6,
+      "OWN_EDIEL_SOURCE_SEQUENCE": 4,
+      "OWN_NATIVE_EDIEL_NEGATIVE_AND_RETRY": 7,
+      "EVENT_OWN_NATIVE_PORT": 4,
+      "INDEPENDENT_FINAL_SOURCE_GATE": 1,
+      "HISTORICAL_INPUT_TERMINAL_NOT_LOCATED": 5
+    },
+    "runtimeClaims": false
+  },
+  "publicationEventRead": {
+    "actualSHA256": "037797f74398109378903d783c4afef2ff82c61d9c77a4551a10156b7db5b167",
+    "rootReview": "3e50d11ae2fd9130fd8e2adc00c17d7d567e806d043dfeb34cef5928799f4646",
+    "actualEvents": 2,
+    "ordinaryBothDeniedDuringOnboarding": true,
+    "deliveryCredit": false
+  },
+  "publicationN0": {
+    "state": "ACTUAL_NATIVE_COMPONENT_CLOSED_TWO_REVIEWS",
+    "index": "e4a23df774e15e06e8286627f0f694d10f8290bd82af4f463662c0c66d81c01c",
+    "originals": 79,
+    "rootActualReview": "47ae07923e2366b5b891941f7bdc9936d691b6215e11f592577e1d712bdd59b4",
+    "secondActualReview": "a934a24220e260517eef384fede6c685e95526bf7f0321a11af17236f9e02831",
+    "applyReplayBoth": true,
+    "roleACLUnits": true,
+    "mainUnchanged": true,
+    "cloneAbsent": true,
+    "newFullScenarioCredit": false
+  },
+  "fourRPCPrepared": {
+    "core": "50bc119029df6eccb1fd8929e6ad460772eeda174c7da57bca12180c02226942",
+    "coreOnlyRootReview": "1afa634c3a041c25a318165310c9c6312b7ab079406968b12086977fcad99e63",
+    "coreOnlySecondReview": "9cfdf3fec7d0af641978d5be185e8b3a09010872e281656f2d501fdcbf83b8ae",
+    "finiteSDKPass": 12,
+    "normalUIImportComposition": "IN_PROGRESS_NOT_EXECUTION_READY",
+    "actorLoginStarted": false
+  },
+  "downstreamNativeBaseline": {
+    "index": "89bd608ed3031cddc20d8d3aebd89efcd62915f09fd5d5687b5d18794333a9ca",
+    "originals": 90,
+    "equalities": 5,
+    "decimalFull2688": "PRIMARY_57014_TIMEOUT8.1319S_SOURCE_PROJECTION",
+    "envelopeFull10774Seconds": 6.912503533996642,
+    "rootActual": "71bc7626cb2a915aa5355ae9fe90af3977314be177d1c4dc3a54e206a488dfa0",
+    "secondActual": "e25ee7c167e0256b7caaa38159965bb6d927328d66c7b308faa62f9806ed4043",
+    "mainAndCloneDataPreserved": true,
+    "cloneAbsent": true,
+    "caseCredit": false
+  },
+  "publicationPositive": {
+    "oldParent": "266a34a587f81ae2b96c2788e972e066d2f8e09e0875490c7ebad00f14ae26d2",
+    "oldState": "PREINTENT_STOP_NO_FACTORY_OR_BUSINESS",
+    "genuineHoldDeadline": "2026-11-14T09:14:32.212Z",
+    "jwtExpiry": "2026-11-14T09:44:43Z",
+    "newRuntimeDeadline": "2026-11-14T09:02:00Z",
+    "runtimeBinding": "58d47a0dd6b49a8a39c3673a6a2e285be09ad65ec7a0c94beffce9bbb71697c8",
+    "caseCredit": false,
+    "state": "B_CLOSED_NO_BUSINESS_GENUINE_LOGOUT_DONE_C_OFFLINE_READY",
+    "targetSHA256": "6b06edd87f9cfa484a5b83d8f5cb8862d7a280364e774a9d63211ed46a5e9800",
+    "rootExecutionReview": "ecd8ffecc014007a8e5aff065cf879efcf298e0815b8a37890977107c0ccc422",
+    "producerExecutionReview": "39fa9b0e11ddb81b659bc009b15bf91d60d01ab5dac89bd61c824ff4d4934c27",
+    "AFullCloneFailureDump": "b757932460e27dfc18e7ac41ee0bf1632dc5e14691a8a7948744e1e9f0d12910",
+    "AMainUnchanged": true,
+    "ANativeCounts": {
+      "factory": 1,
+      "receiver": 0,
+      "binding": 0,
+      "subscription": 0,
+      "delivery": 0
+    },
+    "BParent": "5e2885ce8237aaed90d45dff211bea32fd66bbd03c0b3bb799b0915d45b28747",
+    "BDeadline": "2026-11-14T09:12:00Z",
+    "sourceLeafMode": "0770",
+    "source67Unchanged": true,
+    "BMainUnchanged": true,
+    "BCloneAbsent": true,
+    "BFullFailureDump": "25690701",
+    "BGraph": "39cc9bd672524eba2e4e40d271b9dc1e4d5a5f1c8effbe32d3f333f57824b75c",
+    "normalLogout": true
+  },
+  "decimalB": {
+    "state": "SOURCE_TWO_REVIEWS_NOT_NATIVE_RUN",
+    "rootSource": "4b9900e9ba024f56bdc98a168e0b5f7c86688d991db3ddce10054c7ef252d072",
+    "fix": "Explicit C collation for control order; original22controls preserved, no native backfit",
+    "AStoppedBeforePatch": true
+  },
+  "latestLateReport": {
+    "head": "8b55324762c33005d8f75e9382a7041e17740fa0",
+    "tree": "1c844c194f30980c3dd74955dfa7158528874aef",
+    "cutoff": "2026-11-14T09:12:00Z",
+    "worktree": "/tmp/gridex-late-progress-report-20261114",
+    "rootFinal": "f0e65ce9c06cabf6e6eb8bee2859a3744d1849a1960462f8b03b88a1d0d044e0",
+    "secondFinal": "f9dfa4fb5ae5ab5815a1fba3830445b2f404a3b30aca916eab5f859f008e7f8c",
+    "localOnly": true
+  },
+  "decimalC": {
+    "state": "ACTUAL_FINITE_EQUALITY_BUT_FULL2688_STILL_TIMEOUT_NO_K_ADOPTION",
+    "session": 22776,
+    "rootActual": "d12bc544a110cf389221a91eba77137051b36b4ea7bc9362e78168f2d46913aa",
+    "peerActual": "7263c237b85a1f7dc5f4db2516727d2f7a8d332196c9c38a5566452753dd4ae3",
+    "full2688WallSeconds": 8.130796607991215,
+    "observedContext": "line68 repeatednextQTY quantities array scan",
+    "nativeOldNew22Equal": true,
+    "mainAndPrivateAndClonePreserved": true,
+    "cloneAbsent": true
+  },
+  "decimalD": {
+    "state": "SOURCE_AUTHORING_NEXT_BOUNDARY_PRECOMPUTE_NOT_NATIVE_RUN",
+    "nativeBaseline": "originalce58",
+    "noFullyLinearClaim": true,
+    "noDeadlineIncrease": true
+  },
+  "decimalE": {
+    "state": "ACTUAL_NATIVE_QUALIFIED_TWO_INDEPENDENT_REVIEWS_NOT_BUSINESS_CASE",
+    "index": "242a1bc069ded7d4df5c6966fe38ab31dc981754c480823964574b61be8a87d2",
+    "rootActual": "62ae5c8b5a660537e19e41419b5a6dc7e4f2e27ef42a113edfd35cd749bf00ef",
+    "peerActual": "64df9bffee1e0731d6e725c0cd890a390ddcfcb44b09ec2607ff408c7365e400",
+    "bodyMD5": "e0e18f377848a5ad4f984e24bb5dde8c",
+    "bodySHA256": "3b894ae47023efc592ee9bf84e3c2f1d81b788f8efdede66eda345dea8e13037",
+    "oldNew29Equal": true,
+    "full2688SourceWallSeconds": 0.649618639,
+    "statementTimeoutSeconds": 8,
+    "mainPrivateOtherFunctionsPreserved": true,
+    "cloneAbsent": true,
+    "formalRepoHead": "1c45f3399e196c553f8db49e18bf14384794555b",
+    "formalWrappers": "PREPARED_NOT_RUN"
+  },
+  "KE": {
+    "state": "SOURCE_CODE_2_AND_E_NATIVE_2_READY_ACTUAL_CHAIN_NOT_RUN",
+    "parent": "77ace216",
+    "sourceRoot": "339094c9f8c477df6f61ca7c3465afdee9385c0e4b0723c19448e8b2a5b8d43c",
+    "sourcePeer": "694e2c8a00d1dad9d4c3b12bd3936339e28bb2cc85ae494bd49cf4eaeec7f067",
+    "runtime3000": "edacea228cab4cba392f0ae25dd6d980a65fc2ce7aa628e1b8d68616e49f6010",
+    "roleExpiryUtc": "2026-11-14T12:39:45Z"
+  },
+  "canary": {
+    "state": "OWN2_B_FAILED_PREPROOF_UMASK_CONTROL0700_V2_SINGLE_CHMOD_SOURCE",
+    "runtime900": "236d08ab256746a4207d042c1cdfcdc1670e9ca8d4d76a5b17afe3012d55a1a6",
+    "witness": "b438e45aca1f97a414a330ea825dc038007f94f5e3bf9ad373e0b7fa1d08353f",
+    "sourceRoot": "80b2f16d6b4f8373db7d753632d30e01f59d50c82ebf60c713072c9b98af06a5",
+    "own2KRoot": "f09e5444ed8e7980de6d90e6f7ecb833e0e113af9c4aead0519e3fa4e5edb116",
+    "own2v2": "309af1d1364b5813808b38b653231a81a1426e3eacd46f639eaedf268e156459",
+    "originalLocalFailure": "ECONNRESET_UNHANDLED_REPRODUCED_RUN16",
+    "actualDCause": "UNKNOWN_NO_PID1_STDERR",
+    "nativeOwn2Positive": false
+  },
+  "lastHeldD": {
+    "normalLogout": true,
+    "browserClosed": true,
+    "businessCommands": 0,
+    "closedHandoff": "eedb58a0deb3debb3d7ca98f5f97b775159b464fa64a2b21cd92531a15d8a616",
+    "noCurrentHeldContext": true
+  }
+}

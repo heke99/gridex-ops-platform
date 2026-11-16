@@ -1,0 +1,151 @@
+{
+  "state": "FROZEN_LOCAL_HEADER_PRECEDENCE_CORRECTNESS_SOURCE_AND_DOC_ONLY_NATIVE_PENDING",
+  "atUTC": "2026-11-15T13:04:54.665753+00:00",
+  "repository": "/tmp/gridex-ediel-header-length-precedence-20261115",
+  "head": "112ea02caa97785f77f5eb412eb66771444c01e0",
+  "tree": "80bdc06f223d82f212302597faca6f5b0fee0cbd",
+  "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba",
+  "files": [
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-20261115/quality/audits/ediel-header-length-precedence-20261115/REPORT.sv.md",
+      "sha256": "b71935fa47078864744d9774086728a8f527e6a50ff5c5d2c54447dab9d62c2c",
+      "bytes": 8121
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-20261115/quality/audits/ediel-header-length-precedence-20261115/results.safe.json",
+      "sha256": "8cac1ac6a66437bff506169aa13f886d78e24ee072e3bb2c5eed7bb635b69788",
+      "bytes": 7643
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-20261115/supabase/migrations/20261115124654_ediel_header_component_length_precedence.sql",
+      "sha256": "8241f65020d000f007d03b95c77341176e887b0605ca086b12441e623e76dfa9",
+      "bytes": 6300
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-20261115/supabase/tests/20261115_ediel_header_component_lengths.sql",
+      "sha256": "bcc57a89bb45a0d1f85cb332263b8151a726485d487e27b045605e323bef8e71",
+      "bytes": 57781
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-20261115/supabase/migrations/20261115124654_ediel_header_component_length_precedence.sql",
+      "sha256": "8241f65020d000f007d03b95c77341176e887b0605ca086b12441e623e76dfa9"
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-20261115/supabase/tests/20261115_ediel_header_component_lengths.sql",
+      "sha256": "bcc57a89bb45a0d1f85cb332263b8151a726485d487e27b045605e323bef8e71"
+    },
+    {
+      "path": "/tmp/gridex-ediel-envelope-linear-framing-fix-20261115/supabase/migrations/20261115110312_ediel_envelope_linear_framing.sql",
+      "sha256": "1db0467502ee51869a7074768da1c43d5fdfedb7b74f839cbe96c07043b91096"
+    },
+    {
+      "path": "/tmp/gridex-ediel-envelope-linear-framing-fix-evidence-20261115/FROZEN.safe.json",
+      "sha256": "7c029c279329a8f2b2b8a379d77863eae214cef38d5334c5b200ac2adb2043aa"
+    },
+    {
+      "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/fixture35-disambiguation.safe.json",
+      "sha256": "54b23bb3de126e7fc11db36c746ed633ae205f82beade8219feb30f944c12ba6"
+    },
+    {
+      "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/ediel-envelope-B-timing-diagnostic-actual-closure-review.safe.json",
+      "sha256": "03f7ae130e6a0bcb664acac7e1b57036f3e4dbb0a47199c06b0c9dfbe36ad222"
+    },
+    {
+      "path": "/tmp/gridex-ediel-envelope-equivalence-fixture35-corrected-prep-20261115/EQUIVALENCE-FIXTURES.safe.json",
+      "sha256": "03ce5379008f5a6abcb768aed418cd6716cb6cf90b9ec3c9c3925c06a386ec8b"
+    },
+    {
+      "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-c/terminal.safe.json",
+      "sha256": "8c8c243028cb817537e4a05aa4981b97d5461a2afe5bd6748563448422a5cdf4"
+    },
+    {
+      "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-c/ediel-C-corrected41-native-actual-closure-review.safe.json",
+      "sha256": "70c5674ede7ae69681387c8d768abd7788dafa157aeff54a7f95dd1bc605267d"
+    },
+    {
+      "path": "/workspace/gridex-ediel-envelope-wrapper-actual-20261115-d/terminal.safe.json",
+      "sha256": "fafd7c3b2e319a295cccafa5c1a9cace8350c9f992e29b5b2b64ceff386d2867"
+    },
+    {
+      "path": "/workspace/gridex-ediel-envelope-wrapper-actual-20261115-d/ediel-D-wrapper-replay-formal41-actual-closure-review.safe.json",
+      "sha256": "cb74ecef7e2d8bda53ea7e9ef023999a0b924c883add3ea5c96071aa0e27e7f1"
+    },
+    {
+      "path": "/tmp/gridex-ediel-envelope-wrapper-sql-prep-20261115/canonical-old-setup.OWNED-ONLY.sql",
+      "sha256": "833e36c42159ecf7b571a075249b95345fdcb8f96d0a6826679d945324b48300"
+    },
+    {
+      "path": "/tmp/gridex-ediel-envelope-wrapper-sql-prep-20261115/read-canonical-metadata.READONLY.sql",
+      "sha256": "fdc4673e5d7fde4f324d6cb951fc53d54cf174dab40b74dcfad6021556cc3a14"
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/HEADER-LENGTH-NATIVE-FIXTURES.safe.json",
+      "sha256": "5d9c17bfd0c5d6fcb2a58c6451da9f302dedc31458a4623f9254460e94e09b72"
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/SOURCE-INVARIANTS.safe.json",
+      "sha256": "a761a0ad5b2a30f2d09b055ee362e032f5069c2827ee2fb3cd5a6d3f04e827d3"
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/PREWRITE-OWN5-VERIFIED.safe.json",
+      "sha256": "e4216bb9a7f4053df72050af60e0ac14692cc7b44f0f3681d1bede7284cc1483"
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/NATIVE-CORRECTNESS-PLAN.UNARMED.safe.json",
+      "sha256": "03b601791e838954f9c7cdaa7f67ef3d66d040e0854526f320ced459f557a769"
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/SOURCE-VERIFICATION.safe.json",
+      "sha256": "b391ab5cce59081504925a057c2a3b06ce0656e75fa7a7fea59193438937bff0",
+      "bytes": 1479
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/SKILL-ROUTING.safe.json",
+      "sha256": "b6dba8a522ea20a10fc93d65be2fa7084bb8f985fdd35e33b48b9cebd63ec283",
+      "bytes": 617
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/FRESH-SOURCE-PRECLAIM.safe.json",
+      "sha256": "d73bc302a29cd0c495a9a0a4050097dc9d233cd47e46362567591beeb88876c5",
+      "bytes": 546
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/PREWRITE-OWN5-VERIFIED.safe.json",
+      "sha256": "e4216bb9a7f4053df72050af60e0ac14692cc7b44f0f3681d1bede7284cc1483",
+      "bytes": 1691
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/envelope.optimized-reference.definition.sql",
+      "sha256": "dd605327bdc579dcc8b30379fa1b0c8ef84a78bcc18f63a8308f3a11bad62e77",
+      "bytes": 3386
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/envelope.header-length-corrected.definition.sql",
+      "sha256": "87a69b8a9ee59fe62e2f2a6acedf7a3c2eb20f78cb46c8efcfd69b23ab796412",
+      "bytes": 3390
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/build-candidate.py",
+      "sha256": "a5e066bf2e599781eeb8821057d49dfb529e14b0cbe02932c19405e84d574050",
+      "bytes": 12406
+    },
+    {
+      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/write-docs-and-plan.py",
+      "sha256": "71e47924552c0a20c85f3aadd2c81801ecd71688124bde8a72fd585f81f59aad",
+      "bytes": 14023
+    }
+  ],
+  "claimReceipt": "efc8edfd4e2bc5aeb3665d155f2195f836949df6",
+  "clean": true,
+  "exactFourClaimedFiles": true,
+  "GitBlobPhysicalEqual": true,
+  "diffCheckExit": 0,
+  "sourceInvariantsOnly": true,
+  "nativeWrapperReplayAnd75": "NOT_RUN",
+  "fullInsert": "NOT_RUN",
+  "MainAdoption": false,
+  "activeSource65Or67Changed": false,
+  "pushed": false
+}

@@ -1,0 +1,12 @@
+{
+  "state": "SOURCE_AND_FINALDOC_APPROVE",
+  "source": "754a16a3cff19bb5c66dd292ef03e01261c79529",
+  "docHead": "95e992f8296401518c1dfc71347328079d6a03e3",
+  "productFiles": 2,
+  "removedLiteralLines": 2,
+  "otherProductBytesAndFacadesUnchanged": true,
+  "actualEmbeddedProofsVerified": 5,
+  "frameworkInputsVerified": 3,
+  "claimScope": "Two inert config bindings only within inspected repository/framework contract; no whole module/function deletion or scenario credit",
+  "fullApplicationChecks": "NOT_RUN_NOT_REQUIRED_FOR_THIS_BOUNDED_REMOVAL"
+}

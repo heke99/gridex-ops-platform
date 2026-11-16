@@ -1,0 +1,7 @@
+{
+  "state": "ROOT_EXACT_SOURCE_METADATA_REBIND_ACK",
+  "contractSHA256": "5cf950b228099b299ab44d0ceeeb22996d3f928221d111cd3cbba8f05a77b275",
+  "rebindSHA256": "f9dd65e7a8eb00b2f9cdf13dcaa254e008b4d496c1dcaf6e5eaaec8df737908b",
+  "checks": "Read exact2knownpath/moduledependencyhash literals; all4refs match previouslyreviewed currentfrozenmodule+loader; no codechanged or importexecuted",
+  "runtimeAuthority": false
+}

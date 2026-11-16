@@ -1,0 +1,24 @@
+{
+  "reviewerAgent": "/root",
+  "reviewedAt": "2026-11-15T18:07:11.538918+00:00",
+  "state": "SOURCE_REVIEW_CHANGE_REQUIRED_BEFORE_EXECUTION",
+  "sourcePacket": {
+    "path": "/workspace/gridex-ediel-ingress-first-prep-20261115/FROZEN.v2.safe.json",
+    "sha256": "fda1eecbca10824642375875b036c25284d7a0e5579a6265579a2b0adbf2fc0a"
+  },
+  "findingId": "EDIEL-DUPLICATE-ORACLE-OWN-ROW-DRIFT",
+  "finding": "observeDuplicate verifies identity/hash/jobs/foreign-business fences but never compares full existing email. Same ID/stored raw_message_sha256 with altered subject, processing_status or raw_email could be accepted. Actual storeInboundEmail duplicate source returns before INSERT, so duplicate should preserve whole existing email row. No actual product duplicate attempt or new product bug established.",
+  "requiredChange": "Immutable duplicate-only full-row equality (negative processor must still allow its declared status changes), meaningful changed-own-row negative control and actual raw content hash binding where applicable. Preserve original10 results/oldpacket; source2 fixedpacket before ownfixture execution.",
+  "additionalHarnessDeadCode": {
+    "source": "ingress-ui-driver.cjs",
+    "sha256": "0b4f37623f9cf616f8fd19d2eb539793bed9c8892abff50988be009111c92d49",
+    "lexicalFunctionsUnreachableFromFourClosedExports": [
+      "createRoute",
+      "issueNamespace",
+      "processOne"
+    ],
+    "separateFromOriginal33ProductionIdentities": true,
+    "remediation": "Immutable ingress-only successor removes3 functions/unused markers; no active host rewrite."
+  },
+  "noNodeSQLAuthOrBackendByReviewer": true
+}

@@ -1,0 +1,29 @@
+{
+  "state": "PURE_OWN_DB_CORRECTED41_EQUIVALENCE_OBSERVED_CLOSED",
+  "errorType": null,
+  "ownDBAbsent": true,
+  "MainFullRolesAll7Auth0CarrierUnchanged": true,
+  "results": {
+    "equivalence": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.2178805590083357,
+      "stdout": {
+        "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-c/equivalence.stdout.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-c/equivalence.stderr.private.log",
+        "sha256": "9ebd6d055ef4433d97d00620184093fe73652cdaa986ad799429464909a73f6e"
+      }
+    }
+  },
+  "native41Passed": true,
+  "actualRawTimingExecutedThisRun": false,
+  "actualRawOutputEquivalenceThisRun": false,
+  "priorTimingBObservation": {
+    "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/terminal.safe.json",
+    "sha256": "e8fcc63126bd5bff4fd9c1b5ee4d8669df36efa99593b712016219fad5ff2c88"
+  },
+  "fullInsertCauseProven": false,
+  "MainOrProductAdoption": false
+}

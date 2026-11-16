@@ -1,0 +1,17 @@
+{
+  "state": "FROZEN_SOURCE_ANALYSIS_ONLY_NO_NEW_CONTROLLER",
+  "files": [
+    {
+      "path": "/tmp/gridex-multisite-billing-source-paths-prep-20261115/READOUT.sv.md",
+      "sha256": "218dd2a22dc1734fb69fc6497a8c53064f1d3e92027bee83748c9639f5aec457",
+      "bytes": 7605
+    },
+    {
+      "path": "/tmp/gridex-multisite-billing-source-paths-prep-20261115/SOURCE-PATHS.safe.json",
+      "sha256": "aa2d3920fb2397ada5bfaa3237fa00cb7add91a5433a913950a4c862fa0942e6",
+      "bytes": 11650
+    }
+  ],
+  "sourceReferenceCount": 22,
+  "notActualRuntimeReadinessOrScenarioCredit": true
+}

@@ -1,0 +1,281 @@
+// lib/customers/poaReadiness.ts
+//
+// Shared power-of-attorney (fullmakt) readiness semantics. There are three
+// distinct concepts that the rest of the platform MUST NOT conflate:
+//
+//   * hasLegalPoaAcceptance   - the customer legally accepted a fullmakt
+//                               (consent recorded with legal text + acceptance).
+//   * hasPoaSnapshot          - a locked legal/POA snapshot or stored document
+//                               exists, so a readable PDF can be produced.
+//   * hasExternallySendablePoa - the POA is complete enough to send to a grid
+//                               owner: customer identity + signer + method +
+//                               evidence/snapshot/document. This is the only
+//                               concept that may render "Fullmakt klar" for
+//                               EXTERNAL network-owner communication.
+//
+// A legally accepted POA is NOT automatically externally sendable.
+
+type PoaLike = Record<string, unknown>
+
+export type SitePoaScope = 'facility_information_lookup' | 'supplier_switch'
+export type SitePoaRowFact = {
+  poaId: string
+  evidenceComplete: boolean
+  legallyAccepted: boolean
+  lifecycle: PowerOfAttorneyLifecycleStatus
+  usableNow: boolean | null
+}
+/** POA prerequisite only; this is never a route, sender or full action permit. */
+export type SitePoaReadiness = {
+  companyId: string | null
+  customerId: string | null
+  siteId: string | null
+  meteringPointId: string | null
+  actorId: string | null
+  scope: SitePoaScope
+  asOf: string
+  parentCoverage: 'complete' | 'partial' | 'unknown'
+  kind: 'ready' | 'blocked' | 'unknown'
+  usableNow: boolean | null
+  evidenceComplete: boolean
+  legallyAccepted: boolean
+  powerOfAttorneyId: string | null
+  explanation: string
+  rows: SitePoaRowFact[]
+}
+export type CustomerCardPoaReadiness = {
+  facility: SitePoaReadiness
+  supplierSwitch: SitePoaReadiness
+}
+
+export function unknownSitePoaReadiness(input: {
+  scope: SitePoaScope
+  companyId?: string | null
+  customerId?: string | null
+  siteId?: string | null
+  meteringPointId?: string | null
+  asOf?: string
+}): SitePoaReadiness {
+  return {
+    companyId: input.companyId ?? null, customerId: input.customerId ?? null,
+    siteId: input.siteId ?? null, meteringPointId: input.meteringPointId ?? null,
+    actorId: null, scope: input.scope, asOf: input.asOf ?? new Date().toISOString(),
+    parentCoverage: 'unknown', kind: 'unknown', usableNow: null,
+    evidenceComplete: false, legallyAccepted: false, powerOfAttorneyId: null, rows: [],
+    explanation: 'Fullmakten för vald anläggning kan inte verifieras. Läs om kundkortet eller granska fullmaktsunderlaget.',
+  }
+}
+
+function clean(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return trimmed ? trimmed : null
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  return null
+}
+
+/** One source classification for readiness and external-mail proof gates. */
+export function poaCaptureSource(poa: PoaLike | null | undefined): string {
+  return (clean(poa?.source) ?? clean((poa?.evidence_payload as PoaLike | undefined)?.source) ?? '').toLowerCase()
+}
+
+function isNonEmptyObject(value: unknown): boolean {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value) && Object.keys(value as object).length > 0
+}
+
+const ACCEPTED_STATUSES = new Set(['signed', 'active', 'accepted', 'completed'])
+
+function hasAcceptancePayload(value: unknown): boolean {
+  // A system-issued document verifier identifies an archive/transaction. It
+  // cannot create consent merely because the evidence object is nonempty.
+  return isNonEmptyObject(value) && Object.keys(value as object).some((key) => key !== 'verification_reference')
+}
+
+export function poaStatusIsAccepted(poa: PoaLike | null | undefined): boolean {
+  return ACCEPTED_STATUSES.has((clean(poa?.status) ?? '').toLowerCase())
+}
+
+// Legally accepted: an accepted status plus at least one piece of acceptance
+// evidence (accepted_at/signed_at, a legal text version, or an evidence/
+// snapshot payload). This proves the customer agreed, independent of whether
+// the document is ready to be mailed externally.
+export function hasLegalPoaAcceptance(poa: PoaLike | null | undefined): boolean {
+  if (!poa) return false
+  if (!poaStatusIsAccepted(poa)) return false
+  return Boolean(
+    clean(poa.accepted_at) ||
+      clean(poa.signed_at) ||
+      clean(poa.legal_text_version_id) ||
+      hasAcceptancePayload(poa.evidence_payload) ||
+      isNonEmptyObject(poa.fullmakt_snapshot),
+  )
+}
+
+// A locked snapshot or stored document exists, so a fullmakt PDF can be
+// generated or attached.
+export function hasPoaSnapshot(poa: PoaLike | null | undefined): boolean {
+  if (!poa) return false
+  return Boolean(
+    isNonEmptyObject(poa.fullmakt_snapshot) ||
+      clean(poa.document_id) ||
+      clean(poa.document_path),
+  )
+}
+
+function websiteApiPoaHasStructuredExternalCapture(poa: PoaLike | null | undefined): boolean {
+  if (!['website_api', 'ops_online_signature'].includes(poaCaptureSource(poa))) return true
+
+  const evidence = poa?.evidence_payload as PoaLike | undefined
+  const metadata = poa?.metadata as PoaLike | undefined
+  const evidenceCaptureType = clean(evidence?.capture_type)
+  const metadataCaptureType = clean(metadata?.poa_capture_type)
+
+  return (
+    evidenceCaptureType === 'structured_complete' ||
+    metadataCaptureType === 'structured_complete' ||
+    evidence?.externally_sendable_at_capture === true ||
+    metadata?.externally_sendable === true
+  )
+}
+
+/** Readiness metadata only; the archive completion RPC also checks the exact
+ * private storage object, original signature and tenant/customer/contract. */
+export function hasOnlineSignaturePoaArchive(poa: PoaLike | null | undefined): boolean {
+  if (!poa || poaCaptureSource(poa) !== 'ops_online_signature') return true
+  const metadata = poa.metadata as PoaLike | undefined
+  const archive = metadata?.document_archive as PoaLike | undefined
+  const evidence = poa.evidence_payload as PoaLike | undefined
+  const sha = clean(archive?.sha256)
+  const expected = `companies/${poa.company_id}/customers/${poa.customer_id}/powers-of-attorney/${poa.id}/fullmakt-${sha}.pdf`
+  return Boolean(clean(poa.document_id) && metadata?.online_signature_archive_pending === false
+    && archive?.storage_bucket === 'customer-documents' && /^[a-f0-9]{64}$/.test(sha ?? '')
+    && /^[a-f0-9]{64}$/.test(clean(archive?.evidence_sha256) ?? '')
+    && archive?.path === expected && poa.document_path === expected
+    && evidence?.capture_source === 'actual_signing_request'
+    && clean(evidence?.signature_request_id) && clean(evidence?.signature_snapshot_sha256)
+    && evidence?.ip_address_source === 'signer_reported' && clean(evidence?.ip_address)
+    && clean(evidence?.verification_reference))
+}
+
+export function poaCustomerIdentity(
+  poa: PoaLike | null | undefined,
+  context?: { customerIdentity?: string | null },
+): string | null {
+  const identityFromPoa = clean(poa?.signer_identity_number) ?? clean((poa?.evidence_payload as PoaLike | undefined)?.signer_identity_number)
+  if (identityFromPoa) return identityFromPoa
+
+  // Customer identity fallback is intentionally limited to old/admin/migrated
+  // complete POA rows. Website API rows must carry signerIdentityNumber on the
+  // structured POA itself; legacy consent-only is never externally sendable.
+  if (['website_api', 'ops_online_signature'].includes(poaCaptureSource(poa))) return null
+
+  return clean(context?.customerIdentity)
+}
+
+// The POA is complete enough to send to a grid owner. Requires:
+//   - legal acceptance,
+//   - a known customer identity (person-/organisationsnummer),
+//   - a signer name,
+//   - a capture method,
+//   - a snapshot or stored document (so a PDF exists or can be generated).
+export function hasExternallySendablePoa(
+  poa: PoaLike | null | undefined,
+  context?: { customerIdentity?: string | null },
+): boolean {
+  if (!poa) return false
+  if (!hasLegalPoaAcceptance(poa)) return false
+  if (!websiteApiPoaHasStructuredExternalCapture(poa)) return false
+  if (!poaCustomerIdentity(poa, context)) return false
+  if (!clean(poa.signer_name)) return false
+  if (!clean(poa.method)) return false
+  if (!hasPoaSnapshot(poa)) return false
+  if (!hasOnlineSignaturePoaArchive(poa)) return false
+  return true
+}
+
+// ---------------------------------------------------------------------------
+// Canonical POA lifecycle status
+// ---------------------------------------------------------------------------
+//
+// The stored powers_of_attorney.status vocabulary grew organically
+// (draft/sent/signed/active/accepted/completed/expired/revoked). UI and
+// process code need ONE derived lifecycle answer instead of re-implementing
+// this mapping. Derivation is fail-closed: an accepted status without any
+// acceptance evidence is still "awaiting_signature".
+
+export type PowerOfAttorneyLifecycleStatus =
+  | 'missing'
+  | 'awaiting_signature'
+  | 'signed'
+  | 'valid'
+  | 'revoked'
+  | 'expired'
+  | 'replaced'
+
+function toDateOrNull(value: unknown): Date | null {
+  const cleaned = clean(value)
+  if (!cleaned) return null
+  const parsed = new Date(cleaned)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+/**
+ * A date-only validity end (YYYY-MM-DD) includes the whole day in Swedish
+ * time: the POA expires at the next Stockholm midnight. Timestamps are exact.
+ */
+function validThroughEnd(value: unknown): Date | null {
+  const cleaned = clean(value)
+  if (!cleaned) return null
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(cleaned)
+  if (!dateOnly) return toDateOrNull(cleaned)
+  const next = new Date(Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]) + 1, 12))
+  const ymd = next.toISOString().slice(0, 10)
+  // Offset of Europe/Stockholm at that date (+01:00 or +02:00).
+  const offsetName = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Stockholm', timeZoneName: 'shortOffset' })
+    .formatToParts(next).find((part) => part.type === 'timeZoneName')?.value ?? 'GMT+1'
+  const hours = Number(/GMT([+-]\d+)/.exec(offsetName)?.[1] ?? 1)
+  return new Date(Date.parse(`${ymd}T00:00:00Z`) - hours * 3_600_000)
+}
+
+export function derivePowerOfAttorneyLifecycleStatus(
+  poa: PoaLike | null | undefined,
+  options?: { now?: Date },
+): PowerOfAttorneyLifecycleStatus {
+  if (!poa) return 'missing'
+  const now = options?.now ?? new Date()
+  const status = (clean(poa.status) ?? '').toLowerCase()
+
+  if (status === 'revoked' || status === 'annulled' || clean(poa.revoked_at)) return 'revoked'
+  if (status === 'replaced' || status === 'superseded' || clean(poa.replaced_by_id)) return 'replaced'
+
+  const validTo = validThroughEnd(poa.valid_to) ?? validThroughEnd(poa.valid_until)
+  if (status === 'expired' || (validTo && validTo <= now)) return 'expired'
+
+  if (poaStatusIsAccepted(poa)) {
+    // Accepted status without acceptance evidence is not provable — treat as
+    // still awaiting a verifiable signature.
+    if (!hasLegalPoaAcceptance(poa)) return 'awaiting_signature'
+    const validFrom = toDateOrNull(poa.valid_from)
+    if (validFrom && validFrom > now) return 'signed'
+    return 'valid'
+  }
+
+  return 'awaiting_signature'
+}
+
+// Human-readable Swedish list of what is missing for external sendability.
+export function poaMissingExternalFields(
+  poa: PoaLike | null | undefined,
+  context?: { customerIdentity?: string | null },
+): string[] {
+  const missing: string[] = []
+  if (!hasLegalPoaAcceptance(poa)) missing.push('Juridiskt godkännande av fullmakt')
+  if (!websiteApiPoaHasStructuredExternalCapture(poa)) missing.push('Komplett strukturerad website-fullmakt')
+  if (!poaCustomerIdentity(poa, context)) missing.push('Person-/organisationsnummer')
+  if (!clean(poa?.signer_name)) missing.push('Undertecknarens namn')
+  if (!clean(poa?.method)) missing.push('Signeringsmetod')
+  if (!hasPoaSnapshot(poa)) missing.push('Fullmaktsunderlag/dokument')
+  if (!hasOnlineSignaturePoaArchive(poa)) missing.push('Verifierat privat fullmaktsarkiv med originalbevis')
+  return missing
+}

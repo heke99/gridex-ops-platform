@@ -1,0 +1,30 @@
+{
+  "state": "ACTUAL_NATIVE_FAILURE_ROOTCAUSE_CONFIRMED_CORRECTION_IN_PROGRESS",
+  "asOfUTC": "2026-11-14T15:14:12Z",
+  "id": "LOCAL-PREPARE-PERMANENT-CUSTOMER-NUMBER-REWRITE",
+  "layer": "local_simulation_native_function",
+  "trigger": "INSERT allocates permanent customer_number; prepare then wrongly replaces it with independently generated opaque customer_reference",
+  "actual": "One genuine K3 PREPARE RPC denied23514 customer_number_is_permanent; entire PREPARE rolled back with full before/after byte equality. Earlier ISSUE and RECEIVE committed. No document/ATTEST/import.",
+  "correctiveAction": "Remove only postINSERT UPDATE customer_number=customer_reference. Preserve allocator, permanent-number trigger, actual RETURNING row and contract/CPS copies. Fresh qualified run and negative immutability check pending.",
+  "correctPath": "Normal admin createCustomerAction -> createCustomerGraph -> canonical_onboard_customer_graph -> gridex_onboard_customer_graph_core -> INSERT/default/number trigger -> actual allocated customer_number returned. customer_reference is separate.",
+  "evidence": [
+    {
+      "path": "/tmp/gridex-k3-customer-number-readonly-trace-20261114/FROZEN.safe.json",
+      "sha256": "120aa15f942168d7e7f0fdfb9e6bdbc66ce53002575c864c01a6715dfe1ab8ac"
+    },
+    {
+      "path": "/tmp/gridex-k-static-bindings-prep-20261114/K3-PREPARE-DENIED-NATIVE-RECONCILIATION.safe.json",
+      "sha256": "9b8670a60171a49a502ad99e7ded12f26bf2b656cdbd3d3d51bdd46263a36f34"
+    },
+    {
+      "path": "/tmp/gridex-k3-normal-closure-prep-20261114/CLOSED-PROPER-LOGOUT.safe.json",
+      "sha256": "9ed18ce6f95fe86b812396108fe0354ef80d4e22d5ee2910948b9d0be95dd5d7"
+    }
+  ],
+  "scenarioCounts": {
+    "pass": 38,
+    "unsupportedGap": 1,
+    "outstanding": 66
+  },
+  "newFullScenarioCredit": 0
+}

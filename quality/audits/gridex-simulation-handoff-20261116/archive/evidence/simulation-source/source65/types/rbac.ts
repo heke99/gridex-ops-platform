@@ -1,0 +1,18 @@
+export type AppRole =
+  | 'super_admin'
+  | 'admin'
+  | 'operations_manager'
+  | 'operations_agent'
+  | 'customer_service_manager'
+  | 'customer_service_agent'
+  | 'pricing_manager'
+  | 'pricing_approver'
+  | 'compliance_manager'
+  | 'sales_manager'
+  | 'partner_manager'
+  | 'finance_readonly'
+  | 'executive_readonly'
+  | 'partner_api_user'
+  | 'customer'
+
+export type PermissionEffect = 'allow' | 'deny'

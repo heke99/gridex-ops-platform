@@ -1,0 +1,71 @@
+{
+  "state": "ACTUAL_EVENT_C_CLOSED_PENDING_INDEPENDENT_ORIGINAL_VERDICT",
+  "controllerExitCode": 0,
+  "refs": [
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/original-three-case-evidence.safe.json",
+      "sha256": "74a949758718680cf06ec85b1bee1e2f1ba62c5be598d873514e9d7ffcac0f96"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/worker-process-closed.safe.json",
+      "sha256": "e3159afb209f7d938abb8f034d741a60f82e48345008648e0a19b2afd79638cc"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/owned-runtime-closure.safe.json",
+      "sha256": "69a825d48a1b4255245085cd60bfac2880290b9b66ef0ebdf926ef3b1e6e3989"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/postbusiness.main.private.json",
+      "sha256": "b9b4446f712e1ec85f6ede50c9218f7ae3ce2d326a60bc9e0360cd192bc58a49"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/postlogout.main.private.json",
+      "sha256": "0ccb989d95155867d2c4a7b29b2a6ce26bbed46a0284ec210395958dfcd56564"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/postlogout.all7.safe.json",
+      "sha256": "09ea3da624e001bc9af51c801f7638c6f34d7c986b6275fb7c0dd1873226afc9"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/postlogout.auth.safe.json",
+      "sha256": "4035f8987c6f78277628ba99def9b80d9e33c4d9d578771a8ec841139ddd2477"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/final-cleanup-check.main.private.json",
+      "sha256": "0ccb989d95155867d2c4a7b29b2a6ce26bbed46a0284ec210395958dfcd56564"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/post-topology-restoration.main.private.json",
+      "sha256": "0ccb989d95155867d2c4a7b29b2a6ce26bbed46a0284ec210395958dfcd56564"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/post-topology-restoration.all7.safe.json",
+      "sha256": "09ea3da624e001bc9af51c801f7638c6f34d7c986b6275fb7c0dd1873226afc9"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/post-topology-restoration.auth.safe.json",
+      "sha256": "4035f8987c6f78277628ba99def9b80d9e33c4d9d578771a8ec841139ddd2477"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/global-db-role-settings.before.private.json",
+      "sha256": "a0b9809a10e630b28b73e8eb5b1e65837684497fa7dab119ff76aae031694bb0"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/global-db-role-settings.after.private.json",
+      "sha256": "a0b9809a10e630b28b73e8eb5b1e65837684497fa7dab119ff76aae031694bb0"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/clone-bridge-closed.safe.json",
+      "sha256": "ebde469030442e4e98c07a4bb522ca04553312bfd090d7549c7863cd92a8355e"
+    },
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-actual-20261115-i/RESTORED.safe.json",
+      "sha256": "b2e8e12200d1084e1ae8e92457604ab2d98a1dd374b30bfe782e0783e00a9785"
+    },
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-actual-20261115-i/ORIGINAL-FORWARDER-RESTORED.safe.json",
+      "sha256": "bde45e4ca65f8ed4b8e6896d1682fa2a0f4b8644b0b204622719564a2bd43856"
+    }
+  ],
+  "noAutomaticScenarioCounterChange": true
+}

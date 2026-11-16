@@ -1,0 +1,18 @@
+{
+  "state": "SOURCE_COMPONENT_AND_FINALDOC_APPROVE",
+  "sourceHead": "a68cd2f619313b0d8ce089a2705dfe4aefc6fa3f",
+  "docHead": "69b80f3a5e4c1022ce8e593699933bd8b46606f3",
+  "fullSourceFilesRead": 5,
+  "sourceEvidenceActualVerified": 39,
+  "strictInputsRehashed": 696,
+  "redFailPass": [
+    26,
+    10
+  ],
+  "green": 36,
+  "lintExit": 0,
+  "strictExit": 0,
+  "review": "ActualPAGErawnext entries\u2192POSTgetAllcount\u2192boundedpuretwo-wrapper signup-onlyvalidationbeforeSDK/verifyOtp; no wholedecode routing, default/directdestinations preserved. OtherAuth paths unchanged, CONFIRMATIONtemplate type signup distinct MAGIC.",
+  "clarification": "Onlyknownwrappers are unwrapped; other safe directURLs remain destinations. No registry/identity/acceptedauthority inferred from data.",
+  "deferred": "Go/providerHTTPtemplateactivation/realmail/session/native/new105case; historical1ff/Auth02 intact"
+}

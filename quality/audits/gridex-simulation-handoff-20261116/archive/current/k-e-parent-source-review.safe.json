@@ -1,0 +1,14 @@
+{
+  "state": "SOURCE_CODE_APPROVE_NOT_ACTUAL_EXECUTION",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T11:03:58.593592+00:00",
+  "freezeSHA256": "c9093b2450e85d88bdb1ef212478dd2b4c5ac12b811d761a0ddc99eb488197ae",
+  "wrapperSHA256": "77ace21657f5a81ba70bcae747e987a113866b4a98c97b54b9aea715797e2bc5",
+  "checks": [
+    "FullboundedKD\u2192KEdelta/allfrozenhashes/ASTverified, ESQLexact5917exceptownedKDBguard",
+    "E29/terminalE/e0e18nativeMD5SHA/full2688true/all3EQUALITY/Mainprivateclonepreserved+RootEdieltwoactualreviews checkedbeforeANYbackend",
+    "ActualEpositiveSourceRoot62ae5+Ediel64df exists; stillrequiresfreshactualbinding/scopes beforeKrun",
+    "Auth/3000/realtimeexpiry/source40/64/private/cleanup unchanged; oldKD/C cannotpassEgate",
+    "LegacyDreceiptfilename/comment remains boundedmetadataonly; actualSQLmarker/terminal/body/all29guard unambiguouslyE; no businesscredit fromsourceACK"
+  ]
+}

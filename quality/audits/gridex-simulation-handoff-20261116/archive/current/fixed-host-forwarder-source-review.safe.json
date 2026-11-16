@@ -1,0 +1,24 @@
+{
+  "state": "ROOT_FINITE_FIXED_HOST_FORWARDER_SOURCE_APPROVE",
+  "atUtc": "2026-11-14T13:59:59.127382+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-local-fixed-host-forwarder-prep-20261114/PREPARED.safe.json",
+    "sha256": "5f256b74634feaf2c82942a4211e761ca130bdf16f66dc59226388c37a6d766c"
+  },
+  "scriptSHA256": "e83626729ce8f26a0a588017eb8ebe1534b1789c34c9981ce36562cae939c5a3",
+  "review": [
+    "Full source and nine injected-profile/deadline/ownedpeer fixtures read; tenSHA/size refs verified.",
+    "Exact1273178 toownedapp172.31.240.2:3000 and12757521 toownedGW172.31.240.3:8080, runtimeactualfields sampledmatching.",
+    "Own CID/image/nonce/UID/IP+host1000/caps0 checked; twoactualscopesrequired beforelaunch.",
+    "Fixed32concurrentconnections/32MiBperstream/5sconnect-send/SIGTERM cleanup retained; connection ceiling3000 andminimumrealparent/runtime/helper/JWT-120/roles-120.",
+    "No generatedAuth/RPC/native policy or firewall changes; forwarding preserves realgenuineboundary."
+  ],
+  "peerReceipt": "a76623a761152b2308774f436bce167cf48433a6e30322eff7db863ac7eaa67d",
+  "limits": [
+    "Sourceonly; actualownedlistener/HTTP/genuineGetUser proof mandatory beforebusiness.",
+    "CurrentK2HALT cannotbeignored; no permissiontoretrymutator oroverwriteoldinputs.",
+    "CurrentK2readonlyqualification mustendbeforeplannedparentclosure14:03 andoldlogoutby14:08.",
+    "No hardreal-time guarantee for scheduling; realdeadline stillcloses transport."
+  ],
+  "backendCalls": 0
+}

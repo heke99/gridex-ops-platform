@@ -1,0 +1,75 @@
+{
+  "state": "IMMUTABLE_S_TIMING_CORRECTION_POLICY_ONLY_PREAUTH_PRIVATE_PLAN_AFTER_READY",
+  "preservedPriorSource": {
+    "path": "/workspace/gridex-event-next-S-prep-20261115/PREPARED.SOURCE-ONLY.safe.json",
+    "sha256": "3e9d54d63eb8317f4131685153698d2c52071c4afdd7ba09a16c87bae1d05465"
+  },
+  "preservedPhysicalInert": {
+    "path": "/workspace/gridex-event-next-S-prep-20261115/PREPARED.PHYSICAL-INERT-COMPLETE.safe.json",
+    "sha256": "be5734c78673810e83ddf21ef1eb57a6648d1a88002609b561a63d9276e816f2"
+  },
+  "activePreauthBinder": "/workspace/gridex-event-next-S-prep-20261115/bind-preauth.S-POLICY.py",
+  "privatePlanMintOnlyAfter": "GENUINE_READY_NEW_B_MAIN_STOP_CACHE_COMPLETE_IMMEDIATELY_BEFORE_PRIVATE_BIND_GO",
+  "activeLaterBinders": [
+    "bind-runtime.S-PLAN.py",
+    "bind-parent.S-PLAN.py",
+    "bind-transport.S-PLAN.py"
+  ],
+  "oldPreAuthNumericPlanBuildersHistoricalBlocked": true,
+  "hold1800UnchangedNoResetExtension": true,
+  "oneLaterPrivate780AbsolutePlan900MetadataSidecarMinus90": true,
+  "actualPrivatePlanNotYetMinted": true,
+  "files": [
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/LEASE-POLICY.safe.json",
+      "sha256": "98465b9d4225b8c149a91f670c82ab24def71bc77ee4a176af0eb132f46d8eae",
+      "bytes": 706
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/bind-preauth.S-POLICY.py",
+      "sha256": "3d1be012cf87a159d5b55695c609094f8ca2241a5b9d3c74d5da334c805cec4f",
+      "bytes": 4718
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/PREAUTH.ACTUAL-INPUTS.POLICY-UNARMED.safe.json",
+      "sha256": "fc4deef16c752b7af9c0653829f745e93b2efc37ffc27ee3ca5c3345a025f1d9",
+      "bytes": 418
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/lease_plan_binding_v2.py",
+      "sha256": "f031198c0fcbb76fd548bc70fafb7635407ba5982c26e2005dbfdd060f629437",
+      "bytes": 1579
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/mint-private-plan-after-ready.py",
+      "sha256": "c846c548b7f37a8ceabefa8b673239a71e4b127ec0c417ced8175809e1c8a868",
+      "bytes": 3471
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/bind-runtime.S-PLAN.py",
+      "sha256": "7825536616ddbb3163dc71caff8fa75458ee7dd3520697443351cb6a642f3f5f",
+      "bytes": 6988
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/bind-parent.S-PLAN.py",
+      "sha256": "843ace0dbc029a2074a86cd1fa0783fae95ea453469114d3e7cb0973be2dfac2",
+      "bytes": 6541
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/bind-transport.S-PLAN.py",
+      "sha256": "198aaa33a635b26b9ca690c1f031debeca9a0ae69313bf3c7df507553f1441d0",
+      "bytes": 3962
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/check-private-plan-timing.py",
+      "sha256": "1eed953d5da60fc0c57f16460441daf4b4958b5d8f0a6374406679574c14b311",
+      "bytes": 2642
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/PRIVATE-PLAN-TIMING-CONTROLS.ACTUAL.safe.json",
+      "sha256": "51793c4dc402b6500ba8062c23439766d60351a1e4858be06ac5b41997040959",
+      "bytes": 1387
+    }
+  ],
+  "noBackendNodeAuth": true
+}

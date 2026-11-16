@@ -1,0 +1,28 @@
+{
+  "state": "ACTUAL_SYNTHETIC_PROFILE_CONTROLS_PASS_AND_NEW_SYNTAX_PASS",
+  "controls": 8,
+  "runCLogSHA256": "d2a4dca7c07d248191e3b320c742cc1c2ecd2841ad9b9fbced0165c2fb4a3a3a",
+  "initialA": "Test path.join normalized away traversal alias; test-only V2 correction preserved A failure.",
+  "runB": "Corrected actual traversal negative passed; duplicate-POST native ACK accepted unexpectedly in sourceV2.",
+  "sourceV3Fix": "Track actual observed POST count and require exactly1 before a native committed ACK; sourceV2 and failure retained.",
+  "runCPass": true,
+  "checks": [
+    {
+      "file": "normal-company-profile-driver.v3.cjs",
+      "exitCode": 0,
+      "sha256": "b6e78dd61ec41ead5da8cb20e2bbd6eee20b64e525a9e02f5f5462d6fcf12f3d"
+    },
+    {
+      "file": "hold-ee-customer-prerequisites600.V.cjs",
+      "exitCode": 0,
+      "sha256": "5cb1d7413ae5177378cced093c2faea2abaecbf4eadc6e690cfc3ed3bdb82f46"
+    },
+    {
+      "file": "normal-intake-driver.cjs",
+      "exitCode": 0,
+      "sha256": "ffd1d11bb0c9671666c0d1e58ef70be37d9e5700b0ba0d30b045eabc5f1dc47a"
+    }
+  ],
+  "backendBrowserSDKAuthCalls": 0,
+  "wholeCasePASS": false
+}

@@ -1,0 +1,17 @@
+{
+  "state": "ROOT_K6_PUBLIC_UNAUTH_GET_ONLY_CLIENT_PROBE_SOURCE_AND_NARROW_BIND_SCOPE",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T20:01:40.032064+00:00",
+  "preparedPath": "/tmp/gridex-k6-public-client-probe-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "038c53fd1a0cc0695661fb1927c255a3de56ec62883ae2a3e234d4b0cdddefcd",
+  "scriptSHA256": "8c17daca456e62444e2c9a5af5751a547cf6d29815f8dd4b03a8f8968dcb4155",
+  "review": "Fullscript read. FixedK6ready2d88/appCID9298/origin3178, brandnewemptycontext/no credentials/login/cookieinjection/SDK. OnlysameoriginGETlogin/adminredirect/_next/favicon; allPOST/otherorigins/credentialedURL/WS denied. Sanitizedconsole/pageerror/network/CSP/scriptSHA/marker observations, 75soft+95reserve and producer90outer/ownedclose.",
+  "independentReview": "Ediel4c883e45",
+  "authorizedNarrowActualBinding": "Producer maybindONLY actorLogSecrets and keysLogSecrets exactexistingprivate refs from actualK6targetca279 for redaction, never browser use; fixedRuntimeReadySHA/runRoot/version retained. RecordconfigSHA andlive95s/runtime/source/resource/newroot guards beforeONEexecute.",
+  "conditions": [
+    "NoAuthenticatedImportHydrationOrCauseClaimFromAnonymousGETprobe",
+    "WebSocketsclosedbyprobe MUSTbeclassified self-induced, notserverHMRfailureproof",
+    "Actualafterprobe capture/native/normalruntime/Main/Authclosure required; no reset/retry oldimport"
+  ],
+  "noBusinessOrAuthAuthority": true
+}

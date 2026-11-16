@@ -1,0 +1,28 @@
+{
+  "verdict": "CONTINUATION_CODE_REVIEW_APPROVE_UNARMED_NOT_EXECUTION_GO",
+  "reviewerAgent": "/root",
+  "wrapperPath": "/tmp/gridex-pilot57-current-constructor-prep-20261113/constructor.continuation.v2.py",
+  "wrapperSHA256": "7e3cde32614fe8591b54c731b652d05f7364bea550509c829c5c2730338541e0",
+  "freezeSHA256": "a0dba464270d85c44f32ce86be0ee90af3bbbfd30f801c7ff24d98dc2f286dc3",
+  "donorASTManifest": {
+    "readDeclarations": "c36069bc67a581ef1c6e938b4e7cfa853a5147e400f8e34d2872f271dc41395f",
+    "fd92Declarations": "ac8cbdcdfa208510380ccec0bff12cbadb8079cf3152b33f5d8f3779c9612349"
+  },
+  "scope": [
+    "freshgenuineEE+actualCURRENTMain3370seal remainsindependent",
+    "restoreexacttrustedprivate3420failureFc withactualC6; nevercallcurrentrows",
+    "NOad594reapply/NOC6recreation/NOunknownLOCALPOSTreplay",
+    "all3420functionmetadata/semantic/settings/postgis vsoriginalqualifiedcandidate",
+    "only4C6tables priorcount+1/excludeexactnativeIDs restoresoldhash",
+    "fullC6JSON/nativeactor/company/TEST/profilemetadata/validity/rowrefs/wallclock/norevocation",
+    "private11 exactknownempty baseline",
+    "currentMainfullpreservation/source40 and onlyownREST/AuthGETonly/app/netns cleanup retained",
+    "all3oldcandidatefilename consumers corrected to savedrestoredtrusted3420 artifact"
+  ],
+  "remaining": [
+    "freshactualproducer bindings and fixedC6-UI-resume tuple",
+    "compactRoot+soleproducer exactexecutiontarget reviews"
+  ],
+  "noBackendCalls": true,
+  "asOfUTC": "2026-11-13T20:33:15.478742+00:00"
+}

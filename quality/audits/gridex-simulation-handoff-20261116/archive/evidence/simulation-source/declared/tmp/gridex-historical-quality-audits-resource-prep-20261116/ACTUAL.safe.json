@@ -1,0 +1,152 @@
+{
+  "state": "EXACT_HISTORICAL_QUALITY_AUDIT_GROUPS_ARCHIVED",
+  "selectionSHA256": "9573f481a5b1cb03c0f4ab0dbe837cbf9fa2bd841935811c58fc6ce10bf41547",
+  "groups": [
+    {
+      "groupId": 1,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-1.RELOCATION.safe.json",
+        "sha256": "4a6702ff7c32557533c50b8ef3ee4377b84af816fd661441af0f01a68d6d92c9"
+      }
+    },
+    {
+      "groupId": 2,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-2.RELOCATION.safe.json",
+        "sha256": "dccb2e602b7970d8dbed92e5df18234339bc4a7f1904d1518b4194cbcccce434"
+      }
+    },
+    {
+      "groupId": 3,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-3.RELOCATION.safe.json",
+        "sha256": "c01b5565609b04075489a48c24f0f9d9e010f9e94db16aac1bf8c55322192a4e"
+      }
+    },
+    {
+      "groupId": 4,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-4.RELOCATION.safe.json",
+        "sha256": "4e6398fda9f45356c3c862251ad3b75864c7f2cc93bb3219884b35e6b1367dfe"
+      }
+    },
+    {
+      "groupId": 5,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-5.RELOCATION.safe.json",
+        "sha256": "44b2887edf1c02c47b17ba3317061b32de75bd3c118786578d772e2389842f2c"
+      }
+    },
+    {
+      "groupId": 6,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-6.RELOCATION.safe.json",
+        "sha256": "c23dea0ab0eadf4974867d10ba918d085afe86fdae5203b1785d7ae8317f55ae"
+      }
+    },
+    {
+      "groupId": 7,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-7.RELOCATION.safe.json",
+        "sha256": "36bf8c2e4ee4c2fdc038cbb85576b8b45fb1d5232fa81694e3c5c2801c152683"
+      }
+    },
+    {
+      "groupId": 8,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-8.RELOCATION.safe.json",
+        "sha256": "3d6b119cd57b6fb68fad9cb85384b5df2b7375c81c4e5a76571ae135f3ee80ce"
+      }
+    },
+    {
+      "groupId": 9,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-9.RELOCATION.safe.json",
+        "sha256": "775d3f93e1fd8f4815eecb9cb1a2fb5178f4b7d97285880de2f3f36c236014e7"
+      }
+    },
+    {
+      "groupId": 10,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-10.RELOCATION.safe.json",
+        "sha256": "caf5bc222864411419e4a9d372ebe6a28c479f6e0eea9c1bd1e78286e80d59cf"
+      }
+    },
+    {
+      "groupId": 11,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-11.PREUNLINK.safe.json",
+        "sha256": "989d51f4d22eb79c4ab1cd07012a74114079cafd12cad22c595e49b35f5d91aa"
+      }
+    },
+    {
+      "groupId": 12,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-12.PREUNLINK.safe.json",
+        "sha256": "0235c717fe613df8566762cc5b097bc8925920c0ebf3912fda720980134d40dd"
+      }
+    },
+    {
+      "groupId": 13,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-13.PREUNLINK.safe.json",
+        "sha256": "f52a340707aef7297eae13481d5b6749d8031f943766033321d75ab6587b5103"
+      }
+    },
+    {
+      "groupId": 14,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-14.PREUNLINK.safe.json",
+        "sha256": "d1673f3ba2e5c11a34f74a0444e36ea79bfa5e3eca63f3aca9f7a9c6495a796f"
+      }
+    },
+    {
+      "groupId": 15,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-15.PREUNLINK.safe.json",
+        "sha256": "d9e09cf6d25e0791d04832975f1ebd4e8e4fbbdd16ab2c69ef1b18b31cc9b465"
+      }
+    },
+    {
+      "groupId": 16,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-16.PREUNLINK.safe.json",
+        "sha256": "ce478207c9206e6b1ea6cfa5b828ecc855d3af08bbcc9791be32975bb43d9580"
+      }
+    },
+    {
+      "groupId": 17,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-17.PREUNLINK.safe.json",
+        "sha256": "657e6d13695d20651f86c47be671ec245bdedeea5a4e9b8027ec4c46019cffb1"
+      }
+    },
+    {
+      "groupId": 18,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-18.PREUNLINK.safe.json",
+        "sha256": "dc02066d5af42976ef5805bd475136852849de1414ff868ab1c5d2b9d897f330"
+      }
+    },
+    {
+      "groupId": 19,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-19.PREUNLINK.safe.json",
+        "sha256": "38ea65c87e4af8e317d5524340b84c53d017a2cdb2139a91546ec7ae3e85f418"
+      }
+    },
+    {
+      "groupId": 20,
+      "custody": {
+        "path": "/tmp/gridex-historical-quality-audits-resource-prep-20261116/GROUP-20.PREUNLINK.safe.json",
+        "sha256": "4292e9be5dbae73c39e8fd6075c14dbd2e859071ffd65d6e79b34735a04deff7"
+      }
+    }
+  ],
+  "afterFreeBytes": {
+    "/workspace": 1064648704,
+    "/tmp": 299655168
+  },
+  "allDirectoriesAndExcludedFilesRetained": true,
+  "noBackendOrCaseCredit": true
+}

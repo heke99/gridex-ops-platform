@@ -1,0 +1,22 @@
+{
+  "state": "ROOT_BOUNDED_GENERATED_CACHE_FILES_ONLY_EXECUTION_SCOPE",
+  "atUtc": "2026-11-15T05:32:06.033253+00:00",
+  "soleProducer": "/root/execute_eight_parts",
+  "proposalSHA256": "07b97445c390c8698b7bb06276abe2395de2b83d5b7308d76c28690019f3eeb6",
+  "scriptSHA256": "2494f1746792997064b4c471edf0b994aa3fd203e9d2793098d69a04466ccf90",
+  "authorizedRoots": [
+    "/tmp/node-compile-cache/v24.19.0-x64-cf738c9d-1000",
+    "/tmp/tsx-1000"
+  ],
+  "authorizedGeneratedRegularSingleLinkFiles": 3295,
+  "authorization": "Delete only exact inventory/content/stat-matched regenerable V8 Node24 and tsx compiled-cache files. Preserve both top roots/inodes/modes and every other path. No originals, evidence, code, dependency, credential, Fc/dump, process or backend changes.",
+  "sourceReview": "Root read entire V3 script and proposal controls; V4 full-script inverse differs only required dot/parenthesis identity regex and validates exact identical selection.",
+  "executionPreconditions": [
+    "Independent exact V4 source peer ACK",
+    "Sole producer confirms current Node/Bun/tsx writers quiet across UID; no concurrent starts/tests until both phases finish",
+    "Matching read-only probe then exact same-scope one delete invocation",
+    "All actual script content/stat/type/process/FD/closure guards pass, no bypass/retry on drift",
+    "Resource credit only after successful actual receipt/fresh free bytes"
+  ],
+  "noOtherCleanupAuthorized": true
+}

@@ -1,0 +1,33 @@
+{
+  "state": "INDEPENDENT_FINAL_CLOSURE_RESIDUAL_APPROVE_RAW_HOLD_RELEASE",
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "createdAt": "2026-11-15T21:35:36.573832+00:00",
+  "closure": {
+    "path": "/workspace/gridex-event-W-sidecar-fs-stop-closure-20261115-a/CLOSED-EVENT-W-SIDECAR-FS-STOP-AUTH0.safe.json",
+    "sha256": "4bf1b7732d5fbb48cdba51b4438bdbd8757e21ac1d51179115ab22f5137ab657"
+  },
+  "all13DirectRefsVerified": true,
+  "fullSavedSnapshotsIndependentlyCompared": true,
+  "changedRowScopes": [
+    "auth.sessions",
+    "auth.mfa_amr_claims",
+    "auth.refresh_tokens",
+    "auth.audit_log_entries"
+  ],
+  "other518RowsExact": true,
+  "all3370FunctionAndOtherNonRowMetadataExact": true,
+  "nativeSixZeros": true,
+  "all7ExactIncludingFourNulls": true,
+  "ownGet200LocalPost204": true,
+  "exact148fOriginalStoppedConfigImageHostConfigRestored": true,
+  "browserClosedAndRecordedPGIDNoAccessibleLiveMembers": true,
+  "processClaimBoundedNoGlobalAbsence": true,
+  "parentExit0AndOwnedResourceCleanupReceiptsVerified": true,
+  "earlierTwoAttemptsBeforePostPreserved": true,
+  "businessCommands": 0,
+  "sidecarPrelistenerStopNoForwarderOrBusinessCredit": true,
+  "casePass": false,
+  "rawHoldReleasedForSeparateQualifiedCustodyOnly": true,
+  "noArchiveOrDeletionAuthorityInferred": true,
+  "reviewerExecutedBackendAuthOrProcessSignals": false
+}

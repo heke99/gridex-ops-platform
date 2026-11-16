@@ -1,0 +1,23 @@
+{
+  "state": "ROOT_ACTUAL_ONE_NORMAL_DELETE_ONLY_E_SCOPE",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T19:00:23.208369+00:00",
+  "targetPath": "/tmp/gridex-custody-delete-only-actual-prep-20261114-e/target.BOUND.safe.json",
+  "targetSha256": "359edb8f83d281a3193675a2b4e54a5455d83a1b43bbb0ce9810304c5e0ad976",
+  "helperSha256": "d0b66023c2c5af7683f9d55502d14b40fc621a1a612ee35703f443b32ba29f68",
+  "companionSha256": "89de83bbd27f42a95de1824ec3c8d0615f601774b80aaec73d7b98ea0249d4f3",
+  "sourcePair": [
+    "Root2abc8592",
+    "Ediela7cbe912"
+  ],
+  "independentActualScope": "Ediel8190094c",
+  "rootArmed": true,
+  "executor": "execute_eight_parts",
+  "scope": "One genuine EE normal DELETE form action for existing known marked syntheticcustomer4d only. No CREATE/MARK replay, no source/role/history/retention/FK bypass. Automatic fresh native-before afterformready and nativeACK afteronepost.",
+  "conditions": [
+    "Producerliveprocess/source/J600+120/resource guards and soleexecution beforeONEdispatch",
+    "FreshNativecleanable/legalhold/protectedhistory guards and confirm-gated synchronousonePOSTconsume retained",
+    "Unknown/denied stops withoutretry and capturesfullnative; properlogout/postquiescence/Auth0 beforefurtheractions"
+  ],
+  "noOutcomeOrFullCaseApproval": true
+}

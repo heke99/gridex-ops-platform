@@ -1,0 +1,39 @@
+{
+  "state": "READONLY_WAITING_REVIEW_COMPLETE_TWO_INDEPENDENT_SCOPED_REVIEWS_PASSED",
+  "asOfUTC": "2026-11-16T11:05:19.490837+00:00",
+  "summary": "/workspace/gridex-waiting-review-20261116/REVIEW.sv.md",
+  "summarySHA256": "411f8ad053b1b2b08fc9be11e777ae73360b9b92a2c6012265c862310a15f263",
+  "checkpoint": "/workspace/gridex-waiting-review-20261116/REVIEW-CHECKPOINT.safe.json",
+  "checkpointSHA256": "50a52aac33284275236f1d6166686681ca2d79395772b25f6fb8b90f5286ddec",
+  "reviews": [
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/FINAL-REVIEW-A.safe.json",
+      "sha256": "73a59c08d69fba65afd9472a4a90410df60849c178ea2034245056b1f8798dbd",
+      "verdict": "PASS"
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/FINAL-REVIEW-B.safe.json",
+      "sha256": "574a0640731ee26e17295bc9dc5400cf5b977fe7e7de9e5398145a533040412a",
+      "verdict": "SCOPED_PASS"
+    }
+  ],
+  "canonicalCountsUnchanged": {
+    "FULL_PASS": 43,
+    "GAP": 1,
+    "INCOMPLETE": 61,
+    "TOTAL": 105
+  },
+  "boundSourceFilesVerified": 12,
+  "newProductBugEstablishedInThisBoundedReview": false,
+  "otherTaskLatestObserved": "Förenkla kundkort och workflow active/inProgress",
+  "mainAtLatestAuthenticatedRead": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+  "hold": "User requested wait for other UI task before overlapping implementation/scenario continuation",
+  "existingMacClone": "Reuse after checking actual local status; preserve local work. No new Main clone required by present evidence.",
+  "zipDelivery": "User reports download failed; archive integrity does not establish successful transfer",
+  "gitHandoff": "Proposed, not published",
+  "sameExistingStagingRequired": true,
+  "secureMacStagingPathVerified": false,
+  "productDBOrRuntimeChanges": false,
+  "frozenPackageChanged": false,
+  "nextAction": "Verify other task final source/actual merge, safely transfer nonsecret audit materials through reviewed separate Git branch, reconcile local per-ID evidence, qualify same-staging runtime, resume next original cohort."
+}

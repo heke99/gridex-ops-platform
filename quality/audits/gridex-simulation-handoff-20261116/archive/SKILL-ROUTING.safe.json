@@ -1,0 +1,15 @@
+{
+  "task": "Nonsecret Main and simulation documentation/source handoff; same existing staging target; no app/database implementation",
+  "activated": [
+    {"skill": "verification-before-completion", "reason": "Verify Git copy, canonical hashes, manifests and archive before reporting delivery."},
+    {"skill": "dispatching-parallel-agents", "reason": "User explicitly requested multiple agents; independent owned patch/source/continuity tasks and final read-only reviews."},
+    {"skill": "supabase", "reason": "Preserve staging/Auth target and private credential boundary; no schema, RLS, keys or database changes made."}
+  ],
+  "conditional": [
+    {"skill": "finishing-a-development-branch", "condition": "Only when an implementation branch is complete with required validation; not triggered by this unmerged handoff."},
+    {"skill": "full-e2e-verification", "condition": "When scenario execution resumes in a qualified runtime; no new scenario execution performed here."}
+  ],
+  "notTriggered": "Fresh product/security/performance/database audit, refactor, UI implementation, deployment, external scanning and hook installation are not performed by packaging existing authorized artifacts.",
+  "privateDataTransfer": false,
+  "testsForThisTask": "Git fsck, clean pinned checkout, JSON/canonical count and SHA checks, per-file source/patch checks, portable read-only verifier, ZIP integrity and two independent final handoff reviews. No unnecessary full app test run."
+}

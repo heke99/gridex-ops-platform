@@ -1,0 +1,55 @@
+{
+  "state": "INDEPENDENT_FULL_ORIGINAL_EDIEL02_06_PASS_AFTER_PROPER_CLOSURE",
+  "caseId": "EDIEL02.06",
+  "verdict": "PASS",
+  "reviewer": "/root/ediel_test_identity",
+  "originalOracle": "96518: Felaktig MIME/segment/UNOC ger faktiskt felkvitto. One documented invalid segment through normalpath with actual durableerror and financial/source/foreignfences meets literal; no extraall3variants/C6/APERAK requirement.",
+  "actual": "Fresh436byte ownASCII rawMIME SHA826058dbd4faa24ed5e91d345d2fa00f288c2a970d5bd5c9a223343b92d26611 via strictownTLS/IMAP, normalsharedmailbox create and exactsinglepoll; normalownqueue job efa801af-99bf-4493-b4cc-458965bf0b0a enters processor and persists retry/processor_failed/edifact_dangling_release_character, attempts1/finished/locksNULL. No fabricatedtenant/ACK/nativequantity.",
+  "independentSavedEvidence": "Recomputedphysical/stored rawequality; ownedemail/body/nativecustody unchanged throughqueue; allforeignmail unchanged; full522snapshotpollonly3mailtables andqueueonlyjob, otherfinancial/source/current/invoice rows andall3370/nonrowobjects exact.",
+  "private386EvidenceGrade": "Actual exact386 catalog/tablehash comparison was performed by pinned controller: bootstrap==beforepoll; postpoll only two exactownrawcustodyappends (actualrows/custodyhash available); afterqueue386wholemap==postpoll. Successful controllerEXIT0 and durable deltas attest execution of those checks. Beforepoll386map is saved/rehashed; postpoll/afterqueue386maps were NOT separately saved and are NOT claimed independently raw-rehashable. This does not add a new originalrequirement or fabricate a map.",
+  "properClosure": "QAordinary4acb + independentfullMainafterAuth==postbusiness, exact4Authlogout residual/other518+3370/nonrowsequal; all7afterGetUserexact/native6zero/settingsrestored; normalworkerexit0/ownmailfixtureportsclosed/REST+DBabsent/topologyrestored. AllQA referenced files freshhash verified.",
+  "limits": [
+    "No full.05 or SMTP03 credit",
+    "No claims that copiedAuth/source authority or C6 was used",
+    "No new backend/Auth/retry by reviewer",
+    "Canonical ledger/counters not modified by reviewer"
+  ],
+  "refs": [
+    {
+      "path": "/workspace/gridex-ediel06-queued-fixture-20261116/ORIGINAL-ORACLE-SCOPE-ERRATUM.safe.json",
+      "sha256": "6e2405cf5c4c7100c77071c7daa9a90ad4f3ade5460494856f2467aa5f9d707a"
+    },
+    {
+      "path": "/workspace/gridex-ediel06-queued-fixture-20261116/ACTUAL-B-INDEPENDENT-STAGE.safe.json",
+      "sha256": "3db75f3b17caaea6e02bbe5dee83bae08a13a9d9467e6ec22cee9d9e71eb99dd"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/original-ediel06-evidence.safe.json",
+      "sha256": "f8e9072c8b07243bf2a7b0618b568cde805913fbe624368bef468fa8ed6acdb7"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/qa-INDEPENDENT-FINAL-CLOSURE-RESIDUAL.safe.json",
+      "sha256": "4acb7a9a11b6e73a2e1be8eeaf046f77db42ce6b102c3e5f4a08b0f7465aabd1"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-prep-20261116-b/run-original-ediel06.py",
+      "sha256": "52d704e517bd50a4a7059bc16bdbc3825eaad962b4033f8c4057bcf1002f8477"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-prep-20261116-b/private-table-batch.v2.py",
+      "sha256": "292729715c426751ae12a8f59c711c3ff5201c45fa323dbbaf0df3d9fb653c68"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/private-product-before-poll.safe.json",
+      "sha256": "24f6a5039f3dd97b2012f311a431a08cb104a893e8d4754ae9030d96fafcd192"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/private-normal-custody-append.safe.json",
+      "sha256": "1e4aeed99c57c12feb8c372adbfd81c1c66d47bdb6a522780433d0bc813efd72"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/owned-runtime-closure.safe.json",
+      "sha256": "3fccee178be0fc685e2429c00d32a43ee136bf33f86ea0ad4c158b1545608ab6"
+    }
+  ]
+}

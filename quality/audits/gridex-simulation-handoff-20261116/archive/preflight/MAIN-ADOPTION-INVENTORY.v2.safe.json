@@ -1,0 +1,319 @@
+{
+  "state": "READONLY_DELIVERY_INVENTORY_V2_NOT_ADOPTION_GO",
+  "actualMain": {
+    "commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+    "tree": "fe55a53d9ce29e26aa918b3af4a3e1aae87bca06",
+    "receipt": "/workspace/gridex-local-migration-preflight-20261116/OBSERVED-MAIN.safe.json",
+    "receiptSHA256": "cb54b9b2f5feee08df12871ef6023a7eb903b8885c9ef6a332184f680453696d"
+  },
+  "localCheckout": "f23c1dc0c58f8bb1a55b83d8409e5712177b51b6 is not actual Main",
+  "counts": {
+    "FULL": 43,
+    "GAP": 1,
+    "remaining": 61,
+    "findings": "46 mixed records; not 46 open bugs"
+  },
+  "items": [
+    {
+      "name": "framer",
+      "commit": "e7efeb1b75d17a9f5644ce806a8753e2023435c8",
+      "repository": "/workspace/gridex-ops-platform",
+      "tree": "3eb247cd812fffd737a2a442d93a33f983ffb3ce",
+      "parents": [
+        "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+      ],
+      "subject": "fix(ediel): preserve envelope framing semantics with per-segment buffers",
+      "status": "LOCAL_COMMIT_MAIN_CONTENT_DIFFERS_OR_ABSENT",
+      "ancestry": "NOT_ESTABLISHED: Main object database lacks ce804 parent; no fetch or ref mutation performed",
+      "validation": "native isolated framing component; full import not established",
+      "files": [
+        {
+          "path": "quality/audits/ediel-envelope-linear-framing-fix-20261115/REPORT.sv.md",
+          "localBlob": "9d8cd25cac5100f20ecca7680f6f26253687e545",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "quality/audits/ediel-envelope-linear-framing-fix-20261115/results.safe.json",
+          "localBlob": "45ca5a44633f144b72d21b1b7c1afcb66562b3f9",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "supabase/migrations/20261115110312_ediel_envelope_linear_framing.sql",
+          "localBlob": "a52d54491959d4101d250ac11081f4ca2361c5a2",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "supabase/tests/20261115_ediel_envelope_linear_framing.sql",
+          "localBlob": "c3f4b0e74665f684d85d493f640b6b25c83fc6f8",
+          "mainBlob": null,
+          "same": false
+        }
+      ]
+    },
+    {
+      "name": "header",
+      "commit": "112ea02caa97785f77f5eb412eb66771444c01e0",
+      "repository": "/workspace/gridex-ops-platform",
+      "tree": "80bdc06f223d82f212302597faca6f5b0fee0cbd",
+      "parents": [
+        "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+      ],
+      "subject": "fix(ediel): validate each header party component length",
+      "status": "LOCAL_COMMIT_MAIN_CONTENT_DIFFERS_OR_ABSENT",
+      "ancestry": "NOT_ESTABLISHED: Main object database lacks ce804 parent; no fetch or ref mutation performed",
+      "validation": "native isolated 75 normative +41 reference controls; no Main adoption",
+      "files": [
+        {
+          "path": "quality/audits/ediel-header-length-precedence-20261115/REPORT.sv.md",
+          "localBlob": "e6d73ee9f5843d2fd12848b0ef33c4c5afe3b89a",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "quality/audits/ediel-header-length-precedence-20261115/results.safe.json",
+          "localBlob": "87a3922d071ae479c7fcbbf5b3fe77dd3f653d94",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "supabase/migrations/20261115124654_ediel_header_component_length_precedence.sql",
+          "localBlob": "28da45d8d090e7c7c5fc2986b450c283bd225974",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "supabase/tests/20261115_ediel_header_component_lengths.sql",
+          "localBlob": "b51e4dfd30c7a28976ab7b1ff3d586cf2aebbd54",
+          "mainBlob": null,
+          "same": false
+        }
+      ]
+    },
+    {
+      "name": "customer-list",
+      "commit": "1d2bc476b5d73f08704fc7dfddc6faf6f66bc70b",
+      "repository": "/workspace/gridex-ops-platform",
+      "tree": "7c48f60e3cd3910446c6e6e73a4a346c2d873b48",
+      "parents": [
+        "a9b5f3f35d652d968eb45a54d5096c326909543e"
+      ],
+      "subject": "fix(customers): reject incomplete contract-dependent list filters",
+      "status": "LOCAL_COMMIT_MAIN_CONTENT_DIFFERS_OR_ABSENT",
+      "ancestry": "NOT_ESTABLISHED: Main object database lacks ce804 parent; no fetch or ref mutation performed",
+      "validation": "41 component controls; no active Source40 adoption",
+      "files": [
+        {
+          "path": "__tests__/customer-list-contract-summary.test.ts",
+          "localBlob": "5628af1a4dd7e797f799ac5969ef801c4778a454",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "lib/customers/getCustomers.ts",
+          "localBlob": "e0fee37289bf3727a0efa336ed3062798518a1f0",
+          "mainBlob": "3e85a1707efb58ed92803269c9dcd62975f40bba",
+          "same": false
+        },
+        {
+          "path": "quality/audits/customer-contract-preferences-fix-20261115/REPORT.sv.md",
+          "localBlob": "819ed81200c6d92a7568c79dbd6af1320f178f9f",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "quality/audits/customer-contract-preferences-fix-20261115/results.safe.json",
+          "localBlob": "f62829da0874fa44cb42a17bc9f97a90589d256c",
+          "mainBlob": null,
+          "same": false
+        }
+      ]
+    },
+    {
+      "name": "customer-delete-final",
+      "commit": "8af37439f25e16a9bb9f6465c6091c0a85fce409",
+      "repository": "/workspace/gridex-ops-platform",
+      "tree": "53403beb0dc081fb1353d9593feb4e09a3f655eb",
+      "parents": [
+        "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+      ],
+      "subject": "test: observe cross-company operation before guarded customer deletion",
+      "status": "LOCAL_COMMIT_MAIN_CONTENT_DIFFERS_OR_ABSENT",
+      "ancestry": "NOT_ESTABLISHED: Main object database lacks ce804 parent; no fetch or ref mutation performed",
+      "validation": "final test refinement; predecessor fix dependencies require review",
+      "files": [
+        {
+          "path": "quality/audits/test-customer-onboarding-delete-20261114/README.sv.md",
+          "localBlob": "fb8dc0926b54f374ad618a4b4f629e22c962d5e0",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "quality/audits/test-customer-onboarding-delete-20261114/results.safe.json",
+          "localBlob": "e299a3b68838aa2b9973bbaaee54f28ee894b3fa",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "scripts/test-customer-delete-onboarding-regression.sql",
+          "localBlob": "53d09a67e0ceb458496a03a6f05a2298c276be61",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "supabase/migrations/20261114192010_test_customer_delete_owned_admin_onboarding.sql",
+          "localBlob": "5378183d153b1bcd64ef9d6eacef29227f2e793e",
+          "mainBlob": null,
+          "same": false
+        }
+      ]
+    },
+    {
+      "name": "dashboard-deadcode",
+      "commit": "e6b269e63aaab86cf73c7234052d9f5c684a530e",
+      "repository": "/workspace/gridex-ops-platform",
+      "tree": "e04a8e85dc73ecc8e85a7aea79aeb4734eb2574b",
+      "parents": [
+        "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+      ],
+      "subject": "Remove unused dashboard snapshot writer",
+      "status": "LOCAL_COMMIT_MAIN_CONTENT_DIFFERS_OR_ABSENT",
+      "ancestry": "NOT_ESTABLISHED: Main object database lacks ce804 parent; no fetch or ref mutation performed",
+      "validation": "source/finaldoc only; type/lint/build/regression NOT_RUN",
+      "files": [
+        {
+          "path": "lib/analytics/companyDashboardSummary.ts",
+          "localBlob": "d728994c12c1b792103f9200604e789f83d3955f",
+          "mainBlob": "94fd96b51248cb6d137677b268f8a251911a6f09",
+          "same": false
+        },
+        {
+          "path": "quality/audits/gridex-dashboard-writer-removal-20261114/REPORT.sv.md",
+          "localBlob": "e2c2463d275c55cc192fc7834136dac1dd9d2a5c",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "quality/audits/gridex-dashboard-writer-removal-20261114/results.safe.json",
+          "localBlob": "5c0291a0db5d09bf095d027907df0a59343574e7",
+          "mainBlob": null,
+          "same": false
+        }
+      ]
+    },
+    {
+      "name": "current43-docs",
+      "commit": "f0d4f30876572d9572d0e23ef78e6262237d1c1d",
+      "repository": "/tmp/gridex-event-c-repo-addendum-claim-20261116",
+      "tree": "753aa4072f98e54503748cf31ca272c041506dd4",
+      "parents": [
+        "bf32b7e01fbd0511972ba8977c61d412a018e416"
+      ],
+      "subject": "docs: record 43 verified simulation scenarios and remaining limits",
+      "status": "LOCAL_DIRECT_CHILD_NOT_MAIN_COMMIT",
+      "ancestry": "DIRECT_CHILD_OF_OBSERVED_MAIN: exact commit parent equals bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "validation": "two-document exact Git/blob source/finaldoc review",
+      "files": [
+        {
+          "path": "quality/audits/gridex-simulation-batches/2026-11-16-current-43.sv.md",
+          "localBlob": "1a83e8ed86267d7236f8f88e66dc43ef08955332",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "quality/audits/gridex-simulation-batches/2026-11-16-current-43.json",
+          "localBlob": "e7fd4b26fd1bdad78f286959ccd88a7343519625",
+          "mainBlob": null,
+          "same": false
+        }
+      ]
+    },
+    {
+      "name": "deadcode-report",
+      "commit": "b5c5cd534c39e016e6e18978490c4cc4d6a83bb3",
+      "repository": "/workspace/gridex-ops-platform",
+      "tree": "acc1b5edce4d3f98a3b06f155e5e4059a8221574",
+      "parents": [
+        "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+      ],
+      "subject": "docs: record verified routes and separate dead-code evidence layers",
+      "status": "LOCAL_COMMIT_MAIN_CONTENT_DIFFERS_OR_ABSENT",
+      "ancestry": "NOT_ESTABLISHED: Main object database lacks ce804 parent; no fetch or ref mutation performed",
+      "validation": "source report; 33=24 local removed/9 retained;187 unreached is not dead",
+      "files": [
+        {
+          "path": "quality/audits/gridex-correct-routes-deadcode-20261114/REPORT.sv.md",
+          "localBlob": "977a8a24edd43ce1500817c2734f26cd2d8748c5",
+          "mainBlob": null,
+          "same": false
+        },
+        {
+          "path": "quality/audits/gridex-correct-routes-deadcode-20261114/results.safe.json",
+          "localBlob": "23552dce768937925233cd99c4b884f26a4b2c4d",
+          "mainBlob": null,
+          "same": false
+        }
+      ]
+    }
+  ],
+  "missing": [],
+  "excludedSuperseded": [
+    "customer-list earlier efd172bf; use final 1d2bc476",
+    "catalog V1/V2 and bridge pre-final versions; retain evidence, do not bulk merge",
+    "private parser syntax patch a135 HELD: normal queue already persists processor_failed; no general product fix established"
+  ],
+  "additionalSeparateCandidates": [
+    {
+      "name": "LOCAL TEST catalog V3",
+      "headPrefix": "2ae27",
+      "grade": "source/finaldoc approved; separate 23-assertion synthetic native egress fixture passed; genuine actor/Main3370 migration not qualified",
+      "adoption": "NOT_ESTABLISHED; not ready for automatic merge"
+    },
+    {
+      "name": "catalog consumer bridge",
+      "headPrefix": "351b",
+      "grade": "source/finaldoc +24 source controls; fresh native eight-stage pipeline NOT_RUN",
+      "adoption": "NOT_ESTABLISHED; do not include historical predecessor stack"
+    }
+  ],
+  "remainingDeliveryGates": [
+    "Export private patch: resolve existing foreign ownership through normal handoff before any tracked implementation; never overwrite or release foreign claim.",
+    "Resolve exact branch/full commit/dependency chain per change; no bulk historical-stack merge.",
+    "Review exact patches against fresh Main and resolve overlap with customer UI merge #1051.",
+    "Run change-appropriate regression/type/lint/build and migration prerequisite/replay/rollback qualification on composed target; isolated native components do not prove Main adoption.",
+    "Create reviewable scoped PRs with validation and limits; merge/push/deploy not performed by this inventory.",
+    "Carry 43/1/61 ledger and evidence custody independently of code delivery; future original cases remain unrun."
+  ],
+  "mutations": "Only new inventory V2 file; predecessor preserved. No product edits, claims, Git refs, fetch, PR, push, merge, cherry-pick, Auth or backend.",
+  "predecessor": {
+    "path": "/workspace/gridex-local-migration-preflight-20261116/MAIN-ADOPTION-INVENTORY.safe.json",
+    "sha256": "2ac8f117d2461c688b09a58a80107d84998412875a575b59033a6f06a71f34a3",
+    "preserved": true
+  },
+  "privatePatchCandidates": [
+    {
+      "name": "legacy billing export authorization",
+      "status": "PRIVATE_CANDIDATE_NOT_COMMITTED_FORMAL_WRITE_OWNERSHIP_BLOCKED",
+      "identity": "209dd is route SHA256 prefix, not a Git commit",
+      "route": {
+        "path": "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/finite-test-context/app/admin/billing/export-center/[id]/download/route.ts",
+        "sha256": "209dd922b688fec9b9b96afc3a91bf1996881a66f71f33a8f5d457b2593d809c",
+        "bytes": 2205
+      },
+      "registry": {
+        "path": "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/ACTIONABLE-REGISTRY.safe.json",
+        "sha256": "320c7422aeec019d853c35c02a0c653a361b07061323eea091e616d38aceba09"
+      },
+      "componentEvidence": {
+        "path": "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/RED-GREEN.COMPONENT.safe.json",
+        "sha256": "053bb8555f7062e5006b4e7690f078f90a05578817ba70d26fb1c6fdc267aa1c",
+        "bytes": 3349
+      },
+      "validation": "15 actual route/API-guard component tests: RED 13 fail/2 pass; GREEN 15 pass. No UI, genuine Auth, native, provider, lint or typecheck qualification.",
+      "ownership": "Existing foreign claim must remain untouched; bounded owner coordination/handoff required before tracked write/adoption. Old date does not authorize release.",
+      "remaining": "Formal owned implementation and fresh Main patch review; legacy run-to-canonical immutable-file mapping remains separately unqualified."
+    }
+  ]
+}

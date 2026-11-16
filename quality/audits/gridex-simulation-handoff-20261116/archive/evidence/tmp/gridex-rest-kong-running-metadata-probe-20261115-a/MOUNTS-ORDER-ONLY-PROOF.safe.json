@@ -1,0 +1,17 @@
+{
+  "state": "PROVED_DOCKER_MOUNTS_LIST_ORDER_ONLY_VARIATION_ALL_OBJECTS_EXACT",
+  "mountCount": 2,
+  "uniqueDestinations": true,
+  "allFullMountObjectsExactAfterSorting": true,
+  "imageConfigHostConfigExact": true,
+  "restoredStopped": true,
+  "metadataOnlyNoAuthRequests": true,
+  "listHashes": {
+    "before": "49a9d6e26a484fff50dd6e6926e13c98794ef6550331e87f6ee5f6bcb020509e",
+    "running": "49a9d6e26a484fff50dd6e6926e13c98794ef6550331e87f6ee5f6bcb020509e",
+    "restored": "e05c77de93af61911b82ef3bb6235e38a44eee9a8523a239ac2a6a2090d293d3"
+  },
+  "unorderedObjectHash": "49a9d6e26a484fff50dd6e6926e13c98794ef6550331e87f6ee5f6bcb020509e",
+  "originalTopologyRunningSnapshotNotCaptured": true,
+  "originalFailureExactFieldNotRetrospectivelyClaimed": true
+}

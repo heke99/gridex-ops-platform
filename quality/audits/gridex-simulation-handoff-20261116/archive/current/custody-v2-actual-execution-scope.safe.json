@@ -1,0 +1,17 @@
+{
+  "state": "ROOT_CUSTODY_ACTUAL_SCOPE_READY_WITH_IMMEDIATE_LIVE_GUARDS",
+  "observedAt": "2026-11-14T16:23:39.755131+00:00",
+  "targetPath": "/tmp/gridex-normal-custody-actual-prep-20261114-a/target.BOUND.safe.json",
+  "targetSHA256": "87081369b0c3cb127e71c8321490e04a0b1a6ec201d080b59ba41582406628ef",
+  "helperSHA256": "7684f55c7bd0b19a54798d5a3c2e5d2f72856a750436d1019b53390cd610a101",
+  "all13BoundFilesSource40And21ProductPinsChecked": true,
+  "actualMainPidIdentityAndRunningStateChecked": true,
+  "bothRealCredentialProjectionsMatchExistingSources": true,
+  "newOwnRootAndPrivateInputsChecked": true,
+  "freshActualNativeNoNewFixtureNoProtectedHistoryChecked": true,
+  "nativeAgeSeconds": 106.84566164016724,
+  "actualCurrentRolesCover900Plus120AtReview": true,
+  "execution": "Sole producer may execute exacttarget once after immediate fresh native/role/time/resources check and separate actual fullMainbefore; maintain per-action new native ACKs, no replay, normal logout and actual readback on unknown.",
+  "scopeLimit": "Three normal UI component actions only; no full CUSTODY01.04 credit without maininvoice/source witness. No credentials/claims reset or backend invocation by reviewer.",
+  "backendCalls": 0
+}

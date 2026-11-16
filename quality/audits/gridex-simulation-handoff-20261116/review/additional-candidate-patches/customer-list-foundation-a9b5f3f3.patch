@@ -1,0 +1,838 @@
+From a9b5f3f35d652d968eb45a54d5096c326909543e Mon Sep 17 00:00:00 2001
+From: Heke  Hourani <heke99@live.se>
+Date: Sun, 15 Nov 2026 10:49:20 +0000
+Subject: [PATCH] fix(customers): derive list billing preferences from complete
+ contract reads
+
+---
+ .../customer-list-contract-summary.test.ts    | 165 ++++++++++++++++
+ app/admin/customers/page.part-2.tsx           |   5 +-
+ lib/customers/contractBillingSummary.ts       | 161 ++++++++++++++++
+ lib/customers/getCustomers.ts                 | 132 +++++++------
+ .../REPORT.sv.md                              |  27 +++
+ .../results.safe.json                         | 177 ++++++++++++++++++
+ 6 files changed, 610 insertions(+), 57 deletions(-)
+ create mode 100644 __tests__/customer-list-contract-summary.test.ts
+ create mode 100644 lib/customers/contractBillingSummary.ts
+ create mode 100644 quality/audits/customer-contract-preferences-fix-20261115/REPORT.sv.md
+ create mode 100644 quality/audits/customer-contract-preferences-fix-20261115/results.safe.json
+
+diff --git a/__tests__/customer-list-contract-summary.test.ts b/__tests__/customer-list-contract-summary.test.ts
+new file mode 100644
+index 000000000..84cc70a90
+--- /dev/null
++++ b/__tests__/customer-list-contract-summary.test.ts
+@@ -0,0 +1,165 @@
++import { deepEqual, equal, rejects, throws } from 'node:assert/strict'
++import { describe, it } from 'vitest'
++import {
++  CONTRACT_BILLING_SELECTION, contractBillingSummaryLabel, hasUniformConsolidatedInvoice,
++  readCompletePages, summarizeSelectedContractBillingPreferences,
++  type ContractBillingPreferenceRow, type CompletePage,
++} from '@/lib/customers/contractBillingSummary'
++
++const companyId = 'company-a'
++const customerId = 'customer-a'
++const row = (id: string, invoice: unknown = true, level: unknown = 'customer'): ContractBillingPreferenceRow =>
++  ({ id, company_id: companyId, customer_id: customerId, consolidated_invoice: invoice, billing_level: level })
++const summary = (rows: ContractBillingPreferenceRow[]) => summarizeSelectedContractBillingPreferences({
++  companyId, customerId, read: { kind: 'complete', selection: CONTRACT_BILLING_SELECTION, rows },
++})
++const page = <Row>(data: Row[], count = data.length): CompletePage<Row> => ({ data, count, error: null })
++
++describe('stored all-contract preferences, without defining effective invoice policy', () => {
++  it('distinguishes no contracts from false and unknown', () => {
++    const result = summary([])
++    equal(result.contractCount, 0)
++    equal(result.consolidatedInvoice.state, 'no_contract')
++    equal(result.billingLevel.state, 'no_contract')
++    equal(result.invoiceEffectivePolicy, false)
++    equal(hasUniformConsolidatedInvoice(result), false)
++  })
++  it('retains uniform true and an explicit billing level', () => {
++    const result = summary([row('1'), row('2')])
++    equal(result.contractCount, 2)
++    deepEqual(result.consolidatedInvoice, { state: 'uniform', values: [true], unknownCount: 0 })
++    deepEqual(result.billingLevel.values, ['customer'])
++    equal(hasUniformConsolidatedInvoice(result), true)
++  })
++  it('retains uniform false rather than turning it into unknown', () => {
++    const result = summary([row('1', false)])
++    deepEqual(result.consolidatedInvoice, { state: 'uniform', values: [false], unknownCount: 0 })
++    equal(hasUniformConsolidatedInvoice(result), false)
++  })
++  it('retains mixed known values and any unknown count', () => {
++    const result = summary([row('1', true, 'site'), row('2', false, 'customer'), row('3', null, null)])
++    deepEqual(result.consolidatedInvoice, { state: 'mixed', values: [false, true], unknownCount: 1 })
++    deepEqual(result.billingLevel, { state: 'mixed', values: ['customer', 'site'], unknownCount: 1 })
++    equal(hasUniformConsolidatedInvoice(result), false)
++  })
++  it('true plus NULL is unknown and cannot match the uniform flag', () => {
++    const result = summary([row('1'), row('2', null, null)])
++    deepEqual(result.consolidatedInvoice, { state: 'unknown', values: [true], unknownCount: 1 })
++    equal(hasUniformConsolidatedInvoice(result), false)
++  })
++  it('does not normalize malformed values or blank levels to defaults', () => {
++    const result = summary([row('1', 'true', ''), row('2', 1, '   ')])
++    deepEqual(result.consolidatedInvoice, { state: 'unknown', values: [], unknownCount: 2 })
++    deepEqual(result.billingLevel, { state: 'unknown', values: [], unknownCount: 2 })
++  })
++  it('preserves nonblank unknown billing enum and Unicode exactly', () => {
++    deepEqual(summary([row('1', true, 'custom-Å')]).billingLevel.values, ['custom-Å'])
++  })
++  it('unavailable has nullable count and is never no-contract or uniform', () => {
++    const result = summarizeSelectedContractBillingPreferences({ companyId, customerId,
++      read: { kind: 'unavailable', selection: CONTRACT_BILLING_SELECTION } })
++    equal(result.contractCount, null)
++    equal(result.consolidatedInvoice.state, 'unavailable')
++    equal(hasUniformConsolidatedInvoice(result), false)
++    equal(contractBillingSummaryLabel(result).includes('Kan inte hämtas'), true)
++  })
++  it('rejects wrong tenant and wrong customer rather than filtering them out', () => {
++    throws(() => summary([{ ...row('1'), company_id: 'company-b' }]), /ownership_mismatch/)
++    throws(() => summary([{ ...row('1'), customer_id: 'customer-b' }]), /ownership_mismatch/)
++  })
++  it('rejects duplicate IDs and unprojected preference columns', () => {
++    throws(() => summary([row('1'), row('1')]), /duplicate_contract/)
++    const incomplete = row('1'); delete (incomplete as Partial<ContractBillingPreferenceRow>).billing_level
++    throws(() => summary([incomplete]), /columns_not_projected/)
++  })
++  it('is independent of row order and preserves all stored statuses without an effective-period rule', () => {
++    const stored = [
++      { ...row('1', true, 'site'), status: 'terminated', starts_at: '2020-01-01' },
++      { ...row('2', false, 'customer'), status: 'draft', starts_at: '2099-01-01' },
++      { ...row('3', null, null), status: 'active', starts_at: '2026-01-01' },
++    ]
++    const expected = summary(stored)
++    equal(expected.contractCount, 3)
++    equal(expected.selection, 'all_stored_customer_contracts')
++    deepEqual(summary([...stored].reverse()), expected)
++    deepEqual(summary([stored[1], stored[2], stored[0]]), expected)
++  })
++  it('requires exact scope and explicit selection', () => {
++    throws(() => summarizeSelectedContractBillingPreferences({ companyId: ' ', customerId,
++      read: { kind: 'complete', selection: CONTRACT_BILLING_SELECTION, rows: [] } }), /scope_required/)
++    throws(() => summarizeSelectedContractBillingPreferences({ companyId, customerId,
++      read: { kind: 'complete', selection: '', rows: [] } }), /selection_required/)
++  })
++  it('renders mixed, unknown, no-contract and absent summaries explicitly', () => {
++    equal(contractBillingSummaryLabel(summary([row('1'), row('2', false)])).includes('Blandat'), true)
++    equal(contractBillingSummaryLabel(summary([row('1', null)])).includes('Okänt'), true)
++    equal(contractBillingSummaryLabel(summary([])).includes('Inget avtal'), true)
++    equal(contractBillingSummaryLabel(undefined).includes('kan inte hämtas'), true)
++  })
++})
++
++describe('bounded complete pagination never summarizes a partial prefix', () => {
++  it('reads past 1000 and includes a late different contract', async () => {
++    const data = Array.from({ length: 1001 }, (_, i) => row(String(i), i < 1000))
++    const ranges: number[][] = []
++    const result = await readCompletePages(async (from, to) => {
++      ranges.push([from, to]); return page(data.slice(from, to + 1), data.length)
++    })
++    equal(result.kind, 'complete')
++    if (result.kind !== 'complete') throw Error('complete required')
++    equal(result.rows.length, 1001)
++    equal(summary(result.rows).consolidatedInvoice.state, 'mixed')
++    equal(hasUniformConsolidatedInvoice(summary(result.rows)), false)
++    deepEqual(ranges, [[0, 249], [250, 499], [500, 749], [750, 999], [1000, 1249]])
++  })
++  it('continues when the server returns fewer rows than requested', async () => {
++    const data = Array.from({ length: 7 }, (_, i) => ({ id: String(i) }))
++    const result = await readCompletePages(async from => page(data.slice(from, from + 2), 7))
++    deepEqual(result, { kind: 'complete', rows: data })
++  })
++  it('accepts an exact empty set', async () => {
++    deepEqual(await readCompletePages(async () => page([])), { kind: 'complete', rows: [] })
++  })
++  it('rejects a missing exact count', async () => {
++    deepEqual(await readCompletePages(async () => ({ data: [row('1')], count: null, error: null })),
++      { kind: 'unavailable', reason: 'invalid_result' })
++  })
++  it('rejects count drift between pages', async () => {
++    deepEqual(await readCompletePages(async from => page([row(String(from))], from ? 3 : 2)),
++      { kind: 'unavailable', reason: 'count_changed' })
++  })
++  it('rejects duplicate page rows', async () => {
++    deepEqual(await readCompletePages(async () => page([row('1')], 2)),
++      { kind: 'unavailable', reason: 'duplicate_id' })
++  })
++  it('rejects a truncated nonempty set instead of declaring no contracts', async () => {
++    deepEqual(await readCompletePages(async () => page([], 1)), { kind: 'unavailable', reason: 'truncated' })
++  })
++  it('does not expose a successful prefix after a later query error', async () => {
++    deepEqual(await readCompletePages(async from => from ? { data: null, count: null, error: { code: '42703' } } : page([row('1')], 2)),
++      { kind: 'unavailable', reason: 'query_failed' })
++  })
++  it('does not expose a successful prefix after a thrown transport error', async () => {
++    deepEqual(await readCompletePages(async () => { throw Error('unavailable') }),
++      { kind: 'unavailable', reason: 'query_failed' })
++  })
++  it('bounds total rows and page attempts with no partial complete result', async () => {
++    deepEqual(await readCompletePages(async () => page([row('1')], 20001)),
++      { kind: 'unavailable', reason: 'read_limit' })
++    let calls = 0
++    deepEqual(await readCompletePages(async () => page([row(String(calls++))], 3), { pageSize: 1, maxRows: 3, maxPages: 2 }),
++      { kind: 'unavailable', reason: 'read_limit' })
++    equal(calls, 2)
++  })
++  it('rejects rows beyond count and invalid IDs', async () => {
++    deepEqual(await readCompletePages(async () => page([row('1')], 0)),
++      { kind: 'unavailable', reason: 'invalid_result' })
++    deepEqual(await readCompletePages(async () => page([row(' ')])),
++      { kind: 'unavailable', reason: 'invalid_result' })
++  })
++  it('refuses invalid limits before issuing a request', async () => {
++    let called = false
++    await rejects(readCompletePages(async () => { called = true; return page([]) }, { pageSize: 0, maxRows: 1, maxPages: 1 }), /limits_invalid/)
++    equal(called, false)
++  })
++})
+diff --git a/app/admin/customers/page.part-2.tsx b/app/admin/customers/page.part-2.tsx
+index 48f6acdf2..b40bf2ae7 100644
+--- a/app/admin/customers/page.part-2.tsx
++++ b/app/admin/customers/page.part-2.tsx
+@@ -6,6 +6,7 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+ import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+ import { listCustomersPage } from '@/lib/customers/getCustomers'
++import { contractBillingSummaryLabel } from '@/lib/customers/contractBillingSummary'
+ import { supabaseService } from '@/lib/supabase/service'
+ import { customerOperationsReadKind, readCustomerOperationsRows } from '@/lib/customers/operationsSummaryRead'
+ 
+@@ -283,7 +284,7 @@ export async function AdminCustomersPage({
+              </label>
+              <label className="grid gap-1 text-xs font-medium text-slate-600">Kundflagga
+                <select aria-label="Kundflagga" name="flag" defaultValue={flagFilter} className={filterClass}>
+-                 <option value="all">Alla kundflaggor</option><option value="possible_duplicate">Möjlig dubblett</option><option value="multi_site">Flera anläggningar</option><option value="multi_contract">Flera avtal</option><option value="consolidated_invoice">Samlingsfaktura</option><option value="missing_authorization">Saknar fullmakt</option><option value="missing_grid_owner">Saknar nätägare</option><option value="ready_for_switch">Redo för leverantörsbyte</option><option value="billing_ready">Faktureringsklar</option>{tenantScope.isPlatformAdmin ? <option value="test_customers">Testkunder</option> : null}
++                 <option value="all">Alla kundflaggor</option><option value="possible_duplicate">Möjlig dubblett</option><option value="multi_site">Flera anläggningar</option><option value="multi_contract">Flera avtal</option><option value="consolidated_invoice">Samlingsfaktura på alla avtal</option><option value="missing_authorization">Saknar fullmakt</option><option value="missing_grid_owner">Saknar nätägare</option><option value="ready_for_switch">Redo för leverantörsbyte</option><option value="billing_ready">Faktureringsklar</option>{tenantScope.isPlatformAdmin ? <option value="test_customers">Testkunder</option> : null}
+                </select>
+              </label>
+            </div>
+@@ -309,7 +310,7 @@ export async function AdminCustomersPage({
+                  </div>
+                  <p className="mt-1 text-xs text-slate-600">{customer.customer_number ?? 'Kundnummer saknas'} · {customerTypeLabel(customer.customer_type)}</p>
+                  {customer.possible_duplicate ? <p className="mt-1 text-xs font-medium text-amber-800">Möjlig dubblett · {customer.duplicate_review_status ?? 'granskning krävs'}</p> : null}
+-                 {customer.consolidated_invoice ? <p className="mt-1 text-xs text-emerald-800">Samlingsfaktura</p> : null}
++                 <p className="mt-1 text-xs text-slate-600">{contractBillingSummaryLabel(customer.contract_billing_summary)}</p>
+                  <details className="mt-2 text-xs text-slate-600">
+                    <summary className="cursor-pointer font-medium hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Kontakt och identitet</summary>
+                    <dl className="mt-2 space-y-1 break-words"><div><dt className="inline font-medium">E-post: </dt><dd className="inline">{customer.email || '—'}</dd></div><div><dt className="inline font-medium">Telefon: </dt><dd className="inline">{customer.phone || '—'}</dd></div><div><dt className="inline font-medium">Personnummer: </dt><dd className="inline">{customer.personal_number || '—'}</dd></div><div><dt className="inline font-medium">Kund-ID: </dt><dd className="inline break-all">{customer.id}</dd></div></dl>
+diff --git a/lib/customers/contractBillingSummary.ts b/lib/customers/contractBillingSummary.ts
+new file mode 100644
+index 000000000..150a6eb9a
+--- /dev/null
++++ b/lib/customers/contractBillingSummary.ts
+@@ -0,0 +1,161 @@
++/** Stored preferences over every contract for one company/customer, regardless of
++ * status or dates. This is a list summary, never an effective invoice policy. */
++export const CONTRACT_BILLING_SELECTION = 'all_stored_customer_contracts'
++export type ContractBillingPreferenceRow = {
++  id: string
++  company_id: string
++  customer_id: string | null
++  consolidated_invoice: unknown
++  billing_level: unknown
++}
++
++export type PreferenceSummary<T extends boolean | string> = {
++  state: 'unavailable' | 'no_contract' | 'uniform' | 'mixed' | 'unknown'
++  values: readonly T[]
++  unknownCount: number
++}
++
++export type SelectedContractRead =
++  | { kind: 'unavailable'; selection: string }
++  | { kind: 'complete'; selection: string; rows: readonly ContractBillingPreferenceRow[] }
++
++export type ContractBillingSummary = {
++  companyId: string
++  customerId: string
++  selection: string
++  invoiceEffectivePolicy: false
++  contractCount: number | null
++  consolidatedInvoice: PreferenceSummary<boolean>
++  billingLevel: PreferenceSummary<string>
++}
++
++function summarize<T extends boolean | string>(
++  values: readonly (T | null)[],
++  compare: (a: T, b: T) => number,
++): PreferenceSummary<T> {
++  if (values.length === 0) return { state: 'no_contract', values: [], unknownCount: 0 }
++  const known = [...new Set(values.filter((value): value is T => value !== null))].sort(compare)
++  const unknownCount = values.filter((value) => value === null).length
++  return {
++    state: known.length > 1 ? 'mixed' : unknownCount > 0 ? 'unknown' : 'uniform',
++    values: known,
++    unknownCount,
++  }
++}
++
++/** Ownership mismatches are errors, never silently filtered into no-contract. */
++export function summarizeSelectedContractBillingPreferences(params: {
++  companyId: string
++  customerId: string
++  read: SelectedContractRead
++}): ContractBillingSummary {
++  const { companyId, customerId, read } = params
++  if (!companyId || companyId.trim() !== companyId || !customerId || customerId.trim() !== customerId) {
++    throw new Error('contract_billing_summary_scope_required')
++  }
++  if (!read.selection.trim()) throw new Error('contract_billing_summary_selection_required')
++  const base = { companyId, customerId, selection: read.selection, invoiceEffectivePolicy: false as const }
++  if (read.kind === 'unavailable') {
++    return {
++      ...base,
++      contractCount: null,
++      consolidatedInvoice: { state: 'unavailable', values: [], unknownCount: 0 },
++      billingLevel: { state: 'unavailable', values: [], unknownCount: 0 },
++    }
++  }
++  const ids = new Set<string>()
++  for (const row of read.rows) {
++    if (row.company_id !== companyId || row.customer_id !== customerId) {
++      throw new Error('contract_billing_summary_ownership_mismatch')
++    }
++    if (!row.id || row.id.trim() !== row.id || ids.has(row.id)) {
++      throw new Error('contract_billing_summary_invalid_or_duplicate_contract')
++    }
++    if (!Object.hasOwn(row, 'consolidated_invoice') || !Object.hasOwn(row, 'billing_level')) {
++      throw new Error('contract_billing_summary_columns_not_projected')
++    }
++    ids.add(row.id)
++  }
++  return {
++    ...base,
++    contractCount: read.rows.length,
++    consolidatedInvoice: summarize(
++      read.rows.map((row) => typeof row.consolidated_invoice === 'boolean' ? row.consolidated_invoice : null),
++      (a, b) => Number(a) - Number(b),
++    ),
++    billingLevel: summarize(
++      read.rows.map((row) => typeof row.billing_level === 'string' && row.billing_level.trim() ? row.billing_level : null),
++      (a, b) => a < b ? -1 : a > b ? 1 : 0,
++    ),
++  }
++}
++
++
++/** A uniform positive preference is the only meaning of the list flag. */
++export function hasUniformConsolidatedInvoice(summary?: ContractBillingSummary): boolean {
++  const preference = summary?.consolidatedInvoice
++  return preference?.state === 'uniform' && preference.unknownCount === 0 &&
++    preference.values.length === 1 && preference.values[0] === true
++}
++
++function preferenceLabel<T extends boolean | string>(summary: PreferenceSummary<T>, format: (value: T) => string): string {
++  const known = summary.values.map(format).join(', ')
++  if (summary.state === 'unavailable') return 'Kan inte hämtas'
++  if (summary.state === 'no_contract') return 'Inget avtal'
++  if (summary.state === 'mixed') return `Blandat: ${known}${summary.unknownCount ? ' (även okänt)' : ''}`
++  if (summary.state === 'unknown') return known ? `${known} samt okänt` : 'Okänt'
++  return known
++}
++
++export function contractBillingSummaryLabel(summary?: ContractBillingSummary): string {
++  if (!summary) return 'Avtalens fakturainställningar: kan inte hämtas'
++  const consolidated = preferenceLabel(summary.consolidatedInvoice, value => value ? 'Ja' : 'Nej')
++  const level = preferenceLabel(summary.billingLevel, value => value)
++  return `Alla avtal · Samlingsfaktura: ${consolidated} · Faktureringsnivå: ${level}`
++}
++
++export type CompletePage<Row> = { data: readonly Row[] | null; error: unknown; count: number | null }
++export type CompleteRead<Row> =
++  | { kind: 'complete'; rows: Row[] }
++  | { kind: 'unavailable'; reason: 'query_failed' | 'invalid_result' | 'count_changed' | 'read_limit' | 'truncated' | 'duplicate_id' }
++
++/** Fail closed on caps, errors, count drift or repeated rows. Callers supply a
++ * deterministic unique ordering and a fresh query for each inclusive range.
++ * This is a bounded read window, not a transactional snapshot across requests. */
++export async function readCompletePages<Row extends { id: string }>(
++  fetchPage: (from: number, to: number) => PromiseLike<CompletePage<Row>>,
++  limits: { pageSize: number; maxRows: number; maxPages: number } = { pageSize: 250, maxRows: 20000, maxPages: 200 },
++): Promise<CompleteRead<Row>> {
++  if (![limits.pageSize, limits.maxRows, limits.maxPages].every(value => Number.isSafeInteger(value) && value > 0)) {
++    throw new Error('complete_read_limits_invalid')
++  }
++  const rows: Row[] = []
++  const ids = new Set<string>()
++  let count: number | null = null
++  for (let page = 0; page < limits.maxPages; page += 1) {
++    let result: CompletePage<Row>
++    try { result = await fetchPage(rows.length, rows.length + limits.pageSize - 1) }
++    catch { return { kind: 'unavailable', reason: 'query_failed' } }
++    if (result.error) return { kind: 'unavailable', reason: 'query_failed' }
++    if (!Array.isArray(result.data) || !Number.isSafeInteger(result.count) || Number(result.count) < 0) {
++      return { kind: 'unavailable', reason: 'invalid_result' }
++    }
++    if (count !== null && count !== result.count) return { kind: 'unavailable', reason: 'count_changed' }
++    count = result.count
++    if (Number(count) > limits.maxRows) return { kind: 'unavailable', reason: 'read_limit' }
++    if (result.data.length > limits.pageSize || rows.length + result.data.length > Number(count)) {
++      return { kind: 'unavailable', reason: 'invalid_result' }
++    }
++    for (const row of result.data) {
++      if (!row || typeof row.id !== 'string' || !row.id || row.id.trim() !== row.id) {
++        return { kind: 'unavailable', reason: 'invalid_result' }
++      }
++      if (ids.has(row.id)) return { kind: 'unavailable', reason: 'duplicate_id' }
++      ids.add(row.id)
++      rows.push(row)
++    }
++    if (rows.length === count) return { kind: 'complete', rows }
++    if (result.data.length === 0) return { kind: 'unavailable', reason: 'truncated' }
++  }
++  return { kind: 'unavailable', reason: 'read_limit' }
++}
+diff --git a/lib/customers/getCustomers.ts b/lib/customers/getCustomers.ts
+index 3e85a1707..023075882 100644
+--- a/lib/customers/getCustomers.ts
++++ b/lib/customers/getCustomers.ts
+@@ -3,6 +3,11 @@ import type { LatestContractBucketFilter } from '@/lib/customer-contracts/db'
+ import { tenantDb } from '@/lib/supabase/tenantDb'
+ import { tenantSelect } from '@/lib/supabase/tenantQuery'
+ import { isMissingRelationError } from '@/lib/tenant/scope'
++import {
++  CONTRACT_BILLING_SELECTION, hasUniformConsolidatedInvoice, readCompletePages,
++  summarizeSelectedContractBillingPreferences,
++  type ContractBillingPreferenceRow, type ContractBillingSummary,
++} from '@/lib/customers/contractBillingSummary'
+ 
+ export type CustomerListRow = {
+   id: string
+@@ -11,8 +16,7 @@ export type CustomerListRow = {
+   status: string | null
+   possible_duplicate?: boolean | null
+   duplicate_review_status?: string | null
+-  consolidated_invoice?: boolean | null
+-  billing_level?: string | null
++  contract_billing_summary?: ContractBillingSummary
+   intake_status?: string | null
+   intake_missing_fields?: unknown
+   has_missing_grid_owner?: boolean
+@@ -32,7 +36,7 @@ export type CustomerListRow = {
+   active_site_count: number
+   metering_point_count: number
+   active_metering_point_count: number
+-  contract_count: number
++  contract_count: number | null
+   source: string | null
+   is_test_data?: boolean | null
+ }
+@@ -56,8 +60,6 @@ const CUSTOMER_LIST_SELECT = [
+   'status',
+   'possible_duplicate',
+   'duplicate_review_status',
+-  'consolidated_invoice',
+-  'billing_level',
+   'intake_status',
+   'intake_missing_fields',
+   'first_name',
+@@ -189,8 +191,6 @@ function normalizeCustomerRow(row: RawCustomerRow): CustomerListRow {
+     status: stringOrNull(row.status) ?? 'draft',
+     possible_duplicate: booleanOrFalse(row.possible_duplicate),
+     duplicate_review_status: stringOrNull(row.duplicate_review_status),
+-    consolidated_invoice: booleanOrFalse(row.consolidated_invoice),
+-    billing_level: stringOrNull(row.billing_level),
+     intake_status: stringOrNull(row.intake_status),
+     intake_missing_fields: row.intake_missing_fields ?? null,
+     has_missing_grid_owner: false,
+@@ -212,7 +212,7 @@ function normalizeCustomerRow(row: RawCustomerRow): CustomerListRow {
+     active_site_count: 0,
+     metering_point_count: 0,
+     active_metering_point_count: 0,
+-    contract_count: 0,
++    contract_count: null,
+   }
+ }
+ 
+@@ -246,23 +246,25 @@ function matchesStatus(row: CustomerListRow, status: CustomerStatusFilter): bool
+ 
+ function matchesContract(row: CustomerListRow, filter: LatestContractBucketFilter): boolean {
+   if (filter === 'all') return true
+-  if (filter === 'none') return row.contract_count === 0
+-  return row.contract_count > 0
++  const count = row.contract_billing_summary?.contractCount
++  if (count == null) return false
++  if (filter === 'none') return count === 0
++  return count > 0
+ }
+ 
+ function matchesFlag(row: CustomerListRow, flag: CustomerFlagFilter): boolean {
+   if (flag === 'all') return true
+   if (flag === 'possible_duplicate') return Boolean(row.possible_duplicate)
+   if (flag === 'multi_site') return row.site_count > 1
+-  if (flag === 'multi_contract') return row.contract_count > 1
+-  if (flag === 'consolidated_invoice') return Boolean(row.consolidated_invoice)
++  if (flag === 'multi_contract') return (row.contract_billing_summary?.contractCount ?? 0) > 1
++  if (flag === 'consolidated_invoice') return hasUniformConsolidatedInvoice(row.contract_billing_summary)
+   if (flag === 'missing_grid_owner') return Boolean(row.has_missing_grid_owner)
+   if (flag === 'missing_authorization') return !row.has_signed_power_of_attorney
+   if (flag === 'ready_for_switch') {
+     return row.site_count > 0 && row.metering_point_count > 0 && Boolean(row.has_signed_power_of_attorney) && !row.has_missing_grid_owner
+   }
+   if (flag === 'billing_ready') {
+-    return row.site_count > 0 && row.metering_point_count > 0 && row.contract_count > 0 && !row.has_missing_grid_owner
++    return row.site_count > 0 && row.metering_point_count > 0 && (row.contract_count ?? 0) > 0 && !row.has_missing_grid_owner
+   }
+   if (flag === 'test_customers') return row.is_test_data === true || String(row.source ?? '').toLowerCase().includes('test')
+   return true
+@@ -393,35 +395,69 @@ async function loadPagedCustomerRows(params: {
+ 
+ async function loadCustomerRows(
+   companyId: string | null,
+-  status: CustomerStatusFilter,
+   includeHidden = false
+ ): Promise<CustomerListRow[]> {
+-  try {
+-    let query = supabaseService
+-      .from('customers')
+-      .select(CUSTOMER_LIST_SELECT)
+-      .not('company_id', 'is', null)
+-      .or('source.is.null,source.neq.ediel_portal_test')
+-      .order('created_at', { ascending: false })
+-      .limit(1000)
+-
+-    if (companyId) query = query.eq('company_id', companyId)
+-    if (!includeHidden) query = query.or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
+-
+-    const { data, error } = await query
+-    if (error) throw error
+-
+-    return ((data ?? []) as unknown as RawCustomerRow[])
+-      .filter((row) => typeof row.id === 'string')
+-      .map(normalizeCustomerRow)
+-  } catch (error) {
+-    if (isMissingRelationError(error)) return []
+-    throw error
++  const read = await readCompletePages<RawCustomerRow & { id: string }>(async (from, to) => {
++    const query = applyBaseCustomerFilters(
++      supabaseService.from('customers').select(CUSTOMER_LIST_SELECT, { count: 'exact' }) as unknown as CustomerQuery,
++      companyId, includeHidden
++    ).order('created_at', { ascending: false }).order('id', { ascending: true }).range(from, to)
++    const result = await query
++    return { data: result.data as Array<RawCustomerRow & { id: string }> | null, error: result.error, count: result.count ?? null }
++  })
++  if (read.kind !== 'complete') throw new Error(`customer_list_complete_read_required:${read.reason}`)
++  if (read.rows.some(row => !row.company_id || (companyId && row.company_id !== companyId))) {
++    throw new Error('customer_list_company_scope_mismatch')
+   }
++  return read.rows.map(normalizeCustomerRow)
++}
++
++async function loadContractBillingSummaries(rows: CustomerListRow[], companyId: string | null): Promise<Map<string, ContractBillingSummary>> {
++  const groups = new Map<string, string[]>()
++  for (const row of rows) {
++    const company = row.company_id
++    if (!company || company.trim() !== company || (companyId && company !== companyId)) {
++      throw new Error('contract_billing_summary_customer_scope_required')
++    }
++    groups.set(company, [...(groups.get(company) ?? []), row.id])
++  }
++  const summaries = new Map<string, ContractBillingSummary>()
++  for (const [company, ids] of groups) {
++    // Bounded .in() URLs; never combine tenants in a service-role contract read.
++    for (let offset = 0; offset < ids.length; offset += 100) {
++      const customerIds = ids.slice(offset, offset + 100)
++      const read = await readCompletePages<ContractBillingPreferenceRow>(async (from, to) => {
++        const result = await tenantSelect(company, 'customer_contracts',
++          'id,company_id,customer_id,consolidated_invoice,billing_level', { count: 'exact' })
++          .in('customer_id', customerIds).order('id', { ascending: true }).range(from, to)
++        return { data: result.data as unknown as ContractBillingPreferenceRow[] | null, error: result.error, count: result.count }
++      })
++      if (read.kind === 'complete' && read.rows.some(contract =>
++        contract.company_id !== company || !contract.customer_id || !customerIds.includes(contract.customer_id))) {
++        throw new Error('contract_billing_summary_ownership_mismatch')
++      }
++      for (const customerId of customerIds) {
++        summaries.set(customerId, summarizeSelectedContractBillingPreferences({
++          companyId: company, customerId,
++          read: read.kind === 'complete'
++            ? { kind: 'complete', selection: CONTRACT_BILLING_SELECTION, rows: read.rows.filter(contract => contract.customer_id === customerId) }
++            : { kind: 'unavailable', selection: CONTRACT_BILLING_SELECTION },
++        }))
++      }
++    }
++  }
++  return summaries
+ }
+ 
+ async function hydrateDerivedCustomerData(rows: CustomerListRow[], companyId: string | null): Promise<CustomerListRow[]> {
+   if (rows.length === 0) return rows
++  if (rows.length > 100) {
++    const hydrated: CustomerListRow[] = []
++    for (let offset = 0; offset < rows.length; offset += 100) {
++      hydrated.push(...await hydrateDerivedCustomerData(rows.slice(offset, offset + 100), companyId))
++    }
++    return hydrated
++  }
+ 
+   const customerIds = rows.map((row) => row.id)
+   const byCustomerId = new Map(rows.map((row) => [row.id, row]))
+@@ -461,20 +497,7 @@ async function hydrateDerivedCustomerData(rows: CustomerListRow[], companyId: st
+     }
+   })()
+ 
+-  const contractsPromise = (async () => {
+-    try {
+-      const { data, error } = await supabaseService
+-        .from('customer_contracts')
+-        .select('id, customer_id')
+-        .in('customer_id', customerIds)
+-
+-      if (error) throw error
+-      return (data ?? []) as Array<{ customer_id: string | null }>
+-    } catch (error) {
+-      if (isMissingRelationError(error)) return [] as Array<{ customer_id: string | null }>
+-      throw error
+-    }
+-  })()
++  const contractsPromise = loadContractBillingSummaries(rows, companyId)
+ 
+   const powersOfAttorneyPromise = (async () => {
+     try {
+@@ -536,11 +559,10 @@ async function hydrateDerivedCustomerData(rows: CustomerListRow[], companyId: st
+     if (point.status === 'active') customer.active_metering_point_count += 1
+   }
+ 
+-  for (const contract of contracts) {
+-    if (!contract.customer_id) continue
+-    const customer = byCustomerId.get(contract.customer_id)
+-    if (!customer) continue
+-    customer.contract_count += 1
++  for (const customer of rows) {
++    customer.contract_billing_summary = contracts.get(customer.id)
++    // Unknown is distinct from a complete empty contract set.
++    customer.contract_count = customer.contract_billing_summary?.contractCount ?? null
+   }
+ 
+   for (const poa of powersOfAttorney) {
+@@ -628,7 +650,7 @@ export async function listCustomersPage(options: {
+   }
+ 
+   const includeHiddenRows = status === 'archived'
+-  const baseRows = await loadCustomerRows(companyId, status, includeHiddenRows)
++  const baseRows = await loadCustomerRows(companyId, includeHiddenRows)
+   const visibleRows = excludeTestData
+     ? baseRows.filter((row) => !matchesFlag(row, 'test_customers'))
+     : baseRows
+diff --git a/quality/audits/customer-contract-preferences-fix-20261115/REPORT.sv.md b/quality/audits/customer-contract-preferences-fix-20261115/REPORT.sv.md
+new file mode 100644
+index 000000000..6dbcae474
+--- /dev/null
++++ b/quality/audits/customer-contract-preferences-fix-20261115/REPORT.sv.md
+@@ -0,0 +1,27 @@
++# Kundlistans avtalsinställningar – isolerad källrättning 2026-11-15
++
++Den fångade lokala kundlistan misslyckar med SQLSTATE `42703`: den gemensamma kundprojektionen begär både `customers.consolidated_invoice` och `customers.billing_level`, medan den daterade nativekatalogen saknar båda. Det är ett belagt kontraktsfel mellan källkod och schema. Filtret och märkningen är använda funktioner; detta är inte belägg för död kod. Denna lokala rättning tar bort båda kundprojektionerna och läser i stället de lagrade avtalsinställningarna från `customer_contracts`.
++
++Normal intake skriver dessa fält på avtalet (`app/admin/customers/actions.part-2.ts:1002–1003`, `lib/customer-contracts/db.ts:1028–1029`). Den normala fakturavägen använder kontraktet som underlaget faktiskt länkar till (`invoiceReviewPrepare.ts`, `exportCenter.ts`). Rättningen väljer inga effektiva fakturakontrakt och ändrar ingen period-, pris-, moms-, fakturagrupperings-, snapshot-, export- eller skrivregel. Inget nytt SQL/RPC eller migrering tillkommer.
++
++Den explicita mängden är **alla lagrade avtal för exakt bolag och kund**, oberoende av status och datum: `all_stored_customer_contracts`. Resultatet beskriver inställningar, inte faktureringen för en viss period. Det interna `CustomerListRow` ersätter de två gamla preferensfälten med `contract_billing_summary`; `contract_count` blir nullable. Den externa staff-kund-DTO:ns befintliga whitelist är oförändrad och exponerar inte dessa fält. Inga faktura- eller avtals-DTO:er ändras.
++
++Varje preferens behåller fem lägen: `no_contract` för en komplett tom mängd, `uniform`, `mixed`, `unknown` och `unavailable`. Kända värden samt antal okända värden bevaras även vid blandat+okänt. NULL/ogiltigt booleskt värde blir inte `false`, och tom/NULL faktureringsnivå blir inte `customer`. Icke-tom okänd textnivå bevaras. Ett otillgängligt avtalsantal är `null`, aldrig ett belagt nolltal.
++
++Den befintliga URL-parametern `flag=consolidated_invoice` behålls, men dess härledda betydelse står uttryckligen i listan: **”Samlingsfaktura på alla avtal”**. Endast en komplett mängd med enhetligt känt `true` matchar. Blandat, true+NULL, okänt, utan avtal och läsfel matchar inte. Det är ett uttalat nytt listkontrakt för lagrade preferenser; den tidigare kundkolumnens värde översätts inte och detta påstår ingen effektiv faktureringspolicy. Listtexten visar även blandat, okänt, utan avtal och otillgängligt.
++
++Avtalsläsningen grupperar även plattformsrader efter deras faktiska `row.company_id`. Varje `tenantSelect` har ett exakt bolagspredikat plus högst 100 kund-ID:n och väljer endast ID, bolag, kund och de två preferenserna. Returnerade rader verifieras mot både bolag och kundmängd innan sammanfattning. Främmande ägande stoppar i stället för att filtreras bort. Avtalen har deterministisk ID-sortering. Den filtrerade kundvägen ersätter sitt gamla `.limit(1000)` med stabil sortering (`created_at DESC, id ASC`) och fullständig pagination före sökning, avtalsfilter, total och statusräkning.
++
++Båda fullständiga läsningarna begär exakt antal på varje sida. Sidstorleken är 250, gränsen 20 000 rader per läsning och högst 200 sidförsök. Faktiskt returnerat antal styr nästa offset, så ett lägre PostgREST-sidtak blir inte automatiskt ett komplett prefix. Fel, saknat/ändrat antal, dubbletter, ogiltigt resultat, tom sida före slutet och nådd resursgräns ger inget partiellt lyckat resultat. Otillgängliga avtal ger `unavailable`; ofullständig filtrerad kundmängd stoppar med ett uttryckligt fel och lämnar inga falska totaler. Hydrering delas i högst 100 kunder per omgång för avgränsade ID-listor.
++
++Detta är flera deterministiska läsningar i ett läsfönster, inte en gemensam databastransaktion eller en låst historisk fakturasnapshot. Ändrat antal och dubbletter upptäcks; samtidiga ändringar med samma antal kan inte generellt uteslutas utan ett nytt snapshot-/RPC-kontrakt. Därför används sammanfattningen enbart i listan. Befintliga plats-, mätpunkts- och fullmaktsräknares egna historiska sidtak ändras inte av denna avgränsade preferensfix. Större filtrerade register eller avtalsmängder än gränsen kräver en separat kvalificerad sök-/aggregeringsväg och får här inte presenteras som kompletta.
++
++## Verifiering och leveransgräns
++
++Körning A nådde de 25 rena testdefinitionerna men stannade därefter i en SDK-testfixtur: fixturen tolkade bara det första av två `company_id`-predikat (`not.is.null` och `eq`) som ett likhetspredikat. Originalresultatet och fixturen är bevarade; produktkoden ändrades inte på grund av detta. En rättad fixture-V3 hanterar båda predikaten och använder dessutom de faktiska oförändrade tenant-wrapper-modulerna. Den enda nödvändiga omkörningen passerade därefter samtliga **39 komponentkontroller: 25 exakta rena testdefinitioner och 14 kontroller av den faktiska listmodulen samt oförändrade tenant-wrapper-moduler genom installerad SDK med egen fetch**. Körningen tog **1,340546 sekunder**, Node old-space var 128 MiB och maximal observerad RSS 125 688 KiB. Processen avslutades; inga sockets, backend- eller Auth-anrop gjordes. Kontrollerna omfattar alla preferenslägen, sena olika avtal efter rad 1000, ofullständiga sidor, räkningsdrift, dubbletter, gränser, två bolag och exakta scopes, plus den verkliga listmodulen genom installerad SDK med egen fetch utan sockets. Slutresultatet och exakta käll-/underlagsreferenser är bundna i `results.safe.json`. Ändrade TS/TSX-filer samt tenant-wrappern transpilerades med installerad TypeScript utan syntaxdiagnostik; det är inte en semantisk projektkompilering. Full Vitest, projektkompilering, native databasfråga och normal autentiserad browseradoption är inte körda här.
++
++Arbetet ligger i en isolerad lokal arbetskopia från faktisk main `ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba`, med färska exakta sex filanspråk plus session. Ingen aktiv source40/65/67, aktuella indata, nuvarande runtime, databas eller Main har ändrats. Ingen push, merge, deploy eller scenario-PASS görs av paketet. Historiska katalog-/42703-bevis är daterade, inte en ny nativeavläsning. Kanoniska 38/1/66 ändras inte.
++
++Nästa producentkvalificering använder en deklarerad ny källkomposition: kontrollera faktisk kund-/avtalsprojektion, exakt bolagsseparation, normal kundlista/filter/totaler och den oförändrade staff-DTO:n. En normal UI-listläsning efter adoption behövs innan felet får kallas runtime-rättat. Ingen schemautvidgning, återspelning av den gamla multisite-migreringen eller falska kundstandardvärden ingår.
++
++Den första startens antagna `/usr/bin/node` saknades, vilket gav ett rent prelaunch-fel utan Node-process. Den faktiska installerade Node-sökvägen återanvändes därefter från det tidigare kvalificerade komponentpaketet. Både detta startfel och fixturfelet är dokumenterade; ingen extra runtime-/databasåtgärd eller tyst testomkörning användes.
+diff --git a/quality/audits/customer-contract-preferences-fix-20261115/results.safe.json b/quality/audits/customer-contract-preferences-fix-20261115/results.safe.json
+new file mode 100644
+index 000000000..77a9cdaa7
+--- /dev/null
++++ b/quality/audits/customer-contract-preferences-fix-20261115/results.safe.json
+@@ -0,0 +1,177 @@
++{
++  "state": "LOCAL_PRODUCT_SOURCE_FIX_COMPONENT_39_PASS_NATIVE_BROWSER_PENDING",
++  "date": "2026-11-15",
++  "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba",
++  "problem": {
++    "sqlstate": "42703",
++    "missingCustomerColumns": [
++      "consolidated_invoice",
++      "billing_level"
++    ],
++    "provenDeadCode": false
++  },
++  "scope": {
++    "selection": "all_stored_customer_contracts",
++    "invoiceEffectivePolicy": false,
++    "filter": "complete_uniform_true_only",
++    "states": [
++      "no_contract",
++      "uniform",
++      "mixed",
++      "unknown",
++      "unavailable"
++    ],
++    "exactCompanyAndCustomer": true,
++    "pageSize": 250,
++    "maxRowsPerRead": 20000,
++    "maxPages": 200,
++    "customerIdBatch": 100,
++    "customerFilteredLimit1000Removed": true,
++    "externalStaffDTOUnchanged": true,
++    "internalCustomerListRowChanged": true
++  },
++  "validation": {
++    "portableDefinitions": 25,
++    "componentExecution": "PASS_25_PORTABLE_AND14_ACTUAL_INSTALLED_SDK_CUSTOM_FETCH_COMPONENT_CASES",
++    "fullVitest": "NOT_RUN",
++    "projectTypecheck": "NOT_RUN",
++    "native": "NOT_RUN",
++    "browser": "NOT_RUN",
++    "firstExecution": {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-EXECUTION.safe.json",
++      "sha256": "73b808609297dfbe85757c6cbb8cf304bb4c6e009a168b3b793ad80350531945"
++    },
++    "productSourceChangedAfterFailure": false,
++    "caseCount": 39,
++    "portableCases": 25,
++    "sdkCases": 14,
++    "elapsedSeconds": 1.340546,
++    "nodeOldSpaceMiB": 128,
++    "maxRSSKiB": 125688,
++    "networkSockets": 0,
++    "backendCalls": 0,
++    "authCalls": 0,
++    "syntaxTranspilation": "PASS_6_CHANGED_OR_TENANT_TS_TSX_FILES_NOT_SEMANTIC_TYPECHECK",
++    "componentResult": {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-CONTROLS.ACTUAL.safe.json",
++      "sha256": "6bc8ff9a2ab41e83f4edb8a53656e502fb47878876d2164ecef603e394331cc7",
++      "bytes": 7884
++    },
++    "componentExecutionReceipt": {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-EXECUTION.B.safe.json",
++      "sha256": "89079d3df98311126753d905289a5ba13bc0a8df2d20fafc465071db6d5d2aee",
++      "bytes": 675
++    }
++  },
++  "canonicalCounts": {
++    "pass": 38,
++    "partial": 1,
++    "remainingNonpass": 66,
++    "changedByThisPacket": false
++  },
++  "authority": {
++    "sourceOnly": true,
++    "localCommitOnly": true,
++    "activeSourcesChanged": false,
++    "databaseChanged": false,
++    "MainAdopted": false,
++    "pushed": false
++  },
++  "evidence": [
++    {
++      "path": "/tmp/gridex-customer-list-column-remediation-20261115/FINDINGS.safe.json",
++      "sha256": "ef8a06c9b88ddf1e74ec83d7ecec6f882fd0d10c72e20de90d3202ccb86a2df8",
++      "bytes": 6700
++    },
++    {
++      "path": "/tmp/gridex-customer-list-column-remediation-20261115/FINDINGS.md",
++      "sha256": "194ebf275dcb380a8c73db76c5b6281bc68335c91f13cce275306ec95496ec9a",
++      "bytes": 5043
++    },
++    {
++      "path": "/workspace/gridex-customer-list-schema-epoch-diagnostic-20261114/schema-epoch.native.private.json",
++      "sha256": "0c5288cc8de78d0e4ec163c1bc648134532996809486a3a47f758e00df298565",
++      "bytes": 6745
++    },
++    {
++      "path": "/workspace/gridex-custody-delete-f-offline-diagnosis-20261114/DIAGNOSIS.safe.json",
++      "sha256": "1446339f23d09911a8110127c4c18bb475369e9e251571776c54163a341cffef",
++      "bytes": 7088
++    },
++    {
++      "path": "/tmp/gridex-scenario-source-442256/app/admin/customers/actions.part-2.ts",
++      "sha256": "b6b6294e37c2cf4a19416b307223906af288c4e4f590e3212305565a452deb52",
++      "bytes": 47987
++    },
++    {
++      "path": "/tmp/gridex-scenario-source-442256/lib/customer-contracts/db.ts",
++      "sha256": "ca72868ac3ab37b61cede1afb1618e145cd9ad54772f8f4b29e08f69dabf00e2",
++      "bytes": 50492
++    },
++    {
++      "path": "/tmp/gridex-scenario-source-442256/lib/billing/invoiceReviewPrepare.ts",
++      "sha256": "dc5feb2a2959fcc512e252eb0feb63a0a6ad416bcd0c10077afccecc6cd582cf",
++      "bytes": 22386
++    },
++    {
++      "path": "/tmp/gridex-scenario-source-442256/lib/billing/exportCenter.ts",
++      "sha256": "4ae21d0b438fbf3950608957936a10755a981988db61a4a4c02b39f60b09ae14",
++      "bytes": 45126
++    },
++    {
++      "path": "/tmp/gridex-scenario-source-442256/lib/staff-api/customers.ts",
++      "sha256": "d80b08cc55da002d5cbbd4fbf01b2bd69d72ad6ede92fd70e70d5a251e5ebab8",
++      "bytes": 7243
++    },
++    {
++      "path": "/tmp/gridex-scenario-source-442256/lib/supabase/tenantQuery.ts",
++      "sha256": "673c453d6cf94f59de09d018c9473d620630afeb600f1deb0bd760486813f859",
++      "bytes": 1268
++    },
++    {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/PRECLAIM-CURRENT-SOURCE.safe.json",
++      "sha256": "bf979d4926fca8f1f264381198628a92c0a098b04598f4fd871aea7f263ca985",
++      "bytes": 3778
++    },
++    {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/PREWRITE-OWN7-FRESH.safe.json",
++      "sha256": "886428acfdc4ca5272d4b5d3f19a6af548e8a87a2ef0e6db16df9cb9830d5271",
++      "bytes": 1250
++    },
++    {
++      "path": "/tmp/gridex-customer-list-contract-summary-20261115/quality/audits/customer-list-contract-summary-20261115/contractBillingSummary.candidate.ts",
++      "sha256": "bd01f43cea98ec837c32234919c37b304f7451e6c6ff60114a4666bfc0030f17",
++      "bytes": 3525
++    },
++    {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-CONTROLS.ACTUAL.safe.json",
++      "sha256": "6bc8ff9a2ab41e83f4edb8a53656e502fb47878876d2164ecef603e394331cc7",
++      "bytes": 7884
++    },
++    {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-EXECUTION.B.safe.json",
++      "sha256": "89079d3df98311126753d905289a5ba13bc0a8df2d20fafc465071db6d5d2aee",
++      "bytes": 675
++    },
++    {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/COMPONENT-EXECUTION.safe.json",
++      "sha256": "73b808609297dfbe85757c6cbb8cf304bb4c6e009a168b3b793ad80350531945",
++      "bytes": 706
++    },
++    {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/FIXTURE-A-CORRECTION.safe.json",
++      "sha256": "793c56fe8d9bdbfde1c04eec1df1fe2dfe93a1f7a6cd69ed7f6d08a5adc50961",
++      "bytes": 1022
++    },
++    {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/FIXTURE-V3.SOURCE-ONLY.safe.json",
++      "sha256": "d4e0d1fbb88e3e3afbf6ba0d83fe4c8dd0d887ec2de3b7c05eab62a0beef845a",
++      "bytes": 809
++    },
++    {
++      "path": "/tmp/gridex-customer-contract-preferences-fix-evidence-20261115/STATIC-SOURCE-CHECKS.safe.json",
++      "sha256": "7ed2e55b8dd9b98159f6ea12e9d6b81004698e7e1d9aa798d53fa41e1388a7bf",
++      "bytes": 674
++    }
++  ]
++}
+-- 
+2.52.0
+

@@ -1,0 +1,14 @@
+{
+  "state": "CODE_APPROVE_NOT_EXECUTION",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T10:06:22.021002+00:00",
+  "wrapperSHA256": "301858a7d9d36ebce6f1b5cd005f3898bf1ffc4bf58e9864103756fe415d6d72",
+  "freezeSHA256": "b746c724d3df0ff796e494536f012341a2f9cb1bfbd5c5442158e27dd4cf5d3e",
+  "checks": [
+    "NewpathDplusfixedread-only8c28nativecapture inexception AFTERownedRESTstop BEFOREfullFc/drop, code+sequence/ASTread",
+    "Exactactualfactory/company/event scope verified; 8sSQL/15sprocess/JSONbound; stdoutstderractualorhonestcapturefailure retained",
+    "OriginalSQLAuth/source/expiry/child/Main/cleanup guards unchanged",
+    "Thisfixesexternalaftercapture race; currentCfullFc mustreconcile separately, no retroactivecaptureclaim",
+    "NewDactualtarget/twoscopes required; currentmissingUIeventoption unresolved, no businessretry authorized fromCODEACK"
+  ]
+}

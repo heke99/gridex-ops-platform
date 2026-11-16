@@ -1,0 +1,38 @@
+{
+  "state": "ROOT_K3_H_BINDER_NARROW_SOURCE_APPROVE",
+  "atUtc": "2026-11-14T14:03:52.426002+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-runtime64-3000-k3-H-prep-20261114/PREPARED.safe.json",
+    "sha256": "b7ddd694ea1481a048f1e179e5cf8ce1a3f48e05a314b717fd6d52852cde7e28"
+  },
+  "binderSHA256": "49be5d4c163fdaeafd23e96dbd7982d89ce43023c2ede1a67cb12a83f51ec589",
+  "literalChanges": [
+    [
+      "/tmp/gridex-local-runtime-20261114-k2",
+      "/tmp/gridex-local-runtime-20261114-k3"
+    ],
+    [
+      "K_ACTUAL_G_ENV_TWO_KEYS_ONLY_NO_EVENT_FACTORY",
+      "K_ACTUAL_H_ENV_TWO_KEYS_ONLY_NO_EVENT_FACTORY"
+    ],
+    [
+      "ACTUAL_LOCAL_RUNTIME_K2_G_ENV_3000_CANARY_V2_SOURCE64_NATIVEFILE_FRESH_QUIET_EPOCH_BOUND",
+      "ACTUAL_LOCAL_RUNTIME_K3_H_ENV_3000_CANARY_V2_SOURCE64_NATIVEFILE_FRESH_QUIET_EPOCH_BOUND"
+    ],
+    [
+      "/tmp/gridex-ee-browser-hold-actual-local-20261114-k2",
+      "/tmp/gridex-ee-browser-hold-actual-local-20261114-k3"
+    ],
+    [
+      "/workspace/gridex-local-cache-20261114-k2",
+      "/workspace/gridex-local-cache-20261114-k3"
+    ],
+    [
+      "20261114_local_k2",
+      "20261114_local_k3"
+    ]
+  ],
+  "review": "Whole inverse exact six namespace/epoch literals; prior currentcarrier/twoJWTlineage/actualheld/deadline/source64/26928 guards preserved. FutureHenv/PID/seal/deadline unbound; no actualauthority.",
+  "peerReceipt": "8b2aef3729fddba60f130077c45f9bc242e1a7623c2f38dd1414f9bb49313565",
+  "backendCalls": 0
+}

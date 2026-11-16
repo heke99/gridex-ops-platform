@@ -1,0 +1,23 @@
+{
+  "state": "ROOT_NORMAL_API_CURRENT_KEY_RESUME_SOURCE_APPROVE",
+  "atUtc": "2026-11-14T12:25:56.073387+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-normal-api-resume-current-keys-prep-20261114/FROZEN.safe.json",
+    "sha256": "e2c9b5e859d50be59bd170782f0a146f1ea95d4a4c76e7a7ce9bfa54791b7fb1"
+  },
+  "script": {
+    "path": "/tmp/gridex-normal-api-resume-current-keys-prep-20261114/resume-normal-api-current-keys.py",
+    "sha256": "453b27199292b757d989417ce897a4d0d0bc93a6f6b520d5c4ad5156a82e84d2"
+  },
+  "review": [
+    "Full code and eight pure credential boundary fixtures reviewed; existing signed current carrier only, no mint/renew.",
+    "Exact owned Auth/REST/Kong IDs/image/run labels checked, actual Auth/REST JWT secrets matched retained secret before starting.",
+    "Always re-render current carrier following Kong start; verify current config and bounded no-redirect settled Auth/REST200 before separate Main/UserAuth.",
+    "Actual closed predecessor required; outputs exclusive/private and no user sessions/policy mutation."
+  ],
+  "limits": [
+    "Source approval only; expired keys must use separate legitimate expired-only maintenance.",
+    "Actual execution must retain current source hashes/owned tuple and closed predecessor proof; no old secret logs printed."
+  ],
+  "backendCalls": 0
+}

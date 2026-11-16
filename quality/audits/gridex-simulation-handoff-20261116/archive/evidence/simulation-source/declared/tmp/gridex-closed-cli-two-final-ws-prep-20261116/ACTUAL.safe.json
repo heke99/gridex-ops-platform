@@ -1,0 +1,21 @@
+{
+  "state": "EXACT_TWO_CLI_GZIP_RELOCATED_TO_WS_OLD_TMP_PATHS_ABSENT",
+  "relocationCustody": {
+    "path": "/tmp/gridex-closed-cli-two-final-ws-prep-20261116/RELOCATION-CUSTODY.safe.json",
+    "sha256": "8a2501ba00fbeb15ef31096b462533da6e93b7a1efc5dd20105bb93c2e54cb5f"
+  },
+  "resolver": {
+    "path": "/tmp/gridex-closed-cli-two-final-ws-prep-20261116/restore-via-new-ws-custody.py",
+    "sha256": "ddce418881ed39529cc0c460b262c17ae8bc4f9a62a40ba00ce23e5b91c24983"
+  },
+  "beforeFree": {
+    "workspace": 1297367040,
+    "tmp": 318201856
+  },
+  "afterFree": {
+    "workspace": 1228218368,
+    "tmp": 387325952
+  },
+  "originalProvenanceAndOfficialRawUnchanged": true,
+  "noDecodeTarExtractionRecompressionDBNodeOrAuth": true
+}

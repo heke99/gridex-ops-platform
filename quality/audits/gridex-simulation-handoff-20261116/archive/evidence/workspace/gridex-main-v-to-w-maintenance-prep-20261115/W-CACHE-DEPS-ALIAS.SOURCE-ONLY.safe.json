@@ -1,0 +1,25 @@
+{
+  "state": "SOURCE_ONLY_W_CACHE_DEPENDENCY_SEARCH_COMPATIBILITY",
+  "script": {
+    "path": "/workspace/gridex-main-v-to-w-maintenance-prep-20261115/add-exact-w-cache-deps-alias.py",
+    "sha256": "c8dcd4fa9ffab8ff879fc9d89828630a80b67913ba6962ffb902540a95aa7ca9"
+  },
+  "reason": "Next requirePage uses require(pagePath), compiled page realpath is under fresh TMP .next target. require-hook delegates ordinary package names to original Node resolver; source-root dependency symlink is not an ancestor of real TMP compiled modules. Preserve original qualified cache/node_modules convention explicitly.",
+  "evidence": [
+    {
+      "path": "/workspace/gridex-krypkorning-run-20261111/node_modules/next/dist/server/require.js",
+      "sha256": "c4ea56c67a3f7a049f36c09d0a4ebc09ddf0ca30ea78885016033186410d3875"
+    },
+    {
+      "path": "/workspace/gridex-krypkorning-run-20261111/node_modules/next/dist/server/require-hook.js",
+      "sha256": "e82f0ceba88d025c725ea3062974ad9d7a54a892df8c34a525cb129202387db8"
+    }
+  ],
+  "priorAliasActualSHA256": "50f08c96a6327ca5d2cb91d78d441c0b5ef08728dba5fc740369cd114616e97c",
+  "createOnlyPath": "/tmp/gridex-source40-next-cache-20261115-w/node_modules",
+  "exactTarget": "/tmp/gridex-closed-evidence-relocation-20261113/gridex-krypkorning-run-20261111/node_modules",
+  "noObservedStartupFailure": true,
+  "actualAliasCreation": false,
+  "noNodeRun": true,
+  "pythonAST": "PASS"
+}

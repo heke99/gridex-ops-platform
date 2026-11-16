@@ -1,0 +1,9 @@
+{
+  "allowedPrivateAppendTables": [
+    "gridex_ediel_inbound_receptions.technical_mailbox_births",
+    "gridex_unattributed_intake.raw_births"
+  ],
+  "ownEmailId": "0ba971e4-baa5-4255-911c-6c3a0fcc6ff5",
+  "allForeignRowsExact": true,
+  "nativeRawCustodyHashVerified": true
+}

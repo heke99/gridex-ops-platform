@@ -1,0 +1,27 @@
+{
+  "state": "ROOT_FINAL_DOC_FACT_AND_EXACT_TWO_GIT_BYTE_REBIND_APPROVE",
+  "at": "2026-11-14T21:16:37.966693+00:00",
+  "freezePath": "/tmp/gridex-correct-routes-deadcode-repo-evidence-20261114/FROZEN-REPORT.safe.json",
+  "freezeSHA256": "2aac3fbac31b58359357474eec84fd58bed14568b2a95e0bcaf7d6981e5e8dd8",
+  "head": "b5c5cd534c39e016e6e18978490c4cc4d6a83bb3",
+  "tree": "acc1b5edce4d3f98a3b06f155e5e4059a8221574",
+  "files": [
+    {
+      "path": "/tmp/gridex-correct-routes-deadcode-repo-20261114/quality/audits/gridex-correct-routes-deadcode-20261114/REPORT.sv.md",
+      "repoPath": "quality/audits/gridex-correct-routes-deadcode-20261114/REPORT.sv.md",
+      "sha256": "ec85358f944c19f367f3e7f391acd6ed19130a51eead98d7e9375a3af2a23e77",
+      "bytes": 6294
+    },
+    {
+      "path": "/tmp/gridex-correct-routes-deadcode-repo-20261114/quality/audits/gridex-correct-routes-deadcode-20261114/results.safe.json",
+      "repoPath": "quality/audits/gridex-correct-routes-deadcode-20261114/results.safe.json",
+      "sha256": "67a8e7739a6f340f979199f009f9043e881337100ed071f52bd91db1c387fca0",
+      "bytes": 27359
+    }
+  ],
+  "referencesRehashed": 17,
+  "exactIdentities": 33,
+  "review": "Full27line report read plus structured counts/all33registrypresence/correctroutes and latestGblocked status. Explicit24/9source vs2/31runtime vsisolatede6b269 vs187unreached distinctions; no compounded25/8/adoption/PASS. Currentd04aBlockedForMainAdoption/catalog20318+actualGce4079 coherent.",
+  "noNewNativeScenarioOrSourceAdoptionCredit": true,
+  "noPushMainMerge": true
+}

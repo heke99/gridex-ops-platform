@@ -1,0 +1,23 @@
+{
+  "at": "2026-11-15T02:25:22.200046+00:00",
+  "reviewer": "/root",
+  "verdict": "DYNAMIC_TUPLE_APPROVE_EXECUTION_CONDITIONAL_ON_LIVE_RESOURCE_GUARDS",
+  "parentTargetSha256": "46b5de1d041b1829bdfc28a1ec617c779c34290bd8edb6076bcab7913ceccc52",
+  "orchestratorTargetSha256": "fe3fb46d84e92d77ae1859c94ee349a6f1885410a0f99a5cec1b586c68f63e5b",
+  "checks": [
+    "Actual two target bytes hashed; all106parent+17orchestrator nested path/sha256 refs independently matched",
+    "Runtime0f69 all25boundrefs matched; exacta06d HMRoverlay runtime source reused",
+    "New afterREADY baseline541019/Fc8fb5/beforeafterba69 independently hashed and afterREADYmtime checked",
+    "Read ee31 sessionseal actualsameactor/session1refresh1/commands0/newbaseline not0509",
+    "Existing approved parent380a/orch9b6 and full3000 held deadline03:01:48.248; runtime02:59:28 with140sreserve"
+  ],
+  "conditions": [
+    "Soleproducer+independentEdielactualscope beforeexecution",
+    "ActualWS>=805306368/TMP>=134217728 and every phaseexistingheadroom/deadlineguard must pass; resourceNOTpassednow",
+    "RootactualUTF8documentsemanticreview beforeATTEST; no implicitATTEST/financialPASS",
+    "AllnativeMain/foreign/source/OIDACL/cleanupguards preserved"
+  ],
+  "observedWorkspaceFree": 650010624,
+  "observedTmpFree": 103043072,
+  "resourcePass": false
+}

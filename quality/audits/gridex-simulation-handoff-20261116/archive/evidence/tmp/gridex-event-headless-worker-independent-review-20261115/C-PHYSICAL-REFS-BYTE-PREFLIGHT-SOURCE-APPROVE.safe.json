@@ -1,0 +1,37 @@
+{
+  "state": "INDEPENDENT_EVENT_C_WORKER_NAMESPACE_PHYSICAL_REFS_AND_BYTE_PREFLIGHT_SOURCE_APPROVE_UNARMED",
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "reviewedAt": "2026-11-16T01:17:43.101828+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-event-headless-worker-prep-20261115-c/FROZEN.SOURCE-ONLY.safe.json",
+    "sha256": "d98fffc5f8ce35d52dece7e0836c5629c0bf2c28047f1f6e026e26ef0206babc"
+  },
+  "entrySHA256": "a39c8f940e92195295adce6de51fbefe875fbfb5d2318319b28c2cb0c3b55104",
+  "priorFullAndBNarrowPeersReused": [
+    "f41b1c5dd229e2565fa48db5f6968cff87e692a21af457b3df0156308559ad22",
+    "b033b77c20f830e713283d943db009f55b69deee3c46045f559176fec093395a"
+  ],
+  "all13Files14RefsEvidenceAndPriorPinsVerified": true,
+  "wholeWorkerOnlyOneRootBToCInverseVerified": true,
+  "threeMetadataPackageLogicalToExactPhysicalPathsSameSHABytesVerified": true,
+  "loader58MapAndNativeBodiesByteExact": true,
+  "originalWorkerBytesGuardLineByteExact": true,
+  "newValidatorWholeRead": "Extracts only exact one-line reviewed workerbytes() into closed VM exposing fs/path/H/need/ROOT; no main/SDK/Auth/network loader. Exact path/field/index/guard failures and dynamicNULL absence reported, no fabricated authority.",
+  "savedActualControls": {
+    "path": "/tmp/gridex-event-headless-worker-prep-20261115-c/BYTE-GUARD-ACTUAL.safe.json",
+    "sha256": "d6711d9d862567a0297ca0ca5699fcc75b4677a4bb82460c15e7ce95364ec497",
+    "actual0_216SecondsNode64FSOnly": true,
+    "CStaticRefsPassed": 22,
+    "BExactBadRefsReproduced": 3,
+    "finiteGuardCases": 10,
+    "noRerunByReviewer": true
+  },
+  "conditions": [
+    "PRECLONE static template permits explicitly reported6missingdynamicrefs; PRELOGIN fullactualtarget MUST require passed=true AND dynamicRefsAbsent=[] plus exact own target/source/path identity BEFORE starting600reviewclock",
+    "No weakening of realpath/symlink/mode/8MiB/hash guards; compactMainanchors while outer validates fullMain/all7 retained",
+    "ProperBclosure/noAuth proof before newC; no retrospective business/Auth authority",
+    "Freshactualscope/role/lease/TLS/native/purposebudget and fullE532c receiptcriteria required. OriginalAuth1800/JWT120/native900/business780/reserve60 unchanged; no scenarioPASS from source"
+  ],
+  "actualAuthority": null,
+  "noNodeBackendAuthOrMatrixRerunByReviewer": true
+}

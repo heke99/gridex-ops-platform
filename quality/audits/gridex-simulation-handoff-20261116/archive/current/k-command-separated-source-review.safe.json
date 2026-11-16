@@ -1,0 +1,13 @@
+{
+  "state": "SOURCE_APPROVE_NARROW_REBIND_NOT_EXECUTION",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T09:32:29.527597+00:00",
+  "freezeSHA256": "3d2fbbfd74a8f4195ab2235f09eeb9dbc397b2362c68c5a9916dfac653dd57a5",
+  "checks": [
+    "Allnew/unchanged frozenhashesmatch",
+    "ExactexternalSQLsemicoloninverse oldbabbd, immutablefe4a/ef375prosrc unchanged",
+    "Parentad394 unchanged; originalRoota03f/Edieldecc fullCODE appliesexceptcorrectedseparator",
+    "NewtargethonestlyrequiresactualcorrectedCproof; noBsuccessclaimed; actualqualificationgateclosed",
+    "NoNativeexecution/adoption authorized bysourceACK"
+  ]
+}

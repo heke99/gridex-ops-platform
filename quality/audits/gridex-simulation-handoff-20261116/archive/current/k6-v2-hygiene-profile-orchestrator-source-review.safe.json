@@ -1,0 +1,25 @@
+{
+  "state": "ROOT_K6_V2_FOCUSED_HYGIENE_PROFILE_ORCHESTRATOR_SOURCE_APPROVED_UNARMED",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T18:52:11.984057+00:00",
+  "preparedPath": "/tmp/gridex-k6-profile-contract-v2-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "a0cfbd77feaae8685fcca49afcb47a961e0eff748b63e5f4421c0dfdc6d875a7",
+  "helperSHA256": "25be3ae50d29881bdd0771a74f37198f9b5c36fd297e408f7f431757772e57dc",
+  "unarmedFilesystemValidation": {
+    "state": "DEEP_K6_PROFILE_CONTRACT_MATCHED_NO_AUTH_EXECUTED",
+    "mode": "UNARMED",
+    "allNestedValuesChecked": true,
+    "allDerivedRunPathsChecked": true,
+    "businessRpcInvocations": 0,
+    "authCalls": 0
+  },
+  "review": "Full helperdiff read: bound/session known-secret raw/JSONescaped/URIencoded longest-first/ANSIstrip redaction before all persisted error truncation/state/command/top-level labels. save filefsync-close-rename-parentdirfsync faults surface. Eleven actual-function mock controls read. Only orchestratorMACRO/helperSHA changes; factoryb320,parent3b6c,core50bc,driverEAA unchanged. Frozenpins and deepUNARMED actualvalues verified.",
+  "preserved": "All4RPC order/schema/oneattempt/ACK,3000hold,JWT120,900phase,native8s/read15s,source/private guards",
+  "notActualAuthOrPowerLossOrImportProof": true,
+  "actualPidMainSealDeadline": null,
+  "conditions": [
+    "FreshactualJ/env/PID/source/raw/closure PREAUTH and twoactualscope/liveguards beforeauth",
+    "FreshactualMainbackup/seal/runtime aftergenuineheldREADY",
+    "RootreadsnewactualPREPAREUTF8document beforeATTEST"
+  ]
+}

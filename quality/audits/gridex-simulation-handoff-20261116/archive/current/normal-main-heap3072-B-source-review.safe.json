@@ -1,0 +1,11 @@
+{
+  "state": "ROOT_SOURCE_REVIEW_LITERAL_ONLY_MAIN3072_B_APPROVED",
+  "atUtc": "2026-11-14T18:16:37.935795+00:00",
+  "reviewerAgent": "/root",
+  "prepared": {
+    "path": "/tmp/gridex-normal-main-heap3072-B-prep-20261114/PREPARED.safe.json",
+    "sha256": "e9a6c705be322769d9dc133b38320446a46d95578157cfb22e25fd6ef360586d"
+  },
+  "checks": "Full leaf and loader diffs read; only new exclusive B root/log and leaf path/hash. Existing3072/source40/currentI/90slogin/no retry unchanged.",
+  "notActualLaunch": true
+}

@@ -1,0 +1,110 @@
+{
+  "state": "INDEPENDENT_PREFLIGHT_PACKAGE_APPROVE_COMPLETE_EXECUTION_HANDOFF_NOT_READY",
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "reviewedAtUTC": "2026-11-16T10:04:54.129369+00:00",
+  "zip": {
+    "path": "/workspace/Gridex-Local-Preflight-20261116.zip",
+    "bytes": 11326,
+    "sha256": "42dd90a45eb9b51eb1708bfa1a49fb8de701d48f43021fce86670b9f988bff08",
+    "memberCount": 7,
+    "CRCAllMembersPass": true,
+    "allSixManifestPayloadBytesAndHashesMatchLocalAndZip": true,
+    "manifestSelfBytesMatch": true,
+    "duplicateTraversalSymlinkMembersAbsent": true,
+    "noEmbeddedPEMPrivateKeyOrJWTFound": true
+  },
+  "manifest": {
+    "path": "/workspace/gridex-local-migration-preflight-20261116/MANIFEST.safe.json",
+    "sha256": "008ccebe068f807bcd9e2628178c86ffe14b75c0117daec6b2154f50b7abf139"
+  },
+  "producerDependencies": {
+    "path": "/workspace/gridex-local-migration-preflight-20261116/PRODUCER-DEPENDENCIES.safe.json",
+    "sha256": "7ac63811aef1b80741548bee51439a3a8b3c07bb556359c6eb8e23188f50eca5",
+    "includedInThisZip": false
+  },
+  "sourceChecks": {
+    "original701ModuleHashesFreshlyRecheckedAgainstExistingManifest": true,
+    "nonsecretMetadataSourceReferencesFreshlyRehashed": 63,
+    "linuxAMD64ELFHeadersNodeDockerVerifiedWithoutExecution": true,
+    "privateRequiredArtifactsStatOnlyNoPrivateContentsOrDigestsExported": 15,
+    "fullTransitiveDependencyTreeExportNotVerified": true
+  },
+  "scopeVerdict": {
+    "readOnlyMacPreflightSourceAndInstructionsAppropriate": true,
+    "completeRunnableHandoff": false,
+    "readyToResumeOriginalCasesFromZip": false,
+    "actualMacTerminalAccessVerified": false,
+    "actualMacOrLocalDockerPreflightRun": false,
+    "cloudFilesAutomaticallyTransferred": false
+  },
+  "materialGaps": [
+    {
+      "id": "PACKAGE_CONTENT",
+      "finding": "ZIP has only six preflight documents/script plus manifest. It contains no app/kernel source, toolchain/dependency tree, images, database backup, private configuration, fixture keys or native execution baseline. The new producer dependency index is external to this ZIP."
+    },
+    {
+      "id": "LOCAL_EXECUTION",
+      "finding": "This review ran in managed Linux cloud. Mac CPU/RAM/disk, selected local Codex terminal and real Docker VM/context/socket placement remain unverified; script syntax/Linux refusal evidence is not a Mac run."
+    },
+    {
+      "id": "SOURCE_DEPENDENCIES",
+      "finding": "Source65 full2193 materializer and actual701 original module closure are cloud references. Complete transitive installed dependencies/lockfiles/physical symlink and native addon OS/CPU qualification are not packaged or restored locally."
+    },
+    {
+      "id": "RESTORABLE_MAIN",
+      "finding": "Fresh complete restorable current Main backup/bootstrap has not been produced for migration. The diagnostic522/3370 JSON and historical3443 clone seed do not restore current Main or establish equivalent extensions/roles/data/Auth/sequences."
+    },
+    {
+      "id": "PRIVATE_CONFIGURATION",
+      "finding": "Credentials, signing material, Docker Env/config, trusted seed/private14 snapshots and TLS fixture keys are intentionally not bundled. They need a separate approved private integrity/transfer or legitimate local regeneration plan; no public ZIP insertion or cloud-session transplant."
+    },
+    {
+      "id": "LINUX_AND_ARCHITECTURE",
+      "finding": "Current code is Linux-specific: /proc, cgroupv2, UID1000, ELF AMD64 tools, pinned linux/amd64 Storage image. Unchanged Darwin execution is unsupported; Apple Silicon nativeARM64 or AMD64 emulation must be explicitly selected and qualified."
+    },
+    {
+      "id": "PATH_DAEMON_NETWORK_IDENTITY",
+      "finding": "Fixed /workspace,/tmp,/usr/local/bin/docker,socket, realpath/NOFOLLOW/metadata guards and daemon bind-mount/internal-IP/network namespaces must be ported consistently. Mac /tmp->/private/tmp and host/VM mounts are unresolved. All local PIDs/CIDs/networks/source hashes/clock/scopes must be fresh."
+    },
+    {
+      "id": "LOCAL_NATIVE_BASELINE_AUTHORITY",
+      "finding": "No local restore qualification/native Main522/3370/all7/Auth0/settings/private388 baseline or genuine local actor/session/server-role window exists. Cloud historical GO/SID/PID/CID/native receipt authority is not portable."
+    },
+    {
+      "id": "RESOURCE_AND_STORAGE",
+      "finding": "Observed late VFS constructor raw reclaim2244390912 is not exclusive or peak allocation, and invalidates treating virtual820MB/784MiBcopy as a qualified bound. Need fresh actual local Docker VM storage/driver/image allocation plus DB/WAL/TMP/memory envelope before heavy CREATE; hostfree and docker systemdf are insufficient."
+    },
+    {
+      "id": "EVIDENCE_CUSTODY_AND_ORACLES",
+      "finding": "Archived originals, per-group/final/relocation custody and pinned restorers are outside ZIP. Preserve/transfer required evidence or restore exact bytes before hash-reader reuse. Original105 oracles/count43/1/61 and unresolved normative/external gaps must remain unchanged."
+    }
+  ],
+  "preflightOperationalLimits": [
+    "Shell is read-only by source review: Darwin guard first; no install/pull/start/remove/prune/config-write/export. It prints selected limited fields and avoids secrets/fullinspect.",
+    "Docker Unix socket alone does not prove a local daemon; source correctly states further verification. Docker reads have no explicit shell timeout, so a stalled daemon may delay preflight; this is not permission for automated repair.",
+    "Planning100GiB teststorage/30GiB diskTMP targets are planning guidance, not measured local resources or approved minimums."
+  ],
+  "safeResumeOrder": [
+    "Run only read-only local preflight in a verified This computer/Local/Worktree task; capture architecture/RAM/disk/context/VM facts.",
+    "Choose and source-review exact Linux/CPU/UID/filesystem/daemon/network layout and realistic resource envelope.",
+    "Prepare concrete private/source/image/dependency/currentMain transfer/bootstrap package with checksums and recovery custody separately; no secrets in public ZIP.",
+    "Restore and qualify local native baselines and module/formatter/closed-fetch prefix, then create fresh actual actor/epoch/target/two-review scopes for unchanged four original cases."
+  ],
+  "bookkeeping": {
+    "total": 105,
+    "fullPass": 43,
+    "gap": 1,
+    "incomplete": 61,
+    "nextFourNotRun": [
+      "EDIEL02.05",
+      "EDIEL03.01",
+      "EDIEL03.02",
+      "EDIEL03.03"
+    ]
+  },
+  "reviewerActions": {
+    "FSReadsAndOwnReviewWriteOnly": true,
+    "DockerSQLNewDumpExportNetworkMacRunSecretsOrPrivateBundle": false
+  },
+  "approvalLimit": "Approve this as a small preflight aid and truthful dependency index only. It is not a migration completion, deployment, data-transfer or original-case execution GO."
+}

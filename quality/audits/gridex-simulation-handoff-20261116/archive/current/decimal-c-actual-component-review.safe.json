@@ -1,0 +1,13 @@
+{
+  "state": "ACTUAL_FINITE_EQUALITY_CLOSED_BUT_PERFORMANCE_NOT_QUALIFIED",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T09:37:39.304792+00:00",
+  "terminalSHA256": "369fdb044aaefade2e4eff24e718282d01c2db4d0053b2b994f8352e50f2db9e",
+  "checks": [
+    "Independentfull3443rawfunctioncompare: onlytargetprosrc/definition changes, nonbodyOIDACL/other3442 preserved; candidatefe4a/ef375 hashes verified",
+    "FullOLD/NEW22structuredJSONequal; no expectedresultbackfit",
+    "Allnonfunctionsections andcloneafter/private14/Main preserved, owncloneAbsent",
+    "Full2688still57014 at8.1307966s; observedcontextline68 repeatednextQTYscan, no soleCPUcauseclaim",
+    "NOTthreeMET; noadoption/Kactivation; nextoptimization separatebody/sourcequalification"
+  ]
+}

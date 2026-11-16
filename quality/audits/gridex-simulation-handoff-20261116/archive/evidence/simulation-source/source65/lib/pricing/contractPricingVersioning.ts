@@ -1,0 +1,1257 @@
+import { standardConsumptionVatPercent } from "@/lib/pricing/vat";
+
+export type ContractPricingModel =
+  | "spot"
+  | "variable_monthly"
+  | "variable_hourly"
+  | "variable_quarterly"
+  | "fixed"
+  | "portfolio"
+  | "mixed";
+export type ContractCustomerType = "private" | "business" | "both";
+
+export const WEBSITE_PRICING_VISIBILITY_KEYS = [
+  "fixed_price",
+  "spot_markup",
+  "variable_fee",
+  "monthly_fee",
+  "invoice_fee",
+  "green_energy_fee",
+  "electricity_certificate",
+  "start_fee",
+  "administration_fee",
+  "break_fee",
+  "portfolio_price",
+  "portfolio_management_fee",
+  "campaign_discount",
+  "optional_fees",
+  "production_compensation",
+] as const;
+
+export type WebsitePricingVisibilityKey =
+  (typeof WEBSITE_PRICING_VISIBILITY_KEYS)[number];
+export type WebsitePricingVisibilityInput = Partial<
+  Record<WebsitePricingVisibilityKey, unknown>
+>;
+
+export type ContractPricingInput = {
+  name: string;
+  contractType: ContractPricingModel;
+  customerType: ContractCustomerType;
+  monthlyFeeSek?: unknown;
+  invoiceFeeSek?: unknown;
+  markupOrePerKwh?: unknown;
+  spotMarkupOrePerKwh?: unknown;
+  variableFeeOrePerKwh?: unknown;
+  fixedPriceOrePerKwh?: unknown;
+  fixedPricesByArea?: unknown;
+  greenFeeMode?: unknown;
+  greenFeeValue?: unknown;
+  electricityCertificateOrePerKwh?: unknown;
+  startFeeSek?: unknown;
+  administrationFeeSek?: unknown;
+  breakFeeSek?: unknown;
+  portfolioManagementFeeOrePerKwh?: unknown;
+  portfolioManagementFeeAmount?: unknown;
+  portfolioManagementFeeUnit?: unknown;
+  portfolioManagementFeeCalculationBase?: unknown;
+  portfolioId?: unknown;
+  portfolioSettlementTiming?: unknown;
+  portfolioEstimateRule?: unknown;
+  portfolioShowHistoricalFinal?: unknown;
+  portfolioShowIndication?: unknown;
+  discountValue?: unknown;
+  discountUnit?: unknown;
+  discountCalculationBase?: unknown;
+  discountMonths?: unknown;
+  vatRate?: unknown;
+  spotWeightPercent?: unknown;
+  portfolioWeightPercent?: unknown;
+  fixedWeightPercent?: unknown;
+  spotIntervalResolution?: unknown;
+  priceAreas?: unknown;
+  validFrom?: string | null;
+  validTo?: string | null;
+  bindingMonths?: unknown;
+  noticeMonths?: unknown;
+  automaticRenewal?: boolean;
+  powerOfAttorneyRequired?: boolean;
+  optionalFeeLines?: unknown;
+  productionEnabled?: unknown;
+  productionCompensationOrePerKwh?: unknown;
+  productionVatRate?: unknown;
+  productionSettlementMode?: unknown;
+  websiteCardVisibility?: WebsitePricingVisibilityInput;
+};
+
+type PricingComponent = {
+  component_code: string;
+  component_type: string;
+  name: string;
+  amount: number;
+  calculation_type: string;
+  unit: string;
+  vat_applicable: boolean;
+  invoice_line_visible: boolean;
+  website_card_visible: boolean;
+  website_summary_visible: boolean;
+  website_visibility: "visible" | "summary_only" | "hidden";
+  calculation_inclusion: "included" | "excluded" | "conditional";
+  calculation_base: string | null;
+  priority: number;
+  metadata?: Record<string, unknown>;
+};
+
+type BasePriceComponent = {
+  source_type: "spot" | "fixed" | "portfolio" | "manual";
+  label: string;
+  weight_percent: number;
+  fixed_price_sek_per_kwh: number | null;
+  price_area: string | null;
+  metadata?: Record<string, unknown>;
+};
+
+export type PricingCalculationBase =
+  | "energy_cost_ex_vat"
+  | "energy_cost_inc_vat"
+  | "spot_cost"
+  | "portfolio_cost"
+  | "total_variable_cost"
+  | "invoice_subtotal"
+  | "monthly_fixed_amount";
+
+export type NormalizedContractPricing = {
+  planName: string;
+  pricingModel: "spot" | "fixed" | "portfolio" | "mixed";
+  contractType: ContractPricingModel;
+  customerType: ContractCustomerType;
+  publicPriceText: string;
+  snapshot: {
+    schema_version: 5;
+    contract_type: ContractPricingModel;
+    customer_type: ContractCustomerType;
+    price_areas: string[];
+    valid_from: string | null;
+    valid_to: string | null;
+    binding_months: number | null;
+    notice_months: number | null;
+    automatic_renewal: boolean;
+    power_of_attorney_required: boolean;
+    base_components: BasePriceComponent[];
+    price_components: PricingComponent[];
+    website_visibility: Record<WebsitePricingVisibilityKey, boolean>;
+    portfolio_method: {
+      pricing_model: "portfolio_monthly_settlement";
+      portfolio_id: string;
+      mix_shares: {
+        spot_weight_percent: number;
+        portfolio_weight_percent: number;
+        fixed_weight_percent: number;
+      };
+      management_fee: {
+        amount: number;
+        unit: string;
+        calculation_base: PricingCalculationBase | null;
+      };
+      calculation_base: "portfolio_cost";
+      vat_rate: number;
+      settlement_timing: "after_month_close" | "preliminary_then_final";
+      estimate_rule: "none" | "latest_final" | "rolling_3" | "forecast" | "manual";
+      display_rules: {
+        show_historical_final: boolean;
+        show_indication: boolean;
+        indication_non_binding: true;
+      };
+      final_billing_requires: "locked_settlement";
+    } | null;
+    public_price_text: string;
+    vat_rate: number;
+    vat_rate_percent: number;
+    interval_resolution:
+      "monthly" | "hourly" | "quarterly" | "fixed" | "portfolio" | "mixed";
+    energy_direction: "consumption" | "production";
+    production: {
+      enabled: boolean;
+      compensation_model: "fixed_compensation";
+      resolution: "monthly" | "hourly" | "quarterly";
+      deduction_ore_per_kwh: number | null;
+      premium_ore_per_kwh: number | null;
+      fixed_compensation_ore_per_kwh: number | null;
+      compensation_ore_per_kwh: number | null;
+      compensation_sek_per_kwh: number | null;
+      vat_rate: number;
+      vat_rate_percent: number;
+      vat_treatment: "configured_on_contract";
+      settlement_mode: "credit_invoice" | "self_billing";
+      billing_direction: "credit_invoice" | "self_billing";
+      metering_point_role: "production";
+    };
+  };
+};
+
+function optionalNumber(
+  value: unknown,
+  label: string,
+  options: { min?: number; max?: number; integer?: boolean } = {},
+): number | null {
+  if (value === null || value === undefined || String(value).trim() === "")
+    return null;
+  const parsed =
+    typeof value === "number"
+      ? value
+      : Number(String(value).trim().replace(",", "."));
+  if (!Number.isFinite(parsed))
+    throw new Error(`${label} måste vara ett giltigt tal.`);
+  if (options.integer && !Number.isInteger(parsed))
+    throw new Error(`${label} måste vara ett heltal.`);
+  if (options.min !== undefined && parsed < options.min)
+    throw new Error(`${label} får inte vara lägre än ${options.min}.`);
+  if (options.max !== undefined && parsed > options.max)
+    throw new Error(`${label} får inte vara högre än ${options.max}.`);
+  return parsed;
+}
+
+function parsePriceAreas(value: unknown): string[] {
+  const raw = Array.isArray(value)
+    ? value.map(String)
+    : String(value ?? "").split(/[\s,;]+/);
+  const normalized = Array.from(
+    new Set(raw.map((item) => item.trim().toUpperCase()).filter(Boolean)),
+  );
+  const invalid = normalized.filter(
+    (item) => !["SE1", "SE2", "SE3", "SE4"].includes(item),
+  );
+  if (invalid.length > 0)
+    throw new Error(`Ogiltigt prisområde: ${invalid.join(", ")}.`);
+  return normalized;
+}
+
+function parseFixedPricesByArea(
+  value: unknown,
+): Partial<Record<"SE1" | "SE2" | "SE3" | "SE4", number>> {
+  if (value === null || value === undefined || String(value).trim() === "")
+    return {};
+  let candidate: unknown = value;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.startsWith("{")) {
+      try {
+        candidate = JSON.parse(trimmed);
+      } catch {
+        throw new Error(
+          "Fastpris per prisområde måste vara giltig JSON eller rader som SE1|99,50.",
+        );
+      }
+    } else {
+      candidate = Object.fromEntries(
+        trimmed
+          .split(/\r?\n/)
+          .filter(Boolean)
+          .map((line) => {
+            const [area, amount] = line.split("|").map((part) => part.trim());
+            return [area?.toUpperCase(), amount];
+          }),
+      );
+    }
+  }
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate))
+    throw new Error("Fastpris per prisområde måste anges som ett objekt.");
+  const result: Partial<Record<"SE1" | "SE2" | "SE3" | "SE4", number>> = {};
+  for (const [rawArea, rawAmount] of Object.entries(
+    candidate as Record<string, unknown>,
+  )) {
+    const area = rawArea.toUpperCase();
+    if (!["SE1", "SE2", "SE3", "SE4"].includes(area))
+      throw new Error(`Ogiltigt prisområde för fastpris: ${rawArea}.`);
+    const amount = optionalNumber(rawAmount, `Fast pris ${area}`, { min: 0 });
+    if (amount === null || amount <= 0)
+      throw new Error(`Fast pris ${area} måste vara över 0 öre/kWh.`);
+    result[area as keyof typeof result] = amount;
+  }
+  return result;
+}
+
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat("sv-SE", { maximumFractionDigits: 4 }).format(
+    value,
+  );
+}
+
+function booleanFlag(value: unknown, fallback: boolean): boolean {
+  if (typeof value === "boolean") return value;
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  if (["1", "true", "on", "yes", "ja", "visa", "visible"].includes(normalized))
+    return true;
+  if (
+    ["0", "false", "off", "no", "nej", "dolj", "dölj", "hidden"].includes(
+      normalized,
+    )
+  )
+    return false;
+  return fallback;
+}
+
+function normalizeWebsiteVisibility(
+  input: WebsitePricingVisibilityInput | undefined,
+): Record<WebsitePricingVisibilityKey, boolean> {
+  return Object.fromEntries(
+    WEBSITE_PRICING_VISIBILITY_KEYS.map((key) => [
+      key,
+      booleanFlag(input?.[key], true),
+    ]),
+  ) as Record<WebsitePricingVisibilityKey, boolean>;
+}
+
+function addComponent(
+  target: PricingComponent[],
+  input: Omit<
+    PricingComponent,
+    | "vat_applicable"
+    | "invoice_line_visible"
+    | "website_card_visible"
+    | "website_summary_visible"
+    | "website_visibility"
+    | "calculation_inclusion"
+    | "calculation_base"
+  > & {
+    vat_applicable?: boolean;
+    invoice_line_visible?: boolean;
+    website_card_visible?: boolean;
+    website_summary_visible?: boolean;
+    website_visibility?: "visible" | "summary_only" | "hidden";
+    calculation_inclusion?: "included" | "excluded" | "conditional";
+    calculation_base?: string | null;
+  },
+) {
+  const invoiceLineVisible = input.invoice_line_visible ?? true;
+  const websiteCardVisible = input.website_card_visible ?? true;
+  const websiteSummaryVisible = input.website_summary_visible ?? true;
+  const websiteVisibility =
+    input.website_visibility ??
+    (websiteCardVisible
+      ? "visible"
+      : websiteSummaryVisible
+        ? "summary_only"
+        : "hidden");
+  const calculationInclusion = input.calculation_inclusion ?? "included";
+  const existingVisibility =
+    input.metadata?.visibility &&
+    typeof input.metadata.visibility === "object" &&
+    !Array.isArray(input.metadata.visibility)
+      ? (input.metadata.visibility as Record<string, unknown>)
+      : {};
+  target.push({
+    ...input,
+    vat_applicable: input.vat_applicable ?? true,
+    invoice_line_visible: invoiceLineVisible,
+    website_card_visible: websiteCardVisible,
+    website_summary_visible: websiteSummaryVisible,
+    website_visibility: websiteVisibility,
+    calculation_inclusion: calculationInclusion,
+    calculation_base: input.calculation_base ?? null,
+    metadata: {
+      ...(input.metadata ?? {}),
+      component_key: input.component_code,
+      calculation_base: input.calculation_base ?? null,
+      calculation_inclusion: calculationInclusion,
+      visibility: {
+        ...existingVisibility,
+        website_card: websiteCardVisible,
+        website: websiteVisibility,
+        summary: websiteSummaryVisible,
+        quote_breakdown: true,
+        checkout: true,
+        contract_document: true,
+        invoice: invoiceLineVisible,
+      },
+    },
+  });
+}
+
+function parseOptionalFeeLines(
+  value: unknown,
+  defaultWebsiteCardVisible: boolean,
+): PricingComponent[] {
+  const rawRows: Array<Record<string, unknown>> = Array.isArray(value)
+    ? value.filter(
+        (item): item is Record<string, unknown> =>
+          Boolean(item) && typeof item === "object" && !Array.isArray(item),
+      )
+    : String(value ?? "").trim()
+      ? String(value)
+          .split(/\r?\n/)
+          .map((line, index) => {
+            const [name, amount, unit, websiteVisibility] = line
+              .split("|")
+              .map((part) => part.trim());
+            return {
+              id: `optional_${index + 1}`,
+              label: name,
+              amount,
+              unit,
+              website_visibility: websiteVisibility,
+              sort_order: 900 + index,
+            };
+          })
+      : [];
+
+  return rawRows.map((row, index) => {
+    const name = String(row.label ?? row.name ?? "").trim();
+    if (!name)
+      throw new Error(`Övrig avgift på rad ${index + 1} saknar namn.`);
+    const amount = optionalNumber(
+      row.amount,
+      `Övrig avgift på rad ${index + 1}`,
+      { min: 0 },
+    );
+    if (amount === null)
+      throw new Error(`Övrig avgift på rad ${index + 1} saknar belopp.`);
+
+    const unit = String(row.unit ?? "sek_contract").trim();
+    const allowedUnits = new Set([
+      "sek_once",
+      "sek_contract",
+      "sek_invoice",
+      "sek_month",
+      "ore_per_kwh",
+    ]);
+    if (!allowedUnits.has(unit))
+      throw new Error(`Övrig avgift på rad ${index + 1} har en ogiltig enhet.`);
+
+    const websiteCardVisible =
+      typeof row.website_visibility === "boolean"
+        ? row.website_visibility
+        : booleanFlag(row.website_visibility, defaultWebsiteCardVisible);
+    const lifecycle = String(
+      row.lifecycle ??
+        (unit === "sek_invoice"
+          ? "per_invoice"
+          : unit === "sek_once" || unit === "sek_contract"
+            ? "once_per_contract"
+            : "recurring"),
+    );
+    const calculationType =
+      unit === "ore_per_kwh"
+        ? "per_kwh"
+        : unit === "sek_month"
+          ? "per_month"
+          : unit === "sek_invoice"
+            ? "per_invoice"
+            : "fixed_once";
+    const sortOrder = optionalNumber(row.sort_order, `Sortering för ${name}`, {
+      min: 0,
+      integer: true,
+    }) ?? 900 + index;
+    const vatTreatment = String(row.vat_treatment ?? "standard");
+
+    return {
+      component_code: String(row.id ?? `optional_${index + 1}`),
+      component_type: "optional_fee",
+      name,
+      amount,
+      calculation_type: calculationType,
+      unit,
+      vat_applicable: vatTreatment !== "exempt",
+      invoice_line_visible: true,
+      website_card_visible: websiteCardVisible,
+      website_summary_visible: true,
+      website_visibility: websiteCardVisible ? "visible" : "summary_only",
+      calculation_inclusion: "included",
+      calculation_base:
+        typeof row.calculation_base === "string" && row.calculation_base.trim()
+          ? row.calculation_base.trim()
+          : null,
+      priority: sortOrder,
+      metadata: {
+        lifecycle,
+        billing_frequency: row.billing_frequency ?? calculationType,
+        vat_treatment: vatTreatment,
+        component_key: String(row.id ?? `optional_${index + 1}`),
+        calculation_base: row.calculation_base ?? null,
+        calculation_inclusion: "included",
+        visibility: {
+          website_card: websiteCardVisible,
+          website: websiteCardVisible ? "visible" : "summary_only",
+          summary: true,
+          quote_breakdown: true,
+          checkout: true,
+          contract_document: true,
+          invoice: true,
+        },
+      },
+    };
+  });
+}
+
+function normalizePortfolioFeeUnit(
+  value: unknown,
+):
+  | "ore_per_kwh"
+  | "sek_per_kwh"
+  | "sek_month"
+  | "sek_invoice"
+  | "sek_once"
+  | "percent" {
+  const unit = String(value ?? "ore_per_kwh").trim();
+  const allowed = new Set([
+    "ore_per_kwh",
+    "sek_per_kwh",
+    "sek_month",
+    "sek_invoice",
+    "sek_once",
+    "percent",
+  ]);
+  if (!allowed.has(unit))
+    throw new Error("Portföljförvaltningsavgiften har en ogiltig enhet.");
+  return unit as
+    | "ore_per_kwh"
+    | "sek_per_kwh"
+    | "sek_month"
+    | "sek_invoice"
+    | "sek_once"
+    | "percent";
+}
+
+function normalizeCalculationBase(
+  value: unknown,
+  required: boolean,
+): PricingCalculationBase | null {
+  const base = String(value ?? "").trim();
+  if (!base) {
+    if (required)
+      throw new Error("En procentuell avgift kräver en tydlig beräkningsbas.");
+    return null;
+  }
+  const allowed = new Set<PricingCalculationBase>([
+    "energy_cost_ex_vat",
+    "energy_cost_inc_vat",
+    "spot_cost",
+    "portfolio_cost",
+    "total_variable_cost",
+    "invoice_subtotal",
+    "monthly_fixed_amount",
+  ]);
+  if (!allowed.has(base as PricingCalculationBase))
+    throw new Error("Den valda beräkningsbasen är ogiltig.");
+  return base as PricingCalculationBase;
+}
+
+export function normalizeContractPricing(
+  input: ContractPricingInput,
+): NormalizedContractPricing {
+  const planName = input.name.trim();
+  if (!planName) throw new Error("Avtalsnamn krävs.");
+  const websiteVisibility = normalizeWebsiteVisibility(
+    input.websiteCardVisibility,
+  );
+  // A fixed-price agreement must always disclose its canonical kWh price.
+  // Other fees keep independent presentation controls.
+  if (input.contractType === "fixed") websiteVisibility.fixed_price = true;
+
+  const monthlyFeeSek = optionalNumber(input.monthlyFeeSek, "Månadsavgift", {
+    min: 0,
+  });
+  const invoiceFeeSek = optionalNumber(input.invoiceFeeSek, "Fakturaavgift", {
+    min: 0,
+  });
+  const markupOrePerKwh = optionalNumber(
+    input.markupOrePerKwh,
+    "Generellt påslag",
+    { min: 0 },
+  );
+  const spotMarkupOrePerKwh = optionalNumber(
+    input.spotMarkupOrePerKwh,
+    "Spotpåslag",
+    { min: 0 },
+  );
+  const variableFeeOrePerKwh = optionalNumber(
+    input.variableFeeOrePerKwh,
+    "Rörlig avgift",
+    { min: 0 },
+  );
+  const fixedPricesByArea = parseFixedPricesByArea(input.fixedPricesByArea);
+  const fixedPriceOrePerKwh = optionalNumber(
+    input.fixedPriceOrePerKwh,
+    "Gemensamt fast pris",
+    { min: 0 },
+  );
+  const greenFeeValue = optionalNumber(input.greenFeeValue, "Grön el-avgift", {
+    min: 0,
+  });
+  const electricityCertificateOrePerKwh = optionalNumber(
+    input.electricityCertificateOrePerKwh,
+    "Elcertifikat",
+    { min: 0 },
+  );
+  const startFeeSek = optionalNumber(input.startFeeSek, "Startavgift", {
+    min: 0,
+  });
+  const administrationFeeSek = optionalNumber(
+    input.administrationFeeSek,
+    "Administrativ avgift",
+    { min: 0 },
+  );
+  const breakFeeSek = optionalNumber(input.breakFeeSek, "Brytavgift", {
+    min: 0,
+  });
+  const portfolioManagementFeeUnit = normalizePortfolioFeeUnit(
+    input.portfolioManagementFeeUnit,
+  );
+  const portfolioManagementFeeAmount = optionalNumber(
+    input.portfolioManagementFeeAmount ?? input.portfolioManagementFeeOrePerKwh,
+    "Portföljförvaltningsavgift",
+    { min: 0, max: portfolioManagementFeeUnit === "percent" ? 100 : undefined },
+  );
+  const portfolioManagementFeeCalculationBase = normalizeCalculationBase(
+    input.portfolioManagementFeeCalculationBase ??
+      (portfolioManagementFeeUnit === "percent" ? "portfolio_cost" : null),
+    portfolioManagementFeeUnit === "percent" &&
+      portfolioManagementFeeAmount !== null,
+  );
+  const discountUnit = String(input.discountUnit || "sek_month");
+  if (
+    !["sek_month", "ore_per_kwh", "percent", "sek_once"].includes(discountUnit)
+  )
+    throw new Error("Rabattens enhet är ogiltig.");
+  const discountValue = optionalNumber(input.discountValue, "Rabatt", {
+    min: 0,
+    max: discountUnit === "percent" ? 100 : undefined,
+  });
+  const discountCalculationBase = normalizeCalculationBase(
+    input.discountCalculationBase ??
+      (discountUnit === "percent" ? "energy_cost_ex_vat" : null),
+    discountUnit === "percent" && discountValue !== null,
+  );
+  const discountMonths = optionalNumber(input.discountMonths, "Rabattperiod", {
+    min: 1,
+    integer: true,
+  });
+  const productionEnabled =
+    input.productionEnabled === true ||
+    String(input.productionEnabled ?? "").toLowerCase() === "true" ||
+    String(input.productionEnabled ?? "").toLowerCase() === "on";
+  const vatRate = productionEnabled
+    ? optionalNumber(input.vatRate, "Moms", { min: 0, max: 100 }) ?? 25
+    : standardConsumptionVatPercent(input.vatRate);
+  const productionCompensationOrePerKwh = optionalNumber(
+    input.productionCompensationOrePerKwh,
+    "Ersättning för producerad el",
+    { min: 0 },
+  );
+  const productionVatRate =
+    optionalNumber(input.productionVatRate, "Moms på produktionsersättning", {
+      min: 0,
+      max: 100,
+    }) ?? 0;
+  const productionSettlementModeRaw = String(
+    input.productionSettlementMode ?? "credit_invoice",
+  ).trim();
+  if (
+    !new Set(["credit_invoice", "self_billing"]).has(
+      productionSettlementModeRaw,
+    )
+  ) {
+    throw new Error(
+      "Produktionsavräkning måste vara credit_invoice eller self_billing.",
+    );
+  }
+  const productionSettlementMode = productionSettlementModeRaw as
+    "credit_invoice" | "self_billing";
+  if (
+    productionEnabled &&
+    (productionCompensationOrePerKwh === null ||
+      productionCompensationOrePerKwh <= 0)
+  ) {
+    throw new Error(
+      "Produktionsavräkning kräver en ersättning över 0 öre per producerad kWh.",
+    );
+  }
+  const bindingMonths = optionalNumber(input.bindingMonths, "Bindningstid", {
+    min: 0,
+    integer: true,
+  });
+  const noticeMonths = optionalNumber(input.noticeMonths, "Uppsägningstid", {
+    min: 0,
+    integer: true,
+  });
+
+  const requestedSpotIntervalResolution = String(
+    input.spotIntervalResolution ?? "monthly",
+  ).trim();
+  if (
+    !["monthly", "hourly", "quarterly"].includes(
+      requestedSpotIntervalResolution,
+    )
+  )
+    throw new Error(
+      "Spotandelens intervall måste vara monthly, hourly eller quarterly.",
+    );
+  if (
+    input.contractType === "mixed" &&
+    requestedSpotIntervalResolution !== "monthly"
+  ) {
+    throw new Error(
+      "Mixavtal använder månadsmedel för spotandelen tillsammans med månadens portföljpris.",
+    );
+  }
+
+  const defaultWeights =
+    input.contractType === "mixed"
+      ? { spot: 50, portfolio: 50, fixed: 0 }
+      : input.contractType === "portfolio"
+        ? { spot: 0, portfolio: 100, fixed: 0 }
+        : input.contractType === "fixed"
+          ? { spot: 0, portfolio: 0, fixed: 100 }
+          : { spot: 100, portfolio: 0, fixed: 0 };
+
+  const spotWeight =
+    optionalNumber(input.spotWeightPercent, "Rörlig andel", {
+      min: 0,
+      max: 100,
+    }) ?? defaultWeights.spot;
+  const portfolioWeight =
+    optionalNumber(input.portfolioWeightPercent, "Portföljandel", {
+      min: 0,
+      max: 100,
+    }) ?? defaultWeights.portfolio;
+  const fixedWeight =
+    optionalNumber(input.fixedWeightPercent, "Fast andel", {
+      min: 0,
+      max: 100,
+    }) ?? defaultWeights.fixed;
+  const weightSum =
+    Math.round((spotWeight + portfolioWeight + fixedWeight) * 1_000_000) /
+    1_000_000;
+
+  if (["mixed", "portfolio"].includes(input.contractType) && weightSum !== 100)
+    throw new Error("Prisandelarna måste tillsammans bli exakt 100 procent.");
+  if (
+    input.contractType === "portfolio" &&
+    (spotWeight !== 0 || portfolioWeight !== 100 || fixedWeight !== 0)
+  )
+    throw new Error(
+      "Ett portföljavtal måste vara 100 procent portfölj. Använd mixavtal för flera prisdelar.",
+    );
+  if (
+    input.contractType === "mixed" &&
+    [spotWeight, portfolioWeight, fixedWeight].filter((weight) => weight > 0)
+      .length < 2
+  )
+    throw new Error("Ett mixavtal måste innehålla minst två positiva prisandelar.");
+  const requestedPriceAreas = parsePriceAreas(input.priceAreas);
+  const areaPriceKeys = Object.keys(fixedPricesByArea).filter((area) =>
+    ["SE1", "SE2", "SE3", "SE4"].includes(area),
+  );
+  const priceAreas = requestedPriceAreas.length > 0
+    ? requestedPriceAreas
+    : areaPriceKeys.length > 0
+      ? areaPriceKeys
+      : input.contractType === "fixed" || fixedWeight > 0
+        ? ["SE1", "SE2", "SE3", "SE4"]
+        : [];
+  const fixedPriceForArea = (area: string): number | null =>
+    fixedPricesByArea[area as keyof typeof fixedPricesByArea] ??
+    fixedPriceOrePerKwh ??
+    null;
+  const fixedPriceRequired = input.contractType === "fixed" || fixedWeight > 0;
+  if (fixedPriceRequired) {
+    const missingFixedAreas = priceAreas.filter((area) => {
+      const amount = fixedPriceForArea(area);
+      return amount === null || amount <= 0;
+    });
+    if (missingFixedAreas.length > 0) {
+      throw new Error(
+        `Fastpris saknas för ${missingFixedAreas.join(", ")}. Ange pris per elområde eller ett gemensamt fallbackpris.`,
+      );
+    }
+  }
+  if (input.contractType === "portfolio" && portfolioWeight <= 0)
+    throw new Error("Portföljavtal måste ha en portföljandel över 0 procent.");
+  if (input.validFrom && input.validTo && input.validTo < input.validFrom)
+    throw new Error("Slutdatum får inte ligga före startdatum.");
+  if (discountValue !== null && discountMonths === null)
+    throw new Error("Rabatt kräver en angiven rabattperiod i månader.");
+
+  const usesPortfolio = ["portfolio", "mixed"].includes(input.contractType);
+  const portfolioId = String(input.portfolioId ?? "").trim();
+  if (
+    usesPortfolio &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      portfolioId,
+    )
+  )
+    throw new Error("Portfölj- och mixavtal kräver en canonical portfölj.");
+  const portfolioSettlementTiming = String(
+    input.portfolioSettlementTiming ?? "after_month_close",
+  ).trim();
+  if (
+    usesPortfolio &&
+    !["after_month_close", "preliminary_then_final"].includes(
+      portfolioSettlementTiming,
+    )
+  )
+    throw new Error("Ogiltig tidpunkt för portföljavräkning.");
+  const portfolioEstimateRule = String(
+    input.portfolioEstimateRule ?? "none",
+  ).trim();
+  if (
+    usesPortfolio &&
+    !["none", "latest_final", "rolling_3", "forecast", "manual"].includes(
+      portfolioEstimateRule,
+    )
+  )
+    throw new Error("Ogiltig regel för icke-bindande prisindikation.");
+  for (const area of Object.keys(fixedPricesByArea)) {
+    if (!priceAreas.includes(area))
+      throw new Error(
+        `Fastpris har angetts för ${area}, men området finns inte i avtalets prisområden.`,
+      );
+  }
+  // Spot- and portfolio weights describe the commercial mix once for the
+  // whole product. They must not be duplicated once per SE area, otherwise a
+  // 50/50 mix published for SE1-SE4 becomes 400% in quote/billing snapshots.
+  // Only a fixed-price leg is area-scoped because its actual price may differ
+  // between SE1, SE2, SE3 and SE4.
+  const baseComponents: BasePriceComponent[] = [];
+  if (spotWeight > 0)
+    baseComponents.push({
+      source_type: "spot",
+      label: "Spotpris",
+      weight_percent: spotWeight,
+      fixed_price_sek_per_kwh: null,
+      price_area: null,
+    });
+  if (portfolioWeight > 0)
+    baseComponents.push({
+      source_type: "portfolio",
+      label: "Portföljpris",
+      weight_percent: portfolioWeight,
+      fixed_price_sek_per_kwh: null,
+      price_area: null,
+    });
+
+  if (fixedWeight > 0 || input.contractType === "fixed") {
+    const fixedComponentAreas = priceAreas.length > 0 ? priceAreas : [null];
+    for (const priceArea of fixedComponentAreas) {
+      baseComponents.push({
+        source_type: "fixed",
+        label: "Fast pris",
+        weight_percent: fixedWeight || 100,
+        fixed_price_sek_per_kwh: (() => {
+          const ore = priceArea ? fixedPriceForArea(priceArea) : fixedPriceOrePerKwh;
+          return ore === null || ore === undefined
+            ? null
+            : Math.round((ore / 100) * 100_000_000) / 100_000_000;
+        })(),
+        price_area: priceArea,
+      });
+    }
+  }
+
+  const components: PricingComponent[] = [];
+  if (monthlyFeeSek !== null)
+    addComponent(components, {
+      component_code: "monthly_fee",
+      component_type: "monthly_fee",
+      name: "Månadsavgift",
+      amount: monthlyFeeSek,
+      calculation_type: "per_month",
+      unit: "sek_month",
+      priority: 100,
+      website_card_visible: websiteVisibility.monthly_fee,
+    });
+  if (invoiceFeeSek !== null)
+    addComponent(components, {
+      component_code: "invoice_fee",
+      component_type: "invoice_fee",
+      name: "Fakturaavgift",
+      amount: invoiceFeeSek,
+      calculation_type: "per_invoice",
+      unit: "sek_invoice",
+      priority: 110,
+      website_card_visible: websiteVisibility.invoice_fee,
+    });
+  const effectiveSpotMarkupOrePerKwh = spotMarkupOrePerKwh ?? markupOrePerKwh;
+  if (effectiveSpotMarkupOrePerKwh !== null)
+    addComponent(components, {
+      component_code: "spot_markup",
+      component_type: "spot_markup",
+      name: "Spotpåslag",
+      amount: effectiveSpotMarkupOrePerKwh,
+      calculation_type: "per_kwh",
+      unit: "ore_per_kwh",
+      priority: 130,
+      website_card_visible: websiteVisibility.spot_markup,
+      metadata: { replaces_legacy_markup: true },
+    });
+  if (variableFeeOrePerKwh !== null)
+    addComponent(components, {
+      component_code: "variable_fee",
+      component_type: "variable_fee",
+      name: "Rörlig avgift",
+      amount: variableFeeOrePerKwh,
+      calculation_type: "per_kwh",
+      unit: "ore_per_kwh",
+      priority: 140,
+      website_card_visible: websiteVisibility.variable_fee,
+    });
+  if (greenFeeValue !== null)
+    addComponent(components, {
+      component_code: "green_energy_fee",
+      component_type: "green_energy_fee",
+      name: "Grön el-avgift",
+      amount: greenFeeValue,
+      calculation_type:
+        String(input.greenFeeMode) === "sek_month" ? "per_month" : "per_kwh",
+      unit:
+        String(input.greenFeeMode) === "sek_month"
+          ? "sek_month"
+          : "ore_per_kwh",
+      priority: 150,
+      website_card_visible: websiteVisibility.green_energy_fee,
+    });
+  if (electricityCertificateOrePerKwh !== null)
+    addComponent(components, {
+      component_code: "electricity_certificate",
+      component_type: "electricity_certificate",
+      name: "Elcertifikat",
+      amount: electricityCertificateOrePerKwh,
+      calculation_type: "per_kwh",
+      unit: "ore_per_kwh",
+      priority: 160,
+      website_card_visible: websiteVisibility.electricity_certificate,
+    });
+  if (startFeeSek !== null)
+    addComponent(components, {
+      component_code: "start_fee",
+      component_type: "start_fee",
+      name: "Startavgift",
+      amount: startFeeSek,
+      calculation_type: "fixed_once",
+      unit: "sek_contract",
+      priority: 170,
+      website_card_visible: websiteVisibility.start_fee,
+      metadata: { lifecycle: "once_per_contract", event: "contract_started" },
+    });
+  if (administrationFeeSek !== null)
+    addComponent(components, {
+      component_code: "administration_fee",
+      component_type: "administration_fee",
+      name: "Administrativ avgift",
+      amount: administrationFeeSek,
+      calculation_type: "fixed_once",
+      unit: "sek_contract",
+      priority: 180,
+      website_card_visible: websiteVisibility.administration_fee,
+      metadata: { lifecycle: "once_per_contract", event: "contract_started" },
+    });
+  if (breakFeeSek !== null)
+    addComponent(components, {
+      component_code: "break_fee",
+      component_type: "break_fee",
+      name: "Brytavgift",
+      amount: breakFeeSek,
+      calculation_type: "event_only",
+      unit: "sek_event",
+      priority: 190,
+      website_card_visible: websiteVisibility.break_fee,
+      metadata: { lifecycle: "event_only", event: "early_termination" },
+    });
+  if (portfolioManagementFeeAmount !== null)
+    addComponent(components, {
+      component_code: "portfolio_management_fee",
+      component_type: "portfolio_management_fee",
+      name: "Portföljförvaltningsavgift",
+      amount: portfolioManagementFeeAmount,
+      calculation_type:
+        portfolioManagementFeeUnit === "percent"
+          ? "percentage"
+          : portfolioManagementFeeUnit === "sek_month"
+            ? "per_month"
+            : portfolioManagementFeeUnit === "sek_invoice" ||
+                portfolioManagementFeeUnit === "sek_once"
+              ? "fixed_once"
+              : "per_kwh",
+      unit: portfolioManagementFeeUnit,
+      calculation_base: portfolioManagementFeeCalculationBase,
+      priority: 200,
+      website_card_visible: websiteVisibility.portfolio_management_fee,
+      metadata: {
+        calculation_base: portfolioManagementFeeCalculationBase,
+        percentage_representation:
+          portfolioManagementFeeUnit === "percent" ? "0_to_100" : null,
+      },
+    });
+  if (discountValue !== null) {
+    addComponent(components, {
+      component_code: "campaign_discount",
+      component_type: "campaign_discount",
+      name: "Kampanjrabatt",
+      amount: discountValue,
+      calculation_type:
+        discountUnit === "ore_per_kwh"
+          ? "discount_per_kwh"
+          : discountUnit === "percent"
+            ? "percentage"
+            : "discount_fixed",
+      unit: discountUnit,
+      calculation_base: discountCalculationBase,
+      priority: 300,
+      website_card_visible: websiteVisibility.campaign_discount,
+      metadata: {
+        duration_months: discountMonths,
+        calculation_base: discountCalculationBase,
+        percentage_representation:
+          discountUnit === "percent" ? "0_to_100" : null,
+        starts_on: null,
+        starts_on_mode: "contract_start",
+        lifecycle: "limited_campaign",
+      },
+    });
+  }
+  const optionalComponents = parseOptionalFeeLines(
+    input.optionalFeeLines,
+    websiteVisibility.optional_fees,
+  );
+  components.push(...optionalComponents);
+
+  const priceParts: string[] = [];
+  if (input.contractType === "fixed") {
+    const fixedValues = priceAreas
+      .map((area) => fixedPriceForArea(area))
+      .filter((value): value is number => value !== null);
+    const uniqueFixedValues = Array.from(new Set(fixedValues));
+    priceParts.push(
+      websiteVisibility.fixed_price && uniqueFixedValues.length === 1
+        ? `Fast pris ${formatNumber(uniqueFixedValues[0])} öre/kWh`
+        : websiteVisibility.fixed_price && uniqueFixedValues.length > 1
+          ? "Fast pris per elområde"
+          : "Fastprisavtal",
+    );
+  } else if (input.contractType === "portfolio")
+    priceParts.push("Portföljförvaltat elpris");
+  else if (input.contractType === "mixed") {
+    const intervalLabel =
+      requestedSpotIntervalResolution === "quarterly"
+        ? "kvartspris"
+        : requestedSpotIntervalResolution === "hourly"
+          ? "timpris"
+          : "månadspris";
+    priceParts.push(
+      `Mix ${formatNumber(spotWeight)}% rörligt (${intervalLabel}), ${formatNumber(portfolioWeight)}% portfölj${fixedWeight > 0 ? `, ${formatNumber(fixedWeight)}% fast` : ""}`,
+    );
+  } else
+    priceParts.push(
+      input.contractType === "variable_monthly"
+        ? "Rörligt månadspris"
+        : input.contractType === "variable_hourly"
+          ? "Rörligt timpris"
+          : input.contractType === "variable_quarterly"
+            ? "Rörligt kvartspris"
+            : "Rörligt spotpris",
+    );
+  if (effectiveSpotMarkupOrePerKwh !== null && websiteVisibility.spot_markup)
+    priceParts.push(
+      `påslag ${formatNumber(effectiveSpotMarkupOrePerKwh)} öre/kWh`,
+    );
+  if (variableFeeOrePerKwh !== null && websiteVisibility.variable_fee)
+    priceParts.push(
+      `rörlig avgift ${formatNumber(variableFeeOrePerKwh)} öre/kWh`,
+    );
+  if (monthlyFeeSek !== null && websiteVisibility.monthly_fee)
+    priceParts.push(`månadsavgift ${formatNumber(monthlyFeeSek)} kr`);
+  if (invoiceFeeSek !== null && websiteVisibility.invoice_fee)
+    priceParts.push(`fakturaavgift ${formatNumber(invoiceFeeSek)} kr/faktura`);
+  if (greenFeeValue !== null && websiteVisibility.green_energy_fee)
+    priceParts.push(
+      `grön el ${formatNumber(greenFeeValue)} ${String(input.greenFeeMode) === "sek_month" ? "kr/mån" : "öre/kWh"}`,
+    );
+  if (
+    electricityCertificateOrePerKwh !== null &&
+    websiteVisibility.electricity_certificate
+  )
+    priceParts.push(
+      `elcertifikat ${formatNumber(electricityCertificateOrePerKwh)} öre/kWh`,
+    );
+  if (startFeeSek !== null && websiteVisibility.start_fee)
+    priceParts.push(`startavgift ${formatNumber(startFeeSek)} kr en gång`);
+  if (administrationFeeSek !== null && websiteVisibility.administration_fee)
+    priceParts.push(
+      `administrationsavgift ${formatNumber(administrationFeeSek)} kr en gång`,
+    );
+  if (breakFeeSek !== null && websiteVisibility.break_fee)
+    priceParts.push(
+      `brytavgift ${formatNumber(breakFeeSek)} kr vid förtida uppsägning`,
+    );
+  if (
+    portfolioManagementFeeAmount !== null &&
+    websiteVisibility.portfolio_management_fee
+  ) {
+    const unitLabel =
+      portfolioManagementFeeUnit === "percent"
+        ? `% av ${portfolioManagementFeeCalculationBase ?? "portföljkostnad"}`
+        : portfolioManagementFeeUnit === "sek_per_kwh"
+          ? "kr/kWh"
+          : portfolioManagementFeeUnit === "sek_month"
+            ? "kr/mån"
+            : portfolioManagementFeeUnit === "sek_invoice"
+              ? "kr/faktura"
+              : portfolioManagementFeeUnit === "sek_once"
+                ? "kr engångsvis"
+                : "öre/kWh";
+    priceParts.push(
+      `portföljavgift ${formatNumber(portfolioManagementFeeAmount)} ${unitLabel}`,
+    );
+  }
+  if (discountValue !== null && websiteVisibility.campaign_discount) {
+    const unitLabel =
+      discountUnit === "percent"
+        ? `% av ${discountCalculationBase ?? "energikostnad exkl. moms"}`
+        : discountUnit === "ore_per_kwh"
+          ? "öre/kWh"
+          : discountUnit === "sek_once"
+            ? "kr engångsvis"
+            : "kr/mån";
+    priceParts.push(
+      `rabatt ${formatNumber(discountValue)} ${unitLabel} i ${discountMonths} mån`,
+    );
+  }
+  const optionalUnitLabels: Record<string, string> = {
+    sek_once: "kr en gång",
+    sek_contract: "kr per avtal",
+    sek_invoice: "kr/faktura",
+    sek_month: "kr/mån",
+    ore_per_kwh: "öre/kWh",
+  };
+  for (const component of optionalComponents.filter(
+    (item) => item.website_card_visible,
+  ))
+    priceParts.push(
+      `${component.name.toLocaleLowerCase("sv-SE")} ${formatNumber(component.amount)} ${optionalUnitLabels[component.unit] ?? component.unit}`,
+    );
+  if (
+    productionEnabled &&
+    productionCompensationOrePerKwh !== null &&
+    websiteVisibility.production_compensation
+  ) {
+    priceParts.push(
+      `ersättning för producerad el ${formatNumber(productionCompensationOrePerKwh)} öre/kWh`,
+    );
+  }
+  const publicPriceText = `${priceParts.join(", ")}. Moms ${formatNumber(vatRate)}%.`;
+
+  return {
+    planName,
+    pricingModel:
+      input.contractType === "fixed"
+        ? "fixed"
+        : input.contractType === "portfolio"
+          ? "portfolio"
+          : input.contractType === "mixed"
+            ? "mixed"
+            : "spot",
+    contractType: input.contractType,
+    customerType: input.customerType,
+    publicPriceText,
+    snapshot: {
+      schema_version: 5,
+      contract_type: input.contractType,
+      customer_type: input.customerType,
+      price_areas: priceAreas,
+      valid_from: input.validFrom ?? null,
+      valid_to: input.validTo ?? null,
+      binding_months: bindingMonths,
+      notice_months: noticeMonths,
+      automatic_renewal: input.automaticRenewal ?? false,
+      power_of_attorney_required: input.powerOfAttorneyRequired ?? true,
+      base_components: baseComponents,
+      price_components: components,
+      website_visibility: websiteVisibility,
+      portfolio_method: usesPortfolio
+        ? {
+            pricing_model: "portfolio_monthly_settlement",
+            portfolio_id: portfolioId,
+            mix_shares: {
+              spot_weight_percent: spotWeight,
+              portfolio_weight_percent: portfolioWeight,
+              fixed_weight_percent: fixedWeight,
+            },
+            management_fee: {
+              amount: portfolioManagementFeeAmount ?? 0,
+              unit: portfolioManagementFeeUnit,
+              calculation_base: portfolioManagementFeeCalculationBase,
+            },
+            calculation_base: "portfolio_cost",
+            vat_rate: vatRate / 100,
+            settlement_timing: portfolioSettlementTiming as
+              | "after_month_close"
+              | "preliminary_then_final",
+            estimate_rule: portfolioEstimateRule as
+              | "none"
+              | "latest_final"
+              | "rolling_3"
+              | "forecast"
+              | "manual",
+            display_rules: {
+              show_historical_final: booleanFlag(
+                input.portfolioShowHistoricalFinal,
+                true,
+              ),
+              show_indication: booleanFlag(
+                input.portfolioShowIndication,
+                portfolioEstimateRule !== "none",
+              ),
+              indication_non_binding: true as const,
+            },
+            final_billing_requires: "locked_settlement" as const,
+          }
+        : null,
+      public_price_text: publicPriceText,
+      vat_rate: vatRate / 100,
+      vat_rate_percent: vatRate,
+      interval_resolution:
+        input.contractType === "variable_quarterly"
+          ? "quarterly"
+          : input.contractType === "variable_hourly"
+            ? "hourly"
+            : input.contractType === "mixed"
+              ? (requestedSpotIntervalResolution as
+                  "monthly" | "hourly" | "quarterly")
+              : input.contractType === "variable_monthly" ||
+                  input.contractType === "spot"
+                ? "monthly"
+                : input.contractType === "fixed"
+                  ? "fixed"
+                  : "portfolio",
+      energy_direction: productionEnabled ? "production" : "consumption",
+      production: {
+        enabled: productionEnabled,
+        compensation_model: "fixed_compensation",
+        resolution:
+          input.contractType === "variable_quarterly"
+            ? "quarterly"
+            : input.contractType === "variable_hourly"
+              ? "hourly"
+              : input.contractType === "mixed"
+                ? (requestedSpotIntervalResolution as "monthly" | "hourly" | "quarterly")
+                : "monthly",
+        deduction_ore_per_kwh: null,
+        premium_ore_per_kwh: null,
+        fixed_compensation_ore_per_kwh: productionCompensationOrePerKwh,
+        compensation_ore_per_kwh: productionCompensationOrePerKwh,
+        compensation_sek_per_kwh:
+          productionCompensationOrePerKwh === null
+            ? null
+            : productionCompensationOrePerKwh / 100,
+        vat_rate: productionVatRate / 100,
+        vat_rate_percent: productionVatRate,
+        vat_treatment: "configured_on_contract",
+        settlement_mode: productionSettlementMode,
+        billing_direction: productionSettlementMode,
+        metering_point_role: "production",
+      },
+    },
+  };
+}

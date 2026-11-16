@@ -1,0 +1,15 @@
+{
+  "state": "ROOT_ACTUAL_PROOF_APPROVE",
+  "inputSha256": "a35c9f2181bca714f30095c8602a1168ff019f07982b0d44ee98f7aab628a9a3",
+  "originalsVerified": 34,
+  "validOwnSitePayload": true,
+  "actualFirstGuard": "requireAdminActionAccess Unauthorized called by saveCustomerSiteAction",
+  "changed522ActionWindowScopes": 0,
+  "customerOnlyStaffAndGrants": 0,
+  "normalLogoutAndClosed": true,
+  "limits": [
+    "No original email CTA whole-link success claim",
+    "522 action-window equality excludes final logout phase",
+    "No site mutation was accepted or retried"
+  ]
+}

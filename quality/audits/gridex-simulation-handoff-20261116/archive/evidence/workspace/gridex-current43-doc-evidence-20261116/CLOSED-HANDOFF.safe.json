@@ -1,0 +1,44 @@
+{
+  "state": "CLOSED_LOCAL_CURRENT43_DOCUMENTATION_POSITIVE_HANDOFF_OWN_CUSTODY_RELEASED",
+  "head": "f0d4f30876572d9572d0e23ef78e6262237d1c1d",
+  "tree": "753aa4072f98e54503748cf31ca272c041506dd4",
+  "parent": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+  "counts": [
+    43,
+    1,
+    61
+  ],
+  "exactNewFiles": 2,
+  "original105AndPriorReportsUnchanged": true,
+  "ordinaryFinalPeers": 2,
+  "ownExactRefsReleased": 3,
+  "freshAuthenticatedAbsent": true,
+  "sourceClaimJournalPreserved": true,
+  "references": [
+    {
+      "path": "/workspace/gridex-current43-doc-evidence-20261116/LOCAL-COMMIT.safe.json",
+      "sha256": "737bc24be41f85812d72126f106d387710de924c54f41568ad135ea65de92c97"
+    },
+    {
+      "path": "/workspace/gridex-current43-doc-evidence-20261116/root-FINAL-GIT-BYTE-REBIND.safe.json",
+      "sha256": "cf741ea1ee947968f0f2237bfcce4ccbd58a8beb05b781b7fa2dcede446d35df"
+    },
+    {
+      "path": "/workspace/gridex-current43-doc-evidence-20261116/qa-FINAL-GIT-BYTE-SOURCE-DOC-REVIEW.safe.json",
+      "sha256": "6ad2e5747a38a82f90a555980f60e6b3164e84d884869ddc9584c24cd87f0f8d"
+    },
+    {
+      "path": "/workspace/gridex-current43-doc-evidence-20261116/POSITIVE-HANDOFF.safe.json",
+      "sha256": "51b161c4f5178009e44480afb3c24c39e0225f6f211ec1fa5e61dc141995ee20"
+    },
+    {
+      "path": "/workspace/gridex-current43-doc-evidence-20261116/OWN-RELEASE.safe.json",
+      "sha256": "4e6c7035de4c3f8f646d1d7a701c45ad4b3fb26ec9878861647ee7923ecf841e"
+    }
+  ],
+  "noPushPRMainAdoptionOrBackend": true,
+  "freshFreeBytes": {
+    "/workspace": 361517056,
+    "/tmp": 413818880
+  }
+}

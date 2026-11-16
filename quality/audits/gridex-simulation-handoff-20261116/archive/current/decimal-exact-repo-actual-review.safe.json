@@ -1,0 +1,19 @@
+{
+  "state": "ROOT_EXACT_REPO_E_ACTUAL_QUALIFICATION_APPROVE",
+  "atUtc": "2026-11-14T14:29:19.714389+00:00",
+  "index": {
+    "path": "/workspace/gridex-decimal-repo-native-actual-proof-20261114/actual-original-index.safe.json",
+    "sha256": "3c0a9fb15475144fbd85cacac2dd7c5fee251d6ac46843caf48b5678b1add621"
+  },
+  "originalsVerified": 117,
+  "exactMigrationAndPortable29BothNativeExit0": true,
+  "oldNew29ExactAndFull2688True": true,
+  "fullElapsedSeconds": 0.7210430190025363,
+  "other3442AndTargetNonBodyEqual": true,
+  "MainBytesEqualAndCloneAbsent": true,
+  "limits": [
+    "Ownedclone only; no Mainadoption/replay/physicalbilling/scenarioPASS.",
+    "OriginalE qualification remains distinct from newexactrepoartifact execution."
+  ],
+  "backendCallsByRoot": 0
+}

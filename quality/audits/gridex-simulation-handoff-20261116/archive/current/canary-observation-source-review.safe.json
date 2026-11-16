@@ -1,0 +1,16 @@
+{
+  "state": "SOURCE_CODE_APPROVE_NOT_RUNTIME_QUALIFICATION",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T11:17:56.788619+00:00",
+  "freezeSHA256": "a31df90b3efa38f28339f9ad860678d7b0962a34cd11a3feb8432da3e543b4bd",
+  "runtimeSHA256": "236d08ab256746a4207d042c1cdfcdc1670e9ca8d4d76a5b17afe3012d55a1a6",
+  "witnessSHA256": "b438e45aca1f97a414a330ea825dc038007f94f5e3bf9ad373e0b7fa1d08353f",
+  "checks": [
+    "Fullwitness/runtimecapture deltas read/currentfrozenrefs+ASTverified",
+    "OnlyexpectedpeerdisconnectEPIPE/ECONNRESET logged/nonfatal; unexpectedthrow andactualTCP/DNS/counter/state assertions unchanged",
+    "CaptureexactownedCID+image+nonce inspect/actualstdoutstderr bounded64KiB before normal/finallyremove; unknowncapture explicit/normalphase refusespromotion",
+    "Originald99b/580f immutable; localreproductionoriginalECONNRESETexit1 vs10candidatepositive/6fault+5captureunit componentonly",
+    "ActualDcauseUNKNOWN becausePID1stderr absent; newobservability notretroactiveproof",
+    "OWN2nativeDockerqualification+newactualscopes required beforebusiness; K3000sibling separateCODEreview"
+  ]
+}

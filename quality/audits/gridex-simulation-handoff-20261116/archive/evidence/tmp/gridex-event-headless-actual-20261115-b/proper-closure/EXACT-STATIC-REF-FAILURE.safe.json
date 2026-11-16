@@ -1,0 +1,29 @@
+{
+  "state": "THREE_LOGICAL_PACKAGE_PATHS_REJECTED_BY_UNCHANGED_REALPATH_GUARD_BEFORE_SDK_LOGIN",
+  "refs": [
+    {
+      "path": "/tmp/gridex-scenario-source-442256/node_modules/typescript/package.json",
+      "physicalPath": "/tmp/gridex-closed-evidence-relocation-20261113/gridex-krypkorning-run-20261111/node_modules/typescript/package.json",
+      "sha256": "822ef7ca6452205657b6288b066481ecf508bfbf43455d715cf7d3ec457561e6",
+      "wholeHashStillExact": true
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/node_modules/@supabase/supabase-js/package.json",
+      "physicalPath": "/tmp/gridex-closed-evidence-relocation-20261113/gridex-krypkorning-run-20261111/node_modules/@supabase/supabase-js/package.json",
+      "sha256": "697dd1bfd66925a5b586c52e0324517979a6650c45bdba8e03014b197e87304e",
+      "wholeHashStillExact": true
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/node_modules/next/package.json",
+      "physicalPath": "/tmp/gridex-closed-evidence-relocation-20261113/gridex-krypkorning-run-20261111/node_modules/next/package.json",
+      "sha256": "e84ada0a68191fed192392bfb8ee35ad4ed8e7439f645a40dd48cf139588ddc5",
+      "wholeHashStillExact": true
+    }
+  ],
+  "workerStderr": {
+    "path": "/tmp/gridex-event-headless-actual-20261115-b/worker.stderr.private.log",
+    "sha256": "9a607499816d3f35a729183001b11f95a09beea172753e2f16914130c9394792"
+  },
+  "noLoginOrFactoryIntent": true,
+  "SDKGetUserOrBusinessNotRun": true
+}

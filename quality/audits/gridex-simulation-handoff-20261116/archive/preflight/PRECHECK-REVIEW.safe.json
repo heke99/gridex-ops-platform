@@ -1,0 +1,69 @@
+{
+  "state": "INDEPENDENT_MAC_LOCAL_PREFLIGHT_SOURCE_AND_STEPS_APPROVE",
+  "reviewerAgent": "/root/review_plan_domain",
+  "atUTC": "2026-11-16T09:45:12.785049+00:00",
+  "reviewedFiles": [
+    {
+      "path": "/workspace/gridex-local-migration-preflight-20261116/local-preflight.sh",
+      "sha256": "5c820db25d1aa78b9c3557f6f7e20e1ad0acfd69a72170b34066c6f16338fa8f",
+      "bytes": 3432
+    },
+    {
+      "path": "/workspace/gridex-local-migration-preflight-20261116/README-LOCAL-PREFLIGHT.sv.md",
+      "sha256": "f7e9ab9e8c3a09daccc01ce7ae376e91186a5cec698454dfda0ed5c0678c4443",
+      "bytes": 4120
+    },
+    {
+      "path": "/workspace/gridex-local-migration-preflight-20261116/PORTABILITY-REVIEW.sv.md",
+      "sha256": "a094ae67b2162ac981d4d50a72cddb96720a5eface5a7ad5ff1406339fafe1a2",
+      "bytes": 7246
+    }
+  ],
+  "scope": "Whole readable shell source and Swedish local-use steps reviewed against current Linux portability evidence. Source-only; no Mac or Docker invocation.",
+  "checks": {
+    "darwinExitBeforeDockerAndPlatformSpecificQueries": true,
+    "macSystemCommandPathsAndBash32SyntaxCompatibleByRead": true,
+    "dockerSelectionPrecedence": "DOCKER_CONTEXT, then DOCKER_HOST, else docker context show; explicit context inspection first; no override to another context",
+    "nonUnixOrUnresolvedDockerEndpointSkipsDaemonQueries": true,
+    "unixSocketAloneNotClaimedAsLocalDaemonProof": true,
+    "dockerDaemonReadsOnly": [
+      "limited formatted info",
+      "system df summary",
+      "ps --quiet captured only for count"
+    ],
+    "selectionVariablesNotPrintedAndNoSecretEnvOrFullConfigDump": true,
+    "noInstallStartPullRemovePruneConfigWriteMountOrTransfer": true,
+    "noSudoOrPrivilegedDockerInDocker": true,
+    "systemDfNotPresentedAsVmCapacityOrFreeSpaceProof": true,
+    "genuineLocalCodexTaskAndNoAutomaticCloudTransferExplained": true,
+    "linuxExecutorArchitectureUidNamespaceFilesystemDependenciesRetained": true,
+    "originalClaimsNotUpgradedByPreflight": true
+  },
+  "findings": [
+    {
+      "id": "RUNNING_COUNT_ERROR_AS_ZERO",
+      "status": "RESOLVED_BY_OWNER",
+      "priorScriptSHA256": "49c98dae7551b5880c8c40bd2806b1378660a12bc64bb91ba0df8cbcb6f9afe2",
+      "problem": "Pipeline wc could emit zero after docker ps failure.",
+      "resolution": "Count emitted only after successful captured ps; zero only on successful empty output; failures report unavailable. system df failures also report unavailable.",
+      "wholeSourceInverseVerified": "Exactly the two reporting branches invert to original reviewed script SHA."
+    }
+  ],
+  "remainingConcreteFindings": [],
+  "validation": {
+    "sourceRead": true,
+    "ownerReportedBashSyntaxCheckPassed": true,
+    "reviewerScriptExecution": false,
+    "mockDockerTests": false,
+    "actualMacExecution": false,
+    "actualLocalTerminalAccessVerified": false,
+    "backendCalls": 0,
+    "largeArtifactsOrTmpWrites": 0
+  },
+  "officialDocumentationProvenance": "Root verified current official Modes and Docker Settings documentation; reviewer did not claim a separate web fetch.",
+  "limitations": [
+    "Architecture/RAM/disk/Docker findings are unavailable until the script actually runs on the chosen Mac.",
+    "Docker Unix socket may front another host; identity and VM placement still require verification.",
+    "Source approval does not authorize or claim runtime migration, database export, secret transfer or original case PASS."
+  ]
+}

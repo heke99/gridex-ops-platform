@@ -1,0 +1,33 @@
+{
+  "state": "APPROVE_EXACT_FOURTEEN_ONLY_LOSSLESS_ARCHIVE",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T09:31:41.678452+00:00",
+  "proposalSHA256": "3eb170b2a3bc0e3a619718a3038bb95b773777123acede997ff3387609eac3e9",
+  "selectedPaths": [
+    "/workspace/gridex-local-wire-actual-20261114-i/candidate3443-before-child.private.json",
+    "/workspace/gridex-local-wire-actual-20261114-i/trusted3443-before-one-live-patch.private.json",
+    "/workspace/gridex-local-wire-actual-20261114-i/after-api0558-before-wire.private.json",
+    "/workspace/gridex-decimal-donor-native-actual-20261114-b/main-before.private.json",
+    "/workspace/gridex-decimal-donor-native-actual-20261114-b/main-after.private.json",
+    "/workspace/gridex-decimal-donor-native-actual-20261114-b/candidate3443-wire-only.private.json",
+    "/workspace/gridex-decimal-donor-native-actual-20261114-b/restored3443-before.private.json",
+    "/workspace/gridex-classified-native-evidence-20261113/clone-before.private.json",
+    "/workspace/gridex-classified-native-evidence-20261113/clone-after.private.json",
+    "/workspace/gridex-b03-native-evidence-20261113/clone-before.private.json",
+    "/workspace/gridex-b03-native-evidence-20261113/clone-after.private.json",
+    "/workspace/gridex-classified-clock-native-evidence-20261113/clone-after-forward.private.json",
+    "/workspace/gridex-classified-clock-native-evidence-20261113/clone-after-clock.private.json",
+    "/workspace/gridex-classified-clock-native-evidence-20261113/clone-before.private.json"
+  ],
+  "excludedPaths": [
+    "/workspace/gridex-classified-b03-main-evidence-20261113/stage2-after.private.json",
+    "/workspace/gridex-three-forward-main-evidence-20261113/stage-3-term03-after.private.json"
+  ],
+  "scope": [
+    "Explicitscopeexpansion tohistoricalclosedclassified/B03/clockcloneJSON allowed; actualclosure/currenthash/inode/nlink1 verified",
+    "TwoMainforwardhistoricalsnapshots EXCLUDED, not authorized",
+    "Same44b7 protocol: freshnoFD+archive0600/fsync+streamdecompressSHAbytes+durableARCHIVEDmanifest BEFORErawunlink",
+    "Futureproofreuse onlyafterverifiedsafe restoration; preservealloriginalbytes inarchives, no activebaseline/C6dbd35checkpoint/Kwireproof/source/deps",
+    "Producerexactwriterhandoff toInventory beforemutations, no concurrentwriter"
+  ]
+}

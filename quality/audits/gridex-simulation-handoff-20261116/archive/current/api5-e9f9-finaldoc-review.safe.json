@@ -1,0 +1,7 @@
+{
+  "reviewer": "root",
+  "verdict": "FINALDOC_APPROVE",
+  "head": "e9f9fee8d067f75113e0a6af5bc827b613dc8ffe",
+  "freezeSHA256": "b43b0a435971fa7e7a79562ccf03fcf1173478c46731c5b050caeafa75d5a4a4",
+  "scope": "Read narrow report delta; independently compared all105 row identities/oracles/frozen flags; onlyfive API rows changed, other100 deep equal, original140sources preserved,37PASS+1gap/67remaining. Actualcf3b+644261 reused, no new runtime/fullUI/Fc/production claims."
+}

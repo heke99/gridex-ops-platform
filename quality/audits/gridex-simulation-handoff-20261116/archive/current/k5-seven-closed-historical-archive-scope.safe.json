@@ -1,0 +1,34 @@
+{
+  "state": "ROOT_K5_EXACT_SEVEN_HISTORICAL_GROUP_ARCHIVE_SCOPE_APPROVE",
+  "observedAt": "2026-11-14T16:57:02.185524+00:00",
+  "proposalPath": "/workspace/gridex-k5-closed-proof-resource-proposal-20261114/PROPOSAL.safe.json",
+  "proposalSHA256": "995d19ca6117e6652e0e0d9b527e89dde73196cfd18a168fca3ad9fec439e25d",
+  "exactGroups": 7,
+  "exactAliases": 17,
+  "freshAllHashesStatMtimeAnd18ClosurePinsChecked": true,
+  "currentK5NoRawDependencyProof": {
+    "path": "/tmp/gridex-k5-profile-contract-prep-20261114/RESOURCE-DEPENDENCY-CONFIRMATION.safe.json",
+    "sha256": "30bb72a269c89525a16da22619248e5cc77e69b309af178fd09ff12b789d20a9"
+  },
+  "allSelectedPathsAndInodesDisjointFromActiveCustodyC17BoundFiles": true,
+  "requiredProtocol": "Exclusive gzip0600/fsync/streamdecompress exactSHA+bytes BEFORE allaliasesunlink; durable explicitARCHIVED mapping +safeexclusive nooverwrite metadata-preserving restorecompanion. Archivealwayspreserved. No currentphysicalrawclaim afterarchive.",
+  "protected": [
+    "OriginalE96",
+    "C6dbd35",
+    "qualifiedAPI/wireproofs",
+    "allfullFcs",
+    "currentIbaseline/env/actors/keys",
+    "source/deps",
+    "currentK5/Iinputsandheldtargets",
+    "ACTIVE CUSTODY C allboundfiles including C/MAIN.before267b; oldA267b selected is physicallydistinct"
+  ],
+  "preconditions": [
+    "Solefilesystemwriter handoff frombackendproducer, currentaccessibleFD/mount/closedchecks and freshpin identity beforearchive.",
+    "CurrentactualK5boundtuple mustnotaddrawdependency; allhistoricalreaders/existingoldindexes requireexclusiveexactrestore beforefuturephysicalproofrerun.",
+    "No concurrent currentCUSTODY normaldata/backend interference; only frozen closed historical filesystem proofs."
+  ],
+  "writer": "remaining_coverage_inventory sole writer or explicitly delegated producer",
+  "futureBytesNotActual": true,
+  "indexRequirement": "Append ARCHIVED physical disposition and exact originalSHA/bytes/aliases metadata, preserve all gzipbytes and safe exclusive restore; do not rewrite previous indexes/cutoffs.",
+  "backendCallsByRoot": 0
+}

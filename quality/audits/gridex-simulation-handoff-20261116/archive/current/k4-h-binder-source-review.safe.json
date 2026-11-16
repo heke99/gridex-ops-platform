@@ -1,0 +1,13 @@
+{
+  "state": "ROOT_SOURCE_APPROVED_EXACT_K4_FIVE_LITERAL_METADATA_FORK",
+  "observedAt": "2026-11-14T15:17:51.531292+00:00",
+  "preparedPath": "/tmp/gridex-runtime64-3000-k4-H-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "9d01ad4052770e0411ce1e8a21ff3d0de970abcffab9cd84969182051fa4eea7",
+  "binderSHA256": "4e33c9d933f22f0a273f1bd1558358b0af55a81f78ebc9101f4e2864692503bb",
+  "wholeInverseToApprovedK3": true,
+  "allPhysicalFilePinsChecked": true,
+  "astParsed": true,
+  "runtimeCacheModesChecked": true,
+  "scope": "Metadata source only; actual PID/held/B/deadline must be freshly bound. Exact K3 guards preserved; current H carrier validated by binder.",
+  "backendCalls": 0
+}

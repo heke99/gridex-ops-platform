@@ -1,0 +1,65 @@
+{
+  "state": "SOURCE_REVIEW_CHANGES_REQUIRED_HISTORICAL_V1",
+  "reviewerAgent": "/root/review_plan_execution",
+  "sourceFreeze": {
+    "path": "/workspace/gridex-two-site-test-factory-evidence-20261115/FROZEN.SOURCE-ONLY.safe.json",
+    "sha256": "149a62cfd1b947dc46e617e9daf70a37200f885e8e692657a9d6a26944e2f6f4"
+  },
+  "head": "27d182a37653ceb07b6cacc15b685ca1490ab966",
+  "tree": "a4b5d8bd448e7591cd8bcb39a8ea099eb4ae897c",
+  "all8Files18RefsSHABytesAndGitVerified": true,
+  "fullProductAndNativeSourceRead": true,
+  "legacyContextAndDiagnosticWholeInverseIndependentlyExact": true,
+  "tenNativeDefinitionsIndependentlyMatchedPreimagesAndDeclaredMD5Deltas": true,
+  "findings": [
+    {
+      "id": "ACK_ARTIFACT_OLD_TABLE",
+      "priority": "P1",
+      "file": "supabase/migrations/20261115175248_issue_two_site_test_factory.sql",
+      "lines": [
+        1059,
+        1161,
+        818
+      ],
+      "problem": "new ACK inserted in gridex_two_site_test.ack_captures; unchanged legacy object_v1 reads gridex_local_test.ack_captures, so materialized content is SQLNULL and native_artifact_required raises",
+      "evidence": {
+        "nativeCompact": {
+          "path": "/workspace/gridex-two-site-test-factory-evidence-20261115/pipeline-seams/CURRENT-K13-NATIVE-SEAMS.v2.private.json",
+          "sha256": "53ed9c25ee0dfed63f83bb81e3bd6392fa4df452097d21315d00bebcc942b7f3"
+        },
+        "legacyObjectBodyMD5": "1eac4a08d14c6c74b99b4595d65366b1",
+        "legacyRowProjectionBodyMD5": "2156f936f887ed0d690953152ea10b53"
+      },
+      "nativeExecution": "NOT_RUN_SOURCE_PATH_PROOF_ONLY",
+      "minimalCorrection": "new private ACK object projection plus unchanged public-kind delegation, used in artifact creation and verification; preserve legacy metadata"
+    },
+    {
+      "id": "FINAL_AUTH_EXPIRY_RECHECK",
+      "priority": "P2",
+      "problem": "legacy authenticated live_v1 final actor/JWT wallclock rejection is lost when new executor final/replay checks use projection_v1 -> new live/authorize with no exp check",
+      "evidence": {
+        "legacyLiveBodyMD5": "0558085890f5f6c5df85db80e4eb6b63",
+        "nativeCompact": {
+          "path": "/workspace/gridex-two-site-test-factory-evidence-20261115/pipeline-seams/CURRENT-K13-NATIVE-SEAMS.v2.private.json",
+          "sha256": "53ed9c25ee0dfed63f83bb81e3bd6392fa4df452097d21315d00bebcc942b7f3"
+        }
+      },
+      "nativeTimedExploit": "NOT_RUN_OR_CLAIMED",
+      "minimalCorrection": "role-aware final genuine actor/JWT/scope checks after native work; service-side capture keeps its qualified non-user-JWT path"
+    }
+  ],
+  "authorSeparateCorrection": "selected-company mismatch at service facade reported by author and being fixed in immutable V2",
+  "companyEnvironmentClarification": "explicit TEST capability/source/output under authorized company; no company flag mutation or inferred authority is intended",
+  "savedPortable28ControlsReadNotRerun": true,
+  "privateFramesOIDOwnerACLSourceGuardsReadNotNativeQualified": true,
+  "consumerLimits": [
+    "complete canonical fixed month",
+    "existing2688underlay item cap",
+    "existingnumericfee/mathline guards",
+    "fullSITEcloseTERMprorationconsolidation not implemented/qualified"
+  ],
+  "sourcePrerequisite": "qualified private Source65/K13 native hooks, not ordinary Main standalone",
+  "noNodeBackendAuthSQLOrFrozenFileWritesByReviewer": true,
+  "actualQualificationOrAdoptionGranted": false,
+  "wholeScenarioPASS": false
+}

@@ -1,0 +1,13 @@
+{
+  "state": "APPROVE_SOURCE_B_ONLY_NOT_EXECUTION",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T08:54:27.738425+00:00",
+  "freezeSHA256": "7d541a58e5cb015bef5471f3878430b9d85cef874e1dd2df058e52523c4f290d",
+  "checks": [
+    "All frozen reference hashes matched",
+    "All22 unique original controls determine expected UTF8-byte order; both SQL aggregates explicit C",
+    "Both B target expectedResult arrays equal original source controls; no native result backfit",
+    "Full A review applies unchanged donor body,8s,isolation; B namespace only",
+    "No native execution or scenario credit"
+  ]
+}

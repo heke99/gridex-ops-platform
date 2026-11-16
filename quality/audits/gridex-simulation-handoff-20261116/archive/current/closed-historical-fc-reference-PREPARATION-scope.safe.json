@@ -1,0 +1,18 @@
+{
+  "state": "ROOT_EXACT_REFERENCE_PATCH_PREPARATION_NO_ORIGINAL_UNLINK",
+  "inventorySHA256": "50e2263a34d00daff0a1b8a81ac69e49cc4089a558b3bb21f4896512b893f3a0",
+  "encoderSHA256": "2ab8a17802fef3bc311052f559b76e8ee47f2627f7f83b9bfea44caf066043fe",
+  "codecSHA256": "3eb7744cf8fd1ecd46d617098ee870b3e7911fe570ffaba662c1c5b7d6456020",
+  "referenceReplicaPath": "/workspace/gridex-closed-historical-fc-reference-prep-20261115/protected-reference-replica.dump.private",
+  "currentRoots": [
+    {
+      "path": "/workspace/gridex-closed-historical-fc-reference-prep-20261115/PREPARED.SOURCE-ONLY.safe.json",
+      "sha256": "b6ca230509a2d51bee262135a85feddc6dd446d4e3c2898b8f3480dcc629f860"
+    },
+    {
+      "path": "/workspace/gridex-closed-historical-fc-reference-prep-20261115/ediel-fc-reference-preparation-source-review.safe.json",
+      "sha256": "aafab0e6ec38eea2a9879bfe86e83a9553a2b13f1f3e44a3e584d2c397634064"
+    }
+  ],
+  "limits": "Exact17 historical candidates only; retain every original, both references and patches; no Auth, DB, application or original unlink. Actual patch preparation and stream SHA verification only."
+}

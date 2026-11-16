@@ -1,0 +1,11 @@
+{
+  "state": "ROOT_FINALDOC_SOURCE_FACT_SCOPE_APPROVE",
+  "atUtc": "2026-11-15T05:44:22.517088+00:00",
+  "head": "069697551259962054b54c9c316eeedc4d41e758",
+  "tree": "f5e6e4465b738ad9abe6fb427774b89b605cc082",
+  "freezeSha256": "709cdafd0d74c7d936d6dbc76532e253c51f40192af98157963c9ec2a238060c",
+  "full2docsRead": true,
+  "checks": "Exact2docs-only diff, all4source/test unchanged+Gitblobphysical; cleanhead/tree; all12directreferenceshashbytes; diffcheck0",
+  "facts": "NativeSQL+15HTTP pair exact. 3granteeACL versus effectivebodyserviceonly precise. No directownerdenial/fullVitest/currentMain/browser/money/fullscenarioPASS. Historicalsourcecutoff preserved.",
+  "noBackendNodeOrAuthCalls": true
+}

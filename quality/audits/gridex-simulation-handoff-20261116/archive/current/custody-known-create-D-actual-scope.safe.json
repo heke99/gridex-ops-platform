@@ -1,0 +1,21 @@
+{
+  "state": "ROOT_EXACT_KNOWN_CREATE_MARK_DELETE_ACTUAL_SCOPE_AND_DELEGATION",
+  "observedAt": "2026-11-14T17:37:16.145341+00:00",
+  "targetPath": "/tmp/gridex-custody-known-create-actual-prep-20261114-d/target.BOUND.safe.json",
+  "targetSHA256": "21ab7cfd2bb1a4a515993f2852dac32931812d02a3d148594fa680bf21e8a789",
+  "independentActualScope": {
+    "path": "/tmp/gridex-custody-known-create-actual-prep-20261114-d/ediel-D-actual-execution-scope.safe.json",
+    "sha256": "3290e98e4c3a386e1030accb026a4655ed491dca6caa075a857993de546ff01b"
+  },
+  "rootAll14BoundFileHashesAndFixedModeCustomerPidChecked": true,
+  "source2": [
+    "c53daabdfb75e7d21b08cada8bbc79337868219b7d6176c50983dbd0a705d818",
+    "6f72ddd68fdbc707631f811bbc28de33b06a37075ebe6fb52d1a7247f7019c71"
+  ],
+  "authorized": "Sole producer execute exact UI f3a51b +readonly companion b74de once after currentI/full900+120/Main3072/source40/privateinputs/dependency/Nodepin/initialrealnative checks. One genuine EE normalform MARK thenDELETE only; noCREATEreplay; no extra Root gate.",
+  "actualDataAuthority": "Automatic SQL9241 actual initial/before/after observed state compared to knowncommittedCREATE; no synthetic timestamp or native state. Unknown/denied stops without replay and requires postquiescence native/Auth0/fullrowdelta reconciliation by producer.",
+  "normalMainMemoryCanary": "NewPID2368716/LOGIN200 and configured3072 sourcequalified; unauthprofileGET307 was onlyredirect, no authenticatedcanary claim. Monitor realRSS/cgroup during actualprofile.",
+  "fullScenarioPass": false,
+  "protected": "All old CREATE proofs/currentD-bound RAW and OriginalE96/C6/I/source/deps retained; no audit/FKforce or raw service mutation.",
+  "backendCallsByRoot": 0
+}

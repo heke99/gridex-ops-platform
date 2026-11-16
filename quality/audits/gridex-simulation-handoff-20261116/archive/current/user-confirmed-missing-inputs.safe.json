@@ -1,0 +1,20 @@
+{
+  "atUtc": "2026-11-14T12:37:44.409086+00:00",
+  "state": "USER_CONFIRMED_REQUESTED_MISSING_INPUTS_DO_NOT_EXIST",
+  "userAnswer": "finns inte",
+  "askedInputs": [
+    "Nordfin official XML specification/XSD and rounding rules",
+    "Original28messages input with expected1809.51SEK"
+  ],
+  "disposition": [
+    "Stop searching for those originals.",
+    "Preserve original scenario blockers and no PASS from recreated/backsolved inputs.",
+    "Any new independently calculated reference package must be separately versioned and explicitly distinguished from old original scenarios.",
+    "Continue existing valid K2688/3242 and all feasible cases."
+  ],
+  "limits": [
+    "Does not assert vendor has no schema anywhere, only no user-provided available artifact.",
+    "Does not change other historical five memberships to a new disposition without evidence.",
+    "No external acceptance receipt or normative row rounding invented."
+  ]
+}

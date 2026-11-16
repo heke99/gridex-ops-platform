@@ -1,0 +1,15 @@
+{
+  "verdict": "APPROVE_DOC_ONLY",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T09:58:12.568965+00:00",
+  "head": "30d60674f7827f722cf5aef298fdb6a6a28a9ab3",
+  "tree": "282f10896700987af4aa291f606956b2220bc169",
+  "fileSHA256": "370f5c3fb7fed2df561b59066336782551b606c69df846fdefc526c7c919c947",
+  "checks": [
+    "All10sourcefindingfields preserved/asof09:38 plus evidencehash/scope annotations; no original26/globalproductsum",
+    "26directoriginalSHA/bytes verified; actualCfiniteequality/fulltimeout/Kdenied accuratelybounded",
+    "24archivedrawpaths explicitlyrestorable notcurrentlyphysical/3safecompanions/no actualrestoreclaimed",
+    "Approved8b553REPORT/results byteunchanged; exactnewfile+sessioncustody/localheadclean/no push",
+    "Historicalcutoffexplicit; latestongoingEVENTC/V3notclaimed fromthissnapshot"
+  ]
+}

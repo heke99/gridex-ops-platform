@@ -1,0 +1,108 @@
+{
+  "state": "BOUNDED_READONLY_REVIEW_COMPLETE_PENDING_INDEPENDENT_SUMMARY_REVIEWS",
+  "asOfUTC": "2026-11-16T10:59:38.285985+00:00",
+  "mainObserved": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+  "canonicalCounts": {
+    "FULL_PASS": 43,
+    "GAP": 1,
+    "INCOMPLETE": 61,
+    "TOTAL": 105
+  },
+  "incompleteDispositions": {
+    "partial": 16,
+    "unmappedPendingPrerequisites": 36,
+    "unavailableOriginal": 9
+  },
+  "canonicalLedgerSHA256": "d29f2f05494b69d4b8dd034515730db239273d9e39d38319b1ed17e14d92a197",
+  "originalMixedFindingCount": 46,
+  "newProductBugEstablishedByThisBoundedReview": false,
+  "activeSQLReview": "SQL-CANDIDATES.v2.safe.json",
+  "olderSQLReviewSuperseded": "SQL-CANDIDATES.safe.json",
+  "customerListMissingDependencyPreserved": {
+    "sourceCommit": "a9b5f3f35d652d968eb45a54d5096c326909543e",
+    "patchSHA256": "69520dae6cb053ae6e7e2d5f8e89adf869e169ab0d77be0b70ba4fdeca37a93c",
+    "applied": false
+  },
+  "frozenPackageChanged": false,
+  "otherUIImplementationModified": false,
+  "newScenarioOrAppTestsRun": false,
+  "DBRuntimeOrPermissionMutations": false,
+  "handoffGitBranchPublished": false,
+  "safeMacStagingConnectionEstablished": false,
+  "userRequestedOverlapHoldPreserved": true,
+  "nextAction": "Wait for named UI task; verify actual final commit/merge and local Git status. Prepare reviewed nonsecret Git handoff without overwriting local work, reconcile per-ID evidence, qualify same-staging local runtime, then resume intended next four cases.",
+  "sources": [
+    {
+      "path": "LOCAL-CONTINUATION.sv.md",
+      "bytes": 4399,
+      "sha256": "b63713fa25d104728e170642d1f4f8108b702da94f87658fb5a367e8b91e5720",
+      "historyOnly": false
+    },
+    {
+      "path": "PROJECT-CONTINUITY.safe.json",
+      "bytes": 1783,
+      "sha256": "96c3fa828e77d6be332d6fa8ff6afa24e2af20ae4b6ccd782712a063f8899d9e",
+      "historyOnly": false
+    },
+    {
+      "path": "REMAINING-61.safe.json",
+      "bytes": 110555,
+      "sha256": "48e6841e8e0ad5bb9a1721b753274d0e7a9cc896e2665f13941e5e8e644e765a",
+      "historyOnly": false
+    },
+    {
+      "path": "REMAINING-61.safe.sv.md",
+      "bytes": 2782,
+      "sha256": "bd45cbccfe9a6a00bd4198e49f94d1ec0d3c990064d0ada191f78925e9302e4b",
+      "historyOnly": false
+    },
+    {
+      "path": "REVIEW.sv.md",
+      "bytes": 6655,
+      "sha256": "411f8ad053b1b2b08fc9be11e777ae73360b9b92a2c6012265c862310a15f263",
+      "historyOnly": false
+    },
+    {
+      "path": "SKILL-ROUTING.safe.json",
+      "bytes": 1444,
+      "sha256": "6da0fa59afc88c545b39c8232df850fbf4264412bcde98600be0df9c2ecf958c",
+      "historyOnly": false
+    },
+    {
+      "path": "SQL-CANDIDATES.safe.json",
+      "bytes": 9560,
+      "sha256": "9aeb4e9df7de2ac4fe4700bda6c617adface70b183c959efcdb809797410158e",
+      "historyOnly": true
+    },
+    {
+      "path": "SQL-CANDIDATES.v2.safe.json",
+      "bytes": 14385,
+      "sha256": "36a521b7a4ae9217ceb97eb0c66d4225a04d456be9e5fdcbf7baf5f7182aa3bd",
+      "historyOnly": false
+    },
+    {
+      "path": "UI-DEADCODE-CANDIDATES.safe.json",
+      "bytes": 30927,
+      "sha256": "a702bf10508a28f9c5c67e424cd32144f9683b111d3a89fe56cbe7daf318f63d",
+      "historyOnly": false
+    },
+    {
+      "path": "UI-DEADCODE-CANDIDATES.sv.md",
+      "bytes": 2801,
+      "sha256": "d16cd2805324a12b67d4c152b7423d8f671d2ba58ac5249c4b347f0d2bf55eec",
+      "historyOnly": false
+    },
+    {
+      "path": "additional-candidate-patches/DEPENDENCY-ADDENDUM.safe.json",
+      "bytes": 1611,
+      "sha256": "9723966ad7c93e242d4dc39156da6ac30bd8204020f9fcf906bbbb208b58ea5e",
+      "historyOnly": false
+    },
+    {
+      "path": "additional-candidate-patches/customer-list-foundation-a9b5f3f3.patch",
+      "bytes": 47808,
+      "sha256": "69520dae6cb053ae6e7e2d5f8e89adf869e169ab0d77be0b70ba4fdeca37a93c",
+      "historyOnly": false
+    }
+  ]
+}

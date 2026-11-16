@@ -1,0 +1,13 @@
+{
+  "state": "SOURCE_APPROVE_NARROW_DELTA_NOT_EXECUTION",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T09:31:11.906020+00:00",
+  "freezeSHA256": "de501b1c449a04fcfd5973c2feb3b58d54a1cb6516d743a177039866ee3ded13",
+  "checks": [
+    "Allfrozenfilehashes/outerAST0",
+    "WholeSQLinverse externalstatementsemicolon+namespaceC\u2192B exactlyold; no donorprosrc/bodyhash changes",
+    "Wholeouterinverse namespace/runDirC\u2192B exactd882",
+    "Same22COLLATEC/sourceexpected/8s15s; actualnewC required, failedB preserved",
+    "Kgate remainsclosed pendingactualC3EQUALITY andnativebody/Main/clone/privateproof+twoactualreviews"
+  ]
+}

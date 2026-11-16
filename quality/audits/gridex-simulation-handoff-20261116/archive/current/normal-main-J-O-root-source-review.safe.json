@@ -1,0 +1,8 @@
+{
+  "state": "ROOT_NARROW_MAIN_J_O_SOURCE_ACK",
+  "atUtc": "2026-11-15T05:37:17.652347+00:00",
+  "sourceFreezeSha256": "33fed5e1dfcab1e5a8109885994d55123020abe860ad03740452edf9fe44337d",
+  "independentActualChecks": "allfiles/donors/Ocarrier/receipt/peer hashes; reverse exact7fullstrings recovers both entire reviewed I/N donor scripts byteexact",
+  "preserved": "40/3072/webpack/3108/90/noRetry and all live/source/session/memory guards",
+  "scope": "sourceonly. Actualstart needs soleproducer+independentpeer/livecurrentresources/Auth0/ownership. No new genuineAuth untilallintegratedsource/compiler/preflight ready."
+}

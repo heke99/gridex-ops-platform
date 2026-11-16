@@ -1,0 +1,186 @@
+{
+  "state": "FROZEN_SOURCE_ONLY_FRESH_D_HYDRATION_SCHEMA_ROUTING_SUCCESSOR",
+  "createdAt": "2026-11-15T19:10:38.175771+00:00",
+  "files": [
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/AUTHOR-CHECKS.ACTUAL.safe.json",
+      "sha256": "35fa8641656f80b18681c6d8c918e9b7abe1e5747c65f0399d3052a408a927f1",
+      "bytes": 1151
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/BUNDLE-INTERFACE.md",
+      "sha256": "27f95a9bbfa283657d2d705a4da6535231d08c9fb13f1f83d872d76514b0340b",
+      "bytes": 5078
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/BUNDLE-TARGET.UNARMED.safe.json",
+      "sha256": "b363987e94cdd322565e394083794c93130472d55037ef974662b05a622917f1",
+      "bytes": 5970
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/NO-UNDEF.stdout.private.json",
+      "sha256": "7e1355622aa92258a720f6551cbd1e530868937379c80dbfb274c7fdb5ab106f",
+      "bytes": 1775
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/SUCCESSOR-DELTA.md",
+      "sha256": "da1a459d03d2db007cba8b8c1ac71668c6bb0ac3fc8ce3eb3fdfb7f0fd7bb74c",
+      "bytes": 2049
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/SYNTAX-check-catalog-view-components.cjs.stdout.private.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/SYNTAX-check-composed-route-schema.cjs.stdout.private.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/SYNTAX-check-intake-bundle-components.cjs.stdout.private.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/SYNTAX-hold-ee-catalog-intake-term600.V.cjs.stdout.private.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/SYNTAX-normal-catalog-publish-driver.BUNDLE-v5.cjs.stdout.private.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/SYNTAX-normal-customer-continuation.cjs.stdout.private.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/SYNTAX-normal-intake-driver.BUNDLE-v2.cjs.stdout.private.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/catalog-before-bundle.READONLY.sql",
+      "sha256": "cae36894b75ac22793da152e10a548290d333c8fe981a721d05036fa1ac97fd0",
+      "bytes": 3313
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/check-catalog-view-components.cjs",
+      "sha256": "c7ddd5582425dc61e52a02f214845426d1b89c013dc8ed3c9e9cdc7ccbb2d810",
+      "bytes": 7791
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/check-catalog-view-components.cjs.stdout.private.json",
+      "sha256": "81dea61acafdadef97042ad28c380ba20dbe4cfc7ace898ee8a1120832123e06",
+      "bytes": 748
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/check-composed-route-schema.cjs",
+      "sha256": "8b66427bd323903915f1ace7980ddc6a2177aa4eb583528fc3cd6d45c00b55a9",
+      "bytes": 3497
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/check-composed-route-schema.cjs.stdout.private.json",
+      "sha256": "ddf7666f78426d87929b4892e2b681cf66e389b99d5e91b45e97f5770391242f",
+      "bytes": 600
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/check-intake-bundle-components.cjs",
+      "sha256": "ba963b19efe98b7443d9b7abea732cc799b756253ecbcb706a0fa57cd248c06d",
+      "bytes": 8133
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/check-intake-bundle-components.cjs.stdout.private.json",
+      "sha256": "a5519b2ceaa14d91bb361a0d193971a5b1168cd419818b859d0e6783791bd2a7",
+      "bytes": 614
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/hold-ee-catalog-intake-term600.V.cjs",
+      "sha256": "efe53140cf82b08fe78a1138d8bbf036043efa7fc807da2c0ccf931220c0f1fe",
+      "bytes": 14855
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/normal-catalog-publish-driver.BUNDLE-v5.cjs",
+      "sha256": "78ecfb4d35d0fab6ff71719bc22825ae646b9121058f935b25d40d574df04a6c",
+      "bytes": 6181
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/normal-customer-continuation.cjs",
+      "sha256": "777636739ec9830937db8f5f0466b70a604c00302a8af73350587e4870d64bae",
+      "bytes": 12762
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/normal-intake-driver.BUNDLE-v2.cjs",
+      "sha256": "237530faeb4df277b423a23aba687623090bf4786db280454bd4dc62670a2bb8",
+      "bytes": 11951
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/bundle-d/read-intake-graph.READONLY.sql",
+      "sha256": "e91e35adc9381bdceb8df6884d56ef7c4789e8e72c5554831968d16178303c43",
+      "bytes": 3068
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/BUNDLE-FROZEN.SOURCE-ONLY.safe.json",
+      "sha256": "121e94adb787fa7d84142902f02a3fd0280658a48d5ae4398db18099521e6cda",
+      "bytes": 4358
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/normal-catalog-publish-driver.v2.cjs",
+      "sha256": "72e1d0e7c483d366dbd8c5571f81ca9f8f86addf598bf3532e9ea0c444ca43b9",
+      "bytes": 4475
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/normal-catalog-publish-driver.v4.cjs",
+      "sha256": "a7c5c6b1113b43b160db58326050d5bf93e5a11548531aef8894a96359373488",
+      "bytes": 4699
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/ACTUAL-CATALOG-DIAGNOSTIC-COMPONENT-REVIEW.safe.json",
+      "sha256": "6e0e24e2f598bffdd188bcd9382aa0542b165f3dd32901fd68e8cf68ce7ddf8b",
+      "bytes": 1136
+    },
+    {
+      "path": "/tmp/gridex-customer-bundle-V-actual-prep-20261115-c/ACTUAL-HARNESS-STOP-COMPONENT.safe.json",
+      "sha256": "8e74b98e28ba0d4b0f96da6af1f353e9705f92221ed29e909f6b53fd89347eb0",
+      "bytes": 1441
+    },
+    {
+      "path": "/tmp/gridex-term0105-normal-cps-version-v2-prep-20261115/term-version-driver.cjs",
+      "sha256": "6e4bd3089c246ed5401e8a49769b1095a97e28819932fd0a61955770d649327c",
+      "bytes": 11502
+    },
+    {
+      "path": "/tmp/gridex-term0105-normal-cps-version-v2-prep-20261115/term-cps-oracle.cjs",
+      "sha256": "d843cebcd90ef37d99d12dadc82328243205c735e009ef2cb4dbaae8dbde5958",
+      "bytes": 10485
+    },
+    {
+      "path": "/tmp/gridex-term0105-normal-cps-version-v2-prep-20261115/read-term-version.READONLY.sql",
+      "sha256": "67214e3bffc19a14dd8c26497718a45ff5f8499b66c512696c386f363be7d4ca",
+      "bytes": 4033
+    }
+  ],
+  "actualChecks": {
+    "catalogControls": 9,
+    "intakeControlsActualSchemaWithoutOfferPublicationPointer": 13,
+    "composedRoutingAndSchemaControls": 8,
+    "noUndefFiles": 7,
+    "syntaxFiles": 7,
+    "backendBrowserSDKAuthDBNetworkCalls": 0
+  },
+  "preservedHistoricalRun": {
+    "freeze": "121e94adb787fa7d84142902f02a3fd0280658a48d5ae4398db18099521e6cda",
+    "actualStop": "8e74b98e28ba0d4b0f96da6af1f353e9705f92221ed29e909f6b53fd89347eb0",
+    "exactOriginalDeniedHeaderProven": false
+  },
+  "actualAuthority": {
+    "target": null,
+    "session": null,
+    "newIDs": null,
+    "GO": null,
+    "wholeCasePASS": false
+  }
+}

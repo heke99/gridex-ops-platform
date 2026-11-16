@@ -1,0 +1,16 @@
+{
+  "moduleSHA256": "673eb5407fc7f7a44701b0c04060dbc275f9912b4ae1d519c65af024b04ff712",
+  "actualEphemeralLoopbackConnections": true,
+  "noFixedPortNoBackendNoAuth": true,
+  "results": [
+    {
+      "mode": "server_closes_first",
+      "result": "BIND_FAILED",
+      "errno": 98
+    },
+    {
+      "mode": "client_closes_first",
+      "result": "REBOUND"
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "state": "K12_MAIN_T_BASELINE_FOUR_SOURCE_SCRIPTS_READY_NOT_RUN",
+  "actualBaselineRoot": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261115-k12",
+  "files": [
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261115-k12/pause-terminate-and-capture.group-bound.py",
+      "sha256": "a71956fb5f6fe47ed1bd97030d6dfe48df4d6721466a5ac3fa1710efe415a407"
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261115-k12/capture-current-main.py",
+      "sha256": "840fb01d2c43970a8fae75f52c0b12c7c89135e7c610a7ea1fe7cb1015ac1926"
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261115-k12/capture-post-dump-main.py",
+      "sha256": "4d050e23c5d3f14695ae5bf23787b636fdf1938ee626ecd15e22d7b7dda9aa68"
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261115-k12/capture-full-backup.py",
+      "sha256": "99d580d02b6bffb7b79d76f63646476bfe66baa21c8f5afee2dd7fad34ac450e"
+    }
+  ],
+  "donorFiles": [
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261115-k11/pause-terminate-and-capture.group-bound.py",
+      "sha256": "bab49fd360679f944438f7d8fcc279d4d35769a2e40b1496481000a8a3179282"
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261115-k11/capture-current-main.py",
+      "sha256": "840fb01d2c43970a8fae75f52c0b12c7c89135e7c610a7ea1fe7cb1015ac1926"
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261115-k11/capture-post-dump-main.py",
+      "sha256": "4d050e23c5d3f14695ae5bf23787b636fdf1938ee626ecd15e22d7b7dda9aa68"
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261115-k11/capture-full-backup.py",
+      "sha256": "60c8718042ef123a46de4e3ad230fc23ffb5a6fa122de8ec206542ab7b72895f"
+    }
+  ],
+  "changes": {
+    "pause-terminate-and-capture.group-bound.py": {
+      "replacements": [
+        [
+          "3054183",
+          "3303123"
+        ],
+        [
+          "start-source40-main-heap3072-L.py",
+          "start-source40-main-heap3072-T.py"
+        ],
+        [
+          "gridex-normal-main-heap3072-L-Q-prep-20261115",
+          "gridex-normal-main-heap3072-T-S-prep-20261115"
+        ],
+        [
+          "23029578",
+          "24847655"
+        ],
+        [
+          "5258f67a9d04800bbe0cfc4b257ad4086f928fddbb66cf1107986bf9d83c35c3",
+          "cdf22f7280a221bc86323b801acdb8a54a76d2cc8bc01f144fe5d7e9ddc84570"
+        ],
+        [
+          "local_fresh_four_rpc_k11_20261115",
+          "local_fresh_four_rpc_k12_20261115"
+        ],
+        [
+          "20261115-k11",
+          "20261115-k12"
+        ]
+      ],
+      "newTypedReadyGuard": "ready_path=pathlib.Path('/tmp/gridex-normal-main-heap3072-actual-20261115-t/main-ready.safe.json')\nassert sha(ready_path)=='30d723537271c1426c387b7e59711f3cdbd71c24e16ad9bf8092d120b9885c86','EXACT_MAIN_T_READY_RECEIPT_REQUIRED'\nready=json.loads(ready_path.read_text())\nassert ready=={'state':'NORMAL_MAIN_S_HEAP3072_LOGIN200_ONLY_MEMORY_AUTH_CANARY_PENDING','pid':3303123,'startTicks':'24847655','cmdSHA256':'cdf22f7280a221bc86323b801acdb8a54a76d2cc8bc01f144fe5d7e9ddc84570','starterPath':'/tmp/gridex-normal-main-heap3072-T-S-prep-20261115/start-source40-main-heap3072-T.py','starterSHA256':'2b633bc0eaeda548044e4200d9d1eb14bbdd77eb96ce776ef91dd29edbc75272'},'TYPED_ACTUAL_MAIN_T_IDENTITY_REQUIRED'\nassert sha(ready['starterPath'])==ready['starterSHA256'],'MAIN_T_STARTER_SOURCE_DRIFT'\n",
+      "wholeInverseExact": true
+    },
+    "capture-current-main.py": {
+      "byteExactDonor": true
+    },
+    "capture-post-dump-main.py": {
+      "byteExactDonor": true
+    },
+    "capture-full-backup.py": {
+      "singleLabelChange": [
+        "K11_Q_3000",
+        "K12_S_3000"
+      ],
+      "wholeInverseExact": true
+    }
+  },
+  "allASTParsePassed": true,
+  "regeneratedCaptureBytesMatchFrozenFiles": true,
+  "actualMainReadiness": {
+    "path": "/tmp/gridex-normal-main-heap3072-actual-20261115-t/main-ready.safe.json",
+    "sha256": "30d723537271c1426c387b7e59711f3cdbd71c24e16ad9bf8092d120b9885c86"
+  },
+  "commandsAfterGenuineReadyOnly": [
+    [
+      "python3",
+      "-B",
+      "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261115-k12/pause-terminate-and-capture.group-bound.py"
+    ],
+    [
+      "python3",
+      "-B",
+      "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261115-k12/capture-full-backup.py"
+    ]
+  ],
+  "actualHeldSession": null,
+  "actualBackupSeal": null,
+  "GO": null,
+  "noBackendNodeAuthOrSQLRunByAuthor": true,
+  "full3000And120GuardsUnchanged": true
+}

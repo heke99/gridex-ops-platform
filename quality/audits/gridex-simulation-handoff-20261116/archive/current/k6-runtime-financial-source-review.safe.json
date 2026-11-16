@@ -1,0 +1,21 @@
+{
+  "state": "ROOT_K6_J_RUNTIME_AND_FINANCIAL_SOURCE_APPROVED_UNBOUND",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T18:42:31.118768+00:00",
+  "runtimePrepared": {
+    "path": "/tmp/gridex-runtime64-3000-k6-J-prep-20261114/PREPARED.safe.json",
+    "sha256": "95fa21a00032f64ebc1f126fe29512325648f66fa6e76e32a400c3ed1bb1638a"
+  },
+  "financialPrepared": {
+    "path": "/tmp/gridex-local-import-capture-k6-prep-20261114/PREPARED.safe.json",
+    "sha256": "ca6fe826a8436173c7cbef53ab93b7c23e09d182a96bda0d2501a78694cc83c4"
+  },
+  "wholeInverseMechanicallyVerified": true,
+  "review": "Runtime binder only K5I-to-K6J namespace/state labels. Same runtime26928/launcher95a/witnessb438/gatewayae627. Finance one inputRoot literal; four SQL/807schema/native8s/read15s exact originals. PriorIenv is historical only, no app/Jcustody/currentJ claims yet.",
+  "futureActualJKeysPidMainSealDeadline": null,
+  "conditions": [
+    "ActualJ only after official expiredIrenewal, two-key-only env custody/newiat>priorIexpiry",
+    "Fresh actualgenuineheld/Mainbackup/seal/source/PID/runtime bindings and liveguards before dispatch"
+  ],
+  "notNativeOrFinancialPass": true
+}

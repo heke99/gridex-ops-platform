@@ -1,0 +1,8 @@
+{
+  "state": "ROOT_COMPILER_V3_NARROW_SOURCE_ACK",
+  "atUtc": "2026-11-15T05:59:57.201785+00:00",
+  "freezeSHA256": "0fac8813f37c0029089fada6c8172942a159f2e07bff1bd6c4b19c9e0469f0e2",
+  "decisionSHA256": "d081dfca5abdae3fc2bea6d7f798f49a58ac35c35b1899385221a99e427e36a2",
+  "checks": "IndependentallV3filepins andentireone3.25GiBto3GiBentryliteralinverse recoversreviewedV2; fixed2GiBhardcap/1536heap/90s/RO/networknone/noAuth750M/exitOOM/cleanup unchanged.",
+  "execution": "Onceonly afterSource2/live3GiBheadroom/WS750M/quietMain; notactualcompilerPASS orAuthauthority; native/private guards unchanged."
+}

@@ -1,0 +1,1598 @@
+{
+  "state": "READ_ONLY_WAITING_GROUPING_NOT_EXECUTION_OR_STATUS_CHANGE",
+  "sources": [
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/current/per-id-execution.v5.safe.json",
+      "sha256": "d29f2f05494b69d4b8dd034515730db239273d9e39d38319b1ed17e14d92a197"
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/current/FINDINGS.safe.json",
+      "sha256": "4adce9616e57a734db75932e1c1f79c7734069622a0217c5a52019b663fc8ab9"
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/current/ROUTES-AND-DEAD-CODE.sv.md",
+      "sha256": "cdee31405912ad5c6403daf040d714f25fe35f591ae0a78a399cee2a1fd0f256"
+    }
+  ],
+  "canonicalCountsUnchanged": {
+    "fullPass": 43,
+    "documentedGap": 1,
+    "incomplete": 61
+  },
+  "incompleteDispositionCountsUnchanged": {
+    "PARTIAL_EXECUTION_BLOCKED": 16,
+    "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES": 36,
+    "UNAVAILABLE_ORIGINAL": 9
+  },
+  "primaryClustersPartitionExactly61": [
+    {
+      "id": "underlay_invoice_export",
+      "ids": [
+        "BILLNEG01.01",
+        "BILLNEG01.02",
+        "BILLNEG01.03",
+        "BILLNEG01.04",
+        "BILLNEG01.05",
+        "DELIVERY01.03",
+        "DELIVERY01.05",
+        "MAIN03.01",
+        "MAIN03.02",
+        "MAIN03.03",
+        "MAIN03.04",
+        "MAIN03.05",
+        "MAIN04.01",
+        "MAIN04.02",
+        "MAIN04.03",
+        "MAIN04.04",
+        "MAIN04.05",
+        "MAIN05.01",
+        "MAIN05.02",
+        "MAIN05.03",
+        "MAIN05.04",
+        "UI01.03"
+      ],
+      "sharedDependency": "Kvalificerad importerad källa, supply/CPS/pris → UNDERLAY → prepare → oberoende approve → fil/GET; lås- och replayfall på samma deklarerade graf."
+    },
+    {
+      "id": "catalog_site_contract",
+      "ids": [
+        "SITE01.01",
+        "SITE01.03",
+        "TERM01.05",
+        "TERM03.01",
+        "TERM03.02",
+        "TERM03.03",
+        "TERM03.04",
+        "TERM03.05"
+      ],
+      "sharedDependency": "Normalt publicerbart TEST-erbjudande, riktig kund, sites, aktuella avtal/CPS och stödd livscykel. Två-site/proratering/konsolidering får inte antas av källkomponenter."
+    },
+    {
+      "id": "resolution",
+      "ids": [
+        "TERM02.04"
+      ],
+      "sharedDependency": "Deklarerade fysiska intervall, verkligt stödd upplösning och normalt import/pris/lås."
+    },
+    {
+      "id": "ediel_original_cohort",
+      "ids": [
+        "EDIEL01.01",
+        "EDIEL01.02",
+        "EDIEL01.03",
+        "EDIEL01.04",
+        "EDIEL01.05",
+        "EDIEL01.06"
+      ],
+      "sharedDependency": "Den ursprungliga 28-källors/28 positiva APERAK/56-sändningscohorten och äldre105 MIME behövs för ursprungsoraklet; nya tre meddelanden ger bara komponentbevis."
+    },
+    {
+      "id": "ediel_source_semantics",
+      "ids": [
+        "EDIEL02.01",
+        "EDIEL02.02",
+        "EDIEL02.03",
+        "EDIEL02.04"
+      ],
+      "sharedDependency": "Ny deklarerad normal källa och aktuellt mandat/current-basis; skilj raw-email-dedupe från source-replay/rättelse/ordning."
+    },
+    {
+      "id": "selected_four_and_retry",
+      "ids": [
+        "EDIEL02.05",
+        "EDIEL03.01",
+        "EDIEL03.02",
+        "EDIEL03.03",
+        "EDIEL03.04",
+        "EDIEL03.05"
+      ],
+      "sharedDependency": "Ordinarie egen TEST-receiver/mailbox/route och strikt TLS, genuin roll/aktör, native kö/claim och fysiska kvitton. Befintliga fyra-casepaketet först; därefter processstopp/SLA med kvalificerad klocka."
+    },
+    {
+      "id": "retained_source_custody",
+      "ids": [
+        "CUSTODY01.01",
+        "CUSTODY01.02",
+        "CUSTODY01.03",
+        "CUSTODY01.04"
+      ],
+      "sharedDependency": "Låst faktisk faktura/källa och separat policy-rensningsbart objekt. Normal CREATE/MARK/DELETE-komponent ersätter inte full låst-källoracle."
+    },
+    {
+      "id": "external_normative",
+      "ids": [
+        "MAIN06.01",
+        "MAIN06.02",
+        "MAIN06.03",
+        "QA02.01",
+        "QA02.02",
+        "QA02.03",
+        "QA02.04",
+        "QA02.05",
+        "TERM02.08"
+      ],
+      "sharedDependency": "Saknade officiella schema-/mottagarkvitto-/avrundningsnormer eller exakt original QA-medlemskap. Ny fixture ersätter inte dessa."
+    },
+    {
+      "id": "final_epoch_gates",
+      "ids": [
+        "QA01.04"
+      ],
+      "sharedDependency": "API/parity/type/migration/release-grindar måste bindas till faktisk slutcommit och färdig runtimeepoch."
+    }
+  ],
+  "overlapRule": "Primary clusters partition IDs once; a/b/c/d blocker classes overlap and must not be summed. Functional fixture evidence does not imply original-ID PASS. No absence of receipt is asserted as never executed.",
+  "items": [
+    {
+      "id": "MAIN03.01",
+      "literal": "Full februari med2688 intervall",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+      "smallestNextAction": "Kör ordinarie UNDERLAY på exakt februari2027 efter 28 faktiskt importerade källor; verifiera 2688 intervall-ID, 28 sourcehashar och total, inte en ersättande månadsfil.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "UNDERLAY med2688 deklarerade intervall på ny fixture",
+        "minimumNormalPrerequisites": "Normal importerad TEST-källa, supportat pris/supply, rätt period",
+        "minimumActualOracle": "Exakt2688unika intervalEvidence-ID/UTC, underlay/pricingRun-ID, källSHA och transaktionsslut",
+        "historicalComparisonResidual": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN03.02",
+      "literal": "Omsorgsfull kontroll av alla28 källors koppling",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+      "smallestNextAction": "Frys de 28 faktiska source-ID/hasharna; återläs varje faktisk punkt/kund/avtal/supply/periodbindning och visa att ingen källa hör till annan punkt eller månad.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "28 NYA deklarerade dagskällors lineage",
+        "minimumNormalPrerequisites": "28 nyutgivna/importerade riktiga testkällor; en månadsfil räcker inte",
+        "minimumActualOracle": "Alla28unika source-ID/SHA kopplade exakt till periodens intervall, inga förlorade/dubbla",
+        "historicalComparisonResidual": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN03.03",
+      "literal": "Tre vanliga native-källäsningar före sparande",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+      "smallestNextAction": "Spåra tre ordinarie native källäsningar i verkliga underlayflödet med exakt samma 28-sourcecohort; jämför lästa source/current-basis-ID före sparning.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Alla kvalificerade source-ID-chunks läses före persist under faktiskt pinnad source64",
+        "minimumNormalPrerequisites": "Normal importerad nykälla; aktuell loadQualifiedBillingValues dedupe/sort/chunk250 och explicit ordnad lästrace",
+        "minimumActualOracle": "Actualcount ceil(uniqueIDs/250), ex2688unika→11sekventiellaRPC; alla exakta kvalificerade ID och läsning före store i actualtrace. Inte3tabeller/lås eller CommandReceipt som läskvitto.",
+        "historicalComparisonResidual": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange.",
+        "historicalLiteralPrecision": "Kanoniskt tre-read-literal bevaras oförändrat och förblir obevisat; ingen normativV2-adoption eller oldIDPASS."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN03.04",
+      "literal": "Sparat underlag med förväntat käll- och pristotal",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+      "smallestNextAction": "Återläs det faktiskt sparade underlaget, alla normaliserade bidrag/CPS/pricingRun och låst totalsumma mot oberoende 2688-intervallsfacit.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Nytt underlag matchar egen fryst förväntan",
+        "minimumNormalPrerequisites": "Oberoende fördeklarerade nyfixturemängder/priser och gällande granskad beräkningsregel",
+        "minimumActualOracle": "Faktiska kvantiteter/pristotal/lineage mot nyfixtureförväntan; inte1809,51 eller normbevis",
+        "historicalComparisonResidual": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN03.05",
+      "literal": "Timeout/okänt utfall: läs faktisk graf och lås före nytt försök",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+      "smallestNextAction": "På separat kvalificerad underlaykörning simulera okänt klientutfall; läs faktisk graf, transaction/locks och käll-ID före beslut om återhämtning; inget blindretry.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Okänt utfall avstäms utan blind retry",
+        "minimumNormalPrerequisites": "Egen underlaykörning; avgränsat observerbart timeout/felutfall",
+        "minimumActualOracle": "Faktisk graf/lås/commitstatus och beslut före nytt försök; inget fabricerat timeout",
+        "historicalComparisonResidual": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN04.01",
+      "literal": "Prepare från exakt underlag",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "MAIN03 saknar sparat positivt underlag. Granska exakt låst underlag, pengar och lineage oberoende före normalt approve/repeat; syntetisk TESTsignering via produktport är tillåten.",
+      "smallestNextAction": "Välj exakt kvalificerat MAIN03-underlag och kör ordinarie prepare med rätt leverantör före första reservation; bind faktisk draftgraph och käll/prissnapshot.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Prepare från exakt nytt underlag",
+        "minimumNormalPrerequisites": "Kanoniskt nytt underlag/nativebehörighet",
+        "minimumActualOracle": "Faktura-/rad-ID och exakt underlay/intervall/pricingRun-lineage",
+        "historicalComparisonResidual": "MAIN03 saknar sparat positivt underlag. Granska exakt låst underlag, pengar och lineage oberoende före normalt approve/repeat; syntetisk TESTsignering via produktport är tillåten.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN04.02",
+      "literal": "Prepare-repeat utan dubblett",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "MAIN03 saknar sparat positivt underlag. Granska exakt låst underlag, pengar och lineage oberoende före normalt approve/repeat; syntetisk TESTsignering via produktport är tillåten.",
+      "smallestNextAction": "Efter faktisk lyckad prepare, upprepa samma ordinarie kommando mot samma underlag; verifiera ett kanoniskt run/item/invoice-resultat och oförändrad snapshot.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Prepare-repeat idempotens",
+        "minimumNormalPrerequisites": "Faktiskt eget prepare-resultat",
+        "minimumActualOracle": "Samma kanoniska resultat; inga dubbletter; oförändrade lineage/hashar",
+        "historicalComparisonResidual": "MAIN03 saknar sparat positivt underlag. Granska exakt låst underlag, pengar och lineage oberoende före normalt approve/repeat; syntetisk TESTsignering via produktport är tillåten.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN04.03",
+      "literal": "Faktiskt utkast matchar1809,51 SEK och källor",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "MAIN03 saknar sparat positivt underlag. Granska exakt låst underlag, pengar och lineage oberoende före normalt approve/repeat; syntetisk TESTsignering via produktport är tillåten.",
+      "smallestNextAction": "Återläs faktisk draft, rader och prissnapshot; jämför fristående facit 1809,51 SEK och frysta source-ID, fakturadatum2027-03-01/förfall03-21 där tillämpligt.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Nytt utkast matchar egen kvantitet/beloppsförväntan",
+        "minimumNormalPrerequisites": "Ny fryst fixture med självständigt deklarerade mängder/priser",
+        "minimumActualOracle": "Faktiska rader/VAT/intervall-ID mot ny förväntan; historisk1809,51-jämförelse kvarstår",
+        "historicalComparisonResidual": "MAIN03 saknar sparat positivt underlag. Granska exakt låst underlag, pengar och lineage oberoende före normalt approve/repeat; syntetisk TESTsignering via produktport är tillåten.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN04.04",
+      "literal": "Approve efter låst oberoende kvitto",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "MAIN03 saknar sparat positivt underlag. Granska exakt låst underlag, pengar och lineage oberoende före normalt approve/repeat; syntetisk TESTsignering via produktport är tillåten.",
+      "smallestNextAction": "Frys oberoende beräknings-/källkvitto före verklig approve; kör stödets ordinarie godkännande på egen faktura och verifiera nummer, datum och immutable snapshot.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Approve efter separat faktisk granskning",
+        "minimumNormalPrerequisites": "Nytt draft+oberoende låst kvitto enligt normal policy",
+        "minimumActualOracle": "Faktisk approve/status/nummer/snapshotSHA; inte kringgå granskningsport",
+        "historicalComparisonResidual": "MAIN03 saknar sparat positivt underlag. Granska exakt låst underlag, pengar och lineage oberoende före normalt approve/repeat; syntetisk TESTsignering via produktport är tillåten.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN04.05",
+      "literal": "Approve-repeat utan ändrad snapshot eller nytt nummer",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "MAIN03 saknar sparat positivt underlag. Granska exakt låst underlag, pengar och lineage oberoende före normalt approve/repeat; syntetisk TESTsignering via produktport är tillåten.",
+      "smallestNextAction": "Upprepa approve mot samma redan godkända faktura; verifiera samma fakturanummer/snapshot/graph och inga nya rader eller reservationer.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Approve-repeat behåller nummer/snapshot",
+        "minimumNormalPrerequisites": "Faktiskt godkänd nyfaktura",
+        "minimumActualOracle": "Samma faktura/nummer/SHA/status; inga extra nummer/rader",
+        "historicalComparisonResidual": "MAIN03 saknar sparat positivt underlag. Granska exakt låst underlag, pengar och lineage oberoende före normalt approve/repeat; syntetisk TESTsignering via produktport är tillåten.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN05.01",
+      "literal": "Native fil från godkänd snapshot",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Godkänd faktura/fil saknas. Historisk file stoppades outbound_frozen; missingfile gavNULL/36bindestreck22P02. Senare FILEUUID307/403 nådde inte grenen. Nordfin TESTfil kräver normalt providerval; Capway TESTskick är separat.",
+      "smallestNextAction": "Efter godkänd snapshot, välj normalt stöd för rätt filprovider och kör native filstage; bind faktisk file-row, rowsSHA och bodySHA separat utan externt sändande.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Native fil från ny godkänd snapshot",
+        "minimumNormalPrerequisites": "Ny godkänd faktura och normal filport",
+        "minimumActualOracle": "Filrad-ID/rowsSHA/bodySHA/exakta snapshotfält; XML-välformad är inte officiellXSDacceptans",
+        "historicalComparisonResidual": "Godkänd faktura/fil saknas. Historisk file stoppades outbound_frozen; missingfile gavNULL/36bindestreck22P02. Senare FILEUUID307/403 nådde inte grenen. Nordfin TESTfil kräver normalt providerval; Capway TESTskick är separat.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN05.02",
+      "literal": "File-repeat behåller rad och bytes",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Godkänd faktura/fil saknas. Historisk file stoppades outbound_frozen; missingfile gavNULL/36bindestreck22P02. Senare FILEUUID307/403 nådde inte grenen. Nordfin TESTfil kräver normalt providerval; Capway TESTskick är separat.",
+      "smallestNextAction": "Upprepa faktisk filstage med exakt samma godkända snapshot; verifiera samma filrad/antal/rowsSHA/bodybytes, inte två nyproducerade liknande dokument.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "File-repeat stabilitet",
+        "minimumNormalPrerequisites": "Faktiskt skapad nyfil",
+        "minimumActualOracle": "Samma filrad/rowsSHA/bodybytes",
+        "historicalComparisonResidual": "Godkänd faktura/fil saknas. Historisk file stoppades outbound_frozen; missingfile gavNULL/36bindestreck22P02. Senare FILEUUID307/403 nådde inte grenen. Nordfin TESTfil kräver normalt providerval; Capway TESTskick är separat.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN05.03",
+      "literal": "Två skyddade GET ger identiska korrekta XML-bytes",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Godkänd faktura/fil saknas. Historisk file stoppades outbound_frozen; missingfile gavNULL/36bindestreck22P02. Senare FILEUUID307/403 nådde inte grenen. Nordfin TESTfil kräver normalt providerval; Capway TESTskick är separat.",
+      "smallestNextAction": "GET två gånger med legitim exportbehörighet mot exakt bestående fil-ID; jämför HTTP200, bodybytes/XMLfält och lagrad rows/bodyhash.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Två skyddade GET ger samma fil",
+        "minimumNormalPrerequisites": "Riktig egen fil+genuin behörig session",
+        "minimumActualOracle": "TvåHTTP200/identiska bodybytes/exakta nyfakturafält; ingen officiellXSD/providerreceiptinferens",
+        "historicalComparisonResidual": "Godkänd faktura/fil saknas. Historisk file stoppades outbound_frozen; missingfile gavNULL/36bindestreck22P02. Senare FILEUUID307/403 nådde inte grenen. Nordfin TESTfil kräver normalt providerval; Capway TESTskick är separat.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN05.04",
+      "literal": "Anonym faktisk fil kräver inloggning",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Qualified actual approved file and anonymous request against that exact persisted ID; current unknown placeholder is not a real-file test.",
+      "smallestNextAction": "Anonym GET mot den VERKLIGA kvalificerade filens ID; verifiera login/deny och ingen bodyläcka. Okänd placeholder räcker inte.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Anonym GET till verklig nyfil nekas",
+        "minimumNormalPrerequisites": "Existerande nyfil och faktiskt anonym klient",
+        "minimumActualOracle": "Kontrollerat authsvar/ingen filutlämning; inte bara saknatfil-ID",
+        "historicalComparisonResidual": "Qualified actual approved file and anonymous request against that exact persisted ID; current unknown placeholder is not a real-file test.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN06.01",
+      "literal": "Officiell schema-/formatversion fastställs",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "blockerClasses": [
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Officiell format-/schema-/versionsartefakt måste bindas till faktisk XML; sådan publicerad fil kan inhämtas utan marknadscredential. Extern acceptans i det uttryckliga kvittofallet kräver äkta kvitto; lokala modeller märks separat.",
+      "smallestNextAction": "Bind verklig publicerad providerformat-/schemaversion och hash/proveniens; om endast explicit avtalad lokal modell finns, märk modellens separata disposition utan falsk officiell certifiering.",
+      "availability": [
+        "USER_CONFIRMED_OFFICIAL_NORDFIN_XSD_OR_ROUNDING_NORM_UNAVAILABLE",
+        "GENUINE_RECEIVER_RECEIPT_WHERE_LITERAL_ORACLE_REQUIRES"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Schemakälla/version/hash, valideringsresultat och externt kvitto bundet till bodySHA.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN06.02",
+      "literal": "Exakt verklig XML valideras mot officiellt schema",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "blockerClasses": [
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Officiell format-/schema-/versionsartefakt måste bindas till faktisk XML; sådan publicerad fil kan inhämtas utan marknadscredential. Extern acceptans i det uttryckliga kvittofallet kräver äkta kvitto; lokala modeller märks separat.",
+      "smallestNextAction": "Validera exakt MAIN05-bodybytes mot den i .01 bundna officiella schemaversionen; spara validator/version/exit/errors/bodySHA, inte generiskt välformad XML.",
+      "availability": [
+        "USER_CONFIRMED_OFFICIAL_NORDFIN_XSD_OR_ROUNDING_NORM_UNAVAILABLE",
+        "GENUINE_RECEIVER_RECEIPT_WHERE_LITERAL_ORACLE_REQUIRES"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Schemakälla/version/hash, valideringsresultat och externt kvitto bundet till bodySHA.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "MAIN06.03",
+      "literal": "Mottagarkvitto binds till fakturanummer och bodySHA",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "blockerClasses": [
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Officiell format-/schema-/versionsartefakt måste bindas till faktisk XML; sådan publicerad fil kan inhämtas utan marknadscredential. Extern acceptans i det uttryckliga kvittofallet kräver äkta kvitto; lokala modeller märks separat.",
+      "smallestNextAction": "Inhämta äkta mottagar-/leverantörskvitto bundet till exakt fakturanummer/bodySHA; håll uttryckligt externacceptanskrav separat från lokal200/testtransport. Ingen sådan mottagarinteraktion körs utan eget scope.",
+      "availability": [
+        "USER_CONFIRMED_OFFICIAL_NORDFIN_XSD_OR_ROUNDING_NORM_UNAVAILABLE",
+        "GENUINE_RECEIVER_RECEIPT_WHERE_LITERAL_ORACLE_REQUIRES"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Schemakälla/version/hash, valideringsresultat och externt kvitto bundet till bodySHA.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "SITE01.01",
+      "literal": "Två aktiva sites med samma kund och månad",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "A/B är manuella kandidater. Kvalificera produktutgiven lokal TESTarea/nätägare, signerade perioder/priser, underlag och faktisk fakturagruppering. consolidatedInvoice-flaggan bevisar inte en samlingsfaktura.",
+      "smallestNextAction": "Etablera två verkliga stödda operativa sites för samma kund/månad med separata source/supplybindningar; verifiera faktisk separat mängd och korrekt kundkoppling.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Två nya aktiva sites på samma kund/månad",
+        "minimumNormalPrerequisites": "Normal tvåsite-fixture+nya fysiska källor/perioder",
+        "minimumActualOracle": "Båda facility-ID/perioder/mängder/rader under ett fakturanummer om supportat",
+        "historicalComparisonResidual": "A/B är manuella kandidater. Kvalificera produktutgiven lokal TESTarea/nätägare, signerade perioder/priser, underlag och faktisk fakturagruppering. consolidatedInvoice-flaggan bevisar inte en samlingsfaktura.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "SITE01.03",
+      "literal": "En avslutad och en aktiv site",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "A/B är manuella kandidater. Kvalificera produktutgiven lokal TESTarea/nätägare, signerade perioder/priser, underlag och faktisk fakturagruppering. consolidatedInvoice-flaggan bevisar inte en samlingsfaktura.",
+      "smallestNextAction": "Genom normal stödd avslutsväg avsluta bara en av två egna sites; verifiera halvöppna giltighetsperioder och att den andra fortsätter utan ändrad supply/mängd.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Båda facility-ID/perioder/mängder/radbelopp förekommer under exakt ett fakturanummer om funktionen stöds; annars dokumenterat gap.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "TERM01.05",
+      "literal": "Avtalsändring får korrekt version utan retroaktiv tyst ändring",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "12/24månadersdrafts finns; historisk signering nekades tenant_not_operational. Normal syntetisk TESTsignering finns i produkten men kräver giltiga versioner och tillämpliga tenantgränser; inga råa statusflaggor.",
+      "smallestNextAction": "Använd ordinarie stödd avtalsändring på egen kvalificerad avtalsversion; frys gammal CPS/version/hash, skapa ny version och visa korrekt framtida verkan utan tyst retroaktiv ändring. Signed-version krävs bara om den valda ändringsportens verkliga policy kräver det.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Avtalets verkliga start/slut/bindning/uppsägning, CPS-version och rätt fakturaperiod.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "TERM02.04",
+      "literal": "Tim-/månads-/kvartsvarianter endast när faktiskt stödda",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Kvalificera fysiska TESTintervall, signerade priser och avgränsade processklockor. Komponentbevis finns; avrundningsnormens DESIGNantagande är fortfarande en separat specifikationslucka.",
+      "smallestNextAction": "Återanvänd kvalificerat kvart/timkernel-facit; kör faktiskt stödd kvart/tim/månadsimport→pris/lock med fysisk intervallcohort och styrkt upplösning, och dokumentera uttryckligt ej stödda varianter.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Supportade tim/månad/kvarts-/DST-varianter",
+        "minimumNormalPrerequisites": "Supportat produktpris/testpris, nya deklarerade UTCintervall/kvantiteter",
+        "minimumActualOracle": "Exakta kvart-ID/viktadsumma/ingen DSTförlust eller dubblering; normativ avrundning/VAT separat",
+        "historicalComparisonResidual": "Kvalificera fysiska TESTintervall, signerade priser och avgränsade processklockor. Komponentbevis finns; avrundningsnormens DESIGNantagande är fortfarande en separat specifikationslucka.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "TERM02.08",
+      "literal": "Rad-/VAT-avrundning kontrolleras med oberoende decimalorakel",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "blockerClasses": [
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Independent qualified decimal precision/ties/negative sign and VAT per-line/totals policy plus actual native locked financial output are still required; current Number/Math.round observations are not that policy.",
+      "smallestNextAction": "Fastställ tillämplig oberoende decimalprecision, tiesläge, negativa tecken och VAT per rad/total från verklig produkt-/avtalsregel; först därefter jämför låsta native belopp med fristående decimalorakel. Kopiera inte Math.round som norm.",
+      "availability": [
+        "USER_CONFIRMED_OFFICIAL_NORDFIN_XSD_OR_ROUNDING_NORM_UNAVAILABLE",
+        "GENUINE_RECEIVER_RECEIPT_WHERE_LITERAL_ORACLE_REQUIRES"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Exakta UTC-intervall, fysiska kvart-ID, viktad summa(q×p), radavrundning/VAT, inga förlorade eller dubbla DST-intervall.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "TERM03.01",
+      "literal": "Start mitt i månaden",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Kvalificera legitim lagringsväg eller rätta och verifiera den verkliga slutperiodsgaten. Atomiska batchen innehåller ended/terminatedct0 i båda fixtures. Bevara verkliga source/price/authkrav; inga råa acceptanceflaggor eller påstådd SQLkörning.",
+      "smallestNextAction": "Kör faktisk eligible source/supply/CPS→store→pricing för mittmånadsstart med rätt halvöppen period och fysisk förbrukning; tidigare ändlig storemodell som ignorerade SQL-gaten är endast delbevis.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Start mitt i månaden utan felaktig perioddebitering",
+        "minimumNormalPrerequisites": "Supportad normal supply/CPS-start och nya tidsbundna mätvärden",
+        "minimumActualOracle": "Exakta giltighetsperioder/ingen otillåten gap/överlapp; endast giltiga intervall underlag/faktura",
+        "historicalComparisonResidual": "Kvalificera legitim lagringsväg eller rätta och verifiera den verkliga slutperiodsgaten. Atomiska batchen innehåller ended/terminatedct0 i båda fixtures. Bevara verkliga source/price/authkrav; inga råa acceptanceflaggor eller påstådd SQLkörning.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "TERM03.02",
+      "literal": "Avslut mitt i månaden",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Kvalificera legitim lagringsväg eller rätta och verifiera den verkliga slutperiodsgaten. Atomiska batchen innehåller ended/terminatedct0 i båda fixtures. Bevara verkliga source/price/authkrav; inga råa acceptanceflaggor eller påstådd SQLkörning.",
+      "smallestNextAction": "Kör faktisk kvalificerad avslutad supply och covered terminated/testattesterad kontraktsbasis genom verklig store/pricing; uteslut all fysisk förbrukning efter avslut och kontrollera månadsavgiften.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Avslut mitt i månaden",
+        "minimumNormalPrerequisites": "Normal uppsägning/avslutsport+ny fysisk källa",
+        "minimumActualOracle": "Nativeperiodslut och endast giltiga mätintervall fakturerade",
+        "historicalComparisonResidual": "Kvalificera legitim lagringsväg eller rätta och verifiera den verkliga slutperiodsgaten. Atomiska batchen innehåller ended/terminatedct0 i båda fixtures. Bevara verkliga source/price/authkrav; inga råa acceptanceflaggor eller påstådd SQLkörning.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "TERM03.03",
+      "literal": "Start/slut vid månadsskifte",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Normala signerade start-/slut-/uppsägnings-/bytesregler och faktiska testleveransperioder/fakturor återstår; hitta gällande kontrakt före datumfacit.",
+      "smallestNextAction": "Skapa legitima start-/slutgränser vid månadsskifte via stödd livscykel; verifiera angränsande halvöppna supply/CPSperioder och fakturera varje verkligt intervall exakt en gång.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Start/slut vid månadsskifte",
+        "minimumNormalPrerequisites": "Normal periodhantering+nya deklarerade gränsintervall",
+        "minimumActualOracle": "Exakta UTC/gränsperioder/inga dubbla eller saknade giltiga intervall",
+        "historicalComparisonResidual": "Normala signerade start-/slut-/uppsägnings-/bytesregler och faktiska testleveransperioder/fakturor återstår; hitta gällande kontrakt före datumfacit.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "TERM03.04",
+      "literal": "Uppsägning precis före/efter verklig frist",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Normala signerade start-/slut-/uppsägnings-/bytesregler och faktiska testleveransperioder/fakturor återstår; hitta gällande kontrakt före datumfacit.",
+      "smallestNextAction": "Bind faktisk uppsägningsfrist i gällande avtalsversion; kör separata egna före/efterfristfall med processlokal klocka och normal uppsägningsväg, och följ supply/faktureringsutfall.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Uppsägning före/efter riktig frist",
+        "minimumNormalPrerequisites": "Verkligt tidsfönster eller redan supportad kvalificerad testklocka; annars tidsportgap",
+        "minimumActualOracle": "Faktiska nativebeslut/perioder vid båda sidor; processDate.now utan nativeclock räcker inte",
+        "historicalComparisonResidual": "Normala signerade start-/slut-/uppsägnings-/bytesregler och faktiska testleveransperioder/fakturor återstår; hitta gällande kontrakt före datumfacit.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "TERM03.05",
+      "literal": "Leverantörsbyte utan dubbeldebitering",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Normala signerade start-/slut-/uppsägnings-/bytesregler och faktiska testleveransperioder/fakturor återstår; hitta gällande kontrakt före datumfacit.",
+      "smallestNextAction": "Bind ett legitimt TESTleverantörsbyte med två giltiga supplygränser/marknads- eller uttrycklig lokaltestauthority; kör normal periodisering och visa ingen överlappande fakturering.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Leverantörsbyte utan dubbeldebitering",
+        "minimumNormalPrerequisites": "Supportad normalbytesport+egna source/supplyperioder",
+        "minimumActualOracle": "Supply/CPS-perioder och endast en debitering per giltigt intervall",
+        "historicalComparisonResidual": "Normala signerade start-/slut-/uppsägnings-/bytesregler och faktiska testleveransperioder/fakturor återstår; hitta gällande kontrakt före datumfacit.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "DELIVERY01.03",
+      "literal": "Pappersfaktura om faktiskt stödd",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Komponenter bevisar fryst epost/postnummer och definierad postalguard; legacyformat rättat utan styrkt aktiv UI-förlust. Faktisk godkänd snapshot, lagring/replay och leveransstöd återstår.",
+      "smallestNextAction": "Använd faktisk stödd postalprofil genom normal kund-/avtalssnapshot till native draft/export; verifiera fryst fakturaadress separat från facilityadress eller tydlig faktisk postalguard, inte bara komponent-CSV.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Pappersleveransport eller korrekt unsupportedutfall",
+        "minimumNormalPrerequisites": "Ny godkänd faktura/fryst mottagaradress+supportat leveransläge",
+        "minimumActualOracle": "Riktig fryst adress/metod/nativeutfall; fysisk provideracceptans endast om genuinekvittot finns",
+        "historicalComparisonResidual": "Komponenter bevisar fryst epost/postnummer och definierad postalguard; legacyformat rättat utan styrkt aktiv UI-förlust. Faktisk godkänd snapshot, lagring/replay och leveransstöd återstår.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "DELIVERY01.05",
+      "literal": "Sen kundändring ändrar inte redan godkänd snapshot",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Komponenter bevisar fryst epost/postnummer och definierad postalguard; legacyformat rättat utan styrkt aktiv UI-förlust. Faktisk godkänd snapshot, lagring/replay och leveransstöd återstår.",
+      "smallestNextAction": "Frys godkänd verklig snapshot/filrad; ändra därefter kundadress/epost via normal egen produktväg; återläs/rendera från exakt gamla snapshoten och bevisa oförändrade frysta leveransvärden.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Sen kundändring behåller godkänd snapshot",
+        "minimumNormalPrerequisites": "Ny godkänd snapshot+normal kundändring",
+        "minimumActualOracle": "Före/efter frozenadress/metod/belopp oförändrade; aktuella kundvärden ändras separat",
+        "historicalComparisonResidual": "Komponenter bevisar fryst epost/postnummer och definierad postalguard; legacyformat rättat utan styrkt aktiv UI-förlust. Faktisk godkänd snapshot, lagring/replay och leveransstöd återstår.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL01.01",
+      "literal": "28 CONTRL sänds och tas emot med rätt referenser",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Vanlig rawstore/process gav parsed/manual_review/companyNULL. Produktutgiven normalized TESTmottagaridentitet måste etableras före import; ingen extern marknadsauktoritet krävs för en tydlig lokal modell.28källor/56fysiska kvitton och TLS återstår.",
+      "smallestNextAction": "Efter egen faktisk28sourcecohort och kvalificerade ACK: skicka exakt28CONTRL genom lokala striktCA/TLS-system; bind varje source/ref/outbox/DSO-MIME/wireSHA.",
+      "availability": [
+        "USER_CONFIRMED_ORIGINAL_28_INPUTS_UNAVAILABLE"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Exakta outbox-ID, försökstal, RFC/wirehashar, matchande kontrareferenser och56 faktiska DSO-MIME; inga blindresends.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL01.02",
+      "literal": "28 befintliga positiva APERAK köas native utan nya svarskopior",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Vanlig rawstore/process gav parsed/manual_review/companyNULL. Produktutgiven normalized TESTmottagaridentitet måste etableras före import; ingen extern marknadsauktoritet krävs för en tydlig lokal modell.28källor/56fysiska kvitton och TLS återstår.",
+      "smallestNextAction": "Köa exakt28BEFINTLIGApositivaAPERAK genom normal native enqueue, utan att skapa nya svarkopior; bind före/efter source/ACK/outbox-ID och counts.",
+      "availability": [
+        "USER_CONFIRMED_ORIGINAL_28_INPUTS_UNAVAILABLE"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Exakta outbox-ID, försökstal, RFC/wirehashar, matchande kontrareferenser och56 faktiska DSO-MIME; inga blindresends.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL01.03",
+      "literal": "28 APERAK sänds och tas emot",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Vanlig rawstore/process gav parsed/manual_review/companyNULL. Produktutgiven normalized TESTmottagaridentitet måste etableras före import; ingen extern marknadsauktoritet krävs för en tydlig lokal modell.28källor/56fysiska kvitton och TLS återstår.",
+      "smallestNextAction": "Skicka de .02-bundna28APERAK till lokal kontrollerad DSO och verifiera28unika faktiska mottagna MIME/affärsreferenser, inte bara SMTP250.",
+      "availability": [
+        "USER_CONFIRMED_ORIGINAL_28_INPUTS_UNAVAILABLE"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Exakta outbox-ID, försökstal, RFC/wirehashar, matchande kontrareferenser och56 faktiska DSO-MIME; inga blindresends.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL01.04",
+      "literal": "SMTP/IMAP med strikt lokal CA/TLS",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Vanlig rawstore/process gav parsed/manual_review/companyNULL. Produktutgiven normalized TESTmottagaridentitet måste etableras före import; ingen extern marknadsauktoritet krävs för en tydlig lokal modell.28källor/56fysiska kvitton och TLS återstår.",
+      "smallestNextAction": "Verifiera faktisk SMTP/IMAP-session mot rätt lokala CA/hostname med certkontroll på; fel CA/hostname ska nekas. Koppla det till verkliga avgränsade sändningar, inte publik extern marknadsbehörighet.",
+      "availability": [
+        "USER_CONFIRMED_ORIGINAL_28_INPUTS_UNAVAILABLE"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Exakta outbox-ID, försökstal, RFC/wirehashar, matchande kontrareferenser och56 faktiska DSO-MIME; inga blindresends.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL01.05",
+      "literal": "Syntaktiskt wire-, MIME- och affärsreferens-ID skiljs åt",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Complete genuine businessreference/ACK/outbox/DSOphysical receipt oracle; no external sends performed.",
+      "smallestNextAction": "Bind faktisk originalwire, ny MIME, generatedACK och DSOkvittos egna ID/hashdomäner för cohort; visa vilka referenser som kopieras respektive allokeras, utan att påstå full kedja från rawstore.",
+      "availability": [
+        "USER_CONFIRMED_ORIGINAL_28_INPUTS_UNAVAILABLE"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Exakta outbox-ID, försökstal, RFC/wirehashar, matchande kontrareferenser och56 faktiska DSO-MIME; inga blindresends.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL01.06",
+      "literal": "Äldre105 MIME och äldre köposter förblir oförändrade",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Vanlig rawstore/process gav parsed/manual_review/companyNULL. Produktutgiven normalized TESTmottagaridentitet måste etableras före import; ingen extern marknadsauktoritet krävs för en tydlig lokal modell.28källor/56fysiska kvitton och TLS återstår.",
+      "smallestNextAction": "Frys exact inventory/hash för äldre105MIME och gamla köposter före eget28/56-flöde; efteråt jämför varje gammal rad/byte och visa att inga äldre pendingjobb behandlades.",
+      "availability": [
+        "USER_CONFIRMED_ORIGINAL_28_INPUTS_UNAVAILABLE"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Exakta outbox-ID, försökstal, RFC/wirehashar, matchande kontrareferenser och56 faktiska DSO-MIME; inga blindresends.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL02.01",
+      "literal": "Byteidentisk dubblett är idempotent",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Qualify genuine receiveridentity/source and full processing/ACK/quantity/invoice no-duplicate oracles; no rawstore-only fullpass.",
+      "smallestNextAction": "Kör exakt samma sourcebytes två gånger genom full ordinarie import/process på eget kvalificerad TEST-källa; jämför original/parser/currentbasis/ACKcapture/mängd/underlag/faktura och visa ingen affärsdubblett.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Faktiska ack/reject/hold-statusar, rätt current/basis-ID, inga dubbletter i fysisk mängd eller retroaktivt ändrad faktura.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL02.02",
+      "literal": "Samma referens med ändrat innehåll ger synligt skydd",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Genuine legalidentity/source and actualduplicateconflict owner response, quantity and billingunchanged oracles remain.",
+      "smallestNextAction": "Efter accepterad egen source: ändra fysisk quantity med samma affärsreferens och nytt MIME-ID; kör normal import och verifiera synlig source/referenceconflict/hold med oförändrad tidigare basis/mängd/faktura.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Faktiska ack/reject/hold-statusar, rätt current/basis-ID, inga dubbletter i fysisk mängd eller retroaktivt ändrad faktura.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL02.03",
+      "literal": "Rättelse ersätter endast giltigt källunderlag",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Rawdedupe och MIME/wire-skillnad observerade, replay gav ny parse. Attributionsgräns stoppade affärskonflikt/rättelse/ACK/kvantitetsfacit. Malformedprovet blev parsed, inte strikt syntaxreject.",
+      "smallestNextAction": "Bind faktiskt stödd rättelsetyp/sourceversion; importera separat legitim rättelse och verifiera exakt ersatt giltigt sourcebasis utan att skriva om låst tidigare faktura.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Faktiska ack/reject/hold-statusar, rätt current/basis-ID, inga dubbletter i fysisk mängd eller retroaktivt ändrad faktura.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL02.04",
+      "literal": "Senare meddelande före tidigare hanteras enligt implementation",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Rawdedupe och MIME/wire-skillnad observerade, replay gav ny parse. Attributionsgräns stoppade affärskonflikt/rättelse/ACK/kvantitetsfacit. Malformedprovet blev parsed, inte strikt syntaxreject.",
+      "smallestNextAction": "Bind implementationens verkliga sekvensregel och importera ny isolerad senare/tidigare source i omkastad ordning; verifiera current/basis-ID och faktiska hold/reject/ACK, inga antagna revisionsregler.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Faktiska ack/reject/hold-statusar, rätt current/basis-ID, inga dubbletter i fysisk mängd eller retroaktivt ändrad faktura.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL02.05",
+      "literal": "Fel part/mandat förblir nekad",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Rawdedupe och MIME/wire-skillnad observerade, replay gav ny parse. Attributionsgräns stoppade affärskonflikt/rättelse/ACK/kvantitetsfacit. Malformedprovet blev parsed, inte strikt syntaxreject.",
+      "smallestNextAction": "Importera separat ny syntetisk source med rätt produktutgiven TESTreceiver men fel sender/mandat; verifiera explicit relevant native authorityhold/deny och oförändrad fysisk billingbasis. companyNULL ensam eller saknad receiver duger inte.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Faktiska ack/reject/hold-statusar, rätt current/basis-ID, inga dubbletter i fysisk mängd eller retroaktivt ändrad faktura.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL03.01",
+      "literal": "Övergående4xx ger föreskriven väntan",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Kvalificera egna sourcebundna outbox-ID, lokal kontrollerad SMTP4xx/5xx/okäntutfall/claimstop och faktisk retry-/deadlinepolicy. Ingen global pendingworker eller blind omsändning.",
+      "smallestNextAction": "På EXAKT eget kvalificerat outbox-ID kör ett native försök mot kontrollerad lokal SMTP4xx; verifiera attempts/status/nextAttempt/deadline och ingen mottagenMIME när servern inte accepterat.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Försökstid/status/nextAttempt/deadline, exakt mottagen MIME-count, deadletter/recovery-logg.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL03.02",
+      "literal": "Permanent5xx blir synligt misslyckande",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Kvalificera egna sourcebundna outbox-ID, lokal kontrollerad SMTP4xx/5xx/okäntutfall/claimstop och faktisk retry-/deadlinepolicy. Ingen global pendingworker eller blind omsändning.",
+      "smallestNextAction": "Kör separat eget outbox-ID mot föreskriven permanent SMTP5xx; verifiera implementationens verkliga failure/deadletter utan blindretry eller påverkan på andra köer.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Försökstid/status/nextAttempt/deadline, exakt mottagen MIME-count, deadletter/recovery-logg.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL03.03",
+      "literal": "Timeout efter okänt SMTP-utfall duplicerar inte blint",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Kvalificera egna sourcebundna outbox-ID, lokal kontrollerad SMTP4xx/5xx/okäntutfall/claimstop och faktisk retry-/deadlinepolicy. Ingen global pendingworker eller blind omsändning.",
+      "smallestNextAction": "Lokal mottagare accepterar och bryter sedan svaret; bind faktisk mottagencount/wireSHA och native uncertain-state. Läs/readback före recovery, ingen automatisk andra sändning som döljer okänt utfall.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Försökstid/status/nextAttempt/deadline, exakt mottagen MIME-count, deadletter/recovery-logg.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL03.04",
+      "literal": "Processstopp under claim kan återhämtas enligt policy",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Kvalificera egna sourcebundna outbox-ID, lokal kontrollerad SMTP4xx/5xx/okäntutfall/claimstop och faktisk retry-/deadlinepolicy. Ingen global pendingworker eller blind omsändning.",
+      "smallestNextAction": "Stoppa bara egen avgränsad worker efter claim på eget outbox-ID; kvalificera faktisk lease/claimpolicy och återhämta utan främmande jobb eller dubbla mottagnaMIME.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Försökstid/status/nextAttempt/deadline, exakt mottagen MIME-count, deadletter/recovery-logg.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "EDIEL03.05",
+      "literal": "SLA över faktisk deadline provas med kontrollerad klocka",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Kvalificera egna sourcebundna outbox-ID, lokal kontrollerad SMTP4xx/5xx/okäntutfall/claimstop och faktisk retry-/deadlinepolicy. Ingen global pendingworker eller blind omsändning.",
+      "smallestNextAction": "Bind faktisk source-/ACKdeadline och stödets klockport; kör isolerad före/efterdeadline med lokalklocka, verifiera verklig SLAstatus/tidskvitto utan global tidsändring.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Försökstid/status/nextAttempt/deadline, exakt mottagen MIME-count, deadletter/recovery-logg.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "CUSTODY01.01",
+      "literal": "Alla28 fakturakällor återfinns via frysta referenser",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Egen lokal DBbackup/restore är klar i sitt scope. Låstkälleretention kräver faktisk egen källa, legitim testaktör och tillämplig policy; upstream403 är inte bevis för låsskydd.",
+      "smallestNextAction": "Efter faktisk godkänd MAINfaktura återfinn alla28fysiska sourceoriginal via frysta basis-/underlags-/snapshotreferenser och jämför varje raw/bodySHA.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Återläsning av28 NYA fakturakällor",
+        "minimumNormalPrerequisites": "28nykällor+nygodkänd faktura/frozenreferences",
+        "minimumActualOracle": "Alla28source-ID/hashar återläsbara; gammaloriginal28-identitet förblir separat",
+        "historicalComparisonResidual": "Egen lokal DBbackup/restore är klar i sitt scope. Låstkälleretention kräver faktisk egen källa, legitim testaktör och tillämplig policy; upstream403 är inte bevis för låsskydd.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "CUSTODY01.02",
+      "literal": "Fysisk originaldata bevaras trots utelämnade två diagnostikkopior",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Egen lokal DBbackup/restore är klar i sitt scope. Låstkälleretention kräver faktisk egen källa, legitim testaktör och tillämplig policy; upstream403 är inte bevis för låsskydd.",
+      "smallestNextAction": "Utelämna exakt två tillåtna diagnostikkopior i separat retentionfixture, behåll äkta fakturakällor; visa att fysisk originaldata fortfarande kan återläsas via frysta referenser.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Fysisk källa bevaras utan två diagnostikkopior",
+        "minimumNormalPrerequisites": "Supportad omkoppling/utelämning av endast egen diagnostik, ingen originalradering",
+        "minimumActualOracle": "Fysisk originaldata/hashar/lineage kvar; identitet till gammalreferens inte bevisad",
+        "historicalComparisonResidual": "Egen lokal DBbackup/restore är klar i sitt scope. Låstkälleretention kräver faktisk egen källa, legitim testaktör och tillämplig policy; upstream403 är inte bevis för låsskydd.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "CUSTODY01.03",
+      "literal": "Otillåten radering av låst källa nekas",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Egen lokal DBbackup/restore är klar i sitt scope. Låstkälleretention kräver faktisk egen källa, legitim testaktör och tillämplig policy; upstream403 är inte bevis för låsskydd.",
+      "smallestNextAction": "Använd egen faktiskt låst fakturakälla och tillämplig retentionregel; kör normal otillåten purge/delete och verifiera native låsnekning samt oförändrade original/copies/graph. Tidigare403föregräns räcker inte.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Otillåten radering av egen låstkälla nekas",
+        "minimumNormalPrerequisites": "Riktigt låst nykälla+normal individuell retentionport",
+        "minimumActualOracle": "Faktiskt policy-/nativesvar och oförändrad källa/referensgraf",
+        "historicalComparisonResidual": "Egen lokal DBbackup/restore är klar i sitt scope. Låstkälleretention kräver faktisk egen källa, legitim testaktör och tillämplig policy; upstream403 är inte bevis för låsskydd.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "CUSTODY01.04",
+      "literal": "Legitimt rensningsbart separat testobjekt följer policy",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Egen lokal DBbackup/restore är klar i sitt scope. Låstkälleretention kräver faktisk egen källa, legitim testaktör och tillämplig policy; upstream403 är inte bevis för låsskydd.",
+      "smallestNextAction": "Etablera separat legitimt rensningsbart testobjekt genom normal port/policy; kör ordinarie cleanup och verifiera endast detta objekt rensas, låsta fakturakällor och andra objekt bevaras.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Legitim individuell testrensning enligt policy",
+        "minimumNormalPrerequisites": "Eget supportat rensningsbart testobjekt utan skyddad historia",
+        "minimumActualOracle": "Normal DELETE-commit eller korrekt policyutfall och exakt nativegraf; E23503 är inte DELETEsuccess",
+        "historicalComparisonResidual": "Egen lokal DBbackup/restore är klar i sitt scope. Låstkälleretention kräver faktisk egen källa, legitim testaktör och tillämplig policy; upstream403 är inte bevis för låsskydd.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "BILLNEG01.01",
+      "literal": "Samtidig prepare ger högst ett kanoniskt resultat",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Separata produktutgivna godkända testunderlag/fakturor och verkliga transaktioner/replay/rättelser behövs. Undvik experiment på huvudfakturan och fabricerade snapshots.",
+      "smallestNextAction": "På separat kvalificerat underlag kör två ordinarie prepare samtidigt; verifiera exakt en kanonisk graph/reservation och tydligt andraresultat samt inga kvarhängande lås.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Samtidig prepare får en vinnare",
+        "minimumNormalPrerequisites": "Eget kvalificerat nytt underlag+kontrollerade samtidiga normalanrop",
+        "minimumActualOracle": "Ett kanoniskt resultat/tydligt loser-svar/inga kvarvarande lås",
+        "historicalComparisonResidual": "Separata produktutgivna godkända testunderlag/fakturor och verkliga transaktioner/replay/rättelser behövs. Undvik experiment på huvudfakturan och fabricerade snapshots.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "BILLNEG01.02",
+      "literal": "Samtidig approve återanvänder korrekt faktura",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Separata produktutgivna godkända testunderlag/fakturor och verkliga transaktioner/replay/rättelser behövs. Undvik experiment på huvudfakturan och fabricerade snapshots.",
+      "smallestNextAction": "På separat verklig draft kör två approve samtidigt; verifiera samma godkända faktura/nummer/immutable snapshot och loser/replayutfall med faktiskt lås/rowcountreadback.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Samtidig approve återanvänder faktura",
+        "minimumNormalPrerequisites": "Egen granskad faktura+korrekta nativebehörigheter",
+        "minimumActualOracle": "Ett godkänt faktura-ID/nummer/snapshot; kontrollerad loser/återanvändning",
+        "historicalComparisonResidual": "Separata produktutgivna godkända testunderlag/fakturor och verkliga transaktioner/replay/rättelser behövs. Undvik experiment på huvudfakturan och fabricerade snapshots.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "BILLNEG01.03",
+      "literal": "Fil-replay ändrar inte frozen rows/body",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Separata produktutgivna godkända testunderlag/fakturor och verkliga transaktioner/replay/rättelser behövs. Undvik experiment på huvudfakturan och fabricerade snapshots.",
+      "smallestNextAction": "Efter faktisk godkänd export upprepa filsteg/GET på samma snapshot; jämför bestående filrow/rowsSHA/bodybytes och inga nya exportitems eller legacyrader.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Fil-replay ändrar inte frozenbody",
+        "minimumNormalPrerequisites": "Egen godkänd fil",
+        "minimumActualOracle": "Oförändrade row/bodySHA och kanonisk filrad vid replay",
+        "historicalComparisonResidual": "Separata produktutgivna godkända testunderlag/fakturor och verkliga transaktioner/replay/rättelser behövs. Undvik experiment på huvudfakturan och fabricerade snapshots.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "BILLNEG01.04",
+      "literal": "Nya mätvärden efter lås ändrar inte godkänd snapshot",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Separata produktutgivna godkända testunderlag/fakturor och verkliga transaktioner/replay/rättelser behövs. Undvik experiment på huvudfakturan och fabricerade snapshots.",
+      "smallestNextAction": "Efter separat verklig invoice/price-lock importera ny legitim mätkälla via normal correctionport; verifiera att gammal godkänd snapshot/fil förblir oförändrad och eventuell ny basis/rättelse hålls separat.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Nya mätvärden efter lås muterar inte snapshot",
+        "minimumNormalPrerequisites": "Låst nyfaktura+supportad normal korrigerings/källinmatning",
+        "minimumActualOracle": "Före/efter frozenSHA/rad-ID oförändrade; nya värden spårbara separat",
+        "historicalComparisonResidual": "Separata produktutgivna godkända testunderlag/fakturor och verkliga transaktioner/replay/rättelser behövs. Undvik experiment på huvudfakturan och fabricerade snapshots.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "BILLNEG01.05",
+      "literal": "Stödd kredit/rättelse behåller spårbar originalreferens",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Separata produktutgivna godkända testunderlag/fakturor och verkliga transaktioner/replay/rättelser behövs. Undvik experiment på huvudfakturan och fabricerade snapshots.",
+      "smallestNextAction": "Kvalificera faktiskt stödd credit/rättelseport och dess originalreferensmodell; kör den på separat egen faktura och återläs spårbar originalinvoice/source. Om stöd saknas dokumentera uttryckligt gap utan att uppfinna creditstatus.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Supportad kredit/rättelse behåller originalreferens",
+        "minimumNormalPrerequisites": "Faktisk supportad normal kredit/rättelseport; annars exakt capabilitygap",
+        "minimumActualOracle": "Native kredit-/rättelse-ID och spårbar nyoriginalfakturareferens, ingen manuellt skapad kredit",
+        "historicalComparisonResidual": "Separata produktutgivna godkända testunderlag/fakturor och verkliga transaktioner/replay/rättelser behövs. Undvik experiment på huvudfakturan och fabricerade snapshots.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "UI01.03",
+      "literal": "Faktura-/filstatus och belopp matchar DB/snapshot",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "UI01.01:s synliga kund/site/avtals-IDkopplingar, UI01.04:s definierade fel→återhämtning och UI01.05:s verkliga bolagsbyte/canonicalorigin är lokalt klara. Mätkälla/Edielstatus och faktisk faktura-/filvy återstår.",
+      "smallestNextAction": "Navigera normalt till den verkliga faktura-/filvyn efter nativegraph; jämför synliga status/belopp/nummer och hämtade filebytes med exakt DB/calculation-snapshot. Tom lista/draftkund är inte fakturafacit.",
+      "availability": [
+        "HISTORICAL_ORIGINAL_COMPARISON_UNAVAILABLE_WHERE_LITERAL_REQUIRES",
+        "NEW_DECLARED_SYNTHETIC_NORMAL_FUNCTIONAL_CHECK_NOT_GLOBALLY_BLOCKED; SEE_FUNCTIONAL_ASSESSMENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "PREPARABLE_NOT_EXECUTED_NOT_OLD_ID_PASS",
+        "check": "Synliga status/belopp matchar ny DB/snapshot",
+        "minimumNormalPrerequisites": "Egen verklig faktura/fil och genuin UI-session",
+        "minimumActualOracle": "Browsersteg/HTTP/synliga värden mot faktiskt native/API/snapshot",
+        "historicalComparisonResidual": "UI01.01:s synliga kund/site/avtals-IDkopplingar, UI01.04:s definierade fel→återhämtning och UI01.05:s verkliga bolagsbyte/canonicalorigin är lokalt klara. Mätkälla/Edielstatus och faktisk faktura-/filvy återstår.",
+        "normativeRule": "New declared fixture is functional evidence only; not substitute/backsolve original28/1809.51 or official rounding/XSD. No central statuschange."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "QA01.04",
+      "literal": "APIkompat/runtimeparity/productionreadiness återknyts till slutcommit",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "blockerClasses": [
+        "c_runtime_env_auth_same_staging",
+        "a_new_declared_fixture_can_provide_functional_evidence",
+        "d_requalify_new_UI_base_after_merge_if_UI_or_release_evidence_used"
+      ],
+      "remainingOriginalOracle": "Paketvisa komponent-/typ-/lintkontroller är inte alla slutgates på integrerad privat runtime. GEN/manifestcustody och exakt tillämpliga slutkontroller kvarstår.",
+      "smallestNextAction": "Bind slutlig verklig source/overlays/migrations/typeepoch; kör föreskrivna APIcompat/runtimeparity/productionreadiness-gates med logg/exit/memoryscope. Ej lika med productionaktivering och kräver ingen signerad kundfixture för rena statiska predicates.",
+      "availability": [
+        "NO_NEW_MISSING_HISTORICAL_ORIGINAL_CLAIM; QUALIFY_OWN_NORMAL_FIXTURE_SOURCE_AND_LITERAL_ACTION"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Gatekommando/exit/logg/commit, orsak baseline kontra ny ändring, faktisk resursgräns.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "QA02.01",
+      "literal": "37 adress/site-fixtures får orsak och korrekt uppdatering utan guardförsvagning",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "blockerClasses": [
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Historisk helsvit25055PASS/2FAIL/4pending exit1 och riktad187/188 exit1 bevaras. Senare gröna totalsiffror överlappar och återställer inte saknad medlemsidentitet för gamla fel/fixtures.",
+      "smallestNextAction": "Återfinn originalfailureJSON med EXAKTA37adress/site-testnamn och lokalt guarddiff; bind originalsource och förklara varje rättning/guard. Nya gröna totalsiffror kan inte identifiera dessa37.",
+      "availability": [
+        "HISTORICAL_MEMBERSHIP_NOT_LOCATED_NOT_USER_CONFIRMED_ABSENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Fulla kommandon/exit/counts/commit och tydlig lista för ej körda/avbrutna filer; ingen summering av överlappande tester.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "QA02.02",
+      "literal": "Två returns-mockfel jämförs med originalanrop",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "blockerClasses": [
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Historisk helsvit25055PASS/2FAIL/4pending exit1 och riktad187/188 exit1 bevaras. Senare gröna totalsiffror överlappar och återställer inte saknad medlemsidentitet för gamla fel/fixtures.",
+      "smallestNextAction": "Återfinn de TVÅ originalreturns-felens namn/stacktraces och exakt dåvarande caller/mockchain; jämför med verkliga originalanrop och verifiera avgränsad rättning. Ersätt inte med två senare fullsuitefel med andra namn.",
+      "availability": [
+        "HISTORICAL_MEMBERSHIP_NOT_LOCATED_NOT_USER_CONFIRMED_ABSENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Fulla kommandon/exit/counts/commit och tydlig lista för ej körda/avbrutna filer; ingen summering av överlappande tester.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "QA02.03",
+      "literal": "Alla1247 filer får faktiskt slutresultat eller tydlig blockerare",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "blockerClasses": [
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Historisk helsvit25055PASS/2FAIL/4pending exit1 och riktad187/188 exit1 bevaras. Senare gröna totalsiffror överlappar och återställer inte saknad medlemsidentitet för gamla fel/fixtures.",
+      "smallestNextAction": "Bind ursprunglig1247fillista och per-fileterminal eller konkret blockerare för varje fil; befintlig1385currentinventory/404historiska namn och aggregate25055/2/4 ersätter inte den okända1247mängden. Inget krav att alla måste vara gröna.",
+      "availability": [
+        "HISTORICAL_MEMBERSHIP_NOT_LOCATED_NOT_USER_CONFIRMED_ABSENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Fulla kommandon/exit/counts/commit och tydlig lista för ej körda/avbrutna filer; ingen summering av överlappande tester.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "QA02.04",
+      "literal": "Minnesfix18 tester inklusive nya sex redovisas utan dubbelräkning",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "blockerClasses": [
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Historisk helsvit25055PASS/2FAIL/4pending exit1 och riktad187/188 exit1 bevaras. Senare gröna totalsiffror överlappar och återställer inte saknad medlemsidentitet för gamla fel/fixtures.",
+      "smallestNextAction": "Återfinn originalmemoryfixdiff+18case-terminalJSON; identifiera exakt12baseline+6nya med names/blob/source och redovisa union/överlapp. Kör inte godtyckliga18nya tester som ersättning.",
+      "availability": [
+        "HISTORICAL_MEMBERSHIP_NOT_LOCATED_NOT_USER_CONFIRMED_ABSENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Fulla kommandon/exit/counts/commit och tydlig lista för ej körda/avbrutna filer; ingen summering av överlappande tester.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    },
+    {
+      "id": "QA02.05",
+      "literal": "Prisfix59 tester och fullrelease binds till rätt slutcommit",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "blockerClasses": [
+        "b_original_or_normative_oracle",
+        "a_new_declared_fixture_can_provide_functional_evidence"
+      ],
+      "remainingOriginalOracle": "Historisk helsvit25055PASS/2FAIL/4pending exit1 och riktad187/188 exit1 bevaras. Senare gröna totalsiffror överlappar och återställer inte saknad medlemsidentitet för gamla fel/fixtures.",
+      "smallestNextAction": "Återfinn ursprunglig59pricingtestlista/terminalJSON och faktisk slutcommit/fullreleasekvittot; bind varje test+ändring till korrekt source, ingen överlappande totalsummering.",
+      "availability": [
+        "HISTORICAL_MEMBERSHIP_NOT_LOCATED_NOT_USER_CONFIRMED_ABSENT"
+      ],
+      "functionalNewFixtureAssessment": {
+        "status": "SEPARATE_NORMAL_PORT_ASSESSMENT_IN_EXISTING_QUEUE",
+        "minimumActualOracle": "Fulla kommandon/exit/counts/commit och tydlig lista för ej körda/avbrutna filer; ingen summering av överlappande tester.",
+        "rule": "Unavailable historicoriginals do not automatically block independent normal behaviors; qualify only literal prerequisites, no inherited global family gate."
+      },
+      "statusNotNeverRunClaim": true
+    }
+  ],
+  "currentRegisterContext": {
+    "entries": 46,
+    "interpretation": "Mixed historical register; source/component fix, deployed fix, false positive, harness defect and unavailable prerequisite are separate states. Do not equate totalEntries or productRelatedEntries with currently open product defects.",
+    "relevantFindings": [
+      {
+        "id": "OWN-STORAGE-VFS-CONSTRUCTOR-COST-OMITTED",
+        "status": "LATE_CREATE_RECONCILED_CLOSED_OLD_RESOURCE_ENVELOPE_NOT_QUALIFIED_LOCAL_PREFLIGHT_PENDING"
+      },
+      {
+        "id": "B-RESTORE-LIST-PREFIX-REGEX-MISMATCH",
+        "status": "FIXED_SOURCE_ONLY_IMMUTABLE_B_RUNTIME_V2_BEFORE_ANY_B_BACKEND"
+      },
+      {
+        "id": "NORMAL_AI_BI_FILE_VERSION_LOOKUP_MISSING_NATIVE_REGISTRY_APIS",
+        "status": "SOURCE_INTERFACE_DIFFERENCE_CONFIRMED_INTENDED_RUNTIME_PATH_NOT_PROVEN"
+      }
+    ]
+  },
+  "postWaitOrder": [
+    "Read the other agent merge outcome and bind exact new source/UI epoch; preserve same existing staging DB, qualify local runtime/package/image/resource facts and genuine current auth. No old cloud epoch or old cookie reuse.",
+    "Finish selected EDIEL02.05 + EDIEL03.01/.02/.03 as one declared batch with independent native/physical oracles; inspect saved current outcomes before any repeat.",
+    "Reuse its legitimate queue/transport fixture for EDIEL03.04/.05 after narrow source/case qualification; separately prepare EDIEL02.01-.04 accepted-source semantics.",
+    "Resolve positive import and eligible pricing/supply graph, then normal UNDERLAY → prepare/approve → export/replay/negative/custody/delivery/UI vertical batch. Keep historical28/1809.51 oracle residual explicit.",
+    "Run site/contract/termination vertical cases only after actual normal catalog publication + canonical customer/sites/contracts/CPS.",
+    "Run QA01.04 on final epoch; hold nine UNAVAILABLE_ORIGINAL until actual original/normative evidence exists."
+  ],
+  "parallelLanes": [
+    {
+      "lane": "A single runtime producer",
+      "scope": "One shared staging/runtime/Auth mutation owner; selected transport/queue batch first."
+    },
+    {
+      "lane": "B source/oracle review",
+      "scope": "Independent finite case/oracle/readset reviews on frozen sources; no second runtime producer."
+    },
+    {
+      "lane": "C missing-input collection",
+      "scope": "Obtain original28/facit/schema/rounding/provider receipt and original QA02 ID membership, without substituting fixtures."
+    },
+    {
+      "lane": "D merged UI/source qualification",
+      "scope": "After other agent merge, compare normal route/component contracts and qualify new base; no parallel hotpatch or UI PASS from old base."
+    }
+  ],
+  "MacEarlier20_85Matrix": {
+    "availableHere": false,
+    "combinedOrSubstituted": false,
+    "requiredBeforeComparison": "Exact per-ID mapping, original oracle, evidence provenance and source/runtime epoch."
+  },
+  "actions": "Read existing ledger/register only; own JSON/Markdown writes. No tests, app/browser/Docker/SQL/network/Git writes."
+}

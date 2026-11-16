@@ -1,0 +1,24 @@
+{
+  "state": "FINAL_EXACT_TWO_LOCAL_AUDIT_DOCS_GIT_BYTE_REBIND_APPROVE",
+  "at": "2026-11-14T23:16:46.100723+00:00",
+  "head": "013cb85de109829cd50f6b2494a8b47709df704f",
+  "tree": "0db135cacb9efab652e71e411282ef2970655535",
+  "freezeSHA256": "0415488550c94c1513b362154c2464382a68561606099aa0f8c357c6f4d5ac97",
+  "exactFiles": [
+    {
+      "path": "/tmp/gridex-custody-native-ui-outcomes-20261114/quality/audits/gridex-custody-native-ui-outcomes-20261114/REPORT.sv.md",
+      "sha256": "29845c61acef0d612be7bc0f283e39a478384a6656121db69446ca21100becf4",
+      "bytes": 7397
+    },
+    {
+      "path": "/tmp/gridex-custody-native-ui-outcomes-20261114/quality/audits/gridex-custody-native-ui-outcomes-20261114/results.safe.json",
+      "sha256": "cb11775f1a96d9314336947a890b8ddc5fd6dd153cacf201559f7fc33c7d63bb",
+      "bytes": 22630
+    }
+  ],
+  "clean": true,
+  "privateFactsApproved": "0f3dcc93ef64a690fa7248b520d6d879a15314b2cdbed18a1c4519a7d6c9042d",
+  "publicationOnlyPeer": "8f92dc17eb2298ff3fb53c4b9b4c11190b19f793a40303ae644115f118df2c6b",
+  "noAdditionalNativeOrScenarioCredit": true,
+  "noPushOrMainMerge": true
+}

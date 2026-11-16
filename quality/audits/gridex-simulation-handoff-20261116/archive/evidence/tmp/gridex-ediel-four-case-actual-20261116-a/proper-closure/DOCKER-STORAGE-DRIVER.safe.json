@@ -1,0 +1,7 @@
+{
+  "state": "READONLY_DOCKER_STORAGE_DRIVER_FACT",
+  "observedAtEpoch": 1794815503.0426745,
+  "exitCode": 0,
+  "stdout": "\"vfs\"\n",
+  "stderr": ""
+}

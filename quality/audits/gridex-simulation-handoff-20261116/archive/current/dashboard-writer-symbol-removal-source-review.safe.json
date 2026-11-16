@@ -1,0 +1,12 @@
+{
+  "state": "ROOT_BOUNDED_SYMBOL_ONLY_REMOVAL_PROPOSAL_SOURCE_REVIEW",
+  "observedAt": "2026-11-14T15:31:45.893424+00:00",
+  "freezePath": "/tmp/gridex-deadcode-dashboard-writer-followup-20261114/FROZEN.safe.json",
+  "freezeSHA256": "437a4a2efe475a71241e348e2b4907a3993456b50ae15147d168482042c0053f",
+  "proposedPatchSHA256": "9cf48a7319c17faeb22ef26ff137285fd2cc182f746719cb89562467ae8ac7a5",
+  "review": "Read exact writer/module/shared builder, named source-search outputs, selected live reader/cron and test reference. Proposed removal deletes only unused TS export and upsert block, retains shared imports/builder and historical SQL. Source reachability bounded to named current application; no external universal absence or table-drop authority.",
+  "recommendation": "Proceed disjoint reviewable source edit under repo workflow; bind fresh base/head/hash and check existing relevant regression in safe resource window. Do not edit active source40/64/67 or adopt runtime.",
+  "sourceDeletionNotYetPerformed": true,
+  "backendCalls": 0,
+  "ledgerCountsUnchanged": true
+}

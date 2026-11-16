@@ -1,0 +1,10 @@
+{
+  "state": "ROOT_EXACT_SCOPE_ACK",
+  "planSha256": "e90a93660f681769f5047d950009b4171c8440d60118ea06d1f4a8787d3b995c",
+  "wrapperSha256": "8b6a736c8e33ee7b1e443692935c52e9e53c6edab3c2cef198e7566228ada4b3",
+  "nodeSha256": "0a93c13390eac3cabc7855d00a7933d2c6c5d5edc9db144b52c7d087009d2551",
+  "boundFilesVerified": 19,
+  "pid": 862134,
+  "secondReview": "2b9edfe3a492a2e219d3f3155c6d89381f3cbcc11bebf4a875c49ca94e0ac2df",
+  "authorization": "Sole producer may persist arming on behalf of ROOT and execute exactly once. Actual guard stack plus unchanged 522 scopes required for proof; no credit for HTTP status alone."
+}

@@ -1,0 +1,1232 @@
+{
+  "state": "BOUNDED_CLOSED_ORIGINALS_AUTH0101_AUTH0103_ASSEMBLED_AWAIT_ROOT_INDEPENDENT_ACTUAL_LITERAL_REVIEW",
+  "atUTC": "2026-11-13T16:24:27.986554+00:00",
+  "assembler": "review_plan_domain_not_runtime_executor",
+  "noNewRuntimeOrProofReplay": true,
+  "caseIds": [
+    "AUTH01.01",
+    "AUTH01.03"
+  ],
+  "genuineActor": {
+    "userId": "6b82ccfc-dac2-46c4-8934-26dc89c11118",
+    "ownCompanyId": "2d50ff27-7e67-4641-bf26-042ca586225b",
+    "foreignCompanyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+    "freshNormalSignupVisibleVerifyThenNormalStaffInviteAccept": true,
+    "platformAdmin": false,
+    "canonicalPermissionsCount": 35,
+    "noPerUserGrants": true,
+    "prerequisiteBundleSHA256": "5a74152252b59844232afbd1e3e6fb953f191a2182e03f181ab2153d3bb7d26b",
+    "priorIndependentDomainProofSHA256": "ce1b3dd2ee776e4eaeb0bd76b91fbc5ed10f65023b29cf3270103eb69d46493e"
+  },
+  "source": {
+    "codeManifestPath": "/workspace/gridex-signup-runtime-adoption-20261113/source-thirty-eight.safe.json",
+    "codeManifestSHA256": "7532e85856116daa22981bb6612adbbeaaea462f4431bd8e1ad6e0d11faf8869",
+    "overlayCount": 38,
+    "noCompositeGitHeadClaim": true,
+    "copyTimeTemplateEnvFalseIsHistoricalNotCurrentAuthConfig": true
+  },
+  "own": {
+    "customerId": "85bbc16f-327d-4e79-be58-1ec50e0e2a3e",
+    "firstSiteId": "472dc4bc-e687-4b06-a7a3-e64916e36177",
+    "secondSiteId": "3164acf5-8a48-46be-8f56-39bade0c2e84",
+    "normalCreatesHTTP": [
+      200,
+      200
+    ],
+    "businessPOSTs": 2,
+    "firstCreateKnownOneCustomerOneDraftSite": true,
+    "firstColdReadHarnessTimeoutMs": 45000,
+    "sameServerReadCompleted200Ms": 58000,
+    "sameNextCompileMs": 51000,
+    "laterWarmOwnUIHTTP": [
+      200,
+      200
+    ],
+    "genuineOwnClientHTTP": 200,
+    "ownCustomerCount": 1,
+    "ownSiteCount": 2,
+    "allOtherGlobalCustomersAndOldSitesIncludingS1Preserved": true,
+    "noContractCustomerAuthOrMarketIdentifiers": true,
+    "siteIsActiveActualTrueDoesNotMeanBillableOrAccepted": true,
+    "normalLogoutsAndBrowserClose": true
+  },
+  "foreignRead": {
+    "originalShellHTTP": 200,
+    "actualNativeRSCNotFoundDigest": "NEXT_HTTP_ERROR_FALLBACK;404",
+    "actualCustomerWorkspaceLayoutGuard": true,
+    "authenticatedForeignClientData": null,
+    "sameSessionOwnClientPositiveHTTP": 200,
+    "knownRawPrivateADataAbsent": true,
+    "full522ReadWindowBytesEqual": true,
+    "oldWritePOSTs": 0,
+    "originalHarnessStatusStopRetained": true
+  },
+  "foreignWrite": {
+    "normalAction": "add_site_to_existing",
+    "actualExistingForeignCustomerId": "5a140863-089c-493b-9e5a-24a7170d3fc2",
+    "businessPOSTs": 1,
+    "actualRSCActionHTTP": 200,
+    "visibleAndResponseMarker": "selected_customer_not_found_for_tenant",
+    "nativeSourceSqlstate": "P0002",
+    "nativeSourceBodyMD5": "24f5c95224de6a75cd9e42537f1029b3",
+    "rawGlobalCustomersSitesAndOwnForeignRowsEqual": true,
+    "onlyChanged522Scope": "public.customer_application_intakes",
+    "otherScopesUnchanged": 521,
+    "oneNewLocalRefusal": {
+      "id": "363e4692-0f55-4df6-8481-7297cfdd43a4",
+      "companyId": "2d50ff27-7e67-4641-bf26-042ca586225b",
+      "customerId": null,
+      "status": "failed",
+      "correlationReference": "a5bbb259-352a-4927-ad57-d74c85a265fa",
+      "storedPayloadHashIndependentlyVerified": true,
+      "allOldIntakeRowsResidualEqual": true,
+      "noActorColumnInvented": true,
+      "actorBinding": "ActualgenuineBgetUser/canonical/privatebrowsercookies/normalFormData+durableintent and productserverderivedactor; notdirectrefusalrowactorfield"
+    },
+    "normalLogout303BrowserClosed": true
+  },
+  "domainLiteralAdjudication": {
+    "AUTH01.01": "MET_NORMAL_OWN_READ_AND_ALLOWED_ACTION",
+    "AUTH01.03": "MET_SEMANTIC_FOREIGN_READ_DENIAL_AND_SPECIFIC_NATIVE_FOREIGN_WRITE_DENIAL_WITH_PROTECTED_STATE",
+    "wireHTTP403404NotExtraOracle": "OriginalrequiredReceipt acceptsactualHTTP/DBdenial; no fixed403/404wirecode specified. Original105oracles untouched."
+  },
+  "limits": [
+    "Fullphaseoriginals retained: firstP-vsDIV0intent/0POST, firstcold45sownGETtimeoutafterknowncommit, firststreamed404HTTP200shellstop0write, firstdisclosurehydrationstop0intent/0write. No businessmutation repeated.",
+    "Multiple genuine normalpasswordsessions ofsameBUID; neverrawcookie/JWT, platformflags, membershipacceptance orpermissionseeds. ExistingisolatedsyntheticA/Bfixtures reused, notclaimed newlycreatedinthesephases.",
+    "522windows are business/read action windows afterlogin and beforefinalnormalLogouts; no postlogoutglobalzero claim.",
+    "ForeignrefusalhasonefailedBintakerow/521equal, notblanket522zero. Refusalrow hasnoactorcolumn; exactmarker/correlation/normalrequest+canonical/source bind actor.",
+    "Draftsites are notinvoice/signature/acceptedmarket/billability evidence; noSITE/TERM/API/worker/MagicLink/fullcampaigncredit.",
+    "Codeepoch38 only; laterpricearea/sourcecopies orAuthmaintenance mustnotrelabelclosedsource38calls. Maintenance liveapp/wrapperlogs excluded.",
+    "Assemblerperformed noHTTP/DB/browser/provider/sourceproductwrites anddoesnotself-certifyitsownruntime; ROOTsecondactual/literalreview requiredbeforecentralcredit."
+  ],
+  "originals": [
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/actual-B-canonical-context.private.json",
+      "sha256": "7ced8bea8d931085fbb510c6d0b956621dc2e0c50474de3d3d13dbc18abc9e7b",
+      "bytes": 7401,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/before-query.private.sql",
+      "sha256": "d8d2d70ca4da3ddbc07f733a55a3c31b9b050eea0d9611b05ebcd2ad8cbe4f6b",
+      "bytes": 1058,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/before-readback.private.json",
+      "sha256": "ae57d170c6754f471a595109e234ffd7e1061f194d3e2a610d14411780736537",
+      "bytes": 239,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/before-readback.safe.json",
+      "sha256": "e101a7c1174a288cbb0b39b9ab93775b9ea28285593c4573c1b039827a59e57a",
+      "bytes": 202,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/before-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/create-once.cjs",
+      "sha256": "0fc56c67b1d9ff54202b0f817d26595755fa1746acedaeddfe93a3da138ffdc6",
+      "bytes": 8964,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/create.safe.json",
+      "sha256": "6c71f6b749f99847838b9a5d70b7a53edbe4661de27963597f35c0ae09ad0fec",
+      "bytes": 543,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/driver.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/driver.stdout.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/error-create-522.safe.json",
+      "sha256": "d11d5627c76aa0dcc9817e10eae74442c3b49579a27bae64cd7bd021ae6fa3ed",
+      "bytes": 55514,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/error-page.private.html",
+      "sha256": "58b8a106201a2c957d0911a1fc75e7a5ddd7f1749aa953294b79fee3291dd115",
+      "bytes": 93519,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/error-query.private.sql",
+      "sha256": "d8d2d70ca4da3ddbc07f733a55a3c31b9b050eea0d9611b05ebcd2ad8cbe4f6b",
+      "bytes": 1058,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/error-readback.private.json",
+      "sha256": "ae57d170c6754f471a595109e234ffd7e1061f194d3e2a610d14411780736537",
+      "bytes": 239,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/error-readback.safe.json",
+      "sha256": "99bfe886ab85486b191676892485feaeac61a69c25c662312abe3420039aa90d",
+      "bytes": 201,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/error-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/error.private.log",
+      "sha256": "a018ef86f8ff1b13f3c7f4499f9a77ffb5c24a5ed9a144e1d600fe7ae0bb4aa1",
+      "bytes": 210,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/input.private.json",
+      "sha256": "c52eb49926366b6fc2adc3fe86be82abe4ed515e9cc2e6509ca6787810a8b2bf",
+      "bytes": 1032,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/readback.py",
+      "sha256": "ebe2dbad1acd3abd62fc52d0bf7a0766c7303d588d8e9fd0a5334697abf4efc4",
+      "bytes": 2252,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/root-normal-create-authorization.safe.json",
+      "sha256": "e5872832daa3e9a6c26b3b318bab7a6aa103760872f7534f7ef379e5fcf32b5f",
+      "bytes": 282,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/rows-reader.py",
+      "sha256": "ebb9cc38fcd644c8418f3fedaf14300761df7f33cc8edb911945dfc1ef0ea55b",
+      "bytes": 1086,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-runtime-20261113/snapshot-522.py",
+      "sha256": "d72ac6121ea0d207bcbb54791ccbc6e3ea2a8090939317f98deba027caf6f9a5",
+      "bytes": 905,
+      "phase": "ownPreIntentStop"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/actual-B-canonical-context.private.json",
+      "sha256": "7ced8bea8d931085fbb510c6d0b956621dc2e0c50474de3d3d13dbc18abc9e7b",
+      "bytes": 7401,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/actual-own-B-customer-client-read.private.json",
+      "sha256": "3da129ca763cbcb9cf167fd22fb18b4c766b44f56b0e2e8709b4a25fd009181b",
+      "bytes": 283,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/after-create-522.safe.json",
+      "sha256": "e9d1a4098f0dee79594b48fca2b95e981938f2160eb8c853495b602f16b1c507",
+      "bytes": 55516,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/after-query.private.sql",
+      "sha256": "d8d2d70ca4da3ddbc07f733a55a3c31b9b050eea0d9611b05ebcd2ad8cbe4f6b",
+      "bytes": 1058,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/after-readback.private.json",
+      "sha256": "8d684293b1fa7b311276dbddd3eef2f7d1cc5713a53d557a6fda0b494ee650af",
+      "bytes": 5622,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/after-readback.safe.json",
+      "sha256": "03448ac5f4baf9880c8c712a98a849f56c1e1d61d36d614b23832942bfba457a",
+      "bytes": 201,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/after-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/app-log-after-own-customer-timeout-captured-prefix.private.log",
+      "sha256": "5678bd3c3cc3fab58a3089094015fd142bc0940aee7a2d954aa6fcd34b053110",
+      "bytes": 7361,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/before-create-522.safe.json",
+      "sha256": "3c281d8f7e34890c3bda766cad6a2045a4f6265590a9b91ccb330c6bf5442d74",
+      "bytes": 55514,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/before-query.private.sql",
+      "sha256": "d8d2d70ca4da3ddbc07f733a55a3c31b9b050eea0d9611b05ebcd2ad8cbe4f6b",
+      "bytes": 1058,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/before-readback.private.json",
+      "sha256": "ae57d170c6754f471a595109e234ffd7e1061f194d3e2a610d14411780736537",
+      "bytes": 239,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/before-readback.safe.json",
+      "sha256": "e101a7c1174a288cbb0b39b9ab93775b9ea28285593c4573c1b039827a59e57a",
+      "bytes": 202,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/before-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/continuation-qualification.safe.json",
+      "sha256": "7c920f5447a0ddd1b69f789623898a54297726468cfb3e952a7e063e52236d97",
+      "bytes": 638,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/create-intent.safe.json",
+      "sha256": "0592b5806b4b66868d333589558c862606f1ff52c379f603b74fb08b168b1f3c",
+      "bytes": 357,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/create-once.cjs",
+      "sha256": "921ddf3bfdb17d8ec727bd7513d1aaca24888ff1a2410dc7c261d01c70865103",
+      "bytes": 9013,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/create.safe.json",
+      "sha256": "02452ab0a8fb65bfb6054fb48ef825e77b13b78c16f47839de5cf361479598af",
+      "bytes": 1258,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/driver.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/driver.stdout.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/error-create-522.safe.json",
+      "sha256": "e9d1a4098f0dee79594b48fca2b95e981938f2160eb8c853495b602f16b1c507",
+      "bytes": 55516,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/error-query.private.sql",
+      "sha256": "d8d2d70ca4da3ddbc07f733a55a3c31b9b050eea0d9611b05ebcd2ad8cbe4f6b",
+      "bytes": 1058,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/error-readback.private.json",
+      "sha256": "8d684293b1fa7b311276dbddd3eef2f7d1cc5713a53d557a6fda0b494ee650af",
+      "bytes": 5622,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/error-readback.safe.json",
+      "sha256": "a6ca9aad62e4d3e4bb508f3410b7267a71a3d34e8e0caba32d604446c168ea40",
+      "bytes": 201,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/error-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/error.private.log",
+      "sha256": "c056c7e3378e33357853fdf9e1d68467f27de13d45db2d54860ef6f053172c34",
+      "bytes": 269,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/input.private.json",
+      "sha256": "c52eb49926366b6fc2adc3fe86be82abe4ed515e9cc2e6509ca6787810a8b2bf",
+      "bytes": 1032,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/known-created-ids.safe.json",
+      "sha256": "5c5325f6d9cf436af3c6ab4fbaa7a6eaeb89d3fb26d56129899100c10a00e765",
+      "bytes": 320,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/normal-formdata.private.json",
+      "sha256": "afd62223ef72e47457d318bd2619e39a1400834e61267ad031f2d0d2a126eae6",
+      "bytes": 3499,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/pre-submit-query.private.sql",
+      "sha256": "d8d2d70ca4da3ddbc07f733a55a3c31b9b050eea0d9611b05ebcd2ad8cbe4f6b",
+      "bytes": 1058,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/pre-submit-readback.private.json",
+      "sha256": "ae57d170c6754f471a595109e234ffd7e1061f194d3e2a610d14411780736537",
+      "bytes": 239,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/pre-submit-readback.safe.json",
+      "sha256": "1883ba2884b25d4b45972ebc28556a35b416d0b5b57d2f33f146164b0cca598b",
+      "bytes": 206,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/pre-submit-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/readback.py",
+      "sha256": "ebe2dbad1acd3abd62fc52d0bf7a0766c7303d588d8e9fd0a5334697abf4efc4",
+      "bytes": 2252,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/root-normal-create-authorization.safe.json",
+      "sha256": "e5872832daa3e9a6c26b3b318bab7a6aa103760872f7534f7ef379e5fcf32b5f",
+      "bytes": 282,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/rows-reader.py",
+      "sha256": "ebb9cc38fcd644c8418f3fedaf14300761df7f33cc8edb911945dfc1ef0ea55b",
+      "bytes": 1086,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-own-customer-site-continuation-20261113/snapshot-522.py",
+      "sha256": "d72ac6121ea0d207bcbb54791ccbc6e3ea2a8090939317f98deba027caf6f9a5",
+      "bytes": 905,
+      "phase": "ownCreateKnownCommit"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/actual-B-canonical-context.private.json",
+      "sha256": "7ced8bea8d931085fbb510c6d0b956621dc2e0c50474de3d3d13dbc18abc9e7b",
+      "bytes": 7401,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/actual-own-B-customer-client-read.private.json",
+      "sha256": "3da129ca763cbcb9cf167fd22fb18b4c766b44f56b0e2e8709b4a25fd009181b",
+      "bytes": 283,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/add-site-once.cjs",
+      "sha256": "b5678a7c09a3a6aefe9bdb16dfccfec5d28087b7a71a09803700d3a6419c5cc2",
+      "bytes": 10085,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/after-create-522.safe.json",
+      "sha256": "87bcc2d8a4b52a330ba1b925ff47d757cd8af35c498266f39c7fe87568b7bd70",
+      "bytes": 55516,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/after-query.private.sql",
+      "sha256": "3e81a31e3e3a3932a957cda1813c7d8e4e43f5b48ea11bda979bc84eb2b8b9b4",
+      "bytes": 1210,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/after-readback.private.json",
+      "sha256": "0b13bab36a72203584785cb02b153d0b437f7f51bbeee19fa6781b92e93b1b00",
+      "bytes": 11422,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/after-readback.safe.json",
+      "sha256": "389634603eb242d118b1c7b09e65091c5447e470b53ead30ec365a3addd03eb0",
+      "bytes": 201,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/after-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/before-create-522.safe.json",
+      "sha256": "2b7e8a07b6f41cc08c76ad1d335802cd66e4f32d43a815946cfaccf9258bc01b",
+      "bytes": 55516,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/before-query.private.sql",
+      "sha256": "3e81a31e3e3a3932a957cda1813c7d8e4e43f5b48ea11bda979bc84eb2b8b9b4",
+      "bytes": 1210,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/before-readback.private.json",
+      "sha256": "382d2abcd397036b2ff0ca2cd648e5addfc84e6aec885e7bf014378c5e4f1e85",
+      "bytes": 5638,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/before-readback.safe.json",
+      "sha256": "029930978d90f9782a76a64aab1d4ecdff0b6e8a81aff7595b1da062ebafccc8",
+      "bytes": 202,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/before-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/create-intent.safe.json",
+      "sha256": "3f5dbde2f217a3e1e4235b6167835786d6847ffa27944b3b388518affb2c5f06",
+      "bytes": 437,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/create.safe.json",
+      "sha256": "9ca313d4e679daed013e610413e22f0c77143d0b7ea5a77fe45a53f91dca70f5",
+      "bytes": 1216,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/driver.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/driver.stdout.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/input.private.json",
+      "sha256": "2dfb730fc6dbcf2cde8d8526738710018c531de8a3b3f1352ce5d16019a3375d",
+      "bytes": 1160,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/known-created-ids.safe.json",
+      "sha256": "c48739d2f93c42e5dca9cdeef5216baff35eba95fd9fe4ce206f8ef1978697d9",
+      "bytes": 320,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/normal-formdata.private.json",
+      "sha256": "a397caa73a39638b92202608d7cbefbc5bf7cc7bfe35440aa9fea13861b272ce",
+      "bytes": 3537,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/own-B-customer-page.private.html",
+      "sha256": "e332c388ea34238fdc584a0f10a14d246f3489ee06b388b2eceaae9212775848",
+      "bytes": 75529,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/own-ui-delivered-data-qualification.safe.json",
+      "sha256": "57c6a5a210817cc6120a846e6351b8b4ce8b9eaffbcde594451c12a68bb8a807",
+      "bytes": 897,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/pre-submit-query.private.sql",
+      "sha256": "3e81a31e3e3a3932a957cda1813c7d8e4e43f5b48ea11bda979bc84eb2b8b9b4",
+      "bytes": 1210,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/pre-submit-readback.private.json",
+      "sha256": "382d2abcd397036b2ff0ca2cd648e5addfc84e6aec885e7bf014378c5e4f1e85",
+      "bytes": 5638,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/pre-submit-readback.safe.json",
+      "sha256": "965f69c817be74151777d3859d5542b8c9753edf459f1dc0c068000a0ce2b7b8",
+      "bytes": 206,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/pre-submit-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/readback.py",
+      "sha256": "60ebd0d12f15665a408c064012805f850b0377ab9145bb861aa5306cdf67b517",
+      "bytes": 2418,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/root-normal-add-site-authorization.safe.json",
+      "sha256": "c35f6104d5bf9f15f5c7e4369cac7ed8552ba562ac9c6da4a9419e136669cf66",
+      "bytes": 206,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/rows-reader.py",
+      "sha256": "ebb9cc38fcd644c8418f3fedaf14300761df7f33cc8edb911945dfc1ef0ea55b",
+      "bytes": 1086,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/snapshot-522.py",
+      "sha256": "d72ac6121ea0d207bcbb54791ccbc6e3ea2a8090939317f98deba027caf6f9a5",
+      "bytes": 905,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/warm-own-B-customer-page.private.html",
+      "sha256": "7ec37c7a5b5e7033950f62794f2555fbd78f75ba93930bdc8f400b60abe65c37",
+      "bytes": 74417,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-second-site-runtime-20261113/warm-read-qualification.safe.json",
+      "sha256": "ee5c985a4089b2aec8adf6e058393355ce2655a2130fc04eb07ca21ae735464c",
+      "bytes": 478,
+      "phase": "ownSecondSiteAndWarmRead"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/actual-B-canonical-context.private.json",
+      "sha256": "7ced8bea8d931085fbb510c6d0b956621dc2e0c50474de3d3d13dbc18abc9e7b",
+      "bytes": 7401,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/actual-foreign-A-client-read.private.json",
+      "sha256": "4b97bd522f89aa21912e22ea9b1c9a8c0cb70222475c8360b8398b22a2329a66",
+      "bytes": 110,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/actual-foreign-A-page.private.html",
+      "sha256": "679092bbd66a69b24b75d8e343c6954b61747853d06689e7217690f49c7aed25",
+      "bytes": 52968,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/actual-own-B-positive-client-read.private.json",
+      "sha256": "3da129ca763cbcb9cf167fd22fb18b4c766b44f56b0e2e8709b4a25fd009181b",
+      "bytes": 283,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/before-query.private.sql",
+      "sha256": "5dea40b022a65c6f25da551355e77746cdd4a33a4d99fec474bb6bf6b8e538ac",
+      "bytes": 740,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/before-read-522.safe.json",
+      "sha256": "ef3e605fa08039becf9d762b568e874f6a403c9f85380fd5d689154a9bbc6da4",
+      "bytes": 55516,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/before-readback.private.json",
+      "sha256": "001dd3143c2eb8a73fd9aa8897163ef51dbc3224476b7e41df8a05cc658b83b9",
+      "bytes": 13769,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/before-readback.safe.json",
+      "sha256": "4026cca6093d865294d89a4cde36ffdc21fe17a76ff366291a6a17ab633072fe",
+      "bytes": 311,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/before-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/driver.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/driver.stdout.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/error-create-522.safe.json",
+      "sha256": "ef3e605fa08039becf9d762b568e874f6a403c9f85380fd5d689154a9bbc6da4",
+      "bytes": 55516,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/error-page.private.html",
+      "sha256": "679092bbd66a69b24b75d8e343c6954b61747853d06689e7217690f49c7aed25",
+      "bytes": 52968,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/error-query.private.sql",
+      "sha256": "5dea40b022a65c6f25da551355e77746cdd4a33a4d99fec474bb6bf6b8e538ac",
+      "bytes": 740,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/error-readback.private.json",
+      "sha256": "001dd3143c2eb8a73fd9aa8897163ef51dbc3224476b7e41df8a05cc658b83b9",
+      "bytes": 13769,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/error-readback.safe.json",
+      "sha256": "5d9e53e2572bafb58243866821174499f240624a5935d6d71ec48bf57d84a80c",
+      "bytes": 310,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/error-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/error.private.log",
+      "sha256": "d05a7027e4113d391b7022967253ca138065eb6a5983fe4b19d1bd3867c7f2cd",
+      "bytes": 231,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/foreign-negative.safe.json",
+      "sha256": "7d858916b030a0a6a51d9ecc17c673de1e2f39ac53fc42d4899a45fa524d10b6",
+      "bytes": 591,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/foreign-once.cjs",
+      "sha256": "046bc4e6aec86995eeeebbd31217afcdcdd2ce178b30fbf7255993794a6cd602",
+      "bytes": 11277,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/input.private.json",
+      "sha256": "4471165ec3703d6ee4c000277618e1cf86684995bf4768c54080f25023edbe38",
+      "bytes": 1288,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/readback.py",
+      "sha256": "46da89368114a39b6f3bdc1edd3014fd9a3ba955a86982137276c86b5081d1e9",
+      "bytes": 2051,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/root-normal-foreign-authorization.safe.json",
+      "sha256": "0865a2e6b863d46c885a43b048237e7212b8ca555012f67cbe90a054d5be20f3",
+      "bytes": 369,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/rows-reader.py",
+      "sha256": "ebb9cc38fcd644c8418f3fedaf14300761df7f33cc8edb911945dfc1ef0ea55b",
+      "bytes": 1086,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/same-capture-streamed-notfound-qualification.safe.json",
+      "sha256": "07dc8292462687a8e3a456f1c9e4a0680ff3df113692dc01db281ada4f5b3bf7",
+      "bytes": 895,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/scope-denial-source-qualification.safe.json",
+      "sha256": "d1bbc8e1ef1805ac0cdc621f3fe30473011a60ecd36cecc014eb1cffbafcc8d5",
+      "bytes": 471,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-negative-runtime-20261113/snapshot-522.py",
+      "sha256": "d72ac6121ea0d207bcbb54791ccbc6e3ea2a8090939317f98deba027caf6f9a5",
+      "bytes": 905,
+      "phase": "foreignReadSameCapture"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/actual-B-canonical-context.private.json",
+      "sha256": "7ced8bea8d931085fbb510c6d0b956621dc2e0c50474de3d3d13dbc18abc9e7b",
+      "bytes": 7401,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/before-query.private.sql",
+      "sha256": "5dea40b022a65c6f25da551355e77746cdd4a33a4d99fec474bb6bf6b8e538ac",
+      "bytes": 740,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/before-readback.private.json",
+      "sha256": "001dd3143c2eb8a73fd9aa8897163ef51dbc3224476b7e41df8a05cc658b83b9",
+      "bytes": 13769,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/before-readback.safe.json",
+      "sha256": "4026cca6093d865294d89a4cde36ffdc21fe17a76ff366291a6a17ab633072fe",
+      "bytes": 311,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/before-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/continuation-qualification.safe.json",
+      "sha256": "faba31086f8e232573912f78ace7d492cedaa6dcbba5f3db85e77aa839bb3880",
+      "bytes": 470,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/current-session-own-B-positive-client-read.private.json",
+      "sha256": "3da129ca763cbcb9cf167fd22fb18b4c766b44f56b0e2e8709b4a25fd009181b",
+      "bytes": 283,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/driver.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/driver.stdout.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/error-create-522.safe.json",
+      "sha256": "f6ecbffd658006ab549c135984ad5a093c172a7e4465b6f660d90f61c008643b",
+      "bytes": 55516,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/error-page.private.html",
+      "sha256": "badc1cf9528a7feab407387de0ccc3b04ae528b8f71f9f292dd789cb1aa64a95",
+      "bytes": 93643,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/error-query.private.sql",
+      "sha256": "5dea40b022a65c6f25da551355e77746cdd4a33a4d99fec474bb6bf6b8e538ac",
+      "bytes": 740,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/error-readback.private.json",
+      "sha256": "001dd3143c2eb8a73fd9aa8897163ef51dbc3224476b7e41df8a05cc658b83b9",
+      "bytes": 13769,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/error-readback.safe.json",
+      "sha256": "5d9e53e2572bafb58243866821174499f240624a5935d6d71ec48bf57d84a80c",
+      "bytes": 310,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/error-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/error.private.log",
+      "sha256": "81c997a32c37d453d92eecf92693fecee58b114d69197adbb4c86cd99bc3bf99",
+      "bytes": 231,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/foreign-negative.safe.json",
+      "sha256": "b976e57ac78ee56549f0e8e8baac83245371264a85ec28dbd2dc34b7e2de9d69",
+      "bytes": 597,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/foreign-write-once.cjs",
+      "sha256": "21ac02eca6733099dd4ae0391078d721f785cdda922b2b00a8dd7dcdf7d16545",
+      "bytes": 10644,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/input.private.json",
+      "sha256": "4471165ec3703d6ee4c000277618e1cf86684995bf4768c54080f25023edbe38",
+      "bytes": 1288,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/readback.py",
+      "sha256": "46da89368114a39b6f3bdc1edd3014fd9a3ba955a86982137276c86b5081d1e9",
+      "bytes": 2051,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/root-normal-foreign-authorization.safe.json",
+      "sha256": "0865a2e6b863d46c885a43b048237e7212b8ca555012f67cbe90a054d5be20f3",
+      "bytes": 369,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/rows-reader.py",
+      "sha256": "ebb9cc38fcd644c8418f3fedaf14300761df7f33cc8edb911945dfc1ef0ea55b",
+      "bytes": 1086,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/same-capture-streamed-notfound-qualification.safe.json",
+      "sha256": "07dc8292462687a8e3a456f1c9e4a0680ff3df113692dc01db281ada4f5b3bf7",
+      "bytes": 895,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/scope-denial-source-qualification.safe.json",
+      "sha256": "d1bbc8e1ef1805ac0cdc621f3fe30473011a60ecd36cecc014eb1cffbafcc8d5",
+      "bytes": 471,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-continuation-20261113/snapshot-522.py",
+      "sha256": "d72ac6121ea0d207bcbb54791ccbc6e3ea2a8090939317f98deba027caf6f9a5",
+      "bytes": 905,
+      "phase": "foreignPreIntentDisclosureStop"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/actual-B-canonical-context.private.json",
+      "sha256": "7ced8bea8d931085fbb510c6d0b956621dc2e0c50474de3d3d13dbc18abc9e7b",
+      "bytes": 7401,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/actual-foreign-action-response.private.txt",
+      "sha256": "49514b5d90edf7acaf753130c15e2698dbef153f41f37c5bd788b11789468b4e",
+      "bytes": 1769,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/actual-foreign-denial-form.private.html",
+      "sha256": "43d47db2d5b8cdcb3bf52fd6cf685355d86e087cb971e19311a4e5840d27f7a5",
+      "bytes": 94329,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/after-create-522.safe.json",
+      "sha256": "e909fa9afb96557c9667a2d598217f274093d8edb561aa08fe08cb5c4e239dcc",
+      "bytes": 55516,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/after-query.private.sql",
+      "sha256": "5dea40b022a65c6f25da551355e77746cdd4a33a4d99fec474bb6bf6b8e538ac",
+      "bytes": 740,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/after-readback.private.json",
+      "sha256": "001dd3143c2eb8a73fd9aa8897163ef51dbc3224476b7e41df8a05cc658b83b9",
+      "bytes": 13769,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/after-readback.safe.json",
+      "sha256": "d2e776dc3f651e2b8e87ad545502cad36c1ef97bd8b8309043ed19fc7502f58b",
+      "bytes": 310,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/after-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/before-create-522.safe.json",
+      "sha256": "c9ec3e52354f8cfd06e8c4bc24880e8aba19db3341d19fcbf0122a9bc0457653",
+      "bytes": 55516,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/before-query.private.sql",
+      "sha256": "5dea40b022a65c6f25da551355e77746cdd4a33a4d99fec474bb6bf6b8e538ac",
+      "bytes": 740,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/before-readback.private.json",
+      "sha256": "001dd3143c2eb8a73fd9aa8897163ef51dbc3224476b7e41df8a05cc658b83b9",
+      "bytes": 13769,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/before-readback.safe.json",
+      "sha256": "4026cca6093d865294d89a4cde36ffdc21fe17a76ff366291a6a17ab633072fe",
+      "bytes": 311,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/before-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/continuation-qualification.safe.json",
+      "sha256": "ec7eb27e24818d011efffa7a62453a8894100c6e4b36f66a387ab1ecc701b9b7",
+      "bytes": 900,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/current-session-own-B-positive-client-read.private.json",
+      "sha256": "3da129ca763cbcb9cf167fd22fb18b4c766b44f56b0e2e8709b4a25fd009181b",
+      "bytes": 283,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/driver.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/driver.stdout.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/foreign-negative.safe.json",
+      "sha256": "804e2407fcfe44674a6074da46f2bb9fc4f85ec6eb4fb9cb30f3b33127f9f838",
+      "bytes": 1067,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/foreign-write-intent.safe.json",
+      "sha256": "5c1d9c647ceb911f46fb4107b34107cd744edc287760dce89315397a6d4662aa",
+      "bytes": 451,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/foreign-write-once.cjs",
+      "sha256": "2364c59818cb147a7d6e7693e7d5942c24ba0e5a29fd4f193fb2886426c09a3c",
+      "bytes": 10803,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/input.private.json",
+      "sha256": "4471165ec3703d6ee4c000277618e1cf86684995bf4768c54080f25023edbe38",
+      "bytes": 1288,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/normal-formdata.private.json",
+      "sha256": "38fa442f13fb234424ddaf52e2fc114c3d856a582269e00897772ae7628b6ab3",
+      "bytes": 3540,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/pre-submit-query.private.sql",
+      "sha256": "5dea40b022a65c6f25da551355e77746cdd4a33a4d99fec474bb6bf6b8e538ac",
+      "bytes": 740,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/pre-submit-readback.private.json",
+      "sha256": "001dd3143c2eb8a73fd9aa8897163ef51dbc3224476b7e41df8a05cc658b83b9",
+      "bytes": 13769,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/pre-submit-readback.safe.json",
+      "sha256": "9a1e5e444ebf945e679ea022b27b5fb955706d9f2b387805eb52868a4837f6b3",
+      "bytes": 315,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/pre-submit-stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/readback.py",
+      "sha256": "46da89368114a39b6f3bdc1edd3014fd9a3ba955a86982137276c86b5081d1e9",
+      "bytes": 2051,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/refusal-qualification-query.private.sql",
+      "sha256": "cc1442ab352df5794d8db31f9f21045e7951b8f2ca57e7d9a5d8e1f35f0d912b",
+      "bytes": 542,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/refusal-qualification.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/refusal-row-and-old-residual.private.json",
+      "sha256": "7914e16c96ec58e1040a9908af10d134fa690d5a4206f6608bc013ec6679f181",
+      "bytes": 791,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/root-normal-foreign-authorization.safe.json",
+      "sha256": "0865a2e6b863d46c885a43b048237e7212b8ca555012f67cbe90a054d5be20f3",
+      "bytes": 369,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/rows-reader.py",
+      "sha256": "ebb9cc38fcd644c8418f3fedaf14300761df7f33cc8edb911945dfc1ef0ea55b",
+      "bytes": 1086,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/same-capture-streamed-notfound-qualification.safe.json",
+      "sha256": "07dc8292462687a8e3a456f1c9e4a0680ff3df113692dc01db281ada4f5b3bf7",
+      "bytes": 895,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/scope-denial-source-qualification.safe.json",
+      "sha256": "d1bbc8e1ef1805ac0cdc621f3fe30473011a60ecd36cecc014eb1cffbafcc8d5",
+      "bytes": 471,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-foreign-customer-write-hydrated-20261113/snapshot-522.py",
+      "sha256": "d72ac6121ea0d207bcbb54791ccbc6e3ea2a8090939317f98deba027caf6f9a5",
+      "bytes": 905,
+      "phase": "foreignValidWrite"
+    },
+    {
+      "path": "/tmp/gridex-b-staff-accept-runtime-20261113/proof-bundle.safe.json",
+      "sha256": "5a74152252b59844232afbd1e3e6fb953f191a2182e03f181ab2153d3bb7d26b",
+      "bytes": 22387,
+      "phase": "genuineBActor"
+    },
+    {
+      "path": "/tmp/gridex-domain-runtime-reviews-20261113/b-staff-5a74-invite-accept-actual-proof-review.safe.json",
+      "sha256": "ce1b3dd2ee776e4eaeb0bd76b91fbc5ed10f65023b29cf3270103eb69d46493e",
+      "bytes": 2530,
+      "phase": "genuineBActorReview"
+    },
+    {
+      "path": "/tmp/gridex-domain-runtime-reviews-20261113/b-foreign-streamed-notfound-07dc-same-capture-review.safe.json",
+      "sha256": "f7ae0a02f8fac8d2e9dbcdba70bb7d18e6edd5e8a1abdf08b3c5e91f0d2d019f",
+      "bytes": 4287,
+      "phase": "independentForeignReadReview"
+    },
+    {
+      "path": "/workspace/gridex-signup-runtime-adoption-20261113/source-thirty-eight.safe.json",
+      "sha256": "7532e85856116daa22981bb6612adbbeaaea462f4431bd8e1ad6e0d11faf8869",
+      "bytes": 6373,
+      "phase": "source38CodeProfile"
+    },
+    {
+      "path": "/tmp/gridex-auth-template-startup-runtime-20261113/after.private.json",
+      "sha256": "3325b06a11ebd45ce5e4e18757b621f75f0af86eb377eb6b78fe172d25eb5400",
+      "bytes": 22264523,
+      "phase": "actualNativeFunctionSource"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/app/admin/customers/[id]/layout.tsx",
+      "sha256": "2a831b66fd760bbd7ab5987840d8e9797c37f0dd8829b2f33875afd8db9e81d7",
+      "bytes": 3483,
+      "phase": "namedActualProductSource"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/app/admin/customers/[id]/customer-lookup-outcome.ts",
+      "sha256": "80b283e50a42a6f6d0266d0c7992634e34f084767e0670f6b070aa04855c0d61",
+      "bytes": 1161,
+      "phase": "namedActualProductSource"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/app/admin/customers/actions.ts",
+      "sha256": "e8a434c377ef9a65429d37d7aec2450ea249c3ff6cc8cc1f4eda93a03366a32f",
+      "bytes": 1578,
+      "phase": "namedActualProductSource"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/app/admin/customers/actions.part-2.ts",
+      "sha256": "b6b6294e37c2cf4a19416b307223906af288c4e4f590e3212305565a452deb52",
+      "bytes": 47987,
+      "phase": "namedActualProductSource"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/app/admin/customers/actions.part-3.ts",
+      "sha256": "15042264b6dd009a8a2693ef0745edbdedeb4c57a06f6f1b1ad400b9b2cd31d7",
+      "bytes": 34303,
+      "phase": "namedActualProductSource"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/lib/intakes/customerApplicationIntakes.ts",
+      "sha256": "3abc73896527a21b3e7a55791322f5e44a41b15c6acc6a7bbc606faee5b05dce",
+      "bytes": 7774,
+      "phase": "namedActualProductSource"
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/lib/customers/canonicalOnboarding.ts",
+      "sha256": "51798b8944403df65441a5eba794a8d0514c6ef9eecbf6f16b5761dc9aa84e02",
+      "bytes": 11228,
+      "phase": "namedActualProductSource"
+    }
+  ]
+}

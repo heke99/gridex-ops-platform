@@ -1,0 +1,394 @@
+From e7efeb1b75d17a9f5644ce806a8753e2023435c8 Mon Sep 17 00:00:00 2001
+From: Heke  Hourani <heke99@live.se>
+Date: Sun, 15 Nov 2026 11:11:25 +0000
+Subject: [PATCH] fix(ediel): preserve envelope framing semantics with
+ per-segment buffers
+
+---
+ .../REPORT.sv.md                              |  19 +++
+ .../results.safe.json                         | 128 ++++++++++++++++++
+ ...15110312_ediel_envelope_linear_framing.sql |  92 +++++++++++++
+ ...20261115_ediel_envelope_linear_framing.sql | 111 +++++++++++++++
+ 4 files changed, 350 insertions(+)
+ create mode 100644 quality/audits/ediel-envelope-linear-framing-fix-20261115/REPORT.sv.md
+ create mode 100644 quality/audits/ediel-envelope-linear-framing-fix-20261115/results.safe.json
+ create mode 100644 supabase/migrations/20261115110312_ediel_envelope_linear_framing.sql
+ create mode 100644 supabase/tests/20261115_ediel_envelope_linear_framing.sql
+
+diff --git a/quality/audits/ediel-envelope-linear-framing-fix-20261115/REPORT.sv.md b/quality/audits/ediel-envelope-linear-framing-fix-20261115/REPORT.sv.md
+new file mode 100644
+index 000000000..9d8cd25ca
+--- /dev/null
++++ b/quality/audits/ediel-envelope-linear-framing-fix-20261115/REPORT.sv.md
+@@ -0,0 +1,19 @@
++# EDIEL envelope – avgränsad framningsrättning 2026-11-15
++
++K11:s normala File-import passerade den nya mottagningstidskontrollen och nådde `POST /rest/v1/ediel_messages`. Anropet svarade 500 efter ungefär åtta sekunder med SQLSTATE `57014` och `canceling statement due to statement timeout`; appens vanliga felväg returnerade null och gav sedan `ediel_inbound_original_persistence_required`. Det är ett nytt belagt fel efter de tidigare URL-/mottagningsklockfelen. Ingen okänd import återspelas eller flagga återställs av detta paket.
++
++Den installerade `gridex_ediel_technical_ack.envelope(text)` används av den skyddade original-/tekniska triggerkedjan. Den tidigare framningsloopen använder `substr(body, segment_start, ...)` för varje segment, vilket återgår över UTF-8-prefix. För exakt råkälla SHA `7c0239018ce701d2223f07a109b1b683605ae9ccc3877564df116c31f771adc9` (171 462 byte, 10 774 segment) är detta en konkret kostnadskandidat. Rättningen ersätter enbart segmentinsamlingen med en `text[]`-buffert och `array_to_string` vid ett osläppt segmentavslut. Release-tecken behålls. Den gamla ofullständiga svanskontrollen, lexern och alla header-/miljö-/CONTRL-/dubbel-UNB-/storleks-/referenspredikat är bytebevarade. Inga tidsgränser eller triggers ändras.
++
++Den isolerade nativekörningen B körde de två exakta funktionskropparna på samma verkliga rådata under oförändrad SQL-gräns åtta sekunder och processgräns femton sekunder. Installerad variant avslutades med kod 0 på **6,705644 sekunder**, kandidaten med kod 0 på **0,271080 sekunder**. Hela JSON-resultatet och MD5 `50c501ac3162861874cf45de86cd93d2` var identiska. Tiderna är observerade anropstider inklusive körportens overhead, inte en profilerad SQL-CPU-tid eller generell prestandagaranti. Main, alla sju sekvenser, globala roller, Auth0 och servernyckelcarrier var oförändrade; den egna lilla testdatabasen var borttagen. Ingen full klon eller normal användarsession skapades för benchmarken.
++
++Körning A hade först passerat 34 syntetiska ekvivalensfall och stannat i fall35. B:s separata native-diagnostik visade att både gammal och ny funktion faktiskt accepterar en avsändarkomponent med längd36. Den gamla NULL-förväntningen var fel. Det befintliga uttrycket `u->2||u->3` grupperas vänsterassociativt och väljer här `["UNOC","3"]`; den avsedda explicit grupperade avsändar-/mottagarlistan är en annan lista. Detta är ett separat konstaterat legacy-problem i längdpredikatet. Prestandarättningen ändrar inte denna semantik eller parenteserna. En ny fixture ändrar endast fall35:s förväntade värde till exakt faktiskt gammalt=nytt JSON och namnet till `legacy_sender_length36_accepted_precedence_preserved`. Alla 41 råindata och övriga 40 fixtureobjekt är oförändrade. Korrigerad 41-ekvivalens är ännu NOTRUN vid denna källfrysning; A/B och deras begränsningar bevaras.
++
++Den nya framåtmigreringen kräver exakt tidigare kropp MD5 `b4debb471635ff47d9a11ccb795eec7c` eller exakt redan installerad kandidat `33bb811220fdabda32c9f40505c20ea1` för kontrollerad replay. Den bäddar in exakt benchmarkad kandidatdefinition, SHA `dd605327bdc579dcc8b30379fa1b0c8ef84a78bcc18f63a8308f3a11bad62e77`, med prosrc SHA `0a22a963e241b69581ee1dca06d72685cc9de2b29ea7f24d54f43149341fd0eb`. Fel preimage eller metadata stoppar transaktionen. Samma signatur/OID, postgresägare, immutable/invoker/search_path/strikthet/parallelism och ACL krävs. Hela `pg_proc` utom `prosrc` samt expanderad ACL måste vara oförändrade efteråt. Den fångade ACL:n är endast `postgres=X/postgres`; migreringen tillför inga rättigheter. Funktionsantalet ändras inte (3444 i den kvalificerade privata kedjan); inga rader, clusterroller eller bestående inställningar skrivs. SET LOCAL för migrationens egna tids-/sökvägsgränser återställs av transaktionen.
++
++Rollback-regressionen är uttryckligen begränsad till de namngivna egna testdatabaserna. Den jämför det verkliga installerade målet med en tillfällig exakt gammal referens över alla korrigerade 41 fall och rullar tillbaka sitt temporära testutrymme. Den använder den verkliga kvalificerade databasrollen och skapar inte JWT-, medlems-, receiver- eller admissionsflaggor. **Den exakta framåtmigreringen, replay och denna regression är NOTRUN här.** Endast käll-/bytekontroller är utförda för wrappern. Supabase CLI:s migration-new påstås inte: det tidigare dokumenterade otillgängliga CLI/Bun-EROFS-fallet följs med exakt faktiskt UTC-filnamn och officiella filanspråk, utan installation eller HOME-omdirigering.
++
++Benchmarken bevisar ett betydande bidrag i en funktion, inte ensam orsak till hela INSERT-timeouten. Den installerade kedjan innehåller också den normala LOCAL live/basis-/UUID-kontrollen, namespace-observationen och möjliga graf-/tabellås. Ingen av dem tas bort. Det finns inga faktiska wait-event-mätningar som utesluter deras kostnad. Full INSERT behöver ett nytt deklarerat normalt ingressförsök med legitim aktuell LOCAL admission, receiver, actor/pricing/frozen basis, nya reserverade ID:n och faktisk ATTEST/importcapability. Den gamla okända K11-importen får inte återanvändas. Ett godkänt snabbt INSERT är fortfarande inte en godkänd hel faktureringskedja.
++
++Den konkreta planen `FULL-INSERT-PROBE.UNARMED.safe.json` i evidenskatalogen namnger appens `supabaseService.from('ediel_messages').insert(insertPayload).select('id').maybeSingle()` och oförändrad ägd gateway. Före ny Auth ska källkomposition, relevant kompilatorapplicability, rena native-wrapper-/ekvivalensbevis och faktisk resursberedskap vara klara. Därefter gäller genuin full3000/JWT120, ny efter-READY Main-baseline/Fc/session/alla7, samtliga naturliga behörighetskontroller och900-fasgränser. En vanlig File-form skickas högst en gång. Stage-/transport-/nativebevis ska särskilja POST-lookup, faktisk ny envelope/mottagningsklocka, ediel_messages-resultat och senare finansiella steg. Vid nytt fel: spara okänt resultat och stäng normalt, utan retry, timeoutökning eller skyddsändring. Alla framtida roll-/session-/baseline-/admission-/GO-fält i planen är NULL.
++
++Paketet är en isolerad lokal commit från faktisk main `ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba`, med egna exakta fyra filanspråk plus session och två oberoende slutgranskningar före frisläppning. Ingen aktiv appkälla/runtime, Main, produktionsdatabas eller gammal import har ändrats. Ingen push, merge, deploy eller helscenario-PASS. Kanoniska 38/1/66 är oförändrade. Den rätta normala vägen och det separata legacy-felet dokumenteras; inget av detta är dödkodsborttagning.
+diff --git a/quality/audits/ediel-envelope-linear-framing-fix-20261115/results.safe.json b/quality/audits/ediel-envelope-linear-framing-fix-20261115/results.safe.json
+new file mode 100644
+index 000000000..45ca5a446
+--- /dev/null
++++ b/quality/audits/ediel-envelope-linear-framing-fix-20261115/results.safe.json
+@@ -0,0 +1,128 @@
++{
++  "state": "LOCAL_SCANNER_FORWARD_SOURCE_NATIVE_RAW_TIMING_QUALIFIED_WRAPPER_FULL41_FULLINSERT_PENDING",
++  "date": "2026-11-15",
++  "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba",
++  "migration": "supabase/migrations/20261115110312_ediel_envelope_linear_framing.sql",
++  "callable": "gridex_ediel_technical_ack.envelope(text)",
++  "oldProsrcMD5": "b4debb471635ff47d9a11ccb795eec7c",
++  "newProsrcMD5": "33bb811220fdabda32c9f40505c20ea1",
++  "newDefinitionSHA256": "dd605327bdc579dcc8b30379fa1b0c8ef84a78bcc18f63a8308f3a11bad62e77",
++  "newProsrcSHA256": "0a22a963e241b69581ee1dca06d72685cc9de2b29ea7f24d54f43149341fd0eb",
++  "actualB": {
++    "installedExit": 0,
++    "candidateExit": 0,
++    "installedCallerSeconds": 6.7056440860033035,
++    "candidateCallerSeconds": 0.27107988999341615,
++    "sqlTimeoutSeconds": 8,
++    "commandTimeoutSeconds": 15,
++    "fullRawJsonEqual": true,
++    "rawResultMD5": "50c501ac3162861874cf45de86cd93d2",
++    "ownDBAbsent": true,
++    "MainAll7RolesAuth0CarrierUnchanged": true
++  },
++  "knownLegacyIssue": {
++    "expression": "u->2||u->3",
++    "actualSenderLength36AcceptedOldAndNew": true,
++    "oldNullFixtureWrong": true,
++    "productionSemanticsChanged": false,
++    "separateFixRequired": true
++  },
++  "validation": {
++    "sourceByteChecks": "PASS",
++    "corrected41": "NOT_RUN",
++    "exactForwardWrapper": "NOT_RUN",
++    "replay": "NOT_RUN",
++    "rollbackRegression": "NOT_RUN",
++    "fullInsert": "NOT_RUN",
++    "fullInsertSoleCauseProven": false,
++    "MainAdoption": false,
++    "browserOrBillingPass": false
++  },
++  "preserved": [
++    "OID/signature/count",
++    "owner/postgres-only existing ACL",
++    "all pg_proc nonbody metadata",
++    "lexer/release/tail/header/environment/size/reference/CONTRL predicates",
++    "legacy precedence",
++    "all authority/trigger/timeout fences"
++  ],
++  "fullInsertPlan": {
++    "path": "/tmp/gridex-ediel-envelope-linear-framing-fix-evidence-20261115/FULL-INSERT-PROBE.UNARMED.safe.json",
++    "sha256": "6fe0146eb6f9b780228cfdcabf2a64ae363a0890637b0d0659d1e84d9c203152",
++    "bytes": 8665
++  },
++  "evidence": [
++    {
++      "path": "/tmp/gridex-ediel-envelope-linear-framing-prep-20261115/PREPARED.SOURCE-ONLY.safe.json",
++      "sha256": "fd94c5642a2ca3b28ab77367af567be20e5d0ad651af88d71b192ae512555f55",
++      "bytes": 5423
++    },
++    {
++      "path": "/tmp/gridex-ediel-envelope-linear-framing-prep-20261115/CANDIDATE.SOURCE-ONLY.safe.json",
++      "sha256": "72db600a474181937e62960d41d71af69258b2d8f108022145e58a8c274054c9",
++      "bytes": 1774
++    },
++    {
++      "path": "/tmp/gridex-ediel-envelope-linear-framing-prep-20261115/envelope.installed.prosrc.sql",
++      "sha256": "799a7375693cc586a5b17a082eb0e408753cb870688ceb4876a443fdf313369c",
++      "bytes": 3041
++    },
++    {
++      "path": "/tmp/gridex-ediel-envelope-linear-framing-prep-20261115/envelope.candidate.prosrc.sql",
++      "sha256": "0a22a963e241b69581ee1dca06d72685cc9de2b29ea7f24d54f43149341fd0eb",
++      "bytes": 3210
++    },
++    {
++      "path": "/tmp/gridex-ediel-envelope-linear-framing-prep-20261115/envelope.candidate.definition.sql",
++      "sha256": "dd605327bdc579dcc8b30379fa1b0c8ef84a78bcc18f63a8308f3a11bad62e77",
++      "bytes": 3386
++    },
++    {
++      "path": "/tmp/gridex-ediel-envelope-linear-framing-prep-20261115/LOCAL-FENCES-AND-ALTERNATIVES.safe.json",
++      "sha256": "311f1790aee1669a47593f06e8058fc94e907c26e20657cfcab30087a4999e80",
++      "bytes": 3646
++    },
++    {
++      "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/terminal.safe.json",
++      "sha256": "e8fcc63126bd5bff4fd9c1b5ee4d8669df36efa99593b712016219fad5ff2c88",
++      "bytes": 2803
++    },
++    {
++      "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/fixture35-disambiguation.safe.json",
++      "sha256": "54b23bb3de126e7fc11db36c746ed633ae205f82beade8219feb30f944c12ba6",
++      "bytes": 1356
++    },
++    {
++      "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/ediel-envelope-B-timing-diagnostic-actual-closure-review.safe.json",
++      "sha256": "03f7ae130e6a0bcb664acac7e1b57036f3e4dbb0a47199c06b0c9dfbe36ad222",
++      "bytes": 1627
++    },
++    {
++      "path": "/tmp/gridex-ediel-envelope-equivalence-fixture35-corrected-prep-20261115/PREPARED.SOURCE-ONLY.safe.json",
++      "sha256": "80649848f2a183eff02168b94ec549a494af47c0a375e7af272048c451c53314",
++      "bytes": 4299
++    },
++    {
++      "path": "/tmp/gridex-ediel-envelope-equivalence-fixture35-corrected-prep-20261115/producer-fixture35-source-review.safe.json",
++      "sha256": "15c8a5f82d6d433eec00c0b3116fa731f6a62fa0601ce241045292f01b97c0f4",
++      "bytes": 440
++    },
++    {
++      "path": "/tmp/gridex-ediel-envelope-equivalence-fixture35-corrected-prep-20261115/ediel-fixture35-expected-only-source-review.safe.json",
++      "sha256": "fe41ef3080450ec420f2b8e20136c21f2665bb810f327479b31e9890cc3a1313",
++      "bytes": 1132
++    },
++    {
++      "path": "/workspace/gridex-k11-import-persistence-diagnosis-20261115/FROZEN.safe.json",
++      "sha256": "500eea17ba17607d3a490f5884d0201eaf7563a5810d3e5a0d616b4857b487a0",
++      "bytes": 361
++    }
++  ],
++  "canonicalCounts": {
++    "pass": 38,
++    "partial": 1,
++    "remainingNonpass": 66,
++    "changedByThisPacket": false
++  },
++  "sourceOnlyNoPushOrDeployment": true
++}
+diff --git a/supabase/migrations/20261115110312_ediel_envelope_linear_framing.sql b/supabase/migrations/20261115110312_ediel_envelope_linear_framing.sql
+new file mode 100644
+index 000000000..a52d54491
+--- /dev/null
++++ b/supabase/migrations/20261115110312_ediel_envelope_linear_framing.sql
+@@ -0,0 +1,92 @@
++-- Exact-body forward correction for the retained EDIEL envelope framing scanner.
++-- Keep every predicate (including the separately recorded legacy operator-grouping quirk).
++-- No timeout increase, grants, trigger changes, business DML or new function/signature.
++BEGIN;
++SET LOCAL statement_timeout='8s';
++SET LOCAL lock_timeout='5s';
++SET LOCAL search_path=pg_catalog;
++DO $patch$
++DECLARE old_proc jsonb; new_proc jsonb; old_acl jsonb; new_acl jsonb; replay boolean;
++BEGIN
++ SELECT to_jsonb(p) INTO STRICT old_proc FROM pg_catalog.pg_proc p
++ WHERE p.oid='gridex_ediel_technical_ack.envelope(text)'::pg_catalog.regprocedure;
++ IF pg_catalog.md5(old_proc->>'prosrc') NOT IN ('b4debb471635ff47d9a11ccb795eec7c','33bb811220fdabda32c9f40505c20ea1') THEN
++  RAISE EXCEPTION 'ediel_envelope_exact_preimage_required';
++ END IF;
++ IF pg_catalog.pg_get_userbyid((old_proc->>'proowner')::oid)<>'postgres'
++  OR old_proc->>'provolatile'<>'i' OR (old_proc->>'prosecdef')::boolean
++  OR (old_proc->>'proisstrict')::boolean OR old_proc->>'proparallel'<>'u'
++  OR old_proc->'proconfig' IS DISTINCT FROM '["search_path=pg_catalog"]'::jsonb
++  OR old_proc->'proacl' IS DISTINCT FROM '["postgres=X/postgres"]'::jsonb
++  OR old_proc->>'prorettype'<>('pg_catalog.jsonb'::pg_catalog.regtype)::oid::text
++  OR (SELECT l.lanname FROM pg_catalog.pg_language l WHERE l.oid=(old_proc->>'prolang')::oid)<>'plpgsql' THEN
++  RAISE EXCEPTION 'ediel_envelope_qualified_metadata_required';
++ END IF;
++ SELECT pg_catalog.jsonb_agg(to_jsonb(a) ORDER BY a.grantor,a.grantee,a.privilege_type,a.is_grantable) INTO old_acl
++ FROM pg_catalog.aclexplode(coalesce((SELECT p.proacl FROM pg_catalog.pg_proc p
++  WHERE p.oid='gridex_ediel_technical_ack.envelope(text)'::pg_catalog.regprocedure),
++  pg_catalog.acldefault('f',(old_proc->>'proowner')::oid))) a;
++ replay:=pg_catalog.md5(old_proc->>'prosrc')='33bb811220fdabda32c9f40505c20ea1';
++ IF NOT replay THEN
++  EXECUTE $native_definition$CREATE OR REPLACE FUNCTION gridex_ediel_technical_ack.envelope(p_raw text)
++ RETURNS jsonb
++ LANGUAGE plpgsql
++ IMMUTABLE
++ SET search_path TO 'pg_catalog'
++AS $function$
++DECLARE advice text:='';body text;sep text:='+';release_char text:='?';terminator text:='''';chars text[];ch text;released boolean:=false;segment_start integer:=1;position integer:=0;segment_raw text;segment_chars text[]:='{}';tokens jsonb;u jsonb;unbs integer:=0;header text;ref text;indicator text;
++BEGIN
++ IF p_raw IS NULL OR octet_length(p_raw)>8388608 THEN RETURN NULL;END IF;
++ body:=p_raw;
++ IF upper(left(body,3))='UNA' THEN
++  IF left(body,3)<>'UNA' OR length(body)<9 THEN RETURN NULL;END IF;
++  advice:=left(body,9);sep:=substr(body,5,1);release_char:=substr(body,7,1);terminator:=substr(body,9,1);body:=substr(body,10);
++ END IF;
++ -- Framing only. Each complete segment is decoded by the existing one-owner
++ -- v2 lexer; incomplete/error-bearing body data is never a parsed business AST.
++ body:=replace(replace(body,E'\r\n',''),E'\n','');chars:=string_to_array(body,NULL);
++ FOREACH ch IN ARRAY chars LOOP
++  position:=position+1;
++  IF released THEN segment_chars:=array_append(segment_chars,ch);released:=false;CONTINUE;END IF;
++  IF ch=release_char THEN segment_chars:=array_append(segment_chars,ch);released:=true;CONTINUE;END IF;
++  IF ch<>terminator THEN segment_chars:=array_append(segment_chars,ch);CONTINUE;END IF;
++  segment_raw:=array_to_string(segment_chars,'');segment_chars:='{}';segment_start:=position+1;
++  IF nullif(btrim(segment_raw,E' \t'),'') IS NULL THEN CONTINUE;END IF;
++  IF u IS NULL AND left(ltrim(segment_raw,E' \t'),4) IS DISTINCT FROM 'UNB'||sep THEN RETURN NULL;END IF;
++  IF left(ltrim(segment_raw,E' \t'),4)='UNB'||sep THEN
++   unbs:=unbs+1;IF unbs<>1 THEN RETURN NULL;END IF;
++   header:=advice||segment_raw||terminator;tokens:=gridex_utilts_binding.wire_tokens_v1(header);
++   IF tokens IS NULL OR jsonb_array_length(tokens)<>1 OR tokens#>>'{0,tag}'<>'UNB'
++    OR EXISTS(SELECT FROM unnest(string_to_array(header,NULL))c WHERE ascii(c)>255 OR ascii(c)<32) THEN RETURN NULL;END IF;
++   u:=tokens#>'{0,elements}';
++  ELSIF left(ltrim(segment_raw,E' \t'),4)='UNH'||sep THEN
++   tokens:=gridex_utilts_binding.wire_tokens_v1(advice||segment_raw||terminator);
++   IF tokens#>>'{0,elements,2,0}'='CONTRL' THEN RETURN NULL;END IF;
++  END IF;
++ END LOOP;
++ -- A second header beginning an incomplete tail is also ambiguous, not an
++ -- excuse to copy the first one. Missing/unterminated first UNB stays held.
++ IF u IS NULL OR unbs<>1 OR left(ltrim(substr(body,segment_start),E' \t'),4)='UNB'||sep THEN RETURN NULL;END IF;
++ ref:=u#>>'{5,0}';indicator:=coalesce(u#>>'{11,0}','');
++ IF nullif(ref,'') IS NULL OR length(ref)>512 OR ref~'[[:cntrl:]]' OR jsonb_array_length(u->5)<>1
++  OR nullif(u#>>'{2,0}','') IS NULL OR nullif(u#>>'{3,0}','') IS NULL OR jsonb_array_length(u->2)>3 OR jsonb_array_length(u->3)>3
++  OR EXISTS(SELECT FROM jsonb_array_elements_text(u->2||u->3)c WHERE length(c)>35)
++  OR coalesce(jsonb_array_length(u->7),1)<>1 OR coalesce(jsonb_array_length(u->11),1)<>1 OR indicator NOT IN('','1') THEN RETURN NULL;END IF;
++ RETURN jsonb_build_object('sender',u->2,'receiver',u->3,'interchangeReference',ref,'uciReference',left(ref,14),
++  'applicationReference',coalesce(u#>>'{7,0}',''),'environment',CASE WHEN indicator='1' THEN 'test' ELSE 'production' END,'testIndicator',indicator);
++END $function$
++$native_definition$;
++ END IF;
++ SELECT to_jsonb(p) INTO STRICT new_proc FROM pg_catalog.pg_proc p
++ WHERE p.oid='gridex_ediel_technical_ack.envelope(text)'::pg_catalog.regprocedure;
++ SELECT pg_catalog.jsonb_agg(to_jsonb(a) ORDER BY a.grantor,a.grantee,a.privilege_type,a.is_grantable) INTO new_acl
++ FROM pg_catalog.aclexplode(coalesce((SELECT p.proacl FROM pg_catalog.pg_proc p
++  WHERE p.oid='gridex_ediel_technical_ack.envelope(text)'::pg_catalog.regprocedure),
++  pg_catalog.acldefault('f',(new_proc->>'proowner')::oid))) a;
++ IF pg_catalog.md5(new_proc->>'prosrc')<>'33bb811220fdabda32c9f40505c20ea1'
++  OR (new_proc-'prosrc') IS DISTINCT FROM (old_proc-'prosrc') OR new_acl IS DISTINCT FROM old_acl THEN
++  RAISE EXCEPTION 'ediel_envelope_only_body_metadata_acl_must_survive';
++ END IF;
++ RAISE NOTICE 'EDIEL_ENVELOPE_LINEAR_FRAMING_BODY_QUALIFIED:replayed=%',replay;
++END $patch$;
++COMMIT;
+diff --git a/supabase/tests/20261115_ediel_envelope_linear_framing.sql b/supabase/tests/20261115_ediel_envelope_linear_framing.sql
+new file mode 100644
+index 000000000..c3f4b0e74
+--- /dev/null
++++ b/supabase/tests/20261115_ediel_envelope_linear_framing.sql
+@@ -0,0 +1,111 @@
++-- Run ONLY in a separately declared owned native test DB after the forward migration.
++-- The caller uses its real qualified database role; no JWT/member/admission flags are synthesized.
++BEGIN;
++SET LOCAL statement_timeout='8s';
++SET LOCAL lock_timeout='5s';
++SET LOCAL search_path=pg_catalog;
++DO $guard$BEGIN
++ IF current_database() NOT IN ('gridex_ediel_envelope_profile_20261115_a','gridex_local_partner_http_20261113_a') THEN
++  RAISE EXCEPTION 'owned_envelope_regression_database_required';
++ END IF;
++ IF (SELECT md5(p.prosrc) FROM pg_catalog.pg_proc p
++  WHERE p.oid='gridex_ediel_technical_ack.envelope(text)'::regprocedure)<>'33bb811220fdabda32c9f40505c20ea1' THEN
++  RAISE EXCEPTION 'qualified_linear_envelope_body_required';
++ END IF;
++END $guard$;
++CREATE TEMP TABLE gridex_envelope_test_namespace_only(token boolean) ON COMMIT DROP;
++CREATE OR REPLACE FUNCTION pg_temp.gridex_envelope_reference(p_raw text)
++ RETURNS jsonb
++ LANGUAGE plpgsql
++ IMMUTABLE
++ SET search_path TO 'pg_catalog'
++AS $function$
++DECLARE advice text:='';body text;sep text:='+';release_char text:='?';terminator text:='''';chars text[];ch text;released boolean:=false;segment_start integer:=1;position integer:=0;segment_raw text;tokens jsonb;u jsonb;unbs integer:=0;header text;ref text;indicator text;
++BEGIN
++ IF p_raw IS NULL OR octet_length(p_raw)>8388608 THEN RETURN NULL;END IF;
++ body:=p_raw;
++ IF upper(left(body,3))='UNA' THEN
++  IF left(body,3)<>'UNA' OR length(body)<9 THEN RETURN NULL;END IF;
++  advice:=left(body,9);sep:=substr(body,5,1);release_char:=substr(body,7,1);terminator:=substr(body,9,1);body:=substr(body,10);
++ END IF;
++ -- Framing only. Each complete segment is decoded by the existing one-owner
++ -- v2 lexer; incomplete/error-bearing body data is never a parsed business AST.
++ body:=replace(replace(body,E'\r\n',''),E'\n','');chars:=string_to_array(body,NULL);
++ FOREACH ch IN ARRAY chars LOOP
++  position:=position+1;
++  IF released THEN released:=false;CONTINUE;END IF;
++  IF ch=release_char THEN released:=true;CONTINUE;END IF;
++  IF ch<>terminator THEN CONTINUE;END IF;
++  segment_raw:=substr(body,segment_start,position-segment_start);segment_start:=position+1;
++  IF nullif(btrim(segment_raw,E' \t'),'') IS NULL THEN CONTINUE;END IF;
++  IF u IS NULL AND left(ltrim(segment_raw,E' \t'),4) IS DISTINCT FROM 'UNB'||sep THEN RETURN NULL;END IF;
++  IF left(ltrim(segment_raw,E' \t'),4)='UNB'||sep THEN
++   unbs:=unbs+1;IF unbs<>1 THEN RETURN NULL;END IF;
++   header:=advice||segment_raw||terminator;tokens:=gridex_utilts_binding.wire_tokens_v1(header);
++   IF tokens IS NULL OR jsonb_array_length(tokens)<>1 OR tokens#>>'{0,tag}'<>'UNB'
++    OR EXISTS(SELECT FROM unnest(string_to_array(header,NULL))c WHERE ascii(c)>255 OR ascii(c)<32) THEN RETURN NULL;END IF;
++   u:=tokens#>'{0,elements}';
++  ELSIF left(ltrim(segment_raw,E' \t'),4)='UNH'||sep THEN
++   tokens:=gridex_utilts_binding.wire_tokens_v1(advice||segment_raw||terminator);
++   IF tokens#>>'{0,elements,2,0}'='CONTRL' THEN RETURN NULL;END IF;
++  END IF;
++ END LOOP;
++ -- A second header beginning an incomplete tail is also ambiguous, not an
++ -- excuse to copy the first one. Missing/unterminated first UNB stays held.
++ IF u IS NULL OR unbs<>1 OR left(ltrim(substr(body,segment_start),E' \t'),4)='UNB'||sep THEN RETURN NULL;END IF;
++ ref:=u#>>'{5,0}';indicator:=coalesce(u#>>'{11,0}','');
++ IF nullif(ref,'') IS NULL OR length(ref)>512 OR ref~'[[:cntrl:]]' OR jsonb_array_length(u->5)<>1
++  OR nullif(u#>>'{2,0}','') IS NULL OR nullif(u#>>'{3,0}','') IS NULL OR jsonb_array_length(u->2)>3 OR jsonb_array_length(u->3)>3
++  OR EXISTS(SELECT FROM jsonb_array_elements_text(u->2||u->3)c WHERE length(c)>35)
++  OR coalesce(jsonb_array_length(u->7),1)<>1 OR coalesce(jsonb_array_length(u->11),1)<>1 OR indicator NOT IN('','1') THEN RETURN NULL;END IF;
++ RETURN jsonb_build_object('sender',u->2,'receiver',u->3,'interchangeReference',ref,'uciReference',left(ref,14),
++  'applicationReference',coalesce(u#>>'{7,0}',''),'environment',CASE WHEN indicator='1' THEN 'test' ELSE 'production' END,'testIndicator',indicator);
++END $function$
++;
++DO $checks$DECLARE c record;a jsonb;b jsonb;counted integer:=0;BEGIN
++ FOR c IN SELECT * FROM(VALUES
++('valid_standard',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_crlf',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b31270d0a554e482b312b5554494c54533a443a3939423a554e3a453253453643270d0a5154592b3232303a312e35270d0a','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_lf',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b31270a554e482b312b5554494c54533a443a3939423a554e3a453253453643270a5154592b3232303a312e35270a','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_empty_segments',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b31272727202027554e482b312b5554494c54533a443a3939423a554e3a45325345364327','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_unicode_body',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643274654582bc3a5c3a4c3b6f09f9880e6bca2e5ad9727','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_released_terminator_body',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643274654582b69676e6f7265643f27554e422b6e6f742d612d68656164657227','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_released_release_body',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643274654582b69676e6f7265643f3f27','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_incomplete_nonUNB_tail',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527494e434f4d504c4554453f','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_header_only',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_unterminated_UNH_CONTRL_is_only_framing',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b434f4e54524c','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_leading_spaces',convert_from(decode('2020554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_escaped_data',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463f2b3030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF+001", "uciReference": "REF+001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_escaped_component',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463f3a3030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF:001", "uciReference": "REF:001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_escaped_release',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463f3f3030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF?001", "uciReference": "REF?001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_escaped_terminator',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463f273030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF''001", "uciReference": "REF''001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_three_sender_components',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a392b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ", "9"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_production_empty_indicator',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b27554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "production", "testIndicator": ""}'::jsonb),
++('valid_custom_UNA',convert_from(decode('554e412a3b2c3f2021554e423b554e4f432a333b53454e4445522a5a5a5a3b52454345495645522a5a5a5a3b3236313131352a313230303b5245463030313b3b4150503b3b3b3b3121554e483b313b5554494c54532a442a3939422a554e2a453253453643215154593b3232302a312e3521','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('valid_latin1_header',convert_from(decode('554e422b554e4f433a332b53c3844e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender": ["SÄNDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "REF001", "uciReference": "REF001", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('null_source',NULL::text,NULL::jsonb),
++('invalid_empty',convert_from(decode('','hex'),'UTF8'),NULL::jsonb),
++('invalid_lowercase_una',convert_from(decode('756e613a2b2e3f20554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb),
++('invalid_short_una',convert_from(decode('554e413a2b2e3f','hex'),'UTF8'),NULL::jsonb),
++('invalid_first_segment_notUNB',convert_from(decode('554e482b312b5554494c54533a443a3939423a554e3a45325345364327554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127','hex'),'UTF8'),NULL::jsonb),
++('invalid_missing_unb',convert_from(decode('554e482b312b5554494c54533a443a3939423a554e3a45325345364327','hex'),'UTF8'),NULL::jsonb),
++('invalid_unterminated_unb',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b31','hex'),'UTF8'),NULL::jsonb),
++('invalid_duplicate_complete_unb',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127','hex'),'UTF8'),NULL::jsonb),
++('invalid_duplicate_incomplete_unb',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b31','hex'),'UTF8'),NULL::jsonb),
++('invalid_CONTRL_complete',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b434f4e54524c3a443a333a554e27','hex'),'UTF8'),NULL::jsonb),
++('invalid_header_unicode_over255',convert_from(decode('554e422b554e4f433a332b53c4804e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb),
++('invalid_header_tab',convert_from(decode('09554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb),
++('invalid_bad_test_indicator',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3227554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb),
++('invalid_empty_interchange',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b2b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb),
++('invalid_multi_component_interchange',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463a3030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb),
++('legacy_sender_length36_accepted_precedence_preserved',convert_from(decode('554e422b554e4f433a332b5353535353535353535353535353535353535353535353535353535353535353535353533a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","ZZZ"],"receiver":["RECEIVER","ZZZ"],"environment":"test","uciReference":"REF001","testIndicator":"1","applicationReference":"APP","interchangeReference":"REF001"}'::jsonb),
++('invalid_four_sender_components',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a393a342b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb),
++('invalid_non_single_app',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150503a582b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb),
++('interchange_length_14',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b52525252525252525252525252522b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "RRRRRRRRRRRRRR", "uciReference": "RRRRRRRRRRRRRR", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('interchange_length_512',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b52525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252522b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender": ["SENDER", "ZZZ"], "receiver": ["RECEIVER", "ZZZ"], "interchangeReference": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR", "uciReference": "RRRRRRRRRRRRRR", "applicationReference": "APP", "environment": "test", "testIndicator": "1"}'::jsonb),
++('interchange_length_513',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252522b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb),
++('oversize_8MiB_plus1',repeat('X',8388609),NULL::jsonb))v(label,raw,expected) LOOP
++ a:=pg_temp.gridex_envelope_reference(c.raw);b:=gridex_ediel_technical_ack.envelope(c.raw);
++ IF a IS DISTINCT FROM b OR a IS DISTINCT FROM c.expected THEN RAISE EXCEPTION 'envelope_output_equivalence_failed:%',c.label;END IF;
++ counted:=counted+1;RAISE NOTICE 'ENVELOPE_EQ_PASS:%:%',c.label,md5(coalesce(a::text,'NULL'));
++ END LOOP;IF counted<>41 THEN RAISE EXCEPTION 'fixture_count_required';END IF;RAISE NOTICE 'ALL_ENVELOPE_EQUIVALENCE_PASSED:%',counted;END$checks$;ROLLBACK;
+-- 
+2.52.0
+

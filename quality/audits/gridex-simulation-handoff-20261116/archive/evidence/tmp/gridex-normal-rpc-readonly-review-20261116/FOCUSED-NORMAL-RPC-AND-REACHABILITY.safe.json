@@ -1,0 +1,111 @@
+{
+  "state": "FOCUSED_NORMAL_RPC_REACHABILITY_SOURCE_REVIEW_NOT_RUNTIME",
+  "reviewerAgent": "/root/ediel_test_identity",
+  "preparedAt": "2026-11-16T09:11:46.394842+00:00",
+  "baseline": "/workspace/gridex-root-session-20261112/ROUTES-AND-DEAD-CODE.sv.md:33=24localremoved/9retained,187unreachedNOTdead unchanged.",
+  "scanScope": "Literal .rpc string calls in lib/billing and lib/ediel only; dynamic/template aliases and external callers are not exhaustively scanned. Not a dead-code declaration.",
+  "literalCallSites": 213,
+  "literalRPCNames": 199,
+  "absentLiteralRPCs": [
+    {
+      "rpc": "ediel_resolve_message_rule",
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/core/versionRegistry.ts",
+      "line": 141
+    },
+    {
+      "rpc": "ediel_resolve_inbound_message_rules",
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/core/versionRegistry.ts",
+      "line": 163
+    },
+    {
+      "rpc": "gridex_find_test_inbound_envelope_v1",
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/testing/testCenterRawEdifactImport.ts",
+      "line": 191
+    }
+  ],
+  "savedNativeSource": {
+    "path": "/tmp/gridex-event-headless-actual-20261115-c/trusted3443-before-event.private.json",
+    "sha256": "ca0a7051994afd7142845cfe697654273cfea9c3d637de869cdef4de7e9e2dcf",
+    "allRawFunctions": 3443
+  },
+  "newEvidenceBackedFinding": {
+    "id": "NORMAL_AI_BI_FILE_VERSION_LOOKUP_MISSING_NATIVE_REGISTRY_APIS",
+    "classification": "SOURCE_CONFIRMED_LEGACY_INTERFACE_GAP_ON_NONCANONICAL_FILE_BRANCH; not a proven intended AI workflow outage",
+    "caller": "Public registerEdielFileAction\u2192registerEdielFile; additionally mounted /admin/ediel/agt/[testCaseCode]/page.tsx:676\u2192importAgtRawInboundForCaseAction:874\u2192registerEdielFile:894. Generic panel has an action binding but no static page mount found; it is NOT declared dead.",
+    "reachableChain": [
+      "fileEngine.ts:225 detectAiList parses real AI/BI CSV through parseAiBiTechnicalFile\u2192messageFamily AI_LIST/messageStandard ai_list.",
+      "registerEdielFile690 calls withVersionValidation before laterAI technical handling at751.",
+      "withVersionValidation617 inbound calls resolveInboundAcceptedVersions; outbound resolveOutboundMessageVersion. Both versionRegistry paths classify ONLY EDIFACTPRODAT/UTILTS/UTILTS_ERR/APERAK/CONTRL as canonical, so AI_LIST/ai_list goes into legacy DB accessors.",
+      "versionRegistry141/163 call absent public.ediel_resolve_message_rule and public.ediel_resolve_inbound_message_rules; errors are thrown, not downgraded to parsedversion. These are syntactically correct historical names, not a proven typo."
+    ],
+    "nativeFact": "Zero matching function names in protected actual3443 allRawFunctions (publicnames matched from fullsavedcatalog). Historical migration20260526 defines exact same two names/signatures; that SQL being inrepo does not make them installed. No liveDB/API called.",
+    "reachabilityConfidence": "HIGH static reachable AGT manual-upload branch when given syntactically valid AI/BI CSV, before later expected-family mismatch; MEDIUM applicability to intended AI workflows because no AGT AI-case proof was established. ActualvalidCSV/UI/RPCfailure NOT_RUN. Normal mailbox AI processing and canonical E66/PRODAT bypass this branch; no currentfour or wholeAIcase blocker asserted.",
+    "smallestCorrectionProposal": "First establish intended generic-file AI support: either explicitly reject unsupportedAI/BI before legacy lookup, or if supported use the alreadyvalidated normal AI/BI technicalversion owner (parseAiBiTechnicalFile/AI_LIST_FORMAT_VERSION). Do not blindly install/rename obsoleteRPCs or weaken actor/company/BI/source guards. Historical SQL definitions retain exact current TS names, so this is not a typo claim.",
+    "meaningfulRegression": "Valid technicalAI/BI inbound passes versionvalidation without either missingRPC; wrongtechnicalversion still rejected by existingcodec; canonical E66/PRODAT source-version behavior unchanged; outbound BI/tenant/actor restrictions are not relaxed. No productedit/test/backend here."
+  },
+  "nonFindingsNotPromoted": [
+    "gridex_find_test_inbound_envelope_v1 is an explicitlyknown private-overlay dependency f08d; not mislabeled newtypo/deadcode. No removal or Main-adoption claim.",
+    "Legacy gridex_persist_utilts_transactions_v1 deliberately raises utilts_consumption_contract_required. No TS callers except generatedtypes and no native bodycallers found; normaltransactionPersistence adapter actually calls gridex_persist_utilts_consumption_v1. This is a retained refusal ABI, not automatically dead publicAPI.",
+    "InvoiceReviewPrepare\u2192gridex_create_invoice_review_draft_v1\u2192native gridex_create_invoice_export_graph_v1 is real: native wrapper remains reachable even when TS graph wrapper looks unused. Do not delete nativegraph or count duplicatecalls.",
+    "invoiceFileExport performs distinct legacyprojection/domain-event updates after native filecreation; native function updates canonical items/invoices. Those are different tables/ownership, not a source-proven duplicatewritebug.",
+    "All literal billingRPC names found in savedpubliccatalog; no new wrongname established in reviewed normal multi-site billing path."
+  ],
+  "currentSource40Source65ByteEquality": [
+    "app/admin/ediel/actions.part-2.ts",
+    "lib/ediel/fileEngine.ts",
+    "lib/ediel/core/versionRegistry.ts",
+    "lib/ediel/aiListFormat.ts"
+  ],
+  "refs": [
+    {
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/app/admin/ediel/actions.part-2.ts",
+      "sha256": "878fc8a53881c99bd2b48ede01b6fb11cc8df59afb3834543b7f08fce825e112"
+    },
+    {
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/fileEngine.ts",
+      "sha256": "9d71deb68ab4e2f24227c455a10e86502a0239dc649df89dae0ae2043d18cd9e"
+    },
+    {
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/core/versionRegistry.ts",
+      "sha256": "ec62231af36ecde38a8377662ca6586e8846170b617e3e51e1eded27c915aa68"
+    },
+    {
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/aiListFormat.ts",
+      "sha256": "3f41cf81bc50afe9386702186fd09ed0011c161ee8ff83da081b6dbb0e2d0f9e"
+    },
+    {
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/aiList.ts",
+      "sha256": "2c655783a3278b74d348a95ad10041bd0eaa965f422b1c9f66136142b89a7e21"
+    },
+    {
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/utilts/transactionPersistence.ts",
+      "sha256": "f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece"
+    },
+    {
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/lib/billing/invoiceReviewPrepare.ts",
+      "sha256": "9fe46e217316bf19418a89fecdae4985caa9dd74357d466df7d6c2d7efac285e"
+    },
+    {
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/lib/billing/invoiceFileExport.ts",
+      "sha256": "18079fe838152ece73513c6fa4de17359de876fdd7b76c7c6ff796b32a0f852a"
+    },
+    {
+      "path": "/workspace/gridex-ops-platform/supabase/migrations/20260526_debug_step1_2c_full_schema_code_alignment.sql",
+      "sha256": "5a4a2326232ab847d23fed32af2be13a046ee3e3a2dae41dead6f5b4eba16472"
+    },
+    {
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/app/admin/ediel/agt/actions.ts",
+      "sha256": "3f6c6b52bff6dd7f4d225d83a270b0b7b6a9f588546e596a80ffa71ff9e9013e"
+    },
+    {
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/app/admin/ediel/agt/[testCaseCode]/page.tsx",
+      "sha256": "23f1647da824a00dd437469d4261f1ca148c34a1762afe7aa81bfbc331d60a9a"
+    },
+    {
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/components/admin/ediel/EdielFileEnginePanel.tsx",
+      "sha256": "f90d307f1017855dfa897c88d55fe07d1989105b21e352269bdcf74b7939452a"
+    }
+  ],
+  "productEditsBackendAuthNode": false,
+  "caseOrDeadcodeCountCredit": 0
+}

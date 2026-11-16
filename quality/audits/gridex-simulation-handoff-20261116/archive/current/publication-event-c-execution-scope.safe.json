@@ -1,0 +1,9 @@
+{
+  "verdict": "EXECUTION_SCOPE_APPROVE",
+  "reviewerAgent": "/root",
+  "observedAt": "2026-11-14T09:49:00.740392+00:00",
+  "wrapperSHA256": "3812d94876ca56d72cf6a413f4a116756e592f20f2ae00edd864af6c74f673f4",
+  "targetSHA256": "7a9cb0bda4518a14187836116d8bad46a6035af6dcef21f71aebc47ac877b97b",
+  "scope": "ONE EVENTC newgenuine1981589/1800hold, allboundrefs+freshactualpostAUTHseal nativeMainBYTEsame verified. Deadline10:00:20 ample andwithinheld10:15:53/JWT10:45. Source67e82/leaf0770 qualified. Actual805guard remainsproducerrequired. SeparateTLSproducer+Edielactualscopes selfGO; fixed8c28failurecapture beforeteardown. No C6/APIwire gates.",
+  "findings": []
+}

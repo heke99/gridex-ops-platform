@@ -1,0 +1,77 @@
+{
+  "state": "ACTUAL_FULL_ORIGINAL_EDIEL02_06_BUSINESS_RECEIPT_RECONCILED_CLOSURE_PEER_PENDING",
+  "originalCriterion": "96518 one documented invalid segment is sufficient per6e240; no extraUNOC/C6",
+  "rawWireSHA256": "826058dbd4faa24ed5e91d345d2fa00f288c2a970d5bd5c9a223343b92d26611",
+  "mailboxId": "0e702a70-586d-46ae-88d9-a197f99af283",
+  "emailId": "0ba971e4-baa5-4255-911c-6c3a0fcc6ff5",
+  "jobId": "efa801af-99bf-4493-b4cc-458965bf0b0a",
+  "nativeStatus": "retry",
+  "nativeStep": "processor_failed",
+  "nativeError": "edifact_dangling_release_character",
+  "attempts": 1,
+  "actualWireStoredSourceEqual": true,
+  "normalQueueErrorWithoutFabricatedTenantOrACK": true,
+  "whole522Changes": {
+    "poll": [
+      "public.ediel_mailboxes",
+      "public.inbound_email_messages",
+      "public.inbound_processing_jobs"
+    ],
+    "queue": [
+      "public.inbound_processing_jobs"
+    ]
+  },
+  "allOther522RowsAndMetadataFunctionsExact": true,
+  "privateScope": "386 beforepoll hashes persisted; exact2 normalcustodyappend evidence; pinned executed outer assertions compare allpostpoll386 and afterqueue386 in-memory. Rawpostphase386maps are not separately saved; do not claim reviewer rehashed those absent maps.",
+  "refs": [
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/before-poll-imap.physical-return.safe.json",
+      "sha256": "57d3fa370eda3bf3b0fa641252713e4b80093aa9f6cc07ac685ae3ea5669ed6a"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/preauth-empty-imap.physical-return.safe.json",
+      "sha256": "41610fd25a4631dfb8d502d42d81ca5fd6d29c5c71b4791f7fc7c41df7344c27"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/poll-native.private.json",
+      "sha256": "6a6d4a528bdee992915700328123187b76b73bc66882bcca8c2f46bca068b279"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/durable-error-native.private.json",
+      "sha256": "2d7d2e5bd953010a9ad8bcb0c7652a9a78ef975a9c3315a0491d3c7b6356dd1b"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/clone-before-poll.private.json",
+      "sha256": "d1e5b068479a600cbdb3fe5eaa49e710206369bb10c6b5a78bc21b2b4064a91d"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/clone-before-queue.private.json",
+      "sha256": "833a5cab784d5cd6e4cc5f4a8b43ed052d4893295079709a1d16a0db4dcd292a"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/clone-after-queue.private.json",
+      "sha256": "3efff7792da8d8ab0d7e027d42f859ce6b9b7a8c233d59bf8c28b5f08c0351cb"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/private-product-before-poll.safe.json",
+      "sha256": "24f6a5039f3dd97b2012f311a431a08cb104a893e8d4754ae9030d96fafcd192"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/private-normal-custody-append.safe.json",
+      "sha256": "1e4aeed99c57c12feb8c372adbfd81c1c66d47bdb6a522780433d0bc813efd72"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/owned-runtime-closure.safe.json",
+      "sha256": "3fccee178be0fc685e2429c00d32a43ee136bf33f86ea0ad4c158b1545608ab6"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/worker-process-closed.safe.json",
+      "sha256": "cafdda3940c5412341a26646c64ec83706f1a8c2d5ea0568bcb3ee4d78716c2b"
+    },
+    {
+      "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/mail-fixture-closed.safe.json",
+      "sha256": "9c7e21b070e03135b9c937f44b9c8e5d1be7c08fb6ffd4168e8c72fc31c57296"
+    }
+  ],
+  "casePASS": false
+}

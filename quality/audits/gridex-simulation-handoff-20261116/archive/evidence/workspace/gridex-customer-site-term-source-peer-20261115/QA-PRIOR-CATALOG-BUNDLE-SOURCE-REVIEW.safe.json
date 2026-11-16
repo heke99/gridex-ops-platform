@@ -1,0 +1,127 @@
+{
+  "state": "SOURCE_APPROVE_PRIOR_CATALOG_BUNDLE_WITH_BUILDER_V2_CORRECTION_ONLY_UNARMED",
+  "atUtc": "2026-11-15T17:31:57.548933+00:00",
+  "reviewer": "/root/qa_remaining_checks",
+  "refs": [
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/PREPARED.SOURCE-ONLY.safe.json",
+      "sha256": "adca4080b53c22273d1eb1fc612fd87934be45dbcdc4fec40a8d2413c39c0517"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/OFFLINE-CONTROLS.ACTUAL.safe.json",
+      "sha256": "f545af5f5dec19d68b55871b6ae876bda55e49794a9fda608c2798403074a63a"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/README.md",
+      "sha256": "65072f25f6fb6aecd0e2e0c88fb74aa522b416b2e9c0e5cde2e114066687dd28"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/SITE20.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/SITE20.stdout.private.log",
+      "sha256": "7554d9b7ff2e3ec37147d16fe9823852fdb470d8b13e45cbb5b94c1e3e4cb65a"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/TERM21.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/TERM21.stdout.private.log",
+      "sha256": "77e8dde1b2926ff747f31a7ccb3703a8b8c6ed28ac60dfb35d6c3f6ee17eab1b"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/capture-catalog-eligibility.py",
+      "sha256": "fd9588d87d003d8153baecd59ff214b97c09be4486c0acd8129af4f6c14615dd"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/capture-eligibility.py",
+      "sha256": "02ae1eff801ff30b1d4f61cf2e04573e7b945ebd84d48b03cb3708fd709a7d6c"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/catalog-eligibility.READONLY.sql",
+      "sha256": "f218e5f249e35d4ec231177828887d663ee1a0aa0a106644b48236b34af9fb53"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/catalog-eligibility.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/catalog-eligibility.stdout.private.json",
+      "sha256": "fae189bbac50f8d512daaa8078204bd5217b4eb0d4132ababd7c32ff7f6f7ef3"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/customer-bundle-adapter.cjs",
+      "sha256": "949f5df205d130796ad7bc8842cf1c4bbd6b6ca35531154bb8109ea559e26069"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/eligibility.READONLY.sql",
+      "sha256": "bd804022a7431d35f4c34eb6f5a570485dc46c49489f1cb02e7fc0f225a6e97c"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/eligibility.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/eligibility.stdout.private.json",
+      "sha256": "14dc4cec264b4b8a3642830106ab118754333e0292d79ae60e8bd21f5224d750"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/normal-catalog-publish-driver.cjs",
+      "sha256": "0384398d7041d87e899257e021d2861c3020c05c9c9648d4cc420c0491ed5786"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/CATALOG-HOST.SOURCE-ONLY.safe.json",
+      "sha256": "7f2dcd080d979c63bbfbefbccf5a5cd482b72ecdb3b6b13e6086e0c493b293b7"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/hold-ee-catalog-normal600.cjs",
+      "sha256": "409b94b8f3fa2cbdc87e07cb0bd5f80365f9b72bab5b025abddf21f2a277109c"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/normal-catalog-publish-driver.v2.cjs",
+      "sha256": "72e1d0e7c483d366dbd8c5571f81ca9f8f86addf598bf3532e9ea0c444ca43b9"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/CATALOG-TARGET.UNARMED.safe.json",
+      "sha256": "fe441427cf4a2912e196650f1a0df0ea754f8e024228e87557cb1fbf9e439a17"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/build-catalog-host.py",
+      "sha256": "46b16c4d1c2c3810ce8ad14fadad41a91f8fce1022c4e55bb61fc917eb1d14e1"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/CATALOG-HOST.BUILDER-V2.SOURCE-ONLY.safe.json",
+      "sha256": "476ce94db6c6acd342249873ba0cdfbbde8b1bc147a158b5c2ef6e4f83170598"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/build-catalog-host.v2.py",
+      "sha256": "e69a464c6e0305c069f02569b4ce93e5f9337a9bf20a53e804d48b2efced6c36"
+    },
+    {
+      "path": "/workspace/gridex-customer-site-term-stream-20261115/SYNTAX.ACTUAL.safe.json",
+      "sha256": "f64d61d44d1b5667316ec48747551abfa90b9c1d1fa26e2f9ffc47b7e6f1d483"
+    }
+  ],
+  "reviewed": [
+    "FullfixedcompanyAhost600/normalexistingoffer7f0cdriver.v2/closedTERM+SITEadapter/eligibilitySQL+captures/readme+saved41componentresults.",
+    "ActualsamecookieSDKgetUser/canonicalplatform+companyAchecks, fixedMainPID/start/cmd/role/sourceclosurepins andoriginal600/JWT120/finitecapabilityserver.",
+    "OnefixedrenderedNextActionPOST/durableintent/freshbefore/draftoffer/cookiepreservation/no automaticretry; postcaptureownAPIcleanupseparate.",
+    "SQLpubliccompanyAonly/READONLY8s+lock2s+process15s/boundedmetadata/overflowcounts; no newDML/role/authsettings.",
+    "Adapterhasclosedserialcommands/nativeACKbarrier,samecustomer/contract/company,actualdurableintents and nofixturecreation/mutationonimport.",
+    "Syntax3savedPASS/f64d rehashed; TERM21/SITE20savedcomponentonly results reviewed, no rerun/newnativeoutcome."
+  ],
+  "findingResolved": {
+    "problem": "Originalbuilderemittedold.cjs whilehostalreadyrequired.v2.cjs",
+    "immutableFix": "build-catalog-host.v2.py exactonefilenamechange",
+    "wholeGeneratorReconstructionMatchesCurrentHost": true,
+    "oldFreezeAndBuilderPreserved": true
+  },
+  "limits": [
+    "No execution-ready,fixtureauthority,Authwindow,Mainmutation orwholecasePASS.",
+    "Knownnormalpublishedlegal/product/offergraph+unsignedcanonicalcontract/newexactlytwo-sitesourcefixture prerequisitesstillneeded; historicalSITEcompanyBdrivercannotbeusedasA.",
+    "Oldcataloghostisnowhistoricalsource: newprofile-prerequisite405e extension isnotreviewedbythisreceipt andsupersedesitforfutureexecution.",
+    "No Node/backend/SQL/Auth/Browser rerun byreviewer; source-generatorAST evaluatedwithoutfinalwrite only."
+  ]
+}

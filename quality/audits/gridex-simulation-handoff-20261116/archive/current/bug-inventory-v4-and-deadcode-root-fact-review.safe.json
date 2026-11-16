@@ -1,0 +1,16 @@
+{
+  "state": "FACT_REVIEW_APPROVE_WITH_SEPARATE_DEADCODE_ADDENDUM",
+  "inventorySha256": "fca0938b569f902b32beb5ba3eab3445306872fcd7ede0d73725f161ee99a90a",
+  "deadcodeAddendumSha256": "a55598449d9115230fbc110553267dd39f321838309813f7ef68d797e273d8cf",
+  "newInventoryActualRefsVerified": 19,
+  "addendumActualRefsVerified": 7,
+  "baselineProductReferenceDeviations": 26,
+  "baselinePatchedOnlyAtNamedLayers": 26,
+  "separateLocalConfigFindings": 1,
+  "activeConfigFixAtCutoff": "NOT_VERIFIED",
+  "manualCandidates": 30,
+  "inertBindingsRemovalQualifiedAndRemoved": 2,
+  "otherManualCandidatesUnconfirmed": 28,
+  "wholeModulesFunctionsRemoved": 0,
+  "limits": "Sourcequalified patches are not fullE2E/production acceptance. V3 immutable. V4 + addendum must be reported together."
+}

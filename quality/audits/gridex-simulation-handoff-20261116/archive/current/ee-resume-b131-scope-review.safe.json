@@ -1,0 +1,24 @@
+{
+  "verdict": "EXECUTION_SCOPE_APPROVE",
+  "reviewerAgent": "/root",
+  "helperSha256": "786438fa7749ec8abe333af8b06c713ea61d525d096eb7b5353e7bb0f8fae771",
+  "driverSha256": "41fb9fe32f98bd6e55f23a0ca1b55f7f71e7837efea6f8890c2406a7bbad60b5",
+  "targetSha256": "b1318b9f4c5014bb3030bceb71a9398bc931164b764e5e23a2efda676c6b716b",
+  "targetPath": "/tmp/gridex-ee-browser-resume-c6-prep-20261113/target.continuation.BOUND.safe.json",
+  "reviewType": "CLOSED_KNOWN_C6_ONLY_READONLY_CONTINUATION_NEW_GENUINE_CONTEXT",
+  "verifiedPrepFiles": 20,
+  "verifiedTargetPins": 9,
+  "source40And57PhysicalHashesVerified": true,
+  "currentAppIdentityVerified": true,
+  "scope": [
+    "freshnormalgenuineEE UIlogin/getUser/canonical beforefreshMainbaseline",
+    "same currentbrowsernaturallyissuedcookies; noAuthflag/cookie/stateinjection",
+    "ONLYknowncommittedC6 copiedaftercurrentnative-genuine canonical and visibleactualregistrationcompany/role/issued/expiry/read +originalUI/nativeACK/raw proof",
+    "NOnewC6intent orC6POST possible",
+    "LOCAL_ISSUE firsteverPOST afterreadcheckpoint; restfixedchain anddurableonePOST/readback unchanged",
+    "finiteTTL/currentJWT andnormalpostMainlogout boundaries preserved"
+  ],
+  "delegation": "After soleproducer secondexactscopeACK arm b131/7864/41fb ON_BEHALF_ROOT and executeONCE immediately. FreshMainbaseline and trustedprivatefixture continuation follow boundbackendtuple; no thirdreview/genericpermission/documentgate.",
+  "noNativeOrScenarioPassFromCheckpointMetadata": true,
+  "asOfUTC": "2026-11-13T20:39:35.205440+00:00"
+}

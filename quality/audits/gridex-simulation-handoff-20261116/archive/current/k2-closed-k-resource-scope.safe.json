@@ -1,0 +1,126 @@
+{
+  "state": "ROOT_EXACT_CLOSED_K_DEDUP_AND_SIX_ARCHIVE_SCOPE_APPROVE",
+  "atUtc": "2026-11-14T13:21:30.950615+00:00",
+  "proposal": {
+    "path": "/workspace/gridex-k2-closed-k-resource-proposal-20261114/PROPOSAL.safe.json",
+    "sha256": "271321ac72c536c303313f4272853dee48a9b8bb32f9bcc335d0903b50a3c80c"
+  },
+  "dedupGroups": [
+    {
+      "canonical": {
+        "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k/main-before.private.json",
+        "sha256": "7b06763843735160c4a5d18caef0b8429e13e58d85b8520754929c38186448c0",
+        "bytes": 22280424,
+        "device": 27,
+        "inode": 527609,
+        "nlink": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "mode": "0o600",
+        "gzipEstimateBytes": 2181730
+      },
+      "replace": [
+        {
+          "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k/main-after.private.json",
+          "sha256": "7b06763843735160c4a5d18caef0b8429e13e58d85b8520754929c38186448c0",
+          "bytes": 22280424,
+          "device": 27,
+          "inode": 527714,
+          "nlink": 1,
+          "uid": 1000,
+          "gid": 1000,
+          "mode": "0o600",
+          "gzipEstimateBytes": 2181730
+        }
+      ],
+      "savedBytes": 22280424
+    }
+  ],
+  "workspaceArchives": [
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k/trusted3443-before-one-live-patch.private.json",
+      "sha256": "7a01b2a0b652d652ca72a321a9550b802950e0530ad7f545b5b4ddde3d2d6173",
+      "bytes": 22899459,
+      "device": 27,
+      "inode": 527678,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2249078
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k/after-api0558-before-wire.private.json",
+      "sha256": "653a47f6e4350eab37e7e49a648c411b55e44af0df7adb7424c1dd319d8d304e",
+      "bytes": 22899463,
+      "device": 27,
+      "inode": 527683,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2249081
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k/after-api0558-wire-cbde-before-decimal.private.json",
+      "sha256": "47ceb5252fbdbe77b9ad2dd0bf3c5e71565274ff3e7e85c6e7ba8ed2f0462df5",
+      "bytes": 22899469,
+      "device": 27,
+      "inode": 527689,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2249096
+    }
+  ],
+  "tmpArchives": [
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261114-k/fresh-current-main.private.json",
+      "sha256": "155747907db56e23db3cc8e6405b9e7175c50aacee05c1497c717edc2200776e",
+      "bytes": 22280423,
+      "device": 34,
+      "inode": 636694,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2181729
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261114-k/post-dump-main.private.json",
+      "sha256": "155747907db56e23db3cc8e6405b9e7175c50aacee05c1497c717edc2200776e",
+      "bytes": 22280423,
+      "device": 34,
+      "inode": 636842,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2181729
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261114-k/current-postdraft-main.dump.private",
+      "sha256": "da5e77068c8f83ad94fbc4bb0369a64dc863ef9ad7794d86974d3ae4af0043da",
+      "bytes": 16864622,
+      "device": 34,
+      "inode": 636765,
+      "nlink": 1,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600",
+      "gzipEstimateBytes": 2720378
+    }
+  ],
+  "conditions": [
+    "Producerexplicitsolewriterdelegation; fresh accessible FD/mount/ownedclosure check with deniedprobesdisclosed.",
+    "Only equalmetadata/device/SHA Mainpair atomic hardlink replace; preserve paths and all hashes, journal identities.",
+    "Exact6uniquegzip archives exclusive0600+fsync+streamdecompressSHA/bytes before eachrawunlink; durableARCHIVEDmanifest/safeexclusive restore.",
+    "CurrentK2freshbaseline cannotborrowoldKauthority; retainoldKcandidate-before-child/failureFc andallC6/E/API/wire sources.",
+    "Repeatfilesystem-onlynewK2static/mandatoryproof checks afterarchival beforeAuth; restoreunexpecteddependencyifneeded, remeasureactualheadroom.",
+    "No backend/globalprune/production/source/dependency/env edits."
+  ],
+  "estimatedWorkspaceNet": 84231560,
+  "estimatedTmpNet": 54341632,
+  "backendCalls": 0
+}

@@ -1,0 +1,14 @@
+{
+  "state": "ROOT_FINALDOC_APPROVE_NOT_NEW_NATIVE_OR_CASE_CREDIT",
+  "packets": [
+    {
+      "head": "7134712ded55e6364dbfe7193ad821184f3c2bb3",
+      "actualPathSHAReferencesVerified": 101
+    },
+    {
+      "head": "c4ce53606b2e8b2456963de503fc06b6879611ad",
+      "actualPathSHAReferencesVerified": 57
+    }
+  ],
+  "review": "Both complete reports read; source/main/native claims match previously independently root-reviewed original receipts; historical orphans retained, CLI ledger0, PRECHAIN backup, no actual EEJWT or case credit overstated. Independent Ediel finalDOC pending."
+}

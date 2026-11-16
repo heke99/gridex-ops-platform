@@ -1,0 +1,20 @@
+{
+  "state": "ROOT_NINE_EXACT_CLOSED_GROUPS_ARCHIVE_SCOPE_SEVEN_PLUS_TWO_CONDITIONAL",
+  "observedAt": "2026-11-14T15:48:24.929619+00:00",
+  "proposalPath": "/workspace/gridex-k4b-closed-preready-resource-proposal-20261114/PROPOSAL.safe.json",
+  "proposalSHA256": "128f62353dd0f7b8ced3c5c8972eea43d77dea63e5aa1cbf6b46341628b0f69d",
+  "exactGroups": 9,
+  "exactAliases": 11,
+  "freshAllPhysicalHashesMetadataAndClosurePinsChecked": true,
+  "unconditionalGroups": 7,
+  "conditionalGroups": 2,
+  "conditionalPrecondition": "OnlyafterRoot/DomainconfirmK4bSource2readsofactualbeforeprepare/candidatecomplete ANDcurrentfrozenK4bstatic/executiondoesnotreadtheseRAWfiles. Sourcecontrols/historicalrepro requiresafeexclusive restorebeforefuture rerun. OtherwiseleavebothRAW; executeonlysevenifsoleproduceragreesactualbudget.",
+  "source2ActualReadsComplete": "Domain14controls and Execution6323/Ediel280d source reviews completed before this scope. Producer/Domain must still confirm current frozen K4b execution/static no RAW dependency before conditional unlink.",
+  "requiredProtocol": "Immutabletuples/currentHstat/closure/FDcaveat/onegzippercurrentinode/fsync/decompHbytes BEFOREallaliasesunlink/ARCHIVED/safeexclusive restore. No source/backendaction.",
+  "protected": "CurrentK4baselineTMP/heldactorinput/H/source/E96/C6/fullfailureFc2c81/fullFcs/state/sourcecontrolcode unchanged. ConditionaltwoRAWremainprotecteduntilexplicitaboveconditionsmet. No oldbaseline reuse withoutproducerquietcontinuity.",
+  "writer": "remaining_coverage_inventory sole writer or explicitly delegated producer",
+  "futureBytesNotActual": true,
+  "indexRequirement": "Preserve historical source/review input paths and hashes with explicit ARCHIVED mapping plus exclusive safe restore required before future actual-control rerun. Full Fc/main current baseline/held/context/source retained.",
+  "budget": "Current875.65MB +unconditional\u22481018MB; conditionalextra\u224841MB permitsold1054MBconservativefullpeakwithoutnewguardwaiver. Futurepairdedupnotassumed; 450MBcache/134217728dumpreserve unchanged. Measuredactual governs; all futurecapacitypredictions conditional.",
+  "backendCallsByRoot": 0
+}

@@ -1,0 +1,31 @@
+{
+  "state": "EXACT_DUPLICATE_TOOL_AND_NPM_DOWNLOAD_CACHE_REMOVED",
+  "targets": [
+    "/workspace/gridex-setup01-evidence-20261112/npm-cache/_npx/59fb185c070268f1",
+    "/workspace/gridex-setup01-evidence-20261112/npm-cache/_npx/e5fd8a76b08fe73b",
+    "/workspace/gridex-setup01-evidence-20261112/npm-cache/_cacache"
+  ],
+  "retainedQualifiedToolDirectory": "/workspace/gridex-setup01-evidence-20261112/npm-cache/_npx/34bebeba9c1ab179",
+  "binaryIdentity": [
+    {
+      "duplicate": "/workspace/gridex-setup01-evidence-20261112/npm-cache/_npx/59fb185c070268f1/node_modules/@supabase/cli-linux-x64/bin/supabase",
+      "retained": "/workspace/gridex-setup01-evidence-20261112/npm-cache/_npx/34bebeba9c1ab179/node_modules/@supabase/cli-linux-x64/bin/supabase",
+      "sha256": "b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f"
+    },
+    {
+      "duplicate": "/workspace/gridex-setup01-evidence-20261112/npm-cache/_npx/59fb185c070268f1/node_modules/@supabase/cli-linux-x64/bin/supabase-go",
+      "retained": "/workspace/gridex-setup01-evidence-20261112/npm-cache/_npx/34bebeba9c1ab179/node_modules/@supabase/cli-linux-x64/bin/supabase-go",
+      "sha256": "9dd9e81a21074081328b77a27a8aef7be45a2828f81d99c4e1fb65efbec73947"
+    },
+    {
+      "duplicate": "/workspace/gridex-setup01-evidence-20261112/npm-cache/_npx/e5fd8a76b08fe73b/node_modules/node/bin/node",
+      "retained": "/workspace/gridex-setup01-evidence-20261112/npm-cache/_npx/34bebeba9c1ab179/node_modules/node/bin/node",
+      "sha256": "1bec56ef7cfa9a76f3e0b7c0a87f220eb73f23102b9c0b4c7529a3f7c3ce7c31"
+    }
+  ],
+  "liveReferences": [],
+  "beforeFree": 262971392,
+  "sourceGitDataCredentialsEvidenceUntouched": true,
+  "afterFree": 743817216,
+  "targetsAbsent": true
+}

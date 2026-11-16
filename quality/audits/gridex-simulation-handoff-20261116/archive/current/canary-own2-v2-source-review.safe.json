@@ -1,0 +1,14 @@
+{
+  "state": "CODE_APPROVE_SINGLE_CHMOD_FIX_NOT_EXECUTION",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T11:27:40.103546+00:00",
+  "freezeSHA256": "62d9cafc125ef571aa633ed1115e17e26aa204aadb18c8e8124000a02cf11014",
+  "scriptSHA256": "309af1d1364b5813808b38b653231a81a1426e3eacd46f639eaedf268e156459",
+  "fullReview": "f09e5444ed8e7980de6d90e6f7ecb833e0e113af9c4aead0519e3fa4e5edb116",
+  "checks": [
+    "Wholeinverse exactONEexplicitcontrolchmod0750 aftermkdir/chown, AST0; allotherOWN2guards unchanged",
+    "Actualumask077FS regression demonstratesold700/new750/640file/gid1000; no Docker orbusinessqualfromfixture",
+    "OldBclosedartifacts/ee2c immutable, no inplacefailedinputchmod; newCnamespace/target+twoactualscopes required",
+    "900236d/Kedacea alreadyexplicitcontrolchmod unchanged; no extrapolicyorcaprelaxation"
+  ]
+}

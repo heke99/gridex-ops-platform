@@ -1,0 +1,55 @@
+{
+  "state": "EXACT_ORIGINAL_EVENT01_05_ACCEPTANCE_SOURCE_ONLY_NOT_EXECUTION_GATE",
+  "caseId": "EVENT01.05",
+  "originalSourceSHA256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+  "literal": "Tenantfilter och hemligheter h\u00e5lls korrekta; native supportedbusiness event\u2192outbox/webhook\u2192localreceiver, eventID/payloadSHA/signature/deliveryID/exactcount. No commerceactivation/C6/Storage03 prerequisite added.",
+  "secondTenantCompany": "60575561-5184-44ec-8a14-a50f37f4c2c1",
+  "setupNonvacuity": [
+    "LegitimateexistingactiveTESTcompanyC; genuineactor/companycontext andacceptednormalmembership grant receipt, no SQLgrants orfakeGetUser",
+    "FullnormalprovisionTenantWebsiteIntegration return+nativepersistedclient/subscription/secretreference/policy rows; no partialfailedprovision treatedasfixture",
+    "ActualCclientactive and actualCpublicationSubscriptionstatusactive/event_typescontainscontracts.publication.changed/companyC; actualoutgoingwebhook policy permitted. Commerceblocked launchReadyfalse may be validnormalfullprovision result; do not requireunrelatedgo-live/activation",
+    "Freeze FULL Cbaseline AFTER normalsetup completes, including any actualCpublicationevents/deliveries producedbyclientPATCH/revisiontriggers andallnormalmembership/client/sub/config/policy/secretref/receipt/audit effects. Do not delete/setupcollateral orclaimCabsolute0."
+  ],
+  "AActionAndFanout": [
+    "FreshsupportednormalApermissionmutation with genuineAactor/currentmembership; actualnativebefore/after assignment/audit+website/APIrevisionevents andunchangedpublicationactivation",
+    "ChooseactualnewAwebsiteeventId and originalpayloadSHA; recordALLmatchingnativefanout/deliveryIDs. Actualfanoutpredicate company_id/eventtype/status, not inventedcommercecriteria.",
+    "AactualmatchingactivepublicationSub/delivery binding reachesownstrictTLSreceiver withone200POST/native sentattempt1; independentHMACoverrawbody/timestamp andexactwireSHA/native requesthash/publicprojection/headeridentity",
+    "Cross-tenant forbidden count is ZERO rows where domain_event_id=actualAeventId AND subscription.company_id=C (and company_id=C). AllCbaseline rows/hashes/counts remainunchanged acrossAphase. ExistingsetupCdeliveries canremain.",
+    "TrackexactAAPIcompanion and legitimateownArows asnormalbusinesscollateral; never discard them ormistake unrelatedpreexisting delivery count forcrossTenantleak."
+  ],
+  "physicalSecretReadback": [
+    "Read ACTUAL complete request-1.headers.private.json rawHeaders, complete=true/boundedarray AND actual request-1.body.private.bin; never relyonlyon whitelist/projectedheaders orsanitizebeforechecking",
+    "Privately compare actualCcompany/client/subscription/secretref/secretvalue/internalIDs and relevantCpublicopaqueIDs against fullactualAUTF8payload+ALLrawheadernames/values (includingduplicatenames). OriginalCsecret/privatekeys never emitted in safeproof/log.",
+    "No Authorization/Cookie/Proxy-Authorization; noCsecret inpayload/header. ActualA HMACsignature expectedandverified, not a forbiddensecretvalue.",
+    "Persist safeproof only rawbody/headerhashes, scopedIDrefs/hashboundprivateCinventory, countofcheckedcategoryvalues, exclusionbooleans, actualnativeIDs/counts. Do not publishrawsecrets/headers."
+  ],
+  "nativeReadset": [
+    "ActualCbefore/after fullnativefootprint aftersetup and afterAcase; row-level hashes andcounts, not anassertedemptyCfixture",
+    "ActualAnewnormalbusinessbefore/after/nativeevent+binding+delivery+fanout; actualCcrosslinkcount query tied toselectedAevent/currentCsub; actualCclient/sub/status/type/policy andnormalsetup receipt",
+    "Wholeclone publicrow+metadata baseline separateallowedCsetup and AphaseexactCpreservation; actualMain/getUser/all7/nativeAuth0/properworker/TLS/REST/DB/topology closure."
+  ],
+  "verdictRule": "FULLoriginalPASS onlyafteractualnormalfixtures/nonvacuousmatchingCsub+nativecompanyfilterzeroAtoC+completeactualheaders/bodysecretisolation+ownA200TLS/HMAC/count+properclosure. NoautomaticPASS; ifactualCfixturestatus/type/policy incomplete, preserve asblockednotclaimproof.",
+  "actualBindings": null,
+  "refs": [
+    {
+      "path": "/workspace/gridex-original-pass-priority-20261115/ORIGINAL-PASS-PRIORITY.safe.json",
+      "sha256": "391633b021d8a8198d0f70ea6f60530c5c45de281524403bea8406d11289068c"
+    },
+    {
+      "path": "/workspace/gridex-event-original-acceptance-20261115/ASSERTION-MATRIX.safe.json",
+      "sha256": "532c128742571a1711514aed98522e2786061e198bcc978ba9cb2a8eb998299f"
+    },
+    {
+      "path": "/tmp/gridex-event05-headless-prep-20261116-a/publication-tls-receiver.headers.cjs",
+      "sha256": "efcc504cd5c2f688e454fd78e90e3f5ddcaf76d5318d3bb6fa59aa42c3bbb338"
+    },
+    {
+      "path": "/tmp/gridex-event05-headless-prep-20261116-a/qa-RECEIVER-HEADERS-SOURCE-REVIEW.safe.json",
+      "sha256": "7cf1ec6d57e54033e7cf4d594235239edf550de9665d485cb3dfc53a0dd810c7"
+    },
+    {
+      "path": "/tmp/gridex-event05-headless-worker-prep-20261116-a/second-tenant-normal.cjs",
+      "sha256": "c4566702d07785271c6f2f760f7104fbc019de0dfe80ff1b1332445b6cbe435b"
+    }
+  ]
+}

@@ -1,0 +1,293 @@
+{
+  "state": "TWO_PURE_STATIC_COMMANDS_ACTUALLY_EXECUTED",
+  "commandsPlanPath": "/tmp/gridex-qa0104-sixquick-current-prep-20261114-b/TWO_STATIC_COMMANDS.UNARMED.safe.json",
+  "commandsPlanSHA256": "9f7c959092a038bbd581e203b36b337d0da013aa99261cfcbffba1318163ef7b",
+  "sourceReadsetPath": "/tmp/gridex-qa0104-sixquick-current-prep-20261114-b/API_TWO_STATIC_READSET.PREPARED.safe.json",
+  "sourceReadsetSHA256": "0b78094f2d23b35c369f88c4bad2e8444df84f5df986b5c89c01f8532841a032",
+  "inputCount": 22,
+  "inputs": [
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/app/api/v1/customer/notifications/read/route.ts",
+      "relativePath": "app/api/v1/customer/notifications/read/route.ts",
+      "sha256": "e4f93ebb80fde5107e8e88ad5bb3bdff588a3bddef896fbb295ef9793b7db7c1",
+      "bytes": 5356,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/app/api/v1/customer/notifications/read/route.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/app/api/v1/customer/profile-update/route.ts",
+      "relativePath": "app/api/v1/customer/profile-update/route.ts",
+      "sha256": "50716d4a8f695b6921a1372dd0432a593b32b3e80873e01f232735f08d31ae59",
+      "bytes": 11972,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/app/api/v1/customer/profile-update/route.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/app/api/v1/events/route.ts",
+      "relativePath": "app/api/v1/events/route.ts",
+      "sha256": "2890aa9e3bd27efe3052afdae43581bba38890aeb0ec83493ed81b4ef80bf61a",
+      "bytes": 8065,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/app/api/v1/events/route.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/app/api/v1/integration/context/route.ts",
+      "relativePath": "app/api/v1/integration/context/route.ts",
+      "sha256": "0ef78a5554ceefd5f0fc22d766db16f4e4f823a7a04db576525027609b359ae5",
+      "bytes": 2572,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/app/api/v1/integration/context/route.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/app/api/v1/website/customer-applications/[applicationId]/route.ts",
+      "relativePath": "app/api/v1/website/customer-applications/[applicationId]/route.ts",
+      "sha256": "82978f668379c719b6389131a9132d082b52131aafdbfff4db2a7e610d68c28a",
+      "bytes": 2610,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/app/api/v1/website/customer-applications/[applicationId]/route.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/app/api/v1/website/customer-events/route.ts",
+      "relativePath": "app/api/v1/website/customer-events/route.ts",
+      "sha256": "1da88802bb8b9a6a1e311f721479542f1b725ed1286588281e68bf1b4b528a85",
+      "bytes": 4182,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/app/api/v1/website/customer-events/route.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/app/api/v1/website/legal-bundle/route.ts",
+      "relativePath": "app/api/v1/website/legal-bundle/route.ts",
+      "sha256": "2db94928247ce09452ebac2b99ece064db7d61f9c30fb24fcfbee8ecd411063c",
+      "bytes": 4486,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/app/api/v1/website/legal-bundle/route.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/app/api/v1/website/quote/validate/route.ts",
+      "relativePath": "app/api/v1/website/quote/validate/route.ts",
+      "sha256": "fce5cfe2bcd7950f90662086c40fa05093ebf380e855db59582642350cff3606",
+      "bytes": 10644,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/app/api/v1/website/quote/validate/route.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/docs/openapi/customer-portal-v1.json",
+      "relativePath": "docs/openapi/customer-portal-v1.json",
+      "sha256": "b628c1366e379142d4585e486f0e84bd42aabc36d84edac0044082a3176acf8d",
+      "bytes": 569558,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/docs/openapi/customer-portal-v1.json"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/docs/openapi/staff-v1.json",
+      "relativePath": "docs/openapi/staff-v1.json",
+      "sha256": "4c55b46824690e05b101c50dc6c7559a4c1d0b7e0ea45a8f7282b470f0746a78",
+      "bytes": 495223,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/docs/openapi/staff-v1.json"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/docs/openapi/website-integration-v1.json",
+      "relativePath": "docs/openapi/website-integration-v1.json",
+      "sha256": "374e012e7d2f1dec74bae1ff59fa07e886b3a07a02f682228068074d16f579e3",
+      "bytes": 550198,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/docs/openapi/website-integration-v1.json"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/lib/customer-portal/customerEvents.ts",
+      "relativePath": "lib/customer-portal/customerEvents.ts",
+      "sha256": "14e7d60ac0b4c205b1dc56134e2ad15c387450dc4b53feec88ea862000f7afe3",
+      "bytes": 8296,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/lib/customer-portal/customerEvents.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/lib/customer-portal/externalApi.ts",
+      "relativePath": "lib/customer-portal/externalApi.ts",
+      "sha256": "d7dd3cc3911df7ffab01d9e651dc69975668aba3d7b45aaa5fccd027a556f7d0",
+      "bytes": 19338,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/lib/customer-portal/externalApi.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/lib/customer-portal/profileUpdateContract.ts",
+      "relativePath": "lib/customer-portal/profileUpdateContract.ts",
+      "sha256": "1da83ba1f738b2efd4831303c15936889a313f5b8b862c7c96b5ff1a2e1df047",
+      "bytes": 2195,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/lib/customer-portal/profileUpdateContract.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/lib/integrations/apiAuth.ts",
+      "relativePath": "lib/integrations/apiAuth.ts",
+      "sha256": "ccaa549c5d7405b14546013c43ec26b69aa2d8526df7b2e2a9031c5d14553082",
+      "bytes": 19362,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/lib/integrations/apiAuth.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/lib/integrations/tenantContext.ts",
+      "relativePath": "lib/integrations/tenantContext.ts",
+      "sha256": "f8d9885b1073553aad68f405331783c2eb63f4116d97ed4de41620ce5179f8db",
+      "bytes": 9770,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/lib/integrations/tenantContext.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/lib/integrations/websiteIntegrationContract.ts",
+      "relativePath": "lib/integrations/websiteIntegrationContract.ts",
+      "sha256": "cb33a9f34b19929b36a794d491ae91e76e99ca7f9c8ae1659c9af04ada95c808",
+      "bytes": 6884,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/lib/integrations/websiteIntegrationContract.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/lib/website/customerApplicationStatus.ts",
+      "relativePath": "lib/website/customerApplicationStatus.ts",
+      "sha256": "1c83af7e2e203037fde5868d597c682410b4c98fe65e6b45a5805c6fe6f1dd81",
+      "bytes": 20483,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/lib/website/customerApplicationStatus.ts"
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/lib/website/publicCustomerApplication.ts",
+      "relativePath": "lib/website/publicCustomerApplication.ts",
+      "sha256": "0246b3d4edf7786566583656cdda30b409551f56a52dd159cf07fc762d25e88a",
+      "bytes": 6344,
+      "origin": "EXACT_CURRENT_PRIVATE64_RUNTIME",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/lib/website/publicCustomerApplication.ts"
+    },
+    {
+      "path": "/workspace/gridex-ops-platform/scripts/check-api-compatibility.cjs",
+      "relativePath": "scripts/check-api-compatibility.cjs",
+      "sha256": "dff40f925aa83b5f8683694bb3e7a29fdc1ccb0477bf5c3cf3384ee73aa81cfb",
+      "bytes": 4272,
+      "origin": "EXACT_CE804_DECLARED_GATE_SCRIPT_MUST_PHYSICALLY_COPY_TO_PRIVATE_SCRIPTS_BEFORE_EXECUTION",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/scripts/check-api-compatibility.cjs"
+    },
+    {
+      "path": "/workspace/gridex-ops-platform/scripts/canonical-external-api-runtime-parity.cjs",
+      "relativePath": "scripts/canonical-external-api-runtime-parity.cjs",
+      "sha256": "a0f2edd42b7e753a46648780866a35c74242676479c28d7b41b50dd5acbc0b35",
+      "bytes": 12388,
+      "origin": "EXACT_CE804_DECLARED_GATE_SCRIPT_MUST_PHYSICALLY_COPY_TO_PRIVATE_SCRIPTS_BEFORE_EXECUTION",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/scripts/canonical-external-api-runtime-parity.cjs"
+    },
+    {
+      "path": "/workspace/gridex-ops-platform/scripts/lib/current-api-contract.cjs",
+      "relativePath": "scripts/lib/current-api-contract.cjs",
+      "sha256": "932d507c46dee1b443199692c34673bd1deea92437906ea6afc834cdc8e94733",
+      "bytes": 1576,
+      "origin": "EXACT_CE804_DECLARED_GATE_SCRIPT_MUST_PHYSICALLY_COPY_TO_PRIVATE_SCRIPTS_BEFORE_EXECUTION",
+      "copiedPath": "/workspace/gridex-qa0104-two-static-view-20261114-b/scripts/lib/current-api-contract.cjs"
+    }
+  ],
+  "results": [
+    {
+      "id": "api:compatibility",
+      "argv": [
+        "/tmp/gridex-lean-actual-qualification-20261113/node22.selected",
+        "--max-old-space-size=1024",
+        "scripts/check-api-compatibility.cjs"
+      ],
+      "cwd": "/workspace/gridex-qa0104-two-static-view-20261114-b",
+      "start": "2026-11-14T16:35:14.442590+00:00",
+      "end": "2026-11-14T16:35:14.543968+00:00",
+      "wallSeconds": 0.10136814901488833,
+      "exit": 0,
+      "timedOut": false,
+      "ownProcessGroupAbsent": true,
+      "resourceBefore": {
+        "max": 17179869184,
+        "current": 12794920960,
+        "headroom": 4384948224,
+        "required": 4294967296,
+        "workspaceFree": 849678336
+      },
+      "resourceAfter": {
+        "max": 17179869184,
+        "current": 12794331136,
+        "headroom": 4385538048,
+        "required": 4294967296,
+        "workspaceFree": 849674240
+      },
+      "memoryObservations": [
+        {
+          "elapsed": 0.0007689160120207816,
+          "status": "84 kB"
+        },
+        {
+          "elapsed": 0.05100969600607641,
+          "status": "45636 kB"
+        }
+      ],
+      "stdout": {
+        "path": "/workspace/gridex-qa0104-two-static-actual-20261114-b/0.stdout.private.log",
+        "sha256": "1152a0cd4dc7970ddc303e51062a17379f077dddd10b99839c833d048c333905",
+        "bytes": 52
+      },
+      "stderr": {
+        "path": "/workspace/gridex-qa0104-two-static-actual-20261114-b/0.stderr.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    {
+      "id": "api:runtime:parity",
+      "argv": [
+        "/tmp/gridex-lean-actual-qualification-20261113/node22.selected",
+        "--max-old-space-size=1024",
+        "scripts/canonical-external-api-runtime-parity.cjs"
+      ],
+      "cwd": "/workspace/gridex-qa0104-two-static-view-20261114-b",
+      "start": "2026-11-14T16:35:14.544370+00:00",
+      "end": "2026-11-14T16:35:14.645395+00:00",
+      "wallSeconds": 0.10103203399921767,
+      "exit": 0,
+      "timedOut": false,
+      "ownProcessGroupAbsent": true,
+      "resourceBefore": {
+        "max": 17179869184,
+        "current": 12794331136,
+        "headroom": 4385538048,
+        "required": 4294967296,
+        "workspaceFree": 849674240
+      },
+      "resourceAfter": {
+        "max": 17179869184,
+        "current": 12795580416,
+        "headroom": 4384288768,
+        "required": 4294967296,
+        "workspaceFree": 849453056
+      },
+      "memoryObservations": [
+        {
+          "elapsed": 0.0005599469877779484,
+          "status": "84 kB"
+        },
+        {
+          "elapsed": 0.05074161299853586,
+          "status": "47008 kB"
+        }
+      ],
+      "stdout": {
+        "path": "/workspace/gridex-qa0104-two-static-actual-20261114-b/1.stdout.private.log",
+        "sha256": "3a2688a9670f9cdd94883fb499d3c2364fa5e755ae58e18bfaf50ced20f20656",
+        "bytes": 220952
+      },
+      "stderr": {
+        "path": "/workspace/gridex-qa0104-two-static-actual-20261114-b/1.stderr.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    }
+  ],
+  "backendCalls": 0,
+  "limits": [
+    "Only2of6staticchecks,notwholeQA01.04PASS",
+    "Private64a8 plus pinnedce804scripts,notfinalGitcommit/typeGEN/nativeparity",
+    "NoSDK/Auth/DB/browser/build/lint/GEN"
+  ],
+  "originalSourcesBeforeAfterExact": true
+}

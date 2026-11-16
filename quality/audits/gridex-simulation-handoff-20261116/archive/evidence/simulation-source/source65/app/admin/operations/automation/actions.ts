@@ -1,0 +1,91 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { redirect, unstable_rethrow } from 'next/navigation'
+import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
+import { runBatch2BAutomation, createBillingBlockerCasesForCompany } from '@/lib/operations/batch2bAutomation'
+import { createCasesForBatch2CQueues, runBatch2CPeriodMotor } from '@/lib/operations/batch2cAutomation'
+
+async function resolveCompanyId(admin: Awaited<ReturnType<typeof requireAdminActionAccess>>): Promise<string> {
+  const scope = await resolveAdminSelectedCompanyReadScope(admin)
+  if (!scope.companyId) throw new Error('Bolagskoppling saknas.')
+  return scope.companyId
+}
+
+function text(formData: FormData, key: string): string | null {
+  const value = String(formData.get(key) ?? '').trim()
+  return value || null
+}
+
+function revalidate() {
+  revalidatePath('/admin/operations/automation')
+  revalidatePath('/admin/operations/perioder')
+  revalidatePath('/admin/controltower')
+  revalidatePath('/admin/operations/tasks')
+  revalidatePath('/admin/customer-info-requests')
+  revalidatePath('/admin/outbound')
+  revalidatePath('/admin/billing/export-center')
+}
+
+function done(status: 'success' | 'error', message: string): never {
+  const params = new URLSearchParams({ status, message })
+  redirect(`/admin/operations/automation?${params.toString()}`)
+}
+
+export async function runBatch2BAutomationAction(): Promise<void> {
+  try {
+    const admin = await requireAdminActionAccess({ anyOf: ['customers.write', 'metering.write', 'billing_underlay.export', 'cases.write'] })
+    const companyId = await resolveCompanyId(admin)
+    const result = await runBatch2BAutomation({ companyId, actorUserId: admin.userId })
+    revalidate()
+    done('success', `Automation körd. ${result.requestsCreated} requests, ${result.casesCreated} driftuppgifter och ${result.blockersFound} blockerare hanterades.`)
+  } catch (error) {
+    unstable_rethrow(error)
+    done('error', error instanceof Error ? error.message : 'Automation kunde inte köras.')
+  }
+}
+
+export async function runBatch2CPeriodMotorAction(formData: FormData): Promise<void> {
+  try {
+    const admin = await requireAdminActionAccess({ anyOf: ['metering.write', 'billing_underlay.export', 'cases.write'] })
+    const companyId = await resolveCompanyId(admin)
+    const result = await runBatch2CPeriodMotor({
+      companyId,
+      actorUserId: admin.userId,
+      startMonth: text(formData, 'start_month'),
+      endMonth: text(formData, 'end_month'),
+    })
+    revalidate()
+    done('success', `Periodmotor körd för ${result.periodsChecked.length} perioder. ${result.gapsCreated} luckor, ${result.outboundRequestsCreated} requests och ${result.casesCreated} driftuppgifter hanterades.`)
+  } catch (error) {
+    unstable_rethrow(error)
+    done('error', error instanceof Error ? error.message : 'Periodmotorn kunde inte köras.')
+  }
+}
+
+export async function createBillingBlockerCasesAction(): Promise<void> {
+  try {
+    const admin = await requireAdminActionAccess({ anyOf: ['cases.write', 'billing_underlay.export'] })
+    const companyId = await resolveCompanyId(admin)
+    const result = await createBillingBlockerCasesForCompany({ companyId, actorUserId: admin.userId })
+    revalidate()
+    done('success', `${result.casesCreated} driftuppgifter skapades för ${result.blockersFound} blockerade export-/underlagsrader.`)
+  } catch (error) {
+    unstable_rethrow(error)
+    done('error', error instanceof Error ? error.message : 'Driftuppgifter kunde inte skapas.')
+  }
+}
+
+export async function createBatch2CQueueCasesAction(): Promise<void> {
+  try {
+    const admin = await requireAdminActionAccess({ anyOf: ['cases.write', 'billing_underlay.export', 'metering.write'] })
+    const companyId = await resolveCompanyId(admin)
+    const result = await createCasesForBatch2CQueues({ companyId, actorUserId: admin.userId })
+    revalidate()
+    done('success', `${result.casesCreated} driftuppgifter skapades/återanvändes från ${result.queuesScanned} driftköer.`)
+  } catch (error) {
+    unstable_rethrow(error)
+    done('error', error instanceof Error ? error.message : 'Driftköer kunde inte kopplas till driftuppgifter.')
+  }
+}

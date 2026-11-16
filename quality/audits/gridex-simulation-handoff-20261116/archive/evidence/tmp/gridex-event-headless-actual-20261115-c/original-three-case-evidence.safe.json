@@ -1,0 +1,81 @@
+{
+  "state": "ORIGINAL_EVENT_THREE_CASE_EVIDENCE_PENDING_INDEPENDENT_VERDICT",
+  "results": [
+    {
+      "case": "success",
+      "eventId": "fb863929-72d8-410a-ad5f-e64aefd43dcf",
+      "deliveryId": "43039e98-74ac-4323-a2e5-8c8e24dda1b4",
+      "subscriptionId": "99a3cb88-72b4-4a8f-95e5-dc375553e182",
+      "expectedStatusObserved": "sent",
+      "native": {
+        "path": "/tmp/gridex-event-headless-actual-20261115-c/success.dispatch-native.private.json",
+        "sha256": "e23ee4b49c0fa3ae9c0436c21d094e95e71076e51ffb929ca4cd77ea363fc7a4"
+      },
+      "capture": {
+        "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-success/request-1.safe.json",
+        "sha256": "168d514d06425cabee1e5c4772b2876f042c26133d6c1239a78b000422923fbd"
+      }
+    },
+    {
+      "case": "http400",
+      "eventId": "4e299bc0-8d80-47ea-81ca-6738e07cee5d",
+      "deliveryId": "9f119c88-ee1c-4280-9323-bd53f685e06a",
+      "subscriptionId": "677bca74-0624-45df-ab5f-a589904ce279",
+      "expectedStatusObserved": "failed",
+      "native": {
+        "path": "/tmp/gridex-event-headless-actual-20261115-c/http400.dispatch-native.private.json",
+        "sha256": "db139e815b820ee46802c839d2ba5fa1fb4ecea621eec840bc965b3fc5d39e99"
+      },
+      "capture": {
+        "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-http400/request-1.safe.json",
+        "sha256": "8091053d241b5572f5dc24ac3d6b41c9d5a20170bf5286bb788ee4d05d028bec"
+      }
+    },
+    {
+      "case": "http500",
+      "eventId": "6325aaea-45dd-470f-92d3-a529bdf729ca",
+      "deliveryId": "0887981b-aac6-4e34-b8dc-3d36b5a6a912",
+      "subscriptionId": "ce216aec-e9c6-4fac-baa6-66a47cc4415d",
+      "expectedStatusObserved": "failed",
+      "native": {
+        "path": "/tmp/gridex-event-headless-actual-20261115-c/http500.dispatch-native.private.json",
+        "sha256": "3da5513995c745e7edb4df21dc78f2682350465324f20b22d5351f90ca9a0aa6"
+      },
+      "capture": {
+        "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-http500/request-1.safe.json",
+        "sha256": "0824341090ec7889ffa0b479dd669a43cc1ac87051c85ac4cbefac20636fea59"
+      }
+    },
+    {
+      "case": "timeout",
+      "eventId": "da2092ff-0ef1-4c98-94b2-7e3fb41902e5",
+      "deliveryId": "98de0dca-b768-42a5-9cd0-1c3ef1efbd78",
+      "subscriptionId": "7febbae0-0626-4087-88b5-606e2fe6ac47",
+      "expectedStatusObserved": "delivery_uncertain",
+      "native": {
+        "path": "/tmp/gridex-event-headless-actual-20261115-c/timeout.dispatch-native.private.json",
+        "sha256": "fc1dc42d0d0be9f85691b4f8abde849735ed59a38b626abd478c075c6a92466c"
+      },
+      "capture": {
+        "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-timeout/request-1.safe.json",
+        "sha256": "a6d094705c5cc9ca5283a64c79435ec957a77088d50031f0190cfc72013f1dbf"
+      }
+    }
+  ],
+  "newNormalBusinessTriggerPerCase": true,
+  "sameEventReplayNoSecondPOST": true,
+  "MainOnlyAuthLogoutScopes": [
+    "auth.audit_log_entries",
+    "auth.mfa_amr_claims",
+    "auth.refresh_tokens",
+    "auth.sessions"
+  ],
+  "nativeAuth0": true,
+  "all7AfterGetUserExact": true,
+  "scenarioCounterChanged": false,
+  "originalIds": [
+    "EVENT01.01",
+    "EVENT01.03",
+    "EVENT01.04"
+  ]
+}

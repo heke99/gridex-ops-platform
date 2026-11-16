@@ -1,0 +1,184 @@
+{
+  "state": "COMPOSITE_DEFINED_JOURNEY_CURRENT_SERVER_SECRET_SCAN_ZERO_WITH_VALIDATOR_QUALIFIED_STATIC_RECOVERY",
+  "qualification": {
+    "state": "COMPOSITE_DEFINED_JOURNEY_CURRENT_SERVER_SECRET_SCAN_ZERO_WITH_VALIDATOR_QUALIFIED_STATIC_RECOVERY",
+    "originalBrowserCaptureStatusPreserved": "HOLD7missing",
+    "originalCaptureInventorySHA256": "789c0e166c427a0b5dc3051470cb035017c6f296f72288d123718bcb3e4e3da9",
+    "originalFirstPacketSHA256": "61e81dcefba515b887ad3e22f86110fbef3efc41ba1d5eb6b7cba770c97a8f5a",
+    "originalEligibleTextResponses": 44,
+    "originalDirectlyCapturedTextResponses": 37,
+    "recoveredSameEntityResponses": 7,
+    "remainingMissingEligibleTextBodies": 0,
+    "all67OriginalHTTPHeadersCapturedAndScanned": true,
+    "receivedWebSocketFramesScanned": 36,
+    "currentSecretFingerprintsEqualCaptureWindow": true,
+    "recoveredScans": [
+      {
+        "index": 5,
+        "path": "/_next/static/chunks/main-app.js",
+        "sameOriginalEntityQualified": true,
+        "bodySHA256": "9c33355f7d9e4dd08d4abdceb498aa2d2a5ca83efe6d70f6635e54304f528260",
+        "bodyBytes": 13537699,
+        "knownCurrentSecretHitNames": [],
+        "privateKeyBlocks": 0
+      },
+      {
+        "index": 7,
+        "path": "/_next/static/chunks/app/login/page.js",
+        "sameOriginalEntityQualified": true,
+        "bodySHA256": "f973228e7c346f859b0baab62fd927048f1a0f5a0f4bc623221a052f20d06830",
+        "bodyBytes": 152528,
+        "knownCurrentSecretHitNames": [],
+        "privateKeyBlocks": 0
+      },
+      {
+        "index": 16,
+        "path": "/_next/static/webpack/bf5ccc3726759666.webpack.hot-update.json",
+        "sameOriginalEntityQualified": true,
+        "bodySHA256": "eea3c145b3456fcdf200b061ba939627d594c39727e9faa523ed958ed05b4705",
+        "bodyBytes": 31,
+        "knownCurrentSecretHitNames": [],
+        "privateKeyBlocks": 0
+      },
+      {
+        "index": 17,
+        "path": "/_next/static/webpack/webpack.bf5ccc3726759666.hot-update.js",
+        "sameOriginalEntityQualified": true,
+        "bodySHA256": "5811b6029526bada9ce07242ffa0388d63f6f5d9b548fe98b1ebeeba14999f89",
+        "bodyBytes": 1157,
+        "knownCurrentSecretHitNames": [],
+        "privateKeyBlocks": 0
+      },
+      {
+        "index": 45,
+        "path": "/_next/static/webpack/fc8e15083c893bda.webpack.hot-update.json",
+        "sameOriginalEntityQualified": true,
+        "bodySHA256": "eea3c145b3456fcdf200b061ba939627d594c39727e9faa523ed958ed05b4705",
+        "bodyBytes": 31,
+        "knownCurrentSecretHitNames": [],
+        "privateKeyBlocks": 0
+      },
+      {
+        "index": 46,
+        "path": "/_next/static/webpack/webpack.fc8e15083c893bda.hot-update.js",
+        "sameOriginalEntityQualified": true,
+        "bodySHA256": "2ea3439d2a6608e531097c5756992e4a8bda29680c114435d1dbd7be0f6f32cb",
+        "bodyBytes": 1157,
+        "knownCurrentSecretHitNames": [],
+        "privateKeyBlocks": 0
+      },
+      {
+        "index": 52,
+        "path": "/_next/static/chunks/main-app.js",
+        "sameOriginalEntityQualified": true,
+        "bodySHA256": "9c33355f7d9e4dd08d4abdceb498aa2d2a5ca83efe6d70f6635e54304f528260",
+        "bodyBytes": 13537699,
+        "knownCurrentSecretHitNames": [],
+        "privateKeyBlocks": 0
+      }
+    ],
+    "allKnownSecretAndPEMHitsZero": true,
+    "source34AllOverlayBytesUnchangedThroughRecovery": true,
+    "noLoginOrProtectedFileCaseReplay": true,
+    "limits": [
+      "Derivedcompositeoriginal37browsertextresponsesplus7postlogoutpublicstaticrecaptureswithsameETagLastModifiedContentType",
+      "FiveJSContentLengthdifferencesarecompressedoriginalvsidentityrecapture; originalencodingdeclaredheaderspreserved",
+      "OnlyactualserverdeliveredrenderedHTTPtext+allheaders+RECEIVEDWSframes/knownconfiguredsecretvalues; notoutgoingWS/globalunvisitedbuild/unknowncredentials",
+      "NooriginalemailCTA/providerTemplateactivationclaim"
+    ]
+  },
+  "originalFirstPacketPath": "/workspace/gridex-three-readonly-cases-runtime-20261113/results.safe.json",
+  "originalFirstPacketSHA256": "61e81dcefba515b887ad3e22f86110fbef3efc41ba1d5eb6b7cba770c97a8f5a",
+  "originals": [
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/16.body.private.gz",
+      "bytes": 46,
+      "sha256": "6fd3459b2601514de603a1d0c1f2d73acebdc74186e6c50364734da00717ad33"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/16.response-headers.private.json",
+      "bytes": 340,
+      "sha256": "bf7eab2d81f2f82895c63af7bdfe4c6814257b9d6cb925bc1efec32734a42a17"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/17.body.private.gz",
+      "bytes": 755,
+      "sha256": "416dab907102f35074a86eb450d0a5f439060d72b5215e3a641ad9cae5e90077"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/17.response-headers.private.json",
+      "bytes": 349,
+      "sha256": "62aa7cb6eeed61a975057154269360deac9e3f5f1b4facdfa54c38b2639d2a2a"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/45.body.private.gz",
+      "bytes": 46,
+      "sha256": "6fd3459b2601514de603a1d0c1f2d73acebdc74186e6c50364734da00717ad33"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/45.response-headers.private.json",
+      "bytes": 340,
+      "sha256": "853ea3c42c0f6fac69948cc30e3f8cae798e3e24a3b78d2b05c9ec1c01b52c31"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/46.body.private.gz",
+      "bytes": 759,
+      "sha256": "3c42a86a647ceff9ce826b6b435d5422c72c1054844fe0c2d9bed1eea75f34a3"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/46.response-headers.private.json",
+      "bytes": 349,
+      "sha256": "659b6d0b86f5d61d321991e387254a7d1574e451c2964fda7b2d41c143bcb737"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/5.body.private.gz",
+      "bytes": 3097223,
+      "sha256": "99b6fc034ef0b6405ef9066edb2b1885892d4d7dfa65248092d34c62009da062"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/5.response-headers.private.json",
+      "bytes": 356,
+      "sha256": "378c1512fd91cfff7a7c0c570abcd38613c6ec5fb6657273dfce0bb65f1b15ab"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/52.body.private.gz",
+      "bytes": 3097223,
+      "sha256": "c2ea936fd332c2e60c4af5a4abd39d75839461cdcb3cf4120a19ac059dbcce5c"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/52.response-headers.private.json",
+      "bytes": 356,
+      "sha256": "6c3413957e72c78525f7558936608967d647e215b9a88c980fa79adcc7d09b5c"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/7.body.private.gz",
+      "bytes": 45757,
+      "sha256": "873394f7ce4df4cd95cd0427648f7564c34b777cd0cd85aae7c8669cb1eb10af"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/7.response-headers.private.json",
+      "bytes": 353,
+      "sha256": "b886fd1e3e17ee0e2d1d5c5fd51425224ecf7180a7565ce84f63dc74c7750659"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/composite-qualification.safe.json",
+      "bytes": 3612,
+      "sha256": "b112ff72d5aeac62f897f499c2920ab7384b0493d7278d4d35ce4ce606040c26"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/intent.safe.json",
+      "bytes": 278,
+      "sha256": "ed242a3dad20da932bf484d3e7876eaebae820c25e7a2f21c9fb3ce2ae484097"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/recover-exact-observed.py",
+      "bytes": 3287,
+      "sha256": "86b4adacf2fabe927ee13d035e98482e52d0235e5b9221162ea6d33d194d67ca"
+    },
+    {
+      "path": "/workspace/gridex-client-static-recovery-20261113/results.safe.json",
+      "bytes": 5687,
+      "sha256": "022eae7356aab8a99a540efb769a269856d86d5235c0a0cdb20fc668f3adcaea"
+    }
+  ]
+}

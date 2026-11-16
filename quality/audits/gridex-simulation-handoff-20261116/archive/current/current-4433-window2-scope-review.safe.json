@@ -1,0 +1,39 @@
+{
+  "verdict": "EXECUTION_SCOPE_APPROVE",
+  "reviewerAgent": "/root",
+  "wrapperSHA256": "ac3a72cb198ff91ea4b88f6cefb25db3db47d387a988338a0c373ab5483a678b",
+  "targetSHA256": "4433dc01a18c74553a5c195b681e6dd220df19a429a8ce757b7e653babb64127",
+  "targetPath": "/tmp/gridex-pilot57-current-constructor-prep-20261113/execution-target.current-window2-d.BOUND.safe.json",
+  "donorASTManifest": {
+    "readDeclarations": "c36069bc67a581ef1c6e938b4e7cfa853a5147e400f8e34d2872f271dc41395f",
+    "fd92Declarations": "ac8cbdcdfa208510380ccec0bff12cbadb8079cf3152b33f5d8f3779c9612349"
+  },
+  "reviewType": "WINDOW2_FRESH_GENUINE_CONTEXT_FC_NEW_RUNTIME_D22_NARROW_REBIND",
+  "verifiedBoundFiles": 34,
+  "currentFcSealSHA256": "2d709a4aace4cb52782b172a20fc27275e38ca201bd29640d58c2fe7e6ce2d92",
+  "currentFcBytes": 16858457,
+  "mainBeforeAfterSHA256": "85ee87a3c8d81646185f08e5453fa6cbc9c4aa8480573d9ccc964f48c5a6fe9a",
+  "priorTerminal": {
+    "path": "/tmp/gridex-pilot57-current-actual-20261113-c/intent.safe.json",
+    "sha256": "ea2748406990f54a509dcd9fa2216adcf85f944138bb3c0e688e7968f571aa8d",
+    "priorRestAndCloneAbsent": true,
+    "strictMainUnchanged": true,
+    "authPausedRestored": true,
+    "childStarted": true,
+    "outcome": "STOP before business; full failure Fc retained; no blind replay"
+  },
+  "runtimeBinding": {
+    "modulePath": "/tmp/gridex-pilot57-runtime-session-prep-20261113/runtime-session.py",
+    "moduleSHA256": "d22c79bdd49ae8f5b8979b5fe1000110bd67d3afbb6ca933b7d9e68258297be8",
+    "launcherPath": "/tmp/gridex-pilot57-runtime-session-prep-20261113/child-launcher.py",
+    "launcherSHA256": "95a7aa5426a1ae0d04cb425507d5d251f98c627de24356689185fac83d9528fc",
+    "targetTemplatePath": "/tmp/gridex-pilot57-runtime-20261113-b/runtime-input.BOUND.safe.json",
+    "targetTemplateSHA256": "6c4738595144b77ee377570222f1e543b7f83e666ce17f730ae0d44cafd38e9a"
+  },
+  "fullActualStaticPureFixtureProofSHA256": "368bc007f76c76cbf368ac6bb9df8c52d2c99a150411a878c910d67785b3ac9d",
+  "newRuntimeUnexecutedVerified": true,
+  "deadlineEpochSeconds": 1794601200,
+  "delegation": "After soleproducer second exactnarrowACK, arm4433/ac3/d22 ON_BEHALF_ROOT and executeONCE immediately. NFT actualcanary/allsteady caps0 assertions mandatory; no extraRoot/documentgate. Freshrolekey20:22:37 expiry exceeds20:20 deadline.",
+  "noScenarioPassOrProductionAuthorityGranted": true,
+  "asOfUTC": "2026-11-13T20:10:30.771307+00:00"
+}

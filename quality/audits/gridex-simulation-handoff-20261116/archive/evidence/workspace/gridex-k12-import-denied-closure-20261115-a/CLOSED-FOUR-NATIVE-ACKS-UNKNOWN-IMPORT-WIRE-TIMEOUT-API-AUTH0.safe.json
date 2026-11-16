@@ -1,0 +1,88 @@
+{
+  "state": "CLOSED_K12_FOUR_NATIVE_ACKS_ONE_UNKNOWN_IMPORT_57014_WIRE_TOKENS_CONTEXT_API_AUTH0",
+  "observedAtEpoch": 1794751952.6931574,
+  "parent": {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k12/summary.safe.json",
+    "sha256": "c6114642cbc03df92cb97b1c39e4d35a914bcfc83ea9f61eccc3ef81e2ddac50"
+  },
+  "runtimeTerminal": {
+    "path": "/tmp/gridex-local-runtime-20261115-k12-s/launcher-terminal.safe.json",
+    "sha256": "d9e021939b9f315887cfb726b238e588ca785b7629c08f68376477462b0aedd2"
+  },
+  "forwarderTerminal": {
+    "path": "/tmp/gridex-fixed-host-forwarders-actual-20261115-k12/host-forwarders-state.safe.json",
+    "sha256": "8d2921d126729ef4a7ba5625efe389df0cac3c669c96ad4defea017edc61a259"
+  },
+  "helperTerminal": {
+    "path": "/tmp/gridex-ee-browser-hold-actual-local-20261115-k12/state.safe.json",
+    "sha256": "3ceb0a6c596c675f5c1b83e0f748cf6b846b69185f73809d69345b80c4281b8c"
+  },
+  "normalApiResume": {
+    "path": "/tmp/gridex-normal-api-resume-actual-20261115-k12/receipt.safe.json",
+    "sha256": "876921b4b597a8357c46fdc4d540fcdc60766a5a09f746fd62aa239145c97110"
+  },
+  "ownApiLogout": {
+    "path": "/workspace/gridex-k12-import-denied-closure-20261115-a/own-auth-api-logout.safe.json",
+    "sha256": "502894fd37e061634ff60d077533b0a1a938d0b3a193052600ad585fa5509c4d"
+  },
+  "nativeAuth0": {
+    "path": "/workspace/gridex-k12-import-denied-closure-20261115-a/AFTER-OWN-API-LOGOUT-AUTH0.safe.json",
+    "sha256": "443b2510f005980f9bf3013e5cd6d9292c8375e879669387666c08a4acf3c3cd"
+  },
+  "postlogoutMainResidual": {
+    "path": "/workspace/gridex-k12-import-denied-closure-20261115-a/MAIN-AUTH-ONLY-LOGOUT-RESIDUAL.safe.json",
+    "sha256": "01e6964252c0d6f505766b39132f7e83457be3bd390f468497eb605edd6b23e1"
+  },
+  "all7MainSequencesExactBeforeOwnLogout": {
+    "path": "/workspace/gridex-k12-import-denied-closure-20261115-a/Main-sequences-after-private-before-logout.private.json",
+    "sha256": "bd40c3b7fec36832dd33f650d0bb1ccaebfcfa614f4e1a653b2153863fe325e2"
+  },
+  "postimportFullFc": {
+    "path": "/workspace/gridex-local-four-rpc-checkpoints-20261115-k12/LOCAL_IMPORT/SEALED.safe.json",
+    "sha256": "ba8caa96694bbd236528688c958b1f0e0c777184c52cfe38a21262c4fbcfd0ba"
+  },
+  "actualNewEnvelopeClock": {
+    "path": "/workspace/gridex-local-four-rpc-checkpoints-20261115-k12/LOCAL_IMPORT/ACTUAL-OWN-ENVELOPE-RECEIPT-CLOCK.private.json",
+    "sha256": "83bebf5c7d214038f4e2cfd74e3dfc313db495b6d1ab3d67c3558e6e8fa84e95"
+  },
+  "scopedFinancialReview": {
+    "path": "/workspace/gridex-k12-independent-financial-readback-20261115/SCOPED-GRAPH-REVIEW.safe.json",
+    "sha256": "b490a025e9cdc515cc4ca82c7161410e8307b8d9c42bd22e29718c744a17d467"
+  },
+  "unknownAckUnsent": {
+    "path": "/workspace/gridex-k12-import-denied-closure-20261115-a/UNKNOWN-ACK-NOT-SENT-STALE-CAPTURE.safe.json",
+    "sha256": "8e67f8fc372cfa10beb72677eee2195354fd050e35e933709d419c83332569c1"
+  },
+  "actualPgTimeoutContext": {
+    "path": "/tmp/gridex-k12-S-actual-parent-prep-20261115/OWN-REQUEST-57014-PG-CONTEXT.private.json",
+    "sha256": "b56b674e291c2dc9ab2fbb290937630aaa4b7ed63ab56993eed7a295c5b75a8d"
+  },
+  "actualStderr": {
+    "path": "/tmp/gridex-local-runtime-20261115-k12-s/next.stderr.private.log",
+    "sha256": "7f2d7d9c3fbcd3ad354db031bd001ccb840bd8b6a64665937bd7ae89f3e32701"
+  },
+  "framingFull3444BodyGuard": {
+    "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k12/framing-exact-body-only-guard.safe.json",
+    "sha256": "4c3a50e85e680973c3583bcc19bde4545d729bcc2705a8b5b97b5b946e5b3376"
+  },
+  "fourNativeAcknowledgementsCommitted": true,
+  "oneUiImportPost": true,
+  "importOutcomeUnknown": true,
+  "clockFixActualPersistedPositiveComponentOnly": true,
+  "framingWrapperFull3444CloneQualifiedButNotFullInsertFix": true,
+  "observedTimeoutContextFunction": "gridex_utilts_binding.wire_tokens_v1",
+  "observedTimeoutContextLine": 51,
+  "noSoleCauseOrPerformanceClaimFromStack": true,
+  "postimportChangedPublicScopes": [
+    "public.inbound_email_messages",
+    "public.inbound_ediel_parse_results",
+    "public.inbound_ediel_match_attempts"
+  ],
+  "financialNative14LineageUnchanged": true,
+  "normalUIlogout": false,
+  "apiLogoutStatus": 204,
+  "browserClosed": true,
+  "allOwnPrivateResourcesClosed": true,
+  "noImportFinanceOrScenarioPass": true,
+  "noJwtInvalidationClaim": true
+}

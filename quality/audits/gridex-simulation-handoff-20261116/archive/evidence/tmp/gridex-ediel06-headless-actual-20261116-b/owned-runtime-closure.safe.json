@@ -1,0 +1,21 @@
+{
+  "state": "HEADLESS_OWN_RUNTIME_CLOSED",
+  "ownRESTAbsent": true,
+  "ownDBAbsent": true,
+  "ownContainerRestoreListAbsent": true,
+  "errorType": null,
+  "cleanupErrors": [],
+  "callerOwnsSameSessionLogoutAndMainAll7Residual": true,
+  "captureBudget": {
+    "fullSnapshotsMax": 10,
+    "fullSnapshotBytesMax": 23068672,
+    "failureFcBytesMax": 20971520,
+    "smallEvidenceBytesMax": 16777216,
+    "reserveBytes": 83886080
+  },
+  "captureCountsAtRuntimeClose": {
+    "full": 9,
+    "smallBytes": 2336232
+  },
+  "noScenarioPassClaim": true
+}

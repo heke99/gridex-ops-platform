@@ -1,0 +1,267 @@
+{
+  "state": "CANDIDATE_PATCHES_NOT_APPLIED_TO_MAIN",
+  "createdUTC": "2026-11-16T10:23:55.713414+00:00",
+  "inventory": {
+    "path": "/workspace/gridex-local-migration-preflight-20261116/MAIN-ADOPTION-INVENTORY.v2.safe.json",
+    "sha256": "f6cd718624d916d2aba7ab62b151b57dbe23364c7170a229982c9ca24452bdaa"
+  },
+  "observedMain": {
+    "commit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+    "tree": "fe55a53d9ce29e26aa918b3af4a3e1aae87bca06",
+    "receipt": "/workspace/gridex-local-migration-preflight-20261116/OBSERVED-MAIN.safe.json",
+    "receiptSHA256": "cb54b9b2f5feee08df12871ef6023a7eb903b8885c9ef6a332184f680453696d"
+  },
+  "generation": "git format-patch --stdout -1 <exact commit>; source repositories read only; no checkout/index/ref mutation",
+  "items": [
+    {
+      "name": "framer",
+      "sourceRepository": "/workspace/gridex-ops-platform",
+      "sourceCommit": "e7efeb1b75d17a9f5644ce806a8753e2023435c8",
+      "baseCommits": [
+        "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+      ],
+      "sourceTree": "3eb247cd812fffd737a2a442d93a33f983ffb3ce",
+      "patch": "01-framer-e7efeb1b75d1.patch",
+      "sha256": "86106b431aee412b11177085b028bc53ebe8efab8cfcb272cc77d98fe3d0ea13",
+      "bytes": 43181,
+      "validation": "native isolated framing component; full import not established",
+      "ancestry": "NOT_ESTABLISHED: Main object database lacks ce804 parent; no fetch or ref mutation performed",
+      "status": "NOT_APPLIED_TO_MAIN",
+      "offlineScan": {
+        "patterns": [
+          "private_key_pem",
+          "jwt",
+          "github_token",
+          "aws_access_key",
+          "stripe_secret",
+          "credential_assignment"
+        ],
+        "matchCounts": {
+          "private_key_pem": 0,
+          "jwt": 0,
+          "github_token": 0,
+          "aws_access_key": 0,
+          "stripe_secret": 0,
+          "credential_assignment": 0
+        },
+        "result": "PASS_NO_MATCHES"
+      }
+    },
+    {
+      "name": "header",
+      "sourceRepository": "/workspace/gridex-ops-platform",
+      "sourceCommit": "112ea02caa97785f77f5eb412eb66771444c01e0",
+      "baseCommits": [
+        "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+      ],
+      "sourceTree": "80bdc06f223d82f212302597faca6f5b0fee0cbd",
+      "patch": "02-header-112ea02caa97.patch",
+      "sha256": "95effeb5b52ef24feb3a025947b55ff25a94400b70c15fc57dd1afca3402f4ae",
+      "bytes": 82462,
+      "validation": "native isolated 75 cases INCLUDING 41 legacy reference cases; no Main adoption",
+      "ancestry": "NOT_ESTABLISHED: Main object database lacks ce804 parent; no fetch or ref mutation performed",
+      "status": "NOT_APPLIED_TO_MAIN",
+      "offlineScan": {
+        "patterns": [
+          "private_key_pem",
+          "jwt",
+          "github_token",
+          "aws_access_key",
+          "stripe_secret",
+          "credential_assignment"
+        ],
+        "matchCounts": {
+          "private_key_pem": 0,
+          "jwt": 0,
+          "github_token": 0,
+          "aws_access_key": 0,
+          "stripe_secret": 0,
+          "credential_assignment": 0
+        },
+        "result": "PASS_NO_MATCHES"
+      }
+    },
+    {
+      "name": "customer-list",
+      "sourceRepository": "/workspace/gridex-ops-platform",
+      "sourceCommit": "1d2bc476b5d73f08704fc7dfddc6faf6f66bc70b",
+      "baseCommits": [
+        "a9b5f3f35d652d968eb45a54d5096c326909543e"
+      ],
+      "sourceTree": "7c48f60e3cd3910446c6e6e73a4a346c2d873b48",
+      "patch": "03-customer-list-1d2bc476b5d7.patch",
+      "sha256": "00d4732b706008d35fae73f3cd139d1d0fcc71534348965b7155f13921b15ddc",
+      "bytes": 19020,
+      "validation": "41 component controls; no active Source40 adoption",
+      "ancestry": "NOT_ESTABLISHED: Main object database lacks ce804 parent; no fetch or ref mutation performed",
+      "status": "NOT_APPLIED_TO_MAIN",
+      "offlineScan": {
+        "patterns": [
+          "private_key_pem",
+          "jwt",
+          "github_token",
+          "aws_access_key",
+          "stripe_secret",
+          "credential_assignment"
+        ],
+        "matchCounts": {
+          "private_key_pem": 0,
+          "jwt": 0,
+          "github_token": 0,
+          "aws_access_key": 0,
+          "stripe_secret": 0,
+          "credential_assignment": 0
+        },
+        "result": "PASS_NO_MATCHES"
+      }
+    },
+    {
+      "name": "customer-delete-final",
+      "sourceRepository": "/workspace/gridex-ops-platform",
+      "sourceCommit": "8af37439f25e16a9bb9f6465c6091c0a85fce409",
+      "baseCommits": [
+        "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+      ],
+      "sourceTree": "53403beb0dc081fb1353d9593feb4e09a3f655eb",
+      "patch": "04-customer-delete-final-8af37439f25e.patch",
+      "sha256": "278b01450b349e98bd9983af919d381b5d846e33557f7c93fbe916615ea20672",
+      "bytes": 48706,
+      "validation": "final test refinement; predecessor fix dependencies require review",
+      "ancestry": "NOT_ESTABLISHED: Main object database lacks ce804 parent; no fetch or ref mutation performed",
+      "status": "NOT_APPLIED_TO_MAIN",
+      "offlineScan": {
+        "patterns": [
+          "private_key_pem",
+          "jwt",
+          "github_token",
+          "aws_access_key",
+          "stripe_secret",
+          "credential_assignment"
+        ],
+        "matchCounts": {
+          "private_key_pem": 0,
+          "jwt": 0,
+          "github_token": 0,
+          "aws_access_key": 0,
+          "stripe_secret": 0,
+          "credential_assignment": 0
+        },
+        "result": "PASS_NO_MATCHES"
+      }
+    },
+    {
+      "name": "dashboard-deadcode",
+      "sourceRepository": "/workspace/gridex-ops-platform",
+      "sourceCommit": "e6b269e63aaab86cf73c7234052d9f5c684a530e",
+      "baseCommits": [
+        "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+      ],
+      "sourceTree": "e04a8e85dc73ecc8e85a7aea79aeb4734eb2574b",
+      "patch": "05-dashboard-deadcode-e6b269e63aaa.patch",
+      "sha256": "e53f448c14ec985b235147aa10012be1eeef40a533c79c4d301907c2eac12d09",
+      "bytes": 9926,
+      "validation": "source/finaldoc only; type/lint/build/regression NOT_RUN",
+      "ancestry": "NOT_ESTABLISHED: Main object database lacks ce804 parent; no fetch or ref mutation performed",
+      "status": "NOT_APPLIED_TO_MAIN",
+      "offlineScan": {
+        "patterns": [
+          "private_key_pem",
+          "jwt",
+          "github_token",
+          "aws_access_key",
+          "stripe_secret",
+          "credential_assignment"
+        ],
+        "matchCounts": {
+          "private_key_pem": 0,
+          "jwt": 0,
+          "github_token": 0,
+          "aws_access_key": 0,
+          "stripe_secret": 0,
+          "credential_assignment": 0
+        },
+        "result": "PASS_NO_MATCHES"
+      }
+    },
+    {
+      "name": "current43-docs",
+      "sourceRepository": "/tmp/gridex-event-c-repo-addendum-claim-20261116",
+      "sourceCommit": "f0d4f30876572d9572d0e23ef78e6262237d1c1d",
+      "baseCommits": [
+        "bf32b7e01fbd0511972ba8977c61d412a018e416"
+      ],
+      "sourceTree": "753aa4072f98e54503748cf31ca272c041506dd4",
+      "patch": "06-current43-docs-f0d4f3087657.patch",
+      "sha256": "71efaf24e786a62c31717f21058da03fc0b88537e8ba8a75ce0d5b02265f7ea7",
+      "bytes": 108518,
+      "validation": "two-document exact Git/blob source/finaldoc review",
+      "ancestry": "DIRECT_CHILD_OF_OBSERVED_MAIN: exact commit parent equals bf32b7e01fbd0511972ba8977c61d412a018e416",
+      "status": "NOT_APPLIED_TO_MAIN",
+      "offlineScan": {
+        "patterns": [
+          "private_key_pem",
+          "jwt",
+          "github_token",
+          "aws_access_key",
+          "stripe_secret",
+          "credential_assignment"
+        ],
+        "matchCounts": {
+          "private_key_pem": 0,
+          "jwt": 0,
+          "github_token": 0,
+          "aws_access_key": 0,
+          "stripe_secret": 0,
+          "credential_assignment": 0
+        },
+        "result": "PASS_NO_MATCHES"
+      }
+    },
+    {
+      "name": "deadcode-report",
+      "sourceRepository": "/workspace/gridex-ops-platform",
+      "sourceCommit": "b5c5cd534c39e016e6e18978490c4cc4d6a83bb3",
+      "baseCommits": [
+        "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+      ],
+      "sourceTree": "acc1b5edce4d3f98a3b06f155e5e4059a8221574",
+      "patch": "07-deadcode-report-b5c5cd534c39.patch",
+      "sha256": "3ef387c4939edf5e26a66af3f9fa80e3e09d08c43f5969a7c79186e9724cbeb1",
+      "bytes": 35513,
+      "validation": "source report; 33=24 local removed/9 retained;187 unreached is not dead",
+      "ancestry": "NOT_ESTABLISHED: Main object database lacks ce804 parent; no fetch or ref mutation performed",
+      "status": "NOT_APPLIED_TO_MAIN",
+      "offlineScan": {
+        "patterns": [
+          "private_key_pem",
+          "jwt",
+          "github_token",
+          "aws_access_key",
+          "stripe_secret",
+          "credential_assignment"
+        ],
+        "matchCounts": {
+          "private_key_pem": 0,
+          "jwt": 0,
+          "github_token": 0,
+          "aws_access_key": 0,
+          "stripe_secret": 0,
+          "credential_assignment": 0
+        },
+        "result": "PASS_NO_MATCHES"
+      }
+    }
+  ],
+  "excluded": [
+    "209dd private export patch",
+    "private raw reports",
+    "credentials",
+    "database dumps or database data"
+  ],
+  "limits": [
+    "Separate candidates, not an ordered automatic application stack.",
+    "Recorded validation grades are preserved from inventory, not newly rerun.",
+    "Offline token/PEM regex scan is a bounded heuristic, not an exhaustive secret guarantee.",
+    "No patches applied; no push, merge, Auth, Docker, SQL or startup."
+  ]
+}

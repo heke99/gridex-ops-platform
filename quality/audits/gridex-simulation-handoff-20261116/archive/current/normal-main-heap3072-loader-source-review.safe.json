@@ -1,0 +1,10 @@
+{
+  "state": "ROOT_PINNED_NORMAL_MAIN_HEAP3072_LOADER_SOURCE_APPROVE",
+  "observedAt": "2026-11-14T17:35:07.198124+00:00",
+  "preparedPath": "/tmp/gridex-normal-main-heap3072-prep-20261114/LOADER-PREPARED.safe.json",
+  "preparedSHA256": "fac1e33117c18ee639b68e14aeba2c14caccc27f0a428759e5493fb0f814cdef",
+  "loaderSHA256": "04d30e18ab464945456aa834a15cf3fe91b3fd4d84715ab518a2e1fe66dc7a40",
+  "review": "Fulltinyloader and exactdelta read; onlynewexclusiveactualroot/pinnedalreadySource2b579leaf/currentIproof/truthfulreadylabel change toexisting90sGETlogin/PID/PGcontroller. Allsixphysicalrefs verified. No userAuthaction or automaticretry.",
+  "execution": "Soleproducer may use this exactloader OR alreadyqualified equallypinned kickoff ONCE, neverboth. ExistingRootaa08normalMainstartauthority/actualoldPGabsence/currentI/source40/resourcechecks apply. Actualcanary/newPID/child3072/RSSstillrequired.",
+  "backendCalls": 0
+}

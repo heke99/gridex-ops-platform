@@ -1,0 +1,81 @@
+import type { EdielMessageRow } from '@/lib/ediel/types'
+import { runUtiltsRuntimeForMessage, type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
+import {inferEdielFamilyAndCodeFromRawPayload} from '@/lib/ediel/classify'
+
+/** Observational validation at the evaluation clock, without a stored ingress
+ * receipt. DTM137 remains the original business time and cannot admit a guide. */
+export function validateUtilts(rawPayload: string,options:{evaluationAt?:string|Date}={}): UtiltsRuntimeResult['validation'] {
+  const evaluationAt=options.evaluationAt ?? new Date()
+  if(!Number.isFinite(new Date(evaluationAt).getTime())) throw new Error('ediel_evaluation_time_invalid')
+  const physical=inferEdielFamilyAndCodeFromRawPayload(rawPayload)
+  const runtime = runUtiltsRuntimeForMessage({
+    id: 'utilts-validation',
+    direction: 'inbound',
+    message_standard: 'edifact',
+    message_family: 'UTILTS',
+    message_code: physical.messageFamily==='UTILTS' ? physical.messageCode ?? '' : '',
+    message_version: null,
+    process_type: null,
+    environment: 'test',
+    test_flag: 1,
+    status: 'received',
+    transport_type: 'manual_upload',
+    mailbox: null,
+    mailbox_message_id: null,
+    sender_ediel_id: null,
+    sender_name: null,
+    sender_sub_address: null,
+    receiver_ediel_id: null,
+    receiver_name: null,
+    receiver_sub_address: null,
+    sender_email: null,
+    receiver_email: null,
+    subject: null,
+    file_name: null,
+    mime_type: null,
+    interchange_reference: null,
+    external_reference: null,
+    correlation_reference: null,
+    transaction_reference: null,
+    application_reference: null,
+    original_message_id: null,
+    original_transaction_id: null,
+    original_message_code: null,
+    related_message_id: null,
+    communication_route_id: null,
+    outbound_request_id: null,
+    switch_request_id: null,
+    grid_owner_data_request_id: null,
+    partner_export_id: null,
+    customer_id: null,
+    site_id: null,
+    metering_point_id: null,
+    grid_owner_id: null,
+    raw_payload: rawPayload,
+    parsed_payload: {},
+    validation_report: {},
+    requires_contrl: true,
+    requires_aperak: true,
+    contrl_status: 'pending',
+    aperak_status: 'pending',
+    utilts_err_status: 'not_required',
+    ack_outcome: null,
+    syntax_check_status: 'not_checked',
+    functional_check_status: 'not_checked',
+    failure_reason: null,
+    message_created_at: null,
+    message_received_at: null,
+    message_sent_at: null,
+    parsed_at: null,
+    validated_at: null,
+    acknowledged_at: null,
+    failed_at: null,
+    ack_due_at: null,
+    created_at: new Date(evaluationAt).toISOString(),
+    updated_at: new Date(evaluationAt).toISOString(),
+    created_by: null,
+    updated_by: null,
+  } satisfies EdielMessageRow,{referenceDate:evaluationAt}).validation
+
+  return runtime
+}

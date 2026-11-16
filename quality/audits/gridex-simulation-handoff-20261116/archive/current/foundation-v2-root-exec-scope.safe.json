@@ -1,0 +1,13 @@
+{
+  "state": "ROOT_EXACT_EXECUTION_SCOPE_APPROVE_V2",
+  "wrapperSHA256": "0bc9507b19827a5b96512809d33bd7831d09600c73142d917782dca7279c91f4",
+  "targetSHA256": "4474e44f64f2b3c43c5c191cdffa983aa8dd1239a17505a58faf4c99ad4f766e",
+  "bindingsActualVerified": 35,
+  "review": "Old174line fullscope reused; exact4line predecessor STOP/55000/drop/mainpreserve guard added. HelperONLYtwo approved sourcehashes rebound; new6ownclone names. Same6catalogunit oracles andmain522/3368fullpreservation.",
+  "sourceApprovals": [
+    "419bcec6bee34e5e702cb767bb645fb1933dfa9dd2003a9ba1f5c1e5aacab4db",
+    "0262cddc0afdeb9294f188c55e17cbcc90cdffe356731b56400978c29f868286"
+  ],
+  "limits": "OldSTOPretained; postcorrection89faGitcarriers explicitlyderivedlater, notinventedpre-capture. No ad594/Auth/JWT/MAIN/GEN.",
+  "arming": "AfterindependentV2scopeACK producer maypersistROOTarmingONBEHALFROOT andexecuteONCE withoutnewrootroundtrip"
+}

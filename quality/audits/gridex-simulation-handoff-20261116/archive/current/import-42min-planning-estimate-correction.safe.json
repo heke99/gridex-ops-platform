@@ -1,0 +1,9 @@
+{
+  "atUtc": "2026-11-14T12:54:35.014239+00:00",
+  "state": "CORRECTION_42_MINUTES_IS_PLANNING_ESTIMATE_NOT_ENFORCED_GUARD",
+  "finding": "Earlier notes described42minutes as required minimum; producer confirms no such literal guard in driver/helper/native qualification.",
+  "actualGuard": "b4b1 local-import-driver.cjs lines45\u201346 windowMs uses remaining real helper/native/JWT deadline; cf17 phase pre-intent reserve900s.",
+  "workloadBasis": "Up to2688 sink plus2688 underlay meter_gate calls, not a measured42minute run or product requirement.",
+  "preserved": "3000s hold/runtime ceiling, native expiration and900s phase reserve unchanged; no guard reduced.",
+  "limits": "No actual speed guarantee; actual importer may consume remaining window and unknown outcomes must be captured."
+}

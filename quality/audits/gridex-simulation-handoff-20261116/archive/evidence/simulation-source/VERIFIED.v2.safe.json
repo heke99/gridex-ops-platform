@@ -1,0 +1,12 @@
+{
+  "state": "VERIFIED_V2_FILTERED_SOURCE_PRESERVATION",
+  "manifestSHA256": "eca660acb19d805aae079f74c61da62ac73dbd5f40dd1283bb68c6a3045e658e",
+  "originalManifestUnchangedSHA256": "f9fe31f5e64facd570be3646cb530da23dabac2063b940a20f583a9966d3c048",
+  "includedCount": 2241,
+  "includedBytes": 29024804,
+  "reviewedSourceFalsePositives": 4,
+  "excludedCount": 43,
+  "allIncludedSHA256Verified": true,
+  "bundleBytesBeforeReceipt": 30669785,
+  "applicationCodeExecuted": false
+}

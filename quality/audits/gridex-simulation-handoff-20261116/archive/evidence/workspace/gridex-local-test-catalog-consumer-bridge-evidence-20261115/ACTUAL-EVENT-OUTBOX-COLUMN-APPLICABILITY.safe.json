@@ -1,0 +1,29 @@
+{
+  "state": "ACTUAL_SAVED_PUBLIC_SCHEMA_NOT_SYNTHETIC_FIXTURE",
+  "source": {
+    "path": "/workspace/gridex-local-test-catalog-publication-evidence-20261115/PUBLIC-SCHEMA.actual.stdout.private.json",
+    "sha256": "abf620ab0e8fe7254da1a59bca2cfca24a1f9d94585c2ad05aa041a440ac6f6e"
+  },
+  "table": "public.event_outbox",
+  "columns": [
+    "id",
+    "company_id",
+    "domain_event_id",
+    "destination_type",
+    "destination_key",
+    "status",
+    "attempts",
+    "max_attempts",
+    "available_at",
+    "locked_at",
+    "locked_by",
+    "sent_at",
+    "failed_at",
+    "last_error",
+    "payload",
+    "created_at",
+    "updated_at"
+  ],
+  "hasPayload": true,
+  "limits": "Existing V3 hook component fixture omitted generic payload in synthetic table; that omission is not actual Main schema evidence. No backend query."
+}

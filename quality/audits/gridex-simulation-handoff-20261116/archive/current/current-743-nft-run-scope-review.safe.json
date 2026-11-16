@@ -1,0 +1,59 @@
+{
+  "verdict": "EXECUTION_SCOPE_APPROVE",
+  "reviewerAgent": "/root",
+  "wrapperSHA256": "ac3a72cb198ff91ea4b88f6cefb25db3db47d387a988338a0c373ab5483a678b",
+  "targetSHA256": "743fafae5a8daa2e7504d8179ad3b073b86519c3b614421088b9477d59006473",
+  "targetPath": "/tmp/gridex-pilot57-current-constructor-prep-20261113/execution-target.current-proxy-nft-v3.BOUND.safe.json",
+  "donorASTManifest": {
+    "readDeclarations": "c36069bc67a581ef1c6e938b4e7cfa853a5147e400f8e34d2872f271dc41395f",
+    "fd92Declarations": "ac8cbdcdfa208510380ccec0bff12cbadb8079cf3152b33f5d8f3779c9612349"
+  },
+  "backupSealSHA256": "57c40806fccec227e736cec2cd99ceeba8f30ec15e4b6e3632b179f06831c9e0",
+  "currentFcBytes": 16858388,
+  "currentMainBeforeAfterSHA256": "e0f11aaecec007442dca133ad688084eab55e917e634908566d1cc32adc900de",
+  "runtimeBinding": {
+    "modulePath": "/tmp/gridex-pilot57-runtime-session-prep-20261113/runtime-session.py",
+    "moduleSHA256": "d26ab4a8a0cbbb4502590b004817af3fe93f5415732902023b2a5d111fe46f48",
+    "launcherPath": "/tmp/gridex-pilot57-runtime-session-prep-20261113/child-launcher.py",
+    "launcherSHA256": "95a7aa5426a1ae0d04cb425507d5d251f98c627de24356689185fac83d9528fc",
+    "targetTemplatePath": "/tmp/gridex-pilot57-current-constructor-prep-20261113/runtime-input.nft-run-v3.BOUND.safe.json",
+    "targetTemplateSHA256": "45c505b7bf9b69fa88c82e182c93c9d8fd329b4415ad20ef55a30ac097fc2d4b"
+  },
+  "deadlineEpochSeconds": 1794600180,
+  "freshFilesystemBoundChecksPassed": true,
+  "noBackendCallsByReviewer": true,
+  "scope": "One currentFc clone\u2192ad5943420\u2192oneprivateREST/current148fGETonly/private57closedbrowserpilot; owncleanup+fullMAIN/source40post. Actualruntimecanary/capchecks mandatory. Unknown outcome captures IDs/locks/Fc and neverreplays.",
+  "delegation": "After soleproducer second exactnarrowACK arm new743/ac3+d26 NFT tuple ON_BEHALF_ROOT and executeONCE immediately. Actual fullcanary/allsteady assertions still mandatory; isolatednetworknone ruleprobe is not a scenarioPASS. No furtherRootroundtrip/documentgate.",
+  "noScenarioPassOrProductionAuthorityGranted": true,
+  "asOfUTC": "2026-11-13T19:56:25.172412+00:00",
+  "reviewType": "NARROW_RUNTIME_RUN_TMPFS_AND_ACTUAL_QUALIFIED_NFT_BACKEND_REBIND",
+  "priorScopeReview": {
+    "path": "/workspace/gridex-root-session-20261112/current-a544-managedproxy-scope-review.safe.json",
+    "sha256": "ee97d9771a2ac5ea2bc8e2de8f12e5e5dfe9da580496d268aae072cbf6106bf5"
+  },
+  "newBudgetBytes": 805306368,
+  "actualDerivedBudgetBytes": 699801597,
+  "rootReadonlyFilesystemObservation": {
+    "workspaceFreeBytes": 963485696,
+    "tmpFreeBytes": 2211729408,
+    "nextCacheFilesystem": "separate /tmp tmpfs, not workspace overlay"
+  },
+  "budgetEvidence": {
+    "path": "/tmp/gridex-pilot57-disk-readiness-recovery-20261113/qualified-current-budget.safe.json",
+    "sha256": "5e1ad9973fd971d6860a4e7b7e30f2caa18876684f8a3cde570b2414fa722898"
+  },
+  "exactOneCodeExpressionDeltaVerified": true,
+  "predecessor": {
+    "path": "/tmp/gridex-pilot57-current-actual-20261113-b/intent.safe.json",
+    "sha256": "ad059be017053b3605b5a0d5408a2555ec2f0418748901c8e72a47aeb01798db",
+    "priorRestAndCloneAbsent": true,
+    "strictMainUnchanged": true,
+    "noAuthStartOrChildOrBusiness": true
+  },
+  "unexecutedRuntimeReuseVerified": true,
+  "exactNineInsertedLinesVerified": true,
+  "managedConfigSHA256": "5af2f42661f85a1ad5f341884e774704d896c38663d6152492bb79c6697f8739",
+  "cacheExactOwn0770EmptyVerified": true,
+  "runtimeMountOnlyDeltaVerified": true,
+  "actualNftProofFilesBound": true
+}

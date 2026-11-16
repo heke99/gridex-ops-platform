@@ -1,0 +1,733 @@
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization';
+import {buildEdielTgtRegisteredCustomerEventDraft} from './tgtEdifact.part-4';
+import {prepareTgtCustomerLifeEventSource,prepareTgtCustomerEventOriginal} from './tgtCustomerLifeEventSource';
+import {resolveTgtReportingBuildContext} from './tgtReportingPermissionContext'
+import {assertTgtReportingDraft} from './tgtReportingPermissionDraft'
+import { serializeTgtUnb } from './tgtEnvelope'
+import {resolveTgtDateEventBuildContext} from './tgtDateEventContext'
+import {assertTgtDateEventDraft} from './tgtDateEventSource'
+import { getEdielTgtTestDataForCase } from '@/lib/ediel/testing/tgtTestData'
+// lib/ediel/tgtAutopilot.ts
+
+import {
+  attachEdielMessageToTestRun,
+  createEdielMessage,
+  listEdielMessages,
+  listEdielMessagesByIds,
+  listEdielTestRunMessages,
+  listEdielTestRuns,
+} from "@/lib/ediel/db";
+import {tgtCanonicalDraftRouteRequest} from '@/lib/ediel/testing/tgtCanonicalDraftRoute'
+import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel';
+import {
+  evaluateEdielTgtRun,
+  getEdielTgtNextAction,
+  type EdielTgtExpectedStep,
+  type EdielTgtRunEvaluation,
+} from "@/lib/ediel/testing/tgtRegistry";
+import { buildEdielTgtDraft } from "@/lib/ediel/testing/tgtEdifact";
+import { bindSourceQualifiedNegativeFixtureDraft, resolveSourceQualifiedNegativeFixtureDraft } from '@/lib/ediel/testing/negativeFixtureAuthority';
+import {bindSourceQualifiedPositiveFixtureDraft,resolveSourceQualifiedPositiveFixtureDraft} from '@/lib/ediel/testing/positiveFixtureAuthority';
+import { getEdielTgtDynamicTestDataForCase } from "@/lib/ediel/testing/tgtTestDataStore";
+import { supabaseService } from "@/lib/supabase/service";
+import {
+  requireEdielSystemTestRuntimeContext,
+  type EdielSystemTestRuntimeContext,
+} from "@/lib/ediel/systemTestSettings";
+import {
+  EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
+  resolveEdielTgtProdatApplicationReference,
+} from "@/lib/ediel/fileEngine";
+import { isAgtSystemTestCase } from "@/lib/ediel/systemTestPackages";
+import type {
+  CreateEdielMessageInput,
+  EdielMessageFamily,
+  EdielMessageRow,
+  EdielTestRunRow,
+} from "@/lib/ediel/types";
+
+export type EdielTgtAutopilotResult = {
+  testRunId: string;
+  action:
+    | "created_gridex_draft"
+    | "waiting_for_portal_file"
+    | "linked_imported_message"
+    | "created_mock_portal_message"
+    | "complete"
+    | "blocked";
+  messageId: string | null;
+  stepNo: number | null;
+  description: string;
+};
+
+function pad(value: number, length = 2): string {
+  return String(value).padStart(length, "0");
+}
+
+function nowParts() {
+  const now = new Date();
+  const yyyy = now.getUTCFullYear();
+  const yy = String(yyyy).slice(2);
+  const mo = pad(now.getUTCMonth() + 1);
+  const dd = pad(now.getUTCDate());
+  const hh = pad(now.getUTCHours());
+  const mm = pad(now.getUTCMinutes());
+  const ss = pad(now.getUTCSeconds());
+
+  return {
+    yyMMdd: `${yy}${mo}${dd}`,
+    yyyyMMdd: `${yyyy}${mo}${dd}`,
+    hhmm: `${hh}${mm}`,
+    compact: `${yyyy}${mo}${dd}${hh}${mm}${ss}`,
+    iso: now.toISOString(),
+  };
+}
+
+function serializeEdifact(segments: string[]): string {
+  return [`UNA:+.? '`, ...segments.map((segment) => `${segment}'`)].join("\n");
+}
+
+function versionForFamily(family: EdielMessageFamily): string | null {
+  if (family === "PRODAT") return "26A";
+  if (family === "APERAK") return "E2SE3B";
+  if (family === "CONTRL") return "D96A";
+  if (family === "UTILTS" || family === "UTILTS_ERR") return "E5SE5A";
+  return null;
+}
+
+function runtimeSuiteForRun(testRun: EdielTestRunRow): "AGT" | "TGT" {
+  return isAgtSystemTestCase({
+    runtimeTestSuite: String((testRun as unknown as { environment_type?: unknown }).environment_type ?? "")
+      .toLowerCase()
+      .includes("agt")
+      ? "AGT"
+      : null,
+    testCaseCode: testRun.test_case_code,
+    roleCode: testRun.role_code,
+    suite: testRun.test_suite,
+  })
+    ? "AGT"
+    : "TGT";
+}
+
+function buildUnb(params: {
+  interchangeRef: string;
+  createdAt: Date;
+  family: EdielMessageFamily;
+  systemTestContext: EdielSystemTestRuntimeContext;
+  roleCode?: string | null;
+  testCaseCode?: string | null;
+  messageCode?: string | null;
+}) {
+  const senderSub =
+    params.family === "PRODAT" ||
+    params.family === "APERAK" ||
+    params.family === "UTILTS_ERR"
+      ? params.systemTestContext.defaultReceiverSubaddress
+      : null;
+  const receiverSub =
+    params.family === "PRODAT" ||
+    params.family === "APERAK" ||
+    params.family === "UTILTS_ERR"
+      ? params.systemTestContext.senderSubaddress
+      : null;
+
+  const applicationReference =
+    params.family === "CONTRL"
+      ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
+      : resolveEdielTgtProdatApplicationReference({
+          roleCode: params.roleCode,
+          testCaseCode: params.testCaseCode,
+          messageCode: params.messageCode,
+        });
+
+  return serializeTgtUnb({ family: params.family, code: params.messageCode,
+    sender: params.systemTestContext.testPortalEdielId, receiver: params.systemTestContext.actorEdielId,
+    senderSubAddress: senderSub, receiverSubAddress: receiverSub,
+    applicationReference, interchangeReference: params.interchangeRef, createdAt: params.createdAt });
+}
+
+function buildUnh(messageRef: string, step: EdielTgtExpectedStep) {
+  if (step.family === "CONTRL") return `UNH+${messageRef}+CONTRL:2:2:UN:EDIEL2`;
+  if (step.family === "APERAK")
+    return `UNH+${messageRef}+APERAK:D:96A:UN:E2SE3B`;
+  if (step.family === "UTILTS_ERR")
+    return `UNH+${messageRef}+APERAK:D:96A:UN:E5SE5A`;
+  if (step.family === "UTILTS")
+    return `UNH+${messageRef}+UTILTS:D:02B:UN:E5SE5A`;
+  return `UNH+${messageRef}+PRODAT:D:97A:UN:E2SE6A`;
+}
+
+function buildMockBody(
+  step: EdielTgtExpectedStep,
+  refs: {
+    date: string;
+    longDate: string;
+    transactionRef: string;
+    originalInterchangeRef: string;
+  },
+  systemTestContext: EdielSystemTestRuntimeContext,
+) {
+  if (step.family === "CONTRL") {
+    const action = step.outcome === "negative" ? "4" : "1";
+    return [
+      `UCI+${refs.originalInterchangeRef}+${systemTestContext.testPortalEdielId}:ZZ:PRODAT+${systemTestContext.actorEdielId}:ZZ:PRODAT+${action}`,
+    ];
+  }
+
+  if (step.family === "APERAK" || step.family === "UTILTS_ERR") {
+    const isNegative = step.outcome === "negative";
+    return [
+      `BGM+313+TGT-${step.family}-${refs.transactionRef}+${isNegative ? "40" : "34"}`,
+      `DTM+137:${refs.longDate}:102`,
+      `RFF+ACE:${refs.transactionRef}`,
+      isNegative ? "ERC+105" : "ERC+100",
+      isNegative
+        ? "FTX+AAO+++SIMULERAT FEL FRAN EDIELPORTALEN"
+        : "FTX+AAO+++OK",
+    ];
+  }
+
+  if (step.family === "PRODAT") {
+    return [
+      `BGM+${step.code}+TGT-PORTAL-${step.code}-${refs.transactionRef}+9`,
+      `DTM+137:${refs.longDate}:102`,
+      `RFF+ACE:${refs.transactionRef}`,
+      `RFF+Z13:${step.code}LK`,
+      `NAD+MS+${systemTestContext.testPortalEdielId}::9++EDIELPORTALEN`,
+      `NAD+MR+${systemTestContext.actorEdielId}::9++GRIDEX`,
+      "LOC+172+735999100000000001",
+      `FTX+AAI+++SIMULERAD PORTALFIL FOR ${step.code}`,
+    ];
+  }
+
+  if (step.family === "UTILTS") {
+    return [
+      `BGM+${step.code}+TGT-PORTAL-${step.code}-${refs.transactionRef}+9`,
+      `DTM+137:${refs.longDate}:102`,
+      `RFF+ACE:${refs.transactionRef}`,
+      `NAD+MS+${systemTestContext.testPortalEdielId}::9++EDIELPORTALEN`,
+      `NAD+MR+${systemTestContext.actorEdielId}::9++GRIDEX`,
+      "LOC+172+735999100000000001",
+      "QTY+220:1:KWH",
+    ];
+  }
+
+  return [`BGM+${step.code}+TGT-PORTAL-${step.code}-${refs.transactionRef}+9`];
+}
+
+function buildMockPortalInput(params: {
+  actorUserId: string;
+  testRun: EdielTestRunRow;
+  evaluation: EdielTgtRunEvaluation;
+  step: EdielTgtExpectedStep;
+  systemTestContext: EdielSystemTestRuntimeContext;
+}): CreateEdielMessageInput {
+  const parts = nowParts();
+  const safeCase = params.testRun.test_case_code.replace(/[^A-Za-z0-9]/g, "");
+  const interchangeRef =
+    `PORTAL${safeCase}S${params.step.stepNo}${parts.compact}`.slice(0, 35);
+  const messageRef = `P${safeCase}${params.step.stepNo}${parts.compact}`.slice(
+    0,
+    14,
+  );
+  const transactionRef = `TGT-${params.testRun.test_case_code}-S${params.step.stepNo}`;
+  const original = params.evaluation.matches
+    .slice(0, Math.max(0, params.step.stepNo - 1))
+    .reverse()
+    .find((match) => match.message)?.message;
+
+  const body = buildMockBody(
+    params.step,
+    {
+      date: parts.yyMMdd,
+      longDate: parts.yyyyMMdd,
+      transactionRef,
+      originalInterchangeRef:
+        original?.interchange_reference ??
+        `GRIDEX-${safeCase}-S${Math.max(1, params.step.stepNo - 1)}`,
+    },
+    params.systemTestContext,
+  );
+  const unh = buildUnh(messageRef, params.step);
+  const messageSegments = [unh, ...body];
+  const rawPayload = serializeEdifact([
+    buildUnb({
+      interchangeRef,
+      createdAt: new Date(parts.iso),
+      family: params.step.family,
+      roleCode:
+        params.evaluation.definition?.roleCode ?? params.testRun.role_code,
+      testCaseCode: params.testRun.test_case_code,
+      messageCode: params.step.code,
+      systemTestContext: params.systemTestContext,
+    }),
+    ...messageSegments,
+    `UNT+${messageSegments.length + 1}+${messageRef}`,
+    `UNZ+1+${interchangeRef}`,
+  ]);
+
+  const messageVersion = versionForFamily(params.step.family);
+  const isAck =
+    params.step.family === "CONTRL" ||
+    params.step.family === "APERAK" ||
+    params.step.family === "UTILTS_ERR";
+  const outcome = params.step.outcome ?? (isAck ? "positive" : null);
+
+  return {
+    actorUserId: params.actorUserId,
+    companyId: params.testRun.company_id ?? null,
+    direction: "inbound",
+    messageStandard: "edifact",
+    messageFamily: params.step.family,
+    messageCode: params.step.code,
+    messageVersion,
+    environment: "test",
+    testFlag: 1,
+    status: "received",
+    transportType: "manual_upload",
+    mailbox: "tgt-mock-portal",
+    mailboxMessageId: interchangeRef,
+    senderEdielId: params.systemTestContext.testPortalEdielId,
+    senderSubAddress:
+      params.step.family === "PRODAT" ||
+      params.step.family === "APERAK" ||
+      params.step.family === "UTILTS_ERR"
+        ? params.systemTestContext.defaultReceiverSubaddress
+        : null,
+    receiverEdielId: params.systemTestContext.actorEdielId,
+    receiverSubAddress: params.systemTestContext.senderSubaddress,
+    senderEmail: params.systemTestContext.testPortalEmail,
+    receiverEmail: null,
+    subject: `[MOCK] TGT ${params.testRun.test_case_code} steg ${params.step.stepNo} ${params.step.family}/${params.step.code}`,
+    fileName: `mock_portal_${params.testRun.test_case_code.replace(/\./g, "_")}_s${params.step.stepNo}_${params.step.family.toLowerCase()}_${params.step.code.toLowerCase()}.edi`,
+    mimeType: "application/EDIFACT",
+    interchangeReference: interchangeRef,
+    externalReference: `MOCK-PORTAL-${params.testRun.test_case_code}-S${params.step.stepNo}-${parts.compact}`,
+    transactionReference: transactionRef,
+    applicationReference:
+      params.step.family === "CONTRL"
+        ? "CONTRL"
+        : resolveEdielTgtProdatApplicationReference({
+            roleCode:
+              params.evaluation.definition?.roleCode ??
+              params.testRun.role_code,
+            testCaseCode: params.testRun.test_case_code,
+            messageCode: params.step.code,
+          }),
+    relatedMessageId: original?.id ?? null,
+    rawPayload,
+    parsedPayload: {
+      source: "batch_6e1_tgt_mock_portal_response",
+      testRunId: params.testRun.id,
+      testCaseCode: params.testRun.test_case_code,
+      stepNo: params.step.stepNo,
+      mockOnly: true,
+      ackOutcome: outcome,
+      relatedMessageId: original?.id ?? null,
+    },
+    validationReport: {
+      ok: true,
+      mockOnly: true,
+      warning:
+        "Internt simulerat portalsvar. Ska inte skickas till Edielportalen.",
+    },
+    requiresContrl: false,
+    requiresAperak: false,
+    contrlStatus: "not_required",
+    aperakStatus: "not_required",
+    utiltsErrStatus: "not_required",
+    ackOutcome: outcome,
+    syntaxCheckStatus: null,
+    functionalCheckStatus: null,
+    messageReceivedAt: parts.iso,
+  };
+}
+
+async function getRunEvaluation(
+  companyId: string,
+  testRunId: string,
+): Promise<EdielTgtRunEvaluation> {
+  const [runs, messages, links] = await Promise.all([
+    listEdielTestRuns({ scope: "tenant", companyId }),
+    listEdielMessages({ companyId, limit: 300 }),
+    listEdielTestRunMessages({ companyId, testRunId }),
+  ]);
+  const run = runs.find((candidate) => candidate.id === testRunId);
+  if (!run || run.company_id!==companyId) throw new Error("TGT-run saknas eller är arkiverad.");
+
+  const linkedRows = await listEdielMessagesByIds(
+    links.map((link) => link.ediel_message_id),
+    { companyId },
+  );
+  const byId = new Map(messages.map((message) => [message.id, message]));
+  for (const linkedMessage of linkedRows) byId.set(linkedMessage.id, linkedMessage);
+
+  return evaluateEdielTgtRun(run, Array.from(byId.values()), {
+    explicitMessageIds: links.map((link) => link.ediel_message_id),
+  });
+}
+
+async function createDraftForStep(params: {
+  actorUserId: string;
+  evaluation: EdielTgtRunEvaluation;
+  step: EdielTgtExpectedStep;
+}): Promise<EdielMessageRow> {
+  if (!params.evaluation.definition) throw new Error("TGT-definition saknas");
+
+  const runtimeSuite = runtimeSuiteForRun(params.evaluation.testRun);
+  const systemTestContext = await requireEdielSystemTestRuntimeContext({
+    companyId: params.evaluation.testRun.company_id,
+    testSuite: runtimeSuite,
+    actorRole: params.evaluation.definition.roleCode,
+    // ACK wire families inherit the selected case's source-family profile.
+    messageFamily:params.evaluation.definition.suite,
+  });
+
+  const importedTestData = await getEdielTgtDynamicTestDataForCase(
+    params.evaluation.definition.suite,
+    params.evaluation.definition.roleCode,
+    params.evaluation.definition.testCaseCode,
+  );
+
+  const dateBuild=params.step.family==='PRODAT'?await resolveTgtDateEventBuildContext({run:params.evaluation.testRun,stepNo:params.step.stepNo,code:params.step.code,runtime:systemTestContext,testData:importedTestData??getEdielTgtTestDataForCase(params.evaluation.definition.suite,params.evaluation.definition.roleCode,params.evaluation.definition.testCaseCode)}):undefined;
+  const reportingBuild=params.step.family==='PRODAT'&&params.step.code==='Z13'?await resolveTgtReportingBuildContext({run:params.evaluation.testRun,stepNo:params.step.stepNo,runtime:systemTestContext}):undefined;
+  // Current tenant actor authority precedes any classified source read.
+  if(params.step.family==='PRODAT'&&params.step.code==='Z09')await assertEdielTenantActor({companyId:String(params.evaluation.testRun.company_id??''),actorUserId:params.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']});
+  const classifiedOriginal=await prepareTgtCustomerEventOriginal({companyId:params.evaluation.testRun.company_id,runId:params.evaluation.testRun.id,stepNo:params.step.stepNo,actorUserId:params.actorUserId,family:params.step.family,code:params.step.code});
+  const buildParams = {
+    actorUserId: params.actorUserId,
+    testSuite: params.evaluation.definition.suite,
+    roleCode: params.evaluation.definition.roleCode,
+    testCaseCode: params.evaluation.definition.testCaseCode,
+    stepNo: params.step.stepNo,
+    importedTestData:reportingBuild?.testData??importedTestData,
+    testRunId:params.evaluation.testRun.id,
+    registerFacts:reportingBuild?.facts??dateBuild?.facts,dateEventContext:dateBuild?.context,reportingContext:reportingBuild?.context,
+    systemTestContext,
+  };
+  const draft=classifiedOriginal?buildEdielTgtRegisteredCustomerEventDraft(buildParams,classifiedOriginal):buildEdielTgtDraft(buildParams);
+  const routeProfileId = String(params.evaluation.testRun.route_profile_id ?? "").trim();
+  if (routeProfileId) {
+    const { data: routeProfile, error } = await supabaseService
+      .from("ediel_route_profiles")
+      .select("id,communication_route_id,mailbox,encryption_mode,certificate_id")
+      .eq("id", routeProfileId)
+      .eq("company_id", params.evaluation.testRun.company_id ?? "")
+      .maybeSingle();
+    if (error) throw error;
+    if (routeProfile?.communication_route_id) {
+      draft.messageInput.communicationRouteId = String(routeProfile.communication_route_id);
+      draft.messageInput.mailbox = String(routeProfile.mailbox ?? draft.messageInput.mailbox ?? "");
+      draft.messageInput.validationReport = {
+        ...(draft.messageInput.validationReport ?? {}),
+        lockedSendContext: {
+          source: "ediel_test_runs",
+          testRunId: params.evaluation.testRun.id,
+          testSuite: params.evaluation.testRun.test_suite,
+          testCaseCode: params.evaluation.testRun.test_case_code,
+          roleCode: params.evaluation.testRun.role_code,
+          encryptionMode: params.evaluation.testRun.encryption_mode ?? null,
+          routeProfileId,
+          communicationRouteId: String(routeProfile.communication_route_id),
+          routeEncryptionMode: routeProfile.encryption_mode ?? null,
+          certificateId: routeProfile.certificate_id ?? null,
+        },
+      };
+    }
+  }
+
+  // Same contract as the manual consumer: only an independently classified
+  // test original carries the customer life-event source context.
+  if(classifiedOriginal)await prepareTgtCustomerLifeEventSource({draft,companyId:params.evaluation.testRun.company_id,runId:params.evaluation.testRun.id,stepNo:params.step.stepNo,actorUserId:params.actorUserId});
+  const blockingIssues = draft.validationIssues.filter(
+    (issue) => issue.severity === "error",
+  );
+  if (blockingIssues.length > 0) {
+    const qualification = await resolveSourceQualifiedNegativeFixtureDraft({companyId:params.evaluation.testRun.company_id!,runId:params.evaluation.testRun.id,
+      stepNo:params.step.stepNo,actorUserId:params.actorUserId,rawPayload:draft.messageInput.rawPayload ?? '',diagnosticCodes:blockingIssues.map(issue=>issue.code)});
+    if (!qualification) throw new Error(
+      `TGT-utkastet är blockerat: ${blockingIssues
+        .map((issue) => `${issue.title}: ${issue.description}`)
+        .join(" | ")}`,
+    );
+    bindSourceQualifiedNegativeFixtureDraft(draft.messageInput,qualification);
+    draft.messageInput.status='prepared';
+    draft.messageInput.parsedPayload={...draft.messageInput.parsedPayload,readyForDownload:true,negativeFixtureEvidence:{registrationId:qualification.registrationId,originalFileSha256:qualification.originalFileSha256,expectedOutcome:'negative'}};
+  } else if (draft.messageInput.messageFamily==='PRODAT'||draft.messageInput.messageFamily==='UTILTS') {
+    const qualification=await resolveSourceQualifiedPositiveFixtureDraft({companyId:params.evaluation.testRun.company_id!,runId:params.evaluation.testRun.id,
+      stepNo:params.step.stepNo,actorUserId:params.actorUserId,rawPayload:draft.messageInput.rawPayload??'',diagnosticCodes:[]});
+    if(!qualification)throw new Error('ediel_positive_fixture_original_required');
+    bindSourceQualifiedPositiveFixtureDraft(draft.messageInput,qualification);
+  }
+
+  assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
+  assertTgtReportingDraft(draft.messageInput,reportingBuild?.context);
+  const message = await createCanonicalOutboundMessage({actorUserId:params.actorUserId,requestType:tgtCanonicalDraftRouteRequest(draft.messageInput),baseInput:draft.messageInput,reportingContext:reportingBuild?.context,dateEventContext:dateBuild?.context});
+  await attachEdielMessageToTestRun({
+    companyId: params.evaluation.testRun.company_id,
+    testRunId: params.evaluation.testRun.id,
+    edielMessageId: message.id,
+    stepNo: draft.step.stepNo,
+    expectedDirection: draft.step.direction,
+    expectedFamily: draft.step.family,
+    expectedCode: draft.step.code,
+  });
+  return message;
+}
+
+export async function runTgtAutopilotForRun(params: {
+  actorUserId: string;
+  companyId: string;
+  testRunId: string;
+}): Promise<EdielTgtAutopilotResult> {
+  const evaluation = await getRunEvaluation(params.companyId, params.testRunId);
+  const nextAction = getEdielTgtNextAction(evaluation);
+
+  if (!evaluation.definition) {
+    return {
+      testRunId: params.testRunId,
+      action: "blocked",
+      messageId: null,
+      stepNo: null,
+      description: "Test run saknar TGT-definition.",
+    };
+  }
+
+  if (nextAction.kind === "complete") {
+    return {
+      testRunId: params.testRunId,
+      action: "complete",
+      messageId: null,
+      stepNo: null,
+      description: "Alla steg är redan klara i Gridex.",
+    };
+  }
+
+  if (!nextAction.stepNo) {
+    return {
+      testRunId: params.testRunId,
+      action: "blocked",
+      messageId: null,
+      stepNo: null,
+      description: nextAction.description,
+    };
+  }
+
+  const step = evaluation.definition.expectedSteps.find(
+    (candidate) => candidate.stepNo === nextAction.stepNo,
+  );
+  if (!step)
+    throw new Error(`Steg ${nextAction.stepNo} saknas i testdefinitionen.`);
+
+  if (step.actor === "gridex") {
+    try {
+      const message = await createDraftForStep({
+        actorUserId: params.actorUserId,
+        evaluation,
+        step,
+      });
+      return {
+        testRunId: params.testRunId,
+        action: "created_gridex_draft",
+        messageId: message.id,
+        stepNo: step.stepNo,
+        description: `Skapade Gridex-utkast för steg ${step.stepNo}.`,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.startsWith('PRODAT_REGISTER_') || message.startsWith('prodat_register_')) {
+        return {testRunId:params.testRunId,action:'blocked',messageId:null,stepNo:step.stepNo,
+          description:`Registerunderlaget måste granskas för detta steg: ${message}. Uppdatera objektens faktaunderlag i TGT-vyn.`};
+      }
+      if (message.startsWith("TGT-utkastet är blockerat:")) {
+        const isAgtRuntime = runtimeSuiteForRun(evaluation.testRun) === "AGT";
+        return {
+          testRunId: params.testRunId,
+          action: "blocked",
+          messageId: null,
+          stepNo: step.stepNo,
+          description: isAgtRuntime
+            ? `${message.replace("TGT-utkastet", "AGT-utkastet")} Kontrollera AGT-runtime, route, subadress och certifikat. Aktör→portal-test ska inte kräva importerad TGT-portaltestdata.`
+            : `${message} Importera eller uppdatera testdata från Edielportalen och tryck sedan på Försök skapa nästa GridCore-utkast.`,
+        };
+      }
+      throw error;
+    }
+  }
+
+  return {
+    testRunId: params.testRunId,
+    action: "waiting_for_portal_file",
+    messageId: null,
+    stepNo: step.stepNo,
+    description: `Nästa steg är portalsvar: ${step.title}. Importera riktig fil från Edielportalen eller skapa simulerat portalsvar för internt test.`,
+  };
+}
+
+export async function createMockPortalMessageForNextStep(params: {
+  actorUserId: string;
+  companyId: string;
+  testRunId: string;
+}): Promise<EdielTgtAutopilotResult> {
+  const evaluation = await getRunEvaluation(params.companyId, params.testRunId);
+  const nextAction = getEdielTgtNextAction(evaluation);
+
+  if (!evaluation.definition || !nextAction.stepNo) {
+    return {
+      testRunId: params.testRunId,
+      action: "blocked",
+      messageId: null,
+      stepNo: null,
+      description: "Det finns inget portalsvar att simulera just nu.",
+    };
+  }
+
+  const step = evaluation.definition.expectedSteps.find(
+    (candidate) => candidate.stepNo === nextAction.stepNo,
+  );
+  if (!step)
+    throw new Error(`Steg ${nextAction.stepNo} saknas i testdefinitionen.`);
+  if (step.actor !== "portal") {
+    return {
+      testRunId: params.testRunId,
+      action: "blocked",
+      messageId: null,
+      stepNo: step.stepNo,
+      description:
+        "Nästa steg ägs av Gridex. Kör autopilot för att skapa filutkast i stället.",
+    };
+  }
+
+  const runtimeSuite = runtimeSuiteForRun(evaluation.testRun);
+  const systemTestContext = await requireEdielSystemTestRuntimeContext({
+    companyId: evaluation.testRun.company_id,
+    testSuite: runtimeSuite,
+    actorRole: evaluation.definition.roleCode,
+  });
+
+  const message = await createEdielMessage(
+    buildMockPortalInput({
+      actorUserId: params.actorUserId,
+      testRun: evaluation.testRun,
+      evaluation,
+      step,
+      systemTestContext,
+    }),
+  );
+
+  await attachEdielMessageToTestRun({
+    companyId: evaluation.testRun.company_id,
+    testRunId: evaluation.testRun.id,
+    edielMessageId: message.id,
+    stepNo: step.stepNo,
+    expectedDirection: step.direction,
+    expectedFamily: step.family,
+    expectedCode: step.code,
+  });
+
+  const afterMock = await runTgtAutopilotForRun({
+    actorUserId: params.actorUserId,
+    companyId: evaluation.testRun.company_id,
+    testRunId: evaluation.testRun.id,
+  });
+
+  return {
+    testRunId: evaluation.testRun.id,
+    action:
+      afterMock.action === "created_gridex_draft"
+        ? "created_mock_portal_message"
+        : "created_mock_portal_message",
+    messageId: message.id,
+    stepNo: step.stepNo,
+    description:
+      afterMock.action === "created_gridex_draft"
+        ? `Skapade simulerat portalsvar för steg ${step.stepNo} och förberedde nästa Gridex-utkast.`
+        : `Skapade simulerat portalsvar för steg ${step.stepNo}. ${afterMock.description}`,
+  };
+}
+
+export async function autoAttachImportedMessageToActiveTgtRun(params: {
+  edielMessage: EdielMessageRow;
+  companyId: string;
+  explicitTestCaseCode?: string | null;
+}): Promise<EdielTgtAutopilotResult | null> {
+  if (params.edielMessage.company_id !== params.companyId) {
+    throw new Error("imported_message_company_mismatch");
+  }
+  if (params.edielMessage.environment !== "test" || params.edielMessage.test_flag !== 1) {
+    throw new Error("production_message_cannot_be_tgt_evidence");
+  }
+  const [runs, messages] = await Promise.all([
+    listEdielTestRuns({ scope: "tenant", companyId: params.companyId }),
+    listEdielMessages({ companyId: params.companyId, limit: 300 }),
+  ]);
+  const explicitCode = String(params.explicitTestCaseCode ?? "")
+    .trim()
+    .toUpperCase();
+  const activeRuns = runs.filter(
+    (run) => run.status === "running" || run.status === "draft",
+  );
+  const prioritizedRuns = explicitCode
+    ? [
+        ...activeRuns.filter(
+          (run) =>
+            String(run.test_case_code ?? "").toUpperCase() === explicitCode,
+        ),
+        ...activeRuns.filter(
+          (run) =>
+            String(run.test_case_code ?? "").toUpperCase() !== explicitCode,
+        ),
+      ]
+    : activeRuns;
+
+  for (const run of prioritizedRuns) {
+    const evaluation = evaluateEdielTgtRun(run, messages);
+    if (!evaluation.definition) continue;
+
+    const matchingStep = evaluation.definition.expectedSteps.find((step) => {
+      if (step.actor !== "portal") return false;
+      if (step.direction !== params.edielMessage.direction) return false;
+      if (step.family !== params.edielMessage.message_family) return false;
+      if (
+        String(step.code).toUpperCase() !==
+        String(params.edielMessage.message_code).toUpperCase()
+      )
+        return false;
+      if (
+        step.outcome &&
+        params.edielMessage.ack_outcome &&
+        step.outcome !== params.edielMessage.ack_outcome
+      )
+        return false;
+      return true;
+    });
+
+    if (!matchingStep) continue;
+    if (
+      explicitCode &&
+      String(run.test_case_code ?? "").toUpperCase() !== explicitCode
+    )
+      continue;
+
+    await attachEdielMessageToTestRun({
+      companyId: params.companyId,
+      testRunId: run.id,
+      edielMessageId: params.edielMessage.id,
+      stepNo: matchingStep.stepNo,
+      expectedDirection: matchingStep.direction,
+      expectedFamily: matchingStep.family,
+      expectedCode: matchingStep.code,
+    });
+
+    return {
+      testRunId: run.id,
+      action: "linked_imported_message",
+      messageId: params.edielMessage.id,
+      stepNo: matchingStep.stepNo,
+      description: `Importerad fil kopplades automatiskt till ${run.test_suite}/${run.test_case_code} steg ${matchingStep.stepNo}.`,
+    };
+  }
+
+  return null;
+}

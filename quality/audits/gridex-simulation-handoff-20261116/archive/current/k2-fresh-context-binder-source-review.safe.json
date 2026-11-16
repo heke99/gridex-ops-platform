@@ -1,0 +1,15 @@
+{
+  "state": "ROOT_FRESH_K2_BINDER_NARROW_SOURCE_APPROVE",
+  "atUtc": "2026-11-14T13:15:23.651965+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-runtime64-3000-k2-cgroup-prep-20261114/FRESH-K2-BINDER-PREPARED.safe.json",
+    "sha256": "a52021764d58f3f897e266509074732ec0706eb5da55faa2296188b4a1706a27"
+  },
+  "binder": {
+    "path": "/tmp/gridex-runtime64-3000-k2-cgroup-prep-20261114/bind-fresh-local-k2-new-context-G-canary.py",
+    "sha256": "3a83bd7908c789e7935a0d8de0945e9284ab1dbbc8f2a025f1295da451d1fd3b"
+  },
+  "review": "Exact one held-state parent literalK\u2192K2 inverseverified; runtime26928/currentG/source64/nonce/cache andallremainingguards preserved.",
+  "limits": "Actual freshK2session/PID/deadline future; no binding/execution proof.",
+  "backendCalls": 0
+}

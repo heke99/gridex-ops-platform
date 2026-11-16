@@ -1,0 +1,39 @@
+{
+  "state": "PURE_CURRENT_CBDE_ONE_CALL_BASELINE_OBSERVED_CLOSED",
+  "errorType": null,
+  "ownDBAbsent": true,
+  "MainFullRolesAll7Auth0CarrierUnchanged": true,
+  "results": {
+    "currentV1": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.46841207999386825,
+      "stdout": {
+        "path": "/workspace/gridex-k12-wire-v1-baseline-actual-20261115-a/current-v1-baseline.stdout.private.log",
+        "sha256": "7546cbc564f3b8be4d7d98d7dad197bf60fa18f89d10a6759d080b4cfeaddfd2"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-k12-wire-v1-baseline-actual-20261115-a/current-v1-baseline.stderr.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "statementTimeout57014": false,
+      "observedResult": {
+        "case": "current_cbde_one_full_raw_call",
+        "rawBytes": 171462,
+        "rawSHA256": "7c0239018ce701d2223f07a109b1b683605ae9ccc3877564df116c31f771adc9",
+        "tokenCount": 10774,
+        "resultSHA256": "662b4c4d4f5a3ff86054bc8de86e9b219547be0aff8cc674afd1f749464ecf54",
+        "tokenizationValid": true,
+        "sqlClockToMaterializedDigestSeconds": 0.321662
+      }
+    }
+  },
+  "currentV1Completed10774": true,
+  "nativeStatementTimeoutObserved": false,
+  "singleV1InvocationByMaterializedSQL": true,
+  "SQLStatementTimeoutSeconds": 8,
+  "callerTimeoutSeconds": 15,
+  "candidateExecuted": false,
+  "scalingExecuted": false,
+  "fullInsertCauseProven": false,
+  "MainOrProductAdoption": false
+}

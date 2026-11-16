@@ -1,0 +1,27 @@
+{
+  "at": "2026-11-15T03:23:10.177139+00:00",
+  "scope": "SOLE_PRODUCER_EXACT43_CLOSED_RAW_29_CONTENT_GROUPS",
+  "proposalPath": "/workspace/gridex-k8-k9-single-closed-resource-proposal-20261115/PROPOSAL.safe.json",
+  "proposalSHA256": "f6a9d4ebb7b5834ab9c7c135d17ec2642b830e0607c5882073012fb721efe469",
+  "dependencyProof": {
+    "path": "/workspace/gridex-k8-k9-single-closed-resource-proposal-20261115/DEPENDENCY-PROOF.v2.safe.json",
+    "sha256": "642d58c254046e36ebe4092caf13c50f427b9b322846e9da02ce2fef1cc2742f"
+  },
+  "helperSHA256": "1e8631540faeeb7af0f30366f81054a7e493582dd2a888359811112e38681c09",
+  "aliasCount": 43,
+  "groupCount": 29,
+  "review": [
+    "Readwholeguardedexecutor andindependentlyhashedall43physicalregularraw aliases/inodes/nlink",
+    "Exactallselectedaliases covereachphysicalinode nlink; existingpergroupdurablegzip+decompressedSHA beforeunlink",
+    "39currentK9roots/477protectedpaths excluded, actualN/runtime/finance included inV2dependencyproof; originalproposalolderdep nottheexecutiondep",
+    "Existingprotocolstale13/9docstringandK6protectedlabel doNOTdefineactualscope; executable43/29guards andthisscope do",
+    "NativeBMainpairrestoredviae237zerocopyprotectedcanonical NOTselected, allFc/dumps/0509/seedfullafter/API/E/Coriginalsprotected"
+  ],
+  "conditions": [
+    "Soleproducerexecuteunchangedhelperonce; existingfullmetadata/currentroot/FDmount/protectedinodeguards mandatory",
+    "Preserveallgzip+custody; originalRAWpaths explicitlyARCHIVED requiringexclusiveSHArestorebeforefuturephysicalread",
+    "ActualfreeWS/TMP separatelymeasured AFTERarchive+MainIwarm; noestimatedresourcegoalPASS",
+    "NoAuthuntilallrequiredsource/actualbindings/resources ready; original805/900/3000guardsunchanged"
+  ],
+  "resourcePass": false
+}

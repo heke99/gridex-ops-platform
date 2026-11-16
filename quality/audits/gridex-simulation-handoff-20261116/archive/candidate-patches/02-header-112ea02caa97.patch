@@ -1,0 +1,520 @@
+From 112ea02caa97785f77f5eb412eb66771444c01e0 Mon Sep 17 00:00:00 2001
+From: Heke  Hourani <heke99@live.se>
+Date: Sun, 15 Nov 2026 13:04:33 +0000
+Subject: [PATCH] fix(ediel): validate each header party component length
+
+---
+ .../REPORT.sv.md                              |  50 +++++
+ .../results.safe.json                         | 159 ++++++++++++++++
+ ...iel_header_component_length_precedence.sql |  93 ++++++++++
+ ...0261115_ediel_header_component_lengths.sql | 175 ++++++++++++++++++
+ 4 files changed, 477 insertions(+)
+ create mode 100644 quality/audits/ediel-header-length-precedence-20261115/REPORT.sv.md
+ create mode 100644 quality/audits/ediel-header-length-precedence-20261115/results.safe.json
+ create mode 100644 supabase/migrations/20261115124654_ediel_header_component_length_precedence.sql
+ create mode 100644 supabase/tests/20261115_ediel_header_component_lengths.sql
+
+diff --git a/quality/audits/ediel-header-length-precedence-20261115/REPORT.sv.md b/quality/audits/ediel-header-length-precedence-20261115/REPORT.sv.md
+new file mode 100644
+index 000000000..e6d73ee9f
+--- /dev/null
++++ b/quality/audits/ediel-header-length-precedence-20261115/REPORT.sv.md
+@@ -0,0 +1,50 @@
++# EDIEL: längdkontroll av avsändar- och mottagarkomponenter, 2026-11-15
++
++Fynd **EDIEL-HEADER-LENGTH-PRECEDENCE** har en separat lokal källrättning. Den kvalificerade optimerade funktionen använder `u->2||u->3`; PostgreSQL grupperar detta så att kontrollen träffar syntaxkompositen `UNOC:3`. Native B visade faktiskt att en avsändare med 36 tecken accepterades av både den ursprungliga och den optimerade funktionen. Mottagarens nya gränsfall är planerade nativeprov, inte redan observerade resultat.
++
++Ändringen är endast `jsonb_array_elements_text((u->2)||(u->3))`. Den befintliga gränsen 35 tecken gäller därmed varje **avkodad** komponent hos både avsändare och mottagare. Release-tecken i transportformen och UTF-8-byteantal används inte som längdmått. Övriga predikat, lexer, framing, metadata, OID, owner, ACL och timeoutar bevaras.
++
++## Framåtmigration och avgränsning
++
++`supabase/migrations/20261115124654_ediel_header_component_length_precedence.sql` kräver uttryckligen föregående prestandamigration `20261115110312_ediel_envelope_linear_framing.sql`. Optimerad prosrc-MD5 är `33bb811220fdabda32c9f40505c20ea1`; rättad MD5 är `91fbc03c1a22caadfc6eb48f07b03503`. Den ursprungliga `b4de…`-funktionen och andra kroppar avvisas. Exakt rättad kropp får replayas med hel metadatajämförelse.
++
++Wrappern kräver befintlig owner `postgres`, rå ACL `["postgres=X/postgres"]`, oförändrad expanderad ACL och varje pg_proc-fält utom `prosrc`. Den behåller IMMUTABLE, SECURITY INVOKER, icke-strict, parallel unsafe och `search_path=pg_catalog`. Ingen ny funktion, RPC, trigger, grant, RLS-policy eller tabellskrivning införs. SQL har kvar statement_timeout 8 s och lock_timeout 5 s. Filnamnets UTC kommer från den faktiska egna claimförberedelsen 12:46:54; inget körande av `supabase migration new` påstås.
++
++Detta är en avsiktlig valideringsrättning: tidigare accepterade komponenter längre än 35 tecken ska avvisas. Ingen historisk rad ändras eller backfillas, och inget tidigare okänt affärsanrop återspelas. Den optimerade prestandamigrationen och dess ursprungliga kvitton ändras inte.
++
++## Regression och faktiskt underlag
++
++Den nya rollback-regressionen skiljer på två orakel:
++
++- En byteexakt optimerad referens i `pg_temp` ska fortsätta matcha samtliga 41 frysta legacyförväntningar, inklusive den historiska 36-teckensacceptansen i fall 35.
++- Den kanoniska rättade funktionen ska matcha 75 normativa fall. Fyrtio legacyfall har samma resultat; fall 35 ska nu avvisas. Ytterligare 34 fall täcker 35/36 tecken i alla tre positioner på båda sidor, release av data-/komponentseparator och release-tecken, Latin-1-tecken, tre komponenter, tomma valfria komponenter samt kvarvarande avvisning av tom primärkomponent och fyra komponenter. Den verkliga lexerns avkodade komponenter kontrolleras också i dessa nya fall.
++
++**De 75 nativeproven, den nya wrappern och replay har ännu inte körts.** Offlinekontroller har verifierat exakt en kroppsändring, hel inverse till den optimerade funktionen, samma 41 råa legacyindata och oförändrade referensförväntningar. Detta är källkontroller och planerade testdefinitioner, inte SQL-exekvering.
++
++Tidigare nativeunderlag är separat: B observerade det felaktiga grupperingsbeteendet; C passerade 41 ekvivalensfall för den gamla/prestandaoptimerade semantiken; D kvalificerade den tidigare prestandawrapperns kanoniska installation, replay, metadata och rollback41 i en liten ägd databas. D hade 3332 funktioner i sin egen fixture, inte en full 3444-katalog. Ingen av dessa körningar kvalificerar den nya längdrättningen.
++
++Den konkreta fortsättningen finns i den oarmerade nativeplanen: ny liten ägd DB, exakta kanoniska källor och real databasroll; föregående prestandamigration; ny kropp, replay och regression75; oförändrad metadata och separat Main/all7/Auth0/global-role/current-carrier-fence; egen stängning även vid fel. Inga JWT-/medlemsflaggor behövs. Ingen full appklon behövs för detta rena funktionsprov. Normal full INSERT och faktisk produktadoption är fortfarande separata, okörda steg.
++
++## Status och exakta bevis
++
++Ändringen finns bara i en isolerad lokal branch. Main, Source65/67 och K12:s frysta optimeringskomposition är oförändrade; K12 innehåller inte denna nya correctnessmigration. Ingen push, backend, Auth, Node eller SQL har körts av källförfattaren för detta paket. Kanonisk scenariostatus är fortsatt **38 / 1 / 66**; inga helfalls-PASS eller dödkodsfynd tillkommer.
++
++De direkta SHA-256-referenserna finns även i `results.safe.json`:
++
++- `migration`: `/tmp/gridex-ediel-header-length-precedence-20261115/supabase/migrations/20261115124654_ediel_header_component_length_precedence.sql` — SHA-256 `8241f65020d000f007d03b95c77341176e887b0605ca086b12441e623e76dfa9`.
++- `regression`: `/tmp/gridex-ediel-header-length-precedence-20261115/supabase/tests/20261115_ediel_header_component_lengths.sql` — SHA-256 `bcc57a89bb45a0d1f85cb332263b8151a726485d487e27b045605e323bef8e71`.
++- `prerequisiteMigration`: `/tmp/gridex-ediel-envelope-linear-framing-fix-20261115/supabase/migrations/20261115110312_ediel_envelope_linear_framing.sql` — SHA-256 `1db0467502ee51869a7074768da1c43d5fdfedb7b74f839cbe96c07043b91096`.
++- `prerequisiteSourceFreeze`: `/tmp/gridex-ediel-envelope-linear-framing-fix-evidence-20261115/FROZEN.safe.json` — SHA-256 `7c029c279329a8f2b2b8a379d77863eae214cef38d5334c5b200ac2adb2043aa`.
++- `actualFixture35`: `/workspace/gridex-ediel-envelope-profile-actual-20261115-b/fixture35-disambiguation.safe.json` — SHA-256 `54b23bb3de126e7fc11db36c746ed633ae205f82beade8219feb30f944c12ba6`.
++- `actualFixture35Peer`: `/workspace/gridex-ediel-envelope-profile-actual-20261115-b/ediel-envelope-B-timing-diagnostic-actual-closure-review.safe.json` — SHA-256 `03f7ae130e6a0bcb664acac7e1b57036f3e4dbb0a47199c06b0c9dfbe36ad222`.
++- `legacy41Corpus`: `/tmp/gridex-ediel-envelope-equivalence-fixture35-corrected-prep-20261115/EQUIVALENCE-FIXTURES.safe.json` — SHA-256 `03ce5379008f5a6abcb768aed418cd6716cb6cf90b9ec3c9c3925c06a386ec8b`.
++- `legacy41Actual`: `/workspace/gridex-ediel-envelope-profile-actual-20261115-c/terminal.safe.json` — SHA-256 `8c8c243028cb817537e4a05aa4981b97d5461a2afe5bd6748563448422a5cdf4`.
++- `legacy41ActualPeer`: `/workspace/gridex-ediel-envelope-profile-actual-20261115-c/ediel-C-corrected41-native-actual-closure-review.safe.json` — SHA-256 `70c5674ede7ae69681387c8d768abd7788dafa157aeff54a7f95dd1bc605267d`.
++- `performanceWrapperActual`: `/workspace/gridex-ediel-envelope-wrapper-actual-20261115-d/terminal.safe.json` — SHA-256 `fafd7c3b2e319a295cccafa5c1a9cace8350c9f992e29b5b2b64ceff386d2867`.
++- `performanceWrapperActualPeer`: `/workspace/gridex-ediel-envelope-wrapper-actual-20261115-d/ediel-D-wrapper-replay-formal41-actual-closure-review.safe.json` — SHA-256 `cb74ecef7e2d8bda53ea7e9ef023999a0b924c883add3ea5c96071aa0e27e7f1`.
++- `canonicalOldSetup`: `/tmp/gridex-ediel-envelope-wrapper-sql-prep-20261115/canonical-old-setup.OWNED-ONLY.sql` — SHA-256 `833e36c42159ecf7b571a075249b95345fdcb8f96d0a6826679d945324b48300`.
++- `canonicalMetadataReader`: `/tmp/gridex-ediel-envelope-wrapper-sql-prep-20261115/read-canonical-metadata.READONLY.sql` — SHA-256 `fdc4673e5d7fde4f324d6cb951fc53d54cf174dab40b74dcfad6021556cc3a14`.
++- `newNormativeFixtures`: `/tmp/gridex-ediel-header-length-precedence-evidence-20261115/HEADER-LENGTH-NATIVE-FIXTURES.safe.json` — SHA-256 `5d9c17bfd0c5d6fcb2a58c6451da9f302dedc31458a4623f9254460e94e09b72`.
++- `sourceInvariants`: `/tmp/gridex-ediel-header-length-precedence-evidence-20261115/SOURCE-INVARIANTS.safe.json` — SHA-256 `a761a0ad5b2a30f2d09b055ee362e032f5069c2827ee2fb3cd5a6d3f04e827d3`.
++- `ownCustody`: `/tmp/gridex-ediel-header-length-precedence-evidence-20261115/PREWRITE-OWN5-VERIFIED.safe.json` — SHA-256 `e4216bb9a7f4053df72050af60e0ac14692cc7b44f0f3681d1bede7284cc1483`.
++- Nativeplan: `/tmp/gridex-ediel-header-length-precedence-evidence-20261115/NATIVE-CORRECTNESS-PLAN.UNARMED.safe.json` — SHA-256 `03b601791e838954f9c7cdaa7f67ef3d66d040e0854526f320ced459f557a769`.
+diff --git a/quality/audits/ediel-header-length-precedence-20261115/results.safe.json b/quality/audits/ediel-header-length-precedence-20261115/results.safe.json
+new file mode 100644
+index 000000000..87a3922d0
+--- /dev/null
++++ b/quality/audits/ediel-header-length-precedence-20261115/results.safe.json
+@@ -0,0 +1,159 @@
++{
++  "state": "LOCAL_HEADER_LENGTH_CORRECTNESS_SOURCE_ONLY_NATIVE_PENDING",
++  "finding": "EDIEL-HEADER-LENGTH-PRECEDENCE",
++  "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba",
++  "actualBugEvidence": "Native B observed a36-character sender accepted by both installed and optimized envelopes; the unparenthesized expression selects the UNOC:3 syntax composite instead of checking both party composites.",
++  "callable": "gridex_ediel_technical_ack.envelope(text)",
++  "snapshotKey": "gridex_ediel_technical_ack.gridex_ediel_technical_ack.envelope(text)",
++  "preimageMD5": "33bb811220fdabda32c9f40505c20ea1",
++  "correctedBodyMD5": "91fbc03c1a22caadfc6eb48f07b03503",
++  "correctedBodySHA256": "b66117bc6fcbfefb463766930387605e9910d2630c104122bc275bfc920be494",
++  "soleBodyChange": {
++    "before": "jsonb_array_elements_text(u->2||u->3)",
++    "after": "jsonb_array_elements_text((u->2)||(u->3))"
++  },
++  "prerequisite": "Apply20261115110312_ediel_envelope_linear_framing.sql first; rawb4de/unknown bodies fail closed. Exact91fbc replay is supported.",
++  "preserved": [
++    "OID",
++    "ownerpostgres",
++    "rawACLpostgres-only",
++    "expandedACL",
++    "allpg_proc_nonbodyfields",
++    "immutable/invoker/nonstrict/parallelunsafe",
++    "search_pathpg_catalog",
++    "allotherguards",
++    "allotherfunctions/signatures",
++    "timeouts"
++  ],
++  "behavior": {
++    "decodedComponentMaxCharacters": 35,
++    "validLength35Accepted": "PLANNED_NATIVE_EXPECTATION",
++    "length36SenderAndReceiverEachPositionRejected": "PLANNED_NATIVE_EXPECTATION",
++    "serializedReleaseBytesNotLengthBasis": true,
++    "UTF8OctetsNotLengthBasis": true,
++    "existingStoredRowsBackfilledOrReprocessed": false,
++    "automaticBusinessRetry": false
++  },
++  "sourceInvariants": {
++    "state": "OFFLINE_SOURCE_INVARIANTS_PASS_NATIVE_NOT_RUN",
++    "optimizedBodyMD5": "33bb811220fdabda32c9f40505c20ea1",
++    "correctedBodyMD5": "91fbc03c1a22caadfc6eb48f07b03503",
++    "correctedBodySHA256": "b66117bc6fcbfefb463766930387605e9910d2630c104122bc275bfc920be494",
++    "soleBodyChange": {
++      "before": "jsonb_array_elements_text(u->2||u->3)",
++      "after": "jsonb_array_elements_text((u->2)||(u->3))"
++    },
++    "wholeBodyInverseExact": true,
++    "legacyRaw41Unchanged": true,
++    "legacyExpectedReference41Unchanged": true,
++    "legacyTargetOnlyOneExpectedChange": true,
++    "generatedNewCases": 34,
++    "plannedNormativeNativeCases": 75,
++    "intentionalOverlengthRejections": 15,
++    "nativeTests": "NOT_RUN",
++    "wrapperReplay": "NOT_RUN",
++    "fullInsert": "NOT_RUN",
++    "MainAdoption": false,
++    "noNodeBackendAuthOrSQLExecution": true
++  },
++  "historicalNative": {
++    "fixture35": "OBSERVED_B",
++    "legacy41": "PASS_C",
++    "performanceWrapperReplayRollback41": "PASS_D",
++    "newCorrectnessNative": "NOT_RUN"
++  },
++  "plannedNative": {
++    "optimizedReferenceLegacyCount": 41,
++    "correctedNormativeCount": 75,
++    "targetLegacyUnchangedCount": 40,
++    "intendedLegacyChangeCase": 35,
++    "generatedBoundaryCases": 34,
++    "intendedOverlengthRejections": 15
++  },
++  "nativeWrapper": "NOT_RUN",
++  "nativeReplay": "NOT_RUN",
++  "nativeRegression75": "NOT_RUN",
++  "full3444Catalog": "NOT_RUN",
++  "fullInsert": "NOT_RUN",
++  "browser": "NOT_RUN",
++  "MainAdoption": false,
++  "runtimeSource65Or67Changed": false,
++  "K12CompositionIncludesThisCorrectnessFix": false,
++  "pushed": false,
++  "canonicalCounts": {
++    "passed": 38,
++    "partial": 1,
++    "remaining": 66
++  },
++  "evidence": {
++    "migration": {
++      "path": "/tmp/gridex-ediel-header-length-precedence-20261115/supabase/migrations/20261115124654_ediel_header_component_length_precedence.sql",
++      "sha256": "8241f65020d000f007d03b95c77341176e887b0605ca086b12441e623e76dfa9"
++    },
++    "regression": {
++      "path": "/tmp/gridex-ediel-header-length-precedence-20261115/supabase/tests/20261115_ediel_header_component_lengths.sql",
++      "sha256": "bcc57a89bb45a0d1f85cb332263b8151a726485d487e27b045605e323bef8e71"
++    },
++    "prerequisiteMigration": {
++      "path": "/tmp/gridex-ediel-envelope-linear-framing-fix-20261115/supabase/migrations/20261115110312_ediel_envelope_linear_framing.sql",
++      "sha256": "1db0467502ee51869a7074768da1c43d5fdfedb7b74f839cbe96c07043b91096"
++    },
++    "prerequisiteSourceFreeze": {
++      "path": "/tmp/gridex-ediel-envelope-linear-framing-fix-evidence-20261115/FROZEN.safe.json",
++      "sha256": "7c029c279329a8f2b2b8a379d77863eae214cef38d5334c5b200ac2adb2043aa"
++    },
++    "actualFixture35": {
++      "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/fixture35-disambiguation.safe.json",
++      "sha256": "54b23bb3de126e7fc11db36c746ed633ae205f82beade8219feb30f944c12ba6"
++    },
++    "actualFixture35Peer": {
++      "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-b/ediel-envelope-B-timing-diagnostic-actual-closure-review.safe.json",
++      "sha256": "03f7ae130e6a0bcb664acac7e1b57036f3e4dbb0a47199c06b0c9dfbe36ad222"
++    },
++    "legacy41Corpus": {
++      "path": "/tmp/gridex-ediel-envelope-equivalence-fixture35-corrected-prep-20261115/EQUIVALENCE-FIXTURES.safe.json",
++      "sha256": "03ce5379008f5a6abcb768aed418cd6716cb6cf90b9ec3c9c3925c06a386ec8b"
++    },
++    "legacy41Actual": {
++      "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-c/terminal.safe.json",
++      "sha256": "8c8c243028cb817537e4a05aa4981b97d5461a2afe5bd6748563448422a5cdf4"
++    },
++    "legacy41ActualPeer": {
++      "path": "/workspace/gridex-ediel-envelope-profile-actual-20261115-c/ediel-C-corrected41-native-actual-closure-review.safe.json",
++      "sha256": "70c5674ede7ae69681387c8d768abd7788dafa157aeff54a7f95dd1bc605267d"
++    },
++    "performanceWrapperActual": {
++      "path": "/workspace/gridex-ediel-envelope-wrapper-actual-20261115-d/terminal.safe.json",
++      "sha256": "fafd7c3b2e319a295cccafa5c1a9cace8350c9f992e29b5b2b64ceff386d2867"
++    },
++    "performanceWrapperActualPeer": {
++      "path": "/workspace/gridex-ediel-envelope-wrapper-actual-20261115-d/ediel-D-wrapper-replay-formal41-actual-closure-review.safe.json",
++      "sha256": "cb74ecef7e2d8bda53ea7e9ef023999a0b924c883add3ea5c96071aa0e27e7f1"
++    },
++    "canonicalOldSetup": {
++      "path": "/tmp/gridex-ediel-envelope-wrapper-sql-prep-20261115/canonical-old-setup.OWNED-ONLY.sql",
++      "sha256": "833e36c42159ecf7b571a075249b95345fdcb8f96d0a6826679d945324b48300"
++    },
++    "canonicalMetadataReader": {
++      "path": "/tmp/gridex-ediel-envelope-wrapper-sql-prep-20261115/read-canonical-metadata.READONLY.sql",
++      "sha256": "fdc4673e5d7fde4f324d6cb951fc53d54cf174dab40b74dcfad6021556cc3a14"
++    },
++    "newNormativeFixtures": {
++      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/HEADER-LENGTH-NATIVE-FIXTURES.safe.json",
++      "sha256": "5d9c17bfd0c5d6fcb2a58c6451da9f302dedc31458a4623f9254460e94e09b72"
++    },
++    "sourceInvariants": {
++      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/SOURCE-INVARIANTS.safe.json",
++      "sha256": "a761a0ad5b2a30f2d09b055ee362e032f5069c2827ee2fb3cd5a6d3f04e827d3"
++    },
++    "ownCustody": {
++      "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/PREWRITE-OWN5-VERIFIED.safe.json",
++      "sha256": "e4216bb9a7f4053df72050af60e0ac14692cc7b44f0f3681d1bede7284cc1483"
++    }
++  },
++  "nativePlan": {
++    "path": "/tmp/gridex-ediel-header-length-precedence-evidence-20261115/NATIVE-CORRECTNESS-PLAN.UNARMED.safe.json",
++    "sha256": "03b601791e838954f9c7cdaa7f67ef3d66d040e0854526f320ced459f557a769"
++  },
++  "migrationFilenameOrigin": "Exact UTC2026-11-15T12:46:54 from fresh own claim preparation; authorized deterministic forward-file fallback, not a claimed Supabase migration-new execution."
++}
+diff --git a/supabase/migrations/20261115124654_ediel_header_component_length_precedence.sql b/supabase/migrations/20261115124654_ediel_header_component_length_precedence.sql
+new file mode 100644
+index 000000000..28da45d8d
+--- /dev/null
++++ b/supabase/migrations/20261115124654_ediel_header_component_length_precedence.sql
+@@ -0,0 +1,93 @@
++-- Separate correctness fix for EDIEL-HEADER-LENGTH-PRECEDENCE.
++-- Prerequisite: 20261115110312_ediel_envelope_linear_framing.sql (optimized body 33bb).
++-- Check each decoded sender and receiver component, retaining the 35-character limit.
++-- No timeout increase, grants, trigger changes, business DML or new function/signature.
++BEGIN;
++SET LOCAL statement_timeout='8s';
++SET LOCAL lock_timeout='5s';
++SET LOCAL search_path=pg_catalog;
++DO $patch$
++DECLARE old_proc jsonb; new_proc jsonb; old_acl jsonb; new_acl jsonb; replay boolean;
++BEGIN
++ SELECT to_jsonb(p) INTO STRICT old_proc FROM pg_catalog.pg_proc p
++ WHERE p.oid='gridex_ediel_technical_ack.envelope(text)'::pg_catalog.regprocedure;
++ IF pg_catalog.md5(old_proc->>'prosrc') NOT IN ('33bb811220fdabda32c9f40505c20ea1','91fbc03c1a22caadfc6eb48f07b03503') THEN
++  RAISE EXCEPTION 'ediel_header_length_optimized_preimage_required_run_20261115110312_first';
++ END IF;
++ IF pg_catalog.pg_get_userbyid((old_proc->>'proowner')::oid)<>'postgres'
++  OR old_proc->>'provolatile'<>'i' OR (old_proc->>'prosecdef')::boolean
++  OR (old_proc->>'proisstrict')::boolean OR old_proc->>'proparallel'<>'u'
++  OR old_proc->'proconfig' IS DISTINCT FROM '["search_path=pg_catalog"]'::jsonb
++  OR old_proc->'proacl' IS DISTINCT FROM '["postgres=X/postgres"]'::jsonb
++  OR old_proc->>'prorettype'<>('pg_catalog.jsonb'::pg_catalog.regtype)::oid::text
++  OR (SELECT l.lanname FROM pg_catalog.pg_language l WHERE l.oid=(old_proc->>'prolang')::oid)<>'plpgsql' THEN
++  RAISE EXCEPTION 'ediel_envelope_qualified_metadata_required';
++ END IF;
++ SELECT pg_catalog.jsonb_agg(to_jsonb(a) ORDER BY a.grantor,a.grantee,a.privilege_type,a.is_grantable) INTO old_acl
++ FROM pg_catalog.aclexplode(coalesce((SELECT p.proacl FROM pg_catalog.pg_proc p
++  WHERE p.oid='gridex_ediel_technical_ack.envelope(text)'::pg_catalog.regprocedure),
++  pg_catalog.acldefault('f',(old_proc->>'proowner')::oid))) a;
++ replay:=pg_catalog.md5(old_proc->>'prosrc')='91fbc03c1a22caadfc6eb48f07b03503';
++ IF NOT replay THEN
++  EXECUTE $native_definition$CREATE OR REPLACE FUNCTION gridex_ediel_technical_ack.envelope(p_raw text)
++ RETURNS jsonb
++ LANGUAGE plpgsql
++ IMMUTABLE
++ SET search_path TO 'pg_catalog'
++AS $function$
++DECLARE advice text:='';body text;sep text:='+';release_char text:='?';terminator text:='''';chars text[];ch text;released boolean:=false;segment_start integer:=1;position integer:=0;segment_raw text;segment_chars text[]:='{}';tokens jsonb;u jsonb;unbs integer:=0;header text;ref text;indicator text;
++BEGIN
++ IF p_raw IS NULL OR octet_length(p_raw)>8388608 THEN RETURN NULL;END IF;
++ body:=p_raw;
++ IF upper(left(body,3))='UNA' THEN
++  IF left(body,3)<>'UNA' OR length(body)<9 THEN RETURN NULL;END IF;
++  advice:=left(body,9);sep:=substr(body,5,1);release_char:=substr(body,7,1);terminator:=substr(body,9,1);body:=substr(body,10);
++ END IF;
++ -- Framing only. Each complete segment is decoded by the existing one-owner
++ -- v2 lexer; incomplete/error-bearing body data is never a parsed business AST.
++ body:=replace(replace(body,E'\r\n',''),E'\n','');chars:=string_to_array(body,NULL);
++ FOREACH ch IN ARRAY chars LOOP
++  position:=position+1;
++  IF released THEN segment_chars:=array_append(segment_chars,ch);released:=false;CONTINUE;END IF;
++  IF ch=release_char THEN segment_chars:=array_append(segment_chars,ch);released:=true;CONTINUE;END IF;
++  IF ch<>terminator THEN segment_chars:=array_append(segment_chars,ch);CONTINUE;END IF;
++  segment_raw:=array_to_string(segment_chars,'');segment_chars:='{}';segment_start:=position+1;
++  IF nullif(btrim(segment_raw,E' \t'),'') IS NULL THEN CONTINUE;END IF;
++  IF u IS NULL AND left(ltrim(segment_raw,E' \t'),4) IS DISTINCT FROM 'UNB'||sep THEN RETURN NULL;END IF;
++  IF left(ltrim(segment_raw,E' \t'),4)='UNB'||sep THEN
++   unbs:=unbs+1;IF unbs<>1 THEN RETURN NULL;END IF;
++   header:=advice||segment_raw||terminator;tokens:=gridex_utilts_binding.wire_tokens_v1(header);
++   IF tokens IS NULL OR jsonb_array_length(tokens)<>1 OR tokens#>>'{0,tag}'<>'UNB'
++    OR EXISTS(SELECT FROM unnest(string_to_array(header,NULL))c WHERE ascii(c)>255 OR ascii(c)<32) THEN RETURN NULL;END IF;
++   u:=tokens#>'{0,elements}';
++  ELSIF left(ltrim(segment_raw,E' \t'),4)='UNH'||sep THEN
++   tokens:=gridex_utilts_binding.wire_tokens_v1(advice||segment_raw||terminator);
++   IF tokens#>>'{0,elements,2,0}'='CONTRL' THEN RETURN NULL;END IF;
++  END IF;
++ END LOOP;
++ -- A second header beginning an incomplete tail is also ambiguous, not an
++ -- excuse to copy the first one. Missing/unterminated first UNB stays held.
++ IF u IS NULL OR unbs<>1 OR left(ltrim(substr(body,segment_start),E' \t'),4)='UNB'||sep THEN RETURN NULL;END IF;
++ ref:=u#>>'{5,0}';indicator:=coalesce(u#>>'{11,0}','');
++ IF nullif(ref,'') IS NULL OR length(ref)>512 OR ref~'[[:cntrl:]]' OR jsonb_array_length(u->5)<>1
++  OR nullif(u#>>'{2,0}','') IS NULL OR nullif(u#>>'{3,0}','') IS NULL OR jsonb_array_length(u->2)>3 OR jsonb_array_length(u->3)>3
++  OR EXISTS(SELECT FROM jsonb_array_elements_text((u->2)||(u->3))c WHERE length(c)>35)
++  OR coalesce(jsonb_array_length(u->7),1)<>1 OR coalesce(jsonb_array_length(u->11),1)<>1 OR indicator NOT IN('','1') THEN RETURN NULL;END IF;
++ RETURN jsonb_build_object('sender',u->2,'receiver',u->3,'interchangeReference',ref,'uciReference',left(ref,14),
++  'applicationReference',coalesce(u#>>'{7,0}',''),'environment',CASE WHEN indicator='1' THEN 'test' ELSE 'production' END,'testIndicator',indicator);
++END $function$
++$native_definition$;
++ END IF;
++ SELECT to_jsonb(p) INTO STRICT new_proc FROM pg_catalog.pg_proc p
++ WHERE p.oid='gridex_ediel_technical_ack.envelope(text)'::pg_catalog.regprocedure;
++ SELECT pg_catalog.jsonb_agg(to_jsonb(a) ORDER BY a.grantor,a.grantee,a.privilege_type,a.is_grantable) INTO new_acl
++ FROM pg_catalog.aclexplode(coalesce((SELECT p.proacl FROM pg_catalog.pg_proc p
++  WHERE p.oid='gridex_ediel_technical_ack.envelope(text)'::pg_catalog.regprocedure),
++  pg_catalog.acldefault('f',(new_proc->>'proowner')::oid))) a;
++ IF pg_catalog.md5(new_proc->>'prosrc')<>'91fbc03c1a22caadfc6eb48f07b03503'
++  OR (new_proc-'prosrc') IS DISTINCT FROM (old_proc-'prosrc') OR new_acl IS DISTINCT FROM old_acl THEN
++  RAISE EXCEPTION 'ediel_envelope_only_body_metadata_acl_must_survive';
++ END IF;
++ RAISE NOTICE 'EDIEL_HEADER_COMPONENT_LENGTH_BODY_QUALIFIED:replayed=%',replay;
++END $patch$;
++COMMIT;
+diff --git a/supabase/tests/20261115_ediel_header_component_lengths.sql b/supabase/tests/20261115_ediel_header_component_lengths.sql
+new file mode 100644
+index 000000000..b51e4dfd3
+--- /dev/null
++++ b/supabase/tests/20261115_ediel_header_component_lengths.sql
+@@ -0,0 +1,175 @@
++-- Owned native regression only, after BOTH ordered forward migrations.
++-- Legacy optimized reference behavior and corrected normative behavior have separate assertions.
++BEGIN;
++SET LOCAL statement_timeout='8s';
++SET LOCAL lock_timeout='5s';
++SET LOCAL search_path=pg_catalog;
++DO $guard$BEGIN
++ IF current_database() NOT IN ('gridex_ediel_envelope_profile_20261115_a','gridex_local_partner_http_20261113_a') THEN
++  RAISE EXCEPTION 'owned_envelope_regression_database_required';
++ END IF;
++ IF (SELECT md5(p.prosrc) FROM pg_catalog.pg_proc p
++  WHERE p.oid='gridex_ediel_technical_ack.envelope(text)'::regprocedure)<>'91fbc03c1a22caadfc6eb48f07b03503' THEN
++  RAISE EXCEPTION 'qualified_header_length_corrected_body_required';
++ END IF;
++END $guard$;
++CREATE TEMP TABLE gridex_envelope_test_namespace_only(token boolean) ON COMMIT DROP;
++CREATE OR REPLACE FUNCTION pg_temp.gridex_envelope_optimized_reference(p_raw text)
++ RETURNS jsonb
++ LANGUAGE plpgsql
++ IMMUTABLE
++ SET search_path TO 'pg_catalog'
++AS $function$
++DECLARE advice text:='';body text;sep text:='+';release_char text:='?';terminator text:='''';chars text[];ch text;released boolean:=false;segment_start integer:=1;position integer:=0;segment_raw text;segment_chars text[]:='{}';tokens jsonb;u jsonb;unbs integer:=0;header text;ref text;indicator text;
++BEGIN
++ IF p_raw IS NULL OR octet_length(p_raw)>8388608 THEN RETURN NULL;END IF;
++ body:=p_raw;
++ IF upper(left(body,3))='UNA' THEN
++  IF left(body,3)<>'UNA' OR length(body)<9 THEN RETURN NULL;END IF;
++  advice:=left(body,9);sep:=substr(body,5,1);release_char:=substr(body,7,1);terminator:=substr(body,9,1);body:=substr(body,10);
++ END IF;
++ -- Framing only. Each complete segment is decoded by the existing one-owner
++ -- v2 lexer; incomplete/error-bearing body data is never a parsed business AST.
++ body:=replace(replace(body,E'\r\n',''),E'\n','');chars:=string_to_array(body,NULL);
++ FOREACH ch IN ARRAY chars LOOP
++  position:=position+1;
++  IF released THEN segment_chars:=array_append(segment_chars,ch);released:=false;CONTINUE;END IF;
++  IF ch=release_char THEN segment_chars:=array_append(segment_chars,ch);released:=true;CONTINUE;END IF;
++  IF ch<>terminator THEN segment_chars:=array_append(segment_chars,ch);CONTINUE;END IF;
++  segment_raw:=array_to_string(segment_chars,'');segment_chars:='{}';segment_start:=position+1;
++  IF nullif(btrim(segment_raw,E' \t'),'') IS NULL THEN CONTINUE;END IF;
++  IF u IS NULL AND left(ltrim(segment_raw,E' \t'),4) IS DISTINCT FROM 'UNB'||sep THEN RETURN NULL;END IF;
++  IF left(ltrim(segment_raw,E' \t'),4)='UNB'||sep THEN
++   unbs:=unbs+1;IF unbs<>1 THEN RETURN NULL;END IF;
++   header:=advice||segment_raw||terminator;tokens:=gridex_utilts_binding.wire_tokens_v1(header);
++   IF tokens IS NULL OR jsonb_array_length(tokens)<>1 OR tokens#>>'{0,tag}'<>'UNB'
++    OR EXISTS(SELECT FROM unnest(string_to_array(header,NULL))c WHERE ascii(c)>255 OR ascii(c)<32) THEN RETURN NULL;END IF;
++   u:=tokens#>'{0,elements}';
++  ELSIF left(ltrim(segment_raw,E' \t'),4)='UNH'||sep THEN
++   tokens:=gridex_utilts_binding.wire_tokens_v1(advice||segment_raw||terminator);
++   IF tokens#>>'{0,elements,2,0}'='CONTRL' THEN RETURN NULL;END IF;
++  END IF;
++ END LOOP;
++ -- A second header beginning an incomplete tail is also ambiguous, not an
++ -- excuse to copy the first one. Missing/unterminated first UNB stays held.
++ IF u IS NULL OR unbs<>1 OR left(ltrim(substr(body,segment_start),E' \t'),4)='UNB'||sep THEN RETURN NULL;END IF;
++ ref:=u#>>'{5,0}';indicator:=coalesce(u#>>'{11,0}','');
++ IF nullif(ref,'') IS NULL OR length(ref)>512 OR ref~'[[:cntrl:]]' OR jsonb_array_length(u->5)<>1
++  OR nullif(u#>>'{2,0}','') IS NULL OR nullif(u#>>'{3,0}','') IS NULL OR jsonb_array_length(u->2)>3 OR jsonb_array_length(u->3)>3
++  OR EXISTS(SELECT FROM jsonb_array_elements_text(u->2||u->3)c WHERE length(c)>35)
++  OR coalesce(jsonb_array_length(u->7),1)<>1 OR coalesce(jsonb_array_length(u->11),1)<>1 OR indicator NOT IN('','1') THEN RETURN NULL;END IF;
++ RETURN jsonb_build_object('sender',u->2,'receiver',u->3,'interchangeReference',ref,'uciReference',left(ref,14),
++  'applicationReference',coalesce(u#>>'{7,0}',''),'environment',CASE WHEN indicator='1' THEN 'test' ELSE 'production' END,'testIndicator',indicator);
++END $function$
++;
++DO $checks$DECLARE c record; old_result jsonb; corrected_result jsonb; tokens jsonb;
++ counted integer:=0;legacy_count integer:=0;intentional_count integer:=0;
++BEGIN
++ FOR c IN SELECT * FROM(VALUES
++('legacy_corpus_valid_standard',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_crlf',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b31270d0a554e482b312b5554494c54533a443a3939423a554e3a453253453643270d0a5154592b3232303a312e35270d0a','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_lf',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b31270a554e482b312b5554494c54533a443a3939423a554e3a453253453643270a5154592b3232303a312e35270a','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_empty_segments',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b31272727202027554e482b312b5554494c54533a443a3939423a554e3a45325345364327','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_unicode_body',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643274654582bc3a5c3a4c3b6f09f9880e6bca2e5ad9727','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_released_terminator_body',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643274654582b69676e6f7265643f27554e422b6e6f742d612d68656164657227','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_released_release_body',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643274654582b69676e6f7265643f3f27','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_incomplete_nonUNB_tail',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527494e434f4d504c4554453f','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_header_only',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_unterminated_UNH_CONTRL_is_only_framing',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b434f4e54524c','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_leading_spaces',convert_from(decode('2020554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_escaped_data',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463f2b3030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF+001","uciReference":"REF+001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF+001","uciReference":"REF+001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_escaped_component',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463f3a3030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF:001","uciReference":"REF:001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF:001","uciReference":"REF:001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_escaped_release',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463f3f3030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF?001","uciReference":"REF?001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF?001","uciReference":"REF?001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_escaped_terminator',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463f273030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF''001","uciReference":"REF''001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF''001","uciReference":"REF''001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_three_sender_components',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a392b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ","9"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ","9"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_production_empty_indicator',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b27554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"production","testIndicator":""}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"production","testIndicator":""}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_custom_UNA',convert_from(decode('554e412a3b2c3f2021554e423b554e4f432a333b53454e4445522a5a5a5a3b52454345495645522a5a5a5a3b3236313131352a313230303b5245463030313b3b4150503b3b3b3b3121554e483b313b5554494c54532a442a3939422a554e2a453253453643215154593b3232302a312e3521','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_valid_latin1_header',convert_from(decode('554e422b554e4f433a332b53c3844e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SÄNDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SÄNDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_null_source',NULL::text,NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_empty',convert_from(decode('','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_lowercase_una',convert_from(decode('756e613a2b2e3f20554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_short_una',convert_from(decode('554e413a2b2e3f','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_first_segment_notUNB',convert_from(decode('554e482b312b5554494c54533a443a3939423a554e3a45325345364327554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_missing_unb',convert_from(decode('554e482b312b5554494c54533a443a3939423a554e3a45325345364327','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_unterminated_unb',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b31','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_duplicate_complete_unb',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_duplicate_incomplete_unb',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b31','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_CONTRL_complete',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b434f4e54524c3a443a333a554e27','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_header_unicode_over255',convert_from(decode('554e422b554e4f433a332b53c4804e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_header_tab',convert_from(decode('09554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_bad_test_indicator',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3227554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_empty_interchange',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b2b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_multi_component_interchange',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463a3030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_legacy_sender_length36_accepted_precedence_preserved',convert_from(decode('554e422b554e4f433a332b5353535353535353535353535353535353535353535353535353535353535353535353533a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","ZZZ"],"receiver":["RECEIVER","ZZZ"],"environment":"test","uciReference":"REF001","testIndicator":"1","applicationReference":"APP","interchangeReference":"REF001"}'::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,true),
++('legacy_corpus_invalid_four_sender_components',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a393a342b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_invalid_non_single_app',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150503a582b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_interchange_length_14',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b52525252525252525252525252522b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"RRRRRRRRRRRRRR","uciReference":"RRRRRRRRRRRRRR","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"RRRRRRRRRRRRRR","uciReference":"RRRRRRRRRRRRRR","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_interchange_length_512',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b52525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252522b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","uciReference":"RRRRRRRRRRRRRR","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","uciReference":"RRRRRRRRRRRRRR","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_interchange_length_513',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252522b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('legacy_corpus_oversize_8MiB_plus1',repeat('X',8388609),NULL::jsonb,NULL::jsonb,NULL::jsonb,NULL::jsonb,false),
++('sender_component1_length35',convert_from(decode('554e422b554e4f433a332b53535353535353535353535353535353535353535353535353535353535353535353533a5a5a5a3a392b52454345495645523a5a5a5a3a392b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","ZZZ","9"],"receiver":["RECEIVER","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","ZZZ","9"],"receiver":["RECEIVER","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","ZZZ","9"]'::jsonb,'["RECEIVER","ZZZ","9"]'::jsonb,false),
++('sender_component1_length36',convert_from(decode('554e422b554e4f433a332b5353535353535353535353535353535353535353535353535353535353535353535353533a5a5a5a3a392b52454345495645523a5a5a5a3a392b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","ZZZ","9"],"receiver":["RECEIVER","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","ZZZ","9"]'::jsonb,'["RECEIVER","ZZZ","9"]'::jsonb,true),
++('sender_component2_length35',convert_from(decode('554e422b554e4f433a332b53454e4445523a53535353535353535353535353535353535353535353535353535353535353535353533a392b52454345495645523a5a5a5a3a392b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","9"],"receiver":["RECEIVER","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","9"],"receiver":["RECEIVER","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SENDER","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","9"]'::jsonb,'["RECEIVER","ZZZ","9"]'::jsonb,false),
++('sender_component2_length36',convert_from(decode('554e422b554e4f433a332b53454e4445523a5353535353535353535353535353535353535353535353535353535353535353535353533a392b52454345495645523a5a5a5a3a392b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","9"],"receiver":["RECEIVER","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["SENDER","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","9"]'::jsonb,'["RECEIVER","ZZZ","9"]'::jsonb,true),
++('sender_component3_length35',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a53535353535353535353535353535353535353535353535353535353535353535353532b52454345495645523a5a5a5a3a392b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"],"receiver":["RECEIVER","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"],"receiver":["RECEIVER","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SENDER","ZZZ","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"]'::jsonb,'["RECEIVER","ZZZ","9"]'::jsonb,false),
++('sender_component3_length36',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a5353535353535353535353535353535353535353535353535353535353535353535353532b52454345495645523a5a5a5a3a392b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"],"receiver":["RECEIVER","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["SENDER","ZZZ","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"]'::jsonb,'["RECEIVER","ZZZ","9"]'::jsonb,true),
++('sender_released_data_separator_decoded_length35',convert_from(decode('554e422b554e4f433a332b414141414141414141414141414141414141414141414141414141414141414141413f2b3a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+","ZZZ"]'::jsonb,'["RECEIVER","ZZZ"]'::jsonb,false),
++('sender_released_data_separator_decoded_length36',convert_from(decode('554e422b554e4f433a332b41414141414141414141414141414141414141414141414141414141414141414141413f2b3a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+","ZZZ"]'::jsonb,'["RECEIVER","ZZZ"]'::jsonb,true),
++('sender_released_component_separator_decoded_length35',convert_from(decode('554e422b554e4f433a332b414141414141414141414141414141414141414141414141414141414141414141413f3a3a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:","ZZZ"]'::jsonb,'["RECEIVER","ZZZ"]'::jsonb,false),
++('sender_released_component_separator_decoded_length36',convert_from(decode('554e422b554e4f433a332b41414141414141414141414141414141414141414141414141414141414141414141413f3a3a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:","ZZZ"]'::jsonb,'["RECEIVER","ZZZ"]'::jsonb,true),
++('sender_released_release_decoded_length35',convert_from(decode('554e422b554e4f433a332b414141414141414141414141414141414141414141414141414141414141414141413f3f3a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?","ZZZ"]'::jsonb,'["RECEIVER","ZZZ"]'::jsonb,false),
++('sender_released_release_decoded_length36',convert_from(decode('554e422b554e4f433a332b41414141414141414141414141414141414141414141414141414141414141414141413f3f3a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?","ZZZ"]'::jsonb,'["RECEIVER","ZZZ"]'::jsonb,true),
++('sender_latin1_character_length35',convert_from(decode('554e422b554e4f433a332bc385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c3853a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ","ZZZ"]'::jsonb,'["RECEIVER","ZZZ"]'::jsonb,false),
++('sender_latin1_character_length36',convert_from(decode('554e422b554e4f433a332bc385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c3853a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ","ZZZ"],"receiver":["RECEIVER","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ","ZZZ"]'::jsonb,'["RECEIVER","ZZZ"]'::jsonb,true),
++('sender_empty_optional_component_retained',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a2b52454345495645523a5a5a5a3a392b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ",""],"receiver":["RECEIVER","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ",""],"receiver":["RECEIVER","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SENDER","ZZZ",""]'::jsonb,'["RECEIVER","ZZZ","9"]'::jsonb,false),
++('sender_empty_primary_still_rejected',convert_from(decode('554e422b554e4f433a332b3a5a5a5a2b52454345495645523a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,'["","ZZZ"]'::jsonb,'["RECEIVER","ZZZ"]'::jsonb,false),
++('receiver_component1_length35',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a392b52525252525252525252525252525252525252525252525252525252525252525252523a5a5a5a3a392b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ","9"],"receiver":["RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ","9"],"receiver":["RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SENDER","ZZZ","9"]'::jsonb,'["RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","ZZZ","9"]'::jsonb,false),
++('receiver_component1_length36',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a392b5252525252525252525252525252525252525252525252525252525252525252525252523a5a5a5a3a392b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ","9"],"receiver":["RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","ZZZ","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["SENDER","ZZZ","9"]'::jsonb,'["RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","ZZZ","9"]'::jsonb,true),
++('receiver_component2_length35',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a392b52454345495645523a52525252525252525252525252525252525252525252525252525252525252525252523a392b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ","9"],"receiver":["RECEIVER","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ","9"],"receiver":["RECEIVER","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SENDER","ZZZ","9"]'::jsonb,'["RECEIVER","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","9"]'::jsonb,false),
++('receiver_component2_length36',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a392b52454345495645523a5252525252525252525252525252525252525252525252525252525252525252525252523a392b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ","9"],"receiver":["RECEIVER","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","9"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["SENDER","ZZZ","9"]'::jsonb,'["RECEIVER","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","9"]'::jsonb,true),
++('receiver_component3_length35',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a392b52454345495645523a5a5a5a3a52525252525252525252525252525252525252525252525252525252525252525252522b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ","9"],"receiver":["RECEIVER","ZZZ","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ","9"],"receiver":["RECEIVER","ZZZ","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SENDER","ZZZ","9"]'::jsonb,'["RECEIVER","ZZZ","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"]'::jsonb,false),
++('receiver_component3_length36',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a392b52454345495645523a5a5a5a3a5252525252525252525252525252525252525252525252525252525252525252525252522b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ","9"],"receiver":["RECEIVER","ZZZ","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["SENDER","ZZZ","9"]'::jsonb,'["RECEIVER","ZZZ","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"]'::jsonb,true),
++('receiver_released_data_separator_decoded_length35',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b414141414141414141414141414141414141414141414141414141414141414141413f2b3a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SENDER","ZZZ"]'::jsonb,'["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+","ZZZ"]'::jsonb,false),
++('receiver_released_data_separator_decoded_length36',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b41414141414141414141414141414141414141414141414141414141414141414141413f2b3a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["SENDER","ZZZ"]'::jsonb,'["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+","ZZZ"]'::jsonb,true),
++('receiver_released_component_separator_decoded_length35',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b414141414141414141414141414141414141414141414141414141414141414141413f3a3a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SENDER","ZZZ"]'::jsonb,'["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:","ZZZ"]'::jsonb,false),
++('receiver_released_component_separator_decoded_length36',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b41414141414141414141414141414141414141414141414141414141414141414141413f3a3a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["SENDER","ZZZ"]'::jsonb,'["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:","ZZZ"]'::jsonb,true),
++('receiver_released_release_decoded_length35',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b414141414141414141414141414141414141414141414141414141414141414141413f3f3a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SENDER","ZZZ"]'::jsonb,'["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?","ZZZ"]'::jsonb,false),
++('receiver_released_release_decoded_length36',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b41414141414141414141414141414141414141414141414141414141414141414141413f3f3a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["SENDER","ZZZ"]'::jsonb,'["AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?","ZZZ"]'::jsonb,true),
++('receiver_latin1_character_length35',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2bc385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c3853a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ"],"receiver":["ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SENDER","ZZZ"]'::jsonb,'["ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ","ZZZ"]'::jsonb,false),
++('receiver_latin1_character_length36',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2bc385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c385c3853a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ"],"receiver":["ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ","ZZZ"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,NULL::jsonb,'["SENDER","ZZZ"]'::jsonb,'["ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ","ZZZ"]'::jsonb,true),
++('receiver_empty_optional_component_retained',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a3a392b52454345495645523a5a5a5a3a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SENDER","ZZZ","9"],"receiver":["RECEIVER","ZZZ",""],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SENDER","ZZZ","9"],"receiver":["RECEIVER","ZZZ",""],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SENDER","ZZZ","9"]'::jsonb,'["RECEIVER","ZZZ",""]'::jsonb,false),
++('receiver_empty_primary_still_rejected',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b3a5a5a5a2b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,'["SENDER","ZZZ"]'::jsonb,'["","ZZZ"]'::jsonb,false),
++('both_three_components_all_length35',convert_from(decode('554e422b554e4f433a332b53535353535353535353535353535353535353535353535353535353535353535353533a53535353535353535353535353535353535353535353535353535353535353535353533a53535353535353535353535353535353535353535353535353535353535353535353532b52525252525252525252525252525252525252525252525252525252525252525252523a52525252525252525252525252525252525252525252525252525252525252525252523a52525252525252525252525252525252525252525252525252525252525252525252522b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),'{"sender":["SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"],"receiver":["RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'{"sender":["SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"],"receiver":["RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"],"interchangeReference":"REF001","uciReference":"REF001","applicationReference":"APP","environment":"test","testIndicator":"1"}'::jsonb,'["SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS","SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"]'::jsonb,'["RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"]'::jsonb,false),
++('receiver_four_components_still_rejected',convert_from(decode('554e422b554e4f433a332b53454e4445523a5a5a5a2b52454345495645523a5a5a5a3a393a342b3236313131353a313230302b5245463030312b2b4150502b2b2b2b3127554e482b312b5554494c54533a443a3939423a554e3a453253453643275154592b3232303a312e3527','hex'),'UTF8'),NULL::jsonb,NULL::jsonb,'["SENDER","ZZZ"]'::jsonb,'["RECEIVER","ZZZ","9","4"]'::jsonb,false))v(label,raw,expected_old,expected_new,decoded_sender,decoded_receiver,intentional) LOOP
++ old_result:=pg_temp.gridex_envelope_optimized_reference(c.raw);
++ corrected_result:=gridex_ediel_technical_ack.envelope(c.raw);
++ IF old_result IS DISTINCT FROM c.expected_old THEN
++  RAISE EXCEPTION 'optimized_reference_expected_behavior_failed:%',c.label;
++ END IF;
++ IF corrected_result IS DISTINCT FROM c.expected_new THEN
++  RAISE EXCEPTION 'header_length_normative_expected_behavior_failed:%',c.label;
++ END IF;
++ IF NOT c.intentional AND old_result IS DISTINCT FROM corrected_result THEN
++  RAISE EXCEPTION 'unrelated_envelope_behavior_changed:%',c.label;
++ END IF;
++ IF c.intentional AND (old_result IS NULL OR corrected_result IS NOT NULL) THEN
++  RAISE EXCEPTION 'length36_must_reject_previously_accepted_header:%',c.label;
++ END IF;
++ IF c.decoded_sender IS NOT NULL THEN
++  -- Independently inspect the real lexer output to distinguish decoded character length
++  -- from serialized release bytes and UTF-8 octet length. No second parser is substituted.
++  tokens:=gridex_utilts_binding.wire_tokens_v1(c.raw);
++  IF tokens#>'{0,elements,2}' IS DISTINCT FROM c.decoded_sender
++   OR tokens#>'{0,elements,3}' IS DISTINCT FROM c.decoded_receiver THEN
++   RAISE EXCEPTION 'actual_lexer_components_differ_from_fixture:%',c.label;
++  END IF;
++ END IF;
++ IF left(c.label,14)='legacy_corpus_' THEN legacy_count:=legacy_count+1;END IF;
++ IF c.intentional THEN intentional_count:=intentional_count+1;END IF;
++ counted:=counted+1;RAISE NOTICE 'HEADER_LENGTH_PASS:%:%',c.label,md5(coalesce(corrected_result::text,'NULL'));
++ END LOOP;
++ IF counted<>75 OR legacy_count<>41 OR intentional_count<>15 THEN RAISE EXCEPTION 'header_fixture_counts_required:%:%:%',counted,legacy_count,intentional_count;END IF;
++ RAISE NOTICE 'OPTIMIZED_REFERENCE_LEGACY41_PASSED:%',legacy_count;
++ RAISE NOTICE 'ALL_HEADER_LENGTH_NORMATIVE75_PASSED:%',counted;
++END $checks$;
++ROLLBACK;
+-- 
+2.52.0
+

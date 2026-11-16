@@ -1,0 +1,20 @@
+{
+  "state": "ROOT_EXACT_FIVE_CLOSED_GROUPS_ARCHIVE_SCOPE_CONDITIONAL_CURRENT_K4_NO_RAW_DEPENDENCY",
+  "observedAt": "2026-11-14T15:27:54.742675+00:00",
+  "proposalPath": "/workspace/gridex-k4-additional-two-closed-proof-proposal-20261114/PROPOSAL.v2.safe.json",
+  "proposalSHA256": "5a7c6b9107db7b2f4fd67292757eef2ddd742bf522c6bc672d35762fe1b13aa5",
+  "exactGroups": 5,
+  "exactAliases": 8,
+  "freshAllPhysicalHashesMetadataAndClosurePinsChecked": true,
+  "workspaceGroups": 2,
+  "tmpGroups": 3,
+  "precondition": "Producer/Domain currentfrozenK4 noRAWdependencyconfirmation beforeexecution, sameboundedscan asprior2groups. No assumptionequalitytoK4fixture; K4freshcurrentbaseline mandatory.",
+  "requiredProtocol": "FreshaliasesH/stat/closure/FDcaveat/immutabletuples/gzipperinode/fsync/decompHbytesbeforeALLaliasesunlink/durableARCHIVED/safeexclusive restore.",
+  "protected": "OriginalE96/C6/APIwire/currentK4/H/source/deps/input/currentfuturebaseline/K3protectedcandidate/fullFcs unchanged. TheseoldJ/CreconcileJSONlogicalpaths becomeexplicitARCHIVEDonlyunderNEWexactscope; safeRestorebeforefuturephysicalproofreuse.",
+  "tmpLimit": "OnlyhistoricalclosedK3baselinebeforelatergenuinelogout. K4mustcapturefreshbaseline; no currentK4baseline oractorfiles selected. ArchiveinTMP, no workspacecapacitypenalty.",
+  "oldK3DumpRequalifiedHistoricalOnly": true,
+  "writer": "remaining_coverage_inventory sole writer or explicitly delegated producer",
+  "indexRequirement": "Append ARCHIVED physical dispositions for all eight aliases and safe exclusive restore; prior indexes preserved historical. K4 must have a new genuine actor and postlogin fresh baseline.",
+  "futureBytesNotActual": true,
+  "backendCallsByRoot": 0
+}

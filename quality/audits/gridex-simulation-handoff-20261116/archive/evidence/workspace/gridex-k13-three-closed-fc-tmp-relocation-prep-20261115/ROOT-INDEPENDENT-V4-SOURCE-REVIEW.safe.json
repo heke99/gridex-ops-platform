@@ -1,0 +1,23 @@
+{
+  "state": "INDEPENDENT_ROOT_EXACT_THREE_FC_V4_SOURCE_REVIEW_PASS_NOT_ACTUAL",
+  "atUtc": "2026-11-15T20:12:19.536208+00:00",
+  "source": {
+    "path": "/workspace/gridex-k13-three-closed-fc-tmp-relocation-prep-20261115/PREPARED.v4.SOURCE-ONLY.safe.json",
+    "sha256": "5898cd17c6ad583563e56c9bdaba686e2cd35e485e6f78f9f153ab72f12abf5f"
+  },
+  "reviewer": "root",
+  "readWholeRelocatorAndRestorer": true,
+  "verified": [
+    "Exact3 closed K13 checkpoints selected; no unknownK12/currentcandidate/reference77 selection.",
+    "Full exclusive TMP copies/SHA/bytes/metadata/fsync/manifest/adapter/durable custody before first original unlink.",
+    "Current roots/protected paths/refseals/nativeACK/closure and accessible FD checks; no global FD absence claim.",
+    "Preunlink recovery now works before final receipt, including when corrupt partial final exists, with explicit fixed custody enum/hash/exact state/manifest/adapter.",
+    "Saved8 real tiny-FS recovery controls verified and reused; no selected Fc restore or mutation.",
+    "Fixed current-source nonuse proof, producer review and actual scope required before sole producer runs."
+  ],
+  "findingResolvedAtSource": "FC-RELOCATION-RECOVERY-FINAL-RECEIPT-CYCLE",
+  "actualSavings": null,
+  "nativeScenarioCredit": false,
+  "actualScopeApproved": false,
+  "noAddedThirdGate": true
+}

@@ -1,0 +1,118 @@
+{
+  "state": "INDEPENDENT_V2_SOURCE_REVIEW_TWO_CONCRETE_INTEGRATION_CORRECTIONS_REQUIRED",
+  "reviewedAtUtc": "2026-11-15T20:30:43.377188+00:00",
+  "reviewerAgent": "/root/review_plan_execution",
+  "sourceFreeze": {
+    "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/FROZEN.SOURCE-ONLY.safe.json",
+    "sha256": "fa7394ffb05166db9b9a57aca23551886c801a2d6b652667c612b3885922bafd",
+    "bytes": 7551
+  },
+  "allFrozenFilesVerified": {
+    "count": 29,
+    "bytes": 357227
+  },
+  "findings": [
+    {
+      "id": "APPROVAL_REF_ROOT_MISMATCH",
+      "severity": "BLOCKS_GENUINE_SCOPE_COMPOSITION",
+      "locations": [
+        "native-producer-worker.cjs:6",
+        "native-producer-worker.cjs:16",
+        "owned-native-lifecycle.py:57-61",
+        "run-producer.py:25-32"
+      ],
+      "fact": "Lifecycle requires genuine target-bound scope receipts before ROOT creation. Worker file() accepts only paths already under that new ROOT. Genuine external prep receipts are therefore rejected; embedding their copies in the target creates a target/review hash cycle.",
+      "minimalCorrection": "Use a distinct bounded, regular mode600, hash-verified read-only approval-ref reader for these external genuine scope receipts. Keep business/input/capture files ROOT-only and preserve target/worker/source hashes and genuine two-peer verdict checks. Do not manufacture or rewrite receipts.",
+      "discovery": "Author reported while reviewer was reading; independently corroborated from full sources."
+    },
+    {
+      "id": "PREAUTH_SEQUENCE_BASELINE_CROSSES_REAL_LOGIN",
+      "severity": "BLOCKS_SUCCESSFUL_GENUINE_AUTH_LIFECYCLE",
+      "locations": [
+        "run-producer.py:33",
+        "run-producer.py:58",
+        "run-producer.py:85-86",
+        "run-producer.py:104-107"
+      ],
+      "fact": "seq0 is captured before password grant, then compared exactly against postbusiness/postlogout. Actual all7 includes auth.refresh_tokens_id_seq. A genuine password grant allocates a refresh token; preserving all7 across that grant conflicts with the intended Auth mutation.",
+      "savedNativeSequenceMembership": {
+        "path": "/workspace/gridex-k12-import-denied-closure-20261115-a/Main-sequences-after-private-before-logout.private.json",
+        "sha256": "bd40c3b7fec36832dd33f650d0bb1ccaebfcfa614f4e1a653b2153863fe325e2",
+        "bytes": 718
+      },
+      "minimalCorrection": "Retain the preAuth complete Main/all7 capture as provenance. After actual password/GetUser READY and before the first native/business command, capture a fresh complete after-auth Main/all7 anchor and validate the allowed Auth5 login delta. Preserve all seven sequence values from that anchor through private business and logout; do not omit the Auth sequence or claim preAuth equality.",
+      "discovery": "Independent reviewer finding; author confirmed before successor."
+    }
+  ],
+  "evidencePrecision": {
+    "savedModuleTotal": 738,
+    "originalK11Modules": 736,
+    "candidateModules": 2,
+    "finding": "Frozen realOriginalTSModules label overstates original count; actual total is736 original plus2 candidate. No saved Node result or singleton claim is invalidated by this count label."
+  },
+  "independentChecks": {
+    "selectedConstructorDeclarations": {
+      "donor": {
+        "path": "/workspace/gridex-local-fresh-main-k13-U-parent-prep-20261115/parent.py",
+        "sha256": "d5b2dd7eeff558281cb9221cc2c9ed1a8af8ae8f283a7c1331bf91a684353010",
+        "bytes": 71104
+      },
+      "count": 17,
+      "allASTExact": true,
+      "names": [
+        "apply_framing_and_verify",
+        "apply_lookup_and_verify",
+        "bootstrap_current_native",
+        "declarations",
+        "lookup_expected",
+        "patch_and_verify",
+        "qualified_decimal_actual",
+        "qualified_framing_actual",
+        "qualified_lookup_actual",
+        "read",
+        "readers",
+        "receiver_private_read",
+        "save",
+        "sha",
+        "validate_current_main_receiver",
+        "verify_framing_delta",
+        "verify_lookup_delta"
+      ]
+    },
+    "originalContext": {
+      "path": "/workspace/gridex-pilot65-source-20261115-k11/lib/ediel/testing/localSimulationContractAdmission.ts",
+      "sha256": "ac81f19e2d085da273063627ea02be5a5de34748fa4768ecf24e86822be59c3d",
+      "bytes": 70526
+    },
+    "candidateContext": {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-v2-prep-20261115/candidate/lib/ediel/testing/localSimulationContractAdmission.ts",
+      "sha256": "df98a32dd4b725cd8f5f57e677e10d5d35e28e5b9a05e22adec0c24ed7a670c6",
+      "bytes": 72095
+    },
+    "contextWholeDiffSHA256": "fa68529f95dbd2b6c843f82b1fe75f925a696953061245ffcd779c5336ec8bc2",
+    "contextDelta": "Only server-client type import and guarded request-client ALS seam. Actual GetUser/canonical selected-company admin checks precede diagnostic callback; original WeakMap/one-use native basis/executor semantics remain unchanged.",
+    "fullOriginalMap": {
+      "path": "/tmp/gridex-source65-k11-materializer-prep-20261115/ACTUAL-FULL-2193.safe.json",
+      "sha256": "26869dc9f2fe332292ea6388243ef74a15fa7ef306c329bec99599e18fc7fe31",
+      "bytes": 385072
+    },
+    "savedActualModulePostimagesRehashed": 738,
+    "oldOriginalContextAbsentFromSavedLoad": true,
+    "savedNodeControls": "Ten actual negative controls and real module load inspected, not rerun. Genuine-positive Auth/business kernels were not mocked or executed.",
+    "savedPythonControls": "Nine actual gateway/Main-fence/nested-finally negative controls inspected, not rerun. No native lifecycle credit.",
+    "lifecycleRead": "Whole worker/launcher/own clone+REST/gateway/Main/Auth/profiling/exit observer read; immutable qualified constructor AST reuse independently verified.",
+    "policiesRetained": "Original normal raw pipeline and single import reservation; original four-RPC/ACK/Root-document adapter; fixed Auth55321/own clone gateway3168;8s SQL qualification remains actual prerequisite;3000/900/120; cleanup nested outside observation success; REST255 normalFalse; no global settings/roles/grants or fake user JWT."
+  },
+  "disposition": "No source approval for frozen V2 execution until these two concrete source integration issues are corrected in an immutable successor. A narrow successor rebind is sufficient; no repeat whole-source audit or Node/backend rerun requested by this review.",
+  "pendingActual": [
+    "Fresh role/container/receiver/current Main dump seal/actual no-app resource measurements and scope pair.",
+    "Real password/GetUser/native SID and new after-auth baseline.",
+    "Actual native four ACKs, Root reviewed actual prepared document, financial BEFORE afterATTEST and actual AFTER.",
+    "Actual8s REST/native/lifecycle/cleanup/Auth0/all7 and final clone/REST/process absence."
+  ],
+  "limits": [
+    "Source-only review; no Node/backend/SQL/Auth/browser/Docker or business invocation by reviewer.",
+    "Not a full-project typecheck, native/lifecycle PASS, full UI/scenario credit, or actual GO.",
+    "All frozen V2 bytes and historical739/global-singleton errata preserved."
+  ]
+}

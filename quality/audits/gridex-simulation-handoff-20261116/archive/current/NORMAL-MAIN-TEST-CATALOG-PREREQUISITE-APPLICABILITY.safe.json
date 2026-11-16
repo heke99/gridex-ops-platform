@@ -1,0 +1,16 @@
+{
+  "state": "ACTUAL_SAVED_NORMAL_MAIN_FUNCTION_APPLICABILITY_READBACK",
+  "atUtc": "2026-11-15T20:15:50.942073+00:00",
+  "source": {
+    "path": "/tmp/gridex-customer-bundle-W-actual-prep-20261115-e/MAIN-AFTER-OWN-API-LOGOUT.private.json",
+    "sha256": "800236255e6842dd51e5098ae9c95693e5fdb05e70995c0b3b1740827a4674bb"
+  },
+  "functionCount": 3370,
+  "gridexLocalTestFunctionSignatures": [],
+  "canonicalTenantFunctionSignatures": [
+    "public.canonical_authenticated_tenant_context(uuid)",
+    "public.canonical_authenticated_tenant_context_v1_scoped(uuid)"
+  ],
+  "consequence": "A self-contained normalMain publication capability must use real installed canonical/Auth guards or explicitly qualify additional private dependencies. A Source65/private-clone actor helper is not installed on normalMain.",
+  "databaseOrAuthExecuted": false
+}

@@ -1,0 +1,99 @@
+{
+  "state": "ROOT_EXACT_CLOSED_REPO_E_RESOURCE_SCOPE_APPROVE",
+  "atUtc": "2026-11-14T14:29:19.714389+00:00",
+  "proposal": {
+    "path": "/workspace/gridex-decimal-repo-closed-resource-proposal-20261114/PROPOSAL.safe.json",
+    "sha256": "3765045348d3ab4dcb3367343db39f67c544ac8892a6001667426ea586343370"
+  },
+  "dedupGroups": [
+    {
+      "canonical": {
+        "path": "/workspace/gridex-decimal-repo-native-actual-20261114-a/candidate3443-wire-and-decimal.private.json",
+        "sha256": "66f824d952a653f98542a414330483d6a218bf02f142f372c8ab5f02939a7cdd",
+        "bytes": 22905647,
+        "device": 27,
+        "inode": 529254,
+        "nlink": 1,
+        "mode": "0o600",
+        "uid": 1000,
+        "gid": 1000
+      },
+      "replace": [
+        {
+          "path": "/workspace/gridex-decimal-repo-native-actual-20261114-a/clone-after.private.json",
+          "sha256": "66f824d952a653f98542a414330483d6a218bf02f142f372c8ab5f02939a7cdd",
+          "bytes": 22905647,
+          "device": 27,
+          "inode": 529264,
+          "nlink": 1,
+          "mode": "0o600",
+          "uid": 1000,
+          "gid": 1000
+        }
+      ],
+      "savedBytes": 22905647
+    },
+    {
+      "canonical": {
+        "path": "/workspace/gridex-decimal-repo-native-actual-20261114-a/main-before.private.json",
+        "sha256": "575ca5bb888b6775985b4f292de80842d2113ffa39bebd2bcb10f78490570696",
+        "bytes": 22280424,
+        "device": 27,
+        "inode": 529109,
+        "nlink": 1,
+        "mode": "0o600",
+        "uid": 1000,
+        "gid": 1000
+      },
+      "replace": [
+        {
+          "path": "/workspace/gridex-decimal-repo-native-actual-20261114-a/main-after.private.json",
+          "sha256": "575ca5bb888b6775985b4f292de80842d2113ffa39bebd2bcb10f78490570696",
+          "bytes": 22280424,
+          "device": 27,
+          "inode": 529266,
+          "nlink": 1,
+          "mode": "0o600",
+          "uid": 1000,
+          "gid": 1000
+        }
+      ],
+      "savedBytes": 22280424
+    }
+  ],
+  "archives": [
+    {
+      "path": "/workspace/gridex-decimal-repo-native-actual-20261114-a/restored3443-before.private.json",
+      "sha256": "e03b961487ce7b2de685d5025e3bfaaf998302e3f205c230ad0d5793f5226d83",
+      "bytes": 22899459,
+      "device": 27,
+      "inode": 529201,
+      "nlink": 1,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "gzipEstimateBytes": 2249321
+    },
+    {
+      "path": "/workspace/gridex-decimal-repo-native-actual-20261114-a/candidate3443-wire-only.private.json",
+      "sha256": "75dacfee13b4c3e86a76166593f30c7d08e37e1d9a4ebb948a2bc3739c74803d",
+      "bytes": 22899465,
+      "device": 27,
+      "inode": 529247,
+      "nlink": 1,
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "gzipEstimateBytes": 2249342
+    }
+  ],
+  "conditions": [
+    "ProducerexplicitsolewriterInventoryhandoff/freshownedclosureFDmountchecks; deniedprobesdisclosed.",
+    "Atomic equalmetadata SHA hardlinks; preserveallrawcanonical/aliases.",
+    "Two exactgzip0600/fsync/streamdecompSHAbytes beforeunlink, durableARCHIVEDmapping/safeexclusive restore.",
+    "OriginalE96/currentK3/C6/APIwire/currentbaseline/source/env/input untouched; no backend/globalprune.",
+    "Actualpostheadroom only; rawarchivepaths markedhistorical notphysicalsame."
+  ],
+  "expectedNetBytes": 86486332,
+  "backendCalls": 0
+}

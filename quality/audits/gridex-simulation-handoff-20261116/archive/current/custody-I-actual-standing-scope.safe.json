@@ -1,0 +1,23 @@
+{
+  "state": "ROOT_CUSTODY_EPOCH_I_EXACT_SCOPE_WITH_STANDING_FRESH_NATIVE_METADATA_ONLY",
+  "observedAt": "2026-11-14T16:55:03.647513+00:00",
+  "baseTargetPath": "/tmp/gridex-normal-custody-actual-prep-20261114-c/target.BOUND.safe.json",
+  "baseTargetSHA256": "086a50828f9a9b9139ae50890129cf3d77e54aac8b311ce54342028b46e5c9e2",
+  "independentActualScope": {
+    "path": "/tmp/gridex-normal-custody-actual-prep-20261114-c/ediel-custody-I-actual-scope.safe.json",
+    "sha256": "d13bc338099c76f4f5d41a7808d9f5d4e19a3c7023365298b89e27ee9f96892b"
+  },
+  "source2": [
+    "5ed853242b0eea12f31fca7aa439287d70b9d094a754189f27212f76896bca2f",
+    "cfdca11f733cd809373addd48548f4104786c4c7cfdbcc6eb4f711a9f47e2e3e"
+  ],
+  "rootAll17BoundFileHashesChecked": true,
+  "actualICarrierAndBothOriginalCredentialProjectionHashesChecked": true,
+  "existingQualifiedSSRAndInertDependencyProofBound": true,
+  "executionAuthority": "Sole producer execute exact900s normal3form component ONCE after immediate live currentI/PID/source/privateinputs/resources/freshactualnative checks, under delegated independent actual Ediel review. No extra Root roundtrip.",
+  "standingMetadataRefresh": "Before ANY priorGO/Auth only, producer may create NEWimmutabletarget changing ONLY beforeNativePath/SHA and sole matching boundFile ref to NEW0600 realSQL9241 output under SAME inputRoot, actualnative JSON identical to reviewedbase EXCEPT real observedAt. No timestamp editing. Record actual newtarget hash and guard receipt. All other fields/pins/actors/SDK/currentI900s unchanged.",
+  "afterAnyAttempt": "Actualper-action newnativeACKs/no automatic replay; unknown readback before cleanup; genuine normal B and EElogout plus native session readback. Protect all actual C-bound raw files until helper/case closed, including MAIN.before.",
+  "fullScenarioCredit": false,
+  "noProductionPushOrApproval": true,
+  "backendCallsByRoot": 0
+}

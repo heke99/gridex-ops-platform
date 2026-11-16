@@ -1,0 +1,38 @@
+{
+  "state": "EXACT_CLOSED_K12S_CACHE_RECLAIMED_ROOT_PRESERVED",
+  "atUtc": "2026-11-15T15:38:35.470081+00:00",
+  "scopeSHA256": "a94a16e4702bf21cb0de030a46ea83f87e446613a835b895b9717581b7267189",
+  "proposalSHA256": "7fff2affc7649dae9338d2a45fd369d22a060877dd383b4680bd6c205096dd35",
+  "results": [
+    {
+      "root": "/workspace/gridex-local-cache-20261115-k12-s",
+      "mode": "probe",
+      "verifiedEntries": 124,
+      "mappedUid": 10001,
+      "capEff": "2",
+      "noNewPrivs": 1,
+      "deleted": false,
+      "rootInode": 548690
+    },
+    {
+      "root": "/workspace/gridex-local-cache-20261115-k12-s",
+      "mode": "delete",
+      "verifiedEntries": 124,
+      "mappedUid": 10001,
+      "capEff": "2",
+      "noNewPrivs": 1,
+      "deleted": true,
+      "rootInode": 548690
+    }
+  ],
+  "allOwnHelpersAbsent": true,
+  "allRootIdentitiesModesUidGidPreserved": true,
+  "sourceDependenciesProofsCurrentSeed0509NativeOutputsUntouched": true,
+  "accessibleFDOrCwdHits": [],
+  "probeDeniedOrRaced": 3136,
+  "noGlobalFDabsenceClaim": true,
+  "workspaceBefore": 161239040,
+  "workspaceAfter": 409559040,
+  "actualWorkspaceDeltaBytes": 248320000,
+  "backendAuthDbCalls": 0
+}

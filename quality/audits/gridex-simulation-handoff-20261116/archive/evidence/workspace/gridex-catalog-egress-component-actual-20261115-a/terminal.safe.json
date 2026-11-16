@@ -1,0 +1,28 @@
+{
+  "state": "CATALOG_V3_SYNTHETIC_HOOK_FIXTURE_CLOSED",
+  "errorType": null,
+  "ownDBAbsent": true,
+  "MainFullRolesAll7Auth0CarrierUnchanged": true,
+  "all23SyntheticHookAssertionsQualified": true,
+  "results": {
+    "fixture": {
+      "exitCode": 0,
+      "elapsedSeconds": 0.3725526590133086,
+      "stdout": {
+        "path": "/workspace/gridex-catalog-egress-component-actual-20261115-a/catalog-egress-fixture.stdout.private.log",
+        "sha256": "055f996565e59d2e1962a10685c73cbaedc4ef0ed917ee87b6584db5402dd43d"
+      },
+      "stderr": {
+        "path": "/workspace/gridex-catalog-egress-component-actual-20261115-a/catalog-egress-fixture.stderr.private.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "syntheticClaimsAndTables": true,
+  "nativePublicationActorRPCQualified": false,
+  "normalMain3370CompositionQualified": false,
+  "genuineAuth": false,
+  "actualHTTPOrBusinessCasePASS": false,
+  "MainOrProductAdoption": false,
+  "noRetry": true
+}

@@ -1,0 +1,41 @@
+{
+  "state": "ACTUAL_OFFCLOCK_TEXT_ONLY_CJS_NO_UNDEF_GATE_QUALIFIED",
+  "files": [
+    {
+      "path": "/tmp/gridex-cjs-no-undef-quality-gate-prep-20261115/check-cjs-no-undef.cjs",
+      "sha256": "2e9bab975c52a1ab6ddfa177875a92ee05f2d8220d567650906b8d4082f6d55f",
+      "bytes": 1874
+    },
+    {
+      "path": "/tmp/gridex-cjs-no-undef-quality-gate-prep-20261115/ACTUAL.stdout.safe.json",
+      "sha256": "f01eac9008bb669ac5f971b36467e0a379ddce98668f10507a86c043e0da577b",
+      "bytes": 906
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/node_modules/eslint/package.json",
+      "sha256": "80a7caf2adf34963e47b32a1e75157de6d6814c3ae5a9d90358ddd9364833fe7",
+      "bytes": 7225
+    },
+    {
+      "path": "/tmp/gridex-scenario-source-442256/node_modules/globals/package.json",
+      "sha256": "7825cb9a75020bbeba926f89926588ccc21322d4e8be27a0c5c70fec340f6ec1",
+      "bytes": 1165
+    }
+  ],
+  "executedNode": "/tmp/gridex-lean-actual-qualification-20261113/node22.selected",
+  "maxOldSpaceSizeMiB": 64,
+  "timeoutSeconds": 10,
+  "actualExitCode": 0,
+  "actualWallSeconds": 0.566,
+  "validActualSourcesChecked": 3,
+  "undeclaredNameNegativeDetected": true,
+  "actualCandidateImports": 0,
+  "backendBrowserSDKAuthNetworkCalls": 0,
+  "purpose": "Reusable author-side source check before freezing new CJS helper/driver packets, addressing observed undefined n.profile bug; supplements syntax and semantic peer review.",
+  "limits": [
+    "No global additional approval gate.",
+    "Node/browser globals allow page.evaluate callbacks; no type/domain/fixture/actual authority qualification.",
+    "Future new source bytes must be checked explicitly in a producer-coordinated quiet slot."
+  ],
+  "commandTemplate": "timeout 10s NODE --max-old-space-size=64 check-cjs-no-undef.cjs /absolute/new-helper.cjs /absolute/new-driver.cjs"
+}

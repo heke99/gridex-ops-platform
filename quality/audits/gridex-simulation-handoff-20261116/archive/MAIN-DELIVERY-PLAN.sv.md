@@ -1,0 +1,16 @@
+# Leverans till main
+
+Leverera dokumentation och verifierade rättningar i små granskningsbara steg. Fullständigt avslutad simulering är inte ett krav för att publicera en sanningsenlig delrapport med status 43/1/61.
+
+1. Verifiera aktuell origin/main och välj en ny egen gren från den. Kopian i paketet är låst till bf32b7e01fbd0511972ba8977c61d412a018e416; den tidigare arbetskatalogens f23c1dc är inte faktisk main. Läs gällande AGENTS.md, aktuellt samarbetsärende och liveclaims. Det separata Ediel-masterplanets räkning ska inte blandas ihop med dessa 105 scenarier.
+2. För en dokumentations-PR: placera aktuell status, per-ID-tabell, fyndregister, rätta vägar/RPC och dödkodsinventering under en tydlig auditkatalog i repo. Bevara originalbevisens hash och begränsningar. Absoluta molnsökvägar ska få ett begripligt källindex; de är inte tillgängliga bara för att texten finns i Git. Uteslut nycklar, kunddata, privata dumpfiler och runtimekonfigurationer. Äldre lokala dokumentationscommiten f0d4f308 är ett underlag, inte den aktuella liveinventeringens 46 fynd.
+3. Bedöm varje rättning separat mot aktuell implementation. MAIN-ADOPTION-INVENTORY.v3.safe.json och candidate-patches/ redovisar sju lokala commitar. Att filblobbar skiljer sig bevisar inte att rättningen semantiskt saknas eller att den kan cherry-pickas säkert. Läs patch och beroenden, undvik ersatta varianter och anpassa minsta relevanta ändring på aktuell bas.
+4. För SQL/RPC: kontrollera faktiskt schema, normal auktorisationsväg, RLS/grants, anropskontrakt, nödvändiga migrationsberoenden och genererade typer. En genomförd isolerad komponentkontroll är inte bevis för full import eller användarflöde på dagens schema. Särskilt delete-kandidaten behöver sin beroendekedja; framer-kandidaten är inte bevisat rättning av nuvarande fullimports heta väg.
+5. För död kod: använd dokumenterad referens-/anropsanalys och relevanta bygge-/typ-/lint-/regressionskontroller. Radera inte de 187 enbart ej nådda funktionerna. Separat dashboardkandidat har ännu inte kvalificerats med bygge/typ/lint/regression och ändrar inte automatiskt 24/9-inventeringen.
+6. Kör relevanta genuina tester för varje ändring och repoets obligatoriska CI. Begär två oberoende slutgranskningar av exakt PR-head, base och tree. En medförfattare ska inte godkänna sin egen slutversion. Ändras slutversionen, bind granskning och nödvändiga kontroller till den nya versionen.
+7. Låt befintlig seriell leveransägare hantera normala merges. Verifiera därefter merge-SHA och att rätt filer finns på main. Koppla varje skapad PR till den aktiva uppgiften. Dokumentera uttryckligen vad som är lokalt, PR, mergat respektive driftsatt.
+8. Behandla eventuell databasdriftsättning som ett separat steg med exakt mål, migration och verifierad återställningsväg. En Git-merge betyder inte att staging eller produktion har ändrats.
+
+Den privata exportpatchen med beteckning 209dd är inte en Git-commit. Femton komponentkontroller är godkända, men formell implementation har ett befintligt annat ägarskap. Ingen rätt att ta över eller frigöra den claimen följer av att denna överlämning finns.
+
+Denna fil är en leveransplan. Ingen kandidat har applicerats på den medföljande rena main-kopian; inga nya PR:er, merges eller databasdriftsättningar har gjorts här.

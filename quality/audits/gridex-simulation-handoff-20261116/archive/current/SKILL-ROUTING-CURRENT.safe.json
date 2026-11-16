@@ -1,0 +1,40 @@
+{
+  "updatedAtUTC": "2026-11-16T05:16:13.190754+00:00",
+  "activeTask": "Continue original105 simulation audit from existing evidence; no baseline restart",
+  "activeSkills": [
+    {
+      "skill": "full-e2e-verification",
+      "source": "skill://user/6a81bbd7cb488191ab6ee79f1fb220d4/full-e2e-verification/SKILL.md",
+      "reason": "Original-case business outcome, real persistence and physical wire, fault isolation, independent evidence and cleanup"
+    },
+    {
+      "skill": "supabase",
+      "source": "skill://plugin_asdk_app_69d3e5ee6a708191baa733f7b8931995/supabase/SKILL.md",
+      "reason": "Existing pinned real Auth/REST/Storage runtime source composition; no new Supabase feature or dependency upgrade"
+    }
+  ],
+  "continuedExistingBaseline": "Prior audit inventory, static analysis and independent source/control receipts are reused with exact applicability; no rerun solely after context compaction",
+  "conditional": [
+    "systematic-debugging and targeted regression for confirmed source defects",
+    "Supabase current version documentation before implementing new version-dependent feature",
+    "Postgres best practices when editing queries/schema; sole backend producer only",
+    "browser-e2e for original UI predicates, not substituted by headless module evidence"
+  ],
+  "skippedNow": [
+    {
+      "group": "UI design, React rendering performance",
+      "reason": "Current cohort SMTP/source admission and own Storage; no UI component edits"
+    },
+    {
+      "group": "External secret scanning, hook installation",
+      "reason": "No user request for installation/provider payload processing; secrets remain local private"
+    },
+    {
+      "group": "Broad repository rediscovery/full test suite",
+      "reason": "Existing complete baseline retained; finite current source/cohort review only, avoids duplicate work"
+    }
+  ],
+  "original105Immutable": true,
+  "oneBackendProducer": "/root/execute_eight_parts",
+  "parallelSourceReviewAndBookkeeping": true
+}

@@ -1,0 +1,18 @@
+{
+  "state": "ACTUAL_AND_LOCAL_LITERAL_MAIN0505_MAIN0506_APPROVE_AUTH0106_HOLD",
+  "inputSha256": "61e81dcefba515b887ad3e22f86110fbef3efc41ba1d5eb6b7cba770c97a8f5a",
+  "actualOriginalsVerified": 142,
+  "gzipBodyHeaderPayloadsRecomputed": 104,
+  "fourControlled404": true,
+  "threeExactHandlerNotFoundBodies": true,
+  "globalAbsentUUIDQualified": true,
+  "genuineEESelectedAActiveExportNoDENY": true,
+  "all522GETWindowRowsEqual": true,
+  "normalLogoutAndClosed": true,
+  "fileReadCases": [
+    "MAIN05.05",
+    "MAIN05.06"
+  ],
+  "auth0106": "HOLDmissing7textbodies; no scannedcurrentsecret hits, butnotfullPASS. Outer1preserved.",
+  "limits": "Missingsegmentframework404 separatefromhandler; no invoicecreate/positivefiledownload/XML/externalreceiptclaim"
+}

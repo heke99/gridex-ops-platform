@@ -1,0 +1,1300 @@
+{
+  "status": "SOURCE_FIX_QUALIFIED_NATIVE_PARTIAL_COMMIT_DOWNSTREAM_TASK_SCOPE_BLOCKED",
+  "base": "d93f361c51e81bc49cd48e817bd0b0fbe65e3d5b",
+  "sourceHead": "69630546de773f0cd1aa26c4642b8e504799e202",
+  "initialReviewedHead": "3eba01625c5795a961784118c6b3380ee28568eb",
+  "sourceHashes": {
+    "app/admin/customers/[id]/actions.part-1.ts": "7944e7dbfbecb46c9167cd3adf04590ce1a22f9a86c6940d6ffd291b593982d3",
+    "lib/masterdata/db.ts": "bc1ec43495cff993c16ea3c3c6022064880badcac8373c8afa8eea411dd4379b",
+    "__tests__/customer-site-guarded-save.test.ts": "17d1b651edca46fd6a62896a38915acb9b881572fd007b54481ba05fe0691a3c"
+  },
+  "checks": {
+    "red.log": {
+      "path": "/workspace/gridex-site-writer-evidence-20261112/red.log",
+      "sha256": "1382c6636537b61490833def151fed98fc9675b3882e5f658e1c52767c494524",
+      "output": "\n RUN  v4.1.9 /workspace/gridex-site-write-20261112\n\n ❯ __tests__/customer-site-guarded-save.test.ts (18 tests | 9 failed) 47ms\n     × uses guarded service DML after existing guards and preserves verified actor, candidate-only fields and audit 8ms\n     × updates only the bound own site and keeps creator while stamping the verified updater 2ms\n     × propagates database rejection with zero commit and no address/audit continuation 12ms\n     × propagates post-DML address failure and explicitly retains the already committed scoped site 4ms\n     × propagates post-DML audit failure and explicitly retains the already committed scoped site 2ms\n     × rejects invalid actor/scope before DML 3ms\n     × rejects invalid actor/scope before DML 2ms\n     × rejects invalid actor/scope before DML 2ms\n     × does not update a sibling customer even with a matching site ID and company 2ms\n\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  __tests__/customer-site-guarded-save.test.ts > actual public manual site action with finite Auth/SDK/downstream ports > uses guarded service DML after existing guards and preserves verified actor, candidate-only fields and audit\nUnknown Error: permission denied for function gridex_new_public_resource_reference\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯\n\n FAIL  __tests__/customer-site-guarded-save.test.ts > actual public manual site action with finite Auth/SDK/downstream ports > updates only the bound own site and keeps creator while stamping the verified updater\nUnknown Error: permission denied for function gridex_new_public_resource_reference\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯\n\n FAIL  __tests__/customer-site-guarded-save.test.ts > actual public manual site action with finite Auth/SDK/downstream ports > propagates database rejection with zero commit and no address/audit continuation\nAssertionError: expected { code: '42501', …(1) } to deeply equal { code: '42501', …(1) }\n\n- Expected\n+ Received\n\n  {\n    \"code\": \"42501\",\n-   \"message\": \"Synthetic DB rejection\",\n+   \"message\": \"permission denied for function gridex_new_public_resource_reference\",\n  }\n\n ❯ __tests__/customer-site-guarded-save.test.ts:85:111\n     83|   })\n     84|   it('propagates database rejection with zero commit and no address/au…\n     85|     io.writeError={code:'42501',message:'Synthetic DB rejection'};awai…\n       |                                                                                                               ^\n     86|     expect(io.rows).toEqual([]);expect(io.address).not.toHaveBeenCalle…\n     87|   })\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯\n\n FAIL  __tests__/customer-site-guarded-save.test.ts > actual public manual site action with finite Auth/SDK/downstream ports > propagates post-DML address failure and explicitly retains the already committed scoped site\nAssertionError: expected [Function] to throw error including 'Address RPC unavailable' but got 'permission denied for function gridex…'\n\nExpected: \"Address RPC unavailable\"\nReceived: \"permission denied for function gridex_new_public_resource_reference\"\n\n ❯ __tests__/customer-site-guarded-save.test.ts:90:49\n     88|   it.each(['address','audit'])('propagates post-DML %s failure and exp…\n     89|     if(stage==='address')io.addressError=Error('Address RPC unavailabl…\n     90|     await expect(saveCustomerSiteAction(form())).rejects.toThrow(stage…\n       |                                                 ^\n     91|     expect(io.rows).toHaveLength(1);expect(io.rows[0]).toMatchObject({…\n     92|     if(stage==='address')expect(io.audit).not.toHaveBeenCalled()\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯\n\n FAIL  __tests__/customer-site-guarded-save.test.ts > actual public manual site action with finite Auth/SDK/downstream ports > propagates post-DML audit failure and explicitly retains the already committed scoped site\nAssertionError: expected [Function] to throw error including 'Legal audit unavailable' but got 'permission denied for function gridex…'\n\nExpected: \"Legal audit unavailable\"\nReceived: \"permission denied for function gridex_new_public_resource_reference\"\n\n ❯ __tests__/customer-site-guarded-save.test.ts:90:49\n     88|   it.each(['address','audit'])('propagates post-DML %s failure and exp…\n     89|     if(stage==='address')io.addressError=Error('Address RPC unavailabl…\n     90|     await expect(saveCustomerSiteAction(form())).rejects.toThrow(stage…\n       |                                                 ^\n     91|     expect(io.rows).toHaveLength(1);expect(io.rows[0]).toMatchObject({…\n     92|     if(stage==='address')expect(io.audit).not.toHaveBeenCalled()\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯\n\n FAIL  __tests__/customer-site-guarded-save.test.ts > actual shared site writer explicit context and legacy compatibility > rejects invalid actor/scope before DML\n FAIL  __tests__/customer-site-guarded-save.test.ts > actual shared site writer explicit context and legacy compatibility > rejects invalid actor/scope before DML\n FAIL  __tests__/customer-site-guarded-save.test.ts > actual shared site writer explicit context and legacy compatibility > rejects invalid actor/scope before DML\nAssertionError: promise resolved \"{ …(27) }\" instead of rejecting\n\n- Expected\n+ Received\n\n- Error {\n-   \"message\": \"rejected promise\",\n+ {\n+   \"annual_consumption_kwh\": null,\n+   \"care_of\": null,\n+   \"city\": null,\n+   \"company_id\": \"00000000-0000-4000-8000-000000000002\",\n+   \"country\": \"SE\",\n+   \"created_by\": null,\n+   \"current_supplier_name\": null,\n+   \"current_supplier_org_number\": null,\n+   \"customer_id\": \"00000000-0000-4000-8000-000000000003\",\n+   \"data_quality_status\": \"incomplete\",\n+   \"facility_id\": null,\n+   \"grid_owner_id\": null,\n+   \"id\": \"00000000-0000-4000-8000-000000000004\",\n+   \"internal_notes\": null,\n+   \"missing_data_status\": \"missing_required_data\",\n+   \"move_in_date\": null,\n+   \"moved_from_city\": null,\n+   \"moved_from_postal_code\": null,\n+   \"moved_from_street\": null,\n+   \"moved_from_supplier_name\": null,\n+   \"postal_code\": null,\n+   \"price_area_code\": null,\n+   \"site_name\": \"Synthetic site\",\n+   \"site_type\": \"consumption\",\n+   \"status\": \"draft\",\n+   \"street\": null,\n+   \"updated_by\": null,\n  }\n\n ❯ __tests__/customer-site-guarded-save.test.ts:98:58\n\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯\n\n FAIL  __tests__/customer-site-guarded-save.test.ts > actual shared site writer explicit context and legacy compatibility > does not update a sibling customer even with a matching site ID and company\nAssertionError: promise resolved \"{ …(26) }\" instead of rejecting\n\n- Expected\n+ Received\n\n- Error {\n-   \"message\": \"rejected promise\",\n+ {\n+   \"annual_consumption_kwh\": null,\n+   \"care_of\": null,\n+   \"city\": null,\n+   \"company_id\": \"00000000-0000-4000-8000-000000000002\",\n+   \"country\": \"SE\",\n+   \"current_supplier_name\": null,\n+   \"current_supplier_org_number\": null,\n+   \"customer_id\": \"00000000-0000-4000-8000-000000000003\",\n+   \"data_quality_status\": \"incomplete\",\n+   \"facility_id\": null,\n+   \"grid_owner_id\": null,\n+   \"id\": \"00000000-0000-4000-8000-000000000004\",\n+   \"internal_notes\": null,\n+   \"missing_data_status\": \"missing_required_data\",\n+   \"move_in_date\": null,\n+   \"moved_from_city\": null,\n+   \"moved_from_postal_code\": null,\n+   \"moved_from_street\": null,\n+   \"moved_from_supplier_name\": null,\n+   \"postal_code\": null,\n+   \"price_area_code\": null,\n+   \"site_name\": \"Synthetic site\",\n+   \"site_type\": \"consumption\",\n+   \"status\": \"draft\",\n+   \"street\": null,\n+   \"updated_by\": null,\n  }\n\n ❯ __tests__/customer-site-guarded-save.test.ts:102:71\n    100|   it('does not update a sibling customer even with a matching site ID …\n    101|     io.rows=[{id:SITE,company_id:COMPANY,customer_id:FOREIGN,site_name…\n    102|     await expect(saveCustomerSite(service,input({id:SITE}),context()))…\n       |                                                                       ^\n    103|     expect(io.rows[0].site_name).toBe('Foreign customer site')\n    104|   })\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯\n\n\n Test Files  1 failed (1)\n      Tests  9 failed | 9 passed (18)\n   Start at  20:41:16\n   Duration  2.90s (transform 1.75s, setup 38ms, import 2.53s, tests 47ms, environment 0ms)\n\n"
+    },
+    "green.log": {
+      "path": "/workspace/gridex-site-writer-evidence-20261112/green.log",
+      "sha256": "56815dee2aa3f987f47a00f50f0845b750a0e2807db8e775c86169dd59011355",
+      "output": "\n RUN  v4.1.9 /workspace/gridex-site-write-20261112\n\n\n Test Files  1 passed (1)\n      Tests  18 passed (18)\n   Start at  20:42:22\n   Duration  2.89s (transform 1.84s, setup 37ms, import 2.55s, tests 40ms, environment 0ms)\n\n"
+    },
+    "targeted.log": {
+      "path": "/workspace/gridex-site-writer-evidence-20261112/targeted.log",
+      "sha256": "366e1bf5eecb938d8ae584cca0c7b00dd59522b89d226f621a55acc390456fd8",
+      "output": "\n RUN  v4.1.9 /workspace/gridex-site-write-20261112\n\n\n Test Files  3 passed (3)\n      Tests  36 passed (36)\n   Start at  20:44:47\n   Duration  3.65s (transform 1.98s, setup 52ms, import 2.68s, tests 192ms, environment 0ms)\n\n"
+    },
+    "targeted-final.log": {
+      "path": "/workspace/gridex-site-writer-evidence-20261112/targeted-final.log",
+      "sha256": "e7053cbecb230a78b955053ab13cc4b39714a1ffc8b7d61d540ce11b1b1d90c6",
+      "output": "\n RUN  v4.1.9 /workspace/gridex-site-write-20261112\n\n\n Test Files  3 passed (3)\n      Tests  37 passed (37)\n   Start at  20:46:04\n   Duration  3.57s (transform 1.99s, setup 50ms, import 2.72s, tests 189ms, environment 1ms)\n\n"
+    },
+    "lint-final.log": {
+      "path": "/workspace/gridex-site-writer-evidence-20261112/lint-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output": ""
+    },
+    "test-types-final.log": {
+      "path": "/workspace/gridex-site-writer-evidence-20261112/test-types-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output": ""
+    },
+    "service-ratchet.log": {
+      "path": "/workspace/gridex-site-writer-evidence-20261112/service-ratchet.log",
+      "sha256": "23be832b42d1a994b1bd817e0679e100f9c0dc6c599e2e84e05b1afd7a4b2300",
+      "output": "Service-role ratchet: 2349 call sites across 494 files, unchanged.\n"
+    },
+    "scopedExit": {
+      "path": "/workspace/gridex-site-writer-evidence-20261112/final-scoped.exit",
+      "output": "lint=0\ntestTypes=0\n",
+      "sha256": "a7ebd41bb4b47785126b9c30cdeb3d8ee0baef7d87d51da1eb6b58254c9ab29e"
+    }
+  },
+  "appTypes": {
+    "state": "TERMINAL",
+    "sourceHead": "69630546de773f0cd1aa26c4642b8e504799e202",
+    "exitCode": 0,
+    "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "productHashes": {
+      "app/admin/customers/[id]/actions.part-1.ts": "7944e7dbfbecb46c9167cd3adf04590ce1a22f9a86c6940d6ffd291b593982d3",
+      "lib/masterdata/db.ts": "bc1ec43495cff993c16ea3c3c6022064880badcac8373c8afa8eea411dd4379b"
+    }
+  },
+  "testCounts": {
+    "originalRed": {
+      "failed": 9,
+      "passed": 9
+    },
+    "originalGreen": 18,
+    "finalNew": 19,
+    "finalTargetedTotal": 37
+  },
+  "beforeEvidence": {
+    "path": "/workspace/gridex-site-price-intake-20261112/quality/audits/gridex-site-price-intake-20261112/results.safe.json",
+    "sourceHead": "2b54a215816acaea3dbe7d325c4dd2368b57d65d",
+    "actualFailure": "Normal UI POST500 / SQL42501 permission denied gridex_new_public_resource_reference; zero site/audit commit"
+  },
+  "custody": {
+    "ownReceipt": "3a91eac43752ad23436239461c1b1ea7479ca911",
+    "ownRefs": 6,
+    "boundedForeignTransferReceipt": "f6b99d2624a7bcc5a7f24c7928e8352deb282978",
+    "protectedForeignSiblingRefs": 12,
+    "transferProof": {
+      "authority": "Rootexplicitboundedadminhandoffunderuserfullmandate EXACTONEactionfile; root/executepause; nootherforeignresources",
+      "target": "refs/tags/agent-claims/masterplan/file-1f4f3a90f0ff89db46c2b3f2a3402e10b1975ad4c5a103ac1ee4c957efaee5ad",
+      "expectedReceipt": "f6b99d2624a7bcc5a7f24c7928e8352deb282978",
+      "protectedBefore": [
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-66ae61dbe987b8c7b02c71828ae5e36476d444e6aba6510c0f6dae66787a5ec5",
+          "status": 200,
+          "sha": "e1d6558e02cf225d4f39440a747f5eca6cda0fb5"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-4a3da17fcba89ad6b00e86ce16a2279950e13f2547c121a713ad88ca5ce09810",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-051f07609627d36ce532cb092141f216f8f91a05872fae0c423fb27d35d36e76",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-343f20c9618a1e3982450d0a800377c00ad3a3fde5c870bea4aa4275517bf462",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-6c84ff08d6e44b22fda1da3dcbb54301065196b2f1e3b57ab75b824c273601b3",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-102b9d9365e9f7b4c7f6f0f4c0489e902ee984eaa1a9eff1046214a1f390be70",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-eb3bca3fd0dcd701f7710b65a88517388470631cc4e8d925cfdbef232ad5f194",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-61315ac20d7f27a75f0195f4c7adaaa74204f0f93b0fbc3f46be71ac5f2c09f4",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-51d77d90cab4474786afa86b2bc44c2242fd4cd7dc80329b99d268985e3d1ea9",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-b39713491e71b6f814238715321221d5fd0ab695084525b6ff0bf7c76d39e0d9",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-c9f0f3ef4c6ffff3b71408b214e44cfaaebce68951998da583e1c78e5391ea17",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/slot-session-f1decb76-337b-4871-abde-dde5d5a14139",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        }
+      ],
+      "operations": [
+        {
+          "before": "FRESH_GET_MATCH",
+          "delete": "INTENT_DURABLY_RECORDED",
+          "atUtc": "2026-11-12T20:38:15.937655+00:00",
+          "deleteHttpStatus": 204,
+          "afterHttpStatus": 404
+        }
+      ],
+      "protectedAfter": [
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-66ae61dbe987b8c7b02c71828ae5e36476d444e6aba6510c0f6dae66787a5ec5",
+          "status": 200,
+          "sha": "e1d6558e02cf225d4f39440a747f5eca6cda0fb5"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-4a3da17fcba89ad6b00e86ce16a2279950e13f2547c121a713ad88ca5ce09810",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-051f07609627d36ce532cb092141f216f8f91a05872fae0c423fb27d35d36e76",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-343f20c9618a1e3982450d0a800377c00ad3a3fde5c870bea4aa4275517bf462",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-6c84ff08d6e44b22fda1da3dcbb54301065196b2f1e3b57ab75b824c273601b3",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-102b9d9365e9f7b4c7f6f0f4c0489e902ee984eaa1a9eff1046214a1f390be70",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-eb3bca3fd0dcd701f7710b65a88517388470631cc4e8d925cfdbef232ad5f194",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-61315ac20d7f27a75f0195f4c7adaaa74204f0f93b0fbc3f46be71ac5f2c09f4",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-51d77d90cab4474786afa86b2bc44c2242fd4cd7dc80329b99d268985e3d1ea9",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-b39713491e71b6f814238715321221d5fd0ab695084525b6ff0bf7c76d39e0d9",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/file-c9f0f3ef4c6ffff3b71408b214e44cfaaebce68951998da583e1c78e5391ea17",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        },
+        {
+          "ref": "refs/tags/agent-claims/masterplan/slot-session-f1decb76-337b-4871-abde-dde5d5a14139",
+          "status": 200,
+          "sha": "f6b99d2624a7bcc5a7f24c7928e8352deb282978"
+        }
+      ],
+      "state": "EXACT_ONE_FOREIGN_ACTION_REF_TRANSFERRED_12_SIBLINGS_PRESERVED"
+    }
+  },
+  "limits": [
+    "No SQL/grants/RLS/GEN/provider changes",
+    "Sequential multi-HTTP DML is not atomic: downstream address/audit errors propagate after site may persist",
+    "Legacy actor lookup retained; customer UPDATE filter is intentionally strengthened for both signatures",
+    "No 105-scenario PASS",
+    "Native POST500 after ONE persisted site; no completed UI action/site legal audit",
+    "No second CREATE/edit/replay/B-isolation; next recovery must use persisted site ID",
+    "customers aggregate changed; original individual customer rows not captured, no exact field difference claim",
+    "Local automatic webhook fanout admission denied; no global network no-bytes proof"
+  ],
+  "native": {
+    "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/results.safe.json",
+    "sha256": "36cab1ed7c4e222d708c57563449e6ceb4122488a742e6aa81ca82f8805015ff",
+    "bundle": {
+      "kind": "SOLE_NATIVE_SITE_WRITER_696_ORIGINAL_AND_PARTIAL_COMMIT_CLEANUP",
+      "state": "TERMINAL_ONE_COMMIT_NO_CREATE_RETRY_TASK_SCOPE_FAILURE",
+      "generatedAt": "2026-11-12T21:10:25.545093+00:00",
+      "sourceHead": "69630546de773f0cd1aa26c4642b8e504799e202",
+      "sourceTree": "779f669746435f70cf82890a09d9d5b1f6cff125",
+      "profile": "PRIVATE_BASE442_PLUS7_REVIEWED_PRODUCT_FILES_NO_COMPOSITE_GITHEAD",
+      "scenario": "SITE01.04",
+      "nativeFacts": {
+        "realNormalUiFourCatalogueOptions": true,
+        "firstPostHttpStatus": 500,
+        "postStatusAndBodyHashRetained": true,
+        "normalUiLoginAndPostLogout": true,
+        "committedSiteIds": [
+          "6d733fe9-766a-4e73-9e44-96562a164273"
+        ],
+        "committedSiteActorCompanyCustomerHintAndUnverifiedFieldsCorrect": true,
+        "serverGeneratedOpaqueFacilityReferencePresent": true,
+        "oldGeneratorExecuteErrorPassed": true,
+        "newFailureSqlstate": "42501",
+        "newFailureTable": "customer_operation_tasks",
+        "newFailurePolicy": "tenant_lifecycle_insert_guard",
+        "newFailureCause": "Actualrequestreadiness-taskINSERTomitscompany_id,NULLhasnodefault/beforefill; gridex_can_write_company(NULL)false; onboardingEXPLICITLYallowed",
+        "siteLegalAuditCount": 0,
+        "secondCreateEditReplayAndBIsolation": "NOT_RUN_FIRST_ACTION_PARTIAL_FAILURE",
+        "fullScenarioOrCampaignPass": false
+      },
+      "partialEffects": {
+        "site": 1,
+        "newCustomerOperationJob": 1,
+        "newCustomerDataTask": 1,
+        "newAddressHistory": 1,
+        "newSiteDomainEvents": 2,
+        "newSiteOperationTask": 0,
+        "newSiteLegalAudit": 0,
+        "customersAggregateChanged": "BEFORE_PER_CUSTOMER_FULL_ROWS_NOT_SAVED_NO_EXACT_FIELD_DIFF_CLAIM",
+        "oldSitesAndOldJobsAfterRemovingNewRows": "EXACT_ORIGINAL_AGGREGATE_HASH_MATCH",
+        "rolesMembershipPermissionCompanyContractManualOutboxEdielHashes": "UNCHANGED"
+      },
+      "deliveryLimits": {
+        "noProviderOrWorkerSendInvokedByHarness": true,
+        "localAutomaticWebhookFanoutAdmissionDenied": "ORGANIZATION_NOT_OPERATIONALLY_READY",
+        "globalNetworkNoBytesProof": "NOT_CAPTURED_DO_NOT_CLAIM",
+        "noRawSqlGrantIdentityActivationOrSchemaWrite": true,
+        "noBlindCreateRetry": true,
+        "partialSiteAndAssociatedDataRetained": true,
+        "privateCredentialsMode0600Retained": true,
+        "ownedFiveContainersAppAndForwarderStopped": true,
+        "noLiveIngress": true,
+        "proofIndependentReview": "PENDING_ROOT_AND_NONPRODUCER_REVIEWERS"
+      },
+      "safeOriginals": [
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/baseline-comparison.safe.json",
+          "sha256": "8d6fc4626a0c174d3f07b81321b9cc98d002ab6c0c9f4297d4581670d5ec3e53",
+          "json": {
+            "unchangedBaselineFields": [
+              "roles",
+              "company_memberships",
+              "role_permissions",
+              "user_permissions",
+              "companies",
+              "customer_contracts",
+              "manual_email_outbox",
+              "ediel_messages",
+              "selectedOwnSyntheticCustomer"
+            ],
+            "changedBaselineFields": [
+              "customers",
+              "customer_sites",
+              "customer_operation_jobs",
+              "existingSiteRows"
+            ],
+            "committedSiteIds": [
+              "6d733fe9-766a-4e73-9e44-96562a164273"
+            ],
+            "originalSelectedSiteRowsUnchanged": true,
+            "newOwnJobIds": [
+              "7b9ee91c-eeae-49f0-87a0-7d6806bd4083"
+            ],
+            "customer_sitesOriginalRowsHashAfterExcludingNew": "dda02f6ccf2c21709b5e529c0562c661",
+            "customer_sitesOriginalRowsUnchanged": true,
+            "customer_operation_jobsOriginalRowsHashAfterExcludingNew": "d751713988987e9331980363e24189ce",
+            "customer_operation_jobsOriginalRowsUnchanged": true
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/cleanup.safe.json",
+          "sha256": "6278f28f4e309733e04e34d1575758b8bfa911c7cb14e00cb8907224bb2eafbb",
+          "json": {
+            "scope": "STOP_ONLY_EXACT_OWN_RUNTIME_RETAIN_PARTIAL_SITE_DATA_AND_CREDENTIALS",
+            "retainedCommittedSiteId": "6d733fe9-766a-4e73-9e44-96562a164273",
+            "partialEffectsExplicit": true,
+            "authorityCompanyContractOutboxEdielHashesUnchanged": true,
+            "oldSitesAndOldJobsHashUnchanged": true,
+            "customersAggregateChangedNotClaimedUnchanged": true,
+            "normalUiPostLogoutReceipt": "site04-original.safe.json",
+            "processes": [
+              {
+                "verifiedScript": "/workspace/gridex-site-writer-runtime-evidence-20261112/local-forwarder.py",
+                "signalledPids": [
+                  95738
+                ]
+              },
+              {
+                "verifiedScript": "/workspace/gridex-site-writer-runtime-evidence-20261112/start-app.py",
+                "signalledPids": [
+                  96219,
+                  96222,
+                  96287,
+                  96288,
+                  96299,
+                  96300,
+                  96311
+                ]
+              }
+            ],
+            "dockerStopExit": 0,
+            "containers": [
+              {
+                "id": "fed79f32f9c12bb4cd52c2824366dd0edb62c8bae881d27df6ea6fb5ccecaa9a",
+                "name": "/gridex-kryp2-db",
+                "image": "sha256:4c81aefa21ede5db91df2282d30c27bbdb05ea24a30cbf02b5c8dab2a53ce1e2",
+                "running": false,
+                "label": "gridex-kryp-next-20261111"
+              },
+              {
+                "id": "942765605ce678195dda2ff480b47cd745922a03d65a5dc39882c744d3062e65",
+                "name": "/gridex-kryp2-auth",
+                "image": "sha256:b061f1fa636f31bc01de0a791986352e82772760cce8e1d55bbec6f552930a1e",
+                "running": false,
+                "label": "gridex-kryp-next-20261111"
+              },
+              {
+                "id": "a80807ea605c1d8eba11922091dfbed4c5b5aabbaf390ee78ed5ab4140e26de3",
+                "name": "/gridex-kryp2-rest",
+                "image": "sha256:fe5428d51d9805147859ed38db0a26e9e424c4639dc851733e99a86829e1d5aa",
+                "running": false,
+                "label": "gridex-kryp-next-20261111"
+              },
+              {
+                "id": "ebba619f50cd24d2e3156bbdb6e474a65dfab115299611fe25907d0789b94feb",
+                "name": "/gridex-kryp2-storage",
+                "image": "sha256:da6409e5fd135ab8895f0c344f82066d99c107ca1031ed4a1ab1d33f0b775572",
+                "running": false,
+                "label": "gridex-kryp-next-20261111"
+              },
+              {
+                "id": "c2b2e3d0b3f03077912d0178a90743c22c2ff8ea17ab1c21795c9ce43ed71990",
+                "name": "/gridex-kryp2-kong",
+                "image": "sha256:6d4c2325ad063b075cc10b36cef0d6660cba17e171111f148936daec82bc5c78",
+                "running": false,
+                "label": "gridex-kryp-next-20261111"
+              }
+            ],
+            "loopback3108And55321ListenersGone": true,
+            "privateCurrentServerKeysAndPasswordsRetained0600": true,
+            "noPasswordOrRoleMutation": true,
+            "noDeletedVolumesImagesDataBootstrapRowOrPartialSite": true,
+            "noLiveIngress": true
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/customer-after-rows.safe.json",
+          "sha256": "3dd01d8e72d7018eb38cec5db893556b8ee09b2811ccab6c0b2a30096c112955",
+          "json": {
+            "rows": [
+              {
+                "id": "33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+                "rowHash": "ee2146b08f17f0ac9f27a2f756931c33",
+                "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                "updated_at": "2026-11-12T20:58:22.461185+00:00"
+              },
+              {
+                "id": "59b5b640-fb25-4d5f-849f-e5d953d0df16",
+                "rowHash": "d1522396cd1c5ddd6564be5a5540652b",
+                "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                "updated_at": "2026-11-11T16:44:06.450638+00:00"
+              },
+              {
+                "id": "84efcc95-545e-4b73-969d-6ee0cd8ef279",
+                "rowHash": "41f06c79ce7123546ef77536410a0d89",
+                "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                "updated_at": "2026-11-11T16:56:56.966896+00:00"
+              }
+            ],
+            "aggregateCustomerHashChanged": true,
+            "fullBeforePerCustomerRowsNotCaptured": true,
+            "individualCustomerFieldDiffNotClaimed": true,
+            "selectedCustomerIdCompanyAndStatusUnchanged": true
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/db-after.safe.json",
+          "sha256": "81e7b76a780c35e55d98e87f3b36f98f1a54be27d42f5177fae5472d66894d25",
+          "json": {
+            "roles": {
+              "hash": "03dc450f95e3471b849573aa99252283",
+              "count": 15
+            },
+            "company_memberships": {
+              "hash": "fdf3daf59cb417e74a8bf2cd9516b2a5",
+              "count": 2
+            },
+            "role_permissions": {
+              "hash": "d751713988987e9331980363e24189ce",
+              "count": 0
+            },
+            "user_permissions": {
+              "hash": "d751713988987e9331980363e24189ce",
+              "count": 0
+            },
+            "companies": {
+              "hash": "7b4573c3f46b2b9f6e7a2eed37e1c6d8",
+              "count": 3
+            },
+            "customers": {
+              "hash": "9d69e227ee2ebc1ee3e9414bb61dcb1f",
+              "count": 3
+            },
+            "customer_sites": {
+              "hash": "b22c09c9dfe0e09cf1f4d4b715426cb2",
+              "count": 4
+            },
+            "customer_contracts": {
+              "hash": "44ef2bcc180ad81efa446a0de65ae957",
+              "count": 4
+            },
+            "customer_operation_jobs": {
+              "hash": "6b78b088f096d926f5259034c36edf4a",
+              "count": 1
+            },
+            "manual_email_outbox": {
+              "hash": "d751713988987e9331980363e24189ce",
+              "count": 0
+            },
+            "ediel_messages": {
+              "hash": "d751713988987e9331980363e24189ce",
+              "count": 0
+            },
+            "existingSiteRows": [
+              {
+                "id": "6d733fe9-766a-4e73-9e44-96562a164273",
+                "hash": "9d3752ca1d34c4d35d05991872dfc68f2abc672b15201bdc3892515df4fd0dd0"
+              },
+              {
+                "id": "fe40fab9-4348-41ec-b068-b00e6249d024",
+                "hash": "a030f9d3fa5460d48abadd438fc10127c2bb6af220ddc38696237887fa685c94"
+              },
+              {
+                "id": "8e28c727-aff8-46ae-a463-9a40c6316086",
+                "hash": "8aeb70dc51f1b5f0e5a627b8e3f7c7b6a821663beae1d797cac4e3f635b8b308"
+              }
+            ],
+            "selectedOwnSyntheticCustomer": {
+              "id": "33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+              "status": "active",
+              "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64"
+            }
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/db-before.safe.json",
+          "sha256": "8e1683b3337f692d4b817fd4b6d6fc557dcd4dd77cee2dd461be55f8421a7fe5",
+          "json": {
+            "roles": {
+              "hash": "03dc450f95e3471b849573aa99252283",
+              "count": 15
+            },
+            "company_memberships": {
+              "hash": "fdf3daf59cb417e74a8bf2cd9516b2a5",
+              "count": 2
+            },
+            "role_permissions": {
+              "hash": "d751713988987e9331980363e24189ce",
+              "count": 0
+            },
+            "user_permissions": {
+              "hash": "d751713988987e9331980363e24189ce",
+              "count": 0
+            },
+            "companies": {
+              "hash": "7b4573c3f46b2b9f6e7a2eed37e1c6d8",
+              "count": 3
+            },
+            "customers": {
+              "hash": "9bc7186640d08f1296595983507c9fb2",
+              "count": 3
+            },
+            "customer_sites": {
+              "hash": "dda02f6ccf2c21709b5e529c0562c661",
+              "count": 3
+            },
+            "customer_contracts": {
+              "hash": "44ef2bcc180ad81efa446a0de65ae957",
+              "count": 4
+            },
+            "customer_operation_jobs": {
+              "hash": "d751713988987e9331980363e24189ce",
+              "count": 0
+            },
+            "manual_email_outbox": {
+              "hash": "d751713988987e9331980363e24189ce",
+              "count": 0
+            },
+            "ediel_messages": {
+              "hash": "d751713988987e9331980363e24189ce",
+              "count": 0
+            },
+            "existingSiteRows": [
+              {
+                "id": "fe40fab9-4348-41ec-b068-b00e6249d024",
+                "hash": "a030f9d3fa5460d48abadd438fc10127c2bb6af220ddc38696237887fa685c94"
+              },
+              {
+                "id": "8e28c727-aff8-46ae-a463-9a40c6316086",
+                "hash": "8aeb70dc51f1b5f0e5a627b8e3f7c7b6a821663beae1d797cac4e3f635b8b308"
+              }
+            ],
+            "selectedOwnSyntheticCustomer": {
+              "id": "33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+              "status": "active",
+              "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64"
+            }
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/failure-readback.safe.json",
+          "sha256": "71e4d5417e895010ce7d8697a66f9c1f86197f6edaec8971b210bc87a45b4f94",
+          "json": {
+            "site": {
+              "id": "6d733fe9-766a-4e73-9e44-96562a164273",
+              "status": "draft",
+              "metadata": {
+                "claimed_grid_owner_id": null,
+                "claimed_grid_area_code": null,
+                "claimed_price_area_code": null,
+                "address_candidate_metadata": {
+                  "source": "customer_site_form",
+                  "manual_price_area_hint": "SE3"
+                }
+              },
+              "is_active": true,
+              "site_name": "Kryp SITE01.04 SE3 be0a61a227",
+              "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+              "created_by": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+              "updated_by": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+              "customer_id": "33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+              "facility_id": "735999999990000038",
+              "address_hash": "0742054ac137b205ca777c8fa61206e026d72dba8735cf22b0daa82f238e310e",
+              "grid_owner_id": null,
+              "address_status": "candidate",
+              "price_area_code": null,
+              "facility_reference": "facility_2991a1229fad422488ea6662972c00fa",
+              "facility_data_status": "unverified"
+            },
+            "siteAudits": [],
+            "companyIdColumn": {
+              "default": null,
+              "nullable": "YES",
+              "generated": "NEVER"
+            },
+            "companyWritePredicateSource": "CREATE OR REPLACE FUNCTION public.gridex_can_write_company(p_company_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'auth', 'pg_temp'\nAS $function$\n  select public.gridex_is_current_session_allowed()\n    and exists (\n      select 1\n      from public.companies company\n      where company.id = p_company_id\n        and company.status in ('active', 'onboarding')\n    )\n    and (\n      public.gridex_user_is_platform_admin()\n      or exists (\n        select 1\n        from public.company_memberships membership\n        where membership.company_id = p_company_id\n          and membership.user_id = (select auth.uid())\n          and coalesce(membership.status, 'active') = 'active'\n          and coalesce(membership.is_active, true)\n          and coalesce(membership.membership_role, 'member')\n            in ('owner', 'admin', 'company_admin', 'operations')\n      )\n    )\n$function$\n",
+            "scope": "READ_ONLY_PARTIAL_COMMIT_QUALIFICATION_NO_SQL_WRITES",
+            "firstPostHttpStatus": 500,
+            "sqlstate": "42501",
+            "committedSiteCount": 1,
+            "noSecondCreateOrEdit": true,
+            "companyOnboardingIsExplicitlyAllowedByActualPredicate": true,
+            "requestTaskInsertOmittedCompanyId": true,
+            "noDefaultOrBeforeInsertCompanyFill": true,
+            "actualFailureCallPath": "saveCustomerSiteAction -> syncCustomerOperationsForSite(requestclient) -> syncOperationTasksFromReadiness -> INSERTcustomer_operation_tasks withoutcompany_id -> restrictive gridex_can_write_company(NULL)false",
+            "notGeneralOnboardingActivationHold": true,
+            "readinessTasksOrchestrationSource": "lib/operations/db.part-2.ts:200",
+            "sourceCreateReferencePermissionIssuePassed": true,
+            "fullUiActionAndAuditNotCompleted": true,
+            "safeAppFailureLines": [
+              "    177 |       code: 'ORGANIZATION_NOT_OPERATIONALLY_READY',",
+              "    code: 'ORGANIZATION_NOT_OPERATIONALLY_READY'",
+              "    177 |       code: 'ORGANIZATION_NOT_OPERATIONALLY_READY',",
+              "    code: 'ORGANIZATION_NOT_OPERATIONALLY_READY'",
+              "⨯ Error: {\"code\":\"42501\",\"details\":null,\"hint\":null,\"message\":\"new row violates row-level security policy \\\"tenant_lifecycle_insert_guard\\\" for table \\\"customer_operation_tasks\\\"\"}",
+              "  digest: '955170145'",
+              " POST /admin/customers/33fd349e-a3c9-4647-8ce3-b32eec9099a0?tab=sites 500 in 1567ms (next.js: 92ms, proxy.ts: 124ms, application-code: 1351ms)"
+            ],
+            "localWebhookFanoutObservedAdmissionFailure": true,
+            "noWorkerOrProviderSendInvokedByHarness": true,
+            "privateRawAppSnapshot": {
+              "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/app-final.raw.private.log",
+              "sha256": "c2d45351553cdf67b360fcf25fd50ec927ea72e5f9f02a93feac523e80fe75d7"
+            }
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/harness-preflight.safe.json",
+          "sha256": "16c284621019ffd940e038d7638e21529711d21bb035cdfcf2052575b72e7d9e",
+          "json": {
+            "harnessSha256": "b024a655fed1b0f30c1d4ef45d4b06d2aa26fa264032d1f99ace83c6b05e2135",
+            "nodeSyntaxChecked": true,
+            "actualHashHelperInvariants": {
+              "nestedChangeDetected": true,
+              "keyOrderIgnored": true
+            },
+            "postStatusSavedBeforeBodyRead": true,
+            "alwaysReadCommittedRowsAfterPost": true,
+            "noAutomaticCreateRetry": true
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/health.safe.json",
+          "sha256": "4cba7c35783c72b7cbf8fdb4cb875b0127bffa677bbbd056bbebb825adc00312",
+          "json": {
+            "nginxPidVerifiedBeforeReload": true,
+            "normalReloadExit": 0,
+            "health": [
+              {
+                "attempt": 1,
+                "results": [
+                  {
+                    "path": "/auth/v1/health",
+                    "status": 200
+                  },
+                  {
+                    "path": "/rest/v1/companies",
+                    "status": 200
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/initial-reload-precondition.safe.json",
+          "sha256": "b4edf0a586070430884566a300e5df4326e0565bc42e25997a1070239ecb8beb",
+          "json": {
+            "kind": "NORMAL_KONG_RELOAD_STARTUP_PRECONDITION_NOT_SCENARIO_FAILURE",
+            "exitCode": 1,
+            "noSiteScenarioAttemptYet": true,
+            "safeLog": "Error: nginx not running in prefix: /usr/local/kong\n\n  Run with --v (verbose) or --vv (debug) for more details\n"
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/key-expiry-before.safe.json",
+          "sha256": "1395d909121c1da7058204708ed8d8c77c6adf541a2c6e205649ffa1dc06b2a6",
+          "json": {
+            "anonKey": {
+              "expired": true,
+              "expiryUnix": 1794516006,
+              "remainingSeconds": -703
+            },
+            "serviceRoleKey": {
+              "expired": true,
+              "expiryUnix": 1794516006,
+              "remainingSeconds": -703
+            }
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/key-lifecycle.safe.json",
+          "sha256": "a9302607faaf389c71707bf070e432d95a75b8da05118fade767d4e240b84499",
+          "json": {
+            "oldKeysActuallyExpired": true,
+            "renewedOnlyIfExpired": true,
+            "sameRetainedJwtSecret": true,
+            "onlyClaims": [
+              "role",
+              "iss",
+              "iat",
+              "exp"
+            ],
+            "roles": [
+              "anon",
+              "service_role"
+            ],
+            "noUserUidMetadataSessionClaims": true,
+            "normalPinnedOfficialHelperReused": true,
+            "keyHashesOnly": {
+              "anonKey": "c2d29ca033386dee5fa83098cbcfe02e9b3b0d074a86a715f694b169c05bd73c",
+              "serviceRoleKey": "206566038d8bcde4de5d84ba5d1be6dae5fdccf91f9ddad04798b6da2291a965"
+            }
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/key-provenance.safe.json",
+          "sha256": "090620c137e7f51b9b0ea37ad827913494f8aca838ce1abbdfb9b7f132413ec4",
+          "json": {
+            "officialSourceCommit": "873b42c84d8a84089a6258995f4045e0c162167f",
+            "officialGenerateKeysSha256": "6299efc24ce94d771ca4abb8ac96b67624cc4ac9a4b13ee0c2a8f0071aa3d619",
+            "officialKongEntryPointSha256": "aacdadade6adde6284163ea79e0d88decce0276796ae4749a15f018d56eda933",
+            "claimsOnlyNotTokens": {
+              "anonKey": {
+                "role": "anon",
+                "iss": "supabase",
+                "iat": 1794516807,
+                "exp": 1794524007
+              },
+              "serviceRoleKey": {
+                "role": "service_role",
+                "iss": "supabase",
+                "iat": 1794516807,
+                "exp": 1794524007
+              }
+            },
+            "sameJwtSecret": true,
+            "existingAuthPasswordsUnchanged": true,
+            "renewalWasBecauseActualOldKeysExpired": true
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/partial-sideeffects.safe.json",
+          "sha256": "f160b215d0b00640fd13b35f0bc133ce7ef8885de2ba05efcb64242253096352",
+          "json": {
+            "customer_operation_jobs": {
+              "relationPresent": true,
+              "rowsReferringToOwnedNewSite": [
+                {
+                  "id": "7b9ee91c-eeae-49f0-87a0-7d6806bd4083",
+                  "status": "queued",
+                  "site_id": null,
+                  "job_type": "request_customer_data",
+                  "locked_by": null,
+                  "task_type": null,
+                  "claimed_at": null,
+                  "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                  "created_by": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+                  "event_type": null,
+                  "updated_by": null,
+                  "customer_id": "33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+                  "actor_user_id": null,
+                  "attempt_count": null,
+                  "customer_site_id": "6d733fe9-766a-4e73-9e44-96562a164273"
+                }
+              ]
+            },
+            "customer_data_tasks": {
+              "relationPresent": true,
+              "rowsReferringToOwnedNewSite": [
+                {
+                  "id": "56145894-0ee0-480a-bee3-31f1bf985d70",
+                  "status": "open",
+                  "site_id": null,
+                  "job_type": null,
+                  "locked_by": null,
+                  "task_type": "missing_grid_owner",
+                  "claimed_at": null,
+                  "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                  "created_by": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+                  "event_type": null,
+                  "updated_by": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+                  "customer_id": "33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+                  "actor_user_id": null,
+                  "attempt_count": null,
+                  "customer_site_id": "6d733fe9-766a-4e73-9e44-96562a164273"
+                }
+              ]
+            },
+            "customer_operation_tasks": {
+              "relationPresent": true,
+              "rowsReferringToOwnedNewSite": []
+            },
+            "customer_site_address_history": {
+              "relationPresent": true,
+              "rowsReferringToOwnedNewSite": [
+                {
+                  "id": "03296ebc-d4d2-453f-87be-2fe3794cf4e1",
+                  "status": null,
+                  "site_id": null,
+                  "job_type": null,
+                  "locked_by": null,
+                  "task_type": null,
+                  "claimed_at": null,
+                  "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                  "created_by": null,
+                  "event_type": null,
+                  "updated_by": null,
+                  "customer_id": "33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+                  "actor_user_id": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+                  "attempt_count": null,
+                  "customer_site_id": "6d733fe9-766a-4e73-9e44-96562a164273"
+                }
+              ]
+            },
+            "domain_events": {
+              "relationPresent": true,
+              "rowsReferringToOwnedNewSite": [
+                {
+                  "id": "773ce59d-6389-458d-95b8-1c2e040568b1",
+                  "status": null,
+                  "site_id": null,
+                  "job_type": null,
+                  "locked_by": null,
+                  "task_type": null,
+                  "claimed_at": null,
+                  "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                  "created_by": null,
+                  "event_type": "facility.address_received",
+                  "updated_by": null,
+                  "customer_id": null,
+                  "actor_user_id": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+                  "attempt_count": null,
+                  "customer_site_id": null
+                },
+                {
+                  "id": "f5d9cae1-a1dd-4ed8-b31f-c41b188ef8e3",
+                  "status": null,
+                  "site_id": null,
+                  "job_type": null,
+                  "locked_by": null,
+                  "task_type": null,
+                  "claimed_at": null,
+                  "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                  "created_by": null,
+                  "event_type": "customer_data.automation_started",
+                  "updated_by": null,
+                  "customer_id": null,
+                  "actor_user_id": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+                  "attempt_count": null,
+                  "customer_site_id": null
+                }
+              ]
+            },
+            "manual_email_outbox": {
+              "relationPresent": true,
+              "rowsReferringToOwnedNewSite": []
+            },
+            "ediel_messages": {
+              "relationPresent": true,
+              "rowsReferringToOwnedNewSite": []
+            }
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/preflight.safe.json",
+          "sha256": "98c601a2557bb522f5d068f57fc26571b290a0b5798c7b3a3cef5cbd479fd0ca",
+          "json": {
+            "sameExactFiveIdsImagesLabels": true,
+            "label": "gridex.run=gridex-kryp-next-20261111",
+            "pgVersion": "17",
+            "allRelevantPublicBindSourcesPresent": true,
+            "authRestRetainedJwtSecretMatch": true,
+            "noSeedReplayResourceCreation": true,
+            "containers": [
+              {
+                "id": "fed79f32f9c12bb4cd52c2824366dd0edb62c8bae881d27df6ea6fb5ccecaa9a",
+                "name": "/gridex-kryp2-db",
+                "image": "sha256:4c81aefa21ede5db91df2282d30c27bbdb05ea24a30cbf02b5c8dab2a53ce1e2",
+                "beforeRunning": false
+              },
+              {
+                "id": "942765605ce678195dda2ff480b47cd745922a03d65a5dc39882c744d3062e65",
+                "name": "/gridex-kryp2-auth",
+                "image": "sha256:b061f1fa636f31bc01de0a791986352e82772760cce8e1d55bbec6f552930a1e",
+                "beforeRunning": false
+              },
+              {
+                "id": "a80807ea605c1d8eba11922091dfbed4c5b5aabbaf390ee78ed5ab4140e26de3",
+                "name": "/gridex-kryp2-rest",
+                "image": "sha256:fe5428d51d9805147859ed38db0a26e9e424c4639dc851733e99a86829e1d5aa",
+                "beforeRunning": false
+              },
+              {
+                "id": "ebba619f50cd24d2e3156bbdb6e474a65dfab115299611fe25907d0789b94feb",
+                "name": "/gridex-kryp2-storage",
+                "image": "sha256:da6409e5fd135ab8895f0c344f82066d99c107ca1031ed4a1ab1d33f0b775572",
+                "beforeRunning": false
+              },
+              {
+                "id": "c2b2e3d0b3f03077912d0178a90743c22c2ff8ea17ab1c21795c9ce43ed71990",
+                "name": "/gridex-kryp2-kong",
+                "image": "sha256:6d4c2325ad063b075cc10b36cef0d6660cba17e171111f148936daec82bc5c78",
+                "beforeRunning": false
+              }
+            ]
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/runtime-endpoints.safe.json",
+          "sha256": "5e0c67590c0a3115bfb226a7f5243f6555bb56c2bb54c335ba6e294ff2a9bb43",
+          "json": {
+            "endpoints": {
+              "gridex-kryp2-db": "172.18.0.2",
+              "gridex-kryp2-auth": "172.18.0.3",
+              "gridex-kryp2-rest": "172.18.0.4",
+              "gridex-kryp2-kong": "172.18.0.5"
+            },
+            "dbReadyBeforeAuthStart": true,
+            "storageNotStarted": true
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/site04-original.safe.json",
+          "sha256": "dd5416bc5ae6b797b775ff85436c224fd5d65dbb3b1e991def6e8bedad19f9e0",
+          "json": {
+            "kind": "NORMAL_SITE01_04_CANDIDATE_UI_WITH_COMMIT_READBACK",
+            "scenarioId": "SITE01.04",
+            "sourceReceipt": "/workspace/gridex-site-writer-runtime-evidence-20261112/source-composite.safe.json",
+            "plannedInputs": [
+              {
+                "name": "Kryp SITE01.04 SE3 be0a61a227",
+                "area": "SE3",
+                "facility": "735999999990000038",
+                "street": "Simuleringsgatan 31",
+                "postal": "11122",
+                "city": "Stockholm"
+              },
+              {
+                "name": "Kryp SITE01.04 SE4 be0a61a227",
+                "area": "SE4",
+                "facility": "735999999990000045",
+                "street": "Simuleringsgatan 41",
+                "postal": "21122",
+                "city": "Malmö"
+              }
+            ],
+            "actorId": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+            "companyId": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+            "customerId": "33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+            "steps": [
+              {
+                "kind": "NORMAL_UI_FORM_READ",
+                "editId": null,
+                "status": 200,
+                "formCount": 1
+              },
+              {
+                "kind": "NORMAL_OPTIONS_BEFORE_POST",
+                "values": [
+                  "",
+                  "SE1",
+                  "SE2",
+                  "SE3",
+                  "SE4"
+                ]
+              },
+              {
+                "kind": "CREATE_SE3",
+                "name": "Kryp SITE01.04 SE3 be0a61a227",
+                "siteId": null
+              },
+              {
+                "kind": "POST_RESPONSE_STATUS",
+                "intent": "CREATE_SE3",
+                "status": 500
+              },
+              {
+                "kind": "POST_BODY_HASH",
+                "intent": "CREATE_SE3",
+                "sha256": "e34bf9033a007736ae473441ec0c56969311a73ab61fb0de5728e4b99502d95f",
+                "bytes": 216
+              },
+              {
+                "kind": "POST_COMMIT_READBACK",
+                "intent": "CREATE_SE3",
+                "matchingRows": [
+                  {
+                    "id": "6d733fe9-766a-4e73-9e44-96562a164273",
+                    "company_id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+                    "customer_id": "33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+                    "site_name": "Kryp SITE01.04 SE3 be0a61a227",
+                    "facility_id": "735999999990000038",
+                    "status": "draft",
+                    "is_active": true,
+                    "created_by": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+                    "updated_by": "ee029de5-22a8-4916-9c36-388d13f19cb1",
+                    "address_hash": "0742054ac137b205ca777c8fa61206e026d72dba8735cf22b0daa82f238e310e",
+                    "address_status": "candidate",
+                    "facility_data_status": "unverified",
+                    "resolution_status": null,
+                    "grid_owner_id": null,
+                    "price_area_code": null,
+                    "metadata": {
+                      "address_candidate_metadata": {
+                        "manual_price_area_hint": "SE3",
+                        "source": "customer_site_form"
+                      },
+                      "claimed_price_area_code": null
+                    },
+                    "fullMetadataSha256": "4896e0e552d307e5f5875ab362a4c795c60261e600f01c300898a3cc83e5b116"
+                  }
+                ],
+                "allSelectedCustomerSiteCount": 3
+              }
+            ],
+            "httpPosts": [
+              {
+                "kind": "CREATE_SE3",
+                "path": "/admin/customers/33fd349e-a3c9-4647-8ce3-b32eec9099a0",
+                "status": 500,
+                "at": "2026-11-12T20:58:23.524Z"
+              }
+            ],
+            "sites": [],
+            "startedAt": "2026-11-12T20:57:09.365Z",
+            "scope": "MANUAL_UNVERIFIED_CANDIDATES_NOT_MARKET_OR_BILLING_ACCEPTANCE",
+            "beforeSites": [
+              {
+                "id": "fe40fab9-4348-41ec-b068-b00e6249d024",
+                "sha256": "a0c5114b4637de36b044759c4ca4701301658ee761159496f16b33d124560fb1"
+              },
+              {
+                "id": "8e28c727-aff8-46ae-a463-9a40c6316086",
+                "sha256": "a74885e8970f72bf5675c27273baa410e5cf0645b6d1e0b58d0b967a5f48a3fb"
+              }
+            ],
+            "normalUiLogin": true,
+            "verifiedPlatformPresentation": true,
+            "state": "STOPPED_AT_ACTUAL_BOUNDARY",
+            "errorClass": "Error",
+            "safeErrorCode": "POST_HTTP_500_STOP_NO_CREATE_RETRY",
+            "normalUiPostLogout": true,
+            "finishedAt": "2026-11-12T20:58:29.085Z"
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/source-composite.safe.json",
+          "sha256": "6df901dfbc29581a6bf6988101e5a2caa6250a31de9c8faffd1302b251fefc84",
+          "json": {
+            "kind": "PRIVATE_BASE442_PLUS_SEVEN_IMMUTABLE_REVIEWED_PRODUCT_FILES_NO_COMPOSITE_GIT_HEAD",
+            "baseHead": "442256730c472e6c7e852d261a20b9ecb7bdfca9",
+            "priorFiveOverlays": {
+              "lib/integrations/billing/invoiceExportCore.ts": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94",
+              "app/api/internal/invoice-exports/[id]/route.ts": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb",
+              "app/dashboard/page.tsx": "0b6bc59f9659956fd0990ce80e2520858d13ca01ab9f20f3d9b0c10567640b02",
+              "app/admin/customers/[id]/page.part-4.tsx": "d381c2f09fdd1bd91eed8cfbcecd2ae6a9e588952f3f53a916d4049f07e15d9d",
+              "lib/masterdata/customerSitePriceAreas.ts": "0a3dcf1da1875da33d8b1584b1a4fae307593ff42e046d7b784a825f1354d29f"
+            },
+            "writerSourceHead": "69630546de773f0cd1aa26c4642b8e504799e202",
+            "writerSourceTree": "779f669746435f70cf82890a09d9d5b1f6cff125",
+            "newTwoOverlays": {
+              "app/admin/customers/[id]/actions.part-1.ts": "7944e7dbfbecb46c9167cd3adf04590ce1a22f9a86c6940d6ffd291b593982d3",
+              "lib/masterdata/db.ts": "bc1ec43495cff993c16ea3c3c6022064880badcac8373c8afa8eea411dd4379b"
+            },
+            "twoSourceApprovalsAndPositiveExactOutputHandoff": true,
+            "onlyTwoProductFilesAdoptedNoTestsReports": true
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/source-review-rebind.safe.json",
+          "sha256": "c81c8f4c24f23b394d7d1ca92f6696df9aa3988ab504f5e47dbe1cf2f71dcaf7",
+          "json": {
+            "reviewer": "execute_eight_parts",
+            "verdict": "APPROVE_SOURCE_EXACT_HEAD_REBIND",
+            "head": "69630546de773f0cd1aa26c4642b8e504799e202",
+            "tree": "779f669746435f70cf82890a09d9d5b1f6cff125",
+            "priorReview": {
+              "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/source-review.safe.json",
+              "sha256": "6a48224cbc1e42f803d82cf9aa6292e457d0528eff3411c80242fc219993f636"
+            },
+            "delta": "Exactly7testlines for legacy2argUPDATE;two productbytes unchanged",
+            "files": [
+              {
+                "path": "app/admin/customers/[id]/actions.part-1.ts",
+                "sha256": "7944e7dbfbecb46c9167cd3adf04590ce1a22f9a86c6940d6ffd291b593982d3"
+              },
+              {
+                "path": "lib/masterdata/db.ts",
+                "sha256": "bc1ec43495cff993c16ea3c3c6022064880badcac8373c8afa8eea411dd4379b"
+              },
+              {
+                "path": "__tests__/customer-site-guarded-save.test.ts",
+                "sha256": "17d1b651edca46fd6a62896a38915acb9b881572fd007b54481ba05fe0691a3c"
+              }
+            ],
+            "runtimeAcceptance": false
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/source-review.safe.json",
+          "sha256": "6a48224cbc1e42f803d82cf9aa6292e457d0528eff3411c80242fc219993f636",
+          "json": {
+            "reviewer": "execute_eight_parts",
+            "scope": "INDEPENDENT_SOURCE_REVIEW_NO_COAUTHORSHIP",
+            "head": "3eba01625c5795a961784118c6b3380ee28568eb",
+            "tree": "7307da03948cbce520a4a63e04840a955a949523",
+            "verdict": "APPROVE",
+            "findings": [],
+            "files": [
+              {
+                "path": "app/admin/customers/[id]/actions.part-1.ts",
+                "sha256": "7944e7dbfbecb46c9167cd3adf04590ce1a22f9a86c6940d6ffd291b593982d3"
+              },
+              {
+                "path": "lib/masterdata/db.ts",
+                "sha256": "bc1ec43495cff993c16ea3c3c6022064880badcac8373c8afa8eea411dd4379b"
+              },
+              {
+                "path": "__tests__/customer-site-guarded-save.test.ts",
+                "sha256": "58f65e1793fa7e06fa332f36a9cc7d7fbc5ff213f56c50f9c20da889e7f7b61f"
+              }
+            ],
+            "checked": [
+              "full3filepatch",
+              "actualnormalguardandcustomercontext",
+              "singleapp/libcaller",
+              "guardboundactor/company/customerandformspoofnegatives",
+              "updateid/company/customerfilters",
+              "legacytwoargsemantics",
+              "actualred9FAIL9PASSandgreen18PASS",
+              "postDMLpartialcommitexplicit"
+            ],
+            "runtimeAcceptance": false,
+            "pendingBeforeRuntime": [
+              "fullapp/scopedTSandlintterminal",
+              "secondindependentSOURCEAPPROVE",
+              "positiveimmutable2productoutputhandoff"
+            ]
+          }
+        },
+        {
+          "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/task-policy-readback.safe.json",
+          "sha256": "f21991f579cf8cf9a820090df6b7f82fd47d4af892f1ee95677747619c69ece1",
+          "json": {
+            "company": {
+              "id": "b36f6a30-18cd-4a70-8652-5b2da9b4eb64",
+              "status": "onboarding",
+              "lifecycle_status": "onboarding"
+            },
+            "policies": [
+              {
+                "cmd": "SELECT",
+                "qual": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+                "roles": [
+                  "authenticated"
+                ],
+                "tablename": "customer_operation_tasks",
+                "permissive": "RESTRICTIVE",
+                "policyname": "tenant_lifecycle_select_guard",
+                "schemaname": "public",
+                "with_check": null
+              },
+              {
+                "cmd": "SELECT",
+                "qual": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)))",
+                "roles": [
+                  "public"
+                ],
+                "tablename": "customer_operation_tasks",
+                "permissive": "PERMISSIVE",
+                "policyname": "gridex_db1_customer_operation_tasks_select",
+                "schemaname": "public",
+                "with_check": null
+              },
+              {
+                "cmd": "INSERT",
+                "qual": null,
+                "roles": [
+                  "public"
+                ],
+                "tablename": "customer_operation_tasks",
+                "permissive": "PERMISSIVE",
+                "policyname": "gridex_db1_customer_operation_tasks_insert",
+                "schemaname": "public",
+                "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)))"
+              },
+              {
+                "cmd": "UPDATE",
+                "qual": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)))",
+                "roles": [
+                  "public"
+                ],
+                "tablename": "customer_operation_tasks",
+                "permissive": "PERMISSIVE",
+                "policyname": "gridex_db1_customer_operation_tasks_update",
+                "schemaname": "public",
+                "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)))"
+              },
+              {
+                "cmd": "INSERT",
+                "qual": null,
+                "roles": [
+                  "authenticated"
+                ],
+                "tablename": "customer_operation_tasks",
+                "permissive": "RESTRICTIVE",
+                "policyname": "tenant_lifecycle_insert_guard",
+                "schemaname": "public",
+                "with_check": "gridex_can_write_company(company_id)"
+              },
+              {
+                "cmd": "UPDATE",
+                "qual": "gridex_can_write_company(company_id)",
+                "roles": [
+                  "authenticated"
+                ],
+                "tablename": "customer_operation_tasks",
+                "permissive": "RESTRICTIVE",
+                "policyname": "tenant_lifecycle_update_guard",
+                "schemaname": "public",
+                "with_check": "gridex_can_write_company(company_id)"
+              },
+              {
+                "cmd": "DELETE",
+                "qual": "gridex_can_write_company(company_id)",
+                "roles": [
+                  "authenticated"
+                ],
+                "tablename": "customer_operation_tasks",
+                "permissive": "RESTRICTIVE",
+                "policyname": "tenant_lifecycle_delete_guard",
+                "schemaname": "public",
+                "with_check": null
+              }
+            ],
+            "triggers": [
+              {
+                "name": "e035_process_after_write",
+                "function": "gridex_correction_process.capture_v1()",
+                "definition": "CREATE TRIGGER e035_process_after_write AFTER INSERT OR UPDATE ON public.customer_operation_tasks FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1()"
+              },
+              {
+                "name": "e035_process_before_delete",
+                "function": "gridex_correction_process.capture_v1()",
+                "definition": "CREATE TRIGGER e035_process_before_delete BEFORE DELETE ON public.customer_operation_tasks FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.capture_v1()"
+              },
+              {
+                "name": "e035_process_no_truncate",
+                "function": "gridex_correction_process.immutable_v1()",
+                "definition": "CREATE TRIGGER e035_process_no_truncate BEFORE TRUNCATE ON public.customer_operation_tasks FOR EACH STATEMENT EXECUTE FUNCTION gridex_correction_process.immutable_v1()"
+              },
+              {
+                "name": "gridex_history_truncate_guard",
+                "function": "gridex_guard_history_truncate_v1()",
+                "definition": "CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_operation_tasks FOR EACH STATEMENT EXECUTE FUNCTION gridex_guard_history_truncate_v1()"
+              }
+            ],
+            "companyColumnDefault": null
+          }
+        }
+      ],
+      "harness": {
+        "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/site04-ui.cjs",
+        "sha256": "b024a655fed1b0f30c1d4ef45d4b06d2aa26fa264032d1f99ace83c6b05e2135",
+        "source": "'use strict';\nconst fs=require('fs'),crypto=require('crypto');\nconst {chromium}=require('/workspace/gridex-krypkorning-run-20261111/node_modules/playwright');\nconst root='/workspace/gridex-site-writer-runtime-evidence-20261112';\nconst cfg=JSON.parse(fs.readFileSync(root+'/runtime-input.private.json','utf8'));\nif((fs.statSync(root+'/runtime-input.private.json').mode&0o077)!==0)throw Error('PRIVATE_CONFIG_0600_REQUIRED');\nfor(const u of[cfg.appUrl,cfg.apiUrl])if(new URL(u).hostname!=='127.0.0.1')throw Error('LOOPBACK_ONLY');\nconst hash=x=>crypto.createHash('sha256').update(x).digest('hex');\nconst canonical=x=>Array.isArray(x)?x.map(canonical):x&&typeof x==='object'?Object.fromEntries(Object.keys(x).sort().map(k=>[k,canonical(x[k])])):x;\nconst rowHash=x=>hash(JSON.stringify(canonical(x)));\nconst tag=crypto.randomBytes(5).toString('hex');\nconst cases=[{name:'Kryp SITE01.04 SE3 '+tag,area:'SE3',facility:'735999999990000038',street:'Simuleringsgatan 31',postal:'11122',city:'Stockholm'},{name:'Kryp SITE01.04 SE4 '+tag,area:'SE4',facility:'735999999990000045',street:'Simuleringsgatan 41',postal:'21122',city:'Malmö'}];\nconst result={kind:'NORMAL_SITE01_04_CANDIDATE_UI_WITH_COMMIT_READBACK',scenarioId:'SITE01.04',sourceReceipt:cfg.sourceReceipt,plannedInputs:cases,actorId:cfg.actor.id,companyId:cfg.companyId,customerId:cfg.customerId,steps:[],httpPosts:[],sites:[],startedAt:new Date().toISOString(),scope:'MANUAL_UNVERIFIED_CANDIDATES_NOT_MARKET_OR_BILLING_ACCEPTANCE'};\nconst write=()=>fs.writeFileSync(root+'/site04-original.safe.json',JSON.stringify(result,null,2),{mode:0o600});\nfunction checkSecrets(body){if([cfg.serviceKey,cfg.jwtSecret,cfg.actor.password].some(v=>v&&body.includes(v)))throw Error('KNOWN_SECRET_RESPONSE_LEAK')}\nasync function read(table,query){const r=await fetch(cfg.apiUrl+'/rest/v1/'+table+'?'+query,{headers:{apikey:cfg.serviceKey,Authorization:'Bearer '+cfg.serviceKey}});if(!r.ok)throw Error('READ_ONLY_READBACK_'+r.status);return await r.json()}\nconst readSites=()=>read('customer_sites','select=*&company_id=eq.'+cfg.companyId+'&customer_id=eq.'+cfg.customerId);\nconst project=s=>({id:s.id,company_id:s.company_id,customer_id:s.customer_id,site_name:s.site_name,facility_id:s.facility_id,status:s.status,is_active:s.is_active,created_by:s.created_by,updated_by:s.updated_by,address_hash:s.address_hash,address_status:s.address_status,facility_data_status:s.facility_data_status,resolution_status:s.resolution_status,grid_owner_id:s.grid_owner_id,price_area_code:s.price_area_code,metadata:{address_candidate_metadata:{manual_price_area_hint:s.metadata?.address_candidate_metadata?.manual_price_area_hint,source:s.metadata?.address_candidate_metadata?.source},claimed_price_area_code:s.metadata?.claimed_price_area_code},fullMetadataSha256:rowHash(s.metadata??{})});\nlet browser,context,page,activeIntent;\nasync function form(editId){const r=await page.goto(cfg.appUrl+'/admin/customers/'+cfg.customerId+(editId?'?editSite='+editId:'?tab=sites'),{waitUntil:'domcontentloaded',timeout:180000});const f=page.locator('form').filter({has:page.locator('input[name=site_name]')});result.steps.push({kind:'NORMAL_UI_FORM_READ',editId:editId??null,status:r.status(),formCount:await f.count()});write();if(r.status()!==200||await f.count()!==1)throw Error('NORMAL_FORM_UNAVAILABLE');const d=f.locator('xpath=ancestor::details[1]');if(await d.count()&&await d.getAttribute('open')===null)await d.locator('summary').click();const options=await f.locator('[name=price_area_code] option').evaluateAll(xs=>xs.map(x=>x.value));result.steps.push({kind:'NORMAL_OPTIONS_BEFORE_POST',values:options});write();if(!['SE1','SE2','SE3','SE4'].every(x=>options.includes(x)))throw Error('NORMAL_REFERENCE_OPTIONS_MISSING');const actualId=await f.locator('input[name=id]').inputValue();if(actualId!==(editId??''))throw Error('NORMAL_FORM_ID_MISMATCH');return f}\nasync function fill(f,v){for(const[k,value]of Object.entries({site_name:v.name,facility_id:v.facility,street:v.street,postal_code:v.postal,city:v.city,country:'SE'}))await f.locator('[name='+k+']').fill(value);await f.locator('[name=status]').selectOption('draft');await f.locator('[name=site_flow_type]').selectOption('switch');await f.locator('[name=price_area_code]').selectOption(v.area)}\nasync function post(f,intent){activeIntent=intent;result.steps.push({kind:'POST_INTENT',...intent});write();let response;try{[response]=await Promise.all([page.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/admin/customers/'+cfg.customerId,{timeout:120000}),f.locator('button[type=submit]').click()]);result.steps.push({kind:'POST_RESPONSE_STATUS',intent:intent.kind,status:response.status()});write();try{const body=await response.text();checkSecrets(body);result.steps.push({kind:'POST_BODY_HASH',intent:intent.kind,sha256:hash(body),bytes:Buffer.byteLength(body)});write()}catch(e){if(e.message==='KNOWN_SECRET_RESPONSE_LEAK')throw e;result.steps.push({kind:'POST_BODY_UNAVAILABLE_STATUS_ALREADY_RETAINED',intent:intent.kind,errorClass:e.name});write()}return response.status()}finally{const rows=await readSites();result.steps.push({kind:'POST_COMMIT_READBACK',intent:intent.kind,matchingRows:rows.filter(s=>s.site_name===intent.name).map(project),allSelectedCustomerSiteCount:rows.length});write();activeIntent=null}}\nfunction assertCandidate(s,area){if(s.company_id!==cfg.companyId||s.customer_id!==cfg.customerId||s.created_by!==cfg.actor.id||s.updated_by!==cfg.actor.id)throw Error('SITE_OWNER_OR_ACTOR_MISMATCH');if(s.status!=='draft')throw Error('SITE_DRAFT_STATUS_CHANGED');if(s.price_area_code!==null||s.grid_owner_id!==null)throw Error('MANUAL_HINT_BECAME_OPERATIONAL');if(s.metadata?.address_candidate_metadata?.manual_price_area_hint!==area)throw Error('MANUAL_HINT_NOT_PRESERVED');if(s.address_status==='verified'||s.facility_data_status==='verified')throw Error('MANUAL_HINT_VERIFIED')}\n(async()=>{try{write();const before=await readSites();const old=new Map(before.map(s=>[s.id,rowHash(s)]));result.beforeSites=before.map(s=>({id:s.id,sha256:old.get(s.id)}));write();browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});context=await browser.newContext();page=await context.newPage();page.on('response',r=>{if(r.request().method()==='POST'&&new URL(r.url()).pathname==='/admin/customers/'+cfg.customerId){result.httpPosts.push({kind:activeIntent?.kind??'UNKNOWN_CAPTURE_INTENT',path:new URL(r.url()).pathname,status:r.status(),at:new Date().toISOString()});write()}});await page.goto(cfg.appUrl+'/login',{waitUntil:'domcontentloaded',timeout:180000});await page.locator('input[name=email]').fill(cfg.actor.email);await page.locator('input[name=password]').fill(cfg.actor.password);await Promise.all([page.waitForURL(u=>u.pathname!='/login',{timeout:120000}),page.locator('button[type=submit]').click()]);result.normalUiLogin=true;const body=await page.content();checkSecrets(body);result.verifiedPlatformPresentation=body.includes('Plattformsöversikt')&&body.includes('Gridex Platform Operations');write();if(!result.verifiedPlatformPresentation)throw Error('PLATFORM_PRESENTATION_NOT_REACHED');for(const v of cases){const f=await form();await fill(f,v);const status=await post(f,{kind:'CREATE_'+v.area,name:v.name,siteId:null});const rows=await readSites(),own=rows.filter(s=>s.site_name===v.name);if(status!==200)throw Error('POST_HTTP_'+status+'_STOP_NO_CREATE_RETRY');if(own.length!==1)throw Error('CREATE_COMMIT_COUNT_NOT_ONE');const s=own[0];assertCandidate(s,v.area);const audit=await read('audit_logs','select=id,actor_user_id,company_id,entity_id,action&company_id=eq.'+cfg.companyId+'&entity_id=eq.'+s.id+'&action=eq.customer_site_created');if(!audit.some(a=>a.actor_user_id===cfg.actor.id))throw Error('NORMAL_AUDIT_ACTOR_NOT_CONFIRMED');result.sites.push(project(s));result.steps.push({kind:'CREATE_AUDIT_READBACK',siteId:s.id,audit});write();if(!before.every(b=>rows.some(s=>s.id===b.id&&rowHash(s)===old.get(b.id))))throw Error('PREEXISTING_SITE_CHANGED')}\nconst[A,B]=result.sites;result.distinctIdsAndAddressHashes=A.id!==B.id&&A.address_hash!==B.address_hash;write();if(!result.distinctIdsAndAddressHashes)throw Error('NEW_SITES_NOT_DISTINCT');const pre=await readSites();if(pre.length!==before.length+2)throw Error('UNEXPECTED_CREATE_COUNT');const bHash=rowHash(pre.find(s=>s.id===B.id));let f=await form(A.id);await fill(f,cases[0]);let status=await post(f,{kind:'SAME_ID_EDIT_REPLAY',name:cases[0].name,siteId:A.id});let rows=await readSites();if(status!==200)throw Error('EDIT_POST_HTTP_'+status);result.editReplay={sameId:rows.some(s=>s.id===A.id),countBefore:pre.length,countAfter:rows.length,secondSiteUnchanged:rowHash(rows.find(s=>s.id===B.id))===bHash};assertCandidate(rows.find(s=>s.id===A.id),'SE3');write();if(!result.editReplay.sameId||result.editReplay.countBefore!==result.editReplay.countAfter||!result.editReplay.secondSiteUnchanged)throw Error('ID_BOUND_REPLAY_ISOLATION_FAILED');f=await form(A.id);await fill(f,{...cases[0],area:'SE1'});status=await post(f,{kind:'CHANGE_ONLY_A_HINT',name:cases[0].name,siteId:A.id});rows=await readSites();if(status!==200)throw Error('EDIT_CHANGE_POST_HTTP_'+status);result.singleSiteChange={first:project(rows.find(s=>s.id===A.id)),second:project(rows.find(s=>s.id===B.id)),secondSiteUnchanged:rowHash(rows.find(s=>s.id===B.id))===bHash};write();assertCandidate(rows.find(s=>s.id===A.id),'SE1');if(!result.singleSiteChange.secondSiteUnchanged)throw Error('SIBLING_SITE_CHANGED');if(rows.length!==pre.length)throw Error('EDIT_CREATED_EXTRA_SITE');result.oracle='MET_LOCAL_MANUAL_CANDIDATE_INTAKE_AND_ID_BOUND_EDIT_ISOLATION';result.state='TERMINAL';write()}catch(e){result.state='STOPPED_AT_ACTUAL_BOUNDARY';result.errorClass=e.name;result.safeErrorCode=/^[A-Z_0-9]+$/.test(String(e.message))?e.message:'CAPTURE_ERROR_DETAILS_PRIVATE';fs.writeFileSync(root+'/capture-error.private.log',String(e.stack??e),{mode:0o600});write();process.exitCode=1}finally{if(page){try{await page.goto(cfg.appUrl+'/logout',{waitUntil:'domcontentloaded',timeout:60000});await Promise.all([page.waitForURL(u=>u.pathname==='/login'),page.locator('form[action=\"/logout\"] button[type=submit]').click()]);result.normalUiPostLogout=true;write()}catch(e){result.normalLogoutErrorClass=e.name;write()}}await context?.close();await browser?.close();result.finishedAt=new Date().toISOString();write()}})();\n"
+      },
+      "privateRawAppSnapshot": {
+        "path": "/workspace/gridex-site-writer-runtime-evidence-20261112/app-final.raw.private.log",
+        "sha256": "c2d45351553cdf67b360fcf25fd50ec927ea72e5f9f02a93feac523e80fe75d7"
+      },
+      "nextAction": "Reviewsource task-companyfixseparately; afterchecks/2reviews RECOVERYEDIT existing6d first, neverCREATEA; retainoriginalpartialfailure and no retroactivecreationaudit"
+    }
+  },
+  "sourceReviews": {
+    "root": "APPROVE exact69630546, products unchanged3eba",
+    "runtimeProducerIndependentSourceReview": "APPROVE exact69630546, not author of source",
+    "proofReviewStatus": "PENDING_ROOT_AND_NONPRODUCER"
+  },
+  "outputApplicability": {
+    "head": "69630546de773f0cd1aa26c4642b8e504799e202",
+    "files": [
+      {
+        "path": "app/admin/customers/[id]/actions.part-1.ts",
+        "mainAndRuntimeIntegrationPreimageIdentical": true,
+        "preimageSHA256": "8304822425fe7a99c745b4c5e72cd227c8fc6ea86bcc19ce534d42d726e51682",
+        "outputSHA256": "7944e7dbfbecb46c9167cd3adf04590ce1a22f9a86c6940d6ffd291b593982d3"
+      },
+      {
+        "path": "lib/masterdata/db.ts",
+        "mainAndRuntimeIntegrationPreimageIdentical": true,
+        "preimageSHA256": "3d226006b66fe4c4b2567ed11e21ce1646976d1b517e0b38182bc76a1647bfcc",
+        "outputSHA256": "bc1ec43495cff993c16ea3c3c6022064880badcac8373c8afa8eea411dd4379b"
+      }
+    ],
+    "positiveOutputHandoff": true,
+    "reason": "Both independent exact source reviews APPROVE; targeted37, scopedTS0, lint0, appTS terminal0, unchanged ratchet2349"
+  }
+}

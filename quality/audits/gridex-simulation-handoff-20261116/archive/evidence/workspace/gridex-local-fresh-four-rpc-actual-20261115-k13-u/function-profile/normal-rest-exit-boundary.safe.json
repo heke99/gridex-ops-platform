@@ -1,0 +1,9 @@
+{
+  "state": "PARTIAL_COUNTERS_UNSTABLE_OR_OVERFLOW",
+  "remainingOwnRESTBackends": 0,
+  "normalRESTContainerExitObserved": false,
+  "twoSnapshotsStable": true,
+  "interruptedFramesStillIncomplete": true,
+  "livePoolFlushQualified": false,
+  "importOnlyDeltaGuaranteed": false
+}

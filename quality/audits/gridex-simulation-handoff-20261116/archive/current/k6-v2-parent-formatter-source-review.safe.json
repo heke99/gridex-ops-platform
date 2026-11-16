@@ -1,0 +1,12 @@
+{
+  "state": "ROOT_K6_V2_PARENT_FORMATTER_ONE_LITERAL_SOURCE_REBIND_APPROVED",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T18:54:25.745661+00:00",
+  "path": "/tmp/gridex-k-static-bindings-prep-20261114/BIND-K6-V2-E-PREPARE-PARENT-METADATA.py",
+  "sha256": "e17dca64e4bd126d6695ae0b47a1deb2db152121f3403bfa24ef77670700553d",
+  "wholeOneLiteralInverseVerified": true,
+  "priorK6SourceReview": "97487821b6b7087e16bc678965c626f09fb4d182ff2a9b472959f72e6919bb6f",
+  "v2ProfileReview": "306bf0388eafe66133b2ac28a9de0a3ea9c328da39eecabe9726845de3e9d922",
+  "onlyChange": "K6-to-K6V2 closedProfileContract manifest path",
+  "noActualBindingOrBackend": true
+}

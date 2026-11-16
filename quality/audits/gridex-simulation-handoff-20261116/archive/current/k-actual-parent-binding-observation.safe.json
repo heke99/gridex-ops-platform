@@ -1,0 +1,64 @@
+{
+  "state": "ROOT_OPTIONAL_KE_CURRENT_BINDING_OBSERVATION_NOT_EXTRA_GATE",
+  "atUtc": "2026-11-14T13:02:32.188825+00:00",
+  "target": {
+    "path": "/tmp/gridex-k-static-bindings-prep-20261114/target.KE.actual.BOUND.safe.json",
+    "sha256": "806eb31034b9bff5a35326a6bc072b7661659a94c5bb40dd7725fe31d166da7e"
+  },
+  "verifiedRefs": [
+    {
+      "path": "/tmp/gridex-runtime64-3000-canary-prep-20261114/child-launcher.py",
+      "sha256": "95a7aa5426a1ae0d04cb425507d5d251f98c627de24356689185fac83d9528fc"
+    },
+    {
+      "path": "/tmp/gridex-local-runtime-20261114-k/runtime-input.BOUND.safe.json",
+      "sha256": "51d78705ea35b64002a7fda258e40f4a142d2439422c4cacda4ec2e8e45645c6"
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-three-patch-k-E-parent-prep-20261114/patch-decimal-new-E-k.sql",
+      "sha256": "bb54d5dcd3afe689ea918350beb4e718b5afc6d38175bbed16f36db52f0976f8",
+      "bytes": 12724
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261114-k/current-full-backup-seal.safe.json",
+      "sha256": "3eb96c9ac87733a691c092f96ccaf94a5b0d2bb5d9c3adced9fd757d54b0fd3f"
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261114-k/qualified-current-runtime-target.safe.json",
+      "sha256": "cf5c89ca7e5fee0f2fda2ad1ff15d558de6f4161422c057fb81342c1ce4fbb79"
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261114-k/quiet-epoch.safe.json",
+      "sha256": "489bbeb5da1eef38696228646c3e80acea059e54e1c824954115df8c9870473b"
+    },
+    {
+      "path": "/tmp/gridex-local-fresh-four-rpc-main-baseline-20261114-k/own-app-termination.safe.json",
+      "sha256": "3aca1b5e06913cc86dfecb9f47c89dc51b9589fef4c564fc61fcb6fb08e52bda"
+    },
+    {
+      "path": "/workspace/gridex-decimal-quality-window-native-actual-20261114-e/terminal.safe.json",
+      "sha256": "007f21769ec100fcd31d1c66b370e58115dff9e89a4db0f8c142b90e856b67b5"
+    },
+    {
+      "path": "/workspace/gridex-decimal-quality-window-native-actual-20261114-e/candidate3443-wire-and-decimal.private.json",
+      "sha256": "8bcb32a916273aa2c70bbdea3ef76e6bd8af3c49eed79b043a9a46d912c5e0c7"
+    },
+    {
+      "reviewerAgent": "/root",
+      "path": "/workspace/gridex-root-session-20261112/decimal-e-actual-qualification.safe.json",
+      "sha256": "62ae5c8b5a660537e19e41419b5a6dc7e4f2e27ef42a113edfd35cd749bf00ef"
+    },
+    {
+      "reviewerAgent": "/root/ediel_test_identity",
+      "path": "/tmp/gridex-ediel-decimal-review-20261114/E_ACTUAL_QUALIFICATION.safe.json",
+      "sha256": "64df9bffee1e0731d6e725c0cd890a390ddcfcb44b09ec2607ff408c7365e400"
+    }
+  ],
+  "heldPid": 2145042,
+  "realHoldDeadline": "2026-11-14T13:49:44.136Z",
+  "parentDeadline": 1794664050,
+  "remainingSecondsAtRead": 2697.811082839966,
+  "scope": "Source andcurrenttuple sampled; requiredactualparentpair remainsEdiel+producer, noRootsubstitution/extraGO.",
+  "backendCalls": 0,
+  "limits": "No currentbusiness/nativeadmission/importresult proof."
+}

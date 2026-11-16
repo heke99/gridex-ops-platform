@@ -1,0 +1,16 @@
+{
+  "state": "IMMUTABLE_BUILDER_ONE_LITERAL_CORRECTION",
+  "oldBuilder": {
+    "path": "/workspace/gridex-customer-site-term-stream-20261115/build-catalog-host.py",
+    "sha256": "46b16c4d1c2c3810ce8ad14fadad41a91f8fce1022c4e55bb61fc917eb1d14e1"
+  },
+  "newBuilder": {
+    "path": "/workspace/gridex-customer-site-term-stream-20261115/build-catalog-host.v2.py",
+    "sha256": "e69a464c6e0305c069f02569b4ce93e5f9337a9bf20a53e804d48b2efced6c36"
+  },
+  "exactOneLiteral": "normal-catalog-publish-driver.cjs -> normal-catalog-publish-driver.v2.cjs",
+  "actualHostUnchanged": true,
+  "driverV2Unchanged": true,
+  "syntaxReceiptReusable": "f64d61d44d1b5667316ec48747551abfa90b9c1d1fa26e2f9ffc47b7e6f1d483",
+  "actualExecutionAuthority": null
+}

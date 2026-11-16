@@ -1,0 +1,17 @@
+{
+  "reviewerAgent": "/root/ediel_test_identity",
+  "verdict": "ACTUAL_FACTORY_ONLY_ZERO_UI_PROPER_API_AUTH0_CLOSURE_APPROVE",
+  "closureSHA256": "7a85af43978c05311c87ace5e7ff625e4f25d5ed6c0489f791fdf3d35b056686",
+  "all17PhysicalReferenceHashesVerified": true,
+  "rawMainOnlyFourAuthScopesChanged": true,
+  "other518RowsAndAllNonrowMetadataExact": true,
+  "nativeExactAndAllSessionsRefreshZero": true,
+  "actualNoLiveOwnHelperBrowserProcessGroupMembers": true,
+  "historicalBrowserCloseFailedPreserved": true,
+  "normalUIlogout": false,
+  "noRuntimeReadyTransportBusinessOrCasePASS": true,
+  "failureFcProtectedSHA256": "7661e9fcfb0a0f4afe26bef54b71ccd0d5ec6d41de909e2d17f39b177c2e366d",
+  "rawReviewHoldReleased": true,
+  "archiveRequiresSeparateExactScope": true,
+  "atEpoch": 1794748046.0445168
+}

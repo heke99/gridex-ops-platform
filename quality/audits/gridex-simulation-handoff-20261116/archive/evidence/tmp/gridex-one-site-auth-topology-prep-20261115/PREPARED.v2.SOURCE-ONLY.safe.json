@@ -1,0 +1,35 @@
+{
+  "state": "SOURCE_ONLY_TOPOLOGY_V2_RESTORE_REUSE_FIX_UNARMED",
+  "authorAgent": "/root/qa_remaining_checks",
+  "priorFreeze": {
+    "path": "/tmp/gridex-one-site-auth-topology-prep-20261115/PREPARED.SOURCE-ONLY.safe.json",
+    "sha256": "d67b3bbadd8661f92a6726702d2b4aec08b22fd68ec90166223cb78602cccc8c"
+  },
+  "files": [
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-prep-20261115/normal-auth-topology.v2.py",
+      "sha256": "7612053d21c6d23f8c1fbf6c6886152d3bd9a811fceb0672fa73eb52629a52b8",
+      "bytes": 9428
+    },
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-prep-20261115/qualify-v2-ephemeral-sockets.py",
+      "sha256": "12d96a10ebbd74ae24c98af5a82b513bdde10f216355f06f1d2b528f6e602bbd",
+      "bytes": 2051
+    },
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-prep-20261115/V2-EPHEMERAL-SOCKETS.ACTUAL.safe.json",
+      "sha256": "a2616215b1070ba27dcef284bc1dadac71daa4d418eb71aa6b91069997e6a7dc",
+      "bytes": 504
+    },
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-prep-20261115/V2-DELTA.safe.json",
+      "sha256": "cd69fdfaad1e6e4def6680adf7ddfcdb72bb7ba05901d240247ca66391526625",
+      "bytes": 1190
+    }
+  ],
+  "RootReproducer": {
+    "path": "/tmp/gridex-one-site-auth-topology-prep-20261115/root-ephemeral-socket-restoration.safe.json",
+    "sha256": "7ef6ce21966cf0edae3308a36874b74c4b336828caca50ebeb4cbb7c75069f70"
+  },
+  "actualTopologyAuthBackend": null
+}

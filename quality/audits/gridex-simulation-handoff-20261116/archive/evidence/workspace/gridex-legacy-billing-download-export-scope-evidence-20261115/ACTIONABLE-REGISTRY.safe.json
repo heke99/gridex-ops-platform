@@ -1,0 +1,154 @@
+{
+  "state": "ACTIONABLE_PRIVATE_LEGACY_GUARD_FIX_VERIFIED_FORMAL_ADOPTION_OWNERSHIP_BLOCKED",
+  "originalPrivateProposal": {
+    "path": "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/FROZEN.SOURCE-ONLY.safe.json",
+    "sha256": "88d9e5fa066a0880a5e89e33e89c34372d6ffca93293ba1b436a6ffd77e523d6",
+    "bytes": 2535
+  },
+  "actual15RedGreen": {
+    "path": "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/RED-GREEN.COMPONENT.safe.json",
+    "sha256": "053bb8555f7062e5006b4e7690f078f90a05578817ba70d26fb1c6fdc267aa1c",
+    "bytes": 3349
+  },
+  "actualCodeUnderTestInputs": [
+    {
+      "path": "lib/admin/apiGuards.ts",
+      "sha256": "0fed09d4ef0ccbefd14cad101286ffb86403f0d608bb87ebed48ec18524c4e50",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    },
+    {
+      "path": "lib/admin/accessModel.ts",
+      "sha256": "cfbc038d99b8f78a6ab554028abb30b71ade8808a75900c01d95033051b06b97",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    },
+    {
+      "path": "lib/admin/navigationPreferences.ts",
+      "sha256": "4e0f037208cdd7a9e2c296f5bce3d8235427f8839ce2fd6eb05bba7e6c296a23",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    },
+    {
+      "path": "lib/admin/guards.ts",
+      "sha256": "a64ad4ce53e414fb34f17d246fe6c93697f5c5739888607b236857f48a72dc44",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    },
+    {
+      "path": "lib/rbac/roleKeys.ts",
+      "sha256": "d16005d099f972f0ef9cb2ddc5df7b20d63866ff55788b800e0edff2d572edea",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    },
+    {
+      "path": "lib/tenant/scope.ts",
+      "sha256": "35e8b96a3c0ceb6c69cf776f70bc17d968c566c75e4932b9bd789c9197ade052",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    },
+    {
+      "path": "lib/tenant/adminScope.ts",
+      "sha256": "73b480401faaaa1c7204648c91dae4f3d2b4ea392357c784a57e6327edac15a2",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    },
+    {
+      "path": "lib/supabase/server.ts",
+      "sha256": "84fda487877ee7bf9ce056b307868460390aa7b26364a3b693a0c41eca0440ac",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    },
+    {
+      "path": "lib/billing/exportCenter.ts",
+      "sha256": "4ae21d0b438fbf3950608957936a10755a981988db61a4a4c02b39f60b09ae14",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    },
+    {
+      "path": "__tests__/setup.ts",
+      "sha256": "fc769bc7346b5eb2e8297c444e2698e7f2343849c290142246b5a950da44bec1",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    },
+    {
+      "path": "package.json",
+      "sha256": "360f2511a66f0d60fb697228b36cb7fead17e7872e9a5532894691ff7271f5fa",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "caa1e74f72eaa627680ae4d7a7affc041d56e8c53766940aaac4ac1d319ad7d1",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    }
+  ],
+  "exactGreenRoute": {
+    "path": "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/finite-test-context/app/admin/billing/export-center/[id]/download/route.ts",
+    "sha256": "209dd922b688fec9b9b96afc3a91bf1996881a66f71f33a8f5d457b2593d809c",
+    "bytes": 2205
+  },
+  "sameAuthGuardAsCanonicalSource40": true,
+  "sourceRoleBaseline": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba",
+  "liveClaimConflict": {
+    "path": "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/LIVE-CLAIM-CONFLICT.safe.json",
+    "sha256": "0eeffa34fd2d47e23b397edb6e88b50bc837bd44fb53a4183a5d8a562b5dfeaa",
+    "bytes": 1788
+  },
+  "foreignOwnerMetadata": {
+    "savedCommit": {
+      "path": "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/conflict-readonly-v2/001-2d734b3de24b4e7abd6a72915baf53f5.body.private",
+      "sha256": "78bece6fedea969444307dd2c0c6810c557126f9a58d9367cf131f347de3aef1",
+      "bytes": 2015
+    },
+    "receipt": "dd725f702b59e8dc88134323dae57eeeb40cac30",
+    "publicActor": "heke99",
+    "commitDate": "2026-11-01T20:22:24Z",
+    "task": "synthetic-pricing-company guards,9 exactfiles",
+    "parentBase": "8969f01a31e34a494e4f7c80a593cd4693235cf1",
+    "agentBranchOrContactFieldsPresent": false,
+    "knownActiveInternalAgentIdentified": false,
+    "oldDateDoesNotAuthorizeRelease": true
+  },
+  "prioritizedFive": [
+    {
+      "priority": 1,
+      "action": "Complete guardedlegacydownload formalhandoff after boundedowner coordination",
+      "status": "15componentcasesRED13fail\u2192GREEN15pass; privatepatch209d preserved; liveforeignclaim blocks trackedwrite/adoption"
+    },
+    {
+      "priority": 2,
+      "action": "Compose existing reviewed5cleanupoperations",
+      "status": "All5 immutableK11map preimagesmatch; two pagepart replacements+threebasefiledeletions; sourceartifact24/9, runtime2/31 unchanged; full2193\u21922190 andselected65 unchanged only asderivedfutureproposal"
+    },
+    {
+      "priority": 3,
+      "action": "Reuse existing dashboardwriter removal e6b269",
+      "status": "Exactcurrentpreimage48c matches; builder/readers/RPC/view/SQLpreserved; separatelyreviewednotcomposed, no combined25/8 claim"
+    },
+    {
+      "priority": 4,
+      "action": "Resolve legacyrun\u2192canonicalimmutablefile routecompatibility",
+      "status": "Mappingnotqualified; no blindrunID\u2192fileID cast or invoicefilepolicyPASS fromauthorizationpatch"
+    },
+    {
+      "priority": 5,
+      "action": "Replace source-string invoicegraph test with realwriter/validator behavior coverage",
+      "status": "Actualcanonical chain-localverifyInvoiceGraph and nativegraphRPC preserved; no deadmodule/globalSQLremoval verdict"
+    }
+  ],
+  "retainedNotDead": {
+    "fourTestLive": [
+      "estimatedItems",
+      "estimatePayload",
+      "resolveBiddingZone",
+      "activeTenantGroup"
+    ],
+    "fourLegacyNotConfirmedDead": [
+      "createBillingExportRun",
+      "getBillingExportCenterData",
+      "sendBillingExportRunToPartnerApi",
+      "retryFailedBillingExportRunItems"
+    ],
+    "rootUnreachedCandidates": 187
+  },
+  "historical11RpcGaps": "Reuse existing qualification/nativeforwardwork; no11currentbugclaim or oldauthRPCrestore",
+  "remainingChecks": {
+    "typecheck": "NOT_RUN",
+    "lint": "NOT_RUN",
+    "genuineAuthOrNative": "NOT_RUN",
+    "trackedImplementation": "BLOCKED_BY_FOREIGN_SCOPE"
+  },
+  "noCurrentSource65OrSource40OrForeignClaimsChanged": true,
+  "noOwnedClaimsOrReleaseNeeded": true,
+  "trackedWorktreeClean": true
+}

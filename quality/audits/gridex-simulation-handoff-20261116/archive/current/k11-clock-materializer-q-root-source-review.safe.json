@@ -1,0 +1,11 @@
+{
+  "state": "ROOT_NARROW_SOURCE_REVIEW_ACK_NO_AUTH",
+  "compositionFreezeSHA256": "340a7ef42be09152d3248377549bd877a88dec84a39f4d9354c363eba25496fa",
+  "materializerFreezeSHA256": "90fd7b7675351dec0f2bd72cce842f0caaa3b27722fc2d8b8ac7b3fc303176f7",
+  "qMaintenanceFreezeSHA256": "d0f870d814a7c48f5627d6ed3e122f978db74c8027ac80d1ae702ffd40e2132c",
+  "exactPrivateClockInverse": true,
+  "exactMaterializerFourEditsInverse": true,
+  "exactQNamespaceOnlyInverse": true,
+  "allListedSourcePinsVerified": true,
+  "limits": "Producer may materialize after independent peer and fresh originalguards. No Q renewal until actual compiler PASS, genuine Auth0/Mainoff/closed resources and fresh pair. No actual runtime/PASS claimed."
+}

@@ -1,0 +1,36 @@
+{
+  "state": "ROOT_ACTUAL_NATIVE_PATCH_AND_PERMANENCE_NEGATIVE_COMPONENT_REVIEW",
+  "observedAt": "2026-11-14T15:54:14.627078+00:00",
+  "refs": [
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k4b/permanent-number-negative-rollback-once.stdout.private.log",
+      "sha256": "2c3bc45e8295edac98a9231fae079406c6232653c5e45f3e28f42250d53cf526"
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k4b/permanent-number-negative-rollback-once.stderr.private.log",
+      "sha256": "97b4736e220e9b84282e8b5b9611791241d643ce9cdcaff9946c2c8ed6fa5303"
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k4b/permanent-number-negative-receipt.safe.json",
+      "sha256": "1785b76a7c537b0a855672a990d8a287d314f62d0d205ff5933454dafbbd86f8"
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k4b/apply-one-prepare-canonical-number-once.stdout.private.log",
+      "sha256": "579eb3d8ad6100d866499b3160f1db0bf2795963ba239dbe5119e3c528404994"
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k4b/apply-one-prepare-canonical-number-once.stderr.private.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/gridex-local-fresh-four-rpc-actual-20261114-k4b/one-prepare-canonical-number-patch-receipt.safe.json",
+      "sha256": "d93bd1d2be314906c701e7fc4a61e44585036c2233e06ce6504bcf0e6302a2ca"
+    }
+  ],
+  "actualNativePatchExit0AndMarker": true,
+  "actualOwnCompanyNonLocalNumberRewriteDenied23514RollbackExit0": true,
+  "scope": "Direct receipt/log hashes and required actual native markers only; not a new full snapshot comparison or public PREPARE success. Parent beforechild guards separately require all rows/native equality.",
+  "publicPreparePositiveQualified": false,
+  "newFullCaseCredit": 0,
+  "backendCalls": 0
+}

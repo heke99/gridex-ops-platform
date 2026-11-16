@@ -1,0 +1,13 @@
+{
+  "state": "ACTUAL_V2_NORMAL_STOP_QUALIFIED_NOT_PASS",
+  "primary": "55000 record p is notassignedyet",
+  "stderrSha256": "190f1eaaed961697c2a569925bfd23afd60586a1719b20f0c0e046d364514ff6",
+  "actualCause": "PLpgsqlrecordvariable p shadows SQLtablealias p beforeFOR; deterministicCsort passed",
+  "main522And3368FullExactEqual": true,
+  "ownCloneDroppedAbsent": true,
+  "attemptedCases": 1,
+  "otherCasesNotRun": 5,
+  "sourceFix": "RenamePLpgsqllooprecord todisjointv_permission and intendedlooprefs only; leaveSQLaliases intact",
+  "noFullFailedClonePostCaptureClaim": true,
+  "classification": "NEW_PRE_ADOPTION_FOUNDATION_VARIABLE_SHADOWING_NOT_ORIGINAL26"
+}

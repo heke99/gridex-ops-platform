@@ -1,0 +1,862 @@
+{
+  "state": "FINITE_REMAINING61_EXACT_ONE_EVENT01_05_PASS_DELTA",
+  "createdAtUtc": "2026-11-15T16:30:14.697355+00:00",
+  "canonicalCountsUnchanged": [
+    43,
+    1,
+    61
+  ],
+  "partitionCounts": {
+    "A_K13_RETURNED_GRAPH_READBACK": 6,
+    "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE": 46,
+    "C_EXTERNAL_OR_HISTORICAL_ORACLE_REQUIRED": 9
+  },
+  "rows": [
+    {
+      "id": "MAIN03.01",
+      "literal": "Full februari med2688 intervall",
+      "bucket": "A_K13_RETURNED_GRAPH_READBACK",
+      "canonicalStatusUnchanged": "PARTIAL_NATIVE_OR_BROWSER_FULL_ORACLE_BLOCKED",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "Read existing AFTER graph for returned billingUnderlayId: 2688 distinct physical/normalized interval IDs, month/UTC, scope and exact declared rawSHA; no second worker POST.",
+      "dependency": "Actual ok:true PLUS returned IDs/AFTER graph; existing same-request pipeline only, no extra POST",
+      "historicalResidual": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+      "sourceLedgerJsonPointer": "/rows/0"
+    },
+    {
+      "id": "MAIN03.02",
+      "literal": "Omsorgsfull kontroll av alla28 källors koppling",
+      "bucket": "A_K13_RETURNED_GRAPH_READBACK",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Read same saved source_basis links and demonstrate every interval links to the one declared monthly source. Record original28-source comparison still unavailable.",
+      "dependency": "Actual ok:true PLUS returned IDs/AFTER graph; existing same-request pipeline only, no extra POST",
+      "historicalResidual": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+      "sourceLedgerJsonPointer": "/rows/1"
+    },
+    {
+      "id": "MAIN03.03",
+      "literal": "Tre vanliga native-källäsningar före sparande",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Qualify a separate source-read trace on declared fixture: all unique source-ID chunks read before persist, ceil(uniqueIDs/250)=11 for2688. Persisted basis alone is not ordered RPC trace or oldliteral3.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/2"
+    },
+    {
+      "id": "MAIN03.04",
+      "literal": "Sparat underlag med förväntat käll- och pristotal",
+      "bucket": "A_K13_RETURNED_GRAPH_READBACK",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Read existing underlay/pricing IDs and persisted exact quantities/totals against declared source+CPS; keep original28/1809.51 comparison open.",
+      "dependency": "Actual ok:true PLUS returned IDs/AFTER graph; existing same-request pipeline only, no extra POST",
+      "historicalResidual": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+      "sourceLedgerJsonPointer": "/rows/3"
+    },
+    {
+      "id": "MAIN03.05",
+      "literal": "Timeout/okänt utfall: läs faktisk graf och lås före nytt försök",
+      "bucket": "A_K13_RETURNED_GRAPH_READBACK",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Use the single attempt existing AFTER graph/locks/transaction and K13 function-profile captures after success OR57014; classify unknown, never retry IMPORT.",
+      "dependency": "Actual ok:true PLUS returned IDs/AFTER graph; existing same-request pipeline only, no extra POST",
+      "historicalResidual": "Historisk worker läste0kvalificerade källor och skrev0underlag. Etablera normal produktutgiven TEST-identitet, signerad testprissnapshot och supply; verifiera2688intervall från28verkligt importerade testkällor. En enda månads-E66 ersätter inte28källor.",
+      "sourceLedgerJsonPointer": "/rows/4"
+    },
+    {
+      "id": "MAIN04.01",
+      "literal": "Prepare från exakt underlag",
+      "bucket": "A_K13_RETURNED_GRAPH_READBACK",
+      "canonicalStatusUnchanged": "PARTIAL_NATIVE_OR_BROWSER_FULL_ORACLE_BLOCKED",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "Read returned customerInvoiceId/invoiceExportItemId/pricingRunId and binding to exact underlay in already-awaited draft pipeline; no second prepare command.",
+      "dependency": "Actual ok:true PLUS returned IDs/AFTER graph; existing same-request pipeline only, no extra POST",
+      "historicalResidual": "MAIN03 saknar sparat positivt underlag. Granska exakt låst underlag, pengar och lineage oberoende före normalt approve/repeat; syntetisk TESTsignering via produktport är tillåten.",
+      "sourceLedgerJsonPointer": "/rows/5"
+    },
+    {
+      "id": "MAIN04.02",
+      "literal": "Prepare-repeat utan dubblett",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "New qualified normal prepare-repeat on actually eligible saved underlay; compare canonical IDs/no extra invoice. Current IMPORT-only capability does not authorize it.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/6"
+    },
+    {
+      "id": "MAIN04.03",
+      "literal": "Faktiskt utkast matchar1809,51 SEK och källor",
+      "bucket": "A_K13_RETURNED_GRAPH_READBACK",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Read returned draft totals/source graph with independent declared-fixture arithmetic; original1809.51 remains unavailable and cannot be backsolved.",
+      "dependency": "Actual ok:true PLUS returned IDs/AFTER graph; existing same-request pipeline only, no extra POST",
+      "historicalResidual": "MAIN03 saknar sparat positivt underlag. Granska exakt låst underlag, pengar och lineage oberoende före normalt approve/repeat; syntetisk TESTsignering via produktport är tillåten.",
+      "sourceLedgerJsonPointer": "/rows/7"
+    },
+    {
+      "id": "MAIN04.04",
+      "literal": "Approve efter låst oberoende kvitto",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Separate normal approve fixture/action after independently reviewed draft+frozen source/price snapshot; capture actual invoice number and commit.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/8"
+    },
+    {
+      "id": "MAIN04.05",
+      "literal": "Approve-repeat utan ändrad snapshot eller nytt nummer",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Only after that approve ACK, one qualified normal approve-repeat; compare number/frozen snapshot/row counts.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/9"
+    },
+    {
+      "id": "MAIN05.01",
+      "literal": "Native fil från godkänd snapshot",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "PARTIAL_NATIVE_OR_BROWSER_FULL_ORACLE_BLOCKED",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "Separate normal file action on approved immutable invoice; retain actual bytes/hash/native file receipt.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/10"
+    },
+    {
+      "id": "MAIN05.02",
+      "literal": "File-repeat behåller rad och bytes",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "After file success, normal file-repeat; verify same record/bodySHA, no new file row.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/11"
+    },
+    {
+      "id": "MAIN05.03",
+      "literal": "Två skyddade GET ger identiska korrekta XML-bytes",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "After actual file exists, two independently captured authenticated normal GETs; compare exact bytes/bodySHA/access identity.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/12"
+    },
+    {
+      "id": "MAIN05.04",
+      "literal": "Anonym faktisk fil kräver inloggning",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "PARTIAL_CURRENT_HTTP",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "On that same actual file, unauthenticated normal GET; verify login/denial and no leaked body.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/13"
+    },
+    {
+      "id": "MAIN06.01",
+      "literal": "Officiell schema-/formatversion fastställs",
+      "bucket": "C_EXTERNAL_OR_HISTORICAL_ORACLE_REQUIRED",
+      "canonicalStatusUnchanged": "BLOCKED_OFFICIAL_SCHEMA_SOURCE_OR_LOCAL_MODEL_CONTRACT",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "nextSmallestMeaningfulAction": "Obtain exact official schema/version identifier and immutable official input; no generated substitute schema.",
+      "dependency": "Exact independent external/normative/history input; distinction below",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/16"
+    },
+    {
+      "id": "MAIN06.02",
+      "literal": "Exakt verklig XML valideras mot officiellt schema",
+      "bucket": "C_EXTERNAL_OR_HISTORICAL_ORACLE_REQUIRED",
+      "canonicalStatusUnchanged": "BLOCKED_OFFICIAL_SCHEMA_SOURCE_OR_LOCAL_MODEL_CONTRACT",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "nextSmallestMeaningfulAction": "Validate actual retained invoice XML against that official schema/version; requires real XML as well.",
+      "dependency": "Exact independent external/normative/history input; distinction below",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/17"
+    },
+    {
+      "id": "MAIN06.03",
+      "literal": "Mottagarkvitto binds till fakturanummer och bodySHA",
+      "bucket": "C_EXTERNAL_OR_HISTORICAL_ORACLE_REQUIRED",
+      "canonicalStatusUnchanged": "HOLD_GENUINE_RECEIVER_ACCEPTANCE_SEPARATE_FROM_LOCAL_MODEL",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "nextSmallestMeaningfulAction": "Obtain genuine recipient acceptance receipt bound to actual invoice number+bodySHA; local HTTP/TLS fixture is not provider acceptance.",
+      "dependency": "Exact independent external/normative/history input; distinction below",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/18"
+    },
+    {
+      "id": "SITE01.01",
+      "literal": "Två aktiva sites med samma kund och månad",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "PARTIAL_NATIVE_OR_BROWSER_FULL_ORACLE_BLOCKED",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "Separate normal two-site same-customer/month fixture; qualify both supply/CPS/source sets before billing each site; original28/1809.51 residual stays open.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": "A/B är manuella kandidater. Kvalificera produktutgiven lokal TESTarea/nätägare, signerade perioder/priser, underlag och faktisk fakturagruppering. consolidatedInvoice-flaggan bevisar inte en samlingsfaktura.",
+      "sourceLedgerJsonPointer": "/rows/19"
+    },
+    {
+      "id": "SITE01.03",
+      "literal": "En avslutad och en aktiv site",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "Use normal editSite on separate eligible site, then installed generated status/is_active oracle: CLOSED/false versus ACTIVE/true; saved two commits do not complete full billing case.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/21"
+    },
+    {
+      "id": "TERM01.05",
+      "literal": "Avtalsändring får korrekt version utan retroaktiv tyst ändring",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Use normal edit_offer/version port on eligible separate contract; read before/after versions/effective dates and frozen predecessor, no raw status mutation.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/28"
+    },
+    {
+      "id": "TERM02.04",
+      "literal": "Tim-/månads-/kvartsvarianter endast när faktiskt stödda",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "COMPONENT_QUARTER_TO_HOUR_KERNEL_MET_NATIVE_PRICE_PIPELINE_PENDING",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "Select only actually supported hourly/monthly/quarterly product version; normal contract/source fixture and per-supported-variant receipt, no invented unsupported behavior.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/32"
+    },
+    {
+      "id": "TERM02.08",
+      "literal": "Rad-/VAT-avrundning kontrolleras med oberoende decimalorakel",
+      "bucket": "C_EXTERNAL_OR_HISTORICAL_ORACLE_REQUIRED",
+      "canonicalStatusUnchanged": "POLICY_GAP_NOT_QUALIFIED",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "nextSmallestMeaningfulAction": "Supply independent normative decimal/VAT/rounding rule and adversarial expected values; observed Math.round/current implementation is not the oracle.",
+      "dependency": "Exact independent external/normative/history input; distinction below",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/36"
+    },
+    {
+      "id": "TERM03.01",
+      "literal": "Start mitt i månaden",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "MODEL_PERIOD_PRICE_PREDICATE_MET_NATIVE_STORE_BUSINESS_GATE_BLOCKED",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "Separate normal contract/supply start midmonth + declared intervals; verify supported prorating/segment boundaries against independent functional oracle.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/37"
+    },
+    {
+      "id": "TERM03.02",
+      "literal": "Avslut mitt i månaden",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "MODEL_PERIOD_PRICE_PREDICATE_MET_NATIVE_STORE_BUSINESS_GATE_BLOCKED",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "Separate normal end-contract midmonth fixture + intervals; verify end boundary and no post-end billing.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/38"
+    },
+    {
+      "id": "TERM03.03",
+      "literal": "Start/slut vid månadsskifte",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Separate start/end at exact month boundary fixture; read segments/no gaps or duplicate charge across months.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/39"
+    },
+    {
+      "id": "TERM03.04",
+      "literal": "Uppsägning precis före/efter verklig frist",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Separate normal termination before/after real policy deadline; supported controlled clock or actual wait required, no arbitrary database timestamp.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/40"
+    },
+    {
+      "id": "TERM03.05",
+      "literal": "Leverantörsbyte utan dubbeldebitering",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Separate supported supplier-switch lifecycle and two adjacent supplies; verify actual sources/segments and no overlap/double billing.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/41"
+    },
+    {
+      "id": "DELIVERY01.03",
+      "literal": "Pappersfaktura om faktiskt stödd",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "COMPONENT_POSTAL_CONTRACT_MET_NORMAL_UI_NATIVE_EXPORT_SNAPSHOT_CAPTURE_PENDING",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "First establish supported paper channel; separate eligible invoice/customer fixture through normal delivery action and channel-specific receipt.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/44"
+    },
+    {
+      "id": "DELIVERY01.05",
+      "literal": "Sen kundändring ändrar inte redan godkänd snapshot",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "COMPONENT_PREDICATE_MET_FULL_NATIVE_ORACLE_BLOCKED",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "After separately approved invoice, normal later customer change; read approved snapshot unchanged and new customer data separately.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/46"
+    },
+    {
+      "id": "EDIEL01.01",
+      "literal": "28 CONTRL sänds och tas emot med rätt referenser",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Issue own legitimate TEST source, normal outbox send and exact CONTRL receipt/reference oracle; original28 cohort remains distinct.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/47"
+    },
+    {
+      "id": "EDIEL01.02",
+      "literal": "28 befintliga positiva APERAK köas native utan nya svarskopior",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "On own legitimate parsed source, normal queue-existing positive APERAK once; exact native IDs/no new response copies; do not fake original28.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/48"
+    },
+    {
+      "id": "EDIEL01.03",
+      "literal": "28 APERAK sänds och tas emot",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Send/receive those own product-issued APERAK via selected TEST route/mailbox and actual native/physical receipts; original28 residual separate.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/49"
+    },
+    {
+      "id": "EDIEL01.04",
+      "literal": "SMTP/IMAP med strikt lokal CA/TLS",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Qualify own clone Storage upload/download/hash first, then strict own TLS/CA normal product SMTP/IMAP on selected single mailbox; old ce0e component is not product authority.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/50"
+    },
+    {
+      "id": "EDIEL01.05",
+      "literal": "Syntaktiskt wire-, MIME- och affärsreferens-ID skiljs åt",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "PARTIAL_CURRENT_NATIVE_MIME_WIRE_ID_DISTINCTION",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "On same own transport fixture compare wire interchange/message refs, MIME Message-ID and native business IDs separately, including actual raw hash.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/51"
+    },
+    {
+      "id": "EDIEL01.06",
+      "literal": "Äldre105 MIME och äldre köposter förblir oförändrade",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Capture exact identified historical105-MIME/queue baseline and compare unchanged after bounded own operation; a new cohort cannot replace historical105.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/52"
+    },
+    {
+      "id": "EDIEL02.01",
+      "literal": "Byteidentisk dubblett är idempotent",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "PARTIAL_CURRENT_NATIVE_RAW_STORE_ORACLE_MET",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "Separate genuine own source duplicate via supported ingest port; byte-identical replay once, verify same canonical IDs and no extra effect.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/53"
+    },
+    {
+      "id": "EDIEL02.02",
+      "literal": "Samma referens med ändrat innehåll ger synligt skydd",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "PARTIAL_CURRENT_NATIVE_UPSTREAM_IDENTITY_HOLD",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "Separate genuine own reference with declared changed content; normal ingest, native conflict/error receipt and no overwrite.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/54"
+    },
+    {
+      "id": "EDIEL02.03",
+      "literal": "Rättelse ersätter endast giltigt källunderlag",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Supported correction fixture with original/revision authority; normal correction action and exact supersession/provenance, no fake source replacement.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/55"
+    },
+    {
+      "id": "EDIEL02.04",
+      "literal": "Senare meddelande före tidigare hanteras enligt implementation",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Own two-message legitimate sequence via selected single mailbox; deliver reversed order and observe supported staging/reconciliation with exact IDs.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/56"
+    },
+    {
+      "id": "EDIEL02.05",
+      "literal": "Fel part/mandat förblir nekad",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Own TEST issuer/route fixture with one deliberately wrong party/mandate; actual normal admission denial+unchanged business graph, not fabricated sender authority.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/57"
+    },
+    {
+      "id": "EDIEL03.01",
+      "literal": "Övergående4xx ger föreskriven väntan",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Own qualified Storage+SMTP outbox fixture with selected4xx response; one normal send and persisted next_attempt_at per policy.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/59"
+    },
+    {
+      "id": "EDIEL03.02",
+      "literal": "Permanent5xx blir synligt misslyckande",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Same kind of own fixture with selected permanent5xx; one normal send and actual failed status/receipt.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/60"
+    },
+    {
+      "id": "EDIEL03.03",
+      "literal": "Timeout efter okänt SMTP-utfall duplicerar inte blint",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Own SMTP drop after DATA with physical accept-count; one send, unknown/uncertain native readback, no blind retry or duplicated message.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/61"
+    },
+    {
+      "id": "EDIEL03.04",
+      "literal": "Processstopp under claim kan återhämtas enligt policy",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Own isolated attempt/claim fixture and supported stop/recovery port; verify lease/policy native recovery, never global worker or forced claim reset.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/62"
+    },
+    {
+      "id": "EDIEL03.05",
+      "literal": "SLA över faktisk deadline provas med kontrollerad klocka",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Own deadline fixture and existing supported clock/wait port; prove actual SLA transition; missing controlled clock remains explicit capability gap.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/63"
+    },
+    {
+      "id": "CUSTODY01.01",
+      "literal": "Alla28 fakturakällor återfinns via frysta referenser",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "For new declared source fixture read frozen source references/bytes/provenance; original all28 archive comparison remains unavailable.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": "Egen lokal DBbackup/restore är klar i sitt scope. Låstkälleretention kräver faktisk egen källa, legitim testaktör och tillämplig policy; upstream403 är inte bevis för låsskydd.",
+      "sourceLedgerJsonPointer": "/rows/64"
+    },
+    {
+      "id": "CUSTODY01.02",
+      "literal": "Fysisk originaldata bevaras trots utelämnade två diagnostikkopior",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Separate own retained raw fixture; apply only legitimate diagnostic-copy omission policy and prove required physical original retained.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/65"
+    },
+    {
+      "id": "CUSTODY01.03",
+      "literal": "Otillåten radering av låst källa nekas",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "UPSTREAM_RETENTION_BASIS_DENIAL_ONLY_LOCKED_SOURCE_DELETE_NOT_REACHED",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "Separate legitimate locked source fixture; one normal forbidden delete request and actual rejection/unchanged retained graph.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/66"
+    },
+    {
+      "id": "CUSTODY01.04",
+      "literal": "Legitimt rensningsbart separat testobjekt följer policy",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Separate policy-cleanable TEST customer through normal CREATE/MARK/DELETE with qualified installed fix and eligible zero-dependent graph; verify actual deletion, not old FK23503 denial.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/67"
+    },
+    {
+      "id": "BILLNEG01.01",
+      "literal": "Samtidig prepare ger högst ett kanoniskt resultat",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Separate ordinary eligible underlay + two independent legitimate actors/requests for concurrent prepare; verify one canonical invoice/transaction outcome.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/85"
+    },
+    {
+      "id": "BILLNEG01.02",
+      "literal": "Samtidig approve återanvänder korrekt faktura",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Separate approved-ready invoice + concurrent legitimate approve requests; verify one number/frozen snapshot and exact duplicate outcome.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/86"
+    },
+    {
+      "id": "BILLNEG01.03",
+      "literal": "Fil-replay ändrar inte frozen rows/body",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Separate actual immutable invoice file; normal replay and compare frozen rows/bodySHA.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/87"
+    },
+    {
+      "id": "BILLNEG01.04",
+      "literal": "Nya mätvärden efter lås ändrar inte godkänd snapshot",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Separate locked approved invoice then legitimate later meter input; prove approved snapshot and amount remain unchanged.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/88"
+    },
+    {
+      "id": "BILLNEG01.05",
+      "literal": "Stödd kredit/rättelse behåller spårbar originalreferens",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "Separate supported credit/correction route with approved original; verify immutable original link/amount policy and native receipt, no ad hoc negative invoice.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/89"
+    },
+    {
+      "id": "UI01.03",
+      "literal": "Faktura-/filstatus och belopp matchar DB/snapshot",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "NO_MAPPED_CASE_RECEIPT_WITH_PENDING_PREREQUISITES",
+      "nextSmallestMeaningfulAction": "With separately supported invoice/file scope, normal authenticated UI GET compared to native snapshot/status/amount. K13 saved graph alone is not full invoice/file UI oracle.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/92"
+    },
+    {
+      "id": "QA01.04",
+      "literal": "APIkompat/runtimeparity/productionreadiness återknyts till slutcommit",
+      "bucket": "B_SEPARATE_LEGITIMATE_FIXTURE_OR_SOURCE_GATE",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "PARTIAL_EXECUTION_BLOCKED",
+      "nextSmallestMeaningfulAction": "Run exactly applicable six existing final gates on qualified final source/repo/type epoch in explicit quiet slot; reuse verified gates only where source equality permits.",
+      "dependency": "Distinct eligible normal fixture/capability or qualified final-source gate; new actor/scope/window where necessary",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/98"
+    },
+    {
+      "id": "QA02.01",
+      "literal": "37 adress/site-fixtures får orsak och korrekt uppdatering utan guardförsvagning",
+      "bucket": "C_EXTERNAL_OR_HISTORICAL_ORACLE_REQUIRED",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "nextSmallestMeaningfulAction": "Need original37 fixture membership+expected reasons, bounded NOT_LOCATED; do not rebuild a replacement suite and label oldIDPASS.",
+      "dependency": "Exact independent external/normative/history input; distinction below",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/100"
+    },
+    {
+      "id": "QA02.02",
+      "literal": "Två returns-mockfel jämförs med originalanrop",
+      "bucket": "C_EXTERNAL_OR_HISTORICAL_ORACLE_REQUIRED",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "nextSmallestMeaningfulAction": "Need original2 mock call/return traces, bounded NOT_LOCATED; no reconstructed guessed calls.",
+      "dependency": "Exact independent external/normative/history input; distinction below",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/101"
+    },
+    {
+      "id": "QA02.03",
+      "literal": "Alla1247 filer får faktiskt slutresultat eller tydlig blockerare",
+      "bucket": "C_EXTERNAL_OR_HISTORICAL_ORACLE_REQUIRED",
+      "canonicalStatusUnchanged": "STATIC_RELATED_ONLY_FULL_FINAL_GATE_BLOCKED",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "nextSmallestMeaningfulAction": "Need original1247-file membership/final scope, bounded NOT_LOCATED; current2193 is a different epoch/cohort.",
+      "dependency": "Exact independent external/normative/history input; distinction below",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/102"
+    },
+    {
+      "id": "QA02.04",
+      "literal": "Minnesfix18 tester inklusive nya sex redovisas utan dubbelräkning",
+      "bucket": "C_EXTERNAL_OR_HISTORICAL_ORACLE_REQUIRED",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "nextSmallestMeaningfulAction": "Need original18 including exact new6 membership, bounded NOT_LOCATED; no doublecount of unrelated controls.",
+      "dependency": "Exact independent external/normative/history input; distinction below",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/103"
+    },
+    {
+      "id": "QA02.05",
+      "literal": "Prisfix59 tester och fullrelease binds till rätt slutcommit",
+      "bucket": "C_EXTERNAL_OR_HISTORICAL_ORACLE_REQUIRED",
+      "canonicalStatusUnchanged": "BLOCKED_REQUIRED_DEPENDENCIES",
+      "ledgerDispositionUnchanged": "UNAVAILABLE_ORIGINAL",
+      "nextSmallestMeaningfulAction": "Need original59 price-fix membership and final release binding, bounded NOT_LOCATED; independent new tests stay separate.",
+      "dependency": "Exact independent external/normative/history input; distinction below",
+      "historicalResidual": null,
+      "sourceLedgerJsonPointer": "/rows/104"
+    }
+  ],
+  "references": [
+    {
+      "path": "/workspace/gridex-per-id-execution-ledger-20261115/per-id-execution.v2.safe.json",
+      "sha256": "3803681d2a41086d32625a91be5beeda11273db3364909fec5c8087ece716eda",
+      "bytes": 244566
+    },
+    {
+      "path": "/tmp/gridex-k6-final-outcome-20261114/quality/audits/gridex-k6-final-outcome-20261114/results.safe.json",
+      "sha256": "0b4f6e4fceeffe70079c740ea5ea2deca47b612e0329b36800277bf5184c148c",
+      "bytes": 262342
+    },
+    {
+      "path": "/tmp/gridex-independent-next-batch-20261115/quality/audits/gridex-independent-next-batch-20261115/results.safe.json",
+      "sha256": "248541a4f970557882e256588334e3e59be805a0eca26204137a446bf1e2d7ef",
+      "bytes": 18053
+    },
+    {
+      "path": "/workspace/gridex-underlay-after-k12-readiness-20261115/NEXT.safe.json",
+      "sha256": "647cbdeffbb88de0f5ea2fe62f207a4db9942d36c244ebf6d747b144ad526cad",
+      "bytes": 7721
+    },
+    {
+      "path": "/tmp/gridex-site-term-supported-nextpacket-20261114/PACKET.safe.json",
+      "sha256": "f391bfaa11014010261bce42e9f5c8915c96980304c997777c84fa7417b9b601",
+      "bytes": 12992
+    },
+    {
+      "path": "/tmp/gridex-qa0104-k11-finite-gates-prep-20261115/SIX-GATES.K11.MATERIALIZED-APPLICABILITY.safe.json",
+      "sha256": "cf25689fb1b74f9c53bc49ee7ca69ff65d0b1bbe0c5f5c84708ec2a9f7cab875",
+      "bytes": 27323
+    },
+    {
+      "path": "/workspace/gridex-event-error-tenant-next-prep-20261115/FROZEN.safe.json",
+      "sha256": "2977257cf1de7cda39fa047cbc3fb59a9f52f958242b03023291afaa99d1078f",
+      "bytes": 1187
+    },
+    {
+      "path": "/workspace/gridex-k13-filesystem-preflight-prep-20261115/PREPARED.safe.json",
+      "sha256": "0540e1dd89ed092dbe38d76d9a4e77c4630f9fc1155cc4847b6da15b404e9b51",
+      "bytes": 1485
+    }
+  ],
+  "categoryMeaning": {
+    "A": "Six readback actions on existing K13 returned graph if genuine full success; functional evidence only. No claim complete old scenario/capability for prepare/approve/file.",
+    "B": "51 next actions requiring own legitimate additional fixture/action scope OR final source gate. Does not mean all are immediately runnable.",
+    "C": "Nine ledger availability slots: official schema/receipt/rounding norm or bounded historical membership NOT_LOCATED; NOT nine identical user-confirmed nonexistent inputs."
+  },
+  "availabilityPrecision": {
+    "userConfirmedUnavailable": "original28/1809.51 and official XSD supplied none; preserve literal original residuals even for A/B functional work",
+    "boundedNotLocated": "QA02.01-.05 original membership, not proof inexistence",
+    "externalReceipt": "MAIN06.03 actual recipient acceptance still requires genuine external receipt",
+    "independentNorm": "TERM02.08 needs authoritative rounding norm; implementation result is not norm"
+  },
+  "noMappedReceipt38": {
+    "ids": [
+      "MAIN03.02",
+      "MAIN03.03",
+      "MAIN03.04",
+      "MAIN03.05",
+      "MAIN04.02",
+      "MAIN04.03",
+      "MAIN04.04",
+      "MAIN04.05",
+      "MAIN05.02",
+      "MAIN05.03",
+      "TERM01.05",
+      "TERM03.03",
+      "TERM03.04",
+      "TERM03.05",
+      "EDIEL01.01",
+      "EDIEL01.02",
+      "EDIEL01.03",
+      "EDIEL01.04",
+      "EDIEL01.06",
+      "EDIEL02.03",
+      "EDIEL02.04",
+      "EDIEL02.05",
+      "EDIEL03.01",
+      "EDIEL03.02",
+      "EDIEL03.03",
+      "EDIEL03.04",
+      "EDIEL03.05",
+      "CUSTODY01.01",
+      "CUSTODY01.02",
+      "CUSTODY01.04",
+      "EVENT01.04",
+      "EVENT01.05",
+      "BILLNEG01.01",
+      "BILLNEG01.02",
+      "BILLNEG01.03",
+      "BILLNEG01.04",
+      "BILLNEG01.05",
+      "UI01.03"
+    ],
+    "meaning": "No uniquely mapped selected case receipt with pending prerequisites. Not never-run, not ready-to-run, not the count of untouched cases. Some related generic component tests exist but are not automatically the literal case.",
+    "sourceCutoff": "Historical bounded ledger; later generic components do not upgrade these whole-ID mappings"
+  },
+  "ifK13Fails57014": [
+    "Finish only existing AFTER/function-profile/graph/locks from that attempt; no import/worker replay.",
+    "Schedule independent finite QA01.04 gates in a quiet slot after final-epoch applicability.",
+    "Fresh separate EVENT01.01 then .03 with qualified transport/FS/lease; oldS/R2 contexts remain expired.",
+    "Separate TERM01.05 version fixture, SITE01.03 corrected generated-status oracle, CUSTODY01.04 normal eligible cleanup after installed fix qualification.",
+    "EDIEL02/03 own fixtures remain independent of billing import, but actual TEST authority/selected route/mailbox/Storage-before-SMTP prerequisites must be completed first."
+  ],
+  "immediateIndependentSourceWork": [
+    "QA01.04 exact six-script applicability already packaged; no commercial fixture or original28 needed.",
+    "No new broad inventory/deadcode/history hunt; use referenced finite port/driver handoffs."
+  ],
+  "limits": [
+    "No backend/Node/Auth/fixture/source mutation executed.",
+    "No complete scenario PASS, attempt total or new canonical status inferred.",
+    "A/B are next meaningful action lanes, not promises that current K13 actor can mutate outside LOCAL_IMPORT.",
+    "One monthly2688 file never replaces original28/1809.51; current chunk250 trace is not original literal3 reads.",
+    "POST_LOOKUP and receipt-clock/native scanner fixes do not qualify downstream outcome before actual returned graph."
+  ],
+  "exactDelta": {
+    "baseQueue": {
+      "path": "/workspace/gridex-post-k13-finite-queue-20261115/queue.safe.json",
+      "sha256": "29538892ed7ece2d95eafa469614b4b2ce3fef51d8b726cecf1bbdadb65a000a"
+    },
+    "removedOnlyFullOriginalPASSIds": [
+      "EVENT01.01",
+      "EVENT01.03",
+      "EVENT01.04"
+    ],
+    "ledgerV3": {
+      "path": "/workspace/gridex-per-id-execution-ledger-20261115/per-id-execution.v3.safe.json",
+      "sha256": "8beedc89e69b17033e2cda9f19ec952493d8e80d06117ef6270f618fa6f85700"
+    },
+    "independentFullVerdict": {
+      "path": "/workspace/gridex-event-original-acceptance-20261115/EVENT-C-INDEPENDENT-FULL-ORIGINAL-VERDICT.safe.json",
+      "sha256": "09181854e48673b9c6ed3c0650bf02f4ba83cc695e677375c23c8f9063a7c09c"
+    },
+    "all63OtherRowsByteSemanticEqualToBase": true,
+    "historicalOtherQueueMetadataRetainedAtBaseCutoff": true,
+    "noNewReadinessClaim": true
+  },
+  "v4ExactDelta": {
+    "baseQueue": {
+      "path": "/workspace/gridex-post-k13-finite-queue-20261115/queue.remaining63.v3.safe.json",
+      "sha256": "8b1c0d0778011e6ad3d47bb7d0dc2559abe9418a6211d009c7afc01e498009cd"
+    },
+    "removedOnlyFullOriginalPASSIds": [
+      "EDIEL02.06"
+    ],
+    "ledgerV4": {
+      "path": "/workspace/gridex-per-id-execution-ledger-20261115/per-id-execution.v4.safe.json",
+      "sha256": "aa9dfd3c8e2f61369c8373101222663fa0ac082a2348e8ae963eef68ca25d840"
+    },
+    "independentFullVerdict": {
+      "path": "/workspace/gridex-ediel06-queued-fixture-20261116/ACTUAL-B-FULL-ORIGINAL-VERDICT.safe.json",
+      "sha256": "4c5c918635cafc62320edda8ebe9514a226c1579b8fdcdba014b6822d81a660b"
+    },
+    "all62OtherRowsObjectExact": true,
+    "olderQueueMetadataHistoricalNotCurrentReadiness": true
+  },
+  "v5ExactDelta": {
+    "baseQueue": {
+      "path": "/workspace/gridex-post-k13-finite-queue-20261115/queue.remaining62.v4.safe.json",
+      "sha256": "24d4761b529bf2486da6fdf449be787a6da19261200dfe34e06bcdc4b69c48ae"
+    },
+    "removedOnlyFullOriginalPASSIds": [
+      "EVENT01.05"
+    ],
+    "ledgerV5": {
+      "path": "/workspace/gridex-per-id-execution-ledger-20261115/per-id-execution.v5.safe.json",
+      "sha256": "d29f2f05494b69d4b8dd034515730db239273d9e39d38319b1ed17e14d92a197"
+    },
+    "independentFullVerdict": {
+      "path": "/workspace/gridex-event-original-acceptance-20261115/EVENT05-ACTUAL-FULL-ORIGINAL-VERDICT.safe.json",
+      "sha256": "bc030476d46595510ac6eee902c919a3c5bf8d7aeee0a734269a787df38b2fd2"
+    },
+    "all61OtherRowsObjectExact": true,
+    "oldQueueMetadataHistoricalNotNewReadiness": true
+  }
+}

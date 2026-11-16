@@ -1,0 +1,275 @@
+{
+  "asOfUtc": "2026-11-16T09:49:01.745923+00:00",
+  "totalScenarios": 105,
+  "fullPass": 43,
+  "documentedUnsupportedGap": 1,
+  "outstanding": 61,
+  "countingRule": "Only completed scenario oracles change totals; component and source checks are not full PASS.",
+  "newComponentsNotFullPass": [
+    "CUSTODY genuine CREATE succeeded",
+    "CUSTODY genuine MARK succeeded; customer retained",
+    "CUSTODY zero-business probe captured expected confirm+hydrated fetch next-action multipart POST, intentionally blocked; nativeunchanged/Auth0",
+    "K5 genuine ISSUE/RECEIVE/correctedPREPARE/ATTEST succeeded; actual document reviewed beforeattest",
+    "K5 normalIMPORT stopped PREINTENT/no forwarded POST; postATTEST/native/full unchanged; properlogout/Auth0",
+    "Official expired-only Jserverroles renewed18:45:45, normalMainCready; no nextscenarioAuth yet",
+    "K6 all four genuine RPC succeeded; import bounded client readiness timed out before file/intent/POST",
+    "K6 closed: UI logout409 distinct from normal Auth API local logout204; exact issued session cleared; no money/case credit",
+    "E normal DELETE forwarded once and failed SQLSTATE23503 customer_onboarding_applications_customer_id_fkey; business rollback verified",
+    "E minimal FK fix source reviewed/local commit d04a1fd; native regression and post-fix UI NOTRUN",
+    "Native E actual15437 stopped beforeCREATE on missing fullRowsReaderPath; complete readerinterface9controls then qualified",
+    "Native F actual41455 migrationapply and exactreplay passed onebody/all3370functionsOIDACL/522rows fences",
+    "Native F one genuine serviceHTTP stopped42501 at harnessauth.userspreflight, zeroDELETEtestsqualified; cloneRESTclosed/Mainfullandsequencesunchanged",
+    "WrapperV2 removes only redundant auth.userslookup; requires external actualclone actor/twoTESTcompany adminREADONLY proof; sourcequalified/nativeGpending",
+    "Legitimate K expired-only renewal20:46:14/exp22:46:14 actualAuthREST200; no userJWTminting",
+    "H2 actual ALL21 component cases passed:20DELETE RPC/1FK/16namedguards/0NOTRUN; genuine serviceHTTP; independent213b; no Main or normalUI credit",
+    "EDIEL source4 correctedconfigV4 strict1536 semanticPASS exit0/41.283s/1479Programfiles/all10roots; no runtimeadoption",
+    "Final local delete fix8af37439 supersedes d04a; explicit remaining-onboarding guard prevents composite-CASCADE bypass. H2v2 all21 passed.",
+    "Local TEST Main adoption passed; one normal UI DELETE committed POST200/customer0/app0. Helperexit1 retained due denied Next stackframes diagnostic; list landing42703 consolidated_invoice schema epoch mismatch separately documented.",
+    "Delete closure has incomplete foreign-row before evidence in8changed scopes; no global unchanged assertion.",
+    "A1/A2/A3 frontend diagnostic attempts stopped before browser; A4 rawTCP+preNextcanary source qualified17controls, actual pending. No HMR cause proof yet.",
+    "Normal UI ONE303 issued actual EDIEL TEST99002 reg0a92 +3deps/Nov16lease; 522matrix only4ownedscopes/all3370functions/oldown+foreign preserved. ProperUIlogout/browserclosed/nativeAuth0 qualified closure496d; UIlocatorfailure/ACKunknown/completedIds{} retained, no replay/no fullUIscenarioPASS.",
+    "SITE continuation actualS2ACTIVE andS1CLOSED eachONE200 committed. S2ACK+visible passed; S1ACK409 due omitted generatedis_active, correctedsource/saved20controls qualified without rewriting oldACK. All10ownedscopes/foreignFP/512other tables/3370functions preserved, properownAuthAPI204/Auth0, UIlogoutfalse/helperEXIT1 retained. FullSITE datedsupply/invoice oracle pending.",
+    "Actual public HMR A7/B7 comparison verified loopback origin cause: B7 React props/fiber attached with10WebSocketframes/0errors; A7 blocked127. Exact private overlay742e source reviewed; authenticated IMPORT remains unverified.",
+    "Actual native preAuth qualification B passed actual bootstrap3370to3420to3443, exact14empty private tables, currentreceiver0a92 facts; Main fullsnapshot/sequences/Auth0 unchanged; ownedclone cleaned.",
+    "Actual K8/M full3000 genuine Auth-only launched02:11UTC on MainH; READY and subsequent new session baseline pending. No business/runtime/fullscenario credit.",
+    "K8/M actual genuineREADY commands0/denied0 succeeded. New AFTER_READY Mainbaseline/Fc sealed541019cf: 16876218B dump8fb5ca24, fullbeforeafterba69c2 byteequal; Root actualhash/mtime review passed. Isolatedparent/runtime/import/finance still pending.",
+    "K8 actualprivate runtime and naturalSAMECOOKIE SDKgetUser/canonicalA qualified; ONEISSUE actualnativecommitted/ACK/CP1b1d. RECEIVE didNOTdispatch dueunchangedper-phase>900 guard; noPREPARE/ATTEST/import. Parent/runtime/clone/forwarder closed, APIlocalGET200/logout204/Auth0/browserclosed; UIfalse/helperEXIT1 retained.",
+    "K8 laterMainAuthresidual exactly4 ownAuthscopes (sessions/refresh/mfa_amr_claims/auditlog), other518tables andall3370rawmetadata unchanged; peer9160. Privateapi-clientsGET didnotprovehydration: NAVIGATE→HOLD abortedlateJS, normalImportPILOT_READ separate.",
+    "Nactualofficial2serverroles renewed03:08:11 for7200s to05:08:11, preemptive16sbeforeMexpired; only2keys/sameSecret/HMAC verified, nouserJWT. AllnextK9source/resourceprep BEFOREnewgenuineAuth.",
+    "NewclosedreadonlyIMPORTreadinesshelper6e75/c5fa Source2+13mockgroups PASS; actualbrowserREADINESSnotyetrun. FourRPC now requireactualREADY/hash. OriginalCore50bc/importdriverEAA unchanged.",
+    "K9 actual readonly IMPORT readiness passed genuine React onSubmit; ISSUE/RECEIVE/PREPARE/ATTEST each native ACK with fresh operator actual document review. One normal File import POST200 returned UI denied empty message; full clone and financial/native graph unchanged vs ATTEST. No import/money/fullscenario credit.",
+    "K9 properly closed resources; genuine own Auth API logout204/native Auth0. Original UIlogoutfalse/helperEXIT1 and stop202-vs200 harness mismatch retained. Closure0d99d1/peer6b1332.",
+    "Isolated installed SDK old exact raw GET279567B against Node16384B returned431 before requestcallback; historical K9 actualwire431 not captured. POST lookup source fcefc755 reviewed; five installed SDK customfetch cases PASS427e1, native SQL/realHTTP and integrated browser pending.",
+    "O actual official server roles renewed to06:52:54, no userAuth. Closed K9 generated cache138 removed and RAW23 archived with exact custody; protected IMPORT checkpoint/mainAuth0 references retained.",
+    "POST lookup actual isolated native regression and ALL15 real service/anon HTTP cases PASS; exact3443+1=3444, clone/APIclosed, Mainfull/all7/globalroles/Auth0/Ocarrier unchanged. Terminalceb276. Independent actualpeer pending; integrated ordinarybrowser stillpending; totals unchanged."
+  ],
+  "canonicalCutoffReport": "/tmp/gridex-runtime-cutoff-addendum-20261114/quality/audits/gridex-runtime-cutoff-addendum-20261114/results.safe.json",
+  "latestLocalReports": [
+    "/tmp/gridex-custody-create-mark-outcomes-20261114/quality/audits/gridex-custody-create-mark-outcomes-20261114/REPORT.sv.md",
+    "/tmp/gridex-k5-four-rpc-import-stop-doc-20261114/quality/audits/gridex-k5-four-rpc-import-stop-20261114/REPORT.sv.md",
+    "/tmp/gridex-custody-delete-e-outcome-20261114/quality/audits/gridex-custody-delete-e-outcome-20261114/REPORT.sv.md",
+    "/tmp/gridex-custody-native-ui-outcomes-20261114/quality/audits/gridex-custody-native-ui-outcomes-20261114/REPORT.sv.md",
+    "/tmp/gridex-k6-final-outcome-20261114/quality/audits/gridex-k6-final-outcome-20261114/REPORT.sv.md",
+    "/tmp/gridex-correct-routes-deadcode-repo-20261114/quality/audits/gridex-correct-routes-deadcode-20261114/REPORT.sv.md",
+    "/tmp/gridex-k9-outcome-20261115/quality/audits/gridex-k9-outcome-20261115/REPORT.sv.md",
+    {
+      "path": "/tmp/gridex-simulation-status-k13-claim-20261115/quality/audits/gridex-simulation-status/README.sv.md",
+      "head": "b8e1fc00b8030676ab076dee7c58af4abddb4c6e",
+      "scope": "Exact3localdocs/105byteexact/14entryhistoricalRootcutoff,no push/adoption"
+    },
+    {
+      "path": "/tmp/gridex-event-c-repo-addendum-claim-20261116/quality/audits/gridex-simulation-batches/2026-11-16-current-43.sv.md",
+      "head": "f0d4f30876572d9572d0e23ef78e6262237d1c1d",
+      "scope": "Dated43/1/61 cutoff,105statuses/41mixedfindings,exacttwo newdocs on actualMainbf32,fulltwoindependenttruth/Gitbyte reviews; no push/Mainadoption"
+    }
+  ],
+  "componentEntriesAreChronologicalHistory": true,
+  "perIdCoverageLedger": "/workspace/gridex-per-id-execution-ledger-20261115/per-id-execution.v5.safe.json",
+  "coverageNote": "Strict lower bound33 distinct native/browser case-action IDs,23 overlap38PASS; do not add38+33 or infer exact all-kindattempttotal.",
+  "latestActualK10": {
+    "updatedAt": "2026-11-15T07:54:04.165699+00:00",
+    "fullPass": 38,
+    "documentedGap": 1,
+    "incomplete": 66,
+    "outcome": "FOUR_NATIVE_ACKS_NORMAL_IMPORT_DENIED_RECEIPT_CLOCK_NULL",
+    "report": "/tmp/gridex-k10-outcome-20261115/quality/audits/gridex-k10-outcome-20261115/REPORT.sv.md",
+    "sealedFcSHA256": "77e2a3f7204521b859a341651d62e9331514fcdb312b60650a0e0034c3816520",
+    "offlineProjectionSHA256": "7d34ac0463bdc6aa08b971057195645ad30ddbc3f526f2526281d7eb7e71cddc",
+    "noFullScenarioCredit": true
+  },
+  "latestActualK11": {
+    "fullPass": 38,
+    "documentedGap": 1,
+    "incomplete": 66,
+    "fourNativeACKs": true,
+    "clockFixActualPersistedPositiveComponent": true,
+    "oneNormalImport": "DENIED_UNKNOWN_NO_RETRY",
+    "underlyingError": "57014 statement timeout on ediel_messages INSERT",
+    "financialNative14LineageUnchanged": true,
+    "closedReceiptSHA256": "482acd88af4f5fd3542d8e953d00b0be540ceb3a89ad29091b829025285be95b",
+    "next": "Independent EVENT01.01/.03 plus isolated EDIFACT scanner benchmark; legacy export authorization fix"
+  },
+  "latestActualK12": {
+    "state": "CLOSED_ALL4_NATIVE_ACKED_ONE_NORMAL_IMPORT57014_UNKNOWN_NO_RETRY_API_AUTH0_BROWSER_CLOSED",
+    "fullPassDelta": 0,
+    "actualRoot": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k12",
+    "scannerFull3444Apply": "/workspace/gridex-local-fresh-four-rpc-actual-20261115-k12/framing-exact-body-only-guard.safe.json",
+    "newOperatorReview": "/tmp/gridex-local-fresh-four-rpc-inputs-20261115-k12/LOCAL_PREPARE.operator-review.private.json",
+    "newOperatorReviewSHA256": "45b4151041e2378f0f2c36bd2cbaaac65a1a3a2bc6bc51f2fdf35264bef28892",
+    "newDocumentSHA256": "5ebcab882de0d919f0c7d5c86478799dbca4451ff724e6889799da10b3160c22",
+    "limits": "Upstream components only; normal import/full financial oracle not yet completed. One monthly2688 source is not original28/1809.51 oracle.",
+    "actualFullUnknownCheckpointSHA256": "ba8caa96694bbd236528688c958b1f0e0c777184c52cfe38a21262c4fbcfd0ba",
+    "scopedGraphReviewSHA256": "b490a025e9cdc515cc4ca82c7161410e8307b8d9c42bd22e29718c744a17d467",
+    "noMoneySuccess": true,
+    "closure": "/workspace/gridex-k12-import-denied-closure-20261115-a/CLOSED-FOUR-NATIVE-ACKS-UNKNOWN-IMPORT-WIRE-TIMEOUT-API-AUTH0.safe.json",
+    "closureSHA256": "70a70fcca58c1b53135a2520557a790db12cbb6e1686f6800036fd3f14ce753e",
+    "closureIndependentPeerSHA256": "9393fe8659e0c13b9c24c63bba753cc78c442cc3c0aaab09d97338de78dba2de"
+  },
+  "latestActualEventS": {
+    "fullPassDelta": 0,
+    "state": "CLOSED_ZERO_BUSINESS_HMR_MODE_STOP",
+    "closure": "/workspace/gridex-event-S-zero-business-closure-20261115-a/CLOSED-HMR-METADATA-STOP-ZERO-UI-API-AUTH0.safe.json",
+    "postFixStaticFilesystem": "148PASS/0FAIL/0unresolved, actual1be0 independent3b5d",
+    "actualFactoryLeasePlanGuardPassed": true
+  },
+  "latestActualK13": {
+    "state": "CLOSED_THREE_NATIVE_ACKS_NO_ATTEST_NO_IMPORT_AUTH0",
+    "closure": {
+      "path": "/workspace/gridex-k13-three-native-window-stop-closure-20261115-a/CLOSED-THREE-NATIVE-ACKS-NO-ATTEST-NO-IMPORT-AUTH0.safe.json",
+      "sha256": "22c0212904de5064737970f496d19a55a8684ede7dbfce1552e3c432e9a1a7eb"
+    },
+    "independentReviewSHA256": "1b3382b3be4d015bce20f472ba82ddc8af6ea2680b2d62b4122833b340b35e70",
+    "nativeACKSteps": [
+      "ISSUE",
+      "RECEIVE",
+      "PREPARE"
+    ],
+    "ATTESTExecuted": false,
+    "importExecuted": false,
+    "financialCaptureExecuted": false,
+    "newFullScenarioPass": 0,
+    "parentExit": 0,
+    "RESTExit": 255,
+    "normalRESTBoundaryQualified": false,
+    "whyStopped": "Context restoration/producer dispatch latency missed unchanged900 reserve despite physical Root and independent approvals."
+  },
+  "latestActualNormal600ProfilePrerequisites": {
+    "state": "CLOSED_TWO_REAL_PROFILE_COMMITS_CATALOG_ZERO_POST_AUTH0",
+    "closureSHA256": "5da7ab817757942608b9024c4b4f3c20411968ff4f8bc40e2072f3a9b898fbfc",
+    "independentClosureSHA256": "94db504ef289b4c438e5031cc104f72a3a5b806afb9e274d49f1ee71872f92cb",
+    "businessReadbackSHA256": "837df2335dc60ba84c3ebba22befa74a2235fa79ead12ed4ff0eb777ebe7caca",
+    "actualProfileFormsCommitted": 2,
+    "actualCatalogPOSTs": 0,
+    "customerIntakeOrTERMOrSITEExecuted": false,
+    "newFullScenarioPASS": 0,
+    "postbusinessToLogoutOnlyFourAuthScopes": true,
+    "normalMainVRetainedWarm": true,
+    "actualOriginalHelperPGIDUnknown": true,
+    "noGlobalBrowserDescendantAbsenceClaim": true
+  },
+  "latestActualOutcome": {
+    "state": "FULL_ORIGINAL_EDIEL02_06_PASS_WITH_INDEPENDENT_CLOSURE",
+    "case": "EDIEL02.06",
+    "fullVerdict": {
+      "path": "/workspace/gridex-ediel06-queued-fixture-20261116/ACTUAL-B-FULL-ORIGINAL-VERDICT.safe.json",
+      "sha256": "4c5c918635cafc62320edda8ebe9514a226c1579b8fdcdba014b6822d81a660b"
+    },
+    "closureSHA256": "4acb7a9a11b6e73a2e1be8eeaf046f77db42ce6b102c3e5f4a08b0f7465aabd1",
+    "private386Evidence": "Pinned nativeSQL/controller equality checks executed and passed with EXIT0. Beforemap and two actualcustodyrows saved; postmaps not separately saved, no independentrehash claim.",
+    "newFullScenarioPass": 1
+  },
+  "currentEventAttempt": {
+    "state": "FULL_ORIGINAL_PASS_THREE_WITH_INDEPENDENT_BUSINESS_AND_CLOSURE_VERDICTS",
+    "originalCases": [
+      "EVENT01.01",
+      "EVENT01.03",
+      "EVENT01.04"
+    ],
+    "independentFullVerdict": {
+      "path": "/workspace/gridex-event-original-acceptance-20261115/EVENT-C-INDEPENDENT-FULL-ORIGINAL-VERDICT.safe.json",
+      "sha256": "09181854e48673b9c6ed3c0650bf02f4ba83cc695e677375c23c8f9063a7c09c"
+    },
+    "newFullScenarioPass": 3,
+    "EVENT01.05": "FULL_ORIGINAL_PASS_SEE_SEPARATE_EVENT05_VERDICT",
+    "next": "EDIEL02.05 + EDIEL03.01-.03 normal four-case cohort"
+  },
+  "latestLocalDocumentationCommit": "f0d4f30876572d9572d0e23ef78e6262237d1c1d",
+  "activeHeterogeneousFindings": 46,
+  "latestApiStatus": "API A setup closed2066; V4b source fixed. Held while selected original EVENT three-case headless batch runs. No new original PASS.",
+  "laterDatedSchemaErratum": "Actual public.event_outbox includespayload; syntheticfixtureomissionwasnotMain schema evidence.",
+  "latestExecutionUpdateUtc": "2026-11-16T07:23:40.214692+00:00",
+  "perIdLedgerUpdate": "IMMUTABLE_V5_EXACT1_EVENT05_TRANSITION_INDEPENDENTLY_VERIFIED",
+  "currentPerIdLedger": {
+    "path": "/workspace/gridex-per-id-execution-ledger-20261115/per-id-execution.v5.safe.json",
+    "sha256": "d29f2f05494b69d4b8dd034515730db239273d9e39d38319b1ed17e14d92a197",
+    "bookkeepingPeerSHA256": "0a45df916326406d61defe516ca87122c966ac6677c9cc9e795e1b925d5f8207"
+  },
+  "currentRemainingQueue": {
+    "path": "/workspace/gridex-post-k13-finite-queue-20261115/queue.remaining61.v5.safe.json",
+    "sha256": "8b19d4404c8e7dc47d00adeb0b3b282003730918eda3ea09d5bfe48c9cf4f3bb"
+  },
+  "nextOriginalTarget": "EDIEL02.05 + EDIEL03.01-.03; then EDIEL03.04-.05",
+  "latestFullOriginalEvent05": {
+    "path": "/workspace/gridex-event-original-acceptance-20261115/EVENT05-ACTUAL-FULL-ORIGINAL-VERDICT.safe.json",
+    "sha256": "bc030476d46595510ac6eee902c919a3c5bf8d7aeee0a734269a787df38b2fd2",
+    "caseId": "EVENT01.05",
+    "verdict": "PASS",
+    "workerFinalACK": "STOP_preserved_envelope_array_harness_error_independent_full_original_oracle_passed"
+  },
+  "perIdLedgerTransition": "/workspace/gridex-per-id-execution-ledger-20261115/V5-EXACT-ONE-EVENT05-TRANSITION.safe.json",
+  "remainingQueue": "/workspace/gridex-post-k13-finite-queue-20261115/queue.remaining61.v5.safe.json",
+  "currentLedgerSHA256": "d29f2f05494b69d4b8dd034515730db239273d9e39d38319b1ed17e14d92a197",
+  "currentBatch": {
+    "ids": [
+      "EDIEL02.05",
+      "EDIEL03.01",
+      "EDIEL03.02",
+      "EDIEL03.03"
+    ],
+    "workerRuntimeStorageSource": "B/AE source complete; actualno-startlateconstructorrevealed2.244GBreclaim, old1152MiBWS envelope unqualified. Newheavystarts pausedperuserlocalverification direction; no userAuth/business.",
+    "actualFourCaseAuthOrBusinessStarted": false,
+    "soleBackendProducer": "/root/execute_eight_parts",
+    "serverEpoch": "AE",
+    "serverRoleExpiresAtEpoch": 1794826187,
+    "serverNormal3120LatestStartEpoch": 1794823067,
+    "maintenanceClosedNativeProof": "/tmp/gridex-local-server-role-window-maintenance-20261116-ae/POST-MAINTENANCE/PROPER-CLOSURE-NATIVE.safe.json",
+    "businessPolicyFailuresMustBeRecordedAndIndependentCasesContinue": true,
+    "lastPrelaunchStop": {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-a/AC-WINDOW-READONLY-STOP.safe.json",
+      "sha256": "b5ede2fbc780444ddbd62838c3329e75ad5f2d9cf4a16d4b207ca8c1961abc73",
+      "reason": "AC remaining3024 below unchanged3120 guard; no launch/Auth/backend mutation",
+      "productFailure": false
+    },
+    "nextServerEpoch": "AD",
+    "independentADRenewalVerdict": "/tmp/gridex-local-server-role-window-maintenance-20261116-ad/qa-AD-official-renewal-actual-outcome-review.safe.json",
+    "actualOuterStarted": true,
+    "actualOuterPID": 4115126,
+    "actualOuterTargetSHA256": "964888a42d8014e0ebfbf3f6f4c2f67d2056f8498266dfd381255dc0dfdb2b66",
+    "actualOuterState": "HEAVY_CLOUD_EXECUTION_PAUSED_PENDING_VERIFIED_MAC_LOCAL_PREFLIGHT",
+    "storageActualClosed": "/tmp/gridex-ediel-owned-storage-actual-20261116-a/closed.safe.json",
+    "properClosure": {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/CLOSED.safe.json",
+      "sha256": "3c3d48a1e759598f5a6ae498a154641edf0c8ff5848efbdc599514c823922fa4",
+      "independentQA": "01b3e1f5a2b7fd67c86b7b00d5440ab070fe3892336a2aa3c0b6888a072e05c6"
+    },
+    "attemptB": {
+      "sourceFreeze": "/tmp/gridex-ediel-four-case-prep-20261116-b/OUTER.B.FROZEN.SOURCE-AND-FINALDOC.safe.json",
+      "sourceSHA256": "97260d9b9aeae8197a9b44fbafee7b9978562dc69f8e8345f214fde2c26dcd2c",
+      "runtimeSourceOnlyVFSWorkspaceFloor": 1207959552,
+      "runtimeTmpFloor": 385875968,
+      "actualStarted": false
+    },
+    "resourceRecovery": {
+      "state": "EXACT20_PLUS_FINITE86_PLUS_CLI_FINAL_RELOCATION_COMPLETE_BOTH_RESOURCE_FLOORS_MET",
+      "selectionSHA256": "9573f481a5b1cb03c0f4ab0dbe837cbf9fa2bd841935811c58fc6ce10bf41547",
+      "groupCount": 20,
+      "files": 53563,
+      "lastObservedWorkspaceUserAvailableBytes": 455716864,
+      "noNewRuntimeAdmission": true,
+      "TMPBridgeActual": "b041ac91a380567af90d24ef1357f29ded6c5255762c24b889ea0624e0f3ef36",
+      "completedGroups": 20,
+      "qualityActualSHA256": "1cc1a370c1ede0e3b5f6c8d338bdc0306b33c0b0f670224e994b3fadf5cf834b",
+      "native86ActualSHA256": "b6183c8bf7802b9617879765095daec6e55ce117c04d5dec4aa3999f6fdca7c7",
+      "workspaceUserAvailableBytes": 1228218368,
+      "tmpUserAvailableBytes": 387325952,
+      "noActualConstructorOrBCaseYet": true
+    },
+    "independentAERenewalVerdict": "/tmp/gridex-local-server-role-window-maintenance-20261116-ae/qa-AE-official-renewal-actual-outcome-review.safe.json",
+    "constructorOnlyProbe": {
+      "root": "/tmp/gridex-storage-create-only-probe-actual-20261116-a",
+      "state": "ORIGINAL30S_TIMEOUT_PRESERVED_LATE_CREATED_NEVER_STARTED_EXACT_CONTAINER_REMOVED",
+      "independentClosureSHA256": "844322062c65119c06496e6d655683d91358194ff61ff006e232ed1c06e9ac58",
+      "observedRawReclaimedBytes": 2244390912,
+      "exactCompletionDurationProven": false
+    },
+    "localMigrationPreflight": {
+      "bundle": "/workspace/Gridex-Local-Preflight-20261116.zip",
+      "sha256": "42dd90a45eb9b51eb1708bfa1a49fb8de701d48f43021fce86670b9f988bff08",
+      "MacHardwareVerified": false,
+      "MacDockerVerified": false,
+      "privateDataTransferred": false,
+      "userConfirmedPlatform": "Mac + Codex app",
+      "officialMode": "Work in > This computer"
+    }
+  }
+}

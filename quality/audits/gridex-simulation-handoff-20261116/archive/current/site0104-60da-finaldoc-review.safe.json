@@ -1,0 +1,15 @@
+{
+  "verdict": "FINAL_CHANGED_DOC_APPROVE",
+  "reviewerAgent": "/root",
+  "head": "60da9d6bc9a34f355d8bddcb3a39d78d0674e897",
+  "tree": "922b9fa00b3609f4f9b5a58a7fce0723c1c1bad7",
+  "freezeSHA256": "3b4d28be69c65ef6e41677acc02b7632f47e2a22e5277b1f4e9142dda59d8c12",
+  "onlyChangedRow": "SITE01.04",
+  "onlyRemainingNextActionTextChanged": true,
+  "allStatusesCounts105OraclesFlagsUnchanged": true,
+  "other104DeepEqual": true,
+  "old139SourcesUnchanged": true,
+  "actualNativeManualSE3SE4AndOperativeFieldsNullVerified": true,
+  "limits": "No localcasePASS. Removes sibling billing/grouping/signatureAND only; actualoperativearea separation remains unproven.",
+  "asOfUTC": "2026-11-13T20:48:11.725118+00:00"
+}

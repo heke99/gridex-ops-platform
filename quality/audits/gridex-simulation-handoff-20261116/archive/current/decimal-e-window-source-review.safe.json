@@ -1,0 +1,15 @@
+{
+  "state": "SOURCE_CODE_APPROVE_NOT_NATIVE_QUALIFIED",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T10:55:59.845875+00:00",
+  "freezeSHA256": "c1c17b8f9a2240f28b1b89f567eede4bc1b838c461a85679d1573ef5a6dd1be2",
+  "wrapperSHA256": "0fee7a6e4bfe63c5e1a5b0654a0f37b4ebaef092c35cfac7c9866d390d3503bd",
+  "checks": [
+    "WholeEbody/delta/outerread; all14source+QArefs/AST+externalSQLsemicolon verified",
+    "StrictSEQpredecessor/nextboundary fromsorteddistinctindices; invalidMEAstrict-openintervalcursor; retainedoriginalsubsetcasts",
+    "LazySTS8arrays+strictQTYwindow cached acrossduplicateindices, deferredqualitymask stillcomputeswhenfirstrequired; count/value/any46 preserveNULL/duplicates",
+    "Value/consumer/missing_source_quality_v2 helper unchanged; remaininghelpercost meansnofullylinearclaim",
+    "29controls25wire+4typedprojections, original26 unchanged;52,340direct-windowmodelcases offlineonly notnativeproof",
+    "Originalce58\u2192newEonebody only, full2688same8s/15s; actualthreeMET/nonbody/otherfunc/private/public/Main/drop+twoactualreviews beforeKEadoption"
+  ]
+}

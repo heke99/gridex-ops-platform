@@ -1,0 +1,17 @@
+{
+  "state": "ACTUAL_E_NATIVE_QUALIFICATION_APPROVE",
+  "reviewer": "/root",
+  "reviewerAgent": "/root",
+  "observedAt": "2026-11-14T11:01:59.997429+00:00",
+  "terminalSHA256": "007f21769ec100fcd31d1c66b370e58115dff9e89a4db0f8c142b90e856b67b5",
+  "candidateSnapshotSHA256": "8bcb32a916273aa2c70bbdea3ef76e6bd8af3c49eed79b043a9a46d912c5e0c7",
+  "indexSHA256": "242a1bc069ded7d4df5c6966fe38ab31dc981754c480823964574b61be8a87d2",
+  "checks": [
+    "All96directoriginalhashesverified",
+    "Full3443allrawcompare onlytargetce58\u2192e0e18prosrc/definition; nativeMD5SHA recomputed/nonbodyOIDACL/other3442/public522scopes unchanged",
+    "FullOLD29NEW29structuredJSONexact anddeclaredexpected;25wire+4explicitcomponentprojections not29businesscases",
+    "Full2688SOURCEprojectiontrue .649618639s underoriginal8s/15s, no wholeconsumption/billingauthority claim",
+    "Read-onlycloneafter/private14/MainBYTEpreserved/owncloneAbsent",
+    "QualifiesexactE futureKEguard withEdielindependentactualreview; doesNOToverrideoldKDgate orcreate105casecredit"
+  ]
+}

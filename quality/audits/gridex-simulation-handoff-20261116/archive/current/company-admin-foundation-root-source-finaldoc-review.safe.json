@@ -1,0 +1,11 @@
+{
+  "state": "SOURCE_AND_PREPARED_FINALDOC_APPROVE",
+  "head": "89fa237e7b1052b576c2678479b33c15e29a3844",
+  "migrationSHA256": "1a2a199e0e38a40070bc0acaf030ff2b1b1cdab3bf336669ee44503fc421e4f2",
+  "sourceAndEvidenceRefsActualVerified": 10,
+  "finiteLegitimateProfileKeys": 35,
+  "noObsoleteOrPlatformOnlyKeys": true,
+  "review": "Fullmigration/test/twoauditdocs read. Lock-before-read, activecatalogonly, frozenprofilepreimage, preserveDENYandoldrows, atomicambiguity/duplicatesreject, idempotentmissingmappingonly. NoAuth/member/newrole/userALLOW/reader/UI change. Declared clone unitfixtures distinct genuineauthority.",
+  "runtime": "NOT_RUN; source approval authorizes preparation of soleproducer bounded nativeclone plan, no MAINapply claim",
+  "actualNativeContextWrapperExists": true
+}

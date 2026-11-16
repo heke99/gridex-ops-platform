@@ -1,0 +1,14 @@
+{
+  "state": "CODE_APPROVE_NAMESPACE_ONLY_NOT_EXECUTION",
+  "reviewerAgent": "/root",
+  "observedAt": "2026-11-14T09:05:51.799732+00:00",
+  "wrapperSHA256": "5e2885ce8237aaed90d45dff211bea32fd66bbd03c0b3bb799b0915d45b28747",
+  "freezeSHA256": "b9d2cb8adc1e3851ddb2b85a30ad59d0cc52141b3b5ef62d872a4c06f4819a41",
+  "baseCodeReview": "8c1a1c134e58cb934381e768a3a608959e3af92c4eb64b6eb1f4732041999087",
+  "checks": [
+    "Whole source inverse exactONE runDirA\u2192B byteidentical ca044",
+    "ASTparse0, newR absent enforced unchanged",
+    "No source/runtime900/nativeexpiry/ACL/backup/cleanup changes",
+    "Actualfresh Btarget and producer+Root scopes stillrequired; oldAimmutable"
+  ]
+}

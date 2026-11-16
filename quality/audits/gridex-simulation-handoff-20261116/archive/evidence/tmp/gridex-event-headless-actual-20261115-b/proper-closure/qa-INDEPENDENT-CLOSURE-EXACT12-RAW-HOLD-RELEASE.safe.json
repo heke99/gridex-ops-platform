@@ -1,0 +1,52 @@
+{
+  "state": "INDEPENDENT_B_PROPER_CLOSURE_APPROVE_EXACT_TWELVE_RAW_HOLD_RELEASE",
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "reviewedAt": "2026-11-16T01:22:49.905594+00:00",
+  "closure": {
+    "path": "/tmp/gridex-event-headless-actual-20261115-b/proper-closure/CLOSED.safe.json",
+    "sha256": "06fe3518fde91b43add01291e6c099acd8313aab3a5c15c8917ea4aef83a4bdb"
+  },
+  "all23BoundRefsWholeHashesIncludingFailureFullAndFcVerified": true,
+  "beforeRuntimeFinalCapturedMainWholeObjectsEqual5223370AllMetadata": true,
+  "freshPostTopologyQuery": "Savede763 sourceproof explicitly actualfreshwholequery matched saved Main hash; no claim newphysicalfullsnapshot.",
+  "all7ExactIncludingFourNulls": true,
+  "native6AuthZero": true,
+  "globalDatabaseRoleSettingsRestoredExact": true,
+  "ownRESTAndDBAbsentCleanupErrorsEmpty": true,
+  "workerProcess3835942AbsentExit1RecordedPGID3835942": true,
+  "noGlobalProcessAbsenceClaim": true,
+  "stopPrecision": "Static package realpath guard rejected BEFORE login.intent/SDK/password/GetUser/factory/business. Workerstderr is generic Error only; exact3offendingpaths independently reproduced in savedCbyte-guard qualification and now physicalcorrected, not hypothetical productfailure.",
+  "normal3ServicesOriginalStoppedRestored": true,
+  "typedOriginalForwarder": {
+    "pid": 3837317,
+    "startTime": 29049845,
+    "cmdSHA256": "674a07324e416a055bbe1256f242112b8988d4e7cf8679ccd939240a3a035d58"
+  },
+  "priorAClosurePeer": {
+    "path": "/tmp/gridex-event-headless-actual-20261115-a/proper-closure/qa-INDEPENDENT-CLOSURE-RAW-HOLD-RELEASE.safe.json",
+    "sha256": "0a55c4e4e83be0175b1e24f52f42e24498db555a051d7f16f4f1f7516269979b"
+  },
+  "exactRawHoldReleaseProposal": {
+    "path": "/workspace/gridex-event-ab-twelve-json-resource-prep-20261116/PROPOSAL.v2.safe.json",
+    "sha256": "d42adfe31a7649cd69f4ed84c654fa980c21354478bb1030fdcde81f5eca9d41"
+  },
+  "releasedPaths": [
+    "/tmp/gridex-event-headless-actual-20261115-a/trusted3443-before-event.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-a/predecessor-after.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-a/publication-after.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-a/candidate3457-before-factory.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-b/trusted3443-before-event.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-b/predecessor-after.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-b/publication-after.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-b/candidate3457-before-factory.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-b/main-before-setup.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-b/before-auth.main.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-b/final-cleanup-check.main.private.json",
+    "/tmp/gridex-event-headless-actual-20261115-b/main-after-runtime.private.json"
+  ],
+  "exact12CurrentWholeSHABytesDeviceInodeVerified": true,
+  "releaseLimits": "Only exact A4native snapshots+B4native+B4Main in proposald42. ClosedA/BnoAuthbusiness proved; this holdrelease only permits separatelyqualified lossless archive preparation/execution after CURRENT C operationalnonuse/independent source+exact actualscope/freshguards. No archive/deletion authority itself.",
+  "protected": "BOTH A/B ownedfailureFULL and Fc, allsmallprivate14/native/closure/source proofs and A4canonicalphysicalgroup remain protected.",
+  "noRetrospectiveGOOrCasePass": true,
+  "noNodeBackendAuthCodecOrRestoreByReviewer": true
+}

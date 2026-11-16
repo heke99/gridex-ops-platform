@@ -1,0 +1,8 @@
+{
+  "reviewer": "root",
+  "verdict": "SOURCE_AND_PREPARED_DOC_APPROVE",
+  "head": "48fafde48eb4355086d446775780ce9d01477ffd",
+  "newSQLSHA256": "2442259627a125778b34917ee6666bcff8281f72a28889b71d328ce0d7d15309",
+  "scope": "Verified exacttwo expectedprojectionaggregate replacements against full51c original; entire otherSQL bytes unchanged including WHERE/ACL/dependencies/functions. Read preparedreport; actual7fc5 diagnosis/offline9regressions accuratelybounded; newnative notrun/no casecredit.",
+  "freezeSHA256": "fb9c1978f5ca1f60f754f150e2758706800e39b848d69fcdd22ded7dab01d216"
+}

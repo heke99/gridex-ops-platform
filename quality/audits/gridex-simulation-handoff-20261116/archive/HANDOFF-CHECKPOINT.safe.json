@@ -1,0 +1,39 @@
+{
+  "state": "DOCUMENTATION_AND_PINNED_MAIN_TRANSFER_NOT_RUNNABLE_MAC_MIGRATION",
+  "preparedAtUTC": "2026-11-16T10:33:47.235325+00:00",
+  "mainCommit": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+  "mainTree": "fe55a53d9ce29e26aa918b3af4a3e1aae87bca06",
+  "mainShallow": true,
+  "canonicalCounts": {
+    "total": 105,
+    "FULL_PASS": 43,
+    "DOCUMENTED_GAP": 1,
+    "INCOMPLETE": 61
+  },
+  "canonicalLedgerSHA256": "d29f2f05494b69d4b8dd034515730db239273d9e39d38319b1ed17e14d92a197",
+  "mixedFindings": 46,
+  "findingsSHA256": "4adce9616e57a734db75932e1c1f79c7734069622a0217c5a52019b663fc8ab9",
+  "nextFour": [
+    "EDIEL02.05",
+    "EDIEL03.01",
+    "EDIEL03.02",
+    "EDIEL03.03"
+  ],
+  "nextFourLatestPasswordOrBusinessReached": false,
+  "databaseTarget": "SAME_EXISTING_SIMULATION_STAGING_DATABASE",
+  "secureMacConnectivityVerified": false,
+  "newDatabaseOrDataExport": false,
+  "newHeavyCloudExecution": false,
+  "candidatePatches": 7,
+  "candidatePatchesApplied": false,
+  "privateRuntimeArtifactsTransferred": false,
+  "allHistoricalRawEvidenceTransferred": false,
+  "newPRMergeOrDeployment": false,
+  "activeAdoptionInventory": "preflight/MAIN-ADOPTION-INVENTORY.v3.safe.json",
+  "activeSimulationSourceManifest": "simulation-source/SHA256-MANIFEST.v2.safe.json",
+  "nextAction": "Verify extracted files, actual local mode/capacity, supported secure connection to same staging, genuine identity/auth and intended test isolation; qualify Linux/path/control-plane portability before resuming next four.",
+  "nextFourExactAcceptance": {
+    "bundlePath": "evidence/workspace/gridex-ediel05-06-acceptance-20261116/FOUR-ORIGINAL-COHORT-EXACT-ACCEPTANCE.safe.json",
+    "sha256": "14576b4d9b0db32c9c66390fca07bc59b598b7447054b065546abfdaf654dec8"
+  }
+}

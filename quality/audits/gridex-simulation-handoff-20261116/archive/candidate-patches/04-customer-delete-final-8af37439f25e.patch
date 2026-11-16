@@ -1,0 +1,717 @@
+From 8af37439f25e16a9bb9f6465c6091c0a85fce409 Mon Sep 17 00:00:00 2001
+From: Heke  Hourani <heke99@live.se>
+Date: Sat, 14 Nov 2026 21:51:25 +0000
+Subject: [PATCH] test: observe cross-company operation before guarded customer
+ deletion
+
+---
+ .../README.sv.md                              |  19 +
+ .../results.safe.json                         |  99 +++++
+ ...-customer-delete-onboarding-regression.sql | 342 ++++++++++++++++++
+ ...customer_delete_owned_admin_onboarding.sql | 213 +++++++++++
+ 4 files changed, 673 insertions(+)
+ create mode 100644 quality/audits/test-customer-onboarding-delete-20261114/README.sv.md
+ create mode 100644 quality/audits/test-customer-onboarding-delete-20261114/results.safe.json
+ create mode 100644 scripts/test-customer-delete-onboarding-regression.sql
+ create mode 100644 supabase/migrations/20261114192010_test_customer_delete_owned_admin_onboarding.sql
+
+diff --git a/quality/audits/test-customer-onboarding-delete-20261114/README.sv.md b/quality/audits/test-customer-onboarding-delete-20261114/README.sv.md
+new file mode 100644
+index 000000000..fb8dc0926
+--- /dev/null
++++ b/quality/audits/test-customer-onboarding-delete-20261114/README.sv.md
+@@ -0,0 +1,19 @@
++# Testkund: explicit skydd för kvarvarande onboarding
++
++Normalflödet går från kundkortets formulär via `profile-actions.ts` till `deleteCustomerForRecreateImpl` i `profile-actions.part-2.ts` och `gridex_delete_test_customer_v1`. Den verkliga normalraderingen gav 23503 från onboarding-applikationens enkla kund-FK. Kunden och hela transaktionen behölls.
++
++Den första, aldrig mergade kandidaten d04a lade till en snäv rensning av den vanliga admin-intake-kapseln. Senare service-role HTTP-kvalificering G visade att negativfallet `non_admin` ändå kunde raderas: applikationen har både en RESTRICT-FK och en sammansatt CASCADE-FK till kunden. De faktiska kataloguppgifterna visar ingen INSERT/UPDATE-normalisering på applikation eller operation. FK-triggerordning får därför inte avgöra om en kapsel är disponibel. Den tidigare kandidaten är historiskt underlag och får inte införas som mellanversion.
++
++Denna ersättningskandidat behåller samma snäva purge och lägger omedelbart efter den, före audit och kundradering, ett explicit villkor: om någon onboarding-applikation med kundens `customer_id` återstår kastas 23503 `customer_delete_non_disposable_onboarding`. Kontrollens kund-ID saknar company-filter avsiktligt: även en oväntad främmande koppling skyddar kunden. Undantaget rullar tillbaka eventuell föregående purge i samma RPC-transaktion. Ursprunglig kundlåsning, test-/tenant-kontroller, samtliga elva historikgrupper, alla FK:er, funktions-OID/ägare/ACL, operationer, resultatsnapshots och juridisk evidens bevaras.
++
++Migrationen uppdaterar endast den verkliga funktionskroppen b6da43220109e6cd6a14eafc451926af till b9dd0ed9061fede142be556cb4984be3 och verifierar OID, övrig pg_proc-metadata samt expanderad ACL. Exakt återspelning gör inga writes. Filnamnet skapades ursprungligen med den kvalificerade officiella Supabase-binären; denna nya isolerade version ersätter endast den omärgade draften, inte en applicerad historisk migration.
++
++Regressionsfilen anropar den riktiga RPC:n och använder nu faktiska, fallspecifika fältobservationer före varje anrop. Om en trigger eller schemaändring gör att den avsedda negativa fixturen inte finns, stoppas testet med `intended_fixture_predicate_not_observed` och strukturerade observationer. Den sänker inte oraklet. Varje väntad nekning jämför hela den avgränsade kund-/applikations-/operations-/legal-/site-/mätpunkts-/kontrakts-/auditgrafen före och efter. Positivfallet behåller operation/juridik och kräver exakt en audit. Det separata FK-fallet verifierar både nekning och oförändrad applikation.
++
++Den faktiska katalogen visade före H-start att applikationens operation-FK bara omfattar operationens ID, inte dess bolag. Den tidigare testförväntan om en sammansatt operation/bolag-FK var därför fel och H startades inte. Det fallet är nu ett verkligt DELETE-RPC-negativfall: en deklarerad syntetisk cross-company-koppling skapas inom rollback-fixturen, samtliga andra kapselvillkor matchar, de faktiska bolags-/operationsfälten observeras, och den explicita kvarvarande-applikationsvakten måste neka. Ingen FK läggs till eller tas bort. Den faktiska sammansatta kund/bolag-FK:n förblir det enda rena FK-fallet. Katalogfyndet är inte ett bevis på ett normalt tenant-bypass.
++
++Matrisen består av **20 DELETE-RPC-fall och ett rent FK-fall**, högst ett HTTP-anrop genom den privata service-role-testwrappern. Kontraktsfallet använder endast ett deklarerat syntetiskt draft-kontrakt i den disponibla klonen; det är inte en signerad eller normalt onboardad affär. Om schemat avvisar fixturen rapporteras uttryckligen ett NOTRUN, 20 slutförda fall och 19 RPC-anrop. Inga rollflaggor, SET ROLE eller tillverkade JWT-claims används. Aktörens existens och båda TEST-bolagen måste först bindas genom producentens administratörs-READONLY-observation. En vanlig SQL-ägarsession utan genuin service-kontext stoppas.
++
++Den privata HTTP-wrappern innehåller samma testmatris och ett avsiktligt subtransaktions-rollback-sentinel; PostgREST har dessutom `PGRST_DB_TX_END=rollback`. Producenten måste jämföra verkliga tabeller/funktioner/metadata före och efter samt mäta sekvenser separat. PostgreSQL-sekvenser förutsätts inte rullas tillbaka. Service-komponenten ger ingen normal EE/UI-behörighetskvalificering.
++
++Offlinekontroller av exakta källbytes och inverser är körda. Den **nya** migrationens parser/apply/replay, observerade 21-fallsmatrisen och ny normal UI-radering är NOTRUN vid source-freeze. Tidigare verklig apply/replay av den supersederade kroppen gäller inte denna kropp. Ingen Main-apply, push, merge eller scenariokredit ges; 38 PASS / 1 gap / 66 utestående kvarstår. Nästa steg är två oberoende source-granskningar och därefter producentägd kvalificering i en ny disponibel klon.
+diff --git a/quality/audits/test-customer-onboarding-delete-20261114/results.safe.json b/quality/audits/test-customer-onboarding-delete-20261114/results.safe.json
+new file mode 100644
+index 000000000..e299a3b68
+--- /dev/null
++++ b/quality/audits/test-customer-onboarding-delete-20261114/results.safe.json
+@@ -0,0 +1,99 @@
++{
++  "version": 1,
++  "state": "SOURCE_ACTUAL_SCHEMA_CORRECTED_MATRIX_NATIVE_NOTRUN",
++  "oldDraft": "d04a1fd62d06bd2a6a43239313831a564e634624",
++  "oldDraftAdoptionPermitted": false,
++  "oldActualBodyMD5": "b6da43220109e6cd6a14eafc451926af",
++  "supersededBodyMD5": "67919e46e63a76a83dd47d45807adcb5",
++  "newBodyMD5": "b9dd0ed9061fede142be556cb4984be3",
++  "bodyChangeFromSuperseded": "one explicit remaining ANYcustomer_id application23503 guard before audit",
++  "rawFixtureGraphAssertionsBeforeEachCall": true,
++  "matrix": {
++    "authoredCases": 21,
++    "deleteRpcCases": 20,
++    "fkOnlyCases": 1,
++    "contractFixtureFailure": {
++      "completedCases": 20,
++      "notRun": 1,
++      "deleteRpcCases": 19
++    }
++  },
++  "verification": {
++    "sourceByteAndInverseChecks": {
++      "count": 13,
++      "path": "/workspace/gridex-test-customer-delete-cross-operation-evidence-20261114/OFFLINE-SOURCE-CHECKS.safe.json",
++      "sha256": "4dce7e12cbf7fd27e556118f2076d54ea2594c9f1727571cf00960882170a2f4",
++      "behaviourTests": false
++    },
++    "newNativeParser": "NOTRUN",
++    "newApplyReplay": "NOTRUN",
++    "new21Cases": "NOTRUN",
++    "newNormalUiDelete": "NOTRUN"
++  },
++  "unchangedScenarioCounts": {
++    "pass": 38,
++    "gap": 1,
++    "outstanding": 66
++  },
++  "sourceReferences": [
++    {
++      "path": "/tmp/gridex-test-customer-delete-guard-prep-20261114/CANDIDATE.safe.json",
++      "sha256": "9eee763089d83d60cf24199d47dd7dc25dac665fb9cf96a9042c9048354072bc",
++      "bytes": 690
++    },
++    {
++      "path": "/tmp/gridex-test-customer-delete-guard-prep-20261114/actual-fixture-triggers.READONLY.private.json",
++      "sha256": "7b2da6c8f0f01792fad5f228792fe331b104464ffbffa43893514a50c19614e5",
++      "bytes": 120835
++    },
++    {
++      "path": "/tmp/gridex-test-customer-delete-guard-prep-20261114/trigger-audit.safe.json",
++      "sha256": "7f2bc4a79e9b905b9e812eff459397ab75c6b4cb0c8ee61b9fcbd1a7852ce9c6",
++      "bytes": 5551
++    },
++    {
++      "path": "/workspace/gridex-test-customer-delete-native-qualification-prep-20261114/actual-onboarding-FK-trigger.READONLY.private.json",
++      "sha256": "20318df12387ba246943b9d9c5f6ed13384c024b642e4d02aeb7315d69ed31a1",
++      "bytes": 2141
++    },
++    {
++      "path": "/workspace/gridex-test-customer-delete-native-qualification-actual-20261114-g/HTTP-response.private.json",
++      "sha256": "6c20ac5eb3114bc7878d4ff9a7449050e611d81d5b157a35edc4dcc18067fc13",
++      "bytes": 125
++    },
++    {
++      "path": "/workspace/gridex-test-customer-onboarding-delete-evidence-20261114/SOURCE-FROZEN.v2.safe.json",
++      "sha256": "670c00f5f3544270d124337d4ed0eaae958a98ecb6eee242c4f3ab5dc492e347",
++      "bytes": 8351
++    },
++    {
++      "path": "/workspace/gridex-test-customer-delete-remaining-guard-evidence-20261114/AUTHOR-FRESH-ALL5-ACK.safe.json",
++      "sha256": "ae83253dce0306f199c46423f35abe8df68a95215ef08eecbbd22f8040b8cc88",
++      "bytes": 1287
++    },
++    {
++      "path": "/tmp/gridex-test-customer-delete-guard-prep-20261114/actual-contract-fixture-catalog.READONLY.private.json",
++      "sha256": "834c91849dbf686f2e782387e2478bf84c0f8018716c3b9eea33daad1f181692",
++      "bytes": 16085
++    },
++    {
++      "path": "/tmp/gridex-test-customer-delete-cross-operation-prep-20261114/ADAPTATION.safe.json",
++      "sha256": "7ec0298b3b850938af643e6a217d288821013139b44504b617e081f37fe3fa81",
++      "bytes": 902
++    },
++    {
++      "path": "/workspace/gridex-test-customer-delete-cross-operation-evidence-20261114/AUTHOR-FRESH-ALL5-ACK.safe.json",
++      "sha256": "75ab878b143e34334eb6e6703a19bace5b6934a8f84497f74acc351234d66751",
++      "bytes": 1284
++    },
++    {
++      "path": "/tmp/gridex-test-customer-delete-cross-operation-prep-20261114/actual-contract-fixture-catalog.READONLY.private.json",
++      "sha256": "834c91849dbf686f2e782387e2478bf84c0f8018716c3b9eea33daad1f181692",
++      "bytes": 16085
++    }
++  ],
++  "supersededTestDraft": "78071f850ce8880b4eaf801a59053531bd077f24",
++  "productMigrationAndBodyUnchangedFrom78071": true,
++  "schemaCorrection": "Actual operation FK is single-column; observed cross-company operation is now a real DELETE_RPC negative, not a nonexistent composite-FK expectation.",
++  "actualHAttempted": false
++}
+diff --git a/scripts/test-customer-delete-onboarding-regression.sql b/scripts/test-customer-delete-onboarding-regression.sql
+new file mode 100644
+index 000000000..53d09a67e
+--- /dev/null
++++ b/scripts/test-customer-delete-onboarding-regression.sql
+@@ -0,0 +1,342 @@
++-- Rollback-only actual-RPC/schema component regression. Requires legitimate service context.
++-- Actor existence and both TEST companies must be bound by producer admin READONLY before execution.
++-- No JWT/auth claims/SET ROLE. This is not normal-UI/Auth or scenario approval.
++\set ON_ERROR_STOP on
++\if :{?clone_database}
++\else
++  \echo 'STOP: clone_database is required'
++  \quit 3
++\endif
++\if :{?company_id}
++\else
++  \echo 'STOP: company_id is required'
++  \quit 3
++\endif
++\if :{?other_company_id}
++\else
++  \echo 'STOP: other_company_id is required'
++  \quit 3
++\endif
++\if :{?actor_user_id}
++\else
++  \echo 'STOP: actor_user_id is required'
++  \quit 3
++\endif
++BEGIN;
++SET LOCAL statement_timeout='8s';
++SET LOCAL lock_timeout='2s';
++CREATE TEMP TABLE delete_regression_input ON COMMIT DROP AS
++SELECT :'clone_database'::text AS database_name, :'company_id'::uuid AS company_id,
++       :'other_company_id'::uuid AS other_company_id, :'actor_user_id'::uuid AS actor_user_id,
++       null::uuid AS foreign_contract_id;
++DO $regression$
++DECLARE
++  component_report jsonb;
++  v_input record;
++  v_variant text;
++  v_customer_id uuid;
++  v_foreign_customer_id uuid;
++  v_operation_id uuid;
++  v_foreign_operation_id uuid;
++  v_application_id uuid;
++  v_extra_application_id uuid;
++  v_site_id uuid;
++  v_point_id uuid;
++  v_expected_state text;
++  v_actual_state text;
++  v_reply jsonb;
++  v_operation_before jsonb;
++  v_applications_before jsonb;
++  v_legal_before jsonb;
++  v_audit_before bigint;
++  v_passed integer := 0;
++  v_rpc_calls integer := 0;
++  v_fk_checks integer := 0;
++  v_skipped integer := 0;
++  v_contract_fixture_error text;
++  v_fixture jsonb;
++  v_expected_fixture jsonb;
++  v_cases jsonb := '[]'::jsonb;
++  v_graph_before jsonb;
++  v_graph_after jsonb;
++  v_fk_before jsonb;
++  v_error_message text;
++BEGIN
++  SELECT * INTO STRICT v_input FROM delete_regression_input;
++  IF current_database() <> v_input.database_name OR v_input.database_name = 'postgres'
++     OR v_input.database_name NOT LIKE 'gridex_%' THEN
++    RAISE EXCEPTION 'explicit_owned_clone_required';
++  END IF;
++  -- Do not manufacture this context. Ordinary SQL-owner execution without it stops.
++  IF auth.role() IS DISTINCT FROM 'service_role' THEN
++    RAISE EXCEPTION 'existing_legitimate_service_role_context_required' USING ERRCODE='42501';
++  END IF;
++  IF v_input.company_id = v_input.other_company_id
++     OR (SELECT count(*) FROM public.companies
++         WHERE id IN (v_input.company_id,v_input.other_company_id)
++           AND operating_environment = 'test') <> 2
++ THEN
++    RAISE EXCEPTION 'current_owned_test_fixture_bindings_required';
++  END IF;
++  IF has_function_privilege('authenticated','public.gridex_delete_test_customer_v1(uuid,uuid,uuid)','EXECUTE')
++     OR has_function_privilege('anon','public.gridex_delete_test_customer_v1(uuid,uuid,uuid)','EXECUTE')
++     OR NOT has_function_privilege('service_role','public.gridex_delete_test_customer_v1(uuid,uuid,uuid)','EXECUTE') THEN
++    RAISE EXCEPTION 'delete_rpc_acl_changed';
++  END IF;
++  FOREACH v_variant IN ARRAY ARRAY[
++    'positive','protected_history','not_test','wrong_tenant','non_admin','wrong_source','not_committed',
++    'operation_not_completed','operation_channel','result_customer','result_application',
++    'result_operation','result_legal','foreign_site','foreign_point','contract',
++    'legal_customer','legal_operation','remaining_application_rollback',
++    'foreign_operation_company','foreign_customer_company_fk'
++  ] LOOP
++    v_customer_id:=gen_random_uuid(); v_foreign_customer_id:=gen_random_uuid();
++    v_operation_id:=gen_random_uuid(); v_foreign_operation_id:=gen_random_uuid();
++    v_application_id:=gen_random_uuid(); v_site_id:=gen_random_uuid(); v_point_id:=gen_random_uuid();
++    -- Component fixtures only; canonical numbering is left to the existing defaults/triggers.
++    INSERT INTO public.customers(id,company_id,name,full_name,customer_type,status,is_test_data,source,created_by,updated_by)
++    VALUES(v_customer_id,v_input.company_id,'Delete regression','Delete regression','private','draft',true,'admin_customer_intake',v_input.actor_user_id,v_input.actor_user_id),
++          (v_foreign_customer_id,v_input.company_id,'Other delete regression','Other delete regression','private','draft',true,'admin_customer_intake',v_input.actor_user_id,v_input.actor_user_id);
++    INSERT INTO public.customer_onboarding_operations(id,company_id,channel,idempotency_key,correlation_id,status,command_snapshot,result_snapshot,completed_at)
++    VALUES(v_operation_id,v_input.company_id,'admin',v_operation_id::text,gen_random_uuid(),'completed',
++      jsonb_build_object('regression',v_variant),jsonb_build_object('ok',true,'code','customer_onboarding_committed',
++      'operation_id',v_operation_id,'customer_id',v_customer_id,'application_id',v_application_id,'legal_snapshot_id',null),now()),
++      (v_foreign_operation_id,CASE WHEN v_variant='foreign_operation_company' THEN v_input.other_company_id ELSE v_input.company_id END,
++       'admin',v_foreign_operation_id::text,gen_random_uuid(),'completed','{}','{}',now());
++    INSERT INTO public.customer_onboarding_applications(id,company_id,onboarding_operation_id,customer_id,channel,source_record_type,status)
++    VALUES(v_application_id,v_input.company_id,v_operation_id,v_customer_id,'admin','admin_customer_intake','committed');
++    v_expected_state:='23503';
++    CASE v_variant
++      WHEN 'positive' THEN v_expected_state:=NULL;
++      WHEN 'protected_history' THEN
++        INSERT INTO public.customer_blockers(company_id,customer_id,blocker_type,title)
++        VALUES(v_input.company_id,v_customer_id,'regression','Protected test history');
++        v_expected_state:='23514';
++      WHEN 'not_test' THEN
++        UPDATE public.customers SET is_test_data=false WHERE id=v_customer_id;
++        v_expected_state:='23514';
++      WHEN 'wrong_tenant' THEN v_expected_state:='P0002';
++      WHEN 'non_admin' THEN UPDATE public.customer_onboarding_applications SET channel='website' WHERE id=v_application_id;
++      WHEN 'wrong_source' THEN UPDATE public.customer_onboarding_applications SET source_record_type='website_application' WHERE id=v_application_id;
++      WHEN 'not_committed' THEN UPDATE public.customer_onboarding_applications SET status='pending' WHERE id=v_application_id;
++      WHEN 'operation_not_completed' THEN UPDATE public.customer_onboarding_operations SET status='started' WHERE id=v_operation_id;
++      WHEN 'operation_channel' THEN UPDATE public.customer_onboarding_operations SET channel='website' WHERE id=v_operation_id;
++      WHEN 'result_customer' THEN UPDATE public.customer_onboarding_operations SET result_snapshot=jsonb_set(result_snapshot,'{customer_id}',to_jsonb(v_foreign_customer_id)) WHERE id=v_operation_id;
++      WHEN 'result_application' THEN UPDATE public.customer_onboarding_operations SET result_snapshot=jsonb_set(result_snapshot,'{application_id}',to_jsonb(gen_random_uuid())) WHERE id=v_operation_id;
++      WHEN 'result_operation' THEN UPDATE public.customer_onboarding_operations SET result_snapshot=jsonb_set(result_snapshot,'{operation_id}',to_jsonb(v_foreign_operation_id)) WHERE id=v_operation_id;
++      WHEN 'result_legal' THEN UPDATE public.customer_onboarding_operations SET result_snapshot=jsonb_set(result_snapshot,'{legal_snapshot_id}',to_jsonb(gen_random_uuid())) WHERE id=v_operation_id;
++      WHEN 'foreign_site' THEN
++        INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country)
++        VALUES(v_site_id,v_input.company_id,v_foreign_customer_id,'Other site','consumption','draft','SE');
++        UPDATE public.customer_onboarding_applications SET customer_site_id=v_site_id WHERE id=v_application_id;
++      WHEN 'foreign_point' THEN
++        INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country)
++        VALUES(v_site_id,v_input.company_id,v_foreign_customer_id,'Other site','consumption','draft','SE');
++        INSERT INTO public.metering_points(id,company_id,customer_id,site_id,metering_point_id,reading_frequency,measurement_type,is_settlement_relevant,status)
++        VALUES(v_point_id,v_input.company_id,v_foreign_customer_id,v_site_id,'735999'||lpad((abs(hashtext(v_point_id::text)::bigint)%1000000000000)::text,12,'0'),'monthly','consumption',true,'draft');
++        UPDATE public.customer_onboarding_applications SET metering_point_id=v_point_id WHERE id=v_application_id;
++      WHEN 'contract' THEN
++        -- Explicit rollback-only component fixture, never a claimed existing/signed agreement.
++        v_input.foreign_contract_id:=gen_random_uuid();
++        BEGIN
++          INSERT INTO public.customer_contracts(id,company_id,customer_id,source_type,status,contract_name,contract_type,metadata)
++          VALUES(v_input.foreign_contract_id,v_input.company_id,v_foreign_customer_id,
++            'system','draft','Rollback-only DELETE FK component','variable_monthly',
++            jsonb_build_object('source','rollback_only_delete_fk_component'));
++        EXCEPTION WHEN OTHERS THEN
++          v_contract_fixture_error:=SQLSTATE;
++          v_skipped:=v_skipped+1;
++          v_cases:=v_cases||jsonb_build_array(jsonb_build_object('case',v_variant,
++            'kind','NOTRUN_FIXTURE_REJECTED','fixtureSQLState',v_contract_fixture_error));
++          CONTINUE; -- Explicit NOTRUN; never counted as a passed negative or RPC call.
++        END;
++        UPDATE public.customer_onboarding_applications SET contract_id=v_input.foreign_contract_id WHERE id=v_application_id;
++      WHEN 'legal_customer' THEN
++        INSERT INTO public.customer_onboarding_legal_snapshots(company_id,onboarding_operation_id,customer_id,content_hash)
++        VALUES(v_input.company_id,v_foreign_operation_id,v_customer_id,repeat('a',64));
++      WHEN 'legal_operation' THEN
++        INSERT INTO public.customer_onboarding_legal_snapshots(company_id,onboarding_operation_id,customer_id,content_hash)
++        VALUES(v_input.company_id,v_operation_id,v_foreign_customer_id,repeat('b',64));
++      WHEN 'remaining_application_rollback' THEN
++        v_extra_application_id:=gen_random_uuid();
++        INSERT INTO public.customer_onboarding_applications(id,company_id,onboarding_operation_id,customer_id,channel,source_record_type,status)
++        VALUES(v_extra_application_id,v_input.company_id,v_foreign_operation_id,v_customer_id,'website','website_application','committed');
++      WHEN 'foreign_operation_company' THEN
++        -- Deliberately invalid cross-company component link, allowed by the actual single-column FK.
++        -- All other disposable-capsule predicates match, so this isolates operation.company_id.
++        UPDATE public.customer_onboarding_operations
++        SET result_snapshot=jsonb_build_object('ok',true,'code','customer_onboarding_committed',
++          'operation_id',v_foreign_operation_id,'customer_id',v_customer_id,
++          'application_id',v_application_id,'legal_snapshot_id',null)
++        WHERE id=v_foreign_operation_id;
++        UPDATE public.customer_onboarding_applications SET onboarding_operation_id=v_foreign_operation_id WHERE id=v_application_id;
++      WHEN 'foreign_customer_company_fk' THEN NULL;
++    END CASE;
++    SELECT jsonb_build_object(
++      'customerCompanyOwn',c.company_id=v_input.company_id,
++      'customerTest',c.is_test_data,'customerSource',c.source,
++      'applicationCompanyOwn',a.company_id=v_input.company_id,
++      'applicationCustomerOwn',a.customer_id=v_customer_id,
++      'applicationOperationOwn',a.onboarding_operation_id=v_operation_id,
++      'applicationCount',(SELECT count(*) FROM public.customer_onboarding_applications z WHERE z.customer_id=v_customer_id),
++      'applicationChannel',a.channel,'applicationSource',a.source_record_type,'applicationStatus',a.status,
++      'operationCompanyOwn',o.company_id=v_input.company_id,
++      'foreignOperationCompanyOwn',(SELECT z.company_id=v_input.company_id FROM public.customer_onboarding_operations z WHERE z.id=v_foreign_operation_id),
++      'operationChannel',o.channel,'operationStatus',o.status,
++      'resultOk',o.result_snapshot->'ok','resultCode',o.result_snapshot->>'code',
++      'resultCustomerOwn',o.result_snapshot->>'customer_id'=v_customer_id::text,
++      'resultApplicationOwn',o.result_snapshot->>'application_id'=v_application_id::text,
++      'resultOperationOwn',o.result_snapshot->>'operation_id'=v_operation_id::text,
++      'resultLegalNull',o.result_snapshot->'legal_snapshot_id'='null'::jsonb,
++      'siteNull',a.customer_site_id IS NULL,
++      'siteOwned',a.customer_site_id IS NULL OR EXISTS(SELECT 1 FROM public.customer_sites z WHERE z.id=a.customer_site_id AND z.company_id=v_input.company_id AND z.customer_id=v_customer_id),
++      'siteForeignFixture',a.customer_site_id IS NULL OR EXISTS(SELECT 1 FROM public.customer_sites z WHERE z.id=a.customer_site_id AND z.id=v_site_id AND z.company_id=v_input.company_id AND z.customer_id=v_foreign_customer_id),
++      'pointNull',a.metering_point_id IS NULL,
++      'pointOwned',a.metering_point_id IS NULL OR EXISTS(SELECT 1 FROM public.metering_points z WHERE z.id=a.metering_point_id AND z.company_id=v_input.company_id AND z.customer_id=v_customer_id),
++      'pointForeignFixture',a.metering_point_id IS NULL OR EXISTS(SELECT 1 FROM public.metering_points z WHERE z.id=a.metering_point_id AND z.id=v_point_id AND z.company_id=v_input.company_id AND z.customer_id=v_foreign_customer_id AND z.site_id=v_site_id),
++      'contractPresent',a.contract_id IS NOT NULL,
++      'contractOwnForeignCustomer',a.contract_id IS NULL OR EXISTS(SELECT 1 FROM public.customer_contracts z WHERE z.id=a.contract_id AND z.company_id=v_input.company_id AND z.customer_id=v_foreign_customer_id AND z.status='draft' AND z.signed_at IS NULL),
++      'legalCustomerCount',(SELECT count(*) FROM public.customer_onboarding_legal_snapshots z WHERE z.customer_id=v_customer_id),
++      'legalOperationCount',(SELECT count(*) FROM public.customer_onboarding_legal_snapshots z WHERE z.onboarding_operation_id=v_operation_id),
++      'legalFixtureMatches',CASE WHEN v_variant='legal_customer' THEN EXISTS(SELECT 1 FROM public.customer_onboarding_legal_snapshots z WHERE z.company_id=v_input.company_id AND z.customer_id=v_customer_id AND z.onboarding_operation_id=v_foreign_operation_id AND z.content_hash=repeat('a',64))
++        WHEN v_variant='legal_operation' THEN EXISTS(SELECT 1 FROM public.customer_onboarding_legal_snapshots z WHERE z.company_id=v_input.company_id AND z.customer_id=v_foreign_customer_id AND z.onboarding_operation_id=v_operation_id AND z.content_hash=repeat('b',64)) ELSE true END,
++      'extraApplicationMatches',v_variant<>'remaining_application_rollback' OR EXISTS(SELECT 1 FROM public.customer_onboarding_applications z WHERE z.id=v_extra_application_id AND z.customer_id=v_customer_id AND z.company_id=v_input.company_id AND z.onboarding_operation_id=v_foreign_operation_id AND z.channel='website' AND z.source_record_type='website_application' AND z.status='committed'),
++      'blockerCount',(SELECT count(*) FROM public.customer_blockers z WHERE z.customer_id=v_customer_id),
++      'rpcCompanyOwn',v_variant<>'wrong_tenant')
++      INTO v_fixture
++    FROM public.customers c
++    JOIN public.customer_onboarding_applications a ON a.id=v_application_id AND a.customer_id=c.id
++    JOIN public.customer_onboarding_operations o ON o.id=a.onboarding_operation_id
++    WHERE c.id=v_customer_id;
++    v_expected_fixture:=jsonb_build_object(
++      'customerCompanyOwn',true,'customerTest',v_variant<>'not_test','customerSource','admin_customer_intake',
++      'applicationCompanyOwn',true,'applicationCustomerOwn',true,'applicationOperationOwn',v_variant<>'foreign_operation_company',
++      'applicationCount',CASE WHEN v_variant='remaining_application_rollback' THEN 2 ELSE 1 END,
++      'applicationChannel',CASE WHEN v_variant='non_admin' THEN 'website' ELSE 'admin' END,
++      'applicationSource',CASE WHEN v_variant='wrong_source' THEN 'website_application' ELSE 'admin_customer_intake' END,
++      'applicationStatus',CASE WHEN v_variant='not_committed' THEN 'pending' ELSE 'committed' END,
++      'operationCompanyOwn',v_variant<>'foreign_operation_company','foreignOperationCompanyOwn',v_variant<>'foreign_operation_company',
++      'operationChannel',CASE WHEN v_variant='operation_channel' THEN 'website' ELSE 'admin' END,
++      'operationStatus',CASE WHEN v_variant='operation_not_completed' THEN 'started' ELSE 'completed' END,
++      'resultOk',true,'resultCode','customer_onboarding_committed',
++      'resultCustomerOwn',v_variant<>'result_customer','resultApplicationOwn',v_variant<>'result_application',
++      'resultOperationOwn',v_variant NOT IN('result_operation','foreign_operation_company'),'resultLegalNull',v_variant<>'result_legal',
++      'siteNull',v_variant<>'foreign_site','siteOwned',v_variant<>'foreign_site',
++      'siteForeignFixture',true,
++      'pointNull',v_variant<>'foreign_point','pointOwned',v_variant<>'foreign_point',
++      'pointForeignFixture',true,
++      'contractPresent',v_variant='contract','contractOwnForeignCustomer',true,
++      'legalCustomerCount',CASE WHEN v_variant='legal_customer' THEN 1 ELSE 0 END,
++      'legalOperationCount',CASE WHEN v_variant='legal_operation' THEN 1 ELSE 0 END,
++      'legalFixtureMatches',true,'extraApplicationMatches',true,
++      'blockerCount',CASE WHEN v_variant='protected_history' THEN 1 ELSE 0 END,
++      'rpcCompanyOwn',v_variant<>'wrong_tenant');
++    IF v_fixture IS DISTINCT FROM v_expected_fixture THEN
++      RAISE EXCEPTION USING MESSAGE='intended_fixture_predicate_not_observed',
++        DETAIL=jsonb_build_object('case',v_variant,'observed',v_fixture,'expected',v_expected_fixture)::text;
++    END IF;
++    IF v_variant='foreign_customer_company_fk' THEN
++      SELECT to_jsonb(a) INTO STRICT v_fk_before FROM public.customer_onboarding_applications a WHERE a.id=v_application_id;
++      v_actual_state:=NULL;
++      BEGIN
++        UPDATE public.customer_onboarding_applications SET company_id=v_input.other_company_id WHERE id=v_application_id;
++      EXCEPTION WHEN foreign_key_violation THEN v_actual_state:=SQLSTATE;
++      END;
++      IF v_actual_state IS DISTINCT FROM '23503' OR v_fk_before IS DISTINCT FROM
++         (SELECT to_jsonb(a) FROM public.customer_onboarding_applications a WHERE a.id=v_application_id) THEN
++        RAISE EXCEPTION USING MESSAGE='cross_company_fk_or_rollback_changed',
++          DETAIL=jsonb_build_object('case',v_variant,'fixture',v_fixture,'actualSQLState',v_actual_state)::text;
++      END IF;
++      v_cases:=v_cases||jsonb_build_array(jsonb_build_object('case',v_variant,'kind','FK_ONLY',
++        'fixture',v_fixture,'expectedSQLState','23503','actualSQLState',v_actual_state,'applicationUnchanged',true));
++      v_fk_checks:=v_fk_checks+1;v_passed:=v_passed+1;CONTINUE;
++    END IF;
++    SELECT jsonb_agg(to_jsonb(o) ORDER BY o.id) INTO v_operation_before
++    FROM public.customer_onboarding_operations o WHERE o.id IN(v_operation_id,v_foreign_operation_id);
++    SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) INTO v_applications_before
++    FROM public.customer_onboarding_applications a WHERE a.customer_id=v_customer_id;
++    SELECT jsonb_agg(to_jsonb(l) ORDER BY l.id) INTO v_legal_before
++    FROM public.customer_onboarding_legal_snapshots l
++    WHERE l.customer_id IN(v_customer_id,v_foreign_customer_id) OR l.onboarding_operation_id IN(v_operation_id,v_foreign_operation_id);
++    SELECT count(*) INTO v_audit_before FROM public.audit_logs WHERE entity_id=v_customer_id::text;
++    SELECT jsonb_build_object(
++      'customers',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.customers z WHERE z.id IN(v_customer_id,v_foreign_customer_id)),
++      'applications',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.customer_onboarding_applications z WHERE z.customer_id IN(v_customer_id,v_foreign_customer_id)),
++      'operations',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.customer_onboarding_operations z WHERE z.id IN(v_operation_id,v_foreign_operation_id)),
++      'legal',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.customer_onboarding_legal_snapshots z WHERE z.customer_id IN(v_customer_id,v_foreign_customer_id) OR z.onboarding_operation_id IN(v_operation_id,v_foreign_operation_id)),
++      'sites',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.customer_sites z WHERE z.customer_id IN(v_customer_id,v_foreign_customer_id)),
++      'points',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.metering_points z WHERE z.customer_id IN(v_customer_id,v_foreign_customer_id)),
++      'contracts',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.customer_contracts z WHERE z.customer_id IN(v_customer_id,v_foreign_customer_id)),
++      'audit',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.audit_logs z WHERE z.entity_id=v_customer_id::text)) INTO v_graph_before;
++    v_error_message:=NULL;
++    v_actual_state:=NULL;
++    BEGIN
++      v_rpc_calls:=v_rpc_calls+1;
++      v_reply:=public.gridex_delete_test_customer_v1(
++        CASE WHEN v_variant='wrong_tenant' THEN v_input.other_company_id ELSE v_input.company_id END,
++        v_customer_id,v_input.actor_user_id);
++    EXCEPTION WHEN OTHERS THEN
++      v_actual_state:=SQLSTATE;GET STACKED DIAGNOSTICS v_error_message=MESSAGE_TEXT;
++    END;
++    IF v_actual_state IS DISTINCT FROM v_expected_state THEN
++      RAISE EXCEPTION USING MESSAGE='unexpected_delete_outcome',
++        DETAIL=jsonb_build_object('case',v_variant,'fixture',v_fixture,
++          'expectedSQLState',v_expected_state,'actualSQLState',v_actual_state,
++          'actualMessage',left(v_error_message,512))::text;
++    END IF;
++    SELECT jsonb_build_object(
++      'customers',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.customers z WHERE z.id IN(v_customer_id,v_foreign_customer_id)),
++      'applications',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.customer_onboarding_applications z WHERE z.customer_id IN(v_customer_id,v_foreign_customer_id)),
++      'operations',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.customer_onboarding_operations z WHERE z.id IN(v_operation_id,v_foreign_operation_id)),
++      'legal',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.customer_onboarding_legal_snapshots z WHERE z.customer_id IN(v_customer_id,v_foreign_customer_id) OR z.onboarding_operation_id IN(v_operation_id,v_foreign_operation_id)),
++      'sites',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.customer_sites z WHERE z.customer_id IN(v_customer_id,v_foreign_customer_id)),
++      'points',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.metering_points z WHERE z.customer_id IN(v_customer_id,v_foreign_customer_id)),
++      'contracts',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.customer_contracts z WHERE z.customer_id IN(v_customer_id,v_foreign_customer_id)),
++      'audit',(SELECT jsonb_agg(to_jsonb(z) ORDER BY z.id) FROM public.audit_logs z WHERE z.entity_id=v_customer_id::text)) INTO v_graph_after;
++    IF v_expected_state IS NOT NULL AND v_graph_before IS DISTINCT FROM v_graph_after THEN
++      RAISE EXCEPTION USING MESSAGE='denied_delete_scoped_graph_changed',
++        DETAIL=jsonb_build_object('case',v_variant,'fixture',v_fixture,'actualSQLState',v_actual_state)::text;
++    END IF;
++    IF v_operation_before IS DISTINCT FROM (
++      SELECT jsonb_agg(to_jsonb(o) ORDER BY o.id) FROM public.customer_onboarding_operations o
++      WHERE o.id IN(v_operation_id,v_foreign_operation_id)
++    ) OR v_legal_before IS DISTINCT FROM (
++      SELECT jsonb_agg(to_jsonb(l) ORDER BY l.id) FROM public.customer_onboarding_legal_snapshots l
++      WHERE l.customer_id IN(v_customer_id,v_foreign_customer_id) OR l.onboarding_operation_id IN(v_operation_id,v_foreign_operation_id)
++    ) THEN RAISE EXCEPTION 'operation or legal evidence changed case=%',v_variant; END IF;
++    IF v_expected_state IS NULL THEN
++      IF v_reply->>'deleted' IS DISTINCT FROM 'true'
++         OR EXISTS(SELECT 1 FROM public.customers WHERE id=v_customer_id)
++         OR EXISTS(SELECT 1 FROM public.customer_onboarding_applications WHERE id=v_application_id)
++         OR (SELECT count(*) FROM public.audit_logs WHERE entity_id=v_customer_id::text AND action='customer.deleted_test' AND company_id=v_input.company_id)<>1 THEN
++        RAISE EXCEPTION 'ordinary eligible test delete/audit failed';
++      END IF;
++    ELSIF NOT EXISTS(SELECT 1 FROM public.customers WHERE id=v_customer_id)
++       OR v_applications_before IS DISTINCT FROM (
++         SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) FROM public.customer_onboarding_applications a WHERE a.customer_id=v_customer_id
++       ) OR (SELECT count(*) FROM public.audit_logs WHERE entity_id=v_customer_id::text)<>v_audit_before THEN
++      RAISE EXCEPTION 'denial did not roll back customer/application/audit case=%',v_variant;
++    END IF;
++    IF NOT EXISTS(SELECT 1 FROM public.customers WHERE id=v_foreign_customer_id) THEN
++      RAISE EXCEPTION 'foreign customer removed';
++    END IF;
++    v_cases:=v_cases||jsonb_build_array(jsonb_build_object('case',v_variant,'kind','DELETE_RPC',
++      'fixture',v_fixture,'expectedSQLState',v_expected_state,'actualSQLState',v_actual_state,
++      'actualMessage',left(v_error_message,512),'negativeGraphUnchanged',
++      CASE WHEN v_expected_state IS NULL THEN null ELSE v_graph_before=v_graph_after END));
++    v_passed:=v_passed+1;
++  END LOOP;
++  IF v_passed+v_skipped<>21 OR v_fk_checks<>1 OR v_rpc_calls<>20-v_skipped OR v_skipped NOT IN(0,1) THEN
++    RAISE EXCEPTION 'incomplete actual HTTP regression counters'; END IF;
++  component_report:=jsonb_build_object('version',1,
++    'state',CASE WHEN v_skipped=0 THEN 'ALL_21_COMPONENT_CASES_COMPLETED' ELSE '20_COMPONENT_CASES_COMPLETED_CONTRACT_FIXTURE_NOTRUN' END,
++    'casesPassed',v_passed,'casesNotRun',v_skipped,'deleteRpcInvocations',v_rpc_calls,
++    'caseOutcomes',v_cases,'fixturePredicatesObservedBeforeEachCall',true,
++    'fkOnlyChecks',v_fk_checks,'contractFixtureErrorSQLState',v_contract_fixture_error,
++    'contractFixture','DECLARED_SYNTHETIC_DRAFT_ROLLBACK_ONLY_NOT_SIGNED_OR_NORMAL_INTAKE',
++    'observedAuthRole',auth.role(),'observedCurrentUser',current_user,
++    'authUidWasNull',auth.uid() is null,'database',current_database(),
++    'targetBodyMD5',md5((SELECT prosrc FROM pg_proc WHERE oid='public.gridex_delete_test_customer_v1(uuid,uuid,uuid)'::regprocedure)),
++    'normalUiAuthCredit',false,'scenarioCredit',false);  RAISE NOTICE 'component report (transactional fixtures roll back; sequence effects measured separately): %',component_report;
++END $regression$;
++ROLLBACK;
+diff --git a/supabase/migrations/20261114192010_test_customer_delete_owned_admin_onboarding.sql b/supabase/migrations/20261114192010_test_customer_delete_owned_admin_onboarding.sql
+new file mode 100644
+index 000000000..5378183d1
+--- /dev/null
++++ b/supabase/migrations/20261114192010_test_customer_delete_owned_admin_onboarding.sql
+@@ -0,0 +1,213 @@
++-- Preserve the normal test-customer delete API, all existing guards and FK definitions.
++-- Purge only eligible admin-intake applications; explicitly reject every remaining customer capsule.
++-- This supersedes an unmerged draft; no historical applied migration is rewritten.
++BEGIN;
++SET LOCAL statement_timeout = '8s';
++SET LOCAL lock_timeout = '2s';
++DO $migration$
++DECLARE
++  old_proc jsonb;
++  new_proc jsonb;
++  old_acl jsonb;
++  new_acl jsonb;
++BEGIN
++  SELECT to_jsonb(p) INTO STRICT old_proc FROM pg_proc p
++  WHERE p.oid = 'public.gridex_delete_test_customer_v1(uuid,uuid,uuid)'::regprocedure;
++  IF md5(old_proc->>'prosrc') = 'b9dd0ed9061fede142be556cb4984be3' THEN
++    RETURN; -- Exact body already installed; no DML or metadata write on replay.
++  END IF;
++  IF md5(old_proc->>'prosrc') <> 'b6da43220109e6cd6a14eafc451926af' THEN
++    RAISE EXCEPTION 'test_customer_delete_exact_preimage_required';
++  END IF;
++  SELECT jsonb_agg(to_jsonb(a) ORDER BY a.grantor,a.grantee,a.privilege_type,a.is_grantable)
++    INTO old_acl
++  FROM aclexplode(coalesce((SELECT proacl FROM pg_proc WHERE oid=(old_proc->>'oid')::oid),
++                          acldefault('f',(old_proc->>'proowner')::oid))) a;
++  EXECUTE $definition$CREATE OR REPLACE FUNCTION public.gridex_delete_test_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid)
++ RETURNS jsonb
++ LANGUAGE plpgsql
++ SECURITY DEFINER
++ SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
++AS $function$
++declare
++  v_customer public.customers%rowtype;
++  v_site_ids uuid[];
++  v_point_ids uuid[];
++  v_outbound_ids uuid[];
++  v_test_run_ids uuid[];
++  v_protected text[] := '{}';
++begin
++  if auth.role() <> 'service_role' then
++    raise exception using errcode = '42501', message = 'customer_delete_service_role_required';
++  end if;
++  if p_company_id is null or p_customer_id is null or p_actor_user_id is null then
++    raise exception using errcode = '22023', message = 'customer_delete_payload_invalid';
++  end if;
++
++  select * into v_customer
++  from public.customers
++  where id = p_customer_id and company_id = p_company_id
++  for update;
++  if not found then
++    raise exception using errcode = 'P0002', message = 'customer_not_found_for_tenant';
++  end if;
++
++  if v_customer.is_test_data is not true
++     and coalesce(lower(v_customer.source), '') not like '%test%' then
++    raise exception using errcode = '23514', message = 'customer_delete_requires_test_data';
++  end if;
++
++  select coalesce(array_agg(id), '{}') into v_site_ids
++  from public.customer_sites where customer_id = p_customer_id;
++  select coalesce(array_agg(id), '{}') into v_point_ids
++  from public.metering_points
++  where customer_id = p_customer_id or site_id = any (v_site_ids);
++
++  -- Same protected-history rule as the customer card: real history is archived, never deleted.
++  if exists (select 1 from public.customer_contracts where customer_id = p_customer_id) then
++    v_protected := array_append(v_protected, 'customer_contracts'); end if;
++  if exists (select 1 from public.customer_invoices where customer_id = p_customer_id) then
++    v_protected := array_append(v_protected, 'customer_invoices'); end if;
++  if exists (select 1 from public.supplier_switch_requests where customer_id = p_customer_id) then
++    v_protected := array_append(v_protected, 'supplier_switch_requests'); end if;
++  if exists (select 1 from public.ediel_messages
++             where customer_id = p_customer_id
++                or site_id = any (v_site_ids)
++                or metering_point_id = any (v_point_ids)) then
++    v_protected := array_append(v_protected, 'ediel_messages'); end if;
++  if exists (select 1 from public.partner_exports where customer_id = p_customer_id) then
++    v_protected := array_append(v_protected, 'partner_exports'); end if;
++  if exists (select 1 from public.grid_owner_information_requests
++             where customer_id = p_customer_id or customer_site_id = any (v_site_ids)) then
++    v_protected := array_append(v_protected, 'grid_owner_information_requests'); end if;
++  if exists (select 1 from public.powers_of_attorney where customer_id = p_customer_id) then
++    v_protected := array_append(v_protected, 'powers_of_attorney'); end if;
++  if exists (select 1 from public.customer_documents where customer_id = p_customer_id) then
++    v_protected := array_append(v_protected, 'customer_documents'); end if;
++  if exists (select 1 from public.customer_operation_events where customer_id = p_customer_id) then
++    v_protected := array_append(v_protected, 'customer_operation_events'); end if;
++  if exists (select 1 from public.customer_blockers where customer_id = p_customer_id) then
++    v_protected := array_append(v_protected, 'customer_blockers'); end if;
++  if exists (select 1 from public.communication_logs
++             where customer_id = p_customer_id
++                or site_id = any (v_site_ids)
++                or metering_point_id = any (v_point_ids)) then
++    v_protected := array_append(v_protected, 'communication_logs'); end if;
++
++  if cardinality(v_protected) > 0 then
++    raise exception using
++      errcode = '23514',
++      message = 'customer_delete_protected_history',
++      detail = array_to_string(v_protected, ',');
++  end if;
++
++  -- Only the ordinary admin-intake capsule of this eligible test customer is disposable.
++  -- Keep the completed operation/result snapshot and all legal evidence unchanged.
++  delete from public.customer_onboarding_applications a
++  using public.customer_onboarding_operations o
++  where a.company_id = p_company_id
++    and a.customer_id = p_customer_id
++    and a.channel = 'admin'
++    and a.source_record_type = 'admin_customer_intake'
++    and a.status = 'committed'
++    and a.contract_id is null
++    and o.id = a.onboarding_operation_id
++    and o.company_id = p_company_id
++    and o.channel = 'admin'
++    and o.status = 'completed'
++    and o.result_snapshot @> jsonb_build_object(
++      'ok', true, 'code', 'customer_onboarding_committed',
++      'operation_id', o.id, 'customer_id', p_customer_id,
++      'application_id', a.id, 'legal_snapshot_id', null
++    )
++    and (a.customer_site_id is null or exists (
++      select 1 from public.customer_sites s
++      where s.id = a.customer_site_id
++        and s.company_id = p_company_id and s.customer_id = p_customer_id
++    ))
++    and (a.metering_point_id is null or exists (
++      select 1 from public.metering_points m
++      where m.id = a.metering_point_id
++        and m.company_id = p_company_id and m.customer_id = p_customer_id
++    ))
++    and not exists (
++      select 1 from public.customer_onboarding_legal_snapshots l
++      where l.customer_id = p_customer_id
++         or l.onboarding_operation_id = a.onboarding_operation_id
++    );
++
++  -- Composite CASCADE and simple RESTRICT FKs must not decide disposal eligibility.
++  -- Any capsule outside the exact purge above protects this customer, in every tenant.
++  if exists (
++    select 1 from public.customer_onboarding_applications a
++    where a.customer_id = p_customer_id
++  ) then
++    raise exception using
++      errcode = '23503', message = 'customer_delete_non_disposable_onboarding';
++  end if;
++
++  -- Audit first; the row survives because audit_logs has no customer foreign key.
++  insert into public.audit_logs (
++    actor_user_id, company_id, entity_type, entity_id, action, old_values, metadata
++  ) values (
++    p_actor_user_id, p_company_id, 'customer', p_customer_id::text, 'customer.deleted_test',
++    to_jsonb(v_customer),
++    jsonb_build_object(
++      'label', 'Raderade testkund',
++      'sites', cardinality(v_site_ids),
++      'meteringPoints', cardinality(v_point_ids),
++      'source', 'gridex_delete_test_customer_v1'
++    )
++  );
++
++  select coalesce(array_agg(id), '{}') into v_test_run_ids
++  from public.ediel_test_runs
++  where customer_id = p_customer_id
++     or site_id = any (v_site_ids)
++     or metering_point_id = any (v_point_ids);
++  delete from public.ediel_test_run_messages where test_run_id = any (v_test_run_ids);
++  delete from public.ediel_test_runs where id = any (v_test_run_ids);
++
++  select coalesce(array_agg(id), '{}') into v_outbound_ids
++  from public.outbound_requests where customer_id = p_customer_id;
++  delete from public.outbound_dispatch_events where outbound_request_id = any (v_outbound_ids);
++  delete from public.outbound_requests where id = any (v_outbound_ids);
++
++  delete from public.customer_portal_events where customer_id = p_customer_id;
++  delete from public.metering_values where customer_id = p_customer_id;
++  delete from public.billing_underlays where customer_id = p_customer_id;
++  delete from public.grid_owner_data_requests where customer_id = p_customer_id;
++  delete from public.customer_authorization_documents where customer_id = p_customer_id;
++  delete from public.customer_operation_tasks where customer_id = p_customer_id;
++  delete from public.customer_internal_notes where customer_id = p_customer_id;
++  delete from public.customer_portal_claims where customer_id = p_customer_id;
++  delete from public.customer_portal_accounts where customer_id = p_customer_id;
++  delete from public.customer_addresses where customer_id = p_customer_id;
++  delete from public.customer_contacts where customer_id = p_customer_id;
++  delete from public.metering_points where id = any (v_point_ids);
++  delete from public.customer_sites where id = any (v_site_ids);
++  delete from public.customers where id = p_customer_id and company_id = p_company_id;
++
++  return jsonb_build_object(
++    'deleted', true,
++    'sites', cardinality(v_site_ids),
++    'metering_points', cardinality(v_point_ids),
++    'test_runs', cardinality(v_test_run_ids),
++    'outbound_requests', cardinality(v_outbound_ids)
++  );
++end
++$function$
++$definition$;
++  SELECT to_jsonb(p) INTO STRICT new_proc FROM pg_proc p
++  WHERE p.oid = 'public.gridex_delete_test_customer_v1(uuid,uuid,uuid)'::regprocedure;
++  SELECT jsonb_agg(to_jsonb(a) ORDER BY a.grantor,a.grantee,a.privilege_type,a.is_grantable)
++    INTO new_acl
++  FROM aclexplode(coalesce((SELECT proacl FROM pg_proc WHERE oid=(new_proc->>'oid')::oid),
++                          acldefault('f',(new_proc->>'proowner')::oid))) a;
++  IF md5(new_proc->>'prosrc') <> 'b9dd0ed9061fede142be556cb4984be3'
++     OR (old_proc - 'prosrc') IS DISTINCT FROM (new_proc - 'prosrc')
++     OR old_acl IS DISTINCT FROM new_acl THEN
++    RAISE EXCEPTION 'test_customer_delete_body_or_metadata_changed';
++  END IF;
++END $migration$;
++COMMIT;
+-- 
+2.52.0
+

@@ -1,0 +1,2566 @@
+{
+  "state": "ACTUAL_OFFCLOCK_FILESYSTEM_STATIC_AUDIT_NO_RUNTIME_AUTHORITY",
+  "atEpoch": 1794747981.3854825,
+  "module": {
+    "path": "/workspace/gridex-event-next-S-prep-20261115/runtime-session.py",
+    "sha256": "3450fdf6278aee8e18d5e24743ae608076e4bd149752c9ce6c225dcd1942809c"
+  },
+  "actualConfig": {
+    "path": "/tmp/gridex-event-runtime-20261115-s/runtime-input.actual.private.json",
+    "sha256": "1d909a9088f8265d82ed6e13ac2216aca47a0eb9153ab92ae00dcb6d67dee6c7"
+  },
+  "exactStaticCall": {
+    "result": "STOP",
+    "firstExceptionType": "AssertionError",
+    "messageCode": "FIXED_HMR_CONFIG_MODE640_GID1000_REQUIRED"
+  },
+  "independentActualSourcePredicates": [
+    {
+      "function": "static",
+      "line": 75,
+      "source": "assert c['state']=='BOUND_READY_PRIVATE_RUNTIME57'",
+      "result": "PASS"
+    },
+    {
+      "function": "qualified_hmr_overlay",
+      "line": 67,
+      "source": "assert p.is_file()and not p.is_symlink()and p.resolve()==p and st.st_mode&0o777==0o640 and st.st_gid==1000 and st.st_size<=65536,'FIXED_HMR_CONFIG_MODE640_GID1000_REQUIRED'",
+      "result": "FAIL",
+      "exceptionType": "AssertionError"
+    },
+    {
+      "function": "qualified_hmr_overlay",
+      "line": 68,
+      "source": "assert H(p)==HMR_CONFIG_SHA and H(pathlib.Path(c['sourceRoot'])/'next.config.ts')==HMR_BASE_SHA,'EXACT_QUALIFIED_HMR_CONFIG_AND_BASELINE_REQUIRED'",
+      "result": "PASS"
+    },
+    {
+      "function": "qualified_hmr_overlay",
+      "line": 69,
+      "source": "assert p.read_text().replace(\"  allowedDevOrigins: ['127.0.0.1'],\\n\",'',1)==(pathlib.Path(c['sourceRoot'])/'next.config.ts').read_text(),'ONLY_EXACT_127_DEV_ORIGIN_DELTA_REQUIRED'",
+      "result": "PASS"
+    },
+    {
+      "function": "qualified_hmr_overlay",
+      "line": 70,
+      "source": "assert H(HMR_PROOF)==HMR_PROOF_SHA and H(HMR_PEER)==HMR_PEER_SHA,'ACTUAL_PUBLIC_HMR_PROOF_AND_PEER_REQUIRED'",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 77,
+      "source": "assert c['imageId']==IMAGE and c['appHostPort']==3178 and c['sdkHostPort']==57521 and c['gatewayPort']==8080",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 78,
+      "source": "assert re.fullmatch(r'[a-z0-9_]{4,24}',c['nonce'])and c['cloneDatabase']=='gridex_local_partner_http_20261113_a'",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 79,
+      "source": "assert re.fullmatch(r'[a-f0-9]{64}',c['cloneRestContainerId'])and c['restPort']==3000 and c['authPort']==9999",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 80,
+      "source": "assert c['authContainerId']=='148f5bf898b0caac70adfbbd871bc02a25a291d993a266569250e135ac40bda3'",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 81,
+      "source": "assert ipaddress.ip_address(c[k]).version==4",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 81,
+      "source": "assert ipaddress.ip_address(c[k]).version==4",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 81,
+      "source": "assert ipaddress.ip_address(c[k]).version==4",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 81,
+      "source": "assert ipaddress.ip_address(c[k]).version==4",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 81,
+      "source": "assert ipaddress.ip_address(c[k]).version==4",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 82,
+      "source": "assert subnet.prefixlen==29 and all(ipaddress.ip_address(c[k])in subnet for k in['appIP','gatewayIP','canaryIP'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 83,
+      "source": "assert len({c[k]for k in['appIP','gatewayIP','canaryIP']})==3 and 0<c['sessionBudgetSeconds']<=900",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 84,
+      "source": "assert c['runtimeGid']==1000 and c['appHeapMiB']==2048 and c['appMemoryMiB']==5120",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 85,
+      "source": "assert H(f['path'])==f['sha256'],('BOUND_DRIFT',f['path'])",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 86,
+      "source": "assert len(source)==67",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 87,
+      "source": "assert H(pathlib.Path(c['sourceRoot'])/p)==h",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 88,
+      "source": "assert c['terminatedMainProcesses']and c['minimumCgroupHeadroomBytes']>=3489660928",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 92,
+      "source": "assert st[19]!=str(old['startTicks'])or st[0]=='Z','MAIN_APP_STILL_LIVE_SAME_PROCESS'",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 92,
+      "source": "assert st[19]!=str(old['startTicks'])or st[0]=='Z','MAIN_APP_STILL_LIVE_SAME_PROCESS'",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 93,
+      "source": "assert H(c['mainTerminationReceiptPath'])==c['mainTerminationReceiptSHA256']",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 97,
+      "source": "assert sep and (re.fullmatch(r'[A-Z0-9_]+',k)or k in {'http_proxy','https_proxy','all_proxy','no_proxy'})and k not in env",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 98,
+      "source": "assert env.get('NEXT_PUBLIC_SUPABASE_URL')=='http://127.0.0.1:57521' and env.get('NEXT_PUBLIC_SUPABASE_ANON_KEY')and env.get('SUPABASE_SERVICE_ROLE_KEY')",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 102,
+      "source": "assert sep and k not in proxies",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 102,
+      "source": "assert sep and k not in proxies",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 102,
+      "source": "assert sep and k not in proxies",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 102,
+      "source": "assert sep and k not in proxies",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 102,
+      "source": "assert sep and k not in proxies",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 102,
+      "source": "assert sep and k not in proxies",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 104,
+      "source": "assert set(proxies)<=proxykeys and proxies=={k:v for k,v in env.items()if k in proxykeys},'PROXY_ENV_NOT_PRESERVED'",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 105,
+      "source": "assert not set(env)&{'NODE_OPTIONS','LD_PRELOAD','LD_LIBRARY_PATH','NEXT_PHASE','NODE_EXTRA_CA_CERTS'}",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 106,
+      "source": "assert pathlib.Path(c['runtimeDir']).is_dir()and not(pathlib.Path(c['runtimeDir'])/'session-intent.safe.json').exists()",
+      "result": "PASS"
+    },
+    {
+      "function": "static",
+      "line": 107,
+      "source": "assert pathlib.Path(c['cacheDir']).is_dir()and not list(pathlib.Path(c['cacheDir']).iterdir())",
+      "result": "PASS"
+    }
+  ],
+  "predicateCounts": {
+    "PASS": 147,
+    "FAIL": 1,
+    "UNRESOLVED_DEPENDENCY": 0
+  },
+  "actualFileInventory": [
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/runtime-session.py",
+      "expectedSHA256": "3450fdf6278aee8e18d5e24743ae608076e4bd149752c9ce6c225dcd1942809c",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 548417,
+      "nlink": 1,
+      "bytes": 19639,
+      "isSymlink": false,
+      "resolvedPath": "/workspace/gridex-event-next-S-prep-20261115/runtime-session.py",
+      "kind": "regular",
+      "sha256": "3450fdf6278aee8e18d5e24743ae608076e4bd149752c9ce6c225dcd1942809c",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-event-runtime-20261115-s/runtime-input.actual.private.json",
+      "expectedSHA256": null,
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 879399,
+      "nlink": 1,
+      "bytes": 9058,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-event-runtime-20261115-s/runtime-input.actual.private.json",
+      "kind": "regular",
+      "sha256": "1d909a9088f8265d82ed6e13ac2216aca47a0eb9153ab92ae00dcb6d67dee6c7",
+      "hashMatches": true
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/next.config.LOOPBACK.ts",
+      "expectedSHA256": "742e0f29cd6ecf35f1778582983df379e3e1d67109ec57eead469f0b606a728a",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 548423,
+      "nlink": 1,
+      "bytes": 2820,
+      "isSymlink": false,
+      "resolvedPath": "/workspace/gridex-event-next-S-prep-20261115/next.config.LOOPBACK.ts",
+      "kind": "regular",
+      "sha256": "742e0f29cd6ecf35f1778582983df379e3e1d67109ec57eead469f0b606a728a",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/next.config.ts",
+      "expectedSHA256": "a1631bebfd35ecdbb8c9ddca580c49a39983816ed8effc3d15ea6d9b0cd145cf",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564557,
+      "nlink": 1,
+      "bytes": 2784,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/next.config.ts",
+      "kind": "regular",
+      "sha256": "a1631bebfd35ecdbb8c9ddca580c49a39983816ed8effc3d15ea6d9b0cd145cf",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-client-hmr-B7-actual-prep-20261115/CLOSED-A7-B7-COMPARISON.safe.json",
+      "expectedSHA256": "76ca791ff65f4508b3e2b638e933c032f60856d6352ffc3858a4137c19f2a06d",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 768734,
+      "nlink": 1,
+      "bytes": 2111,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-client-hmr-B7-actual-prep-20261115/CLOSED-A7-B7-COMPARISON.safe.json",
+      "kind": "regular",
+      "sha256": "76ca791ff65f4508b3e2b638e933c032f60856d6352ffc3858a4137c19f2a06d",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-client-hmr-B7-actual-prep-20261115/ediel-A7-B7-HMR-comparison-review.safe.json",
+      "expectedSHA256": "ca1720f0e11e5d91bf57062e5fe7bdd7b760c8d70c425eb5c38b230353963236",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 768828,
+      "nlink": 1,
+      "bytes": 1631,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-client-hmr-B7-actual-prep-20261115/ediel-A7-B7-HMR-comparison-review.safe.json",
+      "kind": "regular",
+      "sha256": "ca1720f0e11e5d91bf57062e5fe7bdd7b760c8d70c425eb5c38b230353963236",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/source-sixty-seven-publication-event-selection.safe.json",
+      "expectedSHA256": "18b963524f8d7a93aeac59a3fbdc1eb5be391674801a262b4b943d2e52e6c263",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 593439,
+      "nlink": 1,
+      "bytes": 8711,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/source-sixty-seven-publication-event-selection.safe.json",
+      "kind": "regular",
+      "sha256": "18b963524f8d7a93aeac59a3fbdc1eb5be391674801a262b4b943d2e52e6c263",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-event-main-baseline-20261115-s/own-app-termination.safe.json",
+      "expectedSHA256": "1b159c607f7a5856bff6324c513be6ed4b6991ad0f9cbd3837637b2adcc5e317",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 876711,
+      "nlink": 1,
+      "bytes": 1033,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-event-main-baseline-20261115-s/own-app-termination.safe.json",
+      "kind": "regular",
+      "sha256": "1b159c607f7a5856bff6324c513be6ed4b6991ad0f9cbd3837637b2adcc5e317",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-event-runtime-20261115-s/app.private.env",
+      "expectedSHA256": "9064bdeff439b715cb1c0d20a30bc7e2a71938c72baebcaddc4e5247511b76cb",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 873526,
+      "nlink": 1,
+      "bytes": 1002,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-event-runtime-20261115-s/app.private.env",
+      "kind": "regular",
+      "sha256": "9064bdeff439b715cb1c0d20a30bc7e2a71938c72baebcaddc4e5247511b76cb",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-event-runtime-20261115-s/proxy-only.private.env",
+      "expectedSHA256": "3768184a67ee199f4424bd4a819f775e2b99bc6fd8e513bb5487ba5052b21962",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 873527,
+      "nlink": 1,
+      "bytes": 184,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-event-runtime-20261115-s/proxy-only.private.env",
+      "kind": "regular",
+      "sha256": "3768184a67ee199f4424bd4a819f775e2b99bc6fd8e513bb5487ba5052b21962",
+      "hashMatches": true
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/LEASE-PLAN.BOUND.safe.json",
+      "expectedSHA256": "e7ef06d24c0527371676b0a53ea36d4e5e24763e85ec4d1dcad337d94d061523",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 548688,
+      "nlink": 1,
+      "bytes": 3477,
+      "isSymlink": false,
+      "resolvedPath": "/workspace/gridex-event-next-S-prep-20261115/LEASE-PLAN.BOUND.safe.json",
+      "kind": "regular",
+      "sha256": "e7ef06d24c0527371676b0a53ea36d4e5e24763e85ec4d1dcad337d94d061523",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-api5-http-runtime-prep-20261113/runtime-session.py",
+      "expectedSHA256": "fdac8b46f179bd5cd53005e4994e4c3d631f7518d12daab487af2deb206ce82a",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 468867,
+      "nlink": 1,
+      "bytes": 14447,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-api5-http-runtime-prep-20261113/runtime-session.py",
+      "kind": "regular",
+      "sha256": "fdac8b46f179bd5cd53005e4994e4c3d631f7518d12daab487af2deb206ce82a",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-api5-http-runtime-prep-20261113/namespace-witness.cjs",
+      "expectedSHA256": "580f0621d8fb686f2668f1eb8977d288475022e30057c306cc8798592c2da2e3",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 468869,
+      "nlink": 1,
+      "bytes": 3352,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-api5-http-runtime-prep-20261113/namespace-witness.cjs",
+      "kind": "regular",
+      "sha256": "580f0621d8fb686f2668f1eb8977d288475022e30057c306cc8798592c2da2e3",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-api5-http-runtime-prep-20261113/fixed-backend-gateway.cjs",
+      "expectedSHA256": "ae62799de1d59395814207f81c41e573cb6c91d50b4532c99f2ae2308ffa0204",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 468870,
+      "nlink": 1,
+      "bytes": 8322,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-api5-http-runtime-prep-20261113/fixed-backend-gateway.cjs",
+      "kind": "regular",
+      "sha256": "ae62799de1d59395814207f81c41e573cb6c91d50b4532c99f2ae2308ffa0204",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot57-source-20261113/dependencies-manifest.safe.json",
+      "expectedSHA256": "b7fb24b3bd455c444dd50ed6de3851141b56995456695e00f207f8a39e70e947",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 430244,
+      "nlink": 1,
+      "bytes": 3405649,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot57-source-20261113/dependencies-manifest.safe.json",
+      "kind": "regular",
+      "sha256": "b7fb24b3bd455c444dd50ed6de3851141b56995456695e00f207f8a39e70e947",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-lean-actual-qualification-20261113/qualified-result.safe.json",
+      "expectedSHA256": "2589fef9d74bd7a2f44c75180385f9fdf5d2480a06812ec0cce51bb5fc8a89a6",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 396063,
+      "nlink": 1,
+      "bytes": 129,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-lean-actual-qualification-20261113/qualified-result.safe.json",
+      "kind": "regular",
+      "sha256": "2589fef9d74bd7a2f44c75180385f9fdf5d2480a06812ec0cce51bb5fc8a89a6",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-lean-gnu-isolation-prep-20261113/FROZEN-HANDOFF.safe.json",
+      "expectedSHA256": "44ad16a5944bd3c90fe0166cbfbb2ac49d5497752740cb72c2bcf64d21cf3440",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 393536,
+      "nlink": 1,
+      "bytes": 3609,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-lean-gnu-isolation-prep-20261113/FROZEN-HANDOFF.safe.json",
+      "kind": "regular",
+      "sha256": "44ad16a5944bd3c90fe0166cbfbb2ac49d5497752740cb72c2bcf64d21cf3440",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot57-actual-firewall-nft-preflight-20261113/actual-journal.private.json",
+      "expectedSHA256": "2302b72b044c0a1d608b2b81fa7933692fb1f16c3b0a0d9d0def60a226f6a16a",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 446448,
+      "nlink": 1,
+      "bytes": 5059,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot57-actual-firewall-nft-preflight-20261113/actual-journal.private.json",
+      "kind": "regular",
+      "sha256": "2302b72b044c0a1d608b2b81fa7933692fb1f16c3b0a0d9d0def60a226f6a16a",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot57-actual-firewall-nft-preflight-20261113/intent.safe.json",
+      "expectedSHA256": "d0f9f5c9a9d4d508726fd1042d56d137260618896df87f45deed21d7386d70b3",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 446433,
+      "nlink": 1,
+      "bytes": 156,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot57-actual-firewall-nft-preflight-20261113/intent.safe.json",
+      "kind": "regular",
+      "sha256": "d0f9f5c9a9d4d508726fd1042d56d137260618896df87f45deed21d7386d70b3",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot57-actual-firewall-nft-preflight-20261113/terminal.safe.json",
+      "expectedSHA256": "c40346ae40e669d3507c34e969bf2712901f6b384474da62c75c693ed97224d2",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 446449,
+      "nlink": 1,
+      "bytes": 131,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot57-actual-firewall-nft-preflight-20261113/terminal.safe.json",
+      "kind": "regular",
+      "sha256": "c40346ae40e669d3507c34e969bf2712901f6b384474da62c75c693ed97224d2",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot57-actual-firewall-nft-preflight-20261113/stdout.private.log",
+      "expectedSHA256": "aa6d542ef79837d2bad7ff43e12750c9282392cc20ea2a32303927ef385cdb41",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 446445,
+      "nlink": 1,
+      "bytes": 160,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot57-actual-firewall-nft-preflight-20261113/stdout.private.log",
+      "kind": "regular",
+      "sha256": "aa6d542ef79837d2bad7ff43e12750c9282392cc20ea2a32303927ef385cdb41",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot57-actual-firewall-nft-preflight-20261113/stderr.private.log",
+      "expectedSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 446446,
+      "nlink": 1,
+      "bytes": 0,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot57-actual-firewall-nft-preflight-20261113/stderr.private.log",
+      "kind": "regular",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "hashMatches": true
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/child-launcher.py",
+      "expectedSHA256": "95a7aa5426a1ae0d04cb425507d5d251f98c627de24356689185fac83d9528fc",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 548420,
+      "nlink": 1,
+      "bytes": 6873,
+      "isSymlink": false,
+      "resolvedPath": "/workspace/gridex-event-next-S-prep-20261115/child-launcher.py",
+      "kind": "regular",
+      "sha256": "95a7aa5426a1ae0d04cb425507d5d251f98c627de24356689185fac83d9528fc",
+      "hashMatches": true
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/namespace-witness.cjs",
+      "expectedSHA256": "b438e45aca1f97a414a330ea825dc038007f94f5e3bf9ad373e0b7fa1d08353f",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 548421,
+      "nlink": 1,
+      "bytes": 3647,
+      "isSymlink": false,
+      "resolvedPath": "/workspace/gridex-event-next-S-prep-20261115/namespace-witness.cjs",
+      "kind": "regular",
+      "sha256": "b438e45aca1f97a414a330ea825dc038007f94f5e3bf9ad373e0b7fa1d08353f",
+      "hashMatches": true
+    },
+    {
+      "path": "/workspace/gridex-event-next-S-prep-20261115/fixed-backend-gateway.cjs",
+      "expectedSHA256": "ae62799de1d59395814207f81c41e573cb6c91d50b4532c99f2ae2308ffa0204",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 548422,
+      "nlink": 1,
+      "bytes": 8322,
+      "isSymlink": false,
+      "resolvedPath": "/workspace/gridex-event-next-S-prep-20261115/fixed-backend-gateway.cjs",
+      "kind": "regular",
+      "sha256": "ae62799de1d59395814207f81c41e573cb6c91d50b4532c99f2ae2308ffa0204",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-event-runtime-20261115-s/FS-READY.safe.json",
+      "expectedSHA256": "11874302c1108da4562ca03c4bb3b4be09c1a3af75f0fd159388045c700d969f",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 873528,
+      "nlink": 1,
+      "bytes": 1292,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-event-runtime-20261115-s/FS-READY.safe.json",
+      "kind": "regular",
+      "sha256": "11874302c1108da4562ca03c4bb3b4be09c1a3af75f0fd159388045c700d969f",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-event-runtime-20261115-s/genuine-held-prefix.safe.json",
+      "expectedSHA256": "c7cd5945ade15cac9ba0a34fbdabc4a4a13dd612d43368cfc53f2026a0e5d37d",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 878532,
+      "nlink": 1,
+      "bytes": 743,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-event-runtime-20261115-s/genuine-held-prefix.safe.json",
+      "kind": "regular",
+      "sha256": "c7cd5945ade15cac9ba0a34fbdabc4a4a13dd612d43368cfc53f2026a0e5d37d",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-event-runtime-20261115-s/producer-preflight.safe.json",
+      "expectedSHA256": "1e76649625f356d4383554e7e51947f8a231e0605872fafb341a0c382200ab26",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 878533,
+      "nlink": 1,
+      "bytes": 1167,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-event-runtime-20261115-s/producer-preflight.safe.json",
+      "kind": "regular",
+      "sha256": "1e76649625f356d4383554e7e51947f8a231e0605872fafb341a0c382200ab26",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-event-main-baseline-20261115-s/producer-bindings.safe.json",
+      "expectedSHA256": "315b7e515e55414f42b67c146f54881c59237a54816274ec9741577b71bdc657",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 876732,
+      "nlink": 1,
+      "bytes": 2163,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-event-main-baseline-20261115-s/producer-bindings.safe.json",
+      "kind": "regular",
+      "sha256": "315b7e515e55414f42b67c146f54881c59237a54816274ec9741577b71bdc657",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-event-main-baseline-20261115-s/current-full-backup-seal.safe.json",
+      "expectedSHA256": "757eb5b9250c3a91ec1764a19350bf20184b8095f49617af47a90374cd286f8b",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 877349,
+      "nlink": 1,
+      "bytes": 909,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-event-main-baseline-20261115-s/current-full-backup-seal.safe.json",
+      "kind": "regular",
+      "sha256": "757eb5b9250c3a91ec1764a19350bf20184b8095f49617af47a90374cd286f8b",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-event-main-baseline-20261115-s/quiet-epoch.safe.json",
+      "expectedSHA256": "d1eda9bcf0f7550221f826a3335925eced87ace122379bb1be50da452c319a57",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 876731,
+      "nlink": 1,
+      "bytes": 499,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-event-main-baseline-20261115-s/quiet-epoch.safe.json",
+      "kind": "regular",
+      "sha256": "d1eda9bcf0f7550221f826a3335925eced87ace122379bb1be50da452c319a57",
+      "hashMatches": true
+    },
+    {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261115-s/auth-getonly-start.safe.json",
+      "expectedSHA256": "deb3f75304243b2b02c04e4f7db5c24679f1abb324ffd26e7100c9b44b09e223",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 548801,
+      "nlink": 1,
+      "bytes": 474,
+      "isSymlink": false,
+      "resolvedPath": "/workspace/gridex-event-publication-positive-actual-20261115-s/auth-getonly-start.safe.json",
+      "kind": "regular",
+      "sha256": "deb3f75304243b2b02c04e4f7db5c24679f1abb324ffd26e7100c9b44b09e223",
+      "hashMatches": true
+    },
+    {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261115-s/event-factory-native.private.json",
+      "expectedSHA256": "8d83f61014e6b6440d8b7749fb4f4a15c78cd5dd88c42179e73e0c79e4c5b48a",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 548789,
+      "nlink": 1,
+      "bytes": 1266,
+      "isSymlink": false,
+      "resolvedPath": "/workspace/gridex-event-publication-positive-actual-20261115-s/event-factory-native.private.json",
+      "kind": "regular",
+      "sha256": "8d83f61014e6b6440d8b7749fb4f4a15c78cd5dd88c42179e73e0c79e4c5b48a",
+      "hashMatches": true
+    },
+    {
+      "path": "/workspace/gridex-event-publication-positive-actual-20261115-s/candidate3457-before-child.private.json",
+      "expectedSHA256": "bdff08fef5960d803d7e68a3b7ce4a5c824ef293fdf0606790674f871cd9958a",
+      "mode": "0o600",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 548790,
+      "nlink": 1,
+      "bytes": 23015627,
+      "isSymlink": false,
+      "resolvedPath": "/workspace/gridex-event-publication-positive-actual-20261115-s/candidate3457-before-child.private.json",
+      "kind": "regular",
+      "sha256": "bdff08fef5960d803d7e68a3b7ce4a5c824ef293fdf0606790674f871cd9958a",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/integrations/billing/invoiceExportCore.ts",
+      "expectedSHA256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565920,
+      "nlink": 1,
+      "bytes": 38622,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/integrations/billing/invoiceExportCore.ts",
+      "kind": "regular",
+      "sha256": "d2aa6cad2ae1fe7cab74006c0d6af0062bb499e0946525821b0f867e74a84e94",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/api/internal/invoice-exports/[id]/route.ts",
+      "expectedSHA256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 567006,
+      "nlink": 1,
+      "bytes": 1508,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/api/internal/invoice-exports/[id]/route.ts",
+      "kind": "regular",
+      "sha256": "e9f0c4e7db02fef5c48bb70330f0aacb6a88f609b12b42765c8ac186661cc8eb",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/dashboard/page.tsx",
+      "expectedSHA256": "4d22149f68d73343c5e9478d062cf356492c441a22d70f7428a88c8dae0e6376",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 567382,
+      "nlink": 1,
+      "bytes": 7749,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/dashboard/page.tsx",
+      "kind": "regular",
+      "sha256": "4d22149f68d73343c5e9478d062cf356492c441a22d70f7428a88c8dae0e6376",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/customers/[id]/page.part-4.tsx",
+      "expectedSHA256": "d381c2f09fdd1bd91eed8cfbcecd2ae6a9e588952f3f53a916d4049f07e15d9d",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566326,
+      "nlink": 1,
+      "bytes": 64823,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/customers/[id]/page.part-4.tsx",
+      "kind": "regular",
+      "sha256": "d381c2f09fdd1bd91eed8cfbcecd2ae6a9e588952f3f53a916d4049f07e15d9d",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/masterdata/customerSitePriceAreas.ts",
+      "expectedSHA256": "0a3dcf1da1875da33d8b1584b1a4fae307593ff42e046d7b784a825f1354d29f",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565961,
+      "nlink": 1,
+      "bytes": 603,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/masterdata/customerSitePriceAreas.ts",
+      "kind": "regular",
+      "sha256": "0a3dcf1da1875da33d8b1584b1a4fae307593ff42e046d7b784a825f1354d29f",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/customers/[id]/actions.part-1.ts",
+      "expectedSHA256": "633dec029b858da530bc9e3640d6363dedca1a95bf5dc38def0f22c51395bdd0",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566302,
+      "nlink": 1,
+      "bytes": 34612,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/customers/[id]/actions.part-1.ts",
+      "kind": "regular",
+      "sha256": "633dec029b858da530bc9e3640d6363dedca1a95bf5dc38def0f22c51395bdd0",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/masterdata/db.ts",
+      "expectedSHA256": "bc1ec43495cff993c16ea3c3c6022064880badcac8373c8afa8eea411dd4379b",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565955,
+      "nlink": 1,
+      "bytes": 25824,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/masterdata/db.ts",
+      "kind": "regular",
+      "sha256": "bc1ec43495cff993c16ea3c3c6022064880badcac8373c8afa8eea411dd4379b",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/operations/db.part-2.ts",
+      "expectedSHA256": "8a96f33e133758eb56e46cc75cf50aecb4ce67a62cadad959fe595657c71fb54",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566000,
+      "nlink": 1,
+      "bytes": 34691,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/operations/db.part-2.ts",
+      "kind": "regular",
+      "sha256": "8a96f33e133758eb56e46cc75cf50aecb4ce67a62cadad959fe595657c71fb54",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/components/admin/masterdata/CustomerSiteForm.tsx",
+      "expectedSHA256": "3e771bbb2acd1febbcf3b2ff19cda259ee3894a9a7dd5bb833344f12e9205497",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564695,
+      "nlink": 1,
+      "bytes": 12298,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/components/admin/masterdata/CustomerSiteForm.tsx",
+      "kind": "regular",
+      "sha256": "3e771bbb2acd1febbcf3b2ff19cda259ee3894a9a7dd5bb833344f12e9205497",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/tenant/staffCommands.ts",
+      "expectedSHA256": "edb15934d297af0d6997e4490fe0ef0027140cdbcc5e955f10f73f3467d18b6f",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566150,
+      "nlink": 1,
+      "bytes": 12690,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/tenant/staffCommands.ts",
+      "kind": "regular",
+      "sha256": "edb15934d297af0d6997e4490fe0ef0027140cdbcc5e955f10f73f3467d18b6f",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/auth/companyUserAccess.ts",
+      "expectedSHA256": "c21112a7febe2c95459e9886a6bde4a79f1c764778e907ea8936700edff98b2e",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564759,
+      "nlink": 1,
+      "bytes": 9592,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/auth/companyUserAccess.ts",
+      "kind": "regular",
+      "sha256": "c21112a7febe2c95459e9886a6bde4a79f1c764778e907ea8936700edff98b2e",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/dashboard/company-selection/route.ts",
+      "expectedSHA256": "61f4e24b2789ae7f5d81d18a4382b41039abee7814c512b7a926022375e8cb3e",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 567384,
+      "nlink": 1,
+      "bytes": 5507,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/dashboard/company-selection/route.ts",
+      "kind": "regular",
+      "sha256": "61f4e24b2789ae7f5d81d18a4382b41039abee7814c512b7a926022375e8cb3e",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/tenant/companySelectionAccess.ts",
+      "expectedSHA256": "b9306afb47aef22a3c4eaa130225d4d3657b0cf732a7d38dcdbd3ac77f2ccd1c",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566152,
+      "nlink": 1,
+      "bytes": 2240,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/tenant/companySelectionAccess.ts",
+      "kind": "regular",
+      "sha256": "b9306afb47aef22a3c4eaa130225d4d3657b0cf732a7d38dcdbd3ac77f2ccd1c",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/contracts/permissions.ts",
+      "expectedSHA256": "ff94274122d6e11e853577a0033272852c9654c2cc849f95f3f606acaac1d96f",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564824,
+      "nlink": 1,
+      "bytes": 1481,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/contracts/permissions.ts",
+      "kind": "regular",
+      "sha256": "ff94274122d6e11e853577a0033272852c9654c2cc849f95f3f606acaac1d96f",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/contracts/actions.ts",
+      "expectedSHA256": "818e6e0258f9c8c6ffa36e600ddd799c9152d82facb9dcb41f102ab2e1e5073e",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566278,
+      "nlink": 1,
+      "bytes": 37823,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/contracts/actions.ts",
+      "kind": "regular",
+      "sha256": "818e6e0258f9c8c6ffa36e600ddd799c9152d82facb9dcb41f102ab2e1e5073e",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/contracts/adminActions.ts",
+      "expectedSHA256": "cf1d80a668eebcab9d5593a9f18e45be0a57960a603cd3e304f6b941436b3c58",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564814,
+      "nlink": 1,
+      "bytes": 7882,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/contracts/adminActions.ts",
+      "kind": "regular",
+      "sha256": "cf1d80a668eebcab9d5593a9f18e45be0a57960a603cd3e304f6b941436b3c58",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/companies/[id]/tenant-platform-actions.ts",
+      "expectedSHA256": "772d7e3087de8f2bc7ff377022dce1ec08208f744b7bbe8d6833feb8c8705e70",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566267,
+      "nlink": 1,
+      "bytes": 11908,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/companies/[id]/tenant-platform-actions.ts",
+      "kind": "regular",
+      "sha256": "772d7e3087de8f2bc7ff377022dce1ec08208f744b7bbe8d6833feb8c8705e70",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/billing/billingGate.ts",
+      "expectedSHA256": "290316ff3f33960737f570eff6a94eb4740249d0bae73e6328f97c72b399a1b7",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564778,
+      "nlink": 1,
+      "bytes": 16042,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/billing/billingGate.ts",
+      "kind": "regular",
+      "sha256": "290316ff3f33960737f570eff6a94eb4740249d0bae73e6328f97c72b399a1b7",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/pricing/engine.ts",
+      "expectedSHA256": "4341904f29dbb35b0c3fe8534d2f98c0812a4556f298189590fd82b664cbde77",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566052,
+      "nlink": 1,
+      "bytes": 28378,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/pricing/engine.ts",
+      "kind": "regular",
+      "sha256": "4341904f29dbb35b0c3fe8534d2f98c0812a4556f298189590fd82b664cbde77",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/controlledTestReceiverIdentity.ts",
+      "expectedSHA256": "12a7d34c3d8c7a8f2b320911dd7788888cfd8e65ac8515476eb6738a101e4e40",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565667,
+      "nlink": 1,
+      "bytes": 4221,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/controlledTestReceiverIdentity.ts",
+      "kind": "regular",
+      "sha256": "12a7d34c3d8c7a8f2b320911dd7788888cfd8e65ac8515476eb6738a101e4e40",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/ediel/test-center/receiver-identity/actions.ts",
+      "expectedSHA256": "69b4aae4346313836514357e202c2c985b32edbfd6c778d4dbf37a1b6dbff37c",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566504,
+      "nlink": 1,
+      "bytes": 3611,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/ediel/test-center/receiver-identity/actions.ts",
+      "kind": "regular",
+      "sha256": "69b4aae4346313836514357e202c2c985b32edbfd6c778d4dbf37a1b6dbff37c",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/ediel/test-center/receiver-identity/page.tsx",
+      "expectedSHA256": "da5965a5733264931a05fa61775b8b7c05decf5f98fb26e80e3632c863350fbc",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566505,
+      "nlink": 1,
+      "bytes": 5870,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/ediel/test-center/receiver-identity/page.tsx",
+      "kind": "regular",
+      "sha256": "da5965a5733264931a05fa61775b8b7c05decf5f98fb26e80e3632c863350fbc",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/billing/invoiceReviewPrepare.ts",
+      "expectedSHA256": "9fe46e217316bf19418a89fecdae4985caa9dd74357d466df7d6c2d7efac285e",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564790,
+      "nlink": 1,
+      "bytes": 23643,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/billing/invoiceReviewPrepare.ts",
+      "kind": "regular",
+      "sha256": "9fe46e217316bf19418a89fecdae4985caa9dd74357d466df7d6c2d7efac285e",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/billing/invoiceApprovedDispatch.ts",
+      "expectedSHA256": "547c33b5e4486b39f58ae71171608b9a1aaa038c660f0be2da8a1cc8cf42c29d",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564785,
+      "nlink": 1,
+      "bytes": 32909,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/billing/invoiceApprovedDispatch.ts",
+      "kind": "regular",
+      "sha256": "547c33b5e4486b39f58ae71171608b9a1aaa038c660f0be2da8a1cc8cf42c29d",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/api/internal/invoice-exports/create/route.ts",
+      "expectedSHA256": "f3000d5e7412c6c3fa075d2f1aa9554f4f1750ff07035bec9c55f54c901d1d84",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 567010,
+      "nlink": 1,
+      "bytes": 2689,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/api/internal/invoice-exports/create/route.ts",
+      "kind": "regular",
+      "sha256": "f3000d5e7412c6c3fa075d2f1aa9554f4f1750ff07035bec9c55f54c901d1d84",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/billing/actions.ts",
+      "expectedSHA256": "f27c13b8ebab50af44a77dab18714687e5436f749fdbad778a9dd6d015e9e7fa",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566220,
+      "nlink": 1,
+      "bytes": 2739,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/billing/actions.ts",
+      "kind": "regular",
+      "sha256": "f27c13b8ebab50af44a77dab18714687e5436f749fdbad778a9dd6d015e9e7fa",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/billing/page.tsx",
+      "expectedSHA256": "8d13f078c08b46fd672302ffa440803b72548a5442f2acfe733913e23425e350",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566243,
+      "nlink": 1,
+      "bytes": 18570,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/billing/page.tsx",
+      "kind": "regular",
+      "sha256": "8d13f078c08b46fd672302ffa440803b72548a5442f2acfe733913e23425e350",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/navigation-mode/route.ts",
+      "expectedSHA256": "1265efb72dad00965a1900c46c6642b4230f2208877f17d15b22323c67c3d9ae",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566557,
+      "nlink": 1,
+      "bytes": 5255,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/navigation-mode/route.ts",
+      "kind": "regular",
+      "sha256": "1265efb72dad00965a1900c46c6642b4230f2208877f17d15b22323c67c3d9ae",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/customers/intake/page.tsx",
+      "expectedSHA256": "d5a0ce8806f0a60fbd0aa66ecb63e17d1f9d501921108230229b199cb5e8c5a3",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566346,
+      "nlink": 1,
+      "bytes": 10240,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/customers/intake/page.tsx",
+      "kind": "regular",
+      "sha256": "d5a0ce8806f0a60fbd0aa66ecb63e17d1f9d501921108230229b199cb5e8c5a3",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/billing/invoice-files/[id]/route.ts",
+      "expectedSHA256": "822a84cc19666d8b61eb6e56c77737b5629b0c5406b522537d7132a2b543b5ea",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566237,
+      "nlink": 1,
+      "bytes": 2132,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/billing/invoice-files/[id]/route.ts",
+      "kind": "regular",
+      "sha256": "822a84cc19666d8b61eb6e56c77737b5629b0c5406b522537d7132a2b543b5ea",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/customers/[id]/page.part-1.tsx",
+      "expectedSHA256": "a6dcd0c74a7ebd3548ac2ee37c3a019635421f2922fd08512f7d61af6cdd1d9d",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566323,
+      "nlink": 1,
+      "bytes": 23991,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/customers/[id]/page.part-1.tsx",
+      "kind": "regular",
+      "sha256": "a6dcd0c74a7ebd3548ac2ee37c3a019635421f2922fd08512f7d61af6cdd1d9d",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/customers/page.part-1.tsx",
+      "expectedSHA256": "4673c266f42bdd6466258af0df669fcc85f7e7d3da165c5c09b821369408b5ac",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566348,
+      "nlink": 1,
+      "bytes": 24367,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/customers/page.part-1.tsx",
+      "kind": "regular",
+      "sha256": "4673c266f42bdd6466258af0df669fcc85f7e7d3da165c5c09b821369408b5ac",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/auth/callback/route.ts",
+      "expectedSHA256": "3a7ea7a1698078b90d0cb583c5b0b6a16766559d89e876931377994daa2fe7c6",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 567368,
+      "nlink": 1,
+      "bytes": 3191,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/auth/callback/route.ts",
+      "kind": "regular",
+      "sha256": "3a7ea7a1698078b90d0cb583c5b0b6a16766559d89e876931377994daa2fe7c6",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/public/auth-templates/magic-link.html",
+      "expectedSHA256": "f54c63c8cab799d3d04d30d464ef28608191d030ec9fdff88ddbf5991c6e0234",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564572,
+      "nlink": 1,
+      "bytes": 320,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/public/auth-templates/magic-link.html",
+      "kind": "regular",
+      "sha256": "f54c63c8cab799d3d04d30d464ef28608191d030ec9fdff88ddbf5991c6e0234",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/auth/action/actions.ts",
+      "expectedSHA256": "e44a5eee361bab4210ec4d8dae552bbf22d3e93c0c7dc424c1f004e7b57cfee1",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 567365,
+      "nlink": 1,
+      "bytes": 2554,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/auth/action/actions.ts",
+      "kind": "regular",
+      "sha256": "e44a5eee361bab4210ec4d8dae552bbf22d3e93c0c7dc424c1f004e7b57cfee1",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/auth/action/page.tsx",
+      "expectedSHA256": "0a8a70dbb6129e3817fc45ebf58b8d65f1cd05b331f97e88388a40457bb5e352",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 567366,
+      "nlink": 1,
+      "bytes": 4764,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/auth/action/page.tsx",
+      "kind": "regular",
+      "sha256": "0a8a70dbb6129e3817fc45ebf58b8d65f1cd05b331f97e88388a40457bb5e352",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/auth/signupContinuation.ts",
+      "expectedSHA256": "edabd8185e0b672cc1eb2eb098c53c0f3bb8e284d744e7084faf636b055a3e1c",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564773,
+      "nlink": 1,
+      "bytes": 2126,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/auth/signupContinuation.ts",
+      "kind": "regular",
+      "sha256": "edabd8185e0b672cc1eb2eb098c53c0f3bb8e284d744e7084faf636b055a3e1c",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/public/auth-templates/confirmation.html",
+      "expectedSHA256": "11f0c1a6335dfad116f726e14c1f4a18ee1921578bb83680c47c9f5c989f21a7",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564573,
+      "nlink": 1,
+      "bytes": 237,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/public/auth-templates/confirmation.html",
+      "kind": "regular",
+      "sha256": "11f0c1a6335dfad116f726e14c1f4a18ee1921578bb83680c47c9f5c989f21a7",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/masterdata/customerIntakePriceAreas.ts",
+      "expectedSHA256": "c9d9e5c0062ec3de4b1ffbd135adc453b7ef0ec5c462161eb414d47751d7b013",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565962,
+      "nlink": 1,
+      "bytes": 755,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/masterdata/customerIntakePriceAreas.ts",
+      "kind": "regular",
+      "sha256": "c9d9e5c0062ec3de4b1ffbd135adc453b7ef0ec5c462161eb414d47751d7b013",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/tenant/provisioningWorker.ts",
+      "expectedSHA256": "2f2d9abfa7ec22aa1b823d1eba937aa823490161969e5f0b8e126422db809ca4",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566153,
+      "nlink": 1,
+      "bytes": 10060,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/tenant/provisioningWorker.ts",
+      "kind": "regular",
+      "sha256": "2f2d9abfa7ec22aa1b823d1eba937aa823490161969e5f0b8e126422db809ca4",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/ediel/test-center/actions.ts",
+      "expectedSHA256": "5ed170d2e4dba053e9365ed18efce0103ed77d5ffccb6c6d1b2c0f4f4f668ac8",
+      "mode": "0o444",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566491,
+      "nlink": 1,
+      "bytes": 21460,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/ediel/test-center/actions.ts",
+      "kind": "regular",
+      "sha256": "5ed170d2e4dba053e9365ed18efce0103ed77d5ffccb6c6d1b2c0f4f4f668ac8",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/ediel/test-center/metering-to-invoice/page.tsx",
+      "expectedSHA256": "1566e21d2992905b6b69b21ef34fe6183796dc3203e9746f83e52654e546e58a",
+      "mode": "0o444",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566498,
+      "nlink": 1,
+      "bytes": 18130,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/ediel/test-center/metering-to-invoice/page.tsx",
+      "kind": "regular",
+      "sha256": "1566e21d2992905b6b69b21ef34fe6183796dc3203e9746f83e52654e546e58a",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/billing/meterValueBillingMatcher.ts",
+      "expectedSHA256": "d984a357bfa6a68b04da40901a2da48d90cc19b3390cf2cdbd94fa14fd0b2a52",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564792,
+      "nlink": 1,
+      "bytes": 9922,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/billing/meterValueBillingMatcher.ts",
+      "kind": "regular",
+      "sha256": "d984a357bfa6a68b04da40901a2da48d90cc19b3390cf2cdbd94fa14fd0b2a52",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/billing/underlayEngine.ts",
+      "expectedSHA256": "8addf20f6b98d73eb98c693bc649346e078c220491ceaae578a79e6d0919a801",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564802,
+      "nlink": 1,
+      "bytes": 59322,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/billing/underlayEngine.ts",
+      "kind": "regular",
+      "sha256": "8addf20f6b98d73eb98c693bc649346e078c220491ceaae578a79e6d0919a801",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/flows/utiltsDataRequest.part-1.ts",
+      "expectedSHA256": "2569c62b1d6a59fc8093b2f04e40f5553399f4a5a75f49fa0c064805942bd344",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565133,
+      "nlink": 1,
+      "bytes": 38681,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/flows/utiltsDataRequest.part-1.ts",
+      "kind": "regular",
+      "sha256": "2569c62b1d6a59fc8093b2f04e40f5553399f4a5a75f49fa0c064805942bd344",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "expectedSHA256": "edff5ad8cd9534b2e2ebe3b2803dca2c27feb6239bfebed656a605a5fd35109d",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565134,
+      "nlink": 1,
+      "bytes": 46132,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "kind": "regular",
+      "sha256": "edff5ad8cd9534b2e2ebe3b2803dca2c27feb6239bfebed656a605a5fd35109d",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+      "expectedSHA256": "7bf203bb1231310125dc16727dea92973d71a391614dd2d0f37b11493928bfda",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565136,
+      "nlink": 1,
+      "bytes": 12511,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+      "kind": "regular",
+      "sha256": "7bf203bb1231310125dc16727dea92973d71a391614dd2d0f37b11493928bfda",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/invoiceTestEdifactMaterialization.ts",
+      "expectedSHA256": "6e8f37419d9ce23778d6b12da7f8f763179279806462989dd50fcdb552050e68",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565613,
+      "nlink": 1,
+      "bytes": 19430,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/invoiceTestEdifactMaterialization.ts",
+      "kind": "regular",
+      "sha256": "6e8f37419d9ce23778d6b12da7f8f763179279806462989dd50fcdb552050e68",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/testCenterRawEdifactImport.ts",
+      "expectedSHA256": "08b142359c3934ccf221dc67e527cbe83e6595cdeebc65f3c6f6253a62cb932f",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565626,
+      "nlink": 1,
+      "bytes": 14504,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/testCenterRawEdifactImport.ts",
+      "kind": "regular",
+      "sha256": "08b142359c3934ccf221dc67e527cbe83e6595cdeebc65f3c6f6253a62cb932f",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/testCenterRuntimeChain.ts",
+      "expectedSHA256": "22cfdc3872309aea4227a90d140b4e99fc259573e4eeb105611000d79cd0bfb2",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565627,
+      "nlink": 1,
+      "bytes": 14508,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/testCenterRuntimeChain.ts",
+      "kind": "regular",
+      "sha256": "22cfdc3872309aea4227a90d140b4e99fc259573e4eeb105611000d79cd0bfb2",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/testCenterRuntimeReadModel.ts",
+      "expectedSHA256": "69d06e016b808178e4e8bf4306906926dbf9234bc310387eb100ceda99254021",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565629,
+      "nlink": 1,
+      "bytes": 3159,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/testCenterRuntimeReadModel.ts",
+      "kind": "regular",
+      "sha256": "69d06e016b808178e4e8bf4306906926dbf9234bc310387eb100ceda99254021",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/utilts/consumptionSinks.ts",
+      "expectedSHA256": "8000e4fc8afec2fffaf49a9e5b26c3588c90e7000279dce0f2c26cb30bf7448c",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565711,
+      "nlink": 1,
+      "bytes": 5341,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/utilts/consumptionSinks.ts",
+      "kind": "regular",
+      "sha256": "8000e4fc8afec2fffaf49a9e5b26c3588c90e7000279dce0f2c26cb30bf7448c",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/utilts/issuerIdentityAuthority.ts",
+      "expectedSHA256": "7991e66a0897788cebe42a1fb14a2bcfc315a7bf67328d1b85e7904cfa6d6f10",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565724,
+      "nlink": 1,
+      "bytes": 8573,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/utilts/issuerIdentityAuthority.ts",
+      "kind": "regular",
+      "sha256": "7991e66a0897788cebe42a1fb14a2bcfc315a7bf67328d1b85e7904cfa6d6f10",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/integrations/webhooks.ts",
+      "expectedSHA256": "20417de2b7e3ac26f5e2f406f36e8f07323decae8e890a3fee810e29d232afc3",
+      "mode": "0o644",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 570849,
+      "nlink": 1,
+      "bytes": 53902,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/integrations/webhooks.ts",
+      "kind": "regular",
+      "sha256": "20417de2b7e3ac26f5e2f406f36e8f07323decae8e890a3fee810e29d232afc3",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/localSimulationAckCapture.ts",
+      "expectedSHA256": "9562b118a3079e8445ea5c8091df1f723c3dbaf337f0e1c9c2567773378e1823",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565600,
+      "nlink": 1,
+      "bytes": 3124,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/localSimulationAckCapture.ts",
+      "kind": "regular",
+      "sha256": "9562b118a3079e8445ea5c8091df1f723c3dbaf337f0e1c9c2567773378e1823",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/localSimulationContractAdmission.ts",
+      "expectedSHA256": "e3516df6def612f200479c6da9d57001573875e7ea56eb878ad620187825b87e",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565599,
+      "nlink": 1,
+      "bytes": 70169,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/localSimulationContractAdmission.ts",
+      "kind": "regular",
+      "sha256": "e3516df6def612f200479c6da9d57001573875e7ea56eb878ad620187825b87e",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/supabase/database.types.ts",
+      "expectedSHA256": "db095a469bc2f7346c7f8a8e876e9bae3f7aeb0651aa4521f90795dd4a22382f",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564551,
+      "nlink": 1,
+      "bytes": 3756131,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/supabase/database.types.ts",
+      "kind": "regular",
+      "sha256": "db095a469bc2f7346c7f8a8e876e9bae3f7aeb0651aa4521f90795dd4a22382f",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/partner-api/localSimulation.ts",
+      "expectedSHA256": "7622e4857fd5fbd6e97163380e0a87380a5f08fb25919848a1ef707e9551b845",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566023,
+      "nlink": 1,
+      "bytes": 7607,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/partner-api/localSimulation.ts",
+      "kind": "regular",
+      "sha256": "7622e4857fd5fbd6e97163380e0a87380a5f08fb25919848a1ef707e9551b845",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/api/partner/v1/[[...path]]/route.ts",
+      "expectedSHA256": "df41904cd4fe6e1415c687c3ebb2ee7334c604cbbe9e59c8874684d3abac3089",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 567059,
+      "nlink": 1,
+      "bytes": 4548,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/api/partner/v1/[[...path]]/route.ts",
+      "kind": "regular",
+      "sha256": "df41904cd4fe6e1415c687c3ebb2ee7334c604cbbe9e59c8874684d3abac3089",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/platform/api-clients/LocalSimulationPartnerForm.tsx",
+      "expectedSHA256": "a81b63d35c6f76f2e11ddfa33e622114a2c86483ea21e8772d127a0937dc6331",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566628,
+      "nlink": 1,
+      "bytes": 5291,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/platform/api-clients/LocalSimulationPartnerForm.tsx",
+      "kind": "regular",
+      "sha256": "a81b63d35c6f76f2e11ddfa33e622114a2c86483ea21e8772d127a0937dc6331",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/platform/api-clients/localSimulationActions.ts",
+      "expectedSHA256": "d084c05b2517c5e84337488523c77632ef794d819eeff0386ff147fb75a75bc5",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566627,
+      "nlink": 1,
+      "bytes": 5167,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/platform/api-clients/localSimulationActions.ts",
+      "kind": "regular",
+      "sha256": "d084c05b2517c5e84337488523c77632ef794d819eeff0386ff147fb75a75bc5",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/platform/api-clients/page.tsx",
+      "expectedSHA256": "d9a7d88ee61b6a04709b96740c833a99da8fc10ef6c4a768585397b93b625747",
+      "mode": "0o640",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 566631,
+      "nlink": 1,
+      "bytes": 29151,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/platform/api-clients/page.tsx",
+      "kind": "regular",
+      "sha256": "d9a7d88ee61b6a04709b96740c833a99da8fc10ef6c4a768585397b93b625747",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/components/admin/companies/CompanySettingsActionForm.tsx",
+      "expectedSHA256": "2f94ad1950a6af9b98d92501534a797733df916833285ad01071afb7b0647eae",
+      "mode": "0o444",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 564586,
+      "nlink": 1,
+      "bytes": 2275,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/components/admin/companies/CompanySettingsActionForm.tsx",
+      "kind": "regular",
+      "sha256": "2f94ad1950a6af9b98d92501534a797733df916833285ad01071afb7b0647eae",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/localSimulationRawForm.ts",
+      "expectedSHA256": "e6e0921d3da9d8b7ed9806470e2dba9ccb8230882c969a588696be5029125027",
+      "mode": "0o444",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 565598,
+      "nlink": 1,
+      "bytes": 1351,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/ediel/testing/localSimulationRawForm.ts",
+      "kind": "regular",
+      "sha256": "e6e0921d3da9d8b7ed9806470e2dba9ccb8230882c969a588696be5029125027",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/webhooks/publication-test-receivers/actions.ts",
+      "expectedSHA256": "fffc4a9d0700b188105a40f3ad0b491c088f47b3dea84698b1af578f6be1e790",
+      "mode": "0o644",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 567476,
+      "nlink": 1,
+      "bytes": 4099,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/webhooks/publication-test-receivers/actions.ts",
+      "kind": "regular",
+      "sha256": "fffc4a9d0700b188105a40f3ad0b491c088f47b3dea84698b1af578f6be1e790",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/app/admin/webhooks/publication-test-receivers/page.tsx",
+      "expectedSHA256": "0f6d2ce6aa974aa22d8e2350c8c393095bd9bd91753f372988fb319b7b4cad41",
+      "mode": "0o644",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 593438,
+      "nlink": 1,
+      "bytes": 7344,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/app/admin/webhooks/publication-test-receivers/page.tsx",
+      "kind": "regular",
+      "sha256": "0f6d2ce6aa974aa22d8e2350c8c393095bd9bd91753f372988fb319b7b4cad41",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/integrations/localTestWebhookTransport.ts",
+      "expectedSHA256": "dd3e7b0d0ea02ec40407514122b28d3977cd9a5f75a1f1bfcf36ed41274149d5",
+      "mode": "0o644",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 567478,
+      "nlink": 1,
+      "bytes": 4256,
+      "isSymlink": false,
+      "resolvedPath": "/tmp/gridex-pilot67-source-20261114/lib/integrations/localTestWebhookTransport.ts",
+      "kind": "regular",
+      "sha256": "dd3e7b0d0ea02ec40407514122b28d3977cd9a5f75a1f1bfcf36ed41274149d5",
+      "hashMatches": true
+    },
+    {
+      "path": "/tmp/gridex-event-runtime-20261115-s",
+      "kind": "directory",
+      "mode": "0o700",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 34,
+      "inode": 873523,
+      "isSymlink": false,
+      "entryNames": [
+        "FS-READY.safe.json",
+        "app.private.env",
+        "genuine-held-prefix.safe.json",
+        "producer-preflight.safe.json",
+        "proxy-only.private.env",
+        "runtime-binding.safe.json",
+        "runtime-input.BOUND.safe.json",
+        "runtime-input.actual.private.json"
+      ]
+    },
+    {
+      "path": "/workspace/gridex-event-cache-20261115-s",
+      "kind": "directory",
+      "mode": "0o700",
+      "uid": 1000,
+      "gid": 1000,
+      "device": 27,
+      "inode": 548659,
+      "isSymlink": false,
+      "entryNames": []
+    }
+  ],
+  "filesystemPredicatesAllIndependentlyCheckedEvenAfterFirstSTOP": true,
+  "noRuntimeImportOrFakeBackendContext": true,
+  "noDockerNativeNodeAuthSocketOrActiveFileWrites": true,
+  "limits": "Post-run fresh-directory/PID predicates report current real state, not retroactive prelaunch facts. Regex/container-ID fields are metadata checks, not live backend eligibility. No lease/deadline/resource/authority approval implied."
+}

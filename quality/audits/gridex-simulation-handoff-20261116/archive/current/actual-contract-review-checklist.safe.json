@@ -1,0 +1,67 @@
+{
+  "state": "PREPARED_ROOT_ACTUAL_DOCUMENT_REVIEW_CHECKLIST_NOT_APPROVAL",
+  "preparedAtUtc": "2026-11-14T12:18:15.288865+00:00",
+  "template": {
+    "path": "/tmp/gridex-local-fresh-four-rpc-domain-prep-20261114/issue-template.safe.json",
+    "sha256": "29c5e72dcc2ad0fb9827b060d71a87adbf6ab10a01a02eee13819a8dc53b91ab"
+  },
+  "requireActualBeforeAttest": [
+    "Read actual native UTF8 text and verify original native SHA, not JSON reconstruction.",
+    "Match company and actual admission/customer/contract/site/meter IDs to ISSUE/PREPARE native readbacks.",
+    "Compare source namespace/slot/raw SHA/document/transaction references against original declaration.",
+    "Compare complete period, Stockholm boundaries, PV/content SHA and selected pricing, all fee fields and VAT with original ISSUE request.",
+    "Confirm LOCAL_SIMULATION_ONLY and no customer signature claim; preserve exact compared document and native refs.",
+    "Write actual closed semantic review with current timestamp only after reading document; never pre-sign template."
+  ],
+  "expectedSimulationParameters": {
+    "fixture": {
+      "endsOn": "2027-02-28",
+      "startsOn": "2027-02-01",
+      "priceArea": "SE3",
+      "siteLabel": "LOCAL coherent four RPC test site",
+      "customerType": "private",
+      "gridAreaCode": "L27",
+      "customerLabel": "LOCAL coherent four RPC test customer",
+      "energyDirection": "consumption",
+      "externalMeteringPointId": "000000202702000016"
+    },
+    "pricing": {
+      "model": "fixed",
+      "vatRate": "0.25",
+      "adminFeeSek": "0",
+      "breakFeeSek": "0",
+      "discountSek": "0",
+      "greenFeeSek": "0",
+      "startFeeSek": "0",
+      "invoiceFeeSek": "0",
+      "monthlyFeeSek": "40",
+      "markupOrePerKwh": "0",
+      "fixedPriceOrePerKwh": "95",
+      "variableFeeOrePerKwh": "0",
+      "realPricePlanVersionId": "ea48d9bc-d0e6-4f27-906b-d490ca4e4f9a",
+      "realContractProductVersionId": null,
+      "expectedStoredPvContentSha256": "e9e9b921a177d3a598a65d6e7bd36631ee058f2448d0b301218da855bdad6439"
+    },
+    "businessPeriod": {
+      "timezone": "Europe/Stockholm",
+      "businessAsOf": "2027-03-01T00:00:00Z",
+      "endExclusive": "2027-02-28T23:00:00Z",
+      "startInclusive": "2027-01-31T23:00:00Z"
+    },
+    "sourceSlots": [
+      {
+        "slotKey": "feb2027-quarter-pilot",
+        "rawSha256": "7c0239018ce701d2223f07a109b1b683605ae9ccc3877564df116c31f771adc9",
+        "documentReference": "L2FEB2027E66001",
+        "transactionReferences": [
+          "L2FEB2027TX001"
+        ]
+      }
+    ]
+  },
+  "notAuthority": [
+    "No actual dynamic IDs known yet.",
+    "3242 SEK is expected arithmetic, not engine approval.",
+    "No ATTEST or financial PASS from this checklist."
+  ]
+}

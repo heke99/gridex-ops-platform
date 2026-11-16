@@ -1,0 +1,9 @@
+{
+  "reviewer": "root",
+  "scope": "ActualJSONBqualification8loghashes+physicalMainbyte preservation and outputread only, fullactualSQL/catalog Ediel separately",
+  "summarySHA256": "8d492a46b0e76dcec3b4cdf430a3a33d63f3ef981e98303848e0f3437a274312",
+  "all8LogHashesMatch": true,
+  "mainBeforeAfterByteEqual": true,
+  "qualificationExit": 0,
+  "noBusinessOrMainSourceApplyClaim": true
+}

@@ -1,0 +1,38 @@
+{
+  "state": "LOCAL_PREFLIGHT_ONLY_NO_DATA_MIGRATION",
+  "preparedAtUTC": "2026-11-16T09:47:22.508681+00:00",
+  "originalScenarios": {
+    "total": 105,
+    "fullPass": 43,
+    "documentedGap": 1,
+    "incomplete": 61
+  },
+  "mixedFindings": 46,
+  "notOpenProductBugCount": true,
+  "currentFourCases": [
+    "EDIEL02.05",
+    "EDIEL03.01",
+    "EDIEL03.02",
+    "EDIEL03.03"
+  ],
+  "currentFourAuthOrBusinessRun": false,
+  "cloudEnvironment": {
+    "workspaceAndDockerSharedGiB": 31.5,
+    "tmpGiB": 8.8,
+    "tmpFilesystem": "tmpfs",
+    "dockerDriver": "vfs"
+  },
+  "lastConstructor": {
+    "cliTimeoutSeconds": 30,
+    "lateCreatedNeverStarted": true,
+    "exactOwnedContainerRemoved": true,
+    "observedRawWorkspaceReclaimedBytes": 2244390912,
+    "notExclusiveAllocationOrPeakBound": true,
+    "completionTimeNotMeasuredExactly": true,
+    "independentClosureSHA256": "844322062c65119c06496e6d655683d91358194ff61ff006e232ed1c06e9ac58"
+  },
+  "heavyCloudStartsPaused": true,
+  "currentLinuxRunnerPortableToNativeMacUnchanged": false,
+  "macArchitectureRAMDiskDockerNotYetVerified": true,
+  "privateDataCredentialsOrDBDumpIncluded": false
+}

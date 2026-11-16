@@ -1,0 +1,19 @@
+{
+  "state": "APPROVE_EXACT_FOUR_LOSSLESS_ARCHIVE_SCOPE",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T09:23:29.486938+00:00",
+  "proposalSHA256": "dc20211efe24697aa98d871adcb985ae9fdd73365f491f8ac733cf85a0ac91be",
+  "scope": [
+    "Only4 exactclosedhistoricalA/Bsnapshots; independentdbd35 restoreseed/Bcurrentinputs untouched",
+    "CurrentSHA/size/inode/nlink/uidgid and actualclosure verified",
+    "FreshnoFDcheck; NEWgzipmtime0+0600; streamdecompressSHA/bytes before rawunlink; fsync archive+durablemanifest beforeunlink",
+    "Recordoriginalmetadata/ARCHIVEDstatus/exactrestorecommand; no claimrawpathcurrentlypresent, anyfuture reuse requiresrestore+hash",
+    "Independentoriginalindices remainhistorical; appendarchivecustody explicitly instead of modifying oldreviews"
+  ],
+  "paths": [
+    "/workspace/gridex-event-publication-positive-actual-20261114-a/predecessor-after.private.json",
+    "/workspace/gridex-event-publication-positive-actual-20261114-a/trusted3443-before-event.private.json",
+    "/workspace/gridex-event-publication-positive-actual-20261114-b/predecessor-after.private.json",
+    "/workspace/gridex-event-publication-positive-actual-20261114-b/trusted3443-before-event.private.json"
+  ]
+}

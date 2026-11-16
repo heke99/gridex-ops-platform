@@ -1,0 +1,27 @@
+{
+  "state": "ROOT_EXACT_CLOSED_K2_GENERATED_CACHE_DESCENDANTS_CLEANUP_SCOPE_APPROVE",
+  "atUtc": "2026-11-14T14:39:23.406829+00:00",
+  "proposal": {
+    "path": "/tmp/gridex-k2-cache-readonly-proposal-20261114/PROPOSAL.safe.json",
+    "sha256": "613c9e72815679c8c3085f662cd0de7569c15aa3b3e4ef382f8169a9d4e49a78"
+  },
+  "root": "/workspace/gridex-local-cache-20261114-k2",
+  "rootIdentity": {
+    "dev": 27,
+    "inode": 527529,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o770"
+  },
+  "inventorySHA256": "1f849bec5ece550d3d8ae8926df0614f62f681af5ee389f49b0e4b239ee295d7",
+  "closedAppCID": "2746a726550132a734ea974ccac8733603f9a219673fbdc6ba867fd23787866c",
+  "scope": [
+    "Only78 inventoried generated closedK2 descendants, no links/otherdevice; freshinventory/rootidentity/ownedclosedCID/mount/accessibleFD checks beforeexecution.",
+    "Existing qualified pinnedDocker463254 and image/helper provenance; networknone, ROroot, NNP, capdropALL plus ONLY DAC_OVERRIDE, singleRWbind exactcache root; no otherwritemount/env/API authority.",
+    "Inspect exacthelper/canonicalCAP_DAC_OVERRIDE beforestart, account actualUIDmapping; mismatchSTOPbeforedeletion.",
+    "Delete generateddescendants only, retainoriginalroot0770/gid1000/aliases; Rootnotrecreated orremoved.",
+    "Postempty+rootidentity/perms/provenance/helpercleanup+actualdiskreceipt; no globalprune/source/deps/proof/C6/E/currentK3/H changes."
+  ],
+  "expectedMaxAllocatedReclaimBytes": 77533184,
+  "backendCallsByRoot": 0
+}

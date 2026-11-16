@@ -1,0 +1,9 @@
+{
+  "verdict": "EXECUTION_SCOPE_APPROVE",
+  "reviewerAgent": "/root",
+  "observedAt": "2026-11-14T09:07:53.065013+00:00",
+  "wrapperSHA256": "5e2885ce8237aaed90d45dff211bea32fd66bbd03c0b3bb799b0915d45b28747",
+  "targetSHA256": "dd42057e4141ba17bc2db18cc0f5954c082a95e799dc317d66bc00922a04db8e",
+  "scope": "ONE fresh EVENTB target; allboundpins+originalseal+actualclosedA/Mainbyteequal verified; genuine1921070 command2 business0/held09:14:32 and09:12 deadline. Exactleaf0770/allsourcebytes qualified. Produceractual805resourceguard mandatory. SeparateTLSproducer+Edielactualscopes, nativefailurecapture beforeteardown. No C6/APIwire gates.",
+  "findings": []
+}

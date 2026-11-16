@@ -1,0 +1,1240 @@
+'use server'
+
+import { normalizeGridOwnerIdToOps } from '@/lib/grid-owners/platformGridOwnerResolver'
+
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { requireAdminAccess, requireCompanyScopedActionAccess, requirePlatformAdminActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
+import { supabaseService } from '@/lib/supabase/service'
+import { logAdminActionAndUsage, logUsageEvent } from '@/lib/audit/actionLogger'
+import { assessWebsiteApplicationReadiness, cleanReviewText, customerIntakeStatusForReadiness } from '@/lib/website/applicationReview'
+import { repairWebsiteCustomerApplication } from '@/lib/website/customerApplications'
+import { resolveEnergyContext } from '@/lib/energy/resolver'
+import { ensureGridOwnerInformationRequest } from '@/lib/energy/gridOwnerRequests'
+import { completeFacilityLookupAndRunNextSteps } from '@/lib/customer-operations/facilityResponseOrchestrator'
+import {
+  findFacilityConflicts,
+  mapFacilityBusinessError,
+  normalizeFacilityId,
+  recordFacilityDataIssue,
+  type FacilityBusinessErrorCode,
+} from '@/lib/energy/facilityDataErrors'
+import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
+import { websiteApplicationPayloadToIntakeRow } from '@/lib/website/applicationCustomerIntakeRow'
+import { buildCustomerParamsFromImportRow } from '@/app/admin/customers/actions.part-3'
+import { createCustomerGraph } from '@/app/admin/customers/actions.part-2'
+
+const WRITE_PERMISSIONS = { anyOf: ['customers.write', 'switching.write', 'metering.write', 'poa.write'] }
+
+type ApplicationRecord = {
+  id: string
+  company_id: string
+  customer_id: string | null
+  customer_site_id: string | null
+  metering_point_id: string | null
+  contract_id: string | null
+  status: string
+  payload: Record<string, unknown> | null
+  raw_payload: Record<string, unknown> | null
+  response_payload: Record<string, unknown> | null
+  timeline: unknown[] | null
+  audit_log: unknown[] | null
+  resolution_id?: string | null
+  grid_owner_information_request_id?: string | null
+  grid_area_code?: string | null
+  grid_owner_id?: string | null
+  price_area_code?: string | null
+  resolution_status?: string | null
+  resolution_confidence?: number | null
+  requested_start_mode?: string | null
+  calculated_earliest_start_date?: string | null
+  facility_data_verified_at?: string | null
+}
+
+function text(formData: FormData, key: string): string | null {
+  const value = String(formData.get(key) ?? '').trim()
+  return value.length > 0 ? value : null
+}
+
+function checkbox(formData: FormData, key: string): boolean | null {
+  if (!formData.has(key)) return null
+  const value = String(formData.get(key) ?? '').trim().toLowerCase()
+  return ['on', 'true', '1', 'yes', 'ja', 'accepted'].includes(value)
+}
+
+function asBooleanLike(value: unknown): boolean {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'string') return ['true', 'yes', 'ja', '1', 'on', 'verified', 'received'].includes(value.trim().toLowerCase())
+  if (typeof value === 'number') return value === 1
+  return false
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function isUuid(value: string | null): boolean {
+  return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
+}
+
+function missingSchema(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code ?? ''
+  const message = (error as { message?: string } | null)?.message ?? ''
+  return ['42P01', '42703', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
+}
+
+
+function websiteApplicationDetailPath(applicationId: string): string {
+  return `/admin/website-applications/${applicationId}`
+}
+
+function safeReturnPath(formData: FormData, fallback: string): string {
+  const requested = text(formData, 'return_to')
+  if (requested && /^\/admin\/website-applications(?:\/|\?|$)/.test(requested)) {
+    return requested
+  }
+  return fallback
+}
+
+function withErrorMessage(path: string, message: string): string {
+  const separator = path.includes('?') ? '&' : '?'
+  return `${path}${separator}error=${encodeURIComponent(message)}`
+}
+
+function revalidateWebsiteApplicationPaths(application: Pick<ApplicationRecord, 'id' | 'customer_id'>) {
+  revalidatePath('/admin/website-applications')
+  revalidatePath(websiteApplicationDetailPath(application.id))
+  if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
+}
+
+const WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE = 'website_application'
+const LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE = 'website_application_review'
+const WEBSITE_APPLICATION_CONTRACT_CHANNEL = 'external_website'
+const WEBSITE_APPLICATION_READY_CONTRACT_STATUS = 'pending_signature'
+const WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS = 'draft'
+const WEBSITE_CONTRACT_SOURCE_TYPES = [
+  WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
+  LEGACY_WEBSITE_APPLICATION_REVIEW_SOURCE_TYPE,
+]
+
+type WebsiteContractRow = {
+  id: string
+  contract_name: string | null
+  starts_at: string | null
+  status: string | null
+  site_id?: string | null
+  customer_site_id?: string | null
+  metering_point_id?: string | null
+  requested_start_date?: string | null
+}
+
+function matchesExpectedValue(actual: string | null | undefined, expected: string | null | undefined): boolean {
+  if (!expected) return true
+  return actual === expected
+}
+
+function matchesExpectedDate(actual: string | null | undefined, expected: string | null | undefined): boolean {
+  if (!expected) return true
+  return Boolean(actual && String(actual).slice(0, 10) === String(expected).slice(0, 10))
+}
+
+async function findExistingApplicationContract(input: {
+  companyId: string
+  customerId: string
+  siteId?: string | null
+  meteringPointId?: string | null
+  requestedStartDate?: string | null
+  contractName?: string | null
+}): Promise<WebsiteContractRow | null> {
+  const { data, error } = await supabaseService
+    .from('customer_contracts')
+    .select('id,contract_name,starts_at,status,site_id,customer_site_id,metering_point_id,requested_start_date')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .in('source_type', WEBSITE_CONTRACT_SOURCE_TYPES)
+    .order('created_at', { ascending: false })
+    .limit(25)
+
+  if (error) {
+    if (missingSchema(error)) return null
+    throw error
+  }
+
+  const rows = (data ?? []) as WebsiteContractRow[]
+  return rows.find((row) => {
+    const rowSiteId = row.customer_site_id ?? row.site_id ?? null
+    const siteMatches = matchesExpectedValue(rowSiteId, input.siteId ?? null)
+    const meterMatches = matchesExpectedValue(row.metering_point_id ?? null, input.meteringPointId ?? null)
+    const dateMatches = matchesExpectedDate(row.requested_start_date ?? row.starts_at ?? null, input.requestedStartDate ?? null)
+    const nameMatches = !input.contractName || !row.contract_name || row.contract_name === input.contractName
+    return siteMatches && meterMatches && dateMatches && nameMatches
+  }) ?? null
+}
+
+function timelineEvent(type: string, label: string, metadata: Record<string, unknown> = {}) {
+  return {
+    type,
+    label,
+    metadata,
+    occurred_at: new Date().toISOString(),
+  }
+}
+
+function auditEvent(action: string, actorUserId: string, oldValues: Record<string, unknown>, newValues: Record<string, unknown>) {
+  return {
+    action,
+    actor_user_id: actorUserId,
+    old_values: oldValues,
+    new_values: newValues,
+    created_at: new Date().toISOString(),
+  }
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+async function authorizeForCompany(companyId: string) {
+  const admin = await requireAdminAccess()
+  if (isPlatformAdminContext(admin)) return admin
+  return requireCompanyScopedActionAccess(companyId, WRITE_PERMISSIONS)
+}
+
+// Fallback for applications without a linked grid-owner lookup request: apply
+// received facility identifiers directly to the site graph. Request-backed
+// applications go through completeFacilityLookupAndRunNextSteps instead.
+async function applyFacilityDataWithoutLookupRequest(input: {
+  companyId: string
+  customerSiteId: string | null
+  facilityId: string | null
+  meteringPointId: string | null
+  actorUserId: string
+}) {
+  if (!input.customerSiteId) return
+  const now = new Date().toISOString()
+
+  const siteResult = await supabaseService
+    .from('customer_sites')
+    .update({
+      ...(input.facilityId ? { facility_id: input.facilityId } : {}),
+      facility_data_verified_at: now,
+      updated_at: now,
+    })
+    .eq('id', input.customerSiteId)
+    .eq('company_id', input.companyId)
+  if (siteResult.error && !missingSchema(siteResult.error)) throw siteResult.error
+
+  if (input.meteringPointId) {
+    const meterResult = await supabaseService
+      .from('metering_points')
+      .update({ facility_data_verified_at: now, updated_at: now })
+      .eq('company_id', input.companyId)
+      .eq('customer_site_id', input.customerSiteId)
+      .or(`metering_point_id.eq.${input.meteringPointId},ediel_metering_point_id.eq.${input.meteringPointId},meter_point_id.eq.${input.meteringPointId}`)
+    if (meterResult.error && !missingSchema(meterResult.error)) throw meterResult.error
+  }
+
+  const resolutionResult = await supabaseService
+    .from('customer_site_resolution')
+    .update({ resolution_status: 'facility_verified', facility_data_verified_at: now, verified_by: input.actorUserId, updated_at: now })
+    .eq('company_id', input.companyId)
+    .eq('customer_site_id', input.customerSiteId)
+  if (resolutionResult.error && !missingSchema(resolutionResult.error)) throw resolutionResult.error
+}
+
+async function loadApplication(applicationId: string): Promise<ApplicationRecord> {
+  const { data, error } = await supabaseService
+    .from('website_customer_applications')
+    .select('id,company_id,customer_id,customer_site_id,metering_point_id,contract_id,status,payload,raw_payload,response_payload,timeline,audit_log,resolution_id,grid_owner_information_request_id,grid_area_code,grid_owner_id,price_area_code,resolution_status,resolution_confidence,requested_start_mode,calculated_earliest_start_date,facility_data_verified_at')
+    .eq('id', applicationId)
+    .single()
+
+  if (error) throw error
+  return data as ApplicationRecord
+}
+
+function mergePayload(current: Record<string, unknown> | null, formData: FormData) {
+  const base: Record<string, unknown> = isRecord(current) ? { ...current } : {}
+  const customer = isRecord(base.customer) ? { ...base.customer } : {}
+  const site = isRecord(base.site) ? { ...base.site } : {}
+  const meteringPoint = isRecord(base.metering_point) ? { ...base.metering_point } : {}
+  const contract = isRecord(base.contract) ? { ...base.contract } : {}
+  const consents = isRecord(base.consents) ? { ...base.consents } : {}
+
+  const assignments: Array<[Record<string, unknown>, string, string | null]> = [
+    [customer, 'full_name', text(formData, 'customer_full_name')],
+    [customer, 'email', text(formData, 'customer_email')],
+    [customer, 'phone', text(formData, 'customer_phone')],
+    [site, 'facility_id', text(formData, 'facility_id')],
+    [site, 'street', text(formData, 'site_street')],
+    [site, 'postal_code', text(formData, 'site_postal_code')],
+    [site, 'city', text(formData, 'site_city')],
+    [site, 'grid_area_code', text(formData, 'grid_area_code')],
+    [site, 'price_area_code', text(formData, 'price_area_code')],
+    [site, 'move_in_date', text(formData, 'requested_start_date')],
+    [meteringPoint, 'metering_point_id', text(formData, 'metering_point_id')],
+    [meteringPoint, 'site_facility_id', text(formData, 'facility_id')],
+    [meteringPoint, 'grid_area_code', text(formData, 'grid_area_code')],
+    [meteringPoint, 'price_area_code', text(formData, 'price_area_code')],
+    [contract, 'price_plan_id', text(formData, 'price_plan_id')],
+    [contract, 'contract_name', text(formData, 'contract_name')],
+    [contract, 'requested_start_date', text(formData, 'requested_start_date')],
+    [contract, 'requested_start_mode', text(formData, 'requested_start_mode')],
+    [contract, 'calculated_earliest_start_date', text(formData, 'calculated_earliest_start_date')],
+    [contract, 'confirmed_start_date', text(formData, 'confirmed_start_date')],
+    [contract, 'actual_start_date', text(formData, 'actual_start_date')],
+  ]
+
+  for (const [target, key, value] of assignments) {
+    if (value !== null) target[key] = value
+  }
+
+  const gridOwnerId = text(formData, 'grid_owner_id')
+  const networkOwnerId = text(formData, 'network_owner_id')
+  const electricitySupplierId = text(formData, 'electricity_supplier_id')
+  const pricePlanId = text(formData, 'price_plan_id')
+  const requestedStartDate = text(formData, 'requested_start_date')
+  const confirmedStartDate = text(formData, 'confirmed_start_date')
+  const actualStartDate = text(formData, 'actual_start_date')
+  const requestedStartMode = text(formData, 'requested_start_mode')
+  const calculatedEarliestStartDate = text(formData, 'calculated_earliest_start_date')
+  const gridAreaCode = text(formData, 'grid_area_code')
+  const priceAreaCode = text(formData, 'price_area_code')
+  const resolutionStatus = text(formData, 'resolution_status')
+  const facilityDataVerified = checkbox(formData, 'facility_data_verified')
+  const powerOfAttorney = checkbox(formData, 'power_of_attorney_accepted')
+  const termsAccepted = checkbox(formData, 'terms_accepted')
+
+  if (gridOwnerId) {
+    base.grid_owner_id = gridOwnerId
+    site.grid_owner_id = gridOwnerId
+  }
+  if (networkOwnerId) base.network_owner_id = networkOwnerId
+  if (electricitySupplierId) {
+    // Legacy admin field: treat electricity_supplier_id as the current supplier
+    // for website intake. The incoming supplier is resolved from the tenant and
+    // must never be supplied by an external payload.
+    base.current_supplier_id = electricitySupplierId
+    site.current_supplier_id = electricitySupplierId
+    delete base.electricity_supplier_id
+  }
+  if (pricePlanId) base.price_plan_id = pricePlanId
+  if (requestedStartDate) base.requested_start_date = requestedStartDate
+  if (confirmedStartDate) base.confirmed_start_date = confirmedStartDate
+  if (actualStartDate) base.actual_start_date = actualStartDate
+  if (requestedStartMode) base.requested_start_mode = requestedStartMode
+  if (calculatedEarliestStartDate) base.calculated_earliest_start_date = calculatedEarliestStartDate
+  if (gridAreaCode) base.grid_area_code = gridAreaCode
+  if (priceAreaCode) base.price_area_code = priceAreaCode
+  if (resolutionStatus) base.resolution_status = resolutionStatus
+  if (facilityDataVerified !== null) base.facility_data_verified = facilityDataVerified
+  if (powerOfAttorney !== null) {
+    consents.power_of_attorney = powerOfAttorney
+    consents.fullmakt_accepted = powerOfAttorney
+  }
+  if (termsAccepted !== null) {
+    consents.terms_accepted = termsAccepted
+    consents.terms = termsAccepted
+  }
+
+  base.customer = customer
+  base.site = site
+  base.metering_point = meteringPoint
+  base.contract = contract
+  base.consents = consents
+
+  return base
+}
+
+async function applyFacilityConflictStatus(application: ApplicationRecord, payload: Record<string, unknown>): Promise<FacilityBusinessErrorCode | null> {
+  if (!application.customer_id) return null
+  const site = isRecord(payload.site) ? payload.site : {}
+  const facilityId = normalizeFacilityId(cleanReviewText(site.facility_id))
+  if (!facilityId) return null
+
+  const conflicts = await findFacilityConflicts({
+    companyId: application.company_id,
+    customerId: application.customer_id,
+    facilityId,
+  })
+
+  const businessCode: FacilityBusinessErrorCode | null = conflicts.sameTenant.length > 0
+    ? 'duplicate_facility_id'
+    : null
+
+  if (conflicts.crossTenantExists) {
+    const metadata = isRecord(payload.metadata) ? payload.metadata : {}
+    payload.metadata = {
+      ...metadata,
+      cross_tenant_facility_seen: true,
+      platform_only: true,
+      tenant_message: 'Anläggnings-ID behöver verifieras innan automation.',
+    }
+    site.cross_tenant_facility_seen = true
+    site.facility_review_note = 'Anläggnings-ID behöver verifieras innan automation.'
+  }
+
+  if (!businessCode) {
+    if (payload.facility_data_status === 'duplicate_facility_id' || payload.facility_data_status === 'cross_tenant_facility_conflict') {
+      delete payload.facility_data_status
+      delete site.facility_data_status
+    }
+    payload.site = site
+    return null
+  }
+
+  const mapped = mapFacilityBusinessError(businessCode)
+  payload.facility_data_status = mapped.status
+  payload.facility_data_error = {
+    code: businessCode,
+    facility_id: facilityId,
+    existing_site_id: conflicts.sameTenant[0]?.id ?? null,
+  }
+  site.facility_id = facilityId
+  site.facility_data_status = mapped.status
+  payload.site = site
+
+  await recordFacilityDataIssue({
+    companyId: application.company_id,
+    customerId: application.customer_id,
+    customerSiteId: application.customer_site_id,
+    meteringPointRowId: application.metering_point_id,
+    customerApplicationId: application.id,
+    facilityId,
+    source: 'website_application_review',
+    sourceErrorCode: businessCode,
+    sourceErrorText: mapped.message,
+    error: mapped,
+    metadata: { existing_site_id: conflicts.sameTenant[0]?.id ?? null },
+  }).catch((error) => {
+    console.warn('[website-applications] failed to record facility conflict issue', error)
+  })
+
+  return businessCode
+}
+
+function customerReviewStateValues(readiness: ReturnType<typeof assessWebsiteApplicationReadiness>) {
+  return {
+    intake_status: customerIntakeStatusForReadiness(readiness),
+    intake_missing_fields: readiness.missingFields,
+    intake_quality_score: readiness.qualityScore,
+    intake_warnings: readiness.warnings,
+  }
+}
+
+async function updateCustomerReviewState(application: ApplicationRecord, readiness: ReturnType<typeof assessWebsiteApplicationReadiness>) {
+  if (!application.customer_id) return
+
+  const { error } = await supabaseService
+    .from('customers')
+    .update({
+      intake_status: customerIntakeStatusForReadiness(readiness),
+      intake_missing_fields: readiness.missingFields,
+      intake_quality_score: readiness.qualityScore,
+      intake_warnings: readiness.warnings,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('company_id', application.company_id)
+    .eq('id', application.customer_id)
+
+  if (error && !missingSchema(error)) throw error
+}
+
+type ReviewRowPlan = Record<string, unknown> | null
+type ReviewContractPlan =
+  | { mode: 'existing'; contract_id: string }
+  | { mode: 'draft'; payload: Record<string, unknown> }
+  | { mode: 'published'; payload: Record<string, unknown>; customer_number: string | null }
+  | null
+
+// The review only builds what to write; gridex_save_website_application_review_v1
+// writes site, metering point, contract, customer and application in one transaction.
+async function planApplicationSite(application: ApplicationRecord, payload: Record<string, unknown>): Promise<ReviewRowPlan> {
+  if (!application.customer_id) return null
+  const site = isRecord(payload.site) ? payload.site : {}
+  const facilityId = normalizeFacilityId(cleanReviewText(site.facility_id))
+  const street = cleanReviewText(site.street)
+  const city = cleanReviewText(site.city)
+  const postalCode = cleanReviewText(site.postal_code)
+  const gridOwnerInput = cleanReviewText(site.grid_owner_id) ?? cleanReviewText(payload.grid_owner_id)
+  // Same normalization as admin intake: platform grid-owner ids map to the
+  // tenant's OPS grid owner instead of being stored raw or dropped.
+  const gridOwnerId = isUuid(gridOwnerInput)
+    ? (await normalizeGridOwnerIdToOps({ gridOwnerId: gridOwnerInput, companyId: application.company_id })).opsGridOwnerId
+    : null
+  const moveInDate = cleanReviewText(site.move_in_date) ?? cleanReviewText(payload.requested_start_date)
+
+  if (!facilityId && !street && !city) return null
+
+  const common: Record<string, unknown> = {
+    facility_id: facilityId,
+    street,
+    postal_code: postalCode,
+    city,
+    grid_owner_id: gridOwnerId,
+    grid_area_code: cleanReviewText(site.grid_area_code) ?? cleanReviewText(payload.grid_area_code),
+    price_area_code: cleanReviewText(site.price_area_code) ?? cleanReviewText(payload.price_area_code),
+    resolution_status: cleanReviewText(payload.resolution_status),
+    move_in_date: moveInDate,
+  }
+  if (asBooleanLike(payload.facility_data_verified)) common.facility_data_verified_at = new Date().toISOString()
+  if (application.customer_site_id) return common
+  return {
+    ...common,
+    site_name: facilityId ?? street ?? 'Anläggning',
+    site_type: 'consumption',
+    status: 'active',
+    country: 'SE',
+    metadata: { source: 'website_application_review' },
+  }
+}
+
+function planApplicationMeteringPoint(application: ApplicationRecord, payload: Record<string, unknown>): ReviewRowPlan {
+  if (!application.customer_id) return null
+  const metering = isRecord(payload.metering_point) ? payload.metering_point : {}
+  const site = isRecord(payload.site) ? payload.site : {}
+  const meteringPointId = cleanReviewText(metering.metering_point_id)
+    ?? cleanReviewText(metering.meter_point_id)
+    ?? cleanReviewText(metering.ediel_metering_point_id)
+    ?? cleanReviewText(metering.anlage_id)
+    ?? null
+  if (!meteringPointId) return null
+
+  const common: Record<string, unknown> = {
+    metering_point_id: meteringPointId,
+    meter_point_id: meteringPointId,
+    ediel_metering_point_id: meteringPointId,
+    anlage_id: cleanReviewText(metering.anlage_id) ?? cleanReviewText(site.facility_id) ?? meteringPointId,
+    site_facility_id: cleanReviewText(site.facility_id) ?? meteringPointId,
+    grid_area_code: cleanReviewText(metering.grid_area_code) ?? cleanReviewText(payload.grid_area_code),
+    price_area_code: cleanReviewText(metering.price_area_code) ?? cleanReviewText(payload.price_area_code) ?? cleanReviewText(site.price_area_code),
+  }
+  if (asBooleanLike(payload.facility_data_verified)) common.facility_data_verified_at = new Date().toISOString()
+  if (application.metering_point_id) return common
+  return {
+    ...common,
+    measurement_type: cleanReviewText(metering.measurement_type) ?? 'consumption',
+    // Grid-owner fact; schema default (interval meter) until Z02/PRODAT reports otherwise.
+    reading_frequency: cleanReviewText(metering.reading_frequency) ?? 'hourly',
+    start_date: cleanReviewText(metering.start_date) ?? cleanReviewText(payload.requested_start_date),
+    status: 'active',
+    verification_status: 'pending',
+    onboarding_status: 'application_received',
+    data_quality_status: 'manual_review',
+    is_settlement_relevant: true,
+    metadata: { source: 'website_application_review' },
+  }
+}
+
+async function planApplicationContract(application: ApplicationRecord, payload: Record<string, unknown>, readiness: ReturnType<typeof assessWebsiteApplicationReadiness>): Promise<ReviewContractPlan> {
+  if (!application.customer_id || !readiness.canCreateContract) return null
+  if (application.contract_id) return null
+
+  const contract = isRecord(payload.contract) ? payload.contract : {}
+  const publicOffer = isRecord(payload.public_offer) ? payload.public_offer : {}
+  const contractName = cleanReviewText(contract.contract_name) ?? 'Elavtal'
+  const requestedStartDate = readiness.requestedStartDate ?? cleanReviewText(payload.requested_start_date) ?? cleanReviewText(contract.requested_start_date)
+  const existingContract = await findExistingApplicationContract({
+    companyId: application.company_id,
+    customerId: application.customer_id,
+    siteId: application.customer_site_id,
+    meteringPointId: application.metering_point_id,
+    requestedStartDate,
+    contractName,
+  })
+  if (existingContract?.id) return { mode: 'existing', contract_id: String(existingContract.id) }
+
+  // The contract type comes from the offer the customer accepted, never a default:
+  // it drives pricing and which metering resolution is requested.
+  const contractType = cleanReviewText(contract.contract_type) ?? cleanReviewText(publicOffer.contract_type) ?? cleanReviewText(payload.contract_type)
+  if (!contractType) return null
+
+  const status = readiness.canStartSwitch ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS : WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS
+  const commonPayload: Record<string, unknown> = {
+    source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
+    status,
+    contract_name: contractName,
+    contract_type: contractType,
+    starts_at: requestedStartDate,
+    expected_start_at: requestedStartDate,
+    requested_start_date: requestedStartDate,
+    requested_start_mode: readiness.requestedStartMode,
+    calculated_earliest_start_date: readiness.calculatedEarliestStartDate,
+    price_area_used: readiness.priceArea,
+    grid_area_code_used: readiness.gridAreaCode,
+    resolution_status: readiness.resolutionStatus,
+    confirmed_start_date: readiness.confirmedStartDate,
+    actual_start_date: readiness.actualStartDate,
+    agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
+    metadata: {
+      source: 'website_application_review',
+      source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
+      agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
+      application_id: application.id,
+      missing_fields: readiness.missingFields,
+      blocking_reasons: readiness.blockingReasons,
+    },
+    updated_at: new Date().toISOString(),
+  }
+
+  // A draft may exist before every publication field is known. Any contract
+  // that can proceed to signing/switching must be created from the exact
+  // locked public offer and may never fall back to an unbound insert.
+  if (!readiness.canStartSwitch) return { mode: 'draft', payload: commonPayload }
+
+  const publicContractOfferId =
+    cleanReviewText(payload.public_contract_offer_id) ??
+    cleanReviewText(contract.public_contract_offer_id) ??
+    cleanReviewText(publicOffer.id)
+  const offerReference =
+    cleanReviewText(payload.offer_reference) ??
+    cleanReviewText(contract.offer_reference) ??
+    cleanReviewText(publicOffer.offer_reference)
+
+  if (!isUuid(publicContractOfferId) || !offerReference) {
+    throw new Error('Ansökan saknar koppling till ett publicerat erbjudande. Kontrollera vilket erbjudande kunden valde innan avtal skapas.')
+  }
+
+  return {
+    mode: 'published',
+    payload: {
+      ...commonPayload,
+      public_contract_offer_id: publicContractOfferId,
+      offer_reference: offerReference,
+      legal_versions_snapshot: Array.isArray(payload.legal_versions) ? payload.legal_versions : [],
+    },
+    customer_number: cleanReviewText(payload.customer_number),
+  }
+}
+
+async function saveApplicationReview(input: { applicationId: string; formData: FormData; action: 'review.updated' | 'review.checked' }) {
+  if (!input.applicationId) throw new Error('Kundansökan saknas.')
+  const application = await loadApplication(input.applicationId)
+  const admin = await authorizeForCompany(application.company_id)
+  const payload = mergePayload(application.payload, input.formData)
+  const facilityConflictStatus = await applyFacilityConflictStatus(application, payload)
+  const readiness = assessWebsiteApplicationReadiness(payload)
+  // A facility conflict freezes the linked objects; the application row is still updated.
+  const [sitePlan, contractPlan] = facilityConflictStatus
+    ? [null, null]
+    : await Promise.all([
+        planApplicationSite(application, payload),
+        planApplicationContract(application, payload, readiness),
+      ])
+  const meteringPointPlan = facilityConflictStatus ? null : planApplicationMeteringPoint(application, payload)
+  const note = text(input.formData, 'admin_note')
+  const previousValues = {
+    status: application.status,
+    customer_site_id: application.customer_site_id,
+    metering_point_id: application.metering_point_id,
+    contract_id: application.contract_id,
+  }
+  const plannedValues = {
+    status: readiness.status,
+    missing_fields: readiness.missingFields,
+    blocking_reasons: readiness.blockingReasons,
+    next_step: readiness.nextStep,
+    note,
+  }
+  const timeline = [
+    ...asArray(application.timeline),
+    timelineEvent(input.action, input.action === 'review.checked' ? 'Redo-kontroll kördes' : 'Ansökan kompletterades', {
+      missing_fields: readiness.missingFields,
+      next_step: readiness.nextStep,
+      note,
+    }),
+  ]
+  const auditLog = [
+    ...asArray(application.audit_log),
+    auditEvent(input.action, admin.userId, previousValues, plannedValues),
+  ]
+
+  const responsePayload = isRecord(application.response_payload) ? { ...application.response_payload } : {}
+  responsePayload.status = readiness.status
+  responsePayload.missing_fields = readiness.missingFields
+  responsePayload.blocking_reasons = readiness.blockingReasons
+  responsePayload.next_step = readiness.nextStep
+  responsePayload.requested_start_mode = readiness.requestedStartMode
+  responsePayload.calculated_earliest_start_date = readiness.calculatedEarliestStartDate
+  responsePayload.grid_area_code = readiness.gridAreaCode
+  responsePayload.price_area_code = readiness.priceArea
+  responsePayload.resolution_status = readiness.resolutionStatus
+  responsePayload.facility_verified = readiness.facilityVerified
+  responsePayload.can_request_grid_owner_information = readiness.canRequestGridOwnerInformation
+  responsePayload.can_start_switch = readiness.canStartSwitch
+  responsePayload.can_send_agreement_confirmation = readiness.canSendAgreementConfirmation
+  responsePayload.can_activate_customer = readiness.canActivateCustomer
+
+  // One transaction: site, metering point, contract, customer intake state and
+  // the application row (ids, response payload and audit entry) together.
+  const { data: saved, error } = await supabaseService.rpc('gridex_save_website_application_review_v1', {
+    p_company_id: application.company_id,
+    p_application_id: application.id,
+    p_site: sitePlan,
+    p_metering_point: meteringPointPlan,
+    p_contract: contractPlan,
+    p_application: {
+      status: readiness.status,
+      payload,
+      response_payload: responsePayload,
+      missing_fields: readiness.missingFields,
+      blocking_reasons: readiness.blockingReasons,
+      next_step: readiness.nextStep,
+      requested_start_date: readiness.requestedStartDate,
+      confirmed_start_date: readiness.confirmedStartDate,
+      actual_start_date: readiness.actualStartDate,
+      requested_start_mode: readiness.requestedStartMode,
+      calculated_earliest_start_date: readiness.calculatedEarliestStartDate,
+      grid_area_code: readiness.gridAreaCode,
+      price_area_code: readiness.priceArea,
+      resolution_status: readiness.resolutionStatus,
+      facility_data_verified_at: readiness.facilityVerified ? (application.facility_data_verified_at ?? new Date().toISOString()) : null,
+      warnings: readiness.warnings,
+      timeline,
+      audit_log: auditLog,
+      assigned_to: admin.userId,
+      admin_note: note,
+    },
+    p_customer: application.customer_id ? customerReviewStateValues(readiness) : null,
+  })
+  if (error) throw error
+  const result = (saved ?? {}) as { customer_site_id?: string | null; metering_point_id?: string | null; contract_id?: string | null }
+  const siteId = result.customer_site_id ?? null
+  const meteringPointId = result.metering_point_id ?? null
+  const contractId = result.contract_id ?? null
+  const newValues = { ...plannedValues, customer_site_id: siteId, metering_point_id: meteringPointId, contract_id: contractId }
+
+  await logAdminActionAndUsage({
+    companyId: application.company_id,
+    actorUserId: admin.userId,
+    customerId: application.customer_id,
+    entityType: 'website_customer_application',
+    entityId: application.id,
+    action: input.action,
+    label: input.action === 'review.checked' ? 'Redo-kontroll kördes för webbansökan' : 'Webbansökan kompletterades',
+    oldValues: previousValues,
+    newValues,
+    billable: false,
+    source: 'website_application_review',
+    metadata: {
+      can_start_switch: readiness.canStartSwitch,
+      can_create_contract: readiness.canCreateContract,
+      missing_fields: readiness.missingFields,
+      blocking_reasons: readiness.blockingReasons,
+    },
+  })
+
+  if (!application.contract_id && contractId) {
+    await logUsageEvent({
+      companyId: application.company_id,
+      actorUserId: admin.userId,
+      customerId: application.customer_id,
+      entityType: 'customer_contract',
+      entityId: contractId,
+      eventKey: 'contract.created',
+      actionLabel: 'Avtal skapades från webbansökan',
+      source: 'website_application_review',
+      billable: true,
+      billingUnit: 'contract',
+      metadata: { application_id: application.id, readiness_status: readiness.status },
+    })
+  }
+
+  revalidateWebsiteApplicationPaths(application)
+}
+
+
+export async function resolveWebsiteApplicationEnergyAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  if (!applicationId) throw new Error('Kundansökan saknas.')
+  const application = await loadApplication(applicationId)
+  const admin = await authorizeForCompany(application.company_id)
+  const payload = mergePayload(application.payload, formData)
+  const site = isRecord(payload.site) ? payload.site : {}
+  const metering = isRecord(payload.metering_point) ? payload.metering_point : {}
+  const resolution = await resolveEnergyContext({
+    companyId: application.company_id,
+    customerId: application.customer_id,
+    customerSiteId: application.customer_site_id,
+    customerApplicationId: application.id,
+    street: cleanReviewText(site.street) ?? cleanReviewText(payload.street),
+    postalCode: cleanReviewText(site.postal_code) ?? cleanReviewText(payload.postal_code),
+    city: cleanReviewText(site.city) ?? cleanReviewText(payload.city),
+    country: cleanReviewText(site.country) ?? 'SE',
+    gridAreaCode: cleanReviewText(payload.grid_area_code) ?? cleanReviewText(site.grid_area_code),
+    facilityId: cleanReviewText(site.facility_id),
+    meteringPointId: cleanReviewText(metering.metering_point_id) ?? cleanReviewText(metering.meter_point_id) ?? cleanReviewText(metering.ediel_metering_point_id),
+    requestedStartMode: cleanReviewText(payload.requested_start_mode),
+    requestedStartDate: cleanReviewText(payload.requested_start_date),
+  })
+
+  payload.grid_area_code = resolution.gridAreaCode
+  payload.price_area_code = resolution.priceArea
+  payload.grid_owner_id = resolution.gridOwnerId
+  payload.resolution_status = resolution.resolutionStatus
+  payload.metadata = {
+    ...(isRecord(payload.metadata) ? payload.metadata : {}),
+    energy_resolution: resolution,
+  }
+  site.grid_area_code = resolution.gridAreaCode
+  site.price_area_code = resolution.priceArea
+  site.grid_owner_id = resolution.gridOwnerId
+  payload.site = site
+
+  const readiness = assessWebsiteApplicationReadiness(payload)
+  const responsePayload = isRecord(application.response_payload) ? { ...application.response_payload } : {}
+  responsePayload.energy_resolution = resolution
+  responsePayload.grid_area_code = readiness.gridAreaCode
+  responsePayload.price_area_code = readiness.priceArea
+  responsePayload.resolution_status = readiness.resolutionStatus
+  responsePayload.resolution_id = resolution.resolutionId ?? null
+  responsePayload.next_step = readiness.nextStep
+
+  const timeline = [
+    ...asArray(application.timeline),
+    timelineEvent('energy_resolution', 'Adress- och nätområdesmatchning kördes', {
+      grid_area_code: resolution.gridAreaCode,
+      price_area: resolution.priceArea,
+      status: resolution.resolutionStatus,
+      confidence: resolution.confidence,
+    }),
+  ]
+  const auditLog = [
+    ...asArray(application.audit_log),
+    auditEvent('energy_resolution', admin.userId, { status: application.status }, { status: readiness.status, resolution }),
+  ]
+
+  const { error } = await supabaseService
+    .from('website_customer_applications')
+    .update({
+      status: readiness.status,
+      payload,
+      response_payload: responsePayload,
+      resolution_id: resolution.resolutionId ?? application.resolution_id ?? null,
+      grid_area_code: readiness.gridAreaCode,
+      grid_owner_id: resolution.gridOwnerId,
+      price_area_code: readiness.priceArea,
+      resolution_status: resolution.resolutionStatus,
+      resolution_confidence: resolution.confidence,
+      missing_fields: readiness.missingFields,
+      blocking_reasons: readiness.blockingReasons,
+      warnings: readiness.warnings,
+      next_step: readiness.nextStep,
+      timeline,
+      audit_log: auditLog,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('company_id', application.company_id)
+    .eq('id', application.id)
+  if (error && !missingSchema(error)) throw error
+
+  await updateCustomerReviewState(application, readiness)
+  await logAdminActionAndUsage({
+    companyId: application.company_id,
+    actorUserId: admin.userId,
+    customerId: application.customer_id,
+    entityType: 'website_customer_application',
+    entityId: application.id,
+    action: 'energy_resolution.completed',
+    label: 'Adress- och nätområdesmatchning kördes',
+    source: 'website_application_review',
+    billable: false,
+    metadata: {
+      grid_area_code: resolution.gridAreaCode,
+      price_area_code: resolution.priceArea,
+      grid_owner_id: resolution.gridOwnerId,
+      resolution_status: resolution.resolutionStatus,
+      confidence: resolution.confidence,
+    },
+  })
+  revalidateWebsiteApplicationPaths(application)
+  redirect(safeReturnPath(formData, '/admin/website-applications'))
+}
+
+export async function requestWebsiteApplicationGridOwnerInfoAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  if (!applicationId) throw new Error('Kundansökan saknas.')
+  const application = await loadApplication(applicationId)
+  const admin = await authorizeForCompany(application.company_id)
+  const payload = mergePayload(application.payload, formData)
+  const readiness = assessWebsiteApplicationReadiness(payload)
+  const request = await ensureGridOwnerInformationRequest({
+    companyId: application.company_id,
+    customerId: application.customer_id,
+    customerSiteId: application.customer_site_id,
+    customerApplicationId: application.id,
+    resolutionId: application.resolution_id,
+    gridOwnerId: cleanReviewText(payload.grid_owner_id) ?? application.grid_owner_id,
+    gridAreaCode: readiness.gridAreaCode,
+    priceArea: readiness.priceArea,
+    createdBy: admin.userId,
+  })
+  const responsePayload = isRecord(application.response_payload) ? { ...application.response_payload } : {}
+  responsePayload.grid_owner_information_request_id = request.requestId
+  responsePayload.grid_owner_information_request_status = request.status
+  responsePayload.grid_owner_information_request_channel = request.channel
+
+  await supabaseService
+    .from('website_customer_applications')
+    .update({
+      grid_owner_information_request_id: request.requestId,
+      status: request.status === 'ready_to_send' ? 'information_request_ready' : 'needs_facility_data',
+      response_payload: responsePayload,
+      next_step: request.nextStep,
+      warnings: [...readiness.warnings, ...request.warnings],
+      timeline: [...asArray(application.timeline), timelineEvent('grid_owner_information_request_created', 'Begäran om anläggningsuppgifter skapades', { request_id: request.requestId, status: request.status })],
+      audit_log: [...asArray(application.audit_log), auditEvent('grid_owner_information_request_created', admin.userId, {}, { request })],
+      updated_at: new Date().toISOString(),
+    })
+    .eq('company_id', application.company_id)
+    .eq('id', application.id)
+    .throwOnError()
+
+  if (request.requestId) {
+    await logAdminActionAndUsage({
+      companyId: application.company_id,
+      actorUserId: admin.userId,
+      customerId: application.customer_id,
+      entityType: 'grid_owner_data_request',
+      entityId: request.requestId,
+      action: 'facility_data_requested',
+      label: 'Anläggningsuppgifter begärda från nätägare',
+      source: 'website_application_review',
+      billable: true,
+      billingUnit: 'facility_data_request',
+      metadata: { application_id: application.id, request_status: request.status, channel: request.channel, next_step: request.nextStep },
+    })
+  } else {
+    await logAdminActionAndUsage({
+      companyId: application.company_id,
+      actorUserId: admin.userId,
+      customerId: application.customer_id,
+      entityType: 'website_customer_application',
+      entityId: application.id,
+      action: 'facility_data_request.skipped',
+      label: 'Begäran om anläggningsuppgifter kunde inte skapas',
+      source: 'website_application_review',
+      billable: false,
+      metadata: { request_status: request.status, channel: request.channel, next_step: request.nextStep, warnings: request.warnings },
+    })
+  }
+
+  revalidateWebsiteApplicationPaths(application)
+  redirect(safeReturnPath(formData, '/admin/website-applications?status=needs_facility_data'))
+}
+
+export async function markWebsiteApplicationFacilityDataReceivedAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  if (!applicationId) throw new Error('Kundansökan saknas.')
+  const application = await loadApplication(applicationId)
+  const admin = await authorizeForCompany(application.company_id)
+  const payload = mergePayload(application.payload, formData)
+  const site = isRecord(payload.site) ? payload.site : {}
+  const metering = isRecord(payload.metering_point) ? payload.metering_point : {}
+  const facilityId = cleanReviewText(site.facility_id)
+  const meteringPointId = cleanReviewText(metering.metering_point_id) ?? cleanReviewText(metering.meter_point_id) ?? cleanReviewText(metering.ediel_metering_point_id)
+  if (!facilityId && !meteringPointId) throw new Error('Ange anläggnings-ID eller mätpunkt innan uppgifterna markeras mottagna.')
+
+  if (application.grid_owner_information_request_id) {
+    // Canonical completion path: completes the lookup request, writes site +
+    // metering data, clears blockers and runs the next-step engine.
+    await completeFacilityLookupAndRunNextSteps({
+      companyId: application.company_id,
+      requestId: application.grid_owner_information_request_id,
+      actorUserId: admin.userId,
+      source: 'manual',
+      facilityId,
+      meteringPointId,
+      rawPayload: { source: 'admin_review', facility_id: facilityId, metering_point_id: meteringPointId },
+    })
+  } else {
+    // No linked lookup request: apply the received identifiers directly to the
+    // site graph (same effect as the request-backed path, minus the request).
+    await applyFacilityDataWithoutLookupRequest({
+      companyId: application.company_id,
+      customerSiteId: application.customer_site_id,
+      facilityId,
+      meteringPointId,
+      actorUserId: admin.userId,
+    })
+  }
+
+  payload.facility_data_verified = true
+  payload.resolution_status = 'facility_verified'
+  const readiness = assessWebsiteApplicationReadiness(payload)
+  await supabaseService
+    .from('website_customer_applications')
+    .update({
+      status: readiness.status,
+      payload,
+      facility_data_verified_at: new Date().toISOString(),
+      resolution_status: 'facility_verified',
+      missing_fields: readiness.missingFields,
+      blocking_reasons: readiness.blockingReasons,
+      warnings: readiness.warnings,
+      next_step: readiness.nextStep,
+      timeline: [...asArray(application.timeline), timelineEvent('facility_data_received', 'Anläggningsuppgifter mottagna och markerade', { facility_id: facilityId, metering_point_id: meteringPointId })],
+      audit_log: [...asArray(application.audit_log), auditEvent('facility_data_received', admin.userId, {}, { facilityId, meteringPointId })],
+      updated_at: new Date().toISOString(),
+    })
+    .eq('company_id', application.company_id)
+    .eq('id', application.id)
+    .throwOnError()
+
+  await updateCustomerReviewState(application, readiness)
+  await logAdminActionAndUsage({
+    companyId: application.company_id,
+    actorUserId: admin.userId,
+    customerId: application.customer_id,
+    entityType: 'website_customer_application',
+    entityId: application.id,
+    action: 'facility_data_received',
+    label: 'Anläggningsuppgifter mottagna och verifierade',
+    source: 'website_application_review',
+    billable: false,
+    metadata: { facility_id: facilityId, metering_point_id: meteringPointId, readiness_status: readiness.status },
+  })
+  revalidateWebsiteApplicationPaths(application)
+  redirect(safeReturnPath(formData, '/admin/website-applications'))
+}
+
+export async function updateWebsiteApplicationReviewAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  await saveApplicationReview({ applicationId, formData, action: 'review.updated' })
+  redirect(safeReturnPath(formData, '/admin/website-applications?status=needs_information'))
+}
+
+export async function checkWebsiteApplicationReadinessAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  await saveApplicationReview({ applicationId, formData, action: 'review.checked' })
+  redirect(safeReturnPath(formData, '/admin/website-applications'))
+}
+
+// Admin/platform-guarded repair for an application that lost its power of
+// attorney during a partial/failed run. Re-creates the missing fullmakt from
+// the stored payload and re-points the application response payload + status.
+export async function repairWebsiteApplicationPowerOfAttorneyAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  if (!applicationId) throw new Error('Kundansökan saknas.')
+  const application = await loadApplication(applicationId)
+  const admin = await authorizeForCompany(application.company_id)
+
+  const result = await repairWebsiteCustomerApplication(applicationId)
+
+  await logAdminActionAndUsage({
+    companyId: application.company_id,
+    actorUserId: admin.userId,
+    customerId: application.customer_id,
+    entityType: 'website_customer_application',
+    entityId: application.id,
+    action: 'website_application.repaired',
+    label: 'Reparerade fullmakt på kundansökan',
+    source: 'website_application_review',
+    billable: false,
+    metadata: {
+      repair_status: result.status,
+      repair_code: result.code ?? null,
+      power_of_attorney_id: result.powerOfAttorneyId ?? null,
+    },
+  })
+
+  revalidateWebsiteApplicationPaths(application)
+  redirect(safeReturnPath(formData, '/admin/website-applications'))
+}
+
+// Safe admin replay: reuse the workflow's single canonical continuation row.
+// The unique workflow/job constraint and downstream idempotency keys prevent a
+// second customer-intake chain from being created.
+export async function requeueWebsiteApplicationContinuationAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  if (!applicationId) throw new Error('Kundansökan saknas.')
+  const application = await loadApplication(applicationId)
+  const admin = await authorizeForCompany(application.company_id)
+
+  const workflowResult = await supabaseService
+    .from('customer_application_workflows')
+    .select('id,state,last_job_id')
+    .eq('company_id', application.company_id)
+    .eq('customer_application_id', application.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (workflowResult.error) throw workflowResult.error
+  const workflow = workflowResult.data as { id: string; state: string; last_job_id: string | null } | null
+  if (!workflow) {
+    if (!isPlatformAdminContext(admin)) {
+      redirect(withErrorMessage(
+        safeReturnPath(formData, websiteApplicationDetailPath(application.id)),
+        'Automationen kan inte återköas för den här ansökan. Kontakta support om ärendet behöver åtgärdas.',
+      ))
+    }
+    const platformAdmin = await requirePlatformAdminActionAccess()
+    const { data: repair, error: repairError } = await supabaseService.rpc(
+      'canonical_queue_customer_application_repair',
+      {
+        p_application_id: application.id,
+        p_actor_user_id: platformAdmin.userId,
+      },
+    )
+    if (repairError) throw repairError
+    const repairResult = (repair ?? {}) as {
+      queued?: boolean
+      status?: string
+      missing_fields?: string[]
+    }
+    await logAdminActionAndUsage({
+      companyId: application.company_id,
+      actorUserId: admin.userId,
+      customerId: application.customer_id,
+      entityType: 'website_customer_application',
+      entityId: application.id,
+      action: 'customer_application_repair.classified',
+      label: 'Klassificerade kundansökan för canonical reparation',
+      source: 'website_application_review',
+      billable: false,
+      metadata: {
+        repair_status: repairResult.status ?? null,
+        repair_queued: Boolean(repairResult.queued),
+        missing_fields: repairResult.missing_fields ?? [],
+      },
+    })
+    revalidateWebsiteApplicationPaths(application)
+    redirect(safeReturnPath(formData, websiteApplicationDetailPath(application.id)))
+  }
+  if (['completed', 'cancelled'].includes(workflow.state)) {
+    throw new Error('Ansökan är redan avslutad och automationen kan inte köras igen.')
+  }
+
+  const jobResult = await supabaseService
+    .from('customer_operation_jobs')
+    .select('id,status,attempts,max_attempts')
+    .eq('company_id', application.company_id)
+    .eq('workflow_id', workflow.id)
+    .eq('job_type', 'customer_application_continuation')
+    .maybeSingle()
+  if (jobResult.error) throw jobResult.error
+  const job = jobResult.data as { id: string; status: string; attempts: number; max_attempts: number } | null
+  if (!job) throw new Error('Det finns inget automationsjobb att köra igen för ansökan. Kontakta support.')
+  if (job.status === 'running') throw new Error('Automationen körs redan och kan inte återköas parallellt.')
+
+  const now = new Date().toISOString()
+  const updateResult = await supabaseService
+    .from('customer_operation_jobs')
+    .update({
+      status: 'queued',
+      attempts: 0,
+      run_after: now,
+      locked_at: null,
+      locked_by: null,
+      last_error: null,
+      last_error_code: null,
+      last_error_message: null,
+      completed_at: null,
+      updated_at: now,
+    })
+    .eq('id', job.id)
+    .eq('company_id', application.company_id)
+    .eq('workflow_id', workflow.id)
+  if (updateResult.error) throw updateResult.error
+
+  await supabaseService
+    .from('customer_application_workflows')
+    .update({ next_action: 'admin_replay_queued', last_job_id: job.id, updated_at: now })
+    .eq('id', workflow.id)
+    .eq('company_id', application.company_id)
+
+  await logAdminActionAndUsage({
+    companyId: application.company_id,
+    actorUserId: admin.userId,
+    customerId: application.customer_id,
+    entityType: 'customer_application_workflow',
+    entityId: workflow.id,
+    action: 'customer_application_continuation.requeued',
+    label: 'Återköade kundintagets automationsworkflow',
+    source: 'website_application_review',
+    billable: false,
+    metadata: {
+      application_id: application.id,
+      continuation_job_id: job.id,
+      previous_job_status: job.status,
+      workflow_state: workflow.state,
+    },
+  })
+
+  revalidateWebsiteApplicationPaths(application)
+  redirect(safeReturnPath(formData, websiteApplicationDetailPath(application.id)))
+}
+
+
+// "Skapa kund från ansökan": an application without a linked customer is
+// otherwise a dead end. Reuses the canonical admin intake onboarding path
+// (buildCustomerParamsFromImportRow -> createCustomerGraph -> onboardCustomerGraph)
+// scoped to the application's own company, then links the customer.
+export async function createCustomerFromWebsiteApplicationAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  if (!applicationId) throw new Error('Kundansökan saknas.')
+  const application = await loadApplication(applicationId)
+  const admin = await requireCompanyScopedActionAccess(application.company_id, { anyOf: ['customers.write'] })
+  const detailPath = websiteApplicationDetailPath(application.id)
+
+  if (application.customer_id) {
+    redirect(withErrorMessage(detailPath, 'Ansökan är redan kopplad till en kund.'))
+  }
+
+  let customerId: string
+  try {
+    await requireCompanyOperationalForWrites(application.company_id)
+    const params = await buildCustomerParamsFromImportRow({
+      actorUserId: admin.userId,
+      companyId: application.company_id,
+      row: websiteApplicationPayloadToIntakeRow(application.payload ?? application.raw_payload, application),
+    })
+    // Never auto-send a signing link here: website customers sign on the
+    // website itself (gridex_finalize_website_contract_signature), and this
+    // intake row carries no contract fields, so no contract is created.
+    const customer = await createCustomerGraph({ ...params, postCreateAction: 'open_customer' })
+    customerId = customer.id
+
+    const { data: linked, error: linkError } = await supabaseService
+      .from('website_customer_applications')
+      .update({
+        customer_id: customerId,
+        updated_at: new Date().toISOString(),
+        timeline: [...asArray(application.timeline), timelineEvent('customer_created_from_application', 'Kund skapad från ansökan', { customer_id: customerId })],
+        audit_log: [...asArray(application.audit_log), auditEvent('website_application.customer_created', admin.userId, { customer_id: null }, { customer_id: customerId })],
+      })
+      .eq('id', application.id)
+      .eq('company_id', application.company_id)
+      .is('customer_id', null)
+      .select('id')
+    if (linkError) throw linkError
+    if (!linked || linked.length === 0) {
+      throw new Error('Ansökan kopplades till en annan kund samtidigt. Ladda om sidan och kontrollera kundkopplingen.')
+    }
+  } catch (error) {
+    if (isRedirectLikeError(error)) throw error
+    const message = error instanceof Error && error.message ? error.message : 'Kunden kunde inte skapas från ansökan.'
+    redirect(withErrorMessage(detailPath, `Kunden kunde inte skapas: ${message}`))
+  }
+
+  await logAdminActionAndUsage({
+    companyId: application.company_id,
+    actorUserId: admin.userId,
+    customerId,
+    entityType: 'website_customer_application',
+    entityId: application.id,
+    action: 'website_application.customer_created',
+    label: 'Skapade kund från webbansökan',
+    source: 'website_application_review',
+    billable: false,
+    metadata: { customer_id: customerId },
+  })
+
+  revalidateWebsiteApplicationPaths({ id: application.id, customer_id: customerId })
+  redirect(`${detailPath}?success=${encodeURIComponent('Kunden skapades och kopplades till ansökan.')}`)
+}
+
+function isRedirectLikeError(error: unknown): boolean {
+  const digest = (error as { digest?: unknown } | null)?.digest
+  return typeof digest === 'string' && (digest.startsWith('NEXT_REDIRECT') || digest.startsWith('NEXT_HTTP_ERROR_FALLBACK'))
+}

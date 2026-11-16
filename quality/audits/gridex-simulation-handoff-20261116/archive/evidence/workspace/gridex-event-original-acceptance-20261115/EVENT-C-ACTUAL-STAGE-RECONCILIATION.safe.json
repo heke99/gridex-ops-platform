@@ -1,0 +1,172 @@
+{
+  "state": "ACTUAL_C_FOUR_TRANSPORTS_AND_SUCCESS_REPLAY_RECONCILED_PENDING_PROPER_CLOSURE",
+  "results": [
+    {
+      "case": "success",
+      "eventId": "fb863929-72d8-410a-ad5f-e64aefd43dcf",
+      "deliveryId": "43039e98-74ac-4323-a2e5-8c8e24dda1b4",
+      "status": "sent",
+      "physicalPOSTs": 1,
+      "independentlyRecomputedHMAC": true,
+      "wireSHA256": "38bf832ca1cb662a0a6d0bd18c001eceac01056c17c896afe9fbf81ee44ba2a6",
+      "freshBusinessTrigger": true,
+      "replayNativeUnchanged": true
+    },
+    {
+      "case": "http400",
+      "eventId": "4e299bc0-8d80-47ea-81ca-6738e07cee5d",
+      "deliveryId": "9f119c88-ee1c-4280-9323-bd53f685e06a",
+      "status": "failed",
+      "physicalPOSTs": 1,
+      "independentlyRecomputedHMAC": true,
+      "wireSHA256": "27ff4db85919e9a1b62a1f29817a67fb70b34a9213c619501d4cb4a8dc01ff6f",
+      "freshBusinessTrigger": true,
+      "replayNativeUnchanged": false
+    },
+    {
+      "case": "http500",
+      "eventId": "6325aaea-45dd-470f-92d3-a529bdf729ca",
+      "deliveryId": "0887981b-aac6-4e34-b8dc-3d36b5a6a912",
+      "status": "failed",
+      "physicalPOSTs": 1,
+      "independentlyRecomputedHMAC": true,
+      "wireSHA256": "c1b4b40059e0f1a0602597c3a79375ab9f84bab4473329213b9ca83f8755583e",
+      "freshBusinessTrigger": true,
+      "replayNativeUnchanged": false
+    },
+    {
+      "case": "timeout",
+      "eventId": "da2092ff-0ef1-4c98-94b2-7e3fb41902e5",
+      "deliveryId": "98de0dca-b768-42a5-9cd0-1c3ef1efbd78",
+      "status": "delivery_uncertain",
+      "physicalPOSTs": 1,
+      "independentlyRecomputedHMAC": true,
+      "wireSHA256": "ee9ff8e22734adfc708dc88e2e463577172b00d52214402fbb7ef47fd1d6308f",
+      "freshBusinessTrigger": true,
+      "replayNativeUnchanged": false
+    }
+  ],
+  "refs": [
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/success.before-business.private.json",
+      "sha256": "7c92da45de2e8286f46fb199194fbde81111fea79f90f77ccf80e1f430dfa73a"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/success.after-business.private.json",
+      "sha256": "acd0a5a993e01b8f68432f9a19f83216af447ed3aca9d86cd6f6436bebf38301"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/success.fresh-event.private.json",
+      "sha256": "5c6de6f0001b7f120ce98b992f8ef4b9b64e188b4788a2c4b3432e29fe968b9e"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/success.dispatch-native.private.json",
+      "sha256": "e23ee4b49c0fa3ae9c0436c21d094e95e71076e51ffb929ca4cd77ea363fc7a4"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-success/request-1.safe.json",
+      "sha256": "168d514d06425cabee1e5c4772b2876f042c26133d6c1239a78b000422923fbd"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-success/terminal.safe.json",
+      "sha256": "a99b15b5a857cdaaa439064303bd491fff7fb5debf4260e02a57c30a1162688f"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/tls-success/tls-GET404.safe.json",
+      "sha256": "23a7d7956c620289af058acd5dd8e2f0777fa47d2083b616ecda54e6edd04943"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/success.replay-native.private.json",
+      "sha256": "04bea10ac254031f945d1df04de5fd061e15296d9c1b98915dbe59aa39473110"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/http400.before-business.private.json",
+      "sha256": "07d28023ba8995250d8c4d722f807b990d4754619b83a1e426e7730cc9db25ca"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/http400.after-business.private.json",
+      "sha256": "8e549a739af669e56e94331002ad740095035f4c76e758618403e1f2d8ceb6bf"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/http400.fresh-event.private.json",
+      "sha256": "7e2fb94ed0872fdd6109d07deb337b03a5b41353e678f25bc8f18af20bf9ddb2"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/http400.dispatch-native.private.json",
+      "sha256": "db139e815b820ee46802c839d2ba5fa1fb4ecea621eec840bc965b3fc5d39e99"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-http400/request-1.safe.json",
+      "sha256": "8091053d241b5572f5dc24ac3d6b41c9d5a20170bf5286bb788ee4d05d028bec"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-http400/terminal.safe.json",
+      "sha256": "14e13054e90e69fb57527becc9dcd8af3f9cd35b6be55bd627b6684fd99537f7"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/tls-http400/tls-GET404.safe.json",
+      "sha256": "23a7d7956c620289af058acd5dd8e2f0777fa47d2083b616ecda54e6edd04943"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/http500.before-business.private.json",
+      "sha256": "818e244e7bc353fef13592f81eb43bc1e98d7398c51c7e321fd39001e3d52cb7"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/http500.after-business.private.json",
+      "sha256": "badd485051efe088e9b9af9ba32a3b842fc5f3d42a7a28f83af95d1b6fdfbf39"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/http500.fresh-event.private.json",
+      "sha256": "91de02b718cd7854054f892ae1fc431cad16876faaa344db88606e371cfde60f"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/http500.dispatch-native.private.json",
+      "sha256": "3da5513995c745e7edb4df21dc78f2682350465324f20b22d5351f90ca9a0aa6"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-http500/request-1.safe.json",
+      "sha256": "0824341090ec7889ffa0b479dd669a43cc1ac87051c85ac4cbefac20636fea59"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-http500/terminal.safe.json",
+      "sha256": "a0bff470becde4b3e2504dda575ce6e14a6d0349c70a4e778c8ae042a17511f3"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/tls-http500/tls-GET404.safe.json",
+      "sha256": "23a7d7956c620289af058acd5dd8e2f0777fa47d2083b616ecda54e6edd04943"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/timeout.before-business.private.json",
+      "sha256": "7661b54602f88b7b705d9b9e2ad23665c1c46d4f257db9bf80d807845553593c"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/timeout.after-business.private.json",
+      "sha256": "b9727844a773f63a0f451f5dbf5db778ceb10301b4e3ea45f3b5fa7faf0c321f"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/timeout.fresh-event.private.json",
+      "sha256": "6be2da86f4ae37ad0b5cca0930e54192f526927f1eb64c80502f2897cefbfc5b"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/timeout.dispatch-native.private.json",
+      "sha256": "fc1dc42d0d0be9f85691b4f8abde849735ed59a38b626abd478c075c6a92466c"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-timeout/request-1.safe.json",
+      "sha256": "a6d094705c5cc9ca5283a64c79435ec957a77088d50031f0190cfc72013f1dbf"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/receiver-timeout/terminal.safe.json",
+      "sha256": "a2bcac4dbd6a98b57e79b3bc8298dc8760fb074173f26c91a42c31845da6eef9"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/tls-timeout/tls-GET404.safe.json",
+      "sha256": "23a7d7956c620289af058acd5dd8e2f0777fa47d2083b616ecda54e6edd04943"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261115-c/timeout.dispatch-elapsed.safe.json",
+      "sha256": "a1a4d2b837edcf8dc13f19847909f5b07aa69f230f3c7d277be75e505d8499a5"
+    }
+  ],
+  "casePASS": false
+}

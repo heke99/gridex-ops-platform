@@ -1,0 +1,18 @@
+{
+  "at": "2026-11-15T02:12:33.511089+00:00",
+  "reviewer": "/root",
+  "scope": "ACTUAL_READY_SAFE_STATE_ONLY_NO_BUSINESS_AUTHORITY",
+  "statePath": "/tmp/gridex-ee-browser-hold-actual-local-20261115-k8/state.safe.json",
+  "stateSha256": "6d127d8d25b0a3fa3449f0066ef904ef4db8db235dbd648fb97b90b7f261dbc0",
+  "observed": {
+    "state": "GENUINE_EE_CONTEXT_HELD_READY_BEFORE_FRESH_BACKUP",
+    "helperSha256": "8144291614d71a7b6f88e92089a89eca4372c21bd171f58a5b483d49d93a4f7a",
+    "targetSha256": "cb600c10e330166c2afee0f124706c328e7269b6908c78232e4374f900efa2f2",
+    "pid": 2770371,
+    "commands": 0,
+    "deniedBrowserRequests": 0,
+    "deadline": "2026-11-15T03:01:48.248Z",
+    "sameContextNoStorageStateInjection": true
+  },
+  "requires": "NEW current Main baseline+Fc/sessionseal after this genuine READY before parent/runtime/business"
+}

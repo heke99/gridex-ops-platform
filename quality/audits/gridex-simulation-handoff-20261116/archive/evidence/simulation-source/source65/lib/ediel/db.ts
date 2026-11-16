@@ -1,0 +1,1502 @@
+import { readBusinessAckStatus, readBusinessAckStatusForDisplay } from '@/lib/ediel/inbound/businessAckReadModel'
+import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
+import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+// lib/ediel/db.ts
+
+import { supabaseService } from '@/lib/supabase/service'
+import { assertNoTgtLeakageInProductionInput } from '@/lib/ediel/core/productionGuards'
+import { findRulebookTestCase } from '@/lib/ediel/rulebook/testCaseMatcher'
+import { parseRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
+import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
+import type {
+  AttachEdielMessageToTestRunInput,
+  CreateEdielMessageEventInput,
+  CreateEdielMessageInput,
+  CreateEdielTestRunInput,
+  EdielMessageAckStateRow,
+  EdielMessageEventRow,
+  EdielMessageEventType,
+  EdielMessageRow,
+  EdielRouteProfileRow,
+  EdielTestRunMessageRow,
+  EdielTestRunRow,
+  LinkEdielMessageInput,
+  UpdateEdielMessageStatusInput,
+  UpdateEdielTestRunStatusInput,
+} from '@/lib/ediel/types'
+
+
+export type EdielQueryScope =
+  | { scope: 'tenant'; companyId: string }
+  | { scope: 'platform'; platformReason: string }
+
+function requireCompanyId(value: unknown, context: string): string {
+  const companyId = typeof value === 'string' ? value.trim() : ''
+  if (!companyId) throw new Error(`${context}: company_id_required`)
+  return companyId
+}
+
+function applyEdielQueryScope<T>(query: T, scope: EdielQueryScope): T {
+  if (scope.scope === 'tenant') {
+    return (query as unknown as { eq: (column: string, value: string) => T }).eq(
+      'company_id',
+      requireCompanyId(scope.companyId, 'ediel_query_scope'),
+    )
+  }
+
+  if (!scope.platformReason.trim()) {
+    throw new Error('ediel_platform_scope_reason_required')
+  }
+
+  return query
+}
+
+export type DuplicateAckCandidateRow = {
+  related_message_id: string
+  message_family: string
+  duplicate_count: number
+  message_ids: string[]
+}
+
+export type RuleAmbiguityRow = {
+  message_family: string
+  message_code: string
+  message_standard: string
+  direction: string
+  active_rule_count: number
+  version_codes: string[]
+}
+
+export type CanonicalDuplicateBlockLayer =
+  | 'canonical_inbound'
+  | 'canonical_outbound'
+  | 'canonical_ack'
+
+export type CanonicalDuplicateBlockInput = {
+  actorUserId?: string | null
+  edielMessageId: string
+  layer: CanonicalDuplicateBlockLayer
+  message: string
+  payload?: Record<string, unknown>
+}
+
+export type CanonicalAckConflictInput = {
+  actorUserId?: string | null
+  edielMessageId: string
+  ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  sourceMessageId: string
+  attemptedOutcome?: 'positive' | 'negative' | null
+  existingAckMessageId?: string | null
+  existingOutcome?: 'positive' | 'negative' | null
+  reason:
+    | 'duplicate_same_outcome'
+    | 'conflicting_outcome'
+    | 'duplicate_same_family'
+  payload?: Record<string, unknown>
+}
+
+export type CanonicalIssueKind =
+  | 'duplicate_block'
+  | 'ack_conflict'
+  | 'version_mismatch'
+  | 'invalid_code_usage'
+
+export type CanonicalIssueEventRow = EdielMessageEventRow & {
+  issue_kind: CanonicalIssueKind
+  dedupe_layer: CanonicalDuplicateBlockLayer | null
+  ack_family: 'CONTRL' | 'APERAK' | 'UTILTS_ERR' | null
+  source_message_id: string | null
+  existing_ack_message_id: string | null
+  attempted_outcome: 'positive' | 'negative' | null
+  existing_outcome: 'positive' | 'negative' | null
+  reason: string | null
+}
+
+function cleanObject<T extends Record<string, unknown>>(value: T): T {
+  const entries = Object.entries(value).filter(([, v]) => v !== undefined)
+  return Object.fromEntries(entries) as T
+}
+
+function isSchemaCompatibilityError(error: unknown): boolean {
+  const record = error && typeof error === 'object' ? error as Record<string, unknown> : {}
+  const code = String(record.code ?? '')
+  const message = String(record.message ?? record.details ?? '')
+  return (
+    code === 'PGRST204' ||
+    code === '42703' ||
+    /column .* does not exist/i.test(message) ||
+    /Could not find .* column/i.test(message) ||
+    /schema cache/i.test(message)
+  )
+}
+
+function applyCompanyScope<T>(query: T, companyId?: string | null): T {
+  const normalized = typeof companyId === 'string' && companyId.trim().length > 0 ? companyId.trim() : null
+  if (!normalized) return query
+  return (query as unknown as { eq: (column: string, value: string) => T }).eq('company_id', normalized)
+}
+
+function ensureJson(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
+
+function mapStatusToEventType(status: string): EdielMessageEventType {
+  if (status === 'queued') return 'queued'
+  if (status === 'prepared') return 'prepared'
+  if (status === 'sent') return 'sent'
+  if (status === 'received') return 'received'
+  if (status === 'parsed') return 'parsed'
+  if (status === 'validated') return 'validated'
+  if (status === 'acknowledged') return 'linked'
+  if (status === 'failed') return 'failed'
+  if (status === 'cancelled') return 'cancelled'
+  return 'manual_note'
+}
+
+function mapStatusToEventStatus(status: string): 'info' | 'success' | 'warning' | 'error' {
+  if (status === 'failed') return 'error'
+  if (status === 'cancelled') return 'warning'
+  return 'success'
+}
+
+function inferAckOutcome(row: EdielMessageRow): 'positive' | 'negative' | null {
+  if (row.ack_outcome === 'positive' || row.ack_outcome === 'negative') {
+    return row.ack_outcome
+  }
+
+  const parsedPayload = row.parsed_payload ?? {}
+  const payloadOutcome =
+    parsedPayload.ackOutcome === 'positive' || parsedPayload.ackOutcome === 'negative'
+      ? payloadOutcomeOrNull(parsedPayload.ackOutcome)
+      : null
+
+  if (payloadOutcome) return payloadOutcome
+
+  if (row.message_family === 'CONTRL') {
+    if (row.syntax_check_status === 'ok' || row.syntax_check_status === 'warning') return 'positive'
+    if (row.syntax_check_status === 'failed') {
+      return 'negative'
+    }
+    return null
+  }
+
+  if (row.message_family === 'APERAK' || row.message_family === 'UTILTS_ERR') {
+    if (row.functional_check_status === 'ok' || row.functional_check_status === 'warning') return 'positive'
+    if (
+      row.functional_check_status === 'failed'
+    ) {
+      return 'negative'
+    }
+  }
+
+  return null
+}
+
+function payloadOutcomeOrNull(
+  value: unknown
+): 'positive' | 'negative' | null {
+  return value === 'positive' || value === 'negative' ? value : null
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function asBoolean(value: unknown): boolean {
+  return value === true
+}
+
+function hasVersionMismatch(row: EdielMessageRow): boolean {
+  const payload = row.parsed_payload ?? {}
+  const report = row.validation_report ?? {}
+
+  if (asBoolean(report.versionMismatch)) return true
+  if (asBoolean(report.invalidVersion)) return true
+  if (Array.isArray(report.versionErrors) && report.versionErrors.length > 0) return true
+  if (Array.isArray(report.acceptedVersions) && row.message_version) {
+    const acceptedVersions = report.acceptedVersions.filter(
+      (item): item is string => typeof item === "string"
+    )
+    if (acceptedVersions.length > 0 && !acceptedVersions.includes(row.message_version)) {
+      return true
+    }
+  }
+
+  if (asBoolean(payload.versionMismatch)) return true
+  if (Array.isArray(payload.versionErrors) && payload.versionErrors.length > 0) return true
+
+  return false
+}
+
+function hasInvalidCodeUsage(row: EdielMessageRow): boolean {
+  const payload = row.parsed_payload ?? {}
+  const report = row.validation_report ?? {}
+
+  if (asBoolean(report.invalidCodeUsage)) return true
+  if (asBoolean(report.codeListViolation)) return true
+  if (asBoolean(report.invalidCodeListUsage)) return true
+  if (Array.isArray(report.codeListErrors) && report.codeListErrors.length > 0) return true
+  if (Array.isArray(report.invalidCodes) && report.invalidCodes.length > 0) return true
+
+  if (asBoolean(payload.invalidCodeUsage)) return true
+  if (Array.isArray(payload.codeListErrors) && payload.codeListErrors.length > 0) return true
+  if (Array.isArray(payload.invalidCodes) && payload.invalidCodes.length > 0) return true
+
+  return false
+}
+
+function mapCanonicalIssueEvent(row: EdielMessageEventRow): CanonicalIssueEventRow | null {
+  const payload = ensureJson(row.payload)
+
+  const duplicateBlocked = asBoolean(payload.duplicateBlocked)
+  const ackConflict = asBoolean(payload.ackConflict)
+  const versionMismatch = asBoolean(payload.versionMismatch)
+  const invalidCodeUsage =
+    asBoolean(payload.invalidCodeUsage) ||
+    asBoolean(payload.codeListViolation) ||
+    asBoolean(payload.invalidCodeListUsage)
+
+  let issueKind: CanonicalIssueKind | null = null
+
+    if (ackConflict) {
+    issueKind = 'ack_conflict'
+  } else if (duplicateBlocked) {
+    issueKind = 'duplicate_block'
+  } else if (versionMismatch) {
+    issueKind = 'version_mismatch'
+  } else if (invalidCodeUsage) {
+    issueKind = 'invalid_code_usage'
+  }
+
+  if (!issueKind) return null
+
+  const dedupeLayerRaw = payload.dedupeLayer
+  const dedupeLayer: CanonicalDuplicateBlockLayer | null =
+    dedupeLayerRaw === 'canonical_inbound' ||
+    dedupeLayerRaw === 'canonical_outbound' ||
+    dedupeLayerRaw === 'canonical_ack'
+      ? dedupeLayerRaw
+      : null
+
+  const ackFamilyRaw = payload.ackFamily
+  const ackFamily =
+    ackFamilyRaw === 'CONTRL' || ackFamilyRaw === 'APERAK' || ackFamilyRaw === 'UTILTS_ERR'
+      ? ackFamilyRaw
+      : null
+
+  return {
+    ...row,
+    issue_kind: issueKind,
+    dedupe_layer: dedupeLayer,
+    ack_family: ackFamily,
+    source_message_id: asString(payload.sourceMessageId),
+    existing_ack_message_id: asString(payload.existingAckMessageId),
+    attempted_outcome: payloadOutcomeOrNull(payload.attemptedOutcome),
+    existing_outcome: payloadOutcomeOrNull(payload.existingOutcome),
+    reason: asString(payload.reason),
+  }
+}
+
+async function listRecentManualIssueEvents(limit = 200): Promise<CanonicalIssueEventRow[]> {
+  const { data, error } = await supabaseService
+    .from('ediel_message_events')
+    .select('*')
+    .eq('event_type', 'manual_note')
+    .in('event_status', ['warning', 'error'])
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+
+  const rows = (data ?? []) as EdielMessageEventRow[]
+  return rows
+    .map(mapCanonicalIssueEvent)
+    .filter((row): row is CanonicalIssueEventRow => row !== null)
+}
+
+function referenceRowsForMessage(row: EdielMessageRow): Array<{
+  reference_type: string
+  reference_value: string
+}> {
+  const parsed = row.parsed_payload ?? {}
+  let hasProdatWire = false
+  let wireDocumentReference: string | null = null
+  let references: Array<{ qualifier?: unknown; value?: unknown }> = Array.isArray(parsed.references)
+    ? parsed.references as Array<{ qualifier?: unknown; value?: unknown }> : []
+  if (row.message_family === 'PRODAT') {
+    try {
+      const wire = tokenizeEdifact(row.raw_payload)
+      hasProdatWire = wire.segments.some(segment => segment.tag === 'UNH' || segment.tag === 'BGM')
+      if (hasProdatWire) {
+        references = prodatReferenceEntries(wire.segments, wire.una)
+        wireDocumentReference = prodatDocumentValue('203', wire.segments, wire.una)
+      }
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== 'edifact_dangling_release_character') throw error
+      // The original message must remain available for syntax/quarantine review.
+      // Undecodable wire cannot publish an identity from a stale parsed fallback.
+      hasProdatWire = true
+      references = []
+    }
+  }
+  const rff = (qualifier: string) =>
+    references.find((item) => item.qualifier === qualifier && typeof item.value === 'string')?.value as string | undefined
+
+  const values: Array<[string, string | null | undefined]> = [
+    ['UNB_REF', row.interchange_reference],
+    ['BGM_REF', hasProdatWire ? wireDocumentReference : row.external_reference],
+    ['RFF_LI', rff('LI') ?? (hasProdatWire ? null : row.external_reference)],
+    ['RFF_ACW', rff('ACW') ?? (hasProdatWire ? null : row.correlation_reference)],
+    ['RFF_Z07', rff('Z07')],
+    ['RFF_TN', rff('TN') ?? (hasProdatWire ? null : row.transaction_reference)],
+    ['DOC_REF', hasProdatWire ? null : typeof parsed.documentReference === 'string' ? parsed.documentReference : null],
+    ['IDE', hasProdatWire ? null : typeof parsed.transactionReference === 'string' ? parsed.transactionReference : row.transaction_reference],
+    ['PERMISSION_ID', hasProdatWire ? rff('Z09') : typeof parsed.permissionId === 'string' ? parsed.permissionId : null],
+    ['METERING_POINT_ID', typeof parsed.meteringPointId === 'string' ? parsed.meteringPointId : null],
+  ]
+
+  const seen = new Set<string>()
+  return values.flatMap(([reference_type, raw]) => {
+    const reference_value = asString(raw)
+    if (!reference_value) return []
+    const key = `${reference_type}:${reference_value}`
+    if (seen.has(key)) return []
+    seen.add(key)
+    return [{ reference_type, reference_value }]
+  })
+}
+
+async function saveBusinessReferencesForMessage(row: EdielMessageRow) {
+  if (!row.company_id) return
+
+  const businessObjectType = row.switch_request_id
+    ? 'supplier_switch_request'
+    : row.grid_owner_data_request_id
+      ? 'grid_owner_data_request'
+      : row.outbound_request_id
+        ? 'outbound_request'
+        : row.partner_export_id
+          ? 'partner_export'
+          : null
+
+  const businessObjectId =
+    row.switch_request_id ??
+    row.grid_owner_data_request_id ??
+    row.outbound_request_id ??
+    row.partner_export_id ??
+    null
+
+  if (!businessObjectType || !businessObjectId) return
+
+  const rows = referenceRowsForMessage(row).map((reference) => ({
+    company_id: row.company_id,
+    source_message_id: row.id,
+    reference_type: reference.reference_type,
+    reference_value: reference.reference_value,
+    message_family: row.message_family,
+    message_code: String(row.message_code ?? ''),
+    business_object_type: businessObjectType,
+    business_object_id: businessObjectId,
+    customer_id: row.customer_id,
+    customer_site_id: row.site_id,
+    metering_point_id: row.metering_point_id,
+  }))
+
+  if (rows.length === 0) return
+
+  const { error } = await supabaseService
+    .from('ediel_business_references')
+    .upsert(rows, {
+      onConflict: 'company_id,reference_type,reference_value,business_object_type,business_object_id',
+      ignoreDuplicates: true,
+    })
+
+  if (error) throw error
+}
+
+export async function createEdielMessage(
+  input: CreateEdielMessageInput
+): Promise<EdielMessageRow> {
+  assertNoTgtLeakageInProductionInput(input)
+
+  const payload = cleanObject({
+    company_id: input.companyId ?? null,
+    direction: input.direction,
+    message_standard: input.messageStandard,
+    message_family: input.messageFamily,
+    message_code: input.messageCode,
+    message_version: input.messageVersion ?? null,
+    process_type: input.processType ?? null,
+    environment: input.environment ?? 'test',
+    test_flag: input.testFlag ?? 1,
+    status: input.status ?? 'draft',
+
+    transport_type: input.transportType ?? 'smtp',
+    mailbox: input.mailbox ?? null,
+    mailbox_message_id: input.mailboxMessageId ?? null,
+    sender_ediel_id: input.senderEdielId ?? null,
+    sender_name: input.senderName ?? null,
+    sender_sub_address: input.senderSubAddress ?? null,
+    receiver_ediel_id: input.receiverEdielId ?? null,
+    receiver_name: input.receiverName ?? null,
+    receiver_sub_address: input.receiverSubAddress ?? null,
+    sender_email: input.senderEmail ?? null,
+    receiver_email: input.receiverEmail ?? null,
+    subject: input.subject ?? null,
+    file_name: input.fileName ?? null,
+    mime_type: input.mimeType ?? null,
+
+    interchange_reference: input.interchangeReference ?? null,
+    unb_sender_id: input.senderEdielId ?? null,
+    unb_sender_subaddress: input.senderSubAddress ?? null,
+    unb_receiver_id: input.receiverEdielId ?? null,
+    unb_receiver_subaddress: input.receiverSubAddress ?? null,
+    message_reference: input.originalMessageId ?? null,
+    bgm_code: input.messageCode ?? null,
+    bgm_reference: input.externalReference ?? null,
+    tenant_resolution_status: input.companyId ? 'tenant_resolved' : null,
+    business_match_status: input.companyId ? 'not_checked' : null,
+    ack_status: input.ackOutcome ?? null,
+    processing_status: input.status ?? 'draft',
+    external_reference: input.externalReference ?? null,
+    correlation_reference: input.correlationReference ?? null,
+    transaction_reference: input.transactionReference ?? null,
+    application_reference: input.applicationReference ?? null,
+    original_message_id: input.originalMessageId ?? null,
+    original_transaction_id: input.originalTransactionId ?? null,
+    original_message_code: input.originalMessageCode ?? null,
+    related_message_id: input.relatedMessageId ?? null,
+
+    communication_route_id: input.communicationRouteId ?? null,
+    route_profile_id: input.routeProfileId ?? null,
+    canonical_rule_pack_id: input.canonicalRulePackId ?? null,
+    source_operation_id: input.sourceOperationId ?? null,
+    rule_profile_key: input.ruleProfileKey ?? null,
+    rule_profile_version_id: input.ruleProfileVersionId ?? null,
+    rule_profile_version: input.ruleProfileVersion ?? null,
+    rule_pack_checksum: input.rulePackChecksum ?? null,
+    rule_pack_snapshot: ensureJson(input.rulePackSnapshot),
+    execution_context_snapshot: ensureJson(input.executionContextSnapshot),
+    intent_id: input.intentId ?? null,
+    party_id: input.partyId ?? null,
+    // Preserve legacy IDs on historical reads; fresh messages use canonical routes.
+    party_address_id: null,
+    transport_security_mode: input.transportSecurityMode ?? null,
+    route_transport_security_mode: input.routeTransportSecurityMode ?? null,
+    was_smime_encrypted: input.wasSmimeEncrypted ?? null,
+    expected_receiver_certificate_id: input.expectedReceiverCertificateId ?? null,
+    cms_expected_receiver_present: input.cmsExpectedReceiverPresent ?? null,
+    outbound_request_id: input.outboundRequestId ?? null,
+    switch_request_id: input.switchRequestId ?? null,
+    grid_owner_data_request_id: input.gridOwnerDataRequestId ?? null,
+    partner_export_id: input.partnerExportId ?? null,
+
+    customer_id: input.customerId ?? null,
+    site_id: input.siteId ?? null,
+    metering_point_id: input.meteringPointId ?? null,
+    grid_owner_id: input.gridOwnerId ?? null,
+
+    raw_payload: input.rawPayload ?? null,
+    parsed_payload: ensureJson(input.parsedPayload),
+    validation_report: ensureJson(input.validationReport),
+
+    requires_contrl: input.requiresContrl ?? true,
+    requires_aperak: input.requiresAperak ?? false,
+    contrl_status: input.contrlStatus ?? null,
+    aperak_status: input.aperakStatus ?? null,
+    utilts_err_status: input.utiltsErrStatus ?? null,
+    ack_outcome: input.ackOutcome ?? null,
+    syntax_check_status: input.syntaxCheckStatus ?? null,
+    functional_check_status: input.functionalCheckStatus ?? null,
+    failure_reason: input.failureReason ?? null,
+
+    message_created_at: input.messageCreatedAt ?? null,
+    message_received_at: input.messageReceivedAt ?? null,
+    message_sent_at: input.messageSentAt ?? null,
+    parsed_at: input.parsedAt ?? null,
+    validated_at: input.validatedAt ?? null,
+    acknowledged_at: input.acknowledgedAt ?? null,
+    failed_at: input.failedAt ?? null,
+    ack_due_at: input.ackDueAt ?? null,
+
+    created_by: input.actorUserId ?? null,
+    updated_by: input.actorUserId ?? null,
+  })
+
+  const { data, error } = await supabaseService
+    .from('ediel_messages')
+    .insert(payload)
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  const row = data as EdielMessageRow
+
+  await saveBusinessReferencesForMessage(row)
+
+  await createEdielMessageEvent({
+    actorUserId: input.actorUserId ?? null,
+    edielMessageId: row.id,
+    eventType: 'created',
+    eventStatus: 'info',
+    message: `Ediel message ${row.message_family} ${row.message_code} skapad.`,
+    payload: {
+      status: row.status,
+      direction: row.direction,
+      externalReference: row.external_reference,
+      communicationRouteId: row.communication_route_id,
+    },
+  })
+
+  return row
+}
+
+export async function getEdielMessageById(
+  id: string,
+  options?: { companyId?: string | null }
+): Promise<EdielMessageRow | null> {
+  let query = supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('id', id)
+
+  query = applyCompanyScope(query, options?.companyId)
+
+  const { data, error } = await query.maybeSingle()
+
+  if (error) throw error
+  return (data as EdielMessageRow | null) ?? null
+}
+
+
+export async function findSequencedAckForSource(params: {
+  sourceMessageId: string
+  actorUserId: string
+  ackFamily: 'APERAK' | 'UTILTS_ERR'
+  outcome?: 'positive' | 'negative' | null
+  sequenceField: 'relatedTransactionReference' | 'utiltsErrSequenceToken' | 'aperakSequenceToken'
+  sequenceValue: string
+}): Promise<EdielMessageRow | null> {
+  const reference=params.sequenceValue
+  if(!reference.trim())return null
+  // Historical error-code sequencing does not identify an original IDE. Hold
+  // callers until they supply a physical source reference; never query caches.
+  if(params.sequenceField==='utiltsErrSequenceToken')throw new Error('ediel_ack_physical_transaction_reference_required')
+  const {findExistingAckForSource}=await import('@/lib/ediel/core/ackPolicy')
+  if(!params.actorUserId)throw new Error('ediel_existing_ack_original_current_actor_required')
+  return findExistingAckForSource({sourceMessageId:params.sourceMessageId,actorUserId:params.actorUserId,phase:'read',ackFamily:params.ackFamily,
+    outcome:params.outcome ?? undefined,ackScope:'transaction',transactionReference:reference})
+}
+
+export async function listAckMessagesForSource(params: {
+  sourceMessageId: string
+  actorUserId: string
+  ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  outcome?: 'positive' | 'negative'
+  companyId?: string | null
+}): Promise<EdielMessageRow[]> {
+  const status = await readBusinessAckStatus(params)
+  return params.outcome ? status.messages.filter(row => inferAckOutcome(row) === params.outcome) : status.messages
+}
+
+export async function listAckMessagesForSources(params: {
+  sourceMessageIds: string[]
+  actorUserId: string
+  ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  outcome?: 'positive' | 'negative'
+  companyId?: string | null
+}): Promise<Map<string, EdielMessageRow[]>> {
+  const sourceMessageIds = Array.from(new Set(params.sourceMessageIds.filter(Boolean)))
+  const pairs = await Promise.all(sourceMessageIds.map(async sourceMessageId => [sourceMessageId,
+    await listAckMessagesForSource({ ...params, sourceMessageId }),
+  ] as const))
+  return new Map(pairs)
+}
+
+export async function listBusinessAckStatusForSources(params: {
+  sourceMessageIds: string[]
+  actorUserId: string
+  companyId?: string | null
+}) {
+  const pairs = await Promise.all(Array.from(new Set(params.sourceMessageIds.filter(Boolean))).map(async sourceMessageId =>
+    [sourceMessageId, await readBusinessAckStatusForDisplay({ sourceMessageId, actorUserId: params.actorUserId, companyId: params.companyId })] as const))
+  return new Map(pairs)
+}
+
+export async function getEdielMessageAckStateById(
+  id: string,
+  companyId?: string | null
+): Promise<EdielMessageAckStateRow | null> {
+  let query = supabaseService
+    .from('ediel_message_ack_state_v')
+    .select('*')
+    .eq('id', id)
+
+  query = applyCompanyScope(query, companyId)
+
+  const { data, error } = await query.maybeSingle()
+
+  if (error) throw error
+  return (data as EdielMessageAckStateRow | null) ?? null
+}
+
+export async function findEdielMessageByMailboxIdentity(params: {
+  mailbox: string
+  mailboxMessageId: string
+  companyId?: string | null
+}): Promise<EdielMessageRow | null> {
+  let query = supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('mailbox', params.mailbox)
+    .eq('mailbox_message_id', params.mailboxMessageId)
+
+  query = applyCompanyScope(query, params.companyId)
+
+  const { data, error } = await query.maybeSingle()
+
+  if (error) throw error
+  return (data as EdielMessageRow | null) ?? null
+}
+
+export async function listEdielMessages(params?: {
+  family?: string
+  direction?: 'inbound' | 'outbound'
+  status?: string
+  companyId?: string | null
+  limit?: number
+}): Promise<EdielMessageRow[]> {
+  const limit = params?.limit ?? 50
+
+  let query = supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  query = applyCompanyScope(query, params?.companyId)
+
+  if (params?.family) {
+    query = query.eq('message_family', params.family)
+  }
+
+  if (params?.direction) {
+    query = query.eq('direction', params.direction)
+  }
+
+  if (params?.status) {
+    query = query.eq('status', params.status)
+  }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return (data ?? []) as EdielMessageRow[]
+}
+
+export async function listOverdueAckMessages(params?: {
+  limit?: number
+  companyId?: string | null
+}): Promise<EdielMessageAckStateRow[]> {
+  const limit = params?.limit ?? 100
+
+  let query = supabaseService
+    .from('ediel_overdue_message_acks_v')
+    .select('*')
+    .order('ack_due_at', { ascending: true })
+    .limit(limit)
+
+  query = applyCompanyScope(query, params?.companyId)
+
+  const { data, error } = await query
+
+  if (error) throw error
+  return (data ?? []) as EdielMessageAckStateRow[]
+}
+
+export async function listDuplicateAckCandidates(): Promise<DuplicateAckCandidateRow[]> {
+  const { data, error } = await supabaseService
+    .from('ediel_duplicate_ack_candidates_v')
+    .select('*')
+
+  if (error) throw error
+  return (data ?? []) as DuplicateAckCandidateRow[]
+}
+
+export async function listRuleAmbiguities(): Promise<RuleAmbiguityRow[]> {
+  const { data, error } = await supabaseService
+    .from('ediel_rule_ambiguities_v')
+    .select('*')
+
+  if (error) throw error
+  return (data ?? []) as RuleAmbiguityRow[]
+}
+
+export async function createEdielMessageEvent(
+  input: CreateEdielMessageEventInput
+): Promise<EdielMessageEventRow> {
+  const parent = await getEdielMessageById(input.edielMessageId)
+  const payload = cleanObject({
+    company_id: parent?.company_id ?? null,
+    ediel_message_id: input.edielMessageId,
+    message_id: input.edielMessageId,
+    event_type: input.eventType,
+    event_status: input.eventStatus ?? 'info',
+    message: input.message ?? null,
+    payload: ensureJson(input.payload),
+    event_payload: ensureJson(input.payload),
+    created_by: input.actorUserId ?? null,
+  })
+
+  const { data, error } = await supabaseService
+    .from('ediel_message_events')
+    .insert(payload)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as EdielMessageEventRow
+}
+
+export async function createCanonicalDuplicateBlockEvent(
+  input: CanonicalDuplicateBlockInput
+): Promise<EdielMessageEventRow> {
+  return createEdielMessageEvent({
+    actorUserId: input.actorUserId ?? 'system',
+    edielMessageId: input.edielMessageId,
+    eventType: 'manual_note',
+    eventStatus: 'warning',
+    message: input.message,
+    payload: {
+      dedupeLayer: input.layer,
+      duplicateBlocked: true,
+      ...(input.payload ?? {}),
+    },
+  })
+}
+
+export async function createCanonicalAckConflictEvent(
+  input: CanonicalAckConflictInput
+): Promise<EdielMessageEventRow> {
+  return createEdielMessageEvent({
+    actorUserId: input.actorUserId ?? 'system',
+    edielMessageId: input.edielMessageId,
+    eventType: 'manual_note',
+    eventStatus: 'warning',
+    message:
+      input.reason === 'conflicting_outcome'
+        ? `Ack-konflikt blockerad för ${input.ackFamily}.`
+        : `Ack-dublett blockerad för ${input.ackFamily}.`,
+    payload: {
+      dedupeLayer: 'canonical_ack',
+      duplicateBlocked: true,
+      ackConflict: true,
+      ackFamily: input.ackFamily,
+      sourceMessageId: input.sourceMessageId,
+      attemptedOutcome: input.attemptedOutcome ?? null,
+      existingAckMessageId: input.existingAckMessageId ?? null,
+      existingOutcome: input.existingOutcome ?? null,
+      reason: input.reason,
+      ...(input.payload ?? {}),
+    },
+  })
+}
+
+export async function listCanonicalDuplicateBlockEvents(params?: {
+  limit?: number
+  layer?: CanonicalDuplicateBlockLayer
+  companyId?: string | null
+}): Promise<CanonicalIssueEventRow[]> {
+  const rows = await listRecentManualIssueEvents(Math.max(params?.limit ?? 100, 50))
+
+  return rows
+    .filter(
+      (row) =>
+        row.issue_kind === 'duplicate_block' &&
+        (!params?.layer || row.dedupe_layer === params.layer) &&
+        (!params?.companyId || row.company_id === params.companyId)
+    )
+    .slice(0, params?.limit ?? 100)
+}
+
+export async function listCanonicalAckConflictEvents(params?: {
+  limit?: number
+  ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  companyId?: string | null
+}): Promise<CanonicalIssueEventRow[]> {
+  const rows = await listRecentManualIssueEvents(Math.max(params?.limit ?? 100, 50))
+
+  return rows
+    .filter(
+      (row) =>
+        row.issue_kind === 'ack_conflict' &&
+        (!params?.ackFamily || row.ack_family === params.ackFamily) &&
+        (!params?.companyId || row.company_id === params.companyId)
+    )
+    .slice(0, params?.limit ?? 100)
+}
+
+export async function listRecentVersionMismatchMessages(params?: {
+  limit?: number
+  companyId?: string | null
+}): Promise<EdielMessageRow[]> {
+  const recentMessages = await listEdielMessages({
+    limit: Math.max(params?.limit ?? 50, 150),
+    companyId: params?.companyId ?? null,
+  })
+
+  return recentMessages.filter(hasVersionMismatch).slice(0, params?.limit ?? 50)
+}
+
+export async function listRecentInvalidCodeUsageMessages(params?: {
+  limit?: number
+  companyId?: string | null
+}): Promise<EdielMessageRow[]> {
+  const recentMessages = await listEdielMessages({
+    limit: Math.max(params?.limit ?? 50, 150),
+    companyId: params?.companyId ?? null,
+  })
+
+  return recentMessages.filter(hasInvalidCodeUsage).slice(0, params?.limit ?? 50)
+}
+
+export async function listEdielMessageEvents(
+  edielMessageId: string,
+  companyId?: string | null
+): Promise<EdielMessageEventRow[]> {
+  if (companyId) {
+    const parent = await getEdielMessageById(edielMessageId, { companyId })
+    if (!parent) return []
+  }
+
+  const { data, error } = await supabaseService
+    .from('ediel_message_events')
+    .select('*')
+    .eq('ediel_message_id', edielMessageId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as EdielMessageEventRow[]
+}
+
+export async function updateEdielMessageStatus(
+  input: UpdateEdielMessageStatusInput & {
+    id?: string
+    parsedPayload?: Record<string, unknown>
+    validationReport?: Record<string, unknown>
+  }
+): Promise<EdielMessageRow> {
+  const edielMessageId = input.edielMessageId ?? input.id
+  if (!edielMessageId) {
+    throw new Error('updateEdielMessageStatus requires edielMessageId or id')
+  }
+
+  const patch = cleanObject({
+    status: input.status,
+    processing_status: input.status,
+    failure_reason: input.failureReason ?? undefined,
+    parsed_at: input.parsedAt ?? undefined,
+    validated_at: input.validatedAt ?? undefined,
+    acknowledged_at: input.acknowledgedAt ?? undefined,
+    failed_at: input.failedAt ?? undefined,
+    message_sent_at: input.messageSentAt ?? undefined,
+    message_received_at: input.messageReceivedAt ?? undefined,
+    parsed_payload:
+      input.parsedPayload !== undefined ? ensureJson(input.parsedPayload) : undefined,
+    validation_report:
+      input.validationReport !== undefined
+        ? ensureJson(input.validationReport)
+        : undefined,
+    updated_by: input.actorUserId ?? null,
+    updated_at: new Date().toISOString(),
+  })
+
+  const { data, error } = await supabaseService
+    .from('ediel_messages')
+    .update(patch)
+    .eq('id', edielMessageId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  const row = data as EdielMessageRow
+
+  await saveBusinessReferencesForMessage(row)
+
+  await createEdielMessageEvent({
+    actorUserId: input.actorUserId ?? null,
+    edielMessageId,
+    eventType: mapStatusToEventType(input.status),
+    eventStatus: mapStatusToEventStatus(input.status),
+    message: `Status uppdaterad till ${input.status}.`,
+    payload: {
+      failureReason: input.failureReason ?? null,
+    },
+  })
+
+  return row
+}
+
+export async function linkEdielMessage(
+  input: LinkEdielMessageInput & {
+    communicationRouteId?: string | null
+  }
+): Promise<EdielMessageRow> {
+  const patch = cleanObject({
+    outbound_request_id: input.outboundRequestId ?? undefined,
+    switch_request_id: input.switchRequestId ?? undefined,
+    grid_owner_data_request_id: input.gridOwnerDataRequestId ?? undefined,
+    partner_export_id: input.partnerExportId ?? undefined,
+    customer_id: input.customerId ?? undefined,
+    site_id: input.siteId ?? undefined,
+    metering_point_id: input.meteringPointId ?? undefined,
+    grid_owner_id: input.gridOwnerId ?? undefined,
+    related_message_id: input.relatedMessageId ?? undefined,
+    communication_route_id: input.communicationRouteId ?? undefined,
+    updated_by: input.actorUserId ?? null,
+    updated_at: new Date().toISOString(),
+  })
+
+  const { data, error } = await supabaseService
+    .from('ediel_messages')
+    .update(patch)
+    .eq('id', input.edielMessageId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+
+  const row = data as EdielMessageRow
+
+  await saveBusinessReferencesForMessage(row)
+
+  await createEdielMessageEvent({
+    actorUserId: input.actorUserId ?? null,
+    edielMessageId: input.edielMessageId,
+    eventType: 'linked',
+    eventStatus: 'success',
+    message: 'Ediel message länkat till processobjekt.',
+    payload: {
+      outboundRequestId: input.outboundRequestId ?? null,
+      switchRequestId: input.switchRequestId ?? null,
+      gridOwnerDataRequestId: input.gridOwnerDataRequestId ?? null,
+      partnerExportId: input.partnerExportId ?? null,
+      customerId: input.customerId ?? null,
+      siteId: input.siteId ?? null,
+      meteringPointId: input.meteringPointId ?? null,
+      gridOwnerId: input.gridOwnerId ?? null,
+      relatedMessageId: input.relatedMessageId ?? null,
+      communicationRouteId: input.communicationRouteId ?? null,
+    },
+  })
+
+  return row
+}
+
+async function captureCurrentEdielConfigurationSnapshot(companyId: string, actorUserId: string) {
+  const { data, error } = await supabaseService.rpc('canonical_capture_ediel_configuration_snapshot', {
+    p_company_id: companyId,
+    p_actor_user_id: actorUserId,
+    p_reason: 'test_run_created',
+  })
+  if (error) throw error
+  const snapshot = data as unknown as { id?: string; configuration_hash?: string } | null
+  if (!snapshot?.id || !snapshot.configuration_hash) {
+    throw new Error('canonical_configuration_snapshot_missing')
+  }
+  return { id: snapshot.id, hash: snapshot.configuration_hash }
+}
+
+export async function createEdielTestRun(
+  input: CreateEdielTestRunInput
+): Promise<EdielTestRunRow> {
+  const companyId = requireCompanyId(input.companyId, 'create_ediel_test_run')
+  const configurationSnapshot = await captureCurrentEdielConfigurationSnapshot(companyId, input.actorUserId)
+  const legacyTransportMetadata = {
+    actorRole: input.actorRole ?? null,
+    messageFamily: input.messageFamily ?? null,
+    businessCode: input.businessCode ?? null,
+    encryptionMode: input.encryptionMode ?? 'none',
+    certificateId: input.certificateId ?? null,
+    certificateFingerprintSha256: input.certificateFingerprintSha256 ?? null,
+    routeProfileId: input.routeProfileId ?? null,
+    expectedFlow: input.expectedFlow ?? [],
+    actualFlow: input.actualFlow ?? [],
+    rawEdifactStored: Boolean(input.rawEdifact),
+    encryptedPayloadRef: input.encryptedPayloadRef ?? null,
+    productionLike: input.productionLike ?? false,
+  }
+  const basePayload = cleanObject({
+    company_id: companyId,
+    configuration_snapshot_id: configurationSnapshot.id,
+    configuration_hash: configurationSnapshot.hash,
+    rulebook_version: input.approvalVersion ?? 'runtime-current',
+    engine_version: 'actor-testing-evidence-v2',
+    environment: 'test',
+    message_variant: input.messageVariant ?? null,
+    setup_package: input.setupPackage ?? input.testSuite,
+    approval_version: input.approvalVersion ?? null,
+    role_code: input.roleCode,
+    test_suite: input.testSuite,
+    test_case_code: input.testCaseCode,
+    title: input.title ?? null,
+    status: input.status ?? 'draft',
+    customer_id: input.customerId ?? null,
+    site_id: input.siteId ?? null,
+    metering_point_id: input.meteringPointId ?? null,
+    grid_owner_id: input.gridOwnerId ?? null,
+    started_at: input.startedAt ?? null,
+    completed_at: input.completedAt ?? null,
+    failure_reason: input.failureReason ?? null,
+    notes: input.notes ?? null,
+    created_by: input.actorUserId ?? null,
+    updated_by: input.actorUserId ?? null,
+  })
+  const extendedPayload = cleanObject({
+    ...basePayload,
+    actor_role: input.actorRole ?? null,
+    message_family: input.messageFamily ?? null,
+    business_code: input.businessCode ?? null,
+    encryption_mode: input.encryptionMode ?? 'none',
+    certificate_id: input.certificateId ?? null,
+    certificate_fingerprint_sha256: input.certificateFingerprintSha256 ?? null,
+    route_profile_id: input.routeProfileId ?? null,
+    environment_type: input.environmentType ?? null,
+    expected_flow: input.expectedFlow ?? [],
+    actual_flow: input.actualFlow ?? [],
+    raw_edifact: input.rawEdifact ?? null,
+    encrypted_payload_ref: input.encryptedPayloadRef ?? null,
+    production_like: input.productionLike ?? false,
+  })
+
+  let result = await supabaseService
+    .from('ediel_test_runs')
+    .insert(extendedPayload)
+    .select('*')
+    .single()
+
+  if (result.error && isSchemaCompatibilityError(result.error)) {
+    result = await supabaseService
+      .from('ediel_test_runs')
+      .insert({
+        ...basePayload,
+        notes: [
+          input.notes ?? null,
+          `Transport metadata: ${JSON.stringify(legacyTransportMetadata)}`,
+          'Databasen saknar nya test-run transportkolumner. Kör senaste migrationen för full krypteringsmetadata.',
+        ].filter(Boolean).join('\n'),
+      })
+      .select('*')
+      .single()
+  }
+
+  if (result.error) throw result.error
+  const row = result.data as EdielTestRunRow
+
+  const rulebookCase = findRulebookTestCase(input.testCaseCode)
+  if (rulebookCase) {
+    const { error: stepError } = await supabaseService
+      .from('ediel_test_run_steps')
+      .insert({
+        company_id: companyId,
+        test_run_id: row.id,
+        step_no: 1,
+        name: rulebookCase.title,
+        status: 'pending',
+        expected_family: rulebookCase.family,
+        expected_code: rulebookCase.code,
+        expected_direction: null,
+        expected_ack: JSON.stringify({
+          contrl: rulebookCase.expectedContrl,
+          aperak: rulebookCase.expectedAperak,
+          utiltsErr: rulebookCase.expectedUtiltsErr,
+        }),
+        validation_report: {
+          source: 'rulebook',
+          processGroup: rulebookCase.processGroup,
+          subtype: rulebookCase.subtype,
+        },
+      })
+    if (stepError && stepError.code !== '23505') throw stepError
+  }
+
+  return row
+}
+
+export async function listEdielTestRuns(scope: EdielQueryScope): Promise<EdielTestRunRow[]> {
+  let query = supabaseService
+    .from('ediel_test_runs')
+    .select('*')
+
+  query = applyEdielQueryScope(query, scope)
+
+  const { data, error } = await query
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as EdielTestRunRow[]
+}
+
+
+export async function listEdielTestRunMessages(params: {
+  companyId: string
+  testRunId: string
+}): Promise<EdielTestRunMessageRow[]> {
+  const { data, error } = await supabaseService
+    .from('ediel_test_run_messages')
+    .select('*')
+    .eq('company_id', requireCompanyId(params.companyId, 'list_ediel_test_run_messages'))
+    .eq('test_run_id', params.testRunId)
+    .order('step_no', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
+
+  if (error) throw error
+  return (data ?? []) as EdielTestRunMessageRow[]
+}
+
+export async function listEdielMessagesByIds(
+  ids: string[],
+  options?: { companyId?: string | null }
+): Promise<EdielMessageRow[]> {
+  const uniqueIds = Array.from(new Set(ids.filter((id) => id && id.trim().length > 0)))
+  if (uniqueIds.length === 0) return []
+
+  let query = supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .in('id', uniqueIds)
+
+  query = applyCompanyScope(query, options?.companyId)
+
+  const { data, error } = await query
+
+  if (error) throw error
+
+  const rows = (data ?? []) as EdielMessageRow[]
+  const order = new Map(uniqueIds.map((id, index) => [id, index]))
+  return rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+}
+
+
+export async function updateEdielTestRunNotes(input: {
+  actorUserId: string
+  companyId: string
+  testRunId: string
+  notes: string | null
+}): Promise<EdielTestRunRow> {
+  const payload = cleanObject({
+    notes: input.notes ?? null,
+    updated_by: input.actorUserId,
+    updated_at: new Date().toISOString(),
+  })
+
+  const { data, error } = await supabaseService
+    .from('ediel_test_runs')
+    .update(payload)
+    .eq('company_id', requireCompanyId(input.companyId, 'update_ediel_test_run_notes'))
+    .eq('id', input.testRunId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as EdielTestRunRow
+}
+
+export async function updateEdielTestRunStatus(
+  input: UpdateEdielTestRunStatusInput
+): Promise<EdielTestRunRow> {
+  if (input.status === 'passed') {
+    throw new Error('manual_pass_forbidden_use_machine_evidence_rpc')
+  }
+  const companyId = requireCompanyId(input.companyId, 'update_ediel_test_run_status')
+  const payload = cleanObject({
+    status: input.status,
+    failure_reason: input.failureReason ?? null,
+    completed_at: input.completedAt ?? (input.status === 'failed' || input.status === 'cancelled' ? new Date().toISOString() : null),
+    updated_by: input.actorUserId,
+    updated_at: new Date().toISOString(),
+  })
+
+  const { data, error } = await supabaseService
+    .from('ediel_test_runs')
+    .update(payload)
+    .eq('company_id', companyId)
+    .eq('id', input.testRunId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data as EdielTestRunRow
+}
+
+function compactEdielTestBusinessKey(message: Partial<EdielMessageRow> | null | undefined): string | null {
+  if (!message) return null
+  const direction = String(message.direction ?? '').trim().toLowerCase()
+  const family = String(message.message_family ?? '').trim().toUpperCase()
+  const code = String(message.message_code ?? '').trim().toUpperCase()
+  if (!direction || !family) return null
+  const sender = String(message.sender_ediel_id ?? '').trim()
+  const receiver = String(message.receiver_ediel_id ?? '').trim()
+  return [direction, family, code, sender, receiver].join('|')
+}
+
+function isPreferredLinkedMessage(
+  candidate: Partial<EdielMessageRow> | null | undefined,
+  current: Partial<EdielMessageRow> | null | undefined,
+): boolean {
+  const candidateStatus = String(candidate?.status ?? '')
+  const currentStatus = String(current?.status ?? '')
+  if (candidateStatus !== 'failed' && currentStatus === 'failed') return true
+  if (candidateStatus === 'failed' && currentStatus !== 'failed') return false
+  const candidateCreatedAt = Date.parse(String(candidate?.created_at ?? ''))
+  const currentCreatedAt = Date.parse(String(current?.created_at ?? ''))
+  return (Number.isNaN(candidateCreatedAt) ? 0 : candidateCreatedAt) >= (Number.isNaN(currentCreatedAt) ? 0 : currentCreatedAt)
+}
+
+async function createRulebookValidationArtifactForTestRun(input: {
+  companyId: string
+  testRunId: string
+  edielMessageId: string
+  message?: Partial<EdielMessageRow> | null
+}): Promise<void> {
+  const message = input.message ?? (await supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('company_id', requireCompanyId(input.companyId, 'create_rulebook_validation_artifact'))
+    .eq('id', input.edielMessageId)
+    .maybeSingle()
+    .then(({ data }: { data: unknown }) => data as Partial<EdielMessageRow> | null))
+
+  if (!message || typeof message.raw_payload !== 'string') return
+
+  const rawPayload = String(message.raw_payload ?? '')
+  const parsed = rawPayload ? parseRulebookMessage(rawPayload) : null
+  const validation = validateRulebookMessage({
+    family: String(message.message_family ?? ''),
+    code: String(message.message_code ?? ''),
+    processGroup: String(message.process_type ?? ''),
+    applicationReference: typeof message.application_reference === 'string' ? String(message.application_reference) : null,
+    rawPayload,
+    parsed,
+    mode: 'test',
+  })
+
+  const { error: artifactError } = await supabaseService.from('ediel_test_artifacts').insert({
+    company_id: requireCompanyId(input.companyId, 'create_rulebook_validation_artifact'),
+    test_run_id: input.testRunId,
+    ediel_message_id: input.edielMessageId,
+    artifact_type: 'rulebook_message_validation',
+    title: 'Rulebook-validering för kopplat Ediel-meddelande',
+    payload: { parsed, validation },
+  })
+  if (artifactError && artifactError.code !== '23505') throw artifactError
+}
+
+async function resolveExistingDuplicateTestRunLink(input: AttachEdielMessageToTestRunInput): Promise<EdielTestRunMessageRow | null> {
+  const { data: currentMessage, error: currentError } = await supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('company_id', requireCompanyId(input.companyId, 'resolve_duplicate_test_run_link'))
+    .eq('id', input.edielMessageId)
+    .maybeSingle()
+
+  if (currentError || !currentMessage) {
+    if (currentError) console.warn('Could not read Ediel message before test-run attach', currentError)
+    return null
+  }
+
+  const current = currentMessage as EdielMessageRow
+  const currentKey = compactEdielTestBusinessKey(current)
+  if (!currentKey || current.direction !== 'inbound') return null
+
+  let linkQuery = supabaseService
+    .from('ediel_test_run_messages')
+    .select('*')
+    .eq('company_id', requireCompanyId(input.companyId, 'resolve_duplicate_test_run_link'))
+    .eq('test_run_id', input.testRunId)
+
+  if (input.stepNo !== undefined && input.stepNo !== null) linkQuery = linkQuery.eq('step_no', input.stepNo)
+  if (input.expectedDirection) linkQuery = linkQuery.eq('expected_direction', input.expectedDirection)
+  if (input.expectedFamily) linkQuery = linkQuery.eq('expected_family', input.expectedFamily)
+  if (input.expectedCode) linkQuery = linkQuery.eq('expected_code', input.expectedCode)
+
+  const { data: links, error: linkError } = await linkQuery.order('created_at', { ascending: false })
+  if (linkError) {
+    console.warn('Could not read existing test-run message links before attach', linkError)
+    return null
+  }
+
+  const existingLinks = (links ?? []) as EdielTestRunMessageRow[]
+  if (existingLinks.length === 0) return null
+
+  const existingIds = Array.from(new Set(existingLinks.map((link) => link.ediel_message_id).filter(Boolean)))
+  if (existingIds.length === 0) return null
+
+  const { data: existingMessages, error: existingMessagesError } = await supabaseService
+    .from('ediel_messages')
+    .select('*')
+    .eq('company_id', requireCompanyId(input.companyId, 'resolve_duplicate_test_run_link'))
+    .in('id', existingIds)
+
+  if (existingMessagesError) {
+    console.warn('Could not read existing linked Ediel messages before attach', existingMessagesError)
+    return null
+  }
+
+  const messagesById = new Map(((existingMessages ?? []) as EdielMessageRow[]).map((message) => [message.id, message]))
+  const duplicates = existingLinks.filter((link) => {
+    const message = messagesById.get(link.ediel_message_id)
+    return compactEdielTestBusinessKey(message) === currentKey
+  })
+
+  if (duplicates.length === 0) return null
+
+  const duplicateMessages = duplicates
+    .map((link) => ({ link, message: messagesById.get(link.ediel_message_id) ?? null }))
+    .filter((entry) => Boolean(entry.message))
+
+  const bestExisting = duplicateMessages.reduce<typeof duplicateMessages[number] | null>((best, entry) => {
+    if (!best) return entry
+    return isPreferredLinkedMessage(entry.message, best.message) ? entry : best
+  }, null)
+
+  if (bestExisting?.message && !isPreferredLinkedMessage(current, bestExisting.message)) {
+    return bestExisting.link
+  }
+
+  const replaceableIds = duplicates
+    .filter((link) => link.ediel_message_id !== input.edielMessageId)
+    .map((link) => link.id)
+
+  if (replaceableIds.length > 0) {
+    const { error } = await supabaseService
+      .from('ediel_test_run_messages')
+      .delete()
+      .eq('company_id', requireCompanyId(input.companyId, 'resolve_duplicate_test_run_link'))
+      .in('id', replaceableIds)
+    if (error) throw error
+  }
+
+  const exact = duplicates.find((link) => link.ediel_message_id === input.edielMessageId)
+  return exact ?? null
+}
+
+export async function attachEdielMessageToTestRun(
+  input: AttachEdielMessageToTestRunInput
+): Promise<EdielTestRunMessageRow> {
+  const companyId = requireCompanyId(input.companyId, 'attach_ediel_message_to_test_run')
+  const [{ data: run, error: runError }, { data: message, error: messageError }] = await Promise.all([
+    supabaseService
+      .from('ediel_test_runs')
+      .select('id,company_id,started_at,status')
+      .eq('id', input.testRunId)
+      .eq('company_id', companyId)
+      .maybeSingle(),
+    supabaseService
+      .from('ediel_messages')
+      .select('id,company_id,environment,test_flag,created_at')
+      .eq('id', input.edielMessageId)
+      .eq('company_id', companyId)
+      .maybeSingle(),
+  ])
+  if (runError) throw runError
+  if (messageError) throw messageError
+  if (!run) throw new Error('test_run_not_found_in_company_scope')
+  if (!message) throw new Error('ediel_message_not_found_in_company_scope')
+  if (String(message.environment ?? '').toLowerCase() !== 'test' || Number(message.test_flag ?? 0) !== 1) {
+    throw new Error('production_message_cannot_be_test_evidence')
+  }
+  const runStartedAt = Date.parse(String(run.started_at ?? ''))
+  const messageCreatedAt = Date.parse(String(message.created_at ?? ''))
+  if (!Number.isNaN(runStartedAt) && !Number.isNaN(messageCreatedAt) && messageCreatedAt < runStartedAt) {
+    throw new Error('message_predates_test_run')
+  }
+
+  const existingDuplicateLink = await resolveExistingDuplicateTestRunLink(input)
+  if (existingDuplicateLink) return existingDuplicateLink
+
+  const payload = cleanObject({
+    company_id: companyId,
+    test_run_id: input.testRunId,
+    ediel_message_id: input.edielMessageId,
+    step_no: input.stepNo ?? null,
+    expected_direction: input.expectedDirection ?? null,
+    expected_family: input.expectedFamily ?? null,
+    expected_code: input.expectedCode ?? null,
+  })
+
+  const { data, error } = await supabaseService
+    .from('ediel_test_run_messages')
+    .insert(payload)
+    .select('*')
+    .single()
+
+  if (!error) {
+    const row = data as EdielTestRunMessageRow
+    await createRulebookValidationArtifactForTestRun({
+      companyId,
+      testRunId: input.testRunId,
+      edielMessageId: input.edielMessageId,
+    })
+    return row
+  }
+
+  // Idempotent TGT-koppling: samma steg/meddelande ska inte krascha UI med 23505.
+  if (error.code === '23505') {
+    let exactQuery = supabaseService
+      .from('ediel_test_run_messages')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('test_run_id', input.testRunId)
+      .eq('ediel_message_id', input.edielMessageId)
+
+    if (input.stepNo !== undefined && input.stepNo !== null) {
+      exactQuery = exactQuery.eq('step_no', input.stepNo)
+    }
+
+    const exact = await exactQuery.order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (exact.error) throw exact.error
+    if (exact.data) return exact.data as EdielTestRunMessageRow
+
+    if (input.stepNo !== undefined && input.stepNo !== null) {
+      const byStep = await supabaseService
+        .from('ediel_test_run_messages')
+        .select('*')
+        .eq('company_id', companyId)
+      .eq('test_run_id', input.testRunId)
+        .eq('step_no', input.stepNo)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (byStep.error) throw byStep.error
+      if (byStep.data) return byStep.data as EdielTestRunMessageRow
+    }
+  }
+
+  throw error
+}
+
+
+export async function getEdielRouteProfileByCommunicationRouteId(
+  communicationRouteId: string,
+  options?: { companyId?: string | null }
+): Promise<EdielRouteProfileRow | null> {
+  let query = supabaseService
+    .from('ediel_route_profiles')
+    .select('*')
+    .eq('communication_route_id', communicationRouteId)
+
+  query = applyCompanyScope(query, options?.companyId)
+
+  const { data, error } = await query.maybeSingle()
+
+  if (error) throw error
+  return (data as EdielRouteProfileRow | null) ?? null
+}

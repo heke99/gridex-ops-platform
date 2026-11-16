@@ -1,0 +1,23 @@
+{
+  "verdict": "ACTUAL_AND_LITERAL_APPROVE_QA01_02_CLASSIFICATION_COMPLETE",
+  "reviewerAgent": "/root",
+  "id": "QA01.02",
+  "proposalPath": "/tmp/gridex-qa0102-prescribed-gate-20261113/LITERAL-ASSOCIATION.PROPOSED.safe.json",
+  "proposalSHA256": "5c3608bd6272478e82d7f0a6644fe724148c94e5a5a851b73ddfef8f3f5cc857",
+  "actualGatePath": "/tmp/gridex-qa0102-prescribed-gate-20261113/RESULTS.safe.json",
+  "actualGateSHA256": "d6e4529169bdbcdec65b393e704e53a3515ac7a2da6c9f1c8c9180012ae67227",
+  "independentWholeGENProofReuse": "/tmp/gridex-gen926-root-review-20261113/actual-proof-review.safe.json",
+  "literal": "Generated-types differens klassas mot r\u00e4tt baseline",
+  "qualifies": "Declared926candidate baseline f5cc vs genuinely captureddb095, all19added/4changed/0removed exhaustively classified; actual unchanged prescribedchecker exits/logs/budgets baseline vs candidate explain sharedstale tail and expectedunadoptednewhash.",
+  "actualPrescribedGateOutcome": "FAIL exit1 both; preserved. Classification is complete; gates not relabeledGREEN.",
+  "sourceApplicability": "Exact581288 source926/1335physicalinputs and currentqualified3370+ad5943420; not fictitiousrerun of historical7fa family, notcanonical-local replay.",
+  "remainingForThisLiteral": [],
+  "separateNotGranted": [
+    "fullAppTS/build/siblingQAapproval",
+    "GEN5manifest ortrackedtypeadoption",
+    "productionmigration/replayapproval",
+    "canonical--local invocation"
+  ],
+  "matrixWriteDone": false,
+  "asOfUTC": "2026-11-13T19:41:48.715027+00:00"
+}

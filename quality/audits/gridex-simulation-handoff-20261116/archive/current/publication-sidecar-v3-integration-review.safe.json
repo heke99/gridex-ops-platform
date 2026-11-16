@@ -1,0 +1,15 @@
+{
+  "state": "CODE_APPROVE_NARROW_V3_INTEGRATION_NOT_ACTUAL_EXECUTION",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T09:56:11.476905+00:00",
+  "freezeSHA256": "976adf22de12c0c31598e7938ff4a61663bed74d78795f137c194a65c8f66a4f",
+  "launcherSHA256": "86b51e4c4cb062d1925144a402ce017bd16bf3113a94565317e08c9eaf048b8b",
+  "controllerSHA256": "fc1cb2b33ed9f8075e707aadd71c0c1852e430d38083555da524b3465738c7ac",
+  "predicateReviewSHA256": "e77f3941e5d8365b760b5a333a5c01690e4c739d07e52ae3a5b9715ab937ba30",
+  "checks": [
+    "Wholesourceinverse exactONEnewmodulebasename literal equalsba1e/AST0",
+    "Sameexactparentroot/pathhashpin/config/ledger/ownedidentity/deadline/cleanup guards",
+    "Modulefc1c previouslyqualifiedexactNNPpredicate; kernelNNP1 unchanged",
+    "OldcreatedneverstartedCIDownedcleanupreconciliation+freshnewtarget/newR andproducerEdielactualscopes required; noactiveparentdeadlinepatch"
+  ]
+}

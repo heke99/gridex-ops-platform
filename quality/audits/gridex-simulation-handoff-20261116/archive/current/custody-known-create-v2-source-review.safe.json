@@ -1,0 +1,14 @@
+{
+  "state": "ROOT_KNOWN_CREATE_CONTINUATION_AND_AUTOMATIC_READONLY_COMPANION_SOURCE_APPROVE",
+  "observedAt": "2026-11-14T17:31:46.899933+00:00",
+  "preparedPath": "/tmp/gridex-custody-known-create-automation-v2-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "f8f6e8db213696c6c3c4d36b20c39c6e81cf5b9fee3e79ce29a47db7bae118ff",
+  "uiSHA256": "f3a51bdd3b609d3f8815c464cd8fef7ecc79b1d9e270449a3e54b16f3f4e4693",
+  "companionSHA256": "b74debb06fe6ada7c6f964550436ee0c6b69a2f5a9a094af257d2cf8d07b5708",
+  "review": "Full original newUI/knownCREATEproof/companion/SQL/invariants read; UI atomicpublisher confirmed. V2 adds only exactstreamedNode pin outsidegeneric64MiBcap. All declared files and seven original actualCREATE refs verified; UI/known/SQL/invariants byteidentical. MARK\u2192DELETE only, onegenuineEE, realSQL8s/process15s, fixedDB/customer, before/intent/after ordering, atomicprivateACKs/no replay and protected11/globalpreservation retained.",
+  "controls": "38originalpure+4binarycontrols/syntaxAST are componentchecks, no native/UI success inferred.",
+  "requiredActualScope": "CurrentnormalMain3072/newPID/source40/Ikeys/actualprivateEEinputs/role900+120/ownednewDroots/qualifieddbtuple beforeexecution. Capturepostquiescenceactualnative andAuth sessions afteranyunknown/cleanup; precleanupfinalobservation alone is not terminal-proof.",
+  "fullScenarioCredit": false,
+  "backendCallsByRoot": 0,
+  "withdrawnEarlierReviewConcern": "AtomicUI save alreadypresent in frozenUI; no codefinding or newvariant requested for that."
+}

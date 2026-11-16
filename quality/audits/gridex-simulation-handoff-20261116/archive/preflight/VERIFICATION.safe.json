@@ -1,0 +1,16 @@
+{
+  "state": "SOURCE_AND_CLOUD_GUARD_VERIFIED_NOT_MAC_EXECUTED",
+  "shellSyntaxExitCode": 0,
+  "runOnCurrentLinuxExitCode": 2,
+  "linuxRefusalBeforeDockerChecks": true,
+  "independentSourceReview": {
+    "path": "PRECHECK-REVIEW.safe.json",
+    "sha256": "22296f7758cd3f6a50592604b328b45b414c750860747f17913f20cb3b4047ba"
+  },
+  "actualMacExecution": false,
+  "actualLocalDockerOrDiskVerification": false,
+  "officialSources": [
+    "https://learn.chatgpt.com/docs/environments/modes",
+    "https://docs.docker.com/desktop/settings-and-maintenance/settings/#resources"
+  ]
+}

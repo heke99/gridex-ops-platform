@@ -1,0 +1,16 @@
+{
+  "verdict": "APPROVE_DOC_ONLY",
+  "reviewerAgent": "/root",
+  "observedAt": "2026-11-14T09:16:18.243807+00:00",
+  "head": "8b55324762c33005d8f75e9382a7041e17740fa0",
+  "tree": "1c844c194f30980c3dd74955dfa7158528874aef",
+  "freezeSHA256": "7be6689a6454ab2cf18c37dd7e95b218006a74a5939fd9dcdcaf4538d9ab1a47",
+  "review": [
+    "Whole reportMD/JSON read;41directoriginal hashes/bytes independentlyverified",
+    "66unique IDs in9groups,38PASS+1gap+66remaining; N0/J/decimal/sourceprep explicitlynotfullcasecredit",
+    "Source33=24removed+9retained vsruntime2removed+31notremoved;187unreachednotproven dead",
+    "Decimal timeout vs prepatchharnesscollationSTOP and EVENTpermissionfailure/timewindowSTOP distinguished",
+    "Currenthead/tree/cleanworktree pinned; exactly2newdocs/centraluntouched/no push; dated09:12 cutoff Bclosurepending historical, no C outcome asserted"
+  ],
+  "findings": []
+}

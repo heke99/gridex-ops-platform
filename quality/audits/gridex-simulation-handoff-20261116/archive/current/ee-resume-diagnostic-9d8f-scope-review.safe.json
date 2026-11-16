@@ -1,0 +1,9 @@
+{
+  "reviewer": "root",
+  "verdict": "APPROVE_EXACT_DIAGNOSTIC_SCOPE",
+  "targetSha256": "9d8f74e1eba87b33e3de72ba69fda1cc1627bab9777eae138e1984cd4049399d",
+  "helperSha256": "c6b391dda0aa1152a8b890ebbaab03d59571025e4a5f0bf50fba6714cb39c37f",
+  "driverSha256": "5d6e43528c7a8afa95f62345fda1c6d9ce97153125fd489023c155a166fad012",
+  "scope": "Complete deltas read; all prepared originals and bound inputs plus current PID identity verified. Fixed readonly C6 visible wait and bounded private diagnostics only; unchanged authority and business predicates. No new C6 POST.",
+  "cause": "stream timing remains unconfirmed until actual run"
+}

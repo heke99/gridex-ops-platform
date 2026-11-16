@@ -1,0 +1,27 @@
+{
+  "state": "ROOT_EXACT_CLOSED_K3_GENERATED_CACHE_DESCENDANTS_CLEANUP_SCOPE_APPROVE",
+  "observedAt": "2026-11-14T15:21:20.919810+00:00",
+  "proposal": {
+    "path": "/tmp/gridex-k3-cache-readonly-proposal-20261114/PROPOSAL.safe.json",
+    "sha256": "3499bcf6716c90d7045c7dce3d13b6c87168c5b52128cf72096e8356ff1494ae"
+  },
+  "root": "/workspace/gridex-local-cache-20261114-k3",
+  "rootIdentity": {
+    "dev": 27,
+    "inode": 527674,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o770"
+  },
+  "inventorySHA256": "323242fbc40396f0bf4e7a9965a7117f3d5aafa4f71b0beb8b0896d7e47a81d0",
+  "closedAppCID": "a75e773bf71c4f220193c3ef411bcc8a27b9c892c3dc1ecec5d953cf10e3a8f9",
+  "scope": [
+    "Only78 inventoried closed generatedK3 descendants, fresh exact inventory/root/CID/mount/accessibleFD checks before deletion; permission caveats explicit.",
+    "Use previously qualified pinnedDocker463254 and exact image/helper provenance; networknone, read-only root, NNP, capdropALL plus ONLY DAC_OVERRIDE; sole RW mount exact K3cache; no API/env/otherwrite authority.",
+    "Inspect exacthelper and capability before start; mismatch STOP. Retain original root inode and0770gid1000; no root deletion/recreation.",
+    "Postempty/rootidentity/perms/helpercleanup and actualstorage receipt; Mainactivecache/K4/source/deps/proofs/C6/E/H untouched."
+  ],
+  "writer": "qa_remaining_checks or explicitly delegated sole producer",
+  "expectedMaxAllocatedReclaimBytes": 77529088,
+  "backendCallsByRoot": 0
+}

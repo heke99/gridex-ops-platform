@@ -1,0 +1,10 @@
+{
+  "reviewer": "root",
+  "verdict": "APPROVE_EXACT_CONTINUATION_F_SCOPE",
+  "targetSHA256": "e7c86cfbac43d438dfa00112e1c3256281cdf61e8126a80ab2eeecec23323821",
+  "constructorSHA256": "7e3cde32614fe8591b54c731b652d05f7364bea550509c829c5c2730338541e0",
+  "allBoundFilesMatched": true,
+  "deadline": 1794605160,
+  "scope": "Same reviewed7e3/d22/95a; freshEE-d/Mainseal and runtime-d bindings; exacttrustedC6 checkpoint only, noad594reapply/noC6POST; prior e terminal verified, noLOCALintent. Producer delegated one owned execution and finally cleanup.",
+  "noScenarioCreditFromApproval": true
+}

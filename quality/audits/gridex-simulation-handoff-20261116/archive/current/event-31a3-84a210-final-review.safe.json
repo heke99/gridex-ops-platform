@@ -1,0 +1,31 @@
+{
+  "verdict": "SOURCE_COMPONENT_FINALDOC_APPROVE",
+  "reviewerAgent": "/root",
+  "sourceCommit": "31a3a518e28a5186e17d8afc177bbdd8acbdef2e",
+  "head": "84a21030d7df4b254a15a85f858c8dc620b91ec2",
+  "tree": "ad5c73b0073d864646f4de6d97684f4ff77e1b6c",
+  "freezePath": "/tmp/gridex-event-targeted-plan-20261113/source-final-freeze-84a210.safe.json",
+  "freezeSHA256": "972a7658b7acb63238cf9075afd38854e5564a58563f9f41443be7ca0001a7d5",
+  "verifiedPhysicalGitFiles": 13,
+  "verifiedEmbeddedOriginals": 26,
+  "verifiedDirectRefs": 11,
+  "reviewScope": [
+    "full existingworker integration path and only3ordinaryview tableports",
+    "nativefactory callerrole+DB/actor/company/testenv/expiry secretbinding",
+    "actor currentAuth/profile/acceptedmembership/permissions/lifecycle and suspension",
+    "schemaonly3known columns/FK/defaults and replay/ownerACL guards",
+    "private immutable registry and serviceonly updatable dispatchview",
+    "targetedlease/identity/source/HMAC/publicprojection/CASfinish",
+    "absolutelease checked aftercert/body immediatelybeforeTLS/leafpin/noDNSredirect",
+    "actual72finite/lint0error1baselinewarning/strict702inputs0 with sourcecustody",
+    "normalUI authenticatedscopedcompany and privatecap notclientflag",
+    "explicit manual pretransport processing/locked HOLD/actualreadback; no silentautorecovery"
+  ],
+  "limits": [
+    "nativeSQL/parser/genuineJWT/TLS/HTTP/MAIN/GEN NOT_RUN",
+    "safe preflightfailure is manualHOLD, not terminalreceipt",
+    "actualnetwork delivery notatomicexactlyonce",
+    "no105scenarioPASS from components"
+  ],
+  "asOfUTC": "2026-11-13T20:03:43.591706+00:00"
+}

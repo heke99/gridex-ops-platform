@@ -1,0 +1,50 @@
+{
+  "state": "ROOT_EXACT_K6_CLOSED_PREINTENT_TWO_MANUAL_FULL_SNAPSHOT_DEDUP_SCOPE",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T19:59:54.603750+00:00",
+  "canonical": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_ATTEST/full-after-rpc.private.json",
+  "replace": [
+    "/workspace/gridex-k6-import-preintent-native-capture-20261114/full-before-dump.private.json",
+    "/workspace/gridex-k6-import-preintent-native-capture-20261114/full-after-dump.private.json"
+  ],
+  "actualSHA256": "9efc104ba1bb4196dcfe1facc6b6e2aab52199dc80fcf1733f5ac51ed3de5f6a",
+  "freshStat": [
+    {
+      "path": "/workspace/gridex-local-four-rpc-checkpoints-20261114-k6/LOCAL_ATTEST/full-after-rpc.private.json",
+      "device": 27,
+      "inode": 535694,
+      "nlink": 2,
+      "bytes": 22898325,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600"
+    },
+    {
+      "path": "/workspace/gridex-k6-import-preintent-native-capture-20261114/full-before-dump.private.json",
+      "device": 27,
+      "inode": 535640,
+      "nlink": 1,
+      "bytes": 22898325,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600"
+    },
+    {
+      "path": "/workspace/gridex-k6-import-preintent-native-capture-20261114/full-after-dump.private.json",
+      "device": 27,
+      "inode": 535867,
+      "nlink": 1,
+      "bytes": 22898325,
+      "uid": 1000,
+      "gid": 1000,
+      "mode": "0o600"
+    }
+  ],
+  "conditions": [
+    "Producer solefilesystemwriter after actualmanualcapture1253EXIT0/SEALED940314/noMutation+Ediel f4f9 and ATTESTCLI/nativeACK/completed/SEALED/noactivewriter verified",
+    "Fresh byteequal/SHA/stat/device600/closedownedFD before atomiclinkreplacement+directoryfsync; preserveallRAWpaths/bytes/aliases/seals/archives",
+    "Append actualold/new inode/nlink/aliases custodyjournal and countonlyactualreleasedallocation",
+    "No runtime/module/clock/Auth/SDK/business changes; no savingsuntilactualreceipt"
+  ],
+  "noBackendAuthority": true
+}

@@ -1,0 +1,93 @@
+{
+  "state": "SOURCE_BOUND_ORIGINAL_ACCEPTANCE_MATRIX_NOT_ACTUAL_PASS",
+  "sourceRefs": [
+    {
+      "path": "/workspace/gridex-original-pass-priority-20261115/ORIGINAL-PASS-PRIORITY.safe.json",
+      "sha256": "391633b021d8a8198d0f70ea6f60530c5c45de281524403bea8406d11289068c"
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/integrations/webhooks.ts",
+      "sha256": "20417de2b7e3ac26f5e2f406f36e8f07323decae8e890a3fee810e29d232afc3"
+    },
+    {
+      "path": "/tmp/gridex-pilot67-source-20261114/lib/integrations/localTestWebhookTransport.ts",
+      "sha256": "dd3e7b0d0ea02ec40407514122b28d3977cd9a5f75a1f1bfcf36ed41274149d5"
+    },
+    {
+      "path": "/tmp/gridex-publication-positive-ui-prep-20261114/publication-tls-receiver.cjs",
+      "sha256": "caf43a0e3e32be37c05973c49fc5cd73a0ea3fe121c5ba0c0b4aa50ff78fe9e5"
+    }
+  ],
+  "actualEvidence": null,
+  "freshTriggerRule": "Retained W event 0a7762bb-c871-4e81-a9a5-c2138b546f92 is historical stored-fixture evidence only. EVENT01.01 requires a fresh supported normal business command and its new native event. Replay alone cannot meet the trigger oracle.",
+  "candidateNormalCommand": {
+    "port": "setContractChannelPermission -> gridex_set_contract_channel_permission",
+    "conditionalProof": [
+      "Genuine GetUser actor, selected company and contracts.permissions.manage permission",
+      "Actual own-clone enabled trigger attachment/function/timing and existing assignment identity",
+      "Declared requested permission differs from before; native changed result and after field match",
+      "New website publication revision/event causally matches command; API companion events and native fanout recorded as collateral",
+      "Publication/channel activation and sellable status remain unchanged; no direct SQL bump/event seed"
+    ]
+  },
+  "common": [
+    "Reconcile native internal event ID, original JSONB payload SHA and public opaque event/delivery IDs separately",
+    "Native delivery/subscription/company/event/factory bindings and immutable request_body_hash match physical UTF8 wire body SHA",
+    "Physical strict HTTPS CA/hostname/leaf-pin receiver POST, valid native HMAC over timestamp-dot-body, timestamp tolerance and public header/projection verification",
+    "Actual native delivery attempt/status/response/next_attempt timestamps and exact receiver request/accepted/duplicate/rejected counts reconcile",
+    "Readiness GET404 is excluded from business POST count; no Authorization/Cookie/proxy credentials; secret values absent from public payload/log artifacts"
+  ],
+  "cases": {
+    "EVENT01.01": {
+      "assertions": [
+        "Fresh supported normal business trigger receipt plus native event/fanout/delivery",
+        "One intended successful dispatch: sent, attempts increment1, HTTP200, delivered_at present, lock cleared",
+        "Receiver requests1/validSignatures1/distinctAcceptedDeliveries1/duplicates0/rejected0; exact bodySHA and public event/delivery projection"
+      ],
+      "notSufficient": [
+        "Stored historical event replay",
+        "Synthetic verifier-only assertions",
+        "TLS GET404 readiness"
+      ]
+    },
+    "EVENT01.03": {
+      "assertions": [
+        "Invoke actual native dispatch/claim again for SAME successful EVENT01.01 internal event/subscription/source payload SHA",
+        "Outcome already_sent with SAME delivery ID; native payload/request SHA and attempts unchanged",
+        "Physical POST count remains1, distinct accepted1, duplicates0; no extra native delivery row for same event/subscription"
+      ],
+      "note": "Receiver duplicate handling alone is not native replay idempotence."
+    },
+    "EVENT01.04": {
+      "separateOwnedFixtures": [
+        "4xx",
+        "5xx",
+        "timeout"
+      ],
+      "assertions": [
+        "Distinct actual event IDs and delivery IDs for all three modes; source captures and receiver targets bound to each own event",
+        "4xx/5xx complete response: attempts=before+1; response_status exact requested 4xx or 5xx; failed if attempts<max_attempts, otherwise dead_letter; failure_reason HTTP <status>; uncertain_at null",
+        "For failed first attempt1 actual next_attempt_at is approximately completion wall-clock+300s; later schedule indices are 1800,7200,21600 seconds. Capture real timestamp brackets; never alter clock/next_attempt_at to simulate due time",
+        "Timeout transport: attempts=before+1; delivery_uncertain with delivery_uncertain_at, cleared processing lock and failure_reason local_test_webhook_transport_outcome_unknown; next_attempt_at records now but does not grant retry eligibility",
+        "Each receiver captures one valid-HMAC POST with its requested response plan; timeout capture proves receipt even though sender cannot know completed response",
+        "Read own/foreign subscription penalty and delivery counts before/after; no foreign changes"
+      ],
+      "notRequired": "Exhausting attempts or mandatory dead_letter when actual prescribed terminal outcome is failed/nextAttempt or uncertain. No automatic replay of uncertain outcome."
+    },
+    "EVENT01.05": {
+      "conditional": true,
+      "requires": [
+        "Two actual independently scoped tenants/subscriptions",
+        "Own event delivered only to intended tenant receiver and no foreign delivery/fanout",
+        "Actual public payload/header secret and internal-ID exclusions, not merely Auth secret scan"
+      ],
+      "state": "NOT_SCHEDULED_UNLESS_REAL_TWO_TENANT_FIXTURE_READY"
+    }
+  },
+  "remainingCompositionFacts": [
+    "Existing receiver binds one source event per target. Separate fault event targets/receiver instances must preserve this binding; do not widen it silently.",
+    "Known HTTP response with durable completion failure remains unknown evidence, not an inferred failed/sent state.",
+    "Actor/runtime/source/FS and fresh actual scopes remain producer responsibilities; this matrix adds no approval gate."
+  ],
+  "credit": "No original case credit before full independent actual evidence reconciliation."
+}

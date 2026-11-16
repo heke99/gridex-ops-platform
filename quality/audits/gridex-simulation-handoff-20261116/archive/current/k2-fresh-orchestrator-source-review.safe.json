@@ -1,0 +1,18 @@
+{
+  "state": "ROOT_FRESH_K2_ORCHESTRATOR_NARROW_SOURCE_APPROVE",
+  "atUtc": "2026-11-14T13:15:45.056226+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-k2-fresh-actor-orchestrator-budget900-prep-20261114/PREPARED.safe.json",
+    "sha256": "67a977bdf5034fc9c54144c2ed4f4eb798e5a4a0ad069b0b656570a419c3f6d3"
+  },
+  "script": {
+    "path": "/tmp/gridex-k2-fresh-actor-orchestrator-budget900-prep-20261114/orchestrator.py",
+    "sha256": "6bc3b49009a9b95bef439e34ceffbd144edbcb9df9c3df6bf13de4ade261d5d4"
+  },
+  "review": "Whole inverse toqualifiedcf17 exact four literals: parentpath/hash, runtimeK2, HELDK2. Existing source controls, INPUT/CHECKPOINTK, bridge3143,900/15, manualdocumentreview andnativeACK logic unchanged.",
+  "limits": [
+    "Only fresh genuineK2helper afteroldproperlogout; actualactor/parent/runtime tuple unbound.",
+    "No old JWT/context restoration or business pass."
+  ],
+  "backendCalls": 0
+}

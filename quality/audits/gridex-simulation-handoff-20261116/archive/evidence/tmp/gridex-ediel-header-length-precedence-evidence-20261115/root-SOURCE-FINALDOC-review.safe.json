@@ -1,0 +1,17 @@
+{
+  "reviewerAgent": "/root",
+  "verdict": "SOURCE_AND_FINAL_DOC_APPROVE_NATIVE_PENDING",
+  "reviewedAt": "2026-11-15T13:05:41.893897+00:00",
+  "freezeSHA256": "c5e6bbf8642eab0db0f9f463e3afa7eee8355a2fab698166e295a9b56748fc93",
+  "head": "112ea02caa97785f77f5eb412eb66771444c01e0",
+  "tree": "80bdc06f223d82f212302597faca6f5b0fee0cbd",
+  "allFileEvidenceHashesVerified": true,
+  "GitPhysicalBlobsAndCleanExactFour": true,
+  "soleBodyParenthesesInverseExact": true,
+  "review": "Read exact guarded migration, rollback regression assertions and source invariants. Optimized33bb prerequisite and replay91fb; OID/fullnonbody/owner/ACL guards retained. Distinct legacy41 versus intentional correctedbehavior,75 definednative cases are NOTRUN. No Main/adoption/wholecase credit.",
+  "limits": [
+    "Native wrapper replay and75 regressions not executed",
+    "Full import not executed",
+    "No active K12/S source change or deployment"
+  ]
+}

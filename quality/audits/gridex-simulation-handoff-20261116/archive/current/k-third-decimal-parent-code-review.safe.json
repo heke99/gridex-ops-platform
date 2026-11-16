@@ -1,0 +1,14 @@
+{
+  "state": "CODE_APPROVE_NOT_EXECUTION",
+  "reviewerAgent": "/root",
+  "observedAt": "2026-11-14T09:03:41.791736+00:00",
+  "freezeSHA256": "e9b92b506bef4475b80c4d048a2e48c5496e4a361e00210af3fafddf73aafe3c",
+  "wrapperSHA256": "ad39404538a71ca71127820861e56617085ac9b3c1448dc8c378be87c1465d73",
+  "review": [
+    "Reviewed full delta against qualified ba19; additional exactone decimalbody patch afterAPI0558+wirecbde",
+    "All frozen bytes matched, AST parse passed; full3442otherraw/nonbodyOIDACL/public/private14 guards and finalcandidateafterthirdpatch",
+    "ActualB threeEQUALITY outcomes/22OLDNEW equality/full2688true/nativeMD5+SHA/closure+twoindependentactualreviews mandatory beforeANY backend entry",
+    "Execution excludes newauthor; Ediel+producer scopes; unchanged3000 and genuineexpiry/cleanup limits",
+    "NativeB NOT YET QUALIFIED; no adoption/execution authorization from this CODE review"
+  ]
+}

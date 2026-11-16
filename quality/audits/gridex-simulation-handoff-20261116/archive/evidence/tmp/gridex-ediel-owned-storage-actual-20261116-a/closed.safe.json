@@ -1,0 +1,9 @@
+{
+  "state": "OWN_STORAGE_CLOSED_REQUIRES_OUTER_MAIN_AUTH_ALL7_ORACLE",
+  "ownStorageAbsent": true,
+  "exclusiveRawObjectRootRetained": "/tmp/gridex-ediel-owned-storage-actual-20261116-a/objects",
+  "privateEnvRemoved": true,
+  "primaryErrorClass": "TimeoutExpired",
+  "cleanupErrors": [],
+  "callerOwnsFinalMainAuthAll7AndFullObjectEvidence": true
+}

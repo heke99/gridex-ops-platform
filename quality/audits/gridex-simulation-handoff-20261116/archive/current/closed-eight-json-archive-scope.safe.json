@@ -1,0 +1,23 @@
+{
+  "state": "APPROVE_EXACT_EIGHT_LOSSLESS_ARCHIVES",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T10:22:37.921098+00:00",
+  "proposalSHA256": "d83355ab145179431e5080eebe6bbfccabdb5ed35cbc3377e94dbd7bcc277716",
+  "paths": [
+    "/workspace/gridex-event-publication-positive-actual-20261114-c/predecessor-after.private.json",
+    "/workspace/gridex-event-publication-positive-actual-20261114-c/trusted3443-before-event.private.json",
+    "/workspace/gridex-event-publication-positive-actual-20261114-c/main-before.private.json",
+    "/workspace/gridex-event-publication-positive-actual-20261114-c/main-after.private.json",
+    "/workspace/gridex-decimal-donor-native-actual-20261114-c/restored3443-before.private.json",
+    "/workspace/gridex-decimal-donor-native-actual-20261114-c/candidate3443-wire-only.private.json",
+    "/workspace/gridex-decimal-donor-native-actual-20261114-c/main-before.private.json",
+    "/workspace/gridex-decimal-donor-native-actual-20261114-c/main-after.private.json"
+  ],
+  "checks": [
+    "Exact8currentSHA/inode/size/nlink1/uidgidverified; historicalEVENTC/DecimalCclosed JSON only",
+    "EXCLUDEreconcile3457snapshot/Fc0d24/Dsource9dc/currentbaseline/C6/source/deps",
+    "FreshOWNruntimeclosure/mountprovenance verification; accessibleFDnone withpermissiondeniedcaveat no globalabsenceclaim",
+    "Samegzip0600/fsync/streamSHAbytes+durableARCHIVEDmanifestbeforeunlink/safeexclusive restoration metadata; allproofbyte-restorable",
+    "Producerexplicitexactwriterhandoff toInventory; QA/producerCcacheDACdisjointpath; actual805guardnotwaived"
+  ]
+}

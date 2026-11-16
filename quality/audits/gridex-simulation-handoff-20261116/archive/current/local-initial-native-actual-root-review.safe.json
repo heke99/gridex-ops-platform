@@ -1,0 +1,23 @@
+{
+  "state": "ACTUAL_PROOF_APPROVE_INITIAL_SCOPE_ONLY",
+  "inputSha256": "a5e947289db3915fb254938068a43f3cd8699de31a5548f4fbbadd3922c9831d",
+  "originalsActualVerified": 37,
+  "mainFullExactEqual": true,
+  "mainRows": 522,
+  "mainFunctions": 3368,
+  "oldFunctionBodyOnlyOverlaysRecomputed": 11,
+  "newFunctions": 50,
+  "cloneRowsUnchanged": true,
+  "ownCloneAbsent": true,
+  "retainedV6Exit": 0,
+  "fixturefreeAuthAclExit": 0,
+  "limits": "NOT_QUALIFIED_BY_THIS_OFFLINE_RECIPE",
+  "notClaimed": [
+    "RealJWTintegration",
+    "Genuinepositivefixture",
+    "Fourraces",
+    "MAINapply",
+    "GEN",
+    "New105casePASS"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "state": "CODE_APPROVE_PREDICATE_ONLY_INTEGRATION_PENDING",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T09:55:55.016501+00:00",
+  "moduleSHA256": "fc1cb2b33ed9f8075e707aadd71c0c1852e430d38083555da524b3465738c7ac",
+  "checks": [
+    "Wholesourceinverse singleNNPpredicateexactold1fe88/AST0",
+    "Exactsingletonbare orsingleton:true accepted;false/absent/mixed/unrelated deny",
+    "AllkernelNNP1/caps0/ownCID/image/labels/netns/mount/security/resource/deadlinechecks unchanged",
+    "Oldcreatedneverstartedresource mustownedcleanupreconcile beforefreshlaunch",
+    "Unchangedba1elauncher rejectsnewbasename; exactonefilename siblingintegrationneeded, notauthorizedfromthispredicateACKalone"
+  ]
+}

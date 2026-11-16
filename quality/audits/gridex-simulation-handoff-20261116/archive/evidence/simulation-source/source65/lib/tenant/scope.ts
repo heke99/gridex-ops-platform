@@ -1,0 +1,263 @@
+import { cache } from 'react'
+import { cookies } from 'next/headers'
+import {
+  ADMIN_SELECTED_COMPANY_COOKIE,
+} from '@/lib/admin/navigationPreferences'
+import { supabaseService } from '@/lib/supabase/service'
+import { isCompanyVisibleInTenantWorkspace, isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
+import { ApiInputError } from '@/lib/api/strictRequest'
+
+export type CompanySummary = {
+  id: string
+  name: string
+  slug: string | null
+  org_number: string | null
+  status: string | null
+}
+
+export type CompanyMembershipSummary = {
+  companyId: string
+  companyName: string
+  companySlug: string | null
+  orgNumber: string | null
+  membershipRole: string
+  status: string
+  companyStatus: string | null
+}
+
+export type OperationalCompanyScope = {
+  companyId: string | null
+  companyName: string | null
+  memberships: CompanyMembershipSummary[]
+  requiresCompany: boolean
+  message: string | null
+  selectedByPlatformAdmin?: boolean
+}
+
+type MembershipJoinRow = {
+  company_id: string
+  membership_role: string | null
+  status: string | null
+  companies:
+    | {
+        id: string
+        name: string
+        slug: string | null
+        org_number: string | null
+        status: string | null
+      }
+    | Array<{
+        id: string
+        name: string
+        slug: string | null
+        org_number: string | null
+        status: string | null
+      }>
+    | null
+}
+
+function unwrapCompany(row: MembershipJoinRow) {
+  return Array.isArray(row.companies) ? row.companies[0] : row.companies
+}
+
+const isPlatformAdminUser = cache(async function isPlatformAdminUser(userId: string): Promise<boolean> {
+  // Background/worker callers have no end-user JWT. The service-only canonical
+  // oracle validates the explicit actor; auth.uid()-bound context cannot do so.
+  const { data, error } = await supabaseService.rpc('canonical_actor_is_platform_admin', { p_user_id: userId })
+  if (error) throw error
+  if (typeof data !== 'boolean') throw new Error('Platform actor authority unavailable')
+  return data
+})
+
+async function getSelectedMembershipCompany(
+  memberships: CompanyMembershipSummary[]
+): Promise<CompanyMembershipSummary | null> {
+  const cookieStore = await cookies()
+  const selectedCompanyId = cookieStore.get(ADMIN_SELECTED_COMPANY_COOKIE)?.value?.trim()
+  if (!selectedCompanyId) return null
+
+  return memberships.find((row) => row.companyId === selectedCompanyId) ?? null
+}
+
+export function isMissingRelationError(error: unknown): boolean {
+  const maybe = error as { code?: string; message?: string } | null
+  if (!maybe) return false
+  return (
+    maybe.code === '42P01' ||
+    maybe.code === 'PGRST205' ||
+    maybe.code === 'PGRST204' ||
+    /does not exist|schema cache|relation .* does not exist|could not find/i.test(maybe.message ?? '')
+  )
+}
+
+export const listOperationalCompaniesForUser = cache(async function listOperationalCompaniesForUser(
+  userId: string
+): Promise<CompanyMembershipSummary[]> {
+  const { data, error } = await supabaseService
+    .from('company_memberships')
+    .select('company_id, membership_role, status, companies(id, name, slug, org_number, status)')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+
+  if (error) {
+    if (isMissingRelationError(error)) return []
+    throw error
+  }
+
+  return ((data ?? []) as unknown as MembershipJoinRow[])
+    .map((row) => {
+      const company = unwrapCompany(row)
+      if (!company?.id) return null
+
+      return {
+        companyId: company.id,
+        companyName: company.name,
+        companySlug: company.slug ?? null,
+        orgNumber: company.org_number ?? null,
+        membershipRole: row.membership_role ?? 'member',
+        status: row.status ?? 'active',
+        companyStatus: company.status ?? null,
+      } satisfies CompanyMembershipSummary
+    })
+    .filter((row): row is CompanyMembershipSummary => Boolean(row))
+    .filter((row) => isCompanyVisibleInTenantWorkspace(row.companyStatus))
+})
+
+export const TENANT_COMPANY_REQUIRED_MESSAGE =
+  'Kontot saknar ett bolag som är aktivt, under onboarding eller tillfälligt pausat. Kontakta er administratör för att få tillgång.'
+
+export class TenantCompanyRequiredError extends Error {
+  constructor() {
+    super(TENANT_COMPANY_REQUIRED_MESSAGE)
+    this.name = 'TenantCompanyRequiredError'
+  }
+}
+
+export const getOperationalCompanyScope = cache(async function getOperationalCompanyScope(
+  userId: string
+): Promise<OperationalCompanyScope> {
+  const memberships = await listOperationalCompaniesForUser(userId)
+  const selectedMembership = await getSelectedMembershipCompany(memberships)
+
+  if (selectedMembership) {
+    return {
+      companyId: selectedMembership.companyId,
+      companyName: selectedMembership.companyName,
+      memberships,
+      requiresCompany: false,
+      message: null,
+      selectedByPlatformAdmin: false,
+    }
+  }
+
+  if (memberships.length === 0) {
+    // Callers read companyId=null as "all companies" (platform view). A tenant
+    // user without an operational company must never get that, so fail closed.
+    if (!(await isPlatformAdminUser(userId))) {
+      throw new TenantCompanyRequiredError()
+    }
+    return {
+      companyId: null,
+      companyName: null,
+      memberships,
+      requiresCompany: true,
+      message:
+        'Kontot saknar ett bolag som är aktivt, under onboarding eller tillfälligt pausat. Avstängda, arkiverade och stängda bolag är inte valbara i tenantläget.',
+      selectedByPlatformAdmin: false,
+    }
+  }
+
+  const preferred = memberships.find((row) => row.membershipRole === 'owner') ?? memberships[0]
+
+  return {
+    companyId: preferred.companyId,
+    companyName: preferred.companyName,
+    memberships,
+    requiresCompany: false,
+    message: null,
+    selectedByPlatformAdmin: false,
+  }
+})
+
+/** Read visibility for an already authorized company; never select another membership. */
+export async function assertTenantUserCanReadCompany(userId: string, companyId: string | null): Promise<string> {
+  const normalized = companyId?.trim()
+  if (!normalized) throw new ApiInputError('Bolaget för behörighetskontrollen saknas.', 'company_read_access_denied', 403)
+  const memberships = await listOperationalCompaniesForUser(userId)
+  const membership = memberships.find(row => row.companyId === normalized)
+  if (!membership || !isCompanyVisibleInTenantWorkspace(membership.companyStatus)) {
+    throw new ApiInputError('Du saknar behörighet att läsa valt bolag.', 'company_read_access_denied', 403)
+  }
+  return normalized
+}
+
+export async function requireOperationalCompanyId(userId: string): Promise<string> {
+  const scope = await getOperationalCompanyScope(userId)
+  if (!scope.companyId) {
+    throw new Error(scope.message ?? 'Aktivt operativt bolag saknas.')
+  }
+  return scope.companyId
+}
+
+export async function assertUserCanOperateCompany(
+  userId: string,
+  companyId: string | null | undefined
+): Promise<string> {
+  const normalized = companyId?.trim()
+  if (!normalized) {
+    const fallbackCompanyId = await requireOperationalCompanyId(userId)
+    return assertUserCanOperateCompany(userId, fallbackCompanyId)
+  }
+
+  if (await isPlatformAdminUser(userId)) {
+    const { data, error } = await supabaseService
+      .from('companies')
+      .select('id, status')
+      .eq('id', normalized)
+      .maybeSingle()
+
+    if (error) {
+      if (isMissingRelationError(error)) throw new Error('Bolagstabellen saknas.')
+      throw error
+    }
+
+    if (!data?.id) {
+      throw new Error('Det valda elhandelsbolaget finns inte.')
+    }
+
+    if (!isCompanyWritableInTenantWorkspace(data.status)) {
+      throw new Error(
+        'Bolaget är pausat eller inte operativt. Vanliga driftåtgärder är blockerade även för platform admin tills bolaget återaktiveras via tenantstyrningen.'
+      )
+    }
+
+    return normalized
+  }
+
+  const memberships = await listOperationalCompaniesForUser(userId)
+  const membership = memberships.find((row) => row.companyId === normalized)
+
+  if (!membership) {
+    throw new Error('Du saknar en aktiv bolagskoppling för valt elhandelsbolag.')
+  }
+
+  if (!isCompanyWritableInTenantWorkspace(membership.companyStatus)) {
+    throw new Error('Bolaget är pausat eller inte operativt. Ändringar är blockerade tills bolaget återaktiveras.')
+  }
+
+  return normalized
+}
+
+export async function listPlatformCompanies(): Promise<CompanySummary[]> {
+  const { data, error } = await supabaseService
+    .from('companies')
+    .select('id, name, slug, org_number, status')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    if (isMissingRelationError(error)) return []
+    throw error
+  }
+
+  return (data ?? []) as CompanySummary[]
+}

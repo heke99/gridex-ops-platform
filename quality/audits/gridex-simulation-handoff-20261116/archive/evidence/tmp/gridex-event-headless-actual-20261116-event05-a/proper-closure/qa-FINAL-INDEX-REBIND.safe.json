@@ -1,0 +1,15 @@
+{
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "verdict": "FINAL_CLOSURE_INDEX_REBIND_MATCH",
+  "index": {
+    "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/proper-closure/FINAL-INDEX.safe.json",
+    "sha256": "18feb622bbde895f8d59553a5c1618c999905a2f13fcb82128ab2da6433d929c"
+  },
+  "allRefsWholeSHAMatched": 20,
+  "fullClosure": {
+    "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/qa-INDEPENDENT-FINAL-CLOSURE-RESIDUAL.safe.json",
+    "sha256": "767b63c401c13cbe39ceb13bd9b568eed3c703145657c44ad957b57ae7d822ba"
+  },
+  "capturePrecision": "existingPhysicalRawReused is outer callsite logical reuse flag; runtime save-level hardlink reuse intent/complete/inode account separately authoritative. Fresh SQL observations retained; no new physical independence claim.",
+  "noNewGateBackendOrCaseCredit": true
+}

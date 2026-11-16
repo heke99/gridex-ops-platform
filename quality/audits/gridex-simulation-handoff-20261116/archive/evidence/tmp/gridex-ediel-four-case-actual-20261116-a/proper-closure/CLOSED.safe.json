@@ -1,0 +1,104 @@
+{
+  "state": "PROPER_CLOSURE_PREAUTH_STORAGE_CREATE_TIMEOUT_NO_ORIGINAL_EXECUTION",
+  "observedAtEpoch": 1794815367.881373,
+  "refs": [
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/main-before-setup.private.json",
+      "sha256": "8dd4a027d2db88dcfa67e1d4812b23fa8b903be4d494e6cca8a0fa2290efa824"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/main-before-setup.auth.safe.json",
+      "sha256": "4035f8987c6f78277628ba99def9b80d9e33c4d9d578771a8ec841139ddd2477"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/main-before-setup.all7.safe.json",
+      "sha256": "ddd7b75f60f079b7f7f9fd918dd141545f73f78847b56d1be22cf5fc67ddf05a"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/main-after-runtime.private.json",
+      "sha256": "8dd4a027d2db88dcfa67e1d4812b23fa8b903be4d494e6cca8a0fa2290efa824"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/main-after-runtime.auth.safe.json",
+      "sha256": "4035f8987c6f78277628ba99def9b80d9e33c4d9d578771a8ec841139ddd2477"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/main-after-runtime.all7.safe.json",
+      "sha256": "ddd7b75f60f079b7f7f9fd918dd141545f73f78847b56d1be22cf5fc67ddf05a"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/global-db-role-settings.before.private.json",
+      "sha256": "a0b9809a10e630b28b73e8eb5b1e65837684497fa7dab119ff76aae031694bb0"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/global-db-role-settings.after.private.json",
+      "sha256": "a0b9809a10e630b28b73e8eb5b1e65837684497fa7dab119ff76aae031694bb0"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/owned-runtime-closure.safe.json",
+      "sha256": "309ff5496f48923e12555b2893ba9b4d6433238569584014a92d16c7728337ed"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/owned-failure-full.private.json",
+      "sha256": "c0c61f9ee2445cd4233ee38e7dbd613aae2b2feedf632db512ce4f6b4ce47df1"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/owned-failure.dump.private",
+      "sha256": "247e5e08d1fee2b2b02dfa0b7f4a5930bd3b9e4fd18951008ca602e90dd021d0"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/owned-failure-dump.safe.json",
+      "sha256": "66990dfecba9c2994b84f1093e7222f3834d0abc3d03ef2c61e087eaf104cf12"
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-actual-20261116-a/closed.safe.json",
+      "sha256": "a7f3229217a548732d853640770a01161ccb8e0ce56d7215aeab7f55b9c515f3"
+    },
+    {
+      "path": "/tmp/gridex-ediel-owned-storage-actual-20261116-a/retained-object-custody.private.json",
+      "sha256": "b2f3f12ee78af0be157fe6ff2fcd5860a5ea382f4b03044a9a000aaefaaa8687"
+    },
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-actual-20261116-four-case/RESTORED.safe.json",
+      "sha256": "b2e8e12200d1084e1ae8e92457604ab2d98a1dd374b30bfe782e0783e00a9785"
+    },
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-actual-20261116-four-case/ORIGINAL-FORWARDER-RESTORED.safe.json",
+      "sha256": "f4c4cbf2ec2ee59f5cb350125e46557fc79621acbf8e3c3b702cb2cc6d2218fd"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/native-complete/PROPER-CLOSURE-NATIVE.safe.json",
+      "sha256": "27e11deafd3c2ac2f0e69b9cb1e4de03aef8849ff930c2635c46df8233946b7d"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/FRESH-OWN-ABSENCE-DAEMON-WINDOW.safe.json",
+      "sha256": "800a410e25dbfa5ad14d772e1036c61e48eefe67dec79ebc9805cf22351a3361"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-prep-20261116-a/caller.AD.stderr.private.log",
+      "sha256": "e6105d88d3d59ca47041aef2041d84b41e402e1abeb3d1bfc2a05aafd2e255c2"
+    },
+    {
+      "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/PREAUTH-STOP-AND-UNKNOWN-BOUNDARY.safe.json",
+      "sha256": "5f2c4aed4c5d965461f68dc96b8c51ef1af3552bc65a3d3df15064dbdca30f80"
+    }
+  ],
+  "primaryFailurePreserved": "Storage docker CREATE timedout30s before CID/start/health/SDK; then OCIexec128 atdisk0",
+  "priorPostTopologyUnknownResolvedByNewFreshNativeProof": {
+    "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/proper-closure/native-complete/PROPER-CLOSURE-NATIVE.safe.json",
+    "sha256": "27e11deafd3c2ac2f0e69b9cb1e4de03aef8849ff930c2635c46df8233946b7d"
+  },
+  "originalVerdicts": null,
+  "noPasswordOrBusinessAttempted": true,
+  "fullMainUnchangedAndAuth6zeroAll7Exact": true,
+  "settingsRestored": true,
+  "ownRESTDBStorageAbsent": true,
+  "ownPortsClosed": true,
+  "originalTrioStoppedTypedForwarderRestored": true,
+  "newForwarder": {
+    "pid": 4121185,
+    "startTime": 31397604
+  },
+  "resourceAdmissionForNewAttempt": false,
+  "noRawHoldReleaseOrCounterCredit": true
+}

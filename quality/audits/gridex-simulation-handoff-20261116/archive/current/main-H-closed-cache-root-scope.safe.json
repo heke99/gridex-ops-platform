@@ -1,0 +1,17 @@
+{
+  "at": "2026-11-15T02:17:07.204153+00:00",
+  "scope": "SOLE_PRODUCER_EXACT_CLOSED_MAIN_H_GENERATED_CACHE_ONLY",
+  "proposalSha256": "de827b81831e3c6670be4302388cfb22bc1419c48e59fe713bd066189f33e895",
+  "scriptSha256": "67ebbd22e3113fde84d2630187eb02118353184a1b9f4008e24680504ff1fec8",
+  "entryCount": 100,
+  "root": "/workspace/gridex-source40-next-cache-20261114",
+  "rootInode": 526321,
+  "allocatedBytes": 81940480,
+  "conditions": [
+    "Revalidate exactclosedPID/start/cmd and no3108listener",
+    "Revalidate exactsurvey/entries and accessibleFD checks preservingdeniedcaveat",
+    "Preserve root,.next/node_modulesaliases, allsource/proofs/currentK8baseline/Fc andheldAuth",
+    "Soleproducer executes unchangedscript once; no backend/Auth calls"
+  ],
+  "review": "Read exact proposal and guardedscript; localgeneratedcache removal authorized by standing user mandate; no complete globalFDabsence claim"
+}

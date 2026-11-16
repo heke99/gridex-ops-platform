@@ -1,0 +1,16 @@
+{
+  "state": "ROOT_KNOWN_ATTEST_SCOPE_VERIFIER_SOURCE_COMPONENT_APPROVED_NOT_LIVE_AUTHORITY",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T18:34:56.753114+00:00",
+  "preparedPath": "/tmp/gridex-local-attested-import-scope-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "b7afe42ffc6d24bee2f4329846103f000c1e959102f2b5569a5a6a20a42d51cc",
+  "moduleSHA256": "0b67e644c9a770894e18725c53b41df35b82ff4a02aafdb91aa84e1c1c0d08f6",
+  "review": "Full module read. Derives plain UI-only scope from actual4seals/intents/results/ACK/native/inputs, exactRootdocumentreview and actualnativeATTEST/currentfreshpublic+private14 equality/C6/revocations/source/expiry. No RPC adapter, completed-state fabrication or opaquecontext mint. Historical16controls/mockclock not liveproof.",
+  "callerObligations": [
+    "Genuine normal current operator principal/canonical selection",
+    "Exact restored fullFc/catalog/metadata and freshMainbaseline separatelyqualified",
+    "New helper/parent/profile/source2 and actual live time/JWT/admission/resources guards beforeONEattempt",
+    "No resetting oldattempt or mutationreplay/cookieinjection"
+  ],
+  "noRuntimeOrScenarioPass": true
+}

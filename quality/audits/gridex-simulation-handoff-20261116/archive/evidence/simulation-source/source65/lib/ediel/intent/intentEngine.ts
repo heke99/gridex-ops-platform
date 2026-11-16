@@ -1,0 +1,522 @@
+// lib/ediel/intent/intentEngine.ts
+//
+// EdielMessageIntentEngine. Business processes create intents only. The engine
+// persists intents, enforces idempotency and runs the pre-render validation
+// gate. It never renders or queues EDIFACT/XML.
+
+import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {AI_LIST_SOURCE_PROFILE,aiListDate} from '@/lib/ediel/aiListFormat'
+import { isDeepStrictEqual } from 'node:util'
+import { tenantDb } from '@/lib/supabase/tenantDb'
+import { supabaseService } from '@/lib/supabase/service'
+import { collectPlaceholderViolations } from '@/lib/ediel/intent/noPlaceholderGuard'
+import { validateApplicationReferencePolicy } from '@/lib/ediel/intent/applicationReferencePolicy'
+import {
+  getProdatMessageSupport,
+  isProdatCodeSendable,
+  resolveProdatSupportStatus,
+} from '@/lib/ediel/prodat/prodatMessageSupportRegistry'
+import { canonicalEdielActorRole } from '@/lib/ediel/actorRole'
+import { resolveUtiltsSupportStatus } from '@/lib/ediel/utilts/utiltsMessageSupportRegistry'
+import type {
+  CreateEdielMessageIntentInput,
+  EdielIntentBlockingReason,
+  EdielIntentMessageFamily,
+  EdielIntentOutboxStatus,
+  EdielIntentRenderStatus,
+  EdielIntentValidationResult,
+  EdielIntentValidationStatus,
+  EdielMessageIntent,
+} from '@/lib/ediel/intent/types'
+
+type IntentRow = Record<string, unknown>
+
+const REQUIRED_METADATA_FIELDS: Array<{ key: keyof CreateEdielMessageIntentInput; label: string }> = [
+  { key: 'companyId', label: 'company_id' },
+  { key: 'environment', label: 'environment' },
+  { key: 'messageFamily', label: 'message_family' },
+  { key: 'messageCode', label: 'message_code' },
+  { key: 'businessProcess', label: 'business_process' },
+  { key: 'senderEdielId', label: 'sender_ediel_id' },
+  { key: 'receiverEdielId', label: 'receiver_ediel_id' },
+  { key: 'applicationReference', label: 'application_reference' },
+  { key: 'routeProfileId', label: 'route_profile_id' },
+  { key: 'interchangeReference', label: 'interchange_reference' },
+  { key: 'messageReference', label: 'message_reference' },
+  { key: 'idempotencyKey', label: 'idempotency_key' },
+]
+
+function str(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null
+}
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+/** User provenance columns are UUID-only; system jobs use null + source metadata. */
+export function userActorUuid(value: unknown): string | null {
+  const candidate = str(value)
+  return candidate && UUID_PATTERN.test(candidate) ? candidate : null
+}
+
+function mapRowToIntent(row: IntentRow): EdielMessageIntent {
+  return {
+    id: String(row.id),
+    companyId: String(row.company_id),
+    environment: (row.environment === 'production' ? 'production' : 'test'),
+    market: (row.market === 'gas' ? 'gas' : 'electricity'),
+    messageFamily: String(row.message_family) as EdielIntentMessageFamily,
+    messageCode: String(row.message_code ?? ''),
+    businessProcess: String(row.business_process) as EdielMessageIntent['businessProcess'],
+    direction: (row.direction === 'inbound_response' ? 'inbound_response' : 'outbound'),
+    senderEdielId: String(row.sender_ediel_id ?? ''),
+    senderSubaddress: str(row.sender_subaddress),
+    receiverEdielId: String(row.receiver_ediel_id ?? ''),
+    receiverSubaddress: str(row.receiver_subaddress),
+    applicationReference: String(row.application_reference ?? ''),
+    routeProfileId: String(row.route_profile_id ?? ''),
+    communicationRouteId: str(row.communication_route_id),
+    certificateProfileId: str(row.certificate_profile_id),
+    customerId: str(row.customer_id),
+    customerSiteId: str(row.customer_site_id),
+    gridOwnerInformationRequestId: str(row.grid_owner_information_request_id),
+    supplierSwitchRequestId: str(row.supplier_switch_request_id),
+    customerInfoRequestId: str(row.customer_info_request_id),
+    operationId: str(row.operation_id),
+    facilityId: str(row.facility_id),
+    meteringPointId: str(row.metering_point_id),
+    gridAreaCode: str(row.grid_area_code),
+    requestedEffectiveDate: str(row.requested_effective_date),
+    sendNotBefore: str(row.send_not_before),
+    sendWindowOpensAt: str(row.send_window_opens_at),
+    sendWindowClosesAt: str(row.send_window_closes_at),
+    interchangeReference: String(row.interchange_reference ?? ''),
+    messageReference: String(row.message_reference ?? ''),
+    transactionReference: str(row.transaction_reference),
+    payload: (row.payload as Record<string, unknown>) ?? {},
+    expectedRuleVersion: str(row.expected_rule_version),
+    expectedFieldMatrixVersion: str(row.expected_field_matrix_version),
+    idempotencyKey: String(row.idempotency_key ?? ''),
+    validationStatus: String(row.validation_status ?? 'draft') as EdielIntentValidationStatus,
+    renderStatus: String(row.render_status ?? 'not_rendered') as EdielIntentRenderStatus,
+    outboxStatus: String(row.outbox_status ?? 'not_queued') as EdielIntentOutboxStatus,
+    validationResult: (row.validation_result as Record<string, unknown>) ?? {},
+    blockingReasons: Array.isArray(row.blocking_reasons) ? (row.blocking_reasons as EdielIntentBlockingReason[]) : [],
+    edielMessageId: str(row.ediel_message_id),
+    outboundRequestId: str(row.outbound_request_id),
+  }
+}
+
+function resolveIntentActorRole(
+  input: CreateEdielMessageIntentInput | EdielMessageIntent,
+  routeProfile: { actorRole?: string | null; companyRole?: string | null } | null,
+) {
+  const payload = record(input.payload)
+  // Gridex tenants are electricity suppliers unless a route/profile explicitly
+  // proves the separate ESCO/eligible-party capability. Never infer ESCO from a
+  // message code alone.
+  return canonicalEdielActorRole(
+    routeProfile?.actorRole
+      ?? routeProfile?.companyRole
+      ?? payload?.actorRole
+      ?? payload?.companyRole
+      ?? 'supplier',
+  ) ?? 'supplier'
+}
+
+// Pure pre-render validation gate so it can be regression tested without DB.
+export function evaluateIntentValidation(
+  input: CreateEdielMessageIntentInput | EdielMessageIntent,
+  options?: {
+    routeProfile?: {
+      applicationReference?: string | null
+      actorRole?: string | null
+      companyRole?: string | null
+    } | null
+  },
+): EdielIntentValidationResult {
+  const blockingReasons: EdielIntentBlockingReason[] = []
+  const checks: Record<string, boolean> = {}
+
+  // 1) Required metadata.
+  const missing: string[] = []
+  for (const field of REQUIRED_METADATA_FIELDS) {
+    if(input.messageFamily==='AI_LIST'&&['applicationReference','interchangeReference','messageReference'].includes(field.key))continue
+    if (!str((input as Record<string, unknown>)[field.key as string])) missing.push(field.label)
+  }
+  checks.required_metadata = missing.length === 0
+  if (missing.length > 0) {
+    blockingReasons.push({
+      code: 'required_intent_metadata_missing',
+      message: `Obligatoriska intent-fält saknas: ${missing.join(', ')}.`,
+      severity: 'block',
+      details: { missing },
+    })
+  }
+
+  // 2) No placeholder identifiers.
+  const placeholderReasons = collectPlaceholderViolations({
+    facilityId: input.facilityId,
+    meteringPointId: input.meteringPointId,
+    gridAreaCode: input.gridAreaCode,
+    senderEdielId: input.senderEdielId,
+    receiverEdielId: input.receiverEdielId,
+    transactionReference: input.transactionReference,
+  })
+  checks.no_placeholder_identifiers = placeholderReasons.length === 0
+  blockingReasons.push(...placeholderReasons)
+
+  // 3) Application Reference policy (route may declare, never override).
+  const routeProfile =
+    options?.routeProfile ??
+    ('routeProfile' in input ? (input as CreateEdielMessageIntentInput).routeProfile : null) ??
+    null
+  const appref = validateApplicationReferencePolicy({
+    messageFamily: input.messageFamily,
+    messageType: input.messageCode,
+    businessCode: input.messageCode,
+    applicationReference: input.applicationReference,
+    environment: input.environment,
+    sender: input.senderEdielId,
+    receiver: input.receiverEdielId,
+    routeProfile,
+  })
+  checks.application_reference_policy = appref.ok
+  blockingReasons.push(...appref.blockingReasons)
+
+  // 4) Message-code support + hard direction/actor-role gate.
+  const family = String(input.messageFamily).toUpperCase()
+  if (family === 'PRODAT') {
+    const support = resolveProdatSupportStatus(input.messageCode)
+    const isOutboundIntent = (input.direction ?? 'outbound') === 'outbound'
+    const supportEntry = getProdatMessageSupport(input.messageCode)
+    checks.message_code_supported = support !== 'unsupported' && support !== 'manual_review'
+
+    if (!checks.message_code_supported) {
+      blockingReasons.push({
+        code: 'prodat_message_code_unsupported',
+        message: `PRODAT ${input.messageCode} har supportstatus ${support} och kan inte behandlas automatiskt.`,
+        field: 'messageCode',
+        severity: 'block',
+        details: { supportStatus: support },
+      })
+    }
+
+    if (isOutboundIntent) {
+      const sendable = isProdatCodeSendable(input.messageCode)
+      checks.prodat_outbound_direction = sendable
+      if (!sendable) {
+        blockingReasons.push({
+          code: 'prodat_direction_not_allowed',
+          message: `PRODAT ${input.messageCode} är inte ett outbound-meddelande för Gridex marknadsroll.`,
+          field: 'messageCode',
+          severity: 'block',
+          details: { supportStatus: support, direction: 'outbound' },
+        })
+      }
+
+      const actorRole = resolveIntentActorRole(input, routeProfile)
+      const actorAllowed = Boolean(supportEntry?.allowedSenderRoles.includes(actorRole))
+      checks.prodat_actor_role = actorAllowed
+      if (supportEntry && !actorAllowed) {
+        blockingReasons.push({
+          code: 'prodat_actor_role_not_allowed',
+          message: `PRODAT ${input.messageCode} kräver avsändarroll ${supportEntry.allowedSenderRoles.join('/')} men aktuell roll är ${actorRole}.`,
+          field: 'messageCode',
+          severity: 'block',
+          details: {
+            actorRole,
+            allowedSenderRoles: supportEntry.allowedSenderRoles,
+          },
+        })
+      }
+    }
+  } else if (family === 'UTILTS') {
+    const support = resolveUtiltsSupportStatus(input.messageCode)
+    checks.message_code_supported = support !== 'unsupported' && support !== 'manual_review'
+    if (!checks.message_code_supported) {
+      blockingReasons.push({
+        code: 'utilts_message_code_unsupported',
+        message: `UTILTS ${input.messageCode} har supportstatus ${support} och kan inte skickas automatiskt (manuell granskning krävs).`,
+        field: 'messageCode',
+        severity: 'block',
+        details: { supportStatus: support },
+      })
+    }
+  } else if(family==='AI_LIST'){
+    const payload=record(input.payload)
+    let dates=false
+    try{dates=aiListDate(String(payload?.fromDate??''))<aiListDate(String(payload?.toDate??''))}catch{/* Exact malformed dates block the request. */}
+    checks.message_code_supported=input.messageCode==='AI'&&(input.direction??'outbound')==='outbound'&&input.businessProcess==='reconciliation'
+    checks.ai_technical_request=payload?.owner==='ai-list-export-request-v1'&&dates
+      &&payload?.sourceSha256===AI_LIST_SOURCE_PROFILE.sourceSha256&&payload?.technicalVersion===AI_LIST_SOURCE_PROFILE.technicalVersion
+      &&isEvidenceUuid(input.operationId)&&payload?.requestId===input.operationId&&Boolean(str(input.customerId))&&Boolean(str(input.customerSiteId))
+    checks.ai_no_edifact_references=!str(input.applicationReference)&&!str(input.interchangeReference)&&!str(input.messageReference)&&!str(input.transactionReference)
+    if(!checks.message_code_supported||!checks.ai_technical_request||!checks.ai_no_edifact_references)blockingReasons.push({
+      code:'ai_list_intent_request_invalid',message:'AI-intent måste ange ett eget kund- och platsbundet tekniskt listuppdrag utan EDIFACT-referenser.',severity:'block',
+    })
+  } else {
+    checks.message_code_supported = true
+  }
+
+  // 5) Tenant scope present.
+  checks.tenant_scope = Boolean(str(input.companyId))
+  if (!checks.tenant_scope) {
+    blockingReasons.push({
+      code: 'tenant_scope_missing',
+      message: 'company_id saknas – tenant måste vara upplöst innan rendering.',
+      severity: 'block',
+    })
+  }
+
+  // 6) Hard facility guard. Missing identity uses the separate manual
+  // information-request flow; placeholders can never be rendered.
+  const businessProcess = String(input.businessProcess ?? '').toLowerCase()
+  if (businessProcess === 'customer_masterdata' || businessProcess === 'supplier_switch') {
+    const hasFacilityIdentity = Boolean(str(input.facilityId) || str(input.meteringPointId))
+    checks.facility_identity_present = hasFacilityIdentity
+    if (!hasFacilityIdentity) {
+      blockingReasons.push({
+        code: 'facility_or_metering_point_missing',
+        message:
+          'Anläggnings-ID/mätpunkts-ID saknas. Intent blockeras – begär anläggningsuppgifter från nätägaren innan meddelandet kan förberedas.',
+        severity: 'block',
+        details: { required_admin_action: 'request_facility_information' },
+      })
+    }
+  }
+
+  const ok = blockingReasons.filter((r) => (r.severity ?? 'block') === 'block').length === 0
+  return {
+    ok,
+    status: ok ? 'validated' : 'blocked',
+    blockingReasons,
+    checks,
+    checkedAt: new Date().toISOString(),
+  }
+}
+
+async function findExistingIntent(params: {
+  companyId: string
+  environment: string
+  idempotencyKey: string
+}): Promise<EdielMessageIntent | null> {
+  const { data, error } = await supabaseService
+    .from('ediel_message_intents')
+    .select('*')
+    .eq('company_id', params.companyId)
+    .eq('environment', params.environment)
+    .eq('idempotency_key', params.idempotencyKey)
+    .maybeSingle()
+  if (error) {
+    if (isMissingSchema(error)) return null
+    throw error
+  }
+  return data ? mapRowToIntent(data as IntentRow) : null
+}
+
+function isMissingSchema(error: unknown): boolean {
+  const code = String((error as { code?: unknown } | null)?.code ?? '')
+  const message = String((error as { message?: unknown } | null)?.message ?? '')
+  return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist/i.test(message)
+}
+
+export async function getEdielMessageIntentById(id: string): Promise<EdielMessageIntent | null> {
+  const { data, error } = await supabaseService
+    .from('ediel_message_intents')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) {
+    if (isMissingSchema(error)) return null
+    throw error
+  }
+  return data ? mapRowToIntent(data as IntentRow) : null
+}
+
+function assertNormalSwitchIntentSource(input: CreateEdielMessageIntentInput): void {
+  if (input.messageFamily !== 'PRODAT' || input.messageCode !== 'Z03' || input.businessProcess !== 'supplier_switch'
+    || (input.direction ?? 'outbound') !== 'outbound' || (input.market ?? 'electricity') !== 'electricity'
+    || !str(input.companyId) || !str(input.idempotencyKey) || !str(input.customerId) || !str(input.customerSiteId)
+    || !str(input.operationId) || input.operationId !== input.supplierSwitchRequestId || !str(input.requestedEffectiveDate)
+    || !['L', 'LK', 'H'].includes(String(input.payload?.transactionSubtype)) || input.payload?.actorRole !== 'supplier'
+    || !str(input.payload?.documentReference)) throw new Error('normal_switch_intent_source_required')
+}
+
+/** A duplicate may reuse the winning wire references, never change the source
+ * facts or reset a concurrent renderer/transport owner's lifecycle. */
+function reusableNormalSwitchIntent(input: CreateEdielMessageIntentInput, existing: EdielMessageIntent): EdielMessageIntent {
+  const fields = ['companyId', 'environment', 'messageFamily', 'messageCode', 'businessProcess',
+    'senderEdielId', 'senderSubaddress', 'receiverEdielId', 'receiverSubaddress', 'applicationReference',
+    'routeProfileId', 'communicationRouteId', 'certificateProfileId', 'customerId', 'customerSiteId',
+    'gridOwnerInformationRequestId', 'supplierSwitchRequestId', 'customerInfoRequestId', 'operationId',
+    'facilityId', 'meteringPointId', 'gridAreaCode', 'requestedEffectiveDate', 'sendNotBefore',
+    'sendWindowOpensAt', 'sendWindowClosesAt', 'expectedRuleVersion', 'expectedFieldMatrixVersion', 'idempotencyKey'] as const
+  const sourcePayload = (value: Record<string, unknown> | undefined) => {
+    const payload = { ...value }; delete payload.documentReference; return payload
+  }
+  if (existing.market !== (input.market ?? 'electricity') || existing.direction !== (input.direction ?? 'outbound')
+    || fields.some(field => str(existing[field]) !== str(input[field]))
+    || !isDeepStrictEqual(sourcePayload(existing.payload), sourcePayload(input.payload))) throw new Error('normal_switch_intent_source_conflict')
+  if (![existing.interchangeReference, existing.messageReference, existing.transactionReference, existing.payload.documentReference].every(str)) {
+    throw new Error('normal_switch_intent_winner_invalid')
+  }
+  return existing
+}
+
+export async function createEdielMessageIntent(
+  input: CreateEdielMessageIntentInput & { normalSwitchInsertOnly?: true },
+): Promise<EdielMessageIntent> {
+  if (input.normalSwitchInsertOnly) assertNormalSwitchIntentSource(input)
+  const validation = evaluateIntentValidation(input)
+  const actorUserId = userActorUuid(input.actorUserId)
+
+  if (str(input.companyId) && str(input.environment) && str(input.idempotencyKey)) {
+    const existing = await findExistingIntent({
+      companyId: input.companyId,
+      environment: input.environment,
+      idempotencyKey: input.idempotencyKey,
+    })
+    if (existing) {
+      if (input.normalSwitchInsertOnly) return reusableNormalSwitchIntent(input, existing)
+      const alreadyRenderedOrQueued = Boolean(existing.edielMessageId) || existing.outboxStatus !== 'not_queued'
+      if (!alreadyRenderedOrQueued) {
+        const revalidation = evaluateIntentValidation(existing)
+        if (revalidation.status !== existing.validationStatus) {
+          await updateIntentLifecycle(existing.id, {
+            validationStatus: revalidation.status,
+            validationResult: { ...revalidation, source: 'idempotent_reuse_revalidation' } as unknown as Record<string, unknown>,
+            blockingReasons: revalidation.blockingReasons,
+            actorUserId,
+          })
+          return {
+            ...existing,
+            validationStatus: revalidation.status,
+            blockingReasons: revalidation.blockingReasons,
+            validationResult: revalidation as unknown as Record<string, unknown>,
+          }
+        }
+      }
+      return existing
+    }
+  }
+
+  const row = {
+    company_id: input.companyId,
+    environment: input.environment,
+    market: input.market ?? 'electricity',
+    message_family: input.messageFamily,
+    message_code: input.messageCode,
+    business_process: input.businessProcess,
+    direction: input.direction ?? 'outbound',
+    sender_ediel_id: input.senderEdielId,
+    sender_subaddress: input.senderSubaddress ?? null,
+    receiver_ediel_id: input.receiverEdielId,
+    receiver_subaddress: input.receiverSubaddress ?? null,
+    application_reference: input.applicationReference,
+    route_profile_id: str(input.routeProfileId),
+    communication_route_id: input.communicationRouteId ?? null,
+    certificate_profile_id: input.certificateProfileId ?? null,
+    customer_id: input.customerId ?? null,
+    customer_site_id: input.customerSiteId ?? null,
+    grid_owner_information_request_id: input.gridOwnerInformationRequestId ?? null,
+    supplier_switch_request_id: input.supplierSwitchRequestId ?? null,
+    customer_info_request_id: input.customerInfoRequestId ?? null,
+    operation_id: input.operationId ?? null,
+    facility_id: input.facilityId ?? null,
+    metering_point_id: input.meteringPointId ?? null,
+    grid_area_code: input.gridAreaCode ?? null,
+    requested_effective_date: input.requestedEffectiveDate ?? null,
+    send_not_before: input.sendNotBefore ?? null,
+    send_window_opens_at: input.sendWindowOpensAt ?? null,
+    send_window_closes_at: input.sendWindowClosesAt ?? null,
+    interchange_reference: input.interchangeReference,
+    message_reference: input.messageReference,
+    transaction_reference: input.transactionReference ?? null,
+    payload: input.payload ?? {},
+    validation_result: validation as unknown as Record<string, unknown>,
+    blocking_reasons: validation.blockingReasons,
+    idempotency_key: input.idempotencyKey,
+    expected_rule_version: input.expectedRuleVersion ?? null,
+    expected_field_matrix_version: input.expectedFieldMatrixVersion ?? null,
+    validation_status: validation.status,
+    render_status: 'not_rendered' as EdielIntentRenderStatus,
+    outbox_status: 'not_queued' as EdielIntentOutboxStatus,
+    created_by: actorUserId,
+    updated_by: actorUserId,
+  }
+
+  if (input.normalSwitchInsertOnly) {
+    const insertOnly = tenantDb(input.companyId).from('ediel_message_intents')
+      .upsert(row, { onConflict: 'company_id,environment,idempotency_key', ignoreDuplicates: true }) as ReturnType<ReturnType<typeof supabaseService.from>['upsert']>
+    const { data, error } = await insertOnly.select('*').maybeSingle()
+    if (error) throw error
+    const winner = data ? mapRowToIntent(data as IntentRow) : await findExistingIntent({
+      companyId: input.companyId, environment: input.environment, idempotencyKey: input.idempotencyKey,
+    })
+    if (!winner) throw new Error('normal_switch_intent_winner_missing')
+    return reusableNormalSwitchIntent(input, winner)
+  }
+
+  const { data, error } = await supabaseService
+    .from('ediel_message_intents')
+    .upsert(row, { onConflict: 'company_id,environment,idempotency_key' })
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return mapRowToIntent(data as IntentRow)
+}
+
+export async function validateIntentBeforeRender(
+  intentId: string,
+): Promise<{ intent: EdielMessageIntent | null; validation: EdielIntentValidationResult | null }> {
+  const intent = await getEdielMessageIntentById(intentId)
+  if (!intent) return { intent: null, validation: null }
+  const validation = evaluateIntentValidation(intent)
+  if (validation.status !== intent.validationStatus) {
+    await updateIntentLifecycle(intentId, {
+      validationStatus: validation.status,
+      validationResult: validation as unknown as Record<string, unknown>,
+      blockingReasons: validation.blockingReasons,
+    })
+  }
+  return { intent: { ...intent, validationStatus: validation.status }, validation }
+}
+
+export async function updateIntentLifecycle(
+  intentId: string,
+  patch: {
+    validationStatus?: EdielIntentValidationStatus
+    renderStatus?: EdielIntentRenderStatus
+    outboxStatus?: EdielIntentOutboxStatus
+    validationResult?: Record<string, unknown>
+    blockingReasons?: EdielIntentBlockingReason[]
+    edielMessageId?: string | null
+    outboundRequestId?: string | null
+    actorUserId?: string | null
+  },
+): Promise<void> {
+  const update: IntentRow = { updated_at: new Date().toISOString() }
+  if (patch.validationStatus) update.validation_status = patch.validationStatus
+  if (patch.renderStatus) update.render_status = patch.renderStatus
+  if (patch.outboxStatus) update.outbox_status = patch.outboxStatus
+  if (patch.validationResult) update.validation_result = patch.validationResult
+  if (patch.blockingReasons) update.blocking_reasons = patch.blockingReasons
+  if (patch.edielMessageId !== undefined) update.ediel_message_id = patch.edielMessageId
+  if (patch.outboundRequestId !== undefined) update.outbound_request_id = patch.outboundRequestId
+  const actorUserId = userActorUuid(patch.actorUserId)
+  if (actorUserId) update.updated_by = actorUserId
+
+  const { error } = await supabaseService
+    .from('ediel_message_intents')
+    .update(update)
+    .eq('id', intentId)
+  if (error && !isMissingSchema(error)) throw error
+}

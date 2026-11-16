@@ -1,0 +1,16 @@
+{
+  "state": "ACTUAL_FINITE26_EQUAL_FULL2688_TIMEOUT_NOT_K_QUALIFIED",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T10:47:01.659727+00:00",
+  "terminalSHA256": "44e6236d0b8a0e57dd9abe817a2a5f4599a0ff44dea23b9974803b5bc3cf9327",
+  "checks": [
+    "Full3443rawfunctioncompare onlyce58\u21927928targetbody/definition, nonbodyOIDACL/other3442 preserved",
+    "Full26OLDNEWstructuredJSONequal (25wire+1explicitpuretokenprojection), no businesscasecredit",
+    "Cloneafter/public/private14/Mainpreserved/drop; full2688still57014 ~8.1053s observedline80STSscans",
+    "Archivedoriginal read asgzip-backedbytes inRAM withoriginaldecompressedSHAverified; no diskrestoration/no falseRAWpathclaim",
+    "Kgate remainsDENIED; separateEwholewindowprecompute source/puremodel notnativequalification"
+  ],
+  "gzipBackedOriginalsRead": [
+    "/workspace/gridex-decimal-next-qty-native-actual-20261114-d/candidate3443-wire-only.private.json.gz"
+  ]
+}

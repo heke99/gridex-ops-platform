@@ -1,0 +1,39 @@
+{
+  "state": "SOURCE_ONLY_SUPPORTED_PORT_TRACEABILITY_FINDING_NOT_CASE_QUALIFICATION",
+  "scenarioId": "BILLNEG01.05",
+  "files": [
+    {
+      "path": "/tmp/gridex-billneg0105-supported-port-20261115/CANONICAL-COVERAGE-CASE.safe.json",
+      "sha256": "01b91aaf671b00c09958ba65aead49902ccdd0a1c9a83d18563d9823ad033633",
+      "bytes": 3684
+    },
+    {
+      "path": "/tmp/gridex-billneg0105-supported-port-20261115/REPORT.md",
+      "sha256": "4a13f01de7dc19455e26ba9fc8e6b8790de3523df68d446634a19456989cb7f0",
+      "bytes": 6521
+    },
+    {
+      "path": "/tmp/gridex-billneg0105-supported-port-20261115/SOURCE-EXCERPTS.private.txt",
+      "sha256": "df461b50ec1a793b9434b180269d42002ec88ff3f668c554936c3db11b603613",
+      "bytes": 102307
+    },
+    {
+      "path": "/tmp/gridex-billneg0105-supported-port-20261115/SOURCE-FACTS.safe.json",
+      "sha256": "2e27a692c17fc83f6ef13a1c3b05acf190c230725c27a0b8cac5f1e3f48267f4",
+      "bytes": 16698
+    },
+    {
+      "path": "/tmp/gridex-billneg0105-supported-port-20261115/bounded-credit-source-matches.private.txt",
+      "sha256": "caa0f5b6a6f80e41b48d7dd370b4da1f0ff3d6044b2030ab41f4050d250792ac",
+      "bytes": 151392
+    },
+    {
+      "path": "/tmp/gridex-billneg0105-supported-port-20261115/literal-oracle.safe.json",
+      "sha256": "28680627493695007ee38941e5ec520b87725d9d94308f47dc728a5080afe475",
+      "bytes": 151
+    }
+  ],
+  "productChanges": false,
+  "runtimeCalls": 0,
+  "scenarioCountsChanged": false
+}

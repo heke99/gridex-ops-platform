@@ -1,0 +1,47 @@
+{
+  "kind": "CLOSED_API5_ACTUAL_PROOF_FINAL_INDEX_WITH_NORMAL_LOGOUT_COMPANION",
+  "state": "ACTUAL_HTTP_RPC_NATIVE_PARENT_CLEANUP_AND_PROPER_MAIN_EE_LOGOUT_CLOSED",
+  "createdAtUtc": "2026-11-13T23:44:26.956802+00:00",
+  "businessParentIndex": {
+    "path": "/tmp/gridex-api5-http-actual-evidence-20261113/proof-bundle.business-parent.safe.json",
+    "sha256": "bc18fc0fdab6233c21e64d2c192e38d41bffbcef57d392937417f48df4ca8847",
+    "bytes": 113094
+  },
+  "additionalClosedOriginals": [
+    {
+      "path": "/tmp/gridex-ee-browser-hold-actual-api5-20261113-c/state.safe.json",
+      "sha256": "7ee4c9f92be99cbff4d846a5ca7d628b38f1d0143f5752f77e04a2d03ace135c",
+      "bytes": 897
+    },
+    {
+      "path": "/tmp/gridex-api5-fresh-rpc-inputs-20261113-a/NORMAL_LOGOUT.bridge.private.json",
+      "sha256": "0df476478a881554eb8774e70a2f0f454e9d76150d7474bef9af29401de79882",
+      "bytes": 21
+    },
+    {
+      "path": "/tmp/gridex-api5-fresh-rpc-main-resume-20261113/actual-main-post-for-logout.safe.json",
+      "sha256": "2c80234d5feae9876f9942ef9c84cb4d055c263072bf3706ac0027ba11964d69",
+      "bytes": 302
+    },
+    {
+      "path": "/tmp/gridex-api5-fresh-rpc-main-resume-20261113/resume-source40-result.safe.json",
+      "sha256": "4c7324f124b8e6f10f63d2556fb6656da426e22011c3a07b903851a6926b84fc",
+      "bytes": 409
+    },
+    {
+      "path": "/tmp/gridex-api5-fresh-rpc-main-resume-20261113/resume-source40-intent.safe.json",
+      "sha256": "3e735cb0546a660987fe3ef08c86b8092ab3770d81e366170e19d449ddc12f2f",
+      "bytes": 302
+    }
+  ],
+  "normalEeLogout": true,
+  "browserClosed": true,
+  "actualSource": "Private isolated62; preserved Main40 resumed. Four genuine authenticated public RPCs,18 HTTP operations,0 UI creation/issue posts.",
+  "noPostBusinessFc": true,
+  "limits": [
+    "Full native row captures and scoped public graph snapshots exist per operation; no postbusiness full clone dump/restore proof.",
+    "Main pair equality ends before the subsequent normal Main resume/logout; no postlogout zero-Auth-change claim.",
+    "Actual/literal five-case verdict is provided separately after independent review; no billability/customer signature/CPS/GEN or production launch credit."
+  ],
+  "assemblerRuntimeCalls": 0
+}

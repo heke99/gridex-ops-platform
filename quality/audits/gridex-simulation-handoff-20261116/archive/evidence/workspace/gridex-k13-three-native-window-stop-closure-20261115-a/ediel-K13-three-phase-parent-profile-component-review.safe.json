@@ -1,0 +1,18 @@
+{
+  "reviewerAgent": "/root/ediel_test_identity",
+  "observedAt": "2026-11-15T17:10:13.067808+00:00",
+  "verdict": "ACTUAL_COMPONENT_REVIEW_COMPLETE",
+  "closureManifestSHA256": "110961b867dbf1458c6bd691a50626cf1cc8b3b317efebdb873b9f31aaab9a84",
+  "threeNativeAcknowledgementsOnly": true,
+  "ATTESTDispatched": false,
+  "importDispatched": false,
+  "parentOwnRESTAndCloneAbsentRecorded": true,
+  "capturedMainSnapshotUnchangedRecorded": true,
+  "allSevenSequencesSemanticallyExact": true,
+  "profilingRESTExitCode": 255,
+  "normalRESTExitBoundaryQualified": false,
+  "twoRecordedFunctionSnapshotsEqual": true,
+  "recordedSettingsRestoredExact": true,
+  "noImportCauseOrScenarioCredit": true,
+  "APIAuthAndBrowserFinalClosurePending": true
+}

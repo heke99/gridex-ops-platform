@@ -1,0 +1,24 @@
+{
+  "at": "2026-11-15T03:47:13.015021+00:00",
+  "reviewer": "/root",
+  "verdict": "ACTUAL_DYNAMIC_TUPLE_APPROVE_CONDITIONAL_LIVE_EXECUTION_GUARDS",
+  "parentTargetSHA256": "1648cddb1daab366b033a8f2aaca2147eb4c918f10d1b6ae7144a5789ec9cfb1",
+  "orchestratorTargetSHA256": "917d85a9c81104187606232e538cd38fb216588fe816b4afd677769ea9742c80",
+  "checks": [
+    "Independentlyhashedexacttargets+107parent/18orchestratornestedrefs",
+    "IndependentlyhashednewFc/currentMainbefore/after andbyteequality; capturemtime afteractualverifiedsessionfile",
+    "Readactual55a421sessionseal genuineEE ownsession1/all1refresh1, actualhold04:29:16.547/runtime04:26:56, notoldhistoricalbackup",
+    "All7sequencebaselinephysicald6bf boundbeforeprivate; lateractualcomparison stillrequired",
+    "Reviewedfrozenparentf115/orch90b9/runtimea06/helper6e75/readinessc5fa/sourcepairs reused"
+  ],
+  "conditions": [
+    "Soleproducer+Edielactualparentpair/live805/TMP134/headroom/window guards beforeonceparent",
+    "Original900EACHphase/noextension/3000/source/native/cleanup guards remain",
+    "ActualreadonlyimportreadinessREADY+hash beforeISSUE; RootactualUTF8docreviewbeforeATTEST",
+    "ActualIcacheexactscope3d611/preAuthSource92b24 validonlyafterItermination, nofuturebytescredited"
+  ],
+  "notClaimed": [
+    "ActualprivateREADY/principal/import/financialPASS",
+    "LaterMain/sequences/foreignrowsunchanged beforeactualpostproof"
+  ]
+}

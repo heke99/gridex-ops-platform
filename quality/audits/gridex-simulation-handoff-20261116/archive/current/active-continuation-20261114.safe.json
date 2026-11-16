@@ -1,0 +1,29 @@
+{
+  "atUtc": "2026-11-14T12:21:04.469841+00:00",
+  "state": "CONTINUING_NOT_COMPLETE",
+  "canonicalCounts": {
+    "localPass": 38,
+    "documentedGap": 1,
+    "outstanding": 66
+  },
+  "readySourceComponents": {
+    "fourPhaseOrchestrator": {
+      "freeze": "71058b5fd860566e3a583419d8cf63db1166bb23a44a41a8f73e0ecb2ec7e48e",
+      "rootReview": "42d5e512e97114e9293fc240c9c9332043e6031c8deca6867dd9877910d1685d",
+      "peerReview": "9c8956826ed2c1f0bd4e071909f0683ccf5dc4f314083da58a08747adf53ba81"
+    },
+    "financialCaptureV2": {
+      "freeze": "8bbbe57be439077c634e621a00b2e4c48a3529de2b7d40e14ef02ba90330b7fa",
+      "rootReview": "43aa3a3110696605b455c760fcc373c27a0408578c884f702cfc46bce06167ea",
+      "peerReview": "93a83e5ade147386dfbd72c486e946dd6cb4d068da6048aa413fef4539ee7c13"
+    }
+  },
+  "activeWork": [
+    "Sole backend producer: resource/binding/current key resume fix and qualified native scenarios before next genuine login window.",
+    "Offline EDIEL negative validation + downstream UNOC version trace.",
+    "Dead-code and actual RPC entrypoint tracing.",
+    "Official XML/norm qualification, missing vendor XSD/rounding/receiver receipt explicitly bounded."
+  ],
+  "nextGenuineLongRunConstraint": "Current roles expire12:39:45UTC; no early renewal or shortened guard to force a run. Prepare fully before expired-only maintenance.",
+  "componentLimits": "No new full-case credit from source reviews, component tests, or documented missing inputs."
+}

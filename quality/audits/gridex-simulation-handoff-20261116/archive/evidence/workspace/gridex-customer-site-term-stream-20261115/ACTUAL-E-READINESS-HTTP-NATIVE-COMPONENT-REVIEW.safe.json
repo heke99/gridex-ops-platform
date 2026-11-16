@@ -1,0 +1,46 @@
+{
+  "reviewerAgent": "/root/ediel_test_identity",
+  "state": "ACTUAL_OBSERVER_READINESS_PROVED_ONE_HTTP200_NATIVE_PUBLICATION_ABSENT",
+  "refs": [
+    {
+      "path": "/tmp/gridex-ee-browser-hold-actual-customer-catalog-term-20261115-e/customer-continuation/catalog-publication/publication-readiness.DOMCONTENTLOADED.safe.json",
+      "sha256": "0aedc8a7db1148f6389442932a60bbebae82ee93f328dd65a837d2508ac14e5a"
+    },
+    {
+      "path": "/tmp/gridex-ee-browser-hold-actual-customer-catalog-term-20261115-e/customer-continuation/catalog-publication/publication-readiness.FINAL.safe.json",
+      "sha256": "abd6cb4a68d5285b57821d2e6a3882edf836268595d868e09483e4348c5e2018"
+    },
+    {
+      "path": "/tmp/gridex-ee-browser-hold-actual-customer-catalog-term-20261115-e/customer-continuation/catalog-publication/catalog-publish.result.private.json",
+      "sha256": "abfd804760abeaf9f4bf24a432c6a17bc254ea2ea35a4131448c25f6ae3299de"
+    },
+    {
+      "path": "/tmp/gridex-customer-prerequisites-inputs-20261115-e/after-publication.private.json",
+      "sha256": "6c3c534060e5b0b00b7864e42e045ff28b458d6db228a95d4c3272c0460e73ef"
+    }
+  ],
+  "verified": {
+    "initialVisibleRoles": 1,
+    "initialActionFunctionPresent": false,
+    "initialReady": false,
+    "finalVisibleRoles": 1,
+    "finalActionFunctionPresent": true,
+    "finalReady": true,
+    "readinessElapsedMs": 1783,
+    "observedPOSTs": 1,
+    "HTTPStatus": 200,
+    "driverError": null,
+    "offerStillDraft": true,
+    "productStillDraftUnlocked": true,
+    "publicationAbsent": true
+  },
+  "limits": {
+    "HTTP200DoesNotProveBusinessCommit": true,
+    "actualPriorCOrDHeaderVisibilityCauseProven": false,
+    "nativeACKSent": false,
+    "intakeRun": false,
+    "TERMRun": false,
+    "retryAuthorized": false,
+    "wholeCasePASS": false
+  }
+}

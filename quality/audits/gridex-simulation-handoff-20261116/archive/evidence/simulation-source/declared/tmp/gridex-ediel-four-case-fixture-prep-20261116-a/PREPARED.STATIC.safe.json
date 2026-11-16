@@ -1,0 +1,124 @@
+{
+  "state": "FOUR_OWN_STATIC_TLS_MAIL_CONFIGS_NO_LISTENERS_OR_AUTH",
+  "prepareSource": {
+    "path": "/tmp/gridex-ediel-local-transport-prep-v2-20261113/prepare_instance.py",
+    "sha256": "af8c914edd887fe392fe3ccf27aafa62c59ea138941c13de6040e31756213c86"
+  },
+  "fixtures": [
+    {
+      "caseName": "inbound",
+      "root": "/tmp/gridex-ediel-four-case-fixture-inbound-20261116-a",
+      "config": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-inbound-20261116-a/config.FOURCASE.private.json",
+        "sha256": "7477d15539c4784cd65b11eb7ab032aea8e38dc443921d15f4680c198190f66c"
+      },
+      "historicalDefaultConfig": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-inbound-20261116-a/config.private.json",
+        "sha256": "f95ea0c0d58ef40b41a257f2523c4f9cacdaa8094a72f467fdc1a2a862045267"
+      },
+      "CA": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-inbound-20261116-a/ca.crt",
+        "sha256": "cc8431f88467c5fc21b5b30994e106405185f87ea656b1bddc8b7ca1b7d092a8"
+      },
+      "serverCertificate": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-inbound-20261116-a/server.crt",
+        "sha256": "6cddb7e819297bb8d71cd73d00a19c570e70ae81536da76d839354a674a06519"
+      },
+      "ports": [
+        25276,
+        21996
+      ],
+      "mode": "accept",
+      "ttlSeconds": 900,
+      "noListenerOrArming": true
+    },
+    {
+      "caseName": "SMTP_451",
+      "root": "/tmp/gridex-ediel-four-case-fixture-smtp_451-20261116-a",
+      "config": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-smtp_451-20261116-a/config.FOURCASE.private.json",
+        "sha256": "4ddee84d9ef3265ba3cd443f4bcfbd6d0f378763ec9c3785556bb19a5c763b6a"
+      },
+      "historicalDefaultConfig": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-smtp_451-20261116-a/config.private.json",
+        "sha256": "883b66c16c05ee873caa112407f297222c8352bf9aabcbce8400006b79f75fd8"
+      },
+      "CA": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-smtp_451-20261116-a/ca.crt",
+        "sha256": "19819fde873e47811d9b2ef7bf212f9dfc3cb9f04760d357428b567804b6e693"
+      },
+      "serverCertificate": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-smtp_451-20261116-a/server.crt",
+        "sha256": "292f2b0f880937fe02069de735c7688105fe93953502fb321e6f0afd8ae55ae8"
+      },
+      "ports": [
+        25277,
+        21997
+      ],
+      "mode": "temporary_451",
+      "ttlSeconds": 900,
+      "noListenerOrArming": true
+    },
+    {
+      "caseName": "SMTP_550",
+      "root": "/tmp/gridex-ediel-four-case-fixture-smtp_550-20261116-a",
+      "config": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-smtp_550-20261116-a/config.FOURCASE.private.json",
+        "sha256": "607d8d2bcac3e3a8539ce9ac0bd07ee09fa92f36f61425499a469be2b1604c2a"
+      },
+      "historicalDefaultConfig": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-smtp_550-20261116-a/config.private.json",
+        "sha256": "6456cf222045361ab480e91d2f52a47cd572663f2658d6048866f7ef9640541d"
+      },
+      "CA": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-smtp_550-20261116-a/ca.crt",
+        "sha256": "49608eb563101467bb18099cfb193579698f487690e8f5fe8abdf8f289182402"
+      },
+      "serverCertificate": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-smtp_550-20261116-a/server.crt",
+        "sha256": "3f4c44c1144ac47ada8d385679c241f5d068554174dfdbcfa1bbd1669f7d2bc9"
+      },
+      "ports": [
+        25278,
+        21998
+      ],
+      "mode": "permanent_550",
+      "ttlSeconds": 900,
+      "noListenerOrArming": true
+    },
+    {
+      "caseName": "SMTP_DROP_DATA",
+      "root": "/tmp/gridex-ediel-four-case-fixture-smtp_drop_data-20261116-a",
+      "config": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-smtp_drop_data-20261116-a/config.FOURCASE.private.json",
+        "sha256": "7d875b728335a89c6a3513e1c3d739f5b8d8f345fa90f89f7230853f00d3d094"
+      },
+      "historicalDefaultConfig": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-smtp_drop_data-20261116-a/config.private.json",
+        "sha256": "079568cfd95ccef9624185ecdcd7a96b606695cb228b4091035eec85fbf7cf62"
+      },
+      "CA": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-smtp_drop_data-20261116-a/ca.crt",
+        "sha256": "24931a4ad70c3d9c28796920940d81d5db9749d21147eeb1963b3e6a8ac45d5e"
+      },
+      "serverCertificate": {
+        "path": "/tmp/gridex-ediel-four-case-fixture-smtp_drop_data-20261116-a/server.crt",
+        "sha256": "f458b53a2aa8d7c3695fe9a6394a7a8a68a6ebc9eebf6b45126ac05ef3a8f017"
+      },
+      "ports": [
+        25279,
+        21999
+      ],
+      "mode": "drop_after_data",
+      "ttlSeconds": 900,
+      "noListenerOrArming": true
+    }
+  ],
+  "CAbundle": {
+    "path": "/tmp/gridex-ediel-four-case-fixture-prep-20261116-a/all-four-CA.pem",
+    "sha256": "7503eccd8060d5779df2855b247819357b72dd7ff84f09e6f22f940de8fee9cc"
+  },
+  "sameOwnedSMTPUserAndEnvelopeFrom": "ediel-four-owned-20261116-a@fixture.invalid",
+  "sourceHeaderFromMayDifferAsDeclaredSyntheticSource": true,
+  "actualListenersMustLaunchOnlyUnderQualifiedOuterScope": true
+}

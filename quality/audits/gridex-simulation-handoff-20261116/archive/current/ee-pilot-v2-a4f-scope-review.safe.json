@@ -1,0 +1,31 @@
+{
+  "verdict": "EXECUTION_SCOPE_APPROVE",
+  "reviewerAgent": "/root",
+  "helperPath": "/tmp/gridex-ee-browser-pilot-v2-prep-20261113/hold-ee-pilot-v2.cjs",
+  "helperSha256": "cc263cf20e0735532fefd5f3c6e33a195511d7d2cdb0df50700dc51d280ca66a",
+  "driverSha256": "b1eb417bfbac6a61f188f6039b4fd62c2cfc5f204573709d7fe59ae1554a664c",
+  "targetPath": "/tmp/gridex-ee-browser-pilot-v2-prep-20261113/target.BOUND.safe.json",
+  "targetSha256": "a4f2d9b3ff4bf9bbd039e211d37ee6caec0d0222559b9ed91ec2b32887ccc963",
+  "preparedSha256": "5197ddc73a7fd3f4f58bf9134b1884f6a39d3b06f620fedd595c1f824b21879a",
+  "wholeHelperDriverNormalFormsActionsRead": true,
+  "boundFilesVerified": 7,
+  "source40And57PhysicalHashesVerified": true,
+  "actualAppIdentityVerified": true,
+  "scope": [
+    "one genuine existingEE normalUIlogin/currentgetUser/canonical beforecurrentbackup",
+    "samebrowser127cookie context, noAuthflag/storageinjection/refresh",
+    "private3178 fixed7steps normalvisibleforms, exact0600hashboundinputs",
+    "durable singlePOST perstep and producer actualnative readback before next",
+    "visibleUTF8 exactdocument localoperatorattest, notcustomerSign",
+    "privateSDK57521 onlygetUser/canonical; noMAINAuthwrite duringpilot",
+    "finiteTTL/JWT/quota with status/readback/postprooflogout independentbudget",
+    "normalMAINlogout onlyafteractualhashbound mainpost receipt"
+  ],
+  "delegation": "After second independent exact scope ACK, sole executor may arm ON_BEHALF_ROOT and execute this exact tuple once; continue already-authorized currentbackup/targetbinding/privatepilot, no further generic permission/document gate.",
+  "notGranted": [
+    "Production deploy/push/merge",
+    "fabricated Auth/native receipts",
+    "scenarioPASS from metadata or componenttests"
+  ],
+  "asOfUTC": "2026-11-13T19:34:47.260076+00:00"
+}

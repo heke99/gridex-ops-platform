@@ -1,0 +1,85 @@
+{
+  "state": "EXACT15_REAL_ROUTE_API_GUARD_RED_GREEN_COMPONENT_PASS",
+  "results": [
+    {
+      "phase": "red2",
+      "exitCode": 1,
+      "elapsedSeconds": 1.1686504560057074,
+      "nodePid": 3109623,
+      "numTotalTests": 15,
+      "numFailedTests": 13,
+      "numPassedTests": 2,
+      "routeSHA256": "5036f7a0c7d41b741be77d57c6e3352902f7c8d4b2d53c62083731288b67f6be",
+      "resultPath": "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/red2.vitest.private.json",
+      "argv": [
+        "/tmp/gridex-lean-actual-qualification-20261113/node22.selected",
+        "--max-old-space-size=512",
+        "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/finite-test-context/node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/admin-legacy-billing-export-download-policy.test.ts",
+        "--config",
+        "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/finite-test-context/vitest.config.ts",
+        "--maxWorkers=1",
+        "--fileParallelism=false",
+        "--reporter=json",
+        "--outputFile=/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/red2.vitest.private.json"
+      ]
+    },
+    {
+      "phase": "green",
+      "exitCode": 0,
+      "elapsedSeconds": 1.0747745580156334,
+      "nodePid": 3109653,
+      "numTotalTests": 15,
+      "numFailedTests": 0,
+      "numPassedTests": 15,
+      "routeSHA256": "209dd922b688fec9b9b96afc3a91bf1996881a66f71f33a8f5d457b2593d809c",
+      "resultPath": "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/green.vitest.private.json",
+      "argv": [
+        "/tmp/gridex-lean-actual-qualification-20261113/node22.selected",
+        "--max-old-space-size=512",
+        "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/finite-test-context/node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/admin-legacy-billing-export-download-policy.test.ts",
+        "--config",
+        "/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/finite-test-context/vitest.config.ts",
+        "--maxWorkers=1",
+        "--fileParallelism=false",
+        "--reporter=json",
+        "--outputFile=/workspace/gridex-legacy-billing-download-export-scope-evidence-20261115/green.vitest.private.json"
+      ]
+    }
+  ],
+  "testSHA256": "84efaacfca79de94b72208bcef9c0e496a075ac2f2f5c8c472c484d349e66a23",
+  "dependencyRoot": "/tmp/gridex-closed-evidence-relocation-20261113/gridex-krypkorning-run-20261111/node_modules",
+  "vitestVersion": "4.1.9",
+  "boundarySHA256": "89fda1549e0877abd1ec0aa1783d59d55a84f106f96769091bd7f2150fc7ddbb",
+  "boundaryCounts": [
+    {
+      "pid": 3109653,
+      "http": 0,
+      "fetch": 0,
+      "sdk": 0,
+      "network": 0
+    },
+    {
+      "pid": 3108528,
+      "http": 0,
+      "fetch": 0,
+      "sdk": 0,
+      "network": 0
+    },
+    {
+      "pid": 3109623,
+      "http": 0,
+      "fetch": 0,
+      "sdk": 0,
+      "network": 0
+    }
+  ],
+  "ownNodeGroupsAbsent": true,
+  "backendAuthSDKHTTPCalls": 0,
+  "trackedWrites": false,
+  "initialRunnerFailure": "Direct-package-directory ESM peer resolution failed beforetestcollection; preserved red.exit/stderr. Existingqualifiednamednode_modules root reused, no install/dependencyedits.",
+  "noGenuineAuthNativeProviderQualification": true
+}

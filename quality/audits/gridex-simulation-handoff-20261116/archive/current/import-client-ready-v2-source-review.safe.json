@@ -1,0 +1,12 @@
+{
+  "state": "ROOT_IMPORT_CLIENT_READY_V2_SOURCE_COMPONENT_APPROVED_NOT_NATIVE",
+  "reviewerAgent": "/root",
+  "atUtc": "2026-11-14T18:26:02.328500+00:00",
+  "preparedPath": "/tmp/gridex-local-import-client-ready-v2-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "152ccd48c15ce2bebaaf3ffe3ebbe2662823dcde9a867732c324d188779236a6",
+  "driverSHA256": "eaa450fb55fbcd7d7755cc7edb7dcc4da897cac93b976fd7a88887dfc66e7253",
+  "review": "Read exact original-to-V2 diff and control results. Bounded same90s wait before files/fields reacquires one exact live form/button each poll, retains original final handler check and all business/once/source/raw/ACK/admission constraints. Eight actual-driver mocked controls include detached/replaced form and absent/ambiguous readiness.",
+  "actualBrowserOrImport": false,
+  "noForwarderChange": true,
+  "noNewFullCaseCredit": true
+}

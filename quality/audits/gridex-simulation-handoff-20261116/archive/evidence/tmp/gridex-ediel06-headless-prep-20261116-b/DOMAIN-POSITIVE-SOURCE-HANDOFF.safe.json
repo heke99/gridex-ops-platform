@@ -1,0 +1,40 @@
+{
+  "state": "POSITIVE_SOURCE_HANDOFF_ONLY_NO_ACTUAL_AUTHORITY",
+  "refs": {
+    "batchFreeze": {
+      "path": "/tmp/gridex-ediel06-headless-prep-20261116-b/PRIVATE-BATCH.FROZEN.v2.SOURCE-ONLY.safe.json",
+      "sha256": "57392f53cb4b5c7542e5cf46a112bfe087d6f9013901915a8eb71ac6ebf42cb8"
+    },
+    "batchHelper": {
+      "path": "/tmp/gridex-ediel06-headless-prep-20261116-b/private-table-batch.v2.py",
+      "sha256": "292729715c426751ae12a8f59c711c3ff5201c45fa323dbbaf0df3d9fb653c68"
+    },
+    "batchIndependentReview": {
+      "path": "/tmp/gridex-ediel06-headless-prep-20261116-b/qa-PRIVATE-BATCH-V2-COLLATION-REBIND.safe.json",
+      "sha256": "c8767f61cf6d5092c1bdea5d74ae0b4c0027e687ad442901fd2256ee7b705a9b"
+    },
+    "priorWholeBatchReview": {
+      "path": "/tmp/gridex-ediel06-headless-prep-20261116-b/qa-PRIVATE-BATCH-SOURCE-REVIEW.safe.json",
+      "sha256": "2a8a37b9420dcd3e63c6133de9e5710037f7b99caf74e885a662a8a8ca344520"
+    },
+    "workerFreeze": {
+      "path": "/tmp/gridex-ediel06-headless-worker-prep-20261116-b/FROZEN.B-NAMESPACE.SOURCE-ONLY.safe.json",
+      "sha256": "0fb2626728229b3d1b5871f22a0d8d0c358aeb30334eba61990d505721e9658b"
+    },
+    "workerIndependentReview": {
+      "path": "/tmp/gridex-ediel06-headless-worker-prep-20261116-b/qa-B-NAMESPACE-SOURCE-REVIEW.safe.json",
+      "sha256": "674924cdc989e1812016b61e8b7062d5f935e6983071d677077ac2dc2dd781f1"
+    }
+  },
+  "producerSoleActualExecutor": "/root/execute_eight_parts",
+  "interface": "capture(sql,database,snapshot)",
+  "nativeCatalog388FullScope": true,
+  "all386MissingTablesHashedOneBatch": true,
+  "twoCustodyFullRowWitnessesPreserved": true,
+  "nativeSQLBackendPerformanceQualified": false,
+  "savedDataControlsPass": 32,
+  "workerExactRootNamespaceOnly": true,
+  "NodeRerunForB": false,
+  "allActualTargetsScopesSessionDeadlineRemainProducerBound": true,
+  "foreignHistoricalRawInputNotOperationallyConsumed": true
+}

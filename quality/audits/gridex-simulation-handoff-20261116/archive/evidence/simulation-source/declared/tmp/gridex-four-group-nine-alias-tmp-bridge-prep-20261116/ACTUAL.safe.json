@@ -1,0 +1,250 @@
+{
+  "state": "EXACT_FOUR_CLOSED_GROUPS_NINE_ALIASES_TMP_BRIDGE_ARCHIVED",
+  "scopePath": "/tmp/gridex-four-group-nine-alias-tmp-bridge-prep-20261116/root-ACTUAL-SCOPE.safe.json",
+  "scopeSHA256": "ea956c0acf9c68328efe4637dab6f3155e6b3bd531b1f092a8c8b22fadc71574",
+  "proposalSHA256": "cfba8833ffeae424caca01eff4fdd438a2c36218838379b32f3cbcf988e60904",
+  "entries": [
+    {
+      "original": {
+        "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/main-before-setup.private.json",
+        "sha256": "8dd4a027d2db88dcfa67e1d4812b23fa8b903be4d494e6cca8a0fa2290efa824",
+        "bytes": 22284318,
+        "allocatedBytes": 22286336,
+        "device": 34,
+        "inode": 1036202,
+        "nlink": 2,
+        "uid": 1000,
+        "gid": 1000,
+        "mode": "0o600",
+        "mtimeNs": 1794814448168030074,
+        "aliases": [
+          "/tmp/gridex-ediel-four-case-actual-20261116-a/main-before-setup.private.json",
+          "/tmp/gridex-ediel-four-case-actual-20261116-a/main-after-runtime.private.json"
+        ],
+        "archivePath": "/tmp/gridex-ediel-four-case-actual-20261116-a/main-before-setup.private.json.closed-four-group-nine-alias-bridge.gz"
+      },
+      "originalMtimeNs": 1794814448168030074,
+      "archiveSHA256": "4ef7db3ceac26637fe93769a5f4a91c96afcd5b490ed8f4cc1889a46c8833fce",
+      "archiveBytes": 2151796,
+      "state": "ARCHIVED_RAW_PATH_ABSENT_RESTORE_REQUIRED"
+    },
+    {
+      "original": {
+        "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/main-after-runtime.private.json",
+        "sha256": "8dd4a027d2db88dcfa67e1d4812b23fa8b903be4d494e6cca8a0fa2290efa824",
+        "bytes": 22284318,
+        "allocatedBytes": 22286336,
+        "device": 34,
+        "inode": 1036202,
+        "nlink": 2,
+        "uid": 1000,
+        "gid": 1000,
+        "mode": "0o600",
+        "mtimeNs": 1794814448168030074,
+        "aliases": [
+          "/tmp/gridex-ediel-four-case-actual-20261116-a/main-before-setup.private.json",
+          "/tmp/gridex-ediel-four-case-actual-20261116-a/main-after-runtime.private.json"
+        ],
+        "archivePath": "/tmp/gridex-ediel-four-case-actual-20261116-a/main-before-setup.private.json.closed-four-group-nine-alias-bridge.gz"
+      },
+      "originalMtimeNs": 1794814448168030074,
+      "archiveSHA256": "4ef7db3ceac26637fe93769a5f4a91c96afcd5b490ed8f4cc1889a46c8833fce",
+      "archiveBytes": 2151796,
+      "state": "ARCHIVED_RAW_PATH_ABSENT_RESTORE_REQUIRED"
+    },
+    {
+      "original": {
+        "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/clone-restored3443.private.json",
+        "sha256": "c0c61f9ee2445cd4233ee38e7dbd613aae2b2feedf632db512ce4f6b4ce47df1",
+        "bytes": 22899459,
+        "allocatedBytes": 22900736,
+        "device": 34,
+        "inode": 1036347,
+        "nlink": 2,
+        "uid": 1000,
+        "gid": 1000,
+        "mode": "0o600",
+        "mtimeNs": 1794814476643549441,
+        "aliases": [
+          "/tmp/gridex-ediel-four-case-actual-20261116-a/clone-restored3443.private.json",
+          "/tmp/gridex-ediel-four-case-actual-20261116-a/owned-failure-full.private.json"
+        ],
+        "archivePath": "/tmp/gridex-ediel-four-case-actual-20261116-a/clone-restored3443.private.json.closed-four-group-nine-alias-bridge.gz"
+      },
+      "originalMtimeNs": 1794814476643549441,
+      "archiveSHA256": "b9d15889bf5103c4ff8bd90d6751498b37fea60d689d1aab0a281ce976e000a8",
+      "archiveBytes": 2217693,
+      "state": "ARCHIVED_RAW_PATH_ABSENT_RESTORE_REQUIRED"
+    },
+    {
+      "original": {
+        "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/owned-failure-full.private.json",
+        "sha256": "c0c61f9ee2445cd4233ee38e7dbd613aae2b2feedf632db512ce4f6b4ce47df1",
+        "bytes": 22899459,
+        "allocatedBytes": 22900736,
+        "device": 34,
+        "inode": 1036347,
+        "nlink": 2,
+        "uid": 1000,
+        "gid": 1000,
+        "mode": "0o600",
+        "mtimeNs": 1794814476643549441,
+        "aliases": [
+          "/tmp/gridex-ediel-four-case-actual-20261116-a/clone-restored3443.private.json",
+          "/tmp/gridex-ediel-four-case-actual-20261116-a/owned-failure-full.private.json"
+        ],
+        "archivePath": "/tmp/gridex-ediel-four-case-actual-20261116-a/clone-restored3443.private.json.closed-four-group-nine-alias-bridge.gz"
+      },
+      "originalMtimeNs": 1794814476643549441,
+      "archiveSHA256": "b9d15889bf5103c4ff8bd90d6751498b37fea60d689d1aab0a281ce976e000a8",
+      "archiveBytes": 2217693,
+      "state": "ARCHIVED_RAW_PATH_ABSENT_RESTORE_REQUIRED"
+    },
+    {
+      "original": {
+        "path": "/tmp/gridex-ediel-four-case-actual-20261116-a/owned-failure.dump.private",
+        "sha256": "247e5e08d1fee2b2b02dfa0b7f4a5930bd3b9e4fd18951008ca602e90dd021d0",
+        "bytes": 17228244,
+        "allocatedBytes": 17231872,
+        "device": 34,
+        "inode": 1036585,
+        "nlink": 1,
+        "uid": 1000,
+        "gid": 1000,
+        "mode": "0o600",
+        "mtimeNs": 1794814533540464044,
+        "aliases": [
+          "/tmp/gridex-ediel-four-case-actual-20261116-a/owned-failure.dump.private"
+        ],
+        "archivePath": "/tmp/gridex-ediel-four-case-actual-20261116-a/owned-failure.dump.private.closed-four-group-nine-alias-bridge.gz"
+      },
+      "originalMtimeNs": 1794814533540464044,
+      "archiveSHA256": "5e2714c337110ce83c418e8f67573ccb8944874834e4e5493d9a440e9f17c204",
+      "archiveBytes": 2731261,
+      "state": "ARCHIVED_RAW_PATH_ABSENT_RESTORE_REQUIRED"
+    },
+    {
+      "original": {
+        "path": "/tmp/gridex-event-headless-actual-20261115-a/main-before-setup.private.json",
+        "sha256": "c5b4f457bd2846e6b94afa2ae41b7dfa8ff28a5bd41075ed8e9da32f2deb707f",
+        "bytes": 22284318,
+        "allocatedBytes": 22286336,
+        "device": 34,
+        "inode": 987214,
+        "nlink": 4,
+        "uid": 1000,
+        "gid": 1000,
+        "mode": "0o600",
+        "mtimeNs": 1794789227789710145,
+        "aliases": [
+          "/tmp/gridex-event-headless-actual-20261115-a/main-before-setup.private.json",
+          "/tmp/gridex-event-headless-actual-20261115-a/before-auth.main.private.json",
+          "/tmp/gridex-event-headless-actual-20261115-a/main-after-runtime.private.json",
+          "/tmp/gridex-event-headless-actual-20261115-a/proper-closure/MAIN-AFTER-TOPOLOGY.private.json"
+        ],
+        "archivePath": "/tmp/gridex-event-headless-actual-20261115-a/main-before-setup.private.json.closed-four-group-nine-alias-bridge.gz"
+      },
+      "originalMtimeNs": 1794789227789710145,
+      "archiveSHA256": "eeb98140c3700e61ceb40d9de796104835fc13643c1cf2499135b1f16f825dd1",
+      "archiveBytes": 2151787,
+      "state": "ARCHIVED_RAW_PATH_ABSENT_RESTORE_REQUIRED"
+    },
+    {
+      "original": {
+        "path": "/tmp/gridex-event-headless-actual-20261115-a/before-auth.main.private.json",
+        "sha256": "c5b4f457bd2846e6b94afa2ae41b7dfa8ff28a5bd41075ed8e9da32f2deb707f",
+        "bytes": 22284318,
+        "allocatedBytes": 22286336,
+        "device": 34,
+        "inode": 987214,
+        "nlink": 4,
+        "uid": 1000,
+        "gid": 1000,
+        "mode": "0o600",
+        "mtimeNs": 1794789227789710145,
+        "aliases": [
+          "/tmp/gridex-event-headless-actual-20261115-a/main-before-setup.private.json",
+          "/tmp/gridex-event-headless-actual-20261115-a/before-auth.main.private.json",
+          "/tmp/gridex-event-headless-actual-20261115-a/main-after-runtime.private.json",
+          "/tmp/gridex-event-headless-actual-20261115-a/proper-closure/MAIN-AFTER-TOPOLOGY.private.json"
+        ],
+        "archivePath": "/tmp/gridex-event-headless-actual-20261115-a/main-before-setup.private.json.closed-four-group-nine-alias-bridge.gz"
+      },
+      "originalMtimeNs": 1794789227789710145,
+      "archiveSHA256": "eeb98140c3700e61ceb40d9de796104835fc13643c1cf2499135b1f16f825dd1",
+      "archiveBytes": 2151787,
+      "state": "ARCHIVED_RAW_PATH_ABSENT_RESTORE_REQUIRED"
+    },
+    {
+      "original": {
+        "path": "/tmp/gridex-event-headless-actual-20261115-a/main-after-runtime.private.json",
+        "sha256": "c5b4f457bd2846e6b94afa2ae41b7dfa8ff28a5bd41075ed8e9da32f2deb707f",
+        "bytes": 22284318,
+        "allocatedBytes": 22286336,
+        "device": 34,
+        "inode": 987214,
+        "nlink": 4,
+        "uid": 1000,
+        "gid": 1000,
+        "mode": "0o600",
+        "mtimeNs": 1794789227789710145,
+        "aliases": [
+          "/tmp/gridex-event-headless-actual-20261115-a/main-before-setup.private.json",
+          "/tmp/gridex-event-headless-actual-20261115-a/before-auth.main.private.json",
+          "/tmp/gridex-event-headless-actual-20261115-a/main-after-runtime.private.json",
+          "/tmp/gridex-event-headless-actual-20261115-a/proper-closure/MAIN-AFTER-TOPOLOGY.private.json"
+        ],
+        "archivePath": "/tmp/gridex-event-headless-actual-20261115-a/main-before-setup.private.json.closed-four-group-nine-alias-bridge.gz"
+      },
+      "originalMtimeNs": 1794789227789710145,
+      "archiveSHA256": "eeb98140c3700e61ceb40d9de796104835fc13643c1cf2499135b1f16f825dd1",
+      "archiveBytes": 2151787,
+      "state": "ARCHIVED_RAW_PATH_ABSENT_RESTORE_REQUIRED"
+    },
+    {
+      "original": {
+        "path": "/tmp/gridex-event-headless-actual-20261115-a/proper-closure/MAIN-AFTER-TOPOLOGY.private.json",
+        "sha256": "c5b4f457bd2846e6b94afa2ae41b7dfa8ff28a5bd41075ed8e9da32f2deb707f",
+        "bytes": 22284318,
+        "allocatedBytes": 22286336,
+        "device": 34,
+        "inode": 987214,
+        "nlink": 4,
+        "uid": 1000,
+        "gid": 1000,
+        "mode": "0o600",
+        "mtimeNs": 1794789227789710145,
+        "aliases": [
+          "/tmp/gridex-event-headless-actual-20261115-a/main-before-setup.private.json",
+          "/tmp/gridex-event-headless-actual-20261115-a/before-auth.main.private.json",
+          "/tmp/gridex-event-headless-actual-20261115-a/main-after-runtime.private.json",
+          "/tmp/gridex-event-headless-actual-20261115-a/proper-closure/MAIN-AFTER-TOPOLOGY.private.json"
+        ],
+        "archivePath": "/tmp/gridex-event-headless-actual-20261115-a/main-before-setup.private.json.closed-four-group-nine-alias-bridge.gz"
+      },
+      "originalMtimeNs": 1794789227789710145,
+      "archiveSHA256": "eeb98140c3700e61ceb40d9de796104835fc13643c1cf2499135b1f16f825dd1",
+      "archiveBytes": 2151787,
+      "state": "ARCHIVED_RAW_PATH_ABSENT_RESTORE_REQUIRED"
+    }
+  ],
+  "groupCount": 4,
+  "aliasCount": 9,
+  "beforeFreeBytes": {
+    "/workspace": 0,
+    "/tmp": 46116864
+  },
+  "afterFreeBytes": {
+    "/workspace": 0,
+    "/tmp": 121499648
+  },
+  "actualWorkspaceNetFreedBytes": 0,
+  "actualTmpNetFreedBytes": 75382784,
+  "accessibleFDHits": [],
+  "exactAccessibleMountHits": [],
+  "probeDenialsOrRaces": 2692,
+  "noGlobalFDabsenceClaim": true,
+  "allFullFcsAndCurrentProtectedInputsUntouched": true,
+  "backendCalls": 0,
+  "futureReadRule": "Originallogicalpaths explicitlyARCHIVED; exclusive safe restore+SHA before futurephysicalproofreuse, archives always preserved."
+}

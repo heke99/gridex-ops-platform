@@ -1,0 +1,46 @@
+{
+  "state": "EXPLICIT_ROOT_PHASE_BUDGET_DECISION_NOT_RESOURCE_PASS",
+  "atUtc": "2026-11-15T05:52:06.597682+00:00",
+  "reason": "Actual MainJ prewarm and materialized source65 leave about789MB WS. Prior805MB Auth-only admission was Root planning policy, not helper/factory/repository/native guard. New compiler805MB was copied from native budget despite no clone/database/source write. Avoid further unrelated resource removal; use distinct phase budgets and preserve actual backend guard.",
+  "supersedesOnly": [
+    "Root k9-auth-phase-resource-budget-decision authOnlyAdmission.minimumWorkspaceFreeBytes for futureK10 admission",
+    "New scoped-compiler source-only750M budget successor in place of its two copied805M checks after exactsourcepair"
+  ],
+  "compilerOnly": {
+    "minimumWorkspaceFreeBytes": 750000000,
+    "maximumCompilerSeconds": 90,
+    "sourceAndDependenciesReadOnly": true,
+    "networkNone": true,
+    "noAuthOrApplicationExecution": true,
+    "noConcurrentMainRequestsOrNewNodeWorkDuringCompiler": true,
+    "boundedOutputs": "Existing2MiB perstdout/stderr capture and finite ownedDocker lifecycle, no emit/incremental/cache, no database/Fc/source write. Actual receipt and container absence required."
+  },
+  "authOnlyAdmission": {
+    "minimumWorkspaceFreeBytes": 775946240,
+    "minimumTmpFreeBytes": 220000000,
+    "requirements": "Actual after successful compiler/allMainprewarm, exact current MainPID/source/O/full3000+120, all normal genuine Auth guards. No claim old805Authfloor met."
+  },
+  "beforePrivateParent": {
+    "minimumWorkspaceFreeBytes": 805306368,
+    "minimumTmpFreeBytes": 134217728,
+    "failureDumpReserveBytes": 134217728,
+    "allExistingSourceGuardsUnchanged": true
+  },
+  "storagePlan": "Fresh AFTER_READY2fullJSON+Fc use existing TMP baseline paths (~61MB from225MB). After genuineREADY+sealedbaseline+properMainJtermination reclaim only pre-reviewed exactclosedMainJgeneratedcache. Futurecachebytes never counted as actualfree; remeasure and require original805/private134/failure134 beforeparent. Ifnotmet stop beforeprivate and recover scopedresources.",
+  "sourceAndExecutionConditions": [
+    "Compiler immutable one-literal successor preserving historical805version plus independentpeerreview",
+    "Producer+Ediel revised actualAuthscope explicitly binds thisreceipt and phasefloor; no silent reuse old805scopes",
+    "All compiler/source/preAuth/cachecleanup source preparations complete BEFORE genuine hold",
+    "No changes3000hold/900phase/120expiry/Mainpreservation/tenant/RLS/Auth/provider boundaries"
+  ],
+  "observedNowOnly": {
+    "workspaceFreeBytes": 796479488,
+    "tmpFreeBytes": 224423936
+  },
+  "notClaimed": [
+    "Old805AuthfloorPASS",
+    "Futureclosedcachebytescurrentlyfree",
+    "Private805orreservedFcguardrelaxation",
+    "Compiler/Main/browser/scenarioPASS"
+  ]
+}

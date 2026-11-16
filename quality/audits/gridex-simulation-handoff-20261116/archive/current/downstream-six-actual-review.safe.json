@@ -1,0 +1,47 @@
+{
+  "state": "ACTUAL_DOWNSTREAM_COMPONENT_REVIEWED_ONE_OBSERVED_TIMEOUT_NOT_CASE_PASS",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T08:34:01.422180+00:00",
+  "indexSHA256": "89bd608ed3031cddc20d8d3aebd89efcd62915f09fd5d5687b5d18794333a9ca",
+  "originalsVerified": 90,
+  "cases": [
+    {
+      "name": "envelope_actual_header",
+      "outcome": "EQUALITY_MET",
+      "elapsedWallSeconds": 0.1931784879998304
+    },
+    {
+      "name": "envelope_actual_full10774",
+      "outcome": "EQUALITY_MET",
+      "elapsedWallSeconds": 6.912503533996642
+    },
+    {
+      "name": "decimal_source_projection_1",
+      "outcome": "EQUALITY_MET",
+      "elapsedWallSeconds": 0.4638293920143042
+    },
+    {
+      "name": "decimal_source_projection_128",
+      "outcome": "EQUALITY_MET",
+      "elapsedWallSeconds": 0.6663491269864608
+    },
+    {
+      "name": "decimal_source_projection_2688",
+      "outcome": "STATEMENT_TIMEOUT_OBSERVED_NO_PREDICTED_CAUSE",
+      "elapsedWallSeconds": 8.13192116699065
+    },
+    {
+      "name": "decimal_one_noncanonical_value_negative",
+      "outcome": "EQUALITY_MET",
+      "elapsedWallSeconds": 0.43655788101023063
+    }
+  ],
+  "mainBeforeAfterBYTEequal": true,
+  "cloneAbsent": true,
+  "limits": [
+    "Decimalfull2688source-only projection timedout57014; not completeconsumptionauthority or productionincident",
+    "Envelopefull10774 passed6.9125s under8s; leaveunchanged",
+    "Puredecimalcall includesqualifiedwiretokenizationcost",
+    "No newfullscenario credit; source/ACL/public/private preservation retained"
+  ]
+}

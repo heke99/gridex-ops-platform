@@ -1,0 +1,10 @@
+{
+  "measured_from_pr": 163,
+  "measured_at": "2026-08-17",
+  "vitest": "4.1.9",
+  "provider": "v8",
+  "statements": 32.91,
+  "branches": 25.25,
+  "functions": 34.81,
+  "lines": 35.32
+}

@@ -1,0 +1,117 @@
+{
+  "state": "ACTUAL_UI01_02_LIST_READ_BLOCKED_BY_MISSING_SMTP_HOST_COLUMN",
+  "sourceTuplePath": "/workspace/gridex-contract-platform-runtime-evidence-20261113/source-seventeen.safe.json",
+  "sourceTupleSHA256": "bd1a1e1454b5db591fec5f804573527e9053dcb73a3342b30cda250c53bc26a9",
+  "nativeErrorCode": "42703",
+  "nativeErrorMessage": "column ediel_mailboxes.smtp_host does not exist",
+  "nativeHint": "Perhaps you meant to reference ediel_mailboxes.imap_host",
+  "actualReadPath": "/admin/inbound-mail",
+  "actualHttpStatus": 200,
+  "actualErrorBoundaryPreventsDetailsLink": true,
+  "detailsOrReviewOrProcessOrImportNotExecuted": true,
+  "actualCapturedPublicSnapshotEqual": true,
+  "normalLogout": true,
+  "oldBroadBusinessPostCounter": 1,
+  "broadCounterNotQualifiedAsBusinessMutation": true,
+  "actualApplicationHttpRequests": [
+    {
+      "method": "GET",
+      "path": "/login",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/login",
+      "status": 303
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/admin/inbound-mail",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/logout",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/logout",
+      "status": 303
+    },
+    {
+      "method": "GET",
+      "path": "/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/login",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/login",
+      "status": 303
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/admin/contracts",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/logout",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/logout",
+      "status": 303
+    },
+    {
+      "method": "GET",
+      "path": "/login",
+      "status": 200
+    }
+  ],
+  "privateLogCapturedPath": "/workspace/gridex-contract-platform-runtime-evidence-20261113/app-source17-inbound-list-stop.private.log",
+  "privateLogSHA256": "a6b0905b9f6e78d9729600c1d20701e54dcab7618616da48f432882fbe9251e3",
+  "originals": [
+    {
+      "path": "/workspace/gridex-contract-platform-runtime-evidence-20261113/readonly-ui.cjs",
+      "sha256": "0524b3592037af8ffbecf29ff027389c28fd1e14555fa18edb2bdd69981963e6",
+      "bytes": 7751
+    },
+    {
+      "path": "/workspace/gridex-contract-platform-runtime-evidence-20261113/readonly-ui.safe.json",
+      "sha256": "e962a2b9be98069da8ce93541143473e3779a35d7ed4bde4a70131f72258125b",
+      "bytes": 311
+    },
+    {
+      "path": "/workspace/gridex-contract-platform-runtime-evidence-20261113/readonly-ui-error.private.log",
+      "sha256": "ee14771b6cc73dc6e2f7841c5b646ecab34d23df41b9178ab51883ed3fa5d909",
+      "bytes": 262
+    },
+    {
+      "path": "/workspace/gridex-contract-platform-runtime-evidence-20261113/before-readonly-ui17.safe.json",
+      "sha256": "a18103875d8791f641ebe835f5d89c0de778a3a69b9f735cdc1ee86fa7875b30",
+      "bytes": 289157
+    },
+    {
+      "path": "/workspace/gridex-contract-platform-runtime-evidence-20261113/after-inbound-list-stop.safe.json",
+      "sha256": "a18103875d8791f641ebe835f5d89c0de778a3a69b9f735cdc1ee86fa7875b30",
+      "bytes": 289157
+    }
+  ]
+}

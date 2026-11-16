@@ -1,0 +1,87 @@
+{
+  "kind": "REVERSIBLE_TERMINAL_CHECKOUT_MATERIALIZATION_ONLY",
+  "sourceContentAndHistoryUnchanged": true,
+  "excludedDuplicateHistoricalDirectories": [
+    "quality/audits/ediel-masterplan-v2",
+    "quality/audits/2026-10-12-ops-api-contracts"
+  ],
+  "fullOriginalAndIntegrationCheckoutsRetained": true,
+  "beforeFree": 874651648,
+  "worktrees": [
+    {
+      "worktree": "/workspace/gridex-dashboard-persona-20261112",
+      "head": "bcd5720e2fa2ffbc2e69a178dde5d90a16ab6d14",
+      "tree": "128997787e4022055071c54fc80f264633f58b39",
+      "statusClean": true,
+      "ownReportHashesPreserved": {
+        "quality/audits/gridex-app02-20261112/REPORT.sv.md": "1396322189ce5a793a832317ac2417a6387821220c97a46f9530d1395d1d118e",
+        "quality/audits/gridex-krypkorning-next-20261111/REPORT.sv.md": "6cf35bf04b257d0cc3012b45e09519c6f3361306404ec8a3fab212891fe8a1cc",
+        "quality/audits/gridex-policy-registration-20261112/REPORT.sv.md": "01a283c2f95779adf0d58a70c80879d156b9b4be22692b912adcd0a67dfe0598",
+        "quality/audits/gridex-dashboard-persona-20261112/REPORT.sv.md": "116e2c4dffeef3dad917391a641f2c92cfe3850b22cb4f20d342652e08b67c25",
+        "quality/audits/gridex-auth-retest-20261111/REPORT.sv.md": "35c7b7fe0cf0a92acbb52ccbd5484a020b29cebb0b0d0e9e00a9c70fee37a915",
+        "quality/audits/gridex-krypkorning-20261111/REPORT.sv.md": "579ea2594712b686b70626f56e95953d4e090bc2a970d4c02c33aa992d0acb47",
+        "quality/audits/gridex-invitation-orphan-20261112/REPORT.sv.md": "053059a83a57b319ff0235c62d47c117b47fec2b80a699d228bb32bb7c572f6d",
+        "quality/audits/gridex-role-catalog-20261112/REPORT.sv.md": "0d50aaeb39034aef25b0c3e8c872fccfdaeab6a9377b298d5b31d0e8be837a38"
+      },
+      "excludedMaterializationsAbsent": true,
+      "recovery": "git sparse-checkout disable (immutable HEAD remains intact)"
+    },
+    {
+      "worktree": "/workspace/gridex-site-price-intake-20261112",
+      "head": "2b54a215816acaea3dbe7d325c4dd2368b57d65d",
+      "tree": "490886a81653d1d77f4384c606d276c4d519922c",
+      "statusClean": true,
+      "ownReportHashesPreserved": {
+        "quality/audits/gridex-site-price-intake-20261112/REPORT.sv.md": "61b660982e86f20d0205eb5541a9f638a63788ed212c8412e3b6f0a88b98828e"
+      },
+      "excludedMaterializationsAbsent": true,
+      "recovery": "git sparse-checkout disable (immutable HEAD remains intact)"
+    },
+    {
+      "worktree": "/workspace/gridex-site-write-20261112",
+      "head": "a119b672f7a359f247966f0a1af6256153dc0142",
+      "tree": "b2cab5db6c20dae20ba9597e20ac72b550ab01aa",
+      "statusClean": true,
+      "ownReportHashesPreserved": {
+        "quality/audits/gridex-site-write-20261112/REPORT.sv.md": "d148bb5f421fc10f292b524e1f3124bf7095e94347c35762babf0608661c836a"
+      },
+      "excludedMaterializationsAbsent": true,
+      "recovery": "git sparse-checkout disable (immutable HEAD remains intact)"
+    },
+    {
+      "worktree": "/workspace/gridex-operation-task-scope-20261112",
+      "head": "b09abd39f8b8c231928502e1ac75b76fd51ee79d",
+      "tree": "d131695b2373993a99cd525011f0b72495e8b5c8",
+      "statusClean": true,
+      "ownReportHashesPreserved": {
+        "quality/audits/gridex-operation-task-scope-20261112/REPORT.sv.md": "cbb2a29ba0d47574330f91f1d16a7ff6eedb029ef11c1025b9d88dda77bc0572"
+      },
+      "excludedMaterializationsAbsent": true,
+      "recovery": "git sparse-checkout disable (immutable HEAD remains intact)"
+    },
+    {
+      "worktree": "/workspace/gridex-scenario-http-negative-20261112",
+      "head": "7ff5431a0d6fc4e4622c3bc5e16b0bb6fe71d2d8",
+      "tree": "1a32441dedef8f4c15b1e86f97b1f16d764053ca",
+      "statusClean": true,
+      "ownReportHashesPreserved": {
+        "quality/audits/gridex-scenario-http-negative-20261112/REPORT.sv.md": "8be6fe555b1152c75204a9b03ce742055dac7d1348e7f3990bd18e1e312ac273"
+      },
+      "excludedMaterializationsAbsent": true,
+      "recovery": "git sparse-checkout disable (immutable HEAD remains intact)"
+    },
+    {
+      "worktree": "/workspace/gridex-staff-platform-authority-20261112",
+      "head": "bd253af8baeeee8d9eb6f99c58a32f051c9bb842",
+      "tree": "20de280bd01656789dbf6f475004bf9f6ae47cae",
+      "statusClean": true,
+      "ownReportHashesPreserved": {
+        "quality/audits/gridex-staff-platform-authority-20261112/REPORT.sv.md": "fb408fd4a34ad8a817e38f788ca8e81c69ebbf3ded42ffd8366a544b6e258250"
+      },
+      "excludedMaterializationsAbsent": true,
+      "recovery": "git sparse-checkout disable (immutable HEAD remains intact)"
+    }
+  ],
+  "state": "TERMINAL_SIX_CHECKOUTS_SPARSE_HEAD_TREE_REPORTS_PRESERVED",
+  "afterFree": 1941172224
+}

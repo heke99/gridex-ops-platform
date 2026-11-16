@@ -1,0 +1,51 @@
+{
+  "state": "READONLY_DIAGNOSIS_NORMAL_VERIFIER_SOURCE_PROPOSAL_AND_CURRENT43_PAYLOAD_READY_FOR_ROOT",
+  "files": [
+    {
+      "path": "/workspace/gridex-claim-readback-diagnosis-20261116/DIAGNOSIS.safe.json",
+      "sha256": "b7643e987b91bc07bb5262280611a8462203232151d60d5a32da40f370c6acbb",
+      "bytes": 5538
+    },
+    {
+      "path": "/workspace/gridex-claim-readback-diagnosis-20261116/ACTUAL-READONLY-API.safe.json",
+      "sha256": "82d85f4477030191f5bc2b34f8c15e395a3d535ab9cf020df608a5efd84632a8",
+      "bytes": 4152
+    },
+    {
+      "path": "/workspace/gridex-claim-readback-diagnosis-20261116/masterplan-claim.readback-v2.PROPOSED.py",
+      "sha256": "d38e1c975b5a736d5ee9839736cbc7789383cabce06612eb9c651d74c4a5422f",
+      "bytes": 22121
+    },
+    {
+      "path": "/workspace/gridex-claim-readback-diagnosis-20261116/official-readback-v2.PROPOSED.patch",
+      "sha256": "d7358ca6b831e5d93b93cf286f406b2871aa2749f8e9afe5d6aee12e51dedc4e",
+      "bytes": 2144
+    },
+    {
+      "path": "/workspace/gridex-claim-readback-diagnosis-20261116/PATCH-V2-SCOPE.safe.json",
+      "sha256": "ba10c6a369899efdf4d2fcc388ca9a3f9ce2a70e91d9122635668ec09a258352",
+      "bytes": 1127
+    },
+    {
+      "path": "/workspace/gridex-claim-readback-diagnosis-20261116/PURE-READBACK-CONTROLS.safe.json",
+      "sha256": "befc33390980510f1742fb7a9ee8141b9363b6026674fee485cd0c9d1ffd10c2",
+      "bytes": 1722
+    },
+    {
+      "path": "/workspace/gridex-claim-readback-diagnosis-20261116/PURE-FULL-RUNNER-CONTROLS.safe.json",
+      "sha256": "38b02ff53bfcfa98718dd649cfa4d264acaab3e1e18980195e47aad0d3dc1514",
+      "bytes": 1317
+    }
+  ],
+  "reportPayloads": {
+    "path": "/workspace/gridex-current43-report-proposed-20261116/PROPOSED-PAYLOADS.safe.json",
+    "sha256": "170399e9c897392a240e05c793d4734a0c484971be76a5ee88a8be8633a1bea1"
+  },
+  "exactOfficialSourceUnchanged": "c1610a7e94a838d92c75bf050658570bbd9db97a312798671c2c828df3264086",
+  "actualClaimOrRepoMutations": 0,
+  "sharedSourceUnchanged": true,
+  "rootApprovalAndFreshOwnCustodyRequiredBeforeAdoptionOrRepoWrite": true,
+  "combinedAllocatedKiB": 532,
+  "maxOwnFSBudgetBytes": 4194304,
+  "noBackendOrHeavyTests": true
+}

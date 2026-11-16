@@ -1,0 +1,125 @@
+{
+  "state": "FRESH_EXACT_THREE_OWN_REFS_MATCH_READONLY_CONNECTOR_PROXY",
+  "completedAtUTC": "2026-11-14 05:45:31 UTC",
+  "provider": "GitHub connector github_fetch approved Git data raw REST GET",
+  "authenticatedUser": {
+    "login": "heke99",
+    "id": 129280077
+  },
+  "repository": "heke99/gridex-ops-platform",
+  "expectedCommit": "3a5d356534179982b4d0ea348a382e32f8e87cf9",
+  "expectedOwnerSession": "29b06f27-2364-46fd-a37c-6c170d364511",
+  "captures": [
+    {
+      "requestedURL": "https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934?_=20261114T0543",
+      "rawContent": "{\"ref\":\"refs/tags/agent-claims/masterplan/file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934\",\"node_id\":\"REF_kwDORvYys9oAZ3JlZnMvdGFncy9hZ2VudC1jbGFpbXMvbWFzdGVycGxhbi9maWxlLTQyNDQwMDI0ZjNhOWJkNTdjODdmOTk2NjY5NjI2MGE3NWNkNDczYjUyNzgzNjZkNTU3ZTEzNjNkYmJlODM5MzQ\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/refs/tags/agent-claims/masterplan/file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934\",\"object\":{\"sha\":\"3a5d356534179982b4d0ea348a382e32f8e87cf9\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3a5d356534179982b4d0ea348a382e32f8e87cf9\"}}",
+      "parsed": {
+        "ref": "refs/tags/agent-claims/masterplan/file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934",
+        "node_id": "REF_kwDORvYys9oAZ3JlZnMvdGFncy9hZ2VudC1jbGFpbXMvbWFzdGVycGxhbi9maWxlLTQyNDQwMDI0ZjNhOWJkNTdjODdmOTk2NjY5NjI2MGE3NWNkNDczYjUyNzgzNjZkNTU3ZTEzNjNkYmJlODM5MzQ",
+        "url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/refs/tags/agent-claims/masterplan/file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934",
+        "object": {
+          "sha": "3a5d356534179982b4d0ea348a382e32f8e87cf9",
+          "type": "commit",
+          "url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3a5d356534179982b4d0ea348a382e32f8e87cf9"
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Action completed."
+          }
+        ],
+        "structuredContent": {
+          "content": "{\"ref\":\"refs/tags/agent-claims/masterplan/file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934\",\"node_id\":\"REF_kwDORvYys9oAZ3JlZnMvdGFncy9hZ2VudC1jbGFpbXMvbWFzdGVycGxhbi9maWxlLTQyNDQwMDI0ZjNhOWJkNTdjODdmOTk2NjY5NjI2MGE3NWNkNDczYjUyNzgzNjZkNTU3ZTEzNjNkYmJlODM5MzQ\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/refs/tags/agent-claims/masterplan/file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934\",\"object\":{\"sha\":\"3a5d356534179982b4d0ea348a382e32f8e87cf9\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3a5d356534179982b4d0ea348a382e32f8e87cf9\"}}",
+          "title": "file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934",
+          "modified_date": null,
+          "url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934?_=20261114T0543",
+          "display_url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934?_=20261114T0543",
+          "display_title": "file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934",
+          "structuredContent": {
+            "title": "file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934",
+            "content": "{\"ref\":\"refs/tags/agent-claims/masterplan/file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934\",\"node_id\":\"REF_kwDORvYys9oAZ3JlZnMvdGFncy9hZ2VudC1jbGFpbXMvbWFzdGVycGxhbi9maWxlLTQyNDQwMDI0ZjNhOWJkNTdjODdmOTk2NjY5NjI2MGE3NWNkNDczYjUyNzgzNjZkNTU3ZTEzNjNkYmJlODM5MzQ\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/refs/tags/agent-claims/masterplan/file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934\",\"object\":{\"sha\":\"3a5d356534179982b4d0ea348a382e32f8e87cf9\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3a5d356534179982b4d0ea348a382e32f8e87cf9\"}}",
+            "display_url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/file-42440024f3a9bd57c87f9966696260a75cd473b5278366d557e1363dbbe83934?_=20261114T0543"
+          }
+        },
+        "isError": false
+      }
+    },
+    {
+      "requestedURL": "https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a?_=20261114T0543",
+      "rawContent": "{\"ref\":\"refs/tags/agent-claims/masterplan/file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a\",\"node_id\":\"REF_kwDORvYys9oAZ3JlZnMvdGFncy9hZ2VudC1jbGFpbXMvbWFzdGVycGxhbi9maWxlLTRmMjkwYjA1YjI3YmJlOWQ1MTk4ZDg3YTZlNGZkNGViZDc0NjNmMDk4Zjg3MzdmMzFjNzJkYzQxYTNiNzQxNmE\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/refs/tags/agent-claims/masterplan/file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a\",\"object\":{\"sha\":\"3a5d356534179982b4d0ea348a382e32f8e87cf9\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3a5d356534179982b4d0ea348a382e32f8e87cf9\"}}",
+      "parsed": {
+        "ref": "refs/tags/agent-claims/masterplan/file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a",
+        "node_id": "REF_kwDORvYys9oAZ3JlZnMvdGFncy9hZ2VudC1jbGFpbXMvbWFzdGVycGxhbi9maWxlLTRmMjkwYjA1YjI3YmJlOWQ1MTk4ZDg3YTZlNGZkNGViZDc0NjNmMDk4Zjg3MzdmMzFjNzJkYzQxYTNiNzQxNmE",
+        "url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/refs/tags/agent-claims/masterplan/file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a",
+        "object": {
+          "sha": "3a5d356534179982b4d0ea348a382e32f8e87cf9",
+          "type": "commit",
+          "url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3a5d356534179982b4d0ea348a382e32f8e87cf9"
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Action completed."
+          }
+        ],
+        "structuredContent": {
+          "content": "{\"ref\":\"refs/tags/agent-claims/masterplan/file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a\",\"node_id\":\"REF_kwDORvYys9oAZ3JlZnMvdGFncy9hZ2VudC1jbGFpbXMvbWFzdGVycGxhbi9maWxlLTRmMjkwYjA1YjI3YmJlOWQ1MTk4ZDg3YTZlNGZkNGViZDc0NjNmMDk4Zjg3MzdmMzFjNzJkYzQxYTNiNzQxNmE\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/refs/tags/agent-claims/masterplan/file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a\",\"object\":{\"sha\":\"3a5d356534179982b4d0ea348a382e32f8e87cf9\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3a5d356534179982b4d0ea348a382e32f8e87cf9\"}}",
+          "title": "file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a",
+          "modified_date": null,
+          "url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a?_=20261114T0543",
+          "display_url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a?_=20261114T0543",
+          "display_title": "file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a",
+          "structuredContent": {
+            "title": "file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a",
+            "content": "{\"ref\":\"refs/tags/agent-claims/masterplan/file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a\",\"node_id\":\"REF_kwDORvYys9oAZ3JlZnMvdGFncy9hZ2VudC1jbGFpbXMvbWFzdGVycGxhbi9maWxlLTRmMjkwYjA1YjI3YmJlOWQ1MTk4ZDg3YTZlNGZkNGViZDc0NjNmMDk4Zjg3MzdmMzFjNzJkYzQxYTNiNzQxNmE\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/refs/tags/agent-claims/masterplan/file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a\",\"object\":{\"sha\":\"3a5d356534179982b4d0ea348a382e32f8e87cf9\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3a5d356534179982b4d0ea348a382e32f8e87cf9\"}}",
+            "display_url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/file-4f290b05b27bbe9d5198d87a6e4fd4ebd7463f098f8737f31c72dc41a3b7416a?_=20261114T0543"
+          }
+        },
+        "isError": false
+      }
+    },
+    {
+      "requestedURL": "https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/slot-session-29b06f27-2364-46fd-a37c-6c170d364511?_=20261114T0543",
+      "rawContent": "{\"ref\":\"refs/tags/agent-claims/masterplan/slot-session-29b06f27-2364-46fd-a37c-6c170d364511\",\"node_id\":\"REF_kwDORvYys9oAU3JlZnMvdGFncy9hZ2VudC1jbGFpbXMvbWFzdGVycGxhbi9zbG90LXNlc3Npb24tMjliMDZmMjctMjM2NC00NmZkLWEzN2MtNmMxNzBkMzY0NTEx\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/refs/tags/agent-claims/masterplan/slot-session-29b06f27-2364-46fd-a37c-6c170d364511\",\"object\":{\"sha\":\"3a5d356534179982b4d0ea348a382e32f8e87cf9\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3a5d356534179982b4d0ea348a382e32f8e87cf9\"}}",
+      "parsed": {
+        "ref": "refs/tags/agent-claims/masterplan/slot-session-29b06f27-2364-46fd-a37c-6c170d364511",
+        "node_id": "REF_kwDORvYys9oAU3JlZnMvdGFncy9hZ2VudC1jbGFpbXMvbWFzdGVycGxhbi9zbG90LXNlc3Npb24tMjliMDZmMjctMjM2NC00NmZkLWEzN2MtNmMxNzBkMzY0NTEx",
+        "url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/refs/tags/agent-claims/masterplan/slot-session-29b06f27-2364-46fd-a37c-6c170d364511",
+        "object": {
+          "sha": "3a5d356534179982b4d0ea348a382e32f8e87cf9",
+          "type": "commit",
+          "url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3a5d356534179982b4d0ea348a382e32f8e87cf9"
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Action completed."
+          }
+        ],
+        "structuredContent": {
+          "content": "{\"ref\":\"refs/tags/agent-claims/masterplan/slot-session-29b06f27-2364-46fd-a37c-6c170d364511\",\"node_id\":\"REF_kwDORvYys9oAU3JlZnMvdGFncy9hZ2VudC1jbGFpbXMvbWFzdGVycGxhbi9zbG90LXNlc3Npb24tMjliMDZmMjctMjM2NC00NmZkLWEzN2MtNmMxNzBkMzY0NTEx\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/refs/tags/agent-claims/masterplan/slot-session-29b06f27-2364-46fd-a37c-6c170d364511\",\"object\":{\"sha\":\"3a5d356534179982b4d0ea348a382e32f8e87cf9\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3a5d356534179982b4d0ea348a382e32f8e87cf9\"}}",
+          "title": "slot-session-29b06f27-2364-46fd-a37c-6c170d364511",
+          "modified_date": null,
+          "url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/slot-session-29b06f27-2364-46fd-a37c-6c170d364511?_=20261114T0543",
+          "display_url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/slot-session-29b06f27-2364-46fd-a37c-6c170d364511?_=20261114T0543",
+          "display_title": "slot-session-29b06f27-2364-46fd-a37c-6c170d364511",
+          "structuredContent": {
+            "title": "slot-session-29b06f27-2364-46fd-a37c-6c170d364511",
+            "content": "{\"ref\":\"refs/tags/agent-claims/masterplan/slot-session-29b06f27-2364-46fd-a37c-6c170d364511\",\"node_id\":\"REF_kwDORvYys9oAU3JlZnMvdGFncy9hZ2VudC1jbGFpbXMvbWFzdGVycGxhbi9zbG90LXNlc3Npb24tMjliMDZmMjctMjM2NC00NmZkLWEzN2MtNmMxNzBkMzY0NTEx\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/refs/tags/agent-claims/masterplan/slot-session-29b06f27-2364-46fd-a37c-6c170d364511\",\"object\":{\"sha\":\"3a5d356534179982b4d0ea348a382e32f8e87cf9\",\"type\":\"commit\",\"url\":\"https://api.github.com/repos/heke99/gridex-ops-platform/git/commits/3a5d356534179982b4d0ea348a382e32f8e87cf9\"}}",
+            "display_url": "https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/slot-session-29b06f27-2364-46fd-a37c-6c170d364511?_=20261114T0543"
+          }
+        },
+        "isError": false
+      }
+    }
+  ],
+  "mutations": 0,
+  "cliCredentialStatus": "GH_TOKEN invalid; preserved prior401, no credential exported/refreshed or substituted",
+  "transportLimits": "Connector successful API content returned unchanged; raw HTTP status/headers are not exposed and are not invented. URLs include cache-busting query; all3 actual ref/object commit values match."
+}

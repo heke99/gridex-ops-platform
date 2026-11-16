@@ -1,0 +1,719 @@
+{
+  "state": "READONLY_UI_DEADCODE_CANDIDATE_REVIEW_COMPLETE_NOT_ADOPTION_APPROVAL",
+  "reviewerAgent": "/root/review_plan_domain",
+  "atUTC": "2026-11-16T10:57:52.369868+00:00",
+  "main": {
+    "path": "/workspace/gridex-main-transfer-20261116/main",
+    "head": "bf32b7e01fbd0511972ba8977c61d412a018e416",
+    "tree": "fe55a53d9ce29e26aa918b3af4a3e1aae87bca06",
+    "cleanReadOnlyStatusVerified": true
+  },
+  "scope": {
+    "candidateCommits": [
+      "1d2bc476b5d73f08704fc7dfddc6faf6f66bc70b",
+      "e6b269e63aaab86cf73c7234052d9f5c684a530e",
+      "b5c5cd534c39e016e6e18978490c4cc4d6a83bb3"
+    ],
+    "wholeThreeCandidatePatchesRead": true,
+    "normalDependencyAndCallerReview": true,
+    "repositoryWideAudit": false,
+    "frozenPackageEdited": false,
+    "implementationOrAdoptionRequested": false
+  },
+  "skillRouting": {
+    "applied": [
+      {
+        "skill": "code-review",
+        "why": "Requested bounded code/compatibility/test review."
+      },
+      {
+        "skill": "differential-review",
+        "why": "Surgical comparison of candidate changes and current Main, including source history and consumers."
+      }
+    ],
+    "readConditional": [
+      {
+        "skill": "fp-check",
+        "why": "Directly verify/refute suspected tenant/export regressions; no confirmed security defect found."
+      }
+    ],
+    "sourceRefs": [
+      {
+        "path": "/workspace/gridex-main-transfer-20261116/main/.agents/skills/code-review/SKILL.md",
+        "sha256": "ec5fc8855cb4648b4f2c79b608f8c8824a2da6a683330524c4d6283e4a3954c4",
+        "bytes": 2768
+      },
+      {
+        "path": "/workspace/gridex-main-transfer-20261116/main/.agents/skills/differential-review/SKILL.md",
+        "sha256": "1499d68ed4465fe89448f2bd90054b16a1a047f2e49a433623312f3b7a8a9742",
+        "bytes": 7097
+      },
+      {
+        "path": "/workspace/gridex-main-transfer-20261116/main/.agents/skills/fp-check/SKILL.md",
+        "sha256": "129223b79b8cb1e7c289c90cbe4ba288d9b210e318a0d1464f319e30329481b3",
+        "bytes": 6747
+      }
+    ],
+    "notActivated": "No whole-repo baseline/security scan, external service, schema change, performance experiment, remediation, UI interaction or test execution; those triggers are absent or expressly outside this read-only scope."
+  },
+  "newConfirmedProductDefects": [],
+  "newProvenCompatibilityFindings": [
+    {
+      "id": "UI-CANDIDATE-MISSING-FOUNDATION",
+      "severity": "medium_delivery_compatibility",
+      "classification": "CONFIRMED_SOURCE_DEPENDENCY_GAP_NOT_DEPLOYED_PRODUCT_DEFECT",
+      "affectedCandidate": "1d2bc476b5d73f08704fc7dfddc6faf6f66bc70b",
+      "summary": "The exported refinement is not the complete42703 fix and cannot be treated as a standalone Main change.",
+      "trigger": "Attempting to adopt only03-customer-list-1d2bc476b5d7.patch on Main bf32b7e. No application attempt made.",
+      "proof": [
+        "Child commit parent is exactlya9b5f3f35d652d968eb45a54d5096c326909543e.",
+        "Child product diff adds only the5-line completeness guard; its regression modifies a test absent from Main.",
+        "Main getCustomers.ts contains old customer consolidated_invoice/billing_level selections and no contract_billing_summary/helper import; foundation adds helper, read changes and companion UI rendering."
+      ],
+      "impact": "Incomplete adoption either lacks prerequisites or leaves the original invalid-column query untouched; forcing only the guard onto Main references a property absent from the current row contract.",
+      "rootCause": "Only final refinement commit was exported, not its foundation commit.",
+      "targetedFutureAction": "Preserve foundation and refinement; after the other UI thread, port the minimal composed behavior onto then-current Main with tests. Do not overwrite the whole working file or bulk-apply branches.",
+      "status": "DEPENDENCY_PRESERVED_BY_ROOT_NO_ADOPTION",
+      "preservedFoundation": {
+        "path": "/workspace/gridex-waiting-review-20261116/additional-candidate-patches/customer-list-foundation-a9b5f3f3.patch",
+        "sha256": "69520dae6cb053ae6e7e2d5f8e89adf869e169ab0d77be0b70ba4fdeca37a93c",
+        "bytes": 47808
+      },
+      "sourceRepository": "/tmp/gridex-customer-contract-preferences-fix-20261115",
+      "sourceParent": "a9b5f3f35d652d968eb45a54d5096c326909543e",
+      "base": "ce8045558f8ddc0dbeca124c52cb8fb3aa43a4ba"
+    }
+  ],
+  "candidateAssessments": {
+    "customerList": {
+      "wholeFinalCandidateReadFromSourceRepository": "/tmp/gridex-customer-contract-preferences-fix-20261115",
+      "foundationPlusRefinementRequired": true,
+      "scopedContractReads": "Group by actual row.company_id; tenantSelect applies exact company predicate, bounded customer IDs and returned company/customer ownership checks. No new tenant bypass or new DB write observed.",
+      "incompleteReadBehavior": "Filtered contract-dependent results fail explicitly; unfiltered unavailable summary remains nullable and distinct from a complete zero-contract set.",
+      "semantics": "All STORED contracts irrespective of status/date, explicitly not invoice-effective policy. Mixed/unknown/no-contract/unavailable remain separate.",
+      "staffCompatibility": "listCustomersPageForCompany remains present; company-scoped reread and public staffCustomerSummary DTO remain unchanged. Initial feared lost export/refuted tenant leak are not findings.",
+      "uiDeltaAgainstMain": "Companion page.part-2 diff is helper import, explicit all-contract filter label and summary render; it must remain coordinated with any customer-card/workflow redesign.",
+      "historicalValidation": "41 component controls reported at final1d2, including portable26+installedSDK15; this review does not rerun or upgrade them.",
+      "adoption": "NOT_APPROVED_NOT_PERFORMED"
+    },
+    "dashboardWriter": {
+      "sourceFile": "lib/analytics/companyDashboardSummary.ts",
+      "removedSymbol": "refreshCompanyDashboardSnapshot",
+      "mainBeforeSHA256": "48c4f872c22b839c7569354c3e03d63ec07f6a05ac97d68b6b789247a21e74a2",
+      "candidateAfterSHA256": "78b7d8362d24bf099ea8bd0f59392f745e220286d7658ec9d057dd9a40f4f2ef",
+      "wholeRetainedPrefixMatchesCurrentMain": true,
+      "boundedNamedProductCallersFound": 0,
+      "testReference": "customer-portfolio.test.ts reads retained builder source; it does not call removed writer.",
+      "normalReadPath": "/admin -> getCompanyDashboardSummary -> tenant RPC/view or verified platform summary; configured analytics cron -> monthly builder/rollup/alerts.",
+      "databaseTableViewRpcRlsAndGeneratedTypesUntouched": true,
+      "noNewConcreteRemovalRegressionEstablished": true,
+      "globalDynamicExternalAbsenceProven": false,
+      "testsTypeLintBuild": "NOT_RUN_IN_THIS_REVIEW; original standalone candidate also reports NOT_RUN",
+      "adoption": "NOT_APPROVED_NOT_PERFORMED"
+    },
+    "deadcodeReport": {
+      "codeChanges": 0,
+      "documentsOnly": 2,
+      "datedEvidenceNotCurrentAdoption": true,
+      "manualDistinctDeclarations": 33,
+      "reviewedSourceRemoved": 24,
+      "reviewedSourceRetained": 9,
+      "sourceCompositionNewRemovals": 22,
+      "historicalRuntimeRemovals": 2,
+      "separateDashboardRemovalNotAddedTo24": true,
+      "combined25_8NotEstablished": true,
+      "staticUnreached": 187,
+      "staticUnreachedNotDead": true,
+      "mainDeclarationTokensStillPresent": 33,
+      "mainPresenceCheckDoesNotProveLiveOrDead": true,
+      "actual22RemovalCompositionPatchNotThisDocumentationCandidate": true,
+      "knownDynamicCounterexamples": "Retention calls construct native RPC names; live export child route and native invoice graph remain distinct from unused TS wrappers.",
+      "currentMainLegacyDownloadFilesystemPath": "app/admin/billing/export-center/[id]/download/route.ts; historical parameter label[runId] is equivalent URL shape, not a missing route finding.",
+      "newDeadDeclarationsClassified": 0
+    }
+  },
+  "previouslyKnownLimitations": [
+    "Original customer-list42703 invalid customer-column selection; no new native DB query performed.",
+    "Complete read limits250/page,20000rows,200pages and100customer batches; cap/error is unavailable/explicit failure, not complete empty.",
+    "Multiple reads are not an atomic transaction; same-count concurrent replacement is not generally excluded.",
+    "Existing site/meter/POA counters retain their older bounded-read/ownership assumptions; this candidate is not a whole data-access redesign.",
+    "33=24local source removals/9retained is separate from qualified runtime2/31 and current Main source;187unreached is not dead.",
+    "Deadcode-reportb5 is documentation only and does not implement the22 cleanup operations.",
+    "Candidate dashboard regression/type/lint/build remain unexecuted; no runtime adoption.",
+    "Historical dated deletion d04 limitation is not a new verdict on later8af or the other active UI thread."
+  ],
+  "disprovedHypotheses": [
+    {
+      "claim": "Customer-list candidate drops the staff API list export.",
+      "verdict": "DISPROVED",
+      "proof": "Both Main and complete1d2 source retain listCustomersPageForCompany and scoped native-search reread; staff DTO does not expose added preference fields."
+    },
+    {
+      "claim": "The new contract summary query is an unscoped tenant read.",
+      "verdict": "DISPROVED_FOR_REVIEWED_NEW_PATH",
+      "proof": "Actual-company grouping, tenantSelect company predicate and returned-row ownership checks are explicit; caller admin/staff boundaries remain. No universal preexisting-tenant-security claim."
+    },
+    {
+      "claim": "Historical[runId] path means current legacy child route is absent.",
+      "verdict": "DISPROVED",
+      "proof": "Main has equivalent[id]/download/route.ts; dynamic parameter spelling is not URL behavior."
+    }
+  ],
+  "otherThreadOverlap": {
+    "taskName": "Förenkla kundkort och workflow",
+    "reportedRoots": [
+      {
+        "path": "/workspace/gridex-fix-final-audit-20261116",
+        "presentAtRead": false
+      },
+      {
+        "path": "/workspace/gridex-fix-final-actions-20261116",
+        "presentAtRead": false
+      }
+    ],
+    "actualTouchedFileMetadataAvailable": false,
+    "confirmedFileConflict": null,
+    "potentialSharedFiles": [
+      "app/admin/customers/page.part-2.tsx",
+      "app/admin/customers/page.part-1.tsx",
+      "app/admin/customers/[id]/page.part-1.tsx",
+      "lib/customers/getCustomers.ts"
+    ],
+    "rule": "Wait for the other thread result and compare exact final Main/files before implementation; no edits, reservations or claim releases in that work. Names alone do not establish overlap."
+  },
+  "futureTestGatesNotExecutedNow": [
+    "Relevant composed customer-list Vitest plus staff API pagination/DTO and customer-operations-summary regressions on then-current Main.",
+    "Project semantic TypeScript, lint and relevant Next build after composition; transpile-only41 controls are not project compile.",
+    "Native authenticated tenant/platform list, actual schema and full filter/read-failure behavior when qualified producer scope is available.",
+    "Existing customer-portfolio regression for dashboard; confirm current named/configured consumers before removal.",
+    "Any22-symbol cleanup must carry exact current module/import/Next-route/caller proof; retain native RPC/view/tables and live exports.",
+    "Two independent final exact-head/base/tree reviews and required CI before future normal adoption; none requested/executed here."
+  ],
+  "registry33CurrentPresence": [
+    {
+      "path": "lib/billing/exportCenter.ts",
+      "symbol": "createBillingExportRun",
+      "compositionDisposition": "RETAINED_LEGACY_SYMBOL_IN_LIVE_MODULE",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        321
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "lib/billing/exportCenter.ts",
+      "symbol": "getBillingExportCenterData",
+      "compositionDisposition": "RETAINED_LEGACY_SYMBOL_IN_LIVE_MODULE",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        108
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "lib/billing/exportCenter.ts",
+      "symbol": "sendBillingExportRunToPartnerApi",
+      "compositionDisposition": "RETAINED_LEGACY_SYMBOL_IN_LIVE_MODULE",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        1182
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "lib/billing/exportCenter.ts",
+      "symbol": "retryFailedBillingExportRunItems",
+      "compositionDisposition": "RETAINED_LEGACY_SYMBOL_IN_LIVE_MODULE",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        1343
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "lib/billing/underlayEngine.ts",
+      "symbol": "estimatedItems",
+      "compositionDisposition": "RETAINED_LIVE_TEST_OR_PRODUCT_PATH",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        545
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "lib/billing/underlayEngine.ts",
+      "symbol": "estimatePayload",
+      "compositionDisposition": "RETAINED_LIVE_TEST_OR_PRODUCT_PATH",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        572
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "lib/analytics/biddingZoneResolver.ts",
+      "symbol": "resolveBiddingZone",
+      "compositionDisposition": "RETAINED_LIVE_TEST_OR_PRODUCT_PATH",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        40
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "lib/analytics/companyDashboardSummary.ts",
+      "symbol": "refreshCompanyDashboardSnapshot",
+      "compositionDisposition": "RETAINED_UNCERTAIN_AT_COMPOSITION_CUTOFF_LATER_SEPARATE_E6B269_SOURCE_REMOVAL",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": true,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        76
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "lib/auth/userSync.ts",
+      "symbol": "syncAuthUserToProfile",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        33
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "lib/auth/userSync.ts",
+      "symbol": "recordAuthEmailEvent",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        74
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-1.tsx",
+      "symbol": "dynamic",
+      "compositionDisposition": "HISTORICAL_REMOVAL_ALREADY_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        55
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-1.tsx",
+      "symbol": "customerTypeDescription",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        151
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-1.tsx",
+      "symbol": "primaryContactHeading",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        192
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-1.tsx",
+      "symbol": "activeAddressHeading",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        197
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-1.tsx",
+      "symbol": "contractStatusUiLabel",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        218
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-1.tsx",
+      "symbol": "normalizeJsonList",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        255
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-1.tsx",
+      "symbol": "intakeStatusLabel",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        263
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-1.tsx",
+      "symbol": "intakeStatusTone",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        284
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-1.tsx",
+      "symbol": "lifecycleTone",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        300
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/[id]/workspaceGroups.ts",
+      "symbol": "activeTenantGroup",
+      "compositionDisposition": "RETAINED_LIVE_TEST_OR_PRODUCT_PATH",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        21
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/page.part-1.tsx",
+      "symbol": "dynamic",
+      "compositionDisposition": "HISTORICAL_REMOVAL_ALREADY_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        18
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/page.part-1.tsx",
+      "symbol": "safeQueryRows",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        94
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/page.part-1.tsx",
+      "symbol": "StatusBadge",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        119
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/page.part-1.tsx",
+      "symbol": "priorityTone",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        160
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/page.part-1.tsx",
+      "symbol": "FilterChip",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        680
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/page.part-1.tsx",
+      "symbol": "filterLabel",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        755
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/page.part-1.tsx",
+      "symbol": "contractFilterLabel",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        779
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/page.part-1.tsx",
+      "symbol": "customerTypeFilterLabel",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        812
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/customers/page.part-1.tsx",
+      "symbol": "customerFlagFilterLabel",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        819
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "app/admin/electricity-suppliers/ElectricitySuppliersTable.tsx",
+      "symbol": "ElectricitySuppliersTable",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        8
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "components/admin/customers/billing-metering/forms.tsx",
+      "symbol": "SmartOutboundForm",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        115
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "components/admin/customers/billing-metering/forms.tsx",
+      "symbol": "SmartDataRequestForm",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        250
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    },
+    {
+      "path": "components/admin/customers/billing-metering/forms.tsx",
+      "symbol": "SmartPartnerExportForm",
+      "compositionDisposition": "REVIEWED_SOURCE_COMPOSITION_REMOVAL_NOT_RUNTIME_ADOPTED",
+      "lastQualifiedRuntimeDisposition": "NOT_REMOVED",
+      "separateE6b269SourceRemoval": false,
+      "mainFileExists": true,
+      "mainDeclarationLines": [
+        388
+      ],
+      "presenceIsNotLiveOrDeadProof": true
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/03-customer-list-1d2bc476b5d7.patch",
+      "sha256": "00d4732b706008d35fae73f3cd139d1d0fcc71534348965b7155f13921b15ddc",
+      "bytes": 19020
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/05-dashboard-deadcode-e6b269e63aaa.patch",
+      "sha256": "e53f448c14ec985b235147aa10012be1eeef40a533c79c4d301907c2eac12d09",
+      "bytes": 9926
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/07-deadcode-report-b5c5cd534c39.patch",
+      "sha256": "3ef387c4939edf5e26a66af3f9fa80e3e09d08c43f5969a7c79186e9724cbeb1",
+      "bytes": 35513
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/handoff/candidate-patches/CANDIDATE-PATCHES.safe.json",
+      "sha256": "ef7e99b42516dfd7be73bd063f4d1baa63cc14d31c47c098d50d4146e739b289",
+      "bytes": 9630
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/customers/getCustomers.ts",
+      "sha256": "5d2d0254c0cea0c2e75bbfd8df2a69252586f050ddf04b8ff4bba51226fb083c",
+      "bytes": 22968
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/app/admin/customers/page.part-2.tsx",
+      "sha256": "9555fff0145ed9391152e049c7057456388d3f4bd40fda56b04bdec1c4702027",
+      "bytes": 26398
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/app/admin/customers/page.part-1.tsx",
+      "sha256": "0016fbd01675d0e1bbf7d94db380e0933b59de9dbdef798383b2fbc140dfbbf4",
+      "bytes": 24406
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/app/admin/customers/[id]/page.part-1.tsx",
+      "sha256": "f475e6f95e385b7c1326625a53e9cbf52cc5c0fb3c053cb3a100ebd84ab886b7",
+      "bytes": 24044
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/supabase/tenantDb.ts",
+      "sha256": "ff62081e3bfbf9af2682b09bbe0712a962b1d79d6379e5ce88eb3e2c9d52fe13",
+      "bytes": 3656
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/supabase/tenantQuery.ts",
+      "sha256": "673c453d6cf94f59de09d018c9473d620630afeb600f1deb0bd760486813f859",
+      "bytes": 1268
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/staff-api/customerHandlers.ts",
+      "sha256": "6a002aa20972a7cbde36dd90c99010490bae9626565eac6ac159ad0fcff3233c",
+      "bytes": 8910
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/staff-api/customers.ts",
+      "sha256": "d80b08cc55da002d5cbbd4fbf01b2bd69d72ad6ede92fd70e70d5a251e5ebab8",
+      "bytes": 7243
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/analytics/companyDashboardSummary.ts",
+      "sha256": "48c4f872c22b839c7569354c3e03d63ec07f6a05ac97d68b6b789247a21e74a2",
+      "bytes": 4018
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/lib/performance/companySummaries.ts",
+      "sha256": "cd2f4c0c286a011b7c65017cba813ff7736e6d6ec52a81ac268b4d1c1eb664f4",
+      "bytes": 13285
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/app/api/cron/analytics/daily/route.ts",
+      "sha256": "35a488625ef95e249de73b6dad288d5ba6a4643d57c3e77283be83a45b6f9e98",
+      "bytes": 1455
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/app/api/cron/analytics/monthly/route.ts",
+      "sha256": "8cc5ce54b9bb6b09c28fa13848f8723261bfb7b393b65c2ecbd809f4a383b017",
+      "bytes": 1211
+    },
+    {
+      "path": "/workspace/gridex-main-transfer-20261116/main/__tests__/customer-portfolio.test.ts",
+      "sha256": "22eeb9c334d5362db93d14356dae65ef8c6808748cebe6e079759c7b41108853",
+      "bytes": 10751
+    },
+    {
+      "path": "/tmp/gridex-customer-contract-preferences-fix-20261115/lib/customers/getCustomers.ts",
+      "sha256": "95b0ddc28c27877baab6a06e30ff12fda33c4e71717725e62bf189b60624ca28",
+      "bytes": 25516
+    },
+    {
+      "path": "/tmp/gridex-customer-contract-preferences-fix-20261115/lib/customers/contractBillingSummary.ts",
+      "sha256": "764af48471c6ba31087bb93e69b438c6a12f9d0fe9f7e67c7e54d0450b01c328",
+      "bytes": 7357
+    },
+    {
+      "path": "/tmp/gridex-customer-contract-preferences-fix-20261115/app/admin/customers/page.part-2.tsx",
+      "sha256": "aa94408dcc43ff7181a29deb45f4498c8053934a64197b8156890c8277949937",
+      "bytes": 26504
+    },
+    {
+      "path": "/tmp/gridex-customer-contract-preferences-fix-20261115/__tests__/customer-list-contract-summary.test.ts",
+      "sha256": "df98ff136f4b4216373446e20323d79e8c0ab8385416127c4b2935f9cf3c9a0f",
+      "bytes": 12890
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/additional-candidate-patches/customer-list-foundation-a9b5f3f3.patch",
+      "sha256": "69520dae6cb053ae6e7e2d5f8e89adf869e169ab0d77be0b70ba4fdeca37a93c",
+      "bytes": 47808
+    },
+    {
+      "path": "/workspace/gridex-waiting-review-20261116/additional-candidate-patches/DEPENDENCY-ADDENDUM.safe.json",
+      "sha256": "9723966ad7c93e242d4dc39156da6ac30bd8204020f9fcf906bbbb208b58ea5e",
+      "bytes": 1611
+    }
+  ],
+  "verification": {
+    "readOnlyGitStatusDiffLogRevParse": true,
+    "patchOrCandidateCodeExecuted": false,
+    "nodeNpmTypeLintBuildCiBrowser": false,
+    "dockerSqlAuth": false,
+    "gitRefIndexCheckoutWrites": false,
+    "otherThreadWritesOrReservations": false,
+    "sourceOrFrozenPackageWrites": false,
+    "ownReviewFilesOnly": true,
+    "original105CountsChanged": false,
+    "newProductOrScenarioPass": false
+  }
+}

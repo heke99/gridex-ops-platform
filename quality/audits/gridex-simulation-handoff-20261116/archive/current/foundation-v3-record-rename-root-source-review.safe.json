@@ -1,0 +1,10 @@
+{
+  "state": "SOURCE_AND_PREPARED_FINALDOC_APPROVE_V3",
+  "sourceHead": "0089242b21e06ed255f3324184b9244d414521b4",
+  "docHead": "706d45a24baacb3a02264f020ea34ad896d7973a",
+  "migrationSHA256": "4c76103c85c97ad2750dc5c89e7c0503d858292f113fd528cfece3165240dcb8",
+  "actualSourceEvidenceRefsVerified": 17,
+  "delta": "RenameONLYdeclaredlooprecord/FOR/intendedloopfieldrefs p\u2192v_permission; reverseexactlyrestores1d71. SQLtablealiases p unchangedbeforeafterloop. SameCguard35keys/bodypin/locks/DENY/idempotence; test637unchanged.",
+  "actualHistory": "Twofirstnormal55000stops preserved, fiveothercasesNOTRUN perattempt; main522/3368equal/dropabsent, no postfailedclonecaptureclaimed.",
+  "currentCandidateNative": "NOT_RUN_NO_NEW_CASE_CREDIT"
+}

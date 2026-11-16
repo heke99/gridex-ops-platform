@@ -1,0 +1,19 @@
+{
+  "state": "ACTUAL_FIRST_NORMAL_STOP_QUALIFIED_NOT_PASS",
+  "wrapper": "0eecc905a18cb0c17fe24814ee335c056bc11c9c072bd8ae0a0181c9cfd8593a",
+  "primary": "55000 company_admin_foundation_frozen_profile_mismatch",
+  "stderrSha256": "73e733d2cc9a65939cc85f96f8f34470e0f072d1b38c3416df06633f38b08a9b",
+  "attemptedCases": 1,
+  "otherCasesNotRun": 5,
+  "actualProfileSame35KeySet": true,
+  "onlyOrderingDiffersAtIndexes": [
+    17,
+    18,
+    19,
+    20
+  ],
+  "main522And3368FullObjectsEqual": true,
+  "ownNormalCloneDroppedAbsent": true,
+  "classification": "NEW_PRE_ADOPTION_FOUNDATION_GUARD_COLLATION_DEFECT_NOT_ORIGINAL26_BASELINE",
+  "next": "Exactone-lineCcollationfix +independent source delta reviews before a new bounded run; old failure preserved"
+}

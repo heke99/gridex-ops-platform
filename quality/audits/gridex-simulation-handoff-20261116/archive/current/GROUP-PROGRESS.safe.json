@@ -1,0 +1,130 @@
+{
+  "sourceLedger": "/workspace/gridex-per-id-execution-ledger-20261115/per-id-execution.v5.safe.json",
+  "counts": {
+    "fullPass": 43,
+    "gap": 1,
+    "incomplete": 61
+  },
+  "groups": {
+    "MAIN03": {
+      "total": 5,
+      "fullPass": 0,
+      "gap": 0,
+      "incomplete": 5
+    },
+    "MAIN04": {
+      "total": 5,
+      "fullPass": 0,
+      "gap": 0,
+      "incomplete": 5
+    },
+    "MAIN05": {
+      "total": 6,
+      "fullPass": 2,
+      "gap": 0,
+      "incomplete": 4
+    },
+    "MAIN06": {
+      "total": 3,
+      "fullPass": 0,
+      "gap": 0,
+      "incomplete": 3
+    },
+    "SITE01": {
+      "total": 5,
+      "fullPass": 2,
+      "gap": 1,
+      "incomplete": 2
+    },
+    "TERM01": {
+      "total": 5,
+      "fullPass": 4,
+      "gap": 0,
+      "incomplete": 1
+    },
+    "TERM02": {
+      "total": 8,
+      "fullPass": 6,
+      "gap": 0,
+      "incomplete": 2
+    },
+    "TERM03": {
+      "total": 5,
+      "fullPass": 0,
+      "gap": 0,
+      "incomplete": 5
+    },
+    "DELIVERY01": {
+      "total": 5,
+      "fullPass": 3,
+      "gap": 0,
+      "incomplete": 2
+    },
+    "EDIEL01": {
+      "total": 6,
+      "fullPass": 0,
+      "gap": 0,
+      "incomplete": 6
+    },
+    "EDIEL02": {
+      "total": 6,
+      "fullPass": 1,
+      "gap": 0,
+      "incomplete": 5
+    },
+    "EDIEL03": {
+      "total": 5,
+      "fullPass": 0,
+      "gap": 0,
+      "incomplete": 5
+    },
+    "CUSTODY01": {
+      "total": 5,
+      "fullPass": 1,
+      "gap": 0,
+      "incomplete": 4
+    },
+    "API01": {
+      "total": 5,
+      "fullPass": 5,
+      "gap": 0,
+      "incomplete": 0
+    },
+    "AUTH01": {
+      "total": 6,
+      "fullPass": 6,
+      "gap": 0,
+      "incomplete": 0
+    },
+    "EVENT01": {
+      "total": 5,
+      "fullPass": 5,
+      "gap": 0,
+      "incomplete": 0
+    },
+    "BILLNEG01": {
+      "total": 5,
+      "fullPass": 0,
+      "gap": 0,
+      "incomplete": 5
+    },
+    "UI01": {
+      "total": 5,
+      "fullPass": 4,
+      "gap": 0,
+      "incomplete": 1
+    },
+    "QA01": {
+      "total": 5,
+      "fullPass": 4,
+      "gap": 0,
+      "incomplete": 1
+    },
+    "QA02": {
+      "total": 5,
+      "fullPass": 0,
+      "gap": 0,
+      "incomplete": 5
+    }
+  }
+}

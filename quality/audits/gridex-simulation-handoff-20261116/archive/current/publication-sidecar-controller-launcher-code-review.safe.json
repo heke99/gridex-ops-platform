@@ -1,0 +1,23 @@
+{
+  "state": "EXTERNAL_SIDECAR_CONTROLLER_AND_LAUNCHER_CODE_COMPONENT_APPROVE_NOT_ACTUAL_GO",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T08:15:44.380418+00:00",
+  "controllerPreparedSHA256": "f12772bd880a2c7a5ac1ecccd8616bd283bd3ccf177e4681b88cd7b19206da90",
+  "launcherPreparedSHA256": "2eaeb1933b675ee47515ebe58612d6f7e47727e4181ff36c19aee3b128aee454",
+  "controllerSHA256": "23fecb0518bfb618cd4e631a2acf649f648cbfe120c49bda303ebe6d80df693b",
+  "launcherSHA256": "ba1edacb743a25dc40dc19f7ac52ede14b6cd869249baef6ce1c14e2f191b58c",
+  "verifiedPins": 22,
+  "review": [
+    "Fullcontroller/launcher read andprivatefilemodes verified; exactactualruntimeReady/config/ledger/appCID+nonce/image/canary/firewall/caps identity",
+    "DedicatedsmallNode sidecar sharesonlyexactownappNETNS, no publish/backendnetwork/Authfactoryenv; ROstrictTLSinputroot separatefromUIcommands, privatekeys600",
+    "StrictrealCA+leafpin GET404 fromappUID10001 beforeissuer; no businessPOST fromprobe, no firewallwiden neededqualifiedloACCEPT",
+    "DedicatedPort exactcreateargv+ownedinspect beforestop/rm, ambiguouscreate reconciled byexactownname/image/labels, noforeigncleanup",
+    "Separatecontrolrendezvous only; sidecar normalstop/exit0/closed/capturearchive/absence before95a runtimecomplete/appteardown;90s cleanupreserve",
+    "14controller source/embeddedJSchecks and5fakefilesystemboundarychecks are not actualTLS/browserproof"
+  ],
+  "limits": [
+    "Actualfreshscopes+runtimeCIDs/mountreadability/realnetworkproof required",
+    "Controller CODE2 QA pending; launcher CODE2 Ediel8628 present",
+    "No scenario/business authority orpositive deliverycredit fromcontrolfiles"
+  ]
+}

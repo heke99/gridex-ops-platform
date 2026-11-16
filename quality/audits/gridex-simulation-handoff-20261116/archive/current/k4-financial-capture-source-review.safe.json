@@ -1,0 +1,13 @@
+{
+  "state": "ROOT_K4_FINANCIAL_CAPTURE_EXACT_NAMESPACE_SOURCE_APPROVE_NOT_ACTUAL",
+  "observedAt": "2026-11-14T15:24:37.753899+00:00",
+  "preparedPath": "/tmp/gridex-local-import-capture-k4-prep-20261114/PREPARED.safe.json",
+  "preparedSHA256": "979bd6ef7022e38424150d9589f4ffa9e76a3f9d804521fe0919dd040a1108f4",
+  "scriptSHA256": "f59829a57f24fc7ce52e34fe509817665627fb8d5afaa4f91f862a40dcf8d0bf",
+  "wholeInverseOnlyOneInputRootLiteral": true,
+  "allDeclaredFileAndHistoricalReviewPinsChecked": true,
+  "astParsed": true,
+  "unchangedScope": "Four SQL/807-column qualification/raw numeric bytes/identity pairing/native8s+read15s remain exact qualified K3 source. No actual invocation or monetary/case PASS. Independent physical2688/lineage/lockedpricing/Decimal assessment still required after actual capture.",
+  "futureActualIDs": null,
+  "backendCalls": 0
+}

@@ -1,0 +1,16 @@
+{
+  "state": "LOCAL_CRYPTO_AND_NATIVE_READBACK_CODE_APPROVE_NOT_BUSINESS_EXECUTION_GO",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T07:58:09.707483+00:00",
+  "preparedSHA256": "9c69be8e391d4f743ac9392ab4d3915ac629486aa286e437c113dd8cfdfb6a8e",
+  "generatorSHA256": "6c8224d8426511b5ef417ef63b5f33abbedf1f04413e0eb6abe27f0134ddcba5",
+  "nativeReadbackSQLSHA256": "9c569ee3a7311d667019a0c5b762d708691c112b2259a2042b91cb663a124ba0",
+  "verifiedPins": 7,
+  "review": [
+    "Fullgenerator/query read; exactnewownedroot0700/600 files, existingpinnedOpenSSL5fixedargv20s, actualAevent chosenbyID notrowindex",
+    "RealCA+IP127leaf+signatureverification andDERfingerprint; randomHMAC/nonce, ownCAprivatekeyremovedbeforeREADY",
+    "NoAuth/SDK/DB/listener/outbound; runtimeTLSmount/netns/UID andfiniteprocesscleanup remainproducerowned",
+    "Exactserialownclone/typedquotedIDs/READONLY8s/ROLLBACK native event/receiver/subscription/binding/delivery+count, no fabricatedauthority"
+  ],
+  "next": "PairQAe8dc9 thenproducer maybindexacttarget/GO and executeONE ownlocalcryptogeneration beforeAuth, preserveallfirsterror/receipt; no additionalcryptoapproval gate."
+}

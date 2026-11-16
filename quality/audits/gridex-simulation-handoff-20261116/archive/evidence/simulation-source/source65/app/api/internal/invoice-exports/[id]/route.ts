@@ -1,0 +1,27 @@
+import { NextResponse } from 'next/server'
+import { internalApiError } from '@/lib/http/apiError'
+import { ApiInputError } from '@/lib/api/strictRequest'
+import { requireAdminApiAccess, requireAdminReadableCompany } from '@/lib/admin/apiGuards'
+import { getInvoiceExportRun } from '@/lib/integrations/billing/invoiceExportCore'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+type Props = { params: Promise<{ id: string }> }
+
+export async function GET(request: Request, { params }: Props) {
+  try {
+    const { id } = await params
+    const url = new URL(request.url)
+    const requestedCompanyId = url.searchParams.get('companyId') ?? url.searchParams.get('company_id')
+    const access = await requireAdminApiAccess(['billing_underlay.read'], { companyId: requestedCompanyId })
+    if (access.response) return access.response
+    const companyId = await requireAdminReadableCompany(access.guard)
+    const result = await getInvoiceExportRun({ companyId, exportRunId: id })
+    if (!result) return NextResponse.json({ error: 'Fakturaexporten hittades inte.', code: 'invoice_export_not_found' }, { status: 404 })
+    return NextResponse.json({ data: result })
+  } catch (error) {
+    if (error instanceof ApiInputError) return NextResponse.json({ error: error.message, code: error.code }, { status: error.status })
+    return internalApiError({ context: 'invoice_export_read_failed', error, code: 'invoice_export_read_failed', message: 'Fakturaexporten kunde inte hämtas.' })
+  }
+}

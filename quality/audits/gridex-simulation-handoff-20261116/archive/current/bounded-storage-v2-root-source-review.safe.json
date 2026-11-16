@@ -1,0 +1,7 @@
+{
+  "state": "ROOT_SOURCE_REVIEW_ACK_UNARMED",
+  "sourceSHA256": "3e5a4c161c3b20ad7d771e4bc4da3f3f27fcae39c5a5030f4f0a1afc063d32e1",
+  "serializationMatchesOriginalEnsureAsciiFalseIndent2Newline": true,
+  "scope": "Reviewed helper/restore and exact source edits; all frozen pins verified. Fresh target namespace and epoch required before execution; no runtime or budget pass claimed.",
+  "peerSHA256": "3219ddf1f52f427bdd0868db97728c8e7e03e7d4cc095caa3406f83e2bb8228a"
+}

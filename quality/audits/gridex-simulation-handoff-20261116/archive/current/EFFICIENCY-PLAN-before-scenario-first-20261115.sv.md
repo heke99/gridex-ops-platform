@@ -1,0 +1,19 @@
+# Effektiv fortsättning för Gridex OPS
+
+Kanoniskt kvarstår38 fullständiga PASS,1 dokumenterad funktionslucka och66 ofullständiga av105. Arbetsmetoden ändras för att minska helkörningar som bara upprepar en blockerare.
+
+1. En enda producent kör backend, operatörssessioner och resursåtervinning. Övriga arbetar i disjunkta käll-/granskningsspår. En extra Root-granskning läggs inte ovanpå det granskarkrav som respektive faktisk körkod redan har.
+2. Börja med minsta mätning som skiljer hypoteserna. För aktuellt57014: en ren SELECT av exakt aktuell wire_tokens_v1 på exakt samma råfil, utan ny operatörsinloggning eller INSERT. Behåll8s SQL-/15s processgräns. Analysera därefter den verkligt anslutna triggerkedjan och anropsantalet. Radnumret vid avbrottet är inte ensam rotorsak.
+3. En full ny import körs först efter en konkret rättning med relevanta ekvivalens-/regressionsbevis eller ett annat tydligt avgränsat experiment. Okända utfall återspelas inte blint; den faktiska grafen och låstillståndet läses först.
+4. Före nästa Auth ska alla fysiska källor finnas: normal Main-start, paus/stopp, båda baslinjeläsarna, fullbackup, cacheåtervinning, runtime, transport, fasdrivrutiner och ekonomi före/efter. Verifiera även riktiga filrättigheter och producent-/konsumentscheman; hashkontroll ensam räcker inte. Framtida sessioner, ID:n och körbeslut är fortfarande oarmade.
+5. Återanvänd oförändrade käll-, kompilator- och komponentbevis med exakta tillämplighetskontroller. SQL-ändringar kräver inte en ny appkopia eller samma appkompilering när appkoden är byteidentisk. Kör bara nya kontroller som förändringen eller ett konkret fel motiverar.
+6. Förbered sidospår utanför den tidsbegränsade operatörssessionen. Behåll hela sessionens tidsgräns; privata tidsplaner skapas först när verklig READY, ny baslinje och korrekt cacheåtervinning är klara. Inga tysta förlängningar.
+7. Spara resultat i samma per-ID- och fyndstruktur. Skilj helscenario-PASS, faktiskt fel, delbevis, otestat och saknat originalfacit. Uppdatera den sammanhållna reporapporten vid meningsfulla resultat, inte efter varje metadatafil.
+
+Nuvarande diagnosspår: de rena parserproven är klara och snabba; ingen ensam parserorsak är styrkt. K13 gör en enda normalimport med avgränsad funktionsstatistik och väntesampling. Alla fysiska källor och producent-/konsumentscheman förbereds före Auth. Inventory sammanställer parallellt en per-ID-kö med minsta nästa handling för samtliga66, inklusive vad som kan köras oberoende av importen. Ny uppgift till en färdig agent startas med followup_task; ett vanligt meddelande räcker inte för att återstarta arbete.
+
+K12:s normala import kör redan underlag/prissättning/utkast. Vid verklig framgång läser vi dess befintliga resultat; vi skickar inte ett extra worker-anrop. 2688 är antal intervall, inte kWh. En ny månadsfixtur ersätter inte historiska28original eller facit1809,51kr.
+
+Den konkreta kön finns i /workspace/gridex-post-k13-finite-queue-20261115/REPORT.sv.md och queue.safe.json, frysningd89beaae0425132be58b3ce14a219917b3b286a256534ff52fb37821f260e9cb. Exakt66 unika ID:6 villkorade läsningar av befintlig K13-graf,51 egna legitima fixtures/körscope eller slutgates,9 heterogena underlags-/orakelberoenden. Indelningen anger nästa handling, inte antal färdiga fullfall. Vid nytt57014: bevara profil och graf, korrekt avslut; prioritera oberoende EVENT/TERM/SITE/CUSTODY/QA framför samma importretry.
+
+Resurslärdom från K13: inträdeskontroll räcker inte som prognos för hela körningen. Nästa förberedelse ska budgetera topputrymmet efter ny fullbackup, båda baslinjefångsterna, runtime-bindningar och felbackup, samt ange exakta redan kvalificerade arkiveringskandidater före Auth. Faktiska fasgränser kontrolleras fortfarande vid respektive steg; en prognos ersätter aldrig en gräns.

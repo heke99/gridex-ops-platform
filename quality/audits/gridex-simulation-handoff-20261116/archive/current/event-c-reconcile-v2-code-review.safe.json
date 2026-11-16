@@ -1,0 +1,14 @@
+{
+  "state": "CODE_APPROVE_NOT_EXECUTION",
+  "reviewer": "/root",
+  "observedAt": "2026-11-14T10:18:00.437053+00:00",
+  "wrapperSHA256": "e61ffa02262a594d00d1782366ab2f71027966c20536300a338db57a352af6ce",
+  "freezeSHA256": "57da28634a924f05e7145015ed01a9101f3efca3c7731ba0ba9a719d92972568",
+  "checks": [
+    "Fullouter/readquery+rankqueryreview; exacthistoricalCFullFcH verified, no newAuth/REST/registrar/businessauthority",
+    "V2 fixesprejudgedpublicrow/privateemptiness; actualunknownstate observed anddeltasrecorded, notbaselinebackfit",
+    "Originalschema/settings/function/Postgis guards, 8sRO/15sprocess, actualbeforeafterclone/private/Mainunchanged andownDROP strict",
+    "SamepageSQL exactnewest30/noextraidorder +strictlynewer/ties/targetrank; no replacementevent or prematureRLSclaim",
+    "FreshpostGLOBALcleanupMainseal/actual805guard/producerEdielactualscope pair stillrequired"
+  ]
+}

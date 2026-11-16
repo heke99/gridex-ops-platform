@@ -1,0 +1,19 @@
+{
+  "state": "SOURCE_V11_EXACT_WIRE_COMPATIBLE_V12_NATIVE_NORM_PENDING_ACTUAL_NATIVE",
+  "sourceHead": "9e1a376bc88b9e4acb582f73c50360dcc327b44d",
+  "docHead": "3706a415b4c0ae7dac6c0728f584fce739dacf6d",
+  "positive19HandoffSHA256": "0d2ed917bd98ca8919411a7906b462f02af16de7d40c9c640fda7b4e5c6f6488",
+  "v12SHA256": "dffe6395a5b3d70b6ab5c28979cbb7f2d58a12e8e8ce17154c5fe2ed8504001b",
+  "same55Defs10RPC6Commands": true,
+  "sameActualEmbeddedTSDefs": true,
+  "v12DesignReviews": [
+    "ROOT60c50a+803305",
+    "DOMAINa2cd729c4f3b59dbdb727959ffdcb72a7b872447fe30fa7d218c722ffcfaca65"
+  ],
+  "limits": [
+    "ImmutableV11sourceandfinalreportremainaccurateattheircutoff",
+    "NativeV12completeV6projectionandvisiblelocalpaperselectionmustbeindependentlysource/nativeverified",
+    "No extraTScodecheckrerunrequiredsolelynormchange",
+    "No runtimeadoptionor105casecredit"
+  ]
+}

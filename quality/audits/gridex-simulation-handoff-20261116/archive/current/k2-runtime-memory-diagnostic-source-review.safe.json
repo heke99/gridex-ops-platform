@@ -1,0 +1,18 @@
+{
+  "state": "ROOT_K2_MEMORY_DIAGNOSTIC_NARROW_SOURCE_APPROVE",
+  "atUtc": "2026-11-14T13:15:11.255680+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-runtime64-3000-k2-cgroup-prep-20261114/PREPARED.safe.json",
+    "sha256": "b1db4a111b1788ecc585c6ebd87e96e0e7118c56fb5451692824baff28365cbf"
+  },
+  "moduleSHA256": "26928a86c67b8990b69871fc7ea010b79e89690e801176bb2671bab892ff0cc9",
+  "review": [
+    "Whole inverse toedacea exact; only persisted actual max/current/headroom/required sample before originalassertion.",
+    "All guards, threshold, authority, canary and cleanup logic unchanged; three pure predicate checks read."
+  ],
+  "limits": [
+    "No runtime/guardPASS from pure checks.",
+    "Fresh held-context binder sibling reviewed separately."
+  ],
+  "backendCalls": 0
+}

@@ -1,0 +1,31 @@
+{
+  "reviewerAgent": "/root",
+  "verdict": "EXECUTION_SCOPE_APPROVE",
+  "scope": "ONE genuine K10 P Auth-only full3000 hold under all mandatoryliveguards; no private/business GO",
+  "atUtc": "2026-11-15T06:28:17.823238+00:00",
+  "targetSha256": "5ba5d31b4467b3874e883001f49ee331d2daa6a93a1a0ee52915485f292b420a",
+  "helperSha256": "6e75357fae5ce026e8e5e8de2b947097499717d800e79c106ef835f35a3be80a",
+  "bindings": {
+    "path": "/tmp/gridex-k10-P-actual-preauth-prep-20261115/bindings.K10.P.actual.safe.json",
+    "sha256": "d22237e3f9af57f8fc13f824826dd3bd6bcd607bb34a780d139992a6c6b8b351"
+  },
+  "explicitRootPhaseBudget": {
+    "path": "/workspace/gridex-root-session-20261112/k10-phase-specific-compiler-auth-budget-decision.safe.json",
+    "sha256": "f7f1fa18e32086f1a56af12fba6500b7fd1ebc24624c5de4ba8aec2bd4e65b7a"
+  },
+  "actualCompilerTerminal": {
+    "path": "/workspace/gridex-source65-scoped-typecheck-actual-20261115-k10/terminal.safe.json",
+    "sha256": "66057274637e85ee00aa47fe3b5c70199e3e94e32646439b87a78d39cdfbf8f3"
+  },
+  "independentChecks": "Exacttarget/full3000/allboundfiles+65physicalappfiles/currentMainKPID/start/nonZ/cmdSHA; actualscopedcompilerPASS/exit0/noOOM/ownedcontainerabsence. Pmetadataonly uses identical65/2193codeepoch. ReviewedKheld-cache source4d21 Source2Root8f3d+Ediel05d6 beforeAuth. OldOAuthNOTRUN preserved.",
+  "executionConditions": [
+    "Producer+Ediel exactPactualscope/liveMainK/readiness/source/PkeyHMAC/full3000+120/currentAuth0/ownership/emptyheldroot+checkpointroot guardspass",
+    "AFTERallprewarm currentWS>=775946240 andTMP>=220000000 andallnormalAuthmemory/source guards; no estimatedfuturecachecredit",
+    "OnGENUINEREADY capturecompletelyNEWMainfull/Fc/sessionseal/AFTER_READYall7sequences; noK9/Osession oroldoperatorreview reused",
+    "OnlyafterproperMainKstop actualKinventory/Rootspecificclosedcache scope+pair thenREMEASURE ORIGINALprivate805306368/TMP134217728/failure134217728 beforeparent",
+    "Naturalprincipal+readonlyIMPORTformREADY/phase900/runtime3000/expiry120 remain; fourbusinessphase scopes andRootNEWactualUTF8docreviewbeforeATTEST separate"
+  ],
+  "resourcePassClaimed": false,
+  "compilerScopeOnlyNotFullProject": true,
+  "noOtherAuthOrBusinessAuthority": true
+}

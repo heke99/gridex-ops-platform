@@ -1,0 +1,19 @@
+{
+  "state": "PROVED_DATABASE_LABEL_ONLY_RECEIVER_COMPARISON_MISMATCH",
+  "reviewerAgent": "/root",
+  "actualDatabase": "gridex_one_site_native_diagnostic_20261115_a",
+  "retainedDatabase": "gridex_local_partner_http_20261113_a",
+  "actualPrivate14AndFullReceiverRowsEqual": true,
+  "refs": [
+    {
+      "path": "/tmp/gridex-one-site-native-api-diagnostic-actual-20261115-a/fresh-api-private14-zero.private.json",
+      "sha256": "92a677266c4282b399f94974a8c57ad6a5fbd75e9adacef820460b02b4a43c89"
+    },
+    {
+      "path": "/workspace/gridex-k8-preauth-native-seed-qualification-actual-20261115-b/private14-and-receiver.private.json",
+      "sha256": "72a3e19c2da816e8ee4707dc3c13eeb9ce564d75216d1735af542fea31a94e3c"
+    }
+  ],
+  "backendOrAuthCalls": 0,
+  "limits": "Saved actual artifacts only. Preserve exact namespace validation for both DBs; compare content independently rather than treating different intended DB labels as native data drift."
+}

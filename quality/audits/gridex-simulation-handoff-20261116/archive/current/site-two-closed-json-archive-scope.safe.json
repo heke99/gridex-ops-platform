@@ -1,0 +1,23 @@
+{
+  "state": "AUTHORIZED_EXACT_TWO_CLOSED_SITE_FULL_JSON_ARCHIVE",
+  "at": "2026-11-14T21:49:39.299475+00:00",
+  "proposalPath": "/workspace/gridex-closed-site-two-json-resource-proposal-20261114/PROPOSAL.safe.json",
+  "proposalSHA256": "7ad84ce4169ea9cc489d8f61c4167b50fe471078f5c620bfce5f6b5149bbc485",
+  "dependencyProof": {
+    "path": "/workspace/gridex-closed-site-two-json-resource-proposal-20261114/DEPENDENCY-PROOF.safe.json",
+    "sha256": "4265b28ec6f715273f822bbb8ed09aba63cd4d7210855c63216b8df0f9278096"
+  },
+  "scriptPath": "/workspace/gridex-closed-site-two-json-resource-proposal-20261114/execute-exact-two.py",
+  "scriptSHA256": "b830a6252661bf147555c06ee39174815e2bce4fc8b5cdc9c6bdcde4823d7628",
+  "review": "Qualifiedprotocol exactdelta onlySITE namespace/count2/proposal; 42currentroots rehashed; Domainphysicalrawreadsfinished5e2f; actualdifferentbefore4c8adb/after9cca preserved as distinct historical states.",
+  "authorizedWriter": "qa_remaining_checks",
+  "rootFileHandoff": true,
+  "limits": [
+    "Only2exactclosedSITEfullJSONinodes",
+    "Durablegzip/fullSHAdecompressionbeforeunlink",
+    "Keep46KB S1scenes/result45da/allFc/dumps/source/proofextracts/currentH2 raw",
+    "ExplicitARCHIVEDcustody/exclusiveSHArestorebeforephysicalreuse",
+    "Freshidentity/FD/sourceguards; stopondrift",
+    "No future805orbytescredit"
+  ]
+}

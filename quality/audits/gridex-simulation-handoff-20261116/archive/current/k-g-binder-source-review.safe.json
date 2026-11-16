@@ -1,0 +1,24 @@
+{
+  "state": "ROOT_K_G_BINDER_NARROW_SOURCE_APPROVE",
+  "atUtc": "2026-11-14T12:42:40.713331+00:00",
+  "freeze": {
+    "path": "/tmp/gridex-runtime64-3000-canary-prep-20261114/BINDER_K_G_PREPARED.safe.json",
+    "sha256": "d96757189ec0c4579200ad254febaa13dc9a5fb0bafbf809e3836eada6cda9eb"
+  },
+  "binder": {
+    "path": "/tmp/gridex-runtime64-3000-canary-prep-20261114/bind-fresh-local-k-G-canary.py",
+    "sha256": "4a0e72200a56191ca178b96299b5a029a61fa9408eafe0e8d7ffe3cb9f8d9343"
+  },
+  "review": [
+    "Full F-to-G diff reviewed, previous F qualified behavior retained.",
+    "Actual custody receipt caller SHA pinned; actual carrier bytes and exact two role JWT values must match, no token creation.",
+    "Prior app env preserved; line-level only-two-key delta and same proxy/no EVENT factory flags required.",
+    "Actual G iat strictly after prior role expiry; current role names/times derive from receipt and carrier, not F literals.",
+    "Fresh actual held state/baseline/deadlines still mandatory before pure filesystem binding."
+  ],
+  "limits": [
+    "Source only; does not establish actual G context/target/actor validity or execution permission.",
+    "Existing qualified renewal and actual custody supply authority, binder does not create it."
+  ],
+  "backendCalls": 0
+}

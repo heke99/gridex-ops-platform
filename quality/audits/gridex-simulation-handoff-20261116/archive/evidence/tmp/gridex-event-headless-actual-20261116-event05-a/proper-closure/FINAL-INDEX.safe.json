@@ -1,0 +1,93 @@
+{
+  "state": "EVENT05_FINAL_PROPER_CLOSURE_INDEX_HONEST_CALLER_HARNESS_STOP",
+  "closure": {
+    "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/proper-closure/CLOSED.safe.json",
+    "sha256": "e292bfdae5b23df551c562255e6cc4c081c6c037879a542623dd13e6e069c49e"
+  },
+  "refs": [
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/target.BOUND.private.json",
+      "sha256": "22cf106357ca1ec727cc9573ef02817b6b0b43483bbaeee98bc471387747561f"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/ACTUAL-READY.CORRECTED.safe.json",
+      "sha256": "71109ce2d83feb2c2343926b703e346988c1558ff7f0163049d685dad27181b6"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/target-state-correction.COMPLETE.safe.json",
+      "sha256": "c032aba0ad91caa5222f292e19a5021702e9221073f6bb12d5892f56628bed66"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/owned-runtime-closure.safe.json",
+      "sha256": "c495a2bdbdcd46ca68edae5bb67a7404e3f1b7f07fa289423e787974accad1f4"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/worker-process-closed.safe.json",
+      "sha256": "848bad0cda83016ac139717d94b17bfa769dfa7362553dd7a97f48324fa87cc4"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/final-cleanup-check.main-proof.safe.json",
+      "sha256": "06558e4d8c1ee44e8a0ae8425a8803b782107b9b50930a6498e6a4809b891f27"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/main-after-runtime.private.json",
+      "sha256": "8dd4a027d2db88dcfa67e1d4812b23fa8b903be4d494e6cca8a0fa2290efa824"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/post-topology-restoration.main-proof.safe.json",
+      "sha256": "0d6c230bc60e2edaedb6254501c3a28b078577c16aa1028f24116e76afae9b2e"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/post-topology-restoration.all7.safe.json",
+      "sha256": "892a2fd1409a24528cf244d36a46201dc20dd97b77e20bbf728e4fa089e0d22d"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/post-topology-restoration.auth.safe.json",
+      "sha256": "4035f8987c6f78277628ba99def9b80d9e33c4d9d578771a8ec841139ddd2477"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/halt.unknown.safe.json",
+      "sha256": "77455379f97820646d04d3dcafc1a7ada37727542a484c1c26de50cb1534b0d0"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/owned-failure-dump.safe.json",
+      "sha256": "f157331c5aa8d5f68965cc0da166f1d2ebc2f4804ef79e58a319f6e479fe04f5"
+    },
+    {
+      "path": "/tmp/gridex-one-site-auth-topology-actual-20261116-event05/ORIGINAL-FORWARDER-RESTORED.safe.json",
+      "sha256": "0bd75abf1bcf3744157c4737805b29a2b2525d910810407bef2d242835e7aa41"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/proper-closure/services-after-topology.private.json",
+      "sha256": "b3d3e0b933348cbccb5ae1ceb7c6b73f126306fba7039fc8837b7e563d97a70b"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/clone-bridge-closed.safe.json",
+      "sha256": "a7a8fccf77efa4a708b0f6c5e0b9dcbf008fdffb2d6fd160e94f54aeb54ef20f"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/receiver-success/terminal.safe.json",
+      "sha256": "5990a0849b6ced2947c85bac6f9ad3793d0efad5866cbd24c816f6fdec23f69d"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/global-db-role-settings.before.private.json",
+      "sha256": "a0b9809a10e630b28b73e8eb5b1e65837684497fa7dab119ff76aae031694bb0"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/global-db-role-settings.after.private.json",
+      "sha256": "a0b9809a10e630b28b73e8eb5b1e65837684497fa7dab119ff76aae031694bb0"
+    },
+    {
+      "path": "/tmp/gridex-event-headless-actual-20261116-event05-a/proper-closure/PROCESS-PORT-SETTINGS.safe.json",
+      "sha256": "726bd275a2c884e43eaef7c4df21ff2a365eb4e4d7af3fb68ccf8220183070e8"
+    },
+    {
+      "path": "/tmp/event05-proper-closure.py",
+      "sha256": "d9d255ee3f8d9c10020095383b74a345f2b23beeaab8f2c8a6c6479a8ee4619b"
+    }
+  ],
+  "callerExitCode": 1,
+  "workerExitCode": 0,
+  "workerWireACKHaltedEnvelopeShapeNoRetrospectivePassClaim": true,
+  "originalScenarioVerdictIndependent": true
+}

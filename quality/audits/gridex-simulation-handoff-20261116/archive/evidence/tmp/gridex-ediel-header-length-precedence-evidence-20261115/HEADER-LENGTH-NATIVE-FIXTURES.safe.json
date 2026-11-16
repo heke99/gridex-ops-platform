@@ -1,0 +1,2591 @@
+{
+  "state": "PLANNED_NATIVE_EXPECTATIONS_NOT_EXECUTED",
+  "legacySource": {
+    "path": "/tmp/gridex-ediel-envelope-equivalence-fixture35-corrected-prep-20261115/EQUIVALENCE-FIXTURES.safe.json",
+    "sha256": "03ce5379008f5a6abcb768aed418cd6716cb6cf90b9ec3c9c3925c06a386ec8b"
+  },
+  "legacyReferenceCount": 41,
+  "nativeNormativeCount": 75,
+  "unchangedLegacyCases": 40,
+  "intentionallyRejectedLegacyCase": 35,
+  "fixtures": [
+    {
+      "label": "legacy_corpus_valid_standard",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_crlf",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'\r\nUNH+1+UTILTS:D:99B:UN:E2SE6C'\r\nQTY+220:1.5'\r\n",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_lf",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'\nUNH+1+UTILTS:D:99B:UN:E2SE6C'\nQTY+220:1.5'\n",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_empty_segments",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'''  'UNH+1+UTILTS:D:99B:UN:E2SE6C'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_unicode_body",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'FTX+åäö😀漢字'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_released_terminator_body",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'FTX+ignored?'UNB+not-a-header'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_released_release_body",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'FTX+ignored??'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_incomplete_nonUNB_tail",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'INCOMPLETE?",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_header_only",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_unterminated_UNH_CONTRL_is_only_framing",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+CONTRL",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_leading_spaces",
+      "raw": "  UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_escaped_data",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF?+001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF+001",
+        "uciReference": "REF+001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF+001",
+        "uciReference": "REF+001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF+001",
+        "uciReference": "REF+001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_escaped_component",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF?:001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF:001",
+        "uciReference": "REF:001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF:001",
+        "uciReference": "REF:001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF:001",
+        "uciReference": "REF:001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_escaped_release",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF??001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF?001",
+        "uciReference": "REF?001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF?001",
+        "uciReference": "REF?001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF?001",
+        "uciReference": "REF?001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_escaped_terminator",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF?'001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF'001",
+        "uciReference": "REF'001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF'001",
+        "uciReference": "REF'001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF'001",
+        "uciReference": "REF'001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_three_sender_components",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ:9+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_production_empty_indicator",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "production",
+        "testIndicator": ""
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "production",
+        "testIndicator": ""
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "production",
+        "testIndicator": ""
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_custom_UNA",
+      "raw": "UNA*;,? !UNB;UNOC*3;SENDER*ZZZ;RECEIVER*ZZZ;261115*1200;REF001;;APP;;;;1!UNH;1;UTILTS*D*99B*UN*E2SE6C!QTY;220*1.5!",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_valid_latin1_header",
+      "raw": "UNB+UNOC:3+SÄNDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": {
+        "sender": [
+          "SÄNDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SÄNDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SÄNDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_null_source",
+      "raw": null,
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_empty",
+      "raw": "",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_lowercase_una",
+      "raw": "una:+.? UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_short_una",
+      "raw": "UNA:+.?",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_first_segment_notUNB",
+      "raw": "UNH+1+UTILTS:D:99B:UN:E2SE6C'UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_missing_unb",
+      "raw": "UNH+1+UTILTS:D:99B:UN:E2SE6C'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_unterminated_unb",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_duplicate_complete_unb",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_duplicate_incomplete_unb",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_CONTRL_complete",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+CONTRL:D:3:UN'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_header_unicode_over255",
+      "raw": "UNB+UNOC:3+SĀNDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_header_tab",
+      "raw": "\tUNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_bad_test_indicator",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++2'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_empty_interchange",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_multi_component_interchange",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF:001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_legacy_sender_length36_accepted_precedence_preserved",
+      "raw": "UNB+UNOC:3+SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": {
+        "sender": [
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "environment": "test",
+        "uciReference": "REF001",
+        "testIndicator": "1",
+        "applicationReference": "APP",
+        "interchangeReference": "REF001"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "environment": "test",
+        "uciReference": "REF001",
+        "testIndicator": "1",
+        "applicationReference": "APP",
+        "interchangeReference": "REF001"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "legacy_corpus_invalid_four_sender_components",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ:9:4+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_invalid_non_single_app",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP:X++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_interchange_length_14",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+RRRRRRRRRRRRRR++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "RRRRRRRRRRRRRR",
+        "uciReference": "RRRRRRRRRRRRRR",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "RRRRRRRRRRRRRR",
+        "uciReference": "RRRRRRRRRRRRRR",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "RRRRRRRRRRRRRR",
+        "uciReference": "RRRRRRRRRRRRRR",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_interchange_length_512",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+        "uciReference": "RRRRRRRRRRRRRR",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "rawSqlExpression": null,
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+        "uciReference": "RRRRRRRRRRRRRR",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+        "uciReference": "RRRRRRRRRRRRRR",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_interchange_length_513",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ+261115:1200+RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "expected": null,
+      "rawSqlExpression": null,
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "legacy_corpus_oversize_8MiB_plus1",
+      "raw": null,
+      "expected": null,
+      "rawSqlExpression": "repeat('X',8388609)",
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "sender_component1_length35",
+      "raw": "UNB+UNOC:3+SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS:ZZZ:9+RECEIVER:ZZZ:9+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+        "ZZZ",
+        "9"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ",
+        "9"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "sender_component1_length36",
+      "raw": "UNB+UNOC:3+SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS:ZZZ:9+RECEIVER:ZZZ:9+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+        "ZZZ",
+        "9"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ",
+        "9"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "sender_component2_length35",
+      "raw": "UNB+UNOC:3+SENDER:SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS:9+RECEIVER:ZZZ:9+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+        "9"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ",
+        "9"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "sender_component2_length36",
+      "raw": "UNB+UNOC:3+SENDER:SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS:9+RECEIVER:ZZZ:9+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+        "9"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ",
+        "9"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "sender_component3_length35",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ:SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS+RECEIVER:ZZZ:9+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ",
+        "9"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "sender_component3_length36",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ:SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS+RECEIVER:ZZZ:9+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ",
+        "9"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "sender_released_data_separator_decoded_length35",
+      "raw": "UNB+UNOC:3+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?+:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "sender_released_data_separator_decoded_length36",
+      "raw": "UNB+UNOC:3+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?+:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "sender_released_component_separator_decoded_length35",
+      "raw": "UNB+UNOC:3+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?::ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "sender_released_component_separator_decoded_length36",
+      "raw": "UNB+UNOC:3+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?::ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "sender_released_release_decoded_length35",
+      "raw": "UNB+UNOC:3+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA??:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "sender_released_release_decoded_length36",
+      "raw": "UNB+UNOC:3+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA??:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "sender_latin1_character_length35",
+      "raw": "UNB+UNOC:3+ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "sender_latin1_character_length36",
+      "raw": "UNB+UNOC:3+ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ",
+          "ZZZ"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "sender_empty_optional_component_retained",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ:+RECEIVER:ZZZ:9+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ",
+        ""
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ",
+        "9"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          ""
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          ""
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "sender_empty_primary_still_rejected",
+      "raw": "UNB+UNOC:3+:ZZZ+RECEIVER:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ"
+      ],
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "receiver_component1_length35",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ:9+RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR:ZZZ:9+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ",
+        "9"
+      ],
+      "decodedReceiver": [
+        "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+        "ZZZ",
+        "9"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "receiver_component1_length36",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ:9+RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR:ZZZ:9+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ",
+        "9"
+      ],
+      "decodedReceiver": [
+        "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+        "ZZZ",
+        "9"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+          "ZZZ",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "receiver_component2_length35",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ:9+RECEIVER:RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR:9+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ",
+        "9"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+        "9"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "receiver_component2_length36",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ:9+RECEIVER:RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR:9+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ",
+        "9"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+        "9"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+          "9"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "receiver_component3_length35",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ:9+RECEIVER:ZZZ:RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ",
+        "9"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ",
+        "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "receiver_component3_length36",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ:9+RECEIVER:ZZZ:RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ",
+        "9"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ",
+        "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "receiver_released_data_separator_decoded_length35",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?+:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "receiver_released_data_separator_decoded_length36",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?+:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "receiver_released_component_separator_decoded_length35",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?::ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "receiver_released_component_separator_decoded_length36",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?::ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "receiver_released_release_decoded_length35",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA??:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "receiver_released_release_decoded_length36",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA??:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "receiver_latin1_character_length35",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "receiver_latin1_character_length36",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ",
+        "ZZZ"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ"
+        ],
+        "receiver": [
+          "ÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅÅ",
+          "ZZZ"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": true
+    },
+    {
+      "label": "receiver_empty_optional_component_retained",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ:9+RECEIVER:ZZZ:+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ",
+        "9"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ",
+        ""
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          ""
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SENDER",
+          "ZZZ",
+          "9"
+        ],
+        "receiver": [
+          "RECEIVER",
+          "ZZZ",
+          ""
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "receiver_empty_primary_still_rejected",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+:ZZZ+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "",
+        "ZZZ"
+      ],
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "both_three_components_all_length35",
+      "raw": "UNB+UNOC:3+SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS:SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS:SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS+RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR:RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR:RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+        "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"
+      ],
+      "decodedReceiver": [
+        "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+        "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+      ],
+      "expectedOptimized": {
+        "sender": [
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"
+        ],
+        "receiver": [
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "expectedCorrected": {
+        "sender": [
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS",
+          "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"
+        ],
+        "receiver": [
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+          "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+        ],
+        "interchangeReference": "REF001",
+        "uciReference": "REF001",
+        "applicationReference": "APP",
+        "environment": "test",
+        "testIndicator": "1"
+      },
+      "intentionalLengthCorrection": false
+    },
+    {
+      "label": "receiver_four_components_still_rejected",
+      "raw": "UNB+UNOC:3+SENDER:ZZZ+RECEIVER:ZZZ:9:4+261115:1200+REF001++APP++++1'UNH+1+UTILTS:D:99B:UN:E2SE6C'QTY+220:1.5'",
+      "rawSqlExpression": null,
+      "decodedSender": [
+        "SENDER",
+        "ZZZ"
+      ],
+      "decodedReceiver": [
+        "RECEIVER",
+        "ZZZ",
+        "9",
+        "4"
+      ],
+      "expectedOptimized": null,
+      "expectedCorrected": null,
+      "intentionalLengthCorrection": false
+    }
+  ]
+}

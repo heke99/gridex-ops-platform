@@ -1,0 +1,46 @@
+{
+  "verdict": "EXECUTION_SCOPE_APPROVE",
+  "reviewerAgent": "/root",
+  "helperPath": "/tmp/gridex-ee-browser-pilot-v2-prep-20261113/hold-ee-pilot-v2.cjs",
+  "helperSha256": "cc263cf20e0735532fefd5f3c6e33a195511d7d2cdb0df50700dc51d280ca66a",
+  "driverSha256": "b1eb417bfbac6a61f188f6039b4fd62c2cfc5f204573709d7fe59ae1554a664c",
+  "targetPath": "/tmp/gridex-ee-browser-pilot-v2-prep-20261113/target.window2.BOUND.safe.json",
+  "targetSha256": "a525465a5e7f71c83e2472ab647f0fcf27de1b974a533c4567a810a44208ec7b",
+  "preparedSha256": "5197ddc73a7fd3f4f58bf9134b1884f6a39d3b06f620fedd595c1f824b21879a",
+  "wholeHelperDriverNormalFormsActionsRead": true,
+  "boundFilesVerified": 7,
+  "source40And57PhysicalHashesVerified": true,
+  "actualAppIdentityVerified": true,
+  "scope": [
+    "one genuine existingEE normalUIlogin/currentgetUser/canonical beforecurrentbackup",
+    "samebrowser127cookie context, noAuthflag/storageinjection/refresh",
+    "private3178 fixed7steps normalvisibleforms, exact0600hashboundinputs",
+    "durable singlePOST perstep and producer actualnative readback before next",
+    "visibleUTF8 exactdocument localoperatorattest, notcustomerSign",
+    "privateSDK57521 onlygetUser/canonical; noMAINAuthwrite duringpilot",
+    "finiteTTL/JWT/quota with status/readback/postprooflogout independentbudget",
+    "normalMAINlogout onlyafteractualhashbound mainpost receipt"
+  ],
+  "delegation": "After soleproducer second exactnarrowACK arm window2a525/cc263+b1eb ON_BEHALF_ROOT and executeONCE immediately. FreshcurrentFc after genuineEElogin; backend/business deadline<=20:20Z before actualrolekey20:22:37expiry. No businessreplay and no furtherRootroundtrip/documentgate.",
+  "notGranted": [
+    "Production deploy/push/merge",
+    "fabricated Auth/native receipts",
+    "scenarioPASS from metadata or componenttests"
+  ],
+  "asOfUTC": "2026-11-13T20:05:33.613787+00:00",
+  "reviewType": "NARROW_WINDOW2_REBIND_AFTER_PROPER_OLD_LOGOUT_NO_BUSINESS",
+  "changedTargetKeys": [
+    "actualRunDir",
+    "appCmdlineSha256",
+    "appPid",
+    "appStartTicks",
+    "bridgePort",
+    "pilotRunId",
+    "pilotRunRoot"
+  ],
+  "priorScopeReview": {
+    "path": "/workspace/gridex-root-session-20261112/ee-pilot-v2-a4f-scope-review.safe.json",
+    "sha256": "54a60fe932ca8b0297255f476e8f079e9e05f0d681b2c10dd3ccde867f1ad041"
+  },
+  "oldProperLogoutAndBrowserClosedVerified": true
+}

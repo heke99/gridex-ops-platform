@@ -1,0 +1,19 @@
+{
+  "state": "ORIGINAL_ORACLE_CORRECTION_NO_NEW_REQUIREMENTS",
+  "originalSourceSHA256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+  "literalEvidence": {
+    "path": "/workspace/gridex-original-pass-priority-20261115/ORIGINAL-PASS-PRIORITY.safe.json",
+    "descriptionLine": 262,
+    "description": "Felaktig MIME/segment/UNOC ger faktiskt felkvitto",
+    "requiredReceiptLine": 267,
+    "requiredReceipt": "Faktiska ack/reject/hold-statusar, r\u00e4tt current/basis-ID, inga dubbletter i fysisk m\u00e4ngd eller retroaktivt \u00e4ndrad faktura.",
+    "nextActionLine": 270,
+    "nextAction": "V\u00e4lj dokumenterat faktisk invalid MIME/segment/UNOC som tr\u00e4ffar syntaxfelport; k\u00f6r normal importer med r\u00e4tt isolerad receiver och verifiera felkvitto/disposition utan quantity/billingwrite. Tidigare parsedUTILTS_UNKNOWN \u00e4r inte syntaxreject."
+  },
+  "retraction": "No cited original row requires all three separate malformed MIME, segment AND UNOC negatives. My previous statements that full .06 necessarily needs additional UNOC variant overconstrained the original and are withdrawn. Historical artifacts remain immutable; this correction supersedes their segment-only-not-full classification insofar as it imposed mandatory extra variants.",
+  "correctedAcceptance": "One documented genuinely invalid segment through real own MIME/poll/normal queued parser yielding durable native processor_failed/edifact_dangling_release_character disposition CAN satisfy full original EDIEL02.06, provided actual source identity/wire custody, normal guards, exact queue receipt, unchanged physical quantities/currentbasis/locked invoice/foreign fences and proper closure are independently proved. Do not label PASS from offline tests or a generic exception alone.",
+  "C6": "Not required for this pretenant syntax path: processor parse224 precedes tenant273; normalqueue catch727-755 persists error. Actual early technical-only hold117 must be absent, storage/poll/admission must succeed normally, and isolated exact1job/no competingworkers remain mandatory. No positive party/mandate orUNOCauthority required to prove this chosen segment error.",
+  "remainingEDIEL02_05": "Separate legitimate receiver/party/mandate/source prerequisite remains; correction does not waive that case.",
+  "runnableCandidate": "PRODUCER-QUEUED-HANDOFF.safe.json4cc084 and QA6b834 remain code references; their mandatory no-fullcase-onlysegment labels are superseded by this original-scope correction, not their safety guards.",
+  "actualPASS": false
+}

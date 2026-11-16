@@ -1,0 +1,14 @@
+{
+  "verdict": "FINAL_CLOSURE_INDEX_REBIND_MATCH",
+  "reviewerAgent": "/root/qa_remaining_checks",
+  "producerIndex": {
+    "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/PRODUCER-CLOSURE-REFERENCES.safe.json",
+    "sha256": "b3e896e6d18ca001df83521c509e21ca78b22db0b22bcf123de7dea04a53a511"
+  },
+  "allProducer20RefsWholeSHAIndependentMatched": true,
+  "fullIndependentClosure": {
+    "path": "/tmp/gridex-ediel06-headless-actual-20261116-b/qa-INDEPENDENT-FINAL-CLOSURE-RESIDUAL.safe.json",
+    "sha256": "4acb7a9a11b6e73a2e1be8eeaf046f77db42ce6b102c3e5f4a08b0f7465aabd1"
+  },
+  "noNewGateCaseCreditOrRawRelease": true
+}

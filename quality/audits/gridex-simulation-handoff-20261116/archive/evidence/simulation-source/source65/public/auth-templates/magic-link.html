@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="sv">
+  <body>
+    <h2>Säker inloggning</h2>
+    <p><a href="{{ .SiteURL }}/auth/action?token_hash={{ .TokenHash }}&amp;type=magiclink&amp;next={{ .RedirectTo | urlquery }}">Logga in</a></p>
+    <p>Bekräfta inloggningen på sidan innan du accepterar företagsinbjudan.</p>
+  </body>
+</html>

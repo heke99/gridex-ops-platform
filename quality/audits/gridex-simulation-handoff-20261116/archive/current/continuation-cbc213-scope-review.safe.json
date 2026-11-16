@@ -1,0 +1,42 @@
+{
+  "verdict": "EXECUTION_SCOPE_APPROVE",
+  "reviewerAgent": "/root",
+  "wrapperSHA256": "7e3cde32614fe8591b54c731b652d05f7364bea550509c829c5c2730338541e0",
+  "targetSHA256": "cbc21382bb145dd411f3d8134906f9e5d1adfc57f2cf010a192985e48f34b95e",
+  "targetPath": "/tmp/gridex-pilot57-current-constructor-prep-20261113/execution-target.continuation-e-long.BOUND.safe.json",
+  "donorASTManifest": {
+    "readDeclarations": "c36069bc67a581ef1c6e938b4e7cfa853a5147e400f8e34d2872f271dc41395f",
+    "fd92Declarations": "ac8cbdcdfa208510380ccec0bff12cbadb8079cf3152b33f5d8f3779c9612349"
+  },
+  "reviewType": "EXACT_TRUSTED_C6_ONLY_CONTINUATION_CURRENT_MAIN_SEPARATE",
+  "codeReviewReuse": "/workspace/gridex-root-session-20261112/continuation-7e3-code-review.safe.json",
+  "boundFilesVerified": 53,
+  "currentMainSealSHA256": "34a6bab014438dff164954c3d116fa94b978de3ff34577c3210758fb700724f9",
+  "currentMainBeforeAfterSHA256": "8934e1bf7eacf5e2d7d88cae37c08b06bbb5124f8ad972d1210e582245b5f059",
+  "trustedFailureFc": {
+    "path": "/tmp/gridex-pilot57-current-actual-20261113-d/failure-clone-current.dump.private",
+    "sha256": "501edc2eff95203645ddfd97cfcb2b8de868857f1acd394162de7a8eac7e3176",
+    "bytes": 17150502
+  },
+  "actualC6RegistrationId": "a3ccb7f7-41a8-4ad3-8c15-7bfb1dfb47e4",
+  "runtimeBinding": {
+    "modulePath": "/tmp/gridex-pilot57-runtime-session-prep-20261113/runtime-session.py",
+    "moduleSHA256": "d22c79bdd49ae8f5b8979b5fe1000110bd67d3afbb6ca933b7d9e68258297be8",
+    "launcherPath": "/tmp/gridex-pilot57-runtime-session-prep-20261113/child-launcher.py",
+    "launcherSHA256": "95a7aa5426a1ae0d04cb425507d5d251f98c627de24356689185fac83d9528fc",
+    "targetTemplatePath": "/tmp/gridex-pilot57-runtime-20261113-c/runtime-input.longwindow.BOUND.safe.json",
+    "targetTemplateSHA256": "499331c89acfd42949a26d47bb01bfd513f6f69a5c339816f4f9219d2f75d1f8"
+  },
+  "deadlineEpochSeconds": 1794603840,
+  "scope": [
+    "restoreexacttrusted3420C6snapshot, noad594/recreateC6/rawAuthflags",
+    "validatefullschema/3420functionmetadata/unchangedrows/exact4C6append",
+    "freshgenuineEE+actualCURRENTMainbaseline3370/source40strictbeforeafter",
+    "NFTsamecanary/allsteadycaps0 and onlyownresourcesfinally",
+    "declaredfixed2localhostforwarders beforeprivatecanonical/UIread",
+    "readonlyactualC6resume thenLOCAL_ISSUEfirsteverPOST withdurableknownresult/readback"
+  ],
+  "delegation": "After soleproducer secondexactACK, armcbc213/7e3 ON_BEHALF_ROOT and executeONCE immediately. Boundedholdextensions withinJWT/max30min andproperpostMainlogout required. No thirdreview/genericpermission/documentgate.",
+  "noScenarioPassGranted": true,
+  "asOfUTC": "2026-11-13T20:46:51.752930+00:00"
+}
