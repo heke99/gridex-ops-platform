@@ -1,6 +1,6 @@
 import { requireInvoiceSourceCopiesAvailable } from '@/lib/ediel/retention/financeCopyRetention'
 import type { DispatchProvider } from '@/lib/billing/providers/registry'
-import { resolveInvoiceDeliveryFor, type InvoiceDeliveryContract, type InvoiceDeliveryCustomer } from '@/lib/billing/effectiveInvoiceDelivery'
+import { invoiceDeliveryMode, resolveInvoiceDeliveryFor, type InvoiceDeliveryContract, type InvoiceDeliveryCustomer } from '@/lib/billing/effectiveInvoiceDelivery'
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
@@ -95,7 +95,7 @@ async function loadContracts(companyId: string, contractIds: string[]) {
     if (chunk.length === 0) continue
     const result = await supabaseService
       .from('customer_contracts')
-      .select('id,company_id,customer_id,contract_number,contract_name,contract_type,status,price_area_used,contract_price_snapshot_id,price_plan_id,price_plan_version_id,contract_product_version_id,snapshot_hash,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_country,billing_level,consolidated_invoice,vat_rate')
+      .select('id,company_id,customer_id,contract_number,contract_name,contract_type,status,price_area_used,contract_price_snapshot_id,price_plan_id,price_plan_version_id,contract_product_version_id,snapshot_hash,customer_site_id,site_id,metering_point_id,billing_address_same_as_site,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_country,billing_level,consolidated_invoice,vat_rate')
       .eq('company_id', companyId)
       .in('id', chunk)
     if (result.error) throw result.error
@@ -110,12 +110,80 @@ async function loadContracts(companyId: string, contractIds: string[]) {
 async function loadInvoiceCustomer(companyId: string, customerId: string) {
   const result = await supabaseService
     .from('customers')
-    .select('customer_number,full_name,company_name,invoice_email,billing_street,billing_postal_code,billing_city')
+    .select('customer_number,full_name,company_name,invoice_email,billing_street,billing_postal_code,billing_city,billing_country')
     .eq('company_id', companyId)
     .eq('id', customerId)
     .maybeSingle()
   if (result.error) throw result.error
   return (result.data ?? null) as (InvoiceDeliveryCustomer & { customer_number?: string | null }) | null
+}
+
+/** All supplied aliases must name the same exact entity; never choose a first site. */
+function requireMatchingIdentity(row: Row, keys: string[], expected: string) {
+  for (const key of keys) {
+    if (row[key] !== undefined && row[key] !== null && text(row[key]) !== expected) {
+      throw new Error('Faktureringsunderlagets kund-/avtals-/anläggningsidentitet är motstridig.')
+    }
+  }
+}
+
+async function loadSharedDraftDelivery(input: {
+  companyId: string
+  customerId: string
+  contractId: string
+  underlay: Row
+  contract: Row
+}) {
+  const { companyId, customerId, contractId, underlay, contract } = input
+  if (text(contract.company_id) !== companyId || text(contract.customer_id) !== customerId ||
+      text(underlay.company_id) !== companyId) {
+    throw new Error('Kundavtalet tillhör inte faktureringsunderlagets bolag och kund.')
+  }
+  requireMatchingIdentity(underlay, ['customer_contract_id', 'contract_id'], contractId)
+  const customer = await loadInvoiceCustomer(companyId, customerId)
+  const confirmedEmail = text(contract.invoice_email) ?? text(customer?.invoice_email)
+  const hasSiteIdentity = [underlay.customer_site_id, underlay.site_id, underlay.metering_point_id,
+    contract.customer_site_id, contract.site_id, contract.metering_point_id].some((value) => value !== undefined && value !== null)
+  let siteAddress: { street: string | null; postalCode: string | null; city: string | null; country: string | null } | null = null
+  const completeContractAddress = Boolean(text(contract.billing_street) && text(contract.billing_postal_code) && text(contract.billing_city))
+  if (!completeContractAddress && contract.billing_address_same_as_site === true && (hasSiteIdentity || !confirmedEmail)) {
+    const siteId = text(underlay.customer_site_id) ?? text(underlay.site_id)
+    const meteringPointId = text(underlay.metering_point_id)
+    if (!siteId || !meteringPointId) throw new Error('Exakt anläggnings- och mätpunktsidentitet saknas.')
+    requireMatchingIdentity(underlay, ['customer_site_id', 'site_id'], siteId)
+    requireMatchingIdentity(contract, ['customer_site_id', 'site_id'], siteId)
+    requireMatchingIdentity(contract, ['metering_point_id'], meteringPointId)
+    const [siteResult, meterResult] = await Promise.all([
+      supabaseService.from('customer_sites')
+        .select('id,company_id,customer_id,street,postal_code,city,country')
+        .eq('company_id', companyId).eq('customer_id', customerId).eq('id', siteId).maybeSingle(),
+      supabaseService.from('metering_points')
+        .select('id,company_id,customer_id,customer_site_id,site_id')
+        .eq('company_id', companyId).eq('customer_id', customerId).eq('id', meteringPointId).maybeSingle(),
+    ])
+    if (siteResult.error) throw siteResult.error
+    if (meterResult.error) throw meterResult.error
+    const site = siteResult.data as Row | null
+    const meter = meterResult.data as Row | null
+    if (!site || !meter || text(site.id) !== siteId || text(meter.id) !== meteringPointId ||
+        text(site.company_id) !== companyId || text(meter.company_id) !== companyId ||
+        text(site.customer_id) !== customerId || text(meter.customer_id) !== customerId ||
+        !(text(meter.customer_site_id) ?? text(meter.site_id))) {
+      throw new Error('Exakt anläggning eller mätpunkt saknas inom samma bolag och kund.')
+    }
+    requireMatchingIdentity(meter, ['customer_site_id', 'site_id'], siteId)
+    siteAddress = { street: text(site.street), postalCode: text(site.postal_code), city: text(site.city), country: text(site.country) }
+  }
+  const delivery = resolveInvoiceDeliveryFor('document', {
+    contract: contract as InvoiceDeliveryContract,
+    customer,
+    siteAddress,
+  }, 'shared')
+  if (!delivery.recipient) throw new Error('Fakturamottagare saknas på avtalet och kunden.')
+  if (!delivery.email && !delivery.postalAddress) {
+    throw new Error('Fakturan saknar bekräftad faktura-e-post eller komplett fakturaadress.')
+  }
+  return { customer, delivery }
 }
 
 async function loadPriceSnapshot(companyId: string, snapshotId: string | null) {
@@ -223,6 +291,11 @@ async function createDraft(input: {
   if (!underlayId || !customerId || !contractId || contractId !== text(input.contract.id)) {
     throw new Error('Faktureringsunderlagets kund-/avtalsidentitet är ofullständig.')
   }
+  const mode = invoiceDeliveryMode()
+  // Validate identities and shared delivery before pricing locks or the atomic draft write.
+  const shared = mode === 'shared' ? await loadSharedDraftDelivery({
+    companyId: input.companyId, customerId, contractId, underlay: input.underlay, contract: input.contract,
+  }) : null
   await requireInvoiceSourceCopiesAvailable({ companyId: input.companyId, underlayId })
   const pricing = await ensureLockedPricing({
     companyId: input.companyId,
@@ -235,10 +308,10 @@ async function createDraft(input: {
   if (!priceSnapshot) throw new Error('Exakt kontraktsprissnapshot saknas.')
   const calculationSnapshot = buildCalculationSnapshot({ underlay: input.underlay, contract: input.contract, priceSnapshot, pricing, billingMonth: input.billingMonth })
   const calculationHash = hash(calculationSnapshot)
-  const invoiceCustomer = await loadInvoiceCustomer(input.companyId, customerId)
+  const invoiceCustomer = shared ? shared.customer : await loadInvoiceCustomer(input.companyId, customerId)
   const customerNumber = text(invoiceCustomer?.customer_number)
   // Same effective recipient/delivery as billing readiness and export.
-  const delivery = resolveInvoiceDeliveryFor('document', { contract: input.contract as InvoiceDeliveryContract, customer: invoiceCustomer })
+  const delivery = shared?.delivery ?? resolveInvoiceDeliveryFor('document', { contract: input.contract as InvoiceDeliveryContract, customer: invoiceCustomer }, mode)
   const runId = randomUUID()
   const itemId = randomUUID()
   const now = new Date().toISOString()
