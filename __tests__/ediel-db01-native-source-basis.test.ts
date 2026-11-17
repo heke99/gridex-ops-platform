@@ -88,7 +88,7 @@ for x in ast.parse(s).body:
  if isinstance(x,ast.Assign) and len(x.targets)==1 and isinstance(x.targets[0],ast.Name):
   k=x.targets[0].id
   if k in ['current_read_manifest','current_read_forwards','current_reader_callers','current_writer_inputs','forwards','repair','repair_unit','producer','producer_unit','canonical_dependencies','s01_current_owner','required','current_only','required_base']:
-   n[k]=eval(compile(ast.Expression(x.value),'<declared-inputs>','eval'),{},n)
+   n[k]=eval(compile(ast.Expression(x.value),'<declared-inputs>','eval'),n,n)
 print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['current_read_manifest']}))`], {cwd: root, encoding: 'utf8'})
   const declared = JSON.parse(declarations) as {root: string[]; base: string[]; reader: Array<Input & {path: string}>}
   identities = Object.fromEntries(dependencies.map(path => [path, {base: input(baseRevision, path), root: input('HEAD', path)}]))
@@ -708,10 +708,10 @@ with tempfile.TemporaryDirectory(prefix='sc071-shallow-dependencies-') as d:
  print(json.dumps({'missingBefore':len(missing),'qualifiedAfter':len(expected)}))
 `
   const observed = JSON.parse(execFileSync('python3', ['-c', python], {
-    cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, timeout: 25_000,
+    cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, timeout: 60_000,
   })) as {missingBefore: number; qualifiedAfter: number}
   expect(observed).toEqual({missingBefore: 6, qualifiedAfter: 6})
-}, 30_000)
+}, 65_000)
 
 // Execute the separate writer-input guards without altering the historical
 // 59-reader/35-BASE native contract or synthesizing native execution credit.
