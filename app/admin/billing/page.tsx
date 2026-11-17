@@ -38,6 +38,7 @@ const statusStyle: Record<InvoiceReviewStatus, string> = {
 }
 
 const FILE_ERRORS: Record<string, string> = {
+  invoice_distribution_missing: 'Fakturan saknar bekräftad faktura-e-post eller komplett fryst fakturaadress. Ingen fil skapades.',
   invoice_file_empty: 'Det finns inga godkända fakturor att lägga i en fil. Godkänn fakturorna först.',
   invoice_file_items_changed: 'Någon faktura ändrades medan filen skapades. Ingen fil skapades; försök igen.',
   invoice_file_provider_not_active: 'Filexport är inte vald och aktiverad under Fakturering → Integrationer.',
