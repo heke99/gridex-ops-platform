@@ -52,7 +52,6 @@ import { getSwitchLifecycle } from "@/lib/operations/controlTower"
 
 
 
-export const dynamic = "force-dynamic";
 
 export type CustomerRow = {
   id: string;
@@ -148,17 +147,7 @@ export function customerTypeLabel(value: string | null | undefined): string {
   return "Privatkund";
 }
 
-export function customerTypeDescription(customerType: CustomerType): string {
-  if (customerType === "business") {
-    return "Företagskund där företagsnamn och organisationsnummer är huvudidentitet, medan kontaktperson hanteras separat.";
-  }
 
-  if (customerType === "association") {
-    return "Föreningskund där föreningsnamn och organisationsnummer är huvudidentitet, medan kontaktperson hanteras separat.";
-  }
-
-  return "Privatkund där personuppgifterna är huvudidentitet för kunden.";
-}
 
 export function identityPrimaryLabel(customerType: CustomerType): string {
   return customerType === "private" ? "Personnummer" : "Organisationsnummer";
@@ -189,16 +178,9 @@ export function identitySecondaryValue(
   return customer.company_name ?? "—";
 }
 
-export function primaryContactHeading(customerType: CustomerType): string {
-  if (customerType === "private") return "Huvudkontakt";
-  return "Primär kontaktperson";
-}
 
-export function activeAddressHeading(customerType: CustomerType): string {
-  if (customerType === "private") return "Aktiv adress";
-  if (customerType === "association") return "Primär adress för föreningen";
-  return "Primär adress för företaget";
-}
+
+
 
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
@@ -215,28 +197,7 @@ export function maskSensitiveValue(value: string | null): string {
   return `${"*".repeat(Math.max(0, value.length - 4))}${value.slice(-4)}`;
 }
 
-export function contractStatusUiLabel(status: string | null | undefined): string {
-  switch (status) {
-    case "draft":
-      return "Utkast";
-    case "pending_signature":
-      return "Väntar signering";
-    case "signature_failed":
-      return "Signering misslyckades";
-    case "signed":
-      return "Signerat";
-    case "active":
-      return "Aktivt";
-    case "terminated":
-      return "Avslutat";
-    case "cancelled":
-      return "Avbrutet";
-    case "expired":
-      return "Utgånget";
-    default:
-      return status ?? "Saknas";
-  }
-}
+
 
 export function statusTone(status: string | null): string {
   switch (status) {
@@ -252,66 +213,11 @@ export function statusTone(status: string | null): string {
   }
 }
 
-export function normalizeJsonList(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item)).filter(Boolean);
-  }
-  if (typeof value === "string" && value.trim()) return [value.trim()];
-  return [];
-}
 
-export function intakeStatusLabel(value: string | null | undefined): string {
-  switch (value) {
-    case "draft":
-      return "Utkast";
-    case "incomplete":
-      return "Ofullständig";
-    case "needs_completion":
-      return "Väntar på komplettering";
-    case "ready_for_contract":
-      return "Redo för avtal";
-    case "ready_for_operations":
-      return "Redo för drift";
-    case "blocked":
-      return "Blockerad";
-    case "rejected":
-      return "Avvisad/stoppad";
-    default:
-      return "Ej klassad";
-  }
-}
 
-export function intakeStatusTone(value: string | null | undefined): string {
-  switch (value) {
-    case "ready_for_contract":
-    case "ready_for_operations":
-      return "border-emerald-200 bg-emerald-50 text-emerald-800 ";
-    case "needs_completion":
-    case "incomplete":
-      return "border-amber-200 bg-amber-50 text-amber-900 ";
-    case "blocked":
-    case "rejected":
-      return "border-red-200 bg-red-50 text-red-800 ";
-    default:
-      return "border-slate-200 bg-slate-50 text-slate-700 ";
-  }
-}
 
-export function lifecycleTone(stage: string): string {
-  if (["ready_to_execute", "completed"].includes(stage)) {
-    return "bg-emerald-100 text-emerald-700 ";
-  }
 
-  if (["blocked", "failed"].includes(stage)) {
-    return "bg-red-100 text-red-700 ";
-  }
 
-  if (["awaiting_response"].includes(stage)) {
-    return "bg-emerald-100 text-emerald-700 ";
-  }
-
-  return "bg-amber-100 text-amber-700 ";
-}
 
 export function entityLabel(entityType: string): string {
   switch (entityType) {
