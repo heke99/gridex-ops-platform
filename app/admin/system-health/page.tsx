@@ -142,11 +142,14 @@ export default async function SystemHealthPage() {
       criticalCount: 0,
       warningCount: 0,
     })),
-    getOpsHealth().catch(() => ({ rows: [], schemaReady: false })),
+    getOpsHealth().catch(() => null),
   ])
 
   const uncertainEmails = isPlatformAdmin ? await loadUncertainEmails() : []
-  const marketPriceHealth = opsHealth.rows.filter((row) => row.check_key.startsWith('spot_'))
+  const marketPriceHealth = opsHealth?.rows.filter((row) => row.check_key.startsWith('spot_')) ?? []
+  const hasMarketPriceReadings = marketPriceHealth.length > 0
+  const marketPriceHealthComplete = hasMarketPriceReadings && opsHealth?.checkVersion === 'v5' && opsHealth.schemaReady
+  const healthVersion = opsHealth?.checkVersion
 
   return (
     <main className="space-y-6">
@@ -183,35 +186,49 @@ export default async function SystemHealthPage() {
         <p className="mt-1 text-sm text-slate-500">
           Canonical readiness för Elpriset Just Nu, SE1–SE4, rolling 30, freshness och tenantens fallback-policy.
         </p>
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-3 py-3">Status</th>
-                <th className="px-3 py-3">Kontroll</th>
-                <th className="px-3 py-3">Antal</th>
-                <th className="px-3 py-3">Detaljer</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {marketPriceHealth.map((row) => (
-                <tr key={row.check_key} className={row.status === 'blocking' ? 'bg-red-50/50' : row.status === 'warning' ? 'bg-amber-50/50' : ''}>
-                  <td className="px-3 py-3">
-                    <span className={`rounded-full border px-2 py-1 text-xs font-medium ${row.status === 'ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : tone(row.status)}`}>
-                      {formatStatusLabel(row.status)}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 font-mono text-xs font-medium text-slate-900">{row.check_key}</td>
-                  <td className="px-3 py-3 text-slate-700">{row.issue_count}</td>
-                  <td className="px-3 py-3 text-xs text-slate-600">{row.details ? JSON.stringify(row.details) : '–'}</td>
+        {!marketPriceHealthComplete ? (
+          <div role="status" className={`mt-4 rounded-xl border px-4 py-3 text-sm ${tone('warning')}`}>
+            <p className="font-medium">
+              {hasMarketPriceReadings ? 'Begränsad marknadspriskontroll' : 'Marknadspriskontrollerna är otillgängliga'}
+            </p>
+            <p className="mt-1">
+              {hasMarketPriceReadings
+                ? 'Raderna visar de enskilda kontroller som gick att läsa. Helhetsbedömningen är otillgänglig.'
+                : 'Driftstatus kunde inte hämta ett användbart kontrollresultat.'}
+            </p>
+            {isPlatformAdmin && healthVersion && healthVersion !== 'v5' ? (
+              <p className="mt-1">Reservversion {healthVersion}</p>
+            ) : null}
+          </div>
+        ) : null}
+        {hasMarketPriceReadings ? (
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-3 py-3">Status</th>
+                  <th className="px-3 py-3">Kontroll</th>
+                  <th className="px-3 py-3">Antal</th>
+                  <th className="px-3 py-3">Detaljer</th>
                 </tr>
-              ))}
-              {marketPriceHealth.length === 0 ? (
-                <tr><td colSpan={4} className="px-3 py-8 text-center text-slate-500">Marknadspriskontroller saknas tills den nya migreringen är applicerad.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {marketPriceHealth.map((row) => (
+                  <tr key={row.check_key} className={row.status === 'blocking' ? 'bg-red-50/50' : row.status === 'warning' ? 'bg-amber-50/50' : ''}>
+                    <td className="px-3 py-3">
+                      <span className={`rounded-full border px-2 py-1 text-xs font-medium ${row.status === 'ok' && marketPriceHealthComplete ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : tone(row.status)}`}>
+                        {formatStatusLabel(row.status)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 font-mono text-xs font-medium text-slate-900">{row.check_key}</td>
+                    <td className="px-3 py-3 text-slate-700">{row.issue_count}</td>
+                    <td className="px-3 py-3 text-xs text-slate-600">{row.details ? JSON.stringify(row.details) : '–'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
       </section>
 
       {isPlatformAdmin && uncertainEmails.length > 0 ? (
