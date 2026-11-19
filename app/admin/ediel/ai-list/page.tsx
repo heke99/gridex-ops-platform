@@ -50,23 +50,31 @@ function visibleOptions<T extends {id: string}>(rows: T[], selected: T | null): 
  return visible
 }
 
+function pickerParameters(filters: Record<string, string | undefined>) {
+ const parameters = new URLSearchParams()
+ for (const [key, value] of Object.entries(filters)) {
+   if (value) parameters.set(key, value)
+ }
+ return parameters
+}
+
+function pickerHref(parameters: URLSearchParams): string {
+ return pickerRoute + (parameters.size ? '?' + parameters : '')
+}
+
 function pickerLinks(
  filters: Record<string, string | undefined>,
  cursor: CursorField,
  rows: {id: string}[],
 ): PageLink {
- const parameters = new URLSearchParams()
- for (const [key, value] of Object.entries(filters)) {
-   if (value) parameters.set(key, value)
- }
+ const parameters = pickerParameters(filters)
  parameters.delete(cursor)
  if (cursor === 'customerAfter') parameters.delete('siteAfter')
  if (cursor !== 'pointAfter') parameters.delete('pointAfter')
- const href = () => pickerRoute + (parameters.size ? '?' + parameters : '')
- const reset = filters[cursor] ? href() : undefined
+ const reset = filters[cursor] ? pickerHref(parameters) : undefined
  if (rows.length <= pickerSize) return {reset}
  parameters.set(cursor, rows[pickerSize - 1].id)
- return {reset, next: href()}
+ return {reset, next: pickerHref(parameters)}
 }
 
 async function readSelection(
@@ -118,12 +126,17 @@ async function readSelection(
      ?? (requestedPoint ? readData(await pointQuery().eq('id', requestedPoint).maybeSingle()) as MeteringPointRow | null : null)
  }
 
- const filters = {q, customerAfter, siteAfter, pointAfter, customerId: customer?.id, siteId: site?.id, meteringPointId: point?.id}
+ // Keep a requested point through paging until the operator explicitly resets the selection.
+ const pointReference = requestedPoint ?? (params.meteringPointId !== undefined ? 'invalid' : undefined)
+ const filters = {q, customerAfter, siteAfter, pointAfter, customerId: customer?.id, siteId: site?.id, meteringPointId: pointReference}
+ const pendingPoint = point ? undefined : pointReference
+ const pointResetHref = site && pendingPoint
+   ? pickerHref(pickerParameters({...filters, pointAfter: undefined, meteringPointId: undefined}))
+   : undefined
  return {
-   customer, site, point, q, customerAfter, siteAfter,
+   customer, site, point, q, customerAfter, siteAfter, pendingPoint, pointResetHref,
    customerUnavailable: Boolean(customerId && !customer),
    siteUnavailable: Boolean(siteId && !!customer && !site),
-   pointUnavailable: Boolean(requestedPoint && !!site && !point),
    customers: visibleOptions(customers, customer),
    sites: visibleOptions(sites, site),
    points: visibleOptions(points, point),
@@ -152,6 +165,7 @@ function SelectionControls({selection}: {selection: Awaited<ReturnType<typeof re
      </form>
      <form method="get" action={pickerRoute} className="flex flex-wrap items-end gap-2">
        {selection.q ? <input type="hidden" name="q" value={selection.q} /> : null}
+       {selection.pendingPoint ? <input type="hidden" name="meteringPointId" value={selection.pendingPoint} /> : null}
        {selection.customerAfter ? <input type="hidden" name="customerAfter" value={selection.customerAfter} /> : null}
        <label className="grid gap-1 text-sm font-medium">Kund
          <select name="customerId" className={pickerInput} defaultValue={selection.customer?.id ?? ''} required>
@@ -168,6 +182,7 @@ function SelectionControls({selection}: {selection: Awaited<ReturnType<typeof re
        <form method="get" action={pickerRoute} className="flex flex-wrap items-end gap-2">
          <input type="hidden" name="customerId" value={selection.customer.id} />
          {selection.q ? <input type="hidden" name="q" value={selection.q} /> : null}
+         {selection.pendingPoint ? <input type="hidden" name="meteringPointId" value={selection.pendingPoint} /> : null}
          {selection.customerAfter ? <input type="hidden" name="customerAfter" value={selection.customerAfter} /> : null}
          {selection.siteAfter ? <input type="hidden" name="siteAfter" value={selection.siteAfter} /> : null}
          <label className="grid gap-1 text-sm font-medium">Anläggning
@@ -182,7 +197,12 @@ function SelectionControls({selection}: {selection: Awaited<ReturnType<typeof re
      {selection.customer ? <PickerNavigation links={selection.siteLinks} label="Anläggningssidor" /> : null}
      {selection.siteUnavailable ? <p role="status">Anläggningen kunde inte väljas för den aktuella kunden.</p> : null}
      {selection.customer && !selection.siteUnavailable && !selection.sites.length ? <p role="status">Inga anläggningar att visa för kunden på denna sida.</p> : null}
-     {selection.pointUnavailable ? <p role="status">Mätpunkten kunde inte väljas för den aktuella anläggningen.</p> : null}
+     {selection.pointResetHref ? (
+       <div role="status" className="space-y-1 text-sm">
+         <p>Mätpunkten kunde inte väljas för den aktuella anläggningen.</p>
+         <Link href={selection.pointResetHref} prefetch={false} className="underline">Återgå till vald anläggning</Link>
+       </div>
+     ) : null}
    </div>
  )
 }
@@ -260,7 +280,7 @@ export default async function AdminEdielAiListPage({searchParams}: {searchParams
  </div>
 
  {selection ? <SelectionControls selection={selection} /> : <p role="status">Din aktuella behörighet medger läsning. Export kräver egen skrivbehörighet och ett granskat ändamålsunderlag.</p>}
- {selection?.customer && selection.site ? <form action={prepareAiListAction} className="grid gap-4 md:grid-cols-3">
+ {selection?.customer && selection.site && !selection.pointResetHref ? <form action={prepareAiListAction} className="grid gap-4 md:grid-cols-3">
  <input type="hidden" name="customerId" value={selection.customer.id} />
  <input type="hidden" name="siteId" value={selection.site.id} />
  <p className="text-sm text-slate-700 md:col-span-3">
@@ -280,7 +300,7 @@ export default async function AdminEdielAiListPage({searchParams}: {searchParams
  <div>
  <label htmlFor="ai-meteringPointId" className="mb-2 block text-sm font-medium text-slate-700">Mätpunkt</label>
  <select id="ai-meteringPointId" name="meteringPointId" className={pickerInput} defaultValue={selection.point?.id ?? ''}>
- <option value="">Valfri</option>
+ <option value="">Hela anläggningen</option>
  {selection.points.map((row) => (
  <option key={row.id} value={row.id}>{row.meter_point_id || row.id}</option>
  ))}

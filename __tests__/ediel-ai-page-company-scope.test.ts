@@ -12,6 +12,7 @@ const ids = {
   legacyPoint: '10000000-0000-4000-8000-000000000007',
   canonicalPoint: '10000000-0000-4000-8000-000000000008',
   wrongPoint: '10000000-0000-4000-8000-000000000009',
+  unownedLegacyPoint: '10000000-0000-4000-8000-000000000010',
 }
 const rowId = (n: number) => '20000000-0000-4000-8000-' + String(n).padStart(12, '0')
 type Row = Record<string, string | null>
@@ -40,6 +41,7 @@ const points: Row[] = [
   { id: ids.canonicalPoint, company_id: ids.company, customer_id: ids.customer, site_id: null, customer_site_id: ids.site, meter_point_id: 'E2E Canonical point' },
   { id: ids.wrongPoint, company_id: ids.company, customer_id: ids.customer, site_id: ids.site, customer_site_id: ids.outsiderSite, meter_point_id: 'E2E Conflicting point' },
   { id: rowId(601), company_id: ids.company, customer_id: ids.otherCustomer, site_id: ids.site, customer_site_id: ids.site, meter_point_id: 'E2E Other customer point' },
+  { id: ids.unownedLegacyPoint, company_id: ids.company, customer_id: null, site_id: ids.site, customer_site_id: null, meter_point_id: 'E2E Legacy missing owner' },
 ]
 const fixture = vi.hoisted(() => ({
   companyId: null as string | null,
@@ -146,6 +148,7 @@ describe('selected-company AI list history and scoped preparation', () => {
     expect(html).toContain('E2E Canonical point')
     expect(html).not.toContain('E2E Conflicting point')
     expect(html).not.toContain('E2E Other customer point')
+    expect(html).not.toContain('E2E Legacy missing owner')
     expect(html).not.toContain('Annat kundobjekt')
     expect(html).toContain('AI-listan gäller <strong>E2E Äldre kund</strong> · <strong>E2E Äldre anläggning</strong>')
     expect(html).toContain('name="customerId" value="' + ids.customer + '"')
@@ -199,13 +202,31 @@ describe('selected-company AI list history and scoped preparation', () => {
     expect(html).toContain('Generera och köa AI-lista')
   })
 
-  it('does not preselect the legacy site of a conflicted meter point', async () => {
+  it.each([ids.wrongPoint, ids.unownedLegacyPoint])('blocks preparation until an unavailable point is explicitly reset (%s)', async pointId => {
     fixture.permissions.push('communication.write')
-    const html = await render({ customerId: ids.customer, siteId: ids.site, meteringPointId: ids.wrongPoint })
+    const html = await render({ customerId: ids.customer, siteId: ids.site, meteringPointId: pointId })
 
     expect(html).toContain('Mätpunkten kunde inte väljas')
     expect(html).not.toContain('E2E Conflicting point')
-    expect(html).toContain('value="" selected="">Valfri')
+    expect(html).not.toContain('E2E Legacy missing owner')
+    expect(html).not.toContain('Generera och köa AI-lista')
+    expect(html).toContain('meteringPointId=' + pointId)
+    expect(html).toContain('href="/admin/ediel/ai-list?customerId=' + ids.customer + '&amp;siteId=' + ids.site + '"')
+    expect(html).toContain('Återgå till vald anläggning')
+
+    const afterReset = await render({ customerId: ids.customer, siteId: ids.site })
+    expect(afterReset).toContain('value="" selected="">Hela anläggningen')
+    expect(afterReset).toContain('Generera och köa AI-lista')
+  })
+
+  it.each(['not-a-uuid', [ids.canonicalPoint, ids.wrongPoint]])(
+    'does not silently omit malformed or ambiguous direct point selection (%s)', async meteringPointId => {
+    fixture.permissions.push('communication.write')
+    const html = await render({ customerId: ids.customer, siteId: ids.site, meteringPointId })
+
+    expect(html).toContain('Mätpunkten kunde inte väljas')
+    expect(html).not.toContain('Generera och köa AI-lista')
+    expect(fixture.queries.filter(row => row.table === 'metering_points').every(row => !row.filters.get('id'))).toBe(true)
   })
 
   it('uses a scoped customer cursor for continuation', async () => {
