@@ -435,15 +435,38 @@ export async function bulkFinalizeReadySupplierSwitchesAction(): Promise<void> {
   const { accepted: switchRequests, ready: readyRequests } = await readCompleteBulkReadySelection(supabase, scope.companyId)
 
   let completedCount = 0
+  let waitingCount = 0
+  const notDueReason = 'normal_supply_activation_not_due'
 
   for (const request of readyRequests) {
     const readiness = getSupplierSwitchActivationReadiness(request)
-    const result = await finalizeSupplierSwitchExecution(supabase, {
-      requestId: request.id,
-      actorUserId: actor.id,
-      executionSource: 'bulk_admin_ready_queue',
-      executionNotes: 'Bulk-aktivering efter inbound PRODAT Z04 och uppnått bekräftat startdatum.',
-    })
+    let result: Awaited<ReturnType<typeof finalizeSupplierSwitchExecution>>
+    try {
+      result = await finalizeSupplierSwitchExecution(supabase, {
+        requestId: request.id,
+        actorUserId: actor.id,
+        executionSource: 'bulk_admin_ready_queue',
+        executionNotes: 'Bulk-aktivering efter inbound PRODAT Z04 och uppnått bekräftat startdatum.',
+      })
+    } catch (error) {
+      if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'P0001'
+        || !('message' in error) || error.message !== notDueReason) throw error
+
+      await insertAuditLog({
+        actorUserId: actor.id,
+        entityType: 'supplier_switch_request',
+        entityId: request.id,
+        action: 'supplier_switch_request_execution_waiting',
+        metadata: {
+          customerId: request.customer_id,
+          siteId: request.site_id,
+          reasonCode: notDueReason,
+          executionSource: 'bulk_admin_ready_queue',
+        },
+      })
+      waitingCount += 1
+      continue
+    }
 
     await writeSupplierSwitchExecutionAudit({
       actorUserId: actor.id,
@@ -478,6 +501,7 @@ export async function bulkFinalizeReadySupplierSwitchesAction(): Promise<void> {
       scannedAcceptedCount: switchRequests.length,
       readyCount: readyRequests.length,
       completedCount,
+      waitingCount,
       blockedCount: switchRequests.length - readyRequests.length,
       readinessRule: 'inbound_z04_plus_effective_start_date',
     },
