@@ -2,6 +2,7 @@ import Link from 'next/link'
 import CustomerActionsMenu from '@/components/admin/customers/CustomerActionsMenu'
 import type { ReactNode } from 'react'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
+import { canPresentAdminAction, canPresentAdminLink } from '@/lib/admin/actionPresentation'
 import { supabaseService } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import { guardIsPlatformAdmin, loadCustomerTenantContext } from '@/lib/tenant/entityGuards'
@@ -38,6 +39,7 @@ export default async function CustomerWorkspaceLayout({
   // not depend on the customer id, so the id-specific guard is skipped here.
   if (lookup.kind === 'no_active_company') return <>{children}</>
   const { companyId } = await loadCustomerTenantContext(customerId, access)
+  if (!canPresentAdminLink(access, { anyOf: ['contracts.write', 'contracts.read'] })) return <>{children}</>
 
   const { data: signableContracts, error } = await supabaseService
     .from('customer_contracts')
@@ -49,28 +51,33 @@ export default async function CustomerWorkspaceLayout({
     .order('created_at', { ascending: false })
     .limit(10)
   if (error) throw error
+  if (!signableContracts?.length) return <>{children}</>
+
+  const canWrite = canPresentAdminLink(access, { anyOf: ['contracts.write'] })
+    && await canPresentAdminAction(['contracts.write'])
 
   return (
     <>
-      {(signableContracts ?? []).length > 0 ? (
-        <div className="border-b border-emerald-200 bg-emerald-50 px-6 py-3">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 text-sm">
-            <span className="font-semibold text-emerald-950">Online-signering:</span>
-            <CustomerActionsMenu label={`Signera avtal (${signableContracts!.length})`}>
-            {signableContracts!.map((contract) => (
+      <div className="border-b border-emerald-200 bg-emerald-50 px-6 py-3">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 text-sm">
+          <span className="font-semibold text-emerald-950">Online-signering:</span>
+          <CustomerActionsMenu label={`${canWrite ? 'Signera avtal' : 'Visa signering'} (${signableContracts.length})`}>
+            {signableContracts.map((contract) => (
               <Link
                 key={contract.id}
                 href={`/admin/customers/${customerId}/contracts/${contract.id}/signature`}
                 className="rounded-full border border-emerald-300 bg-white px-3 py-1.5 font-medium text-emerald-900 hover:bg-emerald-100"
               >
-                {contract.status === 'pending_signature' ? 'Skicka ny länk' : 'Skicka länk'} · {contract.contract_name}
+                {canWrite
+                  ? (contract.status === 'pending_signature' ? 'Skicka ny länk' : 'Skicka länk')
+                  : 'Visa signering'}
+                {' · '}{contract.contract_name}
                 {contract.contract_number ? ` (${contract.contract_number})` : ''}
               </Link>
             ))}
-            </CustomerActionsMenu>
-          </div>
+          </CustomerActionsMenu>
         </div>
-      ) : null}
+      </div>
       {children}
     </>
   )
