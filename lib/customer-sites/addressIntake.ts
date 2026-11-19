@@ -172,7 +172,9 @@ export async function applyCustomerSiteAddressCandidate(input: {
   if (currentResult.error) throw currentResult.error
   if (!currentResult.data?.id) throw new Error('Anläggningen hittades inte för adressuppdatering.')
 
-  const current = currentResult.data as JsonRecord
+  const current = currentResult.data
+  const currentHash = clean(current.address_hash)
+  const isVerified = Boolean(clean(current.address_verified_at)) || clean(current.address_verification_method) === 'grid_owner_response'
   const now = new Date().toISOString()
   const sourceReference = clean(input.address.sourceReference)
   const candidateSnapshot = {
@@ -188,21 +190,35 @@ export async function applyCustomerSiteAddressCandidate(input: {
   }
 
   if (!address.complete || !address.hash || !address.normalized) {
-    const incomplete = await supabaseService.from('customer_sites').update({
-      address_status: 'incomplete',
-      address_quality_status: 'incomplete',
-      address_quality_warnings: ['site_address_requires_street_postal_code_city'],
-      address_source: input.address.source,
-      address_source_reference: sourceReference,
-      address_received_at: now,
-      updated_at: now,
-    }).eq('id', input.siteId).eq('company_id', input.companyId)
-    if (incomplete.error) throw incomplete.error
     await insertAddressHistory({ companyId: input.companyId, customerId: input.customerId, siteId: input.siteId, addressHash: null, source: input.address.source, sourceReference, actorUserId: input.address.actorUserId ?? null, snapshot: candidateSnapshot })
+
+    const storedAddress = normalizedAddress({
+      street: current.street, postalCode: current.postal_code, city: current.city,
+      country: current.country, source: 'manual_intake',
+    })
+    if (!currentHash && !isVerified && !storedAddress.complete) {
+      // Only a site without a canonical address needs an incomplete status.
+      // Guard the update against an address committed after our initial read.
+      let incomplete = supabaseService.from('customer_sites').update({
+        address_status: 'incomplete',
+        address_quality_status: 'incomplete',
+        address_quality_warnings: ['site_address_requires_street_postal_code_city'],
+        address_source: input.address.source,
+        address_source_reference: sourceReference,
+        address_received_at: now,
+        updated_at: now,
+      }).eq('id', input.siteId).eq('company_id', input.companyId).eq('customer_id', input.customerId)
+        .is('address_hash', null).is('address_verified_at', null)
+      for (const key of ['street', 'postal_code', 'city', 'country', 'address_verification_method'] as const) {
+        const value = current[key]
+        incomplete = value === null ? incomplete.is(key, null) : incomplete.eq(key, value)
+      }
+      const { error } = await incomplete
+      if (error) throw error
+    }
     return { status: 'incomplete', siteId: input.siteId, addressHash: null, normalized: null, reason: 'missing_site_address_fields' }
   }
 
-  const currentHash = clean(current.address_hash)
   const currentSource = clean(current.address_source) as CustomerSiteAddressSource | null
   const currentRank = sourceRank(currentSource ?? 'import')
   const incomingRank = sourceRank(input.address.source)
@@ -236,7 +252,6 @@ export async function applyCustomerSiteAddressCandidate(input: {
     }
   }
 
-  const isVerified = Boolean(clean(current.address_verified_at)) || clean(current.address_verification_method) === 'grid_owner_response'
   const recordConflict = async (): Promise<CustomerSiteAddressResult> => {
     await createAddressConflict({
       companyId: input.companyId,
