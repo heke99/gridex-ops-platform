@@ -4,7 +4,6 @@ import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getAdminUserById } from '@/lib/rbac/getAdminUserById'
 import { getAllRoles } from '@/lib/rbac/getAllRoles'
 import { getAllPermissions } from '@/lib/rbac/getAllPermissions'
-import { getUserPermissions } from '@/lib/rbac/getUserPermissions'
 import {
  getInternalRoleOptions,
  getPermissionMeta,
@@ -43,16 +42,14 @@ export default async function AdminUserDetailPage({
  const current = await requirePlatformAdminAccess()
  const { id } = await params
 
- const [user, allRoles, allPermissions, effectivePermissionList] = await Promise.all([
+ const [user, allRoles, allPermissions] = await Promise.all([
   getAdminUserById(id),
   getAllRoles(),
   getAllPermissions(),
-  getUserPermissions(id),
  ])
  if (!user) notFound()
  const roles = getInternalRoleOptions(allRoles)
  const permissions = sortPermissions(allPermissions)
- const effectivePermissions = new Set(effectivePermissionList)
 
  const canManageRoles = current.permissions.includes('roles.manage')
  const canManagePermissionOverrides = current.permissions.includes('permissions.manage')
@@ -77,7 +74,7 @@ export default async function AdminUserDetailPage({
 
  <p className="mt-2 text-sm text-slate-700">{user.authUser.id}</p>
  <p className="mt-2 max-w-3xl text-sm text-slate-700">
- Roller ger grundåtkomst. En global permission override kan neka en behörighet i alla bolag.
+ Här visas globala roller och behörighetsundantag. Servern bedömer behörigheten för det valda bolaget.
  </p>
  </div>
 
@@ -99,19 +96,19 @@ export default async function AdminUserDetailPage({
 
  <section className="grid gap-4 xl:grid-cols-4">
  <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
- <p className="text-sm font-medium text-slate-700">Aktiva roller</p>
+ <p className="text-sm font-medium text-slate-700">Globala roller</p>
  <p className="mt-2 text-3xl font-semibold text-slate-950">{activeRoleCount}</p>
  </div>
  <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
- <p className="text-sm font-medium text-slate-700">Overrides</p>
+ <p className="text-sm font-medium text-slate-700">Globala undantag</p>
  <p className="mt-2 text-3xl font-semibold text-slate-950">{overrideCount}</p>
  </div>
  <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
- <p className="text-sm font-medium text-emerald-700">Allow</p>
+ <p className="text-sm font-medium text-emerald-700">Globalt tillåtna</p>
  <p className="mt-2 text-3xl font-semibold text-emerald-950">{allowCount}</p>
  </div>
  <div className="rounded-3xl border border-red-200 bg-red-50 p-5 shadow-sm">
- <p className="text-sm font-medium text-red-700">Deny</p>
+ <p className="text-sm font-medium text-red-700">Globalt nekade</p>
  <p className="mt-2 text-3xl font-semibold text-red-950">{denyCount}</p>
  </div>
  </section>
@@ -119,7 +116,7 @@ export default async function AdminUserDetailPage({
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
  <div>
- <h2 className="text-lg font-semibold text-slate-950">Aktiva roller</h2>
+ <h2 className="text-lg font-semibold text-slate-950">Aktiva globala roller</h2>
  <p className="mt-1 text-sm text-slate-700">
  Roller ger grundaccess. Kundrollen ska inte användas för intern adminaccess.
  </p>
@@ -159,7 +156,7 @@ export default async function AdminUserDetailPage({
 
  <div className="mt-6 space-y-3">
  {user.roles.length === 0 && (
- <p className="text-sm text-slate-700">Inga aktiva roller.</p>
+ <p className="text-sm text-slate-700">Inga aktiva globala roller.</p>
  )}
 
  {user.roles.map((role) => {
@@ -204,22 +201,14 @@ export default async function AdminUserDetailPage({
  </section>
 
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
- <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
- <div>
- <h2 className="text-lg font-semibold text-slate-950">Permission overrides</h2>
+ <h2 className="text-lg font-semibold text-slate-950">Globala behörighetsundantag</h2>
  <p className="mt-1 max-w-3xl text-sm text-slate-700">
- Här visas användarens permission overrides. Du kan lägga till en global deny som nekar behörigheten i alla bolag. Detta kräver <code>permissions.manage</code>.
+ Du kan neka en behörighet i alla bolag med <code>permissions.manage</code>.
  </p>
- </div>
-
- <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
- Effektiva permissions just nu: <strong>{effectivePermissions.size}</strong>
- </div>
- </div>
 
  <div className="mt-6 space-y-3">
  {user.overrides.length === 0 && (
- <p className="text-sm text-slate-700">Inga overrides.</p>
+ <p className="text-sm text-slate-700">Inga globala behörighetsundantag.</p>
  )}
 
  {user.overrides.map((override) => {
