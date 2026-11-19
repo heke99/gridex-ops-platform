@@ -321,11 +321,46 @@ async function persistPricingRun(
   companyId: string,
   result: PricingPreviewResult,
   underlay: BillingUnderlayInput,
+  storedPricingSnapshot: unknown,
   intervalEvidence: IntervalPriceEvidence[] = [],
   intervalInputSnapshot?: IntervalInputSnapshot,
 ) {
   if (!underlay.billingUnderlayId)
     throw new Error("Faktureringsunderlagets ID saknas.");
+  const binding = await supabaseService.rpc(
+    "gridex_read_billing_underlay_source_basis_v1",
+    { p_company_id: companyId, p_underlay_ids: [underlay.billingUnderlayId] },
+  );
+  if (binding.error) throw binding.error;
+  const basis = Array.isArray(binding.data) && binding.data.length === 1 && isObject(binding.data[0])
+    ? binding.data[0]
+    : null;
+  if (!basis || basis.id !== underlay.billingUnderlayId
+    || typeof basis.qualified !== "boolean" || typeof basis.correctionRequired !== "boolean")
+    throw new Error("pricing_source_basis_unavailable");
+  const sourceCurrent = basis.qualified && !basis.correctionRequired;
+  const unbound = basis.sourceBasisHash === null && !basis.qualified && !basis.correctionRequired;
+  const bound = typeof basis.sourceBasisHash === "string" && /^[a-f0-9]{64}$/.test(basis.sourceBasisHash)
+    && storedPricingSnapshot !== undefined;
+  const diagnostics = result.status === "failed" || result.status === "needs_review";
+  if (!unbound && (!bound || (!sourceCurrent && !diagnostics)))
+    throw new Error("pricing_source_basis_unavailable");
+
+  // The basis projection also reports qualified=false for retention denials.
+  // Confirm bytes are available before saving legacy data or retained diagnostics.
+  if (!sourceCurrent) {
+    const availability = await supabaseService.rpc(
+      "ediel_require_invoice_source_copies_available_v1",
+      {
+        p_company_id: companyId,
+        p_underlay_id: underlay.billingUnderlayId,
+        p_invoice_id: null,
+        p_export_item_id: null,
+      },
+    );
+    if (availability.error) throw availability.error;
+  }
+
   const payload = {
     status: result.status,
     total_ex_vat: result.totalExVat,
@@ -355,7 +390,7 @@ async function persistPricingRun(
       p_company_id: companyId,
       p_billing_underlay_id: underlay.billingUnderlayId,
       p_result: payload,
-      p_pricing_snapshot: underlay.pricingSnapshot ?? {},
+      p_pricing_snapshot: bound ? storedPricingSnapshot : (underlay.pricingSnapshot ?? {}),
     },
   );
   if (error) throw error;
@@ -394,6 +429,21 @@ export async function calculatePricingPreviewForUnderlay(input: {
     contract,
     snapshot,
   );
+  const persistPreview = (
+    result: PricingPreviewResult,
+    intervalEvidence?: IntervalPriceEvidence[],
+    intervalInputSnapshot?: IntervalInputSnapshot,
+  ) => input.persist
+    ? persistPricingRun(
+        input.companyId,
+        result,
+        underlay,
+        underlayRow.pricing_snapshot,
+        intervalEvidence,
+        intervalInputSnapshot,
+      )
+    : null;
+
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -422,8 +472,7 @@ export async function calculatePricingPreviewForUnderlay(input: {
       warnings,
       errors,
     });
-    if (input.persist)
-      await persistPricingRun(input.companyId, failed, underlay);
+    await persistPreview(failed);
     return { ...failed, pricingRunId: null };
   }
 
@@ -472,9 +521,7 @@ export async function calculatePricingPreviewForUnderlay(input: {
         vatRate: 0,
       });
     }
-    const pricingRunId = input.persist
-      ? await persistPricingRun(input.companyId, productionResult, underlay)
-      : null;
+    const pricingRunId = await persistPreview(productionResult);
     return { ...productionResult, pricingRunId };
   }
 
@@ -645,15 +692,7 @@ export async function calculatePricingPreviewForUnderlay(input: {
     vatRate: config.vatRate,
   });
 
-  const pricingRunId = input.persist
-    ? await persistPricingRun(
-        input.companyId,
-        result,
-        underlay,
-        intervalEvidence,
-        intervalInputSnapshot,
-      )
-    : null;
+  const pricingRunId = await persistPreview(result, intervalEvidence, intervalInputSnapshot);
   return { ...result, pricingRunId };
 }
 
