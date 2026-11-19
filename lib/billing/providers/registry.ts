@@ -154,7 +154,8 @@ export async function loadNordfinClientId(companyId: string, environment: Invoic
     .maybeSingle()
   if (error) throw error
   const value = (data?.settings as Record<string, unknown> | null | undefined)?.client_id
-  return typeof value === 'string' && value.trim() ? value.trim() : null
+  if (typeof value !== 'string' || !value.trim()) return null
+  return requireValidNordfinClientId(value)
 }
 
 export function normalizeNordfinClientId(value: unknown): string | null {
@@ -162,9 +163,14 @@ export function normalizeNordfinClientId(value: unknown): string | null {
   return /^[A-Za-z0-9_-]{1,40}$/.test(text) ? text : null
 }
 
-export async function saveNordfinClientId(input: { companyId: string; environment: InvoiceProviderEnvironment; clientId: string; actorUserId: string }) {
-  const clientId = normalizeNordfinClientId(input.clientId)
+function requireValidNordfinClientId(value: string): string {
+  const clientId = normalizeNordfinClientId(value)
   if (!clientId) throw new InvoiceProviderConfigError('nordfin_client_id_invalid', 'ClientId får bara innehålla bokstäver, siffror, - och _ (högst 40 tecken).')
+  return clientId
+}
+
+export async function saveNordfinClientId(input: { companyId: string; environment: InvoiceProviderEnvironment; clientId: string; actorUserId: string }) {
+  const clientId = requireValidNordfinClientId(input.clientId)
   const db = tenantDb(input.companyId).unscoped()
   const current = await db
     .from('billing_provider_connections')
