@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess, requireAdminOperationalCompany } from '@/lib/admin/apiGuards'
 import { calculatePricingPreviewForUnderlay } from '@/lib/pricing/engine'
+import { manualPricingError } from '@/lib/pricing/manualPricingError'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,6 +20,12 @@ export async function POST(request: Request) {
     const result = await calculatePricingPreviewForUnderlay({ companyId, billingUnderlayId, persist: true })
     return NextResponse.json({ data: { ...result, status: result.status === 'success' ? 'repriced' : result.status } })
   } catch (error) {
-    return internalApiError({ context: 'pricing_reprice_failed', error, code: 'pricing_reprice_failed', message: 'Underlaget kunde inte räknas om.' })
+    return internalApiError({
+      context: 'pricing_reprice_failed',
+      error,
+      code: 'pricing_reprice_failed',
+      message: 'Underlaget kunde inte räknas om.',
+      ...manualPricingError(error),
+    })
   }
 }
