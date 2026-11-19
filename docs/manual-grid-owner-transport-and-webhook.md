@@ -71,15 +71,16 @@ On `bounced` / `failed` / `complained` / `suppressed` the linked
 
 > E-post till nätägaren kunde inte levereras. Kontrollera kontaktväg.
 
-### Testing the webhook (by design)
+### Testing the webhook
 
-A manual `curl` **without** valid Svix signature headers
-(`webhook-id`/`webhook-timestamp`/`webhook-signature`) will fail with
-`401 resend_webhook_invalid_signature` **by design** — the raw-body signature
-check cannot pass without them. To test end-to-end, use the **Resend dashboard
-test event** for the exact endpoint. `RESEND_WEBHOOK_SECRET` must be the exact
-signing secret for that exact endpoint, and Vercel must be **redeployed** after
-changing the env var.
+A request missing any required signature header returns `400 missing_headers`.
+The route checks for ID, timestamp and signature using `webhook-*` or `svix-*`
+headers. With all three headers present and a signing secret configured, a
+signature rejected against the raw body returns `401 resend_webhook_invalid_signature`.
+
+To test end to end, use the **Resend dashboard test event** for the exact
+endpoint. `RESEND_WEBHOOK_SECRET` must match that endpoint's signing secret.
+Redeploy in Vercel after changing the environment variable.
 
 ### Operational note (the live "Invalid webhook signature")
 

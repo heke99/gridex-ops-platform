@@ -26,7 +26,7 @@ Elpriset just nu
 
 `market_price_previews` innehåller endast indikativt underlag. En aktiv preview publiceras atomiskt genom `gridex_publish_market_price_preview`, har källa, period, as-of, stale-gräns, checksum och fallbackmetadata och kan aldrig markeras som settlement.
 
-`spot_price_monthly_summaries.status=locked` är det enda giltiga månatliga settlementunderlaget. Låsning sker explicit genom den behörighetskontrollerade operatörsrutten `POST /api/internal/spot/lock-month`, som anropar service-role-RPC `gridex_lock_spot_price_month` med `price_area`, `billing_month`, valfri `provider` och revisionsorsak. RPC:n tar ett distribuerat transaktionslås och verifierar full täckning innan audit-eventet `market_price.period.locked` skapas. Triggern `gridex_reject_locked_market_price_mutation` gör låsta perioder immutable. En låst historisk period blir inte stale.
+`spot_price_monthly_summaries.status=locked` är det enda giltiga månatliga settlementunderlaget. Det schemalagda jobbet och den behörighetskontrollerade operatörsrutten `POST /api/internal/spot/lock-month` använder samma service-role-RPC, `gridex_lock_spot_price_month`. Operatörsrutten låser ett angivet elområde och en månad och tar emot valfri `provider` och revisionsorsak. RPC:n tar ett distribuerat transaktionslås och verifierar täckningen innan audit-eventet `market_price.period.locked` skapas. Triggern `gridex_reject_locked_market_price_mutation` gör låsta perioder immutable. En låst historisk period blir inte stale.
 
 ## Importjobb
 
@@ -34,7 +34,7 @@ Elpriset just nu
 
 Providerklienten har timeout, begränsade retries, exponential backoff, jitter, `Retry-After`, content-type- och payloadvalidering. Dubbla croninstanser kan inte importera samma område/dygn samtidigt.
 
-Previewcron importerar senaste kompletta svenska dygn och återbygger rolling-30-days-preview. Settlementcron importerar/verifierar föregående fakturamånad men låser den inte automatiskt.
+Previewcron importerar senaste kompletta svenska dygn och återbygger rolling-30-days-preview. Enligt `vercel.json` kör `/api/cron/pricing/spot-settlement` dagligen kl. 03:35 UTC. Jobbet kontrollerar och importerar vid behov underlag för föregående fakturamånad och försöker därefter låsa varje valt elområde. En lyckad körning anger `settlement_locked: true`. Om ett område inte kan låsas returneras HTTP 500 med `failed_areas`. Redan låsta och lyckat låsta områden framgår av `settlements`.
 
 ## SVK-geometri och atomisk publicering
 
@@ -73,5 +73,5 @@ Read-only views visar senaste pris, luckor, överlapp, ofullständiga dygn, veri
 4. Kör readiness igen och granska remediation queue.
 5. Importera SE1–SE4 previewdata.
 6. Importera/verifiera avslutad månad.
-7. Lås settlement explicit efter kvalitetsgodkännande.
+7. Kontrollera settlementjobbets låsresultat per elområde. När ett område behöver en separat låsning använder operatören `POST /api/internal/spot/lock-month` efter att underlaget kontrollerats.
 8. Kör resolver → quote → validate → application → billing smoke test.
