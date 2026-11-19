@@ -154,7 +154,7 @@ describe('portalens öppna uppgiftsbegäran', () => {
     }))
     const found = await renderSelection(selected.id)
     expect(found).toContain('Länkat äldre underlag')
-    expect(found).toContain(`id="uppgiftsbegaran-${selected.id}"`)
+    expect(found).toContain(`id="uppgiftsbegaran-${selected.id}" aria-current="true"`)
     expect(found).toMatch(/name="customer_id" value="linked-customer"/)
     expect(found).toContain('Länkad kund')
     const foreignPage = await renderSelection(foreign.id)

@@ -131,7 +131,8 @@ export default async function PortalCompletionPage({
                 <div
                   key={request.id}
                   id={`uppgiftsbegaran-${request.id}`}
-                  className="scroll-mt-4 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700 target:border-slate-500"
+                  aria-current={selectedRequest?.id === request.id || undefined}
+                  className={`scroll-mt-4 rounded-2xl border p-4 text-sm text-slate-700 ${selectedRequest?.id === request.id ? "border-slate-500" : "border-slate-200"}`}
                 >
                   <div className="font-semibold text-slate-950">
                     {portalInfoRequestTypeLabel(request.request_type)}
