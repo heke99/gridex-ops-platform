@@ -59,7 +59,12 @@ export function deriveEdielProcessNextAction(input:{companyId:string;message:Sou
  const qualifiedResponse=nationalRescission?'Z05L-svaret är kvalificerat.':'Affärssvaret är kvalificerat.'
  if(e.status==='rejected')return result('business_response_rejected','tenant_operator',ackWaiting,['business_response_rejected',...technicalBlockers],'Granska det källkvalificerade negativa affärssvaret. Kvittensbevakning hanteras separat; ingen automatisk omsändning.')
  if(m.requires_contrl===true&&m.contrl_status==='failed')return result('technical_rejection','tenant_operator',[],['technical_response_rejected'],'Granska den faktiska tekniska avvisningen och originalet. Ett nytt skick kräver en separat aktuell prövning.')
- if(m.requires_aperak===true&&m.aperak_status==='failed')return result('technical_rejection','tenant_operator',[expectedResponse],['application_response_rejected',...technicalBlockers],'Granska den faktiska negativa APERAK-kvittensen. Affärssvaret prövas separat; ingen automatisk omsändning.')
+ if(m.requires_aperak===true&&m.aperak_status==='failed'){
+  const applicationBlockers=['application_response_rejected',...technicalBlockers]
+  if(e.expected_code==='Z14'&&e.status==='fulfilled')return result('business_response_received','tenant_operator',ackWaiting,applicationBlockers,
+   'Det kvalificerade Z14-svaret är mottaget. Granska den separata negativa APERAK-kvittensen. Ingen automatisk omsändning.')
+  return result('technical_rejection','tenant_operator',[expectedResponse],applicationBlockers,'Granska den faktiska negativa APERAK-kvittensen. Affärssvaret prövas separat; ingen automatisk omsändning.')
+ }
  if(e.status==='fulfilled')return result('business_response_received',ackWaiting.length&&!technicalOverdue?'counterparty':'tenant_operator',ackWaiting,technicalBlockers,
   technicalOverdue?`${qualifiedResponse} Granska den separata tekniska sändarbevakningen.`:`${qualifiedResponse} Fortsatt process prövas från sitt eget källbeslut; eventuell kvittens bevakas separat.`)
  const overdue=e.status==='manual_review'||businessDueAt!==null&&Date.parse(businessDueAt)<=Date.parse(evaluatedAt)
@@ -103,7 +108,12 @@ export function deriveEdielMeteringMethodProcessNextAction(input:Parameters<type
  const blockers=technicalOverdue?['technical_sender_watch_overdue']:[]
  if(e.status==='rejected')return result('business_response_rejected','tenant_operator',ackWaiting,['business_response_rejected',...blockers],'Granska det källkvalificerade negativa affärssvaret. Kvittensbevakning hanteras separat; ingen automatisk omsändning.')
  if(m.requires_contrl===true&&m.contrl_status==='failed')return result('technical_rejection','tenant_operator',['Z06'],['technical_response_rejected'],'Granska den faktiska tekniska avvisningen. Den fyller inte den separata Z06-bevakningen.')
- if(m.requires_aperak===true&&m.aperak_status==='failed')return result('technical_rejection','tenant_operator',['Z06',...(technicalPending?['CONTRL']:[])],['application_response_rejected',...blockers],'Granska den faktiska negativa APERAK-kvittensen. Den fyller inte den separata Z06-bevakningen.')
+ if(m.requires_aperak===true&&m.aperak_status==='failed'){
+  const applicationBlockers=['application_response_rejected',...blockers]
+  if(e.status==='fulfilled')return result('business_response_received','tenant_operator',ackWaiting,applicationBlockers,
+   'Det egna tillämpade Z06-svaret är kvalificerat. Granska den separata negativa APERAK-kvittensen. Ingen automatisk omsändning.')
+  return result('technical_rejection','tenant_operator',['Z06',...(technicalPending?['CONTRL']:[])],applicationBlockers,'Granska den faktiska negativa APERAK-kvittensen. Den fyller inte den separata Z06-bevakningen.')
+ }
  if(e.status==='fulfilled')return result('business_response_received',ackWaiting.length&&!technicalOverdue?'counterparty':'tenant_operator',ackWaiting,blockers,'Det egna tillämpade Z06-svaret är kvalificerat. Eventuell teknisk kvittens bevakas separat.')
  if(e.status==='manual_review'||businessDueAt<=evaluatedAt)return result('business_watch_overdue','tenant_operator',['Z06',...ackWaiting],['business_source_validity_watch_overdue',...blockers],'Granska uteblivet kvalificerat Z06-svar. Den egna bevakningen utgår från originalets giltighetsdag; ingen automatisk omsändning.')
  return result('business_response_pending',technicalOverdue?'tenant_operator':'counterparty',['Z06',...ackWaiting],blockers,'Invänta det egna tillämpade Z06-svaret från motparten. Bevakningen utgår från originalets giltighetsdag. CONTRL och APERAK prövas separat; ingen automatisk omsändning.')
