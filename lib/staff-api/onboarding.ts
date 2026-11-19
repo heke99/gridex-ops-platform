@@ -15,6 +15,28 @@ import { tenantInsert, tenantSelect } from '@/lib/supabase/tenantQuery'
 export { STAFF_ONBOARDING_CONTRACT_VERSION }
 export const STAFF_ONBOARDING_ACCEPT_PATH = '/api/v1/staff-onboarding/invitations/accept'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+// Business rejections issued by the external binding and canonical acceptance functions.
+const invitationDenials = new Map([
+  ['staff_identity_acceptance_invalid', '42501'],
+  ['staff_identity_actor_inactive', '42501'],
+  ['staff_identity_binding_missing', '42501'],
+  ['staff_identity_client_changed', '42501'],
+  ['staff_identity_client_inactive', '42501'],
+  ['staff_identity_company_inactive', '42501'],
+  ['staff_identity_delivery_not_registered', '42501'],
+  ['staff_identity_invitation_client_mismatch', '42501'],
+  ['staff_identity_invitation_invalid', '42501'],
+  ['staff_identity_provider_changed', '42501'],
+  ['tenant_invitation_not_found', 'P0002'],
+  ['tenant_invitation_not_pending', '23514'],
+  ['tenant_invitation_expired', '23514'],
+  ['tenant_invitation_user_mismatch', '42501'],
+  ['target_auth_user_missing_or_inactive', '42501'],
+  ['tenant_invitation_email_mismatch', '42501'],
+  ['tenant_state_blocks_invitation_acceptance', '23514'],
+  ['canonical_tenant_role_not_assignable', '22023'],
+  ['invitation_membership_role_role_key_mismatch', '23514'],
+])
 type Invitation = { id: string; company_id: string; email: string; invited_user_id: string | null; status: string; expires_at: string | null }
 type BindingLookupCommand = StaffIdentityAuthorityCommand & { invitation_id: string }
 type AcceptCommand = BindingLookupCommand & { binding_id: string; binding_version: number; verified_email: string; email_confirmed: true; idempotency_key: string }
@@ -35,6 +57,15 @@ function json(requestId: string, data: unknown, status = 200): Response {
     { status, headers: { 'Cache-Control': 'no-store', 'X-Request-ID': requestId, 'X-Gridex-Contract-Version': STAFF_ONBOARDING_CONTRACT_VERSION, ...(projectRef ? { 'X-Gridex-Project-Ref': projectRef } : {}) } })
 }
 function denied(code = 'staff_invitation_invalid', status = 403): never { throw new ApiInputError('The staff invitation could not be accepted.', code, status) }
+function acceptanceFailure(error: unknown): Pick<ApiInputError, 'code' | 'status'> {
+  if (error instanceof ApiInputError) return error
+  const { code, message } = (error as { code?: unknown; message?: unknown } | null) ?? {}
+  if (code === '23505' && message === 'IDEMPOTENCY_KEY_REUSE_MISMATCH') return { code: 'idempotency_conflict', status: 409 }
+  if (typeof message === 'string' && typeof code === 'string' && invitationDenials.get(message) === code) {
+    return { code: 'staff_invitation_invalid', status: 403 }
+  }
+  return { code: 'internal_error', status: 500 }
+}
 function tokenHeader(request: NextRequest, name: string): string {
   const value = request.headers.get(name)
   if (!value || value.length > 16_384 || /\s/.test(value)) denied('staff_onboarding_identity_missing', 401)
@@ -85,17 +116,17 @@ export function createStaffInvitationAcceptanceHandler(ports: StaffInvitationAcc
       const common = { ...staffIdentityAuthorityCommand(client, provider, registration, user.id, credential.token), invitation_id: invitation.id }
       const binding = parsedStaffIdentityBinding(await ports.lookupIdentityBinding(common))
       if (!binding || binding.actor_user_id !== invitation.invited_user_id || binding.actor_user_id === user.id) denied('staff_identity_binding_invalid')
-      await ports.canonicalAccept({ ...common, binding_id: binding.binding_id, binding_version: binding.binding_version,
+      const accepted = await ports.canonicalAccept({ ...common, binding_id: binding.binding_id, binding_version: binding.binding_version,
         verified_email: user.email.trim().toLowerCase(), email_confirmed: true,
         idempotency_key: `${client.id}:staff-invitation-accept:${idempotencyKey}` })
+      if (!accepted) throw new Error('Missing canonical staff invitation acceptance result.')
       actorUserId = binding.actor_user_id
       await ports.logRequest({ request, requestId, client, startedAt, statusCode: 200, metadata: { channel: 'staff_onboarding', actor_user_id: actorUserId } })
       return json(requestId, { status: 'accepted' })
     } catch (error) {
-      const known = error instanceof ApiInputError
-      const code = known ? error.code : ((error as { message?: string })?.message === 'IDEMPOTENCY_KEY_REUSE_MISMATCH' ? 'idempotency_conflict' : 'staff_invitation_invalid')
-      const response = json(requestId, { code, message: 'The staff invitation could not be accepted.' }, known ? error.status : code === 'idempotency_conflict' ? 409 : 403)
-      if (client) await ports.logRequest({ request, requestId, client, startedAt, statusCode: response.status, errorCode: code,
+      const { code, status } = acceptanceFailure(error)
+      const response = json(requestId, { code, message: 'The staff invitation could not be accepted.' }, status)
+      if (client) await ports.logRequest({ request, requestId, client, startedAt, statusCode: status, errorCode: code,
         metadata: { channel: 'staff_onboarding', ...(actorUserId ? { actor_user_id: actorUserId } : {}) } })
       return response
     }
@@ -132,7 +163,6 @@ export const acceptStaffInvitation = createStaffInvitationAcceptanceHandler({
   canonicalAccept: async command => {
     const { data, error } = await nativeOnboarding.rpc('gridex_accept_external_staff_invitation_v1', { p_command: command })
     if (error) throw error
-    if (!data) denied()
     return data
   },
   logRequest: logIntegrationApiRequest,
