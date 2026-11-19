@@ -25,15 +25,17 @@ function query(table: string) {
   let first = 0
   let last = Infinity
   let error: unknown = null
+  let exactCount = false
   const predicates: Array<(row: Row) => boolean> = []
-  const rows = () => {
-    if (mode === 'insert') return pending
-    const result = (m.tables[table] ?? []).filter((row) => predicates.every((p) => p(row))).slice(first, Math.min(last + 1, first + limit))
+  const matchingRows = () => mode === 'insert' ? pending : (m.tables[table] ?? []).filter((row) => predicates.every((p) => p(row)))
+  const rows = (matching = matchingRows()) => {
+    if (mode === 'insert') return matching
+    const result = matching.slice(first, Math.min(last + 1, first + limit))
     if (mode === 'update') result.forEach((row) => Object.assign(row, patch))
     return result
   }
   const q = {
-    select: () => q,
+    select: (_columns?: string, options?: { count?: string }) => { exactCount = options?.count === 'exact'; return q },
     eq: (key: string, value: unknown) => { predicates.push((row) => field(row, key) === value); return q },
     neq: (key: string, value: unknown) => { predicates.push((row) => field(row, key) !== value); return q },
     is: (key: string, value: unknown) => { predicates.push((row) => field(row, key) === value); return q },
@@ -56,7 +58,11 @@ function query(table: string) {
     update: (value: Row) => { mode = 'update'; patch = value; m.mutations.push(table); return q },
     maybeSingle: async () => ({ data: rows()[0] ?? null, error }),
     single: async () => ({ data: rows()[0] ?? null, error }),
-    then: (resolve: (value: unknown) => unknown) => resolve({ data: rows(), error }),
+    then: (resolve: (value: unknown) => unknown) => {
+      const matching = matchingRows()
+      // As in PostgREST, an exact count covers all matching rows before range or limit.
+      return resolve({ data: rows(matching), count: exactCount && !error ? matching.length : null, error })
+    },
   }
   return q
 }
@@ -160,6 +166,8 @@ describe('finite synthetic mounted customer operation contract probes', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.data.invoice.amount_inc_vat).toBe(125)
+    expect(body.data.lines).toEqual([])
+    expect(body.data.documents).toEqual([])
     expect(validateResponse(spec(), path, body, 'get', '200')).toEqual([])
   })
   it('POST portal bundle uses a JSON identifier and returns the public combined data', async () => {
