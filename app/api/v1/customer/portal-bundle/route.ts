@@ -2,12 +2,11 @@ import { withApiContractRepresentation } from '@/lib/integrations/apiResponsePro
 import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { readJsonObject } from '@/lib/api/strictRequest'
-import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
+import { logIntegrationApiRequest, type IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import type { LinkedPortalIdentity } from '@/lib/customer-portal/externalApi'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
-  logCustomerPortalSuccess,
   portalIdentifiersFromPayload,
   requireCustomerPortalApiContext,
   requireCustomerPortalApiContextForIdentifiers,
@@ -255,41 +254,7 @@ async function buildBundleResponse(input: {
       email: input.identity.email,
     }, input.client.company_id)
 
-    await logCustomerPortalSuccess({
-      request: input.request,
-      client: input.client,
-      startedAt: input.startedAt,
-      resultCount: 1,
-      metadata: {
-        access_mode: input.accessMode,
-        contracts: contracts.length,
-        sites: sites.length,
-        invoices: invoices.length,
-        metering_points: meteringPoints.length,
-        metering_values: meteringValues.length,
-        documents: documents.length,
-        legal_acceptances: legalAcceptances.length,
-        powers_of_attorney: powersOfAttorney.length,
-        notifications: notifications.length,
-        events: events.length,
-        partial_bundle: warnings.length > 0,
-        customer_status: customerStatus.code,
-        data_quality_issues: customerStatus.issues,
-        failed_sections: warnings.map((warning) => warning.section),
-        section_errors: warnings,
-        summary_mode: options.summary,
-        included_optional_sections: Array.from(options.includedOptionalSections),
-      },
-    })
-
-    timer.stop({
-      status: responseStatus,
-      count: contracts.length + sites.length + meteringPoints.length + invoices.length,
-      companyId: input.client.company_id,
-      meta: { summary: options.summary, partial: warnings.length > 0 },
-    })
-
-    return customerPortalJson({
+    const response = customerPortalJson({
       data: {
         customer: {
           ...publicCustomer,
@@ -337,6 +302,44 @@ async function buildBundleResponse(input: {
         },
       },
     }, { status: responseStatus })
+
+    await logIntegrationApiRequest({
+      request: input.request,
+      client: input.client,
+      startedAt: input.startedAt,
+      statusCode: response.status,
+      requestId: response.headers.get('X-Request-ID'),
+      metadata: {
+        result_count: 1,
+        access_mode: input.accessMode,
+        contracts: contracts.length,
+        sites: sites.length,
+        invoices: invoices.length,
+        metering_points: meteringPoints.length,
+        metering_values: meteringValues.length,
+        documents: documents.length,
+        legal_acceptances: legalAcceptances.length,
+        powers_of_attorney: powersOfAttorney.length,
+        notifications: notifications.length,
+        events: events.length,
+        partial_bundle: warnings.length > 0,
+        customer_status: customerStatus.code,
+        data_quality_issues: customerStatus.issues,
+        failed_sections: warnings.map((warning) => warning.section),
+        section_errors: warnings,
+        summary_mode: options.summary,
+        included_optional_sections: Array.from(options.includedOptionalSections),
+      },
+    })
+
+    timer.stop({
+      status: response.status,
+      count: contracts.length + sites.length + meteringPoints.length + invoices.length,
+      companyId: input.client.company_id,
+      meta: { summary: options.summary, partial: warnings.length > 0 },
+    })
+
+    return response
   } catch (error) {
     timer.stop({ status: 500, companyId: input.client.company_id })
     return handleCustomerPortalRouteError({ request: input.request, client: input.client, startedAt: input.startedAt, error })
