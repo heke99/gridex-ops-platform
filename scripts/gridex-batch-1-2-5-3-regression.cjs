@@ -44,11 +44,38 @@ assert(exportCore.includes('sendInvoiceExportRun'), 'Batch 5 invoice export send
 assert(migration.includes('billing_provider_connections'), 'Batch 5 provider connection table missing')
 assert(migration.includes('invoice_export_runs'), 'Batch 5 invoice export runs table missing')
 assert(migration.includes('invoice_purchase_events'), 'Batch 5 purchase event table missing')
-assert(read('app/api/internal/invoice-exports/create/route.ts').includes('createInvoiceExportRun'), 'Batch 5 create API missing')
+const prepareInvoiceRoute = read('app/api/internal/invoice-exports/create/route.ts')
+assert(
+  prepareInvoiceRoute.includes("requireAdminApiAccess(['billing_underlay.export']"),
+  'Batch 5 prepare API must require authorized invoice export access',
+)
+assert(
+  prepareInvoiceRoute.includes('await prepareInvoiceDraftsForReview(') &&
+    !prepareInvoiceRoute.includes('sendInvoiceExportRun(') &&
+    !prepareInvoiceRoute.includes('sendApprovedInvoiceItem('),
+  'Batch 5 create API must prepare drafts for review without dispatching them',
+)
+assert(
+  prepareInvoiceRoute.includes("mode: 'prepare_only'") && prepareInvoiceRoute.includes('approval_required: true'),
+  'Batch 5 prepared drafts must require explicit approval',
+)
 assert(read('app/api/internal/invoices/[id]/purchase/route.ts').includes('requestCapwayInvoicePurchase'), 'Batch 5 purchase API missing')
 
-// The guidance copy moved into CustomerIntakeForm (verified grid owner picker).
-assert(read('components/admin/customers/CustomerIntakeForm.tsx').includes('Välj verifierad nätägare'), 'Batch 3 customer intake verified actor guidance missing')
+const customerIntakeForm = read('components/admin/customers/CustomerIntakeForm.tsx')
+assert(
+  customerIntake.includes('listGridOwners(supabase, { customerFlowOnly: true })') &&
+    customerIntake.includes('gridOwners={gridOwners.map('),
+  'Batch 3 customer intake must pass customer-flow grid owners to the picker',
+)
+assert(
+  customerIntakeForm.includes("name='gridOwnerId'") && customerIntakeForm.includes('gridOwners.map('),
+  'Batch 3 customer intake must render the scoped grid owner choices',
+)
+assert(
+  customerIntakeForm.includes('Hittar du inte nätägaren?') &&
+    customerIntakeForm.includes('Lämna fältet tomt och spara kunden.'),
+  'Batch 3 customer intake must explain how to proceed when the grid owner is missing',
+)
 assert(migration.includes('verified_for_customer_flow'), 'Batch 3 actor registry verification fields missing')
 assert(read('app/admin/network-owners/page.tsx').includes('Endast platform/teknisk admin'), 'Batch 3 network owner UI guard copy missing')
 
