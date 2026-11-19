@@ -1249,12 +1249,6 @@ export async function syncTenantCustomerRecords(input: {
     ...(input.payload.metadata ?? {}),
   }
 
-  summary.profile = await syncCustomerProfile({
-    client: input.client,
-    identity: input.identity,
-    profile: input.payload.profile,
-  })
-
   const acceptances = Array.isArray(input.payload.legal_acceptances) ? input.payload.legal_acceptances : []
   const seenAcceptanceReferences = new Set<string>()
   const resolvedAcceptances = await Promise.all(
@@ -1282,6 +1276,13 @@ export async function syncTenantCustomerRecords(input: {
   if (acceptanceReferenceKinds.size > 1) {
     throw new Error('LEGAL_ACCEPTANCE_FORMAT_MIXED')
   }
+
+  summary.profile = await syncCustomerProfile({
+    client: input.client,
+    identity: input.identity,
+    profile: input.payload.profile,
+  })
+
   for (const { acceptance, legalDocument } of resolvedAcceptances) {
     const result = await syncLegalAcceptance({
       client: input.client,
