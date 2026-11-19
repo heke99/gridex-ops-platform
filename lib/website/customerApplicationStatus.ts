@@ -266,6 +266,8 @@ function summarizeWebhook(
   fanoutJobs: EventOutboxRow[],
   hasEvents: boolean,
 ) {
+  // Both workers claim scheduled attempts only in these states.
+  const retryStatuses = ['queued', 'failed']
   const deliveryStatuses = deliveries.map((row) => clean(row.status) ?? 'unknown')
   const fanoutStatuses = fanoutJobs.map((row) => clean(row.status) ?? 'unknown')
   const failedDeliveries = deliveries.filter((row) =>
@@ -309,8 +311,8 @@ function summarizeWebhook(
       deliveries.reduce((sum, row) => sum + numberValue(row.attempts), 0) +
       fanoutJobs.reduce((sum, row) => sum + numberValue(row.attempts), 0),
     next_retry_at: earliest(
-      ...deliveries.map((row) => row.next_attempt_at),
-      ...fanoutJobs.filter((row) => ['queued', 'failed'].includes(clean(row.status) ?? '')).map((row) => row.available_at),
+      ...deliveries.filter((row) => retryStatuses.includes(clean(row.status) ?? '')).map((row) => row.next_attempt_at),
+      ...fanoutJobs.filter((row) => retryStatuses.includes(clean(row.status) ?? '')).map((row) => row.available_at),
     ),
     last_error:
       clean(failedDeliveries.at(0)?.failure_reason) ??
@@ -404,6 +406,7 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
   const jobError = clean(job?.last_error_message) ?? clean(job?.last_error) ?? clean(job?.last_error_code)
   const workflowFailure = clean(workflow?.failure_code)
   const communication = summarizeCommunication(communicationLogs, outbox)
+  const webhook = summarizeWebhook(webhookDeliveries, webhookFanoutJobs, domainEvents.length > 0)
   const checkout = buildTenantCheckoutResult({
     applicationNumber: application.application_number,
     applicationStatus: externalStatus,
@@ -446,7 +449,8 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
     },
     communication,
     checkout,
-    webhook: summarizeWebhook(webhookDeliveries, webhookFanoutJobs, domainEvents.length > 0),
+    webhook,
+    // The timestamp reflects recorded times represented by this status sample.
     updated_at: newest(
       workflow?.updated_at,
       job?.updated_at,
@@ -454,6 +458,8 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
       clean(switchRow?.updated_at),
       clean(supplyRow?.updated_at),
       application.updated_at,
+      ...communication.triggered.map((entry) => entry.occurred_at),
+      webhook.updated_at,
     ),
   }
 }
