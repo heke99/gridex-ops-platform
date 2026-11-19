@@ -24,7 +24,7 @@ import {
   listPortalPowersOfAttorney,
   listPortalSites,
   listPortalWebsiteApplications,
-  portalContextFromResolved,
+  portalBundleContextFromResolved,
   portalQueryErrorMetadata,
 } from '@/lib/customer-portal/apiData'
 import {
@@ -181,7 +181,7 @@ async function buildBundleResponse(input: {
 }) {
   const timer = startRouteTimer('/api/v1/customer/portal-bundle')
   try {
-    const portalContext = portalContextFromResolved({
+    const portalContext = portalBundleContextFromResolved({
       companyId: input.client.company_id,
       customerId: input.identity.customer_id,
       externalCustomerId: input.identity.external_customer_id,
