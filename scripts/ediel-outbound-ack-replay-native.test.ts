@@ -53,12 +53,12 @@ async function assertAperakCancellationWinsEntry(ack: EdielMessageRow, companyId
  expect(prepared.data).toEqual({proceed:true,state:'prepared'})
 
  const holder = spawn('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{
-  stdio:['pipe','pipe','pipe'],env:{PATH:process.env.PATH,PGOPTIONS:'-c statement_timeout=10000 -c idle_in_transaction_session_timeout=10000'},
+  stdio:['pipe','pipe','pipe'],env:{PATH:process.env.PATH,NODE_ENV:'test',PGOPTIONS:'-c statement_timeout=10000 -c idle_in_transaction_session_timeout=10000'},
  })
  const lock = nativeLockProcess(holder,{marker:'CANCEL_ROW_LOCKED',markerError:'native_aperak_cancellation_not_ready',lifetimeMs:15000})
  let holderPid: number | undefined
  let output = ''
- holder.stdout.on('data',chunk=>{
+ holder.stdout.on('data',(chunk: Buffer)=>{
   output = (output + String(chunk)).slice(-256)
   const match = output.match(/PID:(\d+)/)
   if (match) holderPid = Number(match[1])
