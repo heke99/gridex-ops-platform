@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAnalyticsCronAuthorized, listAnalyticsCompanyIds } from '@/lib/analytics/cron'
+import { invalidAnalyticsCronMonth, resolveAnalyticsCronMonth } from '@/lib/analytics/cronMonth'
 import { buildCompanyMonthlyMetrics } from '@/lib/analytics/monthlyMetricsBuilder'
 import { scanCompanyDataQuality } from '@/lib/analytics/dataQuality'
 import { refreshDashboardAlerts } from '@/lib/analytics/alerts'
@@ -10,7 +11,8 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   if (!isAnalyticsCronAuthorized(request)) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
-  const month = monthStart(request.nextUrl.searchParams.get('month'))
+  const month = resolveAnalyticsCronMonth(request.nextUrl.searchParams.get('month'), monthStart())
+  if (month === null) return invalidAnalyticsCronMonth()
   const companies = await listAnalyticsCompanyIds()
   const results = []
   for (const companyId of companies) {

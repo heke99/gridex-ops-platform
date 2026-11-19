@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAnalyticsCronAuthorized, listAnalyticsCompanyIds } from '@/lib/analytics/cron'
+import { invalidAnalyticsCronMonth, resolveAnalyticsCronMonth } from '@/lib/analytics/cronMonth'
 import { runCompanyForecast } from '@/lib/forecasting/forecastRuns'
 import { monthStart } from '@/lib/analytics/utils'
 import { hasCustomerAnalyticsData } from '@/lib/analytics/monthlyMetricsBuilder'
@@ -12,7 +13,8 @@ export async function POST(request: NextRequest) {
   if (request.nextUrl.searchParams.get('company_id')) {
     return NextResponse.json({ ok: false, error: 'company_id accepteras inte i cron. Använd platform admin UI för bolagsspecifika körningar.' }, { status: 400 })
   }
-  const month = monthStart(request.nextUrl.searchParams.get('month'))
+  const month = resolveAnalyticsCronMonth(request.nextUrl.searchParams.get('month'), monthStart())
+  if (month === null) return invalidAnalyticsCronMonth()
   const companies = await listAnalyticsCompanyIds()
   const results = []
   for (const companyId of companies) {
