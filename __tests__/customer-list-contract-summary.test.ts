@@ -100,6 +100,28 @@ describe('stored all-contract preferences, without defining effective invoice po
     equal(contractBillingSummaryLabel(summary([])).includes('Inget avtal'), true)
     equal(contractBillingSummaryLabel(undefined).includes('kan inte hämtas'), true)
   })
+  it('presents the four known billing levels in Swedish independently of the consolidated preference', () => {
+    const labels = [
+      ['customer', 'Per kund'],
+      ['contract', 'Per avtal'],
+      ['site', 'Per anläggning'],
+      ['metering_point', 'Per mätpunkt'],
+    ]
+    for (const [value, label] of labels) {
+      const result = summary([row('1', false, value)])
+      deepEqual(result.billingLevel.values, [value])
+      equal(contractBillingSummaryLabel(result), `Alla avtal · Samlingsfaktura: Nej · Faktureringsnivå: ${label}`)
+    }
+  })
+  it('keeps mixed known levels distinct from unrecognized or missing levels', () => {
+    const result = summary([
+      row('1', true, 'site'), row('2', true, 'customer'), row('3', true, 'custom-Å'), row('4', true, null),
+    ])
+    deepEqual(result.billingLevel, { state: 'mixed', values: ['custom-Å', 'customer', 'site'], unknownCount: 1 })
+    equal(contractBillingSummaryLabel(result), 'Alla avtal · Samlingsfaktura: Ja · Faktureringsnivå: Blandat: Per kund, Per anläggning (även okänt)')
+    equal(contractBillingSummaryLabel(summary([row('1', true, 'site'), row('2', true, 'custom-Å')])), 'Alla avtal · Samlingsfaktura: Ja · Faktureringsnivå: Per anläggning samt okänt')
+    equal(contractBillingSummaryLabel(summary([row('1', true, 'custom-Å'), row('2', true, '__proto__')])), 'Alla avtal · Samlingsfaktura: Ja · Faktureringsnivå: Okänt')
+  })
 })
 
 describe('bounded complete pagination never summarizes a partial prefix', () => {
