@@ -4,6 +4,8 @@
 // bytes are then decoded with the part's declared charset. EDIFACT payloads
 // declare their own character set in the UNB syntax identifier, which wins
 // over the MIME charset (UNOA/UNOB/UNOC -> ISO-8859-1, UNOW/UNOY -> UTF-8).
+import { observeCompletedEdifactSegments, segmentComposite, segmentSourceSpan, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
 export type TextCharset = 'utf-8' | 'iso-8859-1' | 'windows-1252' | 'us-ascii'
 
@@ -49,12 +51,47 @@ const EDIFACT_SYNTAX_CHARSET: Record<string, TextCharset> = {
   UNOY: 'utf-8',
 }
 
-// Reads the UNB syntax identifier (after an optional UNA service string).
+function unbCharset(segment: EdifactTokenizedSegment | undefined, una: EdifactServiceStringAdvice): TextCharset | null | undefined {
+  if (segment?.tag !== 'UNB') return undefined
+  const [identifier, version] = segmentComposite(segment, 1, una)
+  if (!/^UNO[A-Z]$/.test(identifier ?? '') || !/^\d+$/.test(version ?? '')) return undefined
+  // Require the envelope's physical party, date and reference fields before
+  // treating a UNB example in ordinary MIME text as a charset declaration.
+  if ([2, 3, 4, 5].some(index => !segmentComposite(segment, index, una)[0]?.trim())) return undefined
+  return EDIFACT_SYNTAX_CHARSET[identifier] ?? null
+}
+
+function readCharsetFrame(head: string): { charset: TextCharset | null; end: number } | null {
+  for (const boundary of head.matchAll(/(?:^|['\r\n])[ \t]*(?=UNA|UNB\+)/g)) {
+    const start = boundary.index + boundary[0].length
+    try {
+      const wire = observeCompletedEdifactSegments(head.slice(start))
+      const charset = unbCharset(wire.segments[0], wire.una)
+      if (charset === undefined) continue
+      const trailer = wire.segments.find(segment => segment.tag === 'UNZ')
+      const conflicting = wire.segments.slice(1, trailer?.index).some(segment => {
+        const next = unbCharset(segment, wire.una)
+        return next !== undefined && next !== charset
+      })
+      const span = trailer ? segmentSourceSpan(trailer) : null
+      return { charset: conflicting ? null : charset, end: span ? start + span.endOffset + 1 : head.length }
+    } catch {
+      // A malformed header does not provide charset authority.
+    }
+  }
+  return null
+}
+
 export function edifactSyntaxCharset(bytes: Buffer): TextCharset | null {
-  const head = bytes.subarray(0, 4096).toString('latin1')
-  // UNB starts the message or follows a segment terminator (also the UNA one).
-  const match = /(?:^|['\r\n])\s*UNB\+(UNO[A-Z])\b/.exec(head)
-  return match ? EDIFACT_SYNTAX_CHARSET[match[1]] ?? null : null
+  // Inspect only the existing byte-bounded prefix in a byte-preserving view.
+  let head = bytes.subarray(0, 4096).toString('latin1')
+  let charset: TextCharset | null = null
+  for (let frame = readCharsetFrame(head); frame; frame = readCharsetFrame(head)) {
+    if (!frame.charset || (charset && frame.charset !== charset)) return null
+    charset = frame.charset
+    head = head.slice(frame.end)
+  }
+  return charset
 }
 
 // windows-1252 code points for 0x80-0x9F (undefined bytes keep their C1 value).
