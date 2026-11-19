@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { PUBLIC_API_ENDPOINT_ROWS, PUBLIC_API_ROUTES } from '@/lib/api/publicRouteRegistry'
 import { OPENAPI_RELEASED_AT } from '@/lib/integrations/openApiReleaseManifest'
-import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { API_DOCUMENTATION_VERSION, WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 describe('post-#128 OpenAPI tip residuals', () => {
   it('documents all-mode scopes as AND and any-mode scopes as OR', () => {
@@ -29,9 +29,10 @@ describe('post-#128 OpenAPI tip residuals', () => {
     }
   })
 
-  it('uses the deterministic preparation instant for documentation release 2026-11-10.1', () => {
+  it('uses the deterministic preparation instant for documentation release 2026-11-19.1', () => {
+    expect(API_DOCUMENTATION_VERSION).toBe('2026-11-19.1')
     expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-10-09.1')
-    expect(OPENAPI_RELEASED_AT).toBe('2026-11-10T21:00:00.000Z')
+    expect(OPENAPI_RELEASED_AT).toBe('2026-11-19T10:51:17.000Z')
     const source = readFileSync('lib/integrations/openApiReleaseManifest.ts', 'utf8')
     expect(source).not.toContain("OPENAPI_RELEASED_AT = '2026-08-10T")
   })
