@@ -106,3 +106,64 @@ it('uses the protected point port rather than a zero-length native interval',asy
  const args=mocks.rpc.mock.calls.at(-1)![1]
  expect(args).not.toHaveProperty('p_start');expect(args).not.toHaveProperty('p_end')
 })
+
+describe('exact physical instants at the dated structure read boundary',()=>{
+ it.each([
+  ['subsecond','2026-10-04T00:00:00.100001+01:00','2026-10-03T23:00:00.900002Z','2026-10-03T23:00:00.100001Z','2026-10-03T23:00:00.900002Z'],
+  ['local seconds','2026-10-04T00:00:01','2026-10-04T00:00:59','2026-10-03T23:00:01.000Z','2026-10-03T23:00:59.000Z'],
+  ['whole quarter','202610040000','2026-10-04T00:15','2026-10-03T23:00:00.000Z','2026-10-03T23:15:00.000Z'],
+ ])('passes the full %s interval through the actual selector and interval owner',async(_label,start,end,p_start,p_end)=>{
+  const result=await readQualifiedCustomerStructure({...input,periodStart:start,periodEnd:end})
+  expect(result).toMatchObject({status:'selected',periodStart:p_start,periodEnd:p_end})
+  expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith('ediel_read_source_supply_basis_v1',{
+   p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_period_id:id(8),p_start,p_end,
+  })
+ })
+
+ it('uses one exact point for the same physical time in different offsets',async()=>{
+  const instant='2026-10-03T23:00:00.123456Z'
+  const result=await readQualifiedCustomerStructure({...input,periodStart:'2026-10-04T00:00:00.123456+01:00',periodEnd:'2026-10-04T01:00:00.123456000+02:00'})
+  expect(result).toMatchObject({status:'selected',periodStart:instant,periodEnd:instant})
+  expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith('ediel_read_source_supply_at_v1',{
+   p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_period_id:id(8),p_at:instant,
+  })
+ })
+
+ it('retains the precise applied-effect point after a meter change',async()=>{
+  const change=version()
+  change.sourceMessageId=id(12);change.assessmentId=id(13)
+  change.wire.messageCode='Z10';change.wire.businessCase='meter_exchange';change.wire.documentReference='CHANGE'
+  change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')}
+  change.wire.meterNumber='NEW';change.wire.oldMeterNumber='ACTUAL'
+  mocks.read.mockResolvedValue(data([version(),change]))
+  const afterChange='2026-10-03T23:00:00.000001Z'
+  expect(await readQualifiedCustomerStructure({...input,periodStart:afterChange,periodEnd:afterChange}))
+   .toMatchObject({status:'selected',selection:{states:[{meterNumber:'NEW'}]}})
+  expect(mocks.rpc).toHaveBeenCalledWith('ediel_read_structural_effect_scope_v1',expect.objectContaining({p_at:afterChange,p_source_message_id:id(12)}))
+ })
+
+ it('keeps the exact half-open supply end when deciding interval coverage',async()=>{
+  const baseline=version()
+  const stop='2026-10-03T23:00:00.350001Z'
+  baseline.coverage!.validTo=stop
+  mocks.read.mockResolvedValue(data([baseline]))
+  const start='2026-10-03T23:00:00.350Z'
+  expect(await readQualifiedCustomerStructure({...input,periodStart:start,periodEnd:stop})).toMatchObject({status:'selected'})
+  expect(mocks.rpc).toHaveBeenCalledWith('ediel_read_source_supply_basis_v1',expect.objectContaining({p_start:start,p_end:stop}))
+  mocks.rpc.mockClear()
+  expect(await readQualifiedCustomerStructure({...input,periodStart:start,periodEnd:'2026-10-03T23:00:00.350002Z'}))
+   .toEqual({status:'unavailable',reason:'dated_structure_owned_period_missing'})
+  expect(mocks.rpc).not.toHaveBeenCalled()
+ })
+
+ it.each([
+  ['reversed inside the same millisecond','2026-10-03T23:00:00.100002Z','2026-10-03T23:00:00.100001Z'],
+  ['finer than the database can represent','2026-10-03T23:00:00.1000001Z','2026-10-03T23:00:00.100001Z'],
+  ['invalid Gregorian day','2026-02-30T00:00:00.100Z','2026-10-03T23:00:00.100001Z'],
+ ])('holds a bound that is %s before any owner read',async(_label,periodStart,periodEnd)=>{
+  expect(await readQualifiedCustomerStructure({...input,periodStart,periodEnd}))
+   .toEqual({status:'unavailable',reason:'dated_structure_request_period_invalid'})
+  expect(mocks.read).not.toHaveBeenCalled()
+  expect(mocks.rpc).not.toHaveBeenCalled()
+ })
+})

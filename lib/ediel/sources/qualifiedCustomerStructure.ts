@@ -4,6 +4,7 @@ import {reviewedBusinessFor} from './structuralSourceReadset'
 import {selectStructuralSources,type StructuralSelection} from './structuralSourceSelection'
 import {prodatDate203,prodatMarketMinuteToUtc} from '@/lib/ediel/prodat/render/dates'
 import {isEvidenceRecord,isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {parseSourceReceiptInstant} from '@/lib/ediel/utilts/receivedSourceInventory'
 
 export type QualifiedCustomerStructure={status:'unavailable';reason:string}|{
  status:'selected';snapshotId:string;readsetHash:string;objectId:string;identityAgency:string;periodStart:string;periodEnd:string;
@@ -11,14 +12,36 @@ export type QualifiedCustomerStructure={status:'unavailable';reason:string}|{
  fields:{measurementMethod:string|null;reportingFrequency:string|null;productCode:string|null;settlementMethod:string|null;balanceResponsibleId?:string|null};
 }
 export type DatedCustomerStructureRequest={companyId:string;customerId:string;siteId:string;meteringPointId:string;actorUserId:string;environment:'test'|'production';periodStart:string;periodEnd:string}
-function marketInstant(value:string):string|null {const minute=prodatDate203(value);return minute?prodatMarketMinuteToUtc(minute):null}
+
+function marketInstant(value:string):{utc:string;epochMicros:bigint}|null {
+ if(typeof value!=='string')return null
+ const text=value.trim()
+ const timestamp=/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(Z|[+-]\d{2}:\d{2})?$/.exec(text)
+ if(!timestamp){
+  const utc=prodatMarketMinuteToUtc(prodatDate203(text))
+  const epochMicros=parseSourceReceiptInstant(utc)
+  return utc&&epochMicros!==null?{utc,epochMicros}:null
+ }
+ // An unzoned timestamp is a fixed UTC+1 market wall time. Preserve its exact
+ // fraction up to timestamptz precision instead of projecting to wire minutes.
+ const [,minute,second='00',fraction='',offset='+01:00']=timestamp
+ if(/[1-9]/.test(fraction.slice(6)))return null
+ const wholeSecond=parseSourceReceiptInstant(`${minute}:${second}${offset}`)
+ if(wholeSecond===null)return null
+ const micros=fraction.slice(0,6).padEnd(6,'0')
+ const formattedFraction=micros.endsWith('000')?micros.slice(0,3):micros
+ const utcSecond=new Date(Number(wholeSecond/BigInt(1000))).toISOString()
+ if(!/^\d{4}-/.test(utcSecond)||utcSecond.startsWith('0000-'))return null
+ return {utc:`${utcSecond.slice(0,-4)}${formattedFraction}Z`,epochMicros:wholeSecond+BigInt(micros)}
+}
 /** Current scalar rows select the internal request scope only. The exact dated
  * meter/register/field values come from witnessed own-source versions, their
  * same-canonical P119 facets and the sole native current supply owner. */
 export async function readQualifiedCustomerStructure(input:DatedCustomerStructureRequest):Promise<QualifiedCustomerStructure>{
  if(![input.companyId,input.customerId,input.siteId,input.meteringPointId,input.actorUserId].every(isEvidenceUuid))return {status:'unavailable',reason:'dated_structure_request_scope_invalid'}
- const periodStart=marketInstant(input.periodStart),periodEnd=marketInstant(input.periodEnd),cutoffAt=new Date().toISOString()
- if(!periodStart||!periodEnd||periodStart>periodEnd)return {status:'unavailable',reason:'dated_structure_request_period_invalid'}
+ const start=marketInstant(input.periodStart),end=marketInstant(input.periodEnd),cutoffAt=new Date().toISOString()
+ if(!start||!end||start.epochMicros>end.epochMicros)return {status:'unavailable',reason:'dated_structure_request_period_invalid'}
+ const periodStart=start.utc,periodEnd=end.utc,isPoint=start.epochMicros===end.epochMicros
  // No scalar fallback on failed or unavailable source reads.
  const readset=await readDatedSourceMeasurements({...input,cutoffAt})
  const candidates=readset.versions.flatMap(v=>{
@@ -35,9 +58,9 @@ export async function readQualifiedCustomerStructure(input:DatedCustomerStructur
    unresolvedSources:readset.unresolvedSources,versions:readset.versions,closures:readset.closures,closureBlockers:readset.closureBlockers,correctionContextBlockers:readset.correctionContextBlockers,
    companyId:input.companyId,environment:input.environment,customerId:input.customerId,supplyPeriodId:v.coverage!.supplyPeriodId,
    objectId:object.objectId,identityAgency:object.identityAgency,legalSender:v.wire.legalSender,legalReceiver:v.wire.legalReceiver,
-   periodStart,periodEnd,boundary:periodStart===periodEnd?'current_point':'interval'})
+   periodStart,periodEnd,boundary:isPoint?'current_point':'interval'})
   if(selected.status!=='selected'||selected.coverage.supplyPeriodId!==v.coverage!.supplyPeriodId)continue
-  const {data:basis,error}=await supabaseService.rpc(periodStart===periodEnd?'ediel_read_source_supply_at_v1':'ediel_read_source_supply_basis_v1',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_period_id:selected.coverage.supplyPeriodId,...(periodStart===periodEnd?{p_at:periodStart}:{p_start:periodStart,p_end:periodEnd})}).abortSignal(AbortSignal.timeout(2000))
+  const {data:basis,error}=await supabaseService.rpc(isPoint?'ediel_read_source_supply_at_v1':'ediel_read_source_supply_basis_v1',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_period_id:selected.coverage.supplyPeriodId,...(isPoint?{p_at:periodStart}:{p_start:periodStart,p_end:periodEnd})}).abortSignal(AbortSignal.timeout(2000))
   if(error)throw new Error('dated_structure_current_supply_basis_unconfirmed')
   if(!isEvidenceRecord(basis)||basis.qualified!==true||basis.customerId!==input.customerId||basis.siteId!==input.siteId||basis.meteringPointId!==input.meteringPointId||basis.initialSourceMessageId!==selected.coverage.baselineSourceMessageId)continue
   // A dated parser/business proposal is not an applied structural change.
