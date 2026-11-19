@@ -4,6 +4,7 @@ import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { stockholmDateForInstant } from '@/lib/time/stockholm'
 import { evaluateBillingGate, type BillingGateStatus } from '@/lib/billing/billingGate'
 import { loadQualifiedBillingValues } from './sourceBasis'
+import { readReplacedBoundProjection } from '@/lib/metering/normalizeMeteringValues'
 
 type CanonicalBillingStatus = 'pending_match' | 'billable' | 'blocked' | 'conflict'
 
@@ -43,8 +44,16 @@ async function createBillingUnresolvedItem(params: {
   if (error) throw error
 }
 
+async function isReplacedBillingRevision(meteringValue: MeteringValueRow, companyId: string, expectedProjectionId?: string): Promise<boolean> {
+  const dedupeKey = meteringValue.canonical_dedupe_key
+  if (meteringValue.source_system !== 'ediel_utilts' || !dedupeKey) return false
+
+  const projectionId = await readReplacedBoundProjection(companyId, meteringValue, dedupeKey)
+  return projectionId !== null && (expectedProjectionId === undefined || projectionId === expectedProjectionId)
+}
+
 async function persistBillingGate(params: {
-  meterValueId: string
+  meterValue: MeteringValueRow
   normalizedValueId: string
   companyId: string
   status: CanonicalBillingStatus
@@ -54,10 +63,10 @@ async function persistBillingGate(params: {
   customerId?: string | null
   supplyPeriodId?: string | null
   sourceMessageId?: string | null
-}) {
+}): Promise<'persisted' | 'replaced'> {
   const { error } = await supabaseService.rpc('gridex_set_metering_billing_gate', {
     p_company_id: params.companyId,
-    p_metering_value_id: params.meterValueId,
+    p_metering_value_id: params.meterValue.id,
     p_normalized_value_id: params.normalizedValueId,
     p_gate: {
       customer_id: params.customerId ?? null,
@@ -70,15 +79,25 @@ async function persistBillingGate(params: {
       billing_gate_evaluated_at: new Date().toISOString(),
     },
   })
-  if (error) throw error
-}
+  if (!error) return 'persisted'
 
+  // The source wrapper can reject an eligible request before the inner
+  // current-row check. Both refusals still require exact replacement proof.
+  const couldBeReplacement = error.code === '23514' && (
+    error.message === 'normalized_metering_value_not_current_or_not_linked' ||
+    (params.gateStatus === 'eligible' && error.message === 'billing_gate_qualified_final_source_required')
+  )
+  if (couldBeReplacement && await isReplacedBillingRevision(params.meterValue, params.companyId, params.normalizedValueId)) {
+    return 'replaced'
+  }
+  throw error
+}
 
 export async function updateMeterValueBillingReadiness(params: {
   meterValue: MeteringValueRow
   sourceMessageId?: string | null
   allowEstimatedValues?: boolean
-}): Promise<CanonicalBillingStatus> {
+}): Promise<CanonicalBillingStatus | 'replaced'> {
   await assertPlatformSchemaReady()
   const companyId = params.meterValue.company_id ?? null
   const meteringPointId = params.meterValue.metering_point_id
@@ -95,14 +114,18 @@ export async function updateMeterValueBillingReadiness(params: {
     .limit(2)
   if (normalizedResponse.error) throw normalizedResponse.error
   const normalizedRows = (normalizedResponse.data ?? []) as Array<Record<string, unknown>>
+  if (normalizedRows.length === 0 && await isReplacedBillingRevision(params.meterValue, companyId)) return 'replaced'
   if (normalizedRows.length !== 1) throw new Error(normalizedRows.length > 1 ? 'normalized_metering_current_revision_conflict' : 'normalized_metering_current_revision_missing')
   const normalizedValue = (await loadQualifiedBillingValues(companyId, [String(normalizedRows[0].id)])).get(String(normalizedRows[0].id))!
   const normalizedValueId = String(normalizedValue.id)
+  if (normalizedValue.revision_status === 'replaced' && await isReplacedBillingRevision(params.meterValue, companyId, normalizedValueId)) {
+    return 'replaced'
+  }
 
   if (!meteringPointId || !periodStartRaw || !periodEndRaw) {
     const gate = evaluateBillingGate({ normalizedValue, allowEstimatedValues: params.allowEstimatedValues })
-    await persistBillingGate({
-      meterValueId: params.meterValue.id,
+    const persisted = await persistBillingGate({
+      meterValue: params.meterValue,
       normalizedValueId,
       companyId,
       status: canonicalStatus(gate.status),
@@ -111,7 +134,7 @@ export async function updateMeterValueBillingReadiness(params: {
       gateSnapshot: gate.snapshot,
       sourceMessageId: params.sourceMessageId ?? params.meterValue.source_ediel_message_id ?? null,
     })
-    return canonicalStatus(gate.status)
+    return persisted === 'replaced' ? persisted : canonicalStatus(gate.status)
   }
 
   const periodStart = stockholmDateForInstant(periodStartRaw)
@@ -159,7 +182,7 @@ export async function updateMeterValueBillingReadiness(params: {
   })
   let gate: Pick<typeof evaluated, 'status' | 'eligible' | 'reasons' | 'snapshot'> = evaluated
   const persist = () => persistBillingGate({
-    meterValueId: params.meterValue.id,
+    meterValue: params.meterValue,
     normalizedValueId,
     companyId,
     status: canonicalStatus(gate.status),
@@ -172,7 +195,7 @@ export async function updateMeterValueBillingReadiness(params: {
   })
 
   try {
-    await persist()
+    if (await persist() === 'replaced') return 'replaced'
   } catch (error) {
     // The database also requires the supply period to rest on a qualified Ediel
     // market basis (switch confirmation or received supply start), which this
@@ -185,7 +208,7 @@ export async function updateMeterValueBillingReadiness(params: {
       reasons: [...gate.reasons, { code: 'supply_source_unqualified', message: 'Leveransperioden saknar kvalificerat Ediel-underlag (bekräftat byte eller mottagen leveransstart).' }],
       snapshot: { ...gate.snapshot, supply_source_qualified: false },
     }
-    await persist()
+    if (await persist() === 'replaced') return 'replaced'
   }
   const status = canonicalStatus(gate.status)
 

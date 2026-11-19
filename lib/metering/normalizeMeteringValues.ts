@@ -165,7 +165,7 @@ export async function projectMeteringValueToNormalized(input: {
   return id ? { status: 'duplicate', normalizedMeteringValueId: id } : { status: 'skipped' }
 }
 
-async function readReplacedBoundProjection(companyId: string, meteringValue: MeteringValueRow, dedupeKey: string): Promise<string | null> {
+export async function readReplacedBoundProjection(companyId: string, meteringValue: MeteringValueRow, dedupeKey: string): Promise<string | null> {
   const sourceMessageId = readText(meteringValue.source_ediel_message_id)
   const sourceTransaction = readText(meteringValue.source_transaction_reference)
   if (meteringValue.company_id !== companyId || meteringValue.canonical_dedupe_key !== dedupeKey || !sourceMessageId || !sourceTransaction) return null
