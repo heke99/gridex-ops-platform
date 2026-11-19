@@ -1,3 +1,5 @@
+import { stockholmDateForInstant } from '@/lib/time/stockholm'
+
 /** Established customer-visible invoice statuses shared by web and API readers. */
 export const PORTAL_PUBLISHED_INVOICE_STATUSES = [
   'issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited',
@@ -21,7 +23,7 @@ export function formatDate(value: string | null | undefined): string {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('sv-SE').format(date)
+  return stockholmDateForInstant(date)
 }
 
 export function formatPeriod(start?: string | null, end?: string | null): string {
