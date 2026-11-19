@@ -23,3 +23,9 @@ Keep the original document and obtain the patch and [checksum manifest](manifest
 Whitespace or serialization normalization can change a file checksum. An unrecognized document must be reviewed against the known source before applying an erratum; failing a checksum or RFC6902 test never authorizes a generic schema relaxation. Previously compiled contradictory validators cannot be repaired by changing only a server response header.
 
 No blanket assertion that every archived strict validator accepts every current response follows from these patches. No tenant/provider end-to-end qualification is claimed by a source correction.
+
+## Market-price response example
+
+The HTTP 200 example for `POST /api/v1/website/market-price/current` omits `data.selected_resolution`, `data.available_resolutions`, and `data.fallback_used` in `2026-08-02.1`, `2026-08-03.1`, `2026-08-04.1`, `2026-08-04.2`, `2026-08-04.3`, and `2026-08-05.1`.
+
+Use the example from the first corrected revision when building client test fixtures. [Website `2026-08-05.2` response example](../openapi/releases/2026-08-05.2/website-integration-v1.json#L3026)
