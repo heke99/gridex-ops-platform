@@ -31,6 +31,10 @@ function exactBytes(filePath) {
   return `${JSON.stringify(document, null, 2)}\n`
 }
 
+function parseUrl(value, base) {
+  return typeof value === 'string' && URL.canParse(value, base) ? new URL(value, base) : null
+}
+
 function assertImmutableArtifacts(specification, currentBytes) {
   const releasePath = path.join(
     'docs/openapi/releases',
@@ -71,6 +75,7 @@ function assertImmutableArtifacts(specification, currentBytes) {
 }
 
 async function verify() {
+  const expectedReleases = []
   for (const specification of specifications) {
     const body = exactBytes(specification.path)
     const document = JSON.parse(body)
@@ -80,10 +85,12 @@ async function verify() {
     if (document['x-contract-schema-version'] !== runtimeContractVersion) {
       throw new Error(`${specification.key}: x-contract-schema-version mismatch`)
     }
-    if (!/^[a-f0-9]{64}$/.test(sha256(body))) {
-      throw new Error(`${specification.key}: invalid sha256`)
-    }
     assertImmutableArtifacts(specification, body)
+    expectedReleases.push({
+      ...specification,
+      checksum: sha256(body),
+      servers: document.servers ?? [],
+    })
   }
 
   const registry = fs.readFileSync('lib/api/publicRouteRegistry.ts', 'utf8')
@@ -105,8 +112,10 @@ async function verify() {
     return
   }
 
+  const targetOrigin = new URL(baseUrl).origin
   const manifestResponse = await fetch(
     `${baseUrl}/api/v1/openapi/release-manifest.json`,
+    { redirect: 'error' },
   )
   if (!manifestResponse.ok) throw new Error('deployed manifest is unavailable')
   if (!manifestResponse.headers.get('content-type')?.includes('application/json')) {
@@ -116,7 +125,7 @@ async function verify() {
   if (manifest.release_version !== version || manifest.guide_version !== version || manifest.runtime_contract_version !== runtimeContractVersion) {
     throw new Error('deployed manifest version mismatch')
   }
-  for (const specification of specifications) {
+  for (const specification of expectedReleases) {
     const release = manifest.specifications?.[specification.key]
     if (
       release?.contract_name !== specification.contractName ||
@@ -124,14 +133,37 @@ async function verify() {
     ) {
       throw new Error(`${specification.key}: deployed contract metadata mismatch`)
     }
-    const response = await fetch(release.url)
-    if (!response.ok) throw new Error(`${specification.key}: deployed spec unavailable`)
-    if (!response.headers.get('content-type')?.includes('application/json')) {
-      throw new Error(`${specification.key}: deployed spec has the wrong content type`)
+    if (release.sha256 !== specification.checksum) {
+      throw new Error(`${specification.key}: deployed manifest sha256 mismatch`)
     }
-    const body = await response.text()
-    if (sha256(body) !== release.sha256) {
-      throw new Error(`${specification.key}: deployed sha256 mismatch`)
+    // Preview manifests use canonical public URLs. Bind the advertised paths
+    // to this release and verify the bytes served by the configured deployment.
+    const allowedOrigins = new Set([
+      targetOrigin,
+      ...specification.servers.map((server) => parseUrl(server.url, baseUrl)?.origin),
+    ])
+    for (const [field, label, releasePath] of [
+      ['url', 'current', `/api/v1/openapi/${specification.contractName}.json`],
+      ['immutable_url', 'immutable', `/api/v1/openapi/${version}/${specification.contractName}.json`],
+    ]) {
+      const advertisedUrl = parseUrl(release[field])
+      if (
+        !advertisedUrl ||
+        !allowedOrigins.has(advertisedUrl.origin) ||
+        advertisedUrl.pathname !== releasePath ||
+        advertisedUrl.username || advertisedUrl.password || advertisedUrl.search || advertisedUrl.hash
+      ) {
+        throw new Error(`${specification.key}: deployed ${field} mismatch`)
+      }
+      const response = await fetch(`${baseUrl}${releasePath}`, { redirect: 'error' })
+      if (!response.ok) throw new Error(`${specification.key}: deployed ${label} spec unavailable`)
+      if (!response.headers.get('content-type')?.includes('application/json')) {
+        throw new Error(`${specification.key}: deployed ${label} spec has the wrong content type`)
+      }
+      const body = Buffer.from(await response.arrayBuffer())
+      if (sha256(body) !== specification.checksum) {
+        throw new Error(`${specification.key}: deployed ${label} sha256 mismatch`)
+      }
     }
   }
   console.log(`Deployed OpenAPI release ${version} verified.`)
