@@ -51,13 +51,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'company_id får inte skickas till spotpris-cron. Spotpris är global marknadsdata per elområde.' }, { status: 400 })
   }
 
+  const requestedDate = request.nextUrl.searchParams.get('calendar_date') ?? request.nextUrl.searchParams.get('calendarDate')
+  let requestedCalendarDate: string | null
   try {
-    const requestedDate = request.nextUrl.searchParams.get('calendar_date') ?? request.nextUrl.searchParams.get('calendarDate')
+    requestedCalendarDate = requestedDate ? strictIsoDate(requestedDate, 'calendar_date') : null
+  } catch (error) {
+    return internalApiError({
+      context: 'spot_price_preview_cron_invalid_calendar_date',
+      error,
+      code: 'invalid_calendar_date',
+      message: 'calendar_date måste vara ett giltigt datum i formatet YYYY-MM-DD.',
+      status: 400,
+    })
+  }
+
+  try {
     const priceAreas = normalizeSpotAutoImportAreas(request.nextUrl.searchParams.get('price_areas') ?? request.nextUrl.searchParams.get('priceAreas'))
     const force = parseForce(request)
     const now = new Date()
-    const dates = requestedDate
-      ? [strictIsoDate(requestedDate, 'calendar_date')]
+    const dates = requestedCalendarDate
+      ? [requestedCalendarDate]
       : [
           previousStockholmCalendarDate(now),
           currentStockholmCalendarDate(now),
@@ -77,7 +90,7 @@ export async function POST(request: NextRequest) {
         // Yesterday (D-1) is re-verified once per run so late provider
         // corrections are picked up; an incomplete refresh never downgrades
         // an already verified day (see importSpotPricesForDayArea).
-        force: force || (!requestedDate && previousDay) || currentDay || nextDay,
+        force: force || (!requestedCalendarDate && previousDay) || currentDay || nextDay,
       }))
     }
 
