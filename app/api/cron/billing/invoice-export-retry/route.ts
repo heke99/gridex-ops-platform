@@ -27,26 +27,65 @@ function authorized(request: NextRequest) {
   }))
 }
 
+function providerSummary<Result extends { results: readonly { outcome: string }[] }>(result: Result | null) {
+  if (result === null) return null
+  return {
+    ...result,
+    results: result.results.map((entry) => entry.outcome === 'skipped'
+      ? { ...entry, reason: 'provider_event_processing_failed' }
+      : entry),
+  }
+}
+
 async function run(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 })
-  try {
-    const limitRaw = Number(clean(request.nextUrl.searchParams.get('limit')) ?? '50')
-    const companyId = clean(request.nextUrl.searchParams.get('company_id'))
-    const retries = await processDueApprovedInvoiceRetries({
-      companyId,
-      limit: Number.isFinite(limitRaw) ? limitRaw : 50,
-    })
-    const providerEvents = await processPendingInvoiceProviderEvents({ companyId, limit: 200 })
-    const reviewRetries = await retryReviewableInvoiceProviderEvents({ companyId, limit: 50 })
-    return NextResponse.json({ ok: true, retries, providerEvents, reviewRetries, approval_enforced: true })
-  } catch (error) {
-    const traceId = randomUUID()
-    console.error('[invoice-export-retry-cron] failed', { traceId, error })
-    return NextResponse.json(
-      { ok: false, error: 'Fakturaexport-återförsök kunde inte köras just nu.', code: 'invoice_export_retry_cron_failed', trace_id: traceId },
-      { status: 500 },
-    )
+
+  const limitRaw = Number(clean(request.nextUrl.searchParams.get('limit')) ?? '50')
+  const companyId = clean(request.nextUrl.searchParams.get('company_id'))
+  const failedSteps: { step: string; trace_id: string }[] = []
+
+  async function runStep<Result>(step: string, execute: () => Promise<Result>): Promise<Result | null> {
+    try {
+      return await execute()
+    } catch (error) {
+      const traceId = randomUUID()
+      console.error('[invoice-export-retry-cron] step failed', { step, traceId, error })
+      failedSteps.push({ step, trace_id: traceId })
+      return null
+    }
   }
+
+  const retries = await runStep('retries', () => processDueApprovedInvoiceRetries({
+    companyId,
+    limit: Number.isFinite(limitRaw) ? limitRaw : 50,
+  }))
+  const providerEvents = await runStep('providerEvents', () => processPendingInvoiceProviderEvents({ companyId, limit: 200 }))
+  const reviewRetries = await runStep('reviewRetries', () => retryReviewableInvoiceProviderEvents({ companyId, limit: 50 }))
+
+  const failedEntries = (retries?.failed ?? 0) + (providerEvents?.failed ?? 0) + (reviewRetries?.failed ?? 0)
+  const completedEntries = (retries?.sent ?? 0) + (providerEvents?.processed ?? 0) +
+    (providerEvents?.needsReview ?? 0) + (reviewRetries?.processed ?? 0) + (reviewRetries?.stillNeedsReview ?? 0)
+  const complete = failedEntries === 0 && failedSteps.length === 0
+  const blocked = !complete && completedEntries === 0
+  const summary = {
+    ok: complete,
+    outcome: complete ? 'completed' : blocked ? 'blocked' : 'partial',
+    failed_entries: failedEntries,
+    failed_steps: failedSteps,
+    retries,
+    providerEvents: providerSummary(providerEvents),
+    reviewRetries: providerSummary(reviewRetries),
+    approval_enforced: true,
+  }
+
+  if (!blocked) return NextResponse.json(summary)
+
+  return NextResponse.json({
+    ...summary,
+    error: 'Fakturaexport-återförsök kunde inte köras just nu.',
+    code: 'invoice_export_retry_cron_failed',
+    ...(failedSteps[0] ? { trace_id: failedSteps[0].trace_id } : {}),
+  }, { status: 500 })
 }
 
 export async function GET(request: NextRequest) { return run(request) }
