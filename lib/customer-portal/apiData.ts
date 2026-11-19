@@ -382,29 +382,17 @@ const METERING_VALUES_MINIMAL_SELECT = 'id,metering_point_id,period_start,period
 export async function listPortalMeteringValues(context: PortalCustomerContext, route = '/api/v1/customer/metering-values', limit?: number | null) {
   await logPortalAccess({ context, route, action: 'read_metering_values' })
   const rowLimit = clampSectionLimit(limit, 500)
-  return listWithSchemaFallback([
-    async () => await supabaseService
+  const projections = [METERING_VALUES_SELECT, METERING_VALUES_LEGACY_SELECT, METERING_VALUES_MINIMAL_SELECT]
+  return listWithSchemaFallback(projections.map(columns => async () =>
+    await supabaseService
       .from('normalized_metering_values')
-      .select(METERING_VALUES_SELECT)
+      .select(columns)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
+      .eq('revision_status', 'current')
       .order('period_start', { ascending: false })
       .limit(rowLimit) as ListResult,
-    async () => await supabaseService
-      .from('normalized_metering_values')
-      .select(METERING_VALUES_LEGACY_SELECT)
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
-      .order('period_start', { ascending: false })
-      .limit(rowLimit) as ListResult,
-    async () => await supabaseService
-      .from('normalized_metering_values')
-      .select(METERING_VALUES_MINIMAL_SELECT)
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
-      .order('period_start', { ascending: false })
-      .limit(rowLimit) as ListResult,
-  ])
+  ))
 }
 
 const CUSTOMER_INVOICE_SELECT = 'id,invoice_reference,customer_id,agreement_id,contract_id,customer_contract_id,billing_underlay_id,invoice_export_item_id,canonical_export_item_id,partner_export_id,partner_invoice_reference,invoice_number,period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,source_system,metadata,created_at'

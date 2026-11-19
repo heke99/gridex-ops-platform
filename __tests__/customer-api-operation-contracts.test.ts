@@ -81,7 +81,7 @@ beforeEach(() => {
     metering_points: [{ ...base, customer_site_id: RESOURCE, status: 'active', metering_point_id: '735999000000001234' }],
     customer_invoices: [{ ...base, invoice_reference: ref('invoice'), status: 'issued', amount_inc_vat: 125, currency: 'SEK', total_kwh: 100 }],
     customer_invoice_lines: [], customer_invoice_documents: [],
-    normalized_metering_values: [{ ...base, quantity_kwh: 0.75, period_start: CREATED, period_end: '2026-10-12T12:15:00Z', resolution: 'PT15M' }],
+    normalized_metering_values: [{ ...base, quantity_kwh: 0.75, period_start: CREATED, period_end: '2026-10-12T12:15:00Z', resolution: 'PT15M', revision_status: 'current' }],
     customer_documents: [{ ...base, document_type: 'customer_document', status: 'uploaded', title: 'Synthetic document', storage_path: 'internal-never-public' }],
     customer_authorization_documents: [],
     customer_legal_acceptances: [{ ...base, acceptance_type: 'terms', accepted_at: CREATED }],

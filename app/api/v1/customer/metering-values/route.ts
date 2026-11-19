@@ -52,6 +52,7 @@ function optionalParam(request: NextRequest, key: string): string | null {
       .select('id,customer_id,customer_site_id,site_id,metering_point_id,facility_id,price_area,period_start,period_end,resolution,quantity_kwh,quality_status,source_type,status,created_at')
       .eq('company_id', context.client.company_id)
       .eq('customer_id', context.identity.customer_id)
+      .eq('revision_status', 'current')
       .order('period_start', { ascending: false, nullsFirst: false })
       .order('id', { ascending: false })
       .limit(limit + 1)
