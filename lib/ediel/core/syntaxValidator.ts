@@ -3,6 +3,7 @@
 import { validateEdifactEnvelope, validateUnsmGrammar, type UnsmGrammarResult, type EdifactValidationIssue } from '@/lib/ediel/core/edifactValidation'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
+import { segmentSourceSpan } from '@/lib/ediel/core/edifactTokenizer'
 
 type EdielSyntaxInput = Pick<EdielMessageRow,
   'raw_payload' | 'message_family' | 'message_code' | 'status' | 'syntax_check_status' | 'validation_report' | 'failure_reason'>
@@ -77,6 +78,13 @@ export function validateEdifactSyntax<T extends EdielSyntaxInput>(message: T): E
   // A lexical rejection cannot safely be reparsed for national/header facts.
   const facts = envelope.issues.some(item => item.code === 'syntax_tokenization_failed')
     ? null : parseEdifactMessageFacts(message.raw_payload)
+  // A terminated segment's span ends at the physical delimiter. The
+  // tokenizer retains an unterminated tail through the end of the source.
+  const trailer = facts?.unz
+  if (trailer && message.raw_payload && segmentSourceSpan(trailer)?.endOffset === message.raw_payload.length) {
+    issues.push({ code: 'unterminated_unz_segment', severity: 'error', title: 'UNZ saknar segmentavslutare',
+      description: 'Interchange måste avslutas med den fysiska segmentavslutaren efter UNZ.' })
+  }
   const grammar: UnsmGrammarResult = facts ? validateUnsmGrammar(message.raw_payload ?? '')
     : { qualification: 'not_applicable', syntaxOk: false, issues: [], sources: [] }
   issues.push(...grammar.issues.map(item => ({ code: item.code, severity: item.severity,
