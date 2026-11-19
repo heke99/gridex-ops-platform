@@ -92,6 +92,11 @@ const RETRYABLE_AFTER_FAILURE_OPERATIONS = new Set([
   '/api/v1/customer/support/cases',
 ])
 
+type LegacyPortalWritePayload = {
+  request: Record<string, unknown>
+  fromCompletedResponse: (response: unknown) => Record<string, unknown> | undefined
+}
+
 export async function claimPortalWriteIdempotency(input: {
   companyId: string
   clientId: string
@@ -99,6 +104,7 @@ export async function claimPortalWriteIdempotency(input: {
   operation: string
   idempotencyKey: string
   payload: unknown
+  legacyPayload?: LegacyPortalWritePayload
 }): Promise<{ replay: boolean; recordId: string; statusCode?: number; responseBody?: unknown }> {
   const requestHash = payloadHash(input.payload)
   const now = new Date().toISOString()
@@ -137,8 +143,20 @@ export async function claimPortalWriteIdempotency(input: {
   const existing = await existingQuery.maybeSingle()
   if (existing.error) throw existing.error
   if (!existing.data) throw new Error('Idempotency-raden kunde inte läsas efter konflikt.')
-  if (String(existing.data.request_hash) !== requestHash) {
-    throw new ApiInputError('Idempotency-Key har redan använts med annan payload.', 'idempotency_conflict', 409)
+  const storedHash = String(existing.data.request_hash)
+  if (storedHash !== requestHash) {
+    const legacy = input.legacyPayload
+    // Completed receipts can recover the original payload shape. Confirm it
+    // against the stored hash before treating it as an equivalent retry.
+    const completedPayload = legacy && existing.data.status === 'completed'
+      ? legacy.fromCompletedResponse(existing.data.response_body)
+      : undefined
+    if (!legacy || (
+      storedHash !== payloadHash(legacy.request) &&
+      (completedPayload === undefined || storedHash !== payloadHash(completedPayload))
+    )) {
+      throw new ApiInputError('Idempotency-Key har redan använts med annan payload.', 'idempotency_conflict', 409)
+    }
   }
   if (String(existing.data.status) === 'completed') {
     return {
@@ -312,6 +330,7 @@ export async function executeIdempotentPortalWrite<T>(input: {
   customerId: string | null
   operation: string
   payload: unknown
+  legacyPayload?: LegacyPortalWritePayload
   execute: () => Promise<IdempotentWriteResult<T>>
 }): Promise<IdempotentWriteResult<T> & { replayed: boolean }> {
   const idempotencyKey = requireIdempotencyKey(input.request)
@@ -322,6 +341,7 @@ export async function executeIdempotentPortalWrite<T>(input: {
     operation: input.operation,
     idempotencyKey,
     payload: input.payload,
+    legacyPayload: input.legacyPayload,
   })
 
   if (claim.replay) {
