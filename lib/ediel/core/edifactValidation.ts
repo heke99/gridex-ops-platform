@@ -12,7 +12,7 @@ export type EdifactEnvelopeIssueCode =
   | 'unz_count_mismatch' | 'envelope_reference_missing' | 'envelope_order_invalid'
   | 'duplicate_envelope_segment' | 'duplicate_message_reference'
   | 'syntax_tokenization_failed' | 'multi_message_interchange' | 'message_reference_length_invalid'
-  | 'unb_test_indicator_invalid'
+  | 'unb_test_indicator_invalid' | 'unb_date_invalid' | 'unb_time_invalid' | 'unb_datetime_composite_invalid'
 
 export type EdifactValidationIssue = {
   severity: 'error' | 'warning'
@@ -38,6 +38,16 @@ function positiveCount(value: string | null): number | null {
   if (!value || !/^\d+$/.test(value)) return null
   const count = Number(value)
   return Number.isSafeInteger(count) && count > 0 ? count : null
+}
+
+function isValidUnbDate(value: string): boolean {
+  if (!/^\d{6}$/.test(value)) return false
+  // A two-digit year supports a calendar check, without choosing a source instant.
+  const year = 2000 + Number(value.slice(0, 2))
+  const month = Number(value.slice(2, 4))
+  const day = Number(value.slice(4, 6))
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
 }
 
 /** Shared service-envelope syntax authority. Application-directory grammar and
@@ -68,13 +78,21 @@ export function validateEdifactEnvelope(rawPayload: string | null | undefined): 
     fail('envelope_order_invalid', 'UNB ska inleda och UNZ ska avsluta interchange.')
   }
 
-  // T §4.2.1: 0035 is a single literal1 for test; production omits it.
-  // Preserve pre-trim physical data so whitespace cannot become an omission.
   for (const unb of unbs) {
-    const indicator = segmentComposite({ ...unb, raw: segmentUntrimmedRaw(unb) }, 11, una)
+    const physicalUnb = { ...unb, raw: segmentUntrimmedRaw(unb) }
+    // T §4.2.1: 0035 is a single literal1 for test; production omits it.
+    const indicator = segmentComposite(physicalUnb, 11, una)
     if (indicator.length !== 1 || !['', '1'].includes(indicator[0])) {
       fail('unb_test_indicator_invalid', 'UNB/0035 ska vara kod1 för test eller utelämnas för produktion; kod0 är inte tillåten.')
     }
+    // Syntax versions 1–3 use the six-digit S004 date, including legacy CONTRL.
+    const [, syntaxVersion = ''] = segmentComposite(physicalUnb, 1, una)
+    if (!['1', '2', '3'].includes(syntaxVersion)) continue
+    const clock = segmentComposite(physicalUnb, 4, una)
+    const [date = '', time = ''] = clock
+    if (!isValidUnbDate(date)) fail('unb_date_invalid', 'UNB/0017 ska vara ett giltigt kalenderdatum i formatet ÅÅMMDD.')
+    if (!/^(?:[01]\d|2[0-3])[0-5]\d$/.test(time)) fail('unb_time_invalid', 'UNB/0019 ska vara ett giltigt klockslag i formatet TTMM.')
+    if (clock.length > 2) fail('unb_datetime_composite_invalid', 'UNB/S004 får endast innehålla datum och klockslag.')
   }
 
   const unbReference = scalar(unbs[0], 5, una)
