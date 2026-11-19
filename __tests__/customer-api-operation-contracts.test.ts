@@ -86,7 +86,7 @@ beforeEach(() => {
     customer_authorization_documents: [],
     customer_legal_acceptances: [{ ...base, acceptance_type: 'terms', accepted_at: CREATED }],
     powers_of_attorney: [{ ...base, status: 'signed', scope: 'supplier_switch', signed_at: CREATED }],
-    customer_notifications: [{ ...base, type: 'information', title: 'Synthetic notification', status: 'unread', message: 'Synthetic message' }],
+    customer_notifications: [{ ...base, type: 'information', title: 'Synthetic notification', status: 'unread', read_at: null, message: 'Synthetic message' }],
     customer_events: [{ ...base, event_type: 'customer.synthetic', occurred_at: CREATED, source: 'synthetic' }],
     domain_events: [], website_customer_applications: [], customer_portal_write_idempotency: [],
   }

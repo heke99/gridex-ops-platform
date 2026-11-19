@@ -109,12 +109,15 @@ async function resolveNotificationIds(input: {
           )
         }
         const readAt = new Date().toISOString()
+        // The receipt counts first reads only. The write predicate also protects
+        // an earlier read committed by another session after reference lookup.
         const { data, error } = await supabaseService
           .from('customer_notifications')
           .update({ status: 'read', read_at: readAt, updated_at: readAt })
           .eq('company_id', context.client.company_id)
           .eq('customer_id', context.identity.customer_id)
           .in('id', [...resolved.values()])
+          .is('read_at', null)
           .select('id')
         if (error) throw error
 
