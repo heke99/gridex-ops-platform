@@ -1,5 +1,6 @@
 // Extracted from actions.ts; keep public imports on the facade module.
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -381,6 +382,10 @@ export async function savePowerOfAttorneyScopeAction(
   revalidatePath(`/admin/customers/${customerId}`);
 }
 
+function matchingCurrentOrLegacyReference(column: string, legacyColumn: string, id: string) {
+  return `and(${column}.eq.${id},or(${legacyColumn}.eq.${id},${legacyColumn}.is.null)),and(${column}.is.null,${legacyColumn}.eq.${id})`;
+}
+
 export async function registerCustomerLifecycleDecisionAction(
   formData: FormData,
 ): Promise<void> {
@@ -436,6 +441,7 @@ export async function registerCustomerLifecycleDecisionAction(
   );
 
   let contractContext: Record<string, unknown> | null = null;
+  let selectedContractId: string | null = null;
   if (scopeType === "site") {
     await assertCustomerSiteTenant({ companyId, customerId, siteId: scopeId });
   } else if (scopeType === "metering_point") {
@@ -445,16 +451,48 @@ export async function registerCustomerLifecycleDecisionAction(
       meteringPointId: scopeId,
     });
   } else if (scopeType === "contract") {
-    await assertContractTenant({ companyId, customerId, contractId: scopeId });
+    const contract = await assertContractTenant({ companyId, customerId, contractId: scopeId });
+    if (!contract) throw new Error("Avtalet tillhör inte kunden eller bolaget.");
+    selectedContractId = contract.id;
     const { data, error } = await supabaseService
       .from("customer_contracts")
       .select("*")
       .eq("company_id", companyId)
       .eq("customer_id", customerId)
-      .eq("id", scopeId!)
+      .eq("id", selectedContractId)
       .maybeSingle();
-    if (error && !isDatabaseShapeError(error)) throw error;
-    contractContext = (data as Record<string, unknown> | null) ?? null;
+    if (error) throw error;
+    if (!data) throw new Error("Avtalet tillhör inte kunden eller bolaget.");
+    contractContext = data;
+  }
+
+  const stringField = (row: Record<string, unknown> | null, ...keys: string[]) => {
+    for (const key of keys) {
+      const value = row?.[key];
+      if (typeof value === "string" && value.trim()) return value;
+    }
+    return null;
+  };
+  const primaryContractSite = stringField(contractContext, "site_id");
+  const legacyContractSite = stringField(contractContext, "customer_site_id");
+  const contractSite = primaryContractSite ?? legacyContractSite;
+  const contractMeter = stringField(contractContext, "metering_point_id");
+  const conflictingContractSites = primaryContractSite && legacyContractSite && primaryContractSite !== legacyContractSite;
+  const reviewTab = guard.isPlatformAdmin || guard.permissions.includes("contracts.read") ? "contracts" : "legal-readiness";
+  const contractReviewPath = `/admin/customers/${encodeURIComponent(customer.id)}?tab=${reviewTab}#${reviewTab}`;
+  if (selectedContractId && (conflictingContractSites || !contractSite || !contractMeter)) {
+    // The case stop code may otherwise broaden an incomplete location to site or customer scope.
+    redirect(contractReviewPath);
+  }
+  if (selectedContractId && contractSite && contractMeter) {
+    try {
+      await Promise.all([
+        assertCustomerSiteTenant({ companyId, customerId, siteId: contractSite }),
+        assertMeteringPointTenant({ companyId, customerId, siteId: contractSite, meteringPointId: contractMeter }),
+      ]);
+    } catch {
+      redirect(contractReviewPath);
+    }
   }
 
   let switchContext: Record<string, unknown> | null = null;
@@ -470,30 +508,29 @@ export async function registerCustomerLifecycleDecisionAction(
     if (scopeType === "metering_point" && scopeId) {
       query = query.eq("metering_point_id", scopeId);
     }
+    if (selectedContractId && contractSite && contractMeter) {
+      // These IDs come from the tenant-verified PostgreSQL UUID columns.
+      const contractMatch = matchingCurrentOrLegacyReference("contract_id", "customer_contract_id", selectedContractId);
+      const siteMatch = matchingCurrentOrLegacyReference("site_id", "customer_site_id", contractSite);
+      query = query.or(`and(or(${contractMatch}),or(${siteMatch}))`)
+        .eq("metering_point_id", contractMeter)
+        .order("id", { ascending: false });
+    }
     const { data, error } = await query.maybeSingle();
-    if (error && !isDatabaseShapeError(error)) throw error;
-    switchContext = (data as Record<string, unknown> | null) ?? null;
+    if (error) throw error;
+    switchContext = data;
   } catch (error) {
-    if (!isDatabaseShapeError(error)) throw error;
+    if (selectedContractId || !isDatabaseShapeError(error)) throw error;
   }
 
-  const stringField = (row: Record<string, unknown> | null, ...keys: string[]) => {
-    for (const key of keys) {
-      const value = row?.[key];
-      if (typeof value === "string" && value.trim()) return value;
-    }
-    return null;
-  };
   const siteId =
     scopeType === "site"
       ? scopeId
-      : stringField(contractContext, "site_id", "customer_site_id") ??
-        stringField(switchContext, "site_id");
+      : selectedContractId ? contractSite : stringField(switchContext, "site_id");
   const meteringPointId =
     scopeType === "metering_point"
       ? scopeId
-      : stringField(contractContext, "metering_point_id") ??
-        stringField(switchContext, "metering_point_id");
+      : selectedContractId ? contractMeter : stringField(switchContext, "metering_point_id");
   const agreementChannel = stringField(
     contractContext,
     "agreement_channel",
@@ -535,7 +572,7 @@ export async function registerCustomerLifecycleDecisionAction(
     customerId,
     siteId,
     meteringPointId,
-    customerContractId: scopeType === "contract" ? scopeId : null,
+    customerContractId: selectedContractId,
     supplierSwitchRequestId: stringField(switchContext, "id"),
     caseType,
     priority: "high",
@@ -576,7 +613,7 @@ export async function registerCustomerLifecycleDecisionAction(
       p_actor_user_id: actor.id,
       p_decision_type: decisionType,
       p_scope_type: scopeType,
-      p_scope_id: scopeType === "customer" ? null : scopeId,
+      p_scope_id: scopeType === "customer" ? null : selectedContractId ?? scopeId,
       p_received_at: receivedAt,
       p_reason: reason,
     },
