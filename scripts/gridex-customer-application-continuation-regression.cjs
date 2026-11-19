@@ -87,10 +87,25 @@ expect(continuation.includes('power_of_attorney_required_notification_not_queued
 expect(exists('app/admin/website-applications/[id]/page.tsx') && read('app/admin/website-applications/[id]/page.tsx').includes('Workflowhändelser'), 'admin application view exposes workflow transitions and jobs')
 expect(read('app/admin/website-applications/actions.ts').includes('requeueWebsiteApplicationContinuationAction'), 'admin can safely requeue the canonical continuation row')
 
+const checkoutExamplePath = 'docs/fixtures/website-checkout-application-request.json'
+const checkoutRequest = /const checkoutRequest\s*=\s*`([^`]*)`/.exec(developerDocs)?.[1]
 expect(
-  developerDocs.includes('powerOfAttorney') &&
-    developerDocs.includes('facility_information_lookup') &&
-    developerDocs.includes('textVersionId'),
+  developerDocs.includes(`import websiteCheckoutApplicationRequest from '@/${checkoutExamplePath}'`) &&
+    checkoutRequest?.includes('${JSON.stringify(websiteCheckoutApplicationRequest, null, 2)}') &&
+    /<CopyCodeBlock\b[^>]*\bcode=\{checkoutRequest\}/.test(developerDocs),
+  'canonical developer guide renders the checkout fixture in the copyable request',
+)
+
+const { powerOfAttorney } = JSON.parse(fs.readFileSync(path.join(root, checkoutExamplePath), 'utf8'))
+const checkoutPoaScopes = ['supplier_switch', 'facility_information_lookup']
+expect(
+  powerOfAttorney?.accepted === true &&
+    ['signerName', 'signerIdentityNumber', 'method', 'textVersionId'].every(
+      (field) => typeof powerOfAttorney[field] === 'string' && powerOfAttorney[field].trim().length > 0,
+    ) &&
+    Array.isArray(powerOfAttorney.scope) &&
+    checkoutPoaScopes.every((scope) => powerOfAttorney.scope.includes(scope)) &&
+    powerOfAttorney.scope.every((scope) => checkoutPoaScopes.includes(scope)),
   'canonical developer guide documents structured externally-sendable POA',
 )
 expect(

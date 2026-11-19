@@ -58,8 +58,8 @@ vi.mock('@/lib/supabase/service', async () => {
         fetch: async (input, init) => {
           const url = new URL(input instanceof Request ? input.url : String(input))
           const resource = url.pathname.split('/').at(-1)!
-          const reply = (value: unknown, status = 200) => new Response(JSON.stringify(value), {
-            status, headers: { 'content-type': 'application/json' },
+          const reply = (value: unknown, status = 200, headers: Record<string, string> = {}) => new Response(JSON.stringify(value), {
+            status, headers: { 'content-type': 'application/json', ...headers },
           })
           if (url.pathname.includes('/rpc/')) {
             if (resource === 'ediel_require_portal_retention_access_v1') return reply(null)
@@ -105,11 +105,13 @@ vi.mock('@/lib/supabase/service', async () => {
             }
             return 0
           })
+          const total = rows.length
           const limit = url.searchParams.get('limit')
           if (limit) rows = rows.slice(0, Number(limit))
           const select = url.searchParams.get('select')
           if (select && select !== '*') rows = rows.map(row => Object.fromEntries(select.split(',').map(field => [field, row[field] ?? null])))
-          return reply(rows)
+          const countRequested = new Headers(init?.headers).get('prefer')?.includes('count=exact')
+          return reply(rows, 200, countRequested ? { 'content-range': `${rows.length ? `0-${rows.length - 1}` : '*'}/${total}` } : {})
         },
       },
     }),
