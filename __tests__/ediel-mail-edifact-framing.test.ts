@@ -93,3 +93,44 @@ it('retains actual UNA advice for syntax rejection when the header contradicts i
   expect(extractCanonicalEdifactPayload(badAdvice)).toBe(badAdvice)
   expect(resolveCanonicalRuntimeDecision({ ...message, raw_payload: badAdvice }).syntaxDecision).toBe('rejected')
 })
+
+it('treats a padded UNA label as prose before a physical implicit UNB', () => {
+  const message = original(framings[1])
+  const preamble = 'UNA      \r\n'
+  const postamble = '\r\n\t \r\nVid frågor, hänvisa till UNB.'
+  const { mime, inbound } = readBody(preamble + message.raw_payload + postamble)
+  expect(mime.bodyText).toContain('Vid frågor, hänvisa till UNB.')
+  expect(inbound?.rawPayload).toBe(message.raw_payload)
+  expect(resolveCanonicalRuntimeDecision({ ...message, raw_payload: inbound!.rawPayload }).syntaxDecision).toBe('accepted')
+  expect(externalIo).not.toHaveBeenCalled()
+})
+
+it('accepts an original with custom component, element, decimal, release and segment characters', () => {
+  const message = original(framings[0])
+  const separators: Record<string, string> = { ':': ';', '+': '*', "'": '~' }
+  const raw = 'UNA;*,! ~' + message.raw_payload.slice(9)
+    .replace(/\?.|[:+']/g, (token) => token.startsWith('?') ? '!' + token[1] : separators[token])
+  const { inbound } = readBody('Avser UNA i förra mejlet.\n' + raw + '\nHänvisa till UNZ vid frågor.')
+  expect(inbound?.rawPayload).toBe(raw)
+  expect(resolveCanonicalRuntimeDecision({ ...message, raw_payload: raw }).syntaxDecision).toBe('accepted')
+  expect(externalIo).not.toHaveBeenCalled()
+})
+
+it.each([
+  ['truncated default tag', 'UNB+'],
+  ['truncated default syntax composite', 'UNB+UNOC:3'],
+  ['explicit contradictory UNA', 'UNA:*.? ~\nUNB+UNOC:3+91100:ZZ+21660:ZZ'],
+  ['non-default element separator with no UNA', 'UNB*UNOC:3*91100:ZZ*21660:ZZ*261118:0900'],
+  ['truncated non-default syntax composite with no UNA', 'UNB*UNOC:3'],
+])('keeps a following %s for syntax rejection', (_name, following) => {
+  const message = original(framings[0])
+  const raw = message.raw_payload + '\r\n\r\n' + following
+  const { inbound } = readBody(raw)
+  expect(inbound?.rawPayload).toBe(raw)
+  expect(resolveCanonicalRuntimeDecision({ ...message, raw_payload: inbound!.rawPayload })).toMatchObject({
+    syntaxDecision: 'rejected',
+    applicationDecision: 'not_applicable',
+    functionalDecision: 'not_applicable',
+  })
+  expect(externalIo).not.toHaveBeenCalled()
+})

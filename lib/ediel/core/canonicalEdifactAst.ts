@@ -64,7 +64,11 @@ function interchangeStart(source: string): number {
   for (const marker of source.matchAll(/\b(?:UNA|UNB)/gi)) {
     const start = marker.index
     if (marker[0].toUpperCase() === 'UNB') {
-      if (source[start + 3] === DEFAULT_UNA.dataElementSeparator) return start
+      const syntaxPrefix = source.slice(start + 3, start + 11)
+      // A non-default delimiter with a physical syntax composite still marks
+      // a source to preserve. The syntax validator owns the actual delimiters.
+      if (syntaxPrefix[0] === DEFAULT_UNA.dataElementSeparator
+        || /^[\p{P}\p{S}]UNO[A-Z][\p{P}\p{S}]\d(?=$|[\p{P}\p{S}\s])/iu.test(syntaxPrefix)) return start
       continue
     }
 
@@ -72,11 +76,15 @@ function interchangeStart(source: string): number {
     const advice = source.slice(start, adviceEnd)
     if (advice.length !== DEFAULT_UNA.raw.length) continue
     const following = source.slice(adviceEnd).trimStart()
-    const hasServiceCharacters = /^[^\p{L}\p{N}\r\n]{6}$/u.test(advice.slice(3))
+    // Only the repetition position may be a space. Padding after a plain
+    // UNA label is not evidence of advice preceding the actual UNB.
+    const hasServiceCharacters = /^[\p{P}\p{S}]{4}[\p{P}\p{S} ][\p{P}\p{S}]$/u.test(advice.slice(3))
     if (!following && hasServiceCharacters) return start
-    if (following.slice(0, 3).toUpperCase() !== 'UNB') continue
+    if (!/^UNB(?=$|[\p{P}\p{S}\s])/iu.test(following)) continue
     // Keep real advice with a conflicting UNB separator for syntax review.
-    if (following[3] === parseUna(advice).dataElementSeparator || hasServiceCharacters) return start
+    const declaredSeparator = parseUna(advice).dataElementSeparator
+    if (hasServiceCharacters
+      || (following[3] === declaredSeparator && /^[\p{P}\p{S}]$/u.test(declaredSeparator))) return start
   }
   return -1
 }
