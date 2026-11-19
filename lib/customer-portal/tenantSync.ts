@@ -122,6 +122,7 @@ type SyncRefs = {
   siteId: string | null
   meteringPointId: string | null
   applicationId: string | null
+  contractApplicationId: string | null
   legalBundleVersionId: string | null
 }
 
@@ -167,6 +168,7 @@ async function getLatestRefs(client: IntegrationApiClient, identity: LinkedPorta
   let siteId: string | null = null
   let meteringPointId: string | null = null
   let applicationId: string | null = null
+  let contractApplicationId: string | null = null
   let legalBundleVersionId: string | null = null
 
   {
@@ -182,7 +184,8 @@ async function getLatestRefs(client: IntegrationApiClient, identity: LinkedPorta
       contractId = contractId ?? clean(contract.data.id)
       siteId = siteId ?? clean(contract.data.customer_site_id) ?? clean(contract.data.site_id)
       meteringPointId = meteringPointId ?? clean(contract.data.metering_point_id)
-      applicationId = applicationId ?? clean(contract.data.website_application_id)
+      contractApplicationId = clean(contract.data.website_application_id)
+      applicationId = contractApplicationId
       legalBundleVersionId = clean(contract.data.legal_bundle_version_id)
     } else if (contract.error && !isMissingPortalSchemaError(contract.error)) {
       throw contract.error
@@ -208,7 +211,31 @@ async function getLatestRefs(client: IntegrationApiClient, identity: LinkedPorta
     }
   }
 
-  return { contractId, siteId, meteringPointId, applicationId, legalBundleVersionId }
+  return { contractId, siteId, meteringPointId, applicationId, contractApplicationId, legalBundleVersionId }
+}
+
+async function resolveLegalAcceptanceApplicationId(
+  client: IntegrationApiClient,
+  identity: LinkedPortalIdentity,
+  refs: SyncRefs,
+): Promise<string | null> {
+  if (!refs.contractId) return null
+
+  let query = supabaseService
+    .from('website_customer_applications')
+    .select('id')
+    .eq('company_id', client.company_id)
+    .eq('customer_id', identity.customer_id)
+    .eq('contract_id', refs.contractId)
+  if (refs.contractApplicationId) query = query.eq('id', refs.contractApplicationId)
+
+  const result = await query.limit(2)
+  if (result.error) {
+    if (isMissingPortalSchemaError(result.error)) return null
+    throw result.error
+  }
+  const applications = result.data ?? []
+  return applications.length === 1 ? clean(applications[0].id) : null
 }
 
 type ResolvedLegalModule = {
@@ -1275,6 +1302,9 @@ export async function syncTenantCustomerRecords(input: {
   if (acceptanceReferenceKinds.size > 1) {
     throw new Error('LEGAL_ACCEPTANCE_FORMAT_MIXED')
   }
+  const legalAcceptanceRefs = resolvedAcceptances.length > 0
+    ? { ...refs, applicationId: await resolveLegalAcceptanceApplicationId(input.client, input.identity, refs) }
+    : refs
 
   summary.profile = await syncCustomerProfile({
     client: input.client,
@@ -1286,7 +1316,7 @@ export async function syncTenantCustomerRecords(input: {
     const result = await syncLegalAcceptance({
       client: input.client,
       identity: input.identity,
-      refs,
+      refs: legalAcceptanceRefs,
       acceptance,
       baseMetadata,
       legalDocument,
