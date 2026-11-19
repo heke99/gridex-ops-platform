@@ -6,12 +6,13 @@ import type { NextRequest } from 'next/server'
 import { ApiInputError, readJsonObject } from '@/lib/api/strictRequest'
 import { verifyCustomerAssertion, type CustomerIdentityProvider } from '@/lib/customer-portal/customerAssertion'
 import { integrationCredential, logIntegrationApiRequest, requireIntegrationApiAccess, type IntegrationApiAuthResult, type IntegrationApiClient } from '@/lib/integrations/apiAuth'
-import { STAFF_ONBOARDING_CONTRACT_VERSION } from '@/lib/staff-api/onboardingContract'
+import { staffOnboardingJson } from '@/lib/staff-api/onboardingHttp'
 import { assertStaffStorageTarget, staffStorageProjectRef } from '@/lib/staff-api/storageTarget'
 import { getRegisteredStaffTenantAuthUser, registeredStaffTenantAuth, type RegisteredStaffTenantAuth, type StaffTenantAuthIdentity } from '@/lib/staff-api/tenantAuth'
 import { tenantInsert, tenantSelect } from '@/lib/supabase/tenantQuery'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const IDENTITY_ERROR_MESSAGE = 'The independent staff identity could not be verified.'
 export type StaffOnboardingProvider = CustomerIdentityProvider & { purpose: string; is_active: boolean }
 export type StaffIdentityResolutionPorts = {
   apiAccess: (request: NextRequest, scopes: readonly string[]) => Promise<Pick<Extract<IntegrationApiAuthResult, { ok: true }>, 'ok' | 'client'> | Extract<IntegrationApiAuthResult, { ok: false }>>;
@@ -23,37 +24,32 @@ export type StaffIdentityResolutionPorts = {
 }
 
 function denied(code = 'staff_identity_binding_invalid', status = 403): never {
-  throw new ApiInputError('The independent staff identity could not be verified.', code, status)
+  throw new ApiInputError(IDENTITY_ERROR_MESSAGE, code, status)
 }
 function headerToken(request: NextRequest, name: string): string {
   const value = request.headers.get(name)
   if (!value || value.length > 16_384 || /\s/.test(value)) return denied('staff_identity_missing', 401)
   return value
 }
-function json(requestId: string, data: unknown, status = 200): Response {
-  const projectRef = staffStorageProjectRef()
-  return Response.json({ ...(status < 400 ? { data } : { error: data }), request_id: requestId, contract_schema_version: STAFF_ONBOARDING_CONTRACT_VERSION }, {
-    status, headers: { 'Cache-Control': 'no-store', 'X-Request-ID': requestId, 'X-Gridex-Contract-Version': STAFF_ONBOARDING_CONTRACT_VERSION, ...(projectRef ? { 'X-Gridex-Project-Ref': projectRef } : {}) },
-  })
-}
-
 /** Existing binding lookup only; no Auth account, membership, permission, or invitation is created. */
 export function createStaffIdentityResolutionHandler(ports: StaffIdentityResolutionPorts): (request: NextRequest) => Promise<Response> {
   return async request => {
     const requestId = randomUUID()
-    if (request.method !== 'POST') return json(requestId, { code: 'method_not_allowed', message: 'Use an explicit POST to resolve the staff identity.' }, 405)
+    if (request.method !== 'POST') return staffOnboardingJson(requestId, { code: 'method_not_allowed', message: 'Use an explicit POST to resolve the staff identity.' }, 405)
     try {
       const expected = request.headers.get('x-gridex-expected-project-ref')
       if (!expected || !staffStorageProjectRef()) denied('storage_project_mismatch', 412)
       assertStaffStorageTarget(request.headers)
     } catch (error) {
-      return json(requestId, { code: error instanceof ApiInputError ? error.code : 'internal_error', message: 'The requested API project is unavailable.' }, error instanceof ApiInputError ? error.status : 500)
+      return staffOnboardingJson(requestId, { code: error instanceof ApiInputError ? error.code : 'internal_error', message: 'The requested API project is unavailable.' }, error instanceof ApiInputError ? error.status : 500)
     }
     const startedAt = Date.now()
     let client: IntegrationApiClient | undefined
     try {
       const auth = await ports.apiAccess(request, ['staff_users.read'])
-      if (!auth.ok) throw new ApiInputError(auth.error, auth.errorCode, auth.status)
+      if (!auth.ok) {
+        return staffOnboardingJson(requestId, { code: auth.errorCode, message: IDENTITY_ERROR_MESSAGE }, auth.status, auth.retryAfterSeconds)
+      }
       client = auth.client
       const registration = registeredStaffTenantAuth(client, client.company_id, client.id, 'staff_users.read')
       const credential = integrationCredential(request)
@@ -76,14 +72,14 @@ export function createStaffIdentityResolutionHandler(ports: StaffIdentityResolut
       if (!binding) denied()
       await ports.logRequest({ request, requestId, client, statusCode: 200, startedAt,
         metadata: { operation: 'staff_identity_resolve', outcome: 'resolved' } })
-      return json(requestId, binding)
+      return staffOnboardingJson(requestId, binding)
     } catch (failure) {
       const error = staffIdentityAuthorityError(failure)
       const status = error instanceof ApiInputError ? error.status : 500
       const code = error instanceof ApiInputError ? error.code : 'internal_error'
       if (client) await ports.logRequest({ request, requestId, client, statusCode: status, errorCode: code, startedAt,
         metadata: { operation: 'staff_identity_resolve', outcome: 'denied' } })
-      return json(requestId, { code, message: 'The independent staff identity could not be verified.' }, status)
+      return staffOnboardingJson(requestId, { code, message: IDENTITY_ERROR_MESSAGE }, status)
     }
   }
 }
