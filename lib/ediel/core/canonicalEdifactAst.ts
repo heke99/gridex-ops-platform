@@ -6,11 +6,13 @@ import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields
 import { prodatCharacteristicCodes } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { canonicalUtiltsTransactions, type CanonicalUtiltsTransaction } from '@/lib/ediel/utilts/canonicalObservationScope'
 import {
+  observeCompletedEdifactSegments,
   segmentComposite,
+  segmentSourceSpan,
   tokenizeEdifact,
   type EdifactTokenizedSegment,
 } from '@/lib/ediel/core/edifactTokenizer'
-import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import { DEFAULT_UNA, parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
 export type CanonicalEdifactLineGroup = Partial<Omit<ProdatRegisterGroup, 'lineIndex' | 'lineNumber' | 'itemId' | 'segments'>> & {
   lineIndex: number
@@ -58,6 +60,43 @@ function normalizedMimeText(value: string): string {
     .replace(/=0D=0A/gi, '\n')
 }
 
+function interchangeStart(source: string): number {
+  for (const marker of source.matchAll(/\b(?:UNA|UNB)/gi)) {
+    const start = marker.index
+    if (marker[0].toUpperCase() === 'UNB') {
+      if (source[start + 3] === DEFAULT_UNA.dataElementSeparator) return start
+      continue
+    }
+
+    const adviceEnd = start + DEFAULT_UNA.raw.length
+    const advice = source.slice(start, adviceEnd)
+    if (advice.length !== DEFAULT_UNA.raw.length) continue
+    const following = source.slice(adviceEnd).trimStart()
+    const hasServiceCharacters = /^[^\p{L}\p{N}\r\n]{6}$/u.test(advice.slice(3))
+    if (!following && hasServiceCharacters) return start
+    if (following.slice(0, 3).toUpperCase() !== 'UNB') continue
+    // Keep real advice with a conflicting UNB separator for syntax review.
+    if (following[3] === parseUna(advice).dataElementSeparator || hasServiceCharacters) return start
+  }
+  return -1
+}
+
+function trimInterchangePostamble(payload: string): string {
+  let trailerEnd: number | undefined
+  try {
+    const trailer = observeCompletedEdifactSegments(payload).segments.findLast(segment => segment.tag === 'UNZ')
+    trailerEnd = trailer ? segmentSourceSpan(trailer)?.endOffset : undefined
+  } catch {
+    // Preserve malformed wire for the ordinary syntax decision.
+    return payload
+  }
+  if (trailerEnd === undefined) return payload
+
+  const end = trailerEnd + 1
+  // A later envelope, including an unfinished one, belongs to syntax handling.
+  return interchangeStart(payload.slice(end)) >= 0 ? payload : payload.slice(0, end)
+}
+
 /**
  * Sole EDIFACT payload extractor for text/mail surfaces.
  * Extraction is UNA-aware and does not assume the default apostrophe terminator.
@@ -67,22 +106,8 @@ export function extractCanonicalEdifactPayload(input: string | null | undefined)
   if (!raw) return null
 
   for (const candidate of [raw, normalizedMimeText(raw)]) {
-    const upper = candidate.toUpperCase()
-    const unaIndex = upper.indexOf('UNA')
-    const unbIndex = upper.indexOf('UNB')
-    const start = unaIndex >= 0 && unbIndex >= 0
-      ? Math.min(unaIndex, unbIndex)
-      : unaIndex >= 0
-        ? unaIndex
-        : unbIndex
-    if (start < 0) continue
-
-    const payload = candidate.slice(start).trim()
-    const una = parseUna(payload)
-    const unzIndex = payload.toUpperCase().lastIndexOf('UNZ')
-    if (unzIndex < 0) return payload
-    const end = payload.indexOf(una.segmentTerminator, unzIndex)
-    return end < 0 ? payload : payload.slice(0, end + 1).trim()
+    const start = interchangeStart(candidate)
+    if (start >= 0) return trimInterchangePostamble(candidate.slice(start).trim())
   }
 
   return null
