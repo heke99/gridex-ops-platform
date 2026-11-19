@@ -1,5 +1,5 @@
 // masterplan: TR-03, AT-TR-03, TR-11, AT-TR-11, TEN-07, AT-TEN-07
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -32,9 +32,14 @@ function syntheticSupabase(fetch: typeof globalThis.fetch) {
 describe('authorized immutable transport copy download', () => {
   beforeEach(() => {
     vi.clearAllMocks(); mock.auth.mockResolvedValue({ guard: { companyId, userId: actorUserId } })
-    mock.rpc.mockImplementation(async(name:string)=>name==='ediel_require_source_bytes_available_v1'?{data:null,error:null}:response()); mock.storage.mockReturnValue({ download: mock.download })
+    mock.rpc.mockImplementation(async(name:string)=>name==='ediel_require_source_bytes_available_v1'?{data:null,error:null}:response())
+    mock.storage.mockReturnValue({ download: (...args: unknown[]) => ({ asStream: async () => {
+      const { data, error } = await mock.download(...args)
+      return { data: data?.stream() ?? null, error }
+    } }) })
     mock.download.mockResolvedValue({ data: new Blob([payload]), error: null })
   })
+  afterEach(() => vi.useRealTimers())
   it('reauthorizes the selected tenant, reads the private archive and returns exactly those bytes', async () => {
     const result = await GET(request(`?attemptId=${attemptId}`), context)
     expect(result.status).toBe(200)
@@ -43,7 +48,7 @@ describe('authorized immutable transport copy download', () => {
     expect(result.headers.get('cache-control')).toBe('private, no-store')
     expect(mock.rpc).toHaveBeenCalledWith('gridex_ediel_transport_copy_v1', { p_company_id: companyId, p_actor_user_id: actorUserId, p_message_id: messageId })
     expect(mock.storage).toHaveBeenCalledWith('ediel-files')
-    expect(mock.download).toHaveBeenCalledWith(`transport/${companyId}/${messageId}/${mimeSha256}.eml`)
+    expect(mock.download).toHaveBeenCalledWith(`transport/${companyId}/${messageId}/${mimeSha256}.eml`, {}, { signal: expect.any(AbortSignal) })
   })
   it('offers journal copies without reading bytes or asserting delivery/resend authority', async () => {
     const result = await GET(request(), context)
@@ -62,18 +67,20 @@ describe('authorized immutable transport copy download', () => {
     expect((await GET(request(), context)).status).toBe(403)
     expect(mock.rpc).not.toHaveBeenCalled(); expect(mock.download).not.toHaveBeenCalled()
   })
-  it.each(['company', 'archive', 'duplicate', 'prepared'])('holds inconsistent source binding before storage I/O (%s)', async kind => {
+  it.each(['company', 'archive', 'duplicate', 'prepared', 'oversize'])('holds inconsistent source binding before storage I/O (%s)', async kind => {
     const item = copy()
     if (kind === 'company') item.companyId = actorUserId
     if (kind === 'archive') item.mimeArchiveRef = `storage://ediel-files/transport/${actorUserId}/${messageId}/${mimeSha256}.eml`
     if (kind === 'prepared') item.enteredAt = ''
+    if (kind === 'oversize') item.mimeLength = 32 * 1024 * 1024 + 1
     mock.rpc.mockResolvedValue(response(kind === 'duplicate' ? [item, item] : [item]))
     expect((await GET(request(`?attemptId=${attemptId}`), context)).status).toBe(409)
     expect(mock.download).not.toHaveBeenCalled()
   })
-  it.each(['hash', 'size', 'message-id', 'missing'])('returns no bytes when archive readback fails (%s)', async kind => {
+  it.each(['hash', 'size', 'truncated', 'message-id', 'missing'])('returns no bytes when archive readback fails (%s)', async kind => {
     if (kind === 'hash') mock.download.mockResolvedValue({ data: new Blob([Buffer.from(payload.toString().replace('bytes', 'BYTES'))]), error: null })
     if (kind === 'size') mock.download.mockResolvedValue({ data: new Blob([Buffer.concat([payload, Buffer.from('x')])]), error: null })
+    if (kind === 'truncated') mock.download.mockResolvedValue({ data: new Blob([payload.subarray(0, -1)]), error: null })
     if (kind === 'message-id') mock.rpc.mockResolvedValue(response([{ ...copy(), rfcMessageId: '<different@example.invalid>' }]))
     if (kind === 'missing') mock.download.mockResolvedValue({ data: null, error: { status: 404, message: 'private bucket diagnostic' } })
     const result = await GET(request(`?attemptId=${attemptId}`), context)
@@ -139,7 +146,9 @@ describe('authorized immutable transport copy download', () => {
 
   it('reports a failed archive body read as temporarily unavailable', async () => {
     const data = new Blob([payload])
-    vi.spyOn(data, 'arrayBuffer').mockRejectedValue(new Error('synthetic body read failed'))
+    vi.spyOn(data, 'stream').mockReturnValue(new ReadableStream({
+      pull: controller => controller.error(new Error('synthetic body read failed')),
+    }))
     mock.download.mockResolvedValue({ data, error: null })
 
     const result = await GET(request(`?attemptId=${attemptId}`), context)
@@ -160,5 +169,80 @@ describe('authorized immutable transport copy download', () => {
     expect(result.status).toBe(409)
     expect(await result.json()).toEqual({ error: 'Transportkopian saknar aktuell arkivverifiering.' })
     expect(result.headers.get('content-disposition')).toBeNull()
+  })
+
+  it('streams exact authorised MIME through the SDK with a deadline and no Blob read', async () => {
+    const body = new Response(new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(payload.subarray(0, 12))
+        controller.enqueue(payload.subarray(12))
+        controller.close()
+      },
+    }))
+    const blob = vi.spyOn(body, 'blob')
+    let signal: AbortSignal | null | undefined
+    const client = syntheticSupabase(async (_input, init) => { signal = init?.signal; return body })
+    mock.storage.mockImplementation(() => client.storage.from('ediel-files'))
+
+    const result = await GET(request(`?attemptId=${attemptId}`), context)
+    expect(result.status).toBe(200)
+    expect(Buffer.from(await result.arrayBuffer())).toEqual(payload)
+    expect(signal).toBeInstanceOf(AbortSignal)
+    expect(blob).not.toHaveBeenCalled()
+  })
+
+  it('stops the real SDK stream immediately beyond the frozen byte length', async () => {
+    const cancel = vi.fn()
+    let chunks = 0
+    const body = new Response(new ReadableStream<Uint8Array>({
+      pull(controller) {
+        chunks++
+        controller.enqueue(chunks === 1 ? payload : new Uint8Array([0]))
+      },
+      cancel,
+    }, { highWaterMark: 0 }))
+    const client = syntheticSupabase(async () => body)
+    mock.storage.mockImplementation(() => client.storage.from('ediel-files'))
+
+    const result = await GET(request(`?attemptId=${attemptId}`), context)
+    expect(result.status).toBe(409)
+    expect(result.headers.get('content-disposition')).toBeNull()
+    expect(chunks).toBe(2)
+    expect(cancel).toHaveBeenCalledOnce()
+  })
+
+  it('bounds the wait for Storage headers and aborts the SDK request', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const abort = vi.fn()
+    const client = syntheticSupabase(async (_input, init) => new Promise((_, reject) => {
+      const signal = init?.signal
+      signal?.addEventListener('abort', () => { abort(); reject(signal.reason) }, { once: true })
+    }))
+    mock.storage.mockImplementation(() => client.storage.from('ediel-files'))
+
+    const read = GET(request(`?attemptId=${attemptId}`), context)
+    await vi.advanceTimersByTimeAsync(10_000)
+    const result = await read
+    expect(result.status).toBe(503)
+    expect(result.headers.get('content-disposition')).toBeNull()
+    expect(abort).toHaveBeenCalledOnce()
+  })
+
+  it('cancels a Storage body that delivers all expected bytes without ending', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const cancel = vi.fn(() => new Promise<void>(() => {}))
+    const body = new Response(new ReadableStream<Uint8Array>({
+      start: controller => controller.enqueue(payload),
+      cancel,
+    }))
+    const client = syntheticSupabase(async () => body)
+    mock.storage.mockImplementation(() => client.storage.from('ediel-files'))
+
+    const read = GET(request(`?attemptId=${attemptId}`), context)
+    await vi.advanceTimersByTimeAsync(10_000)
+    const result = await read
+    expect(result.status).toBe(503)
+    expect(result.headers.get('content-disposition')).toBeNull()
+    expect(cancel).toHaveBeenCalledOnce()
   })
 })
