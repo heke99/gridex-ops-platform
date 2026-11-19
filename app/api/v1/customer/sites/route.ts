@@ -9,8 +9,7 @@ import {
 import { listPortalMeteringPointsForSites, listPortalSitesPage, portalContextFromResolved } from '@/lib/customer-portal/apiData'
 import {
   publicPageInput,
-  publicPortalMeteringPoint,
-  publicPortalSite,
+  publicPortalSiteRows,
 } from '@/lib/customer-portal/publicDto'
 
 export const runtime = 'nodejs'
@@ -30,6 +29,7 @@ export const dynamic = 'force-dynamic'
     })
     const sites = await listPortalSitesPage(portalContext, publicPageInput(request.nextUrl.searchParams))
     const meteringPoints = await listPortalMeteringPointsForSites(portalContext, sites.items)
+    const publicRows = publicPortalSiteRows(context.client.company_id, sites.items, meteringPoints)
 
     await logCustomerPortalSuccess({
       request,
@@ -40,8 +40,8 @@ export const dynamic = 'force-dynamic'
     })
     return customerPortalJson({
       data: {
-        sites: sites.items.map((row) => publicPortalSite(context.client.company_id, row)),
-        metering_points: meteringPoints.map((row) => publicPortalMeteringPoint(context.client.company_id, row)),
+        sites: publicRows.sites,
+        metering_points: publicRows.meteringPoints,
       },
       page: { sites: sites.page },
     })
