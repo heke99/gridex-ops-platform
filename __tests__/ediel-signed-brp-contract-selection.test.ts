@@ -106,6 +106,8 @@ it('finds and selects an older exact contract number while preserving the artifa
   expect(options(html)).toContain('OLDER-SIGNED')
   expect(options(html).match(/<option\b/g)).toHaveLength(1)
   expect(options(html)).toContain(`value="${old.id}" selected`)
+  const searchForm = html.match(/<form[^>]*action="\/admin\/ediel\/signed-brp-declarations"[^>]*>/)?.[0]
+  expect(searchForm).toContain('method="get"')
   expect(html).toContain(`name="artifactId" value="${artifactId}"`)
   expect(html).toContain(`aria-label="Arkiverat underlags-ID"`)
   expect(html).not.toContain('Visar de 100 senaste undertecknade avtalen.')
@@ -133,7 +135,7 @@ it('prioritizes an exact ID when the same text also matches a newer contract num
   expect(options(html)).toContain(`value="${newer.id}"`)
 })
 
-it('shows an empty exact lookup without offering an archive action for an unsigned or foreign contract', async () => {
+it('keeps authorized artifact operations available when the exact contract lookup is empty', async () => {
   serverContracts([
     contract(10, { company_id: uuid(6), contract_number: 'UNAVAILABLE' }),
     contract(11, { status: 'active', signed_at: null, contract_number: 'UNAVAILABLE' }),
@@ -141,8 +143,22 @@ it('shows an empty exact lookup without offering an archive action for an unsign
   const html = await render({ contract: 'UNAVAILABLE', artifactId })
 
   expect(html).toContain('Inget undertecknat avtal matchar sökningen.')
-  expect(html).not.toContain('Arkivera original')
+  expect(html).toContain('Arkivera original')
+  expect(html).toMatch(/<select aria-label="Undertecknat avtal"[^>]*required=""[^>]*><\/select>/)
+  expect(options(html)).toBe('')
   expect(html).toContain('Arkiverat underlags-ID')
+  expect(html).toContain(`name="artifactId" value="${artifactId}"`)
+})
+
+it('does not grant archive or review through contract and artifact URL values', async () => {
+  ports.access.mockResolvedValueOnce({ companyId, permissions: readPermissions })
+  serverContracts([contract(10)])
+  const html = await render({ contract: 'SIGNED-10', artifactId })
+
+  expect(html).toContain('Arkiverat underlags-ID')
+  expect(html).toContain(`value="${artifactId}"`)
+  expect(html).not.toContain('Arkivera original')
+  expect(html).not.toContain('Sök på avtalsnummer eller avtals-ID')
 })
 
 it('keeps missing permission and read failure distinct', async () => {

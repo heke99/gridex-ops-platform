@@ -67,7 +67,7 @@ export default async function SignedBrpPage({ searchParams }: {
       <SignedBrpWorkspace
         contracts={contracts}
         initialArtifactId={artifactId}
-        canArchive={write && contracts.length > 0}
+        canArchive={write}
         canReview={write && access.permissions.includes('ediel.source.review')}
       />
     </main>
