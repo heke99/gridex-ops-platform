@@ -14,7 +14,8 @@ vi.mock('@/lib/customer-portal/externalApi', async importOriginal => {
   const actual = await importOriginal<typeof import('@/lib/customer-portal/externalApi')>()
   return { ...actual, requireCustomerPortalApiContext: vi.fn(async () => state.authenticated ? { ok: true, client: { company_id: 'company-a' }, identity: { customer_id: state.customer }, startedAt: 1 } : { ok: false, response: NextResponse.json({ error: { code: 'unauthorized' } }, { status: 401 }) }), logCustomerPortalSuccess: vi.fn(), handleCustomerPortalRouteError: ({ error }: { error: { status?: number; code?: string; message?: string } }) => NextResponse.json({ error: { code: error.code, message: error.message } }, { status: error.status ?? 500 }) }
 })
-import { customerConsumptionSites, customerConsumptionMeteringValues } from '@/lib/customer-portal/consumptionRoutes'
+import { GET as customerConsumptionSites } from '@/app/api/v1/customer/consumption/sites/route'
+import { GET as customerConsumptionMeteringValues } from '@/app/api/v1/customer/consumption/metering-values/route'
 import { requireCustomerPortalApiContext } from '@/lib/customer-portal/externalApi'
 const site = { id: '00000000-0000-4000-8000-000000000003', company_id: 'company-a', customer_id: 'customer-a', facility_id: 'FAC-A', created_at: '2026-11-01T00:00:00Z' }
 const point = { id: 'point-a', company_id: 'company-a', customer_site_id: site.id }
@@ -101,6 +102,105 @@ describe('customer consumption supplement routes', () => {
     state.result = [{ error: { message: 'SECRET database tenant details' }, data: null }]
     const response = await customerConsumptionSites(request('sites')); expect(response.status).toBe(503); expect(response.headers.get('cache-control')).toBe('private, no-store')
     expect(JSON.stringify(await response.json())).not.toContain('SECRET')
+  })
+})
+
+describe('consumption through a source-confirmed move-in', () => {
+  const newSite = {
+    ...site,
+    id: '00000000-0000-4000-8000-000000000007',
+    facility_id: 'FAC-B',
+    created_at: '2026-11-10T00:00:00Z',
+  }
+  const newPoint = { ...point, id: 'point-b', customer_site_id: newSite.id }
+  const pending = {
+    ...period,
+    id: 'period-b',
+    metering_point_id: newPoint.id,
+    status: 'confirmed_by_grid_owner',
+    actual_start_date: null,
+    market_start_at: '2026-11-30T23:00:00Z',
+  }
+  const active = { ...pending, status: 'active', actual_start_date: '2026-12-01' }
+  const newMeterPath = 'metering-values?facility_id=FAC-B&from=2026-11-30T22:00:00Z&to=2026-12-02T00:00:00Z'
+  const atStart = {
+    ...value,
+    id: '00000000-0000-4000-8000-000000000008',
+    metering_point_id: newPoint.id,
+    period_start: '2026-11-30T23:00:00Z',
+    period_end: '2026-11-30T23:15:00Z',
+  }
+  const beforeStart = {
+    ...atStart,
+    id: '00000000-0000-4000-8000-000000000009',
+    period_start: '2026-11-30T22:45:00Z',
+    period_end: '2026-11-30T23:00:00Z',
+  }
+
+  it('keeps the earlier supply discoverable while the new site awaits activation', async () => {
+    for (const newPeriod of [{ ...pending, status: 'planned' }, pending]) {
+      state.result = [ok([newSite, site]), ok([newPoint, point]), ok([newPeriod, period])]
+      const response = await customerConsumptionSites(request('sites'))
+      expect(response.status).toBe(200)
+      const body = await response.json()
+      assertPageContract(body.page.sites)
+      expect(body.data.sites.map((entry: { facility_id: string }) => entry.facility_id)).toEqual(['FAC-B', 'FAC-A'])
+      const oldReference = body.data.sites[1].facility_reference
+      expect(body.data.metering_points).toHaveLength(1)
+      expect(body.data.metering_points[0].facility_reference).toBe(oldReference)
+      expect(body.data.delivery_access.complete).toBe(true)
+      expect(body.data.delivery_access.windows).toEqual([
+        expect.objectContaining({ facility_reference: oldReference, from: '2026-10-31T23:00:00.000Z' }),
+      ])
+    }
+
+    state.result = [ok([site]), ok([point]), ok([period]), ok([value])]
+    const priorHistory = await customerConsumptionMeteringValues(request(meterPath))
+    expect(priorHistory.status).toBe(200)
+    expect((await priorHistory.json()).data).toEqual([expect.objectContaining({ quantity_kwh: 7.5 })])
+
+    state.result = [ok([newSite, site]), ok([newPoint, point]), ok([active, period])]
+    const activated = await customerConsumptionSites(request('sites'))
+    expect(activated.status).toBe(200)
+    const body = await activated.json()
+    expect(body.data.metering_points).toHaveLength(2)
+    expect(body.data.delivery_access.windows).toHaveLength(2)
+    expect(body.data.delivery_access.windows).toContainEqual(expect.objectContaining({
+      facility_reference: body.data.sites[0].facility_reference,
+      from: '2026-11-30T23:00:00.000Z',
+    }))
+  })
+
+  it('keeps an empty new site readable and grants only values inside an activated period', async () => {
+    const stages = [
+      { supply: { ...pending, status: 'planned' }, values: [], returned: 0 },
+      { supply: pending, values: [], returned: 0 },
+      { supply: pending, values: [atStart, beforeStart], returned: 0 },
+      { supply: active, values: [atStart, beforeStart], returned: 1 },
+    ]
+    for (const { supply, values, returned } of stages) {
+      state.result = [ok([newSite]), ok([newPoint]), ok([supply]), ok(values)]
+      const response = await customerConsumptionMeteringValues(request(newMeterPath))
+      expect(response.status).toBe(200)
+      const body = await response.json()
+      assertPageContract(body.page)
+      expect(body.page.returned).toBe(returned)
+      expect(body.data).toEqual(returned ? [expect.objectContaining({ period_start: atStart.period_start })] : [])
+    }
+  })
+
+  it.each([
+    { ...pending, market_start_at: null },
+    { ...pending, market_start_at: '2026-02-30T23:00:00Z' },
+    { ...pending, status: 'active' },
+    { ...pending, metering_point_id: 'unbound-point' },
+    { ...pending, customer_id: 'unexpected-customer' },
+  ])('holds the response when the period authority is actually incomplete', async (invalid) => {
+    state.result = [ok([newSite, site]), ok([newPoint, point]), ok([invalid, period])]
+    const response = await customerConsumptionSites(request('sites'))
+    expect(response.status).toBe(503)
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+    expect(await response.json()).toMatchObject({ error: { code: 'consumption_unavailable' } })
   })
 })
 
