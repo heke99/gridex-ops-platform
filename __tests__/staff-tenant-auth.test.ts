@@ -45,6 +45,34 @@ describe('registered tenant-owned staff Auth', () => {
     expect(await getRegisteredStaffTenantAuthUser(registration(), 'synthetic-invalid-user-token', fetchImpl)).toBeNull()
     expect(fetchImpl).toHaveBeenCalledOnce()
   })
+  it('keeps a revoked Auth session in the credential rejection path', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      Response.json({ error_code: 'session_not_found', message: 'Session not found' }, { status: 403 }))
+    expect(await getRegisteredStaffTenantAuthUser(registration(), 'synthetic-revoked-session-token', fetchImpl)).toBeNull()
+    expect(fetchImpl).toHaveBeenCalledOnce()
+  })
+  it.each([429, 500, 503])('classifies upstream HTTP %i as unavailable without retrying getUser', async status => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => Response.json({ message: 'Synthetic upstream details' }, { status }))
+    await expect(getRegisteredStaffTenantAuthUser(registration(), 'synthetic-local-user-token', fetchImpl))
+      .rejects.toMatchObject({ code: 'staff_tenant_auth_unavailable', status: 503 })
+    expect(fetchImpl).toHaveBeenCalledOnce()
+  })
+  it('classifies an upstream gateway error without a JSON Auth envelope as unavailable', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => new Response('Synthetic gateway error', { status: 500 }))
+    await expect(getRegisteredStaffTenantAuthUser(registration(), 'synthetic-local-user-token', fetchImpl))
+      .rejects.toMatchObject({ code: 'staff_tenant_auth_unavailable', status: 503 })
+  })
+  it('classifies a fetch rejection as unavailable without retrying getUser', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockRejectedValue(new TypeError('Synthetic network failure'))
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      await expect(getRegisteredStaffTenantAuthUser(registration(), 'synthetic-local-user-token', fetchImpl))
+        .rejects.toMatchObject({ code: 'staff_tenant_auth_unavailable', status: 503 })
+      expect(fetchImpl).toHaveBeenCalledOnce()
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
   it.each([
     { deleted_at: '2026-10-01T00:00:00Z' }, { deleted_at: 'invalid timestamp' }, { deleted_at: '' },
     { banned_until: '2099-01-01T00:00:00Z' }, { banned_until: 'invalid timestamp' }, { banned_until: '' },

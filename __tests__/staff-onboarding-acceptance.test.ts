@@ -6,6 +6,7 @@ const env = vi.hoisted(() => ({ url: 'https://piidsfebjqjmnepdpnas.supabase.co' 
 vi.mock('@/lib/supabase/service', () => ({ get SUPABASE_SERVICE_URL() { return env.url }, supabaseService: {} }))
 vi.mock('@/lib/integrations/apiAuth', async importOriginal => ({ ...await importOriginal<Record<string, unknown>>(), requireIntegrationApiAccess: vi.fn(), logIntegrationApiRequest: vi.fn() }))
 import { createStaffInvitationAcceptanceHandler, type StaffInvitationAcceptancePorts } from '@/lib/staff-api/onboarding'
+import { getRegisteredStaffTenantAuthUser } from '@/lib/staff-api/tenantAuth'
 
 const company = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', userId = '11111111-1111-4111-8111-111111111111'
 const actorId = '99999999-9999-4999-8999-999999999999', bindingId = '88888888-8888-4888-8888-888888888888'
@@ -91,6 +92,76 @@ describe('explicit independent staff invitation acceptance', () => {
     ports.apiAccess.mockResolvedValue({ ok: true, client: { ...client, secret_hash: '' } })
     expect((await handler(request())).status).toBe(200)
     expect(ports.canonicalAccept.mock.calls[0][0].verified_client.secret_hash).toBe(createHash('sha256').update('synthetic-api-key').digest('hex'))
+  })
+  it.each([
+    [401, 401, 'staff_onboarding_auth_invalid'],
+    [503, 503, 'staff_tenant_auth_unavailable'],
+  ])('fails closed after Auth HTTP %i while returning %i from the acceptance route', async (upstreamStatus, expectedStatus, code) => {
+    const { handler, ports } = boundary()
+    const fetchImpl = vi.fn<typeof fetch>(async () => Response.json({ message: 'Synthetic upstream details' }, { status: upstreamStatus }))
+    ports.getAuthUser.mockImplementation((registration, bearer) => getRegisteredStaffTenantAuthUser(registration, bearer, fetchImpl))
+    const response = await handler(request())
+    expect(response.status).toBe(expectedStatus)
+    expect(await response.json()).toEqual({
+      error: { code, message: 'The staff invitation could not be accepted.' },
+      request_id: response.headers.get('x-request-id'),
+      contract_schema_version: '2026-10-05.2',
+    })
+    expect(fetchImpl).toHaveBeenCalledOnce()
+    expect(ports.loadProvider).not.toHaveBeenCalled()
+    expect(ports.consumeJti).not.toHaveBeenCalled()
+    expect(ports.findInvitation).not.toHaveBeenCalled()
+    expect(ports.canonicalAccept).not.toHaveBeenCalled()
+    expect(ports.logRequest).toHaveBeenCalledWith(expect.objectContaining({ statusCode: expectedStatus, errorCode: code }))
+  })
+  it.each([
+    { code: '42501', message: 'staff_identity_actor_inactive', status: 403, errorCode: 'staff_invitation_invalid' },
+    { code: 'P0002', message: 'tenant_invitation_not_found', status: 403, errorCode: 'staff_invitation_invalid' },
+    { code: '23514', message: 'tenant_invitation_expired', status: 403, errorCode: 'staff_invitation_invalid' },
+    { code: '23505', message: 'IDEMPOTENCY_KEY_REUSE_MISMATCH', status: 409, errorCode: 'idempotency_conflict' },
+    { code: '08006', message: 'IDEMPOTENCY_KEY_REUSE_MISMATCH', status: 500, errorCode: 'internal_error' },
+    { code: '42501', message: 'Synthetic function permission misconfiguration', status: 500, errorCode: 'internal_error' },
+  ])('returns the safe HTTP $status outcome for the canonical $code/$message result', async ({ code, message, status, errorCode }) => {
+    const { handler, ports } = boundary()
+    ports.canonicalAccept.mockRejectedValueOnce({ code, message })
+    const response = await handler(request())
+    expect(response.status).toBe(status)
+    expect(await response.json()).toMatchObject({ error: { code: errorCode, message: 'The staff invitation could not be accepted.' } })
+  })
+  it('returns a safe internal error when replay storage is unavailable, before reading or writing the invitation', async () => {
+    const { handler, ports } = boundary()
+    ports.consumeJti.mockRejectedValueOnce({ code: '08006', message: 'Synthetic replay storage unavailable' })
+    const response = await handler(request())
+    expect(response.status).toBe(500)
+    expect(await response.json()).toMatchObject({ error: { code: 'internal_error', message: 'The staff invitation could not be accepted.' } })
+    expect(ports.findInvitation).not.toHaveBeenCalled()
+    expect(ports.canonicalAccept).not.toHaveBeenCalled()
+  })
+  it('reports an empty canonical result as uncertain completion', async () => {
+    const { handler, ports } = boundary()
+    ports.canonicalAccept.mockResolvedValueOnce(null)
+    const response = await handler(request())
+    expect(response.status).toBe(500)
+    expect(await response.json()).toMatchObject({ error: { code: 'internal_error', message: 'The staff invitation could not be accepted.' } })
+  })
+  it('allows a fresh proof with the same command key after a canonical response failure', async () => {
+    const { handler, ports } = boundary()
+    ports.canonicalAccept.mockRejectedValueOnce(new Error('Synthetic canonical transport failure'))
+    const response = await handler(request())
+    expect(response.status).toBe(500)
+    const requestId = response.headers.get('x-request-id')
+    expect(requestId).toBeTruthy()
+    expect(await response.json()).toEqual({
+      error: { code: 'internal_error', message: 'The staff invitation could not be accepted.' },
+      request_id: requestId,
+      contract_schema_version: '2026-10-05.2',
+    })
+    expect(ports.logRequest).toHaveBeenCalledWith(expect.objectContaining({ requestId, statusCode: 500, errorCode: 'internal_error' }))
+    expect((await handler(request())).status).toBe(200)
+    expect(ports.consumeJti).toHaveBeenCalledTimes(2)
+    expect(ports.consumeJti.mock.calls[0][1]).not.toBe(ports.consumeJti.mock.calls[1][1])
+    expect(ports.canonicalAccept).toHaveBeenCalledTimes(2)
+    expect(ports.canonicalAccept.mock.calls[0]).toEqual(ports.canonicalAccept.mock.calls[1])
   })
   it('stops wrong deployment/project before authentication rate/audit writes', async () => {
     env.url = 'https://ayiuxjlfazkjmmtlvhsl.supabase.co'
