@@ -141,6 +141,22 @@ export function parseProviderTimestamp(value: unknown): string | null {
   }
 }
 
+const FRACTIONAL_SECOND = /\.(\d{1,9})(?=Z$|[+-]\d{2}:?\d{2}$|$)/i
+
+function parseProviderEventTime(value: unknown) {
+  const source = text(value)
+  if (!source) return null
+  const timestamp = parseProviderTimestamp(source)
+  if (!timestamp) return null
+  const fraction = FRACTIONAL_SECOND.exec(source)?.[1] ?? ''
+  return {
+    source,
+    timestamp,
+    epochSecond: Math.floor(Date.parse(timestamp) / 1_000),
+    nanoseconds: Number(fraction.padEnd(9, '0')),
+  }
+}
+
 function present(value: unknown): boolean {
   return value !== undefined && value !== null && value !== ''
 }
@@ -342,7 +358,7 @@ async function processSingleEvent(event: JsonRecord, token: string): Promise<Pro
     }
   }
   const rawOccurredAt = providerEventOccurredAt(payload)
-  const occurredAt = present(rawOccurredAt) ? parseProviderTimestamp(rawOccurredAt) : null
+  const occurredAt = parseProviderEventTime(rawOccurredAt)
   if (present(rawOccurredAt) && !occurredAt) {
     await markEvent({ eventId, companyId, token, status: 'needs_review', reason: 'invalid_provider_event_time' })
     return { eventId, outcome: 'needs_review', reason: 'invalid_provider_event_time' }
@@ -357,8 +373,17 @@ async function processSingleEvent(event: JsonRecord, token: string): Promise<Pro
   for (let attempt = 0; attempt < 5 && !applied; attempt += 1) {
     const currentProviderState = knownState(current.provider_status)
     const statusPayload = object(current.status_payload)
-    const lastOccurredAt = parseProviderTimestamp(statusPayload.last_provider_event_occurred_at)
-    const staleByTime = Boolean(occurredAt && lastOccurredAt && Date.parse(occurredAt) < Date.parse(lastOccurredAt))
+    const lastTimestamp = statusPayload.last_provider_event_occurred_at
+    const sourceTime = parseProviderEventTime(statusPayload.last_provider_event_occurred_at_source)
+    const lastOccurredAt = sourceTime && sourceTime.timestamp === lastTimestamp
+      ? sourceTime
+      : parseProviderEventTime(lastTimestamp)
+    // Equal instants still use the transition table, including a repeat that
+    // completes a previously failed portal mirror.
+    const staleByTime = occurredAt && lastOccurredAt && (
+      occurredAt.epochSecond < lastOccurredAt.epochSecond ||
+      (occurredAt.epochSecond === lastOccurredAt.epochSecond && occurredAt.nanoseconds < lastOccurredAt.nanoseconds)
+    )
     if (staleByTime || !isAllowedProviderTransition(currentProviderState, state)) {
       await markEvent({ eventId, companyId, token, status: 'processed', reason: 'stale_provider_state_ignored' })
       return { eventId, outcome: 'processed', reason: 'stale_provider_state_ignored' }
@@ -374,7 +399,10 @@ async function processSingleEvent(event: JsonRecord, token: string): Promise<Pro
         last_provider_event_type: text(event.event_type),
         last_provider_state: state,
         last_provider_event_at: nowIso,
-        ...(occurredAt ? { last_provider_event_occurred_at: occurredAt } : {}),
+        ...(occurredAt ? {
+          last_provider_event_occurred_at: occurredAt.timestamp,
+          last_provider_event_occurred_at_source: occurredAt.source,
+        } : {}),
       },
       last_reconciled_at: nowIso,
       reconciliation_status: 'matched',
