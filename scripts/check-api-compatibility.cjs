@@ -13,15 +13,46 @@ function assert(condition, message) {
   if (!condition) throw new Error(message)
 }
 
-for (const [name, document] of [
-  ['website', website],
-  ['customer portal', portal],
+const registry = fs.readFileSync('lib/api/publicRouteRegistry.ts', 'utf8')
+const releaseOrder = new Intl.Collator('en', { numeric: true })
+const previousVersion = [...registry.matchAll(
+  /path:\s*['"]\/api\/v1\/openapi\/(\d{4}-\d{2}-\d{2}\.\d+)\/(?:website-integration|customer-portal)-v1\.json['"]/g,
+)]
+  .map(([, publishedVersion]) => publishedVersion)
+  .filter((publishedVersion) => releaseOrder.compare(publishedVersion, version) < 0)
+  .sort((left, right) => releaseOrder.compare(right, left))[0]
+assert(previousVersion, 'missing previous published Website/Customer Portal version')
+
+const httpMethods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']
+function assertPublishedOperations(name, document, fileName) {
+  const artifactPath = `docs/openapi/releases/${previousVersion}/${fileName}`
+  assert(fs.existsSync(artifactPath), `${name}: missing previous published artifact ${artifactPath}`)
+  const previous = JSON.parse(fs.readFileSync(artifactPath, 'utf8'))
+  assert(previous.info?.version === previousVersion, `${name}: previous published artifact version mismatch`)
+  let operationCount = 0
+  for (const [path, item] of Object.entries(previous.paths ?? {})) {
+    for (const method of httpMethods) {
+      if (!item[method]) continue
+      operationCount++
+      assert(
+        document.paths?.[path]?.[method],
+        `${name}: removed published operation ${method.toUpperCase()} ${path} from ${previousVersion}`,
+      )
+    }
+  }
+  assert(operationCount > 0, `${name}: previous published artifact has no operations`)
+}
+
+for (const [name, document, fileName] of [
+  ['website', website, 'website-integration-v1.json'],
+  ['customer portal', portal, 'customer-portal-v1.json'],
 ]) {
   assert(document.info.version === version, `${name}: wrong info.version`)
   assert(
     document['x-contract-schema-version'] === runtimeContractVersion,
     `${name}: wrong contract schema version`,
   )
+  assertPublishedOperations(name, document, fileName)
 }
 
 const publicBoundary = JSON.stringify({
@@ -119,4 +150,4 @@ assert(
   'legacy consent fallback is still published',
 )
 
-console.log(`OpenAPI compatibility gate passed for ${version}.`)
+console.log(`OpenAPI compatibility gate passed for ${version} against ${previousVersion}.`)
