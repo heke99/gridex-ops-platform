@@ -1,0 +1,489 @@
+name: Customerless shared-ledger forward qualification
+
+on:
+  pull_request:
+    types: [synchronize]
+    branches: [main]
+    paths:
+      - supabase/migrations/20261101084405_customer_portal_idempotency_customerless_forward_guard.sql
+      - supabase/migrations/20261101092632_webhook_subscription_physical_compatibility_forward.sql
+      - scripts/customer-portal-idempotency-customerless-native.config.ts
+      - scripts/customer-portal-idempotency-customerless-native.test.ts
+      - scripts/migration-history-manifest.json
+      - supabase/database.types.ts
+      - supabase/schema.sql
+      - supabase/schema.fingerprint.json
+      - scripts/supabase-types-manifest.json
+      - .github/workflows/customer-portal-idempotency-customerless-native.yml
+      - .github/workflows/ediel-db01-current-native.yml
+      - __tests__/db05-schema-predecessor-chain.test.ts
+      - __tests__/ediel-db01-current-write-api-observation.test.ts
+      - __tests__/fixtures/db05-schema-predecessor-customerless-20261101.patch.json
+      - __tests__/helpers/db05PredecessorSchema.ts
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: customerless-forward-native
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    if: >-
+      github.run_attempt == 1 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'codex/customerless-idempotency-forward-20261101'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Materialize private finite runner and authenticate admission
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          export CUSTOMERLESS_HOME="$RUNNER_TEMP/customerless-forward"
+          mkdir -m 700 "$CUSTOMERLESS_HOME"
+          printf 'CUSTOMERLESS_HOME=%s\n' "$CUSTOMERLESS_HOME" >> "$GITHUB_ENV"
+          cat > "$CUSTOMERLESS_HOME/runner.py" <<'PY'
+          import datetime, hashlib, json, os, pathlib, re, signal, socket, subprocess, sys, time, urllib.error, urllib.request, xml.etree.ElementTree as ET
+          HOME = pathlib.Path(os.environ['CUSTOMERLESS_HOME'])
+          ROOT = pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          REPO = 'heke99/gridex-ops-platform'
+          WF = '.github/workflows/customer-portal-idempotency-customerless-native.yml'
+          SQL = 'supabase/migrations/20261101084405_customer_portal_idempotency_customerless_forward_guard.sql'
+          WEBHOOK_SQL = 'supabase/migrations/20261101092632_webhook_subscription_physical_compatibility_forward.sql'
+          CONFIG = 'scripts/customer-portal-idempotency-customerless-native.config.ts'
+          TEST = 'scripts/customer-portal-idempotency-customerless-native.test.ts'
+          GEN = ['scripts/migration-history-manifest.json','supabase/database.types.ts','supabase/schema.sql','supabase/schema.fingerprint.json','scripts/supabase-types-manifest.json']
+          CONSUMERS = ['.github/workflows/ediel-db01-current-native.yml','__tests__/db05-schema-predecessor-chain.test.ts','__tests__/ediel-db01-current-write-api-observation.test.ts','__tests__/fixtures/db05-schema-predecessor-customerless-20261101.patch.json','__tests__/helpers/db05PredecessorSchema.ts']
+          MATERIAL = sorted([WF,SQL,WEBHOOK_SQL,CONFIG,TEST]+GEN+CONSUMERS)
+          SOURCE_REFS = sorted(['refs/tags/agent-claims/masterplan/slot-session-570d6657-62b5-450f-bc63-4f16a8e79ca3'] + ['refs/tags/agent-claims/masterplan/file-'+hashlib.sha256(p.encode()).hexdigest() for p in [WF,SQL,CONFIG,TEST]])
+          FIFTH_REFS = ['refs/tags/agent-claims/masterplan/file-'+hashlib.sha256(WEBHOOK_SQL.encode()).hexdigest(),'refs/tags/agent-claims/masterplan/slot-session-85b7e0aa-0a4c-495b-bc67-104f2c394691']
+          PAIR_REFS = ['refs/tags/agent-claims/masterplan/backend-customer-portal-idempotency-native','refs/tags/agent-claims/masterplan/producer-customer-portal-idempotency-native']
+          DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+          PORTS = [54320,54321,54322,54323,54324,54325,54327,54329,8083]
+          CLEANING = False
+          COMMITS = {}
+          def need(ok, code):
+              if not ok: raise RuntimeError(code)
+          def sha(b): return hashlib.sha256(b).hexdigest()
+          def packed(x): return json.dumps(x,sort_keys=True,separators=(',',':')).encode()
+          def parse(raw):
+              def unique(pairs):
+                  result={}
+                  for key,value in pairs:
+                      need(key not in result,'duplicate_json_key'); result[key]=value
+                  return result
+              return json.loads(raw,object_pairs_hook=unique)
+          def save(path, value):
+              p=HOME/path; p.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+              with p.open('x') as f: json.dump(value,f,indent=2); f.write('\n')
+              p.chmod(0o600)
+          def read(path): return parse((HOME/path).read_text())
+          def utc(value):
+              d=datetime.datetime.fromisoformat(value.replace('Z','+00:00')); need(d.tzinfo is not None,'qualified_utc_required'); return d.timestamp()
+          def api(path):
+              need(path.startswith('/repos/'+REPO+'/'),'github_endpoint_scope')
+              request=urllib.request.Request('https://api.github.com'+path,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'})
+              try:
+                  with urllib.request.urlopen(request,timeout=30) as response: status=response.status; raw=response.read(16*1024*1024+1)
+              except urllib.error.HTTPError as error: status=error.code; raw=error.read(1024*1024)
+              save('private/api-'+str(time.monotonic_ns())+'.json',{'status':status,'body':raw.decode('utf8',errors='replace')})
+              need(status==200 and len(raw)<=16*1024*1024,'github_read_failed')
+              return parse(raw)
+          def ref(name): return api('/repos/'+REPO+'/git/ref/'+name.removeprefix('refs/'))['object']['sha']
+          def commit(value):
+              need(re.fullmatch('[a-f0-9]{40}',value),'commit_identity')
+              if value not in COMMITS: COMMITS[value]=api('/repos/'+REPO+'/git/commits/'+value)
+              return COMMITS[value]
+          def neutral(receipt, resources, operation=None):
+              c=commit(receipt); m=parse(c['message'])
+              need(set(m)=={'base','files','operation'} and len(c['parents'])==1 and c['parents'][0]['sha']==m['base'],'neutral_shape')
+              need(c['tree']['sha']==commit(m['base'])['tree']['sha'],'neutral_tree')
+              need(m['operation']==(operation or 'Reserve source files and rule IDs; resources-sha256='+sha('\n'.join(sorted(resources)).encode())),'neutral_resources')
+              return m
+          def core_hash(a): return sha(packed({k:v for k,v in a.items() if k not in ['inputReviews','pairReceipt']}))
+          def command(argv, *, cwd=ROOT, env=None, input=None, timeout=60, log=None):
+              if (HOME/'admission.json').exists():
+                  entry=read('admission.json'); key='cleanupExpires' if CLEANING else 'expires'
+                  remaining=min(utc(entry['record'][key+'At'])-time.time(),entry[key+'Monotonic']-time.monotonic())
+                  need(remaining>0,'command_deadline'); timeout=min(timeout,remaining)
+              process=subprocess.Popen(argv,cwd=cwd,env=env,text=True,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
+              start=proc(process.pid); need(start and start[1]==process.pid,'command_birth_session')
+              def members():
+                  leader=proc(process.pid)
+                  need(not leader or leader[0]==start[0],'command_session_reused')
+                  return [(int(p.name),v[0]) for p in pathlib.Path('/proc').iterdir() if p.name.isdigit() and (v:=proc(int(p.name))) and v[1]==process.pid and v[0]>=start[0] and v[2]!='Z']
+              def stop():
+                  for sig in [signal.SIGTERM,signal.SIGKILL]:
+                      for pid,birth in members():
+                          try:
+                              fd=os.pidfd_open(pid)
+                              try:
+                                  value=proc(pid)
+                                  need(value and value[0]==birth and value[1]==process.pid,'command_child_reused')
+                                  signal.pidfd_send_signal(fd,sig)
+                              finally: os.close(fd)
+                          except ProcessLookupError: pass
+                      deadline=time.monotonic()+3
+                      while members() and time.monotonic()<deadline: time.sleep(.02)
+                      if not members(): return
+                  need(not members(),'command_children_remaining')
+              try: out,err=process.communicate(input,timeout=timeout)
+              except subprocess.TimeoutExpired:
+                  stop(); out,err=process.communicate(timeout=5)
+                  if log: save('private/'+log,{'exitCode':process.returncode,'timedOut':True,'stdout':out,'stderr':err})
+                  raise RuntimeError('command_timeout')
+              orphaned=bool(members())
+              if orphaned: stop()
+              if log: save('private/'+log,{'exitCode':process.returncode,'timedOut':False,'orphanAtLeaderExit':orphaned,'ownedSessionEmpty':not members(),'stdout':out,'stderr':err})
+              need(process.returncode==0 and not orphaned,'command_nonzero_or_orphan')
+              return out.strip()
+          def proc(pid):
+              try:
+                  raw=pathlib.Path('/proc/'+str(pid)+'/stat').read_text(); fields=raw[raw.rfind(')')+2:].split()
+                  return int(fields[19]),int(fields[3]),fields[0]
+              except (FileNotFoundError,ProcessLookupError): return None
+          def git(*args): return command(['git','-C',str(ROOT),*args])
+          def custody(a):
+              need(all(ref(r)=='3ece49630bab5ae9dab145a9add0dbf3afbdb959' for r in SOURCE_REFS),'source_custody')
+              source=neutral('3ece49630bab5ae9dab145a9add0dbf3afbdb959',SOURCE_REFS)
+              need(sorted(source['files'])==sorted([WF,SQL,CONFIG,TEST]),'source_scope')
+              need(all(ref(r)=='e1da5696400cde3e4b4bc4ac3c19c9bd710ec64a' for r in FIFTH_REFS),'fifth_source_custody')
+              need(neutral('e1da5696400cde3e4b4bc4ac3c19c9bd710ec64a',FIFTH_REFS)['files']==[WEBHOOK_SQL],'fifth_source_scope')
+              required={'refs/tags/agent-claims/masterplan/file-'+sha(p.encode()) for p in GEN+CONSUMERS}; covered=set(); authors={r for r in SOURCE_REFS+FIFTH_REFS if '/slot-session-' in r}
+              for group in a['materialCustody']:
+                  resources=group['resources']; targets=group['targets']
+                  need(resources==sorted(set(resources)) and targets==sorted(set(targets)) and set(targets)<=set(resources),'material_custody_shape')
+                  need(all(re.fullmatch(r'refs/tags/agent-claims/masterplan/(file-[a-f0-9]{64}|slot-session-[a-f0-9-]{36})',r) for r in resources),'material_resource_scope')
+                  m=neutral(group['receipt'],resources)
+                  sessions={r for r in resources if '/slot-session-' in r}; files={'refs/tags/agent-claims/masterplan/file-'+sha(p.encode()) for p in m['files']}
+                  need(sessions and set(resources)==sessions|files and sessions<=set(targets) and set(targets)-sessions<=required,'material_neutral_scope')
+                  need(all(ref(r)==group['receipt'] for r in targets),'material_live_custody')
+                  covered.update(set(targets)-sessions); authors.update(sessions)
+              need(covered==required,'all_gen_consumer_custody_required')
+              need(all(ref(r)==a['pairReceipt'] for r in PAIR_REFS),'runtime_pair_custody')
+              operation='Reserve customerless native producer/backend; resources-sha256='+sha('\n'.join(sorted(PAIR_REFS)).encode())+'; inputs-sha256='+core_hash(a)
+              need(neutral(a['pairReceipt'],PAIR_REFS,operation)['files']==[],'runtime_pair_scope')
+              return authors
+          def admit():
+              e=json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text()); pr=e['pull_request']; target=pr['head']['sha']
+              need(os.environ['GITHUB_REPOSITORY']==REPO and os.environ['GITHUB_EVENT_NAME']=='pull_request' and e['action']=='synchronize','event_scope')
+              need(pr['head']['repo']['full_name']==REPO and pr['head']['ref']=='codex/customerless-idempotency-forward-20261101' and pr['base']['ref']=='main' and os.environ['GITHUB_RUN_ATTEMPT']=='1','event_identity')
+              need(git('rev-parse','HEAD')==target and not git('status','--porcelain','--untracked-files=all'),'target_source')
+              pointer='refs/tags/agent-runtime-admissions/customerless-native-'+target
+              receipt=ref(pointer); a=parse(commit(receipt)['message'])
+              need(a['schema']=='customerless-native-input-v1' and a['targetHead']==target and a['targetTree']==git('rev-parse','HEAD^{tree}') and a['baselineHead']==pr['base']['sha'],'input_source')
+              need(a['workflowBlob']==git('rev-parse',target+':'+WF) and type(a['runAttempt']) is int and a['runAttempt']==1 and re.fullmatch('[0-9a-f]{40}',a['pairReceipt']),'input_workflow_pair')
+              need(re.fullmatch(r'ghcr\.io/supabase/postgres@sha256:[a-f0-9]{64}',a['postgresRepoDigest']),'input_postgres_digest')
+              need(utc(a['notBefore'])<=time.time()<utc(a['expiresAt']) and utc(a['expiresAt'])-time.time()<=80*60 and 300<=utc(a['cleanupExpiresAt'])-utc(a['expiresAt'])<=600,'input_lifetime')
+              digest=core_hash(a); authors=custody(a)
+              need(len(a['sourceReviews'])==2 and len(set(a['sourceReviews']))==2 and all(re.fullmatch('[0-9a-f]{64}',x) for x in a['sourceReviews']),'source_review_binding')
+              need(len(a['inputReviews'])==2,'input_reviews')
+              reviewers=[]
+              for i, review in enumerate(a['inputReviews']):
+                  need(review['ref']=='refs/tags/agent-runtime-admissions/customerless-native-'+target+'-review-'+str(i),'review_ref_scope')
+                  result=parse(commit(ref(review['ref']))['message'])
+                  need(result['schema']=='customerless-native-input-review-v1' and result['inputSha256']==digest and result['pairReceipt']==a['pairReceipt'] and result['verdict']=='APPROVE_NATIVE_INPUT' and utc(result['expiresAt'])>=utc(a['expiresAt']),'actual_input_review')
+                  need(re.fullmatch(r'refs/tags/agent-claims/masterplan/slot-session-[a-f0-9-]{36}',result['reviewerSession']) and result['reviewerSession'] not in authors and ref(result['reviewerSession'])==result['sessionReceipt'],'reviewer_custody')
+                  reviewers.append(result['reviewerSession'])
+              need(len(set(reviewers))==2,'independent_input_reviews')
+              runs=api('/repos/'+REPO+'/actions/workflows/'+pathlib.Path(WF).name+'/runs?head_sha='+target+'&per_page=100')
+              need(runs['total_count']==len(runs['workflow_runs'])==1,'duplicate_native_history')
+              run=runs['workflow_runs'][0]
+              need(str(run['id'])==os.environ['GITHUB_RUN_ID'] and run['run_attempt']==1 and run['event']=='pull_request','native_run_identity')
+              actual=api('/repos/'+REPO+'/pulls/'+str(pr['number']))
+              need(actual['head']['sha']==target and actual['base']['sha']==a['baselineHead'],'live_pr_drift')
+              changed=set(git('diff','--name-only',a['baselineHead'],target).splitlines())
+              need(changed==set(MATERIAL),'exact_final_fifteen_paths')
+              need(set(a['materialSources'])==set(MATERIAL),'all_actual_material_sources')
+              for path,expected in a['materialSources'].items():
+                  entry=git('ls-tree',target,'--',path).split('\t')[0].split(); actual_path=ROOT/path
+                  need(len(entry)==3 and entry[0] in ['100644','100755'] and entry[0]==expected['mode'] and entry[2]==expected['blob'] and actual_path.is_file() and not actual_path.is_symlink() and sha(actual_path.read_bytes())==expected['sha256'],'actual_material_source_binding')
+              need(not git('ls-tree','-r','--name-only',target,'supabase/migrations/20261030130100_customer_portal_idempotency_customerless_routes.sql'),'legacy_migration_must_stay_absent')
+              save('admission.json',{'record':a,'inputSha256':digest,'receipt':receipt,'pointer':pointer,'acceptedAt':time.time(),'expiresMonotonic':time.monotonic()+utc(a['expiresAt'])-time.time(),'cleanupExpiresMonotonic':time.monotonic()+utc(a['cleanupExpiresAt'])-time.time()})
+              save('public/source.json',{'targetHead':target,'targetTree':a['targetTree'],'baselineHead':a['baselineHead'],'workflowBlob':a['workflowBlob'],'inputSha256':digest,'new105PASS':0})
+          def live(cleanup=False):
+              x=read('admission.json'); a=x['record']
+              need(ref(x['pointer'])==x['receipt'],'admission_pointer_changed'); custody(a)
+              need(time.time()<utc(a['cleanupExpiresAt'] if cleanup else a['expiresAt']) and time.monotonic()<x['cleanupExpiresMonotonic' if cleanup else 'expiresMonotonic'],'runtime_deadline')
+              return a
+          def child_env():
+              return {'PATH':os.environ['PATH'],'HOME':str(HOME/'private-home'),'CI':'1','SUPABASE_INTERNAL_IMAGE_REGISTRY':'ghcr.io','SUPABASE_DISABLE_UPDATE_CHECK':'1','DOCKER_HOST':'unix:///var/run/docker.sock'}
+          def docker(*args): return command(['docker',*args],env=child_env())
+          def inventory():
+              return {'daemon':json.loads(docker('info','--format','{"Id":{{json .ID}},"Root":{{json .DockerRootDir}},"Driver":{{json .Driver}}}')),
+                'containers':{x['Id']:x for x in json.loads(docker('inspect',*docker('ps','-aq','--no-trunc').split()) or '[]')} if docker('ps','-aq','--no-trunc') else {},
+                'volumes':{x['Name']:x for x in json.loads(docker('volume','inspect',*docker('volume','ls','-q').split()) or '[]')} if docker('volume','ls','-q') else {},
+                'networks':{x['Id']:x for x in json.loads(docker('network','inspect',*docker('network','ls','-q').split()) or '[]')}}
+          def project(root):
+              import tomllib
+              return tomllib.loads((root/'supabase/config.toml').read_text())['project_id']
+          def snapshot_before(name):
+              global CLEANING
+              CLEANING=False
+              live(); b=inventory(); need(not b['containers'],'runner_not_empty')
+              own=project(ROOT); need(not any(own in str(x) for k in ['volumes','networks'] for x in b[k].values()),'preexisting_project_resource')
+              stat=os.statvfs(b['daemon']['Root']); available=stat.f_bavail*stat.f_frsize
+              need(b['daemon']['Driver'] in ['overlay2','overlayfs','vfs'] and available>=(40 if b['daemon']['Driver']=='vfs' else 15)*1024**3,'backend_capacity')
+              for port in PORTS:
+                  with socket.socket() as s: s.settimeout(.2); need(s.connect_ex(('127.0.0.1',port))!=0,'port_occupied')
+              save(name+'/before.json',b)
+          def capture(name):
+              b=read(name+'/before.json'); after=inventory(); need(after['daemon']==b['daemon'],'daemon_changed'); own=project(ROOT)
+              added={k:{i:v for i,v in after[k].items() if i not in b[k]} for k in ['containers','volumes','networks']}
+              containers=added['containers']; need(all((c.get('Config',{}).get('Labels') or {}).get('com.supabase.cli.project')==own for c in containers.values()),'unknown_new_container')
+              mounted={m.get('Name') for c in containers.values() for m in c['Mounts'] if m['Type']=='volume'}
+              networks={v['NetworkID'] for c in containers.values() for v in c['NetworkSettings']['Networks'].values()}
+              need(all(i in mounted or (v.get('Labels') or {}).get('com.supabase.cli.project')==own for i,v in added['volumes'].items()),'unknown_new_volume')
+              need(all(i in networks or (v.get('Labels') or {}).get('com.supabase.cli.project')==own for i,v in added['networks'].items()),'unknown_new_network')
+              save(name+'/owned.json',{'daemon':after['daemon'],**added})
+              return added
+          def bind_backend(name):
+              a=live(); owned=read(name+'/owned.json'); own=project(ROOT)
+              db=[c for c in owned['containers'].values() if c['Name']=='/supabase_db_'+own]
+              api_role=[c for c in owned['containers'].values() if c['Name']=='/supabase_kong_'+own]
+              need(len(db)==len(api_role)==1 and db[0]['Config']['Image']=='ghcr.io/supabase/postgres:17.6.1.155','backend_roles_image')
+              for c,port,host in [(db[0],'5432/tcp','54322'),(api_role[0],'8000/tcp','54321')]:
+                  bindings=c['NetworkSettings']['Ports'].get(port)
+                  need(bindings and all(x['HostPort']==host and x['HostIp'] in ['127.0.0.1','0.0.0.0','::'] for x in bindings),'backend_published_ports')
+              image=json.loads(docker('image','inspect',db[0]['Image']))[0]
+              need(image['Id']==db[0]['Image'] and a['postgresRepoDigest'] in image['RepoDigests'],'postgres_image_digest')
+              query="SELECT json_build_object('systemIdentifier',(pg_control_system()).system_identifier::text,'postmasterStartedAt',pg_postmaster_start_time()::text,'database',current_database(),'version',current_setting('server_version'));"
+              host=json.loads(sql(query)); inside=json.loads(docker('exec',db[0]['Id'],'psql','-U','postgres','-d','postgres','-XAtq','-v','ON_ERROR_STOP=1','-c',query))
+              need(host==inside and host['database']=='postgres' and host['version'].startswith('17.6'),'actual_host_container_db')
+              save(name+'/backend.json',{'identity':host,'databaseId':db[0]['Id'],'apiId':api_role[0]['Id'],'imageDigest':a['postgresRepoDigest']})
+          def cleanup(name):
+              global CLEANING
+              CLEANING=True
+              live(cleanup=True)
+              if not (HOME/(name+'/before.json')).exists(): return
+              if not (HOME/(name+'/owned.json')).exists(): capture(name)
+              owned=read(name+'/owned.json'); actual=inventory(); need(owned['daemon']==actual['daemon'],'cleanup_daemon')
+              for k in ['containers','volumes','networks']:
+                  for i,v in owned[k].items():
+                      if i in actual[k]:
+                          keys={'containers':['Id','Created','Name','Image','Config'],'volumes':['Name','Driver','CreatedAt','Labels'],'networks':['Id','Created','Name','Driver','Labels']}[k]
+                          need(all(actual[k][i].get(x)==v.get(x) for x in keys),'cleanup_resource_reused')
+              for kind,args in [('containers',['rm','-f']),('volumes',['volume','rm']),('networks',['network','rm'])]:
+                  remaining=[i for i in owned[kind] if i in actual[kind]]
+                  if remaining: docker(*args,*remaining)
+              final=inventory(); before=read(name+'/before.json')
+              need(final==before,'cleanup_not_original_inventory')
+              save('public/'+name+'-cleanup.json',{'remainingOwnedResources':0,'preexistingInventoryPreserved':True})
+          def sql(query):
+              return command(['psql',DB,'-XAtq','-v','ON_ERROR_STOP=1','-c',query],env=child_env())
+          def source_check(root):
+              need(not command(['git','-C',str(root),'status','--porcelain','--untracked-files=all']),'source_not_restored')
+          def replay(root,name):
+              snapshot_before(name)
+              # Replace only the canonical literal EXIT registration, preserving
+              # actual migration/storage/checksum behavior and source restoration.
+              shell='''set -euo pipefail
+          customerless_restore() {
+            local rc=$?
+            builtin trap - EXIT
+            set +e
+            if declare -F cleanup >/dev/null; then
+              LOCAL_STACK_START_ATTEMPTED=0
+              cleanup
+              restore=$?
+              (( restore == 0 )) || rc=1
+            else rc=1; fi
+            exit "$rc"
+          }
+          builtin trap customerless_restore EXIT
+          trap() {
+            if [[ $# == 2 && "$1" == cleanup && "$2" == EXIT ]]; then builtin trap customerless_restore EXIT
+            else builtin trap "$@"; fi
+          }
+          source scripts/gridex-aud-003-clean-replay.sh
+          unset -f trap
+          '''
+              try: command(['bash','--noprofile','--norc','-c',shell],cwd=root,env=child_env(),timeout=1200,log=name+'-replay.json')
+              finally:
+                  capture(name); source_check(root)
+              bind_backend(name)
+              return read(name+'/owned.json')
+          def assignment(phase):
+              a=live(); status=command(['supabase','status','-o','json'],cwd=ROOT,env=child_env())
+              path=HOME/('private/status-'+phase+'.json')
+              with path.open('x') as f: f.write(status)
+              path.chmod(0o600)
+              s=json.loads(status); need(s['API_URL']=='http://127.0.0.1:54321' and s['DB_URL']==DB and s['ANON_KEY'] and s['SERVICE_ROLE_KEY'],'actual_cli_status')
+              identity=json.loads(sql("SELECT json_build_object('systemIdentifier',(pg_control_system()).system_identifier::text,'postmasterStartedAt',pg_postmaster_start_time()::text);"))
+              secrets=HOME/('private/secret-values-'+phase+'.jsonl')
+              with secrets.open('x') as f: pass
+              secrets.chmod(0o600)
+              record={'schema':'customerless-native-assignment-v1','phase':phase,'targetHead':a['targetHead'],'targetTree':a['targetTree'],'baselineHead':a['baselineHead'],'workflowBlob':a['workflowBlob'],'pairReceipt':a['pairReceipt'],'inputSha256':read('admission.json')['inputSha256'],'runId':os.environ['GITHUB_RUN_ID'],'attempt':1,'statusSha256':sha(path.read_bytes()),'sourceRoot':str(ROOT),'dbUrl':DB,'expiresAt':a['expiresAt'],'privateSecretsPath':str(secrets),**identity}
+              if phase=='baseline': record.update(retainedPath=str(HOME/'private/retained.json'))
+              if phase=='upgrade': record.update(retainedPath=str(HOME/'private/retained.json'),retainedSha256=sha((HOME/'private/retained.json').read_bytes()))
+              save('private/assignment-'+phase+'.json',record)
+              env=child_env(); env.update({'RUNNER_TEMP':os.environ['RUNNER_TEMP'],'GRIDEX_NATIVE_STATUS':str(path),'GRIDEX_CUSTOMERLESS_ASSIGNMENT':str(HOME/('private/assignment-'+phase+'.json')),'GRIDEX_CUSTOMERLESS_RUN_ID':os.environ['GITHUB_RUN_ID'],'NEXT_PUBLIC_SUPABASE_URL':s['API_URL'],'NEXT_PUBLIC_SUPABASE_ANON_KEY':s['ANON_KEY'],'SUPABASE_SERVICE_ROLE_KEY':s['SERVICE_ROLE_KEY']})
+              return env
+          def native(phase):
+              live(); env=assignment(phase)
+              command(['node','node_modules/vitest/vitest.mjs','run','--config',CONFIG,'--reporter=json','--reporter=junit','--outputFile.json='+str(HOME/('private/'+phase+'.json')),'--outputFile.junit='+str(HOME/('private/'+phase+'.xml'))],env=env,timeout=900,log=phase+'-native.json')
+              report=read('private/'+phase+'.json'); expected={'baseline':6,'upgrade':15,'clean':14}[phase]
+              assertions=[item for suite in report['testResults'] for item in suite['assertionResults']]
+              need(report['success'] is True and report['numPassedTests']==report['numTotalTests']==expected and report['numFailedTests']==report['numPendingTests']==0 and len(assertions)==expected and all(item['status']=='passed' for item in assertions),'native_case_completeness')
+              xml=HOME/('private/'+phase+'.xml'); junit=ET.fromstring(xml.read_bytes()); cases=list(junit.iter('testcase'))
+              need(len(cases)==expected and not any(list(c.iter('failure')) or list(c.iter('error')) or list(c.iter('skipped')) for c in cases),'native_junit_completeness')
+              need(not any(node.tag in ['failure','error','skipped'] for node in junit.iter()),'native_junit_failure')
+              with (HOME/('public/'+phase+'.xml')).open('xb') as f: f.write(xml.read_bytes())
+              save('public/'+phase+'.json',{'phase':phase,'passedAssertions':expected,'unexpectedSkipped':0,'reportSha256':sha((HOME/('private/'+phase+'.json')).read_bytes()),'scope':'two actual migrations, scoped shared owners, customer/list/delete HTTP boundaries, retained rows and clean/upgrade catalog parity; not seven full business flows','new105PASS':0})
+          def schema_cache_ready():
+              status=read('private/status-baseline.json'); deadline=time.monotonic()+30
+              request=urllib.request.Request('http://127.0.0.1:54321/rest/v1/webhook_subscriptions?select=api_client_id,description,metadata,last_success_at,last_failure_at&limit=0',headers={'apikey':status['SERVICE_ROLE_KEY'],'Authorization':'Bearer '+status['SERVICE_ROLE_KEY']})
+              while time.monotonic()<deadline:
+                  live()
+                  try:
+                      with urllib.request.urlopen(request,timeout=2) as response:
+                          if response.status==200 and response.read(4096)==b'[]': return
+                  except (urllib.error.HTTPError,urllib.error.URLError,TimeoutError): pass
+                  time.sleep(.2)
+              raise RuntimeError('actual_postgrest_schema_cache_not_ready')
+          def snapshot(name):
+              root=ROOT; output=HOME/('private/'+name+'-snapshot')
+              schemas=json.loads(sql("SELECT json_agg(nspname ORDER BY nspname) FROM pg_namespace WHERE nspname='public' OR left(nspname,7)='gridex_';"))
+              need(schemas==json.loads((root/'supabase/schema.fingerprint.json').read_text())['schemas'],'full_schema_set')
+              command(['node','scripts/gridex-schema-snapshot.cjs','--url',DB,'--mode','write','--schemas',','.join(schemas),'--out-dir',str(output)],env=child_env(),timeout=120,log=name+'-snapshot.json')
+              for f in ['supabase/schema.sql','supabase/schema.fingerprint.json']:
+                  save('private/'+name+'-'+pathlib.Path(f).name+'.json',{'bytes':(output/pathlib.Path(f).name).read_text()})
+              generated=command(['supabase','gen','types','typescript','--local'],env=child_env(),timeout=180,log=name+'-types.json')+'\n'
+              types=output/'database.types.ts'; types.write_text(generated)
+              command(['node','scripts/apply-supabase-types-nullability-overrides.cjs',str(types)],env=child_env(),timeout=60,log=name+'-type-overrides.json')
+              save('private/'+name+'-database.types.ts.json',{'bytes':types.read_text()})
+              source_check(root)
+          def qualify():
+              a=live(); (HOME/'private-home').mkdir(mode=0o700,exist_ok=True)
+              baseline=HOME/'baseline'
+              command(['git','worktree','add','--detach',str(baseline),a['baselineHead']],log='baseline-worktree.json')
+              try:
+                  replay(baseline,'upgrade'); native('baseline')
+                  live()
+                  command(['python3','scripts/gridex-ediel-upgrade-inputs.py','--base',a['baselineHead'],'--out',str(HOME/'private/upgrade-inputs')],env=child_env(),log='upgrade-inputs.json')
+                  inputs=read('private/upgrade-inputs/upgrade-inputs.json'); rows=inputs['forwardMigrations']
+                  need(inputs['baseSha']==a['baselineHead'] and inputs['candidateSha']==a['targetHead'] and inputs['candidateTree']==a['targetTree'] and [x['name'] for x in rows]==[pathlib.Path(p).name for p in [SQL,WEBHOOK_SQL]],'only_two_forward_inputs')
+                  ledger=sql('SELECT coalesce(json_agg(to_jsonb(t) ORDER BY version),\'[]\') FROM supabase_migrations.schema_migrations t;')
+                  for row,path in zip(rows,[SQL,WEBHOOK_SQL]):
+                      forward=pathlib.Path(row['path'])
+                      need(forward.resolve().parent==HOME/'private/upgrade-inputs/inputs' and not forward.is_symlink() and forward.read_bytes()==(ROOT/path).read_bytes() and sha(forward.read_bytes())==row['sourceSha256']==row['executedSha256'],'forward_actual_source')
+                      command(['psql',DB,'-X','-v','ON_ERROR_STOP=1','-f',str(forward)],env=child_env(),timeout=120,log=forward.name+'-apply.json')
+                  need(sql('SELECT coalesce(json_agg(to_jsonb(t) ORDER BY version),\'[]\') FROM supabase_migrations.schema_migrations t;')==ledger,'historical_ledger_changed')
+                  save('public/forward.json',{'migrations':[{k:row[k] for k in ['name','sourceSha256','executedSha256']} for row in rows],'historicalMigrationInputsPreserved':inputs['historicalMigrationsPreserved'],'historicalDatabaseLedgerPreserved':True,'inventedMigrationRecords':0})
+                  schema_cache_ready()
+                  native('upgrade'); snapshot('upgrade')
+              finally: cleanup('upgrade')
+              try:
+                  replay(ROOT,'clean'); native('clean'); snapshot('clean')
+                  for name in ['schema.sql','schema.fingerprint.json','database.types.ts']:
+                      upgrade=read('private/upgrade-'+name+'.json')['bytes']; clean=read('private/clean-'+name+'.json')['bytes']
+                      need(upgrade==clean,'clean_upgrade_schema_drift')
+                      need(clean==(ROOT/'supabase'/name).read_text(),'committed_gen_schema_drift')
+                  save('public/parity.json',{'fullSchemaFingerprintTypesParity':True,'nativeAllocations':2,'new105PASS':0})
+              finally: cleanup('clean')
+              source_check(ROOT); source_check(baseline)
+              save('public/terminal.json',{'programExitCode':0,'bothActualCleanupsVerified':True,'bothSourcesRestored':True})
+          def export():
+              public=HOME/'public'; need(public.is_dir(),'no_public_evidence')
+              secrets=[]
+              for p in (HOME/'private').glob('status-*.json'):
+                  data=json.loads(p.read_text()); secrets.extend(v.encode() for k,v in data.items() if ('KEY' in k or 'TOKEN' in k or 'SECRET' in k) and isinstance(v,str) and v)
+              for p in (HOME/'private').glob('secret-values-*.jsonl'):
+                  values=[parse(line) for line in p.read_text().splitlines()]
+                  need(all(isinstance(v,str) and len(v)>=16 for v in values),'private_secret_capture_shape'); secrets.extend(v.encode() for v in values)
+              members=list(public.iterdir())
+              for p in members:
+                  need(p.is_file() and not p.is_symlink() and p.stat().st_size<2*1024*1024,'public_member_profile')
+                  data=p.read_bytes(); need(not any(s in data for s in secrets),'public_secret_refused')
+              # Upload only the directory created AFTER the full scan succeeds.
+              # A failed scan must not expose an earlier unscanned public file.
+              target=HOME/'safe-export'; target.mkdir(mode=0o700)
+              for p in members:
+                  with (target/p.name).open('xb') as f: f.write(p.read_bytes())
+              save('safe-export/closure.json',{'runId':os.environ['GITHUB_RUN_ID'],'attempt':1,'sourceHead':read('admission.json')['record']['targetHead'],'qualified':(HOME/'public/terminal.json').exists(),'new105PASS':0})
+          if __name__=='__main__':
+              need(sys.argv[1] in ['admit','qualify','export'],'fixed_command')
+              {'admit':admit,'qualify':qualify,'export':export}[sys.argv[1]]()
+          PY
+          python3 "$CUSTOMERLESS_HOME/runner.py" admit
+      - name: Install verified pinned clients on this disposable runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -m 700 "$CUSTOMERLESS_HOME/tools"
+          python3 - <<'PY'
+          import hashlib, os, pathlib, tarfile, urllib.request
+          home=pathlib.Path(os.environ['CUSTOMERLESS_HOME'])/'tools'
+          for name,url,digest in [
+            ('node','https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-x64.tar.xz','1805bcd35e6815559bd2eb97db438d3fdb0eb3a5e6a977b7c1badca76337e9ce'),
+            ('npm','https://registry.npmjs.org/npm/-/npm-10.9.2.tgz','5cd1e5ab971ea6333f910bc2d50700167c5ef4e66da279b2a3efc874c6b116e4'),
+            ('supabase','https://github.com/supabase/cli/releases/download/v2.101.0/supabase_2.101.0_linux_amd64.tar.gz','285877ef9de845d76487772e0d36019a095ee28b527b9abbd6739eeba4d3dbf9')]:
+              archive=home/(name+'.tar'); data=urllib.request.urlopen(url,timeout=60).read(100*1024*1024)
+              assert hashlib.sha256(data).hexdigest()==digest,'tool archive digest refused'
+              archive.write_bytes(data); target=home/name; target.mkdir(mode=0o700)
+              with tarfile.open(archive) as source: source.extractall(target,filter='data')
+          PY
+          export PATH="$CUSTOMERLESS_HOME/tools/node/node-v22.23.4-linux-x64/bin:$CUSTOMERLESS_HOME/tools/supabase:$PATH"
+          printf '%s\n' "$CUSTOMERLESS_HOME/tools/node/node-v22.23.4-linux-x64/bin" "$CUSTOMERLESS_HOME/tools/supabase" /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+          curl --fail --silent --show-error https://www.postgresql.org/media/keys/ACCC4CF8.asc -o "$CUSTOMERLESS_HOME/tools/pgdg.asc"
+          gpg --batch --show-keys --with-colons "$CUSTOMERLESS_HOME/tools/pgdg.asc" > "$CUSTOMERLESS_HOME/tools/pgdg-key.txt"
+          python3 - <<'PY'
+          import os,pathlib
+          rows=[line.split(':') for line in (pathlib.Path(os.environ['CUSTOMERLESS_HOME'])/'tools/pgdg-key.txt').read_text().splitlines()]
+          assert sum(x[0]=='pub' for x in rows)==1 and [x[9] for x in rows if x[0]=='fpr']==['B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8'],'PGDG key fingerprint refused'
+          PY
+          gpg --batch --yes --dearmor --output "$CUSTOMERLESS_HOME/tools/pgdg.gpg" "$CUSTOMERLESS_HOME/tools/pgdg.asc"
+          test ! -e /etc/apt/sources.list.d/gridex-customerless-pgdg.list
+          test ! -e /usr/share/keyrings/gridex-customerless-pgdg.gpg
+          sudo install -m 644 "$CUSTOMERLESS_HOME/tools/pgdg.gpg" /usr/share/keyrings/gridex-customerless-pgdg.gpg
+          printf 'deb [signed-by=/usr/share/keyrings/gridex-customerless-pgdg.gpg] https://apt.postgresql.org/pub/repos/apt noble-pgdg main\n' | sudo tee /etc/apt/sources.list.d/gridex-customerless-pgdg.list > /dev/null
+          sudo apt-get -o Acquire::AllowInsecureRepositories=false update > "$CUSTOMERLESS_HOME/tools/apt-update.log" 2>&1
+          cd "$CUSTOMERLESS_HOME/tools"
+          apt-get download postgresql-client-17=17.11-1.pgdg24.04+2 > apt-download.log 2>&1
+          printf '%s  %s\n' b3b071b67a814a382516d6f6241b529c52f909672457e2f48083acce047b634f postgresql-client-17_17.11-1.pgdg24.04+2_amd64.deb | sha256sum --check -
+          sudo apt-get -o APT::Get::AllowUnauthenticated=false install -y ./postgresql-client-17_17.11-1.pgdg24.04+2_amd64.deb > apt-install.log 2>&1
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          test "$(node --version)" = v22.23.4
+          test "$(node "$CUSTOMERLESS_HOME/tools/npm/package/bin/npm-cli.js" --version)" = 10.9.2
+          test "$(supabase --version)" = 2.101.0
+          test "$(supabase-go --version)" = 2.101.0
+          psql --version | rg '^psql \(PostgreSQL\) 17\.11 '
+          pg_dump --version | rg '^pg_dump \(PostgreSQL\) 17\.11 '
+          cd "$GITHUB_WORKSPACE"
+          node "$CUSTOMERLESS_HOME/tools/npm/package/bin/npm-cli.js" ci --ignore-scripts --no-audit > "$CUSTOMERLESS_HOME/tools/dependencies.log" 2>&1
+      - name: Actual baseline, forward upgrade and independent clean qualification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 "$CUSTOMERLESS_HOME/runner.py" qualify
+      - name: Preserve bounded credential-free qualification evidence
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$CUSTOMERLESS_HOME/admission.json"
+          python3 "$CUSTOMERLESS_HOME/runner.py" export
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: customerless-native-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/customerless-forward/safe-export/
+          if-no-files-found: error
+          retention-days: 7
