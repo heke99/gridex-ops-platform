@@ -35,6 +35,13 @@ export type MarketPreviewBuildResult = {
   sourceChecksum: string
 }
 
+type MarketPreviewBuildInput = {
+  priceArea: PriceArea
+  provider?: string
+  maxAgeMinutes?: number
+  now?: Date
+}
+
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
@@ -103,30 +110,29 @@ function weightedAverage(rows: DailyPreviewSourceRow[]): number {
   }, 0) / totalMinutes
 }
 
-export async function rebuildMarketPreview(input: {
-  priceArea: PriceArea
-  provider?: string
-  referencePeriod: MarketPreviewReferencePeriod
-  maxAgeMinutes?: number
-  now?: Date
-}): Promise<MarketPreviewBuildResult | null> {
-  const provider = input.provider ?? 'elprisetjustnu'
-  const now = input.now ?? new Date()
-  const desiredDays = requestedDays(input.referencePeriod, now)
-  const queryLimit = Math.max(35, desiredDays)
+async function readEligibleDailyPreviewRows(priceArea: PriceArea, provider: string): Promise<DailyPreviewSourceRow[]> {
   const { data, error } = await supabaseService
     .from('spot_price_daily_summaries')
     .select('id,price_date,average_sek_per_kwh,status,source_checksum,updated_at,provider_fetched_at,verified_at,locked_at,covered_duration_minutes,expected_duration_minutes,resolution')
     .eq('source', provider)
-    .eq('price_area', input.priceArea)
+    .eq('price_area', priceArea)
     .in('status', ['verified', 'locked'])
     .order('price_date', { ascending: false })
-    .limit(queryLimit)
+    // A calendar month needs at most 31 days, within the existing 35-row read.
+    .limit(35)
   if (error) throw error
 
-  const eligible = ((data ?? []) as DailyPreviewSourceRow[]).filter(
+  return ((data ?? []) as DailyPreviewSourceRow[]).filter(
     (row) => numberValue(row.average_sek_per_kwh) !== null && text(row.source_checksum) !== null,
   )
+}
+
+async function publishMarketPreview(
+  input: MarketPreviewBuildInput & { provider: string; now: Date; referencePeriod: MarketPreviewReferencePeriod },
+  eligible: DailyPreviewSourceRow[],
+): Promise<MarketPreviewBuildResult | null> {
+  const { now, provider } = input
+  const desiredDays = requestedDays(input.referencePeriod, now)
   const rows = sourceRowsForPeriod(eligible, input.referencePeriod, now)
   if (rows.length === 0) return null
 
@@ -197,12 +203,19 @@ export async function rebuildMarketPreview(input: {
   }
 }
 
-export async function rebuildMarketPreviews(input: {
-  priceArea: PriceArea
-  provider?: string
-  maxAgeMinutes?: number
-  now?: Date
-}): Promise<MarketPreviewBuildResult[]> {
+export async function rebuildMarketPreview(
+  input: MarketPreviewBuildInput & { referencePeriod: MarketPreviewReferencePeriod },
+): Promise<MarketPreviewBuildResult | null> {
+  const provider = input.provider ?? 'elprisetjustnu'
+  const now = input.now ?? new Date()
+  const eligible = await readEligibleDailyPreviewRows(input.priceArea, provider)
+  return publishMarketPreview({ ...input, provider, now }, eligible)
+}
+
+export async function rebuildMarketPreviews(input: MarketPreviewBuildInput): Promise<MarketPreviewBuildResult[]> {
+  const provider = input.provider ?? 'elprisetjustnu'
+  const now = input.now ?? new Date()
+  const eligible = await readEligibleDailyPreviewRows(input.priceArea, provider)
   const periods: MarketPreviewReferencePeriod[] = [
     'latest_complete_day',
     'rolling_7_days',
@@ -211,7 +224,7 @@ export async function rebuildMarketPreviews(input: {
   ]
   const results: MarketPreviewBuildResult[] = []
   for (const referencePeriod of periods) {
-    const result = await rebuildMarketPreview({ ...input, referencePeriod })
+    const result = await publishMarketPreview({ ...input, provider, now, referencePeriod }, eligible)
     if (result) results.push(result)
   }
   return results
