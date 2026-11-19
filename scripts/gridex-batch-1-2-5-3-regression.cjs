@@ -52,7 +52,7 @@ assert(
 assert(
   prepareInvoiceRoute.includes('await prepareInvoiceDraftsForReview(') &&
     !prepareInvoiceRoute.includes('sendInvoiceExportRun(') &&
-    !prepareInvoiceRoute.includes('sendApprovedInvoiceItem('),
+    !prepareInvoiceRoute.includes('sendApprovedInvoiceExportRun('),
   'Batch 5 create API must prepare drafts for review without dispatching them',
 )
 assert(
