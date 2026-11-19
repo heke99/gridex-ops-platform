@@ -389,8 +389,12 @@ export async function listPortalMeteringValues(context: PortalCustomerContext, r
   ))
 }
 
-const CUSTOMER_INVOICE_SELECT = 'id,invoice_reference,customer_id,agreement_id,contract_id,customer_contract_id,billing_underlay_id,invoice_export_item_id,canonical_export_item_id,partner_export_id,partner_invoice_reference,invoice_number,period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,source_system,metadata,created_at'
-const CUSTOMER_INVOICE_MINIMAL_SELECT = 'id,invoice_reference,customer_id,invoice_number,period_start,period_end,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,created_at'
+const CUSTOMER_INVOICE_PUBLIC_LEGACY_SELECT = [
+  'id', 'invoice_reference', 'invoice_number', 'period_start', 'period_end',
+  'amount_ex_vat', 'vat_amount', 'amount_inc_vat', 'currency', 'due_date', 'issued_at',
+  'paid_at', 'status', 'created_at',
+].join(',')
+const CUSTOMER_INVOICE_PUBLIC_SELECT = `${CUSTOMER_INVOICE_PUBLIC_LEGACY_SELECT},partner_invoice_reference,total_kwh`
 
 export async function listPortalInvoices(context: PortalCustomerContext, route = '/api/v1/customer/invoices') {
   await logPortalAccess({ context, route, action: 'read_invoices' })
@@ -398,7 +402,7 @@ export async function listPortalInvoices(context: PortalCustomerContext, route =
   const invoices = await listWithSchemaFallback([
     async () => await supabaseService
       .from('customer_invoices')
-      .select(CUSTOMER_INVOICE_SELECT)
+      .select(CUSTOMER_INVOICE_PUBLIC_SELECT)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .in('status', PORTAL_PUBLISHED_INVOICE_STATUSES)
@@ -406,7 +410,7 @@ export async function listPortalInvoices(context: PortalCustomerContext, route =
       .limit(100) as ListResult,
     async () => await supabaseService
       .from('customer_invoices')
-      .select(CUSTOMER_INVOICE_MINIMAL_SELECT)
+      .select(CUSTOMER_INVOICE_PUBLIC_LEGACY_SELECT)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .in('status', PORTAL_PUBLISHED_INVOICE_STATUSES)
@@ -425,7 +429,7 @@ export async function listPortalInvoicesPage(
   await logPortalAccess({ context, route, action: 'read_invoices_page' })
   return portalTablePage({
     context, page, resource: 'invoices', table: 'customer_invoices',
-    selects: [CUSTOMER_INVOICE_SELECT, CUSTOMER_INVOICE_MINIMAL_SELECT],
+    selects: [CUSTOMER_INVOICE_PUBLIC_SELECT, CUSTOMER_INVOICE_PUBLIC_LEGACY_SELECT],
     orderColumn: 'created_at',
     statuses: PORTAL_PUBLISHED_INVOICE_STATUSES,
   })
@@ -439,7 +443,7 @@ export async function getPortalInvoiceByReference(
   await logPortalAccess({ context, route, action: 'read_invoice', metadata: { invoice_reference: invoiceReference } })
   const result = await supabaseService
     .from('customer_invoices')
-    .select(CUSTOMER_INVOICE_SELECT)
+    .select(CUSTOMER_INVOICE_PUBLIC_SELECT)
     .eq('company_id', context.companyId)
     .eq('customer_id', context.customerId)
     .eq('invoice_reference', invoiceReference)
@@ -453,6 +457,9 @@ export async function getPortalInvoiceByReference(
   }
   return (result.data ?? null) as Record<string, unknown> | null
 }
+
+const CUSTOMER_INVOICE_SELECT = 'id,invoice_reference,customer_id,agreement_id,contract_id,customer_contract_id,billing_underlay_id,invoice_export_item_id,canonical_export_item_id,partner_export_id,partner_invoice_reference,invoice_number,period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,source_system,metadata,created_at'
+const CUSTOMER_INVOICE_MINIMAL_SELECT = 'id,invoice_reference,customer_id,invoice_number,period_start,period_end,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status,pdf_url,created_at'
 
 export async function getPortalInvoice(context: PortalCustomerContext, invoiceId: string, route = '/api/v1/customer/invoices/[id]') {
   await logPortalAccess({ context, route, action: 'read_invoice', metadata: { invoice_id: invoiceId } })
