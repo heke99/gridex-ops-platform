@@ -12,6 +12,8 @@ import {
   type ProdatBusinessContext,
 } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { parseCanonicalMessageRow } from '@/lib/ediel/core/canonicalMessage'
+import { stockholmBusinessDate } from '@/lib/ediel/core/executionContext'
+import { strictIsoDate } from '@/lib/time/stockholm'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { supabaseService } from '@/lib/supabase/service'
 import {readSourceQualifiedProdatBilateralCapability,sourceQualifiedProdatBilateralCapability,type SourceQualifiedProdatBilateralCapability} from './prodatBilateralSourceCapability'
@@ -175,9 +177,13 @@ function policyAckRuleFromPersistedRuntime(sourceMessage: EdielMessageRow): Cano
 }
 
 function referenceDate(sourceMessage: EdielMessageRow): string {
-  const value = String(sourceMessage.message_received_at ?? sourceMessage.created_at ?? '').trim().slice(0, 10)
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`canonical_ack_reference_date_missing:${sourceMessage.id}`)
-  return value
+  const value = String(sourceMessage.message_received_at ?? sourceMessage.created_at ?? '').trim()
+  try {
+    strictIsoDate(value.slice(0, 10))
+    return stockholmBusinessDate(new Date(value))
+  } catch {
+    throw new Error(`canonical_ack_reference_date_missing:${sourceMessage.id}`)
+  }
 }
 
 function booleanPayloadFact(sourceMessage: EdielMessageRow, key: string): boolean | undefined {
