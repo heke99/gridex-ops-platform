@@ -194,6 +194,10 @@ async function validateQuote(request: NextRequest) {
         { status: 400 },
       )
     }
+    const selectedComponentReferences = stringArray(
+      body,
+      'selected_component_references',
+    )
     const publicOffer = await resolvePublicContractOffer({
       client: auth.client,
       offerReference,
@@ -230,10 +234,7 @@ async function validateQuote(request: NextRequest) {
       applicationId,
       priceOptionReference: text(body, 'price_option_reference'),
       invoiceDeliveryMethod: text(body, 'invoice_delivery_method'),
-      selectedComponentReferences: stringArray(
-        body,
-        'selected_component_references',
-      ),
+      selectedComponentReferences,
       siteCount: numeric(body, 'site_count'),
     })
 
