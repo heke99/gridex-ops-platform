@@ -13,6 +13,7 @@ import {
 } from "@/lib/pricing/priceSourceResolver";
 import {
   isPriceArea,
+  type BasePriceSourceValues,
   type BillingUnderlayInput,
   type PriceArea,
 } from "@/lib/pricing/types";
@@ -602,32 +603,34 @@ export async function calculateOfferQuote(input: {
     underlay,
     contract: null,
   });
-  let sourceValues: Awaited<ReturnType<typeof resolveBasePriceSourceValues>>;
-  try {
-    sourceValues = await resolveBasePriceSourceValues({
-      companyId: input.client.company_id,
-      priceArea: canonicalPriceArea as PriceArea,
-      billingMonth,
-      pricePlanVersionId: offer.price_plan_version_id,
-      fixedSekPerKwh:
-        selectedFixedPriceOrePerKwh !== null
-          ? selectedFixedPriceOrePerKwh / 100
-          : offer.fixed_price_ore_per_kwh !== null
-            ? offer.fixed_price_ore_per_kwh / 100
-            : null,
-      purpose: "quote_preview",
-      requiredResolution:
-        pricingInterval === "hourly" || pricingInterval === "quarterly"
-          ? pricingInterval
-          : "monthly",
-    });
-  } catch (error) {
-    if (error instanceof MarketPriceResolutionError) {
-      throw new OfferQuoteError(error.message, error.code, error.status, "resolution_id", error.details);
+  const requiredBaseSources = new Set(config.baseComponents
+    .filter((component) => component.weightPercent > 0)
+    .map((component) => component.sourceType));
+  const needsMarketSources = requiredBaseSources.has("spot") || requiredBaseSources.has("portfolio");
+  const fixedOrePerKwh = selectedFixedPriceOrePerKwh ?? offer.fixed_price_ore_per_kwh;
+  const fixedSekPerKwh = fixedOrePerKwh === null ? null : fixedOrePerKwh / 100;
+  let sourceValues: BasePriceSourceValues = { fixedSekPerKwh };
+  if (needsMarketSources) {
+    try {
+      sourceValues = await resolveBasePriceSourceValues({
+        companyId: input.client.company_id,
+        priceArea: canonicalPriceArea as PriceArea,
+        billingMonth,
+        pricePlanVersionId: offer.price_plan_version_id,
+        fixedSekPerKwh,
+        purpose: "quote_preview",
+        requiredResolution:
+          pricingInterval === "hourly" || pricingInterval === "quarterly"
+            ? pricingInterval
+            : "monthly",
+      });
+    } catch (error) {
+      if (error instanceof MarketPriceResolutionError) {
+        throw new OfferQuoteError(error.message, error.code, error.status, "resolution_id", error.details);
+      }
+      throw error;
     }
-    throw error;
   }
-  const requiredBaseSources = new Set(config.baseComponents.map((component) => component.sourceType));
   if (requiredBaseSources.has("spot") && sourceValues.spotSource?.is_stale === true) {
     throw new OfferQuoteError(
       `Marknadsreferensen för ${canonicalPriceArea} är stale och får inte användas för en ny quote.`,
@@ -705,8 +708,7 @@ export async function calculateOfferQuote(input: {
   const annualFactor = annualConsumptionKwh / monthlyConsumptionKwh;
   const usedSpotFallback = sourceValues.spotSource?.is_indicative === true;
   const usedPortfolioEstimate = sourceValues.portfolioSource?.non_binding === true;
-  const assumptions = [
-    "Årsförbrukningen fördelas jämnt över 12 månader i förhandskalkylen.",
+  const priceAssumptions = needsMarketSources ? [
     pricingInterval === "hourly" || pricingInterval === "quarterly"
       ? "Tim- och kvartspris visas som en icke-bindande månadsindikation; slutpriset beror på verklig förbrukningsprofil per intervall."
       : "Rörligt spot- och portföljpris hämtas för valt elområde och startmånad.",
@@ -716,6 +718,10 @@ export async function calculateOfferQuote(input: {
     usedPortfolioEstimate
       ? "Portföljpriset är en uttryckligen icke-bindande uppskattning tills låst periodpris finns."
       : "Portföljpris används endast från låst avräkning när portfolio ingår i avtalet.",
+  ] : ["Förhandskalkylen utgår från prisbasen i den publicerade avtalsversionen."];
+  const assumptions = [
+    "Årsförbrukningen fördelas jämnt över 12 månader i förhandskalkylen.",
+    ...priceAssumptions,
     "Slutlig faktura använder verkliga mätvärden och prisperiodens låsta underlag.",
   ];
   const marketSources = [
