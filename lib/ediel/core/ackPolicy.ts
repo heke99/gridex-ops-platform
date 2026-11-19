@@ -142,10 +142,27 @@ export function computeOutboundAckDueAt(params?: OutboundAckDueInput | string | 
   return addAckDeadlineMinutes(base)
 }
 
+// Controlled route-profile configuration errors from the runtime lookup
+// (inactive/ambiguous profile); every other error keeps propagating.
+function routeProfileConfigErrorCode(error: unknown): string | null {
+  const code = error && typeof error === 'object' ? (error as { code?: unknown }).code : null
+  return code === 'ediel_route_profile_inactive' || code === 'ediel_route_profile_ambiguous' ? code : null
+}
+
 async function resolveRouteAckMode(sourceMessage: EdielMessageRow) {
   if (!sourceMessage.communication_route_id) return 'default' as const
-  const runtime = await getEdielRouteRuntimeByCommunicationRouteId(sourceMessage.communication_route_id)
-  return runtime?.ack_mode ?? ('default' as const)
+  // Tenant-scoped lookup. An inactive/ambiguous route profile is a send-side
+  // configuration error; ack-mode/deadline evaluation of an already received
+  // source falls back to the default mode instead of failing.
+  try {
+    const runtime = await getEdielRouteRuntimeByCommunicationRouteId(sourceMessage.communication_route_id, {
+      companyId: sourceMessage.company_id ?? null,
+    })
+    return runtime?.ack_mode ?? ('default' as const)
+  } catch (error) {
+    if (routeProfileConfigErrorCode(error)) return 'default' as const
+    throw error
+  }
 }
 
 function record(value: unknown): Record<string, unknown> | null {
