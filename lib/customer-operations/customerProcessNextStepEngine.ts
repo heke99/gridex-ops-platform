@@ -169,7 +169,7 @@ async function tryPrepareSupplierSwitch(input: {
   meteringPoint: MeteringPointRow
   actorUserId: string
   operationId?: string | null
-}) {
+}): Promise<CustomerProcessNextStepResult | null> {
   const existing = await findOpenSupplierSwitchRequestForSite(supabaseService, {
     companyId: input.companyId,
     customerId: input.customerId,
@@ -193,7 +193,12 @@ async function tryPrepareSupplierSwitch(input: {
       payload: { supplier_switch_request_id: existing.id, status: existing.status },
       idempotencyKey: `supplier_switch.waiting_ack:${existing.id}`,
     })
-    return { switchRequestId: existing.id, alreadyOpen: true }
+    return {
+      decision: 'prepare_supplier_switch',
+      actionTaken: 'supplier_switch_already_open',
+      blockers: [],
+      supplierSwitchRequestId: existing.id,
+    }
   }
 
   // Unified readiness gate: site data, POA, grid owner verification, EDIEL
@@ -309,7 +314,12 @@ async function tryPrepareSupplierSwitch(input: {
       payload: { supplier_switch_request_id: request.id, blockers: automation.blockers },
       idempotencyKey: `supplier_switch.dispatch_blocked:${request.id}`,
     })
-    return { switchRequestId: request.id, alreadyOpen: false }
+    return {
+      decision: 'blocked',
+      actionTaken: 'supplier_switch_dispatch_blocked',
+      blockers: automation.blockers,
+      supplierSwitchRequestId: request.id,
+    }
   }
 
   await emitCustomerProcessEvent({
@@ -329,7 +339,12 @@ async function tryPrepareSupplierSwitch(input: {
     idempotencyKey: `supplier_switch.requested:${request.id}`,
   })
 
-  return { switchRequestId: request.id, alreadyOpen: false }
+  return {
+    decision: 'prepare_supplier_switch',
+    actionTaken: 'supplier_switch_requested',
+    blockers: [],
+    supplierSwitchRequestId: request.id,
+  }
 }
 
 export async function evaluateAndRunNextCustomerStep(input: {
@@ -438,9 +453,7 @@ export async function evaluateAndRunNextCustomerStep(input: {
     operationId: input.operationId ?? null,
   })
 
-  if (switchResult?.switchRequestId) {
-    return { decision: 'prepare_supplier_switch', actionTaken: switchResult.alreadyOpen ? 'supplier_switch_already_open' : 'supplier_switch_requested', blockers: [], supplierSwitchRequestId: switchResult.switchRequestId }
-  }
+  if (switchResult) return switchResult
 
   return { decision: z01Route.ready ? 'wait_for_ack' : 'blocked', actionTaken: null, blockers: z01Route.blockers.map((blocker) => ({ code: blocker.code, message: blocker.message, metadata: blocker.metadata })) }
 }
