@@ -4,7 +4,7 @@ import { ApiInputError, executeIdempotentPortalWrite, readJsonObject, requireIde
 import { planPrimaryContactSync } from '@/lib/customer-service/contactChange'
 import { applyCustomerContactChange, ContactChangeTransactionError } from '@/lib/customer-service/contactChangeTransaction'
 import { requestCustomerIdentityChange, IdentityChangeError } from '@/lib/customer-service/identityChange'
-import { getCustomerForCompany } from '@/lib/customers/getCustomerForCompany'
+import { getStaffCustomerCollectionsForCompany } from '@/lib/customers/getCustomerForCompany'
 import { listCustomersPageForCompany, type CustomerStatusFilter, type CustomerTypeFilter } from '@/lib/customers/getCustomers'
 import { publicReference } from '@/lib/integrations/publicReferences'
 import { findStaffCustomer, parseStaffContactPatch, rejectUnknownFields, staffCustomerDetail, staffCustomerSummary } from '@/lib/staff-api/customers'
@@ -67,8 +67,8 @@ export async function getStaffCustomer(request: NextRequest, input: Params): Pro
   return withStaffApi(request, { scopes: ['staff_customers.read'], permission: 'customers.read' }, async ctx => {
     const { ref } = await input.params
     const customer = await findStaffCustomer(ctx.companyId, ref)
-    const detail = await getCustomerForCompany(ctx.companyId, customer.id)
-    return staffApiJson({ data: { customer: staffCustomerDetail(ctx.companyId, detail) } })
+    const collections = await getStaffCustomerCollectionsForCompany(ctx.companyId, customer.id)
+    return staffApiJson({ data: { customer: staffCustomerDetail(ctx.companyId, { customer, ...collections }) } })
   })
 }
 

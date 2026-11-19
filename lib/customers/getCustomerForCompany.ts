@@ -29,9 +29,18 @@ export async function getCustomerRecordForCompany(companyId: string, customerId:
   return result.data as StaffCustomerRecord
 }
 
-/** Every child query repeats both company and customer ownership. No unscoped OPS lookup is used. */
 export async function getCustomerForCompany(companyId: string, customerId: string): Promise<StaffCustomerDetail> {
   const customer = await getCustomerRecordForCompany(companyId, customerId)
+  const collections = await getStaffCustomerCollectionsForCompany(companyId, customerId)
+  return { customer, ...collections }
+}
+
+/** Load related records for a verified customer. Every query remains company- and customer-scoped. */
+export async function getStaffCustomerCollectionsForCompany(
+  companyId: string,
+  customerId: string,
+): Promise<Omit<StaffCustomerDetail, 'customer'>> {
+  requireCompany(companyId)
   const [contacts, addresses, sites, tombstones] = await Promise.all([
     tenantSelect(companyId, 'customer_contacts', 'id,type,name,email,phone,title,is_primary')
       .eq('customer_id', customerId).order('is_primary', { ascending: false }).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(STAFF_CUSTOMER_CHILD_LIMIT + 1),
@@ -51,7 +60,7 @@ export async function getCustomerForCompany(companyId: string, customerId: strin
     limit: STAFF_CUSTOMER_CHILD_LIMIT, returned: visible.length, has_more: raw.length > STAFF_CUSTOMER_CHILD_LIMIT,
   })
   return {
-    customer, contacts: contactRows, addresses: addressRows, sites: siteRows,
+    contacts: contactRows, addresses: addressRows, sites: siteRows,
     contactsPage: page(contacts.data ?? [], contactRows),
     addressesPage: page(addresses.data ?? [], addressRows),
     sitesPage: page(sites.data ?? [], siteRows),
