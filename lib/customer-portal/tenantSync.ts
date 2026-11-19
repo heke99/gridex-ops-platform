@@ -6,9 +6,11 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { LinkedPortalIdentity } from '@/lib/customer-portal/externalApi'
 import { isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
 import { publicReference } from '@/lib/integrations/publicReferences'
+import { ApiInputError } from '@/lib/api/strictRequest'
 import {
   buildCustomerLegalDocuments,
   customerLegalAcceptanceCategoryForModule,
+  type CustomerLegalDocument,
   type CustomerLegalModuleVersion,
 } from '@/lib/legal/customerDocumentPackage'
 import { ensureAuthorizationDocumentFromPowerOfAttorney } from '@/lib/legal/authorizationChain'
@@ -217,7 +219,7 @@ async function getLatestRefs(client: IntegrationApiClient, identity: LinkedPorta
 async function resolveLegalAcceptanceApplicationId(
   client: IntegrationApiClient,
   identity: LinkedPortalIdentity,
-  refs: SyncRefs,
+  refs: Pick<SyncRefs, 'contractId' | 'contractApplicationId'>,
 ): Promise<string | null> {
   if (!refs.contractId) return null
 
@@ -296,13 +298,16 @@ function assertAcceptedDocumentEvidence(input: {
   }
 }
 
-async function resolveLegalDocument(input: {
+type LegalDocumentInput = {
   companyId: string
-  refs: SyncRefs
   documentReference: string
   expectedCode?: string
   expectedVersion?: string
   expectedHash?: string
+}
+
+async function resolveLegalDocument(input: LegalDocumentInput & {
+  refs: Pick<SyncRefs, 'legalBundleVersionId'>
 }): Promise<ResolvedLegalDocument> {
   if (!input.refs.legalBundleVersionId) throw new Error('LEGAL_BUNDLE_NOT_RESOLVED')
   const result = await supabaseService
@@ -311,7 +316,31 @@ async function resolveLegalDocument(input: {
     .eq('legal_bundle_version_id', input.refs.legalBundleVersionId)
   if (result.error) throw result.error
 
-  const rows = (result.data ?? []) as Array<Record<string, unknown>>
+  return resolveLoadedLegalDocument(
+    { ...input, legalBundleVersionId: input.refs.legalBundleVersionId },
+    result.data ?? [],
+  )
+}
+
+function groupedLegalDocuments(companyId: string, legalBundleVersionId: string, rows: JsonRecord[]) {
+  const modules = rows.map((row) => ({
+    id: String(row.id),
+    module_key: String(row.module_key),
+    version: clean(row.template_version) ?? clean(row.created_at) ?? String(row.id),
+    title: clean(row.title) ?? String(row.module_key),
+    published_at: clean(row.created_at),
+    content_sha256: clean(row.content_sha256),
+    legal_bundle_version_id: clean(row.legal_bundle_version_id),
+    origin: clean(row.origin),
+  })) satisfies CustomerLegalModuleVersion[]
+  return buildCustomerLegalDocuments({ companyId, legalBundleVersionId, modules })
+}
+
+function resolveLoadedLegalDocument(
+  input: LegalDocumentInput & { legalBundleVersionId: string },
+  rows: JsonRecord[],
+  groups?: CustomerLegalDocument[],
+): ResolvedLegalDocument {
   const exactRow = rows.find((row) =>
     publicReference('legal_document', input.companyId, String(row.id)) === input.documentReference)
 
@@ -330,27 +359,14 @@ async function resolveLegalDocument(input: {
       documentVersion: legalModule.version,
       documentHash: legalModule.hash,
       title: legalModule.title,
-      legalBundleVersionId: input.refs.legalBundleVersionId,
+      legalBundleVersionId: input.legalBundleVersionId,
       referenceKind: 'module',
       modules: [legalModule],
     }
   }
 
-  const packageModules = rows.map((row) => ({
-    id: String(row.id),
-    module_key: String(row.module_key),
-    version: clean(row.template_version) ?? clean(row.created_at) ?? String(row.id),
-    title: clean(row.title) ?? String(row.module_key),
-    published_at: clean(row.created_at),
-    content_sha256: clean(row.content_sha256),
-    legal_bundle_version_id: clean(row.legal_bundle_version_id),
-    origin: clean(row.origin),
-  })) satisfies CustomerLegalModuleVersion[]
-  const customerDocument = buildCustomerLegalDocuments({
-    companyId: input.companyId,
-    legalBundleVersionId: input.refs.legalBundleVersionId,
-    modules: packageModules,
-  }).find((candidate) => candidate.document_reference === input.documentReference)
+  const customerDocument = (groups ?? groupedLegalDocuments(input.companyId, input.legalBundleVersionId, rows))
+    .find((candidate) => candidate.document_reference === input.documentReference)
   if (!customerDocument) throw new Error('LEGAL_DOCUMENT_REFERENCE_INVALID')
 
   assertAcceptedDocumentEvidence({
@@ -373,9 +389,149 @@ async function resolveLegalDocument(input: {
     documentVersion: customerDocument.document_version,
     documentHash: customerDocument.document_hash.toLowerCase(),
     title: customerDocument.title,
-    legalBundleVersionId: input.refs.legalBundleVersionId,
+    legalBundleVersionId: input.legalBundleVersionId,
     referenceKind: 'customer_document',
     modules: sourceRows.map(resolvedLegalModule),
+  }
+}
+
+const LEGAL_DISCOVERY_PAGE_SIZE = 100
+const LEGAL_DISCOVERY_MAX_READS = 40
+const LEGAL_DISCOVERY_BATCH_SIZE = 50
+
+async function readLegalDiscoveryRows(
+  budget: { remaining: number },
+  readPage: (after: string | null) => PromiseLike<{ data: JsonRecord[] | null; error: unknown }>,
+): Promise<JsonRecord[]> {
+  const rows: JsonRecord[] = []
+  let after: string | null = null
+  while (budget.remaining > 0) {
+    budget.remaining--
+    const { data, error } = await readPage(after)
+    if (error && !isMissingPortalSchemaError(error)) throw error
+    if (!Array.isArray(data) || data.length > LEGAL_DISCOVERY_PAGE_SIZE || error) throw new Error('LEGAL_BUNDLE_NOT_RESOLVED')
+    // A short response may reflect a transport cap. Only an empty page proves exhaustion.
+    if (data.length === 0) return rows
+    for (const row of data) {
+      const id = clean(row.id)
+      if (!id || (after && id <= after)) throw new Error('LEGAL_BUNDLE_NOT_RESOLVED')
+      rows.push(row)
+      after = id
+    }
+  }
+  throw new Error('LEGAL_BUNDLE_NOT_RESOLVED')
+}
+
+async function readVerifiedLegalBundles(
+  companyId: string,
+  bundleIds: string[],
+  budget: { remaining: number },
+): Promise<Map<string, JsonRecord[]>> {
+  const verified = new Map<string, JsonRecord[]>()
+  for (let offset = 0; offset < bundleIds.length; offset += LEGAL_DISCOVERY_BATCH_SIZE) {
+    const batch = bundleIds.slice(offset, offset + LEGAL_DISCOVERY_BATCH_SIZE)
+    const bundles = await readLegalDiscoveryRows(budget, (after) => {
+      let query = supabaseService.from('legal_bundle_versions').select('id')
+        .eq('company_id', companyId)
+        .in('id', batch)
+        .in('status', ['published', 'replaced', 'archived'])
+        .not('locked_at', 'is', null)
+      if (after) query = query.gt('id', after)
+      return query.order('id', { ascending: true }).limit(LEGAL_DISCOVERY_PAGE_SIZE)
+    })
+    const verifiedIds = bundles.map((row) => String(row.id))
+    if (verifiedIds.length === 0) continue
+    for (const id of verifiedIds) verified.set(id, [])
+
+    const documents = await readLegalDiscoveryRows(budget, (after) => {
+      let query = supabaseService.from('legal_bundle_version_documents')
+        .select('id,legal_bundle_version_id,module_key,legacy_legal_text_version_id,title,content_sha256,template_version,created_at,origin,unresolved_variables')
+        .in('legal_bundle_version_id', verifiedIds)
+      if (after) query = query.gt('id', after)
+      return query.order('id', { ascending: true }).limit(LEGAL_DISCOVERY_PAGE_SIZE)
+    })
+    for (const document of documents) {
+      const packageRows = verified.get(String(document.legal_bundle_version_id))
+      if (!packageRows) throw new Error('LEGAL_BUNDLE_NOT_RESOLVED')
+      packageRows.push(document)
+    }
+  }
+  return verified
+}
+
+function ambiguousLegalContract(): ApiInputError {
+  return new ApiInputError('Dokumenten hör till flera möjliga avtal för kunden.', 'LEGAL_CONTRACT_AMBIGUOUS', 422, 'legal_acceptances')
+}
+
+async function preflightLegalAcceptances(input: {
+  client: IntegrationApiClient
+  identity: LinkedPortalIdentity
+  acceptances: TenantLegalAcceptanceInput[]
+}) {
+  const { client, identity, acceptances } = input
+  const references = acceptances.map((acceptance) => acceptance.document_reference)
+  if (new Set(references).size !== references.length) throw new Error('LEGAL_ACCEPTANCE_DUPLICATE')
+
+  const budget = { remaining: LEGAL_DISCOVERY_MAX_READS }
+  const contracts = await readLegalDiscoveryRows(budget, (after) => {
+    let query = supabaseService.from('customer_contracts').select('id,legal_bundle_version_id,website_application_id')
+      .eq('company_id', client.company_id)
+      .eq('customer_id', identity.customer_id)
+      .not('legal_bundle_version_id', 'is', null)
+    if (after) query = query.gt('id', after)
+    return query.order('id', { ascending: true }).limit(LEGAL_DISCOVERY_PAGE_SIZE)
+  })
+  const contractsByBundle = new Map<string, JsonRecord[]>()
+  for (const contract of contracts) {
+    const bundleId = clean(contract.legal_bundle_version_id)
+    if (!bundleId) throw new Error('LEGAL_BUNDLE_NOT_RESOLVED')
+    const group = contractsByBundle.get(bundleId) ?? []
+    group.push(contract)
+    contractsByBundle.set(bundleId, group)
+  }
+  const bundles = await readVerifiedLegalBundles(client.company_id, [...contractsByBundle.keys()], budget)
+  if (bundles.size === 0) throw new Error('LEGAL_BUNDLE_NOT_RESOLVED')
+
+  const needsGroups = references.some((reference) => reference.startsWith('legal_customer_document_'))
+  let match: { bundleId: string; rows: JsonRecord[]; groups: CustomerLegalDocument[] } | null = null
+  for (const [bundleId, documents] of bundles) {
+    const rows = documents.filter((row) => row.unresolved_variables == null ||
+      (Array.isArray(row.unresolved_variables) && row.unresolved_variables.length === 0))
+    const groups = needsGroups && rows.length === documents.length ? groupedLegalDocuments(client.company_id, bundleId, rows) : []
+    const available = new Set([
+      ...rows.map((row) => publicReference('legal_document', client.company_id, String(row.id))),
+      ...groups.map((group) => group.document_reference),
+    ])
+    if (!references.every((reference) => available.has(reference))) continue
+    if (match) throw ambiguousLegalContract()
+    match = { bundleId, rows, groups }
+  }
+  if (!match) throw new Error('LEGAL_DOCUMENT_REFERENCE_INVALID')
+  const { bundleId, rows, groups } = match
+  const resolvedAcceptances = acceptances.map((acceptance) => ({
+    acceptance,
+    legalDocument: resolveLoadedLegalDocument({
+      companyId: client.company_id,
+      legalBundleVersionId: bundleId,
+      documentReference: acceptance.document_reference,
+      expectedCode: acceptance.document_code,
+      expectedVersion: acceptance.document_version,
+      expectedHash: acceptance.document_hash,
+    }, rows, groups),
+  }))
+  if (new Set(resolvedAcceptances.map(({ legalDocument }) => legalDocument.referenceKind)).size > 1) {
+    throw new Error('LEGAL_ACCEPTANCE_FORMAT_MIXED')
+  }
+  const matchingContracts = contractsByBundle.get(bundleId) ?? []
+  if (matchingContracts.length !== 1) throw ambiguousLegalContract()
+  const refs = {
+    contractId: String(matchingContracts[0].id),
+    contractApplicationId: clean(matchingContracts[0].website_application_id),
+    legalBundleVersionId: bundleId,
+  }
+  return {
+    acceptances: resolvedAcceptances,
+    refs: { ...refs, applicationId: await resolveLegalAcceptanceApplicationId(client, identity, refs) },
   }
 }
 
@@ -408,7 +564,7 @@ async function existingLegalAcceptanceDocumentIds(input: {
 async function syncLegalAcceptance(input: {
   client: IntegrationApiClient
   identity: LinkedPortalIdentity
-  refs: SyncRefs
+  refs: Pick<SyncRefs, 'contractId' | 'applicationId' | 'legalBundleVersionId'>
   acceptance: TenantLegalAcceptanceInput
   baseMetadata: JsonRecord
   legalDocument?: ResolvedLegalDocument
@@ -1276,35 +1432,9 @@ export async function syncTenantCustomerRecords(input: {
   }
 
   const acceptances = Array.isArray(input.payload.legal_acceptances) ? input.payload.legal_acceptances : []
-  const seenAcceptanceReferences = new Set<string>()
-  const resolvedAcceptances = await Promise.all(
-    acceptances.map(async (acceptance) => {
-      if (seenAcceptanceReferences.has(acceptance.document_reference)) {
-        throw new Error('LEGAL_ACCEPTANCE_DUPLICATE')
-      }
-      seenAcceptanceReferences.add(acceptance.document_reference)
-      return {
-        acceptance,
-        legalDocument: await resolveLegalDocument({
-          companyId: input.client.company_id,
-          refs,
-          documentReference: acceptance.document_reference,
-          expectedCode: acceptance.document_code,
-          expectedVersion: acceptance.document_version,
-          expectedHash: acceptance.document_hash,
-        }),
-      }
-    }),
-  )
-  const acceptanceReferenceKinds = new Set(
-    resolvedAcceptances.map(({ legalDocument }) => legalDocument.referenceKind),
-  )
-  if (acceptanceReferenceKinds.size > 1) {
-    throw new Error('LEGAL_ACCEPTANCE_FORMAT_MIXED')
-  }
-  const legalAcceptanceRefs = resolvedAcceptances.length > 0
-    ? { ...refs, applicationId: await resolveLegalAcceptanceApplicationId(input.client, input.identity, refs) }
-    : refs
+  const legalPreflight = acceptances.length > 0
+    ? await preflightLegalAcceptances({ client: input.client, identity: input.identity, acceptances })
+    : null
 
   summary.profile = await syncCustomerProfile({
     client: input.client,
@@ -1312,16 +1442,18 @@ export async function syncTenantCustomerRecords(input: {
     profile: input.payload.profile,
   })
 
-  for (const { acceptance, legalDocument } of resolvedAcceptances) {
-    const result = await syncLegalAcceptance({
-      client: input.client,
-      identity: input.identity,
-      refs: legalAcceptanceRefs,
-      acceptance,
-      baseMetadata,
-      legalDocument,
-    })
-    summary.legal_acceptances[result === 'created' ? 'created' : result === 'existing' ? 'existing' : 'skipped']++
+  if (legalPreflight) {
+    for (const { acceptance, legalDocument } of legalPreflight.acceptances) {
+      const result = await syncLegalAcceptance({
+        client: input.client,
+        identity: input.identity,
+        refs: legalPreflight.refs,
+        acceptance,
+        baseMetadata,
+        legalDocument,
+      })
+      summary.legal_acceptances[result === 'created' ? 'created' : result === 'existing' ? 'existing' : 'skipped']++
+    }
   }
 
   if (input.payload.power_of_attorney) {
