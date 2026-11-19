@@ -41,7 +41,7 @@ rename the legacy files.
 | `/api/internal/customer-operations/cron` | */5 min | job claim locks; guarded status transitions | also resumes stuck intents |
 | `/api/cron/pricing/spot-prices` | 03:15 daily | upsert by (area, date) | |
 | `/api/cron/ediel/actor-readiness?mode=full` | 02:25 daily | full readiness sweep | |
-| `/api/internal/system/health` | 02:35 daily | read-only checks | renders on /admin/system-health |
+| `/api/internal/system/health` | 02:35 daily | read-only checks | returns a JSON health result |
 | `/api/internal/platform/grid-areas/import/cron` | */10 min | import cursor | |
 | `/api/cron/billing/monthly` | 04:20 monthly | pricing run locks + immutability triggers | |
 | `/api/cron/billing/invoice-export-retry` | */15 min | guarded retry statuses, `invoice_export_attempts` audit | never retries `configuration_error` |
@@ -51,6 +51,16 @@ injects it) or per-route secrets (`EDIEL_INBOUND_CRON_SECRET`,
 `EMAIL_OUTBOX_CRON_SECRET`, `MANUAL_INBOUND_CRON_SECRET`, …) with
 `timingSafeEqual`. **Accepted risk M8:** one shared `CRON_SECRET` unlocks all
 jobs — set per-route secrets post-launch to reduce blast radius.
+
+The system health endpoint returns HTTP 200 for a complete v5 result with no
+blocking checks. A valid v5 warning remains HTTP 200 with `status: warning`.
+An invalid or incomplete result returns HTTP 503 with `schema_ready: false`.
+During rollout, if v5 is absent, the endpoint can return still-available v4 or
+v3 diagnostics. Those results identify the selected `check_version`, set
+`fallback: true` and use HTTP 503. A failed check inside an installed version
+is reported against that version.
+The source RPC includes `workflow:missing_atomic_commit_marker` when the
+provisioning-step relation exists in that schema.
 
 ## 4. Kill switches / pause controls (all server-side)
 
