@@ -1,6 +1,6 @@
 import { currentStockholmCalendarDate } from '@/lib/time/stockholm'
 import type { CustomerContractRow, CustomerContractTerminationReason } from './types'
-import { resolveContractStartDate } from './operationalDates'
+import { contractCalendarDate, resolveContractStartDate } from './operationalDates'
 
 type ContractLifecycleInput = {
   startsAt?: string | null
@@ -161,7 +161,7 @@ export function deriveContractEndsAt(input: ContractLifecycleInput): string | nu
   if (explicitEndsAt) return explicitEndsAt
 
   const startsAt = operationalStart(input)
-  const terminationNoticeDate = normalizeDate(input.terminationNoticeDate)
+  const terminationNoticeDate = contractCalendarDate(input.terminationNoticeDate)
 
   const bindingMonths =
     typeof input.bindingMonths === 'number' && Number.isFinite(input.bindingMonths) && input.bindingMonths > 0
@@ -186,7 +186,7 @@ export function getContractLifecycleSummary(
 ): ContractLifecycleSummary {
   const startsAt = operationalStart(input)
   const explicitEndsAt = normalizeDate(input.endsAt)
-  const terminationNoticeDate = normalizeDate(input.terminationNoticeDate)
+  const terminationNoticeDate = contractCalendarDate(input.terminationNoticeDate)
   const bindingMonths =
     typeof input.bindingMonths === 'number' && Number.isFinite(input.bindingMonths) && input.bindingMonths > 0
       ? input.bindingMonths
