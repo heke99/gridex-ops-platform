@@ -7,7 +7,7 @@ import { NextRequest } from 'next/server'
 import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { createHash, randomUUID } from 'node:crypto'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
-import { ApiInputError, executeIdempotentPortalWrite, readJsonObject, requireIdempotencyKey } from '@/lib/api/strictRequest'
+import { ApiInputError, executeIdempotentPortalWrite, IdempotentWriteNotStartedError, readJsonObject, requireIdempotencyKey } from '@/lib/api/strictRequest'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
@@ -23,6 +23,7 @@ import {
   listCustomerSupportCases,
   listCustomerSupportMessagesPage,
   publicSupportCase,
+  SupportConversationError,
 } from '@/lib/customer-service/supportConversation'
 import { toSupportApiError } from '@/lib/customer-service/supportApi'
 import {
@@ -129,6 +130,10 @@ async function getSupportMessagesHandler(request: NextRequest, contextInput: Par
   }
 }
 
+function isSupportMessageQuotaRejection(error: unknown) {
+  return error instanceof SupportConversationError && error.status === 429 && error.code === 'support_quota_exceeded'
+}
+
 async function postSupportMessageHandler(request: NextRequest, contextInput: Params) {
   const context = await requireCustomerPortalApiContext(request, ['customer_support.write'], { enforceBinding: true })
   if (!context.ok) return context.response
@@ -143,21 +148,30 @@ async function postSupportMessageHandler(request: NextRequest, contextInput: Par
       operation: '/api/v1/customer/support/cases/[reference]/messages',
       payload: { reference, ...body },
       execute: async () => {
-        const message = await addCustomerSupportMessage({
-          companyId: context.client.company_id,
-          customerId: context.identity.customer_id,
-          caseReference: reference,
-          apiClientId: context.client.id,
-          portalIdentityId: context.identity.id,
-          message: body.message,
-        })
-        return { statusCode: 201, body: { data: message } }
+        try {
+          const message = await addCustomerSupportMessage({
+            companyId: context.client.company_id,
+            customerId: context.identity.customer_id,
+            caseReference: reference,
+            apiClientId: context.client.id,
+            portalIdentityId: context.identity.id,
+            message: body.message,
+          })
+          return { statusCode: 201, body: { data: message } }
+        } catch (error) {
+          // The exact quota exception aborts the SQL transaction before the message insert.
+          if (isSupportMessageQuotaRejection(error)) throw new IdempotentWriteNotStartedError(error)
+          throw error
+        }
       },
     })
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1, metadata: { action: 'support_message_created', idempotency_replay: result.replayed } })
     return customerPortalJson(result.body, { status: result.statusCode, headers: { 'Idempotency-Replayed': String(result.replayed) } })
   } catch (error) {
-    return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error: toSupportApiError(error) })
+    const response = handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error: toSupportApiError(error) })
+    // The full SQL quota window gives a conservative retry delay.
+    if (isSupportMessageQuotaRejection(error)) response.headers.set('Retry-After', '3600')
+    return response
   }
 }
 
