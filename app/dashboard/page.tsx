@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getVerifiedAuthUser } from '@/lib/auth/currentUser'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { getOperationalCompanyScope, TenantCompanyRequiredError } from '@/lib/tenant/scope'
 import { isPlatformAdminRole } from '@/lib/rbac/roleKeys'
 
 export const dynamic = 'force-dynamic'
@@ -74,10 +74,37 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/login')
 
-  const [isPlatformAdmin, companyScope] = await Promise.all([
-    userHasPlatformRole(user.id),
-    getOperationalCompanyScope(user.id),
-  ])
+  let access
+  try {
+    const [isPlatformAdmin, companyScope] = await Promise.all([
+      userHasPlatformRole(user.id),
+      getOperationalCompanyScope(user.id),
+    ])
+    access = { isPlatformAdmin, companyScope }
+  } catch (error) {
+    const denied = error instanceof TenantCompanyRequiredError
+    if (!denied) console.warn('[dashboard] Staff workspace access could not be verified')
+
+    return (
+      <section className="mx-auto max-w-xl rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm">
+        <h1 className="text-xl font-semibold text-slate-950">
+          {denied ? 'Du har inte tillgång till administrationen' : 'Arbetsytans åtkomst kunde inte kontrolleras'}
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-slate-700">
+          {denied
+            ? 'Om du är elkund hittar du dina uppgifter på Mina sidor. Kontakta din administratör om du behöver tillgång till arbetsytan.'
+            : 'Ett tillfälligt fel uppstod. Försök igen om en stund.'}
+        </p>
+        {denied && (
+          <Link href="/portal" className="mt-6 inline-flex rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white">
+            Till Mina sidor
+          </Link>
+        )}
+      </section>
+    )
+  }
+
+  const { isPlatformAdmin, companyScope } = access
   const companyName = companyScope.companyName ?? 'ditt elbolag'
 
   const valueCards = isPlatformAdmin

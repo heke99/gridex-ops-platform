@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getVerifiedAuthUser } from '@/lib/auth/currentUser'
 import { logoutAction } from '@/lib/auth/logoutAction'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,7 @@ export default async function DashboardLayout({
 }) {
   const user = await getVerifiedAuthUser()
   if (!user) redirect('/login')
+  const showStaffNavigation = await getOperationalCompanyScope(user.id).then(() => true, () => false)
 
   return (
     <div className="min-h-screen bg-[#f6faf7] text-slate-900">
@@ -26,27 +28,29 @@ export default async function DashboardLayout({
               <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
                 Gridex
               </span>
-              <span className="block text-sm font-semibold text-slate-950">Operations</span>
+              {showStaffNavigation && <span className="block text-sm font-semibold text-slate-950">Operations</span>}
             </span>
           </Link>
 
           <div className="flex items-center gap-3">
-            <nav className="hidden items-center gap-2 md:flex">
-              {[
-                ['Dashboard', '/dashboard'],
-                ['Admin', '/admin'],
-                ['Operations', '/admin/operations'],
-                ['Kunder', '/admin/customers'],
-              ].map(([label, href]) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
-                >
-                  {label}
-                </Link>
-              ))}
-            </nav>
+            {showStaffNavigation && (
+              <nav className="hidden items-center gap-2 md:flex">
+                {[
+                  ['Dashboard', '/dashboard'],
+                  ['Admin', '/admin'],
+                  ['Operations', '/admin/operations'],
+                  ['Kunder', '/admin/customers'],
+                ].map(([label, href]) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </nav>
+            )}
 
             <div className="hidden rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right sm:block">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
