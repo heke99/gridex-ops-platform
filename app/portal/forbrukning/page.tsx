@@ -1,15 +1,33 @@
-import { getCustomerPortalContext, listPortalMeteringValues, listPortalMonthlyConsumption } from '@/lib/customer-portal/db'
+import { getCustomerPortalContext, listPortalMeteringPointNumbers, listPortalMeteringValues, listPortalMonthlyConsumption } from '@/lib/customer-portal/db'
 import { formatDate, formatKwh, formatPeriod } from '@/lib/customer-portal/format'
 
 export const dynamic = 'force-dynamic'
 
+function readingTypeLabel(value: string | null) {
+  const type = value?.trim().toLowerCase()
+  if (type === 'consumption') return 'Förbrukning'
+  if (type === 'production') return 'Produktion'
+  return type ? 'Okänd mättyp' : 'Mättyp ej angiven'
+}
+
+function qualityLabel(value: string | null) {
+  const quality = value?.trim().toLowerCase()
+  if (quality === 'measured' || quality === 'actual') return 'Uppmätt värde'
+  if (quality === 'estimated') return 'Uppskattat värde'
+  if (quality === 'calculated') return 'Beräknat värde'
+  if (quality === 'preliminary' || quality === 'temp' || quality === 'temporary') return 'Preliminärt värde'
+  if (quality === 'corrected') return 'Korrigerat värde'
+  return quality ? 'Okänd kvalitet' : 'Kvalitet ej angiven'
+}
+
 export default async function PortalConsumptionPage() {
   const context = await getCustomerPortalContext()
   // Month cards use the complete native month sum; the detail list below stays bounded.
-  const [values, months] = await Promise.all([
-    listPortalMeteringValues(context, { limit: 500 }),
-    listPortalMonthlyConsumption(context),
-  ])
+  const detail = listPortalMeteringValues(context, { limit: 500 }).then(async (values) => ({
+    values,
+    pointNumbers: await listPortalMeteringPointNumbers(context, values).catch(() => null),
+  }))
+  const [{ values, pointNumbers }, months] = await Promise.all([detail, listPortalMonthlyConsumption(context)])
 
   return (
     <div className="space-y-6">
@@ -41,17 +59,23 @@ export default async function PortalConsumptionPage() {
         </div>
 
         <div className="divide-y divide-slate-100">
-          {values.map((value) => (
-            <div key={value.id} className="grid gap-3 px-6 py-4 lg:grid-cols-[1fr_1fr_1fr_160px] lg:items-center">
-              <div>
-                <div className="font-medium text-slate-950">{formatKwh(value.value_kwh)}</div>
-                <div className="mt-1 text-xs text-slate-500">{value.reading_type} · {value.quality_code ?? 'ingen kvalitetskod'}</div>
+          {values.map((value) => {
+            const number = pointNumbers?.get(value.id)
+            const pointLabel = pointNumbers === null
+              ? 'Mätpunktsnumret kunde inte hämtas'
+              : number ? `Mätpunkt ${number}` : 'Mätpunktsnummer saknas'
+            return (
+              <div key={value.id} className="grid gap-3 px-6 py-4 lg:grid-cols-[1fr_1fr_1fr_160px] lg:items-center">
+                <div>
+                  <div className="font-medium text-slate-950">{formatKwh(value.value_kwh)}</div>
+                  <div className="mt-1 text-xs text-slate-500">{readingTypeLabel(value.reading_type)} · {qualityLabel(value.quality_code)}</div>
+                </div>
+                <div className="text-sm text-slate-600">{formatPeriod(value.period_start, value.period_end)}</div>
+                <div className="text-sm text-slate-600">{pointLabel}</div>
+                <div className="text-sm text-slate-500">Mottaget {formatDate(value.created_at)}</div>
               </div>
-              <div className="text-sm text-slate-600">{formatPeriod(value.period_start, value.period_end)}</div>
-              <div className="text-sm text-slate-600">Mätpunkt {value.metering_point_id}</div>
-              <div className="text-sm text-slate-500">Mottaget {formatDate(value.created_at)}</div>
-            </div>
-          ))}
+            )
+          })}
 
           {values.length === 0 ? (
             <div className="px-6 py-12 text-center text-sm text-slate-500">
