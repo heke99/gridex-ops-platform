@@ -25,6 +25,8 @@ const customer = '22222222-2222-4222-8222-222222222222'
 const foreignCompany = '33333333-3333-4333-8333-333333333333'
 const erasedAddress = '44444444-4444-4444-8444-444444444444'
 const visibleAddress = '55555555-5555-4555-8555-555555555555'
+const absentCustomer = '66666666-6666-4666-8666-666666666666'
+const foreignCustomer = '77777777-7777-4777-8777-777777777777'
 const reference = publicReference('customer', company, customer)!
 const rpcName = 'ediel_customer_record_tombstones_v1'
 const source = readFileSync('supabase/schema.sql', 'utf8')
@@ -36,6 +38,8 @@ let db: PGlite
 let missingRpc = false
 let rpcError: Record<string, unknown> | null = null
 let rpcArguments: Record<string, unknown>[]
+let resolvedCustomer: string | null
+let referenceArguments: Record<string, unknown>[]
 
 // Finite supporting columns retain their captured declarations; the RPC body
 // runs verbatim. This is embedded reproduction, not full native qualification.
@@ -58,8 +62,12 @@ const tables: Record<string, string[]> = {
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } })
 }
-function call() {
-  return GET(new NextRequest(`https://app.example.invalid/api/v1/staff/customers/${reference}`), { params: Promise.resolve({ ref: reference }) })
+function call(ref = reference) {
+  return GET(new NextRequest(`https://app.example.invalid/api/v1/staff/customers/${ref}`), { params: Promise.resolve({ ref }) })
+}
+
+function requestedUrls() {
+  return sdkFetch.mock.calls.map(([input, init]) => new URL(new Request(input, init).url))
 }
 
 beforeAll(async () => {
@@ -67,6 +75,7 @@ beforeAll(async () => {
   for (const [table, columns] of Object.entries(tables)) await db.exec(capturedTable(`public.${table}`, columns))
   await db.exec(`CREATE SCHEMA gridex_ediel_retention;${capturedTable('gridex_ediel_retention.record_tombstones', ['retention_class', 'target_id', 'company_id', 'customer_id', 'source_hash', 'journal_retain_until'])}`)
   await db.query('INSERT INTO customers(id,company_id,full_name,personal_number) VALUES($1,$2,$3,$4)', [customer, company, 'Synthetic customer', '19121212-1212'])
+  await db.query('INSERT INTO customers(id,company_id,full_name) VALUES($1,$2,$3)', [foreignCustomer, foreignCompany, 'Synthetic customer from another company'])
   for (const id of [erasedAddress, visibleAddress]) await db.query('INSERT INTO customer_addresses(id,company_id,customer_id,street_1) VALUES($1,$2,$3,$4)', [id, company, customer, 'Synthetic address'])
   await db.query('INSERT INTO gridex_ediel_retention.record_tombstones VALUES($1,$2,$3,$4,$5,$6)', ['customer_address_history', erasedAddress, company, customer, 'a'.repeat(64), '2030-01-01T00:00:00Z'])
   await db.exec(actualRpc)
@@ -77,6 +86,8 @@ beforeEach(() => {
   missingRpc = process.env.GRIDEX_STAFF_CUSTOMER_RETENTION_SOURCE === 'absent'
   rpcError = null
   rpcArguments = []
+  resolvedCustomer = customer
+  referenceArguments = []
   vi.mocked(requireStaffApiContext).mockResolvedValue({ companyId: company, actorUserId: foreignCompany, apiClientId: 'synthetic-client', permissions: ['customers.read'], startedAt: 0,
     client: { id: 'synthetic-client', company_id: company, name: 'Synthetic client', status: 'active', key_prefix: 'synthetic', secret_hash: 'synthetic', scopes: ['staff_customers.read'], allowed_ips: [], rate_limit_per_minute: 60, expires_at: null } })
   sdkFetch.mockReset()
@@ -85,8 +96,10 @@ beforeEach(() => {
     const url = new URL(request.url)
     const endpoint = url.pathname.split('/').at(-1)!
     if (url.pathname === '/rest/v1/rpc/gridex_staff_customer_id_for_reference_v1') {
-      expect(await request.json()).toEqual({ p_company_id: company, p_reference: reference })
-      return json(customer)
+      const args = await request.json() as Record<string, unknown>
+      expect(args.p_company_id).toBe(company)
+      referenceArguments.push(args)
+      return json(resolvedCustomer)
     }
     if (url.pathname === `/rest/v1/rpc/${rpcName}`) {
       const args = await request.json() as Record<string, unknown>
@@ -124,7 +137,36 @@ describe('staff customer detail retention prerequisite', () => {
     expect(body.data.customer.addresses.map((row: { address_reference: string }) => row.address_reference)).toEqual([publicReference('address', company, visibleAddress)])
     expect(JSON.stringify(body)).not.toContain(erasedAddress)
     expect(JSON.stringify(body)).not.toContain('19121212-1212')
+    expect(referenceArguments).toEqual([{ p_company_id: company, p_reference: reference }])
     expect(rpcArguments).toEqual([{ p_company_id: company, p_customer_id: customer }])
+    const customerReads = requestedUrls().filter(url => url.pathname === '/rest/v1/customers')
+    expect(customerReads).toHaveLength(1)
+    expect(customerReads[0].searchParams.get('company_id')).toBe(`eq.${company}`)
+    expect(customerReads[0].searchParams.get('id')).toBe(`eq.${customer}`)
+    expect(customerReads[0].searchParams.get('select')).toBe(STAFF_CUSTOMER_SELECT)
+  })
+
+  it.each([
+    { name: 'unknown reference', requestId: absentCustomer, resultId: null },
+    { name: 'removed customer', requestId: absentCustomer, resultId: absentCustomer },
+    { name: 'customer in a different company', requestId: foreignCustomer, resultId: foreignCustomer },
+    { name: 'mismatched opaque reference', requestId: absentCustomer, resultId: customer },
+  ])('stops before child reads for a $name', async ({ requestId, resultId }) => {
+    const requestedReference = publicReference('customer', company, requestId)!
+    resolvedCustomer = resultId
+    const response = await call(requestedReference)
+    expect(response.status).toBe(404)
+    const body = await response.json()
+    expect(body.error.code).toBe('customer_not_found')
+    expect(body.data).toBeUndefined()
+    expect(referenceArguments).toEqual([{ p_company_id: company, p_reference: requestedReference }])
+    expect(rpcArguments).toEqual([])
+    const urls = requestedUrls()
+    expect(urls.map(url => url.pathname)).toEqual([
+      '/rest/v1/rpc/gridex_staff_customer_id_for_reference_v1',
+      ...(resultId ? ['/rest/v1/customers'] : []),
+    ])
+    if (resultId) expect(urls[1].searchParams.get('id')).toBe(`eq.${resultId}`)
   })
 
   it('fails closed with a safe 500 when the retention RPC is absent', async () => {

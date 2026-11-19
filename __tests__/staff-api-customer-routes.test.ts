@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { run, find, detail, list, contact, identity, write } = vi.hoisted(() => ({ run: vi.fn(), find: vi.fn(), detail: vi.fn(), list: vi.fn(), contact: vi.fn(), identity: vi.fn(), write: vi.fn() }))
+const { run, find, collections, list, contact, identity, write } = vi.hoisted(() => ({ run: vi.fn(), find: vi.fn(), collections: vi.fn(), list: vi.fn(), contact: vi.fn(), identity: vi.fn(), write: vi.fn() }))
 vi.mock('@/lib/staff-api/http', () => ({
   withStaffApi: (...args: unknown[]) => run(...args),
   staffApiJson: (body: unknown, init?: number | ResponseInit) => Response.json(body, typeof init === 'number' ? { status: init } : init),
 }))
 vi.mock('@/lib/staff-api/customers', async (original) => ({ ...await original<typeof import('@/lib/staff-api/customers')>(), findStaffCustomer: (...args: unknown[]) => find(...args) }))
-vi.mock('@/lib/customers/getCustomerForCompany', () => ({ STAFF_CUSTOMER_CHILD_LIMIT: 100, getCustomerForCompany: (...args: unknown[]) => detail(...args) }))
+vi.mock('@/lib/customers/getCustomerForCompany', () => ({ STAFF_CUSTOMER_CHILD_LIMIT: 100, getStaffCustomerCollectionsForCompany: (...args: unknown[]) => collections(...args) }))
 vi.mock('@/lib/customers/getCustomers', () => ({ listCustomersPageForCompany: (...args: unknown[]) => list(...args) }))
 vi.mock('@/lib/customer-service/contactChangeTransaction', () => ({
   applyCustomerContactChange: (...args: unknown[]) => contact(...args),
@@ -31,8 +31,8 @@ const request = (body?: Record<string, unknown>) => new NextRequest('https://exa
 beforeEach(() => {
   vi.clearAllMocks()
   run.mockImplementation(async (_r, _o, handler) => handler(ctx))
-  find.mockResolvedValue({ id: ID, customer_type: 'private', full_name: 'Test Customer' })
-  detail.mockResolvedValue({ customer: { id: ID, personal_number: '19121212-1212' }, contacts: [], addresses: [], sites: [] })
+  find.mockResolvedValue({ id: ID, customer_type: 'private', full_name: 'Test Customer', personal_number: '19121212-1212' })
+  collections.mockResolvedValue({ contacts: [], addresses: [], sites: [] })
   list.mockResolvedValue({ rows: [{ id: ID, personal_number: '19121212-1212' }], page: 1, pageSize: 25, total: 1, totalPages: 1 })
   contact.mockResolvedValue({ changed: true, customerUpdatedAt: '2026-10-04T11:00:00Z' })
   identity.mockResolvedValue({ status: 'pending_customer_approval', requestId: 'request-id', recipientMasked: 't•••@example.test', expiresAt: '2026-10-07T11:00:00Z', contractCount: 1, takeoverRequired: false })
@@ -64,8 +64,9 @@ describe('mounted staff customer API', () => {
   it('returns a masked closed response and company-binds detail reads', async () => {
     const { getStaffCustomer } = await import('@/lib/staff-api/customerHandlers')
     const response = await getStaffCustomer(request(), params)
-    expect(detail).toHaveBeenCalledWith(A, ID)
+    expect(collections).toHaveBeenCalledExactlyOnceWith(A, ID)
     const body = await response.json()
+    expect(body.data.customer.display_name).toBe('Test Customer')
     expect(body.data.customer.personal_number_masked).toBe('••••1212')
     expect(JSON.stringify(body)).not.toContain('19121212')
     expect(body.data.customer.id).toBeUndefined()
