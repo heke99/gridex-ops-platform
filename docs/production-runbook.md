@@ -30,21 +30,31 @@ rename the legacy files.
 
 ## 3. Cron matrix (vercel.json)
 
-| Path | Schedule | Lock / idempotency | Notes |
+The table lists the committed UTC cron schedules. [vercel.json](../vercel.json)
+
+| Path | Cron (UTC) | Lock / idempotency | Notes |
 | --- | --- | --- | --- |
-| `/api/internal/inbound-mail/cron?environment=test\|production` | */5 min | mailbox `locked_at` optimistic lock, stale 30 min; job claim RPC `claim_inbound_processing_jobs` (SKIP LOCKED) | batch 10 mailboxes / 25 msgs |
-| `/api/ediel/outbox/process` | */5 min | claim RPC / CAS `prepared→sending`; `lock_key` upsert; stale `sending` → `delivery_uncertain` (10 min) | batch 25 |
-| `/api/internal/email/outbox/process` | */5 min | `queued→processing` + `lock_token`; stale 15 min → `delivery_uncertain` | retry ≤5, auth mails 1 |
-| `/api/internal/manual-email/outbox/process` | */5 min | `queued→sending` claim; stale 15 min → `delivery_uncertain` (hardening 2026-07-03) | retry ≤5 |
-| `/api/internal/manual-inbound/cron?environment=…` | */5 min | mailbox lock + poll-interval throttle (2026-07-03) | GX-FIR replies only |
-| `/api/internal/webhooks/dispatch` | */5 min | `webhook_deliveries` status transitions, unique idempotency_key | max 8 attempts |
-| `/api/internal/customer-operations/cron` | */5 min | job claim locks; guarded status transitions | also resumes stuck intents |
-| `/api/cron/pricing/spot-prices` | 03:15 daily | upsert by (area, date) | |
-| `/api/cron/ediel/actor-readiness?mode=full` | 02:25 daily | full readiness sweep | |
-| `/api/internal/system/health` | 02:35 daily | read-only checks | returns a JSON health result |
-| `/api/internal/platform/grid-areas/import/cron` | */10 min | import cursor | |
-| `/api/cron/billing/monthly` | 04:20 monthly | pricing run locks + immutability triggers | |
-| `/api/cron/billing/invoice-export-retry` | */15 min | guarded retry statuses, `invoice_export_attempts` audit | never retries `configuration_error` |
+| `/api/internal/inbound-mail/cron?environment=production` | `0-55/5 * * * *` | mailbox `locked_at` optimistic lock, stale 30 min; job claim RPC `claim_inbound_processing_jobs` (SKIP LOCKED) | batch 10 mailboxes / 25 msgs |
+| `/api/ediel/outbox/process` | `1-56/5 * * * *` | claim RPC / CAS `prepared→sending`; `lock_key` upsert; stale `sending` → `delivery_uncertain` (10 min) | batch 25 |
+| `/api/internal/email/outbox/process` | `2-57/5 * * * *` | `queued→processing` + `lock_token`; stale 15 min → `delivery_uncertain` | retry ≤5, auth mails 1 |
+| `/api/internal/manual-email/outbox/process` | `* * * * *` | `queued→sending` claim; stale 15 min → `delivery_uncertain` (hardening 2026-07-03) | retry ≤5, every minute |
+| `/api/internal/manual-inbound/cron?environment=production` | `* * * * *` | mailbox lock + poll-interval throttle (2026-07-03) | GX-FIR replies only, every minute |
+| `/api/cron/pricing/spot-prices` | `15 * * * *` | upsert by (area, date) | hourly at minute 15 |
+| `/api/cron/pricing/spot-settlement` | `35 3 * * *` | month and price-area transaction lock | per-area result in `settlements` and `failed_areas` |
+| `/api/cron/ediel/actor-readiness?mode=full` | `25 2 * * *` | full readiness sweep |  |
+| `/api/internal/webhooks/dispatch` | `0-55/5 * * * *` | `webhook_deliveries` status transitions, unique idempotency_key | max 8 attempts |
+| `/api/internal/customer-operations/cron` | `1-56/5 * * * *` | job claim locks; guarded status transitions | also resumes stuck intents |
+| `/api/internal/system/health` | `35 2 * * *` | read-only checks | returns a JSON health result |
+| `/api/internal/platform/grid-areas/import/cron` | `2-52/10 * * * *` | import cursor |  |
+| `/api/cron/billing/monthly` | `20 */6 * * *` | pricing run locks + immutability triggers | every six hours at minute 20 |
+| `/api/cron/billing/invoice-export-retry` | `8-53/15 * * * *` | guarded retry statuses, `invoice_export_attempts` audit | never retries `configuration_error` |
+| `/api/cron/analytics/daily` | `45 3 * * *` |  |  |
+| `/api/cron/analytics/monthly` | `50 4 1 * *` |  |  |
+| `/api/cron/forecast/run` | `5 4 * * 1` |  |  |
+| `/api/cron/data-quality/scan` | `25 3 * * *` |  |  |
+| `/api/cron/reconciliation/daily` | `10 5 * * *` |  |  |
+| `/api/cron/reconciliation/end-to-end` | `30 5 * * *` |  |  |
+| `/api/internal/tenant-provisioning/cron` | `7-57/10 * * * *` |  |  |
 
 Auth: all cron routes validate `Authorization: Bearer <CRON_SECRET>` (Vercel
 injects it) or per-route secrets (`EDIEL_INBOUND_CRON_SECRET`,
