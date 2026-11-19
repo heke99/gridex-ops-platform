@@ -27,11 +27,13 @@ function tone(severity: string) {
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
-function Card({ label, value, hint, danger = false }: { label: string; value: number; hint: string; danger?: boolean }) {
+function Card({ label, value, hint, danger = false }: { label: string; value: number | null; hint: string; danger?: boolean }) {
+  const style = value === null ? 'border-amber-200 bg-amber-50'
+    : danger && value > 0 ? 'border-red-200 bg-red-50' : 'border-slate-200 bg-white'
   return (
-    <div className={`rounded-2xl border p-4 ${danger && value > 0 ? 'border-red-200 bg-red-50' : 'border-slate-200 bg-white'}`}>
+    <div className={`rounded-2xl border p-4 ${style}`}>
       <div className="text-sm font-medium text-slate-600">{label}</div>
-      <div className="mt-2 text-3xl font-semibold text-slate-950">{value}</div>
+      <div className={`mt-2 font-semibold text-slate-950 ${value === null ? 'text-lg' : 'text-3xl'}`}>{value ?? 'Otillgängligt'}</div>
       <div className="mt-1 text-xs text-slate-500">{hint}</div>
     </div>
   )
@@ -92,6 +94,29 @@ async function loadErrors(companyId: string | null, isPlatformAdmin: boolean) {
   return (data ?? []) as ErrorRow[]
 }
 
+async function countRecentApiErrors(companyId: string | null, statusStart: 400 | 500, window: { from: string; until: string }) {
+  const query = supabaseService.from('integration_api_requests')
+    .select('id', { head: true, count: 'exact' })
+    .gte('status_code', statusStart)
+    .lt('status_code', statusStart + 100)
+    .gte('created_at', window.from)
+    .lt('created_at', window.until)
+  const { count, error } = await (companyId ? query.eq('company_id', companyId) : query)
+  return !error && count !== null && Number.isSafeInteger(count) && count >= 0 ? count : null
+}
+
+function loadRecentApiErrors(companyId: string | null) {
+  const now = Date.now()
+  const window = {
+    from: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
+    until: new Date(now).toISOString(),
+  }
+  return Promise.all([
+    countRecentApiErrors(companyId, 400, window).catch(() => null),
+    countRecentApiErrors(companyId, 500, window).catch(() => null),
+  ])
+}
+
 export default async function SystemHealthPage() {
   const context = await requireAdminPageAccess(['admin.dashboard.read'])
   const isPlatformAdmin = isPlatformAdminContext(context)
@@ -99,7 +124,7 @@ export default async function SystemHealthPage() {
   const companyId = scope.companyId
 
   const [
-    apiErrors,
+    [apiClientErrors, apiServerErrors],
     webhookFailures,
     rateLimitEvents,
     edielFailures,
@@ -115,7 +140,7 @@ export default async function SystemHealthPage() {
     reconciliation,
     opsHealth,
   ] = await Promise.all([
-    safeCount('integration_api_requests', companyId, [{ column: 'status_code', operator: 'in', value: [400, 401, 403, 404, 409, 422, 429, 500] }]).catch(() => 0),
+    loadRecentApiErrors(companyId),
     safeCount('webhook_deliveries', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'dead_letter'] }]).catch(() => 0),
     safeCount('integration_api_rate_limit_events', companyId).catch(() => safeCount('integration_api_requests', companyId, [{ column: 'error_code', operator: 'eq', value: 'rate_limited' }]).catch(() => 0)),
     safeCount('ediel_messages', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'blocked'] }]).catch(() => 0),
@@ -162,7 +187,8 @@ export default async function SystemHealthPage() {
       />
 
       <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <Card label="API-fel" value={apiErrors} hint="Externa API-anrop som misslyckades" danger />
+        <Card label="API-klientfel" value={apiClientErrors} hint="Senaste 24 timmarna · HTTP 4xx" danger />
+        <Card label="API-serverfel" value={apiServerErrors} hint="Senaste 24 timmarna · HTTP 5xx" danger />
         <Card label="Webhook-fel" value={webhookFailures} hint="Utskick som misslyckades eller gav upp" danger />
         <Card label="Begränsade anrop" value={rateLimitEvents} hint="Anrop som stoppades av anropsgränsen" danger />
         <Card label="Ediel-fel" value={edielFailures} hint="Blockerade eller misslyckade meddelanden" danger />
