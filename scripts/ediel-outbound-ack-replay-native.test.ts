@@ -136,12 +136,10 @@ it('replays a genuine native own CONTRL without current route selection and hold
 })
 
 
-// Actual HTTP/PostgREST calls execute the full source-generated native owner,
-// guide, immutable namespace and witness triggers. Disposable synthetics only.
-it('atomically mints common negative ACK, rolls back the last event write, serializes same/opposite races and holds prewrite/replay grant revocation',async()=>{
+async function commonNegativeAckFixture() {
  const company=randomUUID(),actor=randomUUID(),sourceId=randomUUID(),routeId=randomUUID(),profileId=randomUUID(),roleId=randomUUID()
- const nonce=sourceId.replaceAll('-',''),fn='ediel_atomic_ack_fail_'+nonce
- const endpoint=sql<string>(`SELECT to_jsonb(min(n)::text) FROM generate_series(80000,89999)n WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.environment='test' AND i.identifier_type='EdielId' AND i.identifier_value=n::text AND (i.valid_to IS NULL OR now()<i.valid_to))`)
+ const nonce=sourceId.replaceAll('-','')
+ const endpoint=sql<string>(`SELECT to_jsonb(min(n)::text) FROM generate_series(80000,89999)n WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.environment='test' AND i.identifier_type='EdielId' AND i.identifier_value=n::text)`)
  const sourceRef='SRC'+nonce.slice(0,11),ownRef='ACK'+nonce.slice(0,11),unh='A'+nonce.slice(0,8)
  sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(company)},'Disposable atomic common native','active');
  INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous) VALUES(${literal(actor)},'authenticated','authenticated',${literal(actor+'@example.invalid')},now(),'{}','{}',now(),now(),false,false);
@@ -167,6 +165,14 @@ it('atomically mints common negative ACK, rolls back the last event write, seria
  const args={p_company_id:company,p_environment:'test',p_source_message_id:sourceId,p_source_payload_hash:createHash('sha256').update(raw).digest('hex'),p_actor_user_id:actor,p_ack_family:'APERAK',p_sequence_field:null,p_sequence_value:null,p_outcome:'negative',p_draft:{rawPayload:ownRaw,communicationRouteId:routeId,routeProfileId:profileId,senderEmail:'local@example.invalid',receiverEmail:'remote@example.invalid',mailbox:'local@example.invalid',parsedPayload:{display:'native atomic fixture'},validationReport:{}},p_common_smtp:{from:'local@example.invalid',host:'smtp.example.invalid',port:587}}
  const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:{replayed:boolean;ackMessage:EdielMessageRow}|null;error:{message:string}|null}>
  const create=(patch:Record<string,unknown>={})=>rpc('ediel_create_outbound_ack_atomic_v1',{...args,...patch})
+ return {company,actor,sourceId,routeId,profileId,roleId,receptionActor,ownRaw,create}
+}
+
+// Actual HTTP/PostgREST calls execute the full source-generated native owner,
+// guide, immutable namespace and witness triggers. Disposable synthetics only.
+it('atomically mints common negative ACK, rolls back the last event write, serializes same/opposite races and holds prewrite/replay grant revocation',async()=>{
+ const {company,actor,sourceId,routeId,profileId,roleId,ownRaw,create}=await commonNegativeAckFixture()
+ const fn='ediel_atomic_ack_fail_'+sourceId.replaceAll('-','')
  const effects=()=>sql<Record<string,number>>(`SELECT jsonb_build_object('messages',(SELECT count(*) FROM public.ediel_messages WHERE related_message_id=${literal(sourceId)}),'witnesses',(SELECT count(*) FROM gridex_ediel_common_header.negative_witnesses WHERE company_id=${literal(company)}),'consumptions',(SELECT count(*) FROM gridex_ediel_common_header.negative_consumptions WHERE company_id=${literal(company)}),'routeBindings',(SELECT count(*) FROM gridex_ediel_common_header.negative_route_bindings b JOIN gridex_ediel_common_header.negative_witnesses w ON w.id=b.witness_id WHERE w.company_id=${literal(company)}),'events',(SELECT count(*) FROM public.ediel_message_events WHERE company_id=${literal(company)}),'receipts',(SELECT count(*) FROM gridex_ediel_ack_replay.creation_receipts WHERE company_id=${literal(company)}),'namespace',(SELECT count(*) FROM gridex_ediel_wire_namespace.coverage WHERE company_id=${literal(company)}),'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(company)}),'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE company_id=${literal(company)}))`)
  const before=effects()
  sql(`CREATE FUNCTION public.${fn}()RETURNS trigger LANGUAGE plpgsql AS $$BEGIN IF NEW.company_id=${literal(company)}::uuid THEN RAISE EXCEPTION 'atomic_last_event_failure';END IF;RETURN NEW;END$$;CREATE TRIGGER ${fn} BEFORE INSERT ON public.ediel_message_events FOR EACH ROW EXECUTE FUNCTION public.${fn}()`)
@@ -198,10 +204,21 @@ it('atomically mints common negative ACK, rolls back the last event write, seria
  expect((await create({p_draft:{callerSource:'ignored-established'}})).data?.ackMessage.id).toBe(own.id);expect(effects()).toEqual(after)
  sql(`UPDATE public.user_permissions SET is_active=false WHERE user_id=${literal(actor)} AND company_id=${literal(company)}`);expect((await create()).error?.message).toMatch(/actor_not_authorized|ediel_business_ack_current_actor_required/);expect(effects()).toEqual(after)
  sql(`UPDATE public.user_permissions SET is_active=true WHERE user_id=${literal(actor)} AND company_id=${literal(company)};UPDATE public.tenant_actor_identifiers SET valid_to=now() WHERE id=${literal(roleId)}`);expect((await create()).error?.message).toContain('current_identity_unavailable');expect(effects()).toEqual(after)
- sql(`UPDATE public.tenant_actor_identifiers SET valid_to=null WHERE id=${literal(roleId)};
-   UPDATE public.communication_routes SET is_active=true,target_email='remote@example.invalid' WHERE id=${literal(routeId)};
-   UPDATE public.ediel_route_profiles SET is_enabled=true,smtp_host='smtp.example.invalid' WHERE id=${literal(profileId)}`)
- await assertAperakCancellationWinsEntry(own,company,receptionActor.id)
+})
+
+it('holds a freshly qualified APERAK when cancellation commits before native transport entry',async()=>{
+ const {company,receptionActor,ownRaw,create}=await commonNegativeAckFixture()
+ // Fresh transport requires the test capability and the original route version.
+ // The established replay test changes that version on its separate tenant.
+ expect(sql<number>(`WITH updated AS (
+   UPDATE public.company_capabilities SET enabled=true,readiness_status='ready'
+   WHERE company_id=${literal(company)} AND capability_code='ediel_test' RETURNING 1
+ ) SELECT to_jsonb(count(*)) FROM updated`)).toBe(1)
+ expect(sql<boolean>(`SELECT to_jsonb(allowed) FROM public.canonical_tenant_operation_decision(${literal(company)},'ediel.test.process')`)).toBe(true)
+ const created=await create()
+ expect(created.error).toBeNull()
+ expect(created.data).toMatchObject({replayed:false,ackMessage:{raw_payload:ownRaw,ack_outcome:'negative'}})
+ await assertAperakCancellationWinsEntry(created.data!.ackMessage,company,receptionActor.id)
 })
 
 // 20261001134600/142520: every executing technical port names its actual
