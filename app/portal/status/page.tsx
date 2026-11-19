@@ -15,15 +15,11 @@ export default async function PortalStatusPage() {
   const [contracts, cases, infoRequests] = await Promise.all([
     listPortalContracts(context),
     listPortalCases(context),
-    listPortalInfoRequests(context),
+    listPortalInfoRequests(context, { scope: "open" }),
   ]);
 
   const openCases = cases.filter(
     (item) => !["resolved", "closed", "done"].includes(String(item.status)),
-  );
-  const openRequests = infoRequests.filter(
-    (item) =>
-      !["completed", "closed", "cancelled"].includes(String(item.status)),
   );
 
   return (
@@ -50,7 +46,7 @@ export default async function PortalStatusPage() {
             Öppna uppgiftsbegäran
           </p>
           <p className="mt-3 text-3xl font-semibold text-slate-950">
-            {openRequests.length}
+            {infoRequests.total}
           </p>
         </article>
         <article className="rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm">
@@ -75,13 +71,16 @@ export default async function PortalStatusPage() {
             </Link>
           </div>
           <div className="mt-4 space-y-3">
-            {infoRequests.slice(0, 8).map((request) => (
+            {infoRequests.requests.map((request) => (
               <div
                 key={request.id}
                 className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-700"
               >
                 <div className="font-semibold text-slate-950">
-                  {portalInfoRequestTypeLabel(request.request_type)}
+                  <Link href={`/portal/komplettera?request=${encodeURIComponent(request.id)}#uppgiftsbegaran-${request.id}`}
+                    className="underline underline-offset-2">
+                    {portalInfoRequestTypeLabel(request.request_type)}
+                  </Link>
                 </div>
                 <div className="mt-1 text-xs text-slate-500">
                   Status {portalInfoRequestStatusLabel(request.status)} · Uppdaterad{" "}
@@ -92,7 +91,7 @@ export default async function PortalStatusPage() {
                 ) : null}
               </div>
             ))}
-            {infoRequests.length === 0 ? (
+            {infoRequests.requests.length === 0 ? (
               <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-slate-500">
                 Inga öppna uppgiftsbegäran. Vi hör av oss om vi behöver fler uppgifter från dig.
               </div>
