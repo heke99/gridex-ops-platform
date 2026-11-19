@@ -121,11 +121,14 @@ export async function runInboundEdielMailEngine(
         envInt("EDIEL_INBOUND_MESSAGE_CONCURRENCY", 4),
         async (edielMessageId) => {
           try {
-            await processInboundEdielMessage({
+            const message = await processInboundEdielMessage({
               actorUserId: input.actorUserId ?? "system",
               edielMessageId,
             });
-            return { edielMessageId, error: null as string | null };
+            return {
+              edielMessageId,
+              error: message?.processing_status === "routing_unresolved" ? "routing_unresolved" : null,
+            };
           } catch (error) {
             return { edielMessageId, error: error instanceof Error ? error.message : "Okänt fel" };
           }
