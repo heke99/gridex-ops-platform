@@ -14,12 +14,16 @@ const initial = {
 }
 const lastPage = { data: [{ body: 'Synthetic message 501' }] }
 
-function customerClient(fetchImpl: typeof fetch) {
+function customerClient(
+  fetchImpl: typeof fetch,
+  getCustomerAssertion?: Parameters<typeof createSupportClient>[0]['getCustomerAssertion'],
+) {
   return createSupportClient({
     baseUrl: 'https://synthetic.invalid',
     apiKey: 'synthetic-fixture-key',
     portalUserId: 'synthetic-portal-user',
     fetchImpl,
+    getCustomerAssertion,
   })
 }
 
@@ -32,6 +36,8 @@ describe('API-76 support reference client continuation', () => {
       requested.push(url)
       expect(request.method).toBe('GET')
       expect(request.headers.get('x-gridex-customer-portal-user-id')).toBe('synthetic-portal-user')
+      expect(request.headers.has('x-gridex-customer-assertion')).toBe(false)
+      expect(request.redirect).toBe('follow')
       if (url.pathname === detailPath) {
         return Response.json(initial, { headers: { 'X-Gridex-Next-Cursor': cursor } })
       }
@@ -70,6 +76,86 @@ describe('API-76 support reference client continuation', () => {
   })
 })
 
+
+describe('Support reference customer assertions', () => {
+  it('obtains a fresh assertion for each read, including a continuation page', async () => {
+    const requests: Request[] = []
+    const subjects: string[] = []
+    const client = customerClient(async (input, init) => {
+      const request = new Request(input, init)
+      requests.push(request)
+      return new URL(request.url).pathname === detailPath
+        ? Response.json(initial, { headers: { 'X-Gridex-Next-Cursor': cursor } })
+        : Response.json(lastPage)
+    }, async ({ portalUserId }) => {
+      subjects.push(portalUserId)
+      return `fixture.assertion.read${subjects.length}`
+    })
+
+    const detail = await client.getCasePage(reference)
+    expect(detail).toEqual({ body: initial, nextCursor: cursor })
+    expect(await client.listMessages(reference, detail.nextCursor)).toEqual({ body: lastPage, nextCursor: null })
+    expect(subjects).toEqual(['synthetic-portal-user', 'synthetic-portal-user'])
+    expect(requests.map((request) => [
+      request.method,
+      request.headers.get('x-gridex-customer-assertion'),
+      request.headers.get('x-gridex-auth-user-id'),
+      request.redirect,
+    ])).toEqual([
+      ['GET', 'fixture.assertion.read1', 'synthetic-portal-user', 'error'],
+      ['GET', 'fixture.assertion.read2', 'synthetic-portal-user', 'error'],
+    ])
+  })
+
+  it.each(['openCase', 'reply'] as const)('keeps the original %s key and payload on an explicit retry', async (operation) => {
+    const attempts: Array<{ assertion: string | null; body: string; key: string | null }> = []
+    let assertionCount = 0
+    const client = customerClient(async (input, init) => {
+      const request = new Request(input, init)
+      attempts.push({
+        assertion: request.headers.get('x-gridex-customer-assertion'),
+        body: await request.text(),
+        key: request.headers.get('Idempotency-Key'),
+      })
+      return attempts.length === 1
+        ? Response.json({ error: { code: 'idempotency_completion_uncertain' } }, { status: 503 })
+        : Response.json({ data: { case_reference: reference } }, { status: 201 })
+    }, () => `fixture.assertion.write${++assertionCount}`)
+
+    const idempotencyKey = 'saved-synthetic-key'
+    const originalCase = { title: 'Saved synthetic title', message: 'Saved synthetic message' }
+    const write = () => operation === 'openCase'
+      ? client.openCase(originalCase, idempotencyKey)
+      : client.reply(reference, originalCase.message, idempotencyKey)
+
+    await expect(write()).rejects.toMatchObject({ code: 'idempotency_completion_uncertain', status: 503 })
+    expect(attempts).toHaveLength(1)
+    expect(await write()).toEqual({ data: { case_reference: reference } })
+    expect(assertionCount).toBe(2)
+    expect(attempts.map(({ assertion, key }) => [assertion, key])).toEqual([
+      ['fixture.assertion.write1', idempotencyKey],
+      ['fixture.assertion.write2', idempotencyKey],
+    ])
+    expect(attempts[0].body).toBe(attempts[1].body)
+    expect(JSON.parse(attempts[0].body)).toEqual(operation === 'openCase' ? originalCase : { message: originalCase.message })
+  })
+
+  it.each([
+    ['empty assertion', (): string => ''],
+    ['malformed assertion', (): string => 'fixture.invalid proof'],
+    ['synchronous provider error', (): never => { throw new Error('private fixture detail') }],
+    ['rejected provider promise', async (): Promise<never> => { throw new Error('private fixture detail') }],
+  ] as const)('returns a fixed local error without fetching on %s', async (_label, getCustomerAssertion) => {
+    let fetchCount = 0
+    const client = customerClient(async () => {
+      fetchCount += 1
+      return Response.json({ data: [] })
+    }, getCustomerAssertion)
+
+    await expect(client.listCases()).rejects.toThrow(/^Customer assertion unavailable\.$/)
+    expect(fetchCount).toBe(0)
+  })
+})
 
 const exampleFile = fileURLToPath(new URL('../docs/examples/tenant-support-reference-client.mjs', import.meta.url))
 const fixtureFetch = `
