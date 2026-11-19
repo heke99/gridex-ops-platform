@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAnalyticsCronAuthorized, listAnalyticsCompanyIds } from '@/lib/analytics/cron'
+import { invalidAnalyticsCronMonth, resolveAnalyticsCronMonth } from '@/lib/analytics/cronMonth'
 import { buildCompanyMonthlyMetrics, rebuildMeteringMonthlyConsumption } from '@/lib/analytics/monthlyMetricsBuilder'
 import { monthStart, addMonths } from '@/lib/analytics/utils'
 
@@ -8,7 +9,8 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   if (!isAnalyticsCronAuthorized(request)) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
-  const month = monthStart(request.nextUrl.searchParams.get('month') ?? addMonths(monthStart(), -1))
+  const month = resolveAnalyticsCronMonth(request.nextUrl.searchParams.get('month'), addMonths(monthStart(), -1))
+  if (month === null) return invalidAnalyticsCronMonth()
   const companies = await listAnalyticsCompanyIds()
   for (const companyId of companies) {
     // Corrections can arrive for any of the last 12 months; refresh their rollup
