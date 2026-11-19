@@ -25,9 +25,10 @@ import EdielOutboxPage from '@/app/admin/ediel/outbox/page'
 
 const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const company = uid(1), otherCompany = uid(2), oldMessage = uid(3), recentMessage = uid(4), foreignMessage = uid(5)
+type OutboxFixtureRow = Record<string, unknown> & { ediel_message_id: string }
 let db: PGlite
 
-async function fetchPort(input: RequestInfo | URL, init?: RequestInit) {
+async function fetchPort(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = new URL(String(input))
   expect(init?.method).toBe('GET')
   expect(url.searchParams.get('company_id')).toBe(`eq.${company}`)
@@ -46,7 +47,7 @@ async function fetchPort(input: RequestInfo | URL, init?: RequestInit) {
   expect(columns.every(column => /^[a-z_]+$/.test(column))).toBe(true)
   const status = review ? "and status='delivery_uncertain'" : ''
   const order = review ? 'updated_at desc, id desc' : 'created_at desc'
-  const { rows } = await db.query(`select ${columns.join(',')} from public.ediel_outbox
+  const { rows } = await db.query<OutboxFixtureRow>(`select ${columns.join(',')} from public.ediel_outbox
     where company_id=$1 ${status} order by ${order} limit $2`, [company, Number(url.searchParams.get('limit'))])
   if (!review && io.recentStatus) {
     return Response.json(rows.map(row => row.ediel_message_id === recentMessage ? { ...row, status: io.recentStatus } : row))
