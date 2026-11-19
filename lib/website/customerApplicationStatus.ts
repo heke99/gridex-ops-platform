@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { buildTenantCheckoutResult } from '@/lib/website/publicCheckoutResult'
+import { loadWebsiteApplicationSwitch, selectWebsiteStatusLineage, type WebsiteStatusLineageRow } from '@/lib/website/switchStatus'
 
 type JsonRecord = Record<string, unknown>
 type QueryResult<T> = { data: T | null; error: { code?: string; message?: string } | null }
@@ -28,18 +29,7 @@ type WorkflowRow = {
   updated_at: string | null
 }
 
-type LineageRow = JsonRecord & {
-  id?: string | null
-  customer_id?: string | null
-  customer_site_id?: string | null
-  site_id?: string | null
-  metering_point_id?: string | null
-  contract_id?: string | null
-  customer_contract_id?: string | null
-  status?: string | null
-  created_at?: string | null
-  updated_at?: string | null
-}
+type LineageRow = JsonRecord & WebsiteStatusLineageRow
 
 type JobRow = {
   status: string | null
@@ -165,46 +155,21 @@ function assertQuery<T>(result: QueryResult<T>, component: string): T | null {
   throw result.error
 }
 
-function lineageScore(application: ApplicationRow, row: LineageRow): number {
-  let score = 0
-  if (application.contract_id && [clean(row.contract_id), clean(row.customer_contract_id)].includes(application.contract_id)) score += 100
-  if (application.customer_site_id && [clean(row.customer_site_id), clean(row.site_id)].includes(application.customer_site_id)) score += 50
-  if (application.metering_point_id && clean(row.metering_point_id) === application.metering_point_id) score += 25
-  if (application.customer_id && clean(row.customer_id) === application.customer_id) score += 1
-  return score
-}
-
-function selectCorrelatedRow(application: ApplicationRow, rows: LineageRow[], component: string): LineageRow | null {
-  if (rows.length === 0) return null
-  const scored = rows
-    .map((row) => ({ row, score: lineageScore(application, row) }))
-    .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score || String(b.row.updated_at ?? b.row.created_at ?? '').localeCompare(String(a.row.updated_at ?? a.row.created_at ?? '')))
-  if (scored.length === 0) return null
-  const top = scored[0]
-  const directLineage = top.score > 1
-  const equallyWeak = !directLineage && scored.filter((entry) => entry.score === top.score).length > 1
-  if (equallyWeak) {
+function requireUnambiguousLineage<T>(selection: { data: T | null; ambiguous: boolean }, component: string): T | null {
+  if (selection.ambiguous) {
     throw new WebsiteCustomerApplicationStatusError(
       'application_status_lineage_ambiguous',
       409,
       `${component} kunde inte bindas entydigt till ansökan.`,
     )
   }
-  return top.row
+  return selection.data
 }
 
-async function loadCorrelatedSwitch(application: ApplicationRow): Promise<LineageRow | null> {
-  if (!application.customer_id) return null
-  const result = await supabaseService
-    .from('supplier_switch_requests')
-    .select('id,company_id,customer_id,customer_site_id,site_id,metering_point_id,contract_id,customer_contract_id,status,requested_start_date,confirmed_start_date,created_at,updated_at')
-    .eq('company_id', application.company_id)
-    .eq('customer_id', application.customer_id)
-    .order('created_at', { ascending: false })
-    .limit(50)
-  const rows = assertQuery(result as QueryResult<LineageRow[]>, 'leverantörsbyte') ?? []
-  return selectCorrelatedRow(application, rows, 'Leverantörsbytet')
+async function loadCorrelatedSwitch(application: ApplicationRow) {
+  const result = await loadWebsiteApplicationSwitch(application)
+  assertQuery(result, 'leverantörsbyte')
+  return requireUnambiguousLineage(result, 'Leverantörsbytet')
 }
 
 async function loadCorrelatedSupply(application: ApplicationRow): Promise<LineageRow | null> {
@@ -217,7 +182,7 @@ async function loadCorrelatedSupply(application: ApplicationRow): Promise<Lineag
     .order('start_date', { ascending: false })
     .limit(50)
   const rows = assertQuery(result as QueryResult<LineageRow[]>, 'försörjningsperiod') ?? []
-  return selectCorrelatedRow(application, rows, 'Försörjningsperioden')
+  return requireUnambiguousLineage(selectWebsiteStatusLineage(application, rows), 'Försörjningsperioden')
 }
 
 function summarizeCommunication(logs: CommunicationRow[], outbox: EmailOutboxRow[]) {
