@@ -4,11 +4,18 @@ import { readEdielProcessNextActions, type EdielProcessNextAction } from './proc
 import {readEdielMeteringMethodExpectations,expireEdielMeteringMethodExpectations} from '@/lib/ediel/meteringMethodExpectations'
 import type {EdielBusinessExpectation} from '@/lib/ediel/businessExpectations'
 
+const WATCH_BATCH_LIMIT = 100
+
+type SweepBlocker = { companyId: string; environment: 'test' | 'production'; reason: string } & (
+  { operation: 'read' | 'expire' }
+  | { operation: 'project'; sourceMessageIds: string[] }
+)
+
 /** Sweep only the automation actor's accepted memberships. Each operation
  * repeats authorization in the source-owner RPC; a clock never sends a message. */
 export async function sweepEdielBusinessExpectations(input: { actorUserId: string; limit?: number }) {
   if (!input.actorUserId) throw new Error('ediel_expectation_sweep_actor_required')
-  const limit = Math.min(Math.max(Math.floor(input.limit ?? 100), 1), 100)
+  const limit = Math.min(Math.max(Math.floor(input.limit ?? WATCH_BATCH_LIMIT), 1), WATCH_BATCH_LIMIT)
   const memberships = await supabaseService.from('company_memberships').select('company_id')
     .eq('user_id', input.actorUserId).eq('status', 'active').eq('is_active', true)
     .not('accepted_at', 'is', null).order('company_id', { ascending: true }).limit(201)
@@ -18,7 +25,7 @@ export async function sweepEdielBusinessExpectations(input: { actorUserId: strin
   if (companies.length > 200) throw new Error('ediel_expectation_sweep_scope_limit')
   const result = { scopes: 0, observed: 0, manualReview: 0, fulfilled: 0, rejected: 0,
     nextActions: [] as Array<{companyId:string;environment:'test'|'production';decision:EdielProcessNextAction}>,
-    blocked: [] as Array<{ companyId: string; environment: 'test' | 'production'; operation: 'read' | 'expire' | 'project'; reason: string }> }
+    blocked: [] as SweepBlocker[] }
   for (const companyId of companies) {
     for (const environment of ['test', 'production'] as const) {
       const scope = { actorUserId: input.actorUserId, companyId, environment, limit }
@@ -47,17 +54,28 @@ export async function sweepEdielBusinessExpectations(input: { actorUserId: strin
         result.manualReview += rows.filter(row => row.status === 'manual_review').length
         result.fulfilled += rows.filter(row => row.status === 'fulfilled').length
         result.rejected += rows.filter(row => row.status === 'rejected').length
-        try {
-        const sourceIds=rows.flatMap(row=>typeof row.source_message_id==='string'?[row.source_message_id]:[])
+        const sourceIds = [...new Set(rows.flatMap(row =>
+          typeof row.source_message_id === 'string' ? [row.source_message_id] : [],
+        ))]
+        const evaluatedAt = new Date().toISOString()
         // Timer output is display-only. An automation actor's send grant never
         // manufactures cases.write permission, provider entry or an auto-resend.
-        const decisions=await readEdielProcessNextActions({...scope,messageIds:sourceIds,evaluatedAt:new Date().toISOString(),
-          access:{canRead:true,canReview:false,canPrepare:false}})
-        for(const decision of decisions.values())result.nextActions.push({companyId,environment,decision})
-      } catch (error) {
-        result.blocked.push({ companyId, environment, operation: 'project',
-          reason: error instanceof Error ? error.message : typeof error === 'object' && error !== null && 'message' in error ? String(error.message) : 'ediel_expectation_sweep_failed' })
-      }
+        // Two independent source owners can exceed the projection read limit together.
+        for (let offset = 0; offset < sourceIds.length; offset += WATCH_BATCH_LIMIT) {
+          const sourceMessageIds = sourceIds.slice(offset, offset + WATCH_BATCH_LIMIT)
+          try {
+            const decisions = await readEdielProcessNextActions({
+              ...scope,
+              messageIds: sourceMessageIds,
+              evaluatedAt,
+              access: { canRead: true, canReview: false, canPrepare: false },
+            })
+            for (const decision of decisions.values()) result.nextActions.push({ companyId, environment, decision })
+          } catch (error) {
+            result.blocked.push({ companyId, environment, operation: 'project', sourceMessageIds,
+              reason: error instanceof Error ? error.message : typeof error === 'object' && error !== null && 'message' in error ? String(error.message) : 'ediel_expectation_sweep_failed' })
+          }
+        }
       }
     }
   }
