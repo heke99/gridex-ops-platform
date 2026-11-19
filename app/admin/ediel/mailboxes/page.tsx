@@ -2,6 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,21 +23,93 @@ type MailboxRow = {
   certificate_id?: string | null
   security_status?: string | null
   last_successful_poll_at?: string | null
+  last_polled_at?: string | null
   last_poll_at?: string | null
   last_poll_status?: string | null
   last_error?: string | null
+  locked_at?: string | null
   is_active?: boolean | null
 }
 
-function formatDate(value: string | null | undefined): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+const statusTones = {
+  neutral: 'border-slate-200 bg-slate-50 text-slate-700',
+  success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  warning: 'border-amber-200 bg-amber-50 text-amber-900',
 }
 
-function statusTone(ok: boolean): string {
-  return ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'
+type Status = {
+  label: string
+  tone: keyof typeof statusTones
+  action?: { href: string; label: string }
+}
+
+function StatusBadge({ label, tone, action }: Status) {
+  return (
+    <>
+      <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusTones[tone]}`}>{label}</div>
+      {action ? (
+        <Link href={action.href} prefetch={false} className="mt-1 block text-xs font-semibold text-slate-700 underline">
+          {action.label}
+        </Link>
+      ) : null}
+    </>
+  )
+}
+
+function readPollTime(value: string | null | undefined): number | null {
+  if (!value) return null
+  const time = Date.parse(value)
+  return Number.isFinite(time) ? time : null
+}
+
+function formatDate(time: number | null): string {
+  if (time === null) return '—'
+  return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short' }).format(time)
+}
+
+function latestPollAttempt(mailbox: MailboxRow): number | null {
+  const current = readPollTime(mailbox.last_polled_at)
+  const legacy = readPollTime(mailbox.last_poll_at)
+  if (current === null || legacy === null) return current ?? legacy
+  return Math.max(current, legacy)
+}
+
+function securityStatus(mailbox: MailboxRow): Status {
+  switch (mailbox.security_status?.trim().toLowerCase()) {
+    case 'failed':
+    case 'error':
+      return {
+        label: 'Säkerhetskontrollen misslyckades',
+        tone: 'warning',
+        action: { href: '/admin/ediel/certificates', label: 'Kontrollera Ediel-certifikaten' },
+      }
+    case 'private_certificate_configured':
+      return { label: 'Certifikat konfigurerat', tone: 'neutral' }
+    case 'receiver_certificate_on_route_required':
+      return { label: 'Mottagarcertifikat krävs på rutten', tone: 'warning' }
+    case 'test_unencrypted_allowed':
+      if (mailbox.environment === 'test') {
+        return { label: 'Okrypterat tillåtet i test', tone: 'neutral' }
+      }
+      break
+  }
+  return { label: 'Säkerhetsstatus okänd', tone: 'neutral' }
+}
+
+function pollStatus(mailbox: MailboxRow, attempt: number | null, success: number | null): Status {
+  const previousStatus = mailbox.last_poll_status?.trim().toLowerCase()
+  if (mailbox.last_error?.trim() || previousStatus === 'failed' || previousStatus === 'error') {
+    return {
+      label: 'Pollning misslyckades',
+      tone: 'warning',
+      action: { href: '/admin/inbound-mail/diagnostics', label: 'Öppna polldiagnostik' },
+    }
+  }
+  if (mailbox.is_active === false) return { label: 'Pollning inaktiv', tone: 'neutral' }
+  if (mailbox.is_active === true && !mailbox.locked_at && success !== null && (attempt === null || success >= attempt)) {
+    return { label: 'Senaste poll lyckades', tone: 'success' }
+  }
+  return { label: 'Pollresultat okänt', tone: 'neutral' }
 }
 
 export default async function EdielMailboxesPage() {
@@ -74,7 +147,7 @@ export default async function EdielMailboxesPage() {
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Aktiva</p>
-            <p className="mt-3 text-3xl font-black text-slate-950">{mailboxes.filter((m) => m.is_active !== false).length}</p>
+            <p className="mt-3 text-3xl font-black text-slate-950">{mailboxes.filter((m) => m.is_active === true).length}</p>
           </div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">S/MIME</p>
@@ -102,40 +175,51 @@ export default async function EdielMailboxesPage() {
                   <th className="p-3">Transport</th>
                   <th className="p-3">Security</th>
                   <th className="p-3">Polling</th>
-                  <th className="p-3">Status</th>
+                  <th className="p-3">Aktivering</th>
                 </tr>
               </thead>
               <tbody>
                 {mailboxes.length === 0 ? (
                   <tr><td colSpan={5} className="p-6 text-center text-slate-500">Inga mailboxes hittades.</td></tr>
                 ) : null}
-                {mailboxes.map((mailbox) => (
-                  <tr key={mailbox.id} className="border-t border-slate-100">
-                    <td className="p-3">
-                      <div className="font-bold text-slate-950">{mailbox.email_address ?? '—'}</div>
-                      <div className="text-xs text-slate-500">{mailbox.mailbox_name ?? mailbox.mailbox_type ?? 'shared'}</div>
-                    </td>
-                    <td className="p-3 text-slate-700">
-                      <div>{mailbox.transport_mode ?? 'smtp_imap'} · {mailbox.environment ?? '—'}</div>
-                      <div className="text-xs">SMTP {mailbox.smtp_from ?? mailbox.smtp_host ?? '—'} → {mailbox.smtp_to ?? 'route-specific'}</div>
-                      <div className="text-xs">IMAP {mailbox.imap_host ?? '—'}</div>
-                    </td>
-                    <td className="p-3">
-                      <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusTone(mailbox.tls_required !== false)}`}>TLS {mailbox.tls_required === false ? 'ej krav' : 'krävs'}</div>
-                      <div className="mt-2 text-xs text-slate-600">S/MIME: {mailbox.encryption_mode ?? 'none'} / {mailbox.signing_mode ?? 'none'}</div>
-                      <div className="font-mono text-xs text-slate-500">{mailbox.certificate_id ?? 'certifikat saknas'}</div>
-                    </td>
-                    <td className="p-3 text-slate-700">
-                      <div>Senaste poll: {formatDate(mailbox.last_poll_at ?? mailbox.last_successful_poll_at)}</div>
-                      <div className="text-xs">Senaste lyckad: {formatDate(mailbox.last_successful_poll_at)}</div>
-                    </td>
-                    <td className="p-3">
-                      <div className={`rounded-xl border px-3 py-2 ${statusTone(mailbox.is_active !== false && !mailbox.last_error)}`}>
-                        {mailbox.last_error ?? mailbox.security_status ?? mailbox.last_poll_status ?? 'okänd'}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {mailboxes.map((mailbox) => {
+                  const attempt = latestPollAttempt(mailbox)
+                  const success = readPollTime(mailbox.last_successful_poll_at)
+                  const activation = mailbox.is_active == null ? null : mailbox.is_active ? 'active' : 'inactive'
+
+                  return (
+                    <tr key={mailbox.id} className="border-t border-slate-100">
+                      <td className="p-3">
+                        <div className="font-bold text-slate-950">{mailbox.email_address ?? '—'}</div>
+                        <div className="text-xs text-slate-500">{mailbox.mailbox_name ?? mailbox.mailbox_type ?? 'shared'}</div>
+                      </td>
+                      <td className="p-3 text-slate-700">
+                        <div>{mailbox.transport_mode ?? 'smtp_imap'} · {mailbox.environment ?? '—'}</div>
+                        <div className="text-xs">SMTP {mailbox.smtp_from ?? mailbox.smtp_host ?? '—'} → {mailbox.smtp_to ?? 'route-specific'}</div>
+                        <div className="text-xs">IMAP {mailbox.imap_host ?? '—'}</div>
+                      </td>
+                      <td className="p-3">
+                        <StatusBadge {...securityStatus(mailbox)} />
+                        <div className="mt-2">
+                          <StatusBadge
+                            label={mailbox.tls_required === false ? 'TLS ej krav' : 'TLS krävs'}
+                            tone={mailbox.tls_required === false ? 'warning' : 'neutral'}
+                          />
+                        </div>
+                        <div className="text-xs text-slate-600">S/MIME: {mailbox.encryption_mode ?? 'none'} / {mailbox.signing_mode ?? 'none'}</div>
+                        <div className="font-mono text-xs text-slate-500">{mailbox.certificate_id ?? 'certifikat saknas'}</div>
+                      </td>
+                      <td className="p-3 text-slate-700">
+                        <StatusBadge {...pollStatus(mailbox, attempt, success)} />
+                        <div className="mt-2 text-xs">Senaste pollförsök: {formatDate(attempt)}</div>
+                        <div className="text-xs">Senaste lyckade poll: {formatDate(success)}</div>
+                      </td>
+                      <td className="p-3">
+                        <StatusBadge label={formatStatusLabel(activation, 'Aktivering okänd')} tone="neutral" />
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
