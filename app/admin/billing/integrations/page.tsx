@@ -1,9 +1,10 @@
 import BillingIntegrationBusinessView from '@/components/admin/billing/BillingIntegrationBusinessView'
 import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 import AdminHeader from '@/components/admin/AdminHeader'
-import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'
+import { supabaseService } from '@/lib/supabase/service'
 import {
   reprocessInvoiceProviderEventsAction,
   saveNordfinClientIdAction,
@@ -21,6 +22,30 @@ function envStatus(name: string) {
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+const REVIEW_EVENT_PREVIEW_SIZE = 25
+
+async function readInvoiceQueue(
+  table: 'invoice_dead_letters' | 'invoice_provider_events',
+  companyId: string | null,
+  status: 'open' | 'needs_review',
+  includeRecent = false,
+): Promise<{ total: number; rows: Record<string, unknown>[] } | null> {
+  try {
+    const columns = includeRecent ? 'id,event_type,provider,status,provider_invoice_guid,received_at' : 'id'
+    let query = supabaseService.from(table).select(columns, { count: 'exact', head: !includeRecent }).eq('status', status)
+    if (companyId) query = query.eq('company_id', companyId)
+    if (includeRecent) {
+      query = query.order('received_at', { ascending: false }).order('id', { ascending: false }).limit(REVIEW_EVENT_PREVIEW_SIZE)
+    }
+    const { count, data, error } = await query
+    if (error || count === null || !Number.isSafeInteger(count) || count < 0) return null
+    if (includeRecent && (!Array.isArray(data) || data.length > count || (count > 0 && data.length === 0))) return null
+    return { total: count, rows: (data ?? []) as unknown as Record<string, unknown>[] }
+  } catch {
+    return null
+  }
 }
 
 const PROVIDER_NOTICES: Record<string, { tone: 'ok' | 'error'; text: string }> = {
@@ -42,38 +67,18 @@ export default async function BillingIntegrationsPage({
 }) {
   const notice = PROVIDER_NOTICES[(await searchParams).provider ?? ''] ?? null
   const admin = await requireAdminPageKeyAccess('billing.workspace')
-  const scope = await resolveAdminSelectedCompanyReadScope(admin)
-  const connections = await safeListRows(
-    'billing_provider_connections',
-    scope?.companyId ?? null,
-    '*',
-    80,
-  )
-  const runs = await safeListRows(
-    'invoice_export_runs',
-    scope?.companyId ?? null,
-    '*',
-    40,
-  )
-  const deadLetters = await safeListRows(
-    'invoice_dead_letters',
-    scope?.companyId ?? null,
-    '*',
-    20,
-  )
-  const reviewEvents = (
-    await safeListRows(
-      'invoice_provider_events',
-      scope?.companyId ?? null,
-      '*',
-      200,
-    )
-  ).filter((row) => String(row.status ?? '') === 'needs_review')
+  const { companyId, companyName, isPlatformAdmin } = await resolveAdminSelectedCompanyReadScope(admin)
+  const [connections, runs, deadLetters, reviewQueue] = await Promise.all([
+    safeListRows('billing_provider_connections', companyId, '*', 80),
+    safeListRows('invoice_export_runs', companyId, '*', 40),
+    readInvoiceQueue('invoice_dead_letters', companyId, 'open'),
+    readInvoiceQueue('invoice_provider_events', companyId, 'needs_review', isPlatformAdmin),
+  ])
   let settingsUnavailable = false
-  const [catalog, selection] = scope?.companyId
+  const [catalog, selection] = companyId
     ? await Promise.all([
-        listInvoiceProviderCatalog(scope.companyId).catch(() => { settingsUnavailable = true; return [] }),
-        loadTenantInvoiceProviderSelection(scope.companyId).catch(() => { settingsUnavailable = true; return null }),
+        listInvoiceProviderCatalog(companyId).catch(() => { settingsUnavailable = true; return [] }),
+        loadTenantInvoiceProviderSelection(companyId).catch(() => { settingsUnavailable = true; return null }),
       ])
     : [[], null]
   const selectedConnection = selection?.invoice_export_target_system
@@ -96,8 +101,23 @@ export default async function BillingIntegrationsPage({
     ? capwayTest.readiness_issues
     : []
 
-  if (!isPlatformAdminContext(admin)) {
-    return <div className="min-h-screen"><AdminHeader title="Fakturainställningar" subtitle="Fakturaleverantör, anslutning och automatiska utskick." userEmail={admin.email} workspaceName={scope?.companyName} /><BillingIntegrationBusinessView catalog={catalog} selection={selection} connection={selectedConnection} runs={runs} canManage={admin.permissions.some(permission => ['billing_underlay.export', 'pricing.write'].includes(permission))} unavailable={settingsUnavailable} reviewCount={reviewEvents.length} failedCount={deadLetters.filter(row => row.status === 'open').length} notice={notice} /></div>
+  if (!isPlatformAdmin) {
+    return (
+      <div className="min-h-screen">
+        <AdminHeader title="Fakturainställningar" subtitle="Fakturaleverantör, anslutning och automatiska utskick." userEmail={admin.email} workspaceName={companyName} />
+        <BillingIntegrationBusinessView
+          catalog={catalog}
+          selection={selection}
+          connection={selectedConnection}
+          runs={runs}
+          canManage={admin.permissions.some(permission => ['billing_underlay.export', 'pricing.write'].includes(permission))}
+          unavailable={settingsUnavailable}
+          reviewCount={reviewQueue?.total ?? null}
+          failedCount={deadLetters?.total ?? null}
+          notice={notice}
+        />
+      </div>
+    )
   }
 
   return (
@@ -106,7 +126,7 @@ export default async function BillingIntegrationsPage({
         title="Fakturaintegrationer"
         subtitle="Styr fakturaexport, Capway/Aptic, fakturaköp och providerstatus per elhandelsbolag."
         userEmail={admin.email}
-        workspaceName={scope?.companyName}
+        workspaceName={companyName}
       />
       <main className="min-w-0 space-y-4 p-4 lg:p-6 [&_input:not([type=radio])]:min-w-0 [&_select]:min-w-0 [&_select]:w-full [&_label]:min-w-0 [&_label]:grid-cols-1">
         <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -121,7 +141,7 @@ export default async function BillingIntegrationsPage({
           <div className="rounded-2xl border bg-white p-3">
             <div className="text-sm text-slate-600">Misslyckade poster</div>
             <div className="mt-1 text-2xl font-semibold">
-              {deadLetters.filter((row) => row.status === 'open').length}
+              {deadLetters?.total ?? 'Kunde inte läsas'}
             </div>
           </div>
           <div className="rounded-2xl border bg-white p-3">
@@ -412,12 +432,16 @@ export default async function BillingIntegrationsPage({
             </form>
           </div>
           <div className="divide-y">
-            {reviewEvents.length === 0 ? (
+            {!reviewQueue ? (
+              <div role="alert" className="p-6 text-sm text-amber-950">
+                Granskningskön kunde inte läsas.
+              </div>
+            ) : reviewQueue.total === 0 ? (
               <div className="p-6 text-sm text-slate-600">
                 Inga händelser väntar på granskning.
               </div>
             ) : null}
-            {reviewEvents.slice(0, 25).map((row) => (
+            {reviewQueue?.rows.map((row) => (
               <div key={String(row.id)} className="min-w-0 break-words p-4 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="font-semibold">
@@ -435,9 +459,9 @@ export default async function BillingIntegrationsPage({
                 </div>
               </div>
             ))}
-            {reviewEvents.length > 25 ? (
+            {reviewQueue && reviewQueue.total > reviewQueue.rows.length ? (
               <div className="p-4 text-xs text-slate-500">
-                Visar 25 av {reviewEvents.length} händelser.
+                Visar {reviewQueue.rows.length} av {reviewQueue.total} händelser.
               </div>
             ) : null}
           </div>

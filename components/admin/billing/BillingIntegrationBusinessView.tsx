@@ -13,8 +13,8 @@ export default function BillingIntegrationBusinessView({ catalog, selection, con
   runs: Record<string, unknown>[]
   canManage: boolean
   unavailable: boolean
-  reviewCount: number
-  failedCount: number
+  reviewCount: number | null
+  failedCount: number | null
   notice: { tone: 'ok' | 'error'; text: string } | null
 }) {
   const selected = selection?.invoice_export_target_system
@@ -47,8 +47,11 @@ export default function BillingIntegrationBusinessView({ catalog, selection, con
       </form>
       {selected === 'nordfin' ? <form action={saveNordfinClientIdAction} className="mt-4 grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-2"><label className="grid min-w-0 gap-1 text-sm">Bolagets kundnummer hos Nordfin<input name="client_id" required maxLength={40} pattern="[A-Za-z0-9_\-]{1,40}" defaultValue={typeof settings?.client_id === 'string' ? settings.client_id : ''} className={control} /></label><button className={button}>Spara kundnummer</button></form> : null}
     </AdminDisclosurePanel> : null}
-    {failedCount > 0 ? <p role="status" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">Misslyckade fakturaposter: {failedCount}. Behöver följas upp.</p> : null}
-    {reviewCount > 0 ? <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Fakturahändelser att granska: {reviewCount}. Kontakta support för uppföljning.</p> : null}
+    {failedCount === null || reviewCount === null ? (
+      <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Fakturakön kunde inte läsas fullständigt.</p>
+    ) : null}
+    {failedCount !== null && failedCount > 0 ? <p role="status" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">Misslyckade fakturaposter: {failedCount}. Behöver följas upp.</p> : null}
+    {reviewCount !== null && reviewCount > 0 ? <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Fakturahändelser att granska: {reviewCount}. Kontakta support för uppföljning.</p> : null}
     <details className="rounded-2xl border border-slate-200 bg-white p-4">
       <summary className="cursor-pointer text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Senaste överföringar ({runs.length})</summary>
       {runs.length === 0 ? <p className="mt-3 text-sm text-slate-600">Inga överföringar registrerade.</p> : <div role="region" aria-label="Fakturaöverföringar" tabIndex={0} className="mt-3 max-h-80 space-y-2 overflow-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">{runs.map(row => <div key={String(row.id)} className="rounded-xl border border-slate-200 p-3 text-sm"><div className="flex flex-wrap justify-between gap-2"><span className="font-medium">{String(row.billing_month ?? 'Period saknas')} · {label(row.provider)}</span><span>{formatStatusLabel(typeof row.status === 'string' ? row.status : null, 'Status saknas', 'Behöver granskning')}</span></div><p className="mt-1 text-slate-600">Fakturor: {String(row.total_items ?? '—')} · Skickade: {String(row.sent_items ?? '—')} · Fel: {String(row.failed_items ?? '—')}</p></div>)}</div>}
