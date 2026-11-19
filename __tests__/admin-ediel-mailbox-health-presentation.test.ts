@@ -88,6 +88,7 @@ describe('Ediel mailbox status page', () => {
     expectStatus(attempted, 'Pollresultat okänt', 'slate')
     expectStatus(attempted, 'TLS krävs', 'slate')
     expect(attempted).not.toContain('text-emerald-')
+    expect(attempted).not.toContain('Öppna polldiagnostik')
     expect(attempted).toMatch(/Senaste pollförsök: [^—<]/)
     expect(attempted).toContain('Senaste lyckade poll: —')
 
@@ -114,8 +115,11 @@ describe('Ediel mailbox status page', () => {
       mailbox('inactive', { is_active: false, last_polled_at: attemptAt, last_successful_poll_at: successAt }),
     ])
 
-    expectStatus(mailboxRow(html, 'failed'), 'Pollning misslyckades', 'amber')
-    expectStatus(mailboxRow(html, 'legacy-failed'), 'Pollning misslyckades', 'amber')
+    for (const name of ['failed', 'legacy-failed']) {
+      const failed = mailboxRow(html, name)
+      expectStatus(failed, 'Pollning misslyckades', 'amber')
+      expect(failed).toMatch(/href="\/admin\/inbound-mail\/diagnostics">Öppna polldiagnostik<\/a>/)
+    }
     expect(html).not.toContain(rawError)
     expectStatus(mailboxRow(html, 'confirmed'), 'Senaste poll lyckades', 'emerald')
     expectStatus(mailboxRow(html, 'new-attempt'), 'Pollresultat okänt', 'slate')
@@ -128,6 +132,22 @@ describe('Ediel mailbox status page', () => {
     expectStatus(inactive, 'Inaktiv', 'slate')
     expectStatus(inactive, 'Pollning inaktiv', 'slate')
     expect(inactive).not.toContain('Senaste poll lyckades')
+  })
+
+  it('flags a stored failed security check and gives the operator a corrective action', async () => {
+    const html = await renderMailboxPage([
+      mailbox('security-failed', { security_status: 'failed' }),
+      mailbox('security-unknown', { security_status: 'OKÄND' }),
+    ])
+
+    const failed = mailboxRow(html, 'security-failed')
+    expectStatus(failed, 'Säkerhetskontrollen misslyckades', 'amber')
+    expect(failed).toMatch(/href="\/admin\/ediel\/certificates">Kontrollera Ediel-certifikaten<\/a>/)
+    expect(failed).not.toContain('text-emerald-')
+
+    const unknown = mailboxRow(html, 'security-unknown')
+    expectStatus(unknown, 'Säkerhetsstatus okänd', 'slate')
+    expect(unknown).not.toContain('Kontrollera Ediel-certifikaten')
   })
 
   it('keeps the protected entry point and empty result', async () => {

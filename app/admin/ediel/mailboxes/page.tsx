@@ -37,10 +37,23 @@ const statusTones = {
   warning: 'border-amber-200 bg-amber-50 text-amber-900',
 }
 
-type Status = { label: string; tone: keyof typeof statusTones }
+type Status = {
+  label: string
+  tone: keyof typeof statusTones
+  action?: { href: string; label: string }
+}
 
-function StatusBadge({ label, tone }: Status) {
-  return <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusTones[tone]}`}>{label}</div>
+function StatusBadge({ label, tone, action }: Status) {
+  return (
+    <>
+      <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusTones[tone]}`}>{label}</div>
+      {action ? (
+        <Link href={action.href} prefetch={false} className="mt-1 block text-xs font-semibold text-slate-700 underline">
+          {action.label}
+        </Link>
+      ) : null}
+    </>
+  )
 }
 
 function readPollTime(value: string | null | undefined): number | null {
@@ -62,7 +75,14 @@ function latestPollAttempt(mailbox: MailboxRow): number | null {
 }
 
 function securityStatus(mailbox: MailboxRow): Status {
-  switch (mailbox.security_status) {
+  switch (mailbox.security_status?.trim().toLowerCase()) {
+    case 'failed':
+    case 'error':
+      return {
+        label: 'Säkerhetskontrollen misslyckades',
+        tone: 'warning',
+        action: { href: '/admin/ediel/certificates', label: 'Kontrollera Ediel-certifikaten' },
+      }
     case 'private_certificate_configured':
       return { label: 'Certifikat konfigurerat', tone: 'neutral' }
     case 'receiver_certificate_on_route_required':
@@ -79,7 +99,11 @@ function securityStatus(mailbox: MailboxRow): Status {
 function pollStatus(mailbox: MailboxRow, attempt: number | null, success: number | null): Status {
   const previousStatus = mailbox.last_poll_status?.trim().toLowerCase()
   if (mailbox.last_error?.trim() || previousStatus === 'failed' || previousStatus === 'error') {
-    return { label: 'Pollning misslyckades', tone: 'warning' }
+    return {
+      label: 'Pollning misslyckades',
+      tone: 'warning',
+      action: { href: '/admin/inbound-mail/diagnostics', label: 'Öppna polldiagnostik' },
+    }
   }
   if (mailbox.is_active === false) return { label: 'Pollning inaktiv', tone: 'neutral' }
   if (mailbox.is_active === true && !mailbox.locked_at && success !== null && (attempt === null || success >= attempt)) {
