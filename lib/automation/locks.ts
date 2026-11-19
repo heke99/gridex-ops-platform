@@ -48,6 +48,10 @@ export async function withAutomationLock<T>(input: {
   try {
     return await input.run(lock)
   } finally {
-    await releaseAutomationLock(lock)
+    try {
+      await releaseAutomationLock(lock)
+    } catch {
+      console.error('[automation-lock] release_failed', { lockKey: lock.lockKey, companyId: input.companyId ?? null })
+    }
   }
 }
