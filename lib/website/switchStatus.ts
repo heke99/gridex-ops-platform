@@ -80,6 +80,13 @@ function matchesSwitchBinding(application: WebsiteApplicationSwitch, row: Websit
   return bindings.every(([expected, actual]) => !expected || !actual || expected === actual)
 }
 
+function matchesHistoricalSwitch(application: WebsiteApplicationSwitch, row: WebsiteStatusLineageRow): boolean {
+  if (!matchesSwitchBinding(application, row)) return false
+  if (application.customer_site_id) return switchSite(row) === application.customer_site_id
+  if (!application.contract_id && !application.metering_point_id) return true
+  return lineageScore(application, row) > 1
+}
+
 export async function loadWebsiteApplicationSwitch(application: WebsiteApplicationSwitch) {
   if (!application.customer_id) return { data: null, error: null, ambiguous: false }
   const selectSwitch = () => supabaseService
@@ -95,20 +102,16 @@ export async function loadWebsiteApplicationSwitch(application: WebsiteApplicati
     if (result.data && matchesSwitchBinding(application, result.data)) return { data: result.data, error: null, ambiguous: false }
   }
 
-  // Keep the existing checkout candidate window for applications without a usable saved link.
-  const limit = 50
-  const result = await selectSwitch().order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit)
-  if (result.error) return { data: null, error: result.error, ambiguous: false }
-  const rows = (result.data ?? []).filter(row => matchesSwitchBinding(application, row))
   const siteId = application.customer_site_id
-  if (siteId && isUuid(siteId) && !rows.some(row => switchSite(row) === siteId)) {
-    // A short customer result can reflect a PostgREST cap. Scope the site before applying the limit.
-    const atSite = await selectSwitch()
-      .or(`customer_site_id.eq.${siteId},and(customer_site_id.is.null,site_id.eq.${siteId})`)
-      .order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit)
-    if (atSite.error) return { data: null, error: atSite.error, ambiguous: false }
-    rows.push(...(atSite.data ?? []).filter(row => switchSite(row) === siteId && matchesSwitchBinding(application, row)))
+  let query = selectSwitch()
+  if (siteId) {
+    if (!isUuid(siteId)) return { data: null, error: null, ambiguous: false }
+    // Scope historical matches to the known site before applying the row limit.
+    query = query.or(`customer_site_id.eq.${siteId},and(customer_site_id.is.null,site_id.eq.${siteId})`)
   }
+  const result = await query.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(50)
+  if (result.error) return { data: null, error: result.error, ambiguous: false }
+  const rows = (result.data ?? []).filter(row => matchesHistoricalSwitch(application, row))
   return { ...selectWebsiteStatusLineage(application, rows), error: null }
 }
 

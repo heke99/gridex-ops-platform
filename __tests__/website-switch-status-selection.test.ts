@@ -177,6 +177,41 @@ it.each([50, 2])('finds a verified legacy site behind other switches with respon
   }
 })
 
+it.each([null, 'same-meter'])('excludes an unbound historical switch when the application has a known site (%s)', async binding => {
+  io.rows.website_customer_applications[0].response_payload = {}
+  io.rows.supplier_switch_requests = [switchRow(first, 'failed', oldAt, {
+    customer_site_id: null, site_id: null, contract_id: null, customer_contract_id: null,
+    metering_point_id: binding ? meter : null,
+  })]
+  io.rows.supplier_switch_events = [{ company_id: company, switch_request_id: first, event_type: 'unrelated' }]
+  expect(await responseStatuses()).toEqual({ checkout: 'not_started', switchStatus: undefined })
+  expect(io.queries.some(url => url.pathname.endsWith('/supplier_switch_events'))).toBe(false)
+})
+
+it('requires a known contract or meter to match when the application has no site', async () => {
+  Object.assign(io.rows.website_customer_applications[0], { response_payload: {}, customer_site_id: null })
+  io.rows.supplier_switch_requests = [switchRow(first, 'failed', oldAt, {
+    contract_id: null, customer_contract_id: null, metering_point_id: null,
+  })]
+  expect(await responseStatuses()).toEqual({ checkout: 'not_started', switchStatus: undefined })
+  expect(io.queries.some(url => url.pathname.endsWith('/supplier_switch_events'))).toBe(false)
+  io.rows.supplier_switch_requests.push(switchRow(later, 'confirmed', newAt))
+  expect(await responseStatuses()).toEqual({ checkout: 'confirmed', switchStatus: 'confirmed' })
+})
+
+it('preserves an explicit stored same-customer legacy switch with no site recorded', async () => {
+  Object.assign(io.rows.supplier_switch_requests[0], { customer_site_id: null, site_id: null })
+  expect(await responseStatuses()).toEqual({ checkout: 'confirmed', switchStatus: 'confirmed' })
+})
+
+it('preserves a single customer-only historical match for an application with no stronger key', async () => {
+  Object.assign(io.rows.website_customer_applications[0], {
+    response_payload: {}, customer_site_id: null, contract_id: null, metering_point_id: null,
+  })
+  io.rows.supplier_switch_requests = [switchRow(first, 'confirmed', oldAt)]
+  expect(await responseStatuses()).toEqual({ checkout: 'confirmed', switchStatus: 'confirmed' })
+})
+
 it('keeps the published envelopes when customer-only historical matches are ambiguous', async () => {
   Object.assign(io.rows.website_customer_applications[0], {
     response_payload: {}, customer_site_id: null, contract_id: null, metering_point_id: null,
