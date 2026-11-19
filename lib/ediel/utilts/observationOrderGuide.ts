@@ -1,14 +1,54 @@
-import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, tokenizeEdifact, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { canonicalUtiltsTransactions } from './canonicalObservationScope'
 import type { UtiltsValidationIssue } from '@/lib/ediel/utiltsEngine.part-1'
 
-/** U §3.6.18: either block order is allowed; never repair physical order. */
+function conflictingRegistration(
+  segments: readonly EdifactTokenizedSegment[],
+  una: EdifactServiceStringAdvice,
+): EdifactTokenizedSegment | null {
+  let inLine = false
+  let registration: string[] | undefined
+  for (const segment of segments) {
+    if (segment.tag === 'SEQ') break
+    if (segment.tag === 'LIN') {
+      inLine = true
+      registration = undefined
+      continue
+    }
+    if (!inLine || segment.tag !== 'DTM') continue
+    const components = segmentComposite(segment, 1, una)
+    if (components[0] !== '597') continue
+    if (registration && (components[1] !== registration[1] || components[2] !== registration[2])) return segment
+    registration = components
+  }
+  return null
+}
+
+/** Preserve physical occurrences. U §3.6.18 allows either observation block order. */
 export function utiltsObservationOrderGuideIssues(raw: string): UtiltsValidationIssue[] {
   const wire = tokenizeEdifact(raw)
   const start = wire.segments.findIndex(segment => segment.tag === 'UNH')
   if (start < 0) return []
+  const message = wire.segments.slice(start)
+  const transactions = canonicalUtiltsTransactions(message, wire.una, 0)
+  const firstTransaction = transactions[0]
+  const header = firstTransaction
+    ? message.find(segment => segment.tag === 'BGM' && segment.index < firstTransaction.segmentIndex)
+    : undefined
+  const isE66 = segmentComposite(header, 1, wire.una)[0] === 'E66'
   const issues: UtiltsValidationIssue[] = []
-  for (const transaction of canonicalUtiltsTransactions(wire.segments.slice(start), wire.una, 0)) {
+  for (const transaction of transactions) {
+    const conflict = isE66 && transaction.transactionId ? conflictingRegistration(transaction.segments, wire.una) : null
+    if (conflict) {
+      issues.push({
+        severity: 'error', kind: 'application', code: 'UTILTS_E66_CONFLICTING_REGISTRATION_TIME',
+        title: 'Motstridig registreringstidpunkt', description: 'Transaktionen anger olika registreringstider i samma SG5.',
+        aperakErcCode: '42', aperakFieldCode: '512', aperakText: 'INCORRECT DATA',
+        aperakInvalidOccurrence: { segmentIndex: conflict.index, elementIndex: 1, componentIndex: 1 },
+        referenceQualifier: 'ACW', referenceNumber: transaction.transactionId, lineItemReference: transaction.transactionId,
+      })
+    }
     const seenBlocks = new Set<string>()
     const lastTime = new Map<string, string>()
     const readings = new Set<string>()
