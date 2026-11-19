@@ -243,7 +243,7 @@ donor='supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sq
 digest='118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'
 pre='142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e'
 post='e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa'
-schema='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
+schema='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'
 sha=lambda value:hashlib.sha256(value.encode() if isinstance(value,str) else value).hexdigest()
 def fail(message):raise RuntimeError(message)
 before={'oid':'12345','metadata_sha256':'a'*64,'body_sha256':pre}
@@ -277,6 +277,19 @@ with tempfile.TemporaryDirectory(prefix='db01-current-contrl-unit-') as folder:
  root=pathlib.Path(folder);private=root/'private';private.mkdir();receipt_path=private/'receipt.json'
  for name in [donor,'supabase/schema.sql',*[item['path'] for item in forward_items]]:
   target=root/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes((repo/name).read_bytes())
+ # Reconstruct only the authentic capture when running on the pinned a0 base.
+ capture=(root/'supabase/schema.sql').read_text()
+ if sha(capture)=='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc':
+  patch=json.loads((repo/'__tests__/fixtures/db05-schema-predecessor-local047-20261107.patch.json').read_text())
+  assert patch['preSha256']==sha(capture) and patch['postSha256']==schema and len(patch['hunks'])==19
+  parts=capture.split('\n')
+  for h in reversed(patch['hunks']):
+   assert sha('\n'.join(parts[h['preStart']:h['preStart']+h['preCount']]))==h['preSha256']
+   assert sha('\n'.join(h['postLines']))==h['postSha256']
+   parts[h['preStart']:h['preStart']+h['preCount']]=h['postLines']
+  capture='\n'.join(parts)
+ assert sha(capture)==schema
+ (root/'supabase/schema.sql').write_text(capture)
  blobs={donor:{'mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d','sha256':digest},'supabase/schema.sql':{'sha256':schema}}
  if case.get('fileDrift'):(root/donor).write_bytes((root/donor).read_bytes()+b'\n-- unqualified drift\n')
  if case.get('manifestDrift'):blobs[donor]['sha256']='0'*64
@@ -356,7 +369,7 @@ calls=[n for n in module.body if isinstance(n,ast.Expr) and isinstance(n.value,a
 if len(definitions)!=1 or len(calls)!=1:
  print(json.dumps({'error':'db01_current_contrl_qualifier_missing'}));sys.exit(0)
 donor={'path':'supabase/migrations/20261030130400_ediel_contrl_retained_source_linear.sql','mode':'100644','git_blob_oid':'5855a585e4fedfbd13122471e77baff118224a7d','sha256':'118237935cf39160870272f9a8fc384a435218613309994294793bfe416c2f75'}
-pre='142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e';post='e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa';schema='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
+pre='142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e';post='e1ce86e1838a96ecb8b17b70c32c1b21e662ca37d173627a9722f6b76ca00ffa';schema='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed'
 before={'oid':'12345','metadata_sha256':'a'*64,'body_sha256':pre};after={**before,'body_sha256':post}
 record={'schema':'db01_current_contrl_source_v1','status':'PASS','exit_code':0,'native_or_approval_credit':False,'source_sha':'synthetic-head','source_schema_sha256':schema,'donor':donor,'preimage_sha256':pre,'postimage_sha256':post,'expected_definition_sha256':'72f56c36a939142fd80ea0630a90c002fcec206437238010634530e46f34927d','catalog_before':before,'catalog_after':after}
 receipt={'checkout_sha':'synthetic-head','root_source':{'blobs':{donor['path']:{k:v for k,v in donor.items() if k!='path'},'supabase/schema.sql':{'sha256':schema}}},'current_contrl_source_install':record}
@@ -398,7 +411,7 @@ namespace={'json':json,'re':re,'hashlib':hashlib,'sha':sha,'fail':fail}
 exec(compile(ast.Module(body=nodes,type_ignores=[]),'<actual-writer-source-closure>','exec'),namespace)
 spec=namespace['current_write_api_install_spec']();results=[]
 old=subprocess.check_output(['git','show','14007c0938af0e0d7de136fe76748b3589822ca6:supabase/schema.sql'],text=True)
-new=(repo/'supabase/schema.sql').read_text()
+new=subprocess.check_output(['git','show','f23c1dc0c58f8bb1a55b83d8409e5712177b51b6:supabase/schema.sql'],text=True)
 with tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder:
  path=pathlib.Path(folder)/'receipt.json'
  for source in [old,new]:
@@ -411,7 +424,7 @@ with tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder
 `
   const result = JSON.parse(execFileSync('python3', ['-c', python], {encoding: 'utf8', timeout: 10_000}))
   expect(result).toEqual({
-    schemaPin: 'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc',
+    schemaPin: 'f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed',
     oldSchema: 'bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b',
     newSchema: 'a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc',
     changedObjects: [['gridex_ack_authority', 'FUNCTION', 'read_outbound_originals_v1(uuid, text)']],
@@ -420,4 +433,19 @@ with tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder
     definitionsIdentical: true, '949InWriter': false,
     beforeCatalogPin: '709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
   })
+})
+
+// local047 source-only successor qualification: real observer/spec AST, no workflow/DB execution.
+it('admits only authentic local047 pins and preserves all251 writer definitions and exact catalog delta',()=>{
+ const python="\nimport ast, hashlib, json, pathlib, re, subprocess, tempfile, textwrap\nrepo=pathlib.Path.cwd();lines=(repo/'.github/workflows/ediel-db01-current-native.yml').read_text().splitlines()\nstart=next(i for i,line in enumerate(lines) if 'cat > \"$DB01_PRIVATE/qualify-current-guards.py\"' in line)+1\nend=next(i for i in range(start,len(lines)) if lines[i].strip()=='PY')\ntree=ast.parse(textwrap.dedent('\\n'.join(lines[start:end])))\nnames={'blocks','functions','observe_current_write_api','current_write_api_install_spec','current_contrl_source_spec'}\nnodes=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in names]\nsha=lambda value:hashlib.sha256(value.encode()).hexdigest()\ndef fail(message):raise RuntimeError(message)\nnamespace={'json':json,'re':re,'hashlib':hashlib,'sha':sha,'fail':fail}\nexec(compile(ast.Module(body=nodes,type_ignores=[]),'<actual-writer-source-closure>','exec'),namespace)\nspec=namespace['current_write_api_install_spec']();results=[]\nold=subprocess.check_output(['git','show','f23c1dc0c58f8bb1a55b83d8409e5712177b51b6:supabase/schema.sql'],text=True)\npatch=json.loads((repo/'__tests__/fixtures/db05-schema-predecessor-local047-20261107.patch.json').read_text())\nassert sha(old)==patch['preSha256']=='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'\nassert patch['postSha256']=='f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed' and len(patch['hunks'])==19\nparts=old.split('\\n')\nfor h in reversed(patch['hunks']):\n assert sha('\\n'.join(parts[h['preStart']:h['preStart']+h['preCount']]))==h['preSha256']\n assert sha('\\n'.join(h['postLines']))==h['postSha256']\n parts[h['preStart']:h['preStart']+h['preCount']]=h['postLines']\nnew='\\n'.join(parts);assert sha(new)==patch['postSha256']\nwith tempfile.TemporaryDirectory(prefix='db01-writer-source-closure-') as folder:\n path=pathlib.Path(folder)/'receipt.json'\n for source in [old,new]:\n  catalog=namespace['blocks'](source);receipt={'checkout_sha':'source-only','root_source':{'blobs':{'supabase/schema.sql':{'sha256':sha(source)}}}}\n  namespace.update(expected=catalog,source_functions=namespace['functions'](catalog),receipt=receipt,receipt_path=path,sql=lambda query:'[]')\n  namespace['observe_current_write_api']();observation=receipt['current_write_api_observation']\n  results.append({'schema':sha(source),'definitions':observation['canonical_function_definitions'],'names':observation['planned_function_names'],'catalog':catalog})\n changed=[list(key) for key in sorted(set(results[0]['catalog'])|set(results[1]['catalog'])) if results[0]['catalog'].get(key)!=results[1]['catalog'].get(key)]\n print(json.dumps({'schemaPin':spec['schema_sha256'],'contrlSchemaPin':namespace['current_contrl_source_spec']()['schema_sha256'],'oldSchema':results[0]['schema'],'newSchema':results[1]['schema'],'changedObjects':changed,'writerCounts':[len(x['names']) for x in results],'writerDefinitionDigests':[sha(json.dumps(x['definitions'],sort_keys=True,separators=(',',':'))) for x in results],'definitionsIdentical':results[0]['definitions']==results[1]['definitions'],'949InWriter':any('gridex_ack_authority.read_outbound_originals_v1' in x['names'] for x in results),'beforeCatalogPin':spec['before_catalog_sha256']}))\n"
+ const result=JSON.parse(execFileSync('python3',['-c',python],{encoding:'utf8',timeout:10_000}))
+ expect(result.schemaPin).toBe('f8e0964d0f3a51d37ef85a0e0febb21a78b7e91cea12e42d56dcb234ff1669ed')
+ expect(result.contrlSchemaPin).toBe(result.schemaPin)
+ expect(result.oldSchema).toBe('a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc')
+ expect(result.newSchema).toBe(result.schemaPin)
+ expect(result.writerCounts).toEqual([251,251])
+ expect(result.writerDefinitionDigests).toEqual(Array(2).fill('23866bb938ea1230a1f623073c436ae3d6583b5518378d0ee8eabd403eeb383d'))
+ expect(result.definitionsIdentical).toBe(true);expect(result['949InWriter']).toBe(false)
+ expect(result.beforeCatalogPin).toBe('709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d')
+ expect(result.changedObjects).toEqual([["public", "ACL", "TABLE ediel_agt_readiness"], ["public", "ACL", "TABLE ediel_test_run_locks"], ["public", "ACL", "TABLE ediel_unlinked_test_messages"], ["public", "CONSTRAINT", "ediel_agt_readiness ediel_agt_readiness_company_id_actor_role_message_family_key"], ["public", "CONSTRAINT", "ediel_agt_readiness ediel_agt_readiness_pkey"], ["public", "CONSTRAINT", "ediel_test_run_locks ediel_test_run_locks_pkey"], ["public", "CONSTRAINT", "ediel_unlinked_test_messages ediel_unlinked_test_messages_pkey"], ["public", "FK CONSTRAINT", "ediel_agt_readiness ediel_agt_readiness_company_fkey"], ["public", "FK CONSTRAINT", "ediel_test_run_locks ediel_test_run_locks_company_fkey"], ["public", "INDEX", "ediel_test_run_locks_one_active_agt_uidx"], ["public", "INDEX", "ediel_unlinked_test_messages_open_idx"], ["public", "INDEX", "idx_fk_ediel_test_run_locks_a4a5ed47195f49b5"], ["public", "POLICY", "ediel_agt_readiness ediel_agt_readiness_service_role_all"], ["public", "POLICY", "ediel_test_run_locks ediel_test_run_locks_service_role_all"], ["public", "POLICY", "ediel_unlinked_test_messages ediel_unlinked_test_messages_service_role_all"], ["public", "ROW SECURITY", "ediel_agt_readiness"], ["public", "ROW SECURITY", "ediel_test_run_locks"], ["public", "ROW SECURITY", "ediel_unlinked_test_messages"], ["public", "TABLE", "ediel_agt_readiness"], ["public", "TABLE", "ediel_test_run_locks"], ["public", "TABLE", "ediel_unlinked_test_messages"], ["public", "TRIGGER", "ediel_agt_readiness gridex_history_truncate_guard"], ["public", "TRIGGER", "ediel_test_run_locks gridex_history_truncate_guard"]])
 })

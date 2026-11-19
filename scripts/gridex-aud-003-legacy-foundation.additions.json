@@ -23,7 +23,8 @@
     "bootstrap/20260614_integration_api_client_readiness_foundation.sql",
     "bootstrap/20260618_customer_operation_jobs_foundation.sql",
     "bootstrap/20260721_contract_publication_revisions_foundation.sql",
-    "bootstrap/20260722_external_tenant_reference_foundation.sql"
+    "bootstrap/20260722_external_tenant_reference_foundation.sql",
+    "bootstrap/20260602_ediel_operations_tables_foundation.sql"
   ],
   "interleaved": [
     {
@@ -467,6 +468,13 @@
       "preserveSourceReplay": false,
       "execution": "sourcePosition",
       "reason": "Exact immutable 20261015100259 source and unchanged signed-price-cache original/target bodies, full function metadata, actor/role/owner/ACL, trigger and column guards. Compare all logical authority/catalog fields while excluding only six physical pg_class VACUUM/ANALYZE estimates/visibility/freeze fields, following the existing source-qualified Auth envelope. Keep strict refusal of unknown or changed logical source/authority. Preserve the postcondition error and add fixed boolean/category-only diagnostics; no raw metadata or business data. Actual prior combined CI failure operand remains unobserved; isolated component proof establishes the physical-maintenance false-positive and retained logical refusals."
+    },
+    "bootstrap/20260602_ediel_operations_tables_foundation.sql": {
+      "source": "migrations/20260602143000_ediel_environment_business_action_locks.sql",
+      "sourceSha256": "696914ad8397dc97c9ee903570ca187b6a11e765ebe7b7f15bc79c0780a27a5a",
+      "artifactSha256": "c19abe1a248b2afe84a5d551c2b7b4b9c32ba7ec884f7ab9aed44591be659627",
+      "preserveSourceReplay": false,
+      "purpose": "Restore only the original three operations tables/indexes omitted by enum-only substitution; canonical hardening and forward repair supply service-only security. No rows seeded."
     }
   }
 }

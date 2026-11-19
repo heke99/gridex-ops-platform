@@ -1,3 +1,4 @@
+import {bindNativeFixturePartyAddresses} from './helpers/ediel-native-party-addresses'
 import {execFileSync} from 'node:child_process'
 import {createHash,randomUUID} from 'node:crypto'
 import {recordUtiltsTechnicalReception,registerUtiltsIssuer,seedUtiltsIssuerHistoryGround} from './helpers/utiltsConsumptionParties'
@@ -518,8 +519,8 @@ function persistUtiltsSubject(f:Awaited<ReturnType<typeof seed>>,message:EdielMe
  return {...message,id,raw_payload:wire,sender_ediel_id:f.receiver,receiver_ediel_id:f.sender}
 }
 function priorNativeWire(f:Awaited<ReturnType<typeof seed>>,point:string){
- return nativeTestWire(observationHandoffMessage(S('2026-09-30'),f.ids.company).raw_payload!
-  .replaceAll('735999260731000007',point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
+ return nativeTestWire(bindNativeFixturePartyAddresses(observationHandoffMessage(S('2026-09-30'),f.ids.company).raw_payload!
+  .replaceAll('735999260731000007',point),{sender:f.receiver,receiver:f.sender})
   // DTM+354:1:802 is a whole-month E66 resolution: keep a whole market month.
   .replaceAll(S('202607010000'),S('202610010000')).replaceAll(S('202608010000'),S('202611010000'))
   .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1').replace('QTY+220:11000','QTY+220:10500'))
@@ -630,8 +631,7 @@ it('real UTILTS qualification saves and consumes a witnessed C hold without pers
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
  const utilts=observationHandoffMessage(S('2026-10-01'),f.ids.company)
  utilts.sender_ediel_id=f.receiver;utilts.receiver_ediel_id=f.sender
- utilts.raw_payload=utilts.raw_payload!.replaceAll('735999260731000007',point).replaceAll('91100',f.receiver)
-  .replaceAll('21660',f.sender).replaceAll(S('202607010000'),S('202610010000'))
+ utilts.raw_payload=bindNativeFixturePartyAddresses(utilts.raw_payload!.replaceAll('735999260731000007',point),{sender:f.receiver,receiver:f.sender}).replaceAll(S('202607010000'),S('202610010000'))
   .replaceAll(S('202608010000'),S('202610150000')).replace('?+0200','?+0100').replace('M-GRIDEX-2607-01','METER-1')
  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:S('2026-10-01'),
   applicationReference:utilts.application_reference,mode:'parse'})
@@ -689,7 +689,7 @@ it.each(['E30','S07'] as const)('native witnessed C holds a previously matched %
  utilts.message_code=code;utilts.application_reference=code==='E30'?'23-MDR-E30-T':'23-DDQ-S07-T'
  utilts.sender_ediel_id=f.receiver;utilts.receiver_ediel_id=f.sender
  utilts.raw_payload=code==='E30'
-  ?priorE30PointWire('E24','METER-1',point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
+  ?bindNativeFixturePartyAddresses(priorE30PointWire('E24','METER-1',point),{sender:f.receiver,receiver:f.sender})
   :priorNativeWire(f,point).replace('BGM+E66::260','BGM+S07:SVK:260').replaceAll('23-DDQ-E66-S','23-DDQ-S07-T')
  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:code,direction:'inbound',referenceDate:S('2026-10-01'),
   applicationReference:utilts.application_reference,mode:'parse'})
@@ -741,7 +741,7 @@ it.each([S('2026-09-30'),S('2026-10-01')])('native reviewed Z04 qualifies prior/
  const original=observationHandoffMessage(referenceDate,f.ids.company)
  original.sender_ediel_id=f.receiver;original.receiver_ediel_id=f.sender
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
- original.raw_payload=original.raw_payload!.replaceAll('735999260731000007',point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
+ original.raw_payload=bindNativeFixturePartyAddresses(original.raw_payload!.replaceAll('735999260731000007',point),{sender:f.receiver,receiver:f.sender})
   .replaceAll(S('202607010000'),S('202610010000')).replaceAll(S('202608010000'),S('202610150000'))
   .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1')
   .replace('QTY+220:11000','QTY+220:10500')
@@ -1249,7 +1249,7 @@ it('native witnessed Z10 transition selects prior E30 ending/current sides and h
   const message=observationHandoffMessage(S('2026-09-30'),f.ids.company)
   message.message_code='E30';message.application_reference='23-MDR-E30-T'
   message.sender_ediel_id=f.receiver;message.receiver_ediel_id=f.sender
-  message.raw_payload=priorE30PointWire(reason,meter,point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
+  message.raw_payload=bindNativeFixturePartyAddresses(priorE30PointWire(reason,meter,point),{sender:f.receiver,receiver:f.sender})
   const persisted=persistUtiltsSubject(f,message)
   const runtime=runUtiltsRuntimeForMessage(persisted,{canonicalPolicy:policy})
   expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
@@ -1481,8 +1481,7 @@ it.each(['Z22'])('native %s closure retains immutable Z04 coverage after the rea
   const {buildUtiltsTransactionPersistencePayload}=await import('@/lib/ediel/utilts/transactionPersistence')
   const utilts=observationHandoffMessage(S('2026-10-16'),f.ids.company)
   utilts.sender_ediel_id=f.receiver;utilts.receiver_ediel_id=f.sender
-  utilts.raw_payload=utilts.raw_payload!.replaceAll('735999260731000007',snapshot.versions[0].wire.object.objectId!)
-   .replaceAll('91100',f.receiver).replaceAll('21660',f.sender).replaceAll(S('202607010000'),S('202610010000'))
+  utilts.raw_payload=bindNativeFixturePartyAddresses(utilts.raw_payload!.replaceAll('735999260731000007',snapshot.versions[0].wire.object.objectId!),{sender:f.receiver,receiver:f.sender}).replaceAll(S('202607010000'),S('202610010000'))
    .replaceAll(S('202608010000'),S('202610150000')).replace('?+0200','?+0100').replace('M-GRIDEX-2607-01','METER-1')
   const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:utilts.message_received_at!,applicationReference:utilts.application_reference,mode:'parse'})
   const persisted=persistUtiltsSubject(f,utilts)
