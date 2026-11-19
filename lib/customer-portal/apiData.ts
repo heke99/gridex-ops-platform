@@ -854,7 +854,7 @@ export async function listPortalEventsPage(
   })
 }
 
-const NOTIFICATION_SELECT = 'id,type,title,message,status,read_at,action_url,metadata,created_at'
+const NOTIFICATION_SELECT = 'id,type,title,message,status,read_at,created_at'
 const NOTIFICATION_LEGACY_SELECT = 'id,type,title,message,status,created_at'
 
 export async function listPortalNotifications(context: PortalCustomerContext, route = '/api/v1/customer/notifications') {
