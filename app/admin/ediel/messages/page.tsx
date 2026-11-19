@@ -3,8 +3,9 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
-import { listBusinessAckStatusForSources, listEdielMessages } from '@/lib/ediel/db'
+import { listBusinessAckStatusForSources } from '@/lib/ediel/db'
 import { businessAckStatusPresentation } from '@/lib/ediel/inbound/businessAckReadModel'
+import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
  deleteAllEdielMessagesAction,
@@ -17,6 +18,11 @@ import {
 export const dynamic = 'force-dynamic'
 
 type SearchParams = Record<string, string | string[] | undefined>
+type MessageFilters = { family?: string; direction?: 'inbound' | 'outbound'; status?: string }
+type MessageCursor = { createdAt: string; id: string }
+
+const messageListPath = '/admin/ediel/messages'
+const messagePageSize = 100
 
 type RowWithAcks = {
  message: EdielMessageRow
@@ -120,24 +126,51 @@ function isUtiltsErrAck(ack: EdielMessageRow): boolean {
  )
 }
 
-function isAckLikeMessage(message: EdielMessageRow): boolean {
- return (
- String(message.message_family) === 'CONTRL' ||
- String(message.message_family) === 'APERAK' ||
- String(message.message_family) === 'UTILTS_ERR' ||
- (String(message.message_family) === 'UTILTS' && String(message.message_code).toUpperCase() === 'ERR')
- )
+function readCursor({ before, beforeId }: SearchParams): MessageCursor | null {
+ if (typeof before !== 'string' || typeof beforeId !== 'string') return null
+ if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(beforeId)) return null
+ const timestamp = /^((?!0000)\d{4}-\d{2}-\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?(?:Z|[+-](?:0\d|1[0-5]):[0-5]\d)$/.exec(before)
+ if (!timestamp) return null
+ const date = new Date(timestamp[1])
+ if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== timestamp[1]) return null
+ // Preserve the stored timestamp precision for the tie-break comparison.
+ return { createdAt: before, id: beforeId }
 }
 
-function shouldShowAsOwnMessageCard(message: EdielMessageRow, explicitFamilyFilter: string | undefined): boolean {
- // In the normal message overview, generated ACK/response messages should be
- // shown on the source inbound card via related_message_id. This prevents one
- // inbound UTILTS/PRODAT from appearing as three separate cards after CONTRL
- // and APERAK are created. Direct ACK filters still show ACK messages for
- // troubleshooting.
- if (explicitFamilyFilter) return true
- if (message.related_message_id && isAckLikeMessage(message)) return false
- return true
+function messageListHref(filters: MessageFilters, cursor?: MessageCursor) {
+ const params = new URLSearchParams()
+ for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value)
+ if (cursor) {
+  params.set('before', cursor.createdAt)
+  params.set('beforeId', cursor.id)
+ }
+ return params.size ? `${messageListPath}?${params}` : messageListPath
+}
+
+async function readMessagePage(companyId: string | null, { family, direction, status }: MessageFilters, cursor: MessageCursor | null) {
+ let query = supabaseService.from('ediel_messages').select('*')
+ if (companyId) query = query.eq('company_id', companyId)
+ if (direction) query = query.eq('direction', direction)
+ if (status) query = query.eq('status', status)
+ if (family === 'UTILTS_ERR') {
+  query = query.or('message_family.eq.UTILTS_ERR,and(message_family.eq.UTILTS,message_code.ilike.ERR)')
+ } else if (family) {
+  query = query.eq('message_family', family)
+ } else {
+  // Keep linked ACKs on their source card and retain standalone ACKs and linked business messages.
+  query = query.or(
+   'related_message_id.is.null,' +
+   'and(message_family.not.in.(CONTRL,APERAK,UTILTS_ERR),' +
+   'or(message_family.neq.UTILTS,message_code.is.null,message_code.not.ilike.ERR))',
+  )
+ }
+ if (cursor) {
+  query = query.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`)
+ }
+ const { data, error } = await query.order('created_at', { ascending: false })
+  .order('id', { ascending: false }).limit(messagePageSize + 1)
+ if (error) throw error
+ return (data ?? []) as EdielMessageRow[]
 }
 
 export default async function AdminEdielMessagesPage({
@@ -177,16 +210,12 @@ export default async function AdminEdielMessagesPage({
  const directionParam = firstParam(resolvedSearchParams.direction)
  const direction = directionParam === 'inbound' || directionParam === 'outbound' ? directionParam : undefined
  const status = firstParam(resolvedSearchParams.status) ?? undefined
+ const filters: MessageFilters = { family, direction, status }
+ const cursor = readCursor(resolvedSearchParams)
 
- const messages = await listEdielMessages({
- family,
- direction,
- status,
- companyId,
- limit: 100,
- })
-
- const topLevelMessages = messages.filter((message) => shouldShowAsOwnMessageCard(message, family))
+ const messages = await readMessagePage(companyId, filters, cursor)
+ const topLevelMessages = messages.slice(0, messagePageSize)
+ const lastMessage = messages.length > messagePageSize ? topLevelMessages.at(-1) : undefined
  const ackMessagesBySource = await listBusinessAckStatusForSources({
  actorUserId: context.userId,
  sourceMessageIds: topLevelMessages
@@ -244,6 +273,7 @@ export default async function AdminEdielMessagesPage({
  <Link href="/admin/ediel/messages?status=failed" className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-red-700">Felade</Link>
  <Link href="/admin/ediel/messages?family=CONTRL" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50">CONTRL</Link>
  <Link href="/admin/ediel/messages?family=APERAK" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50">APERAK</Link>
+ <Link href="/admin/ediel/messages?family=UTILTS_ERR" className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50">UTILTS-felkvittenser</Link>
  </div>
  </section>
 
@@ -377,6 +407,12 @@ export default async function AdminEdielMessagesPage({
  })
  )}
  </section>
+ {cursor || lastMessage ? (
+ <nav aria-label="Meddelandesidor" className="flex gap-4 text-sm text-slate-700">
+ {cursor ? <Link href={messageListHref(filters)} prefetch={false} className="underline">Första sidan</Link> : null}
+ {lastMessage ? <Link href={messageListHref(filters, { createdAt: lastMessage.created_at, id: lastMessage.id })} prefetch={false} className="underline">Nästa sida</Link> : null}
+ </nav>
+ ) : null}
  </main>
  </div>
  )
