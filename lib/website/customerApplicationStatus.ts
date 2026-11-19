@@ -329,32 +329,33 @@ export async function loadWebsiteCustomerApplicationStatus(input: {
   const domainEvents = assertQuery(eventResult as QueryResult<Array<{ id: string }>>, 'domänhändelser') ?? []
 
   const communicationLogIds = communicationLogs.map((row) => row.id)
-  const outboxResult = communicationLogIds.length > 0
-    ? await supabaseService.from('tenant_email_outbox').select('communication_log_id,status,attempts,max_attempts,next_attempt_at,last_error,failure_reason,blocked_reason,blocked_at,sent_at,failed_at,updated_at').eq('company_id', input.companyId).in('communication_log_id', communicationLogIds)
-    : { data: [], error: null }
-  const outbox = assertQuery(outboxResult as QueryResult<EmailOutboxRow[]>, 'e-postkö') ?? []
-
   const eventIds = domainEvents.map((row) => row.id)
-  const [webhookResult, fanoutResult] = eventIds.length > 0
-    ? await Promise.all([
-        supabaseService
-          .from('webhook_deliveries')
-          .select('status,attempts,max_attempts,next_attempt_at,delivered_at,failed_at,failure_reason,updated_at')
-          .eq('company_id', input.companyId)
-          .in('domain_event_id', eventIds)
-          .order('created_at', { ascending: false })
-          .limit(100),
-        supabaseService
-          .from('event_outbox')
-          .select('status,attempts,max_attempts,available_at,sent_at,failed_at,last_error,payload,updated_at')
-          .eq('company_id', input.companyId)
-          .in('domain_event_id', eventIds)
-          .eq('destination_type', 'webhook')
-          .eq('destination_key', 'webhook_fanout_v1')
-          .order('created_at', { ascending: false })
-          .limit(100),
-      ])
-    : [{ data: [], error: null }, { data: [], error: null }]
+  const [outboxResult, [webhookResult, fanoutResult]] = await Promise.all([
+    communicationLogIds.length > 0
+      ? supabaseService.from('tenant_email_outbox').select('communication_log_id,status,attempts,max_attempts,next_attempt_at,last_error,failure_reason,blocked_reason,blocked_at,sent_at,failed_at,updated_at').eq('company_id', input.companyId).in('communication_log_id', communicationLogIds)
+      : { data: [], error: null },
+    eventIds.length > 0
+      ? Promise.all([
+          supabaseService
+            .from('webhook_deliveries')
+            .select('status,attempts,max_attempts,next_attempt_at,delivered_at,failed_at,failure_reason,updated_at')
+            .eq('company_id', input.companyId)
+            .in('domain_event_id', eventIds)
+            .order('created_at', { ascending: false })
+            .limit(100),
+          supabaseService
+            .from('event_outbox')
+            .select('status,attempts,max_attempts,available_at,sent_at,failed_at,last_error,payload,updated_at')
+            .eq('company_id', input.companyId)
+            .in('domain_event_id', eventIds)
+            .eq('destination_type', 'webhook')
+            .eq('destination_key', 'webhook_fanout_v1')
+            .order('created_at', { ascending: false })
+            .limit(100),
+        ])
+      : [{ data: [], error: null }, { data: [], error: null }],
+  ])
+  const outbox = assertQuery(outboxResult as QueryResult<EmailOutboxRow[]>, 'e-postkö') ?? []
   const webhookDeliveries = assertQuery(webhookResult as QueryResult<WebhookDeliveryRow[]>, 'webhookleveranser') ?? []
   const webhookFanoutJobs = assertQuery(fanoutResult as QueryResult<EventOutboxRow[]>, 'webhook fan-out') ?? []
 
