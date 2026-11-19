@@ -86,14 +86,24 @@ async function resolveNotificationIds(input: {
   try {
     const payload = await readJsonObject(request) as Record<string, unknown>
     const references = notificationReferences(payload)
-    const canonicalPayload = { notification_references: references }
+    const sortedReferences = [...references].sort()
     const result = await executeIdempotentPortalWrite<Record<string, unknown>>({
       request,
       companyId: context.client.company_id,
       clientId: context.client.id,
       customerId: context.identity.customer_id,
       operation: '/api/v1/customer/notifications/read',
-      payload: canonicalPayload,
+      payload: { notification_references: sortedReferences },
+      legacyPayload: {
+        request: { notification_references: references },
+        fromCompletedResponse: (response) => {
+          const previous = (response as { data?: { notification_references?: unknown } } | null)?.data?.notification_references
+          if (!Array.isArray(previous) || previous.length !== sortedReferences.length ||
+            !previous.every((reference) => typeof reference === 'string')) return undefined
+          if (![...previous].sort().every((reference, index) => reference === sortedReferences[index])) return undefined
+          return { notification_references: previous }
+        },
+      },
       execute: async () => {
         const resolved = await resolveNotificationIds({
           companyId: context.client.company_id,

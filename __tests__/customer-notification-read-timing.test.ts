@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -84,6 +85,17 @@ const post = (key: string, rows: Row[]) => POST(new NextRequest('https://synthet
   body: JSON.stringify({ notification_references: rows.map(reference) }),
 }))
 
+function legacyClaim(key: string, refs: Array<string | null>, responseRefs = refs, status = 'completed') {
+  const requestHash = createHash('sha256').update(JSON.stringify({ notification_references: refs })).digest('hex')
+  const body = { data: { updated_count: 2, notification_references: responseRefs, read_at: first } }
+  io.claims.push({
+    id: 'legacy-claim', company_id: 'company', api_client_id: 'client', customer_id: 'customer',
+    route: '/api/v1/customer/notifications/read', idempotency_key: key, request_hash: requestHash,
+    status, started_at: now, response_status: 200, response_body: status === 'completed' ? body : null,
+  })
+  return body
+}
+
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(now)
@@ -135,6 +147,58 @@ describe('customer notification read timestamps', () => {
   it('does not update a reference belonging to another customer', async () => {
     const response = await post('synthetic-read-foreign-001', [io.notifications[2]])
     expect(response.status).toBe(404)
+    expect(io.notificationWrites).toBe(0)
+  })
+
+  it('replays the initial receipt when the same set arrives in a different order with duplicates', async () => {
+    const [firstRow, secondRow] = io.notifications
+    const key = 'synthetic-read-order-001'
+    const initial = await post(key, [firstRow, secondRow])
+    expect(initial.status).toBe(200)
+    const receipt = (await initial.json()).data
+
+    const replay = await post(key, [secondRow, secondRow, firstRow])
+    expect(replay.status).toBe(200)
+    expect((await replay.json()).data).toEqual(receipt)
+    expect(io.notificationWrites).toBe(1)
+
+    const conflict = await post(key, [secondRow])
+    expect(conflict.status).toBe(409)
+    expect(await conflict.json()).toMatchObject({ error: { code: 'idempotency_conflict' } })
+    expect(io.notificationWrites).toBe(1)
+  })
+
+  it('replays an older true receipt in its stored order without writing any notification', async () => {
+    const selected = io.notifications.slice(0, 2).sort((left, right) => String(reference(left)) < String(reference(right)) ? 1 : -1)
+    const key = 'synthetic-read-legacy-001'
+    const receipt = legacyClaim(key, selected.map(reference))
+    const replay = await post(key, [...selected].reverse())
+    expect(replay.status).toBe(200)
+    expect((await replay.json()).data).toEqual(receipt.data)
+    expect(io.notificationWrites).toBe(0)
+  })
+
+  it('rejects an older corrupted receipt whose original order fails the stored hash check', async () => {
+    const selected = io.notifications.slice(0, 2).sort((left, right) => String(reference(left)) < String(reference(right)) ? 1 : -1)
+    const key = 'synthetic-read-legacy-002'
+    const reversed = [...selected].reverse()
+    legacyClaim(key, selected.map(reference), reversed.map(reference))
+    const response = await post(key, reversed)
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({ error: { code: 'idempotency_conflict' } })
+    expect(io.notificationWrites).toBe(0)
+  })
+
+  it.each([
+    ['processing', 'idempotency_in_progress'],
+    ['failed', 'idempotency_previous_attempt_failed'],
+  ])('keeps the older %s attempt protected for the original input order', async (status, code) => {
+    const selected = io.notifications.slice(0, 2).sort((left, right) => String(reference(left)) < String(reference(right)) ? 1 : -1)
+    const key = `synthetic-read-legacy-${status}`
+    legacyClaim(key, selected.map(reference), undefined, status)
+    const response = await post(key, selected)
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({ error: { code } })
     expect(io.notificationWrites).toBe(0)
   })
 })
