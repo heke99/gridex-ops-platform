@@ -150,7 +150,6 @@ function envP12ReferencesFromCertificateRow(row: Record<string, unknown>): {
     ),
     passwordSecretReference: firstString(
       row.p12_password_secret_ref,
-      row.password_secret_reference,
       metadataValue(row, "passwordSecretReference"),
       metadataValue(row, "p12PasswordSecretReference"),
       metadataValue(row, "p12_password_secret_ref"),
@@ -1085,7 +1084,7 @@ export async function validateEdielP12EnvCertificateAction(formData: FormData) {
   const rich = await supabaseService
     .from("ediel_certificates")
     .select(
-      "id,display_name,scope,environment,usage,purpose,owner_ediel_id,owner_subaddress,message_type,p12_secret_reference,p12_secret_ref,p12_password_secret_ref,password_secret_reference,secret_reference,metadata,status",
+      "id,display_name,scope,environment,usage,purpose,owner_ediel_id,owner_subaddress,message_type,p12_secret_reference,p12_secret_ref,p12_password_secret_ref,secret_reference,metadata,status",
     )
     .eq("id", certificateId)
     .maybeSingle();
