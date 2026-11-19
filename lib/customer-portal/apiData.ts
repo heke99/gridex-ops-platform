@@ -666,9 +666,11 @@ function listMeteringPointsBySites(context: PortalCustomerContext, siteIds: stri
     const scopedQuery = (count?: 'exact') => {
       const query = supabaseService.from('metering_points').select(select, count ? { count } : undefined)
         .eq('company_id', context.companyId)
-      return hasCustomerSiteId
+      const linked = hasCustomerSiteId
         ? query.or(`customer_site_id.in.(${idFilter}),and(customer_site_id.is.null,site_id.in.(${idFilter}))`)
         : query.in('site_id', siteIds)
+      // Historical rows can inherit the verified site's owner when no point customer is recorded.
+      return linked.or(`customer_id.eq.${context.customerId},customer_id.is.null`)
     }
     if (limit !== undefined) return await scopedQuery().limit(limit) as ListResult
 

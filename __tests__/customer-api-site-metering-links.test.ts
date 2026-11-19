@@ -30,8 +30,10 @@ const otherCompany = '00000000-0000-4000-8000-000000000009'
 const otherCustomer = '00000000-0000-4000-8000-000000000010'
 const conflictingMeter = '00000000-0000-4000-8000-000000000011'
 const otherCompanyMeter = '00000000-0000-4000-8000-000000000012'
+const mismatchedPointOwner = '00000000-0000-4000-8000-000000000013'
 const storedFacilityReference = 'facility_0123456789abcdef0123456789abcdef'
 const subject = 'synthetic-customer'
+const customerPointFilter = `(customer_id.eq.${customer},customer_id.is.null)`
 
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/ediel/retention/customerRecordClasses', () => ({ requirePortalRetentionAccess: vi.fn() }))
@@ -106,13 +108,15 @@ async function readFixture(input: RequestInfo | URL, init?: RequestInit): Promis
 
   const columns = (params.get('select') ?? '').split(',')
   const filters = [...params.entries()].filter(([, op]) => op.startsWith('eq.') || op.startsWith('in.'))
-  const siteFilter = params.get('or')
+  const logicalFilters = params.getAll('or')
+  const siteFilter = logicalFilters.find((filter) => filter.includes('site_id.'))
+  const ownerFilter = logicalFilters.find((filter) => filter.startsWith('(customer_id.'))
   if (table === 'metering_points') {
     fixture.meterReads.push(params)
     if (fixture.meterReadFailure === fixture.meterReads.length) {
       return Response.json({ code: '42501', message: 'Synthetic metering point permission error' }, { status: 403 })
     }
-    const used = [...columns, ...filters.map(([name]) => name), ...(siteFilter ? ['site_id', 'customer_site_id'] : [])]
+    const used = [...columns, ...filters.map(([name]) => name), ...(siteFilter ? ['site_id', 'customer_site_id'] : []), ...(ownerFilter ? ['customer_id'] : [])]
     const missing = used.find((name) => fixture.missingMeterColumns.has(name))
     if (missing) return Response.json({ code: '42703', message: `column metering_points.${missing} does not exist` }, { status: 400 })
   }
@@ -122,6 +126,7 @@ async function readFixture(input: RequestInfo | URL, init?: RequestInit): Promis
       ? row[name] === op.slice(3)
       : matches(row[name], op.slice(4, -1))))
     .filter((row) => !siteFilter || matchesMeterSiteFilter(row, siteFilter))
+    .filter((row) => !ownerFilter || (ownerFilter === customerPointFilter && (row.customer_id === customer || row.customer_id === null)))
   const after = params.get('id')
   if (after?.startsWith('gt.')) {
     const cursor = after.slice(3)
@@ -295,6 +300,24 @@ describe('customer sites and metering point references', () => {
     ])
   })
 
+  it.each(['sites', 'bundle GET', 'bundle POST'] as const)('%s checks an explicit point customer before taking the scoped page', async (endpoint) => {
+    fixture.meters[0].customer_id = null
+    fixture.meters[1].customer_id = null
+    fixture.meters.unshift({ ...fixture.meters[0], id: mismatchedPointOwner, customer_id: otherCustomer })
+    fixture.meterRowsCap = 2
+    const response = await request(endpoint)
+    expect(response.status).toBe(200)
+    const { data } = await response.json()
+    expect(data.metering_points.map((point: Row) => point.metering_point_reference)).toEqual([
+      publicReference('metering_point', company, canonicalMeter), publicReference('metering_point', company, legacyMeter),
+    ])
+    expect(fixture.meterReads).toHaveLength(1)
+    expect(fixture.meterReads[0].getAll('or')).toEqual([
+      `(customer_site_id.in.(${firstSite},${secondSite}),and(customer_site_id.is.null,site_id.in.(${firstSite},${secondSite})))`,
+      customerPointFilter,
+    ])
+  })
+
   it('lets only the canonical site page grant access when both links are populated', async () => {
     fixture.meters[0].site_id = secondSite
     fixture.meters.push({
@@ -345,6 +368,8 @@ describe('customer sites and metering point references', () => {
   it.each(['sites', 'bundle GET'] as const)('%s supports the original site_id schema and reuses the site reference', async (endpoint) => {
     fixture.missingMeterColumns.add('customer_site_id')
     fixture.meters[1].site_id = firstSite
+    fixture.meters[1].customer_id = null
+    fixture.meters.unshift({ ...fixture.meters[1], id: mismatchedPointOwner, customer_id: otherCustomer })
     const response = await request(endpoint)
     expect(response.status).toBe(200)
     const { data } = await response.json()
@@ -354,6 +379,6 @@ describe('customer sites and metering point references', () => {
     const executed = fixture.meterReads.at(-1)
     expect(executed?.get('company_id')).toBe(`eq.${company}`)
     expect(executed?.get('site_id')).toBe(`in.(${firstSite},${secondSite})`)
-    expect(executed?.get('or')).toBeNull()
+    expect(executed?.getAll('or')).toEqual([customerPointFilter])
   })
 })
