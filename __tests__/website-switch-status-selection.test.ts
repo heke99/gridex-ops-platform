@@ -8,6 +8,7 @@ const io = vi.hoisted(() => ({
   rows: {} as Record<string, Row[]>,
   queries: [] as URL[],
   access: vi.fn(),
+  switchRowCap: Number.POSITIVE_INFINITY,
 }))
 
 vi.mock('server-only', () => ({}))
@@ -62,8 +63,9 @@ async function fetchFixture(input: RequestInfo | URL, init?: RequestInit) {
     filtered.sort((a, b) => String(a[col]).localeCompare(String(b[col])) * (direction === 'desc' ? -1 : 1))
   }
   const count = Number(url.searchParams.get('limit') ?? filtered.length)
+  const returned = table === 'supplier_switch_requests' ? Math.min(count, io.switchRowCap) : count
   const columns = url.searchParams.get('select')?.split(',') ?? []
-  return Response.json(filtered.slice(0, count).map(row => Object.fromEntries(columns.map(field => [field, row[field] ?? null]))))
+  return Response.json(filtered.slice(0, returned).map(row => Object.fromEntries(columns.map(field => [field, row[field] ?? null]))))
 }
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
@@ -103,6 +105,7 @@ async function responseStatuses() {
 beforeEach(() => {
   vi.clearAllMocks()
   io.queries = []
+  io.switchRowCap = Number.POSITIVE_INFINITY
   io.access.mockResolvedValue({ ok: true, context: { companyId: company }, client: { id: 'synthetic-client' } })
   io.rows = {
     website_customer_applications: [{ id: applicationId, company_id: company, customer_id: customer,
@@ -117,6 +120,7 @@ beforeEach(() => {
 })
 
 it('uses the persisted same-tenant switch on both status routes when the later row ties on lineage', async () => {
+  io.switchRowCap = 2
   expect(await responseStatuses()).toEqual({ checkout: 'confirmed', switchStatus: 'confirmed' })
   const lookups = io.queries.filter(url => url.pathname.endsWith('/supplier_switch_requests'))
   expect(lookups).toHaveLength(2)
@@ -153,7 +157,8 @@ it('ignores a stale saved link whose canonical site supersedes a stale matching 
   expect(events[0].searchParams.get('switch_request_id')).toBe('eq.' + later)
 })
 
-it('finds a legacy switch for the verified site behind newer switches for other sites', async () => {
+it.each([50, 2])('finds a verified legacy site behind other switches with response cap %i', async cap => {
+  io.switchRowCap = cap
   io.rows.website_customer_applications[0].response_payload = {}
   io.rows.supplier_switch_requests = [
     switchRow(first, 'confirmed', oldAt, { customer_site_id: null, customer_contract_id: null }),

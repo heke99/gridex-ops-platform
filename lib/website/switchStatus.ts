@@ -101,8 +101,8 @@ export async function loadWebsiteApplicationSwitch(application: WebsiteApplicati
   if (result.error) return { data: null, error: result.error, ambiguous: false }
   const rows = (result.data ?? []).filter(row => matchesSwitchBinding(application, row))
   const siteId = application.customer_site_id
-  if (siteId && isUuid(siteId) && result.data?.length === limit && !rows.some(row => switchSite(row) === siteId)) {
-    // Preserve the older switch-status read that scoped the site before its row limit.
+  if (siteId && isUuid(siteId) && !rows.some(row => switchSite(row) === siteId)) {
+    // A short customer result can reflect a PostgREST cap. Scope the site before applying the limit.
     const atSite = await selectSwitch()
       .or(`customer_site_id.eq.${siteId},and(customer_site_id.is.null,site_id.eq.${siteId})`)
       .order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit)
