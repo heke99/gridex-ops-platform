@@ -14,6 +14,8 @@ const ports = vi.hoisted(() => ({
   operations: [] as Array<{ method: string; table: string; body: unknown }>,
   customer: {} as Row,
   activeBundle: null as string | null,
+  directApplicationId: null as string | null,
+  applications: [] as Row[],
   legacyTextVersionId: null as string | null,
   persistLegalAcceptances: null as ((body: unknown) => Promise<Response>) | null,
 }))
@@ -44,6 +46,10 @@ const bundleId = '00000000-0000-4000-8000-000000000004'
 const documentId = '00000000-0000-4000-8000-000000000005'
 const ledgerId = '00000000-0000-4000-8000-000000000006'
 const applicationId = '00000000-0000-4000-8000-000000000007'
+const otherApplicationId = '00000000-0000-4000-8000-000000000009'
+const otherContractId = '00000000-0000-4000-8000-000000000010'
+const otherCompanyId = '00000000-0000-4000-8000-000000000011'
+const otherCustomerId = '00000000-0000-4000-8000-000000000012'
 const client = { id: 'fixture-client', company_id: companyId }
 const identity = {
   company_id: companyId,
@@ -65,6 +71,8 @@ const acceptance = {
   accepted_at: acceptedAt,
 }
 const grouped = buildCustomerLegalDocuments({ companyId, legalBundleVersionId: bundleId, modules: [document] })[0]!
+const boundApplication = { id: applicationId, company_id: companyId, customer_id: customerId, contract_id: contractId }
+const unrelatedApplication = { ...boundApplication, id: otherApplicationId, contract_id: otherContractId }
 
 function request(input: Row = {}) {
   return new NextRequest('https://gridex.test/api/v1/customer/sync', {
@@ -78,6 +86,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   ports.customer = { first_name: 'Original', metadata: {} }
   ports.activeBundle = bundleId
+  ports.directApplicationId = applicationId
+  ports.applications = [boundApplication]
   ports.legacyTextVersionId = null
   ports.persistLegalAcceptances = null
   ports.operations = []
@@ -97,9 +107,19 @@ beforeEach(() => {
       expect(searchParams.get('company_id')).toBe(`eq.${companyId}`)
       expect(searchParams.get('customer_id')).toBe(`eq.${customerId}`)
       return Response.json([{
-        id: contractId, metering_point_id: 'fixture-point', website_application_id: applicationId,
+        id: contractId, metering_point_id: 'fixture-point', website_application_id: ports.directApplicationId,
         legal_bundle_version_id: ports.activeBundle,
       }])
+    }
+    if (table === 'website_customer_applications') {
+      expect(searchParams.get('company_id')).toBe(`eq.${companyId}`)
+      expect(searchParams.get('customer_id')).toBe(`eq.${customerId}`)
+      const filters = ['company_id', 'customer_id', 'contract_id', 'id']
+      const matches = ports.applications.filter((row) => filters.every((field) => {
+        const filter = searchParams.get(field)
+        return filter === null || filter === `eq.${row[field]}`
+      }))
+      return Response.json(matches.slice(0, Number(searchParams.get('limit') ?? matches.length)))
     }
     if (table === 'legal_bundle_version_documents') {
       expect(searchParams.get('legal_bundle_version_id')).toBe(`eq.${bundleId}`)
@@ -173,6 +193,27 @@ describe('mounted customer sync legal preflight (API-81)', () => {
     expect(ports.customer.first_name).toBe('Updated')
     expect(writes().map(({ table }) => table)).toEqual(['customers'])
     expect(ports.operations.some(({ table }) => table === 'legal_bundle_version_documents')).toBe(false)
+  })
+
+  it.each([
+    { name: 'valid direct application', direct: applicationId, applications: [unrelatedApplication, boundApplication], expected: applicationId },
+    { name: 'unique relation behind a newer unrelated application', direct: null, applications: [unrelatedApplication, boundApplication], expected: applicationId },
+    { name: 'no application for this contract', direct: null, applications: [unrelatedApplication], expected: null },
+    { name: 'invalid direct relation with another possible application', direct: otherApplicationId, applications: [unrelatedApplication, boundApplication], expected: null },
+    { name: 'direct application belonging to another company', direct: applicationId, applications: [{ ...boundApplication, company_id: otherCompanyId }], expected: null },
+    { name: 'direct application belonging to another customer', direct: applicationId, applications: [{ ...boundApplication, customer_id: otherCustomerId }], expected: null },
+    { name: 'ambiguous applications for this contract', direct: null, applications: [boundApplication, { ...boundApplication, id: otherApplicationId }], expected: null },
+  ])('uses the verified application identity for $name', async ({ direct, applications, expected }) => {
+    ports.directApplicationId = direct
+    ports.applications = applications
+    const response = await POST(request({ legal_acceptances: [acceptance] }))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ data: { summary: { legal_acceptances: { created: 1 } } } })
+    const rows = writes().find(({ table }) => table === 'customer_legal_acceptances')?.body
+    expect(rows).toMatchObject([{
+      company_id: companyId, customer_id: customerId, contract_id: contractId,
+      contract_application_id: expected, legal_bundle_version_document_id: documentId,
+    }])
   })
 
   it('stores exact acceptance evidence for a migrated document and preserves historical acceptance', async () => {
