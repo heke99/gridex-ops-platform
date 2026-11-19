@@ -41,6 +41,25 @@ describe('all-family durable outbound journal',()=>{
   await expect(sendGenericFencedEdielEmail(input,context)).rejects.toBeInstanceOf(SmtpDeliveryUncertainError);expect(mocks.providerCalls).toBe(0)
   expect(mocks.rpc.mock.calls.map(c=>c[1].p_input.action)).toEqual(['prepare','enter','observe'])
  })
+ it.each([
+  ['prepare', ['prepare']],
+  ['enter', ['prepare','enter','release']],
+ ])('keeps a confirmed cancellation at %s out of SMTP and reconciliation',async(action,actions)=>{
+  mocks.rpc.mockImplementation(async(_name,{p_input})=>p_input.action===action
+   ? {data:null,error:{code:'GX104',message:'ediel_transport_aperak_cancelled'}}
+   : {data:{proceed:true},error:null})
+  await expect(sendGenericFencedEdielEmail(input,context)).rejects.toMatchObject({code:'GX104',message:'ediel_transport_aperak_cancelled'})
+  expect(mocks.providerCalls).toBe(0)
+  expect(mocks.rpc.mock.calls.map(c=>c[1].p_input.action)).toEqual(actions)
+ })
+ it('requires the exact database refusal before clearing possible entry',async()=>{
+  mocks.rpc.mockImplementation(async(_name,{p_input})=>p_input.action==='enter'
+   ? {data:null,error:{code:'P0001',message:'ediel_transport_aperak_cancelled'}}
+   : {data:{proceed:true},error:null})
+  await expect(sendGenericFencedEdielEmail(input,context)).rejects.toBeInstanceOf(SmtpDeliveryUncertainError)
+  expect(mocks.providerCalls).toBe(0)
+  expect(mocks.rpc.mock.calls.map(c=>c[1].p_input.action)).toEqual(['prepare','enter','observe'])
+ })
  it('captures transport error without inventing acceptance or releasing entered attempt',async()=>{
   mocks.failProvider=true
   await expect(sendGenericFencedEdielEmail(input,context)).rejects.toBeInstanceOf(SmtpDeliveryUncertainError)
