@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { prodatMarketMinuteToUtc } from '@/lib/ediel/prodat/render/dates'
+
 type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({
   rows: [] as Row[], reads: [] as URLSearchParams[], readHeaders: [] as Array<string | null>, effects: [] as string[], audit: [] as Row[],
+  periodRows: null as Row[] | null, periodReads: [] as URLSearchParams[],
+  periodFailure: false, periodCountMissing: false,
   company: '11111111-1111-4111-8111-111111111111' as string | null,
   platform: false, permission: true, signedIn: true, cap: Infinity,
   countMissing: false, failure: null as null | { code: string; message: string },
@@ -14,6 +18,15 @@ function request(n: number, patch: Row = {}): Row {
   return { id: id(n), company_id: company, customer_id: id(9001), site_id: id(9002), metering_point_id: null,
     status: 'accepted', inbound_z04_message_id: id(9003), confirmed_start_date: '2026-10-01', requested_start_date: '2026-10-01',
     created_at: `2026-10-01T00:00:00.${String(n).padStart(6, '0')}Z`, ...patch }
+}
+
+function period(row: Row, marketStartAt: string | null, patch: Row = {}): Row {
+  return {
+    id: row.id, company_id: row.company_id, source_switch_request_id: row.id,
+    source_message_id: row.inbound_z04_message_id, source: 'ediel_qualified_source',
+    source_process: 'supplier_switch_confirmation', status: 'confirmed_by_grid_owner',
+    market_start_at: marketStartAt, ...patch,
+  }
 }
 function parts(text: string): string[] {
   let depth = 0, start = 0
@@ -65,11 +78,19 @@ vi.mock('@/lib/supabase/service', async () => {
         io.audit.push(JSON.parse(String(init.body)) as Row)
         return new Response(null, { status: 201 })
       }
-      if (table !== 'supplier_switch_requests') throw new Error('Unexpected bulk read/effect: ' + table)
-      io.reads.push(url.searchParams)
-      io.readHeaders.push(new Headers(init?.headers).get('prefer'))
-      if (io.failure) return new Response(JSON.stringify(io.failure), { status: 500 })
-      let rows = [...io.rows]
+      const readingPeriods = table === 'customer_supply_periods'
+      if (readingPeriods) {
+        io.periodReads.push(url.searchParams)
+        if (io.periodFailure) return new Response(JSON.stringify({ code: '08006' }), { status: 500 })
+      } else {
+        if (table !== 'supplier_switch_requests') throw new Error('Unexpected bulk read/effect: ' + table)
+        io.reads.push(url.searchParams)
+        io.readHeaders.push(new Headers(init?.headers).get('prefer'))
+        if (io.failure) return new Response(JSON.stringify(io.failure), { status: 500 })
+      }
+      let rows = readingPeriods
+        ? io.periodRows ?? io.rows.map(row => period(row, '2026-09-01T00:00:00+00:00'))
+        : [...io.rows]
       for (const [key, value] of url.searchParams) {
         if (['select', 'order', 'limit'].includes(key)) continue
         rows = rows.filter(row => key === 'or' ? parts(value.slice(1, -1)).some(f => matches(row, f)) : matches(row, key + '.' + value))
@@ -91,12 +112,13 @@ vi.mock('@/lib/supabase/service', async () => {
       // The first response snapshot still has the old accepted priority. The
       // stored source changes before the next query, as a concurrent date edit
       // can do; its ID now appears again at a strictly later keyset tuple.
-      if (io.moveSeenPriority && io.reads.length === 1) {
+      if (!readingPeriods && io.moveSeenPriority && io.reads.length === 1) {
         io.rows[0].confirmed_start_date = '2026-10-02'
         io.rows[0].requested_start_date = '2026-10-02'
       }
       return new Response(body, { headers: {
-        'content-type': 'application/json', ...(io.countMissing ? {} : { 'content-range': `*/${count}` }),
+        'content-type': 'application/json',
+        ...((readingPeriods ? io.periodCountMissing : io.countMissing) ? {} : { 'content-range': `*/${count}` }),
       } })
     } },
   })
@@ -113,6 +135,7 @@ import { bulkFinalizeReadySupplierSwitchesAction as run } from '@/app/admin/oper
 
 beforeEach(() => {
   io.rows = []; io.reads = []; io.readHeaders = []; io.effects = []; io.audit = []; io.company = company; io.platform = false
+  io.periodRows = null; io.periodReads = []; io.periodFailure = false; io.periodCountMissing = false
   io.permission = true; io.signedIn = true; io.cap = Infinity; io.countMissing = false; io.failure = null
   io.moveSeenPriority = false
   vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-14T10:00:00Z'))
@@ -202,5 +225,72 @@ describe('actual bulk action candidate composition before effects', () => {
   it('refuses malformed accepted owner rows before any finalizer', async () => {
     io.rows = [request(1), request(2, { company_id: null })]; io.platform = true
     await expect(run()).rejects.toThrow(/individuell aktivering/i); expect(io.effects).toEqual([])
+  })
+
+  it.each([
+    { wire: '202607010000', date: '2026-07-01', offset: -3600000, ready: false },
+    { wire: '202607010000', date: '2026-07-01', offset: -1, ready: false },
+    { wire: '202607010000', date: '2026-07-01', offset: 0, ready: true },
+    { wire: '202607011415', date: '2026-07-01', offset: -1, ready: false },
+    { wire: '202607011415', date: '2026-07-01', offset: 0, ready: true },
+    { wire: '202611150000', date: '2026-11-15', offset: -1, ready: false },
+    { wire: '202611150000', date: '2026-11-15', offset: 0, ready: true },
+  ])('uses the qualified market start for $wire at $offset ms', async ({ wire, date, offset, ready }) => {
+    const marketStartAt = prodatMarketMinuteToUtc(wire)!
+    vi.setSystemTime(new Date(Date.parse(marketStartAt) + offset))
+    const change = request(25, { confirmed_start_date: date, requested_start_date: date })
+    io.rows = [change]
+    io.periodRows = [period(change, marketStartAt)]
+
+    await run()
+    expect(io.effects).toEqual(ready ? [id(25)] : [])
+  })
+
+  it('checks each company, switch, Z04, process, source and status before finalizing', async () => {
+    const [wrongCompany, wrongSwitch, wrongZ04, wrongProcess, wrongSource, wrongStatus, valid] =
+      Array.from({ length: 7 }, (_, index) => request(index + 1))
+    const start = '2026-10-01T00:00:00+01:00'
+    io.rows = [wrongCompany, wrongSwitch, wrongZ04, wrongProcess, wrongSource, wrongStatus, valid]
+    io.periodRows = [
+      period(wrongCompany, start, { company_id: foreign }),
+      period(wrongSwitch, start, { source_switch_request_id: id(555) }),
+      period(wrongZ04, start, { source_message_id: id(556) }),
+      period(wrongProcess, start, { source_process: 'move_in' }),
+      period(wrongSource, start, { source: 'manual' }),
+      period(wrongStatus, start, { status: 'cancelled' }),
+      period(valid, start),
+    ]
+
+    await run()
+    expect(io.effects).toEqual([valid.id])
+    expect(io.periodReads).toHaveLength(1)
+  })
+
+  it('holds missing, ambiguous, malformed and submillisecond-future proof without blocking a qualified neighbor', async () => {
+    const [missing, ambiguous, malformed, future, valid] = Array.from({ length: 5 }, (_, index) => request(index + 1))
+    const start = '2026-10-01T00:00:00Z'
+    io.cap = 2
+    io.rows = [missing, ambiguous, malformed, future, valid]
+    io.periodRows = [
+      period(ambiguous, start),
+      period(ambiguous, start, { id: id(850) }),
+      period(malformed, '2026-10-01T00:00:00'),
+      period(future, '2026-10-14T11:00:00.000001+01:00'),
+      period(valid, '2026-10-14T11:00:00+01:00'),
+    ]
+
+    await run()
+    expect(io.effects).toEqual([valid.id])
+    expect(io.periodReads).toHaveLength(3)
+  })
+
+  it.each(['read error', 'missing count'])('refuses incomplete proof after %s before any effects', async mode => {
+    io.rows = [request(1)]
+    io.periodFailure = mode === 'read error'
+    io.periodCountMissing = mode === 'missing count'
+
+    await expect(run()).rejects.toThrow(/individuell aktivering/i)
+    expect(io.effects).toEqual([])
+    expect(io.audit).toEqual([])
   })
 })
