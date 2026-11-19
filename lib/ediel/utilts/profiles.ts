@@ -47,10 +47,12 @@ function invalidE66DeliveryPeriod(facts: UtiltsRuntimeFacts, index: number, refe
     const [qualifier, value, format] = segmentComposite(token, 1)
     const compact = value?.trim() ?? ''
     if (qualifier !== '324' || format?.trim() !== '719' || !/^\d{24}$/.test(compact)) continue
-    if (isCalendarMinute(compact.slice(0, 12)) && isCalendarMinute(compact.slice(12))) continue
+    const start = compact.slice(0, 12)
+    const end = compact.slice(12)
+    if (isCalendarMinute(start) && isCalendarMinute(end) && start < end) continue
     return {
-      ...issue(E66_INVALID_DELIVERY_PERIOD_ISSUE, 'Ogiltigt datum i leveransperioden',
-        'DTM+324 i format 719 kräver ett giltigt datum och klockslag vid båda gränserna.', reference, '245'),
+      ...issue(E66_INVALID_DELIVERY_PERIOD_ISSUE, 'Ogiltig leveransperiod',
+        'DTM+324 i format 719 kräver giltigt datum och klockslag vid båda gränserna samt ett slut efter starten.', reference, '245'),
       aperakErcCode: '42',
       aperakText: 'INCORRECT DATA',
       aperakInvalidOccurrence: { segmentIndex: segment.index, elementIndex: 1, componentIndex: 1 },

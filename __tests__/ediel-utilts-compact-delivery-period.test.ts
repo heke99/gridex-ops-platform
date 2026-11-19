@@ -36,8 +36,12 @@ beforeEach(() => vi.clearAllMocks())
 const validPeriod = '202607010000202607010015'
 const invalidStart = '202602300000202603020015'
 const invalidEnd = '202502282345202502290000'
+const emptyPeriod = '202607010000202607010000'
+const reversedPeriod = '202607010015202607010000'
 const reference = 'GRIDEX2607E66001'
 const sibling = 'GRIDEX2607E66002'
+const meterPoint = '735999260731000007'
+const siblingMeterPoint = '735999260731000014'
 const issueCode = 'UTILTS_E66_DELIVERY_PERIOD_INVALID'
 const policy = resolveCanonicalEdielPolicy({
   family: 'UTILTS', messageCode: 'E66', direction: 'inbound',
@@ -54,14 +58,14 @@ function e66(period: string) {
 
 const run = (source: ReturnType<typeof e66>) => runUtiltsRuntimeForMessage(source, { canonicalPolicy: policy })
 
-function e66Interchange(transactions: readonly { id: string; period: string }[]) {
+function e66Interchange(transactions: readonly { id: string; period: string; point?: string }[]) {
   const source = e66(validPeriod)
   const lines = source.raw_payload!.split('\n')
   const start = lines.findIndex(line => line.startsWith('IDE+'))
   const end = lines.findIndex(line => line.startsWith('UNT+'))
   const template = lines.slice(start, end)
-  lines.splice(start, end - start, ...transactions.flatMap(({ id, period }) => template.map(line =>
-    line.replace(reference, id).replace(validPeriod + ':719', period + ':719'))))
+  lines.splice(start, end - start, ...transactions.flatMap(({ id, period, point = meterPoint }) => template.map(line =>
+    line.replace(reference, id).replace(validPeriod + ':719', period + ':719').replace(meterPoint, point))))
   source.raw_payload = recountEdifactUnt(lines.join('\n'))
   return source
 }
@@ -89,7 +93,12 @@ function expectPeriodError(runtime: ReturnType<typeof run>, source: ReturnType<t
   expect(runtime.ackPlan).toMatchObject({ contrlOutcome: 'positive', aperakOutcome: 'negative', shouldSendUtiltsErr: false })
 }
 
-it.each([['start', invalidStart], ['end', invalidEnd]])('rejects a non-calendar DTM+324 %s before functional checks and preparation', async (_name, period) => {
+it.each([
+  ['non-calendar start', invalidStart],
+  ['non-calendar end', invalidEnd],
+  ['empty interval', emptyPeriod],
+  ['reversed interval', reversedPeriod],
+])('rejects a DTM+324 %s before functional checks and preparation', async (_name, period) => {
   const source = e66(period)
   const runtime = run(source)
   expect(runtime.transactionDispositions).toMatchObject([{ transactionId: reference, disposition: 'guide_rejected', responseType: 'negative_aperak' }])
@@ -127,25 +136,32 @@ it.each([
   expect(probes.database).not.toHaveBeenCalled()
 })
 
-it.each([true, false])('keeps the valid physical IDE eligible for preparation with the bad IDE first=%s', async invalidFirst => {
-  const invalid = { id: reference, period: invalidStart }
-  const valid = { id: sibling, period: validPeriod }
+const mixedCases = [
+  { name: 'non-calendar', period: invalidStart },
+  { name: 'empty', period: emptyPeriod },
+  { name: 'reversed', period: reversedPeriod },
+].flatMap(testCase => [true, false].map(invalidFirst => ({ ...testCase, invalidFirst })))
+
+it.each(mixedCases)('prepares only the valid physical IDE for a $name period with the bad IDE first=$invalidFirst', async ({ period, invalidFirst }) => {
+  const invalid = { id: reference, period }
+  const valid = { id: sibling, period: validPeriod, point: siblingMeterPoint }
   const source = e66Interchange(invalidFirst ? [invalid, valid] : [valid, invalid])
 
   const runtime = run(source)
-  expectPeriodError(runtime, source, invalidStart)
+  expectPeriodError(runtime, source, period)
   expect(runtime.transactionDispositions.find(item => item.transactionId === reference)).toMatchObject({
     disposition: 'guide_rejected', responseType: 'negative_aperak',
   })
   expect(runtime.transactionDispositions.find(item => item.transactionId === sibling)).toMatchObject({
     disposition: 'accepted', responseType: 'positive_aperak',
   })
-  const contracts = await prepare(source, runtime)
+  const contracts = await prepare(source, runtime, true)
   expect(contracts.find(item => item.transactionId === reference)).toMatchObject({
     observations: [], metering: { capability: 'skip' }, billing: { capability: 'skip' },
   })
   expect(contracts.find(item => item.transactionId === sibling)).toMatchObject({
-    observations: [{ periodStart: '2026-06-30T22:00:00.000Z', periodEnd: '2026-06-30T22:15:00.000Z' }],
+    observations: [{ externalPoint: siblingMeterPoint, periodStart: '2026-06-30T22:00:00.000Z', periodEnd: '2026-06-30T22:15:00.000Z' }],
+    billing: { capability: 'write', periodStart: '2026-06-30T22:00:00.000Z', periodEnd: '2026-06-30T22:15:00.000Z' },
   })
   expect(probes.database).not.toHaveBeenCalled()
 })
