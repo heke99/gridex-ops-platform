@@ -13,6 +13,9 @@ const fixture = vi.hoisted(() => ({
   sitesUnavailable: false,
   missingMeterColumns: new Set<string>(),
   meterReads: [] as URLSearchParams[],
+  meterRowsCap: Infinity,
+  meterCountOverride: null as number | null,
+  meterReadFailure: null as number | null,
 }))
 
 const company = '00000000-0000-4000-8000-000000000001'
@@ -106,18 +109,37 @@ async function readFixture(input: RequestInfo | URL, init?: RequestInit): Promis
   const siteFilter = params.get('or')
   if (table === 'metering_points') {
     fixture.meterReads.push(params)
+    if (fixture.meterReadFailure === fixture.meterReads.length) {
+      return Response.json({ code: '42501', message: 'Synthetic metering point permission error' }, { status: 403 })
+    }
     const used = [...columns, ...filters.map(([name]) => name), ...(siteFilter ? ['site_id', 'customer_site_id'] : [])]
     const missing = used.find((name) => fixture.missingMeterColumns.has(name))
     if (missing) return Response.json({ code: '42703', message: `column metering_points.${missing} does not exist` }, { status: 400 })
   }
 
-  const rows = (table === 'metering_points' ? fixture.meters : fixture.sites)
+  let matched = (table === 'metering_points' ? fixture.meters : fixture.sites)
     .filter((row) => filters.every(([name, op]) => op.startsWith('eq.')
       ? row[name] === op.slice(3)
       : matches(row[name], op.slice(4, -1))))
     .filter((row) => !siteFilter || matchesMeterSiteFilter(row, siteFilter))
+  const after = params.get('id')
+  if (after?.startsWith('gt.')) {
+    const cursor = after.slice(3)
+    matched = matched.filter((row) => String(row.id) > cursor)
+  }
+  if (params.get('order') === 'id.asc') {
+    matched.sort((left, right) => String(left.id).localeCompare(String(right.id)))
+  }
+  const limit = params.has('limit') ? Number(params.get('limit')) : Infinity
+  const rows = matched.slice(0, Math.min(limit, table === 'metering_points' ? fixture.meterRowsCap : Infinity))
     .map((row) => Object.fromEntries(columns.map((name) => [name, row[name] ?? null])))
-  return Response.json(rows)
+
+  const headers = new Headers()
+  if (new Headers(init.headers).get('prefer')?.includes('count=exact')) {
+    const count = fixture.meterCountOverride ?? matched.length
+    headers.set('content-range', `${rows.length ? `0-${rows.length - 1}` : '*'}/${count}`)
+  }
+  return Response.json(rows, { headers })
 }
 
 function request(endpoint: Endpoint, search = ''): Promise<Response> {
@@ -134,6 +156,9 @@ function request(endpoint: Endpoint, search = ''): Promise<Response> {
 beforeEach(() => {
   fixture.meterReads = []
   fixture.sitesUnavailable = false
+  fixture.meterRowsCap = Infinity
+  fixture.meterCountOverride = null
+  fixture.meterReadFailure = null
   // Committed metering_points uses measurement_type. metering_type is a public DTO key.
   fixture.missingMeterColumns = new Set(['metering_type'])
   const owner = { company_id: company, customer_id: customer, status: 'active', created_at: '2026-10-01T00:00:00Z' }
@@ -166,8 +191,61 @@ describe('customer sites and metering point references', () => {
     expect(fixture.meterReads[0].get('company_id')).toBe(`eq.${company}`)
     const ids = `${firstSite},${secondSite}`
     expect(fixture.meterReads[0].get('or')).toBe(`(customer_site_id.in.(${ids}),and(customer_site_id.is.null,site_id.in.(${ids})))`)
-    expect(fixture.meterReads[0].get('limit')).toBe(endpoint === 'sites' ? null : '100')
+    expect(fixture.meterReads[0].get('limit')).toBe(endpoint === 'sites' ? '500' : '100')
   })
+
+  it('returns all 1,001 points from the sole Sites page below a reduced PostgREST row cap', async () => {
+    fixture.sites = [fixture.sites[0]]
+    fixture.meterRowsCap = 250
+    const matches = Array.from({ length: 1001 }, (_, index) => ({
+      ...fixture.meters[0],
+      id: `10000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+    }))
+    fixture.meters = [fixture.meters[2], fixture.meters[3], ...matches.slice().reverse()]
+    const response = await request('sites')
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.page.sites).toMatchObject({ returned: 1, has_more: false })
+    expect(body.data.metering_points.map((point: Row) => point.metering_point_reference)).toEqual(
+      matches.map((point) => publicReference('metering_point', company, point.id)),
+    )
+    expect(fixture.meterReads.map((query) => query.get('id'))).toEqual([
+      null, ...[249, 499, 749, 999].map((index) => `gt.${matches[index].id}`),
+    ])
+    for (const query of fixture.meterReads) {
+      expect(query.get('company_id')).toBe(`eq.${company}`)
+      expect(query.get('or')).toBe(`(customer_site_id.in.(${firstSite}),and(customer_site_id.is.null,site_id.in.(${firstSite})))`)
+      expect(query.get('order')).toBe('id.asc')
+    }
+  })
+
+  it('keeps the Bundle preview bounded when the full Sites page has more points', async () => {
+    fixture.meters = Array.from({ length: 110 }, (_, index) => ({
+      ...fixture.meters[0],
+      id: `10000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+    }))
+    const response = await request('bundle GET')
+    expect(response.status).toBe(200)
+    expect((await response.json()).data.metering_points).toHaveLength(100)
+    expect(fixture.meterReads).toHaveLength(1)
+    expect(fixture.meterReads[0].get('limit')).toBe('100')
+  })
+
+  it.each(['later permission error', 'unconfirmed count', 'over the row budget'] as const)(
+    'returns 503 without a partial list for %s', async (problem) => {
+      fixture.meterRowsCap = 1
+      if (problem === 'later permission error') fixture.meterReadFailure = 2
+      if (problem === 'unconfirmed count') fixture.meterCountOverride = 0
+      if (problem === 'over the row budget') fixture.meterCountOverride = 10_001
+      const response = await request('sites')
+      expect(response.status).toBe(503)
+      const raw = await response.text()
+      expect(raw).toContain('site_metering_points_read_incomplete')
+      expect(raw).not.toContain('Synthetic metering point permission error')
+      expect(raw).not.toContain('metering_points"')
+      expect(fixture.meterReads).toHaveLength(problem === 'later permission error' ? 2 : 1)
+    },
+  )
 
   it.each(['sites', 'bundle GET'] as const)('%s keeps both links if optional modern meter columns are unavailable', async (endpoint) => {
     fixture.missingMeterColumns.add('onboarding_status')

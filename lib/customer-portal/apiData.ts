@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server'
+import { ApiInputError } from '@/lib/api/strictRequest'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import { requirePortalRetentionAccess } from '@/lib/ediel/retention/customerRecordClasses'
@@ -611,15 +612,70 @@ export async function listPortalPowersOfAttorneyPage(
 const METERING_POINT_SELECT = 'id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,ediel_metering_point_id,site_facility_id,status,measurement_type,reading_frequency,grid_owner_id,grid_area_code,price_area_code,start_date,end_date,verification_status,onboarding_status,data_quality_status,created_at'
 const METERING_POINT_LEGACY_SELECT = 'id,customer_id,site_id,metering_point_id,meter_point_id,ediel_metering_point_id,site_facility_id,status,measurement_type,reading_frequency,grid_owner_id,price_area_code,start_date,end_date,created_at'
 const METERING_POINT_MINIMAL_SELECT = 'id,customer_id,site_id,metering_point_id,meter_point_id,status,price_area_code,created_at'
+const SITE_METERING_POINT_PAGE_SIZE = 500
+const MAX_SITE_METERING_POINTS = 10_000
+const MAX_SITE_METERING_POINT_PAGES = 100
+
+type MeteringPointPageResult = ListResult & { count: number | null }
+
+async function readCompleteSiteMeteringPoints(
+  readPage: (lastId: string | null) => Promise<MeteringPointPageResult>,
+): Promise<ListResult> {
+  const points: Array<Record<string, unknown>> = []
+  let lastId: string | null = null
+  let total: number | null = null
+
+  for (let page = 0; page < MAX_SITE_METERING_POINT_PAGES; page += 1) {
+    const result = await readPage(lastId)
+    if (result.error) {
+      if (page === 0) return result // Only the first response can select a legacy projection.
+      throw result.error
+    }
+
+    const { data, count } = result
+    if (page === 0 && Array.isArray(data) && data.length === 0 && count === null) {
+      return { data: [], error: null }
+    }
+    if (!Array.isArray(data) || count === null || !Number.isSafeInteger(count) ||
+        count < data.length || data.length > SITE_METERING_POINT_PAGE_SIZE) {
+      throw new Error('Invalid site metering point page')
+    }
+    total ??= count
+    if (total > MAX_SITE_METERING_POINTS || points.length + count !== total) {
+      throw new Error('Site metering point total is too large or changed during read')
+    }
+
+    for (const point of data) {
+      const id = point.id
+      if (typeof id !== 'string' || !id || (lastId !== null && id <= lastId)) {
+        throw new Error('Site metering point cursor did not advance')
+      }
+      lastId = id
+      points.push(point)
+    }
+    if (points.length === total) return { data: points, error: null }
+    if (data.length === 0) throw new Error('Site metering point page was incomplete')
+  }
+
+  throw new Error('Site metering point page limit reached')
+}
 
 function listMeteringPointsBySites(context: PortalCustomerContext, siteIds: string[], limit?: number) {
   const idFilter = siteIds.join(',')
   const read = (select: string, hasCustomerSiteId: boolean) => async () => {
-    const query = supabaseService.from('metering_points').select(select).eq('company_id', context.companyId)
-    const scoped = hasCustomerSiteId
-      ? query.or(`customer_site_id.in.(${idFilter}),and(customer_site_id.is.null,site_id.in.(${idFilter}))`)
-      : query.in('site_id', siteIds)
-    return await (limit === undefined ? scoped : scoped.limit(limit)) as ListResult
+    const scopedQuery = (count?: 'exact') => {
+      const query = supabaseService.from('metering_points').select(select, count ? { count } : undefined)
+        .eq('company_id', context.companyId)
+      return hasCustomerSiteId
+        ? query.or(`customer_site_id.in.(${idFilter}),and(customer_site_id.is.null,site_id.in.(${idFilter}))`)
+        : query.in('site_id', siteIds)
+    }
+    if (limit !== undefined) return await scopedQuery().limit(limit) as ListResult
+
+    return readCompleteSiteMeteringPoints(async (lastId) => {
+      const query = scopedQuery('exact').order('id', { ascending: true }).limit(SITE_METERING_POINT_PAGE_SIZE)
+      return await (lastId === null ? query : query.gt('id', lastId)) as MeteringPointPageResult
+    })
   }
 
   return listWithSchemaFallback([
@@ -669,7 +725,11 @@ export async function listPortalMeteringPointsForSites(
   await logPortalAccess({ context, route, action: 'read_metering_points_for_site_page' })
   const siteIds = sites.map((site) => String(site.id ?? '')).filter(Boolean)
   if (siteIds.length === 0) return []
-  return listMeteringPointsBySites(context, siteIds)
+  try {
+    return await listMeteringPointsBySites(context, siteIds)
+  } catch {
+    throw new ApiInputError('Mätpunkterna för anläggningarna kunde inte hämtas fullständigt. Försök igen.', 'site_metering_points_read_incomplete', 503)
+  }
 }
 
 // Note: the unused createPortalRequest helper (writing customer_portal_requests,
