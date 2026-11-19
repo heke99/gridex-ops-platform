@@ -5,6 +5,8 @@ import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
 import { validateUnsmGrammar } from '@/lib/ediel/core/unsmGrammar'
 import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { parseMeteringObservations } from '@/lib/ediel/utilts/meteringObservationParser'
+import { parseUtilts } from '@/lib/ediel/utilts/parseUtilts'
 
 const input = (code: 'E66' | 'E73', payload: Record<string, unknown>) => ({
   code, environment: 'test' as const, senderEdielId: '11111', receiverEdielId: '22222',
@@ -41,6 +43,33 @@ describe('actual UTILTS outbound producer full selected 02B grammar', () => {
     expect(draft.rawPayload).toContain("LIN+++8716867000030:::9'")
     expect(draft.rawPayload).toContain(`MEA+AAZ++${unit}'`)
     expect(draft.rawPayload).toContain("QTY+136:5'")
+  })
+
+  it.each([
+    ['15', '2026-09-30T00:15:00+01:00', '2026-09-29T23:15:00.000Z'],
+    ['60', '2026-09-30T01:00:00+01:00', '2026-09-30T00:00:00.000Z'],
+  ])('round trips an E66 observation with a resolution of %s minutes', async (resolution, periodEnd, expectedEnd) => {
+    const draft = await buildUtiltsOutboundDraft(input('E66', { resolution, periodEnd, quantity: 5, readingFrequency: 'monthly' }))
+    const raw = draft.rawPayload!
+
+    expect(parseMeteringObservations(parseUtilts(raw))).toMatchObject([{
+      measurementResolution: `PT${resolution}M`,
+      periodStart: '2026-09-29T23:00:00.000Z',
+      periodEnd: expectedEnd,
+      quantity: 5,
+      unit: 'KWH',
+    }])
+    expect(raw).toContain(`DTM+354:${resolution}:806'`)
+    expect(validateUnsmGrammar(raw).syntaxOk).toBe(true)
+  })
+
+  it.each([
+    { resolution: '1440' },
+    { readingFrequency: 'daily' },
+    { readingFrequency: 'monthly' },
+  ])('refuses an unsupported daily E66 resolution from %j', async payload => {
+    await expect(buildUtiltsOutboundDraft(input('E66', { ...payload, quantity: 5 })))
+      .rejects.toThrow('utilts_outbound_e66_daily_resolution_requires_agreement')
   })
 
   it.each(['E66', 'E73'] as const)('%s refuses an explicit power, amount, unknown or malformed product instead of relabelling it as energy', async code => {
