@@ -258,6 +258,9 @@ export async function findMatchingGridOwnerDataRequest(
     if (hit && (!meteringPointId || !hitPoint || hitPoint === meteringPointId)) return hit
   }
 
+  // The newest row for this meter does not prove which E73 period an E66 answers.
+  if (message.direction === 'inbound' && message.message_family === 'UTILTS' && message.message_code === 'E66') return null
+
   if (!meteringPointId) return null
 
   const { data, error } = await supabaseService
