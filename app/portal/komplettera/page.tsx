@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { portalCompletionTypeLabel, portalInfoRequestStatusLabel, portalInfoRequestTypeLabel } from "@/lib/customer-portal/labels";
 import {
   getCustomerPortalContext,
@@ -14,14 +15,23 @@ export const dynamic = "force-dynamic";
 export default async function PortalCompletionPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ status?: string; message?: string }>;
+  searchParams?: Promise<{ status?: string; message?: string; page?: string | string[]; request?: string | string[] }>;
 }) {
   const params = searchParams ? await searchParams : {};
+  const page = typeof params.page === "string" && /^[1-9]\d{0,5}$/.test(params.page) ? Number(params.page) : 1;
+  const requestId = typeof params.request === "string" && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(params.request)
+    ? params.request.toLowerCase()
+    : undefined;
   const context = await getCustomerPortalContext();
-  const [requests, completions] = await Promise.all([
-    listPortalInfoRequests(context),
+  const [open, history, completions] = await Promise.all([
+    listPortalInfoRequests(context, { scope: "open", page }),
+    listPortalInfoRequests(context, { scope: "history" }),
     listPortalCompletions(context),
   ]);
+  const selected = requestId && !open.requests.some((request) => request.id === requestId)
+    ? (await listPortalInfoRequests(context, { scope: "open", requestId })).requests[0]
+    : undefined;
+  const requests = selected ? [selected, ...open.requests] : open.requests;
   const primaryCustomer = context.customers[0] ?? null;
 
   return (
@@ -114,10 +124,11 @@ export default async function PortalCompletionPage({
               Öppna uppgiftsbegäran
             </h2>
             <div className="mt-4 space-y-3">
-              {requests.slice(0, 8).map((request) => (
+              {requests.map((request) => (
                 <div
                   key={request.id}
-                  className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-700"
+                  id={`uppgiftsbegaran-${request.id}`}
+                  className="scroll-mt-4 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700 target:border-slate-500"
                 >
                   <div className="font-semibold text-slate-950">
                     {portalInfoRequestTypeLabel(request.request_type)}
@@ -139,7 +150,26 @@ export default async function PortalCompletionPage({
                 </div>
               ) : null}
             </div>
+            {open.page > 1 || open.hasMore ? (
+              <nav aria-label="Sidor med öppna uppgiftsbegäranden" className="mt-4 flex gap-4 text-sm">
+                {open.page > 1 ? <Link className="underline" href={`/portal/komplettera?page=${open.page - 1}`}>Föregående</Link> : null}
+                {open.hasMore ? <Link className="underline" href={`/portal/komplettera?page=${open.page + 1}`}>Nästa</Link> : null}
+              </nav>
+            ) : null}
           </section>
+
+          {history.requests.length > 0 ? (
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-950">Avslutade uppgiftsbegäranden</h2>
+              <ul className="mt-4 space-y-3">
+                {history.requests.map((request) => (
+                  <li key={request.id} className="text-sm text-slate-700">
+                    {portalInfoRequestTypeLabel(request.request_type)} · {portalInfoRequestStatusLabel(request.status)} · {formatDate(request.updated_at)}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">
