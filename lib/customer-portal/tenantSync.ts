@@ -413,7 +413,6 @@ async function syncLegalAcceptance(input: {
     contract_id: contractId,
     contract_application_id: input.refs.applicationId,
     acceptance_type: module.acceptanceType,
-    legal_text_version_id: module.legalTextVersionId,
     legal_bundle_version_document_id: module.id,
     legal_module_key: module.moduleKey,
     legal_document_version: module.version,

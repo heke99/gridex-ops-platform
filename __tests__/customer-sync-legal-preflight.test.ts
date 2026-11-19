@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { POST } from '@/app/api/v1/customer/sync/route'
 import { publicReference } from '@/lib/integrations/publicReferences'
@@ -13,6 +14,8 @@ const ports = vi.hoisted(() => ({
   operations: [] as Array<{ method: string; table: string; body: unknown }>,
   customer: {} as Row,
   activeBundle: null as string | null,
+  legacyTextVersionId: null as string | null,
+  persistLegalAcceptances: null as ((body: unknown) => Promise<Response>) | null,
 }))
 
 vi.mock('@/lib/supabase/service', async () => {
@@ -40,6 +43,7 @@ const contractId = '00000000-0000-4000-8000-000000000003'
 const bundleId = '00000000-0000-4000-8000-000000000004'
 const documentId = '00000000-0000-4000-8000-000000000005'
 const ledgerId = '00000000-0000-4000-8000-000000000006'
+const applicationId = '00000000-0000-4000-8000-000000000007'
 const client = { id: 'fixture-client', company_id: companyId }
 const identity = {
   company_id: companyId,
@@ -74,6 +78,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   ports.customer = { first_name: 'Original', metadata: {} }
   ports.activeBundle = bundleId
+  ports.legacyTextVersionId = null
+  ports.persistLegalAcceptances = null
   ports.operations = []
   ports.authorize.mockResolvedValue({ ok: true, startedAt: Date.now(), client, identity })
   ports.fetch.mockImplementation(async (url: string | URL, init?: RequestInit) => {
@@ -91,13 +97,16 @@ beforeEach(() => {
       expect(searchParams.get('company_id')).toBe(`eq.${companyId}`)
       expect(searchParams.get('customer_id')).toBe(`eq.${customerId}`)
       return Response.json([{
-        id: contractId, metering_point_id: 'fixture-point', website_application_id: 'fixture-application',
+        id: contractId, metering_point_id: 'fixture-point', website_application_id: applicationId,
         legal_bundle_version_id: ports.activeBundle,
       }])
     }
     if (table === 'legal_bundle_version_documents') {
       expect(searchParams.get('legal_bundle_version_id')).toBe(`eq.${bundleId}`)
-      return Response.json([{ ...document, template_version: document.version, created_at: acceptedAt }])
+      return Response.json([{
+        ...document, template_version: document.version, created_at: acceptedAt,
+        legacy_legal_text_version_id: ports.legacyTextVersionId,
+      }])
     }
     if (table === 'customers') {
       expect(searchParams.get('company_id')).toBe(`eq.${companyId}`)
@@ -109,6 +118,7 @@ beforeEach(() => {
       return Response.json([ports.customer])
     }
     if (table === 'customer_legal_acceptances') {
+      if (method === 'POST' && ports.persistLegalAcceptances) return ports.persistLegalAcceptances(body)
       return Response.json(method === 'POST' ? [{ id: 'test-acceptance' }] : [])
     }
     throw new Error(`Unexpected fixture operation ${method} ${pathname}`)
@@ -164,4 +174,66 @@ describe('mounted customer sync legal preflight (API-81)', () => {
     expect(writes().map(({ table }) => table)).toEqual(['customers'])
     expect(ports.operations.some(({ table }) => table === 'legal_bundle_version_documents')).toBe(false)
   })
+
+  it('stores exact acceptance evidence for a migrated document and preserves historical acceptance', async () => {
+    const { PGlite } = await import('@electric-sql/pglite')
+    const schema = readFileSync(new URL('../supabase/schema.sql', import.meta.url), 'utf8')
+    const table = schema.match(/^CREATE TABLE public\.customer_legal_acceptances \([\s\S]*?^\);$/m)?.[0]
+    if (!table?.includes('customer_legal_acceptances_exact_document_check')) throw new Error('Canonical legal acceptance table missing')
+
+    const legacyTextVersionId = '00000000-0000-4000-8000-000000000008'
+    ports.legacyTextVersionId = legacyTextVersionId
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const db = new PGlite()
+    try {
+      await db.exec(table)
+      await db.query(`
+        insert into public.customer_legal_acceptances (company_id, customer_id, acceptance_type, legal_text_version_id)
+        values ($1, $2, 'terms', $3)
+      `, [companyId, customerId, legacyTextVersionId])
+
+      const nativeErrors: { code?: string; constraint?: string }[] = []
+      ports.persistLegalAcceptances = async body => {
+        try {
+          const result = await db.query(`
+            insert into public.customer_legal_acceptances (
+              company_id, customer_id, contract_id, contract_application_id, acceptance_type, source, accepted_at,
+              legal_text_version_id, legal_bundle_version_document_id, legal_module_key,
+              legal_document_version, legal_document_sha256, snapshot, metadata
+            )
+            select
+              company_id, customer_id, contract_id, contract_application_id, acceptance_type, source, accepted_at,
+              legal_text_version_id, legal_bundle_version_document_id, legal_module_key,
+              legal_document_version, legal_document_sha256, snapshot, metadata
+            from jsonb_populate_recordset(null::public.customer_legal_acceptances, $1::jsonb)
+            returning id
+          `, [JSON.stringify(body)])
+          return Response.json(result.rows)
+        } catch (error) {
+          const issue = error as { code?: string; constraint?: string; message?: string }
+          nativeErrors.push({ code: issue.code, constraint: issue.constraint })
+          return Response.json({ code: issue.code, message: issue.message }, { status: 400 })
+        }
+      }
+
+      const response = await POST(request({ legal_acceptances: [acceptance] }))
+      expect(nativeErrors).toEqual([])
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({ data: { summary: { legal_acceptances: { created: 1 } } } })
+      const saved = await db.query(`
+        select source, contract_id, legal_text_version_id, legal_bundle_version_document_id, legal_document_sha256, snapshot
+        from public.customer_legal_acceptances order by legal_bundle_version_document_id nulls first
+      `)
+      expect(saved.rows).toMatchObject([
+        { source: 'website', legal_text_version_id: legacyTextVersionId, legal_bundle_version_document_id: null },
+        {
+          source: 'customer_portal', contract_id: contractId, legal_text_version_id: null,
+          legal_bundle_version_document_id: documentId, legal_document_sha256: document.content_sha256,
+          snapshot: { source_module: { id: documentId }, accepted_document: { document_reference: acceptance.document_reference } },
+        },
+      ])
+    } finally {
+      await db.close()
+    }
+  }, 15_000)
 })
