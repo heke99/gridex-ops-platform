@@ -98,19 +98,28 @@ export function hasUniformConsolidatedInvoice(summary?: ContractBillingSummary):
     preference.values.length === 1 && preference.values[0] === true
 }
 
-function preferenceLabel<T extends boolean | string>(summary: PreferenceSummary<T>, format: (value: T) => string): string {
-  const known = summary.values.map(format).join(', ')
+const billingLevelLabels = new Map([
+  ['customer', 'Per kund'],
+  ['contract', 'Per avtal'],
+  ['site', 'Per anläggning'],
+  ['metering_point', 'Per mätpunkt'],
+])
+
+function preferenceLabel<T extends boolean | string>(summary: PreferenceSummary<T>, format: (value: T) => string | undefined): string {
   if (summary.state === 'unavailable') return 'Kan inte hämtas'
   if (summary.state === 'no_contract') return 'Inget avtal'
-  if (summary.state === 'mixed') return `Blandat: ${known}${summary.unknownCount ? ' (även okänt)' : ''}`
-  if (summary.state === 'unknown') return known ? `${known} samt okänt` : 'Okänt'
+  const knownLabels = summary.values.map(format).filter((label) => label !== undefined)
+  const hasUnknown = summary.unknownCount > 0 || knownLabels.length < summary.values.length
+  const known = knownLabels.join(', ')
+  if (knownLabels.length > 1) return `Blandat: ${known}${hasUnknown ? ' (även okänt)' : ''}`
+  if (hasUnknown) return known ? `${known} samt okänt` : 'Okänt'
   return known
 }
 
 export function contractBillingSummaryLabel(summary?: ContractBillingSummary): string {
   if (!summary) return 'Avtalens fakturainställningar: kan inte hämtas'
   const consolidated = preferenceLabel(summary.consolidatedInvoice, value => value ? 'Ja' : 'Nej')
-  const level = preferenceLabel(summary.billingLevel, value => value)
+  const level = preferenceLabel(summary.billingLevel, value => billingLevelLabels.get(value))
   return `Alla avtal · Samlingsfaktura: ${consolidated} · Faktureringsnivå: ${level}`
 }
 
