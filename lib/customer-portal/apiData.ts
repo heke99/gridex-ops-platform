@@ -78,16 +78,15 @@ export function shouldLogPortalAccess(route: string): boolean {
   return route !== '/api/v1/customer/portal-bundle'
 }
 
-async function logPortalAccess(input: {
+type PortalAccessLogInput = {
   context: PortalCustomerContext
   route: string
   action: string
   metadata?: Record<string, unknown>
-}) {
-  await requirePortalRetentionAccess(input.context)
-  // portal-bundle emits one request-level access log through externalApi.ts.
-  // Suppress per-section rows here to avoid 10+ redundant DB roundtrips while
-  // preserving standalone endpoint audit behavior unchanged.
+}
+
+async function recordPortalAccess(input: PortalAccessLogInput) {
+  // Portal Bundle already emits a single request-level access log.
   if (!shouldLogPortalAccess(input.route)) return
 
   await supabaseService.from('customer_portal_api_access_logs').insert({
@@ -101,6 +100,11 @@ async function logPortalAccess(input: {
       ...(input.metadata ?? {}),
     },
   }).then(() => null)
+}
+
+async function logPortalAccess(input: PortalAccessLogInput) {
+  await requirePortalRetentionAccess(input.context)
+  await recordPortalAccess(input)
 }
 
 const CONTRACT_SELECT = [
@@ -546,7 +550,7 @@ export async function listPortalDocumentsPage(
   page: PortalDatabasePageInput,
   route = '/api/v1/customer/documents',
 ) {
-  await logPortalAccess({ context, route, action: 'read_documents_page' })
+  await requirePortalRetentionAccess(context)
   const limit = portalPageLimit(page.limit)
   const cursor = decodePortalCursor({
     cursor: page.cursor, companyId: context.companyId, customerId: context.customerId, resource: 'documents',
@@ -559,6 +563,7 @@ export async function listPortalDocumentsPage(
     p_cursor_id: cursor?.id ?? null,
     p_limit: limit + 1,
   })
+  await recordPortalAccess({ context, route, action: 'read_documents_page', metadata: { outcome: error ? 'failed' : 'succeeded' } })
   if (error) throw new PlatformSchemaNotReadyError('Canonical document pagination is unavailable.', portalQueryErrorMetadata(error))
   return buildPortalDatabasePage((data ?? []) as unknown as Array<Record<string, unknown>>, {
     limit, companyId: context.companyId, customerId: context.customerId,
@@ -724,14 +729,19 @@ export async function listPortalMeteringPointsForSites(
   sites: Array<Record<string, unknown>>,
   route = '/api/v1/customer/sites',
 ) {
-  await logPortalAccess({ context, route, action: 'read_metering_points_for_site_page' })
+  await requirePortalRetentionAccess(context)
   const siteIds = sites.map((site) => String(site.id ?? '')).filter(Boolean)
   if (siteIds.length === 0) return []
+  const access: PortalAccessLogInput = { context, route, action: 'read_metering_points_for_site_page' }
+  let points: Awaited<ReturnType<typeof listMeteringPointsBySites>>
   try {
-    return await listMeteringPointsBySites(context, siteIds)
+    points = await listMeteringPointsBySites(context, siteIds)
   } catch {
+    await recordPortalAccess({ ...access, metadata: { outcome: 'failed' } })
     throw new ApiInputError('Mätpunkterna för anläggningarna kunde inte hämtas fullständigt. Försök igen.', 'site_metering_points_read_incomplete', 503)
   }
+  await recordPortalAccess({ ...access, metadata: { outcome: 'succeeded' } })
+  return points
 }
 
 // Note: the unused createPortalRequest helper (writing customer_portal_requests,
