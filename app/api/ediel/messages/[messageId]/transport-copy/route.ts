@@ -33,7 +33,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ mes
       copies: result.copies.map(copy => ({ attemptId: copy.attemptId, mimeSha256: copy.mimeSha256, mimeLength: copy.mimeLength,
         rfcMessageId: copy.rfcMessageId, enteredAt: copy.enteredAt, observedAt: copy.observedAt, smtpClassification: copy.smtpClassification })) }, { headers })
   } catch (error) {
-    if (error instanceof EdielTransportCopyUnavailableError) return NextResponse.json({ error: 'Transportkopian saknar aktuell arkivverifiering.' }, { status: 409, headers })
+    if (error instanceof EdielTransportCopyUnavailableError) {
+      if (error.reason === 'retained') return NextResponse.json({ error: 'Transportkopian är spärrad enligt gallringsbeslutet.' }, { status: 410, headers })
+      if (error.reason === 'source_read') return NextResponse.json({ error: 'Transportkopian kan tillfälligt inte läsas.' }, { status: 503, headers })
+      return NextResponse.json({ error: 'Transportkopian saknar aktuell arkivverifiering.' }, { status: 409, headers })
+    }
     return NextResponse.json({ error: 'Transportkopian kunde inte auktoriseras eller läsas.' }, { status: 403, headers })
   }
 }

@@ -1,6 +1,7 @@
 // masterplan: TR-03, AT-TR-03, TR-11, AT-TR-11, TEN-07, AT-TEN-07
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
+import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 const mock = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), download: vi.fn(), storage: vi.fn() }))
 vi.mock('@/lib/admin/apiGuards', () => ({ requireAdminApiAccess: mock.auth }))
@@ -19,6 +20,14 @@ const response = (copies = [copy()]) => ({ data: { status: 'available', companyI
   blocker: null, authorizesResend: false, deliveryProven: false }, error: null })
 const request = (query = '') => new NextRequest(`https://example.invalid/api/ediel/messages/${messageId}/transport-copy${query}`)
 const context = { params: Promise.resolve({ messageId }) }
+const tombstoneMessage = 'ediel_original_bytes_retention_tombstoned'
+
+function syntheticSupabase(fetch: typeof globalThis.fetch) {
+  return createClient('https://supabase.example.invalid', 'synthetic', {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch },
+  })
+}
 
 describe('authorized immutable transport copy download', () => {
   beforeEach(() => {
@@ -66,7 +75,7 @@ describe('authorized immutable transport copy download', () => {
     if (kind === 'hash') mock.download.mockResolvedValue({ data: new Blob([Buffer.from(payload.toString().replace('bytes', 'BYTES'))]), error: null })
     if (kind === 'size') mock.download.mockResolvedValue({ data: new Blob([Buffer.concat([payload, Buffer.from('x')])]), error: null })
     if (kind === 'message-id') mock.rpc.mockResolvedValue(response([{ ...copy(), rfcMessageId: '<different@example.invalid>' }]))
-    if (kind === 'missing') mock.download.mockResolvedValue({ data: null, error: new Error('private bucket diagnostic') })
+    if (kind === 'missing') mock.download.mockResolvedValue({ data: null, error: { status: 404, message: 'private bucket diagnostic' } })
     const result = await GET(request(`?attemptId=${attemptId}`), context)
     expect(result.status).toBe(409)
     expect(await result.text()).not.toContain('private bucket')
@@ -77,10 +86,79 @@ describe('authorized immutable transport copy download', () => {
     expect(result.status).toBe(403); expect(await result.text()).not.toContain('secret')
     expect(mock.download).not.toHaveBeenCalled()
   })
-  it('retains immutable journal history but returns no bytes after native retention tombstones the original',async()=>{
-    mock.rpc.mockImplementation(async(name:string)=>name==='ediel_require_source_bytes_available_v1'?{data:null,error:Error('private retention receipt')}:response())
-    const result=await GET(request(`?attemptId=${attemptId}`),context)
-    expect(result.status).toBe(409);expect(await result.text()).not.toContain('private retention')
+  it.each([
+    [{ code: 'P0001', message: tombstoneMessage }, 400, 410, 'Transportkopian är spärrad enligt gallringsbeslutet.'],
+    [{ code: 'PGRST000', message: 'synthetic connection unavailable' }, 503, 503, 'Transportkopian kan tillfälligt inte läsas.'],
+    [{ code: 'PGRST000', message: tombstoneMessage }, 503, 503, 'Transportkopian kan tillfälligt inte läsas.'],
+    [{ code: 'P0001', message: `${tombstoneMessage}_unconfirmed` }, 400, 503, 'Transportkopian kan tillfälligt inte läsas.'],
+  ] as const)('classifies native availability response %o, keeping the journal readable', async (error, upstream, expected, message) => {
+    const client = syntheticSupabase(async (input, init) => {
+      expect(String(input)).toBe('https://supabase.example.invalid/rest/v1/rpc/ediel_require_source_bytes_available_v1')
+      expect(init?.method).toBe('POST')
+      expect(JSON.parse(String(init?.body))).toEqual({ p_company_id: companyId, p_source_message_id: messageId })
+      return Response.json({ ...error, details: 'synthetic private diagnostic', hint: null }, { status: upstream })
+    })
+    mock.rpc.mockImplementation((name: string, args: Record<string, unknown>) =>
+      name === 'ediel_require_source_bytes_available_v1' ? client.rpc(name, args) : Promise.resolve(response()))
+
+    const result = await GET(request(`?attemptId=${attemptId}`), context)
+    expect(result.status).toBe(expected)
+    expect(await result.json()).toEqual({ error: message })
+    expect(result.headers.get('content-disposition')).toBeNull()
+    expect(result.headers.get('cache-control')).toBe('private, no-store')
     expect(mock.download).not.toHaveBeenCalled()
+    const list = await GET(request(), context)
+    expect(list.status).toBe(200)
+    expect(await list.json()).toMatchObject({ copies: [{ attemptId, mimeSha256 }] })
+  })
+
+  it('rejects a thrown retention read before any archive I/O', async () => {
+    mock.rpc.mockResolvedValueOnce(response()).mockRejectedValueOnce(new Error('synthetic private transport diagnostic'))
+    const result = await GET(request(`?attemptId=${attemptId}`), context)
+    expect(result.status).toBe(503)
+    expect(await result.json()).toEqual({ error: 'Transportkopian kan tillfälligt inte läsas.' })
+    expect(result.headers.get('content-disposition')).toBeNull()
+    expect(mock.download).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [400, { statusCode: '404', code: 'NoSuchKey' }, 409],
+    [503, { statusCode: '404', code: 'SlowDown' }, 503],
+  ] as const)('distinguishes archive absence and a Storage HTTP %i failure', async (status, error, expected) => {
+    const client = syntheticSupabase(async input => {
+      expect(String(input)).toBe(`https://supabase.example.invalid/storage/v1/object/ediel-files/transport/${companyId}/${messageId}/${mimeSha256}.eml`)
+      return Response.json({ ...error, message: 'synthetic private Storage diagnostic' }, { status })
+    })
+    mock.storage.mockImplementation(() => client.storage.from('ediel-files'))
+
+    const result = await GET(request(`?attemptId=${attemptId}`), context)
+    expect(result.status).toBe(expected)
+    expect(result.headers.get('content-disposition')).toBeNull()
+    expect(await result.text()).not.toContain('synthetic private Storage diagnostic')
+  })
+
+  it('reports a failed archive body read as temporarily unavailable', async () => {
+    const data = new Blob([payload])
+    vi.spyOn(data, 'arrayBuffer').mockRejectedValue(new Error('synthetic body read failed'))
+    mock.download.mockResolvedValue({ data, error: null })
+
+    const result = await GET(request(`?attemptId=${attemptId}`), context)
+    expect(result.status).toBe(503)
+    expect(await result.json()).toEqual({ error: 'Transportkopian kan tillfälligt inte läsas.' })
+    expect(result.headers.get('content-disposition')).toBeNull()
+  })
+
+  it('reports invalid MIME headers with matching length and hash as an archive conflict', async () => {
+    const changed = Buffer.from('Synthetic archive without MIME headers')
+    const changedHash = createHash('sha256').update(changed).digest('hex')
+    const item = { ...copy(), mimeLength: changed.length, mimeSha256: changedHash,
+      mimeArchiveRef: `storage://ediel-files/transport/${companyId}/${messageId}/${changedHash}.eml` }
+    mock.rpc.mockResolvedValueOnce(response([item]))
+    mock.download.mockResolvedValue({ data: new Blob([changed]), error: null })
+
+    const result = await GET(request(`?attemptId=${attemptId}`), context)
+    expect(result.status).toBe(409)
+    expect(await result.json()).toEqual({ error: 'Transportkopian saknar aktuell arkivverifiering.' })
+    expect(result.headers.get('content-disposition')).toBeNull()
   })
 })
