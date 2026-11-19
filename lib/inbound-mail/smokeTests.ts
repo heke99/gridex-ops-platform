@@ -21,6 +21,7 @@ type MailboxConfigRow = {
   secret_reference: string | null
   poll_interval_minutes: number | null
   metadata: Record<string, unknown> | null
+  last_polled_at: string | null
   last_error: string | null
 }
 
@@ -143,7 +144,6 @@ function mailboxConfigTest(mailbox: MailboxConfigRow): InboundSmokeTestResult {
       imapPort: mailbox.imap_port,
       pollIntervalMinutes: mailbox.poll_interval_minutes,
       normalizedFolder,
-      lastError: mailbox.last_error,
     },
   }
 }
@@ -151,7 +151,7 @@ function mailboxConfigTest(mailbox: MailboxConfigRow): InboundSmokeTestResult {
 async function mailboxConfigTests(): Promise<InboundSmokeTestResult[]> {
   const { data, error } = await supabaseService
     .from('ediel_mailboxes')
-    .select('id,company_id,mailbox_name,email_address,environment,imap_host,imap_port,username,secret_reference,poll_interval_minutes,metadata,last_error')
+    .select('id,company_id,mailbox_name,email_address,environment,imap_host,imap_port,username,secret_reference,poll_interval_minutes,metadata,last_polled_at,last_error')
     .eq('is_active', true)
     .order('updated_at', { ascending: false })
     .limit(50)
@@ -160,7 +160,7 @@ async function mailboxConfigTests(): Promise<InboundSmokeTestResult[]> {
     return [{
       name: 'IMAP mailbox config',
       status: 'fail',
-      message: `Aktiva mailboxar kunde inte läsas: ${error.message}`,
+      message: 'Aktiva brevlådor kunde inte läsas. Försök igen. Kontrollera databasanslutningen om felet kvarstår.',
     }]
   }
 
@@ -195,7 +195,20 @@ async function mailboxConfigTests(): Promise<InboundSmokeTestResult[]> {
       message: sharedProduction ? 'Shared production mailbox är konfigurerad.' : 'Saknar aktiv shared mailbox för environment=production.',
       details: { requiredScope: 'platform_shared' },
     },
-    ...mailboxes.map(mailboxConfigTest),
+    ...mailboxes.flatMap<InboundSmokeTestResult>((mailbox) => {
+      const config = mailboxConfigTest(mailbox)
+      if (!mailbox.last_error?.trim()) return [config]
+
+      return [config, {
+        name: `IMAP senaste pollning: ${mailboxLabel(mailbox)}`,
+        status: 'fail',
+        message: 'Senaste pollningen misslyckades. Kontrollera IMAP-inställningarna och använd brevlåde-ID och polltid vid felsökning.',
+        details: {
+          mailboxId: mailbox.id,
+          lastPolledAt: mailbox.last_polled_at,
+        },
+      }]
+    }),
   ]
 }
 
