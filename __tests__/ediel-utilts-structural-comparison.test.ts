@@ -3,7 +3,11 @@ import {describe,it,expect} from 'vitest'
 import {compareUtiltsStructure} from '@/lib/ediel/utilts/structuralComparison'
 import {comparisonInput,structureVersion,utiltsStructureWire,STRUCTURE_POINT} from './helpers/structuralComparisonFixtures'
 import {projectCorrectionContextBlocker} from '@/lib/ediel/sources/correctionContextImpact'
+import {recountEdifactUnt} from './helpers/recountEdifactUnt'
 const check=(options:Parameters<typeof utiltsStructureWire>[0]={},versions=[structureVersion()])=>compareUtiltsStructure(comparisonInput(utiltsStructureWire(options),versions))
+const energyReferences=(options:Parameters<typeof utiltsStructureWire>[0],...references:string[])=>recountEdifactUnt(
+ utiltsStructureWire({highResolution:true,noReadings:true,...options}).replace("QTY+136:10'",`${references.join("'\n")}'\nQTY+136:10'`),
+)
 describe('original UTILTS against independently selected structure (pure)',()=>{
   it('holds a matching correction at the saved cutoff without national mismatch codes',()=>{
     const blocker=projectCorrectionContextBlocker({rawC:null,sourceId:'synthetic-correction',observedAt:'2026-10-10T00:00:00Z',
@@ -42,6 +46,38 @@ describe('original UTILTS against independently selected structure (pure)',()=>{
   it('permits prior hourly energy without register readings',()=>expect(compareUtiltsStructure(comparisonInput(
     utiltsStructureWire({noReadings:true,highResolution:true}).replace('DTM+354:15:806','DTM+354:60:806'),[]
   ))).toMatchObject({status:'not_applicable',codes:[]}))
+  it.each([
+    ['202610142345202610150000','201','OLD'],
+    ['202610150000202610150015','301','NEW'],
+  ])('matches the explicit energy register for period %s against the correct meter side', (period,register,meter)=>{
+    const versions=[structureVersion(1,'OLD',['201']),structureVersion(2,'NEW',['301'])]
+    const raw=energyReferences({period},`RFF+AES:${register}`)
+    expect(compareUtiltsStructure(comparisonInput(raw,versions))).toMatchObject({status:'matched',codes:[],selected:[{meterNumber:meter}]})
+  })
+  it('retains E62 for the old explicit energy register after exchange and for an incomplete declared inventory',()=>{
+    const period='202610150000202610150015'
+    const versions=[structureVersion(1,'OLD',['201']),structureVersion(2,'NEW',['301','302'])]
+    for(const register of ['201','301']){
+      expect(compareUtiltsStructure(comparisonInput(energyReferences({period},`RFF+AES:${register}`),versions)))
+        .toMatchObject({status:'mismatch',codes:['E62']})
+    }
+  })
+  it('holds an explicit energy register with missing structure or invalid physical placement',()=>{
+    const raw=energyReferences({},'RFF+AES:201')
+    expect(compareUtiltsStructure(comparisonInput(raw,[]))).toMatchObject({status:'unavailable',codes:[]})
+    const misplaced=recountEdifactUnt(utiltsStructureWire({noReadings:true,highResolution:true,after:['RFF+AES:201']}))
+    expect(compareUtiltsStructure(comparisonInput(misplaced,[structureVersion(1,'OLD',['201'])])))
+      .toMatchObject({status:'unavailable',codes:[]})
+  })
+  it('retains a genuine E61 alongside a matching explicit E66 energy register',()=>{
+    const raw=energyReferences({},'RFF+AES:201','RFF+MG:WRONG')
+    expect(compareUtiltsStructure(comparisonInput(raw,[structureVersion(1,'OLD',['201'])])))
+      .toMatchObject({status:'mismatch',codes:['E61']})
+  })
+  it('does not fill a missing register reading with an energy reference in a mixed transaction',()=>{
+    const raw=energyReferences({noReadings:false,ids:['201']},'RFF+AES:202')
+    expect(compareUtiltsStructure(comparisonInput(raw))).toMatchObject({status:'mismatch',codes:['E62']})
+  })
   it('does not silently accept absent monthly registers',()=>expect(check({noReadings:true})).toMatchObject({status:'mismatch',codes:['E62']}))
   it.each(['E31','S01','S02','S03','S04','E72','E73','ERR'])('does not apply E61/E62 to %s',code=>expect(check({code})).toMatchObject({status:'not_applicable',codes:[]}))
   it('does not use RFF+LI P or wrong case as a national comparison check',()=>{

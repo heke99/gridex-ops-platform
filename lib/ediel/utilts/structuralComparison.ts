@@ -14,7 +14,7 @@ export type StructuralComparison={transactionId:string|null;status:'not_applicab
 const instant=parseSourceReceiptInstant
 
 /** Physical observations are not expectations. Reference inheritance is confined
- * to consecutive readings of ONE register; energy SEQs do not add registers.
+ * to consecutive readings of ONE register; energy SEQs never fill a missing reading.
  * A received register/meter is never used to choose the expected source side. */
 export function compareUtiltsStructure(input:StructuralComparisonInput):StructuralComparison{
   let transactionId:string|null=null
@@ -40,6 +40,14 @@ export function compareUtiltsStructure(input:StructuralComparisonInput):Structur
     const explicitReferences=transaction.observations.flatMap(observation=>observation.references.filter(reference=>['AES','MG'].includes(reference.qualifier??'')))
     if(!supportedUtiltsConsumptionIdentity(input.raw,input.transactionIndex))return unavailable('utilts_consumption_identity_unsupported')
     if(!readings.length&&!explicitReferences.length&&highResolution)return notApplicable()
+    const hasRegisterReference=explicitReferences.some(reference=>reference.qualifier==='AES')
+    // High-resolution energy-only E66 can identify a register explicitly in
+    // the energy observation. It does not supply a QTY+220 reading inventory.
+    const compareEnergyRegisters=ast.messages[0].messageCode==='E66'&&highResolution&&!readings.length&&hasRegisterReference
+      &&transaction.observations.every(observation=>{
+        const registerReferences=observation.references.filter(reference=>reference.qualifier==='AES')
+        return !registerReferences.length||registerReferences.length===1&&observation.quantities.length===1&&observation.quantities[0].qualifier==='136'
+      })
     const sender=legalParty(ast,'MS','IDE',['SVK','260']),receiver=legalParty(ast,'MR','IDE',['SVK','260'])
     const locations=header.filter(segment=>segment.tag==='LOC'&&parts(segment,1)[0]==='172')
     if(!sender||!receiver||locations.length!==1||parts(locations[0],1).length!==1)return unavailable('structural_object_scope_unknown')
@@ -77,6 +85,7 @@ export function compareUtiltsStructure(input:StructuralComparisonInput):Structur
     for(const reference of explicitReferences){
       if(!reference.directReferenceSlot||reference.components.length!==2||reference.value===null)return unavailable('structural_observation_identity_unknown')
       if(reference.qualifier==='MG')observedMeters.add(reference.value)
+      if(compareEnergyRegisters&&reference.qualifier==='AES')observedRegisters.add(reference.value)
     }
     const periods=datetimes(header,'324')
     let start:string|null=null,end:string|null=null,boundary:'interval'|'current_point'|'closing_point'='interval'
@@ -100,7 +109,7 @@ export function compareUtiltsStructure(input:StructuralComparisonInput):Structur
       periodStart:start,periodEnd:end,boundary})
     if(selection.status!=='selected')return unavailable(selection.reason)
     if(selection.states.length!==1)return unavailable('structural_transition_inside_transaction')
-    const selected=selection.states[0],compareRegisters=readings.length>0||!highResolution||explicitReferences.some(reference=>reference.qualifier==='AES')
+    const selected=selection.states[0],compareRegisters=readings.length>0||!highResolution||hasRegisterReference
     if(observedMeters.size&&selected.meterNumber===null||compareRegisters&&(!selected.registerIds.length||selected.registerIds.some(id=>id===null)
       ||new Set(selected.registerIds).size!==selected.registerIds.length))return unavailable('structural_expected_inventory_unknown')
     const codes:('E61'|'E62')[]=[]
