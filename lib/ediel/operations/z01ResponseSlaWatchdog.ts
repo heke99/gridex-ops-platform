@@ -14,9 +14,8 @@ function schemaCompatibilityError(error: unknown): boolean {
     || /does not exist|schema cache|function .* not found/i.test(row?.message ?? '')
 }
 
-function numberValue(value: unknown): number {
-  const parsed = Number(value ?? 0)
-  return Number.isFinite(parsed) ? parsed : 0
+function isCount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
 export async function runZ01ResponseSlaWatchdog(input?: {
@@ -44,11 +43,18 @@ export async function runZ01ResponseSlaWatchdog(input?: {
     ? data as Record<string, unknown>
     : {}
 
-  return {
-    scanned: numberValue(row.scanned),
-    contrl_overdue: numberValue(row.contrl_overdue),
-    business_response_overdue: numberValue(row.business_response_overdue),
-    automatic_resends: numberValue(row.automatic_resends),
-    available: true,
+  const { scanned, contrl_overdue, business_response_overdue, automatic_resends } = row
+  // The RPC receives NaN as JSON null, which uses its default of 100.
+  const maxScanned = Number.isNaN(limit) ? 100 : limit
+  // Both response deadlines can expire for the same scanned request.
+  if (
+    !isCount(scanned) || scanned > maxScanned ||
+    !isCount(contrl_overdue) || contrl_overdue > scanned ||
+    !isCount(business_response_overdue) || business_response_overdue > scanned ||
+    automatic_resends !== 0
+  ) {
+    throw new Error('z01_response_sla_invalid_result')
   }
+
+  return { scanned, contrl_overdue, business_response_overdue, automatic_resends, available: true }
 }
