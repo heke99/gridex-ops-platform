@@ -148,17 +148,44 @@ export function pinnedLookup(pinned: { address: string; family: number }) {
   }
 }
 
+type WebhookResponseBodyError = 'webhook_response_body_incomplete' | 'webhook_response_too_large'
+
 export async function postPublicWebhook(input: {
   url: string
   headers: Headers
   body: string
   signal: AbortSignal
-}): Promise<{ status: number; ok: boolean; body: string }> {
+}): Promise<{ status: number; ok: boolean; body: string; bodyReadError?: WebhookResponseBodyError }> {
   const url = parsePublicWebhookUrl(input.url)
   const addresses = await resolvePublicAddresses(url)
   const pinned = addresses[0]
 
   return await new Promise((resolve, reject) => {
+    let status: number | null = null
+    let settled = false
+
+    function finish(body: string, bodyReadError?: WebhookResponseBodyError) {
+      if (settled) return
+      settled = true
+      const responseStatus = status ?? 0
+      resolve({
+        status: responseStatus,
+        ok: responseStatus >= 200 && responseStatus < 300,
+        body,
+        ...(bodyReadError ? { bodyReadError } : {}),
+      })
+    }
+
+    function fail(error: unknown, bodyReadError: WebhookResponseBodyError = 'webhook_response_body_incomplete') {
+      if (settled) return
+      if (status !== null) {
+        finish('', bodyReadError)
+        return
+      }
+      settled = true
+      reject(error)
+    }
+
     const req = httpsRequest(
       url,
       {
@@ -168,29 +195,33 @@ export async function postPublicWebhook(input: {
         lookup: pinnedLookup(pinned),
       },
       (response) => {
+        status = response.statusCode ?? null
         const chunks: Buffer[] = []
         let size = 0
+        const incomplete = () => fail(new Error('webhook_response_body_incomplete'))
+
         response.on('data', (chunk: Buffer | string) => {
+          if (settled) return
           const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
           size += buffer.length
           if (size > MAX_WEBHOOK_RESPONSE_BYTES) {
-            response.destroy(new Error('webhook_response_too_large'))
+            const error = new Error('webhook_response_too_large')
+            fail(error, 'webhook_response_too_large')
+            response.destroy(error)
             return
           }
           chunks.push(buffer)
         })
         response.on('end', () => {
-          const status = response.statusCode ?? 0
-          resolve({
-            status,
-            ok: status >= 200 && status < 300,
-            body: Buffer.concat(chunks).toString('utf8'),
-          })
+          if (!response.complete) incomplete()
+          else if (!settled) finish(Buffer.concat(chunks).toString('utf8'))
         })
-        response.on('error', reject)
+        response.on('aborted', incomplete)
+        response.on('close', () => { if (!settled) incomplete() })
+        response.on('error', fail)
       },
     )
-    req.on('error', reject)
+    req.on('error', fail)
     req.end(input.body)
   })
 }
