@@ -75,7 +75,8 @@ describe('customer metering filters', () => {
     { filters: { from: '2026-02-30T00:00:00Z' }, field: 'from', code: 'invalid_date' },
     { filters: { from: '2026-02-30' }, field: 'from', code: 'invalid_date' },
     { filters: { to: '2026-10-12T24:01:00Z' }, field: 'to', code: 'invalid_date' },
-    { filters: { to: '2026-10-12T01:00:00' }, field: 'to', code: 'invalid_date' },
+    { filters: { to: '2026-10-12T24:00:00.000001' }, field: 'to', code: 'invalid_date' },
+    { filters: { to: '2026-02-30T01:00:00' }, field: 'to', code: 'invalid_date' },
     { filters: { to: '2026-10-12T01:00:00+16:00' }, field: 'to', code: 'invalid_date' },
     {
       filters: { from: '2026-10-12T02:00:00Z', to: '2026-10-12T01:00:00Z' },
@@ -107,12 +108,34 @@ describe('customer metering filters', () => {
     expect(ports.audit).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 200, metadata: expect.objectContaining({ result_count: 0 }) }))
   })
 
-  it('retains a date-only lower bound with midnight UTC semantics', async () => {
+  it('leaves a valid date-only bound for the database to interpret', async () => {
     expect((await read({ from: '2024-02-29' })).status).toBe(200)
     const filters = ports.queries[0].searchParams
-    expect(filters.get('period_start')).toBe('gte.2024-02-29T00:00:00Z')
+    expect(filters.get('period_start')).toBe('gte.2024-02-29')
     expect(filters.has('period_end')).toBe(false)
     expect(filters.has('facility_id')).toBe(false)
+  })
+
+  it.each([
+    ['2026-10-25T02:40:00.000001', '2026-10-25T02:55:00'],
+    ['2026-10-25T02:40:00', '2026-10-25T01:55:00Z'],
+    ['2026-03-29T03:05:00', '2026-03-29T02:45:00'],
+    ['2026-10-25T24:00:00', '2026-10-26T00:30:00'],
+  ])('sends locally interpreted bounds %s and %s without imposing UTC order', async (from, to) => {
+    expect((await read({ from, to })).status).toBe(200)
+    expect(ports.queries).toHaveLength(1)
+    const filters = ports.queries[0].searchParams
+    expect(filters.get('period_start')).toBe(`gte.${from}`)
+    expect(filters.get('period_end')).toBe(`lte.${to}`)
+  })
+
+  it('compares explicit end-of-day midnight at the start of the next day', async () => {
+    const from = '2026-10-25T24:00:00.000000+02:00'
+    const to = '2026-10-25T22:00:00Z'
+    expect((await read({ from, to })).status).toBe(200)
+    expect(ports.queries).toHaveLength(1)
+    expect(ports.queries[0].searchParams.get('period_start')).toBe(`gte.${from}`)
+    expect(ports.queries[0].searchParams.get('period_end')).toBe(`lte.${to}`)
   })
 
   it('continues an existing cursor bound to the original filter spelling', async () => {
@@ -136,7 +159,7 @@ describe('customer metering filters', () => {
     const filters = ports.queries[0].searchParams
     expect(filters.get('or')).toContain(`period_start.lt.${periodStart}`)
     expect(filters.get('or')).toContain(`id.lt.${id}`)
-    expect(filters.get('period_start')).toBe('gte.2024-02-29T00:00:00Z')
+    expect(filters.get('period_start')).toBe('gte.2024-02-29')
     expect(filters.get('period_end')).toBe(`lte.${to}`)
   })
 
