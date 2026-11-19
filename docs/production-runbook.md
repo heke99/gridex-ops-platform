@@ -72,6 +72,22 @@ is reported against that version.
 The source RPC includes `workflow:missing_atomic_commit_marker` when the
 provisioning-step relation exists in that schema.
 
+To verify the scheduled 02:35 UTC health run, open **Cron Jobs** in the Vercel
+project and select **View Logs** for `/api/internal/system/health`. In Runtime
+Logs, use `requestPath:/api/internal/system/health` and the scheduled UTC
+window to find the invocation. Check its HTTP result and the
+`ops_health_result` entry in the same invocation. The entry contains the
+evaluation time, health status, schema readiness, check version, fallback
+and counts. A warning on the current version can have HTTP 200. A fallback
+diagnostic has HTTP 503 even if the legacy checks returned no blockers.
+[Viewing cron logs](https://vercel.com/docs/cron-jobs/manage-cron-jobs#cron-jobs-logs)
+
+If the invocation returned before evaluation, inspect the invocation status
+and available function errors. If no invocation is present in the retained
+logs, the scheduled result is unverified. The admin system-health page
+shows a fresh evaluation. For current per-check details, use the authorized
+health endpoint response.
+
 ## 4. Kill switches / pause controls (all server-side)
 
 | Scope | Mechanism | Effect |

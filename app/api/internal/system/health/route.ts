@@ -48,7 +48,7 @@ async function run(request: NextRequest) {
     const warnings = health.rows.filter((row) => row.status === 'warning')
     const fallback = health.checkVersion === 'v4' || health.checkVersion === 'v3'
     const ok = health.schemaReady && blocking.length === 0 && !fallback
-    return NextResponse.json({
+    const summary = {
       ok,
       status: blocking.length > 0 || !health.schemaReady ? 'blocking' : warnings.length > 0 || fallback ? 'warning' : 'ok',
       schema_ready: health.schemaReady,
@@ -56,8 +56,16 @@ async function run(request: NextRequest) {
       fallback,
       blocking_count: blocking.length,
       warning_count: warnings.length,
-      checks: health.rows,
-    }, { status: ok ? 200 : 503 })
+    }
+    const response = NextResponse.json({ ...summary, checks: health.rows }, { status: ok ? 200 : 503 })
+    console.info(JSON.stringify({
+      event: 'ops_health_result',
+      checked_at: new Date().toISOString(),
+      method: request.method,
+      http_status: response.status,
+      ...summary,
+    }))
+    return response
   } catch (error) {
     return internalApiError({ context: 'ops-health', error, code: 'ops_health_failed', message: 'Driftkontrollen kunde inte köras.' })
   }
