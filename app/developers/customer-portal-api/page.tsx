@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { CopyCodeBlock } from '@/components/developers/CopyCodeBlock'
+import websiteCheckoutApplicationRequest from '@/docs/fixtures/website-checkout-application-request.json'
 import { PUBLIC_API_ENDPOINT_ROWS } from '@/lib/api/publicRouteRegistry'
 import { STAFF_ONBOARDING_CONTRACT_VERSION } from '@/lib/staff-api/onboardingContract'
 import {
@@ -89,62 +90,7 @@ Authorization: Bearer $GRIDEX_API_KEY
 Idempotency-Key: checkout_01JEXAMPLE000000000000000
 Content-Type: application/json
 
-{
-  "external_customer_id": "customer_12345",
-  "auth_user_id": "4f6d1e3a-1e84-4c3f-97be-03ac98f21916",
-  "customer_portal_user_id": "4f6d1e3a-1e84-4c3f-97be-03ac98f21916",
-  "offer_reference": "offer_variable_monthly",
-  "quote_reference": "quote_01JEXAMPLE000000000000000",
-  "price_option_reference": "variable_monthly_standard",
-  "invoice_delivery_method": "email",
-  "selected_component_references": [],
-  "site_count": 1,
-  "legal_bundle_version": "2026-08-19",
-  "legal_acceptances": [
-    {
-      "requirement_code": "agreement",
-      "document_reference": "legal_customer_document_example",
-      "document_version": "3",
-      "document_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "accepted": true,
-      "accepted_at": "2026-08-19T10:00:00.000Z"
-    },
-    {
-      "requirement_code": "power_of_attorney",
-      "document_reference": "legal_customer_document_poa_example",
-      "document_version": "2",
-      "document_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "accepted": true,
-      "accepted_at": "2026-08-19T10:00:00.000Z"
-    }
-  ],
-  "customer": {
-    "customer_type": "private",
-    "first_name": "Anna",
-    "last_name": "Andersson",
-    "personal_number": "19900101-1234",
-    "email": "anna@example.se",
-    "phone": "+46701234567"
-  },
-  "site": {
-    "street": "Example Street 1",
-    "postal_code": "11122",
-    "city": "Stockholm",
-    "country": "SE",
-    "annual_consumption_kwh": 4500
-  },
-  "powerOfAttorney": {
-    "accepted": true,
-    "scope": ["supplier_switch", "facility_information_lookup"],
-    "signerName": "Anna Andersson",
-    "signerIdentityNumber": "19900101-1234",
-    "method": "website_acceptance",
-    "acceptedAt": "2026-08-19T10:00:00.000Z",
-    "textVersionId": "00000000-0000-4000-8000-000000000001",
-    "ipAddress": "192.0.2.10",
-    "userAgent": "<customer browser user agent>"
-  }
-}`
+${JSON.stringify(websiteCheckoutApplicationRequest, null, 2)}`
 
 const checkoutResponse = `{
   "data": {
@@ -422,6 +368,11 @@ export default function CustomerPortalApiDocumentationPage() {
               <li>Submit the application with one stable <code>Idempotency-Key</code>.</li>
             </ol>
             <h3 className="text-lg font-semibold text-slate-950">Submit an application</h3>
+            <p className="leading-7 text-slate-700">
+              The identifiers and customer details below are synthetic. Copy <code>quote_reference</code> and{' '}
+              <code>settlement</code> from the same quote response. Submit the <code>resolution_id</code> and{' '}
+              <code>annual_consumption_kwh</code> used to create that quote at the top level of the application.
+            </p>
             <CopyCodeBlock code={checkoutRequest} language="json" label="Checkout request example" />
             <p className="leading-7 text-slate-700">
               For automated power-of-attorney email, record the customer’s IP at acceptance and send it as

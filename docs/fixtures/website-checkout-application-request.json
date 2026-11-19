@@ -1,0 +1,67 @@
+{
+  "external_customer_id": "customer_12345",
+  "auth_user_id": "4f6d1e3a-1e84-4c3f-97be-03ac98f21916",
+  "customer_portal_user_id": "4f6d1e3a-1e84-4c3f-97be-03ac98f21916",
+  "offer_reference": "offer_variable_monthly",
+  "quote_reference": "quote_01JEXAMPLE000000000000000",
+  "resolution_id": "00000000-0000-4000-8000-000000000002",
+  "annual_consumption_kwh": 4500,
+  "settlement": {
+    "model": "market_monthly",
+    "customer_accepts": "pricing_model",
+    "energy_price_locked_at_signup": false,
+    "uses_actual_metered_consumption": true,
+    "market_data_role": "indicative_preview_only",
+    "settlement_resolution": "month"
+  },
+  "price_option_reference": "variable_monthly_standard",
+  "invoice_delivery_method": "email",
+  "selected_component_references": [],
+  "site_count": 1,
+  "legal_bundle_version": "2026-08-19",
+  "legal_acceptances": [
+    {
+      "requirement_code": "agreement",
+      "document_reference": "legal_customer_document_example",
+      "document_version": "3",
+      "document_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "accepted": true,
+      "accepted_at": "2026-08-19T10:00:00.000Z"
+    },
+    {
+      "requirement_code": "power_of_attorney",
+      "document_reference": "legal_customer_document_poa_example",
+      "document_version": "2",
+      "document_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "accepted": true,
+      "accepted_at": "2026-08-19T10:00:00.000Z"
+    }
+  ],
+  "customer": {
+    "customer_type": "private",
+    "first_name": "Synthetic",
+    "last_name": "Customer",
+    "personal_number": "198112189876",
+    "email": "synthetic@example.invalid"
+  },
+  "site": {
+    "street": "Example Street 1",
+    "postal_code": "11122",
+    "city": "Stockholm",
+    "country": "SE"
+  },
+  "powerOfAttorney": {
+    "accepted": true,
+    "scope": [
+      "supplier_switch",
+      "facility_information_lookup"
+    ],
+    "signerName": "Synthetic Customer",
+    "signerIdentityNumber": "198112189876",
+    "method": "website_acceptance",
+    "acceptedAt": "2026-08-19T10:00:00.000Z",
+    "textVersionId": "00000000-0000-4000-8000-000000000001",
+    "ipAddress": "192.0.2.10",
+    "userAgent": "<customer browser user agent>"
+  }
+}

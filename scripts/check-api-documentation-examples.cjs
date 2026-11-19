@@ -58,6 +58,24 @@ function validateExample(example, schema, location) {
   failures.push(...schemaErrors(example, schema, location))
 }
 
+const checkoutExampleSource = fs.readFileSync('docs/fixtures/website-checkout-application-request.json', 'utf8')
+const checkoutExample = JSON.parse(checkoutExampleSource)
+const checkoutRequestSchema = resolveSchema(
+  website.paths?.['/api/v1/website/customer-applications']?.post?.requestBody
+    ?.content?.['application/json']?.schema,
+)
+if (!checkoutRequestSchema) {
+  failures.push('Checkout request example has no published request schema.')
+} else {
+  // The existing validator returns early for allOf. Check the declared fields
+  // as well as the separately composed customer reference requirement.
+  const { allOf = [], ...fields } = checkoutRequestSchema
+  validateExample(checkoutExample, fields, 'Checkout request example')
+  for (const constraint of allOf) {
+    validateExample(checkoutExample, constraint, 'Checkout request example')
+  }
+}
+
 const current = website.paths?.['/api/v1/website/market-price/current']?.post
 const currentExample = current?.responses?.['200']?.content?.['application/json']?.example
 if (!currentExample?.data) failures.push('Current market-price response example is missing.')
@@ -173,6 +191,9 @@ const sensitiveDocumentationPatterns = [
 for (const [label, pattern] of sensitiveDocumentationPatterns) {
   if (pattern.test(developerPage)) {
     failures.push(`Canonical API documentation contains ${label}; examples must remain organization-neutral.`)
+  }
+  if (pattern.test(checkoutExampleSource)) {
+    failures.push(`Checkout request example contains ${label}; examples must remain organization-neutral.`)
   }
   if (pattern.test(legacyWebsiteGuide)) {
     failures.push(`Legacy Website integration documentation contains ${label}; examples must remain synthetic.`)
