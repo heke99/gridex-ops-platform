@@ -106,7 +106,7 @@ function statusTone(status: string | null | undefined): string {
 }
 
 async function readAiListShortcut(customerId: string, sites: CustomerSiteRow[]) {
- if (!isUuid(customerId)) return null
+ if (sites.length === 0 || !isUuid(customerId)) return null
 
  const access = await requireAdminPageAccess()
  const companyId = access.companyId
@@ -115,10 +115,10 @@ async function readAiListShortcut(customerId: string, sites: CustomerSiteRow[]) 
  })) return null
 
  const normalizedCustomerId = customerId.toLowerCase()
- const eligibleSites = sites.filter((site) =>
+ const eligibleSite = sites.find((site) =>
   site.customer_id === normalizedCustomerId && site.company_id === companyId && isUuid(site.id)
  )
- if (eligibleSites.length === 0) return null
+ if (!eligibleSite) return null
 
  try {
   await assertEdielTenantActor({ companyId, actorUserId: access.userId, permission: 'communication.write' })
@@ -130,7 +130,7 @@ async function readAiListShortcut(customerId: string, sites: CustomerSiteRow[]) 
  }
 
  const parameters = new URLSearchParams({ customerId: normalizedCustomerId })
- if (eligibleSites.length === 1) parameters.set('siteId', eligibleSites[0].id)
+ if (sites.length === 1) parameters.set('siteId', eligibleSite.id)
  return `/admin/ediel/ai-list?${parameters.toString()}`
 }
 

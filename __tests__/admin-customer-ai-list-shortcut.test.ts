@@ -83,7 +83,7 @@ afterEach(() => {
 
 describe('customer Ediel preparation shortcut', () => {
   it('preselects the verified customer and their single eligible facility', async () => {
-    const html = await render([site(), site({ id: ids.secondSite, customer_id: ids.outsider })])
+    const html = await render()
 
     expect(html).toContain('Förbered AI-lista')
     expect(html).toContain('/admin/ediel/ai-list?customerId=' + ids.customer + '&amp;siteId=' + ids.site)
@@ -92,6 +92,16 @@ describe('customer Ediel preparation shortcut', () => {
 
   it('preselects the customer without guessing a facility when several are eligible', async () => {
     const html = await render([site(), site({ id: ids.secondSite })])
+
+    expect(html).toContain('/admin/ediel/ai-list?customerId=' + ids.customer + '"')
+    expect(html).not.toContain('&amp;siteId=')
+  })
+
+  it('does not infer a single facility from a bounded list with unverifiable rows', async () => {
+    const unavailable = Array.from({ length: 99 }, (_, index) => site({
+      id: '10000000-0000-7000-8000-' + String(index).padStart(12, '0'),
+    }))
+    const html = await render([site(), ...unavailable])
 
     expect(html).toContain('/admin/ediel/ai-list?customerId=' + ids.customer + '"')
     expect(html).not.toContain('&amp;siteId=')
@@ -115,6 +125,13 @@ describe('customer Ediel preparation shortcut', () => {
 
   it('does not apply selected-company permissions to a facility in another company', async () => {
     expect(await render([site({ company_id: ids.outsider })])).not.toContain('Förbered AI-lista')
+    expect(state.calls).toEqual([])
+  })
+
+  it('does not look up actor access without a selected company', async () => {
+    state.companyId = null
+
+    expect(await render()).not.toContain('Förbered AI-lista')
     expect(state.calls).toEqual([])
   })
 
