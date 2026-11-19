@@ -11,6 +11,7 @@ import { addNormalizedResolution, normalizeEdifactResolution } from './resolutio
 import { resolveUtiltsTransactionId } from './transactionIdentity'
 import {physicalUtiltsReference,isValidUtiltsTransactionReference} from './physicalReference'
 import { utiltsSeriesKind } from './transactionPersistence'
+import { E66_INVALID_DELIVERY_PERIOD_ISSUE } from './profiles'
 import { canonicalAbsoluteInstant, consumptionConflict, validateUtiltsConsumptionContract, type UtiltsConsumptionAttribution, type UtiltsConsumptionContract, type UtiltsBillingContext } from './consumptionContract'
 import {utiltsRuntimeSegments,type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -37,6 +38,18 @@ export async function prepareUtiltsConsumptionContracts(input: {
   // Resolve local instants before the pure legacy extractor performs interval
   // arithmetic. Otherwise E30's local Date input would depend on the host TZ.
   const acceptedIds = new Set(runtime.transactionDispositions.flatMap((d, i) => d.disposition === 'accepted' ? [resolveUtiltsTransactionId(d.transactionId, i)] : []))
+  let billingPeriodStart = runtime.normalizedPayload.periodStart
+  let billingPeriodEnd = runtime.normalizedPayload.periodEnd
+  const firstDisposition = runtime.transactionDispositions[0]
+  if (policy.code === 'E66' && firstDisposition?.disposition === 'guide_rejected'
+    && firstDisposition.issueCodes.includes(E66_INVALID_DELIVERY_PERIOD_ISSUE)) {
+    // The billing consumer requires one shared context for the accepted IDEs.
+    // The summary came from the invalid first IDE, so take the period from the
+    // first accepted physical IDE instead. Each observation keeps its own period.
+    const acceptedIndex = runtime.transactionDispositions.findIndex(disposition => disposition.disposition === 'accepted')
+    billingPeriodStart = runtime.facts.transactions[acceptedIndex]?.deliveryPeriodStart ?? null
+    billingPeriodEnd = runtime.facts.transactions[acceptedIndex]?.deliveryPeriodEnd ?? null
+  }
   const sourceTransactions = Array.isArray(runtime.normalizedPayload.transactions) ? runtime.normalizedPayload.transactions : []
   // The normalized payload carries one entry per observation interval, so
   // several entries can belong to one physical IDE transaction. Each entry is
@@ -135,8 +148,8 @@ export async function prepareUtiltsConsumptionContracts(input: {
         sourceLineReference: item.externalMeteringPointId ?? stringOrNull(qty.lineReference), externalPoint: item.externalMeteringPointId, gridArea: item.externalGridAreaId }
     })
     const billingAllowed = consume && observations.length > 0 && input.dataRequest?.request_scope === 'billing_underlay' && Boolean(input.fallback.customerId)
-    const periodStart = consume && runtime.normalizedPayload.periodStart ? absolute(runtime.normalizedPayload.periodStart) : null
-    const periodEnd = consume && runtime.normalizedPayload.periodEnd ? absolute(runtime.normalizedPayload.periodEnd) : null
+    const periodStart = consume && billingPeriodStart ? absolute(billingPeriodStart) : null
+    const periodEnd = consume && billingPeriodEnd ? absolute(billingPeriodEnd) : null
     const date = periodEnd ?? periodStart
     const billing: UtiltsBillingContext = {
       ...noAttribution('billing_not_applicable'), ...input.fallback, customerSiteId: input.fallback.siteId,
