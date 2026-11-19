@@ -980,7 +980,17 @@ async function getInvoice(request: NextRequest, reference: string, pdf: boolean)
         .limit(1)
         .maybeSingle()
       if (document.error) throw document.error
-      if(document.data){const {requireInvoiceFileCopyAvailable}=await import('@/lib/ediel/retention/invoiceFileRetention');await requireInvoiceFileCopyAvailable({companyId:context.client.company_id,retentionClass:'customer_invoice_document_pdf_bytes',targetId:document.data.id})}
+      if (document.data) {
+        const { readInvoiceFileAvailability } = await import('@/lib/customer-portal/invoiceFileAvailability')
+        const availability = await readInvoiceFileAvailability({
+          companyId: context.client.company_id,
+          retentionClass: 'customer_invoice_document_pdf_bytes',
+          targetId: document.data.id,
+        })
+        if (availability === 'retired') {
+          throw new PartnerApiError('The invoice PDF copy has been retired.', 'invoice_pdf_retired', 410)
+        }
+      }
       const downloadUrl = text(document.data?.public_url)
       if (!downloadUrl || !downloadUrl.startsWith('https://')) {
         throw new PartnerApiError('Invoice PDF is not available.', 'invoice_pdf_not_available', 404)

@@ -1065,8 +1065,15 @@ async function getInvoicePdf(request: NextRequest, invoiceReference: string) {
       .maybeSingle()
     if (document.error) throw document.error
     if (!document.data) throw new SimplePartnerApiError('Invoice PDF is not available.', 'invoice_pdf_not_available', 404)
-    const { requireInvoiceFileCopyAvailable } = await import('@/lib/ediel/retention/invoiceFileRetention')
-    await requireInvoiceFileCopyAvailable({companyId:context.client.company_id,retentionClass:'customer_invoice_document_pdf_bytes',targetId:document.data.id})
+    const { readInvoiceFileAvailability } = await import('@/lib/customer-portal/invoiceFileAvailability')
+    const availability = await readInvoiceFileAvailability({
+      companyId: context.client.company_id,
+      retentionClass: 'customer_invoice_document_pdf_bytes',
+      targetId: document.data.id,
+    })
+    if (availability === 'retired') {
+      throw new SimplePartnerApiError('The invoice PDF copy has been retired.', 'invoice_pdf_retired', 410)
+    }
     const file = await resolveInvoicePdf(document.data)
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: 200, operation: 'invoice.pdf', id: context.id })
     return simpleJson({

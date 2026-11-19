@@ -211,6 +211,7 @@ export const partnerOpenApi = {
           '401': errorResponse,
           '403': errorResponse,
           '404': errorResponse,
+          '410': { ...errorResponse, description: 'The invoice PDF copy was retired (`invoice_pdf_retired`).' },
           '413': errorResponse,
           '503': { ...errorResponse, description: 'Invoice PDF Storage could not be verified (`invoice_pdf_storage_unavailable`). Retry the same request later.' },
         },

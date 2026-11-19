@@ -10,6 +10,7 @@ const io = vi.hoisted(() => ({
   storage: {} as Record<string, StorageReply>,
   reads: [] as URL[],
   retention: [] as Row[],
+  retentionError: null as { status: number; code: string; message: string } | null,
   access: vi.fn(),
   requestLog: vi.fn(),
 }))
@@ -51,6 +52,10 @@ async function invoiceTransport(input: RequestInfo | URL, init?: RequestInit) {
   }
   if (url.pathname === '/rest/v1/rpc/ediel_require_invoice_file_copy_available_v1' && method === 'POST') {
     io.retention.push(JSON.parse(String(init?.body)))
+    if (io.retentionError) {
+      const { status, code, message } = io.retentionError
+      return Response.json({ code, message }, { status })
+    }
     return Response.json(null)
   }
 
@@ -80,11 +85,13 @@ beforeEach(() => {
   io.tables = {
     customer_invoices: [{ id: invoiceId, company_id: companyId, invoice_reference: invoiceReference, status: 'issued' }],
     customer_invoice_documents: [{ id: documentId, company_id: companyId, invoice_id: invoiceId,
-      document_type: 'invoice_pdf', file_path: 'invoice-fixture.pdf', metadata: {}, created_at: '2026-11-05T12:00:00.000Z' }],
+      document_type: 'invoice_pdf', file_path: 'invoice-fixture.pdf', metadata: {}, created_at: '2026-11-05T12:00:00.000Z',
+      public_url: 'https://synthetic.example.test/legacy/invoice-fixture.pdf' }],
   }
   io.storage = {}
   io.reads = []
   io.retention = []
+  io.retentionError = null
 })
 afterEach(() => vi.restoreAllMocks())
 
@@ -151,6 +158,63 @@ describe('Partner invoice PDF availability', () => {
     const spec = await response.json()
     expect(spec.paths['/invoice/{invoice_id}/pdf'].get.responses['503']).toEqual(expect.objectContaining({
       description: expect.stringContaining('invoice_pdf_storage_unavailable'),
+    }))
+  })
+})
+
+describe('Partner invoice PDF retention', () => {
+  const nativeRetirement = 'invoice_file_copy_retention_tombstoned'
+
+  it.each(['invoice', 'invoices'])('returns 410 for a retired document in /%s without exposing a copy', async route => {
+    io.retentionError = { status: 400, code: '23514', message: nativeRetirement }
+    io.storage['customer-documents'] = 'pdf'
+
+    const response = await get([route, invoiceReference, 'pdf'])
+
+    expect(response.status).toBe(410)
+    const body = await response.json()
+    expect(body).toMatchObject({ error: { code: 'invoice_pdf_retired' } })
+    expect(JSON.stringify(body)).not.toMatch(/file_base64|download_url|invoice-fixture\.pdf|retention_tombstoned/)
+    expect(io.access).toHaveBeenCalledExactlyOnceWith(expect.any(NextRequest), ['customer_invoices.read'])
+    expect(io.retention).toEqual([{ p_company_id: companyId, p_retention_class: 'customer_invoice_document_pdf_bytes', p_target_id: documentId }])
+    expect(io.reads).toHaveLength(0)
+  })
+
+  it.each([
+    ['invoice', '23514', 'Synthetic unrelated constraint'],
+    ['invoices', '23514', 'Synthetic unrelated constraint'],
+    ['invoice', '08006', nativeRetirement],
+    ['invoices', '08006', nativeRetirement],
+  ])('keeps unrelated native failures on /%s outside the retired outcome', async (route, code, message) => {
+    io.retentionError = { status: code === '23514' ? 400 : 500, code, message }
+
+    const response = await get([route, invoiceReference, 'pdf'])
+
+    expect(response.status).toBe(500)
+    const body = await response.json()
+    expect(body.error.code).not.toBe('invoice_pdf_retired')
+    expect(JSON.stringify(body)).not.toContain(message)
+    expect(io.reads).toHaveLength(0)
+  })
+
+  it('preserves the legacy URL representation for an available document', async () => {
+    const response = await get(['invoices', invoiceReference, 'pdf'])
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ data: {
+      invoice_reference: invoiceReference,
+      download_url: 'https://synthetic.example.test/legacy/invoice-fixture.pdf',
+      content_type: 'application/pdf',
+    } })
+    expect(io.retention).toHaveLength(1)
+    expect(io.reads).toHaveLength(0)
+  })
+
+  it('declares the retired-copy result in the served Partner OpenAPI', async () => {
+    const response = await get(['openapi.json'])
+    const spec = await response.json()
+    expect(spec.paths['/invoice/{invoice_id}/pdf'].get.responses['410']).toEqual(expect.objectContaining({
+      description: expect.stringContaining('invoice_pdf_retired'),
     }))
   })
 })
