@@ -9,6 +9,7 @@ const io = vi.hoisted(() => ({
   queries: [] as URL[],
   access: vi.fn(),
   switchRowCap: Number.POSITIVE_INFINITY,
+  supplyRowCap: Number.POSITIVE_INFINITY,
 }))
 
 vi.mock('server-only', () => ({}))
@@ -31,6 +32,31 @@ vi.mock('@/lib/supabase/service', async () => {
   }
 })
 
+function matchesLogic(row: Row, predicate: string): boolean {
+  const group = /^(and|or)?\((.*)\)$/.exec(predicate)
+  if (group) {
+    let depth = 0
+    let start = 0
+    const terms: string[] = []
+    for (const [index, char] of Array.from(group[2]).entries()) {
+      if (char === '(') depth++
+      if (char === ')') depth--
+      if (char === ',' && depth === 0) {
+        terms.push(group[2].slice(start, index))
+        start = index + 1
+      }
+    }
+    terms.push(group[2].slice(start))
+    return group[1] === 'and'
+      ? terms.every(term => matchesLogic(row, term))
+      : terms.some(term => matchesLogic(row, term))
+  }
+  const [field, operator, value] = predicate.split('.')
+  if (operator === 'eq') return row[field] === value
+  if (operator === 'is' && value === 'null') return row[field] == null
+  throw new Error(`Unexpected logic term ${predicate}`)
+}
+
 async function fetchFixture(input: RequestInfo | URL, init?: RequestInit) {
   const request = new Request(input, init)
   const url = new URL(request.url)
@@ -44,9 +70,7 @@ async function fetchFixture(input: RequestInfo | URL, init?: RequestInit) {
     for (const [field, predicate] of url.searchParams) {
       if (['limit', 'select', 'order'].includes(field)) continue
       if (field === 'or') {
-        const siteFilter = /^\(customer_site_id\.eq\.([^,]+),and\(customer_site_id\.is\.null,site_id\.eq\.([^)]*)\)\)$/.exec(predicate)
-        if (!siteFilter) throw new Error(`Unexpected site predicate ${predicate}`)
-        if (row.customer_site_id !== siteFilter[1] && (row.customer_site_id != null || row.site_id !== siteFilter[2])) return false
+        if (!matchesLogic(row, predicate)) return false
       } else if (predicate.startsWith('eq.')) {
         if (row[field] !== predicate.slice(3)) return false
       } else if (predicate.startsWith('cs.')) {
@@ -63,7 +87,9 @@ async function fetchFixture(input: RequestInfo | URL, init?: RequestInit) {
     filtered.sort((a, b) => String(a[col]).localeCompare(String(b[col])) * (direction === 'desc' ? -1 : 1))
   }
   const count = Number(url.searchParams.get('limit') ?? filtered.length)
-  const returned = table === 'supplier_switch_requests' ? Math.min(count, io.switchRowCap) : count
+  let returned = count
+  if (table === 'supplier_switch_requests') returned = Math.min(returned, io.switchRowCap)
+  if (table === 'customer_supply_periods') returned = Math.min(returned, io.supplyRowCap)
   const columns = url.searchParams.get('select')?.split(',') ?? []
   return Response.json(filtered.slice(0, returned).map(row => Object.fromEntries(columns.map(field => [field, row[field] ?? null]))))
 }
@@ -106,6 +132,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   io.queries = []
   io.switchRowCap = Number.POSITIVE_INFINITY
+  io.supplyRowCap = Number.POSITIVE_INFINITY
   io.access.mockResolvedValue({ ok: true, context: { companyId: company }, client: { id: 'synthetic-client' } })
   io.rows = {
     website_customer_applications: [{ id: applicationId, company_id: company, customer_id: customer,
@@ -167,13 +194,13 @@ it.each([50, 2])('finds a verified legacy site behind other switches with respon
     })),
   ]
   expect(await responseStatuses()).toEqual({ checkout: 'confirmed', switchStatus: 'confirmed' })
-  const fencedLookups = io.queries.filter(url => url.searchParams.has('or'))
+  const fencedLookups = io.queries.filter(url => url.pathname.endsWith('/supplier_switch_requests'))
   expect(fencedLookups).toHaveLength(2)
   for (const query of fencedLookups) {
     expect(query.searchParams.get('or')).toBe(`(customer_site_id.eq.${site},and(customer_site_id.is.null,site_id.eq.${site}))`)
     expect(query.searchParams.get('company_id')).toBe('eq.' + company)
     expect(query.searchParams.get('customer_id')).toBe('eq.' + customer)
-    expect(query.searchParams.get('order')).toBe('created_at.desc,id.desc')
+    expect(query.searchParams.get('order')).toBe('updated_at.desc,created_at.desc,id.desc')
   }
 })
 
@@ -210,6 +237,56 @@ it('preserves a single customer-only historical match for an application with no
   })
   io.rows.supplier_switch_requests = [switchRow(first, 'confirmed', oldAt)]
   expect(await responseStatuses()).toEqual({ checkout: 'confirmed', switchStatus: 'confirmed' })
+})
+
+it.each([50, 2, 1])('prioritizes exact contract and meter for both relations under a cap of %i', async cap => {
+  io.switchRowCap = cap
+  io.supplyRowCap = cap
+  io.rows.website_customer_applications[0].response_payload = {}
+  const weaker = Array.from({ length: 55 }, (_, index) => switchRow(uuid(100 + index), 'failed', newAt, {
+    contract_id: null, customer_contract_id: null,
+  }))
+  const conflicts = [
+    switchRow(uuid(200), 'failed', newAt, { customer_contract_id: uuid(24) }),
+    switchRow(uuid(201), 'failed', newAt, { metering_point_id: uuid(25) }),
+    switchRow(uuid(202), 'failed', newAt, { company_id: uuid(26) }),
+    switchRow(uuid(203), 'failed', newAt, { customer_id: uuid(27) }),
+  ]
+  io.rows.supplier_switch_requests = [
+    switchRow(first, 'confirmed', oldAt, { customer_site_id: null, customer_contract_id: null }),
+    ...weaker, ...conflicts,
+  ]
+  io.rows.customer_supply_periods = [
+    { ...io.rows.supplier_switch_requests[0], status: 'active', start_date: '2026-10-01' },
+    ...[...weaker, ...conflicts].map(row => ({ ...row, status: 'ended', start_date: '2026-10-03' })),
+  ]
+
+  const checkout = await checkoutResponse()
+  expect(checkout.status).toBe(200)
+  expect(await checkout.json()).toMatchObject({ data: { supplier_switch_status: 'confirmed', supply_status: 'active' } })
+  expect(await (await switchResponse()).json()).toMatchObject({ data: { switch: { status: 'confirmed' } } })
+  const lookup = io.queries.filter(url => /\/(supplier_switch_requests|customer_supply_periods)$/.test(url.pathname))
+  expect(lookup).toHaveLength(3)
+  for (const url of lookup) {
+    expect(url.searchParams.get('company_id')).toBe('eq.' + company)
+    expect(url.searchParams.get('customer_id')).toBe('eq.' + customer)
+    expect(url.searchParams.getAll('or').join()).toContain(`metering_point_id.eq.${meter}`)
+    expect(url.searchParams.get('limit')).toBe('1')
+  }
+})
+
+it('uses an exact meter with a missing contract after checking both strong bindings', async () => {
+  io.rows.website_customer_applications[0].response_payload = {}
+  const meterOnly = switchRow(first, 'confirmed', oldAt, { customer_contract_id: null, contract_id: null })
+  const wrongContract = switchRow(later, 'failed', newAt, { customer_contract_id: uuid(24) })
+  io.rows.supplier_switch_requests = [wrongContract, meterOnly]
+  io.rows.customer_supply_periods = [
+    { ...wrongContract, status: 'ended', start_date: '2026-10-03' },
+    { ...meterOnly, status: 'active', start_date: '2026-10-01' },
+  ]
+  const checkout = await checkoutResponse()
+  expect(await checkout.json()).toMatchObject({ data: { supplier_switch_status: 'confirmed', supply_status: 'active' } })
+  expect(await (await switchResponse()).json()).toMatchObject({ data: { switch: { status: 'confirmed' } } })
 })
 
 it('keeps the published envelopes when customer-only historical matches are ambiguous', async () => {

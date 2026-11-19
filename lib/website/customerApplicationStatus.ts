@@ -1,6 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { buildTenantCheckoutResult } from '@/lib/website/publicCheckoutResult'
-import { loadWebsiteApplicationSwitch, selectWebsiteStatusLineage, type WebsiteStatusLineageRow } from '@/lib/website/switchStatus'
+import { loadWebsiteApplicationSwitch, readWebsiteStatusLineage } from '@/lib/website/switchStatus'
 
 type JsonRecord = Record<string, unknown>
 type QueryResult<T> = { data: T | null; error: { code?: string; message?: string } | null }
@@ -28,8 +28,6 @@ type WorkflowRow = {
   last_job_id: string | null
   updated_at: string | null
 }
-
-type LineageRow = JsonRecord & WebsiteStatusLineageRow
 
 type JobRow = {
   status: string | null
@@ -172,17 +170,20 @@ async function loadCorrelatedSwitch(application: ApplicationRow) {
   return requireUnambiguousLineage(result, 'Leverantörsbytet')
 }
 
-async function loadCorrelatedSupply(application: ApplicationRow): Promise<LineageRow | null> {
+async function loadCorrelatedSupply(application: ApplicationRow) {
   if (!application.customer_id) return null
-  const result = await supabaseService
-    .from('customer_supply_periods')
-    .select('id,company_id,customer_id,metering_point_id,contract_id,customer_contract_id,status,start_date,end_date,created_at,updated_at')
-    .eq('company_id', application.company_id)
-    .eq('customer_id', application.customer_id)
-    .order('start_date', { ascending: false })
-    .limit(50)
-  const rows = assertQuery(result as QueryResult<LineageRow[]>, 'försörjningsperiod') ?? []
-  return requireUnambiguousLineage(selectWebsiteStatusLineage(application, rows), 'Försörjningsperioden')
+  const customerId = application.customer_id
+  const result = await readWebsiteStatusLineage(application, false, (filter, limit) => {
+    const query = supabaseService
+      .from('customer_supply_periods')
+      .select('status,start_date,updated_at')
+      .eq('company_id', application.company_id)
+      .eq('customer_id', customerId)
+    if (filter) query.or(filter)
+    return query.order('updated_at', { ascending: false }).order('start_date', { ascending: false }).order('id', { ascending: false }).limit(limit)
+  })
+  assertQuery(result, 'försörjningsperiod')
+  return requireUnambiguousLineage(result, 'Försörjningsperioden')
 }
 
 function summarizeCommunication(logs: CommunicationRow[], outbox: EmailOutboxRow[]) {
