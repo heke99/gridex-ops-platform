@@ -1,5 +1,6 @@
 import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
+import { logIntegrationApiRequest } from '@/lib/integrations/apiAuth'
 import {
   ApiInputError,
   executeIdempotentPortalWrite,
@@ -11,7 +12,6 @@ import { supabaseService } from '@/lib/supabase/service'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
-  logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
 
@@ -111,14 +111,21 @@ function record(value: unknown): JsonRecord {
       },
     })
 
-    await logCustomerPortalSuccess({
+    const receipt = record(result.body.data)
+    const replayed = result.replayed || receipt.replayed === true
+    const status = replayed ? 200 : result.statusCode
+    const body = result.replayed && receipt.replayed !== true
+      ? { ...result.body, data: { ...receipt, replayed: true } }
+      : result.body
+
+    await logIntegrationApiRequest({
       request,
       client: context.client,
       startedAt: context.startedAt,
-      resultCount: 1,
-      metadata: { idempotency_replay: result.replayed },
+      statusCode: status,
+      metadata: { result_count: 1, idempotency_replay: replayed },
     })
-    return customerPortalJson(result.body, { status: result.statusCode })
+    return customerPortalJson(body, { status })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }
