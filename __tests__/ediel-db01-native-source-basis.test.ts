@@ -3,7 +3,7 @@
 // local-only status fixture. No database, native case or certification executes.
 import {execFileSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {dirname, join, resolve} from 'node:path'
 import {afterAll, afterEach, beforeAll, beforeEach, expect, it, vi} from 'vitest'
@@ -67,7 +67,7 @@ const input = (revision: string, path: string): Input => {
   const metadata = git('ls-tree', revision, '--', path).split('\t')[0].split(' ')
   return {mode: metadata[0], git_blob_oid: metadata[2], sha256: createHash('sha256').update(git('show', `${revision}:${path}`)).digest('hex')}
 }
-const temp = mkdtempSync(join(tmpdir(), 'db01-source-basis-')), baseRoot = join(temp, 'base')
+const temp = realpathSync(mkdtempSync(join(tmpdir(), 'db01-source-basis-'))), baseRoot = join(temp, 'base')
 const receiptPath = join(temp, 'receipt.json'), statusPath = join(temp, 'status.json')
 let receipt: Record<string, unknown>
 let identities: Record<string, {base: Input; root: Input}>
@@ -88,7 +88,7 @@ for x in ast.parse(s).body:
  if isinstance(x,ast.Assign) and len(x.targets)==1 and isinstance(x.targets[0],ast.Name):
   k=x.targets[0].id
   if k in ['current_read_manifest','current_read_forwards','current_reader_callers','current_writer_inputs','forwards','repair','repair_unit','producer','producer_unit','canonical_dependencies','s01_current_owner','required','current_only','required_base']:
-   n[k]=eval(compile(ast.Expression(x.value),'<declared-inputs>','eval'),{},n)
+   n[k]=eval(compile(ast.Expression(x.value),'<declared-inputs>','eval'),n,n)
 print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['current_read_manifest']}))`], {cwd: root, encoding: 'utf8'})
   const declared = JSON.parse(declarations) as {root: string[]; base: string[]; reader: Array<Input & {path: string}>}
   identities = Object.fromEntries(dependencies.map(path => [path, {base: input(baseRevision, path), root: input('HEAD', path)}]))
@@ -551,7 +551,8 @@ for n in tree.body:
   if isdb and isinstance(n,ast.For) and ast.unparse(n.iter)=='expected_sql_hashes.items()':break
   if not isdb and isinstance(n,ast.Expr) and 'dependency-inputs.json' in ast.unparse(n):break
   nodes.append(n)
-a=json.loads((packet/'package.json').read_bytes());b=json.loads((packet/'package-lock.json').read_bytes())
+frozen={p:subprocess.check_output(['git','show','c94f9cb2fd9a6aa66bc3b66ccb18ed4ac16dd2bb:'+p],cwd=repo) for p in ('package.json','package-lock.json')}
+a=json.loads(frozen['package.json']);b=json.loads(frozen['package-lock.json'])
 if shape=='wrong-scope':a['overrides']['other']={'joi':a['overrides']['mailauth'].pop('joi')}
 if shape=='wrong-version':a['overrides']['mailauth']['joi']='18.3.2';b['packages']['node_modules/joi']['version']='18.3.2'
 if shape=='wrong-integrity':b['packages']['node_modules/joi']['integrity']='sha512-wrong'
@@ -566,7 +567,7 @@ with tempfile.TemporaryDirectory(prefix='forge-joi-admission-fixture-') as d:
  root=pathlib.Path(d);base=root/'base';base.mkdir();evidence=root/'evidence';evidence.mkdir()
  for p,v in [('package.json',a),('package-lock.json',b)]:
   # Positive uses actual committed bytes, mutations intentionally recompute identities.
-  (root/p).write_bytes((packet/p).read_bytes() if shape in ('valid','changed-base','wrong-installed-version') else (json.dumps(v,indent=2)+'\n').encode())
+  (root/p).write_bytes(frozen[p] if shape in ('valid','changed-base','wrong-installed-version') else (json.dumps(v,indent=2)+'\n').encode())
   if isdb:
    oid={'package.json':'bf3a30b706a96bacf8dbcf158ed99ae405881689','package-lock.json':'0e19ad13ea476c169f63f0cb8f6c4d2164c13847'}[p]
    prior=subprocess.check_output(['git','show',oid],cwd=repo)
@@ -608,13 +609,91 @@ with tempfile.TemporaryDirectory(prefix='forge-joi-admission-fixture-') as d:
 })
 
 
+// Execute the actual workflow dependency admission statements, before backend
+// work, over committed package bytes and explicit installed-version fixtures.
+it.each((['ediel-db01-current-native.yml', 'ediel-sc071-native.yml'] as const).flatMap(workflow =>
+  (['valid', 'wrong-tuple', 'wrong-integrity', 'wrong-resolved', 'extra-lock-field', 'extra-dependency', 'mixed-pair', 'changed-base', 'wrong-installed-version', 'forge-installed-version', 'joi-installed-version', 'undici-change', 'zod-change', 'core-installed-version', 'playwright-installed-version', 'wrong-browser-metadata', 'changed-predecessor'] as const)
+    .map(change => [workflow, change] as const)))(
+  'executes Playwright successor dependency admission %s and rejects unqualified %s', (workflow, change) => {
+  const python = String.raw`import ast,copy,hashlib,json,pathlib,re,subprocess,sys,tempfile,textwrap,types
+repo=pathlib.Path.cwd();packet=repo;workflow=sys.argv[1];shape=sys.argv[2]
+path='.github/workflows/'+workflow
+s=(packet/path).read_text();programs=[textwrap.dedent(x) for x in re.findall(r"python3 - <<'PY'[^\n]*\n(.*?)\n          PY",s,re.S)]
+isdb=workflow=='ediel-db01-current-native.yml';program=programs[0] if isdb else next(x for x in programs if 'sc071_candidate_dependency_inputs_unqualified' in x)
+tree=ast.parse(program);nodes=[];active=False
+for n in tree.body:
+ if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id==('dependency_paths' if isdb else 'paths'):active=True
+ if active:
+  if isdb and isinstance(n,ast.For) and ast.unparse(n.iter)=='expected_sql_hashes.items()':break
+  if not isdb and isinstance(n,ast.Expr) and 'dependency-inputs.json' in ast.unparse(n):break
+  nodes.append(n)
+frozen={p:(packet/p).read_bytes() for p in ('package.json','package-lock.json')}
+a=json.loads(frozen['package.json']);b=json.loads(frozen['package-lock.json'])
+if shape=='wrong-tuple':b['packages']['node_modules/playwright']['version']='1.62.2'
+if shape=='wrong-integrity':b['packages']['node_modules/playwright']['integrity']='sha512-wrong'
+if shape=='wrong-resolved':b['packages']['node_modules/@playwright/test']['resolved']='https://example.invalid/test.tgz'
+if shape=='extra-lock-field':b['packages']['node_modules/playwright']['unexpected']=True
+if shape=='extra-dependency':a['dependencies']['unexpected']='1.0.0'
+if shape=='mixed-pair':a=json.loads(subprocess.check_output(['git','show','c94f9cb2fd9a6aa66bc3b66ccb18ed4ac16dd2bb:package.json'],cwd=repo))
+if shape=='undici-change':a['overrides']['mailauth']['undici']='8.12.3'
+if shape=='zod-change':a['dependencies']['zod']='4.6.8'
+with tempfile.TemporaryDirectory(prefix='forge-joi-admission-fixture-') as d:
+ root=pathlib.Path(d);base=root/'base';base.mkdir();evidence=root/'evidence';evidence.mkdir()
+ for p,v in [('package.json',a),('package-lock.json',b)]:
+  # Positive uses actual committed bytes, mutations intentionally recompute identities.
+  (root/p).write_bytes(frozen[p] if shape in ('valid','changed-base','wrong-installed-version') else (json.dumps(v,indent=2)+'\n').encode())
+  if isdb:
+   oid={'package.json':'bf3a30b706a96bacf8dbcf158ed99ae405881689','package-lock.json':'0e19ad13ea476c169f63f0cb8f6c4d2164c13847'}[p]
+   prior=subprocess.check_output(['git','show',oid],cwd=repo)
+  else:
+   revision=json.loads((repo/'quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json').read_text())['base_sha']
+   prior=subprocess.check_output(['git','show',revision+':'+p],cwd=repo)
+  (base/p).write_bytes(prior)
+ def meta(data):return {'mode':'100644','git_blob_oid':hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest(),'sha256':hashlib.sha256(data).hexdigest()}
+ blobs={p:meta((root/p).read_bytes()) for p in ['package.json','package-lock.json']};baseblobs={p:meta((base/p).read_bytes()) for p in blobs}
+ if shape=='changed-base':
+  (base/'package.json').write_text('{}');baseblobs['package.json']=meta(b'{}')
+ for name,version in {'source-map-js':'1.2.2','mailauth':'7.3.1','pdf-lib':'1.17.1','xlsx':'0.20.3','zod':'4.6.7','undici':'8.12.2','node-forge':('1.4.3' if shape=='forge-installed-version' else '1.4.2'),'joi':('18.3.2' if shape=='joi-installed-version' else '18.3.1'),'@playwright/test':('1.60.0' if shape=='wrong-installed-version' else '1.62.1'),'playwright':('1.60.0' if shape=='playwright-installed-version' else '1.62.1'),'playwright-core':('1.60.0' if shape=='core-installed-version' else '1.62.1')}.items():
+  p=root/'node_modules'/name/'package.json';p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'version':version}))
+ metadata=root/'node_modules/playwright-core/browsers.json'
+ metadata.write_bytes((packet/'node_modules/playwright-core/browsers.json').read_bytes()+(b' ' if shape=='wrong-browser-metadata' else b''))
+ def check_output(args,**kw):
+  if shape=='changed-predecessor' and args==['git','cat-file','blob','f7bb37021b03a953e86e09bd57551f95d3bd1d77']:return b'{}'
+  if args[:3]==['git','cat-file','blob']:return subprocess.check_output(args,cwd=repo)
+  if args==['node','--version']:return 'v22.19.0\n'
+  if args[:2]==['node','-p']:
+   if 'sharp' in args[2]:return '0.35.5\n'
+   if 'source-map-js' in args[2]:return '1.2.2\n'
+  raise RuntimeError('Unexpected subprocess '+repr(args))
+ env={'hashlib':hashlib,'json':json,'subprocess':types.SimpleNamespace(check_output=check_output),'root':root,'candidate':root,'base':base,'pathlib':pathlib,'re':re,'baseline':{'blobs':baseblobs},'current':{'blobs':blobs},'os':types.SimpleNamespace(environ={'SC071_EVIDENCE':str(evidence)})}
+ try:
+  exec(compile(ast.Module(body=nodes,type_ignores=[]),'<actual-dependency-admission>','exec'),env);result={'accepted':True}
+ except (RuntimeError,AssertionError,KeyError) as e:result={'accepted':False,'error':str(e)}
+ # Exact semantic normalizer is independently executed on each mutation too,
+ # ensuring refusal is not only an opaque pair-hash outcome.
+ if 'qualify_playwright_successor' in env:
+  try:env['qualify_playwright_successor'](root);result['normalizerAccepted']=True
+  except (RuntimeError,AssertionError,KeyError) as e:result.update(normalizerAccepted=False,normalizerError=str(e))
+ print(json.dumps(result))
+`
+  const observed = JSON.parse(execFileSync('python3', ['-c', python, workflow, change], {
+    cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024,
+  })) as {accepted: boolean; normalizerAccepted?: boolean}
+  expect(observed.accepted).toBe(change === 'valid')
+  if (change !== 'changed-base' && change !== 'wrong-installed-version') {
+    expect(observed.normalizerAccepted).toBe(change === 'valid')
+  }
+})
+
+
 it('fetches only the frozen dependency predecessor before SC071 qualification on a shallow checkout', () => {
   const python = String.raw`import hashlib,json,pathlib,re,shlex,subprocess,sys,tempfile
 repo=pathlib.Path.cwd();workflow=(repo/'.github/workflows/ediel-sc071-native.yml').read_text()
 fetches=re.findall(r'^          (git fetch --no-tags --depth=1 origin [0-9a-f]{40})$',workflow,re.M)
-assert len(fetches)==2,'sc071_qualified_dependency_fetch_required'
+assert len(fetches)==3,'sc071_qualified_dependency_fetch_required'
 assert workflow.index(fetches[0])<workflow.index('def qualify_mailauth_undici(') and workflow.index(fetches[1])<workflow.index('def qualify_forge_joi('),'sc071_dependency_fetch_after_qualification'
-expected={'7f0baef1da8ff1aa410a40d0835346749281a506':'52af42e9b40c440622dd09ad15126968278ad121f9fa66451c2fac68783f0f38','a6e86ff9b2dff932b18afcd0963c3d3fae12de58':'d0501a03422daaa93721fc7813751eb5eee12a85ae85a6ff6902d48546d2edc4',
+assert workflow.index(fetches[2])<workflow.index('def qualify_playwright_successor('),'sc071_successor_fetch_after_qualification'
+expected={'f7bb37021b03a953e86e09bd57551f95d3bd1d77':'360f2511a66f0d60fb697228b36cb7fead17e7872e9a5532894691ff7271f5fa','625ec084c3761d1faa348a43210024222320681c':'e025dae372c71bf915c0d707c28e70648be2900f219936751ad4dba96100a933','7f0baef1da8ff1aa410a40d0835346749281a506':'52af42e9b40c440622dd09ad15126968278ad121f9fa66451c2fac68783f0f38','a6e86ff9b2dff932b18afcd0963c3d3fae12de58':'d0501a03422daaa93721fc7813751eb5eee12a85ae85a6ff6902d48546d2edc4',
  '573c4d9650dac26a8ad62cf7f5dd3a2d7e83870f':'5e4efe56665e72e90c5ff5a300b9bf5e0dfa7f18871df7bae5983833f18a445c','566689dbc2a2dd33b553e10f6b3f567a3fcaf078':'92c0e55a7775b8e87e5a6eb02bbf908a9d6ddf7061cfad4b477d7f9f768e5a10'}
 with tempfile.TemporaryDirectory(prefix='sc071-shallow-dependencies-') as d:
  root=pathlib.Path(d)
@@ -629,10 +708,10 @@ with tempfile.TemporaryDirectory(prefix='sc071-shallow-dependencies-') as d:
  print(json.dumps({'missingBefore':len(missing),'qualifiedAfter':len(expected)}))
 `
   const observed = JSON.parse(execFileSync('python3', ['-c', python], {
-    cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, timeout: 25_000,
+    cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, timeout: 60_000,
   })) as {missingBefore: number; qualifiedAfter: number}
-  expect(observed).toEqual({missingBefore: 4, qualifiedAfter: 4})
-}, 30_000)
+  expect(observed).toEqual({missingBefore: 6, qualifiedAfter: 6})
+}, 65_000)
 
 // Execute the separate writer-input guards without altering the historical
 // 59-reader/35-BASE native contract or synthesizing native execution credit.

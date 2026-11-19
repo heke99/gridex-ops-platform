@@ -1,36 +1,49 @@
+import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
-import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'
+import { billingMeterLabels, fmt, readBillingPage, readBillingRows, statusBadge } from '@/lib/pricing/adminData'
 import { formatStatusLabel } from '@/lib/ui/format'
 
-type Props = { params: Promise<{ id: string }> }
+type Props = { params: Promise<{ id: string }>; searchParams?: Promise<{ runPage?: string }> }
 export const dynamic = 'force-dynamic'
 
-export default async function BillingUnderlayDetailPage({ params }: Props) {
+export default async function BillingUnderlayDetailPage({ params, searchParams }: Props) {
   const { id } = await params
+  const requestedRunPage = Number((await searchParams)?.runPage ?? '1')
   const admin = await requireAdminPageKeyAccess('billing.workspace')
   const scope = await resolveAdminSelectedCompanyReadScope(admin)
   const companyId = scope.companyId
-  const underlays = await safeListRows('billing_underlays', companyId, '*', 1, { id })
-  const underlay = underlays[0] ?? null
-  const [items, pricingRuns, allPreviewLines] = await Promise.all([
-    safeListRows('billing_underlay_items', companyId, '*', 1000, { billing_underlay_id: id }),
-    safeListRows('pricing_runs', companyId, '*', 200, { billing_underlay_id: id }),
-    safeListRows('pricing_preview_lines', companyId, '*', 5000, { billing_underlay_id: id }),
-  ])
-
-  // Provenance view: show the lines of the newest active run (locked > success > latest).
-  const debugRun = [...pricingRuns].sort((a, b) => {
-    const rank = (row: Record<string, unknown>) => (row.status === 'locked' ? 2 : row.status === 'success' ? 1 : 0)
-    if (rank(b) !== rank(a)) return rank(b) - rank(a)
-    return String(b.created_at ?? '').localeCompare(String(a.created_at ?? ''))
-  })[0] ?? null
-  const debugLines = debugRun
-    ? allPreviewLines
-        .filter((row) => row.pricing_run_id === debugRun.id)
-        .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0))
-    : []
+  const isPlatformAdmin = isPlatformAdminContext(admin)
+  let underlay: Record<string, unknown> | null = null
+  let items: Record<string, unknown>[] = []
+  let pricingRuns: Record<string, unknown>[] = []
+  let debugRun: Record<string, unknown> | null = null
+  let debugLines: Record<string, unknown>[] = []
+  let labels = new Map<string, string>()
+  let historyTotal = 0
+  let historyPage = 1
+  let readFailed = false
+  try {
+    const result = await readBillingPage('billing_underlays', companyId, { equals: { id }, pageSize: 1, order: [{ column: 'id' }] })
+    underlay = result.rows[0] ?? null
+    if (underlay) {
+      const history = await readBillingPage('pricing_runs', companyId, { equals: { billing_underlay_id: id }, pageSize: 20, page: requestedRunPage, order: [{ column: 'created_at', ascending: false }, { column: 'id' }] })
+      pricingRuns = history.rows
+      historyTotal = history.total
+      historyPage = history.page
+      // Apply the existing locked > success > latest preference in the query, before limiting.
+      for (const status of ['locked', 'success', null]) {
+        const preferred = await readBillingPage('pricing_runs', companyId, { equals: { billing_underlay_id: id, ...(status ? { status } : {}) }, pageSize: 1, order: [{ column: 'created_at', ascending: false }, { column: 'id' }] })
+        if (preferred.rows.length) { debugRun = preferred.rows[0]; break }
+      }
+      ;[items, debugLines] = await Promise.all([
+        readBillingRows('billing_underlay_items', companyId, { billing_underlay_id: id }, 'period_start'),
+        debugRun ? readBillingRows('pricing_preview_lines', companyId, { billing_underlay_id: id, pricing_run_id: String(debugRun.id) }, 'sort_order') : Promise.resolve([]),
+      ])
+      if (!isPlatformAdmin) labels = await billingMeterLabels(companyId, items.filter(row => !row.customer_id || row.customer_id === underlay?.customer_id).map(row => ({ ...row, customer_id: underlay?.customer_id })))
+    }
+  } catch { readFailed = true }
 
   const lineMetadata = (row: Record<string, unknown>): Record<string, unknown> =>
     row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata) ? row.metadata as Record<string, unknown> : {}
@@ -48,10 +61,10 @@ export default async function BillingUnderlayDetailPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen min-w-0 bg-slate-50">
       <AdminHeader title="Faktureringsunderlag" subtitle="Detaljvy för mätdata, prisförhandsgranskning och varningar innan export." userEmail={admin.email} workspaceName={scope?.companyName} />
-      <main className="space-y-6 p-8">
-        {!underlay ? <div className="rounded-3xl border bg-white p-8 text-slate-700">Underlaget hittades inte inom valt bolag.</div> : (
+      <main className="min-w-0 space-y-6 p-4 lg:p-8">
+        {readFailed ? <p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4">Underlaget kunde inte läsas fullständigt. Försök igen. Inga delvis inlästa prisrader visas.</p> : !underlay ? <div className="rounded-3xl border bg-white p-8 text-slate-700">Underlaget hittades inte inom valt bolag.</div> : (
           <>
             <section className="grid gap-4 lg:grid-cols-4">
               <div className="rounded-3xl border bg-white p-5"><div className="text-xs uppercase text-slate-500">Status</div><span className={`mt-2 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${statusBadge(underlay.status)}`}>{formatStatusLabel(typeof underlay.status === 'string' ? underlay.status : null, '—', 'Behöver granskning')}</span></div>
@@ -62,35 +75,41 @@ export default async function BillingUnderlayDetailPage({ params }: Props) {
 
             <section className="rounded-3xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold">Underlagsrader</h2>
-              <div className="mt-4 overflow-x-auto">
+              <div role="region" tabIndex={0} aria-label="Underlagsrader" className="mt-4 overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
                 <table className="w-full text-left text-sm"><thead className="text-xs uppercase text-slate-500"><tr><th className="py-2">Period</th><th>Mätpunkt</th><th>kWh</th><th>Status</th></tr></thead><tbody className="divide-y">
-                  {items.map((row) => <tr key={String(row.id)}><td className="py-3">{fmt(row.period_start)} → {fmt(row.period_end)}</td><td className="font-mono text-xs">{fmt(row.metering_point_id)}</td><td>{fmt(row.quantity_kwh)}</td><td><span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(row.status)}`}>{formatStatusLabel(typeof row.status === 'string' ? row.status : null, '—', 'Behöver granskning')}</span></td></tr>)}
+                  {items.map((row) => <tr key={String(row.id)}><td className="py-3">{fmt(row.period_start)} → {fmt(row.period_end)}</td><td className="font-mono text-xs">{isPlatformAdmin ? fmt(row.metering_point_id) : labels.get(String(row.id)) ?? 'Mätpunktsuppgifter saknas'}</td><td>{fmt(row.quantity_kwh)}</td><td><span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(row.status)}`}>{formatStatusLabel(typeof row.status === 'string' ? row.status : null, '—', 'Behöver granskning')}</span></td></tr>)}
                 </tbody></table>
               </div>
             </section>
 
             <section className="rounded-3xl border bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold">Prisberäkningar</h2>
+              <h2 className="text-lg font-semibold">Senaste prisberäkningar</h2>
+              <p className="mt-1 text-sm text-slate-600">Visar {pricingRuns.length} av {historyTotal} beräkningar. Prisraderna nedan gäller den prioriterade låsta eller godkända beräkningen, annars den senaste.</p>
               <div className="mt-4 grid gap-3">
                 {pricingRuns.length === 0 ? <p className="text-sm text-slate-600">Ingen prisförhandsgranskning har skapats ännu.</p> : null}
                 {pricingRuns.map((row) => <div key={String(row.id)} className="rounded-2xl border p-4"><div className="flex items-center justify-between"><span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(row.status)}`}>{formatStatusLabel(typeof row.status === 'string' ? row.status : null, '—', 'Behöver granskning')}</span><span className="font-semibold">{fmt(row.total_inc_vat)} kr inkl. moms</span></div><div className="mt-2 text-xs text-slate-500">Ex moms {fmt(row.total_ex_vat)} · Moms {fmt(row.vat_amount)}</div></div>)}
               </div>
+              {historyTotal > 20 ? <nav aria-label="Sidor med prisberäkningar" className="mt-4 flex flex-wrap gap-4 text-sm">
+                <span>Sida {historyPage} av {Math.ceil(historyTotal / 20)}</span>
+                {historyPage > 1 ? <Link href={`?runPage=${historyPage - 1}`}>Föregående sida</Link> : null}
+                {historyPage * 20 < historyTotal ? <Link href={`?runPage=${historyPage + 1}`}>Nästa sida</Link> : null}
+              </nav> : null}
             </section>
 
             <section className="rounded-3xl border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold">Så beräknades priset</h2>
               <p className="mt-1 text-sm text-slate-600">
                 {debugRun
-                  ? <>Härledning för prisberäkning <span className="font-mono text-xs">{String(debugRun.id)}</span> ({formatStatusLabel(typeof debugRun.status === 'string' ? debugRun.status : null, '—', 'Behöver granskning')}): mätkälla → priskälla → komponent → ex moms → moms → inkl. moms.</>
+                  ? <>Prisberäkning {isPlatformAdmin ? <span className="font-mono text-xs">{String(debugRun.id)}</span> : null} ({formatStatusLabel(typeof debugRun.status === 'string' ? debugRun.status : null, '—', 'Behöver granskning')}). Rader, pris och moms visas nedan.</>
                   : 'Ingen prisberäkning att visa härledning för ännu.'}
               </p>
               {debugLines.length > 0 ? (
-                <div className="mt-4 overflow-x-auto">
+                <div role="region" tabIndex={0} aria-label="Prisrader" className="mt-4 overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
                   <table className="w-full text-left text-sm">
                     <thead className="text-xs uppercase text-slate-500">
                       <tr>
                         <th className="py-2">Rad</th>
-                        <th>Härledning</th>
+                        {isPlatformAdmin ? <th>Härledning</th> : null}
                         <th className="text-right">Antal</th>
                         <th>Enhet</th>
                         <th className="text-right">à-pris ex moms</th>
@@ -105,9 +124,9 @@ export default async function BillingUnderlayDetailPage({ params }: Props) {
                         <tr key={String(row.id)}>
                           <td className="py-3">
                             <div className="font-medium text-slate-900">{fmt(row.description)}</div>
-                            <div className="text-xs text-slate-500">{fmt(row.line_type)}</div>
+                            {isPlatformAdmin ? <div className="text-xs text-slate-500">{fmt(row.line_type)}</div> : null}
                           </td>
-                          <td className="max-w-md text-xs text-slate-600">{provenance(row)}</td>
+                          {isPlatformAdmin ? <td className="max-w-md text-xs text-slate-600">{provenance(row)}</td> : null}
                           <td className="text-right">{fmt(row.quantity)}</td>
                           <td>{fmt(row.unit)}</td>
                           <td className="text-right">{fmt(row.unit_price_ex_vat)}</td>
@@ -120,7 +139,7 @@ export default async function BillingUnderlayDetailPage({ params }: Props) {
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 text-sm font-semibold">
-                        <td className="py-3" colSpan={5}>Summa</td>
+                        <td className="py-3" colSpan={isPlatformAdmin ? 5 : 4}>Summa</td>
                         <td className="text-right">{fmt(debugRun?.total_ex_vat)}</td>
                         <td></td>
                         <td className="text-right">{fmt(debugRun?.vat_amount)}</td>
@@ -130,7 +149,7 @@ export default async function BillingUnderlayDetailPage({ params }: Props) {
                   </table>
                 </div>
               ) : debugRun ? (
-                <p className="mt-4 text-sm text-slate-500">Prisberäkningen har inga sparade rader (pricing_preview_lines saknas för körningen).</p>
+                <p className="mt-4 text-sm text-slate-500">{isPlatformAdmin ? 'Prisberäkningen har inga sparade rader (pricing_preview_lines saknas för körningen).' : 'Prisberäkningen saknar sparade prisrader. Kontrollera underlaget före fakturering.'}</p>
               ) : null}
             </section>
           </>

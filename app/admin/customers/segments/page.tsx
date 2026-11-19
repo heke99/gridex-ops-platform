@@ -10,6 +10,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
+import { isCancelledSupplierSwitchStatus } from '@/lib/operations/controlTower'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,7 +103,7 @@ function matchesSegment(params: {
  return customerSwitches.some(
  (row) =>
  ['move_in', 'move_out_takeover'].includes(row.request_type) &&
- !['completed', 'failed', 'rejected'].includes(row.status)
+ !['completed', 'failed', 'rejected'].includes(row.status) && !isCancelledSupplierSwitchStatus(row.status)
  )
  }
 
@@ -110,7 +111,7 @@ function matchesSegment(params: {
  return customerSwitches.some(
  (row) =>
  row.request_type === 'switch' &&
- !['completed', 'failed', 'rejected'].includes(row.status)
+ !['completed', 'failed', 'rejected'].includes(row.status) && !isCancelledSupplierSwitchStatus(row.status)
  )
  }
 

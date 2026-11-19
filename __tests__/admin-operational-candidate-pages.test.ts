@@ -8,6 +8,7 @@ const port = vi.hoisted(() => ({
   tables: {} as Record<string, Row[]>,
   company: '11111111-1111-4111-8111-111111111111' as string | null,
   platform: false,
+  permissions: ['switching.read', 'masterdata.write'],
   failures: {} as Record<string, { code: string; message: string }>,
   queries: [] as Array<{ table: string; params: Array<[string, string]> }>,
   cap: Infinity,
@@ -94,9 +95,11 @@ function sdk() {
 }
 
 vi.mock('@/lib/admin/guards', () => ({
-  requireAdminPageKeyAccess: async () => ({ userId: 'operator', email: 'operator@example.test', roles: [], permissions: [], companyId: port.company, isPlatformAdmin: port.platform }),
+  requireAdminPageKeyAccess: async () => ({ userId: 'operator', email: 'operator@example.test', roles: [], permissions: port.permissions, companyId: port.company, isPlatformAdmin: port.platform }),
   isPlatformAdminContext: () => port.platform,
 }))
+// Action authorization is an inert boundary; this fixture is an activation operator.
+vi.mock('@/lib/admin/actionPresentation', () => ({ canPresentAdminAction: async (required: string[]) => port.platform || required.every(permission => port.permissions.includes(permission)), canPresentAdminLink: () => port.platform }))
 vi.mock('@/lib/tenant/scope', () => ({ getOperationalCompanyScope: async () => { throw new Error('canonical scope must not fall back') } }))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => { port.serverClients++; return sdk() } }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: sdk() }))

@@ -91,7 +91,9 @@ describe('system-wide customer count consistency', () => {
       expect(source).not.toMatch(/'customers', companyId, \[\s*\{ column: 'created_at'/)
     }
     expect(builder).toContain('gridex_rebuild_company_analytics_month')
-    expect(fallback).toContain('getPortfolioMonthForCompany')
+    // Historical analysis reads its stored month; absent snapshots remain unknown.
+    // The behavioral missing-snapshot contract is covered by analytics-final-audit-regression.
+    expect(fallback).toContain(".from('company_monthly_metrics')")
     expect(companyPage).toContain('getPortfolioMonthForCompany')
   })
 

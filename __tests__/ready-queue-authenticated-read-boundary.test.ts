@@ -72,6 +72,9 @@ vi.mock('@/lib/admin/guards', () => ({
   },
   isPlatformAdminContext: (context: { isPlatformAdmin: boolean }) => context.isPlatformAdmin,
 }))
+// Existing positive fixtures model an operator with activation permission.
+// Reader-only presentation is covered by the business audit regression.
+vi.mock('@/lib/admin/actionPresentation', () => ({ canPresentAdminAction: async () => true, canPresentAdminLink: () => false }))
 vi.mock('@/lib/tenant/scope', () => ({ getOperationalCompanyScope: async () => { throw new Error('Unexpected legacy fallback') } }))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => { io.sessionClients++; return sdk('synthetic-session-key') } }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: sdk('synthetic-service-key') }))

@@ -20,7 +20,7 @@ jobs:
     environment: production-e2e
     timeout-minutes: 30
     container:
-      image: mcr.microsoft.com/playwright:v1.60.0-noble-amd64@sha256:83192064c7510f7ee73dd63dc5f22a5e01a92c81a2e6a9c715d9e3fe55471fd9
+      image: mcr.microsoft.com/playwright:v1.62.1-noble-amd64@sha256:c091b21d9fae78c76e85cd4356431e9b018402f172a214fc7d7a5e9a7e29d8ac
       options: --user 1001
     env:
       GRIDEX_E2E_BROWSER_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}

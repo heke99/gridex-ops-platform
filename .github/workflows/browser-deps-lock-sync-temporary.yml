@@ -29,7 +29,7 @@ jobs:
           const fs = require('node:fs')
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
           pkg.devDependencies ||= {}
-          pkg.devDependencies['@playwright/test'] = '1.60.0'
+          pkg.devDependencies['@playwright/test'] = '1.62.1'
           pkg.devDependencies['@axe-core/playwright'] = '4.11.3'
           fs.writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`)
           NODE

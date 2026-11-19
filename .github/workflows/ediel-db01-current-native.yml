@@ -223,6 +223,7 @@ jobs:
           exact_zod_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': '7f0baef1da8ff1aa410a40d0835346749281a506', 'sha256': '52af42e9b40c440622dd09ad15126968278ad121f9fa66451c2fac68783f0f38'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': 'a6e86ff9b2dff932b18afcd0963c3d3fae12de58', 'sha256': 'd0501a03422daaa93721fc7813751eb5eee12a85ae85a6ff6902d48546d2edc4'}}
           exact_undici_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': '573c4d9650dac26a8ad62cf7f5dd3a2d7e83870f', 'sha256': '5e4efe56665e72e90c5ff5a300b9bf5e0dfa7f18871df7bae5983833f18a445c'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': '566689dbc2a2dd33b553e10f6b3f567a3fcaf078', 'sha256': '92c0e55a7775b8e87e5a6eb02bbf908a9d6ddf7061cfad4b477d7f9f768e5a10'}}
           exact_forge_joi_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': 'f7bb37021b03a953e86e09bd57551f95d3bd1d77', 'sha256': '360f2511a66f0d60fb697228b36cb7fead17e7872e9a5532894691ff7271f5fa'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': '625ec084c3761d1faa348a43210024222320681c', 'sha256': 'e025dae372c71bf915c0d707c28e70648be2900f219936751ad4dba96100a933'}}
+          exact_playwright_successor_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': '0596caaa1266b9aff8b1248eabfdadcf3df17f35', 'sha256': '107c57005aef7d16ddda5b1c8af979ee60780a396ba6c2742f05166985f6c88b'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': '32e703cf93dca6904773b7c8aed4bb7b657926de', 'sha256': 'a8f30afe485b73844129489b6a7b52574b5d79eec20c9327dac02604571d48db'}}
           def qualify_mailauth_undici(root):
               # Only the reviewed scoped override and official undici tuple may compose
               # with the immutable, exact Zod dependency pair. No BASE file is modified.
@@ -266,8 +267,35 @@ jobs:
               if declared!=prior[0] or locked!=prior[1]:raise RuntimeError('forge_joi_other_dependency_changed')
               for name,version in (('node-forge','1.4.2'),('joi','18.3.1')):
                   if json.loads((root/'node_modules'/name/'package.json').read_text())['version']!=version:raise RuntimeError('forge_joi_installed_version_mismatch:'+name)
+          def qualify_playwright_successor(root):
+              # Separate exact successor; frozen forge/joi approvals remain unchanged.
+              frozen=[]
+              for oid,expected in zip(('f7bb37021b03a953e86e09bd57551f95d3bd1d77','625ec084c3761d1faa348a43210024222320681c'),
+                                      ('360f2511a66f0d60fb697228b36cb7fead17e7872e9a5532894691ff7271f5fa','e025dae372c71bf915c0d707c28e70648be2900f219936751ad4dba96100a933')):
+                  data=subprocess.check_output(['git','cat-file','blob',oid],cwd=root)
+                  if hashlib.sha256(data).hexdigest()!=expected:raise RuntimeError('playwright_successor_predecessor_unqualified')
+                  frozen.append(json.loads(data))
+              declared=json.loads((root/'package.json').read_text());locked=json.loads((root/'package-lock.json').read_text())
+              if declared['devDependencies'].get('@playwright/test')!='1.62.1' or locked['packages']['']['devDependencies'].get('@playwright/test')!='1.62.1':raise RuntimeError('playwright_successor_manifest_unqualified')
+              exact=json.loads('{"node_modules/@playwright/test":{"version":"1.62.1","resolved":"https://registry.npmjs.org/@playwright/test/-/test-1.62.1.tgz","integrity":"sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ==","devOptional":true,"license":"Apache-2.0","dependencies":{"playwright":"1.62.1"},"bin":{"playwright":"cli.js"},"engines":{"node":">=20"}},"node_modules/playwright":{"version":"1.62.1","resolved":"https://registry.npmjs.org/playwright/-/playwright-1.62.1.tgz","integrity":"sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg==","devOptional":true,"license":"Apache-2.0","dependencies":{"playwright-core":"1.62.1"},"bin":{"playwright":"cli.js"},"engines":{"node":">=20"},"optionalDependencies":{"fsevents":"2.3.2"}},"node_modules/playwright-core":{"version":"1.62.1","resolved":"https://registry.npmjs.org/playwright-core/-/playwright-core-1.62.1.tgz","integrity":"sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==","devOptional":true,"license":"Apache-2.0","bin":{"playwright-core":"cli.js"},"engines":{"node":">=20"}}}')
+              for name,node in exact.items():
+                  if locked['packages'].get(name)!=node:raise RuntimeError('playwright_successor_lock_tuple_unqualified:'+name)
+              nested='node_modules/playwright/node_modules/playwright-core'
+              if nested in locked['packages']:raise RuntimeError('playwright_successor_nested_core_unqualified')
+              declared['devDependencies']['@playwright/test']=frozen[0]['devDependencies']['@playwright/test']
+              locked['packages']['']['devDependencies']['@playwright/test']=frozen[1]['packages']['']['devDependencies']['@playwright/test']
+              for name in exact:locked['packages'][name]=frozen[1]['packages'][name]
+              locked['packages'][nested]=frozen[1]['packages'][nested]
+              if declared!=frozen[0] or locked!=frozen[1]:raise RuntimeError('playwright_successor_other_dependency_changed')
+              for name,version in (('@playwright/test','1.62.1'),('playwright','1.62.1'),('playwright-core','1.62.1'),('node-forge','1.4.2'),('joi','18.3.1'),('undici','8.12.2')):
+                  if json.loads((root/'node_modules'/name/'package.json').read_text())['version']!=version:raise RuntimeError('playwright_successor_installed_version_mismatch:'+name)
+              metadata=hashlib.sha256((root/'node_modules/playwright-core/browsers.json').read_bytes()).hexdigest()
+              if metadata!='f306eed529599b1eaf2f8a85db9de2b23e1a3fe36c2b66434b7c9434fb627a99':raise RuntimeError('playwright_successor_browser_metadata_unqualified')
+              return {'package_version':'1.62.1','browsers_metadata_sha256':metadata,'predecessor':'EXACT_FROZEN_FORGE_JOI_SECURITY_PAIR'}
           if {p:baseline['blobs'].get(p) for p in dependency_paths} != expected_base_dependencies:
               raise RuntimeError('db01_BASE_dependency_inputs_changed')
+          exact_playwright_successor = {p:current['blobs'].get(p) for p in dependency_paths} == exact_playwright_successor_dependencies
+          if exact_playwright_successor:playwright_successor_receipt=qualify_playwright_successor(root)
           exact_forge_joi = {p:current['blobs'].get(p) for p in dependency_paths} == exact_forge_joi_security_dependencies
           if exact_forge_joi:
               qualify_forge_joi(root)
@@ -275,8 +303,8 @@ jobs:
           if exact_undici:
               qualify_mailauth_undici(root)
               if json.loads((root/'node_modules/undici/package.json').read_text())['version']!='8.12.2':raise RuntimeError('mailauth_undici_installed_version_mismatch')
-          exact_mail = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_mail_dependencies, exact_next_security_dependencies, exact_zod_security_dependencies, exact_undici_security_dependencies, exact_forge_joi_security_dependencies)
-          exact_zod = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_zod_security_dependencies, exact_undici_security_dependencies, exact_forge_joi_security_dependencies)
+          exact_mail = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_mail_dependencies, exact_next_security_dependencies, exact_zod_security_dependencies, exact_undici_security_dependencies, exact_forge_joi_security_dependencies, exact_playwright_successor_dependencies)
+          exact_zod = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_zod_security_dependencies, exact_undici_security_dependencies, exact_forge_joi_security_dependencies, exact_playwright_successor_dependencies)
           for path in ['package.json','package-lock.json','.nvmrc','.npmrc']:
               if current['blobs'].get(path) != baseline['blobs'].get(path) and not (exact_mail and path in dependency_paths):
                   raise RuntimeError('BASE/current dependency inputs differ: '+path)
@@ -307,10 +335,13 @@ jobs:
               dependency_compatibility['compatibility']='EXACT_ZOD_4_6_7_WITH_NEXT_16_4_2_MAIL_AND_SECURITY_FIXES'
               dependency_compatibility['actual_installed_versions']['zod']=actual
               dependency_compatibility['actual_locked_zod']=locked['packages']['node_modules/zod']['version']
-          if exact_forge_joi:
+          if exact_forge_joi or exact_playwright_successor:
               dependency_compatibility['qualified_forge_joi']={'override':{'mailauth':{'undici':'8.12.2','joi':'18.3.1'}},'locked_versions':{'node-forge':'1.4.2','joi':'18.3.1'},'predecessor':'EXACT_MAILAUTH_UNDICI_8_12_2'}
           if exact_undici:
               dependency_compatibility['qualified_mailauth_undici']={'override':{'mailauth':{'undici':'8.12.2'}},'locked_version':'8.12.2','predecessor':'EXACT_ZOD_4_6_7_WITH_NEXT_16_4_2_MAIL_AND_SECURITY_FIXES'}
+          if exact_playwright_successor:
+              dependency_compatibility['qualified_playwright_successor']=playwright_successor_receipt
+              dependency_compatibility['compatibility']='EXACT_PLAYWRIGHT_1_62_1_WITH_FORGE_JOI_MAIL_AND_SECURITY_FIXES'
           for path,expected in expected_sql_hashes.items():
               if current['blobs'][path]['sha256'] != expected:
                   raise RuntimeError('exact SQL source identity changed: '+path)

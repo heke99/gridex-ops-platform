@@ -15,7 +15,6 @@ import type { OutboundRequestRow } from '@/lib/cis/types'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import type { OperationsSummaryReadKind } from '@/lib/customers/operationsSummaryRead'
 
-export const dynamic = 'force-dynamic'
 
 export type CustomersPageProps = {
  searchParams: Promise<{
@@ -91,16 +90,7 @@ export function isNonBlockingRuntimeDbError(error: unknown): boolean {
  return isMissingRelationError(error) || ['42703', '42P01', 'PGRST204', 'PGRST205'].includes(code)
 }
 
-export async function safeQueryRows<T>(queryFactory: () => PromiseLike<QueryLikeResult>): Promise<T[]> {
- try {
- const { data, error } = await queryFactory()
- if (error) throw error
- return (data ?? []) as T[]
- } catch (error) {
- if (isNonBlockingRuntimeDbError(error)) return []
- throw error
- }
-}
+
 
 export async function safeLatestContractsByCustomerIds(
  customerIds: string[],
@@ -116,30 +106,7 @@ export async function safeLatestContractsByCustomerIds(
  }
 }
 
-export function StatusBadge({ status }: { status: string | null }) {
- const styles: Record<string, string> = {
- archived: 'border-slate-300 bg-slate-100 text-slate-700',
- active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
- draft: 'border-amber-200 bg-amber-50 text-amber-700',
- pending_verification: 'border-emerald-200 bg-emerald-50 text-emerald-700',
- inactive: 'border-slate-200 bg-slate-50 text-slate-700',
- moved: 'border-emerald-200 bg-emerald-50 text-emerald-700',
- terminated: 'border-red-200 bg-red-50 text-red-700',
- blocked: 'border-red-200 bg-red-50 text-red-700',
- }
 
- const safeStatus = status ?? 'unknown'
-
- return (
- <span
- className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
- styles[safeStatus] ?? 'border-slate-200 bg-slate-50 text-slate-700'
- }`}
- >
- {status ?? 'okänd'}
- </span>
- )
-}
 
 export function lifecycleTone(stage: string): string {
  if (['ready_to_execute', 'completed'].includes(stage)) {
@@ -157,13 +124,7 @@ export function lifecycleTone(stage: string): string {
  return 'border-amber-200 bg-amber-50 text-amber-700'
 }
 
-export function priorityTone(rank: number): string {
- if (rank === 1) return 'border-red-200 bg-red-50 text-red-700'
- if (rank === 2) return 'border-emerald-200 bg-emerald-50 text-emerald-700'
- if (rank === 3) return 'border-emerald-200 bg-emerald-50 text-emerald-700'
- if (rank <= 5) return 'border-amber-200 bg-amber-50 text-amber-700'
- return 'border-slate-200 bg-slate-50 text-slate-700'
-}
+
 
 export function requestSortTime(request: SupplierSwitchRequestRow): number {
  return new Date(
@@ -284,6 +245,9 @@ export function buildCustomerOperationsSummary(params: {
  break
  case 'completed':
  completed += 1
+ break
+ case 'cancelled':
+ // An aborted delivery is neither active nor successfully completed.
  break
  default: {
  const unhandledStage: never = lifecycle.stage
@@ -677,46 +641,7 @@ export function buildCustomersHref(params: {
  return queryString ? `/admin/customers?${queryString}` : '/admin/customers'
 }
 
-export function FilterChip({
- label,
- count,
- href,
- active,
- tone = 'default',
-}: {
- label: string
- count: number
- href: string
- active: boolean
- tone?: 'default' | 'danger' | 'success' | 'info' | 'warning'
-}) {
- const toneClass =
- tone === 'danger'
- ? 'border-red-200 bg-red-50 text-red-700'
- : tone === 'success'
- ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
- : tone === 'info'
- ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
- : tone === 'warning'
- ? 'border-amber-200 bg-amber-50 text-amber-700'
- : 'border-slate-200 bg-slate-50 text-slate-700'
 
- const activeClass = active
- ? 'ring-2 ring-emerald-200 '
- : ''
-
- return (
- <Link
- href={href}
- className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition hover:opacity-90 ${toneClass} ${activeClass}`}
- >
- <span>{label}</span>
- <span className="rounded-full bg-white/70 px-2 py-0.5 text-xs ">
- {count}
- </span>
- </Link>
- )
-}
 
 export function PaginationLink({
  label,
@@ -752,47 +677,9 @@ export function PaginationLink({
  )
 }
 
-export function filterLabel(filter: OperationsFilterKey): string {
- switch (filter) {
- case 'blocked':
- return 'blockerade kunder'
- case 'ready_to_execute':
- return 'redo-att-slutföra-kunder'
- case 'awaiting_response':
- return 'kunder som väntar på svar'
- case 'awaiting_dispatch':
- return 'kunder som väntar på utskick'
- case 'queued_for_outbound':
- return 'kunder som saknar utskick'
- case 'failed':
- return 'kunder med driftuppgifter som kräver åtgärd'
- case 'active_open':
- return 'kunder med aktiv operationssignal'
- case 'no_signal':
- return 'kunder utan aktiv signal'
- case 'all':
- default:
- return 'alla kunder'
- }
-}
 
-export function contractFilterLabel(filter: ContractFilterKey): string {
- switch (filter) {
- case 'none':
- return 'utan avtal'
- case 'pending_signature':
- return 'väntar signering'
- case 'signed':
- return 'signerat'
- case 'active':
- return 'aktivt avtal'
- case 'closed':
- return 'avslutat avtal'
- case 'all':
- default:
- return 'alla avtal'
- }
-}
+
+
 
 export function customerDisplayName(customer: CustomerWithOperations): string {
  const combinedName = [customer.first_name, customer.last_name]
@@ -809,38 +696,9 @@ export function customerTypeLabel(value: string | null): string {
  return 'Privat'
 }
 
-export function customerTypeFilterLabel(value: CustomerTypeFilter): string {
- if (value === 'business') return 'företag'
- if (value === 'association') return 'föreningar'
- if (value === 'private') return 'privatkunder'
- return 'alla kundtyper'
-}
 
-export function customerFlagFilterLabel(value: CustomerFlagFilter): string {
- switch (value) {
- case 'possible_duplicate':
- return 'möjliga dubbletter'
- case 'multi_site':
- return 'flera anläggningar'
- case 'multi_contract':
- return 'flera avtal'
- case 'consolidated_invoice':
- return 'samlingsfaktura'
- case 'missing_authorization':
- return 'saknar fullmakt'
- case 'missing_grid_owner':
- return 'saknar nätägare'
- case 'ready_for_switch':
- return 'redo för leverantörsbyte'
- case 'billing_ready':
- return 'faktureringsklara'
- case 'test_customers':
- return 'testkunder'
- case 'all':
- default:
- return 'alla kundflaggor'
- }
-}
+
+
 
 export function customerStatusLabel(value: string | null): string {
  switch (value) {

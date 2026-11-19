@@ -1,148 +1,98 @@
 import Link from 'next/link'
 import { requireAdminPageAccess, isPlatformAdminContext } from '@/lib/admin/guards'
+import { canPresentAdminAction, canPresentAdminLink, webhookActionNotice } from '@/lib/admin/actionPresentation'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listWebhookDeliveries, listWebhookSubscriptions } from '@/lib/admin/websiteIntegrationOps'
 import { markWebhookDeliveryIgnoredAction, resendWebhookDeliveryAction, sendWebhookTestEventAction } from '../actions'
-import { formatStatusLabel } from '@/lib/ui/format'
+import { formatAdminDateTime, formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'short', timeStyle: 'short' }).format(date)
-}
-
-function statusTone(status: string) {
-  if (status === 'sent') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
-  if (['queued', 'processing'].includes(status)) return 'border-amber-200 bg-amber-50 text-amber-900'
-  if (['failed', 'dead_letter'].includes(status)) return 'border-red-200 bg-red-50 text-red-800'
-  return 'border-slate-200 bg-slate-50 text-slate-700'
-}
 
 function payloadString(payload: Record<string, unknown> | null | undefined, key: string) {
   const value = payload?.[key]
   return typeof value === 'string' ? value : null
 }
 
+function eventLabel(event: string) {
+  if (event === 'webhook.test') return 'Test av anslutningen'
+  if (event.startsWith('customer.')) return 'Kunduppgifter'
+  if (event.startsWith('contract.')) return 'Avtalsuppgifter'
+  if (event.startsWith('invoice.') || event.startsWith('billing.')) return 'Fakturauppgifter'
+  return 'Uppdatering till ansluten tjänst'
+}
+
 export default async function WebhookDeliveriesPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
-  // Webhook deliveries are an integration surface (payloads, endpoints,
-  // signatures) — only users with the integrations permissions should see it,
-  // not every operator with customer read access.
   const access = await requireAdminPageAccess({ anyOf: ['integrations.read', 'integrations.write'] })
   const tenantScope = await resolveAdminTenantReadScope(access)
   const resolved = searchParams ? await searchParams : {}
   const status = typeof resolved.status === 'string' ? resolved.status : null
+  const notice = webhookActionNotice(resolved.success)
   const companyId = tenantScope.isPlatformAdmin ? null : tenantScope.companyId
   const [deliveries, subscriptions] = await Promise.all([
     listWebhookDeliveries({ companyId, status, limit: 150 }),
     listWebhookSubscriptions({ companyId, limit: 100 }),
   ])
   const isPlatformAdmin = isPlatformAdminContext(access)
-  const sent = deliveries.filter((item) => item.status === 'sent').length
-  const failed = deliveries.filter((item) => ['failed', 'dead_letter'].includes(item.status)).length
-  const queued = deliveries.filter((item) => ['queued', 'processing'].includes(item.status)).length
+  const canReadApplications = canPresentAdminLink(access, { anyOf: ['customers.read', 'customers.write', 'billing_underlay.read'] })
+  const companies = [...new Set([...subscriptions, ...deliveries].map(row => row.company_id))]
+  const writableCompanies = new Map(await Promise.all(companies.map(async id => [id,
+    isPlatformAdmin || await canPresentAdminAction(['integrations.write'], { companyId: id }),
+  ] as const)))
 
-  return (
-    <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
-      <section className="rounded-[36px] border border-emerald-100 bg-white p-8 shadow-sm shadow-emerald-950/5">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Webhooks</p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">Webhook delivery logs</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">Följ event som skickas från app.gridex.se till externa hemsidor. Failed deliveries kan köas om manuellt.</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/admin/website-applications" className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Website applications</Link>
-            <Link href="/developers/customer-portal-api" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">Webhook docs</Link>
-          </div>
-        </div>
-        <div className="mt-8 grid gap-4 md:grid-cols-4">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5"><p className="text-sm text-slate-700">Totalt</p><p className="mt-2 text-3xl font-semibold text-slate-950">{deliveries.length}</p></div>
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5"><p className="text-sm text-amber-900">Köade</p><p className="mt-2 text-3xl font-semibold text-amber-950">{queued}</p></div>
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5"><p className="text-sm text-emerald-800">Skickade</p><p className="mt-2 text-3xl font-semibold text-emerald-950">{sent}</p></div>
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-5"><p className="text-sm text-red-800">Fel</p><p className="mt-2 text-3xl font-semibold text-red-950">{failed}</p></div>
-        </div>
-      </section>
+  return <main className="mx-auto min-w-0 max-w-7xl space-y-4 p-4 lg:p-6">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4">
+      <h1 className="text-2xl font-semibold text-slate-950">Anslutningens leveranser</h1>
+      <p className="mt-2 text-sm text-slate-600">Följ uppgifter som skickas till ert anslutna system. Köad och skickad är olika lägen; ett skickat meddelande bevisar inte att kundärendet är klart.</p>
+      <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold text-emerald-800">
+        {canReadApplications ? <Link href="/admin/website-applications" className="underline">Kundansökningar</Link> : null}
+        {isPlatformAdmin ? <Link href="/developers/customer-portal-api" className="underline">Teknisk dokumentation</Link> : null}
+      </div>
+      {notice ? <p role="status" className={`mt-3 rounded-xl border p-3 text-sm ${notice.kind === 'check' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}>{notice.message}</p> : null}
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[
+          ['Inlästa leveranser', deliveries.length],
+          ['Skickade', deliveries.filter(row => row.status === 'sent').length],
+          ['I kö eller pågår', deliveries.filter(row => ['queued', 'processing'].includes(row.status)).length],
+          ['Kräver åtgärd', deliveries.filter(row => ['failed', 'dead_letter'].includes(row.status)).length],
+        ].map(([label, count]) => <div key={String(label)} className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-600">{label}</p><p className="mt-1 text-xl font-semibold">{count}</p></div>)}
+      </div>
+    </section>
 
-      <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-950">Webhook subscriptions</h2>
-            <p className="mt-1 text-sm text-slate-600">Skicka testevent från en aktiv subscription för att verifiera endpoint och signaturhantering.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/admin/webhooks/deliveries" className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700">Alla</Link>
-            <Link href="/admin/webhooks/deliveries?status=failed" className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-sm font-semibold text-red-800">Misslyckade</Link>
-            <Link href="/admin/webhooks/deliveries?status=queued" className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-900">I kö</Link>
-          </div>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {subscriptions.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-600">Inga webhook subscriptions finns ännu.</div> : null}
-          {subscriptions.slice(0, 12).map((subscription) => (
-            <article key={subscription.id} className="rounded-2xl border border-slate-200 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold text-slate-950">{subscription.name}</div>
-                  <div className="mt-1 break-all text-xs text-slate-600">{subscription.endpoint_url}</div>
-                  <div className="mt-2 text-xs text-slate-500">{isPlatformAdmin ? subscription.companies?.name ?? subscription.company_id : 'Ditt bolag'} · {subscription.integration_api_clients?.name ?? 'API-client saknas'}</div>
-                </div>
-                <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(subscription.status)}`}>{formatStatusLabel(subscription.status)}</span>
-              </div>
-              <div className="mt-3 text-xs text-slate-600">Events: {(subscription.event_types ?? []).slice(0, 4).join(', ') || '—'}</div>
-              <form action={sendWebhookTestEventAction} className="mt-4">
-                <input type="hidden" name="company_id" value={subscription.company_id} />
-                <input type="hidden" name="subscription_id" value={subscription.id} />
-                <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Skicka testevent</button>
-              </form>
-            </article>
-          ))}
-        </div>
-      </section>
+    <details className="rounded-2xl border border-slate-200 bg-white p-4">
+      <summary className="cursor-pointer font-semibold text-slate-950">Anslutningar ({subscriptions.length})</summary>
+      <div role="region" aria-label="Anslutningar" tabIndex={0} className="mt-3 max-h-[28rem] space-y-3 overflow-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
+        {subscriptions.length === 0 ? <p className="text-sm text-slate-600">Inga anslutningar hittades.</p> : null}
+        {subscriptions.map(subscription => <article key={subscription.id} className="min-w-0 rounded-xl border border-slate-200 p-3 text-sm">
+          <p className="break-words font-semibold">{subscription.name} · {formatStatusLabel(subscription.status, 'Status saknas', 'Behöver granskas')}</p>
+          <p className="mt-1 break-all text-xs text-slate-600">Mottagare: {subscription.endpoint_url}</p>
+          {writableCompanies.get(subscription.company_id) ? <form action={sendWebhookTestEventAction} className="mt-3">
+            <input type="hidden" name="company_id" value={subscription.company_id} /><input type="hidden" name="subscription_id" value={subscription.id} />
+            <button className="min-h-10 rounded-xl border border-slate-300 px-3 py-2 font-semibold">Skicka testhändelse</button>
+          </form> : <p className="mt-2 text-xs text-slate-600">Läsbehörighet. En behörig anslutningsansvarig behöver utföra tester.</p>}
+          {isPlatformAdmin ? <details className="mt-2"><summary className="cursor-pointer text-xs font-semibold">Tekniska uppgifter</summary><p className="mt-2 break-all text-xs">{subscription.companies?.name ?? subscription.company_id} · {subscription.integration_api_clients?.name ?? 'API-klient saknas'} · {(subscription.event_types ?? []).join(', ')}</p></details> : null}
+        </article>)}
+      </div>
+    </details>
 
-      <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-950">Delivery log</h2>
-        <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600">
-              <tr><th className="px-4 py-3">Datum</th><th className="px-4 py-3">Event</th><th className="px-4 py-3">Destination</th><th className="px-4 py-3">Kund</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Svar/fel</th><th className="px-4 py-3">Åtgärder</th></tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {deliveries.length === 0 ? <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600">Inga webhook deliveries hittades.</td></tr> : null}
-              {deliveries.map((delivery) => (
-                <tr key={delivery.id}>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-700">{formatDate(delivery.created_at)}</td>
-                  <td className="px-4 py-3 text-slate-700">{delivery.event_type}<div className="font-mono text-xs text-slate-500">{delivery.domain_event_id}</div></td>
-                  <td className="max-w-xs break-all px-4 py-3 text-slate-700">{delivery.webhook_subscriptions?.endpoint_url ?? '—'}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-700">{payloadString(delivery.payload, 'customer_number') ?? '—'}<div>{payloadString(delivery.payload, 'external_customer_id') ?? '—'}</div></td>
-                  <td className="px-4 py-3"><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(delivery.status)}`}>{formatStatusLabel(delivery.status)}</span><div className="mt-1 text-xs text-slate-500">{delivery.attempts}/{delivery.max_attempts}</div></td>
-                  <td className="max-w-xs px-4 py-3 text-xs text-slate-700">HTTP {delivery.response_status ?? '—'}<div className="mt-1 text-red-700">{delivery.failure_reason ?? '—'}</div></td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <form action={resendWebhookDeliveryAction}>
-                        <input type="hidden" name="company_id" value={delivery.company_id} />
-                        <input type="hidden" name="delivery_id" value={delivery.id} />
-                        <button className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Resend</button>
-                      </form>
-                      <form action={markWebhookDeliveryIgnoredAction}>
-                        <input type="hidden" name="company_id" value={delivery.company_id} />
-                        <input type="hidden" name="delivery_id" value={delivery.id} />
-                        <input type="hidden" name="note" value="Manuellt hanterad från delivery UI" />
-                        <button className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Ignorera</button>
-                      </form>
-                      <details className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">
-                        <summary className="cursor-pointer">Payload</summary>
-                        <pre className="mt-2 max-h-64 w-[28rem] overflow-auto whitespace-pre-wrap text-[11px] font-normal text-slate-600">{JSON.stringify(delivery.payload, null, 2)}</pre>
-                      </details>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
-  )
+    <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
+      <h2 className="text-lg font-semibold text-slate-950">Leveranshistorik</h2>
+      <nav aria-label="Filtrera leveransstatus" className="mt-3 flex flex-wrap gap-2 text-sm">
+        {[[null, 'Alla'], ['failed', 'Kräver åtgärd'], ['queued', 'I kö']].map(([value, label]) => <Link key={label} aria-current={status === value ? 'page' : undefined} href={value ? `/admin/webhooks/deliveries?status=${value}` : '/admin/webhooks/deliveries'} className="rounded-xl border border-slate-300 px-3 py-2">{label}</Link>)}
+      </nav>
+      <div role="region" aria-label="Leveranser" tabIndex={0} className="mt-3 max-h-[40rem] space-y-3 overflow-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
+        {deliveries.length === 0 ? <p className="p-3 text-sm text-slate-600">Inga leveranser matchar urvalet.</p> : null}
+        {deliveries.map(delivery => <article key={delivery.id} className="min-w-0 rounded-xl border border-slate-200 p-3 text-sm">
+          <div className="flex flex-wrap justify-between gap-2"><p className="font-semibold">{eventLabel(delivery.event_type)}</p><p>{formatStatusLabel(delivery.status, 'Status saknas', 'Behöver granskas')}</p></div>
+          <p className="mt-1 text-xs text-slate-600">{formatAdminDateTime(delivery.created_at)} · Kundnummer: {payloadString(delivery.payload, 'customer_number') ?? 'Saknas'}</p>
+          <p className="mt-1 break-all text-xs text-slate-600">Mottagare: {delivery.webhook_subscriptions?.endpoint_url ?? 'Saknas'}</p>
+          {['failed', 'dead_letter'].includes(delivery.status) ? <p className="mt-2 text-sm text-amber-900">Överföringen behöver kontrolleras. Kontakta anslutningsansvarig innan ett nytt försök.</p> : null}
+          {writableCompanies.get(delivery.company_id) ? <details className="mt-3"><summary className="cursor-pointer font-semibold">Hantera leverans</summary><div className="mt-2 flex flex-wrap gap-2">
+            <form action={resendWebhookDeliveryAction}><input type="hidden" name="company_id" value={delivery.company_id} /><input type="hidden" name="delivery_id" value={delivery.id} /><button className="min-h-10 rounded-xl border border-slate-300 px-3 py-2">Skicka igen</button></form>
+            <form action={markWebhookDeliveryIgnoredAction}><input type="hidden" name="company_id" value={delivery.company_id} /><input type="hidden" name="delivery_id" value={delivery.id} /><input type="hidden" name="note" value="Manuellt hanterad från delivery UI" /><button className="min-h-10 rounded-xl border border-slate-300 px-3 py-2">Ignorera leverans</button></form>
+          </div></details> : null}
+          {isPlatformAdmin ? <details className="mt-3"><summary className="cursor-pointer font-semibold">Tekniska uppgifter</summary><p className="mt-2 break-all text-xs">{delivery.event_type} · {delivery.domain_event_id} · HTTP {delivery.response_status ?? '—'} · Försök {delivery.attempts}/{delivery.max_attempts}</p><p className="mt-1 break-words text-xs">{delivery.failure_reason}</p><pre className="mt-2 max-h-64 max-w-full overflow-auto whitespace-pre-wrap break-all text-xs">{JSON.stringify(delivery.payload, null, 2)}</pre></details> : null}
+        </article>)}
+      </div>
+    </section>
+  </main>
 }

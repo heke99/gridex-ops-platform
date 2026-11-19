@@ -577,6 +577,7 @@ export async function updatePartnerExportStatusAction(
     status: nextStatus,
     externalReference: formValue(formData, 'external_reference') || null,
     failureReason: formValue(formData, 'failure_reason') || null,
+    preserveFailureReason: !formData.has('failure_reason'),
     responsePayload: {
       admin_note: formValue(formData, 'response_payload_note') || null,
     },

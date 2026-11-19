@@ -150,7 +150,7 @@ async function saveContractOfferActionImpl(
   const input = parseAdminContractForm(formData);
   if (!["draft", "ready"].includes(input.lifecycleStatus)) {
     throw new Error(
-      "Avtalsformuläret sparar endast utkast. Använd det separata publiceringskommandot efter readiness-kontroll.",
+      "Avtalsformuläret sparar endast utkast. Använd det separata publiceringskommandot efter kontroll av att avtalet är klart.",
     );
   }
   const actor = await requireContractPermissionAction(
@@ -443,7 +443,7 @@ async function saveContractOfferActionImpl(
     command.offer.company_id !== companyId
   ) {
     throw new Error(
-      "Avtalskommandot returnerade ofullständiga canonical versionsreferenser.",
+      "Avtalskommandot saknar fullständiga uppgifter om avtals- och prisversion.",
     );
   }
 
@@ -455,7 +455,7 @@ async function saveContractOfferActionImpl(
   return {
     offerId: String(command.offer.id),
     success: command.created_new_version
-      ? `Ny immutable avtalsversion skapades i samma produktserie. Prisversion ${command.pricing.version_label}.`
+      ? `Ny låst avtalsversion skapades i samma produktserie. Prisversion ${command.pricing.version_label}.`
       : `Avtalsutkastet sparades. Prisversion ${command.pricing.version_label}.`,
   };
 }
@@ -776,7 +776,7 @@ async function updateTenantContractChannelActionImpl(
 
   revalidateContractSurfaces(companyId);
   return status === "active"
-    ? "Försäljningskanalen publicerades från samma canonical avtalsversion."
+    ? "Försäljningskanalen publicerades från samma låsta avtalsversion."
     : status === "ended"
       ? "Försäljningskanalen avslutades utan att ändra signerad historik."
       : "Försäljningskanalen pausades utan att ändra signerad historik.";
@@ -856,7 +856,7 @@ export async function publishContractVersionAction(formData: FormData) {
   redirectBack({
     companyId,
     success:
-      "Avtalsversionen readiness-kontrollerades och publicerades internt med samma låsta pris- och produktidentitet.",
+      "Avtalsversionen kontrollerades och publicerades internt med samma låsta pris- och produktidentitet.",
   });
 }
 
@@ -902,7 +902,7 @@ export async function publishContractChannelAction(formData: FormData) {
   redirectBack({
     companyId,
     surface,
-    success: `${contractChannelLabel(channel)} publicerades från samma canonical avtalsversion.`,
+    success: `${contractChannelLabel(channel)} publicerades från samma låsta avtalsversion.`,
   });
 }
 

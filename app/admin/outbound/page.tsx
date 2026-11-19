@@ -1,3 +1,5 @@
+import { getAdminPageRequirement } from '@/lib/admin/accessModel'
+import { canPresentAdminAction, canPresentAdminLink, canPresentOperationalAction } from '@/lib/admin/actionPresentation'
 import AdminActionsMenu from "@/components/admin/ui/AdminActionsMenu"
 import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 import CustomerName from '@/components/admin/CustomerName'
@@ -140,7 +142,7 @@ function buildPrimaryDetailLink(
  return null
 }
 
-async function runAutomationSweepFormAction(_: FormData): Promise<void> {
+async function runAutomationSweepFormAction(): Promise<void> {
  'use server'
  await runOperationsAutomationSweepAction()
 }
@@ -156,6 +158,12 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  const context = await requireAdminPageKeyAccess('outbound.queue')
  const tenantScope = await resolveAdminTenantReadScope(context)
  const companyId = tenantScope.companyId
+ const operationalCompanyId = tenantScope.isPlatformAdmin ? context.companyId : companyId
+ const [canUpdate, canSweep, canQueueBilling] = await Promise.all([
+   canPresentAdminAction(['switching.write', 'metering.write', 'billing_underlay.write']),
+   canPresentOperationalAction(['switching.write', 'metering.write', 'billing_underlay.write', 'partner_exports.write'], operationalCompanyId),
+   canPresentOperationalAction(['billing_underlay.write', 'partner_exports.write'], operationalCompanyId),
+ ])
 
  const params = await searchParams
  const status = (params.status ?? 'all').trim()
@@ -182,6 +190,61 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  companyId,
  }),
  ])
+
+ const rowCompanies = [...new Set(requests.map(row => row.company_id ?? companyId).filter((id): id is string => Boolean(id)))]
+ const writableCompanies = new Map(await Promise.all(canUpdate ? rowCompanies.map(async id => [id, await canPresentOperationalAction(['switching.write', 'metering.write', 'billing_underlay.write'], id)] as const) : []))
+
+ // Ordinary company staff get the customer task and actual transport state.
+ // Manual diagnostic editing stays in the platform workspace below.
+ if (!tenantScope.isPlatformAdmin) {
+   const canReadCustomers = canPresentAdminLink(context, { anyOf: ['customers.read', 'masterdata.read'] })
+   const statusLabels: Record<string, string> = { queued: 'Köad', prepared: 'Förberedd', sent: 'Skickad', acknowledged: 'Kvitterad', failed: 'Kräver åtgärd', cancelled: 'Avbruten' }
+   const typeLabels: Record<string, string> = { supplier_switch: 'Leverantörsbyte', customer_masterdata: 'Kund- och anläggningsuppgifter', meter_values: 'Mätvärden', billing_underlay: 'Faktureringsunderlag', billing_export: 'Fakturaexport' }
+   const label = (labels: Record<string, string>, value: string, fallback: string) => Object.hasOwn(labels, value) ? labels[value] : fallback
+   const details = (request: typeof requests[number]) => {
+     if (request.source_type === 'supplier_switch_request' && request.source_id && canPresentAdminLink(context, getAdminPageRequirement('operations.switches'))) return { href: `/admin/operations/switches/${request.source_id}`, text: 'Öppna leverantörsbyte' }
+     if (request.source_type === 'grid_owner_data_request' && request.source_id && canPresentAdminLink(context, getAdminPageRequirement('operations.grid_owner_request_detail'))) return { href: `/admin/operations/grid-owner-requests/${request.source_id}`, text: 'Öppna uppgiftsbegäran' }
+     return null
+   }
+   return <div className="min-h-screen">
+     <AdminHeader title="Utskick" subtitle="Följ kundärendenas utskick, bekräftelser och behov av uppföljning." userEmail={context.email} />
+     <main className="min-w-0 space-y-4 p-4 lg:p-6">
+       <form className="grid min-w-0 gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
+         <input name="q" aria-label="Sök utskick" defaultValue={query} placeholder="Sök på referens bland inlästa utskick" className="min-h-11 min-w-0 rounded-xl border border-slate-300 px-3 text-sm" />
+         <select name="status" aria-label="Utskickets status" defaultValue={status} className="min-h-11 min-w-0 rounded-xl border border-slate-300 px-3 text-sm"><option value="all">Alla statusar</option>{Object.entries(statusLabels).map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select>
+         <select name="requestType" aria-label="Typ av utskick" defaultValue={requestType} className="min-h-11 min-w-0 rounded-xl border border-slate-300 px-3 text-sm"><option value="all">Alla typer</option>{Object.entries(typeLabels).map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select>
+         <div className="flex flex-wrap gap-3"><button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Filtrera</button><Link href="/admin/outbound" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Rensa</Link></div>
+         {channelType !== 'all' ? <input type="hidden" name="channelType" value={channelType} /> : null}
+       </form>
+       <div className="flex flex-wrap gap-3">
+         {canSweep ? <form action={runAutomationSweepFormAction}><button className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold">Kör automatisk kontroll</button></form> : null}
+         {canQueueBilling ? <form action={queueReadyBillingExportsFormAction}><button className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Förbered fakturaexporter</button></form> : null}
+       </div>
+       <p className="text-sm text-slate-600">{requests.length} utskick i det inlästa urvalet. Meddelandets status gäller utskicket. Följ kundärendet för dess fortsatta handläggning.</p>
+       {requests.length ? <div role="region" aria-label="Kundernas utskick" tabIndex={0} className="max-h-[68vh] min-w-0 space-y-3 overflow-y-auto rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
+         {requests.map(request => {
+           const detail = details(request)
+           const canHandle = canUpdate && writableCompanies.get(request.company_id ?? companyId ?? '')
+           const nextStep = request.status === 'cancelled' ? 'Utskicket är avbrutet.' : request.status === 'acknowledged' ? 'Meddelandet är kvitterat. Kontrollera kundärendet för nästa steg.' : request.status === 'failed' ? 'Utskicket behöver granskas. Kontrollera ärendet innan ett nytt försök.' : request.channel_type === 'unresolved' ? 'Mottagarens kontaktväg behöver kontrolleras innan utskick.' : request.status === 'sent' ? 'Utskicket är markerat som skickat. Följ ärendet för mottagarens bekräftelse och svar.' : 'Inväntar utskick. Följ ärendet för nästa steg.'
+           const quickAction = (nextStatus: string, step: string, text: string) => <form action={updateOutboundRequestStatusAction}>
+             <input type="hidden" name="outbound_request_id" value={request.id} /><input type="hidden" name="customer_id" value={request.customer_id} /><input type="hidden" name="status" value={nextStatus} /><input type="hidden" name="dispatch_step" value={step} />
+             {step === 'fail' ? <input type="hidden" name="failure_reason" value="Utskicket markerades som misslyckat av handläggare." /> : null}
+             <button className="min-h-11 rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold">{text}</button>
+           </form>
+           return <article key={request.id} className="min-w-0 space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+             <div className="flex flex-wrap items-start justify-between gap-3"><h2 className="min-w-0 break-words font-semibold">{canReadCustomers ? <CustomerName id={request.customer_id} /> : 'Kunduppgifter kräver kundläsbehörighet'}</h2><span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(request.status)}`}>{label(statusLabels, request.status, 'Status behöver kontrolleras')}</span></div>
+             <p className="text-sm font-medium">{label(typeLabels, request.request_type, 'Kundärende')}</p>
+             {request.period_start || request.period_end ? <p className="break-words text-sm">Period: {request.period_start ?? '—'} – {request.period_end ?? '—'}</p> : null}
+             {request.external_reference ? <p className="break-all text-sm">Referens: {request.external_reference}</p> : null}
+             <p className="text-sm text-slate-700">{nextStep}</p>
+             <div className="flex flex-wrap gap-3">{detail ? <Link href={detail.href} className="text-sm font-semibold underline">{detail.text}</Link> : null}{canReadCustomers ? <Link href={`/admin/customers/${request.customer_id}`} className="text-sm font-semibold underline">Öppna kundkort</Link> : null}</div>
+             {canHandle && ['queued', 'prepared', 'sent'].includes(request.status) ? <details className="rounded-xl border border-slate-200 p-3"><summary className="cursor-pointer text-sm font-semibold">Hantera utskick</summary><div className="mt-3 flex flex-wrap gap-3">{request.status === 'queued' ? quickAction('prepared', 'prepare', 'Förbered utskick') : null}{['queued', 'prepared'].includes(request.status) ? quickAction('sent', 'send', 'Markera som skickat') : null}{request.status === 'sent' ? quickAction('acknowledged', 'ack', 'Markera som kvitterat') : null}{quickAction('failed', 'fail', 'Markera som misslyckat')}</div></details> : null}
+           </article>
+         })}
+       </div> : <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-600">Inga utskick matchar urvalet.</p>}
+     </main>
+   </div>
+ }
 
  const [events, linkedEdielMessagesQuery] = await Promise.all([
  listOutboundDispatchEventsByRequestIds(requests.map((row) => row.id)),
@@ -483,17 +546,18 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </form>
 
  <div className="flex flex-wrap items-start gap-3 xl:justify-end">
- <form action={runAutomationSweepFormAction}>
+ {!operationalCompanyId ? <p className="text-sm text-slate-600">Välj ett bolag innan du startar kontroll eller förbereder fakturaexport.</p> : null}
+ {canSweep ? <form action={runAutomationSweepFormAction}>
  <button className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 ">
  Kör automatisk kontroll
  </button>
- </form>
+ </form> : null}
 
- <form action={queueReadyBillingExportsFormAction}>
+ {canQueueBilling ? <form action={queueReadyBillingExportsFormAction}>
  <button className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white ">
  Förbered fakturaexporter
  </button>
- </form>
+ </form> : null}
  </div>
  </div>
 
@@ -700,7 +764,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  ) : null}
  </div>
 
- <div className="space-y-4">
+ {canUpdate && writableCompanies.get(request.company_id ?? companyId ?? '') ? <div className="space-y-4">
  <div className="grid gap-2 sm:grid-cols-2">
  {request.status === 'queued' ? (
  <form action={updateOutboundRequestStatusAction}>
@@ -811,7 +875,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </button>
  </div>
  </form></AdminDisclosurePanel>
- </div>
+ </div> : null}
  </div>
  </article>
  )

@@ -125,8 +125,18 @@ function portalReplySummary(reply: InfoRequestPortalReply): string {
   const payload = reply.submitted_payload ?? {}
   const message = ['message', 'comment', 'notes', 'description'].map((key) => payload[key]).find((value) => typeof value === 'string' && value.trim())
   if (typeof message === 'string') return message.length > 240 ? `${message.slice(0, 240)}…` : message
-  const keys = Object.keys(payload).filter((key) => payload[key] !== null && payload[key] !== '')
-  return keys.length ? `Skickade uppgifter: ${keys.slice(0, 6).join(', ')}` : 'Inga uppgifter i svaret.'
+  const fields: Array<[string, string]> = [
+    ['facility_id', 'Anläggningsnummer'], ['meter_point_id', 'Mätpunkt'],
+    ['grid_owner_name', 'Nätägare'], ['annual_consumption_kwh', 'Årsförbrukning (kWh)'],
+    ['street', 'Gatuadress'], ['postal_code', 'Postnummer'], ['city', 'Ort'],
+    ['email', 'E-post'], ['phone', 'Telefon'],
+  ]
+  const values = fields.flatMap(([key, label]) => {
+    const value = payload[key]
+    return typeof value === 'string' && value.trim() || typeof value === 'number'
+      ? [`${label}: ${String(value)}`] : []
+  })
+  return values.length ? values.join(' · ') : Object.keys(payload).length ? 'En komplettering har tagits emot. Uppgifterna behöver granskas.' : 'Inga uppgifter i svaret.'
 }
 
 function SelectGridOwner({ gridOwners }: { gridOwners: Array<{ id: string; label: string; sublabel: string | null }> }) {
@@ -141,6 +151,16 @@ function SelectGridOwner({ gridOwners }: { gridOwners: Array<{ id: string; label
     </select>
   )
 }
+
+function ListPagination({ pageKey, page, total, label, resolvedSearch }: { pageKey: string; page: number; total: number; label: string; resolvedSearch: Record<string, string | string[] | undefined> }) {
+    const href = (nextPage: number) => {
+      const next = new URLSearchParams()
+      for (const [key, value] of Object.entries(resolvedSearch)) if (typeof value === 'string' && !['success', 'error'].includes(key)) next.set(key, value)
+      next.set(pageKey, String(nextPage))
+      return `?${next}`
+    }
+    return <nav aria-label={`Sidor för ${label}`} className="flex flex-wrap items-center gap-3 border-t px-4 py-3 text-sm"><span>{total} inlästa · sida {page}</span>{page > 1 ? <Link className="underline" href={href(page - 1)}>Föregående {label}</Link> : null}{page * 12 < total ? <Link className="underline" href={href(page + 1)}>Nästa {label}</Link> : null}</nav>
+  }
 
 export default async function CustomerInfoRequestsPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}) {
   const resolvedSearch = searchParams ? await searchParams : {}
@@ -172,12 +192,22 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
       ])
     : [[], [], [], [], { sites: [], meteringPoints: [], gridOwners: [] }]
 
+  const selectedCustomerId = typeof resolvedSearch.customer_id === 'string' && customers.some(customer => customer.id === resolvedSearch.customer_id) ? resolvedSearch.customer_id : ''
+  const pageNumber = (key: string, total: number) => Math.min(Math.max(1, Number.parseInt(String(resolvedSearch[key] ?? '1'), 10) || 1), Math.max(1, Math.ceil(total / 12)))
+  const requestPage = pageNumber('requestPage', requests.length)
+  const scopePage = pageNumber('scopePage', authorizationScopes.length)
+  const permissionPage = pageNumber('permissionPage', permissions.length)
+  const visibleRequests = requests.slice((requestPage - 1) * 12, requestPage * 12)
+  const visibleScopes = authorizationScopes.slice((scopePage - 1) * 12, scopePage * 12)
+  const visiblePermissions = permissions.slice((permissionPage - 1) * 12, permissionPage * 12)
   const canCloseRequests = currentWritable && admin.permissions.includes('customers.write')
+  let portalRepliesReadFailed = false
   let portalReplies = new Map<string, InfoRequestPortalReply[]>()
   if (companyId && requests.length) {
     try {
-      portalReplies = await listPortalRepliesForInfoRequests(companyId, requests.slice(0, 12))
+      portalReplies = await listPortalRepliesForInfoRequests(companyId, visibleRequests)
     } catch {
+      portalRepliesReadFailed = true
       portalReplies = new Map()
     }
   }
@@ -185,7 +215,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
   const processDecisions = new Map<string,EdielProcessNextAction>()
   let processReadUnavailable = false
   if(companyId&&user&&canReadProcess){
-    const sourceIds = requests.slice(0,12).flatMap(request=>request.ediel_message_id?[request.ediel_message_id]:[])
+    const sourceIds = visibleRequests.flatMap(request=>request.ediel_message_id?[request.ediel_message_id]:[])
     try {
       for(const environment of ['test','production'] as const){
         const decisions=await readEdielProcessNextActions({companyId,actorUserId:user.id,environment,messageIds:sourceIds,evaluatedAt:new Date().toISOString(),
@@ -198,7 +228,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
   let permissionAssignmentReadFailed = false
   if (companyId && user && permissions.length) {
     try {
-      permissionAssignmentOptions = await readManualServicePermissionOptions({ companyId, actorUserId: user.id, permissionIds: permissions.slice(0, 12).map((permission) => permission.id) })
+      permissionAssignmentOptions = await readManualServicePermissionOptions({ companyId, actorUserId: user.id, permissionIds: visiblePermissions.map((permission) => permission.id) })
     } catch {
       permissionAssignmentReadFailed = true
     }
@@ -223,6 +253,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
           </section>
         ) : null}
 
+        {portalRepliesReadFailed ? <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Svar från kundportalen kunde inte läsas. Försök igen innan du bedömer om kunden behöver komplettera.</p> : null}
         {successNotice ? <section role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{successNotice}</section> : null}
         {errorNotice ? <section role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{errorNotice}</section> : null}
 
@@ -230,22 +261,22 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
           <div className="min-w-0 break-words rounded-3xl border border-slate-200 bg-white p-3">
             <div className="min-w-0 break-words text-sm font-medium text-slate-700">Uppgiftsbegäran</div>
             <div className="mt-1 text-2xl font-semibold text-slate-950">{requests.length}</div>
-            <p className="mt-2 text-xs text-slate-600">Kunduppgifter, anläggning och avtalsvillkor.</p>
+            <p className="mt-2 text-xs text-slate-600">Inlästa begäranden om kund, anläggning och avtalsvillkor.</p>
           </div>
           <div className="min-w-0 break-words rounded-3xl border border-emerald-200 bg-emerald-50 p-3">
             <div className="min-w-0 break-words text-sm font-medium text-emerald-800">Aktiva fullmaktsomfattningar</div>
             <div className="mt-1 text-2xl font-semibold text-slate-950">{activeScopes.length}</div>
-            <p className="mt-2 text-xs text-emerald-900">Kontrolleras innan data begärs.</p>
+            <p className="mt-2 text-xs text-emerald-900">Aktiva i det inlästa urvalet.</p>
           </div>
           <div className="min-w-0 break-words rounded-3xl border border-emerald-200 bg-emerald-50 p-3">
             <div className="min-w-0 break-words text-sm font-medium text-emerald-800">Aktiva mätvärdestillstånd</div>
             <div className="mt-1 text-2xl font-semibold text-slate-950">{activePermissions.length}</div>
-            <p className="mt-2 text-xs text-emerald-900">Anläggningar med godkänt tillstånd.</p>
+            <p className="mt-2 text-xs text-emerald-900">Aktiva i det inlästa urvalet.</p>
           </div>
           <div className="min-w-0 break-words rounded-3xl border border-red-200 bg-red-50 p-3">
             <div className="min-w-0 break-words text-sm font-medium text-red-800">Ärenden som väntar på åtgärd</div>
             <div className="mt-1 text-2xl font-semibold text-slate-950">{blockedRequests.length}</div>
-            <p className="mt-2 text-xs text-red-900">Kräver manuell åtgärd.</p>
+            <p className="mt-2 text-xs text-red-900">I det inlästa urvalet.</p>
           </div>
         </section>
 
@@ -255,7 +286,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Anläggnings- och avtalsuppgifter</p>
             <p className="mt-2 text-sm leading-6 text-slate-700">Använd för anläggningsuppgifter, nätområde, årsenergi och separat manuell kontroll av bindningstid/uppsägningstid.</p>
             <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
-              <CustomerResourceSelects customers={customers} sites={resourceOptions.sites} meteringPoints={resourceOptions.meteringPoints} />
+              <CustomerResourceSelects key={`${companyId}:${selectedCustomerId}`} initialCustomerId={selectedCustomerId} customers={customers} sites={resourceOptions.sites} meteringPoints={resourceOptions.meteringPoints} />
               <SelectGridOwner gridOwners={resourceOptions.gridOwners} />
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-900">
                 Kontrollera kundens anläggning, mätpunkt och nätägare. Saknade uppgifter behöver kompletteras innan begäran kan skickas.
@@ -357,7 +388,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
               <p className="mt-1 text-sm text-slate-700">Separera nätägaruppgifter från bindning/uppsägning hos befintlig leverantör.</p>
             </div>
             <div tabIndex={0} role="region" aria-label="Uppgiftsbegäranden" className="max-h-[40rem] space-y-3 overflow-auto p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
-              {requests.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Inga uppgiftsbegäran ännu.</div> : requests.slice(0, 12).map((request) => (
+              {requests.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Inga uppgiftsbegäran ännu.</div> : visibleRequests.map((request) => (
                 <div key={request.id} className="rounded-2xl border border-slate-200 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(request.status)}`}>{statusLabel(request.status)}</span>
@@ -377,7 +408,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
                     <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
                       <p className="font-semibold">Svar från kundportalen</p>
                       <ul className="mt-2 space-y-2">
-                        {(portalReplies.get(request.id) ?? []).slice(0, 3).map((reply) => (
+                        {(portalReplies.get(request.id) ?? []).map((reply) => (
                           <li key={reply.id}>
                             <span className="font-semibold">{PORTAL_REPLY_STATUS_LABELS[reply.status] ?? reply.status}</span>
                             {' · '}{new Date(reply.created_at).toLocaleString('sv-SE')}
@@ -404,6 +435,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
                 </div>
               ))}
             </div>
+            <ListPagination resolvedSearch={resolvedSearch} pageKey="requestPage" page={requestPage} total={requests.length} label="begäranden" />
           </div>
 
           <div className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -412,7 +444,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
               <p className="mt-1 text-sm text-slate-700">Aktiva fullmakter och vilka uppgifter de omfattar.</p>
             </div>
             <div tabIndex={0} role="region" aria-label="Fullmakternas omfattning" className="max-h-[40rem] space-y-3 overflow-auto p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
-              {authorizationScopes.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Ingen omfattning sparad ännu.</div> : authorizationScopes.slice(0, 12).map((scopeRow) => (
+              {authorizationScopes.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Ingen omfattning sparad ännu.</div> : visibleScopes.map((scopeRow) => (
                 <div key={scopeRow.id} className="rounded-2xl border border-slate-200 p-4">
                   <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(scopeRow.status)}`}>{formatStatusLabel(scopeRow.status)}</span>
                   <div className="mt-3 text-sm font-semibold text-slate-950">{scopeTypeLabel(scopeRow.scope_type)}</div>
@@ -424,6 +456,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
                 </div>
               ))}
             </div>
+            <ListPagination resolvedSearch={resolvedSearch} pageKey="scopePage" page={scopePage} total={authorizationScopes.length} label="fullmakter" />
           </div>
 
           <div className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -432,7 +465,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
               <p className="mt-1 text-sm text-slate-700">Tillstånd att hämta mätvärden per kund och anläggning.</p>
             </div>
             <div tabIndex={0} role="region" aria-label="Mätvärdestillstånd" className="max-h-[40rem] space-y-3 overflow-auto p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
-              {permissions.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Inga mätvärdestillstånd ännu.</div> : permissions.slice(0, 12).map((permission) => (
+              {permissions.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Inga mätvärdestillstånd ännu.</div> : visiblePermissions.map((permission) => (
                 <div key={permission.id} className="rounded-2xl border border-slate-200 p-4">
                   <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(permission.status)}`}>{formatStatusLabel(permission.status)}</span>
                   <div className="mt-3 text-sm font-semibold text-slate-950">{permission.case_reference ?? permission.permission_reference ?? 'Tillståndsutkast'}</div>
@@ -467,6 +500,7 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
                 </div>
               ))}
             </div>
+            <ListPagination resolvedSearch={resolvedSearch} pageKey="permissionPage" page={permissionPage} total={permissions.length} label="mätvärdestillstånd" />
           </div>
         </section>
       </div>

@@ -5,23 +5,25 @@ import { beforeEach, expect, it, vi } from 'vitest'
 const io = vi.hoisted(() => ({
   tables: {} as Record<string, Array<Record<string, unknown>>>,
   queue: [] as Array<Record<string, unknown>>,
+  platform: false,
 }))
 
 vi.mock('@/lib/admin/guards', () => ({
   requireAdminPageKeyAccess: async () => ({ userId: 'synthetic-operator', email: 'operator@example.test', permissions: [] }),
-  isPlatformAdminContext: () => false,
+  isPlatformAdminContext: () => io.platform,
 }))
 vi.mock('@/lib/tenant/scope', () => ({
   getOperationalCompanyScope: async () => ({ companyId: 'synthetic-company', companyName: 'Testbolag' }),
   isMissingRelationError: () => false,
 }))
-vi.mock('@/lib/tenant/adminScope', () => ({ resolveAdminTenantReadScope: async () => ({ companyId: 'synthetic-company', companyName: 'Testbolag', isPlatformAdmin: false }) }))
+vi.mock('@/lib/tenant/adminScope', () => ({ resolveAdminTenantReadScope: async () => ({ companyId: 'synthetic-company', companyName: 'Testbolag', isPlatformAdmin: io.platform }) }))
 vi.mock('@/lib/performance/companySummaries', () => ({ listCompanyWorkQueue: async () => io.queue }))
 vi.mock('@/lib/ediel/operations/processNextAction', () => ({ readEdielProcessNextActions: async () => new Map() }))
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: async () => ({
     from: (table: string) => {
       const filters: Array<(row: Record<string, unknown>) => boolean> = []
+      let start = 0, end = Infinity
       const query = {
         select: () => query,
         eq: (key: string, value: unknown) => { filters.push(row => row[key] === value); return query },
@@ -33,10 +35,12 @@ vi.mock('@/lib/supabase/server', () => ({
           return query
         },
         order: () => query,
-        limit: () => query,
-        then: (resolve: (value: unknown) => unknown) => Promise.resolve({
-          data: (io.tables[table] ?? []).filter(row => filters.every(filter => filter(row))), error: null,
-        }).then(resolve),
+        limit: (limit: number) => { end = limit - 1; return query },
+        range: (from: number, to: number) => { start = from; end = to; return query },
+        then: (resolve: (value: unknown) => unknown) => {
+          const rows = (io.tables[table] ?? []).filter(row => filters.every(filter => filter(row)))
+          return Promise.resolve({ data: rows.slice(start, end + 1), count: rows.length, error: null }).then(resolve)
+        },
       }
       return query
     },
@@ -61,6 +65,7 @@ const base = {
 beforeEach(() => {
   io.tables = { customers: [customer] }
   io.queue = []
+  io.platform = false
   vi.stubGlobal('React', React)
 })
 
@@ -79,7 +84,8 @@ it.each(['needs_review', 'future_review_status'])('shows an explicitly actionabl
 it('shows a needs-review job when no corresponding event exists', async () => {
   io.tables.customer_operation_jobs = [{ ...base, status: 'needs_review', job_type: 'supplier_switch', last_error: 'Startdatum behöver granskas.' }]
   const html = renderToStaticMarkup(await WorkQueuePage())
-  expect(html).toContain('Startdatum behöver granskas.')
+  expect(html).toContain('Ärendet behöver granskas innan nästa steg kan fortsätta.')
+  expect(html).not.toContain('Startdatum behöver granskas.')
   expect(html).toContain('Behöver granskning')
   expect(html).toContain(`href="/admin/customers/${customer.id}"`)
 })
@@ -87,7 +93,9 @@ it('shows a needs-review job when no corresponding event exists', async () => {
 it('holds a new job status for review instead of excluding it before classification', async () => {
   io.tables.customer_operation_jobs = [{ ...base, status: 'future_job_review', job_type: 'supplier_switch', last_error: 'Oklassificerat arbete behöver granskas.' }]
   const html = renderToStaticMarkup(await WorkQueuePage())
-  expect(html).toContain('Oklassificerat arbete behöver granskas.')
+  expect(html).toContain('Ärendet behöver granskas innan nästa steg kan fortsätta.')
+  expect(html).toContain(`href="/admin/customers/${customer.id}"`)
+  expect(html).not.toContain('Oklassificerat arbete behöver granskas.')
   expect(html).not.toContain('future_job_review')
 })
 
@@ -147,4 +155,15 @@ it('keeps an ordinary waiting step out of the manual action queue', async () => 
   const html = renderToStaticMarkup(await WorkQueuePage())
   expect(html).toContain('Inga aktiva driftuppgifter hittades')
   expect(html).not.toContain('Invänta nätägarens svar')
+})
+
+it('preserves the same job diagnostic only in the authorized platform view', async () => {
+  io.tables.customer_operation_jobs = [{ ...base, status: 'needs_review', job_type: 'supplier_switch', last_error: 'RAW_TECHNICAL_LAST_ERROR' }]
+  const company = renderToStaticMarkup(await WorkQueuePage())
+  expect(company).toContain('Ärendet behöver granskas innan nästa steg kan fortsätta.')
+  expect(company).not.toContain('RAW_TECHNICAL_LAST_ERROR')
+  io.platform = true
+  const platform = renderToStaticMarkup(await WorkQueuePage())
+  expect(platform).toContain('RAW_TECHNICAL_LAST_ERROR')
+  expect(platform).toContain(`href="/admin/customers/${customer.id}"`)
 })

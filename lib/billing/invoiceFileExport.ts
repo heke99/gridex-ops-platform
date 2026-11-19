@@ -403,7 +403,7 @@ export async function createInvoiceFile(input: { companyId: string; billingMonth
       .maybeSingle()
     if (legacy.error) throw legacy.error
     const facility = await loadFacility(input.companyId, context.underlay)
-    rows.push(buildInvoiceFileRow({
+    const row = buildInvoiceFileRow({
       ...facility,
       nordfinClientId,
       item: context.item,
@@ -414,7 +414,12 @@ export async function createInvoiceFile(input: { companyId: string; billingMonth
       legacyItem: (legacy.data ?? null) as Row | null,
       billingMonth: input.billingMonth,
       now,
-    }))
+    })
+    // A frozen approved row must itself carry a usable channel; never backfill live profiles.
+    if (!row.email && !(row.street && row.postal_code && row.city)) {
+      throw new InvoiceProviderConfigError('invoice_distribution_missing', 'Fakturan saknar bekräftad faktura-e-post eller komplett fryst fakturaadress.')
+    }
+    rows.push(row)
     runByItem.set(itemId, text(context.run.id) as string)
   }
 

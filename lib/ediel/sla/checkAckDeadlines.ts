@@ -65,7 +65,9 @@ export async function checkAckDeadlines(params: {
     }
     const completion = inboundAckTimerCompletion({
       source: source as EdielMessageRow, timerType: String(row.timer_type),
-      acknowledgements: acknowledgements ?? [], transactionResults,
+      acknowledgements: (acknowledgements ?? []).filter(ack =>
+        typeof ack.message_sent_at === 'string' && Date.parse(ack.message_sent_at) <= nowMs),
+      transactionResults,
     })
     const dueAt = Date.parse(String(row.due_at ?? ''))
     const criticalAt = Date.parse(String(row.critical_at ?? ''))

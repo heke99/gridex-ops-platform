@@ -2245,7 +2245,7 @@ def check_ordinary_contract(a):
     need(set(hashes) == set(ORDINARY_SOURCE_PATHS) and all(HEX64.fullmatch(h) for h in hashes.values())
          and all(hashes.get(p) == digest for p, digest in ORDINARY_REVIEWED_HASHES.items()), "runtime_ordinary_sources")
     browser = c.get("browser", {})
-    need(browser.get("packageVersion") == "1.60.0" and browser.get("browsersMetadataSha256") == "f306eed529599b1eaf2f8a85db9de2b23e1a3fe36c2b66434b7c9434fb627a99"
+    need(browser.get("packageVersion") == "1.62.1" and browser.get("browsersMetadataSha256") == "f306eed529599b1eaf2f8a85db9de2b23e1a3fe36c2b66434b7c9434fb627a99"
          and HEX64.fullmatch(browser.get("packageLockSha256", "")) and browser.get("confinement") == "linux-subreaper-pidfd-v1"
          and type(browser.get("maxDescendants")) is int and 16 <= browser["maxDescendants"] <= 256, "runtime_ordinary_browser_contract")
     transport = a.get("transport", {})
@@ -3993,7 +3993,7 @@ def ui_validate_permit(permit, proof, proof_sha, *, at=None):
          and ui['sourceSha256'] == UI_CORE_HASHES and set(ui['appSourceSha256']) == set(UI_APP_PATHS)
          and all(HEX64.fullmatch(v) for v in ui['appSourceSha256'].values()), 'runtime_ui_profile')
     browser = ui['browser']
-    need(set(browser) == {'packageVersion', 'browsersMetadataSha256', 'packageLockSha256'} and browser['packageVersion'] == '1.60.0'
+    need(set(browser) == {'packageVersion', 'browsersMetadataSha256', 'packageLockSha256'} and browser['packageVersion'] == '1.62.1'
          and browser['browsersMetadataSha256'] == 'f306eed529599b1eaf2f8a85db9de2b23e1a3fe36c2b66434b7c9434fb627a99'
          and browser['packageLockSha256'] == ui['appSourceSha256']['package-lock.json'], 'runtime_ui_browser_policy')
     gates = permit['requiredGenGates']

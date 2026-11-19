@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, expect, it, vi } from 'vitest'
 
 const io = vi.hoisted(() => ({ tables: {} as Record<string, Array<Record<string, unknown>>> }))
-vi.mock('@/lib/admin/guards', () => ({ requireAdminPageKeyAccess: async () => ({ userId: 'synthetic-operator', email: 'operator@example.test', permissions: ['cases.read', 'cases.write'] }) }))
+vi.mock('@/lib/admin/guards', () => ({ isPlatformAdminContext: () => false, requireAdminPageKeyAccess: async () => ({ userId: 'synthetic-operator', email: 'operator@example.test', permissions: ['cases.read', 'cases.write'] }) }))
 vi.mock('@/lib/tenant/adminScope', () => ({
   resolveAdminTenantReadScope: async () => ({ companyId: 'synthetic-company', isPlatformAdmin: false }),
   resolveAdminSelectedCompanyReadScope: async () => ({ companyId: 'synthetic-company', isPlatformAdmin: false }),
@@ -14,15 +14,18 @@ vi.mock('@/lib/supabase/service', () => ({
   supabaseService: {
     from: (table: string) => {
       const filters: Array<(row: Record<string, unknown>) => boolean> = []
+      let start = 0
+      let end = Number.POSITIVE_INFINITY
       const query = {
         select: () => query,
+        range: (from: number, to: number) => { start = from; end = to; return query },
         eq: (key: string, value: unknown) => { filters.push(row => row[key] === value); return query },
         neq: () => query, is: () => query,
         in: (key: string, values: unknown[]) => { filters.push(row => values.includes(row[key])); return query },
         order: () => query, limit: () => query,
         then: (resolve: (value: unknown) => unknown) => {
           const data = (io.tables[table] ?? []).filter(row => filters.every(filter => filter(row)))
-          return Promise.resolve({ data, count: data.length, error: null }).then(resolve)
+          return Promise.resolve({ data: data.slice(start, end + 1), count: data.length, error: null }).then(resolve)
         },
       }
       return query

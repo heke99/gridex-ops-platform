@@ -27,7 +27,7 @@ vi.mock('@/lib/supabase/service', async () => {
           }
           let rows = [...(port.tables[table] ?? [])]
           for (const [field, expression] of url.searchParams) {
-            if (['select', 'order', 'limit'].includes(field)) continue
+            if (['select', 'order', 'limit', 'offset'].includes(field)) continue
             const dot = expression.indexOf('.')
             const op = expression.slice(0, dot)
             const value = expression.slice(dot + 1)
@@ -48,9 +48,13 @@ vi.mock('@/lib/supabase/service', async () => {
             const [field, direction] = order.split('.')
             rows.sort((a, b) => String(a[field]).localeCompare(String(b[field])) * (direction === 'desc' ? -1 : 1))
           }
+          // PostgREST reports the filtered total before range/limit pagination.
+          const total = rows.length
+          const offset = Number(url.searchParams.get('offset') ?? 0)
+          rows = rows.slice(offset)
           const limit = url.searchParams.get('limit')
           if (limit) rows = rows.slice(0, Number(limit))
-          return new Response(JSON.stringify(rows), { headers: { 'content-type': 'application/json' } })
+          return new Response(JSON.stringify(rows), { headers: { 'content-type': 'application/json', 'content-range': `*/${total}` } })
         },
       },
     }),
