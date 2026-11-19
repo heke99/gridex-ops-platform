@@ -122,7 +122,7 @@ export function publicPortalContract(
 export function publicPortalSite(
   companyId: string,
   value: unknown,
-): JsonRecord {
+): JsonRecord & { facility_reference: string | null } {
   const row = record(value)
   return {
     facility_reference:
@@ -151,6 +151,7 @@ export function publicPortalSite(
 export function publicPortalMeteringPoint(
   companyId: string,
   value: unknown,
+  facilityReference?: string | null,
 ): JsonRecord {
   const row = record(value)
   return {
@@ -159,11 +160,10 @@ export function publicPortalMeteringPoint(
       companyId,
       row.id,
     ),
-    facility_reference: publicReference(
-      'facility',
-      companyId,
-      row.customer_site_id ?? row.site_id,
-    ),
+    facility_reference:
+      facilityReference === undefined
+        ? publicReference('facility', companyId, row.customer_site_id ?? row.site_id)
+        : facilityReference,
     metering_point_id:
       text(row.metering_point_id) ??
       text(row.meter_point_id) ??
@@ -179,6 +179,29 @@ export function publicPortalMeteringPoint(
     end_date: text(row.end_date),
     verification_status: text(row.verification_status),
     created_at: text(row.created_at),
+  }
+}
+
+export function publicPortalSiteRows(companyId: string, sites: unknown[], meteringPoints: unknown[]) {
+  const facilityReferences = new Map<string, string>()
+  const publicSites = sites.map((value) => {
+    const row = record(value)
+    const dto = publicPortalSite(companyId, row)
+    const siteId = text(row.id)
+    if (siteId && dto.facility_reference) facilityReferences.set(siteId, dto.facility_reference)
+    return dto
+  })
+
+  return {
+    sites: publicSites,
+    meteringPoints: meteringPoints.map((value) => {
+      const row = record(value)
+      const siteId = text(row.customer_site_id ?? row.site_id)
+      const matchedReference = siteId ? facilityReferences.get(siteId) : undefined
+      // The customer-scoped Bundle fallback has no visible site to establish the canonical reference.
+      const reference = matchedReference ?? publicReference('facility', companyId, row.site_id)
+      return publicPortalMeteringPoint(companyId, row, reference)
+    }),
   }
 }
 
@@ -392,10 +415,7 @@ export function publicPortalBundleRows(
 ): PublicPortalBundleRows {
   return {
     contracts: input.contracts.map((row) => publicPortalContract(companyId, row)),
-    sites: input.sites.map((row) => publicPortalSite(companyId, row)),
-    meteringPoints: input.meteringPoints.map((row) =>
-      publicPortalMeteringPoint(companyId, row),
-    ),
+    ...publicPortalSiteRows(companyId, input.sites, input.meteringPoints),
     invoices: input.invoices.map((row) => publicPortalInvoice(companyId, row)),
     meteringValues: input.meteringValues.map((row) =>
       publicPortalMeteringValue(companyId, row),

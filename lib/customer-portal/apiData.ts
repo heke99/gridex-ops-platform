@@ -619,9 +619,28 @@ export async function listPortalPowersOfAttorneyPage(
   })
 }
 
-const METERING_POINT_SELECT = 'id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,ediel_metering_point_id,site_facility_id,status,metering_type,measurement_type,reading_frequency,grid_owner_id,grid_area_code,price_area_code,start_date,end_date,verification_status,onboarding_status,data_quality_status,created_at'
+const METERING_POINT_SELECT = 'id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,ediel_metering_point_id,site_facility_id,status,measurement_type,reading_frequency,grid_owner_id,grid_area_code,price_area_code,start_date,end_date,verification_status,onboarding_status,data_quality_status,created_at'
 const METERING_POINT_LEGACY_SELECT = 'id,customer_id,site_id,metering_point_id,meter_point_id,ediel_metering_point_id,site_facility_id,status,measurement_type,reading_frequency,grid_owner_id,price_area_code,start_date,end_date,created_at'
 const METERING_POINT_MINIMAL_SELECT = 'id,customer_id,site_id,metering_point_id,meter_point_id,status,price_area_code,created_at'
+
+function listMeteringPointsBySites(context: PortalCustomerContext, siteIds: string[], limit?: number) {
+  const idFilter = siteIds.join(',')
+  const read = (select: string, hasCustomerSiteId: boolean) => async () => {
+    const query = supabaseService.from('metering_points').select(select).eq('company_id', context.companyId)
+    const scoped = hasCustomerSiteId
+      ? query.or(`customer_site_id.in.(${idFilter}),and(customer_site_id.is.null,site_id.in.(${idFilter}))`)
+      : query.in('site_id', siteIds)
+    return await (limit === undefined ? scoped : scoped.limit(limit)) as ListResult
+  }
+
+  return listWithSchemaFallback([
+    read(METERING_POINT_SELECT, true),
+    read(`${METERING_POINT_LEGACY_SELECT},customer_site_id`, true),
+    read(`${METERING_POINT_MINIMAL_SELECT},customer_site_id`, true),
+    read(METERING_POINT_LEGACY_SELECT, false),
+    read(METERING_POINT_MINIMAL_SELECT, false),
+  ])
+}
 
 export async function listPortalMeteringPoints(context: PortalCustomerContext, sites: Array<Record<string, unknown>> = [], route = '/api/v1/customer/sites') {
   await logPortalAccess({ context, route, action: 'read_metering_points' })
@@ -650,32 +669,7 @@ export async function listPortalMeteringPoints(context: PortalCustomerContext, s
     ])
   }
 
-  return listWithSchemaFallback([
-    async () => await supabaseService
-      .from('metering_points')
-      .select(METERING_POINT_SELECT)
-      .eq('company_id', context.companyId)
-      .or(`site_id.in.(${siteIds.join(',')}),customer_site_id.in.(${siteIds.join(',')})`)
-      .limit(100) as ListResult,
-    async () => await supabaseService
-      .from('metering_points')
-      .select(METERING_POINT_SELECT)
-      .eq('company_id', context.companyId)
-      .in('customer_site_id', siteIds)
-      .limit(100) as ListResult,
-    async () => await supabaseService
-      .from('metering_points')
-      .select(METERING_POINT_LEGACY_SELECT)
-      .eq('company_id', context.companyId)
-      .in('site_id', siteIds)
-      .limit(100) as ListResult,
-    async () => await supabaseService
-      .from('metering_points')
-      .select(METERING_POINT_MINIMAL_SELECT)
-      .eq('company_id', context.companyId)
-      .in('site_id', siteIds)
-      .limit(100) as ListResult,
-  ])
+  return listMeteringPointsBySites(context, siteIds, 100)
 }
 
 export async function listPortalMeteringPointsForSites(
@@ -686,18 +680,7 @@ export async function listPortalMeteringPointsForSites(
   await logPortalAccess({ context, route, action: 'read_metering_points_for_site_page' })
   const siteIds = sites.map((site) => String(site.id ?? '')).filter(Boolean)
   if (siteIds.length === 0) return []
-  return listWithSchemaFallback([
-    async () => await supabaseService
-      .from('metering_points')
-      .select(METERING_POINT_SELECT)
-      .eq('company_id', context.companyId)
-      .or(`site_id.in.(${siteIds.join(',')}),customer_site_id.in.(${siteIds.join(',')})`) as ListResult,
-    async () => await supabaseService
-      .from('metering_points')
-      .select(METERING_POINT_LEGACY_SELECT)
-      .eq('company_id', context.companyId)
-      .in('site_id', siteIds) as ListResult,
-  ])
+  return listMeteringPointsBySites(context, siteIds)
 }
 
 // Note: the unused createPortalRequest helper (writing customer_portal_requests,
