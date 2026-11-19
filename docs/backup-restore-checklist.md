@@ -61,10 +61,12 @@ Storage keys.
 
 Use lowercase hexadecimal SHA-256 values and exact media-type strings. Give
 objects distinct, flat file names such as `object-01.bin` in the same directory
-as the receipts. Use standalone regular files. The verifier reads at most 1 MiB per JSON
-receipt and 50 MiB per object in line with the repository's local Storage limit.
-It checks the exact cohort, receipt metadata, and SHA-256 of streamed bytes. Run
-it with the directory's canonical absolute path and the selected snapshot ID.
+as the receipts. Use standalone regular files. The verifier reads at most 1 MiB
+per JSON receipt and 50 MiB per object in line with the repository's local
+Storage limit. It checks the exact cohort, receipt metadata, and SHA-256 of
+streamed bytes. Run it with the directory's canonical absolute path and the
+selected snapshot ID. Each component must be an ordinary directory. The
+verifier opens it relative to its already opened parent directory.
 
 ```sh
 node scripts/verify-restore-archive-manifest.cjs /srv/restore-evidence/run-01 backup-01

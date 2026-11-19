@@ -1,6 +1,8 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { mkdtempSync, realpathSync, rmSync, symlinkSync, truncateSync, writeFileSync } from 'node:fs'
+import { constants, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, truncateSync, writeFileSync } from 'node:fs'
+import { open, type FileHandle } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -13,8 +15,8 @@ const CONTENT_TYPE = 'message/rfc822'
 const FIRST_FILE = 'object-01.bin'
 const RECEIPT_NAMES = ['snapshot.json', 'database.json', 'storage.json'] as const
 
-function fixture() {
-  const root = mkdtempSync(join(realpathSync(tmpdir()), 'gridex-restore-evidence-'))
+function fixture(parent = realpathSync(tmpdir())) {
+  const root = mkdtempSync(join(parent, 'gridex-restore-evidence-'))
   ROOTS.push(root)
   const records = [
     { objectId: 'source-A', fileName: FIRST_FILE, bytes: Buffer.from('Original A\r\n\r\n') },
@@ -153,6 +155,49 @@ describe('offline archive restore evidence', () => {
     const rootAlias = join(data.root, 'alias')
     symlinkSync(data.root, rootAlias, 'dir')
     expectUnverified(verify(data, SNAPSHOT, rootAlias), 'invalid_root')
+  })
+
+  it('requires all ancestor directories of the evidence root to be ordinary directories', () => {
+    const wrapper = fixture()
+    const realParent = join(wrapper.root, 'real-parent')
+    const linkedParent = join(wrapper.root, 'linked-parent')
+    mkdirSync(realParent)
+    const data = fixture(realParent)
+    symlinkSync('real-parent', linkedParent, 'dir')
+    const relativeEvidence = data.root.slice(realParent.length + 1)
+    expectUnverified(verify(data, SNAPSHOT, join(linkedParent, relativeEvidence)), 'invalid_root')
+  })
+
+  it('opens evidence below the already selected parent after an ordinary directory move', async () => {
+    const data = fixture()
+    const parent = join(data.root, 'selected-parent')
+    const evidence = join(parent, 'evidence')
+    mkdirSync(evidence, { recursive: true })
+    writeFileSync(join(evidence, 'marker.txt'), 'original cohort fixture')
+    const { openEvidenceRoot }: {
+      openEvidenceRoot: (directory: string, openDirectory: typeof open) => Promise<FileHandle>
+    } = createRequire(SCRIPT)(SCRIPT)
+
+    let moved = false
+    const root = await openEvidenceRoot(evidence, async (candidate, flags) => {
+      expect(Number(flags) & constants.O_NOFOLLOW).toBe(constants.O_NOFOLLOW)
+      expect(Number(flags) & constants.O_DIRECTORY).toBe(constants.O_DIRECTORY)
+      const handle = await open(candidate, flags)
+      if (String(candidate).endsWith('/selected-parent')) {
+        renameSync(parent, join(data.root, 'moved-parent'))
+        mkdirSync(evidence, { recursive: true })
+        writeFileSync(join(evidence, 'marker.txt'), 'replacement directory fixture')
+        moved = true
+      }
+      return handle
+    })
+    try {
+      expect(moved).toBe(true)
+      expect(readFileSync(join(evidence, 'marker.txt'), 'utf8')).toBe('replacement directory fixture')
+      expect(readFileSync(`/proc/self/fd/${root.fd}/marker.txt`, 'utf8')).toBe('original cohort fixture')
+    } finally {
+      await root.close()
+    }
   })
 
   it('rejects an oversized physical object before hashing it', () => {

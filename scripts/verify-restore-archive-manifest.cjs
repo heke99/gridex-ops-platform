@@ -1,6 +1,6 @@
 const { createHash } = require('node:crypto')
 const { constants } = require('node:fs')
-const { open, realpath } = require('node:fs/promises')
+const { open } = require('node:fs/promises')
 const { isAbsolute, join, resolve } = require('node:path')
 
 // Match the local Storage file-size limit in supabase/config.toml.
@@ -21,10 +21,33 @@ function isText(value, pattern) {
   return typeof value === 'string' && pattern.test(value)
 }
 
+function pathBelow(directory, name) {
+  return join('/proc/self/fd', String(directory.fd), name)
+}
+
+async function openEvidenceRoot(directory, openDirectory = open) {
+  if (process.platform !== 'linux' || !isAbsolute(directory) || resolve(directory) !== directory || directory === '/') {
+    fail('invalid_root')
+  }
+  const flags = constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW
+  let current = await openDirectory('/', flags).catch(() => fail('invalid_root'))
+  try {
+    for (const component of directory.slice(1).split('/')) {
+      const parent = current
+      // Each lookup has only one user-supplied component below an already open directory.
+      current = await openDirectory(pathBelow(parent, component), flags)
+      await parent.close()
+    }
+    return current
+  } catch {
+    await current.close()
+    fail('invalid_root')
+  }
+}
+
 async function readLocalFile(root, name, maxBytes, consume) {
-  // Anchor each name to the open directory, even if its original path moves.
   const handle = await open(
-    join('/proc/self/fd', String(root.fd), name),
+    pathBelow(root, name),
     constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
   ).catch(() => fail('local_file_unavailable'))
   try {
@@ -99,11 +122,7 @@ async function checkObject(root, reference, restored, downloaded, seenFiles) {
 }
 
 async function verify(directory, snapshotId) {
-  if (process.platform !== 'linux' || !isAbsolute(directory)) fail('invalid_root')
-  const absolute = resolve(directory)
-  if (await realpath(absolute).catch(() => fail('invalid_root')) !== absolute) fail('invalid_root')
-  const root = await open(absolute, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW)
-    .catch(() => fail('invalid_root'))
+  const root = await openEvidenceRoot(directory)
   try {
     const expected = await readReceipt(root, 'snapshot.json', snapshotId)
     const database = await readReceipt(root, 'database.json', snapshotId)
@@ -129,10 +148,14 @@ async function main() {
   console.log(JSON.stringify({ status: 'verified', objects }))
 }
 
-main().catch((error) => {
-  console.error(JSON.stringify({
-    status: 'unverified',
-    reason: error instanceof EvidenceError ? error.message : 'local_read_failed',
-  }))
-  process.exitCode = 1
-})
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(JSON.stringify({
+      status: 'unverified',
+      reason: error instanceof EvidenceError ? error.message : 'local_read_failed',
+    }))
+    process.exitCode = 1
+  })
+}
+
+module.exports = { openEvidenceRoot }
