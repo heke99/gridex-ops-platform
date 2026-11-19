@@ -8,7 +8,11 @@ import {createCanonicalAckMessage} from '@/lib/ediel/core/kernel'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
 import {archiveTransportRawMime} from '@/lib/ediel/transport/rawMimeArchive'
-import {readPersistedProdatCommonHeaderNegativeAckBasis} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
+import {prepareEdielBusinessExpectationPlan} from '@/lib/ediel/businessExpectations'
+import {prepareEdielTechnicalExpectationPlan} from '@/lib/ediel/technicalExpectations'
+import {readFreshEdielSendValidationSources} from '@/lib/ediel/production/sendValidationSources'
+import {assertRegistryRulebookAllowsSend} from '@/lib/ediel/rulebook/sendGuards'
+import {resolveSourceQualifiedNegativeFixtureForMessage} from '@/lib/ediel/testing/negativeFixtureAuthority'
 import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'
 import {decisionUser} from './helpers/ediel-decision-original-native-fixture'
 import {nativeLockProcess} from './helpers/native-lock-process'
@@ -33,7 +37,23 @@ const unlistedProdatRulePin=()=>sql<Record<string,unknown>>(`SELECT jsonb_build_
 async function assertAperakCancellationWinsEntry(ack: EdielMessageRow, companyId: string, actorUserId: string) {
  const raw = ack.raw_payload!
  const attemptId = randomUUID()
- const { evidence } = await readPersistedProdatCommonHeaderNegativeAckBasis({companyId,environment:'test',ackMessageId:ack.id,expectedRawPayload:raw})
+ const fresh = await readFreshEdielSendValidationSources(ack,actorUserId)
+ const negativeFixture = await resolveSourceQualifiedNegativeFixtureForMessage({message:ack,actorUserId})
+ const admission = await assertRegistryRulebookAllowsSend(
+  ack,undefined,undefined,negativeFixture,fresh.deathStatusContext,
+  fresh.ackSourceQualification,fresh.customerMasterdataContext,undefined,actorUserId,
+ )
+ const policy = admission?.canonicalPolicy
+ const evidence = admission?.prodatCommonHeaderRejectionEvidence
+ if (!policy || !evidence) throw new Error('native_aperak_send_admission_required')
+ expect(evidence).toEqual(fresh.prodatCommonHeaderRejectionEvidence)
+ const technicalExpectationPlan = prepareEdielTechnicalExpectationPlan(ack,policy)
+ expect(technicalExpectationPlan).not.toBeNull()
+ const admissionDecision = {
+  version:1,referenceDate:policy.referenceDate,family:policy.family,code:policy.code,
+  subtype:policy.subtype,profileKey:policy.profileKey,guide:policy.guide,
+  associationAssignedCode:policy.associationAssignedCode,sourceTrace:policy.sourceTrace,
+ }
  const payload = Buffer.from(raw,'latin1')
  const mime = Buffer.concat([
   Buffer.from(`Message-ID: <${attemptId}@example.invalid>\r\nContent-Type: application/edifact\r\n\r\n`), payload,
@@ -43,12 +63,21 @@ async function assertAperakCancellationWinsEntry(ack: EdielMessageRow, companyId
   ...archive, originalHash:createHash('sha256').update(raw).digest('hex'), routeId:ack.communication_route_id,
   from:ack.sender_email, to:ack.receiver_email, payloadHash:createHash('sha256').update(payload).digest('hex'),
   payloadLength:payload.length, mimeMode:'nodemailer-attachment', encoding:'latin1', prodatCommonHeaderRejectionEvidence:evidence,
+  admissionDecision, technicalExpectationPlan,
+  businessExpectationPlan:prepareEdielBusinessExpectationPlan(ack,policy),
  }
  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:{code:string;message:string}|null}>
  const call = (action:string, extra:Record<string,unknown>={}) => rpc('gridex_ediel_transport_attempt_v1',{
   p_input:{companyId,environment:'test',messageId:ack.id,actorUserId,attemptId,action,...extra},
  })
- const prepared = await call('prepare',{owner:{kind:'direct'},binding})
+ const prepare = (candidate:typeof binding) => call('prepare',{owner:{kind:'direct'},binding:candidate})
+ expect((await prepare({...binding,technicalExpectationPlan:null})).error).toMatchObject({
+  code:'P0001',message:'ediel_technical_expectation_source_plan_required',
+ })
+ expect((await prepare({...binding,admissionDecision:{...admissionDecision,referenceDate:'2000-01-01'}})).error).toMatchObject({
+  code:'P0001',message:'ediel_technical_expectation_same_admission_required',
+ })
+ const prepared = await prepare(binding)
  expect(prepared.error).toBeNull()
  expect(prepared.data).toEqual({proceed:true,state:'prepared'})
 
