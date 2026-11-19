@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { hasPermissionRequirement } from '@/lib/admin/accessModel'
+import { requireAdminPageAccess } from '@/lib/admin/guards'
 import type { CommunicationRouteRow, GridOwnerDataRequestRow } from '@/lib/cis/types'
 import type {
  CustomerSiteRow,
@@ -27,6 +29,9 @@ import {
  type EdielRouteProfileRow,
 } from '@/lib/ediel/types'
 import type { CustomerEdielMessageRow } from '@/lib/ediel/customerData'
+import { EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
+import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
+import { isUuid } from '@/lib/validation/uuid'
 
 type EdielMessageSummaryRow = CustomerEdielMessageRow
 
@@ -98,6 +103,35 @@ function statusTone(status: string | null | undefined): string {
  }
 
  return 'bg-slate-100 text-slate-700'
+}
+
+async function readAiListShortcut(customerId: string, sites: CustomerSiteRow[]) {
+ if (!isUuid(customerId)) return null
+
+ const access = await requireAdminPageAccess()
+ const companyId = access.companyId
+ if (!access.isPlatformAdmin || !companyId || !hasPermissionRequirement(access.permissions, {
+  allOf: ['communication.read', 'customers.read', 'communication.write'],
+ })) return null
+
+ const normalizedCustomerId = customerId.toLowerCase()
+ const eligibleSites = sites.filter((site) =>
+  site.customer_id === normalizedCustomerId && site.company_id === companyId && isUuid(site.id)
+ )
+ if (eligibleSites.length === 0) return null
+
+ try {
+  await assertEdielTenantActor({ companyId, actorUserId: access.userId, permission: 'communication.write' })
+ } catch (error) {
+  if (!(error instanceof EdielExecutionFailure && error.disposition.kind === 'security_quarantine')) {
+   console.warn('Could not verify Ediel AI-list shortcut access')
+  }
+  return null
+ }
+
+ const parameters = new URLSearchParams({ customerId: normalizedCustomerId })
+ if (eligibleSites.length === 1) parameters.set('siteId', eligibleSites[0].id)
+ return `/admin/ediel/ai-list?${parameters.toString()}`
 }
 
 function meteringPointName(
@@ -550,9 +584,10 @@ export default async function CustomerEdielOperationsCard({
  isPlatformAdmin = false,
 }: Props) {
  const supabase = await createSupabaseServerClient()
- const {
- data: { user },
- } = await supabase.auth.getUser()
+ const [{ data: { user } }, aiListHref] = await Promise.all([
+  supabase.auth.getUser(),
+  isPlatformAdmin ? readAiListShortcut(customerId, sites) : null,
+ ])
 
  const latestSwitches = latestSwitchPerSite(sites, switchRequests)
  const openDataRequests = dataRequests
@@ -641,6 +676,15 @@ aperak_status: normalizeRecommendationAckStatus(
  >
  Ediel-routes
  </Link>
+ {aiListHref ? (
+ <Link
+ href={aiListHref}
+ prefetch={false}
+ className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
+ >
+ Förbered AI-lista
+ </Link>
+ ) : null}
  </>
  ) : (
  <span className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800">
