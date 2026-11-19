@@ -23,8 +23,12 @@ import { stockholmMonthBounds } from '@/lib/time/stockholm'
 const MONTH = '2026-05'
 const { start: MONTH_START, end: MONTH_END } = stockholmMonthBounds(MONTH)
 
+let nextValueId = 0
+
 function value(overrides: Partial<Row> = {}): Row {
   return {
+    id: `fixture-${String(++nextValueId).padStart(8, '0')}`,
+    revision_status: 'current',
     company_id: 'company-1',
     metering_point_id: 'mp-1',
     period_start: MONTH_START,
@@ -36,6 +40,7 @@ function value(overrides: Partial<Row> = {}): Row {
 }
 
 beforeEach(() => {
+  nextValueId = 0
   state.tables = { normalized_metering_values: [] }
   state.errorsByTable = {}
 })
@@ -80,6 +85,29 @@ describe('evaluateMeteringCompletenessForMonth', () => {
     const gap = result.issues.find((issue) => issue.code === 'metering_gap')
     expect(gap?.severity).toBe('blocked')
     expect(gap?.meteringPointId).toBe('mp-1')
+  })
+
+  it('reports the exact missing quarter without changing the fallback coverage tolerance', async () => {
+    const start = Date.parse(MONTH_START)
+    const quarter = 15 * 60_000
+    const count = (Date.parse(MONTH_END) - start) / quarter
+    state.tables.normalized_metering_values = Array.from({ length: count - 1 }, (_, index) => value({
+      period_start: new Date(start + index * quarter).toISOString(),
+      period_end: new Date(start + (index + 1) * quarter).toISOString(),
+    }))
+    const input = { companyId: 'company-1', billingMonth: MONTH }
+    const strict = await evaluateMeteringCompletenessForMonth({
+      ...input, meteringPoints: [{ meteringPointId: 'mp-1', requiredResolution: 'quarter_hour' }],
+    })
+    expect(strict.status).toBe('incomplete')
+    expect(strict.issues).toContainEqual(expect.objectContaining({
+      code: 'metering_gap', severity: 'blocked', message: expect.stringContaining('15 min'),
+      details: expect.objectContaining({ missing_hours: 0.25 }),
+    }))
+    const fallback = await evaluateMeteringCompletenessForMonth({
+      ...input, meteringPoints: [{ meteringPointId: 'mp-1' }],
+    })
+    expect(fallback.status).toBe('complete')
   })
 
   it('blocks on overlapping (duplicate) values that would double-bill', async () => {
