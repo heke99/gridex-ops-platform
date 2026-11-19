@@ -96,11 +96,12 @@ class Backend:
     def __init__(self, fixture, barrier=None):
         self.base, self.tree = fixture.base, fixture.tree
         self.refs, self.commits, self.requests = {}, {}, []
+        self.timed_requests = []
         self.barrier, self.lock = barrier, threading.Lock()
         self.hook = None
         self.journals = []
 
-    def request(self, method, endpoint, body=None):
+    def request(self, method, endpoint, body=None, *, timeout=None):
         if method == "POST":
             # Every actual simulated mutation must already have durable STARTED.
             matching = False
@@ -116,6 +117,8 @@ class Backend:
             self.barrier.wait(timeout=8)
         with self.lock:
             self.requests.append((method, endpoint, body))
+            if timeout is not None:
+                self.timed_requests.append((method, endpoint, timeout))
             if self.hook:
                 override = self.hook(method, endpoint, body)
                 if override is not None:
@@ -296,6 +299,138 @@ class SourceClaimTests(unittest.TestCase):
         self.failure("exact_ref_mismatch")
         self.assertEqual(len(made), 1)
 
+    def simulate_created_ref_reads(self, outcomes, fixture=None, backend=None):
+        f, b = fixture or self.f, backend or self.b
+        resource = f.prepared()[2][0]
+        target = "repos/" + claim.REPOSITORY + "/git/ref/" + resource.removeprefix("refs/")
+        seen = []
+
+        def hook(method, endpoint, body):
+            if method != "GET" or endpoint != target or resource not in b.refs:
+                return None
+            current = outcomes[len(seen)] if len(seen) < len(outcomes) else "match"
+            seen.append(current)
+            if current == "wrong_sha":
+                other = "f" * 40 if b.refs[resource]["object"]["sha"] != "f" * 40 else "e" * 40
+                return result(200, {"ref": resource, "object": {"type": "commit", "sha": other}})
+            if current == "null":
+                return result(200, None)
+            if isinstance(current, int):
+                return result(current, {"message": "Synthetic status"})
+            return None
+
+        b.hook = hook
+        return resource, seen
+
+    def assert_single_create_per_ref(self, target, backend=None):
+        b = backend or self.b
+        posted = [body["ref"] for method, endpoint, body in b.requests
+                  if method == "POST" and endpoint.endswith("/git/refs")]
+        self.assertEqual(posted.count(target), 1)
+        self.assertEqual(len(posted), len(set(posted)))
+
+    def test_created_ref_visible_on_first_read_has_no_wait(self):
+        resource, seen = self.simulate_created_ref_reads([])
+        with patch("time.sleep") as sleep:
+            self.assertEqual(self.f.run(self.b)["state"], "SOURCE_CLAIM_COMPLETE_ALL_EXACT_REFS_VERIFIED")
+        self.assertEqual(seen, ["match", "match"])
+        self.assertEqual(self.b.timed_requests, [])
+        sleep.assert_not_called()
+        self.assert_single_create_per_ref(resource)
+
+    def assert_bounded_created_ref_gets(self, resource, sleep, delays, backend=None):
+        b = backend or self.b
+        endpoint = "repos/" + claim.REPOSITORY + "/git/ref/" + resource.removeprefix("refs/")
+        self.assertEqual(b.timed_requests, [("GET", endpoint, 2)] * len(delays))
+        self.assertEqual([call.args for call in sleep.call_args_list], [(delay,) for delay in delays])
+        self.assert_single_create_per_ref(resource, b)
+
+    def test_transient_readback_404_uses_read_only_retries_after_create(self):
+        for delays in ((0.2,), (0.2, 0.5)):
+            with self.subTest(delays=delays):
+                f = Fixture(Path(self.temp.name) / ("visible-after-" + str(len(delays))))
+                b = Backend(f)
+                b.journals.append(f.journal)
+                outcomes = [404] * len(delays)
+                resource, seen = self.simulate_created_ref_reads(outcomes, f, b)
+                with patch("time.sleep") as sleep:
+                    self.assertEqual(f.run(b)["state"], "SOURCE_CLAIM_COMPLETE_ALL_EXACT_REFS_VERIFIED")
+                self.assertEqual(seen, outcomes + ["match", "match"])
+                self.assert_bounded_created_ref_gets(resource, sleep, delays, b)
+
+    def test_permanent_created_ref_404_has_bounded_readback_and_stops(self):
+        resource, seen = self.simulate_created_ref_reads([404] * 5)
+        with patch("time.sleep") as sleep:
+            self.failure("ref_readback_visibility_timeout")
+        self.assertEqual(seen, [404, 404, 404])
+        self.assertEqual(list(self.b.refs), [resource])
+        self.assert_bounded_created_ref_gets(resource, sleep, (0.2, 0.5))
+
+    def test_created_ref_auth_failure_stops_without_retry(self):
+        for status in (401, 403):
+            with self.subTest(status=status):
+                f = Fixture(Path(self.temp.name) / ("created-" + str(status)))
+                b = Backend(f)
+                b.journals.append(f.journal)
+                resource, seen = self.simulate_created_ref_reads([status], f, b)
+                with patch("time.sleep") as sleep:
+                    self.failure("unexpected_http_status", f, b)
+                self.assertEqual(seen, [status])
+                sleep.assert_not_called()
+                self.assertEqual(list(b.refs), [resource])
+                self.assert_single_create_per_ref(resource, b)
+
+    def test_wrong_first_and_final_ref_never_get_visibility_retried(self):
+        for outcomes in (["wrong_sha"], ["match", "wrong_sha"], ["null"]):
+            with self.subTest(outcomes=outcomes):
+                f = Fixture(Path(self.temp.name) / "-".join(outcomes))
+                b = Backend(f)
+                b.journals.append(f.journal)
+                resource, seen = self.simulate_created_ref_reads(outcomes, f, b)
+                with patch("time.sleep") as sleep:
+                    self.failure("exact_ref_mismatch", f, b)
+                self.assertEqual(seen, outcomes)
+                sleep.assert_not_called()
+                self.assert_single_create_per_ref(resource, b)
+
+    def test_created_ref_stops_retries_on_auth_or_wrong_sha(self):
+        for outcome, error in ((403, "unexpected_http_status"), ("wrong_sha", "exact_ref_mismatch")):
+            with self.subTest(outcome=outcome):
+                f = Fixture(Path(self.temp.name) / ("retry-" + str(outcome)))
+                b = Backend(f)
+                b.journals.append(f.journal)
+                resource, seen = self.simulate_created_ref_reads([404, outcome], f, b)
+                with patch("time.sleep") as sleep:
+                    self.failure(error, f, b)
+                self.assertEqual(seen, [404, outcome])
+                sleep.assert_called_once_with(0.2)
+                self.assert_single_create_per_ref(resource, b)
+
+    def test_inexact_creation_response_never_entered_visibility_read(self):
+        resource = self.f.prepared()[2][0]
+        endpoint = "repos/" + claim.REPOSITORY + "/git/ref/" + resource.removeprefix("refs/")
+
+        def hook(method, endpoint, body):
+            if method == "POST" and endpoint.endswith("/git/refs"):
+                wrong = "f" * 40 if body["sha"] != "f" * 40 else "e" * 40
+                return result(201, {"ref": resource, "object": {"type": "commit", "sha": wrong}})
+
+        self.b.hook = hook
+        with patch("time.sleep") as sleep:
+            self.failure("exact_ref_mismatch")
+        sleep.assert_not_called()
+        self.assertEqual(sum(m == "GET" and e == endpoint for m, e, _ in self.b.requests), 2)
+        self.assertEqual(self.b.timed_requests, [])
+        self.assert_single_create_per_ref(resource)
+
+    def test_final_missing_ref_is_not_treated_as_read_after_create(self):
+        resource, seen = self.simulate_created_ref_reads(["match", 404])
+        with patch("time.sleep") as sleep:
+            self.failure("unexpected_http_status")
+        self.assertEqual(seen, ["match", 404])
+        sleep.assert_not_called()
+        self.assert_single_create_per_ref(resource)
+
     def test_private_fields_never_appear_in_cli_failure_output(self):
         self.f.plan["agent"] = "PRIVATE_OWNER_NEVER_EXPORT"
         self.f.plan["producer"] = "forbidden"
@@ -405,6 +540,9 @@ class SourceClaimTests(unittest.TestCase):
                 self.assertEqual(args[args.index("--hostname") + 1], "github.com")
                 self.assertNotIn("shell", run.call_args.kwargs)
                 self.assertNotIn("GH_DEBUG", run.call_args.kwargs["env"])
+                self.assertEqual(run.call_args.kwargs["timeout"], 35)
+                claim.GhTransport().request("GET", "repos/" + claim.REPOSITORY + "/git/ref/heads/main", timeout=2)
+                self.assertEqual(run.call_args.kwargs["timeout"], 2)
 
     def test_mutation_boundary_rejects_private_commit_or_foreign_ref(self):
         p, h, resources = self.f.prepared()
@@ -415,6 +553,8 @@ class SourceClaimTests(unittest.TestCase):
         runner.data["receipt"] = "c" * 40
         with self.assertRaisesRegex(claim.ClaimError, "ref_payload_out_of_scope"):
             runner.api("POST", "git/refs", {"ref": claim.PREFIX + "producer-gen", "sha": "c" * 40})
+        with self.assertRaisesRegex(claim.ClaimError, "ref_visibility_read_out_of_scope"):
+            runner.api("GET", "git/ref/heads/main", created_ref_read=True, timeout=2)
         self.assertFalse(self.b.requests)
 
     def test_actual_rule_and_contract_statuses_are_accepted_for_fileonly_and_unapproved_ids(self):
