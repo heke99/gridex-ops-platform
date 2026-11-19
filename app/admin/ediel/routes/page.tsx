@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requirePlatformAdminAccess } from '@/lib/admin/guards'
+import { requirePlatformAdminAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { isMissingSchemaError } from '@/lib/launch/readiness'
 import { createRouteManualReviewAction, markRouteNotRelevantAction, verifyActorRouteForManualSendAction } from '@/app/admin/ediel/route-readiness/actions'
@@ -37,6 +37,47 @@ type ActorRouteRow = {
 
 type ActorRoleRow = { actor_id: string; actor_role: string; is_active: boolean }
 type IssueRow = { id: string; actor_id: string | null; issue_type: string; severity: string; status: string; message: string | null }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const FAMILY = /^[A-Z][A-Z0-9_]{0,31}$/
+const ROLE = /^[a-z][a-z0-9_]{0,63}$/
+
+function requirementScope(actorId: unknown, family: unknown) {
+  if (typeof actorId !== 'string' || !UUID.test(actorId)) return null
+  if (typeof family !== 'string' || !FAMILY.test(family)) return null
+  return { actorId: actorId.toLowerCase(), family }
+}
+
+function selectRequirements(scope: NonNullable<ReturnType<typeof requirementScope>>) {
+  return supabaseService
+    .from('gridex_route_readiness_v')
+    .select('actor_id,actor_name,actor_role,message_family')
+    .eq('actor_id', scope.actorId)
+    .eq('message_family', scope.family)
+}
+
+async function decideRequirement(formData: FormData) {
+  'use server'
+
+  await requirePlatformAdminActionAccess()
+  const scope = requirementScope(formData.get('actorId'), formData.get('messageFamily'))
+  const actorRole = formData.get('actorRole')
+  const decision = formData.get('decision')
+  if (!scope || typeof actorRole !== 'string' || !ROLE.test(actorRole) || (decision !== 'review' && decision !== 'exclude')) {
+    throw new Error('Ogiltigt beredskapsbeslut.')
+  }
+
+  const { data, error } = await selectRequirements(scope).eq('actor_role', actorRole).maybeSingle()
+  if (error || data?.actor_id !== scope.actorId || data.message_family !== scope.family || data.actor_role !== actorRole) {
+    throw new Error('Beredskapskravet kunde inte verifieras.')
+  }
+
+  const requirement = new FormData()
+  requirement.set('actorId', data.actor_id)
+  requirement.set('messageFamily', data.message_family)
+  requirement.set('actorRole', data.actor_role)
+  await (decision === 'review' ? createRouteManualReviewAction : markRouteNotRelevantAction)(requirement)
+}
 
 function bool(value: boolean | null | undefined) {
   return value ? 'Ja' : 'Nej'
@@ -82,9 +123,26 @@ async function loadRoutes() {
   }
 }
 
-export default async function AdminEdielRoutesPage() {
+export default async function AdminEdielRoutesPage({ searchParams }: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+} = {}) {
   await requirePlatformAdminAccess()
-  const { routes, roles, issues } = await loadRoutes()
+  const params = await searchParams
+  const scope = requirementScope(params?.requirementActor, params?.requirementFamily)
+  const requirementRequested = params?.requirementActor !== undefined || params?.requirementFamily !== undefined
+  const [{ routes, roles, issues }, requirements] = await Promise.all([
+    loadRoutes(),
+    scope ? selectRequirements(scope).order('actor_role', { ascending: true }) : null,
+  ])
+  const verifiedRequirements = scope ? (requirements?.data ?? []).filter(row =>
+    row.actor_id === scope.actorId
+    && row.message_family === scope.family
+    && typeof row.actor_role === 'string'
+    && ROLE.test(row.actor_role),
+  ) : []
+  const requirementMessage = !scope ? 'Välj en giltig aktör och meddelandefamilj i ruttlistan.'
+    : requirements?.error ? 'Beredskapskraven kunde inte läsas.'
+      : !verifiedRequirements.length ? 'Inga beredskapskrav hittades för aktören och meddelandefamiljen.' : null
   const rolesByActor = new Map<string, string[]>()
   for (const role of roles) {
     const list = rolesByActor.get(role.actor_id) ?? []
@@ -120,6 +178,28 @@ export default async function AdminEdielRoutesPage() {
         </div>
       </section>
 
+      {requirementRequested && (
+        <section id="beredskapskrav" aria-labelledby="beredskapskrav-heading" className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 id="beredskapskrav-heading" className="text-lg font-semibold text-slate-950">Beredskapskrav</h2>
+          {requirementMessage ? <p role="status">{requirementMessage}</p> : (
+            <>
+              <p className="text-sm text-slate-600">{verifiedRequirements[0].actor_name} · {verifiedRequirements[0].message_family}</p>
+              <p className="text-sm text-slate-600">Beslutet gäller rollen och meddelandefamiljen i både test och produktion.</p>
+              {verifiedRequirements.map(row => (
+                <form key={row.actor_role} action={decideRequirement} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 p-3">
+                  <input type="hidden" name="actorId" value={row.actor_id} />
+                  <input type="hidden" name="actorRole" value={row.actor_role} />
+                  <input type="hidden" name="messageFamily" value={row.message_family} />
+                  <span className="text-sm font-medium text-slate-950">{row.actor_role}</span>
+                  <button type="submit" name="decision" value="review" className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-50">Skapa granskning</button>
+                  <button type="submit" name="decision" value="exclude" className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">Markera kravet som ej relevant</button>
+                </form>
+              ))}
+            </>
+          )}
+        </section>
+      )}
+
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
@@ -139,6 +219,11 @@ export default async function AdminEdielRoutesPage() {
                 const actor = route.platform_market_actors
                 const actorRoles = rolesByActor.get(route.actor_id) ?? []
                 const actorIssues = issuesByActor.get(route.actor_id) ?? []
+                const routeFamily = route.message_family.toUpperCase()
+                const requirementParams = new URLSearchParams({
+                  requirementActor: route.actor_id,
+                  requirementFamily: ['MAIL', 'EMAIL'].includes(routeFamily) ? 'CONTACT' : routeFamily,
+                })
                 return (
                   <tr key={route.id} className="align-top">
                     <td className="px-3 py-4">
@@ -176,18 +261,9 @@ export default async function AdminEdielRoutesPage() {
                           <input type="hidden" name="routeId" value={route.id} />
                           <button className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700">Verifiera manuell</button>
                         </form>
-                        <form action={createRouteManualReviewAction}>
-                          <input type="hidden" name="actorId" value={route.actor_id} />
-                          <input type="hidden" name="messageFamily" value={route.message_family} />
-                          <input type="hidden" name="actorRole" value={actorRoles[0] ?? ''} />
-                          <button className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-50">Skapa review</button>
-                        </form>
-                        <form action={markRouteNotRelevantAction}>
-                          <input type="hidden" name="actorId" value={route.actor_id} />
-                          <input type="hidden" name="messageFamily" value={route.message_family} />
-                          <input type="hidden" name="actorRole" value={actorRoles[0] ?? ''} />
-                          <button className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">Ej relevant</button>
-                        </form>
+                        <Link href={`/admin/ediel/routes?${requirementParams}#beredskapskrav`} prefetch={false} className="text-xs font-medium text-slate-700 underline hover:text-slate-950">
+                          Visa aktörens beredskapskrav
+                        </Link>
                       </div>
                     </td>
                   </tr>
