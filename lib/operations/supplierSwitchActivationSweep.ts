@@ -12,6 +12,11 @@ type ActivationFailure = {
   message: string
 }
 
+type CustomerRefreshFailure = {
+  customerId: string
+  code: 'post_activation_customer_sync_failed'
+}
+
 export type SupplierSwitchActivationSweepResult = {
   marketDate: string
   scanned: number
@@ -22,6 +27,12 @@ export type SupplierSwitchActivationSweepResult = {
   blocked: number
   failed: number
   failures: ActivationFailure[]
+  customerRefresh: {
+    attempted: number
+    succeeded: number
+    failed: number
+    failures: CustomerRefreshFailure[]
+  }
 }
 
 function record(value: unknown): JsonRecord {
@@ -96,6 +107,7 @@ export async function processReadySupplierSwitchActivations(
   const activatedCustomerIds = Array.isArray(payload.activatedCustomerIds)
     ? [...new Set(payload.activatedCustomerIds.map(text).filter((value): value is string => Boolean(value)))]
     : []
+  const refreshFailures: CustomerRefreshFailure[] = []
 
   // Operational tasks are derived state. The market activation itself has
   // already committed atomically; a refresh failure must therefore be surfaced
@@ -103,14 +115,15 @@ export async function processReadySupplierSwitchActivations(
   for (const customerId of activatedCustomerIds) {
     try {
       await syncCustomerOperationsForCustomer(supabaseService, customerId)
-    } catch (syncError) {
+    } catch {
+      const code = 'post_activation_customer_sync_failed'
+      refreshFailures.push({ customerId, code })
+      // Keep the existing combined failure list for current callers.
       failures.push({
         requestId: 'derived-state-refresh',
         companyId: null,
-        code: 'post_activation_customer_sync_failed',
-        message: syncError instanceof Error
-          ? syncError.message
-          : 'Kundens derived operations-state kunde inte uppdateras efter leveransstart.',
+        code,
+        message: 'Kundens arbetsläge kunde inte uppdateras efter leveransstart.',
       })
     }
   }
@@ -125,5 +138,11 @@ export async function processReadySupplierSwitchActivations(
     blocked: integer(payload.blocked),
     failed: integer(payload.failed),
     failures,
+    customerRefresh: {
+      attempted: activatedCustomerIds.length,
+      succeeded: activatedCustomerIds.length - refreshFailures.length,
+      failed: refreshFailures.length,
+      failures: refreshFailures,
+    },
   }
 }
