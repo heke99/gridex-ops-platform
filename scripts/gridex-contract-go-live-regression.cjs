@@ -217,7 +217,8 @@ includesAll(commercialEditor, [
 
 includesAll(page, [
   "Stäng för ny försäljning",
-  "Kontrollera readiness och gör internt",
+  "Kontrollera och aktivera för kundregistrering",
+  "Kontrollera och återaktivera för kundregistrering",
   "ContractChannelControl",
   "deletionPreview",
   "Kundförhandsgranskning och versionsskillnad",
