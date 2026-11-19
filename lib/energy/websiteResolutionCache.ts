@@ -7,6 +7,7 @@ import { supabaseService } from '@/lib/supabase/service'
 
 const CACHE_SCHEMA_VERSION = 'website-energy-resolution-v2-papilite-first'
 const CACHE_TTL_MS = 15 * 60 * 1000
+const pendingResolutions = new Map<string, Promise<EnergyResolverResult>>()
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -79,11 +80,7 @@ function cachedResult(value: unknown): EnergyResolverResult | null {
   }
 }
 
-async function readCachedResolution(input: EnergyResolverInput): Promise<EnergyResolverResult | null> {
-  if (!cacheEligibleInput(input)) return null
-  const key = websiteEnergyResolutionCacheKey(input)
-  if (!key) return null
-
+async function readCachedResolution(key: string): Promise<EnergyResolverResult | null> {
   const now = new Date().toISOString()
   const response = await supabaseService
     .from('platform_energy_lookup_cache')
@@ -105,10 +102,8 @@ async function readCachedResolution(input: EnergyResolverInput): Promise<EnergyR
   return cachedResult(response.data.result)
 }
 
-async function writeCachedResolution(input: EnergyResolverInput, result: EnergyResolverResult): Promise<void> {
-  if (!cacheEligibleInput(input) || !cacheableResult(result)) return
-  const key = websiteEnergyResolutionCacheKey(input)
-  if (!key) return
+async function writeCachedResolution(key: string, companyId: string, result: EnergyResolverResult): Promise<void> {
+  if (!cacheableResult(result)) return
 
   const resolutionExpiry = result.expiresAt ? Date.parse(result.expiresAt) : Number.POSITIVE_INFINITY
   const cacheExpiry = Math.min(Date.now() + CACHE_TTL_MS, resolutionExpiry)
@@ -122,7 +117,7 @@ async function writeCachedResolution(input: EnergyResolverInput, result: EnergyR
         lookup_key: key,
         input: {
           cache_schema_version: CACHE_SCHEMA_VERSION,
-          company_id: input.companyId,
+          company_id: companyId,
         },
         result,
         resolution_status: result.resolutionStatus,
@@ -140,6 +135,27 @@ async function writeCachedResolution(input: EnergyResolverInput, result: EnergyR
   }
 }
 
+function pendingResolutionKey(cacheKey: string, resolverInput: EnergyResolverInput): string | null {
+  try {
+    // The resolver stores this input with its receipt. Include each persisted
+    // value, even provenance that the durable address cache does not use.
+    const entries = Object.entries(resolverInput).sort(([left], [right]) => left.localeCompare(right))
+    const identity = JSON.stringify([cacheKey, Object.fromEntries(entries)])
+    return createHash('sha256').update(identity).digest('hex')
+  } catch {
+    return null
+  }
+}
+
+async function readOrResolve(cacheKey: string, companyId: string, resolverInput: EnergyResolverInput): Promise<EnergyResolverResult> {
+  const cached = await readCachedResolution(cacheKey)
+  if (cached) return cached
+
+  const resolved = await resolveEnergyContext(resolverInput)
+  await writeCachedResolution(cacheKey, companyId, resolved)
+  return resolved
+}
+
 /**
  * Website-only fast path. The public website needs authoritative SE1-SE4 from
  * OPS, but it must not depend on exact-address/Lantmateriet evidence. Exact
@@ -151,10 +167,7 @@ async function writeCachedResolution(input: EnergyResolverInput, result: EnergyR
  * prevents an older exact-address result from being served to the website.
  */
 export async function resolveWebsiteEnergyContext(input: EnergyResolverInput): Promise<EnergyResolverResult> {
-  const cached = await readCachedResolution(input)
-  if (cached) return cached
-
-  const resolved = await resolveEnergyContext({
+  const resolverInput = {
     ...input,
     street: null,
     streetNumber: null,
@@ -163,7 +176,19 @@ export async function resolveWebsiteEnergyContext(input: EnergyResolverInput): P
       resolution_mode: 'website_price_area_only',
       exact_address_provider_allowed: false,
     },
+  }
+  if (!cacheEligibleInput(input)) return resolveEnergyContext(resolverInput)
+  const cacheKey = websiteEnergyResolutionCacheKey(input)
+  if (!cacheKey) return resolveEnergyContext(resolverInput)
+
+  const key = pendingResolutionKey(cacheKey, resolverInput)
+  if (!key) return readOrResolve(cacheKey, input.companyId, resolverInput)
+  const existing = pendingResolutions.get(key)
+  if (existing) return existing
+
+  const pending = readOrResolve(cacheKey, input.companyId, resolverInput).finally(() => {
+    pendingResolutions.delete(key)
   })
-  await writeCachedResolution(input, resolved)
-  return resolved
+  pendingResolutions.set(key, pending)
+  return pending
 }
