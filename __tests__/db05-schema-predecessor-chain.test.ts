@@ -1,13 +1,17 @@
 import {createHash} from 'node:crypto'
 import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
-import {db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema} from './helpers/db05PredecessorSchema'
+import {db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema,preT4InvoiceApprovalSchema} from './helpers/db05PredecessorSchema'
 
-const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,patchPoa:null as string|null,patchPoaNext:null as string|null,patchTenantKey:null as string|null,patchPr932:null as string|null,patchPr973:null as string|null,patchPr949:null as string|null,reads:[] as string[]}))
+const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,patchPoa:null as string|null,patchPoaNext:null as string|null,patchTenantKey:null as string|null,patchPr932:null as string|null,patchPr973:null as string|null,patchPr949:null as string|null,patchT4:null as string|null,reads:[] as string[]}))
 vi.mock('node:fs',async original=>{
  const actual=await original<typeof import('node:fs')>()
  return {...actual,readFileSync:(path:Parameters<typeof actual.readFileSync>[0],options?:Parameters<typeof actual.readFileSync>[1])=>{
   const name=String(path)
+  if(name.endsWith('db05-schema-predecessor-t4-invoice-approval-20261101.patch.json')){
+   injected.reads.push('t4Approval')
+   if(injected.patchT4!==null)return injected.patchT4
+  }
   if(name.endsWith('db05-schema-predecessor-pr949-contrl-20261101.patch.json')){
    injected.reads.push('pr949Contrl')
    if(injected.patchPr949!==null)return injected.patchPr949
@@ -50,7 +54,12 @@ vi.mock('node:fs',async original=>{
 })
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
 type CapturePatch={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
-const rawCapture=readFileSync('supabase/schema.sql','utf8')
+const capturedSchema=readFileSync('supabase/schema.sql','utf8')
+const t4Sha='032ec47d9f7215e28518eb2afa0fb7ee309be89f4fee19ea05a39f70ad679e5f'
+const t4PatchBytes=readFileSync('__tests__/fixtures/db05-schema-predecessor-t4-invoice-approval-20261101.patch.json','utf8')
+const t4Patch=JSON.parse(t4PatchBytes) as CapturePatch
+// Historical tests retain their exact genuine a0 input; the new T4 layer is tested separately.
+const rawCapture=sha(capturedSchema)===t4Sha?exactPatchFixture(t4Patch,t4Patch.preSha256,t4Sha,capturedSchema,false):capturedSchema
 const pr973Sha='bf4370087bed7d9ed8ff754a9c3468443b60d05442f7f9b85d42dc77a0f5538b'
 const pr949Sha='a0f788f2517b919c91dc4c655565da04a456548a25692f0de7fb25bcd4046afc'
 const pr949PatchBytes=readFileSync('__tests__/fixtures/db05-schema-predecessor-pr949-contrl-20261101.patch.json','utf8')
@@ -135,7 +144,7 @@ const capture=sha(actualCapture)===successorSha?exactSuccessorFixture(actualCapt
 const audit27=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit27.patch.json','utf8')) as {
  preSha256:string;postSha256:string;hunks:{postStart:number;postCount:number;postSha256:string;preLines:string[]}[]}
 const audit26=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit26.patch.json','utf8')) as {preSha256:string;postSha256:string}
-afterEach(()=>{injected.patchPr949=null;injected.patchPr973=null;injected.patch=null;injected.patch28=null;injected.patch29=null;injected.patchPoa=null;injected.patchPoaNext=null;injected.patchTenantKey=null;injected.patchPr932=null;injected.reads=[]})
+afterEach(()=>{injected.patchT4=null;injected.patchPr949=null;injected.patchPr973=null;injected.patch=null;injected.patch28=null;injected.patch29=null;injected.patchPoa=null;injected.patchPoaNext=null;injected.patchTenantKey=null;injected.patchPr932=null;injected.reads=[]})
 // Both immutable genuine captures are covered even when the checked-in context
 // is the older one. The fixture stores only the exact changed line ranges.
 type Audit28={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
@@ -493,7 +502,7 @@ it('rejects PR949 inverse lines that rebuild unqualified older bytes',()=>{
 })
 it.each(['prefix','suffix','truncated'] as const)('rejects an altered PR949 capture %s at all three entrypoints',mutation=>{
  const changed=mutation==='prefix'?'-- unqualified\n'+pr949Capture:mutation==='suffix'?pr949Capture+'\n':pr949Capture.slice(1)
- for(const convert of [db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema]){
+ for(const convert of [db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema,preT4InvoiceApprovalSchema]){
   expect(()=>convert(changed)).toThrow('db05_schema_predecessor_unknown:')
  }
  expect(injected.reads).not.toContain('pr949Contrl')
@@ -510,4 +519,51 @@ it('keeps older PR973 entrypoints independent of the new PR949 fixture',()=>{
  expect(sha(prePr973Audit19Schema(pr973Capture))).toBe(pr932Sha)
  expect(sha(prePr932UnsignedEditSchema(pr973Capture))).toBe(pr932PreSha)
  expect(injected.reads).not.toContain('pr949Contrl')
+})
+
+
+it('binds the finite T4 inverse to genuine P1 and exactly the unchanged a0 predecessor',()=>{
+ expect(sha(t4PatchBytes)).toBe('9a81bdd9274636e69179ecadbf9715b1de5d92fb35be2b49f1217ac665417d37')
+ expect(sha(capturedSchema)).toBe(t4Sha)
+ expect(preT4InvoiceApprovalSchema(capturedSchema)).toBe(pr949Capture)
+ expect(exactPatchFixture(t4Patch,pr949Sha,t4Sha,pr949Capture,true)).toBe(capturedSchema)
+ expect(t4Patch.hunks).toHaveLength(2)
+ expect(t4Patch.hunks.every(h=>h.preCount===0)).toBe(true)
+})
+it.each([
+ ['DB05',db05PredecessorSchema,'c4e86b3bda8dc8579df1b3bfa9bdc8994b9ca0085c07710c36a15e1259069823'],
+ ['pre-PR973',prePr973Audit19Schema,'20b8165bd30260151e79c43e3759241a99266eddd0b3f47cead2518cbd10893b'],
+ ['pre-PR932',prePr932UnsignedEditSchema,'aa5d9975d3398081ea157d916308444b3e940f14fe5c9944815eff858cdac0a6'],
+] as const)('reverses genuine T4 through the unchanged %s chain',(_label,convert,expected)=>{
+ const rebuilt=convert(capturedSchema)
+ expect(sha(rebuilt)).toBe(expected)
+ expect(rebuilt).toBe(convert(pr949Capture))
+ expect(injected.reads[0]).toBe('t4Approval')
+})
+it.each(['preSha256','postSha256'] as const)('rejects T4 fixture %s drift',field=>{
+ const changed=structuredClone(t4Patch);changed[field]='f'.repeat(64);injected.patchT4=JSON.stringify(changed)
+ for(const convert of [preT4InvoiceApprovalSchema,db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema])expect(()=>convert(capturedSchema)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+it.each(['hash','start','count'] as const)('rejects T4 hunk %s drift',field=>{
+ const changed=structuredClone(t4Patch)
+ if(field==='hash')changed.hunks[0].postSha256='f'.repeat(64)
+ if(field==='start')changed.hunks[0].postStart+=1
+ if(field==='count')changed.hunks[0].postCount+=1
+ injected.patchT4=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(capturedSchema)).toThrow('db05_schema_predecessor_hunk_changed:')
+})
+it('rejects T4 inverse content that rebuilds unqualified older bytes',()=>{
+ const changed=structuredClone(t4Patch);changed.hunks[0].preLines.push('-- unqualified');injected.patchT4=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(capturedSchema)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+it.each(['prefix','suffix','truncated'] as const)('refuses altered T4 capture %s without selecting an inverse',mutation=>{
+ const changed=mutation==='prefix'?'-- drift\n'+capturedSchema:mutation==='suffix'?capturedSchema+'\n':capturedSchema.slice(1)
+ for(const convert of [preT4InvoiceApprovalSchema,db05PredecessorSchema,prePr973Audit19Schema,prePr932UnsignedEditSchema])expect(()=>convert(changed)).toThrow('db05_schema_predecessor_unknown:')
+ expect(injected.reads).not.toContain('t4Approval')
+})
+it('keeps all older entrypoints independent of the T4 fixture',()=>{
+ injected.patchT4='{}'
+ expect(preT4InvoiceApprovalSchema(pr949Capture)).toBe(pr949Capture)
+ expect(sha(db05PredecessorSchema(pr949Capture))).toBe('c4e86b3bda8dc8579df1b3bfa9bdc8994b9ca0085c07710c36a15e1259069823')
+ expect(injected.reads).not.toContain('t4Approval')
 })
