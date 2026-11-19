@@ -49,6 +49,7 @@ export async function getStaffCustomers(request: NextRequest): Promise<Response>
     if (!(customerTypes as readonly string[]).includes(customerType)) throw new ApiInputError('Ogiltig kundtyp.', 'invalid_field', 422, 'customer_type')
     const page = await listCustomersPageForCompany({
       companyId: ctx.companyId,
+      summaryOnly: true,
       query: search,
       page: pageNumber(query.get('page'), 'page', 1, 1_000_000),
       pageSize: pageNumber(query.get('page_size'), 'page_size', 25, 100),

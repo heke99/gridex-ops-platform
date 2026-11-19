@@ -54,14 +54,10 @@ const STATUS_COUNT_KEYS: Exclude<CustomerStatusFilter, 'all'>[] = [
   'blocked',
   'archived',
 ]
-const CUSTOMER_LIST_SELECT = [
+const CUSTOMER_SUMMARY_COLUMNS = [
   'id',
   'customer_type',
   'status',
-  'possible_duplicate',
-  'duplicate_review_status',
-  'intake_status',
-  'intake_missing_fields',
   'first_name',
   'last_name',
   'full_name',
@@ -71,11 +67,19 @@ const CUSTOMER_LIST_SELECT = [
   'personal_number',
   'org_number',
   'customer_number',
+  'created_at',
+  'company_id',
+]
+const STAFF_CUSTOMER_SUMMARY_SELECT = CUSTOMER_SUMMARY_COLUMNS.join(',')
+const CUSTOMER_LIST_SELECT = [
+  ...CUSTOMER_SUMMARY_COLUMNS,
+  'possible_duplicate',
+  'duplicate_review_status',
+  'intake_status',
+  'intake_missing_fields',
   'apartment_number',
   'source',
   'is_test_data',
-  'created_at',
-  'company_id',
 ].join(',')
 
 type CustomerSiteCountRow = {
@@ -711,6 +715,7 @@ export async function listCustomersPageForCompany(options: {
   pageSize?: number
   status?: CustomerStatusFilter
   customerType?: CustomerTypeFilter
+  summaryOnly?: boolean
 }): Promise<Omit<CustomerListPageResult, 'counts'>> {
   if (!options.companyId.trim()) throw new Error('customer_company_scope_required')
   const page = options.page ?? 1
@@ -737,11 +742,13 @@ export async function listCustomersPageForCompany(options: {
   let rows: CustomerListRow[] = []
   if (ids.length) {
     // Even the service-only search result is re-read with an explicit company predicate.
-    const selected = await tenantSelect(options.companyId, 'customers', CUSTOMER_LIST_SELECT).in('id', ids)
+    const selection = options.summaryOnly ? STAFF_CUSTOMER_SUMMARY_SELECT : CUSTOMER_LIST_SELECT
+    const selected = await tenantSelect(options.companyId, 'customers', selection).in('id', ids)
     if (selected.error) throw selected.error
     const byId = new Map(((selected.data ?? []) as unknown as RawCustomerRow[])
       .filter(row => typeof row.id === 'string').map(row => [row.id!, normalizeCustomerRow(row)]))
-    rows = await hydrateDerivedCustomerData(ids.flatMap(id => byId.has(id) ? [byId.get(id)!] : []), options.companyId)
+    const orderedRows = ids.flatMap(id => byId.has(id) ? [byId.get(id)!] : [])
+    rows = options.summaryOnly ? orderedRows : await hydrateDerivedCustomerData(orderedRows, options.companyId)
   }
   return { rows, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) }
 }
