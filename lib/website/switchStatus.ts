@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
+import { isUuid } from '@/lib/validation/uuid'
 
 export class WebsiteSwitchStatusError extends Error {
   readonly code: string
@@ -24,10 +25,100 @@ function opaqueSwitchReference(companyId: string, switchId: string): string {
   return `switch_${digest}`
 }
 
+type WebsiteApplicationLineage = {
+  customer_id: string | null
+  customer_site_id: string | null
+  metering_point_id: string | null
+  contract_id: string | null
+}
+
+export type WebsiteStatusLineageRow = {
+  company_id?: string | null
+  customer_id?: string | null
+  customer_site_id?: string | null
+  site_id?: string | null
+  metering_point_id?: string | null
+  contract_id?: string | null
+  customer_contract_id?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+function lineageScore(application: WebsiteApplicationLineage, row: WebsiteStatusLineageRow): number {
+  let score = 0
+  if (application.contract_id && [text(row.contract_id), text(row.customer_contract_id)].includes(application.contract_id)) score += 100
+  if (application.customer_site_id && [text(row.customer_site_id), text(row.site_id)].includes(application.customer_site_id)) score += 50
+  if (application.metering_point_id && text(row.metering_point_id) === application.metering_point_id) score += 25
+  if (application.customer_id && text(row.customer_id) === application.customer_id) score += 1
+  return score
+}
+
+export function selectWebsiteStatusLineage<T extends WebsiteStatusLineageRow>(application: WebsiteApplicationLineage, rows: T[]) {
+  const scored = rows
+    .map((row) => ({ row, score: lineageScore(application, row) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || String(b.row.updated_at ?? b.row.created_at ?? '').localeCompare(String(a.row.updated_at ?? a.row.created_at ?? '')))
+  const [first, second] = scored
+  if (!first) return { data: null, ambiguous: false }
+  if (first.score === 1 && second?.score === 1) return { data: null, ambiguous: true }
+  return { data: first.row, ambiguous: false }
+}
+
+type WebsiteApplicationSwitch = WebsiteApplicationLineage & { company_id: string; response_payload: unknown }
+
+function switchSite(row: WebsiteStatusLineageRow): string | null {
+  return text(row.customer_site_id) ?? text(row.site_id)
+}
+
+function matchesSwitchBinding(application: WebsiteApplicationSwitch, row: WebsiteStatusLineageRow): boolean {
+  if (row.company_id !== application.company_id || row.customer_id !== application.customer_id) return false
+  const bindings = [
+    [application.customer_site_id, switchSite(row)],
+    [application.contract_id, text(row.customer_contract_id) ?? text(row.contract_id)],
+    [application.metering_point_id, text(row.metering_point_id)],
+  ]
+  return bindings.every(([expected, actual]) => !expected || !actual || expected === actual)
+}
+
+function matchesHistoricalSwitch(application: WebsiteApplicationSwitch, row: WebsiteStatusLineageRow): boolean {
+  if (!matchesSwitchBinding(application, row)) return false
+  if (application.customer_site_id) return switchSite(row) === application.customer_site_id
+  if (!application.contract_id && !application.metering_point_id) return true
+  return lineageScore(application, row) > 1
+}
+
+export async function loadWebsiteApplicationSwitch(application: WebsiteApplicationSwitch) {
+  if (!application.customer_id) return { data: null, error: null, ambiguous: false }
+  const selectSwitch = () => supabaseService
+    .from('supplier_switch_requests')
+    .select('id,company_id,customer_id,customer_site_id,site_id,metering_point_id,contract_id,customer_contract_id,status,requested_start_date,confirmed_start_date,submitted_at,completed_at,failed_at,failure_reason,paused_at,pause_reason,lifecycle_blocked,lifecycle_block_source,created_at,updated_at')
+    .eq('company_id', application.company_id)
+    .eq('customer_id', application.customer_id)
+
+  const savedId = text((application.response_payload as Record<string, unknown> | null)?.supplier_switch_request_id)
+  if (savedId && isUuid(savedId)) {
+    const result = await selectSwitch().eq('id', savedId.toLowerCase()).maybeSingle()
+    if (result.error) return { data: null, error: result.error, ambiguous: false }
+    if (result.data && matchesSwitchBinding(application, result.data)) return { data: result.data, error: null, ambiguous: false }
+  }
+
+  const siteId = application.customer_site_id
+  let query = selectSwitch()
+  if (siteId) {
+    if (!isUuid(siteId)) return { data: null, error: null, ambiguous: false }
+    // Scope historical matches to the known site before applying the row limit.
+    query = query.or(`customer_site_id.eq.${siteId},and(customer_site_id.is.null,site_id.eq.${siteId})`)
+  }
+  const result = await query.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(50)
+  if (result.error) return { data: null, error: result.error, ambiguous: false }
+  const rows = (result.data ?? []).filter(row => matchesHistoricalSwitch(application, row))
+  return { ...selectWebsiteStatusLineage(application, rows), error: null }
+}
+
 export async function loadWebsiteSwitchStatus(input: { companyId: string; applicationNumber: string }) {
   const { data: application, error: applicationError } = await supabaseService
     .from('website_customer_applications')
-    .select('id,application_number,status,response_payload,customer_id,customer_site_id,contract_id,created_at,updated_at')
+    .select('application_number,status,response_payload,customer_id,customer_site_id,metering_point_id,contract_id')
     .eq('company_id', input.companyId)
     .eq('application_number', input.applicationNumber)
     .maybeSingle()
@@ -37,33 +128,8 @@ export async function loadWebsiteSwitchStatus(input: { companyId: string; applic
   }
 
   const responsePayload = (application.response_payload ?? {}) as Record<string, unknown>
-  const responseSwitchId = text(responsePayload.supplier_switch_request_id)
-  let switchRow: Record<string, unknown> | null = null
-
-  if (responseSwitchId) {
-    const result = await supabaseService
-      .from('supplier_switch_requests')
-      .select('id,status,requested_start_date,submitted_at,completed_at,failed_at,failure_reason,paused_at,pause_reason,lifecycle_blocked,lifecycle_block_source,created_at,updated_at')
-      .eq('company_id', input.companyId)
-      .eq('id', responseSwitchId)
-      .maybeSingle()
-    if (result.error) throw result.error
-    switchRow = (result.data as Record<string, unknown> | null) ?? null
-  }
-
-  if (!switchRow && application.customer_id) {
-    let query = supabaseService
-      .from('supplier_switch_requests')
-      .select('id,status,requested_start_date,submitted_at,completed_at,failed_at,failure_reason,paused_at,pause_reason,lifecycle_blocked,lifecycle_block_source,created_at,updated_at')
-      .eq('company_id', input.companyId)
-      .eq('customer_id', application.customer_id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-    if (application.customer_site_id) query = query.eq('site_id', application.customer_site_id)
-    const result = await query.maybeSingle()
-    if (result.error) throw result.error
-    switchRow = (result.data as Record<string, unknown> | null) ?? null
-  }
+  const { data: switchRow, error: switchError } = await loadWebsiteApplicationSwitch({ ...application, company_id: input.companyId })
+  if (switchError) throw switchError
 
   let events: Array<Record<string, unknown>> = []
   const switchId = text(switchRow?.id)
