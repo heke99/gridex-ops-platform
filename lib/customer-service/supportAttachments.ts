@@ -94,11 +94,13 @@ const COLUMNS = 'id,public_reference,file_name,detected_mime_type,byte_size,sha2
 
 type CaseScope = { companyId: string; customerId: string; caseId: string }
 
-async function assertDailyQuota(scope: CaseScope) {
+async function assertDailyQuota(scope: CaseScope, uploaderKind: SupportAttachmentRow['uploaded_by_kind']) {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const { count, error } = await tenantSelect(scope.companyId, 'customer_case_attachments', 'id', { count: 'exact', head: true })
+  let query = tenantSelect(scope.companyId, 'customer_case_attachments', 'id', { count: 'exact', head: true })
     .eq('customer_id', scope.customerId)
     .gte('created_at', since)
+  if (uploaderKind === 'customer') query = query.eq('uploaded_by_kind', 'customer')
+  const { count, error } = await query
   if (error) throw error
   if ((count ?? 0) >= SUPPORT_ATTACHMENT_QUOTA_PER_DAY) {
     throw new SupportAttachmentError('attachment_quota_exceeded', 'För många bilagor för kunden det senaste dygnet. Försök igen senare.', 429)
@@ -120,7 +122,7 @@ export async function addSupportAttachment(input: CaseScope & {
   if (input.uploadedBy.kind === 'customer' && input.visibility !== 'customer') {
     throw new SupportAttachmentError('attachment_rejected', 'Kundens bilagor är alltid synliga för kunden.')
   }
-  await assertDailyQuota(input)
+  await assertDailyQuota(input, input.uploadedBy.kind)
 
   const reference = `support_attachment_${randomBytes(18).toString('base64url')}`
   const sha256 = createHash('sha256').update(input.bytes).digest('hex')
