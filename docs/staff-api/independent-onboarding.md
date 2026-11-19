@@ -46,6 +46,16 @@ rate limit or server error, both return HTTP 503 with
 `staff_tenant_auth_unavailable`. In either case, processing stops before consuming
 the proof or accessing the central identity or invitation.
 
+If machine API rate limiting returns HTTP 429 with `Retry-After`, wait the
+specified number of seconds and use a fresh assertion for the same operation.
+For invitation acceptance, reuse the original `Idempotency-Key` and the same
+request body. The rate limit is checked before tenant Auth or assertion
+consumption.
+
+Clients can use this optional runtime header with the existing response schema.
+The next independent Staff Onboarding OpenAPI release should declare
+`Retry-After` as an optional positive integer in seconds on both 429 responses.
+
 `POST /api/v1/staff-onboarding/identity/resolve` requires explicit
 `staff_users.read`, closed body `{}`, verified local Auth bearer in
 `x-gridex-support-auth-token`, and a fresh `staff_identity_resolution` proof.

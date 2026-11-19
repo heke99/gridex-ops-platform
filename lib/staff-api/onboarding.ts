@@ -5,16 +5,17 @@ import { verifyCustomerAssertion } from '@/lib/customer-portal/customerAssertion
 import { requireIntegrationApiAccess, integrationCredential, logIntegrationApiRequest, type IntegrationApiAuthResult } from '@/lib/integrations/apiAuth'
 import { isIndependentStaffInvitation, loadInvitationCommandBinding, type InvitationCommandBinding } from '@/lib/auth/staffInvitationRouting'
 import { assertStaffStorageTarget, staffStorageProjectRef } from '@/lib/staff-api/storageTarget'
-import { STAFF_ONBOARDING_CONTRACT_VERSION } from '@/lib/staff-api/onboardingContract'
+import { staffOnboardingJson } from '@/lib/staff-api/onboardingHttp'
 import { getRegisteredStaffTenantAuthUser, registeredStaffTenantAuth, type RegisteredStaffTenantAuth, type StaffTenantAuthIdentity } from '@/lib/staff-api/tenantAuth'
 import { parsedStaffIdentityBinding, readStaffAssertionClaims, staffIdentityAuthorityCommand, type StaffIdentityAuthorityCommand } from '@/lib/staff-api/identityAuthority'
 import type { StaffOnboardingProvider } from '@/lib/staff-api/identityResolution'
 import { supabaseService } from '@/lib/supabase/service'
 import { tenantInsert, tenantSelect } from '@/lib/supabase/tenantQuery'
 
-export { STAFF_ONBOARDING_CONTRACT_VERSION }
+export { STAFF_ONBOARDING_CONTRACT_VERSION } from '@/lib/staff-api/onboardingContract'
 export const STAFF_ONBOARDING_ACCEPT_PATH = '/api/v1/staff-onboarding/invitations/accept'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const ACCEPTANCE_ERROR_MESSAGE = 'The staff invitation could not be accepted.'
 // Business rejections issued by the external binding and canonical acceptance functions.
 const invitationDenials = new Map([
   ['staff_identity_acceptance_invalid', '42501'],
@@ -51,12 +52,7 @@ export type StaffInvitationAcceptancePorts = {
   canonicalAccept: (command: AcceptCommand) => Promise<unknown>;
   logRequest: typeof logIntegrationApiRequest;
 }
-function json(requestId: string, data: unknown, status = 200): Response {
-  const projectRef = staffStorageProjectRef()
-  return Response.json({ ...(status < 400 ? { data } : { error: data }), request_id: requestId, contract_schema_version: STAFF_ONBOARDING_CONTRACT_VERSION },
-    { status, headers: { 'Cache-Control': 'no-store', 'X-Request-ID': requestId, 'X-Gridex-Contract-Version': STAFF_ONBOARDING_CONTRACT_VERSION, ...(projectRef ? { 'X-Gridex-Project-Ref': projectRef } : {}) } })
-}
-function denied(code = 'staff_invitation_invalid', status = 403): never { throw new ApiInputError('The staff invitation could not be accepted.', code, status) }
+function denied(code = 'staff_invitation_invalid', status = 403): never { throw new ApiInputError(ACCEPTANCE_ERROR_MESSAGE, code, status) }
 function acceptanceFailure(error: unknown): Pick<ApiInputError, 'code' | 'status'> {
   if (error instanceof ApiInputError) return error
   const { code, message } = (error as { code?: unknown; message?: unknown } | null) ?? {}
@@ -75,19 +71,21 @@ function tokenHeader(request: NextRequest, name: string): string {
 export function createStaffInvitationAcceptanceHandler(ports: StaffInvitationAcceptancePorts): (request: NextRequest) => Promise<Response> {
   return async request => {
     const requestId = randomUUID()
-    if (request.method !== 'POST') return json(requestId, { code: 'method_not_allowed', message: 'Use an explicit POST to accept the invitation.' }, 405)
+    if (request.method !== 'POST') return staffOnboardingJson(requestId, { code: 'method_not_allowed', message: 'Use an explicit POST to accept the invitation.' }, 405)
     try {
       if (!request.headers.get('x-gridex-expected-project-ref') || !staffStorageProjectRef()) denied('storage_project_mismatch', 412)
       assertStaffStorageTarget(request.headers)
     } catch (error) {
-      return json(requestId, { code: error instanceof ApiInputError ? error.code : 'internal_error', message: 'The requested API project is unavailable.' }, error instanceof ApiInputError ? error.status : 500)
+      return staffOnboardingJson(requestId, { code: error instanceof ApiInputError ? error.code : 'internal_error', message: 'The requested API project is unavailable.' }, error instanceof ApiInputError ? error.status : 500)
     }
     const startedAt = Date.now()
     let client: Extract<IntegrationApiAuthResult, { ok: true }>['client'] | undefined
     let actorUserId: string | undefined
     try {
       const auth = await ports.apiAccess(request, ['staff_users.write'])
-      if (!auth.ok) throw new ApiInputError(auth.error, auth.errorCode, auth.status)
+      if (!auth.ok) {
+        return staffOnboardingJson(requestId, { code: auth.errorCode, message: ACCEPTANCE_ERROR_MESSAGE }, auth.status, auth.retryAfterSeconds)
+      }
       client = auth.client
       const registration = registeredStaffTenantAuth(client, client.company_id, client.id, 'staff_users.write')
       const credential = integrationCredential(request)
@@ -122,10 +120,10 @@ export function createStaffInvitationAcceptanceHandler(ports: StaffInvitationAcc
       if (!accepted) throw new Error('Missing canonical staff invitation acceptance result.')
       actorUserId = binding.actor_user_id
       await ports.logRequest({ request, requestId, client, startedAt, statusCode: 200, metadata: { channel: 'staff_onboarding', actor_user_id: actorUserId } })
-      return json(requestId, { status: 'accepted' })
+      return staffOnboardingJson(requestId, { status: 'accepted' })
     } catch (error) {
       const { code, status } = acceptanceFailure(error)
-      const response = json(requestId, { code, message: 'The staff invitation could not be accepted.' }, status)
+      const response = staffOnboardingJson(requestId, { code, message: ACCEPTANCE_ERROR_MESSAGE }, status)
       if (client) await ports.logRequest({ request, requestId, client, startedAt, statusCode: status, errorCode: code,
         metadata: { channel: 'staff_onboarding', ...(actorUserId ? { actor_user_id: actorUserId } : {}) } })
       return response
