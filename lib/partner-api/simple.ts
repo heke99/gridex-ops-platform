@@ -953,6 +953,9 @@ async function getInvoices(request: NextRequest, customerReference: string, site
     const toDate = request.nextUrl.searchParams.get('to_date')
     const from = fromDate ? requireIsoDate(fromDate, 'from_date') : null
     const to = toDate ? requireIsoDate(toDate, 'to_date') : null
+    if (from && to && from > to) {
+      throw new SimplePartnerApiError('from_date must be on or before to_date.', 'invoice_date_range_invalid', 422, 'from_date')
+    }
     // The cursor is encrypted and bound to tenant, customer, site and the date filter.
     const cursorScope = {
       companyId: context.client.company_id,
