@@ -3,6 +3,7 @@ import {dataRequestLegalParties} from '@/lib/ediel/sources/dataRequestLegalParti
 import { supabaseService } from '@/lib/supabase/service'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
+import { prodatDate203 } from '@/lib/ediel/prodat/render/dates'
 import { createEdielMessageEvent, linkEdielMessage } from '@/lib/ediel/db'
 import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
 import {
@@ -167,8 +168,17 @@ export async function prepareAndQueueUtiltsE73(params: {
     applicationReference: routeContext.applicationReference,
   })
 
+  const legalParties = dataRequestLegalParties({ companyId, environment, route: routeContext, networkEdielId: gridOwner?.ediel_id })
+  // Validate at the minute precision the builder uses for DTM+324/719.
+  // Distinct input instants can still render as the same market minute.
+  const startMinute = prodatDate203(dataRequest.requested_period_start)
+  const endMinute = prodatDate203(dataRequest.requested_period_end)
+  if (!startMinute || !endMinute || startMinute >= endMinute) {
+    throw new Error('utilts_e73_delivery_period_invalid')
+  }
+
   const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
-    periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,...dataRequestLegalParties({companyId,environment,route:routeContext,networkEdielId:gridOwner?.ediel_id})})
+    periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,...legalParties})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
