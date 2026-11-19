@@ -465,9 +465,24 @@ export async function approveAndSendReadyInvoicesForMonth(input: { companyId: st
 
 export async function processDueApprovedInvoiceRetries(input: { companyId?: string | null; limit?: number } = {}) {
   const limit = Math.min(Math.max(input.limit ?? 50, 1), 200)
-  let query = supabaseService.from('invoice_export_items').select('id,company_id,metadata').eq('status', 'failed_retryable').lte('next_retry_at', new Date().toISOString()).order('next_retry_at', { ascending: true }).limit(limit)
-  if (input.companyId) query = query.eq('company_id', input.companyId)
-  const result = await query
+  const cutoff = new Date().toISOString()
+  const approvalStatus = 'metadata->approval->>status'
+  const approvedBy = 'metadata->approval->>approved_by'
+  // Auth user IDs are UUIDs. Allow the surrounding whitespace accepted by the dispatch read.
+  const actorPattern = '^[[:space:]]*[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[[:space:]]*$'
+  function dueQuery(diagnostic = false) {
+    const query = supabaseService.from('invoice_export_items')
+      .select('id,company_id,metadata', diagnostic ? { count: 'exact', head: true } : undefined)
+      .eq('status', 'failed_retryable')
+      .lte('next_retry_at', cutoff)
+    return input.companyId ? query.eq('company_id', input.companyId) : query
+  }
+  const result = await dueQuery()
+    .eq(approvalStatus, 'approved')
+    .regexMatch(approvedBy, actorPattern)
+    .order('next_retry_at', { ascending: true })
+    .order('id', { ascending: true })
+    .limit(limit)
   if (result.error) throw result.error
   let sent = 0
   let failed = 0
@@ -486,5 +501,17 @@ export async function processDueApprovedInvoiceRetries(input: { companyId?: stri
       if (error instanceof InvoiceProviderConfigError) await parkConfigurationError(companyId, itemId, error)
     }
   }
-  return { processed: sent + failed, sent, failed }
+
+  // A timed-out diagnostic count must not discard dispatch results or delay the next cron step indefinitely.
+  let needsApproval: number | null = null
+  try {
+    const { count, error } = await dueQuery(true)
+      .or([`${approvalStatus}.neq.approved`, `${approvalStatus}.is.null`, `${approvedBy}.is.null`, `${approvedBy}.not.match.${actorPattern}`].join(','))
+      .abortSignal(AbortSignal.timeout(2_000))
+    if (error || count === null) throw new Error('invoice_retry_approval_count_unavailable')
+    needsApproval = count
+  } catch {
+    console.warn('[invoice-approved-retries] approval diagnostics unavailable')
+  }
+  return { processed: sent + failed, sent, failed, needsApproval }
 }
