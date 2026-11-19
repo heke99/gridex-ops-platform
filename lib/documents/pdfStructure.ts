@@ -1,7 +1,6 @@
 /**
- * Conservative structural PDF check (F26). It proves the bytes are a readable
- * PDF document — header, cross-reference reachable from `startxref`, a
- * document catalog and at least one page — not that any signature is genuine.
+ * Conservative structural PDF check (F26). Checks the header, cross-reference
+ * at `startxref`, catalog and at least one page within an inspection budget.
  */
 import { inflateSync } from 'node:zlib'
 
@@ -14,6 +13,12 @@ const TAIL_WINDOW = 2048
 const MAX_LEADING_BYTES = 1024
 /** Bytes tolerated after the last `%%EOF` (padding, transport garbage). */
 const MAX_TRAILING_BYTES = 1024
+const MAX_OBJECT_STREAM_HEADERS = 64
+const MAX_OBJECT_STREAM_HEADER_BYTES = 4 * 1024
+const MAX_INFLATED_STREAM_BYTES = 8 * 1024 * 1024
+const MAX_TOTAL_INFLATED_BYTES = 16 * 1024 * 1024
+const catalogMarker = /\/Type\s*\/Catalog\b/
+const pageMarker = /\/Type\s*\/Page\b(?!s)/
 
 export function inspectPdfStructure(bytes: Uint8Array): PdfStructureResult {
   const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
@@ -40,9 +45,9 @@ export function inspectPdfStructure(bytes: Uint8Array): PdfStructureResult {
   if (!candidates.some((offset) => offset < buffer.length)) return { ok: false, reason: 'startxref' }
   if (!xrefOk) return { ok: false, reason: 'xref' }
 
-  const text = withObjectStreams(buffer)
-  if (!/\/Type\s*\/Catalog\b/.test(text)) return { ok: false, reason: 'catalog' }
-  if (!/\/Type\s*\/Page\b(?!s)/.test(text)) return { ok: false, reason: 'page' }
+  const { catalog, page } = findDocumentObjects(buffer)
+  if (!catalog) return { ok: false, reason: 'catalog' }
+  if (!page) return { ok: false, reason: 'page' }
   return { ok: true }
 }
 
@@ -52,23 +57,36 @@ function xrefAt(buffer: Buffer, offset: number): boolean {
   return /^\d+\s+\d+\s+obj\b[\s\S]*\/Type\s*\/XRef/.test(head + buffer.subarray(offset + 64, offset + 512).toString('latin1'))
 }
 
-/** Adds inflated object streams so compressed catalogs/pages are visible. */
-function withObjectStreams(buffer: Buffer): string {
-  let text = buffer.toString('latin1')
-  if (!/\/Type\s*\/ObjStm\b/.test(text)) return text
-  const streams = /\/Type\s*\/ObjStm\b[^]*?stream\r?\n/g
-  let match: RegExpExecArray | null
-  const inflated: string[] = []
-  while ((match = streams.exec(text)) && inflated.length < 64) {
-    const start = match.index + match[0].length
+function findDocumentObjects(buffer: Buffer) {
+  const text = buffer.toString('latin1')
+  let catalog = catalogMarker.test(text)
+  let page = pageMarker.test(text)
+  const headers = /\/Type\s*\/ObjStm\b/g
+  let remaining = MAX_TOTAL_INFLATED_BYTES
+
+  for (let inspected = 0; inspected < MAX_OBJECT_STREAM_HEADERS && remaining > 0 && !(catalog && page); inspected += 1) {
+    if (!headers.exec(text)) break
+    const headerStart = headers.lastIndex
+    const header = text.slice(headerStart, headerStart + MAX_OBJECT_STREAM_HEADER_BYTES)
+    const opening = /\bstream\r?\n/.exec(header)
+    if (!opening) continue
+    const start = headerStart + opening.index + opening[0].length
     const end = text.indexOf('endstream', start)
     if (end < 0) break
+
+    // Advance past this stream so its raw bytes are searched at most once.
+    headers.lastIndex = end + 'endstream'.length
+    const maxOutputLength = Math.min(remaining, MAX_INFLATED_STREAM_BYTES)
     try {
-      inflated.push(inflateSync(buffer.subarray(start, end)).toString('latin1'))
+      const inflated = inflateSync(buffer.subarray(start, end), { maxOutputLength })
+      remaining -= inflated.length
+      const objects = inflated.toString('latin1')
+      catalog ||= catalogMarker.test(objects)
+      page ||= pageMarker.test(objects)
     } catch {
-      // Not Flate or truncated: leave it out; the page/catalog check then fails closed.
+      // Failed inflation can still consume the entire attempt's output budget.
+      remaining -= maxOutputLength
     }
   }
-  text += inflated.join('\n')
-  return text
+  return { catalog, page }
 }

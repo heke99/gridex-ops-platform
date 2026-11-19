@@ -1,7 +1,13 @@
 // ops-api-review: F26 (permanent regression from evidence/partner-poa-pdf-format.probe.ts)
-import { describe, expect, it } from 'vitest'
+import { inflateSync } from 'node:zlib'
+import { describe, expect, it, vi } from 'vitest'
 import { inspectPdfStructure } from '@/lib/documents/pdfStructure'
 import { minimalPdf, objectStreamPdf } from './helpers/minimalPdf'
+
+vi.mock('node:zlib', async original => {
+  const zlib = await original<typeof import('node:zlib')>()
+  return { ...zlib, inflateSync: vi.fn(zlib.inflateSync) }
+})
 
 /** Appends an incremental-update revision with its own xref and %%EOF. */
 function incrementallyUpdatedPdf(): Buffer {
@@ -22,7 +28,9 @@ describe('structural PDF validation', () => {
     expect(inspectPdfStructure(minimalPdf())).toEqual({ ok: true })
   })
   it('accepts a PDF whose catalog and page are in a compressed object stream', () => {
+    vi.mocked(inflateSync).mockClear()
     expect(inspectPdfStructure(objectStreamPdf())).toEqual({ ok: true })
+    expect(inflateSync).toHaveBeenCalledExactlyOnceWith(expect.any(Buffer), { maxOutputLength: 8 * 1024 * 1024 })
   })
   it('accepts leading bytes (up to 1024) before the %PDF- header', () => {
     const lead = Buffer.alloc(1000, 0x20)
