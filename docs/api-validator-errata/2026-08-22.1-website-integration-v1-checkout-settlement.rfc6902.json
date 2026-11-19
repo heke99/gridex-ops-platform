@@ -1,0 +1,38 @@
+[
+  {
+    "op": "test",
+    "path": "/info/version",
+    "value": "2026-08-22.1"
+  },
+  {
+    "op": "test",
+    "path": "/components/schemas/CustomerApplicationRequest/required",
+    "value": [
+      "offer_reference",
+      "customer",
+      "site",
+      "annual_consumption_kwh",
+      "legal_acceptances",
+      "quote_reference",
+      "resolution_id",
+      "legal_bundle_version",
+      "price_option_reference",
+      "invoice_delivery_method",
+      "selected_component_references",
+      "site_count",
+      "settlement"
+    ]
+  },
+  {
+    "op": "test",
+    "path": "/components/schemas/CustomerApplicationRequest/additionalProperties",
+    "value": false
+  },
+  {
+    "op": "add",
+    "path": "/components/schemas/CustomerApplicationRequest/properties/settlement",
+    "value": {
+      "$ref": "#/components/schemas/WebsiteQuoteSettlement"
+    }
+  }
+]

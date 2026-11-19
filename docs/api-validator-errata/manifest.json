@@ -1,5 +1,5 @@
 {
-  "status": "CHECKSUM_BOUND_RESPONSE_VALIDATOR_ERRATA",
+  "status": "CHECKSUM_BOUND_VALIDATOR_ERRATA",
   "format": "RFC6902 JSON Patch",
   "source_policy": "Keep original frozen document and checksum; store the patched validator document separately. Verify known original source checksum and RFC6902 test operations before applying. Derived checksum uses sorted-key compact UTF8 JSON plus final newline.",
   "patches": [
@@ -43,6 +43,20 @@
       "target_pointer": "/components/schemas/WebsiteQuoteValidationData/properties/market_reference",
       "derived_canonical_json_sha256": "26eeaecae7adda1bedec89a718a38dd189e65a90ff9f6704a226cd7ee90ecfcd",
       "changes": "Only the confirmed response validator erratum; original info.version and all other schema nodes preserved.",
+      "does_not_change_runtime_request_requirements": true
+    },
+    {
+      "revision": "2026-08-22.1",
+      "surface": "website-integration-v1",
+      "kind": "checkout-settlement",
+      "immutable_source_path": "docs/openapi/releases/2026-08-22.1/website-integration-v1.json",
+      "immutable_source_sha256": "9dc264fe5adadc2304ab5ffaef188a66fe230990a6f58676fa6759a934fce8c2",
+      "patch_path": "docs/api-validator-errata/2026-08-22.1-website-integration-v1-checkout-settlement.rfc6902.json",
+      "patch_sha256": "7bd103b2162683e1c51377799794c11d3fee640c83186ecba9434a21458f4480",
+      "patch_operations": 4,
+      "target_pointer": "/components/schemas/CustomerApplicationRequest/properties/settlement",
+      "derived_canonical_json_sha256": "c6fc7242ee38d91fb4cd3d562580109c7609f69ba272ab093b8a189e26d2791d",
+      "changes": "Adds the missing checkout settlement property by reference to the existing WebsiteQuoteSettlement schema. The original info.version, required fields, closed object and other schema nodes are preserved.",
       "does_not_change_runtime_request_requirements": true
     }
   ]
