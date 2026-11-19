@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CustomerCaseRow, CustomerCaseType } from '@/lib/customer-cases/types'
+import { postgrestEq, UUID_PATTERN } from '@/lib/ediel/matching/postgrestFilter'
 import type { SupplierSwitchRequestRow, SupplierSwitchRequestStatus } from '@/lib/operations/types'
 
 type LifecycleDecisionType = 'withdrawal' | 'cancelled' | 'rejected'
@@ -79,10 +80,8 @@ function databaseShapeMissing(error: unknown): boolean {
   )
 }
 
-function scopeMatches(block: Pick<SwitchLifecycleBlock, 'siteId' | 'meteringPointId'>, params: { siteId?: string | null; meteringPointId?: string | null }) {
-  if (block.meteringPointId) return block.meteringPointId === (params.meteringPointId ?? null)
-  if (block.siteId) return block.siteId === (params.siteId ?? null)
-  return true
+function scopeUuid(value: string | null | undefined): string | null {
+  return value && UUID_PATTERN.test(value) ? value.toLowerCase() : null
 }
 
 function statusAfterLifecycleBlock(params: {
@@ -190,14 +189,24 @@ export async function findActiveSwitchLifecycleBlock(
     meteringPointId?: string | null
   }
 ): Promise<SwitchLifecycleBlock | null> {
+  const siteId = scopeUuid(params.siteId)
+  const meteringPointId = scopeUuid(params.meteringPointId)
+  // This reader has no contract ID. Keep the existing customer-wide decision
+  // behavior for contract scopes and legacy rows with no scope ID.
+  const decisionScopes = ['scope_type.in.(customer,contract)', 'scope_id.is.null']
+  if (siteId) decisionScopes.push(`and(scope_type.eq.site,${postgrestEq('scope_id', siteId)})`)
+  if (meteringPointId) decisionScopes.push(`and(scope_type.eq.metering_point,${postgrestEq('scope_id', meteringPointId)})`)
+
   try {
     let decisionQuery = supabase
       .from('customer_lifecycle_decisions')
       .select('id, company_id, customer_id, decision_type, scope_type, scope_id, reason, created_at')
       .eq('customer_id', params.customerId)
       .in('decision_type', ['withdrawal', 'cancelled', 'rejected'])
+      .or(decisionScopes.join(','))
       .order('created_at', { ascending: false })
-      .limit(20)
+      .order('id', { ascending: false })
+      .limit(1)
 
     if (params.companyId) decisionQuery = decisionQuery.eq('company_id', params.companyId)
 
@@ -205,10 +214,11 @@ export async function findActiveSwitchLifecycleBlock(
     if (error) {
       if (!databaseShapeMissing(error)) throw error
     } else {
-      for (const row of decisions ?? []) {
+      const row = decisions?.[0]
+      if (row) {
         const scopeType = String(row.scope_type ?? 'customer')
         const scopeId = row.scope_id ? String(row.scope_id) : null
-        const block: SwitchLifecycleBlock = {
+        return {
           source: 'customer_lifecycle_decision',
           id: String(row.id),
           companyId: row.company_id ? String(row.company_id) : null,
@@ -220,13 +230,16 @@ export async function findActiveSwitchLifecycleBlock(
           reason: String(row.reason ?? 'Kundens livscykel blockerar leverantörsbyte.'),
           createdAt: row.created_at ? String(row.created_at) : null,
         }
-
-        if (scopeMatches(block, params)) return block
       }
     }
   } catch (error) {
     if (!databaseShapeMissing(error)) throw error
   }
+
+  // Metering-point tasks use their point as scope even when a site is also stored.
+  const taskScopes = ['and(metering_point_id.is.null,site_id.is.null)']
+  if (siteId) taskScopes.push(`and(metering_point_id.is.null,${postgrestEq('site_id', siteId)})`)
+  if (meteringPointId) taskScopes.push(postgrestEq('metering_point_id', meteringPointId))
 
   try {
     let taskQuery = supabase
@@ -235,8 +248,10 @@ export async function findActiveSwitchLifecycleBlock(
       .eq('customer_id', params.customerId)
       .in('task_type', Array.from(BLOCKING_TASK_TYPES))
       .in('status', ['open', 'in_progress', 'blocked'])
+      .or(taskScopes.join(','))
       .order('created_at', { ascending: false })
-      .limit(20)
+      .order('id', { ascending: false })
+      .limit(1)
 
     if (params.companyId) taskQuery = taskQuery.eq('company_id', params.companyId)
 
@@ -246,28 +261,26 @@ export async function findActiveSwitchLifecycleBlock(
       return null
     }
 
-    for (const row of tasks ?? []) {
-      const metadata = (row.metadata ?? {}) as Record<string, unknown>
-      const decisionType = lifecycleDecisionTypeForTask(row.task_type)
-      if (!decisionType) continue
+    const row = tasks?.[0]
+    if (!row) return null
+    const decisionType = lifecycleDecisionTypeForTask(row.task_type)
+    if (!decisionType) return null
 
-      const block: SwitchLifecycleBlock = {
-        source: 'customer_operation_task',
-        id: String(row.id),
-        companyId: row.company_id ? String(row.company_id) : null,
-        customerId: String(row.customer_id),
-        siteId: row.site_id ? String(row.site_id) : null,
-        meteringPointId: row.metering_point_id ? String(row.metering_point_id) : null,
-        decisionType,
-        title: String(row.title ?? 'Driftuppgift blockerar leverantörsbyte'),
-        reason:
-          String(metadata.reasonCategory ?? '').trim() ||
-          String(row.description ?? '').trim() ||
-          'Öppen driftuppgift blockerar leverantörsbyte.',
-        createdAt: row.created_at ? String(row.created_at) : null,
-      }
-
-      if (scopeMatches(block, params)) return block
+    const metadata = (row.metadata ?? {}) as Record<string, unknown>
+    return {
+      source: 'customer_operation_task',
+      id: String(row.id),
+      companyId: row.company_id ? String(row.company_id) : null,
+      customerId: String(row.customer_id),
+      siteId: row.site_id ? String(row.site_id) : null,
+      meteringPointId: row.metering_point_id ? String(row.metering_point_id) : null,
+      decisionType,
+      title: String(row.title ?? 'Driftuppgift blockerar leverantörsbyte'),
+      reason:
+        String(metadata.reasonCategory ?? '').trim() ||
+        String(row.description ?? '').trim() ||
+        'Öppen driftuppgift blockerar leverantörsbyte.',
+      createdAt: row.created_at ? String(row.created_at) : null,
     }
   } catch (error) {
     if (!databaseShapeMissing(error)) throw error
