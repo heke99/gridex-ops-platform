@@ -216,9 +216,9 @@ describe('actual notice application port with a scoped query and mocked RPC boun
     pricingFixture.filters = []; pricingFixture.noticeCommands = []
   })
 
-  const notice = (companyId = 'unit-company') => addCustomerContractEvent({ companyId,
+  const notice = (companyId = 'unit-company', happenedAt = '2026-11-01T00:00:00Z') => addCustomerContractEvent({ companyId,
     customerContractId: 'unit-contract', customerId: 'unit-customer', eventType: 'termination_notice_received',
-    happenedAt: '2026-11-01T00:00:00Z', actorUserId: 'unit-actor' })
+    happenedAt, actorUserId: 'unit-actor' })
 
   it('passes the binding floor from the selected canonical actual date to the command', async () => {
     await notice()
@@ -241,6 +241,59 @@ describe('actual notice application port with a scoped query and mocked RPC boun
     await notice()
     // NULL means no application-derived end, not an authoritative RPC HOLD.
     expect(pricingFixture.noticeCommands[0].p_derived_ends_at).toBeNull()
+  })
+
+  it.each([
+    ['2027-01-31T22:59:59Z', '2027-02-28'],
+    ['2027-01-31T23:00:01Z', '2027-03-01'],
+    ['2027-02-01T00:00:01+01:00', '2027-03-01'],
+    ['2027-02-01', '2027-03-01'],
+  ])('calculates the notice end for %s on the Swedish calendar', async (happenedAt, expectedEnd) => {
+    pricingFixture.contract.binding_months = null
+
+    await notice('unit-company', happenedAt)
+
+    expect(pricingFixture.noticeCommands).toEqual([expect.objectContaining({
+      p_happened_at: happenedAt,
+      p_derived_ends_at: expectedEnd,
+    })])
+    expect(getLifecycleSummary({
+      ...pricingFixture.contract, termination_notice_date: happenedAt,
+    } as CustomerContractRow)).toMatchObject({ noticeEffectiveEndDate: expectedEnd, effectiveEndDate: expectedEnd })
+  })
+
+  it('keeps the explicit stored end while deriving the notice date independently', async () => {
+    const happenedAt = '2027-01-31T23:00:01Z'
+    const endsAt = '2027-02-20'
+    Object.assign(pricingFixture.contract, { ends_at: endsAt, binding_months: null })
+
+    await notice('unit-company', happenedAt)
+
+    expect(pricingFixture.noticeCommands).toEqual([expect.objectContaining({
+      p_happened_at: happenedAt,
+      p_derived_ends_at: endsAt,
+    })])
+    expect(getLifecycleSummary({
+      ...pricingFixture.contract, termination_notice_date: happenedAt,
+    } as CustomerContractRow)).toMatchObject({ noticeEffectiveEndDate: '2027-03-01', effectiveEndDate: endsAt })
+  })
+
+  it('uses the actual reception time when the customer card leaves date blank', async () => {
+    const happenedAt = '2027-01-31T23:00:01.000Z'
+    pricingFixture.contract.binding_months = null
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(happenedAt))
+    try {
+      await addCustomerContractEvent({ companyId: 'unit-company', customerId: 'unit-customer',
+        customerContractId: 'unit-contract', eventType: 'termination_notice_received', happenedAt: null })
+    } finally {
+      vi.useRealTimers()
+    }
+
+    expect(pricingFixture.noticeCommands).toEqual([expect.objectContaining({
+      p_happened_at: happenedAt,
+      p_derived_ends_at: '2027-03-01',
+    })])
   })
 
   it('does not invoke the command for a different company', async () => {
