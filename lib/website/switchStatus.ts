@@ -32,7 +32,7 @@ type WebsiteApplicationLineage = {
   contract_id: string | null
 }
 
-export type WebsiteStatusLineageRow = {
+type WebsiteStatusLineageRow = {
   company_id?: string | null
   customer_id?: string | null
   customer_site_id?: string | null
@@ -40,28 +40,45 @@ export type WebsiteStatusLineageRow = {
   metering_point_id?: string | null
   contract_id?: string | null
   customer_contract_id?: string | null
-  created_at?: string | null
-  updated_at?: string | null
 }
 
-function lineageScore(application: WebsiteApplicationLineage, row: WebsiteStatusLineageRow): number {
-  let score = 0
-  if (application.contract_id && [text(row.contract_id), text(row.customer_contract_id)].includes(application.contract_id)) score += 100
-  if (application.customer_site_id && [text(row.customer_site_id), text(row.site_id)].includes(application.customer_site_id)) score += 50
-  if (application.metering_point_id && text(row.metering_point_id) === application.metering_point_id) score += 25
-  if (application.customer_id && text(row.customer_id) === application.customer_id) score += 1
-  return score
-}
+// Try each exact binding before a weaker one so a REST row cap cannot change its rank.
+export async function readWebsiteStatusLineage<T, E>(
+  application: Pick<WebsiteApplicationLineage, 'contract_id' | 'metering_point_id'>,
+  siteBound: boolean,
+  read: (filter: string | null, limit: number) => PromiseLike<{ data: T[] | null; error: E | null }>,
+): Promise<{ data: T | null; error: E | null; ambiguous: boolean }> {
+  const absent = { data: null, error: null, ambiguous: false }
+  const { contract_id: contractId, metering_point_id: meterId } = application
+  if ((contractId && !isUuid(contractId)) || (meterId && !isUuid(meterId))) return absent
 
-export function selectWebsiteStatusLineage<T extends WebsiteStatusLineageRow>(application: WebsiteApplicationLineage, rows: T[]) {
-  const scored = rows
-    .map((row) => ({ row, score: lineageScore(application, row) }))
-    .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score || String(b.row.updated_at ?? b.row.created_at ?? '').localeCompare(String(a.row.updated_at ?? a.row.created_at ?? '')))
-  const [first, second] = scored
-  if (!first) return { data: null, ambiguous: false }
-  if (first.score === 1 && second?.score === 1) return { data: null, ambiguous: true }
-  return { data: first.row, ambiguous: false }
+  // With no strong key, distinguish one historical customer hit from an ambiguous set.
+  if (!contractId && !meterId) {
+    const result = await read(null, siteBound ? 1 : 2)
+    if (result.error) return { ...absent, error: result.error }
+    const [first = null, second] = result.data ?? []
+    return second ? { ...absent, ambiguous: true } : { ...absent, data: first }
+  }
+
+  const contractMatch = contractId
+    ? `or(customer_contract_id.eq.${contractId},and(customer_contract_id.is.null,contract_id.eq.${contractId}))`
+    : null
+  const meterMatch = meterId ? `metering_point_id.eq.${meterId}` : null
+  const missingContract = 'and(customer_contract_id.is.null,contract_id.is.null)'
+  const missingMeter = 'metering_point_id.is.null'
+  const filters = contractMatch && meterMatch
+    ? [`and(${contractMatch},${meterMatch})`, `and(${contractMatch},${missingMeter})`, `and(${missingContract},${meterMatch})`]
+    : [contractMatch ?? meterMatch]
+  if (siteBound) {
+    filters.push(contractMatch && meterMatch ? `and(${missingContract},${missingMeter})` : contractMatch ? missingContract : missingMeter)
+  }
+  for (const filter of filters) {
+    const result = await read(filter, 1)
+    if (result.error) return { ...absent, error: result.error }
+    const row = result.data?.[0]
+    if (row) return { ...absent, data: row }
+  }
+  return absent
 }
 
 type WebsiteApplicationSwitch = WebsiteApplicationLineage & { company_id: string; response_payload: unknown }
@@ -80,13 +97,6 @@ function matchesSwitchBinding(application: WebsiteApplicationSwitch, row: Websit
   return bindings.every(([expected, actual]) => !expected || !actual || expected === actual)
 }
 
-function matchesHistoricalSwitch(application: WebsiteApplicationSwitch, row: WebsiteStatusLineageRow): boolean {
-  if (!matchesSwitchBinding(application, row)) return false
-  if (application.customer_site_id) return switchSite(row) === application.customer_site_id
-  if (!application.contract_id && !application.metering_point_id) return true
-  return lineageScore(application, row) > 1
-}
-
 export async function loadWebsiteApplicationSwitch(application: WebsiteApplicationSwitch) {
   if (!application.customer_id) return { data: null, error: null, ambiguous: false }
   const selectSwitch = () => supabaseService
@@ -103,16 +113,13 @@ export async function loadWebsiteApplicationSwitch(application: WebsiteApplicati
   }
 
   const siteId = application.customer_site_id
-  let query = selectSwitch()
-  if (siteId) {
-    if (!isUuid(siteId)) return { data: null, error: null, ambiguous: false }
-    // Scope historical matches to the known site before applying the row limit.
-    query = query.or(`customer_site_id.eq.${siteId},and(customer_site_id.is.null,site_id.eq.${siteId})`)
-  }
-  const result = await query.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(50)
-  if (result.error) return { data: null, error: result.error, ambiguous: false }
-  const rows = (result.data ?? []).filter(row => matchesHistoricalSwitch(application, row))
-  return { ...selectWebsiteStatusLineage(application, rows), error: null }
+  if (siteId && !isUuid(siteId)) return { data: null, error: null, ambiguous: false }
+  return readWebsiteStatusLineage(application, Boolean(siteId), (filter, limit) => {
+    const query = selectSwitch()
+    if (siteId) query.or(`customer_site_id.eq.${siteId},and(customer_site_id.is.null,site_id.eq.${siteId})`)
+    if (filter) query.or(filter)
+    return query.order('updated_at', { ascending: false }).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit)
+  })
 }
 
 export async function loadWebsiteSwitchStatus(input: { companyId: string; applicationNumber: string }) {
