@@ -195,14 +195,23 @@ function verifyApplicationChecks(result: Awaited<ReturnType<typeof runProduction
 }
 
 async function runCanonicalCompany(scopedCompanyId: string) {
-  const { data, error } = await supabaseService.rpc('canonical_run_architecture_reconciliation', { p_company_id: scopedCompanyId })
-  const { checks, coverage, finding_count } = verifyCanonicalChecks(scopedCompanyId, error ? null : data)
+  let data: unknown
+  let errorCode: string | null = null
+  try {
+    const result = await supabaseService.rpc('canonical_run_architecture_reconciliation', { p_company_id: scopedCompanyId })
+    data = result.data
+    if (result.error) errorCode = safeErrorCode(result.error.code) ?? 'reconciliation_check_failed'
+  } catch (error) {
+    errorCode = safeErrorCode(record(error)?.code) ?? 'reconciliation_check_failed'
+  }
+
+  const { checks, coverage, finding_count } = verifyCanonicalChecks(scopedCompanyId, errorCode === null ? data : null)
   return {
-    rpcFailed: Boolean(error),
+    rpcFailed: errorCode !== null,
     company: {
       company_id: scopedCompanyId,
-      ok: !error && coverage.failed_checks.length === 0 && coverage.unverified_checks.length === 0,
-      ...(error ? { error_code: safeErrorCode(error.code) ?? 'reconciliation_check_failed' } : { checks }),
+      ok: errorCode === null && coverage.failed_checks.length === 0 && coverage.unverified_checks.length === 0,
+      ...(errorCode === null ? { checks } : { error_code: errorCode }),
       coverage,
       finding_count,
     },

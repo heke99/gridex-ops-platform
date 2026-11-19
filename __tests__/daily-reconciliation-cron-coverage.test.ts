@@ -2,15 +2,29 @@ import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { GET, POST } from '@/app/api/cron/reconciliation/daily/route'
 
-const db = vi.hoisted(() => ({ fetch: vi.fn<typeof fetch>(), schemaReady: vi.fn() }))
+const db = vi.hoisted(() => ({
+  fetch: vi.fn<typeof fetch>(),
+  schemaReady: vi.fn(),
+  rpcRejection: null as { companyId: string; error: Error } | null,
+}))
 vi.mock('@/lib/platform/schemaReadiness', () => ({ assertPlatformSchemaReady: db.schemaReady }))
 vi.mock('@/lib/supabase/service', async () => {
   const { createClient } = await vi.importActual<typeof import('@supabase/supabase-js')>('@supabase/supabase-js')
+  const client = createClient('https://reconciliation.test', 'synthetic-service-key', {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: db.fetch },
+  })
   return {
-    supabaseService: createClient('https://reconciliation.test', 'synthetic-service-key', {
-      auth: { autoRefreshToken: false, persistSession: false },
-      global: { fetch: db.fetch },
-    }),
+    supabaseService: {
+      from: client.from.bind(client),
+      rpc: (name: string, params: Record<string, unknown>) => {
+        if (name === 'canonical_run_architecture_reconciliation' && db.rpcRejection &&
+            params.p_company_id === db.rpcRejection.companyId) {
+          return Promise.reject(db.rpcRejection.error)
+        }
+        return client.rpc(name, params)
+      },
+    },
   }
 })
 
@@ -58,6 +72,7 @@ type DatabaseOptions = {
   appFinding?: boolean
   repeatingInventory?: boolean
   transportFailed?: boolean
+  fetchRejected?: boolean
   canonicalPayload?: (companyId: string) => unknown
 }
 
@@ -92,6 +107,7 @@ function mockDatabase(options: DatabaseOptions = {}) {
       const { p_company_id: companyId } = JSON.parse(String(init?.body))
       expect(tenants).toContain(companyId)
       calls.canonicals.push(companyId)
+      if (options.fetchRejected && companyId === tenants[1]) throw new Error(rawError)
       if (options.transportFailed && companyId === tenants[1]) {
         return json({ code: '57014', message: rawError }, 400)
       }
@@ -114,6 +130,7 @@ function mockDatabase(options: DatabaseOptions = {}) {
 
 beforeEach(() => {
   db.fetch.mockReset()
+  db.rpcRejection = null
   db.schemaReady.mockReset().mockResolvedValue(undefined)
   vi.stubEnv('RECONCILIATION_CRON_SECRET', 'synthetic-reconciliation-secret')
 })
@@ -226,6 +243,23 @@ it('rejects conflicting native evidence and arbitrary error fields without clear
   expect(body.result.canonicalArchitecture.companies[0].coverage.unverified_checks).toEqual(['duplicate_role', 'invalid_lifecycle'])
   expect(body.result.coverage.canonical).toMatchObject({ verified_check_count: 16, failed_check_count: 0, unverified_check_count: 2 })
   expect(body.result.findings.canonical_check_count).toBe(1)
+})
+
+it.each(['fetch', 'RPC'] as const)('retains other company evidence when the %s promise rejects', async source => {
+  const calls = mockDatabase({ fetchRejected: source === 'fetch' })
+  if (source === 'RPC') db.rpcRejection = { companyId: tenants[1], error: new Error(rawError) }
+  const response = await GET(request())
+  expect(response.status).toBe(503)
+  const text = await response.text()
+  expect(text).not.toContain(rawError)
+  const body = JSON.parse(text)
+  expect(body.result.canonicalArchitecture).toMatchObject({ company_count: 2, failed_count: 1, ok: false })
+  expect(body.result.canonicalArchitecture.companies).toMatchObject([
+    { company_id: tenants[0], ok: true, finding_count: 1 },
+    { company_id: tenants[1], ok: false, error_code: 'reconciliation_check_failed' },
+  ])
+  expect(body.result.coverage.canonical).toMatchObject({ verified_check_count: 18, unverified_check_count: 18 })
+  expect(calls.release).toHaveLength(1)
 })
 
 it('rejects unauthenticated calls before schema, inventory or lock work', async () => {
