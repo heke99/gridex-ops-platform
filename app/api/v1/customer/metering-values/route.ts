@@ -72,11 +72,20 @@ function optionalParam(request: NextRequest, key: string): string | null {
       throw error
     }
 
+    const page = buildPortalDatabasePage((data ?? []) as unknown as Array<Record<string, unknown>>, {
+      limit,
+      companyId: context.client.company_id,
+      customerId: context.identity.customer_id,
+      resource,
+      orderColumn: 'period_start',
+    })
+    const items = page.items.map((row) => publicPortalMeteringValue(context.client.company_id, row))
+
     await logCustomerPortalSuccess({
       request,
       client: context.client,
       startedAt: context.startedAt,
-      resultCount: data?.length ?? 0,
+      resultCount: items.length,
       metadata: {
         source_table: 'normalized_metering_values',
         external_customer_id: context.identity.external_customer_id,
@@ -87,17 +96,7 @@ function optionalParam(request: NextRequest, key: string): string | null {
       },
     })
 
-    const page = buildPortalDatabasePage((data ?? []) as unknown as Array<Record<string, unknown>>, {
-      limit,
-      companyId: context.client.company_id,
-      customerId: context.identity.customer_id,
-      resource,
-      orderColumn: 'period_start',
-    })
-    return customerPortalJson({
-      data: page.items.map((row) => publicPortalMeteringValue(context.client.company_id, row)),
-      page: page.page,
-    })
+    return customerPortalJson({ data: items, page: page.page })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }
