@@ -6,33 +6,39 @@ const path = require('path')
 const root = process.cwd()
 const directory = path.join(root, 'supabase', 'migrations')
 const manifestPath = path.join(root, 'scripts', 'migration-history-manifest.json')
-const additionsPath = path.join(root, 'scripts', 'migration-history-manifest.additions.json')
-const edielAdditionsPath = path.join(root, 'scripts', 'migration-history-manifest.ediel.additions.json')
-const runtimeAdditionsPath = path.join(root, 'scripts', 'migration-history-manifest.runtime.additions.json')
+const manifestPaths = [
+  manifestPath,
+  path.join(root, 'scripts', 'migration-history-manifest.additions.json'),
+  path.join(root, 'scripts', 'migration-history-manifest.ediel.additions.json'),
+  path.join(root, 'scripts', 'migration-history-manifest.runtime.additions.json'),
+]
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
-const additions = fs.existsSync(additionsPath)
-  ? JSON.parse(fs.readFileSync(additionsPath, 'utf8'))
-  : { files: {} }
-const edielAdditions = fs.existsSync(edielAdditionsPath)
-  ? JSON.parse(fs.readFileSync(edielAdditionsPath, 'utf8'))
-  : { files: {} }
-const runtimeAdditions = fs.existsSync(runtimeAdditionsPath)
-  ? JSON.parse(fs.readFileSync(runtimeAdditionsPath, 'utf8'))
-  : { files: {} }
 const allowedLegacyCollisions = manifest.allowedLegacyCollisions ?? {}
 const allowedUnversionedFiles = new Set(manifest.allowedUnversionedFiles ?? [])
-const baseFiles = manifest.files ?? {}
-const additionFiles = additions.files ?? {}
-const edielAdditionFiles = edielAdditions.files ?? {}
-const runtimeAdditionFiles = runtimeAdditions.files ?? {}
-const expectedFiles = { ...baseFiles, ...additionFiles, ...edielAdditionFiles, ...runtimeAdditionFiles }
-const actualNames = fs.readdirSync(directory).filter((name) => name.endsWith('.sql')).sort()
 const failures = []
+const registrations = new Map()
 
-for (const [name, checksum] of Object.entries({ ...additionFiles, ...edielAdditionFiles, ...runtimeAdditionFiles })) {
-  if (baseFiles[name] && baseFiles[name] !== checksum) {
-    failures.push(`Additive manifest conflicts with canonical checksum: ${name}`)
+for (const sourcePath of manifestPaths) {
+  if (sourcePath !== manifestPath && !fs.existsSync(sourcePath)) continue
+  const source = sourcePath === manifestPath ? manifest : JSON.parse(fs.readFileSync(sourcePath, 'utf8'))
+  for (const [name, checksum] of Object.entries(source.files ?? {})) {
+    const sources = registrations.get(name) ?? []
+    sources.push({ sourcePath, checksum })
+    registrations.set(name, sources)
   }
+}
+
+const actualNames = fs.readdirSync(directory).filter((name) => name.endsWith('.sql')).sort()
+const conflictingAdditions = new Set()
+for (const [name, sources] of registrations) {
+  const first = sources[0]
+  if (sources.every(({ checksum }) => checksum === first.checksum)) continue
+
+  const canonical = first.sourcePath === manifestPath
+  if (!canonical) conflictingAdditions.add(name)
+  const issue = canonical ? 'Additive manifest conflicts with canonical checksum' : 'Additive manifests conflict on checksum'
+  const origins = sources.map(({ sourcePath, checksum }) => `${path.basename(sourcePath)}=${checksum}`).join(', ')
+  failures.push(`${issue}: ${name} (${origins})`)
 }
 
 function sha256(filePath) {
@@ -75,8 +81,10 @@ for (const [version, files] of byVersion.entries()) {
 }
 
 for (const name of actualNames) {
+  // An additive-only disagreement leaves the byte checksum unverified.
+  if (conflictingAdditions.has(name)) continue
   const actual = sha256(path.join(directory, name))
-  const expected = expectedFiles[name]
+  const expected = registrations.get(name)?.[0].checksum
   if (!expected) {
     failures.push(`Migration is missing from checksum manifest: ${name} (sha256=${actual})`)
     continue
@@ -88,7 +96,7 @@ for (const name of actualNames) {
   }
 }
 
-for (const name of Object.keys(expectedFiles)) {
+for (const name of registrations.keys()) {
   if (!actualNames.includes(name)) failures.push(`Manifest references a missing migration: ${name}`)
 }
 
