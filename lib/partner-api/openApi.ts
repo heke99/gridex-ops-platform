@@ -168,7 +168,7 @@ export const partnerOpenApi = {
       get: {
         summary: 'List invoices for site',
         description:
-          'Returns invoices of contracts belonging to the requested site, newest first (issued_at descending, invoices without issued_at last), at most 100 per page. The site filter is applied before the page limit. Without `cursor` the response is the first page, identical to earlier V1 behaviour. When more invoices exist the response carries `X-Gridex-Next-Cursor`; send it unchanged as `cursor` with the same from_date/to_date to continue. The cursor is opaque and bound to the API company, customer, site and date filter; a modified or foreign cursor returns 400 invalid_cursor. Only invoices with status issued, sent, paid, overdue, cancelled or credited are returned (drafts and failed invoices never are; the same applies to invoice detail and PDF). from_date/to_date and invoice_date are Europe/Stockholm calendar dates.',
+          'Returns invoices of contracts belonging to the requested site, newest first (issued_at descending, invoices without issued_at last), at most 100 per page. The site filter is applied before the page limit. Without `cursor` the response is the first page, identical to earlier V1 behaviour. When more invoices exist the response carries `X-Gridex-Next-Cursor`; send it unchanged as `cursor` with the same from_date/to_date to continue. The cursor is opaque and bound to the API company, customer, site and date filter; a modified or foreign cursor returns 400 invalid_cursor. Only invoices with status issued, sent, paid, overdue, cancelled or credited are returned (drafts and failed invoices never are; the same applies to invoice detail and PDF). from_date/to_date and invoice_date are Europe/Stockholm calendar dates. If both filters are present, from_date must be on or before to_date.',
         parameters: [
           customerId,
           siteId,
@@ -186,7 +186,7 @@ export const partnerOpenApi = {
           '401': errorResponse,
           '403': errorResponse,
           '404': errorResponse,
-          '422': errorResponse,
+          '422': { ...errorResponse, description: 'Invalid date filter. A reversed range returns invoice_date_range_invalid.' },
         },
       },
     },
