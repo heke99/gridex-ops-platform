@@ -21,6 +21,7 @@ import type {
 import { buildPortalCustomerStatus, displayNameFromCustomer } from '@/lib/customer-portal/status'
 import { PORTAL_PUBLISHED_INVOICE_STATUSES } from '@/lib/customer-portal/format'
 import { readInvoiceFileAvailability, type InvoiceFileAvailability } from '@/lib/customer-portal/invoiceFileAvailability'
+import { UUID_PATTERN } from '@/lib/ediel/matching/postgrestFilter'
 
 type PortalAccountLookupRow = {
   customer_id: string
@@ -345,6 +346,62 @@ export async function listPortalMeteringValues(
 
   if (error) throw error
   return (data ?? []) as CustomerPortalMeteringValueRow[]
+}
+
+/** Public meter numbers for the visible value rows, matched through the active tenant and customer. */
+export async function listPortalMeteringPointNumbers(
+  context: CustomerPortalContext,
+  values: CustomerPortalMeteringValueRow[],
+): Promise<Map<string, string>> {
+  const numbers = new Map<string, string>()
+  if (!context.companyId) return numbers
+  const companyId = context.companyId
+  const allowedCustomers = new Set(context.customerIds)
+  const scopedPoints = new Map<string, { pointId: string; customerId: string; valueIds: string[] }>()
+  for (const value of values) {
+    if (!allowedCustomers.has(value.customer_id) || !UUID_PATTERN.test(value.metering_point_id) || !UUID_PATTERN.test(value.customer_id)) continue
+    const key = `${value.customer_id}:${value.metering_point_id}`
+    const point = scopedPoints.get(key) ?? { pointId: value.metering_point_id, customerId: value.customer_id, valueIds: [] }
+    point.valueIds.push(value.id)
+    scopedPoints.set(key, point)
+  }
+  const requests = [...scopedPoints.values()]
+  const batchSize = 50
+  for (let start = 0; start < requests.length; start += batchSize) {
+    const batch = requests.slice(start, start + batchSize)
+    const ids = [...new Set(batch.map(request => request.pointId))]
+    const requestedCustomers = [...new Set(batch.map(request => request.customerId))]
+    const columns = 'id,company_id,customer_id,site_id,meter_point_id'
+    const selectPoints = (projection: string) => supabaseService.from('metering_points')
+      .select(projection).eq('company_id', companyId).in('id', ids)
+      .or(`customer_id.is.null,customer_id.in.(${requestedCustomers.join(',')})`)
+    let result = await selectPoints(`${columns},customer_site_id`)
+    if (result.error && missingPortalDataSchema(result.error)) result = await selectPoints(columns)
+    if (result.error) throw result.error
+    type Point = { id: string; company_id: string; customer_id: string | null; site_id: string | null; customer_site_id?: string | null; meter_point_id: string | null }
+    const points = (result.data ?? []) as unknown as Point[]
+    const siteIds = [...new Set(points.map(point => point.customer_site_id ?? point.site_id).filter((site): site is string => Boolean(site)))]
+    const siteOwners = new Map<string, string>()
+    if (siteIds.length > 0) {
+      const sites = await supabaseService.from('customer_sites').select('id,company_id,customer_id')
+        .eq('company_id', companyId).in('customer_id', requestedCustomers).in('id', siteIds)
+      if (sites.error) throw sites.error
+      for (const site of sites.data ?? []) {
+        if (site.company_id === companyId && site.customer_id) siteOwners.set(site.id, site.customer_id)
+      }
+    }
+    const pointsById = new Map(points.map(point => [point.id, point]))
+    for (const request of batch) {
+      const point = pointsById.get(request.pointId)
+      const number = point?.meter_point_id?.trim()
+      if (!point || point.company_id !== companyId || !number || UUID_PATTERN.test(number)) continue
+      if (point.customer_id !== null && point.customer_id !== request.customerId) continue
+      const siteId = point.customer_site_id ?? point.site_id
+      if (siteId ? siteOwners.get(siteId) !== request.customerId : point.customer_id !== request.customerId) continue
+      for (const valueId of request.valueIds) numbers.set(valueId, number)
+    }
+  }
+  return numbers
 }
 
 /** Number of Europe/Stockholm calendar months shown on the portal consumption cards. */
