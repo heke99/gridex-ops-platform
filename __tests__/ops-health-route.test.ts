@@ -76,7 +76,56 @@ beforeEach(() => {
   vi.stubEnv('CRON_SECRET', undefined)
   rpc.mockReset()
 })
-afterEach(() => vi.unstubAllEnvs())
+afterEach(() => {
+  vi.unstubAllEnvs()
+  vi.restoreAllMocks()
+})
+
+describe('OPS health runtime result', () => {
+  it.each([
+    ['ok', 'v5', 200],
+    ['warning', 'v5', 200],
+    ['blocking', 'v5', 503],
+    ['warning', 'v4', 503],
+  ] as const)('records the authenticated %s %s result, HTTP %i, without check details', async (status, version, httpStatus) => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    const rows = healthyRows(version)
+    if (version === 'v4') rpc.mockResolvedValueOnce(missingFunction('v5'))
+    if (version === 'v5') rows[0].status = status
+    rows[0].details = { reference: 'synthetic-tenant-private-detail' }
+    rpc.mockResolvedValueOnce({ data: rows, error: null })
+
+    const response = await GET(request())
+    const result = await response.json()
+
+    expect(response.status).toBe(httpStatus)
+    expect(info).toHaveBeenCalledOnce()
+    const [line] = info.mock.calls[0]
+    expect(JSON.parse(line)).toEqual({
+      event: 'ops_health_result',
+      checked_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
+      method: 'GET',
+      http_status: httpStatus,
+      ok: result.ok,
+      status,
+      schema_ready: result.schema_ready,
+      check_version: version,
+      fallback: version === 'v4',
+      blocking_count: result.blocking_count,
+      warning_count: result.warning_count,
+    })
+    expect(line).not.toContain('synthetic-tenant-private-detail')
+    expect(line).not.toContain('synthetic-health-credential')
+  })
+
+  it('emits no evaluation result for an unauthorized request', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    const response = await GET(new NextRequest('https://ops.example.test/api/internal/system/health'))
+    expect(response.status).toBe(401)
+    expect(info).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
+  })
+})
 
 describe('OPS health HTTP contract', () => {
   it('returns validated current RPC data for the authenticated cron GET', async () => {
