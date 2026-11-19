@@ -12,12 +12,16 @@ import {
   portalPageLimit,
 } from '@/lib/customer-portal/keysetPagination'
 
+const PORTAL_BUNDLE_ROUTE = '/api/v1/customer/portal-bundle'
+const bundleRetentionCheck = Symbol('bundleRetentionCheck')
+
 export type PortalCustomerContext = {
   companyId: string
   customerId: string
   externalCustomerId: string | null
   customerNumber: string | null
   provider: string
+  readonly [bundleRetentionCheck]?: () => Promise<void>
 }
 
 export function isMissingSchemaError(error: unknown): boolean {
@@ -74,8 +78,21 @@ export function portalContextFromResolved(input: {
   }
 }
 
+/** A new Bundle request owns one lazy retention verification for its sections. */
+export function portalBundleContextFromResolved(input: Parameters<typeof portalContextFromResolved>[0]): PortalCustomerContext {
+  const context = portalContextFromResolved(input)
+  let check: Promise<void> | undefined
+  return Object.freeze({
+    ...context,
+    [bundleRetentionCheck]: () => {
+      check ??= requirePortalRetentionAccess(context)
+      return check
+    },
+  })
+}
+
 export function shouldLogPortalAccess(route: string): boolean {
-  return route !== '/api/v1/customer/portal-bundle'
+  return route !== PORTAL_BUNDLE_ROUTE
 }
 
 type PortalAccessLogInput = {
@@ -103,7 +120,8 @@ async function recordPortalAccess(input: PortalAccessLogInput) {
 }
 
 async function logPortalAccess(input: PortalAccessLogInput) {
-  await requirePortalRetentionAccess(input.context)
+  const sharedCheck = input.route === PORTAL_BUNDLE_ROUTE ? input.context[bundleRetentionCheck]?.() : undefined
+  await (sharedCheck ?? requirePortalRetentionAccess(input.context))
   await recordPortalAccess(input)
 }
 
