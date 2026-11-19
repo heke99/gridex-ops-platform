@@ -8,6 +8,7 @@ import {
  sendEdielMessageAction,
 } from '@/app/admin/ediel/actions'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { isUuid } from '@/lib/validation/uuid'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,16 +19,172 @@ type CustomerRow = {
  customer_number: string | null
 }
 
-type SiteRow = {
- id: string
- customer_id: string | null
- site_name: string | null
+type SiteRow = { id: string; site_name: string | null }
+type MeteringPointRow = { id: string; meter_point_id: string | null }
+
+type SearchParams = Record<string, string | string[] | undefined>
+type CursorField = 'customerAfter' | 'siteAfter' | 'pointAfter'
+type PageLink = { next?: string; reset?: string }
+
+const pickerSize = 25
+const pickerRoute = '/admin/ediel/ai-list'
+const pickerInput = 'w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900'
+
+function queryText(value: string | string[] | undefined): string | undefined {
+ return typeof value === 'string' ? value.trim() || undefined : undefined
 }
 
-type MeteringPointRow = {
- id: string
- site_id: string | null
- meter_point_id: string | null
+function queryId(value: string | string[] | undefined): string | undefined {
+ const id = queryText(value)
+ return id && isUuid(id) ? id.toLowerCase() : undefined
+}
+
+function readData<T>({data, error}: {data: T; error: unknown}): T {
+ if (error) throw error
+ return data
+}
+
+function visibleOptions<T extends {id: string}>(rows: T[], selected: T | null): T[] {
+ const visible = rows.slice(0, pickerSize)
+ if (selected && !visible.some((row) => row.id === selected.id)) visible.unshift(selected)
+ return visible
+}
+
+function pickerLinks(
+ filters: Record<string, string | undefined>,
+ cursor: CursorField,
+ rows: {id: string}[],
+): PageLink {
+ const parameters = new URLSearchParams()
+ for (const [key, value] of Object.entries(filters)) {
+   if (value) parameters.set(key, value)
+ }
+ parameters.delete(cursor)
+ if (cursor === 'customerAfter') parameters.delete('siteAfter')
+ if (cursor !== 'pointAfter') parameters.delete('pointAfter')
+ const href = () => pickerRoute + (parameters.size ? '?' + parameters : '')
+ const reset = filters[cursor] ? href() : undefined
+ if (rows.length <= pickerSize) return {reset}
+ parameters.set(cursor, rows[pickerSize - 1].id)
+ return {reset, next: href()}
+}
+
+async function readSelection(
+ supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+ companyId: string,
+ params: SearchParams,
+) {
+ const q = queryText(params.q)?.slice(0, 120)
+ const customerId = queryId(params.customerId)
+ const siteId = queryId(params.siteId)
+ const requestedPoint = queryId(params.meteringPointId)
+ const customerAfter = queryId(params.customerAfter)
+ const siteAfter = queryId(params.siteAfter)
+ const pointAfter = queryId(params.pointAfter)
+ const customerQuery = () => supabase.from('customers')
+   .select('id,full_name,company_name,customer_number').eq('company_id', companyId)
+
+ let customerList = customerQuery()
+ if (q) {
+   const pattern = JSON.stringify('%' + q.replace(/[\\%_]/g, character => '\\' + character) + '%')
+   customerList = customerList.or(['full_name', 'company_name', 'customer_number'].map(field => field + '.ilike.' + pattern).join(','))
+ }
+ if (customerAfter) customerList = customerList.gt('id', customerAfter)
+ const customers = (readData(await customerList.order('id').limit(pickerSize + 1)) ?? []) as CustomerRow[]
+ const customer = customers.find(row => row.id === customerId)
+   ?? (customerId ? readData(await customerQuery().eq('id', customerId).maybeSingle()) as CustomerRow | null : null)
+
+ let sites: SiteRow[] = []
+ let site: SiteRow | null = null
+ if (customer) {
+   const siteQuery = () => supabase.from('customer_sites')
+     .select('id,site_name').eq('company_id', companyId).eq('customer_id', customer.id)
+   const siteList = siteAfter ? siteQuery().gt('id', siteAfter) : siteQuery()
+   sites = (readData(await siteList.order('id').limit(pickerSize + 1)) ?? []) as SiteRow[]
+   site = sites.find(row => row.id === siteId)
+     ?? (siteId ? readData(await siteQuery().eq('id', siteId).maybeSingle()) as SiteRow | null : null)
+ }
+
+ let points: MeteringPointRow[] = []
+ let point: MeteringPointRow | null = null
+ if (customer && site) {
+   const scopedSiteId = site.id
+   const pointQuery = () => supabase.from('metering_points').select('id,meter_point_id')
+     .eq('company_id', companyId).eq('customer_id', customer.id)
+     .or('customer_site_id.eq.' + scopedSiteId + ',and(customer_site_id.is.null,site_id.eq.' + scopedSiteId + ')')
+   const pointList = pointAfter ? pointQuery().gt('id', pointAfter) : pointQuery()
+   points = (readData(await pointList.order('id').limit(pickerSize + 1)) ?? []) as MeteringPointRow[]
+   point = points.find(row => row.id === requestedPoint)
+     ?? (requestedPoint ? readData(await pointQuery().eq('id', requestedPoint).maybeSingle()) as MeteringPointRow | null : null)
+ }
+
+ const filters = {q, customerAfter, siteAfter, pointAfter, customerId: customer?.id, siteId: site?.id, meteringPointId: point?.id}
+ return {
+   customer, site, point, q, customerAfter, siteAfter,
+   customerUnavailable: Boolean(customerId && !customer),
+   siteUnavailable: Boolean(siteId && !!customer && !site),
+   pointUnavailable: Boolean(requestedPoint && !!site && !point),
+   customers: visibleOptions(customers, customer),
+   sites: visibleOptions(sites, site),
+   points: visibleOptions(points, point),
+   customerLinks: pickerLinks(filters, 'customerAfter', customers),
+   siteLinks: pickerLinks(filters, 'siteAfter', sites),
+   pointLinks: pickerLinks(filters, 'pointAfter', points),
+ }
+}
+
+function PickerNavigation({ links, label }: {links: PageLink; label: string}) {
+ if (!links.reset && !links.next) return null
+ return <nav aria-label={label} className="flex gap-4 text-sm">
+   {links.reset ? <Link href={links.reset} prefetch={false} className="underline">Första sidan</Link> : null}
+   {links.next ? <Link href={links.next} prefetch={false} className="underline">Visa fler</Link> : null}
+ </nav>
+}
+
+function SelectionControls({selection}: {selection: Awaited<ReturnType<typeof readSelection>>}) {
+ return (
+   <div className="mb-6 grid gap-5">
+     <form method="get" action={pickerRoute} className="flex flex-wrap items-end gap-2">
+       <label className="grid gap-1 text-sm font-medium">Sök kundnamn eller kundnummer
+         <input name="q" defaultValue={selection.q} maxLength={120} className={pickerInput} />
+       </label>
+       <button className="rounded-xl border border-slate-300 px-3 py-2 text-sm">Sök kunder</button>
+     </form>
+     <form method="get" action={pickerRoute} className="flex flex-wrap items-end gap-2">
+       {selection.q ? <input type="hidden" name="q" value={selection.q} /> : null}
+       {selection.customerAfter ? <input type="hidden" name="customerAfter" value={selection.customerAfter} /> : null}
+       <label className="grid gap-1 text-sm font-medium">Kund
+         <select name="customerId" className={pickerInput} defaultValue={selection.customer?.id ?? ''} required>
+           <option value="">Välj kund</option>
+           {selection.customers.map(row => <option key={row.id} value={row.id}>{customerLabel(row)}</option>)}
+         </select>
+       </label>
+       <button className="rounded-xl border border-slate-300 px-3 py-2 text-sm">Visa anläggningar</button>
+     </form>
+     <PickerNavigation links={selection.customerLinks} label="Kundsidor" />
+     {!selection.customers.length ? <p role="status">Inga kunder att visa på denna sida.</p> : null}
+     {selection.customerUnavailable ? <p role="status">Kunden kunde inte väljas i det aktuella bolaget.</p> : null}
+     {selection.customer ? (
+       <form method="get" action={pickerRoute} className="flex flex-wrap items-end gap-2">
+         <input type="hidden" name="customerId" value={selection.customer.id} />
+         {selection.q ? <input type="hidden" name="q" value={selection.q} /> : null}
+         {selection.customerAfter ? <input type="hidden" name="customerAfter" value={selection.customerAfter} /> : null}
+         {selection.siteAfter ? <input type="hidden" name="siteAfter" value={selection.siteAfter} /> : null}
+         <label className="grid gap-1 text-sm font-medium">Anläggning
+           <select name="siteId" className={pickerInput} defaultValue={selection.site?.id ?? ''} required>
+             <option value="">Välj anläggning</option>
+             {selection.sites.map(row => <option key={row.id} value={row.id}>{row.site_name || row.id}</option>)}
+           </select>
+         </label>
+         <button className="rounded-xl border border-slate-300 px-3 py-2 text-sm">Visa mätpunkter</button>
+       </form>
+     ) : null}
+     {selection.customer ? <PickerNavigation links={selection.siteLinks} label="Anläggningssidor" /> : null}
+     {selection.siteUnavailable ? <p role="status">Anläggningen kunde inte väljas för den aktuella kunden.</p> : null}
+     {selection.customer && !selection.siteUnavailable && !selection.sites.length ? <p role="status">Inga anläggningar att visa för kunden på denna sida.</p> : null}
+     {selection.pointUnavailable ? <p role="status">Mätpunkten kunde inte väljas för den aktuella anläggningen.</p> : null}
+   </div>
+ )
 }
 
 function formatDate(value: string | null | undefined) {
@@ -68,7 +225,7 @@ function customerLabel(row: CustomerRow) {
  return row.company_name || row.full_name || row.customer_number || row.id
 }
 
-export default async function AdminEdielAiListPage() {
+export default async function AdminEdielAiListPage({searchParams}: {searchParams?: Promise<SearchParams>} = {}) {
  const context = await requireAdminPageAccess({allOf:['communication.read','customers.read']})
  if(!context.companyId||!['communication.read','customers.read'].every(p=>context.permissions.includes(p)))return <main className="p-6"><h1 className="text-xl font-semibold">AI-/BI-listor</h1><p>Välj ett bolag där du får läsa kommunikation och kunder.</p></main>
  const companyId=context.companyId
@@ -76,47 +233,12 @@ export default async function AdminEdielAiListPage() {
  const canSend=['ediel.send','communication.send'].some(p=>context.permissions.includes(p))
 
  const supabase = await createSupabaseServerClient()
-
- const customersQuery = supabase
- .from('customers')
- .select('id, full_name, company_name, customer_number')
- .eq('company_id',companyId)
- .order('created_at', { ascending: false })
- .limit(100)
-
- const sitesQuery = supabase
- .from('customer_sites')
- .select('id, customer_id, site_name')
- .eq('company_id',companyId)
- .order('created_at', { ascending: false })
- .limit(200)
-
- const meteringPointsQuery = supabase
- .from('metering_points')
- .select('id, site_id, meter_point_id')
- .eq('company_id',companyId)
- .order('created_at', { ascending: false })
- .limit(200)
-
- const [messagesResult, customersResult, sitesResult, meteringPointsResult] =
- await Promise.all([
- supabase.from('ediel_messages').select('*').eq('company_id',companyId).eq('message_family','AI_LIST').order('created_at',{ascending:false}).limit(100),
- customersQuery,
- sitesQuery,
- meteringPointsQuery,
+ const [messagesResult, selection] = await Promise.all([
+   supabase.from('ediel_messages').select('*').eq('company_id', companyId).eq('message_family', 'AI_LIST')
+     .order('created_at', {ascending: false}).limit(100),
+   canPrepare ? readSelection(supabase, companyId, await searchParams ?? {}) : null,
  ])
-
- if (messagesResult.error) throw messagesResult.error
- if (customersResult.error) throw customersResult.error
- if (sitesResult.error) throw sitesResult.error
- if (meteringPointsResult.error) throw meteringPointsResult.error
-
- const aiMessages = ((messagesResult.data??[]) as EdielMessageRow[]).filter(
- (row) => row.message_family === 'AI_LIST'
- )
- const customers = (customersResult.data ?? []) as CustomerRow[]
- const sites = (sitesResult.data ?? []) as SiteRow[]
- const meteringPoints = (meteringPointsResult.data ?? []) as MeteringPointRow[]
+ const aiMessages = ((readData(messagesResult) ?? []) as EdielMessageRow[]).filter(row => row.message_family === 'AI_LIST')
 
  return (
  <div className="min-h-screen bg-slate-50">
@@ -137,7 +259,14 @@ export default async function AdminEdielAiListPage() {
  </p>
  </div>
 
- {canPrepare ? <form action={prepareAiListAction} className="grid gap-4 md:grid-cols-3">
+ {selection ? <SelectionControls selection={selection} /> : <p role="status">Din aktuella behörighet medger läsning. Export kräver egen skrivbehörighet och ett granskat ändamålsunderlag.</p>}
+ {selection?.customer && selection.site ? <form action={prepareAiListAction} className="grid gap-4 md:grid-cols-3">
+ <input type="hidden" name="customerId" value={selection.customer.id} />
+ <input type="hidden" name="siteId" value={selection.site.id} />
+ <p className="text-sm text-slate-700 md:col-span-3">
+ AI-listan gäller <strong>{customerLabel(selection.customer)}</strong>
+ {' · '}<strong>{selection.site.site_name || selection.site.id}</strong>.
+ </p>
  <div>
  <label htmlFor="ai-listType" className="mb-2 block text-sm font-medium text-slate-700">Listtyp</label>
  <select id="ai-listType" name="listType"
@@ -149,47 +278,14 @@ export default async function AdminEdielAiListPage() {
  </div>
 
  <div>
- <label htmlFor="ai-customerId" className="mb-2 block text-sm font-medium text-slate-700">Kund</label>
- <select id="ai-customerId" name="customerId"
- className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
- required
- >
- <option value="">Välj kund</option>
- {customers.map((row) => (
- <option key={row.id} value={row.id}>
- {customerLabel(row)}
- </option>
- ))}
- </select>
- </div>
-
- <div>
- <label htmlFor="ai-siteId" className="mb-2 block text-sm font-medium text-slate-700">Anläggning</label>
- <select id="ai-siteId" name="siteId"
- className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
- required
- >
- <option value="">Välj anläggning</option>
- {sites.map((row) => (
- <option key={row.id} value={row.id}>
- {row.site_name || row.id}
- </option>
- ))}
- </select>
- </div>
-
- <div>
  <label htmlFor="ai-meteringPointId" className="mb-2 block text-sm font-medium text-slate-700">Mätpunkt</label>
- <select id="ai-meteringPointId" name="meteringPointId"
- className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
- >
+ <select id="ai-meteringPointId" name="meteringPointId" className={pickerInput} defaultValue={selection.point?.id ?? ''}>
  <option value="">Valfri</option>
- {meteringPoints.map((row) => (
- <option key={row.id} value={row.id}>
- {row.meter_point_id || row.id}
- </option>
+ {selection.points.map((row) => (
+ <option key={row.id} value={row.id}>{row.meter_point_id || row.id}</option>
  ))}
  </select>
+ <PickerNavigation links={selection.pointLinks} label="Mätpunktssidor" />
  </div>
 
  <div>
@@ -259,7 +355,7 @@ export default async function AdminEdielAiListPage() {
  Generera och köa AI-lista
  </button>
  </div>
- </form> : <p role="status">Din aktuella behörighet medger läsning. Export kräver egen skrivbehörighet och ett granskat ändamålsunderlag.</p>}
+ </form> : null}
  <p className="mt-4"><Link href="/admin/ediel/ai-purpose-sources" className="underline">Ändamålsunderlag för AI-/BI-listor</Link></p>
  </section>
 
