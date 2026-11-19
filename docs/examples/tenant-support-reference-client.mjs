@@ -5,6 +5,7 @@
 // that customer's behalf with the linked portal user id. Gridex only returns content that staff
 // explicitly made customer-visible; internal notes and call logs are never returned.
 import { randomUUID } from 'node:crypto'
+import { pathToFileURL } from 'node:url'
 
 /**
  * @param {{ baseUrl?: string, apiKey: string, portalUserId: string, fetchImpl?: typeof fetch }} options
@@ -22,12 +23,19 @@ export function createSupportClient({ baseUrl = 'https://app.gridex.se', apiKey,
     }
     if (idempotencyKey) headers['idempotency-key'] = idempotencyKey
     const response = await fetchImpl(`${baseUrl}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
-    const payload = await response.json()
-    if (!response.ok) {
-      const error = new Error(payload?.error?.message ?? `HTTP ${response.status}`)
-      error.status = response.status
-      error.code = payload?.error?.code ?? null
-      throw error
+    const wire = {
+      status: response.status,
+      requestId: response.headers.get('X-Request-ID'),
+      retryAfter: response.headers.get('Retry-After'),
+    }
+    const payload = await response.json().catch(() => undefined)
+    if (!response.ok || payload === undefined) {
+      // An API error may have a structured code. A gateway can return plain text or no body.
+      const message = typeof payload?.error?.message === 'string'
+        ? payload.error.message
+        : response.ok ? `Invalid JSON (HTTP ${wire.status})` : `HTTP ${wire.status}`
+      const code = typeof payload?.error?.code === 'string' ? payload.error.code : null
+      throw Object.assign(new Error(message), wire, { code })
     }
     return { payload, response }
   }
@@ -77,16 +85,43 @@ export function createSupportClient({ baseUrl = 'https://app.gridex.se', apiKey,
   }
 }
 
-// Example run against a synthetic environment:
-//   GRIDEX_API_KEY=... GRIDEX_PORTAL_USER_ID=... node docs/examples/tenant-support-reference-client.mjs
-if (import.meta.url === `file://${process.argv[1]}`) {
+// First check read access in the selected test environment.
+//   export GRIDEX_API_BASE_URL=https://support-test.example.invalid
+//   export GRIDEX_API_KEY=... GRIDEX_PORTAL_USER_ID=...
+//   node docs/examples/tenant-support-reference-client.mjs
+//
+// To open a synthetic case, generate a key once and save it with the submitted data.
+//   export GRIDEX_IDEMPOTENCY_KEY="$(node -p "require('node:crypto').randomUUID()")"
+//   node docs/examples/tenant-support-reference-client.mjs --write-test-case
+// If the response was lost, use the same saved GRIDEX_IDEMPOTENCY_KEY and run again.
+//   node docs/examples/tenant-support-reference-client.mjs --write-test-case
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const args = process.argv.slice(2)
+  const write = args.length === 1 && args[0] === '--write-test-case'
+  if (args.length && !write) throw new Error('Use no arguments for read-only access or --write-test-case in a test environment.')
+
+  const baseUrl = process.env.GRIDEX_API_BASE_URL?.trim()
+  if (!baseUrl) throw new Error('Set GRIDEX_API_BASE_URL explicitly for the selected test environment.')
+  const url = URL.canParse(baseUrl) ? new URL(baseUrl) : null
+  if (!url || !['https:', 'http:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
+    throw new Error('GRIDEX_API_BASE_URL must be an absolute HTTP(S) base URL without credentials, query, or fragment.')
+  }
+
+  const productionHostname = url.hostname.replace(/\.$/, '') === 'app.gridex.se'
+  if (write && productionHostname) throw new Error('--write-test-case requires a test environment.')
+  const idempotencyKey = process.env.GRIDEX_IDEMPOTENCY_KEY?.trim()
+  if (write && !idempotencyKey) throw new Error('Save and set GRIDEX_IDEMPOTENCY_KEY before opening a test case.')
+
   const client = createSupportClient({
-    baseUrl: process.env.GRIDEX_API_BASE_URL,
+    baseUrl: url.href.replace(/\/+$/, ''),
     apiKey: process.env.GRIDEX_API_KEY,
     portalUserId: process.env.GRIDEX_PORTAL_USER_ID,
   })
-  const opened = await client.openCase({ title: 'Fråga om faktura', message: 'Syntetiskt testärende.' })
-  console.log('opened', opened.data.case_reference, opened.data.status)
-  const detail = await client.getCase(opened.data.case_reference)
-  console.log('messages', detail.data.messages.map((message) => `${message.author_type}: ${message.body}`))
+  if (write) {
+    const opened = await client.openCase({ title: 'Fråga om faktura', message: 'Syntetiskt testärende.' }, idempotencyKey)
+    console.log('opened', opened.data.case_reference, opened.data.status)
+  } else {
+    await client.listCases()
+    console.log('Support read access confirmed.')
+  }
 }
