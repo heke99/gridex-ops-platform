@@ -2,12 +2,10 @@
 
 import { supabaseService } from '@/lib/supabase/service'
 import {
-  createOutboundRequest,
   findOpenOutboundBySource,
   updateOutboundRequestStatus,
   updateGridOwnerDataRequestStatus,
 } from '@/lib/cis/db'
-import { findBestCommunicationRoute } from '@/lib/cis/db-routes'
 import {
   getGridOwnerById,
   getMeteringPointById,
@@ -15,13 +13,6 @@ import {
 } from '@/lib/masterdata/db'
 import type { GridOwnerDataRequestRow, OutboundRequestRow } from '@/lib/cis/types'
 import { prepareAndQueueUtiltsE73 } from '@/lib/ediel/orchestrator'
-
-export type EnsureDataRequestOutboundInput = {
-  actorUserId: string
-  dataRequestId: string
-  requestType: 'meter_values' | 'billing_underlay'
-  communicationRouteId?: string | null
-}
 
 export type QueueUtiltsFromDataRequestInput = {
   actorUserId: string
@@ -64,75 +55,6 @@ async function getGridOwnerDataRequestById(
   return (data as GridOwnerDataRequestRow | null) ?? null
 }
 
-function buildDataRequestExternalReference(
-  row: GridOwnerDataRequestRow,
-  requestType: 'meter_values' | 'billing_underlay'
-) {
-  if (row.external_reference) return row.external_reference
-  return `${requestType.toUpperCase()}-${row.id}`
-}
-
-async function resolveRouteIdForDataRequest(params: {
-  row: GridOwnerDataRequestRow
-  requestType: 'meter_values' | 'billing_underlay'
-  communicationRouteId?: string | null
-}): Promise<string | null> {
-  if (params.communicationRouteId) return params.communicationRouteId
-
-  const best = await findBestCommunicationRoute({
-    requestType: params.requestType,
-    gridOwnerId: params.row.grid_owner_id,
-  })
-
-  return best?.id ?? null
-}
-
-export async function ensureOutboundForGridOwnerDataRequest(
-  input: EnsureDataRequestOutboundInput
-): Promise<OutboundRequestRow> {
-  const row = await getGridOwnerDataRequestById(input.dataRequestId)
-  if (!row) {
-    throw new Error('Grid owner data request hittades inte')
-  }
-
-  const existing = await findOpenOutboundBySource({
-    sourceType: 'grid_owner_data_request',
-    sourceId: row.id,
-    requestType: input.requestType,
-  })
-
-  if (existing) {
-    return existing
-  }
-
-  const communicationRouteId = await resolveRouteIdForDataRequest({
-    row,
-    requestType: input.requestType,
-    communicationRouteId: input.communicationRouteId ?? null,
-  })
-
-  return createOutboundRequest({
-    actorUserId: input.actorUserId,
-    customerId: row.customer_id,
-    siteId: row.site_id,
-    meteringPointId: row.metering_point_id,
-    gridOwnerId: row.grid_owner_id,
-    communicationRouteId,
-    requestType: input.requestType,
-    sourceType: 'grid_owner_data_request',
-    sourceId: row.id,
-    externalReference: buildDataRequestExternalReference(row, input.requestType),
-    periodStart: row.requested_period_start,
-    periodEnd: row.requested_period_end,
-    payload: {
-      automation_origin: 'lib/cis/edielAutomation.ts',
-      request_scope: row.request_scope,
-      requested_period_start: row.requested_period_start,
-      requested_period_end: row.requested_period_end,
-    },
-  })
-}
-
 export async function ensureAndPrepareUtiltsFromDataRequest(
   input: QueueUtiltsFromDataRequestInput
 ) {
@@ -151,13 +73,8 @@ export async function ensureAndPrepareUtiltsFromDataRequest(
     )
   }
 
-  await ensureOutboundForGridOwnerDataRequest({
-    actorUserId: input.actorUserId,
-    dataRequestId: row.id,
-    requestType: 'meter_values',
-    communicationRouteId: input.communicationRouteId ?? null,
-  })
-
+  // E73 qualifies the actor, route and delivery period before handling its
+  // outbound request.
   return prepareAndQueueUtiltsE73({
     actorUserId: input.actorUserId,
     gridOwnerDataRequestId: row.id,
