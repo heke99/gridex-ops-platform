@@ -4,6 +4,7 @@ import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getEdielAutomationDashboard, type EdielAutomationRow } from '@/lib/ediel/operations/automationDashboard'
 import { processEdielOutboxAction, sendSingleEdielOutboxItemAction } from '@/app/admin/ediel/outbox/actions'
+import { readDeliveryUncertainOutbox } from '@/lib/ediel/outbox/readDeliveryUncertain'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +23,7 @@ function dateText(value: unknown): string {
 function statusTone(value: unknown): string {
   const status = String(value ?? '').toLowerCase()
   if (status === 'sent') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
-  if (['prepared', 'queued', 'sending'].includes(status)) return 'border-amber-200 bg-amber-50 text-amber-900'
+  if (['prepared', 'queued', 'sending', 'delivery_uncertain'].includes(status)) return 'border-amber-200 bg-amber-50 text-amber-900'
   if (['failed', 'blocked'].includes(status)) return 'border-red-200 bg-red-50 text-red-900'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
@@ -38,10 +39,11 @@ function lockText(row: EdielAutomationRow): string | null {
 
 function OutboxRow({ row }: { row: EdielAutomationRow }) {
   const lock = lockText(row)
+  const deliveryUncertain = row.status === 'delivery_uncertain'
   return (
     <tr className="border-b border-slate-100 align-top">
       <td className="px-4 py-4">
-        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(row.status)}`}>{text(row.status)}</span>
+        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(row.status)}`}>{deliveryUncertain ? 'Leveransoviss' : text(row.status)}</span>
         {lock ? <div className="mt-1 text-[11px] font-medium text-slate-500">{lock}</div> : null}
       </td>
       <td className="px-4 py-4">
@@ -49,11 +51,11 @@ function OutboxRow({ row }: { row: EdielAutomationRow }) {
         <div className="mt-1 text-xs text-slate-500">Outcome: {text(row.ack_outcome)} · Miljö: {text(row.environment)}</div>
       </td>
       <td className="px-4 py-4 text-sm text-slate-700">{text(row.attempts)}</td>
-      <td className="px-4 py-4 text-sm text-slate-700">{dateText(row.created_at)}<br />{row.sent_at ? <span>Skickat: {dateText(row.sent_at)}</span> : null}</td>
-      <td className="px-4 py-4 text-sm text-red-700">{text(row.last_error)}</td>
+      <td className="px-4 py-4 text-sm text-slate-700">{deliveryUncertain ? `Uppdaterad: ${dateText(row.updated_at)}` : <>{dateText(row.created_at)}<br />{row.sent_at ? <span>Skickat: {dateText(row.sent_at)}</span> : null}</>}</td>
+      <td className="px-4 py-4 text-sm text-red-700">{deliveryUncertain ? 'Leveransen behöver stämmas av.' : text(row.last_error)}</td>
       <td className="px-4 py-4">
         <div className="flex flex-wrap gap-2">
-          {row.ediel_message_id ? <Link className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50" href={`/admin/ediel/messages/${row.ediel_message_id}`}>Meddelande</Link> : null}
+          {row.ediel_message_id ? <Link className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50" href={`/admin/ediel/messages/${row.ediel_message_id}`}>{deliveryUncertain ? 'Öppna meddelande för avstämning' : 'Meddelande'}</Link> : null}
           {canSend(row) ? (
             <form action={sendSingleEdielOutboxItemAction}>
               <input type="hidden" name="outboxItemId" value={text(row.id)} />
@@ -66,9 +68,9 @@ function OutboxRow({ row }: { row: EdielAutomationRow }) {
   )
 }
 
-function OutboxSection({ title, subtitle, tone, rows }: { title: string; subtitle: string; tone: string; rows: EdielAutomationRow[] }) {
+function OutboxSection({ title, subtitle, tone, rows, emptyMessage = 'Inga outbox-poster i denna miljö.' }: { title: string; subtitle: string; tone: string; rows: EdielAutomationRow[]; emptyMessage?: string }) {
   return (
-    <section className={`overflow-hidden rounded-3xl border ${tone} shadow-sm`}>
+    <section aria-label={title} className={`overflow-hidden rounded-3xl border ${tone} shadow-sm`}>
       <div className="border-b border-slate-200 px-5 py-4">
         <h2 className="text-lg font-black text-slate-950">{title}</h2>
         <p className="mt-1 text-sm text-slate-600">{subtitle}</p>
@@ -79,7 +81,7 @@ function OutboxSection({ title, subtitle, tone, rows }: { title: string; subtitl
             <tr><th className="px-4 py-3">Status</th><th className="px-4 py-3">Typ</th><th className="px-4 py-3">Försök</th><th className="px-4 py-3">Tid</th><th className="px-4 py-3">Fel / send-guard</th><th className="px-4 py-3">Åtgärd</th></tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? <tr><td className="px-4 py-6 text-slate-500" colSpan={6}>Inga outbox-poster i denna miljö.</td></tr> : null}
+            {rows.length === 0 ? <tr><td className="px-4 py-6 text-slate-500" colSpan={6}><span role="status">{emptyMessage}</span></td></tr> : null}
             {rows.map((row) => <OutboxRow key={text(row.id)} row={row} />)}
           </tbody>
         </table>
@@ -92,12 +94,25 @@ export default async function EdielOutboxPage() {
   const context = await requirePlatformAdminAccess()
   const isPlatformAdmin = isPlatformAdminContext(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
-  const dashboard = await getEdielAutomationDashboard({ companyId: companyScope.companyId, limit: 100 })
-  const queued = dashboard.outboxItems.filter((row) => ['prepared', 'queued', 'failed'].includes(String(row.status ?? '').toLowerCase()))
+  const [dashboard, reconciliation] = await Promise.all([
+    getEdielAutomationDashboard({ companyId: companyScope.companyId, limit: 100 }),
+    readDeliveryUncertainOutbox(companyScope.companyId),
+  ])
+  const reconciliationIds = new Set(reconciliation?.rows.map((row) => row.id))
+  // Separate reads may see different statuses for one ID. Keep reconciliation
+  // as that row's only view for this response, without offering another send.
+  const recentItems = dashboard.outboxItems.filter((row) => typeof row.id !== 'string' || !reconciliationIds.has(row.id))
+  const queued = recentItems.filter(canSend)
   const envOf = (row: EdielAutomationRow) => String(row.environment ?? '').toLowerCase()
-  const productionItems = dashboard.outboxItems.filter((row) => envOf(row) === 'production')
-  const testItems = dashboard.outboxItems.filter((row) => envOf(row) === 'test')
-  const otherItems = dashboard.outboxItems.filter((row) => envOf(row) !== 'production' && envOf(row) !== 'test')
+  const productionItems = recentItems.filter((row) => envOf(row) === 'production')
+  const testItems = recentItems.filter((row) => envOf(row) === 'test')
+  const otherItems = recentItems.filter((row) => envOf(row) !== 'production' && envOf(row) !== 'test')
+  const reconciliationCount = reconciliation?.rows.length ?? 0
+  const reconciliationSubtitle = reconciliation?.truncated
+    ? `Visar de ${reconciliationCount} senast uppdaterade posterna.`
+    : reconciliationCount > 0
+      ? `${reconciliationCount} ${reconciliationCount === 1 ? 'post visas' : 'poster visas'} för avstämning.`
+      : 'Leveransovissa kvittenser behöver avstämning före nästa åtgärd.'
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -141,6 +156,14 @@ export default async function EdielOutboxPage() {
             {dashboard.warnings.join(' · ')}
           </section>
         ) : null}
+
+        <OutboxSection
+          title="Avstämningsbehov"
+          subtitle={reconciliationSubtitle}
+          tone="border-amber-200 bg-amber-50/40"
+          rows={reconciliation?.rows ?? []}
+          emptyMessage={reconciliation ? 'Inga leveransovissa poster att stämma av.' : 'Avstämningsbehovet kunde inte läsas.'}
+        />
 
         <OutboxSection
           title="Produktions-outbox"
