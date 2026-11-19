@@ -93,6 +93,37 @@ describe('authorized immutable transport copy download', () => {
     expect(result.status).toBe(403); expect(await result.text()).not.toContain('secret')
     expect(mock.download).not.toHaveBeenCalled()
   })
+
+  it.each(['', `?attemptId=${attemptId}`])('distinguishes journal read errors and native permission for %s', async query => {
+    const forbidden = 'Transportkopian kunde inte auktoriseras eller läsas.'
+    const unavailable = 'Transportkopian kan tillfälligt inte läsas.'
+    for (const [code, upstreamStatus, status, message] of [
+      ['42501', 403, 403, forbidden],
+      ['PGRST000', 503, 503, unavailable],
+      ['', 504, 503, unavailable],
+      ['', null, 503, unavailable],
+      ['PGRST202', 404, 403, forbidden],
+    ] as const) {
+      mock.rpc.mockClear()
+      const client = syntheticSupabase(async (input, init) => {
+        expect(String(input)).toBe('https://supabase.example.invalid/rest/v1/rpc/gridex_ediel_transport_copy_v1')
+        expect(init?.method).toBe('POST')
+        expect(JSON.parse(String(init?.body))).toEqual({ p_company_id: companyId, p_actor_user_id: actorUserId, p_message_id: messageId })
+        if (upstreamStatus === null) throw new TypeError('fetch failed')
+        return Response.json({ code, message: 'synthetic private journal diagnostic' }, { status: upstreamStatus })
+      })
+      mock.rpc.mockImplementation((name: string, args: Record<string, unknown>) => client.rpc(name, args))
+
+      const result = await GET(request(query), context)
+      expect(result.status).toBe(status)
+      expect(await result.json()).toEqual({ error: message })
+      expect(result.headers.get('cache-control')).toBe('private, no-store')
+      expect(result.headers.get('content-disposition')).toBeNull()
+      expect(mock.rpc).toHaveBeenCalledOnce()
+      expect(mock.storage).not.toHaveBeenCalled()
+    }
+  })
+
   it.each([
     [{ code: 'P0001', message: tombstoneMessage }, 400, 410, 'Transportkopian är spärrad enligt gallringsbeslutet.'],
     [{ code: 'PGRST000', message: 'synthetic connection unavailable' }, 503, 503, 'Transportkopian kan tillfälligt inte läsas.'],
