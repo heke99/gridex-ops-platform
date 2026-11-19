@@ -30,6 +30,7 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
 
   if (!invoice) notFound()
 
+  const paymentDue = invoice.status === 'issued' || invoice.status === 'sent' || invoice.status === 'overdue'
   const pdfHref = documentHref(invoice.pdf_url)
   const documentPdf = documents.find((document) => documentHref(document.public_url))
     ?? documents.find((document) => document.file_path)
@@ -58,7 +59,9 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-right">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Att betala</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              {paymentDue ? 'Att betala' : 'Fakturabelopp'}
+            </p>
             <p className="mt-2 text-3xl font-bold text-slate-950">{formatSek(invoice.amount_inc_vat)}</p>
             <p className="mt-1 text-sm text-slate-500">inkl. moms</p>
           </div>
