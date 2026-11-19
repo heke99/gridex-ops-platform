@@ -97,6 +97,7 @@ vi.mock('@/lib/supabase/service', () => ({
 
 import { GET as getMeteringValues } from '@/app/api/v1/customer/metering-values/route'
 import { GET as getPortalBundle } from '@/app/api/v1/customer/portal-bundle/route'
+import { logCustomerPortalSuccess } from '@/lib/customer-portal/externalApi'
 
 function reading(id: number, quantity: number, start: string, end: string): Row {
   return {
@@ -108,6 +109,7 @@ function reading(id: number, quantity: number, start: string, end: string): Row 
 }
 
 beforeEach(() => {
+  vi.mocked(logCustomerPortalSuccess).mockClear()
   io.queries = []
   io.remainingSchemaFallbacks = 0
   io.rows = [
@@ -151,6 +153,32 @@ describe('latest revisions in Customer metering responses', () => {
       expect(query.searchParams.get('limit')).toBe('2')
     }
     expect(io.queries[1].searchParams.get('or')).toContain(`id.lt.${io.rows[1].id}`)
+    expect(logCustomerPortalSuccess).toHaveBeenCalledTimes(2)
+    expect(logCustomerPortalSuccess).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      resultCount: page1.data.length,
+      metadata: expect.objectContaining({ source_table: 'normalized_metering_values', customer_id: customerId, facility_id: facility }),
+    }))
+    expect(logCustomerPortalSuccess).toHaveBeenNthCalledWith(2, expect.objectContaining({ resultCount: page2.data.length }))
+  })
+
+  it('records zero delivered rows when the page is empty', async () => {
+    io.rows = []
+    const response = await getMeteringValues(new NextRequest(
+      'https://ops.example.test/api/v1/customer/metering-values?limit=1',
+    ))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ data: [], page: { returned: 0, has_more: false } })
+    expect(logCustomerPortalSuccess).toHaveBeenCalledOnce()
+    expect(logCustomerPortalSuccess).toHaveBeenCalledWith(expect.objectContaining({ resultCount: 0 }))
+  })
+
+  it('does not record a successful page when canonical metering is unavailable', async () => {
+    io.remainingSchemaFallbacks = 1
+    const response = await getMeteringValues(new NextRequest(
+      'https://ops.example.test/api/v1/customer/metering-values?limit=1',
+    ))
+    expect(response.ok).toBe(false)
+    expect(logCustomerPortalSuccess).not.toHaveBeenCalled()
   })
 
   it.each([0, 1, 2])('filters before the Portal Bundle limit through %i schema fallbacks', async fallbacks => {
