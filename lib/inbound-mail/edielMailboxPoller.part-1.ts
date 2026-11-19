@@ -973,26 +973,46 @@ export async function markMailboxPollStarted(
     Date.now() -
       envInt("EDIEL_INBOUND_STALE_MAILBOX_LOCK_MINUTES", 30) * 60_000,
   ).toISOString();
+  const claimFields = "id,locked_by,locked_at";
+  const patch = {
+    last_polled_at: nowIso(),
+    locked_at: nowIso(),
+    locked_by: owner,
+    last_error: null,
+    updated_at: nowIso(),
+  };
   let query = supabaseService
     .from("ediel_mailboxes")
-    .update({
-      last_polled_at: nowIso(),
-      locked_at: nowIso(),
-      locked_by: owner,
-      last_error: null,
-      updated_at: nowIso(),
-    })
+    .update(patch)
     .eq("id", mailboxId);
 
   if (!forceLock) {
     query = query.or(`locked_at.is.null,locked_at.lt.${staleCutoff}`);
   }
 
-  const { data, error } = await query.select("id,locked_by,locked_at").maybeSingle();
-
+  const { data: writtenRow, error } = await query.select(claimFields).maybeSingle();
   if (error) throw error;
+
+  let data = writtenRow;
+  const needsReadback = !forceLock && data === null;
+  if (needsReadback) {
+    // PostgREST can reapply the eligibility OR to the freshly locked row in its response.
+    const readback = await supabaseService
+      .from("ediel_mailboxes")
+      .select(claimFields)
+      .eq("id", mailboxId)
+      .eq("locked_by", owner)
+      .eq("locked_at", patch.locked_at)
+      .maybeSingle();
+    if (readback.error) throw readback.error;
+    data = readback.data;
+  }
+
   const receipt = readInboundLeaseReceipt(data);
-  if (data && (!receipt || receipt.id !== mailboxId || receipt.locked_by !== owner)) {
+  if (data && (
+    !receipt || receipt.id !== mailboxId || receipt.locked_by !== owner ||
+    (needsReadback && Date.parse(receipt.locked_at) !== Date.parse(patch.locked_at))
+  )) {
     throw new Error("mailbox_poll_claim_invalid");
   }
   return receipt;
