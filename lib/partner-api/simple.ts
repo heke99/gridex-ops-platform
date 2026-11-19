@@ -470,15 +470,26 @@ async function resolveInvoicePdf(document: { file_path: string | null; metadata:
     for (const bucket of allowedBuckets) candidates.push({ bucket, path: filePath })
   }
 
-  let lastError: unknown = null
+  let documentError: SimplePartnerApiError | undefined
+  let storageUnavailable = false
   for (const candidate of candidates) {
     try {
       return await readPrivateFile(candidate.bucket, candidate.path, MAX_INVOICE_PDF_BYTES)
     } catch (error) {
-      lastError = error
+      if (error instanceof SimplePartnerApiError) {
+        documentError ??= error
+        continue
+      }
+      const { status, statusCode } = record(error)
+      // Legacy Storage responses can use HTTP 400 with a specific missing-object code.
+      const missing = status === 404 || (status === 400 && ['404', 'NoSuchKey', 'NoSuchBucket', 'not_found'].includes(String(statusCode)))
+      storageUnavailable ||= !missing
     }
   }
-  if (lastError instanceof SimplePartnerApiError) throw lastError
+  if (documentError) throw documentError
+  if (storageUnavailable) {
+    throw new SimplePartnerApiError('Invoice PDF Storage is temporarily unavailable.', 'invoice_pdf_storage_unavailable', 503)
+  }
   throw new SimplePartnerApiError('Invoice PDF is not available.', 'invoice_pdf_not_available', 404)
 }
 
