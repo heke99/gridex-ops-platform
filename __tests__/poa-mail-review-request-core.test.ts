@@ -21,11 +21,12 @@ import { assessManualReply } from '@/lib/inbound-mail/manualReplyAssessment'
 const CO = '11111111-1111-4111-8111-111111111111'
 const REQ = '22222222-2222-4222-8222-222222222222'
 const GO = '44444444-4444-4444-8444-444444444444'
+const POA = '55555555-5555-4555-8555-555555555555'
 const BASE_KEY = `manual-facility-request:${CO}:site-1:${GO}:hash-1:facility_identifier_lookup:${REQ}`
 
 function poa(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'poa-1', company_id: CO, customer_id: 'cu-1', site_id: 'site-1', status: 'signed', scope: 'facility_information_lookup',
+    id: POA, company_id: CO, customer_id: 'cu-1', site_id: 'site-1', status: 'signed', scope: 'facility_information_lookup',
     scope_summary: {}, accepted_at: '2026-09-01T10:00:00Z', signer_name: 'Anna Kund', signer_identity_number: '199001011234',
     method: 'bankid', fullmakt_snapshot: { legal_text: { title: 'Fullmakt', body: 'Synthetic accepted authorization text' } }, source: 'admin', valid_from: '2026-09-01', valid_to: '2099-01-01',
     revoked_at: null, created_at: '2026-09-01T10:00:00Z', ...overrides,
@@ -60,7 +61,7 @@ afterEach(() => { vi.unstubAllEnvs() })
 
 describe('baseline', () => {
   it.each(['completed', 'cancelled'])('keeps a concurrent %s state when PDF archiving fails', async (status) => {
-    const db = seed({ request: { status: 'ready_to_send_manual_email', poa_id: 'poa-1' } }); port.db = db
+    const db = seed({ request: { status: 'ready_to_send_manual_email', poa_id: POA } }); port.db = db
     const storageFrom = db.client.storage.from
     db.client.storage.from = (bucket) => ({ ...storageFrom(bucket), upload: async () => {
       db.tables.grid_owner_information_requests[0].status = status
@@ -71,7 +72,7 @@ describe('baseline', () => {
     expect(db.tables.manual_email_outbox).toHaveLength(0)
   })
   it('does not erase a newer rejection while recording an archive failure', async () => {
-    const db = seed({ request: { status: 'ready_to_send_manual_email', poa_id: 'poa-1' } }); port.db = db
+    const db = seed({ request: { status: 'ready_to_send_manual_email', poa_id: POA } }); port.db = db
     const storageFrom = db.client.storage.from
     db.client.storage.from = (bucket) => ({ ...storageFrom(bucket), upload: async () => {
       await recordManualCounterpartyReply({ companyId: CO, request: { ...db.tables.grid_owner_information_requests[0] }, inboundId: 'latest-rejection',
@@ -83,7 +84,7 @@ describe('baseline', () => {
     expect(db.tables.manual_email_outbox).toHaveLength(0)
   })
   it.each([false, true])('preserves a rejection arriving during PDF IO (reused outbox: %s)', async (reuse) => {
-    const db = seed({ request: { status: 'ready_to_send_manual_email', poa_id: 'poa-1' } }); port.db = db
+    const db = seed({ request: { status: 'ready_to_send_manual_email', poa_id: POA } }); port.db = db
     if (reuse) await run()
     const storageFrom = db.client.storage.from
     let rejected = false
@@ -112,14 +113,14 @@ describe('baseline', () => {
     expect((await run()).status).toBe('manual_email_queued')
     expect(db.tables.manual_email_outbox[0].status).toBe('failed')
     expect(db.tables.manual_email_outbox).toHaveLength(2)
-    expect((db.tables.manual_email_outbox[1].attachments as Array<Record<string, unknown>>)[0].poa_id).toBe('poa-1')
+    expect((db.tables.manual_email_outbox[1].attachments as Array<Record<string, unknown>>)[0].poa_id).toBe(POA)
   })
   it('saves generated fullmakter under the exact tenant/customer and reuses the immutable PDF', async () => {
     const db = seed({ poa: { fullmakt_snapshot: { legal_text: { title: 'Fullmakt', body: 'Synthetic accepted text', version: 'v1' } } } })
     port.db = db
     await run()
     const poa = db.tables.powers_of_attorney[0]
-    expect(poa.document_path).toMatch(new RegExp(`^companies/${CO}/customers/cu-1/powers-of-attorney/poa-1/fullmakt-[a-f0-9]{64}\\.pdf$`))
+    expect(poa.document_path).toMatch(new RegExp(`^companies/${CO}/customers/cu-1/powers-of-attorney/${POA}/fullmakt-[a-f0-9]{64}\\.pdf$`))
     const original = String((db.tables.manual_email_outbox[0].attachments as Array<Record<string, unknown>>)[0].content)
     expect(db.storageFiles.get(`customer-documents/${poa.document_path}`)?.toString('base64')).toBe(original)
     await run()

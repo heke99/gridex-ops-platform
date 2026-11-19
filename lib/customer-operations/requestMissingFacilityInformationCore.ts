@@ -24,6 +24,7 @@ import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertOutboundAllowed } from '@/lib/platform/outboundFreeze'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
+import { canonicalUuidOrText, postgrestEq, quotePostgrestValue, UUID_PATTERN } from '@/lib/ediel/matching/postgrestFilter'
 import {
   renderManualEmailTemplate,
   type ManualEmailTemplateKey,
@@ -238,35 +239,75 @@ async function readTenantCompanyIdentity(companyId: string): Promise<{ name: str
   }
 }
 
+const MANUAL_POA_PAGE_SIZE = 25
+
+function readManualPoaCursor(row: JsonRecord) {
+  const id = clean(row.id)
+  const createdAt = clean(row.created_at)
+  const fraction = createdAt && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.(\d{1,6}))?(?:Z|[+-]\d{2}:\d{2})$/.exec(createdAt)
+  if (!id || !UUID_PATTERN.test(id) || !createdAt || !fraction || !Number.isFinite(Date.parse(createdAt))) {
+    throw new Error('manual_facility_poa_page_invalid')
+  }
+  // Keep the database literal for the next query and compare UTC instants at
+  // PostgreSQL precision when checking that the page advanced.
+  const instant = `${new Date(createdAt).toISOString().slice(0, 19)}.${(fraction[1] ?? '').padEnd(6, '0')}Z`
+  return { id: id.toLowerCase(), createdAt, instant }
+}
+
 async function findValidPowerOfAttorney(input: {
   companyId: string
   customerId: string
   siteId: string
   requiredScope: string
 }): Promise<JsonRecord | null> {
-  const { data, error } = await supabaseService
-    .from('powers_of_attorney')
-    .select(MANUAL_POA_SELECT)
-    .eq('company_id', input.companyId)
-    .eq('customer_id', input.customerId)
-    .in('status', ['signed', 'active', 'accepted'])
-    .order('created_at', { ascending: false })
-    .limit(25)
-  if (error) {
-    if (missingSchema(error)) return null
-    throw error
-  }
-  const rows = (data ?? []) as unknown as JsonRecord[]
+  const siteId = canonicalUuidOrText(input.siteId)
+  const primarySite = postgrestEq('site_id', siteId)
   const now = new Date()
-  const match = rows.find((row) => {
-    const rowSite = clean(row.site_id) ?? clean(row.customer_site_id)
-    if (rowSite !== input.siteId) return false
-    // Canonical lifecycle: valid_from/valid_to/valid_until/expires_at,
-    // revoked_at and replacement all count, not only the status text.
-    if (!manualPoaIsCurrentlyValid(row, now)) return false
-    return poaScopeAllows(row, input.requiredScope)
-  })
-  return match ?? null
+  let cursor: ReturnType<typeof readManualPoaCursor> | null = null
+  for (;;) {
+    let query = supabaseService
+      .from('powers_of_attorney')
+      .select(`${MANUAL_POA_SELECT},created_at`)
+      .eq('company_id', input.companyId)
+      .eq('customer_id', input.customerId)
+      .in('status', ['signed', 'active', 'accepted'])
+      // The two OR groups require the primary site or a matching legacy site
+      // with no primary site. PostgREST combines top-level groups with AND.
+      .or(`${primarySite},${postgrestEq('customer_site_id', siteId)}`)
+      .or(`${primarySite},site_id.is.null`)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(MANUAL_POA_PAGE_SIZE)
+    if (cursor) {
+      query = query.lte('created_at', cursor.createdAt)
+        .or(`created_at.lt.${quotePostgrestValue(cursor.createdAt)},id.lt.${quotePostgrestValue(cursor.id)}`)
+    }
+
+    const { data, error } = await query
+    if (error) {
+      if (!cursor && missingSchema(error)) return null
+      throw error
+    }
+    if (!Array.isArray(data) || data.length > MANUAL_POA_PAGE_SIZE || data.some((row) => !jsonObject(row))) {
+      throw new Error('manual_facility_poa_page_invalid')
+    }
+
+    const rows = data as unknown as JsonRecord[]
+    const last = rows.at(-1)
+    if (!last) return null
+    const match = rows.find((row) => {
+      const rowSite = clean(row.site_id) ?? clean(row.customer_site_id)
+      return rowSite === siteId && manualPoaIsCurrentlyValid(row, now) && poaScopeAllows(row, input.requiredScope)
+    })
+    if (!cursor && match) return match
+
+    const next = readManualPoaCursor(last)
+    if (cursor && (next.id === cursor.id || next.instant > cursor.instant || (next.instant === cursor.instant && next.id > cursor.id))) {
+      throw new Error('manual_facility_poa_page_invalid')
+    }
+    if (match) return match
+    cursor = next
+  }
 }
 
 const findContactChannelEmail = findGridOwnerManualContact
