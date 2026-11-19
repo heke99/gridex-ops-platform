@@ -30,7 +30,13 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
 
   if (!invoice) notFound()
 
-  const paymentDue = invoice.status === 'issued' || invoice.status === 'sent' || invoice.status === 'overdue'
+  // Sent and overdue can represent partial settlements, and this row stores the original invoice total.
+  const invoicedTotal = invoice.amount_inc_vat
+  const paymentDue = invoice.status === 'issued'
+    && invoice.paid_at == null
+    && typeof invoicedTotal === 'number'
+    && Number.isFinite(invoicedTotal)
+    && invoicedTotal > 0
   const pdfHref = documentHref(invoice.pdf_url)
   const documentPdf = documents.find((document) => documentHref(document.public_url))
     ?? documents.find((document) => document.file_path)
