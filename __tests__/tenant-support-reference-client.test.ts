@@ -83,11 +83,11 @@ globalThis.fetch = async (input, init) => {
 `
 const testBaseUrl = 'https://support-test.example.invalid'
 
-function runExample(env: NodeJS.ProcessEnv, args: string[] = []) {
+function runExample(env: Record<string, string>, args: string[] = []) {
   const loader = 'data:text/javascript,' + encodeURIComponent(fixtureFetch)
   const processResult = spawnSync(process.execPath, ['--import', loader, exampleFile, ...args], {
     encoding: 'utf8',
-    env: { GRIDEX_API_KEY: 'synthetic-fixture-key', GRIDEX_PORTAL_USER_ID: 'synthetic-portal-user', ...env },
+    env: { NODE_ENV: 'test', GRIDEX_API_KEY: 'synthetic-fixture-key', GRIDEX_PORTAL_USER_ID: 'synthetic-portal-user', ...env },
     timeout: 5000,
   })
   if (processResult.error) throw processResult.error
