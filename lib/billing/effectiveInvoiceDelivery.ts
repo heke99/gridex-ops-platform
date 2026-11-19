@@ -105,9 +105,9 @@ export function resolveEffectiveInvoiceDelivery(input: {
 }
 
 /**
- * Controlled rollout (tenantservice P3). `legacy` (default) reproduces the previous behaviour
- * exactly, per consumer: readiness inherited the customer and fell back to the contact email,
- * while invoice review and export read the contract only. `shared` uses the single resolver
+ * Controlled rollout (tenantservice P3). `legacy` (default) keeps the per-consumer sources:
+ * readiness can inherit customer billing details and fall back to the contact email, while
+ * invoice review and export read the contract only. `shared` uses the single resolver
  * above for all of them. Switch with GRIDEX_INVOICE_DELIVERY_RESOLVER=shared after the
  * invoice_email backfill is reviewed.
  */
@@ -125,10 +125,8 @@ export function resolveInvoiceDeliveryFor(
   if (mode === 'shared') return resolveEffectiveInvoiceDelivery(input)
   const contract = input.contract ?? {}
   const customer = consumer === 'readiness' ? input.customer ?? {} : {}
-  const pick = (a: unknown, b: unknown) => clean(a) ?? clean(b)
-  const street = pick(contract.billing_street, customer.billing_street)
-  const postalCode = pick(contract.billing_postal_code, customer.billing_postal_code)
-  const city = pick(contract.billing_city, customer.billing_city)
+  const contractAddress = completeAddress(contract.billing_street, contract.billing_postal_code, contract.billing_city, contract.billing_country)
+  const customerAddress = completeAddress(customer.billing_street, customer.billing_postal_code, customer.billing_city, customer.billing_country)
   const recipient = consumer === 'readiness'
     ? clean(contract.invoice_recipient) ?? clean(input.customer?.full_name) ?? clean(input.customer?.company_name)
     : clean(contract.invoice_recipient)
@@ -141,8 +139,8 @@ export function resolveInvoiceDeliveryFor(
     email,
     emailSource: email ? (clean(contract.invoice_email) ? 'contract_override' : 'customer_billing_profile') : null,
     reference: clean(contract.invoice_reference),
-    postalAddress: street && postalCode && city ? { street, postalCode, city, country: clean(contract.billing_country) ?? 'SE' } : null,
-    postalAddressSource: street && postalCode && city ? 'contract_override' : null,
+    postalAddress: contractAddress ?? customerAddress,
+    postalAddressSource: contractAddress ? 'contract_override' : customerAddress ? 'customer_billing_profile' : null,
     inheritsCustomerProfile: false,
   }
 }
