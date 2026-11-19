@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { mapWithConcurrency } from '@/lib/performance/mapWithConcurrency'
 
 // Production consistency checks (spec §42). Read-only reconciliation used by
 // /admin/system-health. Every check is tenant-scoped when companyId is given
@@ -226,36 +227,52 @@ async function checkOpenSwitchesMissingPrerequisites(context: CheckContext): Pro
 async function checkInvoiceRunTotals(context: CheckContext): Promise<ReconciliationCheckResult[]> {
   const base = {
     key: 'invoice_run_totals_mismatch',
-    label: 'Exportkörningar där postsumman inte stämmer',
-    description: 'Summan av fakturaexportposternas belopp avviker från exportkörningens registrerade omfattning. Kontrollera innan bokföring.',
+    label: 'Exportkörningar med avvikande postantal',
+    description: 'Jämför totalt antal poster och antal poster med status skickad eller krediterad med exportkörningens registrerade antal.',
     severity: 'critical' as const,
   }
   try {
     let runQuery = supabaseService
       .from('invoice_export_runs')
-      .select('id,total_items,sent_items,failed_items')
+      .select('id,company_id,total_items,sent_items')
       .order('created_at', { ascending: false })
       .limit(50)
     if (context.companyId) runQuery = runQuery.eq('company_id', context.companyId)
     const { data: runs, error: runError } = await runQuery
     if (runError) throw runError
+    if (!runs) throw new Error('invoice_export_run_scope_unavailable')
 
-    const mismatched: string[] = []
-    for (const run of (runs ?? []) as Record<string, unknown>[]) {
-      const runId = String(run.id)
-      let itemQuery = supabaseService
-        .from('invoice_export_items')
-        .select('id,status')
-        .eq('export_run_id', runId)
-        .limit(SCAN_LIMIT)
-      if (context.companyId) itemQuery = itemQuery.eq('company_id', context.companyId)
-      const { data: items, error: itemError } = await itemQuery
-      if (itemError) throw itemError
-      const rows = (items ?? []) as Record<string, unknown>[]
-      const sent = rows.filter((row) => ['sent', 'credited'].includes(String(row.status))).length
-      const recordedSent = numberValue(run.sent_items)
-      if (rows.length > 0 && sent !== recordedSent) mismatched.push(runId)
-    }
+    const state: { failure?: { cause: unknown } } = {}
+    // Four runs with two counts each keep the read bounded at eight requests in flight.
+    const byRun = await mapWithConcurrency(runs, 4, async (run) => {
+      if (state.failure) return null
+      try {
+        const runId = stringValue(run.id)
+        const companyId = stringValue(run.company_id)
+        if (!runId || !companyId || (context.companyId && companyId !== context.companyId.toLowerCase())) {
+          throw new Error('invoice_export_run_scope_unavailable')
+        }
+        const countItems = () => supabaseService
+          .from('invoice_export_items')
+          .select('id', { count: 'exact', head: true })
+          .eq('company_id', companyId)
+          .eq('export_run_id', runId)
+        const [total, sent] = await Promise.all([countItems(), countItems().in('status', ['sent', 'credited'])])
+        if (total.error) throw total.error
+        if (sent.error) throw sent.error
+        if (total.count === null || sent.count === null ||
+          !Number.isSafeInteger(total.count) || !Number.isSafeInteger(sent.count) || sent.count < 0 || sent.count > total.count) {
+          throw new Error('invoice_export_run_counts_unavailable')
+        }
+        return total.count !== numberValue(run.total_items) || sent.count !== numberValue(run.sent_items) ? runId : null
+      } catch (cause) {
+        // Let active lookups finish and stop starting new reads once a count fails.
+        state.failure ??= { cause }
+        return null
+      }
+    })
+    if (state.failure) throw state.failure.cause
+    const mismatched = byRun.filter(runId => runId !== null)
 
     return [{
       ...base,
