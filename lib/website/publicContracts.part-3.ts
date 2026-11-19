@@ -8,7 +8,7 @@ import { loadCompanySlugById } from "@/lib/legal/publicLegalDocuments"
 
 
 import { type PublicContractPriceOption, type PublicContractPriceOptionAreaPrice } from "@/lib/external-contracts/publicContractModel"
-import { canonicalSwedishPriceArea } from "@/lib/pricing/types"
+import { canonicalSwedishPriceArea, type PriceArea } from "@/lib/pricing/types"
 import type { PublicContractOffer } from './publicContracts.part-1'
 import { clean, customerTypeAllowed, mapOfferRow, numberOrNull, objectValue, publicOfferReference } from './publicContracts.part-1'
 import type { PortfolioPricingRows, PublicPriceOptionDiagnostic, PublishedPriceOptions } from './publicContracts.part-2'
@@ -313,6 +313,9 @@ export async function loadPublishedPriceOptions(
   return byPublication;
 }
 
+export type PortfolioHistoryScope = { priceArea: PriceArea | null };
+const PORTFOLIO_HISTORY_LIMIT = 48;
+
 export function portfolioPricingKey(portfolioId: string, pricePlanVersionId: string) {
   return `${portfolioId}:${pricePlanVersionId}`;
 }
@@ -320,6 +323,7 @@ export function portfolioPricingKey(portfolioId: string, pricePlanVersionId: str
 export async function loadPortfolioPricingByOffer(
   companyId: string,
   offers: PublicContractOffer[],
+  historyScope?: PortfolioHistoryScope,
 ): Promise<Map<string, PortfolioPricingRows>> {
   const targets = offers.flatMap((offer) => {
     if (
@@ -342,7 +346,7 @@ export async function loadPortfolioPricingByOffer(
   );
   if (portfolioIds.length === 0 || versionIds.length === 0) return new Map();
 
-  const settlements = await supabaseService
+  let query = supabaseService
     .from("portfolio_monthly_settlements")
     .select(
       "portfolio_id,price_plan_version_id,delivery_month,price_area_code,portfolio_price_ore_per_kwh,status",
@@ -351,9 +355,18 @@ export async function loadPortfolioPricingByOffer(
     .in("portfolio_id", portfolioIds)
     .in("price_plan_version_id", versionIds)
     .eq("is_current", true)
-    .in("status", ["final", "locked"])
+    .in("status", ["final", "locked"]);
+  if (historyScope?.priceArea) {
+    query = query.eq("price_area_code", historyScope.priceArea);
+  }
+  const ordered = query
     .order("delivery_month", { ascending: false })
     .order("price_area_code", { ascending: true });
+  // The exact offer resolver supplies one portfolio and one price plan version.
+  // Only priced rows can appear in the public history.
+  const settlements = await (historyScope
+    ? ordered.gt("portfolio_price_ore_per_kwh", 0).limit(PORTFOLIO_HISTORY_LIMIT)
+    : ordered);
   if (settlements.error) throw settlements.error;
 
   const result = new Map<string, PortfolioPricingRows>();
@@ -371,7 +384,7 @@ export async function loadPortfolioPricingByOffer(
       String(row.price_plan_version_id),
     );
     const current = result.get(key);
-    if (current && current.settlements.length < 48)
+    if (current && current.settlements.length < PORTFOLIO_HISTORY_LIMIT)
       current.settlements.push(row);
   }
   return result;
