@@ -95,6 +95,25 @@ export function portalContractTypeLabel(type: string | null | undefined): string
   return lookup(CONTRACT_TYPE, type, 'Elavtal')
 }
 
+type ContractStatusPresentation = { label: string; tone: 'neutral' | 'pending' | 'positive' | 'error' }
+
+const CONTRACT_STATUS: Record<string, ContractStatusPresentation> = {
+  draft: { label: 'Utkast', tone: 'neutral' },
+  pending_signature: { label: 'Väntar på signering', tone: 'pending' },
+  signature_failed: { label: 'Signering misslyckades – försök igen', tone: 'error' },
+  signed: { label: 'Signerat', tone: 'positive' },
+  active: { label: 'Aktivt', tone: 'positive' },
+  terminated: { label: 'Avslutat', tone: 'neutral' },
+  expired: { label: 'Utgånget', tone: 'neutral' },
+  cancelled: { label: 'Avbrutet', tone: 'neutral' },
+}
+
+export function portalContractStatus(status: string | null | undefined): ContractStatusPresentation {
+  return status && Object.hasOwn(CONTRACT_STATUS, status)
+    ? CONTRACT_STATUS[status]
+    : { label: 'Status behöver kontrolleras', tone: 'neutral' }
+}
+
 const INVOICE_LINE_TYPE: Record<string, string> = {
   energy: 'Elenergi',
   spot: 'Spotpris',

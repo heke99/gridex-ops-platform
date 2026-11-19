@@ -1,4 +1,4 @@
-import { portalContractTypeLabel } from "@/lib/customer-portal/labels";
+import { portalContractStatus, portalContractTypeLabel } from "@/lib/customer-portal/labels";
 import {
   getCustomerPortalContext,
   listPortalContracts,
@@ -7,18 +7,20 @@ import { formatDate, formatSek } from "@/lib/customer-portal/format";
 
 export const dynamic = "force-dynamic";
 
-function contractStatusLabel(status: string | null) {
-  const map: Record<string, string> = {
-    draft: "Utkast",
-    pending_signature: "Väntar på signering",
-    signature_failed: "Signering misslyckades – försök igen",
-    signed: "Signerat",
-    active: "Aktivt",
-    terminated: "Avslutat",
-    expired: "Utgånget",
-    cancelled: "Avbrutet",
-  };
-  return map[String(status ?? "")] ?? "Under handläggning";
+const statusClasses = {
+  neutral: "border-slate-200 bg-slate-50 text-slate-700",
+  pending: "border-amber-200 bg-amber-50 text-amber-900",
+  positive: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  error: "border-rose-200 bg-rose-50 text-rose-900",
+};
+
+function ContractStatusBadge({ status }: { status: string | null }) {
+  const { label, tone } = portalContractStatus(status);
+  return (
+    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClasses[tone]}`}>
+      {label}
+    </span>
+  );
 }
 
 export default async function PortalContractsPage() {
@@ -54,9 +56,7 @@ export default async function PortalContractsPage() {
                   {formatDate(contract.ends_at)}
                 </p>
               </div>
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-                {contractStatusLabel(contract.status)}
-              </span>
+              <ContractStatusBadge status={contract.status} />
             </div>
 
             <div className="mt-5 grid gap-3 text-sm text-slate-600 sm:grid-cols-2 xl:grid-cols-4">
