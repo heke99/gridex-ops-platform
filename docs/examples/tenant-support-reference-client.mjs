@@ -8,9 +8,26 @@ import { randomUUID } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 
 /**
- * @param {{ baseUrl?: string, apiKey: string, portalUserId: string, fetchImpl?: typeof fetch }} options
+ * If your organization requires verified customer login, supply a server-side callback
+ * that verifies the current session and returns a fresh signed assertion for portalUserId.
+ * It runs for every request, including reads and retries. On a write retry, keep the
+ * original Idempotency-Key and body, and let the callback return a new assertion with a new jti.
+ *
+ * @param {{
+ *   baseUrl?: string,
+ *   apiKey: string,
+ *   portalUserId: string,
+ *   fetchImpl?: typeof fetch,
+ *   getCustomerAssertion?: (context: { portalUserId: string }) => string | Promise<string>,
+ * }} options
  */
-export function createSupportClient({ baseUrl = 'https://app.gridex.se', apiKey, portalUserId, fetchImpl = fetch }) {
+export function createSupportClient({
+  baseUrl = 'https://app.gridex.se',
+  apiKey,
+  portalUserId,
+  fetchImpl = fetch,
+  getCustomerAssertion,
+}) {
   if (!apiKey) throw new Error('GRIDEX_API_KEY is required (server-side only)')
   if (!portalUserId) throw new Error('An actively linked portal user id is required')
 
@@ -22,7 +39,20 @@ export function createSupportClient({ baseUrl = 'https://app.gridex.se', apiKey,
       'x-gridex-auth-user-id': portalUserId,
     }
     if (idempotencyKey) headers['idempotency-key'] = idempotencyKey
-    const response = await fetchImpl(`${baseUrl}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
+    /** @type {RequestInit} */
+    const init = { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }
+    if (getCustomerAssertion !== undefined) {
+      const assertion = await Promise.resolve()
+        .then(() => getCustomerAssertion({ portalUserId }))
+        .catch(() => null)
+      if (typeof assertion !== 'string' || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(assertion)) {
+        throw new Error('Customer assertion unavailable.')
+      }
+      headers['x-gridex-customer-assertion'] = assertion
+      // The assertion must stay on the configured origin.
+      init.redirect = 'error'
+    }
+    const response = await fetchImpl(`${baseUrl}${path}`, init)
     const wire = {
       status: response.status,
       requestId: response.headers.get('X-Request-ID'),
@@ -85,6 +115,7 @@ export function createSupportClient({ baseUrl = 'https://app.gridex.se', apiKey,
   }
 }
 
+// For an assertion-enforced organization, use the factory from your authenticated backend.
 // First check read access in the selected test environment.
 //   export GRIDEX_API_BASE_URL=https://support-test.example.invalid
 //   export GRIDEX_API_KEY=... GRIDEX_PORTAL_USER_ID=...
