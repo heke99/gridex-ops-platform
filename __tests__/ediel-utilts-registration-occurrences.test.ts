@@ -2,6 +2,8 @@ import { expect, it, vi } from 'vitest'
 import { buildAperakDraft } from '@/lib/ediel/ack'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { segmentComposite, segmentUntrimmedRaw, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
+import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { energyHandoffMessage, observationHandoffMessage } from '@/__tests__/helpers/utiltsObservationHandoff'
 import { recountEdifactUnt } from '@/__tests__/helpers/recountEdifactUnt'
@@ -14,7 +16,7 @@ const registrationB = '202607010025'
 const owned = 'OWN-IDE'
 const sibling = 'SIBLING-IDE'
 
-function physicalSource(first: string, second: string, ownFirst: boolean, custom: boolean) {
+function physicalSource(first: string, second: string | null, ownFirst: boolean, custom: boolean) {
   const source = utiltsErrGatewayFixture({
     company: 'synthetic-transaction-registration',
     transactions: (ownFirst ? [owned, sibling] : [sibling, owned]).map(reference => ({
@@ -26,7 +28,9 @@ function physicalSource(first: string, second: string, ownFirst: boolean, custom
   const lines = source.raw_payload!.split('\n')
   const section = lines.findIndex(line => line.startsWith('IDE+24+' + owned))
   const declaration = lines.findIndex((line, index) => index > section && line.startsWith('DTM+597:'))
-  lines.splice(declaration, 1, `DTM+597:${first}:203'`, `DTM+597:${second}:203'`)
+  const registration = [`DTM+597:${first}:203'`]
+  if (second !== null) registration.push(`DTM+597:${second}:203'`)
+  lines.splice(declaration, 1, ...registration)
   const businessSegments = tokenizeEdifact(lines.join('\n')).segments
     .filter(segment => !['UNB', 'UNH', 'UNT', 'UNZ'].includes(segment.tag))
     .map(segmentUntrimmedRaw)
@@ -96,4 +100,49 @@ it('keeps distinct times at legitimate SG11 meter readings separate from field 5
   expect(dates).toHaveLength(3)
   expect(result.validation.syntaxOk).toBe(true)
   expect(result.validation.issues.some(issue => issue.aperakFieldCode === '512')).toBe(false)
+})
+
+it('allows different SG5 registration times under separate IDEs', () => {
+  const runtime = runUtiltsRuntimeForMessage(physicalSource(registrationB, null, false, false))
+  expect(runtime.facts.transactions.map(item => [item.transactionId, item.registrationTime])).toEqual([
+    [sibling, '2026-07-01T00:20:00'],
+    [owned, '2026-07-01T00:25:00'],
+  ])
+  expect(runtime.transactionDispositions.map(item => [item.transactionId, item.responseType])).toEqual([
+    [sibling, 'positive_aperak'], [owned, 'positive_aperak'],
+  ])
+})
+
+const lin = "LIN+++8716867000030:::9'"
+
+it.each([
+  ['between SG5 dates', `DTM+597:${registrationA}:203'`, `DTM+597:${registrationA}:203'\n${lin}\nDTM+597:${registrationB}:203'`],
+  ['after SEQ', "SEQ++1'", `SEQ++1'\n${lin}\nDTM+597:${registrationB}:203'`],
+] as const)('keeps extra LIN %s on the negative CONTRL path', (_position, original, replacement) => {
+  const source = energyHandoffMessage()
+  source.raw_payload = recountEdifactUnt(source.raw_payload!.replace(original, replacement))
+  const runtime = runUtiltsRuntimeForMessage(source)
+  expect(runtime.validation).toMatchObject({ classification: 'syntax_rejected', syntaxOk: false })
+  expect(runtime.validation.issues.some(issue => issue.code === 'UNSM_MESSAGE_STRUCTURE_INVALID')).toBe(true)
+  expect(runtime.ackPlan).toMatchObject({
+    shouldSendContrl: true, contrlOutcome: 'negative', shouldSendAperak: false, aperakApplicationErrors: [],
+  })
+})
+
+it('holds adjacent extra product lines before creating consumption contracts', async () => {
+  const message = energyHandoffMessage()
+  message.raw_payload = recountEdifactUnt(message.raw_payload!.replace(lin, lin + '\n' + lin))
+  const runtime = runUtiltsRuntimeForMessage(message)
+  const policy = resolveCanonicalMessagePolicy(message)!
+
+  expect(runtime.validation.syntaxOk).toBe(true)
+  await expect(prepareUtiltsConsumptionContracts({
+    message, runtime, policy, dataRequest: null, allowConsumption: true,
+    matches: [{
+      transactionReference: 'GRIDEX2607E66001', externalMeteringPointId: '735999260731000007',
+      externalGridAreaId: 'TES', meteringPointId: 'point', customerId: 'customer',
+      siteId: 'site', gridOwnerId: 'owner', matchStatus: 'matched',
+    }],
+    fallback: { customerId: 'customer', siteId: 'site', meteringPointId: 'point', gridOwnerId: 'owner' },
+  })).rejects.toThrow('physical_product_ambiguous')
 })
