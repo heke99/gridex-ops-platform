@@ -19,6 +19,14 @@ type ProviderResult = Awaited<ReturnType<typeof sendEdielEmail>> & { dispatchRep
 type Receipt = { proceed?: boolean; classification?: string; providerReceipt?: ProviderResult; observedAt?: string }
 class AcceptedProjection extends Error { constructor(readonly result: ProviderResult) { super('ediel_transport_projection_only') } }
 
+export const CANCELLED_APERAK_TRANSPORT = 'ediel_transport_aperak_cancelled'
+
+export function isCancelledAperakTransport(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const { code, message } = error as { code?: unknown; message?: unknown }
+  return code === 'GX104' && message === CANCELLED_APERAK_TRANSPORT
+}
+
 export type GenericEdielDispatchContext = {
   message: EdielMessageRow; actorUserId: string; owner?: OutboundDispatchOwner; mimeMode: string; payload: Buffer; encoding: string;
   admissionDecision?: Readonly<Record<string, unknown>> | null
@@ -83,7 +91,14 @@ export function createGenericEdielAttemptGate(input: SendEdielEmailInput, contex
       assertEdielAdmissionDateCurrent(context.admissionDecision)
       // Set before awaiting RPC. A lost response may follow committed entry.
       entered = true
-      const authorization = await call('enter')
+      let authorization: Receipt
+      try {
+        authorization = await call('enter')
+      } catch (error) {
+        // This SQL refusal is only raised before entry and rolls back the RPC.
+        if (isCancelledAperakTransport(error)) entered = false
+        throw error
+      }
       if (authorization.proceed !== true) throw new Error('ediel_transport_entry_denied')
       assertEdielAdmissionDateCurrent(context.admissionDecision)
     },

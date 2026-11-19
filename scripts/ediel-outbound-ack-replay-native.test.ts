@@ -7,8 +7,11 @@ import {recordEdielTechnicalSyntaxDecision,captureEdielTechnicalSyntaxAckEvidenc
 import {createCanonicalAckMessage} from '@/lib/ediel/core/kernel'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
+import {archiveTransportRawMime} from '@/lib/ediel/transport/rawMimeArchive'
+import {readPersistedProdatCommonHeaderNegativeAckBasis} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'
 import {decisionUser} from './helpers/ediel-decision-original-native-fixture'
+import {nativeLockProcess} from './helpers/native-lock-process'
 
 // Disposable native Supabase only. No parser, owner, database, gateway or
 // permission mock and no provider entry/traffic. Source/ACK are synthetic.
@@ -26,6 +29,73 @@ function sql<T>(input:string):T {
 // replay later reads that stored fact, never a current route selection.
 const contrlRoute=(company:string,endpoint:string)=>{const route=randomUUID(),profile=randomUUID();sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email) VALUES(${literal(route)},${literal(company)},'Native own CONTRL','ediel_ack','bilateral_test',true,'remote@example.invalid');INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,message_family,business_code,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,mailbox,smtp_host,smtp_port) VALUES(${literal(profile)},${literal(company)},${literal(route)},'Native own CONTRL','test','edifact','edifact','CONTRL','CONTRL',${literal(endpoint)},'12345','23-DDQ-PRODAT',true,true,'local@example.invalid','smtp.example.invalid',587)`);return {communication_route_id:route,route_profile_id:profile,application_reference:'23-DDQ-PRODAT'}}
 const unlistedProdatRulePin=()=>sql<Record<string,unknown>>(`SELECT jsonb_build_object('canonical_rule_pack_id',pack.id,'rule_profile_key',profile.profile_key,'rule_profile_version_id',profile.id,'rule_profile_version',pack.guide_version||':r'||pack.guide_revision,'rule_pack_checksum',pack.source_hash,'rule_pack_snapshot',profile.profile) FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.is_enabled AND profile.profile->>'family'='PRODAT' AND profile.direction IN('inbound','both') AND pack.status IN('active','future') ORDER BY profile.profile_key LIMIT 1`)
+
+async function assertAperakCancellationWinsEntry(ack: EdielMessageRow, companyId: string, actorUserId: string) {
+ const raw = ack.raw_payload!
+ const attemptId = randomUUID()
+ const { evidence } = await readPersistedProdatCommonHeaderNegativeAckBasis({companyId,environment:'test',ackMessageId:ack.id,expectedRawPayload:raw})
+ const payload = Buffer.from(raw,'latin1')
+ const mime = Buffer.concat([
+  Buffer.from(`Message-ID: <${attemptId}@example.invalid>\r\nContent-Type: application/edifact\r\n\r\n`), payload,
+ ])
+ const archive = await archiveTransportRawMime(mime,{companyId,messageId:ack.id})
+ const binding = {
+  ...archive, originalHash:createHash('sha256').update(raw).digest('hex'), routeId:ack.communication_route_id,
+  from:ack.sender_email, to:ack.receiver_email, payloadHash:createHash('sha256').update(payload).digest('hex'),
+  payloadLength:payload.length, mimeMode:'nodemailer-attachment', encoding:'latin1', prodatCommonHeaderRejectionEvidence:evidence,
+ }
+ const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:{code:string;message:string}|null}>
+ const call = (action:string, extra:Record<string,unknown>={}) => rpc('gridex_ediel_transport_attempt_v1',{
+  p_input:{companyId,environment:'test',messageId:ack.id,actorUserId,attemptId,action,...extra},
+ })
+ const prepared = await call('prepare',{owner:{kind:'direct'},binding})
+ expect(prepared.error).toBeNull()
+ expect(prepared.data).toEqual({proceed:true,state:'prepared'})
+
+ const holder = spawn('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{
+  stdio:['pipe','pipe','pipe'],env:{PATH:process.env.PATH,NODE_ENV:'test',PGOPTIONS:'-c statement_timeout=10000 -c idle_in_transaction_session_timeout=10000'},
+ })
+ const lock = nativeLockProcess(holder,{marker:'CANCEL_ROW_LOCKED',markerError:'native_aperak_cancellation_not_ready',lifetimeMs:15000})
+ let holderPid: number | undefined
+ let output = ''
+ holder.stdout.on('data',(chunk: Buffer)=>{
+  output = (output + String(chunk)).slice(-256)
+  const match = output.match(/PID:(\d+)/)
+  if (match) holderPid = Number(match[1])
+ })
+ const messageScope = `id=${literal(ack.id)} AND company_id=${literal(companyId)} AND environment='test' AND message_family='APERAK'`
+ holder.stdin.write(`SELECT 'PID:'||pg_backend_pid();\nBEGIN;\nUPDATE public.ediel_messages SET status='cancelled' WHERE ${messageScope};\n\\echo CANCEL_ROW_LOCKED\n`)
+ let entering: Promise<{data:unknown;error:{code:string;message:string}|null}> | undefined
+ try {
+  await lock.ready
+  expect(holderPid).toBeGreaterThan(0)
+  entering = Promise.resolve(call('enter'))
+  void entering.catch(()=>undefined)
+  let blocked = false
+  for (let step=0;step<100&&!blocked;step++) {
+   blocked = sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity WHERE wait_event_type='Lock'
+    AND query LIKE '%gridex_ediel_transport_attempt_v1%' AND ${holderPid}=ANY(pg_blocking_pids(pid))))`)
+   if (!blocked) await new Promise(resolve=>setTimeout(resolve,25))
+  }
+  expect(blocked).toBe(true)
+  await lock.release('COMMIT')
+  expect((await entering).error).toMatchObject({code:'GX104',message:'ediel_transport_aperak_cancelled'})
+ } finally {
+  await lock.dispose()
+  await entering?.catch(()=>undefined)
+ }
+
+ const journal = () => sql(`SELECT jsonb_build_object('status',m.status,'state',r.state,'enteredAt',a.entered_at,'observedAt',a.observed_at,
+  'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE company_id=m.company_id AND message_id=m.id))
+  FROM public.ediel_messages m JOIN gridex_ediel_transport.reservations r ON r.message_id=m.id
+  JOIN gridex_ediel_transport.attempts a ON a.id=r.attempt_id WHERE m.id=${literal(ack.id)} AND m.company_id=${literal(companyId)}`)
+ expect(journal()).toEqual({status:'cancelled',state:'prepared',enteredAt:null,observedAt:null,attempts:1})
+ const retry = () => call('prepare',{attemptId:randomUUID(),owner:{kind:'direct'},binding})
+ expect((await retry()).error).toMatchObject({code:'GX104',message:'ediel_transport_aperak_cancelled'})
+ expect(await call('release')).toMatchObject({data:{proceed:true,state:'released'},error:null})
+ expect((await retry()).error).toMatchObject({code:'GX104',message:'ediel_transport_aperak_cancelled'})
+ expect(journal()).toEqual({status:'cancelled',state:'released',enteredAt:null,observedAt:null,attempts:1})
+}
 
 it('replays a genuine native own CONTRL without current route selection and holds current grant/membership/endpoint revocation without effects',async()=>{
  const company=randomUUID(),actor=randomUUID(),sourceId=randomUUID(),ackId=randomUUID(),identifierId=randomUUID()
@@ -66,12 +136,10 @@ it('replays a genuine native own CONTRL without current route selection and hold
 })
 
 
-// Actual HTTP/PostgREST calls execute the full source-generated native owner,
-// guide, immutable namespace and witness triggers. Disposable synthetics only.
-it('atomically mints common negative ACK, rolls back the last event write, serializes same/opposite races and holds prewrite/replay grant revocation',async()=>{
+async function commonNegativeAckFixture() {
  const company=randomUUID(),actor=randomUUID(),sourceId=randomUUID(),routeId=randomUUID(),profileId=randomUUID(),roleId=randomUUID()
- const nonce=sourceId.replaceAll('-',''),fn='ediel_atomic_ack_fail_'+nonce
- const endpoint=sql<string>(`SELECT to_jsonb(min(n)::text) FROM generate_series(80000,89999)n WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.environment='test' AND i.identifier_type='EdielId' AND i.identifier_value=n::text AND (i.valid_to IS NULL OR now()<i.valid_to))`)
+ const nonce=sourceId.replaceAll('-','')
+ const endpoint=sql<string>(`SELECT to_jsonb(min(n)::text) FROM generate_series(80000,89999)n WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.environment='test' AND i.identifier_type='EdielId' AND i.identifier_value=n::text)`)
  const sourceRef='SRC'+nonce.slice(0,11),ownRef='ACK'+nonce.slice(0,11),unh='A'+nonce.slice(0,8)
  sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(company)},'Disposable atomic common native','active');
  INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous) VALUES(${literal(actor)},'authenticated','authenticated',${literal(actor+'@example.invalid')},now(),'{}','{}',now(),now(),false,false);
@@ -97,6 +165,14 @@ it('atomically mints common negative ACK, rolls back the last event write, seria
  const args={p_company_id:company,p_environment:'test',p_source_message_id:sourceId,p_source_payload_hash:createHash('sha256').update(raw).digest('hex'),p_actor_user_id:actor,p_ack_family:'APERAK',p_sequence_field:null,p_sequence_value:null,p_outcome:'negative',p_draft:{rawPayload:ownRaw,communicationRouteId:routeId,routeProfileId:profileId,senderEmail:'local@example.invalid',receiverEmail:'remote@example.invalid',mailbox:'local@example.invalid',parsedPayload:{display:'native atomic fixture'},validationReport:{}},p_common_smtp:{from:'local@example.invalid',host:'smtp.example.invalid',port:587}}
  const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:{replayed:boolean;ackMessage:EdielMessageRow}|null;error:{message:string}|null}>
  const create=(patch:Record<string,unknown>={})=>rpc('ediel_create_outbound_ack_atomic_v1',{...args,...patch})
+ return {company,actor,sourceId,routeId,profileId,roleId,receptionActor,ownRaw,create}
+}
+
+// Actual HTTP/PostgREST calls execute the full source-generated native owner,
+// guide, immutable namespace and witness triggers. Disposable synthetics only.
+it('atomically mints common negative ACK, rolls back the last event write, serializes same/opposite races and holds prewrite/replay grant revocation',async()=>{
+ const {company,actor,sourceId,routeId,profileId,roleId,ownRaw,create}=await commonNegativeAckFixture()
+ const fn='ediel_atomic_ack_fail_'+sourceId.replaceAll('-','')
  const effects=()=>sql<Record<string,number>>(`SELECT jsonb_build_object('messages',(SELECT count(*) FROM public.ediel_messages WHERE related_message_id=${literal(sourceId)}),'witnesses',(SELECT count(*) FROM gridex_ediel_common_header.negative_witnesses WHERE company_id=${literal(company)}),'consumptions',(SELECT count(*) FROM gridex_ediel_common_header.negative_consumptions WHERE company_id=${literal(company)}),'routeBindings',(SELECT count(*) FROM gridex_ediel_common_header.negative_route_bindings b JOIN gridex_ediel_common_header.negative_witnesses w ON w.id=b.witness_id WHERE w.company_id=${literal(company)}),'events',(SELECT count(*) FROM public.ediel_message_events WHERE company_id=${literal(company)}),'receipts',(SELECT count(*) FROM gridex_ediel_ack_replay.creation_receipts WHERE company_id=${literal(company)}),'namespace',(SELECT count(*) FROM gridex_ediel_wire_namespace.coverage WHERE company_id=${literal(company)}),'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(company)}),'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE company_id=${literal(company)}))`)
  const before=effects()
  sql(`CREATE FUNCTION public.${fn}()RETURNS trigger LANGUAGE plpgsql AS $$BEGIN IF NEW.company_id=${literal(company)}::uuid THEN RAISE EXCEPTION 'atomic_last_event_failure';END IF;RETURN NEW;END$$;CREATE TRIGGER ${fn} BEFORE INSERT ON public.ediel_message_events FOR EACH ROW EXECUTE FUNCTION public.${fn}()`)
@@ -128,6 +204,21 @@ it('atomically mints common negative ACK, rolls back the last event write, seria
  expect((await create({p_draft:{callerSource:'ignored-established'}})).data?.ackMessage.id).toBe(own.id);expect(effects()).toEqual(after)
  sql(`UPDATE public.user_permissions SET is_active=false WHERE user_id=${literal(actor)} AND company_id=${literal(company)}`);expect((await create()).error?.message).toMatch(/actor_not_authorized|ediel_business_ack_current_actor_required/);expect(effects()).toEqual(after)
  sql(`UPDATE public.user_permissions SET is_active=true WHERE user_id=${literal(actor)} AND company_id=${literal(company)};UPDATE public.tenant_actor_identifiers SET valid_to=now() WHERE id=${literal(roleId)}`);expect((await create()).error?.message).toContain('current_identity_unavailable');expect(effects()).toEqual(after)
+})
+
+it('holds a freshly qualified APERAK when cancellation commits before native transport entry',async()=>{
+ const {company,receptionActor,ownRaw,create}=await commonNegativeAckFixture()
+ // Fresh transport requires the test capability and the original route version.
+ // The established replay test changes that version on its separate tenant.
+ expect(sql<number>(`WITH updated AS (
+   UPDATE public.company_capabilities SET enabled=true,readiness_status='ready'
+   WHERE company_id=${literal(company)} AND capability_code='ediel_test' RETURNING 1
+ ) SELECT to_jsonb(count(*)) FROM updated`)).toBe(1)
+ expect(sql<boolean>(`SELECT to_jsonb(allowed) FROM public.canonical_tenant_operation_decision(${literal(company)},'ediel.test.process')`)).toBe(true)
+ const created=await create()
+ expect(created.error).toBeNull()
+ expect(created.data).toMatchObject({replayed:false,ackMessage:{raw_payload:ownRaw,ack_outcome:'negative'}})
+ await assertAperakCancellationWinsEntry(created.data!.ackMessage,company,receptionActor.id)
 })
 
 // 20261001134600/142520: every executing technical port names its actual
