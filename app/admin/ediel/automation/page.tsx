@@ -28,7 +28,7 @@ function tone(status: unknown): string {
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
-function Metric({ label, value, href, severity = 'neutral' }: { label: string; value: number; href?: string; severity?: 'neutral' | 'ok' | 'warn' | 'bad' }) {
+function Metric({ label, value, href, severity = 'neutral' }: { label: string; value: number | null; href?: string; severity?: 'neutral' | 'ok' | 'warn' | 'bad' }) {
   const classes = severity === 'bad'
     ? 'border-red-200 bg-red-50 text-red-950'
     : severity === 'warn'
@@ -39,7 +39,7 @@ function Metric({ label, value, href, severity = 'neutral' }: { label: string; v
   const body = (
     <>
       <p className="text-xs font-black uppercase tracking-[0.18em] opacity-70">{label}</p>
-      <p className="mt-2 text-3xl font-black">{value}</p>
+      <p className="mt-2 text-3xl font-black">{value ?? 'Okänt'}</p>
     </>
   )
   return href ? <Link href={href} className={`rounded-3xl border p-5 shadow-sm ${classes}`}>{body}</Link> : <div className={`rounded-3xl border p-5 shadow-sm ${classes}`}>{body}</div>
@@ -87,6 +87,7 @@ export default async function EdielAutomationPage() {
   const isPlatformAdmin = isPlatformAdminContext(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
   const dashboard = await getEdielAutomationDashboard({ companyId: companyScope.companyId, limit: 50 })
+  const unresolvedOpen = dashboard.metrics.unresolvedOpen
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -99,8 +100,8 @@ export default async function EdielAutomationPage() {
       />
       <main className="space-y-6 p-8">
         {dashboard.warnings.length > 0 ? (
-          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
-            <h2 className="font-black">Migration/åtkomst behöver kontrolleras</h2>
+          <section role="status" className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
+            <h2 className="font-black">Vissa uppgifter kunde inte hämtas</h2>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm font-semibold">
               {dashboard.warnings.map((warning) => <li key={warning}>{warning}</li>)}
             </ul>
@@ -114,7 +115,7 @@ export default async function EdielAutomationPage() {
           <Metric label="Outbox fel" value={dashboard.metrics.outboxFailed} href="/admin/ediel/outbox" severity={dashboard.metrics.outboxFailed > 0 ? 'bad' : 'ok'} />
           <Metric label="SLA kritisk" value={dashboard.metrics.slaCritical} severity={dashboard.metrics.slaCritical > 0 ? 'bad' : 'ok'} />
           <Metric label="Portaldiff" value={dashboard.metrics.portalMismatches} href="/admin/ediel/portal-feedback" severity={dashboard.metrics.portalMismatches > 0 ? 'warn' : 'ok'} />
-          <Metric label="Unresolved" value={dashboard.metrics.unresolvedOpen} href="/admin/ediel/unresolved" severity={dashboard.metrics.unresolvedOpen > 0 ? 'warn' : 'ok'} />
+          <Metric label="Unresolved" value={unresolvedOpen} href="/admin/ediel/unresolved" severity={unresolvedOpen === null ? 'neutral' : unresolvedOpen > 0 ? 'warn' : 'ok'} />
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">
