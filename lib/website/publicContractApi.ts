@@ -192,37 +192,4 @@ export function requestId(): string {
   return randomUUID()
 }
 
-/**
- * Parses an RFC 9110 If-None-Match field value. Returns `'*'` for the
- * wildcard, otherwise the list of entity-tags (quoted strings with optional
- * `W/` prefix). Malformed members are ignored so a broken list never matches.
- */
-export function parseIfNoneMatch(header: string | null): '*' | string[] {
-  if (!header) return []
-  const trimmed = header.trim()
-  if (trimmed === '*') return '*'
-  const tags: string[] = []
-  const pattern = /\s*(W\/)?("[\x21\x23-\x7e\x80-\xff]*")\s*(?:,|$)/gy
-  let match: RegExpExecArray | null
-  while (pattern.lastIndex < trimmed.length && (match = pattern.exec(trimmed))) {
-    tags.push(`${match[1] ?? ''}${match[2]}`)
-  }
-  return tags
-}
-
-function opaqueTag(tag: string): string {
-  return tag.startsWith('W/') ? tag.slice(2) : tag
-}
-
-/**
- * GET/HEAD If-None-Match evaluation (RFC 9110 section 13.1.2): weak
- * comparison, comma-separated lists and `*` (matches whenever a current
- * representation exists, which is the case once `etag` is known). Callers
- * must evaluate this only after authentication and tenant/profile resolution.
- */
-export function ifNoneMatchMatches(request: NextRequest, etag: string): boolean {
-  const parsed = parseIfNoneMatch(request.headers.get('if-none-match'))
-  if (parsed === '*') return true
-  const current = opaqueTag(etag)
-  return parsed.some((tag) => opaqueTag(tag) === current)
-}
+export { ifNoneMatchMatches, parseIfNoneMatch } from '@/lib/http/ifNoneMatch'
