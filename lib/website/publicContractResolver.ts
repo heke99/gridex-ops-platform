@@ -26,6 +26,7 @@ import {
   loadPublishedPriceOptions,
   portfolioPricingForOffer,
   type CanonicalPublicContractDeliveryReadiness,
+  type PortfolioHistoryScope,
 } from './publicContracts.part-3'
 
 type ResolvePublicContractOfferInput = {
@@ -37,6 +38,7 @@ type ResolvePublicContractOfferInput = {
   productCode?: string | null
   customerType?: string | null
   allowLegacyLookup?: boolean
+  portfolioHistory?: PortfolioHistoryScope
   /**
    * Publication channel the caller sells through. Defaults to `website`.
    * `api` resolves only canonical API-channel publications (Partner API).
@@ -120,7 +122,9 @@ export async function resolvePublicContractOffer(
 
   // Historical publications can predate canonical_offer_reference. Preserve
   // compatibility for those rare rows while keeping canonical traffic fast.
-  if (readinessRows.length === 0 && sourceRows.length === 0) return legacyLookup(input)
+  if (readinessRows.length === 0 && sourceRows.length === 0) {
+    return input.portfolioHistory ? null : legacyLookup(input)
+  }
 
   if (readinessRows.length > 1 || sourceRows.length > 1) {
     throw consistencyError(offerReference, null, 'TARGET_OFFER_REFERENCE_DUPLICATE')
@@ -169,7 +173,7 @@ export async function resolvePublicContractOffer(
     await Promise.all([
       loadPublicationReadinessByVersion(companyId, [offer]),
       loadLegalVersionsByBundle(companyId, [offer]),
-      loadPortfolioPricingByOffer(companyId, [offer]),
+      loadPortfolioPricingByOffer(companyId, [offer], input.portfolioHistory),
       loadPublishedPriceOptions(companyId, [offer]),
     ])
 
