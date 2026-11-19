@@ -755,8 +755,12 @@ function hasSegment(segments: readonly string[], prefix: string): boolean {
 
 function minutesBetween(start: string | null, end: string | null): number | null {
   if (!start || !end) return null
-  const startDate = new Date(start)
-  const endDate = new Date(end)
+  // Parsed Ediel periods are floating values in their declared fixed clock.
+  // UTC anchors only the duration arithmetic; do not apply the host's DST or
+  // change the source wall times. Explicit instants keep their supplied offset.
+  const floating = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?$/
+  const startDate = new Date(floating.test(start) ? `${start}Z` : start)
+  const endDate = new Date(floating.test(end) ? `${end}Z` : end)
   if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return null
   const diff = Math.round((endDate.getTime() - startDate.getTime()) / 60000)
   return diff > 0 ? diff : null
