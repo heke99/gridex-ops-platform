@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GET } from '@/app/api/partner/v1/[[...path]]/route'
-import { minimalPdf } from './helpers/minimalPdf'
+import { minimalPdf, objectStreamPdf } from './helpers/minimalPdf'
 
 type Row = Record<string, unknown>
-type StorageReply = 'timeout' | 'pdf' | 'oversized' | { status: number; code: string }
+type StorageReply = 'timeout' | 'pdf' | 'oversized' | Uint8Array<ArrayBuffer> | { status: number; code: string }
 const io = vi.hoisted(() => ({
   tables: {} as Record<string, Row[]>,
   storage: {} as Record<string, StorageReply>,
@@ -48,6 +48,7 @@ async function invoiceTransport(input: RequestInfo | URL, init?: RequestInit) {
     if (reply === 'timeout') throw new TypeError('Synthetic Storage transport timeout')
     if (reply === 'pdf') return new Response(pdfBytes, { headers: { 'content-type': 'application/pdf' } })
     if (reply === 'oversized') return new Response(new Uint8Array(15 * 1024 * 1024 + 1))
+    if (reply instanceof Uint8Array) return new Response(reply, { headers: { 'content-type': 'application/pdf' } })
     return Response.json({ statusCode: reply.code, message: 'Synthetic private Storage diagnostic' }, { status: reply.status })
   }
   if (url.pathname === '/rest/v1/rpc/ediel_require_invoice_file_copy_available_v1' && method === 'POST') {
@@ -145,6 +146,33 @@ describe('Partner invoice PDF availability', () => {
     expect(await response.json()).toMatchObject({ error: { code: 'document_too_large' } })
   })
 
+  it.each([
+    ['stored text', new TextEncoder().encode('Synthetic invoice text')],
+    ['a truncated PDF', pdfBytes.subarray(0, 75)],
+  ] as const)('rejects %s mislabeled as PDF by Storage', async (_label, bytes) => {
+    io.storage['customer-documents'] = bytes
+    io.storage['customer-contract-documents'] = 'pdf'
+
+    const response = await get()
+
+    expect(response.status).toBe(502)
+    const body = await response.json()
+    expect(body).toMatchObject({ error: { code: 'invoice_pdf_invalid_document' } })
+    expect(body).not.toHaveProperty('file_base64')
+    expect(io.retention).toHaveLength(1)
+    expect(io.reads).toHaveLength(1)
+  })
+
+  it('preserves the returned bytes of a PDF that uses compressed object streams', async () => {
+    const bytes = objectStreamPdf()
+    io.storage['customer-documents'] = Uint8Array.from(bytes)
+
+    const response = await get()
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ entity_id: invoiceReference, file_base64: bytes.toString('base64'), file_extension: 'pdf' })
+  })
+
   it('does not resolve retention or Storage for another tenant’s invoice', async () => {
     io.tables.customer_invoices[0].company_id = '10000000-0000-4000-8000-000000000004'
 
@@ -153,11 +181,14 @@ describe('Partner invoice PDF availability', () => {
     expect(io.reads).toEqual([])
   })
 
-  it('declares the temporary storage failure in the served Partner OpenAPI', async () => {
+  it('declares the storage and invalid-document failures in the served Partner OpenAPI', async () => {
     const response = await get(['openapi.json'])
     const spec = await response.json()
     expect(spec.paths['/invoice/{invoice_id}/pdf'].get.responses['503']).toEqual(expect.objectContaining({
       description: expect.stringContaining('invoice_pdf_storage_unavailable'),
+    }))
+    expect(spec.paths['/invoice/{invoice_id}/pdf'].get.responses['502']).toEqual(expect.objectContaining({
+      description: expect.stringContaining('invoice_pdf_invalid_document'),
     }))
   })
 })

@@ -1075,6 +1075,9 @@ async function getInvoicePdf(request: NextRequest, invoiceReference: string) {
       throw new SimplePartnerApiError('The invoice PDF copy has been retired.', 'invoice_pdf_retired', 410)
     }
     const file = await resolveInvoicePdf(document.data)
+    if (!inspectPdfStructure(file).ok) {
+      throw new SimplePartnerApiError('The stored invoice document is not a readable PDF.', 'invoice_pdf_invalid_document', 502)
+    }
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: 200, operation: 'invoice.pdf', id: context.id })
     return simpleJson({
       entity_id: invoice.invoice_reference,
