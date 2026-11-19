@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import PortalCompletionPage from '@/app/portal/komplettera/page'
 import PortalStatusPage from '@/app/portal/status/page'
-import type { CustomerPortalContext } from '@/lib/customer-portal/types'
+import type { CustomerPortalContext, CustomerPortalCustomerRow } from '@/lib/customer-portal/types'
 
 type StoredRequest = ReturnType<typeof request>
 
@@ -11,6 +11,7 @@ const io = vi.hoisted(() => ({
   requests: [] as StoredRequest[],
   reads: [] as URLSearchParams[],
   countAvailable: true,
+  rangeErrorHasCode: true,
 }))
 
 vi.mock('@/lib/customer-portal/db', async original => ({
@@ -42,6 +43,13 @@ function request(index: number, status: string, overrides = {}) {
     notes: `Syntetiskt underlag ${index}`,
     updated_at: new Date(Date.UTC(2026, 9, index + 1)).toISOString(),
     ...overrides,
+  }
+}
+
+function customer(id: string, name: string): CustomerPortalCustomerRow {
+  return {
+    id, full_name: name, customer_number: null, customer_type: null, status: null,
+    first_name: null, last_name: null, company_name: null, email: null, phone: null,
   }
 }
 
@@ -78,7 +86,8 @@ async function requestTransport(input: RequestInfo | URL, init?: RequestInit) {
   const offset = Number(query.get('offset') ?? 0)
   const limit = Number(query.get('limit') ?? rows.length)
   if (offset > 0 && offset >= rows.length) {
-    return Response.json({ code: 'PGRST103', message: 'Requested range not satisfiable' }, { status: 416 })
+    if (io.rangeErrorHasCode) return Response.json({ code: 'PGRST103', message: 'Requested range not satisfiable' }, { status: 416 })
+    return new Response(null, { status: 416, headers: { 'content-range': `*/${rows.length}` } })
   }
   const page = rows.slice(offset, offset + limit)
   const headers = new Headers()
@@ -94,6 +103,7 @@ beforeEach(() => {
   session()
   io.reads = []
   io.countAvailable = true
+  io.rangeErrorHasCode = true
   io.requests = [
     request(1, 'missing_binding_info', { notes: 'Öppet originalunderlag' }),
     ...Array.from({ length: 102 }, (_, index) => request(index + 2, 'completed', { notes: 'Avslutad intern historik' })),
@@ -135,6 +145,7 @@ describe('portalens öppna uppgiftsbegäran', () => {
   })
 
   it('kan visa ett länkat arbetsunderlag utanför sidan utan att visa en annan kunds rad', async () => {
+    session({ customers: [customer(customerId, 'Första kunden'), customer('linked-customer', 'Länkad kund')] })
     const selected = request(1, 'draft', { customer_id: 'linked-customer', notes: 'Länkat äldre underlag' })
     const foreign = request(2, 'draft', { customer_id: 'other-customer', notes: 'Annan kunds anteckning' })
     io.requests = [selected, foreign, ...Array.from({ length: 10 }, (_, index) => request(index + 3, 'draft'))]
@@ -144,14 +155,32 @@ describe('portalens öppna uppgiftsbegäran', () => {
     const found = await renderSelection(selected.id)
     expect(found).toContain('Länkat äldre underlag')
     expect(found).toContain(`id="uppgiftsbegaran-${selected.id}"`)
-    expect(await renderSelection(foreign.id)).not.toContain('Annan kunds anteckning')
+    expect(found).toMatch(/name="customer_id" value="linked-customer"/)
+    expect(found).toContain('Länkad kund')
+    const foreignPage = await renderSelection(foreign.id)
+    expect(foreignPage).not.toContain('Annan kunds anteckning')
+    expect(foreignPage).toMatch(/name="customer_id" value="customer-a"/)
     const lookup = io.reads.find(read => read.get('id') === `eq.${selected.id}`)
     expect(lookup?.get('company_id')).toBe('eq.tenant-a')
     expect(lookup?.get('customer_id')).toBe('in.(customer-a,linked-customer)')
     expect(lookup?.get('status')).toBe('not.in.(completed,closed,cancelled,rejected)')
   })
 
-  it('återgår till första sidan när en tidigare giltig sida försvinner', async () => {
+  it('väljer formulärets kund även för ett underlag som redan finns på första sidan', async () => {
+    session({ customers: [customer(customerId, 'Första kunden'), customer('linked-customer', 'Länkad kund')] })
+    const selected = request(190, 'draft', { customer_id: 'linked-customer' })
+    const rejected = request(191, 'rejected', { customer_id: 'linked-customer' })
+    io.requests.push(selected, rejected)
+    const renderSelection = async (id: string) => renderToStaticMarkup(await PortalCompletionPage({
+      searchParams: Promise.resolve({ request: id.toUpperCase() }),
+    }))
+    expect(await renderSelection(selected.id)).toMatch(/name="customer_id" value="linked-customer"/)
+    expect(io.reads.some(read => read.has('id'))).toBe(false)
+    expect(await renderSelection(rejected.id)).toMatch(/name="customer_id" value="customer-a"/)
+  })
+
+  it.each([true, false])('återgår från en tidigare giltig sida med eller utan JSON-felkod (%s)', async (hasCode) => {
+    io.rangeErrorHasCode = hasCode
     const html = renderToStaticMarkup(await PortalCompletionPage({ searchParams: Promise.resolve({ page: '5' }) }))
     expect(html).toContain('Öppet originalunderlag')
     expect(html).not.toContain('Föregående')

@@ -566,7 +566,9 @@ export async function listPortalCases(
 
 const PORTAL_INFO_REQUEST_HISTORY_STATUSES = ['completed', 'closed', 'cancelled', 'rejected']
 const PORTAL_INFO_REQUEST_PAGE_SIZE = 8
-type PortalInfoRequestListRow = Pick<CustomerPortalInfoRequestRow, 'id' | 'request_type' | 'status' | 'updated_at'> & { notes?: string | null }
+type PortalInfoRequestListRow =
+  Pick<CustomerPortalInfoRequestRow, 'id' | 'request_type' | 'status' | 'updated_at'>
+  & Partial<Pick<CustomerPortalInfoRequestRow, 'customer_id' | 'notes'>>
 
 export async function listPortalInfoRequests(
   context: CustomerPortalContext,
@@ -579,7 +581,10 @@ export async function listPortalInfoRequests(
 
   const query = supabaseService
     .from('customer_info_requests')
-    .select(scope === 'open' ? 'id,request_type,status,updated_at,notes' : 'id,request_type,status,updated_at', needsCount ? { count: 'exact' } : undefined)
+    .select(
+      scope === 'open' ? 'id,customer_id,request_type,status,updated_at,notes' : 'id,request_type,status,updated_at',
+      needsCount ? { count: 'exact' } : undefined,
+    )
     .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
   const scoped = scope === 'open'
@@ -595,7 +600,7 @@ export async function listPortalInfoRequests(
   }
 
   let result = await readPage(page)
-  if (page > 1 && (result.error?.code === 'PGRST103' || (!result.error && !result.data?.length))) {
+  if (page > 1 && (result.status === 416 || result.error?.code === 'PGRST103' || (!result.error && !result.data?.length))) {
     page = 1
     result = await readPage(page)
   }

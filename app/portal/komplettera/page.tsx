@@ -7,6 +7,7 @@ import {
 } from "@/lib/customer-portal/db";
 import { sanitizePortalCompletionBlockedFlash } from "@/lib/customer-portal/completionFlash";
 import { formatDate } from "@/lib/customer-portal/format";
+import { displayNameFromCustomer } from "@/lib/customer-portal/status";
 import { submitPortalCompletionAction } from "./actions";
 import { formatStatusLabel } from '@/lib/ui/format'
 
@@ -28,11 +29,16 @@ export default async function PortalCompletionPage({
     listPortalInfoRequests(context, { scope: "history" }),
     listPortalCompletions(context),
   ]);
-  const selected = requestId && !open.requests.some((request) => request.id === requestId)
+  const listedRequest = open.requests.find((request) => request.id === requestId);
+  const additionalRequest = requestId && !listedRequest
     ? (await listPortalInfoRequests(context, { scope: "open", requestId })).requests[0]
     : undefined;
-  const requests = selected ? [selected, ...open.requests] : open.requests;
-  const primaryCustomer = context.customers[0] ?? null;
+  const requests = additionalRequest ? [additionalRequest, ...open.requests] : open.requests;
+  const selectedRequest = listedRequest ?? additionalRequest;
+  const customerId = selectedRequest?.customer_id ?? context.customers[0]?.id ?? "";
+  const customerName = context.customers.length > 1
+    ? displayNameFromCustomer(context.customers.find((customer) => customer.id === customerId))
+    : null;
 
   return (
     <div className="space-y-6">
@@ -67,11 +73,8 @@ export default async function PortalCompletionPage({
           <h2 className="text-lg font-semibold text-slate-950">
             Ny komplettering
           </h2>
-          <input
-            type="hidden"
-            name="customer_id"
-            value={primaryCustomer?.id ?? ""}
-          />
+          {customerName ? <p className="mt-2 text-sm text-slate-600">Gäller {customerName}.</p> : null}
+          <input type="hidden" name="customer_id" value={customerId} />
           <div className="mt-5 grid gap-4">
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Typ
