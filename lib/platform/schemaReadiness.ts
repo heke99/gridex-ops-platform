@@ -29,6 +29,7 @@ type ReadinessRow = PlatformSchemaReadinessEvidence
 
 type CachedReadiness = { checkedAt: number; row: ReadinessRow }
 let cachedReadiness: CachedReadiness | null = null
+let pendingReadiness: Promise<ReadinessRow> | null = null
 
 export class PlatformSchemaNotReadyError extends Error {
   readonly code = 'platform_schema_not_ready'
@@ -92,15 +93,7 @@ export function evaluatePlatformSchemaReadiness(
   }
 }
 
-async function loadReadinessRow(): Promise<ReadinessRow> {
-  const now = Date.now()
-  if (
-    cachedReadiness &&
-    now - cachedReadiness.checkedAt < READINESS_CACHE_TTL_MS
-  ) {
-    return cachedReadiness.row
-  }
-
+async function queryReadinessRow(): Promise<ReadinessRow> {
   const { data, error } = await supabaseService
     .from(PLATFORM_RUNTIME_CAPABILITY_VIEW)
     .select(
@@ -110,7 +103,6 @@ async function loadReadinessRow(): Promise<ReadinessRow> {
     .maybeSingle()
 
   if (error) {
-    cachedReadiness = null
     if (missingSchema(error)) {
       throw new PlatformSchemaNotReadyError(
         'Databasen saknar Gridex runtime capability gate v3. Kör de framåtriktade readiness-migrationerna före applikationsdeploy.',
@@ -124,7 +116,6 @@ async function loadReadinessRow(): Promise<ReadinessRow> {
   }
 
   if (!data) {
-    cachedReadiness = null
     throw new PlatformSchemaNotReadyError(
       'Databasens runtime capability gate returnerade ingen verifieringsrad.',
       {
@@ -134,13 +125,33 @@ async function loadReadinessRow(): Promise<ReadinessRow> {
     )
   }
 
-  const row = data as ReadinessRow
-  cachedReadiness = { checkedAt: now, row }
-  return row
+  return data as ReadinessRow
+}
+
+async function loadReadinessRow(): Promise<ReadinessRow> {
+  const now = Date.now()
+  if (cachedReadiness && now - cachedReadiness.checkedAt < READINESS_CACHE_TTL_MS) {
+    return cachedReadiness.row
+  }
+  if (pendingReadiness) return pendingReadiness
+
+  cachedReadiness = null
+  const read: Promise<ReadinessRow> = queryReadinessRow()
+    .then((row) => {
+      if (pendingReadiness === read) cachedReadiness = { checkedAt: now, row }
+      return row
+    })
+    .finally(() => {
+      if (pendingReadiness === read) pendingReadiness = null
+    })
+  pendingReadiness = read
+  return read
 }
 
 export function invalidatePlatformSchemaReadinessCache(): void {
   cachedReadiness = null
+  // An older read can still return to its original callers after invalidation.
+  pendingReadiness = null
 }
 
 export async function assertPlatformSchemaReady(): Promise<void> {
