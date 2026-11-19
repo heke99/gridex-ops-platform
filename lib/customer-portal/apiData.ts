@@ -312,32 +312,21 @@ export async function listPortalContractsPage(
 const SITE_SELECT = 'id,facility_reference,customer_id,status,site_name,facility_id,normalized_facility_id,site_type,street,postal_code,city,country,price_area_code,grid_area_code,grid_owner_id,resolution_status,move_in_date,move_out_date,annual_consumption_kwh,metadata,created_at'
 const SITE_LEGACY_SELECT = 'id,customer_id,status,site_name,facility_id,site_type,street,postal_code,city,country,price_area_code,grid_owner_id,move_in_date,move_out_date,annual_consumption_kwh,created_at'
 const SITE_MINIMAL_SELECT = 'id,customer_id,status,site_name,facility_id,street,postal_code,city,country,price_area_code,created_at'
+// Keep the richest compatible projection when only care_of is missing.
+const SITE_SELECTS = [SITE_SELECT, SITE_LEGACY_SELECT, SITE_MINIMAL_SELECT]
+  .flatMap((select) => [`${select},care_of`, select])
 
 export async function listPortalSites(context: PortalCustomerContext, route = '/api/v1/customer/sites') {
   await logPortalAccess({ context, route, action: 'read_sites' })
-  return listWithSchemaFallback([
-    async () => await supabaseService
+  return listWithSchemaFallback(SITE_SELECTS.map((select) => async () =>
+    await supabaseService
       .from('customer_sites')
-      .select(SITE_SELECT)
+      .select(select)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .order('created_at', { ascending: false })
       .limit(100) as ListResult,
-    async () => await supabaseService
-      .from('customer_sites')
-      .select(SITE_LEGACY_SELECT)
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
-      .order('created_at', { ascending: false })
-      .limit(100) as ListResult,
-    async () => await supabaseService
-      .from('customer_sites')
-      .select(SITE_MINIMAL_SELECT)
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
-      .order('created_at', { ascending: false })
-      .limit(100) as ListResult,
-  ])
+  ))
 }
 
 export async function listPortalSitesPage(
@@ -348,7 +337,7 @@ export async function listPortalSitesPage(
   await logPortalAccess({ context, route, action: 'read_sites_page' })
   return portalTablePage({
     context, page, resource: 'sites', table: 'customer_sites',
-    selects: [SITE_SELECT, SITE_LEGACY_SELECT, SITE_MINIMAL_SELECT], orderColumn: 'created_at',
+    selects: SITE_SELECTS, orderColumn: 'created_at',
   })
 }
 
