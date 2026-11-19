@@ -13,7 +13,7 @@ export function createSupportClient({ baseUrl = 'https://app.gridex.se', apiKey,
   if (!apiKey) throw new Error('GRIDEX_API_KEY is required (server-side only)')
   if (!portalUserId) throw new Error('An actively linked portal user id is required')
 
-  async function call(method, path, body, idempotencyKey) {
+  async function request(method, path, body, idempotencyKey) {
     const headers = {
       authorization: `Bearer ${apiKey}`,
       'content-type': 'application/json',
@@ -29,8 +29,19 @@ export function createSupportClient({ baseUrl = 'https://app.gridex.se', apiKey,
       error.code = payload?.error?.code ?? null
       throw error
     }
-    return payload
+    return { payload, response }
   }
+
+  async function call(method, path, body, idempotencyKey) {
+    return (await request(method, path, body, idempotencyKey)).payload
+  }
+
+  async function readPage(path) {
+    const { payload, response } = await request('GET', path)
+    return { body: payload, nextCursor: response.headers.get('X-Gridex-Next-Cursor') }
+  }
+
+  const casePath = (caseReference) => `/api/v1/customer/support/cases/${encodeURIComponent(caseReference)}`
 
   return {
     /** Lists the customer's support cases (newest first). Pass page.next_cursor to continue. */
@@ -43,7 +54,18 @@ export function createSupportClient({ baseUrl = 'https://app.gridex.se', apiKey,
     openCase: ({ title, message, category }, idempotencyKey = randomUUID()) =>
       call('POST', '/api/v1/customer/support/cases', { title, message, category }, idempotencyKey),
     /** Case with its customer-visible messages. */
-    getCase: (caseReference) => call('GET', `/api/v1/customer/support/cases/${encodeURIComponent(caseReference)}`),
+    getCase: (caseReference) => call('GET', casePath(caseReference)),
+    /** Case detail and the cursor for continuing its message history. */
+    getCasePage: (caseReference) => readPage(casePath(caseReference)),
+    /**
+     * Reads a message page. Pass nextCursor from getCasePage or listMessages to continue until it is null.
+     * @param {string} caseReference
+     * @param {string | null} [cursor]
+     */
+    listMessages: (caseReference, cursor = null) => {
+      const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
+      return readPage(`${casePath(caseReference)}/messages${query}`)
+    },
     /**
      * Adds a message to an open case (closed cases return 409 support_case_closed).
      * @param {string} caseReference
@@ -51,7 +73,7 @@ export function createSupportClient({ baseUrl = 'https://app.gridex.se', apiKey,
      * @param {string} [idempotencyKey]
      */
     reply: (caseReference, message, idempotencyKey = randomUUID()) =>
-      call('POST', `/api/v1/customer/support/cases/${encodeURIComponent(caseReference)}/messages`, { message }, idempotencyKey),
+      call('POST', `${casePath(caseReference)}/messages`, { message }, idempotencyKey),
   }
 }
 
