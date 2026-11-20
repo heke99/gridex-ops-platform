@@ -115,6 +115,9 @@ async function profiledGET(request: NextRequest) {
     if (to) query = query.lte('period_end', to.value)
     if (normalizedFacilityId) query = query.eq('facility_id', normalizedFacilityId)
     if (cursor) {
+      // The bound lets the facility index scan start at the cursor. The tuple check
+      // separates rows that share the same timestamp.
+      if (normalizedFacilityId) query = query.lte('period_start', cursor.orderValue)
       query = query.or(`period_start.lt.${cursor.orderValue},and(period_start.eq.${cursor.orderValue},id.lt.${cursor.id})`)
     }
 

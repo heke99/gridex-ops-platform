@@ -188,8 +188,28 @@ describe('customer metering filters', () => {
     const filters = ports.queries[0].searchParams
     expect(filters.get('or')).toContain(`period_start.lt.${periodStart}`)
     expect(filters.get('or')).toContain(`id.lt.${id}`)
-    expect(filters.get('period_start')).toBe('gte.2024-02-29')
+    expect(filters.getAll('period_start')).toEqual(['gte.2024-02-29', `lte.${periodStart}`])
     expect(filters.get('period_end')).toBe(`lte.${to}`)
+  })
+
+  it('preserves a continuation without a facility filter', async () => {
+    const periodStart = '2026-11-19T01:00:00.000001Z'
+    const id = '00000000-0000-4000-8000-000000000009'
+    const { page } = buildPortalDatabasePage([
+      { id, period_start: periodStart },
+      { id: '00000000-0000-4000-8000-000000000008', period_start: periodStart },
+    ], {
+      companyId: ports.company, customerId: ports.customer, orderColumn: 'period_start', limit: 1,
+      resource: 'metering-values:::',
+    })
+    expect(page.next_cursor).toEqual(expect.any(String))
+
+    expect((await read({ cursor: page.next_cursor ?? '' })).status).toBe(200)
+    expect(ports.queries).toHaveLength(1)
+    const filters = ports.queries[0].searchParams
+    expect(filters.has('facility_id')).toBe(false)
+    expect(filters.has('period_start')).toBe(false)
+    expect(filters.get('or')).toBe(`(period_start.lt.${periodStart},and(period_start.eq.${periodStart},id.lt.${id}))`)
   })
 
   it('leaves omitted filters absent on the authorized customer feed', async () => {
@@ -214,7 +234,6 @@ describe('customer metering filters', () => {
     const next = {
       ...first,
       id: '00000000-0000-4000-8000-000000000008',
-      period_start: '2026-11-19T00:45:00.000001Z',
       quantity_kwh: 9,
     }
     ports.rows = [first, next]
@@ -224,6 +243,7 @@ describe('customer metering filters', () => {
     const firstPage = await firstResponse.json()
     expect(firstPage.data).toHaveLength(1)
     expect(firstPage.page.next_cursor).toEqual(expect.any(String))
+    expect(ports.queries[0].searchParams.getAll('period_start')).toEqual([`gte.${from}`])
     const cursor = firstPage.page.next_cursor
 
     const continued = await read({ ...filters, cursor })
@@ -232,9 +252,11 @@ describe('customer metering filters', () => {
       data: [{ quantity_kwh: 9 }], page: { returned: 1, has_more: false, next_cursor: null },
     })
     expect(ports.queries).toHaveLength(2)
-    expect(Object.fromEntries(ports.queries[1].searchParams)).toMatchObject({
+    const continuedFilters = ports.queries[1].searchParams
+    expect(continuedFilters.getAll('period_start')).toEqual([`gte.${from}`, `lte.${first.period_start}`])
+    expect(Object.fromEntries(continuedFilters)).toMatchObject({
       company_id: `eq.${ports.company}`, customer_id: `eq.${ports.customer}`, facility_id: `eq.${facilityId}`,
-      period_start: `gte.${from}`, period_end: `lte.${to}`, revision_status: 'eq.current', limit: '2',
+      period_end: `lte.${to}`, revision_status: 'eq.current', limit: '2',
       or: `(period_start.lt.${first.period_start},and(period_start.eq.${first.period_start},id.lt.${first.id}))`,
     })
 
