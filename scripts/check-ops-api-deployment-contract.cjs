@@ -61,7 +61,7 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--static') args.mode = 'static'
     else if (argv[i] === '--url') { args.mode = 'catalog'; args.url = argv[++i] }
-    else if (argv[i] === '--require') args.require = String(argv[++i] ?? '').split(',').filter(Boolean)
+    else if (argv[i] === '--require') args.require = String(argv[++i] ?? '').split(',').map((key) => key.trim())
   }
   return args
 }
@@ -136,14 +136,18 @@ function main() {
     console.error('Usage: --static | --url <postgres-url> [--require feature,...]')
     process.exit(2)
   }
-  const catalog = args.mode === 'static' ? staticCatalog(resolve(__dirname, '..')) : liveCatalog(args.url)
-  const result = evaluateDeploymentContract(catalog)
   const required = args.require ?? Object.keys(FEATURES)
-  const unknown = required.filter((key) => !FEATURES[key])
+  if (required.some((key) => key === '')) {
+    console.error('--require expects a non-empty feature list with no empty items.')
+    process.exit(2)
+  }
+  const unknown = required.filter((key) => !Object.hasOwn(FEATURES, key))
   if (unknown.length) {
     console.error(`Unknown feature(s): ${unknown.join(', ')}`)
     process.exit(2)
   }
+  const catalog = args.mode === 'static' ? staticCatalog(resolve(__dirname, '..')) : liveCatalog(args.url)
+  const result = evaluateDeploymentContract(catalog)
   let blocked = false
   for (const [key, entry] of Object.entries(result)) {
     const mark = entry.ready ? 'READY  ' : required.includes(key) ? 'BLOCKED' : 'SKIPPED'
