@@ -6,6 +6,8 @@ import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { createEdielMessageEvent, linkEdielMessage, listEdielTestRuns } from '@/lib/ediel/db'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
+import { createOutboxItem } from '@/lib/ediel/outbox/createOutboxItem'
+import { formatErrorMessage } from '@/lib/errors'
 
 
 import { findOpenOutboundBySource, syncGridOwnerDataRequestFromOutbound, updateOutboundRequestStatus } from '@/lib/cis/db'
@@ -533,16 +535,58 @@ export async function createAckIfMissing(params: {
   utiltsHeaderRejected?: boolean
 }) {
   const prepared=await prepareSourceAckDraft(params)
-  if(prepared.kind==='existing')return prepared.message
-  const draft=prepared.draft
+  // Fynd 025: only an own unqueued draft (queueRepair) re-enters the queue
+  // branch; every other existing original is returned untouched.
+  if(prepared.kind==='existing'&&prepared.queueRepair!==true)return prepared.message
 
-  const ackMessage = await createCanonicalAckMessage({
+  const ackMessage = prepared.kind==='existing' ? prepared.message : await createCanonicalAckMessage({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     ackFamily: params.ackFamily,
     outcome: params.outcome,
-    draft,
+    draft: prepared.draft,
   })
+
+  // Mirror inboundProcessing: a fresh draft is only "sent" once it is queued.
+  // Queue failure is audited as blocked and propagated, never swallowed.
+  if (['draft', 'prepared', 'queued', 'failed'].includes(String(ackMessage.status))) {
+    try {
+      await createOutboxItem({
+        actorUserId: params.actorUserId,
+        message: ackMessage,
+        sourceMessageId: params.sourceMessage.id,
+        status: 'queued',
+        queueOnlyIfInserted: true,
+        payload: {
+          createdBy: 'inbound_backend_automation',
+          ackFamily: params.ackFamily,
+          outcome: params.outcome ?? null,
+          sourceMessageId: params.sourceMessage.id,
+          messageFamily: params.sourceMessage.message_family,
+          messageCode: params.sourceMessage.message_code,
+        },
+      })
+    } catch (error) {
+      await createEdielMessageEvent({
+        actorUserId: params.actorUserId,
+        edielMessageId: params.sourceMessage.id,
+        eventType: 'manual_note',
+        eventStatus: 'warning',
+        message: `${params.ackFamily} skapades inte: outbox queue misslyckades: ${formatErrorMessage(error, 'okänt fel')}`,
+        payload: {
+          blockedBy: 'canonical_inbound_ack_guard',
+          ackFamily: params.ackFamily,
+          ackMessageId: ackMessage.id,
+          sourceMessageId: params.sourceMessage.id,
+          messageFamily: params.sourceMessage.message_family,
+          messageCode: params.sourceMessage.message_code,
+          ackScope: params.ackScope ?? null,
+          relatedTransactionReference: params.relatedTransactionReference ?? null,
+        },
+      })
+      throw error
+    }
+  }
 
   await createEdielMessageEvent({
     actorUserId: params.actorUserId,
