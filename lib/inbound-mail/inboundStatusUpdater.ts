@@ -25,6 +25,73 @@ import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
 import { classifyProductionInboundDecision } from '@/lib/ediel/inbound/productionInboundDecisionEngine'
 import { tenantResolutionForStorage, type InboundTenantResolution } from '@/lib/ediel/tenant/resolveInboundTenant'
 import type { Database } from '@/supabase/database.types'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { evidenceHash, isEvidenceRecord, isEvidenceUuid } from '@/lib/ediel/utilts/durableSourceDiscovery'
+import { parseSourceReceiptInstant } from '@/lib/ediel/utilts/receivedSourceInventory'
+
+/** UTILTS whose actual wire lacks the mandatory BGM segment (parsed code
+ * UTILTS_UNKNOWN). Observation only selects the SQL-owned syntax-negative birth;
+ * it grants no rule pack, business attribution, APERAK or repair of the wire. */
+export function observeUtiltsMissingBgmSyntaxNegative(parsed: Pick<ParsedEdifactEnvelope, 'messageFamily' | 'messageCode' | 'rawPayload'>): boolean {
+  const raw = parsed.rawPayload
+  if (parsed.messageFamily !== 'UTILTS' || parsedMessageCode(parsed as ParsedEdifactEnvelope) !== 'UTILTS_UNKNOWN') return false
+  if (typeof raw !== 'string' || Buffer.byteLength(raw, 'utf8') > 262144) return false
+  try {
+    const { segments, una } = tokenizeEdifact(raw)
+    const count = (tag: string) => segments.filter(row => row.tag === tag).length
+    if (['UNB', 'UNH', 'UNT', 'UNZ'].some(tag => count(tag) !== 1) || count('BGM') !== 0) return false
+    const unh = segments.find(row => row.tag === 'UNH')!
+    return segments.indexOf(unh) === 1 && segmentComposite(unh, 2, una)[0] === 'UTILTS'
+  } catch {
+    return false
+  }
+}
+
+type BirthRpc = (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>
+
+function birthRefusalReason(error: unknown): string | null {
+  const message = error && typeof error === 'object' ? (error as { message?: unknown }).message : null
+  return typeof message === 'string' ? message.slice(0, 200) : null
+}
+
+/** Payload-free DB/runtime error for logs: code + truncated message only.
+ * details/hint (and any other field) can carry raw wire bytes and are never logged. */
+function safeDbError(error: unknown): { code: string | null; message: string | null } {
+  return { code: postgresErrorCode(error), message: birthRefusalReason(error) }
+}
+
+/** Structured, payload-free log for a check-constraint (23514) refusal at birth. */
+function logInboundBirthCheckRefusal(input: { error: unknown; stage: string; messageFamily: string | null; messageCode: string | null; inboundEmailMessageId: string; interchangeReference: string | null }) {
+  if (postgresErrorCode(input.error) !== '23514') return
+  console.warn('[inbound-mail] ediel_message_birth_check_refused', {
+    code: '23514', reason: birthRefusalReason(input.error), stage: input.stage, messageFamily: input.messageFamily,
+    messageCode: input.messageCode, inboundEmailMessageId: input.inboundEmailMessageId, interchangeReference: input.interchangeReference,
+  })
+}
+
+/** SQL owns retained mail/parse custody, current actor, source UUID and the
+ * one-use receipt. Caller fields cannot add a BGM, rule pack or business link. */
+export async function createUtiltsMissingBgmSyntaxNegativeSource(input: { companyId: string; environment: 'test' | 'production'; actorUserId: string
+  inboundEmailMessageId: string; parseResultId: string; rawPayload: string; interchangeReference: string | null }): Promise<string> {
+  const { companyId, environment, actorUserId, inboundEmailMessageId, parseResultId, rawPayload } = input
+  if (!isEvidenceUuid(companyId) || !isEvidenceUuid(actorUserId) || !isEvidenceUuid(inboundEmailMessageId) || !isEvidenceUuid(parseResultId)
+    || !['test', 'production'].includes(environment)) throw new Error('ediel_utilts_syntax_negative_scope_required')
+  const hash = evidenceHash(rawPayload)
+  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as BirthRpc
+  const { data, error } = await rpc('ediel_create_utilts_syntax_negative_v1', { p_company_id: companyId, p_environment: environment,
+    p_actor_user_id: actorUserId, p_inbound_email_message_id: inboundEmailMessageId, p_parse_result_id: parseResultId,
+    p_expected_raw_payload: rawPayload, p_expected_payload_hash: hash })
+  if (error) {
+    logInboundBirthCheckRefusal({ error, stage: 'utilts_syntax_negative_birth', messageFamily: 'UTILTS', messageCode: 'UTILTS_UNKNOWN',
+      inboundEmailMessageId, interchangeReference: input.interchangeReference })
+    throw error
+  }
+  if (!isEvidenceRecord(data) || data.version !== 1 || data.disposition !== 'utilts_syntax_negative' || data.permanentNegative !== true
+    || data.authorizesBusinessEffect !== false || data.missingSegment !== 'BGM' || data.companyId !== companyId || data.environment !== environment
+    || !isEvidenceUuid(data.sourceMessageId) || data.sourcePayloadHash !== hash || data.inboundEmailMessageId !== inboundEmailMessageId
+    || data.parseResultId !== parseResultId || parseSourceReceiptInstant(data.sourceReceivedAt) === null) throw new Error('ediel_utilts_syntax_negative_birth_required')
+  return data.sourceMessageId
+}
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -344,6 +411,11 @@ export async function createInboundEdielMessage(input: {
     return createAssignedProdatHeaderNegativeSource({companyId,actorUserId,environment,inboundEmailMessageId,
       parseResultId,rawPayload:input.parsed.rawPayload})
   }
+  if(observeUtiltsMissingBgmSyntaxNegative(input.parsed)){
+    if(environment!=='test'&&environment!=='production')throw new Error('ediel_inbound_duplicate_scope_required')
+    return createUtiltsMissingBgmSyntaxNegativeSource({companyId,actorUserId,environment,inboundEmailMessageId,
+      parseResultId,rawPayload:input.parsed.rawPayload,interchangeReference:input.parsed.interchangeReference??null})
+  }
   const matchedOutboundRequestId =
     input.outboundMatch?.status === 'matched' && input.outboundMatch.entityType === 'outbound_request'
       ? input.outboundMatch.entityId
@@ -544,13 +616,18 @@ export async function createInboundEdielMessage(input: {
       if (isUnsafeBatch7aTransactionConflict(result.error)) {
         console.warn(
           '[inbound-mail] Inbound ediel_message blockerades av gammalt för grovt Batch 7A transaction-unique-index. Kör migration 20260604113000_fix_ediel_inbound_transaction_dedupe.sql och synka igen.',
-          result.error,
+          safeDbError(result.error),
         )
         return null
       }
     }
 
-    console.warn('[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message', result.error)
+    logInboundBirthCheckRefusal({ error: result.error, stage: 'ediel_message_insert', messageFamily: input.parsed.messageFamily ?? null,
+      messageCode: insertPayload.message_code ?? null, inboundEmailMessageId, interchangeReference: input.parsed.interchangeReference ?? null })
+    // Payload-free: details/hint can carry the raw wire, so only code+message.
+    if (postgresErrorCode(result.error) !== '23514') console.warn('[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message', {
+      ...safeDbError(result.error), inboundEmailMessageId,
+    })
     return null
   }
 
@@ -606,7 +683,7 @@ export async function createUnresolvedInboundEdielMessage(input: {
     })
     edielMessageId = admitted.sourceMessageId
   } catch (error) {
-    console.warn('[inbound-mail] Teknisk källa hålls utan säker originalauktoritet', error)
+    console.warn('[inbound-mail] Teknisk källa hålls utan säker originalauktoritet', safeDbError(error))
     return null
   }
 
@@ -677,7 +754,7 @@ async function updateOutboundEdielAckState(input: {
     .limit(5)
 
   if (error) {
-    console.warn('[inbound-mail] Kunde inte läsa outbound ediel_messages för ACK-update', error)
+    console.warn('[inbound-mail] Kunde inte läsa outbound ediel_messages för ACK-update', safeDbError(error))
     return
   }
 
@@ -693,7 +770,7 @@ async function updateOutboundEdielAckState(input: {
     })
     .in('id', messageIds)
 
-  if (updateError) console.warn('[inbound-mail] Kunde inte uppdatera outbound ediel_messages ACK-status', updateError)
+  if (updateError) console.warn('[inbound-mail] Kunde inte uppdatera outbound ediel_messages ACK-status', safeDbError(updateError))
 
   await supabaseService.from('ediel_message_events').insert(messageIds.map((id) => ({
     company_id: input.companyId,
@@ -768,7 +845,7 @@ async function updateMeteringPermissionFromZ14(input: {
       })
       .eq('company_id', input.companyId)
       .eq('id', sourceId)
-    if (error) console.warn('[inbound-mail] Kunde inte uppdatera metering_permission från Z14', error)
+    if (error) console.warn('[inbound-mail] Kunde inte uppdatera metering_permission från Z14', safeDbError(error))
     return
   }
 
@@ -781,7 +858,7 @@ async function updateMeteringPermissionFromZ14(input: {
       .limit(5)
 
     if (error) {
-      console.warn('[inbound-mail] Kunde inte leta metering_permission via grid_owner_data_request', error)
+      console.warn('[inbound-mail] Kunde inte leta metering_permission via grid_owner_data_request', safeDbError(error))
       return
     }
 
@@ -802,7 +879,7 @@ async function updateMeteringPermissionFromZ14(input: {
       })
       .eq('company_id', input.companyId)
       .eq('id', rows[0].id)
-    if (updateError) console.warn('[inbound-mail] Kunde inte uppdatera metering_permission via grid_owner_data_request', updateError)
+    if (updateError) console.warn('[inbound-mail] Kunde inte uppdatera metering_permission via grid_owner_data_request', safeDbError(updateError))
   }
 }
 
@@ -868,7 +945,7 @@ async function importUtiltsMeteringValue(input: {
     .eq('company_id', input.companyId)
     .eq('canonical_dedupe_key', canonicalDedupeKey)
     .maybeSingle()
-  if (existing.error) console.warn('[inbound-mail] Kunde inte kontrollera UTILTS dedupe', existing.error)
+  if (existing.error) console.warn('[inbound-mail] Kunde inte kontrollera UTILTS dedupe', safeDbError(existing.error))
   if ((existing.data as { id?: string } | null)?.id) return
 
   const outbound = matchedOutboundRow(input.outboundMatch)
@@ -1006,7 +1083,7 @@ async function updateBusinessStatusFromInbound(input: {
       })
       .eq('company_id', input.companyId)
       .eq('id', sourceId)
-    if (error) console.warn('[inbound-mail] Kunde inte markera metering_permission som terminated från Z15V', error)
+    if (error) console.warn('[inbound-mail] Kunde inte markera metering_permission som terminated från Z15V', safeDbError(error))
   }
 
 
