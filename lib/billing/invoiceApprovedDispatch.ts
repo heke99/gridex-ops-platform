@@ -315,11 +315,12 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
       const providerKey = text(context.item.provider_idempotency_key) ?? text(context.item.idempotency_key) ?? `invoice:${input.companyId}:${input.itemId}`
       const attemptNo = (num(context.item.attempt_count) ?? 0) + 1
       const startedAt = new Date().toISOString()
+      let invoiceGuid: string
       try {
         const response = await client.createInvoices([payload], providerKey)
         const guids = Array.isArray(response.invoiceGuids) ? response.invoiceGuids.filter((value): value is string => typeof value === 'string' && Boolean(value.trim())) : []
         if (guids.length !== 1) throw new Error('Fakturapartnern returnerade inte exakt ett faktura-ID.')
-        const invoiceGuid = guids[0]
+        invoiceGuid = guids[0]
         let purchaseResponse: Record<string, unknown> | null = null
         if (shouldRequestPurchaseAfterCreate(financingMode)) {
           purchaseResponse = await client.postPurchase(invoiceGuid, buildPurchasePayload({ financingMode }))
@@ -358,8 +359,6 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
         await updateLegacyProjection({ companyId: input.companyId, runId, itemId: input.itemId, status: 'sent' })
         await recordAttempt({ companyId: input.companyId, itemId: input.itemId, runId, attemptNo, idempotencyKey: providerKey, requestHash: payloadHash, httpStatus: 200, outcome: 'sent', errorCode: null, startedAt })
         await emitDomainEvent({ companyId: input.companyId, eventType: 'invoice.sent', aggregateType: 'invoice_export_item', aggregateId: input.itemId, subjectCustomerId: text(context.customer.id), actorUserId: input.actorUserId, source: 'invoice_approved_dispatch_v1', payload: { invoice_guid: invoiceGuid, billing_month: billingMonth, amount_inc_vat: num(context.item.amount_inc_vat), due_date: dueDate.slice(0, 10) }, idempotencyKey: `invoice-sent:${input.itemId}:${invoiceGuid}` }).catch(() => null)
-        await maybeLockCompleteMonth({ companyId: input.companyId, billingMonth, actorUserId: input.actorUserId, exportRunId: runId })
-        return { itemId: input.itemId, runId, status: 'sent' as const, invoiceGuid }
       } catch (error) {
         const classification = classifyInvoiceExportError(error)
         let status = classification.outcome
@@ -398,6 +397,23 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
         }
         return { itemId: input.itemId, runId, status: finalStatus, error: classification.message, errorCode }
       }
+
+      // Period reconciliation runs after the provider receipt and invoice states have been saved.
+      let monthReconciliation: 'locked' | 'not_locked' | 'failed'
+      try {
+        const locked = await maybeLockCompleteMonth({ companyId: input.companyId, billingMonth, actorUserId: input.actorUserId, exportRunId: runId })
+        monthReconciliation = locked ? 'locked' : 'not_locked'
+      } catch {
+        monthReconciliation = 'failed'
+        try {
+          console.warn('[invoice-approved-dispatch] month reconciliation failed', {
+            companyId: input.companyId, billingMonth, exportRunId: runId,
+          })
+        } catch {
+          // Diagnostic failure cannot change a completed send.
+        }
+      }
+      return { itemId: input.itemId, runId, status: 'sent' as const, invoiceGuid, monthReconciliation }
     },
   })
 }
