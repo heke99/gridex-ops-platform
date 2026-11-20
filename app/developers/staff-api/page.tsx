@@ -111,7 +111,10 @@ export default function StaffApiGuide() {
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Read complete case history</h2>
         <p>Case detail includes events_page and attachments_page. Follow next_cursor through GET /api/v1/staff/cases/&#123;reference&#125;/events or GET /api/v1/staff/cases/&#123;reference&#125;/attachments until has_more is false. Each list accepts limit from 1 to 100 (default 50) and cursor. Sign a fresh assertion for every page. Cursors are bound to the organization, customer and case.</p>
-        <p>Customer detail marks its initial contacts, addresses and sites with contacts_page, addresses_page and sites_page: limit is 100, returned is the included count, and has_more identifies additional records beyond the initial collection.</p>
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold">Customer detail previews</h2>
+        <p><code>GET /api/v1/staff/customers/&#123;ref&#125;</code> previews contacts, addresses and sites with up to 100 records per collection. In <code>contacts_page</code>, <code>addresses_page</code> and <code>sites_page</code>, <code>limit</code> is 100, <code>returned</code> is the included count, and <code>has_more</code> signals records beyond the preview. The customer detail response ends at this preview, even when <code>has_more</code> is true.</p>
       </section>
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Errors</h2>
