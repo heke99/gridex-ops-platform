@@ -126,8 +126,23 @@ export async function assertItemStillReady(context: Awaited<ReturnType<typeof lo
   if (pairs.some(([a, b]) => a === null || b === null || Math.abs(a - b) > 0.01)) throw new Error('Fakturabeloppet matchar inte den låsta prisberäkningen.')
 }
 
-async function approveItem(companyId: string, itemId: string, actorUserId: string) {
+type InvoiceMonthScope = ReturnType<typeof requireTenantInvoiceProvider> & { billingMonth: string }
+
+function assertInvoiceMonthScope(context: Awaited<ReturnType<typeof loadItemContext>>, scope: InvoiceMonthScope) {
+  if (
+    context.run.billing_month !== scope.billingMonth ||
+    context.run.provider !== scope.provider || context.run.environment !== scope.environment ||
+    context.item.provider !== scope.provider || context.item.environment !== scope.environment ||
+    context.company?.invoice_export_target_system !== scope.provider ||
+    context.company?.billing_provider_environment !== scope.environment
+  ) {
+    throw new InvoiceProviderConfigError('invoice_month_scope_changed', 'Fakturans månad, leverantör eller miljö ändrades under körningen.')
+  }
+}
+
+async function approveItem(companyId: string, itemId: string, actorUserId: string, scope: InvoiceMonthScope) {
   const context = await loadItemContext(companyId, itemId)
+  assertInvoiceMonthScope(context, scope)
   if (context.item.status !== 'pending' || context.invoice.status !== 'draft') throw new Error('Endast oskickade draftfakturor kan godkännas.')
   await assertItemStillReady(context)
   const existingApproval = approval(context.item.metadata)
@@ -153,7 +168,9 @@ async function approveItem(companyId: string, itemId: string, actorUserId: strin
   const itemUpdate = await supabaseService.from('invoice_export_items').update({
     metadata: { ...objectValue(context.item.metadata), approval: approved },
     updated_at: approvedAt,
-  }).eq('company_id', companyId).eq('id', itemId).eq('status', 'pending').select('id').maybeSingle()
+  }).eq('company_id', companyId).eq('id', itemId).eq('status', 'pending')
+    .eq('export_run_id', String(context.run.id)).eq('provider', scope.provider).eq('environment', scope.environment)
+    .select('id').maybeSingle()
   if (itemUpdate.error) throw itemUpdate.error
   if (!itemUpdate.data) throw new Error('Fakturan kunde inte godkännas; status ändrades under granskningen.')
   const invoiceUpdate = await supabaseService.from('customer_invoices').update({
@@ -268,7 +285,7 @@ async function parkConfigurationError(companyId: string, itemId: string, error: 
   }).eq('id', itemId).eq('status', 'failed_retryable')
 }
 
-async function sendApprovedItem(input: { companyId: string; itemId: string; actorUserId: string }) {
+async function sendApprovedItem(input: { companyId: string; itemId: string; actorUserId: string; monthScope?: InvoiceMonthScope }) {
   await requireCompanyOperationalForWrites(input.companyId)
   await assertOutboundAllowed({ companyId: input.companyId, channel: 'invoice_export' })
   return withAutomationLock({
@@ -278,6 +295,7 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
     metadata: { domain: 'invoice_approved_dispatch', itemId: input.itemId },
     run: async () => {
       const context = await loadItemContext(input.companyId, input.itemId)
+      if (input.monthScope) assertInvoiceMonthScope(context, input.monthScope)
       const itemApproval = approval(context.item.metadata)
       const invoiceApproval = approval(context.invoice.metadata)
       if (itemApproval.status !== 'approved' || invoiceApproval.status !== 'approved') throw new Error('Fakturaexport blockerad: explicit godkännande saknas.')
@@ -508,15 +526,23 @@ export async function sendApprovedInvoiceExportRun(input: { companyId: string; e
 export async function approveAndSendReadyInvoicesForMonth(input: { companyId: string; billingMonth: string; actorUserId: string }) {
   await requireCompanyOperationalForWrites(input.companyId)
   // A file provider receives approved invoices through an invoice file, not per-invoice sends.
-  const approveOnly = isFileProvider(requireTenantInvoiceProvider((await loadTenantInvoiceProviderSelection(input.companyId)) ?? {}).provider)
-  const runs = await supabaseService.from('invoice_export_runs').select('id').eq('company_id', input.companyId).eq('billing_month', input.billingMonth).order('created_at', { ascending: true })
+  const providerSelection = requireTenantInvoiceProvider((await loadTenantInvoiceProviderSelection(input.companyId)) ?? {})
+  const monthScope = { ...providerSelection, billingMonth: input.billingMonth }
+  const approveOnly = isFileProvider(monthScope.provider)
+  const runs = await supabaseService.from('invoice_export_runs').select('id')
+    .eq('company_id', input.companyId).eq('billing_month', monthScope.billingMonth)
+    .eq('provider', monthScope.provider).eq('environment', monthScope.environment)
+    .order('created_at', { ascending: true })
   if (runs.error) throw runs.error
   const runIds = (runs.data ?? []).map((row) => String(row.id))
   const items: Row[] = []
   for (let offset = 0; offset < runIds.length; offset += 200) {
     const chunk = runIds.slice(offset, offset + 200)
     if (chunk.length === 0) continue
-    const result = await supabaseService.from('invoice_export_items').select('id,status,metadata').eq('company_id', input.companyId).in('export_run_id', chunk).eq('status', 'pending').order('created_at', { ascending: true })
+    const result = await supabaseService.from('invoice_export_items').select('id,status,metadata')
+      .eq('company_id', input.companyId).in('export_run_id', chunk).eq('status', 'pending')
+      .eq('provider', monthScope.provider).eq('environment', monthScope.environment)
+      .order('created_at', { ascending: true })
     if (result.error) throw result.error
     items.push(...((result.data ?? []) as Row[]))
   }
@@ -528,11 +554,11 @@ export async function approveAndSendReadyInvoicesForMonth(input: { companyId: st
     const itemId = text(item.id) ?? 'unknown'
     try {
       if (approval(item.metadata).status !== 'approved') {
-        await approveItem(input.companyId, itemId, input.actorUserId)
+        await approveItem(input.companyId, itemId, input.actorUserId, monthScope)
         approved += 1
       }
       if (approveOnly) continue
-      const result = await sendApprovedItem({ companyId: input.companyId, itemId, actorUserId: input.actorUserId })
+      const result = await sendApprovedItem({ companyId: input.companyId, itemId, actorUserId: input.actorUserId, monthScope })
       if (result.status === 'sent') sent += 1
       else {
         failed += 1
