@@ -47,7 +47,10 @@ export default async function EdielUnresolvedPage() {
           <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-950"><p className="text-xs font-black uppercase tracking-[0.18em]">Unresolved</p><p className="mt-2 text-3xl font-black">{unresolvedOpen ?? 'Okänt'}</p></div>
           <div className="rounded-3xl border border-amber-200 bg-white p-5 text-slate-950"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Manual decisions</p><p className="mt-2 text-3xl font-black">{traceManualReviews.length}</p></div>
           <Link href="/admin/ediel/outbox" className="rounded-3xl border border-red-200 bg-red-50 p-5 text-red-950"><p className="text-xs font-black uppercase tracking-[0.18em]">Outbox stopp</p><p className="mt-2 text-3xl font-black">{failedOutbox.length}</p></Link>
-          <Link href="/admin/ediel/automation" className="rounded-3xl border border-red-200 bg-white p-5 text-slate-950"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">SLA kritisk</p><p className="mt-2 text-3xl font-black">{criticalSlaCount}</p></Link>
+          <Link href="/admin/ediel/automation" className={`rounded-3xl border bg-white p-5 text-slate-950 ${criticalSlaCount ? 'border-red-200' : 'border-slate-200'}`}>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">SLA kritisk</p>
+            <p className="mt-2 text-3xl font-black">{criticalSlaCount ?? 'Okänt'}</p>
+          </Link>
         </section>
 
         {dashboard.warnings.length > 0 ? <section role="status" className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-950">{dashboard.warnings.join(' · ')}</section> : null}
