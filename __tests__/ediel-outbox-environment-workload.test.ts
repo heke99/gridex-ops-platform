@@ -159,6 +159,77 @@ describe('outbox workloads by environment', () => {
     expect(html).not.toContain('synthetic private diagnostic')
   })
 
+  it('offers send only for canonical production and test despite historical casing', async () => {
+    rows = [
+      row('canonical-prod', 'production', 'queued'),
+      row('canonical-test', 'test', 'prepared'),
+      row('uppercase-prod', 'PRODUCTION', 'queued'),
+      row('mixed-case-test', 'TeSt', 'prepared'),
+      row('space-prod', 'production ', 'queued'),
+    ]
+    const html = await render()
+    const prod = prodSection(html)
+    const test = testSection(html)
+    const unclear = section(html, 'Outbox utan tydlig miljö')
+    expect(prod).toContain('1 i sändkö')
+    expect(prod).toContain('value="canonical-prod"')
+    expect(test).toContain('1 i sändkö')
+    expect(test).toContain('value="canonical-test"')
+    expect(html).toContain('2 poster redo för kontroll/skick')
+    for (const id of ['uppercase-prod', 'mixed-case-test', 'space-prod']) {
+      const link = '/admin/ediel/messages/' + id + '-message'
+      expect(unclear).toContain(link)
+      expect(prod + test).not.toContain(link)
+      expect(html).not.toContain('value="' + id + '"')
+    }
+    expect(html.match(/Skicka denna/g)).toHaveLength(2)
+  })
+
+  it('keeps independent results after a workload fetch rejects', async () => {
+    rows = [row('test-healthy', 'test', 'queued')]
+    io.fetch.mockImplementation((input, init) => {
+      const url = new URL(String(input))
+      if (url.pathname === '/rest/v1/ediel_outbox' && url.searchParams.get('environment') === 'eq.production'
+          && url.searchParams.get('status') === problem && init?.method === 'HEAD') {
+        return Promise.reject(new DOMException('synthetic private abort', 'AbortError'))
+      }
+      return transport(input, init)
+    })
+    const html = await render()
+    expect(prodSection(html)).toContain('Antalet med fel eller spärr kunde inte läsas.')
+    expect(prodSection(html)).toContain('0 i sändkö')
+    expect(testSection(html)).toContain('value="test-healthy"')
+    expect(html).not.toContain('synthetic private abort')
+  })
+
+  it('keeps sibling requests in progress while one workload query is delayed', async () => {
+    rows = [row('slow-prod', 'production', 'failed'), row('fast-test', 'test', 'queued')]
+    let heldStarted = false
+    let unblock = () => {}
+    const hold = new Promise<void>(resolve => { unblock = resolve })
+    io.fetch.mockImplementation(async (input, init) => {
+      const url = new URL(String(input))
+      if (url.pathname === '/rest/v1/ediel_outbox' && url.searchParams.get('environment') === 'eq.production'
+          && url.searchParams.get('status') === problem && init?.method === 'GET') {
+        heldStarted = true
+        await hold
+      }
+      return transport(input, init)
+    })
+    let completed = false
+    const pending = render().then(html => { completed = true; return html })
+    try {
+      await vi.waitFor(() => expect(reads.some(read => read.environment === 'eq.test' && read.method === 'GET')).toBe(true))
+      expect(heldStarted).toBe(true)
+      expect(completed).toBe(false)
+    } finally {
+      unblock()
+    }
+    const html = await pending
+    expect(prodSection(html)).toContain('/admin/ediel/messages/slow-prod-message')
+    expect(testSection(html)).toContain('value="fast-test"')
+  })
+
   it('keeps one non-sendable row when recent history sees a ready row become failed', async () => {
     rows = [row('status-changed', 'production', 'queued')]
     snapshot = read => read.status ? rows : [row('status-changed', 'production', 'failed')]

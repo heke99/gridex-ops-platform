@@ -28,8 +28,13 @@ function statusTone(value: unknown): string {
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
+function outboxEnvironment(row: EdielAutomationRow) {
+  const { environment } = row
+  return environment === 'production' || environment === 'test' ? environment : null
+}
+
 function canSend(row: EdielAutomationRow): boolean {
-  return typeof row.status === 'string' && OUTBOX_READY_STATUSES.includes(row.status)
+  return outboxEnvironment(row) !== null && typeof row.status === 'string' && OUTBOX_READY_STATUSES.includes(row.status)
 }
 
 function lockText(row: EdielAutomationRow): string | null {
@@ -119,8 +124,9 @@ export default async function EdielOutboxPage() {
   const reconciliationIds = new Set(reconciliation?.rows.map((row) => row.id))
   const recentById = new Map(dashboard.outboxItems.map(row => [row.id, row]))
   const recentHistory = dashboard.outboxItems.filter(row => {
-    if (row.environment !== 'production' && row.environment !== 'test') return true
-    const { ready, problems } = workload[row.environment]
+    const environment = outboxEnvironment(row)
+    if (!environment) return true
+    const { ready, problems } = workload[environment]
     if (canSend(row)) return Boolean(ready.warning)
     if (typeof row.status === 'string' && OUTBOX_PROBLEM_STATUSES.includes(row.status)) return Boolean(problems.warning)
     return true
@@ -142,10 +148,9 @@ export default async function EdielOutboxPage() {
   const productionReady = workload.production.ready.count
   const testReady = workload.test.ready.count
   const readyCount = productionReady === null || testReady === null ? null : productionReady + testReady
-  const envOf = (row: EdielAutomationRow) => String(row.environment ?? '').toLowerCase()
-  const productionItems = recentItems.filter((row) => envOf(row) === 'production')
-  const testItems = recentItems.filter((row) => envOf(row) === 'test')
-  const otherItems = recentItems.filter((row) => envOf(row) !== 'production' && envOf(row) !== 'test')
+  const productionItems = recentItems.filter(row => outboxEnvironment(row) === 'production')
+  const testItems = recentItems.filter(row => outboxEnvironment(row) === 'test')
+  const otherItems = recentItems.filter(row => outboxEnvironment(row) === null)
   const reconciliationCount = reconciliation?.rows.length ?? 0
   const reconciliationSubtitle = reconciliation?.truncated
     ? `Visar de ${reconciliationCount} senast uppdaterade posterna.`
@@ -223,7 +228,7 @@ export default async function EdielOutboxPage() {
         {otherItems.length > 0 ? (
           <OutboxSection
             title="Outbox utan tydlig miljö"
-            subtitle="Poster som saknar miljö måste granskas innan de skickas."
+            subtitle="Poster utan giltig miljö behöver granskas före sändning."
             tone="border-slate-200 bg-white"
             rows={otherItems}
           />
