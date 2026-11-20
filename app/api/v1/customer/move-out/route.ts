@@ -24,8 +24,12 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+function isJsonRecord(value: unknown): value is JsonRecord {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
 function record(value: unknown): JsonRecord {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {}
+  return isJsonRecord(value) ? value : {}
 }
 
  async function profiledPOST(request: NextRequest) {
@@ -71,9 +75,9 @@ function record(value: unknown): JsonRecord {
       payload.requested_move_out_date,
       'requested_move_out_date',
     )
-    const newAddress = record(payload.new_address)
-    const contactDetails = record(payload.contact_details)
-    const metadata = record(payload.metadata)
+    const invalidObjectField = ['new_address', 'contact_details', 'metadata'].find(
+      (field) => payload[field] !== undefined && !isJsonRecord(payload[field]),
+    )
     const result = await executeIdempotentPortalWrite<Record<string, unknown>>({
       request,
       companyId: context.client.company_id,
@@ -81,6 +85,9 @@ function record(value: unknown): JsonRecord {
       customerId: context.identity.customer_id,
       operation: '/api/v1/customer/move-out',
       payload,
+      invalidRequest: invalidObjectField
+        ? new ApiInputError(`${invalidObjectField} måste vara ett JSON-objekt.`, 'invalid_json_object', 400, invalidObjectField)
+        : undefined,
       execute: async () => {
         const { data, error } = await supabaseService
           .rpc('gridex_submit_customer_move_out_v1', {
@@ -94,9 +101,9 @@ function record(value: unknown): JsonRecord {
                 clean(payload.customer_contract_reference),
               requested_move_out_date: moveOutDate,
               reason: clean(payload.reason),
-              new_address: newAddress,
-              contact_details: contactDetails,
-              metadata,
+              new_address: record(payload.new_address),
+              contact_details: record(payload.contact_details),
+              metadata: record(payload.metadata),
             },
           })
         if (error) throw error
