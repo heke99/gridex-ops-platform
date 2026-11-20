@@ -63,8 +63,11 @@ export async function findStaffCase(companyId: string, reference: string): Promi
     .eq('billing_blocked', false).eq('billing_manual_review', false).eq('cancellation_required', false)
     .eq('metadata->>support_public_reference', reference).maybeSingle()
   if (error) throw error
-  if (!data) throw new ApiInputError('Ärendet hittades inte.', 'support_case_not_found', 404)
-  return data as unknown as StaffCaseRow
+  const row = data as unknown as StaffCaseRow | null
+  if (!row || row.company_id !== companyId || publicReference('support_case', companyId, row.id) !== reference) {
+    throw new ApiInputError('Ärendet hittades inte.', 'support_case_not_found', 404)
+  }
+  return row
 }
 
 export async function listStaffCases(input: { companyId: string; customerId?: string | null; status?: string | null; query?: string | null; limit?: number | null; cursor?: string | null }) {
