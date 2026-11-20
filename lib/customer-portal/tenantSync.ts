@@ -473,7 +473,18 @@ async function preflightLegalAcceptances(input: {
 }) {
   const { client, identity, acceptances } = input
   const references = acceptances.map((acceptance) => acceptance.document_reference)
-  if (new Set(references).size !== references.length) throw new Error('LEGAL_ACCEPTANCE_DUPLICATE')
+  const seenReferences = new Set<string>()
+  for (const [index, reference] of references.entries()) {
+    if (seenReferences.has(reference)) {
+      throw new ApiInputError(
+        'Dokumentreferensen får bara anges en gång i samma kundsynk.',
+        'LEGAL_ACCEPTANCE_DUPLICATE',
+        422,
+        `legal_acceptances.${index}.document_reference`,
+      )
+    }
+    seenReferences.add(reference)
+  }
 
   const budget = { remaining: LEGAL_DISCOVERY_MAX_READS }
   const contracts = await readLegalDiscoveryRows(budget, (after) => {
