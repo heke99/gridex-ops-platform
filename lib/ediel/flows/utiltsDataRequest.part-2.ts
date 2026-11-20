@@ -25,7 +25,7 @@ import { findActiveMeteringPermissionForUtiltsMessage } from '@/lib/onboarding/i
 
 
 
-import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId, storedUtiltsConsumption } from '@/lib/ediel/utilts/transactionPersistence'
+import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId, storedUtiltsConsumption, storedUtiltsConsumptionVersionState } from '@/lib/ediel/utilts/transactionPersistence'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 import { createUtiltsRepliesAfterStore } from '@/lib/ediel/utilts/utiltsReplyAfterStore'
 
@@ -877,7 +877,13 @@ export async function processInboundUtiltsMessage(params: {
   const meteringPointId = canonicalLinks.meteringPointId ?? dataRequest.metering_point_id ?? null
   const gridOwnerId = canonicalLinks.siteAndCustomer?.gridOwnerId ?? dataRequest.grid_owner_id ?? null
 
-  const acknowledgedOutbound = await markDataRequestOutboundAcknowledged({
+  // Historical retention is a valid E66 outcome, but it supplies no current
+  // consumption. Both status paths otherwise complete the linked request.
+  const retainedHistoryOnly = runtime.facts.messageCode === 'E66' && transactionPersistenceResults.length > 0
+    && transactionPersistenceResults.every(result =>
+      storedUtiltsConsumptionVersionState(result, message.id) === 'late_older_history')
+
+  const acknowledgedOutbound = retainedHistoryOnly ? null : await markDataRequestOutboundAcknowledged({
     actorUserId,
     dataRequestId: dataRequest.id,
     externalReference: message.external_reference ?? null,
@@ -912,7 +918,7 @@ export async function processInboundUtiltsMessage(params: {
     normalizedPayload,
   })
 
-  await syncGridOwnerDataRequestReceivedFromEdiel({
+  if (!retainedHistoryOnly) await syncGridOwnerDataRequestReceivedFromEdiel({
     actorUserId,
     requestId: dataRequest.id,
     edielMessageId: message.id,
@@ -978,8 +984,9 @@ export async function processInboundUtiltsMessage(params: {
     edielMessageId: message.id,
     eventType: 'validated',
     eventStatus: 'success',
-    message:
-      'Inbound UTILTS matchat mot data request, mätvärde/fakturaunderlag hanterat och kvitterat av produktionsruntime.',
+    message: retainedHistoryOnly
+      ? 'E66-revisionen bevarades i historiken. Mätvärdesbegäran bedöms utifrån aktuellt underlag.'
+      : 'Inbound UTILTS matchat mot data request, mätvärde/fakturaunderlag hanterat och kvitterat av produktionsruntime.',
     payload: {
       matchedGridOwnerDataRequestId: dataRequest.id,
       createdAckMessageIds: ackIds,
