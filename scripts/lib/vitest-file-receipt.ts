@@ -15,6 +15,12 @@ type Checkout = {
   clean: boolean
 }
 
+type WorkflowJob = {
+  runId: string
+  runAttempt: string
+  job: string
+}
+
 type FileResult = {
   id: string
   file: string
@@ -26,6 +32,7 @@ type FileResult = {
 type Receipt = {
   schema: 'gridex-vitest-file-receipt-v1'
   source: Checkout | null
+  workflowJob: WorkflowJob | null
   sourceUnchanged: boolean | null
   state: 'complete' | 'incomplete'
   reason: TestRunEndReason | 'initializing' | 'started' | 'invalid_specifications' | 'receipt_size_limit'
@@ -33,6 +40,15 @@ type Receipt = {
   unhandledErrorCount: number | null
   integrityFailures: number
   files: FileResult[]
+}
+
+function workflowJob(): WorkflowJob | null {
+  const { GITHUB_ACTIONS, GITHUB_RUN_ID: runId, GITHUB_RUN_ATTEMPT: runAttempt, GITHUB_JOB: job } = process.env
+  const number = /^[1-9][0-9]{0,19}$/
+  const jobId = /^[A-Za-z_][A-Za-z0-9_-]{0,99}$/
+  if (GITHUB_ACTIONS !== 'true' || !runId || !runAttempt || !job ||
+    !number.test(runId) || !number.test(runAttempt) || !jobId.test(job)) return null
+  return { runId, runAttempt, job }
 }
 
 function checkout(root: string): { root: string; source: Checkout } | null {
@@ -80,6 +96,7 @@ export class VitestFileReceiptReporter implements Reporter {
     this.receipt = {
       schema: 'gridex-vitest-file-receipt-v1',
       source: observed?.source ?? null,
+      workflowJob: workflowJob(),
       sourceUnchanged: null,
       state: 'incomplete',
       reason: 'initializing',
