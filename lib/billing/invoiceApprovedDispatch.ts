@@ -17,6 +17,7 @@ import { emitDomainEvent } from '@/lib/events/domainEvents'
 import type { CapwayEnvironment, CapwayFinancingMode } from '@/lib/integrations/billing/capway/types'
 
 type Row = Record<string, unknown>
+const PURCHASE_RECONCILIATION_KEY = 'automatic_purchase_reconciliation'
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -294,6 +295,38 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
       const billingMonth = text(context.run.billing_month)
       const runId = text(context.run.id)
       if (!billingMonth || !runId) throw new Error('Exportkörningen saknar fakturamånad eller ID.')
+      const purchaseAfterCreate = shouldRequestPurchaseAfterCreate(financingMode)
+      if (purchaseAfterCreate && (context.item.provider !== selected.provider || context.item.environment !== environment)) {
+        throw new InvoiceProviderConfigError('invoice_purchase_scope_mismatch', 'Fakturaköpet har en annan leverantör eller miljö än exportkörningen.')
+      }
+      const previousResponse = objectValue(context.item.response_payload)
+      const purchaseReview = {
+        itemId: input.itemId,
+        runId,
+        status: 'needs_review' as const,
+        errorCode: 'provider_purchase_reconciliation_required',
+        error: 'Fakturaköpet behöver avstämmas innan körningen kan fortsätta.',
+      }
+      const reservePurchaseReview = (receipt: Row = {}) => supabaseService.from('invoice_export_items').update({
+        ...receipt,
+        status: purchaseReview.status,
+        next_retry_at: null,
+        error_code: purchaseReview.errorCode,
+        error_payload: { message: purchaseReview.error, error_code: purchaseReview.errorCode },
+        updated_at: new Date().toISOString(),
+      }).eq('company_id', input.companyId).eq('id', input.itemId).eq('export_run_id', runId)
+        .eq('provider', String(context.item.provider)).eq('environment', String(context.item.environment))
+        .eq('status', String(context.item.status))
+        .eq('updated_at', String(context.item.updated_at)).select('id').maybeSingle()
+
+      // A reset can clear the queue status, but it cannot authorize a second purchase.
+      const existingProviderInvoice = text(context.item.provider_invoice_guid) ?? text(context.item.provider_invoice_id)
+      if (Object.hasOwn(previousResponse, PURCHASE_RECONCILIATION_KEY) || (purchaseAfterCreate && existingProviderInvoice)) {
+        const parked = await reservePurchaseReview()
+        if (parked.error) throw parked.error
+        if (!parked.data) throw new Error('Fakturapostens avstämningskrav kunde inte sparas.')
+        return purchaseReview
+      }
       const config = await resolveCapwayConnectionConfig({ companyId: input.companyId, environment })
       const client = new CapwayApticClient(config)
       const paymentDays = configuredPaymentDays(config, context.customer)
@@ -316,17 +349,42 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
       const attemptNo = (num(context.item.attempt_count) ?? 0) + 1
       const startedAt = new Date().toISOString()
       let invoiceGuid: string
+      let purchaseReserved = false
       try {
         const response = await client.createInvoices([payload], providerKey)
         const guids = Array.isArray(response.invoiceGuids) ? response.invoiceGuids.filter((value): value is string => typeof value === 'string' && Boolean(value.trim())) : []
         if (guids.length !== 1) throw new Error('Fakturapartnern returnerade inte exakt ett faktura-ID.')
         invoiceGuid = guids[0]
         let purchaseResponse: Record<string, unknown> | null = null
-        if (shouldRequestPurchaseAfterCreate(financingMode)) {
+        if (purchaseAfterCreate) {
+          // Persist the create receipt and reserve review before contacting the purchase endpoint.
+          // Provider identity remains internal until the purchase path can complete as sent.
+          const reservation = await reservePurchaseReview({
+            response_payload: {
+              ...previousResponse,
+              create_invoice: response,
+              [PURCHASE_RECONCILIATION_KEY]: {
+                company_id: input.companyId,
+                export_run_id: runId,
+                invoice_export_item_id: input.itemId,
+                provider: selected.provider,
+                environment,
+                financing_mode: financingMode,
+                invoice_guid: invoiceGuid,
+                attempt_no: attemptNo,
+                provider_idempotency_key: providerKey,
+              },
+            },
+            attempt_count: attemptNo,
+            last_attempt_at: startedAt,
+          })
+          if (reservation.error) throw reservation.error
+          if (!reservation.data) throw new Error('Skapandekvittot kunde inte sparas före fakturaköpet.')
+          purchaseReserved = true
           purchaseResponse = await client.postPurchase(invoiceGuid, buildPurchasePayload({ financingMode }))
         }
         const now = new Date().toISOString()
-        const itemUpdate = await supabaseService.from('invoice_export_items').update({
+        let itemUpdateQuery = supabaseService.from('invoice_export_items').update({
           status: 'sent',
           provider_invoice_guid: invoiceGuid,
           provider_invoice_id: invoiceGuid,
@@ -342,9 +400,16 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
           error_payload: {},
           sent_at: now,
           updated_at: now,
-        }).eq('company_id', input.companyId).eq('id', input.itemId).select('id').maybeSingle()
+        }).eq('company_id', input.companyId).eq('id', input.itemId)
+        if (purchaseReserved) {
+          itemUpdateQuery = itemUpdateQuery.eq('export_run_id', runId).eq('provider', selected.provider).eq('environment', environment)
+            .eq(`response_payload->${PURCHASE_RECONCILIATION_KEY}->>attempt_no`, String(attemptNo))
+            .eq(`response_payload->${PURCHASE_RECONCILIATION_KEY}->>invoice_guid`, invoiceGuid)
+        }
+        const itemUpdate = await itemUpdateQuery.select('id').maybeSingle()
         if (itemUpdate.error) throw itemUpdate.error
         if (!itemUpdate.data) throw new Error('Providerresultatet kunde inte sparas på canonical exportpost.')
+        purchaseReserved = false
         const invoiceUpdate = await supabaseService.from('customer_invoices').update({
           partner_invoice_reference: invoiceGuid,
           issued_at: invoiceDate,
@@ -360,6 +425,8 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
         await recordAttempt({ companyId: input.companyId, itemId: input.itemId, runId, attemptNo, idempotencyKey: providerKey, requestHash: payloadHash, httpStatus: 200, outcome: 'sent', errorCode: null, startedAt })
         await emitDomainEvent({ companyId: input.companyId, eventType: 'invoice.sent', aggregateType: 'invoice_export_item', aggregateId: input.itemId, subjectCustomerId: text(context.customer.id), actorUserId: input.actorUserId, source: 'invoice_approved_dispatch_v1', payload: { invoice_guid: invoiceGuid, billing_month: billingMonth, amount_inc_vat: num(context.item.amount_inc_vat), due_date: dueDate.slice(0, 10) }, idempotencyKey: `invoice-sent:${input.itemId}:${invoiceGuid}` }).catch(() => null)
       } catch (error) {
+        // The stored reservation keeps the result reviewable across worker loss and reset.
+        if (purchaseReserved) return purchaseReview
         const classification = classifyInvoiceExportError(error)
         let status = classification.outcome
         let errorCode = classification.errorCode
