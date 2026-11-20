@@ -20,6 +20,7 @@ import { PARTNER_API_VERSION, partnerOpenApi } from './openApi'
 import { readCompletePartnerMeasurements } from './measurementRead'
 import { requirePartnerOfferDirection } from './offerDirection'
 import { PARTNER_VISIBLE_INVOICE_STATUSES, calendarDaysInclusive, stockholmDayStartUtc, stockholmNextDayStartUtc } from './partnerTime'
+import { withPartnerThrottleHeaders } from './rateLimitHeaders'
 
 const POA_BUCKET = 'customer-documents'
 const MAX_POA_BYTES = 5 * 1024 * 1024
@@ -139,15 +140,8 @@ async function auth(
       errorCode: result.errorCode,
       metadata: { request_id: id, api_surface: 'partner_v1' },
     })
-    return {
-      ok: false,
-      response: partnerJson({
-        error: {
-          code: result.errorCode,
-          message: result.error,
-        },
-      }, result.status, id),
-    }
+    const response = partnerJson({ error: { code: result.errorCode, message: result.error } }, result.status, id)
+    return { ok: false, response: withPartnerThrottleHeaders(response, result) }
   }
   return { ok: true, client: result.client, startedAt, id }
 }
