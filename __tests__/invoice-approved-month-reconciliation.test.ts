@@ -110,8 +110,14 @@ async function databasePort(input: RequestInfo | URL, init?: RequestInit): Promi
   }
   if (init?.method === 'PATCH' && body) {
     expect(url.searchParams.get('company_id')).toBe(`eq.${ids.company}`)
-    rows.forEach(row => Object.assign(row, body))
     writes.push({ table, status: body.status })
+    // The native sent guard refuses a downgrade of a confirmed export item.
+    if (table === 'invoice_export_items' &&
+      ['pending', 'failed', 'failed_retryable'].includes(String(body.status)) &&
+      rows.some(row => ['sent', 'credited'].includes(String(row.status)))) {
+      return Response.json({ code: 'P0001', message: 'synthetic sent item downgrade refused' }, { status: 400 })
+    }
+    rows.forEach(row => Object.assign(row, body))
     if (!url.searchParams.has('select')) return new Response(null, { status: 204 })
   }
   const offset = Number(url.searchParams.get('offset') ?? 0)
