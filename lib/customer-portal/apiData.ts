@@ -1,9 +1,7 @@
-import type { NextRequest } from 'next/server'
 import { ApiInputError } from '@/lib/api/strictRequest'
-import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import { requirePortalRetentionAccess } from '@/lib/ediel/retention/customerRecordClasses'
-import { resolvePortalCustomer, isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
+import { isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
 import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
 import { PORTAL_PUBLISHED_INVOICE_STATUSES } from '@/lib/customer-portal/format'
 import {
@@ -26,40 +24,6 @@ export type PortalCustomerContext = {
 
 export function isMissingSchemaError(error: unknown): boolean {
   return isMissingPortalSchemaError(error)
-}
-
-function clean(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
-export function externalCustomerIdFromRequest(request: NextRequest): string | null {
-  const url = request.nextUrl
-  return (
-    clean(url.searchParams.get('external_customer_id')) ??
-    clean(url.searchParams.get('externalCustomerId')) ??
-    clean(request.headers.get('x-external-customer-id')) ??
-    clean(request.headers.get('x-gridex-external-customer-id'))
-  )
-}
-
-export async function resolvePortalCustomerContext(input: {
-  client: IntegrationApiClient
-  externalCustomerId: string | null
-}): Promise<PortalCustomerContext> {
-  const resolution = await resolvePortalCustomer({
-    client: input.client,
-    identifiers: { externalCustomerId: input.externalCustomerId },
-  })
-  if (!resolution.ok) throw new Error(resolution.error)
-  await requirePortalRetentionAccess({ companyId: input.client.company_id, customerId: resolution.customer.customer_id });
-
-  return {
-    companyId: input.client.company_id,
-    customerId: resolution.customer.customer_id,
-    externalCustomerId: resolution.customer.external_customer_id ?? input.externalCustomerId ?? null,
-    customerNumber: resolution.customer.customer_number ?? null,
-    provider: resolution.customer.provider ?? 'tenant_portal',
-  }
 }
 
 export function portalContextFromResolved(input: {
