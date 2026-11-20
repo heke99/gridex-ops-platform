@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Row = Record<string, unknown>
 const fixture = vi.hoisted(() => ({
-  authorize: vi.fn(), from: vi.fn(), message: null as Row | null, attachments: [] as Row[], jobs: [] as Row[],
+  authorize: vi.fn(), from: vi.fn(), rpc: vi.fn(), message: null as Row | null, attachments: [] as Row[], jobs: [] as Row[],
   diagnostic: [] as Row[], attachmentError: null as Error | null, diagnosticError: null as Error | null,
   diagnosticQuery: vi.fn(),
 }))
@@ -13,12 +13,14 @@ vi.mock('@/lib/admin/guards', () => ({ requirePlatformAdminAccess: fixture.autho
 vi.mock('@/components/admin/AdminHeader', () => ({ default: () => null }))
 vi.mock('@/app/admin/inbound-mail/actions', () => ({ reprocessInboundEmailAction: vi.fn() }))
 vi.mock('@/app/admin/inbound-mail/[id]/reviewActions', () => ({ resolveInboundManualReviewUiAction: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: fixture.from } }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: fixture.from, rpc: fixture.rpc } }))
 
 import InboundMailDetailPage from '@/app/admin/inbound-mail/[id]/page'
 
 const messageId = '00000000-0000-4000-8000-000000000001'
 const jobId = '00000000-0000-4000-8000-000000000002'
+const actorId = '00000000-0000-4000-8000-000000000009'
+const earlierOriginalId = '00000000-0000-4000-8000-000000000008'
 const otherJobId = '00000000-0000-4000-8000-000000000003'
 const companyId = '00000000-0000-4000-8000-000000000004'
 const legacyJob = { id: jobId, status: 'manual_review', step: 'manual_review', review_reason: 'manual_review', error_message: null, payload: { hasRawEdifactPayload: false } }
@@ -41,7 +43,8 @@ beforeEach(() => {
   fixture.diagnostic = []
   fixture.diagnosticError = null
   fixture.diagnosticQuery.mockClear()
-  fixture.authorize.mockReset().mockResolvedValue({ email: 'operator@example.invalid' })
+  fixture.authorize.mockReset().mockResolvedValue({ email: 'operator@example.invalid', userId: actorId })
+  fixture.rpc.mockReset().mockResolvedValue({ data: null, error: null })
   fixture.from.mockReset().mockImplementation((table: string) => {
     const data = table === 'inbound_email_messages' ? fixture.message : table === 'inbound_email_attachments' ? fixture.attachments :
       table === 'inbound_processing_jobs' ? fixture.jobs : table === 'ediel_messages' ? fixture.diagnostic : []
@@ -188,5 +191,71 @@ describe('inbound mail S/MIME review', () => {
     fixture.authorize.mockRejectedValueOnce(new Error('denied'))
     await expect(renderPage()).rejects.toThrow('denied')
     expect(fixture.from).not.toHaveBeenCalled()
+  })
+})
+
+
+function heldReception(classification: 'identity_conflict' | 'protocol_duplicate') {
+  const receipt = {
+    companyId, sourceMessageId: earlierOriginalId, inboundEmailMessageId: messageId,
+    parseResultId: 'synthetic-parse-result', receptionId: 'synthetic-reception', responseRequestId: 'synthetic-response-request',
+    receivedAt: '2026-11-20T10:00:00.000Z', isReplay: true, status: 'held', classification,
+    canonicalPayloadHash: 'a'.repeat(64), receivedPayloadHash: (classification === 'identity_conflict' ? 'b' : 'a').repeat(64),
+    reason: 'synthetic-native-reason', businessEffectAuthorized: false,
+  }
+  fixture.message = {
+    ...fixture.message,
+    raw_edifact_payload: 'Synthetic received original',
+    processing_status: 'manual_review',
+    match_status: 'protocol_response_held',
+    match_payload: { protocolReception: { sourceMessageId: earlierOriginalId } },
+  }
+  fixture.rpc.mockResolvedValue({ data: receipt, error: null })
+  return receipt
+}
+
+describe('Ediel inbound reception conflicts', () => {
+  it('distinguishes a verified reference conflict and keeps both reviews reachable', async () => {
+    heldReception('identity_conflict')
+    const html = await renderPage()
+    expect(html).toContain('Referenskonflikt i Ediel-mottagningen')
+    expect(html).toContain('href="#inbound-original"')
+    expect(html).toContain('id="inbound-original"')
+    expect(html).toContain('Synthetic received original')
+    expect(html).toContain('href="/admin/ediel/messages/' + earlierOriginalId + '"')
+    expect(html).not.toContain('Dubblett väntar på protokollsvar')
+    expect(fixture.rpc).toHaveBeenCalledExactlyOnceWith('ediel_inbound_reception_request_v1', {
+      p_company_id: companyId, p_message_id: earlierOriginalId, p_actor_user_id: actorId, p_inbound_email_message_id: messageId,
+    })
+  })
+
+  it('retains the separate genuine duplicate label for equal hashed originals', async () => {
+    heldReception('protocol_duplicate')
+    const html = await renderPage()
+    expect(html).toContain('Dubblett väntar på protokollsvar')
+    expect(html).not.toContain('Referenskonflikt i Ediel-mottagningen')
+  })
+
+  it.each(['denied', 'missing', 'foreign', 'unconfirmed', 'bad-selector'])('holds the source link when receipt read is %s', async mode => {
+    const receipt = heldReception('identity_conflict')
+    if (mode === 'denied') fixture.rpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'synthetic-private-denial' } })
+    if (mode === 'missing') fixture.rpc.mockResolvedValue({ data: null, error: null })
+    if (mode === 'foreign') fixture.rpc.mockResolvedValue({ data: { ...receipt, companyId: jobId }, error: null })
+    if (mode === 'unconfirmed') fixture.rpc.mockResolvedValue({ data: { ...receipt, receivedPayloadHash: receipt.canonicalPayloadHash }, error: null })
+    if (mode === 'bad-selector') fixture.message = { ...fixture.message, match_payload: { protocolReception: { sourceMessageId: 'invalid' } } }
+    const html = await renderPage()
+    expect(html).toContain('Mottagningskvittot kunde inte verifieras')
+    expect(html).toContain('Synthetic received original')
+    expect(html).not.toContain('Referenskonflikt i Ediel-mottagningen')
+    expect(html).not.toContain('href="/admin/ediel/messages/' + earlierOriginalId + '"')
+    expect(html).not.toContain('synthetic-private-denial')
+    if (mode === 'bad-selector') expect(fixture.rpc).not.toHaveBeenCalled()
+  })
+
+  it('does not read the receipt when the mail is no longer held for a protocol response', async () => {
+    heldReception('identity_conflict')
+    fixture.message = { ...fixture.message, match_status: 'protocol_response_prepared' }
+    expect(await renderPage()).not.toContain('Referenskonflikt i Ediel-mottagningen')
+    expect(fixture.rpc).not.toHaveBeenCalled()
   })
 })
