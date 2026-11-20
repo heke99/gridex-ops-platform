@@ -69,7 +69,7 @@ language sql as $$ select true; $$; -- banned_until is part of the expected cata
       writeFileSync(join(fakeBin, 'psql'), '#!/bin/sh\nprintf "call\\n" >> "$GRIDEX_SYNTHETIC_PSQL_CALLS"\nprintf "[]\\n"\n', { mode: 0o700 })
       const result = spawnSync(process.execPath, [script, ...args], {
         cwd: root, encoding: 'utf8', timeout: 5_000,
-        env: { PATH: fakeBin, GRIDEX_SYNTHETIC_PSQL_CALLS: calls },
+        env: { NODE_ENV: 'test', PATH: fakeBin, GRIDEX_SYNTHETIC_PSQL_CALLS: calls },
       })
       expect(result.error).toBeUndefined()
       return { ...result, psqlCalls: existsSync(calls) ? readFileSync(calls, 'utf8').trim().split('\n').length : 0 }
