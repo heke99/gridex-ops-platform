@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { defineConfig } from 'vitest/config'
+import { VitestFileReceiptReporter } from './scripts/lib/vitest-file-receipt'
 
 const coverageBaseline = JSON.parse(
   fs.readFileSync(new URL('./config/coverage-baseline.json', import.meta.url), 'utf8'),
@@ -22,6 +23,9 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    ...((process.env.CI === 'true' || process.env.CI === '1') && {
+      reporters: ['default', new VitestFileReceiptReporter()],
+    }),
     include: ['__tests__/**/*.test.ts'],
     setupFiles: ['__tests__/setup.ts'],
     coverage: {
