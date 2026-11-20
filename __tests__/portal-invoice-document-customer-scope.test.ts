@@ -1,7 +1,7 @@
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import PortalInvoiceDetail from '@/app/portal/fakturor/[id]/page'
+import PortalInvoiceDetail from '@/app/(invoice-detail)/portal/fakturor/[id]/page'
 
 type Row = Record<string, unknown>
 
