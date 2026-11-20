@@ -428,6 +428,9 @@ async function readVerifiedLegalBundles(
   budget: { remaining: number },
 ): Promise<Map<string, JsonRecord[]>> {
   const verified = new Map<string, JsonRecord[]>()
+  // query-loop-budget: bounded-legal-discovery max=40
+  // Contracts, bundles and documents share this budget, including empty pages.
+  // Each batch contains up to 50 bundle IDs and each read returns up to 100 rows.
   for (let offset = 0; offset < bundleIds.length; offset += LEGAL_DISCOVERY_BATCH_SIZE) {
     const batch = bundleIds.slice(offset, offset + LEGAL_DISCOVERY_BATCH_SIZE)
     const bundles = await readLegalDiscoveryRows(budget, (after) => {
