@@ -69,13 +69,29 @@ function database(currentSite: CustomerSiteRow | null, proofFloor: string | null
           operations.push('caller:scoped-site-read')
           return { data: errors.siteRead ? null : currentSite, error: errors.siteRead ? { code: '42501', message: errors.siteRead } : null }
         }
-        if (table === 'customer_lifecycle_decisions' || table === 'customer_operation_tasks') return { data: [], error: null }
+        if (table === 'customer_lifecycle_decisions' || table === 'customer_operation_tasks') {
+          const scopes = table === 'customer_lifecycle_decisions'
+            ? [
+                'scope_type.in.(customer,contract)',
+                'scope_id.is.null',
+                `and(scope_type.eq.site,scope_id.eq."${siteId}")`,
+                `and(scope_type.eq.metering_point,scope_id.eq."${pointId}")`,
+              ]
+            : [
+                'and(metering_point_id.is.null,site_id.is.null)',
+                `and(metering_point_id.is.null,site_id.eq."${siteId}")`,
+                `metering_point_id.eq."${pointId}"`,
+              ]
+          expect(filters).toMatchObject({ company_id: companyId, customer_id: customerId, or: scopes.join(',') })
+          return { data: [], error: null }
+        }
         throw new Error(`Undeclared database table: ${table}`)
       }
       const query = {
         select() { return query },
         eq(field: string, value: unknown) { filters[field] = value; return query },
         in() { return query }, order() { return query }, limit() { return query },
+        or(expression: string) { filters.or = expression; return query },
         maybeSingle: async () => result(),
         then(resolve: (value: ReturnType<typeof result>) => unknown) { return Promise.resolve(result()).then(resolve) },
       }
