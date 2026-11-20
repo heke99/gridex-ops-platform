@@ -103,6 +103,28 @@ describe('Nordfin invoice XML', () => {
     expect(out).toContain('<OrganizationNumber>5566778899</OrganizationNumber>')
   })
 
+  it.each(['\uFFFE', '\uFFFF'])('removes the XML 1.0 forbidden character %j from stored customer and invoice text', (invalidCharacter) => {
+    const source = row()
+    const storedRow: InvoiceFileRow = JSON.parse(JSON.stringify({
+      ...source,
+      customer_name: `Åsa${invalidCharacter} 🧪 𐀀 AB`,
+      lines: source.lines.map((line) => ({ ...line, description: `El${invalidCharacter} & <spot>` })),
+    }))
+
+    const out = renderNordfinInvoiceXml([storedRow])
+
+    expect(out).toContain('<Customername>Åsa 🧪 𐀀 AB</Customername>')
+    expect(out).toContain('<Description>El &amp; &lt;spot&gt;</Description>')
+    expect(out).toContain('<InvoiceAmount>316.30</InvoiceAmount>')
+    expect(out).toBe(renderNordfinInvoiceXml([storedRow]))
+  })
+
+  it('preserves valid Unicode and XML whitespace while removing forbidden control characters', () => {
+    const out = renderNordfinInvoiceXml([row({ customer_name: 'Åsa 🧪 𐀀\t\n\r\u0001 AB' })])
+
+    expect(out).toContain('<Customername>Åsa 🧪 𐀀\t\n\r AB</Customername>')
+  })
+
   it('renders a Nordfin file as XML by default and is deterministic', () => {
     expect(parseInvoiceFileFormat(null, 'nordfin')).toBe('nordfin_xml')
     expect(parseInvoiceFileFormat(null, 'file_export')).toBe('csv')

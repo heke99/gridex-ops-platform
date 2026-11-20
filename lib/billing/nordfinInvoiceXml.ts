@@ -17,9 +17,8 @@ function xml(value: unknown) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;')
-    // XML 1.0 forbids most control characters.
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+    // XML 1.0 forbids most control characters and the U+FFFE/U+FFFF noncharacters.
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '')
 }
 
 function el(name: string, value: unknown, indent: string) {
