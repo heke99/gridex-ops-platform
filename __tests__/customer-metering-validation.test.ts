@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const ports = vi.hoisted(() => ({
   queries: [] as URL[],
+  rows: [] as Array<{ id: string; period_start: string; period_end: string; facility_id: string; quantity_kwh: number }>,
+  missingProjection: false,
   audit: vi.fn(),
   allowed: true,
   company: '00000000-0000-4000-8000-000000000001',
@@ -44,7 +46,10 @@ vi.mock('@/lib/supabase/service', async () => {
           if (query.searchParams.get('period_start') === 'gte.not-a-date') {
             return Response.json({ code: '22007', message: 'synthetic malformed date' }, { status: 400 })
           }
-          return Response.json([])
+          if (ports.missingProjection) {
+            return Response.json({ code: 'PGRST205', message: 'Synthetic projection missing from schema cache' }, { status: 404 })
+          }
+          return Response.json(query.searchParams.has('or') ? ports.rows.slice(1) : ports.rows)
         },
       },
     }),
@@ -57,6 +62,8 @@ import { buildPortalDatabasePage } from '@/lib/customer-portal/keysetPagination'
 beforeEach(() => {
   ports.audit.mockClear()
   ports.queries = []
+  ports.rows = []
+  ports.missingProjection = false
   ports.allowed = true
 })
 
@@ -168,6 +175,80 @@ describe('customer metering filters', () => {
     expect(ports.queries).toHaveLength(1)
     for (const field of ['period_start', 'period_end', 'facility_id']) {
       expect(ports.queries[0].searchParams.has(field)).toBe(false)
+    }
+  })
+
+  it('continues an issued metering cursor only with the same facility and filters', async () => {
+    const facilityId = '735999000000001234'
+    const from = '2026-11-19T00:00:00Z'
+    const to = '2026-11-20T00:00:00Z'
+    const first = {
+      id: '00000000-0000-4000-8000-000000000009',
+      period_start: '2026-11-19T01:00:00.000001Z',
+      period_end: '2026-11-19T01:15:00Z',
+      facility_id: facilityId,
+      quantity_kwh: 12,
+    }
+    const next = {
+      ...first,
+      id: '00000000-0000-4000-8000-000000000008',
+      period_start: '2026-11-19T00:45:00.000001Z',
+      quantity_kwh: 9,
+    }
+    ports.rows = [first, next]
+    const filters = { facility_id: facilityId, from, to, limit: '1' }
+    const firstResponse = await read(filters)
+    expect(firstResponse.status).toBe(200)
+    const firstPage = await firstResponse.json()
+    expect(firstPage.data).toHaveLength(1)
+    expect(firstPage.page.next_cursor).toEqual(expect.any(String))
+    const cursor = firstPage.page.next_cursor
+
+    const continued = await read({ ...filters, cursor })
+    expect(continued.status).toBe(200)
+    expect(await continued.json()).toMatchObject({
+      data: [{ quantity_kwh: 9 }], page: { returned: 1, has_more: false, next_cursor: null },
+    })
+    expect(ports.queries).toHaveLength(2)
+    expect(Object.fromEntries(ports.queries[1].searchParams)).toMatchObject({
+      company_id: `eq.${ports.company}`, customer_id: `eq.${ports.customer}`, facility_id: `eq.${facilityId}`,
+      period_start: `gte.${from}`, period_end: `lte.${to}`, revision_status: 'eq.current', limit: '2',
+      or: `(period_start.lt.${first.period_start},and(period_start.eq.${first.period_start},id.lt.${first.id}))`,
+    })
+
+    ports.queries = []
+    ports.audit.mockClear()
+    const wrongFacility = await read({ ...filters, facility_id: '735999000000004321', cursor })
+    expect({ status: wrongFacility.status, reads: ports.queries.length }).toEqual({ status: 400, reads: 0 })
+    expect(await wrongFacility.json()).toMatchObject({
+      request_id: wrongFacility.headers.get('X-Request-ID'),
+      error: { code: 'invalid_cursor', field: 'cursor', retryable: false },
+    })
+    expect(ports.audit).toHaveBeenCalledOnce()
+    expect(ports.audit).toHaveBeenCalledWith(expect.objectContaining({
+      statusCode: 400, errorCode: 'invalid_cursor', metadata: { field: 'cursor' },
+    }))
+  })
+
+  it('rejects an invalid cursor before any metering or event read', async () => {
+    const response = await read({ cursor: 'synthetic-invalid-cursor' })
+    expect({ status: response.status, reads: ports.queries.length }).toEqual({ status: 400, reads: 0 })
+    expect(await response.json()).toMatchObject({ error: { code: 'invalid_cursor', field: 'cursor', retryable: false } })
+    expect(ports.audit).toHaveBeenCalledOnce()
+  })
+
+  it('retains the existing missing-projection outcome after a scoped call', async () => {
+    const report = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      ports.missingProjection = true
+      const response = await read()
+      expect({ status: response.status, reads: ports.queries.length }).toEqual({ status: 500, reads: 1 })
+      expect(await response.json()).toMatchObject({ error: { code: 'customer_portal_internal_error' } })
+      expect(report).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+        error: expect.objectContaining({ code: 'platform_schema_not_ready' }),
+      }))
+    } finally {
+      report.mockRestore()
     }
   })
 
