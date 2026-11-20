@@ -23,7 +23,7 @@ function qualityLabel(value: string | null) {
 export default async function PortalConsumptionPage() {
   const context = await getCustomerPortalContext()
   // Month cards use the complete native month sum; the detail list below stays bounded.
-  const detail = listPortalMeteringValues(context, { limit: 500 }).then(async (values) => ({
+  const detail = listPortalMeteringValues(context, { limit: 500, currentOnly: true }).then(async (values) => ({
     values,
     pointNumbers: await listPortalMeteringPointNumbers(context, values).catch(() => null),
   }))
@@ -55,7 +55,7 @@ export default async function PortalConsumptionPage() {
       <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-5">
           <h2 className="text-lg font-semibold text-slate-950">Mätvärden</h2>
-          <p className="mt-1 text-sm text-slate-500">Senaste {values.length} värden.</p>
+          <p className="mt-1 text-sm text-slate-500">Senaste {values.length} värden. Endast aktuella mätvärden visas.</p>
         </div>
 
         <div className="divide-y divide-slate-100">

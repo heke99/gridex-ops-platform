@@ -104,7 +104,7 @@ function rawRows(count: number): Row[] {
   return Array.from({ length: count }, (_, n) => ({
     id: uuid(1000 + n), company_id: company, customer_id: customer, site_id: site,
     metering_point_id: point, source_request_id: null, grid_owner_id: gridOwner,
-    reading_type: 'consumption', value_kwh: 1, quality_code: 'measured',
+    reading_type: 'consumption', value_kwh: 1, quality_code: 'measured', is_current: true, revision_status: 'current',
     read_at: new Date(Date.UTC(2026, 9, 1, 0, n * 15)).toISOString(),
     period_start: new Date(Date.UTC(2026, 9, 1, 0, n * 15)).toISOString(),
     period_end: new Date(Date.UTC(2026, 9, 1, 0, (n + 1) * 15)).toISOString(),

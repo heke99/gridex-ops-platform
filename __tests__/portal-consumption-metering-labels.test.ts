@@ -30,7 +30,7 @@ vi.mock('@/lib/supabase/service', async () => {
 
 function value(n: number, point: string, readingType: string, quality: string | null, overrides: Row = {}): Row {
   return { id: uuid(n), company_id: company, customer_id: customer, site_id: ownSite,
-    metering_point_id: point, value_kwh: 5.25, reading_type: readingType, quality_code: quality,
+    metering_point_id: point, value_kwh: 5.25, reading_type: readingType, quality_code: quality, is_current: true, revision_status: 'current',
     created_at: at, period_start: at, period_end: at, read_at: at, ...overrides }
 }
 
