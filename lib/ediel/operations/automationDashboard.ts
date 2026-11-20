@@ -13,7 +13,7 @@ export type EdielAutomationDashboard = {
     manualReviews: number
     outboxQueued: number
     outboxFailed: number
-    slaCritical: number
+    slaCritical: number | null
     portalMismatches: number
     unresolvedOpen: number | null
   }
@@ -62,10 +62,18 @@ function isManualTrace(row: EdielAutomationRow): boolean {
   return status.includes('manual') || decision.includes('manual') || String(row.can_auto_send ?? '') === 'false'
 }
 
-function isCriticalSla(row: EdielAutomationRow): boolean {
-  const status = statusOf(row)
-  const due = typeof row.due_at === 'string' ? Date.parse(row.due_at) : NaN
-  return status === 'critical' || status === 'expired' || (!Number.isNaN(due) && due <= Date.now())
+async function readCriticalSlaCount(companyId: string | null, evaluatedAt: string): Promise<number | null> {
+  try {
+    let query = supabaseService.from('ediel_sla_timers').select('id', { count: 'exact', head: true })
+    if (companyId) query = query.eq('company_id', companyId)
+    // Expired timers remain actionable until the worker resolves or cancels them.
+    const { count, error } = await query
+      .in('status', ['open', 'warning', 'critical', 'expired'])
+      .or(`status.in.(critical,expired),due_at.lte.${evaluatedAt}`)
+    return !error && typeof count === 'number' && Number.isSafeInteger(count) && count >= 0 ? count : null
+  } catch {
+    return null
+  }
 }
 
 function isPortalMismatch(row: EdielAutomationRow): boolean {
@@ -78,7 +86,8 @@ export async function getEdielAutomationDashboard(params?: {
   limit?: number
 }): Promise<EdielAutomationDashboard> {
   const limit = params?.limit ?? 50
-  const [decisionTraces, outboxItems, slaTimers, portalFeedback, unresolvedItems] = await Promise.all([
+  const evaluatedAt = new Date().toISOString()
+  const [decisionTraces, outboxItems, slaTimers, portalFeedback, unresolvedItems, slaCritical] = await Promise.all([
     safeTableRows({
       table: 'ediel_decision_traces',
       unavailableMessage: 'Beslutshistoriken kunde inte läsas.',
@@ -122,9 +131,11 @@ export async function getEdielAutomationDashboard(params?: {
       limit,
       companyId: params?.companyId ?? null,
     }),
+    readCriticalSlaCount(params?.companyId ?? null, evaluatedAt),
   ])
 
-  const warnings = [decisionTraces.warning, outboxItems.warning, slaTimers.warning, portalFeedback.warning, unresolvedItems.warning]
+  const warnings = [decisionTraces.warning, outboxItems.warning, slaTimers.warning, portalFeedback.warning, unresolvedItems.warning,
+    slaCritical === null ? 'Kritiska kvittensfrister kunde inte räknas.' : null]
     .filter((item): item is string => Boolean(item))
 
   return {
@@ -139,7 +150,7 @@ export async function getEdielAutomationDashboard(params?: {
       manualReviews: decisionTraces.rows.filter(isManualTrace).length,
       outboxQueued: outboxItems.rows.filter((row) => ['prepared', 'queued', 'sending'].includes(statusOf(row))).length,
       outboxFailed: outboxItems.rows.filter((row) => statusOf(row) === 'failed' || statusOf(row) === 'blocked').length,
-      slaCritical: slaTimers.rows.filter(isCriticalSla).length,
+      slaCritical,
       portalMismatches: portalFeedback.rows.filter(isPortalMismatch).length,
       unresolvedOpen: unresolvedItems.warning ? null : unresolvedItems.rows.length,
     },

@@ -32,12 +32,16 @@ let db: PGlite
 
 // Forward the actual SDK column selection, status predicates and ordered limit
 // to the canonical table DDL under a synthetic tenant. No upstream calls.
-async function fetchPort(input: RequestInfo | URL) {
+async function fetchPort(input: RequestInfo | URL, init?: RequestInit) {
   const url = new URL(String(input))
   const table = url.pathname.split('/').at(-1)!
   expect(url.searchParams.get('company_id')).toBe(`eq.${companyId}`)
   if (table !== 'ediel_unresolved_items') {
     expect(fixtures).toHaveProperty(table)
+    if (table === 'ediel_sla_timers' && init?.method === 'HEAD') {
+      expect(new Headers(init.headers).get('prefer')).toContain('count=exact')
+      return new Response(null, { headers: { 'content-range': '0-0/1' } })
+    }
     return Response.json(fixtures[table])
   }
   if (io.readError) return Response.json({ code: '42703', message: 'internal_fixture_column', details: 'internal_fixture_details' }, { status: 400 })

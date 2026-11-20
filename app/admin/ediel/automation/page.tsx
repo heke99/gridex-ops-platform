@@ -88,6 +88,7 @@ export default async function EdielAutomationPage() {
   const companyScope = await getOperationalCompanyScope(context.userId)
   const dashboard = await getEdielAutomationDashboard({ companyId: companyScope.companyId, limit: 50 })
   const unresolvedOpen = dashboard.metrics.unresolvedOpen
+  const criticalSlaCount = dashboard.metrics.slaCritical
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -113,7 +114,7 @@ export default async function EdielAutomationPage() {
           <Metric label="Manual review" value={dashboard.metrics.manualReviews} severity={dashboard.metrics.manualReviews > 0 ? 'warn' : 'ok'} />
           <Metric label="Outbox kö" value={dashboard.metrics.outboxQueued} href="/admin/ediel/outbox" severity={dashboard.metrics.outboxQueued > 0 ? 'warn' : 'ok'} />
           <Metric label="Outbox fel" value={dashboard.metrics.outboxFailed} href="/admin/ediel/outbox" severity={dashboard.metrics.outboxFailed > 0 ? 'bad' : 'ok'} />
-          <Metric label="SLA kritisk" value={dashboard.metrics.slaCritical} severity={dashboard.metrics.slaCritical > 0 ? 'bad' : 'ok'} />
+          <Metric label="SLA kritisk" value={criticalSlaCount} severity={criticalSlaCount === null ? 'neutral' : criticalSlaCount > 0 ? 'bad' : 'ok'} />
           <Metric label="Portaldiff" value={dashboard.metrics.portalMismatches} href="/admin/ediel/portal-feedback" severity={dashboard.metrics.portalMismatches > 0 ? 'warn' : 'ok'} />
           <Metric label="Unresolved" value={unresolvedOpen} href="/admin/ediel/unresolved" severity={unresolvedOpen === null ? 'neutral' : unresolvedOpen > 0 ? 'warn' : 'ok'} />
         </section>
