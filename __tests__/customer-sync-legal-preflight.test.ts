@@ -2,7 +2,10 @@ import { NextRequest } from 'next/server'
 import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { POST } from '@/app/api/v1/customer/sync/route'
+import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
+import { bindAuthenticatedApiResponseProfile } from '@/lib/integrations/apiResponseProfile'
 import { publicReference } from '@/lib/integrations/publicReferences'
+import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { buildCustomerLegalDocuments } from '@/lib/legal/customerDocumentPackage'
 
 type Row = Record<string, unknown>
@@ -56,7 +59,11 @@ const otherCompanyId = '00000000-0000-4000-8000-000000000011'
 const otherCustomerId = '00000000-0000-4000-8000-000000000012'
 const otherBundleId = '00000000-0000-4000-8000-000000000013'
 const otherDocumentId = '00000000-0000-4000-8000-000000000014'
-const client = { id: 'fixture-client', company_id: companyId }
+const client: IntegrationApiClient = {
+  id: 'fixture-client', company_id: companyId, name: 'Fixture client', status: 'active',
+  key_prefix: 'fixture', secret_hash: 'fixture-hash', scopes: ['customer_sync.write'], allowed_ips: [],
+  rate_limit_per_minute: 60, expires_at: null,
+}
 const identity = {
   company_id: companyId,
   customer_id: customerId,
@@ -216,6 +223,33 @@ describe('mounted customer sync legal preflight (API-81)', () => {
     expect(ports.customer.first_name).toBe('Updated')
     expect(writes().map(({ table }) => table)).toEqual(['customers', 'customer_legal_acceptances'])
     expect(writes()[1].body).toMatchObject([{ company_id: companyId, customer_id: customerId, contract_id: contractId, legal_bundle_version_document_id: documentId }])
+  })
+
+  it.each([
+    { version: WEBSITE_INTEGRATION_CONTRACT_VERSION, reference: acceptance.document_reference },
+    { version: '2026-10-02.3', reference: ` ${acceptance.document_reference} ` },
+    { version: '2026-10-04.1', reference: `\t${acceptance.document_reference}\n` },
+  ])('rejects a repeated document reference before legal inventory and customer writes ($version)', async ({ version, reference }) => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    ports.authorize.mockImplementationOnce(async () => {
+      const profiledClient = { ...client, metadata: { api_contract_profiles: { customer: version } } }
+      bindAuthenticatedApiResponseProfile(profiledClient)
+      return { ok: true, startedAt: Date.now(), client: profiledClient, identity }
+    })
+    const response = await POST(request({ legal_acceptances: [acceptance, { ...acceptance, document_reference: reference }] }))
+    expect(response.status).toBe(422)
+    expect(response.headers.get('x-gridex-contract-version')).toBe(version)
+    expect(await response.json()).toMatchObject({
+      error: { code: 'LEGAL_ACCEPTANCE_DUPLICATE', field: 'legal_acceptances.1.document_reference', retryable: false },
+      request_id: response.headers.get('x-request-id'),
+    })
+    expect(ports.customer.first_name).toBe('Original')
+    expect(writes()).toEqual([])
+    expect(ports.event).not.toHaveBeenCalled()
+    expect(ports.operations.some(({ table }) => table.startsWith('legal_bundle_'))).toBe(false)
+    expect(ports.operations).toContainEqual(expect.objectContaining({
+      method: 'PATCH', table: 'customer_portal_write_idempotency', body: expect.objectContaining({ status: 'failed', error_code: 'LEGAL_ACCEPTANCE_DUPLICATE' }),
+    }))
   })
 
   it('supports profile-only sync when no legal bundle is available', async () => {
