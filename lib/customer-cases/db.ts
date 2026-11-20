@@ -3,6 +3,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { assessWithdrawal, applyCustomerCaseOperationalStops, createCancellationDraftForCase } from './engine'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { CustomerCaseEventRow, CustomerCaseListRow, CustomerCaseRow, CustomerCaseType } from './types'
+import { publicReference } from '@/lib/integrations/publicReferences'
 import { queueTenantTemplateEmail, type TenantEmailTemplateKey } from '@/lib/tenant/emailTemplates'
 
 type CustomerCaseInput = {
@@ -275,7 +276,12 @@ export async function createCustomerCase(input: CustomerCaseInput): Promise<Cust
       : 'billing_blocked'
     : 'open'
 
+  // Persist the same reference the customer list derives from the saved UUID.
+  const supportCaseId = input.caseType === 'other' && input.operationalImpact === 'none' && input.metadata?.support_case === true
+    ? randomUUID()
+    : null
   const payload = {
+    ...(supportCaseId ? { id: supportCaseId } : {}),
     company_id: input.companyId,
     customer_id: input.customerId,
     site_id: input.siteId ?? null,
@@ -310,6 +316,7 @@ export async function createCustomerCase(input: CustomerCaseInput): Promise<Cust
     source: input.source ?? 'admin_customer_cases',
     metadata: {
       ...(input.metadata ?? {}),
+      ...(supportCaseId ? { support_public_reference: publicReference('support_case', input.companyId.toLowerCase(), supportCaseId) } : {}),
       prodatSentAt: input.prodatSentAt ?? null,
       assessment,
     },
