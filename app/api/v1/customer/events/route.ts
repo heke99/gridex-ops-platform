@@ -1,11 +1,13 @@
 import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
+import { ApiInputError } from '@/lib/api/strictRequest'
 import {
   customerPortalJson,
   logCustomerPortalSuccess,
   requireCustomerPortalApiContext,
 } from '@/lib/customer-portal/externalApi'
 import { listPortalEventsPage, portalContextFromResolved } from '@/lib/customer-portal/apiData'
+import { PortalCursorError } from '@/lib/customer-portal/keysetPagination'
 import { handleCustomerPortalPaginationError } from '@/lib/customer-portal/paginationReadinessError'
 import {
   publicPageInput,
@@ -26,7 +28,10 @@ export const dynamic = 'force-dynamic'
       data: page.items.map((row) => publicPortalEvent(context.client.company_id, row)),
       page: page.page,
     })
-  } catch (error) {
+  } catch (cause) {
+    const error = cause instanceof PortalCursorError
+      ? new ApiInputError('Ogiltig sidmarkör.', cause.code, cause.status, cause.field)
+      : cause
     return handleCustomerPortalPaginationError(
       { request, client: context.client, startedAt: context.startedAt, error },
       'portal_customer_events_page_v1',
