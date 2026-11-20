@@ -374,6 +374,9 @@ export async function listPortalMeteringPointNumbers(
   }
   const requests = [...scopedPoints.values()]
   const batchSize = 50
+  // query-loop-budget: bounded-meter-point-reads max=30
+  // The consumption page reads at most 500 values. Each batch reads points, can retry
+  // once for an older schema, and reads sites when needed.
   for (let start = 0; start < requests.length; start += batchSize) {
     const batch = requests.slice(start, start + batchSize)
     const ids = [...new Set(batch.map(request => request.pointId))]
