@@ -4,31 +4,43 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const ports = vi.hoisted(() => ({
   queries: [] as URL[],
   rows: [] as Array<{ id: string; period_start: string; period_end: string; facility_id: string; quantity_kwh: number }>,
-  missingProjection: false,
+  backendFailure: null as { status: number; code: string; message: string } | null,
   audit: vi.fn(),
+  auditWrites: [] as Array<Record<string, unknown>>,
+  persistAudit: false,
+  useActualAuthorization: false,
   allowed: true,
   company: '00000000-0000-4000-8000-000000000001',
   customer: '00000000-0000-4000-8000-000000000002',
 }))
 
 vi.mock('server-only', () => ({}))
-vi.mock('@/lib/integrations/apiAuth', async original => ({
-  ...await original<typeof import('@/lib/integrations/apiAuth')>(),
-  logIntegrationApiRequest: ports.audit,
-  currentIntegrationApiResponseContext: () => null,
-}))
+vi.mock('@/lib/integrations/apiAuth', async original => {
+  const actual = await original<typeof import('@/lib/integrations/apiAuth')>()
+  return {
+    ...actual,
+    logIntegrationApiRequest: async (input: Parameters<typeof actual.logIntegrationApiRequest>[0]) => {
+      ports.audit(input)
+      if (ports.persistAudit) await actual.logIntegrationApiRequest(input)
+    },
+    currentIntegrationApiResponseContext: () => null,
+  }
+})
 vi.mock('@/lib/customer-portal/externalApi', async original => {
   const actual = await original<typeof import('@/lib/customer-portal/externalApi')>()
   return {
     ...actual,
-    requireCustomerPortalApiContext: async () => ports.allowed ? {
-      ok: true,
-      client: { id: 'synthetic-client', company_id: ports.company },
-      identity: { customer_id: ports.customer },
-      startedAt: 25,
-    } : {
-      ok: false,
-      response: actual.customerPortalJson({ error: 'Synthetic access denied', code: 'scope_denied' }, { status: 403 }),
+    requireCustomerPortalApiContext: async (...args: Parameters<typeof actual.requireCustomerPortalApiContext>) => {
+      if (ports.useActualAuthorization) return actual.requireCustomerPortalApiContext(...args)
+      return ports.allowed ? {
+        ok: true,
+        client: { id: 'synthetic-client', company_id: ports.company },
+        identity: { customer_id: ports.customer },
+        startedAt: 25,
+      } : {
+        ok: false,
+        response: actual.customerPortalJson({ error: 'Synthetic access denied', code: 'scope_denied' }, { status: 403 }),
+      }
     },
   }
 })
@@ -38,16 +50,23 @@ vi.mock('@/lib/supabase/service', async () => {
     supabaseService: createClient('https://synthetic.example.test', 'synthetic-key', {
       auth: { autoRefreshToken: false, persistSession: false },
       global: {
-        fetch: async input => {
-          const query = new URL(input instanceof Request ? input.url : String(input))
+        fetch: async (input, init) => {
+          const request = input instanceof Request ? input : new Request(input, init)
+          const query = new URL(request.url)
           expect(query.origin).toBe('https://synthetic.example.test')
+          if (query.pathname === '/rest/v1/integration_api_requests') {
+            expect(request.method).toBe('POST')
+            ports.auditWrites.push(await request.json())
+            return new Response(null, { status: 201 })
+          }
           expect(query.pathname).toBe('/rest/v1/normalized_metering_values')
           ports.queries.push(query)
           if (query.searchParams.get('period_start') === 'gte.not-a-date') {
             return Response.json({ code: '22007', message: 'synthetic malformed date' }, { status: 400 })
           }
-          if (ports.missingProjection) {
-            return Response.json({ code: 'PGRST205', message: 'Synthetic projection missing from schema cache' }, { status: 404 })
+          if (ports.backendFailure) {
+            const { status, ...error } = ports.backendFailure
+            return Response.json({ ...error, details: 'synthetic-backend-detail', hint: 'synthetic-backend-hint' }, { status })
           }
           return Response.json(query.searchParams.has('or') ? ports.rows.slice(1) : ports.rows)
         },
@@ -61,15 +80,18 @@ import { buildPortalDatabasePage } from '@/lib/customer-portal/keysetPagination'
 
 beforeEach(() => {
   ports.audit.mockClear()
+  ports.auditWrites = []
+  ports.persistAudit = false
+  ports.useActualAuthorization = false
   ports.queries = []
   ports.rows = []
-  ports.missingProjection = false
+  ports.backendFailure = null
   ports.allowed = true
 })
 
-function read(filters: Record<string, string> = {}) {
+function read(filters: Record<string, string> = {}, headers?: HeadersInit) {
   const query = new URLSearchParams(filters)
-  return GET(new NextRequest(`https://synthetic.example.test/api/v1/customer/metering-values?${query}`))
+  return GET(new NextRequest(`https://synthetic.example.test/api/v1/customer/metering-values?${query}`, { headers }))
 }
 
 describe('customer metering filters', () => {
@@ -237,16 +259,62 @@ describe('customer metering filters', () => {
     expect(ports.audit).toHaveBeenCalledOnce()
   })
 
-  it('retains the existing missing-projection outcome after a scoped call', async () => {
+  it.each([
+    { status: 404, code: 'PGRST205', message: "Could not find the table 'public.normalized_metering_values' in the schema cache" },
+    { status: 404, code: '42P01', message: 'relation "public.normalized_metering_values" does not exist' },
+    { status: 400, code: '42703', message: 'column normalized_metering_values.revision_status does not exist' },
+  ])('returns sanitized retryable 503 for the actual missing projection signal $code', async failure => {
     const report = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     try {
-      ports.missingProjection = true
+      ports.backendFailure = failure
+      ports.persistAudit = true
+      const response = await read({}, { 'x-request-id': 'synthetic-inbound-request-id' })
+      expect({ status: response.status, reads: ports.queries.length }).toEqual({ status: 503, reads: 1 })
+      expect(response.headers.get('Cache-Control')).toBe('no-store')
+      const requestId = response.headers.get('X-Request-ID')
+      expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
+      const body = await response.json()
+      expect(body).toMatchObject({
+        request_id: requestId, correlation_id: requestId,
+        error: { code: 'platform_schema_not_ready', message: 'Databasschemat är inte verifierat.', retryable: true, field: null, blockers: [] },
+      })
+      expect(JSON.stringify(body)).not.toContain('synthetic-backend-')
+      expect(JSON.stringify(body)).not.toContain('normalized_metering_values')
+      expect(report).not.toHaveBeenCalled()
+      expect(ports.audit).toHaveBeenCalledOnce()
+      expect(ports.audit).toHaveBeenCalledWith(expect.objectContaining({
+        statusCode: 503, errorCode: 'platform_schema_not_ready', requestId,
+      }))
+      expect(ports.audit.mock.calls[0][0].metadata).toBeUndefined()
+      await vi.waitFor(() => expect(ports.auditWrites).toHaveLength(1))
+      expect(ports.auditWrites[0]).toMatchObject({
+        company_id: ports.company, api_client_id: 'synthetic-client', request_id: requestId,
+        status_code: 503, error_code: 'platform_schema_not_ready', metadata: {},
+      })
+      expect(JSON.stringify(ports.auditWrites)).not.toContain('synthetic-backend-')
+      expect(JSON.stringify(ports.auditWrites)).not.toContain('normalized_metering_values')
+    } finally {
+      report.mockRestore()
+    }
+  })
+
+  it.each([
+    { status: 500, code: 'XX000', message: 'Synthetic backend failure' },
+    { status: 400, code: '42P10', message: 'there is no unique or exclusion constraint matching this query' },
+    { status: 404, code: 'PGRST205', message: "Could not find the table 'public.unrelated' in the schema cache" },
+    { status: 400, code: '42703', message: 'column normalized_metering_values.unused_field does not exist' },
+    { status: 400, code: '22007', message: 'synthetic date input does not exist in this representation' },
+  ])('keeps unrelated backend failure $code on the existing 500 path', async failure => {
+    const report = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      ports.backendFailure = failure
       const response = await read()
       expect({ status: response.status, reads: ports.queries.length }).toEqual({ status: 500, reads: 1 })
-      expect(await response.json()).toMatchObject({ error: { code: 'customer_portal_internal_error' } })
-      expect(report).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-        error: expect.objectContaining({ code: 'platform_schema_not_ready' }),
-      }))
+      const body = await response.json()
+      expect(body).toMatchObject({ error: { code: 'customer_portal_internal_error', retryable: false } })
+      expect(JSON.stringify(body)).not.toContain('synthetic-backend-')
+      expect(ports.audit).toHaveBeenCalledOnce()
+      expect(ports.audit).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 500, errorCode: 'customer_portal_internal_error' }))
     } finally {
       report.mockRestore()
     }
@@ -254,8 +322,20 @@ describe('customer metering filters', () => {
 
   it('keeps ordinary scope denial before filter handling', async () => {
     ports.allowed = false
+    ports.backendFailure = { status: 404, code: 'PGRST205', message: "Could not find the table 'public.normalized_metering_values' in the schema cache" }
     expect((await read({ facility_id: 'invalid' })).status).toBe(403)
     expect(ports.queries).toHaveLength(0)
     expect(ports.audit).not.toHaveBeenCalled()
+  })
+
+  it('rejects an actual credential-free request before checking metering readiness', async () => {
+    ports.useActualAuthorization = true
+    ports.persistAudit = true
+    ports.backendFailure = { status: 404, code: 'PGRST205', message: "Could not find the table 'public.normalized_metering_values' in the schema cache" }
+    const response = await read({ facility_id: '735999000000001234' })
+    expect(response.status).toBe(401)
+    expect(await response.json()).toMatchObject({ error: { code: 'missing_api_token' } })
+    expect(ports.queries).toEqual([])
+    expect(ports.auditWrites).toEqual([])
   })
 })
