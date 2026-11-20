@@ -36,6 +36,7 @@ let failAudit: boolean
 let omitAuditReceipt: boolean
 let loseReservationReply: boolean
 let advanceFinanceBeforeReservation: boolean
+let cancelAtReservation: boolean
 let concurrentReads: { arrivals: number; wait: Promise<void>; release: () => void } | null
 const atPartner: Row[] = []
 const auditRequests: Row[] = []
@@ -78,6 +79,11 @@ async function databasePort(input: RequestInfo | URL, init?: RequestInit): Promi
     item.purchase_status = 'purchased_with_recourse'
     advanceFinanceBeforeReservation = false
   }
+  if (init?.method === 'PATCH' && cancelAtReservation) {
+    // The signed cancellation keeps a sent export row sent and may carry no finance status.
+    item.provider_status = 'cancelled'
+    cancelAtReservation = false
+  }
   const match = [...url.searchParams].every(([column, filter]) => column === 'select' || matches(column, filter))
   if (init?.method === 'PATCH' && body) {
     expect(url.searchParams.get('company_id')).toBe(`eq.${scope.company}`)
@@ -119,13 +125,14 @@ function submit(companyId = scope.company) {
 
 beforeEach(() => {
   item = { id: scope.item, company_id: scope.company, export_run_id: scope.run, provider: 'capway_aptic', environment: 'test', status: 'sent',
-    provider_invoice_guid: scope.partner, purchase_status: 'service', provider_purchase_confirmed_at: null,
+    provider_invoice_guid: scope.partner, provider_status: null, purchase_status: 'service', provider_purchase_confirmed_at: null,
     response_payload: { create_invoice: { invoiceGuids: [scope.partner] }, purchase: null }, updated_at: updatedAt }
   losePartnerReply = false
   failAudit = false
   omitAuditReceipt = false
   loseReservationReply = false
   advanceFinanceBeforeReservation = false
+  cancelAtReservation = false
   concurrentReads = null
   atPartner.length = 0
   auditRequests.length = 0
@@ -225,6 +232,8 @@ it('preserves the first approved purchase on a historical sent invoice with no p
   expect(response.status).toBe(200)
   await expect(response.json()).resolves.toMatchObject({ data: { purchaseReference: 'synthetic-accepted' } })
   expect(atPartner).toMatchObject([{ purchase_status: null, response_payload: { [manual]: reserved } }])
+  const patch = ports.db.mock.calls.find(([, init]) => init?.method === 'PATCH')
+  expect(new URL(String(patch?.[0])).searchParams.get('provider_status')).toBe('is.null')
   expect(auditRequests).toHaveLength(1)
 })
 
@@ -236,4 +245,35 @@ it('reports the unverified audit outcome when its response lacks an event id', a
   expect(item.response_payload).toMatchObject({ [manual]: reserved })
   expect(atPartner).toHaveLength(1)
   expect(auditRequests).toHaveLength(1)
+})
+
+it('does not arm a purchase when the signed partner cancelled a still-sent invoice without finance status', async () => {
+  item.provider_status = 'cancelled'
+  const response = await submit()
+  expect(response.status).toBe(409)
+  await expect(response.json()).resolves.toMatchObject({ code: 'invoice_purchase_provider_cancelled' })
+  expect(item.response_payload).not.toHaveProperty(manual)
+  expect(atPartner).toHaveLength(0)
+  expect(auditRequests).toHaveLength(0)
+})
+
+it('gives a signed cancellation the reservation race even at the same row timestamp', async () => {
+  item.provider_status = 'unpaid'
+  cancelAtReservation = true
+  const response = await submit()
+  expect(response.status).toBe(409)
+  expect(item.provider_status).toBe('cancelled')
+  expect(item.status).toBe('sent')
+  expect(item.purchase_status).toBe('service')
+  expect(item.response_payload).not.toHaveProperty(manual)
+  expect(atPartner).toHaveLength(0)
+  expect(auditRequests).toHaveLength(0)
+})
+
+it('accepts the ordinary provider unpaid state and binds the observed value to the reservation', async () => {
+  item.provider_status = 'unpaid'
+  expect((await submit()).status).toBe(200)
+  const patch = ports.db.mock.calls.find(([, init]) => init?.method === 'PATCH')
+  expect(new URL(String(patch?.[0])).searchParams.get('provider_status')).toBe('eq.unpaid')
+  expect(atPartner).toHaveLength(1)
 })

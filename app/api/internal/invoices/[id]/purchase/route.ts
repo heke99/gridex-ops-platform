@@ -47,6 +47,11 @@ export async function POST(request: Request, { params }: Props) {
       return NextResponse.json({ error: 'Fakturan måste vara bekräftat skickad innan den kan köpas.', code: 'invoice_purchase_invoice_not_sent' }, { status: 409 })
     }
 
+    const providerStatus = item.provider_status ?? null
+    if (providerStatus === 'cancelled') {
+      return NextResponse.json({ error: 'Fakturan är annullerad hos fakturapartnern.', code: 'invoice_purchase_provider_cancelled' }, { status: 409 })
+    }
+
     const responsePayload = item.response_payload && typeof item.response_payload === 'object' && !Array.isArray(item.response_payload)
       ? item.response_payload
       : {}
@@ -83,9 +88,12 @@ export async function POST(request: Request, { params }: Props) {
       .is(`response_payload->${MANUAL_PURCHASE_RECONCILIATION}`, null)
       .is(`response_payload->${AUTOMATIC_PURCHASE_RECONCILIATION}`, null)
       .is('response_payload->>purchase', null)
+    const providerBoundReservation = providerStatus === null
+      ? reservationQuery.is('provider_status', null)
+      : reservationQuery.eq('provider_status', providerStatus)
     const { data: reservation, error: reservationError } = await (purchaseStatus === null
-      ? reservationQuery.is('purchase_status', null)
-      : reservationQuery.eq('purchase_status', purchaseStatus)).select('id').maybeSingle()
+      ? providerBoundReservation.is('purchase_status', null)
+      : providerBoundReservation.eq('purchase_status', purchaseStatus)).select('id').maybeSingle()
     if (reservationError) throw reservationError
     if (!reservation) return purchaseNeedsReconciliation()
 
