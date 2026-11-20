@@ -99,30 +99,33 @@ export async function claimPortalWriteIdempotency(input: {
   operation: string
   idempotencyKey: string
   payload: unknown
+  invalidRequest?: ApiInputError
 }): Promise<{ replay: boolean; recordId: string; statusCode?: number; responseBody?: unknown }> {
   const requestHash = payloadHash(input.payload)
   const now = new Date().toISOString()
-  const inserted = await supabaseService
-    .from('customer_portal_write_idempotency')
-    .insert({
-      company_id: input.companyId,
-      api_client_id: input.clientId,
-      customer_id: input.customerId,
-      route: input.operation,
-      idempotency_key: input.idempotencyKey,
-      request_hash: requestHash,
-      status: 'processing',
-      started_at: now,
-      updated_at: now,
-    })
-    .select('id,status,response_status,response_body,request_hash')
-    .maybeSingle()
+  if (!input.invalidRequest) {
+    const inserted = await supabaseService
+      .from('customer_portal_write_idempotency')
+      .insert({
+        company_id: input.companyId,
+        api_client_id: input.clientId,
+        customer_id: input.customerId,
+        route: input.operation,
+        idempotency_key: input.idempotencyKey,
+        request_hash: requestHash,
+        status: 'processing',
+        started_at: now,
+        updated_at: now,
+      })
+      .select('id,status,response_status,response_body,request_hash')
+      .maybeSingle()
 
-  if (!inserted.error && inserted.data) {
-    return { replay: false, recordId: String(inserted.data.id) }
+    if (!inserted.error && inserted.data) {
+      return { replay: false, recordId: String(inserted.data.id) }
+    }
+
+    if (String(inserted.error?.code ?? '') !== '23505') throw customerPortalWriteError(inserted.error)
   }
-
-  if (String(inserted.error?.code ?? '') !== '23505') throw customerPortalWriteError(inserted.error)
 
   let existingQuery = supabaseService
     .from('customer_portal_write_idempotency')
@@ -136,7 +139,9 @@ export async function claimPortalWriteIdempotency(input: {
     : existingQuery.eq('customer_id', input.customerId)
   const existing = await existingQuery.maybeSingle()
   if (existing.error) throw existing.error
-  if (!existing.data) throw new Error('Idempotency-raden kunde inte läsas efter konflikt.')
+  if (!existing.data) {
+    throw input.invalidRequest ?? new Error('Idempotency-raden kunde inte läsas efter konflikt.')
+  }
   if (String(existing.data.request_hash) !== requestHash) {
     throw new ApiInputError('Idempotency-Key har redan använts med annan payload.', 'idempotency_conflict', 409)
   }
@@ -147,6 +152,9 @@ export async function claimPortalWriteIdempotency(input: {
       statusCode: Number(existing.data.response_status ?? 200),
       responseBody: existing.data.response_body,
     }
+  }
+  if (input.invalidRequest && String(existing.data.status) === 'failed') {
+    throw input.invalidRequest
   }
   if (
     String(existing.data.status) === 'failed' &&
@@ -304,6 +312,7 @@ export type IdempotentWriteResult<T> = {
  * Executes an external customer write once for a tenant/client/customer tuple.
  * The callback must contain the complete business mutation. Replays return the
  * stored response and conflicting payloads are rejected before any write runs.
+ * An invalid request can replay a historical completion without taking a claim.
  */
 export async function executeIdempotentPortalWrite<T>(input: {
   request: NextRequest
@@ -312,6 +321,7 @@ export async function executeIdempotentPortalWrite<T>(input: {
   customerId: string | null
   operation: string
   payload: unknown
+  invalidRequest?: ApiInputError
   execute: () => Promise<IdempotentWriteResult<T>>
 }): Promise<IdempotentWriteResult<T> & { replayed: boolean }> {
   const idempotencyKey = requireIdempotencyKey(input.request)
@@ -322,6 +332,7 @@ export async function executeIdempotentPortalWrite<T>(input: {
     operation: input.operation,
     idempotencyKey,
     payload: input.payload,
+    invalidRequest: input.invalidRequest,
   })
 
   if (claim.replay) {

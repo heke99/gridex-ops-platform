@@ -6,10 +6,14 @@ type Row = Record<string, unknown>
 
 const fixture = vi.hoisted(() => ({
   ledger: null as Row | null,
+  ledgerCalls: [] as { method: string; filters: URLSearchParams }[],
+  ledgerReadError: false,
   sqlReplay: false,
   commands: [] as Row[],
   log: vi.fn(),
 }))
+
+const ledgerScope = ['company_id', 'api_client_id', 'customer_id', 'route', 'idempotency_key']
 
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/integrations/apiAuth', async (original) => ({
@@ -48,18 +52,29 @@ vi.mock('@/lib/supabase/service', () => ({
           return Response.json({ ...completion, replayed: fixture.sqlReplay })
         }
         expect(url.pathname).toBe('/rest/v1/customer_portal_write_idempotency')
+        fixture.ledgerCalls.push({ method, filters: url.searchParams })
         if (method === 'POST') {
-          if (fixture.ledger) return Response.json({ code: '23505', message: 'Synthetic existing claim' }, { status: 409 })
+          if (fixture.ledger && ledgerScope.every((column) => fixture.ledger?.[column] === requestBody?.[column])) {
+            return Response.json({ code: '23505', message: 'Synthetic existing claim' }, { status: 409 })
+          }
           fixture.ledger = { ...requestBody, id: 'synthetic-ledger' }
           return Response.json(fixture.ledger, { status: 201 })
         }
         if (method === 'PATCH') {
-          expect(fixture.ledger?.status).toBe('processing')
+          expect(url.searchParams.get('status')).toBe(`eq.${fixture.ledger?.status}`)
           fixture.ledger = { ...fixture.ledger, ...requestBody }
           return Response.json({ id: fixture.ledger.id })
         }
         expect(method).toBe('GET')
-        return Response.json(fixture.ledger ? [fixture.ledger] : [])
+        if (fixture.ledgerReadError) {
+          return Response.json({ code: 'PGRST000', message: 'Synthetic ledger unavailable' }, {
+            status: 503, headers: { 'retry-after': '0' },
+          })
+        }
+        const row = fixture.ledger
+        const matchesScope = row && ledgerScope
+          .every((column) => url.searchParams.get(column) === `eq.${row[column]}`)
+        return Response.json(matchesScope ? [row] : [])
       },
     },
   }),
@@ -75,9 +90,125 @@ const submit = (extra: Row = {}) => POST(new NextRequest('https://app.synthetic.
 
 beforeEach(() => {
   fixture.ledger = null
+  fixture.ledgerCalls = []
+  fixture.ledgerReadError = false
   fixture.sqlReplay = false
   fixture.commands = []
   fixture.log.mockClear()
+})
+
+const oldInvalidAddress = { new_address: 'street' }
+
+function historicalAddressClaim(overrides: Row = {}): Row {
+  return {
+    id: 'historical-ledger', company_id: 'company', api_client_id: 'client', customer_id: 'customer',
+    route: '/api/v1/customer/move-out', idempotency_key: 'synthetic-move-out-order',
+    // Captured from the previous handler after submitting the same raw synthetic JSON.
+    request_hash: '3970f7f8ad9ff0973737f067e5da77da779b36d087651ff924b36d7e537b7546',
+    status: 'completed', response_status: 201, response_body: { data: { ...completion, replayed: false } },
+    ...overrides,
+  }
+}
+
+describe('Customer move-out optional JSON objects', () => {
+  it.each([
+    { field: 'new_address', value: 'Synthetic address' },
+    { field: 'contact_details', value: ['Synthetic contact'] },
+    { field: 'metadata', value: false },
+    { field: 'metadata', value: null },
+  ])('rejects malformed $field without claiming the key and accepts a correction', async ({ field, value }) => {
+    const response = await submit({ [field]: value })
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ error: { code: 'invalid_json_object', field } })
+    expect(fixture.log).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 400, metadata: { field } }))
+    expect(fixture.ledgerCalls.map(({ method }) => method)).toEqual(['GET'])
+    expect(fixture.ledger).toBeNull()
+    expect(fixture.commands).toHaveLength(0)
+
+    const objects = {
+      new_address: { street: 'Synthetic address', tags: ['postal'] },
+      contact_details: { email: 'synthetic@example.test' },
+      metadata: { workflow: { resolved: false } },
+    }
+    expect((await submit(objects)).status).toBe(201)
+    expect(fixture.commands).toHaveLength(1)
+    expect(fixture.commands[0]).toMatchObject(objects)
+    expect(fixture.ledgerCalls.map(({ method }) => method)).toEqual(['GET', 'POST', 'PATCH'])
+  })
+
+  it('replays the exact historical receipt using only a fully scoped read', async () => {
+    const original = historicalAddressClaim()
+    fixture.ledger = original
+
+    const response = await submit(oldInvalidAddress)
+    expect(response.status).toBe(200)
+    expect((await response.json()).data).toEqual({ ...completion, replayed: true })
+    expect(fixture.ledgerCalls.map(({ method }) => method)).toEqual(['GET'])
+    expect(Object.fromEntries(fixture.ledgerCalls[0].filters)).toMatchObject({
+      company_id: 'eq.company', api_client_id: 'eq.client', customer_id: 'eq.customer',
+      route: 'eq./api/v1/customer/move-out', idempotency_key: 'eq.synthetic-move-out-order',
+    })
+    expect(fixture.ledger).toEqual(original)
+    expect(fixture.commands).toHaveLength(0)
+  })
+
+  it('keeps conflicting raw payloads and existing processing claims as conflicts', async () => {
+    fixture.ledger = historicalAddressClaim()
+    const conflict = await submit({ ...oldInvalidAddress, metadata: true })
+    expect(conflict.status).toBe(409)
+    expect(await conflict.json()).toMatchObject({ error: { code: 'idempotency_conflict' } })
+
+    fixture.ledger = historicalAddressClaim({ status: 'processing', started_at: new Date().toISOString() })
+    const processing = await submit(oldInvalidAddress)
+    expect(processing.status).toBe(409)
+    expect(await processing.json()).toMatchObject({ error: { code: 'idempotency_in_progress' } })
+    expect(fixture.ledgerCalls.map(({ method }) => method)).toEqual(['GET', 'GET'])
+    expect(fixture.commands).toHaveLength(0)
+  })
+
+  it('rejects a failed matching claim without reopening it', async () => {
+    const original = historicalAddressClaim({ status: 'failed', response_status: null, response_body: null })
+    fixture.ledger = original
+
+    const response = await submit(oldInvalidAddress)
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ error: { code: 'invalid_json_object', field: 'new_address' } })
+    expect(fixture.ledgerCalls.map(({ method }) => method)).toEqual(['GET'])
+    expect(fixture.ledger).toEqual(original)
+    expect(fixture.commands).toHaveLength(0)
+  })
+
+  it('does not use a matching historical receipt belonging to a different customer', async () => {
+    fixture.ledger = historicalAddressClaim({ customer_id: 'other-customer' })
+    const response = await submit(oldInvalidAddress)
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ error: { code: 'invalid_json_object', field: 'new_address' } })
+    expect(fixture.ledgerCalls.map(({ method }) => method)).toEqual(['GET'])
+    expect(fixture.commands).toHaveLength(0)
+  })
+
+  it('preserves an unavailable receipt lookup as a server error without reserving the key', async () => {
+    fixture.ledgerReadError = true
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      const response = await submit(oldInvalidAddress)
+      expect(response.status).toBe(500)
+      expect(await response.json()).toMatchObject({ error: { code: 'customer_portal_internal_error' } })
+      expect([...new Set(fixture.ledgerCalls.map(({ method }) => method))]).toEqual(['GET'])
+      expect(fixture.ledger).toBeNull()
+      expect(fixture.commands).toHaveLength(0)
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
+
+  it('preserves required-field checks before any receipt or business operation', async () => {
+    const response = await submit({ ...oldInvalidAddress, facility_reference: '' })
+    expect(response.status).toBe(422)
+    expect(await response.json()).toMatchObject({ error: { code: 'facility_reference_required' } })
+    expect(fixture.ledgerCalls).toHaveLength(0)
+    expect(fixture.commands).toHaveLength(0)
+  })
 })
 
 describe('Customer move-out creation and durable replay', () => {
