@@ -17,6 +17,7 @@ import {
 import {
   buildPortalDatabasePage,
   decodePortalCursor,
+  PortalCursorError,
   portalPageLimit,
 } from '@/lib/customer-portal/keysetPagination'
 import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
@@ -133,7 +134,10 @@ async function profiledGET(request: NextRequest) {
 
     return customerPortalJson({ data: items, page: page.page })
   } catch (error) {
-    return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
+    const routeError = error instanceof PortalCursorError
+      ? new ApiInputError(error.message, error.code, error.status, error.field)
+      : error
+    return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error: routeError })
   }
 }
 
