@@ -109,6 +109,7 @@ async function profiledGET(request: NextRequest, contextInput: { params: Promise
             offset === 0 ? { count: 'exact' } : undefined)
           .eq('company_id', context.client.company_id)
           .eq('invoice_id', internalInvoiceId)
+          .or(`customer_id.eq.${portalContext.customerId},customer_id.is.null`)
           .order('created_at', { ascending: false })
           .order('id', { ascending: true })
         return offset === 0 ? query.limit(limit) : query.range(offset, offset + limit - 1)

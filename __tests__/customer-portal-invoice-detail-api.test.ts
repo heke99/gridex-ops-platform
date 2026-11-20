@@ -10,6 +10,7 @@ const io = vi.hoisted(() => ({
   tables: {} as Record<string, Row[]>,
   requestLog: [] as Row[],
   retentionChecks: [] as Row[],
+  documentPages: [] as { offset: number; total: number; exact: boolean }[],
   unavailableCopies: new Set<string>(),
   retiredCopies: new Set<string>(),
   readFailure: null as { table: string; offset: number; code: string } | null,
@@ -83,6 +84,12 @@ async function invoiceTestTransport(input: RequestInfo | URL, init?: RequestInit
   const rows = io.tables[resource].filter(row => {
     for (const [column, expression] of url.searchParams) {
       if (['select', 'order', 'offset', 'limit'].includes(column)) continue
+      if (column === 'or') {
+        const owner = /^\(customer_id\.eq\.([0-9a-f-]{36}),customer_id\.is\.null\)$/u.exec(expression)?.[1]
+        if (resource !== 'customer_invoice_documents' || !owner) throw new Error('Unexpected customer document filter')
+        if (row.customer_id === owner || row.customer_id == null) continue
+        return false
+      }
       if (expression.startsWith('eq.') && String(row[column]) === expression.slice(3)) continue
       if (expression.startsWith('in.(') && expression.slice(4, -1).split(',').includes(String(row[column]))) continue
       return false
@@ -109,6 +116,9 @@ async function invoiceTestTransport(input: RequestInfo | URL, init?: RequestInit
       : row,
   )
   const countRequested = new Headers(init?.headers).get('prefer')?.includes('count=exact')
+  if (resource === 'customer_invoice_documents') {
+    io.documentPages.push({ offset, total: rows.length, exact: countRequested === true })
+  }
   const contentRange = io.contentRangeOverride === undefined || resource !== 'customer_invoice_lines'
     ? `${page.length ? `${offset}-${offset + page.length - 1}` : '*'}/${rows.length}`
     : io.contentRangeOverride
@@ -124,7 +134,8 @@ function invoiceLine(id: string, options: Row = {}): Row {
 
 function invoiceDocument(id: string, options: Row = {}): Row {
   return {
-    id, company_id: company, invoice_id: invoiceId, title: `Document ${id.slice(-4)}`, document_type: 'invoice_pdf',
+    id, company_id: company, customer_id: customer, invoice_id: invoiceId,
+    title: `Document ${id.slice(-4)}`, document_type: 'invoice_pdf',
     public_url: null, created_at: timestamp, ...options,
   }
 }
@@ -146,6 +157,7 @@ beforeEach(() => {
   }
   io.requestLog = []
   io.retentionChecks = []
+  io.documentPages = []
   io.unavailableCopies.clear()
   io.retiredCopies.clear()
   io.readFailure = null
@@ -195,6 +207,39 @@ describe('customer portal invoice detail API', () => {
     expect(data.documents.map((document: { title: string }) => document.title)).toEqual(
       Array.from({ length: 1001 }, (_, index) => `Document ${3000 + index}`),
     )
+  })
+
+  it('counts and pages only documents for the verified customer and legacy rows of the authorized invoice', async () => {
+    io.rowLimit = 2
+    const pdf = uuid(7100), note = uuid(7101), legacy = uuid(7102)
+    const activeUrl = 'https://synthetic.example.test/active-document'
+    io.tables.customer_invoice_documents = [
+      invoiceDocument(uuid(7103), {
+        customer_id: uuid(99), document_type: 'summary', created_at: '2026-11-04T00:00:00.000Z', public_url: activeUrl,
+      }),
+      invoiceDocument(uuid(7104), { company_id: uuid(98), customer_id: uuid(97), document_type: 'confirmation' }),
+      invoiceDocument(uuid(7105), { invoice_id: uuid(96), customer_id: null, document_type: 'summary' }),
+      invoiceDocument(pdf, { title: 'Invoice PDF', created_at: '2026-11-03T00:00:00.000Z', public_url: activeUrl }),
+      invoiceDocument(note, {
+        title: 'Payment note', document_type: 'payment_note', created_at: '2026-11-02T00:00:00.000Z', public_url: activeUrl,
+      }),
+      invoiceDocument(legacy, { title: 'Legacy receipt', customer_id: null, document_type: 'receipt', public_url: activeUrl }),
+    ]
+    io.retiredCopies.add(legacy)
+
+    const result = await readInvoice()
+    const { data } = await result.json()
+
+    expect(result.status).toBe(200)
+    expect(data.documents).toMatchObject([
+      { title: 'Invoice PDF', document_type: 'invoice_pdf', secure_url: activeUrl },
+      { title: 'Payment note', document_type: 'payment_note', secure_url: activeUrl },
+      { title: 'Legacy receipt', document_type: 'receipt', secure_url: null },
+    ])
+    expect(io.documentPages).toEqual([{ offset: 0, total: 3, exact: true }, { offset: 2, total: 3, exact: false }])
+    expect(io.retentionChecks).toEqual([pdf, note, legacy].map(id => ({
+      p_company_id: company, p_retention_class: 'customer_invoice_document_pdf_bytes', p_target_id: id,
+    })))
   })
 
   it('reports a later page read failure without returning partial invoice data', async () => {
