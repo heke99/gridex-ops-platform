@@ -731,10 +731,6 @@ export function assessWebsiteApplicationReadiness(
   }
   if (!hasVerifiedGridOwner) {
     missingFields.push("grid_owner");
-    const verificationDetail =
-      gridOwnerVerificationStatus && gridOwnerVerificationStatus !== "verified"
-        ? ` Status: ${gridOwnerVerificationStatus}.`
-        : "";
     addIssue(blockingReasons, {
       field: "grid_owner",
       label: "Nätägare ej verifierad",

@@ -9,7 +9,7 @@ import { powerOfAttorneyCoverageFromScopes } from "@/lib/operations/powerOfAttor
 import { buildCustomerLegalDocuments, isCustomerLegalDocumentKind, type CustomerLegalDocument, type CustomerLegalModuleVersion } from "@/lib/legal/customerDocumentPackage";
 import { LegalAcceptanceSchema, structuredPoaIsExternallySendable } from "./customerApplicationSchemas";
 import type { NormalizedStructuredPoa } from "./customerApplicationSchemas";
-import { WebsiteApplicationError, clean, isObject, isUuid, missingSchema, schemaErrorDetail, stage } from "./customerApplicationShared";
+import { WebsiteApplicationError, clean, isObject, isUuid, missingSchema, schemaErrorDetail } from "./customerApplicationShared";
 import type { RequestAuditMetadata } from "./customerApplicationShared";
 import { ensurePoaPdfArchive } from '@/lib/customers/poaDocuments';
 import { completePoaCaptureEvidence } from '@/lib/customers/poaEvidenceCompletion';
