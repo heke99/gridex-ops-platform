@@ -329,17 +329,24 @@ export async function listPortalMeteringValues(
   context: CustomerPortalContext,
   options: {
     limit?: number
+    currentOnly?: boolean
   } = {}
 ): Promise<CustomerPortalMeteringValueRow[]> {
   if (context.customerIds.length === 0 || !context.companyId) return []
 
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('metering_values')
     .select(
       'id,customer_id,site_id,metering_point_id,source_request_id,grid_owner_id,reading_type,value_kwh,quality_code,read_at,period_start,period_end,source_system,created_at'
     )
     .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
+
+  if (options.currentOnly) {
+    query = query.eq('is_current', true).eq('revision_status', 'current')
+  }
+
+  const { data, error } = await query
     .order('period_start', { ascending: false, nullsFirst: false })
     .order('read_at', { ascending: false })
     .limit(options.limit ?? 250)
