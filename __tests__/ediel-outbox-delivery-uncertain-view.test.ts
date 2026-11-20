@@ -121,6 +121,21 @@ describe('delivery-uncertain Ediel outbox visibility', () => {
     expect(html).not.toContain('Skicka denna')
   })
 
+  it('shows failed history without offering a send or adding to the ready count', async () => {
+    const prepared = uid(21), queued = uid(22), failed = uid(23), failedMessage = uid(24)
+    await put(prepared, uid(25), company, 'prepared', '2026-11-18', '2026-11-18')
+    await put(queued, uid(26), company, 'queued', '2026-11-18', '2026-11-18')
+    await put(failed, failedMessage, company, 'failed', '2026-11-18', '2026-11-18')
+
+    const html = await render()
+    expect(html).toContain('2 poster redo för kontroll/skick')
+    expect(html).toContain(`/admin/ediel/messages/${failedMessage}`)
+    expect(html).toContain(`value="${prepared}"`)
+    expect(html).toContain(`value="${queued}"`)
+    expect(html).not.toContain(`value="${failed}"`)
+    expect(html.match(/Skicka denna/g)).toHaveLength(2)
+  })
+
   it('distinguishes a failed read from verified empty and preserves recent history on failure', async () => {
     expect(reviewSection(await render())).toContain('Inga leveransovissa poster att stämma av.')
     io.failReviewRead = true

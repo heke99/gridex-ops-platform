@@ -29,7 +29,7 @@ function statusTone(value: unknown): string {
 }
 
 function canSend(row: EdielAutomationRow): boolean {
-  return ['prepared', 'queued', 'failed'].includes(String(row.status ?? '').toLowerCase())
+  return row.status === 'prepared' || row.status === 'queued'
 }
 
 function lockText(row: EdielAutomationRow): string | null {
