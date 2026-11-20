@@ -23,7 +23,9 @@ import {
   canonicalSupplierUtiltsApplicationReference,
   type UtiltsRequestedMessageCode,
 } from '@/lib/ediel/rulebook/canonicalEdielFacade'
+import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { normalizeMeteringResolution } from '@/lib/metering/contractMeteringResolution'
+import { stockholmMonthBounds } from '@/lib/time/stockholm'
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -51,6 +53,38 @@ function requestedMessageForDataRequest(input: {
   // values. Forecast/planning requests must explicitly state S02 in request_payload.
   if (input.requestScope === 'meter_values') return 'E66'
   throw new Error('utilts_e73_requested_message_required')
+}
+
+function requestedDeliveryPeriod(request: GridOwnerDataRequestRow, requestedCode: UtiltsRequestedMessageCode) {
+  if (request.automation_origin !== 'metering_market_data_autopilot_v1') {
+    return { start: request.requested_period_start, end: request.requested_period_end }
+  }
+
+  // The monthly producer saves its original UTC instants in request_payload.
+  // The sibling DATE columns keep their existing lookup and duplicate keys.
+  const payload = record(request.request_payload)
+  const month = typeof payload.billing_month === 'string' ? payload.billing_month : ''
+  const sourceMismatch = 'utilts_e73_monthly_period_source_mismatch'
+  if (requestedCode !== 'E66' || request.request_scope !== 'meter_values' || !request.metering_point_id
+    || request.automation_key !== `meter-values:${request.company_id}:${request.metering_point_id}:${month}`) {
+    throw new Error(sourceMismatch)
+  }
+
+  let bounds: ReturnType<typeof stockholmMonthBounds>
+  try {
+    bounds = stockholmMonthBounds(month)
+  } catch {
+    throw new Error(sourceMismatch)
+  }
+
+  if (payload.time_zone !== bounds.timeZone || payload.requested_period_start !== bounds.start
+    || payload.requested_period_end !== bounds.end
+    || request.requested_period_start !== bounds.start.slice(0, 10)
+    || request.requested_period_end !== bounds.end.slice(0, 10)) {
+    throw new Error(sourceMismatch)
+  }
+
+  return { start: payload.requested_period_start, end: payload.requested_period_end }
 }
 
 async function requireBilateralE73Capability(input: {
@@ -169,16 +203,17 @@ export async function prepareAndQueueUtiltsE73(params: {
   })
 
   const legalParties = dataRequestLegalParties({ companyId, environment, route: routeContext, networkEdielId: gridOwner?.ediel_id })
+  const period = requestedDeliveryPeriod(dataRequest, requestedMessageCode)
   // Validate at the minute precision the builder uses for DTM+324/719.
   // Distinct input instants can still render as the same market minute.
-  const startMinute = prodatDate203(dataRequest.requested_period_start)
-  const endMinute = prodatDate203(dataRequest.requested_period_end)
+  const startMinute = prodatDate203(period.start)
+  const endMinute = prodatDate203(period.end)
   if (!startMinute || !endMinute || startMinute >= endMinute) {
     throw new Error('utilts_e73_delivery_period_invalid')
   }
 
   const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
-    periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,...legalParties})
+    periodStart:period.start,periodEnd:period.end,...legalParties})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
@@ -192,8 +227,8 @@ export async function prepareAndQueueUtiltsE73(params: {
       bilateralCapabilityId,
       applicationReference,
       requestScope: dataRequest.request_scope,
-      requestedPeriodStart: dataRequest.requested_period_start,
-      requestedPeriodEnd: dataRequest.requested_period_end,
+      requestedPeriodStart: period.start,
+      requestedPeriodEnd: period.end,
       communicationRouteId: routeContext.route.id,
     },
   })
@@ -230,10 +265,10 @@ export async function prepareAndQueueUtiltsE73(params: {
       bilateralCapabilityId,
       applicationReferencePolicyKey: applicationReference,
       marketSemanticVersion: 'swedish-utilts-canonical-25-a-3',
-      requestedPeriodStart: dataRequest.requested_period_start,
-      requestedPeriodEnd: dataRequest.requested_period_end,
-      periodStart: dataRequest.requested_period_start,
-      periodEnd: dataRequest.requested_period_end,
+      requestedPeriodStart: period.start,
+      requestedPeriodEnd: period.end,
+      periodStart: period.start,
+      periodEnd: period.end,
       transactionReason: `Request missing ${requestedMessageCode}`,
       requestScope: dataRequest.request_scope,
       siteType: site?.site_type ?? 'consumption',
