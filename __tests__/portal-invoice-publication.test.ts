@@ -45,12 +45,18 @@ vi.mock('@/lib/supabase/service', async () => {
           io.reads.push({ table, query: url.searchParams.toString() })
           if (!Object.hasOwn(io.tables, table)) throw new Error(`Unexpected read: ${table}`)
           if (table === 'customer_invoices' && io.invoiceError) return reply(io.invoiceError, 500)
-          if (table === 'customer_invoices' && io.legacySelectMissing && url.searchParams.get('select')?.includes('invoice_export_item_id')) {
-            return reply({ code: '42703', message: 'column invoice_export_item_id does not exist' }, 400)
+          if (table === 'customer_invoices' && io.legacySelectMissing && url.searchParams.get('select')?.split(',').includes('total_kwh')) {
+            return reply({ code: '42703', message: 'column total_kwh does not exist' }, 400)
           }
           let rows = [...io.tables[table]]
           for (const [field, expression] of url.searchParams) {
             if (['select', 'order', 'limit'].includes(field)) continue
+            if (table === 'customer_invoice_documents' && field === 'or') {
+              const ownCustomer = expression.match(/^\(customer_id\.eq\.([a-f0-9-]{36}),customer_id\.is\.null\)$/i)
+              if (!ownCustomer) throw new Error(`Unexpected invoice document filter: ${expression}`)
+              rows = rows.filter(row => row.customer_id == null || row.customer_id === ownCustomer[1])
+              continue
+            }
             if (field === 'or') {
               const cursor = expression.match(/^\(created_at\.lt\.([^,]+),and\(created_at\.eq\.([^,]+),id\.lt\.([^)]+)\)\)$/)
               if (!cursor) throw new Error(`Unexpected cursor filter: ${expression}`)

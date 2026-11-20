@@ -258,13 +258,18 @@ export async function getPortalInvoiceDetail(
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true })
       .limit(500),
-    supabaseService
-      .from('customer_invoice_documents')
-      .select('*')
-      .eq('company_id', context.companyId)
-      .eq('invoice_id', invoiceId)
-      .order('created_at', { ascending: false })
-      .limit(100),
+    // Legacy PDF rows without a customer ID inherit the verified invoice's scope.
+    invoice.customer_id
+      ? supabaseService
+        .from('customer_invoice_documents')
+        .select('*')
+        .eq('company_id', context.companyId)
+        .eq('invoice_id', invoice.id)
+        .eq('document_type', 'invoice_pdf')
+        .or(`customer_id.eq.${invoice.customer_id},customer_id.is.null`)
+        .order('created_at', { ascending: false })
+        .limit(100)
+      : Promise.resolve({ data: [], error: null }),
   ])
 
   if (linesResult.error) throw linesResult.error
