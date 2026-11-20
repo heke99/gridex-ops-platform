@@ -351,3 +351,85 @@ it.each(wrongDateFormats)('leaves a valid pre-transition E66 eligible and reject
   changeSg5Format(source, format)
   expectWrongDateFormat(source, runUtiltsRuntimeForMessage(source), format)
 })
+
+const deliveryDate = `DTM+324:${validPeriod}`
+const registrationDate = 'DTM+597:202607010020'
+const periodWithSeconds = '2026070100000020260701001500'
+const registrationWithSeconds = '20260701002030'
+const registrationDayOnly = '20260701'
+
+it.each([
+  ['omitted 324 format', `${deliveryDate}:719`, deliveryDate, '245', null],
+  ['empty 324 format', `${deliveryDate}:719`, `${deliveryDate}:`, '245', null],
+  ['324 endpoints with seconds', `${deliveryDate}:719`, `DTM+324:${periodWithSeconds}:719`, '245', periodWithSeconds],
+  ['omitted 597 format', `${registrationDate}:203`, registrationDate, '512', null],
+  ['empty 597 format', `${registrationDate}:203`, `${registrationDate}:`, '512', null],
+  ['597 with seconds', `${registrationDate}:203`, `DTM+597:${registrationWithSeconds}:203`, '512', registrationWithSeconds],
+  ['597 with date only', `${registrationDate}:203`, `DTM+597:${registrationDayOnly}:203`, '512', registrationDayOnly],
+] as const)('rejects malformed SG5 date grammar with %s before consumption preparation', async (_name, original, malformed, fieldCode, received) => {
+  const source = e66(validPeriod)
+  expect(source.raw_payload).toContain(original)
+  source.raw_payload = source.raw_payload!.replace(original, malformed)
+  const runtime = run(source)
+  const ercCode = received === null ? '41' : '42'
+  const text = received === null ? 'MANDATORY FIELD MISSING' : `INCORRECT DATA ${received}`
+  const dateIssue = runtime.validation.issues.find(issue => issue.aperakFieldCode === fieldCode && issue.aperakErcCode === ercCode)
+
+  expect(runtime.validation.syntaxOk).toBe(true)
+  expect(runtime.transactionDispositions).toMatchObject([{
+    transactionId: reference, disposition: 'guide_rejected', responseType: 'negative_aperak',
+  }])
+  expect(dateIssue).toMatchObject({ kind: 'application', severity: 'error' })
+  if (received === null) {
+    expect(dateIssue?.aperakInvalidOccurrence).toBeUndefined()
+  } else {
+    const segment = tokenizeEdifact(source.raw_payload).segments.find(item => item.raw === malformed)
+    expect(segment).toBeDefined()
+    expect(dateIssue?.aperakInvalidOccurrence).toEqual({ segmentIndex: segment!.index, elementIndex: 1, componentIndex: 1 })
+  }
+  expect(runtime.ackPlan).toMatchObject({
+    contrlOutcome: 'positive', aperakOutcome: 'negative', shouldSendUtiltsErr: false,
+    aperakApplicationErrors: [{ ercCode, fieldCode, text, referenceNumber: reference }],
+  })
+  expect(decideUtiltsResponse({ message: source })).toMatchObject({ kind: 'ack', ackFamily: 'APERAK', outcome: 'negative' })
+  const draft = buildAckDraftForSource({
+    sourceMessage: source, ackFamily: 'APERAK', outcome: 'negative', ackScope: 'transaction',
+    relatedTransactionReference: reference, applicationErrors: runtime.ackPlan.aperakApplicationErrors,
+  })
+  expect(draft.rawPayload).toContain(`ERC+${ercCode}::260`)
+  expect(draft.rawPayload).toContain(text)
+  expect(await prepare(source, runtime, true)).toMatchObject([{
+    observations: [], metering: { capability: 'skip' }, billing: { capability: 'skip', periodStart: null, periodEnd: null },
+  }])
+  expect(probes.countIntervals).not.toHaveBeenCalled()
+  expect(probes.matchPoint).not.toHaveBeenCalled()
+  expect(probes.database).not.toHaveBeenCalled()
+})
+
+it.each([
+  ['324 with an unparseable short period', 'DTM+324:202607010015202607010030:719', 'DTM+324:202607010015:719', '245'],
+  ['597 with an unparseable calendar date', `${registrationDate}:203`, 'DTM+597:202602300020:203', '512'],
+] as const)('retains one existing rejection and prepares the valid sibling after %s', async (_name, original, malformed, fieldCode) => {
+  const source = e66Interchange([
+    { id: reference, period: '202607010015202607010030' },
+    { id: sibling, period: validPeriod, point: siblingMeterPoint },
+  ])
+  expect(source.raw_payload).toContain(original)
+  source.raw_payload = source.raw_payload!.replace(original, malformed)
+  const runtime = run(source)
+  expect(runtime.transactionDispositions).toMatchObject([
+    { transactionId: reference, disposition: 'guide_rejected', responseType: 'negative_aperak' },
+    { transactionId: sibling, disposition: 'accepted', responseType: 'positive_aperak' },
+  ])
+  expect(runtime.ackPlan.aperakApplicationErrors).toMatchObject([
+    { ercCode: '41', fieldCode, text: 'MANDATORY FIELD MISSING', referenceNumber: reference },
+  ])
+  const [rejected, accepted] = await prepare(source, runtime, true)
+  expect(rejected).toMatchObject({ transactionId: reference, observations: [], billing: { capability: 'skip' } })
+  expect(accepted).toMatchObject({
+    transactionId: sibling,
+    observations: [{ externalPoint: siblingMeterPoint, periodStart: '2026-06-30T22:00:00.000Z', periodEnd: '2026-06-30T22:15:00.000Z' }],
+    billing: { capability: 'write', periodStart: '2026-06-30T22:00:00.000Z', periodEnd: '2026-06-30T22:15:00.000Z' },
+  })
+  expect(probes.database).not.toHaveBeenCalled()
+})

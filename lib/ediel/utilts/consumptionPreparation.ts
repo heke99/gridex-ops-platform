@@ -11,7 +11,7 @@ import { addNormalizedResolution, normalizeEdifactResolution } from './resolutio
 import { resolveUtiltsTransactionId } from './transactionIdentity'
 import {physicalUtiltsReference,isValidUtiltsTransactionReference} from './physicalReference'
 import { utiltsSeriesKind } from './transactionPersistence'
-import { E66_INVALID_DELIVERY_PERIOD_ISSUE, E66_INVALID_REGISTRATION_FORMAT_ISSUE } from './profiles'
+import { E66_INVALID_DELIVERY_PERIOD_ISSUE, E66_INVALID_REGISTRATION_DATE_ISSUE, UTILTS_MISSING_DELIVERY_PERIOD_ISSUE } from './profiles'
 import { canonicalAbsoluteInstant, consumptionConflict, validateUtiltsConsumptionContract, type UtiltsConsumptionAttribution, type UtiltsConsumptionContract, type UtiltsBillingContext } from './consumptionContract'
 import {utiltsRuntimeSegments,type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -42,7 +42,8 @@ export async function prepareUtiltsConsumptionContracts(input: {
   let billingPeriodEnd = runtime.normalizedPayload.periodEnd
   const firstDisposition = runtime.transactionDispositions[0]
   if (policy.code === 'E66' && firstDisposition?.disposition === 'guide_rejected'
-    && firstDisposition.issueCodes.some(code => code === E66_INVALID_DELIVERY_PERIOD_ISSUE || code === E66_INVALID_REGISTRATION_FORMAT_ISSUE)) {
+    && [E66_INVALID_DELIVERY_PERIOD_ISSUE, E66_INVALID_REGISTRATION_DATE_ISSUE, UTILTS_MISSING_DELIVERY_PERIOD_ISSUE,
+      'UTILTS_E66_MISSING_REGISTRATION_TIME'].some(code => firstDisposition.issueCodes.includes(code))) {
     // The billing consumer requires one shared context for the accepted IDEs.
     // The summary came from the rejected first IDE, so take the period from the
     // first accepted physical IDE instead. Each observation keeps its own period.

@@ -6,7 +6,8 @@ import {segmentComposite,segmentUntrimmedRaw,tokenizeEdifact} from '@/lib/ediel/
 import {isValidUtiltsTransactionReference} from './physicalReference'
 
 export const E66_INVALID_DELIVERY_PERIOD_ISSUE = 'UTILTS_E66_DELIVERY_PERIOD_INVALID'
-export const E66_INVALID_REGISTRATION_FORMAT_ISSUE = 'UTILTS_E66_REGISTRATION_FORMAT_INVALID'
+export const E66_INVALID_REGISTRATION_DATE_ISSUE = 'UTILTS_E66_REGISTRATION_DATE_INVALID'
+export const UTILTS_MISSING_DELIVERY_PERIOD_ISSUE = 'UTILTS_PROFILE_PERIOD_MISSING'
 
 function issue(code: string, title: string, description: string, reference?: string | null, field = '512'): UtiltsValidationIssue {
   return {
@@ -29,15 +30,20 @@ function qualifier(value: string | null | undefined): string {
 }
 
 function isCalendarMinute(compact: string): boolean {
+  if (!/^\d{12}$/.test(compact)) return false
   const iso = `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}T${compact.slice(8, 10)}:${compact.slice(10, 12)}:00.000Z`
   const date = new Date(iso)
   return Number.isFinite(date.getTime()) && date.toISOString() === iso
 }
 
-function e66TransactionDateIssues(facts: UtiltsRuntimeFacts, index: number, reference: string): UtiltsValidationIssue[] {
+function e66TransactionDateIssues(facts: UtiltsRuntimeFacts, index: number, reference: string, legacyPeriodMissing: boolean): UtiltsValidationIssue[] {
   const observed = facts.utiltsObservedTransactions?.[index]
-  if (!observed || observed.transactionId !== facts.transactions[index].transactionId) return []
+  const transaction = facts.transactions[index]
+  if (!observed || observed.transactionId !== transaction.transactionId) return []
 
+  // The legacy quarter/hour requirement already rejects an unusable SG5
+  // registration. Preserve its one field error for existing rejected inputs.
+  const legacyRegistrationMissing = !transaction.registrationTime && (transaction.resolution === '15' || transaction.resolution === '60')
   const issues: UtiltsValidationIssue[] = []
   for (const segment of observed.segments) {
     // U annex 1 p.125 assigns these date formats to SG5. After the first
@@ -51,30 +57,37 @@ function e66TransactionDateIssues(facts: UtiltsRuntimeFacts, index: number, refe
     const [qualifier, value, format] = segmentComposite(token, 1)
     if (qualifier !== '324' && qualifier !== '597') continue
     const isDeliveryPeriod = qualifier === '324'
+    if (isDeliveryPeriod ? legacyPeriodMissing : legacyRegistrationMissing) continue
+    const field = isDeliveryPeriod ? '245' : '512'
+    const code = isDeliveryPeriod ? E66_INVALID_DELIVERY_PERIOD_ISSUE : E66_INVALID_REGISTRATION_DATE_ISSUE
     const expectedFormat = isDeliveryPeriod ? '719' : '203'
+    const compact = value?.trim() ?? ''
     const formatCode = format?.trim()
-    if (formatCode && formatCode !== expectedFormat) {
-      const field = isDeliveryPeriod ? '245' : '512'
-      const code = isDeliveryPeriod ? E66_INVALID_DELIVERY_PERIOD_ISSUE : E66_INVALID_REGISTRATION_FORMAT_ISSUE
-      issues.push({
-        ...issue(code, 'Ogiltig datumformatkod', `DTM+${qualifier} i SG5 kräver formatkod ${expectedFormat}.`, reference, field),
-        aperakErcCode: '42',
-        aperakText: 'INCORRECT DATA',
-        aperakInvalidOccurrence: { segmentIndex: segment.index, elementIndex: 1, componentIndex: 2 },
-      })
+    if (!formatCode || !compact) {
+      const missing = formatCode ? 'datumvärde' : 'formatkod'
+      issues.push(issue(code, 'Ofullständigt datumfält', `DTM+${qualifier} i SG5 saknar ${missing}.`, reference, field))
       continue
     }
-    const compact = value?.trim() ?? ''
-    if (!isDeliveryPeriod || formatCode !== '719' || !/^\d{24}$/.test(compact)) continue
+
+    const wrongFormat = formatCode !== expectedFormat
     const start = compact.slice(0, 12)
     const end = compact.slice(12)
-    if (isCalendarMinute(start) && isCalendarMinute(end) && start < end) continue
+    const validDate = isDeliveryPeriod
+      ? isCalendarMinute(start) && isCalendarMinute(end) && start < end
+      : isCalendarMinute(compact)
+    if (!wrongFormat && validDate) continue
+
+    const dateField = isDeliveryPeriod ? 'leveransperiod' : 'registreringstidpunkt'
+    const title = wrongFormat ? 'Ogiltig datumformatkod' : `Ogiltig ${dateField}`
+    const invalidDate = isDeliveryPeriod
+      ? 'DTM+324 i format 719 kräver giltiga datum och klockslag med minutprecision samt ett slut efter starten.'
+      : 'DTM+597 i format 203 kräver giltigt datum och klockslag med minutprecision.'
+    const description = wrongFormat ? `DTM+${qualifier} i SG5 kräver formatkod ${expectedFormat}.` : invalidDate
     issues.push({
-      ...issue(E66_INVALID_DELIVERY_PERIOD_ISSUE, 'Ogiltig leveransperiod',
-        'DTM+324 i format 719 kräver giltigt datum och klockslag vid båda gränserna samt ett slut efter starten.', reference, '245'),
+      ...issue(code, title, description, reference, field),
       aperakErcCode: '42',
       aperakText: 'INCORRECT DATA',
-      aperakInvalidOccurrence: { segmentIndex: segment.index, elementIndex: 1, componentIndex: 1 },
+      aperakInvalidOccurrence: { segmentIndex: segment.index, elementIndex: 1, componentIndex: wrongFormat ? 2 : 1 },
     })
   }
   return issues
@@ -144,8 +157,9 @@ export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts, functi
       : transaction.meterPointId)) issues.push(issue('UTILTS_PROFILE_METERING_POINT_MISSING', 'Anläggnings-id saknas', `${profile.profileKey} kräver ${facts.messageCode === 'E66' ? 'LOC+172 eller LOC+175' : 'LOC+172'} per transaktion.`, reference, '209'))
     if (profile.requiresGridArea && !transaction.gridAreaId) issues.push(issue('UTILTS_PROFILE_GRID_AREA_MISSING', 'Nätområde saknas', `${profile.profileKey} kräver LOC+239.`, reference, '260a'))
     const singletonReading = isSingletonE30Reading(facts, index)
-    if (profile.requiresPeriod && !singletonReading && (!transaction.deliveryPeriodStart || !transaction.deliveryPeriodEnd)) issues.push(issue('UTILTS_PROFILE_PERIOD_MISSING', 'Leveransperiod saknas', `${profile.profileKey} kräver både start och slut i DTM+324.`, reference, '245'))
-    if (profile.messageCode === 'E66') issues.push(...e66TransactionDateIssues(facts, index, reference))
+    const missingPeriod = profile.requiresPeriod && !singletonReading && (!transaction.deliveryPeriodStart || !transaction.deliveryPeriodEnd)
+    if (missingPeriod) issues.push(issue(UTILTS_MISSING_DELIVERY_PERIOD_ISSUE, 'Leveransperiod saknas', `${profile.profileKey} kräver både start och slut i DTM+324.`, reference, '245'))
+    if (profile.messageCode === 'E66') issues.push(...e66TransactionDateIssues(facts, index, reference, missingPeriod))
     if (profile.requiresResolution && !singletonReading && !transaction.resolution) issues.push(issue('UTILTS_PROFILE_RESOLUTION_MISSING', 'Upplösning saknas', `${profile.profileKey} kräver DTM+354.`, reference, '508'))
     const quantities = transaction.quantities
     const observations=facts.utiltsObservedTransactions?.[index]?.observations ?? []
